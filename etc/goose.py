@@ -11,7 +11,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, etcd, kv, kvreconf, durable, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
-               k8s-daemonset, bbolt or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, bbolt or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -1124,6 +1124,23 @@ PROJECTS = [
                os.path.join("k8s_io", "controller_manager")],
     ),
     Project(
+        name="k8s-compactor",
+        # Kubernetes' etcd compactor run as API servers run it (notes/k8s-compactor-plan.md, K3):
+        # package `.` of examples/k8s/compactor, a Go module of its own (it requires
+        # k8s.io/apiserver and k8s.io/utils at the pins of examples/k8s/etcd3/go.mod,
+        # CLIENT_GO_PINS, and the etcd fork at the etcd pin, GO_MOD_PINS), with bodies.
+        # Everything it names outside the package is the k8s-apiserver and etcd projects'
+        # translations (the empty root): the compactor, the feature gate, k8s.io/utils/clock,
+        # etcd's client, examples/lib/etcdstart.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8s", "compactor"),
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "github.com/mit-pdos/etcd-grove=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "compactor")],
+    ),
+    Project(
         name="kvwitness",
         # The key-value store example (project kv) on the witness raft (project raft-witness):
         # a cluster of two voters and an in-process witness (`StartClusterWitness`, `MainWitness`;
@@ -1196,6 +1213,8 @@ GO_MOD_PINS = {
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    # Kubernetes' compactor's example, a module of its own (it requires k8s.io/apiserver)
+    os.path.join("examples", "k8s", "compactor", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
 }
 
 
@@ -1206,6 +1225,10 @@ GO_MOD_PINS = {
 # `replace`).
 CLIENT_GO_PINS = {
     os.path.join("examples", "k8s", "daemonset", "go.mod"): (
+        os.path.join("examples", "k8s", "etcd3", "go.mod"),
+        ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
+         "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
+    os.path.join("examples", "k8s", "compactor", "go.mod"): (
         os.path.join("examples", "k8s", "etcd3", "go.mod"),
         ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
          "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),

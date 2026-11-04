@@ -328,7 +328,13 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `types.Unalias` on the type and on a pointer's element in `getStructInfo`. Tried
   in a scratch copy of the pinned translator: the three translate and their `Code` and
   `GeneratedProof` elaborate; nothing else changes.
-- **Status.** Not started; small. Needed before the watcher.
+- **Status.** Done, waiting for the push (2026-11-04, the user's sign-off on the plan, G1 of
+  `notes/k8s-compactor-plan.md`): Perennial branch `goose-unalias` (`/shared/perennial-unalias`,
+  commits `d2aa32108`, `e028adb0d`; `etc/land.sh prepare` passed, the review recorded), the two
+  lines, tests of a value, a pointer to an alias and an alias of a pointer (gold files; the
+  semantics test `testStructFieldThroughAlias`, proved), `fix-semantics` Case 30; the standard
+  library regenerates unchanged. Then the pin bump, and `etcdstart.Collect`'s workaround
+  (`mvccpb.Event` for `clientv3.Event`) can go.
 
 ### Goose: imports of packages whose types a body names, and same-named packages
 

@@ -31174,3 +31174,32 @@ The other changes are proof-only:
 - `isCtxErr` is cleared at `Err()`'s uses; `WithCancel` gets it from `isCtxErr_of_Canceled`.
 - `errors.wp_New_errorString`'s new `↦□` cell is dropped by the intro patterns, in `etc/gen-init.py` and raft's init.
 - raft's `Base` imports `io/fs`'s package-init instance.
+
+## Kubernetes' compactor tested against Go: the example, the client-only starter, the gate's trust boundary (2026-11-04 · K3 of `notes/k8s-compactor-plan.md`, the user's approval of the plan and of U3 · branch `k8s-compactor-ex`)
+
+**The starter.** `StartCompactingServer.spec`'s premise `0 < sint.Z retention` becomes
+`0 ≤ sint.Z retention`. At `0` the Go function starts the member exactly as at a positive
+retention, except that etcd's compactor is off. The member is still in compaction mode
+(`memberBoot … true`): every compaction is a client's, as in Kubernetes. The slot (K1) already
+admits this case through `bootCfg_off`, and the existing premise `cret ≤ retention` makes the
+cluster's retention `0`. This is the plan's "a mode of an existing starter, not a new copy". The
+premise is only weaker, so its callers (`compacted`, `compactwatch`, `decide`) are unchanged.
+
+**The gate's trust boundary (U3).** `DisableSnapshotList` is the example's own one-line function,
+`DefaultMutableFeatureGate.Set("ListFromCacheSnapshot=false")`. It gets an axiom as its proof,
+with `gateOff` on success. The alternative was an axiom on featuregate's `Set` method itself, but
+the gate is names-only, and its method values are reached through `MethodResolve` on an interface
+type that no spec here describes. The axiom on the caller is one statement about one call, which
+the file argues is sound: no other mutator of the gate has a spec, and this one only records the
+same `false`.
+
+**The checks `Main` makes** are those K2's specs prove:
+- `CompactRevision` is monotone (`compactRevLb`);
+- it is a reached revision (`recRevOk`);
+- the key holds a reached revision, through the caller's `recorded`, which `Main`'s proof defines,
+  and the `ParseInt` read-back.
+
+Two properties are left to the Go test, because `casOk` does not give them. The key's values
+increase (a winner's revision is at least the previous put's revision, which the contract does
+not relate to the key). Each compaction is at a recorded revision (a compaction whose call returned
+an error is invisible to the caller).

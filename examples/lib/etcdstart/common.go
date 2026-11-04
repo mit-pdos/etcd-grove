@@ -113,8 +113,10 @@ func StartServer(name string, peerAddr string, clientAddr string,
 	return s, nil
 }
 
-// StartCompactingServer is StartServer with the auto-compactor on, in revision mode, keeping
-// retention revisions (retention positive).
+// StartCompactingServer is StartServer in compaction mode: with the auto-compactor on, in revision
+// mode, keeping retention revisions (retention positive), or, at retention zero, with it off and
+// every compaction a client's (Kubernetes' deployment, whose API servers compact:
+// examples/k8s/compactor).
 func StartCompactingServer(name string, peerAddr string, clientAddr string, retention int64,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
