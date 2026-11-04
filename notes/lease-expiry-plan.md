@@ -389,3 +389,54 @@ Round 2: a fresh reviewer on this revision, hardest on R1-R3's repairs.
 D2(b)) proposed on its own, `EtcdServer.revokeExpiredLeases.wp_proof` a marked `sorry` meanwhile (a
 new `sorry`, approved), the rest of the stage proceeding and landing with it; E2/E3, the
 single-member row (a trusted restatement of `leaseTimeToLive`, the `axiom` skill before Freeze).
+
+## Review round 3 (2026-11-04, a fresh `spec-reviewer` on `08cfd673a3`)
+
+First tier: **R1** `γl.leases` cannot be a caller's name (`NewLessor` allocates `γl` in its post,
+`NewLessor.lean:129-131`; `NewServer.specG` returns `E` existentially, `:311`). **R2** deleting
+`srvRest_revocable` breaks `applySnapshot.specSnapM`'s proof (`EtcdServer__applySnapshot.lean:131`)
+and the walk (`SnapApplyWalk.lean:369`), which have no `lg = false` premise. **R3** `srvSnapRO`'s
+`lessorModeIs E.γ.leases γr.kv.lg` (`SnapRO.lean:447`) is false in revocable mode. **R4**
+`kv_lease_served`'s `lg = true` arm (`etcdstart/ServedLease.lean:177`) registers grant/listing
+specs fixed to `leaseGrantedAt` (`client/v3/InvLeaseGrant.lean:60,76`): false in revocable mode.
+**R5** E2's found arm is not provable from a configuration premise: `MinLeaseTTL =
+int64(math.Ceil(minTTL.Seconds()))` and the float specs are uninterpreted (`Spec/math/Ceil.lean`
+posts `True`, `Duration.Seconds_ptr` some `f`). **R6** X5's `sorry` reaches every server result
+(`run` takes `revokeExpiredLeases.spec`, `Link.lean` passes it unconditionally), unlike
+`srvGrantOpen_open`, kept out by a premise only granting results discharge. **R7** (reachability
+uncertain) on a restart, replayed grants are applied before any election, so a live lease is
+forwarded (404 → not found). **R8** E3 is a sketch: no law, no invariant tying an id's first
+appearance in the history to a spent right, no account of boot's and `Recover`'s snapshots.
+Adequate: E2's row (static membership makes "only member" the pure `cfg = {nid}` of the names), S3,
+the mode encoding, `mono`'s dead arm. Preferences: `leaseLiveAt` → `leaseLiveFrom` (exists,
+`InvLessor.lean:345`; `leaseAbsentFrom` too); E2's configuration premise not in `lease.bootCfg`; S3's
+key is `leaseKey id` (`RestLease.lean:32`), `t`, `r` existential; `srvGrantsLeases`' docstring.
+
+The third round on the same statements (`notes/spec-first-plan.md`, "When to stop iterating"):
+R1-R4, R6 and R7 repaired below; R5 and R8 go to the user; then the glue against the real callers.
+
+## Draft, revision 4 (2026-11-04)
+
+- **C1 (R1).** The caller chooses only the mode `m : lease.Mode`: `lease.bootCfg lg m on := lg =
+  decide (m ≠ none) ∧ (on = true → m = none) ∧ (m = mono → leasesNoExpiry) ∧ (m = revocable →
+  srvRevokeOpen) ∧ ckptEffectsOk` (and `m ≠ none → srvGrantOpen` until S4); `lease.srvInv on s E m :=
+  … ∗ □ lessorModeIs E.γ.leases (decide (m = mono))`. No `lease.Names` record yet (the mode is the
+  only caller-chosen datum; the names stay where `NewLessor` makes them).
+- **X2 (R2, R3, R4).** `srvRest_revocable` kept, restated mode-generic (`lessorModeIs … false ∧ ¬ m =
+  revocable → lg = false`); `applySnapshot.specSnapM` takes `E.lg = false →` until S4 (`applyAll`
+  discharges it from `hlgk` and `isServer`'s `γr.kv.lg = E.lg`, `InvApplier.lean:674`); `srvSnapRO`'s
+  mode conjunct at `decide (m = mono)`, `srvSnapRO`/`applyAll.specSnap` taking `m`;
+  `lessorGrantOkL_of_server`/`lessorGrantOkL_server` take `lease.srvInv … mono`; `kv_lease_served`
+  split by mode (mono as now; revocable registers the grant spec at the mode-free
+  `∃ l, leaseLiveFrom` and a listing spec with no `G`); `leaseGrantedResp` (`LeaseGrant.lean:70`) and
+  the chain's answer (`apply/Chain.lean:1132`) move to the mode-free fact.
+- **X5 (R6).** `run`'s revocable arm takes the open premise `srvRevokeOpen` (sealed, its body
+  `revokeExpiredLeases.spec`), in `lease.bootCfg` at `m = revocable`, discharged only in
+  leaseexpiry's linked file (the marked `sorry` reaches leaseexpiry's results only, as
+  `srvGrantOpen_open` reaches leasegrant's).
+- **E2 (R7).** The row also says "first incarnation" (no restart): the restart contracts
+  (`InvRestart.lean`) do not take `lease.bootCfg` at `m ≠ none` until a restart stage admits leases.
+  The not-found arm gives `leaseAbsentFrom`.
+- **Hubs touched** adds hub 3's `applySnapshot.specSnapM` (one premise until S4), `SnapRO`,
+  `kv_lease_served`.
+- **R5, R8**: the user's.
