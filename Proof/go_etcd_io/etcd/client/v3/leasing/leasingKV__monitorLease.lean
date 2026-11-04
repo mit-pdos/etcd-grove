@@ -218,7 +218,7 @@ theorem leasingKV.monitorLease.wp_proof
     iframe
     ipureintro; exact ⟨Hrev.1, Hrev.2.1⟩
   wp_for IH
-  wp_apply HErrU as %cerr -
+  wp_apply HErrU as %cerr - -
   cases cerr with
   | ok e =>
     wp_auto

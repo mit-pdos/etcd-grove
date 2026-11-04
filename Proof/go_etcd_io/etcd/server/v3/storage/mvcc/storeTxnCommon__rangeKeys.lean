@@ -665,7 +665,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iintro ⟨-, #Hclosed⟩
                 (try wp_auto)
                 ihave #HE := HErr $$ %Broadcast.Done
-                wp_apply HE $$ [$Hclosed] as %cerr %Hne
+                wp_apply HE $$ [$Hclosed] as %cerr %Hne -
                 (try wp_auto)
                 wp_apply wp_slice_literal
                 isplitr

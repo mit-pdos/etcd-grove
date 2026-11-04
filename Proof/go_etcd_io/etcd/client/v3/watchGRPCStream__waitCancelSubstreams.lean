@@ -244,7 +244,7 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
         icases Hstp' with ⟨#Hgx, #Hcl⟩
         wp_auto
         ihave #HErrU := CHErr $$ %Broadcast.Unknown
-        wp_apply HErrU $$ [] as %err herr
+        wp_apply HErrU $$ [] as %err herr -
         rename_i err
         cases err with
         | nil =>

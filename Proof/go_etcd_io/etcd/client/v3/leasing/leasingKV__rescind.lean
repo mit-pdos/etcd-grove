@@ -80,7 +80,7 @@ theorem leasingKV.rescind.wp_proof
   iNamed Hctx2
   ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_for
-  wp_apply HErrU as %cerr -
+  wp_apply HErrU as %cerr - -
   cases cerr with
   | ok e =>
     (try wp_auto)

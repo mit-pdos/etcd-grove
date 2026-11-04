@@ -126,7 +126,7 @@ theorem txnLeasing.eval.wp_proof (hgather : gatherOps.spec (GF := GF) (hG := hG)
       iintro -
       wp_auto
       ihave #HErrU := HErr $$ %Broadcast.Unknown
-      wp_apply HErrU as %err -
+      wp_apply HErrU as %err - -
       wp_for_post
       iapply HΦ
       isplitl [Hl Hc Hcs Hts Hes Hback]

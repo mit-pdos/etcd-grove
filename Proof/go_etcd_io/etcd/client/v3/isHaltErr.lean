@@ -38,7 +38,7 @@ theorem isHaltErr.wp_proof
   iunfold _root_.Perennial.context.isContextDef at HC
   iNamed HC
   wp_auto
-  wp_apply HErr $$ %Broadcast.Pending as %ce -
+  wp_apply HErr $$ %Broadcast.Pending as %ce - -
   iclear HDeadline HDone HErr HValue HErrDone HDoneFresh HParentCC HClosedchan
   cases ce with
   | ok cei =>

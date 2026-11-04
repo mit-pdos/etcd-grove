@@ -352,7 +352,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iunfold _root_.Perennial.context.isContextDef at HC
         iNamed HC
         (try wp_auto)
-        wp_apply HErr $$ %Broadcast.Pending as %ce Hce'
+        wp_apply HErr $$ %Broadcast.Pending as %ce Hce' -
         cases ce with
         | ok cei =>
           (try wp_auto)

@@ -97,7 +97,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
     icases H with ⟨-, %Hv⟩
     wp_auto
     wp_for_post
-    wp_apply HErrU as %cerr -
+    wp_apply HErrU as %cerr - -
     wp_apply Hcancel'
     · imodintro; itrivial
     (try wp_auto)
@@ -145,7 +145,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
       icases Habs' with ⟨#Habs', -⟩
       have Hek : e.key = pfx ++ key := by
         have := Hke.1; rw [Hw3, Hw4] at this; simpa [inRange] using this
-      wp_apply HErrU as %cerr -
+      wp_apply HErrU as %cerr - -
       wp_for_post
       wp_for_post
       wp_apply Hcancel'
