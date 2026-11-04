@@ -161,6 +161,9 @@ theorem srvSnapApplied_of_walk
   -- step 7: the rest, framed
   icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
+  -- (R2b-3d stage 3) the new backend's stop channels at the server's own resources
+  ihave #HSCs : srvStopChans (GF := GF) (snapγ γ π0 d'.γB) d' $$ [HSC]
+  · iunfold srvStopChans; rw [← hP']; iframe HB; iexact HSC
   imodintro
   iunfold srvSnapAppliedG
   iexists snapγ γ π0 d'.γB, metaTM d'.γB d.P,
@@ -174,7 +177,7 @@ theorem srvSnapApplied_of_walk
       Hx'.2.2, Hx'.2.1, hcov⟩
   iunfold epConfState
   simp only [snapE_authMode]
-  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Hbf Htl
+  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSCs Hbo Hγt Hpath Hbf Htl
   -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
   -- names at the new physical ones (`isWatchableStore_withPhys`)
   iexists _

@@ -399,7 +399,7 @@ theorem EtcdServer.start.wp_proof
   -- the read side, from the component's row (`acRes_read`)
   icases acRes_read C s E ua srvAuthSt0 hm $$ Hres with ⟨Hres, #HaR⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
-  icases srvSnapOwn_of_boot s ci E γr ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
+  icases srvSnapOwn_of_boot s ci E γr γ ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
   ihave Hstart : applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw $$
       [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA Hres Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
   · iunfold applyStartC

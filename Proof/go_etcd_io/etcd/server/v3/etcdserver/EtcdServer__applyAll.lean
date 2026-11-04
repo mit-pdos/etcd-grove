@@ -136,7 +136,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     · rw [hc]; omega
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
   -- (D22 J1b) the snapshot resources at the new applied index
-  ihave Hso := srvSnapOwn_mono s ci E γr ai ai' Hai' $$ Hso
+  ihave Hso := srvSnapOwn_mono s ci E γr _ ai ai' Hai' $$ Hso
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
