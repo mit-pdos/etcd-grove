@@ -210,6 +210,41 @@ theorem wtxW_stats_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
   iframe; iframe #
   ipureintro; exact Hr
 
+/-- **A cursor's resources** out of `wtxW`: the statistics token (with the core and
+registration) and the bucket's `tx` field, and back. -/
+theorem wtxW_cursor_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
+    (hb : X.t.bs !! bl = some B) :
+    wtxW (GF := GF) K tx r m X ⊢ K.core ∗ reg tx K.B r ∗ statsTok r m 1 ∗
+      ∃ dq : DFrac, bl.[Bucket, go!"tx"] ↦{dq} tx ∗
+        (statsTok r m 1 -∗ bl.[Bucket, go!"tx"] ↦{dq} tx -∗ wtxW K tx r m X) := by
+  unfold wtxW wtxCore
+  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
+  icases wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh with %Hok
+  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  icases wtxHeap_bkt_obj_acc tx (DFrac.own 1) X bl B (bobjs_bkt X.t bl B hb) $$ Hh with ⟨Ho, Hhb⟩
+  isimp only [objOwn] at Ho
+  icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+  iframe Hst; iframe Hcore; iframe Hreg
+  by_cases hr : bl = B.bv.tx'.[Tx, go!"root"]
+  · rw [if_pos hr]
+    iexists (DFrac.own 1)
+    rw [htx]
+    iframe H2
+    iintro Hst H2
+    ihave Hh := Hhb $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
+    · isimp only [objOwn]; rw [if_pos hr, htx]; iframe
+    iframe; iframe #
+    ipureintro; exact Hr
+  · rw [if_neg hr]
+    iexists DFrac.discard
+    rw [htx]
+    iframe H2
+    iintro Hst H2
+    ihave Hh := Hhb $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
+    · isimp only [objOwn]; rw [if_neg hr, htx]; iframe
+    iframe; iframe #
+    ipureintro; exact Hr
+
 end heap
 
 section heap2
