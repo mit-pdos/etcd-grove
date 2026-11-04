@@ -418,7 +418,7 @@ theorem memberBootOn_cmp (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) 
   iexact Hr
 
 /-- **A member started with auth on** (the auth plan's E3zb, 2026-10-28; `memberUp`'s, from
-`NewServer.specM true` and `Start.specOn`): at an apply environment in the mode `.on γa`, the
+`NewServer.specM true` and `Start.spec` at `.on γa`): at an apply environment in the mode `.on γa`, the
 request and read views in the mode (`isServerReqM true`, `isServerReadM true`) and the store's range
 check at a reader's lower bound (`srvAuthLb`), what `Serve.specOn` takes; otherwise as `memberUp`. -/
 def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)

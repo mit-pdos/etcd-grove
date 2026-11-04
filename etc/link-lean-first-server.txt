@@ -338,7 +338,7 @@ EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
 # (`reqPropOk` has no auth request), so they have no callee. Authenticate (C1's A4, 2026-10-31)
-# is proved in the mode `on` only, over `raftRequest.specM true`: it is linked in `Results.lean`
+# is proved in the mode `on` only, over `raftRequest.spec`: it is linked in `Results.lean`
 # (`server_authenticate_on`), as the admin entries' mode-`on` proofs are. UserAdd (the auth
 # plan's E2x, 2026-10-26) hashes the password, bcrypt's `GenerateFromPassword` the trust boundary
 # (D-AU6), and base64-encodes the hash (`StdEncoding`'s `EncodeToString`: base64's package fact,

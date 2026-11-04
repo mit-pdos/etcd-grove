@@ -28,7 +28,7 @@ counterpart).
 * **`authkv_startServer`** (the auth plan's E3zb; linked here, not in `Link.lean`, which links
   only `.spec`s): `startServer` starts the member with auth on (`memberUpOn`), from
   `server_new_auth_on` (its named premises: `isValidSimpleToken`'s spec, D22's `authSchemaSrv`) and
-  `server_Start_on`.
+  `server_Start` at the auth slot's `on γa`.
 * **`authkv_SetUp`** (`Link.lean`'s `etcd_auth.wp_SetUp`; E2h, the auth-mode merge's 5b): `SetUp`,
   through a client with no user, at etcd's Auth specs, from the client's view of the auth history:
   on success the history frozen at a log whose auth state is `setupSt r`, published.
@@ -60,12 +60,14 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
 
 /-- **The member started with auth on** (`startServer.lean`; E3zb): `NewServer.specM true`
-(`server_new_auth_on`, with its named premises) and `Start.specOn` (`server_Start_on`). -/
-theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
+(`server_new_auth_on`, with its named premises) and `Start.spec` (`server_Start`) at the auth slot's
+`on γa`. (The auth component's stage 3, 2026-11-04: until then `Start.specOn`, `server_Start_on`,
+which also took `ErrorStringLeaf`.) -/
+theorem authkv_startServer [EtcdGrove.Float64ToInt64Semantics]
     (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     etcd_auth.startServer.spec (GF := GF) (hG := hG) :=
   etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    (server_new_auth_on hValid hD22) server_Start_on
+    (server_new_auth_on hValid hD22) server_Start
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_auth.wp_Main`; not proved: a `sorry`). At the
 hypothesis on the semantics every client-building `Main` has (`DialWithBalancerBody`, through

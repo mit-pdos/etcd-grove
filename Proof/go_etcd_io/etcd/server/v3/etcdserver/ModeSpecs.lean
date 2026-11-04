@@ -1138,112 +1138,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 Until stage 2 these were the linked specs (`X.spec`, `X.specOn`); the merged `X.spec` (one
 statement over `C : AuthC`) is now linked, and these, with their texts unchanged, are its
-corollaries (`X.spec_off`, `X.spec_on`), what the off-only examples and the `_on` results take.
-Stage 3 (2026-11-04, commit 3-0) deleted those no caller used (`AppliedIndex`'s, `applyAll`'s off
-forms, `run`'s off form); the rest go as their callers move to the merged specs. -/
-
-/-- **`spec` in the auth mode `on`** (the auth plan's E3p, 2026-10-27): over `applyEntries.specOn`
-and `snapshotIfNeededAndCompactRaftLog.spec` at auth on (the server with auth on, `logShapeOn`, the applier
-row at the model's auth state `sa`, the apply thread at the mode-`on` model; the lessor finding no
-lease, the receipts' bound); after the batch at the model's state after `A ++ unapplied ai ms` (its
-auth state `sa'`). No snapshot is applied (`taSnapshotAddr ap ↦□ null`), so the backend stays. -/
-abbrev EtcdServer.applyAll.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
-    (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
-    (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (γa : auth.AuthNames) (sa : auth.AuthState) (q : Qp) (γn : RNNames)
-    (rt : w64) (n : Nat),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
-  loopOk γ st ai → logShapeOn (unapplied ai ms) →
-  -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
-  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) →
-  -- (2026-10-31, the snapshot track: #11's S3) a fresh start's log: `A` the applied log through
-  -- `ai`, `at0` its last term (the frozen terms' indices)
-  uint.Z ai = A.length → lastTermIs A at0 →
-  -- (2026-10-31, #11) what the snapshot takes (`snapshotIfNeededAndCompactRaftLog.spec`'s): the
-  -- disk cooperating, the consistent index at least the applied one
-  storage.diskOk → uint.Z ai ≤ uint.Z (ciEff γ st.k) →
-  -- (2026-10-31, S1: the merged snapshot) the consistent index at most the applied one (so equal:
-  -- the merged snapshot's image is exact at the applied index), the raft node's names those of the
-  -- server's raft, and the batch's term good for a log at least the applied log after the batch
-  uint.Z (ciEff γ st.k) ≤ uint.Z ai → γn.node = γr.raft.raft → γr.raft.pre = [] → (A ++ unapplied ai ms).length ≤ n →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ isServerApplyAll s γr ∗
-      batchWaitOk ρ E ms ∗
-      taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
-      -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
-      -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the
-      -- storage's floor)
-      rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft
-        iprop(nodeAppliedLb ρ.raft.raft.cl nk
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗ nodeCommitLb ρ.raft.raft.cl nk
-          (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat ∗
-          -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
-          srvFrozenRange γs (uint.nat ai + 1)
-            ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
-          -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs 1 (A ++ unapplied ai ms) ∗
-          -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save`
-          rnWalHanded γn (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat)) ∗
-          taSnapshotAddr ap ↦□ (null : Loc) ∗
-      -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
-      taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
-      notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
-      srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
-      -- (2026-10-30, the repair) with a view, the apply side's half of the running token
-      (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
-      -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
-      srvTokRights E (ciEff γ st.k) ∗
-      -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
-      -- the store, the storage's invariant at the storage key `nk`, the apply side's half of the WAL token
-      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
-      (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nk) ∗
-      rnWalTokA γn (srvRAddr s) q ∗
-      -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
-      -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
-      taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
-      -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
-      -- (`srvSnapOwn`), passed through the batch
-      srvSnapOwn s ci E γr ai }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
-      (Val #ap))
-  {{ RET #();
-      -- (D22 receiver epochs, S7f, 2026-10-23) the apply thread's backend after the batch: the
-      -- protocol's names `γ'` and the environment `E'` at some backend's (`beSucc`), with the
-      -- server's view at them (`applySnapshot` moves the backend; without a snapshot they are
-      -- `γ`, `TM`, `E`, `b`)
-      ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
-        (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerM true s γ' ci TM' E' ρ γr ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
-        epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
-        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
-        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ srvTokRights E' (ciEff γ' st'.k) ∗
-        applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
-        srvWTTaken γp (w + (unapplied ai ms).length) ∗
-        (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E' ρ.wait x' sa' ∗
-          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
-          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
-          srvRest E' γr (A ++ unapplied ai ms)) ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
-        -- (D22 J1b) the snapshot resources, at the batch's end
-        srvSnapOwn s ci E' γr ai' ∗
-        ⌜loopOk γ' st' ai' ∧
-          uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
-          (ciEff γ' st'.k = ciEff γ st.k ∨
-            uint.Z (ciEff γ' st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
-          -- (2026-10-31, the snapshot track: S1) the consistent index stays at least the applied one
-          (uint.Z ai ≤ uint.Z (ciEff γ st.k) → uint.Z ai' ≤ uint.Z (ciEff γ' st'.k)) ∧
-          -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
-          termAfter at0 (unapplied ai ms) at'⌝ }}
+corollaries (`X.spec_off`, `X.spec_on`), what the off-only examples and the `_on` results took.
+Stage 3 (2026-11-04) deleted them: their callers instantiate the merged specs (an off client of
+`start`/`Start` through `isServerBuilt_offC`). What is left here is a lemma about the merged
+`applyAll`'s matcher and the off premise's laws. -/
 
 /-- The merged `applyAll.specBatch`'s running-token match is `srvRunH` (the auth component's 2c). -/
 theorem srvRunH_applyAll_specBatch (γs : ServerRaftNames) (dv : Option Loc) :
@@ -1252,127 +1150,6 @@ theorem srvRunH_applyAll_specBatch (γs : ServerRaftNames) (dv : Option Loc) :
       (fun n => letI := srvStor (GF := GF) γs.raft; nodeRunning n γs.raft.cl srvClusterN (1 : Qp).half) =
       srvRunH γs dv := by
   cases dv <;> rfl
-
-/-- **`applyAll.specOn`** from the merged one (at `C := .on γa`). -/
-theorem EtcdServer.applyAll.specBatch_on
-    (h : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk γa sa
-    q γn rt n hM hRB Hms Hai1 Hok hEok hdv hA hlt hdisk hci hci2 hnode hpre hlen
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, H20, H21, H22, H23, H24, H25, H26, H27, H28, H29, H30, H31, H32, H33, H34, H35, H36, H37, H38, H39, H40, H41, H42, H43, H44, H45⟩ HΦ
-  have hm : E.authMode = (AuthC.on γa).mode := hM
-  have h' := h s γ ci TM (.on γa) E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst
-    γs γp dv γnc w nk q γn rt n
-  simp only [AuthC.isOn, kvAppliedM, logShapeM] at h'
-  have hS := isServerM_C (GF := GF) (.on γa) s γ ci TM E ρ γr
-  have hK := srvApplyKVM_C (GF := GF) (.on γa) s E ρ.wait x sa
-  have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
-  dsimp only [AuthC.isOn, srvApplyKVM] at hS hK
-  ihave #Hsrv' := hS.1 $$ Hsrv
-  ihave #Hln' := hL.2 $$ Hln
-  ihave H25' := hK.1 $$ H25
-  rw [srvTokRights_eq (.on γa) E _ hm] at *
-  iapply h' $$ [H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H26 H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H39 H40 H41 H42 H43 H44 H45 H25' H38] [HΦ]
-  · iframe Hpkg Hsrv' Hln' H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 H20 H21 H22 H23 H24 H26 H27 H28 H29 H30 H31 H32 H33 H34 H35 H36 H37 H39 H40 H41 H42 H43 H44 H45 H25'
-    isplitr
-    · ipureintro
-      exact ⟨hm, hRB, Hms, Hai1, Hok, hEok, hdv, hA, hlt, hdisk, hci, hci2, hnode, hpre, hlen⟩
-    iexact H38
-  iintro !> ⟨%γ', %TM', %E', %b', %st', %ai', %at', %a', %t', %cs', %hbe, Hrun, #Hs2, -, HAR, Hai, Hat,
-    Hcs, Hcv, Hss, Hth, Htok, Hbe, Hca, Hlr, Hgr, Hbm, Hao, #Hal, HWT,
-    ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, Hkvf, Hwal, Hso, %Hp⟩
-  have hm' : E'.authMode = (AuthC.on γa).mode := (beSucc_authMode hbe).trans hm
-  have hS' := isServerM_C (GF := GF) (.on γa) s γ' ci TM' E' ρ γr
-  have hK' := srvApplyKVM_C (GF := GF) (.on γa) s E' ρ.wait x' sa'
-  dsimp only [AuthC.isOn, srvApplyKVM] at hS' hK'
-  ihave #Hs2' := hS'.2 $$ Hs2
-  ihave HKV' := hK'.2 $$ HKV
-  iapply HΦ
-  iexists γ', TM', E', b', st', ai', at', a', t', cs'
-  rw [srvTokRights_eq (.on γa) E' _ hm']
-  iframe Hrun Hs2' HAR Hai Hat Hcs Hcv Hss Hth Htok Hbe Hca Hlr Hgr Hbm Hao Hal HWT Hkvf Hwal Hso
-  isplitr
-  · ipureintro; exact hbe
-  isplitl [HKV' Hlog Hka HRS]
-  · iexists x', sa'; iframe HKV' Hlog Hka HRS; ipureintro; exact Hstep
-  ipureintro; exact Hp
-
-/-- **`applyAll.specOn`** from the merged spec. -/
-theorem EtcdServer.applyAll.spec_on
-    (h : EtcdServer.applyAll.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.specBatch_on h.1
-
-/-- **`spec` in the auth mode `on`** (the auth plan's E3q, 2026-10-27): `run` from `isServerRunOn`
-(the apply thread's mode-`on` rows; the environment's mode `on γa`), its jobs `applyAll.specOn`'s
-(the receipts' bound theirs). -/
-abbrev EtcdServer.run.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
-    (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γa : auth.AuthNames),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
-
-/-- **`run.specOn`** from the merged spec (at `C := .on γa`). -/
-theorem EtcdServer.run.spec_on
-    (h : EtcdServer.run.spec (GF := GF) (hG := hG)) :
-    EtcdServer.run.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ γa hM hRB
-  iintro %Φ ⟨#Hpkg, Hrun⟩ HΦ
-  have hR := isServerRunOn_C (GF := GF) γa s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ hM
-  ihave Hrun' := hR.1 $$ Hrun
-  iapply h s γ ci TM (.on γa) E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ $$ [Hrun'] [HΦ]
-  · iframe Hpkg Hrun'; ipureintro; exact ⟨hM, hRB⟩
-  · iexact HΦ
-
-/-- **`start.spec` with auth off** (the auth component's stage 2, 2026-11-04: until then the
-linked `spec`; its text unchanged): **`s.start()`** from the construction premise (`isServerBuilt`): it sets the snapshot
-defaults, the wait registries (`w`, `applyWait`), the channels `done`, `stop`, `stopping`, the
-server's context, the read loop's `*Read` and the leader-change notifier, sets up `GoAttach`'s
-protocol, and starts `run` (`isServerRun`, with the write budget `srvWTPool E` made of the `N` write
-tokens, D19b: under the pure premise `receiptBound GF ≤ N + 1`, until then `srvLifeBound`); it returns the server's
-persistent views (`isServerReq`, at the wait's fresh names, and `isServerRead`) and what `Start`'s
-goroutines and the request path's get (`srvStarted`). -/
-abbrev EtcdServer.start.specOff : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
-  receiptBound GF ≤ N + 1 →
-  -- (2026-10-19, D21 M3) a new server: the apply thread from index `0` (each applied entry takes a
-  -- write token, which bounds the applied index, `srvWTPool_bound`)
-  ai₀ = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
-  {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
-      srvStarted s γr ρ Er.RQ ∗
-      -- (D19i part 2) the write budget, shared with the storage version monitor
-      ∃ γp : GName, srvWTPool E γp }}
-
-/-- **`spec` with auth on** (the auth plan's E3r, 2026-10-27): from the mode-`on` construction
-premise (`isServerBuiltOn`) and the lessor finding no lease (`srvLessorNil`, `run.specOn`'s), in an
-environment with auth on, `run` started with auth on (`isServerRunOn`); the request view and the
-read view in the mode (`isServerReqM true`, `isServerReadM true`) and the read loop's precondition
-at the mode-`on` model's state (`srvStarted` at `kvStM true`: its update fired at `kvInvOn`);
-(E3s, 2026-10-27) the store's range check at a reader's lower bound, as the server keeps it
-(`srvAuthLb`, what `Range.specOn` takes). -/
-abbrev EtcdServer.start.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) (γa : auth.AuthNames),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  receiptBound GF ≤ N + 1 →
-  ai₀ = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvLessorNil s }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
-  {{ RET #(); ∃ γw : GName, isServerReqM true s E { ρ with wait := γw } ∗
-      isServerReadM true s E γr ∗ srvAuthLb s E ∗ srvStarted s γr ρ Er.RQ (kvStM true γr.kv) ∗
-      ∃ γp : GName, srvWTPool E γp }}
 
 /-- **`start`'s construction premise has auth off** (`authOn_false_of_run` at the apply thread's
 start, as `start`'s off proof). -/
@@ -1401,145 +1178,29 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
   iexists ua
   iframe Hua Hfor Hkv
 
-/-- **`start.specOff`** from the merged spec (at `C := .off`, the premise's mode
-`isServerBuilt_off`; the post's `srvAuthLb` dropped). -/
-theorem EtcdServer.start.spec_off
-    (h : EtcdServer.start.spec (GF := GF) (hG := hG)) :
-    EtcdServer.start.specOff (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
-  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
+/-- **The off construction premise at the slot** (the auth component's stage 3, 2026-11-04: what
+an off client of the merged `start.spec`/`Start.spec` gives at `C := .off`, where stage 2's
+corollaries `start.spec_off`/`Start.spec_off` did): the environment's mode off
+(`isServerBuilt_off`), the premise as the slot's row (`isServerBuiltM_C`) and the slot's lessor
+(nothing, off). -/
+theorem isServerBuilt_offC (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
+    isServerBuilt (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ={⊤}=∗
+      ⌜E.authMode = AuthC.off.mode⌝ ∗ isServerBuiltC .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
+        acLessor .off s := by
+  iintro Hb
   imod isServerBuilt_off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨%hm, Hb⟩
   have hB := isServerBuiltM_C (GF := GF) .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hm
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_false] at hB
   ihave Hb' := hB.1 $$ Hb
   have hL : acLessor (GF := GF) .off s = iprop(True) := by rw [← srvLessorNilM_eq]; rfl
-  have h' := h s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  simp only [hL, AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false] at h'
-  iapply h' $$ [Hb'] [HΦ]
-  · iframe Hpkg Hb'
-    ipureintro; exact ⟨hm, trivial, Hrb, Hai0⟩
-  iintro !> ⟨%γw, Hreq, Hrd, -, Hst, Hp⟩
-  iapply HΦ
-  iexists γw
-  iframe Hreq Hrd Hst Hp
-
-/-- **`start.specOn`** from the merged spec (at `C := .on γa`). -/
-theorem EtcdServer.start.spec_on
-    (h : EtcdServer.start.spec (GF := GF) (hG := hG)) :
-    EtcdServer.start.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N γa hM hRB Hrb Hai0
-  iintro %Φ ⟨#Hpkg, Hb, #Hln⟩ HΦ
-  have hB := isServerBuiltM_C (GF := GF) (.on γa) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hM
-  have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
-  dsimp only [AuthC.isOn] at hB
-  rw [isServerBuiltM_true] at hB
-  ihave Hb' := hB.1 $$ Hb
-  ihave #Hln' := hL.2 $$ Hln
-  have h' := h s γ ci TM (.on γa) E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  simp only [AuthC.isOn] at h'
-  iapply h' $$ [Hb'] [HΦ]
-  · iframe Hpkg Hb' Hln'
-    ipureintro; exact ⟨hM, hRB, Hrb, Hai0⟩
-  iexact HΦ
-
-/-- **`Start.spec` with auth off** (the auth component's stage 2, 2026-11-04: until then the
-linked `spec`; its text unchanged but for the read loop's and `GoAttach`'s reader slots, folded in
-`srvStartReaders`): **`s.Start()`** from the construction premise, the caller's thread token and two reader
-slots of `s.lgMu` (one for its `GoAttach`es, given back; one for `monitorFileDescriptor`'s
-goroutine, which calls `Logger()`): `start`, then the read loop (`LinearizableReadLoop`, verified)
-and nine names-only monitors (trust-boundary contracts) attached; it returns the server's views and
-the slots left for request goroutines. -/
-abbrev EtcdServer.Start.specOff : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
-  receiptBound GF ≤ N + 1 →
-  -- (2026-10-19, D21 M3) a new server: the apply thread from index `0` (each applied entry takes a
-  -- write token, which bounds the applied index, `srvWTPool_bound`)
-  ai₀ = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ threadTok ∗
-      srvLgReader s ∗ srvLgReader s ∗
-      -- (D19i part 2) the storage version monitor's backend access (`NewServer`'s)
-      srvSVRes s E ∗
-      -- (audit B4a, D19m) the hash and downgrade monitors off, and `monitorDowngrade`'s `lgMu`
-      -- reader slot (`NewServer`'s `srvMonitorCfg`, `srvMonitorsOff_of`)
-      srvMonitorsOff s ∗ srvLgReader s ∗
-      -- (2026-10-23) `publishV3`'s right to close `readych` (`NewServer`'s)
-      srvReadyCloser s }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
-  {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
-      srvGoRes s ∗ srvLgReader s ∗
-      srvStartReaders s γr ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-        ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) }}
-
-/-- **`s.Start()` with auth on** (the auth plan's E3zb, 2026-10-28): `Start.spec`'s, from the
-construction premise with auth on and the lessor finding no lease (`start.specOn`'s): the request
-and read views in the mode (`isServerReqM true`, `isServerReadM true`) and the store's range check
-at a reader's lower bound (`srvAuthLb`, what `Range.specOn` takes), with the slots left for request
-goroutines. (The auth component's stage 2, 2026-11-04) The reader slots folded in `srvStartReaders`. -/
-abbrev EtcdServer.Start.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) (γa : auth.AuthNames),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  receiptBound GF ≤ N + 1 →
-  ai₀ = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvLessorNil s ∗ threadTok ∗
-      srvLgReader s ∗ srvLgReader s ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
-      srvReadyCloser s }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
-  {{ RET #(); ∃ γw : GName, isServerReqM true s E { ρ with wait := γw } ∗
-      isServerReadM true s E γr ∗ srvAuthLb s E ∗
-      srvGoRes s ∗ srvLgReader s ∗
-      srvStartReaders s γr ∗
-      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-        ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) }}
-
-/-- **`Start.specOff`** from the merged spec (at `C := .off`, the premise's mode
-`isServerBuilt_off`; the post's `srvAuthLb` dropped). -/
-theorem EtcdServer.Start.spec_off
-    (h : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
-    EtcdServer.Start.specOff (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0
-  iintro %Φ ⟨#Hpkg, Hb, Htok, Hlg, Hlgm, Hsv, Hoff, Hlgd, Hrc⟩ HΦ
-  imod isServerBuilt_off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨%hm, Hb⟩
-  have hB := isServerBuiltM_C (GF := GF) .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hm
-  dsimp only [AuthC.isOn] at hB
-  rw [isServerBuiltM_false] at hB
-  ihave Hb' := hB.1 $$ Hb
-  have hL : acLessor (GF := GF) .off s = iprop(True) := by rw [← srvLessorNilM_eq]; rfl
-  have h' := h s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  simp only [hL, AuthC.isOn, isServerReqM_false, isServerReadM_false] at h'
-  iapply h' $$ [Hb' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc] [HΦ]
-  · iframe Hpkg Hb' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc
-    ipureintro; exact ⟨hm, trivial, Hrb, Hai0⟩
-  iintro !> ⟨%γw, Hreq, Hrd, -, Hgr, Hlg', Hsr, Hlcs⟩
-  iapply HΦ
-  iexists γw
-  iframe Hreq Hrd Hgr Hlg' Hsr Hlcs
-
-/-- **`Start.specOn`** from the merged spec (at `C := .on γa`). -/
-theorem EtcdServer.Start.spec_on
-    (h : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
-    EtcdServer.Start.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N γa hM hRB Hrb Hai0
-  iintro %Φ ⟨#Hpkg, Hb, #Hln, Htok, Hlg, Hlgm, Hsv, Hoff, Hlgd, Hrc⟩ HΦ
-  have hB := isServerBuiltM_C (GF := GF) (.on γa) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hM
-  have hL := acLessor_on (GF := GF) (.on γa) γa rfl s
-  dsimp only [AuthC.isOn] at hB
-  rw [isServerBuiltM_true] at hB
-  ihave Hb' := hB.1 $$ Hb
-  ihave #Hln' := hL.2 $$ Hln
-  have h' := h s γ ci TM (.on γa) E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
-  simp only [AuthC.isOn] at h'
-  iapply h' $$ [Hb' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc] [HΦ]
-  · iframe Hpkg Hb' Hln' Htok Hlg Hlgm Hsv Hoff Hlgd Hrc
-    ipureintro; exact ⟨hM, hRB, Hrb, Hai0⟩
-  iexact HΦ
+  rw [hL]
+  imodintro
+  isplitr
+  · ipureintro; exact hm
+  iframe Hb'
 
 end merged
 

@@ -374,7 +374,7 @@ theorem srvIndexInvsM_false (s : Loc) (E : apply.AEnv GF) :
 
 /-- **The tie of the KV names' compaction mode, by the auth mode** (M2's apply side, item 19;
 review round 6's R6-1): the server's with auth off; nothing with auth on (auth-on servers keep
-retention `0`, and `start.specOn` has no producer for it). -/
+retention `0`, and `start.spec` at `.on γa` has no producer for it). -/
 def kvTieM (on : Bool) (cmp : Bool) (E : apply.AEnv GF) : Prop :=
   match on with
   | false => cmp = E.cmp

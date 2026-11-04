@@ -1800,16 +1800,6 @@ outcome the model's admin step, the row back at the history after it. -/
 theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
   apply_admin_entry_on apply_apply_admin_latest
 
-/-- **`applyAll` with auth on** (the auth plan's E3p): the batch through `applyEntries.spec`'s mode
-`on` (`spec_on`; step 3 of the auth-mode merge, 2026-10-30: until then `server_apply_entries_on` over
-`server_apply_on`),
-the snapshot and compaction with the mode-`on` applier row (`snapshot`'s contract over the part
-both rows share, `srvApplyKVCore`). (The auth component's stage 2, 2026-11-04) The on corollary of the linked merged `applyAll`
-(`applyAll.spec_on`). -/
-theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdServer.applyAll.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.applyAll.spec_on EtcdServer.wp_applyAll
-
 /-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3,
 `ApplyAllSnapOn.lean`): off, the linked `applyAll`'s snapshot case; on, over the install in the
 mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage 2, 2026-11-04) The linked `applyAll`'s snapshot half. -/
@@ -1817,37 +1807,11 @@ theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll.2
 
-/-- **`run` with auth on** (the auth plan's E3q; until the auth component's stage 2c `EtcdServer__run.lean`'s `wp_proofOn`): from
-`isServerRunOn`, every scheduled job `server_apply_all_on` (a snapshot payload's
-`server_apply_all_snap_m`) over the apply thread's mode-`on` resources (`applyResOn`). (The auth component's stage 2, 2026-11-04) The on corollary of the linked merged `run`
-(`run.spec_on`). -/
-theorem server_run_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdServer.run.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.run.spec_on EtcdServer.wp_run
-
-/-- **`start` with auth on** (the auth plan's E3r; until the auth component's stage 2c `EtcdServer__start.lean`'s `wp_proofOn`): from the
-mode-`on` construction premise and the lessor finding no lease, `run` started with auth on
-(`server_run_on`), the request and read views in the mode, and the read loop's precondition at the
-mode-`on` model's state (`kv_read_compose_on`). Every callee linked. (The auth component's stage 2, 2026-11-04) The on corollary of the linked merged `start`
-(`start.spec_on`). -/
-theorem server_start_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdServer.start.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.start.spec_on EtcdServer.wp_start
-
-/-- **`Start` with auth on** (the auth plan's E3zb, 2026-10-28; `EtcdServer.Start.specOn`): `start`
-with auth on (`server_start_on`), then the goroutines `Start` attaches, the monitors' proposals with
-the permission in the mode (`srvMonitorPermitM true`) and the read loop at the mode-`on` model's
-state. (The auth component's stage 2, 2026-11-04) The on corollary of the linked merged `Start`
-(`Start.spec_on`). -/
-theorem server_Start_on [EtcdGrove.ErrorStringLeaf] [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdServer.Start.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.Start.spec_on EtcdServer.wp_Start
-
 /-- **`Range` with auth on** (the auth plan's E3s, 2026-10-27; `EtcdServer.Range.specOn`,
 `Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range.lean`): over the request and read
 views with auth on and the read deposit at the mode-`on` model's state, for a reader holding a
 lower bound `n` of the auth store's published index (`authPubLbM`) and the store's range check at
-it (`srvAuthLb`, `start.specOn`'s): a success passed `IsRangePermitted` at states no older than `n`
+it (`srvAuthLb`, `start.spec`'s): a success passed `IsRangePermitted` at states no older than `n`
 (`apply.rangeClassFrom`), and a linearizable one read the mode-`on` model of a committed raft log
 at which the deposit fired (`rangeReadOkM true`). Every callee linked (`doSerialize` through its
 proof in either mode, `doSerialize.spec`). -/
@@ -1902,9 +1866,6 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
 #print axioms Perennial.EtcdGrove.server_admin_entry_on
-#print axioms Perennial.EtcdGrove.server_apply_all_on
-#print axioms Perennial.EtcdGrove.server_run_on
-#print axioms Perennial.EtcdGrove.server_start_on
 #print axioms Perennial.EtcdGrove.server_range_on
 #print axioms Perennial.EtcdGrove.server_txn_ro_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
@@ -2150,7 +2111,6 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.srv_auth_tp_on
 #print axioms Perennial.EtcdGrove.srv_auth_tp_off
 #print axioms Perennial.EtcdGrove.server_new_auth_on
-#print axioms Perennial.EtcdGrove.server_Start_on
 
 section serverAuthAlloc
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
@@ -2241,17 +2201,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
-(`isServer…C`), its on corollary `run.spec_on`. -/
+(`isServer…C`). -/
 theorem server_run [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
 
 /-- **The server's `start`** (the request path's unit 4c; `Spec/.../EtcdServer__start.lean`): from
 the construction premise `isServerBuilt` alone, the server's views and `run` started. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
-(`isServer…C`), its off and on corollaries `start.spec_off`, `start.spec_on`. -/
+(`isServer…C`). -/
 theorem server_start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.start.spec (GF := GF) (hG := hG) := EtcdServer.wp_start
 
 /-- **The server's `Start`** (the request path's unit 4c; `Spec/.../EtcdServer__Start.lean`):
 `start`, then the read loop and nine names-only monitors through `GoAttach`. (The auth component's stage 2, 2026-11-04) In both auth modes: over the component `C`
-(`isServer…C`), its off and on corollaries `Start.spec_off`, `Start.spec_on`. -/
+(`isServer…C`). -/
 theorem server_Start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.Start.spec (GF := GF) (hG := hG) := EtcdServer.wp_Start
 
 /-- **`start` gives the request path's views** (the request path's unit 4c): from the construction
@@ -2272,10 +2232,15 @@ theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ :
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
   iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
-  iapply (EtcdServer.start.spec_off server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N Hrb Hai0) $$ [Hb]
-  · iframe Hpkg Hb
+  -- `start.spec` at the slot's `off`
+  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨%hm, Hb, Hl⟩
+  have h' := server_start s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
+  simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false] at h'
+  iapply h' $$ [Hb Hl]
+  · iframe Hpkg Hb Hl
+    ipureintro; exact ⟨hm, trivial, Hrb, Hai0⟩
   inext
-  iintro ⟨%γw, #Hreq, #Hrd, Hst, -⟩
+  iintro ⟨%γw, #Hreq, #Hrd, -, Hst, -⟩
   iunfold srvStarted at Hst
   iNamed Hst
   ihave #Hrs := read_server s E { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]

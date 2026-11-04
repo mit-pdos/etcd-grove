@@ -120,4 +120,4 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/WatchLawsHist\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Defs\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv\.lean::  # 1
-lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 5
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 3
