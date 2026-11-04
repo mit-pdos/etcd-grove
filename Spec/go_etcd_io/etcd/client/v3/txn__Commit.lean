@@ -60,7 +60,10 @@ abbrev txn.Commit.spec : Prop :=
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1).rev : Nat) : Int) ∧
           kvRevFits σ.rev ∧ kvLogOk σ ∧
           (txn.txnReadonly (txnWireOf b.model) = false →
-            kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝) ∨
+            kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝ ∗
+        -- (U1 of `notes/k8s-compactor-plan.md`, 2026-11-04, the user's approval) a writing
+        -- transaction's reply's revision reached (`kvRevLb`, as `kv.Put.spec`'s)
+        client.txnRevLb γ (txnWireOf b.model) m) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec

@@ -44,6 +44,7 @@ names).
 |---|---|---|---|
 | `k8s/etcd3` | `k8setcd3` | porcupine over Kubernetes' etcd3 storage backend | `k8s_etcd3_safe` |
 | `k8s/daemonset` | `k8sdaemonset` | a DaemonSet controller over an API-server model | – |
+| `k8s/compactor` | – | Kubernetes' etcd compactor as API servers run it: three compactors and a writer on one member compacting only at its clients' requests (spec-tested: K3 of `notes/k8s-compactor-plan.md`) | (in progress) |
 
 ## `bbolt/`: bbolt (`go.etcd.io/bbolt`, the fork with its bodies; the part `Bbolt/`)
 
@@ -65,6 +66,12 @@ names).
 |---|---|---|
 | `osfs/bboltfs` | `bboltfs` | minibolt, the file extension's acceptance test |
 | `osfs/crashlog` | `crashlog` | the smallest crash-safe program: a commit flag guarding 8 bytes |
+
+## `goose/`: proof techniques over goose's primitives
+
+| dir | was | what it is | headline result |
+|---|---|---|---|
+| `goose/prophkv` | (new) | `GetAny` reads a map twice and returns one answer, chosen at random afterwards: a plain logically atomic spec over a prophecy patch (`etc/proph-patches/prophkv/`) | `goose_prophkv_safe` |
 
 `axiomcx/` holds counterexamples to trust-boundary axioms (`notes/axiom-review/`), not examples.
 
