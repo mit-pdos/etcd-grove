@@ -222,7 +222,7 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     (hB' : rblB X.v X.t.mv.pgid'.toNat bl B' dfc')
     (hent : ∀ k v, entryIn X.v B k v → entryIn X.v B' k v) :
     rblX (X.setBkt bl B') fl bl dfc' ∧ rblRel X fl (X.setBkt bl B') fl txid := by
-  obtain ⟨⟨htw, hpm, hhwm, htx, hrl⟩, hBk, hEB, hH, hL, hN, hV, hLR, hFV, hU⟩ := hI
+  obtain ⟨⟨htw, hpm, hhwm, htx, hrl⟩, hBk, hEB, hH, hL, hN, hV, hLR, hFV, hU, hX, hPL, hOD, hRH⟩ := hI
   have hdom := sim_dom X bl B B' hb hs
   -- buckets of X' from X's
   have hback : ∀ c C, (X.setBkt bl B').t.bs !! c = some C → ∃ C0, X.t.bs !! c = some C0 ∧
@@ -247,7 +247,8 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     obtain ⟨D, hD, hDib, hDbv, -⟩ := hfwd c D0 hD0
     exact ⟨D, v, hD, he k v hev, hlen, hinl, by rw [hDib]; exact hroot,
       fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h)⟩
-  refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, ?_, ?_⟩, ?_⟩
+  refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, ?_, ?_, hX, hPL, ?_,
+    fun c h => hRH c (by rw [← hdom]; exact h)⟩, ?_⟩
   · intro c C hC
     obtain ⟨C0, hC0, hcase⟩ := hback c C hC
     obtain ⟨h1, h2, h3, h4, h5⟩ := hBk c C0 hC0
@@ -273,10 +274,18 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
         exact hEB bl B hC0 l ry h1 w hw
     · exact hEB c C hC0 l r hr w hw
   · intro b nm h; exact sim_objs X bl B B' hb hs b (hH b nm h)
-  · obtain ⟨l1, l2, l3⟩ := hL
-    refine ⟨l1, fun l h => sim_objs X bl B B' hb hs l (l2 l h), fun c C hC => ?_⟩
-    obtain ⟨C0, hC0, -⟩ := hback c C hC
-    exact l3 c C0 hC0
+  · obtain ⟨l1, l2, l3, l4, l5⟩ := hL
+    refine ⟨l1, fun l h => sim_objs X bl B B' hb hs l (l2 l h), fun c C hC => ?_,
+      fun c C l r hC hr => ?_, l5⟩
+    · obtain ⟨C0, hC0, -⟩ := hback c C hC
+      exact l3 c C0 hC0
+    · obtain ⟨C0, hC0, hcase⟩ := hback c C hC
+      rcases hcase with ⟨hc, hC0e, hCe⟩ | ⟨hc, rfl⟩
+      · subst hCe; subst hC0e
+        rcases bktSim_look hs l with ⟨-, h⟩ | ⟨ry, ry', h1, -, -⟩
+        · rw [h] at hr; cases hr
+        · exact l4 c C0 l ry hC0 h1
+      · exact l4 c C l r hC0 hr
   · intro n c p h hl
     obtain ⟨C0, r0, hC0, hr0, hp⟩ := hN n c p h hl
     by_cases hc : c = bl
@@ -298,6 +307,16 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
       · exact r2 c C l r hC0 hr hl
   · exact sim_flView X bl B B' hb hs fl hFV
   · exact sim_covU X bl B B' hb hs hU
+  · apply objsDisj_mono X.t (X.setBkt bl B').t hOD hdom
+    intro c C' hC'
+    obtain ⟨C0, hC0, hcase⟩ := hback c C' hC'
+    refine ⟨C0, hC0, fun k hk => ?_⟩
+    rcases hcase with ⟨hc, hC0e, hCe⟩ | ⟨hc, rfl⟩
+    · subst hCe; subst hC0e
+      rcases bktSim_look hs k with ⟨-, h⟩ | ⟨ry, ry', h1, -, -⟩
+      · rw [h] at hk; cases hk
+      · rw [h1]; rfl
+    · exact hk
   · refine ⟨rfl, rfl, rfl, fun _ _ h => h, rfl, rfl, rfl, rfl, hdom, fun c C0 C hC0 hC => ?_,
       fun c => by rw [sim_leaves X bl B B' hb hs], [], trivial, rfl, fun _ h => by cases h⟩
     obtain ⟨C', hC', h1, h2, h3⟩ := hfwd c C0 hC0

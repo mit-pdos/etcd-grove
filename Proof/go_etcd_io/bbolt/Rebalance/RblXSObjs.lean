@@ -107,6 +107,27 @@ theorem objs_isSome_mono (T T' : WTx)
     · exact Or.inl h
     · exact Or.inr ⟨bl', B', hB', Or.inr h'⟩
 
+/-- **Disjointness is kept** when the buckets' locations are, and each bucket's nodes are some of
+its nodes before. -/
+theorem objsDisj_mono (T T' : WTx) (hd : objsDisj T)
+    (hdom : ∀ c, (T'.bs !! c).isSome = (T.bs !! c).isSome)
+    (hsub : ∀ c C', T'.bs !! c = some C' → ∃ C, T.bs !! c = some C ∧
+      ∀ k, (C'.ns !! k).isSome = true → (C.ns !! k).isSome = true) :
+    objsDisj T' := by
+  intro c C' hC' k hk
+  obtain ⟨C, hC, hs⟩ := hsub c C' hC'
+  obtain ⟨h1, h2⟩ := hd c C hC k (hs k hk)
+  refine ⟨?_, fun c' D' hD' hne => ?_⟩
+  · have := hdom k; rw [h1] at this
+    cases h : T'.bs !! k with
+    | none => rfl
+    | some _ => rw [h] at this; cases this
+  · obtain ⟨D, hD, hsD⟩ := hsub c' D' hD'
+    have := h2 c' D hD hne
+    cases h : D'.ns !! k with
+    | none => rfl
+    | some _ => have := hsD k (by rw [h]; rfl); rw [‹D.ns !! k = none›] at this; cases this
+
 end objs
 
 end bbolt

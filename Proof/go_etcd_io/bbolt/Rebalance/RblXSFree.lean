@@ -36,17 +36,15 @@ theorem nodup_len_le (l : List w64) (hnd : l.Nodup) (hb : ∀ x ∈ l, x.toNat <
 omit [GooseExts] in
 theorem W64_toNat_self (x : w64) : W64 (x.toNat : Int) = x := by simp [W64]
 
-/-- **A node's page and `node.free`'s premises**, given that the view's pages end below
-`2^64` (`hext`). -/
+/-- **A node's page and `node.free`'s premises.** -/
 theorem rblX_canFree' (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (n : Loc)
     (r : NRec) (hI : rblX X fl bl dfc) (hb : X.t.bs !! bl = some B) (hr : B.ns !! n = some r)
-    (hp0 : r.nv.pgid' ≠ W64 0)
-    (hext : ∀ id pg, X.v.pages !! id = some pg → id + (1 + pageOverflow pg) < 2 ^ 64) :
+    (hp0 : r.nv.pgid' ≠ W64 0) :
     ∃ pg, X.v.pages !! r.nv.pgid'.toNat = some pg ∧ 16 ≤ pg.length ∧
       pageId pg = r.nv.pgid'.toNat ∧
       (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag) ∧
       fl.canFree X.t.mv.txid' r.nv.pgid' (1 + pageOverflow pg) := by
-  obtain ⟨⟨-, -, -, htx, -⟩, hBk, -, -, -, -, -, hLR, hFV, -⟩ := hI
+  obtain ⟨⟨-, -, -, htx, -⟩, hBk, -, -, -, -, -, hLR, hFV, -, hext, -⟩ := hI
   obtain ⟨hrb, -, -, hrt, hlive⟩ := hBk bl B hb
   obtain ⟨hc, ⟨bnd, hk⟩, -, -⟩ := hrb
   have hn := hc.2.2.2.2.2.2.2.1 n r hr
@@ -61,7 +59,8 @@ theorem rblX_canFree' (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BR
   · cases hpt with
     | leaf _ _ hf _ _ => exact Or.inr hf
     | branch _ _ hf _ _ => exact Or.inl hf
-  have hext' := hext _ pg hpg
+  have hext' : r.nv.pgid'.toNat + (1 + pageOverflow pg) < 2 ^ 64 := by
+    have := hext _ pg hpg; omega
   have hov : pageOverflow pg < 2 ^ 32 := by unfold pageOverflow; exact BitVec.isLt _
   have hext0 := posExtent_node X bl B hb hc h0 n r hr hp0 pg hpg
   obtain ⟨hcov, hmv, hnd, hlt62⟩ := hFV

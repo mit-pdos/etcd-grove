@@ -48,10 +48,15 @@ def nsLive (X : WX) : Prop :=
 
 /-- **At `Commit`, the invariant** (no deficient node). -/
 theorem rblX_init (X : WX) (fl : FLPg) (dbl : Loc) (hok : wOK X) (hr : liveReach X)
-    (hfl : flView X fl) (hu : covU X) (hl : nsLive X) : rblX X fl dbl none := by
+    (hfl : flView X fl) (hu : covU X) (hl : nsLive X)
+    (hext : ∀ id pg, X.v.pages !! id = some pg → id + (1 + pageOverflow pg) ≤ 2 ^ 62)
+    (hlen : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length)
+    (hod : objsDisj X.t) (hrh : ∀ bl, (X.t.bs !! bl).isSome → bl = X.rl ∨ (X.handles !! bl).isSome) :
+    rblX X fl dbl none := by
   have hok' := hok
   obtain ⟨⟨htw, hpm, hhwm, htx, hrl, hcl⟩, hkn, -, hEB, hH, hL, hN, hV⟩ := hok'
-  refine ⟨⟨htw, hpm, hhwm, htx, hrl⟩, fun bl B hb => ?_, hEB, hH, hL, hN, hV, hr, hfl, hu⟩
+  refine ⟨⟨htw, hpm, hhwm, htx, hrl⟩, fun bl B hb => ?_, hEB, hH, hL, hN, hV, hr, hfl, hu, hext, hlen,
+    hod, hrh⟩
   refine ⟨by rw [ite_self]; exact rblB_of_wOK X hok bl B hb, (hcl bl B hb).2, (hkn bl B hb).2,
     rtOK_init X bl hok hV (by rw [hb]; rfl), fun l r hr => hl bl B l r hb hr⟩
 
@@ -95,18 +100,15 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
   sorry
 
 /-- **A live node's page can be freed** (`node.free`'s premises: the page of the view, its
-header, and `Free`'s `canFree` for the writer's txid). The view's pages end below `2^64`
-(`hext`, added: `Free`'s `id + n < 2^64` follows from nothing in `rblX`; the committed state's
-pages end below its high-water mark, `treeOK`, but that mark is not bounded there). -/
+header, and `Free`'s `canFree` for the writer's txid). -/
 theorem rblX_canFree (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (n : Loc)
     (r : NRec) (hI : rblX X fl bl dfc) (hb : X.t.bs !! bl = some B) (hr : B.ns !! n = some r)
-    (hp0 : r.nv.pgid' ≠ W64 0)
-    (hext : ∀ id pg, X.v.pages !! id = some pg → id + (1 + pageOverflow pg) < 2 ^ 64) :
+    (hp0 : r.nv.pgid' ≠ W64 0) :
     ∃ pg, X.v.pages !! r.nv.pgid'.toNat = some pg ∧ 16 ≤ pg.length ∧
       pageId pg = r.nv.pgid'.toNat ∧
       (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag) ∧
       fl.canFree X.t.mv.txid' r.nv.pgid' (1 + pageOverflow pg) :=
-  rblX_canFree' X fl bl dfc B n r hI hb hr hp0 hext
+  rblX_canFree' X fl bl dfc B n r hI hb hr hp0
 
 /-- **An empty leaf removed** from its parent `pl` (entry `i`; `del`, `removeChild`, the node
 cache's entry deleted, `free`): the parent is the deficient node. -/
