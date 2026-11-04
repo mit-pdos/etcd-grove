@@ -1,8 +1,11 @@
 /-
 `node.spill` (U9e, `notes/bbolt-proof-plan.md`): the proof of its unit-internal spec
 (`Spill/NodeSpec`'s `node.spill.spec'`), by Löb induction over its recursive calls (`wp_aux`: the
-children's spills, the new root's). Status: the spilled case (a piece returns at once) is proved;
-the unspilled case is not yet (a `sorry`; its steps are listed at it).
+children's spills, the new root's). The spilled case (a piece returns at once) and the unspilled
+case's assembly (U9m): the sort (`Spill/NodeSpillSort`), from the permuted state the children's
+loop (`Spill/NodeSpillLoopWp`) and the rest (`Spill/NodeSpillPieces.spillTail_wp`, a `sorry`
+still), back to the start (`Spill/NodeSpillAsm.spPost_unperm`). No `sorry` in this file; the
+proof rests on `spillTail_wp` and `ownSlice_loc_len` (`sort.Sort`'s bound).
 -/
 module
 
@@ -11,6 +14,10 @@ public import Proof.go_etcd_io.bbolt.Spill.SlotInv
 public import Proof.go_etcd_io.bbolt.Spill.UTreeFrame
 public import Proof.go_etcd_io.bbolt.Rebalance.Heap
 public import Proof.go_etcd_io.bbolt.Spill.DerefHeap
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillAsm
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillLoopWp
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPieces
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesOne
 
 @[expose] public section
 
@@ -40,18 +47,24 @@ theorem node_of_bs {X : WX} {bl n : Loc} {rn : NRec} (h : X.node bl n = some rn)
   | none => rw [hb] at h; cases h
   | some B => rw [hb] at h; exact ⟨B, rfl, h⟩
 
-/-- `node.spill.spec'` as an Iris proposition (for the recursion, Löb). -/
-def spillW : IProp GF :=
-  iprop(∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
-    (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
-    (E : List El) (cs : SpCase),
-    ⌜spPre X w bl n rn O lo hi h F D N E cs⌝ → ∀ Φ, (wtxW K tx r m X ∗ wdbW K tx X.v w) -∗
-      ▷ (∀ err, spPost K tx r m X w bl n rn O lo hi h D N E cs err -∗ Φ #err) -∗
-      WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #())) {{ Φ }})
-
 /-- **`node.spill`, by Löb.** -/
-theorem node.spill.wp_aux : ⊢ spillW (GF := GF) (hG := hG) := by
-  unfold spillW
+theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
+    (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hC : bytes.Compare.spec (GF := GF) (hG := hG))
+    (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
+    (hPage : Tx.page.spec (GF := GF) (hG := hG))
+    (hSplit : node.split.spec (GF := GF) (hG := hG))
+    (hWrite : node.write.spec (GF := GF) (hG := hG))
+    (hPut : node.put.spec (GF := GF) (hG := hG))
+    (hSize : node.size.spec (GF := GF) (hG := hG))
+    (hInc : TxStats.IncSpill.spec (GF := GF) (hG := hG))
+    (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
+    (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
+    (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
+    (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hFree : internal.freelist.Interface.Free.spec (GF := GF) (hG := hG)) :
+    ⊢ spillIH (GF := GF) (hG := hG) := by
+  unfold spillIH
   iloeb as IH
   iintro %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %Hpre %Φ ⟨Hw, Hdb⟩ HΦ
   obtain ⟨Hn, HG, Hcase⟩ := Hpre
@@ -116,42 +129,163 @@ theorem node.spill.wp_aux : ⊢ spillW (GF := GF) (hG := hG) := by
     ipureintro
     refine ⟨⟨rfl, rfl, rfl, HG, HG.2.1, fun s hs => hs, fun x hx => absurd rfl hx,
       fun F _ h => h⟩, Or.inl ⟨Hsp, rfl, rfl⟩⟩
-  · -- the unspilled case. Steps (`notes/bbolt-proof-plan.md`, U9e hand-off):
-    -- 1. `sort.Sort(n.children)` (`Spill/SortNodes.nodes_sorter`, the children a permutation);
-    -- 2. the children's loop: Löb `IH` on each child (`spCtx .child n …`, `O` the slots of the
-    --    other entries and `O`), `uTree_frame` for the siblings, the parent's entries
-    --    (`parentSpilled`) re-establishing `n`'s `uTree` (entry `j` replaced by finished pieces);
-    -- 3. `n.children = nil`, the children killed (`wtxHeap_kill`; all spilled, `spilledN`);
-    -- 4. `n.split(pageSize)` (`Spill/Split.node.split.spec`), the pieces inserted into the heap;
-    -- 5. per piece: `Free` of `n`'s page (`node.free`'s body, `slotInv_free`), `allocate`
-    --    (`slotInv_alloc`/`slotInv_allocHwm`, `allocRes_derefPre'`, `uTree_frame` through
-    --    `derefRel`/`rebase`), `node.write` (`Spill/PageBuf`, `sTree_wLeaf`/`sTree_wBranch`),
-    --    `parent.put` (child case: `parentSpilled`; top case: the new root's entries);
-    -- 6. the top case's new root: Löb `IH` on it (`spCtx .top`).
-    -- Pure layer for step 2 (done): `Spill/UTreeParent.uBr_of_uTree` (the branch facts),
-    -- `Spill/NodeSpillLoop.spLoop_init` (the invariant at the loop's start),
-    -- `Spill/NodeSpillChild.spLoop_next` (child `i`: its spill's pre, and from its `spDone`
-    -- the invariant at `i + 1`; the loop body's one call of `IH`), `spLoop_err` (an error),
-    -- `spLoop_fin` (every entry finished after the loop). Heap: `Spill/NodeSpillHeap.
-    -- wtxW_children_acc` (`len(n.children)`, `n.children[i]`, records unchanged).
-    -- Step 1 (U9j hand-off design): `nodesR s P Q` needs `Q` apart from `n`'s children slice
-    -- and readable for the other nodes, so not a wand: `Q` = the heap's objects but `n`
-    -- (`[∗map] objs.delete n`, accessed with `bigSepM_lookup_acc` for `c ≠ n`), `viewCells`
-    -- (view-backed first keys: `viewCells_slices_acc`, own ones `↦*□`), and the closing
-    -- part (`n`'s object but its children, the bucket, `txFields`, `wtxW_open`'s wand);
-    -- `ks c`/`fk c` the record's first inode's key slice/entry's key, `P c` = a live child
-    -- of `n` (non-empty: `uEnt.child`/`spilledN`, `liveFresh` for the key's source); after the
-    -- sort `X.setNode bl n { rn with cs := l }` with `l ~ rn.cs` (`uBr`, `derefPre`,
-    -- `liveReach`, `spCtx` are membership-based, so a permutation keeps them).
-    -- Step 3: the kill is framed by `N` (child case: `spCtx`'s `∀ c ∈ rn.cs, c ∈ N`, the
-    -- children's pieces fresh) or by `spDone`'s `cs = .top ∧ l ∈ rn.cs` (top case).
-    sorry
+  · -- the unspilled case: the sort, the children's loop, the rest (`spillTail_wp`), from the
+    -- permuted state `Xp` (`n`'s children sorted) and back (`spPost_unperm`)
+    obtain ⟨Hut, Hctx, Hsl, Hfr⟩ := Hu
+    have Hun : uNode X bl n rn lo hi := uTree_uNode Hut Hn
+    have Hsp0 : rn.nv.spilled' = false := Hun.2.2.1
+    have Hlive : n ∈ X.live := Hun.1
+    have Hbl : rn.nv.bucket' = bl := Hun.2.1
+    have HnN : n ∈ N := uTree_head Hut
+    icases wtxW_pers K tx r m X $$ Hw with ⟨Hw, #⟨Hpkg, Hcore, Hreg⟩⟩
+    icases wtxW_heapOK K tx r m X $$ Hw with ⟨Hw, %Hok⟩
+    have HliveB : bl ∈ X.liveB := (HG.2.2.1.2.2.1 bl B HB).1
+    have hbtx : B.bv.tx' = tx := Hok.2.2.1 bl B HB
+    have hpar : rn.nv.parent' ≠ n := Hok.2.2.2.1 bl B n rn HB Hrn
+    have hd : objsDisj X.t := Hok.2.1
+    have hkids := uTree_sortKids Hut Hn hpar
+    have hF : liveFresh X := HG.2.2.2.1
+    icases wtxW_sort_acc K tx r m X bl B n rn HB Hrn Hlive $$ Hw with ⟨Hno, Hbo, HQ, Hclose⟩
+    icases (objOwn_live_node _ _ _ _ _).1 $$ Hno with ⟨Hn, Hins, Hcap, Hws, Hch, Hchcap, Hkey⟩
+    icases objOwn_bkt_tx_acc X.v bl _ B $$ Hbo with ⟨%dqb, Htx, Hbo⟩
+    rw [hbtx]
+    icases ownSlice_loc_len _ _ _ $$ Hch with ⟨Hch, %Hlen⟩
+    icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
+    iStructNamed Hn
+    wp_method_call
+    wp_call
+    rw [Hbl]
+    wp_auto
+    rw [Hsp0]
+    wp_auto
+    wp_apply (nodes_sort_wp hS hK hC X bl n rn.cs rn.nv.children' hkids hF Hlen) $$ [Hch HQ]
+      as ⟨%l, Hch, HQ, %Hperm⟩
+    · iframe
+    ihave Hn : (n ↦ rn.nv : IProp GF)
+      $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    · iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      rw [Hbl, Hsp0]
+      iframe
+    ihave Hbo := Hbo $$ Htx
+    ihave Hno : objOwn X.v n (DFrac.own 1) true (.node bl { rn with cs := l })
+      $$ [Hn Hins Hcap Hws Hch Hchcap Hkey]
+    · iapply (objOwn_live_node _ _ _ _ _).2
+      iframe
+      simp only [eq_self_iff_true]
+      iexact Hkey
+    ihave Hw := Hclose $$ %{ rn with cs := l } %hpar Hno Hbo HQ
+    -- the permuted state
+    have hpre' := spPre_perm hd HB Hrn Hperm Hut Hctx HG Hsl Hfr
+    have hXv : (X.setNode bl n { rn with cs := l }).v = X.v := by rw [setNode_perm_eq HB]
+    have hlvp : n ∈ (X.setNode bl n { rn with cs := l }).live := by
+      rw [WX.setNode_live]; exact Hlive
+    ihave Hdb : wdbW K tx (X.setNode bl n { rn with cs := l }).v w $$ [Hdb]
+    · rw [hXv]; iexact Hdb
+    wp_bind (App (App (App (Val doFor) _) _) _)
+    by_cases hleaf : rn.nv.isLeaf' = true
+    · have hcs0 : rn.cs = [] := by
+        cases Hut with
+        | leaf _ r _ _ _ hr' _ _ hcs => rw [Hn] at hr'; cases hr'; exact hcs
+        | branch _ r _ _ _ _ hr' _ hl' => rw [Hn] at hr'; cases hr'; rw [hleaf] at hl'; cases hl'
+      have hl0 : l = [] := by rw [hcs0] at Hperm; exact List.Perm.eq_nil Hperm.symm
+      have H := fun Φ' => spill_loop_nil_wp (GF := GF) K tx r m _ bl n { rn with cs := l } n_ptr
+        i_ptr «$res0_ptr» Φ' (node_perm_self HB) hlvp hl0
+      unfold spLoopE spCondE spBodyE spPostE at H
+      iapply (H _)
+      iframe
+      iintro Hw Hn Hi
+      wp_pure
+      wp_pure
+      wp_pure
+      have hend : spEnd (X.setNode bl n { rn with cs := l }) w bl n { rn with cs := l } O lo hi h D
+          N E (X.setNode bl n { rn with cs := l }) w { rn with cs := l } [] [] :=
+        Or.inl ⟨hleaf, rfl, rfl, rfl, rfl, rfl⟩
+      have Hsend := spillTail_wp (GF := GF) (hG := hG) hAlloc hPage hSplit hWrite hPut hSize hInc
+        hTxid hPgid hId hK hAssert hFree K tx r m _ w bl n { rn with cs := l } O lo hi h F D N E cs
+        _ w { rn with cs := l } [] [] n_ptr tx_ptr «$res0_ptr» GoInterface.nil hpre' Hsp0 hend
+      wp_bind (spillTail _ _ _)
+      ihave Hwp := Hsend $$ [IH] Hw Hdb Hn tx «$res0»
+      · imodintro; inext; unfold spillIH; iexact IH
+      iapply wp_wand $$ Hwp
+      iintro %v ⟨%hv, %err, Hres, Hn, Htx, Hpost⟩
+      subst hv
+      wp_pures
+      wp_load
+      iapply HΦ
+      iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 err) $$ Hpost
+    · have hleaf' : rn.nv.isLeaf' = false := by
+        cases e : rn.nv.isLeaf'
+        · rfl
+        · exact absurd e hleaf
+      obtain ⟨h', es, hh, hl0⟩ := spLoop_start hd HB Hrn Hperm Hut hleaf' HG Hsl Hfr
+      have H := fun Φ' => spill_loop_wp (GF := GF) K tx r m _ w bl n { rn with cs := l } O lo hi h'
+        D N E es n_ptr i_ptr «$res0_ptr» GoInterface.nil Φ' hl0
+      unfold spLoopE spCondE spBodyE spPostE at H
+      iapply (H _)
+      isplitr
+      · imodintro; inext; unfold spillIH; iexact IH
+      iframe
+      iintro %v Hv
+      unfold spLoopPost
+      icases Hv with (⟨%hv, Hn, Hres, %j, %XE, %wE, %rE, %esE, %stE, %TE, Hi, Hw, Hdb, %Hl⟩ |
+        ⟨%hv, Hn, Hi, %err, Hres, %Herr, #Hok, %X', %w', %st, %Hf, Hst⟩)
+      · subst hv
+        wp_pure
+        wp_pure
+        wp_pure
+        have hend : spEnd (X.setNode bl n { rn with cs := l }) w bl n { rn with cs := l } O lo hi h D
+            N E XE wE rE stE TE :=
+          Or.inr ⟨hleaf', h', esE, sint.nat j, hh, Hl.1, Hl.2, Hl.1.chs⟩
+        have Hsend := spillTail_wp (GF := GF) (hG := hG) hAlloc hPage hSplit hWrite hPut hSize hInc
+          hTxid hPgid hId hK hAssert hFree K tx r m _ w bl n { rn with cs := l } O lo hi h F D N E cs
+          XE wE rE stE TE n_ptr tx_ptr «$res0_ptr» GoInterface.nil hpre' Hsp0 hend
+        wp_bind (spillTail _ _ _)
+        ihave Hwp := Hsend $$ [IH] Hw Hdb Hn tx Hres
+        · imodintro; inext; unfold spillIH; iexact IH
+        iapply wp_wand $$ Hwp
+        iintro %v ⟨%hv, %err, Hres, Hn, Htx, Hpost⟩
+        subst hv
+        wp_pures
+        wp_load
+        iapply HΦ
+        iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 err) $$ Hpost
+      · subst hv
+        wp_pures
+        wp_load
+        iapply HΦ
+        unfold spPost
+        iright
+        isplitr
+        · ipureintro; exact Herr
+        isplitr
+        · iexact Hok
+        iexists X', w', st
+        isplitr
+        · ipureintro; exact ⟨Hf.1, Hf.2.1, by rw [Hf.2.2, hXv]⟩
+        iexact Hst
 
 /-- **`node.spill.spec'`**, from `wp_aux`. -/
-theorem node.spill.wp_proof' : node.spill.spec' (GF := GF) (hG := hG) := by
+theorem node.spill.wp_proof' (hS : sort.«Sort».spec (GF := GF) (hG := hG))
+    (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hC : bytes.Compare.spec (GF := GF) (hG := hG))
+    (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
+    (hPage : Tx.page.spec (GF := GF) (hG := hG))
+    (hSplit : node.split.spec (GF := GF) (hG := hG))
+    (hWrite : node.write.spec (GF := GF) (hG := hG))
+    (hPut : node.put.spec (GF := GF) (hG := hG))
+    (hSize : node.size.spec (GF := GF) (hG := hG))
+    (hInc : TxStats.IncSpill.spec (GF := GF) (hG := hG))
+    (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
+    (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
+    (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
+    (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hFree : internal.freelist.Interface.Free.spec (GF := GF) (hG := hG)) :
+    node.spill.spec' (GF := GF) (hG := hG) := by
   intro K tx r m X w bl n rn O lo hi h F D N E cs hpre
-  have H := node.spill.wp_aux (GF := GF) (hG := hG)
-  unfold spillW at H
+  have H := node.spill.wp_aux hS hK hC hAlloc hPage hSplit hWrite hPut hSize hInc hTxid hPgid hId
+    hAssert hFree
+  unfold spillIH at H
   iintro %Φ HP HΦ
   ihave #H := H
   iapply H $$ %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %hpre HP
