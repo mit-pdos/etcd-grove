@@ -31422,3 +31422,55 @@ revocations and checkpoints are outside the verified code; the image needs nothi
 `NewServer` drops the token until R2b-3d threads it to `Cleanup` (`srvCleanupOwn`).
 
 **`authStore.Close`** is translated (`auth.toml`) and proved over `tpAdmin`, as `AuthDisable` is.
+
+## The auth component, stage 3: the server's remaining linked twins folded, `Start`'s clients on the merged spec (2026-11-04 · the Freeze of candidate 5, "freeze it, go ahead with stage 3" · branch `auth-comp3`)
+
+Supersedes stage 2's "off-only callers link `EtcdServer.wp_Start_off`" and its "the old texts are
+`ModeSpecs.lean`'s corollaries ... kept until stage 3" for everything below. The spec example
+`auth-component.md` keeps the four review rounds' history; the frozen text is candidate 5 (D1–D8).
+
+**What.**
+- **3-0.** `ModeSpecs.lean`'s 16 declarations no caller used (`AppliedIndex`'s, `applyAll`'s off
+  forms, `run`'s off form, ...) deleted.
+- **3a-i, the request path's `specM` family** (`parseProposeCtxErr`, `raftRequest`, `doSerialize`,
+  `processInternalRaftRequestOnce`): each `wp_proofM on` folded into its `wp_proof` (the proof is
+  over `E.authOn`, which is what `specM on` at `E.authOn = on` said); the `specM` abbrevs and
+  `spec_M` theorems deleted. A caller that knows its mode (from `isServerReqM on`'s
+  `isServerReqM_authOn`, from `hγa`, from `srvGrantsLeases`) instantiates `X.spec` and rewrites
+  `E.authOn` to it (`have h := h s E ρ; rw [hon] at h`). The off corollaries (`X.spec_off`) are
+  re-derived from `X.spec` for the `Put`/`DeleteRange`/`Range`/`Txn` pairs (D4 keeps them).
+  `server_raft_request : raftRequest.spec` replaces `server_raft_request_on`;
+  `server_process_irr_on` deleted. The `_on` results of the admin entries, `Txn`'s and
+  `Authenticate`'s keep their text with the new proofs.
+- **3a-ii, `start`/`run`/`applyAll`/`Start`.** Their off/on corollaries deleted, with
+  `server_apply_all_on`, `server_run_on`, `server_start_on`, `server_Start_on` (D2 (i)). An off
+  client of the merged `start.spec`/`Start.spec` instantiates it at `C := .off` through the new law
+  `isServerBuilt_offC` (`isServerBuilt ={⊤}=∗ ⌜E.authMode = AuthC.off.mode⌝ ∗ isServerBuiltC .off ∗
+  acLessor .off`): `start_gives_views`, `etcdstart.wp_Start_built` (and so `StartServer`,
+  `StartCompactingServer`, `StartPeriodicServer`, `StartMember`, partition's `startMember`, whose
+  hypothesis is now `Start.spec`). `LinkedOff.lean` deleted; the examples' Links are back to their
+  pre-stage-2 text (`EtcdServer__Start: @`). The auth example's `startServer` takes `Start.spec` at
+  `.on γa`; `authkv_startServer` uses `server_Start`, which does not take `server_Start_on`'s
+  `[ErrorStringLeaf]` (a weaker premise set, approved in the Freeze's §4).
+
+**The 3b pilot failed, so `applyEntryNormal` keeps its twins (D5).** The pilot (folding
+`applyEntryNormal`'s off/on proofs into one over the slot, bounded at 1,133 lines, the twins'
+size) was projected at about 1,200 lines before any edit, so it stopped with nothing changed, as
+D5 says. `applyEntryNormal`'s, `apply`'s and `applyEntries`' `specOff`/`specOn` and their
+corollaries stay in `ModeSpecs.lean`. (The pilot also found `applyEntryNormal`'s local macro
+`trig'` unused; deleted.)
+
+**Departures from the frozen text.**
+- `processInternalRaftRequestOnce`'s proof cases on the mode inside a macro (`cases on`,
+  `subst hon`), so the fold does `generalize E.authOn = on at hPE ⊢` after the intros instead of
+  rewriting every use.
+- `isServerReq_authOn` (`ReqOn.lean`) added: `isServerReqM_authOn false` does not apply to an
+  `isServerReq` hypothesis by `$$` (the two are equal by `rfl`, not syntactically).
+- The auth example's `startServer` names the read loop's environment and the boot state once
+  (`Er`, `x₀`, `subst`ed after `Start`), so the mode gate's literal count there went down (9 → 7)
+  instead of up.
+- The mode gate's baseline: 364 (stage 2) → 362 (3-0) → 344 (3a-i) → 335 (3a-ii).
+
+**Left** (the Freeze's deferrals): the request side (`Put`/`DeleteRange`/`Range`/`Txn`'s pairs,
+v3rpc, `Serve`, D4); layer A, one KV model (D1); `applyEntryNormal`'s twins (the pilot); `NewServer`
+(D6); `AppliedIndex` as it is (D7 (b)).
