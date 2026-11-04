@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailStepState
 public import Proof.go_etcd_io.bbolt.Spill.PcStepSlots
 public import Proof.go_etcd_io.bbolt.Spill.PcStepFrame
 public import Proof.go_etcd_io.bbolt.Spill.PcStepPar
+public import Proof.go_etcd_io.bbolt.Spill.PcStepKeys
 
 @[expose] public section
 
@@ -367,13 +368,34 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       obtain ⟨hX3p, hsimp, hinsl, -⟩ := hpar3 hpn' rpi0 (by rw [hrpl]; exact hrpi0)
       rw [hrpl] at hX3p
       -- the parent's put: the piece's entry spliced in after the done pieces'
-      -- the keys around the piece's entry in the parent (TODO U9z2: from spCtx's entry `j`, n's
-      -- entries within `[lo, hi)` and sorted, the split's pieces' keys, splitRec's `key'`)
+      -- the keys around the piece's entry in the parent (`pcKeys`)
+      have hwsl : 0 < ws.length := by
+        have e : rl.ws.map wDat = ws.map wDat := hsim.2.2.1.trans (by
+          unfold splitRec; split <;> rfl)
+        rw [← length_of_dat e]; exact hne (by rw [hrpl]; exact hpn)
+      have hps : ∀ p, i ≠ 0 → ps[i - 1]? = some p → p.k = wssKey wss (i - 1) := by
+        intro p hi0 hp
+        obtain ⟨xp, hxp⟩ : ∃ xp, xs[i - 1]? = some xp :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        obtain ⟨wp, hwp⟩ : ∃ wp, wss[i - 1]? = some wp :=
+          ⟨_, List.getElem?_eq_getElem (by rw [hsr.len]; omega)⟩
+        obtain ⟨-, -, -, -, -, -, -, -, -, -, hk, -⟩ := hL.done (i - 1) xp p wp hxp hp hwp
+        exact hk
+      have hra : i = 0 → (ra.nv.key' = slice.nil ↔ r'.nv.key' = slice.nil) ∧ ra.key = r'.key := by
+        intro hi0
+        have hxk := (hsr.prec i x ws hx hws).2.2.2.2.2.2.2.2
+        rw [if_pos hi0] at hxk
+        refine ⟨?_, ?_⟩
+        · rw [hsa.2.1]; show rl.nv.key' = slice.nil ↔ _
+          rw [hsim.2.1, splitRec_nv, hxk]; exact Iff.rfl
+        · rw [hsa.2.2.2.2.2.1, hsim.2.2.2.2.2.1]
+          unfold splitRec; rw [if_pos (by simp [hi0])]; rfl
       have hkeys : (j < bs.length ∨ (bs = [] ∧ j = 0)) ∧
           (i = 0 → bs ≠ [] → wKey bs j = pcOldKey ra) ∧
           (i = 0 → 0 < j → go.GoStringLt (wKey bs (j - 1)) pn.k) ∧
           (i ≠ 0 → ∀ p, ps[i - 1]? = some p → go.GoStringLt p.k pn.k) ∧
-          (j + 1 < bs.length → go.GoStringLt pn.k (wKey bs (j + 1))) := sorry
+          (j + 1 < bs.length → go.GoStringLt pn.k (wKey bs (j + 1))) :=
+        pcKeys hcs hpre hsp hend hsr hws hwsl hps hra
       obtain ⟨k1, k2, k4, k5, k6⟩ := hkeys
       -- a later piece is put at its first key (its key slice nil)
       have k3 : i ≠ 0 → pcOldKey ra = pn.k := by

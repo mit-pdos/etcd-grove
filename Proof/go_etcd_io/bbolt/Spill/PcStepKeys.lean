@@ -92,15 +92,15 @@ at the node's key, the piece's key above the base's previous entry and the previ
 the base's next entry. -/
 theorem pcKeys {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
-    {cs : SpCase} (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
-    {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T)
-    {X1 X2 : WX} {xs : List (Loc × node × List Inode)} {wss : List (List WEntry)} {pl : Loc}
-    {rp0 : NRec} (hsr : splitRel X1 X2 bl n r'.nilCh xs wss pl rp0)
-    {bs : List WEntry} {j : Nat}
+    {cs : SpCase} {pl : Loc} {bs : List WEntry} {j : Nat}
     (hcs : match cs with
      | .child pl' rp j' _ _ => pl = pl' ∧ j = j' ∧ bs.map wDat = rp.ws.map wDat
      | .top => bs = [] ∧ j = 0)
+    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T)
+    {X1 X2 : WX} {xs : List (Loc × node × List Inode)} {wss : List (List WEntry)}
+    {rp0 : NRec} (hsr : splitRel X1 X2 bl n r'.nilCh xs wss pl rp0)
     {i : Nat} {ws : List WEntry} (hws : wss[i]? = some ws) (hne : 0 < ws.length)
     {ps : List Piece} (hps : ∀ p, i ≠ 0 → ps[i - 1]? = some p → p.k = wssKey wss (i - 1))
     {ra : NRec}
