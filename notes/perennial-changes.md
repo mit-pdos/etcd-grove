@@ -1673,3 +1673,17 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   must also not race with a `New` running under a writer, which needs a bbolt protocol (writers
   gated on a "returned" one-shot inside the sealed `isBolt`, or a lease threaded through `Open`'s
   own commit).
+
+## `struct_wp_alloc_pos` in `Golang/Theory` (bbolt maintainer 13, 2026-11-04)
+
+- **Need.** A struct allocated by Go is at a positive address (`GoPrealloc` gives it:
+  `wp_GoPrealloc_pos`), which a byte view (`BytesView`) needs; `struct_wp_alloc` keeps only
+  `l ≠ null`. bbolt's `Tx.init` allocates the transaction's meta copy, which `writeMeta` views as
+  bytes.
+- **Where it is now.** `struct_wp_alloc_pos` exists only in Perennial's test example
+  (`Proof/github_com/mit_pdos/perennial/goose/testdata/examples/unsafememory/Meta.lean`).
+- **Workaround.** A copy in `Proof/go_etcd_io/bbolt/Txn/MetaAlloc.lean` (`bbolt.struct_wp_alloc_pos`,
+  `Meta.wp_alloc_pos` for `common.Meta`).
+- **Proposed change.** Move `struct_wp_alloc_pos` to `Perennial/Golang/Theory/Auto.lean` (beside
+  `struct_alloc_fields'`); ideally have the generated proofs give `T.wp_alloc_pos` per struct. Not
+  started.

@@ -1614,8 +1614,7 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
 
 1. Item 7 (above): land the translation with the proof, at a moment a full rebuild is acceptable.
 2. Item 3's `sorry` (`Tx__write_ext.lean`, the past-the-end case): a unit (Commit/Write*, idle).
-3. Item 4's four `sorry`s in `Spill/PcStepBufs.pcStepX_bufsOK` (U9w4), and `commitFreelist`'s post
-   clause (U10k, above).
+3. `commitFreelist`'s post clause (U10k, above); the four `pcStepX_bufsOK` clauses: proved by U9w5 (`9034f79cb2`).
 4. U11g: the item 1, 5, 6 changes above (`Open/Core`, `DB__loadFreelist`, `Open/FileFacts`,
    `Open.lean`'s `spec_w`).
 5. `DB.Close`'s `fileHolds` must give `m.size < 2 ^ 62` (D-I).
@@ -1623,7 +1622,71 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
 - Open `sorry`s added by maintainer 12: `Tx__write_ext.lean` ×1 (U10-style unit),
   `Spill/PcStepBufs.lean` ×4 (U9w4). Removable once U11g applies item 5: `Open/FileFacts`' `hsz`.
 
-## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 12)
+## Shared-statement fixes, the coordinator's queue for maintainer 13 (2026-11-04)
+
+- **Item 1 (`d64ce6258c`; decision D-J): U4e's three `wdbOK'` gaps, proved.** `wdbOK`/`wdbOK'` end
+  `… ∧ (∀ s, 4096·s < size → size < 4096·(s+1) → size - 4096·s ≤ |wb s|) ∧ 0 ≤ w.fd.toInt`;
+  `flClause true w` is `∀ f, flpg = some f → 16 ≤ |wb f| ∧ flCurOKr …`. The brief's
+  "`|wb s| = 4096` for every slot the file reaches" is false at `Open` (`openWb` is unpadded), so
+  the partial-page clause is the weaker one `DB.grow` needs. `W`'s bound is **not** rounded up: the
+  maxMapSize corner cannot occur (`Mmap/GrowWdb.wCells_aligned`: `wCells`' partial last cells of a
+  `0xFFFFFFFFFFFF` mapping would lie past `maxAddr = 2^47`), and `wdbW'_grow_acc` now gives
+  `mapLen w.ms % 4096 = 0`. `Mmap/GrowPure`: `wdbOK'_flHdr`, `wdbOK'_partSlot` (now with `b L hms
+  hal`), `wdbOK'_fd` proved; `wdbOK'_grown` takes `hpart'` (the new size's partial page);
+  `GrowEnd.grown_W_sub`/`grow_finish`/`grow_finish_same` take `hal`. `DB.grow`'s proof has no
+  `sorry` left. `DB.loadFreelist.spec_open` takes `0 ≤ fd.toInt` (after `lfOK`); `wdbOK_open` takes
+  `hfd`. Adapted: WdbFlag, WJoin, Publish, RemapEnd/Lost, Rollback{Facts,Flag,Reload}, WRelease,
+  WRoll, CoreFacts, DB__loadFreelist, DB__grow.
+  **Broken, active**: (U11h) `Open.lean:723-724`: `wp_apply hLoad … (openOK_lfOK …) Hfd.2 $$ …`
+  (`Hfd` from `OpenFile`'s post, `%Hfd` at :438; `Hfd.2 : 0 ≤ fd.toInt`). (U10l)
+  `Commit/TailAcc.lean:62-68` (`wdbOK_reslot`): bind `h16, h17` and give `…, ?_, h17⟩` with a new
+  premise `hpart : ∀ s, 4096·s < m.size → m.size < 4096·(s+1) → m.size - 4096·s ≤ (wb s).length`
+  (callers: the written file is grown to page ends, or unchanged with `wb` kept on the partial
+  page); `Commit/TailPub.lean:107,134,197`: `hok.2^14` is now a triple, use `hok.2^14.1`, and
+  `:134`'s constructor needs the two new clauses.
+- **Item 3 (`1026f0d7c3`; D-J): `tx.meta`'s positive address.** `wtxCore`'s facts end `… ∧ txRoot tx
+  ≠ null ∧ 0 < X.t.t.meta'.addr` (and `Spill/NodeSpillSplitObjs.splitFr`'s copy); `wtxFrac`'s facts
+  `… ∧ txRoot tx ≠ null ∧ 0 < X.t.t.meta'.addr ∧ wrFacts X`. Source: `Txn/MetaAlloc.Meta.wp_alloc_pos`
+  (a local copy of Perennial's test-example `struct_wp_alloc_pos`; `notes/perennial-changes.md`),
+  used in `Txn/Init.wp_Tx_init`, whose post ends `∗ ⌜0 < m.addr⌝`; `DB__beginRWTx` records it.
+  **For U10l**: `Tx__Commit_err.lean:829`'s `haddr` is `Hr.2.2.2.2.2` of `wtxCore`'s facts
+  (`(Xt.clearPages pml).t.t.meta' = X.t.t.meta'` by `rfl`/unfolding, as `managed'`); the step
+  lemmas keep it as they keep `managed'` (`by unfold WX.setNode; split <;> exact Hr.2.2.2.2.2`).
+- **Item 2 (`8d9ac5806e`): `posShape`'s per-entry tuple** gains `(bl = X.rl → leafFlags pg i % 2 =
+  bucketLeafFlag → ∀ bpg, bktLeafPg X.v.pages (leafValue pg i) bpg → ∀ j < pageCount bpg, …)`.
+  Producers adapted: `Txn/WInit` (from `rootShape`'s fourth clause), `Rebalance/RblXShape`
+  (`rw [hv] at ho hp ⊢`), `Write/MatOK.hps'`, `Write/RootKeys` (`.2.2.1`); U9x9 adapted
+  BktRootKeys/BktLoopPureStart (`a8146a88ea`). **Not done**: the three consumers' `sorry`s
+  (`Rebalance/RblMat.lean:518`, `Read/WOpenOK.lean:252,351`, `Write/MatOK.lean:475,696,699`). Plan
+  for `RblMat:518`: `mat_clean` takes `hnest : pageFlags pg = leafPageFlag → ∀ j < pageCount pg,
+  leafFlags pg j % 2 = bucketLeafFlag → ∀ bpg, bktLeafPg W.pages (leafValue pg j) bpg → ∀ k <
+  pageCount bpg, leafFlags bpg k % 2 = 0 ∧ 0 < leafKsize bpg k ∧ leafKsize bpg k + leafVsize bpg k
+  ≤ bboltEntryMax`; the `sorry` is `fun _ bpg hb => hnest hfl j hjc hbk' bpg hb`; `rbl_nodeAdded`
+  (`RblMat:1092`) passes it through as a premise, and its caller (`RblXSMat`, with `hPS` and the
+  page position `hposw`, as for `posShape_rootLeaf`) and `MatOK:1027,1213` derive it from
+  `posShape`'s new clause (`bl = X.rl` from its first clause and `hbk'`). `WOpenOK.leafBkt_nest_plain`:
+  a view page's entry by `posShape`'s new clause, a node's entry by `bvalOK`'s third clause.
+- **Item 4 (decision D-K): Option A**, decided, not threaded: the new mark's pages are always
+  written (Go's `tx.pages` keeps every allocation until `tx.write`, which writes them all), so
+  `wdbOK`'s clause 3 is kept. The vehicle `markCov X hwm := ∀ s, hwm ≤ s → s < X.t.mv.pgid'.toNat →
+  s ∈ bufSlots X.t.bufs` (D-K) is to be carried by `Bucket.spill.spec`'s and
+  `Tx.commitFreelist.spec`'s success posts and `cmPubPre`, and used by `cm_pub_ok`. Not started (a
+  change to U9x9's and U10l's statements: schedule it with them).
+- **Item 5: nothing to do** (D-I amended): `DB.Close.spec`'s post is `True` (D9), nothing gives
+  `fileHolds` back.
+- `FileMode.String`: not landed (as briefed).
+
+### Maintainer 13's hand-off (2026-11-04): what is left
+
+1. U11h's `Open.lean:723` (`Hfd.2`) and U10l's `TailAcc`/`TailPub` adaptations (item 1, above);
+   until then `Commit/Tail*`, `Commit/Pub*`, `Tx__Commit_err` and `Open` do not build.
+2. Item 2's consumer `sorry`s (plan above).
+3. Item 4's threading (`markCov`, D-K).
+4. Perennial: move `struct_wp_alloc_pos` to `Golang/Theory` (`notes/perennial-changes.md`).
+5. Interfaces and the TCB baseline at integration (`DB.grow`'s three `sorry`s gone).
+- Open `sorry`s: none added; removed: `Mmap/GrowPure` ×3.
+
+## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 13)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
 units', per the U0b table):
@@ -1640,7 +1703,6 @@ units', per the U0b table):
 | `treeData_spill` | `Model/LTree` | U9c |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
 | `Tx.write_ext.wp_proof`'s past-the-end case (maintainer 12, item 3) | `Tx__write_ext` | a Commit/Write unit |
-| `pcStepX_bufsOK`'s four item-4 clauses (maintainer 12) | `Spill/PcStepBufs` | U9w4 |
 
 Maintainer 3's queue (C(1), C(4), E) is done in batch 30 above.
 

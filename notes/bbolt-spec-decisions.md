@@ -1833,3 +1833,41 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   predicate: `Open`'s premise stronger, `Close`'s post, which gives `fileHolds` back, must prove it:
   the writer side's `m.size < 2 ^ 63` is to be strengthened to `2 ^ 62` there, or derived from the
   mapping's bound). `fileHolds_new` (size 0) unchanged.
+  **Amended (2026-11-04, maintainer 13, item 5): nothing to prove.** `DB.Close.spec`'s post is
+  `True` (D9: the file is not given back), and no other statement returns `fileHolds` after a
+  `Close` or a crash, so no proof has to give back `m.size < 2 ^ 62`; `DB__Close` is unchanged.
+  If a later spec gives the file back, the bound comes from the mapping (`mapLen ≤ maxAddr = 2 ^ 47`,
+  `Mmap/GrowWdb.wCells_aligned`'s argument) and `grow`'s truncation.
+- **D-J** (2026-11-04, maintainer 13, items 1 and 3; decided by the coordinator, internal only).
+  `wdbOK` (and `wdbOK'`) end `… ∧ (∀ s, 4096·s < size → size < 4096·(s+1) → size - 4096·s ≤
+  |wb s|) ∧ 0 ≤ w.fd.toInt` (the file's partial last page's bytes cover the file's part of it;
+  the fd non-negative, from `OpenFile`, `File.Truncate`'s premise), and `flClause true` carries
+  `16 ≤ |wb f|` for the synced freelist page. The brief's "4096·s < size → |wb s| = 4096" is false
+  at `Open` (`openWb` is the file's bytes, not padded: the partial page's slot is short), hence the
+  weaker clause, which is all `DB.grow` needs. The partial slot is a `W` slot because the mapping
+  ends on a page: `mapFields` allows `maxMapSize = 0xFFFFFFFFFFFF`, but no mapping can be that long
+  (`maxAddr = 2 ^ 47`: `wCells`' partial last cells would lie past it, `wCells_aligned`), so `W`'s
+  bound is not rounded up. Item 3: `wtxCore`'s and `wtxFrac`'s facts end with `0 < X.t.t.meta'.addr`
+  (`Tx.init` allocates the copy with `Txn/MetaAlloc.Meta.wp_alloc_pos`, a local copy of Perennial's
+  test-example `struct_wp_alloc_pos`; `notes/perennial-changes.md`).
+- **D-K** (2026-11-04, maintainer 13, item 4: the file and the new high-water mark under
+  `NoGrowSync`). **Option A**: the mark's pages are always written, so `wdbOK`'s clause 3
+  (`C'.hwm · 4096 ≤ size` after the publish) holds and is kept; nothing public changes, no new trust,
+  no Go issue. Why it is true of Go: `DB.allocate` moves the mark only after a successful remap and
+  only for the run it returns, which `Tx.allocate` puts into `tx.pages`; nothing removes an entry of
+  `tx.pages` before `tx.write` (a page freed in the same transaction stays in it: `freelist.free`
+  does not touch `tx.pages`), and `tx.write` writes every entry, each extending the file to its
+  end (`WriteAt`). So after a successful write the file reaches the end of the run that ends at the
+  new mark. The model mirrors it: `X.t.bufs` only grows (`WX.addPage` inserts a buffer of `count`
+  pages, overflow `count - 1`, at the old mark; the spill's byte updates keep each buffer's id).
+  Option B (clause 3 relaxed to the tree's and the freelist page's extents) rejected: clause 3 is
+  used as "a slot past the file is past the mark" (`DB.grow`'s `grow_slots_ok`, `Tx.write_ext`'s
+  tail `T`, `wSlots_carveSz`), which B would lose, and it is true. Option C unnecessary
+  (`fileHolds` stays true of the files bbolt writes). **The vehicle** (to thread, units' work):
+  `markCov X hwm := ∀ s, hwm ≤ s → s < X.t.mv.pgid'.toNat → s ∈ bufSlots X.t.bufs`, vacuous at the
+  spill's start (`X.t.mv.pgid' = w.C.hwm`, `Init0.pgid`; `spillStartOK` says only `≤`, so the
+  start premise is the equality or `markCov` itself), kept by `allocRes` (the mark case adds the
+  run `[pgid, pgid + count)`; the freelist case leaves the mark) and by every step that keeps the
+  mark and the buffers' ids and overflows; `Bucket.spill.spec`'s and `Tx.commitFreelist.spec`'s
+  success posts carry it, `cmPubPre` adds it, and `cm_pub_ok` uses `Tx.write_ext`'s success post
+  (every page slot inside the new file) to get `pgid · 4096 ≤ size'`.
