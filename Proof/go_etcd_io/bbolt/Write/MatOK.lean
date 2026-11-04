@@ -95,6 +95,40 @@ theorem leafShape_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRe
       exact hsh c B hB y ry hry hleaf w hw
   · exact hsh c C hC y ry' hy hleaf w hw
 
+omit [GooseExts] in
+theorem nm_ins_none (m : GMap w64 Loc) (c k : w64) (l : Loc) (h : (m.insert c l) !! k = none) :
+    m !! k = none := by
+  by_cases hk : k = c
+  · subst hk; rw [GMap.lookup_insert] at h; cases h
+  · rwa [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at h
+
+theorem branchPgid_lt (pg : List w8) (i : Nat) : branchPgid pg i < 2 ^ 64 := by
+  unfold branchPgid; exact BitVec.isLt _
+
+omit [GooseExts] in
+theorem w64_toNat_cast (x : w64) : W64 ((x.toNat : Nat) : Int) = x := by
+  apply BitVec.eq_of_toNat_eq; simp
+
+/-- **A new node's leaf entries of the root shape** (batch 30/35): its entries are its page's,
+whose leaf flags have it. -/
+theorem newNode_shape (pg : List w8) (r : NRec) (P : Prop)
+    (hr9 : r.ws.map wDat = (pageWs pg).map wDat)
+    (hrleaf : r.nv.isLeaf' = decide (pageFlags pg = leafPageFlag))
+    (hsh : pageFlags pg = leafPageFlag → ∀ i < pageCount pg, (leafFlags pg i % 2 = bucketLeafFlag ↔ P)) :
+    r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ P) := by
+  intro hl w hw
+  have hlf : pageFlags pg = leafPageFlag := by rw [hrleaf] at hl; exact of_decide_eq_true hl
+  have hm : wDat w ∈ (pageWs pg).map wDat := by rw [← hr9]; exact List.mem_map_of_mem hw
+  obtain ⟨w', hw', hd⟩ := List.mem_map.1 hm
+  unfold pageWs at hw'
+  obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw'
+  rw [List.mem_range] at hi
+  have hf : w.flags = (pageW pg i).flags := (congrArg Prod.fst hd).symm
+  rw [hf]
+  simp only [pageW, if_pos hlf]
+  rw [mat_isBktFlag_iff _ (mat_leafFlags_lt pg i)]
+  exact hsh hlf i hi
+
 /-- **`wOK` of a bucket grown by a fresh node** (what both cases of `wOK_nodeAdded'` give). -/
 theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hok : wOK X) (hB : X.t.bs !! bl = some B) (hlo : X.t.objs !! l = none)
@@ -112,7 +146,9 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hbnd : ∀ w ∈ r.ws, 0 < w.key.length ∧ (r.nv.isLeaf' = true → ¬ isBktFlag w.flags →
       w.key.length + w.value.length ≤ bboltEntryMax))
     (hpid : r.nv.pgid'.toNat = pgid.toNat)
-    (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl)) :
+    (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl))
+    (hnmS : ∀ k, B'.nm !! k = none → B.nm !! k = none)
+    (hpr : r.nv.isLeaf' = false → posRoot B r.nv.pgid'.toNat) :
     wOK (matX X bl l pgid B') := by
   obtain ⟨⟨hw, ⟨hpm, hbuf, hsh, hps⟩, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho, ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl,
     hv⟩ := hok
@@ -151,8 +187,33 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       have : (X.t.objs !! l).isSome = true := by
         rw [objs_isSome]; exact Or.inl (by rw [h]; rfl)
       rw [hlo] at this; cases this
+  have hps' : posShape (matX X bl l pgid B') := by
+    intro c C hC c0 p pg0 hpos hown hpg0 hleaf i hi
+    show _ ↔ c = X.rl
+    rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
+    · rcases hpos with ⟨hrn', h0', rfl⟩ | ⟨y, j, ⟨ry', w, hy, hyl, hw, hwp, hnm'⟩, hlt⟩
+      · exact hps c B hB _ p pg0 (Or.inl ⟨hrn hrn', by rw [← hib]; exact h0', by rw [hib]⟩)
+          hown hpg0 hleaf i hi
+      · rcases hnsN y ry' hy with rfl | ⟨ry, hry, a1, a2, -⟩
+        · rw [hnew] at hy; cases hy
+          obtain ⟨-, hbr⟩ := hpg
+          obtain ⟨-, pgr, hpgr, hfb, hlen, hch⟩ := hbr hyl
+          have hwj := hch j w hw
+          have hj : j < pageCount pgr := by rw [← hlen]; exact (List.getElem?_eq_some_iff.1 hw).1
+          have hc0 : c0 = branchPgid pgr j := by
+            have h1 := congrArg BitVec.toNat (hwp.symm.trans hwj)
+            have h2 := branchPgid_lt pgr j
+            simp only [BitVec.toNat_ofInt] at h1
+            omega
+          have hown' : ownHas X.v.pages r.nv.pgid'.toNat p :=
+            ownHas.child _ pgr j p hpgr hfb hj (hc0 ▸ hown)
+          exact hps c B hB _ p pg0 (hpr hyl) hown' hpg0 hleaf i hi
+        · exact hps c B hB _ p pg0
+            (Or.inr ⟨y, j, ⟨ry, w, hry, by rw [← a1]; exact hyl, by rw [← a2]; exact hw, hwp,
+              hnmS _ hnm'⟩, hlt⟩) hown hpg0 hleaf i hi
+    · exact hps c C hC0 c0 p pg0 hpos hown hpg0 hleaf i hi
   refine ⟨⟨hw, ⟨hpm, hbuf, leafShape_matX X bl l pgid B B' r hsh hB hnew hnsN hshape,
-    sorry /- batch 35: `posShape` through the materialization (owner U7f) -/⟩, hpg2, htxid,
+    hps'⟩, hpg2, htxid,
     by rw [hdom]; exact hrl, fun c C hC => ?_⟩, fun c C hC => ?_,
     ?_, ?_, ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, hv⟩
   · -- txClean
@@ -871,7 +932,22 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb) (by rw [hrid'])
-      (sorry) -- batch 30: the new node's leaves of the root shape (from the view page, `rootShape`; owner U7d)
+      (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj => by
+        by_cases hin : B.ib.root' = W64 0
+        · -- an inline bucket's page: no bucket entries; `bl` is not the root bucket (not in
+          -- `wOK`: the root bucket is never inline, a shared fact to add, see the report)
+          have h1 := (hinl' hin).2 j hj
+          have hnr : bl ≠ X.rl := sorry
+          unfold bucketLeafFlag; constructor
+          · intro h; omega
+          · intro h; exact absurd h hnr
+        · exact hok.1.2.1.2.2.2 bl B hB _ _ pg (Or.inl ⟨hrn0, hin, rfl⟩)
+            (ownHas.root _ pg (hfile hin)) (hfile hin) hlf j hj))
+      (fun k h => nm_ins_none B.nm _ k l h)
+      (fun hb => by
+        have hin : B.ib.root' ≠ W64 0 := by
+          intro h0; rw [hrleaf, (hinl' h0).1] at hb; simp at hb
+        exact Or.inl ⟨hrn0, hin, by rw [hrid']⟩)
     · intro y ry' hy
       rw [hns'] at hy
       split at hy
@@ -915,6 +991,10 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       r rp' hr hp'
     have hold := mat_old X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
       r rp' hr hp'
+    have hposw : posRoot B w.pgid.toNat := by
+      refine Or.inr ⟨parent, i, ?_, BitVec.isLt _⟩
+      rw [w64_toNat_cast]
+      exact ⟨rp, w, hrp, hbr, hw, rfl, hnone⟩
     refine wOK_matX X bl l w.pgid B (matBkt B w.pgid parent l rp' r) r hok hB hlo'
       (mat_clean X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r rp' hr
         hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg))
@@ -927,7 +1007,10 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       rfl rfl (fun h => h) (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
         (viewWF_leafBnd X.v hv _ pg hpg)) (by rw [hrid, hcid])
-      (sorry) -- batch 30: the new node's leaves of the root shape (from the view page, `rootShape`; owner U7d)
+      (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj =>
+        hok.1.2.1.2.2.2 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hlf j hj))
+      (fun k h => nm_ins_none B.nm _ k l h)
+      (fun _ => by rw [hrid, hcid]; exact hposw)
     · intro y ry' hy
       by_cases hyl : y = l
       · exact Or.inl hyl
