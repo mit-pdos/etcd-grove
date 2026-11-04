@@ -119,7 +119,7 @@ theorem splitStep_wp (hSplit : node.split.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl n : Loc) (rN : NRec) (np txp : Loc)
     (hn : X1.node bl n = some rN) (hlv : n ∈ X1.live) (hbl : rN.nv.bucket' = bl)
     (hcap : rN.capOwn = true) (hsp : rN.nv.spilled' = false) (hil : rN.ins.length = rN.ws.length)
-    (hsz : insSize rN.ins < 2 ^ 63)
+    (hbnd : insBnd rN.ins)
     (hpar : rN.nv.parent' ≠ null → ∃ rp, X1.node bl rN.nv.parent' = some rp ∧
       rN.nv.parent' ∈ X1.live)
     (Φ : val → IProp GF) :

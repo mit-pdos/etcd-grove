@@ -151,14 +151,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **`n.split(ps)`** (`ps < 2 ^ 53`, the bucket's fill percent not a NaN): the pieces `xs`, returned
+/-- **`n.split(ps)`** (`ps < 2 ^ 53`, every inode's share below `2 ^ 60` (`insBnd`), the bucket's fill percent not a NaN): the pieces `xs`, returned
 as a slice of their locations, cover the inodes in order. Unsplit, the node as it was (and it
 fits); split, the pieces' points-tos (`piecesShape`), under the parent `pl` (`parentAfter`). -/
 abbrev node.split.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp)
     (nl : Loc) (nv : node) (ins : List Inode) (f : w64) (dqf dqt : DFrac)
     (pv : node) (pcs : List Loc) (ps : w64),
-  insSize ins < 2 ^ 63 → ¬ float64IsNaN f → uint.Z ps < 2 ^ 53 →
+  insBnd ins → ¬ float64IsNaN f → uint.Z ps < 2 ^ 53 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗ reg tx K.B r ∗
       statsTok r m q ∗
       nl ↦ nv ∗ nv.inodes' ↦* ins ∗ ownSliceCap Inode nv.inodes' (DFrac.own 1) ∗
@@ -232,15 +232,12 @@ theorem node.split.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG 
   try rw [show decide ((#true : val) = #true) = true from decide_eq_true rfl]
   try simp only [↓reduceIte]
   obtain ⟨hb, -⟩ := splitPhase_bucket Hph.1
-  have Hrest : insSize rest ≤ insSize ins := by
-    rw [← Hph.2]
-    have := insSize_append ((done.map (·.2.2)).flatten) rest
-    have : 16 ≤ insSize ((done.map (·.2.2)).flatten) := by rw [insSize_eq]; omega
-    omega
+  have Hrest : insBnd rest := by
+    intro it hit; apply Hbnd it; rw [← Hph.2]; exact List.mem_append_right _ hit
   rw [← hb]
   try wp_auto
   wp_apply node.splitTwo.wp_proof hK hV hInc K tx r m q cl cv rest f dqf dqt pvX pcsX ps
-    (by omega) Hnan Hps $$ [Hst Hc Hci Hcc Hfp Htx Hpar] as %nx ⟨Hst, Hfp, Htx, Hpost⟩
+    Hrest Hnan Hps $$ [Hst Hc Hci Hcc Hfp Htx Hpar] as %nx ⟨Hst, Hfp, Htx, Hpost⟩
   · iframe; isplitl []
     · iexact Hcore
     iexact Hreg

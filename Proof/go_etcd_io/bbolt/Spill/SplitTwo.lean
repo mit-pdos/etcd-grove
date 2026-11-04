@@ -75,7 +75,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **`n.splitTwo(ps)`** (`ps < 2 ^ 53`, the bucket's fill percent not a NaN). Unsplit (`nil`),
+/-- **`n.splitTwo(ps)`** (`ps < 2 ^ 53`, every inode's share below `2 ^ 60` (`insBnd`), the bucket's fill percent not a NaN). Unsplit (`nil`),
 everything as it was, and the node fits (`pieceFits ps`). Split at `k`: the node keeps its first
 `k` inodes (`splitLeft`), a new node `nx` the rest with the capacity (`splitRight`), both under
 the parent `pl` (`splitParent`), the first piece fitting; the split counted. -/
@@ -83,7 +83,7 @@ abbrev node.splitTwo.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp)
     (nl : Loc) (nv : node) (ins : List Inode) (f : w64) (dqf dqt : DFrac)
     (pv : node) (pcs : List Loc) (ps : w64),
-  insSize ins < 2 ^ 63 → ¬ float64IsNaN f → uint.Z ps < 2 ^ 53 →
+  insBnd ins → ¬ float64IsNaN f → uint.Z ps < 2 ^ 53 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗ reg tx K.B r ∗
       statsTok r m q ∗
       nl ↦ nv ∗ nv.inodes' ↦* ins ∗ ownSliceCap Inode nv.inodes' (DFrac.own 1) ∗
@@ -123,7 +123,7 @@ theorem node.splitTwo.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
   try wp_auto
-  have Hlen : ins.length < 2 ^ 63 := by have := insSize_ge_len ins; omega
+  have Hlen : ins.length < 2 ^ 63 := by rw [Hl.1]; word
   by_cases h4 : sint.Z nv.inodes'.len ≤ sint.Z (W64 4)
   · rw [decide_eq_true h4]
     try wp_auto
@@ -143,7 +143,8 @@ theorem node.splitTwo.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  wp_apply node.sizeLessThan.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) ps Hbnd $$ [Hn Hins]
+  wp_apply node.sizeLessThan.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) ps Hbnd
+    (by omega) $$ [Hn Hins]
     as ⟨Hn, Hins⟩
   · iframe
   by_cases hs : decide (ins = [] ∨ insSize ins < ps.toNat) = true
@@ -160,7 +161,8 @@ theorem node.splitTwo.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (
   try wp_auto
   wp_apply splitThreshold.wp_proof ps f Hnan Hps as %t %Ht
   try wp_auto
-  wp_apply node.splitIndex.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) t Hbnd Ht.1 $$ [Hn Hins]
+  wp_apply node.splitIndex.wp_proof hK hV nl nv ins (DFrac.own 1) (DFrac.own 1) t Hbnd Ht.1
+    (by omega) $$ [Hn Hins]
     as ⟨Hn, Hins⟩
   · iframe
   have H5 : 5 ≤ ins.length := by rw [Hl.1]; word

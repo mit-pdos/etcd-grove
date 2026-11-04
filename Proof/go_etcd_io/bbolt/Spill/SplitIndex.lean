@@ -33,18 +33,21 @@ abbrev node.pageElementSize.spec : Prop :=
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"pageElementSize")) (Val #()))
   {{ RET #(W64 16); n ↦{dq} nv }}
 
-/-- `n.sizeLessThan(v)`: whether the node is empty or its page (`insSize`) is below `v`. -/
+/-- `n.sizeLessThan(v)`: whether the node is empty or its page (`insSize`) is below `v`
+(every inode's share below `2 ^ 60` and `v` below `2 ^ 62`: the running size, which stops once
+past `v`, does not wrap). -/
 abbrev node.sizeLessThan.spec : Prop :=
   ∀ (n : Loc) (nv : node) (ins : List Inode) (dq dqi : DFrac) (v : w64),
-  insSize ins < 2 ^ 63 →
+  insBnd ins → uint.Z v < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"sizeLessThan")) (Val #v))
   {{ RET #(decide (ins = [] ∨ insSize ins < v.toNat)); n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
 
-/-- `n.splitIndex(t)` with a non-negative threshold: `splitIdx`'s index and size. -/
+/-- `n.splitIndex(t)` with a threshold in `[0, 2 ^ 62)`: `splitIdx`'s index and size (every
+inode's share below `2 ^ 60`: past the first two inodes the running size stays below `t`). -/
 abbrev node.splitIndex.spec : Prop :=
   ∀ (n : Loc) (nv : node) (ins : List Inode) (dq dqi : DFrac) (t : w64),
-  insSize ins < 2 ^ 63 → 0 ≤ sint.Z t →
+  insBnd ins → 0 ≤ sint.Z t → sint.Z t < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ n ↦{dq} nv ∗ nv.inodes' ↦*{dqi} ins }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"splitIndex")) (Val #t))
   {{ RET (PairV #(W64 ((splitIdx (sint.nat t) ins).1 : Int)) #(W64 ((splitIdx (sint.nat t) ins).2 : Int)));
@@ -90,7 +93,7 @@ theorem node.pageElementSize.wp_proof : node.pageElementSize.spec (GF := GF) (hG
 theorem node.sizeLessThan.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hV : internal.common.Inode.Value.spec (GF := GF) (hG := hG)) :
     node.sizeLessThan.spec (GF := GF) (hG := hG) := by
-  intro nl nv ins dq dqs v Hbnd
+  intro nl nv ins dq dqs v Hbnd Hv
   wp_start as ⟨Hn, Hs⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
@@ -141,6 +144,12 @@ theorem node.sizeLessThan.wp_proof (hK : internal.common.Inode.Key.spec (GF := G
     have Hnext : insSize (ins.take (sint.nat j + 1)) = insSize (ins.take (sint.nat j)) + inSz it := by
       rw [Htk, insSize_snoc]
     have Hle : insSize (ins.take (sint.nat j + 1)) ≤ insSize ins := insSize_take_le _ _
+    have Hlt63 : insSize (ins.take (sint.nat j + 1)) < 2 ^ 63 := by
+      have hit : inSz it < 2 ^ 60 := Hbnd it (List.mem_of_getElem? Hit_lookup)
+      have hv : v.toNat < 2 ^ 62 := by unfold uint.Z at Hv; omega
+      rcases Nat.eq_zero_or_pos (sint.nat j) with h0 | h0
+      · rw [Hnext, h0, List.take_zero, insSize_nil]; omega
+      · have := Hj.2.2 h0; rw [Hnext]; omega
     have Hsz : W64 (insSize (ins.take (sint.nat j)) : Int) + (W64 16 + it.key'.len + it.value'.len) =
         W64 (insSize (ins.take (sint.nat j + 1)) : Int) := by
       rw [Hnext]; unfold inSz; word
@@ -182,7 +191,7 @@ theorem node.sizeLessThan.wp_proof (hK : internal.common.Inode.Key.spec (GF := G
 theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hV : internal.common.Inode.Value.spec (GF := GF) (hG := hG)) :
     node.splitIndex.spec (GF := GF) (hG := hG) := by
-  intro nl nv ins dq dqs thr Hbnd Hthr
+  intro nl nv ins dq dqs thr Hbnd Hthr Hthr'
   wp_start as ⟨Hn, Hs⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
@@ -194,12 +203,13 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ ins.length - 2 ∧ idx.toNat ≤ sint.nat j ∧
         sz = insSize (ins.take (sint.nat j)) ∧
         splitGo (sint.nat thr) (sint.nat j) idx.toNat sz ((ins.take (ins.length - 2)).drop (sint.nat j)) =
-          splitIdx (sint.nat thr) ins⌝ : IProp GF) $$ [i index sz Hs Hn]
+          splitIdx (sint.nat thr) ins ∧ (2 < sint.nat j → sz ≤ sint.nat thr)⌝ : IProp GF)
+      $$ [i index sz Hs Hn]
   · iexists W64 0, W64 0, 16
     simp only [named]
     iframe
     ipureintro
-    refine ⟨by word, by word, by word, ?_, rfl⟩
+    refine ⟨by word, by word, by word, ?_, rfl, fun h => absurd h (by decide)⟩
     rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; rfl
   wp_for IH
   iStructNamed Hn
@@ -211,7 +221,7 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
   have HL : sint.Z (nv.inodes'.len - W64 2) = sint.Z nv.inodes'.len - 2 ∨ sint.Z nv.inodes'.len < 2 := by
     rcases Int.lt_or_le (sint.Z nv.inodes'.len) 2 with h | h
     · exact Or.inr h
-    · left; have : ins.length < 2 ^ 63 := by have := insSize_ge_len ins; omega
+    · left; have : ins.length < 2 ^ 63 := by rw [Hsl.1]; word
       word
   wp_if_destruct
   · have Hlt : sint.Z j < sint.Z (nv.inodes'.len - W64 2) := by
@@ -245,8 +255,15 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
     have Hit_lookup' : ins[sint.nat j]? = some it := Hit_lookup
     have Hnext : insSize (ins.take (sint.nat j + 1)) = insSize (ins.take (sint.nat j)) + inSz it := by
       rw [List.take_add_one, Hit_lookup', Option.toList_some, insSize_snoc]
-    have Hle : insSize (ins.take (sint.nat j + 1)) ≤ insSize ins := insSize_take_le _ _
-    have H64 : sz + inSz it < 2 ^ 63 := by rw [Hj.2.2.2.1, ← Hnext]; omega
+    have H64 : sz + inSz it < 2 ^ 63 := by
+      have hit : inSz it < 2 ^ 60 := Hbnd it (List.mem_of_getElem? Hit_lookup')
+      have ht : sint.nat thr < 2 ^ 62 := by rw [show sint.nat thr = (sint.Z thr).toNat from rfl]; omega
+      by_cases h2 : sint.nat j ≤ 2
+      · have := insSize_le_len (insBnd_take Hbnd (sint.nat j))
+        have hl : (ins.take (sint.nat j)).length ≤ 2 := by simp; omega
+        have : (ins.take (sint.nat j)).length * 2 ^ 60 ≤ 2 * 2 ^ 60 := Nat.mul_le_mul_right _ hl
+        rw [Hj.2.2.2.1]; omega
+      · have := Hj.2.2.2.2.2 (by omega); omega
     have Hsz : W64 (sz : Int) + (W64 16 + it.key'.len + it.value'.len) = W64 ((sz + inSz it : Nat) : Int) := by
       unfold inSz; word
     wp_if_destruct
@@ -259,7 +276,7 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
           · rw [uintZ_W64_nat _ (by omega)] at Hif; unfold uint.Z at Hif; word
         wp_for_post
         try wp_auto
-        rw [← Hj.2.2.2.2, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_pos Hc]
+        rw [← Hj.2.2.2.2.1, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_pos Hc]
         simp only
         rw [show W64 ((sint.nat j : Nat) : Int) = j by word]
         iapply HΦ; iframe
@@ -275,9 +292,10 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
         rw [Hj1]
         iframe
         ipureintro
-        refine ⟨by word, by omega, by word, by rw [Hnext, Hj.2.2.2.1], ?_⟩
-        rw [← Hj.2.2.2.2, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_neg Hc,
-          show j.toNat = sint.nat j by word]
+        refine ⟨by word, by omega, by word, by rw [Hnext, Hj.2.2.2.1], ?_, ?_⟩
+        · rw [← Hj.2.2.2.2.1, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_neg Hc,
+            show j.toNat = sint.nat j by word]
+        · intro h; exact Classical.byContradiction fun hc => Hc ⟨by omega, by omega⟩
     · have Hc : ¬ (2 ≤ sint.nat j ∧ sint.nat thr < sz + inSz it) := by
         intro ⟨h, _⟩; apply Hif; word
       try wp_auto
@@ -290,9 +308,10 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
       rw [Hj1]
       iframe
       ipureintro
-      refine ⟨by word, by omega, by word, by rw [Hnext, Hj.2.2.2.1], ?_⟩
-      rw [← Hj.2.2.2.2, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_neg Hc,
-        show j.toNat = sint.nat j by word]
+      refine ⟨by word, by omega, by word, by rw [Hnext, Hj.2.2.2.1], ?_, ?_⟩
+      · rw [← Hj.2.2.2.2.1, splitGo_step _ _ _ _ _ ins it HjL (by omega) Hit_lookup', if_neg Hc,
+          show j.toNat = sint.nat j by word]
+      · intro h; exact Classical.byContradiction fun hc => Hc ⟨by omega, by omega⟩
   · have Hge : ¬ sint.Z j < sint.Z (nv.inodes'.len - W64 2) := by
       intro h; rw [decide_eq_true h] at Hif; exact Hif rfl
     simp only [Hge, decide_false, Bool.false_eq_true, ↓reduceIte]
@@ -301,7 +320,7 @@ theorem node.splitIndex.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF)
       rcases HL with h | h
       · rw [h] at Hge; rw [Hsl.1] at Hj ⊢; word
       · rw [Hsl.1] at Hj ⊢; word
-    have Hres := Hj.2.2.2.2
+    have Hres := Hj.2.2.2.2.1
     rw [HjL, List.drop_eq_nil_of_le (by simp)] at Hres
     simp only [splitGo] at Hres
     rw [← Hres]

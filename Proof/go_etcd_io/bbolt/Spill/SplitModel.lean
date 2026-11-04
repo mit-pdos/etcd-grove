@@ -65,6 +65,27 @@ theorem insSize_ge_len (ins : List Inode) : 16 + 16 * ins.length ≤ insSize ins
   | nil => simp [insSize_nil]
   | cons it ins ih => rw [insSize_cons]; simp only [inSz, List.length_cons]; omega
 
+/-- **Every inode's share below `2 ^ 60`** (what `node.sizeLessThan`/`node.splitIndex` need so
+that their running sizes do not wrap: they stop once past a bound below `2 ^ 63`). -/
+def insBnd (ins : List Inode) : Prop := ∀ it ∈ ins, inSz it < 2 ^ 60
+
+theorem insBnd_take {ins : List Inode} (h : insBnd ins) (j : Nat) : insBnd (ins.take j) :=
+  fun it hit => h it (List.mem_of_mem_take hit)
+
+theorem insBnd_drop {ins : List Inode} (h : insBnd ins) (j : Nat) : insBnd (ins.drop j) :=
+  fun it hit => h it (List.mem_of_mem_drop hit)
+
+/-- A node's size from the per-inode bound. -/
+theorem insSize_le_len {ins : List Inode} (h : insBnd ins) :
+    insSize ins ≤ 16 + ins.length * 2 ^ 60 := by
+  induction ins with
+  | nil => simp [insSize_nil]
+  | cons it ins ih =>
+    rw [insSize_cons]
+    have h1 := h it (by simp)
+    have h2 := ih (fun x hx => h x (by simp [hx]))
+    simp only [List.length_cons, Nat.add_mul, Nat.one_mul]; omega
+
 /-- **`node.splitIndex`'s loop** from index `i` (last index `idx`, size `sz`) over the inodes `l`
 left to it: the first inode from the third on whose element takes the size past `t` is the split
 index, else the last one the loop reaches. -/
