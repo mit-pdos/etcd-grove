@@ -6,7 +6,8 @@
 > observation now also receives the batch lock's half of the safe-range buckets' deleted entries
 > (`dlsOwn γ X`) and the quarter of the readers' view as `viewAtD γ P vd X` (the physical view
 > exactly the logical view but `X` on the safe-range buckets, `dlVd`). This review's verdict covers
-> the compaction keys' clause only; the new clause has not been attacked.
+> the compaction keys' clause only; the new clause is attacked in
+> [backend-snapshot-dls](backend-snapshot-dls.md) (survives, 2026-11-04).
 
 **Reviewed.** `backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec`
 (`Proof/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean:54`, the triple in
