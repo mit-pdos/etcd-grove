@@ -233,7 +233,25 @@ theorem store_reload (C : CommitSt) (fl : FLPg) (ids : List w64)
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half (fl.reload ids) := by
-  sorry
+  iintro ⟨#Hinv, Hcur, Hfl⟩
+  have := pagesInv_timeless (GF := GF) B p
+  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
+  unfold pagesInv
+  icases Hi with ⟨%σ, Hcur', Hfl', Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hml, %Hok⟩
+  icombine Hcur Hcur' gives % ⟨_, hC⟩
+  icombine Hfl Hfl' gives % ⟨_, hfl⟩
+  subst hC hfl
+  imod ghostVar_update_halves (σ.fl.reload ids) B.fl σ.fl σ.fl $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
+  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv Hrds Hdep Hcells Hos Hml] with _
+  · inext
+    iexists (σ.reload ids)
+    have e1 : storeCells (GF := GF) (σ.reload ids) = storeCells σ := rfl
+    have e2 : metaLend (GF := GF) B (σ.reload ids) = metaLend B σ := rfl
+    rw [e1, e2]
+    iframe
+    ipureintro
+    exact storeOK_reload σ ids Hok hids hnd
+  imodintro; iframe
 
 /-- `munmap` (a remap, `Close`), with `Pm 1` (`mtok 1`, its `map` quarter) and the writer's view
 parked: every store cell comes out at the client half, and the meta lend quarter. -/
