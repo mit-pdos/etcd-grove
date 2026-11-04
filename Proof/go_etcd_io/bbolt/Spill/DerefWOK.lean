@@ -83,14 +83,26 @@ theorem posShape_step {X X' : WX} (h : derefStep X X') (hs : posShape X) : posSh
   rw [h.2.2.2.2.1]
   exact hs bl B hB c p pg (posRoot_bktStep hst hc) hp hpg hl i hi
 
+/-- Dereferencing keeps the root bucket not inline (batch 37: its header is kept). -/
+theorem rootNotInline_step {X X' : WX} (h : derefStep X X') (hr : rootNotInline X) :
+    rootNotInline X' := by
+  intro B' hB'
+  obtain ⟨hv, -, -, -, hrl, -⟩ := id h
+  rw [hrl] at hB'
+  obtain ⟨B, hB, hst⟩ := derefStep_bwd h hB'
+  rw [(bktStep_fields hst).2.1]
+  exact hr B hB
+
 theorem txClean_step {X X' : WX} (h : derefStep X X') (hc : txClean X) : txClean X' := by
+  have hrni := fun hr => rootNotInline_step h hr
   obtain ⟨hv, -, -, -, hrl, htt, hmv, hpm, hbuf, -, -, -⟩ := id h
-  obtain ⟨c1, ⟨c2, c2b, c2s, c2p⟩, c3, c4, c5, c6⟩ := hc
+  obtain ⟨c1, ⟨c2, c2b, c2s, c2p, c2r⟩, c3, c4, c5, c6⟩ := hc
   have c2s' := leafShape_step h c2s
   have c2p' := posShape_step h c2p
+  have c2r' := hrni c2r
   unfold txClean
   rw [hv, hrl, htt, hmv, hpm, hbuf, derefStep_bs_isSome h]
-  refine ⟨c1, ⟨c2, c2b, c2s', c2p'⟩, c3, c4, c5, ?_⟩
+  refine ⟨c1, ⟨c2, c2b, c2s', c2p', c2r'⟩, c3, c4, c5, ?_⟩
   intro bl B' hB'
   obtain ⟨B, hB, hs⟩ := derefStep_bwd h hB'
   obtain ⟨d1, d2⟩ := c6 bl B hB
@@ -122,10 +134,10 @@ theorem entriesBounded_step {X X' : WX} (h : derefStep X X') (he : entriesBounde
   obtain ⟨B, hB, hs⟩ := derefStep_bwd h hB'
   obtain ⟨r, hr, hrs⟩ := bktStep_bwd hs hr'
   obtain ⟨w, hw, e, -⟩ := nodeStep_mem hrs hw'
-  obtain ⟨ef, -, ek, ev⟩ := wDat_eq e
-  obtain ⟨d1, d2⟩ := he bl B hB l r hr w hw
-  rw [← ek, ← ev, ← ef, (nodeStep_nvf hrs).2.1]
-  exact ⟨d1, d2⟩
+  obtain ⟨-, -, ek, ev⟩ := wDat_eq e
+  have d := he bl B hB l r hr w hw
+  rw [← ek, ← ev]
+  exact d
 
 theorem handlesOK_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (hh : handlesOK X) :
     handlesOK X' := by
