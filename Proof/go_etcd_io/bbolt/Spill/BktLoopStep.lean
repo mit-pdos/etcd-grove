@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureStart
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureFree
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPurePut
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureSpilled
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
@@ -37,15 +38,6 @@ namespace Spill
 
 section step
 variable [GooseExts]
-
-/-- `f` with `k` mapped to `b`. -/
-def upd {β : Type} (f : GoString → β) (k : GoString) (b : β) : GoString → β :=
-  fun k' => if k' = k then b else f k'
-
-/-- The slots owned by everything but the child `k`: the root's and the other children's. -/
-def othersO (Lroot : List Nat) (keys : List GoString) (Dc : GoString → List Nat)
-    (k : GoString) : List Nat :=
-  Lroot ++ (keys.filter fun k' => decide (k' ≠ k)).flatMap Dc
 
 /-- The inline value `b.write()` makes of a bucket (header `ib`) whose root leaf holds `ws`. -/
 def inlineVal (ib : InBucket) (ws : List WEntry) : List w8 :=
@@ -92,34 +84,10 @@ theorem ksAt_todo {keys : List GoString} {i : Nat} {ks : GoString → KSt} (h : 
     {k : GoString} (hk : keys[i]? = some k) : ks k = .todo :=
   (h i k hk).2 (Nat.le_refl _)
 
-theorem upd_same {β : Type} (f : GoString → β) (k : GoString) (b : β) : upd f k b k = b := by
-  unfold upd; rw [if_pos rfl]
-
 /-- A staged state's key, then put. -/
 theorem upd_upd {β : Type} (f : GoString → β) (k : GoString) (b b' : β) :
     upd (upd f k b) k b' = upd f k b' := by
   funext k'; unfold upd; by_cases e : k' = k <;> simp [e]
-
-theorem flatMap_perm_split {β : Type} {keys : List GoString} {Dc : GoString → List β}
-    {k : GoString} (hnd : keys.Nodup) (hk : k ∈ keys) :
-    (keys.flatMap Dc).Perm ((keys.filter fun k' => decide (k' ≠ k)).flatMap Dc ++ Dc k) := by
-  induction keys with
-  | nil => cases hk
-  | cons a t ih =>
-    rw [List.nodup_cons] at hnd
-    rw [List.flatMap_cons]
-    by_cases e : a = k
-    · subst e
-      have hf : t.filter (fun k' => decide (k' ≠ a)) = t :=
-        List.filter_eq_self.2 (fun x hx => by simp only [decide_eq_true_eq]; intro h; subst h; exact hnd.1 hx)
-      rw [List.filter_cons_of_neg (by simp), hf]
-      exact List.perm_append_comm
-    · have hk' : k ∈ t := by
-        rcases List.mem_cons.1 hk with h | h
-        · exact absurd h.symm e
-        · exact h
-      rw [List.filter_cons_of_pos (by simpa using e), List.flatMap_cons, List.append_assoc]
-      exact List.Perm.append_left _ (ih hnd.2 hk')
 
 /-- **`child.spill()`'s pre.** -/
 theorem rinv_bkPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
@@ -161,6 +129,14 @@ theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
     · rw [if_pos h, h, hks]; rfl
     · rw [if_neg h]
 
+/-- **The view after a child's spill is the committed state's** (a `sorry`: `bkDone` does not
+state it; the caller has it from `wdbW K tx X'.v w'`, whose pure part is
+`X'.v = View.ofC X'.v.base w'.C`. U9x's report: `rinv_spilled` should take it as a premise, the
+call in `Bucket__spill.lean` passing `wdbW`'s fact, or `spFrame` should keep the view's root.) -/
+theorem spilled_view {X X' : WX} {w w' : WDb} {c : Loc} {C : BRec} {O D : List Nat}
+    {st' : List FLStep} (hd : bkDone X X' w w' c C O D st') : X'.v = View.ofC X'.v.base w'.C := by
+  sorry
+
 /-- **After `child.spill()`**: its new header (`bkRooted`) staged. -/
 theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)
     {k : GoString} {c : Loc} {C : BRec} (hk : k ∈ keys) (hks : ks k = .todo)
@@ -169,8 +145,8 @@ theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
     (hd : bkDone X X' w w' c C (othersO Lroot keys Dc k) (Dc k) st') :
     ∃ C' D', X'.t.bs !! c = some C' ∧ C'.bv.rootNode' ≠ null ∧ c ∈ X'.liveB ∧
       RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k D')
-        (upd ks k (.val (encode C'.ib) false)) := by
-  sorry
+        (upd ks k (.val (encode C'.ib) false)) :=
+  rinv_spilled' hI hnd hk hks hc hC hnn hd (spilled_view hd)
 
 /-- **A todo child's root node** (for `b.inlineable()`): live, its entries live and bounded. -/
 theorem rinv_inlPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}

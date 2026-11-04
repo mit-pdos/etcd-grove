@@ -133,6 +133,39 @@ def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
   ∀ j k, keys[j]? = some k → (j < i → ks k ≠ .todo ∧ ∀ v, ks k ≠ .val v false) ∧
     (i ≤ j → ks k = .todo)
 
+/-- `f` with `k` mapped to `b`. -/
+def upd {β : Type} (f : GoString → β) (k : GoString) (b : β) : GoString → β :=
+  fun k' => if k' = k then b else f k'
+
+/-- The slots owned by everything but the child `k`: the root's and the other children's. -/
+def othersO (Lroot : List Nat) (keys : List GoString) (Dc : GoString → List Nat)
+    (k : GoString) : List Nat :=
+  Lroot ++ (keys.filter fun k' => decide (k' ≠ k)).flatMap Dc
+
+theorem upd_same {β : Type} (f : GoString → β) (k : GoString) (b : β) : upd f k b k = b := by
+  unfold upd; rw [if_pos rfl]
+
+theorem flatMap_perm_split {β : Type} {keys : List GoString} {Dc : GoString → List β}
+    {k : GoString} (hnd : keys.Nodup) (hk : k ∈ keys) :
+    (keys.flatMap Dc).Perm ((keys.filter fun k' => decide (k' ≠ k)).flatMap Dc ++ Dc k) := by
+  induction keys with
+  | nil => cases hk
+  | cons a t ih =>
+    rw [List.nodup_cons] at hnd
+    rw [List.flatMap_cons]
+    by_cases e : a = k
+    · subst e
+      have hf : t.filter (fun k' => decide (k' ≠ a)) = t :=
+        List.filter_eq_self.2 (fun x hx => by simp only [decide_eq_true_eq]; intro h; subst h; exact hnd.1 hx)
+      rw [List.filter_cons_of_neg (by simp), hf]
+      exact List.perm_append_comm
+    · have hk' : k ∈ t := by
+        rcases List.mem_cons.1 hk with h | h
+        · exact absurd h.symm e
+        · exact h
+      rw [List.filter_cons_of_pos (by simpa using e), List.flatMap_cons, List.append_assoc]
+      exact List.Perm.append_left _ (ih hnd.2 hk')
+
 /-! ## The loop's end (statements; proofs to come; the start is `Spill/BktLoopPureStart`) -/
 
 /-- **The end, no root node**: nothing was put, the root bucket has no root node, and the records
