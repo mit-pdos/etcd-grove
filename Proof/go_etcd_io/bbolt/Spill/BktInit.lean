@@ -113,7 +113,7 @@ theorem InitB.ltree_pages (H : InitB X bl B P C pht ht bnd Sb) {l : Loc} {r : NR
   have h0 := H.root_ne hr hl
   have hpos : pagePosAt B l i w.pgid := ⟨r, w, hr, hl, hw, rfl, hnm⟩
   have hq' : treeHas X.v.pages w.pgid.toNat q.toNat := by rw [H.cpages]; exact hq
-  have hfree := H.clean.2.2.2.2.2.2.2.2.2 l i w.pgid hpos q.toNat hq'
+  have hfree := H.clean.2.2.2.2.2.2.2.2.2.1 l i w.pgid hpos q.toNat hq'
   rw [show W64 (q.toNat : Int) = q by simp] at hfree
   unfold ltree; rw [H.hB]; simp only
   have hres : resolve B q = none := by unfold resolve; rw [if_neg h0]; exact hfree
