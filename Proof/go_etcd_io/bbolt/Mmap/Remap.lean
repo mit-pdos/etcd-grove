@@ -55,13 +55,14 @@ def errPtrTyped [GooseExts] [GoGlobalContext] (e : GoInterface) : Prop :=
   ∀ ii : GoInterfaceOk, e = GoInterface.ok ii → ∀ T : go.GoType, ii.ty = go.GoType.PointerType T →
     ∃ l : Loc, ii.v = #l
 
-/-- **`db.mmap(minsz)` by the live writer `tx`**: on success the records dereferenced and
+/-- **`db.mmap(minsz)` by the live writer `tx`**, growing the mapping (`minsz` at least its length,
+U4d: a shorter new mapping would drop `W` slots, which `wdbRemap` keeps): on success the records dereferenced and
 re-based on the new mapping (`derefRel`, `WX.rebase`), the writer side remapped (`wdbRemap`),
 the mapping at least `minsz` long; on an error (`fmtErrorOk`, `errPtrTyped`), nothing changed (before
 `dereference`: `fileSize`, `mmapSize`, `ErrMaxSizeReached`), or the mapping lost. -/
 abbrev DB.mmap.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
-  0 < sint.Z minsz → derefPre X → liveFresh X → liveReach X →
+  0 < sint.Z minsz → mapLen w.ms ≤ sint.nat minsz → derefPre X → liveFresh X → liveReach X →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"mmap")) (Val #minsz))
   {{ (err : GoInterface), RET #err;

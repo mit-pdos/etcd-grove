@@ -435,7 +435,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             iframe
           · iframe
         · ipureintro; exact Hwok
-      wp_apply hMmap K tx r m X w _ (by rw [hM]; omega) hdp hlf hlr $$ [Hw Hdb] as %err Hres
+      wp_apply hMmap K tx r m X w _ (by rw [hM]; omega) (by simp only [sint.nat]; rw [hM]; omega)
+        hdp hlf hlr $$ [Hw Hdb] as %err Hres
       · iframe
       try wp_auto
       icases Hres with (⟨%he, %Xd, %b, %w', Hw, Hdb, %hrel⟩ | ⟨%hnp, #HeOk, Hcase⟩)
