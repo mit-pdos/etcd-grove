@@ -100,16 +100,16 @@ theorem pt_halves {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
 (`wdbOK` of `openW` is needed only when `rwlock`'s resource is formed, after `loadFreelist`.)
 Every ghost share is as `Inv/Names` lists it; the store's cells and witness are allocated mapped
 (no reader, so nothing lent), so `store_carve` is not needed. -/
-theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db sp f : Loc)
+theorem open_core_fl [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db sp f : Loc)
     (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
-    (wb : Nat → List w8)
-    (hok : storeOK (openSigma b L C wb))
+    (wb : Nat → List w8) (fl : FLPg) (fli : GoInterface) (hpend : fl.pending = ∅)
+    (hok : storeOK { openSigma b L C wb with fl := fl })
     (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
       db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
       db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
       db.[DB, go!"statlock"] ↦ (zero_val sync.RWMutex) ∗
-      db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
+      db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ fli ∗ flRoOpt fli ∅ ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
@@ -126,16 +126,17 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
         bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (wb s)) ∗
       wCells (some (b, L)) (wSlots (L / 4096) C FLPg.empty) ⊢
     |={E}=> ∃ B : BNs, isBoltCoreP B N db p sp C.txid ∗
-      wdbOpen B db p (openW C b L m wb f fd) ∗ ghostVar B.cls (1 : Qp).half false ∗
+      wdbCore B db p { openW C b L m wb f fd with fl := fl, fli := fli } ∗
+      ghostVar B.st (1 : Qp).half.half (treeData C) ∗ ghostVar B.cls (1 : Qp).half false ∗
       rdPair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
       boltStateDef B 1 (treeData C) := by
-  iintro ⟨#Hpkg, #Hos, Hfix, Hml, Hmm, Hsl, Hop, Hfli, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf, Hosm,
+  iintro ⟨#Hpkg, #Hos, Hfix, Hml, Hmm, Hsl, Hop, Hfli, Hro, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf, Hosm,
     Hfo, Hfd, Hps, Hmo1, Hmo2, Hslots, Hwb, Hmc1, Hmc2, Hcells, Hwc⟩
   -- the ghost names
   imod ghostVar_alloc (GF := GF) (treeData C) with ⟨%γst, Hst⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γbq, Hbq⟩
   imod ghostVar_alloc (GF := GF) C with ⟨%γcur, Hcur⟩
-  imod ghostVar_alloc (GF := GF) FLPg.empty with ⟨%γfl, Hfl⟩
+  imod ghostVar_alloc (GF := GF) fl with ⟨%γfl, Hfl⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat RdInfo) with ⟨%γrds, Hrds, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat w64) with ⟨%γfltx, Hfltx, -⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γmtok, Hmtok⟩
@@ -209,11 +210,15 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
     [Hcur2 Hfl1 Hmap2 Hwv1 Hrds Hcells Hslots Hbyt1 Hbyt2 Hmc1 Hout1 Hmln] with #Hpages
   · inext
     unfold pagesInv
-    iexists (openSigma b L C wb), W
-    have hws : (openSigma b L C wb).wst = wIdle := rfl
+    iexists { openSigma b L C wb with fl := fl }, W
+    have hws : ({ openSigma b L C wb with fl := fl } : StoreSt).wst = wIdle := rfl
     rw [hws]
     unfold storeCells bytesWit metaLend
-    simp only [openSigma_slots]
+    have hsl : storeSlots ({ openSigma b L C wb with fl := fl } : StoreSt) = slotsOf C FLPg.empty := by
+      show slotsOf C fl = slotsOf C FLPg.empty
+      unfold slotsOf pendSlots FLPg.pendingIds
+      rw [hpend]; rfl
+    simp only [hsl]
     simp only [openSigma]
     iframe Hcur2 Hfl1 Hmap2 Hwv1 Hrds Hslots Hbyt1 Hbyt2
     isplitr
@@ -225,7 +230,9 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
       iexists (1 : Qp).half
       iframe H
       ipureintro
-      have := openSigma_lent b L C wb s
+      have : lent ({ openSigma b L C wb with fl := fl } : StoreSt) s = none := by
+        unfold lent openSigma
+        simp only [GMap.mapFold_empty]
       simp only [openSigma] at this
       rw [this]; rfl
     isplitr
@@ -242,12 +249,12 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
     iapply BigSepM.bigSepM_empty.2; iempintro
   -- `metalock`
   imod sync.init_Mutex (metaR (GF := GF) B db p) E _ $$ Hml
-    [Hcur1 Hst2 Hcls1 Hop1 Hfli1 Hwa1 Hmo1 Hmlk Hfltx] with #Hmeta
+    [Hcur1 Hst2 Hcls1 Hop1 Hfli1 Hwa1 Hmo1 Hmlk Hfltx Hro] with #Hmeta
   · inext
     unfold metaR
-    iexists C, ∅, false, interface.nil,
+    iexists C, ∅, false, fli,
       methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f
-    simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte, flRoOpt]
+    simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte]
     iframe
     ipureintro
     and_intros <;> first | exact hok.1 | exact hok.2.1 | exact htx.1 | trivial |
@@ -256,13 +263,60 @@ theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db s
   · unfold rdPair; iexact Hspare
   imodintro
   iexists B
-  unfold isBoltCoreP wdbOpen wdbCore wdbCoreG boltStateDef dblAt t0At
+  unfold isBoltCoreP wdbCore wdbCoreG boltStateDef dblAt t0At
   simp only [openW, mapLen]
   iframe Hdbl Ht0 Hpkg Hos Hfix Hmeta Hmg Hsg Hpages Htxsi Hpool Hspare Hcls2 Hst1 Hbq
   iframe Hcur3 Hfl2 Hmap1 Hout2 Hwv2 Hfli2 Hop2 Hwa2 Hrw Hfile Hpath Hdsz Hmf2 Hosm Hfo Hfd Hmc2
   iframe Hmo2 Hwc Hwb Hst3
   ipureintro
-  exact ⟨⟨htx.2, hdb, hN⟩, trivial, trivial⟩
+  exact ⟨htx.2, hdb, hN⟩
+
+/-- **The core phase's ghost step** with no freelist yet (`db.freelist` nil). -/
+theorem open_core [ThreadBoundLe GF (2 ^ 29)] (E : CoPset) (N : Namespace) (db sp f : Loc)
+    (fd : w64) (p : GoString) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
+    (wb : Nat → List w8)
+    (hok : storeOK (openSigma b L C wb))
+    (htx : 1 ≤ C.txid ∧ C.txid < 2 ^ 62) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
+      db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
+      db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
+      db.[DB, go!"statlock"] ↦ (zero_val sync.RWMutex) ∗
+      db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
+      (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
+        methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
+      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p ∗
+      db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
+      mapFields db (DFrac.own 1) (some (b, L)) ∗
+      osMeta p (DFrac.own 1) (some m) ∗ fileOwn f fd p (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ Ps sp 1 ∗
+      metaOsBytes p (DFrac.own (1 : Qp).half) C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) C ∗
+      ([∗list] s ∈ slotsOf C FLPg.empty, osSlot p s (wb s)) ∗
+      wBytes p (wSlots (L / 4096) C FLPg.empty) wb m.size ∗
+      metaCellsQ (1 : Qp).half.half (some (b, L)) C ∗
+      metaCellsQ (1 : Qp).half.half (some (b, L)) C ∗
+      ([∗list] s ∈ slotsOf C FLPg.empty,
+        bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (wb s)) ∗
+      wCells (some (b, L)) (wSlots (L / 4096) C FLPg.empty) ⊢
+    |={E}=> ∃ B : BNs, isBoltCoreP B N db p sp C.txid ∗
+      wdbOpen B db p (openW C b L m wb f fd) ∗ ghostVar B.cls (1 : Qp).half false ∗
+      rdPair B db sp ∗ threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
+      boltStateDef B 1 (treeData C) := by
+  iintro ⟨#Hpkg, #Hos, Hfix, Hml, Hmm, Hsl, Hop, Hfli, Hrest⟩
+  imod open_core_fl E N db sp f fd p C b L m wb FLPg.empty interface.nil rfl hok htx hN hdb $$
+    [Hfix Hml Hmm Hsl Hop Hfli Hrest] with ⟨%B, Hc, Hw, Hst, Hrest⟩
+  · iframe Hpkg Hos Hfix Hml Hmm Hsl Hop Hfli Hrest
+    unfold flRoOpt; simp only [↓reduceIte]; iempintro
+  imodintro
+  iexists B
+  iframe Hc Hrest
+  unfold wdbOpen
+  have hw : ({ openW C b L m wb f fd with fl := FLPg.empty, fli := interface.nil } : WDb) =
+      openW C b L m wb f fd := rfl
+  rw [hw]
+  iframe Hw
+  isplitl [Hst]
+  · simp only [openW]; iexact Hst
+  ipureintro; exact ⟨rfl, rfl⟩
 
 /-- **The writer phase** (design §3.11 "Open", step 4): `rwlock`'s resource, the writer side
 idle with its freelist (after `loadFreelist`), the spare pair, no receipt yet (`t0` the current
