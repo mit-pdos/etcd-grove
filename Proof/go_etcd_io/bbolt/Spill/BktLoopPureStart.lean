@@ -68,6 +68,18 @@ theorem txid_start {X : WX} {w : WDb} (hc : txClean X)
   rw [w64_cast_toNat hlt]
   omega
 
+/-- **The view's pages lie below the mark at the start** (`spG`'s view clause, U9w): each page's
+extent ends at most at the committed high-water mark (`treeOK`), which is at most the mark. -/
+theorem view_lt_mark {X : WX} {w : WDb} {B0 : BRec} (hS : StartFacts X w B0)
+    (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C) :
+    ∀ id pg, X.v.pages !! id = some pg → id < X.t.mv.pgid'.toNat := by
+  intro id pg hpg
+  have hcp : X.v.pages = w.C.pages := by rw [hw.2.2]; rfl
+  rw [hcp] at hpg
+  have := hS.cok.2.2.2.1 id pg hpg
+  have := hS.hwm
+  omega
+
 /-- A cached child of the root bucket has no bucket entry, so caches no bucket. -/
 theorem child_bm_empty {X : WX} (hok : wOKR X) {c : Loc} {C : BRec}
     (hC : X.t.bs !! c = some C) (hne : c ≠ X.rl) : C.bm = ∅ := by
