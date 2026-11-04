@@ -41,11 +41,15 @@ structure StartFacts (X : WX) (w : WDb) (B0 : BRec) : Prop where
   mark62 : X.t.mv.pgid'.toNat < 2 ^ 62
   notRoot : ∀ k c, B0.bm !! k = some c → c ≠ X.rl
   inj : ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k'
+  rootKeys : ∀ we ∈ X.allEnts X.rl, 0 < we.key.length
 
 /-- **The start's missing facts** (U9t's report): `treeOK w.C` and `w.C.hwm ≤ pgid` are the
 store's (`wtxW`/`wdbW` do not state them purely), the `2 ^ 62` bound is `mapFields`'
 (`l ≤ maxMapSize`, in `wtxW`), the root's children distinct by the handles' generations
-(`gensOK`, in `wtxCore`); a child not the root is not stated anywhere. -/
+(`gensOK`, in `wtxCore`); a child not the root is not stated anywhere; the root's entries' keys
+not empty are `entriesBounded`'s for its nodes, and for its view pages `rootShape`'s (`treeOK`),
+which no writer invariant carries to the root's page positions (`posShape` bounds only the other
+buckets'). -/
 theorem spill_startFacts {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     (hml : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms)
     (hw : wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
@@ -260,7 +264,9 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     ents := by
       show rootEnts X = (rootEnts X).map fun e => (e.1, e.2)
       rw [List.map_id']
-    keysAll := fun k h => (hk k).2 h }
+    keysAll := fun k h => (hk k).2 h
+    rootPg := htc.2.1.2.2.2.2 B0 hB0
+    entKeys := hS.rootKeys }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/

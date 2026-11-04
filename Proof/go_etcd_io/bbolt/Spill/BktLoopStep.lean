@@ -15,6 +15,7 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureStart
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureFree
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopPurePut
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
@@ -310,8 +311,8 @@ theorem rinv_putPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {X1 : WX}
     (hres : resolve B1 pid = some l) (hk : ∃ we ∈ X.allEnts X0.rl, we.key = k) :
     ∃ rl, B1.ns !! l = some rl ∧ l ∈ X1.live ∧ rl.nv.bucket' = X0.rl ∧ rl.capOwn = true ∧
       wsSorted rl.ws ∧ wsLive rl.ws ∧ 0 < X1.t.mv.pgid'.toNat ∧ X1.v = X.v ∧
-      rl.nv.parent' ≠ l ∧ 0 < k.length ∧ X1.t.bs !! X0.rl = some B1 := by
-  sorry
+      rl.nv.parent' ≠ l ∧ 0 < k.length ∧ X1.t.bs !! X0.rl = some B1 :=
+  rinv_putPre' hI hm hp hB1 hlast hres hk
 
 /-- **The staged value put into the root bucket's leaf.** -/
 theorem rinv_put (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c : Loc}

@@ -118,6 +118,10 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   ents : rootEnts X = (rootEnts X0).map fun e => (e.1, (ks e.1).entVal e.2)
   /-- Every cached child is iterated (its slots are among the owned ones). -/
   keysAll : ∀ k, (B0.bm !! k).isSome → k ∈ keys
+  /-- The root bucket is not inline (`rootNotInline` at the start; its header kept, `rootIb`). -/
+  rootPg : B0.ib.root' ≠ W64 0
+  /-- The root bucket's entries' keys are not empty (the searches' keys, `node.put`'s premise). -/
+  entKeys : ∀ we ∈ X.allEnts X0.rl, 0 < we.key.length
 
 /-- The state before the `i`-th key: the keys before it visited and put, the others not. -/
 def ksAt (keys : List GoString) (i : Nat) (ks : GoString → KSt) : Prop :=
