@@ -109,6 +109,23 @@ theorem freedAt_node (X Y : WX) (bl : Loc) (B : BRec) (ps : List w64) (pid : w64
       · have h2 := h1.2 hr'; simp [hr', h2]
       · have h2 : ¬ reachedBy B (ps ++ [pid]) l' := fun h => hr' (h1.1 h); simp [hr', h2]
 
+/-- `freedAt`'s records are `bktFreed`'s. -/
+theorem freedAt_ns (B : BRec) (ps : List w64) (ns' : GMap Loc NRec)
+    (hns : ∀ l, ns' !! l = (B.ns !! l).map fun r =>
+      open Classical in
+      if reachedBy B ps l then { r with nv := { r.nv with pgid' := W64 0 } } else r) :
+    ∀ l, ns' !! l = (B.ns !! l).map fun r =>
+      if ∃ pid ∈ ps, resolve B pid = some l
+      then { r with nv := { r.nv with pgid' := W64 0 } } else r := by
+  intro l
+  rw [hns l]
+  refine congrArg (fun f => Option.map f (B.ns !! l)) (funext fun r => ?_)
+  by_cases h : reachedBy B ps l
+  · have h' : ∃ pid ∈ ps, resolve B pid = some l := h
+    rw [if_pos h, if_pos h']
+  · have h' : ¬ ∃ pid ∈ ps, resolve B pid = some l := h
+    rw [if_neg h, if_neg h']
+
 /-! ## The freelist -/
 
 theorem freeAll_cons (fl : FLPg) (txid : w64) (e : w64 × Nat) (es : List (w64 × Nat)) :
