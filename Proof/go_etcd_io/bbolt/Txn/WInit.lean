@@ -83,7 +83,7 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact hi.writable
   · -- batch 30: no buffers, no node (so `leafShape`)
-    refine ⟨rfl, rfl, ?_, ?_⟩
+    refine ⟨rfl, rfl, ?_, ?_, ?_⟩
     · intro bl B hB l r hr
       obtain ⟨rfl, rfl⟩ := hbs bl B hB
       exact absurd hr (by simp [brec0])
@@ -95,7 +95,12 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
         · exact hrt'
         · exact absurd hr (by simp [brec0])
       subst hcr
-      exact ⟨fun _ => rfl, fun _ => (htree.2.2.2.2.1 q pg hown hpg hl i hi').1⟩
+      exact ⟨⟨fun _ => rfl, fun _ => (htree.2.2.2.2.1 q pg hown hpg hl i hi').1⟩,
+        fun hne => absurd rfl hne⟩
+    · -- batch 37: the root bucket is not inline (its root is the meta's root page)
+      intro B hB
+      obtain ⟨-, rfl⟩ := hbs _ B hB
+      exact hr0
   · show 2 ≤ mv.pgid'.toNat; rw [hi.pgid]; omega
   · show C.txid + 1 = mv.txid'.toNat; rw [hi.txid]
   · simp [wx0]
@@ -107,7 +112,7 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
     refine ⟨fun h => absurd h hr0, fun _ => ⟨by rw [hrt']; exact hlt, fun _ => by
       rw [hrt']; exact htree.1.1⟩, fun _ => ⟨rfl, rfl⟩, fun h => absurd hi.rootNode h,
       fun c l h => by simp [brec0] at h, fun _ => hi.page, fun h => absurd h hr0,
-      fun l r h => by simp [brec0] at h, ?_, ?_⟩
+      fun l r h => by simp [brec0] at h, ?_, ?_, fun n c h => by simp [brec0] at h⟩
     · intro l1 i1 c1 l2 i2 c2 h1
       obtain ⟨r, -, h, -⟩ := h1; simp [brec0] at h
     · intro l i c h1

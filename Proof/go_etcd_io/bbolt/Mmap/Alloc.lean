@@ -119,7 +119,7 @@ theorem BC.core_allocFields (K : BC) :
     unfold dbFixed dbLogger
     icases Hfix with ⟨-, -, #H, -⟩
     iexact H
-  ipureintro; exact Ht.2
+  ipureintro; exact Ht.2.1
 
 /-- The mapping's length is at most `maxMapSize` (`mapFields`' pure part). -/
 theorem mapFields_len (db : Loc) (dq : DFrac) (ms : MapSt) :
@@ -245,7 +245,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_apply hSetOv $$ [Hh] as Hh
   · iframe
   unfold wdbW wdbLive wdbCoreG
-  icases Hdb with ⟨⟨⟨%wa, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz,
+  icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz,
     Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
   wp_auto
   wp_apply hAlloc w.fli w.fl w.wtxid count hc0 $$ [Hflo] as %rid Hflo
@@ -407,8 +407,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · iframe
       isplitl
       · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
-        · iexists wa
-          iframe
+        · iframe
         · iframe
       · ipureintro; exact Hwok
     subst hv
@@ -431,8 +430,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · unfold wdbW wdbLive wdbCoreG
         isplitl
         · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
-          · iexists wa
-            iframe
+          · iframe
           · iframe
         · ipureintro; exact Hwok
       have hmL : mapLen w.ms ≤ sint.nat ((pg + count + W64 1) * W64 4096) := by
@@ -451,7 +449,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold txFields
         icases Hf with ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩
         unfold wdbW wdbLive wdbCoreG
-        icases Hdb with ⟨⟨⟨%wa', Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath,
+        icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath,
           Hdsz, Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok'⟩
         wp_auto
         wp_apply hPgid Xd.t.t.meta' X.t.mv (DFrac.own 1) $$ [Hmv] as Hmv
@@ -485,8 +483,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
         · isplitl
           · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
-            · iexists wa'
-              iframe
+            · iframe
             · iframe
           · ipureintro; exact Hwok'
         iframe Hp
@@ -633,8 +630,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
     · isplitl
       · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
-        · iexists wa
-          iframe
+        · iframe
         · iframe
       · ipureintro; exact Hwok
     iframe Hp
@@ -674,8 +670,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
   · isplitl
     · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
-      · iexists wa
-        iframe
+      · iframe
       · iframe
     · ipureintro
       exact ⟨wdbOK_alloc w _ rid _ Hwok.1, Hwok.2⟩

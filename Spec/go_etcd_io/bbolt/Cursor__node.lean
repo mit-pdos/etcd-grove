@@ -38,7 +38,7 @@ abbrev Cursor.node.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"node")) (Val #()))
   {{ (l : Loc), RET #l; ∃ X' : WX, wtxW K tx r m X' ∗ c ↦{dq} Cursor.mk bl stk ∗
       stk ↦*{dq} els ∗
-      ⌜matGrow X X' bl ∧ (wOK X → wOK X') ∧
+      ⌜matGrow X X' bl ∧ (wOK X → wOK X') ∧ bktLocalOK X' bl ∧
         ∃ B' pid, X'.t.bs !! bl = some B' ∧ pids.getLast? = some pid ∧ resolve B' pid = some l⌝ }}
 
 end spec

@@ -229,7 +229,7 @@ theorem bktLeaf_bucket_value (v : View) (hv : viewWF v) (bv : List w8)
     rw [List.mem_range] at hj
     simp only [Prod.mk.injEq] at he
     obtain ⟨-, rfl⟩ := he
-    have hsh := (hshape rid rpg hro hrpid hrfl j hj).2.2 pg
+    have hsh := (hshape rid rpg hro hrpid hrfl j hj).2.2.2 pg
     have hbl : bktLeafPg C.pages (leafValue rpg j) pg := by
       obtain ⟨-, ht, hkk⟩ := hok
       unfold bktLeaves at hpg

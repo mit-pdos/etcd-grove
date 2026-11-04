@@ -145,6 +145,7 @@ theorem wtxData_rblRel (X0 X : WX) (fl0 fl : FLPg) (txid : w64) (h : rblRel X0 f
 /-- **At the end, `rebalOK`** (no deficient node and no node unbalanced). -/
 theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     (hI : rblX X fl dbl none) (hR : rblRel X0 fl0 X fl txw) (hbufs : X0.t.bufs = ∅)
+    (hrni : rootNotInline X0)
     (hbal : ∀ bl B l r, X.t.bs !! bl = some B → B.ns !! l = some r → r.nv.unbalanced' = false) :
     rebalOK X0 X fl0 fl txw ∧ liveReach X ∧ flView X fl := by
   obtain ⟨⟨hw, hpm, hhwm, htxid, hrl⟩, hB, hEB, hH, hL, hN, hV, hLR, hFV, -, -, -, -, -⟩ := hI
@@ -156,9 +157,21 @@ theorem rebalOK_of_rbl (X0 X : WX) (fl0 fl : FLPg) (dbl : Loc) (txw : w64)
     rwa [ite_self] at this
   have hbufs' : X.t.bufs = ∅ := hR.2.2.2.2.2.2.2.1.trans hbufs
   -- batch 30: txClean's `leafShape`; batch 35: `posShape` (rblX to carry them; owner U8d/U8e)
-  refine ⟨⟨⟨⟨hw, ⟨hpm, hbufs', sorry, sorry⟩, hhwm, htxid, hrl, fun bl B hb => ⟨(hBn bl B hb).1, (hB bl B hb).2.1⟩⟩,
+  -- batch 37: the root bucket stays not inline (`rblRel` keeps the headers)
+  have hrni' : rootNotInline X := by
+    intro B hb
+    rw [hrl'] at hb
+    have hs := hR.2.2.2.2.2.2.2.2.1 X0.rl
+    cases hb0 : X0.t.bs !! X0.rl with
+    | none => rw [hb, hb0] at hs; cases hs
+    | some B0 =>
+      rw [(hR.2.2.2.2.2.2.2.2.2.1 X0.rl B0 B hb0 hb).2.1]
+      exact hrni B0 hb0
+  refine ⟨⟨⟨⟨hw, ⟨hpm, hbufs', sorry, sorry, hrni'⟩, hhwm, htxid, hrl, fun bl B hb => ⟨(hBn bl B hb).1, (hB bl B hb).2.1⟩⟩,
       fun bl B hb => ⟨?_, (hB bl B hb).2.2.1⟩, ?_, hEB, hH, hL, hN, hV⟩,
-    wtxData_rblRel X0 X fl0 fl txw hR, hv, hh, hrl', hnl, ?_, ?_, ⟨es, hcan, hfl, hes⟩, ?_⟩,
+    wtxData_rblRel X0 X fl0 fl txw hR, hv, hh, hrl', hnl, ?_, ?_,
+    fun bl hne => (hB bl _ (Option.ne_none_iff_exists'.1 hne).choose_spec).2.2.2.1,
+    ⟨es, hcan, hfl, hes⟩, ?_⟩,
     hLR, hFV⟩
   · obtain ⟨-, ⟨bnd, hk⟩, ha, -⟩ := hBn bl B hb
     exact bktKeys_of_rbl X.v B bnd hk ha

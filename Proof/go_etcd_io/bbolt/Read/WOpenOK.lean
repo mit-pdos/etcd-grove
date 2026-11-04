@@ -129,7 +129,7 @@ theorem posI_step (p : w64) (hI : posI X B p) (ws : List WEntry)
       have hpos : pagePosAt B l i w.pgid := ⟨rn, w, hrn, hlf, hw, rfl, hn⟩
       obtain ⟨-, kind, hkk⟩ := ((hbk.2.2 l rn hrn).2.2.2.1 hlf)
       obtain ⟨pgk, -, -, -, -, hkeys⟩ := (hkk i w hw).2 hn
-      refine Or.inr (Or.inr ⟨hroot, ht, fun d hd => hc.2.2.2.2.2.2.2.2.2 l i w.pgid hpos d hd,
+      refine Or.inr (Or.inr ⟨hroot, ht, fun d hd => hc.2.2.2.2.2.2.2.2.2.1 l i w.pgid hpos d hd,
         ⟨w.pgid.toNat, Or.inr ⟨l, i, by rw [LR.w64_toNat_eq]; exact hpos, w.pgid.isLt⟩,
           ownHas.root _ pgc hpgc⟩, _, _, hkeys⟩)
   · exfalso
@@ -246,8 +246,10 @@ theorem leafBkt (p : w64) (hI : posI X B p) (ws : List WEntry)
     obtain ⟨C, hok, hvC⟩ := hv
     have hpv : X.v.pages = C.pages := by rw [← hvC]; rfl
     have hgood : pageGood pg := hok.1.2.1.1 _ pg (by rw [← hpv]; exact hpg)
+    -- batch 37 (item 12): the nested-plainness clause, from the view page (`rootShape`,
+    -- `viewUnique`, as `leafBkt_nest_plain`): OPEN, owner U6e
     refine ⟨⟨hbw, fun h0 => ⟨(hgood.1 hlf i hic).2 hmod' h0,
-      Write.viewWF_leafInl X.v ⟨C, hok, hvC⟩ _ pg hpg hlf i hic hmod' h0⟩⟩,
+      Write.viewWF_leafInl X.v ⟨C, hok, hvC⟩ _ pg hpg hlf i hic hmod' h0⟩, sorry⟩,
       Or.inl trivial, Or.inr ⟨c, p.toNat, pg, i, hpr, hown, hpg, hlf, hic, rfl, hmod', rfl⟩, ?_,
       fun h => hi h.1⟩
     intro hroot

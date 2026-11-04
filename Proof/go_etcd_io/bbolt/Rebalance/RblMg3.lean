@@ -51,7 +51,7 @@ theorem mg_clean (sI sC sI' sC' : GoSlice) (hkind : rl.nv.isLeaf' = rr.nv.isLeaf
     (mgLeft rl rr (kidsOf B rr.ws) sI sC)
   have hinj := nm_inj_mg W hwm bl B hc
   have hcl := hc
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hcl
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11⟩ := hcl
   have hrn : B.bv.rootNode' ≠ null := by
     intro h0; have := (c3 h0).1; rw [this] at hrp; cases hrp
   have hnp := c8 pl rp hrp
@@ -336,7 +336,7 @@ theorem mg_clean (sI sC sI' sC' : GoSlice) (hkind : rl.nv.isLeaf' = rr.nv.isLeaf
     intro he; apply hne
     exact mgPos_inj pl ll lr k rl.ws.length hllp hlrp hllr l1 l2 i1 i2 n1 n2
       (Prod.ext (Prod.mk.inj he).1 (Prod.mk.inj he).2)
-  · intro l j q hp d hd
+  · refine ⟨fun l j q hp d hd => ?_, c11⟩
     obtain ⟨-, p'⟩ := mg_pos W hwm bl B pl rp k wl wr ll lr rl rr hc ha hpn hrp hbr hwl hwr hll hlr hrl hrr sI sC sI' sC' hkind l j q hp
     rw [hnm']; split
     · rfl

@@ -139,7 +139,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto
-  wp_apply DB.Logger.wp_proof db lg Ht0.2 $$ []
+  wp_apply DB.Logger.wp_proof db lg Ht0.2.1 $$ []
   · iframe #; unfold dbLogger; iexact Hlgok
   try wp_auto
   wp_bind (App (Val (GoInstruction (Convert go.untypedBool go.bool))) _)

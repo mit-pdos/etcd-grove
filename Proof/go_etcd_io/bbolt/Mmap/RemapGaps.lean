@@ -27,8 +27,8 @@ variable [sem : go.Semantics]
 /-- **Gap 1 (`wdbOK`): the file is below `2 ^ 63` bytes** (`DB.fileSize`'s `Stat` reports an
 `int64`; `DB.fileSize.spec` takes it). Fix: a `wdbOK` clause `w.m.size < 2 ^ 63` (`Open` reads the
 size with `Stat`; `DB.grow` truncates to an `int64`). -/
-theorem wdbOK_size_lt (w : WDb) (hok : wdbOK w) : w.m.size < 2 ^ 63 := by
-  sorry
+theorem wdbOK_size_lt (w : WDb) (hok : wdbOK w) : w.m.size < 2 ^ 63 :=
+  hok.2.2.2.2.2.2.2.2.2.2.2.2.1
 
 /-- **Gap 2 (`wdbOK`): a file past the mapping ends on a page.** `wdbOK`'s `W` holds the slots
 below `max (mapLen w.ms) w.m.size / 4096` (rounded down), so the page-cache bytes of a partial last
@@ -38,8 +38,8 @@ as `Open` found it, and `Open` maps at least the file; `DB.grow` past the mappin
 `sz + AllocSize`, whole pages). Fix: this `wdbOK` clause (`DB.grow`'s spec then needs a whole-page
 `sz` above `AllocSize`), or `W`'s bound rounded up for the file (`(w.m.size + 4095) / 4096`). -/
 theorem wdbOK_size_page (w : WDb) (hok : wdbOK w) (b : Loc) (l : Nat) (hms : w.ms = some (b, l)) :
-    w.m.size ≤ l ∨ w.m.size % 4096 = 0 := by
-  sorry
+    w.m.size ≤ l ∨ w.m.size % 4096 = 0 :=
+  hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms
 
 /-- **Gap 3 (`wtxCore`): the writer's view at a new base.** `wtxW … (Xd.rebase b)` holds
 `viewOf r (Xd.rebase b).v`, a fragment of the transaction's view registry `r.n.vw` at the new base
@@ -57,7 +57,11 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
 opens `pagesInv` around a step that opens `osInv` (`↑osN ⊆ ⊤ \ ↑(pagesN N)`). `Open`'s spec takes
 `↑N ## ↑osN`; fix: `isBoltCoreP` records it. -/
 theorem core_osN_disj (K : BC) : K.core (GF := GF) ⊢ ⌜↑osN ## ↑(pagesN K.N)⌝ := by
-  sorry
+  unfold BC.core isBoltCoreP
+  iintro ⟨-, -, %H, -⟩
+  ipureintro
+  intro x hx
+  exact H.2.2 x ⟨nclose_subseteq K.N "pages" x hx.2, hx.1⟩
 
 /-- **Gap 5 (Perennial's `fmt.Errorf`): the remap's errors are pointer-typed** (`errPtrTyped`):
 `syscall.Errno` values are no pointers, `errors.New`'s and `fmt.Errorf`'s are fresh pointers. The

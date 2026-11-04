@@ -35,14 +35,14 @@ fraction). It reads `n.bucket.tx.meta.pgid` (fractions of the three). It panics 
 below that high-water mark or a key is empty: excluded by the premises. The view's base is a
 mapped address (`0 < v.base.addr`, from `mapFields`), as reading an empty view slice needs. -/
 abbrev node.put.spec : Prop :=
-  ∀ (v : View) (n bl : Loc) (r : NRec) (tx mp : Loc) (mv : Meta) (dqb : DFrac) (qv : Qp)
+  ∀ (v : View) (n bl : Loc) (r : NRec) (tx mp : Loc) (mv : Meta) (dqt dqm : DFrac) (qv : Qp)
     (oldKey newKey value : GoSlice) (okb nkb vb : List w8) (oks nks vs : Src) (pgId : w64)
     (flags : w32),
   r.nv.bucket' = bl → r.capOwn = true → wsSorted r.ws → wsLive r.ws → pgId.toNat < mv.pgid'.toNat →
   0 < okb.length → 0 < nkb.length → oks ≠ Src.stale → nks ≠ Src.stale → vs ≠ Src.stale → 0 < v.base.addr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗
-      bl.[Bucket, go!"tx"] ↦{dqb} tx ∗ tx.[Tx, go!"meta"] ↦{dqb} mp ∗ mp ↦{dqb} mv ∗
+      bl.[Bucket, go!"tx"] ↦{dqt} tx ∗ tx.[Tx, go!"meta"] ↦{dqm} mp ∗ mp ↦{dqm} mv ∗
       srcOwn v oldKey oks okb ∗ srcOwn v newKey nks nkb ∗ srcOwn v value vs vb }}
     (App (App (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"put"))
       (Val #oldKey)) (Val #newKey)) (Val #value)) (Val #pgId)) (Val #flags))
@@ -50,7 +50,7 @@ abbrev node.put.spec : Prop :=
       objOwn v n (DFrac.own 1) true
         (WObj.node bl (r.withEnts s ins (wsPutAt r.ws okb ⟨flags, pgId, nkb, vb, nks, vs⟩))) ∗
       viewCells qv v ∗
-      bl.[Bucket, go!"tx"] ↦{dqb} tx ∗ tx.[Tx, go!"meta"] ↦{dqb} mp ∗ mp ↦{dqb} mv }}
+      bl.[Bucket, go!"tx"] ↦{dqt} tx ∗ tx.[Tx, go!"meta"] ↦{dqm} mp ∗ mp ↦{dqm} mv }}
 
 end spec
 

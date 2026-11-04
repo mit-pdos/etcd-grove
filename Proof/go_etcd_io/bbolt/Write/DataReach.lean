@@ -313,7 +313,7 @@ theorem entryIn_block (k v : List w8) (h : entryIn X.v B k v) :
         · simp; omega
         · intro d hd
           have hcn : (W64 (c : Int)).toNat = c := by simp; omega
-          exact hc.2.2.2.2.2.2.2.2.2 m j _ ⟨rm, w, hrm, hbr, hw, hwp, hnm⟩ d (by rw [hcn]; exact hd)
+          exact hc.2.2.2.2.2.2.2.2.2.1 m j _ ⟨rm, w, hrm, hbr, hw, hwp, hnm⟩ d (by rw [hcn]; exact hd)
     obtain ⟨p0, b0, hp0, hin, hfree, hreach⟩ := hrch
     obtain ⟨b', hr2, hpn⟩ := own_reach X bl B bnd hok hB hbk hin hown p0 hp0 hfree b0
     have hreach' := hreach.trans hr2

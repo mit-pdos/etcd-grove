@@ -299,7 +299,7 @@ theorem bInv_branch (p : w64) (b : Bnd) (hI : bInv X bl B bnd p b) (ws : List WE
       obtain ⟨pg, -, -, -, -, htk⟩ := (hkd i _ hwi).2 hnc
       refine ⟨hin, by rw [← hbm]; exact htk, ?_⟩
       intro d hd
-      exact hc.2.2.2.2.2.2.2.2.2 m i _ ⟨rm, _, hrm, hleaf, hwi, rfl, hnc⟩ d hd
+      exact hc.2.2.2.2.2.2.2.2.2.1 m i _ ⟨rm, _, hrm, hleaf, hwi, rfl, hnc⟩ d hd
   · obtain ⟨pg, hpg⟩ := treeKeys_some _ _ _ _ htk
     rw [bInv_page_ltree X bl B bnd hok hB hbk p hin hfree pg hpg] at hL
     simp only [Option.some.injEq, Prod.mk.injEq, decide_eq_false_iff_not] at hL

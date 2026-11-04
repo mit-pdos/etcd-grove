@@ -288,7 +288,7 @@ theorem rm_clean (h2 : 2 ≤ rp.ws.length) :
   have hnm' := rm_nm B nl pl r.nv.pgid' (rmParent rp i nl sI sC)
   have hns' := rm_ns B nl pl r.nv.pgid' (rmParent rp i nl sI sC)
   have hinj := nm_inj W hwm bl B hc
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11⟩ := hc
   have hrn : B.bv.rootNode' ≠ null := by
     intro h0; have := (c3 h0).1; rw [this] at hr; cases hr
   have hil : i < rp.ws.length := (List.getElem?_eq_some_iff.1 hw).1
@@ -412,7 +412,7 @@ theorem rm_clean (h2 : 2 ≤ rp.ws.length) :
     · rw [if_pos hlp, if_pos hlp] at he2
       split at he2 <;> split at he2 <;> omega
     · rw [if_neg hlp, if_neg hlp] at he2; exact he2
-  · intro l j q hp d hd
+  · refine ⟨fun l j q hp d hd => ?_, c11⟩
     have := c10 _ _ q (hpos _ _ _ hp) d hd
     rw [hnm']; split
     · rfl

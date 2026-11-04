@@ -32,7 +32,7 @@ materializations; the record's header, page, inline page and source kept; its ca
 pointing at live nodes of `bl`; the logical tree of `bl` kept by data (at position `0` only for
 an inline bucket). -/
 def curSt (X Y : WX) (bl : Loc) (B : BRec) : Prop :=
-  matGrow X Y bl ∧ (wOK X → wOK Y) ∧ Y.v = X.v ∧ Y.t.pm = X.t.pm ∧ bl ∈ Y.liveB ∧
+  matGrow X Y bl ∧ (wOK X → wOK Y) ∧ (bktLocalOK X bl → bktLocalOK Y bl) ∧ Y.v = X.v ∧ Y.t.pm = X.t.pm ∧ bl ∈ Y.liveB ∧
   ∃ BY, Y.t.bs !! bl = some BY ∧ BY.ib = B.ib ∧ BY.bv.nodes' = B.bv.nodes' ∧
     BY.bv.page' = B.bv.page' ∧ BY.ipg = B.ipg ∧ BY.isrc = B.isrc ∧ BY.pst = B.pst ∧
     (∀ c l, B.nm !! c = some l → BY.nm !! c = some l) ∧ nmOK Y bl BY ∧
@@ -71,7 +71,7 @@ theorem nmOK_of_local (X : WX) (bl : Loc) (B : BRec) (hb : bktLocalOK X bl)
 /-- **The loop's start.** -/
 theorem curSt_refl (X : WX) (bl : Loc) (B : BRec) (hb : bktLocalOK X bl)
     (hB : X.t.bs !! bl = some B) : curSt X X bl B :=
-  ⟨matGrow.refl X bl, id, rfl, rfl, hb.1, B, hB, rfl, rfl, rfl, rfl, rfl, rfl, fun _ _ h => h,
+  ⟨matGrow.refl X bl, id, id, rfl, rfl, hb.1, B, hB, rfl, rfl, rfl, rfl, rfl, rfl, fun _ _ h => h,
     nmOK_of_local X bl B hb hB, fun _ _ => rfl⟩
 
 /-- The page positions of `Y` are `X`'s (`wpageAt` reads only the header's root, the page field
@@ -84,7 +84,7 @@ theorem curSt_wpageAt (X Y : WX) (bl : Loc) (B BY : BRec) (hv : Y.v = X.v) (hib 
 /-- **`matReady` carries over** to the loop's state. -/
 theorem curSt_ready (X Y : WX) (bl : Loc) (B BY : BRec) (h : curSt X Y bl B)
     (hBY : Y.t.bs !! bl = some BY) (pid : w64) (hr : matReady X B pid) : matReady Y BY pid := by
-  obtain ⟨-, -, hv, hpm, -, BY0, hBY0, hib, -, hpg, hipg, hisrc, hpst, -⟩ := h
+  obtain ⟨-, -, -, hv, hpm, -, BY0, hBY0, hib, -, hpg, hipg, hisrc, hpst, -⟩ := h
   rw [hBY] at hBY0; cases hBY0
   obtain ⟨pa, pg, hw, h1, h2, h3, h4, h5, h6, h7⟩ := hr
   refine ⟨pa, pg, by rw [curSt_wpageAt X Y bl B BY hv hib hpg hipg]; exact hw, h1, h2, h3, h4,
@@ -105,7 +105,7 @@ theorem curSt_step (X Y Y' : WX) (bl l : Loc) (pid : w64) (parent : Loc) (B : BR
     (h : curSt X Y bl B) (hadd : nodeAdded Y Y' bl l pid parent) (hpos : matPos Y bl pid parent)
     (hinl : ∀ BY, Y.t.bs !! bl = some BY → BY.ib.root' = W64 0 → BY.bv.rootNode' = null) :
     curSt X Y' bl B ∧ ∃ BY', Y'.t.bs !! bl = some BY' ∧ BY'.nm !! pid = some l := by
-  obtain ⟨hg, hok, hv, hpm, hlv, BY, hBY, hib, hnd, hpg, hipg, hisrc, hpst, hnmB, hnm, hld⟩ := h
+  obtain ⟨hg, hok, hlocY, hv, hpm, hlv, BY, hBY, hib, hnd, hpg, hipg, hisrc, hpst, hnmB, hnm, hld⟩ := h
   have hfr : matFresh Y bl l := by
     intro BY0 hBY0
     rw [hBY] at hBY0; cases hBY0
@@ -114,6 +114,43 @@ theorem curSt_step (X Y Y' : WX) (bl l : Loc) (pid : w64) (parent : Loc) (B : BR
   have hlt := ltree_nodeAdded' Y Y' bl l pid parent hadd hfr
   have hg' := matGrow_snoc X Y Y' bl l pid parent hg hadd hpos
   have hok' : wOK X → wOK Y' := fun h0 => wOK_nodeAdded Y Y' bl l pid parent (hok h0) hadd hpos
+  -- batch 38 (S2): the bucket stays locally well-formed (`bktLocalOK_nodeAdded`)
+  have hloc' : bktLocalOK X bl → bktLocalOK Y' bl := by
+    intro h0
+    have hY := hlocY h0
+    have hvw : viewWF Y.v := by obtain ⟨-, B0, -, -, -, -, -, h⟩ := hY; exact h
+    refine bktLocalOK_nodeAdded Y Y' bl l pid parent hvw hY hadd hpos ?_ ?_
+    · obtain ⟨BY0, pa, pg, r, ns', bv', hBY0, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+        hrvs, hcase, hX'⟩ := hadd
+      intro B' r' hB' hr' w hw hf
+      subst hX'
+      have hB'' : B' = { BY0 with nm := BY0.nm.insert pid l, ns := ns', bv := bv' } := by
+        simpa using hB'.symm
+      subst hB''
+      have hl' : ns' !! l = some r := by
+        rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rp, rp', -, -, -, -, -, -, -, -, -, rfl⟩ <;>
+          exact GMap.lookup_insert _ _ _
+      simp only at hr'
+      rw [hl'] at hr'; cases hr'
+      exact hrvs w hw hf
+    · obtain ⟨BY0, pa, pg, r, ns', bv', hBY0, -, -, -, hlo, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+        -, hcase, hX'⟩ := hadd
+      intro B0 B' rp rp' hB0 hB' hrp hrp'
+      rw [hBY0] at hB0; cases hB0
+      subst hX'
+      have hB'' : B' = { BY0 with nm := BY0.nm.insert pid l, ns := ns', bv := bv' } := by
+        simpa using hB'.symm
+      subst hB''
+      have hlo' : Y.t.objs !! l = none := by simpa using hlo
+      have hpl : parent ≠ l := by
+        intro e; subst e
+        have := objs_isSome_node Y.t bl BY0 parent hBY0 (by simp [hrp])
+        rw [hlo'] at this; cases this
+      simp only at hrp'
+      rcases hcase with ⟨-, -, rfl⟩ | ⟨-, -, rq, rq', hrq, -, -, -, -, -, -, hcapq, -, rfl⟩
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hpl), hrp] at hrp'; cases hrp'; rfl
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hpl), GMap.lookup_insert] at hrp'
+        cases hrp'; rw [hrq] at hrp; cases hrp; exact hcapq
   obtain ⟨BY0, pa, pg, r, ns', bv', hBY0, hwp, hnm0, hl0, hlo, hrb, hrp, hrid, hrleaf, hru, hrs,
     hrcs, hrco, hrws, hrlive, hrkey, hrks, hrins, hrkn, hrvs, hcase, hX'⟩ := hadd
   rw [hBY] at hBY0; cases hBY0
@@ -140,7 +177,7 @@ theorem curSt_step (X Y Y' : WX) (bl l : Loc) (pid : w64) (parent : Loc) (B : BR
   have hbv : bv'.page' = BY.bv.page' ∧ bv'.nodes' = BY.bv.nodes' := by
     rcases hcase with ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩ <;> exact ⟨rfl, rfl⟩
   subst hX'
-  refine ⟨⟨hg', hok', by rw [← hv], by rw [← hpm], hlv, _,
+  refine ⟨⟨hg', hok', hloc', by rw [← hv], by rw [← hpm], hlv, _,
     GMap.lookup_insert _ _ _, hib, by rw [hbv.2, hnd], by rw [hbv.1, hpg], hipg, hisrc, hpst,
     ?_, ?_, ?_⟩, _, GMap.lookup_insert _ _ _, GMap.lookup_insert _ _ _⟩
   · intro c l0 hc

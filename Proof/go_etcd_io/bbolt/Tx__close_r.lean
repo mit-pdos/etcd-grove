@@ -55,7 +55,7 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   imod txExcl_take K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top tx r $$ [Hti Hreg Hex] with Hx
   · iframe; iframe #
   wp_auto
-  rw [hdb, decide_eq_false Ht0.2]
+  rw [hdb, decide_eq_false Ht0.2.1]
   wp_auto
   iunfold txExcl at Hx
   icases Hx with ⟨%c', %x, Hv', Hd, Hx⟩

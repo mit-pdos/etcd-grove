@@ -46,7 +46,7 @@ theorem node.put.wp_proof (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG
     (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG))
     (hE : bytes.Equal.spec (GF := GF) (hG := hG)) :
     node.put.spec (GF := GF) (hG := hG) := by
-  intro v n bl r tx mp mv dqb qv oldKey newKey value okb nkb vb oks nks vs pgId flags
+  intro v n bl r tx mp mv dqt dqm qv oldKey newKey value okb nkb vb oks nks vs pgId flags
     Hbk Hcapo Hsorted Hlive Hpg Hok0 Hnk0 Hoks Hnks Hvs Hbase
   wp_start as ⟨Ho, Hv, Hbt, Htm, Hm, Hokp, #Hnkp, #Hvp⟩
   unfold objOwn

@@ -269,7 +269,7 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
       rcases bktSim_look hs l with ⟨-, h⟩ | ⟨ry, ry', h1, h2, e⟩
       · rw [h] at hr; cases hr
       · rw [h2] at hr; cases hr
-        rw [e.1] at hw; rw [e.2.2.2.2.2.2.1]
+        rw [e.1] at hw
         exact hEB bl B hC0 l ry h1 w hw
     · exact hEB c C hC0 l r hr w hw
   · intro b nm h

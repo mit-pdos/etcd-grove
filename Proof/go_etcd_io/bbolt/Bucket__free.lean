@@ -282,7 +282,7 @@ theorem Bucket.free.wp_proof (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG)
       have hfl0 : w0.fl = w.fl.freeAll w.wtxid (ps.filterMap (X.posExtent bl)) := by subst hw0e; rfl
       have hwt0 : w0.wtxid = w.wtxid := by subst hw0e; rfl
       unfold wdbW wdbLive wdbCoreG
-      icases Hdb with ⟨⟨⟨%wa, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
+      icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
       rw [Hr.1]
       wp_auto
       rw [decide_eq_false hpnn]

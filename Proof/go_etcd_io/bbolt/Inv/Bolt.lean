@@ -39,19 +39,13 @@ def dblAt (B : BNs) (db : Loc) : IProp GF := iprop(ghostMapElem B.dbl () DFrac.d
 def t0At (B : BNs) (t0 : Nat) : IProp GF := iprop(ghostMapElem B.t0 () DFrac.discard t0)
 
 /-- The database's logger: a `boltLogger` (batch 15: the option's, or bbolt's `discardLogger`'s
-value, which `Open` sets when the option's is nil and which is one, `discardLogger_boltLogger`; so
+value, which `Open` sets when the option's is nil and which is one, `Open/Logger.discardLogger_boltLogger'`; so
 `db.Logger()`'s nil test resolves and its result can be called). -/
 def dbLogger (lg : GoInterface) : IProp GF :=
   iprop(boltLogger lg)
 
-/-- **`discardLogger` holds a `boltLogger`** (batch 15; for `Open`, U11): bbolt's package
-initializer stores `&nopLogger{}` (the fork's no-op logger, `discardlogger.diff`) in it, whose
-methods return at once. Needs the package's facts (`bboltRootInit`) to say what the global holds:
-`etc/gen-init.py`'s `SPECIAL` entry for bbolt, and its `Init.lean` to prove it. Owner: U11. -/
-theorem discardLogger_boltLogger :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
-      ∃ lg, globalAddr discardLogger ↦□ lg ∗ boltLogger lg := by
-  sorry
+-- (`discardLogger` holds a `boltLogger`: `Open/Logger.discardLogger_boltLogger'`, proved over the
+-- package's `Assumptions`; batch 38 deleted the stub here, stated without them.)
 
 /-- What the page pool holds: zeroed page buffers. -/
 def pageBuf (v : GoAny) : IProp GF :=

@@ -197,7 +197,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   icases Hwo with ⟨Hcg, Hst, Hflo, Hpair, Hrcpt⟩
   iunfold wdbCore at Hcg
   iunfold wdbCoreG at Hcg
-  icases Hcg with ⟨%wa2, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
+  icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
     Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
@@ -273,8 +273,6 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     exact ⟨h1.1, by simp only; omega⟩
   have hrel := wdb_release (GF := GF) K.p w σ ro S bs
     ⟨hσC, hσfl, hσms.trans hms.symm, hσws, hσok⟩ Hwok HS Hbs hro
-    -- U5d's finding: `wdbOK` does not say that the synced freelist page's bytes hold a header
-    (fun f hf => sorry)
   rw [hms] at hrel
   icases hrel $$ [Hwc Hwb Hso] with ⟨%Hwok', Hwc, Hwb⟩
   · iframe

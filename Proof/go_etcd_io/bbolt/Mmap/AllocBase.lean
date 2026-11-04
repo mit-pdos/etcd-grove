@@ -55,9 +55,9 @@ theorem pendSlots_alloc (fl : FLPg) (txid r : w64) (n : Nat) :
 pending ids and so the `W` slots unchanged). -/
 theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK w) :
     wdbOK (w.withFl (w.fl.alloc txid r n)) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm, hmap, hsmall, hslots, hfree⟩ := hok
+  obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm, hmap, hsmall, hslots, hfree, h13, h14, h15⟩ := hok
   refine ⟨h1, h2, h3, fun s => ?_, fun x hx => ?_, fun f hf => ?_, htx, hhwm, hmap, hsmall, hslots,
-    fun x hx => hfree x (List.mem_filter.1 hx).1⟩
+    fun x hx => hfree x (List.mem_filter.1 hx).1, h13, h14, h15⟩
   · exact h4 s
   · exact h5 x ((List.mem_filter.1 hx).1)
   · have h := h6 f hf

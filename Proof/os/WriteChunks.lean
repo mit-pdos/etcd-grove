@@ -4,7 +4,7 @@ bytes of the chunk `(data.drop nn).take c` at `off + nn`, over the file a write 
 bytes of `data` at `off` left (`nn ≤ j`), leaves the file a write of the first `max j (nn + k)`
 bytes leaves (`pwSize_chunk`, `pwBytes_chunk`; `pwSize_pwSize` and `pwBytes_retry` of
 `GooseLang/Ext/OsFs/Write.lean` are their `nn = 0`, `c = data.length` case). The chunk's write
-takes the middle of the range's bytes (`osBytes_split3`) and gives back bytes that end where
+takes the middle of the range's bytes (`osBytes_split3_range`) and gives back bytes that end where
 the rest begins, or the rest is empty (`pwBytes_chunk_end`, `osBytes_app3`).
 -/
 module
@@ -199,7 +199,7 @@ theorem osBytes_take_drop (p : GoString) (lo : Nat) (dq : DFrac) (ys : List (w8 
 
 /-- The bytes `ys` from `lo` on, cut at `a ≤ b`: the chunk's `[a, b)` (`n = b - a` bytes) from
 `lo' = lo + a`, the rest from `lo'' = lo + b`. -/
-theorem osBytes_split3 (p : GoString) (lo lo' lo'' : Nat) (dq : DFrac) (ys : List (w8 × Bool))
+theorem osBytes_split3_range (p : GoString) (lo lo' lo'' : Nat) (dq : DFrac) (ys : List (w8 × Bool))
     (a b n : Nat) (hab : a ≤ b) (hb : b ≤ ys.length) (hn : n = b - a) (h1 : lo' = lo + a)
     (h2 : lo'' = lo + b) :
     osBytes (L := L) p lo dq ys ⊢ osBytes p lo dq (ys.take a) ∗

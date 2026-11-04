@@ -269,7 +269,14 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
     · rename_i hcb; subst hcb; cases hC
       rcases hB'cases y ry hy with ⟨hyl, hre⟩ | ⟨-, ry0, h1, h2, h3, -⟩
       · subst ry; subst y
-        refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, fun hlf hnb => ?_⟩
+        refine ⟨(hrbB1.1.2.2.2.2.2.2.2.1 l r hrl).2.2.2.2.1 x hxw, ?_⟩
+        -- batch 37: `entriesBounded` covers every entry; a branch key and a root-bucket entry:
+        -- OPEN, owner U8 (as `Write/MatOK.newNodeBnd`, U7)
+        by_cases hlf' : r.nv.isLeaf' = false
+        · sorry
+        have hlf : r.nv.isLeaf' = true := by simpa using hlf'
+        by_cases hnb : isBktFlag x.flags
+        · sorry
         obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hxw
         have hd : r.ws.map wDat = (pageWs pg).map wDat := by rw [hrws, mat_pageWsAs_wDat]
         obtain ⟨hjl, hjd⟩ := mat_at hd j x hj
@@ -289,7 +296,7 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
         have := List.length_take_le (leafVsize pg j)
           (pg.drop (elemOff j + leafPos pg j + leafKsize pg j))
         omega
-      · rw [h3] at hxw; rw [h2]
+      · rw [h3] at hxw
         exact hEB c B hb y ry0 h1 x hxw
     · exact hEB c C hC y ry hy x hxw
   · intro b nm h; rw [hhd] at h; exact hobjB b (hH b nm h)

@@ -47,9 +47,11 @@ theorem nodeClean_bm (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (bm : GMap GoS
     n13, n14, n15, n16, n17⟩
 
 theorem bktClean_bm (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (bm : GMap GoString Loc)
-    (h : bmGrow B bm) (hc : bktClean v hwm bl B) : bktClean v hwm bl { B with bm := bm } := by
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc
-  exact ⟨c1, c2, c3, c4, c5, c6, c7, fun l r hr => nodeClean_bm v hwm bl B bm h l r (c8 l r hr), c9, c10⟩
+    (h : bmGrow B bm) (hnn : ∀ k c, bm !! k = some c → c ≠ null) (hc : bktClean v hwm bl B) :
+    bktClean v hwm bl { B with bm := bm } := by
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, -⟩ := hc
+  exact ⟨c1, c2, c3, c4, c5, c6, c7, fun l r hr => nodeClean_bm v hwm bl B bm h l r (c8 l r hr), c9,
+    c10, hnn⟩
 
 theorem bktKeys_bm (v : View) (B : BRec) (bm : GMap GoString Loc) (h : bmGrow B bm)
     (hk : bktKeys v B) : bktKeys v { B with bm := bm } := by
@@ -345,10 +347,11 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
     (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) (hent : entryIn X.v B nb w.value)
     (htk : inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none)
     (hcd : X.t.deadB !! c = none) (hhd : h.1 = nb)
-    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
+    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0)
+    (hcn : c ≠ null) :
     wOK (XO X bl c B C nb h) := by
   obtain ⟨hib, htx, hrn, hnm, hbmC, hns, hil, hni⟩ := hrec
-  obtain ⟨⟨tw, ⟨tpm, tbuf, tls, tps⟩, t2, t3, trl, tall⟩, hkn, hpg, heb, hhs, hlv, hnl, hv⟩ := hok
+  obtain ⟨⟨tw, ⟨tpm, tbuf, tls, tps, trni⟩, t2, t3, trl, tall⟩, hkn, hpg, heb, hhs, hlv, hnl, hv⟩ := hok
   have hroot0 : C.ib.root' = W64 0 ↔ inBucketRoot w.value = 0 := by
     rw [hib, inBucketRoot_zero]
   have hrl : X.rl ≠ c := by
@@ -357,7 +360,7 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
     intro l r hr; rw [hns] at hr; cases hr
   -- the new bucket is clean
   have hCc : bktClean X.v X.t.mv.pgid'.toNat c C := by
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun n c' e => by rw [hbmC] at e; cases e⟩
     · intro h0 _
       have hi := hroot0.1 h0
       obtain ⟨hpp, hipg, hsrc⟩ := hil hi
@@ -365,7 +368,7 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
       · rcases hsrc with ⟨-, a, b⟩ | ⟨a, b⟩
         · exact Or.inl ⟨a, b⟩
         · exact Or.inr ⟨a, b⟩
-      · rw [hipg]; exact hbv.2 hi
+      · rw [hipg]; exact hbv.2.1 hi
     · intro h0
       have hi : inBucketRoot w.value ≠ 0 := fun e => h0 (hroot0.2 e)
       have hwf : treeWF X.v.pages X.t.mv.pgid'.toNat (inBucketRoot w.value) := by
@@ -385,7 +388,7 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
     · intro l r hr; exact (hnsN l r hr).elim
     · intro l1 _ _ _ _ _ hp; obtain ⟨r, -, hr, -⟩ := hp; exact (hnsN _ r hr).elim
     · intro l _ _ hp; obtain ⟨r, -, hr, -⟩ := hp; exact (hnsN _ r hr).elim
-  refine ⟨⟨tw, ⟨tpm, tbuf, ?_, ?_⟩, t2, t3, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hv⟩
+  refine ⟨⟨tw, ⟨tpm, tbuf, ?_, ?_, ?_⟩, t2, t3, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hv⟩
   · -- leafShape
     unfold leafShape at tls ⊢
     intro k D hD l r hr hl w' hw'
@@ -403,11 +406,17 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
         have hi0 : inBucketRoot w.value ≠ 0 := fun e => hr0 (hroot0.2 e)
         have := hplain pg (Or.inr ⟨hi0, p, hown, hpg, hlf⟩) i hi
         rw [hkc]
-        constructor
-        · intro e; unfold bucketLeafFlag at e; omega
-        · intro e; exact absurd e.symm hrl
+        refine ⟨⟨fun e => by unfold bucketLeafFlag at e; omega, fun e => absurd e.symm hrl⟩,
+          fun _ => ?_⟩
+        have hb := hbv.2.2 hi0 pg (Or.inr ⟨hi0, p, hown, hpg, hlf⟩) i hi
+        exact ⟨hb.2.1, hb.2.2⟩
       · exact (hnsN l r hr).elim
     · rw [hDe] at hpr; exact tps k D0 hD0 c' p pg hpr hown hpg hlf i hi
+  · -- the root bucket stays not inline (it is not `c`)
+    intro D hD
+    rcases XO_back X bl c B C nb h hB hc hbm X.rl D hD with ⟨hkc, -⟩ | ⟨-, D0, hD0, hDe, -, -, -⟩
+    · exact absurd hkc hrl
+    · rw [hDe]; exact trni D0 hD0
   · -- the root bucket
     show ((XO X bl c B C nb h).t.bs !! X.rl).isSome
     obtain ⟨R, hR⟩ := Option.isSome_iff_exists.1 trl
@@ -420,7 +429,12 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
       refine ⟨hCc, ?_⟩
       intro n c' e; rw [hbmC] at e; cases e
     · obtain ⟨hcl, hch⟩ := tall k D0 hD0
-      refine ⟨by rw [hDe]; exact bktClean_bm _ _ _ D0 D.bm hgr hcl, fun n c' e => ?_⟩
+      have hnnD : ∀ n c', D.bm !! n = some c' → c' ≠ null := by
+        intro n c' e
+        rcases hbmD n c' e with ⟨-, -, hcc⟩ | e0
+        · rw [hcc]; exact hcn
+        · exact hcl.2.2.2.2.2.2.2.2.2.2 n c' e0
+      refine ⟨by rw [hDe]; exact bktClean_bm _ _ _ D0 D.bm hgr hnnD hcl, fun n c' e => ?_⟩
       rcases hbmD n c' e with ⟨-, -, hcc⟩ | e0
       · rw [hcc]
         show ((XO X bl c B C nb h).t.bs !! c).isSome
@@ -443,7 +457,7 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
       rcases hbmD n c' e with ⟨hkb, hnn, hcc⟩ | e0
       · rw [hcc, hnn]
         rw [hkb, hB] at hD0; cases hD0
-        refine ⟨C, w.value, by rw [XO_bs]; simp, ?_, ?_, fun h0 => (hbv.2 h0).1, ?_, fun _ => hib⟩
+        refine ⟨C, w.value, by rw [XO_bs]; simp, ?_, ?_, fun h0 => (hbv.2.1 h0).1, ?_, fun _ => hib⟩
         · rw [hDe]; exact hent
         · cases hbv.1 <;> assumption
         · rw [hib]
@@ -583,7 +597,7 @@ theorem XO_leaves_new (w : WEntry) (hv : viewWF X.v) (hrec : openedRec B.bv.tx' 
     have hC0 : C.ib.root' = W64 0 := by
       apply BitVec.eq_of_toNat_eq; rw [hr, h0]; rfl
     obtain ⟨-, hipg, -⟩ := hil h0
-    have hg := (hbv.2 h0).1
+    have hg := (hbv.2.1 h0).1
     have hL : ltree (XO X bl c B C nb h) c (W64 0) = some (true, pageWs (inlinePage w.value)) := by
       unfold ltree; rw [hCb]; simp only; rw [hres]
       simp [wpageAt, hC0, hipg, hg.2.1]
@@ -669,7 +683,7 @@ theorem wtxData_XO (w : WEntry) (hok : wOK X) (hk : w.key = nb) (hf : isBktFlag 
       by_cases h0 : inBucketRoot w.value = 0
       · rw [if_pos h0, List.mem_singleton] at hpg
         subst hpg
-        exact ⟨Or.inl ⟨h0, rfl⟩, (hbv.2 h0).1.2.1⟩
+        exact ⟨Or.inl ⟨h0, rfl⟩, (hbv.2.1 h0).1.2.1⟩
       · rw [if_neg h0] at hpg
         obtain ⟨p, ho, hp, hl⟩ := leavesF_own X.v.pages
           (fun id pg hp => (viewWF_page_ready X.v hv id pg hp).2.2.1) _ _ pg hpg
@@ -704,12 +718,13 @@ theorem wOK_bktOpened (X : WX) (bl c : Loc) (B C : BRec) (w : WEntry) (nb : List
     (hrec : openedRec B.bv.tx' w.value w.vs C)
     (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) (hent : entryIn X.v B nb w.value)
     (htk : inBucketRoot w.value ≠ 0 → treeKeys X.v.pages (inBucketRoot w.value) none none)
-    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0) :
+    (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0)
+    (hcn : c ≠ null) :
     wOK ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)) ∧
       wtxData ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)) = wtxData X := by
   have hc : X.t.bs !! c = none := ((GMap.lookup_union_None _ _ _).1 hbo).1
   have hcd : X.t.deadB !! c = none := ((GMap.lookup_union_None _ _ _).1 hbo).2
-  exact ⟨wOK_XO X bl c B C nb (nb, g) hB hc hbm w hok hd hk hrec hbv hent htk hcd rfl hplain,
+  exact ⟨wOK_XO X bl c B C nb (nb, g) hB hc hbm w hok hd hk hrec hbv hent htk hcd rfl hplain hcn,
     wtxData_XO X bl c B C nb (nb, g) hB hc hbm w hok hk hf hw hrec hbv hplain⟩
 
 end wok

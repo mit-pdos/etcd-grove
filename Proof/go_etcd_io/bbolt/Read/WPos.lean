@@ -254,7 +254,7 @@ theorem posOK_node_child (X : WX) (bl : Loc) (B : BRec) (l : Loc) (rn : NRec) (i
   | none =>
     refine Or.inr (Or.inr ⟨hi, hp hnm, fun d hd => ?_⟩)
     have hpos : pagePosAt B l i w.pgid := ⟨rn, w, hn, hlf, hw, rfl, hnm⟩
-    exact hc.2.2.2.2.2.2.2.2.2 l i w.pgid hpos d hd
+    exact hc.2.2.2.2.2.2.2.2.2.1 l i w.pgid hpos d hd
 
 /-- **A branch page's child is a searchable position.** -/
 theorem posOK_page_child (X : WX) (bl : Loc) (B : BRec) (pid : w64) (pg : List w8) (i : Nat)

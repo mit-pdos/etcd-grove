@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
 public import Proof.go_etcd_io.bbolt.Commit.RollbackFacts
+public import Proof.go_etcd_io.bbolt.Commit.RollbackReload
 public import Spec.go_etcd_io.bbolt.Tx__close_w
 public import Spec.go_etcd_io.bbolt.DB__meta
 public import Spec.go_etcd_io.bbolt.DB__hasSyncedFreelist
@@ -358,7 +359,10 @@ theorem Tx.rollback.wp_proof
           rw [← hC'] at hok''
           ipureintro; exact ⟨hok'', hwr, hrl⟩
         iapply HΦ; iexact Hdone
-      · sorry
+      · -- a synced freelist page: `Reload(db.page(db.meta().Freelist()))`
+        rw [show (! (! decide (some f = (none : Option Nat)))) = true from rfl]
+        wp_auto
+        done
     · -- published (the commit point passed): only close
       simp only [↓reduceIte, Nat.add_zero] at hwt'
       subst hwt'

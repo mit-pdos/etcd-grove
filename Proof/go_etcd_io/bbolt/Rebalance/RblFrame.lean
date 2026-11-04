@@ -96,8 +96,8 @@ theorem bktClean_sim {B B' : BRec} (h : bktSim B B') (hc : bktClean v hwm bl B) 
     bktClean v hwm bl B' := by
   have hpos := pagePosAt_sim h
   obtain ⟨hbv, hib, hnm, hbm, hipg, hisrc, hpst, hf, hb⟩ := h
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11⟩ := hc
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, by rw [hbm]; exact c11⟩
   · rw [hib, hbv, hisrc, hipg, hpst]; exact c1
   · rw [hib, hbv]; exact c2
   · intro h0

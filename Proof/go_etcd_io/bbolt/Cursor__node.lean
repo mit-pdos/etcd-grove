@@ -74,7 +74,7 @@ private theorem curSt_node (X Y : WX) (bl : Loc) (B BY : BRec) (h : Write.curSt 
     (hres : resolve BY pk = some nk) (hpk0 : B.ib.root' = W64 0 → pk = W64 0) :
     ∃ rk, BY.ns !! nk = some rk ∧ rk.nv.bucket' = bl ∧ nk ∈ Y.live ∧
       Write.ldat (ltree X bl pk) = some (rk.nv.isLeaf', rk.ws.map wDat) := by
-  obtain ⟨-, -, -, -, -, BY0, hBY0, -, -, -, -, -, -, -, hnm, hld⟩ := h
+  obtain ⟨-, -, -, -, -, -, BY0, hBY0, -, -, -, -, -, -, -, hnm, hld⟩ := h
   rw [hBY] at hBY0; cases hBY0
   obtain ⟨-, rk, hrk, hb, hl⟩ := hnm pk nk hpk
   refine ⟨rk, hrk, hb, hl, ?_⟩
@@ -308,7 +308,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
       have hidx : ej.index'.toNat < rk.ws.length := (List.getElem?_eq_some_iff.1 hw).1
       have hi0 : 0 ≤ sint.Z ej.index' := by word
       have hin' : sint.nat ej.index' = ej.index'.toNat := by word
-      obtain ⟨-, -, -, -, hbll, BY0, hBY0, hib, hnd, hpgY, -, -, -, hnmB, hnmok, -⟩ := id hst
+      obtain ⟨-, -, -, -, -, hbll, BY0, hBY0, hib, hnd, hpgY, -, -, -, hnmB, hnmok, -⟩ := id hst
       rw [hBY] at hBY0; cases hBY0
       have hnone : BY.nm !! w.pgid = none → matReady Yj BY w.pgid := by
         intro hn
@@ -394,7 +394,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
       iexists Yj
       iframe
       ipureintro
-      exact ⟨hst.1, hst.2.1, BY, pL, hBY, hpL, hres⟩
+      exact ⟨hst.1, hst.2.1, hst.2.2.1 hloc, BY, pL, hBY, hpL, hres⟩
   · rw [decide_eq_false hnL]
     obtain ⟨l, hresL⟩ : ∃ l, resolve B pL = some l := by
       cases h : resolve B pL with
@@ -438,7 +438,7 @@ theorem Cursor.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
     iexists X
     iframe
     ipureintro
-    exact ⟨matGrow.refl X bl, id, B, pL, hB, hpL, hresL⟩
+    exact ⟨matGrow.refl X bl, id, hloc, B, pL, hB, hpL, hresL⟩
 
 end proof
 

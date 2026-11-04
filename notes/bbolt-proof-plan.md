@@ -974,6 +974,74 @@ branch, `pageReadable`, `pageElemsIn`, from `viewWF` through `treeHas_treeWF`), 
   interface files: those of batches 21, 29-33 (above), plus `Tx__close_w.txt`, `Bucket__free.txt`,
   `DB__Begin_err.txt`, and `PkgInit`'s/`Inv/Bolt`'s consumers' (`dbFixed`, `bboltRootInit`).
 
+## Shared-statement fixes, batches 37-38 (maintainer 6, 2026-11-04; decided by the coordinator)
+
+Batch 37 (items 1-8, 11-13, 15-19 applied; 9, 10, 3, 14, 20 below):
+- **1, 2, 5. `wdbOK` ends `… ∧ w.m.size < 2 ^ 63 ∧ (∀ b l, w.ms = some (b, l) → w.m.size ≤ l ∨
+  w.m.size % 4096 = 0) ∧ (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096)`**
+  (`Inv/Locks`). Producers adapted: `wdbOK_free` (unchanged: passes the tail), `wdbOK_alloc`,
+  `wdbOK_rolledBack`/`wdbOK_released` (take `hbs`, the joined slots' page lengths, in place of U5d's
+  `hwb`, now derived: `Txn/WJoin.wb_header w hok`), `wdbOK_remap`, `wdbOK_lost`. U5d's two
+  `fun f hf => sorry` (`DB__beginRWTx`, `Tx__Rollback`) are gone. `Mmap/RemapGaps`' gaps 1, 2
+  (`wdbOK_size_lt`, `wdbOK_size_page`) are projections. **To prove**: `Open/CoreFacts.wdbOK_open`
+  (U11), the publish (U10), `DB.grow` (U4: keeps the page clause by its new `sz % 4096` premise).
+- **4. `isBoltCoreP`'s pure part is `t0 < 2 ^ 62 ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN`** (users'
+  `.2` became `.2.1`). Gap 4 (`core_osN_disj`) proved. `Open/Core.open_core` must add it (U11).
+- **6. `store_rollback`'s post ends `⌜∀ s ∈ S, (bs s).length = 4096⌝`**; `Txn/WRoll.store_rollback_len`
+  deleted, `Tx__Rollback` uses `store_rollback`.
+- **7. `wdbCoreG` pins `db.ops.writeAt`**: no `∃ wa`; its half is `methods (PointerType os.File.ty)
+  "WriteAt" #w.f`. `%wa` binders removed (Bucket__free, node__free, Tx__close_w, Tx__Rollback,
+  DB__beginRWTx, Mmap/*, Spill/NodeSpillPiecesFree); `wdbLost_intro`, `wdbW_remap_intro`,
+  `remap_post` lost their `wa` argument.
+- **8. `DB.grow.spec`** takes `sint.Z sz + 0x1000000 < 2 ^ 63` and `sint.Z sz % 4096 = 0` (the second
+  for item 2: above `AllocSize` the file grows to `sz + AllocSize`, whole pages). Proof `sorry` (U4).
+- **11. `bktClean` ends `… ∧ posNodeFree v B ∧ (∀ n c, B.bm !! n = some c → c ≠ null)`**;
+  `Bucket.Bucket_w.spec` takes `X.t.t.writable' = true` (after `pmFresh X`); U6e's `wp_proof'` is the
+  `wp_proof` (callee specs as hypotheses; the non-nil premise derived from `bktLocalOK`).
+  `WOpen.bktClean_bm` takes the new map's non-nil fact, `wOK_XO`/`wOK_bktOpened` take `c ≠ null`.
+- **12. `bvalOK`** gains `(inBucketRoot v ≠ 0 → ∀ pg, bktLeafPg pages v pg → ∀ j < pageCount pg,
+  leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax)`
+  (with batch 38's S1 bounds). `Bucket__Bucket_w` now uses it for the open's plainness (the
+  `WOpen.leafBkt_nest_plain` call is gone; that `sorry` lemma is unused). **Open producers**
+  (`sorry`, the view page's `rootShape` + `viewUnique`): `Write/MatOK` (U7, materialization),
+  `Rebalance/RblMat` (U8), `Read/WOpenOK` (U6e, the open's page entry).
+- **13. `rootNotInline X`** (`Model/Wtx`) is the 5th component of `txClean`'s second clause
+  (`⟨pm, bufs, leafShape, posShape, rootNotInline⟩`). Producers: `Txn/WInit` (proved),
+  `Write/MatOK.wOK_matX` (proved), `RblX.rebalOK_of_rbl` (proved; new premise `rootNotInline X0`),
+  `WOpenWOK.wOK_XO` (proved). `Write/MatOK`'s `hnr` sorry closed by it. Spill's `DerefWOK`
+  (`posShape_step` arguments) routed to the spill unit.
+- **15. `Inv/Tx.boltTxDef_fractional` proved** (U5d's `Txn/TxFrac` moved in, helpers private; the
+  module deleted).
+- **16. `spillPre` and `rebalOK`** gain `(∀ bl, X.t.bs !! bl ≠ none → rtOK X bl)` (before the coverage
+  clause / before the frees). `RTree`, its walks, `ltIs` and `rtOK` moved to the new `Model/RTree`
+  (from `Rebalance/RTree`, `RTreeX`; same names). `rebalOK_of_rbl` gives it from `rblX`.
+- **17. Entry bounds**: `entriesBounded` is `∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length +
+  w.value.length ≤ bboltEntryMax` (every entry); `rootShape` (`Model/Tree`, `fileHolds`' clause,
+  definition and docstring) bounds the root bucket's leaf entries (`… ∧ 0 < leafKsize ∧ leafKsize +
+  leafVsize ≤ bboltEntryMax ∧ ∀ bpg …`). Open (`sorry`): `Write/MatOK.newNodeBnd` and
+  `Rebalance/RblXSMat` (branch keys, root-bucket entries: from exact branch keys and `rootShape`,
+  owners U7/U8); spill: `treeOK`'s new clause for the new tree, `DerefWOK.entriesBounded_step`.
+- **18. `Spill/UTree.spG X txid ml fl`** (new freelist argument) ends with `(∀ id, (X.t.bufs !!
+  id).isSome → id.toNat < X.t.mv.pgid'.toNat ∧ id ∉ fl.free ∧ X.v.pages !! id.toNat = none)`.
+- **19. `metaSummed`** moved to `Model/Meta` with `metaSum_checksum`, `metaValid_with`,
+  `metaValid_metaSummed` (stated over the field value: the kernel must not unfold `metaSum`).
+- **20. `Bucket.free`'s premise stands** (`∀ pid ∈ X.positions bl, X.t.pm !! pid = none`: the child's
+  positions only). An inlineable child's positions are view pages (or `0`); spill's buffers are no
+  view pages (item 18's last conjunct), so spill discharges it after earlier siblings allocated.
+
+Batch 38:
+- **0.** the bktClean breakage fixed in RTreeX, WPos, LRoutes, DataBnd, DataReach, WOpenOK, RblMat,
+  RblFrame, RblCol, RblRm, RblMg3. `Inv/Bolt.discardLogger_boltLogger` stub deleted (proved with the
+  package's `Assumptions` as `Open/Logger.discardLogger_boltLogger'`). `Proof/os/WriteChunks`'
+  `osBytes_split3` renamed `osBytes_split3_range` (clashed with `CrashOps`').
+- **2. `node.put.spec`** takes `dqt` for `bl.[Bucket, "tx"]` and `dqm` for `tx.[Tx, "meta"]`/`mp`.
+- **3 (S1). `posShape`**'s per-entry clause is `(… ↔ bl = X.rl) ∧ (bl ≠ X.rl → 0 < leafKsize pg i ∧
+  leafKsize pg i + leafVsize pg i ≤ bboltEntryMax)`; users take `.1` (MatOK), `Txn/WInit` and
+  `wOK_XO` prove it.
+- **4 (S2). `Write/CurNode.curSt`** carries `bktLocalOK X bl → bktLocalOK Y bl` (3rd component), kept
+  by `curSt_step` through `Write/MatOK.bktLocalOK_nodeAdded`; `Cursor.node.spec`'s post adds
+  `bktLocalOK X' bl` (after `wOK X → wOK X'`).
+
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the

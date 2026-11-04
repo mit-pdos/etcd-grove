@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem BC.core_db_nonnull (K : BC) : K.core (GF := GF) ⊢ ⌜K.db ≠ null⌝ := by
   unfold BC.core isBoltCoreP
   iintro ⟨-, -, %H, -⟩
-  ipureintro; exact H.2
+  ipureintro; exact H.2.1
 
 /-- **The reader's `db` field** (the database, not nil), out of `rdTxK` and back. -/
 theorem rdTxK_db_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :

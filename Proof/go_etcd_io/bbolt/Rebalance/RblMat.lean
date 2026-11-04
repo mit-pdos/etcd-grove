@@ -423,7 +423,7 @@ theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) (hinl : Write.leaf
   obtain ⟨hr1, hr2, hr3, hr4, hr5, hr6, hr7, hr8, hr9, hr10, hr11, hr12⟩ := hr
   obtain ⟨hp1, hp2, hp3, hp4, hp5, hp6, hp7⟩ := hp'
   obtain ⟨hx1, hx2, hx3⟩ := hx
-  obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8, hc9, hc10⟩ := hc
+  obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8, hc9, hc10, hc11⟩ := hc
   have hNrp := hc8 nl rp hrp
   have hgood := hv.1 _ pg hpg
   have huniq := hv.2
@@ -512,7 +512,10 @@ theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) (hinl : Write.leaf
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
         · refine ⟨fun _ => ?_, hx3 x hx hbk⟩
           rw [e4, f4]
-          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hinl hfl j hjc hbk' h0⟩⟩
+          -- batch 37 (item 12): the nested-plainness clause, from the view page (`rootShape`,
+          -- `viewUnique`): OPEN, owner U8 (as U7's `Bucket.node`)
+          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hinl hfl j hjc hbk' h0⟩,
+            sorry⟩
         · rw [hb] at hfl; exact absurd hfl mat_branch_ne_leaf
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -638,8 +641,8 @@ theorem mat_clean (hx : matExtra r) (hcnt : 0 < pageCount pg) (hinl : Write.leaf
     · exact hc9 nl i w.pgid x2 j2 c2 hpos hq2 (Ne.symm hn2) d (hsub j1 hj1 hb d hd1) hd2
     · exact hc9 x1 j1 c1 nl i w.pgid hq1 hpos hn1 d hd1 (hsub j2 hj2 hb2 d hd2)
     · exact hc9 x1 j1 c1 x2 j2 c2 hq1 hq2 hne d hd1 hd2
-  · -- positions node-free
-    intro x j c' hP d hd
+  · -- positions node-free (and, batch 37, the cached children non-nil: `bm` unchanged)
+    refine ⟨fun x j c' hP d hd => ?_, hc11⟩
     rw [hnm']
     split
     · rename_i hdc
@@ -738,7 +741,7 @@ theorem mat_free : ∀ j < pageCount pg, pageFlags pg = branchPageFlag →
   | page _ pgj _ _ hpgj _ _ _ =>
     have hcs := treeHas.root _ pgj hpgj
     rw [mat_nm, if_neg]
-    · exact hc.2.2.2.2.2.2.2.2.2 nl i w.pgid hpos _ (mat_treeHas_child hpg hb j hj _ hcs)
+    · exact hc.2.2.2.2.2.2.2.2.2.1 nl i w.pgid hpos _ (mat_treeHas_child hpg hb j hj _ hcs)
     · intro he
       rw [mat_W64_eq_iff _ _ (mat_branchPgid_lt pg j)] at he
       exact (hv.2.1 _ pg hpg hb).2 j hj (by rw [← he]; exact hcs)

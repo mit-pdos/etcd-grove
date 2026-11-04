@@ -31,8 +31,8 @@ theorem wdbOK_lost [GooseExts] (w : WDb) (hok : wdbOK w) (m' : OsMeta) (j : Opti
     (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     wdbOK (w.lost m' j) := by
-  obtain ⟨_, _, hk3, _, hk5, hk6, hk7, hk8, _, _, hk11, hk12⟩ := hok
-  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hk6, hk7, hk8, ?_, ?_, hk11, hk12⟩
+  obtain ⟨_, _, hk3, hk4, hk5, hk6, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15⟩ := hok
+  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hk6, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_⟩
   · intro b l h; simp [WDb.lost] at h
   · simp only [WDb.lost]; rw [hsz]; exact hk3
   · intro s
@@ -40,6 +40,15 @@ theorem wdbOK_lost [GooseExts] (w : WDb) (hok : wdbOK w) (m' : OsMeta) (j : Opti
     exact mem_W_of_wSlots _ _ _ s
   · intro b l h; simp [WDb.lost] at h
   · intro b l h; simp [WDb.lost] at h
+  · simp only [WDb.lost]; rw [hsz]; exact hk13
+  · intro b l h; simp [WDb.lost] at h
+  · intro s hs hle
+    simp only [WDb.lost, hsz] at hs hle ⊢
+    obtain ⟨a, b, c, d⟩ := (mem_W_of_wSlots _ _ _ s).1 hs
+    refine hk15 s ((hk4 s).2 ⟨a, ?_, c, d⟩) hle
+    have := Nat.le_max_right (mapLen w.ms) w.m.size
+    have : s < w.m.size / 4096 := by omega
+    omega
 
 section lost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -69,14 +78,14 @@ def junkRes (j : Option (Loc × Nat)) : IProp GF :=
 /-- **The writer side after a failed remap**, from its pieces. -/
 theorem wdbLost_intro (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK w) (m' : OsMeta)
     (j : Option (Loc × Nat)) (hsz : m'.size = w.m.size)
-    (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl)
-    (wa : GoFunc) :
+    (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     ⊢ ghostVar (GF := GF) K.B.cur (1 : Qp).half.half w.C -∗ ghostVar K.B.fl (1 : Qp).half w.fl -∗
       ghostVar K.B.map (1 : Qp).half (none : MapSt) -∗ ghostVar K.B.out (1 : Qp).half false -∗
       ghostVar K.B.wv (1 : Qp).half ((some v, some (w.C.txid + 1), false, false) : WSt) -∗
       K.db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} w.fli -∗
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
-      (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa -∗
+      (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
+        methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
       K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ K.db.[DB, go!"path"] ↦ K.p -∗
       K.db.[DB, go!"datasz"] ↦ W64 0 -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (none : MapSt) -∗

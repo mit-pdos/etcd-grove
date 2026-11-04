@@ -229,11 +229,14 @@ def bktLeafPg (pages : Pages) (v : List w8) (pg : List w8) : Prop :=
   (inBucketRoot v ≠ 0 ∧ ∃ id, ownHas pages (inBucketRoot v) id ∧ pages !! id = some pg ∧
     pageFlags pg = leafPageFlag)
 
-/-- The root bucket's leaves hold top-level buckets only, with non-empty names; their leaves hold
-plain entries only (no nested bucket), each within `bboltEntryMax`. -/
+/-- The root bucket's leaves hold top-level buckets only, with non-empty names, each entry (name
+and bucket value) within `bboltEntryMax` (batch 37: `CreateBucket` checks `MaxKeySize`, an inline
+value is at most a quarter page by `inlineable`); their leaves hold plain entries only (no nested
+bucket), each within `bboltEntryMax`. -/
 def rootShape (pages : Pages) (root : Nat) : Prop :=
   ∀ id pg, ownHas pages root id → pages !! id = some pg → pageFlags pg = leafPageFlag →
     ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag ∧ 0 < leafKsize pg i ∧
+      leafKsize pg i + leafVsize pg i ≤ bboltEntryMax ∧
       ∀ bpg, bktLeafPg pages (leafValue pg i) bpg → ∀ j < pageCount bpg,
         leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
         leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax

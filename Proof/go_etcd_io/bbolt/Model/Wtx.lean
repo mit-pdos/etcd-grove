@@ -304,7 +304,8 @@ view page, `CreateBucket` writes an inline value). -/
 def bvalOK (pages : Pages) (hwm : Nat) (v : List w8) : Prop :=
   bucketWF pages hwm v ∧
     (inBucketRoot v = 0 → inlineGood (inlinePage v) ∧ inlineBnd (inlinePage v)) ∧
-    (inBucketRoot v ≠ 0 → ∀ pg, bktLeafPg pages v pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0)
+    (inBucketRoot v ≠ 0 → ∀ pg, bktLeafPg pages v pg → ∀ j < pageCount pg,
+      leafFlags pg j % 2 = 0 ∧ 0 < leafKsize pg j ∧ leafKsize pg j + leafVsize pg j ≤ bboltEntryMax)
 
 /-- The node `l` (record `r`) of the bucket `bl` (record `B`) is well-formed. -/
 def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) : Prop :=
@@ -362,7 +363,10 @@ dereferencing (`Spill/DerefWOK.posShape_step`) and spill (U9). -/
 def posShape (X : WX) : Prop :=
   ∀ bl B, X.t.bs !! bl = some B → ∀ c p pg, posRoot B c → ownHas X.v.pages c p →
     X.v.pages !! p = some pg → pageFlags pg = leafPageFlag →
-    ∀ i < pageCount pg, (leafFlags pg i % 2 = bucketLeafFlag ↔ bl = X.rl)
+    ∀ i < pageCount pg, (leafFlags pg i % 2 = bucketLeafFlag ↔ bl = X.rl) ∧
+      -- batch 38 (S1): a non-root bucket's view leaf entries are bounded (`rootShape`'s nested
+      -- clause)
+      (bl ≠ X.rl → 0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax)
 
 /-- **The root bucket is not inline** (batch 37, U7f): its root is a page (the view's meta root at
 `beginRWTx`; no operation makes it inline). -/
@@ -452,12 +456,12 @@ def txPg (v : View) (bs : GMap Loc BRec) : Prop :=
 
 /-! ## `wOK` -/
 
-/-- Every entry of the transaction's leaves within `bboltEntryMax` (D4, for `SpillFit`), and
-keys non-empty. -/
+/-- Every entry of the transaction's nodes within `bboltEntryMax` (D4, for `SpillFit`), and keys
+non-empty; batch 37 (U9i): every entry, leaf or branch, a bucket entry too (the root bucket's: name
+and header or inline value, `rootShape`; a branch key is a leaf key, by exact branch keys). -/
 def entriesBounded (X : WX) : Prop :=
   ∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → ∀ w ∈ r.ws,
-    0 < w.key.length ∧ (r.nv.isLeaf' = true → ¬ isBktFlag w.flags →
-      w.key.length + w.value.length ≤ bboltEntryMax)
+    0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax
 
 /-- The handles: each is a bucket of the transaction (current handles are in `buckets`'
 caches, stale ones are dead objects). -/

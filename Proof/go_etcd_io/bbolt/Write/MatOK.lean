@@ -143,15 +143,14 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hnsO : ∀ y ry, B.ns !! y = some ry → ∃ ry', B'.ns !! y = some ry' ∧
       ry'.nv.pgid' = ry.nv.pgid')
     (hpg : nodePg X.v B.ib.root' r)
-    (hbnd : ∀ w ∈ r.ws, 0 < w.key.length ∧ (r.nv.isLeaf' = true → ¬ isBktFlag w.flags →
-      w.key.length + w.value.length ≤ bboltEntryMax))
+    (hbnd : ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax)
     (hpid : r.nv.pgid'.toNat = pgid.toNat)
     (hshape : r.nv.isLeaf' = true → ∀ w ∈ r.ws, (isBktFlag w.flags ↔ bl = X.rl))
     (hnmS : ∀ k, B'.nm !! k = none → B.nm !! k = none)
     (hpr : r.nv.isLeaf' = false → posRoot B r.nv.pgid'.toNat) :
     wOK (matX X bl l pgid B') := by
-  obtain ⟨⟨hw, ⟨hpm, hbuf, hsh, hps⟩, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho, ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl,
-    hv⟩ := hok
+  obtain ⟨⟨hw, ⟨hpm, hbuf, hsh, hps, hrni⟩, hpg2, htxid, hrl, hbs⟩, hkn, htp, heb, hho,
+    ⟨hl1, hl2, hl3, hl4, hl5⟩, hnl, hv⟩ := hok
   have hbs' := matX_bs X bl l pgid B'
   have hcase : ∀ c C, (matX X bl l pgid B').t.bs !! c = some C →
       (c = bl ∧ C = B') ∨ (c ≠ bl ∧ X.t.bs !! c = some C) := by
@@ -189,7 +188,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       rw [hlo] at this; cases this
   have hps' : posShape (matX X bl l pgid B') := by
     intro c C hC c0 p pg0 hpos hown hpg0 hleaf i hi
-    show _ ↔ c = X.rl
+    show (_ ↔ c = X.rl) ∧ (c ≠ X.rl → _)
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · rcases hpos with ⟨hrn', h0', rfl⟩ | ⟨y, j, ⟨ry', w, hy, hyl, hw, hwp, hnm'⟩, hlt⟩
       · exact hps c B hB _ p pg0 (Or.inl ⟨hrn hrn', by rw [← hib]; exact h0', by rw [hib]⟩)
@@ -212,8 +211,13 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
             (Or.inr ⟨y, j, ⟨ry, w, hry, by rw [← a1]; exact hyl, by rw [← a2]; exact hw, hwp,
               hnmS _ hnm'⟩, hlt⟩) hown hpg0 hleaf i hi
     · exact hps c C hC0 c0 p pg0 hpos hown hpg0 hleaf i hi
+  have hrni' : rootNotInline (matX X bl l pgid B') := by
+    intro C hC
+    rcases hcase X.rl C hC with ⟨h, rfl⟩ | ⟨-, hC0⟩
+    · rw [hib]; exact hrni B (by rw [h]; exact hB)
+    · exact hrni C hC0
   refine ⟨⟨hw, ⟨hpm, hbuf, leafShape_matX X bl l pgid B B' r hsh hB hnew hnsN hshape,
-    hps'⟩, hpg2, htxid,
+    hps', hrni'⟩, hpg2, htxid,
     by rw [hdom]; exact hrl, fun c C hC => ?_⟩, fun c C hC => ?_,
     ?_, ?_, ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, hv⟩
   · -- txClean
@@ -251,7 +255,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · rcases hnsN y ry hy with rfl | ⟨ry0, hry0, a1, a2, -⟩
       · rw [hnew] at hy; cases hy; exact hbnd
-      · rw [a1, a2]; exact heb c B hB y ry0 hry0
+      · rw [a2]; exact heb c B hB y ry0 hry0
     · exact heb c C hC0 y ry hy
   · -- handles
     intro b nm hb
@@ -397,7 +401,7 @@ theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.n
   have hposR := matR_pos W hwm bl B hv hc hrn0 l hl pg r hr hpt hgood hcid hfile hinl
   have hnodes := matR_nodes W hwm bl B hv hc hrn0 l hl pg r hr hpt hgood hcid hfile hinl
   obtain ⟨hr1, hr2, hr3, hr4, hr5, hr6, hr7, hr8, hr9, hr10, hr11, hr12⟩ := hr
-  obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8, hc9, hc10⟩ := hc
+  obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8, hc9, hc10, hc11⟩ := hc
   have hns0 := (hc3 hrn0).1
   have hnm0 := (hc3 hrn0).2
   have hns' := matR_ns B B.ib.root' l r hns0
@@ -463,7 +467,10 @@ theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.n
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
         · refine ⟨fun _ => ?_, hx3 x hx hbk⟩
           rw [e4, f4]
-          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hni hfl j hjc hbk' h0⟩⟩
+          -- batch 37 (item 12): the nested-plainness clause, from the view page (`rootShape`,
+          -- `viewUnique`): OPEN, owner U7 (`Bucket.node`)
+          exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hni hfl j hjc hbk' h0⟩,
+            sorry⟩
         · rw [hb] at hfl; exact absurd hfl mat_branch_ne_leaf
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -512,8 +519,8 @@ theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.n
     rw [toNat_W64_of_lt _ (mat_branchPgid_lt _ _)] at hd1
     rw [toNat_W64_of_lt _ (mat_branchPgid_lt _ _)] at hd2
     exact (huniq.1 _ pg (hfree j1 hj1 hb).2.1 hb).1 j1 j2 hj1 hj2 hjne d hd1 hd2
-  · -- positions node-free
-    intro x j c' hP d hd
+  · -- positions node-free (and, batch 37, the cached children: `bm` unchanged)
+    refine ⟨fun x j c' hP d hd => ?_, hc11⟩
     obtain ⟨-, hb, hj, rfl⟩ := hposR x j c' hP
     obtain ⟨-, -, hwf, -, hnot⟩ := hfree j hj hb
     rw [toNat_W64_of_lt _ (mat_branchPgid_lt _ _)] at hd
@@ -670,13 +677,20 @@ theorem bytesAt_length_le (pg : List w8) (off n : Nat) : (bytesAt pg off n).leng
 theorem newNodeBnd (pg : List w8) (r : NRec) (hr9 : r.ws.map wDat = (pageWs pg).map wDat)
     (hr4 : r.nv.isLeaf' = decide (pageFlags pg = leafPageFlag))
     (hnodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length) (hb : leafBnd pg) :
-    ∀ w ∈ r.ws, 0 < w.key.length ∧ (r.nv.isLeaf' = true → ¬ isBktFlag w.flags →
-      w.key.length + w.value.length ≤ bboltEntryMax) := by
+    ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax := by
   intro x hx
   obtain ⟨j, hj⟩ := List.mem_iff_getElem?.1 hx
   obtain ⟨hjc, hd⟩ := mat_at hr9 j x hj
   obtain ⟨e1, -, e3, e4⟩ := mat_wDat_eq hd
-  refine ⟨by rw [e3, mat_pageW_key]; exact hnodes j hjc, fun hlf hnb => ?_⟩
+  refine ⟨by rw [e3, mat_pageW_key]; exact hnodes j hjc, ?_⟩
+  -- batch 37: `entriesBounded` covers every entry; a branch key and a root-bucket entry are
+  -- bounded too (`rootShape`'s new clause, exact branch keys): OPEN, owner U7 (`leafBnd` to cover
+  -- every element of a view page)
+  by_cases hlf' : r.nv.isLeaf' = false
+  · sorry
+  have hlf : r.nv.isLeaf' = true := by simpa using hlf'
+  by_cases hnb : isBktFlag x.flags
+  · sorry
   have hfl : pageFlags pg = leafPageFlag := by rw [hr4] at hlf; simpa using hlf
   obtain ⟨f1, -, f3, f4⟩ := mat_pageW_leaf pg j hfl
   rw [e1, f1, mat_isBktFlag_iff _ (mat_leafFlags_lt pg j)] at hnb
@@ -934,15 +948,15 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb) (by rw [hrid'])
       (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj => by
         by_cases hin : B.ib.root' = W64 0
-        · -- an inline bucket's page: no bucket entries; `bl` is not the root bucket (not in
-          -- `wOK`: the root bucket is never inline, a shared fact to add, see the report)
+        · -- an inline bucket's page: no bucket entries; `bl` is not the root bucket (batch 37:
+          -- `txClean`'s `rootNotInline`)
           have h1 := (hinl' hin).2 j hj
-          have hnr : bl ≠ X.rl := sorry
+          have hnr : bl ≠ X.rl := fun h => hok.1.2.1.2.2.2.2 B (h ▸ hB) hin
           unfold bucketLeafFlag; constructor
           · intro h; omega
           · intro h; exact absurd h hnr
-        · exact hok.1.2.1.2.2.2 bl B hB _ _ pg (Or.inl ⟨hrn0, hin, rfl⟩)
-            (ownHas.root _ pg (hfile hin)) (hfile hin) hlf j hj))
+        · exact (hok.1.2.1.2.2.2.1 bl B hB _ _ pg (Or.inl ⟨hrn0, hin, rfl⟩)
+            (ownHas.root _ pg (hfile hin)) (hfile hin) hlf j hj).1))
       (fun k h => nm_ins_none B.nm _ k l h)
       (fun hb => by
         have hin : B.ib.root' ≠ W64 0 := by
@@ -1008,7 +1022,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
         (viewWF_leafBnd X.v hv _ pg hpg)) (by rw [hrid, hcid])
       (newNode_shape pg r _ hr9 hrleaf (fun hlf j hj =>
-        hok.1.2.1.2.2.2 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hlf j hj))
+        (hok.1.2.1.2.2.2.1 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hlf j hj).1))
       (fun k h => nm_ins_none B.nm _ k l h)
       (fun _ => by rw [hrid, hcid]; exact hposw)
     · intro y ry' hy

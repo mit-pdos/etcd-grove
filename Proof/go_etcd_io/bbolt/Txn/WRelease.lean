@@ -38,8 +38,9 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
     (hσ : σ.C = w.C ∧ σ.fl = w.fl ∧ σ.ms = w.ms ∧ σ.wst = wIdle ∧ storeOK σ) (hok : wdbOK w)
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C (w.fl.releasePending ro))
     (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64)
-    (hwb : ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length) :
+    (hbs : ∀ s ∈ S, (bs s).length = 4096) :
     wdbOK (w.released (w.fl.releasePending ro) S bs) := by
+  have hwb := wb_header w hok
   obtain ⟨hC, hfl, -, hws, hst⟩ := hσ
   have hwtx : σ.wtx = none := by
     have := congrArg (fun x : WSt => x.2.1) hws; simpa [StoreSt.wst, wIdle] using this
@@ -51,7 +52,7 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
   generalize hfl' : w.fl.releasePending ro = fl' at hS
   obtain ⟨r1, r2, r3⟩ := releasePending_sub w.fl ro hro hwf.2.2.2.2
   rw [hfl'] at r1 r2 r3
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := hok
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15⟩ := hok
   have hpend' : ∀ s, s ∈ pendSlots fl' → s ∈ pendSlots w.fl := by
     intro s hs
     obtain ⟨t, pd', x, hp, hx, rfl⟩ := (pendSlots_mem_iff _ _).1 hs
@@ -80,7 +81,7 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
       cases this
   have hcpOf : ∀ t pd x, w.fl.pending !! t = some pd → x ∈ pd.ids → committedPending w.fl w.C x :=
     fun t pd x hp hx => ⟨t, pd, hp, hx, hcomm t pd hp⟩
-  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_⟩
+  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_, c13, c14, ?_⟩
   · -- the `W` slots
     intro s
     simp only [WDb.released, List.mem_append]
@@ -146,28 +147,32 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
     rcases r1 x hx with h | ⟨t, pd, hp, hx'⟩
     · exact c12 x h
     · exact hbl.2.1 t pd x hp hx' (hcomm t pd hp)
+  · -- batch 37: the `W` slots' bytes inside the file are pages (the joined ones by `hbs`)
+    intro s hs hle
+    simp only [WDb.released, List.mem_append, mergeWb] at hs hle ⊢
+    by_cases hS' : s ∈ S
+    · simp only [hS', ↓reduceIte]; exact hbs s hS'
+    · simp only [hS', ↓reduceIte]
+      exact c15 s (hs.resolve_right hS') hle
 
 omit sem in
 /-- **The writer side after `ReleasePendingPages`** (`beginRWTx`): from the idle store `σ`
 (`storeOK`, no writer), the slots `S` released (`store_release`'s), whose bytes are whole pages
 (`hbs`), the writer side's facts and its `W` slots' cells and bytes extend to the released
 freelist (`wdbOK_released`, `wjoin`: the released slots were committed-pending, so below the
-high-water mark, inside the mapping and the file). `hwb`: the synced freelist page's bytes hold
-a page header (U5d's finding: `wdbOK` does not say so of `W` slots' bytes, `extentBytes_congr`
-needs it). -/
+high-water mark, inside the mapping and the file). -/
 theorem wdb_release (p : GoString) (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
     (bs : Nat → List w8)
     (hσ : σ.C = w.C ∧ σ.fl = w.fl ∧ σ.ms = w.ms ∧ σ.wst = wIdle ∧ storeOK σ) (hok : wdbOK w)
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C (w.fl.releasePending ro))
     (hbs : ∀ s ∈ S, (bs s).length = 4096)
-    (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64)
-    (hwb : ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length) :
+    (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64) :
     wCells (GF := GF) w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗ slotsOwn w.ms p S bs ⊢
       ⌜wdbOK (w.released (w.fl.releasePending ro) S bs)⌝ ∗
       wCells w.ms (w.released (w.fl.releasePending ro) S bs).W ∗
       wBytes p (w.released (w.fl.releasePending ro) S bs).W
         (w.released (w.fl.releasePending ro) S bs).wb w.m.size := by
-  have hok' := wdbOK_released w σ ro S bs hσ hok hS hro hwb
+  have hok' := wdbOK_released w σ ro S bs hσ hok hS hro hbs
   obtain ⟨-, -, c3, c4, -, -, -, -, c9, -, c11, -⟩ := hok
   have hpS : ∀ s ∈ S, s ∈ pendSlots w.fl := by
     intro s hs

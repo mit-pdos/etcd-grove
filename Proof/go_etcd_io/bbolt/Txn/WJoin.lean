@@ -128,14 +128,13 @@ theorem extentBytes_congr (fl : FLPg) (C : CommitSt) (wb wb' : Nat → List w8) 
   exact hag _ (by omega) (ha9 _ (by omega) (by omega)).2
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
-/-- **The synced freelist page's bytes hold a header**, from a `wdbOK` clause it lacks (U5d's
-finding, `hlen`: a `W` slot inside the file holds a page's bytes), as `wdb_release`'s and
-`wdb_rollback`'s `hwb`: the page is a `W` slot (`flCurOK`: no tree slot, no free or pending id,
-below the high-water mark). -/
-theorem wb_header (w : WDb) (hok : wdbOK w)
-    (hlen : ∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096) :
+/-- **The synced freelist page's bytes hold a header** (`wdb_release`'s and `wdb_rollback`'s, from
+`wdbOK`'s batch-37 clause: a `W` slot inside the file holds a page's bytes): the page is a `W`
+slot (`flCurOK`: no tree slot, no free or pending id, below the high-water mark). -/
+theorem wb_header (w : WDb) (hok : wdbOK w) :
     ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length := by
   intro f hf
+  have hlen := hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2
   obtain ⟨-, -, c3, c4, -, c6, -⟩ := hok
   obtain ⟨h2, hlt, -, -, -, -, -, -, h9, -⟩ := c6 f hf f hf
   obtain ⟨hcov, hall⟩ := h9 f (Nat.le_refl _) (by omega)

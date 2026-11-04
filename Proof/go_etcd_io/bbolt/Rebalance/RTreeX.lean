@@ -116,7 +116,7 @@ theorem posI_step (X : WX) (bl : Loc) (B : BRec) (hb : X.t.bs !! bl = some B)
     (hx : posI X B x) (ws : List WEntry) (hl : ltree X bl x = some (false, ws)) (w : WEntry)
     (hw : w ∈ ws) : posI X B w.pgid ∧
       ∀ l r, B.nm !! w.pgid = some l → B.ns !! l = some r → B.nm !! x = some r.nv.parent' := by
-  obtain ⟨-, -, -, -, -, -, -, c8, -, c10⟩ := hc
+  obtain ⟨-, -, -, -, -, -, -, c8, -, c10, -⟩ := hc
   cases hxm : B.nm !! x with
   | some lx =>
     obtain ⟨rx, hrx, hlf, hws⟩ := ltree_mat_inv X bl B hb h0 x lx hxm false ws hl

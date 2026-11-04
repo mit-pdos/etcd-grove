@@ -100,69 +100,6 @@ theorem store_wfacts (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) :
     exact Or.inr hs
   exact ⟨(Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs').1, Hok.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hbl s hs'⟩
 
-/-- **`store_rollback` with the slots' bytes whole pages** (U5d: as batch 34 item 3 for
-`store_release`; `store_rollback`'s post lacks it, `wjoin` needs it). The same statement and
-proof as `store_rollback` (`Inv/Store`, read through `import all`) plus `storeOK`'s slot clause. -/
-theorem store_rollback_len (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat)
-    (hw : ws.2.1 = some w) (hpub : ws.2.2.1 = false) :
-    inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
-      ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half ws ⊢
-    |={E}=> ∃ (S : List Nat) (bs : Nat → List w8),
-      ghostVar B.cur (1 : Qp).half.half C ∗
-      ghostVar B.fl (1 : Qp).half (fl.rollback (W64 (w : Int))) ∗
-      ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws ∗ slotsOwn ms p S bs ∗
-      ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.rollback (W64 (w : Int)))⌝ ∗
-      ⌜∀ s ∈ S, (bs s).length = 4096⌝ := by
-  iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv⟩
-  have := pagesInv_timeless (GF := GF) B p
-  imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
-  unfold pagesInv
-  icases Hi with ⟨%σ, %W, Hcur', Hfl', Hmap', Hwv', Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
-  icombine Hcur Hcur' gives % ⟨_, hC⟩
-  icombine Hfl Hfl' gives % ⟨_, hfl⟩
-  icombine Hmap Hmap' gives % ⟨_, hms⟩
-  icombine Hwv Hwv' gives % ⟨_, hws⟩
-  subst hC hfl hms hws
-  have hwσ : σ.wtx = some w := hw
-  have hpσ : σ.pub = false := hpub
-  have hok' := storeOK_rollback σ w Hok hwσ hpσ
-  imod ghostVar_update_halves (σ.fl.rollback (W64 (w : Int))) B.fl _ _ $$ Hfl Hfl' with ⟨Hfl, Hfl'⟩
-  have hsub : ∀ s ∈ storeSlots (σ.rollback (W64 (w : Int))), s ∈ storeSlots σ :=
-    fun s hs => storeSlots_rollback_sub σ _ s hs
-  have hnone : ∀ s ∈ storeSlots σ, s ∉ storeSlots (σ.rollback (W64 (w : Int))) →
-      lent σ s = none := by
-    intro s _ hs'
-    exact lent_none_of σ s (fun k r hr hc => hs' ((hok'.2.2.2.2.2.2.1 k r hr).2.2.1 s hc))
-      (fun v hv _ hc => hs' ((hok'.2.2.2.2.2.2.2.1 v hv).2.2.1 s hc))
-  icases slots_leave p σ (σ.rollback (W64 (w : Int))) rfl rfl rfl hsub hnone $$ [Hcells Hos] with
-    ⟨Hcells, Hos, HS⟩
-  · iframe
-  imod Hclose $$ [Hcur' Hfl' Hmap' Hwv' Hrds Hdep Hcells Hos Hbw Hml] with _
-  · inext
-    iexists σ.rollback (W64 (w : Int)), W
-    have e2 : metaLend (GF := GF) B (σ.rollback (W64 (w : Int))) = metaLend B σ := rfl
-    rw [e2]
-    unfold bytesWit
-    simp only [StoreSt.rollback]
-    icases Hbw with ⟨Hb1, Hb2, %hW⟩
-    iframe
-    isplitr
-    · ipureintro; intro s hs; exact hW s (hsub s hs)
-    · ipureintro; exact hok'
-  imodintro
-  iexists _, σ.bytes
-  iframe
-  isplitr
-  · ipureintro
-    intro s
-    simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
-    rfl
-  ipureintro
-  intro s hs
-  simp only [List.mem_filter, decide_eq_true_eq] at hs
-  exact (Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs.1).2
-
 end store
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos sem in
@@ -172,9 +109,10 @@ theorem wdbOK_rolledBack (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Lis
     (hok : wdbOK w) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (hpend : ∀ b l, w.ms = some (b, l) → ∀ s ∈ pendSlots w.fl, 2 ≤ s ∧ s < l / 4096)
-    (hms : w.ms ≠ none) (hwb : ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length) :
+    (hms : w.ms ≠ none) (hbs : ∀ s ∈ S, (bs s).length = 4096) :
     wdbOK { w with fl := fl', W := w.W ++ S, wb := mergeWb S bs w.wb } := by
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := hok
+  have hwb := wb_header w hok
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15⟩ := hok
   have hfree : fl'.free = w.fl.free := by rw [hfl']; exact rollback_free _ _
   have hpend' : ∀ s, s ∈ pendSlots fl' → s ∈ pendSlots w.fl := by
     intro s hs; rw [hfl'] at hs; exact pendSlots_rollback_sub _ _ s hs
@@ -190,7 +128,7 @@ theorem wdbOK_rolledBack (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Lis
     rcases h : w.ms with _ | ⟨b, l⟩
     · exact absurd h hms
     · exact ⟨b, l, rfl⟩
-  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_⟩
+  refine ⟨c1, c2, c3, ?_, ?_, ?_, c7, c8, c9, c10, ?_, ?_, c13, c14, ?_⟩
   · -- the `W` slots
     intro s
     simp only [List.mem_append]
@@ -248,25 +186,30 @@ theorem wdbOK_rolledBack (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Lis
   · intro s hs
     exact c11 s (hs.imp id (hpend' s))
   · intro x hx; rw [hfree] at hx; exact c12 x hx
+  · -- batch 37: the `W` slots' bytes inside the file are pages (the joined ones by `hbs`)
+    intro s hs hle
+    simp only [List.mem_append, mergeWb] at hs hle ⊢
+    by_cases hS' : s ∈ S
+    · simp only [hS', ↓reduceIte]; exact hbs s hS'
+    · simp only [hS', ↓reduceIte]
+      exact c15 s (hs.resolve_right hS') hle
 
 omit sem in
 /-- **The writer side after `freelist.Rollback`** (by the live writer, before its publish): the
 freelist rolled back, the slots leaving the store (`store_rollback`'s `S`, B3: a freed old synced
 freelist page) joining the `W` slots with their cells and page-cache bytes (`slotsOwn`), the rest
 unchanged; `wdbOK` kept (`wdbOK_rolledBack`, `wjoin`: the slots were pending, so below the
-high-water mark, inside the mapping and the file). `hbs`: `store_rollback_len`'s; `hwb`: as
-`wdb_release`'s (U5d's finding, not in `wdbOK`). -/
+high-water mark, inside the mapping and the file). `hbs`: `store_rollback`'s. -/
 theorem wdb_rollback (p : GoString) (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → List w8)
     (hok : wdbOK w) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (hpend : ∀ b l, w.ms = some (b, l) → ∀ s ∈ pendSlots w.fl, 2 ≤ s ∧ s < l / 4096)
-    (hms : w.ms ≠ none) (hbs : ∀ s ∈ S, (bs s).length = 4096)
-    (hwb : ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length) :
+    (hms : w.ms ≠ none) (hbs : ∀ s ∈ S, (bs s).length = 4096) :
     wCells (GF := GF) w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗ slotsOwn w.ms p S bs ⊢
       ∃ w' : WDb, ⌜w'.C = w.C ∧ w'.fl = fl' ∧ w'.ms = w.ms ∧ w'.m = w.m ∧ w'.fli = w.fli ∧
           w'.junk = w.junk ∧ w'.f = w.f ∧ w'.fd = w.fd ∧ wdbOK w'⌝ ∗
         wCells w'.ms w'.W ∗ wBytes p w'.W w'.wb w'.m.size := by
-  have hok' := wdbOK_rolledBack w fl' S bs hok hfl' hS hpend hms hwb
+  have hok' := wdbOK_rolledBack w fl' S bs hok hfl' hS hpend hms hbs
   obtain ⟨-, -, c3, c4, -, -, -, -, c9, -, c11, -⟩ := hok
   have hpS : ∀ s ∈ S, s ∈ pendSlots w.fl := by
     intro s hs

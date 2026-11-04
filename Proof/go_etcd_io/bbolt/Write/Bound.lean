@@ -54,7 +54,7 @@ def nestPg (P : Pages) (pg : List w8) : Prop :=
 theorem topPg_of (P : Pages) (r : Nat) (pg : List w8) (hs : rootShape P r)
     (hpg : P !! r = some pg) : topPg P pg := by
   refine ⟨fun hl i hi => ?_, fun hb i hi => ?_⟩
-  · obtain ⟨h1, -, h3⟩ := hs r pg (ownHas.root _ pg hpg) hpg hl i hi
+  · obtain ⟨h1, -, -, h3⟩ := hs r pg (ownHas.root _ pg hpg) hpg hl i hi
     exact ⟨h1, fun bpg hb j hj => ⟨(h3 bpg hb j hj).1, (h3 bpg hb j hj).2.2⟩⟩
   · intro id pg' ho hp hl'
     exact hs id pg' (ownHas.child _ pg i id hpg hb hi ho) hp hl'
@@ -144,7 +144,7 @@ theorem treeHas_leafInl (P : Pages) (hwm : Nat) {root id : Nat} (h : treeHas P r
       rw [hpg] at hpg'; cases hpg'
       intro hl i hi hb h0 j hj
       rcases hs with hs | hs
-      · exact ((hs root pg (ownHas.root _ pg hpg) hpg hl i hi).2.2 _ (Or.inl ⟨h0, rfl⟩) j hj).2.2
+      · exact ((hs root pg (ownHas.root _ pg hpg) hpg hl i hi).2.2.2 _ (Or.inl ⟨h0, rfl⟩) j hj).2.2
       · have := (hs root pg (ownHas.root _ pg hpg) hpg hl i hi).1
         rw [hb] at this; unfold bucketLeafFlag at this; omega)
     (fun root pg id hpg _ ih hw hs => by

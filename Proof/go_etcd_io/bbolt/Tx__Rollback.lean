@@ -114,7 +114,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   rw [hmg, hdb]
   wp_auto
   wp_apply wp_Assert
-  rw [decide_eq_false Ht0.2]
+  rw [decide_eq_false Ht0.2.1]
   wp_auto
   -- the exclusive part, as `Commit` sees it
   ihave Hg := hgap K tx r X c hdb $$ [Hx Hv]
@@ -127,7 +127,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   iunfold wdbLive at Hlive
   icases Hlive with ⟨Hcg, Hflo, Hpair, Hrcpt⟩
   iunfold wdbCoreG at Hcg
-  icases Hcg with ⟨%wa, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
+  icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
     Hdsz, Hmfw, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩
   have hwr : X.t.t.writable' = true := Hf.1.1.1
   have hvtx : X.v.txid = w.C.txid := by rw [hwv]; rfl
@@ -143,7 +143,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   obtain ⟨hbl, hpend⟩ := Hwf
   wp_method_call; wp_call
   wp_auto
-  rw [decide_eq_false Ht0.2, hwr]
+  rw [decide_eq_false Ht0.2.1, hwr]
   wp_auto
   wp_apply wp_Txid $$ [Hmv] as Hmv
   · iframe
@@ -151,13 +151,12 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   wp_apply wp_FlRollback w.fli w.fl _ (flBelow_rollback_pre w.fl w.C hbl h64) $$ [Hflo] as Hflo
   · iframe
   -- the store's freelist rolled back; the slots leaving the store join the `W` slots
-  imod store_rollback_len K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms (wLive X.v w.C)
+  imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms (wLive X.v w.C)
     (w.C.txid + 1) rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv]
     with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs⟩
   · iframe; iframe #
   icases wdb_rollback K.p w _ S bs hwok rfl HS hpend (by rw [hwms]; simp) Hbs
-    -- U5d's finding: `wdbOK` does not say that the synced freelist page's bytes hold a header
-    (fun f hf => sorry) $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
+    $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
   · iframe
   obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
   have hvd : X.v.data = treeData w.C := by

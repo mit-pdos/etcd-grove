@@ -200,7 +200,7 @@ theorem col_clean (sI : GoSlice) :
   have hnmo : ∀ c, c ≠ rc.nv.pgid' → (colBkt B nl lc rc.nv.pgid' (colRoot rn rc sI)).nm !! c = B.nm !! c := by
     intro c hcne; rw [hnm', if_neg hcne]
   have hcl := hc
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hcl
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11⟩ := hcl
   have hrn0 : B.bv.rootNode' ≠ null := by
     intro h0; have := (c3 h0).1; rw [this] at hrn; cases hrn
   have hnn := c8 nl rn hrn
@@ -330,7 +330,7 @@ theorem col_clean (sI : GoSlice) :
     · rw [if_pos a1, if_neg a2] at this; exact absurd this.symm n2
     · rw [if_neg a1, if_pos a2] at this; exact absurd this n1
     · rw [if_neg a1, if_neg a2] at this; exact this
-  · intro l j q hp d hd
+  · refine ⟨fun l j q hp d hd => ?_, c11⟩
     obtain ⟨-, p'⟩ := hpos l j q hp
     rw [hnm']; split
     · rfl

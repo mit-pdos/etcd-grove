@@ -155,7 +155,7 @@ theorem Tx.close_w.wp_proof
   iunfold wdbLive at Hlive
   icases Hlive with ⟨Hcg, Hflo, Hpair, Hrcpt⟩
   iunfold wdbCoreG at Hcg
-  icases Hcg with ⟨%wa, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
+  icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, Hrwtx, Hfile, Hpath,
     Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩
   icases mapFields_combine K.db _ _ _ _ $$ [Hmf Hmf'] with ⟨%hms, Hmf⟩
   · iframe
@@ -177,7 +177,7 @@ theorem Tx.close_w.wp_proof
   icases Hf with ⟨Hwr, Hmg, Hme, Hpgs, Hch, Hwfl, -⟩
   rw [hwr]
   wp_auto
-  rw [decide_eq_false Ht0.2]
+  rw [decide_eq_false Ht0.2.1]
   wp_auto
   -- the freelist's counts
   wp_apply wp_FreeCount w.fli w.fl $$ [Hflo] as Hflo

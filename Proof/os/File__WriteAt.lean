@@ -177,7 +177,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
       min off.toNat m.size := by
     have := congrArg List.length hys; simp only [List.length_map, pwBytes_length] at this; exact this
   have hsz : m.size ≤ pwSize m.size off.toNat j := by unfold pwSize; split <;> omega
-  icases osBytes_split3 d.path (min off.toNat m.size) (min oc.toNat (pwSize m.size off.toNat j))
+  icases osBytes_split3_range d.path (min off.toNat m.size) (min oc.toNat (pwSize m.size off.toNat j))
       (min (oc.toNat + c) (pwSize m.size off.toNat j)) (DFrac.own 1) ys
       (min oc.toNat (pwSize m.size off.toNat j) - min off.toNat m.size)
       (min (oc.toNat + c) (pwSize m.size off.toNat j) - min off.toNat m.size)

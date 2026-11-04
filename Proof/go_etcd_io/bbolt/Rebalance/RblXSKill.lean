@@ -173,9 +173,8 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     obtain ⟨C0, hC0, hcase⟩ := hback c C hC
     rcases hcase with ⟨hc, hC0e, hCe⟩ | ⟨hc, rfl⟩
     · subst C; subst C0; subst c
-      obtain ⟨y2, ry2, hy2, hlf, hw2⟩ := k2b l r hr w hw
-      have := hEB bl B hC0 y2 ry2 hy2 w hw2
-      rw [hlf] at this; exact this
+      obtain ⟨y2, ry2, hy2, -, hw2⟩ := k2b l r hr w hw
+      exact hEB bl B hC0 y2 ry2 hy2 w hw2
     · exact hEB c C hC0 l r hr w hw
   · intro b nm h; exact hobjsB b (hH b nm h)
   · obtain ⟨l1, l2, l3, l4, l5⟩ := hL

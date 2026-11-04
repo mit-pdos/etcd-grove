@@ -4,10 +4,10 @@ bucket cache looked up (a hit returns the cached child); a cursor, `seek(name)` 
 key compared with `bytes.Equal`, the flags tested (a miss: no nested bucket of that name,
 `route_found_at`); then `openBucket_w` on the value and the child cached and registered
 (`wtxW_bktOpen`).
-The shared statement needs two more premises (U6e's report): the transaction writable
-(`openBucket` reads `tx.writable`; `txClean`'s first clause), and the cached children non-nil (a
-nil entry of `b.buckets` is a miss for the code, which then opens over it).
-`Bucket.Bucket_w.spec'` is the corrected statement, proved as `Bucket.Bucket_w.wp_proof'`.
+The transaction is writable (`openBucket` reads `tx.writable`; batch 37's premise, from
+`txClean`'s first clause), and the cached children are non-nil (a nil entry of `b.buckets` is a
+miss for the code, which then opens over it; batch 37: `bktClean`'s last clause, through
+`bktLocalOK`).
 -/
 module
 
@@ -37,20 +37,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **`b.Bucket(name)` of a writer, corrected** (`Bucket.Bucket_w.spec` with the transaction
-writable and the cached children non-nil). -/
-abbrev Bucket.Bucket_w.spec' : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (name : GoSlice)
-    (nb : List w8) (ks : Src) (g : Nat),
-  X.t.bs !! bl = some B → bktLocalOK X bl → ks ≠ Src.stale → pmFresh X →
-  X.t.t.writable' = true → (∀ c, B.bm !! nb = some c → c ≠ null) →
-  {{ wtxW (GF := GF) K tx r m X ∗ srcOwn X.v name ks nb }}
-    (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"Bucket")) (Val #name))
-  {{ (c : Loc), RET #c; ∃ X' : WX, wtxW K tx r m X' ∗
-      ⌜(c = null ∧ X' = X ∧ ¬ ∃ w ∈ X.allEnts bl, w.key = nb ∧ isBktFlag w.flags) ∨
-       (c ≠ null ∧ ((B.bm !! nb = some c ∧ X' = X) ∨ bktOpened X X' bl c nb g) ∧
-         (wOK X → wOK X' ∧ wtxData X' = wtxData X))⌝ }}
-
 omit hos in
 theorem ownMap_nonnull_s (l : Loc) (dq : DFrac) (m : GMap GoString Loc) :
     (l ↦${dq} m : IProp GF) ⊢ ⌜l ≠ null⌝ := by
@@ -61,13 +47,17 @@ theorem ownMap_nonnull_s (l : Loc) (dq : DFrac) (m : GMap GoString Loc) :
   ipureintro
   intro h; subst h; simp [null] at Hp
 
-theorem Bucket.Bucket_w.wp_proof'
+theorem Bucket.Bucket_w.wp_proof
     (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_w.spec (GF := GF) (hG := hG))
     (hopen : Bucket.openBucket_w.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
-    Bucket.Bucket_w.spec' (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B name nb ks g hB hloc hks hpm hwr hbmn
+    Bucket.Bucket_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r m X bl B name nb ks g hB hloc hks hpm hwr
+  have hbmn : ∀ c, B.bm !! nb = some c → c ≠ null := by
+    obtain ⟨-, B', hB', hc, -⟩ := hloc
+    rw [hB] at hB'; cases hB'
+    exact fun c h => hc.2.2.2.2.2.2.2.2.2.2 nb c h
   wp_start as ⟨Hw, #Hn⟩
   icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
   icases wtxW_buckets_fld K tx r m X bl B hB $$ Hw with ⟨Hbf, Hwb⟩
@@ -188,7 +178,7 @@ theorem Bucket.Bucket_w.wp_proof'
           have h16 : 16 ≤ w.value.length := by cases hbv.1 <;> assumption
           have hinl : inBucketRoot w.value = 0 → 16 < w.value.length := by
             intro h0
-            have h1 := (hbv.2 h0).1.2.2.2.1
+            have h1 := (hbv.2.1 h0).1.2.2.2.1
             have h2 : (inlinePage w.value).length = w.value.length - 16 := by
               unfold inlinePage bucketHeaderSize; simp
             omega
@@ -250,11 +240,11 @@ theorem Bucket.Bucket_w.wp_proof'
               intro pg hpg j hj
               by_cases h0 : inBucketRoot w.value = 0
               · rcases hpg with ⟨-, rfl⟩ | ⟨h0', -⟩
-                · exact ((hbv.2 h0).1.2.2.2.2 j hj).2
+                · exact ((hbv.2.1 h0).1.2.2.2.2 j hj).2
                 · exact absurd h0 h0'
-              · exact WOpen.leafBkt_nest_plain X bl B hB hloc p hI ws hL w hwm hflag h0 pg hpg j hj
+              · exact (hbv.2.2 h0 pg hpg j hj).1
             exact WOpen.wOK_bktOpened X bl c B C w nb g hok Hok.2.1 hB hwa hk.symm hflag hbmc Hbo
-              hrec' hbv (hk ▸ hent) htk hplain
+              hrec' hbv (hk ▸ hent) htk hplain hcn
       · rw [decide_eq_false hk]
         simp only [Bool.not_false]
         wp_auto
@@ -266,11 +256,6 @@ theorem Bucket.Bucket_w.wp_proof'
         have := hfa w' hw' hk'
         rw [hw] at this; cases this
         exact hk hk'.symm
-
-/-- The shared statement: not provable as stated (the module doc: the writable transaction and
-the non-nil cached children are missing premises); `wp_proof'` proves the corrected one. -/
-theorem Bucket.Bucket_w.wp_proof : Bucket.Bucket_w.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

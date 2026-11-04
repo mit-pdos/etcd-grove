@@ -143,7 +143,7 @@ theorem rdTxK_flags_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView
   ihave %hdbn : ⌜K.db ≠ null⌝ $$ []
   · unfold BC.core isBoltCoreP
     icases Hcore with ⟨-, -, %Ht, -⟩
-    ipureintro; exact Ht.2
+    ipureintro; exact Ht.2.1
   rw [hm, hdb]
   iframe Hmg Hdb Hw Hpkg
   isplitr
