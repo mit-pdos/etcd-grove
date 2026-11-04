@@ -135,6 +135,20 @@ structure FLImpl.Contract (I : FLImpl (GF := GF)) : Prop where
   init : I.InitSpec
   mergeSpans : I.MergeSpansSpec
 
+/-- `Allocate(txid, n)` (`n > 0`) of an implementation: `0`, nothing changed; or the first id
+`r` of `n` free ids in a row, now allocated by `txid` (removed from the free ids and the cache,
+`allocs[r] = txid`). -/
+def FLImpl.AllocateSpec (I : FLImpl (GF := GF)) : Prop :=
+  ∀ (s : Loc) (fl : FLPg) (txid n : w64), 0 < sint.Z n →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
+        I.hdl s ∗ ownSh s I.iface fl ∗ I.own fl.free }}
+      (App (App (Val #(methods I.ity go!"Allocate" I.iv)) (Val #txid)) (Val #n))
+    {{ (r : w64), RET #r;
+        (⌜r = W64 0⌝ ∗ ownSh s I.iface fl ∗ I.own fl.free) ∨
+        (⌜r ≠ W64 0 ∧ fl.canAlloc r (sint.nat n)⌝ ∗
+          ownSh s I.iface (fl.alloc txid r (sint.nat n)) ∗
+          I.own (fl.alloc txid r (sint.nat n)).free) }}
+
 /-! ## The two implementations -/
 
 /-- The `*array` at `a`, its `shared` at `s`. -/
