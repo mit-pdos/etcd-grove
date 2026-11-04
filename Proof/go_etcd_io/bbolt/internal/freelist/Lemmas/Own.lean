@@ -99,7 +99,7 @@ def FLImpl.FreeCountSpec (I : FLImpl (GF := GF)) : Prop :=
 def FLImpl.FreePageIdsSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (free : List w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ I.own free }}
-      (App (Val #(methods I.ity go!"go.etcd.io/bbolt/internal/freelist.freePageIds" I.iv))
+      (App (Val #(methods I.ity go!"freePageIds" I.iv))
         (Val #()))
     {{ (r : GoSlice), RET #r; r ↦* free ∗ (r ↦* free -∗ I.own free) }}
 
@@ -120,11 +120,11 @@ def FLImpl.InitSpec (I : FLImpl (GF := GF)) : Prop :=
 consumed: an implementation may keep it), sorted. -/
 def FLImpl.MergeSpansSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (free : List w64) (ids : GoSlice) (ys : List w64),
-    PgidsIncr free → (free ++ ys).Nodup → (∀ y ∈ ys, 2 ≤ y.toNat) →
+    PgidsIncr free → (free ++ ys).Nodup → (∀ x ∈ free, 2 ≤ x.toNat) → (∀ y ∈ ys, 2 ≤ y.toNat) →
     free.length + ys.length < 2 ^ 63 →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗
         I.own free ∗ ids ↦* ys ∗ ownSliceCap w64 ids (DFrac.own 1) }}
-      (App (Val #(methods I.ity go!"go.etcd.io/bbolt/internal/freelist.mergeSpans" I.iv))
+      (App (Val #(methods I.ity go!"mergeSpans" I.iv))
         (Val #ids))
     {{ RET #(); I.own (sortPgids (free ++ ys)) }}
 
