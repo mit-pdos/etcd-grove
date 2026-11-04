@@ -99,7 +99,7 @@ def metaR (B : BNs) (db : Loc) (p : GoString) : IProp GF :=
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
     (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
     ghostVar B.mlk 1 () ∗ ghostMapAuth B.fltx 1 F ∗ flRoOpt fli F ∗
-    ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat⌝)
+    ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
 
 /-! ## `mmaplock` and `statlock` -/
 

@@ -1057,7 +1057,7 @@ theorem storeOK_publish (σ : StoreSt) (w : Nat) (C' : CommitSt) (bs : Nat → L
     (hdrop : ∀ s ∈ treeSlots σ.C, s ∉ treeSlots C' → s ∈ pendSlots σ.fl)
     (hnew : ∀ s ∈ treeSlots C', s ∉ treeSlots σ.C → s ∉ pendSlots σ.fl ∧
       (∀ k r, σ.R !! k = some r → ¬ coversSlot r.v.pages s) ∧ (bs s).length = 4096 ∧
-      W64 (s : Int) ∉ σ.fl.free ∧ ∀ b l, σ.ms = some (b, l) → s < l / 4096)
+      W64 (s : Int) ∉ σ.fl.free ∧ (∀ b l, σ.ms = some (b, l) → s < l / 4096) ∧ 2 ≤ s)
     (hnp : ∀ s ∈ treeSlots C', s ∉ pendSlots σ.fl)
     (hbytes : ∀ id pg, C'.pages !! id = some pg → σ.C.pages !! id = some pg ∨
       ((∀ j < 1 + pageOverflow pg, id + j ∉ storeSlots σ) ∧

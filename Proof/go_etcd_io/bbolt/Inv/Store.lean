@@ -658,7 +658,7 @@ theorem store_free (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : Nat) 
       ghostVar B.wv (1 : Qp).half ws ∗
       ((⌜∃ q, C.pages !! id.toNat = some q ∧ 1 + pageOverflow q = n⌝) ∨
         (⌜C.flpg = some id.toNat ∧ ms ≠ none ∧ id.toNat + n ≤ C.hwm ∧
-          ∀ j < n, (pg (id.toNat + j)).length = 4096 ∧
+          ∀ j < n, ¬ coversSlot C.pages (id.toNat + j) ∧ (pg (id.toNat + j)).length = 4096 ∧
           ∀ b l, ms = some (b, l) → id.toNat + j < l / 4096⌝ ∗
           slotsOwn ms p (List.range' id.toNat n) pg)) ⊢
     |={E}=> ghostVar B.cur (1 : Qp).half.half C ∗
@@ -680,7 +680,7 @@ theorem store_alloc (fl : FLPg) (ws : WSt) (w : Nat) (r : w64) (n : Nat)
 `readonlyTXIDs` `ro`): the released slots move `store → W`, with their cells and bytes. -/
 theorem store_release (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat w64)
     (ro : List w64) (hro : ro.Perm (F.toList.map Prod.snd))
-    (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat) :
+    (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
       ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ⊢
@@ -704,7 +704,7 @@ theorem store_publish (C C' : CommitSt) (fl : FLPg) (ms : MapSt) (v : View) (w :
         pg = (List.range' id (1 + pageOverflow pg)).flatMap bs))
     (hfl : flBelow fl C' (some w)) (hnp : ∀ s ∈ treeSlots C', s ∉ pendSlots fl)
     (hSb : ∀ s ∈ S, (bs s).length = 4096 ∧ W64 (s : Int) ∉ fl.free ∧
-      ∀ b l, ms = some (b, l) → s < l / 4096) (hms : ms ≠ none) :
+      (∀ b l, ms = some (b, l) → s < l / 4096) ∧ 2 ≤ s) (hms : ms ≠ none) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half C ∗
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half fl ∗
       ghostVar B.map (1 : Qp).half ms ∗
