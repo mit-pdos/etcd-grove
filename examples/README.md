@@ -37,6 +37,7 @@ names).
 | `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | `etcd_txnlin_safe` |
 | `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | `etcd_partition_safe` |
 | `etcd/bugs` | `etcdbugs` | reproductions of bugs found (`issues/`); not translated | – |
+| `etcd/mvccmodel` | – | a randomized model test of the mvcc store alone: random operations over its whole API, concurrently, checked against a model (`notes/mvccmodel.md`); not translated | – |
 
 ## `k8s/`: Kubernetes over etcd
 
