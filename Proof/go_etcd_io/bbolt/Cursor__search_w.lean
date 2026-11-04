@@ -255,7 +255,90 @@ theorem Cursor.search_w.wp_aux
         ipureintro; rw [Hlen]; exact Write.gePred_mono rn.ws kb hsorted
       iintro %idx ⟨%L, ⟨Hnp, Hkp, Hn, Hins, Hws, Hv2, Hk, Hex, %HL⟩, %H0, %Hfound, %Hoob, %Hgt, %Hev⟩
       rw [Hlen] at Hfound Hoob Hev
-      sorry
+      have hbr := hnc.2.2.2.2.2.2.2.2.2.2.2.2.1 hleaf
+      have hR := sn_route rn.ws kb L (sint.Z idx) hbr.1 hsorted H0 Hfound Hoob Hgt Hev HL
+      wp_auto
+      wp_join iprop(∃ ri : w64, index_ptr ↦ ri ∗
+          ⌜sint.Z ri = (if snExact rn.ws kb L = true then sint.Z idx
+            else if 0 < sint.Z idx then sint.Z idx - 1 else sint.Z idx)⌝)
+        at next with [index] as ⟨%ri, index, %Hri⟩
+      · cases hex : snExact rn.ws kb L
+        · wp_auto
+          wp_if_destruct
+          · wp_join_done
+            iexists _; iframe; ipureintro
+            rw [if_pos (by word)]; word
+          · wp_join_done
+            iexists _; iframe; ipureintro
+            rw [if_neg (by word)]
+        · wp_auto
+          wp_join_done
+          iexists _; iframe; ipureintro; simp
+      rw [← Hri] at hR
+      ihave %Hsl := ownSlice_len _ _ _ $$ Hs
+      have hsidx : sint.Z (s1.len - W64 1) = (els.length : Int) := by
+        simp only [List.length_append, List.length_singleton] at Hsl; word
+      rw [if_pos (show 0 ≤ sint.Z (s1.len - W64 1) ∧ sint.Z (s1.len - W64 1) < sint.Z s1.len by
+        rw [hsidx]; word)]
+      icases ownSlice_elem_acc (sint.Z (s1.len - W64 1)) (⟨null, n, W64 0⟩ : elemRef) _ _
+        (els ++ [⟨null, n, W64 0⟩]) (by omega) (by rw [hsidx]; simp) $$ Hs with ⟨He, Hsback⟩
+      rw [hsidx]
+      wp_auto
+      ihave Hs := Hsback $$ He
+      simp only [show ∀ (a x : elemRef), (els ++ [a]).set (↑els.length : Int).toNat x = els ++ [x]
+        from fun a x => by simp]
+      iStructNamed Hn
+      try wp_auto
+      ihave Hn : (n ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      · iapply typedPointsto_combine _ _ _ Hnn
+        simp only [TypedPointsto.typedPointstoDef]
+        iframe
+      obtain ⟨k, hk⟩ : ∃ k : Nat, sint.Z ri = (k : Int) := ⟨(sint.Z ri).toNat, by omega⟩
+      rw [if_pos (show 0 ≤ sint.Z ri ∧ sint.Z ri < sint.Z rn.nv.inodes'.len by
+        rw [Hlen]; omega)]
+      list_elem rn.ins (sint.Z ri).toNat as it
+      list_elem rn.ws (sint.Z ri).toNat as w
+      icases ownSlice_elem_acc (sint.Z ri) it _ _ rn.ins (by omega) Hit_lookup $$ Hins with ⟨Hit, Hsb⟩
+      wp_apply hIP $$ [$Hit] as Hit
+      icases BigSepL2.bigSepL2_lookup_acc Hit_lookup Hw_lookup $$ Hws with ⟨Hw1, Hwsback⟩
+      isimp only [wOwn] at Hw1
+      icases Hw1 with ⟨%Hfp, Hwr⟩
+      ihave Hws := Hwsback $$ [Hwr]
+      · isimp only [wOwn]; iframe; ipureintro; exact Hfp
+      ihave Hins := Hsb $$ Hit
+      rw [list_set_lookup_self _ _ _ Hit_lookup]
+      icases Hkb $$ Hk with ⟨-, Hv1⟩
+      ihave Hcells : viewCells wq X.v $$ [Hv1 Hv2]
+      · iapply (viewCells_halves wq X.v).2; iframe
+      ihave Ho : objOwn X.v n (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
+      · simp only [objOwn]; iframe
+      ihave Hw := Hwb $$ Ho Hcells
+      rw [Hfp.2]
+      have hk' : (sint.Z ri).toNat = k := by omega
+      obtain ⟨hR1, -, -⟩ := hR
+      rw [hk'] at Hw_lookup hR1
+      have hroot : B.ib.root' ≠ W64 0 := by
+        intro h0
+        have := hclean.2.2.2.2.2.2.1 h0 n rn hrn
+        rw [hleaf] at this; cases this
+      have Hch' : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
+          ks ≠ Src.stale ∧ posOK X bl B w.pgid ∧ (B.ib.root' = W64 0 → w.pgid = W64 0) :=
+        ⟨hB, hloc, hpm, hinl, hks, posOK_node_child X bl B n rn k w hloc hB hrn hleaf Hw_lookup,
+          fun h => absurd h hroot⟩
+      wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨null, n, ri⟩]) %w.pgid %key %ks %kb
+        %Hch' [Hw Hc Hs Hcap] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, %Hrt⟩
+      · iframe; iframe #
+      iapply HΦ $$ %stk'' %((⟨null, n, ri⟩ : elemRef) :: path') %(pid :: pids')
+      rw [List.append_assoc]
+      iframe
+      ipureintro
+      have hri : ri.toNat = k := by word
+      rw [hleaf] at hlt
+      refine ⟨lPathFrom_cons X bl pid ⟨null, n, ri⟩ rn.ws w path' pids'
+          (refAt_node X bl B pid n _ hB hres rfl) hlt (by rw [hri]; exact Hw_lookup) Hrt.1,
+        lRoutes_cons X bl pid ⟨null, n, ri⟩ rn.ws path' pids' kb hlt ?_ Hrt.2⟩
+      show ri.toNat < _ ∧ _
+      rw [hri]; exact nRoute_lroute rn.ws kb k hR1
     · -- a leaf node
       wp_auto
       wp_apply hnn c bl s1 els ⟨null, n, W64 0⟩ X.v bl rn wq key ks kb hnn0 hnc.2.2.2.1
