@@ -63,7 +63,7 @@ theorem posShape_rootLeaf (X : WX) (hps : posShape X) (B : BRec) (hB : X.t.bs !!
     (c : Nat) (hc : posRoot B c) :
     ∀ p pg, ownHas X.v.pages c p → X.v.pages !! p = some pg → pageFlags pg = leafPageFlag →
       ∀ j < pageCount pg, leafKsize pg j ≤ maxKeySize :=
-  fun p pg ho hp hf j hj => (hps X.rl B hB c p pg hc ho hp hf j hj).2.2 rfl
+  fun p pg ho hp hf j hj => (hps X.rl B hB c p pg hc ho hp hf j hj).2.2.1 rfl
 
 end rootkeys
 

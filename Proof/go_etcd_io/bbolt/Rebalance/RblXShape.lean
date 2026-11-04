@@ -46,7 +46,7 @@ theorem shapes_frame (X X' : WX) (bl : Loc) (B B' : BRec)
     · exact hLS c C hC y ry hy hl w hw
   · intro c C hC q p pg hq ho hp hf i hi
     rw [hrl]
-    rw [hv] at ho hp
+    rw [hv] at ho hp ⊢
     rw [hbs] at hC
     split at hC
     · rename_i hc; subst hc; cases hC

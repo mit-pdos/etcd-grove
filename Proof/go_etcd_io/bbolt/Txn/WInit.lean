@@ -96,7 +96,8 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
         · exact absurd hr (by simp [brec0])
       subst hcr
       have hrs := htree.2.2.2.2.1 q pg hown hpg hl i hi'
-      exact ⟨⟨fun _ => rfl, fun _ => hrs.1⟩, ⟨hrs.2.1.1, hrs.2.2.1⟩, fun _ => hrs.2.1.2⟩
+      exact ⟨⟨fun _ => rfl, fun _ => hrs.1⟩, ⟨hrs.2.1.1, hrs.2.2.1⟩, fun _ => hrs.2.1.2,
+        fun _ _ => hrs.2.2.2⟩
     · -- batch 37: the root bucket is not inline (its root is the meta's root page)
       intro B hB
       obtain ⟨-, rfl⟩ := hbs _ B hB

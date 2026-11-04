@@ -368,7 +368,12 @@ def posShape (X : WX) : Prop :=
       -- 43.4: the root bucket's too, unconditionally), and the root bucket's names at most
       -- `MaxKeySize` (`rootShape`'s name bound)
       (0 < leafKsize pg i ∧ leafKsize pg i + leafVsize pg i ≤ bboltEntryMax) ∧
-      (bl = X.rl → leafKsize pg i ≤ maxKeySize)
+      (bl = X.rl → leafKsize pg i ≤ maxKeySize) ∧
+      -- maintainer 13 (item 2): a root bucket's entry that is a bucket has `rootShape`'s nested
+      -- clause (its own leaves plain, keys non-empty, entries bounded)
+      (bl = X.rl → leafFlags pg i % 2 = bucketLeafFlag → ∀ bpg, bktLeafPg X.v.pages (leafValue pg i) bpg →
+        ∀ j < pageCount bpg, leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧
+          leafKsize bpg j + leafVsize bpg j ≤ bboltEntryMax)
 
 /-- **The root bucket is not inline** (batch 37, U7f): its root is a page (the view's meta root at
 `beginRWTx`; no operation makes it inline). -/

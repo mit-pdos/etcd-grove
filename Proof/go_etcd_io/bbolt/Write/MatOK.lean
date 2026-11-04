@@ -190,7 +190,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
       rw [hlo] at this; cases this
   have hps' : posShape (matX X bl l pgid B') := by
     intro c C hC c0 p pg0 hpos hown hpg0 hleaf i hi
-    show (_ ↔ c = X.rl) ∧ _ ∧ (c = X.rl → _)
+    show (_ ↔ c = X.rl) ∧ _ ∧ (c = X.rl → _) ∧ (c = X.rl → _)
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · rcases hpos with ⟨hrn', h0', rfl⟩ | ⟨y, j, ⟨ry', w, hy, hyl, hw, hwp, hnm'⟩, hlt⟩
       · exact hps c B hB _ p pg0 (Or.inl ⟨hrn hrn', by rw [← hib]; exact h0', by rw [hib]⟩)
