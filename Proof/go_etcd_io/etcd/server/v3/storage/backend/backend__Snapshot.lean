@@ -73,8 +73,9 @@ the client's, `fkHalf_dl`; a put there is not of a deleted entry, `UnsafeSeqPut`
 `sbKept`, so `relog` keeps the deleted entries, `dlsOk_relog`; an `Unlock`'s commit window is the
 one exemption, its commit's close re-establishing the agreement at `relog`). So the clause is the
 hook keys' argument again, over a ghost variable of the same shape and the quarter's pure
-agreement; it adds nothing the other clauses rely on. To be re-attacked with the `axiom` skill
-(`notes/axiom-review/backend-snapshot-fkd.md`, superseded 2026-11-04). -/
+agreement; it adds nothing the other clauses rely on. Attacked with the `axiom` skill, survives
+(`notes/axiom-review/backend-snapshot-dls.md`, 2026-11-04; the compaction keys' clause:
+`backend-snapshot-fkd.md`). -/
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
 
 end proof
