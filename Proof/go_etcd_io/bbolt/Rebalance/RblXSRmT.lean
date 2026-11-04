@@ -171,9 +171,9 @@ theorem rm_tree (hrt : rtOK X bl) :
       rw [if_neg hlp, if_neg hln])
     (fun h => absurd h h0)
   have hLP : ltree X bl rp.nv.pgid' = some (false, rp.ws) := by
-    rw [ltree_node X bl B hb hc h0 pl rp hrp, hbr]
+    rw [ltree_node_rbl X bl B hb hc h0 pl rp hrp, hbr]
   have hLE : ltree X bl r.nv.pgid' = some (true, []) := by
-    rw [ltree_node X bl B hb hc h0 n r hr, hleaf, hemp]
+    rw [ltree_node_rbl X bl B hb hc h0 n r hr, hleaf, hemp]
   have h'P : ltree X' bl rp.nv.pgid' = some (false, rp.ws.eraseIdx i) := by
     show ltree (X.setBkt bl B') bl rp.nv.pgid' = _
     unfold ltree

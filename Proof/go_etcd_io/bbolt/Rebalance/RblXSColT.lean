@@ -112,9 +112,9 @@ theorem col_tree (hroot : ∀ r, B.ns !! B.bv.rootNode' = some r → r.nv.parent
         split <;> rfl)
     (fun h => absurd h h0)
   have hLP : ltree X bl rn.nv.pgid' = some (false, [w0]) := by
-    rw [ltree_node X bl B hb hc h0 n rn hrn, hbr, hws]
+    rw [ltree_node_rbl X bl B hb hc h0 n rn hrn, hbr, hws]
   have hLC : ltree X bl rc.nv.pgid' = some (rc.nv.isLeaf', rc.ws) :=
-    ltree_node X bl B hb hc h0 lc rc hrc
+    ltree_node_rbl X bl B hb hc h0 lc rc hrc
   have h'P : ltree X' bl rn.nv.pgid' = some (rc.nv.isLeaf', rc.ws) := by
     show ltree (X.setBkt bl B') bl rn.nv.pgid' = _
     unfold ltree

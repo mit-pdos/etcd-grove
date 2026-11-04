@@ -128,11 +128,11 @@ theorem mg_tree (hroot : ∀ r, B.ns !! B.bv.rootNode' = some r → r.nv.parent'
         split <;> rfl)
     (fun h => absurd h h0)
   have hLP : ltree X bl rp.nv.pgid' = some (false, rp.ws) := by
-    rw [ltree_node X bl B hb hc h0 pl rp hrp, hbr]
+    rw [ltree_node_rbl X bl B hb hc h0 pl rp hrp, hbr]
   have hLA : ltree X bl rl.nv.pgid' = some (rl.nv.isLeaf', rl.ws) :=
-    ltree_node X bl B hb hc h0 ll rl hrl
+    ltree_node_rbl X bl B hb hc h0 ll rl hrl
   have hLR : ltree X bl rr.nv.pgid' = some (rl.nv.isLeaf', rr.ws) := by
-    rw [ltree_node X bl B hb hc h0 lr rr hrr, hkind]
+    rw [ltree_node_rbl X bl B hb hc h0 lr rr hrr, hkind]
   have h'P : ltree X' bl rp.nv.pgid' = some (false, rp.ws.eraseIdx (k + 1)) := by
     show ltree (X.setBkt bl B') bl rp.nv.pgid' = _
     unfold ltree

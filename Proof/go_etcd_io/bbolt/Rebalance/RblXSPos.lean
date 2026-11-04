@@ -48,7 +48,7 @@ theorem pos_child (L : LTree) (bl : Loc) (t : RTree) (ht : ltIs L bl t) (x : w64
     (self_mem_subs c)))
 
 /-- The logical tree at a node's page id is the node (a bucket with a root page). -/
-theorem ltree_node (X : WX) (bl : Loc) (B : BRec) (hb : X.t.bs !! bl = some B)
+theorem ltree_node_rbl (X : WX) (bl : Loc) (B : BRec) (hb : X.t.bs !! bl = some B)
     (hc : bktClean X.v X.t.mv.pgid'.toNat bl B) (h0 : B.ib.root' ≠ W64 0) (a : Loc) (ra : NRec)
     (ha : B.ns !! a = some ra) : ltree X bl ra.nv.pgid' = some (ra.nv.isLeaf', ra.ws) := by
   have hnm : B.nm !! ra.nv.pgid' = some a := (hc.2.2.2.2.2.2.2.1 a ra ha).2.2.2.2.2.2.2.1
@@ -106,7 +106,7 @@ theorem node_pos (X : WX) (bl : Loc) (B : BRec) (hb : X.t.bs !! bl = some B)
       obtain ⟨rp, hrp, hbr, -, w, hw, hwp⟩ := hnc.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
         (by rw [hpc]; exact hann)
       rw [hpc, ha0] at hrp; cases hrp
-      have hL := ltree_node X bl B hb hc h0 a ra0 ha0
+      have hL := ltree_node_rbl X bl B hb hc h0 a ra0 ha0
       rw [hbr] at hL
       have := pos_child (ltree X) bl t ht _ hpa _ hL w hw
       rw [hwp] at this

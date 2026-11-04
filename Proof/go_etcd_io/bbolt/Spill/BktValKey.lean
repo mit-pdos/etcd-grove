@@ -183,7 +183,7 @@ theorem mem_allEnts_node {X : WX} (hok : wOKR X) (hreach : liveReach X) {bl : Lo
   have hlive := wOKR_nsLive X hok bl B l r hB hr
   obtain ⟨rt, hrtI, hd⟩ := hreach.2 bl B l r hB hr hlive
   have hpos := node_pos X bl B hB hcl hbk.2.1 hrt h0 rt l hrtI hd r hr
-  have hL := ltree_node X bl B hB hcl h0 l r hr
+  have hL := ltree_node_rbl X bl B hB hcl h0 l r hr
   rw [hl] at hL
   exact mem_allEnts_pos hrt hpos hL hw
 
@@ -220,7 +220,7 @@ theorem mem_allEnts_page {X : WX} (hok : wOKR X) (hreach : liveReach X) {bl : Lo
       obtain ⟨rt, hrtI, hd⟩ := hreach.2 bl B l rl' hB hrl hlive
       have hpos := node_pos X bl B hB hcl hbk.2.1 hrt h0 rt l hrtI hd rl' hrl
       rw [hposeq] at hpos
-      have hL := ltree_node X bl B hB hcl h0 l rl' hrl
+      have hL := ltree_node_rbl X bl B hB hcl h0 l rl' hrl
       rw [hlf] at hL
       have hqp := pos_child (ltree X) bl t ht _ hpos rl'.ws hL w (List.mem_of_getElem? hw)
       rw [hwq] at hqp

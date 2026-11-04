@@ -266,7 +266,7 @@ theorem Pc_cov {X : WX} {fl : FLPg} (hpre : spillPre X fl) (hreach : liveReach X
     obtain ⟨rt, hrtI, hd⟩ := hreach.2 c B l rl' hc hrl hlive
     have hpos := node_pos X c B hc hcl hbk.2.1 (hpre.2.2.2.1 c hbn) h0 rt l hrtI hd rl' hrl
     rw [hposeq] at hpos
-    have hL := ltree_node X c B hc hcl h0 l rl' hrl
+    have hL := ltree_node_rbl X c B hc hcl h0 l rl' hrl
     rw [hlf] at hL
     have hq := pos_child (ltree X) c t ht _ hpos rl'.ws hL w (List.mem_of_getElem? hw)
     rw [hwq] at hq
