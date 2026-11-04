@@ -213,8 +213,7 @@ at the mark and freed again in the same transaction is no buffer): reported. -/
 theorem cm_pub_ok (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (Pg : Pages)
     (m' m'' : OsMeta) (wb' : Nat → List w8) (hpre : cmPubPre D X w) (hpg : cmPubPg D X w Pg)
     (htx : X.t.mv.txid' = w.wtxid) (hok : wdbOK w) (hms : w.ms = some (b, l))
-    (hmapl : X.t.mv.pgid'.toNat * 4096 ≤ l) (hhwm : w.C.hwm ≤ X.t.mv.pgid'.toNat)
-    (hflpg : w.C.flpg = none)
+    (hmapl : X.t.mv.pgid'.toNat * 4096 ≤ l) (hflpg : w.C.flpg = none)
     (hm' : w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
       ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
         (wb' s).length = 4096)
