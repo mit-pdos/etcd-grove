@@ -162,7 +162,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iPkgInit
   wp_auto
   iunfold dbLogger at Hlgok
-  wp_apply hLogger K.db lg Ht0.2 $$ []
+  wp_apply hLogger K.db lg Ht0.2.1 $$ []
   · iframe #
   wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hbuf, -⟩
   · ipureintro; decide

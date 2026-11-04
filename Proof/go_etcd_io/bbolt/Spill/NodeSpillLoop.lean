@@ -79,7 +79,7 @@ theorem mem_of_get {α : Type} {es : List α} {j : Nat} {e : α} (hj : es[j]? = 
 theorem spLoop_init {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {es : List UE}
     (hb : uBr X bl (spP X) X.t.mv.pgid'.toNat n r lo hi h es)
-    (hG : spG X w.wtxid (mapLen w.ms))
+    (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hsl : slotInv w.fl X.t.mv.pgid'.toNat (O ++ (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D)))
     (hfr : spFree X w.fl w.wtxid (ownF r.nv.pgid' ++ es.flatMap UE.F)) :
     spLoop X w bl n r O lo hi h (ownSl X.v r.nv.pgid' ++ es.flatMap UE.D)
@@ -143,7 +143,7 @@ theorem spLoop_spilled {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
 
 /-- **A spilled child's pre** (the piece case). -/
 theorem spLoop_spilledPre {X' : WX} {w' : WDb} {bl c : Loc} {rc : NRec} (hc : spilledN X' bl c)
-    (hrc : X'.node bl c = some rc) (hG : spG X' w'.wtxid (mapLen w'.ms))
+    (hrc : X'.node bl c = some rc) (hG : spG X' w'.wtxid (mapLen w'.ms) w'.fl)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
     (E : List El) (cs : SpCase) : spPre X' w' bl c rc O lo hi h F D N E cs := by
   obtain ⟨hlv, rc', hrc', hb, hsp, -⟩ := hc

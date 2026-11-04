@@ -110,7 +110,7 @@ theorem applySteps_append (fl : FLPg) (txid : w64) (s1 s2 : List FLStep) :
     fl.applySteps txid (s1 ++ s2) = (fl.applySteps txid s1).applySteps txid s2 := by
   unfold FLPg.applySteps; rw [List.foldl_append]
 
-theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms))
+theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hm : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) : spStep X X w w O [] :=
   ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h⟩
 

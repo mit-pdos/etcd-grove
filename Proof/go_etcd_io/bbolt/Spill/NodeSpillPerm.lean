@@ -219,10 +219,11 @@ theorem liveReach_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn)
 
 /-- **The spill's global state is kept** by a permutation of `n`'s children. -/
 theorem spG_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn) (hp : rn.cs.Perm l)
-    {txid : w64} {ml : Nat} (h : spG X txid ml) : spG (X.setNode bl n { rn with cs := l }) txid ml := by
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := h
+    {txid : w64} {ml : Nat} {fl : FLPg} (h : spG X txid ml fl) :
+    spG (X.setNode bl n { rn with cs := l }) txid ml fl := by
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8⟩ := h
   refine ⟨?_, ?_, derefPre_perm hB hr hp a3, liveFresh_perm hB hr hp a4,
-    liveReach_perm hB hr hp a5, ?_, ?_⟩ <;> rw [setNode_perm_eq hB] <;> assumption
+    liveReach_perm hB hr hp a5, ?_, ?_, ?_⟩ <;> rw [setNode_perm_eq hB] <;> assumption
 
 theorem spP_perm (hB : X.t.bs !! bl = some B) (r' : NRec) : spP (X.setNode bl n r') = spP X := by
   rw [setNode_perm_eq hB]; rfl
@@ -258,7 +259,7 @@ theorem spFrame_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
 
 /-- **The step of the permutation** (no freelist step). -/
 theorem spStep_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn) (hp : rn.cs.Perm l)
-    {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms)) :
+    {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms) w.fl) :
     spStep X (X.setNode bl n { rn with cs := l }) w w O [] := by
   have hG' := spG_perm hB hr hp hG
   have hP := spP_perm (n := n) hB { rn with cs := l }
@@ -324,7 +325,7 @@ theorem spLoop_start (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
     (hp : rn.cs.Perm l) {w : WDb} {O : List Nat} {lo hi : Option (List w8)} {h : Nat}
     {F D : List Nat} {N : List Loc} {E : List El}
     (hu : uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N E)
-    (hleaf : rn.nv.isLeaf' = false) (hG : spG X w.wtxid (mapLen w.ms))
+    (hleaf : rn.nv.isLeaf' = false) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hsl : slotInv w.fl X.t.mv.pgid'.toNat (O ++ D)) (hfr : spFree X w.fl w.wtxid F) :
     ∃ h' es, h = h' + 1 ∧
       spLoop (X.setNode bl n { rn with cs := l }) w bl n { rn with cs := l } O lo hi h' D N E
@@ -347,7 +348,7 @@ theorem spLoop_start (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
 /-- **A spill done from the permuted state is one from the start** (`n` one of its tree's nodes
 `N`). -/
 theorem spDone_unperm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn)
-    (hp : rn.cs.Perm l) {w : WDb} (hG : spG X w.wtxid (mapLen w.ms)) {Xf : WX} {wf : WDb}
+    (hp : rn.cs.Perm l) {w : WDb} (hG : spG X w.wtxid (mapLen w.ms) w.fl) {Xf : WX} {wf : WDb}
     {O : List Nat} {lo hi : Option (List w8)} {h : Nat} {D : List Nat} {N : List Loc}
     {E : List El} {cs : SpCase} {st : List FLStep} (hn : n ∈ N) (hsp0 : rn.nv.spilled' = false)
     (hdone : spDone (X.setNode bl n { rn with cs := l }) Xf w wf bl n { rn with cs := l } O lo hi

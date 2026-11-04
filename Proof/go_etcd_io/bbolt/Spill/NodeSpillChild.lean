@@ -206,7 +206,7 @@ theorem spLoop_next {X : WX} {w : WDb} {bl n : Loc} {r : NRec} {O : List Nat}
         spDone X' X'' w' w'' bl c rc O' lo' hi' h' D' N' E' cs' st' →
         ∃ r'' es' T', spLoop X w bl n r O lo hi h D0 N0 E0 X'' w'' r'' es' (i + 1) (st ++ st') T' := by
   have hcm : c ∈ r'.cs := List.mem_of_getElem? hc
-  have hG : spG X' w'.wtxid (mapLen w'.ms) := by
+  have hG : spG X' w'.wtxid (mapLen w'.ms) w'.fl := by
     rw [wtxid_of_C hl.step.1]; exact hl.step.2.2.2.1
   rcases hl.br.cs c hcm with ⟨e, he, hec⟩ | hs
   · obtain ⟨j, Fc, Dc, Nc, Ec, hj, rc, hrc, hsp⟩ := uBr_ch_unspilled hl.br he hec

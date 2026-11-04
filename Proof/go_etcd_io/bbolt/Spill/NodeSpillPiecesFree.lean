@@ -159,7 +159,7 @@ theorem pieceFree_wp (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := h
   · iframe; iframe #
   -- `Free(txid, p)`
   unfold wdbW wdbLive wdbCoreG
-  icases Hdb with ⟨⟨⟨%wa, Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
+  icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
   wp_auto
   have hpgne : pg ≠ [] := by intro h; rw [h] at hlen; simp at hlen
   ihave %Hpos := bytesPointsto_pos _ _ _ hpgne $$ Hpg

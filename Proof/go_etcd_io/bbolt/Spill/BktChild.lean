@@ -103,11 +103,11 @@ theorem setBkt_bkRooted_bs {X : WX} {bl rt : Loc} {B : BRec} {pg : w64}
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
 /-- **The spill's global state after `b.rootNode = root; SetRootPage`** (the root `rt` of the old
 root node, without a parent, live). -/
-theorem spG_bkRooted {X : WX} {txid : w64} {ml : Nat} {bl rt : Loc} {B : BRec} {rr : NRec}
-    (pg : w64) (hG : spG X txid ml) (hB : X.t.bs !! bl = some B) (hr : B.ns !! rt = some rr)
+theorem spG_bkRooted {X : WX} {txid : w64} {ml : Nat} {fl : FLPg} {bl rt : Loc} {B : BRec}
+    {rr : NRec} (pg : w64) (hG : spG X txid ml fl) (hB : X.t.bs !! bl = some B) (hr : B.ns !! rt = some rr)
     (hp : rr.nv.parent' = null) (hl : rt ∈ X.live) (hroot : nodeRootIn B B.bv.rootNode' rt) :
-    spG (X.setBkt bl (bkRooted B rt pg)) txid ml := by
-  obtain ⟨h1, h2, ⟨d1, d2, d3, d4, d5⟩, hf, ⟨r1, r2⟩, h6, h7⟩ := hG
+    spG (X.setBkt bl (bkRooted B rt pg)) txid ml fl := by
+  obtain ⟨h1, h2, ⟨d1, d2, d3, d4, d5⟩, hf, ⟨r1, r2⟩, h6, h7, h8⟩ := hG
   have hrootN : nodeRootIn (bkRooted B rt pg) rt rt := nodeRootIn.top rt rr hr hp
   have hdesc : ∀ a d, descIn B a d → descIn (bkRooted B rt pg) a d := by
     intro a d h
@@ -118,7 +118,7 @@ theorem spG_bkRooted {X : WX} {txid : w64} {ml : Nat} {bl rt : Loc} {B : BRec} {
     intro c hc; rw [setBkt_bs_eq]; split
     · rfl
     · exact hc
-  refine ⟨h1, h2, ⟨?_, ?_, ?_, ?_, d5⟩, ?_, ⟨?_, ?_⟩, h6, h7⟩
+  refine ⟨h1, h2, ⟨?_, ?_, ?_, ?_, d5⟩, ?_, ⟨?_, ?_⟩, h6, h7, h8⟩
   · intro bl' B' l r hB' hr' hl'
     obtain ⟨B0, hB0, hns, -, -⟩ := setBkt_bkRooted_bs hB hB'
     rw [hns] at hr'

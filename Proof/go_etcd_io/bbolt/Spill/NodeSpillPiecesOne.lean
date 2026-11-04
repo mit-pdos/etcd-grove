@@ -154,7 +154,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         16 ≤ pg.length ∧ pageId pg = rl.nv.pgid'.toNat ∧
         (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag) ∧
         w.fl.canFree w.wtxid rl.nv.pgid' (1 + pageOverflow pg))
-    (hG : ∀ X1 w1 st, pcFreed X w bl l rl X1 w1 st → spG X1 w.wtxid (mapLen w1.ms))
+    (hG : ∀ X1 w1 st, pcFreed X w bl l rl X1 w1 st → spG X1 w.wtxid (mapLen w1.ms) w1.fl)
     (hne : 0 < rl.ws.length) (hil : rl.ins.length = rl.ws.length)
     (hsz : insSize rl.ins + 4096 < 2 ^ 62) (hfit : pageFits (wsMs rl.ws))
     (hn16 : rl.ws.length < 0xFFFF)

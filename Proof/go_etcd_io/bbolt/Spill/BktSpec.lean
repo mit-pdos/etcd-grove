@@ -55,7 +55,7 @@ slots owned with `O`, its pages freeable, its leaf elements `E` plain (`plainEls
 key/value pairs, the bucket's entries (`lbktEnts`). -/
 def bkPre (X : WX) (w : WDb) (bl : Loc) (B : BRec) (O : List Nat) (h : Nat) (F D : List Nat)
     (N : List Loc) : Prop :=
-  X.t.bs !! bl = some B ∧ bl ∈ X.liveB ∧ B.bm = ∅ ∧ spG X w.wtxid (mapLen w.ms) ∧
+  X.t.bs !! bl = some B ∧ bl ∈ X.liveB ∧ B.bm = ∅ ∧ spG X w.wtxid (mapLen w.ms) w.fl ∧
   (B.bv.rootNode' = null ∨
    ∃ rn E, X.node bl B.bv.rootNode' = some rn ∧ rn.nv.parent' = null ∧
      uTree X bl (spP X) X.t.mv.pgid'.toNat B.bv.rootNode' none none h F D N E ∧

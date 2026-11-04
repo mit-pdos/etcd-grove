@@ -109,7 +109,7 @@ child's spill freed keeps its page through its siblings' spills), and what the o
 need kept. -/
 def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
-  spG X' w.wtxid (mapLen w'.ms) ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
+  spG X' w.wtxid (mapLen w'.ms) w'.fl ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
   (∀ s ∈ pendSlots w.fl, s ∈ pendSlots w'.fl) ∧
   (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O ∧ x ∉ pendSlots w.fl) ∧
   (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F)
@@ -119,7 +119,7 @@ def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
 `O`, its pages freeable. -/
 def spPre (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Option (List w8))
     (h : Nat) (F D : List Nat) (N : List Loc) (E : List El) (cs : SpCase) : Prop :=
-  X.node bl n = some rn ∧ spG X w.wtxid (mapLen w.ms) ∧
+  X.node bl n = some rn ∧ spG X w.wtxid (mapLen w.ms) w.fl ∧
   ((rn.nv.spilled' = true ∧ rn.nv.bucket' = bl ∧ n ∈ X.live) ∨
    (uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N E ∧ spCtx X bl n rn lo hi N cs ∧
     slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F))
