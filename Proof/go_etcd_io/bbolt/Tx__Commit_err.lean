@@ -639,7 +639,99 @@ theorem Tx.Commit_err.wp_proof'
         · by_cases hg : uint.Z X1.t.mv.pgid' < uint.Z Xt.t.mv.pgid'
           · rw [decide_eq_true hg]
             try wp_auto
-            sorry
+            wp_apply errors.New.wp_proof as %e0 -
+            try wp_auto
+            icases cm_meta_acc K tx r false Xt $$ Hw with ⟨Hme, Hmv, Hwb⟩
+            try wp_auto
+            wp_apply wp_Pgid $$ [Hmv] as Hmv
+            · iframe #; iframe
+            ihave Hw := Hwb $$ %Xt.t.mv Hme Hmv
+            rw [eXt]
+            ihave #Hfix3 := Hfix
+            iunfold dbFixed at Hfix3
+            icases Hfix3 with ⟨#Hps, -⟩
+            icases cm_db_acc K tx r false Xt $$ Hw with ⟨-, Hdbp, Hwb⟩
+            try wp_auto
+            icases (cm_keep_pure (wdbW_mapLen_le K tx Xt.v wt)) $$ Hwdb with ⟨Hwdb, %Hml⟩
+            ihave Hwdb := wdbW_wdbW' false K tx Xt.v wt $$ Hwdb
+            have hn : Xt.t.mv.pgid'.toNat < 2 ^ 36 := by omega
+            have hz1 : 0 ≤ sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) := by word
+            have hz2 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) + 0x1000000 < 2 ^ 63 := by word
+            have hz3 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) % 4096 = 0 := by word
+            wp_apply wp_grow false K tx Xt.v wt _ hz1 hz2 hz3 $$ [Hwdb]
+              as %err3 ⟨%wg, Hwdb, %Hgr, Hres⟩
+            · iframe #; iframe
+            ihave Hwdb := wdbW'_wdbW K tx Xt.v wg $$ Hwdb
+            icases (cm_keep_pure (cm_wdbW_ok K tx Xt.v wg)) $$ Hwdb with ⟨Hwdb, %Hwgok⟩
+            icases Hres with (%He3 | ⟨%He3, #Hfe3⟩)
+            · subst He3
+              ihave Hw := Hwb $$ Hdbp
+              try wp_auto
+              ileft
+              isplitr
+              · ipureintro; first | rfl | trivial
+              iframe
+              ipureintro; exact Hgr
+            · -- `grow` failed: log, roll back, return the error
+              obtain ⟨ii, rfl⟩ : ∃ ii, err3 = GoInterface.ok ii := by
+                cases err3 with
+                | nil => exact absurd rfl He3
+                | ok ii => exact ⟨ii, rfl⟩
+              ihave Hw := Hwb $$ Hdbp
+              try wp_auto
+              icases cm_meta_acc K tx r false Xt $$ Hw with ⟨Hme, Hmv, Hwb⟩
+              try wp_auto
+              wp_apply wp_Pgid $$ [Hmv] as Hmv
+              · iframe #; iframe
+              ihave Hw := Hwb $$ %Xt.t.mv Hme Hmv
+              rw [eXt]
+              icases cm_db_acc K tx r false Xt $$ Hw with ⟨-, Hdbp, Hwb⟩
+              try wp_auto
+              ihave Hw := Hwb $$ Hdbp
+              wp_apply wp_slice_literal
+              isplitr
+              · ipureintro; rfl
+              iintro %sl ⟨Hsl, -⟩
+              try wp_auto
+              wp_apply wp_boltLog li _ _ [W8 100, W8 100, W8 118] _
+                [interface.mkOk Pgid.ty #Xt.t.mv.pgid', interface.mkOk go.int #(W64 4096),
+                  GoInterface.ok ii] _ iprop(True) _
+                (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
+              · simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl,
+                  show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl, List.set_cons_succ,
+                  List.set_cons_zero]
+                iexact Hsl
+              · simp only [List.zip_cons_cons, List.zip_nil_left, Iris.BI.BigSepL.bigSepL_cons,
+                  Iris.BI.BigSepL.bigSepL_nil]
+                isplitr
+                · iapply logArgOk_of_argWf; exact pgid_argWf _
+                isplitr
+                · iapply logArgOk_int
+                isplitr
+                · iapply logArgOk_of_fmtErrorOk
+                  · simp [methodVerbs]
+                  iexact Hfe3
+                iempintro
+              try wp_auto
+              have htxg : Xt.t.mv.txid' = W64 ((wg.C.txid + 1 : Nat) : Int) := by
+                rw [htxt, Hgr.1]; rfl
+              ihave Hex : cmExcl K r Xt (treeData wg.C) $$ [Hex]
+              · rw [Hgr.1]; iexact Hex
+              ihave Hend := cm_wtxEnd_live K tx r Xt wg hwrt hrlt $$ [Hw Hwdb Hex]
+              · iframe; iframe #
+              wp_apply wp_rollback K tx r Xt (wLive Xt.v wg.C) wg
+                ⟨Xt.v, wg.C.txid + 1, false, true, rfl, htxg,
+                  ⟨fun _ => by rw [Hwgok.2.1]; simp, fun _ => rfl⟩, fun _ => rfl,
+                  fun h => absurd h (by simp)⟩
+                $$ [Hend] as Hdone
+              · iexact Hend
+              try wp_auto
+              iright
+              isplitr
+              · ipureintro; first | rfl | trivial
+              iframe
+              iframe #
+              ipureintro; exact fun h => nomatch h
           · rw [decide_eq_false hg]
             try wp_auto
             ileft
