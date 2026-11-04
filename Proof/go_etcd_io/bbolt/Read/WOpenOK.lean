@@ -258,7 +258,80 @@ theorem leafBkt (p : w64) (hI : posI X B p) (ws : List WEntry)
       rw [hpg] at hpg'; cases hpg'; rw [hlf] at hf'
       exact absurd hf' (by unfold leafPageFlag branchPageFlag; decide)
 
+/-- **Every position of a logical stack of a searchable bucket is a `posI`.** -/
+theorem lPath_posI (els : List elemRef) (pids : List w64) (hp : lPath X bl els pids) :
+    ∀ (j : Nat) (p : w64), pids[j]? = some p → posI X B p := by
+  obtain ⟨-, hlen, hhd, hstep⟩ := hp
+  intro j
+  induction j with
+  | zero =>
+    intro p hp0
+    have : X.rootPid bl = B.ib.root' := by unfold WX.rootPid; rw [hB]; rfl
+    rw [List.head?_eq_getElem?, this] at hhd
+    rw [hhd] at hp0; cases hp0
+    exact posI_root X bl B hB hb
+  | succ j ih =>
+    intro p hp1
+    have hj1 : j + 1 < pids.length := (List.getElem?_eq_some_iff.1 hp1).1
+    have hje : j < els.length := by omega
+    obtain ⟨-, lf, ws, hL, hnext, -⟩ := hstep j els[j] pids[j]
+      (List.getElem?_eq_getElem hje) (List.getElem?_eq_getElem (by omega))
+    obtain ⟨rfl, w, hw, hpn⟩ := hnext (by omega)
+    rw [hp1] at hpn; cases hpn
+    exact posI_step X bl B hB hb _ (ih _ (List.getElem?_eq_getElem (by omega))) ws hL _ w hw
+
 end posi
+
+section found
+variable [GooseExts]
+
+omit [GooseExts] in
+theorem wsAt_of_mem : ∀ (ws : List WEntry), Write.wsPw ws → ∀ w ∈ ws, ws[wsIdx ws w.key]? = some w
+  | [], _, w, hw => by cases hw
+  | a :: t, hs, w, hw => by
+    rw [Write.wsPw, List.pairwise_cons] at hs
+    rcases List.mem_cons.1 hw with rfl | hw'
+    · unfold wsIdx
+      rw [List.takeWhile_cons_of_neg (by simpa using go.goStringLt_irrefl w.key)]
+      rfl
+    · have ih := wsAt_of_mem t hs.2 w hw'
+      have hlt := hs.1 w hw'
+      unfold wsIdx at ih ⊢
+      rw [List.takeWhile_cons_of_pos (by simpa using hlt), List.length_cons]
+      simpa using ih
+
+open Write LR in
+/-- **The entry a route lands on is the bucket's only entry of that key.** -/
+theorem route_found_at (X : WX) (bl : Loc) (els : List elemRef) (pids : List w64) (k : List w8)
+    (hb : bktLocalOK X bl) (hp : lPath X bl els pids) (hr : lRoutes X bl els pids k)
+    (w : WEntry) (hw : w ∈ X.allEnts bl) (hk : w.key = k) :
+    (lLeaf X bl pids)[wsIdx (lLeaf X bl pids) k]? = some w := by
+  obtain ⟨-, B, hB, hc, ⟨bnd, hbk⟩, -, -, hv⟩ := hb
+  have hR := LR.lRoute_of X bl els pids k hp hr
+  obtain ⟨last, b', ws, hgl, hL, hmem, hI, hk'⟩ :=
+    LR.route_main X bl B bnd _ hB hc hbk hv k pids hR hp.2.2.1
+  have hleaf : lLeaf X bl pids = ws := by unfold lLeaf; rw [hgl]; simp only [hL]
+  rw [hleaf]
+  have hs := (LR.bInvL_leaf X bl B bnd _ hB hc hbk hv last b' hI ws hL).1
+  have hwalk := LR.bInvL_walk X bl B bnd _ hB hc hbk hv X.fuel _ _
+    (LR.bInvL_root X bl B bnd _ hB hc hbk hv)
+  have hall : X.allEnts bl =
+      ((lleavesB (ltree X) bl X.fuel (X.rootPid bl) (none, none)).map fun x => x.2.2).flatten := by
+    unfold WX.allEnts WX.leaves; rw [lleavesB_snd]
+  subst hk
+  rw [hall, List.mem_flatten] at hw
+  obtain ⟨l, hl, hwl⟩ := hw
+  obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hl
+  have hkx := hwalk.1 x hx w hwl
+  have hxy : x = (last, b', ws) := by
+    apply Classical.byContradiction
+    intro hne
+    have := pw_mem_ne _ (fun x y h k hy hx => h k hx hy) _ hwalk.2.1 x hx _ hmem hne
+    exact this w.key hkx hk'
+  subst hxy
+  exact wsAt_of_mem ws hs w hwl
+
+end found
 
 end WOpen
 
