@@ -123,6 +123,42 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
     first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx |
       exact Hrtn
 
+omit package_sem in
+/-- **What `Rollback` reads of a reader** (`managed`, `db`, `writable`), and back. -/
+theorem rdTxK_flags_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
+    rdTxK (GF := GF) K tx src q T v ⊢
+      tx.[Tx, go!"managed"] ↦{DFrac.own q} false ∗
+      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} K.db ∗ tx.[Tx, go!"writable"] ↦{DFrac.own q} false ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ⌜K.db ≠ null⌝ ∗
+      (tx.[Tx, go!"managed"] ↦{DFrac.own q} false -∗
+        tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} K.db -∗ tx.[Tx, go!"writable"] ↦{DFrac.own q} false -∗
+        rdTxK K tx src q T v) := by
+  unfold rdTxK rtxFrac
+  iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpkg, #Hcore, Hv, Hex,
+    ⟨%t, Hw, Hmg, Hrest⟩, Hpool⟩
+  icases Hrest with ⟨Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hrest⟩
+  icases Hrest with ⟨Hmv, Hvc, Hmap, Hvo, %Hf⟩
+  have hdb : r.db = K.db := Hc.2.1
+  have hm : t.managed' = false := Hf.2.2.2.2.2.1
+  ihave %hdbn : ⌜K.db ≠ null⌝ $$ []
+  · unfold BC.core isBoltCoreP
+    icases Hcore with ⟨-, -, %Ht, -⟩
+    ipureintro; exact Ht.2
+  rw [hm, hdb]
+  iframe Hmg Hdb Hw Hpkg
+  isplitr
+  · ipureintro; exact hdbn
+  iintro Hmg Hdb Hw
+  iexists r, c, mv, k
+  isplitr
+  · ipureintro; exact Hc
+  iframe Hreg Hcore Hv Hex Hpool
+  iexists t
+  rw [← hm] at *
+  rw [← hdb]
+  iframe
+  ipureintro; exact ⟨Hf.1, Hf.2.1, Hf.2.2.1, Hf.2.2.2.1, Hf.2.2.2.2.1, rfl, Hf.2.2.2.2.2.2⟩
+
 end rd
 
 end bbolt
