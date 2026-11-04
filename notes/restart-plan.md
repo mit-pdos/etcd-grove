@@ -1434,3 +1434,9 @@ the request to the stop's commit and its result to `donec`'s escrow. Callers wit
 (the snapshot walk's old backend, `bootstrappedBackend.Close`) pass `commitReq_true`. The server's
 shutdown passes `commitReq_freeze`'s `applyThread γ s ⇒ freezeY γ s` (stage 5), so after
 `Cleanup` the frozen protocol pins the stored index (`snapObs_window`'s `ciObs`).
+
+**Stage 3 done (2026-11-04).** `SnapSendBranch.mergedObsM_of_obs` (the window's pure block,
+shared) and `StopImage.stop_mergedObs`. The latter turns the frozen protocol, the apply thread's
+halves of the tracked buckets, the KV's writer and compaction right, and `Close`'s `bStopView` at
+the server's resources into `⌜mergedObsM … D⌝`. Stage 5 turns that into the image (as
+`merged_imageC` does for the snapshot: `kvAppliedM`, `isServerM`, the KV log's receipt).
