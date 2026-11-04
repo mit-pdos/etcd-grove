@@ -17,6 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `fmt`: `%#v` of a struct pointer in `fmt.Errorf`, and the type of an error with no `%w` (2026-11-04, k8s DaemonSet run)
+
+- **Limitation.** `fmt.Errorf`'s spec (`Spec/fmt/Errorf.lean`, over Perennial's `wp_Errorf`) takes
+  arguments that are `fmt.ArgWf` (predeclared basic types) or have an `Error()`/`String()` spec. A
+  pointer to a struct formatted by `%#v` is neither: Go calls no method of it (unless it implements
+  `GoStringer`/`Formatter`) and prints its fields reflectively. And its result is "some error with
+  an `Error()` spec", where Go returns an `errors.New` `*errorString` when the format has no `%w`,
+  which a caller's `errors.As`/`apierrors.IsNotFound` needs to know.
+- **Who.** The DaemonSet controller: `updateDaemonSetStatus` (`daemon_controller.go:1263`,
+  `"error storing status for daemon set %#v: %w"` of a `*DaemonSet`, reachable); `syncNodes` and
+  `syncDaemonSet` (same pattern, unreachable); `RealPodControl.DeletePod`'s
+  `fmt.Errorf("unable to delete pods: %v", err)`, which `syncNodes` passes to `IsNotFound`.
+- **Here.** A local trust-boundary hypothesis, `ErrorfDaemonSetV.spec`
+  (`Spec/k8s_io/kubernetes/pkg/controller/daemon/ErrorfDaemonSetV.lean`): with the `*DaemonSet`
+  read-only for good and the other argument `fmt.argOk`, `Errorf` returns an error with an
+  `Error()` spec. The `%v` result's type is in the proposal
+  `Spec/k8s_io/kubernetes/pkg/controller/RealPodControl__DeletePodProposal.lean` (`plainErr`).
+- **Proposal.** `fmt`'s argument predicate gains a case for a pointer to a struct under `%v`/`%#v`
+  whose type implements neither `Formatter` nor `GoStringer`, with read-only fields that are
+  themselves formattable (a deep read-only points-to); `wp_Errorf` says the result is an
+  `*errors.errorString` when the format has no `%w`.
+- **Status.** Open.
+
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof

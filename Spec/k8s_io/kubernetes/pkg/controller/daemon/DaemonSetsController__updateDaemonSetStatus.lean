@@ -39,7 +39,7 @@ abbrev DaemonSetsController.updateDaemonSetStatus.spec : Prop :=
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (nl : GoSlice) (ns : List kd.core.Node) (hash : GoString) (b : Bool)
     (q : Qp),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗ nodesAt nl ns ∗ ownerTok c o q }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗ nodesAt nl ns ∗ ownerTok c o q }}
     (App (App (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"updateDaemonSetStatus")) (Val #ctx)) (Val #ds)) (Val #nl)) (Val #hash)) (Val #b))
   {{ (err : GoInterface), RET #err; threadTok ∗ ownerTok c o q ∗ fmt.argOk err }}
 

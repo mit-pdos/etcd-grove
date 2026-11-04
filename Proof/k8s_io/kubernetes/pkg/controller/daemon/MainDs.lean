@@ -51,7 +51,6 @@ theorem newDsOk_create (σ : St) (ns : GoString) (dreq : kd.apps.DaemonSet)
   · exact hunb
   · exact hfin
   · simp
-  · simp [kd.apps.DaemonSetStatus.zero]
 
 end pure
 

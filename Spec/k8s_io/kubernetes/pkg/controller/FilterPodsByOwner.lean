@@ -12,7 +12,8 @@ linearization point of its own; the first, the owner's key, gives the view.)
 -/
 module
 
-public import Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncDefs
+public import Proof.k8s_io.kubernetes.pkg.controller.Defs
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI apimodel consistency cache k8s_io.kubernetes.pkg.controller
+open Iris Iris.BI apimodel cache k8s_io.kubernetes.pkg.controller
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

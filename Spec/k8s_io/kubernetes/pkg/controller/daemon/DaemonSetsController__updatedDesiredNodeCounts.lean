@@ -36,7 +36,7 @@ abbrev DaemonSetsController.updatedDesiredNodeCounts.spec : Prop :=
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (nl : GoSlice) (ns : List kd.core.Node) (m : GoMap)
     (Mp : GMap GoString (List kd.core.Pod)),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗ nodesAt nl ns ∗ podMapAt m Mp }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗ nodesAt nl ns ∗ podMapAt m Mp }}
     (App (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"updatedDesiredNodeCounts")) (Val #ctx)) (Val #ds)) (Val #nl)) (Val #m))
   {{ (s u n : w64) (err : GoInterface), RET (PairV (PairV (PairV #s #u) #n) #err);
       threadTok ∗ fmt.argOk err ∗ ∃ Mp', podMapAt m Mp' ∗

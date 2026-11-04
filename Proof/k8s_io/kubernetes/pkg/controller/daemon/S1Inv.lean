@@ -32,7 +32,7 @@ each claim in the invariant holds a fraction of the owner's `ownerTok`, so the h
 pod pending and the claim's fraction of `ownerTok` in the invariant: the worker cannot reassemble
 `ownerTok c o 1`, so `syncNodes` cannot give back `syncTok` (`syncNodes`' proof, the create
 goroutine's ambiguous branch; `ambiguous_create_breaks_S1` shows no proof can: the next sync
-duplicates the pod).
+duplicates the pod). `isDsc` excludes it (`AmbiguousWrites` off, decision R8).
 -/
 module
 

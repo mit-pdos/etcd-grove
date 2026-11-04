@@ -4,7 +4,8 @@ fresh copy of the labels (`nil`: none) with `key ↦ value`. Lean-first; Stage 3
 -/
 module
 
-public import Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncDefs
+public import Proof.k8s_io.kubernetes.Base
+public import Proof.k8s_io.api.DeepBase
 
 @[expose] public section
 
@@ -17,7 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI apimodel consistency 
+open Iris Iris.BI
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

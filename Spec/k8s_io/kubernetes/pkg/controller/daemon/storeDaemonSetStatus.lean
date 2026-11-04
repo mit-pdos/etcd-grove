@@ -38,7 +38,7 @@ abbrev storeDaemonSetStatus.spec : Prop :=
     (γa : ApiNames) (γ : S1Names) (ctx : GoInterface) (dsClient : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (n1 n2 n3 n4 n5 n6 n7 : w64) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗ apiInv γa γ ∗ s1Inv γ c ∗
-      ⌜ctx ≠ interface.nil⌝ ∗ isDSClient dsClient γa cfg d.ObjectMeta'.Namespace' false ∗ dsArg γa ds o d }}
+      ⌜ctx ≠ interface.nil⌝ ∗ isDSClient dsClient γa cfg d.ObjectMeta'.Namespace' false ∗ dsArg γa c ds o d }}
     (App (App (App (App (App (App (App (App (App (App (App (Val (@! k8s_io.kubernetes.pkg.controller.daemon.storeDaemonSetStatus)) (Val #ctx)) (Val #dsClient)) (Val #ds)) (Val #n1)) (Val #n2)) (Val #n3)) (Val #n4)) (Val #n5)) (Val #n6)) (Val #n7)) (Val #b))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); fmt.argOk err ∗
       (⌜r = null⌝ ∨ ∃ d', ⌜err = interface.nil ∧ d'.ObjectMeta'.UID' = d.ObjectMeta'.UID'⌝ ∗

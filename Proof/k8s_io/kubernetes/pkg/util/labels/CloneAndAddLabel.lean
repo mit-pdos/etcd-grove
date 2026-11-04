@@ -18,7 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI Iris.ProofMode apimodel consistency 
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

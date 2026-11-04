@@ -5,7 +5,7 @@ Lean-first; Stage 3, track B.
 -/
 module
 
-public import Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncDefs
+public import Proof.k8s_io.kubernetes.pkg.controller.Defs
 
 @[expose] public section
 
@@ -18,7 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI apimodel consistency k8s_io.kubernetes.pkg.controller
+open Iris Iris.BI apimodel k8s_io.kubernetes.pkg.controller
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

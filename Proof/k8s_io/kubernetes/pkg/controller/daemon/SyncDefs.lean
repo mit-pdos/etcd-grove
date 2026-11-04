@@ -5,17 +5,22 @@ serves are the package's internal helpers: they may mirror the code (the spec sk
 
 * `dscEnv`: what every sync helper takes, persistent: the package, the controller, the two
   invariants.
-* `dsSeen γa o d`, `dsArg γa ds o d`: the DaemonSet the sync read from its lister: `d` is a
-  version, in a past API state's log, of the DaemonSet at owner `o` (so, by `sceneOk`, the stored
-  one but for its status), at `ds`, read-only for good.
+* `dsSeen γa o d`: `d` is a version, in a past API state's log, of the DaemonSet at owner `o` (so,
+  by `sceneOk`, the stored one but for its status).
+* `dsArg γa c ds o d`: the DaemonSet the sync read from its lister, at `ds`, read-only for good:
+  the DaemonSet informer's store was, at a version `v` it has reached for good (`infRvLb`), the
+  table of a past API state's log at `v`, with `d` at `o`. The bound is what a `WroteAt` of `o`
+  needs (`wroteAt_step`'s `addedRv ≤ Ld`: raise `Ld` to `v`, `raiseLd_step`).
 * `readyTok γ c o L`: the sync token after the sync's `EnsureReady` (`ensureReady_step`): the
   owner ready, at bound `L`.
 * `nodesAt`, `podsAt`, `crsAt`, `podMapAt`: lists of cache objects (read-only for good) and the
   manage loop's node-to-pods map.
 * `podsView γa u L Mp`: the pod map shows, at a version at least `L` of a past API state's pods'
-  log, every pod of `u`: a node with no entry had none (what lets the sync claim the node), and
-  every pod in the map is a logged one (so `sceneOk` says it is live and `Pending`).
-* `nodesFree γa u L ns`: the nodes `ns` have no entry in such a map.
+  log, every pod of `u` on its node: a node whose list is empty had none (what lets the sync claim
+  the node; an entry may be empty, `updatedDesiredNodeCounts` adds such entries), and every pod in
+  the map is `u`'s (`ctlBy`) and a logged one (so `sceneOk` says it is `podOf` `u`'s DaemonSet:
+  live, `Pending`, with its hash label).
+* `nodesFree γa u L ns`: the nodes `ns` have no pod in such a map.
 * `maxRevD`: `maxRevision`'s value.
 -/
 module
@@ -57,14 +62,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **An `*int64`**: `nil` for `none`, else a pointer to the value (at `dq`). -/
-def int64PtrD (p : Loc) (dq : DFrac) (g : Option w64) : IProp GF :=
-  ownPtrD (fun (x : w64) (_ : DFrac) (y : w64) => iprop(⌜x = y⌝)) p dq g
-
-/-- **An `*int32`**: `nil` for `none`, else a pointer to the value (at `dq`). -/
-def int32PtrD (p : Loc) (dq : DFrac) (g : Option w32) : IProp GF :=
-  ownPtrD (fun (x : w32) (_ : DFrac) (y : w32) => iprop(⌜x = y⌝)) p dq g
-
 /-- **The controller's environment** (persistent). -/
 def dscEnv (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
@@ -86,12 +83,14 @@ instance dsSeen_persistent (γa : ApiNames) (o : Owner) (d : kd.apps.DaemonSet) 
     Persistent (dsSeen (GF := GF) γa o d) := by
   unfold dsSeen; infer_instance
 
-/-- **The DaemonSet the sync read** (persistent). -/
-def dsArg (γa : ApiNames) (ds : Loc) (o : Owner) (d : kd.apps.DaemonSet) : IProp GF :=
-  iprop(□ dsAt ds DFrac.discard d ∗ dsSeen γa o d)
+/-- **The DaemonSet the sync read** (persistent): see the file header. -/
+def dsArg (γa : ApiNames) (c : DscComp) (ds : Loc) (o : Owner) (d : kd.apps.DaemonSet) :
+    IProp GF :=
+  iprop(□ dsAt ds DFrac.discard d ∗ ∃ (σp : St) (v : Nat), pastSt γa σp ∗
+    infRvLb c.dsI.γi v ∗ ⌜informer.tableAt σp.dss.log v !! o = some (.ds d)⌝)
 
-instance dsArg_persistent (γa : ApiNames) (ds : Loc) (o : Owner) (d : kd.apps.DaemonSet) :
-    Persistent (dsArg (GF := GF) γa ds o d) := by
+instance dsArg_persistent (γa : ApiNames) (c : DscComp) (ds : Loc) (o : Owner)
+    (d : kd.apps.DaemonSet) : Persistent (dsArg (GF := GF) γa c ds o d) := by
   unfold dsArg; infer_instance
 
 /-- **The ready token**: the sync token after the sync's `EnsureReady`, the owner ready at bound
@@ -108,16 +107,6 @@ instance nodesAt_persistent (nl : GoSlice) (ns : List kd.core.Node) :
     Persistent (nodesAt (GF := GF) nl ns) := by
   unfold nodesAt; infer_instance
 
-/-- **A list of pods** (the slice at `dq`, the pods cache objects, read-only for good). -/
-def podsAt (pl : GoSlice) (dq : DFrac) (ps : List kd.core.Pod) : IProp GF :=
-  iprop(∃ ls : List Loc, pl ↦*{dq} ls ∗ ⌜ls.length = ps.length⌝ ∗
-    [∗list] i ↦ p ∈ ls, ∃ d, ⌜ps[i]? = some d⌝ ∗ □ podAt p DFrac.discard d)
-
-/-- **A list of controller revisions** (the slice at `dq`, the revisions read-only for good). -/
-def crsAt (hl : GoSlice) (dq : DFrac) (rs : List kd.apps.ControllerRevision) : IProp GF :=
-  iprop(∃ ls : List Loc, hl ↦*{dq} ls ∗ ⌜ls.length = rs.length⌝ ∗
-    [∗list] i ↦ p ∈ ls, ∃ r, ⌜rs[i]? = some r⌝ ∗ □ crAt p DFrac.discard r)
-
 /-- **The node-to-pods map** (`map[string][]*v1.Pod`, owned, its slices owned). -/
 def podMapAt (m : GoMap) (Mp : GMap GoString (List kd.core.Pod)) : IProp GF :=
   iprop(∃ M : GMap GoString GoSlice, m ↦$ M ∗ ⌜∀ n, (M !! n).isSome = (Mp !! n).isSome⌝ ∗
@@ -127,9 +116,9 @@ def podMapAt (m : GoMap) (Mp : GMap GoString (List kd.core.Pod)) : IProp GF :=
 def podsView (γa : ApiNames) (u : GoString) (L : Nat) (Mp : GMap GoString (List kd.core.Pod)) :
     IProp GF :=
   iprop(∃ (σp : St) (v : Nat), pastSt γa σp ∗ ⌜L ≤ v ∧
-    (∀ n, Mp !! n = none → ∀ k p, informer.tableAt σp.pods.log v !! k = some p →
-      ¬ dsPodOn keyName opIn u n p) ∧
-    (∀ n p, p ∈ podsOn Mp n → ∃ ch ∈ σp.pods.log, ch.obj = .pod p)⌝)
+    (∀ n k p, informer.tableAt σp.pods.log v !! k = some p → dsPodOn keyName opIn u n p →
+      ∃ dp, p = .pod dp ∧ dp ∈ podsOn Mp n) ∧
+    (∀ n p, p ∈ podsOn Mp n → ctlBy u p ∧ ∃ ch ∈ σp.pods.log, ch.obj = .pod p)⌝)
 
 instance podsView_persistent (γa : ApiNames) (u : GoString) (L : Nat)
     (Mp : GMap GoString (List kd.core.Pod)) : Persistent (podsView (GF := GF) γa u L Mp) := by
@@ -138,18 +127,19 @@ instance podsView_persistent (γa : ApiNames) (u : GoString) (L : Nat)
 /-- **The nodes a sync may create pods on** (persistent): a pod map with that view shows none
 on them. -/
 def nodesFree (γa : ApiNames) (u : GoString) (L : Nat) (ns : List GoString) : IProp GF :=
-  iprop(∃ Mp, podsView γa u L Mp ∗ ⌜∀ n ∈ ns, Mp !! n = none⌝)
+  iprop(∃ Mp, podsView γa u L Mp ∗ ⌜∀ n ∈ ns, podsOn Mp n = []⌝)
 
 instance nodesFree_persistent (γa : ApiNames) (u : GoString) (L : Nat) (ns : List GoString) :
     Persistent (nodesFree (GF := GF) γa u L ns) := by
   unfold nodesFree; infer_instance
 
 /-- **The pods a sync read, as a list** (persistent): at a version at least `L` of a past API
-state's pods' log, every pod of `u` is in the list, and every pod of the list is a logged one. -/
+state's pods' log, every pod of `u` is in the list, and every pod of the list is `u`'s and a
+logged one. -/
 def podsListView (γa : ApiNames) (u : GoString) (L : Nat) (ps : List kd.core.Pod) : IProp GF :=
   iprop(∃ (σp : St) (v : Nat), pastSt γa σp ∗ ⌜L ≤ v ∧
     (∀ k p, informer.tableAt σp.pods.log v !! k = some (.pod p) → ctlBy u p → p ∈ ps) ∧
-    (∀ p ∈ ps, ∃ ch ∈ σp.pods.log, ch.obj = .pod p)⌝)
+    (∀ p ∈ ps, ctlBy u p ∧ ∃ ch ∈ σp.pods.log, ch.obj = .pod p)⌝)
 
 instance podsListView_persistent (γa : ApiNames) (u : GoString) (L : Nat)
     (ps : List kd.core.Pod) : Persistent (podsListView (GF := GF) γa u L ps) := by

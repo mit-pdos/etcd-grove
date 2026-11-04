@@ -2,7 +2,7 @@
 Proof of `Spec/k8s_io/kubernetes/pkg/controller/daemon/DaemonSetsController__syncNodes.lean` over its callees' specs. Lean-first; Stage 3 of the autoverify run
 (`notes/k8s-daemonset-run/`, track B): a stub.
 
-See the spec's header for the S1 argument; the create goroutine's ambiguous branch is the one `sorry` it may keep. Still to add as hypotheses: `WaitGroup.Go`/`Add`/`Done`/`Wait`, the error channel, `HasStatusCause`, `IsNotFound`, `NewControllerRef`, `PodTemplateSpec.DeepCopy`, `NewAggregate` (boundary specs, some pending).
+See the spec's header for the S1 argument; the create goroutine's ambiguous branch is unreachable (`isDsc`'s `Hunamb`: `AmbiguousWrites` off, decision R8). Still to add as hypotheses: `WaitGroup.Go`/`Add`/`Done`/`Wait`, the error channel, `HasStatusCause`, `IsNotFound`, `NewControllerRef`, `PodTemplateSpec.DeepCopy`, `NewAggregate` (boundary specs, some pending).
 -/
 module
 

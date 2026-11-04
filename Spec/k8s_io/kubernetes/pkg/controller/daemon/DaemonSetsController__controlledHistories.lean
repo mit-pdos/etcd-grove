@@ -37,7 +37,7 @@ abbrev DaemonSetsController.controlledHistories.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d }}
     (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"controlledHistories")) (Val #ctx)) (Val #ds))
   {{ (hl : GoSlice) (err : GoInterface), RET (PairV #hl #err); threadTok ∗ fmt.argOk err ∗
       (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ ∃ rs, crsAt hl (DFrac.own 1) rs ∗

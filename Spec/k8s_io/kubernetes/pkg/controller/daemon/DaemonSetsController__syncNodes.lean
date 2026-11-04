@@ -15,11 +15,12 @@ pod `podOf` the DaemonSet: its template, its hash `hash`, its controller referen
 (`unclaim_step`). After `createWait.Wait()` the proof releases the written claims
 (`release_step`), so every fraction is back: the sync token.
 
-**The ambiguous create** (`createErrOutcome`'s `.ok (true, _)`, `AmbiguousWrites`): the pod is the
-claim's, unwritten: the claim can be neither written nor released, its fraction of the permission
-stays in the invariant, and the sync token cannot be given back. The proof leaves exactly that
-branch `sorry` (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`,
-`ambiguous_create_breaks_S1`).
+**The ambiguous create** (`createErrOutcome`'s `.ok (true, _)`): a create that commits and returns
+an error leaves the pod the claim's, unwritten: the claim can be neither written nor released, its
+fraction of the permission stays in the invariant, and the sync token cannot be given back; Go can
+then create a second pod on the node (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`,
+`ambiguous_create_breaks_S1`). The spec is true because `isDsc` (in `dscEnv`) excludes it: the
+model server's `AmbiguousWrites` is off (decision R8), so the branch is unreachable, not assumed.
 -/
 module
 
@@ -52,7 +53,7 @@ abbrev DaemonSetsController.syncNodes.spec : Prop :=
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (pdl : GoSlice) (dq : DFrac) (pds : List GoString) (nnl : GoSlice)
     (dq' : DFrac) (nns : List GoString) (hash : GoString) (L : Nat) (r : Bool),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗
       pdl ↦*{dq} pds ∗ nnl ↦*{dq'} nns ∗ ⌜nns.Nodup ∧ hash = dsHash d⌝ ∗
       ownerTok c o 1 ∗ seenTok γ o (L, r) ∗
       (⌜nns = []⌝ ∨ ⌜r = true⌝ ∗ nodesFree γa d.ObjectMeta'.UID' L nns) }}

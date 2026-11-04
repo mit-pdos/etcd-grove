@@ -23,6 +23,15 @@ method takes and `NewDaemonSetsController` gives (track C proves the constructor
   `podWriteCallback` closure (`onWriteFnOk`: a `WroteAt` of the consistency store); the sync
   handler is the method value `dsc.syncDaemonSet`, the enqueuer `dsc.enqueue`.
 
+**Scope: no ambiguous writes** (decision R8, `notes/k8s-daemonset-run/README.md`). `isDsc` holds
+only for a model API server whose configuration has `AmbiguousWrites` off (`Hunamb`). With it on, a
+create that commits and still returns an error leaves the create goroutine's claim standing, and
+the controller can create a second pod on the node: Go is wrong there
+(`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), and `syncNodes`' spec (with every spec
+above it) would be false. The restriction makes every controller spec true of the code; the
+constructor takes it as a premise, and the one obligation left false is the driver's, whose
+configuration sets the flag.
+
 **The work queue's keys.** The queue's items are `string`s and its spec says nothing of which items
 `Get` hands out; the sync of `key` acts for the owner `SplitMetaNamespaceKey(key)`, so the owner's
 exclusivity (the consistency store's documented precondition) needs the key to be the owner's
@@ -33,6 +42,7 @@ canonical one (`keyCanon`: `"/b"` and `"b"` name one owner). The controller only
 module
 
 public import Proof.k8s_io.kubernetes.pkg.controller.PodControlDefs
+public import Proof.k8s_io.kubernetes.pkg.controller.Defs
 public import Proof.k8s_io.kubernetes.pkg.controller.ExpDefs
 public import Proof.k8s_io.client_go.listers.Defs
 public import Proof.k8s_io.client_go.util.workqueue.DelayingDefs
@@ -61,16 +71,6 @@ open k8s_io.kubernetes.pkg.controller.daemon
 
 section comps
 variable [GooseExts]
-
-/-- An informer's fixed locations and ghost names. -/
-structure InfLoc where
-  ca : Loc
-  ts : Loc
-  kf : GoFunc
-  γf : FifoNames
-  γt : TsNames
-  γi : InfNames
-  res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource
 
 /-- The controller's own reader pools' ghost names (`dscPools`; the informers' pools are theirs). -/
 structure DscPools where
@@ -128,18 +128,6 @@ def ownerOf (k : GoString) : Option Owner :=
 name). -/
 def ownerKey (o : Owner) : GoString := nameKey o.Namespace' o.Name'
 
-/-- **`metav1.GetControllerOf(pod)`**: the first owner reference with `Controller` set. -/
-def ctlOf (p : kd.core.Pod) : Option kd.meta.OwnerReference :=
-  p.ObjectMeta'.OwnerReferences'.find? (fun r => decide (r.Controller' = some true))
-
-/-- **`controller.PodControllerIndexKey(ns, ref)`**: the namespace alone for no reference. -/
-def podCtlKey (ns : GoString) : Option kd.meta.OwnerReference → GoString
-  | none => ns
-  | some r => ns ++ go!"/" ++ r.Kind' ++ go!"/" ++ r.Name' ++ go!"/" ++ r.UID'
-
-/-- `controller.PodControllerIndex`. -/
-def podCtlIndex : GoString := go!"podController"
-
 end comps
 
 section defs
@@ -159,15 +147,6 @@ instance qItemString : QItem (GF := GF) GoString go.string where
   inj := inferInstance
   cnt := inferInstance
   safe := fun _ => inferInstance
-
-/-- **The informer of resource `r`** (persistent): its store over the informer's registered
-objects (`infObj`), with indices `Fam`, and the informer invariant. -/
-def infAt (γa : ApiNames) (r : Res) (I : InfLoc) (Fam : Nat → Fn GF) : IProp GF :=
-  iprop(isCache I.ca I.ts I.γt (infObj I.γi r) Fam I.kf ∗ infInv γa r I.γf I.γt I.γi)
-
-instance infAt_persistent (γa : ApiNames) (r : Res) (I : InfLoc) (Fam : Nat → Fn GF) :
-    Persistent (infAt γa r I Fam) := by
-  unfold infAt; infer_instance
 
 /-- **The consistency store's permission for owner `o`** at fraction `q` (its `T`): an element of
 the ghost map `c.tok`. -/
@@ -227,9 +206,6 @@ instance backoffOk_persistent (b : Loc) : Persistent (backoffOk (GF := GF) b) :=
 /-- The reader pools' namespaces. -/
 def dscPoolN : Namespace := nroot.@"dscReaderPool"
 
-/-- An informer's handles as track A's informer API names them (`InfH`). -/
-def InfLoc.h (I : InfLoc) : InfH := ⟨I.ca, I.ts, I.kf, I.γf, I.γt, I.γi⟩
-
 /-- **The controller's reader pools** (persistent): a thread borrows one slot of a store's lock
 with its `threadTok` (`threadPool.borrow`) and gives it back after the read. The four informers'
 pools are theirs (`infReaders`, under the adequacy theorem's thread bound, which the controller
@@ -246,20 +222,6 @@ instance dscPools_persistent (c : DscComp) (F : DscFams GF) :
     Persistent (dscPools c F) := by
   unfold dscPools; infer_instance
 
-/-- **The pod store's controller index** (persistent): the informer's index registry
-(`γi.ix`, kept by the informer invariant: `infInv_readIdxAU` gives a reader the store's `fnIds`
-agreeing with it) has the indexer `podCtlIndex` (`AddPodControllerIndexer`, in the constructor)
-at family index `j`, whose relation gives a pod its `PodControllerIndexKey`. -/
-def podCtlIndexed (I : InfLoc) (Fam : Nat → Fn GF) : IProp GF :=
-  iprop(∃ j : Nat, podCtlIndex ↪[I.γi.ix]□ j ∗
-    □ (∀ (x : GoInterface) (vs : List GoString) (p : kd.core.Pod),
-      apimodel.objAt x DFrac.discard (.pod p) -∗ Fam j x vs -∗
-      ⌜vs = [podCtlKey p.ObjectMeta'.Namespace' (ctlOf p)]⌝))
-
-instance podCtlIndexed_persistent (I : InfLoc) (Fam : Nat → Fn GF) :
-    Persistent (podCtlIndexed I Fam) := by
-  unfold podCtlIndexed; infer_instance
-
 /-- **The controller** `dsc` (persistent): see the file header. -/
 def isDsc (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
@@ -267,6 +229,7 @@ def isDsc (dsc : Loc) (c : DscComp)
   iprop(
     "#HkubeClient" ∷ dsc.[DaemonSetsController, go!"kubeClient"] ↦□ c.kc ∗
     "#Hkc" ∷ clientIs c.kc γa cfg ∗
+    "%Hunamb" ∷ ⌜cfg.AmbiguousWrites' = false⌝ ∗
     "#HeventRecorder" ∷ dsc.[DaemonSetsController, go!"eventRecorder"] ↦□ c.recorder ∗
     "#Hrec" ∷ recorderOk c.recorder ∗
     "#HpodControl" ∷ dsc.[DaemonSetsController, go!"podControl"] ↦□

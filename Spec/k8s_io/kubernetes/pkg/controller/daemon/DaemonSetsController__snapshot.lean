@@ -39,7 +39,7 @@ abbrev DaemonSetsController.snapshot.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (rev : w64),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d }}
     (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"snapshot")) (Val #ctx)) (Val #ds)) (Val #rev))
   {{ (cur : Loc) (err : GoInterface), RET (PairV #cur #err); threadTok ∗ fmt.argOk err ∗
       (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ ∃ r, □ crAt cur DFrac.discard r ∗

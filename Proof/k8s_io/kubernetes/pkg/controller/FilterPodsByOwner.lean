@@ -22,7 +22,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI Iris.ProofMode apimodel consistency cache k8s_io.kubernetes.pkg.controller
+open Iris Iris.BI Iris.ProofMode apimodel cache k8s_io.kubernetes.pkg.controller
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

@@ -19,7 +19,8 @@ state that a thread of the program makes, `s1Ok` before gives `s1Ok` after:
 The consistency store's operations are `S1Steps.lean`'s (`wrote_step`, `wroteAt_step`,
 `ensureReady_step`, `clear_noop`, `clear_notfound_noop`), as are the bookkeeping steps. The one
 operation with no step is the **ambiguous pod create** (a create that commits and returns the
-timeout): `S1Model.ambiguous_create_breaks_S1`.
+timeout): `S1Model.ambiguous_create_breaks_S1`; `isDsc` excludes it (`AmbiguousWrites` off,
+decision R8).
 -/
 module
 
@@ -283,10 +284,10 @@ theorem crOf_dsEq {d d' : kd.apps.DaemonSet} {r : kd.apps.ControllerRevision} (h
     by rw [← dsEq_hash h, ← dsEq_tmplLabels h]; exact hr.lbls, by rw [← hs]; exact hr.data⟩
 
 theorem dsWf_dsEq {d d' : kd.apps.DaemonSet} (h : dsEq d d') (w : dsWf d) : dsWf d' := by
-  have hn := h.1; have hns := h.2.1; have hs := h.2.2.2.1; have hc := h.2.2.2.2.2
+  have hn := h.1; have hns := h.2.1; have hs := h.2.2.2.1
   refine ⟨by rw [← hns, ← hn]; exact w.nsName, by rw [← hns]; exact w.nsNe,
     by rw [← dsEq_sel h]; exact w.selValid, ?_, by rw [← hs]; exact w.unbound,
-    by rw [← hs]; exact w.noFin, by rw [← hs]; exact w.histLimit, by rw [← hc]; exact w.noCollision⟩
+    by rw [← hs]; exact w.noFin, by rw [← hs]; exact w.histLimit⟩
   intro L hL
   rw [← dsEq_sel h]
   exact w.selCovers L (by rw [dsEq_tmplLabels h]; exact hL)

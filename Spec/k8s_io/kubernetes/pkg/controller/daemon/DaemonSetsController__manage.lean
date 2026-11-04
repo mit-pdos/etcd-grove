@@ -38,7 +38,7 @@ abbrev DaemonSetsController.manage.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (nl : GoSlice) (ns : List kd.core.Node) (hash : GoString) (L : Nat),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗ nodesAt nl ns ∗
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗ nodesAt nl ns ∗
       ⌜(ns.map (fun n => n.ObjectMeta'.Name')).Nodup ∧ hash = dsHash d⌝ ∗ readyTok γ c o L }}
     (App (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"manage")) (Val #ctx)) (Val #ds)) (Val #nl)) (Val #hash))
   {{ (err : GoInterface), RET #err; threadTok ∗ syncTok γ c o ∗ fmt.argOk err }}

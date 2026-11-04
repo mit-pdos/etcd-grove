@@ -4,7 +4,8 @@ node, the surge and unavailability allowances (`updatedDesiredNodeCounts`), then
 delete (and, when surging, nodes to create a new pod on next to an old one), `syncNodes`.
 Lean-first; Stage 3, track B.
 
-**What S1 needs**: no create. Every pod of the DaemonSet carries its hash label (`podOf`), so
+**What S1 needs**: no create. Every pod of the map is the DaemonSet's (`podsView`'s `ctlBy`, then
+`uidInj`) and carries its hash label (`podOf`), so
 `findUpdatedPodsOnNode` finds no old pod on any node and both branches leave the nodes to create
 empty, whatever `MaxSurge` holds (gap C5: the model's defaulted `MaxSurge` is opaque).
 -/
@@ -38,7 +39,7 @@ abbrev DaemonSetsController.rollingUpdate.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (nl : GoSlice) (ns : List kd.core.Node) (hash : GoString),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗ nodesAt nl ns ∗
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗ nodesAt nl ns ∗
       ⌜hash = dsHash d⌝ ∗ syncTok γ c o }}
     (App (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"rollingUpdate")) (Val #ctx)) (Val #ds)) (Val #nl)) (Val #hash))
   {{ (err : GoInterface), RET #err; threadTok ∗ syncTok γ c o ∗ fmt.argOk err }}

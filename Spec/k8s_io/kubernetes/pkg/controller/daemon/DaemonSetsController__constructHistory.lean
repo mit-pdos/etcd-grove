@@ -39,7 +39,7 @@ abbrev DaemonSetsController.constructHistory.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d }}
     (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"constructHistory")) (Val #ctx)) (Val #ds))
   {{ (cur : Loc) (old : GoSlice) (err : GoInterface), RET (PairV (PairV #cur #old) #err);
       threadTok ∗ fmt.argOk err ∗

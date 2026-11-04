@@ -15,10 +15,13 @@ that is still stored, unchanged but for its status. `sceneOk σ` states it, for 
   controller: a namespace and name with no `/` (its key is canonical), a non-empty namespace, a
   valid selector that selects every label set extending the template's (`selCovers`: so the
   controller never releases what it made), an unbound template with no finalizers (`NodeName` empty:
-  its pods are deleted at once, never terminating), a revision history limit, no collision count. Distinct
+  its pods are deleted at once, never terminating), a revision history limit. Distinct
   DaemonSets have distinct UIDs and distinct revision names (`crName`, so `snapshot` never meets
-  another DaemonSet's revision: no hash collision, the collision count stays `nil`, the hash and so
-  every pod's hash label stays the DaemonSet's `dsHash`).
+  another DaemonSet's revision: no hash collision, the collision count never changes, the hash and
+  so every pod's hash label stays the DaemonSet's `dsHash`). `crName` mentions the uninterpreted
+  `computeHashD`, so only a creator that knows the revision names differ can extend the scene
+  (`dsCreate_step`'s premise): one with one DaemonSet per namespace, as `Main`. This excludes
+  `snapshot`'s hash-collision path (`update.go:564-583`), a scope restriction.
 * **Pods** (`podOf`): controlled by a stored DaemonSet (exactly its `NewControllerRef`), in its
   namespace, with the template's labels, its hash label, unbound, `Pending`, not being deleted:
   so `ClaimPods` neither adopts nor releases (the model has no pod `Patch`), no pod is terminating
@@ -39,6 +42,7 @@ calls to them, proposals of the run's report).
 module
 
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.S1Model
+public import Proof.k8s_io.kubernetes.pkg.controller.Defs
 public import Proof.k8s_io.kubernetes.pkg.controller.daemon.util.Defs
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.SelDefs
 public import Proof.k8s_io.client_go.tools.cache.Keys
@@ -53,21 +57,12 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open apimodel cache consistency
+open apimodel consistency
 
 section scene
 variable [GooseExts]
 
 /-! ## The boundary functions' models -/
-
-/-- A non-empty string (`ComputeHash`'s results: `SafeEncodeString` of a decimal number). -/
-abbrev NeStr : Type := {s : GoString // s.length ≠ 0}
-
-instance : Inhabited NeStr := ⟨⟨[(48 : w8)], by simp⟩⟩
-
-/-- **`controller.ComputeHash(template, collisionCount)`**: a function of the template and the
-collision count (uninterpreted). -/
-opaque computeHashD : kd.core.PodTemplateSpec → Option w32 → NeStr
 
 /-- **`getPatch(ds)`**: the patch bytes, a function of the DaemonSet's template (uninterpreted:
 `json.Marshal` of `{"spec": {"template": ..., "$patch": "replace"}}`). -/
@@ -118,14 +113,13 @@ def dsSame (d d' : kd.apps.DaemonSet) : Prop :=
 
 /-- **A stored DaemonSet is well formed for the controller** (see the file header). -/
 structure dsWf (d : kd.apps.DaemonSet) : Prop where
-  nsName : noSlash d.ObjectMeta'.Namespace' ∧ noSlash d.ObjectMeta'.Name'
+  nsName : cache.noSlash d.ObjectMeta'.Namespace' ∧ cache.noSlash d.ObjectMeta'.Name'
   nsNe : d.ObjectMeta'.Namespace' ≠ go!""
   selValid : labels.selValid (selOf d)
   selCovers : selCovers d
   unbound : d.Spec'.Template'.Spec'.NodeName' = go!""
   noFin : d.Spec'.Template'.ObjectMeta'.Finalizers' = []
   histLimit : d.Spec'.RevisionHistoryLimit'.isSome
-  noCollision : d.Status'.CollisionCount' = none
 
 /-- **A pod the controller made for `d`** (see the file header). -/
 structure podOf (d : kd.apps.DaemonSet) (p : kd.core.Pod) : Prop where

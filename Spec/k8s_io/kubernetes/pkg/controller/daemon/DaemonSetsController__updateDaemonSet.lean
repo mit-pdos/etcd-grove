@@ -35,7 +35,7 @@ abbrev DaemonSetsController.updateDaemonSet.spec : Prop :=
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (nl : GoSlice) (ns : List kd.core.Node) (hash key : GoString)
     (old : GoSlice) (rs : List kd.apps.ControllerRevision) (L : Nat),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗ nodesAt nl ns ∗
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗ nodesAt nl ns ∗
       ⌜(ns.map (fun n => n.ObjectMeta'.Name')).Nodup ∧ hash = dsHash d⌝ ∗
       crsAt old (DFrac.own 1) rs ∗ readyTok γ c o L }}
     (App (App (App (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"updateDaemonSet")) (Val #ctx)) (Val #ds)) (Val #nl)) (Val #hash)) (Val #key)) (Val #old))

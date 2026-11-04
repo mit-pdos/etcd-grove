@@ -6,7 +6,7 @@ spec says only that a closure is returned.
 -/
 module
 
-public import Proof.k8s_io.kubernetes.pkg.controller.daemon.SyncDefs
+public import Proof.k8s_io.kubernetes.Base
 
 @[expose] public section
 
@@ -19,7 +19,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace dsctl
 
-open Iris Iris.BI apimodel consistency k8s_io.kubernetes.pkg.controller
+open Iris Iris.BI k8s_io.kubernetes.pkg.controller
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]

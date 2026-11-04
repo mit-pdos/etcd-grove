@@ -34,7 +34,7 @@ abbrev DaemonSetsController.cleanupHistory.spec : Prop :=
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface) (ds : Loc) (o : Owner)
     (d : kd.apps.DaemonSet) (old : GoSlice) (rs : List kd.apps.ControllerRevision),
-  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa ds o d ∗ crsAt old (DFrac.own 1) rs }}
+  {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ ∗ dsArg γa c ds o d ∗ crsAt old (DFrac.own 1) rs }}
     (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"cleanupHistory")) (Val #ctx)) (Val #ds)) (Val #old))
   {{ (err : GoInterface), RET #err; threadTok ∗ fmt.argOk err ∗
       ∃ rs', crsAt old (DFrac.own 1) rs' }}

@@ -3,11 +3,13 @@
 tolerations, requiredNodeAffinity)` (`daemon_controller.go:849`): the node's pod to create and pods
 to delete. Lean-first; Stage 3, track B.
 
-**What S1 needs**: a node is to be created on only if the map has no entry for it. The code also
-asks to create when surge is allowed and every pod on the node is being deleted, failed or
-succeeded; the map's pods are logged ones (`podsView`), which `sceneOk` makes live and `Pending`,
-so that branch is not taken (the backoff, event and failed-pod branches neither). The pods to
-delete are any names.
+**What S1 needs**: a node is to be created on only if the map has no pod on it (`podsOn`: no entry,
+or an empty one; with an empty entry and surge allowed, the code asks to create through the
+`shouldContinueRunning` branch, `daemon_controller.go:923`). The code also asks to create when
+surge is allowed and every pod on the node is being deleted, failed or succeeded; the map's pods
+are logged ones (`podsView`), which `sceneOk` makes live and `Pending`, so that branch is taken
+only with no pod (the backoff, event and failed-pod branches are not). The pods to delete are any
+names.
 -/
 module
 
@@ -43,11 +45,11 @@ abbrev DaemonSetsController.podsShouldBeOnNode.spec : Prop :=
     (tols : List k8s_io.api.core.v1.Toleration)
     (rna : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (L : Nat),
   {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ □ nodeAt node DFrac.discard n ∗ podMapAt m Mp ∗
-      podsView γa d.ObjectMeta'.UID' L Mp ∗ dsArg γa ds o d ∗ tl ↦*{dq} tols ∗ rnaOk rna }}
+      podsView γa d.ObjectMeta'.UID' L Mp ∗ dsArg γa c ds o d ∗ tl ↦*{dq} tols ∗ rnaOk rna }}
     (App (App (App (App (App (App (App (Val (dsc @!! go.GoType.PointerType DaemonSetsController.ty @!! go!"podsShouldBeOnNode")) (Val #logger)) (Val #node)) (Val #m)) (Val #ds)) (Val #hash)) (Val #tl)) (Val #rna))
   {{ (nn pd : GoSlice), RET (PairV #nn #pd); threadTok ∗ podMapAt m Mp ∗ tl ↦*{dq} tols ∗
       ∃ (ns ps : List GoString), nn ↦* ns ∗ pd ↦* ps ∗
-        ⌜∀ x ∈ ns, x = n.ObjectMeta'.Name' ∧ Mp !! x = none⌝ }}
+        ⌜∀ x ∈ ns, x = n.ObjectMeta'.Name' ∧ podsOn Mp x = []⌝ }}
 
 end spec
 
