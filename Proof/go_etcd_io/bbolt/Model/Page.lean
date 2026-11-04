@@ -195,11 +195,151 @@ inodes, and `overflow`. -/
 def mkPageHdr (id : w64) (leaf : Bool) (n : Nat) (ovf : w32) : Page :=
   ⟨id, W16 ((if leaf then leafPageFlag else branchPageFlag : Nat) : Int), W16 (n : Int), ovf⟩
 
+/-! ## The layout of `pageBody` (U1; ported from Perennial's `unsafememory/Pages.lean`) -/
+
+omit [GooseExts] in
+theorem flatMap_encode_length' {V : Type} {n : Nat} [ByteEncoding V n] (vs : List V) :
+    (vs.flatMap encode).length = vs.length * n := by
+  induction vs with
+  | nil => simp
+  | cons v vs ih =>
+    simp [List.flatMap_cons, ih, ByteEncoding.encode_length, Nat.succ_mul]; omega
+
+theorem leafElems_length (ms : List InodeM) : (leafElems ms).length = ms.length := by
+  simp [leafElems]
+
+theorem branchElems_length (ms : List InodeM) : (branchElems ms).length = ms.length := by
+  simp [branchElems]
+
+theorem elemBytes_length (leaf : Bool) (ms : List InodeM) :
+    (elemBytes leaf ms).length = 16 * ms.length := by
+  unfold elemBytes
+  split
+  · rw [flatMap_encode_length', leafElems_length]; omega
+  · rw [flatMap_encode_length', branchElems_length]; omega
+
+omit [GooseExts] in
+theorem dataBytes_take_succ (ms : List InodeM) (i : Nat) (h : i < ms.length) :
+    dataBytes (ms.take (i + 1)) = dataBytes (ms.take i) ++ ms[i].kv := by
+  simp only [dataBytes, List.take_add_one, List.getElem?_eq_getElem h, Option.toList_some,
+    List.flatMap_append, List.flatMap_singleton]
+
+omit [GooseExts] in
+theorem dataBytes_length_le (ms : List InodeM) (i : Nat) :
+    (dataBytes (ms.take i)).length ≤ (dataBytes ms).length := by
+  conv => rhs; rw [← List.take_append_drop i ms]
+  simp only [dataBytes, List.flatMap_append, List.length_append]
+  omega
+
+/-- The data of inode `i` in the data area. -/
+omit [GooseExts] in
+theorem dataBytes_drop_take (ms : List InodeM) (i : Nat) (h : i < ms.length) :
+    ((dataBytes ms).drop (dataBytes (ms.take i)).length).take ms[i].kv.length = ms[i].kv := by
+  have e : dataBytes ms = dataBytes (ms.take i) ++ ms[i].kv ++ dataBytes (ms.drop (i + 1)) := by
+    conv => lhs; rw [← List.take_append_drop (i + 1) ms]
+    rw [show dataBytes (ms.take (i + 1) ++ ms.drop (i + 1)) =
+      dataBytes (ms.take (i + 1)) ++ dataBytes (ms.drop (i + 1)) by
+        simp only [dataBytes, List.flatMap_append],
+      dataBytes_take_succ ms i h]
+  rw [e, List.append_assoc, List.drop_left, List.take_left]
+
+omit [GooseExts] in
+theorem take_drop_append_left {α : Type} (A B : List α) (k n : Nat) (h : k + n ≤ A.length) :
+    ((A ++ B).drop k).take n = (A.drop k).take n := by
+  rw [List.drop_append_of_le_length (by omega), List.take_append_of_le_length (by simp; omega)]
+
+/-- Element `i` of the elements of a page. -/
+omit [GooseExts] in
+theorem elems_take_drop {V : Type} [ByteEncoding V 16] (es : List V) (B : List w8) (i : Nat)
+    (h : i < es.length) : ((es.flatMap encode ++ B).drop (16 * i)).take 16 = encode es[i] := by
+  rw [take_drop_append_left _ _ _ _ (by rw [flatMap_encode_length']; omega), Nat.mul_comm,
+    flatMap_encode_take_drop _ _ h]
+
+/-- Element `i` of the leaf elements in a page's bytes. -/
+theorem pageBody_leaf_elem (ms : List InodeM) (tail : List w8) (i : Nat) (h : i < ms.length) :
+    ((pageBody true ms ++ tail).drop (16 * i)).take 16 =
+      encode ((leafElems ms)[i]'(by rw [leafElems_length]; exact h)) := by
+  simp only [pageBody, elemBytes, ite_true, List.append_assoc]
+  exact elems_take_drop _ _ _ _
+
+/-- Element `i` of the branch elements in a page's bytes. -/
+theorem pageBody_branch_elem (ms : List InodeM) (tail : List w8) (i : Nat) (h : i < ms.length) :
+    ((pageBody false ms ++ tail).drop (16 * i)).take 16 =
+      encode ((branchElems ms)[i]'(by rw [branchElems_length]; exact h)) := by
+  simp only [pageBody, elemBytes, Bool.false_eq_true, ite_false, List.append_assoc]
+  exact elems_take_drop _ _ _ _
+
+/-- The key and value of inode `i` in a page's bytes (from the end of the header). -/
+theorem pageBody_kv (leaf : Bool) (ms : List InodeM) (tail : List w8) (i : Nat)
+    (h : i < ms.length) :
+    ((pageBody leaf ms ++ tail).drop (dataOff ms i - 16)).take ms[i].kv.length = ms[i].kv := by
+  have hd : dataOff ms i - 16 = (elemBytes leaf ms).length + (dataBytes (ms.take i)).length := by
+    simp only [dataOff, elemBytes_length]; omega
+  have hle : (dataBytes (ms.take i)).length + ms[i].kv.length ≤ (dataBytes ms).length := by
+    have := dataBytes_length_le ms (i + 1)
+    rw [dataBytes_take_succ ms i h, List.length_append] at this
+    exact this
+  rw [hd, pageBody, List.append_assoc, ← List.drop_drop, List.drop_left,
+    take_drop_append_left _ _ _ _ hle, dataBytes_drop_take ms i h]
+
+omit [GooseExts] in
+theorem dataOff_succ (ms : List InodeM) (j : Nat) (h : j < ms.length) :
+    dataOff ms (j + 1) = dataOff ms j + ms[j].kv.length := by
+  simp only [dataOff, dataBytes_take_succ ms j h, List.length_append]; omega
+
+theorem pageBody_length (leaf : Bool) (ms : List InodeM) :
+    (pageBody leaf ms).length = 16 * ms.length + (dataBytes ms).length := by
+  simp [pageBody, elemBytes_length]
+
+theorem dataOff_le (ms : List InodeM) (j : Nat) (h : j < ms.length) :
+    dataOff ms j + ms[j].kv.length ≤ 16 + (pageBody true ms).length := by
+  rw [← dataOff_succ ms j h]
+  have := dataBytes_length_le ms (j + 1)
+  simp only [dataOff, pageBody, List.length_append, elemBytes_length]; omega
+
+omit [GooseExts] in
+theorem dataOff_ge (ms : List InodeM) (i : Nat) : 16 + 16 * ms.length ≤ dataOff ms i := by
+  simp [dataOff]
+
+/-- The key of inode `i` in a page's bytes (from the end of the header). -/
+theorem pageBody_key' (leaf : Bool) (ms : List InodeM) (tail : List w8) (i : Nat)
+    (h : i < ms.length) :
+    ((pageBody leaf ms ++ tail).drop (dataOff ms i - 16)).take ms[i].key.length = ms[i].key := by
+  have e := congrArg (List.take ms[i].key.length) (pageBody_kv leaf ms tail i h)
+  rw [List.take_take, Nat.min_eq_left (by simp [InodeM.kv])] at e
+  rw [e]; simp [InodeM.kv]
+
+/-- The value of inode `i` in a page's bytes (from the end of the header). -/
+theorem pageBody_value' (leaf : Bool) (ms : List InodeM) (tail : List w8) (i : Nat)
+    (h : i < ms.length) :
+    ((pageBody leaf ms ++ tail).drop (dataOff ms i - 16 + ms[i].key.length)).take
+      ms[i].value.length = ms[i].value := by
+  have e := congrArg (List.drop ms[i].key.length) (pageBody_kv leaf ms tail i h)
+  rw [List.drop_take] at e
+  rw [← List.drop_drop]
+  have hl : ms[i].kv.length - ms[i].key.length = ms[i].value.length := by simp [InodeM.kv]
+  rw [hl] at e
+  rw [e]; simp [InodeM.kv]
+
+omit [GooseExts] in
+theorem readBack_length (leaf : Bool) (ms : List InodeM) :
+    (readBack leaf ms).length = ms.length := by
+  unfold readBack; split <;> simp
+
+/-- The bytes at `off ≥ 16` of a page made of a header and `B`: `B`'s at `off - 16`. -/
+theorem bytesAt_hdr (h : Page) (B : List w8) (off n : Nat) (hoff : 16 ≤ off) :
+    bytesAt (encode h ++ B) off n = (B.drop (off - 16)).take n := by
+  unfold bytesAt
+  have : off = (encode h).length + (off - 16) := by rw [ByteEncoding.encode_length]; omega
+  rw [this, ← List.drop_drop, List.drop_left]
+  congr 2; omega
+
 /-! ## Lemma statements (proved by U1) -/
 
 /-- The header of bytes starting with an encoded header. -/
 theorem pageHdr_bytes (h : Page) (rest : List w8) : pageHdr (encode h ++ rest) = h := by
-  sorry
+  unfold pageHdr bytesAt
+  rw [List.drop_zero, List.take_left' (ByteEncoding.encode_length h), ByteEncoding.decode_encode]
 
 /-- **The round trip of `WriteInodeToPage`/`ReadInodeFromPage`**: a page laid out with the
 header `mkPageHdr id leaf ms.length ovf` and `pageBody leaf ms` reads back `readBack leaf ms`.
@@ -209,7 +349,71 @@ theorem pageInodes_writeInodes (id : w64) (leaf : Bool) (ms : List InodeM) (ovf 
     (tail : List w8) (h : pageFits ms) :
     pageInodes (encode (mkPageHdr id leaf ms.length ovf) ++ pageBody leaf ms ++ tail) =
       readBack leaf ms := by
-  sorry
+  obtain ⟨hn, hb, hk⟩ := h
+  rw [List.append_assoc]
+  generalize hpg : encode (mkPageHdr id leaf ms.length ovf) ++ (pageBody leaf ms ++ tail) = pg
+  have hhdr : pageHdr pg = mkPageHdr id leaf ms.length ovf := by rw [← hpg, pageHdr_bytes]
+  have hcount : pageCount pg = ms.length := by
+    simp only [pageCount, hhdr, mkPageHdr]; word
+  have hflags : (pageFlags pg = leafPageFlag) = (leaf = true) := by
+    simp only [pageFlags, hhdr, mkPageHdr]
+    cases leaf <;> simp [leafPageFlag, branchPageFlag]
+  have hbl : (pageBody true ms).length = (pageBody leaf ms).length := by
+    simp [pageBody_length]
+  apply List.ext_getElem
+  · simp [pageInodes, hcount, readBack_length]
+  intro i h1 h2
+  simp only [pageInodes, List.length_map, List.length_range, hcount] at h1
+  have hdo := dataOff_le ms i h1
+  have hdg := dataOff_ge ms i
+  have hi16 : 16 * i < 16 * ms.length := by omega
+  simp only [pageInodes, List.getElem_map, List.getElem_range, pageInode, hflags]
+  have hk' : ms[i].kv.length = ms[i].key.length + ms[i].value.length := by simp [InodeM.kv]
+  cases leaf
+  · simp only [Bool.false_eq_true, ite_false, readBack, List.getElem_map]
+    have he : branchElem pg i = (branchElems ms)[i]'(by rw [branchElems_length]; exact h1) := by
+      unfold branchElem
+      rw [← hpg, bytesAt_hdr _ _ _ _ (by simp [elemOff]),
+        show elemOff i - 16 = 16 * i by simp [elemOff], pageBody_branch_elem ms tail i h1,
+        ByteEncoding.decode_encode]
+    have hp : branchPos pg i = dataOff ms i - (16 + 16 * i) := by
+      simp only [branchPos, he, branchElems, List.getElem_mapIdx]; word
+    have hks : branchKsize pg i = ms[i].key.length := by
+      simp only [branchKsize, he, branchElems, List.getElem_mapIdx]; word
+    have hkey : branchKey pg i = ms[i].key := by
+      unfold branchKey
+      rw [hp, hks, ← hpg, bytesAt_hdr _ _ _ _ (by simp [elemOff]; omega),
+        show elemOff i + (dataOff ms i - (16 + 16 * i)) - 16 = dataOff ms i - 16 by
+          simp [elemOff]; omega,
+        pageBody_key' false ms tail i h1]
+    rw [hkey, he]
+    simp [branchElems, List.getElem_mapIdx]
+  · simp only [ite_true, readBack, List.getElem_map]
+    have he : leafElem pg i = (leafElems ms)[i]'(by rw [leafElems_length]; exact h1) := by
+      unfold leafElem
+      rw [← hpg, bytesAt_hdr _ _ _ _ (by simp [elemOff]),
+        show elemOff i - 16 = 16 * i by simp [elemOff], pageBody_leaf_elem ms tail i h1,
+        ByteEncoding.decode_encode]
+    have hp : leafPos pg i = dataOff ms i - (16 + 16 * i) := by
+      simp only [leafPos, he, leafElems, List.getElem_mapIdx]; word
+    have hks : leafKsize pg i = ms[i].key.length := by
+      simp only [leafKsize, he, leafElems, List.getElem_mapIdx]; word
+    have hvs : leafVsize pg i = ms[i].value.length := by
+      simp only [leafVsize, he, leafElems, List.getElem_mapIdx]; word
+    have hkey : leafKey pg i = ms[i].key := by
+      unfold leafKey
+      rw [hp, hks, ← hpg, bytesAt_hdr _ _ _ _ (by simp [elemOff]; omega),
+        show elemOff i + (dataOff ms i - (16 + 16 * i)) - 16 = dataOff ms i - 16 by
+          simp [elemOff]; omega,
+        pageBody_key' true ms tail i h1]
+    have hval : leafValue pg i = ms[i].value := by
+      unfold leafValue
+      rw [hp, hks, hvs, ← hpg, bytesAt_hdr _ _ _ _ (by simp [elemOff]; omega),
+        show elemOff i + (dataOff ms i - (16 + 16 * i)) + ms[i].key.length - 16 =
+          dataOff ms i - 16 + ms[i].key.length by simp [elemOff]; omega,
+        pageBody_value' true ms tail i h1]
+    rw [hkey, hval, he]
+    simp [leafElems, List.getElem_mapIdx]
 
 end enc
 
