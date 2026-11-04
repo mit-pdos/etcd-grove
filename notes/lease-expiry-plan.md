@@ -621,3 +621,16 @@ The rest has a route with the existing lemmas:
 - The leases: `closers_grant`'s steps (`init_RWMutex`, pools), or one new append lemma
   `closers_recover`. That lemma keeps `histMono` when every old live id is in `L'`.
 - The heap: `heap.Init_.spec`, as in `LeaseExpiredNotifier.Init`.
+
+**Decided (2026-11-04):**
+1. The user chose (a). `schema.MustUnsafeGetAllLeases.wp_proof` is a contract over the locked batch
+   transaction's state.
+   - Pre: `batchLocked γ P b st`, with every record of `bktOf st.S "lease"` equal to `leaseEnc id t r`
+     under `leaseKey id`.
+   - Post: `batchLocked` unchanged, and a fresh slice of `*leasepb.Lease`, one per record, in key
+     order.
+   - Its docstring says what it trusts: `UnsafeForEach` reads the writer's bolt transaction, and
+     Go's panic on a record that does not decode is excluded by the premise.
+2. The coordinator's decision. `Recover`'s pre takes `□ [∗list] id ∈ L', leaseGranted γl id`;
+   recovered leases are not exempted from the guard. The walk meets it at `L' = []`. A granting
+   cluster's server meets it for any id, since its guard is pure in the mode.
