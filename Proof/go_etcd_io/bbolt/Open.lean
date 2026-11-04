@@ -50,20 +50,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **`os.OpenFile` with its error formattable** (maintainer 8's pending 37.10: `os.OpenFile.spec`'s
-post gains `fmtErrorOkOrNil err`; `Open` logs the error with `%v`). Assumed here until it lands. -/
-abbrev os.OpenFile.specE : Prop :=
-  ∀ (path : GoString) (perm : w32) (q : DFrac) (mo : Option OsMeta),
-  (mo = none → q = DFrac.own 1) →
-  {{ osInv (GF := GF) ∗ osMeta (GF := GF) path q mo }}
-    (App (App (App (Val (@! os.OpenFile)) (Val #path)) (Val #(W64 0x42))) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-      ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd path (DFrac.own 1) ∗
-          osFd fd (DFrac.own 1) ⟨path, true, true⟩ ∗ osMeta path q (openMeta mo true)) ∨
-      (⌜err ≠ interface.nil ∧ f = null⌝ ∗
-        ∃ mo' : Option OsMeta, ⌜mo' = mo ∨ mo' = openMeta mo true⌝ ∗ osMeta path q mo')) ∗
-      fmtErrorOkOrNil err }}
-
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`db.Begin(true)` with no transaction on an error** (`DB.Begin_err.spec` at `w = true`, with
@@ -141,8 +127,51 @@ macro "opt_rdt" ax:term : tactic => `(tactic| (
   try wp_auto
   ihave Hopts := Hback $$ Hx))
 
+/-- The arguments of `Open`'s log calls: strings, a `bool`, errors (`fmtErrorOk` in the context). -/
+macro "open_args" : tactic => `(tactic| (
+  try simp only [List.zip_cons_cons, List.zip_nil_left, List.zip_nil_right,
+    Iris.BI.BigSepL.bigSepL_cons, Iris.BI.BigSepL.bigSepL_nil]
+  repeat' (first
+    | isplitr
+    | itrivial
+    | iapply Perennial.EtcdGrove.bbolt.logArgOk_bool
+    | (iapply Perennial.EtcdGrove.bbolt.logArgOk_of_argWf
+       apply Perennial.EtcdGrove.fmt.argWf_of_argsWf
+       exact .cons_string _ _ .nil)
+    | (iapply Iris.BI.BigSepL.bigSepL_nil.2; iempintro)
+    | (iapply Perennial.EtcdGrove.bbolt.logArgOk_of_fmtErrorOk
+       · simp [Perennial.EtcdGrove.bbolt.methodVerbs]
+       iassumption))))
+
+set_option hygiene false in
+/-- An error exit after `db.close()`: `lg.Errorf(fmtS, …)` (`hv` its verbs), the `return nil, err`,
+the deferred log (`Hdef`), and `Open`'s error post. -/
+macro "open_exit" hv:term:max xs:term:max : tactic => `(tactic| (
+  try wp_auto
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl,
+    show sint.nat (W64 (0 + 1 + 1)) = 2 from rfl, List.set]
+  try wp_auto
+  wp_apply wp_boltLog li _ _ _ _ $xs _ iprop(True) _ errorf_mem' $hv rfl $$ Hlgok [Hsl] [] []
+    as Hsl -
+  · iexact Hsl
+  · open_args
+  try wp_auto
+  wp_bind (App (Val #dv) (Val #()))
+  iapply Hdef $$ [err]
+  · iexact err
+  · iassumption
+  iintro err
+  try wp_auto
+  iapply HΦ
+  iframe Hopts
+  iright; ipureintro; intro h; cases h))
+
 theorem Open.wp_proof
-    (hOpenFile : ∀ [HasExt osFsExt], os.OpenFile.specE (GF := GF) (hG := hG))
+    (hOpenFile : ∀ [HasExt osFsExt], os.OpenFile.spec (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
     (hFlock : ∀ [HasExt osFsExt], flock.spec (GF := GF) (hG := hG))
     (hStat : ∀ [HasExt osFsExt], os.File.Stat.spec (GF := GF) (hG := hG))
@@ -326,6 +355,122 @@ theorem Open.wp_proof
         · iexact Hsl
         · log_args_ok
         iapply HΨ $$ Herr
+  -- the file
+  obtain ⟨hro, hps0, hof, hml0, hmf0, hlp⟩ := Hok
+  icases (optsAt_readOnly_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  simp only [hro, _root_.Perennial.os.O_RDWR, _root_.Perennial.os.O_RDONLY,
+    _root_.Perennial.os.O_CREATE]
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  icases (optsAt_openFile_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  simp only [hof]
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  rw [show (W64 2 ||| W64 64 : w64) = W64 0x42 from rfl]
+  iStructNamed ops
+  ihave Hmf : mapFields (GF := GF) dbl (DFrac.own 1) none $$ [dataref data meta0 meta1]
+  · simp only [mapFields]; iframe
+  wp_apply hOpenFile path mode (DFrac.own 1) mo (fun _ => rfl) $$ [Hfm] as %f %err
+    ⟨(⟨%fd, %Hfd, Hf, Hfdo, Hfm⟩ | ⟨%Herr, %mo', -, -⟩), #Herrok⟩
+  · iframe; iframe #
+  rotate_left
+  · -- the file did not open
+    obtain ⟨Herr, rfl⟩ := Herr
+    cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei =>
+    ihave #Hek := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Herrok
+    try wp_auto
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none path null Hdbnn $$
+      [readOnly opened freelist writeAt path Hmf datasz file] as %cerr ⟨readOnly, -⟩
+    · iframe; iframe #
+      isplitr
+      · unfold closeMapRes; iempintro
+      ileft; ipureintro; rfl
+    open_exit fmtVerbs_openErr [interface.mkOk go.string #path, GoInterface.ok ei]
+  -- the file opened
+  obtain ⟨rfl, -⟩ := Hfd
+  icases openRest_opened path D mo $$ [Hfm Hfr] with ⟨%m, %xs, Hfm, Hxs, %Hm⟩
+  · iframe
+  try wp_auto
+  wp_apply hName f fd path (DFrac.own 1) $$ [Hf] as Hf
+  · iexact Hf
+  icases (optsAt_timeout_rd opts dq o) $$ Hopts with ⟨%dqx, %tmo, Hx, Hback⟩
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  rw [← fileOwn_eq] at *
+  wp_apply hFlock dbl f fd path _ (DFrac.own 1) true tmo $$ [file Hf Hfdo] as %ferr
+    ⟨file, Hf, Hfdo, #Hfe⟩
+  · iframe; iframe #
+  cases ferr with
+  | ok ei =>
+    ihave #Hek := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Hfe
+    try wp_auto
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none path f Hdbnn $$
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+    · iframe; iframe #
+      isplitr
+      · unfold closeMapRes; iempintro
+      iright; iexists fd, path, _; iframe
+    open_exit fmtVerbs_lockErr
+      [interface.mkOk go.string #path, interface.mkOk go.bool #false, GoInterface.ok ei]
+  | nil =>
+  try wp_auto
+  -- the page size
+  icases (optsAt_pageSize_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
+  simp only [hps0]
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
+  ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
+  · iPkgInit
+  ihave #Hdps : globalAddr internal.common.DefaultPageSize ↦□ (W64 4096) $$ [Hcom]
+  · ihave #H := isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ Hcom
+    iexact H
+  try wp_auto
+  -- the file's size
+  obtain ⟨hmaps, hxl, hsz, hbr⟩ := Hm
+  wp_apply hStat f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) ⟨path, true, true⟩ m $$
+    [Hf Hfdo Hfm] as %fi %serr ⟨Hf, Hfdo, Hfm, Hfi, #Hse⟩
+  · iframe; iframe #
+  icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
+  rotate_left
+  · obtain ⟨Herr, rfl⟩ := Hfi
+    cases serr with
+    | nil => exact absurd rfl Herr
+    | ok ei =>
+    try wp_auto
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none path f Hdbnn $$
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+    · iframe; iframe #
+      isplitr
+      · unfold closeMapRes; iempintro
+      iright; iexists fd, path, _; iframe
+    open_exit fmtVerbs_statErr [interface.mkOk go.string #path, GoInterface.nil]
+  obtain ⟨rfl, rfl⟩ := Hfi
+  try wp_auto
+  wp_apply hSize fs (W64 m.size) $$ [Hfs] as Hfs
+  · iexact Hfs
+  try wp_auto
+  rw [← hxl]
+  wp_apply hMZ dbl f fd path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
+    ⟨path, true, true⟩ xs rfl rfl (by omega) $$ [file pageSize Hf Hfdo Hxs]
+    as %z %zerr ⟨file, pageSize, Hf, Hfdo, Hxs, Hz⟩
+  · iframe; iframe #
+  icases Hz with (%Hz | ⟨%Hzerr, #Hze⟩)
+  rotate_left
+  · cases zerr with
+    | nil => exact absurd rfl Hzerr
+    | ok ei =>
+    try wp_auto
+    wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none path f Hdbnn $$
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+    · iframe; iframe #
+      isplitr
+      · unfold closeMapRes; iempintro
+      iright; iexists fd, path, _; iframe
+    open_exit fmtVerbs_metaErr [interface.mkOk go.string #path, GoInterface.ok ei]
+  obtain ⟨rfl, hz⟩ := Hz
+  try wp_auto
   sorry
 
 end proof
