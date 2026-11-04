@@ -324,7 +324,19 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         · exact absurd (by rw [hPne y h2, h1]) hy
       · obtain ⟨p, hp, he⟩ := hL.agree y h1
         exact ⟨p, List.mem_append_left _ hp, he⟩
-    par := sorry }
+    par := by
+      intro hpn
+      obtain ⟨rpi0, hrpi0, hplv, hnot, hcap, hsort, hpw, -⟩ := hL.par hpn
+      have hpn' : rl.nv.parent' ≠ null := by rw [hrpl]; exact hpn
+      obtain ⟨hX3p, hsimp, hinsl, -⟩ := hpar3 hpn' rpi0 (by rw [hrpl]; exact hrpi0)
+      rw [hrpl] at hX3p
+      -- the parent's put: the piece's entry spliced in after the done pieces'
+      have hcore : wsSorted (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)) ∧
+          (wsPutAt rp.ws (pcOldKey ra) (pcEnt ra id)).map wDat =
+            parWs bs j (i + 1) (ps ++ [pn]) := sorry
+      refine ⟨_, hX3p, by rw [hlive3]; exact hplv, hnot, ?_, hcore.1, hcore.2, hinsl⟩
+      show rp.capOwn = true
+      rw [hsimp.2.2.2.2.2.2]; exact hcap }
 
 end step
 
