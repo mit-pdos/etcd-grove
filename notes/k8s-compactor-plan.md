@@ -1,6 +1,10 @@
 # Plan: Kubernetes' etcd compactor (`k8s.io/apiserver/pkg/storage/etcd3/compact.go`)
 
-Status: drafted 2026-11-04, for the user's review; nothing started. It follows the phases of
+Status: approved 2026-11-04 with the recommendations (Q1 (a) then (c), Q2 (i), Q3 in rounds). K1
+done (2026-11-04): the compactor's slot `v3compactor.bootCfg`, admitting compaction with the
+compactor off (`notes/decisions.md`, "The compactor's slot"). Its client-only case allows any `cret`
+and is covered by `bootCfg_off`, not the `cret = 0` and `bootCfg_clientOnly` K1 below first said.
+Next: K2, the specs' Draft. It follows the phases of
 `notes/spec-first-plan.md`: scope, a spec skeleton, testing the specs against Go, freeze, proofs.
 Its server step follows the slot convention there, "The slot convention" (the user's advice,
 2026-11-04).

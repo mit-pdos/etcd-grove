@@ -111,6 +111,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 
 @[expose] public section
 
@@ -134,8 +135,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 the one written-out triple (step 6 of `notes/spec-first-plan.md`'s hubs, 2026-11-03: until then
 `NewServer.spec` and `NewServer.specM` were full copies of it at fixed modes, each about 200 lines,
 and every change to the construction was made three times; they are its instances below). The
-compactor by the mode: with `cmp`, on in revision mode at a positive retention or in periodic mode,
-auth off; without, not configured. With auth on, the simple token provider and a cluster that grants
+compaction mode `cmp` (the KV admits compaction requests) and the compactor by its slot
+(`v3compactor.bootCfg`: off in either mode, or on in compaction mode), compaction with auth off. With auth on, the simple token provider and a cluster that grants
 no lease; the KV invariant, the raft environment and the built part are the mode's (`kvInvM on`,
 `srvErM on`, `srvBuiltG on`, `ServerOn.lean`; at `on = false` today's: `kvInvM_false`, ...). With auth
 on, the proof (`NewServer.wp_proofG`) takes the auth store's construction as the contract
@@ -173,18 +174,13 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- restriction, the code accepts any budget and from 5000 on one nested transaction panics every
   -- member's apply; etcd's default (128) meets it
   v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →
-  -- the compactor by the mode: on, in revision mode at a positive retention (M2's phase 0) or in
-  -- periodic mode (2026-11-02), auth
-  -- off; off, not configured (`AutoCompactionRetention = 0`: `v3compactor.New` not reached);
-  -- (C3's server stage, 2026-11-02, the user's) on, the cluster's retention at most the compactor's;
-  -- (periodic mode, 2026-11-02) or on in periodic mode, at a period of at least 10ns and a cluster
-  -- retention of `0`
-  (if cmp then
-      ((cfg.AutoCompactionMode' = go!"revision" ∧ 0 < sint.Z cfg.AutoCompactionRetention' ∧
-          (ρ.rd.kv.cret : Int) ≤ sint.Z cfg.AutoCompactionRetention') ∨
-        (cfg.AutoCompactionMode' = go!"periodic" ∧ 10 ≤ sint.Z cfg.AutoCompactionRetention' ∧
-          ρ.rd.kv.cret = 0)) ∧ on = false
-    else cfg.AutoCompactionRetention' = 0) →
+  -- the auto-compactor's configuration against the KV's compaction mode and the cluster's retention
+  -- (the compactor's slot, `v3compactor.bootCfg`: off in either mode, or on in compaction mode in
+  -- revision or periodic mode; K1 of `notes/k8s-compactor-plan.md`, 2026-11-04, the user's approval;
+  -- until then inline, the compactor on exactly in compaction mode)
+  v3compactor.bootCfg cfg.AutoCompactionMode' cfg.AutoCompactionRetention' cmp ρ.rd.kv.cret →
+  -- compaction with auth off (M2's scope; a coupling of the auth mode and the KV's)
+  (cmp = true → on = false) →
   -- the stand-in's mode the server's (`envAgree`'s `E.γ.cm = E.cmp` reads it off the post)
   E₀.cmp = cmp →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice; J8a-6,
