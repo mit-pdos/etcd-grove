@@ -190,8 +190,9 @@ theorem lease.lessor.Grant.wp_proof
     wp_apply (wp_mapInsert LeaseID.ty lm M id l) $$ HM as HM
     -- the live set grows; the lessor's state and its history with the new lease
     iapply fupd_wp
-    imod closers_grant γl lp L M id l rc I I0 sm ⊤ (fun _ _ => CoPset.mem_full) Hlnn hM HL
-      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID, #Hlive⟩
+    imod closers_grant γl lp L M id l rc I I0 sm (grantTTL mt ttl) ⊤ (fun _ _ => CoPset.mem_full)
+      Hlnn hM HL
+      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Httl $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID, #Hlive⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     imodintro
     -- (S7c) `le.b`, read with the write token's fraction

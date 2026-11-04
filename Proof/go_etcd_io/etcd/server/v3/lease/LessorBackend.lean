@@ -156,6 +156,29 @@ instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
 
 end defs
 
+section ttl
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
+/-- **A lease granted asked for a positive TTL has a positive TTL in the history** (the lease-expiry
+plan's R5, 2026-11-04): from `lessor.Grant`'s success (`leaseLiveFrom`, its `ttl` field at
+`grantTTL`). -/
+theorem leaseGrant_ttl (γl : GName) (m : Nat) (id : w64) (l : Loc) (mt ttl : w64) (E : CoPset)
+    (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ leaseLiveFrom γl m id l ∗ lsF go!"ttl" l ↦□ grantTTL mt ttl ⊢
+      |={E}=> ∃ (i : Nat) (t : w64), ⌜m ≤ i ∧ sint.Z ttl ≤ sint.Z t⌝ ∗ leaseTTLAt γl i id t := by
+  iintro H
+  imod leaseLiveFrom_ttl γl m id l _ E hE $$ H with ⟨%i, %hi, #Ht⟩
+  imodintro
+  iexists i, grantTTL mt ttl
+  iframe Ht
+  ipureintro; exact ⟨hi, grantTTL_ge mt ttl⟩
+
+end ttl
+
 end lease
 end EtcdGrove
 end Perennial

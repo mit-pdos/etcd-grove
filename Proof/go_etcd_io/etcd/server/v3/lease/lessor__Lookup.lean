@@ -40,7 +40,8 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
   icases HR with ⟨%lm, %im, %M, %I', %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx,
     %γr, %hs, #Hpr, Hhl, %Hlast⟩
   -- the reader's view: the history's last snapshot, at an index no earlier than `m`
-  icases lockHist_at γl γr _ hs (M, I') m Hlast $$ [$Hlb $Hpr $Hhl] with ⟨Hhl, %Hm, #Hat⟩
+  obtain ⟨Tq, Hlast⟩ := Hlast
+  icases lockHist_at γl γr _ hs (M, I', Tq) m Hlast $$ [$Hlb $Hpr $Hhl] with ⟨Hhl, %Hm, #Hat⟩
   wp_auto
   wp_apply (wp_map_lookup1 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   have hL := HL id
@@ -76,7 +77,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
       iframe Hsz Hls
       isplitr
       · ipureintro; exact HL
-      iframe Hpr; ipureintro; exact Hlast
+      iframe Hpr; ipureintro; exact ⟨Tq, Hlast⟩
     iapply HΦ
     iunfold lessorRd
     simp only [Option.getD_none]
@@ -85,7 +86,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
     isplitr
     · ipureintro; rfl
     iunfold leaseAbsentFrom
-    iexists hs.length - 1, (M, I')
+    iexists hs.length - 1, (M, I', Tq)
     iframe Hat
     ipureintro; exact ⟨Hm, hM⟩
   | some l =>
@@ -155,7 +156,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
       iframe Hsz Hls
       isplitr
       · ipureintro; exact HL
-      iframe Hpr; ipureintro; exact Hlast
+      iframe Hpr; ipureintro; exact ⟨Tq, Hlast⟩
     iapply HΦ
     iunfold lessorRd
     simp only [Option.getD_some]
@@ -163,7 +164,7 @@ theorem lease.lessor.Lookup.wp_proof : lease.lessor.Lookup.spec (GF := GF) (hG :
     iright
     iframe Hlo
     iunfold leaseLiveFrom
-    iexists hs.length - 1, (M, I')
+    iexists hs.length - 1, (M, I', Tq)
     iframe Hat
     ipureintro; exact ⟨Hm, hM⟩
 

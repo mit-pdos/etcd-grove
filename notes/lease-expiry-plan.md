@@ -485,3 +485,51 @@ Likewise `etcdstart`'s `memberBoot`/`memberBootOn`/`alloc1` (pre-`NewServer`; `a
 (the revocable arm needs `m` in `isServerRun`): options (a) a sealed `lease.runCfg lg m` in a module
 below `InvRun` (moving `srvGrantOpen`), carried as `∃ m, lease.runCfg lg m` by the inner predicates,
 `lease.bootCfg_run` its intro; (b) `m` threaded through the inner predicates; (c) inline until Part X.
+
+## Plumbing: R5 and S1 (2026-11-04, branch `lease-expiry-recover`)
+
+**R5, done** (`3498242493`). `LSnap` is `(lease map, item map, TTL map)`. The reader invariant
+(`lessorRdBody`) gains `ttlTie` for every snapshot. A snapshot's TTL map has exactly its live ids,
+and each lease's TTL is its read-only `ttl` field. Grant inserts the granted TTL (`grant_hist`,
+`ttlTie_insert`), Revoke deletes it, and Attach/Detach keep it (`hist_append(_set)` take a
+`tieSub` of the last snapshot). Recover's axiom appends `(∅, ∅, ∅)`. The laws:
+- `leaseTTLAt γl i id t` (persistent): `id` has TTL `t` at index `i`.
+- `leaseLiveFrom_ttl`: a lease found, with its `ttl` read, has that TTL in the history (what
+  `TimeToLive` needs).
+- `leaseGrant_ttl` (`LessorBackend.lean`): from Grant's post, the recorded TTL is `≥` the
+  requested one (`grantTTL_ge`), so it is `≥ 1` for a `TTL ≥ 1` grant.
+
+No spec changed: Grant's post already had `ttl ↦□ grantTTL mt ttl`. Checkpoint does not touch the
+history.
+
+**S1, partly done.**
+- Done: `LeaseExpiredNotifier.Init` is specified and proved (`ee6424384a`, linked). Its post is
+  `notifierAt np 1` again. The queue is not emptied: the stale entries stay, and `notifierAt` already
+  admits any items.
+- Not done: `Recover`'s new spec and proof, `initAndRecover`, `UnsafeCreateLeaseBucket`, and the
+  `MustUnsafeGetAllLeases` axiom. The axiom was left out on purpose, so that the trust base changes
+  only by the approved pair.
+
+**The blocker: the frame fix has no supplier.** Go's `Recover` stores `le.rd = rd`. The model
+splits `le.rd` between `lessorMu` and `rdOwn γl rd0`, so a provable spec must take `rdOwn γl rd0`
+(the audit's frame finding). Its only caller cannot supply it:
+- The snapshot walk (`SnapApplyWalk.lean:411`) holds no `rdOwn`.
+- The apply thread's state (`leasesLive`, `srvApplyKVM`) holds no `rdOwn` either.
+- `NewServer` drops `newWatchableStore`'s `∃ rd, rdOwn γl rd ∗ mvcc.rdIs rd …` (`BuildLemmas.lean:139`).
+- The walk also lacks `lessorCfg`, which is needed to read `minLeaseTTL`.
+
+Threading `rdOwn` reaches the apply-state hub: about 14 files and 32 sites use `leasesLive`, plus
+NewServer/BuildLemmas. That changes the snapshot path's statements, which this stage was told not
+to do. The options:
+1. Thread `rdAt γl s` (`RangeDeleter.lean`, the L3c plan) from NewServer into the apply thread's
+   state, as X6/X7's revocations need anyway (`apply/Chain.lean`'s `revokeRes`). Then land S1 on
+   it, with the walk proving `rdIs` of its new closure.
+2. Thread only `∃ rd, rdOwn γl rd` (no contract) through `leasesLive`: smaller, but X6 must
+   redo it.
+3. Defer S1 until L3c/X6 lands.
+
+**Decided (the user, 2026-11-04):** the inner server predicates' lease premise behind a sealed
+`lease.runCfg lg m` in a module below `InvRun` (Part C's option (a): `srvGrantOpen` and
+`runSnapLgOkBody` move there; the inner predicates carry `∃ m, lease.runCfg lg m`, introduced from
+`lease.bootCfg`); `Recover`'s range deleter by threading `lease.rdAt γl s` from `NewServer` into the
+apply thread's state (option 1; Part X's revocations use it too), then S1 on it.
