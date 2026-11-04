@@ -33,7 +33,6 @@ public import Spec.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Spec.go_etcd_io.bbolt.internal.common.InBucket__SetRootPage
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Free
 public import Perennial.Proof.time.Link
-public import Proof.go_etcd_io.bbolt.Commit.AssembleGaps
 public import Proof.go_etcd_io.bbolt.Commit.AssembleAcc
 public import Proof.go_etcd_io.bbolt.Commit.AssemblePure
 public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
@@ -300,8 +299,7 @@ theorem Tx.Commit_err.wp_proof'
     iframe #
     ipureintro
     exact ⟨⟨rfl, hrwr, htxn, rfl, hrootn⟩, Hhok⟩
-  icases cm_keep_pure (wtx_wMetaOK K tx r false X w) $$ [Hw Hwdb] with ⟨⟨Hw, Hwdb⟩, %Hmeta⟩
-  · iframe
+  have Hmeta : metaCopyOK X.t.mv w.C := Hflv.2.1
   icases (cm_keep_pure (cm_wdbW_ok K tx X.v w)) $$ Hwdb
     with ⟨Hwdb, %Hwok⟩
   have hbase : T.base = treeData w.C := by
@@ -314,7 +312,7 @@ theorem Tx.Commit_err.wp_proof'
   have hvwf : viewWF X.v := Hf.1.2.2.2.2.2.2.2
   have hld : ∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl := fun bl hb =>
     leafDepthOK_rt X bl (rtOK_init X bl Hf.1 hvwf (Option.isSome_iff_ne_none.2 hb))
-  wp_apply wp_rebalance K tx r false X w Hf.1 hld (wOK_liveReach X Hf.1) Hflv $$ [Hw Hwdb]
+  wp_apply wp_rebalance K tx r false X w Hf.1 hld Hf.2.2.2.2.1 Hflv.1 $$ [Hw Hwdb]
     as ⟨%X1, %fl1, Hw, Hwdb, %Hrb⟩
   · iframe
   imod cm_excl_update K r X X1 _ $$ Hex
@@ -353,15 +351,21 @@ theorem Tx.Commit_err.wp_proof'
   wp_apply time.wp_Now as %t1 -
   try wp_auto
   -- `spill`
-  obtain ⟨hrbOK, hreach1, hflv1⟩ := Hrb
+  obtain ⟨hrbOK, hreach1, hflv1, htt1, hmv1⟩ := Hrb
   have hv1 : X1.v = X.v := hrbOK.2.2.1
-  have hmv1 : X1.t.mv = X.t.mv := sorry -- Gap 6: `rebalance`'s post should say the meta copy is unchanged
   rw [← hv1]
   have hmap1 : X1.t.mv.pgid'.toNat * 4096 ≤ mapLen (w.withFl fl1).ms := by
     rw [hmv1, show (w.withFl fl1).ms = w.ms from rfl, Hmeta.2.2.2.1]
     exact Hwok.1.2.2.2.2.2.2.2.2.1 _ _ Hwok.2.1
+  -- the spill's start: the committed tree, the mark, the root bucket's children
+  -- (local gap: `rebalance`'s post says nothing of the root bucket's `bm`; `wrFacts` and
+  -- `gensOK_bktLoc_inj` give it of `X`)
+  have hroot1 : ∀ B0, X1.t.bs !! X1.rl = some B0 → (∀ k c, B0.bm !! k = some c → c ≠ X1.rl) ∧
+      ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k' := sorry
+  have hstart1 : spillStartOK X1 (w.withFl fl1) :=
+    ⟨Hflv.2.2, by rw [hmv1, Hmeta.2.2.2.1]; exact Nat.le_refl _, hroot1⟩
   wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
-    hreach1 hmap1 hflv1 $$ [Hw Hwdb] as %err1 Hsp
+    hreach1 hmap1 hflv1 hstart1 $$ [Hw Hwdb] as %err1 Hsp
   · iframe
   cases lg with
   | nil => iexfalso; unfold dbLogger boltLogger; iexact Hlgok
@@ -371,7 +375,7 @@ theorem Tx.Commit_err.wp_proof'
   icases Hsp with (⟨%He1, %X2, %w2, Hw, Hwdb, %Hsp⟩ | ⟨%He1, #Hfe1, %X2, %w2, %st, %Hsp, Hres⟩)
   · -- spilled
     subst He1
-    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hflv2, hbufs2⟩ := Hsp
+    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hflv2, hbufs2, htt2, hrl2e, hrl2, hmv2⟩ := Hsp
     try wp_auto
     wp_apply time.wp_Since as %d -
     try wp_auto
@@ -381,8 +385,6 @@ theorem Tx.Commit_err.wp_proof'
     ihave Hw := Hwb $$ Hst2
     try wp_auto
     -- `tx.meta.RootBucket().SetRootPage(tx.root.RootPage())`
-    -- Gap 7 (success side): `spill`'s post keeps the root bucket's record
-    have hrl2 : (X2.t.bs !! X2.rl).isSome := sorry
     icases cm_heapOK K tx r false X2 $$ Hw with ⟨%Hhok2, Hw⟩
     obtain ⟨B2, hB2⟩ := Option.isSome_iff_exists.1 hrl2
     have hB2' : X2.t.bs !! (tx.[Tx, go!"root"]) = some B2 := by
@@ -408,8 +410,6 @@ theorem Tx.Commit_err.wp_proof'
     ihave Hw := Hwb $$ %_ Hme Hmv
     try wp_auto
     -- the old freelist page freed, when the committed state has one
-    -- Gap 7 (success side): `spill`'s post keeps the meta copy's fields but the high-water mark
-    have hmv2 : X2.t.mv = { X1.t.mv with pgid' := X2.t.mv.pgid' } := sorry
     have hfl2 : metaFlpg X2.t.mv = w2.C.flpg := by
       rw [hC2, ← Hmeta.2.2.2.2, ← hmv1, hmv2]; rfl
     icases cm_meta_acc K tx r false _ $$ Hw with ⟨Hme, Hmv, Hwb⟩
@@ -425,7 +425,20 @@ theorem Tx.Commit_err.wp_proof'
         rw [← hfl2]; unfold metaFlpg pgidNoFreelist; rw [hnf]; rfl
       rw [decide_eq_true hnf]
       try wp_auto
-      sorry
+      icases cm_db_acc K tx r false _ $$ Hw with ⟨%Hrdb, Hdbp, Hwb⟩
+      ihave #Hfix2 := Hfix
+      iunfold dbFixed at Hfix2
+      icases Hfix2 with ⟨-, -, -, -, -, -, -, -, ⟨%nfs, #Hnfs⟩, -⟩
+      try wp_auto
+      cases nfs
+      · -- `commitFreelist`
+        ihave Hw := Hwb $$ Hdbp
+        try wp_auto
+        sorry
+      · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
+        ihave Hw := Hwb $$ Hdbp
+        try wp_auto
+        sorry
     · -- the synced freelist page `f` freed (`store_free_fl`): the writer side's weaker invariant
       -- from here on (batch 44's flagged `wdbW'`)
       rw [decide_eq_false hnf]
@@ -436,7 +449,7 @@ theorem Tx.Commit_err.wp_proof'
       cases err1 with
       | nil => exact absurd rfl He1
       | ok ii => exact ⟨ii, rfl⟩
-    obtain ⟨hC2, -, -⟩ := Hsp
+    obtain ⟨hC2, -, -, htt2, -, hrl2, hmv2⟩ := Hsp
     try wp_auto
     wp_apply wp_slice_literal
     isplitr
@@ -452,9 +465,16 @@ theorem Tx.Commit_err.wp_proof'
       · iempintro
     try wp_auto
     -- Gap 7: `spill`'s error post says nothing of the records but their view's pages
-    have hwr2 : X2.t.t.writable' = true := sorry
-    have hrl2 : (X2.t.bs !! X2.rl).isSome := sorry
-    have htx2 : X2.t.mv.txid' = W64 ((w2.C.txid + 1 : Nat) : Int) := sorry
+    have hwr2 : X2.t.t.writable' = true := by rw [htt2, htt1]; exact hwr
+    have htx2 : X2.t.mv.txid' = W64 ((w2.C.txid + 1 : Nat) : Int) := by
+      have h1 : X2.t.mv.txid' = X.t.mv.txid' := by rw [hmv2, hmv1]
+      have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
+      have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
+      rw [h1, hC2]
+      apply BitVec.eq_of_toNat_eq
+      rw [← h2, h3]
+      have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
+      word
     imod cm_excl_update K r X1 X2 _ $$ Hex with Hex
     ihave Hex : cmExcl K r X2 (treeData w2.C) $$ [Hex]
     · rw [hC2]; iexact Hex
