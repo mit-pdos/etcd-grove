@@ -163,6 +163,13 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   child's unspilled tree owned (`rootOwn`), the children's slots at the start `Dc0`. -/
   lroot : ∃ Dc0 : GoString → List Nat, Lroot = rootOwn X0 (keys.flatMap Dc0) ∧
     ∀ k c, B0.bm !! k = some c → childTodo X0 X0 w0 w0.wtxid c (Dc0 k)
+  /-- (U9x7) The root bucket's extents (what `Bucket.free` would free: its positions' pages, each
+  a materialized node's page or an unmaterialized page) are the start's: the loop's
+  materializations give a node its position's page, a put into a leaf and a child's spill keep
+  the root's logical tree's shape and page ids (`BktLoopExt`, `BktLoopExtMat`). With `lroot`,
+  the root's own slots are covered by these extents, a cached child's at the start, or an
+  unopened bucket's value (`lCovers`). -/
+  rootExt : X.extents X0.rl = X0.extents X0.rl
   /-- (U9x7) A name not iterated is never visited. -/
   notKeys : ∀ k, k ∉ keys → ks k = .todo
   /-- (U9x7) A child with no root node at the start is skipped (`continue`: Go's `child.spill()`

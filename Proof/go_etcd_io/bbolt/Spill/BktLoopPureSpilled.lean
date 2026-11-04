@@ -17,6 +17,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktSpec
 public import Proof.go_etcd_io.bbolt.Spill.StepComp
 public import Proof.go_etcd_io.bbolt.Spill.SlotInv
 public import Proof.go_etcd_io.bbolt.Spill.UTreeBnd
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopExt
 
 @[expose] public section
 
@@ -338,6 +339,7 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
         (by rw [hwx]; exact hI.rootFree F hF)
       rw [← hwx]; exact h
     lroot := hI.lroot
+    rootExt := (extents_kept hBr hBr' hsr hnsr s3 hfuel).trans hI.rootExt
     notKeys := notKeys_upd hI.notKeys hk
     nilKids := by
       refine nilKids_upd hI ?_ ?_

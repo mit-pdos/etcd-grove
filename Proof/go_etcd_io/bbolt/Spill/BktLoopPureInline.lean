@@ -457,6 +457,8 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
         have hxid : x = rn.nv.pgid'.toNat := by rw [he, w64_toNat_of_lt (hF x hx).2.2]
         exact (List.nodup_append.1 hndO).2.2 _ hxO _ hidL hxid
     lroot := hI.lroot
+    rootExt := (extents_kept hBr hBr' (bktSim_refl Br) (fun l => optRel_refl nodeSim_refl _) rfl
+      hfuel).trans hI.rootExt
     notKeys := notKeys_upd hI.notKeys hk
     nilKids := by
       refine nilKids_upd hI (nilKids_self_todo hI hks hc hC hnnC _) ?_

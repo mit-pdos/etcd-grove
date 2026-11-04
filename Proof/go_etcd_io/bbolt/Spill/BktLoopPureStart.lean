@@ -313,6 +313,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
       rw [← htxid]
       exact spFree_start htc hfv.1.2.1 (fun x hx => ⟨(hF x hx).2.1, (hF x hx).2.2⟩)
     lroot := ⟨Dc, rfl, hkids⟩
+    rootExt := rfl
     notKeys := fun _ _ => rfl
     nilKids := fun _ _ _ _ hC0 hn => Or.inr ⟨rfl, fun _ hC => by rw [hC0] at hC; cases hC; exact hn⟩ }
 

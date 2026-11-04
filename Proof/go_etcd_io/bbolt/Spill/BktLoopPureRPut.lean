@@ -19,6 +19,7 @@ public import Proof.go_etcd_io.bbolt.Read.LRoutes
 public import Proof.go_etcd_io.bbolt.Read.LeafFor
 public import Proof.go_etcd_io.bbolt.Write.CurNode
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsLeaf
+public import Proof.go_etcd_io.bbolt.Spill.BktLoopExtMat
 
 @[expose] public section
 
@@ -528,6 +529,10 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
     mvEq := by rw [x_mv]; exact hI.mvEq
     rootFree := fun F hF id hid => by rw [x_pm]; exact hI.rootFree F hF id hid
     lroot := hI.lroot
+    rootExt := by
+      rw [hX', extents_setLeaf hB1 hrl hleaf (r_lf.trans hleaf) (by rw [hr']; rfl),
+        extents_matGrow hm hloc h0]
+      exact hI.rootExt
     notKeys := notKeys_upd hI.notKeys (hI.keysAll k (by rw [hc]; rfl))
     nilKids := by
       refine nilKids_upd hI (nilKids_self_val hI hks _) ?_
