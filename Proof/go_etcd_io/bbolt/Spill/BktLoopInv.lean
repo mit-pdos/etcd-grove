@@ -109,6 +109,7 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   G : spG X w0.wtxid (mapLen w.ms) w.fl
   root : ∃ B, X.t.bs !! X0.rl = some B ∧ B.bv.buckets' = B0.bv.buckets' ∧ B.bm = B0.bm
   rootOK : rootLoc X X0.rl
+  rootIb : ∀ B, X.t.bs !! X0.rl = some B → B.ib = B0.ib
   slots : slotInv w.fl X.t.mv.pgid'.toNat (Lroot ++ keys.flatMap Dc)
   base : ∀ s ∈ treeSlots w0.C, s ∈ Lroot ++ keys.flatMap Dc ∨ s ∈ pendSlots w.fl
   new : ∀ s ∈ Lroot ++ keys.flatMap Dc, s ∈ treeSlots w0.C ∨ newSlot st X0.t.mv.pgid'.toNat s

@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
+public import Proof.go_etcd_io.bbolt.Spill.BktPm
 
 @[expose] public section
 
@@ -268,12 +269,36 @@ theorem rinv_entry (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flV
   · rw [if_neg (by simpa using hb)] at he; cases he
 
 /-- **The root bucket's search can materialize its path** (`Cursor.node`'s `matReady`). -/
-theorem rinv_ready (hpre : spillPre X0 w0.fl) (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks)
+theorem rinv_ready (hpre : spillPre X0 w0.fl) (hB0 : X0.t.bs !! X0.rl = some B0) (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks)
     {B : BRec} (hB : X.t.bs !! X0.rl = some B) {els : List elemRef} {pids : List w64}
     (hp : lPath X X0.rl els pids) :
     B.ib.root' ≠ W64 0 ∧ viewWF X.v ∧ ∀ pid ∈ pids, resolve B pid = none →
       ∃ pg, X.v.pages !! pid.toNat = some pg ∧ X.t.pm !! pid = none := by
-  sorry
+  have h0 : B.ib.root' ≠ W64 0 := by
+    rw [hI.rootIb B hB]; exact hpre.1.1.2.1.2.2.2.2 B0 hB0
+  obtain ⟨-, B', hB', -, -, -, -, hvw⟩ := hI.rootOK.1
+  refine ⟨h0, hvw, ?_⟩
+  intro pid hpid hres
+  obtain ⟨j, hj⟩ := List.getElem?_of_mem hpid
+  obtain ⟨e, he⟩ : ∃ e, els[j]? = some e := by
+    have hlen := hp.2.1
+    have hjl : j < pids.length := (List.getElem?_eq_some_iff.1 hj).1
+    exact ⟨els[j], List.getElem?_eq_getElem (by omega)⟩
+  obtain ⟨⟨B'', hB'', href⟩, -⟩ := hp.2.2.2 j e pid he hj
+  rw [hB] at hB''; cases hB''
+  simp only [hres] at href
+  obtain ⟨-, pg, hw⟩ := href
+  unfold wpageAt at hw
+  rw [if_neg h0] at hw
+  cases hpg : X.v.pages !! pid.toNat with
+  | none => rw [hpg] at hw; cases hw
+  | some pg' =>
+    refine ⟨pg', rfl, ?_⟩
+    cases hpm : X.t.pm !! pid with
+    | none => rfl
+    | some x =>
+      have := pmFresh_of_spG hI.G pid (by rw [hpm]; rfl)
+      rw [hpg] at this; cases this
 
 /-- **`node.put`'s premises at the leaf the search lands on** (after `Cursor.node`). -/
 theorem rinv_putPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {X1 : WX}
