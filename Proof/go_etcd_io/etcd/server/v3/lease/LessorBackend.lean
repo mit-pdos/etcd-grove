@@ -154,6 +154,12 @@ instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
     Persistent (lessorExpiredC (GF := GF) lp GA) := by
   unfold lessorExpiredC; infer_instance
 
+/-- (2026-11-04, R2b-3c part 2, the user's approval; trust boundary) **The right to stop the lessor
+`lp` once**: `NewLessor` gives it, `lessor.Stop` takes it (`close(le.stopC)`, which a second call
+would make panic). Exclusive by use: nothing duplicates it. -/
+axiom lessorStopTok (lp : Loc) : IProp GF
+@[instance] axiom lessorStopTok_timeless (lp : Loc) : Timeless (lessorStopTok (GF := GF) lp)
+
 end defs
 
 end lease

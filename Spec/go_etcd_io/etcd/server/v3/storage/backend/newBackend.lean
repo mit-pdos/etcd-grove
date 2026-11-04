@@ -46,7 +46,7 @@ abbrev backend.newBackend.spec : Prop :=
       (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
     (App (Val (@! newBackend)) (Val #cfg))
   {{ (r : val), RET r; (∃ (b : Loc) (γ : BNames), ⌜r = #b⌝ ∗ newPostK γ P W Pk K b D ∗
-        hooksAt b cfg.Hooks') ∨
+        hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path') ∨
       ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec

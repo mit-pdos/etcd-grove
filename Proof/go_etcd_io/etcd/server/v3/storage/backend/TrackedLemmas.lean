@@ -573,6 +573,14 @@ private theorem rbSide_idle (γ : BNames) (P : BParams) (r : GMap GoString BktDa
     · ipureintro; exact Hd
   · iexact Hc
 
+/-- (R2b-3c part 2) **The batch lock's side holds the lock's half of the tracked buckets** (the stopped
+lock's, which `Close` hands out). -/
+theorem rbSide_rbOwn (γ : BNames) (P : BParams) (r : GMap GoString BktData) :
+    rbSide (GF := GF) γ P r ⊢ rbOwn γ r := by
+  unfold rbSide
+  iintro ⟨-, Hl, -⟩
+  iexact Hl
+
 /-- **The batch lock's side agrees with a part** on the part's buckets. -/
 theorem rbSide_agree (γ : BNames) (P : BParams) (r : GMap GoString BktData) (S : GoString → Prop)
     (r' : GMap GoString BktData) :

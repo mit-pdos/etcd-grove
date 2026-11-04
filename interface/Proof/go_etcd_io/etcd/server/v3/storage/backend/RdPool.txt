@@ -5,7 +5,7 @@
 def backend.newPostP (γ : backend.BNames) (P : backend.BParams) (W Pk : backend.BNames → IProp GF)
     (b : Loc) (D : backend.Data) : IProp GF :=
   iprop(backend.isBackend γ P (W γ) (Pk γ) b ∗
-      backend.isStopChans γ b ∗
+      backend.isStopChans γ P (W γ) (Pk γ) b ∗
         backend.bOpen γ (Qp.half 1) ∗
           ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γ backend.rdOpen) ∗
             backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
@@ -90,9 +90,9 @@ theorem backend.newPost_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPs
 
 theorem backend.newPostKP_named (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames
     → IProp GF) (b : Loc) (D : backend.Data) : backend.newPostKP γ P W Pk K b D ⊢ "#HnB" ∷
-    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ b ∗ "HnK" ∷ K γ ∗ "HnV" ∷
-    backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗ "HnH" ∷
-    backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ "#HnPool" ∷
+    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ P (W γ) (Pk γ) b ∗ "HnK"
+    ∷ K γ ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
+    "HnH" ∷ backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ "#HnPool" ∷
     backend.rdPool γ P b ∗ "HnRA" ∷ backend.rdAuth γ P b ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate
     backend.rdStockN (), backend.rdTok γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ
     P D ∗ "HnSr" ∷ backend.srSlot b
@@ -120,7 +120,7 @@ def backend.rdPoolN : Nat :=
 def backend.newPostKP (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp
     GF) (b : Loc) (D : backend.Data) : IProp GF :=
   iprop(backend.isBackend γ P (W γ) (Pk γ) b ∗
-      backend.isStopChans γ b ∗
+      backend.isStopChans γ P (W γ) (Pk γ) b ∗
         K γ ∗
           backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
             backend.plHook γ func.nil ∗

@@ -73,7 +73,10 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     iright
     iframe
   iapply HΦ
-  iframe Hbs Hout
+  iframe Hbs
+  -- (R2b-3c part 2) the stopped lock's client resources go with the database
+  unfold bDBOut
+  iframe Hout HWv HWR
 
 end proof
 

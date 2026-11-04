@@ -556,7 +556,7 @@ alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.γ.kb = some d⌝ ∗
-    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+    backend.isStopChansE d.γB d.P d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     srvKVCloserW s E ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))

@@ -31174,3 +31174,34 @@ The other changes are proof-only:
 - `isCtxErr` is cleared at `Err()`'s uses; `WithCancel` gets it from `isCtxErr_of_Canceled`.
 - `errors.wp_New_errorString`'s new `↦□` cell is dropped by the intro patterns, in `etc/gen-init.py` and raft's init.
 - raft's `Base` imports `io/fs`'s package-init instance.
+
+## The backend's `Close` gives back what its stopped lock held; the lessor's stop (2026-11-04 · R2b-3c part 2a, the user's approval of the two trust-boundary changes · branch `r2b3`)
+
+**The data the file holds.** Part 1's `backend.Close` gave `fileHolds path D` for some `D`, nothing
+saying what `D` holds (the entry above announced "an observation in the pattern of
+`backend.Snapshot`'s"; it was not there). **Now** (proved, no new trust): the stop's commit
+(`unsafeCommit`'s stop branch, `CommitAndStop`) no longer drops the batch lock's ghost shares and
+client resources: they go into `donec`'s escrow with the database (`bDBOut γ P W Pk`: `bDBOutG`, the
+database and `bStopG`, the view quarter and `trkHalf` at the committed data, then `W ∗ Pk`), and
+`Close` returns them at the file's data (`∃ D, bStopView γ P W Pk D ∗ (file ∨ ¬dbCloseOk)`:
+`W ∗ Pk`, `viewAt`, `pvHalf`, `hkOwn`, `rbOwn`, `ckHalf` at `D`, what `backend.Snapshot`'s
+observation takes). So a client learns what `D` holds by agreement with its own halves, and by
+whatever its `W ∗ Pk` say, with the same lemmas as the snapshot path (`snapObs_window`). **Why not
+an observation `Q` (`Snapshot`'s form):** `Close` does not commit, the `run` goroutine does, so the
+observation would have to travel to it through `stopc`; handing the pieces back is simpler and
+stronger (any observation follows). **The cost:** the escrow names `W` and `Pk`, so the stop
+channels do (`isStopChans γ P W Pk b`, `bDoneEsc γ P W Pk`); a client that only closes a backend
+keeps `isStopChansE γ P b` (`∃ W Pk`, with the matching `isBackend`): the server's predicates do
+for now (`srvSnapRes`, the snapshot path), until R2b-3d names its own `W`, `Pk` there.
+
+**The file's path.** The proved `backend.New` gives `bFile γ cfg.Path'`; `storage.OpenBackend`
+(axiom; the user's approval) gives `bFile γ (backendPathOf cfg.DataDir')`, restating what the
+constructor it wraps gives; the proved `OpenSnapshotBackend` passes it on.
+
+**The lessor's stop** (the user's approval): `NewLessor` (axiom) also gives `lessorStopTok lp` (a
+new axiom predicate, timeless), and `lessor.Stop` (names-only) is an axiom taking it: `close(stopC)`
+once, then `<-doneC`. **Rejected for now:** verifying `runLoop` to prove `Stop` (its ticker,
+revocations and checkpoints are outside the verified code; the image needs nothing of it).
+`NewServer` drops the token until R2b-3d threads it to `Cleanup` (`srvCleanupOwn`).
+
+**`authStore.Close`** is translated (`auth.toml`) and proved over `tpAdmin`, as `AuthDisable` is.
