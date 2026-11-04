@@ -11,7 +11,7 @@ otherwise `HandleError` and `AddRateLimited(key)`; return `true`.
 writes go through them), its thread token (it borrows each read's slot from the controller's
 pools). Between `Get` and `Done` it holds the queue's token of the key, which it trades inside
 `s1Inv` for the sync token of the key's owner (`syncTok`; the key is canonical,
-`queueKeysCanon`) and trades back after the sync.
+the queue's item predicate `keyCanon`) and trades back after the sync.
 -/
 module
 

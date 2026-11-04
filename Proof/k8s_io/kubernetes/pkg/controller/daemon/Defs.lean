@@ -27,10 +27,8 @@ method takes and `NewDaemonSetsController` gives (track C proves the constructor
 `Get` hands out; the sync of `key` acts for the owner `SplitMetaNamespaceKey(key)`, so the owner's
 exclusivity (the consistency store's documented precondition) needs the key to be the owner's
 canonical one (`keyCanon`: `"/b"` and `"b"` name one owner). The controller only adds keys
-`KeyFunc` made (canonical) or keys `Get` handed out. `queueKeysCanon` states the fact the proofs
-need; it is what an item predicate of the work queue would give (`Add` taking `⌜Pk k⌝`, `Get`
-returning it), a change to `util/workqueue`'s specs proposed in the run's report, until which
-`NewDaemonSetsController`'s proof cannot establish it.
+`KeyFunc` made (canonical) or keys `Get` handed out: the DaemonSet queue's item predicate is
+`keyCanon` (the work queue's `Pk`, decision R5: `Add`s take it, `Get` returns it).
 -/
 module
 
@@ -241,22 +239,12 @@ instance dscPools_persistent (c : DscComp) (F : DscFams GF) :
     Persistent (dscPools c F) := by
   unfold dscPools; infer_instance
 
-/-- **The work queue hands out canonical keys only** (persistent; see the file header: the fact an
-item predicate of the work queue would give). -/
-def queueKeysCanon (γq : DNames) : IProp GF :=
-  iprop(□ ∀ k : GoString, keyTok γq.tq k -∗ ⌜keyCanon k⌝)
-
-instance queueKeysCanon_persistent (γq : DNames) :
-    Persistent (queueKeysCanon (GF := GF) γq) := by
-  unfold queueKeysCanon; infer_instance
-
-/-- **The pod store's controller index** (persistent): from now on every state of the pod store
-has the indexer `podCtlIndex` (`AddPodControllerIndexer`, in the constructor, before the informer
-starts: afterwards `AddIndexers` fails) at family index `j`, whose relation gives a pod its
-`PodControllerIndexKey`. (Its source is the informer's API: a fact the constructor's proof needs
-from track A's `AddIndexers`/`RunWithContext` specs, an open question of the run's report.) -/
+/-- **The pod store's controller index** (persistent): the informer's index registry
+(`γi.ix`, kept by the informer invariant: `infInv_readIdxAU` gives a reader the store's `fnIds`
+agreeing with it) has the indexer `podCtlIndex` (`AddPodControllerIndexer`, in the constructor)
+at family index `j`, whose relation gives a pod its `PodControllerIndexKey`. -/
 def podCtlIndexed (I : InfLoc) (Fam : Nat → Fn GF) : IProp GF :=
-  iprop(∃ j : Nat, □ (∀ σs, storeSt I.γt σs -∗ ⌜σs.fnIds !! podCtlIndex = some j⌝) ∗
+  iprop(∃ j : Nat, podCtlIndex ↪[I.γi.ix]□ j ∗
     □ (∀ (x : GoInterface) (vs : List GoString) (p : kd.core.Pod),
       apimodel.objAt x DFrac.discard (.pod p) -∗ Fam j x vs -∗
       ⌜vs = [podCtlKey p.ObjectMeta'.Namespace' (ctlOf p)]⌝))
@@ -330,12 +318,11 @@ def isDsc (dsc : Loc) (c : DscComp)
     "#Hqueue" ∷ dsc.[DaemonSetsController, go!"queue"] ↦□
       (interface.mkOk (go.GoType.PointerType (k8s_io.client_go.util.workqueue.rateLimitingType.ty go.string)) #c.q :
         k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString) ∗
-    "#Hq" ∷ (∃ P, isRateLimitingQueue (K := GoString) c.q c.γq P) ∗
-    "#HqCanon" ∷ queueKeysCanon c.γq ∗
+    "#Hq" ∷ (∃ P, isRateLimitingQueue (K := GoString) c.q c.γq keyCanon P) ∗
     "#HnodeUpdateQueue" ∷ dsc.[DaemonSetsController, go!"nodeUpdateQueue"] ↦□
       (interface.mkOk (go.GoType.PointerType (k8s_io.client_go.util.workqueue.rateLimitingType.ty go.string)) #c.nq :
         k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString) ∗
-    "#Hnq" ∷ (∃ P, isRateLimitingQueue (K := GoString) c.nq c.γnq P) ∗
+    "#Hnq" ∷ (∃ P, isRateLimitingQueue (K := GoString) c.nq c.γnq (fun _ => True) P) ∗
     "#HfailedPodsBackoff" ∷ dsc.[DaemonSetsController, go!"failedPodsBackoff"] ↦□ c.backoff ∗
     "#Hbackoff" ∷ backoffOk c.backoff ∗
     "#Hpools" ∷ dscPools c F)

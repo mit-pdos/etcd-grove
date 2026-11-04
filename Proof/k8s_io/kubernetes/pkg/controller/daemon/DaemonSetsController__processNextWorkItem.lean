@@ -2,7 +2,7 @@
 Proof of `Spec/k8s_io/kubernetes/pkg/controller/daemon/DaemonSetsController__processNextWorkItem.lean`
 over its callees' specs. Lean-first; Stage 3 of the autoverify run: a stub.
 
-The proof's plan: `Get` gives `keyTok` of a canonical key (`queueKeysCanon`); open `s1Inv`: the
+The proof's plan: `Get` gives `keyTok` of a canonical key (the queue's item predicate `keyCanon`); open `s1Inv`: the
 owner `ownerOf key` registered (else register it: a fresh `ownerTok`, bound `0` with
 `infRvLb 0` from the pod informer's invariant), its entry holds `syncTok` (not `keyTok`: ours is
 exclusive); take it, leave `keyTok`; call the sync handler (`isDsc`'s `syncHandler`:
