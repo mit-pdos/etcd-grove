@@ -161,7 +161,37 @@ theorem metaOk_parity_write (C : CommitSt) (buf : List w8) (m : Meta) (pages : P
     (ht : m.txid'.toNat = C.txid + 1) (hps : m.pageSize'.toNat = 4096)
     (hz : ¬ metaValid (metaOf (buf.drop 1024)) ∧ ¬ metaValid (metaOf (buf.drop 2048))) :
     (C.publish buf m pages).metaOk := by
-  sorry
+  have hslot : ∀ i, (C.publish buf m pages).slot i =
+      if i % 2 = m.txid'.toNat % 2 then buf else C.slot i := by
+    intro i
+    unfold CommitSt.slot CommitSt.publish
+    rcases Nat.mod_two_eq_zero_or_one i with hi | hi <;>
+    rcases Nat.mod_two_eq_zero_or_one m.txid'.toNat with ht | ht <;> simp [hi, ht]
+  obtain ⟨h0, h1, hpsz, hz1, hz2, hcv, hcm, hoth⟩ := hC
+  have htx : (C.publish buf m pages).txid = C.txid + 1 := by simp [CommitSt.publish, ht]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · simp only [CommitSt.publish]; split <;> simp [hlen, h0]
+  · simp only [CommitSt.publish]; split <;> simp [hlen, h1]
+  · intro i hi
+    rw [hslot] at hi ⊢
+    split
+    · simp_all
+    · rename_i hne; rw [ite_eq_right hne] at hi; exact hpsz i hi
+  · simp only [CommitSt.publish]; split
+    · exact hz.1
+    · exact hz1
+  · simp only [CommitSt.publish]; split
+    · exact hz.2
+    · exact hz2
+  · rw [htx, hslot, ite_eq_left (by rw [ht])]; rw [hm]; exact hv
+  · rw [htx, hslot, ite_eq_left (by rw [ht]), hm]
+    refine ⟨?_, ?_, ?_, ?_⟩ <;> simp [CommitSt.publish, ht]
+  · rw [htx, hslot, ite_eq_right (by rw [ht]; omega)]
+    have e : C.slot (C.txid + 1 + 1) = C.slot C.txid := by
+      unfold CommitSt.slot
+      have : (C.txid + 1 + 1) % 2 = C.txid % 2 := by omega
+      rw [this]
+    rw [e, hcm.1]; intro _; omega
 
 end metas
 
