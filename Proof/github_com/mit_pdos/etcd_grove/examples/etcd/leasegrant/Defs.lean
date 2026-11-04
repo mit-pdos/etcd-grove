@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInte
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
 public import Proof.net.InvNet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 
 @[expose] public section
 
@@ -67,33 +68,23 @@ peers' contexts `ctxs` (the node API's `BootLog`: one conf change adding the mem
 `ctxs[0]`), each entry a conf change of id `0` that the server's `applyConfChange` takes
 (`ccBootOk`). (2026-10-27, the server port: until then `srvBootLogOk (ccOk id) [id] bootLog`, under
 the conf-change policy `ccOk id`, over raft's records.) -/
-structure BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
-  idLow : uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog [id] ctxs bl
-  cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id]) e.Data'
-  /-- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs valid UTF-8 and
-  pairwise disjoint (`bootURLsOk`). -/
-  urls : bootURLsOk (LogEntry.toEntries bl 0)
+abbrev BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
+  etcdstart.BootFacts id ctxs bl
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23966`. -/
-def peerURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23966" }
+abbrev peerURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23966"
 
 /-- `Main`'s client URL, `http://127.0.0.1:23956`. -/
-def clientURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23956" }
+abbrev clientURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23956"
 
 /-- **The URLs of `Main`'s configuration** (D19r (F)): the peer URLs `[peerURL]`, the client URLs
 `[clientURL]`, the initial cluster's map `{leasegrant ↦ [peerURL]}`. -/
-def urlsOk (U : BootURLs) : Prop :=
-  U.peer = [peerURL] ∧ U.client = [clientURL] ∧
-    (∃ sl : GoSlice, U.initMap = GMap.insert go!"leasegrant" sl ∅) ∧ U.initURLs go!"leasegrant" = [peerURL]
+abbrev urlsOk (U : BootURLs) : Prop := etcdstart.urls1 go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" U
 
 /-- **The peer-URL directory of `Main`'s cluster** (D21 M2, 2026-10-19): its one member's peer
 URL, `http://127.0.0.1:23966` (the members' records `bootstrap` makes name it), of the member `id`
 only (`dirOne`; 2026-10-24, rafthttp stage 6d; until then every id's). -/
-def leasegrantDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0.0.1:23966"
+abbrev leasegrantDir (id : w64) : w64 → List GoString := etcdstart.dir1 go!"127.0.0.1:23966" id
 
 end pure
 
@@ -109,32 +100,15 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 logger, the feature gate, the URLs, read through `bootCfgRO` -- are `Main`'s allocations): member
 `leasegrant` of a new cluster with token `leasegrant`, data directory `etcd_leasegrant.etcd`, raft's clock `100`
 ms and `10` ticks. -/
-def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = go!"leasegrant" ∧ cfg.DataDir' = go!"leasegrant.etcd" ∧
-    cfg.InitialClusterToken' = go!"leasegrant" ∧ cfg.NewCluster' = true ∧
-    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
+abbrev cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
+  etcdstart.cfgOk go!"leasegrant" go!"leasegrant" cfg
 
 /-- **`Main`'s named premises** (persistent; see the file header), at the bound `N` of the apply
 thread's write tokens, the member id `id`, the peers' contexts `ctxs` and the bootstrap log `boot`: each a triple of a
 function the program calls, whose postcondition holds fresh resources (D19a's second kind). -/
-def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+abbrev premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
-  iprop(
-    -- `bootstrap`'s contract (D13b), at every server raft names of the one-member cluster (2026-10-27,
-    -- the server port: its peers `[id]`, static, the bootstrap log; at the storage registry they
-    -- name), for `Main`'s configuration and URLs (D19r (B), (F)), at the peers' contexts `ctxs`
-    (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
-        γ.boot = LogEntry.toEntries boot 0⌝ -∗
-      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (leasegrantDir id)) ∗
-    -- (2026-10-27, the server port) `proto.Marshal` of the peers' conf changes returns the bootstrap
-    -- entries' bytes (raft's `bootMarshal`, which `StartNode` takes; the cluster's allocation's
-    -- premise; until then `bootstrap`'s contract gave it)
-    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
-    rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    -- the deployment: no client stream asks for a leader
-    v3rpc.runsNoRequireLeader)
+  etcdstart.premises go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" N id ctxs boot
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by

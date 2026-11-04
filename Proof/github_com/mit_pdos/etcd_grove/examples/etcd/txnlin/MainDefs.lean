@@ -14,6 +14,7 @@ configuration.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 
 @[expose] public section
 
@@ -31,22 +32,18 @@ section pure
 variable [GooseExts]
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23806`. -/
-def peerURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23806" }
+abbrev peerURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23806"
 
 /-- `Main`'s client URL, `http://127.0.0.1:23796`. -/
-def clientURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23796" }
+abbrev clientURL : _root_.Perennial.net.url.URL := etcdstart.httpURL go!"127.0.0.1:23796"
 
 /-- **The URLs of `Main`'s configuration**: the peer URLs `[peerURL]`, the client URLs
 `[clientURL]`, the initial cluster's map `{linkvtxn ↦ [peerURL]}`. -/
-def urlsOk (U : BootURLs) : Prop :=
-  U.peer = [peerURL] ∧ U.client = [clientURL] ∧
-    (∃ sl : GoSlice, U.initMap = GMap.insert go!"linkvtxn" sl ∅) ∧ U.initURLs go!"linkvtxn" = [peerURL]
+abbrev urlsOk (U : BootURLs) : Prop := etcdstart.urls1 go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" U
 
 /-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL, of the
 member `id` only (`dirOne`; 2026-10-24, rafthttp stage 6d; until then every id's). -/
-def linkvtxnDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0.0.1:23806"
+abbrev linkvtxnDir (id : w64) : w64 → List GoString := etcdstart.dir1 go!"127.0.0.1:23806" id
 
 end pure
 
@@ -61,23 +58,14 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 /-- **The configuration `Main` passes to `NewServer`**, by its scalar fields: member `linkvtxn` of a
 new cluster with token `linkvtxn`, data directory `etcd_txnlin.etcd`, raft's clock `100` ms and `10`
 ticks. -/
-def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = go!"linkvtxn" ∧ cfg.DataDir' = go!"linkvtxn.etcd" ∧
-    cfg.InitialClusterToken' = go!"linkvtxn" ∧ cfg.NewCluster' = true ∧
-    cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
+abbrev cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
+  etcdstart.cfgOk go!"linkvtxn" go!"linkvtxn" cfg
 
 /-- **`Main`'s named premises** (persistent): putget's (`etcd_putget.premises`) at `linkvtxn`'s
 configuration, URLs and peer directory. -/
-def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
+abbrev premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     IProp GF :=
-  iprop(
-    (□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
-      ⌜cfgOk cfg ∧ urlsOk U ∧ γ.vs = [id] ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧
-        γ.boot = LogEntry.toEntries boot 0⌝ -∗
-      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N (linkvtxnDir id)) ∗
-    bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-    rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    v3rpc.runsNoRequireLeader)
+  etcdstart.premises go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" N id ctxs boot
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by
