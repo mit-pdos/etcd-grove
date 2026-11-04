@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.bbolt.Rebalance.RblX
 public import Proof.go_etcd_io.bbolt.Rebalance.RblRm
 public import Proof.go_etcd_io.bbolt.Rebalance.RblCol
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSSim
 
 @[expose] public section
 
@@ -56,7 +57,11 @@ theorem rblX_start (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec)
     (hd : dfc = none ∨ dfc = some n) :
     rblX (X.setBkt bl (rblStart B n r)) fl bl (some n) ∧
       rblRel X fl (X.setBkt bl (rblStart B n r)) fl X.t.mv.txid' := by
-  sorry
+  have hB := (hI.2.1 bl B hb).1
+  rw [if_pos rfl] at hB
+  have hs := bktSim_set B n r (rblClear r) hr (nrecEq_clear r)
+  exact rblX_sim X fl bl dfc (some n) B _ _ hI hb hs (rblB_start _ _ bl B n r dfc hB hr hd)
+    (fun k v h => entryIn_sim _ hs k v h)
 
 /-- **Done** (the node big enough, or a root not collapsed): no deficient node. -/
 theorem rblX_done (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (n : Loc)
@@ -67,7 +72,12 @@ theorem rblX_done (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) 
     rblX (X.setBkt bl (rblStart B n r)) fl bl none ∧
       rblRel X fl (X.setBkt bl (rblStart B n r)) fl X.t.mv.txid' ∧
       rblStep B (rblStart B n r) n := by
-  sorry
+  have hB := (hI.2.1 bl B hb).1
+  rw [if_pos rfl] at hB
+  have hs := bktSim_set B n r (rblClear r) hr (nrecEq_clear r)
+  obtain ⟨hB', hst, hent⟩ := rbl_done _ _ bl B n r dfc hB hr hd h2 h1
+  obtain ⟨h1, h2⟩ := rblX_sim X fl bl dfc none B _ X.t.mv.txid' hI hb hs hB' hent
+  exact ⟨h1, h2, hst⟩
 
 /-- **A sibling, or the root's only child, materialized** (`b.node` of the parent's entry `i`, a
 page position). The new node is not unbalanced. -/
