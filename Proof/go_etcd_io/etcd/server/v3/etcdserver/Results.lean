@@ -640,8 +640,21 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
-  iapply (EtcdServer.Range.spec_off EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
+  -- `Range.spec` at the off view (the mode is off, the floor `0`)
+  ihave %hon := isServerReq_authOff s E ρ $$ Hq
+  ihave #HaLb := srvAuthLb_off s E ρ $$ Hq
+  have hoff : E.authMode = .off := by
+    unfold apply.AEnv.authOn at hon
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F 0
+    (by rw [hoff]; intro h; cases h)
+  rw [hon] at h'
+  rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
+  simp only [rangeReadOkM_false] at h'
+  iapply h' $$ [Hrc Hct Hot]
   · iframe #; iframe Hrc Hct Hot
+    isplitr
+    · rw [hoff]; unfold auth.authPubLbM; ipureintro; trivial
     isplitr
     · ipureintro; exact Hv
     iunfold kvDep; iright; ipureintro; rfl
@@ -685,8 +698,21 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, Hct, Hot, #Hr, %Hv, #HF⟩ HΦ
   ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
-  iapply (EtcdServer.Range.spec_off EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F) $$ [Hrc Hct Hot]
+  -- `Range.spec` at the off view (the mode is off, the floor `0`)
+  ihave %hon := isServerReq_authOff s E ρ $$ Hq
+  ihave #HaLb := srvAuthLb_off s E ρ $$ Hq
+  have hoff : E.authMode = .off := by
+    unfold apply.AEnv.authOn at hon
+    cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
+  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F 0
+    (by rw [hoff]; intro h; cases h)
+  rw [hon] at h'
+  rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
+  simp only [rangeReadOkM_false] at h'
+  iapply h' $$ [Hrc Hct Hot]
   · iframe #; iframe Hrc Hct Hot
+    isplitr
+    · rw [hoff]; unfold auth.authPubLbM; ipureintro; trivial
     isplitr
     · ipureintro; exact Hv
     iunfold kvDep; iright; ipureintro; rfl
@@ -1829,18 +1855,6 @@ theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll.2
 
-/-- **`Range` with auth on** (the auth plan's E3s, 2026-10-27; `EtcdServer.Range.specOn`,
-`Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range.lean`): over the request and read
-views with auth on and the read deposit at the mode-`on` model's state, for a reader holding a
-lower bound `n` of the auth store's published index (`authPubLbM`) and the store's range check at
-it (`srvAuthLb`, `start.spec`'s): a success passed `IsRangePermitted` at states no older than `n`
-(`apply.rangeClassFrom`), and a linearizable one read the mode-`on` model of a committed raft log
-at which the deposit fired (`rangeReadOkM true`). Every callee linked (`doSerialize` through its
-proof in either mode, `doSerialize.spec`). -/
-theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdServer.Range.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.Range.spec_on EtcdServer.wp_Range
-
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1869,7 +1883,6 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
 #print axioms Perennial.EtcdGrove.server_admin_entry_on
-#print axioms Perennial.EtcdGrove.server_range_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
@@ -2309,17 +2322,6 @@ theorem server_raft_request :
     EtcdServer.raftRequest.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_raftRequest
 
-/-- **A put in the auth mode `on`**: a success is a put the auth state its entry met granted, its
-client's result at the log the entry met; a refusal an error. `put_applied` at `E.authOn = true`
-(`Put.spec_on`; for `ServerKVOn` until the auth-mode merge's step 4). -/
-theorem server_put_on : EtcdServer.Put.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.Put.spec_on EtcdServer.wp_Put
-
-/-- **A delete in the auth mode `on`** (`server_put_on`'s): `deleteRange_applied` at
-`E.authOn = true`. -/
-theorem server_delete_range_on : EtcdServer.DeleteRange.specOn (GF := GF) (hG := hG) :=
-  EtcdServer.DeleteRange.spec_on EtcdServer.wp_DeleteRange
-
 /-- **The admin proposers with auth on** (the auth plan's E3w, `AdminOn.lean`): `AuthEnable`,
 `UserAdd`, `RoleAdd`, `UserGrantRole` and (E3z) `RoleGrantPermission`, their contract `raftRequest` in the mode `on`
 (`authRaftOk_on`): a success is the request applied at the committed prefix before its entry, the
@@ -2490,8 +2492,6 @@ end Perennial
 #print axioms Perennial.EtcdGrove.scheduler_fifo
 #print axioms Perennial.EtcdGrove.server_raft_node_start
 
-#print axioms Perennial.EtcdGrove.server_put_on
-#print axioms Perennial.EtcdGrove.server_delete_range_on
 #print axioms Perennial.EtcdGrove.server_auth_enable_on
 #print axioms Perennial.EtcdGrove.server_user_add_on
 #print axioms Perennial.EtcdGrove.server_role_add_on
