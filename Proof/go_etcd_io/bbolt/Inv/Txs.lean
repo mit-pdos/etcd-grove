@@ -103,10 +103,51 @@ def txsInv (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) : IProp GF :=
 
 /-! ## Lemma statements (U5), fancy updates at `txsN N` -/
 
+private instance txX_inhabited_i : Inhabited TxX := ⟨TxX.rd default (zeroValDef) 0⟩
+
+private instance reg_persistent_txs_i (tx : Loc) (B : BNs) (r : TxReg) :
+    Persistent (reg (GF := GF) tx B r) := by
+  unfold reg; infer_instance
+
+private theorem qp_one_add_not_le_i (q : Qp) : ¬ ((1 : Qp) + q ≤ 1) := by
+  rw [Qp.le_iff, Qp.val_add, Qp.val_one]; have := q.2; grind
+
+private theorem qp_add_one_not_le_i (q : Qp) : ¬ (q + (1 : Qp) ≤ 1) := by
+  rw [Qp.le_iff, Qp.val_add, Qp.val_one]; have := q.2; grind
+
+private theorem qp_three_halves_i (q : Qp) :
+    ¬ ((1 : Qp).half + (1 : Qp).half + (1 : Qp).half ≤ 1) := by
+  rw [Qp.le_iff]; simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind
+
 section lemmas
 variable (B : BNs) (N : Namespace) (p : GoString) (sp : Loc) (t0 : Nat) (E : CoPset)
   (hE : ↑(txsN N) ⊆ E)
 include hE
+
+open Iris.ProofMode in
+/-- Open `txsInv` at a registered transaction's entry. -/
+private theorem txs_open_i (tx : Loc) (r : TxReg) :
+    inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ⊢
+    |={E, E \ ↑(txsN N)}=> ▷ txEntry B p sp t0 tx r ∗
+      (▷ txEntry B p sp t0 tx r ={E \ ↑(txsN N), E}=∗ True) := by
+  iintro ⟨#Hinv, #Hreg⟩
+  iinv Hinv with Hi Hclose
+  unfold txsInv
+  icases Hi with ⟨%M, >Hauth, Hm⟩
+  unfold reg
+  icombine Hauth Hreg gives %Hlk
+  ihave Hm := (later_mono (BigSepM.bigSepM_lookup_acc (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) Hlk).1) $$ Hm
+  icases Hm with ⟨He, Hback⟩
+  imodintro
+  iframe He
+  iintro He
+  imod Hclose $$ [Hauth Hback He] with -
+  · inext
+    iexists M
+    iframe Hauth
+    iapply Hback $$ He
+  imodintro; itrivial
+
 
 /-- Register a new transaction `tx` (its names `r.n` fresh), with its quarter of `tx.db`, its
 statistics and its exclusive part: it gets its registration and the whole `ex` token. -/
@@ -123,27 +164,79 @@ theorem txExcl_take (tx : Loc) (r : TxReg) :
     |={E}=> txExcl B p sp t0 tx r := by
   sorry
 
+open Iris.ProofMode in
 /-- The exclusive part goes back, for the whole `ex` token. -/
 theorem txExcl_put (tx : Loc) (r : TxReg) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗ txExcl B p sp t0 tx r ⊢
     |={E}=> ghostVar r.n.ex 1 () := by
-  sorry
+  iintro ⟨#Hinv, #Hreg, Hx⟩
+  imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
+  · iframe Hinv Hreg
+  unfold txEntry
+  icases He with ⟨%d, Hdb, (⟨>%hd, >Hdone, Hst, (Hx' | >Hex), Hrh⟩ | ⟨>%hd, >Hdone, >Hex⟩)⟩
+  · iunfold txExcl at Hx
+    icases Hx with ⟨%c, %x, Hv, Hd1, Hrest⟩
+    icombine Hdone Hd1 as Hd
+    iunfold txExcl at Hx'
+    icases Hx' with ⟨%c', %x', -, >Hd2, -⟩
+    icombine Hd Hd2 gives %h
+    exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
+  · imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
+    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hst Hrh; isplitr
+      · ipureintro; exact hd
+      ileft; iexact Hx
+    imodintro; iexact Hex
+  · iunfold txExcl at Hx
+    icases Hx with ⟨%c, %x, Hv, Hd1, Hrest⟩
+    icombine Hdone Hd1 gives %h
+    exact absurd h.2 (by decide)
 
+open Iris.ProofMode in
 /-- **Close** (`Tx.close`): with the exclusive part's `done` half (its other contents already
 given back), the entry turns done; the statistics come out. -/
 theorem txs_close (tx : Loc) (r : TxReg) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗
       ghostVar r.n.done (1 : Qp).half false ∗ ghostVar r.n.ex 1 () ⊢
     |={E}=> ∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s := by
-  sorry
+  iintro ⟨#Hinv, #Hreg, Hd, Hex⟩
+  imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
+  · iframe Hinv Hreg
+  unfold txEntry
+  icases He with ⟨%d, Hdb, (⟨>%hd, >Hdone, >Hst, (Hx | >Hex'), -⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  · icombine Hdone Hd as Hd'
+    iunfold txExcl at Hx
+    icases Hx with ⟨%c', %x', -, >Hd2, -⟩
+    icombine Hd' Hd2 gives %h
+    exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
+  · icombine Hex Hex' gives %h
+    exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
+  · icombine Hd Hdone gives %h
+    exact absurd h.2 (by decide)
 
+open Iris.ProofMode in
 /-- **The statistics of a live transaction**, for an atomic access by a holder of a fraction of
 its `ex` token. -/
 theorem txs_stats_atomic (tx : Loc) (r : TxReg) (q : Qp) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗ ghostVar r.n.ex q () ⊢
     |={E, E \ ↑(txsN N)}=> ∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s ∗
       (∀ s' : TxStats, tx.[Tx, go!"stats"] ↦ s' ={E \ ↑(txsN N), E}=∗ ghostVar r.n.ex q ()) := by
-  sorry
+  iintro ⟨#Hinv, #Hreg, Hex⟩
+  imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
+  · iframe Hinv Hreg
+  unfold txEntry
+  icases He with ⟨%d, Hdb, (⟨>%hd, Hdone, >Hst, Hx, Hrh⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  · icases Hst with ⟨%s, Hst⟩
+    imodintro
+    iexists s
+    iframe Hst
+    iintro %s' Hst
+    imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
+    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hx Hrh; isplitr
+      · ipureintro; exact hd
+      iexists s'; iexact Hst
+    imodintro; iexact Hex
+  · icombine Hex Hex' gives %h
+    exact absurd h.1 (by rw [Qp.le_iff]; simp; have := q.2; grind)
 
 end lemmas
 
