@@ -109,6 +109,51 @@ def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O) ∧
   (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F)
 
+/-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
+`n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with
+`O`, its pages freeable. -/
+def spPre (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Option (List w8))
+    (h : Nat) (F D : List Nat) (N : List Loc) (cs : SpCase) : Prop :=
+  X.node bl n = some rn ∧ spG X w.wtxid (mapLen w.ms) ∧
+  ((rn.nv.spilled' = true ∧ rn.nv.bucket' = bl ∧ n ∈ X.live) ∨
+   (uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N ∧ spCtx X bl n rn lo hi N cs ∧
+    slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F))
+
+/-- **`n.spill()`'s success** (pure), from `(X, w)` to `(X', w')` by the steps `st` (see
+`node.spill.spec'`). -/
+def spDone (X X' : WX) (w w' : WDb) (bl n : Loc) (rn : NRec) (O : List Nat)
+    (lo hi : Option (List w8)) (h : Nat) (D : List Nat) (N : List Loc) (cs : SpCase)
+    (st : List FLStep) : Prop :=
+  spStep X X' w w' O st ∧
+  ((rn.nv.spilled' = true ∧ X' = X ∧ w' = w) ∨
+   (rn.nv.spilled' = false ∧ ∃ T D', spFrame X X' bl (N ++ T) ∧
+    (∀ l ∈ T, X.t.objs !! l = none ∨ ∃ pl rp j plo phi, cs = .child pl rp j plo phi ∧ l = pl) ∧
+    slotInv w'.fl X'.t.mv.pgid'.toNat (O ++ D') ∧
+    (∀ s ∈ D, s ∈ D' ∨ s ∈ pendSlots w'.fl) ∧
+    (∀ s ∈ D', s ∈ D ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
+    (∀ x, spP X' !! x ≠ spP X !! x → x ∉ D) ∧
+    match cs with
+    | .child pl rp j _ _ => ∃ ps rp',
+        piecesOK X' bl pl (spP X') X'.t.mv.pgid'.toNat lo hi h ps ∧
+        (ps.head?.map Piece.l) = some n ∧ D' = pcSlots (spP X') ps ∧
+        X'.node bl pl = some rp' ∧ parentSpilled rp rp' j ps ∧ pl ∈ X'.live
+    | .top => ∃ rt rr S h', X'.node bl rt = some rr ∧ rt ∈ X'.live ∧
+        rr.nv.spilled' = true ∧ rr.nv.parent' = null ∧
+        (∃ B', X'.t.bs !! bl = some B' ∧ nodeRootIn B' n rt) ∧
+        sTree (spP X') X'.t.mv.pgid'.toNat rr.nv.pgid'.toNat lo hi h' S ∧
+        D' = pgSlots (spP X') S))
+
+/-- **`n.spill()`'s post**: on success `spDone`, on an error the freelist after free and allocation
+steps, the base pages kept, the mapping intact or lost. -/
+def spPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc)
+    (rn : NRec) (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (D : List Nat)
+    (N : List Loc) (cs : SpCase) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
+      wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗ ⌜spDone X X' w w' bl n rn O lo hi h D N cs st⌝) ∨
+    (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
+      ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages⌝ ∗
+      ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))))
+
 /-- **`n.spill()`** (see the module doc). The pre: the spill's global state, `n` a node of `bl`,
 spilled (a piece), or the top of an unspilled tree (`uTree`, at the spill's page map and mark,
 owning `F`, `D`, `N`) in the context `cs` (`spCtx`), the slots owned (`slotInv` of `O ++ D`), its
@@ -122,35 +167,10 @@ abbrev node.spill.spec' : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
     (cs : SpCase),
-  X.node bl n = some rn → spG X w.wtxid (mapLen w.ms) →
-  (rn.nv.spilled' = true ∧ rn.nv.bucket' = bl ∧ n ∈ X.live) ∨
-  (uTree X bl (spP X) X.t.mv.pgid'.toNat n lo hi h F D N ∧ spCtx X bl n rn lo hi N cs ∧
-    slotInv w.fl X.t.mv.pgid'.toNat (O ++ D) ∧ spFree X w.fl w.wtxid F) →
+  spPre X w bl n rn O lo hi h F D N cs →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #()))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
-        wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗ ⌜spStep X X' w w' O st ∧
-        ((rn.nv.spilled' = true ∧ X' = X ∧ w' = w) ∨
-         (rn.nv.spilled' = false ∧ ∃ T D', spFrame X X' bl (N ++ T) ∧
-          (∀ l ∈ T, X.t.objs !! l = none ∨ ∃ pl rp j plo phi, cs = .child pl rp j plo phi ∧ l = pl) ∧
-          slotInv w'.fl X'.t.mv.pgid'.toNat (O ++ D') ∧
-          (∀ s ∈ D, s ∈ D' ∨ s ∈ pendSlots w'.fl) ∧
-          (∀ s ∈ D', s ∈ D ∨ newSlot st X.t.mv.pgid'.toNat s) ∧
-          (∀ x, spP X' !! x ≠ spP X !! x → x ∉ D) ∧
-          match cs with
-          | .child pl rp j _ _ => ∃ ps rp',
-              piecesOK X' bl pl (spP X') X'.t.mv.pgid'.toNat lo hi h ps ∧
-              (ps.head?.map Piece.l) = some n ∧ D' = pcSlots (spP X') ps ∧
-              X'.node bl pl = some rp' ∧ parentSpilled rp rp' j ps ∧ pl ∈ X'.live
-          | .top => ∃ rt rr S h', X'.node bl rt = some rr ∧ rt ∈ X'.live ∧
-              rr.nv.spilled' = true ∧ rr.nv.parent' = null ∧
-              (∃ B', X'.t.bs !! bl = some B' ∧ nodeRootIn B' n rt) ∧
-              sTree (spP X') X'.t.mv.pgid'.toNat rr.nv.pgid'.toNat lo hi h' S ∧
-              D' = pgSlots (spP X') S))⌝) ∨
-      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
-        ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages⌝ ∗
-        ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))) }}
+  {{ (err : GoInterface), RET #err; spPost K tx r m X w bl n rn O lo hi h D N cs err }}
 
 end spec
 
