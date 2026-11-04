@@ -33,7 +33,30 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 theorem DaemonSetsController.runNodeUpdateWorker.wp_proof
     (wp_processNextNodeUpdate : DaemonSetsController.processNextNodeUpdate.spec (GF := GF) (hG := hG)) :
     DaemonSetsController.runNodeUpdateWorker.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro dsc c cfg γa F γ ctx
+  wp_start as ⟨#Henv, Htt, %Hctx⟩
+  wp_auto
+  ihave HI : (threadTok ∗ dsc_ptr ↦ dsc ∗ ctx_ptr ↦ ctx : IProp GF) $$ [Htt dsc ctx]
+  · iframe
+  wp_for HI
+  icases HI with ⟨Htt, Hd, Hc⟩
+  wp_auto
+  wp_apply (wp_processNextNodeUpdate dsc c cfg γa F γ ctx) $$ [Htt] as %b ⟨Htt, Hb⟩
+  · iframe #; iframe; ipureintro; exact Hctx
+  have Hft : ¬ ((#false : val) = #true) := fun h => Bool.false_ne_true (go.intoVal_inj h)
+  cases b
+  · icases Hb with (%Hb | #Hsd)
+    · cases Hb
+    simp only [Hft, decide_false, Bool.false_eq_true, ↓reduceIte, _root_.decide_true]
+    wp_auto
+    iapply HΦ
+    iframe
+    iframe #
+  · simp only [_root_.decide_true, ↓reduceIte]
+    wp_auto
+    wp_for_post
+    unfold named
+    iframe
 
 end proof
 
