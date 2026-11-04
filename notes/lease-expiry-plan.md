@@ -807,3 +807,44 @@ call `LeaseRevoke` it lacks: `isServerReq s E ρ` and a binder `ρ`; `srvAuthAt 
 for `s.ctx` (`context.isContext c cd`) and a spec of `authStore.WithRoot`; per goroutine
 `srvLeadTimeReader s`, `E.RD`, `□ (|==> idCred ρ.ids 1)` (P1's pools); the revocable mode (`E.lm =
 .revocable`, or `ρ.rd.kv.lm`).
+
+**Done under option (iii) (2026-11-04, the X-b session's second part).**
+- *The refactor* (`9f0627d0ad`). `KVNames.lm`/`AEnv.lm : lease.Mode := .none`; `lg` the reducible
+  `decide (lm ≠ .none)` (`KVNames.lg_eq`/`lg_fold`, `AEnv.lg_eq`). `lease.Mode` moved to
+  `lease/InvLessor.lean` (the apply layer names it). The tie chosen: `lease.runCfg`/`lease.bootCfg`
+  take the record's `lm` and state `lm = m` in place of `lg = decide (m ≠ .none)` (`runCfg_lm`/
+  `bootCfg_lm`; simpler than adding a second conjunct, and it gives `lg` by rewriting). `srvKVInvs`/
+  `kvNameTiesM` tie `γr.kv.lm = E.lm`; `srvSnapRO`'s mode conjunct is `(⌜E.lm = γr.kv.lm⌝ ∗
+  lessorModeIs (decide (E.lm = .mono)))`, no longer an existential mode.
+- *The pure layer* (`73686c2598`, C2a). `rqOk`, `rqShape`, `entryShape`, `logShape(M)`,
+  `grantPropOk`, `plainEntryM`, `plainLogM`, `entryOk(M)`, `plainOrCmpG` take `lm`; the grant arm at
+  `lm ≠ .none`; no arm changes meaning.
+
+**Not done: X7's revocation arm (C2b) and X6.** The design worked out, for the next session:
+- `revokeKindOk rq := dispatchKind rq = .leaseRevoke ∧ needAdminPermission rq = false ∧ noSideEffect
+  rq = false`; `rqOk`'s arm `match lm with | .revocable => revokeKindOk rq ∧ putOk log | _ => False`;
+  `revokePropOk lm rq := lm = .revocable ∧ revokeKindOk rq` beside `grantPropOk` in `plainEntryM` and
+  `reqPropOk` (result trivial, no client update, as the grant's).
+- **`revokeRes` with the live set's other half.** `kvOwn`'s `leasesLive` already holds one half
+  (`ltHalf E L`); `lessor.Revoke` (`revokeClause`) moves `lessorUser` to `L.filter (· != id)`, so the
+  backend must update `γlt`, which needs `srvRest`'s half: `revokeRes E T rs := rdAt ∗
+  lessorRevocable ∗ ltHalf E T ∗ E.RO rs ∗ ⌜E.lm = .revocable⌝` (`revokePre` gains `T`).
+- **A design point for the triple's post.** The post today is `kvPost … ∗ revokeResAfter E id rs err`,
+  conditional on `err`, with the outcome hidden in `kvPost`'s `∃`. The backend answers
+  `.applied (revokeLog log id) false` whether the lease was live or not (`err` tells), while the auth
+  and corrupt layers reject (`err ≠ nil`, `T` unchanged). Since `err = nil ↔ id ∈ L` and `L = T`
+  (`ltHalf_agree`), at an applied outcome the live set after is `T.filter (· != id)` in both cases
+  (`id ∉ T` makes the filter the identity), and at a rejection `T`. So the post should name the
+  outcome, as `grantPost` does: `∃ o, … ∗ ltHalf E (revokeIds rq o T) ∗ E.RO (revokeRest T rq o rs)`
+  with `revokeIds`/`revokeRest` (`restRevoke id` iff applied and `id ∈ T`) functions of the outcome;
+  `dispatch.spec`'s post composes them with `grantIds`/`grantRest`. This changes the four revoke
+  specs (`applierV3backend`, `authApplierV3`, `applierV3Corrupt`, the quota and capped wrappers'
+  clauses) and `applierTriples`; internal to the apply package.
+- `dispatch.spec`/`Apply.spec` take, for a revocation, `rdAt ∗ lessorRevocable` (`rdAt` from the
+  server's applier row `srvApplyKV`; `lessorRevocable` from `srvSnapRO`'s `lessorModeIs (decide (E.lm
+  = .mono))` at `E.lm = .revocable`) and give `rdAt` back.
+- The server side: `AppliedTable`'s lemmas gain the revocation case (`T.filter`), `srvRestAt`'s
+  `restLeasesWith f T r` commutes with `restRevoke` (a lemma), and the KV identity
+  (`revokeChanges (stateAfter log) id = []` since no key is leased in `plainLogM`'s logs,
+  `mvcc.commitLog log [] = log`, `0 ∉` the table's ids by `grantKindOk`).
+- X6 then follows `EtcdServer.LeaseGrant`'s proof, with `revokePropOk` in the proposal.
