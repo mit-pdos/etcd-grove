@@ -163,7 +163,7 @@ theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
     (hc : B0.bm !! k = some c) (hC : X.t.bs !! c = some C) (hnn : C.bv.rootNode' ≠ null)
     {X' : WX} {w' : WDb} {st' : List FLStep}
     (hd : bkDone X X' w w' c C (othersO Lroot keys Dc k) (Dc k) st') :
-    ∃ C' D', X'.t.bs !! c = some C' ∧ C'.bv.rootNode' ≠ null ∧
+    ∃ C' D', X'.t.bs !! c = some C' ∧ C'.bv.rootNode' ≠ null ∧ c ∈ X'.liveB ∧
       RInv X0 w0 B0 keys Lroot X' w' (st ++ st') (upd Dc k D')
         (upd ks k (.val (encode C'.ib) false)) := by
   sorry
@@ -280,10 +280,10 @@ theorem rinv_putPre (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {X1 : WX}
     (hm : matGrow X X1 X0.rl) {els : List elemRef} {pids : List w64} {k : List w8}
     (hp : lPath X X0.rl els pids) (hr : lRoutes X X0.rl els pids k) {B1 : BRec} {pid : w64}
     {l : Loc} (hB1 : X1.t.bs !! X0.rl = some B1) (hlast : pids.getLast? = some pid)
-    (hres : resolve B1 pid = some l) :
+    (hres : resolve B1 pid = some l) (hk : ∃ we ∈ X.allEnts X0.rl, we.key = k) :
     ∃ rl, B1.ns !! l = some rl ∧ l ∈ X1.live ∧ rl.nv.bucket' = X0.rl ∧ rl.capOwn = true ∧
       wsSorted rl.ws ∧ wsLive rl.ws ∧ 0 < X1.t.mv.pgid'.toNat ∧ X1.v = X.v ∧
-      rl.nv.parent' ≠ l := by
+      rl.nv.parent' ≠ l ∧ 0 < k.length ∧ X1.t.bs !! X0.rl = some B1 := by
   sorry
 
 /-- **The staged value put into the root bucket's leaf.** -/

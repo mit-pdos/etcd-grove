@@ -12,6 +12,8 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopStep
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopHeap
+public import Proof.go_etcd_io.bbolt.Spill.BktPm
+public import Proof.go_etcd_io.bbolt.Read.WOpenOK
 public import Spec.go_etcd_io.bbolt.Bucket__spill
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
 public import Proof.go_etcd_io.bbolt.Read.WCtx
@@ -50,7 +52,8 @@ def spillPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (err
   iprop((⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb), wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗
         ⌜spillOK X X' w.C w.fl w'.fl w.wtxid ∧ w'.C = w.C ∧
           derefPre X' ∧ liveFresh X' ∧ liveReach X' ∧
-          X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl⌝) ∨
+          X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧ flViewU X' w'.fl ∧
+          spillBufs X' w.C w'.fl⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages⌝ ∗
@@ -72,7 +75,14 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     (hRoot : node.root.spec (GF := GF) (hG := hG))
     (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
     (hSRP : internal.common.InBucket.SetRootPage.spec (GF := GF) (hG := hG))
-    (hInl : Bucket.inlineable.spec (GF := GF) (hG := hG)) :
+    (hInl : Bucket.inlineable.spec (GF := GF) (hG := hG))
+    (hCur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hSeek : Cursor.seek_w.spec (GF := GF) (hG := hG))
+    (hNode : Cursor.node.spec (GF := GF) (hG := hG))
+    (hPut : node.put.spec (GF := GF) (hG := hG))
+    (hEq : bytes.Equal.spec (GF := GF) (hG := hG))
+    (hFree : Bucket.free.spec (GF := GF) (hG := hG))
+    (hWrite : Bucket.write.spec (GF := GF) (hG := hG)) :
     Bucket.spill.spec (GF := GF) (hG := hG) := by
   intro K tx r m X w Hpre Hreach Hml Hfv
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
@@ -93,23 +103,29 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
   iapply wp_map_for_range_gen (loopP K tx r m X w B0 Φ «$res0_ptr» b_ptr child_ptr name_ptr) $$ Hbm
   iintro %keys ⟨%Hkset, %Hklen, %Hknd⟩
   isplitl [HΦ «$res0» b child name Hwb Hdb]
-  · unfold wdbW
-    icases Hdb with ⟨Hdl, %Hwf⟩
+  · icases keep_pure (Q := wdbW K tx X.v w)
+      (P := wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
+      (by unfold wdbW; iintro ⟨-, %H⟩; ipureintro; exact H) $$ Hdb with ⟨Hdb, %Hwf⟩
     obtain ⟨Lroot, Dc, HI⟩ := rinv_start Hpre Hreach Hml Hfv Hwf HB0 keys
       (fun k => Hkset k) Hknd
     unfold loopP
     isplitr
     · ipureintro; rfl
-    iframe
+    isplitl [HΦ]
+    · unfold spillPost; iintro %err Hpost; iapply HΦ; iexact Hpost
+    iframe «$res0» b
+    isplitl [child]
+    · iexists _; iexact child
+    isplitl [name]
+    · iexists _; iexact name
+    iexists X
     iexists w
     iexists ([] : List FLStep)
     iexists Lroot
     iexists Dc
     iexists (fun _ => KSt.todo)
     iframe
-    unfold wdbW
-    isplitl
-    · iframe; ipureintro; exact Hwf
+    iframe
     ipureintro
     exact ⟨HI, fun j k _ => ⟨fun h => absurd h (Nat.not_lt_zero _), fun _ => rfl⟩⟩
   isplitr
@@ -213,7 +229,116 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
           exact ⟨HI2, ksAt_step Hknd Hks Hkey .nilc ⟨(fun h => nomatch h), (fun v h => nomatch h)⟩⟩
         · rw [decide_eq_false Hn2]
           try wp_auto
-          sorry
+          obtain ⟨Br, HBr, -, -⟩ := HI2.root
+          icases wtxW_cursor_acc K tx r m X2 X.rl Br HBr $$ Hw with ⟨-, -, Hst, %dt, Htx, Hwbc⟩
+          wp_apply hCur K tx r m 1 X.rl dt $$ [Hst Htx] as %cur ⟨%stk, Hcu, Hs, Hscap, Hst, Htx⟩
+          · iframe; iframe #
+          ihave Hw := Hwbc $$ Hst Htx
+          try wp_auto
+          wp_apply wp_string_to_bytes key as %ksl ⟨Hksl, Hkcap⟩
+          imod ownSlice_persist ksl _ _ $$ Hksl with #Hksl
+          have HlocR : bktLocalOK X2 X.rl := HI2.rootOK.1
+          wp_apply hSeek K tx r m X2 X.rl cur stk [] ksl key (Src.own DFrac.discard) HlocR
+            (by intro h; cases h) (pmFresh_of_spG HI2.G) $$ [Hw Hcu Hs Hscap]
+            as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hcu, Hs, Hscap, %Hrt, Hkv⟩
+          · iframe; unfold srcOwn; iexact Hksl
+          obtain ⟨Hp, Hr⟩ := Hrt
+          obtain ⟨p, ws, ⟨j, hpj⟩, hL, hle⟩ := WOpen.lPath_leaf X2 X.rl Br HBr HlocR els pids Hp
+          have hpI := WOpen.lPath_posI X2 X.rl Br HBr HlocR els pids Hp j p hpj
+          have hfa := WOpen.route_found_at X2 X.rl els pids key HlocR Hp Hr
+          obtain ⟨we, hwe, hwk, hwf⟩ := rinv_entry Hpre Hreach Hfv HB0 HI2 Hc
+          have hw := hfa we hwe hwk
+          rw [hle] at hw
+          rw [hle, hw]
+          icases Hkv with ⟨%Hkw, #Hks, #Hvs⟩
+          have hwm : we ∈ ws := List.mem_of_getElem? hw
+          obtain ⟨hlk, hlv⟩ := WOpen.leaf_live X2 X.rl Br HBr HlocR p hpI ws hL we hwm
+          try wp_auto
+          wp_apply wp_string_to_bytes key as %ksl2 ⟨Hksl2, -⟩
+          icases wtxW_cells_acc K tx r m X2 $$ Hw with ⟨%Hbase, Hcells, Hwbc⟩
+          icases viewCells_src_acc wq X2.v Hbase k _ we.key
+            (WOpen.leafSrc_live X2 X.rl Br HBr HlocR _ hlk) $$ [Hcells] with ⟨%dk, Hkk, Hcb⟩
+          · iframe; iframe #
+          wp_apply hEq ksl2 k (DFrac.own 1) dk key we.key $$ [Hksl2 Hkk] as ⟨-, Hkk⟩
+          · iframe
+          ihave Hcells := Hcb $$ Hkk
+          ihave Hw := Hwbc $$ Hcells
+          rw [decide_eq_true hwk.symm]
+          try wp_auto
+          have hbf : ¬ (fl &&& W32 1 = W32 0) := by rw [Hkw.2]; exact hwf
+          rw [decide_eq_false hbf]
+          try wp_auto
+          wp_apply wp_string_to_bytes key as %ok ⟨Hok, -⟩
+          imod ownSlice_persist ok _ _ $$ Hok with #Hok
+          wp_apply wp_string_to_bytes key as %nk ⟨Hnk, -⟩
+          imod ownSlice_persist nk _ _ $$ Hnk with #Hnk
+          imod ownSlice_persist val _ _ $$ Hval with #Hval
+          try wp_auto
+          icases wtxW_nodes_nonnull K tx r m X2 X.rl Br HBr $$ Hw with ⟨Hw, %Hnn⟩
+          obtain ⟨Hroot0, Hvwf, Hpready⟩ := rinv_ready Hpre HI2 HBr Hp
+          icases wtxW_matReady_all K tx r m X2 Br pids Hroot0 Hvwf Hpready $$ Hw with ⟨Hw, %Hmr⟩
+          wp_apply hNode K tx r m X2 X.rl Br cur stk' els pids (DFrac.own 1) HBr HlocR Hp Hnn Hmr
+            $$ [Hw Hcu Hs] as %l ⟨%X3, Hw, Hcu, Hs, %Hcn⟩
+          · iframe
+          obtain ⟨Hmg, -, HlocR', B3, pid, HB3, Hlast, Hres⟩ := Hcn
+          obtain ⟨rl, Hrl, Hll, Hrlb, Hcap, Hsrt, Hwl, Hmk, Hv3, Hpar, Hkl, -⟩ :=
+            rinv_putPre HI2 Hmg Hp Hr HB3 Hlast Hres ⟨we, hwe, hwk⟩
+          icases wtxW_open K tx r m X3 $$ Hw with ⟨-, -, -, Hh, Hv, Hst, Hclose⟩
+          ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) X3 $$ Hh
+          have Htx3 : B3.bv.tx' = tx := Hok3.2.2.1 X.rl B3 HB3
+          have HlB3 : X.rl ∈ X3.liveB := HlocR'.1
+          icases wtxHeap_setNode_acc tx (DFrac.own 1) X3 X.rl B3 l rl HB3 Hrl $$ Hh
+            with ⟨Hno, Hbo, Hf, Hrf, Hback⟩
+          rw [decide_eq_true Hll, decide_eq_true HlB3]
+          isimp only [objOwn] at Hbo
+          icases Hbo with ⟨Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, Q9, Q10⟩
+          have Hroot1 : X.rl = B3.bv.tx'.[Tx, go!"root"] := by
+            rw [Htx3]; exact Hok.1
+          rw [if_pos Hroot1, Htx3]
+          unfold txFields
+          icases Hf with ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩
+          have Hbase3 : 0 < X3.v.base.addr := by rw [Hv3]; exact Hbase
+          wp_apply hPut X3.v l X.rl rl tx X3.t.t.meta' X3.t.mv (DFrac.own 1) (DFrac.own 1) wq ok nk val key key
+              (encode C2.ib) (Src.own DFrac.discard) (Src.own DFrac.discard) (Src.own DFrac.discard)
+              (W64 0) (W32 1) Hrlb Hcap Hsrt Hwl (by simpa using Hmk) Hkl Hkl (by intro h; cases h)
+              (by intro h; cases h) (by intro h; cases h) Hbase3
+            $$ [Hno Hv Q2 Hmeta Hmv] as ⟨%sl, %ins', Hno, Hv, Q2, Hmeta, Hmv⟩
+          · iframe; iframe #; unfold srcOwn; iframe #
+          try wp_auto
+          ihave Hh := Hback $$ %(rl.withEnts sl ins' (wsPutAt rl.ws key
+              ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩))
+            %(by simpa [NRec.withEnts] using Hpar) [Hno] [Q1 Q2 Q3 Q4 Q5 Q6 Q7 Q8 Q9 Q10]
+            [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs] Hrf
+          · iexact Hno
+          · isimp only [objOwn]
+            rw [if_pos Hroot1, Htx3]
+            iframe
+          · iframe
+          ihave Hw := Hclose $$ %(X3.setNode X.rl l (rl.withEnts sl ins'
+              (wsPutAt rl.ws key ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩))) [] Hh Hv Hst
+          · ipureintro; rw [setNode_eq X3 X.rl l B3 _ HB3]; exact ⟨rfl, rfl, rfl⟩
+          have HI4 := rinv_put HI2 (upd_same ks key _) Hc Hmg Hp Hr HB3 Hlast Hres Hrl sl ins'
+          rw [upd_upd, show rootEnt key (encode C2.ib) = ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩ from rfl] at HI4
+          obtain ⟨Br4, HBr4, Hbk4, Hbm4⟩ := HI4.root
+          icases wtxW_bm_acc K tx r m _ X.rl Br4 HBr4 B0.bv.buckets' B0.bm Hbk4 Hbm4 $$ Hw
+            with ⟨Hbm, Hwb⟩
+          have Hv4 : (X3.setNode X.rl l (rl.withEnts sl ins'
+              (wsPutAt rl.ws key ⟨W32 1, W64 0, key, encode C2.ib, Src.own DFrac.discard, Src.own DFrac.discard⟩))).v = X2.v := by
+            rw [setNode_eq X3 X.rl l B3 _ HB3]; exact Hv3
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; rfl
+          iexists B0.bm
+          iframe Hbm
+          isplitr
+          · ipureintro; rfl
+          iframe
+          iexists w2, st3, Lroot, Dc2, upd ks key (.val (encode C2.ib) true)
+          rw [Hv4]
+          iframe
+          ipureintro
+          exact ⟨HI4, ksAt_step Hknd Hks Hkey _ ⟨(fun h => nomatch h), (fun v h => nomatch h)⟩⟩
       · cases err with
         | nil => exact absurd rfl hne
         | ok ii =>
@@ -267,7 +392,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     · dsimp only; iframe
     ihave Hw := Hclose $$ %X1 [] Hh Hv Hst
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
-    obtain ⟨Hok1, Hfv1⟩ := rinv_end_nil Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull
+    obtain ⟨Hok1, Hfv1, Hsb1⟩ := rinv_end_nil Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull
     have HG := HI.G
     iapply HΦ
     unfold spillPost
@@ -277,7 +402,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     iexists X1, w1
     iframe
     ipureintro
-    exact ⟨Hok1, HI.C, HG.2.2.1, HG.2.2.2.1, HG.2.2.2.2.1, HG.2.1, Hfv1⟩
+    exact ⟨Hok1, HI.C, HG.2.2.1, HG.2.2.2.1, HG.2.2.2.2.1, HG.2.1, Hfv1, Hsb1⟩
   rw [decide_eq_false Hnull]
   try wp_auto
   ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -380,7 +505,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     ihave Hw := Hclose $$ %(X2.setBkt X.rl (bkRooted B1 rt rr.nv.pgid')) [] Hh Hv Hst
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
     try wp_auto
-    obtain ⟨Hok', Hfv'⟩ := Hfin X2 w2 st2 B1 rt rr Hdone' HB1 Hrr Hrtl Hrsp Hrpar Hroot
+    obtain ⟨Hok', Hfv', Hsb'⟩ := Hfin X2 w2 st2 B1 rt rr Hdone' HB1 Hrr Hrtl Hrsp Hrpar Hroot
     obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hstep
     have HG' := spG_bkRooted (fl := w2.fl) rr.nv.pgid' s4 HB1 Hrr Hrpar Hrtl Hroot
     rw [HwX] at HG'
@@ -392,7 +517,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     iexists X2.setBkt X.rl (bkRooted B1 rt rr.nv.pgid'), w2
     iframe
     ipureintro
-    exact ⟨Hok', s1.trans HI.C, HG'.2.2.1, HG'.2.2.2.1, HG'.2.2.2.2.1, s5, Hfv'⟩
+    exact ⟨Hok', s1.trans HI.C, HG'.2.2.1, HG'.2.2.2.1, HG'.2.2.2.2.1, s5, Hfv', Hsb'⟩
   · cases err with
     | nil => exact absurd rfl hne
     | ok ii =>

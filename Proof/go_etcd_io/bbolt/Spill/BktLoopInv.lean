@@ -24,6 +24,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktSpec
 public import Proof.go_etcd_io.bbolt.Spill.BktFinal
+public import Spec.go_etcd_io.bbolt.Bucket__spill
 public import Proof.go_etcd_io.bbolt.Spill.BktSlot
 public import Proof.go_etcd_io.bbolt.Spill.BktVal
 public import Proof.go_etcd_io.bbolt.Spill.SlotInv
@@ -140,7 +141,7 @@ theorem rinv_end_nil {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoStrin
     (hB0 : X0.t.bs !! X0.rl = some B0) (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome)
     (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hks : ksAt keys keys.length ks)
     (hB : X.t.bs !! X0.rl = some B) (hrn : B.bv.rootNode' = null) :
-    spillOK X0 X w0.C w0.fl w.fl w0.wtxid ∧ flViewU X w.fl := by
+    spillOK X0 X w0.C w0.fl w.fl w0.wtxid ∧ flViewU X w.fl ∧ spillBufs X w0.C w.fl := by
   sorry
 
 /-- **The end, with a root node**: the root bucket's root node is the top of an unspilled tree
@@ -160,7 +161,8 @@ theorem rinv_end {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoString}
         X1.t.bs !! X0.rl = some B1 → B1.ns !! rt = some rr → rt ∈ X1.live →
         rr.nv.spilled' = true → rr.nv.parent' = null → nodeRootIn B1 B1.bv.rootNode' rt →
         spillOK X0 (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w0.C w0.fl w1.fl w0.wtxid ∧
-          flViewU (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w1.fl := by
+          flViewU (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w1.fl ∧
+          spillBufs (X1.setBkt X0.rl (bkRooted B1 rt rr.nv.pgid')) w0.C w1.fl := by
   sorry
 
 end inv
