@@ -142,7 +142,8 @@ theorem spillTail_gen
       (∀ x ∈ xs, pieceFits 4096 x.2.2 ∧ (2 ≤ xs.length → 2 ≤ x.2.2.length)) →
       I xs pl 0 X2 w' st0)
     (H2 : ∀ xs pl i Xi wi sti x, I xs pl i Xi wi sti → xs[i]? = some x →
-      ∃ rl, Xi.node bl x.1 = some rl ∧ pcPre Xi wi bl x.1 rl)
+      ∃ rl, Xi.node bl x.1 = some rl ∧ x.1 ∈ Xi.live ∧ wsLive rl.ws ∧
+        (insLens rl.ins rl.ws → pcPre Xi wi bl x.1 rl))
     (H3 : ∀ xs pl i Xi wi sti x rl X3 w2 st' id, I xs pl i Xi wi sti → xs[i]? = some x →
       Xi.node bl x.1 = some rl → pcStep Xi wi bl x.1 rl (pcCount (insSize rl.ins)) X3 w2 st' id →
       I xs pl (i + 1) X3 w2 (sti ++ st'))
@@ -205,8 +206,9 @@ theorem spillTail_gen
       simp only [List.length_map] at h2
       rw [h2]; show (sint.Z j).toNat < (sint.Z s.len).toNat; omega
     obtain ⟨x, hx⟩ : ∃ x, xs[sint.nat j]? = some x := ⟨_, List.getElem?_eq_getElem hjn⟩
-    obtain ⟨rl, hrl, hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12⟩ :=
-      H2 xs pl _ Xi wi _ x HIj hx
+    obtain ⟨rl, hrl, hrlv, hrwl, hpre⟩ := H2 xs pl _ Xi wi _ x HIj hx
+    icases wtxW_lens K tx r m Xi bl x.1 rl hrl hrlv hrwl $$ Hw with ⟨Hw, %Hrlens⟩
+    obtain ⟨hp1, hp2, hp3, hp4, hp5, hp6, hp7, hp8, hp9, hp10, hp11, hp12⟩ := hpre Hrlens
     wp_pures
     wp_bind (App (Val (GoInstruction (GoLoad go.int))) _)
     wp_load

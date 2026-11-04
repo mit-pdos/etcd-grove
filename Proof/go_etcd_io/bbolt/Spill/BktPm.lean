@@ -34,7 +34,7 @@ theorem pmFresh_of_spG {X : WX} {txid : w64} {ml : Nat} {fl : FLPg} (hG : spG X 
     pmFresh X := by
   intro id hid
   have hb := (hG.2.2.2.2.2.1 id).1 hid
-  exact (hG.2.2.2.2.2.2.2 id hb).2.2
+  exact (hG.2.2.2.2.2.2.2.1 id hb).2.2
 
 /-- A view page is not in the page cache during the spill. -/
 theorem pm_none_of_view {X : WX} {txid : w64} {ml : Nat} {fl : FLPg} (hG : spG X txid ml fl)

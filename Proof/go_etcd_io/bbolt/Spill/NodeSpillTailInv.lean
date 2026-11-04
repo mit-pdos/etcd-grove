@@ -309,7 +309,8 @@ theorem pcInv_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (xs : List (Loc × node × List Inode)) (pl : Loc) (i : Nat) (Xi : WX) (wi : WDb)
     (st : List FLStep) (x : Loc × node × List Inode)
     (hI : pcInv X w bl n rn O lo hi h D N E cs xs pl i Xi wi st) (hx : xs[i]? = some x) :
-    ∃ rl, Xi.node bl x.1 = some rl ∧ pcPre Xi wi bl x.1 rl := by
+    ∃ rl, Xi.node bl x.1 = some rl ∧ x.1 ∈ Xi.live ∧ wsLive rl.ws ∧
+      (insLens rl.ins rl.ws → pcPre Xi wi bl x.1 rl) := by
   sorry
 
 /-- **A piece's step** keeps the invariant. -/

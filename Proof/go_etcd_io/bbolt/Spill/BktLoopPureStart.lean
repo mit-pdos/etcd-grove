@@ -233,7 +233,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     mark := Nat.le_refl _
     G := ⟨htxid, hml, wOKR_derefPre X hok, wOKR_liveFresh X hok, hreach,
       fun id => by rw [htc.2.1.1, htc.2.1.2.1]; rfl, hS.mark62,
-      fun id h => by rw [htc.2.1.2.1] at h; cases h⟩
+      (fun id h => by rw [htc.2.1.2.1] at h; cases h), view_lt_mark hS hw⟩
     root := ⟨B0, hB0, rfl, rfl⟩
     rootOK := rootLoc_start hpre hB0
     rootIb := fun B hB => by rw [hB0] at hB; cases hB; rfl
@@ -264,7 +264,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
       have hne := hS.notRoot k c hc
       obtain ⟨C, hC⟩ := Option.isSome_iff_exists.1 ((htc.2.2.2.2.2 X.rl B0 hB0).2 k c hc)
       refine ⟨C, hC, hok.2.2.2.2.2.1.2.2.1 c C hC, child_bm_empty hok hC hne, hne,
-        bktLocalOK_of_wOKR hok hC, hpre.2.2.2.1 c (by rw [hC]; simp), rfl, ?_, ?_⟩
+        fun _ => bktLocalOK_of_wOKR hok hC, hpre.2.2.2.1 c (by rw [hC]; simp), rfl, ?_, ?_⟩
       · intro hn
         exact ⟨(hDc k).2 (fun ⟨c', C', hc', hC', hrn⟩ => by
           rw [hc] at hc'; cases hc'; rw [hC] at hC'; cases hC'; exact hrn hn), C, hC, hn⟩
@@ -278,7 +278,9 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
       rw [List.map_id']
     keysAll := fun k h => (hk k).2 h
     rootPg := htc.2.1.2.2.2.2 B0 hB0
-    entKeys := hS.rootKeys }
+    entKeys := hS.rootKeys
+    inj := hS.inj
+    cok := hS.cok }
 
 /-- **The invariant at the start**: every child not visited, the root's own slots `rootOwn`
 (U9p's `slotInv_start`), each child's its `bk_init` tree's. -/
