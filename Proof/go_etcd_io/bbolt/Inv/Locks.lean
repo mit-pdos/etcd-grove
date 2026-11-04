@@ -169,7 +169,10 @@ def wdbOK (w : WDb) : Prop :=
   -- B2: within `[2, hwm)`, free ids are neither tree nor pending slots (the rest are leaked)
   (∀ x ∈ w.fl.free, x.toNat ∉ treeSlots w.C) ∧
   -- F4.2: the synced freelist page can be reloaded
-  (∀ f, w.C.flpg = some f → flCurOK w.fl w.C (extentBytes w.wb f))
+  (∀ f, w.C.flpg = some f → flCurOK w.fl w.C (extentBytes w.wb f)) ∧
+  -- the writer's txid and the high-water mark do not wrap (batch 6, `Free`'s pending entry of
+  -- `C.txid + 1`: `treeOK`'s `txid < 2 ^ 63`, the current meta's `pgid`)
+  w.C.txid + 1 < 2 ^ 64 ∧ w.C.hwm < 2 ^ 64
 
 /-- The writer side but its share of the data, its freelist object, spare pair and receipts:
 `db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,

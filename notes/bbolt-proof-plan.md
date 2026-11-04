@@ -327,6 +327,26 @@ items 4 and 5 and need the same edits.
    pieces, as the parent's children, before they are spilled.
 4. `Inv/Ctx`'s `reg_persistent'` instance is public.
 
+## Shared-statement fixes, batch 6 (2026-11-04; decided by the coordinator)
+
+1. **`fileHolds`: the current meta's txid is at least 1** (`Inv/FileHolds`' `fileOK` and
+   `fileHolds_decode`'s post: `1 ≤ C.txid`; the frozen `fileHolds` docstring in
+   `Spec/go_etcd_io/bbolt/Api.lean`, docstring only). bbolt never leaves a current meta of txid 0
+   after `init` (D22 excludes an in-process tear, the fork's `init` is crash-safe, `WriteTo`
+   copies a database of txid at least 1). `fileHolds_new` is unaffected (a fresh file is the
+   `size = 0` case). U11 gets `1 ≤ C.txid` for `metaR` (U3's fix 6) from `fileHolds_decode`;
+   `nonissues/bbolt-txid0-reader-release.md` is now `blocks-proof: no`.
+2. **`wdbOK_free`** (U8's `Rebalance/Free.lean`) is proved, over `Model/Store`'s new public
+   `pendSlots_freePages`, `pendingIds_freePages_perm`, `freePages_pending_lookup`,
+   `freePages_pending_mono`, `mem_pagesSlots_iff`, `runIds_mem_toNat`, `toNat_W64_of_lt` (public
+   names for U3's private lemmas). It needs the writer's txid not to wrap (`C.txid + 1 < 2^64`:
+   its pending entry is not `committedPending`) and `C.hwm < 2^64` (the synced freelist page's
+   slots, as `w64`s): neither is anywhere in the writer's resources (`wdbW`, `wtxW`; only the
+   store's `storeOK` and `metaR` hold them), so **`wdbOK` gains a last clause `w.C.txid + 1 <
+   2^64 ∧ w.C.hwm < 2^64`** (maintained: `Open` from `fileHolds`' `txid < 2^62` and the current
+   meta's `pgid`; `Commit` from the new state's `treeOK`/`metaOk`, U10/U11).
+3. **For U11**: `BNs`' ghost names `mln` and `byt` (positions 16, 17) must be allocated at `Open`.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace

@@ -57,11 +57,12 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The facts of a well-formed file image of `D`. -/
+/-- The facts of a well-formed file image of `D` (its current meta's txid at least `1`: `init`
+writes txid 1 as the current meta, a commit only raises it; batch 6). -/
 def fileOK (xs : List w8) (size : Nat) (D : Data) : Prop :=
   (size = 0 ∧ D = ∅) ∨
   ∃ C, fileImage xs C ∧ C.metaOk ∧ treeOK C ∧ flFileOK xs C ∧ C.hwm * 4096 ≤ size ∧
-    C.txid < 2 ^ 62 ∧ treeData C = D
+    1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧ treeData C = D
 
 /-- **The file at `path` holds a database with the data `D`** (what `fileHolds` is sealed
 to). -/
@@ -94,7 +95,7 @@ theorem fileHolds_decode (path : GoString) (D : Data) :
         osBytes path 0 (DFrac.own 1) xs ∗ ⌜m.maps = ∅ ∧ xs.length = m.size⌝ ∗
         (⌜m.size = 0 ∧ D = ∅⌝ ∨
          ∃ C, ⌜fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧
-           flFileOK (xs.map Prod.fst) C ∧ C.hwm * 4096 ≤ m.size ∧ C.txid < 2 ^ 62 ∧
+           flFileOK (xs.map Prod.fst) C ∧ C.hwm * 4096 ≤ m.size ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
            treeData C = D⌝)) := by
   sorry
 

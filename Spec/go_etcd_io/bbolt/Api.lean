@@ -199,7 +199,11 @@ page cache, and durability is out of scope), and either
     whose elements and bytes lie **within the value** (round 6; `pageNode` panics on a non-leaf
     inline page);
   - its txid below `2 ^ 62` (round 3: the invariant `Commit` keeps is `txid < t₀ + receipts <
-    2 ^ 63`, with `t₀ < 2 ^ 62` the opened file's: what "no wrap" needs).
+    2 ^ 63`, with `t₀ < 2 ^ 62` the opened file's: what "no wrap" needs), and at least `1`
+    (2026-11-04: `init` writes its current meta with txid 1, the fork's `init` is crash-safe,
+    a commit only raises it, and `WriteTo` copies a database of txid at least 1; a reader of
+    txid 0 would make `ReleasePendingPages` release pages a reader sees,
+    `nonissues/bbolt-txid0-reader-release.md`).
   (Round 1's clause "no user value holds a valid meta at a probed offset" is gone: D18's fork
   change makes it unnecessary, and no `Commit` could keep it, since `Put` takes arbitrary bytes.
   The one valid meta this list requires stops the probe at page 0 or page 1.)

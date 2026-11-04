@@ -2,7 +2,7 @@
 upstream: none
 checked: 2026-11-04
 links: []
-blocks-proof: yes
+blocks-proof: no
 ---
 
 # bbolt: a read transaction of txid 0 lets `ReleasePendingPages` free pages it reads
@@ -24,11 +24,12 @@ reachable case needs a damaged meta page 1 at `Open`.
 
 ## Proof
 
-yes: the store's `store_release` needs every reader txid (`metaR`'s `F`) at least 1
-(`Inv/Locks.lean`'s `metaR`: `1 ≤ C.txid` while open, `F`'s values in `[1, C.txid]`). `Open` (U11)
-must establish `1 ≤ C.txid` for the file it opens, which `fileHolds`' `metaOk` does not give (it
-allows a current meta of txid 0 with meta 1 invalid): U11 needs a premise or a code fix (start
-readers' ranges at 1, or reject a current txid 0).
+no: `fileHolds` excludes it: a well-formed file's current meta has txid at least 1
+(`Inv/FileHolds.lean`'s `fileOK`, the `fileHolds` docstring in `Spec/go_etcd_io/bbolt/Api.lean`;
+decided 2026-11-04: bbolt never leaves a current meta of txid 0 after `init`, since an in-process
+torn write is excluded (D22), the fork's `init` is crash-safe, and `WriteTo` copies a database of
+txid at least 1). `Open` (U11) gets `1 ≤ C.txid` from it for `metaR`, which `store_release` needs
+(every reader txid at least 1).
 
 ## Notes
 

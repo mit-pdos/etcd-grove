@@ -1,6 +1,6 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/node__free.lean`: U8 (`notes/bbolt-proof-plan.md`), over
-`Rebalance/Free`'s `wdbOK_free` (a `sorry`: the store's bookkeeping).
+`Rebalance/Free`'s `wdbOK_free`.
 -/
 module
 

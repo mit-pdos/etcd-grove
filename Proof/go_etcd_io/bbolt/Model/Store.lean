@@ -1916,6 +1916,41 @@ theorem storeSlots_release_sub (σ : StoreSt) (ro : List w64)
   obtain ⟨pd, j, hp0, hj, -⟩ := (relOK_releasePending σ.fl ro hro hwf.2.2.2.2).2.2.1 t pd' i x hp hi
   exact (mem_pendSlots _ _).2 ⟨t, pd, x, hp0, List.mem_of_getElem? hj, rfl⟩
 
+
+/-! ## `Free`'s bookkeeping, for the writer side (`Rebalance/Free`'s `wdbOK_free`) -/
+
+theorem pendSlots_freePages (fl : FLPg) (T id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64)
+    (s : Nat) : s ∈ pendSlots (fl.freePages T id n) ↔
+      s ∈ pendSlots fl ∨ (id.toNat ≤ s ∧ s < id.toNat + n) :=
+  pendSlots_free fl T id n hn s
+
+theorem pendingIds_freePages_perm (fl : FLPg) (T id : w64) (n : Nat) :
+    (fl.freePages T id n).pendingIds.Perm (fl.pendingIds ++ runIds id n) :=
+  pendingIds_free_perm fl T id n
+
+theorem freePages_pending_lookup (fl : FLPg) (T id : w64) (n : Nat) (t : w64) (pd : Pending)
+    (h : (fl.freePages T id n).pending !! t = some pd) :
+    (t ≠ T ∧ fl.pending !! t = some pd) ∨
+    (t = T ∧ ∃ P : Pending, (fl.pending !! T).getD ⟨[], [], 0⟩ = P ∧
+      pd = ⟨P.ids ++ runIds id n, P.alloctx ++ List.replicate n ((fl.allocs !! id).getD 0),
+        P.lastReleaseBegin⟩) :=
+  freePages_lookup fl T id n t pd h
+
+theorem freePages_pending_mono (fl : FLPg) (T id : w64) (n : Nat) (t : w64) (pd : Pending)
+    (h : fl.pending !! t = some pd) : ∃ pd', (fl.freePages T id n).pending !! t = some pd' ∧
+      ∀ x, x ∈ pd.ids → x ∈ pd'.ids :=
+  freePages_pending_old fl T id n t pd h
+
+theorem mem_pagesSlots_iff (P : Pages) (s : Nat) : s ∈ pagesSlots P ↔ coversSlot P s :=
+  mem_pagesSlots' P s
+
+theorem runIds_mem_toNat (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (x : w64) :
+    x ∈ runIds id n ↔ id.toNat ≤ x.toNat ∧ x.toNat < id.toNat + n :=
+  mem_runIds_toNat id n hn x
+
+theorem toNat_W64_of_lt (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s :=
+  W64_toNat_of_lt' s h
+
 end store
 
 end bbolt
