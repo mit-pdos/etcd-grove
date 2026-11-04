@@ -1150,3 +1150,70 @@ analysis, nothing changed).
 Then `srvRevokeOpen` is proved (`srvRevokeOpen_spec`'s converse from
 `revokeExpiredLeases.wp_proof`) and passed in leaseexpiry's linked file only, as `srvGrantOpen_open`
 is in leasegrant's; until then the marked sorry above stands in.
+
+**Decided (the user, 2026-11-04, on the above):**
+- `Main.spec` as proposed, with `etc/bounds-baseline.txt` +1 `spec-thread`, +2 `spec-receipt`, the
+  collection `etc/tcb-collections/leaseexpiry.txt`, and the P1 sorry (approved in principle):
+  trust base 6 → 7 sorries, reached only by leaseexpiry. Its form: `srvRevokeOpen_open` (a theorem
+  `srvRevokeOpen` by `sorry`, beside `srvGrantOpen_open` in `EtcdServer__run.lean`), not
+  `EtcdServer.revokeExpiredLeases.wp_proof`: the latter's spec will be restated (the analysis'
+  points 1-5 add to its precondition), and a proof file would put the sorry into the server's
+  `Link.lean`; the premise form keeps it out of every result but leaseexpiry's, as
+  `srvGrantOpen_open` is.
+- E3's second half: (b) and (c) as designed.
+- **E2 not approved**: the row `vs = [v] ∧ lm ≠ none` is not the decided one (revisions 2/3: this
+  member the cluster's only member, no membership change admitted; round 3: first incarnation). It
+  does not say `v` is this member, and it encodes the first incarnation by a convention of the
+  restart contracts. Revised below, for a fresh review, then the user.
+
+**E2, revision 2 (2026-11-04).** What the names give:
+- `ρ.raft.raft.vs` (`SrvRaft.vs`) is the voters the cluster started with; its configuration is
+  `Membership.simple (listToSet vs)` (`NodeApiVocab.lean:222`: those voters, no learners, no joint
+  configuration) at index `0` (`srvClusterOk`'s `confAt … 0`), and at every index of a committed
+  log (`srv_confAt_simple`, `SrvRaftLog.lean:987`, proved from the server's log invariant: every
+  conf entry is a boot `AddNode` of a voter, `ccPolOk`, which the rule keeps, `srvRuleKeeps`). So
+  "no membership change admitted" is a theorem of every server here, and `vs = [mid]` with `mid`
+  this member's id (the `memberID` field, `srvReqFieldsAt`'s `memberID ↦□`) says "this member is
+  the cluster's only member, ever".
+- *First incarnation, explicitly*: `ρ.ids.inc = 0`. `IdNames.inc` is the incarnation number of the
+  member's id key `(pfx, inc)` (R2c, `notes/restart-plan.md`); the cluster's allocation gives each
+  boot member the key `(pfx, 0)` (`srvMemberBoot_alloc`, `NewServerAlloc.lean:352`, with its
+  exclusive entry `(pfx, 0) ↪[cnt] …`), so another incarnation of the member, which must register
+  a key of its own in the same map, cannot have `inc = 0`. The first incarnation is the one
+  `NewServer` boots from a fresh WAL directory (`walDirFresh`) with an empty lease bucket
+  (`NewLessor`'s premise, `⌜(r.lookup "lease").getD ∅ = ∅⌝`), so its lessor starts empty and its
+  committed log holds only the bootstrap's conf changes until a leader commits more.
+  Alternatives considered: `lm ≠ .none` (a convention of the restart contracts, which fix `.none`:
+  rejected); a new persistent ghost token minted by the first-boot path (as explicit, but a new
+  name to thread through `NewServer`'s post and `etcdstart`; `inc` already exists and is already
+  exclusive per key).
+
+The row and the spec (revision 2; the rest of the spec as revision 1):
+
+```lean
+/-- **The lease-TTL row** (the lease-expiry plan's E2, the user's): the server `s` is its cluster's
+only member (`mid`, its `memberID`, the one voter the cluster started with; the membership never
+changes, `srv_confAt_simple`) in its first incarnation (its id key's incarnation `0`, which only the
+cluster's allocation gives, `srvMemberBoot_alloc`). -/
+def leaseTTLRow (s : Loc) (ρ : ReqNames) : IProp GF :=
+  iprop(∃ mid : w64, structFieldRef EtcdServer go!"memberID" s ↦□ mid ∗
+    ⌜ρ.raft.raft.vs = [mid] ∧ ρ.ids.inc = 0⌝)
+```
+
+In the postcondition, `⌜leaseTTLRow ρ⌝ -∗` becomes `leaseTTLRow s ρ -∗` in both arms:
+
+```lean
+          □ (leaseTTLRow s ρ -∗ ∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL')) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s ρ -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
+```
+
+**Progress after the decisions (2026-11-04).**
+- `Main.spec` (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/Main.lean`) written as
+  approved: leasegrant's without `lease.leasesNoExpiry`, the leaseexpiry package and addresses. Its
+  proof waits for E2 (the not-found arm) and E3 (c) (absent stays absent): no proof file yet.
+- `srvRevokeOpen_open` (`EtcdServer__run.lean`, beside `srvGrantOpen_open`): the approved P1
+  `sorry`. Trust base 6 → 7 sorries; until `Main`'s proof is linked no result reaches it.

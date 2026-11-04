@@ -277,6 +277,18 @@ none discharges by its `lg = false`; only a lease-granting result
 theorem srvGrantOpen_open : srvGrantOpen (GF := GF) := by
   sorry
 
+/-- (open, the lease-expiry plan's Part E, decided 2026-11-04; its P1) **The open case of a
+revocable-lease cluster** (`srvRevokeOpen`, `LeaseRun.lean`: `EtcdServer.revokeExpiredLeases.spec`,
+`run`'s expiry arm): not proved. Its proof waits on thread tokens by level (the plan's P1:
+`revokeExpiredLeases` attaches a goroutine with `GoAttach` whose `LeaseRevoke` proposals the apply
+thread serves), and the spec itself is to be restated (the plan's "Plumbing: Part E", the
+`srvRevokeOpen` analysis). `run` does not use it: it takes the case as `lease.runCfg`'s revocable
+conjunct; only a revocable-lease result (`etcd_leaseexpiry.wp_Main`) uses this theorem, so it is in
+their trust base only. A theorem here rather than a `sorry` proof of `revokeExpiredLeases` itself,
+so that no proof of it enters the server's `Link.lean` before the spec is restated. -/
+theorem srvRevokeOpen_open : srvRevokeOpen (GF := GF) (hG := hG) := by
+  sorry
+
 /-- **A snapshot payload's job** (J8b, 2026-11-01; `s.applyAll(&ep, &ap)` on raft's snapshot
 payload, `rnApplyTok_recv`'s second case): from the apply thread's resources at the log `A`
 (`applyRes`) and the payload that jumps raft's log to `A'` (`|A| < |A'|`, of length the snapshot's
