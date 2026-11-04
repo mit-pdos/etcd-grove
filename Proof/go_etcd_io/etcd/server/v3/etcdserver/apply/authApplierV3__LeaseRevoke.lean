@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.LeaseRevoke.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq id log rs Pre Q Post info
+  intro E c inner p r rq id log T rs Pre Q Post info
   wp_start as ⟨#Hauth, #Hinner, Hpre⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
@@ -62,18 +62,17 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   | ok e' =>
     wp_auto
     iapply HΦ
-    isplitr [Hrr]
-    · iapply apply.auth_reject_kvPost E E.authOn c p inner info rq log _ Pre Q Post hk
-        (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo Hres Hcs
-      simp only [apply.revokeOutcomeIs, apply.rejErrIs]
-      isplitr
-      · ipureintro; trivial
-      · iframe HeI; ipureintro; simp
-    · iunfold apply.revokeRes at Hrr
-      icases Hrr with ⟨Hrdat, Hrev, HRO, -⟩
-      iunfold apply.revokeResAfter
-      simp only [reduceCtorEq, ↓reduceIte]
-      iframe
+    iapply apply.auth_reject_kvPost E E.authOn c p inner info rq log _ Pre Q Post hk
+      (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [Hrr] Hkv Hinfo Hres Hcs
+    simp only [apply.revokeOutcomeIs, apply.rejErrIs]
+    iunfold apply.revokeRes at Hrr
+    icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
+    iunfold apply.revokeResAfter
+    rw [apply.revokeIds_rejected, apply.revokeRest_rejected]
+    iframe Hrdat Hrev HltT HRO
+    isplitr
+    · ipureintro; trivial
+    · iframe HeI; ipureintro; simp
   | nil =>
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -84,15 +83,14 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_auto
-  wp_apply HRevI $$ %r %rq %id %log %rs %Pre %Q %Post %info' [Hwt Hkv Hres Hcs Hrr]
-    as %resp %err ⟨Hpost, Hra⟩
+  wp_apply HRevI $$ %r %rq %id %log %T %rs %Pre %Q %Post %info' [Hwt Hkv Hres Hcs Hrr]
+    as %resp %err Hpost
   · iunfold apply.revokePre
     iunfold apply.mPre
     iframe
     iframe #
     ipureintro; exact Hk
   iapply HΦ
-  iframe Hra
   ihave #Hrc : apply.reqClass (GF := GF) E.authMode info rq $$ []
   · simp only [apply.reqClass, Hk.2.1]; itrivial
   ihave #Hrl : apply.reqLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq $$ []

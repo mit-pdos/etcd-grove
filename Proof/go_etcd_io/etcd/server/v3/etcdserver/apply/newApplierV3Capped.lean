@@ -155,7 +155,7 @@ theorem apply.newApplierV3Capped.wp_proof
   isplitr
   · -- LeaseRevoke: the inner applier's (promoted)
     imodintro
-    iintro %r %rq %id %log %rs %Pre %Q %Post %info
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"LeaseRevoke")]
@@ -167,16 +167,15 @@ theorem apply.newApplierV3Capped.wp_proof
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HRev $$ %r %rq %id %log %rs %Pre %Q %Post %info [Hwt Hkv Hres Hcs Hrr]
+    iapply HRev $$ %r %rq %id %log %T %rs %Pre %Q %Post %info [Hwt Hkv Hres Hcs Hrr]
     · iunfold apply.revokePre
       iunfold apply.mPre
       iframe
       iframe #
       ipureintro; exact Hk
     inext
-    iintro %resp %err ⟨Hpost, Hrr⟩
+    iintro %resp %err Hpost
     iapply HΦ'
-    iframe Hrr
     iunfold apply.kvPost at Hpost
     iunfold apply.kvPost
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩

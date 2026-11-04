@@ -361,6 +361,17 @@ theorem plainOrCmpG_grant (lm : lease.Mode) (rq : apply.IRRModel) (hp : plainOrC
   · exact absurd hk (plainOrCmp_nonLease rq hp).1
   · exact hg
 
+/-- **No revocation, the live set and the rest as the grant's** (the lease-expiry plan's X7): a
+request not dispatched as a revocation leaves `revokeIdsA`/`revokeRestA` the identity. -/
+theorem revokeA_drop (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut)
+    (L T : List w64) (R : w64 → apply.RestM) (hk : apply.dispatchKind rq ≠ .leaseRevoke) :
+    apply.ltHalf E (apply.revokeIdsA rq v3 out L) ∗
+      (∃ t : w64, E.RO (apply.revokeRestA T rq v3 out (R t))) ⊢
+      apply.ltHalf E L ∗ ∃ t : w64, E.RO (R t) := by
+  rw [apply.revokeIdsA_nonRevoke _ _ _ _ hk]
+  simp only [apply.revokeRestA_nonRevoke _ _ _ _ _ hk]
+  iintro H; iexact H
+
 /-- **`kv_certPre_M` at `lm`**: a grant's outcomes keep the log (`chainStep_grant_logAfter`),
 certified as the entry's model log (`kvEntry_grant`). -/
 theorem kv_certPre_G (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)

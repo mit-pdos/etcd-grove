@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
     apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq id log rs Pre Q Post info
+  intro E c inner p r rq id log T rs Pre Q Post info
   wp_start as ⟨-, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -39,7 +39,8 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
   icases Hpre with ⟨%Hk, -, -, -, ⟨Hkv, Hres, Hcs⟩, Hrr⟩
   wp_auto
   iapply HΦ
-  isplitr [Hrr]
+  iunfold apply.revokeRes at Hrr
+  icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
   · ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.corrupt c) rq (.rejected .corrupt) $$ []
     · iapply apply.chainClass_corrupt_rejected
     ihave #Hlc : apply.chainLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) (.corrupt c) rq (.rejected .corrupt) $$ []
@@ -51,6 +52,9 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
       simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
     simp only [apply.revokeOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hkv Hres Hcls Hlc
+    iunfold apply.revokeResAfter
+    rw [apply.revokeIds_rejected, apply.revokeRest_rejected]
+    iframe Hrdat Hrev HltT HRO
     isplitl []
     · isplitl []
       · ipureintro; trivial
@@ -60,11 +64,6 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
       ipureintro; rfl
     iright
     iapply apply.csContract_pre $$ Hcs
-  · iunfold apply.revokeRes at Hrr
-    icases Hrr with ⟨Hrdat, Hrev, HRO, -⟩
-    iunfold apply.revokeResAfter
-    simp only [reduceCtorEq, ↓reduceIte]
-    iframe
 
 end proof
 

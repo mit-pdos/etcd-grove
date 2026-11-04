@@ -96,7 +96,9 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply
           rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
             (chainLog_of_backendLog lt rq x.log hb)] at h
           simp at h
-        · have := hrq; simp only [apply.rqOk, hk] at this
+        · -- (the lease-expiry plan's X7) a revocation: room for one revision (`putOk`)
+          have hp := ((apply.rqOk_leaseRevoke _ _ _ hk).1 hrq).2.2
+          unfold apply.putOk at hp; omega
       · have hnw : ∀ rq', apply.irrDecode m.data = some rq' →
             ¬ writeKind (apply.dispatchKind rq') := by
           intro rq' h'; rw [hdec] at h'; cases h'

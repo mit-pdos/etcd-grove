@@ -29,14 +29,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **`a.LeaseRevoke(lc)`**: `ErrCorrupt`; nothing written. -/
 abbrev apply.applierV3Corrupt.LeaseRevoke.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log)
-    (rs : apply.RestM) (Pre Q Post : IProp GF)
+    (T : List w64) (rs : apply.RestM) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      apply.revokePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq id log rs Pre Q Post }}
+      apply.revokePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq id log T rs Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info rq log (apply.revokeOutcomeIs resp err) Pre Post ∗
-        apply.revokeResAfter E id rs err }}
+      apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info rq log
+        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs o)) Pre Post }}
 
 end spec
 

@@ -53,7 +53,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
       apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
       ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb log rq⌝ ∗
-      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗
+      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.revokeOwn E rq ∗
       ⌜c.authOn = E.authOn⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
       apply.cmpOwn E crev }}
@@ -62,8 +62,10 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       apply.cmpOwn E (apply.dispatchCrev c rq v3 crev) ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
-        apply.kvOwn E (o.logAfter log) ∗ apply.ltHalf E (apply.grantIds rq v3 o T) ∗
-        (∃ t : w64, E.RO (apply.grantRest t rq v3 o (apply.restAfter rq v3 rs))) ∗
+        apply.kvOwn E (o.logAfter log) ∗
+        apply.ltHalf E (apply.revokeIds rq v3 o (apply.grantIds rq v3 o T)) ∗ apply.revokeOwn E rq ∗
+        (∃ t : w64, E.RO (apply.revokeRest T rq v3 o
+          (apply.grantRest t rq v3 o (apply.restAfter rq v3 rs)))) ∗
         ⌜apply.grantOutOk c rq v3 T o⌝ ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
           apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗

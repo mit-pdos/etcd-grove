@@ -395,11 +395,13 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave %Hat := entryWaitOk_attr ρ E m Htyp $$ Hewo
       have Hrr := restReqOk_of_attr γr.raft γr.kv.c0 A m rq Hmc (by rw [← Hrd]; exact Hat) Htyp
         hdata hdec
+      ihave Hrv : apply.revokeOwn E rq $$ []
+      · rw [apply.revokeOwn_nonRevoke E rq (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp)))]; itrivial
       wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
-        _ _ $$ [HKV Hwt HRD HFSE HSpF HRS HLt]
-        as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HLt, HRS, %Hgo, -, %Hstep0, -, -, #Hdel⟩
-      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF HRS HLt Hgpq
+        _ _ $$ [HKV Hwt HRD HFSE HSpF HRS HLt Hrv]
+        as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HLt, -, HRS, %Hgo, -, %Hstep0, -, -, #Hdel⟩
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF HRS HLt Hrv Hgpq
         isplitr
         · iunfold entryRegd at Hreg
           ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -416,6 +418,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
+      ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
       ihave HRS := srvRest_applyPG E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch
         (Hpl rq hdata hdec) Hstep $$ [HLt HRS]
       · iframe HGI HLt HRS; ipureintro; exact Hgo
@@ -600,6 +603,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave %Hat := entryWaitOk_attr ρ E m Htyp $$ Hewo
       have Hrr := restReqOk_of_attr γr.raft γr.kv.c0 A m rq Hmc (by rw [← Hrd]; exact Hat) Htyp
         hdata hdec
+      ihave Hrv : apply.revokeOwn E rq $$ []
+      · rw [apply.revokeOwn_nonRevoke E rq (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp)))]; itrivial
       wp_apply hA fv.lg e m ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -609,9 +614,9 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
           applyBackend γ ci b) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
-        _ _ $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT HRS HLt] as %ar %id
-          ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HRS, %Hgo, HGr, %Hstep0, HRes, -, #Hdel⟩
-      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT HRS HLt Hgpq
+        _ _ $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT HRS HLt Hrv] as %ar %id
+          ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, -, HRS, %Hgo, HGr, %Hstep0, HRes, -, #Hdel⟩
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT HRS HLt Hrv Hgpq
         isplitr
         · iunfold entryRegd at Hreg
           ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -643,6 +648,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.2.1]; iexact HFS
       have Hstep := Hstep0.1
+      ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
       ihave HRS := srvRest_applyPG E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
         (Hpl rq hdata hdec) Hstep $$ [HLt HRS]
       · iframe HGI HLt HRS; ipureintro; exact Hgo
@@ -1174,11 +1180,13 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         ihave %Hat := entryWaitOk_attr ρ E m Htyp $$ Hewo
         have Hrr := restReqOk_of_attr γr.raft γr.kv.c0 A m rq Hmc (by rw [← Hrd]; exact Hat) Htyp
           hdata hdec
+        ihave Hrv : apply.revokeOwn E rq $$ []
+        · rw [apply.revokeOwn_nonRevoke E rq (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp)))]; itrivial
         wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
           (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
-          _ _ $$ [HKV Hwt HRD HFSE HSpF HRS HLt]
-          as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HLt, HRS, %Hgo, -, %Hstep0, -, -, #Hdel⟩
-        · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF HRS HLt Hgpq
+          _ _ $$ [HKV Hwt HRD HFSE HSpF HRS HLt Hrv]
+          as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HLt, -, HRS, %Hgo, -, %Hstep0, -, -, #Hdel⟩
+        · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF HRS HLt Hrv Hgpq
           isplitr
           · iunfold entryRegd at Hreg
             ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -1193,6 +1201,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           iframe Hcpq
           ipureintro; exact ⟨hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, apply.cmpAdmit_nonCmp _ _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
         have Hstep := Hstep0.1
+        ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
         ihave HRS := srvRest_applyP E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch
           (Or.inl hp) Hstep $$ [HLt HRS]
         · iframe HGI HLt HRS; ipureintro; exact Hgo
@@ -1468,6 +1477,8 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave %Hat := entryWaitOk_attr ρ E m Htyp $$ Hewo
           have Hrr := restReqOk_of_attr γr.raft γr.kv.c0 A m rq Hmc (by rw [← Hrd]; exact Hat) Htyp
             hdata hdec
+          ihave Hrv : apply.revokeOwn E rq $$ []
+          · rw [apply.revokeOwn_nonRevoke E rq (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp)))]; itrivial
           wp_apply hA fv.lg e m ua fv.w true E
             iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
               ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -1477,10 +1488,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
               applyBackend γ ci b) x rq id0 RD
             (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot F
-            _ _ $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT HRS HLt Hhk] as %ar %id
-              ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, HRS, %Hgo, HGr, %Hstep0, HRes, -, #Hdel⟩
+            _ _ $$ [Hst Happ Hbe HKV Hwt HRD HFSE HSpT HRS HLt Hhk Hrv] as %ar %id
+              ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, HLt, -, HRS, %Hgo, HGr, %Hstep0, HRes, -, #Hdel⟩
           · simp only [↓reduceIte]
-            iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT HRS Hhk HLt Hgpq
+            iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT HRS Hhk HLt Hrv Hgpq
             isplitr
             · iunfold entryRegd at Hreg
               ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
@@ -1500,6 +1511,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HFS : srvFS s $$ [HFS]
           · rw [← HEo.2.1]; iexact HFS
+          ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
           ihave HRS := srvRest_applyP E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
             (Or.inl hp) Hstep0.1 $$ [HLt HRS]
           · iframe HGI HLt HRS; ipureintro; exact Hgo

@@ -429,15 +429,15 @@ deletes). -/
 theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
-      □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (rs : RestM) (Pre Q Post : IProp GF)
-          (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ revokePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq id log rs Pre Q Post }}
+      □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
+          (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        {{ revokePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq id log T rs Pre Q Post }}
           (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
         {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
             ∃ oc : Outcome, ⌜chainStep backendStep (alarmChain E.authOn ns cr) rq log oc⌝ ∗
               revokeOutcomeIs resp err oc ∗ kvOwn E (oc.logAfter log) ∗
               chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗
-              revokeResAfter E id rs err ∗
+              revokeResAfter E rq T rs oc ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
@@ -449,16 +449,16 @@ theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold applierTriples at Ht
   icases Ht with ⟨-, -, -, -, #HRev, -⟩
   imodintro
-  iintro %r %rq %id %log %rs %Pre %Q %Post %info
+  iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
   imodintro
   iintro %Φ Hpre HΦ
-  iapply HRev $$ %r %rq %id %log %rs %Pre %Q %Post %info [Hpre]
+  iapply HRev $$ %r %rq %id %log %T %rs %Pre %Q %Post %info [Hpre]
   · iexact Hpre
   inext
-  iintro %resp %err ⟨Hpost, Hra⟩
+  iintro %resp %err Hpost
   iapply HΦ
   iunfold kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, H1, H2, H3, H4, #Hcls, #Hlc⟩
+  icases Hpost with ⟨%oc, %Hst, ⟨H1, Hra⟩, H2, H3, H4, #Hcls, #Hlc⟩
   iexists oc
   iframe H1 H2 H3 H4 Hra
   isplitr
