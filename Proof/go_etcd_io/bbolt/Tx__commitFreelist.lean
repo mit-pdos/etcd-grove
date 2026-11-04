@@ -13,7 +13,7 @@ mapping (`derefRel` and a re-base). On success `F` comes back.
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Tx__allocate
+public import Spec.go_etcd_io.bbolt.Tx__allocate_f
 public import Proof.go_etcd_io.bbolt.Inv.WAccess
 public import Proof.go_etcd_io.bbolt.Commit.WriteFL
 public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
@@ -48,20 +48,20 @@ success: `allocate`'s result `X1`/`w1` (`allocRes`, the page `id` at `p`, the hi
 bumped when taken from it), with the freelist page `flPageBytes w1.fl id` in its
 buffer and `tx.meta.freelist = id`; `F` back. On an error: rolled back, done. -/
 abbrev Tx.commitFreelist.spec : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F : IProp GF),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F : IProp GF),
   X.t.mv.txid' = w.wtxid → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms →
   derefPre X → liveFresh X → liveReach X → w.fl.allIds.length < 2 ^ 48 →
-  (F ∗ wtxW K tx r false X ∗ wdbW K tx X.v w ⊢ |==> wtxEnd K tx r X (wLive X.v w.C) w) →
+  (F ∗ wtxW K tx r false X ∗ wdbW' fr K tx X.v w ⊢ |==> wtxEnd K tx r X (wLive X.v w.C) w) →
   (∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) → w'.C = w.C →
     w'.fl = w.fl →
-    F ∗ wtxLost K tx r false X' ∗ wdbLost K tx X'.v w' ⊢
+    F ∗ wtxLost K tx r false X' ∗ wdbLost' fr K tx X'.v w' ⊢
       |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w') →
-  {{ F ∗ wtxW (GF := GF) K tx r false X ∗ wdbW K tx X.v w }}
+  {{ F ∗ wtxW (GF := GF) K tx r false X ∗ wdbW' fr K tx X.v w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"commitFreelist")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ ∃ (X1 : WX) (w1 : WDb) (id : w64) (p : Loc),
         F ∗ wtxW K tx r false (X1.setFlPage id (flPageBytes w1.fl id (flCount w.fl))) ∗
-        wdbW K tx X1.v w1 ∗
+        wdbW' fr K tx X1.v w1 ∗
         ⌜allocRes X X1 w.fl w1.fl w.wtxid (flCount w.fl) p id ∧ w1.C = w.C ∧
           X1.t.mv.pgid'.toNat * 4096 ≤ mapLen w1.ms ∧ (w1 = w.withFl w1.fl ∨ wdbRemap w w1)⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ txDoneDef tx) }}
@@ -76,23 +76,37 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- **The writer side's freelist** out of the flagged `wdbW' fr` (`wdbW_fl_acc`'s statement), and
+back unchanged. -/
+theorem wdbW'_fl_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW' (GF := GF) fr K tx v w ⊢ ∃ dq : DFrac, K.db.[DB, go!"freelist"] ↦{dq} w.fli ∗
+      flPgOwn w.fli w.fl ∗
+      (K.db.[DB, go!"freelist"] ↦{dq} w.fli -∗ flPgOwn w.fli w.fl -∗ wdbW' fr K tx v w) := by
+  unfold wdbW' wdbLive wdbCoreG
+  iintro ⟨⟨⟨H1, H2, H3, H4, H5, Hfli, Hrest⟩, Hfl, Hrd, Hrc⟩, %Hok, Ht⟩
+  iexists DFrac.own (1 : Qp).half
+  iframe Hfli Hfl
+  iintro Hfli Hfl
+  iframe
+  ipureintro; exact Hok
+
 set_option maxHeartbeats 0 in
 /-- **`tx.commitFreelist()`** proved: `EstimatedWritePageSize` over the freelist out of `wdbW`
 (`wdbW_fl_acc`), `allocate` of `flCount` pages; on an error the frame's entailment gives
 `wtxEnd` for `rollback` (`rbOK`: the live writer state, or the lost mapping's); on success the
 new buffer and the meta copy out of `wtxW` (`wtxW_flpage_acc`), the freelist written into it,
 `SetFreelist(p.Id())`, back as `setFlPage`. -/
-theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
+theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG := hG))
     (hRb : Tx.rollback.spec (GF := GF) (hG := hG))
     (hEst : internal.freelist.Interface.EstimatedWritePageSize.spec (GF := GF) (hG := hG))
     (hWrite : internal.freelist.Interface.Write.spec (GF := GF) (hG := hG))
     (hSet : internal.common.Meta.SetFreelist.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG)) :
     Tx.commitFreelist.spec (GF := GF) (hG := hG) := by
-  intro K tx r X w F htx hhwm hdp hlf hlr hlen hrb1 hrb2
+  intro fr K tx r X w F htx hhwm hdp hlf hlr hlen hrb1 hrb2
   wp_start as ⟨HF, Hw, Hd⟩
   icases wtxW_db_acc K tx r false X $$ Hw with ⟨⟨#Hpkg, #Hcore, %Hrdb⟩, Hdb, Hwb⟩
-  icases wdbW_fl_acc K tx X.v w $$ Hd with ⟨%dqf, Hfl, Hflo, Hdb2⟩
+  icases wdbW'_fl_acc fr K tx X.v w $$ Hd with ⟨%dqf, Hfl, Hflo, Hdb2⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
@@ -127,10 +141,8 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := 
   have hc2 : flCount w.fl * 4096 < 2 ^ 62 := by unfold flCount; split <;> omega
   have hsc : sint.Z (W64 ((flCount w.fl : Nat) : Int)) = flCount w.fl := by word
   have hsn : sint.nat (W64 ((flCount w.fl : Nat) : Int)) = flCount w.fl := by word
-  icases persistent_entails_left (show wdbW (GF := GF) K tx X.v w ⊢
-      ⌜wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C⌝ by
-        unfold wdbW; iintro ⟨-, %h⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwd⟩
-  wp_apply hAlloc K tx r false X w (W64 ((flCount w.fl : Nat) : Int)) (by rw [hsc]; omega)
+  icases wdbW'_ok fr K tx X.v w $$ Hd with ⟨Hd, %Hwd⟩
+  wp_apply hAlloc fr K tx r false X w (W64 ((flCount w.fl : Nat) : Int)) (by rw [hsc]; omega)
     (by rw [hsn]; omega) htx hhwm hdp hlf hlr $$ [Hw Hd]
     as %p %err Hres
   · iframe
@@ -153,7 +165,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := 
     rw [← hX1] at hpm hbf
     icases wtxW_flpage_acc K tx r false X1 id p _ hpm hbf $$ Hw
       with ⟨%mp, %dqm, Hdb, Hme, Hmv, Hp, Hwb⟩
-    icases wdbW_fl_acc K tx X1.v w1 $$ Hd with ⟨%dqf1, Hfl, Hflo, Hdb2⟩
+    icases wdbW'_fl_acc fr K tx X1.v w1 $$ Hd with ⟨%dqf1, Hfl, Hflo, Hdb2⟩
     have hpl : (encode (⟨id, W16 0, W16 0, W32 ((flCount w.fl - 1 : Nat) : Int)⟩ : Page) ++
         List.replicate (flCount w.fl * 4096 - 16) (W8 0)).length = flCount w.fl * 4096 := by
       simp only [List.length_append, ByteEncoding.encode_length, List.length_replicate]; omega
@@ -207,9 +219,9 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate.spec (GF := GF) (hG := 
       isplitr
       · iexact Herr
       iexact Hdone
-    · icases persistent_entails_left (show wdbLost (GF := GF) K tx X'.v w' ⊢
-          ⌜wdbOK w' ∧ w'.ms = none⌝ by
-            unfold wdbLost; iintro ⟨-, %h⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwl⟩
+    · icases persistent_entails_left (show wdbLost' (GF := GF) fr K tx X'.v w' ⊢
+          ⌜wdbOK' fr w' ∧ w'.ms = none⌝ by
+            unfold wdbLost'; iintro ⟨-, %h, -⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwl⟩
       obtain ⟨⟨Xd, b0, hder, hX'⟩, hC, hfl⟩ := Hrel
       ihave Hend : |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w'
         $$ [HF Hw Hd]

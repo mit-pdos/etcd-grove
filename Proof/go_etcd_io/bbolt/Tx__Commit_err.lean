@@ -469,20 +469,22 @@ theorem Tx.Commit_err.wp_proof'
               ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := fun Xd b hd =>
             cm_derefKeep X3 Xd b hd hwr3 hrl3
           have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
-              wtxW K tx r false X3 ∗ wdbW K tx X3.v w2 ⊢
+              wtxW K tx r false X3 ∗ wdbW' false K tx X3.v w2 ⊢
               |==> wtxEnd K tx r X3 (wLive X3.v w2.C) w2 := by
             iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
+            ihave Hd := wdbW'_wdbW K tx X3.v w2 $$ Hd
             imodintro
             iapply cm_wtxEnd_live K tx r X3 w2 hwr3 hrl3
             iframe; iframe #
           have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
               w'.C = w2.C → w'.fl = w2.fl →
               iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
-                wtxLost K tx r false X' ∗ wdbLost K tx X'.v w' ⊢
+                wtxLost K tx r false X' ∗ wdbLost' false K tx X'.v w' ⊢
               |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
             rintro X' w' ⟨Xd, b, hd, rfl⟩ hC _
             obtain ⟨hw', hr'⟩ := hderefKeep Xd b hd
             iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
+            ihave Hd := wdbLost'_wdbLost K tx _ w' $$ Hd
             imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
             imodintro
             iapply cm_wtxEnd_lost K tx r (Xd.rebase b) w' hw' hr'
@@ -493,7 +495,8 @@ theorem Tx.Commit_err.wp_proof'
           · rw [hC2]; iexact Hex
           icases (cm_keep_pure (cm_wdbW_bounds K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
           icases (cm_keep_pure (cm_wdbW_ok K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
-          wp_apply wp_commitFreelist K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
+          ihave Hwdb := wdbW_wdbW' false K tx X3.v w2 $$ Hwdb
+          wp_apply wp_commitFreelist false K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
             htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
             (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
               (by rw [← hX3]; rfl) hreach2) (cm_allIds_lt w2 Hw2ok.1 Hbd2.1 Hbd2.2) hrb1 hrb2
@@ -502,6 +505,7 @@ theorem Tx.Commit_err.wp_proof'
           icases Hcf with (⟨%He2, %X4, %w4, %id4, %p4, ⟨-, Hex⟩, Hw, Hwdb, %Hal⟩ |
             ⟨%He2, #Hfe2, Hdone⟩)
           · -- joins the tail
+            ihave Hwdb := wdbW'_wdbW K tx _ w4 $$ Hwdb
             imod cm_excl_update K r X3 (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))) _
               $$ Hex with Hex
             ihave Hex : cmExcl K r (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl)))
