@@ -241,6 +241,182 @@ theorem sTree_branch {P : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {h : 
     · obtain ⟨i, hi, hxs⟩ := hsub x hx hxi
       exact (hch i hi).ext x hxs pg' hp
 
+/-- **A nested bucket's value as the spill leaves it**: inline (a good inline page, no pages), or
+a file bucket whose tree is an `sTree` with the pages `S`. -/
+def bvalS (P : Pages) (hwm : Nat) (v : List w8) (S : List Nat) : Prop :=
+  16 ≤ v.length ∧
+  ((inBucketRoot v = 0 ∧ S = [] ∧ inlineGood (inlinePage v)) ∨
+   (inBucketRoot v ≠ 0 ∧ ∃ h, sTree P hwm (inBucketRoot v) none none h S))
+
+/-- A good inline page reaches no page. -/
+theorem inlineGood_noHas {P : Pages} {v : List w8} (hg : inlineGood (inlinePage v))
+    (hr : inBucketRoot v = 0) (d : Nat) : ¬ bucketHas P v d := by
+  intro h
+  cases h with
+  | file _ _ hr' _ => exact hr' hr
+  | inline _ _ _ hp =>
+    cases hp with
+    | child _ _ _ hfl _ _ =>
+      rw [hg.2.1] at hfl; simp [branchPageFlag, leafPageFlag] at hfl
+    | bucket _ i _ _ hi hbf _ =>
+      have := (hg.2.2.2.2 i hi).2
+      rw [this] at hbf; simp [bucketLeafFlag] at hbf
+
+/-- A nested bucket's pages are its `bvalS` pages. -/
+theorem bvalS_has {P : Pages} {hwm : Nat} {v : List w8} {S : List Nat} (hb : bvalS P hwm v S)
+    (d : Nat) : bucketHas P v d ↔ d ∈ S := by
+  rcases hb.2 with ⟨hr, rfl, hg⟩ | ⟨hr, h, hs⟩
+  · exact ⟨fun h => absurd h (inlineGood_noHas hg hr d), fun h => by simp at h⟩
+  · constructor
+    · intro h
+      cases h with
+      | file _ _ _ ht => exact (hs.has d).1 ht
+      | inline _ _ hr' _ => exact absurd hr' hr
+    · intro h
+      exact bucketHas.file v d hr ((hs.has d).2 h)
+
+/-- A nested bucket's value is well-formed. -/
+theorem bvalS_wf {P : Pages} {hwm : Nat} {v : List w8} {S : List Nat} (hb : bvalS P hwm v S) :
+    bucketWF P hwm v := by
+  rcases hb.2 with ⟨hr, -, hg⟩ | ⟨hr, h, hs⟩
+  · refine bucketWF.inline v hb.1 hr hg.2.1 (pageTreeWF.leaf _ _ hg.2.1 hg.2.2.1 fun i hi hbf => ?_)
+    have := (hg.2.2.2.2 i hi).2
+    rw [this] at hbf; simp [bucketLeafFlag] at hbf
+  · exact bucketWF.file v hb.1 hr hs.wf
+
+/-- **A leaf page over its nested buckets' values** is an `sTree` of height `0`. -/
+theorem sTree_leaf {P : Pages} {hwm id : Nat} {lo hi : Option (List w8)} {pg : List w8}
+    (Sb : Nat → List Nat)
+    (hpg : P !! id = some pg) (hfl : pageFlags pg = leafPageFlag) (h2 : 2 ≤ id)
+    (hlt : id < hwm) (hid : pageId pg = id) (hlen : pg.length = (1 + pageOverflow pg) * 4096)
+    (hlw : leafWF pg pg.length) (hgood : pageGood pg)
+    (hkin : ∀ i < pageCount pg, keyIn lo hi (leafKey pg i))
+    (hb : ∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag →
+      bvalS P hwm (leafValue pg i) (Sb i))
+    (hb0 : ∀ i < pageCount pg, leafFlags pg i % 2 ≠ bucketLeafFlag → Sb i = [])
+    (hd : subsDisj P id pg (pageCount pg) Sb)
+    (hext : id + (1 + pageOverflow pg) ≤ hwm) :
+    sTree P hwm id lo hi 0 (nodePages id (pageCount pg) Sb) := by
+  -- a nested bucket's pages
+  have hbS : ∀ i < pageCount pg, ∀ d, leafFlags pg i % 2 = bucketLeafFlag →
+      (bucketHas P (leafValue pg i) d ↔ d ∈ Sb i) := fun i hi d hbf => bvalS_has (hb i hi hbf) d
+  have hSb : ∀ i < pageCount pg, ∀ d, d ∈ Sb i → leafFlags pg i % 2 = bucketLeafFlag := by
+    intro i hi d hd'
+    by_cases hn : leafFlags pg i % 2 = bucketLeafFlag
+    · exact hn
+    · rw [hb0 i hi hn] at hd'; simp at hd'
+  have hhas : ∀ x, treeHas P id x ↔ x ∈ nodePages id (pageCount pg) Sb := by
+    intro x
+    rw [mem_nodePages]
+    constructor
+    · intro ht
+      cases ht with
+      | root _ _ _ => exact Or.inl rfl
+      | sub _ pg' _ hpg' hp =>
+        rw [hpg] at hpg'; cases hpg'
+        cases hp with
+        | child _ i _ hfl' _ _ => rw [hfl] at hfl'; simp [branchPageFlag, leafPageFlag] at hfl'
+        | bucket _ i _ _ hi hbf hbh => exact Or.inr ⟨i, hi, (hbS i hi x hbf).1 hbh⟩
+    · rintro (rfl | ⟨i, hi, hx⟩)
+      · exact treeHas.root x pg hpg
+      · have hbf := hSb i hi x hx
+        exact treeHas_bucket hpg hfl hi hbf ((hbS i hi x hbf).2 hx)
+  have hsub : ∀ x, x ∈ nodePages id (pageCount pg) Sb → x ≠ id → ∃ i < pageCount pg, x ∈ Sb i := by
+    intro x hx hne
+    rcases mem_nodePages.1 hx with rfl | h'
+    · exact absurd rfl hne
+    · exact h'
+  -- a nested file bucket of a page of `Sb i`
+  have hfile : ∀ i < pageCount pg, ∀ x ∈ Sb i, ∃ hb, sTree P hwm (inBucketRoot (leafValue pg i))
+      none none hb (Sb i) := by
+    intro i hi x hx
+    rcases (hb i hi (hSb i hi x hx)).2 with ⟨-, he, -⟩ | ⟨-, h, hs⟩
+    · rw [he] at hx; simp at hx
+    · exact ⟨h, hs⟩
+  have hphts : ∀ i, ∃ pht : Nat → Nat, i < pageCount pg → (∃ x, x ∈ Sb i) →
+      ∀ x ∈ Sb i, ∀ pg', P !! x = some pg' → htAt pht x pg' := by
+    intro i
+    by_cases hi : i < pageCount pg
+    · by_cases hne : ∃ x, x ∈ Sb i
+      · obtain ⟨x, hx⟩ := hne
+        obtain ⟨h, hs⟩ := hfile i hi x hx
+        obtain ⟨pht, h1, -⟩ := hs.hts
+        exact ⟨pht, fun _ _ => h1⟩
+      · exact ⟨fun x => x, fun _ h' => absurd h' hne⟩
+    · exact ⟨fun x => x, fun h' => absurd h' hi⟩
+  have hphts' := fun i => Classical.choose_spec (hphts i)
+  generalize hphdef : (fun i => Classical.choose (hphts i)) = phts at hphts'
+  replace hphts : ∀ i, i < pageCount pg → ∀ x ∈ Sb i, ∀ pg', P !! x = some pg' →
+      htAt (phts i) x pg' := by
+    intro i hi x hx; rw [← hphdef]; exact hphts' i hi ⟨x, hx⟩ x hx
+  clear hphts' hphdef
+  refine ⟨treeWF.page id pg h2 hlt hpg hid hlen
+      (pageTreeWF.leaf pg pg.length hfl hlw fun i hi hbf => bvalS_wf (hb i hi hbf)),
+    treeKeys.leaf id pg lo hi hpg hfl hkin (fun i hi hbf hr => ?_),
+    hhas, nodePages_nodup hd fun i hi => ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · rcases (hb i hi hbf).2 with ⟨hr', -⟩ | ⟨-, h, hs⟩
+    · exact absurd hr' hr
+    · exact hs.keys
+  · by_cases hbf : leafFlags pg i % 2 = bucketLeafFlag
+    · rcases (hb i hi hbf).2 with ⟨-, he, -⟩ | ⟨-, h, hs⟩
+      · rw [he]; exact List.nodup_nil
+      · exact hs.nodup
+    · rw [hb0 i hi hbf]; exact List.nodup_nil
+  · intro x hx pg' hp
+    by_cases hxi : x = id
+    · subst hxi; rw [hpg] at hp; cases hp; exact hgood
+    · obtain ⟨i, hi, hxs⟩ := hsub x hx hxi
+      obtain ⟨h, hs⟩ := hfile i hi x hxs
+      exact hs.good x hxs pg' hp
+  · intro x hx pg' hp
+    by_cases hxi : x = id
+    · subst hxi; rw [hpg] at hp; cases hp
+      refine ⟨fun hb' => by rw [hfl] at hb'; simp [branchPageFlag, leafPageFlag] at hb',
+        fun _ => ⟨fun i j hi hj hij hbi hbj d h1 h2 => ?_, fun i hi hbi h1 => ?_⟩⟩
+      · exact hd.pages i j hi hj hij d ((hbS i hi d hbi).1 h1) ((hbS j hj d hbj).1 h2)
+      · exact hd.own i hi ((hbS i hi x hbi).1 h1)
+    · obtain ⟨i, hi, hxs⟩ := hsub x hx hxi
+      obtain ⟨h, hs⟩ := hfile i hi x hxs
+      exact hs.uniq x hxs pg' hp
+  · refine ⟨phtJoin (pageCount pg) Sb phts 0, fun x hx pg' hp => ?_, phtJoin_own hd.own⟩
+    by_cases hxi : x = id
+    · subst hxi; rw [hpg] at hp; cases hp
+      exact ⟨fun _ => phtJoin_own hd.own,
+        fun hb' => by rw [hfl] at hb'; simp [branchPageFlag, leafPageFlag] at hb'⟩
+    · obtain ⟨i, hi, hxs⟩ := hsub x hx hxi
+      obtain ⟨h, hs⟩ := hfile i hi x hxs
+      have hat := hphts i hi x hxs pg' hp
+      have hxt : treeHas P (inBucketRoot (leafValue pg i)) x := (hs.has x).2 hxs
+      refine ⟨fun hl => by rw [phtJoin_sub hd.pages hi hxs]; exact hat.1 hl, fun hbr k hk => ?_⟩
+      have hw := Read.treeHas_treeWF P hwm hxt hs.wf
+      obtain ⟨cpg, hc⟩ := treeWF_page_some (treeWF_branch_child hw hp hbr hk)
+      have hck : branchPgid pg' k ∈ Sb i := (hs.has _).1
+        (treeHas_trans hxt (treeHas_child hp hbr hk (treeHas.root _ cpg hc)))
+      rw [phtJoin_sub hd.pages hi hxs, phtJoin_sub hd.pages hi hck]
+      exact hat.2 hbr k hk
+  · intro x hx y hy hne pgx pgy hpx hpy
+    by_cases hxi : x = id
+    · subst hxi; rw [hpg] at hpx; cases hpx
+      obtain ⟨j, hj, hys⟩ := hsub y hy (Ne.symm hne)
+      exact hd.ownExt j hj y hys pgy hpy
+    · obtain ⟨i, hi, hxs⟩ := hsub x hx hxi
+      by_cases hyi : y = id
+      · subst hyi; rw [hpg] at hpy; cases hpy
+        have := hd.ownExt i hi x hxs pgx hpx
+        unfold extDisj at this ⊢; omega
+      · obtain ⟨j, hj, hys⟩ := hsub y hy hyi
+        by_cases hij : i = j
+        · subst hij
+          obtain ⟨h, hs⟩ := hfile i hi x hxs
+          exact hs.disj x hxs y hys hne pgx pgy hpx hpy
+        · exact hd.ext i j hi hj hij x hxs y hys pgx pgy hpx hpy
+  · intro x hx pg' hp
+    by_cases hxi : x = id
+    · subst hxi; rw [hpg] at hp; cases hp; exact hext
+    · obtain ⟨i, hi, hxs⟩ := hsub x hx hxi
+      obtain ⟨h, hs⟩ := hfile i hi x hxs
+      exact hs.ext x hxs pg' hp
+
 end build
 
 end Spill
