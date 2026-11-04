@@ -43,7 +43,7 @@ abbrev EtcdServer.AuthEnable.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}
 
 /-- **`s.AuthEnable(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
-with its contract `raftRequest.specM true`'s (`authRaftOk_on`), the request admitted (`adminPropOk`);
+with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`);
 the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
 `L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
 its step determinate there (`adminQh`), with (5b) the result `Q` of its client's update of the

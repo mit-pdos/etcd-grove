@@ -1,6 +1,6 @@
 /-
 **`v3rpc.Server`'s premises from a server started with auth on** (the auth plan's E3zb,
-2026-10-28; `ServeFromStart.lean`'s `grpcCfgOk_of_started_w`, from `Start.specOn`'s views). The
+2026-10-28; `ServeFromStart.lean`'s `grpcCfgOk_of_started_w`, from `Start.spec`'s views at `.on γa`). The
 watch server's contract (`watchSrvOk`) is generic in the auth mode already. Lean-first (no Rocq
 counterpart).
 -/
@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **`grpcCfgOk_of_started_w` with auth on** (the auth plan's E3zb): from the views `Start.specOn`
+/-- **`grpcCfgOk_of_started_w` with auth on** (the auth plan's E3zb): from the views `Start.spec` (at `.on γa`)
 gives (`isServerReqM true`, `isServerReadM true`, `srvAuthLb`), at the KV answers with auth on
 (`srvKVAnsOn … 0 none`, what `etcd_kv_auth_served_on` takes; `raftKV_serverOn`). -/
 theorem grpcCfgOk_of_started_on_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)

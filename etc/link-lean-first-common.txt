@@ -4,21 +4,21 @@
 # `common`; the examples' Links take them as `@` callees.
 #
 # `newServer` and `StartServer`: a member's configuration and server, and the one member's start
-# (the server's results, linked in its `Link.lean`, `Start` with auth off as
-# `=EtcdServer.wp_Start_off`, `etcdserver/LinkedOff.lean`; the feature gate's trust-boundary axiom)
+# (the server's results, linked in its `Link.lean`; the feature gate's trust-boundary axiom)
 etcdserver_NewServer: @
+EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
 # (periodic mode, 2026-11-02) `newServer` is `newServerMode` in revision mode
 etcdstart_newServerMode: features_NewDefaultServerFeatureGate etcdserver_NewServer
 etcdstart_newServer: etcdstart_newServerMode
-etcdstart_StartServer: etcdstart_newServer =EtcdServer.wp_Start_off
+etcdstart_StartServer: etcdstart_newServer EtcdServer__Start
 # (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
 # nothing (`examples/etcd/restart` keeps its listeners)
 etcdstart_BuildServer: etcdstart_newServer
 # (M2, notes/m2-plan.md) `StartCompactingServer` and (periodic mode, 2026-11-02)
 # `StartPeriodicServer`: `StartServer` over `newServerMode` in revision and periodic mode
-etcdstart_StartCompactingServer: etcdstart_newServerMode =EtcdServer.wp_Start_off
-etcdstart_StartPeriodicServer: etcdstart_newServerMode =EtcdServer.wp_Start_off
+etcdstart_StartCompactingServer: etcdstart_newServerMode EtcdServer__Start
+etcdstart_StartPeriodicServer: etcdstart_newServerMode EtcdServer__Start
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen:
@@ -26,7 +26,7 @@ net_Listen:
 # boundary's `Serve` (`http.Serve_ok`) used by `NewMember`'s proof directly
 EtcdServer__RaftHandler: @
 etcdstart_NewMember: etcdstart_newServer net_Listen EtcdServer__RaftHandler
-etcdstart_StartMember: etcdstart_NewMember =EtcdServer.wp_Start_off
+etcdstart_StartMember: etcdstart_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @

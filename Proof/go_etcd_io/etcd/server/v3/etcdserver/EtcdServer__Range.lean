@@ -397,7 +397,7 @@ set_option hygiene false in
 /-- `range_tail` with auth on (E3s): the check at the reader's lower bound (`HIRP` a
 `permCheck3Lb`), the read at the mode-`on` model. -/
 local macro "range_tailOn" : tactic => `(tactic| (
-  wp_apply (hDS s E ρ γr ctx2 _ _ _
+  wp_apply (hDS ctx2 _ _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗ mvcc.storeReader E.s E.γ ∗
       srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log) (crev : Int), resp_ptr ↦ respv ∗
@@ -835,7 +835,8 @@ theorem EtcdServer.Range.wp_proof
       | off => simp_all [auth.AuthMode.isOn]
       | any => exact absurd hM hany
       | on γa => exact ⟨γa, rfl⟩
-    have hDS := EtcdServer.doSerialize.spec_M hDS true
+    have hDS := hDS s E ρ γr
+    rw [hon] at hDS
     -- (E3s) the store's range check at the reader's lower bound `n`
     iunfold srvAuthLb at HaLb
     icases HaLb with ⟨%au, #Hauf2, #HLb⟩

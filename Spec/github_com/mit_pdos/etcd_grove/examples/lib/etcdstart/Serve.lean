@@ -65,7 +65,7 @@ abbrev Serve.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (cid mid : w64) (R : v3rpc.WSrv GF), Q cid mid R) }}
 
 /-- **`Serve` with auth on** (the auth plan's E3zb, 2026-10-28): `Serve.spec`'s, from a member
-started with auth on (`Start.specOn`'s views: `isServerReqM true`, `isServerReadM true`,
+started with auth on (`Start.spec`'s views at `.on γa`: `isServerReqM true`, `isServerReadM true`,
 `srvAuthLb`; in the environment's mode `on γa`), the caller's ghost step from `grpcUpOn` (the KV
 answers with auth on and the Auth service's registrations). -/
 abbrev Serve.specOn : Prop :=

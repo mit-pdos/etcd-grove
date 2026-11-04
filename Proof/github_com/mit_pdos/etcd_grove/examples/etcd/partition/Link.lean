@@ -33,7 +33,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.start
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.writer
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LinkedOff
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -138,7 +137,7 @@ theorem wp_Check :
 
 theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.etcd_partition.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.startMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start_off net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
+  EtcdGrove.etcd_partition.startMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
 
 theorem wp_startBridge :
     EtcdGrove.etcd_partition.startBridge.spec (GF := GF) (hG := hG) :=
