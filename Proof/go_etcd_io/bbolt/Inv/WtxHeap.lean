@@ -155,9 +155,36 @@ theorem wtxHeap_fractional (tx : Loc) (X : WX) :
     Fractional (fun q => wtxHeap (GF := GF) tx (DFrac.own q) X) := by
   sorry
 
+omit hos in
+open Iris.ProofMode in
 theorem fills_fractional (H : GMap Loc (GoString × Nat)) :
     Fractional (fun q => fills (GF := GF) H (DFrac.own q)) := by
-  sorry
+  have hel : ∀ b : Loc, Fractional (fun q : Qp => iprop(∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗
+      b.[Bucket, go!"FillPercent"] ↦{DFrac.own q} f : IProp GF)) := by
+    intro b
+    have hf : ∀ f : w64, Fractional (fun q : Qp =>
+        (b.[Bucket, go!"FillPercent"] ↦{DFrac.own q} f : IProp GF)) := fun f =>
+      fractional_of_dfractional (h := inferInstance) _
+    refine ⟨fun p q => ⟨?_, ?_⟩⟩
+    · iintro ⟨%f, %Hn, Hp⟩
+      icases ((hf f).fractional p q).1 $$ Hp with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists f; iframe; ipureintro; exact Hn
+      · iexists f; iframe; ipureintro; exact Hn
+    · iintro ⟨⟨%f, %Hn, H1⟩, ⟨%g, %Hg, H2⟩⟩
+      icombine H1 H2 gives %He
+      obtain ⟨-, rfl⟩ := He
+      iexists f
+      isplitr
+      · ipureintro; exact Hn
+      iapply ((hf f).fractional p q).2
+      iframe
+  have hel' : ∀ (b : Loc) (_x : GoString × Nat), Fractional (fun q : Qp => iprop(∃ f : w64,
+      ⌜¬ float64IsNaN f⌝ ∗ b.[Bucket, go!"FillPercent"] ↦{DFrac.own q} f : IProp GF)) :=
+    fun b _ => hel b
+  unfold fills
+  exact fractional_bigSepM (Ψ := fun b _ q => iprop(∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗
+      b.[Bucket, go!"FillPercent"] ↦{DFrac.own q} f : IProp GF))
 
 omit hos in
 open Iris.ProofMode in

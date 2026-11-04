@@ -264,6 +264,9 @@ No frozen public statement changed.
    break `nlocOK`'s "registered ⇒ object", i.e. the freshness `nodeAdded`'s registry insert needs
    after the collapse, in `spill`'s materializations).
 
+8. **`fills_fractional`** (`Inv/WtxHeap`) is proved (each handle's `FillPercent` points-to
+   splits, and two halves agree on the value).
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
