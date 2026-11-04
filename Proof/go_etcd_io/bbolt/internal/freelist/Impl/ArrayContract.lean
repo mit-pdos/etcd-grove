@@ -8,6 +8,9 @@ public import Proof.go_etcd_io.bbolt.internal.freelist.Impl.shared__reindex
 public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Callees
 public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Sorters
 public import Spec.go_etcd_io.bbolt.internal.common.Pgids__Merge
+public import Proof.go_etcd_io.bbolt.internal.freelist.Impl.array.Basic
+public import Proof.go_etcd_io.bbolt.internal.freelist.Impl.array.mergeSpans
+public import Proof.go_etcd_io.bbolt.internal.freelist.Impl.array.Allocate
 
 @[expose] public section
 
@@ -33,11 +36,12 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 theorem arrayImpl_contract
     (hVerify : bbolt.common.Verify.spec (GF := GF) (hG := hG))
     (hMerge : _root_.Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec (GF := GF) (hG := hG))
-    (a : Loc) : (arrayImpl (GF := GF) a).Contract := by
-  sorry
+    (a : Loc) : (arrayImpl (GF := GF) a).Contract :=
+  ⟨arrayImpl_freeCount a, arrayImpl_freePageIds a, arrayImpl_init a,
+    arrayImpl_mergeSpans hVerify hMerge a⟩
 
-theorem arrayImpl_allocate (a : Loc) : (arrayImpl (GF := GF) a).AllocateSpec := by
-  sorry
+theorem arrayImpl_allocate (a : Loc) : (arrayImpl (GF := GF) a).AllocateSpec :=
+  arrayImpl_allocate' a
 
 end proof
 
