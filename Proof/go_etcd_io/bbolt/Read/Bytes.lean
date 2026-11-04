@@ -83,6 +83,10 @@ theorem bytesPointsto_ownSlice (l : Loc) (dq : DFrac) (bs : List w8) (hl : 0 < l
         iexact H
 
 
+instance bytesPointsto_discard_persistent (l : Loc) (bs : List w8) :
+    Persistent (bytesPointsto (GF := GF) l .discard bs) := by
+  induction bs generalizing l <;> unfold bytesPointsto <;> infer_instance
+
 /-- `bytesPointsto_in_bounds`, keeping the points-to. -/
 theorem bytesPointsto_bounds (l : Loc) (dq : DFrac) (bs : List w8) (h : bs ≠ []) :
     bytesPointsto (GF := GF) l dq bs ⊢ bytesPointsto l dq bs ∗
