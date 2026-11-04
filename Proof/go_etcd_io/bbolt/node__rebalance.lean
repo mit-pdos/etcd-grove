@@ -528,7 +528,52 @@ theorem rebal_loeb
         · -- the node `k`: reparented to `n`
           simp only [Option.isSome_some, Option.getD_some, decide_true]
           try wp_auto
-          sorry
+          have hkm : k ∈ kidsOf B2 rc.ws := List.mem_filterMap.2 ⟨wj, List.mem_of_getElem? hwj, hkk⟩
+          obtain ⟨hkn1, hkn2⟩ := hkn k hkm
+          obtain ⟨rk, hrk, -⟩ := (hchar k).1 hkm
+          obtain ⟨idx, hidx⟩ := List.mem_iff_getElem?.1 hkm
+          obtain ⟨hks1, hks2⟩ := colKid_some B2 rc.ws n rc (sint.nat j) wj hwj k hkk
+          have hndk : (kidsOf B2 rc.ws).Nodup := (List.nodup_append.1 hnd).2.1
+          icases BigSepL.bigSepL_lookup_acc_impl hidx $$ Hks with ⟨Hk, Hkb⟩
+          isimp only [if_neg hkn1, if_neg hkn2] at Hk
+          rw [decide_eq_true (hlive2 k rk hrk)]
+          icases (objOwn_live_node _ _ _ _ _).1 $$ Hk
+            with ⟨Hkn, Hkins, Hkcap, Hkws, Hkch, Hkchcap, Hkkey⟩
+          icases typedPointsto_not_null_dup _ _ _ $$ Hkn with ⟨Hkn, %Hknn⟩
+          iStructNamedSuffix Hkn "K"
+          try wp_auto
+          ihave Hk : objOwn X2.v k (DFrac.own 1) true
+              (.node bl (colRe (colKid B2 rc.ws n rc (sint.nat j) k) n))
+            $$ [bucketK isLeafK unbalancedK spilledK keyK pgidK parentK childrenK inodesK
+              Hkins Hkcap Hkws Hkch Hkchcap Hkkey]
+          · iapply (objOwn_live_node _ _ _ _ _).2
+            isplitl [bucketK isLeafK unbalancedK spilledK keyK pgidK parentK childrenK inodesK]
+            · iapply typedPointsto_combine _ _ _ Hknn
+              simp only [TypedPointsto.typedPointstoDef, colRe]
+              iframe
+            simp only [colRe]
+            iframe
+          ihave Hks := Hkb $$ %(fun _ l => objOwn X2.v l (DFrac.own 1) (decide (l ∈ X2.live))
+              (.node bl (if l = n then rn2 else if l = lc then rc else
+                colKid B2 rc.ws n rc (sint.nat j + 1) l))) [] [Hk]
+          · imodintro
+            iintro %k' %y %hy %hne H
+            have hyk : y ≠ k := by
+              intro he; subst he
+              apply hne
+              obtain ⟨h1, h2⟩ := List.getElem?_eq_some_iff.1 hy
+              obtain ⟨h1', h2'⟩ := List.getElem?_eq_some_iff.1 hidx
+              exact (List.Nodup.getElem_inj hndk).1 (h2.trans h2'.symm)
+            simp only [hks2 y hyk]
+            iexact H
+          · simp only [if_neg hkn1, if_neg hkn2, hks1, decide_eq_true (hlive2 k rk hrk)]
+            iexact Hk
+          wp_for_post
+          iframe
+          iexists j + W64 1
+          rw [Hj1]
+          iframe
+          ipureintro; exact ⟨by word, by word⟩
       · sorry
     · -- a branch root with two entries or more: done
       ihave Hn : (n ↦ (rblClear rn).nv : IProp GF)
