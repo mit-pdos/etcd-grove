@@ -414,7 +414,7 @@ theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
   · icases H with ⟨-, H⟩
     iapply rejErrIs_errIs _ k err ?_ $$ Hv H
     iintro - %h; exact h.elim
-  · icases H with ⟨-, -, H, -⟩
+  · icases H with ⟨-, H, -⟩
     iexact H
 
 end errIs

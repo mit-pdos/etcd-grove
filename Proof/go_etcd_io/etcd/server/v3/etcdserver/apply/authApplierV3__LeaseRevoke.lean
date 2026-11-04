@@ -69,7 +69,9 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
     iunfold apply.revokeResAfter
     rw [apply.revokeIds_rejected, apply.revokeRest_rejected]
-    iframe Hrdat Hrev HltT HRO
+    ihave #Hra := apply.revokeAnswer_err (GF := GF) E rq null (GoInterface.ok e')
+      (by intro h; cases h)
+    iframe Hrdat Hrev HltT HRO Hra
     isplitr
     · ipureintro; trivial
     · iframe HeI; ipureintro; simp

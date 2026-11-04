@@ -1554,6 +1554,83 @@ theorem grantAnsM_of_ar (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (o 
   · simp only [hk, ↓reduceIte]
     iintro - -; itrivial
 
+/-! ### A revocation's answer (the lease-expiry plan's X6, 2026-11-04, the user's (a): the grant's
+2.6 mirrored) -/
+
+/-- **A dispatched revocation's answer through the result `ar`** (`grantArM`'s pattern): for a
+request dispatched as a revocation, the result's `Resp` and `Err` answer it (`apply.revokeAnswer`:
+a `*pb.LeaseRevokeResponse`, without error its header); `True` otherwise. -/
+def revokeArM (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    IProp GF :=
+  match out with
+  | .dispatched _ _ =>
+    if apply.dispatchKind rq = .leaseRevoke then
+      iprop(∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
+        apply.revokeAnswer E rq v.Resp' v.Err')
+    else iprop(True)
+  | _ => iprop(True)
+
+/-- **Not a revocation: nothing to carry.** -/
+theorem revokeArM_not_revoke (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (h : apply.dispatchKind rq ≠ .leaseRevoke) :
+    ⊢ revokeArM (GF := GF) E ar rq out := by
+  unfold revokeArM; split
+  · rw [if_neg h]; iintro; itrivial
+  · iintro; itrivial
+
+/-- **`Apply`'s revocation answer (`revokeAnsRA`) at a result that is not `nil`** is the
+waiter's. -/
+theorem revokeArM_of_res (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (har : ar ≠ null) :
+    apply.revokeAnsRA (GF := GF) E rq out ar ⊢ revokeArM E ar rq out := by
+  cases out with
+  | dispatched o sk =>
+    simp only [revokeArM, apply.revokeAnsRA]
+    by_cases hk : apply.dispatchKind rq = .leaseRevoke
+    · unfold apply.revokeAnsR
+      simp only [hk, har, ne_eq, not_false_eq_true, and_self, ↓reduceIte]
+      iintro ⟨%v, #Hv, Hans⟩
+      iexists v; iframe Hv Hans
+    · simp only [hk, ↓reduceIte]; iintro -; itrivial
+  | skipped => simp only [revokeArM]; iintro -; itrivial
+  | rejected => simp only [revokeArM]; iintro -; itrivial
+
+theorem revokeArM_of_resW (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) :
+    apply.revokeAnsRA (GF := GF) E rq out ar ⊢ ⌜ar ≠ null⌝ -∗ revokeArM E ar rq out := by
+  iintro H %har
+  iapply revokeArM_of_res E ar rq out har $$ H
+
+/-- **Not a revocation: nothing to carry, at any result.** -/
+theorem revokeArM_not_revokeW (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (h : apply.dispatchKind rq ≠ .leaseRevoke) :
+    ⊢ (⌜ar ≠ null⌝ -∗ revokeArM (GF := GF) E ar rq out) := by
+  iintro -
+  iapply revokeArM_not_revoke E ar rq out h
+
+/-- **A revocation's answer, as `raftRequest` reports it** (`grantAnsM`'s pattern): for a request
+dispatched as a revocation, the answer `resp` without error (`apply.revokeAnswer` at `nil`); `True`
+otherwise. -/
+def revokeAnsM (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) : IProp GF :=
+  if apply.dispatchKind rq = .leaseRevoke then apply.revokeAnswer E rq resp GoInterface.nil
+  else iprop(True)
+
+/-- **A revocation's answer from its result**: a dispatched result without error carries it. -/
+theorem revokeAnsM_of_ar (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (o : apply.Outcome)
+    (skip : Bool) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
+    (hve : v.Err' = GoInterface.nil) :
+    revokeArM (GF := GF) E ar rq (.dispatched o skip) ⊢ ar ↦□ v -∗ revokeAnsM E rq v.Resp' := by
+  unfold revokeArM revokeAnsM
+  by_cases hk : apply.dispatchKind rq = .leaseRevoke
+  · simp only [hk, ↓reduceIte]
+    iintro ⟨%v', #Hv', Hans⟩ #Hv
+    icombine Hv Hv' gives %Hvv
+    subst Hvv
+    rw [hve]
+    iexact Hans
+  · simp only [hk, ↓reduceIte]
+    iintro - -; itrivial
+
 /-- **The result `ar` of applying `rq`, with its witness** (2026-10-14, unit C2a): `resultIs`
 (with its minted token, `revMinted`, unit V1, and its floor, the vertical slice's unit V2), and
 the log after is applied through an index of the committed log (`appliedWit γr y'.log`: the apply
@@ -1571,7 +1648,7 @@ def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : m
         out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ grantArM E ar rq out)
+      mvcc.certOk E.γ y'.log ∗ grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- **The committed entry a result is of** (persistent; 2026-10-14, unit T1): an entry `e` at
 position `m` of a committed log `L`, normal, its data claimed under the id of `rq` (with some

@@ -137,6 +137,8 @@ local macro "fin_same" : tactic => `(tactic| (
   · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
   isplitl []
   · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+  isplitl []
+  · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
   first | isplitl [Htrc] | isplitl []
   · iapply apply.resTrace_of $$ H0
     first | iexact Htrc | iapply apply.traceRes_null
@@ -171,6 +173,8 @@ local macro "fin_kv" : tactic => `(tactic| (
   · iintro %_; iexact Hcls
   isplitl []
   · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+  isplitl []
+  · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
   first | isplitl [Htrc] | isplitl []
   · iapply apply.resTrace_of $$ H0
     first | iexact Htrc | iapply apply.traceRes_null
@@ -398,6 +402,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitl []
     · iapply apply.grantRes_null
     isplitl []
+    · iapply apply.revokeAnsR_null
+    isplitl []
     · iapply apply.resTrace_null
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, _root_.or_self, ↓reduceIte]
     ipureintro; trivial
@@ -426,7 +432,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
-          apply.grantRes E rq o «$r0_ptr» ∗
+          apply.grantRes E rq o «$r0_ptr» ∗ apply.revokeAnsR E rq «$r0_ptr» ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
     with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco HLt HRO Hrv]
   · -- Range
@@ -568,6 +574,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     · iintro %_; iapply (apply.chainClass_nonKV _ _ _ _ _ (by rw [hk]; rfl))
     isplitl []
     · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+    isplitl []
+    · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
     isplitl [Htrc]
     · iapply apply.resTrace_of $$ H0; iexact Htrc
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
@@ -642,6 +650,8 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe HlE
       ipureintro; exact Hst.2.1.mp
     isplitl []
+    · iapply (apply.revokeAnsR_not_revoke _ _ _ (by simp [hk]))
+    isplitl []
     · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
     iframe %hn
@@ -681,7 +691,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, ⟨Hans, HRa⟩, Hkv, Hres, HPP, #Hcls, -⟩
     iunfold apply.revokeResAfter at HRa
-    icases HRa with ⟨Hrdat, -, HLt, HRO⟩
+    icases HRa with ⟨Hrdat, -, HLt, HRO, Hra⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.revokeOutcomeIs_errIs _ _ _) $$ [$Hev $Hans]
     join_ar
     (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
@@ -710,6 +720,12 @@ theorem apply.uberApplier.dispatch.wp_proof
     · iintro %_; iexact Hcls
     isplitl []
     · iapply (apply.grantRes_not_grant _ _ _ _ (by simp [hk]))
+    isplitl [Hra]
+    · iunfold apply.revokeAnsR
+      rw [if_pos ⟨hk, hn⟩]
+      iexists _
+      iframe H0
+      iexact Hra
     isplitl []
     · iapply apply.resTrace_of $$ H0; iapply apply.traceRes_null
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]

@@ -384,6 +384,21 @@ theorem grantRes_null (E : AEnv GF) (rq : IRRModel) (o : Outcome) :
     ⊢ grantRes (GF := GF) E rq o null := by
   unfold grantRes; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
 
+/-- **A dispatched revocation's answer through `dispatch`'s result `ar`** (the lease-expiry plan's
+X6, 2026-11-04, the user's (a): `grantRes` mirrored): `revokeAnswer` of the result's `Resp` and
+`Err`, for a request dispatched as a revocation; `True` otherwise, and when `ar` is `nil`. -/
+def revokeAnsR (E : AEnv GF) (rq : IRRModel) (ar : Loc) : IProp GF :=
+  if dispatchKind rq = .leaseRevoke ∧ ar ≠ null then
+    iprop(∃ v : Result, ar ↦□ v ∗ revokeAnswer E rq v.Resp' v.Err')
+  else iprop(True)
+
+theorem revokeAnsR_not_revoke (E : AEnv GF) (rq : IRRModel) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseRevoke) : ⊢ revokeAnsR (GF := GF) E rq ar := by
+  unfold revokeAnsR; rw [if_neg (fun h' => h h'.1)]; iintro; itrivial
+
+theorem revokeAnsR_null (E : AEnv GF) (rq : IRRModel) : ⊢ revokeAnsR (GF := GF) E rq null := by
+  unfold revokeAnsR; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
+
 /-- **The trace of `dispatch`'s result** `ar` (unit P1b, 2026-10-14): owned (`traceRes`), unless
 the result is `nil` or an error (`raftRequest` reads the trace only of a result without error).
 The apply thread hands it, with the result, to the goroutine serving the request. -/
@@ -435,6 +450,18 @@ theorem grantResA_not_grant (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar :
     (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantResA (GF := GF) E rq out ar := by
   unfold grantResA; split
   · exact grantRes_not_grant E rq _ ar h
+  · iintro; itrivial
+
+/-- `revokeAnsR` over `apply.Apply`'s outcome: a dispatched request's (X6). -/
+def revokeAnsRA (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc) : IProp GF :=
+  match out with
+  | .dispatched _ _ => revokeAnsR E rq ar
+  | _ => iprop(True)
+
+theorem revokeAnsRA_not_revoke (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseRevoke) : ⊢ revokeAnsRA (GF := GF) E rq out ar := by
+  unfold revokeAnsRA; split
+  · exact revokeAnsR_not_revoke E rq ar h
   · iintro; itrivial
 
 end defs

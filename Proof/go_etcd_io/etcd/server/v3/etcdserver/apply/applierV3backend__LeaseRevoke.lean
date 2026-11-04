@@ -109,12 +109,10 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     · ipureintro; exact hstep
     simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
     rw [hlog]
-    isplitl [Header Hrdat HltT HRO]
-    · isplitl [Header]
+    isplitl [Hrdat HltT HRO]
+    · isplitr
       · isplitr
         · ipureintro; exact Hnn
-        isplitl [Header]
-        · iexists h; iframe Header; ipureintro; exact Hh
         iframe Herr
         iunfold apply.revokeErrIs
         iright; iexists e; iframe He; ipureintro; exact Hee
@@ -122,6 +120,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       rw [apply.revokeIds_applied rq id _ _ L Hrq.2.1 Hrq.1, hflt,
         apply.revokeRest_applied L rq id _ _ rs Hrq.2.1 Hrq.1, if_neg Hnf.1]
       iframe Hrdat Hrev HltT HRO
+      iapply apply.revokeAnswer_err E rq _ err (by rw [Hee]; intro h; cases h)
     isplitr [HPre]
     · iunfold apply.kvOwn
       iframe Hrd Hsw Hard
@@ -136,22 +135,25 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   · -- live: the lease's keys deleted, the lease gone from both halves of the live set
     imod apply.ltHalf_update E L L (L.filter (· != id)) $$ HltL HltT with ⟨HltL, HltT⟩
     (try wp_auto)
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
+    iapply wp_fupd
+    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, Hhf, Hrv, #Hcok, %Hlen⟩
     · iexact Hb
+    ihave ⟨Hsw, #Hcert⟩ := txn.kvWriter_cert E.s E.γ _ $$ Hsw
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
+    ipersist Header
+    ipersist Hrv
+    imodintro
     iapply HΦ
     iapply apply.kvPost_backend
     iexists (.applied (apply.revokeLog log id) false)
     isplitr
     · ipureintro; exact hstep
     simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
-    isplitl [Header Hrdat HltT HRO]
-    · isplitl [Header]
+    isplitl [Hhf Hrdat HltT HRO]
+    · isplitr
       · isplitr
         · ipureintro; exact Hnn
-        isplitl [Header]
-        · iexists h; iframe Header; ipureintro; exact Hh
         iframe Herr
         iunfold apply.revokeErrIs
         ileft; ipureintro; exact Hok.2
@@ -159,6 +161,33 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       rw [apply.revokeIds_applied rq id _ _ L Hrq.2.1 Hrq.1,
         apply.revokeRest_applied L rq id _ _ rs Hrq.2.1 Hrq.1, if_pos Hok.1]
       iframe Hrdat Hrev HltT HRO
+      -- (X6) the answer: the response's header, `newHeader`'s at the log after
+      iunfold apply.revokeAnswer
+      rw [Hrq.1]
+      iexists _
+      isplitr
+      · ipureintro; rfl
+      ileft
+      isplitr
+      · ipureintro; exact Hok.2
+      iunfold apply.revokeRespIs
+      isplitr
+      · ipureintro; exact Hnn
+      iexists (apply.revokeLog log id)
+      iunfold apply.grantHdr
+      isplitl [Hhf]
+      · iunfold txn.respHdrOwn
+        iexists h
+        iframe Header
+        isplitr
+        · ipureintro; exact Hh
+        iunfold apply.hdrFields at Hhf
+        iexact Hhf
+      iexists h, _
+      iframe Header Hrv Hcert Hcok
+      ipureintro
+      refine ⟨?_, Hlen.1, Hlen.2⟩
+      word
     isplitr [HPost]
     · iunfold apply.kvOwn
       iframe Hrd Hsw Hard

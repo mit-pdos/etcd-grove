@@ -204,7 +204,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
     subst Hrq
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, Hans⟩
+    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, Hans, -⟩
     have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseGrant := by
       rw [← Hk]; exact Hwire.2.2.1.trans rfl
     iunfold grantAnsM at Hans

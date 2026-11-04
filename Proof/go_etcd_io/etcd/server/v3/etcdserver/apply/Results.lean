@@ -437,7 +437,7 @@ theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
             ∃ oc : Outcome, ⌜chainStep backendStep (alarmChain E.authOn ns cr) rq log oc⌝ ∗
               revokeOutcomeIs resp err oc ∗ kvOwn E (oc.logAfter log) ∗
               chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗
-              revokeResAfter E rq T rs oc ∗
+              revokeResAfter E rq T rs resp err oc ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs

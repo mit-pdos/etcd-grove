@@ -90,6 +90,7 @@ abbrev apply.Apply.specRec : Prop :=
         (∃ t : w64, E.RO (apply.revokeRestA T rq v3 out
           (apply.grantRestA t rq v3 out (apply.restOut rq v3 out rs)))) ∗
         ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.grantResA E rq out ar ∗
+        apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
         apply.applyResultIs rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
         (⌜out.waived = false⌝ ∨ G ot id) }}
@@ -144,7 +145,8 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
         ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.cmpOwn E x'.crev ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o sk) ∧
           apply.applyFloorOk rq v3 F x.log out⌝ ∗
-        apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
+        apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.revokeAnsRA E rq out ar ∗
+        apply.applyResultIs rq v3 x.log ar out ∗
         apply.applyAuthRes E.authMode x.chain rq v3 out)))
       $$ [HRD HK Hown Hkv Hwt Hcs HFS HSp HRO Hco HLt Hrv] as %ar %id' ⟨HRD, %Hid', Hout⟩
   · iframe # HRD HK Hown Hkv Hwt Hcs HFS HSp HRO Hco HLt Hrv
@@ -167,7 +169,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
       ipureintro; exact Hrr
     iapply HΦ; iexact HQ
   subst Hid'
-  icases Hout with (⟨%sk, ⟨HFS, %x', %out, Hown, Hkv, HPP, HLt, Hrv, HRO, %Hgo, Hco, %Hst, Htr, Hgr, Hres, #Hauth⟩, Hwv⟩ |
+  icases Hout with (⟨%sk, ⟨HFS, %x', %out, Hown, Hkv, HPP, HLt, Hrv, HRO, %Hgo, Hco, %Hst, Htr, Hgr, Hvr, Hres, #Hauth⟩, Hwv⟩ |
     ⟨%Hnil, HG, Hown, Hkv, Hwt, Hcs, HFS, HSp, HRO, Hco, HLt, Hrv⟩)
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
@@ -178,7 +180,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; rfl
     iexists x', out
-    iframe Hres HRO Hauth HLt Hrv Hgr %Hgo
+    iframe Hres HRO Hauth HLt Hrv Hgr Hvr %Hgo
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
     isplitr
@@ -201,7 +203,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     iexists x, .skipped
     simp only [apply.applyResultIs, apply.restOut, apply.grantIdsA, apply.grantRestA,
-      apply.grantOutOkA, apply.grantResA, apply.revokeIdsA, apply.revokeRestA]
+      apply.grantOutOkA, apply.grantResA, apply.revokeIdsA, apply.revokeRestA, apply.revokeAnsRA]
     iframe HLt Hrv
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
@@ -209,6 +211,8 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     · iexists (W64 0); iexact HRO
     isplitr
     · ipureintro; trivial
+    isplitr
+    · itrivial
     isplitr
     · itrivial
     isplitr

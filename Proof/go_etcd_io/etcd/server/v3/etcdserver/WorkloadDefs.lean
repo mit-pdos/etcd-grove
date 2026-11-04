@@ -235,6 +235,8 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   | .deleteRange => ∀ o, rq.deleteRange = some o → apply.delOk log o
   | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63 ∧ txn.sortOk o log
   | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
+  -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision
+  | .leaseRevoke => apply.putOk log
   | _ => True
 
 /-- **The size clauses hold at a small log** (D19c's move, 2026-10-18): a log with a revision

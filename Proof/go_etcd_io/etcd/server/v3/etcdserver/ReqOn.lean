@@ -142,7 +142,7 @@ theorem authnArM_of_on (E : apply.AEnv GF) (γa : auth.AuthNames) (ar : Loc) (rq
 the auth layer's verdict the model's at the auth state `st` the entry met, `authTie`; and (E3x) an
 admin request's result without error the model's step from `st` succeeding, `adminTieAr`; and (C1's
 A3) an `Authenticate`'s response, owned, `authnArM`; the lease-grant plan's 2.6, a grant's answer,
-`grantArM`). -/
+`grantArM`; the lease-expiry plan's X6, a revocation's, `revokeArM`). -/
 def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -152,7 +152,7 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       mvcc.certOk E.γ y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
-      authnArM true E ar rq out ∗ grantArM E ar rq out)
+      authnArM true E ar rq out ∗ grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
 theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
@@ -160,11 +160,11 @@ theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRMod
     resultIsWOn (GF := GF) E γr rq F ar lb st ⊢ resultIsW E γr rq F ar lb := by
   iunfold resultIsWOn
   iunfold resultIsW
-  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, Hg⟩
+  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, Hg, Hv⟩
   isplitr
   · ipureintro; exact Hnn
   iexists y, y', out
-  iframe Hr Hc Hm Hw Hk Hg
+  iframe Hr Hc Hm Hw Hk Hg Hv
   ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
 
 /-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
@@ -245,7 +245,8 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
 `processInternalRaftRequestOnce.specM`): `resultIsW`'s, at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`modelOutM`); (C1's A3) an
-`Authenticate`'s response, `authnArM`; (the lease-grant plan's 2.6) a grant's answer, `grantArM`. -/
+`Authenticate`'s response, `authnArM`; (the lease-grant plan's 2.6) a grant's answer, `grantArM`; (the lease-expiry plan's X6) a revocation's,
+`revokeArM`. -/
 def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (L : List EntryModel) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -255,7 +256,7 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
       mvcc.certOk E.γ y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out ∗
-      grantArM E ar rq out)
+      grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
@@ -328,7 +329,8 @@ theorem authnAnsM_of_ar (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.I
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`; and (E3x) an admin request's step
 succeeded, `adminDoneM`; (C1's A3) an `Authenticate`'s response and its token's issue,
-`authnAnsM`; the lease-grant plan's 2.6, a grant's answer, `grantAnsM`). -/
+`authnAnsM`; the lease-grant plan's 2.6, a grant's answer, `grantAnsM`; the lease-expiry plan's X6, a revocation's,
+`revokeAnsM`). -/
 def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (L : List EntryModel) : IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
@@ -336,7 +338,7 @@ def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRM
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log ∗
-    authnAnsM on E rq' resp ∗ grantAnsM E rq' resp)
+    authnAnsM on E rq' resp ∗ grantAnsM E rq' resp ∗ revokeAnsM E rq' resp)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)

@@ -36,7 +36,7 @@ abbrev apply.applierV3backend.LeaseRevoke.spec : Prop :=
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq log
-        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs o)) Pre Post }}
+        (fun o => iprop(apply.revokeOutcomeIs resp err o ∗ apply.revokeResAfter E rq T rs resp err o)) Pre Post }}
 
 end spec
 

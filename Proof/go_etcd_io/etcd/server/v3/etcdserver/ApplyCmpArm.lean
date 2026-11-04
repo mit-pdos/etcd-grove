@@ -1228,7 +1228,7 @@ theorem applyResultIs_notNoSpace_revoke (rq : apply.IRRModel) (x x' : apply.Appl
     dsimp only
     icases Hans with ⟨%r, %hresp, Hrv⟩
     simp only [apply.revokeOutcomeIs]
-    icases Hrv with ⟨%hrn, Hhd, #HaE, #HrE⟩
+    icases Hrv with ⟨%hrn, #HaE, #HrE⟩
     ihave #Hn : notNoSpaceErr v.Err' $$ []
     · iunfold apply.revokeErrIs at HrE
       icases HrE with (%he | ⟨%e, #He, %heq⟩)
@@ -1238,7 +1238,7 @@ theorem applyResultIs_notNoSpace_revoke (rq : apply.IRRModel) (x x' : apply.Appl
         iexists _, e
         iframe He
         ipureintro; exact ⟨Or.inl rfl, heq⟩
-    isplitl [Hhd]
+    isplitl []
     · isplitr
       · ipureintro; exact hnn
       iexists v
@@ -1246,7 +1246,6 @@ theorem applyResultIs_notNoSpace_revoke (rq : apply.IRRModel) (x x' : apply.Appl
       iexists r
       isplitr
       · ipureintro; exact hresp
-      iframe Hhd
       (try iframe HaE)
       (try iframe HrE)
       ipureintro; exact hrn

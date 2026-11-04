@@ -54,7 +54,9 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
     iframe Hkv Hres Hcls Hlc
     iunfold apply.revokeResAfter
     rw [apply.revokeIds_rejected, apply.revokeRest_rejected]
-    iframe Hrdat Hrev HltT HRO
+    ihave #Hra := apply.revokeAnswer_err (GF := GF) E rq null (GoInterface.ok eC)
+      (by intro h; cases h)
+    iframe Hrdat Hrev HltT HRO Hra
     isplitl []
     · isplitl []
       · ipureintro; trivial

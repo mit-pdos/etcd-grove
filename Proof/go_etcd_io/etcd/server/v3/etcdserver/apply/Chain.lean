@@ -1190,14 +1190,12 @@ instance revokeErrIs_persistent (err : GoInterface) : Persistent (revokeErrIs (G
   unfold revokeErrIs; infer_instance
 
 /-- **A revocation's answer** (the lease-revoke plan, R7, F3): rejected, no response and the
-layer's error; applied, a response whose header is `newHeader`'s (not nil; its fields are the
-server's, `newHeader`'s spec says no more), the lessor's error (one `errors.Is` can take, and none
-or `ErrLeaseNotFound`). -/
+layer's error; applied, a response (not nil), the lessor's error (one `errors.Is` can take, and none
+or `ErrLeaseNotFound`). (The lease-expiry plan's X6, 2026-11-04: the response's header moved to
+`revokeAnswer`, in `revokeResAfter`, as the grant's in `grantAnswer`.) -/
 def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
   | .rejected k => iprop(⌜resp = null⌝ ∗ rejErrIs (fun _ => iprop(False)) k err)
-  | .applied _ _ => iprop(⌜resp ≠ null⌝ ∗ (∃ h : Loc,
-      structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" resp ↦ h ∗ ⌜h ≠ null⌝) ∗
-      applyErrIs err ∗ revokeErrIs err)
+  | .applied _ _ => iprop(⌜resp ≠ null⌝ ∗ applyErrIs err ∗ revokeErrIs err)
 
 /-- **A granted lease's response header** at the header field `hf` (the lease-grant stage, 2.6,
 2026-11-03): its id fields owned (`txn.respHdrOwn`) and its revision read-only, the last of the
@@ -1231,6 +1229,35 @@ def grantAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp G
           ∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i g.id l) ∨
         ⌜err ≠ GoInterface.nil⌝))
   | none => iprop(True)
+
+/-- **A revocation's `*pb.LeaseRevokeResponse` `r`** (the lease-expiry plan's X6, 2026-11-04,
+mirroring the grant's `grantRespIs`): not `null`, its header `grantHdr` at some certified log
+(`newHeader`'s, after the revocation). -/
+def revokeRespIs (E : AEnv GF) (r : Loc) : IProp GF :=
+  iprop(⌜r ≠ null⌝ ∗
+    ∃ log : mvcc.Log, grantHdr E log (structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" r))
+
+/-- **A revocation's answer** (X6, the user's (a): the lease-grant plan's 2.6 mirrored): for a
+revocation, the response a `*pb.LeaseRevokeResponse`; without error, its header (`revokeRespIs`);
+`True` for a request with no revocation. -/
+def revokeAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp GF :=
+  match rq.leaseRevoke with
+  | some _ => iprop(∃ r : Loc,
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeResponse.ty) #r⌝ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ revokeRespIs E r) ∨ ⌜err ≠ GoInterface.nil⌝))
+  | none => iprop(True)
+
+/-- A revocation's answer with an error: nothing but the response's type. -/
+theorem revokeAnswer_err (E : AEnv GF) (rq : IRRModel) (resp : Loc) (err : GoInterface)
+    (h : err ≠ GoInterface.nil) :
+    ⊢ revokeAnswer (GF := GF) E rq
+      (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeResponse.ty) #resp) err := by
+  unfold revokeAnswer
+  split
+  · iintro; iexists resp; isplitr
+    · ipureintro; rfl
+    iright; ipureintro; exact h
+  · iintro; itrivial
 
 /-- The result of `authApplierV3.Apply`'s admin check failing: a fresh `&Result{Err: err}`, the
 auth store's error. -/
@@ -1426,11 +1453,14 @@ theorem revokeOwn_nonRevoke (E : AEnv GF) (rq : IRRModel) (h : dispatchKind rq �
 
 /-- **What it gives back, by the outcome `o`** (R6; X7's "names the outcome"): the range deleter,
 the revocable lessor, the half at `revokeIds` (the live set without the lease when applied) and the
-rest at `revokeRest` (the lease's record deleted when it was live, `id ∈ T`). -/
-def revokeResAfter (E : AEnv GF) (rq : IRRModel) (T : List w64) (rs : RestM) (o : Outcome) :
-    IProp GF :=
+rest at `revokeRest` (the lease's record deleted when it was live, `id ∈ T`); (X6, 2026-11-04) the
+answer of the response `resp` and error `err` (`revokeAnswer`: without error, its header). -/
+def revokeResAfter (E : AEnv GF) (rq : IRRModel) (T : List w64) (rs : RestM) (resp : Loc)
+    (err : GoInterface) (o : Outcome) : IProp GF :=
   iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗
-    ltHalf E (revokeIds rq true o T) ∗ E.RO (revokeRest T rq true o rs))
+    ltHalf E (revokeIds rq true o T) ∗ E.RO (revokeRest T rq true o rs) ∗
+    revokeAnswer E rq
+      (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeResponse.ty) #resp) err)
 
 /-- `LeaseRevoke(r)`'s precondition (the lease-revoke plan, R3, 2026-10-31): the request's, room
 for a revision (`putOk`: `rqOk` keeps excluding the kind for `dispatch`), the certificate, the
@@ -1778,7 +1808,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvPost E c (.ok ai) info rq log
-            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs o)) Pre Post }}) ∗
+            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post }}) ∗
     -- (the lease-grant stage, 2.11) `LeaseGrant`
     □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)
         (rs : RestM) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),

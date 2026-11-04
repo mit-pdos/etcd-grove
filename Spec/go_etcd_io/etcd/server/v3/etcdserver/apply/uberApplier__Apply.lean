@@ -36,7 +36,7 @@ its facts (`cmpAdmit`), the apply thread's compaction resources at `x.crev` befo
 after (`applyStep`'s clause; M2's apply side, 2026-10-31: items 4, 11). The rest state's premise
 `restReqOk`, `dispatch`'s (the cluster-rows stage, 2026-11-02). A grant (the lease-grant stage,
 2026-11-03) as `dispatch`'s: admitted at `rqOk E.lg`, with its permits, the half of the live set
-`T` and the rest buckets after it (`grantIdsA`, `grantRestA`), its answer (`grantResA`), its
+`T` and the rest buckets after it (`grantIdsA`, `grantRestA`), its answer (`grantResA`; a revocation's, `revokeAnsRA`, the lease-expiry plan's X6), its
 outcome the lessor's verdict at `T` (`grantOutOkA`; amendment (C), 2026-11-03). -/
 abbrev apply.uberApplier.Apply.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (x : apply.ApplyKV) (r : Loc)
@@ -61,7 +61,8 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.cmpOwn E x'.crev ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
         apply.applyFloorOk rq v3 F x.log out⌝ ∗
-      apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
+      apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.revokeAnsRA E rq out ar ∗
+      apply.applyResultIs rq v3 x.log ar out ∗
       apply.applyAuthRes E.authMode x.chain rq v3 out }}
 
 end spec

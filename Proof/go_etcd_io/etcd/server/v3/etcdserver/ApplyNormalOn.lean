@@ -152,6 +152,14 @@ theorem adminKindOk_nonGrant (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
   rw [hk] at h
   exact h
 
+/-- An admin request is not a revocation (the lease-expiry plan's X6). -/
+theorem adminKindOk_nonRevoke (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq ≠ .leaseRevoke := by
+  intro hk
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact h
+
 /-- An admitted admin request sets neither cluster field (`dispatchKind` tries them first). -/
 theorem adminKindOk_noCluster (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
     rq.clusterVersionSet = none ∧ rq.clusterMemberAttrSet = none := by

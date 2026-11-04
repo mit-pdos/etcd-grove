@@ -70,7 +70,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
         ⌜apply.dispatchStep c rq v3 log o ∧ apply.chainAfter rq v3 c c' ∧
           apply.kvFloorOk rq v3 F log o ∧ a' = a ∧ c' = c⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode info c rq o) ∗ apply.grantRes E rq o ar ∗
-        apply.resTrace ar ∗ apply.dispatchResult rq v3 log skip ar o }}
+        apply.revokeAnsR E rq ar ∗ apply.resTrace ar ∗ apply.dispatchResult rq v3 log skip ar o }}
 
 end spec
 

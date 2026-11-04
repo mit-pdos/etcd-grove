@@ -59,7 +59,7 @@ theorem apply.uberApplier.Apply.wp_proof
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
           apply.kvFloorOk rq v3 F x.log o ∧ a' = GoInterface.ok ai ∧ c' = x.chain⌝ ∗
         (∀ _ : v3 = true, apply.chainClass E.authMode (apply.principalOf rq) x.chain rq o) ∗
-        apply.grantRes E rq o ar ∗ apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
+        apply.grantRes E rq o ar ∗ apply.revokeAnsR E rq ar ∗ apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs HFS HSp HRO Hco HLt Hrv] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO Hco HLt Hrv
     isplitr
@@ -76,7 +76,7 @@ theorem apply.uberApplier.Apply.wp_proof
     simp only []
     iframe Hres HFS Hco
     iexact HB
-  icases Hpost with (⟨⟨HFS, Hco, %a', %c', %o, Ha', #Hs'', Hkv, HLt, Hrv, HRO, %Hgo, HPP, %Hst, #Hcls, Hgr, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO, Hco, HLt, Hrv⟩, Hrej⟩)
+  icases Hpost with (⟨⟨HFS, Hco, %a', %c', %o, Ha', #Hs'', Hkv, HLt, Hrv, HRO, %Hgo, HPP, %Hst, #Hcls, Hgr, Hvr, Htr, Hres⟩, #Hadm⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO, Hco, HLt, Hrv⟩, Hrej⟩)
   · obtain ⟨-, -, -, ha, hc⟩ := id Hst
     subst ha hc
     imodintro
@@ -84,8 +84,9 @@ theorem apply.uberApplier.Apply.wp_proof
     iframe HFS
     iexists ⟨o.logAfter x.log, x.chain, apply.dispatchCrev x.chain rq v3 x.crev⟩, (.dispatched o skip)
     simp only [apply.applyResultIs, apply.restOut, apply.applyAuthRes, apply.grantIdsA,
-      apply.grantRestA, apply.grantResA, apply.grantOutOkA, apply.revokeIdsA, apply.revokeRestA]
-    iframe Hkv HLt Hrv HPP Hres Htr HRO Hcls Hadm Hco Hgr %Hgo
+      apply.grantRestA, apply.grantResA, apply.grantOutOkA, apply.revokeIdsA, apply.revokeRestA,
+      apply.revokeAnsRA]
+    iframe Hkv HLt Hrv HPP Hres Htr HRO Hcls Hadm Hco Hgr Hvr %Hgo
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists _; iframe Ha' Hs'' Hsh
       ipureintro; exact HcE
@@ -99,7 +100,7 @@ theorem apply.uberApplier.Apply.wp_proof
     iframe HFS
     iexists x, .rejected
     simp only [apply.grantIdsA, apply.grantRestA, apply.grantResA, apply.restOut, apply.revokeIdsA,
-      apply.revokeRestA]
+      apply.revokeRestA, apply.revokeAnsRA]
     iframe Hkv HLt Hrv Hco
     isplitl [Ha]
     · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
@@ -115,6 +116,8 @@ theorem apply.uberApplier.Apply.wp_proof
     · ipureintro; refine ⟨⟨Hna, rfl⟩, ?_, ?_⟩ <;> simp [apply.applyFloorOk]
     isplitl []
     · iapply apply.resTrace_err ar v Hvf.1 $$ Hv
+    isplitl []
+    · itrivial
     isplitl []
     · itrivial
     isplitr []
