@@ -3,9 +3,9 @@
 (`Spill/NodeSpec`'s `node.spill.spec'`), by Löb induction over its recursive calls (`wp_aux`: the
 children's spills, the new root's). The spilled case (a piece returns at once) and the unspilled
 case's assembly (U9m): the sort (`Spill/NodeSpillSort`), from the permuted state the children's
-loop (`Spill/NodeSpillLoopWp`) and the rest (`Spill/NodeSpillPieces.spillTail_wp`, a `sorry`
-still), back to the start (`Spill/NodeSpillAsm.spPost_unperm`). No `sorry` in this file; the
-proof rests on `spillTail_wp` and `ownSlice_loc_len` (`sort.Sort`'s bound).
+loop (`Spill/NodeSpillLoopWp`) and the rest (`Spill/NodeSpillPieces.spillTail_wp`), back to the
+start (`Spill/NodeSpillAsm.spPost_unperm`). No `sorry` in this file or the `Spill/NodeSpill*`
+modules; the proof rests on `ownSlice_loc_len` (`sort.Sort`'s bound) and the shared `sorry`s below.
 -/
 module
 
