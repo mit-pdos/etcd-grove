@@ -88,6 +88,61 @@ theorem wdbOK_wdbOK' (fr : Bool) (w : WDb) (h : wdbOK w) : wdbOK' fr w := by
     exact ⟨a1, a2, a3, a4, a5,
       fun f hf => flCurOK_flCurOKr _ _ _ _ (a6 f hf), a7⟩
 
+/-- **The writer side with no synced freelist page** (a device: every clause of `wdbOK'` but
+`flClause` holds of `w.noFl` as of `w`, and `flClause false` holds of it vacuously, so a lemma
+stated over `wdbOK` that does not read the freelist page's clause applies to `wdbOK' fr`,
+`wdbOK'_noFl`/`wdbOK'_of_noFl`). -/
+def WDb.noFl (w : WDb) : WDb := { w with C := { w.C with flpg := none } }
+
+/-- `wdbOK' fr w` gives `wdbOK` of `w.noFl`. -/
+theorem wdbOK'_noFl (fr : Bool) (w : WDb) (h : wdbOK' fr w) : wdbOK w.noFl := by
+  obtain ⟨a1, a2, a3, a4, a5, -, a7⟩ := h
+  refine ⟨a1, a2, a3, a4, a5, fun f hf => ?_, a7⟩
+  simp [WDb.noFl] at hf
+
+/-- `wdbOK` of `w.noFl` and the freelist page's clause give `wdbOK' fr w`. -/
+theorem wdbOK'_of_noFl (fr : Bool) (w : WDb) (h : wdbOK w.noFl) (hc : flClause fr w) :
+    wdbOK' fr w := by
+  obtain ⟨a1, a2, a3, a4, a5, -, a7⟩ := h
+  exact ⟨a1, a2, a3, a4, a5, hc, a7⟩
+
+/-- The freelist page's clause of `wdbOK' fr w`. -/
+theorem wdbOK'_flClause (fr : Bool) (w : WDb) (h : wdbOK' fr w) : flClause fr w :=
+  h.2.2.2.2.2.1
+
+/-- `flClause` reads only the committed state, the freelist and the slots' bytes. -/
+theorem flClause_congr (fr : Bool) (w w' : WDb) (hC : w'.C = w.C) (hfl : w'.fl = w.fl)
+    (hwb : w'.wb = w.wb) (h : flClause fr w) : flClause fr w' := by
+  cases fr
+  · simp only [flClause] at h ⊢; rw [hC, hfl, hwb]; exact h
+  · simp only [flClause, WDb.wtxid] at h ⊢; rw [hC, hfl, hwb]; exact h
+
+/-- **`flClause` after a freelist allocation** (`FLPg.alloc`: free ids removed, the pending ids
+kept). -/
+theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (h : flClause fr w) :
+    flClause fr { w with fl := w.fl.alloc txid r n } := by
+  have hsub : ∀ x, x ∈ (w.fl.alloc txid r n).allIds → x ∈ w.fl.allIds := by
+    intro x hm
+    simp only [FLPg.allIds, List.mem_append] at hm ⊢
+    rcases hm with hm | hm
+    · exact .inl ((List.mem_filter.1 hm).1)
+    · exact .inr hm
+  cases fr
+  · intro f hf
+    intro f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := h f hf f' hf'
+    exact ⟨c1, c2, c3, c4, c5, c6, c7, c8,
+      fun s a b => ⟨(c9 s a b).1, fun hm => (c9 s a b).2 (hsub _ hm)⟩,
+      fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
+  · intro f hf
+    intro f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := h f hf f' hf'
+    refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ⟨(c9 s a b).1, ?_⟩,
+      fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
+    rcases (c9 s a b).2 with hn | ⟨hnf, hp⟩
+    · exact .inl fun hm => hn (hsub _ hm)
+    · exact .inr ⟨fun hm => hnf ((List.mem_filter.1 hm).1), hp⟩
+
 end pure
 
 section res
@@ -135,6 +190,45 @@ theorem wdbW'_ok (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
   isplitr
   · ipureintro; exact h
   · ipureintro; exact h
+
+/-- **The writer's database side after a failed remap, flagged** (`wdbLost` with `wdbOK' fr` and
+the writer's `fbTok`). -/
+def wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=
+  iprop(wdbLive K.B K.db K.p K.sp K.t0 tx (some v, some (w.C.txid + 1), false, false) w ∗
+    ⌜wdbOK' fr w ∧ w.ms = none⌝ ∗
+    ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (some v, some (w.C.txid + 1), false, false) F)
+
+/-- `wdbLost` is `wdbLost'` at either flag, with no recorded bytes. -/
+theorem wdbLost_wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbLost (GF := GF) K tx v w ⊢ wdbLost' fr K tx v w := by
+  unfold wdbLost wdbLost'
+  iintro ⟨H, %h⟩
+  iframe H
+  isplitr
+  · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
+  iexists ∅
+  iapply (fbTok_of_wdbOK K.B w h.1 _ ∅)
+
+/-- `wdbLost' false` is `wdbLost` (its token dropped). -/
+theorem wdbLost'_wdbLost (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbLost' (GF := GF) false K tx v w ⊢ wdbLost K tx v w := by
+  unfold wdbLost wdbLost'
+  iintro ⟨H, %h, -⟩
+  iframe H
+  ipureintro; exact h
+
+omit [GooseSemantics] go_gctx hos sem in
+/-- `fbTok` reads only the writer state's txid and publish flag. -/
+theorem fbTok_ws (B : BNs) (C : CommitSt) (fl : FLPg) (ws ws' : WSt) (F : GMap Nat (List w8))
+    (h1 : ws'.2.1 = ws.2.1) (h2 : ws'.2.2.1 = ws.2.2.1) :
+    fbTok (GF := GF) B C fl ws F ⊢ fbTok B C fl ws' F := by
+  unfold fbTok; rw [h1, h2]
+
+omit [GooseSemantics] go_gctx hos sem in
+/-- `fbTok` reads only the freelist's pending ids: an allocation keeps it. -/
+theorem fbTok_alloc (B : BNs) (C : CommitSt) (fl : FLPg) (ws : WSt) (F : GMap Nat (List w8))
+    (txid r : w64) (n : Nat) :
+    fbTok (GF := GF) B C fl ws F ⊢ fbTok B C (fl.alloc txid r n) ws F := .rfl
 
 end res
 
