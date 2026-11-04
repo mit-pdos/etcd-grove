@@ -1,10 +1,11 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Tx__Stats.lean`: not yet (the invariants stage, after bbolt's
-invariants are designed). Until then the backend rests on the old `_kv` axioms, not on this.
+The proof of `Spec/go_etcd_io/bbolt/Tx__Stats.lean` (U5, `notes/bbolt-proof-plan.md`): a done
+transaction's statistics are a persistent points-to (`txDone`), read.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Tx__Stats
+import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
 
@@ -24,7 +25,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Tx.Stats.wp_proof : Tx.Stats.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro _ tx
+  wp_start as Hd
+  unfold txDone txDoneDef
+  icases Hd with ⟨%s, #Hs⟩
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
