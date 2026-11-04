@@ -59,22 +59,24 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 high-water mark's pages inside the mapping): a buffer `p` holding the fresh page `id`
 (`allocBuf`), the records with the new mark (`dbAllocRes`); on an error (`fmtErrorOk`), nothing
 changed (the freelist had no run; `MaxSize`; a remap that failed before unmapping), or the mapping
-lost (the records dereferenced and re-based, `wtxLost`, `wdbLost`). -/
+lost (the records dereferenced and re-based, `wtxLost`, `wdbLost`). Batch 44.1: over the flagged
+writer side `wdbW' fr` (`wdbLost' fr`): an allocation removes free ids only, a remap keeps the
+freelist, so the synced freelist page's clause and the writer's `fbTok` carry over. -/
 abbrev DB.allocate.spec : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (txid count : w64),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (txid count : w64),
   txid = w.wtxid → 0 < sint.Z count → sint.nat count * 4096 < 2 ^ 62 →
   X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → derefPre X → liveFresh X → liveReach X →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w }}
     (App (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"allocate")) (Val #txid))
       (Val #count))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
       (⌜err = interface.nil⌝ ∗ ∃ (Xr : WX) (w' : WDb) (id hwm : w64),
-        wtxW K tx r m (Xr.withHwm hwm) ∗ wdbW K tx Xr.v w' ∗
+        wtxW K tx r m (Xr.withHwm hwm) ∗ wdbW' fr K tx Xr.v w' ∗
         bytesPointsto p (DFrac.own 1) (allocBuf id (sint.nat count)) ∗
         ⌜p ≠ null ∧ dbAllocRes X Xr w w' txid (sint.nat count) id hwm⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
-        ((wtxW K tx r m X ∗ wdbW K tx X.v w) ∨
-         (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
+        ((wtxW K tx r m X ∗ wdbW' fr K tx X.v w) ∨
+         (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost' fr K tx X'.v w' ∗
            ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
 
 instance dbFixed_persistent' (db sp : Loc) : Persistent (dbFixed (GF := GF) db sp) := by
@@ -144,17 +146,18 @@ theorem wdbW_unf (K : BC) (tx : Loc) (v : View) (w : WDb) :
   unfold wdbW; exact .rfl
 
 /-- The view of `Xd.rebase b` as `wp_auto` leaves it. -/
-theorem wdbLost_rebase (K : BC) (tx : Loc) (Xd : WX) (b : Loc) (w : WDb) :
-    wdbLost (GF := GF) K tx { base := b, txid := Xd.v.txid, pages := Xd.v.pages, root := Xd.v.root } w ⊢
-      wdbLost K tx (Xd.rebase b).v w := .rfl
+theorem wdbLost_rebase (fr : Bool) (K : BC) (tx : Loc) (Xd : WX) (b : Loc) (w : WDb) :
+    wdbLost' (GF := GF) fr K tx
+        { base := b, txid := Xd.v.txid, pages := Xd.v.pages, root := Xd.v.root } w ⊢
+      wdbLost' fr K tx (Xd.rebase b).v w := .rfl
 
 /-- `DB.mmap`'s error state as `DB.allocate`'s. -/
-theorem mmapErr_state (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) :
-    ((wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w) ∨
+theorem mmapErr_state (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) :
+    ((wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w) ∨
       (∃ (Xd : WX) (b : Loc) (w' : WDb), wtxLost K tx r m (Xd.rebase b) ∗
-        wdbLost K tx (Xd.rebase b).v w' ∗ ⌜derefRel X Xd ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)) ⊢
-    ((wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w) ∨
-      (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
+        wdbLost' fr K tx (Xd.rebase b).v w' ∗ ⌜derefRel X Xd ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)) ⊢
+    ((wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w) ∨
+      (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost' fr K tx X'.v w' ∗
         ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)) := by
   iintro (H | ⟨%Xd, %b, %w', H1, H2, %h⟩)
   · ileft; iexact H
@@ -163,6 +166,10 @@ theorem mmapErr_state (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : W
     iframe
     ipureintro
     exact ⟨⟨Xd, b, h.1, rfl⟩, h.2⟩
+
+/-- `fbTok` of the live writer state does not read its view. -/
+theorem fbTok_wLive (B : BNs) (C : CommitSt) (fl : FLPg) (v v' : View) (F : GMap Nat (List w8)) :
+    fbTok (GF := GF) B C fl (wLive v C) F ⊢ fbTok B C fl (wLive v' C) F := .rfl
 
 theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
@@ -179,7 +186,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrMax : errMaxSizeOk (GF := GF) (hG := hG))
     (hPool : pagePoolNew (GF := GF) (hG := hG)) :
     DB.allocate.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w txid count htxid hc0 hc hhwm hdp hlf hlr
+  intro fr K tx r m X w txid count htxid hc0 hc hhwm hdp hlf hlr
   subst htxid
   unfold errMaxSizeOk at hErrMax
   wp_start as ⟨Hw, Hdb⟩
@@ -244,9 +251,9 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_auto
   wp_apply hSetOv $$ [Hh] as Hh
   · iframe
-  unfold wdbW wdbLive wdbCoreG
+  unfold wdbW' wdbLive wdbCoreG
   icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz,
-    Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
+    Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, %F, Htok⟩
   wp_auto
   wp_apply hAlloc w.fli w.fl w.wtxid count hc0 $$ [Hflo] as %rid Hflo
   · iframe
@@ -405,11 +412,13 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · iapply Hwback $$ %X.t [] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
         · ipureintro; exact ⟨rfl, rfl, rfl⟩
         · iframe
-      isplitl
+      isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
       · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
         · iframe
         · iframe
+      isplitr
       · ipureintro; exact Hwok
+      iexists F; iexact Htok
     subst hv
     wp_auto
     have hml : sint.Z (W64 ((mapLen w.ms : Nat) : Int)) = (mapLen w.ms : Int) := by word
@@ -425,19 +434,21 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · iapply Hwback $$ %X.t [] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs]
         · ipureintro; exact ⟨rfl, rfl, rfl⟩
         · iframe
-      ihave Hdb : wdbW K tx X.v w $$ [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz
-          Hmf Hrest Hflo Hrd Hrcpt]
-      · unfold wdbW wdbLive wdbCoreG
-        isplitl
+      ihave Hdb : wdbW' fr K tx X.v w $$ [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath
+          Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
+      · unfold wdbW' wdbLive wdbCoreG
+        isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
         · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
           · iframe
           · iframe
+        isplitr
         · ipureintro; exact Hwok
+        iexists F; iexact Htok
       have hmL : mapLen w.ms ≤ sint.nat ((pg + count + W64 1) * W64 4096) := by
         have e : sint.nat ((pg + count + W64 1) * W64 4096) =
             (sint.Z ((pg + count + W64 1) * W64 4096)).toNat := rfl
         rw [e, hM]; omega
-      wp_apply hMmap K tx r m X w _ (by rw [hM]; omega) hmL hdp hlf hlr $$ [Hw Hdb] as %err Hres
+      wp_apply hMmap fr K tx r m X w _ (by rw [hM]; omega) hmL hdp hlf hlr $$ [Hw Hdb] as %err Hres
       · iframe
       try wp_auto
       icases Hres with (⟨%he, %Xd, %b, %w', Hw, Hdb, %hrel⟩ | ⟨%hnp, #HeOk, Hcase⟩)
@@ -448,9 +459,9 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         icases wtxW_txFields_acc K tx r m (Xd.rebase b) $$ Hw with ⟨Hf, Hwback⟩
         unfold txFields
         icases Hf with ⟨Hf1, Hf2, Hmeta, Hpages, Hf5, Hf6, Hmv, Hpm, Hbufs⟩
-        unfold wdbW wdbLive wdbCoreG
+        unfold wdbW' wdbLive wdbCoreG
         icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath,
-          Hdsz, Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok'⟩
+          Hdsz, Hmf, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok', %F2, Htok⟩
         wp_auto
         wp_apply hPgid Xd.t.t.meta' X.t.mv (DFrac.own 1) $$ [Hmv] as Hmv
         · rw [← hmv, show Xd.t.t.meta' = (Xd.rebase b).t.t.meta' from rfl]; iexact Hmv
@@ -480,12 +491,15 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · simp only [WX.withHwm]
             rw [hcW, hmv]
             iframe
-        isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
-        · isplitl
+        isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
+        · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
           · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
             · iframe
             · iframe
+          isplitr
           · ipureintro; exact Hwok'
+          iexists F2
+          iapply fbTok_wLive $$ Htok
         iframe Hp
         ipureintro
         refine ⟨?_, hrmp.1, ?_, .inr ⟨hpg.symm, by omega, rfl, .inr ⟨Xd, b, hdr, rfl, hrmp⟩⟩⟩
@@ -527,8 +541,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             icases Hcase with (⟨H1, H2⟩ | ⟨%Xd, %b, %w', H1, H2, %h⟩)
             · ileft
               iframe H1
-              iapply (show wdbW (GF := GF) K tx X.v w ⊢ _ by
-                unfold wdbW wdbLive wdbCoreG; exact .rfl) $$ H2
+              iapply (show wdbW' (GF := GF) fr K tx X.v w ⊢ _ by
+                unfold wdbW' wdbLive wdbCoreG; exact .rfl) $$ H2
             · iright
               iexists Xd.rebase b, w'
               iframe H1
@@ -558,8 +572,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             icases Hcase with (⟨H1, H2⟩ | ⟨%Xd, %b, %w', H1, H2, %h⟩)
             · ileft
               iframe H1
-              iapply (show wdbW (GF := GF) K tx X.v w ⊢ _ by
-                unfold wdbW wdbLive wdbCoreG; exact .rfl) $$ H2
+              iapply (show wdbW' (GF := GF) fr K tx X.v w ⊢ _ by
+                unfold wdbW' wdbLive wdbCoreG; exact .rfl) $$ H2
             · iright
               iexists Xd.rebase b, w'
               iframe H1
@@ -589,8 +603,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           icases Hcase with (⟨H1, H2⟩ | ⟨%Xd, %b, %w', H1, H2, %h⟩)
           · ileft
             iframe H1
-            iapply (show wdbW (GF := GF) K tx X.v w ⊢ _ by
-              unfold wdbW wdbLive wdbCoreG; exact .rfl) $$ H2
+            iapply (show wdbW' (GF := GF) fr K tx X.v w ⊢ _ by
+              unfold wdbW' wdbLive wdbCoreG; exact .rfl) $$ H2
           · iright
             iexists Xd.rebase b, w'
             iframe H1
@@ -627,12 +641,14 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · simp only [WX.withHwm]
         rw [hcW]
         iframe
-    isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
-    · isplitl
+    isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
+    · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
       · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
         · iframe
         · iframe
+      isplitr
       · ipureintro; exact Hwok
+      iexists F; iexact Htok
     iframe Hp
     ipureintro
     refine ⟨?_, rfl, ?_, .inr ⟨hpg.symm, by omega, rfl, .inl ⟨rfl, rfl⟩⟩⟩
@@ -667,13 +683,17 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iframe Hw
   simp only [WDb.withFl]
   unfold WDb.wtxid
-  isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
-  · isplitl
+  isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
+  · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
     · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]
       · iframe
       · iframe
+    isplitr
     · ipureintro
-      exact ⟨wdbOK_alloc w _ rid _ Hwok.1, Hwok.2⟩
+      exact ⟨wdbOK'_alloc fr w _ rid _ Hwok.1, Hwok.2⟩
+    iexists F
+    iapply fbTok_alloc
+    iexact Htok
   iframe Hp
   ipureintro
   refine ⟨?_, rfl, hhwm, .inl ⟨rfl, hcan.2, rfl, rfl⟩⟩

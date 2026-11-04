@@ -1,19 +1,13 @@
 /-
 `Tx.allocate` over `DB.allocate` (U4c, `notes/bbolt-proof-plan.md`): `db.allocate(tx.meta.Txid(),
 count)`, its error logged and returned; the page added to `tx.pages`, the statistics counted.
-
-`Tx.allocate.spec` (U0b's, `Spec/go_etcd_io/bbolt/Tx__allocate.lean`) cannot be proved as stated
-(reported): it does not say that the transaction's meta copy holds the writer's txid
-(`X.t.mv.txid' = w.wtxid`, which `allocate` passes to the freelist, whose ghost step is for
-`w.wtxid`) nor that the high-water mark's pages are inside the mapping (without it `minsz` wraps and
-`allocRes`' `id + count < 2^62` is unknown), and its `X'.v = X.v → w' = w.withFl w'.fl` fails for
-a remap that maps at the same address. `Tx.allocate.spec'` is the statement proved here: those two
-premises, the mark kept inside the new mapping, and a remap or not as a disjunction.
+Proves the flagged `Tx.allocate_f.spec` (batch 44.1; U4c's corrections of batch 29 are in it);
+`Tx.allocate.spec` is its `fr = false` case (`Proof/go_etcd_io/bbolt/Tx__allocate.lean`).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Alloc
-public import Spec.go_etcd_io.bbolt.Tx__allocate
+public import Spec.go_etcd_io.bbolt.Tx__allocate_f
 public import Spec.go_etcd_io.bbolt.TxStats__IncPageCount
 public import Spec.go_etcd_io.bbolt.TxStats__IncPageAlloc
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Txid
@@ -35,25 +29,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **`tx.allocate(count)`**, as proved (see the header): `Tx.allocate.spec` with the writer's txid
-in its meta copy and its high-water mark's pages inside the mapping, kept. -/
-abbrev Tx.allocate.spec' : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (count : w64),
-  0 < sint.Z count → sint.nat count * 4096 < 2 ^ 62 → X.t.mv.txid' = w.wtxid →
-  X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → derefPre X → liveFresh X → liveReach X →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
-    (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"allocate")) (Val #count))
-  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-      (⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb) (id : w64),
-        wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗
-        ⌜allocRes X X' w.fl w'.fl w.wtxid (sint.nat count) p id ∧
-          w'.C = w.C ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
-          (w' = w.withFl w'.fl ∨ wdbRemap w w')⌝) ∨
-      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
-        ((wtxW K tx r m X ∗ wdbW K tx X.v w) ∨
-         (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
-           ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
 
 omit [GooseSemantics] [GooseInterp] go_gctx hos sem package_sem in
 /-- **`DB.allocate`'s success as `Tx.allocate`'s** (`allocRes`, the page added to the cache). -/
@@ -180,14 +155,15 @@ theorem wtxW_pages_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (Y : WX) :
 
 omit package_sem in
 /-- The transaction's `meta` field and meta copy out of `allocate`'s error state, back. -/
-theorem errState_meta_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) :
-    ((wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w) ∨
-      (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
+theorem errState_meta_acc (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX)
+    (w : WDb) :
+    ((wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w) ∨
+      (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost' fr K tx X'.v w' ∗
         ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)) ⊢
     ∃ (ml : Loc) (mv : Meta), tx.[Tx, go!"meta"] ↦ ml ∗ ml ↦ mv ∗
       (tx.[Tx, go!"meta"] ↦ ml -∗ ml ↦ mv -∗
-        ((wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w) ∨
-         (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost K tx X'.v w' ∗
+        ((wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w) ∨
+         (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost' fr K tx X'.v w' ∗
            ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) := by
   iintro (⟨Hw, Hdb⟩ | ⟨%X', %w', Hw, Hdb, %h⟩)
   · icases wtxW_read_acc K tx r m X $$ Hw with ⟨-, Htdb, Hmeta, Hmv, Hb⟩
@@ -208,14 +184,14 @@ theorem errState_meta_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w
     iframe; iframe #
     ipureintro; exact ⟨⟨Hr, Hok⟩, h⟩
 
-theorem Tx.allocate.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+theorem Tx.allocate_f.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hAlloc : DB.allocate.spec (GF := GF) (hG := hG))
     (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hCount : TxStats.IncPageCount.spec (GF := GF) (hG := hG))
     (hPAlloc : TxStats.IncPageAlloc.spec (GF := GF) (hG := hG)) :
-    Tx.allocate.spec' (GF := GF) (hG := hG) := by
-  intro K tx r m X w count hc0 hc htx hhwm hdp hlf hlr
+    Tx.allocate_f.spec (GF := GF) (hG := hG) := by
+  intro fr K tx r m X w count hc0 hc htx hhwm hdp hlf hlr
   wp_start as ⟨Hw, Hdb⟩
   icases wtxW_core K tx r m X $$ Hw with ⟨#Hcore, Hw⟩
   icases BC.core_allocFields K $$ Hcore with ⟨#Hps, #Has, ⟨%mx, #Hmx⟩, ⟨%lg, #Hlg, #Hlgok⟩,
@@ -234,7 +210,7 @@ theorem Tx.allocate.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iexact Hmeta
   · iexact Hmv
   rw [htx]
-  wp_apply hAlloc K tx r m X w w.wtxid count rfl hc0 hc hhwm hdp hlf hlr $$ [Hw Hdb] as %p %err Hres
+  wp_apply hAlloc fr K tx r m X w w.wtxid count rfl hc0 hc hhwm hdp hlf hlr $$ [Hw Hdb] as %p %err Hres
   · iframe
   try wp_auto
   icases Hres with (⟨%he, %Xr, %w', %id, %hwm, Hw, Hdb, Hp, %hres⟩ | ⟨%hne, #HeOk, Hcase⟩)
@@ -287,7 +263,7 @@ theorem Tx.allocate.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   cases err with
   | nil => exact absurd rfl hne
   | ok ii =>
-  icases errState_meta_acc K tx r m X w $$ Hcase with ⟨%ml, %mv, Hmeta, Hmv, Hcase⟩
+  icases errState_meta_acc fr K tx r m X w $$ Hcase with ⟨%ml, %mv, Hmeta, Hmv, Hcase⟩
   wp_auto
   wp_apply hTxid $$ [Hmv] as Hmv
   · iframe

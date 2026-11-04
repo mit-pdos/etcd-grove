@@ -81,9 +81,9 @@ theorem mapFields_agree (db : Loc) (dq1 dq2 : DFrac) (b1 b2 : Loc) (l1 l2 : Nat)
 
 /-- **The remap's gather** (with `Pm 1`'s `map` quarter and `mtok`, the writer side's `map` half,
 its view `v` lent and its meta quarter): the old mapping's cells, the view home, the store's slots
-out (`store_gather`'s witness and facts). -/
+out (`store_gather`'s witness and facts). Batch 44.1: over the flagged facts `wdbOK' fr`. -/
 theorem remap_gather (B : BNs) (N : Namespace) (p : GoString) (v : View) (w : WDb) (b0 : Loc)
-    (L : Nat) (hok : wdbOK w) (hms : w.ms = some (b0, L)) (hL : 8192 ≤ L) :
+    (L : Nat) {fr : Bool} (hok : wdbOK' fr w) (hms : w.ms = some (b0, L)) (hL : 8192 ≤ L) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ viewCells wq v -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
       ghostVar B.map (1 : Qp).half (some (b0, L) : MapSt) -∗
@@ -132,7 +132,7 @@ theorem remap_gather (B : BNs) (N : Namespace) (p : GoString) (v : View) (w : WD
     · iframe
     ihave H1 := (bytes_quarters _ w.C.m1).1 $$ [H1 H1']
     · iframe
-    icases wCells_gather w hok b0 L hms $$ Hwc with ⟨Hws, Hp⟩
+    icases wCells_gather' fr w hok b0 L hms $$ Hwc with ⟨Hws, Hp⟩
     have hP := slots_partition (L / 4096) (slotsOf w.C w.fl) (wSlots (L / 4096) w.C w.fl)
       (by omega) (slotsOf_nodup _ _) (wSlots_nodup _ _ _)
       (fun s hs => ⟨(hsl s hs).1, (hsl s hs).2.1⟩)

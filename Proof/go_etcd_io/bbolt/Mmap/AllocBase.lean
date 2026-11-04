@@ -7,7 +7,7 @@ writer side's facts kept by a freelist allocation (`wdbOK_alloc`).
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Inv.WdbFlag
 
 @[expose] public section
 
@@ -71,6 +71,13 @@ theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK w) :
     rcases hm with hm | hm
     · exact .inl ((List.mem_filter.1 hm).1)
     · exact .inr hm
+
+/-- **`wdbOK' fr` after a freelist allocation** (batch 44.1: `wdbOK_alloc` through `WDb.noFl`, the
+freelist page's clause by `flClause_alloc`). -/
+theorem wdbOK'_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK' fr w) :
+    wdbOK' fr (w.withFl (w.fl.alloc txid r n)) :=
+  wdbOK'_of_noFl fr _ (wdbOK_alloc w.noFl txid r n (wdbOK'_noFl fr w hok))
+    (flClause_alloc fr w txid r n (wdbOK'_flClause fr w hok))
 
 end pure
 

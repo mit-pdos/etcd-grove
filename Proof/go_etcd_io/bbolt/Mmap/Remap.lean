@@ -27,7 +27,7 @@ Step 7's agreement is read at the first step (`StartRead`) of the `db.Mlock` loa
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Inv.WdbFlag
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -60,20 +60,22 @@ def errPtrTyped [GooseExts] [GoGlobalContext] (e : GoInterface) : Prop :=
 U4d: a shorter new mapping would drop `W` slots, which `wdbRemap` keeps): on success the records dereferenced and
 re-based on the new mapping (`derefRel`, `WX.rebase`), the writer side remapped (`wdbRemap`),
 the mapping at least `minsz` long; on an error (`fmtErrorOk`, `errPtrTyped`), nothing changed (before
-`dereference`: `fileSize`, `mmapSize`, `ErrMaxSizeReached`), or the mapping lost. -/
+`dereference`: `fileSize`, `mmapSize`, `ErrMaxSizeReached`), or the mapping lost. Batch 44.1: over
+the flagged writer side `wdbW' fr` (and `wdbLost' fr`): a remap keeps the freelist, the committed
+state and the slots' bytes, so the synced freelist page's clause and the writer's `fbTok`. -/
 abbrev DB.mmap.spec : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
   0 < sint.Z minsz → mapLen w.ms ≤ sint.nat minsz → derefPre X → liveFresh X → liveReach X →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"mmap")) (Val #minsz))
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ ∃ (Xd : WX) (b : Loc) (w' : WDb),
-        wtxW K tx r m (Xd.rebase b) ∗ wdbW K tx (Xd.rebase b).v w' ∗
+        wtxW K tx r m (Xd.rebase b) ∗ wdbW' fr K tx (Xd.rebase b).v w' ∗
         ⌜derefRel X Xd ∧ wdbRemap w w' ∧ sint.nat minsz ≤ mapLen w'.ms⌝) ∨
       (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-        ((wtxW K tx r m X ∗ wdbW K tx X.v w) ∨
+        ((wtxW K tx r m X ∗ wdbW' fr K tx X.v w) ∨
          (∃ (Xd : WX) (b : Loc) (w' : WDb), wtxLost K tx r m (Xd.rebase b) ∗
-           wdbLost K tx (Xd.rebase b).v w' ∗
+           wdbLost' fr K tx (Xd.rebase b).v w' ∗
            ⌜derefRel X Xd ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
 
 end remap

@@ -1,8 +1,8 @@
 /-
 The remap's end states (U4d, `notes/bbolt-proof-plan.md`; `Mmap/Remap`'s plan, steps 5-9): the
 writer's records re-based (`wtxCore_rebase`, over `Mmap/Rebase`'s `wtxHeap_rebase`), and the
-writer side after a failed remap (`wdbLost_intro`: no mapping, the `W` slots those of the file,
-`wdbOK_lost`).
+writer side after a failed remap (`wdbLost'_intro`: no mapping, the `W` slots those of the file,
+`wdbOK'_lost`; batch 44.1: flagged).
 -/
 module
 
@@ -27,12 +27,13 @@ the leaked mapping `j`), the `W` slots those inside the file. -/
 def WDb.lost [GooseExts] (w : WDb) (m' : OsMeta) (j : Option (Loc × Nat)) : WDb :=
   { w with ms := none, m := m', W := wSlots (w.m.size / 4096) w.C w.fl, junk := j }
 
-theorem wdbOK_lost [GooseExts] (w : WDb) (hok : wdbOK w) (m' : OsMeta) (j : Option (Loc × Nat))
-    (hsz : m'.size = w.m.size)
+theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
+    (j : Option (Loc × Nat)) (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
-    wdbOK (w.lost m' j) := by
+    wdbOK' fr (w.lost m' j) := by
+  have hc := flClause_congr fr w (w.lost m' j) rfl rfl rfl (wdbOK'_flClause fr w hok)
   obtain ⟨_, _, hk3, hk4, hk5, hk6, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15⟩ := hok
-  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hk6, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_⟩
+  refine ⟨?_, fun _ => hmaps, ?_, ?_, hk5, hc, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_⟩
   · intro b l h; simp [WDb.lost] at h
   · simp only [WDb.lost]; rw [hsz]; exact hk3
   · intro s
@@ -75,8 +76,10 @@ def junkRes (j : Option (Loc × Nat)) : IProp GF :=
   | some (jb, jl) => iprop(∃ vf, cellsR jb 0 jl vf)
   | none => iprop(emp)
 
-/-- **The writer side after a failed remap**, from its pieces. -/
-theorem wdbLost_intro (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK w) (m' : OsMeta)
+/-- **The writer side after a failed remap**, from its pieces (batch 44.1: flagged, with the
+writer's `fbTok`). -/
+theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
+    (v0 : View) (F : GMap Nat (List w8)) (m' : OsMeta)
     (j : Option (Loc × Nat)) (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     ⊢ ghostVar (GF := GF) K.B.cur (1 : Qp).half.half w.C -∗ ghostVar K.B.fl (1 : Qp).half w.fl -∗
@@ -93,24 +96,32 @@ theorem wdbLost_intro (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK w) (
       osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗ wBytes K.p w.W w.wb w.m.size -∗
       junkRes j -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
-      wdbLost K tx v (w.lost m' j) := by
+      fbTok K.B w.C w.fl (wLive v0 w.C) F -∗
+      wdbLost' fr K tx v (w.lost m' j) := by
   iintro Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmob Hwb Hj
-    Hflo Hrd Hrc
-  unfold wdbLost wdbLive wdbCoreG
+    Hflo Hrd Hrc Htok
+  ihave Htok := fbTok_ws K.B w.C w.fl (wLive v0 w.C) (some v, some (w.C.txid + 1), false, false) F
+    rfl rfl $$ Htok
+  unfold wdbLost' wdbLive wdbCoreG
   have hW : ∀ s ∈ (w.lost m' j).W, 4096 * s < (w.lost m' j).m.size → s ∈ w.W := by
     intro s hs hlt
     simp only [WDb.lost] at hs hlt
     obtain ⟨h1, h2, h3⟩ := (mem_wSlots _ _ _ s).1 hs
-    exact (wdbOK_mem_W w hok s).2 ⟨h1, Nat.lt_of_lt_of_le h2
+    exact (wdbOK'_mem_W fr w hok s).2 ⟨h1, Nat.lt_of_lt_of_le h2
       (Nat.div_le_div_right (Nat.le_max_right _ _)), h3⟩
   ihave Hwb := wBytes_restrict K.p w.W (w.lost m' j).W w.wb w.m.size (wSlots_nodup _ _ _)
     (by simpa [WDb.lost, hsz] using hW) $$ Hwb
-  isplitl
+  isplitl [Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmob Hwb Hj
+    Hflo Hrd Hrc]
   · simp only [WDb.lost, mapLen, metaCellsQ, wCells, hsz]
     iframe
     rcases j with _ | ⟨jb, jl⟩ <;> simp only [junkRes] <;> iexact Hj
+  isplitr
   · ipureintro
-    exact ⟨wdbOK_lost w hok m' j hsz hmaps, rfl⟩
+    exact ⟨wdbOK'_lost fr w hok m' j hsz hmaps, rfl⟩
+  iexists F
+  simp only [WDb.lost]
+  iexact Htok
 
 end lost
 

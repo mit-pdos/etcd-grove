@@ -40,7 +40,7 @@ instance Pm_timeless (B : BNs) (db : Loc) (q : Qp) : Timeless (Pm (GF := GF) B d
 
 theorem DB.mmap.wp_proof (hU : DB.mmapUnlocked.spec (GF := GF) (hG := hG)) :
     DB.mmap.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w minsz hmin hmL hdp hlf hlr
+  intro fr K tx r m X w minsz hmin hmL hdp hlf hlr
   wp_start as ⟨Hw, Hdb⟩
   icases wtxW_core K tx r m X $$ Hw with ⟨#Hcore, Hw⟩
   ihave #Hguard := BC.core_mmaplock K $$ Hcore
@@ -55,7 +55,7 @@ theorem DB.mmap.wp_proof (hU : DB.mmapUnlocked.spec (GF := GF) (hG := hG)) :
   try wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hsync $Hguard] as ⟨Hlocked, >HP⟩
   try wp_auto
-  wp_apply hU K tx r m X w minsz hmin hmL hdp hlf hlr $$ [Hw Hdb HP] as %err ⟨HP, Hres⟩
+  wp_apply hU fr K tx r m X w minsz hmin hmL hdp hlf hlr $$ [Hw Hdb HP] as %err ⟨HP, Hres⟩
   · iframe
   try wp_auto
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hlocked HP]

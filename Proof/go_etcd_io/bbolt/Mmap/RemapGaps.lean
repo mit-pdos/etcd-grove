@@ -41,6 +41,15 @@ theorem wdbOK_size_page (w : WDb) (hok : wdbOK w) (b : Loc) (l : Nat) (hms : w.m
     w.m.size ≤ l ∨ w.m.size % 4096 = 0 :=
   hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms
 
+/-- `wdbOK_size_lt` over the flagged facts. -/
+theorem wdbOK'_size_lt (fr : Bool) (w : WDb) (hok : wdbOK' fr w) : w.m.size < 2 ^ 63 :=
+  hok.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+/-- `wdbOK_size_page` over the flagged facts. -/
+theorem wdbOK'_size_page (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (l : Nat)
+    (hms : w.ms = some (b, l)) : w.m.size ≤ l ∨ w.m.size % 4096 = 0 :=
+  hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms
+
 /-- **Gap 3 (`wtxCore`): the writer's view at a new base.** `wtxW … (Xd.rebase b)` holds
 `viewOf r (Xd.rebase b).v`, a fragment of the transaction's view registry `r.n.vw` at the new base
 `b`, which needs the registry's authority; no one holds it (`Inv/Names`: "discarded fragments").

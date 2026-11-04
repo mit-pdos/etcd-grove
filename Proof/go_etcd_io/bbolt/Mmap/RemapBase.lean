@@ -9,6 +9,7 @@ the old mapping's slot count they are `slots_partition`'s `ws` (the cells `munma
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Cells
+public import Proof.go_etcd_io.bbolt.Inv.WdbFlag
 
 @[expose] public section
 
@@ -45,6 +46,11 @@ theorem wdbOK_mem_W (w : WDb) (hok : wdbOK w) (s : Nat) :
   constructor
   · rintro ⟨h1, h2, h3, h4⟩; exact ⟨h1, h2, fun h => h.elim h3 h4⟩
   · rintro ⟨h1, h2, h3⟩; exact ⟨h1, h2, fun h => h3 (.inl h), fun h => h3 (.inr h)⟩
+
+/-- `wdbOK_mem_W` over the flagged facts (batch 44.1). -/
+theorem wdbOK'_mem_W (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (s : Nat) :
+    s ∈ w.W ↔ 2 ≤ s ∧ s < max (mapLen w.ms) w.m.size / 4096 ∧ s ∉ slotsOf w.C w.fl :=
+  wdbOK_mem_W w.noFl (wdbOK'_noFl fr w hok) s
 
 /-- A slot list with `wdbOK`'s membership: `wSlots` of the bound. -/
 theorem mem_W_of_wSlots (C : CommitSt) (fl : FLPg) (k : Nat) (s : Nat) :
@@ -138,6 +144,15 @@ theorem wCells_gather (w : WDb) (hok : wdbOK w) (b : Loc) (L : Nat) (hms : w.ms 
   have : 4096 * (s + 1) ≤ L := by omega
   simp only [this, ↓reduceIte]
   exact .rfl
+
+omit hos in
+/-- `wCells_gather` over the flagged facts (batch 44.1). -/
+theorem wCells_gather' (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Nat)
+    (hms : w.ms = some (b, L)) :
+    wCells (GF := GF) (some (b, L)) w.W ⊢
+      ([∗list] s ∈ wSlots (L / 4096) w.C w.fl, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) ∗
+      ∃ vf, cellsR (GF := GF) b (4096 * (L / 4096)) (L % 4096) vf :=
+  wCells_gather w.noFl (wdbOK'_noFl fr w hok) b L hms
 
 omit hos in
 /-- **The writer's cells of the new mapping `(b, L)`**: `wSlots (L / 4096)` and the partial last

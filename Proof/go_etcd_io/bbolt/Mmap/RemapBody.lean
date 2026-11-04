@@ -39,20 +39,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`db.mmapUnlocked(minsz)` by the live writer `tx`, `mmaplock` held** (`Pm 1`): `DB.mmap.spec`'s
-post, `Pm 1` back. -/
+post, `Pm 1` back (batch 44.1: over the flagged writer side). -/
 abbrev DB.mmapUnlocked.spec : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (minsz : w64),
   0 < sint.Z minsz → mapLen w.ms ≤ sint.nat minsz → derefPre X → liveFresh X → liveReach X →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w ∗ Pm K.B K.db 1 }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w ∗ Pm K.B K.db 1 }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
   {{ (err : GoInterface), RET #err; Pm K.B K.db 1 ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (Xd : WX) (b : Loc) (w' : WDb),
-        wtxW K tx r m (Xd.rebase b) ∗ wdbW K tx (Xd.rebase b).v w' ∗
+        wtxW K tx r m (Xd.rebase b) ∗ wdbW' fr K tx (Xd.rebase b).v w' ∗
         ⌜derefRel X Xd ∧ wdbRemap w w' ∧ sint.nat minsz ≤ mapLen w'.ms⌝) ∨
       (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-        ((wtxW K tx r m X ∗ wdbW K tx X.v w) ∨
+        ((wtxW K tx r m X ∗ wdbW' fr K tx X.v w) ∨
          (∃ (Xd : WX) (b : Loc) (w' : WDb), wtxLost K tx r m (Xd.rebase b) ∗
-           wdbLost K tx (Xd.rebase b).v w' ∗
+           wdbLost' fr K tx (Xd.rebase b).v w' ∗
            ⌜derefRel X Xd ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)))) }}
 
 /-- The remap's fixed fields of the database (`dbFixed`, `isBoltCoreP`). -/
@@ -68,21 +68,25 @@ theorem BC.core_mmapFields (K : BC) :
   iexact Hmf
 
 /-- The writer side's file, for `fileSize`, and back. -/
-theorem wdbW_file_acc (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbW (GF := GF) K tx v w ⊢ (K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
+theorem wdbW'_file_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW' (GF := GF) fr K tx v w ⊢ (K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
         osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some w.m)) ∗
       ((K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p (DFrac.own 1) ∗
         osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗ osMeta K.p (DFrac.own 1) (some w.m)) -∗
-        wdbW K tx v w) ∗ ⌜wdbOK w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ := by
-  unfold wdbW wdbLive wdbCoreG
+        wdbW' fr K tx v w) ∗
+      ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ := by
+  unfold wdbW' wdbLive wdbCoreG
   iintro ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
-    Hosm, Hfo, Hfd, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok⟩
+    Hosm, Hfo, Hfd, Hrest⟩, Hflo, Hrd, Hrcpt⟩, %Hwok, Htok⟩
   iframe Hfile Hfo Hfd Hosm
   isplitl
   · iintro ⟨Hfile, Hfo, Hfd, Hosm⟩
-    isplitl
+    isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hrest
+      Hflo Hrd Hrcpt]
     · iframe
+    isplitr
     · ipureintro; exact Hwok
+    · iexact Htok
   · ipureintro; exact Hwok
 
 /-- A mapping's length facts, the fields kept. -/
@@ -204,7 +208,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
     (hValidate : internal.common.Meta.Validate.spec (GF := GF) (hG := hG)) :
     DB.mmapUnlocked.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w minsz hmin hmL hdp hlf hlr
+  intro fr K tx r m X w minsz hmin hmL hdp hlf hlr
   wp_start as ⟨Hw, Hdb, Hpm⟩
   icases wtxW_core K tx r m X $$ Hw with ⟨#Hcore, Hw⟩
   icases BC.core_allocFields K $$ Hcore with ⟨#Hps, #Has, ⟨%mx, #Hmx⟩, ⟨%lg, #Hlg, #Hlgok⟩,
@@ -223,10 +227,10 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   wp_apply hLogger K.db lg Hdb $$ []
   · iframe #
   try wp_auto
-  icases wdbW_file_acc K tx X.v w $$ Hdb with ⟨⟨Hfile, Hfo, Hfd, Hosm⟩, Hdbback, %Hwok⟩
+  icases wdbW'_file_acc fr K tx X.v w $$ Hdb with ⟨⟨Hfile, Hfo, Hfd, Hosm⟩, Hdbback, %Hwok⟩
   obtain ⟨hok, hms, hv⟩ := Hwok
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨K.p, true, true⟩ w.m rfl (wdbOK_size_lt w hok) $$ [Hfile Hfo Hfd Hosm]
+    ⟨K.p, true, true⟩ w.m rfl (wdbOK'_size_lt fr w hok) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   cases lg with
@@ -260,7 +264,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · ipureintro; exact ⟨(fun h => nomatch h), Hpt⟩
     ileft; iframe
   obtain ⟨rfl, rfl, hfs8⟩ := Hfs
-  have hszlt := wdbOK_size_lt w hok
+  have hszlt := wdbOK'_size_lt fr w hok
   have hfz : sint.Z (W64 (w.m.size : Int)) = w.m.size := by word
   wp_auto
   wp_join iprop(∃ s : w64, size_ptr ↦ s ∗ minsz_ptr ↦ minsz ∗
@@ -312,9 +316,9 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   -- `dereference` (steps 4-5): the writer's records off the mapping
   ihave Hdb := Hdbback $$ [Hfile Hfo Hfd Hosm]
   · iframe
-  unfold wdbW wdbLive wdbCoreG
+  unfold wdbW' wdbLive wdbCoreG
   icases Hdb with ⟨⟨⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hopen, Hwa, Hrw, Hfile, Hpath, Hdsz,
-    Hmfw, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, -⟩
+    Hmfw, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjunk⟩, Hflo, Hrd, Hrcpt⟩, -, %F, Htok⟩
   ihave %Htx := wtxW_tx_ne K tx r m X $$ Hw
   try wp_auto
   rw [decide_eq_false Htx.1]
@@ -379,11 +383,11 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
         ((some (Xd.rebase Xd.v.base).v, some (w.C.txid + 1), false, false) : WSt) $$ [Hgwv]
     · rw [hv']; iexact Hgwv
     icases Hun with (Hosm | ⟨Hosm, Hcells⟩)
-    · ihave Hwd := wdbLost_intro K tx (Xd.rebase Xd.v.base).v w hok
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F
         { w.m with maps := GMap.delete b0 w.m.maps } none rfl
         (Or.inl (by rw [hk1 b0 l hmsL]; exact GMap.delete_singleton _ _))
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
-          [] Hflo Hrd Hrcpt
+          [] Hflo Hrd Hrcpt Htok
       · simp only [junkRes]; iempintro
       iapply HΦ
       isplitl [Hpmap Hm3 Hptok]
@@ -396,10 +400,10 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       iexists Xd, Xd.v.base, _
       iframe Hwl Hwd
       ipureintro; exact ⟨hrel, rfl, rfl⟩
-    · ihave Hwd := wdbLost_intro K tx (Xd.rebase Xd.v.base).v w hok w.m (some (b0, l)) rfl
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F w.m (some (b0, l)) rfl
         (Or.inr ⟨b0, l, rfl, hk1 b0 l hmsL⟩)
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
-          [Hcells] Hflo Hrd Hrcpt
+          [Hcells] Hflo Hrd Hrcpt Htok
       · simp only [junkRes]; iexists vf; iexact Hcells
       iapply HΦ
       isplitl [Hpmap Hm3 Hptok]
@@ -460,10 +464,10 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
         ((some (Xd.rebase Xd.v.base).v, some (w.C.txid + 1), false, false) : WSt) $$ [Hgwv]
     · rw [hv']; iexact Hgwv
     icases Hres with (Hosm | ⟨%base, %hbase, Hosm, Hmc⟩)
-    · ihave Hwd := wdbLost_intro K tx (Xd.rebase Xd.v.base).v w hok
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F
         { w.m with maps := GMap.delete b0 w.m.maps } none rfl (Or.inl hmaps1)
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
-          [] Hflo Hrd Hrcpt
+          [] Hflo Hrd Hrcpt Htok
       · simp only [junkRes]; iempintro
       iapply HΦ
       isplitl [Hpmap Hm3 Hptok]
@@ -476,12 +480,12 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       iexists Xd, Xd.v.base, _
       iframe Hwl Hwd
       ipureintro; exact ⟨hrel, rfl, rfl⟩
-    · ihave Hwd := wdbLost_intro K tx (Xd.rebase Xd.v.base).v w hok
+    · ihave Hwd := wdbLost'_intro fr K tx (Xd.rebase Xd.v.base).v w hok X.v F
         { { w.m with maps := GMap.delete b0 w.m.maps } with
           maps := <[base := nsz.toNat]> (GMap.delete b0 w.m.maps) } (some (base, nsz.toNat)) rfl
         (Or.inr ⟨base, nsz.toNat, rfl, by rw [hmaps1]; exact GMap.insert_empty _ _⟩)
         $$ Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmob Hwb
-          [Hmc] Hflo Hrd Hrcpt
+          [Hmc] Hflo Hrd Hrcpt Htok
       · simp only [junkRes]; unfold mapCells; icases Hmc with ⟨%bs', -, Hc⟩; iexists _; iexact Hc
       iapply HΦ
       isplitl [Hpmap Hm3 Hptok]
@@ -680,12 +684,12 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
     · iframe
     try rw [hnszE]
-    imod remap_post K tx r m X Xd w hok b0 base l L'
+    imod remap_post' fr K tx r m X Xd w hok F b0 base l L'
       { { w.m with maps := GMap.delete b0 w.m.maps } with
         maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
       rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb
       $$ Hwc0 Hvc Hmf Hpmap Hptok Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
-        Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt with ⟨Hpm, Hw, Hdb⟩
+        Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt Htok with ⟨Hpm, Hw, Hdb⟩
     · simp only [metaCellsQ]; iframe H0b; iexact H1b
     · unfold junkRes; iexact Hjunk
     try wp_auto
@@ -697,9 +701,9 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     iexists Xd, base, w.remap base L' { { w.m with maps := GMap.delete b0 w.m.maps } with
         maps := <[base := L']> (GMap.delete b0 w.m.maps) }
     iframe Hw
-    unfold wdbW wdbLive wdbCoreG
+    unfold wdbW' wdbLive wdbCoreG
     icases Hdb with ⟨⟨⟨Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8, Hd9, Hd10, Hd11, Hd12, Hd13, Hd14,
-      Hd15, Hd16, Hd17, Hd18, Hd19, Hd20, Hd21⟩, Hd22, Hd23, Hd24⟩, %Hdp⟩
+      Hd15, Hd16, Hd17, Hd18, Hd19, Hd20, Hd21⟩, Hd22, Hd23, Hd24⟩, %Hdp, Hd25⟩
     isplitl
     · simp only [WDb.remap, mapFields, metaOsBytes]
       iframe
@@ -707,7 +711,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       simp only [WDb.remap, mapLen] at Hdp ⊢
       exact Hdp
     ipureintro
-    refine ⟨hrel, wdbRemap_remap w hok base L' _ rfl (by rw [hmsL]; exact hll), ?_⟩
+    refine ⟨hrel, wdbRemap_remap' fr w hok base L' _ rfl (by rw [hmsL]; exact hll), ?_⟩
     simp only [WDb.remap, mapLen]
     exact hminL
   | ok i0 =>
@@ -731,12 +735,12 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       (Nat.div_le_div_right (Nat.le_max_left _ _)) $$ [Hws Hpart]
     · iframe
     try rw [hnszE]
-    imod remap_post K tx r m X Xd w hok b0 base l L'
+    imod remap_post' fr K tx r m X Xd w hok F b0 base l L'
       { { w.m with maps := GMap.delete b0 w.m.maps } with
         maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
       rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb
       $$ Hwc0 Hvc Hmf Hpmap Hptok Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
-        Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt with ⟨Hpm, Hw, Hdb⟩
+        Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt Htok with ⟨Hpm, Hw, Hdb⟩
     · simp only [metaCellsQ]; iframe H0b; iexact H1b
     · unfold junkRes; iexact Hjunk
     try wp_auto
@@ -748,9 +752,9 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     iexists Xd, base, w.remap base L' { { w.m with maps := GMap.delete b0 w.m.maps } with
         maps := <[base := L']> (GMap.delete b0 w.m.maps) }
     iframe Hw
-    unfold wdbW wdbLive wdbCoreG
+    unfold wdbW' wdbLive wdbCoreG
     icases Hdb with ⟨⟨⟨Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8, Hd9, Hd10, Hd11, Hd12, Hd13, Hd14,
-      Hd15, Hd16, Hd17, Hd18, Hd19, Hd20, Hd21⟩, Hd22, Hd23, Hd24⟩, %Hdp⟩
+      Hd15, Hd16, Hd17, Hd18, Hd19, Hd20, Hd21⟩, Hd22, Hd23, Hd24⟩, %Hdp, Hd25⟩
     isplitl
     · simp only [WDb.remap, mapFields, metaOsBytes]
       iframe
@@ -758,7 +762,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       simp only [WDb.remap, mapLen] at Hdp ⊢
       exact Hdp
     ipureintro
-    refine ⟨hrel, wdbRemap_remap w hok base L' _ rfl (by rw [hmsL]; exact hll), ?_⟩
+    refine ⟨hrel, wdbRemap_remap' fr w hok base L' _ rfl (by rw [hmsL]; exact hll), ?_⟩
     simp only [WDb.remap, mapLen]
     exact hminL
 
