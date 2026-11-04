@@ -6,6 +6,7 @@ waits for (reported to the maintainer). Nothing else in the remap's proof is ass
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Remap
+public import Proof.go_etcd_io.bbolt.Txn.Txs
 
 @[expose] public section
 
@@ -50,17 +51,96 @@ theorem wdbOK'_size_page (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (l 
     (hms : w.ms = some (b, l)) : w.m.size ≤ l ∨ w.m.size % 4096 = 0 :=
   hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms
 
-/-- **Gap 3 (`wtxCore`): the writer's view at a new base.** `wtxW … (Xd.rebase b)` holds
-`viewOf r (Xd.rebase b).v`, a fragment of the transaction's view registry `r.n.vw` at the new base
-`b`, which needs the registry's authority; no one holds it (`Inv/Names`: "discarded fragments").
-Fix: `wtxCore` holds the writer's `ghostMapAuth r.n.vw 1 V` with every entry the view at its key
-(`∀ k u, V !! k = some u → u = { X.v with base := k }`), so that a remap inserts the new base (or
-finds it). -/
+private instance viewOf_persistent_gap (r : TxReg) (v : View) :
+    Persistent (viewOf (GF := GF) r v) := by
+  unfold viewOf; infer_instance
+
+private instance reg_persistent_gap (tx : Loc) (B : BNs) (r : TxReg) :
+    Persistent (reg (GF := GF) tx B r) := by
+  unfold reg; infer_instance
+
+/-- **Gap 3 (`wtxCore`): the writer's view at a new base** (closed by batch 37.3, maintainer 11).
+`wtxW … (Xd.rebase b)` holds `viewOf r (Xd.rebase b).v`, a fragment of the transaction's view
+registry `r.n.vw` at the new base `b`. The registry's authority is in the transaction's entry of
+`txsInv` (`readerHandles`'s writer case, `vwOwn`: every entry the view at its key), which a live
+writer's entry holds (`statsTok` excludes the done entry): the remap finds or inserts the new
+base. -/
 theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : Loc)
-    (E : CoPset) :
+    (E : CoPset) (hE : ↑(txsN K.N) ⊆ E) :
     wtxCore (GF := GF) K tx r m X ⊢
       |={E}=> wtxCore K tx r m X ∗ viewOf r { X.v with base := b } := by
-  sorry
+  iintro Hc
+  iunfold wtxCore at Hc
+  icases Hc with ⟨#Hpkg, #Hkc, %Hp, #Hreg, Hheap, Hfills, Hbk, Hnl, Hdb, #Hvo, Hst⟩
+  have hrw : r.rw = true := Hp.2.1
+  ihave #Hti : inv (txsN K.N) (txsInv (GF := GF) K.B K.p K.sp K.t0) $$ []
+  · unfold BC.core isBoltCoreP
+    icases Hkc with ⟨-, -, -, -, -, -, -, -, -, -, #Hti⟩
+    iexact Hti
+  imod txs_open K.B K.N K.p K.sp K.t0 E hE tx r $$ [] with ⟨He, Hcl⟩
+  · iframe Hti Hreg
+  unfold txEntry
+  icases He with (⟨Hdb', Hdone, Hst', Hx, Hrh⟩ | ⟨>Hdone, >Hex', Hst'⟩)
+  · iunfold readerHandles at Hrh
+    simp only [hrw, ↓reduceIte]
+    unfold vwOwn
+    icases Hrh with ⟨%V, %v0, >Hauth, >#Hfr, >%HV⟩
+    ihave Hvo2 : X.v.base ↪[r.n.vw]□ X.v $$ []
+    · iunfold viewOf at Hvo; iexact Hvo
+    icombine Hauth Hvo2 gives %Hlk
+    have hX : X.v = { v0 with base := X.v.base } := HV _ _ Hlk
+    have hnew : { X.v with base := b } = { v0 with base := b } := by rw [hX]
+    rw [hnew]
+    cases hb : V !! b with
+    | some u =>
+      have hu : u = { v0 with base := b } := HV _ _ hb
+      ihave #Hb : b ↪[r.n.vw]□ u $$ [Hfr]
+      · iapply (BigSepM.bigSepM_lookup (Φ := fun k u => (k ↪[r.n.vw]□ u : IProp GF)) hb) $$ Hfr
+      imod Hcl $$ [Hdb' Hdone Hst' Hx Hauth] with -
+      · inext; ileft; iframe Hdb' Hdone Hst' Hx
+        iunfold readerHandles
+        simp only [hrw, ↓reduceIte]
+        unfold vwOwn
+        iexists V, v0
+        iframe Hauth
+        iframe #
+        ipureintro; exact HV
+      imodintro
+      isplitl
+      · iunfold wtxCore; iframe; iframe #; ipureintro; exact Hp
+      · iunfold viewOf; subst hu; iexact Hb
+    | none =>
+      imod (ghost_map_insert_persist (GF := GF) b { v0 with base := b } hb) $$ Hauth
+        with ⟨Hauth, #Hb⟩
+      imod Hcl $$ [Hdb' Hdone Hst' Hx Hauth] with -
+      · inext; ileft; iframe Hdb' Hdone Hst' Hx
+        iunfold readerHandles
+        simp only [hrw, ↓reduceIte]
+        unfold vwOwn
+        iexists V.insert b { v0 with base := b }, v0
+        iframe Hauth
+        isplitl
+        · iapply (BigSepM.bigSepM_insert (Φ := fun k u => (k ↪[r.n.vw]□ u : IProp GF)) hb).2
+          iframe #
+        · ipureintro
+          intro k u hk
+          by_cases h : b = k
+          · subst h
+            rw [GMap.lookup_insert] at hk
+            cases hk; rfl
+          · rw [GMap.lookup_insert_ne _ _ h] at hk
+            exact HV k u hk
+      imodintro
+      isplitl
+      · iunfold wtxCore; iframe; iframe #; ipureintro; exact Hp
+      · iunfold viewOf; iexact Hb
+  · cases m
+    · simp only [statsTok, Bool.false_eq_true, ↓reduceIte]
+      icombine Hst Hdone gives %h
+      exact absurd h.2 (by decide)
+    · simp only [statsTok, ↓reduceIte]
+      icombine Hst Hex' gives %h
+      exact absurd h.1 (by rw [Qp.le_iff]; simp only [Qp.val_add, Qp.val_one]; grind)
 
 /-- **Gap 4 (`isBoltCoreP`): the database's namespace is disjoint from OsFs's.** `store_cells_agree`
 opens `pagesInv` around a step that opens `osInv` (`↑osN ⊆ ⊤ \ ↑(pagesN N)`). `Open`'s spec takes

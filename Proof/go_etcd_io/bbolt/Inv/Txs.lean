@@ -101,9 +101,17 @@ def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
         (if r.src = .loan then threadPool.ownThreadLoan B.pool else emp) ∗
         sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗ k ↪[B.rds] (⟨v⟩ : RdInfo)))
 
-/-- A reader's handle registry (the auth; the handles' fragments are persistent). -/
+/-- **A writer's view registry** `γ` (batch 37.3, maintainer 11): its authority, every entry's
+persistent fragment, and every entry the same view at its key (`{v0 with base := k}`), so that a
+remap finds or inserts the view at the new base (`Mmap/RemapGaps.wtxCore_viewOf_rebase`). -/
+def vwOwn (γ : GName) : IProp GF :=
+  iprop(∃ (V : GMap Loc View) (v0 : View), ghostMapAuth γ 1 V ∗
+    ([∗map] k ↦ u ∈ V, k ↪[γ]□ u) ∗ ⌜∀ k u, V !! k = some u → u = { v0 with base := k }⌝)
+
+/-- A transaction's registries' authorities kept in its entry: a reader's handle registry (the
+auth; the handles' fragments are persistent), a writer's view registry (`vwOwn`, batch 37.3). -/
 def readerHandles (r : TxReg) : IProp GF :=
-  if r.rw then iprop(emp) else iprop(∃ H : GMap Loc RHandle, ghostMapAuth r.n.rbk 1 H)
+  if r.rw then vwOwn r.n.vw else iprop(∃ H : GMap Loc RHandle, ghostMapAuth r.n.rbk 1 H)
 
 /-- One transaction's entry: while live, the quarter of `tx.db` (`txDB`'s anchor), its
 statistics and its exclusive part or the checked-out token; once done, the token (so that no

@@ -324,7 +324,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     (TxX.wr (wx0 (txRoot (GF := GF) «$r0_ptr») (tx0 «$r0_ptr» bm nm ibp m pm slice.nil (W64 0))
       (initMeta true (metaOf (w.C.slot w.C.txid))) (initRoot «$r0_ptr» bm nm ibp)
       (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C))) (View.ofC b w.C)
-    with ⟨%n, Hv, Hex, Hbka, Hnla, Hdone, Hpga, Hpgt, #Hvw⟩
+    with ⟨%n, Hv, Hex, Hbka, Hnla, Hdone, Hpga, Hpgt, #Hvw, Hvwo⟩
   ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half n.v 1 _).1 $$ Hv
   ihave ⟨Hd1, Hd2⟩ := (ghostVar_split_half n.done 1 false).1 $$ Hdone
   ihave ⟨Hmfa, Hmfb⟩ := mapFields_halve K.db (1 : Qp).half (some (b, l)) $$ Hmf
@@ -351,8 +351,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       by simp only [WDb.released, wx0, View.ofC], ?_⟩
     exact ⟨flViewU_wx0 w.C b _ _ _ _ _ _ htree hi hnp hmv hwf hbl hhwm, metaCopyOK_init w.C hok,
       htree⟩
-  ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ []
-  · iunfold readerHandles; simp only [↓reduceIte]; iempintro
+  ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ [Hvwo]
+  · iunfold readerHandles; simp only [↓reduceIte]; iexact Hvwo
   imod txs_register K.B K.N K.p K.sp K.t0 ⊤ CoPset.subseteq_top «$r0_ptr»
     ⟨K.db, n, true, .loan⟩ _ $$ [Hti Hdb stats Hx Hd2 Hrh] with ⟨#Hreg, Hdb⟩
   · iframe Hti Hdb stats Hd2 Hx Hrh
