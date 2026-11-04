@@ -68,7 +68,7 @@ theorem rootLoc_kept {X X' : WX} {bl : Loc} (h : rootLoc X bl) (hkept : bktKept 
     (hreach : liveReach X) (hp' : derefPre X') (hf' : liveFresh X') (hfuel : X'.fuel = X.fuel)
     (h0 : ∀ B, X.t.bs !! bl = some B → B.ib.root' ≠ W64 0)
     (hvs : ∀ B B' l r r', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' → B.ns !! l = some r →
-      B'.ns !! l = some r' → leafVs r → leafVs r') :
+      B'.ns !! l = some r' → l ∈ X.live → leafVs r → leafVs r') :
     rootLoc X' bl := by
   obtain ⟨hloc, hrt, B, hB, hn⟩ := h
   obtain ⟨B', hB', hs, hns⟩ := hkept B hB
@@ -88,7 +88,7 @@ theorem rootLoc_kept {X X' : WX} {bl : Loc} (h : rootLoc X bl) (hkept : bktKept 
 theorem childSt_kept {X0 X X' : WX} {w w' : WDb} {txid : w64} {c : Loc} {D : List Nat} {s : KSt}
     (hold : childSt X0 X w txid c D s) (hkept : bktKept X X' c)
     (hvs : ∀ B B' l r r', X.t.bs !! c = some B → X'.t.bs !! c = some B' → B.ns !! l = some r →
-      B'.ns !! l = some r' → leafVs r → leafVs r')
+      B'.ns !! l = some r' → l ∈ X.live → leafVs r → leafVs r')
     (hv : X'.v.pages = X.v.pages) (hvw : viewWF X'.v)
     (hh : X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat) (hlB : X'.liveB = X.liveB) (hrl : X'.rl = X.rl)
     (hreach : liveReach X) (hp' : derefPre X') (hf' : liveFresh X') (hfuel : X'.fuel = X.fuel)
@@ -187,11 +187,11 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hbl)]; exact hB'
   have hvs : ∀ bl, bl ≠ c → ∀ B B' l r r', X.t.bs !! bl = some B →
       (X1.setBkt c (bkRooted B1 rt rr.nv.pgid')).t.bs !! bl = some B' → B.ns !! l = some r →
-      B'.ns !! l = some r' → leafVs r → leafVs r' := by
-    intro bl hbl B B' l r r' hB hB' hr hr' hl
+      B'.ns !! l = some r' → l ∈ X.live → leafVs r → leafVs r' := by
+    intro bl hbl B B' l r r' hB hB' hr hr' hlv hl
     have e : (X1.t.bs.insert c (bkRooted B1 rt rr.nv.pgid')) !! bl = some B' := hB'
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hbl)] at e
-    exact f17 bl B B' l r r' hB e hr hr' (fun h => absurd h hbl) hl
+    exact f17 bl B B' l r r' hB e hr hr' (fun h => absurd h hbl) hlv hl
   have hbs : ∀ bl, ((X1.setBkt c (bkRooted B1 rt rr.nv.pgid')).t.bs !! bl).isSome =
       (X.t.bs !! bl).isSome := by
     intro bl

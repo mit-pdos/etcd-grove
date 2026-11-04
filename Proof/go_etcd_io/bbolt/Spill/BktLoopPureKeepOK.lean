@@ -248,7 +248,7 @@ theorem bktLocalOK_kept {X X' : WX} {bl : Loc} (hloc : bktLocalOK X bl) (hkept :
     (hinl : ∀ B B', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' →
       B.ib.root' = W64 0 → B.bv.rootNode' = null → B'.isrc = B.isrc ∧ B'.pst = B.pst)
     (hvs : ∀ B B' l r r', X.t.bs !! bl = some B → X'.t.bs !! bl = some B' → B.ns !! l = some r →
-      B'.ns !! l = some r' → leafVs r → leafVs r') :
+      B'.ns !! l = some r' → l ∈ X.live → leafVs r → leafVs r') :
     bktLocalOK X' bl := by
   obtain ⟨-, B, hB, hcl, hk, hpl, hlive, -⟩ := hloc
   obtain ⟨B', hB', hs, hns⟩ := hkept B hB
@@ -260,7 +260,7 @@ theorem bktLocalOK_kept {X X' : WX} {bl : Loc} (hloc : bktLocalOK X bl) (hkept :
     bktKeys_kept hs hns hv hk, txPgLeaf_kept hns hpl, hl', hvw⟩
   intro l r r' hr hr' e
   obtain ⟨f1, f2⟩ := hf' bl B' l r' hB' hr' (hl' l r' hr')
-  refine ⟨f1, f2, hvs B B' l r r' hB hB' hr hr' ?_⟩
+  refine ⟨f1, f2, hvs B B' l r r' hB hB' hr hr' (hlive l r hr) ?_⟩
   intro hlf w hw hf
   exact ((hcl.2.2.2.2.2.2.2.1 l r hr).2.2.2.2.2.2.2.2.2.2.2.1 hlf w hw hf).2
 
