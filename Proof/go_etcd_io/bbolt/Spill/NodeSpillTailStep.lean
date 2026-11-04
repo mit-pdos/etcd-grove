@@ -385,9 +385,10 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         by show rp.nv.key' = _ ↔ _; rw [hsimp.2.1]; exact hkn0⟩
       · show rp.capOwn = true
         rw [hsimp.2.2.2.2.2.2]; exact hcap
-      · -- DEFECT (pcLoop.par): the parent's key slice may change source (nodeSim), so its
-        -- struct is `rp0`'s only modulo `key'` too
-        sorry }
+      · show ({ rp.nv with inodes' := s } : node) =
+          { rp0.nv with inodes' := s, key' := rp.nv.key' }
+        have e1 := hsimp.1
+        conv => lhs; rw [e1, hnv0] }
   -- the slots' bookkeeping
   obtain ⟨hD1, hD2, hD3⟩ := hD
   have hc0' : 0 < pcCount (insSize rl.ins) := hc0
