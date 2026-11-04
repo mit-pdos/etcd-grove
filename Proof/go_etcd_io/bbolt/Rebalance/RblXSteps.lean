@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.bbolt.Rebalance.RblRm
 public import Proof.go_etcd_io.bbolt.Rebalance.RblCol
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSSim
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSFree
 
 @[expose] public section
 
@@ -94,15 +95,18 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
   sorry
 
 /-- **A live node's page can be freed** (`node.free`'s premises: the page of the view, its
-header, and `Free`'s `canFree` for the writer's txid). -/
+header, and `Free`'s `canFree` for the writer's txid). The view's pages end below `2^64`
+(`hext`, added: `Free`'s `id + n < 2^64` follows from nothing in `rblX`; the committed state's
+pages end below its high-water mark, `treeOK`, but that mark is not bounded there). -/
 theorem rblX_canFree (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (n : Loc)
     (r : NRec) (hI : rblX X fl bl dfc) (hb : X.t.bs !! bl = some B) (hr : B.ns !! n = some r)
-    (hp0 : r.nv.pgid' ≠ W64 0) :
+    (hp0 : r.nv.pgid' ≠ W64 0)
+    (hext : ∀ id pg, X.v.pages !! id = some pg → id + (1 + pageOverflow pg) < 2 ^ 64) :
     ∃ pg, X.v.pages !! r.nv.pgid'.toNat = some pg ∧ 16 ≤ pg.length ∧
       pageId pg = r.nv.pgid'.toNat ∧
       (pageFlags pg = branchPageFlag ∨ pageFlags pg = leafPageFlag) ∧
-      fl.canFree X.t.mv.txid' r.nv.pgid' (1 + pageOverflow pg) := by
-  sorry
+      fl.canFree X.t.mv.txid' r.nv.pgid' (1 + pageOverflow pg) :=
+  rblX_canFree' X fl bl dfc B n r hI hb hr hp0 hext
 
 /-- **An empty leaf removed** from its parent `pl` (entry `i`; `del`, `removeChild`, the node
 cache's entry deleted, `free`): the parent is the deficient node. -/
