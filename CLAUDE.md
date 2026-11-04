@@ -236,7 +236,7 @@ plain text (`--markdown` for Markdown; `-o FILE` writes Markdown if FILE ends in
 Like the TCB report, don't commit its output.
 
 Both scripts are generic for a Goose project with this layout: they name no project.
-Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`Results.lean` under
+Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`MainLinked.lean`/`Results.lean` under
 `Proof/` and a part's `<root>/Proof/`; Lean runs grouped by the part roots a module
 reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
 not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
