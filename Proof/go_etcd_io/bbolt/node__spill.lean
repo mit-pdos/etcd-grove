@@ -128,10 +128,23 @@ theorem node.spill.wp_aux : ⊢ spillW (GF := GF) (hG := hG) := by
     --    `derefRel`/`rebase`), `node.write` (`Spill/PageBuf`, `sTree_wLeaf`/`sTree_wBranch`),
     --    `parent.put` (child case: `parentSpilled`; top case: the new root's entries);
     -- 6. the top case's new root: Löb `IH` on it (`spCtx .top`).
-    -- U9f's pure lemmas for step 2: `Spill/UTreeParent.uBr_of_uTree` (the branch facts `uBr`),
-    -- `Spill/ChildStep.uBr_childStep` (one unspilled child's spill: `uBr`, `slotInv`, `spFree`
-    -- after, from its `spDone`; built on `Spill/UTreeReplace2.uBr_replace`), the spilled
-    -- children kept by `spilledN_frame`; after the loop `uEnt_fin_of_spilled` on every entry.
+    -- Pure layer for step 2 (done): `Spill/UTreeParent.uBr_of_uTree` (the branch facts),
+    -- `Spill/NodeSpillLoop.spLoop_init` (the invariant at the loop's start),
+    -- `Spill/NodeSpillChild.spLoop_next` (child `i`: its spill's pre, and from its `spDone`
+    -- the invariant at `i + 1`; the loop body's one call of `IH`), `spLoop_err` (an error),
+    -- `spLoop_fin` (every entry finished after the loop). Heap: `Spill/NodeSpillHeap.
+    -- wtxW_children_acc` (`len(n.children)`, `n.children[i]`, records unchanged).
+    -- Step 1 (U9j hand-off design): `nodesR s P Q` needs `Q` apart from `n`'s children slice
+    -- and readable for the other nodes, so not a wand: `Q` = the heap's objects but `n`
+    -- (`[∗map] objs.delete n`, accessed with `bigSepM_lookup_acc` for `c ≠ n`), `viewCells`
+    -- (view-backed first keys: `viewCells_slices_acc`, own ones `↦*□`), and the closing
+    -- part (`n`'s object but its children, the bucket, `txFields`, `wtxW_open`'s wand);
+    -- `ks c`/`fk c` the record's first inode's key slice/entry's key, `P c` = a live child
+    -- of `n` (non-empty: `uEnt.child`/`spilledN`, `liveFresh` for the key's source); after the
+    -- sort `X.setNode bl n { rn with cs := l }` with `l ~ rn.cs` (`uBr`, `derefPre`,
+    -- `liveReach`, `spCtx` are membership-based, so a permutation keeps them).
+    -- Step 3: the kill is framed by `N` (child case: `spCtx`'s `∀ c ∈ rn.cs, c ∈ N`, the
+    -- children's pieces fresh) or by `spDone`'s `cs = .top ∧ l ∈ rn.cs` (top case).
     sorry
 
 /-- **`node.spill.spec'`**, from `wp_aux`. -/
