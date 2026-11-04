@@ -155,6 +155,81 @@ theorem cm_write_pre (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (hpre : c
       have := (Nat.div_le_iff_le_mul_add_pred (by decide)).1 hle; omega
     omega
 
+omit [GooseExts] in
+/-- The dirty pages' slots `SB`, split by `P`, then the tail `T` and the rest of `W`, are `W`. -/
+theorem mem_cm_lists (W SB T : List Nat) (P : Nat → Bool) (hsub : ∀ s ∈ SB ++ T, s ∈ W) (s : Nat) :
+    s ∈ SB.filter P ++ (SB.filter (fun s => !P s) ++ (T ++ wMinus W (SB ++ T))) ↔ s ∈ W := by
+  rw [← mem_SB_wMinus W (SB ++ T) hsub s]
+  simp only [List.mem_append, List.mem_filter]
+  constructor
+  · rintro (⟨h, -⟩ | ⟨h, -⟩ | h | h)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inl (Or.inr h)
+    · exact Or.inr h
+  · rintro ((h | h) | h)
+    · cases hP : P s
+      · exact Or.inr (Or.inl ⟨h, rfl⟩)
+      · exact Or.inl ⟨h, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl h))
+    · exact Or.inr (Or.inr (Or.inr h))
+
+/-- **The writer side after a failed meta write**: `wdbOK` with the published slots, the rest of
+the written slots and the tail back among the `W` slots. -/
+theorem cm_unpub_ok (w : WDb) (m : OsMeta) (SB T : List Nat) (P : Nat → Bool)
+    (wb' : Nat → List w8) (hok : wdbOK w) (hsub : ∀ s ∈ SB ++ T, s ∈ w.W)
+    (hsz1 : w.m.size ≤ m.size) (hsz2 : m.size ≤ max w.m.size (mapLen w.ms))
+    (hsz63 : m.size < 2 ^ 63) (hmaps : m.maps = w.m.maps)
+    (hlen : ∀ s ∈ SB ++ T, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
+    (hold : ∀ s ∈ w.W, s ∉ SB ++ T → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none) :
+    wdbOK (w.reslot m (SB.filter P ++ (SB.filter (fun s => !P s) ++ (T ++ wMinus w.W (SB ++ T))))
+      (wbUpd (SB.filter P) wb' (wbUpd (SB.filter (fun s => !P s)) wb' (wbUpd T wb' w.wb)))) := by
+  apply wdbOK_reslot w m _ _ hok (mem_cm_lists w.W SB T P hsub) hsz1 hsz2 hsz63 hmaps
+  · intro s hs hz
+    unfold wbUpd
+    split
+    · exact hlen s (List.mem_append_left _ (List.mem_filter.1 (by assumption)).1) hz
+    · split
+      · exact hlen s (List.mem_append_left _ (List.mem_filter.1 (by assumption)).1) hz
+      · split
+        · exact hlen s (List.mem_append_right _ (by assumption)) hz
+        · rename_i h1 h2 h3
+          refine hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2 s hs (hold s hs ?_)
+          intro hm
+          rcases List.mem_append.1 hm with h | h
+          · cases hP : P s
+            · exact h2 (List.mem_filter.2 ⟨h, by simp [hP]⟩)
+            · exact h1 (List.mem_filter.2 ⟨h, hP⟩)
+          · exact h3 h
+  · intro f hf; rw [hfl] at hf; cases hf
+
+/-- **The publish's pure facts** (OPEN, U10k): after the write (the file `m'`, the slots' bytes
+`wb'`) and the meta write (the file `m''`), `commitStep_commit`'s premises for the published slots
+`S = SB.filter (pubP w X Pg)`, and `wdbOK` of the published writer side (the rest `R` of the
+written slots and the tail `T` among its `W` slots, its committed state `pubC w.C X.t.mv Pg`).
+From `cmPubPre`/`cmPubPg`; `wdbOK`'s `C'.hwm · 4096 ≤ m''.size` needs every slot below the new
+high-water mark inside the file, which the write gives for the dirty pages only (a page allocated
+at the mark and freed again in the same transaction is no buffer): reported. -/
+theorem cm_pub_ok (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (Pg : Pages)
+    (m' m'' : OsMeta) (wb' : Nat → List w8) (hpre : cmPubPre D X w) (hpg : cmPubPg D X w Pg)
+    (htx : X.t.mv.txid' = w.wtxid) (hok : wdbOK w) (hms : w.ms = some (b, l))
+    (hmapl : X.t.mv.pgid'.toNat * 4096 ≤ l) (hhwm : w.C.hwm ≤ X.t.mv.pgid'.toNat)
+    (hflpg : w.C.flpg = none)
+    (hm' : w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
+      ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
+        (wb' s).length = 4096)
+    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps)
+    (hin : ∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size)
+    (hch : ∀ id pg, X.t.bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
+      wb' (id.toNat + j) = pageChunk pg j) :
+    cpOK w.C w.fl b l X.t.mv Pg D ((bufSlots X.t.bufs).filter (pubP w X Pg)) wb' ∧
+    wdbOK ((w.reslot m'' ((bufSlots X.t.bufs).filter (fun s => !pubP w X Pg s) ++
+        (cmTail w (bufSlots X.t.bufs) l ++
+          wMinus w.W (bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l)))
+      (wbUpd ((bufSlots X.t.bufs).filter (fun s => !pubP w X Pg s)) wb'
+        (wbUpd (cmTail w (bufSlots X.t.bufs) l) wb' w.wb))).withC (pubC w.C X.t.mv Pg)) := by
+  sorry
+
 end pure
 
 end bbolt
