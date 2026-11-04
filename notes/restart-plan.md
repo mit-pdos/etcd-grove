@@ -1232,3 +1232,30 @@ the lessor's stop right and the new backend's `bFile`. Trust base: +2 (`lessorSt
 Left for part 2b: `Cleanup`'s spec (the lessor's stop right and the auth store's `tpAdmin` in
 `srvCleanupOwn`; the KV's closer and the backend's `bOpen 1`, `isStopChans` at the server's own `W`,
 `Pk` from the apply thread's final state), `srvFiles` defined; then R2b-3d.
+
+### R2b-3c, part 2b: `Cleanup`'s spec, `srvFiles` defined (2026-11-04, done)
+
+`EtcdServer.Cleanup.spec` (proved, linked): from the right to close each thing it closes -- the
+lessor's stop right (`lessorStopTok`), the watchable store's closer by the mode (`wsCloserM`), the
+auth store's `tpAdmin` (given back), a reader slot of `bemu` with the apply side's half of `s.be` and
+quarter of `bemu`'s ghost variable, the backend's stop channels at `W`, `Pk` and the whole open token
+`bOpen 1`, the compactor's contract -- it returns what `backend.Close` gives (`bStopView` at the data
+`D` the stop's commit left, the file holding `D` or bbolt's close error). No new trust.
+`srvFiles dd id σ D` defined (`WalApi.lean`'s plan (3)): `∃ cid, walFiles (walDirOf dd "") id cid σ`
+and `fileHolds (backendPathOf dd) D`. `backend.bFile_agree`: `New`'s and `Close`'s paths agree.
+`srvCleanupOwn` stays opaque: its sources (the lessor's stop right `NewServer` drops; `tpAdmin`,
+the apply thread's in mode `on`, `NewAuthStore`'s otherwise) are R2b-3d's to thread.
+
+**R2b-3d, what is left** (`run.specStop` proved, the image escrowed in `done`):
+1. `run`'s loop exits on `s.stop` (its bag at `srvBootApplied`), holding its invariant's resources.
+2. The deferred shutdown: `wgMu`/`close(stopping)` (`InvGoAttach`), `cancel`, `sched.Stop` (its
+   last job's post: `applyRes` at the log `A` handed to the apply thread), `s.wg.Wait` (the
+   goroutines' thread tokens back), `raftNode.stop.specStop` (the raft image at `A`), `Cleanup`
+   (the pieces above from the apply thread's resources: `bOpen 1` reassembled from the reader pools
+   as `applySnapshot` does, `bOpen_one_pool`; the server's own `W`, `Pk` in place of `isStopChansE`).
+3. The image (`srvDiskImage`): the backend's `D` at the consistent index (`imageAt`, from
+   `bStopView` by the snapshot path's observation lemmas, `snapObs_window`/`mergedObs`, at the
+   apply thread's final state), `σ.b ≤ i ≤ σ.commit` (the raft image's order), `bootLen ≤ i`
+   (the stop request's `srvBootApplied`), `confAt`, `v3ConfState D`, the registry's authority,
+   `srvFiles` (`walFiles` from the raft image; `fileHolds` at `backendPathOf dd` by `bFile_agree`
+   with the backend's `bFile`, which `NewServer` must keep), `pathOwn`.

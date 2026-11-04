@@ -20,6 +20,9 @@ theorem backend.pvPut_hook_eq (γ : backend.BNames) (P : backend.BParams) (n : G
 theorem backend.bOpen_add (γ : backend.BNames) (p q : Qp) : backend.bOpen γ (p + q) ⊣⊢ backend.bOpen
     γ p ∗ backend.bOpen γ q
 
+theorem backend.bFile_agree (γ : backend.BNames) (p p' : GoString) : backend.bFile γ p ∗
+    backend.bFile γ p' ⊢ ⌜p = p'⌝
+
 theorem backend.bDB_persistent (γ : backend.BNames) (db : Loc) : Persistent (backend.bDB γ db)
 
 def backend.cbufOf [GoSemanticsFunctions] (b : Loc) : Loc :=

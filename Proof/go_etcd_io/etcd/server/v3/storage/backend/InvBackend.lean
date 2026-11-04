@@ -328,6 +328,16 @@ theorem bDBAt_agree (γ : BNames) (db db' : Loc) (p p' : GoString) :
   simp only [Prod.mk.injEq] at H
   exact H
 
+/-- (R2b-3c part 2b) **The backend's file has one path**: `New`'s `bFile` and `Close`'s agree, so the
+closed file is at the configuration's path. -/
+theorem bFile_agree (γ : BNames) (p p' : GoString) :
+    bFile (GF := GF) γ p ∗ bFile γ p' ⊢ ⌜p = p'⌝ := by
+  unfold bFile
+  iintro ⟨⟨%db, H1⟩, ⟨%db', H2⟩⟩
+  ihave %H := bDBAt_agree γ db db' p p' $$ [H1 H2]
+  · iframe H1 H2
+  ipureintro; exact H.2
+
 instance bStopped_persistent (γ : BNames) : Persistent (bStopped (GF := GF) γ) := by
   unfold bStopped; infer_instance
 
