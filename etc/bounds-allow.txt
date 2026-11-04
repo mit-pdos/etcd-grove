@@ -17,3 +17,10 @@ stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
 # (`authRdSlots`, a part of the backend's partition, `storage/backend/RdPool.lean`) and the auth
 # store kit's supply (`authRdSupply`, in place of `AuthSrv.lean`'s counted copies of `RD`).
 stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapAuthOnDraft\.lean$
+
+# The store's readers, by their owner, mvcc (R-D1, 2026-11-04): the wait group's invariant holds the
+# readers its two loops leave at `Done` (`wsLoopN`), `watchableStore.Close` returns them, and the
+# readers retire together for the backend's open shares (`storeReaders_retire`, `storeRTs_shares`),
+# for `NewServer`'s error path, whose `b.Close()` takes the whole open token.
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/(ReaderRetire|InvWatchSync)\.lean$
+stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__Close\.lean$

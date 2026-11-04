@@ -31074,5 +31074,11 @@ would make `NewServer` import the snapshot path, so `storeRTs_shares` (mvcc) doe
 stock's full count. `Hb`/`Hsto`/`Hbk` are persisted only inside the two error branches (the
 remotes loop's frame keeps `b ↦ bs`).
 
+**Checks.** The trust base gains exactly `sorry authSrvTP_on` (`etc/tcb-baseline.txt`, the `server`
+and `authkv` collections; reached by `srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`,
+`authkv_Main`); nothing trusted removed is an axiom (`#Hclose` was a conjunct of the premise
+`bootstrapContract`). The new reader counts are the owner's (mvcc's `ReaderRetire`, `InvWatchSync`,
+`watchableStore.Close`): `etc/bounds-allow.txt`. No package interface moved.
+
 **What it found.** The leak on both paths (the WAL and three goroutines), with the retry hazards:
 `nonissues/etcd-newserver-error-path-leaks.md`, measured by `TestSpecBootstrapNewServerErrorLeak`.
