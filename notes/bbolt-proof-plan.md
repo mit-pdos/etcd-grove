@@ -1178,6 +1178,15 @@ Not done (in this order, the coordinator's):
 
 ### Maintainer 7's hand-off (2026-11-04): what is left
 
+- **Coordinator's decisions (2026-11-04, after maintainer 7's report)**: batch 40 = (A) and (B):
+  `wdbOK` unchanged; `Commit` (U10g) holds a weaker local invariant from the old freelist page's
+  free until publish/rollback; the store keeps a freed freelist page's bytes so that
+  `store_rollback` returns them (state it for `Commit`'s rollback after `commitFreelist`). Batch
+  41: go, as designed above (`B.opn`, `B.spr`, the `metaR`/`pagesInv` clauses); `DB.freepages`'
+  pre/post `ghostVar K.B.spr ½ false` added by U10e once the shared side lands (or by the
+  maintainer if U10e's file is committed and not mid-edit). Then 37.10's `os.OpenFile`, 37.9,
+  37.3, interfaces. **Not started by maintainer 7** (context exhausted): the next maintainer
+  starts here.
 - **40** (not applied, analysis above): needs the coordinator's choice (A)/(B); (B), the store
   keeping a freed freelist page's bytes for `store_rollback`, is needed either way for `Commit`'s
   rollback after `commitFreelist`.
