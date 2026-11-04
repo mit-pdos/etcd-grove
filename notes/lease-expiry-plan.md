@@ -575,3 +575,8 @@ Options:
 - (b) Weaken `rdAt` to the store's own names and change the revoke clause's consumer instead (would
   need `kvWriter_open` to return the construction's `γw`: a change to `txn`'s writer).
 For the user. Steps 2-3 (S1) wait on this.
+
+**Decided (the user, 2026-11-04):** the `rdAt` gap by (a): `newWatchableStore.spec`'s and
+`mvcc.New.spec`'s posts (and their restatements, `server_kv_watchable`, `BuildLemmas`) give
+`lease.rdAt γl st` (the deleter's contract at any names), proved over a store-agreement law moved into
+mvcc; stronger proved posts, no trust change.
