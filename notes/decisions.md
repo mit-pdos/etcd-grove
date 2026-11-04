@@ -31105,6 +31105,40 @@ meta page before returning; `Close` writes nothing; in one process an unsynced w
 caller with an observation of the committed data in the pattern of `backend.Snapshot`'s.
 **Rejected:** an axiom at the backend's level (would make the proved `backend.Close` assumed).
 
+## Kubernetes' compactor: the specs, written before the proofs (2026-11-04 · the user's approval of K2's Draft 2 and U1-U4, `notes/k8s-compactor-plan.md` · branch `k8s-compactor-specs`)
+
+**The specs** (`Spec/k8s_io/apiserver/pkg/storage/etcd3/{Compact,NewCompactor,compactor__*}.lean`,
+the shapes in `Proof/k8s_io/apiserver/pkg/storage/etcd3/CompactorDefs.lean`), spec-first: no proofs
+yet (K4), nothing linked.
+
+**A contract from the caller.** The compactor takes `casOk`, the caller's per-member atomic update of
+the round's transaction (`casTxn ev rev`). Its result gives:
+- `Seen` (the key was written);
+- `recorded rev` on success;
+- on failure, the key present holding a recorded, reached revision.
+
+The key's protocol involves every writer, and the workload's invariant owns the client's KV state, so
+the compactor cannot own it. That is the design etcd's own compactor has (`compactableOk`); the
+caller-predicate departure from TaDa is the one `c3-store-law.md` records. The alternative, splitting
+the client's KV invariant by key, was rejected as far larger (U4).
+
+**The trust base (U2).** A new axiom, `strconv.FormatInt.wp_proof` (`fmtInt`). `strconv.ParseInt.spec`
+is strengthened in place: on `fmtInt m 10` at base 10 and bit size 64 it returns `(m, nil)`. One
+function keeps one axiom; client-go's `cache` collection rests on it, unchanged in shape.
+
+**The feature gate (U3).** `NewCompactor` takes `gateOff` (`ListFromCacheSnapshot` answers `false`),
+whose only producer will be a trusted spec of the example's own `Set` call. The init axiom stays.
+This is a scope restriction: the default has been on since 1.34, and the watch loop (Q1 (b)) retires
+it.
+
+**U1 is pending.** `txn.Commit.spec`'s reply should give `kvRevLb` as `kv.Put.spec`'s does. This
+follows `a64a9feef7`'s chain (the server's registration, the KV service's `Txn`, the client); it is
+its own branch, before K4's `Compact` proof.
+
+**One revision of Draft 2, found while writing.** `Stop` returns nothing. Draft 2 had it give back
+the loop's thread token through an exclusive `stopTok`, but `sync.Once` passes out only a persistent
+result (`isOnce`'s `Q`), so the token stays with the wait group. `stopTok` is dropped.
+
 ## The Perennial pin `4c8617a9e`: `os.opaqueInitsOk` lists only the untranslated initializers (2026-11-04 · the user's approval of the trusted change · branch `pin-4c8617a9e`)
 
 The pin moves from `c3c7ea790` to `4c8617a9e`, which brings:
