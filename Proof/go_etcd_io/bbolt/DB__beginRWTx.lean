@@ -319,27 +319,27 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half n.v 1 _).1 $$ Hv
   ihave ⟨Hd1, Hd2⟩ := (ghostVar_split_half n.done 1 false).1 $$ Hdone
   ihave ⟨Hmfa, Hmfb⟩ := mapFields_halve K.db (1 : Qp).half (some (b, l)) $$ Hmf
-  ihave Hx : txExcl K.B K.p K.sp K.t0 «$r0_ptr» ⟨K.db, n, true, .loan⟩ $$ [Hv1 Hd1 Hrwl Hcur Hgfl
+  ihave Hx : txExcl K.B K.p K.sp K.t0 «$r0_ptr» ⟨K.db, n, true, .loan⟩ $$ [Hv1 Hd1 Hrwl Hcls Hcur Hgfl
       Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfa Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk
       Hflo Hpair Hrcpt Hpga Hpgt]
   · iunfold txExcl
     iexists _, _
     iframe Hv1 Hd1
     simp only
-    iframe Hrwl
-    iexists ((some (View.ofC b w.C), some (w.C.txid + 1), false, true) : WSt),
-      w.released (w.fl.releasePending ro) S bs, ∅
+    iframe Hrwl Hcls
+    iexists w.released (w.fl.releasePending ro) S bs, ∅
     isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfa Hosm Hfo Hfd Hmc Hmob
       Hwc Hwb Hjunk Hflo Hpair Hrcpt]
-    · unfold wdbLive wdbCoreG
-      simp only [WDb.released]
+    · unfold wdbLive wdbCoreG wLive
+      simp only [WDb.released, wx0]
       rw [hms]
       iframe
     isplitl [Hpga Hpgt]
     · iapply txShape_wx0 _ _ _ _ _ _ _ rfl hr0
       iframe
     ipureintro
-    refine ⟨rfl, ?_⟩
+    refine ⟨Hwok', by simp only [WDb.released, wx0, View.ofC, mapLen]; rw [hms],
+      by simp only [WDb.released, wx0, View.ofC], ?_⟩
     exact flViewU_wx0 w.C b _ _ _ _ _ _ htree hi hnp hmv hwf hbl hhwm
   ihave Hrh : readerHandles (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ []
   · iunfold readerHandles; simp only [↓reduceIte]; iempintro

@@ -2,7 +2,7 @@
 The proof of `Spec/go_etcd_io/bbolt/Tx__Rollback.lean` (U5, `notes/bbolt-proof-plan.md`): a reader
 is `Tx.Rollback_r` on its `rdTxK` (a pool loan: its `threadTok` back); a writer takes its
 exclusive part out, rolls the freelist back (`Interface.Rollback`, `store_rollback`) and closes
-(`Tx.close_w.spec'`).
+(`Tx.close_w.spec`).
 -/
 module
 
@@ -56,12 +56,10 @@ theorem Tx.Rollback.wp_reader [HasExt osFsExt]
   unfold txDone pairBack
   iframe
 
-/-- **What a writer's `Rollback` needs of its exclusive part** (U5c's finding: `txExcl`'s writer
-branch is too weak). With the agreed state's half, it should give the whole agreed state, the `done`
-half, `rwlock`'s token, the writer side's half of the closed flag (`rwR`'s idle branch holds it, and
-nothing of a live writer keeps it), and the writer side as `Commit` sees it (`wdbW`: the store's
-writer state `wLive X.v w.C`, `wdbOK w`, mapped at the view's base, the view `w.C`'s), with its page
-tokens and `flViewU`. The current `txExcl` has only `ws.1 = some X.v` and `flViewU`. -/
+/-- **What a writer's `Rollback` needs of its exclusive part** (U5c's finding; batch 34 gave
+`txExcl`'s writer branch the missing parts, `txExclWGap_holds`): with the agreed state's half, the
+whole agreed state, the `done` half, `rwlock`'s token, the writer side's half of the closed flag,
+and the writer side as `Commit` sees it (`wdbW`), with its page tokens and `flViewU`. -/
 def TxExclWGap : Prop :=
   ∀ [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (X : WX) (c : TxViewC), r.db = K.db →
     txExcl (GF := GF) K.B K.p K.sp K.t0 tx r ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ⊢
@@ -85,7 +83,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_close : Tx.close_w.spec' (GF := GF) (hG := hG))
+    (wp_close : Tx.close_w.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (T : TxView) (hrw : T.rw = true) :
     {{ boltTx (GF := GF) tx γ 1 T }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Rollback")) (Val #()))
@@ -170,13 +168,12 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
   wp_apply wp_close K tx r X (wLive X.v w'.C) w'
     ⟨X.v, w'.C.txid + 1, false, true, rfl,
       Or.inr (by rw [hfl']; exact FLPg.rollback_pending_none _ _), ⟨fun _ => hms2, fun _ => rfl⟩,
-      fun _ => rfl⟩ hwr Hf.1.1.2.2.2.2.1
+      fun _ => rfl⟩
     $$ [Hcls Hfull Hvc Hmf Hpkg Hkc Hreg Hfills Hbk Hnl Hdb Hvo Hd Hrwl Hshape Hv Hst Hcur Hgfl
       Hgmap Hgout Hgwv Hfli Hop Hwa Hrwtx Hfile Hpath Hdsz Hmfw Hosm Hfo Hfd Hmc Hmob Hwc Hwb Hjunk
       Hflo Hpair Hrcpt Hrf Hobj Hbobj Hwr Hmg Hme Hpgs Hch Hwfl Hmv Hpm Hbufs] as Hdone
-  · iframe Hcls
-    iunfold wtxEnd
-    iframe Hfull Hrwl Hst
+  · iunfold wtxEnd
+    iframe Hfull Hrwl Hst Hcls
     isplitl [Hvc Hmf Hpkg Hkc Hreg Hfills Hbk Hnl Hdb Hvo Hd Hrf Hobj Hbobj Hwr Hmg Hme Hpgs Hch
       Hwfl Hmv Hpm Hbufs]
     · ileft
@@ -195,7 +192,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
     · iexists extra; iexact Hshape
     isplitl [Hv]
     · iexists c; iexact Hv
-    ipureintro; exact hok'
+    ipureintro; exact ⟨hok', hwr, Hf.1.1.2.2.2.2.1⟩
   iapply HΦ
   simp only [hrw, ↓reduceIte]
   unfold txDone
@@ -207,24 +204,42 @@ theorem Tx.Rollback.wp_proof' (hgap : TxExclWGap (GF := GF))
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_close : ∀ [HasExt osFsExt], Tx.close_w.spec' (GF := GF) (hG := hG)) :
+    (wp_close : ∀ [HasExt osFsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.Rollback.spec (GF := GF) (hG := hG) := by
   intro _ tx γ T
   by_cases hrw : T.rw = true
   · exact Tx.Rollback.wp_writer hgap wp_Assert wp_Txid wp_FlRollback wp_close tx γ T hrw
   · exact Tx.Rollback.wp_reader wp_Rollback_r tx γ T (Bool.eq_false_iff.2 hrw)
 
-/-- **`TxExclWGap` holds**: not as `txExcl` is stated (U5c's finding, `TxExclWGap`'s doc: its
-writer branch lacks the closed flag's half, `ws = wLive X.v w.C`, `wdbOK w`, the mapping at the
-view's base and the view `w.C`'s). To be discharged when the shared `txExcl` carries them. -/
+/-- **`TxExclWGap` holds** (batch 34: `txExcl`'s writer branch carries the closed flag's half,
+`ws = wLive X.v w.C`, `wdbOK w`, the mapping at the view's base and the view `w.C`'s). -/
 theorem txExclWGap_holds : TxExclWGap (GF := GF) := by
-  sorry
+  intro _ K tx r X c hdb
+  iintro ⟨Hx, Hv⟩
+  iunfold txExcl at Hx
+  icases Hx with ⟨%c', %x, Hv', Hd, Hx⟩
+  icombine Hv' Hv gives % ⟨_, hx⟩
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj hx
+  icases Hx with ⟨Hrwl, Hcls, %w, %extra, Hlive, Hshape, %Hok⟩
+  ihave Hv := (ghostVar_split_half r.n.v 1 _).2 $$ [Hv' Hv]
+  · iframe
+  rw [← hdb]
+  iframe Hv Hd Hrwl Hcls
+  iexists w, extra
+  iframe Hshape
+  isplitl [Hlive]
+  · unfold wdbW
+    rw [hdb]
+    rw [hdb] at *
+    iframe
+    ipureintro; exact ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
+  ipureintro; exact Hok.2.2.2
 
 theorem Tx.Rollback.wp_proof (wp_Rollback_r : ∀ [HasExt osFsExt], Tx.Rollback_r.spec (GF := GF) (hG := hG))
     (wp_Assert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_FlRollback : internal.freelist.Interface.Rollback.spec (GF := GF) (hG := hG))
-    (wp_close : ∀ [HasExt osFsExt], Tx.close_w.spec' (GF := GF) (hG := hG)) :
+    (wp_close : ∀ [HasExt osFsExt], Tx.close_w.spec (GF := GF) (hG := hG)) :
     Tx.Rollback.spec (GF := GF) (hG := hG) :=
   Tx.Rollback.wp_proof' txExclWGap_holds wp_Rollback_r wp_Assert wp_Txid wp_FlRollback wp_close
 

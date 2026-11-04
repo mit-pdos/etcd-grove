@@ -4,16 +4,8 @@ The proof of `Spec/go_etcd_io/bbolt/Tx__close_w.lean` (U5, `notes/bbolt-proof-pl
 state idle (`store_wclose`), `rwlock` unlocked with the writer side idle (`rwR`), the statistics
 merged under `statlock` once the transaction is done (`txs_close`), the fields cleared.
 
-`Tx.close_w.spec` is not provable as stated (U5c's findings): its pre `wtxEnd` lacks
-- the writer side's half of the closed flag (`ghostVar B.cls ½ false`, which `rwR`'s idle branch
-  holds and the writer took with `rwlock`: nothing of a live writer keeps it, `wdbLive` or
-  `txExcl`);
-- `X.t.t.writable' = true` (`close` branches on `tx.writable`; `wtxCore` keeps `managed` but not
-  `writable`) and the root bucket in `X.t.bs` (`close` writes `tx.root` whole); both are
-  `txClean`'s, which `wtxW` drops;
-- that the store's writer view is the records' (`ws.1 = some X.v`, which `txExcl` holds): the
-  view cells `store_wclose` takes are `X.v`'s.
-`Tx.close_w.spec'` adds them; `Tx.close_w.wp_proof'` proves it.
+Batch 34 gave `Tx.close_w.spec` what U5c found missing: the closed flag's writer half, the records'
+`writable` flag and root bucket (`wtxEnd`), and the lent view the records' (`wl = true → v = X.v`).
 -/
 module
 
@@ -43,18 +35,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- **`Tx.close_w.spec` with what it misses** (see the module doc): the closed flag's writer
-half, `writable`, the root bucket, the store's writer view the records'. -/
-abbrev Tx.close_w.spec' : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb),
-  (∃ v wt pb wl, ws = (some v, some wt, pb, wl) ∧
-    (pb = true ∨ w.fl.pending !! W64 (wt : Int) = none) ∧ (wl = true ↔ w.ms ≠ none) ∧
-    (wl = true → v = X.v)) →
-  X.t.t.writable' = true → (X.t.bs !! X.rl).isSome →
-  {{ wtxEnd (GF := GF) K tx r X ws w ∗ ghostVar K.B.cls (1 : Qp).half false }}
-    (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"close")) (Val #()))
-  {{ RET #(); txDoneDef tx }}
 
 end spec
 
@@ -147,17 +127,18 @@ theorem wtxHeap_root_out (tx : Loc) (X : WX) (B : BRec) (hb : X.t.bs !! X.rl = s
   icases Hb with ⟨H1, H2, H3, H4, H5, H6, -⟩
   iframe
 
-theorem Tx.close_w.wp_proof'
+theorem Tx.close_w.wp_proof
     (wp_FreeCount : internal.freelist.Interface.FreeCount.spec (GF := GF) (hG := hG))
     (wp_PendingCount : internal.freelist.Interface.PendingCount.spec (GF := GF) (hG := hG))
     (wp_EWPS : internal.freelist.Interface.EstimatedWritePageSize.spec (GF := GF) (hG := hG)) :
-    Tx.close_w.spec' (GF := GF) (hG := hG) := by
-  intro K tx r X ws w hws hwr hrl
+    Tx.close_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r X ws w hws
   obtain ⟨v, wt, pb, wl, rfl, hp, hwl, hv⟩ := hws
-  obtain ⟨B, hB⟩ := Option.isSome_iff_exists.1 hrl
-  wp_start as ⟨Hend, Hcls⟩
+  wp_start as Hend
   iunfold wtxEnd at Hend
-  icases Hend with ⟨#Hfull, Hw, Hlive, Hrwl, -, -, Hst, %Hwok⟩
+  icases Hend with ⟨#Hfull, Hw, Hlive, Hrwl, Hcls, -, -, Hst, %Hwok'⟩
+  obtain ⟨Hwok, hwr, hrl⟩ := Hwok'
+  obtain ⟨B, hB⟩ := Option.isSome_iff_exists.1 hrl
   -- the writer's records, mapped or lost: their core, the mapping fields' quarter, the cells
   ihave Hw : wtxCore K tx r false X ∗
       ∃ ms' : MapSt, mapFields r.db (DFrac.own (1 : Qp).half.half) ms' ∗
@@ -279,11 +260,6 @@ theorem Tx.close_w.wp_proof'
     wp_auto
     iapply HΦ
     iunfold txDoneDef; iexists s; iexact Hsts
-
-/-- The frozen statement: unprovable as stated (the module doc); `Tx.close_w.wp_proof'` proves
-it with the missing premises. -/
-theorem Tx.close_w.wp_proof : Tx.close_w.spec (GF := GF) (hG := hG) := by
-  sorry
 
 end proof
 

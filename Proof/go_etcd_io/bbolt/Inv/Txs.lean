@@ -66,20 +66,27 @@ variable [sem : go.Semantics]
 /-- `tx` is registered in `B`'s transactions as `r` (persistent, timeless). -/
 def reg (tx : Loc) (B : BNs) (r : TxReg) : IProp GF := iprop(tx ↪[B.txs]□ r)
 
+/-- The store's writer state of a live writer on the view `v`, of the committed state `C`, before
+its publish, its view lent. -/
+def wLive (v : View) (C : CommitSt) : WSt := (some v, some (C.txid + 1), false, true)
+
 /-- **A transaction's exclusive part** (design §3.7): half of its agreed state, half of its
 `done` flag, and
-- a writer's: `rwlock` locked, its database side (`wdbLive`, the store's writer state on its
-  base view), its page tokens;
+- a writer's: `rwlock` locked, the writer side's half of the closed flag (`rwR`'s idle branch
+  holds it), its database side (`wdbLive` with `wdbOK`, the store's writer state live on its base
+  view `X.v`, unpublished: `wLive`; mapped at the view's base, the view the committed state
+  `w.C`'s, batch 34), its page tokens, the records agreeing with the freelist (`flViewU`);
 - a reader's: `mmaplock` read-locked, the pool loan (for `loan`), its `statlock` token, its
   registry entry in the store. -/
 def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
   iprop(∃ (c : TxViewC) (x : TxX), ghostVar r.n.v (1 : Qp).half (c, x) ∗
     ghostVar r.n.done (1 : Qp).half false ∗
     match x with
-    | .wr X => iprop(sync.ownMutex r.db.[DB, go!"rwlock"] ∗
-        ∃ (ws : WSt) (w : WDb) (extra : GMap Nat Unit),
-          wdbLive B r.db p sp t0 tx ws w ∗ txShape r.n.pg X extra ∗
-          ⌜ws.1 = some X.v ∧ flViewU X w.fl⌝)
+    | .wr X => iprop(sync.ownMutex r.db.[DB, go!"rwlock"] ∗ ghostVar B.cls (1 : Qp).half false ∗
+        ∃ (w : WDb) (extra : GMap Nat Unit),
+          wdbLive B r.db p sp t0 tx (wLive X.v w.C) w ∗ txShape r.n.pg X extra ∗
+          ⌜wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C ∧
+            flViewU X w.fl⌝)
     | .rd v _ k => iprop(sync.ownRWMutexRLocked r.db.[DB, go!"mmaplock"] (Pm B r.db) ∗
         (if r.src = .loan then threadPool.ownThreadLoan B.pool else emp) ∗
         sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗ k ↪[B.rds] (⟨v⟩ : RdInfo)))
