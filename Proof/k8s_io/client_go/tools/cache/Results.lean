@@ -14,6 +14,7 @@ module
 public import Proof.k8s_io.client_go.tools.cache.Link
 public import Proof.k8s_io.client_go.tools.cache.InformerHandler
 public import Proof.k8s_io.client_go.tools.cache.InformerHasSynced
+public import Proof.k8s_io.client_go.tools.cache.InformerEvents
 
 @[expose] public section
 
@@ -168,6 +169,10 @@ end synced
 #print axioms informer.infInv_hasSyncedAU
 #print axioms informer.infInv_readLbAU
 #print axioms informer.infInv_pushReplaceAU
+-- the events' facts (decision R4): what the store writer's client gives `handleDeltas`
+-- (`InformerEvents.lean`)
+#print axioms informer.infInv_singleEvs
+#print axioms informer.infInv_batchEvs
 -- the store keys
 #print axioms cache.ObjectName.wp_String
 #print axioms cache.wp_SplitMetaNamespaceKey
