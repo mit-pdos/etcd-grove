@@ -174,6 +174,69 @@ theorem wtxHeap_wx0 (tx bm nm ibp m pm : Loc) (ch : GoSlice) (wf : w64) (mv : go
   iframe
   split <;> iempintro
 
+omit hos sem in
+/-- A big separating conjunction over a map's keys, through `fmap` to `Unit`. -/
+theorem bigSepM_fmap_unit (Φ : Nat → Unit → IProp GF) :
+    ∀ P : Pages, ([∗map] k ↦ v ∈ P.fmap (fun _ => ()), Φ k v) ⊣⊢ [∗map] k ↦ _x ∈ P, Φ k () := by
+  apply GMap.map_ind
+  · rw [GMap.fmap_empty]
+    exact (BigSepM.bigSepM_empty (M := GMap Nat)).trans (BigSepM.bigSepM_empty (M := GMap Nat)).symm
+  · intro k v m hk ih
+    rw [GMap.fmap_insert]
+    have hk' : (m.fmap (fun _ => ())) !! k = none := by simp [hk]
+    rw [show (<[k := ()]> (m.fmap (fun _ => ())) : GMap Nat Unit) =
+      Std.insert (m.fmap (fun _ => ())) k () from rfl,
+      show (<[k := v]> m : Pages) = Std.insert m k v from rfl]
+    exact (BigSepM.bigSepM_insert (M := GMap Nat) hk').trans
+      ((sep_congr .rfl ih).trans
+        (BigSepM.bigSepM_insert (M := GMap Nat) (Φ := fun k (_ : List w8) => Φ k ()) hk).symm)
+
+omit hos sem in
+/-- **The page tokens of a view, allocated**: the authority knows exactly the view's page ids. -/
+theorem pgToks_alloc (P : Pages) :
+    ⊢ |==> ∃ γ, ghostMapAuth (GF := GF) γ 1 (P.fmap (fun _ => ())) ∗ pgToks γ P := by
+  imod ghost_map_alloc (GF := GF) (P.fmap (fun _ => ())) with ⟨%γ, Ha, Ht⟩
+  imodintro
+  iexists γ
+  iframe Ha
+  unfold pgToks
+  iapply (bigSepM_fmap_unit (fun k v => iprop(k ↪[γ] v)) P).1
+  iexact Ht
+
+omit hos sem in
+/-- Tokens of a sub-map (a filter) of `P`. -/
+theorem pgToks_filter (γ : GName) (P : Pages) (q : Nat → List w8 → Bool) :
+    pgToks (GF := GF) γ P ⊢ pgToks γ (GMap.filter q P) := by
+  unfold pgToks
+  exact BigSepM.bigSepM_subseteq (M := GMap Nat) (GMap.map_filter_subseteq q P)
+
+omit hos sem in
+/-- **The initial writer's page tokens** (`txShape` of `wx0`, nothing extra): the root bucket has
+no root node, so all its tokens are its root page's position's (`xPages` of the view). -/
+theorem txShape_wx0 (rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket)
+    (v : View) (γ : GName) (hrn : bv.rootNode' = null) (hr : ib.root' ≠ W64 0) :
+    ghostMapAuth (GF := GF) γ 1 (v.pages.fmap (fun _ => ())) ∗ pgToks γ v.pages ⊢
+      txShape γ (wx0 rl t mv bv ib v) ∅ := by
+  iintro ⟨Ha, Ht⟩
+  unfold txShape
+  iexists _
+  iframe Ha
+  isplitr
+  · ipureintro; intro id; simp [wx0]
+  isplitl [Ht]
+  · simp only [wx0]
+    rw [show GMap.singleton rl (brec0 bv ib) = Std.insert (∅ : GMap Loc BRec) rl (brec0 bv ib) from rfl]
+    iapply (BigSepM.bigSepM_insert (M := GMap Loc) (m := (∅ : GMap Loc BRec)) (i := rl)
+      (x := brec0 bv ib) (by rfl)).2
+    isplitl
+    · unfold bktToks
+      simp only [brec0, hrn, hr, ↓reduceIte]
+      unfold xPages
+      iapply pgToks_filter
+      iexact Ht
+    · iapply BigSepM.bigSepM_empty.2; iempintro
+  · unfold pgToks; rw [GMap.fmap_empty]; iapply BigSepM.bigSepM_empty.2; iempintro
+
 end winit
 
 end bbolt
