@@ -104,7 +104,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       ihave #Hctx2 := Hctx
       iNamed Hctx2
       ihave #HErrU := HErr $$ %Broadcast.Unknown
-      wp_apply HErrU as %cerr -
+      wp_apply HErrU as %cerr - -
       cases cerr with
       | ok e =>
         wp_auto

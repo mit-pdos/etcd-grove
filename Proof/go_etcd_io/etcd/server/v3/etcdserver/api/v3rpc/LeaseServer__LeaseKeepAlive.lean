@@ -99,7 +99,7 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrDone $$ [$HCC] as %cerr -
+    wp_apply +noauto HErrDone $$ [$HCC] as %cerr - -
     wp_auto
     iapply HΦ
     iframe #

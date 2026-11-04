@@ -22,12 +22,9 @@ axiom Perennial.os.Stderr_init : ⊢ ∀ Φ, True -∗ ▷ ((∃ f, typedPointst
     (DFrac.own 1)) -∗ Φ (intoVal ())) -∗ WP (os.Stderr.init (intoVal ())) {{ Φ }}
 
 axiom Perennial.os.opaqueInitsOk (v : val) : v ∈ [os.pollSplice.init, os.pollCopyFileRange.init,
-    os.errPatternHasSeparator.init, os.checkPidfdOnce.init, os._.init, os.checkWrapErr.init,
-    os.lstat.init, os.errPathEscapes.init, os.errWriteAtInAppendMode.init, os.Stdout.init,
-    os.Stdin.init, os.Kill.init, os.Interrupt.init, os.ErrNoHandle.init, os.errProcessReleased.init,
-    os.ErrProcessDone.init, os.ErrDeadlineExceeded.init, os.ErrNoDeadline.init, os.ErrClosed.init,
-    os.ErrNotExist.init, os.ErrExist.init, os.ErrPermission.init, os.ErrInvalid.init,
-    os.dirBufPool.init] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ())) -∗ WP (v (intoVal ())) {{ Φ }}
+    os.checkPidfdOnce.init, os.Stdout.init, os.Stdin.init, os.Kill.init, os.Interrupt.init,
+    os.ErrDeadlineExceeded.init, os.ErrNoDeadline.init] → ⊢ ∀ Φ, True -∗ ▷ (True -∗ Φ (intoVal ()))
+    -∗ WP (v (intoVal ())) {{ Φ }}
 
 theorem Perennial.go_etcd_io.raft.v3.confchange.wp_initialize' [package_sem : Assumptions]
     (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
@@ -72,7 +69,7 @@ theorem Perennial.go_etcd_io.raft.v3.wp_initialize' [package_sem : Assumptions] 
     ∗ isPkgInit pkg_id.go_etcd_io.raft.v3 -∗ Φ (intoVal ())) -∗ WP (initialize' (intoVal ())) {{ Φ
     }}
 
-theorem Perennial.os.wp_initialize' (get_is_pkg_init : GoString → IProp GF) (Hinit :
-    GetIsPkgInitProp pkg_id.os get_is_pkg_init) : ⊢ ∀ Φ, ownInitializing get_is_pkg_init -∗ ▷
+theorem Perennial.os.wp_initialize' [os.Assumptions] (get_is_pkg_init : GoString → IProp GF) (Hinit
+    : GetIsPkgInitProp pkg_id.os get_is_pkg_init) : ⊢ ∀ Φ, ownInitializing get_is_pkg_init -∗ ▷
     (ownInitializing get_is_pkg_init ∗ isPkgInit pkg_id.os -∗ Φ (intoVal ())) -∗ WP (os.initialize'
     (intoVal ())) {{ Φ }}

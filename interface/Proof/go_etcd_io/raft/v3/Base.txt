@@ -75,7 +75,8 @@ def Perennial.go_etcd_io.raft.v3.IsNewError (e : GoInterface) : Prop :=
   ∃ t p, e = interface.mkOk t.PointerType (intoVal p)
 
 def Perennial.go_etcd_io.raft.v3.os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(∃ f, typedPointsto (globalAddr os.Stderr) f DFrac.discard) }
+  { isPkgInitDeps := iprop(isPkgInit pkg_id.io.fs ∗ isPkgInit pkg_id.sync ∗ isPkgInit pkg_id.errors ∗ True),
+    isPkgInitDef := iprop(∃ f, typedPointsto (globalAddr os.Stderr) f DFrac.discard) }
 
 def Perennial.go_etcd_io.raft.v3.quorum_is_pkg_init_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.raft.v3.quorum :=
@@ -105,7 +106,11 @@ def Perennial.go_etcd_io.raft.v3.protoimpl_get_is_pkg_init_wf_inst : GetIsPkgIni
         GetIsPkgInitProp pkg_id.google_golang_org.protobuf.internal.impl get_is_pkg_init ∧ True }
 
 def Perennial.go_etcd_io.raft.v3.os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
-  { get_is_pkg_init_prop_def := fun get_is_pkg_init => get_is_pkg_init pkg_id.os = isPkgInit pkg_id.os ∧ True }
+  {
+    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
+      get_is_pkg_init pkg_id.os = isPkgInit pkg_id.os ∧
+        GetIsPkgInitProp pkg_id.io.fs get_is_pkg_init ∧
+          GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧ GetIsPkgInitProp pkg_id.errors get_is_pkg_init ∧ True }
 
 theorem Perennial.go_etcd_io.raft.v3.isLockedRand_persistent (lr : Loc) : Persistent (isLockedRand
     lr)

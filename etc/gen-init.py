@@ -312,7 +312,7 @@ translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennia
     imports=['Perennial.Proof.context.NewErrorString'],
     alloc_types={x: 'GoInterface' for x, _ in _CC},
     before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
-        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩', 'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
            [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
            [f'iexists _; iexact H{_CCF[-1]}'],
@@ -326,7 +326,7 @@ Perennial's `context.wp_New_errorString`).''',
     imports=['Perennial.Proof.context.NewErrorString'],
     alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
     before={'$end': ['try wp_auto',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM', 'try wp_auto']},
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM ⟨-, #MM⟩', 'try wp_auto']},
     finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
            ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
 )
@@ -817,7 +817,7 @@ other untranslated initializers run.''',
                  'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
     before={'leaseGranted': [
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP ⟨-, #MNP⟩',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xEx ⟨#MEx, #CEx⟩',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩']},
@@ -997,9 +997,9 @@ runs their translated initializers.''',
     alloc_types={'ErrUnsupportedRequest': 'GoInterface', 'ErrKeyRangeInvalid': 'GoInterface',
                  'ErrCacheTimeout': 'GoInterface', 'ErrNotReady': 'GoInterface'},
     before={'$end': [
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR #MKR',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT #MCT',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR ⟨-, #MUR⟩',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR ⟨-, #MKR⟩',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT ⟨-, #MCT⟩',
         'wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))',
         '    $$ [] as %eNR -',
         '· isplitl',
@@ -1256,10 +1256,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                  'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
                  'ErrRevisionNotFound': 'GoInterface', 'restoreChunkKeys': 'w64'},
-    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF'] +
+    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}'
+            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
                        for t in ['WNE', 'EWR', 'WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
