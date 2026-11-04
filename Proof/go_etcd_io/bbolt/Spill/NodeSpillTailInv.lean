@@ -132,8 +132,71 @@ theorem pcInv_db {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   · rw [hfl2, wtxid_of_C hC, hfl, applySteps_append]
   · rw [hpg2, hsr.same.2.2.2, nilCh_v, hpg]
 
-/-- **What the steps before the loop need** (`spillTail_gen`'s `hn'`, `hlv'`, `hS`). Open:
-`insSize r'.ins < 2 ^ 63` has no source (the inodes' count is unbounded; see U9s's report). -/
+/-- **The size bound of `n`'s inodes** (`splitStep_wp`'s `hsz`). Open (U9s): nothing bounds the
+number of a node's inodes, so `insSize` (each inode at most `16 + bboltEntryMax`) has no bound
+below `2 ^ 63` from the spill's pre; a shared-statement question (see U9s's report). -/
+theorem tail_insSize {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
+    insSize r'.ins < 2 ^ 63 := by
+  sorry
+
+theorem killL_node (X : WX) (L : List Loc) (bl l : Loc) : (X.killL L).node bl l = X.node bl l :=
+  rfl
+
+/-- The unspilled root of a tree is no child of its own. -/
+theorem uTree_not_own_child {X : WX} {bl : Loc} {P : Pages} {hwm : Nat} {n : Loc}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {rn : NRec} (hut : uTree X bl P hwm n lo hi h F D N E) (hn : X.node bl n = some rn)
+    (hsp : rn.nv.spilled' = false) : n ∉ rn.cs := by
+  intro hm
+  cases e : rn.nv.isLeaf' with
+  | true =>
+    cases hut with
+    | leaf _ r' _ _ _ hr _ _ hcs => rw [hn] at hr; cases hr; rw [hcs] at hm; cases hm
+    | branch _ r' _ _ _ _ hr _ hl => rw [hn] at hr; cases hr; rw [e] at hl; cases hl
+  | false =>
+  obtain ⟨h1, es, -, -, -, -, -, hb⟩ := uBr_of_uTree hut hn e
+  rcases hb.cs n hm with ⟨e, he, hec⟩ | ⟨-, rc, hrc, -, hsp', -⟩
+  · obtain ⟨j, Fc, Dc, Nc, Ec, hj, -⟩ := uBr_ch_unspilled hb he hec
+    have hjl : j < rn.ws.length := by rw [← hb.len]; exact (List.getElem?_eq_some_iff.1 hj).1
+    have hent := hb.ent j _ _ (List.getElem?_eq_getElem hjl) hj
+    cases hent with
+    | child _ _ _ _ _ _ _ _ _ rc _ _ _ _ hcm hrc hpar hpg hkey hknil hne hut' =>
+      exact (List.nodup_cons.1 hb.Nnd).1
+        (List.mem_flatMap.2 ⟨_, List.mem_of_getElem? hj, uTree_head hut'⟩)
+  · rw [hn] at hrc; cases hrc; rw [hsp] at hsp'; cases hsp'
+
+/-- `n`'s record after the children's loop: an unspilled node, its struct but the slices as at
+the start, its children its own or fresh ones; the frame. -/
+theorem spEnd_rec {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
+    {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
+    {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
+    (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
+    X'.node bl n = some r' ∧ n ∈ X'.live ∧ uNode X' bl n r' lo hi ∧
+    r'.nv = { rn.nv with inodes' := r'.nv.inodes', children' := r'.nv.children',
+                         key' := r'.nv.key' } ∧ r'.capOwn = rn.capOwn ∧
+    (∀ c ∈ r'.cs, c ∈ rn.cs ∨ X.t.objs !! c = none) ∧ spFrame X X' bl (N ++ T) ∧
+    (∀ l ∈ T, X.t.objs !! l = none) := by
+  obtain ⟨hn, -, hc⟩ := hpre
+  rcases hc with ⟨hs, -⟩ | ⟨hut, -, -, -⟩
+  · rw [hsp] at hs; cases hs
+  rcases hend with ⟨hleaf, hX, -, hr, -, hT⟩ | ⟨hleaf, h', es, i, -, hl, -, hch⟩
+  · have hun : uNode X bl n rn lo hi := by
+      cases hut with
+      | leaf _ r'' _ _ _ hr' hu => rw [hn] at hr'; cases hr'; exact hu
+      | branch _ r'' _ _ _ _ hr' hu => rw [hn] at hr'; cases hr'; exact hu
+    rw [hX, hr, hT]
+    exact ⟨hn, hun.1, hun, rfl, rfl, fun c hc => Or.inl hc, spFrame_refl _ _ _,
+      fun _ hl => absurd hl List.not_mem_nil⟩
+  · exact ⟨hl.br.node, hl.live, hl.br.un, hl.nv, hl.cap,
+      fun c hc => (hch c hc).imp_right (hl.fresh c), hl.frame, hl.fresh⟩
+
+/-- **What the steps before the loop need** (`spillTail_gen`'s `hn'`, `hlv'`, `hS`); the size
+bound is `tail_insSize`. -/
 theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     {lo hi : Option (List w8)} {h : Nat} {F D : List Nat} {N : List Loc} {E : List El}
     {cs : SpCase} {X' : WX} {w' : WDb} {r' : NRec} {st : List FLStep} {T : List Loc}
@@ -146,7 +209,44 @@ theorem tail_pre {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       (r'.nilCh.nv.parent' ≠ null → ∃ rp,
         (X'.nilCh bl n r').node bl r'.nilCh.nv.parent' = some rp ∧
         r'.nilCh.nv.parent' ∈ (X'.nilCh bl n r').live)) := by
-  sorry
+  have hsz := tail_insSize hpre hsp hend
+  obtain ⟨hn', hlv', hun', hnv, hcap, hcs', hfr, hT⟩ := spEnd_rec hpre hsp hend
+  obtain ⟨hn, -, hc⟩ := hpre
+  rcases hc with ⟨hs, -⟩ | ⟨hut, hctx, -, -⟩
+  · rw [hsp] at hs; cases hs
+  have hnN : n ∈ N := uTree_head hut
+  have hnot : n ∉ r'.cs := by
+    intro hm
+    rcases hcs' n hm with hm | hm
+    · exact uTree_not_own_child hut hn hsp hm
+    · rw [node_none_of_objs hm] at hn; cases hn
+  have hspl : r'.nv.spilled' = false := by rw [hnv]; exact hsp
+  refine ⟨hn', hlv', ?_, ?_, hun'.2.1, hun'.2.2.2.1, hspl, hun'.2.2.2.2.1, hsz, ?_⟩
+  · unfold WX.nilCh; rw [killL_node]; exact WX.setNode_node_same hn' _
+  · unfold WX.nilCh; rw [killL_live, WX.setNode_live]; exact ⟨hlv', hnot⟩
+  · intro hpn
+    have hpar : r'.nilCh.nv.parent' = rn.nv.parent' := by
+      show r'.nv.parent' = rn.nv.parent'; rw [hnv]
+    rw [hpar] at hpn ⊢
+    cases cs with
+    | top => exact absurd hctx.1 hpn
+    | child pl rp j plo phi =>
+      obtain ⟨hpl, -, hplN, hrp, hunp, -, -, -, -, -, -, -, hcsN⟩ := hctx
+      rw [hpl]
+      have hplT : pl ∉ N ++ T := by
+        intro hm
+        rcases List.mem_append.1 hm with hm | hm
+        · exact hplN hm
+        · rw [node_none_of_objs (hT pl hm)] at hrp; cases hrp
+      obtain ⟨rp', hrp', -, hliv⟩ := spFrame_node hfr hrp hplT
+      have hne : pl ≠ n := fun he => hplN (he ▸ hnN)
+      refine ⟨rp', ?_, ?_⟩
+      · unfold WX.nilCh; rw [killL_node, WX.setNode_node_ne _ _ hne]; exact hrp'
+      · unfold WX.nilCh; rw [killL_live, WX.setNode_live]
+        refine ⟨hliv.2 hunp.1, fun hm => ?_⟩
+        rcases hcs' pl hm with hm | hm
+        · exact hplN (hcsN pl hm)
+        · rw [node_none_of_objs hm] at hrp; cases hrp
 
 /-- **The invariant at the loop's start**, after the split. -/
 theorem pcInv_init {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
