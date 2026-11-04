@@ -354,9 +354,8 @@ theorem spCtx_perm (hB : X.t.bs !! bl = some B) (hr : B.ns !! n = some rn) (hp :
       by_cases e : n = a
       · subst e; rw [GMap.lookup_insert, hr]; rfl
       · rw [GMap.lookup_insert_ne _ _ e]
-    obtain ⟨hxl, rc, hrc, hrest⟩ := hch x (onChain_of_parents hpar hx) hxn
-    refine ⟨?_, rc, by rw [node_perm_ne hB hxn]; exact hrc, hrest⟩
-    rw [setNode_perm_eq hB]; exact hxl
+    obtain ⟨rc, hrc, hrest⟩ := hch x (onChain_of_parents hpar hx) hxn
+    exact ⟨rc, by rw [node_perm_ne hB hxn]; exact hrc, hrest⟩
 
 /-- **The children's loop's start** after the sort: from `n`'s unspilled tree (a branch) at the
 start, its slots and freeable pages, the invariant at `0` from the permuted state. -/

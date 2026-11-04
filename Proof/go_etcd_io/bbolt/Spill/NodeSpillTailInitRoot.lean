@@ -73,7 +73,7 @@ theorem tail_rootN' {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
   have hroot1 : nodeRootIn ({ B' with ns := B'.ns.insert n r'.nilCh } : BRec) B0.bv.rootNode' n := by
     refine nodeRootIn_transport (GMap.lookup_insert _ _ _) h0 hroot rfl ?_
     intro x r hx hne hr
-    obtain ⟨-, rc, hrc, -, hsp', -⟩ := hchain x hx hne
+    obtain ⟨rc, hrc, hsp'⟩ := hchain x hx hne
     have hxr : X.node bl x = some r := by unfold WX.node; rw [hB0]; exact hr
     rw [hxr] at hrc; cases hrc
     have hxT : x ∉ N ++ T := by

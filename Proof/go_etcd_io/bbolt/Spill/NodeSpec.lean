@@ -89,7 +89,8 @@ a child of `pl` (record `rp`, with a page, a live unspilled branch within `[plo,
 of it, its children nodes of its tree (U9j: no earlier spill's pieces, so that their kill is
 framed), not empty (U9w: `node.spill` reads a piece's first inode under a parent); or a top
 node (no parent), the root of its bucket's root node's chain, the chain's other nodes spilled
-(U9z). -/
+(U9z; U9w4: records only, not live: a new root's own spill, `node.spill`'s recursion, follows the
+kill of its children, the pieces, among them the previous top node, on the chain). -/
 def spCtx (X : WX) (bl n : Loc) (rn : NRec) (lo hi : Option (List w8)) (N : List Loc) :
     SpCase → Prop
   | .child pl rp j plo phi => rn.nv.parent' = pl ∧ pl ≠ null ∧ pl ∉ N ∧ X.node bl pl = some rp ∧
@@ -98,7 +99,7 @@ def spCtx (X : WX) (bl n : Loc) (rn : NRec) (lo hi : Option (List w8)) (N : List
       lo = childLo plo (wKey rp.ws) j ∧ hi = childHi phi (wKey rp.ws) rp.ws.length j ∧
       rn.nv.key' ≠ slice.nil ∧ (∀ c ∈ rn.cs, c ∈ N) ∧ 0 < rn.ws.length
   | .top => rn.nv.parent' = null ∧ ∃ B, X.t.bs !! bl = some B ∧ nodeRootIn B B.bv.rootNode' n ∧
-      ∀ x, onChain B B.bv.rootNode' n x → x ≠ n → spilledN X bl x
+      ∀ x, onChain B B.bv.rootNode' n x → x ≠ n → ∃ rx, X.node bl x = some rx ∧ rx.nv.spilled' = true
 
 /-- **The writer's buffers are dirty pages of fresh slots** (`spillBufs`' per-buffer clause,
 `Commit`'s `tx.write` premises): each buffer's header names its id, its length is its extent's,
