@@ -169,7 +169,7 @@ theorem derefStep_leaves {X X' : WX} (h : derefStep X X') (bl : Loc) :
   exact lleaves_ldat _ _ (fun bl pid => derefStep_ltree h bl pid) bl _ _
 
 /-- A list's `filterMap` through the data of its entries. -/
-theorem filterMap_wDat {β : Type} (g : w32 × w64 × List w8 × List w8 → Option β)
+theorem flatMap_filterMap_wDat {β : Type} (g : w32 × w64 × List w8 × List w8 → Option β)
     (L1 L2 : List (List WEntry)) (h : L2.map (List.map wDat) = L1.map (List.map wDat)) :
     L2.flatMap (fun ws => ws.filterMap (g ∘ wDat)) = L1.flatMap (fun ws => ws.filterMap (g ∘ wDat)) := by
   have : ∀ L : List (List WEntry), L.flatMap (fun ws => ws.filterMap (g ∘ wDat)) =
@@ -183,13 +183,13 @@ theorem filterMap_wDat {β : Type} (g : w32 × w64 × List w8 × List w8 → Opt
 theorem derefStep_lbktEnts {X X' : WX} (h : derefStep X X') (bl : Loc) :
     lbktEnts X' bl = lbktEnts X bl := by
   unfold lbktEnts
-  exact filterMap_wDat (fun d => if decide (isBktFlag d.1) then none else some (d.2.2.1, d.2.2.2))
+  exact flatMap_filterMap_wDat (fun d => if decide (isBktFlag d.1) then none else some (d.2.2.1, d.2.2.2))
     _ _ (derefStep_leaves h bl)
 
 theorem derefStep_rootEnts {X X' : WX} (h : derefStep X X') : rootEnts X' = rootEnts X := by
   unfold rootEnts
   rw [h.2.2.2.2.1]
-  exact filterMap_wDat (fun d => if decide (isBktFlag d.1) then some (d.2.2.1, d.2.2.2) else none)
+  exact flatMap_filterMap_wDat (fun d => if decide (isBktFlag d.1) then some (d.2.2.1, d.2.2.2) else none)
     _ _ (derefStep_leaves h X.rl)
 
 theorem derefStep_bktLoc {X X' : WX} (h : derefStep X X') (n : GoString) :

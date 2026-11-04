@@ -41,6 +41,12 @@ def srcOwn (v : View) (s : GoSlice) (src : Src) (bs : List w8) : IProp GF :=
   | .own _ => iprop(s ↦*□ bs)
   | .stale => iprop(True)
 
+omit hos in
+/-- A kept slice's source is persistent (a pure fact, persistent bytes, or nothing). -/
+instance srcOwn_persistent (v : View) (s : GoSlice) (src : Src) (bs : List w8) :
+    Persistent (srcOwn (GF := GF) v s src bs) := by
+  cases src <;> unfold srcOwn <;> infer_instance
+
 /-- The inode `it` is the entry `w` (its slices' facts only for a live node). -/
 def wOwn (v : View) (live : Bool) (it : Inode) (w : WEntry) : IProp GF :=
   iprop(⌜it.flags' = w.flags ∧ it.pgid' = w.pgid⌝ ∗

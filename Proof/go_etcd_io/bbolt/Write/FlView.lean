@@ -128,7 +128,7 @@ def brecWithWs (B : BRec) (l : Loc) (ws' : List WEntry) : BRec :=
     | none => B.ns
     | some r => B.ns.insert l { r with ws := ws' } }
 
-theorem withWs_bs (X : WX) (bl l : Loc) (ws' : List WEntry) (c : Loc) :
+theorem withWs_bs_at (X : WX) (bl l : Loc) (ws' : List WEntry) (c : Loc) :
     (X.withWs bl l ws').t.bs !! c =
       (X.t.bs !! c).map fun B => if c = bl then brecWithWs B l ws' else B := by
   unfold WX.withWs brecWithWs
@@ -165,7 +165,7 @@ theorem flView_withWs' (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv
   refine flView_congr X (X.withWs bl l ws') fl rfl ?_ hv
   have hvv : (X.withWs bl l ws').v = X.v := rfl
   have hbsc : ∀ c, c ≠ bl → (X.withWs bl l ws').t.bs !! c = X.t.bs !! c := by
-    intro c hc; rw [withWs_bs]; cases X.t.bs !! c <;> simp [hc]
+    intro c hc; rw [withWs_bs_at]; cases X.t.bs !! c <;> simp [hc]
   have hrl : (X.withWs bl l ws').t.bs !! X.rl = X.t.bs !! X.rl := hbsc _ (Ne.symm hroot)
   have hfuel : (X.withWs bl l ws').fuel = X.fuel := by
     unfold WX.fuel WX.withWs; simp only
@@ -187,14 +187,14 @@ theorem flView_withWs' (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv
   have hbkt : ∀ n, bktLoc (X.withWs bl l ws') n = bktLoc X n := by
     intro n; unfold bktLoc; rw [show (X.withWs bl l ws').rl = X.rl from rfl, hrl]
   refine lCovers_congr X (X.withWs bl l ws') rfl hroots hbkt ?_ ?_
-  · intro c; rw [withWs_bs]; cases X.t.bs !! c <;> simp
+  · intro c; rw [withWs_bs_at]; cases X.t.bs !! c <;> simp
   · intro c _
     have hshape : ∀ pid, shp (ltree (X.withWs bl l ws') c pid) = shp (ltree X c pid) := by
       intro pid
       by_cases hc : c = bl
       · subst hc
         unfold ltree
-        rw [withWs_bs, hvv]
+        rw [withWs_bs_at, hvv]
         cases hB : X.t.bs !! c with
         | none => rfl
         | some B =>
@@ -218,7 +218,7 @@ theorem flView_withWs' (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv
     have hpos : (X.withWs bl l ws').positions c = X.positions c := by
       unfold WX.positions
       have hrp : (X.withWs bl l ws').rootPid c = X.rootPid c := by
-        unfold WX.rootPid; rw [withWs_bs]
+        unfold WX.rootPid; rw [withWs_bs_at]
         cases X.t.bs !! c <;> simp only [Option.map_none, Option.map_some]
         split <;> rfl
       rw [hfuel, hrp]
@@ -228,7 +228,7 @@ theorem flView_withWs' (X : WX) (fl : FLPg) (bl l : Loc) (ws' : List WEntry) (hv
     congr 1
     funext pid
     unfold WX.posExtent
-    rw [withWs_bs, hvv]
+    rw [withWs_bs_at, hvv]
     cases hB : X.t.bs !! c with
     | none => rfl
     | some B =>

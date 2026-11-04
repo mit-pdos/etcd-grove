@@ -27,9 +27,7 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance srcOwn_persistent (v : View) (s : GoSlice) (src : Src) (bs : List w8) :
-    Persistent (srcOwn (GF := GF) v s src bs) := by
-  cases src <;> unfold srcOwn <;> infer_instance
+-- `srcOwn_persistent`: `Inv/WtxHeap` (batch 18).
 
 /-- A kept slice's length. -/
 theorem srcOwn_len (v : View) (s : GoSlice) (src : Src) (bs : List w8) (hs : src ≠ .stale) :

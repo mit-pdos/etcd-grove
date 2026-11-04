@@ -320,7 +320,7 @@ theorem build_tree (X : WX) (bl : Loc) (B : BRec) (hb : X.t.bs !! bl = some B)
             (posJ_of X bl B hc _ (fun _ => by rw [hpid, branchPgid_cast]; exact hch i hi))
 
 /-- A page of height `h` heads a chain of `h + 1` distinct pages. -/
-theorem pht_chain (pages : Pages) (hwm : Nat) (pht : Nat → Nat) (hht : pageHts pages pht) :
+theorem pht_chainR (pages : Pages) (hwm : Nat) (pht : Nat → Nat) (hht : pageHts pages pht) :
     ∀ h q, treeWF pages hwm q → pht q = h →
     ∃ l : List Nat, l.length = h + 1 ∧ l.Nodup ∧ ∀ x ∈ l, pht x ≤ h ∧ (pages !! x).isSome := by
   intro h
@@ -396,7 +396,7 @@ theorem rtOK_init (X : WX) (bl : Loc) (hok : wOK X) (hv : viewWF X.v)
       · exact h
     obtain ⟨t, h1, h2, h3, h4⟩ := build_tree X bl B hB hc h0
       (fun l r hr => hok.2.2.1 bl B hB l r hr) pht hpht _ _ hJ (Nat.lt_succ_self _)
-    obtain ⟨l, hl1, hl2, hl3⟩ := pht_chain _ _ pht hpht _ _ hwf rfl
+    obtain ⟨l, hl1, hl2, hl3⟩ := pht_chainR _ _ pht hpht _ _ hwf rfl
     have hsz : l.length ≤ X.v.pages.size := by
       rw [GMap.size_eq_dom_list_length]
       exact List.Nodup.length_le_of_subset hl2

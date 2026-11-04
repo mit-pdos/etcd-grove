@@ -92,7 +92,7 @@ theorem txExcl_put' (tx : Loc) (r : TxReg) :
   imod txs_open B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, >Hdone, Hst, (Hx' | >Hex), Hrh⟩ | ⟨>%hd, >Hdone, >Hex⟩)⟩
+  icases He with (⟨Hdb, >Hdone, Hst, (Hx' | >Hex), Hrh⟩ | ⟨>Hdone, >Hex, -⟩)
   · iunfold txExcl at Hx
     icases Hx with ⟨%c, %x, Hv, Hd1, Hrest⟩
     icombine Hdone Hd1 as Hd
@@ -101,8 +101,7 @@ theorem txExcl_put' (tx : Loc) (r : TxReg) :
     icombine Hd Hd2 gives %h
     exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
   · imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hst Hrh; isplitr
-      · ipureintro; exact hd
+    · inext; ileft; iframe Hdb Hdone Hst Hrh
       ileft; iexact Hx
     imodintro; iexact Hex
   · iunfold txExcl at Hx
@@ -120,15 +119,14 @@ theorem txs_stats_atomic' (tx : Loc) (r : TxReg) (q : Qp) :
   imod txs_open B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, Hdone, >Hst, Hx, Hrh⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  icases He with (⟨Hdb, Hdone, >Hst, Hx, Hrh⟩ | ⟨>Hdone, >Hex', -⟩)
   · icases Hst with ⟨%s, Hst⟩
     imodintro
     iexists s
     iframe Hst
     iintro %s' Hst
     imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hx Hrh; isplitr
-      · ipureintro; exact hd
+    · inext; ileft; iframe Hdb Hdone Hx Hrh
       iexists s'; iexact Hst
     imodintro; iexact Hex
   · icombine Hex Hex' gives %h
@@ -145,15 +143,14 @@ theorem txs_stats_done (tx : Loc) (r : TxReg) :
   imod txs_open B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, Hdone, >Hst, Hx, Hrh⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  icases He with (⟨Hdb, Hdone, >Hst, Hx, Hrh⟩ | ⟨>Hdone, >Hex', -⟩)
   · icases Hst with ⟨%s, Hst⟩
     imodintro
     iexists s
     iframe Hst
     iintro %s' Hst
     imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hx Hrh; isplitr
-      · ipureintro; exact hd
+    · inext; ileft; iframe Hdb Hdone Hx Hrh
       iexists s'; iexact Hst
     imodintro; iexact Hd
   · icombine Hd Hdone gives %h

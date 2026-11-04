@@ -47,6 +47,12 @@ def BC.core (K : BC) : IProp GF := isBoltCoreP K.B K.N K.db K.p K.sp K.t0
 /-- The full database `K` (persistent). -/
 def BC.full (K : BC) : IProp GF := isBoltP K.B K.N K.db K.p K.sp K.t0
 
+instance BC.core_persistent (K : BC) : Persistent (K.core (GF := GF)) := by
+  unfold BC.core; infer_instance
+
+instance BC.full_persistent (K : BC) : Persistent (K.full (GF := GF)) := by
+  unfold BC.full isBoltP; infer_instance
+
 /-- **A live transaction's token for its statistics** (`txsInv` holds them; `TxStats`'s atomic
 methods need it): with `m = true` a share `q` of its `ex` token (a holder of a fraction of
 `boltTx`); with `m = false` its exclusive part's `done` half (the holder of `txExcl`, inside
@@ -59,7 +65,8 @@ its registration, its heap `X` at `1`, its handles' fills, its handle and node r
 auths, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`). -/
 def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
-    ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false⌝ ∗ reg tx K.B r ∗
+    ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
+      txRoot (GF := GF) tx ≠ null⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
     ghostMapAuth r.n.bk 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewOf r X.v ∗ statsTok r m 1)

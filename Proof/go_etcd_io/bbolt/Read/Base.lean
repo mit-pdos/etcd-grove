@@ -23,11 +23,7 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance BC.core_persistent (K : BC) : Persistent (K.core (GF := GF)) := by
-  unfold BC.core; infer_instance
-
-instance BC.full_persistent (K : BC) : Persistent (K.full (GF := GF)) := by
-  unfold BC.full isBoltP; infer_instance
+-- `BC.core_persistent`, `BC.full_persistent`: `Inv/Ctx` (batch 18).
 
 instance reg_persistent (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by

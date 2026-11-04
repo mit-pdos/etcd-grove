@@ -153,7 +153,7 @@ theorem lleaves_dat (L L' : LTree) (bl : Loc) (h : ∀ pid, ldat (L' bl pid) = l
         | false =>
           exact flatMap_dat _ _ (lleaves_dat L L' bl h n) y2 x2 e2
 
-theorem bktDataOf_eq (X : WX) (n : GoString) (v : List w8) :
+theorem bktDataOf_eqM (X : WX) (n : GoString) (v : List w8) :
     bktDataOf X n v = match bktLoc X n with
       | some c => GMap.ofList (lbktEnts X c)
       | none => bktOfPage X.v.pages v := rfl
@@ -268,7 +268,7 @@ theorem wtxData_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
   apply List.map_congr_left
   intro e _
   congr 1
-  rw [bktDataOf_eq, bktDataOf_eq, hbkt, hv]
+  rw [bktDataOf_eqM, bktDataOf_eqM, hbkt, hv]
   cases bktLoc X e.1 with
   | none => rfl
   | some c => simp only; rw [lbktEnts_eq_of_dat X X' c (hleaves c)]

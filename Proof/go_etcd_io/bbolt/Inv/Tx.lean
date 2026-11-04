@@ -93,7 +93,7 @@ def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (m
       ⌜∀ id pg, v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r v ∗
     ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null ∧ tx ≠ null ∧
-      t.managed' = false⌝)
+      t.managed' = false ∧ txRoot (GF := GF) tx ≠ null⌝)
 
 /-- **A page of a view inside a mapping is within `db.page`'s range**: with `mapFields`' bound
 (`l ≤ maxMapSize`), `Tx.page`'s premise `id·4096 < 0xFFFFFFFFFFFF`. -/
@@ -131,7 +131,7 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewOf r X.v ∗
     ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ tx ≠ null ∧
-      X.t.t.managed' = false⌝)
+      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null⌝)
 
 /-- **A read transaction over the core** (A2, round 4 N5): `boltTx`'s reader part with
 `isBoltCore` in place of `isBolt`, its pair's source `src` (a pool loan carries the pool). -/

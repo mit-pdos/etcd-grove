@@ -88,15 +88,17 @@ def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
 def readerHandles (r : TxReg) : IProp GF :=
   if r.rw then iprop(emp) else iprop(∃ H : GMap Loc RHandle, ghostMapAuth r.n.rbk 1 H)
 
-/-- One transaction's entry: the quarter of `tx.db` (`txDB`'s anchor), and, while live, its
+/-- One transaction's entry: while live, the quarter of `tx.db` (`txDB`'s anchor), its
 statistics and its exclusive part or the checked-out token; once done, the token (so that no
-holder of a fraction remains). -/
+holder of a fraction remains) and the statistics read-only (batch 17: no share of `tx.db`, which
+`Tx.close` sets to nil with a plain store, outside the invariant). A registered entry excludes a
+new registration's whole `tx.db` (live) or whole `tx.stats` (done). -/
 def txEntry (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg) : IProp GF :=
-  iprop(∃ d : Loc, tx.[Tx, go!"db"] ↦{DFrac.own (1 : Qp).half.half} d ∗
-    ((⌜d = r.db⌝ ∗ ghostVar r.n.done (1 : Qp).half false ∗
-        (∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s) ∗
-        (txExcl B p sp t0 tx r ∨ ghostVar r.n.ex 1 ()) ∗ readerHandles r) ∨
-     (⌜d = r.db ∨ d = null⌝ ∗ ghostVar r.n.done (1 : Qp).half true ∗ ghostVar r.n.ex 1 ())))
+  iprop((tx.[Tx, go!"db"] ↦{DFrac.own (1 : Qp).half.half} r.db ∗
+      ghostVar r.n.done (1 : Qp).half false ∗ (∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s) ∗
+      (txExcl B p sp t0 tx r ∨ ghostVar r.n.ex 1 ()) ∗ readerHandles r) ∨
+    (ghostVar r.n.done (1 : Qp).half true ∗ ghostVar r.n.ex 1 () ∗
+      ∃ s : TxStats, tx.[Tx, go!"stats"] ↦□ s))
 
 /-- **The transactions' invariant** (design §3.7). -/
 def txsInv (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) : IProp GF :=
@@ -122,6 +124,40 @@ private theorem locPt_valid2_i (l : Loc) (v1 v2 : Loc) (dq1 dq2 : DFrac) :
   rw [typedPointstoDef_heap]
   icombine H1 H2 gives %h
   ipureintro; exact h.1
+
+omit hos in
+open Iris.ProofMode in
+/-- A `w64` owned whole is no read-only one. -/
+private theorem w64_own_discard_false_i (l : Loc) (v w : w64) :
+    typedPointsto (GF := GF) l v (DFrac.own 1) ∗ typedPointsto l w DFrac.discard ⊢ False := by
+  have first : ∀ (x : w64) (dq : DFrac), ∃ b : w8,
+      typedPointsto (GF := GF) l x dq ⊢ heapPointsto l dq (LitV (LitByte b)) := fun x dq => by
+    cases h : natBytes 8 x.toNat with
+    | nil => have := natBytes_length 8 x.toNat; rw [h] at this; simp at this
+    | cons b bs =>
+      refine ⟨b, (typedPointsto_split l x dq).trans ?_⟩
+      rw [typedPointstoDef_w64, h]
+      exact sep_elim_left
+  obtain ⟨b1, k1⟩ := first v (DFrac.own 1)
+  obtain ⟨b2, k2⟩ := first w DFrac.discard
+  iintro ⟨H1, H2⟩
+  ihave H1 := k1 $$ H1
+  ihave H2 := k2 $$ H2
+  icombine H1 H2 gives %Hc
+  have h := DFrac.valid_own_op_discard.1 Hc.1
+  exact absurd h (by simp)
+
+omit hos in
+open Iris.ProofMode in
+/-- **Statistics owned whole are no read-only ones** (their `PageCount` field). -/
+theorem txStats_own_discard_false (l : Loc) (s s' : TxStats) :
+    typedPointsto (GF := GF) l s (DFrac.own 1) ∗ typedPointsto l s' DFrac.discard ⊢ False := by
+  iintro ⟨H1, H2⟩
+  iStructNamed H1
+  irename PageCount => P1
+  iStructNamed H2
+  iapply w64_own_discard_false_i $$ [P1 PageCount]
+  iframe
 
 private theorem qp_one_add_not_le_i (q : Qp) : ¬ ((1 : Qp) + q ≤ 1) := by
   rw [Qp.le_iff, Qp.val_add, Qp.val_one]; have := q.2; grind
@@ -182,14 +218,18 @@ theorem txs_register (tx : Loc) (r : TxReg) (s : TxStats) :
     ihave Hm := (later_mono (BigSepM.bigSepM_lookup_acc (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) hlk).1) $$ Hm
     icases Hm with ⟨He, -⟩
     unfold txEntry
-    icases He with ⟨%d, >Hdb', -⟩
-    ihave %h := locPt_valid2_i _ _ _ _ _ $$ [Hdb Hdb']
-    · iframe Hdb Hdb'
-    exfalso
-    revert h
-    rw [DFrac.op_own]
-    show ¬ ((1 : Qp) + (1 : Qp).half.half).val ≤ 1
-    simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind
+    icases He with (⟨>Hdb', -⟩ | ⟨-, -, >Hst'⟩)
+    · ihave %h := locPt_valid2_i _ _ _ _ _ $$ [Hdb Hdb']
+      · iframe Hdb Hdb'
+      exfalso
+      revert h
+      rw [DFrac.op_own]
+      show ¬ ((1 : Qp) + (1 : Qp).half.half).val ≤ 1
+      simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind
+    · icases Hst' with ⟨%s', Hst'⟩
+      iexfalso
+      iapply txStats_own_discard_false $$ [Hst Hst']
+      iframe
   | none =>
     have h1 : (1 : Qp) = ((1 : Qp).half + (1 : Qp).half.half) + (1 : Qp).half.half :=
       Subtype.ext (by simp only [Qp.val_add, Qp.val_half, Qp.val_one]; grind)
@@ -205,12 +245,8 @@ theorem txs_register (tx : Loc) (r : TxReg) (s : TxStats) :
       iapply (BigSepM.bigSepM_insert (Φ := fun tx r => txEntry (GF := GF) B p sp t0 tx r) hlk).2
       iframe Hm
       unfold txEntry
-      iexists r.db
-      iframe Hdb4
       ileft
-      iframe Hd Hx Hrh
-      isplitr
-      · ipureintro; rfl
+      iframe Hdb4 Hd Hx Hrh
       iexists s; iexact Hst
     imodintro
     iframe Hdb
@@ -226,10 +262,9 @@ theorem txExcl_take (tx : Loc) (r : TxReg) :
   imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, Hdone, Hst, (Hx | >Hex'), Hrh⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  icases He with (⟨Hdb, Hdone, Hst, (Hx | >Hex'), Hrh⟩ | ⟨>Hdone, >Hex', -⟩)
   · imod Hcl $$ [Hdb Hdone Hst Hex Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hst Hrh; isplitr
-      · ipureintro; exact hd
+    · inext; ileft; iframe Hdb Hdone Hst Hrh
       iright; iexact Hex
     imodintro; iexact Hx
   · icombine Hex Hex' gives %h
@@ -246,7 +281,7 @@ theorem txExcl_put (tx : Loc) (r : TxReg) :
   imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, >Hdone, Hst, (Hx' | >Hex), Hrh⟩ | ⟨>%hd, >Hdone, >Hex⟩)⟩
+  icases He with (⟨Hdb, >Hdone, Hst, (Hx' | >Hex), Hrh⟩ | ⟨>Hdone, >Hex, -⟩)
   · iunfold txExcl at Hx
     icases Hx with ⟨%c, %x, Hv, Hd1, Hrest⟩
     icombine Hdone Hd1 as Hd
@@ -255,8 +290,7 @@ theorem txExcl_put (tx : Loc) (r : TxReg) :
     icombine Hd Hd2 gives %h
     exact absurd h.1 (by rw [Qp.le_iff]; simp; grind)
   · imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hst Hrh; isplitr
-      · ipureintro; exact hd
+    · inext; ileft; iframe Hdb Hdone Hst Hrh
       ileft; iexact Hx
     imodintro; iexact Hex
   · iunfold txExcl at Hx
@@ -266,16 +300,18 @@ theorem txExcl_put (tx : Loc) (r : TxReg) :
 
 open Iris.ProofMode in
 /-- **Close**: with the exclusive part's `done` half (the exclusive part's other contents given
-back, its `ex` token in the invariant), the entry turns done; the statistics come out. -/
+back, its `ex` token in the invariant), the entry turns done; its quarter of `tx.db` comes out
+and the statistics stay read-only (batch 17). -/
 theorem txs_close (tx : Loc) (r : TxReg) :
     inv (txsN N) (txsInv (GF := GF) B p sp t0) ∗ reg tx B r ∗
       ghostVar r.n.done (1 : Qp).half false ⊢
-    |={E}=> (∃ s : TxStats, tx.[Tx, go!"stats"] ↦ s) ∗ ghostVar r.n.done (1 : Qp).half true := by
+    |={E}=> tx.[Tx, go!"db"] ↦{DFrac.own (1 : Qp).half.half} r.db ∗
+      (∃ s : TxStats, tx.[Tx, go!"stats"] ↦□ s) ∗ ghostVar r.n.done (1 : Qp).half true := by
   iintro ⟨#Hinv, #Hreg, Hd⟩
   imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, >Hdone, >Hst, (Hx | >Hex), -⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  icases He with (⟨>Hdb, >Hdone, >Hst, (Hx | >Hex), -⟩ | ⟨>Hdone, >Hex', -⟩)
   · icombine Hdone Hd as Hd'
     iunfold txExcl at Hx
     icases Hx with ⟨%c', %x', -, >Hd2, -⟩
@@ -284,10 +320,11 @@ theorem txs_close (tx : Loc) (r : TxReg) :
   · ihave Hu := ghostVar_update_halves true r.n.done _ _ $$ Hdone Hd
     imod Hu
     icases Hu with ⟨Hdone, Hd⟩
-    imod Hcl $$ [Hdb Hdone Hex] with -
-    · inext; iexists d; iframe Hdb; iright; iframe Hdone Hex
-      ipureintro; exact Or.inl hd
-    imodintro; iframe Hst Hd
+    icases Hst with ⟨%s, Hst⟩
+    imod (typedPointsto_dfractional (GF := GF) _ s).dfractional_persist _ $$ Hst with #Hst
+    imod Hcl $$ [Hdone Hex] with -
+    · inext; iright; iframe Hdone Hex; iexists s; iexact Hst
+    imodintro; iframe Hdb Hd; iexists s; iexact Hst
   · icombine Hd Hdone gives %h
     exact absurd h.2 (by decide)
 
@@ -302,15 +339,14 @@ theorem txs_stats_atomic (tx : Loc) (r : TxReg) (q : Qp) :
   imod txs_open_i B N p sp t0 E hE tx r $$ [] with ⟨He, Hcl⟩
   · iframe Hinv Hreg
   unfold txEntry
-  icases He with ⟨%d, Hdb, (⟨>%hd, Hdone, >Hst, Hx, Hrh⟩ | ⟨>%hd, >Hdone, >Hex'⟩)⟩
+  icases He with (⟨Hdb, Hdone, >Hst, Hx, Hrh⟩ | ⟨>Hdone, >Hex', -⟩)
   · icases Hst with ⟨%s, Hst⟩
     imodintro
     iexists s
     iframe Hst
     iintro %s' Hst
     imod Hcl $$ [Hdb Hdone Hst Hx Hrh] with -
-    · inext; iexists d; iframe Hdb; ileft; iframe Hdone Hx Hrh; isplitr
-      · ipureintro; exact hd
+    · inext; ileft; iframe Hdb Hdone Hx Hrh
       iexists s'; iexact Hst
     imodintro; iexact Hex
   · icombine Hex Hex' gives %h

@@ -546,6 +546,37 @@ Adapted in others' working files (uncommitted, not committed by me): `node__reba
    (`boltTxDef_wtxW` carries it). Established at `beginTx`/`beginRWTx` (`Tx{}`), kept by every
    writer operation (none writes `X.t.t`).
 
+## Shared-statement fixes, batch 17 (U5b's finding, 2026-11-04; decided by the coordinator)
+
+**`txEntry`'s done branch holds no share of `tx.db`** (`Tx.close` ends with the plain store
+`tx.db = nil`, not atomic, so the invariant cannot be opened around it): live = `tx.db ↦{¼} r.db ∗
+done ½ false ∗ (∃ s, tx.stats ↦ s) ∗ (txExcl ∨ ex) ∗ readerHandles r` (the `d = r.db` existential
+gone); done = `done ½ true ∗ ex 1 ∗ ∃ s, tx.stats ↦□ s`. **`txs_close`**: from `done ½ false` (the
+`ex` token in the invariant), `|={E}=> tx.db ↦{¼} r.db ∗ (∃ s, tx.stats ↦□ s) ∗ done ½ true` (it
+persists the statistics itself). `txs_register`'s freshness: a live entry's `¼` of `tx.db` against
+the caller's whole one, a done entry's `tx.stats ↦□` against the caller's whole `tx.stats ↦`
+(the new `txStats_own_discard_false`, through the `PageCount` field). `txDoneDef` unchanged.
+`Inv/Txs`'s and `Txn/Txs`'s (U5) proofs adapted. `TxStats`' getters (`Txn/StatsAdd`) take any
+fraction.
+
+## Shared-statement fixes, batch 18 (U6b's finding, 2026-11-04)
+
+Duplicate top-level names (a module importing both failed): `BC.core_persistent` and
+`BC.full_persistent` (`Read/Base`, `Txn/Stats`) now in `Inv/Ctx`; `srcOwn_persistent`
+(`Rebalance/Base`, `Spill/DerefCopy`) now in `Inv/WtxHeap`. A scan of the units' directories found
+four more pairs of different statements under one name, renamed in the later file:
+`Rebalance/RTreeX`'s `pht_chain` → `pht_chainR`, `Spill/DerefRel`'s `filterMap_wDat` →
+`flatMap_filterMap_wDat`, `Write/Mat`'s `bktDataOf_eq` → `bktDataOf_eqM`, `Write/FlView`'s
+`withWs_bs` → `withWs_bs_at`. Still mine: `viewCells_slices_acc` (`Inv/Ctx`, `sorry`; U8's
+`srcOwn_acc` uses it).
+
+## Shared-statement fixes, batch 19 (U5b's finding, 2026-11-04; decided by the coordinator)
+
+**`txRoot tx ≠ null`** (`Tx.close`'s whole-struct store of `tx.root` needs `typedPointsto_combine`):
+at the end of `rtxFrac`'s facts, `wtxFrac`'s facts and `wtxCore`'s pure part (after batch 16's
+`managed` fact: `wtxCore`'s is `r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
+txRoot tx ≠ null`). `Tx.init`'s post gives it (`typedPointsto_not_null`) at `beginTx`/`beginRWTx`.
+
 ## The modules (as built by U0a)
 
 `Proof/go_etcd_io/bbolt/`, every module `@[expose] public section`, in namespace
