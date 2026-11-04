@@ -28,6 +28,19 @@ theorem spillPre_of_rebalOK (X X1 : WX) (fl fl1 : FLPg) (txid : w64)
   rw [hv] at hs
   exact h11 s hs
 
+/-- Reaching a bucket depends on the root bucket and the bucket records only. -/
+theorem bktReach_congr (X X' : WX) (hrl : X'.rl = X.rl) (hbs : X'.t.bs = X.t.bs) {bl : Loc}
+    (h : bktReach X bl) : bktReach X' bl := by
+  induction h with
+  | root => rw [← hrl]; exact .root
+  | child bl c B n hB hn _ ih => exact .child bl c B n (by rw [hbs]; exact hB) hn ih
+
+/-- **`liveReach` depends on the records but the meta copy** (`Commit`'s meta writes). -/
+theorem liveReach_congr (X X' : WX) (hrl : X'.rl = X.rl) (hbs : X'.t.bs = X.t.bs)
+    (hl : X'.live = X.live) (hlb : X'.liveB = X.liveB) (h : liveReach X) : liveReach X' := by
+  refine ⟨fun bl B hB hlv => bktReach_congr X X' hrl hbs (h.1 bl B (hbs ▸ hB) (hlb ▸ hlv)),
+    fun bl B l r hB hr hlv => h.2 bl B l r (hbs ▸ hB) hr (hl ▸ hlv)⟩
+
 /-- **`commitFreelist`'s id bound**: the freelist's ids (distinct, below the high-water mark) are
 fewer than `2^48` when the mark is. -/
 theorem cm_allIds_lt (w : WDb) (hok : wdbOK w) (hwf : w.fl.WF) (hh : w.C.hwm < 2 ^ 48) :

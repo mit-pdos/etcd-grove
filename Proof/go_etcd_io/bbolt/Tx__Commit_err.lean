@@ -458,7 +458,43 @@ theorem Tx.Commit_err.wp_proof'
         -- root bucket's record (it says so of the meta copy, `pm`, `bufs`, `rl` only)
         have hderefKeep : ∀ Xd b, derefRel X3 Xd → (Xd.rebase b).t.t.writable' = true ∧
             ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := sorry
-        sorry
+        have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
+            wtxW K tx r false X3 ∗ wdbW K tx X3.v w2 ⊢
+            |==> wtxEnd K tx r X3 (wLive X3.v w2.C) w2 := by
+          iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
+          imodintro
+          iapply cm_wtxEnd_live K tx r X3 w2 hwr3 hrl3
+          iframe; iframe #
+        have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
+            w'.C = w2.C → w'.fl = w2.fl →
+            iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
+              wtxLost K tx r false X' ∗ wdbLost K tx X'.v w' ⊢
+            |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
+          rintro X' w' ⟨Xd, b, hd, rfl⟩ hC _
+          obtain ⟨hw', hr'⟩ := hderefKeep Xd b hd
+          iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
+          imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
+          imodintro
+          iapply cm_wtxEnd_lost K tx r (Xd.rebase b) w' hw' hr'
+          rw [hC]; iframe; iframe #
+        rw [show X2.v = X3.v from hv3.symm]
+        imod cm_excl_update K r X1 X3 _ $$ Hex with Hex
+        ihave Hex : cmExcl K r X3 (treeData w2.C) $$ [Hex]
+        · rw [hC2]; iexact Hex
+        icases (cm_keep_pure (cm_wdbW_bounds K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
+        icases (cm_keep_pure (cm_wdbW_ok K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
+        wp_apply wp_commitFreelist K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
+          htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
+          (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
+            (by rw [← hX3]; rfl) hreach2) (cm_allIds_lt w2 Hw2ok.1 Hbd2.1 Hbd2.2) hrb1 hrb2
+          $$ [Hex Hw Hwdb] as %err2 Hcf
+        · iframe; iframe #
+        icases Hcf with (⟨%He2, %X4, %w4, %id4, %p4, ⟨-, Hex⟩, Hw, Hwdb, %Hal⟩ |
+          ⟨%He2, #Hfe2, Hdone⟩)
+        · -- `grow`, `write`, `writeMeta`, `close`
+          sorry
+        · -- `commitFreelist` failed (rolled back): log, return the error
+          sorry
       · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
         ihave Hw := Hwb $$ Hdbp
         try wp_auto
