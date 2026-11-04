@@ -26,6 +26,8 @@ public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesWOwn
 public import Proof.go_etcd_io.bbolt.Read.Bytes
 public import Proof.go_etcd_io.bbolt.Inv.WtxBase
 public import Proof.go_etcd_io.bbolt.Spill.AllocDeref
+public import Proof.go_etcd_io.bbolt.Spill.NodeSpillAsm
+public import Proof.go_etcd_io.bbolt.Spill.DerefCopy
 
 @[expose] public section
 
@@ -129,6 +131,15 @@ theorem wtxW_size_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl n 
   rw [← Hr.1]
   iframe; iframe #
   ipureintro; exact ⟨rfl, Hr.2⟩
+
+/-- The parent's put on the state after the write is the piece's step's state. -/
+theorem setBkt_pcFin {X2 : WX} {bl l pl : Loc} {B2 : BRec} (hB2 : X2.t.bs !! bl = some B2)
+    (A0 A P : NRec) (id : w64) (pg : List w8) :
+    ((X2.setNode bl l A0).setBuf id pg).setBkt bl { B2 with ns := (B2.ns.insert l A).insert pl P } =
+      ((X2.setNode bl l A).setNode bl pl P).setBuf id pg := by
+  unfold WX.setNode
+  rw [hB2]
+  simp only [WX.setBkt, WX.setBuf, GMap.lookup_insert, GMap.insert_insert]
 
 /-- **One piece's iteration** (see the module doc): the piece `l` (record `rl`, live, of bucket
 `bl`; its parent, if any, a live node of `bl` owning its inodes' capacity, its entries sorted).
@@ -372,33 +383,243 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         ↓reduceIte]
     · iexact Hw
     · rw [hv3]; iexact Hdb
-  · -- a parent: the put. Not yet (U9l hand-off). Steps, from `Hw : wtxW` of
-    -- `X2w = (X2.setNode bl l (pcRec ra id false)).setBuf id (pcPage …)`, `pl = ra.nv.parent'`:
-    -- 1. `pl`'s record in `X2w`: `hpar` gives `rp` at `X`; `X1` is `X` or a `setNode` of `l`
-    --    (`WX.setNode_node_ne`, `pl ≠ l`); `allocRes_node Hal'` gives `rpa` at `X2`, `nodeSim`;
-    --    `X2w` keeps it (`setNode_node_ne`; `setBuf` keeps `bs`). Sortedness through `nodeSim`
-    --    (`wsSorted` reads `wKey` only: `ws.map wDat` equal); `wsLive rpa.ws` and the keys'
-    --    lengths from `liveFresh X2`/`derefPre X2` (`allocRes_derefPre'`, as `hlf2`).
-    -- 2. `wtxW_open`, then `wtxHeap_setBkt_acc tx 1 X2w bl B [l, pl] f` (both live): `l`'s and
-    --    `pl`'s objects, the bucket's (its `tx` field: the `Htxf` dance of `node__free`), the
-    --    transaction's fields (`tx.meta`, `meta' ↦ mv`, at full fraction: `node.put` takes `dqb`).
-    -- 3. `l`'s object unfolded (`objOwn_live_node`, `iStructNamed`); `key := node.key`; the nil
-    --    test (`decide (ra.nv.key' = slice.nil)`); `inodes[0].Key()` by `ownSlice_elem_acc` and
-    --    `hKey` (as `Spill/SplitIndex`); the old key's source is the key's `srcOwn` (`Hkey`) or the
-    --    first inode's (the persistent `wOwn` list's head: `wOwn_true'`).
-    -- 4. `hPut X2.v pl bl rpa tx mp mv dqb wq oldKey k0 slice.nil okb (w0.key) [] oks w0.ks
-    --    (Src.own DFrac.discard) id (W32 0)` (the nil value's `srcOwn`: `ownSlice_nil` made
-    --    persistent); its post's `s`, `ins` are `pcPar`'s.
-    -- 5. `node.key = node.inodes[0].Key()` (`hKey` again, the field's store); `Assert` with
-    --    `0 < len`: a `srcOwn` gives the slice's length (`ownSlice_len` for `↦*□`, `inViewAt`'s
-    --    for the view).
-    -- 6. back: `l`'s object for `pcRec ra id true` (its key's `srcOwn` the first entry's),
-    --    `pl`'s for `pcPar rpa ra id s ins`, the wand with `B' = {B with ns := (B.ns.insert l _)
-    --    .insert pl _}`; `IncSpill` (reopen `wtxW` for `statsTok`, as the parentless case); the
-    --    post's `X3 = pcFin X2 bl l ra pl rpa s ins id count true` needs `setBuf`/`setNode`
-    --    commuting and a `setNode` of `l` overwriting one (`setNode_eq` unfolds both).
+  · -- a parent: the put (`pcPar`), the piece's key its first inode's (`pcRec … true`), the stats
     rw [decide_eq_false hp]
-    sorry
+    -- the parent's records
+    have hpn : rl.nv.parent' ≠ null := hparl ▸ hp
+    obtain ⟨rp, hrp, hplv, hpll, hcapp, hsrt⟩ := hpar hpn
+    have hrp1 : X1.node bl rl.nv.parent' = some rp := by
+      rcases Hfr1 with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+      · exact hrp
+      · rw [WX.setNode_node_ne _ _ hpll]; exact hrp
+    have hplv1 : rl.nv.parent' ∈ X1.live := by
+      rcases Hfr1 with ⟨-, rfl, -, -⟩ | ⟨pg, -, -, rfl, -, -⟩
+      · exact hplv
+      · rw [WX.setNode_live]; exact hplv
+    obtain ⟨⟨rpa, hrpa, hspa⟩, hlivp⟩ := allocRes_node Hal' hrp1
+    have hplv2 : rl.nv.parent' ∈ X2.live := hlivp.2 hplv1
+    obtain ⟨B2', hB2', hrpa'⟩ := node_bs_of hrpa
+    rw [hB2] at hB2'; cases hB2'
+    have hdp2 : derefPre X2 :=
+      (allocRes_derefPre' X1 X2 _ _ _ _ _ _ Hal' Hok1.2.1 hG3 hG4 hG5).1
+    have hcapa : rpa.capOwn = true := by rw [hspa.2.2.2.2.2.2]; exact hcapp
+    have hsrta : wsSorted rpa.ws := wsSorted_of_dat hspa.2.2.1 hsrt
+    have hwlp : wsLive rpa.ws := (hlf2 bl B2 _ rpa hB2 hrpa' hplv2).1
+    have hbkp : rpa.nv.bucket' = bl := (hdp2.1 bl B2 _ rpa hB2 hrpa' hplv2).1
+    obtain ⟨-, hkl, hkey0, -⟩ := hdp2.1 bl B2 l ra hB2 hra hlv2
+    have hksrc := (hlf2 bl B2 l ra hB2 hra hlv2).2
+    have hpparp : rpa.nv.parent' ≠ rl.nv.parent' := Hok2.2.2.2.1 bl B2 _ rpa hB2 hrpa'
+    -- the bucket's record after the write
+    have hbw : ((X2.setNode bl l (pcRec ra id false)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).t.bs !! bl = some ({ B2 with ns := B2.ns.insert l (pcRec ra id false) } : BRec) := by
+      show (X2.setNode bl l (pcRec ra id false)).t.bs !! bl = some ({ B2 with ns := B2.ns.insert l (pcRec ra id false) } : BRec)
+      rw [setNode_eq X2 bl l B2 _ hB2]
+      exact GMap.lookup_insert _ _ _
+    have hnd : [l, rl.nv.parent'].Nodup := by
+      simp only [List.nodup_cons, List.mem_cons, List.not_mem_nil, _root_.or_false, List.nodup_nil,
+        and_true]
+      exact ⟨fun h => hpll (Eq.symm h), fun h => h⟩
+    have hlivw : ∀ x, x ∈ ((X2.setNode bl l (pcRec ra id false)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).live ↔ x ∈ X2.live := by
+      intro x; show x ∈ (X2.setNode bl l (pcRec ra id false)).live ↔ _; rw [WX.setNode_live]
+    icases wtxW_open K tx r m _ $$ Hw with ⟨#-, #-, #-, Hh, Hv, Hst, Hclose⟩
+    icases wtxHeap_setBkt_acc tx (DFrac.own 1) _ bl ({ B2 with ns := B2.ns.insert l (pcRec ra id false) } : BRec) [l, rl.nv.parent']
+      (fun x => if x = l then (pcRec ra id false) else rpa) hbw hnd (by
+        intro x hx
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
+        rcases hx with rfl | rfl
+        · simp only [↓reduceIte]; exact GMap.lookup_insert _ _ _
+        · simp only [if_neg hpll]
+          rw [GMap.lookup_insert_ne _ _ (Ne.symm hpll)]; exact hrpa') $$ Hh
+      with ⟨HL, Hbo, Htf, Hrf, Hback⟩
+    icases BigSepL.bigSepL_cons.1 $$ HL with ⟨Hlo, HL⟩
+    icases BigSepL.bigSepL_cons.1 $$ HL with ⟨Hpo, -⟩
+    simp only [↓reduceIte, if_neg hpll, hlivw, decide_eq_true hlv2, decide_eq_true hplv2]
+    have hvw : ((X2.setNode bl l (pcRec ra id false)).setBuf id
+        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).v = X2.v := by
+      unfold WX.setBuf WX.setNode; split <;> rfl
+    have hmv : ((X2.setNode bl l (pcRec ra id false)).setBuf id
+        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).t.mv = X2.t.mv := by
+      unfold WX.setBuf WX.setNode; split <;> rfl
+    have htt : ((X2.setNode bl l (pcRec ra id false)).setBuf id
+        (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).t.t = X2.t.t := by
+      unfold WX.setBuf WX.setNode; split <;> rfl
+    rw [hvw]
+    have hbtx : B2.bv.tx' = tx := Hok2.2.2.1 bl B2 hB2
+    icases objOwn_bkt_tx_acc _ bl _ _ $$ Hbo with ⟨%dqb, Hbtx, Hbo⟩
+    unfold txFields
+    rw [hmv, htt]
+    icases Htf with ⟨Hf1, Hf2, Hf3, Hf4, Hf5, Hf6, Hf7, Hf8, Hbufs⟩
+    icases (objOwn_live_node _ _ _ _ _).1 $$ Hlo with ⟨Hn, Hins, Hcap, -, Hch, Hchcap, Hkey⟩
+    simp only [pcRec, Bool.false_eq_true, ↓reduceIte]
+    icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn'⟩
+    iStructNamed Hn
+    wp_auto
+    -- the first inode and entry
+    ihave %Hlenra := BigSepL2.bigSepL2_length $$ Hws
+    obtain ⟨i0, is, hins0⟩ : ∃ i0 is, ra.ins = i0 :: is := by
+      cases h : ra.ins with
+      | nil => rw [h] at Hlenra; simp at Hlenra; omega
+      | cons a b => exact ⟨a, b, rfl⟩
+    obtain ⟨w0, wt, hws0⟩ : ∃ w0 wt, ra.ws = w0 :: wt := by
+      cases h : ra.ws with
+      | nil => rw [h] at hlenws; simp at hlenws; omega
+      | cons a b => exact ⟨a, b, rfl⟩
+    have hw0 : ra.w0 = w0 := by simp only [NRec.w0, hws0, List.headD_cons]
+    have hk0 : ra.k0 = i0.key' := by simp only [NRec.k0, hins0, List.head?_cons, Option.map_some, Option.getD_some]
+    ihave #Hw0 : wOwn X2.v true i0 w0 $$ [Hws]
+    · rw [hins0, hws0]
+      icases BigSepL2.bigSepL2_cons.1 $$ Hws with ⟨H, -⟩
+      iexact H
+    icases (wOwn_true' _ _ _).1 $$ Hw0 with ⟨%-, #Hk0, -⟩
+    have hw0l : w0.ks ≠ Src.stale ∧ w0.vs ≠ Src.stale := hwl w0 (by rw [hws0]; simp)
+    have hw0k : 0 < w0.key.length := hkl w0 (by rw [hws0]; simp)
+    ihave Hins : ra.nv.inodes' ↦* (i0 :: is) $$ [Hins]
+    · rw [← hins0]; iexact Hins
+    ihave %Hsl0 := ownSlice_len _ _ _ $$ Hins
+    have hset0 : (i0 :: is).set (sint.Z (W64 0)).toNat i0 = i0 :: is := by
+      rw [show (sint.Z (W64 0)).toNat = 0 from rfl]; rfl
+    have hlen0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z ra.nv.inodes'.len := by
+      simp at Hsl0; exact ⟨by decide, by word⟩
+    -- `if key == nil { key = node.inodes[0].Key() }`
+    wp_join iprop(key_ptr ↦ (if ra.nv.key' = slice.nil then i0.key' else ra.nv.key') ∗ nodep ↦ l ∗
+        l.[node, go!"inodes"] ↦ ra.nv.inodes' ∗ ra.nv.inodes' ↦* (i0 :: is))
+      with [key Hnodep inodes Hins] as ⟨key, Hnodep, inodes, Hins⟩
+    · rw [if_pos Hif]
+      rw [ite_eq_left_of_eq_true _ _ (eq_true hlen0)]
+      icases ownSlice_elem_acc (sint.Z (W64 0)) i0 _ _ (i0 :: is) (by decide) rfl $$ Hins
+        with ⟨Hit, Hsback⟩
+      wp_apply hKey $$ [$Hit] as Hit
+      ihave Hins := Hsback $$ Hit
+      try rw [hset0]
+      wp_join_done
+    · rw [if_neg Hif]
+      iframe
+    rw [ite_eq_left_of_eq_true _ _ (eq_true hlen0)]
+    icases ownSlice_elem_acc (sint.Z (W64 0)) i0 _ _ (i0 :: is) (by decide) rfl $$ Hins
+      with ⟨Hit, Hsback⟩
+    wp_apply hKey $$ [$Hit] as Hit
+    ihave Hins := Hsback $$ Hit
+    try rw [hset0]
+    try wp_auto
+    -- `node.parent.put(key, node.inodes[0].Key(), nil, node.pgid, 0)`
+    have hokl : 0 < (pcOldKey ra).length := by
+      unfold pcOldKey; split
+      · rw [hw0]; exact hw0k
+      · rcases hkey0 with h | h
+        · contradiction
+        · exact h
+    have hoks : (if ra.nv.key' = slice.nil then w0.ks else ra.ksrc) ≠ Src.stale := by
+      split
+      · exact hw0l.1
+      · exact hksrc (by assumption)
+    ihave #Hok : srcOwn X2.v (if ra.nv.key' = slice.nil then i0.key' else ra.nv.key')
+        (if ra.nv.key' = slice.nil then w0.ks else ra.ksrc) (pcOldKey ra) $$ [Hkey]
+    · unfold pcOldKey
+      by_cases hkn : ra.nv.key' = slice.nil
+      · rw [if_pos hkn, if_pos hkn, if_pos hkn, hw0]; iexact Hk0
+      · rw [if_neg hkn, if_neg hkn, if_neg hkn,
+          if_pos (show True ∧ ra.nv.key' ≠ slice.nil from ⟨trivial, hkn⟩)]
+        iexact Hkey
+    ihave #Hnil : srcOwn X2.v slice.nil (Src.own DFrac.discard) ([] : List w8) $$ []
+    · unfold srcOwn; iapply ownSlice_nil
+    rw [hbtx]
+    ihave Hpo : objOwn X2.v ra.nv.parent' (DFrac.own 1) true (.node bl rpa) $$ [Hpo]
+    · rw [hparl]; iexact Hpo
+    wp_apply (hPut X2.v ra.nv.parent' bl rpa tx X2.t.t.meta' X2.t.mv dqb (DFrac.own 1) wq _ i0.key' slice.nil
+      (pcOldKey ra) w0.key [] (if ra.nv.key' = slice.nil then w0.ks else ra.ksrc) w0.ks
+      (Src.own DFrac.discard) id (W32 0) hbkp hcapa hsrta hwlp hidlt hokl hw0k
+      hoks hw0l.1 (by simp) Hbase) $$ [Hpo Hv Hbtx Hf3 Hf7]
+      as ⟨%s, %ins2, Hpo, Hv, Hbtx, Hf3, Hf7⟩
+    · iframe; iframe #
+    try wp_auto
+    -- `node.key = node.inodes[0].Key()`
+    rw [ite_eq_left_of_eq_true _ _ (eq_true hlen0)]
+    icases ownSlice_elem_acc (sint.Z (W64 0)) i0 _ _ (i0 :: is) (by decide) rfl $$ Hins
+      with ⟨Hit, Hsback⟩
+    wp_apply hKey $$ [$Hit] as Hit
+    ihave Hins := Hsback $$ Hit
+    try rw [hset0]
+    try wp_auto
+    -- `common.Assert(len(node.key) > 0, ...)`
+    ihave %Hkl := srcOwn_len X2.v i0.key' w0.ks w0.key hw0l.1 $$ Hk0
+    rw [decide_eq_true (show sint.Z (W64 0) < sint.Z i0.key'.len by
+      have h3 : (sint.Z i0.key'.len).toNat = w0.key.length := Hkl.1.symm
+      have h4 : sint.Z (W64 0) = 0 := rfl
+      omega)]
+    wp_apply hAssert
+    try wp_auto
+    -- the heap back: `l` written with its new key, the parent with the entry
+    ihave Hn : (l ↦ (pcRec ra id true).nv : IProp GF)
+      $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    · iapply typedPointsto_combine _ _ _ Hnn'
+      simp only [TypedPointsto.typedPointstoDef, pcRec, ↓reduceIte, hk0]
+      iframe
+    ihave Hlo : objOwn X2.v l (DFrac.own 1) true (.node bl (pcRec ra id true))
+      $$ [Hn Hins Hcap Hch Hchcap]
+    · iapply (objOwn_live_node _ _ _ _ _).2
+      simp only [pcRec, ↓reduceIte, hk0, hw0]
+      rw [hins0]
+      iframe
+      isplitr
+      · rw [← hins0]; iexact Hws
+      · by_cases hk : True ∧ i0.key' ≠ slice.nil
+        · rw [if_pos hk]; iexact Hk0
+        · rw [if_neg hk]; iempintro
+    have hpe : pcEnt ra id = (⟨W32 0, id, w0.key, [], w0.ks, Src.own DFrac.discard⟩ : WEntry) := by
+      simp only [pcEnt, hw0]
+    ihave Hbo := Hbo $$ Hbtx
+    ihave Hh := Hback $$ %({ B2 with ns := (B2.ns.insert l (pcRec ra id true)).insert rl.nv.parent' (pcPar rpa ra id s ins2) } : BRec)
+      %(fun x => if x = l then pcRec ra id true else pcPar rpa ra id s ins2) [] [Hlo Hpo] [Hbo]
+      [Hf1 Hf2 Hf3 Hf4 Hf5 Hf6 Hf7 Hf8 Hbufs] [Hrf]
+    · ipureintro
+      refine ⟨?_, ?_, hbtx, ?_⟩
+      · intro x hx
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
+        rcases hx with rfl | rfl
+        · simp only [↓reduceIte]
+          rw [GMap.lookup_insert_ne _ _ hpll, GMap.lookup_insert]
+        · simp only [if_neg hpll]; exact GMap.lookup_insert _ _ _
+      · intro x hx
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hx
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm hx.2), GMap.lookup_insert_ne _ _ (Ne.symm hx.1),
+          GMap.lookup_insert_ne _ _ (Ne.symm hx.1)]
+      · intro x hx
+        simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
+        rcases hx with rfl | rfl
+        · simp only [↓reduceIte, pcRec]; rw [hparl]; exact hpll
+        · simp only [if_neg hpll, pcPar, NRec.withEnts]; exact hpparp
+    · iapply BigSepL.bigSepL_cons.2
+      isplitl [Hlo]
+      · simp only [↓reduceIte, decide_eq_true hlv2]; iexact Hlo
+      iapply BigSepL.bigSepL_cons.2
+      isplitl [Hpo]
+      · simp only [if_neg hpll, decide_eq_true hplv2, pcPar, hpe]; rw [← hparl]; iexact Hpo
+      iapply BigSepL.bigSepL_nil.2; iempintro
+    · iapply (objOwn_bkt_ns _ _ _ _ B2 _).2
+      iapply (objOwn_bkt_ns _ _ _ _ B2 _).1
+      iexact Hbo
+    · iframe
+    · iexact Hrf
+    ihave Hw := Hclose $$ %_ [] Hh Hv Hst
+    · ipureintro
+      refine ⟨by unfold WX.setBkt; exact hvw, rfl, by unfold WX.setBkt; exact Prod.ext rfl htt⟩
+    -- the stats, done
+    icases wtxW_open K tx r m _ $$ Hw with ⟨#-, #-, #-, Hh, Hv, Hst, Hclose⟩
+    wp_apply (hInc K tx r m 1 (W64 1)) $$ [Hst] as %_ Hst
+    · iframe; iframe #
+    ihave Hw := Hclose $$ %_ [] Hh Hv Hst
+    · ipureintro; exact ⟨rfl, rfl, rfl⟩
+    rw [setBkt_pcFin hB2]
+    have hv3 : (((X2.setNode bl l (pcRec ra id true)).setNode bl rl.nv.parent' (pcPar rpa ra id s ins2)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).v = X2.v := by
+      show ((X2.setNode bl l (pcRec ra id true)).setNode bl rl.nv.parent' (pcPar rpa ra id s ins2)).v = X2.v
+      rw [WX.setNode_v, WX.setNode_v]
+    iapply HΦ $$ %(((X2.setNode bl l (pcRec ra id true)).setNode bl rl.nv.parent'
+        (pcPar rpa ra id s ins2)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins))))
+      %w2 %st1 %id [] [Hw] [Hdb] Htxp Hnodep Hres
+    · ipureintro
+      refine ⟨X1, w1, X2, p, ra, rpa, s, ins2, Hfr1, Hal', HC2, Hml2, Hw2, hna, fun _ => hrpa, ?_⟩
+      simp only [pcFin, ne_eq, hpn, not_false_eq_true, decide_true, ↓reduceIte]
+    · iexact Hw
+    · rw [hv3]; iexact Hdb
 
 end proof
 
