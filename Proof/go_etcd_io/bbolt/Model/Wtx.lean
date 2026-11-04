@@ -298,10 +298,13 @@ nodes it materializes; `Bucket.Bucket_w` proves it on open from `rootShape` for 
 def inlineBnd (ipg : List w8) : Prop :=
   ∀ j < pageCount ipg, leafKsize ipg j + leafVsize ipg j ≤ bboltEntryMax
 
-/-- A nested bucket's value, well-formed and good. -/
+/-- A nested bucket's value, well-formed and good; (batch 37, U6e) a tree bucket's leaves hold
+plain entries only (nesting depth 2, as `rootShape` for the view: `Bucket.node` gives it from the
+view page, `CreateBucket` writes an inline value). -/
 def bvalOK (pages : Pages) (hwm : Nat) (v : List w8) : Prop :=
   bucketWF pages hwm v ∧
-    (inBucketRoot v = 0 → inlineGood (inlinePage v) ∧ inlineBnd (inlinePage v))
+    (inBucketRoot v = 0 → inlineGood (inlinePage v) ∧ inlineBnd (inlinePage v)) ∧
+    (inBucketRoot v ≠ 0 → ∀ pg, bktLeafPg pages v pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0)
 
 /-- The node `l` (record `r`) of the bucket `bl` (record `B`) is well-formed. -/
 def nodeClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec) : Prop :=
@@ -337,7 +340,10 @@ def bktClean (v : View) (hwm : Nat) (bl : Loc) (B : BRec) : Prop :=
   (B.ib.root' ≠ W64 0 → B.bv.page' = null) ∧
   (B.ib.root' = W64 0 → ∀ l r, B.ns !! l = some r → r.nv.isLeaf' = true) ∧
   (∀ l r, B.ns !! l = some r → nodeClean v hwm bl B l r) ∧
-  posDisjoint v B ∧ posNodeFree v B
+  posDisjoint v B ∧ posNodeFree v B ∧
+  -- batch 37 (U6e): the cached child buckets are non-nil (a nil entry is a miss for
+  -- `Bucket.Bucket`, which would open over it)
+  (∀ n c, B.bm !! n = some c → c ≠ null)
 
 /-- **The root shape on the writer's leaf nodes** (batch 30, U9d): the root bucket's leaves hold
 only bucket entries, every other bucket's leaves none (nesting depth 2, as `treeOK`'s
@@ -358,12 +364,18 @@ def posShape (X : WX) : Prop :=
     X.v.pages !! p = some pg → pageFlags pg = leafPageFlag →
     ∀ i < pageCount pg, (leafFlags pg i % 2 = bucketLeafFlag ↔ bl = X.rl)
 
+/-- **The root bucket is not inline** (batch 37, U7f): its root is a page (the view's meta root at
+`beginRWTx`; no operation makes it inline). -/
+def rootNotInline (X : WX) : Prop := ∀ B, X.t.bs !! X.rl = some B → B.ib.root' ≠ W64 0
+
 /-- The clean invariant of the transaction (old `txClean`), its root bucket at `X.rl`; batch 30
 (U9d), in its second clause beside `pm = ∅` (so that the six-clause patterns stand): no dirty-page
 buffers yet (`spill` allocates them; `WX.bufPages` reads all of `bufs`), the leaves' root shape
-(`leafShape`), and (batch 35) the view pages' under the page positions (`posShape`). -/
+(`leafShape`), (batch 35) the view pages' under the page positions (`posShape`), and (batch 37)
+the root bucket not inline (`rootNotInline`). -/
 def txClean (X : WX) : Prop :=
-  X.t.t.writable' = true ∧ (X.t.pm = ∅ ∧ X.t.bufs = ∅ ∧ leafShape X ∧ posShape X) ∧
+  X.t.t.writable' = true ∧
+    (X.t.pm = ∅ ∧ X.t.bufs = ∅ ∧ leafShape X ∧ posShape X ∧ rootNotInline X) ∧
   2 ≤ X.t.mv.pgid'.toNat ∧ X.v.txid + 1 = X.t.mv.txid'.toNat ∧ (X.t.bs !! X.rl).isSome ∧
   ∀ bl B, X.t.bs !! bl = some B → bktClean X.v X.t.mv.pgid'.toNat bl B ∧
     ∀ name c, B.bm !! name = some c → (X.t.bs !! c).isSome

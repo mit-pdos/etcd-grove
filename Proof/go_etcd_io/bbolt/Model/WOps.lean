@@ -19,6 +19,7 @@ The lemma statements at the end are proved by the units named in their docstring
 module
 
 public import Proof.go_etcd_io.bbolt.Model.LTree
+public import Proof.go_etcd_io.bbolt.Model.RTree
 public import Proof.go_etcd_io.bbolt.Model.PageAt
 public import Proof.go_etcd_io.bbolt.Model.Store
 
@@ -386,7 +387,7 @@ to `X'` (`fl'`), for the writer's txid `txid`:
 - `X'` is well-formed (`wOKR`: `wOK` but the branch nodes' pages; with its keys' bounds) and holds the same data, on the same view,
   with the same handles (the registry grown);
 - no empty non-root node, every branch node of at least two entries, and every bucket's leaves at
-  one depth (kept from `X`'s);
+  one depth (kept from `X`'s); every bucket's logical tree finite (`rtOK`, batch 37);
 - the frees are `Free(txid, …)` steps of extents of the base view, and every base slot is still
   covered by the logical tree or pending. -/
 def rebalOK (X X' : WX) (fl fl' : FLPg) (txid : w64) : Prop :=
@@ -395,19 +396,22 @@ def rebalOK (X X' : WX) (fl fl' : FLPg) (txid : w64) : Prop :=
   (∀ bl B, X'.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → l ∈ X'.live →
     (r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
   (∀ bl, X'.t.bs !! bl ≠ none → leafDepthOK X bl → leafDepthOK X' bl) ∧
+  (∀ bl, X'.t.bs !! bl ≠ none → rtOK X' bl) ∧
   (∃ es : List (w64 × Nat), fl.canFreeAll txid es ∧ fl' = fl.freeAll txid es ∧
     ∀ e ∈ es, ∃ pg, X.v.pages !! e.1.toNat = some pg ∧ 1 + pageOverflow pg = e.2) ∧
   ∀ s, coversSlot X.v.pages s → lCovers X' s ∨ s ∈ pendSlots fl'
 
 /-- **`spill`'s pre** (the part of `rebalOK`'s post about the records after it, `X`, and the
 writer side's freelist `fl`): `X` well-formed; no empty non-root node, branch nodes of at least
-two entries; every bucket's leaves at one depth; every base slot covered by the logical tree or
-pending. -/
+two entries; every bucket's leaves at one depth; (batch 37) every bucket's logical tree finite
+(`rtOK`: `Bucket.free`'s premise for an inlineable child); every base slot covered by the logical
+tree or pending. -/
 def spillPre (X : WX) (fl : FLPg) : Prop :=
   wOKR X ∧
   (∀ bl B, X.t.bs !! bl = some B → ∀ l r, B.ns !! l = some r → l ∈ X.live →
     (r.nv.parent' ≠ null → 0 < r.ws.length) ∧ (r.nv.isLeaf' = false → 2 ≤ r.ws.length)) ∧
   (∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl) ∧
+  (∀ bl, X.t.bs !! bl ≠ none → rtOK X bl) ∧
   ∀ s, coversSlot X.v.pages s → lCovers X s ∨ s ∈ pendSlots fl
 
 /-! ## The records and the writer's freelist (batch 10) -/

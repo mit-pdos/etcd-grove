@@ -56,6 +56,32 @@ def metaValid (m : Meta) : Prop :=
 
 instance (m : Meta) : Decidable (metaValid m) := by unfold metaValid; infer_instance
 
+/-- The meta with its checksum (`Meta.Write`'s `m.checksum = m.Sum64()`; moved from U10's
+`Commit/MetaBuf` by batch 37). -/
+def metaSummed (mv : Meta) : Meta := { mv with checksum' := metaSum mv }
+
+/-- The checksum covers the bytes before the checksum field only (batch 37, U10). -/
+theorem metaSum_checksum (m : Meta) (c : w64) : metaSum { m with checksum' := c } = metaSum m := by
+  unfold metaSum
+  have h : (encode { m with checksum' := c }).take 56 = (encode m).take 56 := by
+    show List.take 56 (encode (m.magic', m.version', m.pageSize', m.flags', m.root', m.freelist',
+        m.pgid', m.txid', c)) = List.take 56 (encode (m.magic', m.version', m.pageSize', m.flags',
+        m.root', m.freelist', m.pgid', m.txid', m.checksum'))
+    simp only [ByteEncoding.prod_encode, ← List.append_assoc]
+    rw [List.take_left' (by simp), List.take_left' (by simp)]
+  rw [h]
+
+/-- A meta with its checksum field set to the sum of its other fields is valid when its magic and
+version are (stated over the field's value `c`: the kernel must not unfold `metaSum`). -/
+theorem metaValid_with (m : Meta) (c : w64) (hc : c = metaSum m) (h1 : m.magic'.toNat = boltMagic)
+    (h2 : m.version'.toNat = boltVersion) : metaValid { m with checksum' := c } :=
+  ⟨h1, h2, hc.trans (metaSum_checksum m c).symm⟩
+
+/-- **A summed meta is valid** when its magic and version are (batch 37, U10: `writeMeta`'s meta). -/
+theorem metaValid_metaSummed (mv : Meta) (h1 : mv.magic'.toNat = boltMagic)
+    (h2 : mv.version'.toNat = boltVersion) : metaValid (metaSummed mv) :=
+  metaValid_with mv _ rfl h1 h2
+
 /-- `db.meta()`'s choice between `meta0` and `meta1`: the one with the higher txid if valid,
 else the other if valid (`none`: `db.meta()` panics). -/
 def metaPick (m0 m1 : Meta) : Option Meta :=

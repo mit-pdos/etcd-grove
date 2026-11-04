@@ -92,10 +92,11 @@ def dbFixed (db sp : Loc) : IProp GF :=
     (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ ⌜logPtrTyped lg⌝))
 
 /-- **The core of an open database** at `db` (design §3.8, round 2 F1), with its path `p`,
-statistics pointer `sp` and receipts' base `t0`. -/
+statistics pointer `sp` and receipts' base `t0`; its namespace disjoint from OsFs's (batch 37:
+`Open`'s premise; `store_cells_agree` opens `pagesInv` around an OsFs step). -/
 def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) :
     IProp GF :=
-  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62 ∧ db ≠ null⌝ ∗
+  iprop(dblAt B db ∗ t0At B t0 ∗ ⌜t0 < 2 ^ 62 ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN⌝ ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗

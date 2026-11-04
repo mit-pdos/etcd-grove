@@ -28,10 +28,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.grow(sz)` by the live writer: the file truncated up to (about) `sz` and synced unless
 `NoGrowSync` (`wdbGrown`: only the file's size and the `W` slots it adds change); an error is a
-`fmtErrorOk` one, the file's size possibly changed. -/
+`fmtErrorOk` one, the file's size possibly changed. Batch 37: `sz + AllocSize` is an `int64`
+(`grow` truncates to it above `AllocSize`) and `sz` a whole number of pages (so is the grown file,
+`wdbOK`'s page clause); `Commit` passes `(pgid + 1) · 4096`. -/
 abbrev DB.grow.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (v : View) (w : WDb) (sz : w64),
-  0 ≤ sint.Z sz →
+  0 ≤ sint.Z sz → sint.Z sz + 0x1000000 < 2 ^ 63 → sint.Z sz % 4096 = 0 →
   {{ K.core (GF := GF) ∗ wdbW K tx v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"grow")) (Val #sz))
   {{ (err : GoInterface), RET #err; ∃ w' : WDb, wdbW K tx v w' ∗ ⌜wdbGrown w w'⌝ ∗

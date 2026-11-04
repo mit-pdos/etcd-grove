@@ -1662,7 +1662,8 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
       ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half (fl.rollback (W64 (w : Int))) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half ws ∗ slotsOwn ms p S bs ∗
-      ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.rollback (W64 (w : Int)))⌝ := by
+      ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.rollback (W64 (w : Int)))⌝ ∗
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ := by
   iintro ⟨#Hinv, Hcur, Hfl, Hmap, Hwv⟩
   have := pagesInv_timeless (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
@@ -1702,10 +1703,15 @@ theorem store_rollback (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) (w : N
   imodintro
   iexists _, σ.bytes
   iframe
+  isplitr
+  · ipureintro
+    intro s
+    simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
+    rfl
   ipureintro
-  intro s
-  simp only [List.mem_filter, decide_eq_true_eq, slotsOf]
-  rfl
+  intro s hs
+  simp only [List.mem_filter, decide_eq_true_eq] at hs
+  exact (Hok.2.2.2.2.2.2.2.2.2.2.2.1 s hs.1).2
 
 /-- `Reload`/`NoSyncReload`: the free ids rebuilt from `W` slots below the high-water mark. -/
 theorem store_reload (C : CommitSt) (fl : FLPg) (ids : List w64)

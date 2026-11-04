@@ -351,9 +351,7 @@ theorem pht_chainR (pages : Pages) (hwm : Nat) (pht : Nat → Nat) (hht : pageHt
           · simp [hpg]; omega
           · have := h3 x hx; exact ⟨by omega, this.2⟩
 
-/-- **Bucket `bl`'s logical tree is finite** (see the module doc). -/
-def rtOK (X : WX) (bl : Loc) : Prop :=
-  ∃ t, ltIs (ltree X) bl t ∧ t.pid = X.rootPid bl ∧ t.ht < X.fuel ∧ ∃ D, ∀ x ∈ t.dps 0, x = D
+-- `rtOK` is in `Model/RTree` (batch 37).
 
 /-- **At `Commit`, every bucket's logical tree is finite**, its leaves at one depth (the root
 page's height: before `Commit` a branch node's entries are its page's, `txPg`). -/

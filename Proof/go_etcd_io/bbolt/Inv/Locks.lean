@@ -200,21 +200,32 @@ def wdbOK (w : WDb) : Prop :=
   (∀ s, s ∈ treeSlots w.C ∨ s ∈ pendSlots w.fl → s < w.C.hwm) ∧
   -- batch 32 (U9e): free ids lie below the high-water mark (`storeOK`'s `flBelow`; `node.spill`'s
   -- allocated pages are then below `tx.meta.Pgid()`, its panic check)
-  (∀ x ∈ w.fl.free, x.toNat < w.C.hwm)
+  (∀ x ∈ w.fl.free, x.toNat < w.C.hwm) ∧
+  -- batch 37 (U4d): the file's size is an `int64` (`DB.fileSize`'s `Stat`; `Open` reads it,
+  -- `DB.grow` truncates to an `int64`)
+  w.m.size < 2 ^ 63 ∧
+  -- batch 37 (U4d): a file past the mapping ends on a page (its partial last page would have no
+  -- owner; bbolt never makes such a file: `Open` maps at least the file, `DB.grow` above
+  -- `AllocSize` truncates to whole pages)
+  (∀ b l, w.ms = some (b, l) → w.m.size ≤ l ∨ w.m.size % 4096 = 0) ∧
+  -- batch 37 (U5d): a `W` slot inside the file holds a page's bytes (its page-cache bytes `wb`)
+  (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096)
 
 /-- The writer side but its share of the data, its freelist object, spare pair and receipts:
 `db.rwtx` is `rw` and the writer's part of the store's state `ws` (idle, or a live writer's,
 `wdbLive`), and its share `mq` of the mapping fields (½ idle; ¼ live, the writer's fractions
-holding the other quarter, `wtxFrac`). -/
+holding the other quarter, `wtxFrac`); its half of `db.ops.writeAt` is the file's `WriteAt`
+method value (batch 37, U10: `Open` sets `db.ops.writeAt = db.file.WriteAt`). -/
 def wdbCoreG (B : BNs) (db : Loc) (p : GoString) (rw : Loc) (ws : WSt) (mq : Qp) (w : WDb) :
     IProp GF :=
-  iprop(∃ wa : GoFunc,
+  iprop(
     ghostVar B.cur (1 : Qp).half.half w.C ∗
     ghostVar B.fl (1 : Qp).half w.fl ∗ ghostVar B.map (1 : Qp).half w.ms ∗
     ghostVar B.out (1 : Qp).half false ∗ ghostVar B.wv (1 : Qp).half ws ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} w.fli ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
-    (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
+    (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
+      methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
     db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own mq) w.ms ∗

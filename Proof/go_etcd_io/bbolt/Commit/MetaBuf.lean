@@ -24,8 +24,7 @@ variable [GooseExts]
 /-- The zero page header (a zeroed buffer's first 16 bytes). -/
 def zeroHdr : Page := ⟨W64 0, W16 0, W16 0, W32 0⟩
 
-/-- The meta with its checksum (`Meta.Write`'s `m.checksum = m.Sum64()`). -/
-def metaSummed (mv : Meta) : Meta := { mv with checksum' := metaSum mv }
+-- `metaSummed` is in `Model/Meta` (batch 37).
 
 /-- The header `Meta.Write` leaves in a zeroed buffer: id `txid % 2`, the meta flag. -/
 def metaHdr (mv : Meta) : Page := { zeroHdr with id' := mv.txid' % W64 2, flags' := W16 4 }
