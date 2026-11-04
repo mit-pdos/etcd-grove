@@ -92,7 +92,7 @@ theorem ltree_inline_leaf (X : WX) (bl : Loc) (B : BRec) (hb : X.t.bs !! bl = so
   · simp only [hn, ↓reduceIte, wpageAt, h0] at h
     by_cases hq : q = W64 0
     · simp only [hq, ↓reduceIte, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
-      rw [← h.1, (c1 h0 hn).2.2.2.1]; rfl
+      rw [← h.1, (c1 h0 hn).2.2.1.2.1]; rfl
     · simp only [hq, ↓reduceIte] at h
       simp at h
   · simp only [hn, ↓reduceIte] at h
@@ -368,7 +368,7 @@ theorem rtOK_init (X : WX) (bl : Loc) (hok : wOK X) (hv : viewWF X.v)
       by_cases hn : B.bv.rootNode' = null
       · refine ⟨pageWs B.ipg, ?_⟩
         have hg := (hc.1 h0 hn).2.2
-        simp only [ltree, hB, resolve, h0, hn, ↓reduceIte, wpageAt, Option.map_some, hg.2.1,
+        simp only [ltree, hB, resolve, h0, hn, ↓reduceIte, wpageAt, Option.map_some, hg.1.2.1,
           decide_true]
       · obtain ⟨r, hr, -⟩ := (hc.2.2.2.2.1 _ _ (hc.2.2.2.1 hn)).2
         refine ⟨r.ws, ?_⟩
