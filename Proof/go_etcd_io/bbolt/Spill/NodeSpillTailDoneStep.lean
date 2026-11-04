@@ -74,19 +74,19 @@ theorem spFrame_drop_null {X X' : WX} {bl : Loc} {T : List Loc}
   obtain ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, o, p, q, z⟩ := h
   have hm : ∀ y, y ∉ T → y ≠ null → y ∉ T ++ [null] := fun y h1 h2 hm =>
     (List.mem_append.1 hm).elim h1 (fun h3 => h2 (List.mem_singleton.1 h3))
-  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_, fun y hy hex => ?_, q,
-    fun bl' B B' y r r' hB hB' hr hr' hT hv => ?_⟩
+  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_, fun y bl' B hB hs hy => ?_, q,
+    fun bl' B B' y r r' hB hB' hr hr' hT hlv hv => ?_⟩
   · obtain ⟨B', hB', hs, hns⟩ := o B hB
     refine ⟨B', hB', hs, fun y hy => ?_⟩
     by_cases yn : y = null
     · subst yn; rw [hX _ _ hB, hX' _ _ hB']; trivial
     · exact hns y (hm y hy yn)
   · by_cases yn : y = null
-    · subst yn; obtain ⟨bl', B, hB, hs⟩ := hex; rw [hX _ _ hB] at hs; cases hs
-    · exact p y (hm y hy yn) hex
+    · subst yn; rw [hX _ _ hB] at hs; cases hs
+    · exact p y bl' B hB hs (fun he => hm y (hy he) yn)
   · by_cases yn : y = null
     · subst yn; rw [hX _ _ hB] at hr; cases hr
-    · exact z bl' B B' y r r' hB hB' hr hr' (fun he => hm y (hT he) yn) hv
+    · exact z bl' B B' y r r' hB hB' hr hr' (fun he => hm y (hT he) yn) hlv hv
 
 theorem xs_map_head {xs : List (Loc × node × List Inode)} {n : Loc}
     (hhd : (xs.head?.map (·.1)) = some n) : xs.map (·.1) = n :: (xs.drop 1).map (·.1) := by
@@ -103,7 +103,7 @@ theorem tail_frame {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
     (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0)
-    (hfr : spFrame X2 Xf bl (xs.map (·.1) ++ [pl])) :
+    (hfr : spFrame X2 Xf bl (xs.map (·.1) ++ [pl])) (hd : objsDisj X'.t) :
     spFrame X Xf bl (N ++ (T0 ++ r'.cs.filter (fun c => decide (c ∉ N)) ++
       (xs.drop 1).map (·.1) ++ [pl])) := by
   obtain ⟨hn', -, -, -, -, -, hfr0, -⟩ := spEnd_rec hpre hsp hend
@@ -111,7 +111,12 @@ theorem tail_frame {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     rcases hpre.2.2 with ⟨hs, -⟩ | ⟨hut, -⟩
     · rw [hsp] at hs; cases hs
     · exact uTree_head hut
-  have hall := spFrame_trans (spFrame_trans (spFrame_trans hfr0 (spFrame_nilCh hn')) hsr.frame) hfr
+  have hcs : ∀ c ∈ r'.cs, ∀ bl' B, X'.t.bs !! bl' = some B → (B.ns !! c).isSome → bl' = bl := by
+    obtain ⟨-, hlv', -⟩ := spEnd_rec hpre hsp hend
+    obtain ⟨B', hB', hr'⟩ := node_bs_of hn'
+    have hdp := (spEnd_step hpre hend).2.2.2.1.2.2.1
+    exact nilCh_cs_only hd fun c hc => ⟨B', hB', ((hdp.1 bl B' n r' hB' hr' hlv').2.2.2 c hc).2⟩
+  have hall := spFrame_trans (spFrame_trans (spFrame_trans hfr0 (spFrame_nilCh hn' hcs)) hsr.frame) hfr
   refine spFrame_mono hall (fun l hl => ?_)
   rw [xs_map_head hsr.head] at hl
   simp only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hl
@@ -145,7 +150,7 @@ theorem tail_fresh {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0) {l : Loc}
     (h1 : (X'.nilCh bl n r').t.objs !! l = none) : X.t.objs !! l = none := by
   obtain ⟨hn', -, -, -, -, -, hfr0, -⟩ := spEnd_rec hpre hsp hend
-  exact spFrame_objs_none hfr0 (spFrame_objs_none (spFrame_nilCh hn') h1)
+  exact spFrame_objs_none hfr0 (nilCh_objs_none hn' h1)
 
 /-- **The touched nodes but `N` and the parent**: fresh at the start, or (top case) `n`'s
 children. -/

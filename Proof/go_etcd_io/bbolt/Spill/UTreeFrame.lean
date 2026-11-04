@@ -118,7 +118,7 @@ theorem spFrame_node {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' b
     | some r' =>
       rw [hr'] at hsim
       refine ⟨r', by unfold WX.node; rw [hb']; exact hr', hsim, ?_⟩
-      exact hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 l hl ⟨bl, B, hb, by rw [hr]; rfl⟩
+      exact hfr.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 l bl B hb (by rw [hr]; rfl) (fun _ => hl)
 
 theorem uNode_frame {X X' : WX} {bl : Loc} {T : List Loc} (hfr : spFrame X X' bl T) {n : Loc}
     {r r' : NRec} {lo hi : Option (List w8)} (hu : uNode X bl n r lo hi) (hs : nodeSim r r')

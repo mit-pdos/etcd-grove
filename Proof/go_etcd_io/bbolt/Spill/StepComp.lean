@@ -63,15 +63,16 @@ theorem spFrame_refl (X : WX) (bl : Loc) (T : List Loc) : spFrame X X bl T :=
     fun _ _ B hB => ⟨B, hB, bktSim_refl B, fun _ => optRel_nodeSim_refl _⟩,
     fun _ _ h => h,
     fun B hB => ⟨B, hB, bktSim_refl B, fun _ _ => optRel_nodeSim_refl _⟩,
-    fun _ _ _ => Iff.rfl, fun _ h => h,
-    fun _ B B' _ r r' hB hB' hr hr' _ hv => by
+    fun _ _ _ _ _ _ => Iff.rfl, fun _ h => h,
+    fun _ B B' _ r r' hB hB' hr hr' _ _ hv => by
       rw [hB] at hB'; cases hB'; rw [hr] at hr'; cases hr'; exact hv⟩
 
 /-- A frame for fewer touched nodes is one for more. -/
 theorem spFrame_mono {X X' : WX} {bl : Loc} {T T' : List Loc} (h : spFrame X X' bl T)
     (hT : ∀ l ∈ T, l ∈ T') : spFrame X X' bl T' := by
   obtain ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, o, p, q, z⟩ := h
-  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_, fun y hy => p y (fun hm => hy (hT y hm)), q,
+  refine ⟨a, b, c, d, e, f, g, i, j, k, l, m, n, fun B hB => ?_,
+    fun y bl' B hB hs hy => p y bl' B hB hs (fun he hm => hy he (hT y hm)), q,
     fun bl' B B' y r r' hB hB' hr hr' hy => z bl' B B' y r r' hB hB' hr hr'
       (fun he hm => hy he (hT y hm))⟩
   obtain ⟨B', hB', hs, hn⟩ := o B hB
@@ -97,17 +98,18 @@ theorem spFrame_trans {X1 X2 X3 : WX} {bl : Loc} {T1 T2 : List Loc} (h1 : spFram
     have hl1 : l ∉ T1 := fun hm => hl (List.mem_append_left _ hm)
     have hl2 : l ∉ T2 := fun hm => hl (List.mem_append_right _ hm)
     exact optRel_nodeSim_trans (hn2 l hl1) (hn3 l hl2)
-  · intro l hl ⟨bl', B, hB, hsome⟩
-    have hl1 : l ∉ T1 := fun hm => hl (List.mem_append_left _ hm)
-    have hl2 : l ∉ T2 := fun hm => hl (List.mem_append_right _ hm)
-    refine (p2 l hl2 ?_).trans (p1 l hl1 ⟨bl', B, hB, hsome⟩)
-    by_cases hb : bl' = bl
-    · subst hb
-      obtain ⟨B2, hB2, -, hn2⟩ := o1 B hB
-      exact ⟨bl', B2, hB2, by rw [← optRel_nodeSim_isSome (hn2 l hl1)]; exact hsome⟩
-    · obtain ⟨B2, hB2, -, hn2⟩ := m1 bl' hb B hB
-      exact ⟨bl', B2, hB2, by rw [← optRel_nodeSim_isSome (hn2 l)]; exact hsome⟩
-  · intro bl' B B3 l r r3 hB hB3 hr hr3 hT hv
+  · intro l bl' B hB hsome hT
+    have hl1 : bl' = bl → l ∉ T1 := fun he hm => hT he (List.mem_append_left _ hm)
+    have hl2 : bl' = bl → l ∉ T2 := fun he hm => hT he (List.mem_append_right _ hm)
+    obtain ⟨B2, hB2, hs2⟩ : ∃ B2, X2.t.bs !! bl' = some B2 ∧ (B2.ns !! l).isSome := by
+      by_cases hb : bl' = bl
+      · subst hb
+        obtain ⟨B2, hB2, -, hn2⟩ := o1 B hB
+        exact ⟨B2, hB2, by rw [← optRel_nodeSim_isSome (hn2 l (hl1 rfl))]; exact hsome⟩
+      · obtain ⟨B2, hB2, -, hn2⟩ := m1 bl' hb B hB
+        exact ⟨B2, hB2, by rw [← optRel_nodeSim_isSome (hn2 l)]; exact hsome⟩
+    exact (p2 l bl' B2 hB2 hs2 hl2).trans (p1 l bl' B hB hsome hl1)
+  · intro bl' B B3 l r r3 hB hB3 hr hr3 hT hlv hv
     have hl1 : bl' = bl → l ∉ T1 := fun he hm => hT he (List.mem_append_left _ hm)
     have hl2 : bl' = bl → l ∉ T2 := fun he hm => hT he (List.mem_append_right _ hm)
     obtain ⟨B2, hB2, hs⟩ : ∃ B2, X2.t.bs !! bl' = some B2 ∧ optRel nodeSim (B.ns !! l) (B2.ns !! l) := by
@@ -120,7 +122,9 @@ theorem spFrame_trans {X1 X2 X3 : WX} {bl : Loc} {T1 T2 : List Loc} (h1 : spFram
     rw [hr] at hs
     cases e2 : B2.ns !! l with
     | none => rw [e2] at hs; exact absurd hs (by simp [optRel])
-    | some r2 => exact z2 bl' B2 B3 l r2 r3 hB2 hB3 e2 hr3 hl2 (z1 bl' B B2 l r r2 hB hB2 hr e2 hl1 hv)
+    | some r2 =>
+      exact z2 bl' B2 B3 l r2 r3 hB2 hB3 e2 hr3 hl2
+        ((p1 l bl' B hB (by rw [hr]; rfl) hl1).2 hlv) (z1 bl' B B2 l r r2 hB hB2 hr e2 hl1 hlv hv)
 
 /-! ## The step -/
 

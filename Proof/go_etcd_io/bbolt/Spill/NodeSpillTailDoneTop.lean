@@ -39,7 +39,7 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
     {bs : List WEntry} {j : Nat} {Es : List (List El)} {Ds : List (List Nat)} {ps : List Piece}
     {Xf : WX} {wf : WDb} {stl : List FLStep}
     (hpre : spPre X w bl n rn O lo hi h F D N E .top) (hsp : rn.nv.spilled' = false)
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0) (hd : objsDisj X'.t)
     (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss null rp0)
     (hEs : Es.flatten = E)
     (hL : pcLoop X' r' X2 w' bl O lo hi h xs wss null rp0 bs j Es Ds xs.length ps Xf wf stl)
@@ -85,7 +85,7 @@ theorem tail_done_top1 {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat
     T0 ++ r'.cs.filter (fun c => decide (c ∉ N)) ++ (xs.drop 1).map (·.1),
     pcSlots (spP Xf) ps, ?_, fun l hl => ?_, ?_, hDk, hDn, hPd, ?_⟩⟩
   · refine spFrame_drop_null (derefPre_null hpre.2.1.2.2.1) (derefPre_null hG.2.2.1) ?_
-    have := tail_frame hpre hsp hend hsr hL.frame
+    have := tail_frame hpre hsp hend hsr hL.frame hd
     rw [← List.append_assoc] at this; exact this
   · rcases tail_T hpre hsp hend hsr l hl with h1 | h1
     · exact Or.inl h1

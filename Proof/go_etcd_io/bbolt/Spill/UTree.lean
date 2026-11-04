@@ -200,8 +200,10 @@ buckets' records modulo sources, `bl`'s struct, header and caches, its untouched
 sources (live as before), and the transaction's root, handles, registry, live buckets, base pages
 and txid unchanged; the buffers and page cache grown (old buffers kept), the mark not lower; every
 object still one (U9h: a node fresh after a later step was fresh at the start); every untouched
-node's `leafVs` kept (U9q: `Bucket.spill`'s root bucket stays `bktLocalOK` across a child's
-spill). -/
+live node's `leafVs` kept (U9q: `Bucket.spill`'s root bucket stays `bktLocalOK` across a child's
+spill; only a live one's: a remap stales a dead node's sources). The liveness of every node of
+another bucket is kept too, touched or not (a node of bucket `bl'` is touched only as one of
+`bl`'s). -/
 def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
   X'.rl = X.rl ∧ X'.handles = X.handles ∧ X'.nloc = X.nloc ∧ X'.liveB = X.liveB ∧
   X'.v.pages = X.v.pages ∧ X'.v.txid = X.v.txid ∧ X'.t.t = X.t.t ∧
@@ -213,11 +215,11 @@ def spFrame (X X' : WX) (bl : Loc) (T : List Loc) : Prop :=
   (∀ bl', bl' ≠ bl → X.t.bs !! bl' = none → X'.t.bs !! bl' = none) ∧
   (∀ B, X.t.bs !! bl = some B → ∃ B', X'.t.bs !! bl = some B' ∧ bktSim B B' ∧
     ∀ l, l ∉ T → optRel nodeSim (B.ns !! l) (B'.ns !! l)) ∧
-  (∀ l, l ∉ T → (∃ bl' B, X.t.bs !! bl' = some B ∧ (B.ns !! l).isSome) →
+  (∀ l bl' B, X.t.bs !! bl' = some B → (B.ns !! l).isSome → (bl' = bl → l ∉ T) →
     (l ∈ X'.live ↔ l ∈ X.live)) ∧
   (∀ l, (X.t.objs !! l).isSome → (X'.t.objs !! l).isSome) ∧
   (∀ bl' B B' l r r', X.t.bs !! bl' = some B → X'.t.bs !! bl' = some B' → B.ns !! l = some r →
-    B'.ns !! l = some r' → (bl' = bl → l ∉ T) → leafVs r → leafVs r')
+    B'.ns !! l = some r' → (bl' = bl → l ∉ T) → l ∈ X.live → leafVs r → leafVs r')
 
 /-! ## What every step of the spill keeps -/
 

@@ -117,8 +117,50 @@ theorem nilCh_bufs (X : WX) (bl n : Loc) (r : NRec) : (X.nilCh bl n r).t.bufs = 
   unfold WX.nilCh WX.killL WX.setNode WX.setBkt
   cases X.t.bs !! bl <;> rfl
 
+/-- `n.children = nil` keeps every object. -/
+theorem nilCh_objs_isSome {X : WX} {bl n : Loc} {r : NRec} (hn : X.node bl n = some r) {y : Loc}
+    (hy : (X.t.objs !! y).isSome) : ((X.nilCh bl n r).t.objs !! y).isSome := by
+  obtain ⟨B, hB, hr⟩ := node_bs_of hn
+  rw [nilCh_eq hB]
+  rw [objs_isSome_iff] at hy ⊢
+  rcases hy with hy | ⟨bl', B', hB', hy⟩
+  · exact Or.inl hy
+  · refine Or.inr ?_
+    by_cases hb : bl = bl'
+    · subst hb
+      rw [hB] at hB'; cases hB'
+      refine ⟨bl, _, GMap.lookup_insert _ _ _, ?_⟩
+      simp only
+      by_cases e : n = y
+      · subst e; rw [GMap.lookup_insert]; rfl
+      · rw [GMap.lookup_insert_ne _ _ e]; exact hy
+    · refine ⟨bl', B', ?_, hy⟩
+      show (X.t.bs.insert bl _) !! bl' = some B'
+      rw [GMap.lookup_insert_ne _ _ hb]; exact hB'
+
+/-- A location that is no object after `n.children = nil` was none before. -/
+theorem nilCh_objs_none {X : WX} {bl n : Loc} {r : NRec} (hn : X.node bl n = some r) {y : Loc}
+    (h : (X.nilCh bl n r).t.objs !! y = none) : X.t.objs !! y = none := by
+  cases e : X.t.objs !! y with
+  | none => rfl
+  | some _ =>
+    have := nilCh_objs_isSome hn (y := y) (by rw [e]; rfl)
+    rw [h] at this; cases this
+
+/-- `n`'s children are of `bl` only, when they are nodes of `bl` and the buckets' nodes are
+disjoint (`spFrame_nilCh`'s premise). -/
+theorem nilCh_cs_only {X : WX} {bl : Loc} {r : NRec} (hd : objsDisj X.t)
+    (hcs : ∀ c ∈ r.cs, ∃ B, X.t.bs !! bl = some B ∧ (B.ns !! c).isSome) :
+    ∀ c ∈ r.cs, ∀ bl' B, X.t.bs !! bl' = some B → (B.ns !! c).isSome → bl' = bl := by
+  intro c hc bl' B hB hs
+  refine Classical.byContradiction fun hne => ?_
+  obtain ⟨B0, hB0, hs0⟩ := hcs c hc
+  have := hd bl B0 hB0 c hs0 bl' B hB hne
+  rw [this] at hs; cases hs
+
 /-- **The frame of `n.children = nil`**: `n` and its old children touched. -/
-theorem spFrame_nilCh {X : WX} {bl n : Loc} {r : NRec} (hn : X.node bl n = some r) :
+theorem spFrame_nilCh {X : WX} {bl n : Loc} {r : NRec} (hn : X.node bl n = some r)
+    (hcs : ∀ c ∈ r.cs, ∀ bl' B, X.t.bs !! bl' = some B → (B.ns !! c).isSome → bl' = bl) :
     spFrame X (X.nilCh bl n r) bl (n :: r.cs) := by
   obtain ⟨B, hB, hr⟩ := node_bs_of hn
   rw [nilCh_eq hB]
@@ -138,28 +180,15 @@ theorem spFrame_nilCh {X : WX} {bl n : Loc} {r : NRec} (hn : X.node bl n = some 
     simp only
     rw [GMap.lookup_insert_ne _ _ hne]
     exact optRel_nodeSim_refl _
-  · intro l hl _
+  · intro l bl' B0 hB0 hs hl
     have := killL_live X r.cs l
     unfold WX.killL at this
     rw [this]
-    exact ⟨fun h => h.1, fun h => ⟨h, fun hm => hl (List.mem_cons_of_mem _ hm)⟩⟩
-  · intro y hy
-    rw [objs_isSome_iff] at hy ⊢
-    rcases hy with hy | ⟨bl', B', hB', hy⟩
-    · exact Or.inl hy
-    · refine Or.inr ?_
-      by_cases hb : bl = bl'
-      · subst hb
-        rw [hB] at hB'; cases hB'
-        refine ⟨bl, _, GMap.lookup_insert _ _ _, ?_⟩
-        simp only
-        by_cases e : n = y
-        · subst e; rw [GMap.lookup_insert]; rfl
-        · rw [GMap.lookup_insert_ne _ _ e]; exact hy
-      · refine ⟨bl', B', ?_, hy⟩
-        show (X.t.bs.insert bl _) !! bl' = some B'
-        rw [GMap.lookup_insert_ne _ _ hb]; exact hB'
-  · intro bl' B0 B' l' r0 r' hB0 hB' hr0 hr' hT hv
+    refine ⟨fun h => h.1, fun h => ⟨h, fun hm => ?_⟩⟩
+    have e := hcs l hm bl' B0 hB0 hs
+    exact hl e (List.mem_cons_of_mem _ hm)
+  · exact fun y hy => by have := nilCh_objs_isSome hn hy; rwa [nilCh_eq hB] at this
+  · intro bl' B0 B' l' r0 r' hB0 hB' hr0 hr' hT _ hv
     change (X.t.bs.insert bl _) !! bl' = some B' at hB'
     by_cases hb : bl = bl'
     · subst hb

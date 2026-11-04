@@ -236,7 +236,7 @@ theorem spFrame_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
   have ho := objs_perm hd hB hr { rn with cs := l }
   rw [setNode_perm_eq hB] at ho ⊢
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, fun _ _ h => h, fun _ _ h => h,
-    ?_, ?_, ?_, fun _ _ _ => Iff.rfl, ?_, ?_⟩
+    ?_, ?_, ?_, fun _ _ _ _ _ _ => Iff.rfl, ?_, ?_⟩
   · intro bl' hne B0 hB0
     refine ⟨B0, ?_, bktSim_refl B0, fun _ => optRel_nodeSim_refl _⟩
     show (X.t.bs.insert bl _) !! bl' = some B0
@@ -256,7 +256,7 @@ theorem spFrame_perm (hd : objsDisj X.t) (hB : X.t.bs !! bl = some B) (hr : B.ns
     by_cases e : n = y
     · subst e; rw [GMap.lookup_insert]; rfl
     · rw [GMap.lookup_insert_ne _ _ e]; exact hy
-  · intro bl' B0 B' l' r r' hB0 hB' hr hr' hT hv
+  · intro bl' B0 B' l' r r' hB0 hB' hr hr' hT _ hv
     change (X.t.bs.insert bl _) !! bl' = some B' at hB'
     by_cases hb : bl = bl'
     · subst hb

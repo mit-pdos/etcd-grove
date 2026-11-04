@@ -49,7 +49,7 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
     {Xf : WX} {wf : WDb} {stl : List FLStep}
     (hpre : spPre X w bl n rn O lo hi h F D N E (.child pl rp j plo phi))
     (hsp : rn.nv.spilled' = false)
-    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0)
+    (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st0 T0) (hd : objsDisj X'.t)
     (hsr : splitRel (X'.nilCh bl n r') X2 bl n r'.nilCh xs wss pl rp0)
     (hEs : Es.flatten = E) (hbs : bs.map wDat = rp.ws.map wDat)
     (hL : pcLoop X' r' X2 w' bl O lo hi h xs wss pl rp0 bs j Es Ds xs.length ps Xf wf stl)
@@ -95,7 +95,7 @@ theorem tail_done_child {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Na
   obtain ⟨hcs, hnvf, hkey, hknil⟩ := hpar rpf hrpf
   refine ⟨tail_step hpre hend hsr hL.step, Or.inr ⟨hsp,
     T0 ++ r'.cs.filter (fun c => decide (c ∉ N)) ++ (xs.drop 1).map (·.1) ++ [pl],
-    pcSlots (spP Xf) ps, tail_frame hpre hsp hend hsr hL.frame, ?_, ?_, hDk, hDn, hPd, ?_⟩⟩
+    pcSlots (spP Xf) ps, tail_frame hpre hsp hend hsr hL.frame hd, ?_, ?_, hDk, hDn, hPd, ?_⟩⟩
   · intro l hl
     rcases List.mem_append.1 hl with hl | hl
     · rcases tail_T hpre hsp hend hsr l hl with h1 | h1
