@@ -164,6 +164,13 @@ store's empty abstract state and the owner tokens' authority, no owner yet. `Mai
 def dscFresh (c : DscComp) : IProp GF :=
   iprop(consState c.γc ∅ ∗ ghostMapAuth c.tok 1 (∅ : GMap Owner Unit))
 
+/-- **The constructor's pending handlers** (decision R7, track A's deferred handler contract): once
+S1's invariants exist (for any names `γ` the caller allocates them under), the four handlers the
+constructor registered are activated (`handlerPending_activate`: their contracts hold over
+`dscEnv`) and the informers' not-started tokens come back whole, for the factory's `Start`. -/
+def dscActivate (c : DscComp) (γa : ApiNames) (γF : FacNames) : IProp GF :=
+  iprop(∀ γ : S1Names, apiInv γa γ -∗ s1Inv γ c ={⊤}=∗ [∗list] r ∈ resAll, facNotStarted γF r 1)
+
 /-- **A delete handler's argument** (persistent): a registered object of `r`, or a tombstone of
 one. -/
 def delArg (γi : InfNames) (r : Res) (x : GoInterface) : IProp GF :=

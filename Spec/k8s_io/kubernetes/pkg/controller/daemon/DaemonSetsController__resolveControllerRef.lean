@@ -30,7 +30,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`dsc.resolveControllerRef(ns, ref)`**: `nil`, or a cached version of the DaemonSet at `(ns, ref.Name)` with the reference's UID. -/
 abbrev DaemonSetsController.resolveControllerRef.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+  ∀  (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (ns : GoString) (cref : Loc) (r : kd.meta.OwnerReference),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗ isDsc dsc c cfg γa F ∗ threadTok ∗ refAt cref r }}

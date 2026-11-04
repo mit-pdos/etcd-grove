@@ -29,7 +29,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`dsc.runNodeUpdateWorker(ctx)`**: returns once the node queue is shutting down. -/
 abbrev DaemonSetsController.runNodeUpdateWorker.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+  ∀  (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (ctx : GoInterface),
   {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ ⌜ctx ≠ interface.nil⌝ }}

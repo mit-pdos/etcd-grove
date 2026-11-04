@@ -44,7 +44,7 @@ variable [cache_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`dsc.Run(ctx, workers)`**: see the file header. -/
 abbrev DaemonSetsController.Run.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+  ∀  (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names)
     (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (ch : GoChan) (γch : ChanNames)

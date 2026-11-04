@@ -29,7 +29,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`dsc.getDaemonSetsForPod(...)`**: a slice of cached DaemonSets (`dssSeen`). -/
 abbrev DaemonSetsController.getDaemonSetsForPod.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+  ∀  (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (pod : Loc) (x : kd.core.Pod),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗ isDsc dsc c cfg γa F ∗ threadTok ∗ □ podAt pod DFrac.discard x }}

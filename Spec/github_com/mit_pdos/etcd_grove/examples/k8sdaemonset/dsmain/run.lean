@@ -12,7 +12,8 @@ factory takes); the node create through it with the mirror's other half; the con
 pod family `podFamOk`); then `s1Inv γ c` from the mirror's half, the constructor's `dscFresh`,
 `s1Ok_init` at the state after the node create; the DaemonSet create inside `s1Inv` (track B's
 step lemma for an admin create of a `newDsOk` DaemonSet); each check over `s1Reader_of_inv`.
-The informers' not-started parts (decision R6) go from the constructor to `factory.Start`.
+The informers' not-started tokens (decisions R6, R7) go to the constructor, which registers its
+handlers pending; after `s1Inv`, its `dscActivate` gives them back whole for `factory.Start`.
 
 **Premises**: the thread bound under the reader pools' size (`threadBound ≤ 2^30 - 1`, the
 constructor's and the informers' pools) and the receipt bound `NewServer` takes; the main thread's

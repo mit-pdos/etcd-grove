@@ -22,16 +22,18 @@ controller is `isDsc` (track B) with `dscRun`; and the caller gets the fresh sta
 invariant takes (`dscFresh`: the consistency store's empty state, the owner tokens' authority),
 which `Main` puts into `s1Inv` (B's design: allocated after the constructor). The four informers'
 not-started parts (decision R6, `facNotStarted`: the callers' halves the factory's constructor
-gave) are lent to the registrations and `AddIndexers` and come back: `Main` passes them to
-`factory.Start`.
+gave) go to the registrations, each pending until its contract is given (decision R7,
+`handlerPending`), and to `AddIndexers` (given back). The handlers' contracts need the controller's
+fields (stored after the registrations) and `s1Inv` (the delete handler's `Clear` fires inside it),
+which `Main` allocates after the constructor: so the post's `dscActivate` gives the tokens back
+whole once the caller has S1's invariants (the handlers activated, `handlerPending_activate`),
+for `factory.Start`. The registered handlers' resource is `True` (each call gets and returns its
+listener's thread token, R7).
 
-**Open (the run's report).** (1) The handlers' contracts (`handlerSpec`, track A) must be given at
-`AddEventHandlerWithOptions`, but the handlers read fields stored after their registration and
-need `s1Inv` (the delete handler's `Clear` fires inside it), which exists only after the
-constructor: A's registration needs a deferred contract (given before the informers start). (2)
-`isDsc`'s `podCtlIndexed` needs `AddIndexers` to succeed and the index to stay (R6's not-started
-part gives the former; A's `infIdx`/`infInv_readIdxAU` the latter). Both are in the proof, not the
-statement.
+**Open (the run's report).** `isDsc`'s `podCtlIndexed` needs `AddIndexers` to succeed and the index
+to stay (R6's not-started fraction gives the former; A's `infIdx`/`infInv_readIdxAU` the latter);
+`isDsc`'s pools and the expectations' key function come from track B's changes in progress (the
+informers' pools; the `ExpKeyFunc` package fact). In the proof, not the statement.
 -/
 module
 
@@ -60,7 +62,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`NewDaemonSetsController(...)`**: see the file header. -/
 abbrev NewDaemonSetsController.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (ctx : GoInterface) (lds lcr lpod lnode f : Loc) (γF : FacNames) (γa : ApiNames)
+  ∀  (ctx : GoInterface) (lds lcr lpod lnode f : Loc) (γF : FacNames) (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (Fams : Res → Nat → Fn GF) (kc : k8s_io.client_go.kubernetes.Interface) (bo : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller.daemon ∗ ⌜ctx ≠ interface.nil⌝ ∗
@@ -74,8 +76,8 @@ abbrev NewDaemonSetsController.spec : Prop :=
       (Val #(typedInfVal .daemonSets lds))) (Val #(typedInfVal .revisions lcr)))
       (Val #(typedInfVal .pods lpod))) (Val #(typedInfVal .nodes lnode))) (Val #kc)) (Val #bo))
   {{ (dsc : Loc), RET (PairV #dsc #(interface.nil : GoInterface));
-      ([∗list] r ∈ resAll, facNotStarted γF r 1) ∗
-      ∃ c : DscComp, isDsc dsc c cfg γa (dscFams Fams) ∗ dscRun dsc c ∗ dscFresh c }}
+      ∃ c : DscComp, isDsc dsc c cfg γa (dscFams Fams) ∗ dscRun dsc c ∗ dscFresh c ∗
+        dscActivate c γa γF }}
 
 end spec
 

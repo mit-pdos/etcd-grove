@@ -35,7 +35,7 @@ variable [package_sem : k8s_io.kubernetes.pkg.controller.daemon.Assumptions]
 
 /-- **`dsc.updateDaemonset(...)`**: see the file header; the thread token back. -/
 abbrev DaemonSetsController.updateDaemonset.spec : Prop :=
-  ∀ [workqueue.QItem (GF := GF) GoString go.string] (dsc : Loc) (c : DscComp)
+  ∀  (dsc : Loc) (c : DscComp)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
     (γa : ApiNames) (F : DscFams GF) (γ : S1Names) (logger : github_com.go_logr.logr.Logger) (x1 x2 : GoInterface),
   {{ dscEnv dsc c cfg γa F γ ∗ threadTok ∗ evFacts γa .daemonSets c.dsI.γi (.update x1 x2) }}

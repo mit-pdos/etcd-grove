@@ -89,7 +89,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [workqueue.QItem (GF := GF) GoString go.string]
 
 /-- **Read access with S1 from the two invariants**: open `apiInv` (the API state and the
 mirror's half) and `s1Inv` (the other half, `s1Ok`: S1), agree on the state. A law the checker's
