@@ -128,17 +128,107 @@ def flCurOK (fl : FLPg) (C : CommitSt) (pg : List w8) : Prop :=
 
 /-! ## Lemma statements (U3) -/
 
+omit [GooseExts] in
+private theorem mem_flatMap_toList' {V : Type} {f : V → List w64} (m : GMap w64 V) (x : w64) :
+    x ∈ m.toList.flatMap (fun kv => f kv.2) ↔ ∃ k v, m !! k = some v ∧ x ∈ f v := by
+  rw [List.mem_flatMap]
+  constructor
+  · rintro ⟨⟨k, v⟩, hkv, hx⟩; exact ⟨k, v, (GMap.mem_toList m k v).1 hkv, hx⟩
+  · rintro ⟨k, v, hkv, hx⟩; exact ⟨(k, v), (GMap.mem_toList m k v).2 hkv, hx⟩
+
+omit [GooseExts] in
+private theorem mem_sortPgids' (l : List w64) (x : w64) : x ∈ sortPgids l ↔ x ∈ l :=
+  (List.mergeSort_perm _ _).mem_iff
+
+omit [GooseExts] in
+private theorem mem_zip_idx {α β : Type} {l1 : List α} {l2 : List β} {x : α × β} (h : x ∈ l1.zip l2) :
+    ∃ i : Nat, l1[i]? = some x.1 ∧ l2[i]? = some x.2 := by
+  obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 h
+  rw [List.getElem?_zip_eq_some] at hi
+  exact ⟨i, hi.1, hi.2⟩
+
+omit [GooseExts] in
+private theorem getD_of_getElem? {l : List w64} {i : Nat} {a : w64} (h : l[i]? = some a) :
+    l.getD i 0 = a := by
+  simp [List.getD_eq_getElem?_getD, h]
+
+
 /-- `release(txid)` frees no page of a view of a transaction at or after `txid` (its pending
 pages are newer than the view). Used by U3 (`store_release`). -/
 theorem mvccView_release (fl : FLPg) (v : View) (txid : w64) (h : mvccView fl v)
     (ht : txid.toNat ≤ v.txid) : mvccView (fl.release txid) v := by
-  sorry
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨h1, fun s hs => ?_⟩
+  obtain ⟨hs2, hfree, hpend⟩ := h2 s hs
+  refine ⟨hs2, ?_, ?_⟩
+  · simp only [FLPg.release]
+    rw [mem_sortPgids', List.mem_append, mem_flatMap_toList']
+    rintro (hm | ⟨t, pd, hkv, hx⟩)
+    · exact hfree hm
+    · rw [GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
+      obtain ⟨hkv, hle⟩ := hkv
+      obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hx
+      have := (hpend t pd i hkv hi).2
+      simp at hle
+      omega
+  · intro t pd i hkv hi
+    simp only [FLPg.release, GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
+    exact hpend t pd i hkv.1 hi
 
 /-- `releaseRange(b, e)` frees no page of a view outside `[b, e]`. Used by U3
 (`store_release`). -/
 theorem mvccView_releaseRange (fl : FLPg) (v : View) (b e : w64) (h : mvccView fl v)
     (ht : v.txid < b.toNat ∨ e.toNat < v.txid) : mvccView (fl.releaseRange b e) v := by
-  sorry
+  unfold FLPg.releaseRange
+  split
+  · exact h
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨h1, fun s hs => ?_⟩
+  obtain ⟨hs2, hfree, hpend⟩ := h2 s hs
+  refine ⟨hs2, ?_, ?_⟩
+  · simp only
+    rw [mem_sortPgids', List.mem_append,
+      mem_flatMap_toList' (f := fun p => (releaseRangeOne b e p).1)]
+    rintro (hm | ⟨t, pd, hkv, hx⟩)
+    · exact hfree hm
+    · rw [GMap.lookup_filter, Option.filter_eq_some_iff] at hkv
+      obtain ⟨hkv, hsel⟩ := hkv
+      simp only [releaseRangeOne, List.mem_map, List.mem_filter] at hx
+      obtain ⟨⟨x, a⟩, ⟨hxz, hin⟩, rfl⟩ := hx
+      obtain ⟨i, hi1, hi2⟩ := mem_zip_idx hxz
+      have := hpend t pd i hkv hi1
+      rw [getD_of_getElem? hi2] at this
+      simp only [decide_eq_true_eq] at hin hsel this
+      omega
+  · intro t pd i hkv hi
+    simp only [GMap.lookup_union, GMap.lookup_filter, GMap.lookup_fmap] at hkv
+    rcases hp : fl.pending !! t with _ | pd0
+    · simp [hp] at hkv
+    rw [hp] at hkv
+    by_cases hsel : (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b)
+    · have hs' : decide (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b) = true :=
+        decide_eq_true hsel
+      simp only [Option.filter_some, hs', Bool.not_true,
+        Option.none_or, ite_false, Bool.false_eq_true] at hkv
+      simp only [Option.filter_eq_some_iff] at hkv
+      obtain ⟨hkv, -⟩ := hkv
+      cases hkv
+      simp only [releaseRangeOne, List.getElem?_map, Option.map_eq_some_iff] at hi ⊢
+      obtain ⟨⟨x, a⟩, hxa, rfl⟩ := hi
+      have hmem := List.mem_of_getElem? hxa
+      rw [List.mem_filter] at hmem
+      obtain ⟨j, hj1, hj2⟩ := mem_zip_idx hmem.1
+      have := hpend t pd0 j hp hj1
+      rw [getD_of_getElem? hj2] at this
+      have key : ∀ (L : List (w64 × w64)), L[i]? = some (W64 (s : Int), a) →
+          (L.map Prod.snd).getD i 0 = a := fun L hL =>
+        getD_of_getElem? (by rw [List.getElem?_map, hL]; rfl)
+      rw [key _ hxa]; exact this
+    · have hs' : decide (b.toNat ≤ t.toNat ∧ t.toNat ≤ e.toNat ∧ pd0.lastReleaseBegin ≠ b) = false :=
+        decide_eq_false hsel
+      simp only [Option.filter_some, hs', Bool.not_false, ite_true, Option.some_or] at hkv
+      cases hkv
+      exact hpend t _ i hp hi
 
 /-- A writer's `Free` keeps the MVCC rule of every older view: a freed page of the view becomes
 pending for a newer transaction, allocated at or before the view. Used by U3 (`store_free`). -/

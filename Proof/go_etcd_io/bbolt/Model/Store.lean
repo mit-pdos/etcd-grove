@@ -207,11 +207,103 @@ proj_simps StoreSt.setFl
 
 /-! ## Lemma statements (U3) -/
 
+open Classical in
+private theorem lent_fold_le (s : Nat) (l : List (Nat × RdInfo)) (q : Qp)
+    (h : l.foldr (fun kv acc => if coversSlot kv.2.v.pages s then optAdd rq acc else acc) none
+      = some q) : q.val ≤ (l.length : Rat) * rq.val := by
+  induction l generalizing q with
+  | nil => simp at h
+  | cons kv l ih =>
+    simp only [List.foldr_cons] at h
+    have hq := rq.2
+    split at h
+    · revert h
+      generalize hf : List.foldr _ none l = r
+      intro h
+      cases r with
+      | none =>
+        simp only [optAdd, Option.some.injEq] at h; subst h
+        simp only [List.length_cons]; push_cast
+        have : (0 : Rat) ≤ (l.length : Rat) * rq.val :=
+          Rat.mul_nonneg (by exact_mod_cast Nat.zero_le _) (by grind)
+        grind
+      | some b =>
+        simp only [optAdd, Option.some.injEq] at h; subst h
+        have := ih b hf
+        simp only [List.length_cons, Qp.val_add]; push_cast
+        grind
+    · have := ih q h
+      simp only [List.length_cons]; push_cast
+      grind
+
+omit [GooseExts] in
+private theorem rq_val : rq.val = 1 / (4 * ((sync.rwmutex.actualMaxReaders + 1 : Int) : Rat)) := by
+  simp only [rq, Qp.val_half, sync.rfrac_unseal, sync.rfracDef, Qp.val_div, Qp.val_one]
+  rw [sync.posToQpZ_val _ (by have := sync.actualMaxReaders_pos; omega)]
+  grind
+
+
 /-- What is lent of a slot is below the half (`|R| · rfrac ≤ 1`, by the readers' `mtok`
 deposits). Used by U3 (every borrow). -/
 theorem lent_lt_half (σ : StoreSt) (hR : σ.R.size ≤ Int.toNat sync.rwmutex.actualMaxReaders)
     (s : Nat) (q : Qp) (h : lent σ s = some q) : q < (1 : Qp).half := by
-  sorry
+  classical
+  have hM := sync.actualMaxReaders_pos
+  have hrq := rq_val
+  have hwq : wq.val = 1 / 8 := by
+    simp only [wq, Qp.val_half, Qp.val_one]; grind
+  -- the readers' part
+  have hr : ∀ q', GMap.mapFold (fun _ (ri : RdInfo) acc =>
+      if coversSlot ri.v.pages s then optAdd rq acc else acc) none σ.R = some q' →
+      q'.val < 1 / 4 := by
+    intro q' hq'
+    have := lent_fold_le s σ.R.toList q' hq'
+    have hsz : (σ.R.toList.length : Rat) ≤ ((sync.rwmutex.actualMaxReaders : Int) : Rat) := by
+      have : σ.R.toList.length ≤ Int.toNat sync.rwmutex.actualMaxReaders := hR
+      have : (σ.R.toList.length : Int) ≤ sync.rwmutex.actualMaxReaders := by omega
+      exact_mod_cast this
+    have hx : rq.val * (4 * ((sync.rwmutex.actualMaxReaders : Int) : Rat) + 4) = 1 := by
+      rw [hrq]
+      have : (4 * ((sync.rwmutex.actualMaxReaders : Int) : Rat) + 4) =
+          4 * ((sync.rwmutex.actualMaxReaders + 1 : Int) : Rat) := by push_cast; grind
+      rw [this]; apply Rat.div_mul_cancel
+      have : (0 : Rat) < ((sync.rwmutex.actualMaxReaders + 1 : Int) : Rat) := by
+        exact_mod_cast (by omega : (0 : Int) < sync.rwmutex.actualMaxReaders + 1)
+      grind
+    have hmul := Rat.mul_le_mul_of_nonneg_right hsz (Rat.le_of_lt rq.2)
+    have := rq.2
+    grind
+  have hrq4 : rq.val < 1 / 4 := by
+    simp only [rq, Qp.val_half]
+    have h1 : sync.rfrac.val ≤ 1 / 2 := by
+      rw [sync.rfrac_unseal, sync.rfracDef, Qp.val_div, Qp.val_one,
+        sync.posToQpZ_val _ (by omega)]
+      have h2 : (2 : Rat) ≤ ((sync.rwmutex.actualMaxReaders + 1 : Int) : Rat) := by
+        exact_mod_cast (by omega : (2 : Int) ≤ sync.rwmutex.actualMaxReaders + 1)
+      generalize ((sync.rwmutex.actualMaxReaders + 1 : Int) : Rat) = M at h2
+      have : 1 / M * M = 1 := Rat.div_mul_cancel (by grind)
+      have hp : (0 : Rat) ≤ 1 / M := Rat.le_of_lt (by
+        rw [Rat.div_def, Rat.one_mul]; exact Rat.inv_pos.2 (by grind))
+      have := Rat.mul_le_mul_of_nonneg_left h2 hp
+      grind
+    grind
+  rw [Qp.lt_iff, Qp.val_half, Qp.val_one]
+  unfold lent at h
+  revert h
+  generalize hf : GMap.mapFold _ none σ.R = r
+  intro h
+  have hqpos := q.2
+  split at h
+  · split at h
+    · cases r with
+      | none =>
+        simp only [optAdd, Option.some.injEq] at h; subst h; rw [hwq]
+        show (1 : Rat) / 8 < 1 / 2; grind
+      | some b =>
+        simp only [optAdd, Option.some.injEq] at h; subst h
+        have := hr b hf; simp only [Qp.val_add]; rw [hwq]; grind
+    · subst h; have := hr q hf; grind
+  · subst h; have := hr q hf; grind
 
 theorem storeOK_register (σ : StoreSt) (k : Nat) (r : RdInfo) (b : Loc) (l : Nat)
     (h : storeOK σ) (hms : σ.ms = some (b, l)) (hk : σ.R !! k = none)
