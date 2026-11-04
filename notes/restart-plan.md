@@ -1290,3 +1290,37 @@ The image's clauses against their sources (gaps marked):
 Stages: (1) gap 1; (2) `Cleanup`'s preconditions from `applyResC` and `NewServer`'s kept pieces
 (`srvCleanupOwn` defined, `srvStopKeep`); (3) gap 2, the image's backend part; (4) gap 3; (5) the
 shutdown's WP and `run.specStop` (then `spec` replaced, R2b-2 review F4).
+
+### R2b-3d: stage 1 done; gap 4, the readers' open shares (2026-11-04)
+
+Stage 1 landed (`e072cd1e4c`): `srvStopKeep` (the raft loop's stop claim, the registry's
+authority, the lessor's stop right, the WAL's directory) from `NewServer`; `bootOk` and
+`srvSnapRes` keep the backend's `bFile`.
+
+**Gap 4 (blocks stage 2).** `backend.Close` takes the clients' whole open token `bOpen γ 1`, and
+must: a reader's share (`rdOpen`) is its proof the backend is not stopped, so the close collects all
+of them. At the server's stop they are not collectable:
+- the constructors' half: the apply thread's `srvOpenQ` (`srvSnapRes`), the auth realization's
+  quarter on;
+- the pool's `rdPoolN + authRdN` shares: in the readers' thread pool (`bkRPool`,
+  `threadPool.isThreadPool rdPoolNs`, a plain `inv` of Perennial's `ThreadPool`), copies lent to
+  the request path's goroutines against their thread tokens; an `inv` never gives them back;
+- the stock's `rdStockN`: the store's readers (`mvcc.storeReader`, `bkRTx`), of which
+  `watchableStore.Close` returns only its loops' `wsLoopN`.
+
+The Go code agrees that this is a real condition: `Cleanup` closes the backend whatever the request
+path is doing (etcd's `embed` stops the gRPC servers before `Server.Stop`; `EtcdServer.Stop`
+alone does not), and a read on a closed bbolt transaction fails. Options:
+1. **A cancelable reader pool and a quiescent request path** (recommended): a general Perennial
+   change, `ThreadPool` with a cancelable invariant whose cancel, with every loan back
+   (`ownTokAuth γ 0`), returns the copies; the stop's caller gives back the request path's loans
+   (its goroutines joined, as `embed` does), and the stores' readers come back from their closes.
+   The exported restart result gains the premise that the members' request paths stopped first.
+2. **Readers that tolerate a stopped backend**: drop the reader's open share; a read gets either
+   its view or a failure after `stopQ`. This needs a trust-boundary spec of bbolt's reads on a
+   closed database, and the request path's specs gain a failure case.
+3. **Restrict the restart scope**: no request in flight is modeled at the stop, so the pool is
+   built cancelable from the start and never lent past the stop. This is option 1 without the
+   join, and it is valid only for the examples whose clients finish first.
+
+Stages 3 (gap 2) and 4 (gap 3) do not depend on it and go first.
