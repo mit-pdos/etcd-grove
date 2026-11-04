@@ -4,7 +4,8 @@ after the loop** (`spEnd`), what `Spill/NodeSpillPieces`'s `spillTail_wp` takes:
 nothing happened (the sort and the loop of an empty `children`); for a branch, the loop's
 invariant (`Spill/NodeSpillLoop`'s `spLoop`, relative to the start of `n`'s spill: `n`'s record
 `rn` before the sort, the slots `D`, nodes `N` and elements `E` of `n`'s `uTree`) at an index past
-the children.
+the children, and `n`'s children then its children at the start or nodes the loop made (its
+children's pieces, in `T`: their kill is framed).
 -/
 module
 
@@ -33,7 +34,8 @@ def spEnd (X : WX) (w : WDb) (bl n : Loc) (rn : NRec) (O : List Nat) (lo hi : Op
     (st : List FLStep) (T : List Loc) : Prop :=
   (rn.nv.isLeaf' = true ∧ X' = X ∧ w' = w ∧ r' = rn ∧ st = [] ∧ T = []) ∨
   (rn.nv.isLeaf' = false ∧ ∃ h' es i, h = h' + 1 ∧
-    spLoop X w bl n rn O lo hi h' D N E X' w' r' es i st T ∧ r'.cs.length ≤ i)
+    spLoop X w bl n rn O lo hi h' D N E X' w' r' es i st T ∧ r'.cs.length ≤ i ∧
+    ∀ c ∈ r'.cs, c ∈ rn.cs ∨ c ∈ T)
 
 end defs
 
