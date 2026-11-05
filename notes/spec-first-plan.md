@@ -1091,6 +1091,175 @@ Spec files naming a start resource: 34 on `lean`, 5 after (the consumers).
   the fresh bundle (the starters') are two predicates, with `alloc3` between them.
 - `restart.Main.spec`'s text does not change: its resources are behind `runRes`.
 
+#### Step 7 Draft: glue list and probes (2026-11-05)
+
+Scope approved (Q1-Q4 as recommended, the user via etcd-grove-82; D1-D4 accepted by the coordinator).
+The Lean Draft waits for K6 and lease-expiry to land. This list is written against `lean` with
+their files where they move: `cluster3.*` is K6's, `leaseexpiry` is lease-expiry's.
+
+Every entry below re-frames resources an existing proof already passes. None takes a lock, opens an
+invariant, or decides over shared state. The ghost steps involved are the existing `alloc3`
+reservation and new pure entailments.
+
+##### Glue list
+
+**L. The laws** (`etcdstart/StartRes.lean`, new; the bodies unfolded only here):
+- **L1.** `memberStartRes_fresh`, `memberStartRes_client`, `memberFreshRes_client`,
+  `memberFreshRes_peer`, `memberRestartRes_peer`, `memberRestartRes_boot`,
+  `memberRestartRes_intro`.
+  - Unfold, `cases a.peer`/`a.client` at the premise's equation, `iframe`.
+  - The returned bundle is at `{a with … := none}`, whose `match` reduces to `emp`.
+- **L2.** `memberFreshRes_boot`: unfold to `walDirFresh (memberWalDir n)`, then `wal.bootRes_intro`
+  at the two configuration equations, as `newServerMode.lean:113` does today.
+- **L3.** `memberStartRes_intro`:
+  - `BigSepL.bigSepL_perm` on each of `startRights`' three lists (from `hA`, `hD`);
+  - split the appended list (`bigSepL_app`);
+  - regroup `ms.flatMap addrsOf` by member: induction on `ms`, `bigSepL_app` per member, unfold
+    `memberStartRes`;
+  - drop the client addresses' `httpProtoFree` (affine).
+
+  `addrsOf m := m.2.peer.toList ++ m.2.client.toList`; `httpProtoFree` is kept only for the peer
+  part, so the per-member step splits the `httpProtoFree` list the same way and drops the client's.
+- **L4.** `etcd_adequate_members` (`etcdstart/Adequacy.lean`): `etcd_adequate` at `As`, `Ds`, its
+  `Hprog` given `[∗list] m ∈ ms, memberStartRes …` and `[∗list] b ∈ Bs, netAddrFree b`, by L3.
+
+**R. `alloc3`** (`etcdstart/Alloc3.lean`): its three `httpProtoFree aᵢ` come from the start bundles.
+- Unfold `memberStartRes nᵢ ⟨some aᵢ, cᵢ⟩` (inside `etcdstart`).
+- Feed `httpProtoFree aᵢ` to `netHttp_reserve3` as today.
+- Fold `memberFreshRes nᵢ ⟨some aᵢ, cᵢ⟩ γn` from `walDirFresh`, `netAddrFree aᵢ`, the client's
+  token and `netHttp_reserve3`'s `httpProtoOwn aᵢ`.
+
+The statement gains `n₁ n₂ n₃ c₁ c₂ c₃`.
+
+**S. The `etcdstart` starters** (`Proof/.../examples/lib/etcdstart/`; the precondition's
+`Hwdf : walDirFresh …` becomes `Hres : memberFreshRes name {} γn`):
+- **S1.** `newServerMode` takes `memberFreshRes_boot`: `Hres` replaces `Hwdf` at the
+  `wal.bootRes` split. This is the only one that eliminates.
+- **S2.** `newServer` passes `Hres` on to `newServerMode`. `specCompact`'s theorem is deleted.
+- **S3.** `BuildServer.spec`/`specStop`, `StartStop`'s `Start_builtS`: pass `Hres` on to `newServer`
+  unchanged.
+- **S4.** `StartServer`, `StartCompactingServer`, `StartPeriodicServer`: pass `Hres` on to
+  `newServer`/`newServerMode` unchanged.
+- **S5.** `NewMember`: `wp_start` destructs `Hres : memberFreshRes name ⟨some peerAddr, none⟩ γn`.
+  - `memberFreshRes_peer` gives `Haddr` (to `net.Listen`) and `Hpown` (to `http.Serve`); the rest
+    is `memberFreshRes name {} γn`, for `newServer`.
+  - Today `Haddr`, `Hpown` and `Hwdf` are three separate pattern slots.
+- **S6.** `StartMember`: passes `Hres` on to `NewMember`.
+- **S7.** `BuildServer.specRestart` (r2b3's draft, if not `sorry`): `memberRestartRes_boot` turns
+  `Hres` into `srvDiskImage …` for `NewServer`'s restart path.
+
+**E. Example-local starters:**
+- **E1.** `cluster3.StartMember` (K6; partition's `startMember` today), on
+  `memberFreshRes name ⟨some peerAddr, some client⟩ γn`:
+  - `memberFreshRes_client` gives `Hcaddr` (to the client listener `net.Listen`);
+  - the rest goes to `NewMember`.
+- **E2.** `cluster3.StartCluster` (K6; partition's `startCluster` today), on `cluster3.startRes cfg`:
+  - its own unfolding law gives the three member bundles and three bridge tokens (`cluster3`'s API,
+    D1, proved in `cluster3`);
+  - the bridge tokens go to `StartBridge`; the members' bundles go to `alloc3` (R), then
+    `memberFreshRes` to each `StartMember`.
+
+  Today `wp_start` names 17 pieces. There is also the new law `cluster3.startRes_members` (unfold,
+  `iframe`).
+- **E3.** `restart.startMember.spec`: like S5, but the peer listener is its own.
+  `memberFreshRes_peer` gives `Haddr`, `Hpown`; the rest goes to `BuildServer.specStop`.
+- **E4.** `restart.startMember.specRestart`: `memberRestartRes_peer` gives `Haddr`, `Hpown`; the rest
+  goes to `BuildServer.specRestart`.
+- **E5.** `restart.stop`: its post folds by `memberRestartRes_intro` (`srvDiskImage`, `netAddrFree`,
+  `httpProtoOwn`), or it stays three pieces and E6 folds them (the restart owner's call).
+- **E6.** `restart.Run`, on `runRes`'s three `memberStartRes`:
+  - first start: `alloc3` (R), then `memberFreshRes` to each `startMember.spec`, the clients'
+    tokens by `memberFreshRes_client` to `serveClient`/`restartCheck`;
+  - the restart leg: `stop`'s bundle to `startMember.specRestart`.
+- **E7.** `auth.startServer`: `memberFreshRes_boot` at `go!"authkv"`, in place of
+  `wal.bootRes_intro` (`auth/startServer.lean:129`).
+
+**M. The Mains:**
+- **M1. The one-member Mains** (putget, watch, txnlin, lease, leasegrant, compactwatch, compacted,
+  cache, k8s/etcd3, k8s/compactor's `Main`, auth's `Main`/`MainAlloc`, leaseexpiry: 12):
+  - `wp_start` destructs `Hres : memberStartRes name ⟨none, some c⟩` in place of `Haddr`/`Hwdf`;
+  - `memberStartRes_client` gives `Haddr` (kept for `Serve`) and the rest;
+  - `memberStartRes_fresh` makes the rest `memberFreshRes name {} γn` at `alloc1`'s `γn`, for
+    `StartServer`/`StartCompactingServer`/`StartPeriodicServer`/auth's `startServer`;
+  - `txnlin/MainDefs`, `k8s/etcd3/MainDefs` and `k8s/compactor/Inv` only if their helper lemmas name
+    the tokens (check in Draft: today none names them).
+- **M2. putget3:**
+  - `wp_start` names three bundles in place of 10 pieces (`Ha₁..₃`, `Hac`, `Hf₁..₃`, `Hw₁..₃`);
+  - `alloc3` (R) on them;
+  - `memberFreshRes_client` on member 1's bundle for `Serve`;
+  - the three bundles to `StartMember`.
+- **M3. partition `Main`, `MainWatch`; K6's `MainPartition`:** `cluster3.startRes cfg` passed whole to
+  `startCluster`/`cluster3.StartCluster` (pure framing).
+
+**A. The adequacy introductions** (each example's `Adequacy.lean`; `etcdstart/AdequacyStart.lean`
+if a user remains):
+- **A1. The one-member examples (12):**
+  - `etcd_adequate` → `etcd_adequate_members` at `ms := [(name, ⟨none, some c⟩)]`, `Bs := []`, with
+    the theorem's `As := [c]` and `Ds := [config.walDirOf go!"X.etcd" go!""]`;
+  - `hA`, `hD` by `decide` or `List.Perm.refl` after `rfl` on `go!"X" ++ go!".etcd"`;
+  - the `icases` of `Has`/`Hds` (today `bigSepL_cons` twice) become one bundle.
+- **A2. putget3:**
+  - `ms := [(name₁, ⟨some peerAddr₁, some clientAddr₁⟩), (name₂, ⟨some peerAddr₂, none⟩),
+    (name₃, ⟨some peerAddr₃, none⟩)]`;
+  - `hA : [peerAddr₁, clientAddr₁, peerAddr₂, peerAddr₃].Perm putget3Addrs` (a real permutation),
+    and `hD` the identity.
+- **A3. partition (both results) and K6's `MainPartition`:** `cluster3.startRes` by its intro from
+  the member bundles and `Bs := bridges`, the theorem's `linkv3pAddrs` by `hA`.
+- **A4. restart:** no closed theorem yet. When it gets one, as A3 without bridges.
+
+**Order** (each step type-checks against the previous ones; the Mains only after the starters they
+call):
+1. `StartRes.lean`: the definitions and L1, L2.
+2. L3 and L4, the intro and `etcd_adequate_members` (the hard probe's first half).
+3. R (`alloc3`).
+4. S1-S6 bottom-up: `newServerMode`, `newServer`, `BuildServer`, the `Start*Server`s, `NewMember`,
+   `StartMember`.
+5. E7, M1, A1 for putget (the easy probe), then the other 11 one-member examples.
+6. M2, A2 for putget3 (the hard probe's second half).
+7. E1, E2, the `cluster3` bundle and its laws, M3, A3.
+8. S7, E3-E6, coordinated with the restart owner (`r2b3`'s drafts).
+9. `newServer.specCompact` deleted, `Link.lean` regenerated, the interfaces (Q4), the import-all
+   lines.
+
+##### Probes
+
+- **Easy: putget**, `Main` (M1) and its adequacy (A1). It is the smallest path through every
+  fresh-start piece:
+  - the intro at one member;
+  - `memberStartRes_client`, `memberStartRes_fresh`;
+  - `StartServer` → `newServer` → `newServerMode` → `memberFreshRes_boot`.
+
+  It tests that:
+  - the sealed `match` on `Option` reduces in the laws only, never at a caller;
+  - `go!"putget" ++ go!".etcd"` meets the theorem's literal `HDs` entry by `rfl`/`decide`;
+  - the 11 other one-member examples are then mechanical.
+- **Hard: putget3**, the intro (L3, L4, A2) and the `Main` through `alloc3` (R, M2). It is the one
+  proof that tests D2, D3 and the start → fresh step together:
+  - a real permutation of `As`;
+  - members with and without a client;
+  - a bundle unfolded inside `etcdstart` (`alloc3`) and folded back as `memberFreshRes` at the
+    network's `γn`.
+
+  Partition adds only the bridges (D1's `cluster3` wrapper) on top of it, and restart's second
+  bundle is the restart owner's design. Restart is not chosen because its statements are drafts
+  that are still moving on `r2b3`.
+
+**What would make us revise the design:**
+- L3 needs a `Perm` lemma per example, or `hA` cannot be closed by `decide` on the `GoString`
+  literals (the names `peerAddr₁` are abbreviations). Then the intro takes `As` in member order
+  plus an explicit permutation argument, or `etcd_adequate_members` computes `As` and the closed
+  theorems' lists are rewritten. The latter would be a top-level change: back to the user.
+- The per-member split in L3 must unfold the `Option` matches outside `StartRes`. Then
+  `MemberAddrs`' optional fields become two bundle parts (`peerRes`, `clientRes`), each sealed with
+  its own law (D3 revisited).
+- `alloc3` cannot fold `memberFreshRes` without its body. Then the fold needs a law
+  (`memberFreshRes_of_start : memberStartRes … ∗ httpProtoAt p P … ⊢ …`), and `alloc3` does not
+  `import all`.
+- A Main needs a piece of a bundle that no law gives, beyond the client and the peer. Then the
+  elimination list is incomplete; add the law, and check that it is narrow.
+- putget's chain needs the bundle at a `γn` that `alloc1` does not fix. Then `memberFreshRes` drops
+  `γn` when `peer = none`: a separate one-member form, D3 revisited.
+
 ### The slot convention (approved 2026-11-03, step 1)
 
 Approved by the user as drafted (draft 1), with the WAL as its first slot.
