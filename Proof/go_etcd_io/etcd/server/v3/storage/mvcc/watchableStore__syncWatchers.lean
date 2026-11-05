@@ -142,9 +142,6 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iframe
   -- (M2, the storage side) an unsynced watcher: the store is frozen (`wsWatchFrozen`; until then
   -- `isWatchableStore`'s `crevFrozen`, now by the mode)
-  have hszne : GMap.size σ.Wu ≠ 0 := fun h => Hif (by rw [h]; rfl)
-  iclear Hfrz
-  ihave #Hfrz := mvcc.wsWatchFrozen_of_Wu γ σ Hok hszne $$ Hwfz
   ihave #Hs0 : mvcc.isStore st γ.st $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -181,10 +178,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
-  -- (watches across a compaction) the compaction revision `cQ`: `-1` (no compactor) or a revision
-  -- of the committed log that writes no key twice (the create token's `watchNoDup`); a member
-  -- `choose` marks compacted is behind it (`crevLb`)
-  imod mvcc.watchNoDup_crev γ.st _ cQ C HcQ.1 $$ Hfrz HcrevQ HcertQ HokQ with ⟨HcrevQ, %HndQ⟩
+  -- (watches across a compaction) the compaction revision `cQ`; a member `choose` marks compacted
+  -- is behind it (`crevLb`); (per watcher, 2026-11-05) the API's lower bound of it, for a doomed
+  -- member's witness
+  icases mvcc.slotX_crevLb γ.st _ C cQ $$ HXQ with ⟨HXQ, #HcLbQ⟩
   icases mvcc.crevUB_get_lb _ _ _ $$ HcrevQ with ⟨HcrevQ, #HlbQ⟩
   icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$HlogQ $Hcert]
     with ⟨%HpC, HlogQ, -⟩
@@ -194,6 +191,15 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   -- (D25) the committed log is released
   iunfold mvcc.relAuth at Hrel
   icases Hrel with ⟨Hrel, Hslot⟩
+  icases mvcc.wsSlot_nlLb γ 1 σ.Lmu $$ Hslot with ⟨Hslot, #HnlQ⟩
+  -- (per watcher, 2026-11-05) a member reading from `cQ` when revision `cQ` changes a key twice is
+  -- past its exactness condition (`doomed`)
+  ihave #Hdm : □ (∀ lo : Nat, ⌜¬ api.onceUpTo C lo cQ⌝ -∗ mvcc.doomed γ lo) $$ []
+  · iintro !> %lo %hn
+    iunfold mvcc.doomed
+    iexists σ.Lmu, cQ
+    iframe HnlQ HcLbQ
+    ipureintro; rw [← HCL]; exact hn
   ihave #HrlC0 := monoNatLbOwn_get γ.rel 1 _ $$ Hrel
   ihave Hrel : mvcc.relAuth γ 1 σ.Lmu $$ [Hrel Hslot]
   · iunfold mvcc.relAuth; iframe Hrel Hslot
@@ -402,11 +408,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp
   rw [hnat1] at Hpslen HP ⊢
-  -- revision `cQ` changes each key once (or no compaction): the scan kept every entry
-  rw [mvcc.entsEvents_logEnts C HCwf.1 HCwf.2.1 HCwf.2.2 W' _ _ (Nat.le_refl _) P (HP.2 HndQ)]
-    at Hpslen ⊢
-  generalize hevm : (mvcc.logEvents C (sint.nat minRev) C.length).filter
-    (fun ev => mvcc.wgCovers W' ev.kv.key) = evm at Hpslen ⊢
+  generalize hevm : mvcc.entsEvents W' ((mvcc.logEnts C (sint.nat minRev) C.length).filter P)
+    = evm at Hpslen ⊢
   (try wp_auto)
   rw [go.make1_underlying, go.is_underlying (t := watcherBatch.ty)]
   wp_apply (wp_map_make1 (K := Loc) (V := Loc)) as %vm Hvm
@@ -707,14 +710,14 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         HBt.resolve_left (fun hWe => by rw [hWe] at hW; simp at hW)
       have hbk : GMap.fmap Prod.snd PB !! key = mvcc.memberBatch r' st evm := by
         rw [← HBt, mvcc.batchOf_lookup, hr, hSTuk]
-      have hmb := mvcc.memberBatch_logEvents C HCwf.1 HCwf.2.1 HCwf.2.2 r' st
-        (fun ev => mvcc.wgCovers W' ev.kv.key) (sint.nat minRev) C.length
+      have hmb := mvcc.sw_memberBatch_cases C HCwf.1 HCwf.2.1 HCwf.2.2 W' P cQ (sint.nat minRev)
+        HP.1 HP.2 r' st γw.lo
         (fun ev hc => by
           simp only [mvcc.wgCovers, decide_eq_true_eq]; exact ⟨key, r', hr, hc⟩)
         (by
           have := hm2' key st hW hSTuk (by omega)
           show ((sint.Z minRev).toNat : Int) ≤ _; omega)
-        (Nat.le_refl _)
+        (by omega) (by omega)
       rw [hevm] at hmb
       have hmCn : C.length ≤ sint.nat st.minRev := by
         show C.length ≤ (sint.Z st.minRev).toNat; omega
@@ -722,8 +725,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         rcases hmb with ⟨h, -⟩ | ⟨B, -, hBne, hBev⟩
         · exact h
         · exfalso
-          rcases hBev with ⟨-, h⟩ | ⟨M, -, h1, h2, -⟩
+          rcases hBev with ⟨-, h | ⟨-, h⟩⟩ | ⟨M, -, h1, h2, -⟩
           · exact hBne (by rw [h]; exact mvcc.watchEvents_empty _ _ hmCn)
+          · exact hBne (List.eq_nil_of_sublist_nil (mvcc.watchEvents_empty C r' hmCn ▸ h))
           · omega
       rw [hnone, GMap.lookup_fmap] at hbk
       have hPBk : PB !! key = none := by
@@ -797,15 +801,17 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       HBt.resolve_left (fun hWe => by rw [hWe] at hW; simp at hW)
     have hbk : GMap.fmap Prod.snd PB !! key = mvcc.memberBatch r' st evm := by
       rw [← HBt, mvcc.batchOf_lookup, hr, hSTuk]
-    have hmb := mvcc.memberBatch_logEvents C HCwf.1 HCwf.2.1 HCwf.2.2 r' st
-      (fun ev => mvcc.wgCovers W' ev.kv.key) (sint.nat minRev) C.length
+    have hmb := mvcc.sw_memberBatch_cases C HCwf.1 HCwf.2.1 HCwf.2.2 W' P cQ (sint.nat minRev)
+      HP.1 HP.2 r' st γw.lo
       (fun ev hc => by
         simp only [mvcc.wgCovers, decide_eq_true_eq]; exact ⟨key, r', hr, hc⟩)
       (by
         have := hm2' key st hW hSTuk (by omega)
         show ((sint.Z minRev).toNat : Int) ≤ _; omega)
-      (Nat.le_refl _)
+      (by omega) (by omega)
     rw [hevm] at hmb
+    ihave #Hdmw : □ (⌜¬ api.onceUpTo C γw.lo cQ⌝ -∗ mvcc.doomed γ γw.lo) $$ []
+    · iintro !> %h; iapply Hdm $$ %γw.lo %h
     rcases hmb with ⟨hnone, hwE⟩ | ⟨B, hsome, hBne, hBev⟩
     · -- no batch: synced
       rw [hnone, GMap.lookup_fmap] at hbk
@@ -829,9 +835,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         show (sint.Z st.minRev).toNat ≤ _; omega
       have hloN : γw.lo ≤ sint.nat st.minRev := by
         show _ ≤ (sint.Z st.minRev).toNat; omega
-      ihave #Hwf' := mvcc.sw_evsWf_extend γ r' γw.lo evsw (sint.nat st.minRev) C.length C hmN
-        (Nat.le_refl _) hloN $$ [$Hwf $HcertQ $HokQ $HrlC]
-      rw [hwE, List.append_nil] at *
+      ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw [] (sint.nat st.minRev) C.length C
+        (¬ api.onceUpTo C γw.lo cQ) hmN (Nat.le_refl _) hloN
+        (by rcases hwE with h | h
+            · exact Or.inl h.symm
+            · exact Or.inr ⟨h, List.nil_sublist _⟩) $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+      rw [List.append_nil] at *
       generalize hst' : ({ st with minRev := W64 ((C.length : Int) - 1) + W64 1 } : mvcc.WatcherSt) = st'
       have hst'm : sint.Z st'.minRev = C.length := by rw [← hst']; exact hcur1
       have hn' : sint.nat st'.minRev = C.length := by
@@ -901,12 +910,14 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         rw [decide_eq_true hmr0]
         wp_auto
         have hmD : sint.nat st.minRev ≤ C.length := hmN
-        ihave #Hwf' := mvcc.sw_evsWf_extend γ r' γw.lo evsw (sint.nat st.minRev) C.length C hmD
-          (Nat.le_refl _) hloN $$ [$Hwf $HcertQ $HokQ $HrlC]
-        rw [← hevB]
-        have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length
-          (Nat.le_refl _)
-        rw [← hevB] at hmodB
+        ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw B.evs (sint.nat st.minRev) C.length C
+          _ hmD (Nat.le_refl _) hloN hevB $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+        have hmodB : ∀ ev ∈ B.evs, (sint.nat st.minRev : Int) ≤ sint.Z ev.kv.modRev ∧
+            sint.Z ev.kv.modRev < C.length := fun ev hev =>
+          mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length (Nat.le_refl _) ev
+            (by rcases hevB with h | ⟨-, h⟩
+                · rw [← h]; exact hev
+                · exact h.subset hev)
         wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw C.length _ eps B.evs (DFrac.own 1) [] 1 none iprop(True))
           $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
         · rw [if_neg hBne]
@@ -1065,12 +1076,14 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         rw [decide_eq_false hMne]
         wp_auto
         have hmD : sint.nat st.minRev ≤ M := by omega
-        ihave #Hwf' := mvcc.sw_evsWf_extend γ r' γw.lo evsw (sint.nat st.minRev) M C hmD
-          (by omega) hloN $$ [$Hwf $HcertQ $HokQ $HrlC]
-        rw [← hevB]
-        have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M
-          (by omega)
-        rw [← hevB] at hmodB
+        ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw B.evs (sint.nat st.minRev) M C
+          _ hmD (by omega) hloN hevB $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+        have hmodB : ∀ ev ∈ B.evs, (sint.nat st.minRev : Int) ≤ sint.Z ev.kv.modRev ∧
+            sint.Z ev.kv.modRev < M := fun ev hev =>
+          mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M (by omega) ev
+            (by rcases hevB with h | ⟨-, h⟩
+                · rw [← h]; exact hev
+                · exact h.subset hev)
         wp_apply (hSend γ key γw r' fcs st.ch 1 (1 : Qp).half evsw M _ eps B.evs (DFrac.own 1) [] 1 none iprop(True))
           $$ [Hchf Hlv Ha Hsl] as %b ⟨Hchf, Hlv, Hsl, Ha, -, -, -⟩
         · rw [if_neg hBne]

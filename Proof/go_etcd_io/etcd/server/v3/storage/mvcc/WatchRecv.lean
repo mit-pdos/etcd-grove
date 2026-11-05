@@ -79,7 +79,8 @@ models, in order; persistent): `w`'s names (its first revision `γw.lo`), its fi
 the sent deliveries, each delivery's kept events are its events filtered by predicates `fcs`
 implements, and the deliveries' events, concatenated, are the range's events of the revisions
 `[γw.lo, d)` of a watched log `L` (`evLog`: sealed and certified by the store's caller, unit
-W-M3; `d` past `L` only for an empty range); the
+W-M3; `d` past `L` only for an empty range), or the watcher is past its exactness condition
+(`doomed`, per watcher, 2026-11-05); the
 first revision `γw.lo` is the start revision `r.startRev` unless that is `0` (`startLo`; for `0`,
 what `watchStream.Watch` returns, `watcherIs`, says: the length of a committed log at the
 registration); and what each response says (`respOk`). -/
@@ -87,8 +88,8 @@ def watchRecvOk (γ : WsNames) (w : Loc) (rs : List RespM) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (L : Log) (D : List Deliv) (d : Nat),
     watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜startLo r γw.lo⌝ ∗
     evLog γ.st L ∗ relLb γ L.length ∗
-    ⌜rs.map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
-      (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
+    (⌜(D.map Prod.fst).flatten = watchEvents L r γw.lo d⌝ ∨ doomed γ γw.lo) ∗
+    ⌜rs.map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
       ∀ x ∈ rs, x.w = w⌝ ∗
     □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
     □ (∀ x : RespM, ⌜x ∈ rs⌝ -∗ respOk x))
@@ -114,7 +115,7 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
   iunfold delivsCut at HDc2
   icases HDc2 $$ %k %hk with ⟨%d', #Hwf'⟩
   iunfold evsWf at Hwf'
-  icases Hwf' with ⟨%L, #Hlb, #Hrl, %HL⟩
+  icases Hwf' with ⟨%L, #Hlb, #Hrl, %HLb, #HLe⟩
   isplitl [Ha Hlc]
   · iunfold chanWatcher
     iexists γw, r, fcs, evsw, D, d
@@ -126,8 +127,12 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
   isplitr
   · ipureintro; exact Hslo
   isplitr
+  · icases HLe with (%HLe | ⟨#Hd, -⟩)
+    · ileft; ipureintro; exact HLe
+    · iright; iexact Hd
+  isplitr
   · ipureintro
-    refine ⟨hke, HL.1, HL.2, fun x hx => ?_⟩
+    refine ⟨hke, HLb, fun x hx => ?_⟩
     have := (List.mem_filter.1 (hrs.subset hx)).2
     simpa using this
   isplitr

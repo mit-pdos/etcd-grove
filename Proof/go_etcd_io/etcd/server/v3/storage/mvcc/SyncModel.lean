@@ -879,6 +879,225 @@ theorem entsEvents_logEnts (log : Log) (hwf : LogWf' log) (hlen : log.length < 2
   rw [List.filter_eq_self.2 hP]
   unfold entsEvents; rw [logEnts_events log hwf hlen hcs _ _ hhi]
 
+/-- A scanned entry's event has the entry's revision as its `ModRevision`. -/
+theorem logEnts_ev_modRev (log : Log) (hwf : LogWf' log) (hlen : log.length < 2 ^ 63)
+    (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63) (lo hi : Nat) (hhi : hi ≤ log.length) :
+    ∀ e ∈ logEnts log lo hi, e.ev.kv.modRev = e.rev.main := by
+  intro e he
+  obtain ⟨j, h1, h2, hej⟩ := (mem_logEnts log lo hi e).1 he
+  have hej' : e ∈ logEnts log j (j + 1) :=
+    (mem_logEnts log j (j + 1) e).2 ⟨j, Nat.le_refl _, by omega, hej⟩
+  have hev : e.ev ∈ logEvents log j (j + 1) := by
+    rw [← logEnts_events log hwf hlen hcs j (j + 1) (by omega)]; exact List.mem_map_of_mem hej'
+  obtain ⟨j', hj1, hj2, -, hm⟩ := logEvents_rev log j (j + 1) e.ev hev
+  have : j' = j := by omega
+  subst this
+  rw [hm, (entsOfRev_main log j' e hej).2]
+
+/-- **A member's batch from a thin scan, above the compaction revision** (watches across a
+compaction, per watcher, 2026-11-05): a member whose `minRev` is above the compaction revision `c`
+gets the same batch from the scan's kept entries (every entry above `c`, `rangeEvents`) as from
+all of them. -/
+theorem memberBatch_filter_above (log : Log) (hwf : LogWf' log) (hlen : log.length < 2 ^ 63)
+    (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63) (lo hi : Nat) (hhi : hi ≤ log.length)
+    (W : GMap Loc WatchRange) (P : KvEnt → Bool) (c : Int)
+    (hP : ∀ e ∈ logEnts log lo hi, c < sint.Z e.rev.main → P e = true)
+    (r : WatchRange) (st : WatcherSt) (hc : c < sint.Z st.minRev) :
+    memberBatch r st (entsEvents W ((logEnts log lo hi).filter P)) =
+      memberBatch r st (entsEvents W (logEnts log lo hi)) := by
+  rw [memberBatch_eq, memberBatch_eq]
+  congr 1
+  unfold entsEvents
+  have hm := logEnts_ev_modRev log hwf hlen hcs lo hi hhi
+  generalize logEnts log lo hi = l at hP hm
+  induction l with
+  | nil => rfl
+  | cons e l ih =>
+    have ih' := ih (fun e' he' => hP e' (List.mem_cons_of_mem _ he'))
+      (fun e' he' => hm e' (List.mem_cons_of_mem _ he'))
+    by_cases hPe : P e = true
+    · simp only [List.filter_cons, hPe, ↓reduceIte, List.map_cons]
+      split
+      · simp only [List.filter_cons]
+        split <;> simp only [ih']
+      · exact ih'
+    · have hf : (r.covers e.ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z e.ev.kv.modRev)) =
+          false := by
+        cases hcv : r.covers e.ev.kv.key
+        · rfl
+        · simp only [Bool.true_and, decide_eq_false_iff_not, Int.not_le]
+          refine Classical.byContradiction fun hle => hPe ?_
+          refine hP e (List.mem_cons_self ..) ?_
+          rw [← hm e (List.mem_cons_self ..)]; omega
+      simp only [List.filter_cons, hPe, Bool.false_eq_true, ↓reduceIte, List.map_cons]
+      rw [ih']
+      split
+      · simp only [List.filter_cons, hf, Bool.false_eq_true, ↓reduceIte]
+      · rfl
+
+/-- **A member's batch of a sub-list of the range's events** (a doomed member's, per watcher,
+2026-11-05: a scan from the compaction revision that changes a key twice keeps a sub-list):
+`memberBatch_logEvents`' cases with the batch's events a sub-list of the range's. -/
+theorem memberBatch_sublist (C : Log) (hlen : C.length < 2 ^ 63) (r : WatchRange)
+    (st : WatcherSt) (evs : List EvM) (hi : Nat) (hhi : hi ≤ C.length)
+    (hF : List.Sublist (evs.filter fun ev =>
+        r.covers ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z ev.kv.modRev))
+      (watchEvents C r (sint.nat st.minRev) hi)) :
+    memberBatch r st evs = none ∨
+      ∃ B : EventBatch, memberBatch r st evs = some B ∧ B.evs ≠ [] ∧
+        ((B.moreRev = W64 0 ∧ List.Sublist B.evs (watchEvents C r (sint.nat st.minRev) hi)) ∨
+         (∃ M : Nat, B.moreRev = W64 (M : Int) ∧ sint.nat st.minRev < M ∧ M < hi ∧
+            List.Sublist B.evs (watchEvents C r (sint.nat st.minRev) M))) := by
+  generalize hmdef : sint.nat st.minRev = m at hF ⊢
+  rw [memberBatch_eq]
+  generalize hFd : (evs.filter fun ev =>
+      r.covers ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z ev.kv.modRev)) = F at hF
+  have hsorted : RevSorted F :=
+    ((logEvents_sorted C hlen m hi).sublist List.filter_sublist).sublist hF
+  rcases ebFold_spec _ hsorted with ⟨-, hf⟩ | ⟨hne, B, hB, hinv⟩
+  · left; exact hf
+  · right
+    refine ⟨B, hB, ?_, ?_⟩
+    · rcases hinv with ⟨-, he, -, -⟩ | ⟨-, hne', -⟩
+      · rw [he]; exact hne
+      · exact hne'
+    rcases hinv with ⟨hmr, he, -, -⟩ | ⟨-, -, ev, hev, hmr, hh, he⟩
+    · left; exact ⟨hmr, he ▸ hF⟩
+    · right
+      have hevW := hF.subset hev
+      obtain ⟨hj1, hj2⟩ := watchEvents_modRev C hlen r m hi hhi ev hevW
+      obtain ⟨j, -, -, hjl, hjm⟩ := logEvents_rev C m hi ev (List.mem_filter.1 hevW).1
+      have hjz : sint.Z ev.kv.modRev = j := by rw [hjm]; word
+      obtain ⟨h0, hh0⟩ : ∃ h0, F.head? = some h0 := by
+        cases h : F.head? with
+        | none => exact absurd (List.head?_eq_none_iff.1 h) hne
+        | some h0 => exact ⟨h0, rfl⟩
+      have hhm := watchEvents_modRev C hlen r m hi hhi h0 (hF.subset (List.mem_of_mem_head? hh0))
+      have hlt := hh h0 hh0
+      refine ⟨j, by rw [hmr, hjm], by omega, by omega, ?_⟩
+      have heq : (watchEvents C r m hi).filter
+          (fun e => decide (sint.Z e.kv.modRev < sint.Z ev.kv.modRev)) = watchEvents C r m j := by
+        rw [watchEvents_append C r (show m ≤ j by omega) (show j ≤ hi by omega),
+          List.filter_append, List.filter_eq_self.2, List.filter_eq_nil_iff.2, List.append_nil]
+        · intro e he'
+          have := watchEvents_modRev C hlen r j hi hhi e he'
+          simp only [decide_eq_true_eq]; omega
+        · intro e he'
+          have := watchEvents_modRev C hlen r m j (by omega) e he'
+          simp only [decide_eq_true_eq]; omega
+      rw [he, ← heq]
+      exact hF.filter _
+
+/-- The range's events of `[lo, hi)` a member at `minRev = m ≥ lo` keeps are its range's from `m`
+(`memberBatch_logEvents`' first step). -/
+theorem logEvents_member_filter (C : Log) (hlen : C.length < 2 ^ 63) (r : WatchRange)
+    (st : WatcherSt) (p : EvM → Bool) (lo hi : Nat) (hp : ∀ ev, r.covers ev.kv.key = true → p ev = true)
+    (hlo : (lo : Int) ≤ sint.Z st.minRev) :
+    (((logEvents C lo hi).filter p).filter fun ev =>
+      r.covers ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z ev.kv.modRev)) =
+      watchEvents C r (sint.nat st.minRev) hi := by
+  have hm : sint.Z st.minRev = (sint.nat st.minRev : Int) := by
+    have : sint.nat st.minRev = (sint.Z st.minRev).toNat := rfl
+    omega
+  generalize hmdef : sint.nat st.minRev = m at hm ⊢
+  have hrev := logEvents_rev C lo hi
+  rw [List.filter_filter]
+  unfold watchEvents
+  by_cases hmh : hi ≤ m
+  · rw [logEvents_empty C hmh]
+    apply List.filter_eq_nil_iff.2
+    intro ev hev
+    obtain ⟨j, -, hj, hjl, hjm⟩ := hrev ev hev
+    have : sint.Z ev.kv.modRev = j := by rw [hjm]; word
+    simp only [Bool.and_eq_true, decide_eq_true_eq, not_and]
+    intro _ _; omega
+  · rw [logEvents_append C (show lo ≤ m by omega) (show m ≤ hi by omega), List.filter_append,
+      List.filter_eq_nil_iff.2, List.nil_append]
+    · apply List.filter_congr
+      intro ev hev
+      obtain ⟨j, hj1, -, hjl, hjm⟩ := logEvents_rev C m hi ev hev
+      have : sint.Z ev.kv.modRev = j := by rw [hjm]; word
+      have hd : decide (sint.Z st.minRev ≤ sint.Z ev.kv.modRev) = true := by
+        simp only [decide_eq_true_eq]; omega
+      rw [hd]
+      cases hc : r.covers ev.kv.key
+      · simp
+      · simp [hp ev hc]
+    · intro ev hev
+      obtain ⟨j, -, hj, hjl, hjm⟩ := logEvents_rev C lo m ev hev
+      have : sint.Z ev.kv.modRev = j := by rw [hjm]; word
+      simp only [Bool.and_eq_true, decide_eq_true_eq, not_and]
+      intro _ _; omega
+
+/-- **A chosen member's batch in `syncWatchers`, per watcher** (watches across a compaction,
+2026-11-05, `notes/mvcc-api-invariants.md` §4.4): of the scan from `minRev` (the kept entries `P`
+of `rangeEvents`, at compaction revision `c`), a member at `m = minRev_w ≥ minRev, c` with first
+revision `lo ≤ m` gets `memberBatch_logEvents`' batch of its range's events, exactly, unless it
+reads from `c` itself and revision `c` changes a key twice: then a sub-list of them, and the
+member is past its exactness condition (`¬ onceUpTo C lo c`). -/
+theorem sw_memberBatch_cases (C : Log) (hwf : LogWf' C) (hlen : C.length < 2 ^ 63)
+    (hcs : ∀ cs ∈ C, cs.length < 2 ^ 63) (W : GMap Loc WatchRange) (P : KvEnt → Bool) (c : Int)
+    (minRev : Nat) (hP1 : ∀ e ∈ logEnts C minRev C.length, c < sint.Z e.rev.main → P e = true)
+    (hP2 : (c = -1 ∨ oneChangePerKeyAt C c) → ∀ e ∈ logEnts C minRev C.length, P e = true)
+    (r : WatchRange) (st : WatcherSt) (lo : Nat)
+    (hcov : ∀ ev : EvM, r.covers ev.kv.key = true → wgCovers W ev.kv.key = true)
+    (hmin : (minRev : Int) ≤ sint.Z st.minRev) (hc : c ≤ sint.Z st.minRev)
+    (hlo : (lo : Int) ≤ sint.Z st.minRev) :
+    (memberBatch r st (entsEvents W ((logEnts C minRev C.length).filter P)) = none ∧
+        (watchEvents C r (sint.nat st.minRev) C.length = [] ∨ ¬ api.onceUpTo C lo c)) ∨
+      ∃ B : EventBatch, memberBatch r st (entsEvents W ((logEnts C minRev C.length).filter P)) =
+          some B ∧ B.evs ≠ [] ∧
+        ((B.moreRev = W64 0 ∧ (B.evs = watchEvents C r (sint.nat st.minRev) C.length ∨
+            (¬ api.onceUpTo C lo c ∧
+              List.Sublist B.evs (watchEvents C r (sint.nat st.minRev) C.length)))) ∨
+         (∃ M : Nat, B.moreRev = W64 (M : Int) ∧ sint.nat st.minRev < M ∧ M < C.length ∧
+            (B.evs = watchEvents C r (sint.nat st.minRev) M ∨
+              (¬ api.onceUpTo C lo c ∧
+                List.Sublist B.evs (watchEvents C r (sint.nat st.minRev) M))))) := by
+  generalize hevm : entsEvents W ((logEnts C minRev C.length).filter P) = evm
+  have hall : entsEvents W (logEnts C minRev C.length) =
+      (logEvents C minRev C.length).filter (fun ev => wgCovers W ev.kv.key) :=
+    by
+      have := entsEvents_logEnts C hwf hlen hcs W minRev C.length (Nat.le_refl _) (fun _ => true)
+        (fun _ _ => rfl)
+      rwa [List.filter_eq_self.2 (fun _ _ => rfl)] at this
+  by_cases hex : (c = -1 ∨ oneChangePerKeyAt C c) ∨ c < sint.Z st.minRev
+  · -- the scan kept every entry the member reads: its exact batch
+    have hb : memberBatch r st evm =
+        memberBatch r st ((logEvents C minRev C.length).filter (fun ev => wgCovers W ev.kv.key)) := by
+      rw [← hevm]
+      rcases hex with hnd | hlt
+      · rw [entsEvents_logEnts C hwf hlen hcs W minRev C.length (Nat.le_refl _) P (hP2 hnd)]
+      · rw [memberBatch_filter_above C hwf hlen hcs minRev C.length (Nat.le_refl _) W P c hP1 r st hlt,
+          hall]
+    rw [hb]
+    rcases memberBatch_logEvents C hwf hlen hcs r st _ minRev C.length hcov hmin (Nat.le_refl _) with
+      ⟨h1, h2⟩ | ⟨B, h1, h2, ⟨h3, h4⟩ | ⟨M, h3, h4, h5, h6⟩⟩
+    · exact Or.inl ⟨h1, Or.inl h2⟩
+    · exact Or.inr ⟨B, h1, h2, Or.inl ⟨h3, Or.inl h4⟩⟩
+    · exact Or.inr ⟨B, h1, h2, Or.inr ⟨M, h3, h4, h5, Or.inl h6⟩⟩
+  · -- reading from `c`, which changes a key twice: a sub-list, the member doomed
+    have hceq : sint.Z st.minRev = c := by omega
+    have hnd : ¬ oneChangePerKeyAt C c := fun h => hex (Or.inl (Or.inr h))
+    have hDm : ¬ api.onceUpTo C lo c := by
+      intro hon
+      apply hnd
+      intro cs hc0 hcs'
+      have := hon c.toNat (by omega) (by omega)
+      rwa [List.getD_eq_getElem?_getD, hcs'] at this
+    have hsub : List.Sublist (evm.filter fun ev =>
+        r.covers ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z ev.kv.modRev))
+        (watchEvents C r (sint.nat st.minRev) C.length) := by
+      rw [← logEvents_member_filter C hlen r st _ minRev C.length hcov hmin, ← hall, ← hevm]
+      apply List.Sublist.filter
+      unfold entsEvents
+      exact (List.filter_sublist.map _).filter _
+    rcases memberBatch_sublist C hlen r st evm C.length (Nat.le_refl _) hsub with
+      h1 | ⟨B, h1, h2, ⟨h3, h4⟩ | ⟨M, h3, h4, h5, h6⟩⟩
+    · exact Or.inl ⟨h1, Or.inr hDm⟩
+    · exact Or.inr ⟨B, h1, h2, Or.inl ⟨h3, Or.inr ⟨hDm, h4⟩⟩⟩
+    · exact Or.inr ⟨B, h1, h2, Or.inr ⟨M, h3, h4, h5, Or.inr ⟨hDm, h6⟩⟩⟩
+
 end mvcc
 end EtcdGrove
 end Perennial

@@ -106,7 +106,7 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   rw [if_pos hws]
   icases Hpop with ⟨-, Hwf, -⟩
   iunfold mvcc.evsWf at Hwf
-  icases Hwf with ⟨%L, #Hs, -, %Hf⟩
+  icases Hwf with ⟨%L, #Hs, -, %Hfb, #-⟩
   ihave #Hs' := mvcc.evLog_sealed _ _ $$ Hs
   iunfold mvcc.idxSealed at Hs'
   icases Hs' with ⟨#Hlb, -⟩
@@ -116,7 +116,7 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   have hpre := mvcc.histOf_prefix_shape_log hp.2
   rw [hm] at hm'; cases hm'
   rw [he] at he'; cases he'
-  rcases Hf.2 with h | h
+  rcases Hfb with h | h
   · exact Or.inl (Nat.le_trans h hpre.length_le)
   · exact Or.inr h
 

@@ -735,16 +735,63 @@ theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List 
       evsWf γ r lo (evsw ++ watchEvents C r m D) D := by
   iintro ⟨Hwf, #HC, #HokC, #HrlC⟩
   iunfold evsWf at Hwf
-  icases Hwf with ⟨%L, #HlbL, -, %HL⟩
+  icases Hwf with ⟨%L, #HlbL, -, %Hb, #He⟩
   ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
   ihave %hcmp := evLog_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
   iexists C
   iframe HlbC HrlC
-  ipureintro
-  refine ⟨?_, Or.inl hD⟩
-  rw [HL.1, watchEvents_cmp hcmp.symm r HL.2 (Or.inl (by omega)),
-    ← watchEvents_append C r hlo hm]
+  isplitr
+  · ipureintro; exact Or.inl hD
+  iapply evsExactOr_mono γ lo (fun h => by
+    rw [h, watchEvents_cmp hcmp.symm r Hb (Or.inl (by omega)), ← watchEvents_append C r hlo hm])
+    (fun hn hne => by
+      by_cases he : evsw = []
+      · rw [he, List.nil_append] at hne
+        have := watchEvents_ne_lo C r m D hne; omega
+      · have := hn he; omega) $$ He
+
+/-- A doomed watcher's delivered events, any events added (`syncWatchers`' read from a compaction
+revision that changes a key twice: per watcher, 2026-11-05). -/
+theorem sw_evsWf_doom (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (D : Nat)
+    (C : Log) (hD : D ≤ C.length) (hne : evs ≠ [] → lo < D) :
+    idxCert (GF := GF) γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ∗ doomed γ lo ⊢
+      evsWf γ r lo evs D := by
+  iintro ⟨#HC, #HokC, #HrlC, #Hd⟩
+  ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
+  iapply evsWf_doomed γ r lo evs D C (Or.inl hD) hne $$ [$HlbC $HrlC $Hd]
+
+/-- **A watcher's step in `syncWatchers`, exact or doomed** (per watcher, 2026-11-05): its
+delivered events extended with its batch, the range's events of `[m, X)` (the scan kept them all),
+or a sub-list of them when the watcher is past its exactness condition (`Dm`, the scan from a
+compaction revision that changes a key twice). -/
+theorem sw_evsWf_step (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw evs : List EvM) (m X : Nat)
+    (C : Log) (Dm : Prop) (hm : m ≤ X) (hX : X ≤ C.length) (hlo : lo ≤ m)
+    (hcase : evs = watchEvents C r m X ∨ (Dm ∧ List.Sublist evs (watchEvents C r m X))) :
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ∗
+      □ (⌜Dm⌝ -∗ doomed γ lo) ⊢ evsWf γ r lo (evsw ++ evs) X := by
+  iintro ⟨#Hwf, #HC, #HokC, #HrlC, #Hdm⟩
+  rcases hcase with rfl | ⟨hD, hsub⟩
+  · iapply sw_evsWf_extend γ r lo evsw m X C hm hX hlo $$ [$Hwf $HC $HokC $HrlC]
+  · ihave %Hne := evsWf_ne_lo γ r lo evsw m $$ Hwf
+    ihave #Hd := Hdm $$ %hD
+    iapply sw_evsWf_doom γ r lo (evsw ++ evs) X C hX (fun hne => by
+      by_cases he : evsw = []
+      · rw [he, List.nil_append] at hne
+        have hw : watchEvents C r m X ≠ [] := fun h => hne (List.eq_nil_of_sublist_nil (h ▸ hsub))
+        have := watchEvents_ne_lo C r m X hw; omega
+      · have := Hne he; omega) $$ [$HC $HokC $HrlC $Hd]
+
+/-- **Revision `c` changing a key twice dooms a watcher reading from it** (pure): a watcher from
+`lo ≤ c` is past its exactness condition at `c`. -/
+theorem sw_not_once (C : Log) (c : Int) (lo : Nat) (hlo : (lo : Int) ≤ c)
+    (hnd : ¬ oneChangePerKeyAt C c) : ¬ api.onceUpTo C lo c := by
+  intro hon
+  apply hnd
+  intro cs hc0 hcs
+  have := hon c.toNat (by omega) (by omega)
+  rwa [List.getD_eq_getElem?_getD, hcs] at this
+
 
 /-- The lock's resources of the members after a step: the stepped member's new ones. -/
 theorem sw_res_step (γ : WsNames) (σ : WsState) (v : SyncVars) (key : Loc) (r : WatchRange)

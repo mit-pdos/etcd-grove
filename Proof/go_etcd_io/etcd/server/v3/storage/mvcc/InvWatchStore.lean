@@ -465,15 +465,84 @@ def relLb (γ : WsNames) (n : Nat) : IProp GF := monoNatLbOwn γ.rel n
 instance relLb_persistent (γ : WsNames) (n : Nat) : Persistent (relLb (GF := GF) γ n) := by
   unfold relLb; infer_instance
 
+/-- **A watcher from `lo` is past its exactness condition** (persistent; per watcher, 2026-11-05:
+`notes/mvcc-api-invariants.md` §4.4): a notified log `N` (a lower bound of the API's notified
+log) and a compaction revision `c` (the API's lower bound) such that `N`'s revisions `[lo, c]`
+change a key twice (`¬ onceUpTo N lo c`). Both only grow, so it holds for good: the watch
+guarantee (`wsRecvOk`) states nothing more of the watcher's events. Made by `syncWatchers` when
+it reads a watcher's events from the compaction revision `c` and revision `c` changes a key twice
+(the backend kept only its last change, `nonissues/etcd-mvcc-watch-compact-rev-subrev-lost.md`). -/
+def doomed (γ : WsNames) (lo : Nat) : IProp GF :=
+  iprop(∃ (N : Log) (c : Int), api.nlLb γ.st.api N ∗ api.crevAtLeast γ.st.api c ∗
+    ⌜¬ api.onceUpTo N lo c⌝)
+
+instance doomed_persistent (γ : WsNames) (lo : Nat) : Persistent (doomed (GF := GF) γ lo) := by
+  unfold doomed; infer_instance
+
 /-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
-sealed and certified; persistent; `d` past the log only for an empty range). -/
+sealed and certified; persistent; `d` past the log only for an empty range), or the watcher is
+past its exactness condition (`doomed`; per watcher, 2026-11-05: until then exact under the
+create token's `watchNoDup`), its events then of revisions from `lo` on (none unless `lo < d`). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
-  iprop(∃ L : Log, evLog γ.st L ∗ relLb γ L.length ∗
-    ⌜evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝)
+  iprop(∃ L : Log, evLog γ.st L ∗ relLb γ L.length ∗ ⌜d ≤ L.length ∨ d ≤ lo⌝ ∗
+    (⌜evs = watchEvents L r lo d⌝ ∨ (doomed γ lo ∗ ⌜evs ≠ [] → lo < d⌝)))
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
     Persistent (evsWf (GF := GF) γ r lo evs d) := by
   unfold evsWf; infer_instance
+
+/-- An exact `evsWf`. -/
+theorem evsWf_exact (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) (L : Log)
+    (h : evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)) :
+    evLog (GF := GF) γ.st L ∗ relLb γ L.length ⊢ evsWf γ r lo evs d := by
+  iintro ⟨#HL, #Hr⟩
+  unfold evsWf
+  iexists L
+  iframe HL Hr
+  isplitr
+  · ipureintro; exact h.2
+  · ileft; ipureintro; exact h.1
+
+/-- A doomed `evsWf` (any events of revisions from `lo` on). -/
+theorem evsWf_doomed (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) (L : Log)
+    (h : d ≤ L.length ∨ d ≤ lo) (hne : evs ≠ [] → lo < d) :
+    evLog (GF := GF) γ.st L ∗ relLb γ L.length ∗ doomed γ lo ⊢ evsWf γ r lo evs d := by
+  iintro ⟨#HL, #Hr, #Hd⟩
+  unfold evsWf
+  iexists L
+  iframe HL Hr
+  isplitr
+  · ipureintro; exact h
+  · iright; iframe Hd; ipureintro; exact hne
+
+/-- An exactness disjunct carried along an implication. -/
+theorem exactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} (h : P → Q) :
+    (⌜P⌝ ∨ doomed (GF := GF) γ lo) ⊢ ⌜Q⌝ ∨ doomed γ lo := by
+  iintro (%hp | #Hd)
+  · ileft; ipureintro; exact h hp
+  · iright; iexact Hd
+
+/-- `evsWf`'s exactness disjunct carried along an implication (the doomed side's revisions). -/
+theorem evsExactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} {e e' : List EvM} {d d' : Nat}
+    (h : P → Q) (hd : (e ≠ [] → lo < d) → e' ≠ [] → lo < d') :
+    (⌜P⌝ ∨ (doomed (GF := GF) γ lo ∗ ⌜e ≠ [] → lo < d⌝)) ⊢
+      ⌜Q⌝ ∨ (doomed γ lo ∗ ⌜e' ≠ [] → lo < d'⌝) := by
+  iintro (%hp | ⟨#Hd, %hn⟩)
+  · ileft; ipureintro; exact h hp
+  · iright; iframe Hd; ipureintro; exact hd hn
+
+/-- A watched log's events from `lo` are of revisions from `lo` on. -/
+theorem watchEvents_ne_lo (L : Log) (r : WatchRange) (lo d : Nat) (h : watchEvents L r lo d ≠ []) :
+    lo < d := by
+  refine Classical.byContradiction fun hc => h (watchEvents_empty L r (by omega))
+
+/-- An `evsWf`'s events are of revisions from `lo` on (exact or doomed). -/
+theorem evsWf_ne_lo (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
+    evsWf (GF := GF) γ r lo evs d ⊢ ⌜evs ≠ [] → lo < d⌝ := by
+  unfold evsWf
+  iintro ⟨%L, -, -, -, (%he | ⟨-, %hn⟩)⟩
+  · ipureintro; intro hne; rw [he] at hne; exact watchEvents_ne_lo L r lo d hne
+  · ipureintro; exact hn
 
 /-- Every prefix of the deliveries `D` ends at a revision (persistent): its events, concatenated,
 are the range's of the revisions `[lo, d')` of a log the index's history has, for some `d'` (a
@@ -528,8 +597,9 @@ def covFact (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) 
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (D : List Deliv) (L : Log) (d : Nat),
     watcherMeta γ w' γw ∗ ⌜γw.wc = γc⌝ ∗ watcherFixed w' r fcs ∗ evLog γ.st L ∗
     □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    (⌜(D.map Prod.fst).flatten = watchEvents L r γw.lo d⌝ ∨ doomed γ γw.lo) ∗
     ⌜(pre.filter (fun y => decide (y.w = w'))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
-      (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
+      (d ≤ L.length ∨ d ≤ γw.lo) ∧
       sint.Z rev + 1 ≤ (d : Int) ∧ ((d : Int) ≤ sint.Z rev + 1 ∨ d ≤ γw.lo) ∧
       startLo r γw.lo ∧ (γw.lo : Int) ≤ sint.Z rev + 1⌝)
 
@@ -1167,7 +1237,7 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
   ihave %Hag := monoListAuthOwn_agree _ _ _ _ _ $$ Ha' Hq
   ihave #Hcov : covFact γ γc sent c.w rev $$ []
   · iunfold evsWf at Hwf
-    icases Hwf with ⟨%L0, #HL0, -, %Hev0⟩
+    icases Hwf with ⟨%L0, #HL0, -, %Hb0, #Hev0⟩
     iunfold covFact
     iexists c.γw, c.r, c.fcs, D, L0, c.d
     iframe Hm Hf HL0
@@ -1178,8 +1248,12 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
       iintro !> %dl %hdl
       icases BigSepL.bigSepL_mem_acc hdl $$ HDs with ⟨H, -⟩
       iexact H
+    isplitr
+    · icases Hev0 with (%Hev0 | ⟨#Hd0, -⟩)
+      · ileft; ipureintro; exact HD.1.trans (Hag.2.trans Hev0)
+      · iright; iexact Hd0
     ipureintro
-    exact ⟨HD.2, HD.1.trans (Hag.2.trans Hev0.1), Hev0.2, Hrev.1, Hrev.2.1, Hslo, Hrev.2.2⟩
+    exact ⟨HD.2, Hb0, Hrev.1, Hrev.2.1, Hslo, Hrev.2.2⟩
   iframe Hq Hreg Hcov
   iapply Hback
   iunfold chanWatcher
@@ -1653,9 +1727,24 @@ def pndOk (Lmu : Log) (p : Option (List Change)) : Prop :=
 
 /-- **The watchable store's lock's part of the API's ghost state** (the mvcc API, stage 1, strict
 M1; `notes/mvcc-api-invariants.md` §1) at fraction `q`: a quarter of `q` of the pending revision,
-agreeing with the lock's notified log `Lmu`. -/
+agreeing with the lock's notified log `Lmu`; and a lower bound of the API's notified log at `Lmu`
+(stage 2, per watcher, 2026-11-05: what a doomed watcher's witness and a send's bound take; minted
+with the client's authority where the notified log grows, `New`'s and `End`'s notify step). -/
 def wsSlot (γ : WsNames) (q : Qp) (Lmu : Log) : IProp GF :=
-  iprop(∃ p : Option (List Change), api.pndPart γ.st.api q.half.half p ∗ ⌜pndOk Lmu p⌝)
+  iprop((∃ p : Option (List Change), api.pndPart γ.st.api q.half.half p ∗ ⌜pndOk Lmu p⌝) ∗
+    api.nlLb γ.st.api Lmu)
+
+/-- `s.revMu`'s slot gives a lower bound of the API's compaction revision. -/
+theorem slotX_crevLb (γ : StoreNames) (q : Qp) (L : Log) (c : Int) :
+    slotX (GF := GF) γ q L c ⊢ slotX γ q L c ∗ api.crevAtLeast γ.api c := by
+  unfold slotX; exact api.revMuAbs_crevLb γ.api q L c
+
+/-- The slot's lower bound of the API's notified log. -/
+theorem wsSlot_nlLb (γ : WsNames) (q : Qp) (Lmu : Log) :
+    wsSlot (GF := GF) γ q Lmu ⊢ wsSlot γ q Lmu ∗ api.nlLb γ.st.api Lmu := by
+  unfold wsSlot
+  iintro ⟨Hp, #Hn⟩
+  iframe Hp Hn
 
 /-- **The lock's parts at the notified log `Lmu`** (D25; the mvcc API, stage 1): the released
 length's authority at `Lmu`'s length, and the API's slot (`wsSlot`). -/

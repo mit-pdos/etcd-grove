@@ -230,6 +230,15 @@ instance revMuAbs_fractional (a : AbsNames) (L : Log) (c : Int) :
       · iapply ha.2; iframe Ha1 Ha2
       · iapply hc.2; iframe Hc1 Hc2
 
+/-- `s.revMu`'s part gives a lower bound of the compaction revision (D2: `syncWatchers` mints one
+under `s.revMu`). -/
+theorem revMuAbs_crevLb (a : AbsNames) (q : Qp) (L : Log) (c : Int) :
+    revMuAbs (GF := GF) a q L c ⊢ revMuAbs a q L c ∗ crevAtLeast a c := by
+  unfold revMuAbs crevAuth crevAtLeast
+  iintro ⟨Ha, Hc⟩
+  ihave #Hlb := monoNatLbOwn_get a.crevLb _ _ $$ Hc
+  iframe Ha Hc Hlb
+
 /-- **The writer's part of the API's ghost state** at its log (§1): a quarter of the view, at some
 compaction revision, and its part `pw` of the pending revision, at `none` (while checked in). -/
 def writerAbs (a : AbsNames) (pw : Qp) (L : Log) : IProp GF :=

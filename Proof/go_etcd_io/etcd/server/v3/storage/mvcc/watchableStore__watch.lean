@@ -349,7 +349,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
         · ipureintro; refine ⟨by omega, ?_⟩
           rw [show sint.nat st0.minRev = (sint.Z st0.minRev).toNat from rfl]; omega
         isplitr
-        · iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
+        · iapply mvcc.evsWf_exact γ r γw.lo [] γw.lo [] ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩; iframe Hlb Hrlb0
         isplitr
         · iexists C
           iframe HC
@@ -364,8 +364,8 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
           show (sint.Z st0.minRev).toNat = _; omega
         rw [hn]
         isplitr
-        · iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
-        iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
+        · iapply mvcc.evsWf_exact γ r γw.lo [] γw.lo [] ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩; iframe Hlb Hrlb0
+        iapply mvcc.evsWf_exact γ r γw.lo [] γw.lo [] ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩; iframe Hlb Hrlb0
     iapply BigSepM.bigSepM_mono $$ Hmem
     intro w' st' hw'
     have hne : w ≠ w' := by
@@ -635,17 +635,14 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       simp only [List.length_nil, Nat.le_zero] at hk
       subst hk
       iexists lo
-      iunfold mvcc.evsWf
-      iexists []
+      simp only [List.take_nil, List.take_zero, List.map_nil, List.flatten_nil]
+      iapply mvcc.evsWf_exact _ _ _ _ _ []
+        ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
       iframe Hlb Hrlb0
-      ipureintro
-      exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
     isplitr
-    · iunfold mvcc.evsWf
-      iexists []
+    · iapply mvcc.evsWf_exact _ _ _ _ _ []
+        ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
       iframe Hlb Hrlb0
-      ipureintro
-      exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
     ileft
     iframe Hl2
     ipureintro; rfl
