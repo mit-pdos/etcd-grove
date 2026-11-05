@@ -33,6 +33,36 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- The writer's heap facts (`heapOK`), out of `wtxWQ`. -/
+theorem wtxWQ_heapOK (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) :
+    wtxWQ (GF := GF) K tx r m q X ⊢ wtxWQ K tx r m q X ∗ ⌜heapOK (GF := GF) tx X⌝ := by
+  unfold wtxWQ wtxCoreQ
+  iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hrest⟩, Hcells, Hmap⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own q) X $$ Hh
+  isplitl
+  · iframe; ipureintro; exact Hr
+  · ipureintro; exact Hok
+
+/-- **The writer's `tx.db` field** (non-nil: the database's) out of `wtxWQ`, and back. -/
+theorem wtxWQ_db_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) :
+    wtxWQ (GF := GF) K tx r m q X ⊢ tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} K.db ∗ ⌜K.db ≠ null⌝ ∗
+      (tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} K.db -∗ wtxWQ K tx r m q X) := by
+  unfold wtxWQ wtxCoreQ
+  iintro ⟨⟨#Hpkg, #Hcore, %Hc, #Hreg, Hheap, Hfills, Hbk, Hnl, Hdb, Hvo, Hst⟩, Hvc, Hmap⟩
+  have hdb : r.db = K.db := Hc.1
+  rw [hdb]
+  ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
+  · unfold BC.core; iexact Hcore
+  unfold isBoltCoreP
+  icases Hcore' with ⟨-, -, %Ht0, -⟩
+  iframe Hdb
+  isplitr
+  · ipureintro; exact Ht0.2.1
+  iintro Hdb
+  rw [← hdb]
+  iframe; iframe #
+  ipureintro; exact ⟨rfl, Hc.2⟩
+
 /-- **The writer facts a cursor needs that the invariant does not hold yet** (OPEN, for the
 maintainer: `wrFacts`'): the node registry names current nodes (`nlocCur`), and a top-level
 bucket's root position is `wRoot` (U6y's F5: its base root while its generation is `0`; inline once
