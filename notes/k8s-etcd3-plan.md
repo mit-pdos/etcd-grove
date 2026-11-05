@@ -798,6 +798,13 @@ through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loop
   premise of one). It held as planned: a step that changes the store's items at one key changes at
   most one key under the prefix (`chgOf_pfx_one`: a new key-value is at the new revision, which no
   item of the old state has; a deleted key had an item).
+- Prove (b), the answer's cached object (2026-11-05): `dobjOf`, `cachedOf`, `cachedObjOk` moved
+  from `Cache.lean` to `Inv.lean` (unchanged; `getCall` needs them), with `ansOk c y` (an object
+  answer with a name is `cachedObjOk`); the continuations of `create_au`, `rw_au` and `getCall`
+  (so `getCall_take`) carry `ansOk` of the model's answer. Class: internal (no exported statement;
+  `call.spec`'s continuation is a parameter). The facts: `AnsFrom`/`kStep_ansFrom` (an answer with a
+  name is an item of the state before or after, or a deleted key's), `versionAt_of_chg`,
+  `cachedObj_of_item`, `cachedObj_of_del`, `ansOk_step`, `ansOk_read`; `Apply`'s four puts proved.
 
 ## What blocks where
 

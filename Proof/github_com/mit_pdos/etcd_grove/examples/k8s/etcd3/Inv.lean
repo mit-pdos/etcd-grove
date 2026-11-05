@@ -89,6 +89,22 @@ def minOf (x : Input) : w64 := (parseRVD x.MinRV').getD 0
 def mkObj (x : Input) : DObj :=
   if h : x.Key'.length < 256 ∧ x.UID'.length < 256 then ⟨(x.Key', x.UID', x.Val'), h⟩ else dzero
 
+/-- A Go `Obj`'s store object: its name, UID and value (the zero object if a name or a UID is
+256 bytes or longer: never for a cached object, `cachedObjOk`). -/
+def dobjOf (ob : Obj) : DObj :=
+  if h : ob.Name'.length < 256 ∧ ob.UID'.length < 256 then ⟨(ob.Name', ob.UID', ob.Value'), h⟩
+  else dzero
+
+theorem dobjOf_mk (o : DObj) (r : w64) : dobjOf ⟨o.name, o.uid, o.val, r⟩ = o := by
+  obtain ⟨⟨n, u, v⟩, hn⟩ := o
+  have e : dobjOf ⟨n, u, v, r⟩ = if h : n.length < 256 ∧ u.length < 256 then
+      (⟨(n, u, v), h⟩ : DObj) else dzero := rfl
+  exact e.trans (dif_pos hn)
+
+/-- The object `Apply` caches for an answer (`Obj{Name: out.Name, UID: out.UID, Value: out.Value,
+ResourceVersion: out.RV}`). -/
+def cachedOf (y : Output) : Obj := ⟨y.Name', y.UID', y.Value', y.RV'⟩
+
 /-- The store's preconditions of an input, as the store's model takes them. -/
 abbrev preD (x : Input) : DObj → Nat → Bool := driverCodec.preOk (kpreOf x)
 
@@ -144,6 +160,77 @@ theorem kStep_items (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (k : GoStr
     repeat' split
     all_goals simp_all [KSt.setItem]
   simp only [h0, h1, h2, ↓reduceIte]
+
+/-- **Where an object answer's item is** (from `ks` to `ks'` at the key `K`): the item of `ks` or
+of `ks'` at `K`, or (a delete) the item `ks` had at `K`, gone at the next resource version. -/
+def RespFrom {E : Type} (ks ks' : KSt DObj) (K : GoString) : KResp DObj E → Prop
+  | .obj o rv => (∃ b, ks.items K = some ⟨o, rv, b⟩ ∨ ks'.items K = some ⟨o, rv, b⟩) ∨
+      (∃ it, rv = ks.rv + 1 ∧ ks.items K = some it ∧ ks'.items K = none ∧ ks'.rv = ks.rv + 1)
+  | _ => True
+
+theorem KItem.eq_cases (it : KItem DObj) :
+    it = ⟨it.obj, it.rv, false⟩ ∨ it = ⟨it.obj, it.rv, true⟩ := by
+  cases it with
+  | mk o r b => cases b <;> simp
+
+theorem respFrom_create {E : Type} (ks : KSt DObj) (k : GoString) (o : DObj) :
+    RespFrom ks (ks.create (E := E) k o 0).1 k (ks.create (E := E) k o 0).2 := by
+  unfold KSt.create
+  repeat' split
+  all_goals simp_all [RespFrom, KSt.setItem]
+
+theorem respFrom_delete {E : Type} (ks : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool)
+    (v : DObj → Nat → Option E) :
+    RespFrom ks (ks.delete k pre v).1 k (ks.delete k pre v).2 := by
+  unfold KSt.delete
+  repeat' split
+  all_goals simp_all [RespFrom, KSt.delItem]
+
+theorem respFrom_update {E : Type} (ks : KSt DObj) (k : GoString) (ig : Bool) (z : DObj)
+    (pre : DObj → Nat → Bool) (f : DObj → Nat → Except E DObj) :
+    RespFrom ks (ks.update k ig z pre f).1 k (ks.update k ig z pre f).2 := by
+  unfold KSt.update
+  repeat' split
+  all_goals simp_all [RespFrom, KSt.setItem]
+  all_goals exact KItem.eq_cases _
+
+theorem respFrom_get {E : Type} (ks : KSt DObj) (k : GoString) (req : Nat) (ig : Bool) :
+    RespFrom ks ks k (ks.get (E := E) k req ig) := by
+  unfold KSt.get
+  repeat' split
+  all_goals simp_all [RespFrom]
+  all_goals exact KItem.eq_cases _
+
+/-- **What an answer with a name is** (`Apply` caches it): an object answer, its item where
+`RespFrom` says. -/
+def AnsFrom (ks ks' : KSt DObj) (K : GoString) (y : Output) : Prop :=
+  y.Err' = W64 0 → y.Name' ≠ [] → ∃ (o : DObj) (rv : Nat),
+    y = objOutL ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩ ∧ RespFrom (E := Empty) ks ks' K (.obj o rv)
+
+theorem ansFrom_outOf {E : Type} (ks ks' : KSt DObj) (K : GoString) (r : KResp DObj E)
+    (h : RespFrom ks ks' K r) : AnsFrom ks ks' K (outOf r) := by
+  intro he hn
+  cases r with
+  | obj o rv => exact ⟨o, rv, rfl, h⟩
+  | zero => exact absurd rfl hn
+  | err e =>
+    cases e <;> simp [outOf, rejectedL, otherL] at he
+
+/-- **The model's answer, with a name, is an item's** (`AnsFrom`). -/
+theorem kStep_ansFrom (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
+    AnsFrom ks (kStep eD eU x ks).1 (mkeyL x.Key') (kStep eD eU x ks).2 := by
+  unfold kStep
+  by_cases h0 : x.Kind' = W64 0
+  · simp only [h0, ↓reduceIte]
+    exact ansFrom_outOf _ _ _ _ (respFrom_create _ _ _)
+  by_cases h1 : x.Kind' = W64 1
+  · simp only [h0, h1, ↓reduceIte]
+    exact ansFrom_outOf _ _ _ _ (respFrom_delete _ _ _ _)
+  by_cases h2 : x.Kind' = W64 2
+  · simp only [h0, h1, h2, ↓reduceIte]
+    exact ansFrom_outOf _ _ _ _ (respFrom_update _ _ _ _ _ _)
+  simp only [h0, h1, h2, ↓reduceIte]
+  exact ansFrom_outOf _ _ _ _ (respFrom_get _ _ _ _)
 
 /-- **The driver's model answers `EOther` only to a `Get`** (a minimum resource version above the
 store's, stage 7b): a write's outputs are objects, "not found", "key exists", "invalid object" or
@@ -526,6 +613,25 @@ instance rwCall_persistent (γ : KNames) (g0 : GSt) (γt : GName) (x : Input)
     (Φ : val → IProp GF) : Persistent (rwCall γ g0 γt x Φ) := by
   unfold rwCall; infer_instance
 
+/-- **A cached object** (`Cache.lean`): it fits a `DObj`, its resource version is not `0`,
+and every key held it at that resource version. -/
+def cachedObjOk (c : StoreCfg GF DObj) (ob : Obj) : IProp GF :=
+  iprop(⌜ob.Name'.length < 256 ∧ ob.UID'.length < 256 ∧ ob.ResourceVersion' ≠ W64 0⌝ ∗
+    □ ∀ k : GoString, ⌜c.pfx <+: k⌝ → versionAt c k ob.ResourceVersion' (dobjOf ob))
+
+instance cachedObjOk_persistent (c : StoreCfg GF DObj) (ob : Obj) :
+    Persistent (cachedObjOk (GF := GF) c ob) := by
+  unfold cachedObjOk; infer_instance
+
+/-- **An answer's cached object** (persistent): an object answer with a name (`Apply` caches it) is
+a cached object. -/
+def ansOk (c : StoreCfg GF DObj) (y : Output) : IProp GF :=
+  if y.Err' = W64 0 ∧ y.Name' ≠ [] then cachedObjOk c (cachedOf y) else iprop(True)
+
+instance ansOk_persistent (c : StoreCfg GF DObj) (y : Output) :
+    Persistent (ansOk (GF := GF) c y) := by
+  unfold ansOk; split <;> infer_instance
+
 /-- **A read's call invariant** (`Get`; see the file header): `lintest`'s update with a later
 credit and the commit bit `γc` at `none`, or, once committed at a state `σ`, `γc` read-only at
 `σ`, `σ` the state of its revision and that revision the one the client prophesied (`γp`, set
@@ -538,7 +644,8 @@ def getCall (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface
     (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
       dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
       ghostMapElem γ.r σ.rev DFrac.discard σ ∗
-      (contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∨ dghostVar γt (DFrac.own 1) ())))
+      ((contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∗ ansOk c (kStep eD eU x (c.abs σ)).2) ∨
+        dghostVar γt (DFrac.own 1) ())))
 
 instance getCall_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface)
     (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) :

@@ -65,6 +65,32 @@ local macro "resolve3" : tactic => `(tactic| (
   · iframe
   (try wp_auto)))
 
+set_option hygiene false in
+/-- `Apply`'s end: an answer with a name becomes the client's cached object (`cache.put`, its
+`cachedObjOk` from `ansOk`), then the continuation. -/
+local macro "cache_tail" : tactic => `(tactic| (
+  by_cases hE : y.Err' = W64 0
+  · rw [decide_eq_true hE]
+    wp_auto
+    by_cases hN : y.Name' = []
+    · rw [hN]
+      wp_auto
+      iapply HΦc
+      iapply hioOk
+    · simp only [decide_eq_false hN, Bool.not_false]
+      wp_auto
+      iunfold ansOk at Hans
+      isimp only [if_pos (show y.Err' = W64 0 ∧ y.Name' ≠ [] from ⟨hE, hN⟩), cachedOf] at Hans
+      wp_apply (wp_put c tbl x.Client' ⟨y.Name', y.UID', y.Value', y.RV'⟩) $$ []
+      · iframe #
+      (try wp_auto)
+      iapply HΦc
+      iapply hioOk
+  · rw [decide_eq_false hE]
+    wp_auto
+    iapply HΦc
+    iapply hioOk))
+
 set_option maxHeartbeats 3200000 in
 theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_put : cache.put.spec (GF := GF) (hG := hG)) :
@@ -227,7 +253,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       have hau := client.bigAndL_of_sep c.ms (linU γ g0 (boxIn x) Φ)
         (fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
         (fun sv : client.SrvAt GF => k8sAu1 sv.γr.kv c (createStep x)
-          (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ))
+          (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2)))
         (fun sv _ => by
           iintro ⟨HU', #Hi⟩
           iapply create_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx h0 Φ
@@ -235,7 +261,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Hau := hau $$ [HAU]
       · iframe Hinvs; iunfold linU; iexact HAU
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True)
-          (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ)
+          (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
           (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Hau] as %y Hy
       · iframe #
         iunfold callPre
@@ -249,12 +275,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos (Or.inl h0)] at HΦc
         resolve3
         rw [← Hy]
-        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
-        sorry
-        /- the rest of this block at 835795d4d1 (lean):
-        iapply HΦc
-        iapply hioOk
-        -/
+        icases HΦc with ⟨HΦc, #Hans⟩
+        cache_tail
     · -- a `Delete`: committed where the store hands the call's token
       imod dghostVar_alloc (GF := GF) () with ⟨%γt, Htok⟩
       imod inv_alloc callN ⊤ iprop((linU γ g0 (boxIn x) Φ ∗ £ 1) ∨
@@ -270,14 +292,14 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         intro ks; rw [kStep, if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]; rfl
       ihave Haus := (BigSepL.bigSepL_impl (l := c.ms) (Φ := fun _ (sv : client.SrvAt GF) => kInv γ c g0 sv.γr.kv)
           (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.Reject')) (dghostVar γt (DFrac.own 1) ())
-            (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ))) $$ Hinvs
+            (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2)))) $$ Hinvs
       ihave Haus := Haus $$ []
       · imodintro
         iintro %k %sv %_ #Hi
         iapply rw_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx (Or.inl h1) _ hstep γt Φ
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
-          (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ)
+          (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
           (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Htok Haus] as %y Hy
       · iframe #
         iunfold callPre
@@ -291,12 +313,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos (Or.inr (Or.inl h1))] at HΦc
         resolve3
         rw [← Hy]
-        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
-        sorry
-        /- the rest of this block at 835795d4d1 (lean):
-        iapply HΦc
-        iapply hioOk
-        -/
+        icases HΦc with ⟨HΦc, #Hans⟩
+        cache_tail
     · -- a `GuaranteedUpdate`: committed where the store hands the call's token
       imod dghostVar_alloc (GF := GF) () with ⟨%γt, Htok⟩
       imod inv_alloc callN ⊤ iprop((linU γ g0 (boxIn x) Φ ∗ £ 1) ∨
@@ -312,14 +330,14 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         intro ks; rw [kStep, if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]; rfl
       ihave Haus := (BigSepL.bigSepL_impl (l := c.ms) (Φ := fun _ (sv : client.SrvAt GF) => kInv γ c g0 sv.γr.kv)
           (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x)) (dghostVar γt (DFrac.own 1) ())
-            (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ))) $$ Hinvs
+            (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2)))) $$ Hinvs
       ihave Haus := Haus $$ []
       · imodintro
         iintro %k %sv %_ #Hi
         iapply rw_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx (Or.inr h2) _ hstep γt Φ
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
-          (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ)
+          (fun σ => iprop(contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2))
           (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Htok Haus] as %y Hy
       · iframe #
         iunfold callPre
@@ -333,12 +351,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos (Or.inr (Or.inr h2))] at HΦc
         resolve3
         rw [← Hy]
-        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
-        sorry
-        /- the rest of this block at 835795d4d1 (lean):
-        iapply HΦc
-        iapply hioOk
-        -/
+        icases HΦc with ⟨HΦc, #Hans⟩
+        cache_tail
     · -- a `Get`: committed at the first firing at the prophesied revision
       have hk : ¬(x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) := by
         rw [h3]; decide
@@ -353,7 +367,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
             dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
             ghostMapElem γ.r σ.rev DFrac.discard σ ∗
-            (contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∨ dghostVar γt (DFrac.own 1) ())))
+            ((contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ ∗ ansOk c (kStep (sentV lD) (sentV lU) x (c.abs σ)).2) ∨ dghostVar γt (DFrac.own 1) ())))
           $$ [HAU Hlc1 Hγc] with #Hci
       · inext
         ileft
@@ -396,12 +410,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         imodintro
         resolve3
         rw [← Hy]
-        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
-        sorry
-        /- the rest of this block at 835795d4d1 (lean):
-        iapply HΦc
-        iapply hioOk
-        -/
+        icases HΦc with ⟨HΦc, #Hans⟩
+        cache_tail
 
 end proof
 

@@ -6,7 +6,8 @@ Lean-first (no Rocq counterpart).
 `Gen` draws a `Delete` or a `GuaranteedUpdate` with its client's cached object (the test's
 `cachedObj`: the client's last answer with a name), which the store takes as its
 `cachedExistingObject`: an object the key held at its resource version (`versionAt`, the store's
-`cachedOk`). The table `cache` holds them, under its `sync.Mutex`:
+`cachedOk`). The table `cache` holds them, under its `sync.Mutex` (`dobjOf`, `cachedOf`,
+`cachedObjOk` are in `Inv.lean`, which the call invariants need):
 
 - `cachedObjOk c ob`: the object fits a `DObj` (`dobjOf`), its resource version is not `0`, and
   **every key under the store's prefix** held it at that resource version (`versionAt`): `Gen`
@@ -42,20 +43,6 @@ namespace k8s_etcd3
 open Iris Iris.BI Iris.ProofMode k8s
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item)
 
-section pure
-variable [GooseExts]
-
-/-- A Go `Obj`'s store object: its name, UID and value (the zero object if a name or a UID is
-256 bytes or longer: never for a cached object, `cachedObjOk`). -/
-def dobjOf (ob : Obj) : DObj :=
-  if h : ob.Name'.length < 256 ∧ ob.UID'.length < 256 then ⟨(ob.Name', ob.UID', ob.Value'), h⟩
-  else dzero
-
-/-- The object `Apply` caches for an answer (`Obj{Name: out.Name, UID: out.UID, Value: out.Value,
-ResourceVersion: out.RV}`). -/
-def cachedOf (y : Output) : Obj := ⟨y.Name', y.UID', y.Value', y.RV'⟩
-
-end pure
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -63,16 +50,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-
-/-- **A cached object** (see the file header): it fits a `DObj`, its resource version is not `0`,
-and every key held it at that resource version. -/
-def cachedObjOk (c : StoreCfg GF DObj) (ob : Obj) : IProp GF :=
-  iprop(⌜ob.Name'.length < 256 ∧ ob.UID'.length < 256 ∧ ob.ResourceVersion' ≠ W64 0⌝ ∗
-    □ ∀ k : GoString, ⌜c.pfx <+: k⌝ → versionAt c k ob.ResourceVersion' (dobjOf ob))
-
-instance cachedObjOk_persistent (c : StoreCfg GF DObj) (ob : Obj) :
-    Persistent (cachedObjOk (GF := GF) c ob) := by
-  unfold cachedObjOk; infer_instance
 
 /-- **The table's state** (`cache`'s lock invariant; see the file header): its map, owned, every
 entry a cached object. -/
