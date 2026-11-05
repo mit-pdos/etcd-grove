@@ -459,8 +459,65 @@ bound of the client's count), and its steps, each what a frozen post needs: `cha
 receiver's lower bound minted), `chanApiAt_sentLb` (the empty receive's `n ≤ |sends|`). So every
 frozen post of the stream's contracts is producible at the ghost level.
 
+**Done since** (2026-11-05, the wiring; the mvcc library builds):
+- `WatchModel.lean`: the watchers' log model (`evOfKv` .. `watchEvents_cmp`, the countable
+  instances of `EtcdKv`, `EvM`, `WatchRange`) split out of `InvWatchStore`, so that `ApiState`
+  (importing it in place of `WatchRecv`; statements unchanged) and `Api/SentInv` .. `Api/StreamSteps`
+  come before the channel invariant, which `InvWatchStore` now builds over them.
+- `WatchChanNames` gains the stream's API names (`aev`, `ans`, `arcv`, `arx`); `wsAbsOf γ ch γc`
+  is the stream's `WsAbs` (`st := γ.st.api`, the channel and its names); `watchChanInv` gains
+  `"Hapi" ∷ chanApi γ ch γc sent` (`∃ l dec rw, chanApiAt (wsAbsOf γ ch γc) l dec rw ∗
+  ⌜sendsOf l = sent.map RespM.toW⌝`). **The consumer's view `rw` is not yet tied to the channel's
+  received prefix `recv`**: the receives (`WatchRecv`) frame `chanApi`; item 2 ties it (`rw =
+  recv.map toW`, or `γc.recv` replaced by `γc.arcv`) when it rewrites the receive lemmas.
+- `watchableStore.NewWatchStream`: allocates it (`chanApi_alloc`), its spec's post now also
+  `api.wsStateI (wsAbsOf γ ch γc) wsStart ∗ api.wsRecvI (wsAbsOf γ ch γc) []` (its interface file
+  to regenerate once the package builds whole).
+- The registration (`watch_register`), `cancel_ghost`, the channel's close (`WatchClose`) and the
+  17 receive sites frame `chanApi` (no API event yet: see below).
+- **The two sends** (`watcher.send`, `WatchCmpSend.cmp_send_inner`) append their response through
+  **one placeholder**, `M1Placeholders.chanApi_send_M1` (`chanApi γ ch γc sent ⊢ |==> chanApi γ ch
+  γc (sent ++ [x])`, `sorry -- M1-REPLACE: wsChan_recv.law, wsRecv_ok.law (a send's stepOk)`).
+  Not in `etc/tcb-baseline.txt` (nor are stage 1's placeholders: the build beyond mvcc is red).
+
+**What each remaining step needs of the internals** (found wiring; none is a frozen statement's
+problem: no frozen statement found false):
+- *The send's `stepOk`* (replacing `chanApi_send_M1`): the sender passes its event `.send (toW x)
+  fg rg lo L c0 cov dead`. (a) **Saved filters per watcher**: today a delivery's filters are
+  `∃ fs, filtersImpl fcs fs` per delivery (`chanWatcher`, `covFact`), and `watcher.send` takes
+  `filtersOk fcs`; the history needs one `fs` per watcher by name: `WatcherNames` gains `fg` with
+  `savedFilters γw.fg fs ∗ filtersImpl fcs fs` (from `Watch`'s `filtersImpl fcs fs`, through `watch`'s
+  `P.F`/`IWF`, M3), each delivery `savedFilters γw.fg fs ∗ ⌜dl.2 = filtered fs dl.1⌝`. (b) **A
+  registration token per watcher** (`∃ l, monoListLbOwn ι.ev l ∗ ⌜.reg id rg fg lo ∈ l⌝`, minted at
+  the registration) and the pure lemma that a well-formed history's replay has the registered info
+  at `id` (ids fresh at `reg`, never removed), for `factAgree`. (c) **id-to-watcher uniqueness of
+  the sent responses** (for `recvEvs` by id vs today's filter by `x.w`): from `respOk` and
+  `chanRegFact` (`chanIdAssigned` agreement), both in the channel invariant. (d) **A notified-log
+  lower bound at every send** (`nlLb`, minted at the notify update's commit, kept in
+  `watchStoreInv`; `moveVictims` sends without `s.mu`: the bound recorded with the victim batch)
+  and `crevAtLeast` for the compaction response (§4.5). (e) **Event positivity** (`respShape`'s
+  last conjunct) from the log's receipt (§5, round 16). (f) **Exactness under `onceUpTo` only**
+  (§4.4): today's delivery is exact under `watchNoDup`, which `Watch`'s frozen contract does not
+  give; `evsWf`/`covFact`'s exactness becomes `onceUpTo L lo c₀ → ...` and the catch-up read after a
+  compaction is proved under it. (g) **`-1` responses**: `stampsAt` (every watcher of the stream's
+  state registered by then covered, or its id cancelled in the history: today's `rsnW`/`rsnFor`
+  becomes a history lower bound with `.cancel id`, deposited at `Cancel`'s first check, D4/D5).
+- *The registration* (`watch_register`, `chanApiAt_reg`): `isWatchable`'s callback (`∀ w, ⌜w ≠
+  null⌝ -∗ |==> chanIdAssigned γc id w ∗ Back w`) must run with the channel invariant open and be
+  handed its `chanApiAt` (to append `.reg` at `(sendsOf l).length`, the exact sent count) and the
+  store's shares at the registration (`revMuBody`'s `slotX` and the watch lock's `wsSlot`, both held
+  there, `watchableStore__watch.lean:787`), so that `Watch`'s update can fire with `watchLo σ
+  startRev = lo` and `σ.pending = none`. **`wsSlot` must then say `pending = none` at the lock's
+  release** (today `pndOk Lmu p` allows `some ps` with `Lmu` ending in `ps`; Go commits under `s.mu`,
+  `watchableStoreTxnWrite.End`, so it is true). The caller's update is `watchStream.Watch`'s, i.e.
+  item 3's `Watch` contract: the registration step and that contract go together.
+- *Cancel* (`chanApiAt_cancel`): at `watchStream.Cancel`'s first check, opening the channel
+  invariant from the stream's (`isWatchStream`'s `inv`), with the client's `wsState` from the
+  contract's update: item 3 as well.
+
 **Left** (in order):
-1. **The channel invariant's API part, wired in** (`watchChanInv`, `InvWatchStore.lean:820`):
+1. **The channel invariant's API part, wired in** (*wired 2026-11-05, above; left: the sends'
+   `stepOk`, the registration, the cancel*) (`watchChanInv`, `InvWatchStore.lean:820`):
    `WatchChanNames` gains the stream's API names (countable: `st : AbsNames`, `ev`, `ns`, `rcv`,
    `rx`), and `watchChanInv` the conjunct `∃ l dec, chanApiAt ι l dec (recv.map toW) ∗
    ⌜sendsOf l = sent.map toW⌝` (`toW : RespM → WResp`: id, events, revision, compaction
