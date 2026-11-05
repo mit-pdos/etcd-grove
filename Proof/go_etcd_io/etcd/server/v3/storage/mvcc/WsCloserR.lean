@@ -63,6 +63,12 @@ theorem wsCloserR_of_wsCloser (s st : Loc) (γs : StoreNames) (h : γs.cm = true
   iexists stc
   iframe Hstc Hsc Hw Hr
 
+/-- (2026-11-05, R2b-3d stage 5c) **What `watchableStore.Close` gives back** (its post): the store
+`st`'s readers its two loops held (`wsLoopN`) and the compaction job's resource. A caller passing
+them on (`Cleanup`'s backend update) names them by this, not by their count. -/
+def wsCloseRes (st : Loc) (γs : StoreNames) : IProp GF :=
+  iprop(([∗list] _x ∈ List.replicate wsLoopN (), storeReader st γs) ∗ compactJobResM γs.kb)
+
 /-- **The watchable store's right to close, by the mode** (the approval's item 23, "alike"
 `store.Close`'s `storeCloserM`, by the backend instance's mode): off, `wsCloser`; on, `wsCloserR`
 at the inner store's compaction revision `c`. -/

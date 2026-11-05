@@ -31971,3 +31971,31 @@ code; no statement of the k8s side changed (the two theorems' bodies only).
   receipts, with the state its updates commit; or `lintest` hands each call a budget token from
   `Run`'s `clients * ops < 2 ^ 60`) are in the branch's `questions.md`; neither changes `Main.spec`
   or `k8setcd3_safe`.
+## The transport's stop right and `Cleanup`'s open token (2026-11-05 · R2b-3d stage 5c · branch `r2b3`)
+
+Two gaps between the shutdown's steps and the specs they call, found while assembling `run`'s
+deferred function.
+
+**The transport's stop right.** `raftNode.stop` takes the raft environment's `ST` (the right to stop
+the transport, which `stopped` carries to `onStop`, D43 M5c). The server's environment had
+`ST := False` (D43 M5e: "asked of no one", the static server's transport frozen, its stop token the
+apply thread's), so no shutdown could call `r.stop()`. The apply thread does own the live transport
+(`srvApRes`'s `ccMembRes`: `trLive γn t c rs`, at names it quantifies). The environment is built
+before the server and its transport exist (`NewServer` passes it to the node's start), so its `ST`
+names the transport through the same ghost key as its `S` (`srvTrKey`): `srvTrStopK γk`, the live
+transport of the server the key names (`srvTrStop`, with the server's `transport` field). `NewServer`
+proves the transport's `Stop` from it (`netTransport_srvTrStop`: the key's and the field's
+agreement, then `Transport.Stop_live`, whose two callee specs `NewServer` now takes) and posts
+`srvTrKeyOf srv γk`; the shutdown rebuilds the right from `srvApRes` (`srvApRes_trStop`,
+`srvTrStopK_of`). For the field's agreement inside the environment's `Stop`, the node's installer
+(`NodeStartSpec`) now takes the `transport` field read-only (`↦□`), which `NewServer` persists before
+installing; the installer only persisted it, so `NodeStartSpec` is stronger, not weaker.
+`srvEr`/`srvErM` take `ST` as a parameter, as `S`.
+
+**`Cleanup`'s open token.** `Cleanup` took the backend's whole open token (`bOpen 1`) up front, but
+two of the store's readers (the watch loops', `wsLoopN`) and the compaction job's resource come
+back only from `kv.Close()` inside it, where they were dropped. Gap 4's census needs every reader.
+`Cleanup` now takes an update `mvcc.wsCloseRes st γ ={⊤}=∗ bOpen 1` (`wsCloseRes`, the owner's name for
+what `Close` returns: the loops' readers and `compactJobResM`) and applies it after
+`kv.Close()`; the shutdown builds it from the census (`storeReaders_retire`, `storeRTs_shares`,
+`bOpen_one_pool`, as `NewServer`'s error path R-D1). `Cleanup` had no client yet.
