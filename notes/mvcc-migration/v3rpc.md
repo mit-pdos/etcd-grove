@@ -31,61 +31,92 @@ path. Only the watch path: the KV, lease, auth and maintenance parts of v3rpc ar
 - **The statements** (draft §6): `recvLoop`, `sendLoop`, `close`, `watchServer.Watch` as drafted;
   `isWatchPermitted`, `newResponseHeader` (swsIs's new parameters), `NewWatchServer` (W2: `tag`).
 - **The obligations, proved** (`WatchApi.lean`, no sorry): `watch_au` (O1), `cancel_au` (O2),
-  `close_au` (O3), `rev_au` (`Rev`'s update, `Q := True`), `snap_after_recv` (O4, with the registry
-  entries the caller holds placed in the snapshot's `S`, as the probe), `drain_poll` (O5's poll),
-  `rcvSnapG_dup`, `wsInvG_alloc` (the run's invariant from `NewWatchStream`'s `wsState ι wsStart`),
-  `regFacts_of`, `rel_register`.
+  `close_au` (O3), `rev_au`, `snap_after_recv` (O4), `drain_poll` (O5's poll), `rcvSnapG_dup`,
+  `wsInvG_alloc`, `regFacts_of`, `rel_register`, `wp_ws_receive`; (third session) the instance
+  `wrespIs_persistent` (the API's `wrespIs` unfolds to persistent parts).
+- **The pure models** (`WatchMsgModel`, `WatchSendModel`, `WatchSendHist`, `WatchSendPure`).
+- **Checked, third session (2026-11-05)**, every module from `WatchApi` to the six proofs, with no
+  `sorry`: `InvWatchStream`, `InvWatch`, the seven spec files (`serverWatchStream__{close,
+  isWatchPermitted,newResponseHeader,recvLoop,sendLoop}`, `watchServer__Watch`, `NewWatchServer`),
+  `WatchLemmas`, and the proofs of `close`, `newResponseHeader`, `isWatchPermitted`,
+  `watchServer.Watch`, `recvLoop`, `sendLoop`. **Checked with `lean` against stubs, not yet by
+  `lake build`** (see "How it was checked"). `WatchClass` restated (below), checked the same way.
+  Fixes made: `watchSrvOk` at `apply.isAuthStore`'s restated parameters (`∃ Pk f BT`, the
+  server track's `isAuthStore st Pk f BT RD M RW`); `swsIs_persistent hP` (an mvcc law makes
+  `isMvccWatchStream` persistent, so `swsIs` is persistent only under `persistent.law`: the proofs
+  install it before `wp_start`; `newResponseHeader` and `isWatchPermitted` take `swsIs` spatially
+  and need no law); `wsInv`/`rcvSnap` are `abbrev`s (the generic `wsInvG`/`rcvSnapG` unify with
+  them); after `rw [Hsi]` the stream argument of a callee is `_`; the loops' returns frame
+  `threadTok`; `Cancel`'s error by cases; the registration's `histLb` spatial (persistent only by
+  `srvWOk`'s law); a dangling docstring in `InvWatchStream`.
+- **`WatchClass.lean`, restated over the API** (draft: the watcher is the run's registry entry):
+  `watchAuthed_on tag γa ..` (at the mode's tag, W2), `ctrlWatcher_authorized r tok γa c m h :
+  modeTag r.srv.tag (.on γa) ∗ ctrlWatcher r tok (.create c) m ⊢ ∃ i info j st,
+  ⌜createRangeOk c m.watchId i.rg⌝ ∗ regIs r.γreg m.watchId i ∗ authStateAt γa j st ∗
+  infoBoundT r.srv.s (.on γa) tok info ∗ ⌜c.bound ≤ j ∧ (… ∀ x, i.rg.covers x → …)⌝` (was over
+  `mvcc.watcherIs`/`idAssigned`). `Results.lean`'s `watch_registered_authorized` restates it
+  (coordinator's file: its statement must follow).
+- `ServerKV.lean` (the KV path, not this track's, red for its own reasons): `w64_rev_ne_zero` and
+  `writeRev_ne_zero` take `+ 3` (the server's `appliedHdr` bound, coordinator's request).
 
-- **`WatchSendPure.lean`** (checks): the send loop's pure bookkeeping, re-keyed (`idsLive_*`,
-  `pend_id`, `src_fresh`, `neg1_sent` in `createdAfter`'s form, `srcOf_send`, `srcOf_ctrl`);
-  `WatchApi.wp_ws_receive` (the blocking receive as a `WP`).
-- **The pure models, checked** (`lake env lean`, they import the API only): `WatchMsgModel.lean`
-  (the message models, split out of `InvWatchStream.lean`), `WatchSendModel.lean` (re-keyed by id:
-  `SendInv`, `send_claim*` over `WResp`), `WatchSendHist.lean` (re-keyed: a source's index in place
-  of `RespM.idx`, `srcOf rcv S` the sent sources, `fwdEvs`/`fwdIdx` by id).
-- **Proofs rewritten, not yet checked** (they sit over `InvWatch.lean`, whose imports
-  `apply.Contracts`/`AuthClass`/`InvRequest` reach `txn.Writer`, red at the time of writing: the
-  server and txn tracks' migration): `serverWatchStream.close` (`Close`'s contract through
-  `shapes.law`, `close_au`), `watchServer.Watch` (`NewWatchStream`'s contract at the watchable store
-  from `shapes.law`'s per-type conjunct, `wsInvG_alloc`, both loops forked with thread tokens),
-  `serverWatchStream.recvLoop` (`Watch`/`Rev`/`Cancel`/`RequestProgressAll` through `shapes.law`,
-  `watch_au`/`rev_au`/`cancel_au`; the registered case's `ctrlWatcher` from `Watch`'s commit),
-  `isWatchPermitted`, `newResponseHeader` (the new parameters). Check each with
-  `etc/lean-check.py` once `InvWatch.lean` builds, and fix.
+## How it was checked (the server is red)
 
-## Blocker (2026-11-05, end of session)
+`InvWatchStream` imports `AuthReqDerive`, `InvWatch` imports `ReadOn`, the spec of
+`isWatchPermitted` imports `AuthBound` (→ `AuthGuard`); all four import the server's `InvRead`,
+which does not build under strict M1 (`txn.isKV`, `AEnv.s`, `AEnv.P`, `MvccName.idx`; also red:
+`KVApplyOn`, `InvApRes`, `apply.AuthFuel`, `apply.AuthApplyLatest`, `AuthApplyRes`). The watch path
+uses eight names of them: `infoBoundT`, `srvAuthLb`, `srvAuthLb_off`, `srvAuthLb_rangeCheck`,
+`principalBoundI`, `principalBound_of_ctxBoundOrTLS_gate`, `infoBoundT_of_principalBoundI`,
+`authInfoIs_pointsto`. Outside the repository (`/tmp/v3rpc-scratch`, never committed): a frozen copy
+of the build outputs of the watch path's import closure, `AuthReqDerive` verbatim without its
+`InvRead` import (it compiles: **the server can drop that import**), `AuthBound`'s watch names
+verbatim, and `ReadOn`'s `srvAuthLb*` and `AuthGuard`'s `authInfoIs_pointsto` as stubs on a scratch
+axiom. `#print axioms` of the six proofs: no `sorryAx`; beyond Perennial's and the Goose
+packages' axioms only the scratch stubs' axiom (from `srvAuthLb`, `authInfoIs_pointsto`). **To
+check of record** once `InvRead` builds: `lk.sh lake build` the six proof modules and
+`WatchClass`.
 
-Every module from `InvWatchStream.lean` on reaches `apply.AuthClass` → `apply.Contracts` →
-`etcdserver.KVStoreCore` (the server track's), which fails to build at `KVStoreCore.lean:156`
-(`failed to synthesize GooseExts`). `txn/Writer` is fixed. Once `KVStoreCore` builds: `lk.sh lake
-build Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch`, then the spec files, then
-`etc/lean-check.py` on `serverWatchStream__close`, `watchServer__Watch`,
-`serverWatchStream__recvLoop`, `serverWatchStream__isWatchPermitted`,
-`serverWatchStream__newResponseHeader`, `serverWatchStream__sendLoop` (none checked yet; expect
-IPM-level fixes: `rcvSnap`/`rcvSnapG` and `wsInv`/`wsInvG` unfolding, the `if`-branch order of
-`wp_if_destruct` in the cancel case, the `iframe`s of the new loop resources).
+## The proofs' hypotheses (final order, for `Link.lean`)
+
+- `serverWatchStream.close.wp_proof (hShapes : mvcc.api.shapes.law) (hP : mvcc.api.persistent.law)`
+- `serverWatchStream.newResponseHeader.wp_proof` (none)
+- `serverWatchStream.isWatchPermitted.wp_proof (hAI : EtcdServer.AuthInfoFromCtx.spec)
+  (hAS : EtcdServer.AuthStore.spec)`
+- `serverWatchStream.recvLoop.wp_proof hShapes hP (hPerm : isWatchPermitted.spec)
+  (hHdr : newResponseHeader.spec) (hFil : FiltersFromRequest.spec) (hIs : errors.Is.spec)
+  (hStart : traceutil.Tracer.Start.spec) (hWA : trace.WithAttributes.spec)
+  (hAStr : attribute.String.spec) (hAI64 : attribute.Int64.spec) (hABool : attribute.Bool.spec)
+  (hZErr : zap.Logger.Error.spec) (hZE : zap.Error.spec)`
+- `serverWatchStream.sendLoop.wp_proof (hHdr : newResponseHeader.spec)
+  (hGPI : GetProgressReportInterval.spec) (hICE : isClientCtxErr.spec) hShapes hP
+  (hR : mvcc.api.wsChan_recv.law) (hRok : mvcc.api.wsRecv_ok.law)
+  (hZero : mvcc.api.wsSentLb_zero.law) (hAssert : verify.Assert.spec) (hNT : time.NewTicker.spec)
+  (hStop : time.Ticker.Stop.spec) (hSec : time.Duration.Seconds.spec)
+  (hSecP : time.Duration.Seconds_ptr.spec) (hZD : zap.Logger.Debug.spec)
+  (hZW : zap.Logger.Warn.spec) (hZE : zap.Error.spec) (hCV : prometheus.CounterVec.WithLabelValues.spec)
+  (hRER : mvcc.ReportEventReceived.spec)`
+- `watchServer.Watch.wp_proof hShapes hP (hRecv : recvLoop.spec) (hSend : sendLoop.spec)
+  (hClose : close.spec) (hICE : isClientCtxErr.spec) (hIs : errors.IsCtxErr.spec)
+  (hZD : zap.Logger.Debug.spec) (hZW : zap.Logger.Warn.spec) (hZE : zap.Error.spec)
+  (hCV : prometheus.CounterVec.WithLabelValues.spec)`
 
 ## Left
 
-- **`sendLoop`: rewritten, not yet checked** (`serverWatchStream__sendLoop.lean`, over
-  `InvWatch.lean`, so blocked like the other proofs). As planned: the loop holds `wsRecv r.ι rcv ∗
-  monoListAuthOwn r.γr 1 rcv ∗ threadTok` (the thread token now in the loop's invariant and in
-  `retSt`, since `RequestProgress` takes one); `sendSt` keeps the announced ids' registry entries `M`
-  (`□ [∗map] regIs`, every announced id but `-1` in it: `regMap_created` from the created response's
-  `createdAfter`) and `rcvOk` the lower bound and the snapshot at each receipt (`rcvOk_snoc`, from
-  `snap_after_recv` with `M`, made `□` by `rcvSnapG_dup`); `D.filterMap src = srcOf rcv S`; the
-  receipts through `wsChan_recv.law` (the loop's blocking receive, the drain's `drain_poll` at the
-  watcher's stamp `k0` from `ctrlWatcher_reg`, `wsSentLb_zero.law` for a refused create, the
-  deferred drain's `wp_ws_receive`); `mvccOk` for a direct send (the `-1` clause from the
-  snapshot's `M` facts) and for a flushed one (its index's snapshot from `rcvOk`); buffered
-  messages at the source index `0` (`watchRespMsg_mvccResp`). The pure bookkeeping moved to
-  `WatchSendPure.lean` (checks).
-- `Results.lean`, `Link.lean`: the linked results (`etc/gen-link.py --v3rpc`), once the proofs
-  check; the watch callees are now the API's laws (`shapes`, `persistent`, ...), taken by the link as
-  mvcc's results.
-- `HistoryModel.lean`, `ClientModel.lean`, `WatchStep.lean`, `WatchClass.lean`: the client model's
-  server log (`srvLog`, `histLog`) over `mvcc.evLog`/`idxSealed` (the server draft's `srvLogA` over
-  `histLb`) and `ctrlWatcher_authorized` (over the old `watcherIs`): not migrated.
+- `Results.lean`, `Link.lean` (the coordinator's): the watch callees are now the API's laws
+  (`shapes`, `persistent`, `wsChan_recv`, `wsRecv_ok`, `wsSentLb_zero`), taken as mvcc's results;
+  `watch_registered_authorized` restated as `ctrlWatcher_authorized` (above).
+- **`ClientModel.lean`, `HistoryModel.lean`, `WatchStep.lean`: not migrated, blocked.** They are the
+  clients' model of etcd at the server (`etcdModelOfServer E`, `etcdModelOfHistory`), over mvcc's
+  internals `idxSealed`/`idxCert`/`certOk`/`storeSmall`/`E.γ.idx` and the server's `revTok`,
+  `srvKVInvs`; `ClientModel` imports `v3rpc/ServerKV` (the KV path, red: `mvcc.storeReader E.s`).
+  The draft restates only the watch part (§8 `srvWL2 W L := W.histLb L`); the rest follows the
+  server's read path (`srvApi.srvLogA`, `rangeReadOkA`, `srvRevLbA`, `histLb_model.law` in
+  `KVStoreApi`/`KVStoreRead`), and `KVStoreRead` imports `InvRead` (red). Plan: `srvLog` :=
+  `srvApi.srvLogA γr on E.γs` (`etcdModelOfServer` then takes `γr on` beside `E`), `srvReachedAt`
+  := `srvRevLbA`, `srvReadAt` over `kvLogLb E.γs`, the agreement laws from `histLb`'s prefix law
+  (`histLbG`'s, `KVStoreCore`), `etcdState_of_cert*` from `rangeReadOkA`'s floor and receipt;
+  `WatchStep.srvStep_of_watch` over `histLb`. Their clients (client/v3, cache, examples) follow.
+  Not started: it needs `InvRead`, `ServerKV` and the server's read path first.
 
 ## Placeholders (`M1-REPLACE`)
 

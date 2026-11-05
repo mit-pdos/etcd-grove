@@ -37,7 +37,10 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apisection defs
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
+  go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -375,11 +378,11 @@ theorem v3rpc.regMap_created (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM
     □ ([∗map] Y ↦ i ∈ M, v3rpc.regIs (GF := GF) r.γreg Y i) ∗ v3rpc.createdAfter r j m ⊢
       ∃ M' : GMap w64 v3rpc.RegInfo, □ ([∗map] Y ↦ i ∈ M', v3rpc.regIs r.γreg Y i) ∗
         ⌜∀ Y, Y ≠ W64 (-1) → ((<[X := ()]> IM) !! Y).isSome = true → (M' !! Y).isSome = true⌝ := by
-  iintro ⟨#HM, #Hord⟩
   cases hca : m.canceled
-  · unfold v3rpc.createdAfter at Hord
-    rw [hcr, hca] at Hord
-    simp only [Bool.not_false, Bool.and_self, ↓reduceIte] at Hord
+  · unfold v3rpc.createdAfter
+    rw [hcr, hca]
+    simp only [Bool.not_false, Bool.and_self, ↓reduceIte]
+    iintro ⟨#HM, #Hord⟩
     icases Hord with ⟨%i, %l, %L, #Hreg, -⟩
     iexists <[X := i]> M
     isplitr
@@ -415,7 +418,8 @@ theorem v3rpc.regMap_created (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)]
         rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at hI
         exact hMI Y hY hI
-  · iexists M
+  · iintro ⟨#HM, -⟩
+    iexists M
     iframe HM
     ipureintro
     intro Y hY hI
@@ -437,7 +441,7 @@ local macro "send_return" : tactic => `(tactic| (
   wp_apply (hCh r.W.γm r.ι) $$ [] as %ch' %Hch'
   · iframe #
   subst Hch'
-  wp_auto
+  (try wp_auto)
   ihave Hdr : iprop(∃ (rcv' : List mvcc.api.WResp) (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse),
       "Hwc" ∷ mvcc.api.wsRecv r.ι rcv' ∗ "ws" ∷ ws_ptr ↦ v) $$ [Hwc ws]
   · iexists _, _; iframe
@@ -1327,6 +1331,7 @@ local macro "drain_created" : tactic => `(tactic| (
           wp_auto
           ret_mid
         -- `sendWatch(wresp)` (`HsW`)
+        try simp only [↓reduceIte]
         wp_auto
         wp_bind (App (App (Val (GoInstruction (GoLoad _))) (Val #sendWatch_ptr)) _)
         iapply HsW $$ Hres HA Htt Hst HS Hmu [-] []
@@ -1680,6 +1685,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     as_aux_lemma =>
       send_return
   wp_for HLI
+  (try simp only [_root_.decide_true, ↓reduceIte])
+  (try wp_auto)
   wp_apply +noauto (hCh r.W.γm r.ι) $$ [] as %ch' %Hch'
   · iframe #
   subst Hch'

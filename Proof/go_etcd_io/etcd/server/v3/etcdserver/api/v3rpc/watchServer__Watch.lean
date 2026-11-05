@@ -162,9 +162,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     iframe #
     isplitr
     · ipureintro; exact ⟨Hswsn, Hnn.2⟩
-    isplitr
-    · simp only [r, v3rpc.auxOf]; iexact HauxIs
-    simp only [r, v3rpc.wsInv]; iexact Hinv
+    simp only [r, v3rpc.auxOf]; iexact HauxIs
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
     $$ [$Hadd] as ⟨Hadd, Hdone⟩
   · iframe #; ipureintro; decide

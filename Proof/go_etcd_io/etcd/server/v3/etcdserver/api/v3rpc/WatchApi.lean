@@ -223,6 +223,11 @@ def watchQ (W : SrvW GF) (ι : mvcc.api.WsName) (γreg γtok : GName) (kk e : Li
 
 /-! ## The laws as instances (from `persistent.law`) -/
 
+/-- A received response's fields (`wrespIs`, the API's definition) are persistent. -/
+instance wrespIs_persistent (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse)
+    (x : mvcc.api.WResp) : Persistent (mvcc.api.wrespIs (GF := GF) v x) := by
+  unfold mvcc.api.wrespIs; infer_instance
+
 theorem wsInvG_timeless (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName)
     (γreg γtok γcl : GName) (cq : w64 → IProp GF) [∀ id, Timeless (cq id)] :
     Timeless (wsInvG ι γreg γtok γcl cq) := by

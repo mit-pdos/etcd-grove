@@ -340,7 +340,7 @@ with `S` (every watcher's `RegInfo`, its discarded entries kept, so the snapshot
 id tokens minted for exactly `S`'s ids); every watcher unfiltered; every watcher not live was
 cancelled at the client's request (`cancelQ`: the reason today's `Ψ`/`rsnFor` carried); the stream
 open, or the close token deposited. -/
-def wsInv (r : WRun GF) : IProp GF := wsInvG r.ι r.γreg r.γtok r.γcl (cancelQ r.γs)
+abbrev wsInv (r : WRun GF) : IProp GF := wsInvG r.ι r.γreg r.γtok r.γcl (cancelQ r.γs)
 
 /-! ## The per-message stream spec (the draft's §4) -/
 
@@ -349,7 +349,7 @@ def wsInv (r : WRun GF) : IProp GF := wsInvG r.ι r.γreg r.γtok r.γcl (cancel
 `snap_after_recv`): the API's watch guarantee at some state `σ` and stream state `S` of that
 moment, the notified log's certified lower bound and the compaction revision's permit at it, each
 of `S`'s watchers registered (`regIs`) and live or cancelled at the client's request. -/
-def rcvSnap (r : WRun GF) (rs : List mvcc.api.WResp) (σ : mvcc.api.MvccState)
+abbrev rcvSnap (r : WRun GF) (rs : List mvcc.api.WResp) (σ : mvcc.api.MvccState)
     (S : mvcc.api.StreamState) : IProp GF :=
   rcvSnapG r.W r.γreg (cancelQ r.γs) rs σ S
 

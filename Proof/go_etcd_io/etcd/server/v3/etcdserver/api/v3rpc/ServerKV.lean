@@ -409,14 +409,14 @@ theorem kvServerIs_of_at (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
 end defs
 
 /-- A revision at a log of `NewStore`'s two revisions at least, and room: not `0`. -/
-theorem w64_rev_ne_zero (n : Nat) (h1 : 1 ≤ n) (h2 : n + 4 ≤ 2 ^ 63) : W64 (n : Int) ≠ W64 0 := by
+theorem w64_rev_ne_zero (n : Nat) (h1 : 1 ≤ n) (h2 : n + 3 ≤ 2 ^ 63) : W64 (n : Int) ≠ W64 0 := by
   intro h
   have := congrArg (fun w : w64 => uint.Z w) h
   word
 
 /-- The delete's revision (`writeRev`) at such a log: at least `1`. -/
 theorem writeRev_ne_zero (log : mvcc.Log) (pend : List mvcc.Change) (h1 : 2 ≤ log.length)
-    (h2 : log.length + 4 ≤ 2 ^ 63) : W64 ((mvcc.writeRev log pend : Nat) : Int) ≠ W64 0 := by
+    (h2 : log.length + 3 ≤ 2 ^ 63) : W64 ((mvcc.writeRev log pend : Nat) : Int) ≠ W64 0 := by
   apply w64_rev_ne_zero
   · unfold mvcc.writeRev; split <;> omega
   · unfold mvcc.writeRev; split <;> omega
