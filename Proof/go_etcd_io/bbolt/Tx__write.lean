@@ -594,7 +594,6 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold goosLinux at hgoos
         unfold goarchAmd64 at hgoarch
         try wp_auto
-        rw [hgoos, hgoarch]
         wp_apply wp_slice_literal
         isplitr
         · ipureintro; rfl
@@ -750,6 +749,9 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             try simp only [Bool.false_eq_true, ↓reduceIte, _root_.decide_false]
             have Hke : sint.nat k = c2.2.2.length := by rw [Hpsl] at hk; word
             rw [Hke, List.drop_length, List.append_nil, hl2']
+            try wp_auto
+            try rw [if_pos (by decide)]
+            try rw [if_neg (by decide)]
             try wp_auto
             wp_apply sync.Pool.wp_Put _ pf (poolR _ _ iprop(True)) pageBuf _ $$ [Hbuf]
             · iframe #
