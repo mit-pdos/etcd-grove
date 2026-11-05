@@ -65,6 +65,47 @@ theorem path_ready (X : WX) (bl : Loc) (B : BRec) (hok : wOK X) (hB : X.t.bs !! 
   · obtain ⟨pg, hpg, -⟩ := WOpen.treeWF_page ht
     exact ⟨pg, hpg, hpm⟩
 
+/-- **A leaf of a non-root bucket's logical tree holds plain entries** (a node's by `leafShape`,
+the inline page's by `inlineGood`, a view page's by `posShape`): `Put`'s and `Delete`'s
+`ErrIncompatibleValue` branch is unreachable. -/
+theorem leaf_plain_nonroot (X : WX) (bl : Loc) (B : BRec) (hok : wOK X)
+    (hB : X.t.bs !! bl = some B) (hroot : bl ≠ X.rl) (p : w64) (hI : WOpen.posI X B p)
+    (ws : List WEntry) (hL : ltree X bl p = some (true, ws)) (w : WEntry) (hw : w ∈ ws) :
+    ¬ isBktFlag w.flags := by
+  have hc := (hok.1.2.2.2.2.2 bl B hB).1
+  intro hf
+  rcases hI with ⟨l, rn, hres, hrn⟩ | ⟨h0, hrn, rfl⟩ | ⟨hi, ht, hnm, ⟨c, hpr, hown⟩, -⟩
+  · rw [ltree_node X bl B p l rn hB hres hrn] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨hlf, rfl⟩ := hL
+    exact hroot ((hok.1.2.1.2.2.1 bl B hB l rn hrn hlf w hw).1 hf)
+  · have hres : resolve B (W64 0) = none := by simp [resolve, h0, hrn]
+    have hwp : wpageAt X.v B (W64 0) = some (B.bv.page', B.ipg) := by simp [wpageAt, h0]
+    rw [ltree_page X bl B _ _ _ hB hres hwp] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨-, rfl⟩ := hL
+    obtain ⟨-, -, hg, -⟩ := hc.1 h0 hrn
+    unfold pageWs at hw
+    obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw
+    have hi' := List.mem_range.1 hi
+    unfold pageW at hf
+    rw [if_pos hg.2.1] at hf
+    have := WOpen.isBktFlag_mod _ hf
+    rw [(hg.2.2.2.2 i hi').2] at this; cases this
+  · obtain ⟨hres, pg, hpg, hwp, -⟩ := posOK_tree_page X B p hi ht hnm
+    rw [ltree_page X bl B _ _ _ hB hres hwp] at hL
+    simp only [Option.some.injEq, Prod.mk.injEq] at hL
+    obtain ⟨hfl, rfl⟩ := hL
+    have hfl' : pageFlags pg = leafPageFlag := of_decide_eq_true hfl
+    unfold pageWs at hw
+    obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw
+    have hi' := List.mem_range.1 hi
+    unfold pageW at hf
+    rw [if_pos hfl'] at hf
+    have h1 := WOpen.isBktFlag_mod _ hf
+    have := ((hok.1.2.1.2.2.2.1 bl B hB c p.toNat pg hpr hown hpg hfl' i hi').1).1
+    exact hroot (this (by rw [h1]; rfl))
+
 end pure
 
 section iris
