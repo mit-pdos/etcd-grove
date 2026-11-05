@@ -12,12 +12,15 @@ timeout detector (`contention.NewTimeoutDetector(2 * heartbeat)`: a contract), t
 `done` unbuffered) and the ticker (`time.NewTicker(heartbeat)`: since 2026-11-03 a callee of the
 proof, Perennial's proved spec; until then a contract, `rnTickerOk`, in the precondition; its ticks
 carry nothing, `isRNTicker`'s bag, since 2026-11-05 with no premise on `E.T`),
-and returns the struct `r` as `rnBuilt` describes it: its fields read-only but `transport`
-(`cfg`'s, nil, which `NewServer` sets), the channels' and the mutex's predicates, both halves of
-`applyc`'s SPSC channel and the right to close `done`. The wrapper's names `γ` are the caller's
-(`node`, `id`, `nl`, `pre`, `ms`, `γs`, `reg`: raft's node, this node's id and pointer, the start
-log, the `MemoryStorage` with its names and registry) but the three `newRaftNode` allocates
-(`ap`, `cum`, `done`).
+and returns the struct `r` as `rnBuilt` describes it: the struct value owned whole (`NewServer`
+copies it into `EtcdServer.r` and sets its `transport`, `cfg`'s, nil at the one caller;
+`rnFixed_split` makes every field but `transport` and `latestTickTs` read-only where it lands), `cfg`'s fields as given, the fresh `tickMu`, the
+components' predicates (`rnParts`), both halves of `applyc`'s SPSC channel with `cum` at `[[]]`,
+the right to close `done` and the claim on the stop's escrow (`rnStopClaim`). The wrapper's names
+`γ` are the caller's (`node`, `id`, `nl`, `pre`, `ms`, `γs`, `key`, `wal`: raft's node, this
+node's id and pointer, the start log, the `MemoryStorage` with its names, the storage's key and
+the WAL's names; the `MemoryStorage` registry's name is the node's, `RNNames.reg`) but the four
+`newRaftNode` allocates (`ap`, `cum`, `done`, `sc`).
 -/
 module
 

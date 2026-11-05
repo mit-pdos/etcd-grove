@@ -31928,3 +31928,71 @@ given back): with auth off `K` is `True` (`authCloseOk`); with auth on it is the
 pass it on (`□ (⌜on = false⌝ → srvCleanupOwn srv)`), and `srvCleanupOwn` (opaque since R2b-2) is now
 defined from it. Until R2b-3 needs auth on at the stop, `Cleanup`'s on-mode closer is the apply
 thread's `tpAdmin` (in `authApplyRes`).
+
+## The boot configuration named, and the `newRaftNode` specs' unused premises dropped (2026-11-05 · the open minor findings of "The raft wrapper's ticker bag and pure boot premises" · branch `rn-cleanups2`)
+
+Supersedes the open findings (S) unused premises, (M) the peers' slice, (M) one named `Prop`, and
+the stale docs of "The raft wrapper's ticker bag and pure boot premises" (2026-11-05). Internal
+specs only: `bootstrappedRaft.newRaftNode.spec`, `NodeStartSpec`; `NewServer.spec`'s text and
+every exported, linked, trusted statement's text unchanged; trust base unchanged.
+
+**One named `Prop`, `rnStartCfg bv cv lok pv ps`** (`InvNodeStart.lean`, a `structure` of 13 named
+fields, `Hcfg.valid`, `Hcfg.peers`, ...): the logger non-nil, `NewRawNode`'s ten premises on
+`b.config`, the peers' ids `ps = pv.map Peer.ID'` and `ps ≠ []`. It is the intersection of what
+the three places state and the bare spec uses; each place states the rest beside it:
+- `bootstrappedRaft.newRaftNode.spec`: `rnStartCfg ∧ 0 < heartbeat ∧ walReady wal`;
+- `NodeStartSpec`: `rnStartCfg ∧ 0 < heartbeat ∧ ps.Nodup ∧ 0 ∉ ps ∧ |ps| < 2^62 ∧ γr.vs = ps ∧
+  walReady wal ∧ receiptBound + |boot| ≤ 2^61`;
+- `bootOk`'s `Hraft`: `rnStartCfg ∧ heartbeat = TickMs * 10^6 ∧ cv.ID' = id ∧ ps.Nodup ∧ 0 ∉ ps ∧
+  cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot` (equivalent to before, conjuncts regrouped:
+  `bootOk` is in `bootstrapContract`, a premise of `NewServer.spec` and the examples, so its body
+  changed only up to `rnStartCfg`'s unfolding, as the user's item asked).
+`NewServer`'s glue (the 20-in, 24-out `exact`) is now `⟨Hrcfg, heartbeat, Hrnodup, Hr0, Hrpslen,
+Hrvs, HwalR, by omega⟩`. A structure rather than a `def` of a conjunction: the proofs read its
+fields by name and pass `Hcfg` whole; no `proj_simps` needed. *Decided by the agent, pending the
+user*: (a) the heartbeat stays out (positivity in the specs, Go's wrapping product in `bootOk`);
+(b) the peers' distinctness, non-zero ids and voters stay out (the bare spec does not use them),
+alternatives were a larger Prop carrying them anyway (allowed by the brief) or a config-only Prop
+without the peers; (c) `InvRestart`'s `bootOk` (`pv = []`, a restart) is not migrated: its peers
+clause differs, and only the config part would fit.
+
+**Unused premises dropped**, each removed and the build run:
+- `bootstrappedRaft.newRaftNode.spec`: `ps.Nodup`, `W64 0 ∉ ps`, the length bound, `cv.ID' ∈ ps`,
+  `γr.vs = ps` (raft's `StartNode.spec` takes none of them).
+- `NodeStartSpec`: `cv.ID' ∈ ps`, `E.γr.raft.raft = γr`, `E.γr.raft.pre = []`,
+  `E.γr.raft.ai0 = 0`, and `srvRaftLogInv E.γr.raft` (the installer's `rnEnvOk` holds the latter;
+  the proof reads `Propose`'s from it). Kept, used: the peers' distinctness, non-zero ids, length
+  bound and `γr.vs = ps` (the start's configuration view, `srvCfgOk_nil` in `rnToks_of_start`), the
+  receipt bound (`rnLogFits`).
+- `bootOk` keeps `cv.ID' ∈ ps` (`NewServer` uses it for the transport's peers and the boot
+  members) and every other conjunct.
+
+**The peers' slice returned**: `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` post
+`bv.peers' ↦*{dq} pv` (from `StartNode.spec`'s post); `NewServer` drops it. Stale comments fixed.
+
+**Docs**: `newRaftNode`'s header (the struct owned whole, not read-only: `rnFixed_split` makes
+its fields read-only where it lands; the caller's names `key`, `wal`, no `reg` field; `sc`
+allocated too), `InvNodeStart`'s header (`sc`), `NodeStart.lean`'s header (the premise list
+rewritten from `NodeStartSpec`'s precondition: the old one named the allocation and contracts of
+before the node API), `InvRaftNode`'s header (`E.T` pinned to `True`, unused).
+
+*Found while proving*: `word` (and `omega`'s preprocessing) failed with "unknown free variable" in
+`NewServer` while the structure hypothesis `Hrcfg : rnStartCfg …` was in the context; the proof
+`clear`s it once passed on. Named `rnStartCfg`, not `rnBootCfg` (the review's S: `raftNode.bootCfg`
+is the sealed slot of the server configuration's clock, `RaftNodeApi.lean`).
+
+**The fresh review round** (one `spec-reviewer` on the three specs and the Go code). Applied: the
+T, `bootstrappedRaft__newRaftNode.lean`'s header still describing the storage tokens, the
+`InitialState` closure and the static/dynamic boot tokens of before the node API (rewritten from
+the spec's text; the proof file's header too); the M's on docs (`rnFixed_split` leaves
+`latestTickTs` owned too; `transport` nil at the one caller; `rnBuilt`'s docstring and the stop
+claim; "fewer than `2 ^ 62`"; `rnRaftStatusOk` not a names-only contract; `NodeStartSpec`'s post
+summarized "among others"; `InvRestart`'s comment calling `bootOkR`'s clauses `NodeStartSpec`'s).
+Open, for the user: (S) `rnStartCfg` mixes the configuration, which both of Go's branches need
+(`StartNode` and `RestartNode`), with the peers, which only `StartNode`'s does; the restart's
+`bootOkR` (`pv = []`) cannot use it, and R2c's `RestartNode` branch of this function would split
+it anyway: the alternative (b) above, a configuration-only name with the peers beside it; (S) the
+slot convention: `bootOk`'s raft clauses are a transparent fact bundle in a hub, not a sealed slot
+(`RaftNodeApi.lean` records "not yet a slot"): seal them as a `raftNode` slot with one elimination
+law, when `bootOk` next changes there; (M) `NodeStartSpec` spells out `receiptBound GF + …`
+where `rnLogFits` names the bound (pre-existing).

@@ -273,16 +273,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
-      ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
-      cv.Storage' = memStorIface bv.storage' ∧
-      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
-      cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
-      cv.DisableConfChangeValidation' = false ∧
-      (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
-      cv.ID' = id ∧
-      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
+    -- (2026-11-05: until then `rnStartCfg`'s conjuncts spelled out) the configuration and the
+    -- peers (`rnStartCfg`), this node's id, the peers distinct, non-zero, this node among them,
+    -- the cluster's voters, and the bootstrap log theirs
+    "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      cv.ID' = id ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
