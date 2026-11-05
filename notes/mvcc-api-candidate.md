@@ -848,3 +848,17 @@ backend.isBackend B.γB B.P (mvccW gx) Pk B.b` (the backend share's backend open
 write invariant). Immediate from `mvccBackend`'s body (`isBackend d.γB d.P (mvccW d.gx) Pk d.be`,
 `B = ⟨d.γB, d.P, d.be⟩`); its proof, `mvccBackend_isBackend.law_holds` (`Api/SnapLaws.lean`), lands
 with the mvcc track's next commit (the snapshot image's tracking).
+
+**The tester's migration, 2026-11-06: decided by the coordinator.** Two laws the tester track found
+missing (`notes/mvcc-migration/mvccrand.md`, G1 and G2), both true by the definitions:
+- **G1.** `backendRest` (opaque at `True`, no law: after `mvccBackendFor_open.law` the client had no
+  `plHook γB func.nil`, so no hook and no write, no `rbOwn` for `NewLessor`, and lost `K`) is defined
+  as its docstring describes, sealed (`@[no_expose]`): `isStopChans γB b ∗ K γB ∗ plHook γB func.nil ∗
+  rbOwn γB (rbData P D) ∗ rdPool γB P b` (`newPostKP`'s parts beyond the store's); and
+  `backendRest_open.law : backendRest γB P K b D ⊢ backend.isStopChans γB b ∗ K γB ∗
+  backend.plHook γB func.nil ∗ backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b`
+  (`backendRest_open.law_holds`, `Api/SnapLaws.lean`: the definition).
+- **G2.** `errVars.law : isPkgInit mvcc ⊢ errorsNewVar ErrCompacted "mvcc: required revision has been
+  compacted" ∗ errorsNewVar ErrFutureRev "mvcc: required revision is a future revision" ∗
+  errorsNewVar ErrEmptyWatcherRange "mvcc: watcher range is empty"` (`mvccInit`'s facts, so a client's
+  `err == ErrFutureRev` needs no debt module; `errVars.law_holds`, from `isPkgInit_access`).

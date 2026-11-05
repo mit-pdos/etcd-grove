@@ -156,6 +156,21 @@ theorem mvccW_alloc.law_holds : mvccW_alloc.law (GF := GF) := by
   iframe H1
   ileft; iexact H2
 
+/-- **`backendRest_open.law`** (the tester's migration, 2026-11-06, G1): `backendRest` is its parts. -/
+theorem backendRest_open.law_holds : backendRest_open.law (GF := GF) := by
+  intro γB P K b D
+  unfold backendRest
+  exact .rfl
+
+/-- **`errVars.law`** (the tester's migration, 2026-11-06, G2): the error variables' facts of the
+package's initialization (`mvccInit`). -/
+theorem errVars.law_holds : errVars.law (GF := GF) := by
+  iintro #Hpkg
+  ihave Hmi : (mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, H1, H2, H3, -⟩
+  iframe H1 H2 H3
+
 end laws
 
 section snapshot

@@ -483,6 +483,12 @@ def mvcc.api.WatchStream.Close.contract (ty : go.GoType) (v : val) : Prop :=
           ▷ ((threadTok ∗ ∃ S, Q S) -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods ty go!"Close" v)) (intoVal ())) {{ Φ }}
 
+def mvcc.api.backendRest_open.law : Prop :=
+  ∀ (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF) (b : Loc) (D : backend.Data),
+    mvcc.api.backendRest γB P K b D ⊢
+      backend.isStopChans γB b ∗
+        K γB ∗ backend.plHook γB func.nil ∗ backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b
+
 def mvcc.api.store.FirstRev.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.FirstRev.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
@@ -565,6 +571,15 @@ def mvcc.api.mvccImage_fresh.law : Prop :=
           ⊢ |==> mvcc.api.mvccImage D mvcc.api.mvccStart.log mvcc.api.mvccStart.crev false
 
 def (sealed) mvcc.api.mvccLeases (γ : mvcc.api.MvccName) : GName
+
+def mvcc.api.errVars.law : Prop :=
+  isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
+    errorsNewVar go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted
+        go!"mvcc: required revision has been compacted" ∗
+      errorsNewVar go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev
+          go!"mvcc: required revision is a future revision" ∗
+        errorsNewVar go_etcd_io.etcd.server.v3.storage.mvcc.ErrEmptyWatcherRange
+          go!"mvcc: watcher range is empty"
 
 def mvcc.api.store.Compact.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Compact.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)

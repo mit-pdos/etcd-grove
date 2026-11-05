@@ -270,13 +270,16 @@ revisions. (Defined at stage 2, M2, 2026-11-05: the receipt and the image's fact
 @[no_expose] def mvccImage (D : backend.Data) (L : Log) (c : Int) (u : Bool) : IProp GF :=
   iprop(⧖ (logCh L) ∗ ⌜snap.imageOk D L c u⌝)
 
-/-- **What the client keeps of an opened backend** after the store's part (a definition on
-adoption; here opaque): its stop channels, its hook's exclusive half at `nil`
-(to set, or to freeze at `nil`), its other buckets' rights (lease, alarm, auth, membership), the
-reader pool (`rdPool`), and `K`. (The store's reader slots' open shares come back at the `Restore`
-that replaces the backend; not at `Close`, shutdown being out of scope.) -/
-opaque backendRest (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF)
-  (b : Loc) (D : backend.Data) : IProp GF := iprop(True)
+/-- **What the client keeps of an opened backend** after the store's part: its stop channels, its
+hook's exclusive half at `nil` (to set, or to freeze at `nil`), its other buckets' rights (lease,
+alarm, auth, membership), the reader pool (`rdPool`), and `K`. (The store's reader slots' open
+shares come back at the `Restore` that replaces the backend; not at `Close`, shutdown being out of
+scope.) Sealed; its parts by `backendRest_open.law` (the tester's migration, 2026-11-06, G1: until
+then opaque at `True`, which left the client no hook to set, no lessor and no `K`). -/
+@[no_expose] def backendRest (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF)
+    (b : Loc) (D : backend.Data) : IProp GF :=
+  iprop(backend.isStopChans γB b ∗ K γB ∗ backend.plHook γB func.nil ∗
+    backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b)
 
 /-- **What the post-lock hook `f` does** under the batch lock of invariant `P`, from the caller's
 `Pre`: `f`'s triple to `Q`, or with no hook (`nil`), the caller's view shift. -/
@@ -875,6 +878,28 @@ batch lock's invariant `Pk`. -/
 abbrev mvccBackend_isBackend.law : Prop :=
   ∀ (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF),
     mvccBackend (GF := GF) γ q B Pk ⊢ ∃ gx : GName, □ backend.isBackend B.γB B.P (mvccW gx) Pk B.b
+
+/-- **What the client keeps of an opened backend, opened** (the tester's migration, 2026-11-06, G1:
+decided by the coordinator): `backendRest`'s parts, `newPostKP`'s beyond the store's: the stop
+channels, `K`, the hook's exclusive half at `nil` (`SetTxPostLockInsideApplyHook`, or freezing it),
+the tracked buckets' rights (`NewLessor`'s `rbPart`) and the reader pool. -/
+abbrev backendRest_open.law : Prop :=
+  ∀ (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF) (b : Loc)
+    (D : backend.Data),
+    backendRest (GF := GF) γB P K b D ⊢
+      backend.isStopChans γB b ∗ K γB ∗ backend.plHook γB func.nil ∗
+        backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b
+
+/-- **mvcc's error variables are `errors.New`'s** (the tester's migration, 2026-11-06, G2: decided
+by the coordinator): the package's initialization gives `ErrCompacted`, `ErrFutureRev` and
+`ErrEmptyWatcherRange` as `*errors.errorString` values with their messages (`errorsNewVar`), so a
+client's `err == ErrFutureRev` (Go's interface `==`, which checks the dynamic type's
+comparability) is provable without mvcc's internals. -/
+abbrev errVars.law : Prop :=
+  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
+    EtcdGrove.errorsNewVar ErrCompacted go!"mvcc: required revision has been compacted" ∗
+    EtcdGrove.errorsNewVar ErrFutureRev go!"mvcc: required revision is a future revision" ∗
+    EtcdGrove.errorsNewVar ErrEmptyWatcherRange go!"mvcc: watcher range is empty"
 
 /-- **The store's part of an opened backend** (decision 2, the user, 2026-11-03: over the store's
 needs, at any opener; the review of round 13's decisions: at the pooled post): what a backend's
