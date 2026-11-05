@@ -4,7 +4,7 @@ Per `notes/spec-first-plan.md` ("Proceed with a veto", "Questions do not block")
 decided by the agent with its recommendation and work continues; the user may veto. Hard stops are
 marked.
 
-## D1. `GuaranteedUpdate.spec` with a cached object: the scope premise, extended to `tryUpdate` (pending the user; a premise on an exported statement)
+## D1. `GuaranteedUpdate.spec` with a cached object: the scope premise, extended to `tryUpdate` (approved by the user 2026-11-05: the agent's form, not the narrower alternative)
 
 Review round 1 (F1): the cached no-op path (`store.go:552-575`) re-reads and returns or rewrites
 without re-running the preconditions or `tryUpdate` on the re-read state, so the spec is false
@@ -18,7 +18,7 @@ does: the same bug, `issues/k8s-etcd3-cached-noop-skips-preconditions.md`, "Impa
   ∀ n, f o n = .ok o'` (only the no-op matters). More precise, harder to read.
 - Depends on it: `store.GuaranteedUpdate.spec`, the driver's `call` glue.
 
-## D2. Cached objects of another key: a history keyed by revision (decided by the agent, pending the user)
+## D2. Cached objects of another key: a history keyed by revision (decided by the agent; approved by the user 2026-11-05)
 
 Review round 1 (F2): `genFrom` (as `TestCorrectness`) attaches the client's cached object to an
 operation on any key, so the driver must give `versionAt c K r o` for a key `K` other than the
@@ -32,7 +32,7 @@ cannot say a revision did not change `K`.
 - Alternative: `genFrom` attaches a cached object only to an operation on its own key (as
   `CacheDelegator` does in production): a deviation from the approved traffic.
 
-## D3. `meta.Accessor.spec`: one spec, generalized (decided by the agent, pending the user)
+## D3. `meta.Accessor.spec`: one spec, generalized (decided by the agent; approved by the user 2026-11-05)
 
 `Spec/k8s_io/apimachinery/pkg/api/meta/Accessor.lean` exists (the DaemonSet track's named
 hypothesis, for its four API pointer types, "boundary pending approval"). `Preconditions.Check`
@@ -44,14 +44,14 @@ needs it for any type in `metav1.Object`'s type set. `meta.Accessor` is now tran
 - Alternative: keep the DaemonSet's spec and give `Check` a separate lemma (a second family: not
   allowed without the user).
 
-## N1. `fmt.SprintfNamed`: a hazard the axiom attack noted (no action proposed in 7b)
+## N1. `fmt.SprintfNamed`: a hazard the axiom attack noted (no action proposed in 7b) (left as is by the user 2026-11-05)
 
 The `axiom` skill found the extended list sound (`notes/audit.md`). It noted that the named branch
 of `fmt.SprintfArgOk` does not ask the value to have its type's shape (a `LeaseID` holding a
 non-`w64` would make the post `False`); unreachable by Go's typing. Narrowing it is a change to a
 trusted statement (a hard stop): left for the user, not done.
 
-## D4. `cachedObjOk` at every key, from the revision's changes (decided by the agent, pending the user)
+## D4. `cachedObjOk` at every key, from the revision's changes (decided by the agent; approved by the user 2026-11-05)
 
 `Apply` caches every answer with a name; `cache.put` takes `cachedObjOk c o`: `□ ∀ k, versionAt c k
 o.RV (dobjOf o)`. For the answer's own key it comes from the state the answer is from (a `Get`'s or a
@@ -67,7 +67,7 @@ holds vacuously: the key has no value there.
 - Alternative: cache an object only for operations on its own key (`genFrom` checks the name):
   a deviation from the test's traffic (D2's alternative).
 
-## D5. A `Get` with a minimum resource version above the read's revision (decided by the agent, pending the user)
+## D5. A `Get` with a minimum resource version above the read's revision (decided by the agent; approved by the user 2026-11-05)
 
 The store answers `TooLargeResourceVersion` (a `*StatusError`), which `errOut` places as `EOther`,
 and so does the Lean model (`mgetL`: `otherL`, as the Go `mget`). `Apply`'s prophecy then says
@@ -81,7 +81,7 @@ answer there, and needs that answer not `EOther`, i.e. `minOf x ≤ R`.
 - Alternative: `getCall`'s maker takes `R` only with `minOf x ≤ R` (a premise `Apply` cannot check
   before the call).
 
-## D6. `Gen`'s spec as a triple (decided by the agent, pending the user)
+## D6. `Gen`'s spec as a triple (decided by the agent; approved by the user 2026-11-05)
 
 `Gen` now takes the table (`Gen(tbl, id)`); `Check` passes `func(id) any { return Gen(tbl, id) }`.
 - **Decided by the agent:** `Gen.spec` a plain triple (`isCache c tbl` in, `GenIn x ∗ cachedIn c x`

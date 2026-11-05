@@ -711,7 +711,7 @@ key, vacuously for the others: `genFrom` attaches a cached object to an operatio
 model (`KModel.lean`/`Refine.lean`): `kStep` with `KPre`, `invalidObj` → `EInvalid`, the minimum,
 `ignoreNotFound` updates; the refinement restated.
 
-### 7b: Draft, the driver as written (2026-11-05; decided by the agent, pending the user)
+### 7b: Draft, the driver as written (2026-11-05; frozen by the user 2026-11-05)
 
 The design's driver paragraph above, as the statements came out (commits `5468af8faf`, `08c4901da6`):
 
@@ -777,6 +777,18 @@ checked sound. Findings and what was done:
 - **F4/F5/F6 (low), notes:** `errIs`'s `EOther` arm excludes every `*StorageError` (the store returns
   none with another code); `InOk`'s parse conjunct is the store's `Get.spec` premise; `cacheInv`'s body
   is exported (an example, no API list).
+
+### 7b: Freeze (2026-11-05, the user)
+
+The Draft frozen as it stands at the tag `k8s-etcd3-7b-frozen` (local): every statement above, D1-D6
+of the branch's `questions.md` approved as decided (D1 in the agent's form, not the narrower
+alternative), N1 left as is (`notes/audit.md`). From here every change to a frozen statement is
+logged below with its classification; one that touches a premise of an exported statement stops
+for the user. Prove order: `oneKeyRevs` into the driver's invariant first; the history facts
+through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loops, `call`/`Apply`,
+`refine_*`, the model functions and the rest.
+
+**Post-freeze changes** (statement, class, why): none yet.
 
 ## What blocks where
 
