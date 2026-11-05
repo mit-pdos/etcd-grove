@@ -245,6 +245,13 @@ no leased put), then `ForceCommit`.
 - **S4. `srvGrantOpen` discharged.** `run_job_snap` at `lg = true` proved from S1-S3;
   `runSnapLgOkBody` proved, `srvGrantOpen` and its sorry gone, `lease.bootCfg` (Part C) loses its
   `lg = true → srvGrantOpen` conjunct. `etcd_leasegrant_safe` loses the `sorry`.
+- **Open item (S3/S4, from the axiom review `axiom/leasettl` `d07861dbbf`,
+  `notes/axiom-review/lease-ttl-row.md`, 2026-11-05):** Go treats a start with a fresh WAL
+  directory over an old db holding leases as a *first start*: `StartNode` runs, and `NewLessor`
+  recovers the db's leases before the first election. Today the fresh-data-directory bootstrap
+  assumption excludes that case, not the lease-TTL row's `lessorAt γl 0 (∅, ∅, ∅)`. Once restarts
+  (or such starts) recover leases, the row must say "the lessor is empty until this member's
+  leadership", not "the history begins empty".
 - **S5. Test.** A Go test of a three-member granting cluster in which a follower is cut off, the
   others grant leases (and let one expire) and compact past the follower's index, the follower is
   reconnected and restored from a snapshot, then lists (`Leases` at that member) the live leases
@@ -1627,3 +1634,79 @@ AskUserQuestion).**
 3. `Main.spec` as proposed; the sorry `srvRevokeOpen_open`; `etc/bounds-baseline.txt` +1
    `spec-thread` / +2 `spec-receipt` (`etc/bounds-check.py --check --update` for exactly that); the
    collection `etc/tcb-collections/leaseexpiry.txt`.
+
+## Applying E2 rev 5 and E3 (c) (2026-11-05)
+
+Done (commit `2796280ca2`, downstream of the lessor not yet repaired):
+- raft: `NodeNames.start` and `CfgNames`' last name; `nodeDriverFrom` (raft-internal, persistent:
+  the node's driver state at its start, a discarded ghost variable), minted by `StartNode` at
+  `NodeDriverState.init` and by `RestartNode` at its restart state; the sealed `nodeStartedFresh`
+  (`InvNodeRule`), in `StartNode.spec`'s post, carried by `bootstrappedRaft.newRaftNode.spec` and
+  `NodeStartSpec`.
+- lease, E3 (c) stage 1: `LessorRdNames` gains U's name (`γr.2.2.2`; the mode is `γr.2.2.1`);
+  `lessorRdBody` holds U's half with `histOnce` and `histIn` (every id a snapshot has, `snapHas`,
+  is in U); `leaseEver γl U` the owner's half; `Grant` takes `leaseEver γl U` and
+  `lessorModeIs γl true ∨ ⌜id ∉ U⌝` and returns `U ++ [id]` (`U` on an error); `Recover` takes its
+  ids `∉ U` and returns `U ++ ids`; `Attach`/`Detach`/`Revoke` keep U (their history lemmas take
+  `histOnce`'s step and "the new snapshot's ids are the last one's"); `NewLessor`'s post gains
+  `leaseEver γl []`; the law `lessorAt_lb`. Pure laws `histIn_snoc{,_new}`, `histIn_mono`,
+  `not_everIn_of_histIn` (`LessorHist`).
+- server: `errIsTrue` (`apply/Base`), `leaseTTLRow` (revision 5's text, typed: A1 below) and its
+  raft part `leaseTTLRowR s vs` with `leaseTTLRow_intro` (`LeaseRead`); `leaseTimeToLive.spec`
+  restated (revision 5, with the docstring).
+
+**Decided by the agent, pending the user** (also in `questions.md`):
+- A1, the row's typing. `nodeStartedFresh`, `isCommittedLogLb` and `confAt` take a storage model;
+  `LeaseRead` has none in scope. Options: (a) `∃ γ : SrvRaft` with `letI := srvStor γ`, the
+  cluster `γ.cl` (the server's own instance, as `srv_confAt_simple` states it); (b) a section
+  variable `[StorageModel GF]` (the spec would quantify over a model the server does not use).
+  Recommendation and done: (a), the same content as the approved text.
+- A2, `histIn`'s scope: every id of a snapshot's lease map **and** item map (`snapHas`), so that
+  "`U = []`" pins a snapshot to `(∅, ∅, ∅)` (with `ttlTie`); keeping it is an `Attach` of a live
+  id, `Detach`'s and `Revoke`'s subsets (`Revoke`'s items are of live ids, `leaseClosers`' `HIL`).
+- A3, the row's `γl` against the built server's `E.γ.leases` (inside `memberBuilt`/`memberUp`'s
+  existentials; `envAgree` does not fix it, and `srvLessorRd` has no agreement law: `lessorPin` maps
+  `γl → lp` only). Options: (a) `lease.srvInv` (sealed, already in both through `srvLeaseRd`) gains
+  `lessorAt E.γ.leases 0 (∅, ∅, ∅)`, minted in `NewServer` from `NewLessor`'s `leaseEver γl []`;
+  `BuildServer`/`StartServer` return the γl-free raft part (`leaseTTLRowR s ps`) as their own
+  conjunct; `Main` makes the row with `leaseTTLRow_intro`; (b) the row inside `memberUp` (C2 rules it
+  out); (c) an agreement law for `srvLessorRd` (a new pin direction in the lessor). Recommendation:
+  (a), no trusted text changes beyond the approved ones.
+- A4, the revocable mode's freshness, mode-free: `Grant`/`closers_grant` take
+  `lessorModeIs γl true ∨ ⌜id ∉ U⌝` (the caller's `srvGrantable` has the mode).
+
+**E3 (c) stage 2 done (2026-11-05, commits `ad82e00f41`..`2d88d1a45e`).** U threaded through the
+apply chain: `isApplyLessor`'s Grant clause and `grantPre`/`grantPost` take U (`apply.everOwn E U`:
+`leaseEver` in a granting cluster, `True` otherwise; `apply.grantFresh E rq U`); `srvRest`'s
+granting arm carries `srvEver E A` (U among `srvGrantLog A`, the revocable grant ids of `A`'s entries
+with data); freshness at `applyEntryNormal` from `kv_entry_grantFresh`. **The one-prefix fact is
+proved, not a premise**: `kvGrantIds` records `idPfx u = kvPfx γk` (the generator's prefix in the
+revocable mode), `grantIdOwn` carries it from `idFresh`, `kv_grantIds_nodup` concludes the masked ids
+distinct; the single-member condition is at the allocation (`srvMemberBoot_alloc`: revocable →
+`γk.ids.pfx` the member's prefix; `kvInv_congr` gains `kvPfx` agreement). `NewServer` puts
+`leaseEver γl []` in the initial image, `lease.srvInv` gains `lessorAt E.γ.leases 0 (∅,∅,∅)`
+(`lessorAt_empty`, `lease.srvInv_first`), `NewServer.specG`/`BuildServer.spec`/`StartServer.spec`
+return `leaseTTLRowR` (first start only; `specStop`/`specRestart` unchanged).
+
+**Decided by the agent, pending the user:**
+- A5, `Recover` with no record: its only server call (`applySnapshot`, `recs = []`, a cluster that
+  grants none) has no `leaseEver`; options (a) `Recover` takes and returns
+  `⌜recs = []⌝ ∨ leaseEver γl U` (two sites), (b) `srvRest`'s non-granting arm also holds
+  `∃ U, leaseEver` (every `srvRest_false` site). Done: (a).
+- A6, `srvEver`'s list is `srvGrantLog A` (entries with data), not every entry: `irrDecode` is
+  opaque, so an empty filler entry is not known to decode to no grant.
+
+**Stage 3 and the `nodeStartedFresh` review (2026-11-05).** `d415a8d11e` carries
+`leaseTimeToLive`'s facts through the wrapper `EtcdServer.LeaseTimeToLive`. The wrapper's own
+errors are refuted, not given a fallback: `errIsTrue_leaf_ne`, `authErrVarIs_not_leaseNotFound`,
+and the auth specs strengthened to answer `authErrVarIs`. The facts continue through v3rpc's
+`ttlAns`/`leaseTTLOut` to the client's live contracts `etcdLeaseTTLSpecLive`/`etcdLeaseLeasesSpecLive`.
+Those contracts are registered by `kv_lease_served`'s revocable arm (`etcdLeaseGrantLiveAt addr s
+E`). The lessor laws `lessorAt_absent_stays` and `leaseTTLAt_ttl_agree` are in `LessorHist.lean`.
+`01cfcabf20` is raft's interface diff.
+
+The spec review of `nodeStartedFresh` found nothing first-tier. Its N1 is done: the start record is
+now a tag, `ApiImpl.nodeStartTag n γ boot`: `StartNode` writes `true`, `RestartNode` writes `false`.
+It replaces the driver-state record (`nodeStartRec`/`nodeDriverFrom`). With the tag, the exclusion
+of restarts no longer depends on `RestartNode` discarding its record or on its `[scope]` premise.
+The interface does not change. The other findings and the nonissue are in `questions.md`.

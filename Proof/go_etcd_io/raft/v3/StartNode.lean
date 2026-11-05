@@ -520,8 +520,8 @@ private theorem wp_StartNode_impl
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
   icases dghostVar_halves _ _ $$ Hdur with ⟨Hdur1, Hdur2⟩
-  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start record: the initial state
-  imod dghostVar_alloc (GF := GF) (nodeStartRec (NodeDriverState.init (interface.ok si) K))
+  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag: `StartNode`'s
+  imod dghostVar_alloc (GF := GF) true
     with ⟨%gstart, Hstart⟩
   imod dghostVar_persist gstart 1 _ $$ Hstart with #Hstart
   ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
@@ -645,11 +645,9 @@ private theorem wp_StartNode_impl
     iframe HisN Hboot0
     isplitr
     · ipureintro; exact Hid
-    iexists si, K
-    unfold nodeDriverFrom
+    unfold nodeStartTag
     iexists γn
     iframe Htb Hstart
-    ipureintro; rfl
   isplitr
   · iexact HisN
   isplitl [Hdlv2 Hreq1 Hreq2 Hdur2]

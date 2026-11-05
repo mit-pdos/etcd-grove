@@ -38,10 +38,10 @@ first `Ready` writes.
 durable state, which must be `RaftState.init` (a node that has stored nothing), and leaves it. The
 storage is a fresh one (`restartStorage` at the empty contents: no snapshot, the hard state empty,
 the base `⟨0, 0⟩`), its `InitialState` answering the **empty** conf state: a new cluster's
-(`Bootstrap` installs the voters; a bare `MemoryStorage`'s answer). The post is `RestartNode.spec`'s:
-(2026-11-05, the lease-expiry plan's E2 revision 5) That the node was made by `StartNode`
+(`Bootstrap` installs the voters; a bare `MemoryStorage`'s answer). The post is `RestartNode.spec`'s,
+plus (2026-11-05, the lease-expiry plan's E2 revision 5) that the node was made by `StartNode`
 (`nodeStartedFresh`, persistent: its log began as the bootstrap log), which `RestartNode` does not
-give; then the node, its `Ready` loop's token from the empty log (`NodeDriverState.init` at the storage's key),
+give: the node, its `Ready` loop's token from the empty log (`NodeDriverState.init` at the storage's key),
 its view of the configuration at the voters' membership with nothing applied, its running token,
 the update's `COMM` and the storage's frame; and the peers' slice. -/
 abbrev StartNode.spec : Prop :=

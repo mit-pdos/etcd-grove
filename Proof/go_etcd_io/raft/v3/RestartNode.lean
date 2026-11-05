@@ -953,10 +953,10 @@ private theorem wp_RestartNode_impl
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
   icases dghostVar_halves _ _ $$ Hdur with ⟨Hdur1, Hdur2⟩
-  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start record: the restart state
-  imod dghostVar_alloc (GF := GF) (nodeStartRec (⟨interface.ok si,
-      strip ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))), σ.hs, none, K, S,
-      StateFollower⟩ : NodeDriverState)) with ⟨%gstart, -⟩
+  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag: `RestartNode`'s
+  -- (discarded, then dropped: the post does not need it)
+  imod dghostVar_alloc (GF := GF) false with ⟨%gstart, Hstart⟩
+  imod dghostVar_persist gstart 1 _ $$ Hstart with -
   ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
   · rw [Qp.half_add_half]; iexact Hgen
   icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half

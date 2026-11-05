@@ -162,21 +162,19 @@ instance nodeBoot_persistent (γ : Cluster) (N : Namespace) (vs : List w64) (ctx
 
 /-- (2026-11-05, the lease-expiry plan's E2 revision 5) **The node `n` of the cluster `γ` was made
 by `StartNode`** (persistent): `n` is the node of `id` in `γ` (`isNode`), `γ` was bootstrapped with
-the voters `vs` (`nodeBoot`), and `n`'s driver began in the initial state, over a fresh storage
-(`nodeDriverFrom … NodeDriverState.init`), so its log began as the bootstrap log. `RestartNode`
-gives no such fact. -/
+the voters `vs` (`nodeBoot`), and `StartNode` made `n` (its start tag `true`, `nodeStartTag`): `StartNode.spec`'s
+precondition is an empty storage, so its log began as the bootstrap log. `RestartNode` tags its node
+`false`, so gives no such fact, even on an empty storage (etcd's join without a WAL). -/
 @[no_expose] def nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
     (ctxs : List (List w8)) (id : w64) : IProp GF :=
   iprop(isNode n γ N id ∗ nodeBoot γ N vs ctxs id ∗ ⌜id ∈ vs⌝ ∗
-    ∃ (si : GoInterfaceOk) (K : GName),
-      ApiImpl.nodeDriverFrom n γ N (NodeDriverState.init (interface.ok si) K))
+    ApiImpl.nodeStartTag n γ true)
 
 instance nodeStartedFresh_persistent (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
     (ctxs : List (List w8)) (id : w64) :
     Persistent (nodeStartedFresh (GF := GF) n γ N vs ctxs id) := by
   unfold nodeStartedFresh
-  haveI := fun (si : GoInterfaceOk) (K : GName) => ApiImpl.nodeDriverFrom_persistent (GF := GF) n γ N
-    (NodeDriverState.init (GoInterface.ok si) K)
+  haveI := ApiImpl.nodeStartTag_persistent (GF := GF) n γ true
   haveI := nodeBoot_persistent (GF := GF) γ N vs ctxs id
   haveI := isNode_persistent (GF := GF) n γ N id
   infer_instance
