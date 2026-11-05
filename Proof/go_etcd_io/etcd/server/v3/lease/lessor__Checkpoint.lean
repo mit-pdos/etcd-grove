@@ -71,7 +71,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       ipureintro; exact HL
     iapply HΦ
     iframe Hrtk
-    iunfold mvcc.csContract at Hcs
+    iunfold srvApi.csContractA at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     isplitr
     · ipureintro; rfl
@@ -90,7 +90,7 @@ theorem lease.lessor.Checkpoint.wp_proof
             Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t rem))) ∨
           (Pre ∗ Rb rb)) ∗ R)
       with [le l Hrem Hcs Hwtk Hrtk HRb] as ⟨le, l, Hrem, HPP, Hrtk⟩
-    · iunfold mvcc.csContract at Hcs
+    · iunfold srvApi.csContractA at Hcs
       icases Hcs with ⟨HPre, -, -⟩
       iframe
       iright; iframe

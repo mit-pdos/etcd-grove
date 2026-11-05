@@ -35,6 +35,13 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   typechecked at `6cc29c14f0` by the draft's author, and the laws' proofs are one-line
   instantiations of the core's, which builds.
 
+- **The lessor's writes over the API's `hookRun`** (by reference, builds): `leaseBatchTx`'s
+  `LockInsideApply` takes `csContractA P g …` at the hook `g` whose value its `f` is
+  (`⌜f = #g⌝ →`), so that a `nil` hook is the caller's view shift; `Lease.persistTo.spec` and
+  `lessor.Checkpoint.spec` restated like `Grant` (`f : GoFunc`, `lessorBackend … #f`,
+  `csContractA`); `lessor.Grant.wp_proof`, `lessor.Checkpoint.wp_proof`, `Lease.persistTo.wp_proof`
+  proved over them (no `sorry`).
+
 ## For the parallel tracks
 
 - v3rpc: `srvApi.histLb` (= `histLbG (kvNx γr on)`), `srvApi.kvPeek.law` (proved: `kvPeek_holds`),
@@ -55,8 +62,8 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
    `isCluster`, `isApplyLessor` at `E.Pk B` of the current backend, without mvcc's `storeWT`/
    `storeRT`: not drafted, "by reference"). This unblocks `InvRequest`, `InvImage`, `ServerOn`
    and so `KVStoreApi`.
-2. The apply chain's proofs, `applyAll`, `lease.Revoke`'s proof over `mvccDeleter`,
-   `Txn.DeleteRange`, `mvccTxn_leaseDelete.law` and `Txn.End`; `Grant`'s over `hookRun`.
+2. The apply chain's proofs, `applyAll`; `lease.Revoke`'s proof over `mvccDeleter`,
+   `Txn.DeleteRange`, `mvccTxn_leaseDelete.law` and `Txn.End` (blocked: see "Found").
 3. The boot (`mvccW_alloc.law` now gives `mvccWReg gx ∗ mvccW gx`), the receipts for client/v3's
    `kvLogOk` (`logOk_of_receipt`, proved in `KVStoreApi.lean`).
 4. The snapshot send and receive (`senderImage.law`, `dbImageA_open.law`, `restoreArgs.law`, stated).
@@ -66,6 +73,26 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
 None (no `sorry`, no axiom).
 
 ## Found
+
+- **`lessor.Revoke.specA` (landed as drafted) is unprovable over the frozen API: it lacks the
+  begin state's reachability.** The proof must show that the loop's `Txn.DeleteRange(key, nil)`
+  calls, one per key of the lease's item set (`l.Keys()`, sorted), leave exactly `dels =
+  leaseDels (stateAfter σ₀.log) id` pending, since `End`'s update (`mvccTxn_leaseDelete.law`'s
+  triple, `Txn.End.contract`) commits `σ.notify pend` for the transaction's actual `pend` and the
+  caller's `auEnd γ σ₀ dels Y` takes `σ.notify dels`. Each call deletes
+  `delKeys σ₀.log pend true k []` (mvcc's index answer), which is `[k]` for a key of the state
+  only under `LogOk (σ₀.log ++ [pend])` and `σ₀.log ≠ []` (`txn.delKeys_eq`), i.e. `σ₀`'s log well
+  formed (`LogWf`, from `MvccReachable σ₀` by `reach_logWf`). The precondition gives only
+  `σ₀.pending = none ∧ (stateAfter σ₀.log).length ≤ 2 ^ 62`; the only API fact of reachability is
+  `mvccState_reachable.law`, which needs `isMvcc kv γ`, not in the precondition (`mvccDeleter rd γ`
+  has none), and the deleter's begin update gives the proof no access to the state. (True of every
+  run, since the begin update commits only at mvcc's real, reachable state; not provable from what
+  the API exports.) **Minimal fix**: add `MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63` (txn's
+  `Reach σ₀`) to the pure premise. Both callers have it: the server's apply thread from the
+  writer's facts (`kvAus.law`'s last conjunct gives exactly `MvccReachable (stAt log c) ∧ log.length
+  + 3 ≤ 2 ^ 63`), the tester from `mvccState_reachable.law` on the state it holds. (Alternatively
+  `mvccDeleter`'s triple could return the begin state's reachability with `R σ`.) The Revoke proof
+  is stopped until the user decides.
 
 - **`applierV3backend.Compaction.specA` is unprovable over the frozen `KV.Compact.contract`**
   (not landed). The draft's precondition is `⌜sint.Z rev < log.length⌝ ∗ E.Cp (sint.Z rev)` with
