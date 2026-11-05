@@ -33,8 +33,8 @@ theorem wsIdx_cons_nlt (a : WEntry) (ws : List WEntry) (k : List w8)
     (h : ¬ go.GoStringLt a.key k) : wsIdx (a :: ws) k = 0 := by
   unfold wsIdx; rw [List.takeWhile_cons_of_neg (by simpa using h)]; rfl
 
-/-- Every later key of a sorted list is above the first. -/
 omit [GooseExts] in
+/-- Every later key of a sorted list is above the first. -/
 private theorem pw_all_gt {a : WEntry} {ws : List WEntry} {k : List w8} (h : wsPw (a :: ws))
     (hk : ¬ go.GoStringLt a.key k) : ∀ w ∈ ws, go.GoStringLt k w.key := by
   unfold wsPw at h
@@ -92,8 +92,8 @@ theorem wsPutAt_wsPut (ws : List WEntry) (e : WEntry) (h : wsPw ws) :
         rw [if_neg hf, List.filter_cons_of_pos (by simpa using hlt), hgt0]
         simp
 
-/-- **`node.del` on a sorted node is `wsDel`.** -/
 omit [GooseExts] in
+/-- **`node.del` on a sorted node is `wsDel`.** -/
 theorem wsDelAt_wsDel (ws : List WEntry) (k : List w8) (h : wsPw ws) :
     wsDelAt ws k = wsDel ws k := by
   induction ws with
