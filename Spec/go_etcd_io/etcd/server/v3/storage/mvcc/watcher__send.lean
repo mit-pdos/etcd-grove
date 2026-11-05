@@ -34,7 +34,9 @@ the watchers `cs` (`covPre`: each delivered past the response's revision, regist
 channel), which the channel's invariant keeps (`respCov`); `[]` for any but a progress response;
 a response without events covers its watcher `w` (so every event-less response sent does).
 A response of id `-1` comes with the caller's `CS` (lent) and `complW`: from `CS`, every watcher
-registered on the channel is covered or cancelled for its reason (`respCompl`). -/
+registered on the channel is covered or cancelled for its reason (`respCompl`). Stage 2 of the
+mvcc API (2026-11-05): `wr`'s revision is one of the API's notified log (`revApi`, kept by the
+channel's invariant in `respRev`). -/
 abbrev mvcc.watcher.send.spec : Prop :=
   ∀ (γ : mvcc.WsNames) (w : Loc) (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice)
     (ch : GoChan) (qc ql : Qp) (evsw : List mvcc.EvM) (d : Nat) (wr : WatchResponse)
@@ -49,6 +51,7 @@ abbrev mvcc.watcher.send.spec : Prop :=
         monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ mvcc.evsWf γ r γw.lo (evsw ++ evm) d) ∗
       wr.Events' ↦*{dq} es ∗ ([∗list] x ∈ es.zip evm, mvcc.evIs x.1 x.2) ∗
       mvcc.covPre γ γw.wc wr.Revision' cs ∗ mvcc.covAuth qa cs ∗ mvcc.notifiedLent γ nl ∗
+      mvcc.revApi γ wr.Revision' ∗
       ⌜evm = [] → ∃ q L, nl = some (q, L) ∧ sint.Z wr.Revision' + 1 = (L.length : Int)⌝ ∗
       ⌜evm = [] → w ∈ cs.map mvcc.CovArg.w⌝ ∗
       CS ∗ (⌜wr.WatchID' = r.id⌝ ∨

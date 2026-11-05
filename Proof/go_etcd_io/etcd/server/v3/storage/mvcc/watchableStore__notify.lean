@@ -1088,6 +1088,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     wp_auto
     have hmod : ∀ ev ∈ mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1), ev.kv.modRev = W64 N := by
       rw [← hN]; exact mvcc.watchEvents_next_modRev ilog pend hne r'
+    ihave #HnlN := mvcc.evLog_nlLb γ.st _ $$ Hlb
     wp_apply (hSend γ key γw r' fcs stw.ch 1 (Qp.half 1) evsw (N + 1) _ ps
         (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1) [] 1 none iprop(True))
       $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha, -, -, -⟩
@@ -1100,6 +1101,11 @@ theorem mvcc.watchableStore.notify.wp_proof
       · iapply mvcc.covAuth_nil
       isplitr
       · iapply mvcc.notifiedLent_none
+      isplitr
+      · iunfold mvcc.revApi; iexists ilog ++ [pend]; iframe HnlN; ipureintro
+        show (sint.Z (W64 (N : Int))).toNat < _
+        have : sint.Z (W64 (N : Int) : w64) = N := by word
+        rw [this, List.length_append, List.length_singleton, hN]; omega
       isplitr
       · ipureintro; intro h; exact absurd h hwEne
       isplitr

@@ -56,7 +56,7 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     (ch : Loc) (ql : Qp) (v : WatchResponse) (c : w64)
     (hv : v.WatchID' = r.id ∧ v.Revision' = W64 0 ∧ v.CompactRevision' = c ∧ v.Events' = slice.nil)
     (hcp : 0 < sint.Z c) (Φ : IProp GF) :
-    crevPermAt γ.st (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherFilters γw fcs ∗ watcherChan γ w γw ch ∗
+    cmpPerm γ (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherFilters γw fcs ∗ watcherChan γ w γw ch ∗
       dghostVar γw.live (DFrac.own ql) true ∗ (dghostVar γw.live (DFrac.own ql) true -∗ Φ) ⊢
       nonblockingSendAuInner γw.wc.ch v Φ := by
   have hc : c ≠ W64 0 := by intro h; rw [h] at hcp; exact absurd hcp (by decide)
@@ -93,7 +93,9 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     iunfold respRev
     isplitl []
     · iright; iright; ipureintro; exact ⟨hc, rfl⟩
-    iunfold cmpPermOf; simp only [cmpResp]; iright; iframe Hperm; ipureintro; exact hcp
+    isplitl
+    · iunfold cmpPermOf; simp only [cmpResp]; iright; iframe Hperm; ipureintro; exact hcp
+    · ileft; ipureintro; exact hc
   iexists s
   iframe Hch
   have hpre := Hpre.length_le

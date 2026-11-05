@@ -590,6 +590,12 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         rw [Hcsw]
         exact mvcc.mem_dedupL.2 (List.mem_filterMap.2 ⟨id0, (Hkset id0).2 (by rw [hid0]; rfl), hid0⟩)
       · iright; iexact Hr
+    -- (stage 2 of the mvcc API) the revision is the API's notified log's last: the lock's slot
+    iunfold mvcc.relAuth at Hrel
+    icases Hrel with ⟨Hrel1, Hslot⟩
+    icases mvcc.wsSlot_nlLb γ _ σ.Lmu $$ Hslot with ⟨Hslot, #HnlL⟩
+    ihave Hrel : mvcc.relAuth γ sync.rfrac σ.Lmu $$ [Hrel1 Hslot]
+    · iunfold mvcc.relAuth; iframe Hrel1 Hslot
     wp_apply (hsend γ u γw rr fcs st0.ch sync.rfrac sync.rfrac.half [] d _ [] [] DFrac.discard cs
         sync.rfrac.half (some (sync.rfrac.half, σ.Lmu)) CS)
       $$ [$Hch $Hlv $HCS $Hca $Hwl] as %b ⟨Hch, Hlv, -, -, Hca, Hwl, HCS⟩
@@ -599,6 +605,12 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       · itrivial
       isplitr
       · iapply BigSepL.bigSepL_nil.2; iempintro
+      isplitr
+      · iunfold mvcc.revApi; iexists σ.Lmu; iframe HnlL; ipureintro
+        have h1 := hrevC
+        rw [hClm] at h1
+        show (sint.Z _).toNat < _
+        omega
       isplitr
       · ipureintro; intro _
         exact ⟨_, _, rfl, by have := hrevE; rw [← hClm] at this ⊢; omega⟩

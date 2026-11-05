@@ -504,11 +504,15 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     icases HokN with (%Hn | #H)
     · exact absurd Hn hne
     · iexact H
-  ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
-  · iapply mvcc.evLog_of_sealed γ.st (ilog ++ [pend]) Hrb $$ [$Hsl $Hok]
   -- (D25) the revision released before its events go out: the released length bumped
   iunfold mvcc.relAuth at Hrel
   icases Hrel with ⟨Hrel, Hslot⟩
+  -- the API's slot at the notified log, where the API's notify fires (a placeholder until
+  -- `Txn.End.contract`'s notify step): the revision notified before its events go out
+  ihave Hslot := mvcc.wsSlot_step_M1 (ilog ++ [pend]) $$ Hslot
+  icases mvcc.wsSlot_nlLb γ 1 _ $$ Hslot with ⟨Hslot, #HnlN⟩
+  ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
+  · iapply mvcc.evLog_of_sealed γ.st (ilog ++ [pend]) Hrb $$ [$Hsl $Hok $HnlN]
   imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
   ihave #Hrlb : mvcc.relLb γ (ilog ++ [pend]).length $$ []
   · iunfold mvcc.relLb; iexact Hrl
@@ -535,11 +539,11 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
     with ⟨HP, Hwlog⟩
   (try wp_auto)
-  -- the API's slot at the notified log (a placeholder until `Txn.End.contract`'s notify step)
+  -- the API's slot at the notified log (moved at the notification, above)
   ihave Hrel : mvcc.relAuth γ 1 (σ'.Lmu ++ [pend]) $$ [Hrel Hslot]
   · iunfold mvcc.relAuth; isplitl [Hrel]
     · iexact Hrel
-    · iapply (mvcc.wsSlot_step_M1 (σ'.Lmu ++ [pend])); iexact Hslot
+    · iexact Hslot
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel Hwsf]
   · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
       refine ⟨?_, ?_⟩

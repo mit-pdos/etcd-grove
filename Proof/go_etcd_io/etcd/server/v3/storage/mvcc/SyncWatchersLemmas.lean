@@ -731,12 +731,12 @@ theorem sw_bigSepM_step {V : Type} {Φ Ψ : Loc → V → IProp GF} (m : GMap Lo
 they stopped (the caller's certificate of it, `certOk`, with it: unit W-M3). -/
 theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List EvM) (m D : Nat)
     (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) (hrb : receiptBound GF ≤ 2 ^ 48) :
-    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ⊢
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ api.nlLb γ.st.api C ∗ relLb γ C.length ⊢
       evsWf γ r lo (evsw ++ watchEvents C r m D) D := by
-  iintro ⟨Hwf, #HC, #HokC, #HrlC⟩
+  iintro ⟨Hwf, #HC, #HokC, #HnC, #HrlC⟩
   iunfold evsWf at Hwf
   icases Hwf with ⟨%L, #HlbL, -, %Hb, #He⟩
-  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC]
+  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC $HnC]
   ihave %HposC := evLog_pos _ _ $$ HlbC
   ihave %hcmp := evLog_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
@@ -761,10 +761,10 @@ revision that changes a key twice: per watcher, 2026-11-05). -/
 theorem sw_evsWf_doom (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (D : Nat)
     (C : Log) (hD : D ≤ C.length) (hne : evs ≠ [] → lo < D) (hpos : ∀ ev ∈ evs, evPos ev)
     (hrb : receiptBound GF ≤ 2 ^ 48) :
-    idxCert (GF := GF) γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ∗ doomed γ lo ⊢
+    idxCert (GF := GF) γ.st.idx C ∗ certOk γ.st C ∗ api.nlLb γ.st.api C ∗ relLb γ C.length ∗ doomed γ lo ⊢
       evsWf γ r lo evs D := by
-  iintro ⟨#HC, #HokC, #HrlC, #Hd⟩
-  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC]
+  iintro ⟨#HC, #HokC, #HnC, #HrlC, #Hd⟩
+  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC $HnC]
   iapply evsWf_doomed γ r lo evs D C (Or.inl hD) hne hpos $$ [$HlbC $HrlC $Hd]
 
 /-- **A watcher's step in `syncWatchers`, exact or doomed** (per watcher, 2026-11-05): its
@@ -775,14 +775,14 @@ theorem sw_evsWf_step (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw evs : Lis
     (C : Log) (Dm : Prop) (hm : m ≤ X) (hX : X ≤ C.length) (hlo : lo ≤ m)
     (hcase : evs = watchEvents C r m X ∨ (Dm ∧ List.Sublist evs (watchEvents C r m X)))
     (hrb : receiptBound GF ≤ 2 ^ 48) :
-    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ∗
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ api.nlLb γ.st.api C ∗ relLb γ C.length ∗
       □ (⌜Dm⌝ -∗ doomed γ lo) ⊢ evsWf γ r lo (evsw ++ evs) X := by
-  iintro ⟨#Hwf, #HC, #HokC, #HrlC, #Hdm⟩
+  iintro ⟨#Hwf, #HC, #HokC, #HnC, #HrlC, #Hdm⟩
   rcases hcase with rfl | ⟨hD, hsub⟩
-  · iapply sw_evsWf_extend γ r lo evsw m X C hm hX hlo hrb $$ [$Hwf $HC $HokC $HrlC]
+  · iapply sw_evsWf_extend γ r lo evsw m X C hm hX hlo hrb $$ [$Hwf $HC $HokC $HnC $HrlC]
   · ihave %Hne := evsWf_ne_lo γ r lo evsw m $$ Hwf
     ihave %Hpw := evsWf_pos γ r lo evsw m $$ Hwf
-    ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC]
+    ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC $HnC]
     ihave %HposC := evLog_pos _ _ $$ HlbC
     ihave #Hd := Hdm $$ %hD
     iapply sw_evsWf_doom γ r lo (evsw ++ evs) X C hX (fun hne => by
@@ -794,7 +794,7 @@ theorem sw_evsWf_step (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw evs : Lis
       (fun ev hev => by
         rcases List.mem_append.1 hev with h | h
         · exact Hpw ev h
-        · exact HposC r m X ev (hsub.subset h)) hrb $$ [$HC $HokC $HrlC $Hd]
+        · exact HposC r m X ev (hsub.subset h)) hrb $$ [$HC $HokC $HnC $HrlC $Hd]
 
 /-- **Revision `c` changing a key twice dooms a watcher reading from it** (pure): a watcher from
 `lo ≤ c` is past its exactness condition at `c`. -/

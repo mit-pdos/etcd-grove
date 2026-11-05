@@ -315,6 +315,17 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         isplitr
         · iapply mvcc.notifiedLent_none
         isplitr
+        · iapply mvcc.mv_revApi γ r γw.lo (evsw ++ b.evs) (sint.nat stw.minRev) _
+            (by intro h; exact Hbne (List.append_eq_nil_iff.1 h).2) ?_ $$ Hwf
+          have hb : ∃ ev, ev ∈ b.evs := by
+            cases hb : b.evs with
+            | nil => exact absurd hb Hbne
+            | cons ev _ => exact ⟨ev, List.mem_cons_self ..⟩
+          obtain ⟨ev, hev⟩ := hb
+          have := hevs ev hev
+          show (sint.Z (stw.minRev - W64 1)).toNat < (sint.Z stw.minRev).toNat
+          rw [hrev]; omega
+        isplitr
         · ipureintro; intro h; exact absurd h Hbne
         isplitr
         · ipureintro; intro h; simp [cs, h]

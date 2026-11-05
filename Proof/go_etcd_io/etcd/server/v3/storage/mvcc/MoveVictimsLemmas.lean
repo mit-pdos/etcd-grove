@@ -1371,6 +1371,24 @@ def sentW (γ : WsNames) (w : Loc) (p : Loc × EventBatch) : IProp GF :=
     ∃ (st : WatcherSt) (evsw : List EvM) (γw : WatcherNames),
       moverResG γ w st ⟨[], p.2.revs, p.2.moreRev⟩ evsw γw)
 
+/-- **A victim's batch's revision is one of the API's notified log** (stage 2 of the mvcc API,
+2026-11-05: what `moveVictims` carries with the batch, the delivery's watched log, `evLog_nlLb`):
+its events non-empty, so delivered up to a revision of that log. -/
+theorem mv_revApi (γ : WsNames) (r : WatchRange) (lo : Nat) (e : List EvM) (d : Nat) (rev : w64)
+    (hne : e ≠ []) (hrev : sint.nat rev < d) :
+    evsWf (GF := GF) γ r lo e d ⊢ revApi γ rev := by
+  iintro #Hwf
+  ihave %Hlo := evsWf_ne_lo γ r lo e d $$ Hwf
+  iunfold evsWf at Hwf
+  icases Hwf with ⟨%L, #HL, -, %Hb, -⟩
+  ihave #Hn := evLog_nlLb γ.st L $$ HL
+  iunfold revApi
+  iexists L
+  iframe Hn
+  ipureintro
+  have := Hlo hne
+  omega
+
 /-- What `send` takes of a delivery (nothing for no events), and what is kept. -/
 theorem mv_ev_pre (γ : WsNames) (γw : WatcherNames) (r : WatchRange) (evsw evs : List EvM) (d : Nat) :
     monoListAuthOwn (GF := GF) γw.evs (1 : Qp).half evsw ∗ evsWf γ r γw.lo (evsw ++ evs) d ⊢

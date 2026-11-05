@@ -75,7 +75,7 @@ end mvcc
 theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG := hG)) :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) := by
   intro γ w γw r fcs ch qc ql evsw d wr es evm dq cs qa nl CS
-  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, Hnl, %Hnle, %Hown,
+  wp_start as ⟨#Hmeta, #Hfix, #Hfok, #Hwch, Hch, Hlive, Hevs, Hsl, #Hes, #Hcov, Hca, Hnl, #Hra, %Hnle, %Hown,
     Hidp, #Hidc,
     %Hpure⟩
   obtain ⟨Hlen, Hcomp, Hid, Hrevle, Hstart⟩ := Hpure
@@ -428,7 +428,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
             icases mvcc.respRev_new γ γw.wc sent L nl
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)
               (fun h => Hnle (Classical.byContradiction fun hne => hA ⟨hne, h⟩)) rfl
-              $$ [$Hsentl $Hnl] with ⟨Hsentl, Hnl, #Hrr⟩
+              $$ [$Hsentl $Hnl $Hra] with ⟨Hsentl, Hnl, #Hrr⟩
             ihave #Hrc := mvcc.respCov_of_list γ γw.wc sent
               (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)
               cs rfl (fun h => Hown (Classical.byContradiction fun hne => hA ⟨hne, h⟩))

@@ -205,6 +205,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · iunfold mvcc.relAuth; iframe Hrel Hslot
   ihave #HrlC : mvcc.relLb γ C.length $$ []
   · iunfold mvcc.relLb; rw [HCL]; iexact HrlC0
+  ihave #HnlC : api.nlLb γ.st.api C $$ []
+  · rw [← HCL]; iexact HnlQ
   wp_auto
   -- the unsynced members' states, for `choose`
   icases persistent_entails_right (mvcc.sw_unsynced_bounds γ σ Hok _ C) $$ [$Hmem $HlogQ]
@@ -243,7 +245,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     $$ [$Hunsynced Hstu Hpre] as %g %minRev Hch
   · iunfold mvcc.ownStates; iframe Hstu Hpre
     isplitr
-    · rw [hcQ]; iexact HpermQ
+    · rw [hcQ]; iunfold mvcc.cmpPerm; iframe HpermQ HcLbQ
     ipureintro
     refine ⟨⟨fun w hw => ?_, fun w st hw => ?_⟩, by have := Hok.wu_size; omega⟩
     · rw [hSTu, if_pos hw]; exact Hok.live_st w (Or.inr (Or.inl hw))
@@ -839,7 +841,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         (¬ api.onceUpTo C γw.lo cQ) hmN (Nat.le_refl _) hloN
         (by rcases hwE with h | h
             · exact Or.inl h.symm
-            · exact Or.inr ⟨h, List.nil_sublist _⟩) HrbS $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+            · exact Or.inr ⟨h, List.nil_sublist _⟩) HrbS $$ [$Hwf $HcertQ $HokQ $HnlC $HrlC $Hdmw]
       rw [List.append_nil] at *
       generalize hst' : ({ st with minRev := W64 ((C.length : Int) - 1) + W64 1 } : mvcc.WatcherSt) = st'
       have hst'm : sint.Z st'.minRev = C.length := by rw [← hst']; exact hcur1
@@ -911,7 +913,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         wp_auto
         have hmD : sint.nat st.minRev ≤ C.length := hmN
         ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw B.evs (sint.nat st.minRev) C.length C
-          _ hmD (Nat.le_refl _) hloN hevB HrbS $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+          _ hmD (Nat.le_refl _) hloN hevB HrbS $$ [$Hwf $HcertQ $HokQ $HnlC $HrlC $Hdmw]
         have hmodB : ∀ ev ∈ B.evs, (sint.nat st.minRev : Int) ≤ sint.Z ev.kv.modRev ∧
             sint.Z ev.kv.modRev < C.length := fun ev hev =>
           mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length (Nat.le_refl _) ev
@@ -928,6 +930,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           · iapply mvcc.covAuth_nil
           isplitr
           · iapply mvcc.notifiedLent_none
+          isplitr
+          · iunfold mvcc.revApi; iexists C; iframe HnlC; ipureintro
+            show (sint.Z (W64 ((C.length : Int) - 1))).toNat < _
+            rw [hcur]; omega
           isplitr
           · ipureintro; intro h; exact absurd h hBne
           isplitr
@@ -1077,7 +1083,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         wp_auto
         have hmD : sint.nat st.minRev ≤ M := by omega
         ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw B.evs (sint.nat st.minRev) M C
-          _ hmD (by omega) hloN hevB HrbS $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+          _ hmD (by omega) hloN hevB HrbS $$ [$Hwf $HcertQ $HokQ $HnlC $HrlC $Hdmw]
         have hmodB : ∀ ev ∈ B.evs, (sint.nat st.minRev : Int) ≤ sint.Z ev.kv.modRev ∧
             sint.Z ev.kv.modRev < M := fun ev hev =>
           mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M (by omega) ev
@@ -1094,6 +1100,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           · iapply mvcc.covAuth_nil
           isplitr
           · iapply mvcc.notifiedLent_none
+          isplitr
+          · iunfold mvcc.revApi; iexists C; iframe HnlC; ipureintro
+            show (sint.Z (W64 ((C.length : Int) - 1))).toNat < _
+            rw [hcur]; omega
           isplitr
           · ipureintro; intro h; exact absurd h hBne
           isplitr

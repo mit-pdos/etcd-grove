@@ -424,9 +424,12 @@ certificate of the log it commits before it notifies, `certOkNext`, and the stor
 committed log's, `revMuInv`). The certificate is what makes a watch event's revision reached in
 the server's model (`etcdReached`: a certified log is the KV model of a committed raft log).
 (Stage 2 of the mvcc API, 2026-11-05) its changes fewer than `2 ^ 48` (the receipt against a
-store's bound on the receipts, `isStore`'s `Hrb`), so its events are positive (`evLog_pos`). -/
+store's bound on the receipts, `isStore`'s `Hrb`), so its events are positive (`evLog_pos`); and
+a lower bound of the API's notified log (`api.nlLb`: the history the API's client was told of has
+it), so that every send's bounds and every watcher's delivery are over one history
+(`evLog_nlLb`). -/
 def evLog (γ : StoreNames) (L : Log) : IProp GF :=
-  iprop(idxSealed γ.idx L ∗ certOk γ L ∗ ⌜logCh L < 2 ^ 48⌝)
+  iprop(idxSealed γ.idx L ∗ certOk γ L ∗ ⌜logCh L < 2 ^ 48⌝ ∗ api.nlLb γ.api L)
 
 instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
   unfold evLog; infer_instance
@@ -457,27 +460,32 @@ theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idx
 theorem evLog_certOk (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ certOk γ L := by
   unfold evLog; iintro ⟨-, #H, -⟩; iexact H
 
-/-- A sealed, certified log is watched (the receipts' bound at most `2 ^ 48`). -/
+/-- A sealed, certified log the API notified is watched (the receipts' bound at most `2 ^ 48`). -/
 theorem evLog_of_sealed (γ : StoreNames) (L : Log) (hrb : receiptBound GF ≤ 2 ^ 48) :
-    idxSealed (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
+    idxSealed (GF := GF) γ.idx L ∗ certOk γ L ∗ api.nlLb γ.api L ⊢ evLog γ L := by
   unfold evLog
-  iintro ⟨#Hs, #Hok⟩
+  iintro ⟨#Hs, #Hok, #Hn⟩
   ihave %h := idxSealed_small _ _ $$ Hs
-  iframe Hs Hok
+  iframe Hs Hok Hn
   ipureintro; omega
 
-/-- A committed log the caller certified is watched (the receipts' bound at most `2 ^ 48`). -/
+/-- A committed log the caller certified and the API notified is watched (the receipts' bound at
+most `2 ^ 48`). -/
 theorem evLog_of_cert (γ : StoreNames) (L : Log) (hrb : receiptBound GF ≤ 2 ^ 48) :
-    idxCert (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
-  iintro ⟨#Hc, #Hok⟩
+    idxCert (GF := GF) γ.idx L ∗ certOk γ L ∗ api.nlLb γ.api L ⊢ evLog γ L := by
+  iintro ⟨#Hc, #Hok, #Hn⟩
   ihave #Hs := idxCert_sealed _ _ $$ Hc
-  iapply evLog_of_sealed γ L hrb $$ [$Hs $Hok]
+  iapply evLog_of_sealed γ L hrb $$ [$Hs $Hok $Hn]
+
+/-- **A watched log is a lower bound of the API's notified log.** -/
+theorem evLog_nlLb (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ api.nlLb γ.api L := by
+  unfold evLog; iintro ⟨-, -, -, #H⟩; iexact H
 
 /-- **A watched log's events are positive** (`WatchPos.lean`). -/
 theorem evLog_pos (γ : StoreNames) (L : Log) :
     evLog (GF := GF) γ L ⊢ ⌜∀ (r : WatchRange) (lo hi : Nat), ∀ ev ∈ watchEvents L r lo hi, evPos ev⌝ := by
   unfold evLog idxSealed
-  iintro ⟨⟨-, %h, -⟩, -, %hc⟩
+  iintro ⟨⟨-, %h, -⟩, -, %hc, -⟩
   ipureintro
   intro r lo hi
   exact watchEvents_pos L h.1.getD_zero h.2.1 (by omega) r lo hi
@@ -493,9 +501,10 @@ theorem evLog_cmp (γ : StoreNames) (L L' : Log) :
 /-- The empty log is watched. -/
 theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
   imod idxSealed_nil (GF := GF) γ.idx with #H
+  imod monoListLbOwn_nil (GF := GF) (A := List Change) γ.api.nl with #Hn
   imodintro
-  unfold evLog certOk
-  iframe H
+  unfold evLog certOk api.nlLb
+  iframe H Hn
   isplitl
   · ileft; ipureintro; simp
   · ipureintro; simp [logCh]
@@ -697,27 +706,47 @@ def notifiedLent (γ : WsNames) : Option (Qp × Log) → IProp GF
 theorem notifiedLent_none (γ : WsNames) : ⊢ notifiedLent (GF := GF) γ none := by
   unfold notifiedLent; itrivial
 
+/-- **A compaction revision `c` the store permits** (persistent): its compaction permit
+(`crevPermAt`, C3's store law) and (stage 2 of the mvcc API, 2026-11-05) a lower bound of the
+API's compaction revision (`api.crevAtLeast`: a compaction response's revision at most the
+store's, §4.5; `syncWatchers` reads both under `s.revMu`). -/
+def cmpPerm (γ : WsNames) (c : Int) : IProp GF :=
+  iprop(crevPermAt γ.st c ∗ api.crevAtLeast γ.st.api c)
+
+instance cmpPerm_persistent (γ : WsNames) (c : Int) : Persistent (cmpPerm (GF := GF) γ c) := by
+  unfold cmpPerm; infer_instance
+
 /-- **A compaction response's revision is permitted** (C3's store law, 2026-11-02): none, or a
 positive revision the store's compaction permit holds of (`crevPermAt`; `syncWatchers` reads it
 with the revision under `s.revMu`). -/
 def cmpPermOf (γ : WsNames) (x : RespM) : IProp GF :=
-  iprop(⌜x.compactRev = W64 0⌝ ∨
-    (⌜0 < sint.Z x.compactRev⌝ ∗ crevPermAt γ.st (sint.Z x.compactRev)))
+  iprop(⌜x.compactRev = W64 0⌝ ∨ (⌜0 < sint.Z x.compactRev⌝ ∗ cmpPerm γ (sint.Z x.compactRev)))
 
 instance cmpPermOf_persistent (γ : WsNames) (x : RespM) :
     Persistent (cmpPermOf (GF := GF) γ x) := by
   unfold cmpPermOf; infer_instance
+
+/-- **The revision `rev` is one of the API's notified log** (persistent; stage 2 of the mvcc API,
+2026-11-05): a lower bound of it (`api.nlLb`) past `rev`. What every response but a compaction
+response is sent with (`respRev`): its watch guarantee's `rev < |σ.notifiedLog|`. -/
+def revApi (γ : WsNames) (rev : w64) : IProp GF :=
+  iprop(∃ N : Log, api.nlLb γ.st.api N ∗ ⌜sint.nat rev < N.length⌝)
+
+instance revApi_persistent (γ : WsNames) (rev : w64) : Persistent (revApi (GF := GF) γ rev) := by
+  unfold revApi; infer_instance
 
 /-- **An event-less response's revision** (K2e-5): the notified log's last when it was sent, so
 at least every earlier event-less response's on the channel (`pre`). (Only `progressIfSync` sends
 one: a victim's batch has events.) A compaction response (watches across a compaction,
 2026-11-01) claims no revision: its own (`0`, unset) is at or below every other's. Every response's
 compaction revision is permitted (`cmpPermOf`, C3's store law: outside the disjunction, which a
-compaction response may satisfy by its second disjunct). -/
+compaction response may satisfy by its second disjunct). (Stage 2 of the mvcc API, 2026-11-05)
+a response's revision but a compaction response's is one of the API's notified log (`revApi`). -/
 def respRev (γ : WsNames) (pre : List RespM) (x : RespM) : IProp GF :=
   iprop((⌜x.evs ≠ []⌝ ∨ (∃ L : Log, notifiedLb γ L ∗
     ⌜sint.Z x.rev + 1 = (L.length : Int) ∧ ∀ y ∈ pre, y.evs = [] → sint.Z y.rev ≤ sint.Z x.rev⌝) ∨
-    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝) ∗ cmpPermOf γ x)
+    ⌜x.compactRev ≠ W64 0 ∧ x.rev = W64 0⌝) ∗ cmpPermOf γ x ∗
+    (⌜x.compactRev ≠ W64 0⌝ ∨ revApi γ x.rev))
 
 instance respRev_persistent (γ : WsNames) (pre : List RespM) (x : RespM) :
     Persistent (respRev (GF := GF) γ pre x) := by
@@ -744,7 +773,8 @@ theorem revLbOf_of (γ : WsNames) (pre : List RespM) (y : RespM) :
 theorem respRev_cmpPerm (γ : WsNames) (pre : List RespM) (y : RespM) :
     respRev (GF := GF) γ pre y ⊢ cmpPermOf γ y := by
   unfold respRev
-  iintro ⟨-, $⟩
+  iintro ⟨-, #H, -⟩
+  iexact H
 
 /-- **Below the notified log** (K2e-5): with a fraction of its authority at `Lx`, every event-less
 response whose revision is the last of a notified log is at most `Lx`'s last. -/
@@ -1394,12 +1424,12 @@ theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L
     (nl : Option (Qp × Log)) (x : RespM)
     (hnl : x.evs = [] → ∃ q Lx, nl = some (q, Lx) ∧ sint.Z x.rev + 1 = (Lx.length : Int))
     (hc : x.compactRev = W64 0) :
-    sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ⊢
+    sentAuth (GF := GF) γ γc sent L ∗ notifiedLent γ nl ∗ revApi γ x.rev ⊢
       sentAuth γ γc sent L ∗ notifiedLent γ nl ∗ respRev γ sent x := by
   by_cases he : x.evs = []
   · obtain ⟨q, Lx, rfl, hx⟩ := hnl he
     unfold notifiedLent
-    iintro ⟨Hs, Ha, %hLx⟩
+    iintro ⟨Hs, ⟨Ha, %hLx⟩, #Hra⟩
     icases sentAuth_revs γ γc sent L q Lx hLx $$ [$Hs $Ha] with ⟨Hs, Ha, %H⟩
     ihave #Hlb := monoListLbOwn_get _ _ _ $$ Ha
     isplitl [Hs]
@@ -1417,13 +1447,17 @@ theorem respRev_new (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L
       iframe Hlb
       ipureintro
       exact ⟨hx, fun y hy hye => by have := H y hy hye; omega⟩
-    iunfold cmpPermOf; ileft; ipureintro; exact hc
-  · iintro ⟨Hs, Ha⟩
+    isplitl
+    · iunfold cmpPermOf; ileft; ipureintro; exact hc
+    · iright; iexact Hra
+  · iintro ⟨Hs, Ha, #Hra⟩
     iframe Hs Ha
     iunfold respRev
     isplitl []
     · ileft; ipureintro; exact he
-    iunfold cmpPermOf; ileft; ipureintro; exact hc
+    isplitl
+    · iunfold cmpPermOf; ileft; ipureintro; exact hc
+    · iright; iexact Hra
 
 /-- **What a sent response covers** (persistent; K1b): the coverage of the response at index `k`. -/
 theorem sentAuth_cov (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List Loc)
