@@ -826,3 +826,13 @@ the registration `mvccWReg gx`, while a client's boot opens the backend at `W :=
 (`backend.New`'s precondition needs the client to produce it) and no law gave it. Now
 `⊢ |==> ∃ gx, mvccWReg gx ∗ mvccW gx`: a strengthening, decided by me (clear by the skill).
 
+
+**txn's migration, 2026-11-05: decided by the coordinator.** Two strengthened posts, facts txn
+needs at the call that returns them (applied to `Api.lean` by the mvcc track; the contracts' proofs
+come with the contracts):
+- **A.** `KV.Range.contract`'s post gains `⌜LogWf' σ.log ∧ ∀ cs ∈ σ.log, cs.length < 2 ^ 63⌝`, and
+  `Txn.Range.contract`'s `⌜LogWf' k.readLog ∧ ∀ cs ∈ k.readLog, cs.length < 2 ^ 63⌝`: the read log
+  well formed (every delete of a present key) and each revision of fewer than `2 ^ 63` changes.
+  `LogWf'` is `LogLemmas`' (importable).
+- **C.** `Txn.Changes.contract`'s post gains `⌜0 ≤ sint.Z chs.len⌝` (Go's `len(...) > 0` is a signed
+  comparison).

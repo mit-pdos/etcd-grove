@@ -415,7 +415,8 @@ def mvcc.api.KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
                       ∃ σ,
                         Q σ ∗
                           mvcc.rangeOutcomeC r err σ.log (W64 ↑σ.rev) σ.crev (decide (endk = slice.nil)) kk e ro ∗
-                            ⌜∀ (r' : Nat), σ.crev ≤ ↑r' → r' ≤ σ.rev → mvcc.api.stateOk (mvcc.stateAt σ.log r')⌝) -∗
+                            ⌜∀ (r' : Nat), σ.crev ≤ ↑r' → r' ≤ σ.rev → mvcc.api.stateOk (mvcc.stateAt σ.log r')⌝ ∗
+                              ⌜mvcc.LogWf' σ.log ∧ ∀ (cs : List mvcc.Change), cs ∈ σ.log → cs.length < 2 ^ 63⌝) -∗
                   Φ (intoVal r, intoVal err)) -∗
             WP
               (((((intoVal (methods ty go!"Range" v)) (intoVal (GoInterface.ok ctx)))
@@ -520,8 +521,9 @@ def mvcc.api.Txn.Range.contract (ty : go.GoType) (v : val) : Prop :=
                       traceutil.ownTrace trace te ∗
                         mvcc.rangeOutcomeC r err k.readLog k.readRev k.state.crev (decide (endk = slice.nil)) kk e ro ∗
                           ⌜∀ (r' : Nat),
-                              k.state.crev ≤ ↑r' →
-                                r' + 1 ≤ List.length k.readLog → mvcc.api.stateOk (mvcc.stateAt k.readLog r')⌝ -∗
+                                k.state.crev ≤ ↑r' →
+                                  r' + 1 ≤ List.length k.readLog → mvcc.api.stateOk (mvcc.stateAt k.readLog r')⌝ ∗
+                            ⌜mvcc.LogWf' k.readLog ∧ ∀ (cs : List mvcc.Change), cs ∈ k.readLog → cs.length < 2 ^ 63⌝ -∗
                   Φ (intoVal r, intoVal err)) -∗
             WP
               (((((intoVal (methods ty go!"Range" v)) (intoVal (GoInterface.ok ctx)))
@@ -721,7 +723,8 @@ def mvcc.api.Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.api.mvccTxn (interface.mkOk ty v) γ trace k -∗
           (▷
               ∀ chs,
-                mvcc.api.mvccTxn (interface.mkOk ty v) γ trace k ∗ ⌜uint.nat chs.len = k.pend.length⌝ -∗
+                mvcc.api.mvccTxn (interface.mkOk ty v) γ trace k ∗
+                    ⌜uint.nat chs.len = k.pend.length ∧ 0 ≤ sint.Z chs.len⌝ -∗
                   Φ (intoVal chs)) -∗
             WP ((intoVal (methods ty go!"Changes" v)) (intoVal ())) {{ Φ }}
 

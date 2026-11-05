@@ -986,3 +986,9 @@ snapshot image's hand-off, then `snapObs_M1` replaced. M3: `mvccBackendFor` (kee
 receipt), `mvccBackendFor_open.law`, and the backend's open giving the exact `fkdOwn γ (fkVals D) ∗
 dlsOwn γ ∅` (`fkCl` redefined with exact values; `NewAlloc` already allocates them so: `fkVals D`,
 `dlR P ∅`).
+
+**Obligations added by the coordinator (txn's migration, 2026-11-05; `notes/mvcc-api-candidate.md`):**
+`KV.Range`'s and `Txn.Range`'s proofs must give the read log's `LogWf'` and its revisions' size bound
+(`MvccReachable`'s `LogWf` and the receipt; for a write transaction, the pending revision's deletes
+of present keys), `Txn.Changes`'s `0 ≤ sint.Z chs.len` (the pending length, bounded by the writer's
+receipt).

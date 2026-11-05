@@ -370,7 +370,8 @@ abbrev KV.FirstRev.contract (ty : go.GoType) (v : val) : Prop :=
 
 /-- **`Range(ctx, key, end, ro)`** (a read transaction of one range): the outcome at the state, and
 every state it could read safe to sort (`stateOk`, round 15: what the caller's sort of the results
-needs). -/
+needs), and the state's log well formed, each revision of fewer than `2 ^ 63` changes (txn's
+migration, 2026-11-05: decided by the coordinator, A). -/
 abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (kk e : GoString) (ro : RangeOptions) (Q : MvccState → IProp GF),
@@ -382,7 +383,8 @@ abbrev KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); threadTok ∗ ⌜todo = true → r ≠ null⌝ ∗
       ∃ σ : MvccState, Q σ ∗
         rangeOutcomeC r err σ.log (W64 (σ.rev : Int)) σ.crev (decide (endk = slice.nil)) kk e ro ∗
-        ⌜∀ r' : Nat, σ.crev ≤ (r' : Int) → r' ≤ σ.rev → stateOk (stateAt σ.log r')⌝ }}
+        ⌜∀ r' : Nat, σ.crev ≤ (r' : Int) → r' ≤ σ.rev → stateOk (stateAt σ.log r')⌝ ∗
+        ⌜LogWf' σ.log ∧ ∀ cs ∈ σ.log, cs.length < 2 ^ 63⌝ }}
 
 /-- **`Put(key, value, lease)`** (a write transaction of one put): the hook, then the commit's two
 steps at the state the update gives (the lessor's item map that state's). -/
@@ -551,7 +553,8 @@ abbrev Txn.Range.contract (ty : go.GoType) (v : val) : Prop :=
       traceutil.ownTrace trace te ∗
       rangeOutcomeC r err k.readLog k.readRev k.state.crev (decide (endk = slice.nil)) kk e ro ∗
       ⌜∀ r' : Nat, k.state.crev ≤ (r' : Int) → r' + 1 ≤ k.readLog.length →
-        stateOk (stateAt k.readLog r')⌝ }}
+        stateOk (stateAt k.readLog r')⌝ ∗
+      ⌜LogWf' k.readLog ∧ ∀ cs ∈ k.readLog, cs.length < 2 ^ 63⌝ }}
 
 abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (pend : List Change)
@@ -582,7 +585,7 @@ abbrev Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace k }}
     (App (Val #(methods ty go!"Changes" v)) (Val #()))
   {{ (chs : GoSlice), RET #chs; mvccTxn (interface.mkOk ty v) γ trace k ∗
-      ⌜uint.nat chs.len = k.pend.length⌝ }}
+      ⌜uint.nat chs.len = k.pend.length ∧ 0 ≤ sint.Z chs.len⌝ }}
 
 /-- A read transaction's gives the thread token back; a write transaction's commits in two steps of
 the caller's updates at the state it began at (`σ₀`), with the batch lock's invariant `P` back. The
