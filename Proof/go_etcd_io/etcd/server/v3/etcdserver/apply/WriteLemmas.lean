@@ -263,6 +263,30 @@ theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) 
     iframe
   · iexists B; iexact Hrt
 
+/-- **`mPreV` without the chain's resources** (as `mPreRest`). -/
+def mPreVRest (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+      cPre v3 (E.Pk B) E.f Pre Q Post)
+
+theorem mPreV_split_chain (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreV v3 E c a info log Pre Q Post ⊢ mPreVRest v3 E log Pre Q Post ∗ chainRes c a info := by
+  iintro H
+  iunfold mPreV at H
+  icases H with ⟨Hw, Hll, Hrd, Hres, Hb⟩
+  iunfold mPreVRest
+  iframe
+
+theorem mPreV_of_rest (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreVRest v3 E log Pre Q Post ∗ chainRes c a info ⊢ mPreV v3 E c a info log Pre Q Post := by
+  iintro ⟨H, Hres⟩
+  iunfold mPreVRest at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold mPreV
+  iframe
+
 end lemmas
 
 end apply
