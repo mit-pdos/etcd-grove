@@ -1,6 +1,8 @@
-# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# Types and names only, but for `Accessor` (a type switch on the metav1 interfaces; what
+# `storage.Preconditions.Check` calls on the etcd3 store's objects, notes/k8s-etcd3-plan.md stage
+# 7b): function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+translate = ["!*", "Accessor"]
 imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1"]
 
 # translate the definitions of all type declarations goose supports
