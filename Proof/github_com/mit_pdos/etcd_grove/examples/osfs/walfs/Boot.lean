@@ -52,6 +52,8 @@ def DataGood (fo : Option OsFile) : Prop := ∀ f, fo = some f → f.cur = dataC
 
 /-! ## A directory's crash outcomes -/
 
+instance : Inhabited DirG := ⟨⟨∅, []⟩⟩
+
 /-- No crash outcome of `g` has a directory at `seg` or `seg.tmp`. -/
 def NoDirs (g : DirG) : Prop :=
   ∀ e, g.CrashTo e → e !! segB ≠ some .dir ∧ e !! tmpB ≠ some .dir
@@ -355,6 +357,509 @@ theorem wp_syncDir (d : GoString) (dq : DFrac) (g : DirG) :
   | ok ie => (try wp_auto); iapply HΦ; iframe Hd
 
 end proof
+
+/-! ## The calls that change the directory, with the invariant -/
+
+section steps
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
+
+/-- `unlink(2)` of `seg.tmp`, the file of `k`, the invariant opened around it. -/
+theorem wp_unlinkTmp (d k : GoString) (γ : GName) (g : DirG)
+    (hk : g.now !! tmpB = some (.file k)) (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ bootInv (GF := GF) d γ -∗
+      osDir (GF := GF) d (DFrac.own (1 : Qp).half) g -∗ osNsBusy (GF := GF) true -∗
+      (∀ (e : w64) (g' : DirG),
+        ⌜(e = 0 ∧ g' = g.push (.del tmpB)) ∨ (e ≠ 0 ∧ (g' = g ∨ g' = g.push (.del tmpB)))⌝ -∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g' -∗ osNsBusy (GF := GF) false -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Unlink" (Val (#(child d tmpB)))) {{ Φ }} := by
+  iintro #Hos #Hinv Hd Hz HΦ
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑bootN))
+  unfold bootInv
+  imod inv_acc (E := ⊤) (show ↑bootN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%g1, %ko, >Hd1, >Hv, >%Hp, >Hk⟩
+  icases osDir_agree d _ _ g g1 $$ Hd Hd1 with %heq
+  subst heq
+  ihave Hdw := (osDir_halves d g).2 $$ [Hd Hd1]
+  · iframe
+  imodintro
+  iapply wp_osUnlink d tmpB k g tmpB_ok hk bootN_disj $$ Hos Hdw Hz
+  iintro %e %g' %hres Hdw Hz
+  icases (osDir_halves d g').1 $$ Hdw with ⟨Hd, Hd1⟩
+  have hp' : NoDirs g' ∧ SegOut g' ko := by
+    have hg : g' = g ∨ g' = g.push (.del tmpB) := by
+      rcases hres with ⟨-, h⟩ | ⟨-, h⟩
+      · exact .inr h
+      · exact h
+    rcases hg with rfl | rfl
+    · exact Hp
+    · exact ⟨noDirs_push_tmp Hp.1 _ (.inl rfl), segOut_push_tmp Hp.2 _ (.inl rfl)⟩
+  imod Hclose $$ [Hd1 Hv Hk] with -
+  · inext; iexists g', ko; iframe; ipureintro; exact hp'
+  imodintro
+  iapply HΦ $$ %e %g' %hres Hd Hz
+
+/-- `open(2)` with `O_RDWR | O_CREAT` of `seg.tmp`, absent, the invariant opened around it. -/
+theorem wp_createTmp (d : GoString) (γ : GName) (g : DirG) (hn : g.now !! tmpB = none)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ bootInv (GF := GF) d γ -∗
+      osDir (GF := GF) d (DFrac.own (1 : Qp).half) g -∗ osNsBusy (GF := GF) true -∗
+      (∀ fd : w64, ∀ e : w64, osNsBusy (GF := GF) false -∗
+        ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ k, ⌜IsInoKey k⌝ ∗
+            osDir (GF := GF) d (DFrac.own (1 : Qp).half) (g.push (.put tmpB (.file k))) ∗
+            osMeta (GF := GF) k (DFrac.own 1) (some newMeta) ∗
+            osFd (GF := GF) fd (DFrac.own 1) ⟨k, true, true⟩) ∨
+         (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osDir (GF := GF) d (DFrac.own (1 : Qp).half) g ∨ ∃ k, ⌜IsInoKey k⌝ ∗
+            osDir (GF := GF) d (DFrac.own (1 : Qp).half) (g.push (.put tmpB (.file k))) ∗
+            osMeta (GF := GF) k (DFrac.own 1) (some newMeta)))) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp osFsExt.name "NsOpen" (Val (PairV (#(child d tmpB)) (#flCreat)))) {{ Φ }} := by
+  iintro #Hos #Hinv Hd Hz HΦ
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑bootN))
+  unfold bootInv
+  imod inv_acc (E := ⊤) (show ↑bootN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%g1, %ko, >Hd1, >Hv, >%Hp, >Hk⟩
+  icases osDir_agree d _ _ g g1 $$ Hd Hd1 with %heq
+  subst heq
+  ihave Hdw := (osDir_halves d g).2 $$ [Hd Hd1]
+  · iframe
+  imodintro
+  iapply wp_osNsOpenCreate d tmpB g tmpB_ok hn bootN_disj $$ Hos Hdw Hz
+  iintro %fd %e Hz Hr
+  have hpush : ∀ k, NoDirs (g.push (.put tmpB (.file k))) ∧ SegOut (g.push (.put tmpB (.file k))) ko :=
+    fun k => ⟨noDirs_push_tmp Hp.1 _ (.inr ⟨k, rfl⟩), segOut_push_tmp Hp.2 _ (.inr ⟨_, rfl⟩)⟩
+  icases Hr with (⟨%he, %k, %hk, Hdw, Hm, Hfd⟩ | ⟨%he, (Hdw | ⟨%k, %hk, Hdw, Hm⟩)⟩)
+  · icases (osDir_halves d _).1 $$ Hdw with ⟨Hd, Hd1⟩
+    imod Hclose $$ [Hd1 Hv Hk] with -
+    · inext; iexists _, ko; iframe; ipureintro; exact hpush k
+    imodintro
+    iapply HΦ $$ %fd %e Hz
+    ileft
+    isplitr
+    · ipureintro; exact he
+    iexists k
+    iframe
+    ipureintro; exact hk
+  · icases (osDir_halves d _).1 $$ Hdw with ⟨Hd, Hd1⟩
+    imod Hclose $$ [Hd1 Hv Hk] with -
+    · inext; iexists _, ko; iframe; ipureintro; exact Hp
+    imodintro
+    iapply HΦ $$ %fd %e Hz
+    iright
+    isplitr
+    · ipureintro; exact he
+    ileft; iexact Hd
+  · icases (osDir_halves d _).1 $$ Hdw with ⟨Hd, Hd1⟩
+    imod Hclose $$ [Hd1 Hv Hk] with -
+    · inext; iexists _, ko; iframe; ipureintro; exact hpush k
+    imodintro
+    iapply HΦ $$ %fd %e Hz
+    iright
+    isplitr
+    · ipureintro; exact he
+    iright
+    iexists k
+    iframe
+    ipureintro; exact hk
+
+/-- `rename(2)` of `seg.tmp`, the file of `k`, to `seg`, from no `seg` in any outcome, the
+invariant (whose key is `k`) opened around it. -/
+theorem wp_renameTmp (d k : GoString) (γ : GName) (g : DirG)
+    (hk : g.now !! tmpB = some (.file k)) (hs : SegNone g) (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ bootInv (GF := GF) d γ -∗
+      osDir (GF := GF) d (DFrac.own (1 : Qp).half) g -∗ osNsBusy (GF := GF) true -∗
+      ghostVar (GF := GF) γ (1 : Qp).half (some k) -∗
+      (∀ (e : w64) (g' : DirG),
+        ⌜(e = 0 ∧ g' = g.push (.mv tmpB segB)) ∨ (e ≠ 0 ∧ (g' = g ∨ g' = g.push (.mv tmpB segB)))⌝ -∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g' -∗ osNsBusy (GF := GF) false -∗
+        ghostVar (GF := GF) γ (1 : Qp).half (some k) -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Rename" (Val (PairV (#(child d tmpB)) (#(child d segB))))) {{ Φ }} := by
+  iintro #Hos #Hinv Hd Hz Hγ HΦ
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑bootN))
+  unfold bootInv
+  imod inv_acc (E := ⊤) (show ↑bootN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%g1, %ko, >Hd1, >Hv, >%Hp, >Hk⟩
+  icases osDir_agree d _ _ g g1 $$ Hd Hd1 with %heq
+  subst heq
+  icases ghostVar_agree _ _ _ _ _ $$ Hγ Hv with %hko
+  subst hko
+  ihave Hdw := (osDir_halves d g).2 $$ [Hd Hd1]
+  · iframe
+  have hns : g.now !! segB ≠ some .dir := (Hp.1 g.now g.crashTo_now).1
+  imodintro
+  iapply wp_osRename d tmpB segB k g tmpB_ok segB_ok tmp_ne_seg hk hns bootN_disj $$ Hos Hdw Hz
+  iintro %e %g' %hres Hdw Hz
+  icases (osDir_halves d g').1 $$ Hdw with ⟨Hd, Hd1⟩
+  have hp' : NoDirs g' ∧ SegOut g' (some k) := by
+    have hg : g' = g ∨ g' = g.push (.mv tmpB segB) := by
+      rcases hres with ⟨-, h⟩ | ⟨-, h⟩
+      · exact .inr h
+      · exact h
+    rcases hg with rfl | rfl
+    · exact Hp
+    · exact ⟨noDirs_push_mv Hp.1 hk, segOut_push_mv hs hk⟩
+  imod Hclose $$ [Hd1 Hv Hk] with -
+  · inext; iexists g', (some k); iframe; ipureintro; exact hp'
+  imodintro
+  iapply HΦ $$ %e %g' %hres Hd Hz Hγ
+
+end steps
+
+/-! ## The retried calls: from the state before or after the change -/
+
+section retry
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
+
+/-- `unlink(2)` of `seg.tmp`, the file of `k` in `g`, from `g` or after its removal. -/
+theorem wp_unlinkTmp_any (d k : GoString) (γ : GName) (g g1 : DirG)
+    (hk : g.now !! tmpB = some (.file k)) (h1 : g1 = g ∨ g1 = g.push (.del tmpB))
+    (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ bootInv (GF := GF) d γ -∗
+      osDir (GF := GF) d (DFrac.own (1 : Qp).half) g1 -∗ osNsBusy (GF := GF) true -∗
+      (∀ (e : w64) (g' : DirG),
+        ⌜(e = 0 ∧ g' = g.push (.del tmpB)) ∨ (e ≠ 0 ∧ (g' = g ∨ g' = g.push (.del tmpB)))⌝ -∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g' -∗ osNsBusy (GF := GF) false -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Unlink" (Val (#(child d tmpB)))) {{ Φ }} := by
+  iintro #Hos #Hinv Hd Hz HΦ
+  rcases h1 with rfl | rfl
+  · iapply wp_unlinkTmp d k γ g1 hk $$ Hos Hinv Hd Hz HΦ
+  · have hn : (g.push (.del tmpB)).now !! tmpB = none := by
+      rw [DirG.push_now]; exact GMap.lookup_delete_eq _ _
+    iapply wp_osUnlinkAbsent d tmpB _ _ tmpB_ok hn CoPset.subseteq_top $$ Hos Hd Hz
+    iintro %e %he Hd Hz
+    iapply HΦ $$ %e %(g.push (.del tmpB)) %(.inr ⟨he, .inr rfl⟩) Hd Hz
+
+/-- `rename(2)` of `seg.tmp` to `seg`, from `g` or after the rename. -/
+theorem wp_renameTmp_any (d k : GoString) (γ : GName) (g g1 : DirG)
+    (hk : g.now !! tmpB = some (.file k)) (hs : SegNone g)
+    (h1 : g1 = g ∨ g1 = g.push (.mv tmpB segB)) (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ bootInv (GF := GF) d γ -∗
+      osDir (GF := GF) d (DFrac.own (1 : Qp).half) g1 -∗ osNsBusy (GF := GF) true -∗
+      ghostVar (GF := GF) γ (1 : Qp).half (some k) -∗
+      (∀ (e : w64) (g' : DirG),
+        ⌜(e = 0 ∧ g' = g.push (.mv tmpB segB)) ∨ (e ≠ 0 ∧ (g' = g ∨ g' = g.push (.mv tmpB segB)))⌝ -∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g' -∗ osNsBusy (GF := GF) false -∗
+        ghostVar (GF := GF) γ (1 : Qp).half (some k) -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Rename" (Val (PairV (#(child d tmpB)) (#(child d segB))))) {{ Φ }} := by
+  iintro #Hos #Hinv Hd Hz Hγ HΦ
+  rcases h1 with rfl | rfl
+  · iapply wp_renameTmp d k γ g1 hk hs $$ Hos Hinv Hd Hz Hγ HΦ
+  · have hn : (g.push (.mv tmpB segB)).now !! tmpB = none := by
+      rw [DirG.push_now]
+      show (match g.now !! tmpB with
+        | some n => <[segB := n]> (GMap.delete tmpB g.now)
+        | none => g.now) !! tmpB = none
+      rw [hk, GMap.lookup_insert_ne _ _ tmp_ne_seg.symm]; exact GMap.lookup_delete_eq _ _
+    have ht : (g.push (.mv tmpB segB)).now !! segB ≠ some .dir := by
+      rw [DirG.push_now]
+      show (match g.now !! tmpB with
+        | some n => <[segB := n]> (GMap.delete tmpB g.now)
+        | none => g.now) !! segB ≠ some .dir
+      rw [hk, GMap.lookup_insert_eq]; simp
+    iapply wp_osRenameAbsent d tmpB segB _ _ tmpB_ok segB_ok tmp_ne_seg hn ht CoPset.subseteq_top
+      $$ Hos Hd Hz
+    iintro %e %he Hd Hz
+    iapply HΦ $$ %e %(g.push (.mv tmpB segB)) %(.inr ⟨he, .inr rfl⟩) Hd Hz Hγ
+
+/-- What a retried `open(2)` with `O_CREAT` of `seg.tmp` sees: `g`, or the file created (under
+the key `k`, whose `OsMeta` the caller holds). -/
+def crState (d : GoString) (g : DirG) : Option GoString → IProp GF
+  | none => osDir (GF := GF) d (DFrac.own (1 : Qp).half) g
+  | some k => iprop(⌜IsInoKey k⌝ ∗ osDir (GF := GF) d (DFrac.own (1 : Qp).half) (g.push (.put tmpB (.file k))) ∗
+      osMeta (GF := GF) k (DFrac.own 1) (some newMeta))
+
+/-- `open(2)` with `O_RDWR | O_CREAT` of `seg.tmp`, absent from `g`, from `g` or after it was
+created. -/
+theorem wp_createTmp_any (d : GoString) (γ : GName) (g : DirG) (hn : g.now !! tmpB = none)
+    (ko : Option GoString) (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ bootInv (GF := GF) d γ -∗ crState d g ko -∗ osNsBusy (GF := GF) true -∗
+      (∀ fd : w64, ∀ e : w64, osNsBusy (GF := GF) false -∗
+        ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ k, ⌜IsInoKey k⌝ ∗
+            osDir (GF := GF) d (DFrac.own (1 : Qp).half) (g.push (.put tmpB (.file k))) ∗
+            osMeta (GF := GF) k (DFrac.own 1) (some newMeta) ∗
+            osFd (GF := GF) fd (DFrac.own 1) ⟨k, true, true⟩) ∨
+         (⌜e ≠ 0 ∧ fd = -1⌝ ∗ ∃ ko', crState d g ko')) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp osFsExt.name "NsOpen" (Val (PairV (#(child d tmpB)) (#flCreat)))) {{ Φ }} := by
+  iintro #Hos #Hinv Hs Hz HΦ
+  cases ko with
+  | none =>
+    unfold crState
+    iapply wp_createTmp d γ g hn $$ Hos Hinv Hs Hz
+    iintro %fd %e Hz Hr
+    iapply HΦ $$ %fd %e Hz
+    icases Hr with (⟨%he, Hr⟩ | ⟨%he, (Hd | ⟨%k, %hk, Hd, Hm⟩)⟩)
+    · ileft; iframe; ipureintro; exact he
+    · iright; isplitr; · ipureintro; exact he
+      iexists none; iexact Hd
+    · iright; isplitr; · ipureintro; exact he
+      iexists (some k); dsimp only; iframe; ipureintro; exact hk
+  | some k =>
+    unfold crState
+    icases Hs with ⟨%hk, Hd, Hm⟩
+    have hf : (g.push (.put tmpB (.file k))).now !! tmpB = some (.file k) := by
+      rw [DirG.push_now]; exact GMap.lookup_insert_eq _ _ _
+    iapply wp_osNsOpenCreatExisting d tmpB k _ _ tmpB_ok hf _ _ CoPset.subseteq_top $$ Hos Hd Hm Hz
+    iintro %fd %e %hmo %hres Hd Hm Hz Hfd
+    iapply HΦ $$ %fd %e Hz
+    rcases hres with ⟨rfl, hfd⟩ | ⟨he, rfl⟩
+    · ileft
+      isplitr; · ipureintro; exact ⟨rfl, hfd⟩
+      iexists k
+      rw [if_pos rfl]
+      iframe
+      ipureintro; exact hk
+    · iright
+      isplitr; · ipureintro; exact ⟨he, rfl⟩
+      iexists (some k)
+      dsimp only
+      iframe
+      ipureintro; exact hk
+
+end retry
+
+/-! ## `os` calls on `seg.tmp` and `seg`, with the invariant -/
+
+section oscalls
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
+variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
+
+/-- `os.Remove(d/seg.tmp)`, `seg.tmp` the file of `k`: on success removed. -/
+theorem wp_removeTmp (d k : GoString) (γ : GName) (g : DirG)
+    (hk : g.now !! tmpB = some (.file k)) :
+    {{ osInv (GF := GF) ∗ bootInv (GF := GF) d γ ∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g ∗ osNsBusy (GF := GF) false }}
+      (App (Val (@! os.Remove)) (Val #(child d tmpB)))
+    {{ (err : GoInterface), RET #err; osNsBusy false ∗ ∃ g',
+        osDir d (DFrac.own (1 : Qp).half) g' ∗ ⌜err = interface.nil → g' = g.push (.del tmpB)⌝ }} := by
+  wp_start as ⟨#Hos, #Hinv, Hd, Hz⟩
+  obtain ⟨g1, hg1⟩ : ∃ g1, g1 = g := ⟨_, rfl⟩
+  ihave Hd : osDir d (DFrac.own (1 : Qp).half) g1 $$ [Hd]
+  · subst hg1; iexact Hd
+  ihave Hp : ⌜g1 = g ∨ g1 = g.push (.del tmpB)⌝ $$ []
+  · ipureintro; exact .inl hg1
+  clear hg1
+  iloeb as IH generalizing %g1 Hp Hd Hz
+  icases Hp with %Hp
+  wp_apply wp_osNsBegin CoPset.subseteq_top $$ Hos Hz as Hz
+  wp_apply wp_unlinkTmp_any d k γ g g1 hk Hp $$ Hos Hinv Hd Hz as %e %g' %hres Hd Hz
+  by_cases he4 : e = W64 4
+  · rw [decide_eq_true he4]
+    wp_auto
+    have hg' : g' = g ∨ g' = g.push (.del tmpB) := by
+      rcases hres with ⟨h0, -⟩ | ⟨-, h⟩
+      · exact absurd (h0 ▸ he4) (by decide)
+      · exact h
+    iapply IH $$ %g' [] Hd Hz HΦ
+    ipureintro; exact hg'
+  rw [decide_eq_false he4]
+  wp_auto
+  by_cases he0 : e = W64 0
+  · rw [decide_eq_true he0]
+    wp_auto
+    iapply HΦ
+    iframe Hz
+    iexists g'
+    iframe Hd
+    ipureintro; intro _
+    rcases hres with ⟨-, h⟩ | ⟨h, -⟩
+    · exact h
+    · exact absurd he0 h
+  rw [decide_eq_false he0]
+  wp_auto
+  have hnd : g'.now !! tmpB ≠ some .dir := by
+    have hg' : g' = g ∨ g' = g.push (.del tmpB) := by
+      rcases hres with ⟨-, h⟩ | ⟨-, h⟩
+      · exact .inr h
+      · exact h
+    rcases hg' with rfl | rfl
+    · rw [hk]; simp
+    · rw [DirG.push_now]; show GMap.delete tmpB g.now !! tmpB ≠ _
+      rw [GMap.lookup_delete_eq]; simp
+  iloeb as IH2 generalizing Hd Hz
+  wp_apply wp_osNsBegin CoPset.subseteq_top $$ Hos Hz as Hz
+  wp_apply wp_osRmdirNotDir d tmpB _ g' tmpB_ok hnd CoPset.subseteq_top $$ Hos Hd Hz
+    as %e1 %he1 Hd Hz
+  by_cases he14 : e1 = W64 4
+  · rw [decide_eq_true he14]
+    wp_auto
+    iapply IH2 $$ Hd Hz HΦ
+  rw [decide_eq_false he14]
+  wp_auto
+  rw [decide_eq_false (show ¬ e1 = W64 0 from he1)]
+  wp_auto
+  unfold os.model.pathError
+  by_cases h20 : e1 = W64 20
+  · rw [decide_eq_true h20]
+    wp_auto
+    wp_apply wp_errno
+    iapply HΦ
+    iframe Hz
+    iexists g'
+    iframe Hd
+    ipureintro; intro h; cases h
+  · rw [decide_eq_false h20]
+    wp_auto
+    wp_apply wp_errno
+    iapply HΦ
+    iframe Hz
+    iexists g'
+    iframe Hd
+    ipureintro; intro h; cases h
+
+/-- `Regime(d/seg.tmp)` in the state of a retried create: `1`. -/
+theorem wp_crState_regime (d : GoString) (g : DirG) (ko : Option GoString) (Φ : val → IProp GF) :
+    ⊢ osInv (GF := GF) -∗ crState d g ko -∗ (crState d g ko -∗ Φ (#(1 : w64))) -∗
+      WP (ExternalOp osFsExt.name "Regime" (Val (#(child d tmpB)))) {{ Φ }} := by
+  iintro #Hos Hs HΦ
+  cases ko with
+  | none =>
+    unfold crState
+    iapply wp_osRegimeNs (child d tmpB) d _ g (.inr ⟨tmpB, tmpB_ok, rfl⟩) CoPset.subseteq_top
+      $$ Hos Hs HΦ
+  | some k =>
+    unfold crState
+    icases Hs with ⟨%hk, Hd, Hm⟩
+    iapply wp_osRegimeNs (child d tmpB) d _ _ (.inr ⟨tmpB, tmpB_ok, rfl⟩) CoPset.subseteq_top
+      $$ Hos Hd
+    iintro Hd
+    iapply HΦ
+    dsimp only
+    iframe
+    ipureintro; exact hk
+
+/-- `os.OpenFile(d/seg.tmp, O_RDWR|O_CREATE, perm)`, `seg.tmp` absent: on success a new file of a
+fresh key `k`, `seg.tmp` names it. -/
+theorem wp_openTmp (d : GoString) (γ : GName) (g : DirG) (hn : g.now !! tmpB = none) (perm : w32) :
+    {{ osInv (GF := GF) ∗ bootInv (GF := GF) d γ ∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g ∗ osNsBusy (GF := GF) false }}
+      (App (App (App (Val (@! os.OpenFile)) (Val #(child d tmpB))) (Val #(W64 66))) (Val #perm))
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osNsBusy false ∗
+        ((∃ (fd : w64) (k : GoString), ⌜err = interface.nil ∧ IsInoKey k⌝ ∗
+            os.ownFile f fd (child d tmpB) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨k, true, true⟩ ∗
+            osMeta k (DFrac.own 1) (some newMeta) ∗
+            osDir d (DFrac.own (1 : Qp).half) (g.push (.put tmpB (.file k)))) ∨
+         ⌜err ≠ interface.nil⌝) }} := by
+  wp_start as ⟨#Hos, #Hinv, Hd, Hz⟩
+  obtain ⟨ko, hko⟩ : ∃ ko : Option GoString, ko = none := ⟨_, rfl⟩
+  ihave Hs : crState d g ko $$ [Hd]
+  · subst hko; unfold crState; iexact Hd
+  clear hko
+  iloeb as IH generalizing %ko Hs Hz
+  wp_apply wp_crState_regime d g ko $$ Hos Hs as Hs
+  rw [os.file_ty_eq, os.File_ty_eq]
+  (try wp_auto)
+  wp_apply wp_osNsBegin CoPset.subseteq_top $$ Hos Hz as Hz
+  rw [show (W64 66 ||| W64 524288) = flCreat from by decide]
+  wp_apply wp_createTmp_any d γ g hn ko $$ Hos Hinv Hs Hz as %fd %e Hz Hr
+  icases Hr with (⟨%he, %k, %hk, Hd, Hm, Hfd⟩ | ⟨%he, %ko', Hs⟩)
+  · obtain ⟨rfl, -⟩ := he
+    rw [decide_eq_true (show (0 : w64) = W64 0 from rfl)]
+    wp_auto
+    iStructNamed inner
+    iapply wp_fupd
+    wp_auto
+    ipersist name
+    ipersist f
+    imodintro
+    iapply HΦ
+    iframe Hz
+    ileft
+    iexists fd, k
+    iframe Hfd Hm Hd
+    isplitr
+    · ipureintro; exact ⟨rfl, hk⟩
+    unfold os.ownFile
+    iexists inner_ptr
+    iframe
+    isplitl [] <;> iassumption
+  · obtain ⟨he0, rfl⟩ := he
+    rw [decide_eq_false (show ¬ e = W64 0 from he0)]
+    wp_auto
+    by_cases he4 : e = W64 4
+    · rw [decide_eq_true he4]
+      wp_auto
+      try rw [os.file_ty_eq]
+      try rw [os.File_ty_eq]
+      iapply IH $$ %ko' Hs Hz HΦ
+    · rw [decide_eq_false he4]
+      wp_auto
+      unfold os.model.pathError
+      wp_apply wp_errno
+      iapply HΦ
+      iframe Hz
+      iright
+      ipureintro; intro h; cases h
+
+/-- `os.Rename(d/seg.tmp, d/seg)`, `seg.tmp` the file of `k`, no `seg` in any outcome, the
+invariant's key `k`: on success renamed. -/
+theorem wp_renameSeg (d k : GoString) (γ : GName) (g : DirG)
+    (hk : g.now !! tmpB = some (.file k)) (hs : SegNone g) :
+    {{ osInv (GF := GF) ∗ bootInv (GF := GF) d γ ∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g ∗ osNsBusy (GF := GF) false ∗
+        ghostVar (GF := GF) γ (1 : Qp).half (some k) }}
+      (App (App (Val (@! os.Rename)) (Val #(child d tmpB))) (Val #(child d segB)))
+    {{ (err : GoInterface), RET #err; osNsBusy false ∗ ghostVar γ (1 : Qp).half (some k) ∗
+        ∃ g', osDir d (DFrac.own (1 : Qp).half) g' ∗
+          ⌜err = interface.nil → g' = g.push (.mv tmpB segB)⌝ }} := by
+  wp_start as ⟨#Hos, #Hinv, Hd, Hz, Hγ⟩
+  have hns : g.now !! segB ≠ some .dir := by
+    rw [show g.now !! segB = none from hs g.now g.crashTo_now]; simp
+  wp_apply wp_osNsLstatDir d segB _ g segB_ok hns CoPset.subseteq_top $$ Hos Hd as %e0 Hd
+  (try wp_auto)
+  obtain ⟨g1, hg1⟩ : ∃ g1, g1 = g := ⟨_, rfl⟩
+  ihave Hd : osDir d (DFrac.own (1 : Qp).half) g1 $$ [Hd]
+  · subst hg1; iexact Hd
+  ihave Hp : ⌜g1 = g ∨ g1 = g.push (.mv tmpB segB)⌝ $$ []
+  · ipureintro; exact .inl hg1
+  clear hg1
+  iloeb as IH generalizing %g1 Hp Hd Hz Hγ
+  icases Hp with %Hp
+  wp_apply wp_osNsBegin CoPset.subseteq_top $$ Hos Hz as Hz
+  wp_apply wp_renameTmp_any d k γ g g1 hk hs Hp $$ Hos Hinv Hd Hz Hγ as %e %g' %hres Hd Hz Hγ
+  by_cases he4 : e = W64 4
+  · rw [decide_eq_true he4]
+    wp_auto
+    have hg' : g' = g ∨ g' = g.push (.mv tmpB segB) := by
+      rcases hres with ⟨h0, -⟩ | ⟨-, h⟩
+      · exact absurd (h0 ▸ he4) (by decide)
+      · exact h
+    iapply IH $$ %g' [] Hd Hz Hγ HΦ
+    ipureintro; exact hg'
+  rw [decide_eq_false he4]
+  wp_auto
+  by_cases he0 : e = W64 0
+  · rw [decide_eq_true he0]
+    wp_auto
+    iapply HΦ
+    iframe Hz Hγ
+    iexists g'
+    iframe Hd
+    ipureintro; intro _
+    rcases hres with ⟨-, h⟩ | ⟨h, -⟩
+    · exact h
+    · exact absurd he0 h
+  rw [decide_eq_false he0]
+  wp_auto
+  wp_apply wp_errno
+  unfold os.model.linkError
+  rw [show os.model.LinkError = os.LinkError.ty by unfold os.LinkError.ty; rfl]
+  wp_auto
+  iapply HΦ
+  iframe Hz Hγ
+  iexists g'
+  iframe Hd
+  ipureintro; intro h; cases h
+
+end oscalls
 
 end osfs_walfs
 end EtcdGrove
