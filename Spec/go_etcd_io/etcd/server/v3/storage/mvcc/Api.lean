@@ -105,6 +105,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
+import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -123,18 +124,17 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 /-- **A store's name** (pure, opaque to clients; the implementation's ghost names, defined by the
 invariants stage). -/
-opaque MvccName : Type
+@[no_expose] def MvccName : Type := StoreNames
 /-- **A watch stream's name** (pure, opaque). -/
-opaque WsName : Type
+@[no_expose] def WsName : Type := api.WsAbs
 /-- **The store's lessor's ghost name** (its `lease.leaseOwn`). -/
 opaque mvccLeases (γ : MvccName) : GName
 /-- **The stream's channel** (fixed at its creation). -/
-opaque wsChanOf (ι : WsName) : GoChan
+@[no_expose] def wsChanOf (ι : WsName) : GoChan := (ι : api.WsAbs).ch
 /-- **The stream's channel's ghost names** (fixed at its creation; the probe of v3rpc's watch,
 2026-11-04: named, so that a client's definitions can mention them, in place of an existential in
 `wsChan_recv.law`). -/
-opaque wsChanNames (ι : WsName) : ChanNames :=
-  ⟨default, default, default, default, default, 0⟩
+@[no_expose] def wsChanNames (ι : WsName) : ChanNames := (ι : api.WsAbs).chn
 
 /-! ## The vocabulary -/
 
@@ -146,7 +146,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The store's state is `σ`** (exclusive, timeless; the client's). -/
-opaque mvccState (γ : MvccName) (σ : MvccState) : IProp GF := iprop(True)
+@[no_expose] def mvccState (γ : MvccName) (σ : MvccState) : IProp GF :=
+  api.mvccStateI (γ : StoreNames).api σ
 
 /-- **`kv` (the `KV` `New` or `NewStore` returned) serves the store `γ`** (persistent). -/
 opaque isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
@@ -166,21 +167,27 @@ opaque mvccBackend (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF) : IProp 
 thread token until its `End`, not the trace). -/
 opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
 
+/-- The rest of a stream's handle (its channel's invariant, the stream's and the store's): opaque
+until the stream's contracts are proved over it (stage 2, the watch chain; M1-REPLACE). -/
+private opaque isMvccWatchStreamRest (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF :=
+  iprop(True)
+
 /-- **`ws` (the `WatchStream` `NewWatchStream` returned) is a stream of `γ`, named `ι`**
 (persistent). -/
-opaque isMvccWatchStream (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF := iprop(True)
+@[no_expose] def isMvccWatchStream (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF :=
+  iprop(⌜(ι : api.WsAbs).st = (γ : StoreNames).api⌝ ∗ □ isMvccWatchStreamRest ws γ ι)
 
 /-- **The stream's state is `S`** (exclusive, timeless; the client's). -/
-opaque wsState (ι : WsName) (S : StreamState) : IProp GF := iprop(True)
+@[no_expose] def wsState (ι : WsName) (S : StreamState) : IProp GF := api.wsStateI ι S
 
 /-- **The stream has sent at least `n` responses** (persistent; round 14, A1): `Watch` gives it at
 the watcher's stamp `k`, so that a client can match a stream-wide progress response (the `j`-th
 received, `j ≥ k`) with the watchers registered before it; the non-blocking receive's empty case
 bounds it by what was received (`wsChan_recv`). -/
-opaque wsSentLb (ι : WsName) (n : Nat) : IProp GF := iprop(True)
+@[no_expose] def wsSentLb (ι : WsName) (n : Nat) : IProp GF := api.wsSentLbI ι n
 
 /-- **The consumer has received `rs`**, in order (exclusive, timeless). -/
-opaque wsRecv (ι : WsName) (rs : List WResp) : IProp GF := iprop(True)
+@[no_expose] def wsRecv (ι : WsName) (rs : List WResp) : IProp GF := api.wsRecvI ι rs
 
 /-- **The write invariant a store's backend must be opened with**, at the registration name `gx`
 (the `W` of `backend.New`/`storage.OpenSnapshotBackend`; sealed: today's `lateW gx`). -/

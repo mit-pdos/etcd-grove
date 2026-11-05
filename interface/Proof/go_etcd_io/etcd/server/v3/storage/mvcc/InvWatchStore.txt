@@ -205,6 +205,9 @@ def mvcc.storeWatchParams (s st : Loc) (γ : mvcc.WsNames) : mvcc.WatchParams GF
     WS := fun w => iprop(∃ γw, mvcc.watcherMeta γ w γw), IW_pers := ⋯, WC_pers := ⋯, C_pers := ⋯, F_pers := ⋯,
     IWF_pers := ⋯, OC_pers := ⋯, WS_pers := ⋯ }
 
+def mvcc.relAuth (γ : mvcc.WsNames) (q : Qp) (Lmu : mvcc.Log) : IProp GF :=
+  iprop(monoNatAuthOwn γ.rel q (List.length Lmu) ∗ mvcc.wsSlot γ q Lmu)
+
 theorem mvcc.chanRegFact_persistent (γc : mvcc.WatchChanNames) (w : Loc) : Persistent
     (mvcc.chanRegFact γc w)
 
@@ -232,7 +235,7 @@ theorem mvcc.popFacts_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (k : Loc) (
     ↑d⌝ ∗ mvcc.evsWf γ r lo evsw d ∗ mvcc.evsWf γ r lo evsw (sint.nat st.minRev))
 
 theorem mvcc.relAuth_of_eq (γ : mvcc.WsNames) (q : Qp) (L1 L2 : mvcc.Log) (h : L1 = L2) :
-    monoNatAuthOwn γ.rel q (List.length L1) ⊢ monoNatAuthOwn γ.rel q (List.length L2)
+    mvcc.relAuth γ q L1 ⊢ mvcc.relAuth γ q L2
 
 theorem mvcc.watchEvents_empty (log : mvcc.Log) (r : mvcc.WatchRange) {lo hi : Nat} (h : hi ≤ lo) :
     mvcc.watchEvents log r lo hi = []
@@ -335,6 +338,9 @@ theorem mvcc.watchEvents_cmp {L L' : mvcc.Log} (hc : L <+: L' ∨ L' <+: L) (r :
 theorem mvcc.watchBudget_spend (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames) (w : Loc) (γw :
     mvcc.WatcherNames) (hM : M !! w = none) : mvcc.watchBudget γ 1 M ∗ mvcc.watchTok γ ⊢ |==>
     mvcc.watchBudget γ 1 <[w := γw]>M
+
+def mvcc.pndOk (Lmu : mvcc.Log) (p : Option (List mvcc.Change)) : Prop :=
+  ∀ (ps : List mvcc.Change), p = some ps → List.getLast? Lmu = some ps
 
 def mvcc.respsIs (vs : List go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (rs : List
     mvcc.RespM) : IProp GF :=
@@ -626,8 +632,7 @@ def mvcc.Deliv.sent (d : mvcc.Deliv) : Bool :=
 def mvcc.watchStoreInv (s : Loc) (γ : mvcc.WsNames) (q : Qp) : IProp GF :=
   iprop(∃ σ,
       mvcc.watchStoreBody s γ q σ ∗
-        monoNatAuthOwn γ.rel q (List.length σ.Lmu) ∗
-          mvcc.wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow (List.length σ.Lmu) ∧ σ.unsRst⌝)
+        mvcc.relAuth γ q σ.Lmu ∗ mvcc.wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow (List.length σ.Lmu) ∧ σ.unsRst⌝)
 
 def mvcc.watchStoreBody (s : Loc) (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) : IProp GF :=
   iprop("Hσ" ∷ ghostVar γ.wst q σ ∗
@@ -845,6 +850,9 @@ theorem mvcc.respOk_persistent (r : mvcc.RespM) : Persistent (mvcc.respOk r)
 
 def mvcc.EvM.countable : Pos.Countable mvcc.EvM :=
   Pos.Countable.ofInjective (fun e => Pos.Countable.encode (e.del, e.kv, e.prevKv)) mvcc.EvM.countable._proof_1
+
+def mvcc.wsSlot (γ : mvcc.WsNames) (q : Qp) (Lmu : mvcc.Log) : IProp GF :=
+  iprop(∃ p, mvcc.api.pndPart γ.st.api q.half.half p ∗ ⌜mvcc.pndOk Lmu p⌝)
 
 theorem mvcc.covPre_persistent (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (rev : w64) (cs : List
     mvcc.CovArg) : Persistent (mvcc.covPre γ γc rev cs)
