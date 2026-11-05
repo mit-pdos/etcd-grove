@@ -27,7 +27,8 @@ watchkv's bounds on `nw` and `nops`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Adequacy
 
 @[expose] public section
@@ -97,12 +98,15 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize'
+  refine etcd_adequate_members (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize'
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch)) (Val #nw))
       (Val #nops)) (schedLit steps))
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""] HDsNd σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""] HDsNd
+    -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
+    -- up to order (peers, then clients, then bridges)
+    (cluster3.members etcd_partition.clusterCfg) (cluster3.bridges etcd_partition.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG
@@ -110,11 +114,8 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.partition.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.partition.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, Hps, Hds⟩
-  simp only [linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Has with ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩
-  icases Hps with ⟨Hf₁, Hf₂, Hf₃, -⟩
-  icases Hds with ⟨Hw₁, Hw₂, Hw₃, -⟩
+  iintro #Hinit Htok Hres
+  ihave Hstart := cluster3.startRes_intro etcd_partition.clusterCfg $$ Hres
   -- the schedule's slice literal: the array of an abstract list takes one pure step
   -- (`pure_wp_array_lit_full`, before the generic automation unfolds it), then the slice over it
   -- (`wp_slice_literal`)
@@ -159,7 +160,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     steps Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     H0 H31 Hops Hmul
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

@@ -14,6 +14,7 @@ address (the bridge owned, its address serving the member's, `forwards`) and the
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartBridge
@@ -49,7 +50,9 @@ theorem StartCluster.wp_proof
     (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp Hcfg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
+  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  -- the members' start bundles (to `alloc3`) and the bridges' listen rights (to `StartBridge`)
+  icases startRes_members cfg $$ Hstart with ⟨⟨Hs₁, Hs₂, Hs₃⟩, Hba₁, Hba₂, Hba₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -110,11 +113,12 @@ theorem StartCluster.wp_proof
   have Hdok : netDirOk (dir3 cfg id₁ id₂ id₃) :=
     dir3_ok cfg Hcfg id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
-  imod (etcdstart.alloc3Http id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
-      cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega) cmp)
-      $$ Hmarsh Hf₁ Hf₂ Hf₃
-    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
-    ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
+  imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
+      cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega)
+      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') cmp)
+      $$ Hmarsh Hs₁ Hs₂ Hs₃
+    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Hfr₁⟩, Hmb₂,
+    ⟨#Hsl₂, Hfr₂⟩, Hmb₃, ⟨#Hsl₃, Hfr₃⟩, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, -, -, -, -, -, -, hst₂, hst₃, hcmp₁, hcret₁⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -130,7 +134,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn cmp .none
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁ Hw₁] as %s₁ %err₁ Hr₁
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -156,7 +160,7 @@ theorem StartCluster.wp_proof
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
       (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
-    $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂ Hw₂] as %s₂ %err₂ Hr₂
+    $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
   · cases err₂ with
@@ -182,7 +186,7 @@ theorem StartCluster.wp_proof
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
       (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
-    $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃ Hw₃] as %s₃ %err₃ Hr₃
+    $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
   · cases err₃ with

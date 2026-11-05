@@ -170,18 +170,6 @@ theorem memberRestartRes_intro (n : GoString) (p : GoString) (γn : NetNames GF)
   iintro ⟨Hd, Ha, Ho⟩
   iframe
 
-/-- **A fresh bundle with a peer address, from its pieces** (temporary, a pass-through: until hub
-step 7's E1-E3 give `cluster3`'s, partition's and restart's starters the bundles, they hold the
-pieces, from `alloc3Http`, and fold them here for `NewMember`). -/
-theorem memberFreshRes_intro_peer (n p : GoString) (γn : NetNames GF) :
-    walDirFresh (GF := GF) (memberWalDir n) ∗ netAddrFree p ∗
-        http.httpProtoOwn p (raftProto (netRh γn)) ⊢
-      memberFreshRes n { peer := some p } γn := by
-  unfold memberFreshRes
-  simp only
-  iintro ⟨Hw, Ha, Ho⟩
-  iframe
-
 /-! ## L2: the WAL's boot slot -/
 
 /-- **The WAL's boot slot, out of a fresh bundle without addresses** (to `NewServer`, through

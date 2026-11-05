@@ -35,6 +35,7 @@ with this example's (`clock.RealClock.After`, the registry allocated as above).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.PkgTable
 public import Proof.runtime.Start
@@ -225,11 +226,14 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_alloc (GF := k8scompactorGF)
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF)
     github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition)) (schedLit steps))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) k8scompactorPAddrs (by decide)
-    k8scompactorPWalDirs HDsNd σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs
+    k8scompactorPWalDirs HDsNd
+    -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
+    -- up to order (peers, then clients, then bridges)
+    (cluster3.members k8s_compactor.clusterCfg) (cluster3.bridges k8s_compactor.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs
     HAs HDs n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC k8scompactorGF := heapAtKc hG lctx
   -- the compactor registry, allocated before the program's proof is chosen (as `k8s_compactor_adequate`)
@@ -241,11 +245,8 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.compactor.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.k8s.compactor.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨⟨Has, Hps, Hds⟩, Hreg⟩
-  simp only [k8scompactorPAddrs, k8scompactorPWalDirs]
-  icases Has with ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩
-  icases Hps with ⟨Hf₁, Hf₂, Hf₃, -⟩
-  icases Hds with ⟨Hw₁, Hw₂, Hw₃, -⟩
+  iintro #Hinit Htok ⟨Hres, Hreg⟩
+  ihave Hstart := cluster3.startRes_intro k8s_compactor.clusterCfg $$ Hres
   -- the schedule's slice literal (as `etcd_partition_adequate`)
   wp_bind (schedLit steps)
   unfold schedLit
@@ -289,7 +290,7 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     steps Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega)
     Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃ Hreg]
+  wp_apply hM $$ [Hstart Htok Hreg]
   · iframe; iframe #
   ipureintro
   rfl

@@ -44,7 +44,7 @@ theorem startCluster.wp_proof
     (wp_NewClient : cluster3.NewClient.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS N id₁ id₂ id₃ ps ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
+  wp_start as ⟨Hstart, Htok, #Hprem⟩
   iunfold premises at Hprem
   (try wp_auto)
   -- `cfg := config()`
@@ -53,7 +53,7 @@ theorem startCluster.wp_proof
   -- `cluster3.StartCluster(cfg, lg)`: the members and the bridges
   wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg false clusterCfg_ok Hbf Hlg Htb Hrb48
       HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
-    $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok Hw₁ Hw₂ Hw₃] as %srvs %brs %ok Hup
+    $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
   · subst Hok
