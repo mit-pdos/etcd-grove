@@ -68,7 +68,13 @@ theorem Cursor.keyValue_ws.wp_proofQ
     | none => rw [List.getLast?_eq_none_iff] at h; subst h; simp at hpl
     | some p => exact ⟨p, rfl⟩
   have he : (els0 ++ [e]).getLast? = some e := by simp
-  have hix' := WKVs.leafIdx_cases X.v (wEs X n) pids els0 e hix
+  have hix' : e.index'.toNat ≤ leafCnt X.v (wEs X n) pids (els0 ++ [e]) ∨
+      e.index' = W64 (leafCnt X.v (wEs X n) pids (els0 ++ [e]) : Int) ∨
+      (leafCnt X.v (wEs X n) pids (els0 ++ [e]) = 0 ∧ e.index' = W64 (-1)) := by
+    rcases hix with h | h | ⟨h0, e', he', h1⟩
+    · exact WKVs.leafIdx_cases X.v (wEs X n) pids els0 e (Or.inl h)
+    · exact WKVs.leafIdx_cases X.v (wEs X n) pids els0 e (Or.inr h)
+    · simp at he'; subst he'; exact Or.inr (Or.inr ⟨h0, h1⟩)
   obtain ⟨idx, hidx⟩ : ∃ idx, idx = (if leafIdx (els0 ++ [e]) < leafCnt X.v (wEs X n) pids (els0 ++ [e])
       then stackPos X.v (wEs X n) pids (els0 ++ [e]) else (wEs X n).length) := ⟨_, rfl⟩
   rw [← hidx]

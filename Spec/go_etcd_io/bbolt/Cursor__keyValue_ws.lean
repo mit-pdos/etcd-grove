@@ -3,7 +3,7 @@
 reads at a fraction"; U6y's F2): the stack is `boltCurDef`'s (`sPathR` over the base view, its leaf
 page, if a page, holding its bounds' entries: possibly stale after a same-value `Put`, whose page
 bytes are still the view's or the cursor's inline page's), on an entry, past its leaf's end, or at
-`-1` in an empty leaf. Proof: `Proof/go_etcd_io/bbolt/Cursor__keyValue_ws.lean`.
+`-1` in an empty leaf (U6aa: with any branch indices, as `prev` leaves it). Proof: `Proof/go_etcd_io/bbolt/Cursor__keyValue_ws.lean`.
 -/
 module
 
@@ -34,7 +34,8 @@ abbrev Cursor.keyValue_ws.specQ : Prop :=
     (rt : Nat) (ipg : List w8) (nl : Loc → Option (Loc × Nat)) (c : Loc) (stk : GoSlice)
     (els : List elemRef) (pids : List Nat),
   wCurCtx X n bl rt → sPathR nl X.v bl rt els pids → sLeafOK X.v ipg (wEs X n) pids els →
-  (leafIdx els ≤ leafCnt X.v (wEs X n) pids els ∨ wEndAt X.v (wEs X n) pids els) →
+  (leafIdx els ≤ leafCnt X.v (wEs X n) pids els ∨ wEndAt X.v (wEs X n) pids els ∨
+    (leafCnt X.v (wEs X n) pids els = 0 ∧ ∃ e, els.getLast? = some e ∧ e.index' = W64 (-1))) →
   {{ wtxWQ (GF := GF) K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
       wStkOwn r nl X.v rt ipg els }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"keyValue")) (Val #()))

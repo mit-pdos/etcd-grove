@@ -134,7 +134,7 @@ theorem Cursor.first_w.wp_proofQ
     · iframe; iframe #
     obtain ⟨pids3, hp3, hlo3, hpre3, hcur3, hidx3⟩ := hnext nl3 els3 Hnp
     try wp_auto
-    wp_apply hkv K tx r m q X n bl rt B.ipg nl3 c stk3 els3 pids3 hc hp3 hlo3 hpre3
+    wp_apply hkv K tx r m q X n bl rt B.ipg nl3 c stk3 els3 pids3 hc hp3 hlo3 (Or.imp_right Or.inl hpre3)
       $$ [Hw Hc Hs] as %k %vl %fl ⟨Hw, Hc, Hs, #Hkv⟩
     · iframe; iframe #
     rw [hidx3]
@@ -152,7 +152,7 @@ theorem Cursor.first_w.wp_proofQ
     wp_auto
     obtain ⟨hcur2, hidx2, hpre2⟩ := WFirst.first_landed nl2 X.v (wEs X n) bl rt B.ipg _ P hp2 hlo2
       hallF hc0
-    wp_apply hkv K tx r m q X n bl rt B.ipg nl2 c stk2 (els0 ++ [e2]) P hc hp2 hlo2 hpre2
+    wp_apply hkv K tx r m q X n bl rt B.ipg nl2 c stk2 (els0 ++ [e2]) P hc hp2 hlo2 (Or.imp_right Or.inl hpre2)
       $$ [Hw Hc Hs] as %k %vl %fl ⟨Hw, Hc, Hs, #Hkv⟩
     · iframe; iframe #
     rw [hidx2]
