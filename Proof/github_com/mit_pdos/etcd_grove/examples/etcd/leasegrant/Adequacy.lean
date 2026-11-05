@@ -42,7 +42,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.PkgTable
 public import Proof.runtime.Start
@@ -142,9 +142,11 @@ theorem etcd_leasegrant_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate (GF := leasegrantGF) github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.initialize'
+  refine etcd_adequate_members (GF := leasegrantGF) github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23956"] (by decide) [config.walDirOf go!"leasegrant.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23956"] (by decide) [config.walDirOf go!"leasegrant.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    [(go!"leasegrant", ⟨none, some go!"127.0.0.1:23956"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC leasegrantGF := heapAtLgr hG lctx
   haveI := Hctx hG
@@ -152,12 +154,11 @@ theorem etcd_leasegrant_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -, Hds⟩
-  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
+  iintro #Hinit Htok ⟨Hms, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_leasegrant.wp_Main (GF := leasegrantGF) n id ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo Hlp Hlne inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok Hwd]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   ipureintro
   rfl

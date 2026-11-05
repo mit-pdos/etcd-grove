@@ -22,7 +22,7 @@ on `clients` and `ops`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.PkgTable
 public import Proof.runtime.Start
@@ -130,10 +130,12 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate (GF := linkvtxnGF) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
+  refine etcd_adequate_members (GF := linkvtxnGF) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main) #clients #ops)
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [config.walDirOf go!"linkvtxn.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+      (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [config.walDirOf go!"linkvtxn.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    [(go!"linkvtxn", ⟨none, some go!"127.0.0.1:23796"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvtxnGF := linkvtxnHeapAt hG lctx
   haveI := Hctx hG
@@ -141,13 +143,12 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -, Hds⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
+  iintro #Hinit Htok ⟨Hms, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_txnlin.wp_Main (GF := linkvtxnGF) n id ctxs boot clients ops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
-  wp_apply hM $$ [Haddr Htok Hwd]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

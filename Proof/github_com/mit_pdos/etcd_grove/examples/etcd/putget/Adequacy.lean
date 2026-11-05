@@ -39,7 +39,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.PkgTable
 public import Proof.runtime.Start

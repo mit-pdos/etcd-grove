@@ -5,9 +5,10 @@
 linkv3p's `startMember`s did before `Start`. Lean-first (no Rocq counterpart).
 
 **The triple:** `newServer`'s (any snapshot settings; either compaction mode `cmp` with the
-auto-compactor off, since 2026-11-05), plus the right to listen on the peer address (`netAddrFree`, D19d)
-and, for `http.Serve`, `http://peerAddr` one of the member's peer URLs in the directory: an error,
-or the member built (`memberBuilt`).
+auto-compactor off, since 2026-11-05), its fresh bundle with the peer address (`memberFreshRes`, hub
+step 7: also the right to listen on the peer address and to serve it with the network's raft
+protocol) and, for `http.Serve`, `http://peerAddr` one of the member's peer URLs in the directory:
+an error, or the member built (`memberBuilt`).
 -/
 module
 

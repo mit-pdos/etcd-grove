@@ -16,6 +16,7 @@ server's `eofVar`.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Defs
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
@@ -51,14 +52,13 @@ abbrev Main.spec : Prop :=
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.putget3 ∗
-      netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
-      netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
-      httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot ∗
-      -- (2026-11-03, the WAL's API, change 6) the members' WAL directories fresh
-      walDirFresh (config.walDirOf (name₁ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₂ ++ go!".etcd") go!"") ∗
-      walDirFresh (config.walDirOf (name₃ ++ go!".etcd") go!"") }}
+      -- (2026-11-05, hub step 7) the members' start bundles: each member's WAL directory fresh,
+      -- the right to listen on its peer address with its HTTP protocol unregistered, and member 1's
+      -- on its client address
+      etcdstart.memberStartRes (GF := GF) name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₂ ⟨some peerAddr₂, none⟩ ∗
+      etcdstart.memberStartRes (GF := GF) name₃ ⟨some peerAddr₃, none⟩ ∗
+      threadTok ∗ premises N id₁ id₂ id₃ ps ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main)) (Val #()))
   {{ RET #(); True }}
 

@@ -22,7 +22,7 @@ The addresses are optional (D3): the one-member examples listen on a client addr
 closed theorems' address lists (`HAs`) name only what the program listens on.
 
 **The laws.** The introduction from program start's three lists, up to order
-(`memberStartRes_intro`, D2; packaged as `etcd_adequate_members`, `Adequacy.lean`); the network's
+(`memberStartRes_intro`, D2; packaged as `etcd_adequate_members`, `AdequacyMembers.lean`); the network's
 allocation (`alloc3`, `Alloc3.lean`, and `memberStartRes_fresh` for a member without a peer
 address); narrow eliminations into what each consumer takes (`_client`: the client address's
 listen right, to `Serve`; `_peer`: the peer address's listen right and protocol, to the member's

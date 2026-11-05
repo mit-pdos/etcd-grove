@@ -79,7 +79,9 @@ theorem Main.wp_proof
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf, Hreg⟩
+  wp_start as ⟨Hstart, Htok, #Hprem, Hreg⟩
+  -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
+  icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold etcdstart.premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
@@ -127,12 +129,14 @@ theorem Main.wp_proof
     simp [LogEntry.toEntries, hblen0]
   have Hdirok : netDirOk (etcdstart.dir1 peerAddr id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
+  -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
+  ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_StartCompactingServer N memberName peerAddr clientAddr (W64 0) lg
       (LogEntry.toEntries boot 0) ctxs (etcdstart.dir1 peerAddr id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN
       HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide)
       (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
-      $$ [Htok Hmb Hwdf]
+      $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

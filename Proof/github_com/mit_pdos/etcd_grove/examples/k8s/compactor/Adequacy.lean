@@ -34,7 +34,7 @@ with this example's (`clock.RealClock.After`, the registry allocated as above).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.PkgTable
 public import Proof.runtime.Start
@@ -138,9 +138,12 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_alloc (GF := k8scompactorGF) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [config.walDirOf go!"k8scompactor.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [config.walDirOf go!"k8scompactor.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    [(k8s_compactor.memberName, ⟨none, some k8s_compactor.clientAddr⟩)] [] (List.Perm.refl _)
+    (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC k8scompactorGF := heapAtKc hG lctx
   -- (Q1 (c), C3, 2026-11-05) the compactor registry, allocated before the program's proof is
@@ -154,12 +157,11 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.compactor.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.k8s.compactor.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨⟨Has, -, Hds⟩, Hreg⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
+  iintro #Hinit Htok ⟨⟨Hms, -⟩, Hreg⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := k8s_compactor.wp_Main (GF := k8scompactorGF) (Hafter hG) n id ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
-  wp_apply hM $$ [Haddr Htok Hwd Hreg]
+  wp_apply hM $$ [Hstart Htok Hreg]
   · iframe; iframe #
   ipureintro
   rfl

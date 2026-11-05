@@ -79,7 +79,9 @@ theorem Main.wp_proof
     (hslg : srvGrantOpen (GF := GF)) (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
+  wp_start as ⟨Hstart, Htok, #Hprem⟩
+  -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
+  icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
@@ -121,11 +123,13 @@ theorem Main.wp_proof
   -- `StartServer("leaseexpiry", peerAddr, clientAddr, lg)`
   have Hdirok : netDirOk (leaseexpiryDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
+  -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
+  ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
   wp_apply (wp_StartServer N go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976" lg
       (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id) id γ ρ E₀ Φs γn .revocable Htb Hrb48
       HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb Hwdf]
+      Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, #Hrow⟩)

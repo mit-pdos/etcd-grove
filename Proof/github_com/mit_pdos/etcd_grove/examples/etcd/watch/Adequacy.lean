@@ -31,7 +31,7 @@ as the watch client takes it, now `client.eofOk_of_init`): the client watcher's 
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Adequacy
@@ -100,11 +100,13 @@ theorem etcd_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.etcd.watch.initialize'
+  refine etcd_adequate_members (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.etcd.watch.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main) #nw #nops)
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23872"] (by decide) [config.walDirOf go!"watchkv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23872"] (by decide) [config.walDirOf go!"watchkv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    [(go!"watchkv", ⟨none, some go!"127.0.0.1:23872"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
@@ -112,13 +114,12 @@ theorem etcd_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.watch.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.etcd.watch.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG
-  iintro #Hinit Htok ⟨Has, -, Hds⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hds with ⟨Hwd, -⟩
-  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
+  iintro #Hinit Htok ⟨Hms, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_watch.wp_Main (GF := putgetGF) n id ctxs boot nw nops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     H0 H31 Hops Hmul
-  wp_apply hM $$ [Haddr Htok Hwd]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro

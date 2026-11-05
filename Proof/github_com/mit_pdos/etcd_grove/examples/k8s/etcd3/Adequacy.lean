@@ -174,8 +174,14 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iapply BigSepM.bigSepM_empty.2
     itrivial
   iunfold startRights at Hrights
+  icases Hrights with ⟨Hns, Hrs⟩
+  -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+  ihave Hms := etcdstart.memberStartRes_intro [(go!"k8setcd3", ⟨none, some go!"127.0.0.1:23896"⟩)] []
+    [go!"127.0.0.1:23896"] [config.walDirOf go!"k8setcd3.etcd" go!""] (List.Perm.refl _)
+    (List.Perm.refl _) $$ Hrs
   simp only [k8setcd3Names, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Haddr, -⟩, -, ⟨Hwd, -⟩⟩
+  icases Hns with ⟨Hn1, Hn2, -⟩
+  icases Hms with ⟨⟨Hstart, -⟩, -⟩
   ihave #Hprem' := Hprem0
   imodintro
   unfold k8setcd3Program
@@ -188,7 +194,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
-  wp_apply hM $$ [Haddr Htok Hwd]
+  wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   iintro %r %Hr
   ipureintro
