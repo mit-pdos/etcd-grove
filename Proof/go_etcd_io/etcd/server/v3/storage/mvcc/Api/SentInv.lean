@@ -411,7 +411,7 @@ theorem SentInv.register {σ S D F} (h : SentInv σ S D F) (id : w64) (w : WInfo
       omega
     · exact hsts j f hj hn i w' (by simpa [StreamState.register, he] using hw') hk'
 
-private theorem cancel_lookup (S : StreamState) (id i : w64) :
+theorem cancel_lookup (S : StreamState) (id i : w64) :
     ∃ g : WInfo → WInfo, (∀ w, (g w).rg = w.rg ∧ (g w).fs = w.fs ∧ (g w).lo = w.lo ∧ (g w).k = w.k) ∧
       (S.cancel id).ws !! i = (S.ws !! i).map g ∧
       (i = id → ∀ w, (S.cancel id).ws !! i = some w → w.live = false) ∧

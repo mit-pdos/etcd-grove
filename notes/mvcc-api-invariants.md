@@ -480,6 +480,16 @@ frozen post of the stream's contracts is producible at the ghost level.
   γc (sent ++ [x])`, `sorry -- M1-REPLACE: wsChan_recv.law, wsRecv_ok.law (a send's stepOk)`).
   Not in `etc/tcb-baseline.txt` (nor are stage 1's placeholders: the build beyond mvcc is red).
 
+**Done since** (2026-11-05, the senders' tokens, no `sorry`): `StreamLog.replay_reg` (a registration
+in a well-formed history: the replay has its registry info at its id for good), `replay_D_mono`,
+`replay_cancel` (a cancel after a registration: its id in the replay's cancelled set);
+`StreamSteps.regTok`/`cancelTok` (persistent history lower bounds with the event), minted from the
+authority (`chanApiAt_regTok`, `chanApiAt_cancelTok`) and used at it (`chanApiAt_regAgree`: a send's
+`factAgree`; `chanApiAt_dead`: a `-1` send's `deadIn`); `InvWatchStore.recvEvs_toW` and
+`chan_recvEvs` (from the channel invariant's `respOk`s and `chanRegFact`s: the client's `recvEvs` at a
+registered watcher's id is the watcher's sent events, today's `chanWatcher` filter by `x.w`), so (b)
+and (c) below are done but for minting the tokens where the events are appended.
+
 **What each remaining step needs of the internals** (found wiring; none is a frozen statement's
 problem: no frozen statement found false):
 - *The send's `stepOk`* (replacing `chanApi_send_M1`): the sender passes its event `.send (toW x)

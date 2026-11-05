@@ -274,6 +274,73 @@ theorem replay_congr (dec dec' : GName → List (EvM → Bool)) (l : List SEv)
       rw [he c.2.2.1 (by simp only [SEv.fgs, List.mem_cons, List.mem_map]; exact Or.inr ⟨c, hc, rfl⟩)]
     simp only [sendFact, hcov, he fg (by simp [SEv.fgs])]
 
+/-- **A registration in a well-formed history**: the replay has its registry info at its id, for
+good (the id fresh when registered, so no later registration replaces it; a cancel changes only
+`live`). What a sender's registration token gives (`factAgree`). -/
+theorem replay_reg (dec : GName → List (EvM → Bool)) (l : List SEv) (hwf : LogWF dec l)
+    (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat) (hm : SEv.reg id rg fg lo ∈ l) :
+    regAgree (replay dec l).S id rg (dec fg) lo := by
+  revert hwf hm
+  refine snoc_induction (P := fun l => LogWF dec l → SEv.reg id rg fg lo ∈ l →
+    regAgree (replay dec l).S id rg (dec fg) lo) (fun _ h => by simp at h) ?_ l
+  intro l e ih hwf hm
+  obtain ⟨hwf', hstep⟩ := (LogWF_snoc dec l e).1 hwf
+  rw [replay_snoc]
+  rcases List.mem_append.1 hm with hm | hm
+  · obtain ⟨w, hw, h1, h2, h3⟩ := ih hwf' hm
+    cases e with
+    | reg id' rg' fg' lo' =>
+      rw [step_reg]
+      have hne : id' ≠ id := by rintro rfl; rw [hstep.1] at hw; cases hw
+      exact ⟨w, by simp [StreamState.register, hne, hw], h1, h2, h3⟩
+    | cancel id' =>
+      rw [step_cancel]
+      obtain ⟨g, hg, hlk, -, -⟩ := cancel_lookup (replay dec l).S id' id
+      refine ⟨g w, by rw [hlk, hw]; rfl, ?_, ?_, ?_⟩
+      · rw [(hg w).1, h1]
+      · rw [(hg w).2.1, h2]
+      · rw [(hg w).2.2.1, h3]
+    | close => rw [step_close]; exact ⟨w, hw, h1, h2, h3⟩
+    | send r fg' rg' lo' L c0 cov dead => rw [step_send]; exact ⟨w, hw, h1, h2, h3⟩
+  · rw [List.mem_singleton] at hm
+    subst hm
+    rw [step_reg]
+    exact ⟨⟨rg, dec fg, lo, (replay dec l).F.length, true⟩, by simp [StreamState.register], rfl, rfl,
+      rfl⟩
+
+/-- The cancelled set only grows. -/
+theorem replay_D_mono (dec : GName → List (EvM → Bool)) (l t : List SEv) :
+    ∀ id ∈ (replay dec l).D, id ∈ (replay dec (l ++ t)).D := by
+  refine snoc_induction (P := fun t => ∀ id ∈ (replay dec l).D, id ∈ (replay dec (l ++ t)).D)
+    (fun id h => by simpa using h) ?_ t
+  intro t e ih id hid
+  have h := ih id hid
+  rw [← List.append_assoc, replay_snoc]
+  cases e with
+  | reg => rw [step_reg]; exact h
+  | cancel id' =>
+    rw [step_cancel]
+    show id ∈ (if ((replay dec (l ++ t)).S.ws !! id').isSome then id' :: _ else _)
+    split
+    · exact List.mem_cons_of_mem _ h
+    · exact h
+  | close => rw [step_close]; exact h
+  | send => rw [step_send]; exact h
+
+/-- **A cancel of a registered watcher in a well-formed history**: its id is in the replay's
+cancelled set, for good. What a `-1` response's sender's cancel token gives (`deadIn`). -/
+theorem replay_cancel (dec : GName → List (EvM → Bool)) (l1 l : List SEv) (hwf : LogWF dec l)
+    (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat) (hp : l1 ++ [.cancel id] <+: l)
+    (hreg : SEv.reg id rg fg lo ∈ l1) : id ∈ (replay dec l).D := by
+  obtain ⟨t, rfl⟩ := hp
+  have hwf1 : LogWF dec l1 := LogWF_prefix dec (List.prefix_append _ _)
+    (LogWF_prefix dec (List.prefix_append _ _) hwf)
+  obtain ⟨w, hw, -⟩ := replay_reg dec l1 hwf1 id rg fg lo hreg
+  refine replay_D_mono dec (l1 ++ [.cancel id]) t id ?_
+  rw [replay_snoc, step_cancel]
+  show id ∈ (if ((replay dec l1).S.ws !! id).isSome then id :: _ else _)
+  rw [hw]; exact List.mem_cons_self ..
+
 /-! ## The bridge -/
 
 /-- **A well-formed history keeps `SentInv`**, its facts' bounds below the store's state. -/

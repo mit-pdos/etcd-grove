@@ -355,6 +355,78 @@ theorem chanApiAt_sentLb (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM 
     ipureintro
     exact Nat.le_trans hn (sendsOf_prefix hp.2).length_le
 
+/-! ## The senders' tokens -/
+
+/-- **The watcher `id` was registered in the stream's history with this info** (persistent): what a
+sender of its responses holds, for `factAgree` (`replay_reg`). -/
+def regTok (ι : WsAbs) (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat) : IProp GF :=
+  iprop(∃ l : List SEv, monoListLbOwn ι.ev l ∗ ⌜SEv.reg id rg fg lo ∈ l⌝)
+
+instance regTok_persistent (ι : WsAbs) (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat) :
+    Persistent (regTok (GF := GF) ι id rg fg lo) := by
+  unfold regTok; infer_instance
+
+/-- **The registered watcher `id` was cancelled in the stream's history** (persistent): what a `-1`
+response's sender holds of a watcher it does not cover (`deadIn`, `replay_cancel`). -/
+def cancelTok (ι : WsAbs) (id : w64) : IProp GF :=
+  iprop(∃ (l : List SEv) (rg : WatchRange) (fg : GName) (lo : Nat),
+    monoListLbOwn ι.ev (l ++ [.cancel id]) ∗ ⌜SEv.reg id rg fg lo ∈ l⌝)
+
+instance cancelTok_persistent (ι : WsAbs) (id : w64) : Persistent (cancelTok (GF := GF) ι id) := by
+  unfold cancelTok; infer_instance
+
+/-- A registration in the history gives its token. -/
+theorem chanApiAt_regTok (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat)
+    (hm : SEv.reg id rg fg lo ∈ l) :
+    chanApiAt (GF := GF) ι l dec recv ⊢ chanApiAt ι l dec recv ∗ regTok ι id rg fg lo := by
+  unfold chanApiAt regTok
+  iintro ⟨Ha, Hr⟩
+  ihave #Hlb := monoListLbOwn_get ι.ev 1 l $$ Ha
+  iframe Ha Hr
+  iexists l; iframe Hlb; ipureintro; exact hm
+
+/-- A cancel after a registration in the history gives its token. -/
+theorem chanApiAt_cancelTok (ι : WsAbs) (l1 l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat)
+    (hp : l1 ++ [.cancel id] <+: l) (hm : SEv.reg id rg fg lo ∈ l1) :
+    chanApiAt (GF := GF) ι l dec recv ⊢ chanApiAt ι l dec recv ∗ cancelTok ι id := by
+  unfold chanApiAt cancelTok
+  iintro ⟨Ha, Hr⟩
+  ihave #Hlb := monoListLbOwn_get ι.ev 1 l $$ Ha
+  ihave #Hlb' := monoListLbOwn_le (l1 ++ [.cancel id]) hp $$ Hlb
+  iframe Ha Hr
+  iexists l1, rg, fg, lo; iframe Hlb'; ipureintro; exact hm
+
+/-- **A sender's registration token, at the history**: the replay has the watcher's info. -/
+theorem chanApiAt_regAgree (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat) :
+    chanApiAt (GF := GF) ι l dec recv ∗ regTok ι id rg fg lo ⊢
+      chanApiAt ι l dec recv ∗ ⌜regAgree (replay dec l).S id rg (dec fg) lo⌝ := by
+  unfold chanApiAt regTok
+  iintro ⟨⟨Ha, %hw, Hr⟩, %l', #Hlb, %hm⟩
+  ihave %hp := mono_list_auth_lb_valid ι.ev 1 l l' $$ Ha Hlb
+  iframe Ha Hr
+  isplitr
+  · ipureintro; exact hw
+  ipureintro
+  obtain ⟨t, rfl⟩ := hp.2
+  exact replay_reg dec _ hw.1 id rg fg lo (List.mem_append_left _ hm)
+
+/-- **A sender's cancel token, at the history**: the id is in the replay's cancelled set. -/
+theorem chanApiAt_dead (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (id : w64) :
+    chanApiAt (GF := GF) ι l dec recv ∗ cancelTok ι id ⊢
+      chanApiAt ι l dec recv ∗ ⌜id ∈ (replay dec l).D⌝ := by
+  unfold chanApiAt cancelTok
+  iintro ⟨⟨Ha, %hw, Hr⟩, %l1, %rg, %fg, %lo, #Hlb, %hm⟩
+  ihave %hp := mono_list_auth_lb_valid ι.ev 1 l _ $$ Ha Hlb
+  iframe Ha Hr
+  isplitr
+  · ipureintro; exact hw
+  ipureintro
+  exact replay_cancel dec l1 l hw.1 id rg fg lo hp.2 hm
+
 end ghost
 
 end api

@@ -722,6 +722,29 @@ def sentAuth (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List
 revision. -/
 def RespM.toW (x : RespM) : api.WResp := ⟨x.id, x.evs, x.rev, x.compactRev⟩
 
+/-- **The events the client received for an id are those sent for its watcher** (pure): when every
+response of the id is the watcher's, and every response of the watcher carries the id or no event
+(a `-1` progress response), `recvEvs` by id is the watcher's sent events. (The channel invariant
+gives the premises: `respOk` and `chanRegFact`, an id the stream assigned names one watcher.) -/
+theorem recvEvs_toW (sent : List RespM) (id : w64) (w : Loc)
+    (h1 : ∀ x ∈ sent, x.id = id → x.w = w) (h2 : ∀ x ∈ sent, x.w = w → x.id = id ∨ x.evs = []) :
+    api.recvEvs (sent.map RespM.toW) id =
+      ((sent.filter (fun x => decide (x.w = w))).map RespM.evs).flatten := by
+  induction sent with
+  | nil => rfl
+  | cons x sent ih =>
+    have ih' := ih (fun y hy => h1 y (List.mem_cons_of_mem _ hy))
+      (fun y hy => h2 y (List.mem_cons_of_mem _ hy))
+    unfold api.recvEvs at ih' ⊢
+    simp only [List.map_cons, List.filter_cons]
+    by_cases hi : x.id = id
+    · have hw : x.w = w := h1 x (List.mem_cons_self ..) hi
+      simp [RespM.toW, hi, hw, ih']
+    · by_cases hw : x.w = w
+      · have he : x.evs = [] := (h2 x (List.mem_cons_self ..) hw).resolve_left hi
+        simp [RespM.toW, hi, hw, he, ih']
+      · simp [RespM.toW, hi, hw, ih']
+
 /-- **The stream's API names** (`api.WsAbs`) of the channel `ch` (names `γc`) of a stream of the
 watchable store `γ`. -/
 def wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
@@ -757,6 +780,58 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "Hsentl" ∷ sentAuth γ γc sent L ∗
     "Hws" ∷ ([∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w) ∗
     "Hapi" ∷ chanApi γ ch γc sent)
+
+/-- **What the client received for a watcher's id is what was sent for the watcher** (from the
+channel invariant's persistent facts: every response's `respOk`, every registered watcher's
+`chanRegFact`): the premises of `recvEvs_toW` at a registered watcher's own id. -/
+theorem chan_recvEvs (γc : WatchChanNames) (sent : List RespM) (L : List Loc) (w : Loc)
+    (r : WatchRange) (fcs : GoSlice) (hL : ∀ x ∈ sent, x.w ∈ L) (hw : w ∈ L)
+    (hid : r.id ≠ W64 (-1)) :
+    □ ([∗list] x ∈ sent, respOk (GF := GF) x) ∗ □ ([∗list] w' ∈ L, chanRegFact γc w') ∗
+      watcherFixed w r fcs ⊢
+      ⌜api.recvEvs (sent.map RespM.toW) r.id =
+        ((sent.filter (fun x => decide (x.w = w))).map RespM.evs).flatten⌝ := by
+  iintro ⟨#Hok, #Hrf, #Hfix⟩
+  icases BigSepL.bigSepL_mem_acc hw $$ Hrf with ⟨Hrw, -⟩
+  iunfold chanRegFact at Hrw
+  icases Hrw with ⟨%rw, %fw, #Hfw, #Hidw, -⟩
+  ihave %Hagw := watcherFixed_agree w r rw fcs fw $$ [$Hfix $Hfw]
+  obtain ⟨rfl, -⟩ := Hagw
+  ihave %h1 : ⌜∀ x ∈ sent, x.id = r.id → x.w = w⌝ $$ []
+  · iapply pure_forall.2; iintro %x
+    iapply pure_forall.2; iintro %hx
+    iapply pure_forall.2; iintro %hi
+    icases BigSepL.bigSepL_mem_acc hx $$ Hok with ⟨Hx, -⟩
+    iunfold respOk at Hx
+    icases Hx with ⟨-, %rr, %fr, #Hfr, %hrr⟩
+    icases BigSepL.bigSepL_mem_acc (hL x hx) $$ Hrf with ⟨Hrx, -⟩
+    iunfold chanRegFact at Hrx
+    icases Hrx with ⟨%rx, %fx, #Hfx, #Hidx, -⟩
+    ihave %Hagx := watcherFixed_agree x.w rr rx fr fx $$ [$Hfr $Hfx]
+    obtain ⟨rfl, -⟩ := Hagx
+    have hxid : rr.id = r.id := by
+      rcases hrr.2.1 with h | h
+      · rw [← h, hi]
+      · exact absurd (hi ▸ h) hid
+    rw [hxid]
+    iunfold chanIdAssigned at Hidx Hidw
+    iapply ghostMapElem_agree $$ Hidx Hidw
+  ihave %h2 : ⌜∀ x ∈ sent, x.w = w → x.id = r.id ∨ x.evs = []⌝ $$ []
+  · iapply pure_forall.2; iintro %x
+    iapply pure_forall.2; iintro %hx
+    iapply pure_forall.2; iintro %hxw
+    icases BigSepL.bigSepL_mem_acc hx $$ Hok with ⟨Hx, -⟩
+    iunfold respOk at Hx
+    icases Hx with ⟨-, %rr, %fr, #Hfr, %hrr⟩
+    rw [hxw]
+    ihave %Hagx := watcherFixed_agree w rr r fr fcs $$ [$Hfr $Hfix]
+    ipureintro
+    obtain ⟨rfl, -⟩ := Hagx
+    by_cases he : x.evs = []
+    · exact Or.inr he
+    · exact Or.inl (hrr.1 he)
+  ipureintro
+  exact recvEvs_toW sent r.id w h1 h2
 
 /-- **The channel had sent `l` (at least)** (persistent; unit W-K): a snapshot of the channel's
 sent list (`sentl`). -/
