@@ -7,14 +7,14 @@ only in `flpg`, which none of the tail's statements reads but `flClause` (the `n
 below); `wdbOK' fr` and `fbRel` come back through a write of `W` slots by `flExtPend` (the freed
 page's slots are pending, so no `W` slot).
 
-`flExtPend_of_true` is OPEN (reported): `flCurOKr`'s slot clause lets a slot of the freed page's
-extent be in no list (then a `W` slot, which a write could change); after the free every one is
-pending, and the clause should say so.
+`flExtPend_of_true`: `flCurOKr`'s slot clause makes every slot of the freed page's extent pending
+(maintainer 13/14, `Commit/FreeFlOK.wdbOK'_true_extPend`).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Commit.TailPub
 public import Proof.go_etcd_io.bbolt.Inv.WdbFlag
+public import Proof.go_etcd_io.bbolt.Commit.FreeFlOK
 
 @[expose] public section
 
@@ -36,9 +36,10 @@ def flExtPend (w : WDb) : Prop :=
 theorem flExtPend_none (w : WDb) (h : w.C.flpg = none) : flExtPend w := by
   intro f hf; rw [h] at hf; cases hf
 
-/-- OPEN (reported): `flCurOKr`'s slot clause should require the extent's slots pending. -/
-theorem flExtPend_of_true (w : WDb) (h : wdbOK' true w) : flExtPend w := by
-  sorry
+/-- With the flag the freed page's slots are pending (`flCurOKr`'s slot clause,
+`wdbOK'_true_extPend`). -/
+theorem flExtPend_of_true (w : WDb) (h : wdbOK' true w) : flExtPend w :=
+  wdbOK'_true_extPend w h
 
 theorem noFl_C (w : WDb) : w.noFl.C = { w.C with flpg := none } := rfl
 theorem noFl_fl (w : WDb) : w.noFl.fl = w.fl := rfl

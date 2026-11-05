@@ -60,7 +60,6 @@ theorem cm_free_flW (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF
     (hok : wdbOK w) (hms : w.ms = some (v.base, mapLen w.ms)) (hv : v = View.ofC v.base w.C)
     (hf : w.C.flpg = some f)
     (hlen : w.fl.allIds.length < 2 ^ 48)
-    (hal : (w.fl.allocs !! W64 (f : Int)).getD 0 ≠ w.wtxid)
     (hid : pageId (w.wb f) = f) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ K.core ∗
         wdbW K tx v w }}
@@ -70,7 +69,7 @@ theorem cm_free_flW (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF
   obtain ⟨-, -, -, -, -, -, hok', hfb, -⟩ := freeFl_ok w f hok hf hlen
   unfold wdbW
   wp_start as ⟨#Hcore, Hl, -⟩
-  wp_apply cm_free_fl wp_FlFree K tx v w f v.base (mapLen w.ms) hok hms hf hlen hal hid
+  wp_apply cm_free_fl wp_FlFree K tx v w f v.base (mapLen w.ms) hok hms hf hlen (flAlloc_ne_wtxid w f hok hf) hid
     $$ [Hl] as ⟨Hl, Htok⟩
   · iframe; iframe #
   iapply HΦ
