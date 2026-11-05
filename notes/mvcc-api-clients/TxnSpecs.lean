@@ -365,10 +365,11 @@ abbrev txn.api.Txn.spec : Prop := txn.api.Txn.specSole (GF := GF) ∧ txn.api.Tx
 
 /-! ## The internal functions, at a transaction `mvccTxn t γ trace k` (the trace lent per call) -/
 
-/-- `checkRange(rv, req)` on a read transaction at `σ`. -/
+/-- `checkRange(rv, req)` on a read transaction at `σ`. (Superseded 2026-11-05, decided by the
+coordinator: `⌜Reach σ⌝` added, `notes/mvcc-migration/txn.md` gap B.) -/
 abbrev txn.api.checkRange.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (req : Loc) (o : OpFull),
-  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ txn.rangeRequestIs req o }}
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ ⌜txn.api.Reach σ⌝ ∗ txn.rangeRequestIs req o }}
     (App (App (Val (@! txn.checkRange)) (Val #t)) (Val #req))
   {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace (.read σ) ∗
       txn.checkRangeErr (W64 (σ.rev : Int)) σ.crev o err }}
@@ -569,7 +570,8 @@ abbrev txn.api.executeTxn.spec : Prop :=
 
 set_option linter.iris.dupNamespace false in
 /-- `txn(ctx, lg, txnWrite, rt, isWrite, txnPath, skip)` on a fresh write transaction begun at `σ`
-(`isWrite`), or the read-only wrapper of a read transaction at `σ`. -/
+(`isWrite`), or the read-only wrapper of a read transaction at `σ`. (Superseded 2026-11-05, decided
+by the coordinator: `σ.pending = none` only for a write, `notes/mvcc-migration/txn.md` gap D.) -/
 abbrev txn.api.txn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (ro : Bool) (σ : MvccState)
@@ -583,7 +585,7 @@ abbrev txn.api.txn.spec : Prop :=
         (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))) ∗
       (if ro then iprop(True) else txn.leasesKnown L (mvcc.stateAfter σ.log)) ∗
       (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ.log))) ∗
-      ⌜txn.api.Reach σ ∧ σ.pending = none ∧
+      ⌜txn.api.Reach σ ∧ (ro = false → σ.pending = none) ∧
         txn.OpsOk false (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
           (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧
         (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true ∧ lg ≠ null)⌝ }}

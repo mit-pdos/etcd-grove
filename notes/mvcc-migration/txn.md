@@ -35,6 +35,12 @@ them (frozen), its proofs over the API's contracts and laws, no mvcc internal im
 
 ## Found: statements that cannot be proved over the frozen API/draft
 
+**Decided by the coordinator, 2026-11-05:** B and D in txn's draft as their minimal fixes below
+(`checkRange.spec` takes `⌜txn.Reach σ⌝`; `txn.spec` takes `ro = false → σ.pending = none`), applied in
+the spec files and `notes/mvcc-api-clients/TxnSpecs.lean` (`clients-txn.md` §8); A and C as API
+changes by the mvcc track (`Txn.Range`/`KV.Range`: `⌜LogWf' log ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝`;
+`Txn.Changes`: `⌜0 ≤ sint.Z chs.len⌝`). With B and D, `checkRange` and `Txn` are proved (no sorry).
+
 **Gap A (the API too weak; blocks `executeRange`, `getPrevKV`, `applyCompare`, `deleteRange`).**
 `Txn.Range.contract`'s post gives the outcome as `rangeOutcomeC r err k.readLog k.readRev ...`,
 which is over mvcc's *index answers* (`rangeAnswers`/`rangeTaken`/`rangeTotal` of the log). Every
@@ -99,10 +105,10 @@ dropped.
 
 Proved over the API (no sorry): `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
 `compareToPath`, `checkTxn`, `txn`, `Range`, `Count`, `Put`, `DeleteRange`, and every proof with no
-mvcc callee (the list in "Done"). `Txn` proved but for gap D's two `M1-REPLACE`s.
+mvcc callee (the list in "Done"), and since B and D were decided, `checkRange` and `Txn`.
 
 `M1-REPLACE` placeholders (whole proofs, `sorry`): `executeRange`, `getPrevKV`, `applyCompare`,
-`deleteRange` (gap A), `checkRange` (gap B), `executeTxn` (gap C); the old proofs over the internals
+`deleteRange` (gap A), `executeTxn` (gap C), waiting for the API's fixes; the old proofs over the internals
 are in the history (`645402be7a~1`), most of each reusable once the gap closes (`executeRange_core`
 was already parametric in the transaction; `KindOk`/`prevKvIs_of_outcome`/`rangeOutcome_sel` are
 over `MTxn` in `Write.lean`).
@@ -120,10 +126,10 @@ New `wp_proof` hypotheses (for `etc/link-lean-first-txn.txt`), in order:
 - `Txn`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `IsTxnReadonly`,
   `Trace.StepWithFunction`, `compareToPath`, `Trace.AddField`, `checkTxn`, `Trace.Step`,
   `mvcc.api.NewReadOnlyTxnWrite`, `txn`;
-- placeholders: `executeRange`: `shapes`, `Get`, `rangeLimit`, `mkGteRange`, `filterRangeResults`,
+- `checkRange`: `shapes`; placeholders: `executeRange`: `shapes`, `Get`, `rangeLimit`, `mkGteRange`, `filterRangeResults`,
   `sortRangeResults`, `Trace.Step`, `asembleRangeResponse`; `getPrevKV`: `shapes`,
   `StepWithFunction`, `context.TODO`; `applyCompare`: `shapes`, `context.TODO`, `mkGteRange`,
-  `compareKV`; `deleteRange`: `shapes`, `mkGteRange`; `checkRange`: `shapes`; `executeTxn`:
+  `compareKV`; `deleteRange`: `shapes`, `mkGteRange`; `executeTxn`:
   `shapes`, `Get`, `StartSubTrace`, `executeRange`, `StopSubTrace`, `proto.Size`, `getPrevKV`,
   `put`, `deleteRange`.
 

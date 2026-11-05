@@ -214,7 +214,7 @@ theorem txn.Txn_sole
     · isplitl []; · itrivial
       isplitl []; · ileft; itrivial
       ipureintro
-      exact ⟨Hreachr, (sorry /- M1-REPLACE: gap D, txn.spec's σ.pending = none at a read transaction, notes/mvcc-migration/txn.md -/), hoks, fun _ => hro, fun h => absurd h (by simp)⟩
+      exact ⟨Hreachr, (by simp), hoks, fun _ => hro, fun h => absurd h (by simp)⟩
     icases Hres with (⟨⟨%Herr, %Hch⟩, Hro, #Hresp, Hhdr, -, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -287,7 +287,7 @@ theorem txn.Txn_sole
     · isplitl [Hown]
       · iright; iexact Hown
       ipureintro
-      exact ⟨Hreachw.1, Hreachw.2, hoks, fun h => h.elim, fun h => absurd h (by simp)⟩
+      exact ⟨Hreachw.1, fun _ => Hreachw.2, hoks, fun h => h.elim, fun h => absurd h (by simp)⟩
     icases Hres with (⟨⟨%Herr, -⟩, Htw, #Hresp, Hhdr, #Hk2, Hown⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -450,7 +450,7 @@ theorem txn.Txn_read
   · isplitl []; · itrivial
     isplitl []; · ileft; itrivial
     ipureintro
-    exact ⟨Hreachr, (sorry /- M1-REPLACE: gap D, txn.spec's σ.pending = none at a read transaction, notes/mvcc-migration/txn.md -/), hoks, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
+    exact ⟨Hreachr, (by simp), hoks, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨Hro, #Hshell, Hout⟩ : (mvcc.api.mvccTxn (interface.mkOk wty wv) γ trace (.read σr) ∗
       txnRespShell resp ∗

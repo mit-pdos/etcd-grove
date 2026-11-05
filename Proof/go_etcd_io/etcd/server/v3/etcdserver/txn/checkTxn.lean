@@ -208,6 +208,7 @@ theorem txn.checkTxn_strong
       subst Hopk
       wp_auto
       wp_apply (hRange tw γ trace σ r o) $$ [$Htx $Hr] as %err ⟨Htx, #Herr⟩
+      · ipureintro; exact Hreach
       iunfold txn.checkRangeErr at Herr
       icases Herr with (%He | ⟨%Hne, %ef, #Hef, %He⟩ | ⟨%Hne, %ec, #Hec, %He⟩)
       · obtain ⟨rfl, -⟩ := He

@@ -160,3 +160,17 @@ above and for the predicates that go (`isTxn`, `twWrap`, `isRoTxnWrite`, `isWatc
 | 7. mvcc definitions re-exported | §6 |
 
 Nothing left that the API cannot meet: no statement needed from it beyond round 16.
+
+## 8. Superseded during the migration (2026-11-05, decided by the coordinator)
+
+The proofs found four statements unprovable as frozen (`notes/mvcc-migration/txn.md`, gaps A-D).
+Decided by the coordinator, 2026-11-05:
+- **B** (this draft): `checkRange.spec` takes `⌜txn.Reach σ⌝` (the code compares with `FirstRev()`'s
+  `W64 σ.crev`, which is `σ.crev` only for a reachable state);
+- **D** (this draft): `txn.spec` takes `ro = false → σ.pending = none` in place of `σ.pending = none`
+  (`Txn` runs `txn` on the read-only wrapper of a read transaction, whose state may have a pending
+  revision; `txn`'s proof never used the premise);
+- **A, C** (the API, the mvcc track): `KV.Range`/`Txn.Range` posts give `⌜LogWf' log ∧ ∀ cs ∈ log,
+  cs.length < 2 ^ 63⌝` of the read log (the model's theorem relating the index's answers to the
+  state needs it); `Txn.Changes` gives `⌜0 ≤ sint.Z chs.len⌝` (`executeTxn`'s signed `len(..) > 0`).
+`TxnSpecs.lean` is updated for B and D.

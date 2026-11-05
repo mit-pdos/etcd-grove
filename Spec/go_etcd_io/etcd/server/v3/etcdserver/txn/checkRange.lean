@@ -32,10 +32,11 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 /-- `checkRange(rv, req)` on a read transaction at `σ`.
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
-drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. With `⌜txn.Reach σ⌝` added, decided by
+the coordinator, 2026-11-05: `FirstRev`'s `W64 σ.crev` is `σ.crev` only for a reachable state.) -/
 abbrev txn.checkRange.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (req : Loc) (o : OpFull),
-  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ txn.rangeRequestIs req o }}
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ ⌜txn.Reach σ⌝ ∗ txn.rangeRequestIs req o }}
     (App (App (Val (@! txn.checkRange)) (Val #t)) (Val #req))
   {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace (.read σ) ∗
       txn.checkRangeErr (W64 (σ.rev : Int)) σ.crev o err }}

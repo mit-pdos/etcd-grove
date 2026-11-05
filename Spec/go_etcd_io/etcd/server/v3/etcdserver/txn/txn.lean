@@ -34,7 +34,9 @@ set_option linter.iris.dupNamespace false in
 (`isWrite`), or the read-only wrapper of a read transaction at `σ`.
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
-drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The pending premise only for a write
+transaction, `ro = false → σ.pending = none`, decided by the coordinator, 2026-11-05: a read
+transaction's state may have a pending revision.) -/
 abbrev txn.txn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (ro : Bool) (σ : MvccState)
@@ -48,7 +50,7 @@ abbrev txn.txn.spec : Prop :=
         (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))) ∗
       (if ro then iprop(True) else txn.leasesKnown L (mvcc.stateAfter σ.log)) ∗
       (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ.log))) ∗
-      ⌜txn.Reach σ ∧ σ.pending = none ∧
+      ⌜txn.Reach σ ∧ (ro = false → σ.pending = none) ∧
         txn.OpsOk false (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
           (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧
         (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true ∧ lg ≠ null)⌝ }}

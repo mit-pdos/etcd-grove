@@ -30,6 +30,23 @@ theorem txn.reach_len (σ : MvccState) (h : mvcc.api.MvccReachable σ) : 2 ≤ �
     · simp only [List.length_append, List.length_singleton]; omega
   | compact σ r _ _ _ _ _ ih => exact ih
 
+/-- A reachable state's compaction revision is in `[-1, rev]`. -/
+theorem txn.reach_crev (σ : MvccState) (h : mvcc.api.MvccReachable σ) :
+    -1 ≤ σ.crev ∧ σ.crev ≤ (σ.rev : Int) := by
+  induction h with
+  | start => simp [mvcc.api.mvccStart, mvcc.api.MvccState.rev]
+  | notify σ pend _ _ _ ih => exact ih
+  | commit σ _ ih =>
+    refine ⟨ih.1, ?_⟩
+    have : σ.rev ≤ σ.commitPending.rev := by
+      unfold mvcc.api.MvccState.commitPending mvcc.api.MvccState.rev mvcc.commitLog
+      split <;> simp <;> omega
+    have h2 : σ.commitPending.crev = σ.crev := rfl
+    rw [h2]; omega
+  | compact σ r _ _ h1 h2 h3 ih =>
+    exact ⟨by simp [mvcc.api.MvccState.compactTo]; omega, by
+      simpa [mvcc.api.MvccState.compactTo, mvcc.api.MvccState.rev] using h3⟩
+
 /-- A transaction's begin state after changes. -/
 theorem txn.MTxn.append_state (k : MTxn) (chs : List mvcc.Change) :
     (txn.MTxn.append k chs).state = k.state := by cases k <;> rfl
