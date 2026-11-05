@@ -224,7 +224,7 @@ theorem EtcdServer.apply.wp_proofOff
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       -- (D22 J5) the write tokens taken, one per entry
-      "#HWA" ∷ srvWTTaken γp (w + sint.nat j) ∗
+      "#HWA" ∷ srvWTTaken γp.cnt (w + sint.nat j) ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
       "HRS" ∷ srvRest E γr (A ++ ms.take (sint.nat j)) ∗
       "HAR" ∷ srvApRes s γr (A ++ ms.take (sint.nat j)) ∗
@@ -237,7 +237,7 @@ theorem EtcdServer.apply.wp_proofOff
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
           epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
           srvAppliedOwn γr appliedi ∗
-          srvWTTaken γp (w + ms.length) ∗
+          srvWTTaken γp.cnt (w + ms.length) ∗
           (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
             appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗
             srvRest E γr (A ++ ms)) ∗
@@ -367,7 +367,7 @@ theorem EtcdServer.apply.wp_proofOff
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
     imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
-    ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
+    ihave #HWA2 : srvWTTaken γp.cnt (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
       iexact HWA1
     (try wp_auto)
@@ -1091,7 +1091,7 @@ theorem EtcdServer.apply.wp_proofOn
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       -- (D22 J5) the write tokens taken, one per entry
-      "#HWA" ∷ srvWTTaken γp (w + sint.nat j) ∗
+      "#HWA" ∷ srvWTTaken γp.cnt (w + sint.nat j) ∗
       "Hka" ∷ kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ ms.take (sint.nat j)) xj saj ∗
       "HRS" ∷ srvRest E γr (A ++ ms.take (sint.nat j)) ∗
       "HAR" ∷ srvApRes s γr (A ++ ms.take (sint.nat j)) ∗
@@ -1105,7 +1105,7 @@ theorem EtcdServer.apply.wp_proofOn
           ciApplying ci a' at' ∗
           epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
           srvAppliedOwn γr appliedi ∗
-          srvWTTaken γp (w + ms.length) ∗
+          srvWTTaken γp.cnt (w + ms.length) ∗
           (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
             ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
             kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗
@@ -1242,7 +1242,7 @@ theorem EtcdServer.apply.wp_proofOn
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
     imod srvWTPool_take_nOn s E γp ρ.wait xj saj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
-    ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
+    ihave #HWA2 : srvWTTaken γp.cnt (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
       iexact HWA1
     (try wp_auto)

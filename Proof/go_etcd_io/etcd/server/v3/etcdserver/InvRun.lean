@@ -234,7 +234,7 @@ structure ApplyCtx (GF : BundledGFunctors) where
   ms : Loc
   γs : MemStorNames
   /-- (2026-10-19, D21 M3) the write budget's counter (`srvWTPool`) -/
-  wt : GName
+  wt : WTNames
   /-- (D22 receiver epochs, S7f) the request path's names (`isServer`'s) -/
   ρ : ReqNames
   /-- (2026-11-03, R2b-1 stage 5) the raft wrapper's names (its WAL's, `rnWalTokA`) -/
@@ -273,7 +273,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
     -- index, which no proof read and a snapshot's jump breaks)
-    (∃ w : Nat, srvWTTaken C.wt w) ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back, at the current backend
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
@@ -533,7 +533,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀) ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗

@@ -37,7 +37,7 @@ times in one session). Until 2026-10-18 (D19i part 2) the contract took only the
 initialization, false: the monitor wrote the backend without its resources (`notes/audit.md`). In
 either auth mode (`isServerReqM`, E3zb, 2026-10-28). -/
 abbrev EtcdServer.monitorStorageVersion.spec : Prop :=
-  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γp : GName),
+  ∀ (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γp : WTNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM on s E ρ ∗ srvSVRes s E ∗ srvWTPool E γp }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"monitorStorageVersion")) (Val #()))

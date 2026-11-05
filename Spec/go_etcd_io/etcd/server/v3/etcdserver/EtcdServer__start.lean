@@ -52,7 +52,7 @@ abbrev EtcdServer.start.spec : Prop :=
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗
       srvStarted s γr ρ Er.RQ (kvStM C.isOn γr.kv) ∗
-      ∃ γp : GName, srvWTPool E γp }}
+      ∃ γp : WTNames, srvWTPool E γp }}
 
 end spec
 

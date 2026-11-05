@@ -103,7 +103,7 @@ def applyResStop (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF 
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
-    (∃ w : Nat, srvWTTaken C.wt w) ∗ acTok K (ciEff B.γ st.k) ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
@@ -156,7 +156,7 @@ its place. The stop's census needs the token (its share of the backend's open to
 nothing yet says the monitor's session is over when `s.wg.Wait()` returns. Stated at the apply
 thread's quarter of `E.γbe` at `d` (which fixes the backend) and one later credit (the invariant's
 opening). -/
-theorem stop_monitorRT (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
+theorem stop_monitorRT (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) :
     £ 1 ∗ srvWTPool (GF := GF) E γp ∗ dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ⊢
       |={⊤}=> dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ mvcc.bkRTx d.γB d.P d.be := by
   -- H2 (questions.md): the monitor's session may hold it; hard stop pending

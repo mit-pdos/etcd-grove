@@ -763,10 +763,10 @@ theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iexact Hrest
 
 /-- **One write token, the count raised by one, with auth on** (`srvWTPool_take_n`'s). -/
-theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
-      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp.cnt n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTTaken γp.cnt (n + 1) ∗ srvApplyKVOn s E γw x st := by
   iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩

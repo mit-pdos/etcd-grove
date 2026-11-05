@@ -563,7 +563,7 @@ theorem EtcdServer.start.wp_proof
   · rw [← HEr.2.1]
     iapply isReadRaft_of_raftNode hRSt hRI Er γn (srvRAddr s) $$ [$Hpkg $Hrn]
   icases replicate_take1 _ _ (by have := sync.actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
-  ihave #HWBx : iprop(∃ γp, srvWTPool (GF := GF) E γp) $$ []
+  ihave #HWBx : iprop(∃ γp : WTNames, srvWTPool (GF := GF) E γp) $$ []
   · iexists γp; iexact HWB
   iapply HΦ
   iexists γw

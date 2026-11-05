@@ -1834,7 +1834,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · rw [← Hγw.2.2.1]; iexact HrtSV
     rw [mvcc.kbRT_some]
     iexact HrtSV
-  imod srvWTPool_alloc _ N ⊤ HrbN $$ HWS with ⟨%γp, #HWBp, #HWA0, %d0, %Hd0, #Hst⟩
+  imod srvWTPool_alloc _ N ⊤ HrbN $$ HWS with ⟨%γp, #HWBp, #HWA0, ⟨%d0, %Hd0, #Hst⟩, -⟩
   have Hd0' : d0 = ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal) :=
     Option.some.inj (Hd0.symm.trans Hγw.2.2.1)
   subst Hd0'
