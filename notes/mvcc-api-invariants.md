@@ -758,8 +758,17 @@ strict M1).
    is in a `-1` response's `regs`, so covered or `rsnW` (whose `chanCancelTok` is `deadIn`'s). The
    `-1` sender then names its `cov` and `dead` lists from `x.cov` and the `rsnW` watchers (a choice
    over a list of persistent existentials, as `filters_choose`).
-2. `Chan`, `RequestProgress`, `RequestProgressAll`, `Rev` at `*watchStream` (their internal specs
-   are still the generic ones over `WatchParams`); `NewWatchStream` at `*watchableStore` (needs
-   `isMvcc`'s pools).
+2. ~~`Chan`, `RequestProgress`, `RequestProgressAll`~~ (done since, below); `Rev` at
+   `*watchStream` (its update fires at the store's read: `isWatchable`'s `rev()` triple needs the
+   same treatment as the registration, a fancy update with `s.revMu`'s view in hand; its internal
+   spec is still the generic one over `WatchParams`); `NewWatchStream` at `*watchableStore`
+   (needs `isMvcc`'s pools, and must give the handle's: the watch tokens, the readers, the
+   channel's progress fact).
 3. The cleanup: `rsnFor`, `WsStreamNames.rsn`, `progFact`'s use by `progressAll` (the `-1`
    response's API fact replaces it), `watchStreamOpen`.
+
+**Done since** (2026-11-05, no `sorry`): `WatchStream.Chan`, `RequestProgress` and
+`RequestProgressAll` at `*watchStream` (their spec files now the API's contracts; `#print axioms`:
+no `sorryAx`). `isMvccWatchStream` gains the channel's progress fact (`progFact γc.prog`, what
+`progressAll` is lent); the reader slot each borrows from the handle's pool with its thread token,
+given back before the last step (`wp_fupd`).
