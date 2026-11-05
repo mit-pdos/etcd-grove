@@ -537,6 +537,7 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
       have := hI.bufs; unfold bufsOK at this ⊢; rw [x_bufs, x_mv]; exact this
     grow := markGrow_congr hI.grow x_bufs (by rw [x_mv])
     src := by have := hI.src; unfold bufSrc at this ⊢; rw [x_bufs]; exact this
+    wb := hI.wb
     rootPos := by
       intro B' hB'
       rw [x_root] at hB'; cases hB'

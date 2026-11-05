@@ -197,7 +197,7 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
   have hfresh := pcStepX_fresh hs hsl
   obtain ⟨ra0, -, -, -, -, -, -, -, -, -, -, hmono0, -, -, hbuf0, hnone0⟩ :=
     pcStepX_state hs hn hpl hG1 (fun y hy => hsl.2.2.2 y (List.mem_append_left _ hy))
-  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, rfl, hal, hfl2, -, hC, -, -, -, -, hX3⟩ := hs
+  obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, rfl, hal, hfl2, -, hC, -, hrm, -, -, hX3⟩ := hs
   obtain ⟨hmv, hbf, hpm1, hv1, -, hC1, -, hfree, hfl1⟩ := pcFreed_basic hfr
   obtain ⟨hpd1, hal1⟩ := pcFreed_fl hfr
   obtain ⟨hpd2, hal2⟩ := allocRes_fl hal
@@ -228,7 +228,7 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     · have := hsl.2.2.2 id (List.mem_append_right _ hz)
       rw [hid, hmv] at this; omega
   refine ⟨by rw [hC, hC1], by rw [applySteps_append, hfl2, hfl1], hvp, hG3, hG3.2.1, ?_, ?_, ?_, ?_,
-    ?_, hmono0, fun y pg hy => ?_⟩
+    ?_, ⟨hmono0, fun y pg hy => ?_⟩, ?_⟩
   · intro y hy; rw [hpd2]; exact hpd1 y hy
   · intro x hx
     have hxe : x = id.toNat := Classical.byContradiction fun hne => hx (hPne x hne)
@@ -284,6 +284,15 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
         omega
     · left
       rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)] at hy; exact hy
+  · -- (U9w7) the writer's slots' bytes: the free changes only the freelist, `allocate`'s remap
+    -- keeps them (`wdbRemap`)
+    have hw1 : wbKeep wi w1 := by
+      rcases hfr with ⟨-, -, rfl, -⟩ | ⟨pg, -, -, -, rfl, -⟩ <;> exact fun s hs => ⟨hs, rfl⟩
+    have hw2 : wbKeep w1 w2 := by
+      rcases hrm with e | hr
+      · rw [e]; exact fun s hs => ⟨hs, rfl⟩
+      · exact hr.2.2.2.2.2.2
+    exact wbKeep_trans hw1 hw2
 
 end bufs
 

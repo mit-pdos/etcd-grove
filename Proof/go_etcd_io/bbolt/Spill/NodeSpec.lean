@@ -134,6 +134,12 @@ def srcGrow (X X' : WX) (fl : FLPg) : Prop :=
     ∀ j < 1 + pageOverflow pg, W64 ((id.toNat + j : Nat) : Int) ∈ fl.free ∨
       X.t.mv.pgid'.toNat ≤ id.toNat + j
 
+/-- **The writer's slots keep their bytes** (U9w7, for `Commit`'s `hwbf`: `Bucket.spill.spec`'s
+`wb` conjunct): every `W` slot of `w` is one of `w'`, with its bytes (`allocate`'s remap keeps
+them, `wdbRemap`; frees change only the freelist). -/
+def wbKeep (w w' : WDb) : Prop :=
+  ∀ s ∈ w.W, s ∈ w'.W ∧ w'.wb s = w.wb s
+
 /-- **The buffers' slots are free in `F` or at or above `hwm`** (U9w7; `Bucket.spill`'s
 `RInv.src`). -/
 def bufSrc (X : WX) (F : List w64) (hwm : Nat) : Prop :=
@@ -159,14 +165,15 @@ need kept, and (coordinator's decision, for `Bucket.spill`'s `RInv.bufs`) the bu
 of fresh slots (`bufsOK`: every new buffer an allocation written with its header and length below
 the new mark, on no tree slot of `w.C`; no buffer slot made pending: the spill frees only base
 pages); (U9w6, D-K) the buffers grown over the mark's growth (`markGrow`); (U9w7) the new
-buffers' slots free in `w.fl` or at or above the mark (`srcGrow`). -/
+buffers' slots free in `w.fl` or at or above the mark (`srcGrow`); the writer's slots' bytes
+kept (`wbKeep`). -/
 def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
   spG X' w.wtxid (mapLen w'.ms) w'.fl ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
   (∀ s ∈ pendSlots w.fl, s ∈ pendSlots w'.fl) ∧
   (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O ∧ x ∉ pendSlots w.fl) ∧
   (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F) ∧
-  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl) ∧ markGrow X X' ∧ srcGrow X X' w.fl
+  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl) ∧ markGrow X X' ∧ srcGrow X X' w.fl ∧ wbKeep w w'
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
 `n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with

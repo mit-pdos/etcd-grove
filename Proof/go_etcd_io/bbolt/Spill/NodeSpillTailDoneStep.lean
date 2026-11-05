@@ -32,10 +32,10 @@ theorem spStep_congr {X1 X1' X3 : WX} {w1 w3 : WDb} {O : List Nat} {st : List FL
     (hP : spP X1' = spP X1) (hpm : X1'.t.pm = X1.t.pm) (hv : X1'.v.pages = X1.v.pages)
     (hb : X1'.t.bufs = X1.t.bufs) (hmv : X1'.t.mv = X1.t.mv)
     (h : spStep X1 X3 w1 w3 O st) : spStep X1' X3 w1 w3 O st := by
-  obtain ⟨a, b, c, d, e, f, g, i, j, k, k'⟩ := h
+  obtain ⟨a, b, c, d, e, f, g, i, j, k, k', k''⟩ := h
   refine ⟨a, b, c.trans hv.symm, d, e, f, fun x hx => g x (by rw [← hP]; exact hx),
     fun F hF hfr => i F hF (fun id hid => ?_), fun hok => j ?_,
-    markGrow_congrL k hb (by rw [hmv]), srcGrow_congrL k' hb (by rw [hmv])⟩
+    markGrow_congrL k hb (by rw [hmv]), srcGrow_congrL k' hb (by rw [hmv]), k''⟩
   · have := hfr id hid; rw [hpm] at this; exact this
   · unfold bufsOK at hok ⊢; rw [hb, hmv] at hok; exact hok
 

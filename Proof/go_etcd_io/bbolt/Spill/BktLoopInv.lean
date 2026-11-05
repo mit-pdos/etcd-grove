@@ -188,6 +188,9 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   mark (`bufSrc`: the children's spills' steps' `srcGrow`; with `spillStartOK`'s committed mark at
   most the start's, `Bucket.spill.spec`'s source conjunct). -/
   src : bufSrc X w0.fl.free X0.t.mv.pgid'.toNat
+  /-- (U9w7, for `Commit`'s `hwbf`) The writer's slots at the start keep their bytes (`wbKeep`: the
+  children's spills' steps; the frees change only the freelist). -/
+  wb : wbKeep w0 w
 
 /-- **A child with no root node at the start never gets a value** (`RInv.nilKids`). -/
 theorem rinv_nilKid {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}

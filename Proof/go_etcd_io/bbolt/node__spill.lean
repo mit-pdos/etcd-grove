@@ -129,7 +129,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     ipureintro
     refine ⟨⟨rfl, rfl, rfl, HG, HG.2.1, fun s hs => hs, fun x hx => absurd rfl hx,
       fun F _ h => h, id, ⟨fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩,
-      Nat.le_refl _, fun _ _ h => Or.inl h⟩,
+      ⟨Nat.le_refl _, fun _ _ h => Or.inl h⟩, fun _ h => ⟨h, rfl⟩⟩,
       Or.inl ⟨Hsp, rfl, rfl⟩⟩
   · -- the unspilled case: the sort, the children's loop, the rest (`spillTail_wp`), from the
     -- permuted state `Xp` (`n`'s children sorted) and back (`spPost_unperm`)

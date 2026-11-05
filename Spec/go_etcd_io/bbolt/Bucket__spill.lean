@@ -69,7 +69,9 @@ error (U10g's gap 7: the rollback after a failed spill needs `writable`, the roo
 new one a dirty page's (`markCov`: `tx.pages` only grows; the start takes it, vacuous at
 `beginRWTx`'s mark), and (U9w7, for `Commit`'s freelist write: no dirty page on the freed
 freelist page's run) every buffer slot free in the starting freelist (`allocate`'s free case) or
-at or above the committed mark (its mark case). Its start takes `spillStartOK`
+at or above the committed mark (its mark case), and (for `Commit`'s `hwbf`) a writer slot that
+does not become pending keeps its bytes (`allocate`'s remap keeps every `W` slot's, the frees
+change only the freelist). Its start takes `spillStartOK`
 (batch 43) and the writer's txid below `2 ^ 63` (U9x5: the new tree's `treeOK`; from the receipts). On an
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
@@ -89,7 +91,8 @@ abbrev Bucket.spill.spec : Prop :=
           X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' } ∧
           (∀ s ∈ treeSlots (spillC X' w.C.pages), s ∉ pendSlots w'.fl) ∧
           markCov X' w.C.hwm ∧
-          ∀ s ∈ bufSlots X'.t.bufs, W64 s ∈ w.fl.free ∨ w.C.hwm ≤ s⌝) ∨
+          (∀ s ∈ bufSlots X'.t.bufs, W64 s ∈ w.fl.free ∨ w.C.hwm ≤ s) ∧
+          ∀ s ∈ w.W, s ∉ pendSlots w'.fl → w'.wb s = w.wb s⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧

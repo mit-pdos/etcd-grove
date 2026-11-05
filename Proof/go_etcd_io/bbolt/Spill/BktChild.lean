@@ -265,8 +265,8 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     iframe
     ipureintro
     exact ⟨⟨rfl, rfl, rfl, HG, HG.2.1, fun s hs => hs, fun x hx => absurd rfl hx, fun F _ h => h, id,
-      ⟨fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩, Nat.le_refl _,
-      fun _ _ h => Or.inl h⟩, Or.inl ⟨Hnull, rfl, rfl⟩⟩
+      ⟨fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩, ⟨Nat.le_refl _,
+      fun _ _ h => Or.inl h⟩, fun _ h => ⟨h, rfl⟩⟩, Or.inl ⟨Hnull, rfl, rfl⟩⟩
   obtain ⟨B0, HB0, Hrn1⟩ := bk_node_of_bs Hrn0
   rw [HB] at HB0; cases HB0
   have HrnN : B.bv.rootNode' ≠ null := by
