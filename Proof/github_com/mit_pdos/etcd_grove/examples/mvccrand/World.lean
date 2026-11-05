@@ -9,9 +9,11 @@ counterpart).
   the other half (`writerIdle`/its transaction's), being the only thread whose updates change `σ`
   (the readers' and the registrar's updates commit `σ` unchanged), so it knows `σ` exactly, and
   `End`'s update at its begin state (`⌜σ = σ₀⌝`) is the ghost variable's agreement;
-- the stream's state `S` (`wsState`), open until `runChecks`' `ws.Close()`, its watchers' ids the
-  domain of the registry (`γ.reg`, a ghost map from id to the tester's `*watcher`, its other half in
-  `c.mu`'s lock: the registrar adds an id under `c.mu`, inside `Watch`'s update);
+- the stream's state `S` (`wsState`), open until `runChecks`' `ws.Close()` (half of `γ.cl` at
+  `S.closed`, bundled with it; the registrar holds the other half at `false`, so its `Watch` sees an
+  open stream, and gives it back to `runChecks` before the close), its watchers the registry
+  (`γ.reg`, a ghost map from id to the tester's `*watcher` and its registration, `regOk`; its other
+  half in `c.mu`'s lock: the registrar adds an id under `c.mu`, inside `Watch`'s update);
 - the published revision `p` (`h.published`'s cell), at most `σ.rev`, with a monotone ghost
   counter `γ.pub` (a reader's floor, `Load`ed before its read, is a lower bound of the revision the
   read sees);
@@ -85,11 +87,13 @@ def histOkM (σ : MvccState) (Hl : List HRev) : Prop :=
 the end is `nil`, its start revision. -/
 abbrev RegInfo := GoString × GoString × Bool × w64
 
-/-- **The stream's watchers are the registry's** (id to the `*watcher` and its registration): the
-same ids, each a live watcher of its registration's range, from its start revision, unfiltered. -/
+/-- **The stream's watchers are the registry's** (id to the `*watcher` and its registration): each
+watcher of the registry a live watcher of the stream, of its registration's range, from its start
+revision, unfiltered; any other watcher of the stream of an empty range (none: `Watch` registers
+no empty range, but the update it is given must allow it). -/
 def regOk (S : StreamState) (W : GMap w64 (Loc × RegInfo)) : Prop :=
   ∀ id, match W !! id with
-    | none => S.ws !! id = none
+    | none => ∀ wi, S.ws !! id = some wi → ∀ k, wi.rg.covers k = false
     | some (_, (kk, e, en, st)) => ∃ wi, S.ws !! id = some wi ∧
         wi.rg = ⟨kk, if en then none else some e, st, id⟩ ∧ wi.fs = [] ∧ wi.lo = sint.nat st ∧
         wi.live = true
@@ -112,6 +116,9 @@ structure RandNames where
   reg : GName
   /-- the responses the receiver has checked (`c.mu`'s half, the receiver's half) -/
   rcv : GName
+  /-- whether the stream is closed (the invariant's half, at `S.closed`; the other half the
+  registering goroutine's at `false`, then `runChecks`', which closes the stream) -/
+  cl : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -128,7 +135,7 @@ def worldN : Namespace := (nroot .@ "mvccrand") .@ "world"
 def worldInv (h : Loc) (γ : RandNames) : IProp GF :=
   iprop(∃ (σ : MvccState) (S : StreamState) (p : w64) (Hl : List HRev) (W : GMap w64 (Loc × RegInfo)),
     mvccState γ.kv σ ∗ ghostVar γ.σ (1 : Qp).half σ ∗
-    wsState γ.ws S ∗ ghostMapAuth γ.reg (1 : Qp).half W ∗
+    (wsState γ.ws S ∗ ghostVar γ.cl (1 : Qp).half S.closed) ∗ ghostMapAuth γ.reg (1 : Qp).half W ∗
     sync.atomic.ownInt64 (hPub h) (DFrac.own 1) p ∗ ghostVar γ.pv (1 : Qp).half p ∗
     monoNatAuthOwn γ.pub 1 (sint.nat p) ∗ monoListLbOwn γ.h.l Hl ∗
     ⌜σ.crev = -1 ∧ 1 ≤ sint.Z p ∧ sint.nat p ≤ σ.rev ∧ histOkM σ Hl ∧

@@ -14,6 +14,14 @@ valid as the history grows (`wPosOk_prefix`).
 
 **The handles** (`wcCtx`, persistent given `persistent.law`): the packages, `c.h` and `c.watchers` (written once), the
 lock, the tester's and the history's invariants, the store's and the stream's handles.
+
+**Registration** (`register`): `Watch`'s update at the invariant, for a range not empty
+(`register_au`: the registrar's half of `γ.cl` shows the stream open, the watcher enters both
+halves of the registry, `regOk_register`) and for an empty one (`register_au_empty`: no resource,
+since `Watch` gives that update back; were it committed, a watcher of an empty range is allowed
+outside the registry, `regOk_register_empty`, `covers_empty`); a tick is a small revision
+(`tick_bound`). **The receiver's facts** (`recv_facts`, `recv_exp`, `recv_prog`,
+`recvEvs_uncovered`).
 -/
 module
 
@@ -111,6 +119,106 @@ theorem recv_prog (σ : MvccState) (S : StreamState) (rs : List WResp) (Hl : Lis
   exact watchEvents_eq_expChs σ Hl hh hwf hlen kk e endk st r.id hkk _ _
     (by have : sint.nat st = (sint.Z st).toNat := rfl; omega) (by omega)
 
+/-! ### Registration (`register`) -/
+
+/-- **An empty range covers no key** (`Watch`'s first arm: a non-empty end at or below the key). -/
+theorem covers_empty (kk e : GoString) (endk : GoSlice) (s id : w64) (he : e ≠ [])
+    (hle : ¬ go.GoStringLt kk e) (hn : endk ≠ slice.nil) (k : GoString) :
+    (watchRangeOf kk e endk s id).covers k = false := by
+  unfold watchRangeOf WatchRange.covers
+  simp only [hn, ↓reduceIte, decide_eq_false_iff_not, not_and]
+  intro h1 h2
+  rw [adt.affCmp_nonneg_iff] at h1
+  rw [adt.affCmp_neg_iff, adt.affLt_iff_of_ne k e he] at h2
+  apply h1
+  obtain ⟨hk, hke⟩ := h2
+  refine ⟨hk, Or.inr ?_⟩
+  by_cases hek : go.GoStringLt e kk
+  · exact go.goStringLt_trans hke hek
+  · have := go.goStringLt_eq_of_not_lt hle hek
+    rw [this]; exact hke
+
+/-- **Registering a watcher of the registry** keeps the registry the stream's. -/
+theorem regOk_register (S : StreamState) (W : GMap w64 (Loc × RegInfo)) (h : regOk S W)
+    (id : w64) (hid : S.ws !! id = none) (wp : Loc) (kk e : GoString) (en : Bool) (st : w64)
+    (wi : WInfo) (hrg : wi.rg = ⟨kk, if en then none else some e, st, id⟩) (hfs : wi.fs = [])
+    (hlo : wi.lo = sint.nat st) (hlive : wi.live = true) :
+    W !! id = none ∧ regOk (S.register id wi) (<[id := (wp, (kk, e, en, st))]> W) := by
+  have hW : W !! id = none := by
+    have := h id
+    cases hw : W !! id with
+    | none => rfl
+    | some x =>
+      obtain ⟨wp', kk', e', en', st'⟩ := x
+      rw [hw] at this
+      obtain ⟨wi', hwi', -⟩ := this
+      rw [hid] at hwi'; cases hwi'
+  refine ⟨hW, fun id' => ?_⟩
+  unfold StreamState.register
+  by_cases he : id' = id
+  · subst he
+    rw [GMap.lookup_insert]
+    simp only
+    exact ⟨wi, by rw [GMap.lookup_insert], hrg, hfs, hlo, hlive⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)]
+    have := h id'
+    cases hw : W !! id' with
+    | none =>
+      rw [hw] at this
+      intro wi' hwi'
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hwi'
+      exact this wi' hwi'
+    | some x =>
+      obtain ⟨wp', kk', e', en', st'⟩ := x
+      rw [hw] at this
+      simp only at this ⊢
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm he)]
+      exact this
+
+/-- **Registering a watcher of an empty range** (outside the registry) keeps the registry the
+stream's. -/
+theorem regOk_register_empty (S : StreamState) (W : GMap w64 (Loc × RegInfo)) (h : regOk S W)
+    (id : w64) (hid : S.ws !! id = none) (wi : WInfo) (hcov : ∀ k, wi.rg.covers k = false) :
+    regOk (S.register id wi) W := by
+  intro id'
+  unfold StreamState.register
+  have := h id'
+  by_cases he : id' = id
+  · subst he
+    cases hw : W !! id' with
+    | none =>
+      simp only
+      intro wi' hwi'
+      rw [GMap.lookup_insert] at hwi'
+      cases hwi'; exact hcov
+    | some x =>
+      obtain ⟨wp', kk', e', en', st'⟩ := x
+      rw [hw] at this
+      obtain ⟨wi', hwi', -⟩ := this
+      rw [hid] at hwi'; cases hwi'
+  · cases hw : W !! id' with
+    | none =>
+      rw [hw] at this
+      simp only
+      intro wi' hwi'
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hwi'
+      exact this wi' hwi'
+    | some x =>
+      obtain ⟨wp', kk', e', en', st'⟩ := x
+      rw [hw] at this
+      simp only at this ⊢
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm he)]
+      exact this
+
+/-- **A watcher of an empty range has received nothing** (`wsRecvOk`'s second part). -/
+theorem recvEvs_uncovered (σ : MvccState) (S : StreamState) (rs : List WResp)
+    (hok : wsRecvOk σ S rs) (hc : σ.crev = -1) (id : w64) (wi : WInfo) (hS : S.ws !! id = some wi)
+    (hcov : ∀ k, wi.rg.covers k = false) : recvEvs rs id = [] := by
+  obtain ⟨hi, -, heq⟩ := hok.2.1 id wi hS (by rw [hc]; exact onceUpTo_neg _ _)
+  rw [heq]
+  unfold filtered watchEvents
+  simp [hcov]
+
 /-- A longer lower bound of the history still covers the notified history. -/
 theorem histOkM_prefix {σ : MvccState} {Hl Hm : List HRev} (hh : histOkM σ Hl) (hp : Hl <+: Hm) :
     histOkM σ Hm := by
@@ -185,6 +293,14 @@ theorem recvEvs_fresh {rs : List WResp} {W : GMap w64 (Loc × RegInfo)} (h : rcv
     rw [hri, hid] at this
     cases this
 
+
+theorem rcvKnown_insert {rs : List WResp} {W : GMap w64 (Loc × RegInfo)} (h : rcvKnown rs W)
+    (id : w64) (x : Loc × RegInfo) : rcvKnown rs (<[id := x]> W) := by
+  intro r hr hne
+  by_cases he : r.id = id
+  · rw [he, GMap.lookup_insert]; rfl
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)]; exact h r hr hne
+
 end model
 
 section addrs
@@ -249,13 +365,14 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   icases Hi with ⟨%σ, %S, %p, %Hl, %W', Hσ, Hgσ, HS, Hreg', Hpub, Hpv, Hpm, #Hlb, %Hok⟩
   ihave %HW := ghostMapAuth_agree γ.reg _ _ _ _ $$ Hreg' Hreg
   subst HW
+  icases HS with ⟨HS, HScl⟩
   ihave %Hro := hrok ws γ.kv γ.ws rs S σ $$ [$Hws $Hrcv $HS $Hσ]
   ihave %Hr := hreach kv γ.kv σ $$ [$Hkv $Hσ]
   have hwf := (reach_logWf.law_holds σ Hr.1).2
   have hnl : σ.notifiedLog.length < 2 ^ 63 := by
     have := Hr.2
     unfold MvccState.notifiedLog; split <;> simp <;> omega
-  imod Hclose $$ [Hσ Hgσ HS Hreg' Hpub Hpv Hpm] with -
+  imod Hclose $$ [Hσ Hgσ HS HScl Hreg' Hpub Hpv Hpm] with -
   · inext; iunfold worldInv; iexists σ, S, p, Hl, W'; iframe; iframe #; ipureintro; exact Hok
   imodintro
   iframe Hrcv Hreg
@@ -263,6 +380,189 @@ theorem recv_facts (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
   iframe Hlb
   ipureintro
   exact ⟨Hro, Hok.2.2.2.1, Hok.1, Hok.2.2.2.2, hwf, hnl⟩
+
+theorem register_closed (S : StreamState) (id : w64) (w : WInfo) :
+    (S.register id w).closed = S.closed := rfl
+
+theorem worldN_mask_wl : (↑worldN : CoPset) ⊆ ⊤ \ ↑mvccN := by
+  unfold worldN mvccN
+  intro p hp
+  rw [Std.LawfulSet.mem_diff]
+  exact ⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide : "mvccrand" ≠ "mvcc") p
+    ⟨nclose_subseteq _ _ p hp, h'⟩⟩
+
+/-- **What `register`'s update gives back** at a registration of `wp`: the stream open, the
+registrar's half of `γ.cl`, and the lock's half of the registry with the new watcher (a fresh id). -/
+def regQ (γ : RandNames) (W : GMap w64 (Loc × RegInfo)) (wp : Loc) (kk e : GoString)
+    (endk : GoSlice) (st : w64) (_ : MvccState) (S : StreamState) (id : w64) : IProp GF :=
+  iprop(⌜S.closed = false ∧ W !! id = none⌝ ∗ ghostVar γ.cl (1 : Qp).half false ∗
+    ghostMapAuth γ.reg (1 : Qp).half (<[id := (wp, (kk, e, decide (endk = slice.nil), st))]> W))
+
+/-- **`register`'s update for a range not empty**: at the invariant, the stream open (the
+registrar's half of `γ.cl`), the new watcher in the registry (both halves, `regOk_register`). -/
+theorem register_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (h : Loc)
+    (γ : RandNames) (W : GMap w64 (Loc × RegInfo)) (wp : Loc) (kk e : GoString) (endk : GoSlice)
+    (st : w64) (hst : 1 ≤ sint.Z st) :
+    inv worldN (worldInv h γ) ∗ ghostMapAuth γ.reg (1 : Qp).half W ∗
+        ghostVar γ.cl (1 : Qp).half false ⊢
+      AU <{ ∃∃ (σ : MvccState) (S : StreamState), mvccState γ.kv σ ∗ wsState γ.ws S }>
+        @ ⊤ \ ↑mvccN, ∅
+      <{ ∀∀ (id : w64) (k : Nat), mvccState γ.kv σ ∗
+          (if S.closed then ⌜id = W64 (-1)⌝ ∗ wsState γ.ws S
+           else ⌜S.ws !! id = none ∧ id ≠ W64 (-1) ∧ σ.pending = none⌝ ∗ wsSentLb γ.ws k ∗
+             wsState γ.ws (S.register id
+               ⟨watchRangeOf kk e endk st id, [], watchLo σ st, k, true⟩)),
+        COMM regQ γ W wp kk e endk st σ S id }> := by
+  haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
+  haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
+    unfold worldInv; infer_instance
+  have Hm := worldN_mask_wl
+  iintro ⟨#Hinv, Hreg, Hcl⟩
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold worldInv at Hi
+  icases Hi with ⟨%σ, %S, %p, %Hl, %W', Hσ, Hgσ, ⟨HS, HScl⟩, Hreg', Hpub, Hpv, Hpm, #Hlb, %Hok⟩
+  ihave %HW := ghostMapAuth_agree γ.reg _ _ _ _ $$ Hreg' Hreg
+  subst HW
+  ihave %Hc := ghostVar_agree γ.cl _ _ _ _ $$ HScl Hcl
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑worldN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ, S
+  iframe Hσ HS
+  isplit
+  · iintro ⟨Hσ, HS⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hσ Hgσ HS HScl Hreg' Hpub Hpv Hpm] with -
+    · inext; iunfold worldInv; iexists σ, S, p, Hl, W'; iframe; iframe #; ipureintro; exact Hok
+    imodintro
+    iframe
+  · iintro %id %k ⟨Hσ, HS⟩
+    rw [Hc]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases HS with ⟨%Hfresh, -, HS⟩
+    have hlo : watchLo σ st = sint.nat st := by
+      unfold watchLo
+      have : st ≠ W64 0 := by intro h0; rw [h0] at hst; simp at hst
+      rw [if_neg this]
+    obtain ⟨hW, hreg'⟩ := regOk_register S W' Hok.2.2.2.2 id Hfresh.1 wp kk e
+      (decide (endk = slice.nil)) st ⟨watchRangeOf kk e endk st id, [], watchLo σ st, k, true⟩
+      (rg_eq kk e endk _ st id rfl).symm rfl hlo rfl
+    ihave Hfull := (ghostMapAuth_halves γ.reg W').2 $$ [$Hreg' $Hreg]
+    imod ghost_map_insert id (wp, (kk, e, decide (endk = slice.nil), st)) hW $$ Hfull
+      with ⟨Hfull, -⟩
+    icases (ghostMapAuth_halves γ.reg _).1 $$ Hfull with ⟨Hreg', Hreg⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hσ Hgσ HS HScl Hreg' Hpub Hpv Hpm] with -
+    · inext; iunfold worldInv
+      iexists σ, S.register id ⟨watchRangeOf kk e endk st id, [], watchLo σ st, k, true⟩, p, Hl,
+        <[id := (wp, (kk, e, decide (endk = slice.nil), st))]> W'
+      iframe; iframe #
+      rw [register_closed, Hc]
+      iframe
+      ipureintro
+      exact ⟨Hok.1, Hok.2.1, Hok.2.2.1, Hok.2.2.2.1, hreg'⟩
+    imodintro
+    iunfold regQ
+    iframe
+    ipureintro; exact ⟨Hc, hW⟩
+
+/-- **`register`'s update for an empty range** (which `Watch` never commits, but whose update is
+given): no resource; a registration of the range keeps the registry the stream's
+(`regOk_register_empty`). -/
+theorem register_au_empty (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (h : Loc)
+    (γ : RandNames) (kk e : GoString) (endk : GoSlice) (st : w64)
+    (hcov : ∀ id k, (watchRangeOf kk e endk st id).covers k = false) :
+    (inv worldN (worldInv (GF := GF) h γ) : IProp GF) ⊢
+      AU <{ ∃∃ (σ : MvccState) (S : StreamState), mvccState γ.kv σ ∗ wsState γ.ws S }>
+        @ ⊤ \ ↑mvccN, ∅
+      <{ ∀∀ (id : w64) (k : Nat), mvccState γ.kv σ ∗
+          (if S.closed then ⌜id = W64 (-1)⌝ ∗ wsState γ.ws S
+           else ⌜S.ws !! id = none ∧ id ≠ W64 (-1) ∧ σ.pending = none⌝ ∗ wsSentLb γ.ws k ∗
+             wsState γ.ws (S.register id
+               ⟨watchRangeOf kk e endk st id, [], watchLo σ st, k, true⟩)),
+        COMM (fun _ _ _ => iprop(True)) σ S id }> := by
+  haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
+  haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
+    unfold worldInv; infer_instance
+  have Hm := worldN_mask_wl
+  iintro #Hinv
+  iauintro
+  unfold atomic_acc
+  iinv Hinv with >Hi Hclose
+  iunfold worldInv at Hi
+  icases Hi with ⟨%σ, %S, %p, %Hl, %W', Hσ, Hgσ, ⟨HS, HScl⟩, Hreg', Hpub, Hpv, Hpm, #Hlb, %Hok⟩
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑mvccN) \ ↑worldN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ, S
+  iframe Hσ HS
+  isplit
+  · iintro ⟨Hσ, HS⟩
+    imod Hclose2 with -
+    imod Hclose $$ [Hσ Hgσ HS HScl Hreg' Hpub Hpv Hpm] with -
+    · inext; iunfold worldInv; iexists σ, S, p, Hl, W'; iframe; iframe #; ipureintro; exact Hok
+    imodintro
+    iempintro
+  · iintro %id %k ⟨Hσ, HS⟩
+    by_cases hcl : S.closed = true
+    rotate_left
+    · simp only [hcl, Bool.false_eq_true, ↓reduceIte]
+      icases HS with ⟨%Hfresh, -, HS⟩
+      have hreg' := regOk_register_empty S W' Hok.2.2.2.2 id Hfresh.1
+        ⟨watchRangeOf kk e endk st id, [], watchLo σ st, k, true⟩ (hcov id)
+      imod Hclose2 with -
+      imod Hclose $$ [Hσ Hgσ HS HScl Hreg' Hpub Hpv Hpm] with -
+      · inext; iunfold worldInv
+        iexists σ, S.register id ⟨watchRangeOf kk e endk st id, [], watchLo σ st, k, true⟩, p,
+          Hl, W'
+        iframe; iframe #
+        rw [register_closed]
+        simp only [hcl]
+        iframe
+        ipureintro
+        exact ⟨Hok.1, Hok.2.1, Hok.2.2.1, Hok.2.2.2.1, hreg'⟩
+      imodintro
+      itrivial
+    · simp only [hcl, ↓reduceIte]
+      icases HS with ⟨-, HS⟩
+      imod Hclose2 with -
+      imod Hclose $$ [Hσ Hgσ HS HScl Hreg' Hpub Hpv Hpm] with -
+      · inext; iunfold worldInv; iexists σ, S, p, Hl, W'; simp only [hcl]; iframe; iframe #
+        ipureintro; exact Hok
+      imodintro
+      itrivial
+
+/-- **A tick is a small revision**: at most the store's revision, which the reachable store keeps
+below `2 ^ 63 - 3`. -/
+theorem tick_bound (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (kv : GoInterface) (h : Loc) (γ : RandNames) (n : Nat) :
+    inv worldN (worldInv h γ) ∗ isMvcc kv γ.kv ∗ monoNatLbOwn γ.pub n ⊢ |={⊤}=> ⌜n + 4 ≤ 2 ^ 63⌝ := by
+  haveI := hpers.1 kv γ.kv
+  haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
+  haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
+    unfold worldInv; infer_instance
+  iintro ⟨#Hinv, #Hkv, #Hn⟩
+  iinv Hinv with >Hi Hclose
+  iunfold worldInv at Hi
+  icases Hi with ⟨%σ, %S, %p, %Hl, %W', Hσ, Hgσ, HS, Hreg', Hpub, Hpv, Hpm, #Hlb, %Hok⟩
+  ihave %Hle := monoNatLbOwn_valid γ.pub 1 (sint.nat p) n $$ Hpm Hn
+  icases (persistent_entails_right (hreach kv γ.kv σ)) $$ [$Hkv $Hσ] with ⟨%Hr, -, Hσ⟩
+  imod Hclose $$ [Hσ Hgσ HS Hreg' Hpub Hpv Hpm] with -
+  · inext; iunfold worldInv; iexists σ, S, p, Hl, W'; iframe; iframe #; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  have h1 := Hok.2.2.1
+  have h2 := Hr.2
+  unfold MvccState.rev at h1
+  omega
 
 /-- A watcher's ownership at a longer lower bound and responses that carried nothing for it. -/
 theorem watcherOwn_frame {Hl Hm : List HRev} (hp : Hl <+: Hm) {rs rs' : List WResp} {id : w64}

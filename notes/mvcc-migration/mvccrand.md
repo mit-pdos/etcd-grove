@@ -260,10 +260,34 @@ hit. The Go check: `grant`'s `err == nil` (and every later `revoke`'s), run up t
 write lends it, `Grant`'s post returns it), so `T := wbTok` (one write-back token per write) suffices.
 `writer.run.spec` takes `ops ≤ k` tokens `T` abstractly (`writerLe`), so only `runChecks` meets it.
 
+**Found: `WatchStream.Watch.contract` too weak for the tester's `Watch(context.TODO(), …)`
+(2026-11-07; mvcc's API).** The contract's precondition takes `context.isContext ctx cd`:
+```
+  isPkgInit mvcc ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗
+    context.isContext ctx cd ∗ ownSlice key kk DFrac.discard ∗ … ∗ au -∗ …
+```
+and `register` calls `ws.Watch(context.TODO(), 0, w.key, w.end, start)` (as etcd's `v3rpc` watch
+server does with its stream's context); `context.TODO()`'s value (`todoCtxVal`) is no `isContext`
+(its `Done()` is `nil`). `watchStream.Watch` uses `ctx` only for `trace.SpanFromContext(ctx)` (a
+`Value` lookup, which `todoCtx` answers `nil`). **Minimal strengthening**, as `KV.Compact`'s internal
+`InvCompact.lean` already does: `(⌜ctx = todoCtxVal⌝ ∨ context.isContext ctx cd)` in place of
+`context.isContext ctx cd` (or `KV.Range`'s `rangeCtx`). The tester's proof of `register` has the two
+side goals `context.isContext todoCtxVal cd` as the only placeholders:
+`watchCheck__register.lean`, two `sorry -- M1-REPLACE: WatchStream.Watch.contract's isContext excludes
+context.TODO()`; each becomes `ileft; ipureintro; rfl` after the fix.
+
+`watchCheck.register` (2026-11-07): spec and proof over those two placeholders: the ticks loop (the
+`isSpsc` consumer end), the start revision in `[1, pub + 1]`, the empty range's
+`ErrEmptyWatcherRange` and `-1`, a non-empty range's `nil` (the stream open: `γ.cl`, `World.lean`, the
+invariant's half of the stream's closed flag, `register`'s half at `false`; `runChecks` sets both to
+`true` before `ws.Close()`), the watcher in the registry and `c.watchers`, its position at 0 events
+(`recvEvs_fresh`). `regOk` now lets an id outside the registry be a watcher covering no key (the empty
+range's update, handed back unconsumed, must be committable with no resources); `receive` over it
+(`recvEvs_uncovered`).
+
 **Still to do**:
-- `watchCheck.receive` (in progress: `WatchLock.lean`, `c.mu`'s invariant `cmuInv` with `rcvKnown`;
-  `World.lean`'s registry now `regOk`, the watcher's registration `RegInfo`, and `γ.rcv`, the
-  responses checked), `complete`, `register` (over the ticks' `isSpsc` consumer end).
+- `watchCheck.receive`, `complete`: proved (`6c1e217111`; `WatchLock.lean`, `c.mu`'s invariant
+  `cmuInv` with `rcvKnown`; `World.lean`'s registry `regOk`, the registration `RegInfo`, `γ.rcv`).
 - `runChecks` (spec: the configuration bounds; post: the report, or `backend.New`'s panic): blocked for
   more than one grant by the lessor finding above. Then `Main`, `Link.lean`, `Results.lean`.
 - **For the coordinator, `etc/gen-init.py`'s entry for `mvccrand`**: needed only for the closed
@@ -275,4 +299,4 @@ write lends it, `Grant`'s post returns it), so `T := wbTok` (one write-back toke
 - Perennial (for the coordinator's `notes/perennial-changes.md`): `isSpsc` keeps its invariant at
   `nroot` (a caller with another invariant open cannot send); no `chan.wp_len` wrapper (as
   `chan.wp_cap`); the slice literal of map literals needed a local `wp_slice_literal_ex`.
-- No placeholder (`M1-REPLACE`) committed. No mvcc API statement found too weak in this session.
+- Placeholders (`M1-REPLACE`): the two in `watchCheck__register.lean` above, nothing else.

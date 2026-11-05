@@ -208,7 +208,11 @@ theorem watchCheck.receive.wp_proof
       have hreg := HregOk r.id
       rw [hW] at hreg
       simp only at hreg
-      rw [hreg] at hSs; cases hSs
+      obtain ⟨wi, hwi⟩ := Option.isSome_iff_exists.1 hSs
+      have h0 := recvEvs_uncovered σ S (rs0 ++ [r]) Hro Hcr r.id wi hwi (hreg wi hwi)
+      rw [recvEvs_snoc] at h0
+      simp only [↓reduceIte, List.append_eq_nil_iff] at h0
+      exact absurd h0.2 hev
   have hknown' : rcvKnown (rs0 ++ [r]) W := by
     intro r' hr' hne
     rcases List.mem_append.1 hr' with hr' | hr'
