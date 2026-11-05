@@ -37,8 +37,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h2 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c cp P hk Pre Q Post S Fok Fce Ffr hcmp hlag hpos1 hS1 hS2
-  wp_start as ⟨#Hs, HmuA, Hright, #HpermR, Hctx, HRTok, #HsupM, HS, Hcb⟩
+  intro s γ rev c cp P hk Pre Q Post S Fok Fce Ffr XB YB hcmp hlag hpos1 hS1 hS2
+  wp_start as ⟨#Hs, HmuA, Hright, #HpermR, Hctx, HRTok, #HsupM, HS, Hcb, HXB, #HreqB⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -180,7 +180,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iframe HRTok Hback HS
       iright
       ileft
-      iframe HFce
+      iframe HFce HXB
       isplitr
       · ipureintro; exact ⟨hrc, trivial, rfl⟩
       isplitr
@@ -246,7 +246,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iframe HRTok Hback HS
       iright
       iright
-      iframe HFfr HPre
+      iframe HFfr HPre HXB
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
       isplitr
@@ -390,12 +390,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
       imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2
       (try wp_auto)
       wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      iapply HForce $$ %iprop(True) %iprop(True) [HRTok Hwt2] [-]
-      · iframe HRTok Hwt2
-        isplitr; · itrivial
-        iapply mvcc.storeReq_true
+      iapply HForce $$ %XB %YB [HRTok Hwt2 HXB] [-]
+      · iframe HRTok Hwt2 HXB HreqB
       inext
-      iintro ⟨HRTok, -⟩
+      iintro ⟨HRTok, HYB⟩
       (try wp_auto)
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HX HrstR]
       · iframe #
@@ -411,7 +409,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iapply HΦ
       iframe HRTok Hback HS
       ileft
-      iframe HFok
+      iframe HFok HYB
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, Hgt, Hge⟩
       isplitl [HcmpM HcrevM]

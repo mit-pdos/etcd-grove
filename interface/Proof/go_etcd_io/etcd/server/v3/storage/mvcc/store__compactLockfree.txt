@@ -2,8 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem mvcc.wr_frozen_excl (γ : mvcc.StoreNames) : mvcc.slotF γ ∗ ghostVar γ.wr 1 () ⊢ False
-
 theorem mvcc.store.compactLockfree.wp_proof (h0 : mvcc.store.checkPrevCompactionCompleted.spec) (h1
     : mvcc.store.updateCompactRev.spec) (h2 : traceutil.TODO.spec) (h3 : mvcc.store.compact.spec) :
     mvcc.store.compactLockfree.spec
@@ -40,6 +38,3 @@ theorem mvcc.store.compactLockfree.wp_proof (h0 : mvcc.store.checkPrevCompaction
                           (intoVal s)))
                       (intoVal rev))
                     {{ Φ }}
-
-theorem mvcc.wr_restoring_excl (γ : mvcc.StoreNames) : ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ ghostVar
-    γ.wr 1 () ⊢ False

@@ -7,7 +7,7 @@ theorem mvcc.store.updateCompactRev.wp_proof (h0 : schedule.NewJob.spec) (h1 :
     mvcc.SetScheduledCompact.spec) : mvcc.store.updateCompactRev.spec
   -- `Perennial.EtcdGrove.mvcc.store.updateCompactRev.spec`, unfolded:
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c cp : Int) (P : IProp GF) (hk : Option val)
-    (Pre Q Post S Fok Fce Ffr : IProp GF),
+    (Pre Q Post S Fok Fce Ffr X Y : IProp GF),
     mvcc.storeCmp γ →
       (cp < c → c ≤ sint.Z rev) →
         1 ≤ sint.Z rev →
@@ -21,7 +21,9 @@ theorem mvcc.store.updateCompactRev.wp_proof (h0 : schedule.NewJob.spec) (h1 :
                           mvcc.compactRightR s γ c ∗
                             mvcc.crevPermAt γ (sint.Z rev) ∗
                               mvcc.lockCtxM γ P hk Pre Q Post ∗
-                                mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ S ∗ mvcc.cmpCb γ c cp (sint.Z rev) Fok Fce Ffr -∗
+                                mvcc.storeRT γ ∗
+                                  mvcc.kbWTSupplyM γ.kb ∗
+                                    S ∗ mvcc.cmpCb γ c cp (sint.Z rev) Fok Fce Ffr ∗ X ∗ mvcc.storeReq γ X Y -∗
                     (▷
                         ∀ ch prev err,
                           mvcc.storeRT γ ∗
@@ -31,20 +33,20 @@ theorem mvcc.store.updateCompactRev.wp_proof (h0 : schedule.NewJob.spec) (h1 :
                                           ch = chan.nil ∧ prev = W64 cp ∧ cp < sint.Z rev ∧ c ≤ sint.Z rev⌝ ∗
                                       mvcc.muInvAt s γ 1 (sint.Z rev) ∗
                                         mvcc.compactRightR s γ (sint.Z rev) ∗
-                                          Post ∗ mvcc.compactJobPre s γ rev ∗ mvcc.lagTok γ c cp ∗ Fok ∨
+                                          Post ∗ mvcc.compactJobPre s γ rev ∗ mvcc.lagTok γ c cp ∗ Fok ∗ Y ∨
                                     ⌜sint.Z rev ≤ c ∧ cp = c ∧ prev = W64 0⌝ ∗
                                         (∃ ec,
                                             typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
                                                 (GoInterface.ok ec) DFrac.discard ∗
                                               ⌜err = GoInterface.ok ec⌝) ∗
                                           mvcc.muInvAt s γ 1 c ∗
-                                            mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True) ∗ Fce ∨
+                                            mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True) ∗ Fce ∗ X ∨
                                       ⌜ch = chan.nil ∧ prev = W64 0⌝ ∗
                                         (∃ ef,
                                             typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev)
                                                 (GoInterface.ok ef) DFrac.discard ∗
                                               ⌜err = GoInterface.ok ef⌝) ∗
-                                          mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗ Pre ∗ Ffr) -∗
+                                          mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗ Pre ∗ Ffr ∗ X) -∗
                             Φ ((intoVal ch, intoVal prev), intoVal err)) -∗
                       WP
                         ((intoVal

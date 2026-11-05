@@ -1111,3 +1111,60 @@ found false or too weak):
 
 **Left**: the three placeholders above; M3 (`mvccBackendFor`, `mvccBackendFor_open.law`, `fkCl`
 exact, `NewStore`/`Restore` from the image).
+
+## Hand-off: stage 2, `KV.Compact.contract` (2026-11-06)
+
+**Done** (no axiom; `rcvSched_M1` and `regLent_excl_M1` deleted, `slotX_step_M1`'s Compact uses gone;
+one new listed placeholder, `hookNilRO_M1`; no frozen statement found false or too weak):
+- **The compaction's ghost step** (`LockArm.lean`'s `cmpCb γ c cp rev Fok Fce Ffr`): what
+  `updateCompactRev` fires at its three outcomes: success (inside `SetScheduledCompact`'s loan, mask
+  `⊤ ∖ writerN`): `s.revMu`'s slot and the writer's quarter of the view with its part of the pending
+  revision, at the committed log, moved to `rev`; `ErrCompacted`/`ErrFutureRev` (under `s.revMu`):
+  the lock's slot read. Its excluder `S` (lent, given back) with `slotF γ ∗ S ⊢ False` and
+  `ghostVar γ.wr 1 () ∗ slotFr γ ∗ S ⊢ False` (the frozen and restoring states).
+- **`mwLend` one-shot** (no `□`): `compactLend_sched` (`Api/CmpSteps.lean`) opens the writer's
+  invariant inside the loan, finds the writer's state checked in (the open writer by the lock's key,
+  the frozen/restoring states by `S`), so the frozen flag down (`slotFl γ 1 false`) is `storeW_open`'s
+  `LE` (`slotFl_regLent`: that is how the hand-off's "share in hand and the lent flag's quarter
+  contradict" landed, no change to `storeW_open`); the writer's slot agrees with `s.revMu`'s (`wv`,
+  `absPart`) and its `rcv` half with the records' (`cmpRest_sched`, now with the writer's half: no
+  placeholder); `cmpCb` fired there; the writer's state put back at the moved view.
+- **`updateCompactRev.spec`**: `S`, `cmpCb`, `1 ≤ rev`, the commit request `X ∗ storeReq γ X Y`
+  (`ForceCommit`'s; the success gives `Y`, the errors `X`), an `ErrFutureRev` arm (no certificate
+  premise; the success's `crevSafe` from the committed log's). `lockCtxM`/`lockBackM` over `hookOk`
+  (no writer's fragment), the unset arm's update `P ∗ Pre ={⊤}=∗ P ∗ Post` (`lockArmS` likewise,
+  `SetScheduledCompact`'s proof adapted); `hookP_agree_lc2`.
+- **`compactLockfree.spec`**: `restore()`'s resume only, at `c = rev` (`cmpCb_refl`), excluder `s.mu`'s
+  deposit ghost (`wr_restoring_excl`; the frozen state by `slotF_excl_M1`, `wr_frozen_excl`, whose
+  M1-REPLACE now also names `KV.Restore.contract`); success only. `store.Restore` passes `Hwr` and
+  the records' `recsPos` (`1 ≤ rev`).
+- **`Api/CmpCb.lean`**: `store.Compact.core` (the internal statement), `compact_cmpCb` (the client's AU
+  is the ghost step: three quarters of the view and of the compaction authority, `MvccReachable.compact`
+  from the writer's `pndPart` at `none`), `compactChan_ok`, `store.Compact.wp_api` (the contract from the
+  core), `watchableStore.Compact.wp_proof` (the promoted method, the inner store's contract).
+- **`mvcc.store.Compact.spec` is `KV.Compact.contract` at `*store`** (`store__Compact.lean` proves the
+  core as a `have`, then `wp_api`); `mvcc.watchableStore.Compact.wp_proof` gives the canonical
+  `api.watchableStore.Compact.spec` from it (not linked: no Go function of its own).
+- **The API's bodies** (`Spec/.../Api.lean`, statements unchanged): `mvccOpen` defined (`@[no_expose]`:
+  the store's location `locIs`, the restorable compaction right at the current names, the right's
+  quarter of the compaction authority, the compactor's reader token and supply); `isMvccPlain`/
+  `isMvccWatchable` record the (inner) store's location and the permit `True`; `mvccBackend` records
+  `hookP` of `Pk` at the current names. `Api/Ghost.lean`: `AbsNames.loc`, `locIs`, `locIs_agree`,
+  `absNames_alloc(_store)` allocate it (`NewStore` at its store).
+
+**Placeholder added** (`M1Placeholders.lean`): `hookNilRO_M1` (`plHookRO γB nil ⊢ plHook γB nil`):
+`KV.Compact.contract`'s nil-hook arm, until §4.8 (`lockNilSpec` at any share of the hook at `nil`).
+
+**Left**:
+- `cmpTrack_new_M1` and M3 (the backend's exact open, `mvccBackendFor`, `mvccBackendFor_open.law`,
+  `NewStore`/`Restore` from the image), unchanged since the last hand-off; `New.spec`/`NewStore.spec`
+  must now produce `mvccOpen` (with the compaction right, the reader token and supply from
+  `mvccBackendFor`), `isMvcc`'s `locIs` and permit `True` (`NewStore`'s `Perm := True`).
+- `excl.law`'s `mvccOpen` conjunct: two open tokens have one location and names, so two
+  `compactRightR`s at them (their scheduler's stop token is exclusive).
+- `KV.Restore.contract`/`KV.Close.contract`: `mvccOpen`'s body has only the compaction's pieces (§2's
+  closer and restore pieces to add); the restore's resume needs the restorer's share for
+  `slotF_excl_M1`.
+- §4.8: `hookNilRO_M1`.
+- The TCB baseline (`etc/tcb-baseline.txt`, not mine): two `sorry`s fewer (`rcvSched_M1`,
+  `regLent_excl_M1`), one more (`hookNilRO_M1`).

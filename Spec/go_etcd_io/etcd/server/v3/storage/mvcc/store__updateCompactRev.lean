@@ -44,6 +44,9 @@ success's step fires inside `SetScheduledCompact`'s loan:
 * `rev ≤ cp`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`), tracked (M2, the storage side, item 17: the right's queue,
   the last job's `Post` passed through); nothing changed, `Pre` back, `Fce`;
+The success's `ForceCommit` serves the caller's commit request (`storeReq γ X Y`, its `X` to `Y`;
+`KV.Compact.contract`'s backend commit, 2026-11-06: until then at `True`); the error arms give `X`
+back.
 * `rev > currentRev` (`ErrFutureRev`; `KV.Compact.contract`, 2026-11-06: until then excluded by the
   caller's certificate of a log with revision `rev`): `nil`, nothing changed, `Pre` back, `Ffr`.
 
@@ -64,26 +67,27 @@ stored the finished record, at a revision `rev` at least `c`; the success case's
 lag's token back (`lagTok`), the error cases' not. -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c cp : Int) (P : IProp GF) (hk : Option val)
-    (Pre Q Post S Fok Fce Ffr : IProp GF),
+    (Pre Q Post S Fok Fce Ffr X Y : IProp GF),
   mvcc.storeCmp γ → (cp < c → c ≤ sint.Z rev) → 1 ≤ sint.Z rev →
   (mvcc.slotF γ ∗ S ⊢ False) → (ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ S ⊢ False) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗
       mvcc.crevPermAt γ (sint.Z rev) ∗
       mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ S ∗
-      mvcc.cmpCb γ c cp (sint.Z rev) Fok Fce Ffr }}
+      mvcc.cmpCb γ c cp (sint.Z rev) Fok Fce Ffr ∗ X ∗ mvcc.storeReq γ X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
       mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗ S ∗
       ((⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 cp ∧ cp < sint.Z rev ∧ c ≤ sint.Z rev⌝ ∗
         mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRightR s γ (sint.Z rev) ∗ Post ∗
-        mvcc.compactJobPre s γ rev ∗ mvcc.lagTok γ c cp ∗ Fok) ∨
+        mvcc.compactJobPre s γ rev ∗ mvcc.lagTok γ c cp ∗ Fok ∗ Y) ∨
       (⌜sint.Z rev ≤ c ∧ cp = c ∧ prev = W64 0⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True) ∗ Fce) ∨
+        mvcc.muInvAt s γ 1 c ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True) ∗ Fce ∗
+        X) ∨
       (⌜ch = chan.nil ∧ prev = W64 0⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
-        mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗ Pre ∗ Ffr)) }}
+        mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗ Pre ∗ Ffr ∗ X)) }}
 
 end spec
 

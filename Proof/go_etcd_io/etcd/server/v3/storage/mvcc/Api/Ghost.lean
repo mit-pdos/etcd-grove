@@ -46,10 +46,15 @@ structure AbsNames where
   (stage 2, the watch chain, 2026-11-04: a send records a lower bound of it, which the client
   compares with its state in `wsRecv_ok.law`'s plain entailment) -/
   nl : GName
+  /-- the store's location (`KV.Compact.contract`, 2026-11-06: a read-only ghost variable,
+  `locIs`): the handle's (`isMvcc`) and the open token's (`mvccOpen`) agree on the store they are
+  of (the inner store of a watchable one) -/
+  loc : GName := 0
 
 instance absNames_countable : Pos.Countable AbsNames :=
-  countableOfLeftInverse (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
 /-- A compaction revision as the lower bound's count (`-1` is `0`). -/
 def crevN (c : Int) : Nat := (c + 1).toNat
@@ -74,6 +79,18 @@ def shareTok (γ : AbsNames) (q : Qp) : IProp GF := dghostVar γ.tok (.own q) ()
 
 /-- The notified log's authority, at `N`. -/
 def nlAuth (γ : AbsNames) (q : Qp) (N : Log) : IProp GF := monoListAuthOwn γ.nl q N
+
+/-- **The store is at `l`** (persistent; `AbsNames.loc`). -/
+def locIs (γ : AbsNames) (l : Loc) : IProp GF := dghostVar γ.loc DFrac.discard l
+
+instance locIs_persistent (γ : AbsNames) (l : Loc) : Persistent (locIs (GF := GF) γ l) := by
+  unfold locIs; infer_instance
+
+/-- Two facts of the store's location agree. -/
+theorem locIs_agree (γ : AbsNames) (l l' : Loc) : locIs (GF := GF) γ l ∗ locIs γ l' ⊢ ⌜l = l'⌝ := by
+  unfold locIs
+  iintro ⟨H1, H2⟩
+  iapply dghostVar_agree γ.loc l DFrac.discard l' DFrac.discard $$ H1 H2
 
 /-- A lower bound of the notified log (persistent). -/
 def nlLb (γ : AbsNames) (N : Log) : IProp GF := monoListLbOwn γ.nl N
@@ -192,19 +209,22 @@ theorem crevAtLeast_valid (γ : AbsNames) (q : Qp) (c c0 : Int) (hc : -1 ≤ c) 
 
 /-- **The store's API ghost state at a new store** (`NewStore`, at `mvccStart`): the view, the
 pending revision, the compaction authority, the whole share token and the frozen flag (down). -/
-theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) :
+theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) (l : Loc) :
     ⊢ |==> ∃ γ : AbsNames, absPart (GF := GF) γ 1 L c ∗ pndPart γ 1 p ∗ crevAuth γ 1 c ∗
-      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false ∗ nlAuth γ 1 N := by
+      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false ∗ nlAuth γ 1 N ∗ locIs γ l := by
   imod ghostVar_alloc (GF := GF) (L, c) with ⟨%ga, Ha⟩
   imod ghostVar_alloc (GF := GF) p with ⟨%gp, Hp⟩
   imod mono_nat_own_alloc (GF := GF) (crevN c) with ⟨%gc, Hc, Hlb⟩
   imod dghostVar_alloc (GF := GF) () with ⟨%gt, Ht⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%gf, Hf⟩
   imod mono_list_own_alloc (GF := GF) N with ⟨%gn, Hn, -⟩
+  imod dghostVar_alloc (GF := GF) l with ⟨%gl, Hl⟩
+  imod dghostVar_persist gl _ _ $$ Hl with #Hl
   imodintro
-  iexists ⟨ga, gp, gc, gt, gf, gn⟩
-  unfold absPart pndPart crevAuth crevAtLeast shareTok nlAuth
+  iexists ⟨ga, gp, gc, gt, gf, gn, gl⟩
+  unfold absPart pndPart crevAuth crevAtLeast shareTok nlAuth locIs
   iframe
+  iexact Hl
 
 /-- **`s.revMu`'s part of the API's ghost state** at fraction `q` (§1): a quarter of `q` of the
 view at the lock's log and compaction revision, and of the compaction revision's authority. -/
@@ -249,13 +269,14 @@ lock's slot (`revMuAbs` at the whole lock), the writer's (`writerAbs` at its par
 pending revision), the frozen flag down; and the client's parts (half the view, the pending
 revision's rest `pr`, half the compaction authority and its lower bound, the whole share token)
 and the compaction right's quarter of the authority. -/
-theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) :
+theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) (l : Loc) :
     ⊢ |==> ∃ a : AbsNames, revMuAbs (GF := GF) a 1 L c ∗
       (absPart a (1 : Qp).half.half L c ∗ pndPart a pw none) ∗ ghostVar a.frz 1 false ∗
       absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
-      crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L := by
+      crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L ∗
+      locIs a l := by
   iintro
-  imod absNames_alloc (GF := GF) L c none L with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn⟩
+  imod absNames_alloc (GF := GF) L c none L l with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn, #Hl⟩
   have ha1 := (absPart_fractional (GF := GF) a L c).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at ha1
   icases ha1.1 $$ Ha with ⟨Ha1, Ha2⟩
@@ -273,7 +294,7 @@ theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1)
   icases hp'.1 $$ Hp with ⟨Hpw, Hpr⟩
   imodintro
   iexists a
-  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn
+  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn Hl
   isplitl [Ha3 Hc3]
   · iunfold revMuAbs; iframe Ha3 Hc3
   · iframe Ha4 Hpw

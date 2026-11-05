@@ -213,7 +213,7 @@ structure StoreNames where
   M1, no scaffold") the API's ghost names (`api.AbsNames`: the client's view, the pending revision,
   the compaction authority, the share token, the frozen flag), which the slots (`slotX`, `slotY`,
   `slotF`, `slotFr`, `slotFl`) hold; logical, `withPhys` keeps it -/
-  api : api.AbsNames := ⟨0, 0, 0, 0, 0, 0⟩
+  api : api.AbsNames := ⟨0, 0, 0, 0, 0, 0, 0⟩
   /-- (the snapshot image's (c), 2026-11-05; physical) the meta keys' records' compaction revision
   (`ghostVar Int`, a compacting real backend's): half in the batch lock's resource (`compactRes`'s
   `cmpTrack`, at the records' `CmpRecs.crev`), half in the writer's slot (`slotY`, at its view's

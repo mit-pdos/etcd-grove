@@ -62,7 +62,7 @@ private theorem isMvcc_store (kv : GoInterface) (γ : MvccName) :
   iunfold isMvcc at Hmv
   icases Hmv with #(Hmv | Hmv)
   · iunfold isMvccPlain at Hmv
-    icases Hmv with ⟨%s, -, #Hs⟩
+    icases Hmv with ⟨%s, -, #Hs, -, -⟩
     iexists s; iexact Hs
   · iunfold isMvccWatchable at Hmv
     icases Hmv with ⟨%s, %st, %γw, %γp, %Hk, #Hws, -, -⟩
@@ -82,16 +82,16 @@ instance mvccBackend_fractional (γ : MvccName) (B : BkRef) (Pk : IProp GF) :
     have hq : (q1 + q2).half.half.half = q1.half.half.half + q2.half.half.half := by
       rw [Qp_half_add, Qp_half_add, Qp_half_add]
     constructor
-    · iintro ⟨HF, %p, %o, %d, Hc, %Hd, #Hb, #Hrg⟩
+    · iintro ⟨HF, %p, %o, %d, Hc, %Hd, #Hb, #Hrg, #Hhp⟩
       iunfold shareTok at HF
       icases ht.1 $$ HF with ⟨HF1, HF2⟩
       rw [hq]
       icases ((curAt_fractional (GF := GF) ((γ : StoreNames).withPhys p) o).fractional
         q1.half.half.half q2.half.half.half).1 $$ Hc with ⟨Hc1, Hc2⟩
       isplitl [HF1 Hc1]
-      · iunfold shareTok; iframe HF1; iexists p, o, d; iframe Hc1 Hb Hrg; ipureintro; exact Hd
-      · iunfold shareTok; iframe HF2; iexists p, o, d; iframe Hc2 Hb Hrg; ipureintro; exact Hd
-    · iintro ⟨⟨HF1, %p, %o, %d, Hc1, %Hd, #Hb, #Hrg⟩, ⟨HF2, %p', %o', %d', Hc2, %Hd', -, -⟩⟩
+      · iunfold shareTok; iframe HF1; iexists p, o, d; iframe Hc1 Hb Hrg Hhp; ipureintro; exact Hd
+      · iunfold shareTok; iframe HF2; iexists p, o, d; iframe Hc2 Hb Hrg Hhp; ipureintro; exact Hd
+    · iintro ⟨⟨HF1, %p, %o, %d, Hc1, %Hd, #Hb, #Hrg, #Hhp⟩, ⟨HF2, %p', %o', %d', Hc2, %Hd', -, -, -⟩⟩
       ihave %Hv := curAt_agree ((γ : StoreNames).withPhys p) ((γ : StoreNames).withPhys p') rfl
         _ _ o o' $$ [Hc1 Hc2]
       · iframe Hc1 Hc2
@@ -110,7 +110,7 @@ instance mvccBackend_fractional (γ : MvccName) (B : BkRef) (Pk : IProp GF) :
       · iapply ((curAt_fractional (GF := GF) ((γ : StoreNames).withPhys p) o).fractional
           q1.half.half.half q2.half.half.half).2
         iframe Hc1 Hc2
-      iframe Hb Hrg
+      iframe Hb Hrg Hhp
       ipureintro; exact Hd
 
 /-- **`mvccBackend_agree.law`**: two shares hold parts of the store's current physical names,
@@ -118,7 +118,7 @@ which agree, so the same backend. -/
 theorem mvccBackend_agree.law_holds : mvccBackend_agree.law (GF := GF) := by
   intro γ q q' B B' Pk Pk'
   unfold mvccBackend
-  iintro ⟨⟨-, %p, %o, %d, Hc1, %Hd, -, -⟩, ⟨-, %p', %o', %d', Hc2, %Hd', -, -⟩⟩
+  iintro ⟨⟨-, %p, %o, %d, Hc1, %Hd, -, -, -⟩, ⟨-, %p', %o', %d', Hc2, %Hd', -, -, -⟩⟩
   ihave %Hv := curAt_agree (((γ : StoreNames)).withPhys p) ((γ : StoreNames).withPhys p') rfl
     _ _ o o' $$ [Hc1 Hc2]
   · iframe Hc1 Hc2
@@ -137,7 +137,7 @@ theorem mvccBackend_agree.law_holds : mvccBackend_agree.law (GF := GF) := by
 theorem mvccBackend_isBackend.law_holds : mvccBackend_isBackend.law (GF := GF) := by
   intro γ q B Pk
   unfold mvccBackend
-  iintro ⟨-, %p, %o, %d, -, %Hd, #Hb, -⟩
+  iintro ⟨-, %p, %o, %d, -, %Hd, #Hb, -, -⟩
   obtain ⟨-, -, rfl⟩ := Hd
   iexists d.gx
   iexact Hb
@@ -195,7 +195,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   iintro %Ψ ⟨#Hpkg, Hmv, HB, Ho, Hwb, HR, #HQ, HAU⟩ HΨ
   ihave ⟨%s, #Hs⟩ := isMvcc_store kv γ $$ Hmv
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩, #Hhp⟩
   obtain ⟨hpk, hcm, rfl⟩ := Hd
   simp only []
   have hk : ((γ : StoreNames).withPhys p).kb = some d := hpk
@@ -320,6 +320,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
     iframe Hcur Hbk
     isplitr
     · ipureintro; exact ⟨hpk, hcm, rfl⟩
+    iframe Hhp
     iexists s'; iexact Hrg
   isplitr
   · ipureintro; exact hQ

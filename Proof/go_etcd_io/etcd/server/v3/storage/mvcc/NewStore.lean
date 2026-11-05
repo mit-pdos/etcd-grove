@@ -237,7 +237,7 @@ theorem mvcc.NewStore.wp_proof
   -- (the mvcc API, strict M1) the API's ghost names at the start: the lock's and the writer's slots
   -- and the frozen flag kept; the client's parts dropped (today's spec returns none of them)
   obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
-  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr) with ⟨%γa, HXa, HYa, HFla, -⟩
+  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, -⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv, hγjc, hγrcl⟩ :
       ∃ γ : mvcc.StoreNames,

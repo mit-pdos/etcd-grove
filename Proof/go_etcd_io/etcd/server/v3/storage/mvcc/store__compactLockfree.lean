@@ -9,7 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompac
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpCb
 
 @[expose] public section
 
@@ -28,23 +28,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- `restore()`'s excluder, `s.mu`'s deposit ghost whole: the restoring state holds it too. -/
-theorem mvcc.wr_restoring_excl (γ : mvcc.StoreNames) :
-    ghostVar (GF := GF) γ.wr 1 () ∗ mvcc.slotFr γ ∗ ghostVar γ.wr 1 () ⊢ False := by
-  iintro ⟨H1, -, H2⟩
-  ihave %Hv := ghostVar_valid_2 γ.wr () 1 () 1 $$ H1 H2
-  exact absurd Hv.1 (Qp_one_add_not_le _)
-
-/-- `restore()`'s excluder of the frozen state: none yet (the placeholder `slotF_excl_M1`;
-M1-REPLACE: `KV.Restore.contract`, the restorer's share of the backend token). -/
-theorem mvcc.wr_frozen_excl (γ : mvcc.StoreNames) :
-    mvcc.slotF (GF := GF) γ ∗ ghostVar γ.wr 1 () ⊢ False := by
-  iintro ⟨HF, -⟩
-  iapply (mvcc.slotF_excl_M1 γ)
-  isplitl [HF]
-  · iexact HF
-  · iempintro
 
 theorem mvcc.store.compactLockfree.wp_proof
     (h0 : mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG))
@@ -65,14 +48,15 @@ theorem mvcc.store.compactLockfree.wp_proof
   (try wp_auto)
   -- the compaction revision is already `rev`: the identity step, `s.mu`'s deposit ghost the excluder
   ihave Hcb := mvcc.cmpCb_refl (GF := GF) γ (sint.Z rev) cp
+  ihave #Hreq0 := mvcc.storeReq_true (GF := GF) γ
   wp_apply (h1 s γ rev (sint.Z rev) cp P hk Pre Q Post iprop(ghostVar γ.wr 1 ()) iprop(True)
-      iprop(True) iprop(False) hcmp (fun _ => Int.le_refl _) h1r (mvcc.wr_frozen_excl γ)
+      iprop(True) iprop(False) iprop(True) iprop(True) hcmp (fun _ => Int.le_refl _) h1r (mvcc.wr_frozen_excl γ)
       (mvcc.wr_restoring_excl γ))
     $$ [$Hmu $Hright $Hctx $HRTok $Hwr $Hcb] as %ch %prev %err ⟨HRTok, Hhook, Hwr, Hres⟩
   · iframe #
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag, -⟩ |
-    ⟨⟨%Hle, %Hcp, %Hprev⟩, -⟩ | ⟨-, -, -, -, -, Hf⟩)
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag, -, -⟩ |
+    ⟨⟨%Hle, %Hcp, %Hprev⟩, -⟩ | ⟨-, -, -, -, -, Hf, -⟩)
   · subst Herr
     (try wp_auto)
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
