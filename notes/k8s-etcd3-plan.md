@@ -846,7 +846,12 @@ are internal (the driver's invariant, `InvSteps`' continuations, D5's read updat
 `k8s.txt`: + T1). `etc/tcb-baseline.txt` unchanged (785 axioms, 6 `sorry`s); `k8s_compactor_safe`
 reaches no `sorry`.
 
-### 7c: Scope (2026-11-05, branch `k8s-etcd3-7c`; a hard stop: Scope, and the trust base)
+### 7c: Scope (2026-11-05, branch `k8s-etcd3-7c`; approved by the user 2026-11-05)
+
+**Approved (the user, 2026-11-05, via etcd-grove-82), every recommendation:** Q7c-1 (E1); Q7c-2, the
+four restatements, each attacked by the `axiom` skill in the round that writes it; Q7c-3 (T2 (c) in
+7c); Q7d (a); Q7e (a). Order (the coordinator's condition on the hub request): 7c-0, then 7c-1's
+`GrpcSpec` change and mechanical migration as a separate early landing.
 
 **What 7c proves.** `kubernetes.Client.Get` at any revision (`opts.Revision ≥ 0`). On success the
 answer is the key at the state the response read. On error, the soundness of the two read errors
