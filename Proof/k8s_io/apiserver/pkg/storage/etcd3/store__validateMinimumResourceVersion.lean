@@ -32,7 +32,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 theorem store.validateMinimumResourceVersion.wp_proof
     (wp_TooLarge : storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG)) :
     store.validateMinimumResourceVersion.spec (GF := GF) (hG := hG) := by
-  intro Obj sp c m n rev
+  intro _ _ Obj _ sp c m n rev
   wp_start as ⟨#Hs, %hp⟩
   by_cases hm : m = []
   · subst hm
@@ -45,8 +45,34 @@ theorem store.validateMinimumResourceVersion.wp_proof
     simp only [this, ↓reduceIte]
   · wp_auto
     rw [decide_eq_false hm]
+    iunfold isStore at Hs
+    icases Hs with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
+      #Hcl, #Hone, #Hregs, #Hcon⟩
+    iunfold contractOk at Hcon
+    icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, #Hmeta⟩
+    iunfold versionerOk at Hver
+    icases Hver with ⟨#HORV, #HPrep, #HUpd, #HParse⟩
     wp_auto
-    sorry
+    wp_bind
+    iapply HParse
+    inext
+    iintro %n' %err %hn'
+    rw [hp] at hn'
+    obtain ⟨rfl, rfl⟩ := hn'
+    wp_auto
+    by_cases hlt : uint.nat rev < uint.nat n'
+    · rw [decide_eq_true (by word)]
+      wp_auto
+      wp_apply wp_TooLarge as %err %herr
+      iapply HΦ
+      ipureintro
+      simp only [hlt, ↓reduceIte]
+      exact herr
+    · rw [decide_eq_false (by word)]
+      wp_auto
+      iapply HΦ
+      ipureintro
+      simp only [hlt, ↓reduceIte]
 
 end proof
 

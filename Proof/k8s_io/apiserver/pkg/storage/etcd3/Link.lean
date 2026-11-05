@@ -23,9 +23,12 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.NewEtcdMetricsTracker
 public import Proof.k8s_io.apiserver.pkg.storage.NewInternalError
+public import Proof.k8s_io.apiserver.pkg.storage.NewInvalidObjError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyExistsError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyNotFoundError
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
+public import Proof.k8s_io.apiserver.pkg.storage.NewTooLargeResourceVersionError
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
@@ -56,7 +59,9 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runWatchLoop
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFactory
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregatorFactory
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
+public import Proof.fmt.SprintfNamed
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
+public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newDefaultLeaseManager
@@ -81,6 +86,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GuaranteedUpdate
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__deleteOnce
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__getCurrentState
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__getStateFromObject
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__stateFromEtcdResponse
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateOnce
@@ -193,6 +199,10 @@ theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
 
+theorem fmt.wp_SprintfNamed :
+    EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.SprintfNamed.wp_proof
+
 theorem reflect.wp_TypeOf :
     EtcdGrove.reflect.TypeOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.TypeOf.wp_proof
@@ -304,6 +314,10 @@ theorem storage.wp_NewInternalError :
     EtcdGrove.storage.NewInternalError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.NewInternalError.wp_proof
 
+theorem storage.wp_NewInvalidObjError :
+    EtcdGrove.storage.NewInvalidObjError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewInvalidObjError.wp_proof
+
 theorem storage.wp_NewKeyExistsError :
     EtcdGrove.storage.NewKeyExistsError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.NewKeyExistsError.wp_proof
@@ -312,13 +326,25 @@ theorem storage.wp_NewKeyNotFoundError :
     EtcdGrove.storage.NewKeyNotFoundError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.NewKeyNotFoundError.wp_proof
 
+theorem apierrors.wp_NewTimeoutError :
+    EtcdGrove.apierrors.NewTimeoutError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.NewTimeoutError.wp_proof
+
+theorem storage.wp_NewTooLargeResourceVersionError :
+    EtcdGrove.storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewTooLargeResourceVersionError.wp_proof apierrors.wp_NewTimeoutError
+
 theorem metrics.OperationLatencyTracker.wp_Record :
     EtcdGrove.metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metrics.OperationLatencyTracker.Record.wp_proof
 
+theorem apimeta.wp_Accessor :
+    EtcdGrove.apimeta.Accessor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimeta.Accessor.wp_proof
+
 theorem storage.Preconditions.wp_Check :
     EtcdGrove.storage.Preconditions.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.Preconditions.Check.wp_proof
+  EtcdGrove.storage.Preconditions.Check.wp_proof apimeta.wp_Accessor storage.wp_NewInvalidObjError fmt.wp_SprintfNamed
 
 theorem strings.wp_Contains :
     EtcdGrove.strings.Contains.spec (GF := GF) (hG := hG) :=
@@ -428,13 +454,17 @@ theorem store.wp_getCurrentState :
     EtcdGrove.k8s.store.getCurrentState.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.getCurrentState.wp_proof store.wp_stateFromEtcdResponse metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get
 
+theorem store.wp_getStateFromObject :
+    EtcdGrove.k8s.store.getStateFromObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.getStateFromObject.wp_proof
+
 theorem store.wp_deleteOnce :
     EtcdGrove.k8s.store.deleteOnce.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.deleteOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest klog.wp_V klog.Verbose.wp_Infof kubernetes.Client.wp_OptimisticDelete
 
 theorem store.wp_conditionalDelete :
     EtcdGrove.k8s.store.conditionalDelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.conditionalDelete.wp_proof store.wp_getCurrentState store.wp_deleteOnce wp_refreshOnError
+  EtcdGrove.k8s.store.conditionalDelete.wp_proof store.wp_getCurrentState store.wp_getStateFromObject storage.Preconditions.wp_Check store.wp_deleteOnce wp_refreshOnError
 
 theorem store.wp_Delete :
     EtcdGrove.k8s.store.Delete.spec (GF := GF) (hG := hG) :=
@@ -442,7 +472,7 @@ theorem store.wp_Delete :
 
 theorem store.wp_validateMinimumResourceVersion :
     EtcdGrove.k8s.store.validateMinimumResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.validateMinimumResourceVersion.wp_proof
+  EtcdGrove.k8s.store.validateMinimumResourceVersion.wp_proof storage.wp_NewTooLargeResourceVersionError
 
 theorem store.wp_Get :
     EtcdGrove.k8s.store.Get.spec (GF := GF) (hG := hG) :=
@@ -462,7 +492,7 @@ theorem store.wp_updateOnce :
 
 theorem store.wp_GuaranteedUpdate :
     EtcdGrove.k8s.store.GuaranteedUpdate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.GuaranteedUpdate.wp_proof store.wp_prepareKey wp_getTypeName conversion.wp_EnforcePtr store.wp_getCurrentState storage.Preconditions.wp_Check store.wp_updateState store.wp_updateOnce wp_refreshOnError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
+  EtcdGrove.k8s.store.GuaranteedUpdate.wp_proof store.wp_prepareKey wp_getTypeName conversion.wp_EnforcePtr store.wp_getCurrentState store.wp_getStateFromObject storage.Preconditions.wp_Check store.wp_updateState store.wp_updateOnce wp_refreshOnError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
 
 end links_hasLC
 

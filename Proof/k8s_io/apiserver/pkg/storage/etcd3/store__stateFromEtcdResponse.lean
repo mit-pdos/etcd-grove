@@ -65,7 +65,7 @@ theorem store.stateFromEtcdResponse.wp_proof
   wp_apply wp_Interface w c.S.objTy p $$ []
   · iframe #
     ipureintro; exact Hw
-  obtain ⟨hObj, hUns⟩ := Hty
+  obtain ⟨hObj, hUns, -⟩ := Hty
   simp only [hUns, Bool.false_eq_true, ↓reduceIte]
   (try wp_auto)
   wp_apply wp_Type v_ptr (DFrac.own 1) v c.S.objTy p $$ [$Hvp] as %rt ⟨Hvp, %Hrt⟩

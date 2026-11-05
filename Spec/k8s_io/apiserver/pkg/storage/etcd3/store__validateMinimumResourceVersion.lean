@@ -28,7 +28,8 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev store.validateMinimumResourceVersion.spec : Prop :=
-  ∀ (Obj : Type) (sp : Loc) (c : StoreCfg GF Obj) (m : GoString) (n rev : w64),
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (Obj : Type) [DecidableEq Obj] (sp : Loc) (c : StoreCfg GF Obj) (m : GoString) (n rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ⌜c.S.parseRV m = some n⌝ }}
     (App (App (Val (sp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty @!!
