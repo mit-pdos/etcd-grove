@@ -44,7 +44,7 @@ abbrev MainWatch.spec : Prop :=
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64) (sched : GoSlice)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step),
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),
   BootFacts id₁ id₂ id₃ ps ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave

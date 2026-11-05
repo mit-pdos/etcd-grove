@@ -92,6 +92,11 @@ theorem newClient.wp_proof
   wp_auto
   icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hcnn⟩
   iStructNamed «$r0»
+  -- the `ctx` field (read-only from here: `isNewClient`'s last conjunct), renamed apart from the
+  -- local variable `ctx` it shadows
+  ipersist ctx
+  ihave #HcliCtx := ctx
+  iclear ctx
   ihave Hlgown : sync.atomic.ownPointer (hG := hG) (T' := go_uber_org.zap.Logger)
       (clientLgAddr «$r0_ptr») (DFrac.own 1) null $$ [lg]
   · rw [sync.atomic.ownPointer_unseal]; unfold sync.atomic.ownPointerDef; iexact lg
@@ -359,9 +364,12 @@ theorem newClient.wp_proof
       isplitl []
       · iexists ap
         iframe Auth Hap
-      iunfold clientEndpointsAt
-      iexists cfg.Endpoints'
-      iframe endpoints Heps
+      isplitl []
+      · iunfold clientEndpointsAt
+        iexists cfg.Endpoints'
+        iframe endpoints Heps
+      iexists _
+      iexact HcliCtx
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn

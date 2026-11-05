@@ -172,12 +172,13 @@ def kvOut (p : Loc) (kv : Option EtcdKv) : IProp GF :=
 instance kvOut_persistent (p : Loc) (kv : Option EtcdKv) : Persistent (kvOut (GF := GF) p kv) := by
   unfold kvOut; cases kv <;> infer_instance
 
-/-- **A response's key-value pointer is not `nil`** (`sorry`). The server's response predicate
-`txn.kvIs` does not say it (its field points-tos do not imply it), and the store branches on
-`KV == nil`. `notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3: `txn.kvIs`
-carrying `⌜l ≠ null⌝` (from the struct's typed points-to, `txn.kvAt_persist'`) proves it. -/
+/-- **A response's key-value pointer is not `nil`**: the server's response predicate `txn.kvIs`
+carries it (from the struct's typed points-to, `txn.kvAt_persist'`), and the store branches on
+`KV == nil` (`notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3). -/
 theorem kvIs_ne_null (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ ⌜l ≠ null⌝ := by
-  sorry
+  unfold txn.kvIs
+  iintro ⟨%ks, %vs, -, -, -, -, -, -, -, -, %Hn⟩
+  ipureintro; exact Hn
 
 /-- A key-value as a response's `KV` (`kvIs_ne_null`). -/
 theorem kvOut_some (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ kvOut l (some v) := by

@@ -459,8 +459,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
   have hNS := raftNode_of_StartNode (GF := GF) h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
     h89 h78 h86
-  obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
-    Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
+  obtain ⟨Hrcfg, Hrhb, Hrid, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (2026-11-03, the whole-`bootOk` review, K) from the directory's bound (`Hdirps`); until then a
   -- conjunct of `bootOk`'s `Hraft`
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory's facts, from the
@@ -478,17 +477,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) bs.raft'
     bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
-    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta, Hrsc⟩
+    as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv, Hmsmeta, Hrsc⟩
   · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdur
-    simp only [srvErM]
     iframe #
-    -- the pure premises: the logger and the heartbeat (`raftNode.bootCfg`), `bootOk`'s `Hraft`,
-    -- the directory's bound, the WAL read, the receipt bound and the server's names
+    -- the pure premises: `bootOk`'s `Hraft` (`rnStartCfg`, its peers' facts), the heartbeat
+    -- (`raftNode.bootCfg`), the directory's bound, the WAL read and the receipt bound
     ipureintro
-    exact ⟨Hrlg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, Hrvalid, Hrlok, Hrstor,
-      Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync, Hrapplied, Hrps, Hrpsne, Hrnodup, Hr0,
-      Hrpslen, Hrmem, Hrvs, HwalR, by omega, by simp [srvErM, HρRaft], by simp [srvErM, HρRaft],
-      by simp [srvErM, HρRaft]⟩
+    exact ⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, Hrnodup, Hr0,
+      Hrpslen, Hrvs, HwalR, by omega⟩
+  clear Hrcfg
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg

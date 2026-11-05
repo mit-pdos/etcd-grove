@@ -208,11 +208,13 @@ theorem kvPtrIs_kvIs (p : Loc) (kv : EtcdKv) : kvPtrIs (GF := GF) true p kv ⊢ 
   unfold kvPtrIs kvIs
   simp only [↓reduceIte]
   iintro ⟨%ks, %st, %uf, %sc, #Hk, %vs, #Hv, Hp⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
   ipersist Hp
   iStructNamed Hp
   imodintro
   iexists ks, vs
   iframe #
+  ipureintro; exact Hnn
 
 /-- A fresh key-value's pointer is not `nil`. -/
 theorem kvPtrIs_not_null (full : Bool) (p : Loc) (kv : EtcdKv) :

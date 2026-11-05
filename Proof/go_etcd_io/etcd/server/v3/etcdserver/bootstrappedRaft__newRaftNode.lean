@@ -1,8 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrappedRaft__newRaftNode.lean`.
 Lean-first (no Rocq counterpart). Its callees with specs: raft's node API's `StartNode`
-(`StartNode.spec` in a static cluster, `StartNode.dynamicSpec` in a dynamic one; at the
-cluster's storage model, `srvStor`) and `newRaftNode`; Perennial's `sync.Mutex.Lock`/`Unlock` are
+(`StartNode.spec`, at the cluster's storage model, `srvStor`) and `newRaftNode`; Perennial's `sync.Mutex.Lock`/`Unlock` are
 its linked results, used directly; the rest are the contracts the spec takes
 (`InvNodeStart.lean`). (2026-10-27: over the node API; until then raft's `StartNode.spec`.)
 -/
@@ -41,8 +40,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
-  obtain ⟨Hlg, Hhb, Hvalid, Hlok, Hstor, Hinfl, Hdpf, Hro, Hdccv, Hsizes, Hasync, Happlied,
-    Hps, Hpsne, Hnodup, H0, Hpslen, Hid, Hvs, Hwal⟩ := Hraft
+  obtain ⟨Hcfg, Hhb, Hwal⟩ := Hraft
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
   iStructNamedSuffix Hb "B"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -58,7 +56,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `len(b.peers) == 0`: no, the new cluster's path
   ihave %Hlen := ownSlice_len _ _ _ $$ Hpeers
   have Hpvne : pv ≠ [] := by
-    intro h; subst h; simp at Hps; exact Hpsne Hps
+    intro h; have := Hcfg.peers; subst h; simp at this; exact Hcfg.peersNe this
   have Hlen0 : decide (bv.peers'.len = W64 0) = false := by
     apply decide_eq_false
     intro h
@@ -94,9 +92,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   wp_apply (wp_StartNode γr γr.cl srvClusterN ps ctxs bv.config' cv lok
       ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
       memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
-      bv.peers' dq pv Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
-      rfl rfl rfl rfl rfl Hps) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-    as %nd ⟨%n, %K, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, -⟩
+      bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
+      Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync Hcfg.applied
+      rfl rfl rfl rfl rfl Hcfg.peers) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+    as %nd ⟨%n, %K, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
   · iframe #; iframe Hc Hpeers Hboot Hvac Hau
     iExactEq Hbs; rfl
   subst Hnd
@@ -125,7 +124,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
       bv.heartbeat' GoInterface.nil)) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
-    ipureintro; exact ⟨Hlg, Hhb⟩
+    ipureintro; exact ⟨Hcfg.lg, Hhb⟩
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn
@@ -139,7 +138,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     exact ⟨h1, h2, h3, h4, h5, h6, h8⟩
   obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
   subst hkey
-  iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg Hrst
+  iframe Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hncfg Hrst
   isplitl [Hdrv]
   · iExactEq Hdrv; rfl
   isplitr
