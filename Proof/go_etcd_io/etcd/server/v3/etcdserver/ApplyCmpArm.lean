@@ -176,13 +176,14 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The certificates `Apply` asks of an entry's request**, covered or a compaction (whose
 outcomes keep the log, certified as the entry's model log). -/
-theorem kv_certPre_M (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
+theorem kv_certPre_M (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
+    (hNx : E.Nx = kvNxOff γ γk) (c₀ : w64)
     (lt : LeaseTable) (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool)
     (hp : plainOrCmp rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index)) :
-    kvCert (GF := GF) γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
+    kvNxOff (GF := GF) γ γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   rcases hp with hp | hc
-  · exact kv_certPre E γk hγ c₀ lt x m rq v3 hp hoff ht hd hdec hv
+  · exact kv_certPre E γ γk hNx c₀ lt x m rq v3 hp hoff ht hd hdec hv
   rw [kvEntry_cmp c₀ x.chain lt x.log m rq hdec hc]
   iintro #Hc
   cases v3
@@ -191,8 +192,8 @@ theorem kv_certPre_M (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.c
     unfold apply.certPre
     imodintro
     iintro %oc %hs
-    rw [apply.chainStep_cmp_log rq hc.1.1 hc.2.2 x.log x.chain oc hs]
-    iapply kvCert_certOk γk E.γ hγ $$ Hc
+    rw [apply.chainStep_cmp_log rq hc.1.1 hc.2.2 x.log x.chain oc hs, hNx]
+    iexact Hc
 
 /-- **The rest buckets after an entry's request**, covered or a compaction. -/
 theorem srvRest_apply_M (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
@@ -206,18 +207,22 @@ theorem srvRest_apply_M (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     hv3]
 
 /-- **The apply package's `cmpAdmit` from the entry's claims** (the glue at `applyEntryNormal`):
-the apply thread's log the model's of the applied log `A` (`kvApplied`), the store compacting in
-the cluster's compaction mode (`srvEnvOkD`'s `d.cm = E.cmp`, `envAgree`). -/
+the apply thread's log the model's of the applied log `A` (`kvApplied`); a compaction's revision
+positive (`compactPropOk`) and below the log (its claim, `cmpEntryOk`). (Strict M1, 2026-11-06: the
+store's compaction mode gone from `cmpAdmit`, the API's backend always compacting.) -/
 theorem cmpAdmit_of_entry (γk : KVNames) (cmp : Bool) (A : List EntryModel) (m : EntryModel)
-    (rq : apply.IRRModel) (kb : Option mvcc.KBReal) (log : mvcc.Log) (hl : log = kvModel γk A)
-    (hkb : cmp = true → mvcc.kbCmpM kb) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (rq : apply.IRRModel) (log : mvcc.Log) (hl : log = kvModel γk A)
+    (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (h : cmpEntryOk γk cmp A m) :
-    apply.cmpAdmit kb log rq := by
+    apply.cmpAdmit log rq := by
   intro hk r hr
-  obtain ⟨hc, -, hrl⟩ := h ht hd rq hdec hk
+  obtain ⟨-, hc, hrl⟩ := h ht hd rq hdec hk
   subst hl
-  exact ⟨hkb hc, by have := hrl r hr; omega⟩
-
+  have h0 : 0 < sint.Z r := by
+    obtain ⟨⟨-, r', hr', h1⟩, -⟩ := hc
+    rw [hr] at hr'; cases hr'; omega
+  have := hrl r hr
+  exact ⟨by omega, by omega⟩
 
 /-- **A revision of the KV model of a committed prefix is reached** (C3's server stage, 2026-11-02):
 the committed prefix `A` is equivalent to a prefix of the cluster's requested log
@@ -244,28 +249,30 @@ theorem kv_revLbZ_of_rlogLb (γ : ServerRaftNames) (γk : KVNames) (A : List Ent
 /-- **The apply package's `cmpPermRq` from the entry's claim** (C3's server stage): a compaction's
 claim (`cmpEntryOk`: its revision, positive, at least the cluster's retention below the model
 before it, which the cluster has reached, `kv_revLbZ_of_rlogLb`) is the cluster's permit
-(`kvCmpPermit`), which the store's permit is (`srvKVInvs`'s `crevPermIs`). -/
-theorem cmpPermRq_of_entry [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (E : apply.AEnv GF) (γk : KVNames)
+(`kvCmpPermit`), which the chain's permit is (strict M1, 2026-11-06: `E.Cp = kvCpOk γk`,
+`srvKVInvs`'s; until then mvcc's `crevPermIs`). -/
+theorem cmpPermRq_of_entry (E : apply.AEnv GF) (γk : KVNames) (hCp : E.Cp = kvCpOk γk)
     (A : List EntryModel) (m : EntryModel) (rq : apply.IRRModel) (hcl : cmpEntryOk γk γk.cmp A m)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) :
-    kvRevLbZ (GF := GF) γk ((kvModel γk A).length - 1) ∗ mvcc.crevPermIs E.γ (kvCmpPermit γk) ⊢
-      apply.cmpPermRq E rq := by
-  iintro ⟨#Hlb, #Hcp⟩
+    kvRevLbZ (GF := GF) γk ((kvModel γk A).length - 1) ⊢ apply.cmpPermRq E rq := by
+  iintro #Hlb
   iunfold apply.cmpPermRq
   iintro !> %hk %r %hr
-  obtain ⟨-, hc, hrl⟩ := hcl ht hd rq hdec hk
+  obtain ⟨hcm, hc, hrl⟩ := hcl ht hd rq hdec hk
   have h0 : 0 < sint.Z r := by
     obtain ⟨⟨-, r', hr', h1⟩, -⟩ := hc
     rw [hr] at hr'; cases hr'; omega
   have h1 := hrl r hr
-  iapply mvcc.crevPermAt_of E.γ (kvCmpPermit γk) (sint.Z r)
-  iframe Hcp
-  iintro !>
-  iunfold kvCmpPermit
-  isplitr
-  · ipureintro; exact h0
-  iapply kvRevLbZ_mono γk (sint.Z r + γk.cret) ((kvModel γk A).length - 1) (by omega)
-  iexact Hlb
+  rw [hCp]
+  iunfold kvCpOk
+  isplitl
+  · iright
+    iunfold kvCmpPermit
+    isplitr
+    · ipureintro; exact h0
+    iapply kvRevLbZ_mono γk (sint.Z r + γk.cret) ((kvModel γk A).length - 1) (by omega)
+    iexact Hlb
+  · ipureintro; intro h; rw [hcm] at h; cases h
 
 /-- **The transfer (S3-3, item 8)**: an entry `m` of the committed log after `A` (a lower bound of
 it, as `applyEntryNormal`'s proof holds) gets its claim from the KV invariant's, at the invariant's

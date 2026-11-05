@@ -352,7 +352,8 @@ tie of the witness, `E.Nx = kvNx γr false`, as `kvNxOff`, which `InvRequest` no
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
     □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
-    ⌜γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret ∧ envWitOk E⌝ ∗ ⌜E.Nx = kvNxOff γr.raft γr.kv⌝)
+    ⌜γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret ∧ envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
+    ⌜E.Nx = kvNxOff γr.raft γr.kv⌝)
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -878,7 +879,7 @@ theorem srvApplyKV_writer [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.
   iintro #Hk H
   iunfold srvKVInvs at Hk
   icases Hk with ⟨-, -, -, #Hs, %Hwit, -⟩
-  obtain ⟨-, -, h1, h2, h3, h4⟩ := Hwit
+  obtain ⟨-, -, ⟨h1, h2, h3, h4⟩, -⟩ := Hwit
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩
   iunfold apply.applyKV at Hkv

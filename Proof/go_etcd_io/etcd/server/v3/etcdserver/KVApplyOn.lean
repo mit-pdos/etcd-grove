@@ -310,7 +310,8 @@ store's history's tie to the log (`authHistTie`). (Strict M1, 2026-11-06, as `sr
 witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝ ∗
+    authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
+    ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
     ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :

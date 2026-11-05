@@ -124,7 +124,7 @@ theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (E : apply.AEnv GF)
   isplitl
   · rw [hNx, hCp, ← kvStoreInv_eq]; iexact Hs
   isplitl
-  · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr false hNx hCp⟩
+  · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr false hNx hCp, hCp⟩
   · ipureintro; exact hNx
 
 end laws

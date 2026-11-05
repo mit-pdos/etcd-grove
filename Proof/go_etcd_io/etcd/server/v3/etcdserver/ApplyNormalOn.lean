@@ -705,7 +705,7 @@ theorem srvApplyKVOn_writer [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.As
   iintro #Hk H
   iunfold srvKVInvsOn at Hk
   icases Hk with ⟨-, -, -, -, #Hs, %Hwit, -⟩
-  obtain ⟨h1, h2, h3, h4⟩ := Hwit
+  obtain ⟨⟨h1, h2, h3, h4⟩, -⟩ := Hwit
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
   iunfold apply.applyKV at Hkv

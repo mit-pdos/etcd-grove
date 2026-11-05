@@ -775,6 +775,12 @@ server's store keeps it of its compaction revision (`mvcc.crevPermIs`). -/
 def kvCmpPermit (γk : KVNames) (c : Int) : IProp GF :=
   iprop(⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret))
 
+/-- **The compaction revision `c` is permitted** (persistent; strict M1, 2026-11-06: what the
+server's chain permit `E.Cp` is, `srvKVInvs`/`srvKVInvsOn`; `KVStoreApi`'s `crevOk γr` is it at
+`γr.kv`): never compacted (`-1`) or a cluster permit, and `-1` in a cluster that never compacts. -/
+def kvCpOk (γk : KVNames) (c : Int) : IProp GF :=
+  iprop((⌜c = -1⌝ ∨ kvCmpPermit γk c) ∗ ⌜γk.cmp = false → c = -1⌝)
+
 /-- A permit at a positive revision below a permitted one (#7-cmp's Freeze: the restored finished
 record's, below the scheduled one's). -/
 theorem kvCmpPermit_le (γk : KVNames) (c c' : Int) (h0 : 0 < c) (h : c ≤ c') :

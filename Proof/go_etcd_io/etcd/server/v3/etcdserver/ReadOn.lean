@@ -289,7 +289,7 @@ theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
     isplitl []
     · iexact Hs
     isplitl []
-    · ipureintro; exact Hw
+    · ipureintro; exact Hw.1
     ipureintro; exact HNx
 
 /-- The read view's KV core in its mode (`srvReadFieldsAtM`'s `srvKVInvsM`, `srvKVInvsM_core`). -/
