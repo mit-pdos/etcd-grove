@@ -154,10 +154,10 @@ theorem noDirs_push_mv {g : DirG} {k : GoString} (h : NoDirs g)
 
 /-- The new file after its write and `fdatasync`: a crash leaves the data, or no file (it is not
 yet durably named: the rename and the directory's sync do that). -/
-theorem synced_good (h : Nat) (ys : List (w8 × Bool)) (hys : ys.map Prod.fst = dataC) :
-    ∀ fo, FileCrashedR (some (({ newMeta with size := 8, hi := h } : OsMeta).synced 0 ys))
-      [(0, DFrac.own (1 : Qp).half, syncedBytes { newMeta with size := 8, hi := h } ys)] fo →
-      DataGood fo := by
+theorem synced_good (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : List (w8 × Bool))
+    (hys : ys.map Prod.fst = dataC) :
+    ∀ fo, FileCrashedR (some (m.synced 0 ys))
+      [(0, DFrac.own (1 : Qp).half, syncedBytes m ys)] fo → DataGood fo := by
   have hlen : ys.length = 8 := by
     have := congrArg List.length hys; simp only [List.length_map] at this; rw [this]; rfl
   intro fo hfo
@@ -166,7 +166,7 @@ theorem synced_good (h : Nat) (ys : List (w8 × Bool)) (hys : ys.map Prod.fst = 
   intro f hf
   cases hf
   show img = dataC
-  simp only [OsMeta.synced] at hlo hhi
+  simp only [OsMeta.synced, hsz] at hlo hhi
   have hil : img.length = 8 := by
     replace hlo : 8 ≤ img.length := hlo
     replace hhi : img.length ≤ 8 := hhi
@@ -175,7 +175,7 @@ theorem synced_good (h : Nat) (ys : List (w8 × Bool)) (hys : ys.map Prod.fst = 
   by_cases hi : i < 8
   · have hyi : i < ys.length := by omega
     have := hb _ (List.mem_singleton_self _) i (ys[i].1, true)
-      (by simp [syncedBytes, newMeta, List.getElem?_eq_getElem hyi]) rfl
+      (by simp [syncedBytes, hok, List.getElem?_eq_getElem hyi]) rfl
     simp only [Nat.zero_add] at this
     rw [this, ← hys, List.getElem?_map, List.getElem?_eq_getElem hyi]; rfl
   · rw [List.getElem?_eq_none (by omega), List.getElem?_eq_none (by simp [dataC]; omega)]
@@ -860,6 +860,320 @@ theorem wp_renameSeg (d k : GoString) (γ : GName) (g : DirG)
   ipureintro; intro h; cases h
 
 end oscalls
+
+/-! ## The data -/
+
+section data
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
+
+theorem wp_dataOk (sl : GoSlice) (dq : DFrac) (vs : List w8) (h : vs = dataC) :
+    {{ (sl ↦*{dq} vs : IProp GF) }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.dataOk)) (Val #sl))
+    {{ RET #true; sl ↦*{dq} vs }} := by
+  wp_start as Hs
+  icases ownSlice_len sl dq vs $$ Hs with %Hlen
+  have hl : vs.length = 8 := by rw [h]; rfl
+  have hv : ∀ i : Nat, i < 8 → vs[i]? = dataC[i]? := by
+    intro i _; rw [h]
+  have hs8 : sl.len = W64 8 := by
+    have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
+  have hs8' : (8 : Int) ≤ sint.Z sl.len := by rw [hs8]; decide
+  try wp_auto
+  rw [decide_eq_true hs8]
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len by
+    rw [show sint.Z (W64 0) = 0 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 0)) vs dq (W8 0xde) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 0)).toNat = 0 from rfl]; exact hv 0 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) < sint.Z sl.len by
+    rw [show sint.Z (W64 1) = 1 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 1)) vs dq (W8 0xad) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 1)).toNat = 1 from rfl]; exact hv 1 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 2) ∧ sint.Z (W64 2) < sint.Z sl.len by
+    rw [show sint.Z (W64 2) = 2 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 2)) vs dq (W8 0xbe) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 2)).toNat = 2 from rfl]; exact hv 2 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 3) ∧ sint.Z (W64 3) < sint.Z sl.len by
+    rw [show sint.Z (W64 3) = 3 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 3)) vs dq (W8 0xef) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 3)).toNat = 3 from rfl]; exact hv 3 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 4) ∧ sint.Z (W64 4) < sint.Z sl.len by
+    rw [show sint.Z (W64 4) = 4 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 4)) vs dq (W8 0x01) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 4)).toNat = 4 from rfl]; exact hv 4 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 5) ∧ sint.Z (W64 5) < sint.Z sl.len by
+    rw [show sint.Z (W64 5) = 5 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 5)) vs dq (W8 0x23) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 5)).toNat = 5 from rfl]; exact hv 5 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 6) ∧ sint.Z (W64 6) < sint.Z sl.len by
+    rw [show sint.Z (W64 6) = 6 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 6)) vs dq (W8 0x45) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 6)).toNat = 6 from rfl]; exact hv 6 (by decide)
+  try wp_auto
+  rw [if_pos (show 0 ≤ sint.Z (W64 7) ∧ sint.Z (W64 7) < sint.Z sl.len by
+    rw [show sint.Z (W64 7) = 7 from rfl]; omega)]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 7)) vs dq (W8 0x67) (by decide) $$ [Hs] as Hs
+  · iframe; ipureintro; rw [show (sint.Z (W64 7)).toNat = 7 from rfl]; exact hv 7 (by decide)
+  try wp_auto
+  iapply HΦ
+  iframe
+
+theorem wp_newData :
+    {{ (True : IProp GF) }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.newData)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; sl ↦* dataC }} := by
+  wp_start as -
+  wp_auto
+  wp_apply wp_slice_literal (V := w8) (l := dataC)
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hs, -⟩
+  simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd]
+  (try wp_auto)
+  iapply HΦ
+  iexact Hs
+
+end data
+
+/-! ## `check`, `commit` and `Boot` -/
+
+/-- What the program knows of the file of `seg`'s key, held at the fractions `mo`, `bs`: if it
+exists, its first 8 bytes in the page cache are the data. -/
+def CheckOk (mo : Option OsMeta) (bs : List (w8 × Bool)) : Prop :=
+  ∀ m, mo = some m → 8 ≤ m.size ∧ bs.length = 8 ∧ bs.map Prod.fst = dataC
+
+section prog
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
+variable [os.Assumptions] [os.file.FieldAssumptions]
+
+/-- `check(d)`, `seg` the file of `k`: it does not panic. -/
+theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (d k : GoString) (dq : DFrac) (g : DirG) (hk : g.now !! segB = some (.file k))
+    (mo : Option OsMeta) (bs : List (w8 × Bool)) (hok : CheckOk mo bs) :
+    {{ osInv (GF := GF) ∗ osDir (GF := GF) d dq g ∗
+        osMeta (GF := GF) k (DFrac.own (1 : Qp).half) mo ∗
+        osBytes (GF := GF) k 0 (DFrac.own (1 : Qp).half) bs }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.check)) (Val #d))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, Hd, Hm, Hb⟩
+  wp_auto
+  rw [show d ++ go!"/seg" = child d segB from rfl]
+  wp_apply os.OpenFile.wp_nsRO d segB k segB_ok (W32 0) dq g hk _ mo $$ [Hos Hd Hm]
+    as %f %err ⟨%hmo, Hd, Hm, Hr⟩
+  · iframe; iexact Hos
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  rotate_left
+  · obtain ⟨herr, rfl⟩ := herr
+    cases err with
+    | nil => exact absurd rfl herr
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  subst herr
+  obtain ⟨m, rfl⟩ := Option.ne_none_iff_exists'.1 hmo
+  obtain ⟨hsz, hbl, hbv⟩ := hok m rfl
+  (try wp_auto)
+  wp_apply (wp_slice_make2 (V := w8) (W64 8)) as %buf ⟨Hbuf, -⟩
+  · ipureintro; decide
+  (try wp_auto)
+  have h8 : sint.nat (W64 8) = 8 := rfl
+  wp_apply wp_ReadAt f fd (child d segB) (DFrac.own 1) buf
+      (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0) (DFrac.own 1)
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨k, true, false⟩ m bs rfl (by decide)
+      (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; simp; omega)
+      (by rw [List.length_replicate, h8]; exact hbl) $$ [Hos Hf Hbuf Hfd Hm Hb]
+    as %n %err ⟨Hf, Hfd, Hm, Hb, %vs', Hbuf, %Hres⟩
+  · iframe; iexact Hos
+  (try wp_auto)
+  wp_apply wp_Close f fd (child d segB) ⟨k, true, false⟩ $$ [Hos Hf Hfd] as %e -
+  · iframe; iexact Hos
+  obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | ⟨rfl, hne⟩⟩ := Hres
+  · (try wp_auto)
+    wp_apply wp_dataOk buf (DFrac.own 1) vs' (by rw [hvs', hbv]) $$ [Hbuf] as Hbuf
+    · iframe
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  · cases err with
+    | nil => exact absurd rfl hne
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+
+theorem checkOk_synced (m : OsMeta) (hok : m.ok = true) (hsz : m.size = 8) (ys : List (w8 × Bool))
+    (hys : ys.map Prod.fst = dataC) : CheckOk (some (m.synced 0 ys)) (syncedBytes m ys) := by
+  intro m' hm
+  cases hm
+  have hl : ys.length = 8 := by
+    have := congrArg List.length hys; simp only [List.length_map] at this; rw [this]; rfl
+  refine ⟨by simp [OsMeta.synced, hsz], by simp [syncedBytes, hok, hl], ?_⟩
+  simp only [syncedBytes, hok, ↓reduceIte, List.map_map]
+  rw [← hys]; rfl
+
+theorem pwBytes_data : (pwBytes 0 0 dataC 8 []).map Prod.fst = dataC := by decide
+
+/-- `commit(d)`, `seg.tmp` absent and no `seg` in any crash outcome: it does not panic. -/
+theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
+    (d : GoString) (γ : GName) (g : DirG) (ko : Option GoString)
+    (hn : g.now !! tmpB = none) (hs : SegNone g) :
+    {{ osInv (GF := GF) ∗ bootInv (GF := GF) d γ ∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g ∗ osNsBusy (GF := GF) false ∗
+        ghostVar (GF := GF) γ (1 : Qp).half ko }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.commit)) (Val #d))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hinv, Hd, Hz, Hγ⟩
+  wp_auto
+  rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl, show (W64 2 ||| W64 64) = W64 66 from by decide]
+  wp_apply wp_openTmp d γ g hn (W32 438) $$ [Hos Hinv Hd Hz] as %f %err ⟨Hz, Hr⟩
+  · iframe; iframe #
+  icases Hr with (⟨%fd, %k, %hek, Hf, Hfd, Hm, Hd⟩ | %herr)
+  rotate_left
+  · cases err with
+    | nil => exact absurd rfl herr
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, hk⟩ := hek
+  (try wp_auto)
+  -- the data at 0
+  wp_apply wp_newData as %sl Hsl
+  (try wp_auto)
+  ihave Hb0 : osBytes k (min (W64 0).toNat newMeta.size) (DFrac.own 1) [] $$ []
+  · unfold osBytes bytesG; iapply BigSepL.bigSepL_nil.2; iempintro
+  ihave Hmc : mcellsAny newMeta.maps (min (W64 0).toNat newMeta.size) ((W64 0).toNat + dataC.length) $$ []
+  · unfold mcellsAny newMeta; iapply BigSepM.bigSepM_empty.2; iempintro
+  wp_apply wp_WriteAt f fd (child d tmpB) (DFrac.own 1) sl dataC (DFrac.own 1) (W64 0) (DFrac.own 1)
+      ⟨k, true, true⟩ 1 newMeta [] rfl (by decide) (by decide) (by decide) (by simp [newMeta])
+      (fun _ => rfl) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
+    as %n %err ⟨Hf, Hsl, Hfd, %j, %ys, %h, %Hres, Hm, Hys, -⟩
+  · iframe; iexact Hos
+  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  rotate_left
+  · cases err with
+    | nil => exact absurd rfl hne
+    | ok ie =>
+    (try wp_auto)
+    wp_apply wp_Close f fd (child d tmpB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e -
+    · iframe; iexact Hos
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  have hsz : pwSize newMeta.size (W64 0).toNat dataC.length = 8 := rfl
+  have hys' : ys.map Prod.fst = dataC := by rw [hys]; exact pwBytes_data
+  rw [show pwSize 0 0 dataC.length = 8 from rfl, show min 0 0 = 0 from rfl]
+  generalize hm1 : (⟨8, 0, h, false, true, ∅, [], 0⟩ : OsMeta) = m1
+  have hm1ok : m1.ok = true := by rw [← hm1]
+  have hm1sz : m1.size = 8 := by rw [← hm1]
+  clear hm1
+  dsimp only
+  (try wp_auto)
+  -- `fdatasync`
+  wp_apply wp_Fd f fd (child d tmpB) (DFrac.own 1) $$ Hf as Hf
+  (try wp_auto)
+  wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨k, true, true⟩ _ 0 ys $$ [Hos Hfd Hm Hys]
+    as %e ⟨Hfd, Hr⟩
+  · iframe; iexact Hos
+  icases Hr with (⟨%he, Hm, Hys⟩ | ⟨%he, -, -⟩)
+  rotate_left
+  · rw [show errnoErr e = interface.mkOk syscall.Errno.ty #e from if_neg he.1]
+    dsimp only
+    (try wp_auto)
+    wp_apply wp_Close f fd (child d tmpB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    · iframe; iexact Hos
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  subst he
+  rw [show errnoErr 0 = interface.nil from if_pos rfl]
+  dsimp only
+  (try wp_auto)
+  wp_apply wp_Close f fd (child d tmpB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+  · iframe; iexact Hos
+  (try wp_auto)
+  -- the file, durable, goes into the invariant under the key `k`
+  icases (osMeta_halves k _).1 $$ Hm with ⟨Hm, Hmi⟩
+  icases (osBytes_halves k 0 _).1 $$ Hys with ⟨Hys, Hysi⟩
+  have hs1 : SegNone (g.push (.put tmpB (.file k))) := segNone_push_tmp hs _ (.inr ⟨_, rfl⟩)
+  have hk1 : (g.push (.put tmpB (.file k))).now !! tmpB = some (.file k) := by
+    rw [DirG.push_now]; exact GMap.lookup_insert_eq _ _ _
+  iapply fupd_wp
+  unfold bootInv
+  imod inv_acc (E := ⊤) (show ↑bootN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%g', %ko', >Hd', >Hv, >%Hp, >Hk⟩
+  icases osDir_agree d _ _ _ g' $$ Hd Hd' with %heq
+  subst heq
+  imod ghostVar_update_halves (some k) γ _ _ $$ Hγ Hv with ⟨Hγ, Hv⟩
+  imod Hclose $$ [Hd' Hv Hmi Hysi] with -
+  · inext
+    iexists _, (some k)
+    iframe Hd' Hv
+    isplitr
+    · ipureintro; exact ⟨Hp.1, segOut_of_none hs1 _⟩
+    unfold keyRes
+    iexists _, _
+    iframe Hmi Hysi
+    ipureintro; exact synced_good m1 hm1ok hm1sz ys hys'
+  imodintro
+  -- the rename
+  try rw [show d ++ go!"/seg" = child d segB from rfl]
+  try rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl]
+  wp_apply wp_renameSeg d k γ _ hk1 hs1 $$ [Hos Hd Hz Hγ] as %err ⟨Hz, Hγ, %g2, Hd, %hg2⟩
+  · iframe; unfold bootInv; iframe #
+  cases err with
+  | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  | nil =>
+  obtain rfl := hg2 rfl
+  (try wp_auto)
+  -- the directory's sync
+  wp_apply wp_syncDir d _ _ $$ [Hos Hd] as %ok Hd
+  · iframe; iexact Hos
+  cases ok with
+  | false =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  | true =>
+  (try wp_auto)
+  have hk2 : ((g.push (.put tmpB (.file k))).push (.mv tmpB segB)).now !! segB = some (.file k) := by
+    rw [DirG.push_now]
+    show (match (g.push (.put tmpB (.file k))).now !! tmpB with
+      | some n => <[segB := n]> (GMap.delete tmpB (g.push (.put tmpB (.file k))).now)
+      | none => (g.push (.put tmpB (.file k))).now) !! segB = _
+    rw [hk1]; exact GMap.lookup_insert_eq _ _ _
+  wp_apply wp_check wp_ReadAt wp_Close d k _ _ hk2 _ _ (checkOk_synced m1 hm1ok hm1sz ys hys')
+    $$ [Hos Hd Hm Hys]
+  · iframe; iexact Hos
+  (try wp_auto)
+  iapply HΦ
+  itrivial
+
+end prog
 
 end osfs_walfs
 end EtcdGrove
