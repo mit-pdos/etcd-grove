@@ -56,7 +56,10 @@ theorem EtcdServer.applyAll.wp_proofSnap
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -212,8 +215,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   iunfold isServer at Hsrv1'
   icases Hsrv1' with ⟨-, -, -, #Hatm1, -, -⟩
   iunfold srvAtomics at Hatm1
-  icases Hatm1 with ⟨#Hainv1, -, -⟩
-  icases srvApplyKV_idxCert s E' ρ.wait x' $$ HKV with ⟨HKV, #Hic⟩
+  icases Hatm1 with ⟨#Hainv1, -, #Hkvi1⟩
+  imod srvApplyKV_writer hPers hReach s E' γr ρ.wait x' $$ Hkvi1 HKV with ⟨HKV, #Hic, -, -, -⟩
   have hiL : uint.Z sv.Metadata'.Index' = uint.Z γr.raft.ai0 + A'.length := by
     rw [hraft]; have := Hif.len; word
   ihave #HkL : kvLogAt γr sv.Metadata'.Index' x'.log $$ []
@@ -444,7 +447,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
               rw [show (E.onBe p P f cc RO RW).γbe = E.γbe from rfl]
               iexact HW
             icases srvApplyKV_core s E' ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
-            imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe false s γ' ci TM' E'
+            imod mergedCreate_window hsh hSnap hOn hSave hPut hUR hID hName hSafe false s γ' ci TM' E'
                 ρ γr b' st' sv.Metadata'.Index' a t A' x' ρ.wait γp ua kv' hlo' hci' hpos hlenZ
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
@@ -456,8 +459,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
             imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
-            icases srvApplyKV_idxCert s E' ρ.wait x' $$ HKV with ⟨HKV, #Hicx⟩
-            ihave #Hrcx := mvcc.idxCert_rcpt E'.γ.idx x'.log $$ Hicx
+            imod srvApplyKV_writer hPers hReach s E' γr ρ.wait x' $$ Hkvi1 HKV with ⟨HKV, -, -, #Hrcx, -⟩
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt

@@ -66,6 +66,9 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : GName) (dv : Option Loc) (γnc : NotifyNames)
     (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
+  -- (strict M1, 2026-11-06) the receipts' bound (`applyEntries`' in both modes: the log's smallness
+  -- comes from the writer's receipt, `srvApplyKV_small`)
+  receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s

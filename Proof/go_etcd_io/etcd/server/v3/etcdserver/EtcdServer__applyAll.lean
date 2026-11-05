@@ -58,7 +58,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -68,7 +71,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk q γn rt n Hms Hai1
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w nk q γn rt n hRB Hms Hai1
     Hok hEok hdv hAL hAT Hdisk hciA hcia hγn hnA
   simp only [srvRunH_applyAll_spec]
   have hAE := EtcdServer.applyEntries.spec_off hAE
@@ -101,7 +104,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, #Hslb0⟩
   ihave Hfs : srvFS s $$ [Hsf0]
   · iunfold srvFS; iexists _; iexact Hsf0
-  wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok
+  wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w hRB Hms Hai1 Hok
     hEok hdv
     $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR]
     as ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, #Hcv', Hst, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
@@ -244,12 +247,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x' _ $$ [$Hsrv $HKV $Hka] with ⟨%Hoff, HKV, Hka⟩
   ihave #HsrvM : isServerM false s γ ci TM E ρ γr $$ []
   · rw [isServerM_false]; iexact Hsrv
+    iunfold srvGoRes at Hgr
+  icases Hgr with ⟨Hwg, Htt⟩
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_off hSINC s E ρ.wait γ ci b γr ep st'
       ai' at' cs' a' t' x' mst γs nk γp (w + (unapplied ai ms).length) TM ρ q Hoff hok'
       (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1
-    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]
-    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, %Hst''⟩
+    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
+    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe
+  ihave Hgr : srvGoRes s $$ [Hwg Htt]
+  · iunfold srvGoRes; iframe Hwg Htt
   (try wp_auto)
   iunfold epConfState at Hcs
   icases Hcs with ⟨Hcs, #Hcsok⟩
@@ -372,7 +379,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKV_core s E ρ.wait x' $$ HKV with ⟨%ua, HKVc, HKVk⟩
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
-            imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe false s γ ci TM E ρ
+            imod mergedCreate_window hsh hSnap hOn hSave hPut hUR hID hName hSafe false s γ ci TM E ρ
                 γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
@@ -384,8 +391,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
             · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
             imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, %Hst3⟩
             ihave HKV := HKVk $$ HKVc
-            icases srvApplyKV_idxCert s E ρ.wait x' $$ HKV with ⟨HKV, #Hicx⟩
-            ihave #Hrcx := mvcc.idxCert_rcpt E.γ.idx x'.log $$ Hicx
+            ihave #Hkvi : srvKVInvs E γr $$ []
+            · iunfold isServer at Hsrv
+              icases Hsrv with ⟨-, -, -, #Hat, -⟩
+              iunfold srvAtomics at Hat
+              icases Hat with ⟨-, -, #Hk⟩
+              iexact Hk
+            imod srvApplyKV_writer hPers hReach s E γr ρ.wait x' $$ Hkvi HKV with ⟨HKV, -, -, #Hrcx, -⟩
             -- the merged message sent: of a term committed through the applied index (the batch's
             -- term, `rnRtOk`; not `0`, a `MsgSnap`'s term), certified at the voters' conf state
             iunfold rnRtOk at Hrt
@@ -454,7 +466,10 @@ theorem EtcdServer.applyAll.wp_proofOn
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -636,13 +651,17 @@ theorem EtcdServer.applyAll.wp_proofOn
     · iright; iunfold epCsCfg; rw [← hρr]
       iapply epCsAt_ne _ _ _ hL $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
+    iunfold srvGoRes at Hgr
+  icases Hgr with ⟨Hwg, Htt⟩
   wp_apply EtcdServer.snapshotIfNeededAndCompactRaftLog.spec_on hSINC s E ρ.wait γ ci b γr ep st'
       ai' at' cs' a' t' x' mst γs nk γp (w + (unapplied ai ms).length) TM ρ sa' q
       (by rw [apply.AEnv.authOn_eq, hM]; rfl) hok'
       (hciL hciA) Hdisk.2.1.2.2.1 hsz Hdisk.2.2.1
-    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor]
-    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, %Hst''⟩
+    $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV HwalT Hstor Htt]
+    as ⟨%st'', Hss, -, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, HwalT, Htt, %Hst''⟩
   · iframe #; iframe
+  ihave Hgr : srvGoRes s $$ [Hwg Htt]
+  · iunfold srvGoRes; iframe Hwg Htt
   (try wp_auto)
   iunfold epConfState at Hcs
   icases Hcs with ⟨Hcs, #Hcsok⟩
@@ -768,7 +787,7 @@ theorem EtcdServer.applyAll.wp_proofOn
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKVOn_core s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HKVk⟩
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi⟩
-            imod mergedCreate_window hC hSnap hOn hSave hPut hUR hID hName hSafe true s γ ci TM E ρ
+            imod mergedCreate_window hsh hSnap hOn hSave hPut hUR hID hName hSafe true s γ ci TM E ρ
                 γr b st'' ai' a' t' (A ++ unapplied ai ms) x' ρ.wait γp ua kv Hst''.1 hciE hpos hlenZ
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
@@ -848,7 +867,10 @@ theorem EtcdServer.applyAll.wp_proof
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hPers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hReach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -858,8 +880,8 @@ theorem EtcdServer.applyAll.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
-  ⟨EtcdServer.applyAll.wp_proofBatch hASnap.1 hAE.1 hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName hSafe⟩
+  ⟨EtcdServer.applyAll.wp_proofBatch hASnap.1 hAE.1 hBk hLg hV hSINC.1 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hSnap hOn hSave hPut hUR hID hName hSafe,
+    EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hsh hPers hReach hSnap hOn hSave hPut hUR hID hName hSafe⟩
 
 end proof
 

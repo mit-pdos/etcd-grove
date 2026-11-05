@@ -270,7 +270,73 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     … ∗ E.Nx x'.log`), `setAppliedIndex` (`kvLogLb`), `applyEntryNormal` (`srvWT E`), `applyAll`,
     `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
     `hookRun (E.Pk d) E.f`).
-- **Next**: see "Left (seventh session)" below.
+- **Next**: see "Left (eighth session)" below.
+## Left (eighth session, 2026-11-06; in order)
+
+**Done** (commits `529b608f48` and the one after it; each builds at the worktree's state, mvcc's
+uncommitted edits of the time included):
+- `ReadOn` builds (re-checked after mvcc's `InvStore`/`BackendBridge` edits; the seventh session's
+  eight files were already committed, `b69fe8a429`).
+- **`EtcdServer.applyEntryNormal` proved, both modes** (`wp_proofOff`, `wp_proofOn`, `wp_proof`, no
+  `sorry`): they take `[mvcc.Assumptions]`, `mvcc.api.persistent.law`, `mvccState_reachable.law`
+  (as `EtcdServer.apply`'s; the spec itself is unchanged but for its docstring). Local lemmas in the
+  proof file: `applyKV_writer` (the writer's facts of an unpacked `apply.applyKV`, under the boxed
+  store invariant and `envWitOk`: the floor `kvLogLb`, `E.Nx`, the receipt, room; in place of
+  `applyKV_idxCert`), `kvAppliedL_nx'`/`kvAppliedLOn_nx` (the raft witnesses `kvNxOff`/`kvNxOn`,
+  the state kept), `bkToks_srv` (`apply.bkToks` from `bkWT d`, `bkRT d` and, with `v3`, the hook's
+  `hookRun (E.Pk d) E.f` and the update), `applyKV_kvOwnPre` (`kvSpecL`'s `∃ p, uberOwn ∗ kvOwnPre ∗
+  cmpOwn` from `applyKV`, `bkToks`, `Pre`). The apply thread's tokens: `srvBeOwn_pool` lends the
+  reader token, `srvWT_at` the write-back token, `bkRTOf_srv` gives the reader token back; the
+  thread's token is `srvGoRes`'s. The resulting `resultIsW` takes `kvLogLb E.γs x'.log` and
+  `E.Nx x'.log` from `applyKV_writer` at `x'`. The floor of an unclaimed id is `kvLogLb E.γs []`
+  (`monoListLbOwn_nil`).
+- **`EtcdServer.snapshot`'s `Commit()` over `KV.Commit.contract`** (`shapes.law` at the KV's dynamic
+  type; the request `storageReq (etcdStorage B) (E.Pk B) True True` by `etcdStorage_req` and
+  `backend.commitReq_true`): `snapshot.wp_proof` takes `[mvcc.Assumptions]` and `hsh : shapes.law`
+  in place of `mvcc.store.Commit.spec`. **Spec change (the server's own, minor): `snapshot.spec` and
+  `snapshotIfNeededAndCompactRaftLog.specBatch` (and `ModeSpecs`' `specOff`/`specOn`) take and give
+  `threadTok`** (the contract's; the draft's rule, `threadTok` beside the KV's resources); `applyAll`
+  lends it from `srvGoRes`. The write-back token `srvApplyKVCore_commit` takes from the budget is now
+  unused (the contract takes none; dropped).
+- `EtcdServer.Authenticate` builds (`srvReadFieldsAtM`'s new conjunct count); `AdminOn.adminPreOn`
+  and `AuthnOn.authnRaft_on` at the floor `kvLogLb E.γs F` (was `mvcc.idxCert`).
+- `SnapSendBranch` builds: `srvKVCommitOk_of_kv` restated and proved over `shapes.law`
+  (`KV.Commit.contract`: thread token, backend share, `storageReq`, frame); `soleWriter_idxWf` and
+  `srvBeSnapOk_cmpRecs` (SNAPSHOT-SORRY #7-cmp) deleted, their one user being
+  `mergedCreate_window`, whose statement is at `□ isMvcc kv E.γ` (was `txn.isKV`) and `hsh` (was
+  `hC`), **its body an `M1-REPLACE` `sorry`**: `mergedObs` names mvcc's key image
+  (`mvcc.keyImageM`), which the API's sealed `mvccImage` does not give; the send's redesign
+  (`KVStoreApi.lean` §3c: `senderImage.law`, `dbImageA` in place of `srvNet`'s image) restates it,
+  `merged_image` and `createMergedSnapshotMessage.spec`.
+- `applyAll`, restated and edited, **not built** (below): `specBatch` takes `receiptBound GF ≤ 2 ^ 48`
+  (first premise; `applyEntries`' in both modes); `wp_proofBatch`/`wp_proofOn`/`wp_proof` take
+  `[mvcc.Assumptions]`, `shapes.law`, `persistent.law`, `mvccState_reachable.law` in place of
+  `mvcc.store.Commit.spec`; the merged image's receipt from `srvApplyKV_writer` (was
+  `idxCert_rcpt`). `ApplyAllSnap` likewise (not built).
+
+**Left, in order:**
+1. **What blocks `applyAll`**: its imports `SDSnapLemmas` and `ApplyAllSnap` reach the snapshot
+   receive and the boot's vocabulary, red: `SnapApply` (`E.γ.kb`), `InvWatchBuilt` and `InvServe`
+   (`E.s`, `mvcc.isWatchableStore wsl E.s γw`, `mvcc.watchReader`, `mvcc.storeReader E.s E.γ`:
+   the watch store and its readers to restate over the API's handle, `□ isMvcc kv E.γ ∗ ⌜kv =
+   E.kv⌝`, and `threadTok`; v3rpc reads `srvWatchBuilt`/`srvWatchReaders`, so coordinate),
+   `BuildLemmas` (`txn.isKV`, `txn.kvWriter`, `txn.storeWTs`: the boot's store, over
+   `mvccStorageFor`/`etcdStorage_open.law`; mvcc's `api.NewStore.wp_proof` now exists over
+   `mvccStorageFor`, the mvcc track's `1edcdfe707`). Then build `ApplyAllSnap`, `applyAll`.
+2. `SnapRestoreM` (the mvcc track's message, `1edcdfe707`): `kbRecs_empty`'s right side is now
+   `kbNoCmpF`, `keyCleanRead_of_backend`'s token the flag-only one, `restoreImageM`'s body groups the
+   records with their values (`restoreImageM_fkV`'s pattern should still match). Re-check once its
+   imports (`SnapApply`, `InvWatchBuilt`, `InvServe`, `BuildLemmas`) build.
+3. The boot (item 3 of "Left (fifth session)"), then the snapshot send (the `M1-REPLACE` above) and
+   receive (item 4).
+4. The callers whose statements moved: `run` (`EtcdServer__run.lean`: `applyAll.specBatch`'s new
+   first premise; `run` has `receiptBound`, `NewServer`'s), `Link.lean` (generated:
+   `applyEntryNormal.wp_proof`, `snapshot.wp_proof`, `applyAll.wp_proof` take mvcc's laws;
+   `etc/gen-link.py` must pass them, as for `EtcdServer.apply.wp_proof`), `Results.lean`.
+
+**Placeholders:** one, `SnapSendBranch.mergedCreate_window`'s body (`M1-REPLACE`, above), in place of
+its proof over mvcc's internals; SNAPSHOT-SORRY #7-cmp (`srvBeSnapOk_cmpRecs`) deleted with it.
+`applyAll`'s SNAPSHOT-SORRY #7-on unchanged. No axiom.
 ## Left (seventh session, 2026-11-06: the API over its storage abstraction; in order)
 
 **Done** (mvcc's phase A, `07c91fd2e3`..`8c5fe85d68`):

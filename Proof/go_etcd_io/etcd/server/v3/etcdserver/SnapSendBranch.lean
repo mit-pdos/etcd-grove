@@ -92,32 +92,30 @@ theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF)
   iframe
   ipureintro; exact ⟨HQD, HQRD⟩
 
-/-- **`s.KV().Commit()`'s contract from `store.Commit`** (D22 S-l's sender items, 2026-10-22:
-`store.Commit` translated and proved): over a KV of the store `st` (`txn.isKV`: the store itself
-or the watchable store over it, whose `Commit` is promoted), for the store's sole writer: its
-fragment, its reader token of the backend and a write session's token (`storeWT`: for the real
-backend, a write-back's budget, `srvWTPool_take_extra`); a request `X ⇒ Y` its backend serves
-(`mvcc.storeReq`: D22 the stored-index window, 2026-10-23, `storeReq_freeze`) and a frame `F`. -/
-theorem srvKVCommitOk_of_kv (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
-    (kv : GoInterface) (st : Loc) (γ : mvcc.StoreNames) (X Y F : IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ txn.isKV kv st γ ⊢
+/-- **`s.KV().Commit()`'s contract from the API's** (strict M1, 2026-11-06: `KV.Commit.contract` at
+the KV's dynamic type, `shapes.law`; until then `store.Commit` over the store's sole writer): for
+the thread's token, a share of the store's backend, a request `X ⇒ Y` the storage serves
+(`storageReq`) and a frame `F`. -/
+theorem srvKVCommitOk_of_kv [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (kv : GoInterface) (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.MvccStorage)
+    (Pk X Y F : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      □ mvcc.api.isMvcc kv γ ⊢
       srvKVCommitOk kv
-        iprop(mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.storeWT γ ∗ X ∗ mvcc.storeReq γ X Y ∗ F)
-        iprop(mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ Y ∗ F) := by
+        iprop(threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗ mvcc.api.storageReq B Pk X Y ∗ F)
+        iprop(threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ Y ∗ F) := by
   iintro ⟨#Hpkg, #Hkv⟩
-  ihave ⟨#Hko, #Hs⟩ := txn.isKV_kvOver kv st γ $$ Hkv
-  ihave %Hok := mvcc.kvOver_ok kv st $$ Hko
-  obtain ⟨ty, v, rfl⟩ := Hok
+  ihave %Hsh := hsh.1 kv γ $$ Hkv
+  obtain ⟨ty, v, rfl, -, -, -, -, -, -, -, -, hC, -⟩ := Hsh
   iunfold srvKVCommitOk
   iexists ⟨ty, v⟩
   isplitr
   · ipureintro; rfl
-  iintro %Φ !> ⟨Hfr, Hro, Hwt, HX, Hrq, HF⟩ HΦ
-  iapply mvcc.kvOver_commit_wp ty v st
-  iframe Hko
-  iapply (hC st γ X Y) $$ [Hfr Hro Hwt HX Hrq]
+  iintro %Φ !> ⟨Ht, Hb, HX, #Hrq, HF⟩ HΦ
+  iapply (hC γ q B Pk X Y) $$ [Ht Hb HX]
   · iframe #; iframe
-  iintro !> ⟨Hfr, Hro, HY⟩
+  iintro !> ⟨Ht, Hb, HY⟩
   iapply HΦ
   iframe
 
@@ -299,25 +297,6 @@ theorem srvBeSnapOk_window (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG
     iframe HY Hrb HF
     ipureintro; exact h
   iapply snapObs_window γA γ P hP W F s rb QF $$ HQF
-
-/-- **The sender's KV log is well formed as a store's committed log** (D22 J7b, 2026-10-26;
-`imageAt_of_snap`'s `hwf`): the apply thread's sole writer (`apply.kvOwn`'s `txn.kvWriter`) at its
-log `log` (the applied `kvModel γk A`, `kvApplied`) knows its certificate's sealed facts
-(`idxSealed_pure`: `LogWf'`, fewer than `2 ^ 63` revisions and changes per revision) and, from its
-budget, that the log has at least two and fewer than `2 ^ 48 + 2` revisions
-(`soleWriter_small'`): `IdxWf log []`, with no change pending. -/
-theorem soleWriter_idxWf (γ : mvcc.StoreNames) (log : mvcc.Log) :
-    txn.soleWriter (GF := GF) γ log ⊢ ⌜mvcc.IdxWf log []⌝ := by
-  iintro H
-  ihave ⟨%H2, H⟩ := txn.soleWriter_len' γ log $$ H
-  ihave ⟨H, #Hc⟩ := txn.soleWriter_cert γ log $$ H
-  ihave %Hs := txn.soleWriter_small' γ log $$ H
-  ihave #Hse := mvcc.idxCert_sealed γ.idx log $$ Hc
-  ihave %Hp := mvcc.idxSealed_pure γ.idx log $$ Hse
-  ipureintro
-  obtain ⟨hwf, -, hcs⟩ := Hp
-  have hne : log ≠ [] := by intro h; subst h; simp at H2
-  refine ⟨mvcc.LogWf'.append_nil hwf hne, by omega, by simp, hcs⟩
 
 /-- **The backend with its hooks field known** (`isBackendNH`, what `commitReq_freeze` takes): the
 backend's contract and its `hooks` field (`backend.hooksAt`, the creation specs'). -/
@@ -507,29 +486,6 @@ theorem srvMerged_bundle (γ : SrvRaft) (ml : Loc) (rc : GoInterface) (st : MsgS
   ipureintro
   exact ⟨by simp only [mergedSt]; exact hty, rfl, Hsh.1.2.2.2.2.2.2.2⟩
 
-/-- **(SNAPSHOT-SORRY #7-cmp) The merged snapshot observes the compaction records** (#7-cmp's
-Freeze, 2026-11-02; the narrowest point of the compaction-mode image, F2 of
-`notes/image-cmp-plan.md`): `s.be.Snapshot()` on the server's backend `d` in compaction mode, taken
-while the apply thread holds the KV's sole writer at the log `log` (`txn.kvWriter`) and its
-compaction resources at the revision `crev` (`apply.cmpOwn`), observes the image of `log` at
-compaction records `r` of revision `crev` (`mvcc.keyImageM true`). True of the Go code: the store
-writes and force-commits `scheduledCompactRev` = `compactMainRev` before the job deletes, the job
-deletes in revision order in force-committed batches, writing `finishedCompactRev` with its last
-(`kvstore.go`'s `updateCompactRev`, `kvstore_compaction.go`'s `scheduleCompaction`), and `Snapshot`
-commits the batch first, so a snapshot sees whole batches (Go tests `TestImageCmpMidJob`, mid-job
-and with a second compaction queued). Not provable from today's specs: `backend.Snapshot.spec`'s
-observation of `Meta`'s hook keys gives only the flag and the values at open (`fkRd`), and mvcc
-tracks neither the records' values nor the job's cut. Its proof is F2's (spec-first: mvcc's
-tracking and a restated `Snapshot` axiom). -/
-theorem srvBeSnapOk_cmpRecs (E : apply.AEnv GF) (d : mvcc.KBReal) (hkb : E.γ.kb = some d)
-    (log : mvcc.Log) (crev : Int) (be : GoInterface) (RS RS' : IProp GF)
-    (Q : backend.Data → Prop) (hbe : be = srvBeIface d.be)
-    (hRS : RS ⊢ txn.kvWriter E.s E.γ log ∗ apply.cmpOwn E crev ∗ True) :
-    srvBeSnapOk (GF := GF) be RS RS' Q ⊢
-      srvBeSnapOk be RS RS' (fun D => Q D ∧
-        (d.cm = true → ∃ r : mvcc.CmpRecs, mvcc.keyImageM true log r D ∧ r.crev = crev)) := by
-  sorry -- SNAPSHOT-SORRY #7-cmp
-
 /-- **What the merged snapshot observes** (S2; #7-cmp's Freeze, 2026-11-02, the user's approval):
 the backend's data `D` is the image, by the store's compaction mode `cmp`, of the KV log `log` at
 compaction records `r` (`mvcc.keyImageM`: off, the `Key` bucket exactly `log`'s and no compaction
@@ -558,7 +514,8 @@ resources (`RC`, the commit's `RC'` giving the snapshot's `RS`; D22 the stored-i
 snapshot is taken (`RS'`, with `s.be` back), the apply thread's resources again, at a state of the
 same consistent index. -/
 theorem mergedCreate_window
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
     (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
@@ -573,7 +530,7 @@ theorem mergedCreate_window
     (hok : loopOk γ st ai) (hci : ciEff γ st.k = ai) (hpos : 0 < uint.Z ai)
     (hlen : uint.Z ai = A.length) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ ∗
+      isServerM on s γ ci TM E ρ γr ∗ srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗
       srvWTPool E γp ∗ appliedLogAt γr ai x.log ∗ srvRLogLb γr.raft A ∗ ⧗ 1 ∗ £ 1 ∗ ⧗ 1 ∗ £ 1 ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗
       srvRest E γr A ⊢
@@ -583,198 +540,14 @@ theorem mergedCreate_window
       (RS' -∗ srvBeAddr s ↦{dq} be ={⊤}=∗ ∃ st' : ApplyState, applyThread γ st' ∗
         applyBackend γ ci b ∗ ciApplying ci a t ∗ srvApplyKVCore s E γw x ua ∗ srvRest E γr A ∗
         ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝) := by
-  iintro ⟨#Hpkg, #Hsrv, #Hkva, #Hkv, #Hpool, -, -, Hr1, Hl1, Hr2, Hl2, Hst, Hab, Hca, HKV, HRs⟩
-  -- the server's backend, its hooks and the protocol (`srvBeHooked`, `srvEnvOk`, `isServerCI`)
-  iunfold isServerM at Hsrv
-  icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -⟩
-  iunfold srvFieldsAtM at Hf
-  icases Hf with ⟨-, -, -, -, -, %Henv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hbh⟩
-  iunfold srvBeHooked at Hbh
-  icases Hbh with ⟨%d, %bh, %lgh, %Hd, -, #Hbhk, #HhkAt, #HB⟩
-  obtain ⟨hkb, hcK, hhP⟩ := Hd
-  obtain ⟨-, -, -, γB, H, hRO, -, d', al, stl, lp, hkb', hγB, -, hcm⟩ := Henv
-  rw [hkb] at hkb'
-  obtain rfl := Option.some.inj hkb'
-  subst hγB
-  iunfold isServerCI at HCI
-  icases HCI with ⟨-, #Hci, #Hinv⟩
-  ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
-  · iPkgInit
-  ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
-  · iPkgInit
-  ihave #Hschpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
-  · iPkgInit
-  ihave #Hcipkg : isPkgInit (PROP := IProp GF)
-      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
-  · iPkgInit
-  ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
-  · iPkgInit
-  ihave #Hnh := isBackendNH_of_hooksAt d.γB d.P (mvcc.lateW d.gx)
-    (batchLockInv γ (metaTM d.γB d.P)) d.be (storage.hooksIface bh) $$ [HB HhkAt]
-  · iframe #
-  -- the commit's request: the window opened (`storeReq_freeze`)
-  ihave #Hreq := storeReq_freeze hOn hSave hPut hUR hID hName hSafe γ ci E.γ d hkb
-    (mvcc.lateW d.gx) bh lgh hcK hhP st hok.1 $$ [Hspkg Hbpkg Hschpkg Hcipkg Hbhk Hnh HB Hci Hinv]
-  · iframe #
-  -- the apply thread's KV resources
-  iunfold srvApplyKVCore at HKV
-  icases HKV with ⟨Hua, #Hap, Hakv, Hbo, Hra, Hw⟩
-  iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%p, %Hp, Hub, Hko, Hcmo⟩
-  iunfold apply.kvOwn at Hko
-  icases Hko with ⟨Hsr, Hkw, Hll, Hrd, Hwo⟩
-  iunfold txn.kvWriter at Hkw
-  icases Hkw with ⟨Hsw, Hwl, Hfr⟩
-  ihave ⟨Hsw, %Hwf⟩ := keep_pure (soleWriter_idxWf E.γ x.log) $$ Hsw
-  iunfold srvBeOwn at Hbo
-  icases Hbo with ⟨%d2, %hd2, Hbe, Hg, HbRO, HbPl⟩
-  rw [hkb] at hd2
-  obtain rfl := Option.some.inj hd2
-  -- two write-backs' tokens
-  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr1 Hl1 Hg with ⟨Ht1, Hg⟩
-  imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hl2 Hg with ⟨Ht2, Hg⟩
-  ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
-  -- the rest buckets
-  iunfold srvRest at HRs
-  rw [hRO]
-  iunfold srvRestOwnH at HRs
-  icases HRs with ⟨Hro, HH⟩
-  iunfold srvRestOwn at Hro
-  icases Hro with ⟨Hrc, Hrn, Hcl, %Hmi⟩
-  ihave Hrb : iprop(backend.rbOwnIn (GF := GF) d.γB membership.clusterBkts
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
-    backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) $$ [Hrc Hrn]
-  · iframe Hrc Hrn
-  have hRT : mvcc.storeRT (GF := GF) E.γ =
-      iprop(backend.rdTok d.γB d.P d.be ∗ backend.bOpen d.γB backend.rdOpen) := by
-    show mvcc.kbRT E.γ.kb = _
-    rw [hkb]; rfl
-  have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
-    simp [mvcc.KBReal.P, hn]
-  imodintro
-  iexists srvBeIface d.be, DFrac.own (1 : Qp).half
-  iexists iprop(mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ mvcc.storeWT E.γ ∗ applyThread γ st ∗
-      mvcc.storeReq E.γ (applyThread γ st) (freezeY γ st) ∗ emp)
-  iexists iprop(mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ freezeY γ st ∗ emp)
-  iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ backend.wbTok d.γB ∗ (freezeY γ st ∗
-      iprop(backend.rbOwnIn d.γB membership.clusterBkts
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
-        backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
-      (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
-        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)))
-  iexists iprop(backend.bOpen d.γB backend.rdOpen ∗ (freezeY γ st ∗
-      iprop(backend.rbOwnIn d.γB membership.clusterBkts
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
-        backend.rbPart d.γB (fun n => ¬ membership.clusterBkts n)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk) ∗
-      (txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
-        mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)))
-  isplitr
-  · iapply srvKVCommitOk_of_kv hC kv E.s E.γ (applyThread γ st) (freezeY γ st) emp
-    iframe #
-  isplitl [Hfr Hwo Hwt Hst]
-  · iframe Hfr Hwo Hwt Hst Hreq
-  isplitl [Hbe]
-  · iexact Hbe
-  isplitr
-  · -- the snapshot in the window, observing `mergedObs`: on, the records (`srvBeSnapOk_cmpRecs`)
-    iapply srvBeSnapOk_mono _ _ _ _ _ ?_
-    rotate_left
-    · iapply srvBeSnapOk_cmpRecs E d hkb x.log x.crev _ _ _ _ rfl ?_
-      · iintro ⟨-, -, -, -, Hkw, -, -, Hcmo⟩
-        isplitl [Hkw]
-        · iexact Hkw
-        isplitl [Hcmo]
-        · iexact Hcmo
-        itrivial
-      iapply srvBeSnapOk_window hSnap γ d.γB d.P hcK (mvcc.lateW d.gx) d.be backend.rdOpen st
-        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk
-        iprop(txn.kvWriter E.s E.γ x.log ∗ backend.rdTok d.γB d.P d.be ∗
-          mvcc.retiredAt E.γ (2 + mvcc.nJobRd E.γ.kb) ∗ apply.cmpOwn E x.crev)
-        (fun vd => (∀ k v, vd.lookup (mvcc.keyName, k) = some v →
-            (mvcc.bucketMap x.log).lookup k = some v) ∧
-          (d.cm = false → ∀ k, vd.lookup (mvcc.keyName, k) = (mvcc.bucketMap x.log).lookup k))
-        (fun D => d.cm = false → backend.fkAbsD D)
-      iframe Hbpkg HB
-      isplitr
-      · iintro !> %vd ⟨Hkw, -, -⟩ HW Hv
-        iapply txn.kvWriter_keyObs E.s E.γ d hkb x.log vd $$ [Hkw Hv]
-        iframe
-      · iintro !> %D ⟨Hkw, Hrt, Hret, Hcmo⟩ #Hfk
-        ihave ⟨%h, Hkw⟩ := txn.kvWriter_noCmp E.s E.γ d hkb x.log (D, ⟨∅, W64 0⟩) $$ [Hkw Hfk]
-        · iframe Hkw Hfk
-        iframe Hkw Hrt Hret Hcmo
-        ipureintro; exact fun hc => (h hc).1
-    · intro D ⟨⟨⟨⟨hciO, hrbD⟩, _, hex⟩, hnc⟩, hrec⟩
-      have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
-          backend.dget D mvcc.keyName k := fun k => by
-        rw [backend.sData_lookup]; simp [mvcc.KBReal.P]
-      obtain ⟨hci1, t1, ht1⟩ := hciO
-      rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
-      rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
-      refine ⟨?_, ?_, ⟨t1, by simpa using ht1⟩, bkRestAt_of_rb hRB hrbD, Hwf⟩
-      · cases hc : E.cmp
-        · -- off: the whole bucket and no compaction key, no record
-          have hdc : d.cm = false := hcm.trans hc
-          refine ⟨mvcc.CmpRecs.empty, (mvcc.keyImageM_off _ _ D).2 ⟨?_, rfl⟩, fun h => by cases h⟩
-          refine ⟨fun k => ?_, (mvcc.noCmpData_of_fkAbsD (hnc hdc)).1,
-            (mvcc.noCmpData_of_fkAbsD (hnc hdc)).2⟩
-          rw [← hsd]; exact hex hdc k
-        · obtain ⟨r, hr, hrc⟩ := hrec (hcm.trans hc)
-          exact ⟨r, hr, fun _ => hrc⟩
-      · rw [← hci]; simpa using hci1
-  isplitl [Hsw Hwl Ht2 Hrb Hcmo]
-  · iintro ⟨Hfr, Hwo, HY, -⟩
-    iunfold mvcc.writerOwn at Hwo
-    icases Hwo with ⟨Hrt, Hret⟩
-    rw [hRT]
-    icases Hrt with ⟨Hrdt, Hop⟩
-    iframe Hop Ht2 HY Hrb Hrdt Hret Hcmo
-    iunfold txn.kvWriter
-    iframe
-  · iintro ⟨Hop, HY, Hrb, Hkw, Hrdt, Hret, Hcmo⟩ Hbe
-    imod unfreeze γ st $$ Hinv HY with Hst
-    imodintro
-    iexists st
-    iframe Hst Hab Hca
-    isplitl [Hua Hub Hcmo Hsr Hll Hrd Hkw Hrdt Hret Hop Hra Hw Hbe Hg HbRO HbPl]
-    · iunfold srvApplyKVCore
-      isplitl [Hua]
-      · iexact Hua
-      isplitr
-      · iexact Hap
-      isplitl [Hub Hcmo Hsr Hll Hrd Hkw Hrdt Hret Hop]
-      · iunfold apply.applyKV
-        iexists p
-        iframe Hub Hcmo
-        isplitr
-        · ipureintro; exact Hp
-        iunfold apply.kvOwn
-        iframe Hsr Hkw Hll Hrd
-        iunfold mvcc.writerOwn
-        iframe Hret
-        rw [hRT]
-        iframe Hrdt Hop
-      isplitl [Hbe Hg HbRO HbPl]
-      · iunfold srvBeOwn
-        iexists d
-        iframe Hbe Hg HbRO HbPl
-        ipureintro; exact hkb
-      isplitl [Hra]
-      · iexact Hra
-      iexact Hw
-    isplitl [Hrb Hcl HH]
-    · iunfold srvRest
-      rw [hRO]
-      iunfold srvRestOwnH
-      iframe HH
-      iunfold srvRestOwn
-      icases Hrb with ⟨Hrc, Hrn⟩
-      iframe Hrc Hrn Hcl
-      ipureintro; exact Hmi
-    ipureintro; exact ⟨hok, rfl⟩
+  -- M1-REPLACE: the merged snapshot's window over the API (strict M1, 2026-11-06). The proof was
+  -- over mvcc's internals (the sole writer `txn.kvWriter`, `mvcc.storeReq`/`storeWT`, the key image
+  -- `mvcc.keyImageM` of `mergedObs`, SNAPSHOT-SORRY #7-cmp's records); over the API the snapshot's
+  -- data is known only as `mvccImage` (`mvccImage_snapshot.law`, sealed), so `mergedObs`'s key image
+  -- is not derivable: the send's redesign (`KVStoreApi.lean` §3c, `senderImage.law`, `dbImageA` in
+  -- place of `srvNet`'s image) restates this lemma, `merged_image` and
+  -- `createMergedSnapshotMessage.spec`.
+  sorry
 
 /-- **(S2) The merged snapshot's image** (the network's image certificate, `srvNet`'s `img`, which
 the bundle carries), in either compaction mode (#7-cmp's Freeze, 2026-11-02, the user's approval: in
