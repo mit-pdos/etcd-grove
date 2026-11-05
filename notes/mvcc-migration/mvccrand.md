@@ -27,10 +27,15 @@ mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
   registers (`watchRangeOf`, its affine `covers`, through which `wsRecvOk` selects a watcher's
   events) is the tester's `inRange` for non-empty keys.
 - `checkRange`: the spec (`Spec/.../checkRange.lean`: from `rangeOutcome` at a well-formed log
-  whose states match the tester's maps up to `cur`, and `res ≠ null`, it returns). Its proof
-  (`Proof/.../checkRange.lean`) is in progress, not committed while it has a `sorry`: the two
-  error arms and the future arm are done; left, the match loop and the key-value loop (the steps
-  are `answers_keys_eq_match`, then `rangeKvs`' elements through `checkKV`).
+  whose states match the tester's maps up to `cur`, and `res ≠ null`, it returns). Its proof is
+  in progress outside the tree (`~/.claude-D/jobs/e4ba2bf8/tmp/mvccrand-wip/checkRange.lean`, not
+  committed: it has a `sorry`): done, the context-error arm excluded, the future arm (its
+  `err == ErrFutureRev` through `mvccInit`'s `errorsNewVar`, G2), the result's two shapes merged and
+  split into fields, `rev := rangeRev`; left, the match loop (`slice.forRange` over `keys`, invariant
+  `match = (keyList.take i).filter …`, giving `matchKeys`), `n`/`taken`/`total` against
+  `rangeTotal`/`rangeTaken` (txn's `rangeTotal_stateAt`, `rangeTaken_eq` with
+  `answers_keys_eq_match`), and the key-value loop (`rangeKvs`' `i`-th element, `kvPtrIs` to
+  `kvMatches` through `stMatch`, then `checkKV`).
 
 ## The checks against the API (2026-11-05, by reading; each to be proved)
 
@@ -140,7 +145,17 @@ no such fact even in `mvccInit`, only `∃ e, globalAddr … ↦□ ok e`).
 
 ## Left
 
-The specs and proofs of the rest (`rng.*`, `genRange`, `checkKV`, `checkRange`, `pending.*`,
-`history.*`, `writer.*`, `reader`, `watchCheck.*`, `Run`, `Main`), the invariants (the writer's
-history and published revision, the watch stream's registry under `c.mu`), `Init.lean`, `Link.lean`
-and `Results.lean`.
+- `checkRange`'s proof (above); the specs and proofs of the rest: `rng.genKey`/`genEnd`/`genRange`,
+  `copyState`, `pending.put`/`del`, `history.*`, `writer.*` (the write paths over `KV.Write`,
+  `Txn.*`, `Txn.End`; the hook's triple for `hookRun`), `reader`, `watchCheck.*` (`receive` over
+  `wsChan_recv.law` and `wsRecv_ok.law`), `itoa`, `Run`, `Main`.
+- The invariants (one design, by the table above): an invariant holding `mvccState γ σ` (with
+  `σ.crev = -1`, `σ.pending` the writer's), `wsState ι S` (`S.closed = false` until `Run`'s
+  `ws.Close()`), a ghost copy of the history (`states`, `changes`) with `σ.notifiedLog`'s
+  revisions a prefix of it, `published ≤ σ.rev`; the writer's half of the log; `c.mu`'s lock
+  invariant tying `c.watchers` to `S.ws`'s domain and each watcher's position to its received
+  events; the ticks channel's values `≥ 1` (`intn(pub + 1)`).
+- `Init.lean` (gen-init.py, the coordinator's), `Link.lean`, `Results.lean`, and the closed
+  theorem, which cannot be stated as "`Main` does not panic" until G1 is fixed (every write),
+  `lease.NewLessor`'s `clusterOk` admits `nil`, and with `be.Close()` out of scope.
+- No placeholder (`M1-REPLACE`) committed: nothing proved rests on a gap yet.
