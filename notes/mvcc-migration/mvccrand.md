@@ -14,7 +14,16 @@ mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
   variables are composite literals: a `SPECIAL` entry giving `mvccrandInit`); outside this track's
   paths.
 - `check` (spec, proof), `inRange` (spec over `inRangeM`, the tester's model of a range, which is
-  mvcc's `inRange` off the single-key case; proof).
+  mvcc's `inRange` off the single-key case; proof), `rng.next` (some number), `rng.intn` (in
+  `[0, n)` for `n > 0`), `checkKV` (returns when the key-value is the model's record, `kvMatches`;
+  the struct's points-to kept by the call, the slices given back). All proved, no `sorry`.
+- `Model.lean` (pure): the tester's maps against mvcc's states (`stMatch`, `kvOfRec`), and the
+  probe of the read contract, **`answers_keys_eq_match`** (proved): for a log with `txn.LogOk`
+  (which `Txn.Range.contract`'s `LogWf'` and change-count facts give, `txn.LogOk.of_cert`), the
+  keys `rangeAnswers` answers at a revision, through which `rangeOutcomeC` gives the count, the
+  limit's cut and the key-values in order, are exactly `checkRange`'s `match` (the tester's keys in
+  its order, in its map and in the range). Imports txn's `Lemmas` (`rangeAnswers_keys`), which
+  imports only mvcc's `ApiState`.
 
 ## The checks against the API (2026-11-05, by reading; each to be proved)
 
