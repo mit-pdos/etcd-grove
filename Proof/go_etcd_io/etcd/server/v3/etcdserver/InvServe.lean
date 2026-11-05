@@ -11,7 +11,8 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   read-only.
 * `srvServeBuilt s E cfg K`: those, the KV field as the watchable store `NewServer` built
   (`isWatchableStore`), a reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
-  the auth store (`E.RD`) and the store (`mvcc.storeReader`), which `NewServer`'s proof dropped
+  the auth store (`E.RD`) (and until strict M1 the store's, `mvcc.storeReader`: a reader of the
+  API's store holds the thread's token instead), which `NewServer`'s proof dropped
   until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
   (Until J8a-3, 2026-11-01, also the progress interval's field, owned: `NewWatchServer` wrote it;
   the fork's `NewWatchServer` keeps the adjusted interval local, and the field is read-only in
@@ -93,13 +94,16 @@ instance srvServeCfg_persistent (s : Loc) (cfg : go_etcd_io.etcd.server.v3.confi
   unfold srvServeCfg; infer_instance
 
 /-- **The facts `NewServer` leaves for serving** (persistent): the KV field as the watchable
-store it built, and the configuration fields `srvServeCfg`. -/
+store it built (strict M1, 2026-11-06: the API's handle, `srvWatchBuilt`'s; until then
+`mvcc.isWatchableStore wsl E.s γ`), and the configuration fields `srvServeCfg`. -/
 def srvServeFacts (s : Loc) (E : apply.AEnv GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop((∃ (wsl : Loc) (γ : mvcc.WsNames),
+  iprop((∃ wsl : Loc,
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-      mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝) ∗
+      ⌜E.kv = interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl⌝ ∗
+      □ mvcc.api.isMvcc E.kv E.γ) ∗
     srvServeCfg s cfg)
 
 instance srvServeFacts_persistent (s : Loc) (E : apply.AEnv GF)
@@ -127,7 +131,6 @@ def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate K (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
 
 end defs

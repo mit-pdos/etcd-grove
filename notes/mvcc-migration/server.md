@@ -334,6 +334,46 @@ uncommitted edits of the time included):
    `applyEntryNormal.wp_proof`, `snapshot.wp_proof`, `applyAll.wp_proof` take mvcc's laws;
    `etc/gen-link.py` must pass them, as for `EtcdServer.apply.wp_proof`), `Results.lean`.
 
+### For v3rpc (2026-11-06, the server track's eighth session; building)
+
+The watch store `NewServer` leaves, over mvcc's API (`InvWatchBuilt.lean`, `InvServe.lean`):
+
+```lean
+/-- (persistent) -/
+def srvWatchBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ wsl : Loc, srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+    ⌜E.kv = interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl⌝ ∗
+    □ mvcc.api.isMvcc E.kv E.γ)
+
+def srvServeFacts (s : Loc) (E : apply.AEnv GF) (cfg : ServerConfig) : IProp GF :=
+  iprop((∃ wsl : Loc, srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+      ⌜E.kv = interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl⌝ ∗
+      □ mvcc.api.isMvcc E.kv E.γ) ∗
+    srvServeCfg s cfg)
+
+def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : ServerConfig) (K : Nat) : IProp GF :=
+  iprop(srvServeFacts s E cfg ∗ srvBemuReader s ∗
+    ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
+    ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
+    ([∗list] _x ∈ List.replicate K (), E.RD) ∗
+    ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
+```
+
+- Gone: `mvcc.isWatchableStore wsl E.s γw`, `γw.st = E.γ`, `mvcc.watchTokPool γw`,
+  `auth.modeTag γw.tag E.authMode` (the API's names carry no tag: the auth mode is `E.authMode`'s),
+  **`srvWatchReaders`** (its `n` reader slots `mvcc.watchReader` of mvcc's locks), and
+  `srvServeBuilt`'s `K` slots of `mvcc.storeReader E.s E.γ`. Over the API a watch stream is made by
+  `WatchableKV.NewWatchStream.contract` (it needs only `isMvcc`; the contract at the watchable store's
+  type is `shapes.law`'s second conjunct), and every thread that calls the store holds its own
+  `threadTok` (the bounds plan: the token comes with the goroutine, not from the store).
+- Callers (outside the server track): `client/v3/ServeFromStart.lean` (`grpcCfgOk_of_started`,
+  `grpcCfgOk_of_started_w`), `ServeFromStartOn.lean`, `examples/common/Defs.lean`
+  (`srvWatchReaders s E 64`: drop it, `srvWatchBuilt` is persistent).
+
 **Placeholders:** one, `SnapSendBranch.mergedCreate_window`'s body (`M1-REPLACE`, above), in place of
 its proof over mvcc's internals; SNAPSHOT-SORRY #7-cmp (`srvBeSnapOk_cmpRecs`) deleted with it.
 `applyAll`'s SNAPSHOT-SORRY #7-on unchanged. No axiom.
