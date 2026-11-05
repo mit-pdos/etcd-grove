@@ -17,6 +17,7 @@ module
 public import Proof.go_etcd_io.bbolt.Write.DelBktHeap
 public import Proof.go_etcd_io.bbolt.Write.DelBktPlain
 public import Proof.go_etcd_io.bbolt.Write.DelBktOpen
+public import Proof.go_etcd_io.bbolt.Write.DelBktFound
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -89,15 +90,6 @@ def deleteOK0 (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) :
   wOK X' ∧ wtxData X' = T.cur.delete n ∧ gensOK (T.dropBkt n) X' ∧ wrFacts X' ∧
     X'.v = X.v ∧ X'.t.mv = X.t.mv ∧ w'.C = w.C ∧ flViewU X' w'.fl ∧
     (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra)
-
-/-- **The deleted name is in the leaf** `c.node()` returns. -/
-theorem dbk_found (X5 X6 : WX) (l : Loc) (B6 : BRec) (rl : NRec) (n : GoString)
-    (els : List elemRef) (pids : List w64) (hok5 : wOK X5) (hp : lPath X5 X5.rl els pids)
-    (hr : lRoutes X5 X5.rl els pids n) (hmg : matGrow X5 X6 X5.rl)
-    (hB6 : X6.t.bs !! X5.rl = some B6) (hrl : B6.ns !! l = some rl) (hlf : leafFor X6 X5.rl n l)
-    (hin : ∃ w ∈ lLeaf X5 X5.rl pids, w.key = n) :
-    wsFound rl.ws n := by
-  sorry
 
 /-- **`DeleteBucket`'s post** (see the module doc). -/
 theorem dbk_post (T : TxView) (r : TxReg) (X X1 X6 : WX) (c : Loc) (C R1 : BRec) (n : GoString)
