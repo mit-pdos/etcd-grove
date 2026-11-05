@@ -130,12 +130,11 @@ gave `Txn.Range`'s.
 
 Proved over the API (no sorry): `Range`, `Count`, `Put`, `DeleteRange`, `Txn`, `txn`, `executeRange`,
 `applyCompare`, `applyCompares`, `compareToPath`, `getPrevKV`, `checkAndGetPrevKV`, `checkPut`,
-`checkRange`, `checkTxn`, `put`, and every proof with no mvcc callee (the list in "Done").
+`checkRange`, `checkTxn`, `put`, `deleteRange` (after F's fix, `ff4c068084`), and every proof with
+no mvcc callee (the list in "Done").
 
-`M1-REPLACE` placeholders:
-- `deleteRange` (whole proof): gap F, waiting for the mvcc track's `Txn.DeleteRange` post;
-- `executeTxn`: proved but for one obligation in its put branch, gap E′ (below): the trace's flag
-  back after `getPrevKV`.
+`M1-REPLACE` placeholder (the package's only `sorry`): `executeTxn`, proved but for one obligation in
+its put branch, gap E′ (below): the trace's flag back after `getPrevKV`.
 
 The old proofs over the internals are in the history (`645402be7a~1`).
 
@@ -174,7 +173,7 @@ does). The placeholder is one `sorry` turning `∃ te'` into `te` after `getPrev
 | `applyCompares` | `txn.applyCompare` |
 | `compareToPath` | `txn.applyCompares` |
 | `put` | `shapes`, `traceutil.Get`, `traceutil.Trace.AddField` |
-| `deleteRange` (placeholder) | `shapes`, `txn.mkGteRange` |
+| `deleteRange` | `shapes`, `txn.mkGteRange` |
 
 The proofs with no mvcc callee keep their hypotheses as before M1.
 
@@ -212,7 +211,9 @@ and the model's theorem behind `rangeAnswers_stateAt` (`kiGet_indexOf`), `mvcc.L
 (`LogWf.of_wf'`), `mvcc.stateAt_sorted`, `mvcc.inRange`, `mvcc.mvccInit` (the package's facts:
 `ErrFutureRev`, `ErrCompacted`), mvcc's `IsPkgInit` instance (today in `mvcc/Base.lean`), and the
 Go names `RangeResult`, `RangeOptions`, `ErrCompacted`, `ErrFutureRev`. Also used by the proofs:
-`mvcc.rangeOutcomeC_latest`, `mvcc.W64_sint_nat`, `mvcc.stateAt_last`, `mvcc.delKeys_present`.
+`mvcc.rangeOutcomeC_latest`, `mvcc.W64_sint_nat`, `mvcc.stateAt_last`, `mvcc.stateAt_append_lt`,
+`mvcc.delKeys_present`, and `WatchScan.lean`'s `mvcc.LogWf'.take_last` (not reached through the API:
+copied into `ApiLemmas.lean` as `txn.logWf'_take_last` until re-exported).
 
 **The `Errorf` lemmas** (mvcc's `Proof/.../mvcc/Errorf.lean`, internal): `mvcc.wp_Errorf_errorfIs`
 (`fmt.Errorf` returns an `errorfIs` error; `executeTxn`'s context error) and the

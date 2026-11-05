@@ -48,6 +48,58 @@ theorem txn.reach_crev (σ : MvccState) (h : mvcc.api.MvccReachable σ) :
     exact ⟨by simp [mvcc.api.MvccState.compactTo]; omega, by
       simpa [mvcc.api.MvccState.compactTo, mvcc.api.MvccState.rev] using h3⟩
 
+/-- A prefix of the last revision's changes keeps the log well formed (a copy of mvcc's
+`WatchScan.lean` `LogWf'.take_last`, internal, until the API re-exports it). -/
+theorem txn.logWf'_take_last {ilog : mvcc.Log} {pend rest : List mvcc.Change}
+    (h : mvcc.LogWf' (ilog ++ [pend ++ rest])) : mvcc.LogWf' (ilog ++ [pend]) := by
+  refine ⟨fun _ => ?_, fun r cs i k hr hi => ?_⟩
+  · have := h.1 (by simp)
+    rcases Nat.eq_zero_or_pos ilog.length with h0 | hpos
+    · rw [List.length_eq_zero_iff] at h0; subst h0
+      simp at this ⊢
+      exact this.1
+    · rw [List.getElem?_append_left hpos] at this ⊢; exact this
+  · by_cases hlt : r < ilog.length
+    · rw [List.getElem?_append_left hlt] at hr
+      have := h.2 r cs i k (by rw [List.getElem?_append_left hlt]; exact hr) hi
+      rw [mvcc.stateAt_append_lt _ _ (by omega)] at this ⊢
+      exact this
+    · have hr' : r = ilog.length := by
+        have := (List.getElem?_eq_some_iff.1 hr).1; simp at this; omega
+      subst hr'
+      rw [List.getElem?_append_right (Nat.le_refl _)] at hr
+      simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at hr
+      subst hr
+      have hi' : (pend ++ rest)[i]? = some (.del k) := by
+        rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 hi).1]; exact hi
+      have := h.2 ilog.length (pend ++ rest) i k
+        (by rw [List.getElem?_append_right (Nat.le_refl _)]; simp) hi'
+      have htake : (pend ++ rest).take i = pend.take i := by
+        rw [List.take_append_of_le_length (Nat.le_of_lt (List.getElem?_eq_some_iff.1 hi).1)]
+      rw [htake] at this
+      rcases Nat.eq_zero_or_pos ilog.length with h0 | hpos
+      · -- revision `0` is empty: no delete in it
+        rw [List.length_eq_zero_iff] at h0; subst h0
+        have h1 := h.1 (by simp)
+        simp at h1
+        rw [h1.1] at hi; simp at hi
+      rw [mvcc.stateAt_append_lt _ _ (by omega)] at this ⊢
+      exact this
+
+/-- **A delete's log before it** (gap F's fix: `Txn.DeleteRange`'s post gives the log after the
+delete well formed and small): `LogOk` of the log before (`LogWf'.take_last`). -/
+theorem txn.logOk_of_del (σ : MvccState) (pend ds : List mvcc.Change) (h : txn.Reach σ)
+    (hwf : mvcc.LogWf' (σ.log ++ [pend ++ ds]))
+    (hcs : ∀ cs ∈ σ.log ++ [pend ++ ds], cs.length < 2 ^ 63) : txn.LogOk (σ.log ++ [pend]) := by
+  have h3 := h.2
+  refine txn.LogOk.of_cert ⟨txn.logWf'_take_last hwf, by simp; omega, ?_⟩ (by simp)
+  intro cs hc
+  rcases List.mem_append.1 hc with hc | hc
+  · exact hcs cs (List.mem_append_left _ hc)
+  · simp only [List.mem_singleton] at hc; subst hc
+    have := hcs (cs ++ ds) (by simp)
+    simp only [List.length_append] at this; omega
+
 /-- A transaction's compaction revision is at most the revision it reads at. -/
 theorem txn.crev_le_readRev (k : MTxn) (h : txn.Reach k.state) :
     k.state.crev ≤ sint.Z k.readRev := by
