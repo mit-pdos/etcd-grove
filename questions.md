@@ -12,6 +12,7 @@ The Part E agent declined to act on them as relayed. The coordinator is proceedi
 (they are the user's own answers); a veto here stops the work that uses them.
 Depends on it: E2's application, E3 (c) stages 1-2, `Main`'s proof and link, trust base 785/7.
 Recommendation: confirm.
+**Confirmed by the user 2026-11-05** (relayed by the user's own session): all three stand.
 
 ## Pending before Freeze (hard stop)
 - `axiom` skill on: `schema.MustUnsafeGetAllLeases.wp_proof` (new), `lease.NewLessor.wp_proof`
