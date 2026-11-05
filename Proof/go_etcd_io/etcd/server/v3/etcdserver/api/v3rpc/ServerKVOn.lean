@@ -279,8 +279,8 @@ theorem kvDepOwnM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
         (fun σ => iprop(⌜false = true⌝ → opGrantT s E ρ tok o L₀ σ)) Q ⊢
         kvAu1 ρ.kv (kvOpStep o) Q := by
       unfold kvAu1G kvAu1
-      exact aupd_post_mono (fun _ _ => sep_emp.2.trans (sep_mono_right (by
-        iintro - %h; cases h)))
+      exact aupd_post_mono (fun _ _ => sep_mono_right (sep_emp.2.trans (sep_mono_right (by
+        iintro - %h; cases h))))
     unfold kvOpAu1
     iapply hG $$ Hau
   | none => simp only [kvDepOwn, kvDepOwnM]; iintro H; iexact H

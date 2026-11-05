@@ -361,7 +361,7 @@ theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
       · ipureintro
         exact Nat.le_trans (List.length_filter_le _ _) (by simpa using hl)
     ipureintro
-    exact ⟨rfl, kOk_init σs2 (seed_wf c hc hp) (by decide) (seed_krel c hc hp)⟩
+    exact ⟨rfl, kOk_init σs2 (seed_wf c hc hp) (seed_krel c hc hp)⟩
   imodintro
   iexists ⟨γh, γp, γr⟩
   iunfold kInv

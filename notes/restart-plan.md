@@ -500,6 +500,20 @@ usable as written) and the image's incarnation number (G2). The reviewer's answe
 incarnation's replayed entry can take the empty floor: yes, without the assumption -- a waiter here
 holds an own-key claim of its id, and two claims of one id agree.
 
+### R2c requirement from revroom-b (2026-11-05)
+
+The KV invariants now carry size facts (`kvLogSmall γk L := γk.log0.length ≤ 2 ^ 61 ∧ L.length ≤
+2 ^ 61`, `InvRequest.lean`; H-rr1, `notes/decisions.md`, "The KV updates hand back the revision
+room"), so `kvInv_alloc_boot` (`BuildAlloc.lean`) and `kvInvOn_alloc_boot` (`ServerOn.lean`), and
+`kvInvOn_alloc` (`KVAuthModel.lean`), take a premise bounding the start log:
+`hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61` for the two boot allocations (the
+bootstrap log is the invariant's first requested log), `hl0 : γk.log0.length ≤ 2 ^ 61` for
+`kvInvOn_alloc` (empty requested log). Any restart-time `kvInv`/`kvInvOn` allocation needs the same:
+with the backend's log as `γk.log0`, it discharges `γk.log0.length ≤ 2 ^ 61` from the sole writer's
+receipts, `txn.soleWriter_small'` (`log.length ≤ logCh log + 2`, `logCh log < 2 ^ 48`); the
+requested log's bound from the cluster's (`readyFits`, `isCommittedLogLb_small`), or as the boot
+allocations do, from `receiptBound GF + boot.length ≤ 2 ^ 61`.
+
 ### R2c stage 1: the id state keyed by incarnation (2026-11-02, landed)
 
 The refactor's logic, in place (the drafts of `idutil/Incarnations.lean` folded into

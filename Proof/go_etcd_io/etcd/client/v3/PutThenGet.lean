@@ -132,7 +132,7 @@ theorem putAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
     · inext; iexists σ, n; iframe Hσ Hmn; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod (mono_nat_own_update (GF := GF) (γ := γf) (max n 1) (Nat.le_max_left n 1))
       $$ Hmn with ⟨Hmn, #Hlb⟩
@@ -173,7 +173,7 @@ theorem putOtherAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val key' val
     · inext; iexists σ, n; iframe Hσ Hmn; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     have Hstep := kvOpStep_putOther key key' val' hne σ Hok.1
     imod Hclose $$ [Hσ Hmn] with -
@@ -212,7 +212,7 @@ theorem getAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
     · inext; iexists σ, n; iframe Hσ Hmn; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hmn] with -
     · inext; iexists σ, n; iframe Hσ Hmn; ipureintro; exact Hok

@@ -642,7 +642,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- Firing every registered read update at the state of `L`'s mode-`on` model, the KV authority's
 half agreeing (`kv_fire_reads`'s). -/
-theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) :
+theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (hroom : kvRoom (kvStOn γk st₀ L)) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStOn γk st₀ L) -∗
         ([∗list] g ∈ gs, regOk γk g (kvStOn γk st₀)) -∗
@@ -664,7 +665,7 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
     iunfold kvDep at Hd
     icases Hd with (⟨%Q0, %HQeq, #Hau⟩ | %HQeq)
     rotate_left
-    · imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
+    · imod kv_fire_reads_on γk st₀ L hroom gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
       imodintro
       iframe Hσ
       unfold readQs
@@ -688,8 +689,10 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc] with #HQ0
-    · iunfold etcdKV; iexact Hc
-    imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
+    · iunfold etcdKV; isplitl [Hc]
+      · iexact Hc
+      · ipureintro; rw [← Hag]; exact hroom
+    imod kv_fire_reads_on γk st₀ L hroom gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
     imodintro
     iframe Hσ
     unfold readQs
@@ -745,7 +748,7 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
-  imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
+  imod kv_fire_reads_on γk st₀ L (kvRoom_modelOn γk st₀ L Hok.2.2.2.2.2.2.2) gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask

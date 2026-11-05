@@ -564,7 +564,7 @@ theorem write_ok_au (γ : LinkvNames) (γk : KVNames) (x : Input) (i : MI) (hx :
     imodintro
     iexact HU
   · -- commit: the write takes effect, `lintest`'s update commits
-    iintro Hσ
+    iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     imod (revOwn_step γ (opIn i) σ (linkv.opOf_isKV _ _ i)) $$ Hrv with Hrv
     imod (fupd_mask_subseteq HE) with Hclose3
@@ -660,7 +660,7 @@ theorem write_pend_au (γ : LinkvNames) (γk : KVNames) (n : Nat) (i : MI) :
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     iexact Htok
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     imod (revOwn_step γ (opIn i) σ (linkv.opOf_isKV _ _ i)) $$ Hrv with Hrv
     iunfold pendTok at Htok
@@ -808,7 +808,7 @@ theorem read_ok_au (γ : LinkvNames) (γk : KVNames) (γc γt : GName) (x : Inpu
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     by_cases Hrev : σ.rev = uint.nat R
     · unfold callInv

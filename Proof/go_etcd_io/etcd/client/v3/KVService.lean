@@ -1357,14 +1357,22 @@ theorem writeUpd_of_if (dup : Bool) (P P' : IProp GF) (h : P ⊢ P') :
     imodintro
     iapply h; iexact H
 
+/-- (2026-11-05, H-rr1) An update the specs state, not told the revision's room, is one told it
+(the server's `kvAu1`/`kvAu` posts carry `kvRoom`; the specs' callers ignore it). -/
+theorem au_room (γ : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
+    iprop(AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ (f σ), COMM Q σ }>) ⊢
+    iprop(AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ (f σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>) :=
+  aupd_post_mono (fun _ _ => sep_elim_left)
+
 /-- A write's atomic update, as the specs state it, is `kvOpAu1`'s. -/
 theorem writeAu_upd (dup : Bool) (γ : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     iprop(□?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)) ⊢ writeUpd (!dup) (kvOpAu1 γ op Q) :=
   writeUpd_of_if dup _ _ (by
     unfold kvOpAu1 kvAu1
-    iintro H
-    iexact H)
+    exact au_room γ (kvOpStep op) Q)
 
 /-- A range's update, as the specs state it, is `rangeUpdK`'s. -/
 theorem readAu_upd (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
@@ -1380,7 +1388,7 @@ theorem readAu_upd (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
     isplitr
     · ipureintro; exact h
     imodintro
-    iexact Ha
+    iapply au_room γ (fun σ => σ) _ $$ Ha
 
 /-- A transaction's update, as the spec states it, is `txnUpdK`'s. -/
 theorem txnAu_upd (dup : Bool) (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) :
@@ -1399,11 +1407,12 @@ theorem txnAu_upd (dup : Bool) (γ : KVNames) (t : TxnModel) (Q : KVState → IP
     · iright; ileft
       isplitr
       · ipureintro; exact H
-      iexact Ha
+      imodintro
+      iapply au_room γ (fun σ => σ) _ $$ Ha
     · iright; iright
       isplitr
       · ipureintro; exact H
-      iexact Ha)
+      iapply au_room γ (kvOpStep (.txn t)) Q $$ Ha)
 
 /-- A client that is refusal-free unless `dup`, by `writeUpd`'s flag. -/
 theorem noRefusal_of_dup (ms : List (SrvAt GF)) (dup : Bool)

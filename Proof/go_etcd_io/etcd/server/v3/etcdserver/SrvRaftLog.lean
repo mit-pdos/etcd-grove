@@ -591,12 +591,15 @@ instance srvIsProp_persistent (γ : ServerRaftNames) (d : List w8)
 
 /-- **The proposer's update for `d`, fired at most once** (the server's; unchanged since D21 M6):
 fired at the requested entry `e` holding `d` (normal, at the next index of the server's log), its
-result persistent and of the log before the entry. -/
+result persistent and of the log before the entry. (2026-11-05, H-rr1) The commit also tells the
+log with the entry, past the start log, shorter than `2 ^ 61` (a committed log's bound,
+`isCommittedLogLb_small`): what keeps the KV invariant's size facts (`kvLogSmall`). -/
 def srvPropAu1 (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
           <{ ∀∀ (e : EntryModel),
-               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
+               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length ∧
+                 γ.pre.length + L.length + 1 < 2 ^ 61⌝ ∗
                srvRLog γ (L ++ [e]), COMM □ Q L }>)
 
 /-- What `Propose` takes for `d`: its fresh token, its update, fired at most once, and its result
@@ -1368,6 +1371,8 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
     icases Hcl' with ⟨-, -, -, #Hfits, -⟩
     ihave %Hllen := isCommittedLogLb_length γ.raft.cl srvClusterN l $$ [Hfits Hl]
     · iframe Hfits Hl
+    ihave %Hlsm := isCommittedLogLb_small γ.raft.cl srvClusterN l $$ [Hfits Hl]
+    · iframe Hfits Hl
     iunfold srvRLogLb at Hlb0
     icases Hlb0 with ⟨#Hl0, -⟩
     ihave %Hag0 := isCommittedLogLb_agree γ.raft.cl (srvLE γ []) l $$ [Hl0 Hl]
@@ -1398,7 +1403,7 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
     icases Hcl with ⟨-, Hcommit⟩
     imod Hcommit $$ %e [HL] with #HQL
     · isplitr
-      · ipureintro; exact ⟨rfl, rfl, He⟩
+      · ipureintro; exact ⟨rfl, rfl, He, by omega⟩
       iunfold srvRLog; iexact HL
     -- the registered reads, again
     imod srvFireReads γ Lf e R $$ Hlog HRr with ⟨Hlog, HRr⟩

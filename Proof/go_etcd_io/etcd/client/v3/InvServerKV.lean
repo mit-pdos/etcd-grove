@@ -340,7 +340,7 @@ theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
     · inext; iexists σ; iframe Hσ Hmn
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod (mono_nat_own_update (GF := GF) (γ := γm) (kvOpStep (.range o) σ).rev
       (kvOpStep_rev (.range o) σ)) $$ Hmn with ⟨Hmn, -⟩

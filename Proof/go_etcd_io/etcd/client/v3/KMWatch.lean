@@ -620,7 +620,7 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
   obtain ⟨ht, hr, -, -, hpk, hfr, hfp, hfd, hkey, hend⟩ := hpw
   ihave #Hreach := etcdRead_reached (EM := etcdModelOfKV γ) (rev - W64 1) $$ Hrd
   imod km_reached_lb γ (rev - W64 1) $$ Hreach with ⟨%l0, #Hl0, -⟩
-  ihave #Hau := km_read_au γ l0 $$ [$Hinv $Hl0]
+  ihave #Hau := km_read_au0 γ l0 $$ [$Hinv $Hl0]
   -- (G2) the watcher's environment explicit, no auth bound (`n = 0`)
   ihave #Hw' := Hw
   iunfold isKvWatcher at Hw'
@@ -637,12 +637,8 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
       · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
         exact ⟨ht, hr, hpk, hfr, hfp, hfd⟩
       · exact hsz
-    isplitr
-    · iintro !> %h
-      exact absurd h.2 (Nat.lt_irrefl 0)
-    iunfold kvReadAu at Hau
-    iunfold kvAu at Hau
-    iexact Hau
+    iintro !> %h
+    exact absurd h.2 (Nat.lt_irrefl 0)
   inext
   -- (G2) a non-empty key's range is its own (`watchNorm_of_ne`)
   rw [OpFull.watchNorm_of_ne _ (by rw [hkey]; exact hp)]

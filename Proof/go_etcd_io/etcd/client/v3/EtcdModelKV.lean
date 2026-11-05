@@ -568,13 +568,15 @@ instance kmSeenQ_persistent (γ : KMNames) (l0 : List (List Change)) (σ : KVSta
     Persistent (kmSeenQ (GF := GF) γ l0 σ) := by
   unfold kmSeenQ; infer_instance
 
-/-- **A read update at the adapter** (persistent): fired at the KV's state, it learns that the
-client saw it, after `l0`. -/
-theorem km_read_au (γ : KMNames) (l0 : List (List Change)) :
-    kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢ kvReadAu γ.kv (kmSeenQ γ l0) := by
+/-- **A read update at the adapter, not told the room** (persistent; 2026-11-05, H-rr1: what a
+spec whose update the server's watch fires without the room takes, `KMWatch.lean`): fired at the
+KV's state, it learns that the client saw it, after `l0`. -/
+theorem km_read_au0 (γ : KMNames) (l0 : List (List Change)) :
+    kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢
+      iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γ.kv σ, COMM □ kmSeenQ γ l0 σ }>) := by
   have Hm := kmN_mask
   iintro ⟨#Hinv, #Hl0⟩
-  unfold kvReadAu kvAu
   imodintro
   iauintro
   unfold atomic_acc
@@ -606,6 +608,14 @@ theorem km_read_au (γ : KMNames) (l0 : List (List Change)) :
     iframe Hlb
     ipureintro; exact Hp.2
 
+/-- **A read update at the adapter** (persistent): fired at the KV's state, it learns that the
+client saw it, after `l0` (`km_read_au0`, told the room it ignores). -/
+theorem km_read_au (γ : KMNames) (l0 : List (List Change)) :
+    kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢ kvReadAu γ.kv (kmSeenQ γ l0) := by
+  refine (km_read_au0 γ l0).trans ?_
+  unfold kvReadAu kvAu
+  exact intuitionistically_mono (aupd_post_mono (fun _ _ => sep_elim_left))
+
 /-- **The adapter's plan's fact, read** (persistent): a read update whose result is the plan's
 fact of the state's changes (`kmInv`'s `γ.W`). -/
 theorem kmWAu (γ : client.KMNames) :
@@ -632,7 +642,7 @@ theorem kmWAu (γ : client.KMNames) :
     · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hch Htok] with -
     · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
@@ -666,14 +676,16 @@ class KMWritable (γ : KMNames) : Prop where
 
 theorem KMWritable.of_true (γ : KMNames) (h : ∀ c, γ.W c) : KMWritable γ := ⟨fun _ _ _ => h _⟩
 
-/-- **A write's update at the adapter** (fired at most once): the KV's step by `op`, minting the
-token of the revision it makes; the step keeps the application's property (`hW`). -/
-theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
+/-- **A write's update at the adapter, not told the room** (fired at most once; 2026-11-05,
+H-rr1: what the client's specs, which fire it without the room, take): the KV's step by `op`,
+minting the token of the revision it makes; the step keeps the application's property (`hW`). -/
+theorem km_write_au0 (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
     (hW : ∀ σ : KVState, γ.W σ.changes → γ.W (kvOpStep op σ).changes) :
-    kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢ kvOpAu1 γ.kv op (kmWriteQ γ l0 op) := by
+    kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢
+      iprop(AU <{ ∃∃ (σ : KVState), etcdKV γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γ.kv (kvOpStep op σ), COMM kmWriteQ γ l0 op σ }>) := by
   have Hm := kmN_mask
   iintro ⟨#Hinv, #Hl0⟩
-  unfold kvOpAu1 kvAu1
   iauintro
   unfold atomic_acc
   iunfold kmInv at Hinv
@@ -738,6 +750,15 @@ theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
       · ipureintro; exact Hp.2
       rw [ite_cond_eq_false _ _ (eq_false hr)]
       itrivial
+
+/-- **A write's update at the adapter** (fired at most once): `km_write_au0`'s, told the room it
+ignores. -/
+theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
+    (hW : ∀ σ : KVState, γ.W σ.changes → γ.W (kvOpStep op σ).changes) :
+    kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢ kvOpAu1 γ.kv op (kmWriteQ γ l0 op) := by
+  refine (km_write_au0 γ l0 op hW).trans ?_
+  unfold kvOpAu1 kvAu1
+  exact aupd_post_mono (fun _ _ => sep_elim_left)
 
 /-! ## What the specs' replies give the model -/
 

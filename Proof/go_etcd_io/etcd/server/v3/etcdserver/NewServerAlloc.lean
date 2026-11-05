@@ -74,7 +74,7 @@ theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
   obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12⟩ := h
   unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
-    cmpEntryOk kvModel kvStQ KVNames.lg
+    cmpEntryOk kvModel kvStQ KVNames.lg kvLogSmall
   rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
 
 /-- The client's `etcdKV` reads only the state's variable. -/
@@ -290,7 +290,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
       rfl rfl (by simp [γk, γk0])
       (by intro cs hcs c hc; simp only [γk, γk0, List.mem_cons, List.not_mem_nil, or_false] at hcs
           rcases hcs with rfl | rfl <;> simp at hc)
-      (mvcc.LogPutsLe.empties _) rfl hao)
+      (mvcc.LogPutsLe.empties _) rfl hao
+      ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩)
     $$ [HL] [Hstv] with ⟨#Hkv, Hetcd⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv
