@@ -53,10 +53,10 @@ abbrev drvInit : IProp GF :=
     errVarOk errDeleteRejected go!"k8setcd3: deletion rejected" ∗
     errVarOk errUpdateRejected go!"k8setcd3: update rejected")
 
-instance isPkgInit_inst :
+instance isPkgInit_inst [EtcdGrove.k8s.CompactorRegistry] :
     IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 :=
   define_is_pkg_init drvInit
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.k8s.CompactorRegistry] :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 :=
   build_get_is_pkg_init_wf
 

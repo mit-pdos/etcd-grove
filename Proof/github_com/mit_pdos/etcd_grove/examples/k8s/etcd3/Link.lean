@@ -89,6 +89,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [NaInvG GF]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 theorem bytes.Buffer.wp_Bytes :
     EtcdGrove.bytes.Buffer.Bytes.spec (GF := GF) (hG := hG) :=
@@ -185,6 +186,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [NaInvG GF]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 theorem wp_storeEqual :
     EtcdGrove.k8s_etcd3.storeEqual.spec (GF := GF) (hG := hG) :=

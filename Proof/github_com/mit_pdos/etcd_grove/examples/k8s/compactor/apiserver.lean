@@ -42,6 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [sync_sem : sync.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
@@ -113,9 +114,11 @@ theorem apiserver.wp_proof
   ihave #Hcas := casOk_of_cinv ms γk hsame γ $$ Hinv
   ihave #Hkr := keyReadOk_of_cinv γk γ $$ Hinv
   wp_auto
-  wp_apply (wp_NewCompactor cl ms V γk (seenOk γ) (fun _ => iprop(True)) _ _ hsame hcmp hcret
+  wp_apply (wp_NewCompactor cl ms V γk (seenOk γ) (fun _ => iprop(True)) _ _ _ hsame hcmp hcret
       (by decide)) $$ [] as %c %γc ⟨#Hc, #H0⟩
   · iframe #
+    -- no `onClose`
+    iapply k8s.closeOk_nil
   (try wp_auto)
   ihave IH : (∃ (n l : w64), "i" ∷ i_ptr ↦ n ∗ "last" ∷ last_ptr ↦ l ∗
       "#Hl" ∷ compactRevLb γc l ∗ "%Hl0" ∷ ⌜0 ≤ sint.Z l⌝ : IProp GF) $$ [i last]

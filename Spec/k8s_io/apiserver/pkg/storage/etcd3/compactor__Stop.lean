@@ -4,7 +4,8 @@ wait for the loop goroutine (K2 of `notes/k8s-compactor-plan.md`). Lean-first (n
 counterpart). Returns, with nothing: `sync.Once` passes out only a persistent result (a revision
 of Draft 2, which had `Stop` give back the loop's thread token; the wait group is `sync.join`'s, its
 one `Add` needing no token).
-`onClose` is `nil` (`StartCompactorPerEndpoint`'s closure is Q1 (c)).
+Before closing `stop`, it calls `onClose` when that is not `nil` (`closeOk`: it returns; Q1 (c),
+2026-11-05).
 -/
 module
 
@@ -25,6 +26,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/

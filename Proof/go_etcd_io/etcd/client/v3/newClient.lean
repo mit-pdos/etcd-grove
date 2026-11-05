@@ -356,8 +356,12 @@ theorem newClient.wp_proof
       isplitl []
       · iexists lp
         iframe Lease Hlp
-      iexists ap
-      iframe Auth Hap
+      isplitl []
+      · iexists ap
+        iframe Auth Hap
+      iunfold clientEndpointsAt
+      iexists cfg.Endpoints'
+      iframe endpoints Heps
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn

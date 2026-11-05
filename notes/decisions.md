@@ -31864,3 +31864,50 @@ back (stale comments say it keeps it); one named `Prop` for the config block sha
 `Hraft`; stale docs (`newRaftNode`'s header on read-only fields and the names it allocates,
 `NodeStart.lean`'s header premises, `InvRaftNode`'s header on `E.T`); `isRNTicker`'s nil arm
 excluded by every spec, unfolded in `raftNode.start`/`onStop` instead of a law.
+
+## The compactor registry's name (2026-11-05 · Q1 (c) of `notes/k8s-compactor-plan.md`, C1-C2; the user's choice of A1, then of option (i) · branch `q1c`)
+
+**The problem.** `StartCompactorPerEndpoint` returns the compactor registered for one of the client's
+endpoints, whichever call registered it. Its result is useful only at the caller's cluster names
+`γk`, so the registry (`compact.go`'s `endpointsMapMu`/`endpointsMap`, made by the package's
+`init()`) must tie each endpoint to names, and the caller must know the tie is its own. The registry
+lives in `etcd3`'s package fact, which is persistent and cannot hand out the exclusive authority a
+caller needs to make the first claim of an endpoint; and ghost names allocated in two places (the
+fact's, by the initializer; a token's, at program start) never agree.
+
+**The choice (option (i)).** A typeclass, `EtcdGrove.k8s.CompactorRegistry`, holds the registry's
+ghost name. The adequacy theorem picks it before the initializer runs; `etcd3`'s initializer builds
+the lock invariant at it (`registryFact`, its package fact), and `Main` makes claims from the
+authority (`regAuth ∅`) at the same name: they agree by construction. Rejected: (ii) initializer
+outputs (the dual of D19e's `ownInitRes`), which would need every generated init theorem to say it
+initializes only its import closure; (iii) claims handed out by the shared start (`etcdstart`),
+coupling every example's start to one Kubernetes package; (iv) a weak post (no names) or deferring.
+The cost: every module stating `etcd3`'s package fact, or an importer's, declares
+`variable [reg : EtcdGrove.k8s.CompactorRegistry]` (`gen-init`'s `vars`/`table_vars`, `gen-link`'s
+`EXTRA_VARS`), and the two k8s examples' adequacy theorems choose a name (any name while they start no
+compactor through the registry).
+
+**The claims are saved predicates.** `epClaim ep Ψ`: the ghost map `γreg` maps `ep` to a name holding
+the saved predicate `Ψ` over `(compactor, client, revision name)`; claims agree (`epClaim_agree`,
+under a later, stripped by the map lookup's step). Not `ep ↦ γk`: a ghost map stores countable
+values and `KVNames` holds logs. The lock invariant keeps, for each entry, a claim and its predicate
+of the entry's compactor; the caller's claim is `epOf ep γk recorded`, the claim for
+`compactorFor γk recorded` (a compactor of `γk` and `recorded`, with the lower bound 0), made by
+`epOf_alloc`. Any persistent `recorded` (draft 1 had `recorded := True` only, wrongly thinking the
+saved predicate's later could not be stripped: the map lookup's step strips it; the spec review's
+finding).
+
+**Found while proving.**
+- *The client's endpoints.* `Client.Endpoints`' spec (names-only) relates its result to the
+  `endpoints` field when that is read-only; nothing exported said so. `isNewClient` gains its last
+  conjunct, `clientEndpointsAt cl eps` (`New`'s proof had both facts persistent): a stronger
+  postcondition of `New`, no new premise; every destructuring of `isNewClient` ends with `-`.
+- *`onClose`* is `closeOk f` in `compactorCore` (`nil`, or a function that returns), `NewCompactor`
+  takes it (`closeOk_nil`: the compactor example), `Stop` calls it when non-nil.
+- *The spec review* (`spec-reviewer`): besides `recorded`, the `epOf` vocabulary (not the saved
+  predicate's domain), the laws `closeOk_nil` and `isNewClient_endpoints`; and a second nonissue,
+  `nonissues/k8s-apiserver-compactor-shared-across-transports.md` (the factory's refcount per
+  transport key while the registry shares a compactor per endpoint).
+- *A stale entry after an endpoint change* (`onClose` deletes the endpoints as they are at `Stop`) is
+  `nonissues/k8s-apiserver-compactor-per-endpoint-stale-entry.md`: Kubernetes' compactor client never
+  changes its endpoints.

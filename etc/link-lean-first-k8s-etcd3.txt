@@ -117,3 +117,5 @@ compactor__getCompactRev: strconv_ParseInt fmt_Errorf
 compactor__fromWatchResponse: WatchResponse__Err strconv_ParseInt
 compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
 NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
+# (Q1 (c), 2026-11-05) the compactor registry
+StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof

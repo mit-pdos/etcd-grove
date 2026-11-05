@@ -25,10 +25,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance isPkgInit_inst :
+instance isPkgInit_inst [EtcdGrove.k8s.CompactorRegistry] :
     IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.k8s.CompactorRegistry] :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor :=
   build_get_is_pkg_init_wf
 

@@ -229,8 +229,18 @@ instance compactorStopOk_persistent [sync.Assumptions] (c : Loc) (sc : GoChan) (
     Persistent (compactorStopOk (GF := GF) c sc γs) := by
   unfold compactorStopOk; infer_instance
 
+/-- **A compactor's `onClose`** (persistent; Q1 (c), 2026-11-05): `nil`, or a function that returns
+when called (`StartCompactorPerEndpoint`'s, which removes the compactor from the registry), as
+`Stop` calls it. -/
+def closeOk (f : GoFunc) : IProp GF :=
+  iprop(⌜f = func.nil⌝ ∨ □ (∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #f) (Val #())) {{ Φ }}))
+
+instance closeOk_persistent (f : GoFunc) : Persistent (closeOk (GF := GF) f) := by
+  unfold closeOk; infer_instance
+
 /-- **A compactor, as its loops see it** (persistent; Q1 (b), 2026-11-04): its client `cl`, its
-interval (nonzero), a `RealClock`, no `onClose`, the mutex over its revision and its stop channel;
+interval (nonzero), a `RealClock`, its `onClose` (`closeOk`; until Q1 (c), 2026-11-05, `nil`), the
+mutex over its revision and its stop channel;
 and the caller's `recorded` is persistent (`NewCompactor.spec`'s instance), so that the revision
 under the mutex can be both kept and returned. Not the right to stop it (`stopOnce`'s): the loop
 goroutines start before the wait group's last `Add`, whose adder the `Once` then holds. -/
@@ -243,7 +253,8 @@ goroutines start before the wait group's last `Add`, whose adder the `Once` then
     (∃ ck : k8s_io.utils.clock.RealClock,
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"clock" c ↦□
         (interface.mkOk k8s_io.utils.clock.RealClock.ty #ck : GoInterface)) ∗
-    structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"onClose" c ↦□ func.nil ∗
+    (∃ f : GoFunc, structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"onClose" c ↦□ f ∗
+      closeOk f) ∗
     sync.isMutex (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.compactor go!"mux" c)
       (compactorLockInv c γk recorded γc) ∗
     ∃ (sc : GoChan) (γs : ChanNames), compactorChanOk c sc γs)
@@ -264,6 +275,44 @@ instance isCompactor_persistent [sync.Assumptions] (c cl : Loc) (γk : KVNames)
     (recorded : w64 → IProp GF) (γc : CompactorNames) :
     Persistent (isCompactor c cl γk recorded γc) := by
   unfold isCompactor compactorStopOk; infer_instance
+
+/-- **A compactor of the cluster `γk`** (Q1 (c), 2026-11-05): what an endpoint's claim (`epOf`) says
+of the compactor `StartCompactorPerEndpoint` registers for it: a compactor (of some client) over
+`γk` and `recorded`, with the lower bound `0` on its revision. Over `CompactorId` (the compactor,
+its client, its revision's ghost name), the registry's saved predicates' domain. -/
+def compactorFor [sync.Assumptions] (γk : KVNames) (recorded : w64 → IProp GF) :
+    CompactorId → IProp GF :=
+  fun x => iprop(isCompactor x.1 x.2.1 γk recorded ⟨x.2.2⟩ ∗ compactRevLb ⟨x.2.2⟩ (W64 0))
+
+instance compactorFor_persistent [sync.Assumptions] (γk : KVNames) (recorded : w64 → IProp GF)
+    (x : CompactorId) : Persistent (compactorFor (GF := GF) γk recorded x) := by
+  unfold compactorFor; infer_instance
+
+/-- **Endpoint `ep` is the cluster `γk`'s, its compactors recording `recorded`** (persistent; Q1 (c),
+2026-11-05): the registry's claim of `ep` (`epClaim`, `RegistryDefs.lean`) for the compactors of
+`γk` and `recorded` (`compactorFor`). What `StartCompactorPerEndpoint` takes of each of its client's
+endpoints; made from the claims' authority (`epOf_alloc`). -/
+def epOf [CompactorRegistry] [sync.Assumptions] (ep : GoString) (γk : KVNames)
+    (recorded : w64 → IProp GF) : IProp GF :=
+  epClaim ep (compactorFor γk recorded)
+
+instance epOf_persistent [CompactorRegistry] [sync.Assumptions] (ep : GoString) (γk : KVNames)
+    (recorded : w64 → IProp GF) : Persistent (epOf (GF := GF) ep γk recorded) := by
+  unfold epOf; infer_instance
+
+/-- **Claim an endpoint not yet claimed** for the cluster `γk` (`epOf`), from the claims' authority. -/
+theorem epOf_alloc [CompactorRegistry] [sync.Assumptions] (M : GMap GoString GName)
+    (ep : GoString) (γk : KVNames) (recorded : w64 → IProp GF) (h : M.lookup ep = none) :
+    regAuth M ⊢ |==> ∃ γa, regAuth (M.insert ep γa) ∗ epOf ep γk recorded := by
+  unfold epOf
+  exact epClaim_alloc M ep _ h
+
+/-- `nil` is a compactor's `onClose`. -/
+theorem closeOk_nil : ⊢ closeOk (GF := GF) func.nil := by
+  unfold closeOk
+  ileft
+  ipureintro
+  rfl
 
 /-- A compactor is one as its loops see it. -/
 theorem isCompactor_core [sync.Assumptions] (c cl : Loc) (γk : KVNames)

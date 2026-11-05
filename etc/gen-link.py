@@ -609,7 +609,10 @@ LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"],
 PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
 # The section variables a mode's specs take besides the usual ones, last (kvdurable's: the durable
 # extension, `GooseLang/Ext/Durable`, and the injectivity of strings its file names need)
-EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n"}
+EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n",
+              # (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
+              "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
+              "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
 em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")

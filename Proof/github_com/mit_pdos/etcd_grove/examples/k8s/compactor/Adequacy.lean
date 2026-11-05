@@ -129,6 +129,9 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [config.walDirOf go!"k8scompactor.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC k8scompactorGF := heapAtKc hG lctx
+  -- (Q1 (c), 2026-11-05) the compactor registry's name (`etcd3`'s package fact): the program
+  -- registers no compactor (`StartCompactorPerEndpoint` is not called), so any name will do
+  letI : EtcdGrove.k8s.CompactorRegistry := ⟨0⟩
   haveI := Hctx hG
   haveI := Hcec hG
   unfold progOk
