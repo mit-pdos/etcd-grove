@@ -106,6 +106,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
+import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -250,8 +251,10 @@ certificate, to the receiver's `mvccBackendFor_open`; persistent; opaque; on ado
 13, `restore`, `kvstore.go:365-423`): when the scheduled compaction is above the finished one, `c`
 is the scheduled revision (the restore resumes it, so the Key bucket may be partly compacted); and
 `L`'s last revision is the largest of the Key bucket's last revision and the two compaction
-revisions. -/
-opaque mvccImage (D : backend.Data) (L : Log) (c : Int) (u : Bool) : IProp GF := iprop(True)
+revisions. (Defined at stage 2, M2, 2026-11-05: the receipt and the image's facts,
+`Api/SnapImage.lean`'s `imageOk`.) -/
+@[no_expose] def mvccImage (D : backend.Data) (L : Log) (c : Int) (u : Bool) : IProp GF :=
+  iprop(⧖ (logCh L) ∗ ⌜snap.imageOk D L c u⌝)
 
 /-- **What the client keeps of an opened backend** after the store's part (a definition on
 adoption; here opaque): its stop channels, its hook's exclusive half at `nil`
