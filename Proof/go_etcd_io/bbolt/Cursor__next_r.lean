@@ -9,6 +9,7 @@ module
 public import Spec.go_etcd_io.bbolt.Cursor__next_r
 public import Spec.go_etcd_io.bbolt.Cursor__goToFirstElementOnTheStack_r
 public import Spec.go_etcd_io.bbolt.internal.common.Page__Count
+public import Proof.go_etcd_io.bbolt.Read.PubRPos
 
 @[expose] public section
 
@@ -54,11 +55,12 @@ theorem Cursor.next_r.wp_proof
       "Hcc" ∷ c ↦ Cursor.mk b stk1 ∗ "Hs" ∷ stk1 ↦* els1 ∗
       "Hcap" ∷ ownSliceCap elemRef stk1 (DFrac.own 1) ∗
       "%Hp" ∷ ⌜rPosAt v bv pp els1 i1 s⌝ ∗
-      "%Hoff" ∷ ⌜rOffEnt v bv pp els → rOffEnt v bv pp els1⌝ : IProp GF) $$ [Hk Hb Hc Hs Hcap]
+      "%Hoff" ∷ ⌜rOffEnt v bv pp els → rOffEnt v bv pp els1⌝ ∗
+      "%Hsame" ∷ ⌜els1 = els⌝ : IProp GF) $$ [Hk Hb Hc Hs Hcap]
   · iexists stk, els, i
     simp only [named]
     iframe
-    ipureintro; exact ⟨hpos, id⟩
+    ipureintro; exact ⟨hpos, id, trivial⟩
   wp_for IH
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave IH2 : (∃ (kk : Nat), "i" ∷ i_ptr ↦ W64 ((kk : Int) - 1) ∗ "Hs" ∷ stk1 ↦* els1 ∗
@@ -196,17 +198,23 @@ theorem Cursor.next_r.wp_proof
       have hix : sint.Z e.index' = (idx : Int) := by
         rw [hlf.2.2.2.2]; have := hlf.2.2.2.1; word
       by_cases hc0 : pageCount pgL = 0
-      · have : W64 (uint.Z hd2.count') = W64 0 := by rw [hcz2, hc0]; rfl
-        rw [this]
-        wp_auto
-        wp_for_post
-        iframe
-        iexists stk2, els2.dropLast ++ [e], s
-        simp only [named]
-        iframe
-        ipureintro
-        refine ⟨?_, fun _ => ⟨e, pidL, pgL, idx, by simp, hlf, by omega, hlwf, h16L⟩⟩
-        rw [hc0] at hsl; simp at hsl; rw [hsl] at hpos2; exact hpos2
+      · -- unreachable (`rBktOK`): an empty leaf is the root alone, which holds no element to move
+        exfalso
+        obtain ⟨-, hroot⟩ := rPosAt_empty_top hok _ _ _ hpos2 e pidL pgL idx (by simp) hlf hc0
+        obtain ⟨x, hx, hxl⟩ := rPosAt_root_leaf els1 i1 s Hp _ _ hroot hlf.2.2.1
+        have hk0 : kk - 1 = 0 := by rw [hx] at hkl; simp at hkl; omega
+        have hxe : els1[kk - 1] = x := by
+          have h : els1[kk - 1]? = some x := by rw [hx, hk0]; rfl
+          exact (List.getElem?_eq_some_iff.mp h).2
+        rw [hxe] at hpa hlt
+        have hpg := rPageAt_det v bv pp _ _ _ _ _ hpa hxl.1
+        subst hpg
+        have := hxl.2.2.2.1
+        rw [hxl.2.2.2.2] at hlt
+        rw [hc0] at hlt this
+        have : i1 = 0 := by omega
+        subst this
+        simp at hlt
       · have hne0 : W64 (uint.Z hd2.count') ≠ W64 0 := by
           rw [hcz2]; intro h; apply hc0; have := congrArg BitVec.toNat h; simp at this; omega
         rw [decide_eq_false hne0]
@@ -230,7 +238,9 @@ theorem Cursor.next_r.wp_proof
           iframe
           ipureintro
           exact ⟨hpos2, ⟨e, pidL, pgL, idx, by simp, hlf, Or.inr hil, hlwf, h16L⟩, hent⟩
-        · ipureintro; intro _; right; exact (List.getElem?_eq_some_iff.mp hent).1
+        · ipureintro
+          have hslt := (List.getElem?_eq_some_iff.mp hent).1
+          exact ⟨fun _ => Or.inr hslt, fun h => absurd h (by omega)⟩
     · rw [decide_eq_false hlt]
       wp_auto
       ihave Hs := Hsback $$ He
@@ -266,7 +276,7 @@ theorem Cursor.next_r.wp_proof
       iright
       ipureintro
       exact ⟨rUpInv_none els1 i1 s Hp Hu.2, rfl, rfl, rfl, i1, Hp⟩
-    · ipureintro; intro h; exact Or.inl (Hoff h)
+    · ipureintro; exact ⟨fun h => Or.inl (Hoff h), fun _ => Hsame⟩
 
 end proof
 

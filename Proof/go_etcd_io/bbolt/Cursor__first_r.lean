@@ -135,7 +135,7 @@ theorem Cursor.first_r.wp_proof
     have hoff2 : rOffEnt v bv pp (els2.dropLast ++ [e]) :=
       ⟨e, pidL, pgL, idx, by simp, hlf, by omega, hlwf, h16L⟩
     wp_apply hnx K tx src q T v b dq bv ibp pp c stk2 (els2.dropLast ++ [e]) 0 0 hok hpos2
-      $$ [Hk Hb Hc Hs Hcap] as %k0 %vl0 %fl0 ⟨%stk3, %els3, Hk, Hb, Hc, Hs, Hcap, Hcur, %Hoff⟩
+      $$ [Hk Hb Hc Hs Hcap] as %k0 %vl0 %fl0 ⟨%stk3, %els3, Hk, Hb, Hc, Hs, Hcap, Hcur, %Hoff, -⟩
     · iframe
     try wp_auto
     unfold rCurKV
