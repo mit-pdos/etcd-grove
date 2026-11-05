@@ -24,10 +24,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem writer.cur.wp_proof : writer.cur.spec (GF := GF) (hG := hG) := by
-  intro w wv dq γ p
+  intro w wv γ p
   wp_start as ⟨Hw, #Hinv, Hp⟩
-  icases typedPointsto_not_null_dup _ _ _ $$ Hw with ⟨Hw, %Hwnn⟩
-  iStructNamedSuffix Hw "W"
+  iunfold writerRO at Hw
+  icases Hw with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
   wp_auto
   wp_apply_core sync.atomic.Int64.wp_Load (hPub wv.h') (DFrac.own 1) $$ [] [-]
   · iPkgInit
@@ -47,10 +47,6 @@ theorem writer.cur.wp_proof : writer.cur.spec (GF := GF) (hG := hG) := by
   · inext; iunfold worldInv; iexists σ, S, p, Hl, W; iframe; ipureintro; exact Hok
   imodintro
   wp_auto
-  ihave Hw : w ↦{dq} wv $$ [kvW leW hW rW leasesW nextIDW valsW applyingW savedW ticksW]
-  · iapply typedPointsto_combine _ _ _ Hwnn
-    simp only [TypedPointsto.typedPointstoDef, named]
-    iframe
   iapply HΦ
   iframe
 

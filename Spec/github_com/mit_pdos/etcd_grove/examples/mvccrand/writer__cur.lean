@@ -5,7 +5,7 @@ exactly (its half of `γ.pv`, `World.lean`: only it publishes).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.World
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Writer
 
 @[expose] public section
 
@@ -27,11 +27,11 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.cur.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (dq : DFrac) (γ : RandNames) (p : w64),
+  ∀ (w : Loc) (wv : writer) (γ : RandNames) (p : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
-      w ↦{dq} wv ∗ inv worldN (worldInv wv.h' γ) ∗ ghostVar γ.pv (1 : Qp).half p }}
+      writerRO w wv ∗ inv worldN (worldInv wv.h' γ) ∗ ghostVar γ.pv (1 : Qp).half p }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"cur")) (Val #()))
-  {{ RET #p; w ↦{dq} wv ∗ ghostVar γ.pv (1 : Qp).half p }}
+  {{ RET #p; ghostVar γ.pv (1 : Qp).half p }}
 
 end spec
 

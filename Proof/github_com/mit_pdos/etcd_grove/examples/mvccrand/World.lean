@@ -67,11 +67,19 @@ instance mvccState_countable : Pos.Countable MvccState :=
       obtain ⟨h1, h2, h3⟩ := h
       subst h1 h2 h3; rfl)
 
+/-- **A revision `e` of the history `Hs` is the log `L`'s revision `r`**: its state is the store's
+at `r`, and past revision `0` it is the tester's model (`pendOf`) of the log's changes of `r` from
+the revision before (so its changes are what a watcher of the revision expects). -/
+def revOk (L : Log) (Hs : List HRev) (r : Nat) (e : HRev) : Prop :=
+  stMatch e.1 (stateAt L r) ∧
+  (1 ≤ r → ∃ e', Hs[r - 1]? = some e' ∧
+    e = ((pendOf e'.1 (W64 (r : Int)) (L.getD r [])).st, (pendOf e'.1 (W64 (r : Int)) (L.getD r [])).chs))
+
 /-- **The history covers the notified history** (the store's and the stream's): every revision of
-`σ.notifiedLog` is in `Hl`, its state the store's at it. -/
+`σ.notifiedLog` is in `Hl`, the log's revision. -/
 def histOkM (σ : MvccState) (Hl : List HRev) : Prop :=
   σ.notifiedLog.length ≤ Hl.length ∧
-  ∀ r < σ.notifiedLog.length, ∃ e, Hl[r]? = some e ∧ stMatch e.1 (stateAt σ.notifiedLog r)
+  ∀ r < σ.notifiedLog.length, ∃ e, Hl[r]? = some e ∧ revOk σ.notifiedLog Hl r e
 
 end model
 
@@ -111,12 +119,12 @@ def worldInv (h : Loc) (γ : RandNames) : IProp GF :=
       (∀ id, (S.ws !! id).isSome = (W !! id).isSome)⌝)
 
 /-- **The writer between transactions** (exclusive): the store at `σ` (nothing pending), the
-history's revisions `Hs` exactly its log's, each state matched, `σ.rev` published. -/
+history's revisions `Hs` exactly its log's (`revOk`), `σ.rev` published. -/
 def writerIdle (γ : RandNames) (σ : MvccState) (Hs : List HRev) : IProp GF :=
   iprop(ghostVar γ.σ (1 : Qp).half σ ∗ histW γ.h Hs ∗
     ghostVar γ.pv (1 : Qp).half (W64 (σ.rev : Int)) ∗
     ⌜σ.pending = none ∧ Hs.length = σ.log.length ∧ σ.log.length + 3 ≤ 2 ^ 63 ∧
-      ∀ r < Hs.length, ∃ e, Hs[r]? = some e ∧ stMatch e.1 (stateAt σ.log r)⌝)
+      ∀ r < Hs.length, ∃ e, Hs[r]? = some e ∧ revOk σ.log Hs r e⌝)
 
 /-- The last revision's state of `Hs`. -/
 def lastSt (Hs : List HRev) : GMap GoString kvRec := (Hs[Hs.length - 1]?.map Prod.fst).getD ∅

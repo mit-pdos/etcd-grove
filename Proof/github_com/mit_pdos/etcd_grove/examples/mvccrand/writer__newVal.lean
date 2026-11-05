@@ -24,10 +24,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 
 theorem writer.newVal.wp_proof (wp_itoa : itoa.spec (GF := GF) (hG := hG)) :
     writer.newVal.spec (GF := GF) (hG := hG) := by
-  intro w wv h0 h1
+  intro w n h0 h1
   wp_start as Hw
   wp_auto
-  wp_apply wp_itoa (wv.vals' + W64 1) (by word)
+  wp_apply wp_itoa (n + W64 1) (by word)
   (try wp_auto)
   iapply HΦ
   iframe

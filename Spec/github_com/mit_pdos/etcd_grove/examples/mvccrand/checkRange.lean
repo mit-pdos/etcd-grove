@@ -15,7 +15,7 @@ from the contract.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Pending
 
 @[expose] public section
 
@@ -34,11 +34,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- The tester's states: the maps `ms` hold `Ms`, at the fractions `dqs`. -/
-def statesAt (ms : List GoMap) (Ms : List (GMap GoString kvRec)) (dqs : List DFrac) : IProp GF :=
-  iprop(⌜ms.length = Ms.length ∧ Ms.length = dqs.length⌝ ∗
-    [∗list] x ∈ ms.zip (Ms.zip dqs), x.1 ↦${x.2.2} x.2.1)
 
 /-- See the file header. -/
 abbrev checkRange.spec : Prop :=

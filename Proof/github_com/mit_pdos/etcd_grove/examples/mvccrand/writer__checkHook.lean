@@ -19,16 +19,17 @@ open github_com.mit_pdos.etcd_grove.examples.mvccrand
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem writer.checkHook.wp_proof (wp_check : check.spec (GF := GF) (hG := hG)) :
     writer.checkHook.spec (GF := GF) (hG := hG) := by
-  intro w wv dq i
+  intro w wv i
   wp_start as ⟨Hw, Hs⟩
-  icases typedPointsto_not_null_dup _ _ _ $$ Hw with ⟨Hw, %Hwnn⟩
-  iStructNamedSuffix Hw "W"
+  iunfold writerRO at Hw
+  icases Hw with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
   wp_auto
   wp_apply_core sync.atomic.Int64.wp_Load wv.saved' (DFrac.own 1) $$ [] [-]
   · iPkgInit
@@ -44,10 +45,6 @@ theorem writer.checkHook.wp_proof (wp_check : check.spec (GF := GF) (hG := hG)) 
   wp_apply wp_check
   · itrivial
   (try wp_auto)
-  ihave Hw : w ↦{dq} wv $$ [kvW leW hW rW leasesW nextIDW valsW applyingW savedW ticksW]
-  · iapply typedPointsto_combine _ _ _ Hwnn
-    simp only [TypedPointsto.typedPointstoDef, named]
-    iframe
   iapply HΦ
   iframe
 

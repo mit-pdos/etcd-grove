@@ -35,14 +35,16 @@ theorem writer.begin.wp_proof (wp_check : check.spec (GF := GF) (hG := hG))
     (wp_cur : writer.cur.spec (GF := GF) (hG := hG))
     (wp_copyState : copyState.spec (GF := GF) (hG := hG)) :
     writer.begin.spec (GF := GF) (hG := hG) := by
-  intro w wv dq γ σ Hs
+  intro w wv γ σ Hs
   wp_start as ⟨Hw, Hrd, #Hinv, Hidle⟩
   iunfold writerIdle at Hidle
   icases Hidle with ⟨Hgσ, HW, Hpv, %Hid⟩
   obtain ⟨Hpend, Hlen, Hbound, Hmatch⟩ := Hid
   icases histW_lb γ.h Hs $$ HW with ⟨HW, #Hlb⟩
-  icases typedPointsto_not_null_dup _ _ _ $$ Hw with ⟨Hw, %Hwnn⟩
-  iStructNamedSuffix Hw "W"
+  icases Hw with #Hw
+  ihave #Hw2 := Hw
+  iunfold writerRO at Hw2
+  icases Hw2 with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
   wp_auto
   wp_apply wp_snapshot wv.h' γ.h Hs $$ [$Hrd $Hlb] as %s ⟨Hrd, %ms, %Hs', %Hpre, #Hlb', #Hms, #Hst⟩
   -- the snapshot is the writer's revisions
@@ -59,11 +61,7 @@ theorem writer.begin.wp_proof (wp_check : check.spec (GF := GF) (hG := hG))
   have h2 := Hpre.2
   (try wp_auto)
   have hrev : σ.rev = Hs'.length - 1 := by unfold MvccState.rev; omega
-  ihave Hw : w ↦{dq} wv $$ [kvW leW hW rW leasesW nextIDW valsW applyingW savedW ticksW]
-  · iapply typedPointsto_combine _ _ _ Hwnn
-    simp only [TypedPointsto.typedPointstoDef, named]
-    iframe
-  wp_apply wp_cur w wv dq γ (W64 (σ.rev : Int)) $$ [$Hw $Hinv $Hpv] as ⟨Hw, Hpv⟩
+  wp_apply wp_cur w wv γ (W64 (σ.rev : Int)) $$ [$Hw $Hinv $Hpv] as Hpv
   (try wp_auto)
   wp_apply wp_check
   · ipureintro; simp only [decide_eq_true_eq]; rw [hrev]

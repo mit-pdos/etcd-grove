@@ -6,7 +6,7 @@
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.World
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Writer
 
 @[expose] public section
 
@@ -28,11 +28,11 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.begin.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (dq : DFrac) (γ : RandNames) (σ : MvccState) (Hs : List HRev),
+  ∀ (w : Loc) (wv : writer) (γ : RandNames) (σ : MvccState) (Hs : List HRev),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
-      w ↦{dq} wv ∗ histRd wv.h' γ.h ∗ inv worldN (worldInv wv.h' γ) ∗ writerIdle γ σ Hs }}
+      writerRO w wv ∗ histRd wv.h' γ.h ∗ inv worldN (worldInv wv.h' γ) ∗ writerIdle γ σ Hs }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"begin")) (Val #()))
-  {{ (p : Loc), RET #p; w ↦{dq} wv ∗ histRd wv.h' γ.h ∗ writerIdle γ σ Hs ∗
+  {{ (p : Loc), RET #p; histRd wv.h' γ.h ∗ writerIdle γ σ Hs ∗
       ownPending p ⟨W64 (Hs.length : Int), lastSt Hs, []⟩ }}
 
 end spec

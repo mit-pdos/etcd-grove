@@ -7,6 +7,7 @@ decimal (`itoaM`), the count incremented (for a count below `2 ^ 63 - 1`: the wr
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccrand.itoa
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Writer
 
 @[expose] public section
 
@@ -27,12 +28,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 
 /-- See the file header. -/
 abbrev writer.newVal.spec : Prop :=
-  ∀ (w : Loc) (wv : writer), 0 ≤ sint.Z wv.vals' → sint.Z wv.vals' + 1 < 2 ^ 63 →
+  ∀ (w : Loc) (n : w64), 0 ≤ sint.Z n → sint.Z n + 1 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
-      w ↦ wv }}
+      wF go!"vals" w ↦ n }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"newVal")) (Val #()))
-  {{ RET #(go!"v" ++ itoaM (sint.nat (wv.vals' + W64 1)));
-      w ↦ { wv with vals' := wv.vals' + W64 1 } }}
+  {{ RET #(go!"v" ++ itoaM (sint.nat (n + W64 1))); wF go!"vals" w ↦ (n + W64 1) }}
 
 end spec
 

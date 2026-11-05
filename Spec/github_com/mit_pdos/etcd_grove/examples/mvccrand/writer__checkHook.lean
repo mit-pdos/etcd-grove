@@ -6,7 +6,7 @@ writer's own write, stores it).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Writer
 public import Perennial.Proof.sync.atomic.Base
 
 @[expose] public section
@@ -22,17 +22,18 @@ open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.mvccrand
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.checkHook.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (dq : DFrac) (i : w64),
+  ∀ (w : Loc) (wv : writer) (i : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
-      w ↦{dq} wv ∗ sync.atomic.ownInt64 wv.saved' (DFrac.own 1) i }}
+      writerRO w wv ∗ sync.atomic.ownInt64 wv.saved' (DFrac.own 1) i }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"checkHook")) (Val #i))
-  {{ RET #(); w ↦{dq} wv ∗ sync.atomic.ownInt64 wv.saved' (DFrac.own 1) i }}
+  {{ RET #(); sync.atomic.ownInt64 wv.saved' (DFrac.own 1) i }}
 
 end spec
 
