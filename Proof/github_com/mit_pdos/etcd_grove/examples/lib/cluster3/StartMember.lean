@@ -93,6 +93,9 @@ theorem StartMember.wp_proof
   · iapply v3rpc.eofVar_of_init
     iPkgInit
   (try wp_auto)
+  -- the member's fresh bundle, from its pieces (until hub step 7's E1 gives this spec the bundle)
+  ihave Hfresh := etcdstart.memberFreshRes_intro_peer name peerAddr γn $$ [Hwdf Haddr Hpown]
+  · iframe
   -- `etcdstart.NewMember(name, peer, peerAddr, client, cluster, token, snapCount, catchUp, lg)`,
   -- in the cluster's compaction mode
   wp_apply (wp_NewMember N name peerAddr client cfg.Token' cfg.SnapCount' cfg.SnapCatchUp' peer
@@ -102,7 +105,7 @@ theorem StartMember.wp_proof
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
-        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %srv %err Hres
+        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %srv %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned

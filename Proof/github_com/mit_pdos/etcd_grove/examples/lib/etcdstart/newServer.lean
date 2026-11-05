@@ -2,9 +2,8 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/newServer.lean` (2026-10-22, D33).
 Lean-first (no Rocq counterpart).
 
-Since 2026-11-02 (periodic mode) `newServer` is `newServerMode` in revision mode: both specs are
-`newServerMode.spec`'s at its compaction modes (off, on in revision mode); the configuration's steps
-are `newServerMode.wp_proof`'s.
+Since 2026-11-02 (periodic mode) `newServer` is `newServerMode` in revision mode, at retention `0`;
+the configuration's steps are `newServerMode.wp_proof`'s.
 -/
 module
 
@@ -39,31 +38,12 @@ theorem newServer.wp_proof
   intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
     ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg Hret Hck Haf Hbuq
     Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   (try wp_auto)
   wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
       peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule
       hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (v3compactor.bootCfg_off _ _ _ _ Hret) Hck Haf Hbuq Hdbo)
-    $$ [Htok Hmb Hwdf] as %s %err Hres
-  · iframe; iframe #
-  (try wp_auto)
-  iapply HΦ
-  iexact Hres
-
-/-- `newServer` with the auto-compactor on (M2's S4, `notes/m2-plan.md`): `newServerMode` in revision
-mode at a positive retention. -/
-theorem newServer.wp_proofCompact
-    (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG)) :
-    newServer.specCompact (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token retention snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ
-    ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg Hret Hcret Hck Haf Hbuq
-    Hdbo
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
-  (try wp_auto)
-  wp_apply (wp_newServerMode N name peerAddr client token go!"revision" retention snapCount catchUp
-      peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn true lm Htb Hrb48 HrbN HwbN hvs hrule
-      hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg (v3compactor.bootCfg_revision _ _ Hret Hcret) Hck Haf Hbuq Hdbo)
-    $$ [Htok Hmb Hwdf] as %s %err Hres
+    $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ

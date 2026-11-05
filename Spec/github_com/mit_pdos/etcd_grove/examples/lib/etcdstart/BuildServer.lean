@@ -22,6 +22,7 @@ which `Start` gives the right to stop it again (R2b-2).
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
 public import Perennial.ProgramLogic.Bounds
 
@@ -71,8 +72,9 @@ abbrev BuildServer.spec : Prop :=
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       netHttpOk γn id ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      -- (2026-11-03, the WAL's API, change 6; 2026-11-05, hub step 7, its start bundle) the
+      -- member's WAL directory fresh: a first start
+      memberFreshRes name {} γn }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))

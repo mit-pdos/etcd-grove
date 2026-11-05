@@ -40,7 +40,7 @@ theorem StartCompactingServer.wp_proof
     StartCompactingServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client retention lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN
     hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hret Hcret Hck Haf Hbuq Hdbo
-  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
+  wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
@@ -81,7 +81,7 @@ theorem StartCompactingServer.wp_proof
        else v3compactor.bootCfg_revision _ _ (by
          have : sint.Z retention ≠ 0 := fun h0 => h (by word)
          omega) Hcret) Hck Haf Hbuq
-      Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
+      Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned, with the thread token
