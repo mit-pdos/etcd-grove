@@ -245,6 +245,61 @@ theorem push_last (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
       · show W64 ((ws.length : Int) - 1) = _
         rw [hcnt0]
 
+/-- **`last`'s loop invariant** from the prefix `els` (at `pids`), the levels `R` (at `Q`) pushed:
+a prefix whose leaf page, once a path, holds its bounds' entries; the pushed levels below the top
+at their last index; the top at its last if it was pushed; and every branch and the top at their
+last if the prefix's were. -/
+def lastInv (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (ipg : List w8) (els : List elemRef)
+    (pids : List Nat) (R : List elemRef) (Q : List Nat) : Prop :=
+  sPrefix (nlX X) X.v bl rt (els ++ R) (pids ++ Q) ∧
+  (sPathR (nlX X) X.v bl rt (els ++ R) (pids ++ Q) →
+    sLeafOK X.v ipg (wEs X n) (pids ++ Q) (els ++ R)) ∧
+  (∀ j pid e, (pids ++ Q)[j]? = some pid → (els ++ R)[j]? = some e → els.length ≤ j →
+    j + 1 < (els ++ R).length → e.index'.toNat + 1 = (pidKeys X.v pid).length) ∧
+  (R ≠ [] → sTopLast X.v (wEs X n) (pids ++ Q) (els ++ R)) ∧
+  (sBrLast X.v pids els → sTopLast X.v (wEs X n) pids els →
+    sBrLast X.v (pids ++ Q) (els ++ R) ∧ sTopLast X.v (wEs X n) (pids ++ Q) (els ++ R))
+
+theorem lastInv_init (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (ipg : List w8)
+    (els : List elemRef) (pids : List Nat) (hp : sPrefix (nlX X) X.v bl rt els pids)
+    (hlo : sPathR (nlX X) X.v bl rt els pids → sLeafOK X.v ipg (wEs X n) pids els) :
+    lastInv X n bl rt ipg els pids [] [] := by
+  refine ⟨by simpa using hp, by simpa using hlo, fun j pid e _ _ h1 h2 => by simp at h2; omega,
+    fun h => absurd rfl h, fun h1 h2 => by simpa using And.intro h1 h2⟩
+
+/-- **A step of `last`'s loop**: the last child of a branch top pushed at `count - 1`. -/
+theorem lastInv_step (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
+    (hc : wCurCtx X n bl rt) (hB : X.t.bs !! bl = some B) (hbase : 0 < X.v.base.addr)
+    (ipg : List w8) (els : List elemRef) (pids : List Nat) (R : List elemRef) (Q : List Nat)
+    (hI : lastInv X n bl rt ipg els pids R Q) (e : elemRef) (p : Nat)
+    (he : (els ++ R).getLast? = some e) (hpl : (pids ++ Q).getLast? = some p) (pg : List w8)
+    (hpg : X.v.pages !! p = some pg) (hf : pageFlags pg = branchPageFlag)
+    (hi : e.index'.toNat < pageCount pg) (h0 : B.ib.root' ≠ W64 0) (p' n' : Loc)
+    (lf : Bool) (ws : List WEntry)
+    (hL : ltree X bl (W64 (branchPgid pg e.index'.toNat : Int)) = some (lf, ws))
+    (hra : ∀ i, refAt X bl (W64 (branchPgid pg e.index'.toNat : Int)) ⟨p', n', i⟩)
+    (hbr : lf = false → ∃ pgx, X.v.pages !! (branchPgid pg e.index'.toNat) = some pgx ∧
+        pageFlags pgx = branchPageFlag ∧ ws.length = pageCount pgx ∧ 0 < pageCount pgx)
+    (hwl : ws.length < 2 ^ 63) :
+    lastInv X n bl rt ipg els pids (R ++ [⟨p', n', W64 ((ws.length : Int) - 1)⟩])
+      (Q ++ [branchPgid pg e.index'.toNat]) := by
+  have hv : viewWF X.v := hc.1.2.2.2.2.2.2.2
+  obtain ⟨hp, hlo, hnl, htl, hold⟩ := hI
+  have hlen : (pids ++ Q).length = (els ++ R).length := hp.2.1
+  have P := fun k hbl hil => push_last X n bl rt B hc hB hbase ipg (els ++ R) (pids ++ Q) hp k hbl
+    e p he hpl pg hpg hf hi hil h0 p' n' lf ws hL hra hbr hwl
+  obtain ⟨hpre, hnl', htl', hlo'⟩ := P els.length hnl (fun hk => by
+    have hR : R ≠ [] := by intro h; subst h; simp at hk; have := List.length_pos_iff.2 hp.1; simp at this; omega
+    exact top_branch_last X.v hv _ _ _ (htl hR) e p he hpl pg hpg hf)
+  simp only [List.append_assoc] at hpre hnl' htl' hlo'
+  refine ⟨hpre, hlo', fun j pid e0 h1 h2 hk hj => hnl' j pid e0 h1 h2 hk (by simpa using hj),
+    fun _ => htl', fun hb ht => ⟨?_, htl'⟩⟩
+  obtain ⟨hb2, ht2⟩ := hold hb ht
+  obtain ⟨-, hb3, -, -⟩ := P 0 (fun j pid e0 h1 h2 _ hj => hb2 j pid e0 h1 h2 hj)
+    (fun _ => top_branch_last X.v hv _ _ _ ht2 e p he hpl pg hpg hf)
+  simp only [List.append_assoc] at hb3
+  exact fun j pid e0 h1 h2 hj => hb3 j pid e0 h1 h2 (Nat.zero_le _) (by simpa using hj)
+
 end pure
 
 end WLast
