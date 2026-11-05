@@ -1640,3 +1640,259 @@ approved widening the monitor's contract, with the smaller design that followed:
 This is done (`stop_monitorRT` proved; `goWaited` is an exclusive half, and `Cleanup` takes any
 fraction of `γbe`). The widened contract survives the `axiom` skill's attack. F4 (`run.spec`
 replaced by `run.specStop`) is deferred until the scope premises are lifted or carried (R2d).
+
+### R2c Scope (2026-11-05, for the user)
+
+Session etcd-grove-83, branch `r2c-scope` (off `lean` `5a00eca26c`, after hub step 7's Freeze, tag
+`hub-step7-frozen`). Design only: no Lean edited, nothing built. **A hard stop: the user's Scope.** The
+questions (Q1-Q9) and the agent's pending decisions (D1-D3) are in the worktree's `questions.md`.
+Line numbers are at `5a00eca26c`. Sizes are estimates (marked "est.").
+
+**The brief** (the coordinator's): R2c verifies
+1. `run.specStop`'s scope premises lifted, or carried with a reason;
+2. the boot log's facts (`Nodup`, `srvBootLogOk`) moved from premises into `run`'s context;
+3. a restarted member's `run` (its start index after a restart), the KV invariant at restart with
+   `kvInv`'s new `log0` premise discharged by `txn.soleWriter_small'`;
+4. `BuildServer.specStop` and `BuildServer.specRestart` proved.
+
+**The recommendation, in one paragraph.** Split. R2c closes the **stop chain** for a first start:
+items 1, 2, `BuildServer.specStop` (item 4's first half) and F4 (one spec of `run`). It adds no
+axiom. Items 3 and `specRestart` (item 4's second half) are this plan's L5 (`NewServer` over a
+restart boot) plus the raft wrapper's `RestartNode` path: the old stage list's R2d. Reading the code
+for this Scope found that they are larger than "the start index is not 0" (findings F-a to F-c).
+They go to R2d with its own Scope, and the closed theorem A4 with them.
+
+#### What reading the code found
+
+- **F-a. A restarted `run` starts at the WAL snapshot's index, not the backend's.** `run` sets
+  `appliedi: sn.Metadata.GetIndex()` from raft's storage snapshot (`server.go:810-813`). After a
+  restart that is the WAL snapshot's index `σ.b`. The consistent index `c₀` is the backend's `i`,
+  with `σ.b ≤ i` (`srvDiskImage`, `InvRestart.lean:129`).
+  - `isServerRun`'s `%HEr` (`InvRun.lean:53-54`) has `c₀ ≤ ai₀ ∧ γn.pre = [] ∧ ai₀ = 0`. At a
+    restart the first conjunct is reversed: `ai₀ = σ.b ≤ i = c₀`.
+  - The entries in `(σ.b, i]` are applied again with `shouldApplyV3 = ApplyV2storeOnly`
+    (`server.go:1924-1942`), which skips their KV writes.
+  - So item 3 is not "`ai₀ ≠ 0`". It is "`ai₀ = σ.b` (which may be 0), `c₀ = i ≥ bootLen`, and a
+    replay window".
+- **F-b. The raft node's restart point and the server's raft names differ.**
+  - `srvRaftLogInv` fixes the server's raft names at `pre = []`, `ai0 = 0` (`SrvRaftLog.lean:740`).
+    A restart keeps them: `restartNames` keeps `ρ.rd.raft`, `InvRestart.lean:501`.
+  - `run`'s proof equates the raft node's `γn.pre` with them (`hpr : C.γr.raft.pre = γn.pre`,
+    `EtcdServer__run.lean:313`, and 22 places in that file).
+  - `RestartNode` hands the `Ready` loop the committed log from `max σ.b Applied`, so the restarted
+    node's `pre` is the first `σ.b` entries.
+  - So the restart generalizes `run`'s relation between the two: R2d.
+- **F-c. `kvInv` belongs to the cluster, not to a member.**
+  - It is allocated once (`srvClusterBoot_alloc`, `NewServerAlloc.lean:154-170`) at the cluster's
+    KV names. `NewServer.specG` takes it as a premise (`"#Hkvinv"`, `NewServer.lean:280`).
+  - `kvInv_congr` (`NewServerAlloc.lean:70`) moves it to any names that agree on 11 fields: `st`,
+    `c0`, `ch0`, `log0`, `ids.issued`, `ids.wn`, `cmp`, `rlog`, `cret`, `lm` and `kvPfx`.
+  - `restartNames` agrees on 6 of them (`st`, `c0`, the KV model, `issued`, `pfx`).
+  - So a restart need not allocate a `kvInv`. It reuses the cluster's once `restartNames` covers
+    `kvInv_congr`'s fields. Then the revroom-b requirement (a restart-time allocation's `log0` bound
+    from `soleWriter_small'`) does not arise. The restarted store's own log bound still comes from
+    the sole writer (`soleWriter_small'`), as the snapshot path's does (`SnapSendBranch.lean:357`).
+    That is Q8, for R2d.
+- **F-d. The compactor is stopped after the backend closes.** `Cleanup` runs `be.Close()` and only
+  then `compactor.Stop()` (`server.go:960-967`).
+  - A running compactor holds one of the store's readers (the census), and in the model every
+    store reader holds a share of the backend's open token.
+  - So "no compactor" cannot be lifted without one of: a compactor reader that holds no open
+    share (the compactor's `Rev()` reads only the in-memory revision); a Go reorder (a fork
+    change); or a third disjunct. Go itself is fine: after the close the compactor's `Compact`
+    goes through raft and fails.
+- **F-e. `run.specStop` takes the 128 unused serving readers when `run` starts**
+  (`srvShutdownPre`, `StopApi.lean:185`). At `Start` they are `memberUp`'s serving stocks.
+  `restart3`'s stopped member never serves, so it can give them. A serving member cannot, so F4
+  (every `run` stoppable) needs them at the stop instead.
+- **F-f. `BuildServer.specStop` cannot be proved from `newServer.spec` as frozen.**
+  - `newServer.spec`'s post is `memberBuilt … ∗ leaseTTLRowR` (`newServer.lean:87`), with
+    `memberBuilt`'s `K` at its default `True`. That drops the stop slot `NewServer` posts
+    (`srvStop.keep`, `NewServer.lean:361`).
+  - Nothing gives `srvDataDir` today (grep: its only producers are drafts).
+  - `BuildServer` also has three specs (`spec`, `specStop`, `specRestart`) for one function, against
+    "one spec per function".
+- **F-g. The draft hypotheses the restart example rests on:**
+  - `Start_builtS_spec` and `Start_builtR_spec` (`StartStop.lean:37,53`);
+  - `BuildServer.specStop`/`specRestart` (`startMember.lean:42,139`);
+  - `http.ListenerClose_spec` (`ListenerClose.lean:58`).
+
+  `HardStop.wp_proof` and `run.wp_proofStop` are proved. `restart3` has no `Link.lean` and no
+  closed theorem.
+
+#### Item by item
+
+**Item 1: the scope premises** (`run.specStop`'s pure conjunct, `EtcdServer__run.lean:90-91`;
+consumed by `stopCleanupImage.spec`, `StopShutdown.lean:404-414`).
+
+| premise | why it is there | to lift it | recommendation |
+|---|---|---|---|
+| `v.compactor = nil` | a running compactor holds a store reader at `be.Close` (F-d) | a share-free reader of the compactor (the compactor's slot, K-plan specs), or a fork reorder (a hard stop) | **carry** (Q2) |
+| `E.authOn = false` | `Cleanup`'s on-mode closer is the apply thread's `tpAdmin` (`authApplyRes`), not threaded; the census adds `authAbandonM` (as R-D1); the image's auth-on chain (`notes/STATUS.md`'s gap H, "a restart's `imageAt` cannot be met after `AuthEnable`", open Q7) | medium for the stop (no trust); the image's gap H unknown (guess: large) | **carry**: no auth-on restart example; a widening of its own |
+| `E.cmp = false` | `apply.cmpOwn` is both what `kv.Close` takes (`wsCloserR`) and what the image's observation reads (`apply.cmpObs`); and RESTART-RCPT (the image lacks the compaction-mode receipt, `InvRestart.lean:124-128`) | medium, plus RESTART-RCPT (`notes/image-cmp-plan.md`) | **carry** |
+| `Er.ST = srvTrStopK γk` | a fact of the construction (`srvErM`'s), not a scope restriction | moves into `isServerRun`'s `%HEr` (D1) | **move** |
+
+**How the carried premises are carried (Q2, recommended (b)): in the stop request, not in `run`'s
+precondition.**
+- A new persistent, sealed fact `srvStop.scope s` (`StopApi.lean`) says the server can be stopped:
+  no compactor, auth off, no compaction mode, and no dedicated WAL directory (`srvDataDir`'s
+  condition, which the image needs).
+- `NewServer` gives it inside the slot when its configuration is in scope (a law
+  `srvStop.scope_of`, from `v3compactor.bootCfg` off, `on = false`, `cmp = false`).
+- The stop channel's predicate becomes `srvStopReq s ρ := srvBootApplied ρ ∗ srvStop.scope s ∗
+  128 store readers` (F-e's readers too).
+- `run`'s stop branch gets the scope from the request it received.
+- `HardStop`'s caller proves it from its member: in `restart3`, the member was built in scope, and
+  `memberUp`'s unused stocks give the readers.
+- `run`'s precondition then has no scope premise, which is what F4 needs.
+
+**Item 2: the boot log's facts** (`run.specStop`'s `ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk vs boot`,
+consumed by `stop_imageConf`, `StopShutdown.lean:322`). Recommended (Q3): in `srvRaftLogInv`, the
+cluster's invariant, which `run` already has through `isServer`.
+- Its last conjunct `∃ ps, ps ≠ [] ∧ srvBootLogOk ps γ.raft.boot` becomes `γ.raft.vs ≠ [] ∧
+  γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot`.
+- The conjunct count does not change, so the `-` patterns at the 34 unfold sites survive.
+- `srvClusterBoot_alloc` already has `Hnd : ps.Nodup` and `γ.vs = ps` (`NewServerAlloc.lean:157,
+  165`), so its premises do not change. `NewServerAllocOn`'s twin is changed the same way.
+  `srv_first_boot` destructures it.
+- A restarted member reuses it: it is the cluster's.
+- Cost: `SrvRaftLog.lean` has 1370 importers: one full build.
+
+**F4: one spec of `run`.** It belongs in R2c (Q4), because the stop chain stays a set of draft
+hypotheses (`Start_builtS_spec`) until `Start` gives the stop right. It needs four things:
+1. Item 1 carried in the request (above).
+2. F-e's readers in the request.
+3. The slot reachable from `start`. Recommended (Q5): `srvStop.keep` moves into `NewServer`'s built
+   part (`srvBuiltG` → `isServerBuiltC`), the slot convention's place for a subsystem's
+   `srvInv`, so that no `Start` caller passes it. This is a hub request to etcd-grove-82.
+4. `start` makes `stop`/`done` with the stop's predicates (`srvStopReq`, `srvDoneInv`) and `Start`
+   posts `srvStopRight`.
+
+Then:
+- `run.spec` is today's `specStop` without the scope conjunct (one statement). `wp_proofG`'s flag
+  goes.
+- `Start_builtS_spec` is deleted: `wp_Start_built` gives the right (D3).
+- A client that never stops drops the right (affine).
+
+The restart's change to `run` (F-a, F-b, in R2d) touches `%HEr` only, not the stop's parts.
+
+**Item 3: a restarted member's `run`, and the KV invariant at restart: R2d** (Q1). What R2d's Scope
+starts from:
+
+| piece | what it needs | source |
+|---|---|---|
+| `run` at restart | `%HEr` generalized: `ai₀ = σ.b`, `c₀ = i`, `σ.b ≤ i` (F-a); `γn.pre` a prefix of the server's log of length `σ.b`, the server's names kept at `pre = []` (F-b); the replay window `(σ.b, i]` through `applyEntries`' `ApplyV2storeOnly` branch (to check: guess, `ciJ`'s first disjunct already admits `c₀ > ai`, `InvRunRes.lean`); a conf entry in the window calls `AddMember` of a present member (open since the image review) | `EtcdServer__run.lean` (22 sites), `applyEntries` |
+| the KV at restart | `x₀` the store `mvcc.New` restores from the image `D` (`store.restore`, proved) at index `i`; `kvInv` reused by `kvInv_congr` with `restartNames` widened to its 11 fields (F-c, Q8); the restored store's log bound from `soleWriter_small'` | `NewServer`'s restart case |
+| `NewServer` over a restart boot (L5) | one spec over both boots: `bootOk`/`bootOkR` merged into one contract over the directory's state (the whole-`bootOk` review's F, deferred to R2d); `memStorRestarted` defined, giving `RestartNode`'s `restartStorage`; `newRaftNode`'s `RestartNode` path; the member's new incarnation key (`idIncarnation_alloc`) | the boot hub |
+| `Start_builtR_spec`, `specRestart` | the above | `etcdstart` |
+
+**Item 4.**
+- `BuildServer.specStop`: R2c, by merging it into `BuildServer.spec` (Q7). There is one spec, whose
+  post is `memberBuilt … ∗ leaseTTLRowR s ps ∗ srvDataDir s (name ++ ".etcd")`; the slot is in
+  `memberBuilt`'s built part (Q5).
+  - `srvDataDir` comes from a new slot law `srvStop.dataDir` (the slot's read-only `DataDir` and
+    `DedicatedWALDir` fields at the values `memberFreshRes_boot` fixes, D2). It is posted by
+    `newServer`/`newServerMode`.
+  - Those two posts are frozen statements (below).
+  - `memberBuiltS` and `memberBuilt`'s `K` become redundant: `K` goes, which coordinates with D4
+    (lease-expiry's `fresh` flag on `memberBuilt`).
+- `BuildServer.specRestart`: R2d, as a case of the merged `BuildServer.spec` once `NewServer` has
+  one spec over both boots.
+
+#### The statements touched (recommended options)
+
+FROZEN marks a statement in `hub-step7-frozen`'s set: per the rule "frozen changes found in a later
+stage's Draft come in one batch", these go to the user as one list at R2c's Freeze. HUB marks a
+hub statement: a request to etcd-grove-82.
+
+| statement | file | old | new | kind | flag |
+|---|---|---|---|---|---|
+| `srvRaftLogInv` | `etcdserver/SrvRaftLog.lean:740` | `∃ ps, ps ≠ [] ∧ srvBootLogOk ps boot` | `vs ≠ [] ∧ vs.Nodup ∧ srvBootLogOk vs boot` | invariant body, stronger | (1370 importers) |
+| `srvStop.scope` (new), `srvStop.scope_of`, `srvStop.dataDir` | `etcdserver/StopApi.lean` | — | sealed fact and laws | server API (interface regenerated) | |
+| `srvStop.keep` | `StopApi.lean` | four parts | + `□ (⌜in scope⌝ → srvStop.scope s)` | sealed body | |
+| `srvStopRight`'s bag | `InvRestart.lean:206` | `fun _ => srvBootApplied ρ` | `fun _ => srvStopReq s ρ` (+ scope, + 128 readers) | def body | |
+| `srvShutdownPre` | `StopApi.lean:185` | slot ∗ `srvDataDir` ∗ 128 readers | the slot only, or gone (the slot in the built part) | def | |
+| `isServerRun` | `InvRun.lean:40` | `SP := False`, `DQ := True` defaults; `%HEr` | the stop's `SP`/`DQ`; `%HEr` + `Er.ST = srvTrStopK γk` (D1) | aggregator | HUB (`isServerBuilt` family) |
+| `run.spec`, `run.specStop` | `Spec/.../EtcdServer__run.lean:38,71` | two specs; `specStop` with five pure premises | one spec: `specStop`'s shape, no scope premise | F4 | |
+| `HardStop.spec` | `Spec/.../EtcdServer__HardStop.lean:42` | `srvStopRight ∗ srvBootApplied ρ` | `srvStopRight ∗ srvStopReq s ρ` | spec (draft, R2a) | |
+| `NewServer.specG`'s post | `Spec/.../NewServer.lean:361` | `… ∗ srvStop.keep srv cfg E γrn γk` | the slot inside `srvBuiltG` | text, same content | HUB |
+| `EtcdServer.start.spec`, `Start.spec` | `Spec/.../EtcdServer__start.lean:47`, `EtcdServer__Start.lean:41` | post: the request and read views, … | + `srvStopRight s ρ.rd.raft.raft ρ id dd` (at the slot's `DataDir`) | post, stronger | HUB (45 files name `Start.spec`; mostly via `wp_Start_built`) |
+| `newServer.spec`, `newServerMode.spec` | `Spec/.../etcdstart/newServer.lean:87`, `newServerMode.lean:79` | `memberBuilt … ∗ leaseTTLRowR s ps` | + `srvDataDir s (name ++ ".etcd")` | post, stronger | FROZEN |
+| `BuildServer.spec`/`specStop` | `Spec/.../etcdstart/BuildServer.lean:48,89` | two specs | one (`specStop` deleted), post + `srvDataDir` | merge | FROZEN (S7) |
+| `memberBuilt`, `memberBuiltS` | `etcdstart/Defs.lean:306`, `Restart.lean:59` | `K` parameter, `memberBuiltS` | `K` gone (the slot is inside `isServerBuilt`); `memberBuiltS` = `memberBuilt` | exported def in frozen statements | FROZEN (meaning); coordinates with D4 |
+| `wp_Start_built` | `etcdstart/Start.lean:38` | post `memberUp` | + `srvStopRight …` | proved lemma | |
+| `Start_builtS_spec` | `etcdstart/StartStop.lean:53` | draft hypothesis | deleted (D3) | — | |
+| `memberStop` (restart) | `examples/etcd/restart/Defs.lean:139` | `srvStopRight …` | + the scope and the member's 128 unused serving readers (from `memberUp`, a new law) | def in the frozen `stop.spec`/`startMember.spec` | FROZEN (meaning) |
+
+**Unchanged in R2c:** `srvDiskImage`, `bootstrapRestartContract`, `bootOkR`, `restartNames`,
+`BuildServer.specRestart`, `startMember.specRestart`, `Start_builtR_spec` (R2d's), every closed
+theorem, `startRights`.
+
+#### The trust base
+
+- **R2c as recommended adds no axiom, no trusted model and no premise to an exported statement.**
+  - The scope moves from a draft spec's precondition into a request that `restart3` proves.
+  - `srvStop.scope` is proved from `NewServer`'s configuration.
+  - `etc/tcb-report.py --check` should match the baseline.
+- **Hard stops only in the alternatives:**
+  - Q2's fork reorder of `Cleanup` (compactor before backend) is a fork change.
+  - Any closed theorem for `restart3` (A4) takes `bootstrapRestartContract` (a trusted contract)
+    and `http.ListenerClose_spec` (a draft boundary that becomes an axiom), and needs the data
+    directory's exclusivity (the whole-`bootOk` review's E: a durable-directory GooseLang
+    extension). Each is trust-base growth, with the `axiom` skill's attack before its Freeze. That
+    is R2d's Scope.
+
+#### The closed theorem (A4)
+
+Not in R2c. `restart3_safe` needs:
+- R2d's restart chain (`specRestart`, `Start_builtR_spec`, `run` at restart);
+- the raft wrapper's `RestartNode` path;
+- the catch-up after the restart (L6: a snapshot to the restarted member);
+- the trusted items above.
+
+The hub plan's A4 (`etcd_adequate_members` at the three members, `Bs := []`, `runRes` unfolded) is
+the easy part and stays as written.
+
+#### Sub-steps, in order (R2c as recommended)
+
+| step | what | files (est.) | lines (est.) | effort | full build? |
+|---|---|---|---|---|---|
+| R2c-1 | item 2: `srvRaftLogInv`'s conjunct; `stop_imageConf`'s `hvs` from it; `run.specStop`'s boot-log premise gone | 4 | 40 | small | yes (`SrvRaftLog`) |
+| R2c-2 | item 1: `srvStop.scope` and its laws, `srvStopReq`, `srvStopRight`'s bag, `HardStop.spec` and proof; `stopCleanupImage.spec`'s scope from the request; the 128 readers from the request; `restart`'s `memberStop` and `stop` (a `memberUp` law for the unused stocks) | 8 | 250 | medium | yes (`StopApi`: 717 importers) |
+| R2c-3 | Q5: the slot into `srvBuiltG`/`isServerBuiltC` (hub request); `NewServer`'s proof moves the conjunct; `memberBuilt`'s `K` gone | 10 | 150 | medium (plumbing) | yes |
+| R2c-4 | F4: `start` makes the stop's channels; `start.spec`/`Start.spec` post the right; one `run.spec`; `wp_Start_built`'s post; `Start_builtS_spec` deleted; `Link`/`Results` regenerated; interfaces | 15 | 300 | medium-large (`start`'s proof, 615 lines; 45 `Start.spec` files mostly mechanical) | yes |
+| R2c-5 | item 4a: `srvStop.dataDir`; `newServer`/`newServerMode` post `srvDataDir`; `BuildServer` one spec, proved; `restart.startMember.spec`'s proof over it and `wp_Start_built` | 6 | 80 | small | no (etcdstart, 49 importers) |
+| Review/Test/Probe/Freeze | a fresh reviewer on the stop chain (the request, the slot's move, one `run`); the frozen-change batch (FROZEN rows) and the hub requests to 82; probes: R2c-2's stop branch (hard), R2c-5 (easy) | — | — | — | — |
+
+Total (est.): about 40 files and 800 lines, four full builds (R2c-1 to R2c-4 can share one if they
+land together). Glue (Draft's list, the "decides nothing" rule): R2c-5's `BuildServer` proof and
+`startMember.spec`'s; the rest is invariant and spec work for Prove.
+
+#### Alternatives (Q1)
+
+- **(A) Recommended:** R2c = the stop chain (items 1, 2, 4a, F4); R2d = the restart (item 3, 4b,
+  A4). R2c is about a week of agent work (est.), lands no trust, and makes the stop
+  one spec per function.
+- **(B) The brief as written:** one stage for all four.
+  - Its Freeze would cover the boot hub's restart case (`NewServer` over both boots, the merged
+    `bootOk`/`bootOkR` contract: a trusted statement restated, a hard stop) together with the stop.
+  - Its size is L5's, the plan's largest but one (est. 3-5× (A)).
+  - It holds the stop's landing hostage to the restart's design.
+- **(C)** (A), plus the restart's statements drafted (R2d's Draft started early, no proofs). It
+  saves little: R2d's Scope must still decide F-a to F-c, Q8, Q9 and the boot-contract merge.
+
+#### Risks, and what would make us revise
+
+- The hub requests (Q5, the `Start` post) are refused or conflict with another session's hub change
+  (D4 on `memberBuilt`, etcd-grove-c9): fall back to Q5 (b), `Start.spec` taking the slot as a
+  separate precondition. That touches every `Start` caller's statement.
+- `start`'s channel allocation cannot give the bag a non-persistent payload (the readers). Then the
+  readers go in `HardStop`'s own precondition and `run` receives them through the escrow. That is a
+  guess to check in R2c-2's probe.
+- `srvRaftLogInv`'s positional patterns break more widely than the 34 unfold sites suggest.
+- The user wants an auth-on or compaction-mode stop soon: lift that premise in R2c instead of
+  carrying it (medium each; auth on also hits gap H in R2d).
+- F-a's replay window turns out unproved on the apply path (`ApplyV2storeOnly`): it affects R2d's
+  size, not R2c.
+- Lifting the compactor premise later by a share-free reader changes the compactor's slot (the
+  k8s compactor's specs): K-track coordination.
