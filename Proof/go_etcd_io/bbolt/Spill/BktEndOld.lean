@@ -7,7 +7,7 @@ entries (`bvalData`): for an unopened bucket its base tree's (`bktEntries`), rea
 node's `bvalOK` or from the view page's `matNest` (`Write.BoundNest`); for a cached child its
 logical entries (`lbktEnts`), its view tree read by its walk (`vl_lleaves_fuel`) and plain
 by `posShape` (a bucket other than the root). An inline cached child's page is its value's
-(`cachedNil_ipg`): OPEN, not in `wOKR` (`bktNested` gives the child's header only).
+(`cachedNil_ipg`: `bktNested`'s inline clause, maintainer 13's item 5).
 -/
 module
 
@@ -135,15 +135,25 @@ theorem oldU {X : WX} {C : CommitSt} (hok : wOKR X) (hcok : treeOK C)
     rw [e]
     exact oldPage hok hcok hcp hpg hlf hi (pageW_bkt hlf hbk)
 
-/-- **An inline cached child without a root node reads its value's page** (its `ipg`). OPEN: true
-in Go (`openBucket` points `child.page` into the value, which no write changes while the child is
-cached and has no root node), but not in `wOKR` (`bktNested` gives the child's header only;
-`bktOpened` sets `C.ipg = inlinePage w.value` and nothing keeps it). -/
-theorem cachedNil_ipg {X : WX} (hok : wOKR X) {bl : Loc} {B : BRec} (hB : X.t.bs !! bl = some B)
+/-- **An inline cached child without a root node reads its value's page** (its `ipg`):
+`bktNested`'s inline clause (maintainer 13, item 5) at the child's entry, whose value is the
+root entry's `v` (`allEnts_key_injR`). -/
+theorem cachedNil_ipg {X : WX} (hok : wOKR X) (hreach : liveReach X) {B : BRec}
+    (hB : X.t.bs !! X.rl = some B) (h0 : B.ib.root' ≠ W64 0) (hrt : rtOK X X.rl)
+    (h64 : ∀ p pg, X.v.pages !! p = some pg → p < 2 ^ 64)
     {k : GoString} {c : Loc} (hk : B.bm !! k = some c) {Cc : BRec} (hc : X.t.bs !! c = some Cc)
-    (hrn : Cc.bv.rootNode' = null) {v : List w8} (hib : Cc.ib = ibOf v)
-    (h0 : inBucketRoot v = 0) : Cc.ipg = inlinePage v := by
-  sorry
+    (hrn : Cc.bv.rootNode' = null) {v : List w8} (hm : (k, v) ∈ rootEnts X)
+    (hib : Cc.ib = ibOf v) (hz : inBucketRoot v = 0) : Cc.ipg = inlinePage v := by
+  obtain ⟨Cc', v', hCc', hent, -, -, -, -, hipg⟩ := (hok.2.1 X.rl B hB).2 k c hk
+  rw [hc] at hCc'; cases hCc'
+  have hcl : bktClean X.v X.t.mv.pgid'.toNat X.rl B := (hok.1.2.2.2.2.2 X.rl B hB).1
+  obtain ⟨we', hwe', hk', hv', -⟩ := entryIn_rootEnts hok hreach hB h0 hrt h64 hent
+  obtain ⟨we, hwe, -, hwk, hwv, -⟩ := rootEnt_src hB hcl h0 hm
+  have := allEnts_key_injR X hok X.rl B hB we we' hwe hwe' (hwk.trans hk'.symm)
+  have hvv : v' = v := by rw [← hv', ← this, hwv]
+  subst hvv
+  have hr : Cc.ib.root'.toNat = inBucketRoot v' := by rw [hib]; rfl
+  exact hipg (BitVec.eq_of_toNat_eq (by rw [hr, hz]; rfl)) hrn
 
 /-- The leaves of a bucket without nodes and with a root page: its view tree's. -/
 theorem nilBkt_leavesR {X : WX} {c : Loc} {Cc : BRec} (hok : wOKR X)
@@ -218,7 +228,7 @@ theorem oldN {X : WX} {C : CommitSt} (hok : wOKR X) (hreach : liveReach X) (hcok
     hrt h64 hk hc hrn hm
   have hcl := (hok.1.2.2.2.2.2 c Cc hc).1
   have hr : Cc.ib.root'.toNat = inBucketRoot v0 := by rw [hib]; rfl
-  have hipg := cachedNil_ipg hok hB hk hc hrn hib
+  have hipg := cachedNil_ipg hok hreach hB h0 hrt h64 hk hc hrn hm hib
   -- the child's leaves are plain
   have hpl : ∀ bpg, bktLeafPg X.v.pages v0 bpg → ∀ j < pageCount bpg,
       leafFlags bpg j % 2 = 0 ∧ 0 < leafKsize bpg j ∧

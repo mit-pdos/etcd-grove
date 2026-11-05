@@ -172,7 +172,7 @@ theorem nil_cover {X : WX} {fl : FLPg} {C : CommitSt} {B0 : BRec} (hpre : spillP
     · -- a cached child without a root node: its pages are its value's, an entry of a root page
       obtain ⟨C0, hC0, hrn0⟩ := hkids n bl hn
       rw [hBl] at hC0; cases hC0
-      obtain ⟨Cc, v, hCc, hent, -, -, -, hib⟩ := (hok.2.1 X.rl B0 hB0).2 n bl hn
+      obtain ⟨Cc, v, hCc, hent, -, -, -, hib, -⟩ := (hok.2.1 X.rl B0 hB0).2 n bl hn
       rw [hBl] at hCc; cases hCc
       have hibv := hib hrn0
       have hr : Bl.ib.root'.toNat = inBucketRoot v := by rw [hibv]; rfl
