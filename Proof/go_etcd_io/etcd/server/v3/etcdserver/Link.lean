@@ -641,10 +641,6 @@ theorem DeleteRangeRequest.wp_GetRangeEnd :
     DeleteRangeRequest.GetRangeEnd.spec (GF := GF) (hG := hG) :=
   DeleteRangeRequest.GetRangeEnd.wp_proof
 
-theorem auth.authStore.wp_Close :
-    auth.authStore.Close.spec (GF := GF) (hG := hG) :=
-  auth.authStore.Close.wp_proof
-
 theorem trace.wp_WithAttributes :
     trace.WithAttributes.spec (GF := GF) (hG := hG) :=
   trace.WithAttributes.wp_proof
@@ -1381,6 +1377,10 @@ theorem auth.authStore.wp_CheckPassword :
     auth.authStore.CheckPassword.spec (GF := GF) (hG := hG) :=
   auth.authStore.CheckPassword.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_lockedReadTx bcrypt.wp_CompareHashAndPassword zap.wp_String zap.Logger.wp_Info
 
+theorem auth.authStore.wp_Close :
+    auth.authStore.Close.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Close.wp_proof
+
 theorem auth.authStore.wp_GenTokenPrefix :
     auth.authStore.GenTokenPrefix.spec (GF := GF) (hG := hG) :=
   auth.authStore.GenTokenPrefix.wp_proof
@@ -1662,7 +1662,7 @@ theorem lease.lessor.wp_Stop :
 
 theorem EtcdServer.wp_Cleanup :
     EtcdServer.Cleanup.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Cleanup.wp_proof lease.lessor.wp_Stop mvcc.watchableStore.wp_Close auth.authStore.wp_Close backend.backend.wp_Close
+  EtcdServer.Cleanup.wp_proof lease.lessor.wp_Stop mvcc.watchableStore.wp_Close backend.backend.wp_Close
 
 theorem EtcdServer.wp_Cluster :
     EtcdServer.Cluster.spec (GF := GF) (hG := hG) :=

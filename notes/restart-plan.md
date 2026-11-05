@@ -1549,3 +1549,12 @@ Steps: (5a) the image's pure assembly lemma (`imageAt`, the configuration, the i
      store readers, routed through the drafts.
   2. `srvCleanupOwn` is defined: the auth store's `tpAdmin`, which `NewServer` keeps (off mode,
      `restart3`).
+
+**Stage 5b, the two pieces done (2026-11-05):** (1) `srvShutdownPre` takes 128 store readers (the
+unused request and watch stocks; the watch readers through `watchReader_storeReader`). (2) With
+auth off nothing held `tpAdmin` or the store's invariant (the off store is `NewAuthStore`'s axiom's),
+so the user approved a persistent `Close` contract in the axiom's post (`authCloseOk`, reviewed:
+`notes/axiom-review/auth-close.md`). `Cleanup` takes a closer `authCloser stl K ∗ K`;
+`srvCleanupOwn s` is the `authStore` field with `authCloseOk`, which `NewServer` posts with auth off.
+`notes/decisions.md`, "The auth store's `Close` at the stop". Left of 5b: assembling `Cleanup`'s
+whole precondition at the stop (with `bOpen 1` from the census), done inside 5c's proof.

@@ -818,7 +818,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa HrbA HkIn]
     as %ast ⟨Hopen, Hhook, HkOut, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauSK, #Hbc⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauC, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn
     ipureintro
@@ -1802,6 +1802,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists astl, c
     rw [← Hastl]
     iframe authStore Hc Hau
+  -- (R2b-3d stage 5b, 2026-11-05) with auth off, the store's `Close` (`srvCleanupOwn`, for the stop)
+  ihave #HCO : iprop(□ (⌜on = false⌝ → srvCleanupOwn s)) $$ []
+  · iintro !> %hoff
+    icases HM with %HM
+    have hM : M = auth.AuthMode.off := by
+      have h1 := HM.1; rw [hoff] at h1; cases M <;> simp_all [auth.AuthMode.isOn]
+    ihave #Hcl := HauC $$ %hM
+    iunfold srvCleanupOwn
+    iexists astl
+    rw [← Hastl]
+    iframe authStore Hcl
   -- (M2) the boot log's certificate (the compactor's first lower bound, `srvRevLb … 0`)
   ihave ⟨Hkvw, #Hc0⟩ := txn.kvWriter_cert _ _ _ $$ Hkvw
   -- (M2's item 15, stage B3) the stores' write budget, made here (by `start` until then), and from
@@ -1891,7 +1902,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK HCO
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
