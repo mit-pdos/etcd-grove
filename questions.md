@@ -47,8 +47,9 @@ the extension to be built autonomously; nothing is on `lean`.
    `KEEP_SIZE` changes nothing visible; other modes panic in the model.
 
 9. **Not in this round**: `Seek`/`Write`/`Read` at the file offset (the plan: an offset field in the
-   trusted `os.file` model over `pread`/`pwrite`), `RemoveAll` (translatable Go), `MkdirAll`, the
-   namespace's program logic (ghost state, specs), the crash proof of `segdir.Boot`.
+   trusted `os.file` model over `pread`/`pwrite`), `RemoveAll` (translatable Go), `MkdirAll`, and
+   the proofs of `dirswap` and `seglog` (see 13). The namespace's program logic and `segdir.Boot`'s
+   crash safety are done (round 3, `notes/walfs-ext-plan.md`).
 
 10. **No two metadata calls at once** (round 1 of the review, finding 4; `NsBegin`): two calls that
     change the namespace and overlap in time are a stuck run, since the journal may order them
@@ -72,3 +73,26 @@ the extension to be built autonomously; nothing is on `lean`.
     namespace, not the legacy regime: bbolt's proof (legacy paths) and the WAL's (the namespace)
     meet there; the per-key ghost state is the same for both, so the gap is `Open`'s regime, not
     the file specs.
+
+13. **Adequacy is proved for `segdir.Boot` only** (round 3): `Proof/.../examples/osfs/walfs/Results.lean`,
+    `crash_safety`, no `sorry`. `dirswap` (a directory renamed with its file) needs extension-level
+    specs the program logic does not have yet: `Mkdir`, `rmdir` of a directory, and a `Rename` of a
+    directory, which moves the ghost entries (`osDir`) of the directory's whole subtree to new
+    paths (and is stuck while a directory fd is open inside it). `seglog` needs specs of
+    `Fallocate`, the OFD lock and `Seek`. Neither is started.
+
+14. **`os.Rename.wp_proof` is still an axiom** (`Proof/os/Rename.lean`, D22 S-f, used by the
+    server's `Link.lean`), stated over the server's abstract `fileHolds`/`pathOwn`. This branch
+    gives `os.Rename` a trusted model (`TrustedCode/os.lean`'s `Rename.impl`) whose specs are
+    proved (`wp_renameSeg`, in the walfs proof). The axiom is not refuted by the model, but it is
+    now a claim about a modelled function rather than a boundary: before merging, either keep it
+    (the server's file predicates are not tied to the namespace) or plan its proof from the
+    model (needs the server's data directory as a root, item 12).
+
+15. **What `crash_safety` assumes about the initial state**: `OsInit`, `dir` a directory of the
+    namespace, `seg` and `seg.tmp` not directories, and `seg`'s file, if any, `DataGood` (exactly
+    the data). As for crashlog, the package initializer is a hypothesis (`Hinit_wp`). The theorem's
+    axioms are the axiomatized Go types and untranslated initializers (`X.init`) of `os`,
+    `syscall` and `golang.org/x/sys/unix` (1130 names against crashlog's 390: `seglog.go` imports
+    `unix`, which `initialize'` reaches); `#print axioms` shows no `sorryAx` and no proof axiom.
+

@@ -221,3 +221,36 @@ over `pread`/`pwrite`, as Go's `poll.FD` keeps no offset of its own; the kernel'
 serializes a racing pair, which the model makes a data race on the offset field, stuck); lock
 state; `RemoveAll` (Go code over `Remove`, `Open`, `Readdirnames`: translatable); hard links,
 symlinks, permissions.
+
+## Round 3: the program logic and `segdir.Boot`'s crash safety (2026-11-05)
+
+Done, no `sorry`; `lake build` of `Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Results`
+succeeds.
+
+- **Extension level** (`GooseLang/Ext/OsFs/NsSpecs*.lean`, `CrashNs.lean`): the specs above, plus
+  `NsOpenCreatExisting` (the retry of an `O_CREAT` open that created the file and failed),
+  `UnlinkAbsent`/`RenameAbsent` (the retry after an `EINTR` that had the effect), and the crash
+  interpretation `os_crash_interpN` with `osFs_crash_adequacyN` and `osNsCrash_take`.
+- **`os` level** (`Proof/os/Ns.lean`): `OpenFile`/`Open` of a directory, `Readdirnames(-1)`
+  (lends the read a fraction of the directory's entry, gives it back at the end; on an error the
+  fraction stays with the fd and `Close` returns it), a directory fd's `Close` and `Sync`, and a
+  read-only `OpenFile` of a file of the namespace (whose `OsMeta` must exist: `mo ≠ none`).
+- **The program** (`Proof/.../examples/osfs/walfs/Boot.lean`): the crash invariant `bootInv` holds
+  half of `dir`'s ghost entry, a ghost variable naming the key `seg` may name in a crash outcome
+  (`SegOut`), and half of that key's `OsMeta` and bytes with every crash of them `DataGood`
+  (`keyRes`); `NoDirs` says `seg`/`seg.tmp` are never directories in an outcome. The three calls
+  that change the directory (`unlink`, `open(O_CREAT)`, `rename`) open it around their one step
+  (`wp_unlinkTmp`, `wp_createTmp`, `wp_renameTmp`); their `os` wrappers retry on `EINTR` from either
+  state (`*_any`). `commit` deposits the new file, written and `fdatasync`ed, under its key before
+  the rename (`synced_good`: a crash leaves the data or no file, since it is not yet durably
+  named). `check`, `readNames`, `syncDir`, `Boot`'s loop over the names.
+- **The result** (`Results.lean`, `crash_safety`): `osFs_crash_adequacyN` with `bootPre`; after a
+  crash, the new entry of `dir` is an outcome of the old (`osNsCrash_take`), and `seg`'s key's file
+  is a crash of the invariant's half (`osCrashT_take_runs_keep`).
+
+What the proof found about the semantics' specs: none wrong; `wp_osRenameAbsent` needed the target's
+"not a directory" premise (an open directory fd may not be at the target).
+
+Left: `dirswap` (directory `Mkdir`, `rmdir`, and directory `Rename`, whose ghost update moves the
+subtree's entries), `seglog` (`Fallocate`, the OFD lock, `Seek`), and the concurrent-metadata repair
+(`questions.md`, 10) before etcd's WAL.
