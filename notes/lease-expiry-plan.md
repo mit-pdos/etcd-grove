@@ -2703,7 +2703,7 @@ committed when proved.
    `lessor_live_set` plus two equalities: `leaseClosers` and `leaseRevokers` read `L` only through
    membership (`simp only` with `hp.mem_iff`), and the guard's `□ [∗list] leaseGranted` moves to
    `Lr` by `bigSepL_perm`. Spec problems found: none.
-2. **`lease.recover_hist` + `lease.closers_recover`: proved** (22:44–22:50, about 6 minutes).
+2. **`lease.recover_hist` + `lease.closers_recover`: proved** (22:44–22:48, about 4 minutes).
    - `recover_hist`'s requests step is a new lemma, `req_issue`: an induction over `Un` that inserts
      each id new to the invariant's `U0` at `rq id` (`ghost_map_insert_persist`; the id is absent
      from `Q`, since `Q`'s ids are ever-had, `reqOk`'s second half, so in `U0` by `histIn`). An
@@ -2718,3 +2718,21 @@ committed when proved.
    - `closers_recover`'s `hrq` step: `recTTLs_lookup`, then `grantTTL_ge` after `hrq`.
    - Spec problems found: none. `Recover`'s premises suffice as stated: the requests' freshness
      needs `histIn` and `reqOk`'s ever-had half, both already in the invariant.
+3. **`EtcdServer.applyAll.wp_proofSnap`'s `lg = true` case: proved** (22:48–22:53, about 5
+   minutes). The proof is now one proof for both lease modes; the case split is gone.
+   - **The receive side:** `snapRecv_image` drops its premise `E.lg = false`.
+     - It opens and closes `srvRest` with the mode-generic `srvRest_open`/`srvRest_close`. The
+       records leave the members (`restLeasesWith_mem`).
+     - The committed log is plain at the KV names' lease mode; `restoreLogOk_kvRaftOf` was
+       already mode-free in its proof, and its premise is generalized from `.none` to any mode.
+     - The image's buckets other than `lease` are the plain image's (`bkRestAtL_other`, from
+       `restLeasesWith_lookup_other`). From that the alarm, auth and membership facts and `hA'`
+       follow (`image_bootBucketsNL`, `image_membBucketsNL`, `clusterImageOk_of_NL`,
+       `restModel_bk_of_NL`, new; the lease bucket goes through `hlease` instead).
+   - **`applyAll`:** the lessor's mode fact from `srvSnapRO` (`lessorModeIs E.γ.leases (decide
+     (E.lm = .mono))`) is exactly `specSnapM`'s, so the revocable-only refutation
+     (`srvRest_revocable`) is no longer needed there.
+   - **Spec problem found:** round 1's `SnapImageFacts.hlnil` (an internal structure) was stated
+     unconditionally, true only in a cluster that grants none. It is now `γr.kv.lg = false →
+     (appliedTable γr A').ids = []`. The `On` twin keeps the unconditional form (auth on, so the
+     cluster grants none). Logged as batch item 22. No exported statement changed.

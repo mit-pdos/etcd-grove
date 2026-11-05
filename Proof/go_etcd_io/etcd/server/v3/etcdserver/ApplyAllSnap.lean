@@ -68,10 +68,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
     hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn _hpre hnI
-  -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise `γr.kv.lg = false`)
-  cases hlgk : γr.kv.lg
-  case true =>
-    sorry -- DRAFT S2–S4 (Prove: a granting cluster's snapshot, `snapRecv_image` at the KV mode, `specSnapM` with the lessor at the environment's mode)
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
@@ -104,20 +100,10 @@ theorem EtcdServer.applyAll.wp_proofSnap
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, #Hws, #Hcfg⟩
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
     halbi, hwq, hRO, hrb⟩ := Hp
-  -- (the lease-grant stage, 2.9) the lessor revocable refutes the rest's leased arm
-  -- (the lease-expiry plan's X2) the mode of a cluster that grants none: `none`
-  icases HlpM with ⟨%Hmo, #HlpM⟩
-  have hEm : E.lm = .none := by
-    have h := hlgk; rw [KVNames.lg_eq, ← Hmo] at h; simpa using h
-  ihave #HlpM : lease.lessorModeIs E.γ.leases (decide (lease.Mode.none = .mono)) $$ []
-  · iExactEq HlpM <;> rw [hEm]
-  ihave #Hlrev0 : lease.lessorModeIs E.γ.leases false $$ []
-  · iExactEq HlpM <;> rfl
-  ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A .none (by decide)
-    (by rw [apply.AEnv.lg_eq, hEm]) $$ [$HlpM $Hlrev0 $HRS]
-  ihave #HlpE : lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)) $$ []
-  · rw [hEm]; iexact HlpM
-  rw [← srvRest_false E γr A HElg]
+  -- (the lease-expiry plan's S2–S4 Probe, 2026-11-05: in either lease mode; until then the
+  -- revocable lessor refuted the rest's leased arm, a cluster that grants none) the lessor at the
+  -- environment's mode
+  icases HlpM with ⟨%Hmo, #HlpE⟩
   icombine Hnid Hidm gives %Hidn
   subst Hidn
   -- the snapshot saved in the member's directory (`nodeSnapLocal` at the cluster's directories,
@@ -145,7 +131,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
   have hai0 : uint.Z ai = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word
   imod snapRecv_image γr.raft.raft γr E sv.Metadata'.Index' ai D d A x cl _ hkb hraft hc0 hch hlog0
-      hai0 hai hboot hRO HElg $$ Hkvi Himg Hka HRS Hrc
+      hai0 hai hboot hRO $$ Hkvi Himg Hka HRS Hrc
     with ⟨Hka, HRS, %A', %R, %r, #HA', %Hif, #Hrc0, #Hpf0, #Hpc0⟩
   -- (M2's item 15, stage C) `specSnap`'s `hcc`: the apply thread's compaction revision is its
   -- applied log's (`kvApplied`), at most the image's records' (`crev_hcc`)
@@ -194,9 +180,6 @@ theorem EtcdServer.applyAll.wp_proofSnap
   -- thread's token (`srvGoRes`'s)
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨HgrW, HthT⟩
-  -- (the lease-grant plan's D2) the lessor revocable: the cluster grants no lease
-  ihave #Hlrev : lease.lessorModeIs E.γ.leases false $$ []
-  · iExactEq HlpM <;> rfl
   -- (F9, 2026-11-03) `specSnapM` in the mode `off`: the auth store's `Recover` facts `authRecoverOk`
   ihave #HauS : snapAuthResM E.authMode s ast E.RD γr A' $$ []
   · rw [hoff]; simp only [snapAuthResM]; iapply HauR; ipureintro; first | trivial | rfl | exact hoff
@@ -207,7 +190,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      Hif.pre (by rw [Hoff]; exact Hif.hA') Hif.hlease (fun _ => Hif.hlnil) (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
+      Hif.pre (by rw [Hoff]; exact Hif.hA') Hif.hlease
+      (fun h => Hif.hlnil (by rw [KVNames.lg_eq, ← Hmo, ← apply.AEnv.lg_eq]; exact h)) (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
   rw [Hoff] at hS
   simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM] at hS
   wp_apply hS
