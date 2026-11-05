@@ -105,6 +105,88 @@ theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     iframe Hw Htie Hr
   · iexists B; iexact Hrt
 
+/-- **`mPre` without the chain's resources** (strict M1, 2026-11-05): what a wrapper passes on
+unchanged, or gives back with `Pre` when it rejects (`mPreRest_reject`). -/
+def mPreRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
+      srvApi.csContractA (E.Pk B) E.f Pre Q Post)
+
+/-- `mPre` is `mPreRest` and the chain's resources. -/
+theorem mPre_split_chain (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPre E c a info log Pre Q Post ⊢ mPreRest E log Pre Q Post ∗ chainRes c a info := by
+  iintro H
+  iunfold mPre at H
+  icases H with ⟨Hw, Hll, Hrd, Hres, Hb⟩
+  iunfold mPreRest
+  iframe
+
+/-- `mPre` from `mPreRest` and the chain's resources. -/
+theorem mPre_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreRest E log Pre Q Post ∗ chainRes c a info ⊢ mPre E c a info log Pre Q Post := by
+  iintro ⟨H, Hres⟩
+  iunfold mPreRest at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold mPre
+  iframe
+
+/-- **A rejection**: the thread's KV resources and `Pre` back. -/
+theorem mPreRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreRest E log Pre Q Post ⊢ kvOwn E log ∗ Pre := by
+  iintro H
+  iunfold mPreRest at H
+  icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, Hcs⟩
+  iunfold srvApi.csContractA at Hcs
+  icases Hcs with ⟨HPre, -, -⟩
+  iframe HPre
+  iunfold kvOwn
+  iframe Hw Hll Hrd
+  iunfold kvBk
+  iexists B
+  iframe
+
+/-- **A rejection of a writing method**: the thread's KV resources, the chain's, `Pre` and the
+reader token back. -/
+theorem mPreW_reject (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreW E c a info log Pre Q Post ⊢ kvOwn E log ∗ chainRes c a info ∗ Pre ∗ ∃ B : BkRef, bkRT B := by
+  iintro H
+  icases mPreW_split E c a info log Pre Q Post $$ H with
+    ⟨%cr, %B, Hw, Hcs, -, Hrt, Htie, Hres, Hkv⟩
+  iunfold srvApi.csContractA at Hcs
+  icases Hcs with ⟨HPre, -, -⟩
+  iframe HPre Hres
+  isplitr [Hrt]
+  · iapply kvOwn_of_split E log B cr
+    iframe
+  · iexists B; iexact Hrt
+
+/-- **`mPreW` without the chain's resources** (as `mPreRest`). -/
+def mPreWRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+      srvApi.csContractA (E.Pk B) E.f Pre Q Post)
+
+theorem mPreW_split_chain (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreW E c a info log Pre Q Post ⊢ mPreWRest E log Pre Q Post ∗ chainRes c a info := by
+  iintro H
+  iunfold mPreW at H
+  icases H with ⟨Hw, Hll, Hrd, Hres, Hb⟩
+  iunfold mPreWRest
+  iframe
+
+theorem mPreW_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreWRest E log Pre Q Post ∗ chainRes c a info ⊢ mPreW E c a info log Pre Q Post := by
+  iintro ⟨H, Hres⟩
+  iunfold mPreWRest at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold mPreW
+  iframe
+
 end lemmas
 
 end apply

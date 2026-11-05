@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__LeaseGrant
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
@@ -30,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post info
-  wp_start as ⟨#Hq, #Hin, HR, Hpre, Hwt, #Hsp⟩
+  wp_start as ⟨#Hq, #Hin, HR, Htt, Hpre, #Hsp⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -45,25 +46,28 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   subst Hbi
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, -, -, #HResp, -⟩
-  iunfold apply.mPre at Hpre
-  icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hpre with ⟨Hm, Hres⟩
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok -
   · ipureintro; exact Or.inr (Or.inr rfl)
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
-  wp_apply HResp $$ %go!"LeaseGrant" %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt]
-    as %resp %err ⟨Hpost, #HeI'⟩
+  wp_apply HResp $$ %go!"LeaseGrant" %r %log %Pre %Q %Post [] [HR Htt Hm Hres]
+    as %resp %err ⟨Htt, Hpost, #HeI'⟩
   · ipureintro; simp [apply.respMethods]
   · simp only [apply.reqFacts, ↓reduceIte]
-    iframe HR
-    iunfold apply.mPre
+    iframe HR Htt Hsp
+    iapply apply.mPreW_of_rest
     iframe
-    iframe #
+  iunfold apply.mPostW at Hpost
+  icases Hpost with ⟨Hpost, Hrt⟩
   iunfold apply.mPost at Hpost
   icases Hpost with ⟨Hkv, Hres, HPP⟩
   ihave Hres := apply.chainResAny_quota_in c p (.ok bi) $$ Hf Hres
   rcases err with e | _ <;> cases ok <;> (try wp_auto) <;>
   · iapply HΦ
+    iframe Htt
+    iunfold apply.mPostW
+    iframe Hrt
     iunfold apply.mPost
     iframe
     (try first | iexact HeI | iexact HeI')
