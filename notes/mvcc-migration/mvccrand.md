@@ -26,16 +26,15 @@ mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
   imports only mvcc's `ApiState`. And `covers_eq_inRangeM` (proved): the range `Watch`
   registers (`watchRangeOf`, its affine `covers`, through which `wsRecvOk` selects a watcher's
   events) is the tester's `inRange` for non-empty keys.
-- `checkRange`: the spec (`Spec/.../checkRange.lean`: from `rangeOutcome` at a well-formed log
-  whose states match the tester's maps up to `cur`, and `res ≠ null`, it returns). Its proof is
-  in progress outside the tree (`~/.claude-D/jobs/e4ba2bf8/tmp/mvccrand-wip/checkRange.lean`, not
-  committed: it has a `sorry`): done, the context-error arm excluded, the future arm (its
-  `err == ErrFutureRev` through `mvccInit`'s `errorsNewVar`, G2), the result's two shapes merged and
-  split into fields, `rev := rangeRev`; left, the match loop (`slice.forRange` over `keys`, invariant
-  `match = (keyList.take i).filter …`, giving `matchKeys`), `n`/`taken`/`total` against
-  `rangeTotal`/`rangeTaken` (txn's `rangeTotal_stateAt`, `rangeTaken_eq` with
-  `answers_keys_eq_match`), and the key-value loop (`rangeKvs`' `i`-th element, `kvPtrIs` to
-  `kvMatches` through `stMatch`, then `checkKV`).
+- `checkRange` (2026-11-06): spec and proof, no `sorry`. **Every check of a range read is proved
+  from `Txn.Range.contract`'s outcome** (at compaction revision `-1`, `res ≠ null`), the
+  `errVars.law` (G2's fix) for `err == ErrFutureRev`, and `txn.LogOk` of the read log: the future
+  arm; `err == nil`, `Rev == cur`; the match loop (`matchKeys`, `answers_keys_eq_match`); the
+  count-only count; `taken`/`total` against `rangeTaken`/`rangeTotal` (`takenOf`, `totalOfT`,
+  `takeLimit_length_takenOf`, `totalOf_eq`, through txn's `rangeTotal_stateAt`,
+  `rangeAnswers_length`, `rangeTaken_eq`); and each key-value through `checkKV` (`rangeKvs`'
+  elements, `kvPtrIs` and `stMatch`, `kv_of_find`, `taken_keys`). Callee hypotheses: `check`,
+  `inRange`, `checkKV`'s specs, `errVars.law`.
 
 ## The checks against the API (2026-11-05, by reading; each to be proved)
 
@@ -127,6 +126,45 @@ such client. **Minimal strengthening**: a law in `Api.lean`, e.g.
 errorsNewVar ErrEmptyWatcherRange "…"` (or a weaker `∃ x, globalAddr X ↦□ interface.mkOk
 (PointerType errorString.ty) #x` per variable; `ErrWatcherNotExist`, which `Cancel` returns, has
 no such fact even in `mvccInit`, only `∃ e, globalAddr … ↦□ ok e`).
+
+**G1 and G2: fixed** (the coordinator, `87873f7d8f`, 2026-11-06): `backendRest_open.law` (the stop
+channels, `K`, `plHook γB nil`, `rbOwn`, `rdPool`), `errVars.law` (`errorsNewVar` of `ErrCompacted`,
+`ErrFutureRev`, `ErrEmptyWatcherRange`). `checkRange`'s proof takes `errVars.law` as a hypothesis.
+
+## What each blocker outside mvcc's API costs (2026-11-06)
+
+`Run`'s order: `backend.New`, `lease.NewLessor(lg, be, nil, …)`, `mvcc.New`, the hook, the
+goroutines, then the teardown `ws.Close()`, `recvDone.Wait()`, `check(kv.Close() == nil)`,
+`le.Stop()`, `check(be.Close() == nil)`.
+
+- **`lease.NewLessor.spec`'s `clusterOk cl`** (non-nil cluster) costs **everything**: it is the
+  second call, before `mvcc.New`, so no triple of `Run` (or `Main`) can be proved past it; a result
+  under `clusterOk nil` as a premise is vacuous (`clusterOk` is `∃ ci, ⌜cl = ok ci⌝ ∗ …`, false of
+  `nil`). Either fix removes it: the tester passes a stub cluster (`Version()` returning `nil`: a
+  five-line Go change to `examples/mvccrand`, outside this track's paths), or the axiom admits `nil`
+  (true of the Go code: `cluster` is read only by `shouldPersistCheckpoints`, from `Checkpoint` and
+  the promoted loop; the tester never checkpoints nor promotes). The second is a trust-base change of
+  the lease package (its owner's).
+- **`backend.New.spec`'s unconditional panic** costs the "no panic" conclusion only in that arm: the
+  strongest triple of `Run` has a post `RET v; (v is the report) ∨ ⌜∃ p, v = PanicV p⌝` where the
+  panic arm is exactly `backend.New`'s (bbolt's `Open` failing on the file); the closed theorem then
+  says "no thread panics, unless `backend.New` did". To exclude it: an environment premise on
+  `backend.New` (as the server's `storage.dbOpensOk` on `storage.OpenBackend`, an axiom); one Iris
+  or pure premise of the closed theorem.
+- **`be.Close()`** (shutdown out of scope, decision 1) costs `Run`'s last check and `le.Stop()`:
+  `backend.backend.Close.spec` takes the whole open token `bOpen γ 1`, of which `mvcc.New` keeps a
+  share for good (`KV.Close` gives nothing back), and its error arm `¬ dbCloseOk`; and `lease` has
+  no spec of `Stop`. So no triple of `Run` as written reaches its end. Strongest result: everything
+  up to and including `check(kv.Close() == nil)` (every check of mvcc); stating it needs `Run` split
+  at that point (Go: `run(cfg)` returning `(Report, le, be)`, then `Run` = `run` + `le.Stop()` +
+  `be.Close()` check; outside this track's paths), or a triple of `Run` whose post admits a panic
+  from `be.Close()`'s check and whose `le.Stop()` is assumed (an axiom: not allowed here).
+- `keySized` (`mvccBackendFor_open.law`'s premise), `fileHolds "mvccrand.db" D` (fresh), and
+  `ckptEffectsOk` (`NewLessor`'s) are premises of the closed theorem, as in the server examples.
+
+So the strongest result reachable with no Go change and no axiom: none past `NewLessor`. With the
+stub cluster and the split `run`: `run(cfg)` does not panic but at `backend.New`, for `cfg` with
+`0 ≤ Watchers`, `0 ≤ Readers`, `Readers + 3 ≤ threadBound`, `Ops < 2 ^ 62`.
 
 ## Blockers outside mvcc's API (for the top-level result)
 
