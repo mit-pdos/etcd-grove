@@ -26,7 +26,8 @@ closed theorems' address lists (`HAs`) name only what the program listens on.
 allocation (`alloc3`, `Alloc3.lean`, and `memberStartRes_fresh` for a member without a peer
 address); narrow eliminations into what each consumer takes (`_client`: the client address's
 listen right, to `Serve`; `_peer`: the peer address's listen right and protocol, to the member's
-raft listener; `_boot`: the WAL's boot slot `wal.bootRes`, to `NewServer`, or the restart's disk
+raft listener; `_raft`: the raft names a restart bundle's image
+records; `_boot`: the WAL's boot slot `wal.bootRes`, to `NewServer`, or the restart's disk
 image), each giving back the rest of the bundle at the smaller `MemberAddrs`.
 -/
 module
@@ -157,6 +158,19 @@ theorem memberRestartRes_boot (n : GoString) (γn : NetNames GF) (γ : SrvRaft) 
   unfold memberRestartRes
   iintro ⟨Hd, -, -⟩
   iexact Hd
+
+/-- **The raft names a restart bundle's image records** (`srvDiskImage_raft`; hub step 8, E4):
+the restarted member's cluster's. -/
+theorem memberRestartRes_raft (n : GoString) (a : MemberAddrs) (γn : NetNames GF) (γ : SrvRaft)
+    (ρ : ReqNames) (id : w64) :
+    memberRestartRes (GF := GF) n a γn γ ρ id ⊢
+      ⌜ρ.rd.raft.raft = γ⌝ ∗ memberRestartRes n a γn γ ρ id := by
+  unfold memberRestartRes
+  iintro ⟨Hd, Hp, Hc⟩
+  icases srvDiskImage_raft γ ρ id _ $$ Hd with ⟨%H, Hd⟩
+  isplitr
+  · ipureintro; exact H
+  iframe
 
 /-- **A restart bundle, from a member's stop** (its disk image in the data directory
 `n ++ ".etcd"`, and its peer address's listen right and raft protocol). -/

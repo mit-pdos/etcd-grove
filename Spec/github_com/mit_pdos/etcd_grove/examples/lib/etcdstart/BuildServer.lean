@@ -14,7 +14,8 @@ R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to
 makes the channels it names).
 
 **`specRestart`** (DRAFT, R2c and R2d): member `id` started again on the data directory its last
-stop left (`srvDiskImage`, at the stopped incarnation's names `ρ`), `bootstrap`'s restart contract
+stop left (`srvDiskImage`, at the stopped incarnation's names `ρ`, in the member's restart bundle
+`memberRestartRes`), `bootstrap`'s restart contract
 (`bootPremiseR`) in place of a first start's: the member built at its image's starting index
 (`memberBuiltR`) at new names `ρ'` that agree with `ρ` where the cluster sees them
 (`restartNames`) and a new stand-in environment `E₀'`, with its data directory recorded, from
@@ -110,8 +111,8 @@ abbrev BuildServer.specStop : Prop :=
       context.isClosedchanInit ∗
       memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       netHttpOk γn id ∗
-      -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
-      walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
+      -- (hub step 8, S7) the member's fresh bundle without addresses: a first start
+      memberFreshRes name {} γn }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))
@@ -144,7 +145,8 @@ abbrev BuildServer.specRestart : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      srvDiskImage γ ρ id (name ++ go!".etcd") ∗ netHttpOk γn id }}
+      -- (hub step 8, S7) the member's restart bundle without addresses: its stop's disk image
+      memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))

@@ -160,7 +160,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
 /-- **The cluster's ghost state, from the peers' unregistered HTTP protocols** (`alloc3`'s
 allocation, on the start bundles' pieces; until hub step 7's steps 7-8 also used directly by the
 partition and restart examples and `cluster3`, which do not yet take the bundles). -/
-theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
+private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
