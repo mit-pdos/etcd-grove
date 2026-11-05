@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/utils/clock"
@@ -353,4 +355,30 @@ func TestMainPartition(t *testing.T) {
 	}
 	t.Logf("%s = %d (version %d), store at %d", compactRevKey, v, resp.Kvs[0].Version,
 		resp.Header.Revision)
+}
+
+// TestMemberIDs checks the premise on the member ids etcd computes for MainPartition's cluster
+// (from the peer URLs and the cluster token; examples/etcd/partition's TestMemberIDs): their 16
+// low bits are distinct and not 0. It prints the ids in the order bootstrap sorts them (the proof's
+// BootFacts).
+func TestMemberIDs(t *testing.T) {
+	cfg := clusterConfig()
+	urls, err := types.NewURLsMap(cfg.Name1 + "=http://" + cfg.Peer1 + "," + cfg.Name2 + "=http://" +
+		cfg.Peer2 + "," + cfg.Name3 + "=http://" + cfg.Peer3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cl, err := membership.NewClusterFromURLsMap(zap.NewNop(), cfg.Token, urls)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[uint64]bool{}
+	for _, id := range cl.MemberIDs() {
+		low := uint64(id) & 0xffff
+		t.Logf("member %x (%s): low 16 bits %#x", uint64(id), cl.Member(id).Name, low)
+		if low == 0 || seen[low] {
+			t.Fatalf("member %x: low 16 bits %#x zero or repeated", uint64(id), low)
+		}
+		seen[low] = true
+	}
 }

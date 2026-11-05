@@ -273,14 +273,21 @@ fact `noDupKeys_of_one` before `Serve`). `watchEnv_conn` (the partition example'
 client's watch through the three bridges, which the compactor's watch loop needs.
 
 **Steps.**
-1. *The mode* (done on branch `k8s3m`): `newServer.spec` and `NewMember.spec` take `cmp`
+1. *The mode* (done, branch `k8s3m`): `newServer.spec` and `NewMember.spec` take `cmp`
    (`memberBoot … cmp`), `alloc3` takes `cmp`/`cret` (defaults off) and posts them; callers pass
    `false`.
-2. *The Go example* (Go first: it changes the traffic): `examples/k8s/compactorp`, the compactor
-   example's workload on three members through bridges, with the partition schedule; a test.
-3. *The shared cluster start*: `memberAt`/`memberWatch` by the mode, the no-duplicate fact
-   provided before each member serves watches.
-4. *Draft* of the new `Main.spec` and the closed theorem; **Freeze** (the user's).
+2. *The Go example* (done): `MainPartition` in the compactor package (not a new package: it reuses
+   `apiserver`, `check`, `writer`, `ready` and their proofs), the compactor example's workload on three
+   members through bridges, with the partition schedule; `TestMainPartition` (compactions under
+   partitions), `TestMemberIDs`. The partition helpers moved to `examples/lib/cluster3` (D2), Go and
+   Lean (`cluster3.Config`, `cfgOk`, `StartCluster`, `NewClient`); partition's results unchanged but
+   for the step type's package.
+3. *The shared cluster start by the mode* (done): `StartMember`/`StartCluster`/`memberAt`/`clusterUp`
+   take `cmp`; `memberWatch` carries `mvcc.watchNoDup` (needed only for the clients' watch facts,
+   after the start: no provider premise on the start; compaction off gives it, `watchNoDup_of_off`).
+4. *Draft* of `MainPartition.spec` (written, `Spec/.../k8s/compactor/MainPartition.lean`) and the
+   closed theorem (as `k8s_compactor_adequate` at the program `MainPartition #sched`, for every
+   schedule, with partition's hypotheses at `clusterCfg`); **Freeze** (the user's).
 5. *Prove* `Main`, the adequacy theorem over every schedule; a TCB collection.
 
 **Decided by the agent, pending the user** (scope; the user vetoes):
