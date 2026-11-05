@@ -453,7 +453,7 @@ theorem Open.wp_proof [sync.Assumptions]
       ileft; ipureintro; rfl
     open_exit fmtVerbs_openErr [interface.mkOk go.string #path, GoInterface.ok ei]
   -- the file opened
-  obtain ⟨rfl, -⟩ := Hfd
+  obtain ⟨rfl, hfd0⟩ := Hfd
   icases openRest_opened path D mo $$ [Hfm Hfr] with ⟨%m, %xs, Hfm, Hxs, %Hm⟩
   · iframe
   try wp_auto
@@ -721,7 +721,7 @@ theorem Open.wp_proof [sync.Assumptions]
     ipureintro; exact Hlgty
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
   wp_apply hLoad N dbl sp f fd path C base L _ xs'
-    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) $$
+    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
       Hxs Hbp Hcells freelistLoad] as Hlf
   · unfold lfPre
