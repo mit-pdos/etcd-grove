@@ -671,7 +671,62 @@ theorem stFrom_item (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key)
       (s.rev = W64 0 ∧ (c.abs σ).items key = none) ∨
       (s.rev ≠ W64 0 ∧ c.S.decode s.data = some s.o ∧ ∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩ ∧
         (b = true → (!s.stale && decide (c.S.encode s.o = s.data)) = true))⌝ := by
-  sorry
+  have hpos : ∀ (σ : KVState), kvWf c σ → ∀ v, mvcc.findKey key σ.kvs = some v →
+      0 < uint.nat v.modRev := by
+    intro σ hw v hv
+    have := (hw.2.2.1 key (linkv.absVR v) (by simp [linkv.absSt, linkv.absM, hv])).1
+    simpa [linkv.absVR] using this
+  unfold stFrom rdFacts
+  iintro ⟨#Hf, #Hs⟩
+  icases Hf with (⟨%σ0, %kv0, ⟨%Hw0, #Hs0⟩, %Hk0⟩ | ⟨%σ0, -, %Hz⟩ | ⟨%Hc, #Hv⟩)
+  · -- a read of the key-value `kv0`
+    obtain ⟨hf0, hr0, hfs, hdec, -⟩ := Hk0
+    have hk0 : kv0.key = key := by simpa using List.find?_some hf0
+    ihave %Hval := kvSeen_same c.γh σ0 σ kv0 (List.mem_of_find?_eq_some hf0) $$ [Hs0 Hs]
+    · iframe Hs0 Hs
+    ipureintro
+    intro hm
+    have hm0 : kubernetes.modAt key σ0 = kv0.modRev := by simp [kubernetes.modAt, hf0]
+    have hp0 := hpos σ0 Hw0.1 kv0 hf0
+    have hne : s.rev ≠ W64 0 := by
+      rw [hr0]; intro h; rw [h] at hp0; exact absurd hp0 (by decide)
+    have heq : (c.abs σ).items key = (c.abs σ0).items key := by
+      apply abs_items_eq c key σ σ0 hwf Hw0.1 (hm.trans (hr0.trans hm0.symm))
+      intro v1 v2 h1 h2
+      rw [hf0] at h2
+      cases h2
+      have hk1 : v1.key = key := by simpa using List.find?_some h1
+      have hm1 : v1.modRev = kv0.modRev := by
+        have := hm.trans hr0
+        simpa [kubernetes.modAt, h1] using this
+      exact Hval v1 (List.mem_of_find?_eq_some h1) (hk1.trans hk0.symm) hm1
+    right
+    refine ⟨hne, hdec, !s.stale && decide (c.S.encode s.o = s.data), ?_, fun h => h⟩
+    rw [heq, hr0]
+    apply StoreCfg.abs_some c σ0 key hpk kv0 hf0
+    simp [ObjCodec.dec, hfs, hdec]
+  · -- the absent key's zero state
+    obtain ⟨-, rfl⟩ := Hz
+    ipureintro
+    intro hm
+    left
+    refine ⟨rfl, StoreCfg.abs_none c σ key ?_⟩
+    cases hf : mvcc.findKey key σ.kvs with
+    | none => rfl
+    | some v =>
+      have := hpos σ hwf v hf
+      simp [kubernetes.modAt, hf, zeroSt] at hm
+      rw [hm] at this
+      exact absurd this (by decide)
+  · -- the cached object
+    obtain ⟨-, hstl, hdat, hr⟩ := Hc
+    unfold versionAt
+    ihave %H := Hv $$ %σ Hs
+    ipureintro
+    intro hm
+    obtain ⟨b, hb⟩ := H hm
+    right
+    refine ⟨hr, by rw [hdat]; exact c.S.decode_encode _, b, hb, fun _ => by simp [hstl, hdat]⟩
 
 end steps
 
