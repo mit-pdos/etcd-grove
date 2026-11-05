@@ -726,7 +726,28 @@ theorem lessor_live_perm (γl : GName) (lp : Loc) (L Lr : List w64) (M : GMap w6
       leaseRevokers γl L ==∗
     lessorAuth γl 1 lp Lr M ∗ leaseFrag γl (1 : Qp).half Lr ∗ leaseOwn γl Lr I ∗
       leaseRevokers γl Lr := by
-  sorry -- DRAFT S2–S4 (Prove: `lessor_live_set` with `Lr`'s grants from `L`'s, `hp.mem_iff` for the closers' and revokers' membership)
+  have hm : ∀ id : w64, (id ∈ Lr) = (id ∈ L) := fun id => propext hp.mem_iff
+  have hc : leaseClosers (GF := GF) γl Lr I = leaseClosers γl L I := by
+    unfold leaseClosers; simp only [hm]
+  have hr : leaseRevokers (GF := GF) γl Lr = leaseRevokers γl L := by
+    unfold leaseRevokers; simp only [hm]
+  iintro ⟨Ha, Hf, Ho, Hr⟩
+  iunfold leaseOwn at Ho
+  icases Ho with ⟨Hf2, Hc⟩
+  ihave ⟨Ha, #Hg⟩ : lessorAuth (GF := GF) γl 1 lp L M ∗ □ ([∗list] id ∈ Lr, leaseGranted γl id) $$ [Ha]
+  · unfold lessorAuth
+    icases Ha with ⟨%γga, %γcl, %γr, Ha, Hcl, #Hl⟩
+    isplitl
+    · iexists γga, γcl, γr; iframe Ha Hcl; iexact Hl
+    imodintro
+    iapply (BigSepL.bigSepL_perm (PROP := IProp GF) (Φ := fun id => leaseGranted (GF := GF) γl id) hp).2
+    iexact Hl
+  imod lessor_live_set γl lp L Lr M $$ [$Ha $Hf $Hf2 $Hg] with ⟨Ha, Hf, Hf2⟩
+  imodintro
+  iframe Ha Hf
+  unfold leaseOwn
+  rw [hc, hr]
+  iframe Hf2 Hc Hr
 
 end lemmas
 

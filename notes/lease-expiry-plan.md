@@ -2693,3 +2693,13 @@ At most an easy and a hard proof per package, the hard one chosen by its invaria
 - **etcdserver.** Easy: `EtcdServer.applyAll.wp_proofSnap`'s `lg = true` case. Hard: `EtcdServer.applySnapshot.wp_proof_snapM`'s granting walk in the monotone mode, the restore of a leased image through `Recover`. It needs `histCover`, `appliedTable_mono_sub` and the per-mode request of F7, and it is the only check, before the Freeze, of the strength of `srvRestAt`'s and `srvEver`'s new clauses.
 
 These five are exactly the DRAFT `sorry`s every server result reaches (review round 1's F2/F16). None may land unproved: S2–S4 lands only when the server-wide reach is back to lean's (no new `sorry` outside the lease examples).
+
+## S2–S4 Probe (2026-11-05)
+
+The five probes of the Probe set above, in its order (easy before hard in each package), each
+committed when proved.
+
+1. **`lease.lessor_live_perm`: proved** (22:44–22:52, about 8 minutes). It is the stated
+   `lessor_live_set` plus two equalities: `leaseClosers` and `leaseRevokers` read `L` only through
+   membership (`simp only` with `hp.mem_iff`), and the guard's `□ [∗list] leaseGranted` moves to
+   `Lr` by `bigSepL_perm`. Spec problems found: none.
