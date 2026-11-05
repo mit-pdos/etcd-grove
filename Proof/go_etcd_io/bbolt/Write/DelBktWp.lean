@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_w
 public import Spec.go_etcd_io.bbolt.node__del
 public import Spec.go_etcd_io.bbolt.Bucket__free_dead
 public import Proof.go_etcd_io.bbolt.Write.DelBktPure
+public import Proof.go_etcd_io.bbolt.Write.DelBktCur
 public import Proof.go_etcd_io.bbolt.Read.PubWCur
 
 @[expose] public section
@@ -49,6 +50,21 @@ def deleteOK (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) : 
     X'.v = X.v ∧ X'.t.mv = X.t.mv ∧ w'.C = w.C ∧ flViewU X' w'.fl ∧
     (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) ∧
     wrCurFacts (T.dropBkt n) X'
+
+/-- `node.del`'s inodes after a found key, as long as its entries (as `Write/DelWp.delAt_len`). -/
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+theorem dbkDelAt_len (ins : List Inode) (ws : List WEntry) (kb : List w8)
+    (hl : ins.length = ws.length) (hf : wsFound ws kb) :
+    (ins.eraseIdx (wsIdx ws kb)).length = (wsDelAt ws kb).length := by
+  have hi : wsIdx ws kb < ws.length := by
+    unfold wsFound at hf
+    cases h : ws[wsIdx ws kb]? with
+    | none => rw [h] at hf; cases hf
+    | some w => exact (List.getElem?_eq_some_iff.1 h).1
+  unfold wsDelAt
+  rw [if_pos hf]
+  simp only [List.length_eraseIdx, List.length_append, List.length_take, List.length_drop]
+  split <;> omega
 
 /-- **The root bucket's `DeleteBucket`.** -/
 theorem Bucket.DeleteBucket.wp_root
@@ -216,7 +232,7 @@ theorem Bucket.DeleteBucket.wp_root
   ihave #Hei : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpke
   unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars
-  icases Hei with ⟨%enf, #Hnf, %-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hiv, -⟩
+  icases Hei with ⟨%enf, #Hnf, %-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hiv, -, -, #Hbnf⟩
   wp_apply hClone name n dq $$ [Hname] as %nk ⟨Hnk, -, Hname⟩
   · iframe #; iframe
   imod ownSlice_persist nk _ _ $$ Hnk with #Hnk
@@ -238,7 +254,8 @@ theorem Bucket.DeleteBucket.wp_root
   ihave Hk : (∃ (kb : List w8) (dk : DFrac), k ↦*{dk} kb ∗ (k ↦*{dk} kb -∗ wtxW K tx r false X) ∗
       ⌜(kb = n → ((T.cur !! n).isSome ∧ ¬ (fl &&& W32 1 = W32 0)) ∨
           (T.cur !! n = none ∧ n = [] ∧ fl = W32 0)) ∧
-        (kb ≠ n → T.cur !! n = none)⌝) $$ [Hw Hkv]
+        (kb ≠ n → T.cur !! n = none) ∧
+        (kb = n → (T.cur !! n).isSome → ∃ w ∈ lLeaf X X.rl pids, w.key = n)⌝) $$ [Hw Hkv]
   · cases hm : (lLeaf X X.rl pids)[wsIdx (lLeaf X X.rl pids) n]? with
     | none =>
       rw [hm] at hlk
@@ -256,7 +273,8 @@ theorem Bucket.DeleteBucket.wp_root
       isplitl
       · iintro -; iexact Hw
       ipureintro
-      exact ⟨fun h => Or.inr ⟨hnone, h.symm, hfl0⟩, fun _ => hnone⟩
+      exact ⟨fun h => Or.inr ⟨hnone, h.symm, hfl0⟩, fun _ => hnone,
+        fun _ h => by rw [hnone] at h; cases h⟩
     | some w =>
       rw [hm] at hlk
       icases Hkv with ⟨%hk0, #Hks, -⟩
@@ -278,7 +296,8 @@ theorem Bucket.DeleteBucket.wp_root
         iapply Hwbc $$ Hc
       ipureintro
       have hbf := (lLeaf_flag X X.rl R hok hR hloc els pids Hp w hwl).2 rfl
-      refine ⟨fun h => Or.inl ⟨hlk.2 (by simp [h]), by rw [hfl]; exact hbf⟩, fun h => ?_⟩
+      refine ⟨fun h => Or.inl ⟨hlk.2 (by simp [h]), by rw [hfl]; exact hbf⟩, fun h => ?_,
+        fun h _ => ⟨w, hwl, h⟩⟩
       cases h' : T.cur !! n with
       | none => rfl
       | some _ =>
@@ -292,14 +311,18 @@ theorem Bucket.DeleteBucket.wp_root
   by_cases hkw' : ¬ n = kb
   · -- not found
     have hkw := hkw'
-    have hnone : T.cur !! n = none := Hkb.2 (Ne.symm hkw)
+    have hnone : T.cur !! n = none := Hkb.2.1 (Ne.symm hkw)
     rw [decide_eq_false hkw]
     try wp_auto
     wp_bind (App (Val #_) (Val #()))
     iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.ok enf ∗
       name ↦*{dq} n))) $$ [err Hkey Hlgp Hname]
-    · iapply Hdf $$ [] err Hkey Hlgp Hname
-      iright; sorry
+    · unfold go_etcd_io.bbolt.errors.bboltErrVar
+      icases Hbnf with ⟨%e2, #He2, %-, #Hfe2⟩
+      ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ Hnf He2
+      cases Heq
+      iapply Hdf $$ [] err Hkey Hlgp Hname
+      iright; iexact Hfe2
     iintro %vret ⟨%hvret, err, Hname⟩
     subst hvret
     wp_auto
@@ -331,6 +354,7 @@ theorem Bucket.DeleteBucket.wp_root
     iright; iframe #; ipureintro; exact hn0
   rw [decide_eq_false hbf]
   try wp_auto
+  have hin : ∃ w ∈ lLeaf X X.rl pids, w.key = n := Hkb.2.2 hkw.symm hfound
   have hsome : T.cur.lookup n ≠ none := by
     intro h; rw [show T.cur.lookup n = T.cur !! n from rfl, h] at hfound; cases hfound
   -- `child := b.Bucket(newKey)`
@@ -412,8 +436,122 @@ theorem Bucket.DeleteBucket.wp_root
   · iframe Hw
     rw [show (delMid X1 cb C R1 n (deadRec { C with ns := ∅ })).v = X.v from hv1]
     iexact Hwdb
-  -- remaining: `c.node().del(newKey)` and `deleteOK` (U7o, in progress)
-  sorry
+  -- the records after the free: `delMid` with the child's dead record `D'`
+  obtain ⟨D', hX5, hD⟩ : ∃ D', X5 = delMid X1 cb C R1 n D' ∧
+      ((C.ib.root' = W64 0 ∧ D' = deadRec { C with ns := ∅ } ∧ w5 = w) ∨
+       (C.ib.root' ≠ W64 0 ∧ ltIs (pltree X1.v) cb t ∧ t.pid = C.ib.root' ∧
+         D' = { deadRec { C with ns := ∅ } with ib := { C.ib with root' := W64 0 } } ∧
+         w5 = w.withFl (w.fl.freeAll w.wtxid (t.pos.filterMap (pExt X1.v))))) := by
+    rcases Hfr with ⟨h0, h1, h2⟩ | ⟨h0, h1, h2⟩
+    · exact ⟨_, h1, Or.inl ⟨h0, rfl, h2⟩⟩
+    · exact ⟨_, h1.trans (delMid_setDead _ _ _ _ _ _ _), Or.inr ⟨h0, (ht h0).1, (ht h0).2.1, rfl, h2⟩⟩
+  subst hX5
+  have hdo1 : objsDisj X1.t := Hhok1.2.1
+  have hcr1 : cb ≠ X1.rl := by rw [hrl1]; exact hcr
+  have hok5 := wOK_delMid T X1 cb C R1 n D' hok1 hwr1 hg1 hR1' hn1 hC hdo1 hfl1.2.2.1
+  have hYrl : (delMid X1 cb C R1 n D').t.bs !! X.rl = some (bUnopen R1 n) := by
+    rw [delMid_bs, if_neg hcr, ← hrl1, if_pos rfl]
+  have hrl5 : (delMid X1 cb C R1 n D').rl = X.rl := hrl1
+  have hv5 : (delMid X1 cb C R1 n D').v = X.v := hv1
+  have hst5 : sameTreeB R (bUnopen R1 n) := hst1
+  have Hp5 : lPath (delMid X1 cb C R1 n D') X.rl els pids :=
+    (lPath_congr_bkt X _ X.rl R _ hv5 hR hYrl hst5 els pids).2 Hp
+  have Hr5 : lRoutes (delMid X1 cb C R1 n D') X.rl els pids n :=
+    (lRoutes_congr_bkt X _ X.rl R _ hv5 hR hYrl hst5 els pids n).2 Hr
+  have hin5 : ∃ w ∈ lLeaf (delMid X1 cb C R1 n D') X.rl pids, w.key = n := by
+    rw [lLeaf_congr_bkt X _ X.rl R _ hv5 hR hYrl hst5 pids]; exact hin
+  -- `c.node()`
+  have hloc5 := PubW.bktLocalOK_of_wOK _ hok5 X.rl _ hYrl
+  icases wtxW_nodes_nonnull K tx r false _ X.rl _ hYrl $$ Hw with ⟨Hw, %Hnn⟩
+  icases wtxW_matReady_path K tx r false _ X.rl _ hok5 hYrl hloc5 els pids Hp5 $$ Hw
+    with ⟨Hw, %Hmr⟩
+  try wp_auto
+  wp_apply hNode K tx r false _ X.rl _ cur stk' els pids (DFrac.own 1) hYrl hloc5 Hp5 Hnn Hmr
+    $$ [Hw Hcu Hs] as %l ⟨%X6, Hw, Hcu, Hs, %Hcn⟩
+  · iframe
+  obtain ⟨Hmg, Hok6f, Hloc6, B6, pid, HB6, Hlast, Hres⟩ := Hcn
+  have hok6 := Hok6f hok5
+  have hlf : leafFor X6 X.rl n l :=
+    lRoutes_leafFor' _ X6 X.rl l els pids n hok5 Hp5 Hr5 Hmg ⟨B6, HB6, pid, Hlast, Hres⟩
+  obtain ⟨B6', rl, bnd, HB6', Hrl, Hll, -, -⟩ := id hlf
+  rw [HB6] at HB6'
+  cases HB6'
+  have hfd : wsFound rl.ws n := by
+    rw [← hrl5] at Hp5 Hr5 Hmg HB6 hin5
+    exact dbk_found _ X6 l B6 rl n els pids hok5 Hp5 Hr5 Hmg HB6 Hrl ⟨pid, Hlast, Hres⟩ hin5
+  have hcl6 := Write.wOK_bktClean X6 hok6 X.rl B6 HB6
+  have hnc := hcl6.2.2.2.2.2.2.2.1 l rl Hrl
+  obtain ⟨-, B4, hB4, -, -, -, hlive4, -⟩ := id Hloc6
+  rw [HB6] at hB4
+  cases hB4
+  have hlive6 := hlive4 l rl Hrl
+  obtain ⟨-, k2, -, -, -, -, -, k8⟩ := matGrow_keepW Hmg
+  icases wtxW_cells_acc K tx r false X6 $$ Hw with ⟨%Hbase6, Hcells, Hwbc⟩
+  ihave Hw := Hwbc $$ Hcells
+  icases wtxW_open K tx r false X6 $$ Hw with ⟨-, -, -, Hh, Hcv, Hsk, Hclose⟩
+  ihave %Hok6 := wtxHeap_heapOK tx (DFrac.own 1) X6 $$ Hh
+  icases wtxHeap_setNode_acc tx (DFrac.own 1) X6 X.rl B6 l rl HB6 Hrl $$ Hh
+    with ⟨Hno, Hbo, Hf, Hrf, Hback⟩
+  rw [decide_eq_true hlive6]
+  ihave Hkr : keyR (GF := GF) X6.v nk (KeyR.heap DFrac.discard) n $$ []
+  · unfold keyR; iexact Hnk
+  try wp_auto
+  wp_apply hDel X6.v l X.rl rl wq nk n (KeyR.heap DFrac.discard) hnc.2.1 hnc.2.2.2.1
+    hnc.2.2.2.2.2.1 Hbase6 $$ [Hno Hcv Hkr] as ⟨Hpost, Hcv, -⟩
+  · iframe; try iframe #
+  icases Hpost with (⟨%Hnf, -⟩ | ⟨-, %sl, Hno⟩)
+  · exact absurd hfd Hnf
+  have hpar : (rl.withEntsU sl (rl.ins.eraseIdx (wsIdx rl.ws n)) (wsDelAt rl.ws n) true).nv.parent'
+      ≠ l := Hok6.2.2.2.1 X.rl B6 l rl HB6 Hrl
+  ihave Hh := Hback $$ %(rl.withEntsU sl (rl.ins.eraseIdx (wsIdx rl.ws n)) (wsDelAt rl.ws n) true)
+    %hpar [Hno] [Hbo] [Hf] Hrf
+  · iexact Hno
+  · iexact Hbo
+  · iexact Hf
+  ihave Hw := Hclose $$
+    %(X6.setNode X.rl l (rl.withEntsU sl (rl.ins.eraseIdx (wsIdx rl.ws n)) (wsDelAt rl.ws n) true))
+    [] Hh Hcv Hsk
+  · ipureintro; rw [setNode_eq X6 X.rl l B6 _ HB6]; exact ⟨rfl, rfl, rfl⟩
+  -- the post
+  have h6rl : X6.rl = X.rl := k2.trans hrl5
+  have hbmn : B6.bm !! n = none := by
+    obtain ⟨B, hB, e⟩ := k8 X.rl B6 HB6
+    rw [hYrl] at hB; cases hB; rw [e]; exact GMap.lookup_delete _ _
+  have hdel : deleteOK (GF := GF) T r n X
+      (X6.setNode X.rl l (rl.withEntsU sl (rl.ins.eraseIdx (wsIdx rl.ws n)) (wsDelAt rl.ws n) true))
+      w w5 := by
+    obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := dbk_post (GF := GF) T r X X1 X6 cb C R1 n D' w w5
+      l B6 rl sl _ t hok hcur hgens hwr hfl hsome hok1 hd1 hR1 hn1 hC hcr hrl1 hv1 hmv1 hg1 hwr1
+      hfl1 hdo1 htxw hsh1 hD Hmg hok6 Hok6.2.1 HB6 Hrl hlf hfd (dbkDelAt_len _ _ _ hnc.2.2.1 hfd)
+    have hwc1 : wrCurFacts T X1 := by
+      rcases hcase with ⟨-, h⟩ | hop
+      · subst h; exact hwc
+      · exact wrCurFacts_bktOpened T X X1 cb n (T.gen n) hop hok hwc
+    have hwc5 := wrCurFacts_delMid T X1 cb C R1 n D' hok1 hok5 hwr1 hg1 hR1' hn1 hwc1
+    have hwc6 := wrCurFacts_matGrow T _ X6 X.rl hok5 Hmg hwc5
+    have hwc7 := wrCurFacts_dropRoot T X6 n l B6 rl sl (rl.ins.eraseIdx (wsIdx rl.ws n)) hok6 (by rw [h6rl]; exact HB6) Hrl
+      (by rw [h6rl]; exact hlf) hbmn hwc6
+    rw [h6rl] at hwc7
+    exact ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, hwc7⟩
+  try wp_auto
+  wp_bind (App (Val #_) (Val #()))
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil ∗ name ↦*{dq} n)))
+    $$ [err Hkey Hlgp Hname]
+  · iapply Hdf $$ [] err Hkey Hlgp Hname
+    ileft; ipureintro; rfl
+  iintro %vret ⟨%hvret, err, Hname⟩
+  subst hvret
+  wp_auto
+  iapply HΦ
+  rw [if_neg hsome]
+  iframe
+  isplitr
+  · ipureintro; rfl
+  iexists w5
+  iframe
+  isplitl [Hwdb]
+  · rw [← hv1]; iexact Hwdb
+  · ipureintro; exact hdel
 
 end proof
 
