@@ -1,5 +1,7 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
+txn's restated `DeleteRange.spec`, its updates built by the server's builders, `envAus`, as
+`Put`'s.)
 -/
 module
 
@@ -7,6 +9,9 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVBuild
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -20,6 +25,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+open mvcc.api (MvccState)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,70 +39,117 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     (hDel : txn.DeleteRange.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log F Pre Q Post info
-  wp_start as ⟨#Hb, Hpre, #HF⟩
+  wp_start as ⟨#Hb, Hpre, #HF, Htt⟩
   iunfold apply.deletePre at Hpre
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
   iunfold apply.mPre at Hpre
-  iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
-  icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
-  iunfold apply.backendIs at Hb
-  icases Hb with ⟨%opts, #Hopts, #Hok⟩
+  icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
+  iunfold apply.leasesLive at Hlive
+  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  iunfold EtcdGrove.lease.lessorUser at Hu
+  icases Hu with ⟨Hown, Hrdo, Hrvk⟩
+  ihave #Hb' := Hb
+  iunfold apply.backendIs at Hb'
+  icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, #Hhook, -⟩
+  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, -⟩
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, #Hfloor⟩
+  iunfold apply.isApplyKV at Hkv
+  icases Hkv with #Hkv
+  obtain ⟨hdel, hk, hlen⟩ := Hrq
+  -- the writer's facts: its floor, its log's witness and reachability
+  imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, Hnx0, -, %Hreach⟩
+  have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
+  have hstep : apply.backendStep rq log
+      (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false) := by
+    unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, rfl⟩
+  -- the delete's updates (either outcome of its range read)
+  ihave Hau : txn.delAU E.γ o (mvcc.leaseItemsOf (mvcc.stateAfter log))
+      (fun σ ok => iprop(⌜σ = srvApi.stAt log c⌝ ∗
+        srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c)) $$ [Hw Hnx0]
+  · unfold txn.delAU
+    iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
+    iapply HauB $$ %log %c %_ Hw
+    iintro Hw
+    isplitr
+    · ipureintro; rfl
+    iintro %ok
+    iapply apply.commitAU_of_auEnd
+    cases ok
+    · simp only [txn.delPend, Bool.false_eq_true, ↓reduceIte]
+      ihave Hnx : E.Nx (mvcc.commitLog log []) $$ [Hnx0]
+      · unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
+      ihave He := HauE $$ %log %c %_ Hw Hnx
+      iapply apply.auEnd_wand $$ He
+      iintro HY
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexact HY
+    · simp only [txn.delPend, ↓reduceIte, srvApi.stAt]
+      ihave Hnx := apply.certPre_backend_applied E rq log _ false hstep $$ Hcp
+      ihave He := HauE $$ %log %c %_ Hw Hnx
+      iapply apply.auEnd_wand $$ He
+      iintro HY
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexact HY
+  ihave Hkb : txn.kvBackend E.γ 1 B (E.Pk B) E.f $$ [Hbk Hhk]
+  · iunfold txn.kvBackend; iframe Hbk Hhk
+  ihave Hcs : txn.csA (E.Pk B) E.f Pre Q Post $$ [Hcs]
+  · iunfold srvApi.csContractA at Hcs; iunfold txn.csA; iexact Hcs
   iStructNamed Hopts
   wp_auto
   wp_apply hTODO
-  iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
-  obtain ⟨hdel, hk, hlen⟩ := Hrq
-  ihave #Hcok := apply.certPre_backend_applied E rq log
-    (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false
-    (by unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, rfl⟩) $$ Hcp
-  ihave #Hcok := apply.certOkNext_of_commitLog E.γ log _ $$ Hcok
-  iunfold apply.leasesLive at Hknown
-  icases Hknown with ⟨%L, #Hk, Hu⟩
-  iunfold EtcdGrove.lease.lessorUser at Hu
-  icases Hu with ⟨Hown, Hrdo, Hrvk⟩
-  wp_apply (txn.deleteRange_soleWriter_floor hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f none false L hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hown]
-    as %resp %trace %err ⟨Hrd, %Htr, HPost, Htrc, -, Hout⟩
-  · iframe #
-    isplitr
+  wp_apply (hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o 1 B (E.Pk B)
+      Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _)
+      $$ [$Hkv $Htt $Hr $Hown $Hkb $Hcs $Hau]
+    as %resp %trace %err ⟨Htt, Hkb, %Htrn, HPost, ⟨%te', Htrc⟩, -, %σ₀, -, Hout⟩
+  · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo
     isplitr
     · simp only [traceutil.ownTraceOpt]; itrivial
     simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
+  iunfold txn.kvBackend at Hkb
+  icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ
+  iframe Htt
   isplitr [Htrc]
   rotate_left
-  · iunfold apply.traceRes; iright; iexact Htrc
+  · iunfold apply.traceRes; iright; iexists te'; iexact Htrc
   iapply apply.kvPostF_backend
-  icases Hout with (⟨%Herr, #Hresp, Hhdr, Hsw, Hown, %Hst⟩ | ⟨%Herr, Hsw, Hown⟩)
+  icases Hout with (⟨%Herr, ⟨%Hσ, Hw⟩, #Hresp, Hhdr, Hown⟩ | ⟨%Hnd, -⟩)
   · -- the delete committed
+    subst Hσ
+    simp only [txn.delPend, ↓reduceIte, srvApi.stAt] at *
     iexists (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false)
     isplitr
     · ipureintro
-      unfold apply.chainStep apply.backendStep
-      rw [hk]
-      exact ⟨⟨o, hdel, rfl⟩, fun _ _ _ => Herr.2⟩
+      unfold apply.chainStep
+      exact ⟨hstep, fun _ _ _ => HFl⟩
     simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
       Bool.false_eq_true, ↓reduceIte, apply.appliedHdr]
     iframe Hres Hresp Hhdr
     isplitl []
-    · ipureintro; exact ⟨Herr.1, Hl2, hlen⟩
-    isplitl [Hrd Hsw Hown Hrdo Hrvk Hard]
-    · iunfold apply.kvOwn
-      iframe Hrd Hsw Hard
+    · ipureintro; exact ⟨Herr, h2, hlen⟩
+    isplitl [Hw Hbk Hhk Htie Hown Hrdo Hrvk Hard]
+    · iapply (apply.kvOwn_of_split E _ B c)
+      iframe Hw Htie
+      iunfold apply.kvRest
+      iframe Hbk Hhk Hard
       iunfold apply.leasesLive
       iexists L
       isplitr [Hown Hrdo Hrvk]
-      · iapply apply.leasesKnown_commit_delete $$ Hk
-      iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo Hrvk
+      · iapply apply.leasesKnown_commit_delete $$ Hknown
+      iunfold EtcdGrove.lease.lessorUser
+      rw [txn.stateAfter_commitLog]
+      iframe Hown Hrdo Hrvk
     ileft; iexact HPost
   · -- the range read's context error: not at `context.TODO()` (`nd`)
-    exact Herr.elim
+    simp at Hnd
 
 end proof
 

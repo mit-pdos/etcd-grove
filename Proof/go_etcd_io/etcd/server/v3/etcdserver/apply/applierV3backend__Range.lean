@@ -1,5 +1,6 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
+txn's restated `Range.spec`, at the writer's read update, `envAus`.)
 -/
 module
 
@@ -7,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -20,6 +22,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+open mvcc.api (MvccState)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,27 +36,29 @@ theorem apply.applierV3backend.Range.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Range.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log info
-  wp_start as ⟨#Hb, Hpre⟩
+  wp_start as ⟨#Hb, Htt, Hpre⟩
   iunfold apply.rangePre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres⟩
-  iunfold txn.kvWriter at Hsw
-  icases Hsw with ⟨Hsw, Hwl⟩
+  icases Hpre with ⟨%Hrq, #Hr, ⟨⟨%c, Hw⟩, Hbk, Hlive, Hard⟩, Hres⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -⟩
+  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, -⟩
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨-, #HauR, -⟩
+  iunfold apply.isApplyKV at Hkv
+  icases Hkv with #Hkv
+  ihave Hau := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hw []
+  · iintro Hw; iexact Hw
+  iunfold srvApi.auRead at Hau
   iStructNamed Hopts
   wp_auto
   wp_apply hTODO
-  iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
-  obtain ⟨hr, hk, hlen, hsort, hok⟩ := Hrq
-  wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd true opts.Logger'
-      opts.KV' E.s E.γ r o true none false) $$ [$Hrd $Hsw]
-    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Htrc, -, %crev, Hout, %Hnd⟩
-  · iframe #
-    isplitr
+  obtain ⟨hr, hk, hlen, hsort⟩ := Hrq
+  wp_apply (hRange todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o true none false _)
+      $$ [$Hkv $Htt $Hr $Hau]
+    as %resp %trace %err ⟨Htt, %Htr, ⟨%te', Htrc⟩, -, %σ, ⟨%Hσ, Hw⟩, %Hreach, Hout, -, %Hnd⟩
+  · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo
@@ -61,11 +66,20 @@ theorem apply.applierV3backend.Range.wp_proof
     · simp only [traceutil.ownTraceOpt]; itrivial
     isplitr
     · simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
-    ipureintro; exact ⟨Hlg, hsort, hok⟩
+    ipureintro; exact ⟨Hlg, hsort⟩
+  subst Hσ
+  have h2 := txn.reach_len (srvApi.stAt log c) Hreach.1
+  simp only [srvApi.stAt] at h2
+  have hrev : (W64 ((srvApi.stAt log c).rev : Int) : w64) = W64 ((log.length : Int) - 1) := by
+    simp only [srvApi.stAt, mvcc.api.MvccState.rev]; congr 1; omega
+  have hcr : (srvApi.stAt log c).crev = c := rfl
+  have hlg : (srvApi.stAt log c).log = log := rfl
+  rw [hrev, hcr, hlg] at *
   iapply HΦ
+  iframe Htt
   isplitr [Htrc]
   rotate_left
-  · iunfold apply.traceRes; iright; iexact Htrc
+  · iunfold apply.traceRes; iright; iexists te'; iexact Htrc
   iapply apply.rangePost_backend
   iexists (.applied log false)
   isplitr
@@ -75,11 +89,13 @@ theorem apply.applierV3backend.Range.wp_proof
   simp only [apply.rangeOutcomeIs, apply.Outcome.logAfter]
   iframe Hres
   isplitl [Hout]
-  · iexists crev; iframe Hout; ipureintro; exact Hnd rfl
+  · iexists c; iframe Hout; ipureintro
+    have := Hnd rfl
+    simp only [srvApi.stAt, mvcc.api.MvccState.rev] at this
+    rwa [show ((log.length - 1 : Nat) : Int) = (log.length : Int) - 1 by omega] at this
   iunfold apply.kvOwn
-  iframe
-  iunfold txn.kvWriter
-  iframe
+  iframe Hbk Hlive Hard
+  iexists c; iexact Hw
 
 end proof
 
