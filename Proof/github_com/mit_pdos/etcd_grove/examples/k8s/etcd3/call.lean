@@ -73,6 +73,62 @@ local macro "call_tail" : tactic => `(tactic| (
     iapply HΦ
     iexact HQ))
 
+/-- The cached object `cachedObj(in)` passes the store: the input's (`dobjOf`), at its resource
+version, if it uses one. -/
+private def caOf (x : Input) : Option (DObj × w64) :=
+  if x.UseCached' then some (dobjOf x.Cached', x.Cached'.ResourceVersion') else none
+
+/-- **`cachedObj(in)` is the store's cached object** (`cachedOk`) of `caOf in`, from `cachedIn`. -/
+private theorem cachedOk_of (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (x : Input)
+    (key : GoString) (hk : c.pfx <+: key) (cx : GoInterface) :
+    cachedIn c x ∗ (if x.UseCached' then
+        iprop(∃ p : Loc, ⌜cx = interface.mkOk (go.GoType.PointerType objTyD) #p⌝ ∗ p ↦ x.Cached')
+      else iprop(⌜cx = GoInterface.nil⌝)) ⊢ cachedOk c key cx (caOf x) := by
+  unfold cachedIn caOf cachedObjOk cachedOk
+  cases hu : x.UseCached'
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro ⟨-, %h⟩
+    ipureintro; exact h
+  · simp only [↓reduceIte]
+    iintro ⟨⟨%hl, #Hv⟩, ⟨%p, %hp, Hp⟩⟩
+    isplitr
+    · ipureintro; exact hl.2.2
+    isplitl [Hp]
+    · have e : x.Cached' = github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk
+          (dobjOf x.Cached').name (dobjOf x.Cached').uid (dobjOf x.Cached').val
+          x.Cached'.ResourceVersion' := by
+        have hd : dobjOf x.Cached' =
+            (⟨(x.Cached'.Name', x.Cached'.UID', x.Cached'.Value'), ⟨hl.1, hl.2.1⟩⟩ : DObj) := by
+          unfold dobjOf; exact dif_pos ⟨hl.1, hl.2.1⟩
+        rw [hd]
+      rw [hp, hc, show (driverSpec (GF := GF)).objAt = objAtD from rfl,
+        show (driverSpec (GF := GF)).fmtRV = rvStr from rfl]
+      iapply (objAtD_pt (GF := GF) p (dobjOf x.Cached') x.Cached'.ResourceVersion')
+      rw [← e]
+      iexact Hp
+    · iapply Hv; ipureintro; exact hk
+
+/-- An object of a value at most `2 ^ 20` bytes fits a request when stored. -/
+private theorem storedSize_small (o : DObj) (hv : o.val.length ≤ 2 ^ 20) :
+    driverCodec.storedSizeOk o := by
+  intro v hv'
+  cases hv'
+  show (encodeWith tagV1 o.name o.uid o.val).length ≤ 2 ^ 28
+  have h1 : o.name.length < 256 := o.2.1
+  have h2 : o.uid.length < 256 := o.2.2
+  simp [encodeWith]; omega
+
+/-- `updObj`'s value: the object's (a no-op, the object itself) or the input's. -/
+private theorem updObj_cases (x : Input) (o : DObj) :
+    updObj x o = o ∨ (updObj x o).val = x.Val' := by
+  unfold updObj
+  by_cases hn : x.NoOp' = true
+  · exact .inl (if_pos hn)
+  · rw [if_neg hn]
+    by_cases hl : (updName x o).length < 256
+    · simp only [hl, ↓reduceDIte]; exact .inr trivial
+    · simp only [hl, ↓reduceDIte]; exact .inr trivial
+
 theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
     (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
@@ -153,7 +209,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       · ihave Hy := respIs_call c hc
           ((c.abs σ).create (E := Empty) (c.pathPrefix ++ storeKeyL x.Key') (mkObj x) 0).2 err0 _
           eD eU (create_noOdd _ _ _) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
-        · iframe HD HU Hr
+        · iframe Hpkg HD HU Hr
         iexists _
         iframe Hy
         iright
@@ -175,21 +231,28 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     wp_auto
     wp_apply wp_storeKey
     (try wp_auto)
-    -- Stage 7b: the delete's preconditions (`preconditions`) and cached object (`cachedObj`, from `cachedIn`: the store's `cachedOk`); for the Prove phase
-    sorry
-    /- the rest of this block at 835795d4d1 (lean):
+    wp_apply wp_preconditions as %pp #Hpp
+    (try wp_auto)
     wp_apply wp_validateFor as %vf #Hvf
     (try wp_auto)
+    wp_apply wp_cachedObj as %cx Hcx
+    (try wp_auto)
+    have hpfx : c.pfx <+: c.pathPrefix ++ storeKeyL x.Key' := prepareKeyM_prefix _ _ _ _ _ hkey
+    ihave Hco := cachedOk_of c hc x _ hpfx cx $$ [Hca Hcx]
+    · iframe Hca Hcx
     ihave Hout := hob _ dzero 0 $$ [Hr0]
     · rw [← hz]; iexact Hr0
     ihave #Hval := validateD_ok c hc eD x.Reject' vf $$ [HvD HD Hvf]
     · iframe #
     wp_apply (wp_Delete DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
-        (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) (zero_val _)
-        (rejD eD x.Reject') vf W Φu (storeKeyL x.Key') hkey hkl rfl) $$ [Hout HW Haus] as %err0 Hres
+        (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0) pp (kpreOf x)
+        cx (caOf x) (zero_val _) (rejD eD x.Reject') vf W Φu (storeKeyL x.Key'))
+        $$ [Hout HW Haus Hco] as %err0 Hres
     · iframe #
-      iframe Hout HW
-      rw [hpp]
+      iframe Hout HW Hco
+      isplitr
+      · ipureintro; exact ⟨hkey, hkl, rfl⟩
+      rw [hpp, hc, show (driverSpec (GF := GF)).preOk (kpreOf x) = preD x from rfl]
       iexact Haus
     iunfold delOut at Hres
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
@@ -209,10 +272,11 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
           ipureintro; exact Hne
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
-          ((c.abs σ).delete (c.pathPrefix ++ storeKeyL x.Key') (fun _ _ => none)
-            (rejD eD x.Reject')).2 err0 _ eD eU (delete_noOdd _ _ _ _)
-          (fun e e' h he => Or.inl ((show e' = e from he).trans (delete_user _ _ _ _ _ h))) $$ [HD HU Hr]
-        · iframe HD HU Hr
+          ((c.abs σ).delete (c.pathPrefix ++ storeKeyL x.Key') (c.S.preOk (kpreOf x))
+            (rejD eD x.Reject')).2 err0 _ eD eU (delete_noOdd _ _ _ _ _)
+          (fun e e' h he => Or.inl ((show e' = e from he).trans (delete_user _ _ _ _ _ _ h)))
+          $$ [HD HU Hr]
+        · iframe Hpkg HD HU Hr
         iexists _
         iframe Hy
         iright
@@ -220,9 +284,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         rw [callAt, if_pos (Or.inr (Or.inl h1))]
         iframe HΦ1
         ipureintro
-        simp [kStep, h0, h1, hpp]
+        simp [kStep, h0, h1, hpp, hc, driverSpec]
     call_tail
-    -/
   rw [decide_eq_false h1]
   wp_auto
   have hz0 : c.S.zero = dzero := by rw [hc]; rfl
@@ -235,17 +298,21 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     wp_auto
     wp_apply wp_storeKey
     (try wp_auto)
-    -- Stage 7b: the update's preconditions (`preconditions`), cached object (`cachedObj`, from `cachedIn`: the store's `cachedOk`) and ignoreNotFound, D1 (`CachedNoRV`) for the store's scope premise; for the Prove phase
-    sorry
-    /- the rest of this block at 835795d4d1 (lean):
-    wp_apply wp_tryUpdateFor as %uf #Huf
+    wp_apply wp_preconditions as %pp #Hpp
     (try wp_auto)
+    wp_apply wp_tryUpdateFor x hx.1 as %uf #Huf
+    (try wp_auto)
+    wp_apply wp_cachedObj as %cx Hcx
+    (try wp_auto)
+    have hpfx : c.pfx <+: c.pathPrefix ++ storeKeyL x.Key' := prepareKeyM_prefix _ _ _ _ _ hkey
+    ihave Hco := cachedOk_of c hc x _ hpfx cx $$ [Hca Hcx]
+    · iframe Hca Hcx
     ihave Hout := hob _ dzero 0 $$ [Hr0]
     · rw [← hz]; iexact Hr0
     ihave #Hupd := tryUpdateD_ok c hc eU x uf $$ [HvU HU Huf]
     · iframe #
     have hsz : ∀ (w d : GoString) (stl : Bool) (o : DObj) (n : Nat) (o' : DObj),
-        w.length ≤ 2 ^ 27 → c.S.fromS w = some (d, stl) → c.S.decode d = some o →
+        w.length ≤ etcdKeyMax → c.S.fromS w = some (d, stl) → c.S.decode d = some o →
         updD eU x o n = .ok o' → (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o' := by
       intro w d stl o n o' hw hfs hdec h _
       rw [hc] at hfs hdec ⊢
@@ -253,26 +320,60 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       split at h
       · cases h
       cases h
-      intro v hv
-      cases hv
-      show (encodeWith tagV1 (updObj x o).1.1 (updObj x o).1.2).length ≤ 2 ^ 28
-      have ho := o.2
-      simp only [updObj]
-      split
+      rcases updObj_cases x o with he | he
       · -- a no-op update writes the object read, re-encoded (a `v0:` value as `v1:`): as long
-        -- as the stored value, within etcd's limit (`GuaranteedUpdate.spec`'s premise)
+        -- as the stored value, within etcd's limit
+        rw [he]
         change some (w, false) = some (d, stl) at hfs
         cases hfs
+        intro v hv
+        cases hv
+        show (encodeWith tagV1 o.name o.uid o.val).length ≤ 2 ^ 28
         rw [decodeObjD_encode_length _ o hdec]
+        unfold etcdKeyMax at hw
         omega
-      · simp [encodeWith]; omega
+      · exact storedSize_small _ (by rw [he]; exact hvl)
+    have hzs : x.IgnoreNotFound' = true → ∀ o', updD eU x c.S.zero 0 = .ok o' →
+        c.S.storedSizeOk o' := by
+      intro _ o' h
+      rw [hz0] at h
+      rw [hc]
+      unfold updD at h
+      split at h
+      · cases h
+      cases h
+      rcases updObj_cases x dzero with he | he
+      · rw [he]; exact storedSize_small _ (by decide)
+      · exact storedSize_small _ (by rw [he]; exact hvl)
+    have hcs : ∀ o r o', caOf x = some (o, r) → updD eU x o (uint.nat r) = .ok o' →
+        c.S.encode o' ≠ c.S.encode o → c.S.storedSizeOk o' := by
+      intro o r o' _ h hne
+      rw [hc] at hne ⊢
+      unfold updD at h
+      split at h
+      · cases h
+      cases h
+      rcases updObj_cases x o with he | he
+      · exact absurd (by rw [he]) hne
+      · exact storedSize_small _ (by rw [he]; exact hvl)
+    have hscope : ∀ o r, caOf x = some (o, r) →
+        (kpreOf x).rv = none ∧ ∀ n, updD eU x o n = updD eU x o (uint.nat r) := by
+      intro o r h
+      unfold caOf at h
+      split at h
+      · next hu =>
+        refine ⟨?_, fun _ => rfl⟩
+        simp [kpreOf, hD1 hu h2]
+      · cases h
     wp_apply (wp_Update DObj GoInterface sp c context.backgroundCtxVal cd (storeKeyL x.Key')
         (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero (rvStr 0)
-        (updD eU x) uf W Φu (storeKeyL x.Key') hkey hkl
-        hsz) $$ [Hout HW Haus] as %err0 Hres
+        x.IgnoreNotFound' pp (kpreOf x) cx (caOf x) (updD eU x) uf W Φu (storeKeyL x.Key'))
+        $$ [Hout HW Haus Hco] as %err0 Hres
     · iframe #
-      iframe Hout HW
-      rw [hpp, hz0]
+      iframe Hout HW Hco
+      isplitr
+      · ipureintro; exact ⟨hkey, hkl, hsz, hzs, hcs, hscope⟩
+      rw [hpp, hz0, hc, show (driverSpec (GF := GF)).preOk (kpreOf x) = preD x from rfl]
       iexact Haus
     iunfold updOut at Hres
     rw [hz0] at *
@@ -293,11 +394,11 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
           ipureintro; exact Hne
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
-          ((c.abs σ).update (c.pathPrefix ++ storeKeyL x.Key') false dzero (fun _ _ => none)
-            (updD eU x)).2 err0 _ eD eU (update_noOdd _ _ _ _)
-          (fun e e' h he => Or.inr ((show e' = e from he).trans (update_user _ _ _ _ _ h)))
+          ((c.abs σ).update (c.pathPrefix ++ storeKeyL x.Key') x.IgnoreNotFound' dzero
+            (c.S.preOk (kpreOf x)) (updD eU x)).2 err0 _ eD eU (update_noOdd _ _ _ _ _ _)
+          (fun e e' h he => Or.inr ((show e' = e from he).trans (update_user _ _ _ _ _ _ _ h)))
           $$ [HD HU Hr]
-        · iframe HD HU Hr
+        · iframe Hpkg HD HU Hr
         iexists _
         iframe Hy
         iright
@@ -305,9 +406,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         rw [callAt, if_pos (Or.inr (Or.inr h2))]
         iframe HΦ1
         ipureintro
-        simp [kStep, h0, h1, h2, hpp]
+        simp [kStep, h0, h1, h2, hpp, hc, driverSpec]
     call_tail
-    -/
   · -- Get
     rw [decide_eq_false h2]
     iunfold callPre at Hpre
@@ -351,7 +451,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
           ((c.abs σ).get (E := Empty) (c.pathPrefix ++ storeKeyL x.Key') (uint.nat (minOf x))
             x.IgnoreNotFound') err0 _
           eD eU (get_noOdd _ _ _ _) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
-        · iframe HD HU Hr
+        · iframe Hpkg HD HU Hr
         iexists _
         iframe Hy
         iright

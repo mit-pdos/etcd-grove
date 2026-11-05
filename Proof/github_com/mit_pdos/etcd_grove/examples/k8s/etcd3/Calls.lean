@@ -144,13 +144,14 @@ the answer's `outOf`, or the object `out` points to, whose `objOut` is it. -/
 theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (r : KResp DObj E) (err out eD eU : GoInterface) (hodd : NoOddErr r)
     (hu : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eD ∨ err' = eU) :
-    globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
+      globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       respIs c r err out ⊢
       (⌜err ≠ GoInterface.nil⌝ ∗ errIs err (outOf r)) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
         ⌜out = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = outOf r⌝ ∗ p ↦ o) := by
-  iintro ⟨#HD, #HU, Hr⟩
+  iintro ⟨#Hpkg, #HD, #HU, Hr⟩
   cases r with
   | obj o rv =>
     unfold respIs
@@ -250,9 +251,43 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       iframe Hse
       ipureintro; rfl
     | tooLarge _ _ =>
-      -- 7b: a `*StatusError` is neither sentinel (`eD`, `eU`: `errors.New`'s, by the package's
-      -- initialization, `drvInit`, which this lemma does not take yet)
-      sorry
+      -- a `*StatusError`: neither sentinel (`eD`, `eU`: `errors.New`'s, by `drvInit`)
+      unfold respIs
+      icases Hr with ⟨%He, -⟩
+      obtain ⟨l, rfl⟩ := He
+      ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hpkg
+      icases Hi with ⟨-, -, -, -, ⟨%lD, #HD', -, -⟩, ⟨%lU, #HU', -, -⟩⟩
+      icombine HD HD' gives %hD
+      icombine HU HU' gives %hU
+      subst hD hU
+      ileft
+      isplitr
+      · ipureintro; nofun
+      iunfold errIs
+      iright; iright; iright; iright
+      isplitr
+      · ipureintro; rfl
+      iexists _, _
+      iframe HD HU
+      ipureintro
+      have hse : k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠
+          _root_.Perennial.errors.errorString.ty ∧
+          k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠
+            k8s_io.apiserver.pkg.storage.StorageError.ty := by
+        unfold k8s_io.apimachinery.pkg.api.errors.StatusError.ty
+          _root_.Perennial.errors.errorString.ty k8s_io.apiserver.pkg.storage.StorageError.ty
+        refine ⟨?_, ?_⟩ <;> (intro h; injection h with h; simp at h)
+      have hne : ∀ l' : Loc, interface.mkOk
+          (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ≠
+          interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l' := by
+        intro l' h
+        simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
+        injection h.1 with h1
+        exact hse.1 h1
+      refine ⟨hne lD, hne lU, _, rfl, fun h => ?_, fun h => ?_⟩
+      · injection h with h1; exact hse.2 h1
+      · injection h with h1; exact absurd h1 hse.1
 
 theorem create_noOdd {E : Type} (s : KSt DObj) (k : GoString) (o : DObj) :
     NoOddErr (s.create (E := E) k o 0).2 := by
