@@ -6,7 +6,7 @@ freelist or at the high-water mark, which then grows), the freelist written into
 an allocation error the transaction is rolled back (`tx.rollback()`) and done.
 
 The spec is over the writer's working state (`wtxW`/`wdbW`, as `Tx.allocate`'s). The error path's
-rollback needs `wtxEnd`; the caller's frame `F` supplies what the writer state lacks (the full
+rollback (`Tx.rollback_f`) needs `wtxEnd' fr` (U10m: with the flag after the free of the synced freelist page, plain `wtxEnd` cannot hold); the caller's frame `F` supplies what the writer state lacks (the full
 database, `rwlock`, the closed flag's half, the page tokens, the agreed state, the data's quarter,
 the facts), stated as two entailments: for the state allocate leaves unchanged, and for a lost
 mapping (`derefRel` and a re-base). On success `F` comes back.
@@ -16,7 +16,7 @@ module
 public import Spec.go_etcd_io.bbolt.Tx__allocate_f
 public import Proof.go_etcd_io.bbolt.Inv.WAccess
 public import Proof.go_etcd_io.bbolt.Commit.WriteFL
-public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
+public import Proof.go_etcd_io.bbolt.Commit.RollbackFSpec
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Write
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__EstimatedWritePageSize
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__SetFreelist
@@ -51,11 +51,11 @@ abbrev Tx.commitFreelist.spec : Prop :=
   ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F : IProp GF),
   X.t.mv.txid' = w.wtxid → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms →
   derefPre X → liveFresh X → liveReach X → w.fl.allIds.length < 2 ^ 48 →
-  (F ∗ wtxW K tx r false X ∗ wdbW' fr K tx X.v w ⊢ |==> wtxEnd K tx r X (wLive X.v w.C) w) →
+  (F ∗ wtxW K tx r false X ∗ wdbW' fr K tx X.v w ⊢ |==> wtxEnd' fr K tx r X (wLive X.v w.C) w) →
   (∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) → w'.C = w.C →
     w'.fl = w.fl →
     F ∗ wtxLost K tx r false X' ∗ wdbLost' fr K tx X'.v w' ⊢
-      |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w') →
+      |==> wtxEnd' fr K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w') →
   {{ F ∗ wtxW (GF := GF) K tx r false X ∗ wdbW' fr K tx X.v w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"commitFreelist")) (Val #()))
   {{ (err : GoInterface), RET #err;
@@ -93,11 +93,11 @@ theorem wdbW'_fl_acc (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
 set_option maxHeartbeats 0 in
 /-- **`tx.commitFreelist()`** proved: `EstimatedWritePageSize` over the freelist out of `wdbW`
 (`wdbW_fl_acc`), `allocate` of `flCount` pages; on an error the frame's entailment gives
-`wtxEnd` for `rollback` (`rbOK`: the live writer state, or the lost mapping's); on success the
+`wtxEnd' fr` for `rollback_f` (`rbOK`: the live writer state, or the lost mapping's); on success the
 new buffer and the meta copy out of `wtxW` (`wtxW_flpage_acc`), the freelist written into it,
 `SetFreelist(p.Id())`, back as `setFlPage`. -/
 theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG := hG))
-    (hRb : Tx.rollback.spec (GF := GF) (hG := hG))
+    (hRb : Tx.rollback_f.spec (GF := GF) (hG := hG))
     (hEst : internal.freelist.Interface.EstimatedWritePageSize.spec (GF := GF) (hG := hG))
     (hWrite : internal.freelist.Interface.Write.spec (GF := GF) (hG := hG))
     (hSet : internal.common.Meta.SetFreelist.spec (GF := GF) (hG := hG))
@@ -202,14 +202,14 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
     | ok ei =>
     try wp_auto
     icases Hfail with (⟨Hw, Hd⟩ | ⟨%X', %w', Hw, Hd, %Hrel⟩)
-    · ihave Hend : |==> wtxEnd K tx r X (wLive X.v w.C) w $$ [HF Hw Hd]
+    · ihave Hend : |==> wtxEnd' fr K tx r X (wLive X.v w.C) w $$ [HF Hw Hd]
       · iapply hrb1; iframe
       imod Hend
       have hrbok : rbOK X (wLive X.v w.C) w := by
         refine ⟨X.v, w.C.txid + 1, false, true, rfl, ?_,
           ⟨fun _ => by rw [Hwd.2.1]; simp, fun _ => rfl⟩, fun _ => rfl, fun h => absurd h (by simp)⟩
         rw [htx]; rfl
-      wp_apply hRb K tx r X (wLive X.v w.C) w hrbok $$ [Hend] as #Hdone
+      wp_apply hRb fr K tx r X (wLive X.v w.C) w hrbok (fun _ => rfl) $$ [Hend] as #Hdone
       · iexact Hend
       try wp_auto
       try iapply HΦ
@@ -223,7 +223,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
           ⌜wdbOK' fr w' ∧ w'.ms = none⌝ by
             unfold wdbLost'; iintro ⟨-, %h, -⟩; ipureintro; exact h) $$ Hd with ⟨Hd, %Hwl⟩
       obtain ⟨⟨Xd, b0, hder, hX'⟩, hC, hfl⟩ := Hrel
-      ihave Hend : |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w'
+      ihave Hend : |==> wtxEnd' fr K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w'
         $$ [HF Hw Hd]
       · iapply hrb2 X' w' ⟨Xd, b0, hder, hX'⟩ hC hfl; iframe
       imod Hend
@@ -236,7 +236,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
         rw [hX']
         show Xd.t.mv.txid' = _
         rw [hder.2.2.2.2.2.2.1, htx, hC]; rfl
-      wp_apply hRb K tx r X' _ w' hrbok $$ [Hend] as #Hdone
+      wp_apply hRb fr K tx r X' _ w' hrbok (fun _ => rfl) $$ [Hend] as #Hdone
       · iexact Hend
       try wp_auto
       try iapply HΦ

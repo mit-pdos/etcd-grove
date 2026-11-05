@@ -484,23 +484,25 @@ theorem Tx.Commit_err.wp_proof'
             cm_derefKeep X3 Xd b hd hwr3 hrl3
           have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
               wtxW K tx r false X3 ∗ wdbW' false K tx X3.v w2 ⊢
-              |==> wtxEnd K tx r X3 (wLive X3.v w2.C) w2 := by
+              |==> wtxEnd' false K tx r X3 (wLive X3.v w2.C) w2 := by
             iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
             ihave Hd := wdbW'_wdbW K tx X3.v w2 $$ Hd
             imodintro
+            iapply wtxEnd_wtxEnd' false
             iapply cm_wtxEnd_live K tx r X3 w2 hwr3 hrl3
             iframe; iframe #
           have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
               w'.C = w2.C → w'.fl = w2.fl →
               iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w2.C)) ∗
                 wtxLost K tx r false X' ∗ wdbLost' false K tx X'.v w' ⊢
-              |==> wtxEnd K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
+              |==> wtxEnd' false K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
             rintro X' w' ⟨Xd, b, hd, rfl⟩ hC _
             obtain ⟨hw', hr'⟩ := hderefKeep Xd b hd
             iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
             ihave Hd := wdbLost'_wdbLost K tx _ w' $$ Hd
             imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
             imodintro
+            iapply wtxEnd_wtxEnd' false
             iapply cm_wtxEnd_lost K tx r (Xd.rebase b) w' hw' hr'
             rw [hC]; iframe; iframe #
           rw [show X2.v = X3.v from hv3.symm]
