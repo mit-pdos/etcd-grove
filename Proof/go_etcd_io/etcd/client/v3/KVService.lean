@@ -39,9 +39,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 
 @[expose] public section
@@ -171,6 +168,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+/-- **A log the server certified to the client** (persistent; strict M1, 2026-11-06: in place of
+mvcc's `idxCert ∗ certOk`): a floor of the server's committed log (`srvApi.kvLogLb`), the apply
+chain's witness of it (`E.Nx`: the KV model of a committed raft prefix, at the server's
+`kvNxOff`/`kvNxOn`; what makes its revisions reached in the clients' model), its receipt and its
+well-formedness with room for three more revisions (`rangeReadOkM`'s and the writer's facts):
+so it is small (`srvLogCert_logOk`). -/
+def srvLogCert (E : apply.AEnv GF) (log : mvcc.Log) : IProp GF :=
+  iprop(srvApi.kvLogLb E.γs log ∗ □ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ log.length + 3 ≤ 2 ^ 63⌝)
+
+instance srvLogCert_persistent (E : apply.AEnv GF) (log : mvcc.Log) :
+    Persistent (srvLogCert E log) := by
+  unfold srvLogCert; infer_instance
+
+open Iris.ProofMode in
+/-- **A certified log is a well-formed small log** (D48; strict M1: as the server's
+`srvApi.logOk_of_receipt`, by `preceipt_lt`). -/
+theorem srvLogCert_logOk (E : apply.AEnv GF) (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    srvLogCert E log ⊢ ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
+  iunfold srvLogCert
+  iintro ⟨-, -, Hr, %Hp⟩
+  ihave %Hm := preceipt_lt _ $$ Hr
+  ipureintro
+  refine ⟨Hp.1, by omega, ?_⟩
+  unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
+
 /-- **What a successful `Txn` of `t` delivers to the client** with the reply's message `m`, for a
 client that knows the committed index `c` and has the floor `F` (the vertical slice's unit V2).
 A read-only `t`: the server's run of `t` at a certified log extending `F`, after the read index
@@ -189,7 +212,7 @@ fired there; as `rangeReplyOk`'s). -/
 def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (cid mid : w64) (m : TxnRespM) : IProp GF :=
   if txn.txnReadonly t then
-    iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗ ⌜mvcc.LogPutsLe etcdKeyMax log⌝ ∗
+    iprop(∃ log : mvcc.Log, srvLogCert E log ∗ ⌜mvcc.LogPutsLe etcdKeyMax log⌝ ∗
       ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧
         m.hdr.revision = W64 ((log.length : Int) - 1) ∧ m.hdr.clusterId = cid ∧
         m.hdr.memberId = mid ∧
@@ -213,8 +236,7 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
           (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps ∧
         -- (linkv-txn stage B1, 2026-10-20) the ranges run
         skip = false⌝ ∗
-      mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-      mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+      srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
 /-- **etcd's spec of the KV service's `Txn`** (the vertical slice's unit V2; a predicate
 transformer, as `etcdPutSpec`): a caller asking a transaction `t` of plain operations (no nested
@@ -238,7 +260,7 @@ def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
         (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗
           kvOpAu1 γw.kv (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log), committedAtLeast γr c ∗
-      mvcc.idxCert E.γ.idx F ∗
+      srvApi.kvLogLb E.γs F ∗
       ∀ m : TxnRespM, txnReplied E γw γr c F t Q cid mid m -∗ Φ m)
 
 end reply
@@ -263,7 +285,7 @@ def putReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log ∗
+    srvLogCert E x'.log ∗ appliedWit γr x'.log ∗
     ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝)
 
 instance putReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
@@ -277,7 +299,7 @@ whole state of the log read, `kvStateOf`); the log read extends the caller's flo
 vertical slice's unit V2); unit W-M3: the caller's certificate of the log read (`certOk`). -/
 def rangeReplyOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (cid mid : w64) (Q : KVState → IProp GF) (m : RangeRespM) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗ ⌜mvcc.LogPutsLe etcdKeyMax log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvLogCert E log ∗ ⌜mvcc.LogPutsLe etcdKeyMax log⌝ ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧
       m.hdr.revision = W64 ((log.length : Int) - 1) ∧ m.hdr.clusterId = cid ∧
       m.hdr.memberId = mid ∧ sint.Z o.base.rev ≤ sint.Z m.hdr.revision ∧
@@ -307,8 +329,7 @@ def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
       m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
       m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
 open Iris.ProofMode in
 /-- A delivered put's result, weakened (2026-10-19, D21 M6). -/
@@ -317,9 +338,9 @@ theorem putReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o 
     putReplied E γr F o Q cid mid m ⊢ putReplied E γr F o Q' cid mid m := by
   iintro H
   unfold putReplied
-  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, #Hok, %Hk, HQ⟩
+  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, %Hk, HQ⟩
   iexists hm, x, x', l, skip
-  iframe Hc Htok Hw Hok
+  iframe Hc Htok Hw
   isplitr
   · ipureintro; exact Hp
   isplitr
@@ -335,7 +356,7 @@ with no lease (any other flags) with the caller's persistent update over the who
 def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbPutRequest pbPutResponse :=
   fun (o : OpFull) (Φ : PutRespM → IProp GF) =>
-    iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+    iprop(∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗ kvOpAu1 γr.kv (.put o) Q ∗
           ∀ m : PutRespM, putReplied E γr F o Q cid mid m -∗ kvRevLb γr.kv m.hdr.revision -∗
             Φ m)
@@ -349,7 +370,7 @@ def etcdRangeSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse :=
   fun (o : OpFull) (Φ : RangeRespM → IProp GF) =>
     iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF), committedAtLeast γr c ∗
-      mvcc.idxCert E.γ.idx F ∗
+      srvApi.kvLogLb E.γs F ∗
       (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗ Φ m)
 
@@ -372,7 +393,7 @@ def deleteReplyOk (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log ∗
+    srvLogCert E x'.log ∗ appliedWit γr x'.log ∗
     ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝)
 
 instance deleteReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
@@ -395,8 +416,7 @@ def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
       m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
       m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else []) ∧
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
+    srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
 open Iris.ProofMode in
 /-- A delivered delete's result, weakened (2026-10-20, linkv-txn stage A). -/
@@ -405,9 +425,9 @@ theorem deleteReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) 
     deleteReplied E γr F o Q cid mid m ⊢ deleteReplied E γr F o Q' cid mid m := by
   iintro H
   unfold deleteReplied
-  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, #Hok, %Hk, HQ⟩
+  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, Htok, #Hw, %Hk, HQ⟩
   iexists hm, rq', op', x, x', l, skip
-  iframe Hc Htok Hw Hok
+  iframe Hc Htok Hw
   isplitr
   · ipureintro; exact Hp
   isplitr
@@ -423,7 +443,7 @@ carries. -/
 def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
   fun (o : OpFull) (Φ : DelRespM → IProp GF) =>
-    iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+    iprop(∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu1 γr.kv (.deleteRange o) Q ∗
       ∀ m : DelRespM, deleteReplied E γr F o Q cid mid m -∗ Φ m)
 
@@ -723,9 +743,9 @@ theorem kvRegs_rpcTxn (ms : List (SrvAt GF)) :
   (kvRegs_txn ms).trans (isGrpcRpcs_anySpec ms SrvAt.addr _ _)
 
 /-- **The caller's floor at the members** (persistent): each member's certificate of the log
-`F` (`[]` is free, `idxCert_nil`). -/
+`F` (`[]` is free, `monoListLbOwn_nil`). -/
 def floorsAt (ms : List (SrvAt GF)) (F : mvcc.Log) : IProp GF :=
-  iprop([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx F)
+  iprop([∗list] x ∈ ms, srvApi.kvLogLb x.E.γs F)
 
 instance floorsAt_persistent (ms : List (SrvAt GF)) (F : mvcc.Log) :
     Persistent (floorsAt ms F) := by
@@ -734,7 +754,7 @@ instance floorsAt_persistent (ms : List (SrvAt GF)) (F : mvcc.Log) :
 /-- **What a reader knows of the members** (persistent): at each, the committed index at least
 `c` (`0` is free) and the certificate of the floor `F`. -/
 def knownAt (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) : IProp GF :=
-  iprop([∗list] x ∈ ms, committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F)
+  iprop([∗list] x ∈ ms, committedAtLeast x.γr c ∗ srvApi.kvLogLb x.E.γs F)
 
 instance knownAt_persistent (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) :
     Persistent (knownAt ms c F) := by
@@ -798,7 +818,7 @@ theorem putSpec_of (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVSta
     (hl : o.leaseID = W64 0) :
     floorsAt ms F ∗ putUpd ms o Q ⊢ kvPutSpec ms o (putAns ms F o Q) := by
   unfold floorsAt putUpd kvPutSpec
-  exact anySpec_intro _ _ _ _ (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F)
+  exact anySpec_intro _ _ _ _ (fun x : SrvAt GF => srvApi.kvLogLb x.E.γs F)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.put o) Q) (fun x hx => by
       iintro ⟨#HFx, Haux⟩
       unfold etcdPutSpec
@@ -820,7 +840,7 @@ theorem rangeSpec_of (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull
     knownAt ms c F ∗ rangeUpd ms o Q ⊢ kvRangeSpec ms o (rangeAns ms c F o Q) := by
   unfold knownAt rangeUpd kvRangeSpec
   exact anySpec_intro _ _ _ _
-    (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F))
+    (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ srvApi.kvLogLb x.E.γs F))
     (fun x : SrvAt GF => iprop(⌜Q = fun _ => iprop(True)⌝ ∨
       (⌜o.base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q)))
     (fun x hx => by
@@ -840,7 +860,7 @@ theorem deleteSpec_of (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KV
     (hz : o.base.rangeEnd ≠ [W8 0]) :
     floorsAt ms F ∗ delUpd ms o Q ⊢ kvDeleteSpec ms o (delAns ms F o Q) := by
   unfold floorsAt delUpd kvDeleteSpec
-  exact anySpec_intro _ _ _ _ (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F)
+  exact anySpec_intro _ _ _ _ (fun x : SrvAt GF => srvApi.kvLogLb x.E.γs F)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.deleteRange o) Q) (fun x hx => by
       iintro ⟨#HFx, Haux⟩
       unfold etcdDeleteSpec
@@ -863,7 +883,7 @@ theorem txnSpec_of (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel
     knownAt ms c F ∗ txnUpd ms t Q ⊢ kvTxnSpec ms t (txnAns ms c F t Q) := by
   unfold knownAt txnUpd kvTxnSpec
   exact anySpec_intro _ _ _ _
-    (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F))
+    (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ srvApi.kvLogLb x.E.γs F))
     (fun x : SrvAt GF => txnUpdAt x.γr x.γr t Q)
     (fun x hx => by
       iintro ⟨⟨#Hcx, #HFx⟩, Hu⟩
@@ -893,19 +913,19 @@ theorem isKV_srvsAt (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr 
 
 theorem floorsAt_srvsAt (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (F : mvcc.Log) :
-    mvcc.idxCert E.γ.idx F ⊢ floorsAt (srvsAt addr E γr cid mid) F := by
+    srvApi.kvLogLb E.γs F ⊢ floorsAt (srvsAt addr E γr cid mid) F := by
   iintro #H
   unfold floorsAt
-  iapply (srvsAt_sep addr E γr cid mid (mvcc.idxCert E.γ.idx F)
-    (fun x : SrvAt GF => mvcc.idxCert x.E.γ.idx F) (fun _ _ => .rfl)) $$ H
+  iapply (srvsAt_sep addr E γr cid mid (srvApi.kvLogLb E.γs F)
+    (fun x : SrvAt GF => srvApi.kvLogLb x.E.γs F) (fun _ _ => .rfl)) $$ H
 
 theorem knownAt_srvsAt (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (F : mvcc.Log) :
-    committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ⊢ knownAt (srvsAt addr E γr cid mid) c F := by
+    committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ⊢ knownAt (srvsAt addr E γr cid mid) c F := by
   iintro #H
   unfold knownAt
-  iapply (srvsAt_sep addr E γr cid mid iprop(committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F)
-    (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ mvcc.idxCert x.E.γ.idx F))
+  iapply (srvsAt_sep addr E γr cid mid iprop(committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F)
+    (fun x : SrvAt GF => iprop(committedAtLeast x.γr c ∗ srvApi.kvLogLb x.E.γs F))
     (fun _ _ => .rfl)) $$ H
 
 theorem putUpd_srvsAt (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
@@ -1155,7 +1175,7 @@ it must be persistent: the specs take a write's atomic update under `□?dup`.
 The specs take the caller's update at `γ` and give the reply's fields as functions of the state
 `σ` the update fired at (`putStOk`, `rangeStOk`, `delStOk`, `txnStOk`), and (D48) that `σ` is a
 well-formed small log's (`kvLogOk`: the store's receipts bound its changes, `isKv`'s
-`receiptBound GF ≤ 2 ^ 62`, `idxCert_logOk`). Their proofs go through the
+`receiptBound GF ≤ 2 ^ 62`, `srvLogCert_logOk`). Their proofs go through the
 members' (`KVMembers.lean`: etcd's specs at each member, a reply some member's), at the floor `[]`
 and the committed index `0` (`isKv`'s `srvStart`); what a member's reply says of its
 server (certificates, the revision's token, the applied index's witness) is the members' lemmas',
@@ -1171,21 +1191,21 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **What a call starts from at a member** (persistent): its committed index at least `0` and the
 floor `[]` (both free, `srvStart_alloc`). -/
 def srvStart (x : SrvAt GF) : IProp GF :=
-  iprop(committedAtLeast x.γr (W64 0) ∗ mvcc.idxCert x.E.γ.idx [])
+  iprop(committedAtLeast x.γr (W64 0) ∗ srvApi.kvLogLb x.E.γs [])
 
 instance srvStart_persistent (x : SrvAt GF) : Persistent (srvStart x) := by
   unfold srvStart; infer_instance
 
 /-- The members' floors. -/
 theorem srvStart_idx (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, srvStart x) ⊢ [∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx [] :=
+    ([∗list] x ∈ ms, srvStart x) ⊢ [∗list] x ∈ ms, srvApi.kvLogLb x.E.γs [] :=
   BigSepL.bigSepL_mono fun _ => by
     iintro #H; iunfold srvStart at H; icases H with ⟨-, #H1⟩; iexact H1
 
 /-- The members' committed indices and floors. -/
 theorem srvStart_both (ms : List (SrvAt GF)) :
     ([∗list] x ∈ ms, srvStart x) ⊢
-      [∗list] x ∈ ms, committedAtLeast x.γr (W64 0) ∗ mvcc.idxCert x.E.γ.idx [] :=
+      [∗list] x ∈ ms, committedAtLeast x.γr (W64 0) ∗ srvApi.kvLogLb x.E.γs [] :=
   BigSepL.bigSepL_mono fun _ => by
     iintro #H; iunfold srvStart at H; iexact H
 
@@ -1224,7 +1244,7 @@ instance isKvOf_persistent (api : Loc) (γ : KVNames) (dup : Bool) (ms : List (S
 
 /-- **The `*kv` `api` is a client of etcd's KV `γ`** (persistent; see the section header): of some
 members, each at `γ`'s state; unless `dup`, refusal-free (a write is delivered at
-most once); (D48) the store's receipts at most `2 ^ 62` (a sealed log is small, `idxCert_logOk`). -/
+most once); (D48) the store's receipts at most `2 ^ 62` (a certified log is small, `srvLogCert_logOk`). -/
 def isKv (api : Loc) (γ : KVNames) (dup : Bool) : IProp GF :=
   iprop(∃ ms : List (SrvAt GF), isKvOf api γ dup ms)
 
@@ -1509,18 +1529,6 @@ theorem irrNoZeroEnd_txn (tw : txn.TxnModelW) (t : TxnModel) (htw : tw.toModel =
   subst h htw
   exact hz
 
-open Iris.ProofMode in
-/-- **A certified log is a well-formed small log** (D48): the certificate's facts (as
-`idxSealed_pure`'s) and the receipts' bound on its changes (as `idxSealed_small`'s). -/
-theorem idxCert_logOk (γ : mvcc.IdxNames) (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
-    mvcc.idxCert (GF := GF) γ log ⊢ ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ := by
-  unfold mvcc.idxCert
-  iintro ⟨-, %Hp, -, Hr⟩
-  ihave %Hm := preceipt_lt _ $$ Hr
-  ipureintro
-  refine ⟨Hp.1, Hp.2.1, ?_⟩
-  unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
-
 /-- The state of a write's log, the certified log after it extending it, is well formed. -/
 theorem kvLogOk_of_step {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV} {out : apply.ApplyOut}
     (h : apply.applyStep rq v3 x x' out) (hl : 2 ≤ x.log.length)
@@ -1540,8 +1548,8 @@ theorem putAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ 
   ihave #Hrv' := kvRevLb_same x.γr.kv γ (hn x hx) m.hdr.revision $$ Hrv
   iframe Hrv'
   iunfold putReplied at H
-  icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, #Hc, -, -, -, %Hk, HQ⟩
-  ihave %Hl0 := idxCert_logOk _ _ hrb $$ Hc
+  icases H with ⟨%hm, %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, HQ⟩
+  ihave %Hl0 := srvLogCert_logOk _ _ hrb $$ Hc
   have Hl := And.intro Hl0.1 (And.intro Hl0.2.1 (And.intro Hl0.2.2 Hk))
   obtain ⟨hst, hrev, -, -, hprev, -, hlen, hb⟩ := Hp
   have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
@@ -1572,8 +1580,8 @@ theorem rangeAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c
   unfold rangeAns rangeStOk
   iintro ⟨%x, -, H⟩
   iunfold rangeReplyOk at H
-  icases H with ⟨%l, #Hc, -, %Hk, %Hl, -, HQ⟩
-  ihave %Hlk := idxCert_logOk _ _ hrb $$ Hc
+  icases H with ⟨%l, #Hc, %Hk, %Hl, -, HQ⟩
+  ihave %Hlk := srvLogCert_logOk _ _ hrb $$ Hc
   obtain ⟨hlen, hlen', hrev, -, -, hle, hcount, hsel, -⟩ := Hl
   have h2 : sint.Z (W64 ((l.length : Int) - 1)) = (l.length : Int) - 1 := by word
   have hle' : sint.Z o.base.rev ≤ (l.length : Int) - 1 := by rw [hrev, h2] at hle; exact hle
@@ -1612,8 +1620,8 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
   unfold delAns delStOk
   iintro ⟨%x, -, H⟩
   iunfold deleteReplied at H
-  icases H with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, %Hk, HQ⟩
-  ihave %Hl0 := idxCert_logOk _ _ hrb $$ Hc
+  icases H with ⟨%hm, %rq', %op', %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, HQ⟩
+  ihave %Hl0 := srvLogCert_logOk _ _ hrb $$ Hc
   have Hl := And.intro Hl0.1 (And.intro Hl0.2.1 (And.intro Hl0.2.2 Hk))
   obtain ⟨hw, hop', Hz, hst, hrev, -, -, hdel, hprevs, -, hlen, hb⟩ := Hp
   have hlog := kvs_delete_applied_log _ _ hm rq' y y' l skip hw hop' hst
@@ -1649,8 +1657,8 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
   cases hro : txn.txnReadonly t
   · -- writing
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, %Hk, HQ⟩
-    ihave %Hl0 := idxCert_logOk _ _ hrb $$ Hc
+    icases H with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, %Hk, HQ⟩
+    ihave %Hl0 := srvLogCert_logOk _ _ hrb $$ Hc
     have Hl := And.intro Hl0.1 (And.intro Hl0.2.1 (And.intro Hl0.2.2 Hk))
     obtain ⟨htw, hw, ht', Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
     have hlog := kvs_txn_applied_log _ _ hm rq' y y' l skip hw ht' hst
@@ -1671,8 +1679,8 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
       rw [hlog]; try exact List.prefix_refl _
   · -- read-only
     simp only [↓reduceIte]
-    icases H with ⟨%log, #Hc, -, %Hk, %Hp, -, HQ⟩
-    ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
+    icases H with ⟨%log, #Hc, %Hk, %Hp, -, HQ⟩
+    ihave %Hl := srvLogCert_logOk _ _ hrb $$ Hc
     obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
     have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
     have hs := kvStateOf_kvs log (lt := [])
@@ -1915,13 +1923,14 @@ theorem srvStart_alloc (ms : List (SrvAt GF)) :
   | nil => iintro; imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
   | cons x ms ih =>
     iintro
-    imod mvcc.idxCert_nil (GF := GF) x.E.γ.idx with #HF0
+    imod monoListLbOwn_nil (GF := GF) (A := List mvcc.Change) x.E.γs.slog with #HF0
     imod monoNatLbOwn_0 (GF := GF) x.γr.committed with #Hc0
     imod ih with #Hr
     imodintro
     iapply BigSepL.bigSepL_cons.2
     iframe Hr
     iunfold srvStart
+    iunfold srvApi.kvLogLb
     iframe HF0
     iunfold committedAtLeast
     iExactEq Hc0; rfl

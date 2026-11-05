@@ -632,18 +632,21 @@ operations under `pfx` that is `exactGets`): `txnCommitResultTok`, the token iff
 theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64)
     (F : mvcc.Log) (lo : w64) (pfx : GoString) (t : TxnModel) (cid mid : w64) (resp : Loc)
     (m : TxnRespM) (Q : KVState → IProp GF) (lf : mvcc.Log) (hp : TxnModel.plain t)
-    (hu : t.Under pfx) (hx : t.exactGets) (hlo : sint.Z lo < lf.length) :
-    storeSmall E.γ ∗ txnRespMsg resp m ∗ txnReplied E γw γr c F (txnWireOf t) Q cid mid m ∗
+    (hu : t.Under pfx) (hx : t.exactGets) (hlo : sint.Z lo ≤ 0 ∨ sint.Z lo < lf.length)
+    (hrb : receiptBound GF ≤ 2 ^ 62) (hNx : E.Nx = kvNxOff γr.raft γr.kv) :
+    txnRespMsg resp m ∗ txnReplied E γw γr c F (txnWireOf t) Q cid mid m ∗
         □ (⌜t.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝) ⊢
-      txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo t resp GoInterface.nil := by
-  iintro ⟨#Hsm, #Hm, Hrep, #Himp⟩
+      txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo t resp GoInterface.nil := by
+  iintro ⟨#Hm, Hrep, #Himp⟩
   unfold txnReplied
   have hser := txnSerializable_wire t
   rw [txnReadonly_wire]
   cases hro : (t.thenOps ++ t.elseOps).all TxnOp.isGet with
   | true =>
     simp only [↓reduceIte]
-    icases Hrep with ⟨%log, #Hcert, #Hcok, %Hk, %Hlog, -, #HQl⟩
+    icases Hrep with ⟨%log, #Hcert, %Hk, %Hlog, -, #HQl⟩
+    ihave %Hlok := srvLogCert_logOk E log hrb $$ Hcert
+    ihave #Hkn := srvLogCert_kvNx E γr log hNx $$ Hcert
     obtain ⟨h2, h3, hFl, hrev, -, -, hok, hrel⟩ := Hlog
     ihave %Hfl : ⌜t.linearizable = true → lf.length ≤ log.length⌝ $$ []
     · cases hlin : t.linearizable
@@ -685,7 +688,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       unfold runTxn
       exact runOps_gets_noWrite _ _ _ (fun op ho => hall op (branch_mem t _ op ho))
     have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
-    ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E log pfx h2 h3 Hk $$ [$Hsm $Hcert]
+    ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_nx_last E γr false log pfx h2 h3 Hlok.1 Hlok.2.2 Hk $$ Hkn
     unfold txnCommitResultTok
     iright
     isplitl []
@@ -698,7 +701,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
         (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
           subst he; exact ⟨rfl, (hx.1 o (branch_mem t _ _ ho)).2⟩⟩) hrel $$ Hm
     isplitl []
-    · iapply v3rpc.etcdReached_of_certOk E log _ (by rw [hr]; omega) $$ Hcok
+    · iapply v3rpc.etcdReached_of_nx E γr false log _ (by rw [hr]; omega) $$ Hkn
     isplitl []
     · ipureintro
       exact ⟨fun h => by have := Hfl h; rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf⟩
@@ -711,7 +714,9 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     simp only [Bool.false_eq_true, ↓reduceIte]
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
-    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, %Hk, HQ⟩
+    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, %Hk, HQ⟩
+    ihave %Hlok := srvLogCert_logOk E x'.log hrb $$ Hcert
+    ihave #Hkn := srvLogCert_kvNx E γr x'.log hNx $$ Hcert
     obtain ⟨Htw, Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
     have hlin : t.linearizable = true :=
       linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
@@ -746,8 +751,9 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
       simp only [mvcc.commitLog, ↓reduceIte] at hlog
       rw [hlog]
       have hr : sint.Z (W64 ((x.log.length : Int) - 1)) = (x.log.length : Int) - 1 := by word
-      ihave ⟨#Hs1, %Hwf1⟩ := v3rpc.etcdState_of_cert_last E x.log pfx H2 (by omega)
-        (by rw [← hlog]; exact Hk) $$ [$Hsm $Hcert]
+      ihave ⟨#Hs1, %Hwf1⟩ := v3rpc.etcdState_of_nx_last E γr false x.log pfx H2 (by omega)
+        (by rw [← hlog]; exact Hlok.1) (by rw [← hlog]; exact Hlok.2.2) (by rw [← hlog]; exact Hk)
+        $$ Hkn
       unfold txnCommitResultTok
       iright
       isplitl []
@@ -760,7 +766,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
           (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
             subst he; exact absurd (branch_mem t _ _ ho) (hng o)⟩) hrel $$ Hm
       isplitl []
-      · iapply v3rpc.etcdReached_of_certOk E x.log _ (by rw [hr]; omega) $$ Hcok
+      · iapply v3rpc.etcdReached_of_nx E γr false x.log _ (by rw [hr]; omega) $$ Hkn
       isplitl []
       · ipureintro
         exact ⟨fun _ => by rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf1⟩
@@ -785,10 +791,10 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
         rw [hlog, mvcc.commitLog, if_neg hcs]
       have hr : sint.Z (W64 (x.log.length : Int)) = x.log.length := by word
       have hr1 : sint.Z ((W64 (x.log.length : Int)) - W64 1) = (x.log.length : Int) - 1 := by word
-      ihave #Hst1 := v3rpc.etcdState_of_cert E x'.log ((W64 (x.log.length : Int)) - W64 1) pfx
-        (by rw [hr1]; omega) (by rw [hr1, hlog']; simp; omega) Hk $$ [$Hsm $Hcert]
-      ihave #Hst2 := v3rpc.etcdState_of_cert E x'.log (W64 (x.log.length : Int)) pfx
-        (by rw [hr]; omega) (by rw [hr, hlog']; simp; omega) Hk $$ [$Hsm $Hcert]
+      ihave #Hst1 := v3rpc.etcdState_of_nx E γr false x'.log ((W64 (x.log.length : Int)) - W64 1) pfx
+        (by rw [hr1]; omega) (by rw [hr1, hlog']; simp; omega) Hlok.1 Hlok.2.1 Hlok.2.2 Hk $$ Hkn
+      ihave #Hst2 := v3rpc.etcdState_of_nx E γr false x'.log (W64 (x.log.length : Int)) pfx
+        (by rw [hr]; omega) (by rw [hr, hlog']; simp; omega) Hlok.1 Hlok.2.1 Hlok.2.2 Hk $$ Hkn
       icases Hst1 with ⟨#Hs1, %Hwf1⟩
       icases Hst2 with ⟨#Hs2, -⟩
       have e1 : mvcc.stateAt x'.log (sint.Z ((W64 (x.log.length : Int)) - W64 1)).toNat = (mvcc.stateAfter x.log) := by
@@ -810,7 +816,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
           (fun op ho => ⟨plain_branch t hp _ op ho, fun o he => by
             subst he; exact absurd (branch_mem t _ _ ho) (hng o)⟩) hrel $$ Hm
       isplitl []
-      · iapply v3rpc.etcdReached_of_certOk E x'.log _ (by rw [hr, hlog']; simp; omega) $$ Hcok
+      · iapply v3rpc.etcdReached_of_nx E γr false x'.log _ (by rw [hr, hlog']; simp; omega) $$ Hkn
       isplitl []
       · ipureintro
         exact ⟨fun _ => by rw [hr]; omega, by rw [hr]; omega, by rw [hr]; omega, Hwf1⟩
@@ -912,8 +918,8 @@ def txnB (tp : Loc) (addr : List GoString) (cd : context.ContextDesc (IProp GF))
     IProp GF :=
   iprop(txnObjAt tp addr todoCtxVal cd b ∗ ⌜TxnModel.plain b.model⌝)
 
-theorem etcdReached_zero (E : apply.AEnv GF) :
-    ⊢ etcdReached (EM := v3rpc.etcdModelOfServer E) (W64 0) := by
+theorem etcdReached_zero (E : apply.AEnv GF) (γr : ReadNames) :
+    ⊢ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) (W64 0) := by
   unfold etcdReached
   ileft
   ipureintro; exact Int.le_refl _
@@ -925,16 +931,16 @@ transaction is linearizable, and its floor, for a lease-free one its update's re
 of the log it met, has no counterpart without an update): `txnCommitResultTok` from
 `etcdReached lo` under a prefix, with a client error; and, for the builder's commit with any
 result, `txnAnyResult`. -/
-def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw _γr : ReadNames) (_cid _mid : w64)
+def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw γr : ReadNames) (_cid _mid : w64)
     (addr : List GoString) : IProp GF :=
   iprop(□ ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild),
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ txn.txnReadonly (txnWireOf b.model) = false ∧
       ¬ TxnModel.leaseFree b.model⌝ -∗
     ((□ ∀ (lo : w64) (pfx : GoString), ⌜b.model.Under pfx⌝ -∗
-      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
+      {{ txnObjAt tp addr ci cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo b.model resp err ∗
+          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }}) ∗
      {{ txnObjAt tp addr ci cd b }}
        (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
@@ -957,14 +963,14 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (hsz : txnSizeOk b.model) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
         kvRegs (srvsAt addr E γr cid mid) ∗
-        mvcc.idxCert E.γ.idx F ∗ mvcc.certOk E.γ lf ∗ kvAnyAu E γr }}
+        srvApi.kvLogLb E.γs F ∗ nxOrNil E lf ∗ kvAnyAu E γr }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (Q : KVState → IProp GF), txnRespMsg resp m ∗
             txnReplied E γr γr (W64 0) F (txnWireOf b.model) Q cid mid m ∗
             □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) ∨
           ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ }} := by
-  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, #Hcl, #Hr⟩ HΦ
+  iintro %Φ ⟨#Pc, Hobj, #Hrpc, #HF, Hcl, #Hr⟩ HΦ
   ihave #Hw : kvAnyAu E γr $$ []
   · iexact Hr
   have hser := txnSerializable_wire b.model
@@ -980,7 +986,7 @@ theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
           txn.txnSerializable (txnWireOf b.model) = false⌝ ∗ kvReadAu γr.kv Q) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
           txnNoZeroEnd (txnWireOf b.model)⌝ ∗ □ kvOpAu1 γr.kv (.txn (txnWireOf b.model)) Q)) ∗
-      □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) $$ []
+      □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) $$ [Hcl]
   · cases hro : txn.txnReadonly (txnWireOf b.model)
     · have hl : TxnModel.leaseFree b.model := by
         rcases hk with h | h
@@ -1058,13 +1064,13 @@ read side (`isServerRead`), that `errors.As` can take `*rpctypes.EtcdError` (`hA
 client's errors are client errors as `errors.Is` sees them (`clientErrsIs`). -/
 theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (hrb : receiptBound GF ≤ 2 ^ 62) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         clientErrsIs ∗ kvAnyAu E γr ∗ kvLeasedCommitTodo E γr γr cid mid addr ⊢
-      isEtcdTxnKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
+      isEtcdTxnKVTodo (EM := v3rpc.etcdModelOfServer E γr false) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hcei, #Hnr, #Hlc⟩
-  ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
   unfold isEtcdTxnKVTodo
   iintro !> %Φ !> - HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
@@ -1079,15 +1085,15 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
   have hcommit : ∀ (b : TxnBuild) (lo : w64), b.model.Under pfx → b.model.exactGets →
       txnSizeOk b.model →
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvRegs (srvsAt addr E γr cid mid) ∗ storeSmall E.γ ∗
+        kvRegs (srvsAt addr E γr cid mid) ∗
         kvAnyAu E γr ∗ kvLeasedCommitTodo E γr γr cid mid addr ⊢
-      {{ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
+      {{ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E γr false) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E) pfx lo b.model resp err ∗
+          txnCommitResultTok (EM := v3rpc.etcdModelOfServer E γr false) pfx lo b.model resp err ∗
           (⌜err = GoInterface.nil⌝ ∨ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝) }} := by
     intro b lo hu hx hsz
-    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hsm, #Hnr, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
+    iintro ⟨#Pc, #Hsrd, #Hrpc, #Hnr, #Hlc⟩ !> %Φ ⟨HB, #Hlo⟩ HΦ
     iunfold txnB at HB
     icases HB with ⟨Hobj, %hp⟩
     by_cases hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model
@@ -1105,9 +1111,11 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       iframe Hobj Hlo
     -- the floor (unit W-M3): a certified log longer than `lo`, the update's result at the state
     -- the transaction linearized at
-    ihave ⟨%lf, #Hcl, %Hll⟩ := certOk_of_reached E lo $$ Hlo
+    ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hsrd
+    ihave %HNx := srvKVInvs_nx E γr $$ Hinvs
+    ihave ⟨%lf, Hcl, %Hll⟩ := nx_of_reached E γr lo $$ [$Hinvs $Hlo]
     ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
-    iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk hsz) $$ [Hobj]
+    iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F lf hp hx hk hsz) $$ [Hobj Hcl]
     · iframe
       iframe #
     inext
@@ -1117,7 +1125,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
     · subst Herr
       isplitl
       · iapply txnCommitResultTok_of_reply E γr γr (W64 0) F lo pfx b.model cid mid resp m Q lf
-          hp hu hx Hll $$ [$Hsm $Hm $Hq $Himp]
+          hp hu hx Hll hrb HNx $$ [$Hm $Hq $Himp]
       · ileft; ipureintro; rfl
     · isplitl []
       · unfold txnCommitResultTok; ileft; ipureintro; exact Herr.1
@@ -1178,7 +1186,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
         · exact h2 op h⟩
     isplitl []
     · iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnr $Hlc] [HB]
+      iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hnr $Hlc] [HB]
       · iframe; iframe #
       inext
       iintro %resp %err ⟨Hr, -⟩
@@ -1201,9 +1209,9 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
         iapply Ht $$ [Hobj] HΦ'
         iexact Hobj
       ihave ⟨%F, #HF, -⟩ := floor0_of_read s E γr $$ Hsrd
-      ihave #Hcl : mvcc.certOk E.γ ([] : mvcc.Log) $$ []
-      · unfold mvcc.certOk; ileft; ipureintro; simp
-      iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F [] hp hx hk hsz) $$ [Hobj]
+      ihave Hcl : iprop(nxOrNil E ([] : mvcc.Log)) $$ []
+      · iunfold nxOrNil; ileft; ipureintro; rfl
+      iapply (kv_txn_commit tp addr E γr cid mid todoCtxVal cd b F [] hp hx hk hsz) $$ [Hobj Hcl]
       · iframe
         iframe #
       inext
@@ -1221,7 +1229,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
       · ileft; ipureintro; exact Herr.1
   · unfold txnCommitErrTodo
     iintro !> %b %lo %Φ' !> ⟨HB, #Hlo, %hux⟩ HΦ'
-    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hsm $Hnr $Hlc] [HB]
+    iapply (hcommit b lo hux.1 hux.2.1 hux.2.2) $$ [$Pc $Hsrd $Hrpc $Hnr $Hlc] [HB]
     · iframe; iframe #
     inext
     iintro %resp %err ⟨Hr, Herr⟩
@@ -1243,7 +1251,7 @@ clients' triples of a put and of a writing transaction with a lease (`kvLeasedPu
 `kvLeasedCommitTodo`), which no server spec covers. -/
 def kvWritesOk (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) : IProp GF :=
-  iprop(kvAnyAu E γr ∗ kvLeasedPutTodo api E ∗ kvLeasedCommitTodo E γr γr cid mid addr)
+  iprop(kvAnyAu E γr ∗ kvLeasedPutTodo api E γr ∗ kvLeasedCommitTodo E γr γr cid mid addr)
 
 instance kvWritesOk_persistent (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) : Persistent (kvWritesOk api addr E γr cid mid) := by
