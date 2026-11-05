@@ -34,8 +34,14 @@ def fXY : OsFile := ((OsFile.ofBytes []).change [bx] 0 1).change [byt] 0 1
 theorem secOf_one (b : w8) : (secOf [b] 0).toList[0]? = some b := by
   simp [secOf]
 
+theorem secOf_far (c : List w8) (hc : c.length ≤ 1) (n : Nat) (h : 1 ≤ n) :
+    secOf c n = secOf [] n := by
+  unfold secOf; congr 1; funext j
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega),
+    List.getElem?_nil]
+
 theorem fXY_vers : (fXY.secs 0).vers = [secOf [] 0, secOf [bx] 0, secOf [byt] 0] := by
-  simp [fXY, OsFile.change, OsFile.ofBytes, secHits]
+  simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits]
 
 /-- Before the crash: the file of inode 0 created at `t`, renamed to `a`, neither committed. -/
 def stOld : OsState :=
@@ -66,17 +72,15 @@ theorem crash_old_name_new_bytes : OsCrash stOld stNew := by
   left
   refine ⟨rfl, rfl, rfl, ⟨1, by decide, rfl⟩, fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
   · obtain rfl := (named_new i).1 hi
-    refine ⟨fXY, [byt], by simp [stOld], ?_,
-      by simp [stNew]⟩
-    refine ⟨⟨.inl ?_, .inl ?_⟩, fun n hn => ?_⟩
-    · simp [fXY, OsFile.change, OsFile.ofBytes]
-    · simp [fXY, OsFile.change, OsFile.ofBytes]
-    · have hn0 : n = 0 := by simp at hn; omega
-      subst hn0
-      refine ⟨secOf [byt] 0, .inl (by rw [fXY_vers]; simp), fun j hj hl => ?_⟩
-      have hj0 : j = 0 := by simp at hl; omega
-      subst hj0
-      rw [secOf_one]; rfl
+    refine ⟨fXY, OsFile.ofBytes [byt], by simp [stOld], ?_, by simp [stNew]⟩
+    refine ⟨1, secOf [byt], ⟨.inl ?_, .inl ?_⟩, fun n => .inl ?_, rfl⟩
+    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
+    · simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
+    · rcases Nat.eq_zero_or_pos n with rfl | hn
+      · rw [fXY_vers]; simp
+      · rw [secOf_far _ (by simp) n hn]
+        have h0 : 512 * n ≠ 0 := by omega
+        simp [fXY, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, h0]
   · have : i ≠ 0 := fun h => hi ((named_new i).2 h)
     simp [stNew, Ne.symm this]
 
@@ -87,7 +91,8 @@ def f1 : OsFile := (OsFile.ofBytes [bx]).change [byt] 0 1
 def fLost : OsFile := (f1.syncFailed (fun _ => False)).synced (fun _ => False)
 
 theorem fLost_vers : (fLost.secs 0).vers = [secOf [bx] 0, secOf [byt] 0] := by
-  simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, secHits]
+  simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, OsFile.ofDisk,
+    secHits]
 
 /-- One file at `a`, its name durable. -/
 def oneFile (f : OsFile) : OsState :=
@@ -104,28 +109,30 @@ theorem named_one (f : OsFile) (i : Ino) :
     · simp only [oneFile] at hp; rw [GMap.lookup_insert_ne _ _ h] at hp; simp at hp
   · rintro rfl; exact ⟨aP, by simp [oneFile]⟩
 
-/-- A machine crash of `oneFile f` leaving the one-byte image `[b]`, from a version of sector 0. -/
+/-- A machine crash of `oneFile f` leaving the one-byte file `[b]`, from versions of its sectors. -/
 theorem crash_one (f : OsFile) (b : w8) (hlo : f.sizeLo ≤ 1) (hhi : 1 ≤ f.sizeHi)
-    (hv : secOf [b] 0 ∈ (f.secs 0).vers) :
+    (hv : secOf [b] 0 ∈ (f.secs 0).vers) (hz : ∀ n, 1 ≤ n → secOf [] n ∈ (f.secs n).vers) :
     OsCrash (oneFile f) (oneFile (OsFile.ofBytes [b])) := by
   left
   refine ⟨rfl, rfl, rfl, ⟨0, by simp [oneFile], rfl⟩, fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
   · obtain rfl := (named_one _ i).1 hi
-    refine ⟨f, [b], by simp [oneFile], ⟨⟨.inl hlo, .inl hhi⟩, fun n hn => ?_⟩, by simp [oneFile]⟩
-    have hn0 : n = 0 := by simp at hn; omega
-    subst hn0
-    refine ⟨secOf [b] 0, .inl hv, fun j hj hl => ?_⟩
-    have hj0 : j = 0 := by simp at hl; omega
-    subst hj0
-    rw [secOf_one]; rfl
+    refine ⟨f, OsFile.ofBytes [b], by simp [oneFile], ?_, by simp [oneFile]⟩
+    refine ⟨1, secOf [b], ⟨.inl hlo, .inl hhi⟩, fun n => .inl ?_, rfl⟩
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · exact hv
+    · rw [secOf_far _ (by simp) n hn]; exact hz n hn
   · have : i ≠ 0 := fun h => hi ((named_one _ i).2 h)
     simp [oneFile, Ne.symm this]
 
 /-- **A lost sector stays lost across a successful sync**: a crash may leave `X`. -/
 theorem crash_lost_after_sync : OsCrash (oneFile fLost) (oneFile (OsFile.ofBytes [bx])) :=
   crash_one fLost bx (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change,
-      OsFile.ofBytes]) (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change,
-      OsFile.ofBytes]) (by rw [fLost_vers]; simp)
+      OsFile.ofBytes, OsFile.ofDisk]) (by simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change,
+      OsFile.ofBytes, OsFile.ofDisk]) (by rw [fLost_vers]; simp) (fun n hn => by
+      simp [fLost, f1, OsFile.synced, OsFile.syncFailed, OsFile.change, OsFile.ofBytes, OsFile.ofDisk,
+        OsFile.ofDisk, secHits, Sector.last]
+      have h0 : 512 * n ≠ 0 := by omega
+      rw [secOf_far _ (by simp) n hn]; simp [h0])
 
 /-! ## A process restart keeps the dirty sectors -/
 
@@ -136,15 +143,19 @@ theorem changesOn_empty (i : Ino) : changesOn (oneFile f1) i = [] := by
 leave `X`. -/
 theorem restart_keeps_dirty :
     OsCrash (oneFile f1) (oneFile f1) ∧ OsCrash (oneFile f1) (oneFile (OsFile.ofBytes [bx])) := by
-  refine ⟨.inr ⟨rfl, rfl, rfl, rfl, fun i => ?_⟩, crash_one f1 bx ?_ ?_ ?_⟩
+  refine ⟨.inr ⟨rfl, rfl, rfl, rfl, fun i => ?_⟩, crash_one f1 bx ?_ ?_ ?_ ?_⟩
   · by_cases h : i = 0
     · subst h
       simp only [oneFile, GMap.lookup_singleton_eq]
       exact ⟨[], f1, by simp [changesOn, ProcState.empty], .nil _, rfl⟩
     · simp [oneFile, Ne.symm h]
-  · simp [f1, OsFile.change, OsFile.ofBytes]
-  · simp [f1, OsFile.change, OsFile.ofBytes]
-  · simp [f1, OsFile.change, OsFile.ofBytes, secHits]
+  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
+  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
+  · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits]
+  · intro n hn
+    have h0 : 512 * n ≠ 0 := by omega
+    simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits, h0]
+    exact (secOf_far _ (by simp) n hn).symm
 
 end Tests
 end Fs

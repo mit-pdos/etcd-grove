@@ -148,6 +148,35 @@ the process state is empty. A crash image of a file:
 (a `pwrite` of `k` bytes for some `k`, a truncate applied or not, with the sector updates of the
 step); the process state is empty.
 
+## After the soundness audit (`notes/axiom-review/fs-v2.md`, 2026-11-05)
+
+Implemented in `GooseLang/Ext/Fs/{Paths,Tree,Impl}.lean` (with `Tests.lean`), standalone: the
+clients still use `GooseLang/Ext/OsFs`. A fresh reviewer audited it (six findings, all in the data
+path; the tree and the journal survived every attack). Dispositions:
+
+- **F1, reads after a failed writeback** (Linux may drop data whose writeback failed, so reads return
+  the disk's older contents): an environment assumption, *no failed writeback* (no I/O error, no
+  delayed-allocation failure, for the roots' files). The failed `fsync` and lost sectors stay in the
+  model (more behaviours). Neither etcd nor bbolt goes on using a file after a failed `Sync`.
+- **F2, everything durable at the first start**: an environment assumption, *durable at first start*.
+- **F3, stale bytes past EOF after a crash** (ext4): a model change. A crashed file keeps each
+  sector's chosen version whole (`CrashFile`, `OsFile.ofDisk`), and an extension (`ftruncate` grow, a
+  write's gap) shows what the sectors hold past the old size (`OsFile.resized`/`written` read
+  `rawAt`), not zeros. In a run without a crash those bytes are zeros (every version is zero past the
+  size it was made at), so nothing changes there; after a crash a proof must treat them as unknown.
+- **F4, short `pread` without an error**: a model change (success returns a non-empty prefix, or
+  nothing at EOF).
+- **F5, a restart during `fallocate`**: a model change (`Landed`: a resize lands at any size between
+  the file's and its target).
+- **F6, short `pwrite` with errno 0**: a model change (allowed).
+
+**Stuck or less defined than Linux, which the clients hit** (sound; to decide before the WAL's proof):
+`MetaBegin` forbids overlapping metadata calls, which etcd's WAL makes (the file pipeline creates the
+next segment while `cut` renames, and purge runs beside both); a rename or rmdir with a directory fd
+open on the tree is stuck, and etcd keeps one open on the WAL directory for its whole life; a
+directory `fsync` commits nothing for a directory made or moved since the log's start
+(`dirCommitLen`'s rebinding rule), which `wal.Create`'s `fsync` relies on.
+
 ## Environment assumptions (hypotheses of the adequacy statement)
 
 As now for the roots (one local ext4 or xfs filesystem, one journal; regular files and directories
@@ -159,6 +188,9 @@ errors), without the old regime's clause. For sectors:
   or entirely as sent. Sound for 512n and 4Kn devices alike (a 4 KB-atomic device's crash states
   are 512-byte-atomic ones); excludes devices whose write damages sectors it does not write (512e
   without power-loss protection).
+- **No failed writeback** (new, F1): no writeback of a file in the roots' trees fails.
+- **Durable at first start** (new, F2): when the program first starts, the roots' trees and their
+  files are durable.
 - **No mixed writeback** (new): the data a writeback sends never mixes a page's contents before
   and after a concurrent write into it. Ordinary ext4 and xfs do not promise it: without stable
   pages (`BDI_CAP_STABLE_WRITES`), a write may change a page during its DMA. The alternative is to

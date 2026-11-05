@@ -22,7 +22,14 @@ atomically: a crash leaves each sector of a write entirely as it was or entirely
 512n and 4Kn devices alike; it excludes a device whose write damages sectors it was not writing).
 **No mixed writeback**: the data a writeback sends never mixes a page's contents before and after
 a concurrent write into it (ordinary ext4 and xfs do not promise this: without stable pages a write
-may change a page during its DMA; it is assumed, `notes/fs-semantics-v2.md`). Only paths in the
+may change a page during its DMA; it is assumed, `notes/fs-semantics-v2.md`). **No failed
+writeback**: no writeback of a file in the roots' trees fails (the device returns no I/O error, and
+writeback never fails to allocate blocks, ext4's "Delayed block allocation failed"): Linux may drop
+the page cache's copy of data whose writeback failed, so that reads return the disk's older
+contents, which the model does not describe (`notes/axiom-review/fs-v2.md`, F1; the model's failed
+`fsync` and lost sectors remain, more behaviours than this assumption leaves). **Durable at first
+start**: when the program first starts, the roots' trees and every file in them are durable: nothing
+has changed them since their last successful `sync`, `syncfs` or `fsync` (F2). Only paths in the
 roots' trees are given a meaning: a step on any other path is stuck.
 
 **Soundness discipline.** The model is never more defined than Linux:
@@ -52,7 +59,9 @@ unchanged.
 durable tree with a prefix of the metadata operations since replayed; every file that tree names
 becomes a crash image (a size it had since its last successful sync, or one an in-flight change
 gives it; each sector one of the versions it had since its last successful sync, or the current one
-with part of an in-flight change); every other file, and the process's state, is gone. A process
+with part of an in-flight change; the bytes of a sector past the size are those of the chosen version,
+not zeros: on ext4 a block's tail past a recovered size may hold data whose size change was lost, and
+a later extension shows it, F3); every other file, and the process's state, is gone. A process
 restart keeps the machine's state, with each in-flight change landed as some prefix: the page cache
 and its dirty sectors survive the process, so a later machine crash may still lose them.
 -/
@@ -98,14 +107,19 @@ structure OsFile where
 /-- Sector `n` of the bytes `c`, zero past their end. -/
 def secOf (c : List w8) (n : Nat) : SecBytes := Vector.ofFn (fun j : Fin 512 => c.getD (512 * n + j) 0)
 
-/-- A file holding `c`, all of it on disk (a boot finds files so). -/
-def OsFile.ofBytes (c : List w8) : OsFile :=
-  { secs := fun n => ⟨[secOf c n], false⟩, size := c.length, sizeLo := c.length,
-    sizeHi := c.length }
+/-- A file of size `sz` whose sector `n` holds `vs n`, all of it on disk (a boot and a crash find
+files so; the bytes past the size are whatever the sectors hold). -/
+def OsFile.ofDisk (vs : Nat → SecBytes) (sz : Nat) : OsFile :=
+  { secs := fun n => ⟨[vs n], false⟩, size := sz, sizeLo := sz, sizeHi := sz }
+
+/-- A file holding `c`, all of it on disk, zero past its end. -/
+def OsFile.ofBytes (c : List w8) : OsFile := OsFile.ofDisk (secOf c) c.length
+
+/-- Byte `b` of the page cache's versions of the sectors, past the size too. -/
+def OsFile.rawAt (f : OsFile) (b : Nat) : w8 := (f.secs (b / 512)).last.toList.getD (b % 512) 0
 
 /-- What reads, `fstat` and mappings see: the last version of each sector, cut to the size. -/
-def OsFile.contents (f : OsFile) : List w8 :=
-  (List.range f.size).map (fun i => (f.secs (i / 512)).last.toList.getD (i % 512) 0)
+def OsFile.contents (f : OsFile) : List w8 := (List.range f.size).map f.rawAt
 
 /-- An open file description: its file and access mode. (The file offset of `Seek`/`Write`/`Read`
 is the Go model's, `TrustedCode/os.lean`: every step here is positional.) -/
@@ -201,18 +215,6 @@ def osPageSize : Nat := 4096
 
 /-! ## Bytes -/
 
-/-- `cur` resized to `sz`: cut, or extended with zeros. -/
-def resizeBytes (cur : List w8) (sz : Nat) : List w8 :=
-  cur.take sz ++ List.replicate (sz - cur.length) 0
-
-/-- `cur` with `d` written at `off`, zero-filling any gap past the end. Writing nothing changes
-nothing, even past the end. -/
-def writeBytes (cur : List w8) (off : Nat) (d : List w8) : List w8 :=
-  if d = [] then cur
-  else
-    let c := resizeBytes cur (max cur.length off)
-    c.take off ++ d ++ c.drop (off + d.length)
-
 /-- `i` is in `[lo, hi)`. -/
 def inRange (lo hi i : Nat) : Bool := lo ≤ i && i < hi
 
@@ -222,6 +224,18 @@ def secHits (lo hi n : Nat) : Bool := lo < 512 * (n + 1) && 512 * n < hi
 /-! ## File effects -/
 
 section effects
+
+/-- The contents of `f` resized to `sz`: cut, or extended with what the sectors hold past the size
+(zeros, except in a sector a crash left with other bytes there, F3). -/
+def OsFile.resized (f : OsFile) (sz : Nat) : List w8 := (List.range sz).map f.rawAt
+
+/-- The contents of `f` with `d` written at `off`, any gap past the end filled as `resized` does.
+Writing nothing changes nothing, even past the end. -/
+def OsFile.written (f : OsFile) (off : Nat) (d : List w8) : List w8 :=
+  if d = [] then f.contents
+  else
+    let c := f.resized (max f.size (off + d.length))
+    c.take off ++ d ++ c.drop (off + d.length)
 
 /-- `f` with its contents changed to `c` by a change of the bytes `[lo, hi)`: each sector those
 bytes meet gets the new version and becomes dirty (a lost sector written again is dirty again: the
@@ -236,11 +250,11 @@ def OsFile.change (f : OsFile) (c : List w8) (lo hi : Nat) : OsFile :=
 `[min off size, off + k)` change, the zero gap before them included. -/
 def OsFile.landWrite (f : OsFile) (off : Nat) (data : List w8) (k : Nat) : OsFile :=
   if k = 0 then f
-  else f.change (writeBytes f.contents off (data.take k)) (min off f.size) (off + k)
+  else f.change (f.written off (data.take k)) (min off f.size) (off + k)
 
 /-- `f` resized to `sz`: every byte from where the old and new sizes part changes. -/
 def OsFile.truncate (f : OsFile) (sz : Nat) : OsFile :=
-  f.change (resizeBytes f.contents sz) (min f.size sz) (max f.size sz)
+  f.change (f.resized sz) (min f.size sz) (max f.size sz)
 
 /-- `f` after a successful sync: every dirty sector not under an in-flight change (`busy`) is
 written, its versions collapsed to the last; a lost one is unchanged (Linux does not write it); the
@@ -259,16 +273,16 @@ def OsFile.syncFailed (f : OsFile) (busy : Nat → Prop) [DecidablePred busy] : 
       if s.dirty ∧ ¬ busy n then { s with dirty := false } else s }
 
 /-- `f'` is `f` with each of the changes `ks`, in order, landed as some prefix: some bytes of a
-write (possibly none or all), a resize applied or not. -/
+write (possibly none or all), a resize to any size between the file's and its target (ext4 resizes
+in chunks, and goes on after the process is killed, F5). -/
 inductive Landed : List OsChangeKind → OsFile → OsFile → Prop where
   | nil (f : OsFile) : Landed [] f f
   | write (off : Nat) (data : List w8) (k : Nat) (ks : List OsChangeKind) (f f' : OsFile) :
       k ≤ data.length → Landed ks (f.landWrite off data k) f' →
       Landed (.write off data :: ks) f f'
-  | truncYes (sz : Nat) (ks : List OsChangeKind) (f f' : OsFile) :
-      Landed ks (f.truncate sz) f' → Landed (.truncate sz :: ks) f f'
-  | truncNo (sz : Nat) (ks : List OsChangeKind) (f f' : OsFile) :
-      Landed ks f f' → Landed (.truncate sz :: ks) f f'
+  | trunc (sz sz' : Nat) (ks : List OsChangeKind) (f f' : OsFile) :
+      min f.size sz ≤ sz' → sz' ≤ max f.size sz →
+      Landed ks (f.truncate sz') f' → Landed (.truncate sz :: ks) f f'
 
 end effects
 
@@ -511,12 +525,14 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
           e' = osRes (#fd) 0) ∨
        (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
           (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc st' tgt)))
-  /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`, as `ReadSees` allows. On failure,
-  a prefix. -/
+  /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`, as `ReadSees` allows. On success,
+  a non-empty prefix (Linux returns a short count when page allocation fails part way, F4), or
+  nothing at EOF; on failure, any prefix. -/
   | "PRead" => ∃ (fd off n : w64) (d : OsFd) (r : List w8), v = PairV (#fd) (PairV (#off) (#n)) ∧
       FdOpen st fd d ∧ d.readable ∧ 0 ≤ off.toInt ∧ ReadSees st d.ino off.toNat n.toNat r ∧
       st' = st ∧
-      (e' = osRes (#r) 0 ∨ ∃ (k : Nat) (e : w64), k ≤ r.length ∧ e ≠ 0 ∧ e' = osRes (#(r.take k)) e)
+      ((∃ k, k ≤ r.length ∧ (0 < k ∨ r = []) ∧ e' = osRes (#(r.take k)) 0) ∨
+       ∃ (k : Nat) (e : w64), k ≤ r.length ∧ e ≠ 0 ∧ e' = osRes (#(r.take k)) e)
   /- The first step of `pwrite(fd, data, off)`: `(#fd, #off, #data) ↦ token`. It makes no system
   call and cannot fail. The bytes it may change must be clear of every other change. -/
   | "PWriteStart" => ∃ (fd off : w64) (data : List w8) (d : OsFd) (t : Nat),
@@ -525,11 +541,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        (∀ b, Affects st c b → ¬ InflightAt st d.ino b) ∧
        st.proc.inflight !! t = none ∧ st' = st.addInflight t c) ∧
       e' = Val (osTokV t)
-  /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: all of it and
-  errno 0, or any prefix and a nonzero errno. -/
+  /- The second step: `token ↦ (#written, #errno)`. A prefix of the data is written: with errno
+  0, all of it or a non-empty part (a short write, F6); with a nonzero errno, any prefix. -/
   | "PWriteFinish" => ∃ (t : Nat) (i : Ino) (off : Nat) (data : List w8) (f : OsFile)
       (k : Nat) (e : w64), v = osTokV t ∧ st.proc.inflight !! t = some ⟨i, .write off data⟩ ∧
-      st.file i = some f ∧ k ≤ data.length ∧ (k = data.length ∧ e = 0 ∨ e ≠ 0) ∧
+      st.file i = some f ∧ k ≤ data.length ∧ ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
       st' = (st.doneInflight t).setFile i (f.landWrite off data k) ∧
       e' = osRes (#(W64 k)) e
   /- `fstat(fd)`'s size: `#fd ↦ (#size, #errno)`, as `StatSees` allows. -/
@@ -718,27 +734,24 @@ def SecCand (st : OsState) (i : Ino) (f : OsFile) (n : Nat) (v : SecBytes) : Pro
   v ∈ (f.secs n).vers ∨
   ∃ ks f', ks.Perm (changesOn st i) ∧ Landed ks f f' ∧ v = (f'.secs n).last
 
-/-- `img` is what a machine crash may leave of the file `f` of inode `i`: a size it had since its
-last successful sync, or between such a size and one an in-flight change would give it; each sector
-a version `SecCand` allows, cut to the size. -/
-def CrashImage (st : OsState) (i : Ino) (f : OsFile) (img : List w8) : Prop :=
-  ((f.sizeLo ≤ img.length ∨
-      ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target st ≤ img.length) ∧
-     (img.length ≤ f.sizeHi ∨
-      ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ img.length ≤ c.target st)) ∧
-  ∀ n, 512 * n < img.length → ∃ v, SecCand st i f n v ∧
-    ∀ j < 512, 512 * n + j < img.length → img[512 * n + j]? = v.toList[j]?
+/-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size it had since its
+last successful sync, or between such a size and one an in-flight change would give it; each sector a
+version `SecCand` allows, whole (its bytes past the size included, F3); all of it on disk. -/
+def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
+  ∃ (sz : Nat) (vs : Nat → SecBytes),
+    ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target st ≤ sz) ∧
+     (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target st)) ∧
+    (∀ n, SecCand st i f n (vs n)) ∧ f' = OsFile.ofDisk vs sz
 
 /-- A machine crash: the roots stay; the tree is the durable one with a prefix of the operations
-since replayed, all of it durable; every file it names is a crash image of its file, all of it on
-disk; every other file is gone; the process has nothing open or in flight. -/
+since replayed, all of it durable; every file it names is what a crash may leave of its file
+(`CrashFile`); every other file is gone; the process has nothing open or in flight. -/
 def MachineCrash (st st' : OsState) : Prop :=
   st'.proc = ProcState.empty ∧ st'.fs.roots = st.fs.roots ∧ st'.fs.metaLog = [] ∧
   (∃ n, n ≤ st.fs.metaLog.length ∧
     st'.fs.treeDur = replay (st.fs.metaLog.take n) st.fs.treeDur) ∧
   ∀ i, ((∃ p, st'.fs.treeDur !! p = some (.file i)) →
-      ∃ f img, st.fs.files !! i = some f ∧ CrashImage st i f img ∧
-        st'.fs.files !! i = some (OsFile.ofBytes img)) ∧
+      ∃ f f', st.fs.files !! i = some f ∧ CrashFile st i f f' ∧ st'.fs.files !! i = some f') ∧
     ((¬ ∃ p, st'.fs.treeDur !! p = some (.file i)) → st'.fs.files !! i = none)
 
 /-- A restart of the process alone: the machine's state stays, each change in flight landed as some
@@ -756,13 +769,13 @@ def OsCrash (st st' : OsState) : Prop := MachineCrash st st' ∨ ProcRestart st 
 
 /-- A state a program may start in: the process has nothing open; nothing logged; the roots and the
 tree well formed; every inode the tree names is a file, every file named (no orphan at boot) and all
-of it on disk. -/
+of it on disk (the environment's "durable at first start"). -/
 def FsInit (st : OsState) : Prop :=
   st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ RootsOk st.fs.roots ∧
   TreeShape st.fs.roots st.fs.treeDur ∧
   (∀ p i, st.fs.treeDur !! p = some (.file i) → st.fs.files !! i ≠ none) ∧
   (∀ i f, st.fs.files !! i = some f →
-    (∃ p, st.fs.treeDur !! p = some (.file i)) ∧ ∃ c, f = OsFile.ofBytes c)
+    (∃ p, st.fs.treeDur !! p = some (.file i)) ∧ ∃ vs sz, f = OsFile.ofDisk vs sz)
 
 instance fs_semantics : ExtSemantics fsExt where
   step := FsStep

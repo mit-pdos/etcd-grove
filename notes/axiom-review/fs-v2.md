@@ -363,3 +363,12 @@ Data and sizes:
 - The interplay of `HeapRendered` with Perennial's non-atomic cell modes during a concurrent Go load.
 - Whether upstream ext4 now zeroes the partial block past EOF on extension (which would turn F3 into
   a kernel-version assumption).
+
+## Disposition (2026-11-05, by the author of the semantics)
+
+F1 and F2: environment assumptions, worded as proposed (`Impl.lean`'s header, "No failed
+writeback", "Durable at first start"). F3: the proposed model change (`CrashFile` keeps whole
+sectors; `OsFile.resized`/`written` fill from `rawAt`). F4, F5, F6: the proposed model changes
+(`PRead`'s short success, `Landed.trunc` to any size between, `PWriteFinish`'s short success). The
+stuck cases are recorded in `notes/fs-semantics-v2.md`, "After the soundness audit", for a decision
+before the WAL's proof.
