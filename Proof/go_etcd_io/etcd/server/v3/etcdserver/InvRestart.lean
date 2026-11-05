@@ -214,7 +214,7 @@ thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `
 with auth off, the user's decision: `notes/axiom-review/auth-close.md`), what `Cleanup`'s closer is
 (`authCloser` at no resource). Auth off only, `restart3`'s mode: with auth on, the closer is the
 apply thread's, at the token provider's admin share (`authCloser_of_inv`). (The lessor's stop right
-is in `srvStopKeep`; the KV store's closer and the backend's come back from the apply thread through
+is in the stop's slot, `srvStop.keep`; the KV store's closer and the backend's come back from the apply thread through
 `sched.Stop`'s last job's post, R2b-2 review F3.) -/
 def srvCleanupOwn (s : Loc) : IProp GF :=
   iprop(∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloseOk stl)
@@ -231,42 +231,6 @@ thread's own (`apply.kvOwn`). Until then `NewServer` dropped them. With every ot
 open token, as `NewServer`'s own error path does (R-D1). -/
 abbrev srvKeepRdN (γst : mvcc.StoreNames) : Nat :=
   backend.rdStockN - mvcc.nJobRd γst.kb - mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1
-
-/-- (R2b-2's draft; defined 2026-11-04, R2b-3d) **What `NewServer` keeps for the stop**, at the
-raft wrapper's names `γn` and the configuration's WAL directory `wdir`: the claim on the raft loop's
-stop escrow (`rnStopClaim`, `newRaftNode`'s), the storage registry's authority (`bootOk`'s: the
-image hands it to the restart, R2c review F3), the lessor's stop right (`NewLessor`'s, for
-`Cleanup`), and the WAL's directory, the configuration's (`bootstrap`'s `walOpened`: the stop
-image's `srvFiles` names the WAL's files by the data directory), and (2026-11-05) the store `st`'s
-readers it does not hand out (`srvKeepRdN`). -/
-def srvStopKeep (s : Loc) (γn : RNNames) (wdir : GoString) (st : Loc) (γst : mvcc.StoreNames) :
-    IProp GF :=
-  iprop(rnStopClaim γn ∗
-    (letI : MemStorReg GF := ⟨γn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
-    (∃ lp : Loc, srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp) ∗
-    (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗ ⌜walDirOf (storage.walOf st) = wdir⌝) ∗
-    -- (2026-11-05, R2b-3d gap 4) the store's readers it does not hand out (`srvKeepRdN`), for the
-    -- backend's `Close` (every reader of the store back, `storeReaders_retire`)
-    ([∗list] _x ∈ List.replicate (srvKeepRdN γst) (), mvcc.storeReader st γst) ∗
-    -- (2026-11-05) the compactor's reader (`srvCompactR`'s) when the server runs no compactor:
-    -- with one, the compactor's run keeps it
-    (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
-      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader st γst) ∨ ⌜cp ≠ GoInterface.nil⌝)))
-
-/-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`; restated
-2026-11-04, R2b-3d, over `srvStopKeep`): what `NewServer` kept for the stop, at the data
-directory's WAL directory with no dedicated one (the scope), the data directory (`srvDataDir`, which
-the image names) and what `Cleanup` closes besides (`srvCleanupOwn`), and (2026-11-05, R2b-3d stage
-5b) the store's readers of the serving stocks the server never used (`srvServeBuilt`'s 64 request
-readers and `srvWatchReaders`' 64 watch readers, `mvcc.watchReader_storeReader`): with
-`srvStopKeep`'s and the apply thread's, every reader of the store, for the backend's `Close` (gap
-4's census). The caller gives them back: the request path stopped first (in `restart3` the member
-never served). Its sources (R2b-2 review F3): `NewServer` keeps `srvStopKeep` and `srvCleanupOwn`,
-`start` hands them to `run`. -/
-def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) (st : Loc) (γst : mvcc.StoreNames) :
-    IProp GF :=
-  iprop(srvStopKeep s γn (config.walDirOf dd "") st γst ∗ srvDataDir s dd ∗ srvCleanupOwn s ∗
-    ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader st γst))
 
 end defs
 

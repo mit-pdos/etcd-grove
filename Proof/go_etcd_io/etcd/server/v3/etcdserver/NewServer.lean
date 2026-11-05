@@ -1812,11 +1812,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [← Hastl]
     iframe authStore Hc Hau
   -- (R2b-3d stage 5b, 2026-11-05) with auth off, the store's `Close` (`srvCleanupOwn`, for the stop)
-  ihave #HCO : iprop(□ (⌜on = false⌝ → srvCleanupOwn s)) $$ []
+  ihave #HCO : iprop(□ (⌜M.isOn = false⌝ → srvCleanupOwn s)) $$ []
   · iintro !> %hoff
-    icases HM with %HM
     have hM : M = auth.AuthMode.off := by
-      have h1 := HM.1; rw [hoff] at h1; cases M <;> simp_all [auth.AuthMode.isOn]
+      have h1 := hoff; cases M <;> simp_all [auth.AuthMode.isOn]
     ihave #Hcl := HauC $$ %hM
     iunfold srvCleanupOwn
     iexists astl
@@ -1856,7 +1855,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [Hγw.2.1]; iexact Hlinv
   ihave #HlPool' : lease.lessorRdPool (GF := GF) γw.st.leases $$ []
   · rw [Hγw.2.1]; iexact HlPool
-  -- (2026-11-04, R2b-3d) what the stop needs of the construction (`srvStopKeep`): the raft loop's
+  -- (2026-11-04, R2b-3d) what the stop needs of the construction (the stop's slot, `srvStop.keep`): the raft loop's
   -- stop claim, the registry's authority, the lessor's stop right, the WAL's directory
   -- (2026-11-05, R2b-3d gap 4) the apply thread's reader of the store (`apply.kvOwn`'s, below), and
   -- the rest of the store's readers kept for the stop (until then dropped)
@@ -1873,31 +1872,41 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · isplitr
       · iright; ipureintro; exact hc
       · iright; iexact HwrC
-  ihave HStopK : srvStopKeep (GF := GF) s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir')
-      kst γw.st $$ [Hrsc Hrauth Hlstop Hkeep HcpK]
-  · iunfold srvStopKeep
+  ihave HStopK : srvStop.keep (GF := GF) s cfg
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lg, γlt⟩ : apply.AEnv GF)
+      γrn γk $$ [Hrsc Hrauth Hlstop Hkeep HcpK]
+  · iapply srvStop.keep_intro
     iframe Hrsc
+    isplitr
+    · iunfold srvTrKeyOf; iexists _; iframe Hkx; ipureintro; rfl
+    isplitl [Hlstop]
+    · iexists lp
+      iframe lessor Hlstop
+    isplitr
+    · iintro !> %hoff
+      iapply HCO
+      ipureintro; exact hoff
+    ihave #HfixS := Hfix
+    iunfold rnFixed at HfixS
+    iNamed HfixS
+    isplitl [Hkeep]
+    · simp only
+      rw [show srvKeepRdN γw.st = backend.rdStockN -
+          mvcc.nJobRd (some ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)) -
+          mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1 by rw [srvKeepRdN, Hγw.2.2.1]]
+      iexact Hkeep
+    isplitl [HcpK]
+    · iexists cpv
+      iframe compactor HcpK
     isplitl [Hrauth]
     · rw [show γrn.node.reg = MemStorReg.memStorRegName (GF := GF) by rw [Hrn1]; rfl]
       iexists _
       iexact Hrauth
-    isplitl [Hlstop]
-    · iexists lp
-      iframe lessor Hlstop
-    ihave #HfixS := Hfix
-    iunfold rnFixed at HfixS
-    iNamed HfixS
-    isplitr
-    · iexists rvr.raftNodeConfig'.storage'
-      iframe storageC
-      ipureintro
-      rw [Hrnwal]; exact HwDir
-    rw [show srvKeepRdN γw.st = backend.rdStockN -
-        mvcc.nJobRd (some ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)) -
-        mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1 by rw [srvKeepRdN, Hγw.2.2.1]]
-    iframe Hkeep
-    iexists cpv
-    iframe compactor HcpK
+    iframe DataDirS DedicatedWALDirS
+    iexists rvr.raftNodeConfig'.storage'
+    iframe storageC
+    ipureintro
+    rw [Hrnwal]; exact HwDir
   imodintro
   wp_auto
   iapply HΦ
@@ -1911,11 +1920,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  -- (R2b-3d stage 5c) the transport's key names the server
-  ihave #HkOf : srvTrKeyOf s γk $$ []
-  · iunfold srvTrKeyOf; iexists _; iframe Hkx; ipureintro; rfl
-  iframe HkOf
-  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK HCO
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr

@@ -102,6 +102,7 @@ inbound path reads and its transport `τ`, frozen, every other member added as a
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
@@ -315,9 +316,6 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk))
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗
-          -- (2026-11-05, R2b-3d stage 5c) the transport's key names the server: with the apply
-          -- thread's live transport, the raft environment's stop right (`srvTrStopK`)
-          srvTrKeyOf srv γk ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
           srvBuildGap srv γrn (W64 0) (W64 0) ∗
           -- (D19g (b), 2026-10-18) what serving needs: `v3rpc.Server`'s configuration fields and
@@ -355,13 +353,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (the lease-src plan, 2026-11-02, the user's choice) the lessor's reader pool, of the
           -- `NewLessor` slots the server does not keep, for the lease checks' `Lookup`s
           lease.lessorRdPool E.γ.leases ∗
-          -- (2026-11-04, the restart plan's R2b-3d) what the stop needs of the construction: the
-          -- raft loop's stop claim, the storage registry's authority, the lessor's stop right, the
-          -- WAL's directory (`srvStopKeep`)
-          srvStopKeep srv γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') E.s E.γ ∗
-          -- (2026-11-05, R2b-3d stage 5b) with auth off, the auth store's `Close`, for `Cleanup`
-          -- (`srvCleanupOwn`)
-          □ (⌜on = false⌝ → srvCleanupOwn srv) }}
+          -- (the restart plan's R2b-3d; 2026-11-05, the stop's slot, `StopApi.lean`: until then
+          -- inline, `srvStopKeep`, `srvTrKeyOf`, the auth-off `srvCleanupOwn`) what the server's stop
+          -- needs of the construction
+          srvStop.keep srv cfg E γrn γk }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/
