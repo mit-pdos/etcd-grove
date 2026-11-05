@@ -157,12 +157,27 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     this track.
   - `revokePre`'s pure part takes `(stateAfter log).length ≤ 2 ^ 62` (the lessor's sort premise in
     `revokeClause`; the server derives it from `srvApplyKV_small`).
-- **Next in step 2**: the wrappers (auth, capped, corrupt, quota: mechanical, every one red on
-  `mPre`'s new shape, `kvOwn` no longer inside it, and the specs' `threadTok`; a lemma
-  `mPre ⊢ kvOwn ∗ chainRes ∗ Pre`-like for the rejecting arms would serve all), the `new*`
-  constructors (`applierTriples` from the specs), `uberApplier.{Alarm, Apply, dispatch}`, then
-  `applyAll`. The `Link.lean` hypotheses changed: `newHeader` (`shapes` for `mvcc.store.Rev`),
-  `Compaction` (`hTODO`, `hEnsure`, `shapes`), `Put`/`DeleteRange`/`Range`/`Txn` (unchanged names).
+- **The wrappers, proved (third session, no `sorry`)**: corrupt `{Put, DeleteRange, Txn, Range,
+  LeaseRevoke, LeaseGrant}`, capped `{Put, LeaseGrant, Txn}`, quota `{Put, Txn, LeaseGrant}`, auth
+  `{Put, Txn, DeleteRange, Range, LeaseRevoke, UserGet, RoleGet}`, `uberApplier.Alarm`,
+  `newApplierV3Backend`, over `apply/WriteLemmas.lean`'s splits of `mPre`/`mPreW` into the chain's
+  resources and the rest (`mPreRest`, `mPreWRest`: `_split_chain`, `_of_rest`, `_reject`,
+  `_reject_cs`, `_lend`, `_rd`). `authApplierV3.Range.spec` and `applierV3Corrupt.Range.spec` take
+  and give `threadTok` (as the backend's).
+- **Next in step 2**: `newApplierV3Capped`, `newApplierV3Corrupt`, `newAuthApplierV3`,
+  `newQuotaApplierV3` (each ~350 lines: `applierTriples` from the wrapper's specs and in-line
+  pass-throughs; red on the same `mPre`/`threadTok` changes, the patterns above apply), `newApplierV3`,
+  `uberApplier.{Apply, dispatch}`, then `applyAll`. The `Link.lean` hypotheses changed:
+  `newHeader` (`shapes` for `mvcc.store.Rev`), `Compaction` (`hTODO`, `hEnsure`, `shapes`).
+- **The auth track's follow-ups (its `cca7e9a4a9`, `notes/mvcc-migration/auth.md`)**: done in
+  `AuthSteps`; not yet in `AuthStepsX` (red below on `AuthFuel`), `StoreLatest`, `AuthApplyRes`
+  (`f : val` → `GoFunc`), `AuthSrv`, `Results.lean` (drop `isAuthSteps_of_authInv`'s `hf`),
+  `SnapRO.authApplyOk`/`authRecoverOk` and `InvBoot` (over `BkRef`, `auth.authParams`; `InvBoot`
+  blocks auth's last two modules).
+- **Not started**: step 2's `applyAll`; step 3 (`lease.lessor.Revoke`'s proof: `mvccBackend_isBackend.law`
+  landed, `c1f1565c78`; but see Found (2) of the third session, the not-live arm); the boot (step 3:
+  `mvccW_alloc`, `mvccImage_fresh`, `mvccBackendFor_open`, and `backendRest_open.law` once mvcc lands
+  it); the snapshot (step 4).
 
 **The frontier** (red, next): `InvProposer` (a floor over `idxCert`), `InvApplier` (the old
 `srvKVInvs`, `envAgree`'s mode ties, the sole writer: its restatement is the draft's
