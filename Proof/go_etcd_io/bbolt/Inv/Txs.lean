@@ -102,11 +102,13 @@ def txExcl (B : BNs) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (r : TxReg)
         sync.ownRWMutex r.db.[DB, go!"statlock"] (Ps sp) ∗ k ↪[B.rds] (⟨v⟩ : RdInfo)))
 
 /-- **A writer's view registry** `γ` (batch 37.3, maintainer 11): its authority, every entry's
-persistent fragment, and every entry the same view at its key (`{v0 with base := k}`), so that a
+persistent fragment, and every entry the same view up to its base (`{v0 with base := u.base}`),
+at its key but the fixed key `null` (U6w, F2: the writer's base view there, `viewOf`), so that a
 remap finds or inserts the view at the new base (`Mmap/RemapGaps.wtxCore_viewOf_rebase`). -/
 def vwOwn (γ : GName) : IProp GF :=
   iprop(∃ (V : GMap Loc View) (v0 : View), ghostMapAuth γ 1 V ∗
-    ([∗map] k ↦ u ∈ V, k ↪[γ]□ u) ∗ ⌜∀ k u, V !! k = some u → u = { v0 with base := k }⌝)
+    ([∗map] k ↦ u ∈ V, k ↪[γ]□ u) ∗
+    ⌜∀ k u, V !! k = some u → u = { v0 with base := u.base } ∧ (k ≠ null → u.base = k)⌝)
 
 /-- A transaction's registries' authorities kept in its entry: a reader's handle registry (the
 auth; the handles' fragments are persistent), a writer's view registry (`vwOwn`, batch 37.3). -/

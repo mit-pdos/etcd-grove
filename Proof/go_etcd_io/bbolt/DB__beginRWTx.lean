@@ -327,8 +327,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   imod wr_names_alloc (GF := GF) ((true, treeData w.C, treeData w.C, ∅) : TxViewC)
     (TxX.wr (wx0 (txRoot (GF := GF) «$r0_ptr») (tx0 «$r0_ptr» bm nm ibp m pm slice.nil (W64 0))
       (initMeta true (metaOf (w.C.slot w.C.txid))) (initRoot «$r0_ptr» bm nm ibp)
-      (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C))) (View.ofC b w.C)
-    with ⟨%n, Hv, Hex, Hbka, Hnla, Hdone, Hpga, Hpgt, #Hvw, Hvwo⟩
+      (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C))) (View.ofC b w.C) hbn
+    with ⟨%n, Hv, Hex, Hbka, Hnla, Hdone, Hpga, Hpgt, #Hvw, #Hvn, Hvwo⟩
   ihave Hbka := hdlAuth_of_empty (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ Hbka
   ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half n.v 1 _).1 $$ Hv
   ihave ⟨Hd1, Hd2⟩ := (ghostVar_split_half n.done 1 false).1 $$ Hdone
@@ -403,7 +403,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   isplitl [Hmfb]
   · iexists l; simp only [View.ofC]; iframe Hmfb; ipureintro; exact hpgb
   isplitl []
-  · rw [viewOf_rw _ _ rfl]; iexact Hvw
+  · unfold viewW viewOf viewBase; iframe #
   ipureintro
   refine ⟨wOK_wx0 _ _ _ _ _ _ _ htree hi, ?_, (wtxData_wx0 _ _ _ _ _ _ _ htree hi).symm, rfl,
     gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, Hmpos, wrFacts_wx0 _ _ _ _ _ _ rfl⟩

@@ -117,7 +117,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   isplitl [Hmap Hmf]
   · iexists l; iframe; ipureintro; exact hpgb
   isplitl []
-  · unfold viewOf; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hvw
+  · unfold viewOf; iexact Hvw
   ipureintro
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx |

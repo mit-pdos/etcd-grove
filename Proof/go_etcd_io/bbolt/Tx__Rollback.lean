@@ -91,7 +91,7 @@ theorem Tx.Rollback.wp_writer [HasExt osFsExt] (hgap : TxExclWGap (GF := GF))
     {{ RET #GoInterface.nil; txDone tx ∗ (if T.rw then emp else threadTok) }} := by
   wp_start as Ht
   unfold boltTx
-  icases (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, Hv, Hw, Hst, %Hf⟩
+  icases (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, -, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hB, hN, hT⟩ := HK
   rw [← hB]
   iunfold wtxW at Hw

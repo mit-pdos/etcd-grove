@@ -239,14 +239,15 @@ theorem txShape_wx0 (rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_io.bbolt.Bucke
 
 omit hos sem in
 /-- **A writer's names**: its agreed state, `ex`, empty handle and node registries, `done`, its
-view's page tokens, and the view at its base. -/
-theorem wr_names_alloc (c : TxViewC) (x : TxX) (v : View) :
+view's page tokens, and the view at its base and at the fixed key `null` (U6w, F2: `viewOf`; the
+base is not `null`). -/
+theorem wr_names_alloc (c : TxViewC) (x : TxX) (v : View) (hb : v.base ≠ null) :
     ⊢ |==> ∃ n : TxNames, ghostVar (GF := GF) n.v 1 (c, x) ∗ ghostVar (GF := GF) n.ex 1 () ∗
       ghostMapAuth (GF := GF) n.bk 1 (∅ : GMap Loc (GoString × Nat)) ∗
       ghostMapAuth (GF := GF) n.nl 1 (∅ : GMap Loc (Loc × Nat)) ∗
       ghostVar (GF := GF) n.done 1 false ∗
       ghostMapAuth (GF := GF) n.pg 1 (v.pages.fmap (fun _ => ())) ∗ pgToks n.pg v.pages ∗
-      (v.base ↪[n.vw]□ v : IProp GF) ∗ vwOwn (GF := GF) n.vw := by
+      (v.base ↪[n.vw]□ v : IProp GF) ∗ (null ↪[n.vw]□ v : IProp GF) ∗ vwOwn (GF := GF) n.vw := by
   imod ghostVar_alloc (GF := GF) (c, x) with ⟨%γv, Hv⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γe, He⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := GoString × Nat) with ⟨%γb, Hb⟩
@@ -255,6 +256,9 @@ theorem wr_names_alloc (c : TxViewC) (x : TxX) (v : View) :
   imod pgToks_alloc (GF := GF) v.pages with ⟨%γp, Hpa, Hpt⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := View) with ⟨%γw, Hw⟩
   imod (ghost_map_insert_persist (GF := GF) v.base v (GMap.lookup_empty _)) $$ Hw with ⟨Hw, #Hf⟩
+  have hnb : ((∅ : GMap Loc View).insert v.base v).lookup null = none := by
+    rw [GMap.lookup_insert_ne _ _ hb]; exact GMap.lookup_empty _
+  imod (ghost_map_insert_persist (GF := GF) null v hnb) $$ Hw with ⟨Hw, #Hf0⟩
   imodintro
   iexists ⟨γv, γe, γb, default, γn, γd, γp, γw⟩
   iframe
@@ -263,19 +267,27 @@ theorem wr_names_alloc (c : TxViewC) (x : TxX) (v : View) :
   iexists _, v
   iframe Hw
   isplitl
-  · iapply (BigSepM.bigSepM_insert (M := GMap Loc) (m := (∅ : GMap Loc View)) (i := v.base)
+  · iapply (BigSepM.bigSepM_insert (M := GMap Loc) (i := null) (x := v) hnb).2
+    iframe #
+    iapply (BigSepM.bigSepM_insert (M := GMap Loc) (m := (∅ : GMap Loc View)) (i := v.base)
       (x := v) (by rfl)).2
     iframe #
     iapply BigSepM.bigSepM_empty.2; iempintro
   · ipureintro
     intro k u hk
-    by_cases h : v.base = k
-    · subst h
+    by_cases h0 : null = k
+    · subst h0
       rw [GMap.lookup_insert] at hk
       cases hk
-      rfl
-    · rw [GMap.lookup_insert_ne _ _ h, GMap.lookup_empty] at hk
-      cases hk
+      exact ⟨rfl, fun h => absurd rfl h⟩
+    · rw [GMap.lookup_insert_ne _ _ h0] at hk
+      by_cases h : v.base = k
+      · subst h
+        rw [GMap.lookup_insert] at hk
+        cases hk
+        exact ⟨rfl, fun _ => rfl⟩
+      · rw [GMap.lookup_insert_ne _ _ h, GMap.lookup_empty] at hk
+        cases hk
 
 end winit
 

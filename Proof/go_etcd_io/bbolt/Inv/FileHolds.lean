@@ -8,6 +8,7 @@ freelist page (`flFileOK`), whose high-water mark is inside the file and whose t
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Tx
+public import Proof.go_etcd_io.bbolt.Read.TxBytes
 
 @[expose] public section
 

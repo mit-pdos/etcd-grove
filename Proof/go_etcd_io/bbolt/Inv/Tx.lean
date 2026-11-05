@@ -34,23 +34,40 @@ variable [sem : go.Semantics]
 /-- `tx`'s share of `tx.db` at fraction `q` (`q · ¾`: `txsInv` holds the other quarter). -/
 def txDbQ (q : Qp) : Qp := QpMul q (1 : Qp).half + QpMul q (1 : Qp).half.half
 
-/-- The transaction's view is `v` (persistent, agreeing): a writer's at its base `v.base` (its
-views by base, re-based by a remap), a reader's at the fixed key `null` (one view: two reader
-fragments agree, maintainer R's U6g item 2). -/
+/-- **The transaction's view is `v`** (persistent, agreeing): its registry's entry at the fixed
+key `null`, for both kinds (maintainer R's U6g item 2 for readers; U6w, the review's F2, for
+writers: two fragments agree, so a cursor's, a handle's or a slice's view is the writer's current
+`X.v` on a later call). A writer's base view, minted at `beginRWTx`; its re-based views (a remap
+in `Commit`) are `viewBase`. -/
 def viewOf (r : TxReg) (v : View) : IProp GF :=
-  iprop((if r.rw then v.base else null) ↪[r.n.vw]□ v)
+  iprop(null ↪[r.n.vw]□ v)
 
-omit go_gctx hos in
-/-- A writer's `viewOf`: its view at its base. -/
-theorem viewOf_rw (r : TxReg) (v : View) (h : r.rw = true) :
-    viewOf (GF := GF) r v = iprop(v.base ↪[r.n.vw]□ v) := by
-  unfold viewOf; rw [h]; rfl
+/-- **A writer's view registered at its base** (batch 37.3: what a remap re-bases, `vwOwn`'s
+entries at their keys). -/
+def viewBase (r : TxReg) (v : View) : IProp GF :=
+  iprop(v.base ↪[r.n.vw]□ v)
+
+/-- A writer's views (`wtxFrac`'s): the fixed one and the one at its base. -/
+def viewW (r : TxReg) (v : View) : IProp GF :=
+  iprop(viewOf r v ∗ viewBase r v)
+
+instance viewBase_persistent (r : TxReg) (v : View) : Persistent (viewBase (GF := GF) r v) := by
+  unfold viewBase; infer_instance
+
+instance viewBase_timeless (r : TxReg) (v : View) : Timeless (viewBase (GF := GF) r v) := by
+  unfold viewBase; infer_instance
+
+instance viewW_persistent (r : TxReg) (v : View) : Persistent (viewW (GF := GF) r v) := by
+  unfold viewW viewOf viewBase; infer_instance
+
+instance viewW_timeless (r : TxReg) (v : View) : Timeless (viewW (GF := GF) r v) := by
+  unfold viewW viewOf viewBase; infer_instance
 
 omit go_gctx hos in
 /-- A reader's `viewOf`: its view at `null`. -/
 theorem viewOf_ro (r : TxReg) (v : View) (h : r.rw = false) :
     viewOf (GF := GF) r v = iprop(null ↪[r.n.vw]□ v) := by
-  unfold viewOf; rw [h]; rfl
+  unfold viewOf; rfl
 
 /-- A cursor stack element's node is in the writer's node-location registry (`nl`) at `y`. -/
 def nodeLoc (r : TxReg) (nl : Loc → Option (Loc × Nat)) (e : elemRef) : IProp GF :=
@@ -243,7 +260,7 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
-    viewOf r X.v ∗
+    viewW r X.v ∗
     ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ tx ≠ null ∧
       X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr ∧ wrFacts X⌝)
 
@@ -424,7 +441,7 @@ private instance fills_timeless_l (H : GMap Loc (GoString × Nat)) (dq : DFrac) 
 
 private instance wtxFrac_timeless_l (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView)
     (X : WX) : Timeless (wtxFrac (GF := GF) B tx r q T X) := by
-  unfold wtxFrac viewOf; infer_instance
+  unfold wtxFrac viewW viewOf viewBase; infer_instance
 
 open Iris.ProofMode in
 theorem boltTxDef_later (B : BNs) (N : Namespace) (db tx : Loc) (q : Qp) (T : TxView) :
@@ -603,7 +620,7 @@ private theorem wtxFrac_fractional (B : BNs) (tx : Loc) (r : TxReg) (T : TxView)
       isplitl [H1]
       · iframe; ipureintro; exact h1
       · iframe; ipureintro; exact h1
-  unfold wtxFrac viewOf
+  unfold wtxFrac viewW viewOf viewBase
   infer_instance
 
 private instance bytes_discard_persistent_tf (l : Loc) (bs : List w8) :
@@ -868,11 +885,7 @@ instance boltCurDef_timeless (B : BNs) (tx c : Loc) (T : TxView) (es : List Bolt
   unfold reg handleFrag viewOf
   cases rw <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 
-theorem txBytesDef_acc (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView)
-    (s : GoSlice) (b : GoString) :
-    txBytesDef (GF := GF) B tx s b ∗ boltTxDef B N tx q T ⊢
-      ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ boltTxDef B N tx q T) := by
-  sorry
+-- `txBytesDef_acc`: proved in `Read/TxBytes` (U6w; it needs the view's cells' accessors).
 
 theorem boltTxDef_fill (B : BNs) (N : Namespace) (tx b : Loc) (T : TxView) (n : GoString)
     (g : Nat) (hrw : T.rw = true) :

@@ -61,7 +61,6 @@ def ViewOfRdAgree : Prop :=
 theorem viewOfRdAgree_holds : ViewOfRdAgree (GF := GF) := by
   intro r v v' hrw
   unfold viewOf
-  simp only [hrw, Bool.false_eq_true, ↓reduceIte]
   iintro ⟨H1, H2⟩
   icombine H1 H2 gives %h
   ipureintro; exact h.2

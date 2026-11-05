@@ -37,7 +37,7 @@ def splitFr (K : BC) (tx : Loc) (r : TxReg) (X : WX) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
     ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
-    hdlAuth r 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗ viewOf r X.v ∗
+    hdlAuth r 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗ viewBase r X.v ∗
     viewCells wq X.v ∗
     ∃ l : Nat, mapFields r.db (DFrac.own (1 : Qp).half.half) (some (X.v.base, l) : MapSt) ∗
       ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝)

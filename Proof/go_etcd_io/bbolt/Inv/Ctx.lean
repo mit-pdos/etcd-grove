@@ -72,7 +72,7 @@ def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
     hdlAuth r 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
-    tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewOf r X.v ∗ statsTok r m 1)
+    tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewBase r X.v ∗ statsTok r m 1)
 
 /-- **The writer's working state** (U0b): what a writer's internal functions run over, from its
 operations through `Commit`'s rebalance and spill. It is `wtxFrac` at `1` without its facts
@@ -95,7 +95,7 @@ def wtxCoreQ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) : IPro
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
     hdlAuth r q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
-    tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ viewOf r X.v ∗ statsTok r m q)
+    tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ viewBase r X.v ∗ statsTok r m q)
 
 /-- **The writer's working state at fraction `q`** (U6w, "Writer reads at a fraction" of
 `notes/bbolt-proof-plan.md`): `wtxW` with `wtxCoreQ` at `q`, the view's cells at `q · wq` and the
@@ -428,7 +428,7 @@ committed data's quarter, and `wtxFrac`'s facts (batch 43/44: with `wrFacts`). -
 theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : T.rw = true) :
     boltTxDef (GF := GF) B N tx 1 T ⊣⊢
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
-        ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗
+        ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗ wtxW K tx r true X ∗
         ghostVar B.st (1 : Qp).half.half T.base ∗
         ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X⌝ := by
@@ -436,16 +436,16 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
   simp only [hrw, ↓reduceIte]
   constructor
   · iintro ⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, #Hreg, #Hb, Hv, Hex, Hw⟩
-    unfold wtxFrac
+    unfold wtxFrac viewW
     simp only [QpMul_one_left_c]
-    icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, #Hvo, %Hfacts⟩
+    icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, ⟨#Hvf, #Hvo⟩, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
     obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
-    iframe Hb Hv Hst
+    iframe Hb Hv Hst Hvf
     isplitl [Hh Hf Hvc Hbk Hnl Hdb Hex Hmf]
     · unfold wtxW wtxCore statsTok BC.core
       simp only [↓reduceIte]
@@ -460,7 +460,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       · ipureintro; exact ⟨hdb, hrw', h6, h7, h8, hma⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
-  · iintro ⟨%K, %r, %c, %X, %HK, #Hb, Hv, Hw, Hst, %Hfacts⟩
+  · iintro ⟨%K, %r, %c, %X, %HK, #Hb, #Hvf, Hv, Hw, Hst, %Hfacts⟩
     obtain ⟨rfl, rfl, hT⟩ := HK
     unfold wtxW wtxCore statsTok
     simp only [↓reduceIte]
@@ -472,11 +472,13 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     iframe Hreg Hb Hv Hex
     unfold wtxFrac
     simp only [QpMul_one_left_c]
-    iframe Hh Hf Hvc Hst Hbk Hnl Hvo
+    iframe Hh Hf Hvc Hst Hbk Hnl
     isplitl [Hdb]
     · iexact Hdb
     isplitl [Hmf]
     · iexists l; iframe Hmf; ipureintro; exact Hl
+    isplitr
+    · unfold viewW; iframe #
     ipureintro
     exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
       Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2⟩
@@ -490,7 +492,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
     (hrw : T.rw = true) :
     boltTxDef (GF := GF) B N tx q T ⊣⊢
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
-        ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗
+        ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v q.half (c, TxX.wr X) ∗ wtxWQ K tx r true q X ∗
         ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
         ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X⌝ := by
@@ -498,15 +500,15 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
   simp only [hrw, ↓reduceIte]
   constructor
   · iintro ⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, #Hreg, #Hb, Hv, Hex, Hw⟩
-    unfold wtxFrac
-    icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, #Hvo, %Hfacts⟩
+    unfold wtxFrac viewW
+    icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, ⟨#Hvf, #Hvo⟩, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
     obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
-    iframe Hb Hv Hst
+    iframe Hb Hv Hst Hvf
     isplitl [Hh Hf Hvc Hbk Hnl Hdb Hex Hmf]
     · unfold wtxWQ wtxCoreQ statsTok BC.core
       simp only [↓reduceIte]
@@ -521,7 +523,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
       · ipureintro; exact ⟨hdb, hrw', h6, h7, h8, hma⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
     ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
-  · iintro ⟨%K, %r, %c, %X, %HK, #Hb, Hv, Hw, Hst, %Hfacts⟩
+  · iintro ⟨%K, %r, %c, %X, %HK, #Hb, #Hvf, Hv, Hw, Hst, %Hfacts⟩
     obtain ⟨rfl, rfl, hT⟩ := HK
     unfold wtxWQ wtxCoreQ statsTok
     simp only [↓reduceIte]
@@ -532,11 +534,13 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
     unfold BC.full
     iframe Hreg Hb Hv Hex
     unfold wtxFrac
-    iframe Hh Hf Hvc Hst Hbk Hnl Hvo
+    iframe Hh Hf Hvc Hst Hbk Hnl
     isplitl [Hdb]
     · iexact Hdb
     isplitl [Hmf]
     · iexists l; iframe Hmf; ipureintro; exact Hl
+    isplitr
+    · unfold viewW; iframe #
     ipureintro
     exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
       Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2⟩

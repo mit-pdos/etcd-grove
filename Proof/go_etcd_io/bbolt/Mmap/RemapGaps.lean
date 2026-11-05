@@ -66,9 +66,9 @@ registry `r.n.vw` at the new base `b`. The registry's authority is in the transa
 writer's entry holds (`statsTok` excludes the done entry): the remap finds or inserts the new
 base. -/
 theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : Loc)
-    (E : CoPset) (hE : ↑(txsN K.N) ⊆ E) :
+    (hbn : b ≠ null) (E : CoPset) (hE : ↑(txsN K.N) ⊆ E) :
     wtxCore (GF := GF) K tx r m X ⊢
-      |={E}=> wtxCore K tx r m X ∗ viewOf r { X.v with base := b } := by
+      |={E}=> wtxCore K tx r m X ∗ viewBase r { X.v with base := b } := by
   iintro Hc
   iunfold wtxCore at Hc
   icases Hc with ⟨#Hpkg, #Hkc, %Hp, #Hreg, Hheap, Hfills, Hbk, Hnl, Hdb, #Hvo, Hst⟩
@@ -86,14 +86,16 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
     unfold vwOwn
     icases Hrh with ⟨%V, %v0, >Hauth, >#Hfr, >%HV⟩
     ihave Hvo2 : X.v.base ↪[r.n.vw]□ X.v $$ []
-    · rw [← viewOf_rw r X.v hrw]; iexact Hvo
+    · iunfold viewBase at Hvo; iexact Hvo
     icombine Hauth Hvo2 gives %Hlk
-    have hX : X.v = { v0 with base := X.v.base } := HV _ _ Hlk
+    have hX : X.v = { v0 with base := X.v.base } := (HV _ _ Hlk).1
     have hnew : { X.v with base := b } = { v0 with base := b } := by rw [hX]
     rw [hnew]
     cases hb : V !! b with
     | some u =>
-      have hu : u = { v0 with base := b } := HV _ _ hb
+      have hu : u = { v0 with base := b } := by
+        have h := HV _ _ hb
+        rw [h.2 hbn] at h; exact h.1
       ihave #Hb : b ↪[r.n.vw]□ u $$ [Hfr]
       · iapply (BigSepM.bigSepM_lookup (Φ := fun k u => (k ↪[r.n.vw]□ u : IProp GF)) hb) $$ Hfr
       imod Hcl $$ [Hdb' Hdone Hst' Hx Hauth] with -
@@ -108,7 +110,7 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
       imodintro
       isplitl
       · iunfold wtxCore; iframe; iframe #; ipureintro; exact Hp
-      · unfold viewOf; simp only [hrw, ↓reduceIte]; subst hu; iexact Hb
+      · unfold viewBase; subst hu; iexact Hb
     | none =>
       imod (ghost_map_insert_persist (GF := GF) b { v0 with base := b } hb) $$ Hauth
         with ⟨Hauth, #Hb⟩
@@ -127,13 +129,13 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
           by_cases h : b = k
           · subst h
             rw [GMap.lookup_insert] at hk
-            cases hk; rfl
+            cases hk; exact ⟨rfl, fun _ => rfl⟩
           · rw [GMap.lookup_insert_ne _ _ h] at hk
             exact HV k u hk
       imodintro
       isplitl
       · iunfold wtxCore; iframe; iframe #; ipureintro; exact Hp
-      · unfold viewOf; simp only [hrw, ↓reduceIte]; iexact Hb
+      · unfold viewBase; iexact Hb
   · cases m
     · simp only [statsTok, Bool.false_eq_true, ↓reduceIte]
       icombine Hst Hdone gives %h

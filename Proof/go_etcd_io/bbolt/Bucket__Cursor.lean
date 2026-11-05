@@ -48,6 +48,8 @@ theorem Bucket.Cursor.wp_proof (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spe
     iintro %cur ⟨%stk, Hc, Hs, Hcap, Hex, -⟩
     unfold wtxFrac
     icases Hw with ⟨Hh0, Hf, Hvc, Hst, Hbk, Hnl, Hdb, Hmf, #Hvo, %Hfacts⟩
+    ihave #Hvf : viewOf (GF := GF) r X.v $$ []
+    · iunfold viewW at Hvo; icases Hvo with ⟨#H1, -⟩; iexact H1
     iapply HΦ
     unfold statsTok
     simp only [ite_true]

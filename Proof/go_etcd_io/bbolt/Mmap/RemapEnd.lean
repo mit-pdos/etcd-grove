@@ -179,7 +179,10 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
   iintro Hwc Hvc Hmf Hpmap Hptok Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
     Hfo Hfd Hmc Hmob Hwc' Hwb Hj Hflo Hrd Hrc Htok
   icases (mapFields_join K.db (some (base, L') : MapSt)).2 $$ Hmf with ⟨Hm1, Hm2, Hm3⟩
-  ihave Hwc := wtxCore_viewOf_rebase K tx r m Xd base ⊤ CoPset.subseteq_top $$ Hwc
+  ihave %Hbpos : ⌜0 < base.addr⌝ $$ [Hm1]
+  · iunfold mapFields at Hm1; icases Hm1 with ⟨-, -, -, -, %H⟩; ipureintro; exact H.2.1
+  have hbn : base ≠ null := fun e => by subst e; exact absurd Hbpos (Int.lt_irrefl 0)
+  ihave Hwc := wtxCore_viewOf_rebase K tx r m Xd base hbn ⊤ CoPset.subseteq_top $$ Hwc
   imod Hwc with ⟨Hwc, Hvo⟩
   ihave Hwc := wtxCore_rebase K tx r m Xd base hcov $$ [Hwc Hvo]
   · iframe

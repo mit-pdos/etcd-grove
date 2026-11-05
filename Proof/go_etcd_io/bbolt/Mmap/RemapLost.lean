@@ -63,7 +63,7 @@ variable [sem : go.Semantics]
 with its view registered at `b`. -/
 theorem wtxCore_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : Loc)
     (hcov : derefOK X) :
-    wtxCore (GF := GF) K tx r m X ∗ viewOf r { X.v with base := b } ⊢
+    wtxCore (GF := GF) K tx r m X ∗ viewBase r { X.v with base := b } ⊢
       wtxCore K tx r m (X.rebase b) := by
   unfold wtxCore
   iintro ⟨⟨Hpkg, Hc, %Hp, Hreg, Hh, Hf, Hbk, Hnl, Hdb, -, Hst⟩, Hv⟩

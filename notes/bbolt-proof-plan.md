@@ -1772,7 +1772,19 @@ deferred it to U6f, and it was never followed up.
   registry's auth at `q` with every handle's persistent fragment, `hdlFrags`, moved from
   `Read/WKey` to `Inv/Tx`) replaces the bare auth in `wtxCore`, `wtxCoreQ` and `wtxFrac`
   (fractional: `hdlAuth_fractional`); `wtxW_bktOpen` adds the new fragment, `beginRWTx` starts
-  from `hdlAuth_of_empty`.
+  from `hdlAuth_of_empty`; `Bucket.Bucket_w` no longer takes or gives `hdlFrags`
+  (`Read/WQ.wtxW_hdlFrags`).
+- `nsearch_n`, `search_w`, `seek_w`, `keyValue_w`, `pageNode_w` have their `specQ`; `wp_proof` of
+  `search_w`/`seek_w` take their callees' `specQ`s.
+- **F2 (the contracts review): a writer's view at a fixed key.** `viewOf r v` is `null ↪[r.n.vw]□ v`
+  for both kinds (a writer's base view, minted by `beginRWTx`: `wr_names_alloc` inserts it beside the
+  base-keyed one), so a cursor's, handle's or slice's view agrees with the writer's `X.v`
+  (`Read/TxBytes.viewOf_agree`). `viewBase r v` (`v.base ↪ v`) is what `wtxCore`/`wtxCoreQ` hold and
+  a remap re-bases (`Mmap/Remap*`, `wtxCore_viewOf_rebase` now takes `b ≠ null`); `wtxFrac` holds
+  both (`viewW`); `boltTxDef_wtxW`/`_wtxWQ` give `viewOf r X.v` as a separate conjunct after
+  `K.full`. `vwOwn`'s clause: every entry is `{v0 with base := u.base}`, at its key but `null`.
+  `txBytesDef_acc` (was `sorry` in `Inv/Tx`) is proved in `Read/TxBytes` (imported by
+  `Inv/FileHolds` for `Api.txBytes_acc`), for both kinds.
 
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 13)
 

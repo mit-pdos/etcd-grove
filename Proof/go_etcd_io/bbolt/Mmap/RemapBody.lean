@@ -178,7 +178,7 @@ private instance viewOf_persistent_rb (r : TxReg) (v : View) :
 
 /-- The writer's core, its view registered at a base, and its database. -/
 theorem wtxCore_viewOf (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
-    wtxCore (GF := GF) K tx r m X ⊢ wtxCore K tx r m X ∗ viewOf r X.v ∗ ⌜r.db = K.db⌝ := by
+    wtxCore (GF := GF) K tx r m X ⊢ wtxCore K tx r m X ∗ viewBase r X.v ∗ ⌜r.db = K.db⌝ := by
   unfold wtxCore
   iintro ⟨Hpkg, #Hc, %Hp, #Hreg, Hh, Hf, Hbk, Hnl, Hdb, #Hv, Hst⟩
   iframe; iframe #
