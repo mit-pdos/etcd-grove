@@ -1657,8 +1657,7 @@ theorem cellView_create (hwf : OsWf st) (hn : st.file p = none) :
   · unfold cellByte; rw [file_setFile_ne _ _ hpq, hI]
 
 theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt)
-    (hn : st.file p = none)
-    (hp : st.files !! p = some none) :
+    (hn : st.file p = none) :
     OsCoh (st.setFile p newFile) Γb (<[p := some newMeta]> Γm) Γf Γt := by
   have hs := sizes_create hn
   have hI := inflightAt_congr (sizes_create hn) (st' := st.setFile p newFile) rfl
@@ -1829,7 +1828,7 @@ theorem wp_osOpen (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE
       iexists _
       iframe
       ipureintro
-      refine ⟨⟨osWf_create hwf hn, osCoh_create hwf hcoh hn hnone, cellView_create hwf hn, rfl, rfl,
+      refine ⟨⟨osWf_create hwf hn, osCoh_create hwf hcoh hn, cellView_create hwf hn, rfl, rfl,
         rfl, fun p0 f0 h0 => ?_, ⟨newFile, file_setFile_eq _ _ _⟩⟩, ?_⟩
       · by_cases hpp : p = p0
         · subst hpp; rw [hn] at h0; cases h0

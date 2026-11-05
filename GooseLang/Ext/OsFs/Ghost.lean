@@ -747,10 +747,13 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
 
 /-- What the state interpretation holds of each directory fd being read: the fraction of the
 directory's ghost entry the read took, so that no one changes the directory while it reads. -/
+def rdPart (hL : OsGS GF) (x : GoString × DirPh) : IProp GF :=
+  match x.2 with
+  | .reading _ g q => gElem hL hL.γd x.1 (DFrac.own q) g
+  | _ => iprop(emp)
+
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (GoString × DirPh)) : IProp GF :=
-  iprop([∗map] _fd ↦ x ∈ Γdf, match x.2 with
-    | .reading _ g q => gElem hL hL.γd x.1 (DFrac.own q) g
-    | _ => emp)
+  iprop([∗map] _fd ↦ x ∈ Γdf, rdPart hL x)
 
 /-- Whether a call that changes the namespace is in flight, as a ghost map of one entry. -/
 def busyMap (b : Bool) : GMap Unit Bool := {[() := b]}

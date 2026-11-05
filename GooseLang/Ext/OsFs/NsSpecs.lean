@@ -193,7 +193,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalCo
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
-attribute [local instance] Classical.propDecidable
 
 /-- A step that leaves the files alone exists from any heap the cells' view agrees with. -/
 theorem step_filesSame {st st' : OsState} {h : GMap Loc (NonAtomic val)} (hwf : OsWf st)
