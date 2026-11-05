@@ -164,11 +164,18 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   resources and the rest (`mPreRest`, `mPreWRest`: `_split_chain`, `_of_rest`, `_reject`,
   `_reject_cs`, `_lend`, `_rd`). `authApplierV3.Range.spec` and `applierV3Corrupt.Range.spec` take
   and give `threadTok` (as the backend's).
-- **Next in step 2**: `newApplierV3Capped`, `newApplierV3Corrupt`, `newAuthApplierV3`,
-  `newQuotaApplierV3` (each ~350 lines: `applierTriples` from the wrapper's specs and in-line
-  pass-throughs; red on the same `mPre`/`threadTok` changes, the patterns above apply), `newApplierV3`,
-  `uberApplier.{Apply, dispatch}`, then `applyAll`. The `Link.lean` hypotheses changed:
-  `newHeader` (`shapes` for `mvcc.store.Rev`), `Compaction` (`hTODO`, `hEnsure`, `shapes`).
+- **The constructors, proved (third session, no `sorry`)**: `newApplierV3Capped`,
+  `newApplierV3Corrupt`, `newAuthApplierV3`, `newQuotaApplierV3`, `newApplierV3` (`WriteLemmas`:
+  `mPreVRest`, `mPreV_split_chain`, `mPreV_of_rest` for the cluster methods' pass-throughs). So every
+  `apply/` spec proof but `uberApplier.{Apply, dispatch}` builds over the API (with the two
+  placeholders above).
+- **Next in step 2**: `uberApplier.dispatch` (770 lines; its spec takes `kvOwnPre v3 …`, the KV
+  methods' `mPre` from it by dropping `bkWT`/`bkRT` into the post's `∃ B, bkRT B`, the writing
+  methods' `mPreW`/`mPreV` directly; `threadTok` through every triple), `uberApplier.Apply` (its
+  lent `A` now `kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ …` in place of `kvOwn ∗ storeWT ∗
+  cPre`; `rdLend` of it needs a `kvOwnPre` form of `rdLend_kvOwn`), then `applyAll`. The `Link.lean`
+  hypotheses changed: `newHeader` (`shapes` for `mvcc.store.Rev`), `Compaction` (`hTODO`, `hEnsure`,
+  `shapes`).
 - **The auth track's follow-ups (its `cca7e9a4a9`, `notes/mvcc-migration/auth.md`)**: done in
   `AuthSteps`; not yet in `AuthStepsX` (red below on `AuthFuel`), `StoreLatest`, `AuthApplyRes`
   (`f : val` → `GoFunc`), `AuthSrv`, `Results.lean` (drop `isAuthSteps_of_authInv`'s `hf`),
