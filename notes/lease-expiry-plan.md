@@ -1367,3 +1367,136 @@ authority is split between the lessor's reader invariant and the apply thread (t
   in the revocable mode needs S3/S4 (not reached).
 Same content as the reviewed design ("the lessor's history tied to the applied log"), carried by a
 set instead of per-snapshot indices.
+
+**E2, revision 4 (2026-11-05, after a second fresh `spec-reviewer` round, on revision 3).** The
+review found the Go argument for both arms true (the leader path needs no row; the forwarded
+not-found: `isLeader()` false, `updateLead` before `applyc`, a sole voter keeps leadership under
+CheckQuorum, `raft/raft.go:1299-1310`, and transfer is skipped for a single voter,
+`server.go:1258,1316`), no Go bug, and five problems with revision 3, each addressed:
+1. *The row still took `ρ`* (C1 not fixed: `ttlAns`, `lessorTTLOk`, `raftLeaseRead`, `leaseTTLOut`
+   and the client contracts above them are over `s E γl`; `restartNames` keeps `ρ.rd.raft`, so `ρ`
+   cannot tell a restart). Revision 4: **the row is over `s` only**; the voters are part of the
+   first-start fact.
+2. *`srvFirstStart`'s body was elided*, so "first incarnation" stayed a convention (a sealed `def`
+   can be introduced by any `import all`; `walDirFresh` is not exclusive, `storage/WalDir.lean:9-12`).
+   Revision 4 gives its body, about `s`'s own objects: its lessor's history begins with the empty
+   snapshot, and its raft node is a node `StartNode` made (a persistent per-node-object fact,
+   `nodeStartedFresh`, which only `StartNode`'s postcondition gives: `RestartNode` does not; the
+   node object is the incarnation, `raft-durable-node-api.md`). It is returned **beside**
+   `memberBuilt` (in `BuildServer.spec`/`StartServer`'s `memberUp`), not inside it (`memberBuiltR`
+   is `∃ …, memberBuilt …`, so a restart contract would have to produce it).
+3. *The stronger `leasePeersOk` is not needed* (dropped): under the row, a forwarded call means the
+   lessor was empty at the `isLeader()` read, whatever the reply; so the found arm says "the TTL at
+   an index `≥ m`, or absent from `m`". `Main` still concludes: a found reply with `GrantedTTL = 0`
+   either contradicts the recorded TTL `≥ 1` (E3 (c)) or the lease is absent from `m`.
+   `leasePeersOk` (also a premise of the `lease`/`leasegrant` closed theorems) is unchanged.
+4. *"No membership change admitted" was implicit* (only through the model-wide `srv_confAt_simple`):
+   revision 4 states it in the row (`srvStaticVoters s vs`: the configuration rule of `s`'s cluster
+   is the static one, `γ.rule = srvRule 0 γ.boot`, and the voters `vs`).
+5. Docstring: CheckQuorum, transfer skipped, no other member to send a snapshot; the leader path
+   holds without the row; "a change admitting conf changes or restarts must revisit this spec".
+   Collections resting on the strengthened spec: every collection reaching
+   `EtcdServer.leaseTimeToLive.spec` (today `lease`, `leasegrant` and the server's: to list exactly
+   with `etc/tcb-report.py --roots leaseTimeToLive --per-root` when it lands).
+
+**Proposed, awaiting the user (trusted): E2, revision 4, exact text.** (Supersedes revision 3's.)
+
+`apply/Base.lean` (generic, beside `exactRels`), unchanged from revision 3:
+```lean
+/-- **`errors.Is(err, target)` answers `true`** (Go's walk of `err`'s exact tree, the relation
+`errors.Is.spec` posts; with `exactRels`, `isWalk_det` makes the answer Go's). -/
+def errIsTrue (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree S I U target ∗
+    ⌜S err ∧ exactRels I U ∧ _root_.Perennial.errors.IsWalk true I U target err true⌝)
+```
+
+The raft node API (`Spec/go_etcd_io/raft/v3/Api.lean`'s vocabulary; an API change, interface diff
+for review), given by `StartNode`'s postcondition only:
+```lean
+/-- **The node `n` was made by `StartNode`** (persistent): its raft log began as the bootstrap
+log `ctxs` of the voters `vs`, from a fresh storage (`raftState γ id RaftState.init`); `RestartNode`
+gives no such fact. -/
+@[no_expose] def nodeStartedFresh (n : Loc) (γ : Cluster) (vs : List w64) (id : w64) : IProp GF
+```
+
+The server package (`Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseRead.lean`, beside the trusted
+spec's vocabulary; minted in `NewServer`'s proof, returned beside `memberBuilt`):
+```lean
+/-- **`s`'s voters are `vs`, statically** (persistent): the configuration rule of `s`'s raft
+cluster is the static rule over its bootstrap (`srvRule 0 boot`: no configuration change is
+admitted), whose voters are `vs`, no learner. -/
+def srvStaticVoters (s : Loc) (vs : List w64) : IProp GF :=
+  iprop(∃ γ : ServerRaftNames, srvRaftNamesOf s γ ∗
+    ⌜γ.raft.vs = vs ∧ γ.rule = srvRule 0 γ.boot⌝)
+
+/-- **`s` is in its first start** (persistent): its lessor's history begins with the empty
+snapshot, and its raft node was made by `StartNode` (`nodeStartedFresh`). -/
+def srvFirstStart (s : Loc) : IProp GF :=
+  iprop(∃ (γl : GName) (n : Loc) (γ : ServerRaftNames) (id : w64),
+    srvLessorRd s γl ∗ lease.lessorAt γl 0 (∅, ∅, ∅) ∗
+    srvRaftNamesOf s γ ∗ srvNodeAddr s ↦□ n ∗ nodeStartedFresh n γ.raft.cl γ.raft.vs id)
+
+/-- **The lease-TTL row** (the lease-expiry plan's E2, the user's: this member is the cluster's
+only member, no membership change is admitted, and it is in its first start). -/
+def leaseTTLRow (s : Loc) : IProp GF :=
+  iprop(∃ mid : w64, srvMemberIDAddr s ↦□ mid ∗ srvStaticVoters s [mid] ∗ srvFirstStart s)
+```
+(`srvRaftNamesOf s γ` and `srvNodeAddr s` stand for the server's existing persistent tie of `s` to
+its raft names and its node field, whatever their names are in `InvServer`; to be fixed to the
+existing names when plumbed, no new content.)
+
+The spec (revision 1's, with `ρ` unused by the row):
+```lean
+abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
+  leasePeersOk →
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
+      context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      lease.lessorLb γl m ∗ r ↦{dq} v }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
+      r ↦{dq} v ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
+          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+          □ (leaseTTLRow s -∗
+              (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+              lease.leaseAbsentFrom γl m v.ID')) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
+```
+
+Docstring addition (why it is true of Go, `v3_server.go:636-696`): *The leader path* (`isLeader()`
+true at the check), without the row: `Lookup` runs after `waitAppliedIndex`, so at an index `≥ m`;
+found, `GrantedTTL` is `le.TTL()`, the lease's `ttl` field, written only by `Grant` before the lease
+enters the map (`lessor.go:301-302`; `ttlTie`); not found, `Lookup` returned `nil`. *The forwarded
+path* (`isLeader()` false), under the row: `s`'s first start (`srvFirstStart`: its node made by
+`StartNode`, so its log began as the bootstrap's configuration changes, and its lessor empty)
+applies no lease before raft stores its leadership (`r.lead` is stored from the `Ready` before its
+committed entries are sent to the apply loop, `raft.go:190-202,237`), and a sole voter
+(`srvStaticVoters s [mid]`) keeps it once it has it: CheckQuorum counts the leader itself active
+(`raft/raft.go:1299-1310`), leadership transfer is skipped for a single voter
+(`server.go:1258,1316`), no other member exists to send a higher term or a snapshot, and the
+trusted transport contract (decisions.md D21b (A)) delivers only the cluster's members' messages;
+so at the check's index (`≥ m`) the lessor had no lease at all, whatever the forwarded reply
+(`404`, which the examples' raft-only peer listeners answer, `etcdstart/common.go:172`, or another
+answer). Hence the found arm's disjunction and the not-found arm (Go's returned errors are leaves:
+`errIsTrue` with `ErrLeaseNotFound` means `err` is it). Without the row both are false (a follower
+forwards to another member's lessor; a restarted member applies replayed grants before its
+election and forwards: review round 3, R7). A change admitting configuration changes or restarts
+with leases must revisit this spec.
+
+Callers (proved, not trusted): `ttlAns`/`leaseTTLOut` carry the two `□ (leaseTTLRow s -∗ …)` facts
+(over `s`, which they have); the wrapper `EtcdServer.LeaseTimeToLive.wp_proof` discharges the
+not-found implication for its own errors (`requireAuthInfo`, the keys check,
+`ErrAuthOldRevision`: `errors.Is` against `ErrLeaseNotFound` false, distinct error cells); `Main`
+gets `leaseTTLRow s` from `StartServer`'s `memberUp` (`isServerBuiltC_mid` gives the member id
+field, `ps = [id]`).
