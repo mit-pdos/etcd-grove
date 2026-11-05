@@ -43,11 +43,12 @@ theorem nsWf_addDirFd {st : OsState} (hw : NsWf st) {fd : w64} {d : GoString}
     · exact hw.disj fd' h'
 
 /-- ... and the coherence, with the fd's ghost entry. -/
-theorem nsCoh_addDirFd {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) {fd : w64} {d : GoString} :
-    NsCoh { st with dfds := <[fd := ⟨d, .idle⟩]> st.dfds } Γd (<[fd := (d, .idle)]> Γdf) := by
+theorem nsCoh_addDirFd {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) {fd : w64} {d : GoString}
+    {g : DirG} {q : Qp} (hg : g = dview Γd.1 Γd.2 d) :
+    NsCoh { st with dfds := <[fd := ⟨d, .idle⟩]> st.dfds } Γd (<[fd := (d, .idle g q)]> Γdf) := by
   obtain ⟨h1, h5, h6, h7⟩ := hc
-  refine ⟨h1, fun fd' => ?_, fun fd' x df hx hdf => ?_, fun fd' e rs g q hx => ?_⟩
-  · show ((<[fd := (d, DirPh.idle)]> Γdf) !! fd').map (·.1) =
+  refine ⟨h1, fun fd' => ?_, fun fd' x df hx hdf => ?_, fun fd' x hx => ?_⟩
+  · show ((<[fd := (d, DirPh.idle g q)]> Γdf) !! fd').map (·.1) =
       ((<[fd := (⟨d, .idle⟩ : OsDirFd)]> st.dfds) !! fd').map (·.path)
     rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]; split
     · rfl
@@ -58,14 +59,14 @@ theorem nsCoh_addDirFd {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) {fd : 
     · rw [if_pos ‹_›] at hdf'; cases hx; cases hdf'; trivial
     · rw [if_neg ‹_›] at hdf'; exact h6 fd' x df hx hdf'
   · rw [GMap.lookup_insert_eq_iff] at hx; split at hx
-    · cases hx
-    · exact h7 fd' e rs g q hx
+    · cases hx; exact hg
+    · exact h7 fd' x hx
 
 /-- A directory fd's read moved on: the namespace's invariants, with the fd's new ghost phase. -/
 theorem nsWfCoh_setRd {st : OsState} {Γd Γdf} (hw : NsWf st) (hc : NsCoh st Γd Γdf) {fd : w64}
     {df : OsDirFd} {x : GoString × DirPh} (hdf : st.dfds !! fd = some df) (hx : Γdf !! fd = some x)
     (rd' : OsDirRead) (ph' : DirPh) (hph : PhOk ph' rd')
-    (hrd : ∀ rs g q, ph' = .reading rs g q → g = dview Γd.1 Γd.2 x.1) :
+    (hrd : ph'.g = dview Γd.1 Γd.2 x.1) :
     NsWf { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } ∧
     NsCoh { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } Γd (<[fd := (x.1, ph')]> Γdf) := by
   have hpath : x.1 = df.path := by have := hc.fds fd; rw [hx, hdf] at this; simpa using this
@@ -79,7 +80,7 @@ theorem nsWfCoh_setRd {st : OsState} {Γd Γdf} (hw : NsWf st) (hc : NsCoh st Γ
     · subst_vars; have := hw.disj _ h'; rw [hdf] at this; cases this
     · exact hw.disj fd' h'
   · obtain ⟨h1, h5, h6, h7⟩ := hc
-    refine ⟨h1, fun fd' => ?_, fun fd' x' df' hx' hd' => ?_, fun fd' e rs g q hx' => ?_⟩
+    refine ⟨h1, fun fd' => ?_, fun fd' x' df' hx' hd' => ?_, fun fd' x' hx' => ?_⟩
     · show ((<[fd := (x.1, ph')]> Γdf) !! fd').map (·.1) =
         ((<[fd := { df with rd := rd' }]> st.dfds) !! fd').map (·.path)
       rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]; split
@@ -91,8 +92,8 @@ theorem nsWfCoh_setRd {st : OsState} {Γd Γdf} (hw : NsWf st) (hc : NsCoh st Γ
       · rw [if_pos ‹_›] at hd''; cases hx'; cases hd''; exact hph
       · rw [if_neg ‹_›] at hd''; exact h6 fd' x' df' hx' hd''
     · rw [GMap.lookup_insert_eq_iff] at hx'; split at hx'
-      · cases hx'; exact hrd rs g q rfl
-      · exact h7 fd' e rs g q hx'
+      · cases hx'; exact hrd
+      · exact h7 fd' x' hx'
 
 /-- The names a read begun now sees: the directory's entries. -/
 theorem nsPresent_eq {st : OsState} {d : GoString} {g : DirG} (h : entsOf st.ns d = g.now)
@@ -117,7 +118,7 @@ abbrev createdSt (st : OsState) (d b k : GoString) : OsState :=
 `k`'s new `OsMeta`; the cells' view; the namespace's invariants, with `d`'s entry pushed. -/
 theorem create_facts {st : OsState} {Γb Γm Γf Γt Γd Γdf} {d b k : GoString}
     (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hw : NsWf st) (hc : NsCoh st Γd Γdf)
-    (hnr : ∀ fd d' rs g' q, Γdf !! fd ≠ some (d', .reading rs g' q))
+    (hnr : NoDirFds Γdf)
     (hdir : st.ns !! d = some .dir) (hb : NameOk b) (hnone : st.ns !! child d b = none)
     (hk : IsInoKey k) (hkf : k ∉ st.files) :
     OsWf (createdSt st d b k) ∧ OsCoh (createdSt st d b k) Γb (<[k := some newMeta]> Γm) Γf Γt ∧
@@ -212,12 +213,14 @@ theorem worlds_fold {st' : OsState} {Γb Γm Γf Γt} {Γd : NsMap × List NsOp}
   · ipureintro; exact hwc
   · ipureintro; exact hns
 
-/-- `open(2)` of a directory read-only: a new directory fd, not read, or an errno. -/
-theorem wp_osNsOpenDir (d : GoString) (dq : DFrac) (g : DirG) (hE : ↑osN ⊆ E)
+/-- `open(2)` of a directory read-only, with a fraction `q` of its view: a new directory fd, not
+read, which holds the fraction until its close; or an errno, the fraction back. -/
+theorem wp_osNsOpenDir (d : GoString) (q : Qp) (g : DirG) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osDir (L := L) d dq g -∗
-      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗ osDir (L := L) d dq g -∗
-        (if e = 0 then osDirFd (L := L) fd (DFrac.own 1) (d, .idle) else emp) -∗
+    ⊢ osInv (L := L) -∗ osDir (L := L) d (DFrac.own q) g -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+        (if e = 0 then osDirFd (L := L) fd (DFrac.own 1) (d, .idle g q)
+          else osDir (L := L) d (DFrac.own q) g) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp osFsExt.name "NsOpen" (Val (PairV (#d) (#flRO)))) @ s; E {{ Φ }} := by
   iintro #Hinv Hd HΦ
@@ -260,24 +263,24 @@ theorem wp_osNsOpenDir (d : GoString) (dq : DFrac) (g : DirG) (hE : ↑osN ⊆ E
       cases h0 : Γdf !! fd with
       | none => rfl
       | some x => rw [h0] at this; cases this
-    imod gAuth_insert _ _ _ fd (d, DirPh.idle) hΓ $$ HAdf with ⟨HAdf, Hfd⟩
+    imod gAuth_insert _ _ _ fd (d, DirPh.idle g q) hΓ $$ HAdf with ⟨HAdf, Hfd⟩
     have hs : FilesSame st st' := by rw [hst]; exact ⟨rfl, rfl, rfl, rfl⟩
     have hw' : NsWf st' := by rw [hst]; exact nsWf_addDirFd hw hfdn hdir
-    have hc' : NsCoh st' Γd (<[fd := (d, DirPh.idle)]> Γdf) := by
-      rw [hst]; exact nsCoh_addDirFd hc
-    ihave Hrd : rdRes (gooseOsGS (L := L)) (<[fd := (d, DirPh.idle)]> Γdf) $$ [Hrd]
+    have hc' : NsCoh st' Γd (<[fd := (d, DirPh.idle g q)]> Γdf) := by
+      rw [hst]; exact nsCoh_addDirFd hc Hdl.1.1
+    ihave Hrd : rdRes (gooseOsGS (L := L)) (<[fd := (d, DirPh.idle g q)]> Γdf) $$ [Hrd Hd]
     · unfold rdRes
       iapply (BigSepM.bigSepM_insert (M := GMap w64)
         (Φ := fun (_ : w64) (x : GoString × DirPh) => rdPart (gooseOsGS (L := L)) x) hΓ).2
-      iframe; unfold rdPart; iempintro
+      iframe Hrd; unfold rdPart osDir osNsAll; dsimp only [DirPh.q, DirPh.g]; iexact Hd
     imod ns_step_close hwf hcoh hs Hr Hfr hw' hc' st.nsBusy (by rw [hst]) $$ HAb HAm HAf HAt Htok
       Hcells Hσ HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
     imodintro
-    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, DirPh.idle)]> Γdf)
+    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, DirPh.idle g q)]> Γdf)
     unfold osWorld nsWorld rdRes
     iframe Hw Hn
     iapply wp_value'
-    iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) Hd
+    iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩)
     rw [if_pos rfl]; unfold osDirFd; iexact Hfd
   · have hst' : st' = st := by
       rcases hst with rfl | ⟨tgt, heff⟩
@@ -291,8 +294,8 @@ theorem wp_osNsOpenDir (d : GoString) (dq : DFrac) (g : DirG) (hE : ↑osN ⊆ E
     unfold osWorld nsWorld
     iframe Hw Hn
     iapply wp_value'
-    iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) Hd
-    rw [if_neg he]; iempintro
+    iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩)
+    rw [if_neg he]; iexact Hd
 
 /-- `open(2)` read-only of the file `b` of `d` (of key `k`), with a fraction of `k`'s `OsMeta`:
 the file exists (`mo ≠ none`); a new fd on `k`, or an errno. -/
@@ -593,7 +596,7 @@ theorem wp_osNsOpenCreate (d b : GoString) (g : DirG) (hb : NameOk b) (hn : g.no
     unfold osMeta
     iframe
 
-theorem phOk_idle {rd : OsDirRead} (h : PhOk .idle rd) : rd = .idle := by
+theorem phOk_idle {g : DirG} {q : Qp} {rd : OsDirRead} (h : PhOk (.idle g q) rd) : rd = .idle := by
   cases rd <;> simp_all [PhOk]
 
 theorem phOk_reading {rs : List GoString} {g : DirG} {q : Qp} {rd : OsDirRead}
@@ -608,35 +611,21 @@ abbrev rdName (b : GoString) : val := PairV (#b) (PairV (#(0 : w64)) (#(0 : w64)
 abbrev rdEnd : val := PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64)))
 abbrev rdErr (e : w64) : val := PairV (#([] : GoString)) (PairV (#(0 : w64)) (#e))
 
-theorem lend_lookup (d : GoString) (g : DirG) (q : Qp) (fresh : Bool)
-    (Γd : NsMap × List NsOp) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap Γd) -∗
-      (if fresh then osDir (L := L) d (DFrac.own q) g else emp) -∗
-      ⌜fresh = true → g = dview Γd.1 Γd.2 d⌝ := by
-  cases fresh with
-  | false => iintro _ _; ipureintro; intro h; cases h
-  | true =>
-    simp only [↓reduceIte]
-    iintro HA Hd
-    icases osDir_view _ _ _ _ $$ HA Hd with %h
-    ipureintro; exact fun _ => h.1.1
-
 /-- One step of a read of a directory fd, its read begun (`rs` the names returned) or about to be
-(`fresh`: the caller lends the read a fraction `q` of the directory's ghost entry `g`): a name of
-the directory not returned, the end once all were, or an errno. At the end the fraction is back. -/
+(`fresh`); the fd holds a fraction `q` of the history, of which `g` is the directory's view: a
+name of the directory not returned, the end once all were, or an errno. -/
 theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : DirG) (q : Qp)
     (fresh : Bool) (hfr : fresh = true → rs = []) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗
-      osDirFd (L := L) fd (DFrac.own 1) (d, if fresh then .idle else .reading rs g q) -∗
-      (if fresh then osDir (L := L) d (DFrac.own q) g else emp) -∗
+      osDirFd (L := L) fd (DFrac.own 1) (d, if fresh then .idle g q else .reading rs g q) -∗
       (∀ v, ((∃ b, ⌜v = rdName b ∧ (g.now !! b).isSome ∧ b ∉ rs⌝ ∗
               osDirFd (L := L) fd (DFrac.own 1) (d, .reading (b :: rs) g q)) ∨
             (⌜v = rdEnd ∧ ∀ b, (g.now !! b).isSome → b ∈ rs⌝ ∗
-              osDirFd (L := L) fd (DFrac.own 1) (d, .done) ∗ osDir (L := L) d (DFrac.own q) g) ∨
+              osDirFd (L := L) fd (DFrac.own 1) (d, .done g q)) ∨
             (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗
               osDirFd (L := L) fd (DFrac.own 1) (d, .reading rs g q))) -∗ Φ v) -∗
       WP (ExternalOp osFsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
-  iintro #Hinv Hfd Hd HΦ
+  iintro #Hinv Hfd HΦ
   iapply wp_os_stepN "DirReadNext" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
   unfold osWorld nsWorld
@@ -657,27 +646,22 @@ theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : Dir
   -- the directory's ghost entry, and the read's state
   have hgd : g = dview Γd.1 Γd.2 d → entsOf st.ns d = g.now := fun h => by
     rw [h, dview_now, ← ns_eq_replay hw hc]
-  have hcur : (fresh = true → g = dview Γd.1 Γd.2 d) → ∃ u s r,
+  have Hdl : g = dview Γd.1 Γd.2 d := by
+    have := hc.rd fd _ Hfl; cases fresh <;> exact this
+  have hcur : ∃ u s r,
       df.rd.cur st df.path = some (u, s, r) ∧
       ∀ b, u b = (g.now !! b).isSome ∧ s b = (g.now !! b).isSome ∧ r b = decide (b ∈ rs) := by
-    intro hg
     cases fresh with
     | true =>
       have hrd := phOk_idle hph
-      have hents := hgd (hg rfl)
+      have hents := hgd Hdl
       refine ⟨nsPresent st d, nsPresent st d, fun _ => false, by rw [hrd, hpath]; rfl,
         fun b => ⟨nsPresent_eq hents b, nsPresent_eq hents b, ?_⟩⟩
       rw [hfr rfl]; simp
     | false =>
       obtain ⟨u, s, r, hrd, hus⟩ := phOk_reading hph
       exact ⟨u, s, r, by rw [hrd]; rfl, hus⟩
-  -- Γd's entry: lent by the caller, or held by the read
-  icases lend_lookup d g q fresh Γd $$ HAd Hd with %Hdl0
-  have Hdl : g = dview Γd.1 Γd.2 d := by
-    cases fresh with
-    | true => exact Hdl0 rfl
-    | false => exact hc.rd fd d rs g q (by simpa using Hfl)
-  obtain ⟨u, s, r, hcur', hus⟩ := hcur (fun _ => Hdl)
+  obtain ⟨u, s, r, hcur', hus⟩ := hcur
   have hents := hgd Hdl
   have hs : ∀ rd', FilesSame st { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } :=
     fun _ => ⟨rfl, rfl, rfl, rfl⟩
@@ -700,9 +684,13 @@ theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : Dir
   icases (BigSepM.bigSepM_insert_acc (M := GMap w64)
     (Φ := fun (_ : w64) (x : GoString × DirPh) => rdPart (gooseOsGS (L := L)) x) Hfl) $$ Hrd
     with ⟨Hx, Hrd⟩
+  ihave Hq : iprop(∃ V : NsMap × List NsOp, gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd ()
+      (DFrac.own q) V ∗ ⌜g = dview V.1 V.2 d ∧ AllDir V d⌝) $$ [Hx]
+  · unfold rdPart
+    cases fresh <;> (simp only [Bool.false_eq_true, ↓reduceIte, DirPh.q, DirPh.g] at *; iexact Hx)
   -- the fd's ghost entry, to the new phase
   have hfinish : ∀ (rd' : OsDirRead) (ph' : DirPh), PhOk ph' rd' →
-      (∀ rs' g' q', ph' = .reading rs' g' q' → g' = dview Γd.1 Γd.2 d) →
+      ph'.g = dview Γd.1 Γd.2 d →
       st' = { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm -∗
@@ -712,7 +700,7 @@ theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : Dir
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap Γd) -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf -∗
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd (DFrac.own 1)
-          (d, if fresh then DirPh.idle else .reading rs g q) -∗
+          (d, if fresh then DirPh.idle g q else .reading rs g q) -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γz (busyMap st.nsBusy) -∗
         ([∗map] k ↦ v ∈ <[fd := (d, ph')]> Γdf, rdPart (gooseOsGS (L := L)) v) ==∗
         osWorld (L := L) st' Γb Γm Γf Γt h' ∗ nsWorld (L := L) st' Γd (<[fd := (d, ph')]> Γdf) ∗
@@ -738,13 +726,9 @@ theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : Dir
       refine ⟨(hus x).1, (hus x).2.1, ?_⟩
       show (r x || decide (x = b)) = _
       rw [(hus x).2.2]; by_cases hx : x = b <;> simp [hx]
-    ihave Hrd := Hrd $$ %(d, .reading (b :: rs) g q) [Hx Hd]
-    · cases fresh with
-      | true =>
-        simp only [↓reduceIte] at *; unfold rdPart osDir osNsAll; dsimp only
-        icases Hd with ⟨%V, Hd, %hV⟩; iexists V; iframe; ipureintro; exact hV
-      | false => simp only [Bool.false_eq_true, ↓reduceIte] at *; unfold rdPart; dsimp only; iexact Hx
-    imod hfinish _ _ hok (fun rs' g' q' h => by cases h; exact Hdl) hst $$ HAb HAm HAf HAt Htok
+    ihave Hrd := Hrd $$ %(d, .reading (b :: rs) g q) [Hq]
+    · unfold rdPart; dsimp only [DirPh.q, DirPh.g]; iexact Hq
+    imod hfinish _ _ hok Hdl hst $$ HAb HAm HAf HAt Htok
       Hcells Hσ HAd HAdf Hfd HAz Hrd with ⟨Hw, Hn, Hfd⟩
     imodintro
     iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .reading (b :: rs) g q)]> Γdf)
@@ -758,32 +742,22 @@ theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : Dir
       intro b hb
       have := hall b (by rw [(hus b).1]; exact hb) (by rw [nsPresent_eq (hpath ▸ hents) b]; exact hb)
       rw [(hus b).2.2] at this; simpa using this
-    ihave Hrd := Hrd $$ %(d, DirPh.done) []
-    · unfold rdPart; iempintro
-    ihave Hback : osDir (L := L) d (DFrac.own q) g $$ [Hx Hd]
-    · cases fresh with
-      | true => simp only [↓reduceIte]; iexact Hd
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte] at *; unfold rdPart; dsimp only
-        icases Hx with ⟨%V, Hx, %hV⟩; unfold osDir osNsAll; iexists V; iframe; ipureintro; exact hV
-    imod hfinish _ _ (by trivial : PhOk .done .done) (fun _ _ _ h => by cases h) hst $$ HAb HAm HAf
+    ihave Hrd := Hrd $$ %(d, DirPh.done g q) [Hq]
+    · unfold rdPart; dsimp only [DirPh.q, DirPh.g]; iexact Hq
+    imod hfinish _ _ (by trivial : PhOk (.done g q) .done) Hdl hst $$ HAb HAm HAf
       HAt Htok Hcells Hσ HAd HAdf Hfd HAz Hrd with ⟨Hw, Hn, Hfd⟩
     imodintro
-    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .done)]> Γdf)
+    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .done g q)]> Γdf)
     unfold osWorld nsWorld rdRes
     iframe Hw Hn
     iapply wp_value'
     iapply HΦ
-    unfold osDirFd; iright; ileft; iframe Hfd Hback; ipureintro; exact ⟨rfl, hall'⟩
+    unfold osDirFd; iright; ileft; iframe Hfd; ipureintro; exact ⟨rfl, hall'⟩
   · -- an errno: the read begun, nothing returned
     have hok : PhOk (.reading rs g q) (.reading u s r) := fun x => hus x
-    ihave Hrd := Hrd $$ %(d, .reading rs g q) [Hx Hd]
-    · cases fresh with
-      | true =>
-        simp only [↓reduceIte] at *; unfold rdPart osDir osNsAll; dsimp only
-        icases Hd with ⟨%V, Hd, %hV⟩; iexists V; iframe; ipureintro; exact hV
-      | false => simp only [Bool.false_eq_true, ↓reduceIte] at *; unfold rdPart; dsimp only; iexact Hx
-    imod hfinish _ _ hok (fun rs' g' q' h => by cases h; exact Hdl) hst $$ HAb HAm HAf HAt Htok
+    ihave Hrd := Hrd $$ %(d, .reading rs g q) [Hq]
+    · unfold rdPart; dsimp only [DirPh.q, DirPh.g]; iexact Hq
+    imod hfinish _ _ hok Hdl hst $$ HAb HAm HAf HAt Htok
       Hcells Hσ HAd HAdf Hfd HAz Hrd with ⟨Hw, Hn, Hfd⟩
     imodintro
     iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .reading rs g q)]> Γdf)

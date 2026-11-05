@@ -318,9 +318,9 @@ theorem wp_readNames (d : GoString) (q : Qp) (g : DirG) :
           ∀ b, b ∈ names ↔ (g.now !! b).isSome⌝ ∗ sl ↦* names) }} := by
   wp_start as ⟨#Hinv, Hd⟩
   (try wp_auto)
-  wp_apply os.Open.wp_dir d (DFrac.own q) g $$ [Hinv Hd] as %f %err ⟨Hd, Hr⟩
+  wp_apply os.Open.wp_dir d q g $$ [Hinv Hd] as %f %err Hr
   · iframe; iexact Hinv
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, Hd⟩)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
@@ -332,14 +332,15 @@ theorem wp_readNames (d : GoString) (q : Qp) (g : DirG) :
     ileft; ipureintro; rfl
   subst herr
   (try wp_auto)
-  wp_apply os.File.Readdirnames.wp_dir f fd d (DFrac.own 1) d q g _ (by decide) $$ [Hinv Hf Hfd Hd]
+  wp_apply os.File.Readdirnames.wp_dir f fd d (DFrac.own 1) d q g _ (by decide) $$ [Hinv Hf Hfd]
     as %sl %err ⟨Hf, Hr⟩
   · iframe; iexact Hinv
-  icases Hr with (⟨%names, %hn, Hsl, Hfd, Hd⟩ | ⟨%herr, %rs, Hfd⟩)
+  icases Hr with (⟨%names, %hn, Hsl, Hfd⟩ | ⟨%herr, %rs, Hfd⟩)
   · obtain ⟨rfl, hnd, hmem⟩ := hn
     (try wp_auto)
-    wp_apply os.File.Close.wp_dir f fd d (d, .done) $$ [Hinv Hf Hfd] as %e -
+    wp_apply os.File.Close.wp_dir f fd d (d, .done g q) $$ [Hinv Hf Hfd] as %e Hd
     · iframe; iexact Hinv
+    simp only [rdBack, DirPh.q, DirPh.g] at *
     (try wp_auto)
     iapply HΦ
     iframe Hd
@@ -355,22 +356,21 @@ theorem wp_readNames (d : GoString) (q : Qp) (g : DirG) :
     | ok ie =>
     (try wp_auto)
     iapply HΦ
-    simp only [rdBack, rdPart]
-    unfold osDir osNsAll
+    simp only [rdBack, DirPh.q, DirPh.g] at *
     iframe Hd
     ileft; itrivial
 
 /-- `syncDir(d)`, with a fraction of `d`'s ghost entry: any result (a sync changes no ghost
 state: it only narrows what a crash may leave). -/
-theorem wp_syncDir (d : GoString) (dq : DFrac) (g : DirG) :
-    {{ osInv (GF := GF) ∗ osDir (GF := GF) d dq g }}
+theorem wp_syncDir (d : GoString) (q : Qp) (g : DirG) :
+    {{ osInv (GF := GF) ∗ osDir (GF := GF) d (DFrac.own q) g }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.syncDir)) (Val #d))
-    {{ (ok : Bool), RET #ok; osDir d dq g }} := by
+    {{ (ok : Bool), RET #ok; osDir d (DFrac.own q) g }} := by
   wp_start as ⟨#Hinv, Hd⟩
   (try wp_auto)
-  wp_apply os.Open.wp_dir d dq g $$ [Hinv Hd] as %f %err ⟨Hd, Hr⟩
+  wp_apply os.Open.wp_dir d q g $$ [Hinv Hd] as %f %err Hr
   · iframe; iexact Hinv
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, Hd⟩)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
@@ -381,12 +381,13 @@ theorem wp_syncDir (d : GoString) (dq : DFrac) (g : DirG) :
     iframe Hd
   subst herr
   (try wp_auto)
-  wp_apply os.File.Sync.wp_dir f fd d (DFrac.own 1) (DFrac.own 1) (d, .idle) $$ [Hinv Hf Hfd]
+  wp_apply os.File.Sync.wp_dir f fd d (DFrac.own 1) (DFrac.own 1) (d, .idle g q) $$ [Hinv Hf Hfd]
     as %err ⟨Hf, Hfd⟩
   · iframe; iexact Hinv
   (try wp_auto)
-  wp_apply os.File.Close.wp_dir f fd d (d, .idle) $$ [Hinv Hf Hfd] as %e -
+  wp_apply os.File.Close.wp_dir f fd d (d, .idle g q) $$ [Hinv Hf Hfd] as %e Hd
   · iframe; iexact Hinv
+  simp only [rdBack, DirPh.q, DirPh.g] at *
   cases err with
   | nil => (try wp_auto); iapply HΦ; iframe Hd
   | ok ie => (try wp_auto); iapply HΦ; iframe Hd

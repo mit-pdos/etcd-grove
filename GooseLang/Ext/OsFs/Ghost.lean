@@ -89,18 +89,32 @@ instance Qp.countable : Pos.Countable Qp :=
       simp only [Prod.mk.injEq] at h
       exact Subtype.ext (Rat.ext h.1 h.2))
 
-/-- Where a directory fd's read is, as the ghost state knows it: not begun; begun, with the
-directory's ghost entry `g` (which cannot change while it reads: the read holds a fraction `q` of
-it, in the state interpretation, `rdRes`) and the names returned `rs`; done. -/
+/-- Where a directory fd's read is, as the ghost state knows it: not begun; begun, with the names
+returned `rs`; done. In every phase the fd holds a fraction `q` of the namespace's history (in the
+state interpretation, `rdRes`), from its open to its close, of which `g` is the directory's view:
+so the directory cannot change while it is open, and the holder of the whole history knows that
+no directory fd is open. -/
 inductive DirPh where
-  | idle
+  | idle (g : DirG) (q : Qp)
   | reading (rs : List GoString) (g : DirG) (q : Qp)
-  | done
+  | done (g : DirG) (q : Qp)
 
-def DirPh.enc : DirPh → Nat × List GoString × Option DirG × Option Qp
-  | .idle => (0, [], none, none)
-  | .reading rs g q => (1, rs, some g, some q)
-  | .done => (2, [], none, none)
+/-- The view a directory fd's phase holds. -/
+def DirPh.g : DirPh → DirG
+  | .idle g _ => g
+  | .reading _ g _ => g
+  | .done g _ => g
+
+/-- The fraction of the history a directory fd's phase holds. -/
+def DirPh.q : DirPh → Qp
+  | .idle _ q => q
+  | .reading _ _ q => q
+  | .done _ q => q
+
+def DirPh.enc : DirPh → Nat × List GoString × DirG × Qp
+  | .idle g q => (0, [], g, q)
+  | .reading rs g q => (1, rs, g, q)
+  | .done g q => (2, [], g, q)
 
 instance DirPh.countable : Pos.Countable DirPh :=
   Pos.Countable.ofInjective (fun x => Pos.Countable.encode x.enc)
@@ -289,8 +303,8 @@ def FileOp (m : NsMap) : NsOp → Prop
 /-- A directory fd's read, the ghost state's and the state's, agree: begun on the entries `E`,
 which every name of the read's state stands for, with the names returned `rs`. -/
 def PhOk : DirPh → OsDirRead → Prop
-  | .idle, .idle => True
-  | .done, .done => True
+  | .idle _ _, .idle => True
+  | .done _ _, .done => True
   | .reading rs g _, .reading u s r =>
     ∀ b, u b = (g.now !! b).isSome ∧ s b = (g.now !! b).isSome ∧ r b = decide (b ∈ rs)
   | _, _ => False
@@ -310,7 +324,7 @@ structure NsCoh (st : OsState) (V : NsMap × List NsOp) (Γdf : GMap w64 (GoStri
   hist : HistOk st V
   fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.dfds !! fd).map (·.path)
   ph : ∀ fd x df, Γdf !! fd = some x → st.dfds !! fd = some df → PhOk x.2 df.rd
-  rd : ∀ fd d rs g q, Γdf !! fd = some (d, .reading rs g q) → g = dview V.1 V.2 d
+  rd : ∀ fd x, Γdf !! fd = some x → x.2.g = dview V.1 V.2 x.1
 
 /-- `NsCoh` depends on the namespace's durable part, its log and its directory fds only. -/
 theorem NsCoh.congr {st st' : OsState} {V Γdf} (h : NsCoh st V Γdf)
@@ -340,7 +354,7 @@ theorem dirMap_lookup (st : OsState) (d : GoString) :
 fd. -/
 theorem nsInit_coh {st : OsState} (h : NsInit st) : NsCoh st (st.ns, []) ∅ := by
   obtain ⟨hdf, hlog, hdur, -, -⟩ := h
-  refine ⟨⟨?_, ?_, ?_⟩, fun fd => ?_, fun fd x df hx _ => ?_, fun fd d rs g q hx => ?_⟩
+  refine ⟨⟨?_, ?_, ?_⟩, fun fd => ?_, fun fd x df hx _ => ?_, fun fd x hx => ?_⟩
   · rw [hlog]; simp
   · rw [hlog]; rfl
   · rw [hlog, hdur]; rfl
@@ -735,13 +749,11 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
     gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
     bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))
 
-/-- What the state interpretation holds of each directory fd being read: the fraction of the
-directory's ghost entry the read took, so that no one changes the directory while it reads. -/
+/-- What the state interpretation holds of each directory fd: the fraction of the history its
+open took, so that no one changes the namespace while it is open. -/
 def rdPart (hL : OsGS GF) (x : GoString × DirPh) : IProp GF :=
-  match x.2 with
-  | .reading _ g q => iprop(∃ V : NsMap × List NsOp,
-      gElem hL hL.γd () (DFrac.own q) V ∗ ⌜g = dview V.1 V.2 x.1 ∧ AllDir V x.1⌝)
-  | _ => iprop(emp)
+  iprop(∃ V : NsMap × List NsOp,
+    gElem hL hL.γd () (DFrac.own x.2.q) V ∗ ⌜x.2.g = dview V.1 V.2 x.1 ∧ AllDir V x.1⌝)
 
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (GoString × DirPh)) : IProp GF :=
   iprop([∗map] _fd ↦ x ∈ Γdf, rdPart hL x)

@@ -261,19 +261,21 @@ theorem ns_eq_replay (hw : NsWf st) (hc : NsCoh st V Γdf) : st.ns = nsReplay V.
   generalize V.2.length - st.nsLog.length = c at h2 h3
   rw [hw.replay, h3, ← h2, ← nsReplay_append, List.take_append_drop]
 
-/-- **An operation logged by the holder of the whole history** (so that no read is in
-progress): the state after it is coherent with the history it extends. `st1` is the state the
+/-- No directory fd is open (the holder of the whole history knows it: every fd holds a part). -/
+def NoDirFds (Γdf : GMap w64 (GoString × DirPh)) : Prop := ∀ fd, Γdf !! fd = none
+
+/-- **An operation logged by the holder of the whole history** (so that no directory fd is
+open): the state after it is coherent with the history it extends. `st1` is the state the
 operation is made from (the in-flight flag cleared, a file created), with `st`'s durable part, log
 and directory fds. -/
-theorem nsCoh_log {o : NsOp} (hc : NsCoh st V Γdf)
-    (hnr : ∀ fd d rs g q, Γdf !! fd ≠ some (d, .reading rs g q))
+theorem nsCoh_log {o : NsOp} (hc : NsCoh st V Γdf) (hnr : NoDirFds Γdf)
     (h2 : st1.nsDur = st.nsDur) (h3 : st1.nsLog = st.nsLog) (h4 : st1.dfds = st.dfds) :
     NsCoh (st1.nsDo o) (V.1, V.2 ++ [o]) Γdf := by
   obtain ⟨⟨k1, k2, k3⟩, hfds, hph, -⟩ := hc
   have hl : (st1.nsDo o).nsLog = st.nsLog ++ [o] := by rw [← h3]; rfl
   have hc' : (V.2 ++ [o]).length - (st.nsLog ++ [o]).length = V.2.length - st.nsLog.length := by
     simp
-  refine ⟨⟨?_, ?_, ?_⟩, fun fd => ?_, fun fd x df hx hdf => ?_, fun fd e rs g' q hx => ?_⟩
+  refine ⟨⟨?_, ?_, ?_⟩, fun fd => ?_, fun fd x df hx hdf => ?_, fun fd x hx => ?_⟩
   · rw [hl]; simp; (try omega)
   · rw [hl, hc', List.drop_append_of_le_length (by omega), k2]
   · rw [hl, hc', List.take_append_of_le_length (by omega)]
@@ -283,20 +285,8 @@ theorem nsCoh_log {o : NsOp} (hc : NsCoh st V Γdf)
     cases st.dfds !! fd with
     | none => rfl
     | some df => show some df.path = some (df.note o).path; rw [OsDirFd.note_path]
-  · show PhOk x.2 df.rd
-    have hdf' : (GMap.fmap (·.note o) st1.dfds) !! fd = some df := hdf
-    rw [GMap.lookup_fmap, h4] at hdf'
-    cases hd0 : st.dfds !! fd with
-    | none => rw [hd0] at hdf'; cases hdf'
-    | some df0 =>
-      rw [hd0] at hdf'; simp only [Option.map_some, Option.some.injEq] at hdf'
-      subst hdf'
-      have hph0 := hph fd x df0 hx hd0
-      rcases x with ⟨xp, _ | ⟨rs, g0, q⟩ | _⟩
-      · unfold OsDirFd.note; split <;> simp_all [PhOk]
-      · exact absurd hx (hnr fd xp rs g0 q)
-      · unfold OsDirFd.note; split <;> simp_all [PhOk]
-  · exact absurd hx (hnr fd e rs g' q)
+  · rw [hnr fd] at hx; cases hx
+  · rw [hnr fd] at hx; cases hx
 
 /-- A commit of the first `n` operations of the log keeps the coherence (the history is the same;
 more of it is committed). -/

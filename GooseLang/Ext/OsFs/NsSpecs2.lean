@@ -58,30 +58,36 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalCo
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- The holder of a directory's whole ghost entry (so of the whole history) knows that no read is
-in progress. -/
-theorem rdRes_whole (d : GoString) (g : DirG) (Γdf : GMap w64 (GoString × DirPh)) :
-    ⊢ osDir (L := L) d (DFrac.own 1) g -∗ rdRes (gooseOsGS (L := L)) Γdf -∗
-      ⌜∀ fd d' rs g' q, Γdf !! fd ≠ some (d', .reading rs g' q)⌝ ∗ osDir (L := L) d (DFrac.own 1) g ∗
-        rdRes (gooseOsGS (L := L)) Γdf := by
+/-- The holder of the whole history knows that no directory fd is open (each holds a part). -/
+theorem rdRes_none (V : NsMap × List NsOp) (Γdf : GMap w64 (GoString × DirPh)) :
+    ⊢ osNsAll (L := L) (DFrac.own 1) V -∗ rdRes (gooseOsGS (L := L)) Γdf -∗
+      ⌜NoDirFds Γdf⌝ ∗ osNsAll (L := L) (DFrac.own 1) V ∗ rdRes (gooseOsGS (L := L)) Γdf := by
   iintro Hd Hrd
-  by_cases hall : ∀ fd d' rs g' q, Γdf !! fd ≠ some (d', .reading rs g' q)
+  by_cases hall : NoDirFds Γdf
   · iframe; ipureintro; exact hall
   · obtain ⟨fd, h1⟩ := Classical.not_forall.1 hall
-    obtain ⟨d', h1⟩ := Classical.not_forall.1 h1
-    obtain ⟨rs, h2⟩ := Classical.not_forall.1 h1
-    obtain ⟨g', h3⟩ := Classical.not_forall.1 h2
-    obtain ⟨q, h4⟩ := Classical.not_forall.1 h3
-    have hx : Γdf !! fd = some (d', .reading rs g' q) := Classical.not_not.1 h4
+    obtain ⟨x, hx⟩ := Option.ne_none_iff_exists'.1 h1
     unfold rdRes
     icases BigSepM.bigSepM_lookup (M := GMap w64)
       (Φ := fun (_ : w64) (x : GoString × DirPh) => rdPart (gooseOsGS (L := L)) x) hx $$ Hrd with Hq
-    unfold rdPart at *
-    unfold osDir osNsAll
-    icases Hd with ⟨%W, Hd, -⟩
+    unfold rdPart osNsAll
     icases Hq with ⟨%W', Hq, -⟩
     icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hd Hq with %Hv
     exact absurd (DFrac.valid_own_op Hv.1) (by simp)
+
+/-- The holder of a directory's whole ghost entry (so of the whole history) knows that no
+directory fd is open. -/
+theorem rdRes_whole (d : GoString) (g : DirG) (Γdf : GMap w64 (GoString × DirPh)) :
+    ⊢ osDir (L := L) d (DFrac.own 1) g -∗ rdRes (gooseOsGS (L := L)) Γdf -∗
+      ⌜NoDirFds Γdf⌝ ∗ osDir (L := L) d (DFrac.own 1) g ∗ rdRes (gooseOsGS (L := L)) Γdf := by
+  iintro Hd Hrd
+  unfold osDir
+  icases Hd with ⟨%W, Hd, %hW⟩
+  icases rdRes_none W Γdf $$ Hd Hrd with ⟨%hn, Hd, Hrd⟩
+  isplitr
+  · ipureintro; exact hn
+  iframe Hrd
+  iexists W; iframe Hd; ipureintro; exact hW
 
 /-- A namespace step that leaves the files alone and changes the namespace to a well-formed,
 coherent state: the worlds after it. -/
@@ -475,9 +481,8 @@ theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : GoString × DirPh) (hE : ↑os
   · iapply wp_value'; iapply HΦ $$ %0 Hfd
   · iapply wp_value'; iapply HΦ $$ %e Hfd
 
-/-- What closing a directory fd gives back: the fraction of the directory's ghost entry its read
-holds, if it is reading. -/
-def rdBack (x : GoString × DirPh) : IProp GF := rdPart (gooseOsGS (L := L)) x
+/-- What closing a directory fd gives back: the fraction of the history it held. -/
+def rdBack (x : GoString × DirPh) : IProp GF := osDir (L := L) x.1 (DFrac.own x.2.q) x.2.g
 
 /-- `close(2)` of a directory fd, whole: any errno; the fd gone, and a read's fraction back. -/
 theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
@@ -536,7 +541,7 @@ theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ
     rw [hst]
     obtain ⟨h1, h5, h6, h7⟩ := hc
     refine ⟨h1, fun fd' => ?_, fun fd' x' df' hx hd => ?_,
-      fun fd' d rs g q hx => ?_⟩
+      fun fd' x hx => ?_⟩
     · show ((GMap.delete fd Γdf) !! fd').map (·.1) = ((GMap.delete fd st.dfds) !! fd').map (·.path)
       rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]; split
       · rfl
@@ -553,7 +558,7 @@ theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ
       exact h6 fd' x' df' hx' hd'
     · rw [GMap.lookup_delete_iff] at hx; split at hx
       · cases hx
-      · exact h7 fd' d rs g q hx
+      · exact h7 fd' x hx
   ihave Hrd : rdRes (gooseOsGS (L := L)) (GMap.delete fd Γdf) $$ [Hrd]
   · unfold rdRes; iexact Hrd
   imod ns_step_close hwf hcoh hs' Hr Hfr hw' hc' st.nsBusy (by rw [hst]) $$ HAb HAm HAf HAt Htok
@@ -564,7 +569,7 @@ theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ
   iframe Hw Hn
   iapply wp_value'
   iapply HΦ $$ %e
-  unfold rdBack; iexact Hx
+  unfold rdBack osDir osNsAll; unfold rdPart; iexact Hx
 
 /-- `unlink(2)` of an absent name of `d`, with the in-flight flag set: it fails, the flag cleared. -/
 theorem wp_osUnlinkAbsent (d b : GoString) (dq : DFrac) (g : DirG) (hb : NameOk b)
