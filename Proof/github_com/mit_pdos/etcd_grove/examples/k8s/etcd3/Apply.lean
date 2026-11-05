@@ -242,11 +242,12 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
-        -- Stage 7b: the model answers `EOther` too, to a minimum resource version above the
-        -- state's (too large: `kStep_err` needs it reached); then the output is `errOutL`, as the
-        -- branch above. For the Prove phase; at 835795d4d1 (lean):
-        -- exact absurd Hok (kStep_err _ _ _ _)
-        sorry
+        -- the model answers `EOther` to a minimum resource version above the state's (too
+        -- large): the output is `errOutL`, as the branch above
+        rw [kStep_err4 _ _ x _ h3 Hok]
+        wp_auto
+        iapply HΦc
+        iapply hioOk
   · -- the prophecy says the call answers
     rcases Hgen.2.1 with h0 | h1 | h2 | h3
     · -- a `Create`: committed at the write's firing
@@ -379,13 +380,13 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       ihave Hmk := get_maker γ c g0 c.ms (sentV lD) (sentV lU) γc γt γp x hx h3 Φ $$ [Hγp]
       · iframe Hinvs Hc Hγp
       have hQr : ∀ (R m : w64) (σ : KVState),
-          (fun (R : w64) (_ : w64) σ => readQ c γc R σ) R m σ ⊢ (⌜kvWf c σ⌝ : IProp GF) := by
+          (fun (R : w64) (_ : w64) σ => readQ c γc (uint.nat (minOf x)) R σ) R m σ ⊢ (⌜kvWf c σ⌝ : IProp GF) := by
         intro R m σ
         unfold readQ
         iintro ⟨%h, -⟩
         ipureintro; exact h.1
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun R _ σ => readQ c γc R σ) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQr) $$ [Hmk] as %y Hy
+          (fun R _ σ => readQ c γc (uint.nat (minOf x)) R σ) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQr) $$ [Hmk] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg hk0, if_neg hk1, if_neg hk2]
@@ -403,12 +404,16 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           have := Hwr.2
           simp only [W64, uint.nat, BitVec.toNat_ofInt]
           omega
-        ihave #Hv := Hbit $$ %hrev
+        resolve3
+        rw [Hxs] at Hok
+        simp only [List.head?_cons, Option.some.injEq] at Hok
+        have hmin : uint.nat (minOf x) ≤ σ.rev :=
+          kStep_min (sentV lD) (sentV lU) x (c.abs σ) h3 (by rw [← Hy]; exact Hok)
+        ihave #Hv := Hbit $$ %(And.intro hrev hmin)
         iapply fupd_wp
         imod (getCall_take γ c g0 (sentV lD) (sentV lU) γc γt γp x Φ σ) $$ [Htok Hlc2] with HΦc
         · iframe Hc Hv Htok Hlc2
         imodintro
-        resolve3
         rw [← Hy]
         icases HΦc with ⟨HΦc, #Hans⟩
         cache_tail

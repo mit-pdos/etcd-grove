@@ -232,6 +232,21 @@ theorem kStep_ansFrom (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
   simp only [h0, h1, h2, ↓reduceIte]
   exact ansFrom_outOf _ _ _ _ (respFrom_get _ _ _ _)
 
+/-- **A `Get` answers other than `EOther` only at its minimum resource version** (D5): below it,
+the model answers "too large" (`EOther`). -/
+theorem kStep_min (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kind' = W64 3)
+    (h : (kStep eD eU x ks).2.Err' ≠ W64 4) : uint.nat (minOf x) ≤ ks.rv := by
+  have h0 : ¬ x.Kind' = W64 0 := by rw [hk]; decide
+  have h1 : ¬ x.Kind' = W64 1 := by rw [hk]; decide
+  have h2 : ¬ x.Kind' = W64 2 := by rw [hk]; decide
+  by_cases hm : uint.nat (minOf x) ≤ ks.rv
+  · exact hm
+  exfalso
+  apply h
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get]
+  rw [if_pos (by omega)]
+  rfl
+
 /-- **The driver's model answers `EOther` only to a `Get`** (a minimum resource version above the
 store's, stage 7b): a write's outputs are objects, "not found", "key exists", "invalid object" or
 a rejection. -/
@@ -653,13 +668,14 @@ instance getCall_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD 
   unfold getCall; infer_instance
 
 /-- **A read's result** at a firing at `σ`: the state is the store's, with room, and, at the
-prophesied revision `R`, the commit bit holds it. -/
-def readQ (c : StoreCfg GF DObj) (γc : GName) (R : w64) (σ : KVState) : IProp GF :=
+prophesied revision `R` and when it reaches the read's minimum resource version `n` (D5), the
+commit bit holds it. -/
+def readQ (c : StoreCfg GF DObj) (γc : GName) (n : Nat) (R : w64) (σ : KVState) : IProp GF :=
   iprop(⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗
-    (⌜σ.rev = uint.nat R⌝ → dghostVar γc DFrac.discard (some σ)))
+    (⌜σ.rev = uint.nat R ∧ n ≤ σ.rev⌝ → dghostVar γc DFrac.discard (some σ)))
 
-instance readQ_persistent (c : StoreCfg GF DObj) (γc : GName) (R : w64) (σ : KVState) :
-    Persistent (readQ c γc R σ) := by
+instance readQ_persistent (c : StoreCfg GF DObj) (γc : GName) (n : Nat) (R : w64)
+    (σ : KVState) : Persistent (readQ c γc n R σ) := by
   unfold readQ; infer_instance
 
 end defs

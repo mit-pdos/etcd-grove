@@ -103,7 +103,18 @@ theorem kStep_ans {c : StoreCfg GF DObj} {g0 : GSt} {S : linkv.PSet GSt Input} {
   · exact ansOf_mstepL x cf.st (Or.inr (Or.inl h))
   · exact ansOf_mstepL x cf.st (Or.inr (Or.inr h))
   -- a `Get` whose minimum resource version the state has reached: not the too-large `EOther`
-  sorry
+  by_cases hk3 : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2
+  · exact ansOf_mstepL x cf.st hk3
+  rw [← (refine_step eD eU _ _ hrel x hx hrv).2]
+  have h0 : ¬ x.Kind' = W64 0 := fun h => hk3 (Or.inl h)
+  have h1 : ¬ x.Kind' = W64 1 := fun h => hk3 (Or.inr (Or.inl h))
+  have h2 : ¬ x.Kind' = W64 2 := fun h => hk3 (Or.inr (Or.inr h))
+  unfold ansOf
+  rw [if_neg]
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get]
+  rw [if_neg (by rw [abs_rv]; omega)]
+  repeat' split
+  all_goals simp [outOf, objOutL, zeroOutL]
 
 /-- The revisions' map, after a step: the next revision's state added, if it moved. -/
 theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : σ' = σ ∨ σ'.rev = σ.rev + 1) :
@@ -783,6 +794,17 @@ def errOutL : Output := ⟨W64 4, [], 0, [], [], [], 0⟩
 theorem ansOf_errOutL : ansOf errOutL = .err := by
   simp [ansOf, errOutL]
 
+/-- **A `Get`'s `EOther`** is the model's "too large" answer, `errOutL`. -/
+theorem kStep_err4 (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kind' = W64 3)
+    (h : (kStep eD eU x ks).2.Err' = W64 4) : (kStep eD eU x ks).2 = errOutL := by
+  have h0 : ¬ x.Kind' = W64 0 := by rw [hk]; decide
+  have h1 : ¬ x.Kind' = W64 1 := by rw [hk]; decide
+  have h2 : ¬ x.Kind' = W64 2 := by rw [hk]; decide
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get] at h ⊢
+  revert h
+  repeat' split
+  all_goals simp [outOf, objOutL, zeroOutL, otherL, errOutL]
+
 /-- **A write whose prophecy says `EOther`** (see the file header): `lintest`'s update commits
 at once, the write pending (`kOk_errW`), with the pending write's token. -/
 theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
@@ -903,7 +925,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (R : w64) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
-      kvReadAu γk (readQ c γc R) := by
+      kvReadAu γk (readQ c γc (uint.nat (minOf x)) R) := by
   have Hm := drvInvN_mask'
   have Hcm := callN_mask'
   have HE := drvE_mask'
@@ -939,8 +961,9 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
     iempintro
   · iintro Hσ
     imod Hclose2 with -
-    by_cases Hrev : σ.rev = uint.nat R
-    · unfold getCall
+    by_cases Hrev2 : σ.rev = uint.nat R ∧ uint.nat (minOf x) ≤ σ.rev
+    · have Hrev := Hrev2.1
+      unfold getCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc, >Hγc⟩ | ⟨%σ0, %R0, >#Hv, >#Hp0, >%Hrev0, >#HL, Hrest⟩)
       · -- the first firing at revision `R`: commit
@@ -949,10 +972,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
         obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf Hok.room
         have Hst : (k8setcd3S (GF := GF) g0).M.step S
             (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-          rw [step_box, kStep_ans Hok eD eU x hx (Or.inr (Or.inr (Or.inr (by
-            -- 7b: the minimum resource version against the read's revision `R`: the store answers
-            -- (the prophecy) only if it is reached there; `get_read_au` does not yet know it
-            sorry))))]; exact HS'
+          rw [step_box, kStep_ans Hok eD eU x hx (Or.inr (Or.inr (Or.inr Hrev2.2)))]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe
@@ -1022,7 +1042,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
       isplitr
       · ipureintro; exact ⟨Hok.wf, Hok.room⟩
       iintro %H
-      exact absurd H Hrev
+      exact absurd H Hrev2
 
 /-- **The maker `Get` takes** (a `Get` whose prophecy says it answers): for the pair the client
 prophesies, the revision recorded (`γp`) and each member's read update for it. -/
@@ -1032,8 +1052,8 @@ theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (ms : List (cl
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
       dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
       (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
-        ⌜(fun σ => readQ c γc R σ) = fun _ => iprop(True)⌝ ∨
-          kvReadAu sv.γr.kv (fun σ => readQ c γc R σ)) : IProp GF) := by
+        ⌜(fun σ => readQ c γc (uint.nat (minOf x)) R σ) = fun _ => iprop(True)⌝ ∨
+          kvReadAu sv.γr.kv (fun σ => readQ c γc (uint.nat (minOf x)) R σ)) : IProp GF) := by
   iintro ⟨#Hinvs, #Hc, Hp⟩ %R %m
   imod dghostVar_update (some R) γp none $$ Hp with Hp
   imod dghostVar_persist γp 1 _ $$ Hp with #Hp

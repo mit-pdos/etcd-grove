@@ -805,6 +805,11 @@ through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loop
   `call.spec`'s continuation is a parameter). The facts: `AnsFrom`/`kStep_ansFrom` (an answer with a
   name is an item of the state before or after, or a deleted key's), `versionAt_of_chg`,
   `cachedObj_of_item`, `cachedObj_of_del`, `ansOk_step`, `ansOk_read`; `Apply`'s four puts proved.
+- Prove (c), D5 (2026-11-05): `readQ c γc n R σ` takes the read's minimum resource version `n`; the
+  commit bit is promised only at `σ.rev = R` with `n ≤ σ.rev`, and `get_read_au` commits only
+  then. Class: internal. `Apply` learns `n ≤ σ.rev` from the prophecy (not `EOther`, `kStep_min`);
+  a `Get` whose prophecy says `EOther` answers `errOutL` (`kStep_err4`); `kStep_ans`'s `Get` case
+  proved. `Apply` and `InvSteps` are `sorry`-free but `revRoom` (D30n, lean's).
 
 ## What blocks where
 
