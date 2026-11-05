@@ -32,6 +32,7 @@ axiom etcdStreamInterceptor
 axiom features.AllowUnsafeMalformedObjectDeletion_notPanic
 axiom fmt.Errorf.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
+axiom fmt.SprintfNamed.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof

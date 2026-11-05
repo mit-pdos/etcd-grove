@@ -87,3 +87,13 @@ answer there, and needs that answer not `EOther`, i.e. `minOf x ≤ R`.
 - **Decided by the agent:** `Gen.spec` a plain triple (`isCache c tbl` in, `GenIn x ∗ cachedIn c x`
   out), `Check`'s proof gives the closure's `lintest.genSpec` (as it does `applySpec` for `Apply`'s
   closure). One spec, restated: not a second family.
+
+## D7. `GuaranteedUpdate`'s proof: no statement changed; the helper lemmas private to the proof file (decided by the agent, pending the user)
+
+The Prove phase closed `store.GuaranteedUpdate` (2026-11-05) without changing a frozen statement.
+Its helpers (`stAt_cases`, `gu_answer`, `rd_noop`, `rd_data`, `rd_szOk`, `szOk`, `ht_conv`) are
+`private` in `Proof/k8s_io/apiserver/pkg/storage/etcd3/store__GuaranteedUpdate.lean`, so the proof
+file still exposes only `wp_proof`.
+- **Decided by the agent:** keep them private there. Option: move them to `Steps.lean` beside the
+  model lemmas (`rdOf`, `rd_current`, ...) if `conditionalDelete` or a later stage (7e's lists)
+  needs them. That would rebuild `Steps.lean`'s importers.

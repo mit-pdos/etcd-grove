@@ -278,7 +278,8 @@ traffic grows):
 - **7a. `GetList` translated** (done 2026-10-31): the pinned Perennial supports range over a
   function (`caa9d07ee`, pin `edcadb1e5`), so `!store.GetList` is dropped from `etcd3.toml`;
   476 lines of `Code`, elaborates. G2 closed.
-- **7b. The unary paths without new etcd capabilities**: `Get` with a resource version (a minimum),
+- **7b. The unary paths without new etcd capabilities** (done 2026-11-05, branch `k8s-etcd3-7b`; the
+  sections "7b: ..." below): `Get` with a resource version (a minimum),
   `Preconditions.Check` non-nil (UID, RV),
   `cachedExistingObject` on `Delete`/`GuaranteedUpdate` (`getStateFromObject`, the
   `!origStateIsCurrent` re-read and retry: the stale-suggestion class), `ignoreNotFound` on
@@ -810,6 +811,26 @@ through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loop
   then. Class: internal. `Apply` learns `n ≤ σ.rev` from the prophecy (not `EOther`, `kStep_min`);
   a `Get` whose prophecy says `EOther` answers `errOutL` (`kStep_err4`); `kStep_ans`'s `Get` case
   proved. `Apply` and `InvSteps` are `sorry`-free but `revRoom` (D30n, lean's).
+- Prove (d), the store's loops and the rest (2026-11-05): no statement changed. `genFrom`, `call`'s
+  `Delete`/`GuaranteedUpdate` branches, `respIs_call`'s too-large case, the new driver functions'
+  bodies, `decodeObj`, `rvBytes`, the model functions, `refine_*`, `stFrom_item`, `deleteOnce`,
+  `conditionalDelete`, `updateOnce` and `GuaranteedUpdate` proved. `GuaranteedUpdate`'s loop
+  invariant is `conditionalDelete`'s with `rdOf` (a read's key-value, or the zero state with
+  `ignoreNotFound`) and the size premises' consequence `szOk`; the cached no-op's re-read
+  (`store.go:556`) is the first read, and when it returns the cached object's encoding its object
+  is the cached one (`rd_data`), on which D1 makes the preconditions and `tryUpdate` answer as on the
+  cached state: the model's no-op at the re-read's state (`rd_noop`), or, stale, the write from it.
+  Helper lemmas: `rdOf`, `rd_current`, `update_cur_pre`/`update_cur_err`, `rd_hand_upd`,
+  `stFrom_cached`, `stFrom_rdOf`, `preOk_rv_none` (`Steps.lean`); `stAt_cases`, `gu_answer`,
+  `rd_noop`, `rd_data`, `rd_szOk` (private, in the proof file).
+
+**7b done (2026-11-05).** No post-freeze change to a frozen statement; the post-freeze changes above
+are internal (the driver's invariant, `InvSteps`' continuations, D5's read update). Trust base of
+`etc/tcb-collections/k8setcd3.txt`: before the stage (lean), 659 axioms and 3 `sorry`s (`client_ctx_field`, `revRoom`, `kvIs_ne_null`, none
+7b's); after, 660 axioms (the approved extension T1, `fmt.SprintfNamed.wp_proof`, already in
+`etc/tcb-baseline.txt`, now reached through `Preconditions.Check`), the same 3 `sorry`s (also
+`k8s.txt`: + T1). `etc/tcb-baseline.txt` unchanged (785 axioms, 6 `sorry`s); `k8s_compactor_safe`
+reaches no `sorry`.
 
 ## What blocks where
 

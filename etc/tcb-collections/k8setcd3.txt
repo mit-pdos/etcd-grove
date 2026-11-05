@@ -395,6 +395,7 @@ axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
+axiom fmt.SprintfNamed.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
