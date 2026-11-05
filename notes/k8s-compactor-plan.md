@@ -289,11 +289,37 @@ client's watch through the three bridges, which the compactor's watch loop needs
    closed theorem (as `k8s_compactor_adequate` at the program `MainPartition #sched`, for every
    schedule, with partition's hypotheses at `clusterCfg`); **frozen by the user, 2026-11-05** (F1;
    tag `k8s-k6-frozen` on `fb3ec74234`).
-5. *Prove* (handed to the coordinator, etcd-grove-82, 2026-11-05): `MainPartition`, its link and the
-   closed theorem, as below. Landing waits on hub request H1 (`questions.md` at the worktree root:
-   the `etcdstart` starters' `cmp` binder, K6 step 1).
+5. *Prove* (done, 2026-11-05, by an agent of the coordinator etcd-grove-82, branch `k8s3m`):
+   `MainPartition.wp_proof` (`Proof/.../k8s/compactor/MainPartition.lean`), `clusterConfig`'s spec and
+   proof, `k8s_compactor.wp_MainPartition` (`MainLinked.lean`, by hand as `wp_Main`), and the closed
+   theorem `k8s_compactor_partition_adequate` (`Adequacy.lean`; `Results.lean`'s
+   `k8s_compactor_MainPartition`, `k8s_compactor_partition_safe`, with `#print axioms`); no `sorry`,
+   no new axiom (the partition example's bridge, HTTP and snapshot axioms join the collection
+   `k8scompactor`'s baseline, all already in the trust base). Landing waits on the coordinator
+   (H1 accepted).
 
-**The proof plan for step 5** (no statement changes: a frozen-statement change goes to the user):
+**The change log after the freeze** (`notes/spec-first-plan.md`'s categories). No frozen statement
+changed: `MainPartition.spec` is as frozen, and the closed theorem is the frozen description written
+out.
+- `[C, proof, public]` The closed theorem written out as frozen: `k8s_compactor_partition_adequate`
+  (`etcd_adequate_alloc`, the registry as `k8s_compactor_adequate`'s), its program
+  `k8scompactorPProgram steps`, its addresses `k8scompactorPAddrs` and WAL directories
+  `k8scompactorPWalDirs` (the nine of `clusterCfg`, the three `<name>.etcd`), the schedule's length
+  below `2^63` (partition's).
+- `[C, proof, internal]` `k8s_compactor.wp_MainPartition` takes `[go_etcd_io.etcd.cache.v3.Assumptions]`
+  as an instance, as partition's `wp_Main` (its linked `StartCluster` needs one).
+- `[A, proof, public]` `client.isKv_of_newClient` generalized in place to a member list (the plan's
+  finding): `(ms : List SrvAt) (eps) (heps : ms.map SrvAt.addr = eps) (hst : ∀ x ∈ ms, kvSame x.γr.kv
+  γk)`, premise `[∗list] x ∈ ms, kvRegsAt x`; its three one-member callers (`etcd/watch`'s and
+  `etcd/cache`'s `Main`, the compactor's `Main`) pass `[x]`. One lemma, no second family.
+- `[E, proof, internal]` `clusterConfig.spec` (`RET #clusterCfg`) and its proof, as partition's
+  `config`; `memberWatch_of_cinv` (a member's watch facts in the compacting cluster, from the
+  invariant's `oneChangeAu`).
+- `[C, proof, internal]` `schedLit` and its size lemmas moved from partition's `Adequacy.lean` to
+  `cluster3/SchedLit.lean` (shared by the two closed theorems, not copied).
+
+**The proof plan for step 5** (as written at the freeze; carried out as planned, but the watch
+facts by `memberWatch_of_cinv` and the clients' watchers by `isNewClient_watcher_of`):
 - `clusterConfig` (Go leaf, returns the literal): spec and proof as partition's `config.lean`
   (`RET #clusterCfg`).
 - `MainPartition.lean` (the proof), shaped as the one-member `Main.lean` for the compactor side and
