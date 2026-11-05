@@ -7,7 +7,8 @@ closed at `T` (an absent name) or `T.dropBkt n` (`dbk_close`, from `deleteOK`).
 
 One case is not provable: the empty name in an empty root bucket, where Go returns
 `ErrIncompatibleValue` and the frozen triple says `ErrBucketNotFound` (U7m's finding, reported; the
-`sorry` below).
+`sorry` below). `wrCurFacts T X` comes from `wrCurFacts_of` (OPEN) until maintainer 16 adds it to
+`boltTx`'s writer facts; `deleteOK`'s `wrCurFacts (T.dropBkt n) X'` is then what closes with.
 -/
 module
 
@@ -75,7 +76,8 @@ theorem Tx.DeleteBucket.wp_proof
   rw [show tx.[Tx, go!"root"] = txRoot (GF := GF) tx from rfl, ← hrl]
   iapply wp_fupd
   wp_apply Write.Bucket.DeleteBucket.wp_root hBw hCur hSeek hFeb hNode hDel hFree hClone hEq K tx r
-    X w T name n dq hok hcur' hgens hwr Hxf.1 $$ [Hw Hwdb Hname] as %err ⟨Hname, Hres⟩
+    X w T name n dq hok hcur' hgens hwr
+    (wrCurFacts_of T X hok hgens hwr hcur' hbase) Hxf.1 $$ [Hw Hwdb Hname] as %err ⟨Hname, Hres⟩
   · iframe
   rw [← hKB, ← hKN]
   by_cases hex : T.cur.lookup n = none
@@ -96,7 +98,7 @@ theorem Tx.DeleteBucket.wp_proof
       sorry
   rw [if_neg hex]
   icases Hres with ⟨%he, %X', %w', Hw, Hwdb, %Hd⟩
-  obtain ⟨hok', hd', hg', hwr', hv', hmv', hC', hfl', hsh'⟩ := Hd
+  obtain ⟨hok', hd', hg', hwr', hv', hmv', hC', hfl', hsh', -⟩ := Hd
   have hT' : T.dropBkt n = TxView.ofC (dropC c n) := by rw [hTc]; exact dropBkt_ofC c n
   ihave Hshape := hsh' extra $$ Hshape
   rw [show X.v = X'.v from hv'.symm]

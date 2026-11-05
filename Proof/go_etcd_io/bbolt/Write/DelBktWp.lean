@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.bbolt.Write.CreateBktWp
 public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_w
 public import Spec.go_etcd_io.bbolt.node__del
 public import Spec.go_etcd_io.bbolt.Bucket__free
+public import Proof.go_etcd_io.bbolt.Read.PubWCur
 
 @[expose] public section
 
@@ -38,11 +39,15 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- What a successful `DeleteBucket` of the present `n` gives of the new records `X'` and database
 side `w'`, from `X` and `w`: the facts `boltTxDef` closes with at `T.dropBkt n`, the view and meta
-copy kept, the committed state kept, the freelist's agreement and the page tokens. -/
+copy kept, the committed state kept, the freelist's agreement and the page tokens; and the cursor's
+writer facts (`wrCurFacts`, maintainer 16's addition to `boltTx`'s writer facts: the deleted bucket
+out of `liveB` and the root's `bm`, `n`'s generation bumped so `wRoot n = 0`, the other buckets'
+`nm`, `nloc` and `ib.root'` unchanged). -/
 def deleteOK (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) : Prop :=
   wOK X' ∧ wtxData X' = T.cur.delete n ∧ gensOK (T.dropBkt n) X' ∧ wrFacts X' ∧
     X'.v = X.v ∧ X'.t.mv = X.t.mv ∧ w'.C = w.C ∧ flViewU X' w'.fl ∧
-    ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra
+    (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) ∧
+    wrCurFacts (T.dropBkt n) X'
 
 omit package_sem in
 /-- **The root bucket's `DeleteBucket`.** -/
@@ -58,7 +63,7 @@ theorem Bucket.DeleteBucket.wp_root
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (T : TxView) (name : GoSlice)
     (n : GoString) (dq : DFrac) (hok : wOK X) (hcur : T.cur = wtxData X) (hgens : gensOK T X)
-    (hwr : wrFacts X) (hfl : flViewU X w.fl) :
+    (hwr : wrFacts X) (hwc : wrCurFacts T X) (hfl : flViewU X w.fl) :
   {{ wtxW (GF := GF) K tx r false X ∗ wdbW K tx X.v w ∗ name ↦*{dq} n }}
     (App (Val (X.rl @!! go.GoType.PointerType Bucket.ty @!! go!"DeleteBucket")) (Val #name))
   {{ (err : GoInterface), RET #err; name ↦*{dq} n ∗
