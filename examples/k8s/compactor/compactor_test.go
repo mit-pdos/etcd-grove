@@ -82,7 +82,7 @@ func startMember(t *testing.T, name, peer, client string) *clientv3.Client {
 	return cli
 }
 
-// TestHistory runs Main's workload (the writer, three API servers) on a member of its own, with a
+// TestHistory runs Main's workload (the writer, the API servers) on a member of its own, with a
 // watch of compact_rev_key registered before the first round, and checks what Main cannot state in terms
 // of the specs:
 //
@@ -131,15 +131,16 @@ func TestHistory(t *testing.T) {
 
 	go writer(cli)
 	var wg sync.WaitGroup
-	for i := 0; i < servers; i++ {
+	for i := 0; i < servers+sharedServers; i++ {
 		c, err := etcdstart.NewClient(addr, zap.NewNop())
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer c.Close()
+		shared := i >= servers
 		wg.Add(1)
 		go func() {
-			apiserver(c)
+			apiserver(c, shared)
 			wg.Done()
 		}()
 	}
@@ -263,4 +264,29 @@ func firstLines(s, prefix string, n int) string {
 		ls = ls[:n]
 	}
 	return strings.Join(ls, "\n")
+}
+
+// TestShared checks that the shared servers share: StartCompactorPerEndpoint on two clients of one
+// endpoint returns one compactor, and a new one after it is stopped (Stop unregisters it).
+func TestShared(t *testing.T) {
+	addr := "127.0.0.1:23978"
+	cli := startMember(t, "k8scompactors", "127.0.0.1:23988", addr)
+	defer cli.Close()
+	cli2, err := etcdstart.NewClient(addr, zap.NewNop())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cli2.Close()
+	c1 := etcd3.StartCompactorPerEndpoint(cli, interval)
+	c2 := etcd3.StartCompactorPerEndpoint(cli2, interval)
+	if c1 != c2 {
+		t.Fatalf("two compactors for one endpoint")
+	}
+	c1.Stop()
+	c2.Stop()
+	c3 := etcd3.StartCompactorPerEndpoint(cli2, interval)
+	defer c3.Stop()
+	if c3 == c1 {
+		t.Fatalf("a stopped compactor still registered")
+	}
 }

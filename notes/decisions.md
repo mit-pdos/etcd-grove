@@ -31912,6 +31912,18 @@ finding).
   `nonissues/k8s-apiserver-compactor-per-endpoint-stale-entry.md`: Kubernetes' compactor client never
   changes its endpoints.
 
+**C3: the example and the allocation (2026-11-05, branch `q1c3`).** The compactor example's API
+servers go through one function, `check(cli, c)`, over a local interface (`compactorAPI`:
+`CompactRevision`, `Stop`), since both constructors return the unexported `*compactor`; three call
+`NewCompactor`, two share the process's compactor (`StartCompactorPerEndpoint`). One example rather
+than a second one: its invariant and checks are the same, and the `NewCompactor` servers keep the
+compare-and-swap race between compactors. The registry is allocated before the program's proof is
+chosen: `progOk` fixes the initializer's triple (and so the class's instance) before any ghost update,
+so `etcd_adequate_alloc` (`etcdstart/Adequacy.lean`) takes `∃ X T, (⊢ |==> ∃ x, T x) ∧ ∀ x, progOk
+… (B ∗ T x) …`; the example picks `X := GName`, `T γ := regAuth ∅` at `⟨γ⟩` (`regAuth_alloc`).
+`Main` claims the client address once the cluster's names are known (`epOf_alloc`). The store example
+still takes a fixed name: it registers no compactor.
+
 ## The auth store's `Close` at the stop (2026-11-05 · R2b-3d stage 5b; the user's choice "Close contract" · branch `r2b3`)
 
 `Cleanup`'s `authStore.Close` took the store's invariant and the token provider's admin share

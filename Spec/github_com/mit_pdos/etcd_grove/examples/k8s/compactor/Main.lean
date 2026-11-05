@@ -3,14 +3,16 @@
 started in process in compaction mode with etcd's compactor off (`etcdstart.StartCompactingServer` at
 retention `0`, member `k8scompactor`, peer address `127.0.0.1:23986`, client address
 `127.0.0.1:23976`), served (`etcdstart.Serve`), a client that waits for the member to serve
-(`ready`), a writer goroutine, and three API servers, each with its own client and compactor (both
-loops: `ListFromCacheSnapshot` is on by default since Kubernetes 1.34; until Q1 (b), 2026-11-04,
-`Main` turned it off), which `Main` waits for.
+(`ready`), a writer goroutine, and five API servers, each with its own client, three with their own
+compactor (`NewCompactor`), two sharing the process's (`StartCompactorPerEndpoint`; Q1 (c), C3,
+2026-11-05) (both loops: `ListFromCacheSnapshot` is on by default since Kubernetes 1.34; until Q1 (b),
+2026-11-04, `Main` turned it off), which `Main` waits for.
 Lean-first.
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address, the main
 thread's token, the member's start premises (`etcdstart.premises`, one-member, at this
-configuration) and a fresh WAL directory, `Main` returns: no check of an API server panics and no
+configuration), a fresh WAL directory and the compactor registry's claims' authority with no endpoint
+claimed (`regAuth ∅`, which the adequacy theorem allocates), `Main` returns: no check of an API server panics and no
 compactor round panics. The pure premises are the one-member examples' (`compactwatch`'s
 `Main.spec`: the member id and bootstrap log, the thread and receipt bounds, the server's workload
 and effect premises, gRPC's method sets, `errors.As`'s target). Stated under the cache package's
@@ -65,7 +67,8 @@ abbrev Main.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor ∗
       netAddrFree (GF := GF) clientAddr ∗ threadTok ∗
       etcdstart.premises memberName peerAddr clientAddr N id ctxs boot ∗
-      walDirFresh (config.walDirOf (memberName ++ go!".etcd") go!"") }}
+      walDirFresh (config.walDirOf (memberName ++ go!".etcd") go!"") ∗
+      k8s.regAuth (∅ : GMap GoString GName) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main)) (Val #()))
   {{ RET #(); True }}
 
