@@ -202,6 +202,13 @@ theorem rCurKV_pub (γ : BoltName) (tx : Loc) (r : TxReg) (v : View) (bv : List 
     ipureintro
     exact ⟨⟨rfl, rfl⟩, by decide, Or.inr ⟨hs, i, hi⟩⟩
 
+/-- Past the end, `curAt` is nil, nil at every position. -/
+theorem curAt_past (γ : BoltName) (tx : Loc) (es : List BoltEnt) (i j : Nat) (k vl : GoSlice)
+    (hi : es.length ≤ i) (hj : es.length ≤ j) :
+    curAt (GF := GF) tx γ es i k vl ⊢ curAt tx γ es j k vl := by
+  unfold curAt
+  rw [List.getElem?_eq_none hi, List.getElem?_eq_none hj]
+
 end pubR
 
 end bbolt
