@@ -84,7 +84,9 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
     (hnd : (bufSlots X.t.bufs).Nodup) (hsub : ∀ s ∈ bufSlots X.t.bufs, s ∈ w.W)
     (hW : ∀ s, s < l / 4096 → w.m.size < 4096 * (s + 1) → s ∈ w.W)
     (hlen : ∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096)
-    (hinW : ∀ s ∈ w.W, l / 4096 ≤ s → 4096 * (s + 1) ≤ w.m.size) :
+    (hinW : ∀ s ∈ w.W, l / 4096 ≤ s → 4096 * (s + 1) ≤ w.m.size)
+    (hpart : ∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) →
+      w.m.size - 4096 * s ≤ (w.wb s).length) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx ws w }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
     {{ (err : GoInterface), RET #err; ∃ (pml : Loc) (m' : OsMeta) (wb' : Nat → List w8),
@@ -154,7 +156,7 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
       by_cases hSB : s ∈ bufSlots X.t.bufs
       · exact Or.inl hSB
       · exact Or.inr ((mem_cmTail _ _ _ s).2 ⟨hs, hW s hs hgt, hgt, hSB⟩))
-    (fun s hs hz => hlen s (hsub' s hs) hz)
+    (fun s hs hz => hlen s (hsub' s hs) hz) (fun s _ h1 h2 => hpart s h1 h2)
     $$ [Hst Hdb Hpg Hpm Hbufs Hfile Hwa Hfo Hfd Hom Hs]
     as %err ⟨Hst, Hdb, ⟨%pml, Hpg, Hpm⟩, Hfile, Hwa, Hfo, Hfd, %om', %wb', Hom, %Hom', Hres⟩
   · iframe; iframe #

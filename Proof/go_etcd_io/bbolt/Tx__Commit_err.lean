@@ -381,7 +381,7 @@ theorem Tx.Commit_err.wp_proof'
     rw [hmv1, ← Hf.1.1.2.2.2.1, show X.v.txid = w.C.txid by rw [Hwok.2.2]; rfl]
     exact Htxl
   wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
-    hreach1 hmap1 hflv1 hstart1 htx63 $$ [Hw Hwdb] as %err1 Hsp
+    hreach1 hmap1 hflv1 hstart1 htx63 (markCov_of_eq X1 _ hopg) $$ [Hw Hwdb] as %err1 Hsp
   · iframe
   cases lg with
   | nil => iexfalso; unfold dbLogger boltLogger; iexact Hlgok
@@ -391,7 +391,8 @@ theorem Tx.Commit_err.wp_proof'
   icases Hsp with (⟨%He1, %X2, %w2, Hw, Hwdb, %Hsp⟩ | ⟨%He1, #Hfe1, %X2, %w2, %st, %Hsp, Hres⟩)
   · -- spilled
     subst He1
-    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hbufs2, htt2, hrl2e, hrl2, hmv2⟩ := Hsp
+    obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hbufs2, htt2, hrl2e, hrl2, hmv2, hnp2,
+      hmc2⟩ := Hsp
     try wp_auto
     wp_apply time.wp_Since as %d -
     try wp_auto
@@ -580,11 +581,8 @@ theorem Tx.Commit_err.wp_proof'
                     show X1.t.mv.pageSize'.toNat = _; rw [hmv1]; exact Hmeta.2.2.1)
                 Hal.1 Hal.2.1 htxC hCh hml4 hh48 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hbd2.1
                 Hw4ok.1 Hbd4.1 Hcf4.2.2.2.2.1 (by omega) ?_ ?_
-              · -- OPEN (U10l): the new tree's slots are not pending: not in
-                -- `Bucket.spill.spec`'s post (reported)
-                sorry
-              · -- OPEN (U10l): `markCov` (D-K): not yet in `Bucket.spill.spec`'s post
-                sorry
+              · rw [hC2]; exact hnp2
+              · rw [hC2]; exact hmc2
           · -- `commitFreelist` failed (rolled back): log, return the error
             obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
               cases err2 with
@@ -698,11 +696,8 @@ theorem Tx.Commit_err.wp_proof'
               (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]; show X1.t.mv.pageSize'.toNat = _
                   rw [hmv1]; exact Hmeta.2.2.1)
               hCh hml3 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hcf2.2.2.2.2.1 (by omega) ?_ ?_
-            · -- OPEN (U10l): the new tree's slots are not pending: not in `Bucket.spill.spec`'s
-              -- post (reported)
-              sorry
-            · -- OPEN (U10l): `markCov` (D-K): not yet in `Bucket.spill.spec`'s post
-              sorry
+            · rw [hC2]; exact hnp2
+            · rw [hC2]; exact hmc2
       iintro %v Hv
       icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
         ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
@@ -851,6 +846,7 @@ theorem Tx.Commit_err.wp_proof'
           have hsz63 : wg.m.size < 2 ^ 63 := Hwgok.1.2.2.2.2.2.2.2.2.2.2.2.2.1
           wp_apply cm_write_step wp_write K tx r Xt (wLive Xt.v wg.C) wg Xt.v.base (mapLen wg.ms) hms
             (Hwgok.1.1 _ _ hms) hsz63 (by omega) hpre'.1 hbok hpre'.2.2.1 hsub hW hlen hinW
+            Hwgok.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
             $$ [Hw Hwl] as %err4 ⟨%pml, %m', %wb', %Hm', Hw, Hres⟩
           · iframe
           have hsub' : ∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
