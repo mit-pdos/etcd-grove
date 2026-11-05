@@ -18,17 +18,7 @@ theorem etcdstart.memberFreshRes_client (n : GoString) (a : etcdstart.MemberAddr
     GF) (c : GoString) (h : a.client = some c) : etcdstart.memberFreshRes n a γn ⊢ netAddrFree c ∗
     etcdstart.memberFreshRes n { peer := a.peer } γn
 
-theorem etcdstart.memberStartRes_of_lists_all.{u_1} (ms : List (GoString × etcdstart.MemberAddrs)) :
-    (([∗list] x ∈ List.flatMap (fun m => m.snd.addrs) ms, netAddrFree x) ∗ ([∗list] x ∈ List.flatMap
-    (fun m => m.snd.addrs) ms, httpProtoFree x) ∗ [∗list] d ∈ List.map (fun m =>
-    etcdstart.memberWalDir m.fst) ms, walDirFresh d) ⊢ [∗list] m ∈ ms, etcdstart.memberStartRes
-    m.fst m.snd
-
 def (sealed) etcdstart.memberStartRes.{u_1} (name : GoString) (a : etcdstart.MemberAddrs) : IProp GF
-
-theorem etcdstart.memberStartRes_of_lists.{u_1} (n : GoString) (a : etcdstart.MemberAddrs) :
-    ([∗list] x ∈ a.addrs, netAddrFree x) ∗ ([∗list] x ∈ a.addrs, httpProtoFree x) ∗ walDirFresh
-    (etcdstart.memberWalDir n) ⊢ etcdstart.memberStartRes n a
 
 theorem etcdstart.memberRestartRes_boot (n : GoString) (γn : NetNames GF) (γ : SrvRaft) (ρ :
     ReqNames) (id : w64) : etcdstart.memberRestartRes n { } γn γ ρ id ⊢ srvDiskImage γ ρ id (n ++
