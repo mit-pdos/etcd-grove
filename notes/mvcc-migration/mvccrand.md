@@ -223,19 +223,30 @@ result past `NewLessor` without the stub; the panic only in `backend.New`'s arm;
 
 ## Left
 
-- `writer.*`: `genLease` (local), `view`/`end` (over
-  `writerIdle` and the history specs), `writeOp`, `put`, `deleteRange`, `txn`, `read` (over
-  `KV.Write`/`KV.Read` and `Txn.*`, `checkRange.spec`, `WriteModel`), `grant`, `revoke`,
-  `checkLeases` (over the lessor's specs: `Lookup`'s exactness and `Lease.Keys`' `keysPre` not yet
-  examined), `run`.
-- `reader` (over `histRd`, the floor's `γ.pub` lower bound, `KV.Read`/`Rev`, `NewReadOnlyTxnWrite`,
-  `checkRange.spec`).
-- `watchCheck.expect`/`receive`/`complete`/`register` (`receive` over `wsChan_recv.law`,
-  `wsRecv_ok.law`, `wsSentLb`; `expect` over `history.changesAt`, the pure correspondence between
-  `watchEvents` of the notified log and the tester's changes in range, not yet written).
-- `newHistory`'s proof (the map-literal WP, above).
+Proved, no `sorry` (2026-11-06/07): every `writer.*` but `revoke` and `run` (`cur`, `begin`,
+`view`, `end`, `checkHook`, `newVal`, `genLease`, `put`, `deleteRange`, `writeOp`, `read`, `grant`,
+`checkLeases`, `txn`), `reader`, `watchCheck.expect`, `newHistory` (over a local
+`wp_slice_literal_ex`, the slice literal of map literals). `writer.txn` (`c3f9f28e56`): the read
+transaction in either mode at the writer's state, then read-only (`NewReadOnlyTxnWrite`, the ranges'
+loop) or writing (`Write` at the same state, the loop of `writeOp`s keeping `pendOk` and the pending
+log's `LogOk`, from the read's `LogWf'` by `LogWf'.append_nil`); its spec draws at most three values
+and gives `hookPost` or `hookPre` unchanged (read-only: no hook runs).
+
+- `writer.revoke`: spec written (`Spec/.../writer__revoke.lean`: post at `L.filter (· != id)`, the
+  hook run or not); proof started (`writer__revoke.lean`: the model, `pendOk_revoke` over
+  `leaseDelKeys_eq_onLease` and `delOne_foldl`; `stMatch_length_le` for `Revoke`'s `≤ 2 ^ 62`;
+  `writer_reach` for its `MvccReachable`; `revoke_au`, the `auBegin`/`auEnd` update over the
+  invariant; the `id = 0` arm), the rest a `sorry`: the two key loops, `end` with the closure
+  calling `Revoke` as its callback (`endCb`), `Lookup` after. Not checked: stopped when mvcc's API
+  began its restatement over `MvccStorage` (uncommitted, the mvcc track, 2026-11-06), against which
+  `Writer.lean` (`BkRef`) no longer builds.
+- `watchCheck.receive`/`complete`/`register` (`receive` over `wsChan_recv.law`, `wsRecv_ok.law`,
+  `wsSentLb`), `writer.run`.
 - `runChecks` (spec: the configuration bounds above; post: the report, or `backend.New`'s panic),
   `Main`, `Link.lean`, `Results.lean`, the closed theorem.
+- **The migration to the restated API** (`MvccStorage` in place of `BkRef`): `Writer.lean`'s
+  `writerCtx`/`writerOwn`, `WriterLease.lean` (`B.γB`, `B.b`, `B.P` of the lessor's specs), and
+  every writer proof using them.
 - **For the coordinator, `etc/gen-init.py`'s entry for `mvccrand`**: needed only for the closed
   theorem (`Init.lean`'s `wp_initialize'`, then `PkgTable.lean`). The fact is `Base.lean`'s
   `mvccrandInit`: `keys` and `extraEnds` each hold a read-only slice of their literal (`keyList`,
