@@ -1710,3 +1710,28 @@ now a tag, `ApiImpl.nodeStartTag n γ boot`: `StartNode` writes `true`, `Restart
 It replaces the driver-state record (`nodeStartRec`/`nodeDriverFrom`). With the tag, the exclusion
 of restarts no longer depends on `RestartNode` discarding its record or on its `[scope]` premise.
 The interface does not change. The other findings and the nonissue are in `questions.md`.
+
+**The granted TTL and `Main` (2026-11-05).**
+
+`28411daeac` threads E3/R5's granted TTL from `lessor.Grant` up to the client's revocable grant
+contract. The grant's success fact takes the request (`G : w64 × w64 → w64 → IProp GF` in
+`lessorGrantOkG` and `etcdLeaseGrantSpecG/GR`; the monotone mode passes `fun _ id => …`).
+`etcdLeaseGrantSpecLive γl` is now
+`∃ i l t, leaseLiveFrom γl i id l ∗ lsF "ttl" l ↦□ t ∗ ⌜sint.Z req.1 ≤ sint.Z t⌝`.
+It also changes the apply contract's Grant clause, `grantAnswer`, `leaseGrantedResp` (which gains
+`reqTTL`) and `EtcdServer.LeaseGrant.spec`'s post.
+
+`e1c0d90073` proves leaseexpiry's `Main` and links it (`MainLinked`, which passes
+`srvGrantOpen_open` and `srvRevokeOpen_open`). Its `Adequacy` and `Results` are leasegrant's, without
+`leasesNoExpiry`. The collection is `etc/tcb-collections/leaseexpiry.txt`.
+
+How the proof goes:
+- The poll loop's invariant is "`gone` → `leaseAbsentFrom γl i0 id`", where `i0` is the grant's
+  index.
+- Each answer is turned, under the row (`leaseTTLRow`, from `StartServer`'s `leaseTTLRowR` and
+  `lease.srvInv_first`), into "`GrantedTTL ≠ 0` ∨ absent": `leaseTTLAt_ttl_agree` makes a found
+  answer's `GrantedTTL` the lease's `ttl ≥ 1`.
+- `Leases()` is asked at the absence's index. `lessorAt_absent_stays` shows the listing's snapshot
+  lacks the lease, so the range loop never panics.
+
+Bounds: +1 spec-thread, +2 spec-receipt (leaseexpiry's `Main`, as leasegrant's), in the baseline.

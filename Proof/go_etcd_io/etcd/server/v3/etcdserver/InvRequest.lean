@@ -598,7 +598,21 @@ theorem leaseIdMask_inj_pfx (u v : w64) (hu : idPfx u = idPfx v)
   have e1 : leaseIdMask = 0x7fffffffffffffff#64 := by decide
   have e2 : (W64 (2 ^ 64 - 2 ^ 48)) = 0xffff000000000000#64 := by decide
   rw [e1] at h; rw [e2] at hu
-  bv_decide
+  -- bit by bit (not `bv_decide`, whose native evaluation would be an axiom of the trust base)
+  have e1' : (0x7fffffffffffffff#64) = BitVec.allOnes 64 >>> 1 := by decide
+  have e2' : (0xffff000000000000#64) = BitVec.allOnes 64 <<< 48 := by decide
+  rw [e1'] at h; rw [e2'] at hu
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  have h1 := congrArg (fun x => x.getLsbD i) h
+  have h2 := congrArg (fun x => x.getLsbD i) hu
+  simp only [BitVec.getLsbD_and, BitVec.getLsbD_ushiftRight, BitVec.getLsbD_allOnes,
+    BitVec.getLsbD_shiftLeft] at h1 h2
+  by_cases hlt : i < 63
+  · have : 1 + i < 64 := by omega
+    simpa [this] using h1
+  · have : 48 ≤ i := by omega
+    simpa [hi, this, show ¬ i < 48 by omega, show i - 48 < 64 by omega] using h2
 
 /-- **Distinct ids of one prefix stay distinct after the mask** (one generator's ids: `idFresh`'s
 `idPfx id = γi.pfx`). -/
