@@ -854,6 +854,174 @@ theorem del_read_hand {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoS
   simp only [delStep, delete_at c σ key hpk kv kv hv s hs rfl hs.1.symm pre validate hpre hok]
   exact KSt.ne_of_rv
 
+/-- `modOf` of etcd's state, read as linkv's model, is `modAt`. -/
+theorem modOf_absSt (σ : KVState) (k : GoString) :
+    modOf (linkv.absSt σ).kv k = kubernetes.modAt k σ := by
+  cases hf : mvcc.findKey k σ.kvs with
+  | none => simp [modOf, linkv.absSt, linkv.absM, kubernetes.modAt, hf]
+  | some w => simp [modOf, linkv.absSt, linkv.absM, kubernetes.modAt, hf, linkv.absVR]
+
+/-- **`updateOnce`'s transaction at any mod revision `r`** (`put_cases` without `r ≠ 0`: at `0`,
+the zero state's create): if it fails, nothing changed; if it succeeds, the key was at mod
+revision `r`, and holds `v` at the next revision, a state of the store. -/
+theorem put_cases' (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
+    (hb : σ.rev + 2 < 2 ^ 63) (pk v : GoString) (r : w64)
+    (hv : c.pfx <+: pk → (c.S.dec v).isSome) :
+    ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (kubernetes.optPutTxn pk v r true)).1 =
+        false → kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ = σ) ∧
+    ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (kubernetes.optPutTxn pk v r true)).1 =
+        true → kubernetes.modAt pk σ = r ∧
+      kvWf c (kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ) ∧
+      linkv.absSt (kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ) =
+        ⟨(linkv.absSt σ).kv.put ((linkv.absSt σ).rev + 1) pk v, (linkv.absSt σ).rev + 1⟩ ∧
+      (kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ).rev = σ.rev + 1) := by
+  have hs := hwf.1
+  have habs := linkv.absSt_kvOpStep [] [] [] σ hs (putTxn pk v r true)
+  have hout := linkv.mStep_txn_out [] [] [] σ hs [.mod pk r] [.put pk v] [.get pk]
+  have heq : putTxn pk v r true = .txn [.mod pk r] [.put pk v] [.get pk] := rfl
+  have ht : kubernetes.optPutTxn pk v r true = linkv.txnOf [.mod pk r] [.put pk v] [.get pk] := rfl
+  rw [← heq] at hout
+  rw [kvOpStep_optPut] at ⊢
+  rw [ht]
+  have hid : (linkv.mStep [] (putTxn pk v r true) (linkv.absSt σ)).1 = linkv.absSt σ →
+      kvOpStep (linkv.opOf [] [] (putTxn pk v r true)) σ = σ := by
+    intro h1
+    have hrev := congrArg linkv.MSt.rev (habs.trans h1)
+    rcases etcd_txnlin.kvOpStep_cases (linkv.opOf [] [] (putTxn pk v r true)) σ (linkv.opOf_isKV _ _ _) with h | h
+    · exact h
+    · simp only [linkv.absSt] at hrev
+      omega
+  have hm := mStep_putTxn [] (linkv.absSt σ) pk v r true
+  by_cases hmr : modOf (linkv.absSt σ).kv pk = r
+  · rw [if_pos hmr] at hm
+    have hout' := hout
+    rw [hm] at hout'
+    simp only [linkv.MOut.txn.injEq] at hout'
+    have hst : linkv.absSt (kvOpStep (linkv.opOf [] [] (putTxn pk v r true)) σ) =
+        ⟨(linkv.absSt σ).kv.put ((linkv.absSt σ).rev + 1) pk v, (linkv.absSt σ).rev + 1⟩ := by
+      rw [habs, hm]
+    refine ⟨fun h => ?_, fun _ => ⟨(modOf_absSt σ pk).symm.trans hmr,
+      ⟨linkv.kvOpStep_sorted _ σ, ?_⟩, hst, ?_⟩⟩
+    · rw [h] at hout'
+      exact absurd hout'.2.1 (by decide)
+    · rw [hst]
+      exact KWf_put c.S.dec c.pfx (linkv.absSt σ) hwf.2 hb pk v hv
+    · have := congrArg linkv.MSt.rev hst
+      simp only [linkv.absSt] at this
+      exact this
+  · rw [if_neg hmr] at hm
+    rw [hm] at hout
+    simp only [linkv.MOut.txn.injEq] at hout
+    refine ⟨fun _ => hid (by rw [hm]), fun h => ?_⟩
+    rw [h] at hout
+    exact absurd hout.2.1 (by decide)
+
+/-- **What `stFrom_item` tells of a state** where the key is at the state's revision. -/
+def stItem (c : StoreCfg GF Obj) (key : GoString) (s : OState Obj) (σ : KVState) : Prop :=
+  kubernetes.modAt key σ = s.rev →
+    (s.rev = W64 0 ∧ (c.abs σ).items key = none) ∨
+    (s.rev ≠ W64 0 ∧ c.S.decode s.data = some s.o ∧ ∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩ ∧
+      (b = true → (!s.stale && decide (c.S.encode s.o = s.data)) = true))
+
+theorem stFrom_stItem (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key) (s : OState Obj) :
+    stFrom c key s ⊢ □ ∀ σ, kvSeen c.γh σ -∗ ⌜kvWf c σ → stItem c key s σ⌝ := by
+  iintro #Hf !> %σ #Hs
+  by_cases hwf : kvWf c σ
+  · ihave %H := stFrom_item c key hpk s σ hwf $$ [Hf Hs]
+    · iframe Hf Hs
+    ipureintro
+    exact fun _ => H
+  · ipureintro
+    intro h
+    exact absurd h hwf
+
+/-- **A state at revision `0` is the zero state** (`stFrom`: a read's state is at a stored mod
+revision, the cached object's at its own). -/
+theorem stFrom_zero (c : StoreCfg GF Obj) (key : GoString) (s : OState Obj) :
+    stFrom c key s ⊢ ⌜s.rev = W64 0 → s = zeroSt c⌝ := by
+  unfold stFrom rdFacts
+  iintro #Hf
+  icases Hf with (⟨%σ0, %kv0, ⟨%Hw0, -⟩, %Hk0⟩ | ⟨%σ0, -, %Hz⟩ | ⟨%Hc, -⟩)
+  · ipureintro
+    intro h
+    exfalso
+    have hx : (linkv.absSt σ0).kv key = some (linkv.absVR kv0) := by
+      simp [linkv.absSt, linkv.absM, Hk0.1]
+    have h0 := (Hw0.1.2.2.1 key _ hx).1
+    have hm : kv0.modRev = W64 0 := Hk0.2.1.symm.trans h
+    simp only [linkv.absVR, hm] at h0
+    exact absurd h0 (by decide)
+  · ipureintro
+    exact fun _ => Hz.2
+  · ipureintro
+    intro h
+    exact absurd h Hc.2.2.2
+
+/-- **The model's `update` writing `o'`** at a state where the key's item is the state's (or, at
+revision `0`, there is none, with `ignoreNotFound` and the zero object), `tryUpdate` gave `o'` and
+the store does not skip the write. -/
+theorem update_item {E : Type} (c : StoreCfg GF Obj) (st : KSt Obj) (key : GoString) (s : OState Obj)
+    (ign : Bool) (z : Obj) (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (o' : Obj)
+    (hcase : (s.rev = W64 0 ∧ st.items key = none ∧ ign = true ∧ s.o = z) ∨
+      (∃ b, st.items key = some ⟨s.o, uint.nat s.rev, b⟩ ∧
+        (b = true → (!s.stale && decide (c.S.encode s.o = s.data)) = true)))
+    (hpre : pre s.o (uint.nat s.rev) = true) (hok : f s.o (uint.nat s.rev) = .ok o')
+    (hw : (!s.stale && decide (c.S.encode o' = s.data)) = false) :
+    st.update key ign z pre f =
+      (⟨st.setItem key ⟨o', st.rv + 1, true⟩, st.rv + 1⟩, .obj o' (st.rv + 1)) := by
+  rcases hcase with ⟨hr, hn, hi, ho⟩ | ⟨b, hb, hc⟩
+  · have h0 : uint.nat s.rev = 0 := by rw [hr]; rfl
+    rw [h0, ho] at hpre hok
+    unfold KSt.update KSt.current
+    rw [hn, hi]
+    simp only [↓reduceIte, hpre, hok]
+  · have hn : ¬ (o' = s.o ∧ b = true) := by
+      intro ⟨h1, h2⟩
+      subst h1
+      rw [hc h2] at hw
+      exact absurd hw (by decide)
+    unfold KSt.update KSt.current
+    rw [hb]
+    simp only [hpre, hok]
+    rw [if_neg hn]
+
+/-- **`updateOnce`'s transaction is the model's `update` when it succeeds** (`updStepOk` on what
+`stFrom` tells, `stItem`, in place of the read's key-value; at revision `0` the zero state's
+create), and the identity when it fails. -/
+theorem updStepOk_item {E : Type} (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key)
+    (s : OState Obj) (ign : Bool) (z : Obj) (hz : s.rev = W64 0 → ign = true ∧ s.o = z)
+    (pre : Obj → Nat → Bool) (hpre : pre s.o (uint.nat s.rev) = true)
+    (f : Obj → Nat → Except E Obj) (o' : Obj) (hok : f s.o (uint.nat s.rev) = .ok o')
+    (hw : (!s.stale && decide (c.S.encode o' = s.data)) = false) (v : GoString)
+    (hv : c.S.dec v = some (o', true)) :
+    ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → (kvWf c σ → stItem c key s σ) →
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optPutTxn key v s.rev true)).1 = true →
+        kvWf c (kvOpStep (.txn (kubernetes.optPutTxn key v s.rev true)) σ) ∧
+        c.abs (kvOpStep (.txn (kubernetes.optPutTxn key v s.rev true)) σ) =
+          updStep key ign z pre f (c.abs σ)) ∧
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optPutTxn key v s.rev true)).1 = false →
+        kvOpStep (.txn (kubernetes.optPutTxn key v s.rev true)) σ = σ) := by
+  intro σ hwf hb hA
+  have hc := put_cases' c σ hwf hb key v s.rev (fun _ => by rw [hv]; rfl)
+  refine ⟨fun h => ?_, hc.1⟩
+  obtain ⟨hm, hwf', habs, -⟩ := hc.2 h
+  refine ⟨hwf', ?_⟩
+  unfold StoreCfg.abs
+  rw [habs, absK_put c.S.dec c.pfx (linkv.absSt σ) hwf.2 key v o' hpk hv]
+  unfold updStep
+  have hcase : (s.rev = W64 0 ∧ (c.abs σ).items key = none ∧ ign = true ∧ s.o = z) ∨
+      (∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩ ∧
+        (b = true → (!s.stale && decide (c.S.encode s.o = s.data)) = true)) := by
+    rcases hA hwf hm with ⟨h0, hn⟩ | ⟨-, -, b, hb', hc'⟩
+    · exact .inl ⟨h0, hn, (hz h0).1, (hz h0).2⟩
+    · exact .inr ⟨b, hb', hc'⟩
+  have := update_item c (c.abs σ) key s ign z pre f o' hcase hpre hok hw
+  unfold StoreCfg.abs at this
+  rw [this]
+  rfl
+
 end steps
 
 end k8s

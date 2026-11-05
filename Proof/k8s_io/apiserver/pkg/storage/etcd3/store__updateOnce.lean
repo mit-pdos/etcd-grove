@@ -3,9 +3,12 @@ Lean-first (no Rocq counterpart).
 
 The proof of `(*store).updateOnce`, as `deleteOnce`'s: the transformer's value `v` for the
 result's encoding reads as the result, canonically (`dec_toS_encode`); the caller's updates and
-token give the client's for the conditional put (`k8sAusRW_kvAu1`, by `updStepOk`); then the
-client's outcome: an error, success (the result decoded into `destination` at the new revision,
-the model's answer by `update_at`), or a conflict (the store's reading of the key at that state).
+token give the client's for the conditional put (`k8sAusRW_kvAu1`, by `updStepOk_item`: by
+`stFrom`, every state in the store's history with the key at `origState`'s mod revision has
+`origState`'s object there, or, at revision `0`, the zero state with `ignoreNotFound`, no item,
+`stItem`); then the client's outcome: an error, success (the result decoded into `destination` at
+the new revision, the model's answer by `update_item`), or a conflict (the store's reading of the
+key at that state, with `ignoreNotFound`).
 -/
 module
 
@@ -85,32 +88,9 @@ theorem store.updateOnce.wp_proof
   · iPkgInit
   ihave Hkc' := Hkc
   iStructNamed Hkc'
-  -- Stage 7b: the proof below (complete at a93fbf6a24, before the restatement) is adapted in the
-  -- Prove phase: the origin state from `stFrom` (`stFrom_item`) in place of the read at `σ0`
-  -- (`Hrd0`, `hkv0`, `hs`), the zero state with `ign` (an `OptimisticPut` at mod revision `0`:
-  -- `put_cases0`, `updStepOk0`), the step with `ign` and `pre` (`updStepOk`, `update_at`).
-  sorry
-/-
-  -- what the read at σ0 tells
-  iunfold rdFacts at Hrd0
-  icases Hrd0 with ⟨%Hwf0, #Hseen0⟩
-  have hrev0 := hs.1
-  have hr : s.rev ≠ W64 0 := by
-    have hx : (linkv.absSt σ0).kv key = some (linkv.absVR kv0) := by
-      simp [linkv.absSt, linkv.absM, hkv0]
-    have h0 := (Hwf0.1.2.2.1 key _ hx).1
-    rw [hrev0]
-    intro h
-    simp only [linkv.absVR, h] at h0
-    exact absurd h0 (by decide)
-  ihave #HA : □ (∀ σ, kvSeen (GF := GF) c.γh σ -∗ ⌜sameAt key s.rev kv0 σ⌝) $$ []
-  · imodintro
-    iintro %σ #Hseen
-    ihave %h := kvSeen_same c.γh σ0 σ kv0 (mvcc.findKey_mem hkv0) $$ [Hseen0 Hseen]
-    · iframe Hseen0 Hseen
-    ipureintro
-    intro w hw' hkey hm
-    exact h w hw' (hkey.trans (mvcc.findKey_key hkv0).symm) (hm.trans hrev0)
+  ihave %Hz := stFrom_zero c key s $$ Hfrom
+  have hz : s.rev = W64 0 → ign = true ∧ s.o = c.S.zero := fun h => ⟨Hign h, by rw [Hz h]; rfl⟩
+  ihave #HA := (stFrom_stItem c key hk s) $$ Hfrom
   iunfold ownStateX at Hos
   icases Hos with ⟨%m, %sdsl, %Hstn, Hstp, #Hsdsl, Hm⟩
   (try wp_auto)
@@ -131,14 +111,14 @@ theorem store.updateOnce.wp_proof
     (try wp_auto)
     wp_apply _root_.Perennial.time.wp_Now as %t0 -
     (try wp_auto)
-    ihave Hau' := (k8sAusRW_kvAu1 c.ms c (updStep key z f) W Φu
+    ihave Hau' := (k8sAusRW_kvAu1 c.ms c (updStep key ign c.S.zero pre f) W Φu
       (.txn (kubernetes.optPutTxn key val s.rev true)) trivial
       (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
         (kubernetes.optPutTxn key val s.rev true)).1)
-      (stepHand c (updStep key z f))
-      (sameAt key s.rev kv0)
-      (fun σ hw0 hb hA => ⟨(updStepOk c key hk kv0 s hs hr z f o' hok hw val hdv σ hw0 hb hA).1,
-        fun hf => ⟨(updStepOk c key hk kv0 s hs hr z f o' hok hw val hdv σ hw0 hb hA).2 hf,
+      (stepHand c (updStep key ign c.S.zero pre f))
+      (fun σ => kvWf c σ → stItem c key s σ)
+      (fun σ hw0 hb hA => ⟨(updStepOk_item c key hk s ign c.S.zero hz pre hpre f o' hok hw val hdv σ hw0 hb hA).1,
+        fun hf => ⟨(updStepOk_item c key hk s ign c.S.zero hz pre hpre f o' hok hw val hdv σ hw0 hb hA).2 hf,
           fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
     · iframe HW HA Hau
     rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
@@ -161,9 +141,9 @@ theorem store.updateOnce.wp_proof
       ihave Hfs' := Hfs
       iunfold rdFacts at Hfs'
       icases Hfs' with ⟨%Hw0, #Hseen⟩
-      have Hσf : kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ sameAt key s.rev kv0 σ := ⟨Hw0.1, Hw0.2, HAσ⟩
+      have Hσf : kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ (kvWf c σ → stItem c key s σ) := ⟨Hw0.1, Hw0.2, HAσ⟩
       obtain ⟨hsucc, hrevσ, hb, hvals⟩ := Hσ
-      have hc := put_cases c σ Hσf.1 Hσf.2.1 key val s.rev hr (fun _ => by rw [hdv]; rfl)
+      have hc := put_cases' c σ Hσf.1 Hσf.2.1 key val s.rev (fun _ => by rw [hdv]; rfl)
       (try wp_auto)
       wp_apply wp_AddEvent span _ _ $$ []
       · iframe #
@@ -197,12 +177,39 @@ theorem store.updateOnce.wp_proof
         wp_apply wp_Infof
         (try wp_auto)
         wp_apply (wp_stateFrom Obj sp c (GoInterface.ok ci) resp.KV' (mvcc.findKey key σ.kvs)
-            resp.Revision' key v p hdk) $$ [] as %st' %err' Hsr
+            resp.Revision' key v p ign hdk) $$ [] as %st' %err' Hsr
         · iframe #
           ipureintro; exact Hv
         cases hfk : mvcc.findKey key σ.kvs with
         | none =>
-          isimp only [hfk] at Hsr
+          cases ign
+          rotate_left
+          · -- `ignoreNotFound`: the zero state
+            isimp only [hfk, ↓reduceIte] at Hsr
+            icases Hsr with ⟨%Herr, Hos'⟩
+            subst Herr
+            (try wp_auto)
+            wp_apply wp_AddEvent span _ _ $$ []
+            · iframe #
+              ipureintro; exact Hspn
+            (try wp_auto)
+            iapply HΦ
+            iright
+            iright
+            isplitr
+            · ipureintro; rfl
+            iframe Hout
+            iexists σ
+            iframe Hfs Hres
+            isplitl []
+            · ipureintro; exact hvals
+            unfold stAt
+            rw [hfk]
+            simp only [↓reduceIte]
+            isplitr
+            · ipureintro; first | rfl | trivial
+            iexact Hos'
+          isimp only [hfk, Bool.false_eq_true, ↓reduceIte] at Hsr
           icases Hsr with ⟨%Hst0, Herr⟩
           iunfold storageErrIs at Herr
           icases Herr with ⟨%ep, %Hep, #Hep⟩
@@ -220,8 +227,9 @@ theorem store.updateOnce.wp_proof
           · ipureintro; exact hvals
           unfold stAt
           rw [hfk, ← hrevσ]
+          simp only [Bool.false_eq_true, ↓reduceIte]
           isplitr
-          · ipureintro; rfl
+          · ipureintro; first | rfl | trivial
           iunfold storageErrIs
           iexists ep
           iframe Hep
@@ -255,10 +263,14 @@ theorem store.updateOnce.wp_proof
       · -- written
         have ht : (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
             (kubernetes.optPutTxn key val s.rev true)).1 = true := hsucc.symm.trans hsc
-        obtain ⟨w, hw', hwm, -, -, hrev1⟩ := hc.2 ht
-        have hwv : w.value = kv0.value :=
-          Hσf.2.2 w (mvcc.findKey_mem hw') (mvcc.findKey_key hw') hwm
-        have hupd := update_at c σ key hk w kv0 hw' s hs hwv hwm z f o' hok hw
+        obtain ⟨hm, -, -, hrev1⟩ := hc.2 ht
+        have hcase : (s.rev = W64 0 ∧ (c.abs σ).items key = none ∧ ign = true ∧ s.o = c.S.zero) ∨
+            (∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩ ∧
+              (b = true → (!s.stale && decide (c.S.encode s.o = s.data)) = true)) := by
+          rcases Hσf.2.2 Hσf.1 hm with ⟨h0, hn⟩ | ⟨-, -, b, hb', hc'⟩
+          · exact .inl ⟨h0, hn, (hz h0).1, (hz h0).2⟩
+          · exact .inr ⟨b, hb', hc'⟩
+        have hupd := update_item c (c.abs σ) key s ign c.S.zero pre f o' hcase hpre hok hw
         isimp only [ht, Bool.true_or, ↓reduceIte] at Hres
         simp only [Bool.not_true]
         (try wp_auto)
@@ -346,7 +358,6 @@ theorem store.updateOnce.wp_proof
       · iapply unkErr_internal
       iexists o0, rv0
       iexact Hout
--/
 
 end proof
 
