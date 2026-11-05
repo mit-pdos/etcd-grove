@@ -402,7 +402,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   isplitl [Hmfb]
   · iexists l; simp only [View.ofC]; iframe Hmfb; ipureintro; exact hpgb
   isplitl []
-  · unfold viewOf; iexact Hvw
+  · rw [viewOf_rw _ _ rfl]; iexact Hvw
   ipureintro
   refine ⟨wOK_wx0 _ _ _ _ _ _ _ htree hi, ?_, (wtxData_wx0 _ _ _ _ _ _ _ htree hi).symm, rfl,
     gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, Hmpos, wrFacts_wx0 _ _ _ _ _ _ rfl⟩

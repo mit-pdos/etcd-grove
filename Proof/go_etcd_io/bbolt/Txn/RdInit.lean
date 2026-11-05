@@ -63,7 +63,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
       viewCells rq (View.ofC b C) ∗
       ghostVar K.B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗
       mapFields K.db (DFrac.own sync.rfrac.half) (some (b, l) : MapSt) ∗
-      ((View.ofC b C).base ↪[n.vw]□ View.ofC b C) ∗
+      (null ↪[n.vw]□ View.ofC b C) ∗
       (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp)
        else ghostVar K.B.spr (1 : Qp).half (some k)) ⊢
     |==> rdTxK K tx src 1 (TxView.ro (View.ofC b C).data) (View.ofC b C) := by
@@ -117,7 +117,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   isplitl [Hmap Hmf]
   · iexists l; iframe; ipureintro; exact hpgb
   isplitl []
-  · unfold viewOf; iexact Hvw
+  · unfold viewOf; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hvw
   ipureintro
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx |

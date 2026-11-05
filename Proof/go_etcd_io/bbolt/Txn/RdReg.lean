@@ -25,18 +25,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 omit go_gctx hos sem in
-/-- A reader's names: its agreed state, `ex`, the handle registry, `done` and the view at its base
-(the writer's registries are not used). -/
+/-- A reader's names: its agreed state, `ex`, the handle registry, `done` and the view at the
+fixed key `null` (`viewOf`'s reader key; the writer's registries are not used). -/
 theorem rd_names_alloc (c : TxViewC) (x : TxX) (v : View) :
     ⊢ |==> ∃ n : TxNames, ghostVar (GF := GF) n.v 1 (c, x) ∗ ghostVar (GF := GF) n.ex 1 () ∗
       ghostMapAuth (GF := GF) n.rbk 1 (∅ : GMap Loc RHandle) ∗ ghostVar (GF := GF) n.done 1 false ∗
-      (v.base ↪[n.vw]□ v : IProp GF) := by
+      (null ↪[n.vw]□ v : IProp GF) := by
   imod ghostVar_alloc (GF := GF) (c, x) with ⟨%γv, Hv⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γe, He⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := RHandle) with ⟨%γr, Hr⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γd, Hd⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := View) with ⟨%γw, Hw⟩
-  imod (ghost_map_insert_persist (GF := GF) v.base v (GMap.lookup_empty _)) $$ Hw with ⟨-, Hf⟩
+  imod (ghost_map_insert_persist (GF := GF) null v (GMap.lookup_empty _)) $$ Hw with ⟨-, Hf⟩
   imodintro
   iexists ⟨γv, γe, default, γr, default, γd, default, γw⟩
   iframe

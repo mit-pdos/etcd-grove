@@ -91,14 +91,21 @@ theorem Bucket.Cursor.wp_proof (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spe
       iexists _, v
       iframe
       ipureintro; exact ⟨rfl, rfl⟩
-    iexists r, b, n, (T.gen n), stk, [], v
+    isimp only [Hro, Bool.false_eq_true, ↓reduceIte] at Hrb
+    icases Hrb with ⟨%v', %bv, #Hvo', #Hrbk, %Hbe⟩
+    iexists r, b, n, (T.gen n), stk, [], v'
     unfold reg
     iframe; iframe #
     isplitr
     · ipureintro; exact ⟨by rw [Hm]; rfl, rfl⟩
     simp only [Hro, Bool.false_eq_true, ite_false]
+    unfold rBkt
+    icases Hrbk with ⟨%ibp, %pp, #Hp⟩
+    iexists bv, ibp, pp
+    isplitr
+    · unfold rBktP; iexact Hp
     ipureintro
-    exact ⟨trivial, fun e he => by simp at he⟩
+    exact ⟨Hbe, rfl⟩
 
 end proof
 

@@ -86,7 +86,7 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
     unfold vwOwn
     icases Hrh with ⟨%V, %v0, >Hauth, >#Hfr, >%HV⟩
     ihave Hvo2 : X.v.base ↪[r.n.vw]□ X.v $$ []
-    · iunfold viewOf at Hvo; iexact Hvo
+    · rw [← viewOf_rw r X.v hrw]; iexact Hvo
     icombine Hauth Hvo2 gives %Hlk
     have hX : X.v = { v0 with base := X.v.base } := HV _ _ Hlk
     have hnew : { X.v with base := b } = { v0 with base := b } := by rw [hX]
@@ -108,7 +108,7 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
       imodintro
       isplitl
       · iunfold wtxCore; iframe; iframe #; ipureintro; exact Hp
-      · iunfold viewOf; subst hu; iexact Hb
+      · unfold viewOf; simp only [hrw, ↓reduceIte]; subst hu; iexact Hb
     | none =>
       imod (ghost_map_insert_persist (GF := GF) b { v0 with base := b } hb) $$ Hauth
         with ⟨Hauth, #Hb⟩
@@ -133,7 +133,7 @@ theorem wtxCore_viewOf_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX
       imodintro
       isplitl
       · iunfold wtxCore; iframe; iframe #; ipureintro; exact Hp
-      · iunfold viewOf; iexact Hb
+      · unfold viewOf; simp only [hrw, ↓reduceIte]; iexact Hb
   · cases m
     · simp only [statsTok, Bool.false_eq_true, ↓reduceIte]
       icombine Hst Hdone gives %h

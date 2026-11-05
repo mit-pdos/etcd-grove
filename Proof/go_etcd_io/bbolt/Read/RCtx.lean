@@ -27,24 +27,8 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- A reader's bucket with its header at `ibp` and its inline page at `pp` (`rBkt`'s body). -/
-def rBktP (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) (ibp pp : Loc) : IProp GF :=
-  iprop(b.[Bucket, go!"InBucket"] ↦{dq} ibp ∗ b.[Bucket, go!"tx"] ↦{dq} tx ∗
-    b.[Bucket, go!"buckets"] ↦{dq} null ∗ b.[Bucket, go!"page"] ↦{dq} pp ∗
-    b.[Bucket, go!"rootNode"] ↦{dq} null ∗ b.[Bucket, go!"nodes"] ↦{dq} null ∗
-    ((∃ ib : InBucket, ibp ↦□ ib ∗ ⌜ib.root' = (inBucketOf bv).root'⌝) ∨
-      ⌜inViewLoc v ibp (bytesAt bv 0 16)⌝) ∗
-    (if inBucketRoot bv = 0 then iprop(⌜pp ≠ null⌝ ∗ locOwn v pp (inlinePage bv))
-     else iprop(⌜pp = null⌝)))
-
 theorem rBkt_eq (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) :
     rBkt (GF := GF) v tx b dq bv = iprop(∃ ibp pp, rBktP v tx b dq bv ibp pp) := rfl
-
-/-- The page at position `pid` of the reader bucket whose value is `bv` (its inline page at `pp`):
-where it is, its bytes. -/
-def rPageAt (v : View) (bv : List w8) (pp : Loc) (pid : Nat) : Option (Loc × List w8) :=
-  if inBucketRoot bv = 0 then (if pid = 0 then some (pp, inlinePage bv) else none)
-  else (v.pages !! pid).map fun pg => (pageLoc v pid, pg)
 
 /-- **A page of the reader's view, read** out of `rdTxK`, and back. -/
 theorem rdTxK_page_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View)

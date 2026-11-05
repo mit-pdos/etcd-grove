@@ -12,6 +12,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.Bolt
 public import Proof.go_etcd_io.bbolt.Model.Cursor
 public import Proof.go_etcd_io.bbolt.Model.WOps
+public import Proof.go_etcd_io.bbolt.Read.PosDefs
 
 @[expose] public section
 
@@ -33,19 +34,35 @@ variable [sem : go.Semantics]
 /-- `tx`'s share of `tx.db` at fraction `q` (`q · ¾`: `txsInv` holds the other quarter). -/
 def txDbQ (q : Qp) : Qp := QpMul q (1 : Qp).half + QpMul q (1 : Qp).half.half
 
-/-- The transaction's view at the base `v.base` is `v` (persistent, agreeing). -/
-def viewOf (r : TxReg) (v : View) : IProp GF := iprop(v.base ↪[r.n.vw]□ v)
+/-- The transaction's view is `v` (persistent, agreeing): a writer's at its base `v.base` (its
+views by base, re-based by a remap), a reader's at the fixed key `null` (one view: two reader
+fragments agree, maintainer R's U6g item 2). -/
+def viewOf (r : TxReg) (v : View) : IProp GF :=
+  iprop((if r.rw then v.base else null) ↪[r.n.vw]□ v)
+
+omit go_gctx hos in
+/-- A writer's `viewOf`: its view at its base. -/
+theorem viewOf_rw (r : TxReg) (v : View) (h : r.rw = true) :
+    viewOf (GF := GF) r v = iprop(v.base ↪[r.n.vw]□ v) := by
+  unfold viewOf; rw [h]; rfl
+
+omit go_gctx hos in
+/-- A reader's `viewOf`: its view at `null`. -/
+theorem viewOf_ro (r : TxReg) (v : View) (h : r.rw = false) :
+    viewOf (GF := GF) r v = iprop(null ↪[r.n.vw]□ v) := by
+  unfold viewOf; rw [h]; rfl
 
 /-- A cursor stack element's node is in the writer's node-location registry (`nl`) at `y`. -/
 def nodeLoc (r : TxReg) (nl : Loc → Option (Loc × Nat)) (e : elemRef) : IProp GF :=
   if e.node' = null then iprop(emp)
   else iprop(∃ y, ⌜nl e.node' = some y⌝ ∗ e.node' ↪[r.n.nl]□ y)
 
-/-- The handle `b` of bucket `n` at generation `g` (a writer's registry, or a reader's at
-generation 0). -/
+/-- The handle `b` of bucket `n` at generation `g`: a writer's registry's; a reader's is at
+generation 0 (its bucket is in `boltBktDef`'s and `boltCurDef`'s reader branches; maintainer R's
+U6g item 3: no registry, so that a reader's new handle needs no fresh registry key). -/
 def handleFrag (r : TxReg) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   if r.rw then iprop(b ↪[r.n.bk]□ (n, g))
-  else iprop(⌜g = 0⌝ ∗ ∃ h : InBucket, b ↪[r.n.rbk]□ ((n, h) : RHandle))
+  else iprop(⌜g = 0⌝)
 
 /-- Bytes at `p` (a page, an inline page): in a page of the view `v`, or persistent heap bytes. -/
 def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
@@ -58,6 +75,16 @@ inline page (the view's bytes, or persistent heap bytes of a clone). Its `FillPe
 here (a reader never reads it). -/
 def rBkt (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) : IProp GF :=
   iprop(∃ (ibp pp : Loc), b.[Bucket, go!"InBucket"] ↦{dq} ibp ∗ b.[Bucket, go!"tx"] ↦{dq} tx ∗
+    b.[Bucket, go!"buckets"] ↦{dq} null ∗ b.[Bucket, go!"page"] ↦{dq} pp ∗
+    b.[Bucket, go!"rootNode"] ↦{dq} null ∗ b.[Bucket, go!"nodes"] ↦{dq} null ∗
+    ((∃ ib : InBucket, ibp ↦□ ib ∗ ⌜ib.root' = (inBucketOf bv).root'⌝) ∨
+      ⌜inViewLoc v ibp (bytesAt bv 0 16)⌝) ∗
+    (if inBucketRoot bv = 0 then iprop(⌜pp ≠ null⌝ ∗ locOwn v pp (inlinePage bv))
+     else iprop(⌜pp = null⌝)))
+
+/-- A reader's bucket with its header at `ibp` and its inline page at `pp` (`rBkt`'s body). -/
+def rBktP (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) (ibp pp : Loc) : IProp GF :=
+  iprop(b.[Bucket, go!"InBucket"] ↦{dq} ibp ∗ b.[Bucket, go!"tx"] ↦{dq} tx ∗
     b.[Bucket, go!"buckets"] ↦{dq} null ∗ b.[Bucket, go!"page"] ↦{dq} pp ∗
     b.[Bucket, go!"rootNode"] ↦{dq} null ∗ b.[Bucket, go!"nodes"] ↦{dq} null ∗
     ((∃ ib : InBucket, ibp ↦□ ib ∗ ⌜ib.root' = (inBucketOf bv).root'⌝) ∨
@@ -189,7 +216,9 @@ def txBytesDef (B : BNs) (tx : Loc) (s : GoSlice) (b : GoString) : IProp GF :=
   iprop(s ↦*□ b ∨ ∃ (r : TxReg) (v : View), reg tx B r ∗ viewOf r v ∗ ⌜inViewAt v s b⌝)
 
 /-- **A cursor** (timeless; design §3.13, B5): its handle, its stack, and the stack's position
-relative to the view (a reader's) or to the base view and the node registry (a writer's). -/
+relative to the view (a reader's: its bucket's fields, persistent, of the top-level bucket `n` of
+the view, as `boltBktDef`'s, and `rCurPos` over them; maintainer R's U6g item 1) or to the base
+view and the node registry (a writer's). -/
 def boltCurDef (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) :
     IProp GF :=
   iprop(∃ (r : TxReg) (b : Loc) (n : GoString) (g : Nat) (stk : GoSlice) (els : List elemRef)
@@ -199,7 +228,8 @@ def boltCurDef (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt) (pos : Op
     ⌜es = bktEnts ((T.cur !! n).getD ∅) ∧ g = T.gen n⌝ ∗
     (if r.rw then iprop(∃ nl : Loc → Option (Loc × Nat), ([∗list] e ∈ els, nodeLoc r nl e) ∗
         ⌜wStackAt nl v T b n els pos⌝)
-     else iprop(⌜rStackAt v n els pos⌝)))
+     else iprop(∃ (bv : List w8) (ibp pp : Loc), rBktP v tx b DFrac.discard bv ibp pp ∗
+       ⌜bktEntry v.pages (rootVal v) n bv ∧ rCurPos v bv pp els pos⌝)))
 
 /-! ## The laws over the definitions (U5, U6) -/
 
@@ -748,6 +778,10 @@ instance boltBktDef_persistent (B : BNs) (tx b : Loc) (n : GoString) (g : Nat) :
 instance txBytesDef_persistent (B : BNs) (tx : Loc) (s : GoSlice) (b : GoString) :
     Persistent (txBytesDef (GF := GF) B tx s b) := by
   unfold txBytesDef reg viewOf; infer_instance
+
+private instance rBktP_timeless_l (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) (ibp pp : Loc) :
+    Timeless (rBktP (GF := GF) v tx b dq bv ibp pp) := by
+  unfold rBktP locOwn; infer_instance
 
 instance boltCurDef_timeless (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt)
     (pos : Option Nat) : Timeless (boltCurDef (GF := GF) B tx c T es pos) := by

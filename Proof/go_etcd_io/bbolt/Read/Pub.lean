@@ -52,34 +52,33 @@ theorem rdTxK_cur_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) 
   ipureintro; exact Hf
 
 /-- **A reader's views agree** (U6g): two `viewOf`s of a reader's registration are one view.
-What a public reader triple needs to use a handle's view (`boltBktDef`'s, `txBytesDef`'s) with its
-`rdTxK`'s. **Not derivable today** (U6g's finding): `viewOf r v` is keyed by `v.base` and a
-reader's registry authority is dropped at `beginTx` (`Txn/RdReg.rd_names_alloc`), so two
-fragments at different bases cannot be told apart. Proposed fix (shared, `Inv/Tx`): key a reader's
-view at a fixed key (`viewOf r v := (if r.rw then v.base else null) ↪[r.n.vw]□ v`), then the two
-fragments agree (`ghost_map_elem_agree`). -/
+What a public reader triple needs to use a handle's view (`boltBktDef`'s, `boltCurDef`'s,
+`txBytesDef`'s) with its `rdTxK`'s. A reader's view is at the fixed key `null` (maintainer R's
+U6g item 2), so the two fragments agree. -/
 def ViewOfRdAgree : Prop :=
   ∀ (r : TxReg) (v v' : View), r.rw = false → viewOf (GF := GF) r v ∗ viewOf r v' ⊢ ⌜v = v'⌝
 
-/-- **OPEN** (`ViewOfRdAgree`'s docstring: needs the shared `viewOf` fix). -/
 theorem viewOfRdAgree_holds : ViewOfRdAgree (GF := GF) := by
-  sorry
+  intro r v v' hrw
+  unfold viewOf
+  simp only [hrw, Bool.false_eq_true, ↓reduceIte]
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  ipureintro; exact h.2
 
 /-- **A reader's new handle registered** (U6g): what `Tx.Bucket`'s reader post needs of the handle
-`b` it opened (`boltBktDef`'s `handleFrag r b n 0`). **Not derivable today** (U6g's finding):
-`handleFrag`'s reader branch is a persistent fragment `b ↪[r.n.rbk]□ (n, h)` of the registry whose
-authority `txsInv` holds, and inserting one needs `b` fresh in the registry, which nothing gives
-(the registry's keys own nothing of their buckets; `Bucket.Bucket_r` hands the child's fields out
-persistent). Proposed fix (shared, `Inv/Tx`): a reader's `handleFrag` is `⌜g = 0⌝` (the registry
-dropped), and `boltCurDef`'s reader branch carries the handle's bucket (`rBkt`, `bktEntry`), as
-`boltBktDef`'s does; then this is `⌜0 = 0⌝`. -/
+`b` it opened (`boltBktDef`'s `handleFrag r b n 0`): a reader's `handleFrag` is `⌜g = 0⌝`
+(maintainer R's U6g item 3; its bucket is in `boltBktDef`'s reader branch). -/
 def RdHandleMint : Prop :=
   ∀ (B : BNs) (N : Namespace) (db tx b : Loc) (r : TxReg) (n : GoString), r.rw = false →
     isBoltDef (GF := GF) B N db ∗ reg tx B r ⊢ handleFrag r b n 0
 
-/-- **OPEN** (`RdHandleMint`'s docstring: needs the shared `handleFrag` fix). -/
 theorem rdHandleMint_holds : RdHandleMint (GF := GF) := by
-  sorry
+  intro B N db tx b r n hrw
+  unfold handleFrag
+  simp only [hrw, Bool.false_eq_true, ↓reduceIte]
+  iintro -
+  ipureintro; trivial
 
 instance bytesPointsto_discard_persistent_pub (l : Loc) (bs : List w8) :
     Persistent (bytesPointsto (GF := GF) l DFrac.discard bs) :=

@@ -23,53 +23,12 @@ section pos
 variable [GooseExts]
 variable {v : View} {bv : List w8} {pp : Loc}
 
-/-- A leaf page's entries, as (leaf, index) pairs. -/
-def lEnts (pg : List w8) : List (List w8 × Nat) := (List.range (pageCount pg)).map fun i => (pg, i)
-
-/-- The number of entries of the leaves `L`. -/
-def entCount (L : List (List w8)) : Nat := (L.flatMap lEnts).length
-
-/-- The entries below the children before `j` of the branch page `pg` (fuel `n`). -/
-def entsBefore (P : Pages) (n : Nat) (pg : List w8) (j : Nat) : Nat :=
-  entCount ((List.range j).flatMap fun c => leavesF n P (branchPgid pg c))
-
 /-- The leaves below position `pid` (fuel `n`) of the reader bucket whose value is `bv`. -/
 def rLeaves (v : View) (bv : List w8) (n pid : Nat) : List (List w8) :=
   if inBucketRoot bv = 0 then [inlinePage bv] else leavesF n v.pages pid
 
-/-- The fuel at a reader bucket's root (`bktLeaves`'). -/
-def rFuel (v : View) (bv : List w8) : Nat := if inBucketRoot bv = 0 then 1 else v.pages.size + 1
-
-/-- **The entries of a reader bucket**, in order, as (leaf, index) pairs. -/
-def rEnts (v : View) (bv : List w8) : List (List w8 × Nat) := (bktLeaves v.pages bv).flatMap lEnts
-
 /-- A nested bucket's entry (`ForEachBucket`'s and `bktNames`' test). -/
 def entBkt (x : List w8 × Nat) : Bool := decide (leafFlags x.1 x.2 % 2 = bucketLeafFlag)
-
-/-- Stack element `e` refers to the branch page `pg` at position `pid`, at index `j`. -/
-def rBrAt (v : View) (bv : List w8) (pp : Loc) (pid : Nat) (e : elemRef) (pg : List w8) (j : Nat) :
-    Prop :=
-  inBucketRoot bv ≠ 0 ∧ rPageAt v bv pp pid = some (e.page', pg) ∧ e.node' = null ∧
-    pageFlags pg = branchPageFlag ∧ j < pageCount pg ∧ e.index' = W64 (j : Int)
-
-/-- Stack element `e` refers to the leaf page `pg` at position `pid`, at index `i` (at most its
-count). -/
-def rLfAt (v : View) (bv : List w8) (pp : Loc) (pid : Nat) (e : elemRef) (pg : List w8) (i : Nat) :
-    Prop :=
-  rPageAt v bv pp pid = some (e.page', pg) ∧ e.node' = null ∧ pageFlags pg = leafPageFlag ∧
-    i ≤ pageCount pg ∧ e.index' = W64 (i : Int)
-
-/-- **A stack below position `pid` (fuel `n`) at position `i`** of the entries below it: branch
-references down to a leaf reference; `s` is where `next` goes (`i + 1` on an entry, `i` past
-the leaf's end). -/
-def rPosF (v : View) (bv : List w8) (pp : Loc) : Nat → Nat → List elemRef → Nat → Nat → Prop
-  | 0, _, _, _, _ => False
-  | _ + 1, _, [], _, _ => False
-  | _ + 1, pid, [e], i, s => ∃ pg, rLfAt v bv pp pid e pg i ∧
-      s = (if i < pageCount pg then i + 1 else i)
-  | n + 1, pid, e :: e' :: es, i, s => ∃ pg j i' s', rBrAt v bv pp pid e pg j ∧
-      rPosF v bv pp n (branchPgid pg j) (e' :: es) i' s' ∧
-      i = entsBefore v.pages n pg j + i' ∧ s = entsBefore v.pages n pg j + s'
 
 /-- **A stack prefix** from position `pid` (fuel `n`) of branch references down to position
 `pid'` (fuel `m`), with `o` entries before it. -/
@@ -89,11 +48,6 @@ def rEndF (v : View) (bv : List w8) (pp : Loc) : Nat → Nat → List elemRef �
   | n + 1, pid, e :: e' :: es => ∃ pg, rPageAt v bv pp pid = some (e.page', pg) ∧
       (pageCount pg : Int) - 1 ≤ sint.Z e.index' ∧
       rEndF v bv pp n (branchPgid pg (sint.Z e.index').toNat) (e' :: es)
-
-/-- **A reader's cursor stack at position `i` of its bucket's entries** (`rEnts`), `next` going
-to `s`. -/
-def rPosAt (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (i s : Nat) : Prop :=
-  rPosF v bv pp (rFuel v bv) (inBucketRoot bv) els i s
 
 /-- The top element of a stack about to descend (`goToFirstElementOnTheStack`) at position `pid`
 (fuel `m`), its descent to land at entry `t` below it: a branch at index `j` (the entries before
