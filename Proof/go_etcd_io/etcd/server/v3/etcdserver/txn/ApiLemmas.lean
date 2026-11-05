@@ -58,6 +58,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
+/-- **A transaction's read log and revision** (gap A's fix, `Txn.Range`'s post: the read log well
+formed, its revisions small): `KindOk`, what relates mvcc's index answers to the state read. -/
+theorem txn.kindOk_of (k : MTxn) (h : txn.Reach k.state) (hwf : mvcc.LogWf' k.readLog)
+    (hcs : ∀ cs ∈ k.readLog, cs.length < 2 ^ 63) : txn.KindOk k := by
+  have h2 := txn.reach_len _ h.1
+  have h3 := h.2
+  cases k with
+  | read σ =>
+    simp only [mvcc.api.MTxn.state] at h2 h3
+    have hne : σ.log ≠ [] := by intro h0; rw [h0] at h2; simp at h2
+    have hl : (mvcc.api.MTxn.read σ).readLog.length < 2 ^ 63 := by
+      simp only [mvcc.api.MTxn.readLog]; omega
+    refine ⟨txn.LogOk.of_cert ⟨hwf, hl, hcs⟩
+      (by simpa [mvcc.api.MTxn.readLog] using hne), ?_, ?_⟩ <;>
+    · simp only [mvcc.api.MTxn.readRev, mvcc.api.MTxn.readLog, mvcc.api.MvccState.rev]; word
+  | write σ pend =>
+    simp only [mvcc.api.MTxn.state] at h2 h3
+    have hl : (mvcc.api.MTxn.write σ pend).readLog.length < 2 ^ 63 := by
+      simp only [mvcc.api.MTxn.readLog, List.length_append, List.length_singleton]; omega
+    refine ⟨txn.LogOk.of_cert ⟨hwf, hl, hcs⟩ (by simp [mvcc.api.MTxn.readLog]), ?_, ?_⟩ <;>
+    · simp only [mvcc.api.MTxn.readRev, mvcc.api.MTxn.readLog, mvcc.writeRev, List.length_append,
+        List.length_singleton]
+      split <;> word
+
 /-- **A transaction is an interface value whose type meets `TxnWrite`'s contracts**
 (`shapes.law`), the transaction kept. -/
 theorem txn.mvccTxn_shape (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
