@@ -223,36 +223,56 @@ result past `NewLessor` without the stub; the panic only in `backend.New`'s arm;
 
 ## Left
 
-Proved, no `sorry` (2026-11-06/07): every `writer.*` but `revoke` and `run` (`cur`, `begin`,
-`view`, `end`, `checkHook`, `newVal`, `genLease`, `put`, `deleteRange`, `writeOp`, `read`, `grant`,
-`checkLeases`, `txn`), `reader`, `watchCheck.expect`, `newHistory` (over a local
-`wp_slice_literal_ex`, the slice literal of map literals). `writer.txn` (`c3f9f28e56`): the read
-transaction in either mode at the writer's state, then read-only (`NewReadOnlyTxnWrite`, the ranges'
-loop) or writing (`Write` at the same state, the loop of `writeOp`s keeping `pendOk` and the pending
-log's `LogOk`, from the read's `LogWf'` by `LogWf'.append_nil`); its spec draws at most three values
-and gives `hookPost` or `hookPre` unchanged (read-only: no hook runs).
+**Proved, no `sorry`** (2026-11-06/07, third session; the writer's shared definitions in
+`Writer.lean`: `writerRO` (the struct's fields written once, persistent; `vals`, `nextID` the
+writer's), `writerCtx` (persistent context), `writerOwn` (between operations), `hookPre`/`hookPost`/
+`hookOk` (the tester's hook's triple), `pendOk` over `pendOf` (`Pending.lean`: the tester's model of a
+revision's changes, which `World.lean`'s `revOk` requires of every revision of the history, so the
+watch path can read a revision's changes as mvcc's events), `endCb` (`end`'s callback), `histAfter`,
+`commitSt`, `viewSt`/`viewDq`/`viewRev`; `TxnEnd.lean`'s `endCb_txnEnd`, `tw.End` as the callback, both
+of `End`'s updates at the tester's invariant; `WriteLemmas.lean`; `WriterLease.lean`'s `writerLe`;
+`WriterRun.lean`'s ticks channel, Perennial's single-producer channel `isSpsc` with `tickP`: a
+published revision `≥ 1` with a lower bound of `γ.pub`): every `writer.*` (`cur`, `begin`, `view`,
+`end`, `checkHook`, `newVal`, `genLease`, `put`, `deleteRange`, `writeOp`, `read`, `grant`,
+`checkLeases`, `txn`, `revoke`, `run`), `reader` (`reader_au`: `Rev`'s and `Read`'s update at the
+invariant gives the floor at most the revision and the history's lower bound covering it),
+`watchCheck.expect` (`WatchModel.lean`: the correspondence of mvcc's `watchEvents` with the history's
+changes in range), `newHistory` (over a local `wp_slice_literal_ex`). `history.snapshot`'s post now
+also gives the snapshot's capacity (its length), which `view`'s `append` needs.
 
-- `writer.revoke`: spec written (`Spec/.../writer__revoke.lean`: post at `L.filter (· != id)`, the
-  hook run or not); proof started (`writer__revoke.lean`: the model, `pendOk_revoke` over
-  `leaseDelKeys_eq_onLease` and `delOne_foldl`; `stMatch_length_le` for `Revoke`'s `≤ 2 ^ 62`;
-  `writer_reach` for its `MvccReachable`; `revoke_au`, the `auBegin`/`auEnd` update over the
-  invariant; the `id = 0` arm), the rest a `sorry`: the two key loops, `end` with the closure
-  calling `Revoke` as its callback (`endCb`), `Lookup` after. Not checked: stopped when mvcc's API
-  began its restatement over `MvccStorage` (uncommitted, the mvcc track, 2026-11-06), against which
-  `Writer.lean` (`BkRef`) no longer builds.
-- `watchCheck.receive`/`complete`/`register` (`receive` over `wsChan_recv.law`, `wsRecv_ok.law`,
-  `wsSentLb`), `writer.run`.
-- `runChecks` (spec: the configuration bounds above; post: the report, or `backend.New`'s panic),
-  `Main`, `Link.lean`, `Results.lean`, the closed theorem.
-- **The migration to the restated API** (`MvccStorage` in place of `BkRef`): `Writer.lean`'s
-  `writerCtx`/`writerOwn`, `WriterLease.lean` (`B.γB`, `B.b`, `B.P` of the lessor's specs), and
-  every writer proof using them.
+**Found: a lessor spec too weak for the tester (blocks `runChecks` with more than one `Grant`;
+not mvcc's API).** `lease.NewLessor.spec` gives the lessor's backend contract as `lessorApplyOk lp`
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapRO.lean`):
+```
+def lessorApplyOk (lp : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+    rwLens RW (lease.lessorBeOn lp d.be) -∗
+    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (apply.bkRT d)
+      (backend.rbPart d.γB (· = go!"lease")))
+```
+and `lease.lessor.Grant.spec` consumes the write token `T` (`wbTok ∗ RW`) and gives back only `R`.
+`RW` must lend the user's half of `le.b` (`lessorBeOn`, exclusive), so a client holding it once (the
+tester: `NewLessor`'s post) can make one `T`: one `Grant`, and no `Revoke` (which takes `lessorBeOn`)
+after it. The server makes a fresh `RW` per apply from its write right (`srvRestRWH`), so it is not
+hit. The Go check: `grant`'s `err == nil` (and every later `revoke`'s), run up to `Ops` times.
+**Minimal strengthening**: `lessorBackend`'s write gives the lens's `lessorBeOn` back with `R` (the
+write lends it, `Grant`'s post returns it), so `T := wbTok` (one write-back token per write) suffices.
+`writer.run.spec` takes `ops ≤ k` tokens `T` abstractly (`writerLe`), so only `runChecks` meets it.
+
+**Still to do**:
+- `watchCheck.receive` (in progress: `WatchLock.lean`, `c.mu`'s invariant `cmuInv` with `rcvKnown`;
+  `World.lean`'s registry now `regOk`, the watcher's registration `RegInfo`, and `γ.rcv`, the
+  responses checked), `complete`, `register` (over the ticks' `isSpsc` consumer end).
+- `runChecks` (spec: the configuration bounds; post: the report, or `backend.New`'s panic): blocked for
+  more than one grant by the lessor finding above. Then `Main`, `Link.lean`, `Results.lean`.
 - **For the coordinator, `etc/gen-init.py`'s entry for `mvccrand`**: needed only for the closed
   theorem (`Init.lean`'s `wp_initialize'`, then `PkgTable.lean`). The fact is `Base.lean`'s
   `mvccrandInit`: `keys` and `extraEnds` each hold a read-only slice of their literal (`keyList`,
   `extraEndList`), so the initializer's two composite-literal stores must be persisted
   (`ownSlice_persist`) into it; imports: context, sort, sync, sync/atomic, time, zap, mvccpb,
-  traceutil, lease, backend, mvcc, and now semver (`noCluster`).
-- No placeholder (`M1-REPLACE`) committed: nothing proved rests on a gap. No API statement found
-  too weak in this session (the write probes `stMatch_put`, `delKeys_eq_match` are of the API's own
-  model, once checked).
+  traceutil, lease, backend, mvcc, semver.
+- Perennial (for the coordinator's `notes/perennial-changes.md`): `isSpsc` keeps its invariant at
+  `nroot` (a caller with another invariant open cannot send); no `chan.wp_len` wrapper (as
+  `chan.wp_cap`); the slice literal of map literals needed a local `wp_slice_literal_ex`.
+- No placeholder (`M1-REPLACE`) committed. No mvcc API statement found too weak in this session.
