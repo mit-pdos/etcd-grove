@@ -184,6 +184,10 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   /-- (U9w6, D-K) The buffers grown over the mark's growth since the start (`markGrow`: the
   children's spills' steps; with `Bucket.spill.spec`'s `markCov` premise, its post's). -/
   grow : markGrow X0 X
+  /-- (U9w7, for `Commit`'s `hbx`) The buffers' slots free at the start or at or above the start's
+  mark (`bufSrc`: the children's spills' steps' `srcGrow`; with `spillStartOK`'s committed mark at
+  most the start's, `Bucket.spill.spec`'s source conjunct). -/
+  src : bufSrc X w0.fl.free X0.t.mv.pgid'.toNat
 
 /-- **A child with no root node at the start never gets a value** (`RInv.nilKids`). -/
 theorem rinv_nilKid {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}

@@ -163,15 +163,57 @@ theorem markGrow_congrL {X X' X1 : WX} (h : markGrow X X1) (hb : X'.t.bufs = X.t
   refine ⟨fun id pg h' => h.1 id pg (by rw [← hb]; exact h'), fun s h1 h2 => ?_⟩
   rw [hm] at h1; exact h.2 s h1 h2
 
+theorem srcGrow_refl (X : WX) (fl : FLPg) : srcGrow X X fl :=
+  ⟨Nat.le_refl _, fun _ _ h => Or.inl h⟩
+
+/-- `srcGrow` composes (the later free list's ids among the earlier's). -/
+theorem srcGrow_trans {X1 X2 X3 : WX} {fl1 fl2 : FLPg} (h1 : srcGrow X1 X2 fl1)
+    (h2 : srcGrow X2 X3 fl2) (hf : ∀ y ∈ fl2.free, y ∈ fl1.free) : srcGrow X1 X3 fl1 := by
+  refine ⟨Nat.le_trans h1.1 h2.1, fun id pg h => ?_⟩
+  rcases h2.2 id pg h with h' | h'
+  · exact h1.2 id pg h'
+  · refine Or.inr fun j hj => ?_
+    rcases h' j hj with h'' | h''
+    · exact Or.inl (hf _ h'')
+    · exact Or.inr (Nat.le_trans h1.1 h'')
+
+/-- `srcGrow` to a state with the same buffers and mark. -/
+theorem srcGrow_congr {X X1 X1' : WX} {fl : FLPg} (h : srcGrow X X1 fl)
+    (hb : X1'.t.bufs = X1.t.bufs) (hm : X1'.t.mv.pgid' = X1.t.mv.pgid') : srcGrow X X1' fl := by
+  refine ⟨by rw [hm]; exact h.1, fun id pg h' => ?_⟩
+  rw [hb] at h'; exact h.2 id pg h'
+
+/-- `srcGrow` from a state with the same buffers and mark. -/
+theorem srcGrow_congrL {X X' X1 : WX} {fl : FLPg} (h : srcGrow X X1 fl)
+    (hb : X'.t.bufs = X.t.bufs) (hm : X'.t.mv.pgid' = X.t.mv.pgid') : srcGrow X' X1 fl := by
+  refine ⟨by rw [hm]; exact h.1, fun id pg h' => ?_⟩
+  rw [hb, hm]; exact h.2 id pg h'
+
+/-- **`bufSrc` across a `srcGrow`** (`F` covering the step's free list, `hwm` at most the mark). -/
+theorem bufSrc_grow {X X' : WX} {fl : FLPg} {F : List w64} {hwm : Nat} (h : bufSrc X F hwm)
+    (hg : srcGrow X X' fl) (hf : ∀ y ∈ fl.free, y ∈ F) (hm : hwm ≤ X.t.mv.pgid'.toNat) :
+    bufSrc X' F hwm := by
+  intro id pg hb j hj
+  rcases hg.2 id pg hb with h' | h'
+  · exact h id pg h' j hj
+  · rcases h' j hj with h'' | h''
+    · exact Or.inl (hf _ h'')
+    · exact Or.inr (Nat.le_trans hm h'')
+
 theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hm : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) : spStep X X w w O [] :=
   ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h, id,
-    markGrow_refl X⟩
+    markGrow_refl X, srcGrow_refl X w.fl⟩
 
 /-- **A spill step grows the buffers over the mark's growth** (`markGrow`). -/
 theorem spStep_markGrow {X X' : WX} {w w' : WDb} {O : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) : markGrow X X' :=
-  h.2.2.2.2.2.2.2.2.2
+  h.2.2.2.2.2.2.2.2.2.1
+
+/-- **A spill step's new buffers come from the free list or the mark on** (`srcGrow`). -/
+theorem spStep_srcGrow {X X' : WX} {w w' : WDb} {O : List Nat} {st : List FLStep}
+    (h : spStep X X' w w' O st) : srcGrow X X' w.fl :=
+  h.2.2.2.2.2.2.2.2.2.2
 
 /-- **A spill step keeps the buffers dirty pages of fresh slots** (`bufsOK`; `Bucket.spill`'s
 `RInv.bufs`, U9x's `bkDone_bufsOK`). -/
@@ -194,9 +236,9 @@ theorem applySteps_free_sub (st : List FLStep) : ∀ (fl : FLPg) (txid : w64) (y
 /-- A step for a larger frame of owned slots is one for a smaller. -/
 theorem spStep_mono {X X' : WX} {w w' : WDb} {O O' : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hO : ∀ x ∈ O', x ∈ O) : spStep X X' w w' O' st := by
-  obtain ⟨a, b, c, d, e, f, g, i, j, k⟩ := h
+  obtain ⟨a, b, c, d, e, f, g, i, j, k, k'⟩ := h
   exact ⟨a, b, c, d, e, f, fun x hx => ⟨fun hm => (g x hx).1 (hO x hm), (g x hx).2⟩,
-    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr, j, k⟩
+    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr, j, k, k'⟩
 
 theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
   unfold WDb.wtxid; rw [h]
@@ -205,13 +247,15 @@ theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
 theorem spStep_trans {X1 X2 X3 : WX} {w1 w2 w3 : WDb} {O : List Nat} {s1 s2 : List FLStep}
     (h1 : spStep X1 X2 w1 w2 O s1) (h2 : spStep X2 X3 w2 w3 O s2) :
     spStep X1 X3 w1 w3 O (s1 ++ s2) := by
-  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1⟩ := h1
-  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2⟩ := h2
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1, l1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2, l2⟩ := h2
   have ht : w2.wtxid = w1.wtxid := wtxid_of_C a1
   rw [ht] at b2 d2 i2
   refine ⟨a2.trans a1, by rw [b2, b1, applySteps_append], c2.trans c1, d2, e2,
     fun s hs => f2 s (f1 s hs), fun x hx => ?_, fun F hF hfr => i2 F hF (i1 F hF hfr),
-    fun hb => by have := j2 (by rw [a1]; exact j1 hb); rwa [a1] at this, markGrow_trans k1 k2⟩
+    fun hb => by have := j2 (by rw [a1]; exact j1 hb); rwa [a1] at this, markGrow_trans k1 k2,
+    srcGrow_trans l1 l2 fun y hy => by
+      rw [b1] at hy; exact applySteps_free_sub s1 w1.fl w1.wtxid y hy⟩
   by_cases hx1 : spP X2 !! x = spP X1 !! x
   · obtain ⟨hO, hp⟩ := g2 x (by rw [hx1]; exact hx)
     exact ⟨hO, fun hm => hp (f1 x hm)⟩

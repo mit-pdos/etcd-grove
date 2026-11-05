@@ -265,7 +265,8 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     iframe
     ipureintro
     exact ⟨⟨rfl, rfl, rfl, HG, HG.2.1, fun s hs => hs, fun x hx => absurd rfl hx, fun F _ h => h, id,
-      fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩, Or.inl ⟨Hnull, rfl, rfl⟩⟩
+      ⟨fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩, Nat.le_refl _,
+      fun _ _ h => Or.inl h⟩, Or.inl ⟨Hnull, rfl, rfl⟩⟩
   obtain ⟨B0, HB0, Hrn1⟩ := bk_node_of_bs Hrn0
   rw [HB] at HB0; cases HB0
   have HrnN : B.bv.rootNode' ≠ null := by
@@ -368,7 +369,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
       intro h0; rw [h0, (Hstep.2.2.2.1.2.2.1.2.2.1 bl B1 HB1).2] at Hrr; cases Hrr
     ihave Hh := Hback $$ %(bkRooted B1 rt rr.nv.pgid') %(fun _ => rr) [] [Hn] [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs] Hrf
     · ipureintro
-      refine ⟨?_, fun _ _ => rfl, rfl, ?_⟩
+      refine ⟨?_, fun _ _ => rfl, ⟨rfl, rfl⟩, ?_⟩
       · intro l hl; rw [List.mem_singleton.1 hl]; exact Hrr
       · intro l hl; rw [List.mem_singleton.1 hl, Hrpar]; exact Ne.symm Hrt0
     · iapply BigSepL.bigSepL_singleton.2; rw [decide_eq_true Hrtl]; iexact Hn

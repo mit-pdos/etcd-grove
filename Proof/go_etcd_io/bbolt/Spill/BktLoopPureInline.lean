@@ -429,6 +429,7 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
     inj := hI.inj
     cok := hI.cok
     grow := hI.grow
+    src := hI.src
     bufs := by
       intro y pgb hy
       obtain ⟨b1, b2, b3, b4, b5⟩ := hI.bufs y pgb hy

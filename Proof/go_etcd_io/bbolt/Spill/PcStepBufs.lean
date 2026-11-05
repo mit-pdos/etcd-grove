@@ -195,7 +195,7 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     spStep Xi X3 wi w2 O st := by
   have hbk := pcStepX_bufsOK hs hn hpl hG1 hcnt hbody hv hfc htl hsl.2.2.1 hsl.2.2.2
   have hfresh := pcStepX_fresh hs hsl
-  obtain ⟨ra0, -, -, -, -, -, -, -, -, -, -, -, -, -, hbuf0, hnone0⟩ :=
+  obtain ⟨ra0, -, -, -, -, -, -, -, -, -, -, hmono0, -, -, hbuf0, hnone0⟩ :=
     pcStepX_state hs hn hpl hG1 (fun y hy => hsl.2.2.2 y (List.mem_append_left _ hy))
   obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, rfl, hal, hfl2, -, hC, -, -, -, -, hX3⟩ := hs
   obtain ⟨hmv, hbf, hpm1, hv1, -, hC1, -, hfree, hfl1⟩ := pcFreed_basic hfr
@@ -228,7 +228,7 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     · have := hsl.2.2.2 id (List.mem_append_right _ hz)
       rw [hid, hmv] at this; omega
   refine ⟨by rw [hC, hC1], by rw [applySteps_append, hfl2, hfl1], hvp, hG3, hG3.2.1, ?_, ?_, ?_, ?_,
-    ?_⟩
+    ?_, hmono0, fun y pg hy => ?_⟩
   · intro y hy; rw [hpd2]; exact hpd1 y hy
   · intro x hx
     have hxe : x = id.toNat := Classical.byContradiction fun hne => hx (hPne x hne)
@@ -263,6 +263,27 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
         refine ⟨id, pcPage id ra0.nv.isLeaf' ra0.ws count, by rw [hbuf0, GMap.lookup_insert_eq],
           by omega, ?_⟩
         rw [hov]; omega
+  · -- (U9w7) the new buffer's run: free in `wi.fl` (`allocate`'s free case) or from the mark on
+    rw [hbuf0] at hy
+    by_cases hne : y = id
+    · subst hne
+      rw [GMap.lookup_insert_eq] at hy
+      cases hy
+      have hov : pageOverflow (pcPage y ra0.nv.isLeaf' ra0.ws count) = count - 1 := by
+        unfold pcPage; rw [wPage_overflow]; word
+      refine Or.inr fun j hj => ?_
+      rw [hov] at hj
+      rcases hab5 with ⟨hcan, -, -⟩ | ⟨hid, -, -, -⟩
+      · left
+        have hlt : y.toNat + j < 2 ^ 64 := by have := hcan.1; omega
+        have he : (W64 ((y.toNat + j : Nat) : Int)).toNat = y.toNat + j := by word
+        have hin := hcan.2 (W64 ((y.toNat + j : Nat) : Int)) (by unfold inRun; omega)
+        rw [hfree] at hin; exact hin
+      · right
+        have hid' : y.toNat = Xi.t.mv.pgid'.toNat := by rw [hid, hmv]
+        omega
+    · left
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)] at hy; exact hy
 
 end bufs
 

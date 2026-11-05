@@ -124,6 +124,22 @@ def markGrow (X X' : WX) : Prop :=
   ∀ s, X.t.mv.pgid'.toNat ≤ s → s < X'.t.mv.pgid'.toNat →
     ∃ id pg, X'.t.bufs !! id = some pg ∧ id.toNat ≤ s ∧ s < id.toNat + (1 + pageOverflow pg)
 
+/-- **Where the new buffers come from** (U9w7, for `Commit`'s `hbx`: `Bucket.spill.spec`'s
+`bufSlots` source conjunct): the mark does not decrease, and every buffer of `X'` is one of `X`
+or each of its slots is free in `fl` (`allocate`'s free case) or at or above `X`'s mark (its
+mark case). -/
+def srcGrow (X X' : WX) (fl : FLPg) : Prop :=
+  X.t.mv.pgid'.toNat ≤ X'.t.mv.pgid'.toNat ∧
+  ∀ id pg, X'.t.bufs !! id = some pg → X.t.bufs !! id = some pg ∨
+    ∀ j < 1 + pageOverflow pg, W64 ((id.toNat + j : Nat) : Int) ∈ fl.free ∨
+      X.t.mv.pgid'.toNat ≤ id.toNat + j
+
+/-- **The buffers' slots are free in `F` or at or above `hwm`** (U9w7; `Bucket.spill`'s
+`RInv.src`). -/
+def bufSrc (X : WX) (F : List w64) (hwm : Nat) : Prop :=
+  ∀ id pg, X.t.bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
+    W64 ((id.toNat + j : Nat) : Int) ∈ F ∨ hwm ≤ id.toNat + j
+
 end pieces
 
 section spec
@@ -142,14 +158,15 @@ child's spill freed keeps its page through its siblings' spills), what the other
 need kept, and (coordinator's decision, for `Bucket.spill`'s `RInv.bufs`) the buffers dirty pages
 of fresh slots (`bufsOK`: every new buffer an allocation written with its header and length below
 the new mark, on no tree slot of `w.C`; no buffer slot made pending: the spill frees only base
-pages); (U9w6, D-K) the buffers grown over the mark's growth (`markGrow`). -/
+pages); (U9w6, D-K) the buffers grown over the mark's growth (`markGrow`); (U9w7) the new
+buffers' slots free in `w.fl` or at or above the mark (`srcGrow`). -/
 def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
   spG X' w.wtxid (mapLen w'.ms) w'.fl ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
   (∀ s ∈ pendSlots w.fl, s ∈ pendSlots w'.fl) ∧
   (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O ∧ x ∉ pendSlots w.fl) ∧
   (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F) ∧
-  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl) ∧ markGrow X X'
+  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl) ∧ markGrow X X' ∧ srcGrow X X' w.fl
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
 `n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with

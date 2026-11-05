@@ -10,6 +10,8 @@ maintainer 13's queue (a)).
   tree is a root position's (covered by the logical tree, so not pending by `flView`) or in a
   nested bucket's tree (owned, `ent_class`).
 - `markCov` follows from the start's and the steps' `markGrow` (`markCov_grow`).
+- (U9w7) The buffers' slots are free at the start or at or above the committed mark
+  (`bufSlots_src`, from `RInv.src`).
 -/
 module
 
@@ -65,6 +67,18 @@ theorem markCov_grow {X X' : WX} {hwm : Nat} (h : markCov X hwm) (hg : markGrow 
   simp only [List.mem_flatMap, List.mem_range']
   exact ⟨(id, pg), (GMap.mem_toList _ id pg).2 hb, s - id.toNat, by dsimp only; omega,
     by dsimp only; omega⟩
+
+/-- **The buffer slots' source** (U9w7, `Bucket.spill.spec`'s last success fact): from `bufSrc`
+(`RInv.src`), every slot of `bufSlots` free in `F` or at or above a lower mark. -/
+theorem bufSlots_src {X : WX} {F : List w64} {hwm hwm' : Nat} (h : bufSrc X F hwm)
+    (hle : hwm' ≤ hwm) : ∀ s ∈ bufSlots X.t.bufs, W64 s ∈ F ∨ hwm' ≤ s := by
+  intro s hs
+  unfold bufSlots at hs
+  simp only [List.mem_flatMap, List.mem_range'] at hs
+  obtain ⟨⟨id, pg⟩, he, i, hi, rfl⟩ := hs
+  rcases h id pg ((GMap.mem_toList _ id pg).1 he) i hi with h' | h'
+  · left; simp only [Nat.one_mul]; exact h'
+  · right; simp only [Nat.one_mul]; omega
 
 /-- **At the root spill's exit, the written tree's slots are not pending**: they are the root
 tree's (`sTree_slots`), owned. -/

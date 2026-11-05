@@ -179,7 +179,8 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
   rcases hcase with ⟨h0, -, -⟩ | ⟨-, X1, T, B1, rt, rr, S, D', h', hfr, hB1, hrr, hrtl, hrsp,
     hrpar, hX', hsT, hD', hsi, hD1, hD2, hents, hplain⟩
   · exact absurd h0 hnn
-  have hgrow : markGrow X X' := hstep.2.2.2.2.2.2.2.2.2
+  have hgrow : markGrow X X' := hstep.2.2.2.2.2.2.2.2.2.1
+  have hsrc : srcGrow X X' w.fl := hstep.2.2.2.2.2.2.2.2.2.2
   obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := hstep
   have htodo := hI.kids k c hc
   rw [hks] at htodo
@@ -333,6 +334,8 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
     cok := hI.cok
     bufs := hbufs
     grow := markGrow_trans hI.grow hgrow
+    src := bufSrc_grow hI.src hsrc (fun y hy => by
+      rw [hI.fl] at hy; exact applySteps_free_sub st w0.fl w0.wtxid y hy) hI.mark
     rootPos := by
       intro B hB
       rw [hBr'] at hB; cases hB

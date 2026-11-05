@@ -62,7 +62,8 @@ def spillPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (err
           X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
           X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' } ∧
           (∀ s ∈ treeSlots (spillC X' w.C.pages), s ∉ pendSlots w'.fl) ∧
-          markCov X' w.C.hwm⌝) ∨
+          markCov X' w.C.hwm ∧
+          ∀ s ∈ bufSlots X'.t.bufs, W64 s ∈ w.fl.free ∨ w.C.hwm ≤ s⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
@@ -602,7 +603,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     ipureintro
     exact ⟨Hok1, HI.C, HG.2.2.1, HG.2.2.2.1, HG.2.2.2.2.1, HG.2.1, Hsb1, HI.tt, Hrl,
       by rw [Hrl, HB]; rfl, HI.mvEq,
-      end_nil_notPend Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull HvC, markCov_grow Hmc HI.grow⟩
+      end_nil_notPend Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull HvC, markCov_grow Hmc HI.grow,
+      bufSlots_src HI.src HsOK.2.1⟩
   rw [decide_eq_false Hnull]
   try wp_auto
   ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -697,7 +699,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
       intro h0; rw [h0, (Hstep.2.2.2.1.2.2.1.2.2.1 X.rl B1 HB1).2] at Hrr; cases Hrr
     ihave Hh := Hback $$ %(bkRooted B1 rt rr.nv.pgid') %(fun _ => rr) [] [Hn] [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo] [Hf1 Hf2 Hmeta Hpages Hf5 Hf6 Hmv Hpm Hbufs] Hrf
     · ipureintro
-      refine ⟨?_, fun _ _ => rfl, rfl, ?_⟩
+      refine ⟨?_, fun _ _ => rfl, ⟨rfl, rfl⟩, ?_⟩
       · intro l hl; rw [List.mem_singleton.1 hl]; exact Hrr
       · intro l hl; rw [List.mem_singleton.1 hl, Hrpar]; exact Ne.symm Hrt0
     · iapply BigSepL.bigSepL_singleton.2; rw [decide_eq_true Hrtl]; iexact Hn
@@ -726,7 +728,10 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     refine ⟨Hok', s1.trans HI.C, HG'.2.2.1, HG'.2.2.2.1, HG'.2.2.2.2.1, s5, Hsb',
       Hfr.2.2.2.2.2.2.1.trans HI.tt, Hrl2, ?_,
       mv_trans HI.mvEq (Hfr.2.2.2.2.2.2.2.1 : X2.t.mv = { X1.t.mv with pgid' := X2.t.mv.pgid' }),
-      root_notPend Hrl2 Hcp2 HsT HD' Hsi', markCov_grow Hmc (markGrow_trans HI.grow s8.2.2)⟩
+      root_notPend Hrl2 Hcp2 HsT HD' Hsi', markCov_grow Hmc (markGrow_trans HI.grow s8.2.2.1),
+      bufSlots_src (X := X2.setBkt X.rl (bkRooted B1 rt rr.nv.pgid'))
+        (bufSrc_grow HI.src s8.2.2.2 (fun y hy => by
+          rw [HI.fl] at hy; exact applySteps_free_sub st w.fl w.wtxid y hy) HI.mark) HsOK.2.1⟩
     show ((X2.t.bs.insert X.rl (bkRooted B1 rt rr.nv.pgid')) !! X2.rl).isSome
     rw [Hrl2, GMap.lookup_insert]; rfl
   · cases err with
