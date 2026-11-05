@@ -1530,3 +1530,22 @@ The image (`srvDiskImage`), clause by clause:
 `Cleanup`'s whole open token is gap 4's census: `srvStopKeep`'s readers, the apply thread's, the loops' and the caller's unused serving stocks. So `run.specStop` (or `HardStop`'s caller) also takes `memberUp`'s unused stocks.
 
 Steps: (5a) the image's pure assembly lemma (`imageAt`, the configuration, the index bounds), from the observations, in a module of its own; (5b) `Cleanup`'s preconditions from `applyResC`, `srvSnapRes`, `srvStopKeep` and the stocks (the open token by `bOpen_one_pool`, as R-D1); (5c) the deferred function's WP; (5d) `run.specStop` (a variant of `run.wp_proof`, the stop clause taken).
+
+**Stage 5a done (2026-11-05, `3e8f0abc0c`):** `StopImage.merged_imageAt`, `imageAt` from
+`mergedObs` (the pure part of `merged_image`).
+
+**Stage 5b, the design.** `Cleanup`'s preconditions at the stop:
+- from `srvStopKeep`: the lessor's stop right, and the compactor field (nil in `restart3`;
+  `compactorOk nil` is its left case);
+- from `applyResC`: the KV's closer (`srvSnapRes`'s `srvKVCloserW`; off, `wsCloser`, which is
+  `wsCloserM`'s off case), `bemu`'s reader slot, the apply side's half of `s.be` and quarter of
+  `γbe` (`srvApplyKVCore`'s `srvBeOwn`), and the stop channels at the server's resources
+  (`srvStopChans`);
+- the request: `commitReq_freeze` over the idle apply thread (`applyThread γ st`, from
+  `applyResC`; its premises are `isServer`'s);
+- `bOpen 1`, by gap 4's census;
+- two pieces to add:
+  1. `srvShutdownPre` takes the caller's unused serving stocks: `memberUp`'s 64 request and 64 watch
+     store readers, routed through the drafts.
+  2. `srvCleanupOwn` is defined: the auth store's `tpAdmin`, which `NewServer` keeps (off mode,
+     `restart3`).
