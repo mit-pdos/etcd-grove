@@ -4,7 +4,8 @@ M2), over the sealed definitions (`Api.lean`: `mvccImage`, its pure part `snap.i
 `Api/SnapImage.lean`). Lean-first (no Rocq counterpart).
 - `mvccImage_persistent` (the image's conjunct of `persistent.law`);
 - `mvccImage_fresh.law_holds`: a fresh backend's data is the empty history's image, its receipt
-  `⧖ 0` allocated (`preceipt_zero`).
+  `⧖ 0` allocated (`preceipt_zero`);
+- `mvccW_alloc.law_holds` (M3): the registration slot, unset, in two halves.
 -/
 module
 
@@ -130,6 +131,20 @@ theorem mvccBackend_agree.law_holds : mvccBackend_agree.law (GF := GF) := by
   rw [h1] at h2
   cases h2
   rfl
+
+/-- **`mvccW_alloc.law`** (M3, 2026-11-05): the registration slot allocated unset, its halves the
+right to register (`lateReg`) and the batch lock's late-bound resource (`lateW`'s unset branch). -/
+theorem mvccW_alloc.law_holds : mvccW_alloc.law (GF := GF) := by
+  iintro
+  imod dghostVar_alloc (GF := GF) (none : Option (Loc × StoreNames)) with ⟨%gx, H⟩
+  rw [dfrac_own_half_half 1]
+  icases (dghostVar_split (GF := GF) gx (none : Option (Loc × StoreNames)) (DFrac.own (1 : Qp).half)
+    (DFrac.own (1 : Qp).half)) $$ H with ⟨H1, H2⟩
+  imodintro
+  iexists gx
+  unfold mvccWReg mvccW lateReg lateW
+  iframe H1
+  ileft; iexact H2
 
 end laws
 

@@ -217,12 +217,13 @@ bounds it by what was received (`wsChan_recv`). -/
 @[no_expose] def wsRecv (ι : WsName) (rs : List WResp) : IProp GF := api.wsRecvI ι rs
 
 /-- **The write invariant a store's backend must be opened with**, at the registration name `gx`
-(the `W` of `backend.New`/`storage.OpenSnapshotBackend`; sealed: today's `lateW gx`). -/
-opaque mvccW (gx : GName) : IProp GF := iprop(True)
+(the `W` of `backend.New`/`storage.OpenSnapshotBackend`; sealed: the batch lock's late-bound
+resource `lateW gx`, defined at stage 2, M3, 2026-11-05). -/
+@[no_expose] def mvccW (gx : GName) : IProp GF := lateW gx
 
-/-- **The right to register a store at `gx`** (exclusive; sealed: today's `lateReg gx`), allocated
-before the backend is opened (`mvccW_alloc`). -/
-opaque mvccWReg (gx : GName) : IProp GF := iprop(True)
+/-- **The right to register a store at `gx`** (exclusive; sealed: `lateReg gx`, defined at stage 2,
+M3, 2026-11-05), allocated before the backend is opened (`mvccW_alloc`). -/
+@[no_expose] def mvccWReg (gx : GName) : IProp GF := lateReg gx
 
 /-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
 (fractional; `New`'s or `NewStore`'s, then `Restore`'s). Defined at stage 2 (M2, 2026-11-05;
