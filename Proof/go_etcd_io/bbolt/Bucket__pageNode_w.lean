@@ -29,11 +29,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
+theorem Bucket.pageNode_w.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
-    Bucket.pageNode_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B id hB hlive hinl hnodes hnn hres
-  unfold wtxW wtxCore wtxHeap
+    Bucket.pageNode_w.specQ (GF := GF) (hG := hG) := by
+  intro K tx r m q X bl B id hB hlive hinl hnodes hnn hres
+  unfold wtxWQ wtxCoreQ wtxHeap
   wp_start as ⟨⟨#Hpk, #Hcore, %Hr, #Hreg, ⟨%Hok, Htf, Hrf, Hnobjs, Hobjs⟩, Hfills, Hbk, Hnl, Hdb, #Hvo, Hst⟩,
     Hcells, ⟨%l, Hmf⟩⟩
   have hobj := bobjs_bkt X.t bl B hB
@@ -99,11 +99,11 @@ theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
       icases Htf with ⟨Hw, Hm, Hmeta, Hpgs, Hch, Hwf, Hmv, Hpm, Hbufs⟩
       ihave %Hpmnn := ownMap_not_nil _ _ _ $$ Hpm
       have Hsp := typedPointsto_frac_add (GF := GF) (tx.[Tx, go!"pages"]) X.t.t.pages'
-        (QpMul 1 (1 : Qp).half) (QpMul 1 (1 : Qp).half)
+        (QpMul q (1 : Qp).half) (QpMul q (1 : Qp).half)
       rw [qpMul_half_add] at Hsp
       icases Hsp.1 $$ Hpgs with ⟨Hp1, Hp2⟩
       have Hsd := typedPointsto_frac_add (GF := GF) (tx.[Tx, go!"db"]) r.db
-        (QpMul 1 (1 : Qp).half) (QpMul 1 (1 : Qp).half.half)
+        (QpMul q (1 : Qp).half) (QpMul q (1 : Qp).half.half)
       rw [← txDbQ_eq] at Hsd
       icases Hsd.1 $$ Hdb with ⟨Hd1, Hd2⟩
       ihave #Hps := BC.core_pageSize K $$ Hcore
@@ -114,8 +114,8 @@ theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
         wp_auto
         rw [htx]
         wp_apply (hpage tx K.db X.t.t.pages' X.t.pm X.v.base id
-          (X.v.base +ₗ ((id.toNat * 4096 : Nat) : Int)) pg' (DFrac.own (QpMul 1 (1 : Qp).half))
-          (DFrac.own 1) (DFrac.own (Qp.half 1).half) (DFrac.own wq)
+          (X.v.base +ₗ ((id.toNat * 4096 : Nat) : Int)) pg' (DFrac.own (QpMul q (1 : Qp).half))
+          (DFrac.own q) (DFrac.own (QpMul q (Qp.half 1).half)) (DFrac.own (QpMul q wq))
           (Or.inr ⟨hpmn, Hnn, hb, rfl⟩) h16 hpid (by rcases hfl with h | h <;> simp [h]))
           $$ [Hp1 Hpm Hd1 Hdata Hpg] as ⟨Hp1, Hpm, Hd1, Hdata, Hpg⟩
         · iframe; iframe #; rw [if_neg (show ¬ X.t.t.pages' = null from Hpmnn)]; iframe
@@ -147,6 +147,15 @@ theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
         rw [hl] at Hif
         simp only [Option.getD_some] at Hif
         simp only [resolve, hl]; rw [if_neg Hroot0]; simp
+
+/-- `pageNode` over the whole writer (`q = 1`). -/
+theorem Bucket.pageNode_w.wp_proof (hpage : Tx.page.spec (GF := GF) (hG := hG))
+    (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
+    Bucket.pageNode_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r m X bl B id hB hlive hinl hnodes hnn hres
+  have h := Bucket.pageNode_w.wp_proofQ hpage hRP K tx r m 1 X bl B id hB hlive hinl hnodes hnn hres
+  simp only [wtxWQ_one] at h
+  exact h
 
 end proof
 
