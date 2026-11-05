@@ -4,8 +4,7 @@ with dirty pages past the end of the file. Under `NoGrowSync`, `DB.grow` does no
 dirty pages may lie past the file's end (inside the mapping); `WriteAt` extends the file (OsFs's
 `pwrite`, `os.File.WriteAt.spec`: the zero gap past the old end, then the data). `Tx.write.spec`
 (`Proof/go_etcd_io/bbolt/Tx__write.lean`, proved) is the case of pages inside the file. Proof:
-`Proof/go_etcd_io/bbolt/Tx__write_ext.lean` (the in-file case from `Tx.write.wp_proof`; the
-past-the-end case open).
+`Proof/go_etcd_io/bbolt/Tx__write_ext.lean` (`Commit/WriteExtRun.Tx.write_ext_gen`).
 -/
 module
 
@@ -38,7 +37,10 @@ part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterw
 where it ended (`om.size ≤ om'.size ≤ max om.size l`), a tail slot inside the old file keeps its
 bytes; on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
 `store_publish` takes it) and the tail is `wrSlotsSz` at the new size; on an error all the slots
-are, with whatever bytes the write left. -/
+are, with whatever bytes the write left. On success also, a slot across the new end holds at least
+its part inside the file, and the file either kept its size or ends on a page boundary (it grew by
+whole pages: U10l's `wdbOK` clauses after the write); not on an error, where `WriteAt` may have
+written part of a chunk. -/
 abbrev Tx.write_ext.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (pml : Loc)
     (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (T : List Nat) (wb : Nat → List w8)
@@ -70,8 +72,11 @@ abbrev Tx.write_ext.spec : Prop :=
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
           (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s)⌝ ∗
         ((⌜err = interface.nil⌝ ∗ ⌜(∀ s ∈ bufSlots bufs, 4096 * (s + 1) ≤ om'.size) ∧
-            ∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
-              wb' (id.toNat + j) = pageChunk pg j⌝ ∗
+            (∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
+              wb' (id.toNat + j) = pageChunk pg j) ∧
+            (∀ s ∈ bufSlots bufs ++ T, 4096 * s < om'.size → om'.size < 4096 * (s + 1) →
+              om'.size - 4096 * s ≤ (wb' s).length) ∧
+            (om'.size = om.size ∨ om'.size % 4096 = 0)⌝ ∗
             slotsOwn (some (b, l) : MapSt) K.p (bufSlots bufs) wb' ∗ wrSlotsSz b K.p T wb' om'.size) ∨
          (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
             wrSlotsSz b K.p (bufSlots bufs ++ T) wb' om'.size)) }}
