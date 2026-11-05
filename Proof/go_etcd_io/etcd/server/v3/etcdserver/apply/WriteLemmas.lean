@@ -235,6 +235,34 @@ theorem mPreRest_rd (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
   iunfold mPreRest
   iframe
 
+/-- The auth store's reader resource of `mPreWRest`, lent out. -/
+theorem mPreWRest_rd (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreWRest E log Pre Q Post ⊢ E.RD ∗ (E.RD -∗ mPreWRest E log Pre Q Post) := by
+  iintro H
+  iunfold mPreWRest at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iframe Hrd
+  iintro Hrd
+  iunfold mPreWRest
+  iframe
+
+/-- **A rejection of a writing method** from `mPreWRest`. -/
+theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreWRest E log Pre Q Post ⊢ kvOwn E log ∗ Pre ∗ ∃ B : BkRef, bkRT B := by
+  iintro H
+  iunfold mPreWRest at H
+  icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, -, Hrt, Hcs⟩
+  iunfold srvApi.csContractA at Hcs
+  icases Hcs with ⟨HPre, -, -⟩
+  iframe HPre
+  isplitr [Hrt]
+  · iunfold kvOwn
+    iframe Hw Hll Hrd
+    iunfold kvBk
+    iexists B
+    iframe
+  · iexists B; iexact Hrt
+
 end lemmas
 
 end apply

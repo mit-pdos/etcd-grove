@@ -3,6 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__UserGet
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
 
 @[expose] public section
@@ -28,12 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.UserGet.wp_proof :
     apply.authApplierV3.UserGet.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post info
-  wp_start as ⟨#Hauth, #Hinner, ⟨⟨⟨%n, #Hr⟩, HRW⟩, #Hgate⟩, Hm, Hwt, #Hsp⟩
+  wp_start as ⟨#Hauth, #Hinner, ⟨⟨⟨%n, #Hr⟩, HRW⟩, #Hgate⟩, Htt, Hm, #Hsp⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
+  ihave ⟨Hard, Hkv⟩ := apply.mPreWRest_rd E log Pre Q Post $$ Hkv
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
@@ -56,10 +56,11 @@ theorem apply.authApplierV3.UserGet.wp_proof :
     wp_auto
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
-    wp_apply HResp $$ %go!"UserGet" %r %log %Pre %Q %Post %info' [] [Hkv Hres Hcs Hwt HRW] as %resp %err' ⟨Hpost, #HeI'⟩
+    ihave Hkv : apply.mPreW E c (.ok bi) info' log Pre Q Post $$ [Hkv Hres]
+    · iapply apply.mPreW_of_rest; iframe
+    wp_apply HResp $$ %go!"UserGet" %r %log %Pre %Q %Post %info' [] [Htt Hkv HRW] as %resp %err' ⟨Htt, Hpost, #HeI'⟩
     · ipureintro; simp [apply.respMethods]
     · simp [apply.reqFacts]
-      iunfold apply.mPre
       iframe
       iframe Hsp
       iframe Hgate
@@ -68,10 +69,15 @@ theorem apply.authApplierV3.UserGet.wp_proof :
         apply.authUserGetIs r n ∗ apply.userGetClass E.authMode info n) $$ []
     · iintro %_; iexists n; iframe Hr; iunfold apply.userGetClass; ileft; iexact Hadm
     iapply HΦ
+    iframe Htt
     iframe Hug
     isplitl; rotate_left
     · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil
+    iunfold apply.mPostW at Hpost
+    icases Hpost with ⟨Hpost, Hrt⟩
     iunfold apply.mPost at Hpost
+    iunfold apply.mPostW
+    iframe Hrt
     iunfold apply.mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iframe Hkv HPP
@@ -83,10 +89,11 @@ theorem apply.authApplierV3.UserGet.wp_proof :
       wp_auto
       iunfold apply.chainResAny at Hres
       icases Hres with ⟨%info', Hres⟩
-      wp_apply HResp $$ %go!"UserGet" %r %log %Pre %Q %Post %info' [] [Hkv Hres Hcs Hwt HRW] as %resp %err' ⟨Hpost, #HeI'⟩
+      ihave Hkv : apply.mPreW E c (.ok bi) info' log Pre Q Post $$ [Hkv Hres]
+      · iapply apply.mPreW_of_rest; iframe
+      wp_apply HResp $$ %go!"UserGet" %r %log %Pre %Q %Post %info' [] [Htt Hkv HRW] as %resp %err' ⟨Htt, Hpost, #HeI'⟩
       · ipureintro; simp [apply.respMethods]
       · simp [apply.reqFacts]
-        iunfold apply.mPre
         iframe
         iframe Hsp
         iframe Hgate
@@ -96,10 +103,15 @@ theorem apply.authApplierV3.UserGet.wp_proof :
       · iintro %_; iexists _; iframe Hr; iunfold apply.userGetClass; iright; ipureintro
         first | exact hn | rfl
       iapply HΦ
+      iframe Htt
       iframe Hug
       isplitl; rotate_left
       · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
       iunfold apply.mPost at Hpost
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
       iframe Hkv HPP
@@ -112,10 +124,13 @@ theorem apply.authApplierV3.UserGet.wp_proof :
         apply.authUserGetIs r n ∗ apply.userGetClass E.authMode info n) $$ []
     · iintro %h; cases h
     iapply HΦ
+    iframe Htt
     iframe Hug
     isplitl; rotate_left
     · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil
-    ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
+    icases apply.mPreWRest_reject _ _ _ _ _ $$ Hkv with ⟨Hkv, HPre, Hrt⟩
+    iunfold apply.mPostW
+    iframe Hrt
     iunfold apply.mPost
     iframe Hkv
     isplitl [Hinfo Hres]
