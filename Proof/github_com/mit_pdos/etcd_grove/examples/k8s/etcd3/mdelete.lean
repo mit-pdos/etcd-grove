@@ -48,9 +48,6 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     rw [← Hlk]; exact ⟨rfl, rfl⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  -- Stage 7b: the preconditions (`preOk`, `invalidObj`) before `validateFor`: Prove phase.
-  sorry
-/- the rest of the proof at 835795d4d1 (lean):
   cases ok
   · have hn : (lookupL g.items x.Key').2 = false := hok.symm
     (try wp_auto)
@@ -62,13 +59,21 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     ipureintro; exact ⟨rfl, rfl⟩
   · have hn : (lookupL g.items x.Key').2 = true := hok.symm
     (try wp_auto)
+    wp_apply wp_preOk
+    cases hp : preOkL x it.obj'
+    · (try wp_auto)
+      wp_apply wp_invalidObj
+      iapply HΦ
+      have : mdeleteL x g = (g, invalidObjL x.Key') := by simp [mdeleteL, hn, ← hit, hp]
+      rw [this]
+      iframe Hk
+      ipureintro; exact ⟨Hr, rfl⟩
+    (try wp_auto)
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply wp_validateFor as %vf #Hvf
     iunfold validateD at Hvf
     (try wp_auto)
-    ihave c : c_ptr ↦ Obj.mk it.obj'.Name' it.obj'.Value' it.obj'.ResourceVersion' $$ [c]
-    · iexact c
     cases hr : rejects x.Reject' it.obj'.Value'
     · wp_apply Hvf $$ [$c] as %err Hc Herr
       isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Herr
@@ -81,8 +86,8 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       wp_apply wp_objOut
       iapply HΦ
       have : mdeleteL x g = (⟨delItemL g.items x.Key', g.rv + W64 1⟩,
-          objOutL ⟨it.obj'.Name', it.obj'.Value', g.rv + W64 1⟩) := by
-        simp [mdeleteL, hn, ← hit, hr]
+          objOutL { it.obj' with ResourceVersion' := g.rv + W64 1 }) := by
+        simp [mdeleteL, hn, ← hit, hr, hp]
       rw [this, ← Hr]
       iframe Hout
       ipureintro; exact ⟨rfl, rfl⟩
@@ -95,11 +100,10 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       | ok ei =>
         (try wp_auto)
         iapply HΦ
-        have : mdeleteL x g = (g, rejectedL) := by simp [mdeleteL, hn, ← hit, hr]
+        have : mdeleteL x g = (g, rejectedL) := by simp [mdeleteL, hn, ← hit, hr, hp]
         rw [this]
         iframe Hk
         ipureintro; exact ⟨Hr, rfl⟩
--/
 
 end proof
 
