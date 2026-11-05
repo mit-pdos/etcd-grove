@@ -381,7 +381,7 @@ noncomputable def File.Seek.impl : val :=
 /-- `(*File).Write(b []byte) (n int, err error)` (`file.go`, `file_posix.go`'s `write`,
 `poll.FD.Write`): `write(2)` calls at the file offset until all of `b` is written, `EINTR`
 retried, an error being `&PathError{"write", name, Errno(e)}`; the offset advances by what was
-written. A `write(2)` is a `pwrite(2)` at the offset that then moves it: the model is `WriteAt`'s
+written. A `write(2)` is a `pwrite(2)` at the offset that then moves it: the model calls `WriteAt`
 (`File.WriteAt.impl`, the same loop of the extension's `PWriteStart`/`PWriteFinish` as Go's
 `Pwrite`, whose result Go's `Write` gives too: `len(b)` and nil, or an error) at `off`, then `off`
 moves past `b`. On an error the model's `WriteAt` does not say how much was written, so the offset
@@ -396,7 +396,7 @@ noncomputable def File.Write.impl : val :=
     else if: #model.offMax ≤⟨go.int64⟩ ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") then
       Panic "os: Write past 2^62 not modelled"
     else
-      let: "r" := File.WriteAt.impl "f" "b" "off" in
+      let: "r" := (MethodResolve (go.PointerType model.File) go!"WriteAt") "f" "b" "off" in
       (if: Snd "r" =⟨go.error⟩ #GoInterface.nil then
         StructFieldRef model.file go!"off" "inner" <-[go.int64]
           ("off" +⟨go.int64⟩ Convert go.int go.int64 "len")
