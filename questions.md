@@ -201,3 +201,15 @@ review; `stop_monitorRT` stays the marked `sorry`.
   - `goWaited γg` (the discarded run-token authority at `0`) contradicts `ownToks γg.run 1`.
 
   The approved design is otherwise unchanged (no ticket, `Start`'s post untouched).
+- **D6. `goWaited` is an exclusive half, not a persistent fact; the pool gains a retired case
+  (2026-11-05).** The stop must close `srvWTPool`'s invariant after taking the monitor's read token,
+  and nothing can take the token's place:
+  - the γbe fractions are all spoken for;
+  - a receipt would contradict the stop's own `goWaited`.
+
+  So the pool's last component gains a retired case: the pool's γbe quarter discarded, plus the
+  stop's `goWaited` (the run-token authority's half at `0`, exclusive). The snapshot path's swap
+  rules the retired case out with the whole γbe, and the stop with `goWaited`'s exclusivity. The
+  design the user approved said a persistent `goWaited`; this makes it an exclusive half, with the
+  same contradiction against a receipt. Internal (`InvGoAttach`, `InvApplier`); no hub statement
+  changes.
