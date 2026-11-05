@@ -1192,3 +1192,54 @@ same clause.
 `isKeyBackendG`, `isKeyBackendGR` (the `HN` parameter's type), `lockCtxM`, `lockBackM` (a trailing
 `dq`), `store.updateCompactRev.spec`, `store.Compact.core` (`dq`). No module outside mvcc names
 them (checked with `etc/importers.py --uses`).
+
+## Hand-off: stage 2, M3 begun and a finding on `mvccBackendFor_open.law` (2026-11-06)
+
+**Done** (no axiom, no new placeholder):
+- **`excl.law` proved** (`Api/WatchLaws.lean`: `mvccOpen_excl`, `excl.law_holds`): two open tokens'
+  restorable compaction rights each hold an eighth of the fields at the current objects and names
+  (`fieldShareAt_cur`, `curAt_agree`), so their physical names agree, and with them the scheduler,
+  whose stop token is exclusive (`mono_list_idx_agree` on `schedStopName`, then `dghostVar` at 1+1).
+- **`NewStore`'s tracked compaction from the open** (`cmpTrack_new_M1`'s `NewStore` use gone):
+  `mvcc.NewStore.spec`, `mvcc.newWatchableStore.spec` and `mvcc.New.spec` take
+  `kbVals kb (none, none) ∅` (the open's halves of the compaction keys' values and of the deleted
+  entries, `fkCl`'s over fresh data: `fkVals D = (none, none)` when `D` has no compaction key);
+  `NewStore.lean`'s `cmpOk_fresh` (the cut at `[[], []]`, nothing anywhere) and `cmpTrack_fresh`.
+  `StoreBackend.NewStore_backend` and `Results.lean`'s two linked forms take
+  `fkdOwn d.γB (none, none) ∗ dlsOwn d.γB ∅`. Interfaces regenerated.
+
+**Breaks outside mvcc** (not fixed, the server's track): the callers of `mvcc.New.spec`
+(`etcdserver.BuildLemmas`, `etcdserver.M2StorageDraft`, `etcdserver.NewServer`: pass `fkCl`'s
+`fkdOwn`/`dlsOwn` at the fresh data's values) and of `mvcc_NewStore_backend` (`etcdserver.Results`).
+These are to move onto the API's `New.spec` anyway.
+
+**Finding: `mvccBackendFor_open.law` is too weak (stopped M3 there).** It quantifies over every
+`P : backend.BParams`, but the store over a real backend needs `P` to be a real instance's
+parameters (`KBReal.P d`: `Key` the one safe-range bucket, the hook's buckets and keys, the rest
+buckets tracked, `FV := metaRevVal`) with `Key` and `Meta` in its table (`bridgeParams`): the
+bridge (`storeBackend_of_backendC`) takes `bridgeParams d.P`, and `mvccBackend`'s body pins
+`B = ⟨d.γB, d.P, d.be⟩` for a `d : KBReal`. Nothing among the law's premises (`newPostKP`,
+`isBackend`'s `P.Wf`, `keySized`, `mvccImage`) says anything of `P`'s shape, so `mvccBackendFor`
+cannot carry it, and `New.spec`/`NewStore.spec`/`KV.Restore.contract` (which take only
+`mvccBackendFor B Pk …`) cannot produce `mvccBackend γ 1 B Pk` at a `B` whose `P` is not of that form.
+**Minimal fix**: a premise `⌜mvccParams P⌝` on `mvccBackendFor_open.law`, with the vocabulary
+`mvccParams P := ∃ d : KBReal, d.P = P ∧ bridgeParams P` (or its unfolded form over `BT`, `hookMax`,
+`limit`); the server's mirrors (`KVStoreApi`'s `dbImageA_open.law`, `bootBackend.law`) take it too,
+and the server has it (`InvBoot`'s and `SnapRO`'s `p.kb = some d ∧ bridgeParams d.P`).
+
+**Left** (in order, after the fix above is decided):
+- `mvccBackendFor`'s body (then the law: mostly `newPostKP`'s split into the store's part and
+  `backendRest`): `isBackend` at `lateW gx`, `keySized`, `⌜mvccParams P⌝`, the image (`mvccImage D L c
+  u`), `bViewC`, `dlInit`, `fkCl`, `srSlot`, `rdStock` with the `rdStockN` open shares (`bkRTx`),
+  `lateReg gx`, the two write-back tokens and the supply. At `mvccStart` it gives `NewStore_backend`'s
+  premises (the `Key` bucket empty and no compaction key from `imageOk D [] (-1) false`).
+- `New.spec`/`NewStore.spec` over it: `NewStore` must return the API's client parts it drops today
+  (`absNames_alloc_store`'s `-`: `mvccStateI`, `shareTok 1`, the compaction authority's quarter),
+  `Perm := fun _ => True`, `mvccLeases` defined (`opaque` today: `@[no_expose] def … := γ.leases`),
+  `mvccOpen` from `compactRightR_of_closer` with a reader token kept back (`storeRT`) and the supply
+  (`kbWTSupplyM`); `wsSlot_make_M1` (`New`'s).
+- `cmpTrack_new_M1`: only `store.Restore`'s use left; it also tracks `⟨none, none⟩` records though the
+  image may hold records (the restore's records from the image's `rc`, and the cut from `imageOk`'s
+  `ents`). Its docstring in `M1Placeholders.lean` still names `NewStore` (not edited: 314 importers).
+- `KV.Restore.contract`/`KV.Close.contract` (unchanged since the last hand-off).
+- The TCB baseline: no axiom or `sorry` added or removed (`cmpTrack_new_M1` still used).
