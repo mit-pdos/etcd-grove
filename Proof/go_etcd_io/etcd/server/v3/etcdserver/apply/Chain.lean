@@ -1136,11 +1136,15 @@ def revokeResAfter (E : AEnv GF) (id : w64) (rs : RestM) (err : GoInterface) : I
 
 /-- `LeaseRevoke(r)`'s precondition (the lease-revoke plan, R3, 2026-10-31): the request's, room
 for a revision (`putOk`: `rqOk` keeps excluding the kind for `dispatch`), the certificate, the
-write token, the method's resources and the revocation's (`revokeRes`). -/
+write token, the method's resources and the revocation's (`revokeRes`). Strict M1, 2026-11-05 (the
+migration's choice): the state's size bound `(stateAfter log).length ≤ 2 ^ 62`, the lessor's sort
+premise (`revokeClause`), which the server derives from the writer's receipt
+(`srvApplyKV_small`: a live key-value is a change, `receiptBound ≤ 2 ^ 48`). -/
 def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (rs : RestM) (Pre Q Post : IProp GF) :
     IProp GF :=
-  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ putOk log⌝ ∗
+  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ putOk log ∧
+      (mvcc.stateAfter log).length ≤ 2 ^ 62⌝ ∗
     certPre E c rq log ∗
     leaseRevokeIs r id ∗ mPre E c a info log Pre Q Post ∗ revokeRes E rs)
 
