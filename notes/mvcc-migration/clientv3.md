@@ -25,13 +25,16 @@ Scope: `Proof/go_etcd_io/etcd/client/v3/**`, `Spec/go_etcd_io/etcd/client/v3/**`
 - Built with it (`lake build`): `KVMembers`, `kv__Get`, `kv__Put`, `kv__Delete`, `kv__Do`,
   `kv__Txn`, `txn__Commit`, `txn__If/Then/Else`.
 
-### The KV path over the server (`InvServerKV`, `ServerKV{Get,Put,Txn}`: edited, **not checked**)
+### The KV path over the server (`InvServerKV` built; `ServerKV{Get,Put}` checked against a stub; `ServerKVTxn` not checked)
 
-Not checkable yet: they import v3rpc's `ClientModel` (being restated by the v3rpc track, on disk
-uncommitted: `etcdModelOfServer E γr on`, `srvReachedAt γr on := srvRevLbA`, `etcdReached_of_nx`,
-`etcdState_of_nx(_last)` over `srvApi.kvNx γr on`), which imports the server's `InvApplier`/
-`KVStoreApi` (red at the time), and `ServerKV*` import `LinkMembers` → `Link` (all of client/v3,
-the watch path included, red).
+Over v3rpc's landed `ClientModel` (`8c419aa278`: `etcdModelOfServer E γr on`, `srvReachedAt γr on
+:= srvRevLbA`, `etcdReached_of_nx`, `etcdState_of_nx(_last)` over `srvApi.kvNx γr on`).
+`InvServerKV` builds of record (`lake build`). `ServerKV*` import `LinkMembers` → `Link` (all of
+client/v3, the watch path included, red), so `ServerKVGet` and `ServerKVPut` were checked
+(`lake env lean`) as one scratch file outside the repository with `LinkMembers`' three results
+(`v3.kv.wp_GetM`, `wp_PutM`, `wp_DeleteM`) stubbed: no error but a scratch import
+(`optsAt_res`, in `isEtcdKVE_of_kv_r`, whose remaining lines were therefore not checked).
+`ServerKVTxn` (it imports `TxnPlain` → `Link`) is edited the same way, not checked.
 
 - `InvServerKV` imports `KVService` (not `Results`: it used only docstring names of it).
 - **`nxOrNil E l := ⌜l = []⌝ ∨ E.Nx l`** (new): a floor a client may take (until M1 `certOk`, whose

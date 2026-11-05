@@ -410,7 +410,12 @@ theorem srvLogCert_kvNx (E : apply.AEnv GF) (γr : ReadNames) (log : mvcc.Log)
   iunfold srvLogCert
   iintro ⟨-, #Hnx, -, -⟩
   rw [hNx]
-  iexact Hnx
+  iunfold kvNxOff at Hnx
+  icases Hnx with ⟨%A, #HA, %hA⟩
+  iunfold srvApi.kvNx
+  iexists A
+  iframe HA
+  ipureintro; exact hA
 
 /-- **The server's witness tie**, from its KV invariants. -/
 theorem srvKVInvs_nx (E : apply.AEnv GF) (γr : ReadNames) :
