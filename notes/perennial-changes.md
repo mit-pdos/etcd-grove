@@ -1532,10 +1532,14 @@ field-load automation finding the instance at any fraction.
 
 ## A slice literal of map literals (2026-11-06, the mvcc tester)
 
-No WP lemma covers a slice composite literal whose elements are map literals
-(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`), so its proof is not attempted
-(the spec stands, `Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, no proof
-file; `notes/mvcc-migration/mvccrand.md`). Local workaround if needed: build the slice from
-`make` and two `map` makes in Go is not an option (the tester's code is what it is), so a local
-lemma over the literal's expansion. The general change: the slice-literal rule taking elements
-of any type with a composite-literal WP, maps included.
+`wp_slice_literal` (`Perennial/Golang/Theory/Slice.lean`) fixes the elements `l` before the array
+literal's WP runs, so a literal whose elements are themselves allocated by that WP
+(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`: each element a `make1`) cannot
+name them: the metavariable `?l` is created outside the scope of the maps' locations, and `rfl`
+fails. **Worked around locally** (2026-11-06): `wp_slice_literal_ex` in
+`Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, a copy of
+`wp_slice_literal_nonnull`'s proof whose post takes the elements existentially
+(`∃ l, ⌜v = #(array.mk n l)⌝ ∗ …`), under `set_option goose.wp.unfoldSliceLiterals true` and
+Perennial's section variables (`[GoSemanticsFunctions] [go.PreSemantics]`); `newHistory` is proved
+over it. **The general change**: Perennial's `wp_slice_literal`(`_nonnull`) with `∃ l` in the array
+literal's post (the current statements are its instances at a fixed `l`), then delete the local copy.
