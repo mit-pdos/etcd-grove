@@ -1834,6 +1834,32 @@ Landed (each built over the importers that name what changed, then committed and
   neither `bktNested` nor `heapOK`'s third clause directly, but check them at integration. The
   open-sorry inventory below is unchanged by maintainer 15 (none added or removed).
 
+### Maintainer 16 (2026-11-05): landed, and what waits for the coordinator's go
+
+Landed: `a44426260a` (`Read/PubWBkt.wtxWQ_child_tx` reads `heapOK`'s third clause's `.1`);
+`f5efc83736` (**D-M**, decided by the coordinator, for the user's review: `Tx.DeleteBucket.spec`'s
+post gains `⌜n = [] ∧ T.cur.lookup n = none⌝ ∗ boltTx tx γ 1 T ∗ ErrIncompatibleValue ↦□ err`;
+`nonissues/bbolt-deletebucket-empty-name.md`); the pure half of **`wrCurFacts` in the invariant**:
+`Model/WrCur` (moved `nlocCur`; `rootEntVal`/`rootEntRef`, the root bucket's entry's recorded
+root; `wrCurFacts T X := nlocCur X ∧ (bktLoc → rootPid = wRoot) ∧ (∀ n, rootEntRef X n = wRoot
+X.v T n) ∧ (every registered node's bucket ∈ bobjs)`: the last two clauses are what keep the
+second across an open, at a fresh location, and across `CreateBucket`) and `Write/WrCur`
+(`wrCurFacts_congr`, `_nodeAdded`, `_matGrow`, `_setNode`, `_bktOpened`, `_createPost`, `_wx0`,
+`_gen`, `_leafStep`; proved). **DeleteBucket's obligation** (U7m/U7n): `deleteOK`'s last conjunct
+`wrCurFacts (T.dropBkt n) X'` (the bucket out of `liveB` and the root's `bm`, the root entry gone
+so `rootEntRef = 0 = wRoot` at the bumped generation; other buckets' `nm`, `ib.root'`, `nloc`
+unchanged; `wrCurFacts_congr` for the frame).
+
+**Waiting for the coordinator's go** (it edits `Inv/Tx`, upstream of `Commit/WriteExtRun`):
+`/home/ubuntu/.claude-E/jobs/e232d4e0/tmp/m16/inv.patch` (`wtxFrac`'s facts end `∧ wrCurFacts T X`,
+`Inv/Tx` imports `Model/WrCur`; `boltTxDef_wtxW`/`_wtxWQ`'s facts end `∧ wrCurFacts T X`), then
+`python3 …/m16/land.py [--errors]` (the closers: `obtain ⟨…, hwr, hwc⟩ := Hf`; `boltTxDef_wclose`'s
+and `dbk_close`'s `hf` end `∧ wrCurFacts T' X'`; `createOK`/`openOK` end `∧ wrCurFacts T X'` and
+the `wp_root`s take `hwc`; `Read/PubWCur`'s `wrCurFacts_of` and every `hW` removed (the facts are
+`wtxFrac`'s); `--errors`: item (ii), `bboltErrorsVars` ends with `ErrBucketNotFound`'s
+`bboltErrVar` (its `fmtErrorOk`), `etc/gen-init.py` updated, then regenerate the `Init.lean`s).
+Then build the leaves of `Inv/Tx` but `WriteExtRun`'s downstream, fix, commit in one window.
+
 ## Writer reads at a fraction (U6w, 2026-11-05)
 
 **The cause** (found by the coordinator). The public read triples (`Bucket.Get`, `Bucket.Cursor`,
