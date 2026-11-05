@@ -2028,3 +2028,69 @@ cannot state today.
 No Lean change in this round: the build is unchanged, and the DRAFT sorries are still the three
 of `ImageLeases.lean` (`imageLeasesAt_recs`, `appliedTable_mono_sub`,
 `appliedTable_granted_live`), reached by no result.
+
+### Third round (after Q-S6 (A-ii) and Q-S7, 2026-11-05): stopped at how `Main` learns its request
+
+The base is `2add3b6a0f` (lean `080f18c48f` merged). Before any Lean edit I checked (A-ii) end to end
+at its one consumer, `leaseexpiry/Main.lean:324`. **The requested-TTL map gives `Main` nothing
+unless `Main` learns the map's entry for its own id, and only the grant chain can tell it: a
+change to `lease.lessor.Grant.spec`'s post and to the frozen chain above it, beyond Q-S6/Q-S7.**
+Nothing was applied.
+
+**What `Main` holds at line 324:**
+- the reader invariant (`HrdInv`);
+- its grant's facts, through the client's live contract `etcdLeaseGrantSpecLive`
+  (`InvLeaseGrant.lean:97`): `leaseLiveFrom γl gi id gl` (the object `gl` is `id`'s lease at
+  some index), `ttl gl ↦□ gt` and `1 ≤ gt`;
+- the answer's `leaseTTLAt γl j id t'`.
+
+`Grant.spec`'s post (`lessor__Grant.lean`) is where these come from:
+`leaseLiveFrom γl 0 id l ∗ ∃ mt, lF "minLeaseTTL" lp ↦□ mt ∗ lsF "ttl" l ↦□ grantTTL mt ttl`.
+None of it names the request in ghost state.
+
+**Why no law over these facts works:**
+- A history clause "every TTL of `id` ≥ `Q id`" (Q the requested-TTL map) is true of Go. Recovered
+  TTLs are `max(rec, mt) ≥ req`, since the leader's record is `max(req, its mt)`. But `Main` cannot
+  name `Q id`.
+- A law from the facts `Main` has (`l` is `id`'s lease somewhere, `ttl l = t`) to `t' ≥ t` is false:
+  `l` may be a recovered object whose TTL a later restore lowers. Example: the record from leader
+  L0 has `max(req, mt_L0)`, a later one from L1 has `max(req, mt_L1) < max(req, mt_L0)`.
+- To distinguish `Main`'s object as the granted one, `Main` needs a provenance fact from `Grant`.
+- `Main` gets `1 ≤ gt`, which bounds its own object's TTL, not the request. With `mt` uninterpreted,
+  `gt ≥ 1` says nothing about `req`.
+
+**The smallest change that works (for 82 and the user):**
+1. `lease.lessor.Grant.spec` (frozen): the success arm also gives the persistent
+   `lease.leaseReqIs γl id ttl`, "the request of `id`'s grant was `ttl`". It is a ghost-only
+   addition to a *proved* spec: `Grant`'s proof inserts `id ↦ ttl` into the lessor's map, where
+   `id` is fresh because the map's ids are ever-ids. No trusted statement changes beyond Q-S6's
+   allocation.
+2. The grant chain carries it to the client's contract (frozen and exported definitions; the
+   statements of `etcd_leaseexpiry_safe` and `leaseexpiry_Main` are unchanged):
+   - the apply contract's Grant clause, `grantAnswer`, `leaseGrantedResp`;
+   - `EtcdServer.LeaseGrant.spec`'s post;
+   - v3rpc's `lessorGrantOkG` instance;
+   - `etcdLeaseGrantSpecLive`'s `G`, which becomes `∃ i l t, leaseLiveFrom γl i id l ∗
+     lsF "ttl" l ↦□ t ∗ ⌜sint.Z req.1 ≤ sint.Z t⌝ ∗ lease.leaseReqIs γl id req.1`.
+
+   This is the same path `28411daeac` threaded the granted TTL along.
+3. `Recover.spec` (frozen; a third change beyond Q-S2 and Q-S7) takes the records' requests:
+   - `rq : w64 → w64` with `∀ x ∈ recs, sint.Z (rq x.1) ≤ sint.Z x.2.1`, which the image's new
+     `bkRestAtL` bound gives;
+   - `□ [∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨ lease.leaseReqIs γl x.1 (rq x.1)`, an issued request agreeing
+     with the caller's;
+   - its post gives `leaseReqIs γl x.1 (rq x.1)` for each record.
+4. The apply thread keeps, for every id of its ever-set, `leaseReqIs γl u r` with `r` the
+   requested TTL of `u`'s grant in the log. This is internal to `srvEver` in `InvRest`, as `histCover`
+   is to the lessor; the log's grant ids are distinct (`kvGrantIds`). That is the evidence item 3's
+   premise takes.
+5. The law replacing `leaseTTLAt_ttl_agree`: `leaseTTLAt_ge_req : lessorRdInv γl ∗ leaseReqIs γl
+   id r ∗ leaseTTLAt γl j id t ⊢ |={E}=> ⌜sint.Z r ≤ sint.Z t⌝`. `Main` then concludes `t' ≥ 1`
+   from its request `1`, a short proof.
+
+Without item 1, the map, the `bkRestAtL`/`srvRestAt` bound and the `NewLessor` allocation (Q-S6)
+have no consumer, and `Main:324` has no proof. A `sorry` there would be a true statement, but it
+is blocked on a frozen change rather than Prove work, which the brief excludes. Everything else
+approved (the lessor's `histOnce` ids-only and `histCover`, Q-S7's `Lr`, items 2–4 of the Draft) is
+independent of this choice. It waits only because dropping `leaseTTLAt_ttl_agree` breaks `Main`'s
+proof.
