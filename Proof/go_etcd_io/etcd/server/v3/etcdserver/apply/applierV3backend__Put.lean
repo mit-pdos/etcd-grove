@@ -226,7 +226,7 @@ theorem apply.applierV3backend.Put.wp_proof
         Bool.false_eq_true, ↓reduceIte, apply.appliedHdr, srvApi.stAt]
       iframe Hres Hresp Hhdr
       isplitl []
-      · ipureintro; exact ⟨Herr, h2, hlen⟩
+      · ipureintro; exact ⟨Herr, h2, by omega⟩
       isplitl [Hw' Hbk Hhk Htie Hu Hard]
       · iapply (apply.kvOwn_of_split E _ B c)
         iframe Hw' Htie

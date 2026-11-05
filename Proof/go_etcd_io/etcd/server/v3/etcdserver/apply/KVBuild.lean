@@ -107,6 +107,35 @@ theorem auEnd_wand (γ : MvccName) (σ₀ : MvccState) (pend : List mvcc.Change)
       imodintro
       iapply Hw $$ HY
 
+/-- **A read update's payload, weakened** (at its commit). -/
+theorem auRead_wand (γ : MvccName) (Q Q' : MvccState → IProp GF) :
+    srvApi.auRead γ Q ⊢ (∀ σ, Q σ -∗ Q' σ) -∗ srvApi.auRead γ Q' := by
+  iintro Hau Hw
+  iunfold srvApi.auRead at Hau
+  iunfold srvApi.auRead
+  iauintro
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%x, Hx, Hcl⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists x
+  iframe Hx
+  isplit
+  · iintro Hx
+    icases Hcl with ⟨Hab, -⟩
+    imod Hab $$ Hx with Hau
+    imodintro
+    iframe Hau Hw
+  · iintro Hx
+    icases Hcl with ⟨-, Hco⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hco
+    imod Hco $$ Hx with HQ
+    imodintro
+    iapply Hw $$ HQ
+
 /-- **The builder's end update is txn's commit update.** -/
 theorem commitAU_of_auEnd (γ : MvccName) (σ₀ : MvccState) (pend : List mvcc.Change) (Y : IProp GF) :
     srvApi.auEnd γ σ₀ pend Y ⊢ txn.commitAU γ σ₀ pend Y := by

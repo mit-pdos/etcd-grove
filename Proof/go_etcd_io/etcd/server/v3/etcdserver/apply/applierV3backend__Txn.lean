@@ -1,5 +1,10 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
+txn's restated `Txn.specSole`, its read update at the writer's read, its write updates built by
+the server's builders, `envAus`. One placeholder, `M1-REPLACE` below: the write updates of a
+request whose paths miss a previous key-value, which the frozen `Txn.specSole` makes the caller
+give without saying they are used only after `checkTxn` passed; `notes/mvcc-migration/server.md`,
+"Found".)
 -/
 module
 
@@ -7,6 +12,9 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVBuild
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -20,6 +28,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+open mvcc.api (MvccState)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -33,43 +42,89 @@ theorem apply.applierV3backend.Txn.wp_proof
     (hTxn : txn.Txn.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Txn.spec (GF := GF) (hG := hG) := by
   intro E p r skip rq t log F Pre Q Post info
-  wp_start as ⟨#Hb, Hpre, #HF⟩
+  wp_start as ⟨#Hb, Hpre, #HF, Htt⟩
   iunfold apply.txnPre at Hpre
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
   iunfold apply.mPre at Hpre
-  iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
+  icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
-  icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
-  iunfold apply.backendIs at Hb
-  icases Hb with ⟨%opts, #Hopts, #Hok⟩
+  ihave #Hb' := Hb
+  iunfold apply.backendIs at Hb'
+  icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, #Hhook, #Hle, -⟩
-  iStructNamed Hopts
-  wp_auto
-  wp_apply hTODO
+  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, #Hle, -⟩
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨#HauB, #HauR, #HauE, -, #Hfacts, #Hfloor⟩
   iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
+  icases Hkv with #Hkv
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
-  ihave Hcok : iprop(if txn.txnReadonly t then iprop(True) else
-      ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
-      mvcc.certOkNext E.γ log
-      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) $$ []
+  -- the writer's facts: its floor, its reachability
+  imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, %Hreach⟩
+  have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
+  have hlen : log.length + 3 ≤ 2 ^ 63 := Hreach.2
+  -- the read update, at the writer's state
+  ihave Hau0 := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hw []
+  · iintro Hw; iexact Hw
+  ihave Hau : srvApi.auRead E.γ (fun σ => iprop(⌜σ.log = log⌝ ∗
+      (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ)) $$ [Hau0]
+  · iapply apply.auRead_wand $$ Hau0
+    iintro %σ ⟨%Hσ, Hw⟩
+    subst Hσ
+    isplitr
+    · ipureintro; rfl
+    dsimp only
+    iframe Hw
+    ipureintro; rfl
+  -- the write updates, given once the checks passed
+  ihave Hwand : iprop(if txn.txnReadonly t then iprop(True) else
+      iprop(∀ σ : MvccState, (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ -∗
+        txn.txnBeginAU E.γ log t (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
+          srvApi.wSt E.γs (mvcc.commitLog log (txn.txnChs log t)) c)))) $$ []
   · cases hro : txn.txnReadonly t
     · simp only [Bool.false_eq_true, ↓reduceIte]
-      iintro %hig
-      iapply apply.certOkNext_of_commitLog
-      iapply (apply.certPre_backend_applied E rq log _ false
-        (by unfold apply.backendStep; rw [hk]
-            exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩)) $$ Hcp
+      by_cases hig : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))
+      · iintro %σ ⟨%Hσ, Hw⟩
+        subst Hσ
+        unfold txn.txnBeginAU
+        iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
+        iapply HauB $$ %log %c %_ Hw
+        iintro Hw
+        isplitr
+        · ipureintro; rfl
+        iapply apply.commitAU_of_auEnd
+        ihave Hnx := apply.certPre_backend_applied E rq log _ false
+          (by unfold apply.backendStep; rw [hk]
+              exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩) $$ Hcp
+        ihave He := HauE $$ %log %c %_ Hw Hnx
+        iapply apply.auEnd_wand $$ He
+        iintro HY
+        isplitr
+        · ipureintro; first | rfl | trivial
+        iexact HY
+      · -- M1-REPLACE: `Txn.specSole`'s write wand is required before `checkTxn` and is not told
+        -- that the checks passed (the paths find their previous key-values, `PathsIgnOk`); without
+        -- it the end's witness `E.Nx (commitLog log (txnChs log t))` is not the chain's
+        -- (`certPre` gives it only for `backendStep`'s outcomes). Minimal fix (txn's spec): the
+        -- wand also takes `⌜txn.PathsIgnOk (stateAfter log) (t.branch (txnOk (stateAfter log) t))⌝`.
+        sorry
     · simp only [↓reduceIte]; itrivial
+  iunfold srvApi.auRead at Hau
+  ihave Hkb : txn.kvBackend E.γ 1 B (E.Pk B) E.f $$ [Hbk Hhk]
+  · iunfold txn.kvBackend; iframe Hbk Hhk
+  ihave Hcs : txn.csA (E.Pk B) E.f Pre Q Post $$ [Hcs]
+  · iunfold srvApi.csContractA at Hcs; iunfold txn.csA; iexact Hcs
+  iStructNamed Hopts
+  wp_auto
+  wp_apply hTODO
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false F) $$ [$Hrd $Hsw $HF $Hwt $Hcs $Hu $Hcok]
-    as %resp %trace %err ⟨Hrd, Hout⟩
-  · iframe #
-    isplitr
+      opts.KV' opts.Lessor' skip E.γ log t 1 B (E.Pk B) Pre Q Post E.f L none false _ _)
+      $$ [$Hkv $Htt $Hkb $Hle $Hr $Hu $Hcs $Hau $Hwand]
+    as %resp %trace %err ⟨Htt, Hkb, %σr, -, Hout⟩
+  · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo
@@ -77,9 +132,14 @@ theorem apply.applierV3backend.Txn.wp_proof
     · simp only [traceutil.ownTraceOpt]; itrivial
     isplitr
     · iapply mvcc.neverDone_neverCd
+    iframe Hknown
     ipureintro; exact hpre
+  iunfold txn.kvBackend at Hkb
+  icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ
-  icases Hout with (⟨%Herr, #He, Hsw, HPre, Hu, -⟩ | ⟨%Hok, Htrc, -, #Hresp, Hhdr, Hsw, #Hknown', Hu, HPP⟩)
+  iframe Htt
+  icases Hout with (⟨%Herr, #He, HPre, ⟨%Hσ, Hw⟩, Hu, -⟩ |
+    ⟨%Hok, ⟨%te', Htrc⟩, -, #Hresp, Hhdr, #Hknown', Hu, HPP⟩)
   · -- checkTxn's error
     isplitl
     rotate_left
@@ -96,13 +156,17 @@ theorem apply.applierV3backend.Txn.wp_proof
     iframe Hres He
     isplitl []
     · ipureintro; exact Herr.1
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+    isplitl [Hw Hbk Hhk Htie Hu Hard]
+    · iapply (apply.kvOwn_of_split E log B c)
+      iframe Hw Htie
+      iunfold apply.kvRest
+      iframe Hbk Hhk Hard
+      iunfold apply.leasesLive; iexists L; iframe Hknown Hu
     iright; iexact HPre
   · -- the run committed
     isplitr [Htrc]
     rotate_left
-    · iunfold apply.traceRes; iright; iexact Htrc
+    · iunfold apply.traceRes; iright; iexists te'; iexact Htrc
     iapply apply.kvPostF_backend
     iexists (.applied (mvcc.commitLog log
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false)
@@ -110,17 +174,45 @@ theorem apply.applierV3backend.Txn.wp_proof
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.2.1, Hok.2.2.2.2.1⟩⟩, fun _ _ _ => Hok.2.2.1⟩
+      exact ⟨⟨t, ht, Or.inr ⟨rfl, Hok.2.2.1, Hok.2.2.2.1⟩⟩, fun _ _ _ => HFl⟩
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
-      Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn, apply.appliedHdr]
-    iframe Hres Hresp Hhdr
-    isplitl []
-    · ipureintro; exact ⟨Hok.1, Hl2, hpre.1⟩
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown' Hu
-    cases txn.txnReadonly t
-    · ileft; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HPP
-    · iright; simp only [↓reduceIte]; iexact HPP
+      Bool.false_eq_true, ↓reduceIte, apply.appliedHdr]
+    iframe Hres
+    isplitl [Hhdr]
+    · isplitr
+      · isplitr
+        · isimp only [txn.txnChs, txn.srvRunTxn] at Hresp
+          simp only [txn.srvRunTxn]
+          iexact Hresp
+        ipureintro; exact Hok.1
+      iframe Hhdr
+      ipureintro; exact ⟨h2, hlen⟩
+    cases hro : txn.txnReadonly t
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      icases HPP with ⟨HPost, %σw, -, ⟨%Hσ, Hw⟩⟩
+      isplitl [Hw Hbk Hhk Htie Hu Hard]
+      · iapply (apply.kvOwn_of_split E _ B c)
+        iframe Hw Htie
+        iunfold apply.kvRest
+        iframe Hbk Hhk Hard
+        iunfold apply.leasesLive; iexists L; iframe Hknown' Hu
+      ileft; iexact HPost
+    · simp only [↓reduceIte]
+      icases HPP with ⟨HPre, ⟨%Hσ, Hw⟩⟩
+      have hchs : txn.txnChs log t = [] := Hok.2.2.1 hro
+      have hcl : mvcc.commitLog log (txn.txnChs log t) = log := by
+        rw [hchs]; unfold mvcc.commitLog; simp
+      isplitl [Hw Hbk Hhk Htie Hu Hard]
+      · simp only [txn.txnChs] at hcl
+        rw [hcl]
+        iapply (apply.kvOwn_of_split E _ B c)
+        iframe Hw Htie
+        iunfold apply.kvRest
+        iframe Hbk Hhk Hard
+        iunfold apply.leasesLive; iexists L
+        rw [hcl] at *
+        iframe Hknown' Hu
+      iright; iexact HPre
 
 end proof
 

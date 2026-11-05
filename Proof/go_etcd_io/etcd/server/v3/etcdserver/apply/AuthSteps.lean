@@ -330,14 +330,6 @@ theorem adminOut_applyErrIs (M : auth.AuthMode) (hs : List auth.AuthState) (R : 
         ipureintro; rfl
       iapply applyErrIs_nil
 
-/-- **The API's critical-section contract at a non-`nil` hook is mvcc's old one** (strict M1,
-2026-11-05: a bridge for the auth store's specs, still stated over `mvcc.csContract` at the hook's
-value; `hookRun` at a non-`nil` hook is the hook's triple). -/
-theorem csContractA_old (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) (hf : f ≠ func.nil) :
-    srvApi.csContractA P f Pre Q Post ⊢ mvcc.csContract P #f Pre Q Post := by
-  unfold srvApi.csContractA mvcc.csContract mvcc.api.hookRun
-  rw [if_neg hf]
-
 /-- **`isAuthSteps` of the real store** at `st` (`auth.authInv st R M`), with its write resource
 `auth.authWR st M P f T`, from S4's six specs. -/
 theorem isAuthSteps_of_authInv
@@ -352,10 +344,9 @@ theorem isAuthSteps_of_authInv
     (hRoleDelete : auth.authStore.RoleDelete.spec (GF := GF) (hG := hG))
     (hUserGrantRole : auth.authStore.UserGrantRole.spec (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
-    (hf : f ≠ func.nil) :
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      isAuthSteps (auth.authIface st) P f M iprop(auth.authWR st M P #f T ∗ auth.tpAdmin st M) := by
+      isAuthSteps (auth.authIface st) P f M iprop(auth.authWR st M P f T ∗ auth.tpAdmin st M) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iunfold isAuthSteps
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
@@ -363,8 +354,7 @@ theorem isAuthSteps_of_authInv
   · ipureintro; rfl
   isplitr
   · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hEnable st R M P #f T hs Pre Q Post) $$ [Ho HW HA Hcs]
+    iapply (hEnable st R M P f T hs Pre Q Post) $$ [Ho HW HA Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hon
       ipureintro; exact Hok
@@ -375,8 +365,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hDisable st R M P #f T hs Pre Q Post) $$ [Ho HW HA Hcs]
+    iapply (hDisable st R M P f T hs Pre Q Post) $$ [Ho HW HA Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> ⟨HA, HPP, HW, %en, #Hv, Hout⟩
     iapply HΦ
@@ -384,8 +373,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hUserAdd st R M P #f T hs Pre Q Post r name) $$ [Ho HW Hcs]
+    iapply (hUserAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -396,8 +384,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hUserDelete st R M P #f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
+    iapply (hUserDelete st R M P f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
     · iframe; iframe #; ipureintro; exact Hok
     iintro !> %resp %err ⟨HA, HPP, HW, Hresp, %en, #Hv, Hout⟩
     icases adminOut_applyErrIs M hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
@@ -406,8 +393,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hUserChangePassword st R M P #f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
+    iapply (hUserChangePassword st R M P f T hs Pre Q Post r name) $$ [Ho HW HA Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -418,8 +404,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hRoleAdd st R M P #f T hs Pre Q Post r name) $$ [Ho HW Hcs]
+    iapply (hRoleAdd st R M P f T hs Pre Q Post r name) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -431,8 +416,7 @@ theorem isAuthSteps_of_authInv
 
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %name %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hUserRevokeRole st R M P #f T hs Pre Q Post r name role) $$ [Ho HW Hcs]
+    iapply (hUserRevokeRole st R M P f T hs Pre Q Post r name role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -443,8 +427,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %role %key %rangeEnd %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hRoleRevokePermission st R M P #f T hs Pre Q Post r role key rangeEnd) $$ [Ho HW Hcs]
+    iapply (hRoleRevokePermission st R M P f T hs Pre Q Post r role key rangeEnd) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok
@@ -455,8 +438,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %role %Φ !> ⟨#Hr, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap, %Hnm⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hRoleDelete st R M P #f T hs Pre Q Post r role) $$ [Ho HW Hcs]
+    iapply (hRoleDelete st R M P f T hs Pre Q Post r role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hok
       ipureintro; exact Hnm
@@ -467,8 +449,7 @@ theorem isAuthSteps_of_authInv
     iframe #
   isplitr
   · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hb, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hUserGrantRole st R M P #f T hs Pre Q Post r user role) $$ [Ho HW Hcs]
+    iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       isplitr
@@ -480,8 +461,7 @@ theorem isAuthSteps_of_authInv
     iframe
     iframe #
   · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, ⟨HW, HA⟩, Hcs, %Hok, #Hcap⟩ HΦ
-    ihave Hcs := csContractA_old P f _ _ _ hf $$ Hcs
-    iapply (hRoleGrantPermission st R M P #f T hs Pre Q Post r name w) $$ [Ho HW Hcs]
+    iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w) $$ [Ho HW Hcs]
     · iframe; iframe #; isplitr
       · ipureintro; exact Hn
       ipureintro; exact Hok

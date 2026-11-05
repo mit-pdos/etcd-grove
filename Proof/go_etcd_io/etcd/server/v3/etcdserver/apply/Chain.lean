@@ -881,9 +881,10 @@ persistent): its four id fields (`txn.respHdrOwn`: the txn package allocated the
 layer's `header.fill` writes them), at a log of `NewStore`'s two revisions at least and room for
 the write (`putOk`/`delOk`: so the response's revision is not `0`). Beside the outcome's
 persistent answer (`putOutcomeIs`, ...) in `putAnswerIs`/`deleteAnswerIs` (2026-10-12, the
-request path's unit 3a). -/
+request path's unit 3a). Strict M1, 2026-11-05: room `+3` (the writer's facts'; the draft's
+relaxation of `putOk`/`delOk`; a transaction's premise `TxnPreA` has no size clause). -/
 def appliedHdr (log : mvcc.Log) (hf : Loc) : IProp GF :=
-  iprop(txn.respHdrOwn hf ∗ ⌜2 ≤ log.length ∧ log.length + 4 ≤ 2 ^ 63⌝)
+  iprop(txn.respHdrOwn hf ∗ ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **A put's answer, with the response header** (not persistent): `putOutcomeIs`, and, if
 applied, the response header's id fields owned (`appliedHdr`). What `Put`'s triple returns. -/
