@@ -128,6 +128,10 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (review r1 F2) in a cluster that grants none, the image's log grants none (its table empty;
     -- the receive side's `snapRecv_image(On)`, from the committed log's plain mode)
     (hlnil : E.lg = false → (appliedTable γr A').ids = [])
+    -- (the lease-expiry plan's S2–S4, Probe 4, DRAFT 2026-11-05) the applied log after an empty
+    -- prefix (`applyAll`'s raft names) and the KV names' lease mode the environment's
+    -- (`srvSnapRO`'s): what the granting walk's table lemmas take (`ImageLeases.lean`)
+    (hpre0 : γr.raft.pre = []) (hlmk : E.lm = γr.kv.lm)
     -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`), and the image's
     -- auth facts by it (`off`: lean's `hauthb`; `on`: `snapRecv_imageOn`'s), in place of `hoff`
     (hany : E.authMode ≠ .any) (hauthI : snapAuthImgM E.authMode γr d.P D A A')

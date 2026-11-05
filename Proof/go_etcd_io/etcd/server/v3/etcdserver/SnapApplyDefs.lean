@@ -16,6 +16,7 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Uint64
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOpen
 public import Spec.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorHist
 public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Recover
@@ -73,6 +74,50 @@ theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :
   have := (ownToks_add (GF := GF) k (n - k) γ).1
   rwa [Nat.sub_add_cancel h] at this
 
+/-- **The apply thread's two halves of the live set agree, and move together** (the lease-expiry
+plan's S2–S4, Probe 4): in a cluster that grants leases they agree; both go to `L'`. -/
+theorem ltHalf_agree_upd (E : apply.AEnv GF) (L T L' : List w64) :
+    ⊢ apply.ltHalf E L -∗ apply.ltHalf E T ==∗
+      ⌜E.lg = true → L = T⌝ ∗ apply.ltHalf E L' ∗ apply.ltHalf E L' := by
+  unfold apply.ltHalf
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro - - !>
+    isplitr
+    · ipureintro; intro h'; cases h'
+    isplitl <;> itrivial
+  · simp only [↓reduceIte]
+    iintro H1 H2
+    icombine H1 H2 gives %Hv
+    have Heq := Hv.2
+    imod ghostVar_update_halves L' E.γlt L T $$ H1 H2 with ⟨H1, H2⟩
+    imodintro
+    iframe H1 H2
+    ipureintro; exact fun _ => Heq
+
+/-- **In the monotone mode every id the lessor ever had is live** (the lease-expiry plan's S2–S4,
+Probe 4; `lease.ever_live_mono` at the apply thread's half of the ever set): given back. -/
+theorem ever_live_modeM (E : apply.AEnv GF) (lp : Loc) (mono : Bool) (U L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (hmlg : mono = true → E.lg = true) :
+    lease.lessorInv lp E.γ.leases ∗ lease.lessorModeIs E.γ.leases mono ∗ apply.everOwn E U ∗
+      lease.leaseOwn E.γ.leases L I ⊢
+    |={⊤}=> apply.everOwn E U ∗ lease.leaseOwn E.γ.leases L I ∗ ⌜mono = true → ∀ u ∈ U, u ∈ L⌝ := by
+  cases mono
+  · iintro ⟨-, -, H1, H2⟩
+    imodintro
+    iframe H1 H2
+    ipureintro; intro h; cases h
+  · have hl := hmlg rfl
+    rw [apply.everOwn_true E U hl]
+    iintro ⟨#Hinv, #Hm, H1, H2⟩
+    iunfold lease.lessorInv at Hinv
+    icases Hinv with ⟨-, -, -, #Hrd⟩
+    imod lease.ever_live_mono E.γ.leases U L I ⊤ (by simp) $$ [Hrd Hm H1 H2] with ⟨H1, H2, %H⟩
+    · iframe Hrd Hm H1 H2
+    imodintro
+    iframe H1 H2
+    ipureintro; exact fun _ => H
+
 theorem kbRT_some (d : mvcc.KBReal) : mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be := rfl
 
 -- (D22 J1a, 2026-10-26) `srvAuthRecoverOk` (now `authRecoverOk`), `srvMembersDir` and
@@ -83,12 +128,16 @@ resources at the snapshot's backend (`d'`, opened at the snapshot's index `sv.Me
 from which `applySnapshot.spec`'s postcondition is assembled. (Question 5's core stage, part (1),
 review round 16's M1, until M2's item 15) The new backend's instance at the old one's mode
 (`d'.cm = d.cm`), the store's right at the image's records `r` (`storeCloserM`), the new backend's
-write-back supply (`kbWTSupplyM`, from its stock). -/
+write-back supply (`kbWTSupplyM`, from its stock). (The lease-expiry plan's S2–S4, Probe 4,
+2026-11-05) The lessor at the image's records `recs` (`Recover`'s): its live set `Lr` with no item,
+both halves of the apply thread's live set at `Lr`, the ids it ever had with the records' added, the
+records' requests `reqOf`, the image's lease bucket kept. -/
 def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A A' : List EntryModel)
     (x : apply.ApplyKV) (R : mvcc.Log) (r : mvcc.CmpRecs) (ss : Loc) (bp : GoString) (hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
     (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) (memI : GMap w64 apply.MemberM)
-    (quota : w64) (wad : time.Duration) : IProp GF :=
+    (quota : w64) (wad : time.Duration) (Lr : List w64) (recs : List (w64 × w64 × w64))
+    (U : List w64) (reqOf : w64 → w64) : IProp GF :=
   iprop(∃ (γB : backend.BNames) (d' : mvcc.KBReal) (gx : GName) (π0 : ApplyPhys)
       (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
       (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
@@ -135,15 +184,17 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-    lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
+    lease.leaseOwn E.γ.leases Lr ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases Lr ∗
+    apply.ltHalf E Lr ∗ apply.ltHalf E Lr ∗ apply.everOwn E (U ++ recs.map (·.1)) ∗
+    □ ([∗list] x ∈ recs, lease.leaseReqIs E.γ.leases x.1 (reqOf x.1)) ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s)
     lease.rdAt E.γ.leases E.s ∗
     mvcc.bkRTx d'.γB d'.P d'.be ∗
     -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
     backend.rbOwnIn d'.γB membership.clusterBkts
-      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ((backend.rbData d.P D).lookup go!"lease").getD ∅]> (backend.rbData d.P D))) ∗
     backend.rbPart d'.γB (restSet E.authMode)
-      (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
+      (<[go!"alarm" := ∅]> (<[go!"lease" := ((backend.rbData d.P D).lookup go!"lease").getD ∅]> (backend.rbData d.P D))) ∗
     -- (P6.2, 2026-11-03) the apply thread's share of the new backend's open token by the mode
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (srvOpenQ E.authMode) ∗
     -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers

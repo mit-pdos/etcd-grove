@@ -220,7 +220,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm
       halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (fun _ => Hif.hlnil) hany
+      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (fun _ => Hif.hlnil) (by rw [hraft]) Hmo hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI, Hif.pre,
         by have := Hif.len; omega⟩)
       γnc
