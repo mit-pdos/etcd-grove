@@ -373,10 +373,13 @@ theorem Bucket.DeleteBucket.wp_root
   have hR1' : X1.t.bs !! X1.rl = some R1 := by rw [hrl1]; exact hR1
   try wp_auto
   -- `child.ForEachBucket(…)`: no nested bucket, the callback never runs
-  have hloc1 := PubW.bktLocalOK_of_wOK X1 hok1 cb C hC
-  have hpm1 := PubW.pmFresh_of_wOK X1 hok1
-  have hnb := allEnts_plain_nonroot X1 cb C hok1 hC (by rw [hrl1]; exact hcr)
-  wp_apply hFeb K tx r false X1 cb _ hloc1 hpm1 hnb $$ [Hw] as %ferr ⟨%hferr, Hw⟩
+  have hwc1 : wrCurFacts T X1 := by
+    rcases hcase with ⟨-, h⟩ | hop
+    · subst h; exact hwc
+    · exact wrCurFacts_bktOpened T X X1 cb n (T.gen n) hop hok hwc
+  have hbl1 : bktLoc X1 n = some cb := by unfold bktLoc; rw [hR1']; exact hn1
+  wp_apply hFeb K tx r false X1 n cb _
+    ⟨hok1, hbl1, hwc1.1, rfl, by rw [hrl1]; exact hcr⟩ $$ [Hw] as %ferr ⟨%hferr, Hw⟩
   · iexact Hw
   subst hferr
   try wp_auto
@@ -523,10 +526,6 @@ theorem Bucket.DeleteBucket.wp_root
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := dbk_post (GF := GF) T r X X1 X6 cb C R1 n D' w w5
       l B6 rl sl _ t hok hcur hgens hwr hfl hsome hok1 hd1 hR1 hn1 hC hcr hrl1 hv1 hmv1 hg1 hwr1
       hfl1 hdo1 htxw hsh1 hD Hmg hok6 Hok6.2.1 HB6 Hrl hlf hfd (dbkDelAt_len _ _ _ hnc.2.2.1 hfd)
-    have hwc1 : wrCurFacts T X1 := by
-      rcases hcase with ⟨-, h⟩ | hop
-      · subst h; exact hwc
-      · exact wrCurFacts_bktOpened T X X1 cb n (T.gen n) hop hok hwc
     have hwc5 := wrCurFacts_delMid T X1 cb C R1 n D' hok1 hok5 hwr1 hg1 hR1' hn1 hwc1
     have hwc6 := wrCurFacts_matGrow T _ X6 X.rl hok5 Hmg hwc5
     have hwc7 := wrCurFacts_dropRoot T X6 n l B6 rl sl (rl.ins.eraseIdx (wsIdx rl.ws n)) hok6 (by rw [h6rl]; exact HB6) Hrl

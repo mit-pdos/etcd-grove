@@ -1,7 +1,6 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_w.lean`: a `sorry`. Proved over `wCurCtx`
-(`Read/WFeb.ForEachBucket_w.wp_proof'`); the spec's premises (`bktLocalOK`, `pmFresh`) do not give
-it (no `wOK`, no `nlocCur`, the root bucket allowed), and the writer cursor moves need it.
+The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_w.lean`: `Read/WFeb`'s
+`Bucket.ForEachBucket_w.wp_proof'`, over the specs of `Bucket.Cursor` and the writer cursor moves.
 -/
 module
 
@@ -26,8 +25,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Bucket.ForEachBucket_w.wp_proof : Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG) := by
-  sorry
+theorem Bucket.ForEachBucket_w.wp_proof
+    (hcur : Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hfst : Cursor.first_w.specQ (GF := GF) (hG := hG))
+    (hnx : Cursor.next_w.specQ (GF := GF) (hG := hG))
+    (hnxe : Cursor.next_we.specQ (GF := GF) (hG := hG)) :
+    Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG) :=
+  Bucket.ForEachBucket_w.wp_proof' hcur hfst hnx hnxe
 
 end proof
 
