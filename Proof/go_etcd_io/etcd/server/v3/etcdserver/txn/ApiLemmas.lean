@@ -18,6 +18,22 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 open mvcc.api (MvccState MTxn MvccName)
 
+/-- A reachable state's log has `NewStore`'s two revisions. -/
+theorem txn.reach_len (σ : MvccState) (h : mvcc.api.MvccReachable σ) : 2 ≤ σ.log.length := by
+  induction h with
+  | start => decide
+  | notify σ pend _ _ _ ih => exact ih
+  | commit σ _ ih =>
+    unfold mvcc.api.MvccState.commitPending mvcc.commitLog
+    split
+    · exact ih
+    · simp only [List.length_append, List.length_singleton]; omega
+  | compact σ r _ _ _ _ _ ih => exact ih
+
+/-- A transaction's begin state after changes. -/
+theorem txn.MTxn.append_state (k : MTxn) (chs : List mvcc.Change) :
+    (txn.MTxn.append k chs).state = k.state := by cases k <;> rfl
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
