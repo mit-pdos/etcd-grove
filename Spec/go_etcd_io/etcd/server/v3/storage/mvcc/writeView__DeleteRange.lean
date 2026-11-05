@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -28,20 +28,26 @@ batch lock, by the critical-section contract (`csContract`). For a store without
 (`γ.watchQ = false`, unit W-K: the watchable store replaces the views). (Unit T3, L2b, 2026-10-25) The lease owner's item
 map `I` is that of every log the store certifies (the caller does not know which log the
 transaction finds: satisfiable by a store whose keys never had a lease, `I = ∅`); after, the
-committed state's. -/
+committed state's. (M4, track B, 2026-11-06) The commit's ghost step is the caller's
+(`endCb`, at the committed log the transaction found and its compaction revision), the frozen
+state excluded by the caller's `G` (`storeTxnWrite.End`'s). -/
 abbrev mvcc.writeView.DeleteRange.spec : Prop :=
   ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
     (key endk : GoSlice) (k e : GoString) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (log : mvcc.Log),
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (log : mvcc.Log)
+    (G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗
       mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.certFree γ ∗ key ↦*□ k ∗
       endk ↦*□ e ∗ lease.leaseOwn γ.leases L I ∗
       □ (∀ ilog : mvcc.Log, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
-      ⌜γ.watchQ = false⌝ }}
+      ⌜γ.watchQ = false⌝ ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗
+      (∀ (ilog : mvcc.Log) (crev : Int),
+        mvcc.endCb γ ilog ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) crev (mvcc.slotY γ ilog) R) }}
     (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"DeleteRange")) (Val #key))
       (Val #endk))
-  {{ (n rev : w64), RET (PairV #n #rev); mvcc.storeReader s γ ∗ Post ∗
+  {{ (n rev : w64), RET (PairV #n #rev); mvcc.storeReader s γ ∗ Post ∗ G ∗ R ∗
       ∃ ilog : mvcc.Log,
         mvcc.idxCert γ.idx (mvcc.commitLog ilog
           ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗

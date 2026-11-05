@@ -3,7 +3,6 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
@@ -186,8 +185,8 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     (hNotify : mvcc.watchableStore.notify.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) := by
   have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
-  intro trace tw s st γ ilog pend puts deletes putSize P f crev ld
-  wp_start as ⟨Hw, Hhook, HPh, #HokN⟩
+  intro trace tw s st γ ilog pend puts deletes putSize P f crev ld G R
+  wp_start as ⟨Hw, Hhook, HPh, #HokN, HG, #HFG, Hcb⟩
   iunfold mvcc.isWatchTxnWrite at Hw
   iNamed Hw
   iStructNamed Htw
@@ -212,19 +211,27 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     have hnil : pend = [] := hpend.2 Hif
     subst hnil
     (try wp_auto)
-    ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog [] puts deletes putSize) crev $$ [Hcore]
-    · simp only [mvcc.isTxnEnd]; iexists chs, ps, false, ld; iexact Hcore
-    wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize) crev) $$ [$Hte Hhook HPh]
-      as ⟨Hrd, Hpost, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HPh; rw [mvcc.logQPre_nil]
-      isplitl
-      · iunfold mvcc.certOkNext; ileft; ipureintro; rfl
-      itrivial
-    simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
+    ihave Hte : mvcc.isTxnEndY mw st γ.st trace (.write ilog [] puts deletes putSize) crev iprop(True)
+        (mvcc.slotY γ.st ilog) $$ [Hcore]
+    · simp only [mvcc.isTxnEndY]; iexists chs, ps, false, ld; rw [← mvcc.isTxnWriteCore_Y]
+      iexact Hcore
+    ihave Hcb := (mvcc.wsEndCb_nil_iff γ ilog crev R).1 $$ Hcb
+    wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize) crev (mvcc.slotY γ.st ilog)
+        G R) $$ [$Hte Hhook HPh HG Hcb]
+      as ⟨Hrd, Hpost, Htrc, HX⟩
+    · isplitl [Hhook HPh]
+      · iapply mvcc.txnEndPre_write; iframe Hhook HPh; rw [mvcc.logQPre_nil]
+        isplitl
+        · iunfold mvcc.certOkNext; ileft; ipureintro; rfl
+        itrivial
+      simp only [mvcc.txnEndX]
+      iframe HG HFG Hcb
+    simp only [mvcc.txnEndPost, mvcc.txnEndXPost, mvcc.commitLog, ↓reduceIte, mvcc.logQPost_nil]
     icases Hpost with ⟨#Hc, Htok, -, Hfrag, Hpin⟩
+    icases HX with ⟨HG, HR⟩
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Hc Htrc Hfrag
+    iframe Hrd Hc Htrc Hfrag HG HR
     iunfold mvcc.watchWriter
     iframe Hc Hwlog Hpin
     iapply mvcc.ownToks_join_pred γ.st.revs (mvcc.wBudget ilog) (by unfold mvcc.wBudget; omega)
@@ -507,10 +514,15 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   -- (D25) the revision released before its events go out: the released length bumped
   iunfold mvcc.relAuth at Hrel
   icases Hrel with ⟨Hrel, Hslot⟩
-  -- the API's slot at the notified log, where the API's notify fires (a placeholder until
-  -- `Txn.End.contract`'s notify step): the revision notified before its events go out
-  ihave Hslot := mvcc.wsSlot_step_M1 (ilog ++ [pend]) $$ Hslot
-  icases mvcc.wsSlot_nlLb γ 1 _ $$ Hslot with ⟨Hslot, #HnlN⟩
+  -- the caller's notify step, with the writer's slot and the lock's: the revision notified before
+  -- its events go out (a lower bound of the API's notified log at the revision)
+  ihave Hcb := (mvcc.wsEndCb_cons_iff γ ilog pend hne crev R).1 $$ Hcb
+  icases mvcc.isTxnWriteCore_takeY _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ $$ Hcw with ⟨HY, Hcw⟩
+  ihave Hslot : mvcc.wsSlot γ 1 ilog $$ [Hslot]
+  · rw [← hLmu]; iexact Hslot
+  imod Hcb $$ Hsl [HY Hslot] with ⟨#HnlN, %Y, HYn, Hcb⟩
+  · iframe HY Hslot
+  ihave Hcw := Hcw $$ %Y HYn
   ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
   · iapply mvcc.evLog_of_sealed γ.st (ilog ++ [pend]) Hrb $$ [$Hsl $Hok $HnlN]
   imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
@@ -523,14 +535,21 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   obtain ⟨hLmu', hab, hbel', hvic', hMeq, hWuEq, hSTEq⟩ := Hσ'
   have hLL : σ.Lmu.length = σ'.Lmu.length := by rw [hLmu, hLmu']
   (try wp_auto)
-  ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) crev $$ [Hcw]
-  · simp only [mvcc.isTxnEnd]; iexists chs, ps, true, ld; iexact Hcw
+  ihave Hte : mvcc.isTxnEndY mw st γ.st trace (.write ilog pend puts deletes putSize) crev iprop(True)
+      Y $$ [Hcw]
+  · simp only [mvcc.isTxnEndY]; iexists chs, ps, true, ld; iexact Hcw
   -- the lock's outer quarter of the committed log's authority, lent to the commit (unit W-K)
   icases mvcc.body_commit s γ σ' $$ HP with ⟨Hq, Hcommit⟩
-  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize) crev) $$ [$Hte Hhook HPh Hq]
-    as ⟨Hrd, Hpost, Htrc⟩
-  · iapply mvcc.txnEndPre_write; iframe Hhook HPh HokN
-    rw [mvcc.logQPre_ne γ.st ilog pend hne Hwq, ← hLmu']; iexact Hq
+  wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize) crev Y G
+      iprop(mvcc.wsSlot γ 1 (ilog ++ [pend]) ∗ R)) $$ [$Hte Hhook HPh Hq HG Hcb]
+    as ⟨Hrd, Hpost, Htrc, HX⟩
+  · isplitl [Hhook HPh Hq]
+    · iapply mvcc.txnEndPre_write; iframe Hhook HPh HokN
+      rw [mvcc.logQPre_ne γ.st ilog pend hne Hwq, ← hLmu']; iexact Hq
+    simp only [mvcc.txnEndX]
+    iframe HG HFG Hcb
+  simp only [mvcc.txnEndXPost]
+  icases HX with ⟨HG, Hslot, HR⟩
   have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
     unfold mvcc.commitLog; rw [if_neg hne]
   simp only [mvcc.txnEndPost, hcl, mvcc.logQPost_ne γ.st ilog pend hne Hwq]
@@ -570,7 +589,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     exact ⟨hs'', hsr'', hur''⟩
   (try wp_auto)
   iapply HΦ
-  iframe Hrd Hc Htrc Hfrag
+  iframe Hrd Hc Htrc Hfrag HG HR
   iunfold mvcc.watchWriter
   iframe Hc Hwlog Hpin
   have hb : mvcc.wBudget (σ'.Lmu ++ [pend]) = mvcc.wBudget σ'.Lmu - 1 := by

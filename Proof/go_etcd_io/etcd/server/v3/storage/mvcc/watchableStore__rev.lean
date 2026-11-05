@@ -85,7 +85,11 @@ theorem mvcc.watchableStore.rev.wp_proof
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
   ihave Hep : mvcc.txnEndPre γ.st (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd t mw st γ.st (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -, -⟩
+  ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev iprop(True) iprop(True) $$ Htx'
+  ihave Hx : mvcc.txnEndX γ.st (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
+  · simp only [mvcc.txnEndX]; itrivial
+  wp_apply (hEnd t mw st γ.st (.read log rev) crev iprop(True) iprop(True) iprop(True) iprop(True)) $$ [$Htx' $Hep $Hx]
+    as ⟨Hrd, -, -, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd HoA

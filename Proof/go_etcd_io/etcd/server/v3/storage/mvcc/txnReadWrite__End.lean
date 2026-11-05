@@ -37,7 +37,11 @@ theorem mvcc.txnReadWrite.End.wp_proof
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev Z $$ Htx'
   ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd trace mw s γ (.read log rev) crev Z) $$ [$Hpkg $Htx' $Hep] as ⟨Hrd, #HZ, -, Htrc⟩
+  ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev Z iprop(True) $$ Htx'
+  ihave Hx : mvcc.txnEndX γ (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
+  · simp only [mvcc.txnEndX]; itrivial
+  wp_apply (hEnd trace mw s γ (.read log rev) crev Z iprop(True) iprop(True) iprop(True)) $$ [$Hpkg $Htx' $Hep $Hx]
+    as ⟨Hrd, #HZ, -, Htrc, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd HZ Htrc

@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -27,15 +27,19 @@ key-values, `isTxnEnd`: `isTxn_toEnd`): the metrics updated, the wrapped transac
 committed log is certified (`txnEndPost`). A write transaction's `Unlock` takes the batch
 lock's invariant back (`txnEndPre`). At any compaction revision `crev`, the tokens back as
 `storeReaderC` with the reader's tag `Z` (2026-10-13, unit 6a); the readers' statement
-(`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). -/
+(`storeReader`) is `specR` (`spec_R`, `ReaderSpecs.lean`). (M4, track B, 2026-11-06;
+`Api/TxnSteps.lean`) A write transaction's slot is any `Y` (`isTxnEndY`), and the API's ghost state
+moves by the caller's step, with the frozen state excluded by the caller's `G` (`txnEndX`, given
+back with the step's result, `txnEndXPost`: `storeTxnWrite.End`'s). -/
 abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
-    (Z : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ trace kind crev Z ∗
-      mvcc.txnEndPre γ kind }}
+    (Z Y G R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isTxnEndY mw s γ trace kind crev Z Y ∗
+      mvcc.txnEndPre γ kind ∗ mvcc.txnEndX γ kind crev Y G R }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPost γ kind ∗
-      (∃ te : Bool, traceutil.ownTrace trace te) }}
+      (∃ te : Bool, traceutil.ownTrace trace te) ∗ mvcc.txnEndXPost kind G R }}
 
 end spec
 

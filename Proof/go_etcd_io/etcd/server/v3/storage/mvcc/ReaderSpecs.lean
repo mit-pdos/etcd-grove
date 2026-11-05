@@ -230,22 +230,24 @@ theorem mvcc.storeTxnWrite.Range.spec_R
 /-- The readers' statement. -/
 abbrev mvcc.storeTxnWrite.End.specR : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int),
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)
+    (Y G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev ∗ mvcc.hookIs γ P f ∗ P ∗
-      mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend }}
+      mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev iprop(True) false Y ∗
+      mvcc.hookIs γ P f ∗ P ∗ mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend ∗
+      G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ mvcc.logQPost γ ilog pend ∗
-      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) }}
+      mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) ∗ G ∗ R }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.storeTxnWrite.End.spec_R (h : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.End.specR (GF := GF) (hG := hG) := by
-  intro trace tw s γ ilog pend chs ps sealed P f crev
+  intro trace tw s γ ilog pend chs ps sealed P f crev Y G R
   iintro %Φ H HΦ
-  iapply (h trace tw s γ ilog pend chs ps sealed P f crev iprop(True) false) $$ %Φ [H]
+  iapply (h trace tw s γ ilog pend chs ps sealed P f crev iprop(True) false Y G R) $$ %Φ [H]
   · iexact H
   inext
   iintro ⟨Hr, -, Hrest⟩
@@ -279,20 +281,23 @@ theorem mvcc.metricsTxnWrite.Range.spec_R
 
 /-- The readers' statement. -/
 abbrev mvcc.metricsTxnWrite.End.specR : Prop :=
-  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int),
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Y G R : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnEnd mw s γ trace kind crev ∗ mvcc.txnEndPre γ kind }}
+      mvcc.isTxnEndY mw s γ trace kind crev iprop(True) Y ∗ mvcc.txnEndPre γ kind ∗
+      mvcc.txnEndX γ kind crev Y G R }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
+  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
+      mvcc.txnEndXPost kind G R }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.metricsTxnWrite.End.spec_R
     (h : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.End.specR (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind crev
+  intro trace mw s γ kind crev Y G R
   iintro %Φ H HΦ
-  iapply (h trace mw s γ kind crev iprop(True)) $$ %Φ [H]
+  iapply (h trace mw s γ kind crev iprop(True) Y G R) $$ %Φ [H]
   · iexact H
   inext
   iintro ⟨Hr, -, Hpost⟩

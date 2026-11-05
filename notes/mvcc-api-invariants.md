@@ -1467,3 +1467,70 @@ at `(r.finRev, ⟨0, 0⟩)`), `KV.Restore`/`KV.Close`; phase B.
 **Left**: `New.spec` (the watchable store: the internal `New.spec`'s post with the client's parts and
 the watch layer's, `wsSlot_make_M1`); `store.Restore`'s tracking, `KV.Restore`/`KV.Close`;
 `KV.Write.contract` (then `mvccDeleter_M1` goes); phase B.
+
+## Hand-off: M4, track B, the write path's commit steps (2026-11-06)
+
+**Done** (no axiom; placeholders removed, none added; no frozen statement changed):
+- `Api/TxnSteps.lean` (new): the internal `End`s take the moves of the API's slots as their
+  caller's ghost steps, fired where §3 puts them, and the frozen state's excluder as the caller's
+  `G` (`□ (slotF γ ∗ G -∗ False)`, given back; the API's `G` is the backend share,
+  `slotF_share_excl`). `endCb γ ilog pend crev Y R`: with no change, at the check-in, the
+  transaction's writer slot `Y` back to `slotY γ ilog` (given `idxCert γ.idx ilog`); with a change, at
+  the bump under `s.revMu` (given the committed log's certificate), `slotX γ 1 ilog crev ∗ Y` to both
+  slots at `ilog ++ [pend]` (the lock's compaction revision is the transaction's: `muHeld_crevUB`).
+  `wsEndCb γ ilog pend crev R` (the watchable `End`): with a change, at its notification under its
+  `s.mu` (given the sealed log), `slotY ∗ wsSlot γ 1 ilog` to the API's `nlLb (ilog ++ [pend])` (what
+  the notify's sends carry) and some `Y` with the commit's `endCb` from it, giving
+  `wsSlot γ 1 (ilog ++ [pend]) ∗ R`; with none, `endCb`. `storeTxnWriteCoreY`/`isTxnWriteCoreY`/
+  `isTxnEndY`: the cores with the writer's slot any `Y` (between the watchable notification and the
+  commit the writer's part of the pending revision is at `some pend`, so it is not `slotY`);
+  `txnEndX`/`txnEndXPost` (`metricsTxnWrite.End`'s extra pre/post, `True` for a read transaction).
+- **Statements changed** (all in mvcc; none used outside mvcc but through the linked results and
+  the `specR` corollaries): `storeTxnWrite.End.spec` (core at `Y`, `G`, `endCb`; post `G ∗ R`),
+  `metricsTxnWrite.End.spec` (`isTxnEndY`, `txnEndX`; post `txnEndXPost`), `watchableStoreTxnWrite.End.spec`
+  (`G`, `wsEndCb`; post `G ∗ R`), `writeView.Put.spec`/`DeleteRange.spec` (`G`, and the commit's step
+  `∀ ilog crev, endCb γ ilog pend crev (slotY γ ilog) R` at the pending changes they make; post
+  `G ∗ R`), `ReaderSpecs`' `storeTxnWrite.End.specR` and `metricsTxnWrite.End.specR` (likewise); the
+  read callers of `metricsTxnWrite.End` (`readView.{Rev,Range,FirstRev}`, `store.Rev`,
+  `watchableStore.rev`, `txnReadWrite.End`) pass `True`s.
+- **Placeholders**: `slotX_step_M1` and `slotY_step_M1` deleted (no use left); `slotF_excl_M1`'s two
+  `End` uses and `wsSlot_step_M1`'s `End` use gone (left: `slotF_excl_M1` in `store.Write` and
+  `CmpCb`'s `restore()` excluder; `wsSlot_step_M1` in `watchableStore.Restore`, track A).
+- `Api/EndSteps.lean` (new, over `import all` of `Api.lean`): `endCb_of_au`, the plain store's commit
+  step from `Txn.End.contract`'s nested update, for a transaction whose writer slot is at its begin
+  state `σ₀` (`Yat γ σ₀`: `slotY` with its compaction revision named, `Yat_slotY`): no change, both
+  steps by agreement (receipt from `idxCert ilog`, `logCh_append_nil`); a change, both at the bump
+  (the pending revision with the writer's half, the notified log's authority extended, the receipt
+  and `LogWf` from the committed log's certificate; the view with `s.revMu`'s and the writer's
+  quarters).
+
+**What `KV.Write`/`Txn.*` still need** (in order; none is a frozen statement found false):
+1. **The writer's slot at `σ₀` carried from `Write` to `End`.** `mvccTxn (.write σ₀ pend)` must fix
+   `σ₀.crev` to the writer slot's compaction revision (End's `⌜σ = σ₀⌝` is by agreement with it);
+   `slotY`'s is existential. Either `storeTxnWriteIs`/`isTxnWrite` (and the txn methods' specs over
+   them) take the slot as a parameter, as the cores now do (`Y := Yat γ σ₀`), or `slotY` names its
+   compaction revision. Then the watchable `wsEndCb`'s no-change arm at `Yat` too.
+2. **The tie of the write transaction's `crev` (its `s.mu` share's) to the API's `σ.crev`**, which
+   `Txn.Range`'s `rangeOutcomeC … k.state.crev` needs (the range reads `compactMainRev` under `s.mu`)
+   and which `store.Write` cannot learn (it does not take `s.revMu`, which is where `slotX` and the
+   index's `crevUB` meet). Proposed: a ghost the writer's slot and `muInvAt` share (e.g. a ghost
+   variable of the compaction revision, half `muInvAt` at the lock's fraction, half `slotY`), updated
+   by `updateCompactRev` and `Restore`, which hold `s.mu` exclusively and the writer's state. An
+   `InvStore` change (`muInvAt`'s producers), so a request to the coordinator.
+3. **The handle's resources for a writer** (`isMvccPlain`; `isMvccWatchable` has the readers' pool,
+   track A): the plain store's readers' pool (`storeReaderC` by `threadTok`), `certFree γ`
+   (persistent, minted from `NewStore`'s `γ.cok` authority, which `NewStoreApi` drops), the write-back
+   supply (`storeWT`), and **the writer's revision token and pin** (`store.Write` takes `revToken γ`
+   and `writerPin γ log`; `NewStore` returns `ownToks γ.revs (2^63-5)` and `writerPin γ [[], []]`,
+   which `NewStoreApi` drops). Only the batch lock's holder may take them (writers are concurrent,
+   serialized by the lock), so they belong with the writer's state (`writerL`, or `slotY`): with all
+   the tokens there, `ilog.length + ntok + 3 ≤ 2^63` and `ntok = 2^63 - 3 - |ilog|`, one is free while
+   `|ilog| ≤ 2^63 - 4`, which the receipts give (`|L| ≤ logCh L + 2 < 2^48 + 2` for a reachable state).
+4. `store.Write`'s hook at `nil` (`hookRun`'s view-shift arm; `lockCtxM` as `Compact`'s core) and its
+   fragment at `curAt (q/8)` (`mvccBackend`'s; `hookIs` wants an eighth).
+5. `KV.Read`/`Rev`/`FirstRev`: `readCb`'s result at the lock's compaction revision too (`F L c`; today
+   `F L`), for `mvccTxn (.read σ)`'s `σ.crev`.
+Then `mvccTxn`'s definition (§2), `KV.Write`/`Read` at both store types, `Txn.End.contract` from
+`endCb_of_au` (plain) and its watchable counterpart, the other `Txn` contracts, `KV.Put`/
+`DeleteRange` (`writeView.*`, whose specs now take the step), `mvccDeleter` (`mvccDeleter_M1`),
+`mvccTxn_leaseDelete.law`.

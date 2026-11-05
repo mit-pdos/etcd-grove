@@ -10,6 +10,9 @@ by `sorry`, marked `M1-REPLACE` with the API contract whose proof replaces it at
 proofs using them are rewritten against the API's contracts, and this module goes). Nothing new
 may use them. (Elsewhere, listed: `RestoreMoves`' five local ones; `Api/NewStoreApi.lean`'s `mvccDeleter_M1`, the
 range deleter's contract, M1-REPLACE: `KV.Write.contract`.)
+(M4 track B, 2026-11-06) `slotX_step_M1` and `slotY_step_M1` are gone, and `slotF_excl_M1`'s and
+`wsSlot_step_M1`'s uses by the `End`s: the internal `End`s take the moves of the API's slots as their
+caller's ghost steps (`Api/TxnSteps.lean`: `endCb`, `wsEndCb`) and the frozen state's excluder `G`.
 
 The snapshot image's store-side tracking (2026-11-05, `notes/mvcc-api-invariants.md`, "the snapshot
 image's tracking in place"): the batch lock's resource pins the tracked compaction (`cmpTrack`), so
@@ -44,25 +47,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **(Placeholder, false in general.)** The lock's slot moved to a new log and compaction
-revision without the client's half of the view. M1-REPLACE: `KV.Put`/`KV.DeleteRange`/
-`Txn.End.contract`'s bump (the client's update). (`KV.Compact.contract`'s uses, `updateCompactRev`'s,
-are gone: its caller's ghost step `cmpCb`, 2026-11-06.) -/
-theorem slotX_step_M1 {γ : StoreNames} {q : Qp} {L : Log} {c : Int} (L' : Log) (c' : Int) :
-    slotX (GF := GF) γ q L c ⊢ slotX γ q L' c' := by
-  sorry -- M1-REPLACE: Txn.End.contract (bump)
-
-/-- **(Placeholder, false in general.)** The writer's slot moved to the committed log without the
-client's half of the view. M1-REPLACE: `Txn.End.contract`'s bump. -/
-theorem slotY_step_M1 {γ : StoreNames} {L : Log} (L' : Log) : slotY (GF := GF) γ L ⊢ slotY γ L' := by
-  sorry -- M1-REPLACE: Txn.End.contract (bump)
-
 /-- **(Placeholder, false in general.)** The frozen state excluded without a share of the token.
-M1-REPLACE: `KV.Write.contract`, `Txn.End.contract` (the writer's backend share,
-`mvccBackend γ q`, excludes it: `slotF_share_excl`); `KV.Restore.contract` (`restore()`'s resumed
+M1-REPLACE: `KV.Write.contract` (the writer's backend share, `mvccBackend γ q`, excludes it:
+`slotF_share_excl`; `End`'s uses are gone: its caller's excluder `G`, M4 track B, 2026-11-06,
+`Api/TxnSteps.lean`); `KV.Restore.contract` (`restore()`'s resumed
 compaction, `compactLockfree`'s excluder: the restorer's share). -/
 theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢ False := by
-  sorry -- M1-REPLACE: KV.Write.contract, Txn.End.contract, KV.Restore.contract (the backend share)
+  sorry -- M1-REPLACE: KV.Write.contract, KV.Restore.contract (the backend share)
 
 /-- **(Placeholder, false in general.)** A new batch lock's tracked compaction (`NewStore`'s and
 `store.Restore`'s), from the halves of the records' compaction revision and of the job's cursor
@@ -85,10 +76,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **(Placeholder, false in general.)** The watchable store's lock's slot moved to a new notified
-log without the client's update. M1-REPLACE: `Txn.End.contract`'s notify step, `KV.Restore.contract`. -/
+log without the client's update. M1-REPLACE: `KV.Restore.contract` (the watchable `End`'s use is gone:
+its caller's notify step `wsEndCb`, M4 track B, 2026-11-06). -/
 theorem wsSlot_step_M1 {γ : WsNames} {q : Qp} {L : Log} (L' : Log) :
     wsSlot (GF := GF) γ q L ⊢ wsSlot γ q L' := by
-  sorry -- M1-REPLACE: Txn.End.contract (notify), KV.Restore.contract
+  sorry -- M1-REPLACE: KV.Restore.contract
 
 end placeholdersW
 
