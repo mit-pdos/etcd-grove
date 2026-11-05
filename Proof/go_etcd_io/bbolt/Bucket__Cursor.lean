@@ -64,10 +64,12 @@ theorem Bucket.Cursor.wp_proof (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spe
     isplitr
     · ipureintro; exact ⟨by rw [Hm]; rfl, rfl⟩
     simp only [Hc.2.2, ite_true]
-    iexists (fun _ => none)
+    iexists (fun _ => none), []
     isplitr
     · iempintro
-    ipureintro; trivial
+    isplitr
+    · unfold wInlOwn; iempintro
+    ipureintro; rfl
   · rename_i hrw
     icases Ht with ⟨%db, Hr, #Hdb⟩
     ihave Hr := (rdTx_rdTxK _ _ tx .loan q T).1 $$ Hr

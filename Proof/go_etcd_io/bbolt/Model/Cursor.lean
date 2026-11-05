@@ -49,12 +49,14 @@ def pidKeys (v : View) (pid : Nat) : List (List w8) :=
   | some pg => (List.range (pageCount pg)).map (pageKey pg)
   | none => []
 
-/-- **The shape of a stack**: `pids` (one per element) is a root-to-leaf path of bucket `n`'s
-base tree, and each element refers to its page (a page of the view; for the inline root, a
-location in the view) or to a node of bucket `b` read from it (registry `nl`). -/
-def sPath (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (n : GoString)
+/-- **The shape of a stack from the root position `rt`**: `pids` (one per element) is a
+root-to-leaf path of a base tree whose root is `rt`, and each element refers to its page (a page of
+the view; for the inline root, a location in the view) or to a node of bucket `b` read from it
+(registry `nl`). A writer's bucket's root is `wRoot` (U6y's F5: a bucket deleted and re-created in
+the transaction is inline, root `0`). -/
+def sPathR (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (rt : Nat)
     (els : List elemRef) (pids : List Nat) : Prop :=
-  els ≠ [] ∧ pids.length = els.length ∧ pids.head? = some (baseRoot v n) ∧
+  els ≠ [] ∧ pids.length = els.length ∧ pids.head? = some rt ∧
   ∀ j e pid, els[j]? = some e → pids[j]? = some pid →
     (e.node' ≠ null → nl e.node' = some (b, pid)) ∧
     (e.node' = null → e.page' ≠ null ∧ (pid ≠ 0 → e.page' = pageLoc v pid)) ∧
@@ -62,6 +64,12 @@ def sPath (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (n : GoString)
       e.index'.toNat < pageCount pg ∧ pids[j + 1]? = some (branchPgid pg e.index'.toNat)) ∧
     (j + 1 = els.length → pid = 0 ∨ ∃ pg, v.pages !! pid = some pg ∧
       pageFlags pg = leafPageFlag)
+
+/-- **The shape of a stack** in the top-level bucket `n` of the base view (`sPathR` from its base
+root page). -/
+def sPath (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (n : GoString)
+    (els : List elemRef) (pids : List Nat) : Prop :=
+  sPathR nl v b (baseRoot v n) els pids
 
 /-- The bounds below a path from the bounds `b`: `entryBnd` along its branches' keys. -/
 def pathBndFrom (v : View) (b : Option (List w8) × Option (List w8)) :
@@ -509,9 +517,9 @@ private theorem pidKeys_length (v : View) (pid : Nat) (pg : List w8)
 /-- **`next`'s positions** (U6 fix): at the leaf (`d` its depth) one further; one level up or
 more, the old position plus what was left of the old leaf (one at its last entry, none past its
 end or in an empty leaf). -/
-theorem stackPos_next (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc)
-    (n : GoString) (els els' : List elemRef) (pids pids' : List Nat) (d : Nat)
-    (hp : sPath nl v b n els pids) (hp' : sPath nl v b n els' pids') (hs : sSucc d els els')
+theorem stackPos_nextR (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc)
+    (rt : Nat) (els els' : List elemRef) (pids pids' : List Nat) (d : Nat)
+    (hp : sPathR nl v b rt els pids) (hp' : sPathR nl v b rt els' pids') (hs : sSucc d els els')
     (hlen : d + 1 < els.length ↔ d + 1 < els'.length)
     (hend : d + 1 < els.length → sEndBelow v es pids els d) :
     (d + 1 = els.length → stackPos v es pids' els' = stackPos v es pids els + 1) ∧
@@ -605,6 +613,17 @@ theorem stackPos_next (nl : Loc → Option (Loc × Nat)) (v : View) (es : List B
       simpa [hP, show d + 1 + j - d = j + 1 by omega] using hq
     · rw [List.getElem?_append_right (by omega)]
       simpa [hE, show d + 1 + j - d = j + 1 by omega] using hr
+
+/-- `stackPos_nextR` in the top-level bucket `n` of the base view. -/
+theorem stackPos_next (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc)
+    (n : GoString) (els els' : List elemRef) (pids pids' : List Nat) (d : Nat)
+    (hp : sPath nl v b n els pids) (hp' : sPath nl v b n els' pids') (hs : sSucc d els els')
+    (hlen : d + 1 < els.length ↔ d + 1 < els'.length)
+    (hend : d + 1 < els.length → sEndBelow v es pids els d) :
+    (d + 1 = els.length → stackPos v es pids' els' = stackPos v es pids els + 1) ∧
+    (d + 1 < els.length → stackPos v es pids' els' + leafIdx els =
+      stackPos v es pids els + (entsIn es (pathBnd v pids els)).length) :=
+  stackPos_nextR nl v es b (baseRoot v n) els els' pids pids' d hp hp' hs hlen hend
 
 /-! ## Lemma statements (U6) -/
 
@@ -708,6 +727,64 @@ theorem wStackAt_stable (nl nl' : Loc → Option (Loc × Nat)) (v : View) (T : T
     refine ⟨pids, ⟨hp.1, hp.2.1, hp.2.2.1, fun j e pid he hpid => ?_⟩, hi⟩
     obtain ⟨a, b, c, d⟩ := hp.2.2.2 j e pid he hpid
     exact ⟨fun hn => hgrow _ _ (a hn), b, c, d⟩
+
+/-! ## A writer's cursor (U6z; U6y's design, decided by the coordinator) -/
+
+/-- **A writer's bucket's root position** (U6y's F5): its base root page while its generation is
+`0`; once deleted (its generation bumped) and re-created, inline (`0`). -/
+def wRoot (v : View) (T : TxView) (n : GoString) : Nat := if T.gen n = 0 then baseRoot v n else 0
+
+/-- The page a stack's leaf page reference reads at position `pid`: the inline root page `ipg` at
+`0`, else the view's. -/
+def leafPgAt (v : View) (ipg : List w8) (pid : Nat) : Option (List w8) :=
+  if pid = 0 then some ipg else v.pages !! pid
+
+/-- A leaf page's entries as (key, value) pairs. -/
+def pgEnts (pg : List w8) : List BoltEnt := (pageWs pg).map fun w => (w.key, w.value)
+
+/-- **A stack's leaf page holds its bounds' entries** (U6y's F2, the stale-tolerant part): if the
+stack's leaf is a page reference, its page's entries are plain and are those of `es` within the
+path's bounds. A same-value `Put` materializes the leaf without changing `T`, which leaves the
+cursor's page stale; its entries are still these. -/
+def sLeafOK (v : View) (ipg : List w8) (es : List BoltEnt) (pids : List Nat)
+    (els : List elemRef) : Prop :=
+  ∀ e pid, els.getLast? = some e → pids.getLast? = some pid → e.node' = null →
+    ∃ pg, leafPgAt v ipg pid = some pg ∧ (∀ w ∈ pageWs pg, ¬ isBktFlag w.flags) ∧
+      pgEnts pg = entsIn es (pathBnd v pids els)
+
+/-- The number of entries of a stack's leaf (over `es`). -/
+def leafCnt (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) : Nat :=
+  (entsIn es (pathBnd v pids els)).length
+
+/-- **A writer's stack between moves** (`next`'s pre): a path from `rt` whose leaf page, if a page,
+holds its bounds' entries, its leaf index at most its leaf's count. -/
+def wStk (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc) (rt : Nat)
+    (ipg : List w8) (els : List elemRef) (pids : List Nat) : Prop :=
+  sPathR nl v b rt els pids ∧ sLeafOK v ipg es pids els ∧ leafIdx els ≤ leafCnt v es pids els
+
+/-- Every branch index of the stack is its page's last. -/
+def sBrLast (v : View) (pids : List Nat) (els : List elemRef) : Prop :=
+  ∀ j pid e, pids[j]? = some pid → els[j]? = some e → j + 1 < els.length →
+    e.index'.toNat + 1 = (pidKeys v pid).length
+
+/-- **A writer's stack at the end** (what `next` leaves when no entry follows, and `Last` on an
+empty root leaf): every branch at its last index, the leaf's index its count, or `-1` in an empty
+leaf. -/
+def wEndAt (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) : Prop :=
+  sBrLast v pids els ∧ ∃ e, els.getLast? = some e ∧
+    (e.index' = W64 (leafCnt v es pids els : Int) ∨
+      (leafCnt v es pids els = 0 ∧ e.index' = W64 (-1)))
+
+/-- **A writer's cursor at `pos`** (`boltCurDef`'s writer branch): unpositioned, the empty stack
+(`Bucket.Cursor`'s); at entry `i`, a path from the root `rt` whose leaf page holds its bounds'
+entries, either on an entry of its leaf at position `i`, or at the end (`wEndAt`) with `i` the last
+entry or past it (`Next` at the last entry stays at it, over trailing leaves `Delete` emptied). -/
+def wCurAt (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc) (rt : Nat)
+    (ipg : List w8) (els : List elemRef) : Option Nat → Prop
+  | none => els = []
+  | some i => ∃ pids, sPathR nl v b rt els pids ∧ sLeafOK v ipg es pids els ∧
+      ((leafIdx els < leafCnt v es pids els ∧ i = stackPos v es pids els) ∨
+       (wEndAt v es pids els ∧ (i = es.length ∨ i + 1 = es.length)))
 
 end cursor
 

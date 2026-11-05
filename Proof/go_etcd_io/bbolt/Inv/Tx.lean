@@ -231,6 +231,30 @@ instance nlAuth_fractional (r : TxReg) (M : GMap Loc (Loc × Nat)) :
 def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
   iprop(⌜inViewLoc v p bs⌝ ∨ bytesPointsto p DFrac.discard bs)
 
+/-- **A writer cursor's inline root page** (persistent; U6y's design): if the stack's first element
+is a page reference at the inline root (`rt = 0`), the bytes `ipg` at its page (the view's, or
+persistent heap bytes of a clone). -/
+def wInlOwn (v : View) (rt : Nat) (ipg : List w8) (els : List elemRef) : IProp GF :=
+  match els with
+  | e :: _ => if rt = 0 ∧ e.node' = null then locOwn v e.page' ipg else iprop(emp)
+  | [] => iprop(emp)
+
+instance wInlOwn_timeless (v : View) (rt : Nat) (ipg : List w8) (els : List elemRef) :
+    Timeless (wInlOwn (GF := GF) v rt ipg els) := by
+  unfold wInlOwn locOwn
+  split
+  · split <;> infer_instance
+  · infer_instance
+
+instance wInlOwn_persistent (v : View) (rt : Nat) (ipg : List w8) (els : List elemRef) :
+    Persistent (wInlOwn (GF := GF) v rt ipg els) := by
+  unfold wInlOwn locOwn
+  have : ∀ (p : Loc) (bs : List w8), Persistent (bytesPointsto (GF := GF) p DFrac.discard bs) :=
+    fun p bs => (bytesPointsto_dfractional (GF := GF) p bs).dfractional_persistent
+  split
+  · split <;> infer_instance
+  · infer_instance
+
 /-- **A reader's bucket** `b` whose value is `bv` (the root bucket's: its header encoded), at
 `dq` (the root bucket: a share of the transaction's `root` field; an opened bucket: persistent):
 its fields (no caches, no root node), its header (a persistent copy, or the view's bytes), its
@@ -381,7 +405,9 @@ def txBytesDef (B : BNs) (tx : Loc) (s : GoSlice) (b : GoString) : IProp GF :=
 /-- **A cursor** (timeless; design §3.13, B5): its handle, its stack, and the stack's position
 relative to the view (a reader's: its bucket's fields, persistent, of the top-level bucket `n` of
 the view, as `boltBktDef`'s, and `rCurPos` over them; maintainer R's U6g item 1) or to the base
-view and the node registry (a writer's). -/
+view and the node registry (a writer's: `wCurAt` from the bucket's root `wRoot`, its node
+references' registry fragments and its inline root page's bytes, U6z; independent of the
+writer's heap, so that it survives a same-value `Put`). -/
 def boltCurDef (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt) (pos : Option Nat) :
     IProp GF :=
   iprop(∃ (r : TxReg) (b : Loc) (n : GoString) (g : Nat) (stk : GoSlice) (els : List elemRef)
@@ -389,8 +415,9 @@ def boltCurDef (B : BNs) (tx c : Loc) (T : TxView) (es : List BoltEnt) (pos : Op
     reg tx B r ∗ handleFrag r b n g ∗ c ↦ (Cursor.mk b stk) ∗ stk ↦* els ∗
     ownSliceCap elemRef stk (DFrac.own 1) ∗ viewOf r v ∗
     ⌜es = bktEnts ((T.cur !! n).getD ∅) ∧ g = T.gen n⌝ ∗
-    (if r.rw then iprop(∃ nl : Loc → Option (Loc × Nat), ([∗list] e ∈ els, nodeLoc r nl e) ∗
-        ⌜wStackAt nl v T b n els pos⌝)
+    (if r.rw then iprop(∃ (nl : Loc → Option (Loc × Nat)) (ipg : List w8),
+        ([∗list] e ∈ els, nodeLoc r nl e) ∗ wInlOwn v (wRoot v T n) ipg els ∗
+        ⌜wCurAt nl v es b (wRoot v T n) ipg els pos⌝)
      else iprop(∃ (bv : List w8) (ibp pp : Loc), rBktP v tx b DFrac.discard bv ibp pp ∗
        ⌜bktEntry v.pages (rootVal v) n bv ∧ rCurPos v bv pp els pos⌝)))
 
