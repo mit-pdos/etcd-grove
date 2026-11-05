@@ -888,7 +888,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
           rw [h, watchEvents_cmp hcmp.symm r HLb (Or.inl (by simp; omega)),
             watchEvents_append (ilog ++ [pend]) r (show γw.lo ≤ N by omega)
               (show N ≤ N + 1 by omega), hwE, List.append_nil])
-          (fun hn hne => by have := hn hne; omega) $$ HLe
+          (fun hn => ⟨fun hne => by have := hn.1 hne; omega, hn.2⟩) $$ HLe
       · have hd : d = γw.lo := by omega
         rw [show max γw.lo (N + 1) = γw.lo by omega, ← hd]
         iexact Hwf
@@ -1058,6 +1058,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     icases Hwf with ⟨%L, #HlbL, -, %HLb, #HLe⟩
     rw [hdN] at HLb
     ihave %hcmp := mvcc.evLog_cmp _ _ _ $$ Hlb HlbL
+    ihave %HposN := mvcc.evLog_pos _ _ $$ Hlb
     ihave #Hwf' : mvcc.evsWf γ r' γw.lo (evsw ++ B.evs) (N + 1) $$ []
     · iunfold mvcc.evsWf
       iexists ilog ++ [pend]
@@ -1071,7 +1072,10 @@ theorem mvcc.watchableStore.notify.wp_proof
             exact mvcc.watchEvents_cmp hcmp.symm r' HLb (Or.inl (by simp; omega))
           rw [hB, hevsw, ← hN]
           exact (mvcc.watchEvents_append _ _ (by omega) (by omega)).symm)
-        (fun _ _ => by omega) $$ HLe
+        (fun hn => ⟨fun _ => by omega, fun ev hev => by
+          rcases List.mem_append.1 hev with h | h
+          · exact hn.2 ev h
+          · rw [hB] at h; exact HposN r' _ _ ev h⟩) $$ HLe
     subst hB
     iunfold mvcc.ownEventBatch at HB
     icases HB with ⟨%sl, %ps, Heb, Hsl, Hcap, %Hlen, #HevB⟩

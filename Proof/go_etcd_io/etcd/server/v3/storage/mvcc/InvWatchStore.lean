@@ -46,6 +46,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchModel
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchPos
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamSteps
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
@@ -421,8 +422,11 @@ instance cancelled_persistent (γw : WatcherNames) : Persistent (cancelled (GF :
 and it is well formed) and certified by the store's caller (`certOk`: the writer's `End` takes the
 certificate of the log it commits before it notifies, `certOkNext`, and the store keeps the
 committed log's, `revMuInv`). The certificate is what makes a watch event's revision reached in
-the server's model (`etcdReached`: a certified log is the KV model of a committed raft log). -/
-def evLog (γ : StoreNames) (L : Log) : IProp GF := iprop(idxSealed γ.idx L ∗ certOk γ L)
+the server's model (`etcdReached`: a certified log is the KV model of a committed raft log).
+(Stage 2 of the mvcc API, 2026-11-05) its changes fewer than `2 ^ 48` (the receipt against a
+store's bound on the receipts, `isStore`'s `Hrb`), so its events are positive (`evLog_pos`). -/
+def evLog (γ : StoreNames) (L : Log) : IProp GF :=
+  iprop(idxSealed γ.idx L ∗ certOk γ L ∗ ⌜logCh L < 2 ^ 48⌝)
 
 instance evLog_persistent (γ : StoreNames) (L : Log) : Persistent (evLog (GF := GF) γ L) := by
   unfold evLog; infer_instance
@@ -451,15 +455,32 @@ theorem evLog_sealed (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ idx
   unfold evLog; iintro ⟨#H, -⟩; iexact H
 
 theorem evLog_certOk (γ : StoreNames) (L : Log) : evLog (GF := GF) γ L ⊢ certOk γ L := by
-  unfold evLog; iintro ⟨-, #H⟩; iexact H
+  unfold evLog; iintro ⟨-, #H, -⟩; iexact H
 
-/-- A committed log the caller certified is watched. -/
-theorem evLog_of_cert (γ : StoreNames) (L : Log) :
-    idxCert (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
+/-- A sealed, certified log is watched (the receipts' bound at most `2 ^ 48`). -/
+theorem evLog_of_sealed (γ : StoreNames) (L : Log) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    idxSealed (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
   unfold evLog
+  iintro ⟨#Hs, #Hok⟩
+  ihave %h := idxSealed_small _ _ $$ Hs
+  iframe Hs Hok
+  ipureintro; omega
+
+/-- A committed log the caller certified is watched (the receipts' bound at most `2 ^ 48`). -/
+theorem evLog_of_cert (γ : StoreNames) (L : Log) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    idxCert (GF := GF) γ.idx L ∗ certOk γ L ⊢ evLog γ L := by
   iintro ⟨#Hc, #Hok⟩
   ihave #Hs := idxCert_sealed _ _ $$ Hc
-  iframe Hs Hok
+  iapply evLog_of_sealed γ L hrb $$ [$Hs $Hok]
+
+/-- **A watched log's events are positive** (`WatchPos.lean`). -/
+theorem evLog_pos (γ : StoreNames) (L : Log) :
+    evLog (GF := GF) γ L ⊢ ⌜∀ (r : WatchRange) (lo hi : Nat), ∀ ev ∈ watchEvents L r lo hi, evPos ev⌝ := by
+  unfold evLog idxSealed
+  iintro ⟨⟨-, %h, -⟩, -, %hc⟩
+  ipureintro
+  intro r lo hi
+  exact watchEvents_pos L h.1.getD_zero h.2.1 (by omega) r lo hi
 
 /-- Two watched logs are in prefix order. -/
 theorem evLog_cmp (γ : StoreNames) (L L' : Log) :
@@ -475,7 +496,9 @@ theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
   imodintro
   unfold evLog certOk
   iframe H
-  ileft; ipureintro; simp
+  isplitl
+  · ileft; ipureintro; simp
+  · ipureintro; simp [logCh]
 
 /-- **The store had released `n` revisions** (persistent; D25): a lower bound of `γ.rel`, the
 notified log's length under `s.mu`, which `End` bumps before it notifies a revision's events. A
@@ -502,10 +525,12 @@ instance doomed_persistent (γ : WsNames) (lo : Nat) : Persistent (doomed (GF :=
 /-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
 sealed and certified; persistent; `d` past the log only for an empty range), or the watcher is
 past its exactness condition (`doomed`; per watcher, 2026-11-05: until then exact under the
-create token's `watchNoDup`), its events then of revisions from `lo` on (none unless `lo < d`). -/
+create token's `watchNoDup`), its events then of revisions from `lo` on (none unless `lo < d`)
+and positive (`evPos`: a sub-list of a watched log's, `WatchPos.lean`). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
   iprop(∃ L : Log, evLog γ.st L ∗ relLb γ L.length ∗ ⌜d ≤ L.length ∨ d ≤ lo⌝ ∗
-    (⌜evs = watchEvents L r lo d⌝ ∨ (doomed γ lo ∗ ⌜evs ≠ [] → lo < d⌝)))
+    (⌜evs = watchEvents L r lo d⌝ ∨
+      (doomed γ lo ∗ ⌜(evs ≠ [] → lo < d) ∧ ∀ ev ∈ evs, evPos ev⌝)))
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
     Persistent (evsWf (GF := GF) γ r lo evs d) := by
@@ -525,7 +550,7 @@ theorem evsWf_exact (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) 
 
 /-- A doomed `evsWf` (any events of revisions from `lo` on). -/
 theorem evsWf_doomed (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) (L : Log)
-    (h : d ≤ L.length ∨ d ≤ lo) (hne : evs ≠ [] → lo < d) :
+    (h : d ≤ L.length ∨ d ≤ lo) (hne : evs ≠ [] → lo < d) (hpos : ∀ ev ∈ evs, evPos ev) :
     evLog (GF := GF) γ.st L ∗ relLb γ L.length ∗ doomed γ lo ⊢ evsWf γ r lo evs d := by
   iintro ⟨#HL, #Hr, #Hd⟩
   unfold evsWf
@@ -533,7 +558,7 @@ theorem evsWf_doomed (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM)
   iframe HL Hr
   isplitr
   · ipureintro; exact h
-  · iright; iframe Hd; ipureintro; exact hne
+  · iright; iframe Hd; ipureintro; exact ⟨hne, hpos⟩
 
 /-- An exactness disjunct carried along an implication. -/
 theorem exactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} (h : P → Q) :
@@ -544,9 +569,10 @@ theorem exactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} (h : P → Q) :
 
 /-- `evsWf`'s exactness disjunct carried along an implication (the doomed side's revisions). -/
 theorem evsExactOr_mono (γ : WsNames) (lo : Nat) {P Q : Prop} {e e' : List EvM} {d d' : Nat}
-    (h : P → Q) (hd : (e ≠ [] → lo < d) → e' ≠ [] → lo < d') :
-    (⌜P⌝ ∨ (doomed (GF := GF) γ lo ∗ ⌜e ≠ [] → lo < d⌝)) ⊢
-      ⌜Q⌝ ∨ (doomed γ lo ∗ ⌜e' ≠ [] → lo < d'⌝) := by
+    (h : P → Q) (hd : (e ≠ [] → lo < d) ∧ (∀ ev ∈ e, evPos ev) →
+      (e' ≠ [] → lo < d') ∧ ∀ ev ∈ e', evPos ev) :
+    (⌜P⌝ ∨ (doomed (GF := GF) γ lo ∗ ⌜(e ≠ [] → lo < d) ∧ ∀ ev ∈ e, evPos ev⌝)) ⊢
+      ⌜Q⌝ ∨ (doomed γ lo ∗ ⌜(e' ≠ [] → lo < d') ∧ ∀ ev ∈ e', evPos ev⌝) := by
   iintro (%hp | ⟨#Hd, %hn⟩)
   · ileft; ipureintro; exact h hp
   · iright; iframe Hd; ipureintro; exact hd hn
@@ -562,7 +588,16 @@ theorem evsWf_ne_lo (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) 
   unfold evsWf
   iintro ⟨%L, -, -, -, (%he | ⟨-, %hn⟩)⟩
   · ipureintro; intro hne; rw [he] at hne; exact watchEvents_ne_lo L r lo d hne
-  · ipureintro; exact hn
+  · ipureintro; exact hn.1
+
+/-- **An `evsWf`'s events are positive** (exact: a watched log's, `evLog_pos`; doomed: recorded). -/
+theorem evsWf_pos (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
+    evsWf (GF := GF) γ r lo evs d ⊢ ⌜∀ ev ∈ evs, evPos ev⌝ := by
+  unfold evsWf
+  iintro ⟨%L, #HL, -, -, (%he | ⟨-, %hn⟩)⟩
+  · ihave %hp := evLog_pos γ.st L $$ HL
+    ipureintro; rw [he]; exact hp r lo d
+  · ipureintro; exact hn.2
 
 /-- Every prefix of the deliveries `D` ends at a revision (persistent): its events, concatenated,
 are the range's of the revisions `[lo, d')` of a log the index's history has, for some `d'` (a
@@ -1889,6 +1924,20 @@ theorem isWatchableStore_isStore (s st : Loc) (γ : WsNames) :
   iintro ⟨%vc, %stc, %rv, %γv, H⟩
   iNamed H
   iexact Hs
+
+/-- A store's bound on the time receipts (`isStore`'s `Hrb`). -/
+theorem isStore_rb (s : Loc) (γ : StoreNames) : isStore (GF := GF) s γ ⊢ ⌜receiptBound GF ≤ 2 ^ 48⌝ := by
+  unfold isStore
+  iintro ⟨%le, %lg, %scfg, %shs, H⟩
+  iNamed H
+  ipureintro; exact Hrb
+
+/-- A watchable store's bound on the time receipts. -/
+theorem isWatchableStore_rb (s st : Loc) (γ : WsNames) :
+    isWatchableStore (GF := GF) s st γ ⊢ ⌜receiptBound GF ≤ 2 ^ 48⌝ := by
+  iintro #H
+  ihave #Hs := isWatchableStore_isStore s st γ $$ H
+  iapply isStore_rb st γ.st $$ Hs
 
 omit package_sem in
 /-- **The inner store's read view, over the watchable store** (a law, so the server's glue does not

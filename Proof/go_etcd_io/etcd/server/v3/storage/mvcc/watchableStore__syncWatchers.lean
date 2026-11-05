@@ -839,7 +839,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         (¬ api.onceUpTo C γw.lo cQ) hmN (Nat.le_refl _) hloN
         (by rcases hwE with h | h
             · exact Or.inl h.symm
-            · exact Or.inr ⟨h, List.nil_sublist _⟩) $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+            · exact Or.inr ⟨h, List.nil_sublist _⟩) HrbS $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
       rw [List.append_nil] at *
       generalize hst' : ({ st with minRev := W64 ((C.length : Int) - 1) + W64 1 } : mvcc.WatcherSt) = st'
       have hst'm : sint.Z st'.minRev = C.length := by rw [← hst']; exact hcur1
@@ -911,7 +911,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         wp_auto
         have hmD : sint.nat st.minRev ≤ C.length := hmN
         ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw B.evs (sint.nat st.minRev) C.length C
-          _ hmD (Nat.le_refl _) hloN hevB $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+          _ hmD (Nat.le_refl _) hloN hevB HrbS $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
         have hmodB : ∀ ev ∈ B.evs, (sint.nat st.minRev : Int) ≤ sint.Z ev.kv.modRev ∧
             sint.Z ev.kv.modRev < C.length := fun ev hev =>
           mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length (Nat.le_refl _) ev
@@ -1077,7 +1077,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         wp_auto
         have hmD : sint.nat st.minRev ≤ M := by omega
         ihave #Hwf' := mvcc.sw_evsWf_step γ r' γw.lo evsw B.evs (sint.nat st.minRev) M C
-          _ hmD (by omega) hloN hevB $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
+          _ hmD (by omega) hloN hevB HrbS $$ [$Hwf $HcertQ $HokQ $HrlC $Hdmw]
         have hmodB : ∀ ev ∈ B.evs, (sint.nat st.minRev : Int) ≤ sint.Z ev.kv.modRev ∧
             sint.Z ev.kv.modRev < M := fun ev hev =>
           mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M (by omega) ev

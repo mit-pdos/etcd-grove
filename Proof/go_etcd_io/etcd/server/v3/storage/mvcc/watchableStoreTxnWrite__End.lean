@@ -477,6 +477,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   rw [hN]
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
+  ihave %Hrb := mvcc.isWatchableStore_rb s st γ $$ Hws0
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -504,7 +505,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     · exact absurd Hn hne
     · iexact H
   ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
-  · iunfold mvcc.evLog; iframe Hsl Hok
+  · iapply mvcc.evLog_of_sealed γ.st (ilog ++ [pend]) Hrb $$ [$Hsl $Hok]
   -- (D25) the revision released before its events go out: the released length bumped
   iunfold mvcc.relAuth at Hrel
   icases Hrel with ⟨Hrel, Hslot⟩

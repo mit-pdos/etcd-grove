@@ -730,13 +730,14 @@ theorem sw_bigSepM_step {V : Type} {Φ Ψ : Loc → V → IProp GF} (m : GMap Lo
 /-- A watcher's delivered events extended with the range's events of a certified log from where
 they stopped (the caller's certificate of it, `certOk`, with it: unit W-M3). -/
 theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List EvM) (m D : Nat)
-    (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) :
+    (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) (hrb : receiptBound GF ≤ 2 ^ 48) :
     evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ⊢
       evsWf γ r lo (evsw ++ watchEvents C r m D) D := by
   iintro ⟨Hwf, #HC, #HokC, #HrlC⟩
   iunfold evsWf at Hwf
   icases Hwf with ⟨%L, #HlbL, -, %Hb, #He⟩
-  ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
+  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC]
+  ihave %HposC := evLog_pos _ _ $$ HlbC
   ihave %hcmp := evLog_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
   iexists C
@@ -745,21 +746,26 @@ theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List 
   · ipureintro; exact Or.inl hD
   iapply evsExactOr_mono γ lo (fun h => by
     rw [h, watchEvents_cmp hcmp.symm r Hb (Or.inl (by omega)), ← watchEvents_append C r hlo hm])
-    (fun hn hne => by
+    (fun hn => ⟨fun hne => by
       by_cases he : evsw = []
       · rw [he, List.nil_append] at hne
         have := watchEvents_ne_lo C r m D hne; omega
-      · have := hn he; omega) $$ He
+      · have := hn.1 he; omega,
+      fun ev hev => by
+        rcases List.mem_append.1 hev with h | h
+        · exact hn.2 ev h
+        · exact HposC r m D ev h⟩) $$ He
 
 /-- A doomed watcher's delivered events, any events added (`syncWatchers`' read from a compaction
 revision that changes a key twice: per watcher, 2026-11-05). -/
 theorem sw_evsWf_doom (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (D : Nat)
-    (C : Log) (hD : D ≤ C.length) (hne : evs ≠ [] → lo < D) :
+    (C : Log) (hD : D ≤ C.length) (hne : evs ≠ [] → lo < D) (hpos : ∀ ev ∈ evs, evPos ev)
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     idxCert (GF := GF) γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ∗ doomed γ lo ⊢
       evsWf γ r lo evs D := by
   iintro ⟨#HC, #HokC, #HrlC, #Hd⟩
-  ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
-  iapply evsWf_doomed γ r lo evs D C (Or.inl hD) hne $$ [$HlbC $HrlC $Hd]
+  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC]
+  iapply evsWf_doomed γ r lo evs D C (Or.inl hD) hne hpos $$ [$HlbC $HrlC $Hd]
 
 /-- **A watcher's step in `syncWatchers`, exact or doomed** (per watcher, 2026-11-05): its
 delivered events extended with its batch, the range's events of `[m, X)` (the scan kept them all),
@@ -767,20 +773,28 @@ or a sub-list of them when the watcher is past its exactness condition (`Dm`, th
 compaction revision that changes a key twice). -/
 theorem sw_evsWf_step (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw evs : List EvM) (m X : Nat)
     (C : Log) (Dm : Prop) (hm : m ≤ X) (hX : X ≤ C.length) (hlo : lo ≤ m)
-    (hcase : evs = watchEvents C r m X ∨ (Dm ∧ List.Sublist evs (watchEvents C r m X))) :
+    (hcase : evs = watchEvents C r m X ∨ (Dm ∧ List.Sublist evs (watchEvents C r m X)))
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ∗
       □ (⌜Dm⌝ -∗ doomed γ lo) ⊢ evsWf γ r lo (evsw ++ evs) X := by
   iintro ⟨#Hwf, #HC, #HokC, #HrlC, #Hdm⟩
   rcases hcase with rfl | ⟨hD, hsub⟩
-  · iapply sw_evsWf_extend γ r lo evsw m X C hm hX hlo $$ [$Hwf $HC $HokC $HrlC]
+  · iapply sw_evsWf_extend γ r lo evsw m X C hm hX hlo hrb $$ [$Hwf $HC $HokC $HrlC]
   · ihave %Hne := evsWf_ne_lo γ r lo evsw m $$ Hwf
+    ihave %Hpw := evsWf_pos γ r lo evsw m $$ Hwf
+    ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC]
+    ihave %HposC := evLog_pos _ _ $$ HlbC
     ihave #Hd := Hdm $$ %hD
     iapply sw_evsWf_doom γ r lo (evsw ++ evs) X C hX (fun hne => by
       by_cases he : evsw = []
       · rw [he, List.nil_append] at hne
         have hw : watchEvents C r m X ≠ [] := fun h => hne (List.eq_nil_of_sublist_nil (h ▸ hsub))
         have := watchEvents_ne_lo C r m X hw; omega
-      · have := Hne he; omega) $$ [$HC $HokC $HrlC $Hd]
+      · have := Hne he; omega)
+      (fun ev hev => by
+        rcases List.mem_append.1 hev with h | h
+        · exact Hpw ev h
+        · exact HposC r m X ev (hsub.subset h)) hrb $$ [$HC $HokC $HrlC $Hd]
 
 /-- **Revision `c` changing a key twice dooms a watcher reading from it** (pure): a watcher from
 `lo ≤ c` is past its exactness condition at `c`. -/
