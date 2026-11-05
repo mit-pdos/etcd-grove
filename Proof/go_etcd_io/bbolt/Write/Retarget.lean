@@ -181,8 +181,9 @@ private instance viewOf_persistent_rt (r : TxReg) (v : View) :
   unfold viewOf; infer_instance
 
 /-- **A writer's records `X'` closed back into `boltTx` at the view `T'`** (the inverse of
-`boltTxDef_wtxW`): from the agreed state's half at the old `(c, X)`, the working state at `X'`,
-the committed data's quarter, `X'`'s facts for `T'`, and what the exclusive part keeps
+`boltTxDef_wtxW`): from the agreed state's half at the old `(c, X)`, the working state at `X'`
+and its fixed view (`viewOf`, U6w's F2: `boltTxDef_wtxW` gives it at `X.v = X'.v`), the committed
+data's quarter, `X'`'s facts for `T'`, and what the exclusive part keeps
 (`XclKeep`, `txShape`). -/
 theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' : WX)
     (T' : TxView) (E : CoPset) (hE : ↑(txsN K.N) ⊆ E) (hT : T' = TxView.ofC c')
@@ -190,10 +191,10 @@ theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' 
     (hsh : ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra)
     (hf : wOK X' ∧ T'.rw = true ∧ T'.cur = wtxData X' ∧ T'.base = X'.v.data ∧ gensOK T' X' ∧
       wrFacts X') :
-    K.full (GF := GF) ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗ wtxW K tx r true X' ∗
-        ghostVar K.B.st (1 : Qp).half.half T'.base ⊢
+    K.full (GF := GF) ∗ viewOf r X'.v ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗
+        wtxW K tx r true X' ∗ ghostVar K.B.st (1 : Qp).half.half T'.base ⊢
       |={E}=> boltTxDef K.B K.N tx 1 T' := by
-  iintro ⟨#Hb, Hv, Hw, Hst⟩
+  iintro ⟨#Hb, #Hvf, Hv, Hw, Hst⟩
   unfold wtxW wtxCore statsTok
   simp only [↓reduceIte]
   icases Hw with ⟨⟨-, -, %Hr, #Hreg, Hh, Hf, Hbk, Hnl, Hdb, #Hvo, Hex⟩, Hvc, %l, Hmf, %Hl⟩
@@ -216,11 +217,13 @@ theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' 
   iframe Hreg Hb Hv Hex
   unfold wtxFrac
   simp only [QpMul_one_left_rt]
-  iframe Hh Hf Hvc Hst Hbk Hnl Hvo
+  iframe Hh Hf Hvc Hst Hbk Hnl
   isplitl [Hdb]
   · iexact Hdb
   isplitl [Hmf]
   · iexists l; iframe Hmf; ipureintro; exact Hl
+  isplitr
+  · unfold viewW; iframe #
   ipureintro
   exact ⟨hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
     Hr.2.2.2.2.1, Hr.2.2.2.2.2, hf.2.2.2.2.2⟩
