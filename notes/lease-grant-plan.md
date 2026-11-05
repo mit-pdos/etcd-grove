@@ -989,6 +989,17 @@ through it `v3rpc.leaseGrantReqIs` and `leaseGrantReqOwn`; `grantRespIs` (2.6) g
 (the backend from its allocation, the quota layer passes it on). True of Go: the generated handler
 decodes into its own fresh allocation; the backend answers `&pb.LeaseGrantResponse{}`.
 
+**Amendment: (I), the user's, 2026-11-05 via etcd-grove-82** (lease-expiry's S2–S4, Q-S6 (A-ii),
+`notes/lease-expiry-plan.md`, "S2–S4 Draft"). A restore rebuilds each lease with TTL raised to the
+restoring member's own `minLeaseTTL`, so a lease's TTL is not the same at every index of a lessor's
+history (`nonissues/etcd-lease-ttl-differs-across-members.md`). What survives is a lower bound: a
+record's TTL is at least the TTL its grant requested, because Grant and Recover only raise TTLs.
+- `bkRestAtL` (§2.14, and through it `imageAt` of #7, amendment (D)) and `srvRestAt`: the records' TTLs
+  (`restLeasesWith f`) gain a true lower bound, the requested TTL of each id's grant.
+- The trusted `NewLessor` axiom's post allocates a requested-TTL ghost map (ghost only, no new claim
+  about Go, as E3 (c)'s `leaseEver`). Condition: it gets the axiom skill's attack in the round that
+  writes it, before S2–S4's Freeze (`notes/axiom-review/`, `notes/audit.md`).
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.

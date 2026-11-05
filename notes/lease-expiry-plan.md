@@ -1768,6 +1768,19 @@ frozen or exported statements since:
   configuration. The statements of `etcd_leaseexpiry_safe` and `leaseexpiry_Main` are unchanged
   (checked at the end with `etc/gen-interface.py` / the TCB roots).
 
+- **2026-11-05, S2–S4 Draft, second stop (approved changes to frozen and trusted statements, by the
+  user via etcd-grove-82).** (A)'s `minLeaseTTL ≥ 1` has no source: `int64(math.Ceil(…))` is
+  uninterpreted in the model (`FloatToInt.lean`), and `lessorCfg` leaves the minimum free.
+  - Q-S6 (A-ii): the min-TTL law is replaced by a requested-TTL lower bound. Every TTL a lessor's
+    history records for an id is at least the TTL its grant requested. That bound is put on the
+    records in `bkRestAtL` (lease-grant's Freeze and #7's `imageAt`; `notes/lease-grant-plan.md`,
+    amendment (I)) and in `srvRestAt`, and the trusted `NewLessor` axiom's post allocates a
+    requested-TTL ghost map (ghost only; attacked with the axiom skill before the Freeze).
+    `leaseexpiry/Main.lean:324` gets `GrantedTTL ≥ 1` from its own request of 1.
+  - Q-S7: `lease.lessor.Recover.spec`'s post gives `leaseOwn` in a caller-chosen order `Lr`, a
+    permutation of the records' ids (Go's `leaseMap` is unordered), so that it matches `ltHalf`'s
+    log order.
+
 ## S2–S4 Draft (2026-11-05)
 
 Branch `lease-snap` (off lean `1f992c54b0`). **Stopped on item 1 (`Recover.spec`'s ever-set premise),
