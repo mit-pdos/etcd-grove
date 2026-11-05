@@ -48,7 +48,7 @@ abbrev refreshOnError.spec : Prop :=
       if s.current then iprop(⌜st' = st ∧ err' = err⌝ ∗ ownStateX c st s x)
       else iprop(unkErr c err' ∨ ∃ (σ : KVState) (e0 : GoInterface),
         □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
-        ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key ign σ st' e0 ∗
+        ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key ign σ st' e0 ∗
         ⌜err' = if e0 = GoInterface.nil ∧ kubernetes.modAt key σ = s.rev then err else e0⌝) }}
 
 end spec

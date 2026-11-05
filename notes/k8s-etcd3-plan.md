@@ -833,8 +833,12 @@ through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loop
   `cachedObj`, `newCache`, `cache.get`, `cache.put`, `invalidObj`, `genFrom`, `Gen`,
   `store.getStateFromObject`) and their proofs get the same `variable` line. No other text changed.
 
-**7b done (2026-11-05).** One post-freeze change to frozen statements, the merge's follow-through
-above (C); otherwise the post-freeze changes above
+- `[C, check (bounds), internal spec; same meaning, decided by etcd-grove-82, 2026-11-05]`
+  `refreshOnError.spec`'s bound on the re-read's values written `etcdKeyMax` (was the literal
+  `2 ^ 27`, which the bounds gate's `shared-limit` refuses in a spec), as `updateOnce.spec` does.
+
+**7b done (2026-11-05).** Two post-freeze changes to frozen statements, the merge's follow-through
+and the bound's name above (both C); otherwise the post-freeze changes above
 are internal (the driver's invariant, `InvSteps`' continuations, D5's read update). Trust base of
 `etc/tcb-collections/k8setcd3.txt`: before the stage (lean), 659 axioms and 3 `sorry`s (`client_ctx_field`, `revRoom`, `kvIs_ne_null`, none
 7b's); after, 660 axioms (the approved extension T1, `fmt.SprintfNamed.wp_proof`, already in
