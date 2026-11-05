@@ -217,10 +217,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- The server's key-value (`txn.kvIs`) is the client's (`kvValAt`): the same fields. -/
+theorem kvValAt_of_kvIs (p : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) p v ⊢ kvValAt p v := by
+  unfold txn.kvIs kvValAt
+  iintro ⟨%ks, %vs, #Hk, #Hks, #Hc, #Hm, #Hver, #Hv, #Hvs, #Hl, -⟩
+  iexists ks, vs
+  iframe #
+
 /-- The server's key-values (`txn.kvsIs`) are the client's (`kvPtrsAt`): the same fields. -/
 theorem kvPtrsAt_of_kvsIs (ps : List Loc) (kvs : List EtcdKv) :
     txn.kvsIs (GF := GF) ps kvs ⊢ kvPtrsAt ps kvs := by
-  unfold txn.kvsIs kvPtrsAt txn.kvIs kvValAt; exact .rfl
+  unfold txn.kvsIs kvPtrsAt
+  iintro ⟨%Hl, #H⟩
+  isplitr
+  · ipureintro; exact Hl
+  iintro !> %i %p %v %hp %hv
+  iapply kvValAt_of_kvIs
+  iapply H $$ %i %p %v %hp %hv
 
 end kvs
 
@@ -399,7 +412,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
         rw [← hkv] at Hw
         have h1 := zip_getElem?_snd _ _ i e He
         ihave Hkw := Hall $$ %i %e.2 %w %h1 %Hw
-        unfold kvValAt; iunfold txn.kvIs at Hkw; iexact Hkw
+        iapply kvValAt_of_kvIs; iexact Hkw
       · unfold getRespKvs
         iexists ksl
         iframe Hksl
