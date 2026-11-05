@@ -28,6 +28,11 @@ both sides' lines whole: merges that did grew the header to 1.1 MB).
 
 ## Branches
 
+Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
+landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
+session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
 copy if it was pushed (`git push origin --delete <branch>`), and its worktree if it had

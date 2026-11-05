@@ -174,6 +174,12 @@ with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_m
 `lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
 transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
 skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+**When: in the round that writes it** (2026-11-05, the user's). A new, widened or restated
+trust-boundary statement gets its `axiom` attack in the Draft or repair round that introduces it, in
+parallel with the review, not batched before the freeze: proofs and glue built on it in between are
+lost if it is refuted. (lease-expiry restated `leaseTimeToLive` and widened `NewLessor`'s post, then
+built `Main`'s proof on them for a day before any attack started.) A statement changed again after
+its attack is attacked again, on what changed.
 
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
@@ -343,6 +349,23 @@ Perennial pin bump and `lean` merge, the same `.olean`s four times, each `lake b
   `flock /shared/tmp/etcd-grove-full-build.lock`, so at most one full build runs on the machine;
   targeted builds (`etc/importers.py --leaves`) and `etc/lean-check.py` do not take the lock.
 
+**Landing takes a lock** (2026-11-05, the user's). The gates and the fast-forward are one step, but
+other sessions moved `lean` in between: on 2026-11-05 a notes-only commit landed while `r2b3`'s
+gates ran, and its fast-forward failed after the full gates. So every landing, notes-only included,
+goes through `etc/land.sh` from the branch's worktree: under `flock /shared/tmp/etcd-grove-land.lock`
+it checks that `lean` is merged, runs `etc/gates.sh` under the full-build lock (skipped when the
+branch changes only `notes/`), and fast-forwards `lean`. A landing that finds the lock taken waits;
+one that finds `lean` moved merges it outside the lock and reruns. No `git merge --ff-only` into
+`lean` by hand.
+
+**The session registry** (2026-11-05, the user's). Sessions under two accounts work on this
+repository and cannot all message each other, so one file says who does what:
+`/shared/etcd-grove-sessions.md`, a table with one row per active session (session name, account,
+worktree, branch, stage, state, next hard stop, updated). A session adds its row when it starts a
+stage, updates it at each hard stop and landing, and removes it when its worktree goes. The
+coordinator reads it before sequencing landings or starting agents; a session about to touch a hub
+(`etc/spec-hubs.py`) checks it for others on the same hub.
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
@@ -395,6 +418,15 @@ the user" decision) to `questions.md` at its worktree's root, with the options, 
 and what depends on the answer, and goes on with what does not; the orchestrator relays the file to
 the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
 does not depend on it.
+
+*Where, and what counts as approved* (2026-11-05, the user's). The stage's worktree and branch are
+made at Scope, not at the freeze, so that `questions.md` is always at the worktree's root (not in a
+session's scratchpad, where no one else finds it). An entry the coordinator or the user's session
+marks **"approved by the user, <date>, via <session>"** (or "vetoed") is the user's decision: every
+agent on the branch acts on it without asking again. (On 2026-11-05 a sub-agent declined approvals
+the user had given in its own session because they reached it relayed, and they were relayed twice.)
+An approval given elsewhere (a dialog, a chat) is copied into `questions.md` in that form by the
+session that received it, before any agent acts on it.
 
 **The escalation trigger**, however small the change looks: a repair or design step that would add a
 spec or predicate family beside an existing one (a second spec of a function for a mode or special
