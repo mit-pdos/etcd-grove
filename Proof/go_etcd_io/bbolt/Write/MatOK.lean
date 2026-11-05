@@ -19,6 +19,7 @@ module
 public import Proof.go_etcd_io.bbolt.Write.FlView
 public import Proof.go_etcd_io.bbolt.Write.Bound
 public import Proof.go_etcd_io.bbolt.Write.RootKeys
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXShape
 public import Proof.go_etcd_io.bbolt.Rebalance.RblMat
 public import Proof.go_etcd_io.bbolt.Rebalance.RblReady
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSObjs
@@ -678,7 +679,11 @@ theorem bytesAt_length_le (pg : List w8) (off n : Nat) : (bytesAt pg off n).leng
 bucket is the root bucket) its keys at most `MaxKeySize`, given the page's (`hroot`). -/
 theorem newNodeBnd (pg : List w8) (r : NRec) (hr9 : r.ws.map wDat = (pageWs pg).map wDat)
     (hr4 : r.nv.isLeaf' = decide (pageFlags pg = leafPageFlag))
-    (hnodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length) (hb : leafBnd pg) {P : Prop}
+    (hnodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length) (hb : leafBnd pg)
+    (hbk : pageFlags pg = leafPageFlag → ∀ j < pageCount pg, leafFlags pg j % 2 = bucketLeafFlag →
+      leafKsize pg j + leafVsize pg j ≤ bboltEntryMax)
+    (hkb : pageFlags pg ≠ leafPageFlag → ∀ j < pageCount pg, (pageKey pg j).length ≤ bboltEntryMax)
+    {P : Prop}
     (hroot : P → ∀ j < pageCount pg, (pageKey pg j).length ≤ maxKeySize) :
     ∀ w ∈ r.ws, 0 < w.key.length ∧ w.key.length + w.value.length ≤ bboltEntryMax ∧
       (P → w.key.length ≤ maxKeySize) := by
@@ -688,15 +693,25 @@ theorem newNodeBnd (pg : List w8) (r : NRec) (hr9 : r.ws.map wDat = (pageWs pg).
   obtain ⟨e1, -, e3, e4⟩ := mat_wDat_eq hd
   refine ⟨by rw [e3, mat_pageW_key]; exact hnodes j hjc, ?_,
     fun hP => by rw [e3, mat_pageW_key]; exact hroot hP j hjc⟩
-  -- batch 37: `entriesBounded` covers every entry; a branch key and a root-bucket entry are
-  -- bounded too (`rootShape`'s new clause, exact branch keys): OPEN, owner U7 (`leafBnd` to cover
-  -- every element of a view page)
+  -- batch 37: `entriesBounded` covers every entry; a branch key (`hkb`, exact branch keys) and a
+  -- bucket entry (`hbk`, `posShape`'s entry bound) are bounded too
   by_cases hlf' : r.nv.isLeaf' = false
-  · sorry
+  · have hnl : pageFlags pg ≠ leafPageFlag := by
+      intro h; rw [hr4, h] at hlf'; simp at hlf'
+    have hv : (pageW pg j).value = [] := by unfold pageW; rw [if_neg hnl]
+    rw [e3, e4, mat_pageW_key, hv, List.length_nil, Nat.add_zero]
+    exact hkb hnl j hjc
   have hlf : r.nv.isLeaf' = true := by simpa using hlf'
-  by_cases hnb : isBktFlag x.flags
-  · sorry
   have hfl : pageFlags pg = leafPageFlag := by rw [hr4] at hlf; simpa using hlf
+  by_cases hnb : isBktFlag x.flags
+  · obtain ⟨f1, -, f3, f4⟩ := mat_pageW_leaf pg j hfl
+    rw [e1, f1, mat_isBktFlag_iff _ (mat_leafFlags_lt pg j)] at hnb
+    have := hbk hfl j hjc hnb
+    rw [e3, f3, e4, f4]
+    unfold leafKey leafValue
+    have := bytesAt_length_le pg (elemOff j + leafPos pg j) (leafKsize pg j)
+    have := bytesAt_length_le pg (elemOff j + leafPos pg j + leafKsize pg j) (leafVsize pg j)
+    omega
   obtain ⟨f1, -, f3, f4⟩ := mat_pageW_leaf pg j hfl
   rw [e1, f1, mat_isBktFlag_iff _ (mat_leafFlags_lt pg j)] at hnb
   have h0 : leafFlags pg j % 2 = 0 := by unfold bucketLeafFlag at hnb; omega
@@ -956,6 +971,20 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb
+        (fun hfl j hj hbk => by
+          by_cases hin : B.ib.root' = W64 0
+          · have := (hinl' hin).2 j hj; rw [hbk] at this; unfold bucketLeafFlag at this; omega
+          · exact (hok.1.2.1.2.2.2.1 bl B hB _ _ pg (Or.inl ⟨hrn0, hin, rfl⟩)
+              (ownHas.root _ pg (hfile hin)) (hfile hin) hfl j hj).2.1.2)
+        (fun hnl j hj => by
+          by_cases hin : B.ib.root' = W64 0
+          · exact absurd (hinl' hin).1 hnl
+          · exact pageKeys_le_of_treeKeysN X.v.pages _ bboltEntryMax
+              (fun p pg0 ho hp hf j hj => by
+                have := (hok.1.2.1.2.2.2.1 bl B hB _ p pg0 (Or.inl ⟨hrn0, hin, rfl⟩) ho hp hf j
+                  hj).2.1.2
+                omega)
+              _ none none (htk hin) (ownHas.root _ pg (hfile hin)) pg (hfile hin) j hj)
         -- item 3/batch 43.4: the root bucket's root page's keys at most `MaxKeySize` (a leaf's:
         -- `posShape`'s name clause; a branch's: exact branch keys, `Write/RootKeys`)
         (fun hP => by
@@ -1039,6 +1068,13 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       rfl rfl (fun h => h) (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
         (viewWF_leafBnd X.v hv _ pg hpg)
+        (fun hfl j hj _ => (hok.1.2.1.2.2.2.1 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hfl j
+          hj).2.1.2)
+        (fun _ j hj => pageKeys_le_of_treeKeysN X.v.pages _ bboltEntryMax
+          (fun p pg0 ho hp hf j hj => by
+            have := (hok.1.2.1.2.2.2.1 bl B hB _ p pg0 hposw ho hp hf j hj).2.1.2
+            omega)
+          _ _ _ htkw (ownHas.root _ pg hpg) pg hpg j hj)
         -- item 3/batch 43.4: the root bucket's page keys at most `MaxKeySize` (as above)
         (fun hP => by
           have hBr : X.t.bs !! X.rl = some B := by rw [← hP]; exact hB
