@@ -221,7 +221,7 @@ theorem txTokL_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
         (fun p => nodeTokL X.v B' p.2) := by
       unfold bktTokL; rw [if_neg hB'rn]
     rw [hlist]
-    refine ((flatMap_perm _ (toList_insert_perm B.ns l r)).subperm).trans ?_
+    refine ((flatMap_perm _ (toList_insert_perm_gm B.ns l r)).subperm).trans ?_
     have hnil : FiniteMap.toList (GMap.delete l B.ns) = [] :=
       List.eq_nil_iff_forall_not_mem.2 fun ⟨k, w⟩ hx => by
         have := (GMap.mem_toList _ _ _).1 hx

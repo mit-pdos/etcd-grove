@@ -87,7 +87,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
   icases wtxW_bkt_tx_acc K tx r true X X.rl R hR $$ Hw with ⟨%dqt, Htxf, Hwb⟩
   try wp_auto
   ihave Hw := Hwb $$ Htxf
-  icases cb_db_acc K tx r true X $$ Hw with ⟨%Hrdb, -, Hdbf, Hst, Hwb⟩
+  icases wtxW_db_acc K tx r true X $$ Hw with ⟨%Hrdb, -, Hdbf, Hst, Hwb⟩
   rw [Hrdb]
   try wp_auto
   wp_apply DB.Logger.wp_proof K.db lg Ht0.2.1 $$ []
@@ -187,7 +187,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
   icases wtxW_bkt_tx_acc K tx r true X X.rl R hR $$ Hw with ⟨%dqt, Htxf, Hwb⟩
   try wp_auto
   ihave Hw := Hwb $$ Htxf
-  icases cb_db_acc K tx r true X $$ Hw with ⟨-, -, Hdbf, Hst, Hwb⟩
+  icases wtxW_db_acc K tx r true X $$ Hw with ⟨-, -, Hdbf, Hst, Hwb⟩
   rw [Hrdb]
   try wp_auto
   rw [decide_eq_false Ht0.2.1]

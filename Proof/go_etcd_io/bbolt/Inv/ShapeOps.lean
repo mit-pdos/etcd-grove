@@ -115,7 +115,7 @@ theorem toList_lookup_perm (m : GMap K V) (k : K) (v : V) (h : m !! k = some v) 
   LawfulFiniteMap.toList_delete (M := GMap K) h
 
 /-- A map with `k` bound to `v`: its list is `(k, v)` and the rest's. -/
-theorem toList_insert_perm (m : GMap K V) (k : K) (v : V) :
+theorem toList_insert_perm_gm (m : GMap K V) (k : K) (v : V) :
     (FiniteMap.toList (m.insert k v)).Perm ((k, v) :: FiniteMap.toList (GMap.delete k m)) := by
   have e : m.insert k v = (GMap.delete k m).insert k v := (GMap.insert_delete m k v).symm
   rw [e]
@@ -130,7 +130,7 @@ theorem flatMap_insert_subperm {β : Type _} (m : GMap K V) (k : K) (v v' : V)
     (f g : K × V → List β) (hk : m !! k = some v) (hkv : (f (k, v')).Subperm (g (k, v)))
     (ho : ∀ k' w, k' ≠ k → m !! k' = some w → (f (k', w)).Subperm (g (k', w))) :
     ((FiniteMap.toList (m.insert k v')).flatMap f).Subperm ((FiniteMap.toList m).flatMap g) := by
-  refine ((flatMap_perm f (toList_insert_perm m k v')).subperm).trans ?_
+  refine ((flatMap_perm f (toList_insert_perm_gm m k v')).subperm).trans ?_
   refine List.Subperm.trans ?_ ((flatMap_perm g (toList_lookup_perm m k v hk)).symm.subperm)
   simp only [List.flatMap_cons]
   refine subperm_append' hkv (flatMap_subperm _ _ _ fun ⟨k', w⟩ hx => ?_)
@@ -151,7 +151,7 @@ theorem flatMap_insert2_subperm {β : Type _} (m : GMap K V) (k j : K) (a v v' :
   have hk' : (m.insert j v') !! k = none := by
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hkj)]; exact hk
   refine ((flatMap_perm f (LawfulFiniteMap.toList_insert (M := GMap K) hk')).subperm).trans ?_
-  refine ((flatMap_perm f ((toList_insert_perm m j v').cons _)).subperm).trans ?_
+  refine ((flatMap_perm f ((toList_insert_perm_gm m j v').cons _)).subperm).trans ?_
   refine List.Subperm.trans ?_ ((flatMap_perm g (toList_lookup_perm m j v hj)).symm.subperm)
   simp only [List.flatMap_cons, ← List.append_assoc]
   refine subperm_append' hkv (flatMap_subperm _ _ _ fun ⟨k', w⟩ hx => ?_)

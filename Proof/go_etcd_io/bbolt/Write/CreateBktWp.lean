@@ -19,6 +19,7 @@ public import Proof.go_etcd_io.bbolt.Rebalance.NodeRblBase
 public import Proof.go_etcd_io.bbolt.Commit.AssembleLog
 public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
+public import Proof.go_etcd_io.bbolt.Mmap.TxAlloc
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsOpen
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsGens
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsMat
@@ -56,22 +57,6 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 def createOK (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) : Prop :=
   wOK X' ∧ wtxData X' = T.cur.insert n ∅ ∧ gensOK T X' ∧ wrFacts X' ∧ XclKeep X X' ∧
     ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra
-
-omit package_sem in
-/-- The transaction's `db` field's share out of `wtxW` (`Mmap/TxAlloc`'s `wtxW_db_acc`). -/
-theorem cb_db_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
-    wtxW (GF := GF) K tx r m X ⊢ ⌜r.db = K.db⌝ ∗ reg tx K.B r ∗
-      tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ statsTok r m 1 ∗
-      (tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db -∗ statsTok r m 1 -∗ wtxW K tx r m X) := by
-  unfold wtxW wtxCore
-  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdbf, Hview, Hst⟩, Hcells, Hmap⟩
-  iframe Hdbf Hst
-  isplitr
-  · ipureintro; exact Hr.1
-  iframe #
-  iintro Hdbf Hst
-  iframe; iframe #
-  ipureintro; exact Hr
 
 omit package_sem in
 theorem cb_core (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
@@ -154,7 +139,7 @@ theorem Bucket.CreateBucket.wp_root
   icases wtxW_bkt_tx_acc K tx r true X X.rl R hR $$ Hw with ⟨%dqt, Htxf, Hwb⟩
   try wp_auto
   ihave Hw := Hwb $$ Htxf
-  icases cb_db_acc K tx r true X $$ Hw with ⟨%Hrdb, -, Hdbf, Hst, Hwb⟩
+  icases wtxW_db_acc K tx r true X $$ Hw with ⟨%Hrdb, -, Hdbf, Hst, Hwb⟩
   rw [Hrdb]
   try wp_auto
   wp_apply DB.Logger.wp_proof K.db lg Ht0.2.1 $$ []
@@ -254,7 +239,7 @@ theorem Bucket.CreateBucket.wp_root
   icases wtxW_bkt_tx_acc K tx r true X X.rl R hR $$ Hw with ⟨%dqt, Htxf, Hwb⟩
   try wp_auto
   ihave Hw := Hwb $$ Htxf
-  icases cb_db_acc K tx r true X $$ Hw with ⟨-, -, Hdbf, Hst, Hwb⟩
+  icases wtxW_db_acc K tx r true X $$ Hw with ⟨-, -, Hdbf, Hst, Hwb⟩
   rw [Hrdb]
   try wp_auto
   rw [decide_eq_false Ht0.2.1]
