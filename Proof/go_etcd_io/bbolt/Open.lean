@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.bbolt.Open.FileModeString
 public import Proof.go_etcd_io.bbolt.Open.LogFmt
 public import Proof.go_etcd_io.bbolt.Open.SyncAcc
 public import Proof.go_etcd_io.bbolt.Inv.LoggerOk
+public import Proof.go_etcd_io.bbolt.Open.PoolNew
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -179,15 +180,52 @@ macro "open_exit_j" hv:term:max xs:term:max : tactic => `(tactic| (
   ipureintro
   first | exact ⟨rfl, fun h => nomatch h⟩ | exact ⟨trivial, fun h => nomatch h⟩ | simp))
 
+/-- **`Open`'s last write of `db` begins** (U11i, `Open/PoolNew.dp_lock`): the whole validity
+token of the client's `boltState` lent to the protocol, which excludes every `New`. -/
+theorem open_lock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
+    (dp db : Loc) :
+    inv (dpN N) (dpInv (GF := GF) γs B.bq dp db) ∗ ghostVar γs (1 : Qp).half 0 ∗
+      dp ↦{DFrac.own (1 : Qp).half} db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
+    |={⊤}=> ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗ ghostVar B.st (1 : Qp).half D := by
+  iintro ⟨#Hinv, Hs, Hdp, Hst⟩
+  unfold boltState boltStateDef
+  rw [bnsOf_mkGs]
+  icases Hst with ⟨Hst, Hbq⟩
+  imod dp_lock ⊤ N γs B.bq dp db CoPset.subseteq_top $$ [Hinv Hs Hdp Hbq] with ⟨Hs, Hdp⟩
+  · iframe; iframe #
+  imodintro
+  iframe
+
+/-- **`Open`'s last write of `db` done, on success**: the token back, `db` persistent. -/
+theorem open_unlock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
+    (dp db : Loc) :
+    inv (dpN N) (dpInv (GF := GF) γs B.bq dp db) ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
+      ghostVar B.st (1 : Qp).half D ⊢
+    |={⊤}=> dp ↦□ db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D := by
+  iintro ⟨#Hinv, Hs, Hdp, Hst⟩
+  imod dp_unlock ⊤ N γs B.bq dp db CoPset.subseteq_top $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
+  · iframe; iframe #
+  imodintro
+  iframe Hdp
+  unfold boltState boltStateDef
+  rw [bnsOf_mkGs]
+  iframe
+
 set_option hygiene false in
-/-- `Open`'s success exit (`return db, nil`): the deferred log (`Hdef`), and the database. -/
-macro "open_ok" : tactic => `(tactic| (
+/-- `Open`'s success exit (`return db, nil`) with the client's state `Hst'`: `db` written under
+the page pool's protocol (`open_lock`, `open_unlock`), the deferred log (`Hdef`), and the
+database. -/
+macro "open_ret" : tactic => `(tactic| (
+  imod open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs db Hst'] with ⟨Hs, db, Hstq⟩
+  · iframe; iframe #
   try wp_auto
   wp_bind (App (Val #dv) (Val #()))
   iapply Hdef $$ [err]
   · iexact err
   · iexact Herrok
   iintro err
+  imod open_unlock B N γs _ db_ptr dbl $$ [Hdpi Hs db Hstq] with ⟨#db, Hst'⟩
+  · iframe; iframe #
   try wp_auto
   iapply HΦ
   iframe Hopts
@@ -197,10 +235,17 @@ macro "open_ok" : tactic => `(tactic| (
   iexists ⟨mkGs B, N⟩
   isplitr
   · ipureintro; rfl
-  unfold isBolt boltState
-  rw [bnsOf_mkGs, ← hCD]
-  iframe Hstate
+  iframe Hst'
+  unfold isBolt
+  rw [bnsOf_mkGs]
   iexact Hbolt))
+
+set_option hygiene false in
+/-- `Open`'s success exit from the core phase's state `Hstate`. -/
+macro "open_ok" : tactic => `(tactic| (
+  ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
+  · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
+  open_ret))
 
 set_option hygiene false in
 /-- The transaction's error exit (`Begin` or `Commit` failed with `ok ei`, `Hek`): log, `db.Close()`,
@@ -220,6 +265,8 @@ macro "open_tx_exit" : tactic => `(tactic| (
   wp_apply hClose dbl ⟨mkGs B, N⟩ $$ []
   · unfold isBolt; rw [bnsOf_mkGs]; iexact Hbolt
   iintro %cerr -
+  imod open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs db Hst'] with ⟨-, db, -⟩
+  · iframe; iframe #
   try wp_auto
   wp_bind (App (Val #dv) (Val #()))
   iapply Hdef $$ [err]
@@ -707,29 +754,54 @@ theorem Open.wp_proof [sync.Assumptions]
   ipersist batch
   imod sync.init_Mutex iprop(True) ⊤ _ $$ batchMu [] with #HbatchMu
   · inext; itrivial
-  -- **A gap (`sorry`, reported):** the page pool's `New` closure reads `Open`'s named result
-  -- `db` (by reference: `return nil, err` later writes it), so its spec needs a persistent
-  -- `db_ptr ↦□ dbl` that `Open` cannot give while it still writes `db` on return.
-  ihave #Hpool : (∃ pf : GoFunc, sync.isPool dbl.[DB, go!"pagePool"] pf iprop(True) pageBuf ∗
-      ⌜pf ≠ func.nil⌝) $$ [pagePool]
-  · sorry
-  ihave #Hfix : dbFixed (GF := GF) dbl sp $$ []
+  -- the page pool (U11i, `Open/PoolNew`): its `New` reads `Open`'s named result `db`, which
+  -- every `return` writes; a `Get` caller lends it a `poolR γbq N P` (the whole `boltState`
+  -- validity token `γbq` excluded), and `Open`'s writes hold that token (`dp_lock`)
+  imod ghostVar_alloc (GF := GF) () with ⟨%γbq, Hbq⟩
+  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γs, Hs⟩
+  icases (ghostVar_split_half γs 1 (0 : Nat)).1 $$ Hs with ⟨Hs, Hs'⟩
+  icases (typedPointsto_half_split db_ptr dbl 1).1 $$ db with ⟨db, Hdp⟩
+  imod inv_alloc (dpN N) ⊤ (dpInv (GF := GF) γs γbq db_ptr dbl) $$ [Hs' Hdp] with #Hdpi
+  · inext; unfold dpInv; iexists 0; iframe Hs'; ileft; iframe Hdp; ipureintro; rfl
+  imod init_Pool_all _ _ (poolR γbq N) pageBuf ⊤ $$ [pagePool] with #Hp
+  · iframe pagePool
+    isplitl
+    · iintro !> %P
+      unfold sync.newSpec
+      iright
+      wp_start as HR
+      wp_auto
+      -- **A gap (`sorry`, U11i):** the read `![*DB] #db_ptr` is non-atomic (`Read`:
+      -- `StartRead`, `FinishRead`), so it needs a fraction of `db_ptr` across two steps, which
+      -- `dpInv` (state 0) can lend only against collateral `Open`'s `dp_lock` can refute: the
+      -- reader's `P` (from `HR`), deposited and returned identically (a saved proposition per
+      -- borrow). In state 2 the read is from `db_ptr ↦□ dbl`; state 1 is refuted by `HR`.
+      sorry
+    · ipureintro; rfl
+  ihave #Hpool : (∃ pf : GoFunc,
+      (∀ P : IProp GF, sync.isPool dbl.[DB, go!"pagePool"] pf (poolR γbq N P) pageBuf) ∗
+      ⌜pf ≠ func.nil⌝) $$ []
+  · iexists _
+    iframe Hp
+    ipureintro; intro h; injection h with _ _ h3; cases h3
+  ihave #Hfix : dbFixed (GF := GF) γbq N dbl sp $$ []
   · unfold dbFixed dbLogger
     iframe #
     isplitr
     · ipureintro; exact hmf'
     ipureintro; exact Hlgty
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
-  wp_apply hLoad N dbl sp f fd path C base L _ xs'
+  wp_apply hLoad γbq N dbl sp f fd path C base L _ xs'
     (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
-      Hxs Hbp Hcells freelistLoad] as Hlf
+      Hxs Hbp Hcells freelistLoad Hbq] as Hlf
   · unfold lfPre
     rw [← hxl']
     iframe; iframe #
     done
   iunfold lfPost at Hlf
-  icases Hlf with ⟨%B, %fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hstate, Hopn, %Hwok⟩
+  icases Hlf with ⟨%B, %fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hstate, Hopn, ⟨%Hwok, %HBbq⟩⟩
+  subst HBbq
   have hCD : treeData C = D := hC.2.2.2.2.2.2.2
   try wp_auto
   cases nfs
@@ -792,39 +864,23 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   rw [decide_eq_false Htxnn]
   try wp_auto
-  wp_apply hCommit tx ⟨mkGs B, N⟩ (TxView.wr D') (boltState ⟨mkGs B, N⟩ 1 D') $$ [Htx Hst']
+  -- the update's carrier is the whole state itself, back on every exit (U11i)
+  wp_apply hCommit tx ⟨mkGs B, N⟩ (TxView.wr D') (boltState ⟨mkGs B, N⟩ 1 D')
+      (boltState ⟨mkGs B, N⟩ 1 D')
+      (by simp only [TxView.wr]; exact boltState_commit_au _ _ _) $$ [Htx Hst']
     as %cerr ⟨-, Hc⟩
   · iframe
-    isplitr
-    · ipureintro; rfl
-    simp only [TxView.wr]
-    iapply boltState_commit_au $$ Hst'
-  icases Hc with (⟨%Hce, Hst'⟩ | ⟨%Hce, #Hek, -⟩)
+    ipureintro; rfl
+  icases Hc with (⟨%Hce, Hst'⟩ | ⟨%Hce, #Hek, Hor⟩)
   rotate_left
   · cases cerr with
     | nil => exact absurd rfl Hce
     | ok ei =>
+    ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D' $$ [Hor]
+    · icases Hor with (H | H) <;> iexact H
     open_tx_exit
   subst Hce
-  try wp_auto
-  wp_bind (App (Val #dv) (Val #()))
-  iapply Hdef $$ [err]
-  · iexact err
-  · iexact Herrok
-  iintro err
-  try wp_auto
-  iapply HΦ
-  iframe Hopts
-  ileft
-  isplitr
-  · ipureintro; rfl
-  iexists ⟨mkGs B, N⟩
-  isplitr
-  · ipureintro; rfl
-  iframe Hst'
-  unfold isBolt
-  rw [bnsOf_mkGs]
-  iexact Hbolt
+  open_ret
 
 end proof
 

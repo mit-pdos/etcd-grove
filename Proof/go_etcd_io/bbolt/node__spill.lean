@@ -66,7 +66,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     ⊢ spillIH (GF := GF) (hG := hG) := by
   unfold spillIH
   iloeb as IH
-  iintro %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %Hpre %Φ ⟨Hw, Hdb⟩ HΦ
+  iintro %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %P %Hpre %Φ ⟨Hw, Hdb, HR⟩ HΦ
   obtain ⟨Hn, HG, Hcase⟩ := Hpre
   obtain ⟨B, HB, Hrn⟩ := node_of_bs Hn
   rcases Hcase with ⟨Hsp, Hbl, Hlive⟩ | Hu
@@ -120,6 +120,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     ihave Hw := Hclose $$ %X [] Hh Hv Hst
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
     iapply HΦ
+    iframe HR
     unfold spPost
     ileft
     isplitr
@@ -203,16 +204,17 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
         Or.inl ⟨hleaf, rfl, rfl, rfl, rfl, rfl⟩
       have Hsend := spillTail_wp (GF := GF) (hG := hG) hAlloc hPage hSplit hWrite hPut hSize hInc
         hTxid hPgid hId hK hAssert hFree K tx r m _ w bl n { rn with cs := l } O lo hi h F D N E cs
-        _ w { rn with cs := l } [] [] n_ptr tx_ptr «$res0_ptr» GoInterface.nil hpre' Hsp0 hend
+        _ w { rn with cs := l } [] [] n_ptr tx_ptr «$res0_ptr» GoInterface.nil P hpre' Hsp0 hend
       wp_bind (spillTail _ _ _)
-      ihave Hwp := Hsend $$ [IH] Hw Hdb Hn tx «$res0»
+      ihave Hwp := Hsend $$ [IH] Hw Hdb HR Hn tx «$res0»
       · imodintro; inext; unfold spillIH; iexact IH
       iapply wp_wand $$ Hwp
-      iintro %v ⟨%hv, %err, Hres, Hn, Htx, Hpost⟩
+      iintro %v ⟨%hv, %err, Hres, Hn, Htx, HR, Hpost⟩
       subst hv
       wp_pures
       wp_load
       iapply HΦ
+      iframe HR
       iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 (uTree_not_own_child Hut Hn Hsp0) err) $$ Hpost
     · have hleaf' : rn.nv.isLeaf' = false := by
         cases e : rn.nv.isLeaf'
@@ -220,14 +222,14 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
         · exact absurd e hleaf
       obtain ⟨h', es, hh, hl0⟩ := spLoop_start hd HB Hrn Hperm Hut hleaf' HG Hsl Hfr Hpar0
       have H := fun Φ' => spill_loop_wp (GF := GF) K tx r m _ w bl n { rn with cs := l } O lo hi h'
-        D N E es n_ptr i_ptr «$res0_ptr» GoInterface.nil Φ' hl0 Hfc
+        D N E es n_ptr i_ptr «$res0_ptr» GoInterface.nil P Φ' hl0 Hfc
         (by rw [setNode_perm_eq HB]; exact Hts)
       unfold spLoopE spCondE spBodyE spPostE at H
       iapply (H _)
       isplitr
       · imodintro; inext; unfold spillIH; iexact IH
       iframe
-      iintro %v Hv
+      iintro %v HR Hv
       unfold spLoopPost
       icases Hv with (⟨%hv, Hn, Hres, %j, %XE, %wE, %rE, %esE, %stE, %TE, Hi, Hw, Hdb, %Hl⟩ |
         ⟨%hv, Hn, Hi, %err, Hres, %Herr, #Hok, %X', %w', %st, %Hf, Hst⟩)
@@ -240,21 +242,23 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
           Or.inr ⟨hleaf', h', esE, sint.nat j, hh, Hl.1, Hl.2, Hl.1.chs⟩
         have Hsend := spillTail_wp (GF := GF) (hG := hG) hAlloc hPage hSplit hWrite hPut hSize hInc
           hTxid hPgid hId hK hAssert hFree K tx r m _ w bl n { rn with cs := l } O lo hi h F D N E cs
-          XE wE rE stE TE n_ptr tx_ptr «$res0_ptr» GoInterface.nil hpre' Hsp0 hend
+          XE wE rE stE TE n_ptr tx_ptr «$res0_ptr» GoInterface.nil P hpre' Hsp0 hend
         wp_bind (spillTail _ _ _)
-        ihave Hwp := Hsend $$ [IH] Hw Hdb Hn tx Hres
+        ihave Hwp := Hsend $$ [IH] Hw Hdb HR Hn tx Hres
         · imodintro; inext; unfold spillIH; iexact IH
         iapply wp_wand $$ Hwp
-        iintro %v ⟨%hv, %err, Hres, Hn, Htx, Hpost⟩
+        iintro %v ⟨%hv, %err, Hres, Hn, Htx, HR, Hpost⟩
         subst hv
         wp_pures
         wp_load
         iapply HΦ
+        iframe HR
         iapply (spPost_unperm hd HB Hrn Hperm HG K tx r m HnN Hsp0 (uTree_not_own_child Hut Hn Hsp0) err) $$ Hpost
       · subst hv
         wp_pures
         wp_load
         iapply HΦ
+        iframe HR
         unfold spPost
         iright
         isplitr
@@ -283,13 +287,13 @@ theorem node.spill.wp_proof' (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hFree : internal.freelist.Interface.Free.spec (GF := GF) (hG := hG)) :
     node.spill.spec' (GF := GF) (hG := hG) := by
-  intro K tx r m X w bl n rn O lo hi h F D N E cs hpre
+  intro K tx r m X w bl n rn O lo hi h F D N E cs P hpre
   have H := node.spill.wp_aux hS hK hC hAlloc hPage hSplit hWrite hPut hSize hInc hTxid hPgid hId
     hAssert hFree
   unfold spillIH at H
   iintro %Φ HP HΦ
   ihave #H := H
-  iapply H $$ %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %hpre HP
+  iapply H $$ %K %tx %r %m %X %w %bl %n %rn %O %lo %hi %h %F %D %N %E %cs %P %hpre HP
   inext
   iintro %err Hpost
   iapply HΦ

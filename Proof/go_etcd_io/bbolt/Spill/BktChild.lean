@@ -213,8 +213,8 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     (hPgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
     (hSRP : internal.common.InBucket.SetRootPage.spec (GF := GF) (hG := hG)) :
     Bucket.spill.specC (GF := GF) (hG := hG) := by
-  intro K tx r m X w bl B O h F D N Hpre
-  iintro %Φ ⟨Hw, Hdb⟩ HΦ
+  intro K tx r m X w bl B O h F D N P Hpre
+  iintro %Φ ⟨Hw, Hdb, HR⟩ HΦ
   have Hpre0 := Hpre
   obtain ⟨HB, Hlive, Hbm0, HG, -, Hcase⟩ := Hpre
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
@@ -257,6 +257,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     ihave Hw := Hclose $$ %X [] Hh Hv Hst
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
     iapply HΦ
+    iframe HR
     unfold bkPost
     ileft
     isplitr
@@ -284,8 +285,8 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
       | self => exact absurd rfl hne
       | up _ _ _ _ _ hne' _ => exact absurd rfl hne'⟩, Hsi, Hsf, Hvc,
       (bk_slotFacts Hpre0 Hok).1, (bk_slotFacts Hpre0 Hok).2, bk_parOK Hpre0⟩⟩
-  wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top Hsp $$ [Hw Hdb]
-    as %err Hpost
+  wp_apply hNS K tx r m X w bl B.bv.rootNode' rn O none none h F D N E .top P Hsp $$ [Hw Hdb HR]
+    as %err ⟨HR, Hpost⟩
   · iframe
   try wp_auto
   unfold spPost
@@ -379,6 +380,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
     try wp_auto
     iapply HΦ
+    iframe HR
     unfold bkPost
     ileft
     isplitr
@@ -398,6 +400,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     | ok ii =>
     try wp_auto
     iapply HΦ
+    iframe HR
     unfold bkPost
     iright
     isplitr

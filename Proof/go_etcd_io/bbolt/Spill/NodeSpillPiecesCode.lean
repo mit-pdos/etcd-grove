@@ -308,9 +308,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 def spillIH : IProp GF :=
   iprop(∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
-    (E : List El) (cs : SpCase),
-    ⌜spPre X w bl n rn O lo hi h F D N E cs⌝ → ∀ Φ, (wtxW K tx r m X ∗ wdbW K tx X.v w) -∗
-      ▷ (∀ err, spPost K tx r m X w bl n rn O lo hi h D N E cs err -∗ Φ #err) -∗
+    (E : List El) (cs : SpCase) (P : IProp GF),
+    ⌜spPre X w bl n rn O lo hi h F D N E cs⌝ → ∀ Φ, (wtxW K tx r m X ∗ wdbW K tx X.v w ∗ poolR K.B.bq K.N P) -∗
+      ▷ (∀ err, poolR K.B.bq K.N P ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err -∗ Φ #err) -∗
       WP (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #())) {{ Φ }})
 
 end ih

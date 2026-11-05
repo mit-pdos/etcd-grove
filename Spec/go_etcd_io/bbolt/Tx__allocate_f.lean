@@ -36,14 +36,16 @@ by a success: `allocRes_derefPre`; batch 29, U4c's corrected statement: the writ
 transaction's meta copy's, and the high-water mark's pages lie inside the mapping, before and
 after; the writer side changes only by its freelist or a remap). On an error (`fmtErrorOk`): before any unmap, nothing changed; or the mapping lost
 (the records dereferenced and re-based, `wtxLost`, `wdbLost`). Batch 44.1: over the flagged writer
-side `wdbW' fr` (`wdbLost' fr`). -/
+side `wdbW' fr` (`wdbLost' fr`). U11i: the caller lends the page pool's `New` its `poolR P` (from
+`Commit`'s update) and gets it back. -/
 abbrev Tx.allocate_f.spec : Prop :=
-  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (count : w64),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (count : w64)
+    (P : IProp GF),
   0 < sint.Z count → sint.nat count * 4096 < 2 ^ 62 → X.t.mv.txid' = w.wtxid →
   X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → derefPre X → liveFresh X → liveReach X →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w ∗ poolR K.B.bq K.N P }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"allocate")) (Val #count))
-  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
+  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); poolR K.B.bq K.N P ∗ (
       (⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb) (id : w64),
         wtxW K tx r m X' ∗ wdbW' fr K tx X'.v w' ∗
         ⌜allocRes X X' w.fl w'.fl w.wtxid (sint.nat count) p id ∧
@@ -52,7 +54,7 @@ abbrev Tx.allocate_f.spec : Prop :=
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
         ((wtxW K tx r m X ∗ wdbW' fr K tx X.v w) ∨
          (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost' fr K tx X'.v w' ∗
-           ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
+           ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)))) }}
 
 end spec
 

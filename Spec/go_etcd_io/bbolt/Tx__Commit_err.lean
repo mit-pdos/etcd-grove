@@ -29,18 +29,19 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **The internal `Tx.Commit`** (design §3.13, B1): `Tx.Commit.spec`'s statement with
 `fmtErrorOk err` in its error branch (its errors come from `errors.New`, `fmt.Errorf` and the
 OsFs-backed `os`/`syscall` calls, design §5 item 5). The frozen `Tx.Commit.spec` is its
-weakening. -/
+weakening. U11i: the update comes in a carrier `P` of the caller's choice (`P ⊢` the update),
+returned whole when the update did not fire: `Open` passes `boltState γ 1 D` itself, which it
+needs back on every exit (its last write of its named result `db` excludes the page pool's `New`
+by holding all of `boltState`); the frozen `Tx.Commit.spec` takes `P :=` the update. -/
 abbrev Tx.Commit_err.spec : Prop :=
-  ∀ (tx : Loc) (γ : BoltName) (T : TxView) (Q : IProp GF),
-  {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.rw = true⌝ ∗
-      AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-        <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }> }}
+  ∀ (tx : Loc) (γ : BoltName) (T : TxView) (Q P : IProp GF),
+  (P ⊢ AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
+        <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }>) →
+  {{ boltTx (GF := GF) tx γ 1 T ∗ ⌜T.rw = true⌝ ∗ P }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Commit")) (Val #()))
   {{ (err : GoInterface), RET #err; txDone tx ∗
       ((⌜err = GoInterface.nil⌝ ∗ Q) ∨
-       (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗
-         (Q ∨ AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-                <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }>))) }}
+       (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗ (Q ∨ P))) }}
 
 end spec
 

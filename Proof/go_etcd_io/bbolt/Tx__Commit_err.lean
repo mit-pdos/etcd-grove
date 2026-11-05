@@ -41,6 +41,7 @@ public import Proof.go_etcd_io.bbolt.Commit.TailSlots
 public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
+public import Proof.go_etcd_io.bbolt.Commit.PoolR
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -146,11 +147,18 @@ theorem Tx.Commit_err.wp_proof'
     (wp_SetRootPage : internal.common.InBucket.SetRootPage.spec (GF := GF) (hG := hG))
     (wp_FlFree : internal.freelist.Interface.Free.spec (GF := GF) (hG := hG)) :
     Tx.Commit_err.spec (GF := GF) (hG := hG) := by
-  intro tx γ T Q
+  intro tx γ T Q P hP
   wp_start as ⟨Ht, %hrw, Hau⟩
   unfold boltTx
   icases (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hB, hN, hT⟩ := HK
+  -- U11i: the update's carrier `P` (`Hau`) is lent to `spill` and `commitFreelist` as the page
+  -- pool's lease (`poolR_of_au`)
+  have hPK : P ⊢ AU <{ ∃∃ (D' : Data), boltStateDef (GF := GF) K.B 1 D' }> @ ⊤ \ ↑K.N, ∅
+      <{ ⌜D' = T.base⌝ ∗ boltStateDef K.B 1 T.cur, COMM Q }> := by
+    refine hP.trans ?_
+    unfold boltState
+    rw [hB, hN]
   rw [← hB]
   iunfold wtxW at Hw
   icases Hw with ⟨Hcore, Hvc, Hmf⟩
@@ -172,7 +180,7 @@ theorem Tx.Commit_err.wp_proof'
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
   icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, -⟩
-  ihave %Hlgty := dbFixed_logPtrTyped K.db K.sp lg $$ Hfix Hlg
+  ihave %Hlgty := dbFixed_logPtrTyped _ _ K.db K.sp lg $$ Hfix Hlg
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   rw [hmg, hdb]
@@ -375,9 +383,12 @@ theorem Tx.Commit_err.wp_proof'
   have htx63 : X1.t.mv.txid'.toNat < 2 ^ 63 := by
     rw [hmv1, ← Hf.1.1.2.2.2.1, show X.v.txid = w.C.txid by rw [Hwok.2.2]; rfl]
     exact Htxl
-  wp_apply wp_spill K tx r false X1 (w.withFl fl1) (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
-    hreach1 hmap1 hflv1 hstart1 htx63 $$ [Hw Hwdb] as %err1 Hsp
+  ihave HR := poolR_of_au K.B K.N _ Q P hPK $$ Hau
+  wp_apply wp_spill K tx r false X1 (w.withFl fl1) P (spillPre_of_rebalOK X X1 w.fl fl1 _ hrbOK)
+    hreach1 hmap1 hflv1 hstart1 htx63 $$ [Hw Hwdb HR] as %err1 ⟨HR, Hsp⟩
   · iframe
+  iunfold poolR at HR
+  icases HR with ⟨Hau, -⟩
   cases lg with
   | nil => iexfalso; unfold dbLogger boltLogger; iexact Hlgok
   | ok li =>
@@ -443,13 +454,13 @@ theorem Tx.Commit_err.wp_proof'
       try wp_auto
       -- the freelist's branches join before `grow` (`cmTailOK`), or return an error rolled back
       wp_bind (If _ _ _)
-      iapply (wp_wand (Φ := fun v => iprop(
+      iapply (wp_wand (Φ := fun v => iprop(P ∗ (
           (⌜v = executeVal⌝ ∗ err_ptr ↦ GoInterface.nil ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
             ∃ (Xt : WX) (wt : WDb), wtxW K tx r false Xt ∗ wdbW K tx Xt.v wt ∗
               cmExcl K r Xt (treeData wt.C) ∗ ⌜cmTailOK T.cur T.base Xt wt X1.t.mv.pgid'⌝) ∨
           (⌜v = returnVal #()⌝ ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
-            ∃ e : GoInterface, err_ptr ↦ e ∗ ⌜e ≠ GoInterface.nil⌝ ∗ fmtErrorOk e ∗ txDoneDef tx))))
-        $$ [Hwb Hdbp Hwdb Hex err Hlgp tx]
+            ∃ e : GoInterface, err_ptr ↦ e ∗ ⌜e ≠ GoInterface.nil⌝ ∗ fmtErrorOk e ∗ txDoneDef tx)))))
+        $$ [Hwb Hdbp Hwdb Hex err Hlgp tx Hau]
       · cases nfs
         · -- `commitFreelist`
           ihave Hw := Hwb $$ Hdbp
@@ -505,12 +516,15 @@ theorem Tx.Commit_err.wp_proof'
           icases (cm_keep_pure (cm_wdbW_bounds K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
           icases (cm_keep_pure (cm_wdbW_ok K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
           ihave Hwdb := wdbW_wdbW' false K tx X3.v w2 $$ Hwdb
-          wp_apply wp_commitFreelist false K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
+          ihave HR := poolR_of_au K.B K.N _ Q P hPK $$ Hau
+          wp_apply wp_commitFreelist false K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C)) P
             htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
             (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
               (by rw [← hX3]; rfl) hreach2) (cm_allIds_lt w2 Hw2ok.1 Hbd2.1 Hbd2.2) hrb1 hrb2
-            $$ [Hex Hw Hwdb] as %err2 Hcf
+            $$ [Hex Hw Hwdb HR] as %err2 ⟨HR, Hcf⟩
           · iframe; iframe #
+          iunfold poolR at HR
+          icases HR with ⟨Hau, -⟩
           icases Hcf with (⟨%He2, %X4, %w4, %id4, %p4, ⟨-, Hex⟩, Hw, Hwdb, %Hal⟩ |
             ⟨%He2, #Hfe2, Hdone⟩)
           · -- joins the tail
@@ -525,6 +539,7 @@ theorem Tx.Commit_err.wp_proof'
             · rw [Hal.2.1]; iexact Hex
             subst He2
             try wp_auto
+            iframe Hau
             ileft
             isplitr
             · ipureintro; rfl
@@ -565,6 +580,7 @@ theorem Tx.Commit_err.wp_proof'
               · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe1
               · iempintro
             try wp_auto
+            iframe Hau
             iright
             isplitr
             · ipureintro; rfl
@@ -593,6 +609,7 @@ theorem Tx.Commit_err.wp_proof'
           · rw [hC2]; iexact Hex
           icases (cm_keep_pure (cm_wdbW_ok K tx _ w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
           try wp_auto
+          iframe Hau
           ileft
           isplitr
           · ipureintro; first | rfl | trivial
@@ -623,7 +640,7 @@ theorem Tx.Commit_err.wp_proof'
           · rw [hC2]; exact hbase
           · -- OPEN (U10k): the publish's facts from spill's and rebalance's posts
             sorry
-      iintro %v Hv
+      iintro %v ⟨Hau, Hv⟩
       icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
         ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
       · subst hv
@@ -816,12 +833,12 @@ theorem Tx.Commit_err.wp_proof'
             icases Hex with ⟨Hrwl, Hcls, Hagr, Hstq⟩
             ihave Hstq : ghostVar K.B.st (1 : Qp).half.half (treeData ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C) $$ [Hstq]
             · rw [WDb.reslot.proj_C, WDb.reslot.proj_C, Hgr.1]; iexact Hstq
-            ihave Hau' : commitAU K γ.ns (treeData ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C) T.cur Q $$ [Hau]
-            · unfold commitAU
+            have hA : P ⊢ commitAU K γ.ns (treeData ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C) T.cur Q := by
+              refine hP.trans ?_
+              unfold commitAU
               rw [WDb.reslot.proj_C, WDb.reslot.proj_C, Hgr.1, ← hbt]
-              unfold boltState at *
+              unfold boltState
               rw [hB]
-              iexact Hau
             ihave Hfb : fbTok K.B ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).fl ((some Xt.v, some (((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C.txid + 1), false, true) : WSt)
                 ∅ $$ []
             · rw [WDb.reslot.proj_C, WDb.reslot.proj_C, WDb.reslot.proj_fl, WDb.reslot.proj_fl]
@@ -833,10 +850,10 @@ theorem Tx.Commit_err.wp_proof'
             have h3 := Hwgok.1.2.2.1
             have h9 := Hwgok.1.2.2.2.2.2.2.2.2.1 _ _ hms
             wp_apply cm_meta_step wp_writeMeta K tx r (Xt.clearPages pml) Xt.v ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)) Xt.v.base
-              (mapLen wg.ms) γ.ns ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' Pg T.cur Q ∅ hms
+              (mapLen wg.ms) γ.ns ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' Pg T.cur Q P hA ∅ hms
               (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m, Hm'.2.2.1]; exact Hwgok.1.1 _ _ hms)
               hroot hflp haddr (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m]; omega) (by omega) hcp
-              $$ [Hw Hwl Hstq HS Hau' Hfb] as %err5 ⟨%m'', %Hm'', Hw, Herr, Hpost⟩
+              $$ [Hw Hwl Hstq HS Hau Hfb] as %err5 ⟨%m'', %Hm'', Hw, Herr, Hpost⟩
             · iframe
             icases Herr with (%He5 | ⟨%He5, #Hfe5⟩)
             · subst He5
@@ -924,7 +941,7 @@ theorem Tx.Commit_err.wp_proof'
               try wp_auto
               icases Hagr with ⟨%c5, Hagr⟩
               imod ghostVar_update (c5, TxX.wr ((Xt.clearPages pml).withMv (metaSummed Xt.t.mv))) r.n.v _ $$ Hagr with Hagr
-              icases Hpost with (⟨Hwl, Hstq, HQ⟩ | ⟨-, Hwl, Hstq, HS, Hau', Hfb⟩)
+              icases Hpost with (⟨Hwl, Hstq, HQ⟩ | ⟨-, Hwl, Hstq, HS, Hau, Hfb⟩)
               · -- published
                 have hokF := (cm_pub_ok T.cur Xt wg Xt.v.base (mapLen wg.ms) Pg m' m'' wb'
                   (cmPubPre_congr T.cur Xt wt wg Hgr.1 Hgr.2.1 hpre) hpg
@@ -1020,17 +1037,6 @@ theorem Tx.Commit_err.wp_proof'
                     fun h => absurd h (by simp)⟩
                   $$ [Hend] as Hdone
                 · iexact Hend
-                have hC3 : ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C = wt.C := by
-                  simp only [WDb.reslot.proj_C]; exact Hgr.1
-                ihave Hau'' : commitAU K γ.ns (treeData wt.C) T.cur Q $$ [Hau']
-                · first | iexact Hau' | (rw [← Hgr.1]; iexact Hau') | (rw [← hC3]; iexact Hau')
-                ihave Hau : AU <{ ∃∃ (D' : Data), boltState γ 1 D' }> @ ⊤ \ ↑γ.ns, ∅
-                    <{ ⌜D' = T.base⌝ ∗ boltState γ 1 T.cur, COMM Q }> $$ [Hau'']
-                · unfold commitAU
-                  rw [hbt]
-                  unfold boltState
-                  rw [hB]
-                  iexact Hau''
                 irename Hfe5 => Hfe1
                 cm_return
           · -- `write` failed: log, roll back, return the error

@@ -158,7 +158,7 @@ theorem spillTail_gen
     (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (D : List Nat) (N : List Loc)
     (E : List El) (cs : SpCase) (X' : WX) (w' : WDb) (r' : NRec) (st0 : List FLStep)
-    (np txp resp : Loc) (e0 : GoInterface)
+    (np txp resp : Loc) (e0 : GoInterface) (P : IProp GF)
     (I : List (Loc × node × List Inode) → Loc → Nat → WX → WDb → List FLStep → Prop)
     (hn' : X'.node bl n = some r') (hlv' : n ∈ X'.live) (hwl : wsLive r'.ws)
     (hS : (X'.nilCh bl n r').node bl n = some r'.nilCh ∧ n ∈ (X'.nilCh bl n r').live ∧
@@ -189,12 +189,12 @@ theorem spillTail_gen
       ∃ h2 F2 D2 N2, spPre Xf wf bl pl rp O lo hi h2 F2 D2 N2 E .top ∧
         ∀ Xg wg st2, spDone Xf Xg wf wg bl pl rp O lo hi h2 D2 N2 E .top st2 →
           spDone X Xg w wg bl n rn O lo hi h D N E cs (sti ++ st2)) :
-    ⊢ □ ▷ spillIH (GF := GF) (hG := hG) -∗ wtxW K tx r m X' -∗ wdbW K tx X'.v w' -∗
+    ⊢ □ ▷ spillIH (GF := GF) (hG := hG) -∗ wtxW K tx r m X' -∗ wdbW K tx X'.v w' -∗ poolR K.B.bq K.N P -∗
       np ↦ n -∗ txp ↦ tx -∗ resp ↦ e0 -∗
       WP (spillTail np txp resp) {{ v, ⌜v = returnVal #()⌝ ∗ ∃ err : GoInterface,
-        resp ↦ err ∗ np ↦ n ∗ txp ↦ tx ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err }} := by
+        resp ↦ err ∗ np ↦ n ∗ txp ↦ tx ∗ poolR K.B.bq K.N P ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err }} := by
   unfold spillIH
-  iintro #IH Hw Hdb Hnp Htxp Hres
+  iintro #IH Hw Hdb HR Hnp Htxp Hres
   icases wtxW_lens K tx r m X' bl n r' hn' hlv' hwl $$ Hw with ⟨Hw, %Hlens⟩
   icases wtxW_heapOK K tx r m X' $$ Hw with ⟨Hw, %Hok0⟩
   icases wtxW_nilCh K tx r m X' bl n r' hn' hlv' $$ Hw with ⟨Hch, Hwb⟩
@@ -207,7 +207,7 @@ theorem spillTail_gen
   obtain ⟨hS1, hS2, hS3, hS4, hS8, hS5, hS6, hS7⟩ := hS
   wp_bind (Let "$a0" _ _)
   iapply (splitStep_wp hSplit K tx r m _ bl n r'.nilCh np txp hS1 hS2 hS3 hS4 hS8 hS5 (hS6 Hlens) hS7)
-  iframe
+  iframe Hw Hnp Htxp
   iintro %s %xs %wss %pl %rp' %X2 %Hsr Hw Hs Hnp Htxp
   have HI0 := H1 Hlens Hok0.2.1 X2 xs wss pl rp' Hsr.1 Hsr.2
   have hv2 : X2.v = X'.v := by
@@ -218,9 +218,9 @@ theorem spillTail_gen
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
   ihave HI : iprop(∃ (j : w64) (Xi : WX) (wi : WDb) (sti : List FLStep) (l0 : Loc),
       "i" ∷ i_ptr ↦ j ∗ "node" ∷ node_ptr ↦ l0 ∗ "Hw" ∷ wtxW K tx r m Xi ∗
-      "Hdb" ∷ wdbW K tx Xi.v wi ∗ "Hres" ∷ resp ↦ e0 ∗
+      "Hdb" ∷ wdbW K tx Xi.v wi ∗ "Hres" ∷ resp ↦ e0 ∗ "HR" ∷ poolR K.B.bq K.N P ∗
       "%HI" ∷ ⌜I xs pl (sint.nat j) Xi wi (st0 ++ sti) ∧ 0 ≤ sint.Z j ∧
-        sint.Z j ≤ sint.Z s.len⌝) $$ [i node Hw Hdb Hres]
+        sint.Z j ≤ sint.Z s.len⌝) $$ [i node Hw Hdb Hres HR]
   · iexists W64 0, X2, w', [], zero_val Loc
     iframe
     ipureintro
@@ -258,10 +258,10 @@ theorem spillTail_gen
     isplitl [Hnp Hs i]
     · iframe
     iapply (pieceOne_wp hAlloc hPage hWrite hPut hSize hInc hTxid hPgid hId hKey hAssert hFree K tx r m
-      Xi wi bl x.1 rl txp resp node_ptr l0 e0 j hrl hp1 hp2 hp3 hp4 hp5 hp6 hp7 hp8 hp9 hp10 hp11 hp12)
+      Xi wi bl x.1 rl txp resp node_ptr l0 e0 j P hrl hp1 hp2 hp3 hp4 hp5 hp6 hp7 hp8 hp9 hp10 hp11 hp12)
     iframe
     isplitl
-    · iintro %X3 %w2 %st' %id %Hst Hw Hdb Htxp Hnode Hres ⟨Hnp, Hs, i⟩
+    · iintro %X3 %w2 %st' %id %Hst HR Hw Hdb Htxp Hnode Hres ⟨Hnp, Hs, i⟩
       wp_for_post
       have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by
         have : sint.Z (j + W64 1) = sint.Z j + 1 := by
@@ -283,7 +283,7 @@ theorem spillTail_gen
         word
       rw [hj1, ← List.append_assoc]
       exact H3 xs pl _ Xi wi _ x rl X3 w2 st' id HIj hx hrl Hst Hok.2.1 Hfv Hrlens
-    · iintro %err %X'' %w'' %st' %He #Hok Hst Htxp Hnode Hres ⟨Hnp, Hs, i⟩
+    · iintro %err %X'' %w'' %st' %He HR #Hok Hst Htxp Hnode Hres ⟨Hnp, Hs, i⟩
       wp_for_post
       isplitr
       · ipureintro; rfl
@@ -379,7 +379,7 @@ theorem spillTail_gen
         icases wdbW_ofC K tx Xi.v wi $$ Hdb with ⟨Hdb, %Hvc⟩
         obtain ⟨h2, F2, D2, N2, hpre2, hdone2⟩ := H7 xs pl Xi wi _ rp HIj hnull hrp hpg Hvc
         wp_apply IH $$ %K %tx %r %m %Xi %wi %bl %pl %rp %O %lo %hi %h2 %F2 %D2 %N2 %E %SpCase.top
-          %hpre2 [Hw Hdb] as %err Hpost
+          %P %hpre2 [Hw Hdb HR] as %err ⟨HR, Hpost⟩
         · iframe
         try wp_auto
         isplitr

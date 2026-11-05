@@ -29,12 +29,14 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 `wdbLost'_wdbLost`). -/
 theorem Tx.allocate.spec_of_f (h : Tx.allocate_f.spec (GF := GF) (hG := hG)) :
     Tx.allocate.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w count hc0 hc htx hhwm hdp hlf hlr
-  iintro %Φ ⟨Hw, Hdb⟩ HΦ
+  intro K tx r m X w count P hc0 hc htx hhwm hdp hlf hlr
+  iintro %Φ ⟨Hw, Hdb, HR⟩ HΦ
   ihave Hdb := wdbW_wdbW' false K tx X.v w $$ Hdb
-  wp_apply h false K tx r m X w count hc0 hc htx hhwm hdp hlf hlr $$ [Hw Hdb] as %p %err Hres
+  wp_apply h false K tx r m X w count P hc0 hc htx hhwm hdp hlf hlr $$ [Hw Hdb HR] as %p %err
+    ⟨HR, Hres⟩
   · iframe
   iapply HΦ
+  iframe HR
   icases Hres with (⟨%he, %X', %w', %id, Hw, Hdb, %hr⟩ |
     ⟨%hne, #He, (⟨Hw, Hdb⟩ | ⟨%X', %w', Hw, Hdb, %hr⟩)⟩)
   · ileft

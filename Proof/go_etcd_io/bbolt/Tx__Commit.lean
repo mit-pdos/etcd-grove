@@ -28,7 +28,7 @@ theorem Tx.Commit.wp_proof
     Tx.Commit.spec (GF := GF) (hG := hG) := by
   intro hos tx γ T Q
   wp_start_folded as Hpre
-  wp_apply wp_Commit_err tx γ T Q $$ [Hpre] as %err ⟨Hdone, Hpost⟩
+  wp_apply wp_Commit_err tx γ T Q _ .rfl $$ [Hpre] as %err ⟨Hdone, Hpost⟩
   · iexact Hpre
   iapply HΦ
   iframe Hdone
