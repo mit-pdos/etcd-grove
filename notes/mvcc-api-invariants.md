@@ -420,3 +420,50 @@ beyond it the build is red, as strict M1 allows: e.g. `etcdserver/RestorePre.lea
    with the writer's fragment, ...), `persistent.law`'s facts as instances, `wsChanNames ι`.
 3. Pools and the backend law (§4.7, §4.9); §4.10's internal statements.
 
+## Hand-off: stage 2, the watch chain (2026-11-05)
+
+**Done** (no `sorry`, no axiom; the mvcc library builds, 389 modules; the API's interface unchanged):
+- `Api/StreamLog.lean` (pure): a stream's history `SEv` (registrations, cancels, close, sends, each
+  send with its fact: response, watcher's registry info with its filters by saved name, the
+  notified-log and compaction lower bounds, a `-1` response's covered and cancelled ids), its
+  `replay` (stream state, cancelled set, facts; a registration's stamp the number of sends before
+  it, exactly), `LogWF` (each event's premises held when appended: `stepOk`), and
+  `sentInv_of_log`/`wsRecvOk_of_log` (from `Api/SentInv.lean`'s step lemmas).
+- `Api/Ghost.lean`: `AbsNames.nl`, the notified log's monotone authority, whole in `mvccState`
+  (exclusive; the internals keep only lower bounds of it, minted at the notify update's commit,
+  when the client's `mvccState` is in hand).
+- `Api/StreamGhost.lean`: `WsAbs` (the stream's API names: `st` the store's, `ev` the history, `ns`
+  the count of client events, `rcv`/`rx` the consumer's view and its exclusive count, `ch`/`chn`
+  the channel), `logTok` (a well-formed lower bound of the history with its filters' saved names
+  and the sends' lower bounds), `mvccStateI`, `wsStateI`, `wsRecvI`, `wsSentLbI`, their
+  timelessness, persistence, exclusivity, and **`wsRecv_okI`: `wsRecv_ok.law`'s entailment as a
+  plain entailment** (the two lower bounds comparable, `mono_list_lb_valid`; the receiver's extra
+  events sends only, by the count's lower bound against the client's authority; filters by
+  `savedFilters_agree`; the bounds against the client's authorities).
+- `Api.lean`: `MvccName := StoreNames`, `WsName := api.WsAbs`, `mvccState`, `wsState`, `wsRecv`,
+  `wsSentLb`, `wsChanOf`, `wsChanNames`, `isMvccWatchStream` sealed (`@[no_expose]`) over them
+  (the internals imported non-publicly); `isMvccWatchStream` is the tie `ι.st = γ.api` and a
+  private opaque placeholder for the stream's channel part (`isMvccWatchStreamRest`, M1-REPLACE).
+- `Api/WatchLaws.lean`: `wsRecv_ok.law`, `wsSentLb_zero.law`, the watch conjuncts of
+  `persistent.law` (instances) and `excl.law`. **No frozen statement found false**: the riskiest
+  one (`wsRecv_ok.law`'s plain `⊢`, risk M1) holds over these definitions.
+
+**Left** (in order):
+1. **The channel invariant's API part** (`watchChanInv`, `InvWatchStore.lean:820`): the history's
+   authority `monoListAuthOwn ι.ev 1 ℓ` with `LogWF dec ℓ` (the senders' facts' filters by their
+   saved names: a registry element names its watcher's `savedFilters`), the sent list (`RespM`)
+   projecting to `sendsOf ℓ`, the consumer's other half of `ι.rcv`, a lower bound of `ι.ns` at
+   `nsCount ℓ`, and each send's `evTok` (`nlLb` from the store's lower bound, which
+   `watchStoreInv` keeps, minted at each notify commit; `crevAtLeast`). Every send (`notify`,
+   `syncWatchers`, `moveVictims`, `progressIfSync`, the compaction response) appends its event,
+   proving `stepOk` from today's facts (`respCov`/`covFact`/`respRev`/`respCompl`: the delivery,
+   the coverage, the cancelled set's `rsnFor`). A registration (`Watch`'s update) appends its event
+   at the exact sent count (today's `chanRegAt w n` has `n ≤ sent.length`: make it exact, opened
+   at the registration's atomic step); `Cancel`'s first check appends a cancel when the stream's
+   state changes.
+2. **`isMvccWatchStreamRest`**: the channel invariant's `inv`, `isChan ι.ch ι.chn`, today's
+   `isWatchStream`; then **`wsChan_recv.law`** from today's `watch_recv_au`/`watch_tryrecv_au_alt`
+   extended to move `ι.rcv`/`ι.rx` and mint the receiver's `logTok` and `ns` lower bound.
+3. **The `WatchStream` contracts** at `*watchStream` and `NewWatchStream` (allocating `WsAbs`),
+   then the store's side of `mvccState` (its other halves in the internals: they exist, §1).
+
