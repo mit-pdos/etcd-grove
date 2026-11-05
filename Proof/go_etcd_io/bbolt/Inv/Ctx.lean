@@ -62,8 +62,8 @@ def statsTok (r : TxReg) (m : Bool) (q : Qp) : IProp GF :=
   if m then ghostVar r.n.ex q () else ghostVar r.n.done (1 : Qp).half false
 
 /-- The writer's state but the view's cells and its mapping fields' quarter: the database's core,
-its registration, its heap `X` at `1`, its handles' fills, its handle and node registries'
-auths, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`); its meta
+its registration, its heap `X` at `1`, its handles' fills, its handle registry (auth and fragments, `hdlAuth`) and node registry's
+auth, `tx.db`'s share, the view's `viewOf`, and its statistics' token (mode `m`); its meta
 copy at a positive address (maintainer 13: `writeMeta`'s premise; `Tx.init` allocates it, and
 Go's allocation gives a positive address, `struct_wp_alloc_pos`). -/
 def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
@@ -71,7 +71,7 @@ def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
     ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
-    ghostMapAuth r.n.bk 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
+    hdlAuth r 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewOf r X.v ∗ statsTok r m 1)
 
 /-- **The writer's working state** (U0b): what a writer's internal functions run over, from its
@@ -94,7 +94,7 @@ def wtxCoreQ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) : IPro
     ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
-    ghostMapAuth r.n.bk q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
+    hdlAuth r q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ viewOf r X.v ∗ statsTok r m q)
 
 /-- **The writer's working state at fraction `q`** (U6w, "Writer reads at a fraction" of

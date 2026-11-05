@@ -113,30 +113,7 @@ theorem wtxW_keyR_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (key :
   iframe Hk
   iapply Hwb; iexact Hc
 
-/-- **The writer's handles' registry fragments** (persistent; maintainer R's U6g item 4): one per
-handle of `H`. What `Bucket.Bucket_w` gives a cached child's fragment from; `wtxCore` is to keep it
-(reported to maintainer 13), and until then a caller holds it. -/
-def hdlFrags (r : TxReg) (H : GMap Loc (GoString × Nat)) : IProp GF :=
-  iprop([∗map] b ↦ h ∈ H, b ↪[r.n.bk]□ h)
-
-instance hdlFrags_persistent (r : TxReg) (H : GMap Loc (GoString × Nat)) :
-    Persistent (hdlFrags (GF := GF) r H) := by
-  unfold hdlFrags; infer_instance
-
-/-- A handle's fragment out of `hdlFrags`. -/
-theorem hdlFrags_lookup (r : TxReg) (H : GMap Loc (GoString × Nat)) (b : Loc) (h : GoString × Nat)
-    (hb : H !! b = some h) : hdlFrags (GF := GF) r H ⊢ b ↪[r.n.bk]□ h := by
-  unfold hdlFrags
-  iintro #Hf
-  iapply (BigSepM.bigSepM_lookup (Φ := fun k u => (k ↪[r.n.bk]□ u : IProp GF)) hb) $$ Hf
-
-/-- A new handle's fragment added to `hdlFrags`. -/
-theorem hdlFrags_insert (r : TxReg) (H : GMap Loc (GoString × Nat)) (b : Loc) (h : GoString × Nat)
-    (hb : H !! b = none) : hdlFrags (GF := GF) r H ∗ b ↪[r.n.bk]□ h ⊢ hdlFrags r (H.insert b h) := by
-  unfold hdlFrags
-  iintro ⟨#Hf, #Hb⟩
-  iapply (BigSepM.bigSepM_insert (Φ := fun k u => (k ↪[r.n.bk]□ u : IProp GF)) hb).2
-  iframe #
+-- `hdlFrags`, `hdlFrags_lookup`, `hdlFrags_insert`: moved to `Inv/Tx` (U6w; `wtxCore` holds them).
 
 end wkey
 

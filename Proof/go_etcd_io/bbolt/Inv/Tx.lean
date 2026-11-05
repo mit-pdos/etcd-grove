@@ -64,6 +64,83 @@ def handleFrag (r : TxReg) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   if r.rw then iprop(b ↪[r.n.bk]□ (n, g))
   else iprop(⌜g = 0⌝)
 
+/-- **The writer's handles' registry fragments** (persistent; maintainer R's U6g item 4, moved here
+by U6w): one per handle of `H`. What `Bucket.Bucket_w` gives a cached child's fragment from. -/
+def hdlFrags (r : TxReg) (H : GMap Loc (GoString × Nat)) : IProp GF :=
+  iprop([∗map] b ↦ h ∈ H, b ↪[r.n.bk]□ h)
+
+instance hdlFrags_persistent (r : TxReg) (H : GMap Loc (GoString × Nat)) :
+    Persistent (hdlFrags (GF := GF) r H) := by
+  unfold hdlFrags; infer_instance
+
+/-- **The writer's handle registry at `q`**: its auth at `q` and every handle's fragment (the
+coordinator's decision on maintainer R's proposal, U6w: `wtxCore`, `wtxCoreQ` and `wtxFrac` hold
+it in place of the bare auth, so that a writer always has its handles' fragments). -/
+def hdlAuth (r : TxReg) (q : Qp) (H : GMap Loc (GoString × Nat)) : IProp GF :=
+  iprop(ghostMapAuth r.n.bk q H ∗ hdlFrags r H)
+
+open Iris.ProofMode in
+omit hos in
+/-- A handle's fragment out of `hdlFrags`. -/
+theorem hdlFrags_lookup (r : TxReg) (H : GMap Loc (GoString × Nat)) (b : Loc) (h : GoString × Nat)
+    (hb : H !! b = some h) : hdlFrags (GF := GF) r H ⊢ b ↪[r.n.bk]□ h := by
+  unfold hdlFrags
+  iintro #Hf
+  iapply (BigSepM.bigSepM_lookup (Φ := fun k u => (k ↪[r.n.bk]□ u : IProp GF)) hb) $$ Hf
+
+open Iris.ProofMode in
+omit hos in
+/-- A new handle's fragment added to `hdlFrags`. -/
+theorem hdlFrags_insert (r : TxReg) (H : GMap Loc (GoString × Nat)) (b : Loc) (h : GoString × Nat)
+    (hb : H !! b = none) : hdlFrags (GF := GF) r H ∗ b ↪[r.n.bk]□ h ⊢ hdlFrags r (H.insert b h) := by
+  unfold hdlFrags
+  iintro ⟨#Hf, #Hb⟩
+  iapply (BigSepM.bigSepM_insert (Φ := fun k u => (k ↪[r.n.bk]□ u : IProp GF)) hb).2
+  iframe #
+
+open Iris.ProofMode in
+omit hos in
+/-- The empty registry's fragments. -/
+theorem hdlFrags_empty (r : TxReg) : ⊢ hdlFrags (GF := GF) r ∅ := by
+  unfold hdlFrags
+  iapply BigSepM.bigSepM_empty.2
+  iempintro
+
+open Iris.ProofMode in
+omit hos in
+/-- The empty registry, with its (no) fragments. -/
+theorem hdlAuth_of_empty (r : TxReg) :
+    ghostMapAuth (GF := GF) r.n.bk 1 (∅ : GMap Loc (GoString × Nat)) ⊢ hdlAuth r 1 ∅ := by
+  unfold hdlAuth
+  iintro Ha
+  iframe Ha
+  iapply hdlFrags_empty
+
+instance hdlFrags_timeless (r : TxReg) (H : GMap Loc (GoString × Nat)) :
+    Timeless (hdlFrags (GF := GF) r H) := by
+  unfold hdlFrags; infer_instance
+
+instance hdlAuth_timeless (r : TxReg) (q : Qp) (H : GMap Loc (GoString × Nat)) :
+    Timeless (hdlAuth (GF := GF) r q H) := by
+  unfold hdlAuth; infer_instance
+
+open Iris.ProofMode in
+omit hos in
+instance hdlAuth_fractional (r : TxReg) (H : GMap Loc (GoString × Nat)) :
+    Fractional (fun q => hdlAuth (GF := GF) r q H) where
+  fractional p q := by
+    unfold hdlAuth
+    constructor
+    · iintro ⟨Ha, #Hf⟩
+      icases ((ghostMapAuth_fractional r.n.bk H).fractional p q).1 $$ Ha with ⟨H1, H2⟩
+      isplitl [H1]
+      · iframe; iframe #
+      · iframe; iframe #
+    · iintro ⟨⟨H1, #Hf⟩, ⟨H2, -⟩⟩
+      iframe #
+      iapply ((ghostMapAuth_fractional r.n.bk H).fractional p q).2
+      iframe
+
 /-- Bytes at `p` (a page, an inline page): in a page of the view `v`, or persistent heap bytes. -/
 def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
   iprop(⌜inViewLoc v p bs⌝ ∨ bytesPointsto p DFrac.discard bs)
@@ -162,7 +239,7 @@ facts (batch 43/44: ending with `wrFacts`). -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
     viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
-    ghostMapAuth r.n.bk q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
+    hdlAuth r q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗

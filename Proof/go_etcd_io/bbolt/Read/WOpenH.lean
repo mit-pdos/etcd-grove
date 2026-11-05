@@ -191,7 +191,11 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
   ihave Hh := wtxHeap_addBkt tx _ c C (name, g) hbo' hns htx $$ [Hh Hc]
   · iframe
   have hhd' : X.handles.lookup c = none := hhd
+  unfold hdlAuth
+  icases Hbk with ⟨Hbk, #Hhf⟩
   imod (ghost_map_insert_persist c (name, g) hhd') $$ Hbk with ⟨Hbk, #Hfr⟩
+  ihave #Hhf := hdlFrags_insert r X.handles c (name, g) hhd $$ [Hhf Hfr]
+  · iframe #
   imodintro
   iframe Hfr
   unfold WX.addBkt WX.setBkt
@@ -199,6 +203,7 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
   iframe
   isplitr
   · ipureintro; exact Hr
+  iframe #
   unfold fills
   iapply (BigSepM.bigSepM_insert (M := GMap Loc) hhd).2
   iframe
