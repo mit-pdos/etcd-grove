@@ -728,6 +728,66 @@ theorem stFrom_item (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key)
     right
     refine ⟨hr, by rw [hdat]; exact c.S.decode_encode _, b, hb, fun _ => by simp [hstl, hdat]⟩
 
+/-- **A state with a revision is the key's item at it** in every state of the store seen in the
+history where the key is at that mod revision (what the store's loops carry through their
+transactions, from `stFrom`). -/
+def itemAt (c : StoreCfg GF Obj) (key : GoString) (s : OState Obj) (σ : KVState) : Prop :=
+  kvWf c σ → kubernetes.modAt key σ = s.rev →
+    ∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩
+
+theorem stFrom_itemAt (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key) (s : OState Obj)
+    (hr : s.rev ≠ W64 0) :
+    stFrom c key s ⊢ □ ∀ σ, kvSeen c.γh σ -∗ ⌜itemAt c key s σ⌝ := by
+  iintro #Hf !> %σ #Hs
+  by_cases hwf : kvWf c σ
+  · ihave %H := stFrom_item c key hpk s σ hwf $$ [Hf Hs]
+    · isplitl
+      · iexact Hf
+      · iexact Hs
+    ipureintro
+    intro _ hm
+    rcases H hm with ⟨h, -⟩ | ⟨-, -, b, hb, -⟩
+    · exact absurd h hr
+    · exact ⟨b, hb⟩
+  · ipureintro
+    intro h
+    exact absurd h hwf
+
+/-- `delete_at` on the item (`itemAt`) in place of the read's key-value. -/
+theorem delete_item {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (s : OState Obj) (b : Bool) (hit : (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩)
+    (pre : Obj → Nat → Bool) (validate : Obj → Nat → Option E)
+    (hpre : pre s.o (uint.nat s.rev) = true) (hok : validate s.o (uint.nat s.rev) = none) :
+    (c.abs σ).delete key pre validate =
+      (⟨(c.abs σ).delItem key, (c.abs σ).rv + 1⟩, .obj s.o (σ.rev + 1)) := by
+  unfold KSt.delete
+  rw [hit]
+  simp only [hpre, hok]
+  rfl
+
+/-- `delStepOk` on the item (`itemAt`, from `stFrom`) in place of the read's key-value. -/
+theorem delStepOk_item {E : Type} (c : StoreCfg GF Obj) (key : GoString) (s : OState Obj)
+    (hr : s.rev ≠ W64 0) (pre : Obj → Nat → Bool) (validate : Obj → Nat → Option E)
+    (hpre : pre s.o (uint.nat s.rev) = true) (hok : validate s.o (uint.nat s.rev) = none) :
+    ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → itemAt c key s σ →
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optDelTxn key s.rev true)).1 = true →
+        kvWf c (kvOpStep (.txn (kubernetes.optDelTxn key s.rev true)) σ) ∧
+        c.abs (kvOpStep (.txn (kubernetes.optDelTxn key s.rev true)) σ) =
+          delStep key pre validate (c.abs σ)) ∧
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optDelTxn key s.rev true)).1 = false →
+        kvOpStep (.txn (kubernetes.optDelTxn key s.rev true)) σ = σ) := by
+  intro σ hwf hb hit
+  have hc := del_cases c σ hwf hb key s.rev hr
+  refine ⟨fun h => ?_, hc.1⟩
+  obtain ⟨v, hv, hm, hwf', habs, -⟩ := hc.2 h
+  refine ⟨hwf', ?_⟩
+  rw [habs]
+  unfold delStep
+  obtain ⟨b, hb'⟩ := hit hwf (by simp [kubernetes.modAt, hv, hm])
+  rw [delete_item c σ key s b hb' pre validate hpre hok]
+
 end steps
 
 end k8s

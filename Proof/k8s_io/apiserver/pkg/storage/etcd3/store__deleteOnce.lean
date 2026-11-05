@@ -70,44 +70,22 @@ theorem store.deleteOnce.wp_proof
   · iPkgInit
   ihave Hkc' := Hkc
   iStructNamed Hkc'
-  -- Stage 7b: the proof below (complete at a93fbf6a24, before the restatement) is adapted in the
-  -- Prove phase: the origin state from `stFrom` (`stFrom_item`) in place of the read at `σ0`
-  -- (`Hrd0`, `hkv0`, `hs`), the step with `pre` (`delStepOk`, `delete_at` restated).
-  sorry
-/-
-  -- what the read at σ0 tells
-  iunfold rdFacts at Hrd0
-  icases Hrd0 with ⟨%Hwf0, #Hseen0⟩
-  have hrev0 := hs.1
-  have hr : s.rev ≠ W64 0 := by
-    have hx : (linkv.absSt σ0).kv key = some (linkv.absVR kv0) := by
-      simp [linkv.absSt, linkv.absM, hkv0]
-    have h0 := (Hwf0.1.2.2.1 key _ hx).1
-    rw [hrev0]
-    intro h
-    simp only [linkv.absVR, h] at h0
-    exact absurd h0 (by decide)
-  ihave #HA : □ (∀ σ, kvSeen (GF := GF) c.γh σ -∗ ⌜sameAt key s.rev kv0 σ⌝) $$ []
-  · imodintro
-    iintro %σ #Hseen
-    ihave %h := kvSeen_same c.γh σ0 σ kv0 (mvcc.findKey_mem hkv0) $$ [Hseen0 Hseen]
-    · iframe Hseen0 Hseen
-    ipureintro
-    intro w hw hkey hm
-    exact h w hw (hkey.trans (mvcc.findKey_key hkv0).symm) (hm.trans hrev0)
+  ihave #HA : □ (∀ σ, kvSeen (GF := GF) c.γh σ -∗ ⌜itemAt c key s σ⌝) $$ [Hfrom]
+  · iapply (stFrom_itemAt c key hk s hr)
+    iexact Hfrom
   iunfold ownState at Hos
   icases Hos with ⟨%x, %m, %dsl, %Hstn, Hstp, Hobj, #Hdsl, Hm⟩
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
-  ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key validate) W Φu
+  ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key pre validate) W Φu
     (.txn (kubernetes.optDelTxn key s.rev true)) trivial
     (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
       (kubernetes.optDelTxn key s.rev true)).1)
-    (stepHand c (delStep key validate))
-    (sameAt key s.rev kv0)
-    (fun σ hw hb hA => ⟨(delStepOk c key hk kv0 s hs hr validate hval σ hw hb hA).1,
-      fun hf => ⟨(delStepOk c key hk kv0 s hs hr validate hval σ hw hb hA).2 hf,
+    (stepHand c (delStep key pre validate))
+    (itemAt c key s)
+    (fun σ hw hb hA => ⟨(delStepOk_item c key s hr pre validate hpre hval σ hw hb hA).1,
+      fun hf => ⟨(delStepOk_item c key s hr pre validate hpre hval σ hw hb hA).2 hf,
         fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
   · iframe HW HA Hau
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
@@ -130,7 +108,7 @@ theorem store.deleteOnce.wp_proof
     ihave Hfs' := Hfs
     iunfold rdFacts at Hfs'
     icases Hfs' with ⟨%Hw, #Hseen⟩
-    have Hσf : kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ sameAt key s.rev kv0 σ := ⟨Hw.1, Hw.2, HAσ⟩
+    have Hσf : kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ itemAt c key s σ := ⟨Hw.1, Hw.2, HAσ⟩
     obtain ⟨hsucc, hrevσ, hb⟩ := Hσ
     have hc := del_cases c σ Hσf.1 Hσf.2.1 key s.rev hr
     (try wp_auto)
@@ -158,7 +136,7 @@ theorem store.deleteOnce.wp_proof
       wp_apply wp_Infof
       (try wp_auto)
       wp_apply (wp_stateFrom Obj sp c (GoInterface.ok ci) resp.KV' (mvcc.findKey key σ.kvs)
-          resp.Revision' key v p hdk) $$ [] as %st' %err' Hsr
+          resp.Revision' key v p false hdk) $$ [] as %st' %err' Hsr
       · iframe #
         ipureintro; exact Hv
       (try wp_auto)
@@ -172,20 +150,27 @@ theorem store.deleteOnce.wp_proof
       iframe Hfs Hres
       unfold stAt
       rw [← hrevσ]
+      simp only [Bool.false_eq_true, ↓reduceIte]
       iexact Hsr
     · -- deleted
       have ht : (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
           (kubernetes.optDelTxn key s.rev true)).1 = true := hsucc.symm.trans hsc
       obtain ⟨w, hw, hwm, -, -, hrev1⟩ := hc.2 ht
-      have hwv : w.value = kv0.value :=
-        Hσf.2.2 w (mvcc.findKey_mem hw) (mvcc.findKey_key hw) hwm
-      have hdel := delete_at c σ key hk w kv0 hw s hs hwv hwm validate hval
+      have hmod : kubernetes.modAt key σ = s.rev := by simp [kubernetes.modAt, hw, hwm]
+      obtain ⟨b, hb'⟩ := Hσf.2.2 Hσf.1 hmod
+      have hdel := delete_item c σ key s b hb' pre validate hpre hval
+      ihave %Hi := stFrom_item c key hk s σ Hσf.1 $$ [Hfrom Hseen]
+      · iframe Hfrom Hseen
+      have hdec : c.S.decode s.data = some s.o := by
+        rcases Hi hmod with ⟨h, -⟩ | ⟨-, h, -⟩
+        · exact absurd h hr
+        · exact h
       isimp only [ht, Bool.true_or, ↓reduceIte] at Hres
       simp only [Bool.not_true]
       (try wp_auto)
       iunfold decoderOk at Hdec
       wp_apply Hdec $$ [$Hdsl] [$Hout] as %derr Hdres
-      rw [hs.2.2.1]
+      rw [hdec]
       icases Hdres with ⟨%Hderr, Hout⟩
       subst Hderr
       (try wp_auto)
@@ -211,7 +196,6 @@ theorem store.deleteOnce.wp_proof
         iexact Hdse
       iexists o0, rv0
       iexact Hout
--/
 
 end proof
 
