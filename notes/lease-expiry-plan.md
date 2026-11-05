@@ -1502,7 +1502,7 @@ gets `leaseTTLRow s` from `StartServer`'s `memberUp` (`isServerBuiltC_mid` gives
 field, `ps = [id]`).
 
 **E3 (c), decided (the user, 2026-11-05: route (A)).** Groundwork `6a515b550c` (`histOnce`,
-`everIn` and their pure laws). **Approved trusted-statement change:** the trust-boundary axiom
+`everIn` and their pure laws). **Trusted-statement change, relayed as approved by the coordinator, NOT YET MADE: it waits for the user's own confirmation** (an agent's relay is not consent for a trusted change): the trust-boundary axiom
 `lease.NewLessor.wp_proof`'s postcondition gains `lease.leaseEver γl ∅`. It is ghost-only and true of
 Go, because a fresh lessor has had no lease. It must go through the `axiom` skill before Freeze.
 Then:
