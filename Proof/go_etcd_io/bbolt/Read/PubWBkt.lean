@@ -185,7 +185,7 @@ theorem wtxWQ_reg_rw (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX
 theorem wtxWQ_child_tx (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (c : Loc)
     (C : BRec) (hb : X.t.bs !! c = some C) (hc : c ≠ X.rl) (hok : heapOK (GF := GF) tx X) :
     wtxWQ (GF := GF) K tx r m q X ⊢ wtxWQ K tx r m q X ∗ c.[Bucket, go!"tx"] ↦□ tx := by
-  have htx : C.bv.tx' = tx := hok.2.2.1 c C hb
+  have htx : C.bv.tx' = tx := (hok.2.2.1 c C hb).1
   have hne : ¬ c = C.bv.tx'.[Tx, go!"root"] := by
     rw [htx]; intro e; exact hc (e.trans hok.1.symm)
   iintro Hw
