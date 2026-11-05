@@ -1,12 +1,12 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: the
+KV's `Rev()` by `KV.Rev.contract` at the KV's type, from `shapes.law`, at the writer's read update,
+`envAus`.)
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -29,57 +29,47 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.newHeader.wp_proof
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG)) :
     apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) := by
-  have hRev := mvcc.store.Rev.spec_R hRev
-  intro E p log
-  wp_start as ⟨#Hb, Hrd, Hsw⟩
+  intro E p log c
+  wp_start as ⟨#Hb, Htt, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, -, -, -, -, #Hcl, #Hrs, -⟩
+  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, -, -, -, #Hcl, #Hrs, -⟩
   iStructNamed Hopts
   iunfold apply.isCluster at Hcl
   icases Hcl with ⟨%Hcn, -, #HID, -⟩
   iunfold apply.isRaftStatus at Hrs
   icases Hrs with ⟨%ri, %Hri, #HMem, #HLead, #HTerm⟩
   iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#HisKV, %rv, #HRV, #Hrv⟩
-  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ HisKV
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave ⟨#Hko0, #Hst⟩ := txn.isKV_kvOver _ E.s E.γ $$ HisKV
-  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
-  · rw [← Hkveq]; iexact Hko0
+  icases Hkv with #Hkv
+  icases txn.isMvcc_shape hsh opts.KV' E.γ $$ Hkv with ⟨%Hsh, -⟩
+  obtain ⟨kty, kvv, Hkveq, -, -, hRevC, -⟩ := Hsh
+  ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq]; imodintro; iexact Hkv
+  icases Hkv' with #Hkv'
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨-, #HauR, -⟩
+  ihave Hau := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hsw []
+  · iintro Hsw; iexact Hsw
+  iunfold srvApi.auRead at Hau
+  ihave #Hmi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
   wp_auto
   wp_apply HID as %cid -
   rw [Hri]
   wp_auto
   wp_apply HMem as %mid -
   rw [Hkveq]
-  wp_auto
-  iunfold txn.kvWriter at Hsw
-  icases Hsw with ⟨Hsw, Hwl⟩
-  iunfold txn.soleWriter at Hsw
-  icases Hsw with ⟨#Hcert, Htoks, %Hl2⟩
-  wp_bind (App (Val #(methods kty _ kvv)) _)
-  iapply mvcc.kvOver_rev_wp kty kvv E.s
-  iframe Hko
-  wp_apply (hRev E.s rv E.γ (txn.soleBudget log) log) $$ [$Hrd $Htoks]
-    as %v ⟨Hrd, Htoks, -⟩
-  · iframe #
+  simp only [interface.mkOk]
+  wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hau] as %v ⟨Htt, %σ, ⟨-, Hsw⟩, -⟩
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
   irename «$r0» => Hh
   generalize «$r0_ptr» = h at *
   iapply HΦ
-  iframe Hrd
-  isplitl [Htoks Hwl]
-  · iunfold txn.kvWriter
-    iframe Hwl
-    iunfold txn.soleWriter
-    iframe Htoks
-    iframe #
-    ipureintro; exact Hl2
+  iframe Htt Hsw
   iapply typedPointsto_not_null $$ Hh
 
 end proof

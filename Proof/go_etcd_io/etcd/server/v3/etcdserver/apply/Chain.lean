@@ -451,7 +451,9 @@ def leasesLive (γ : MvccName) (s : List EtcdKv) : IProp GF :=
   iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf s))
 
 /-- **The builders the chain uses** (persistent; in `backendOptsOk`'s KV clause; the draft's
-`envAus`): `kvAus.law`'s apply-thread conjuncts at `E.Nx`/`E.Cp`. -/
+`envAus`): `kvAus.law`'s apply-thread conjuncts at `E.Nx`/`E.Cp`, and (strict M1, 2026-11-05, the
+migration's choice: the KV methods' floor `floorOkO`, which the sole writer's pin gave until M1)
+the writer's floor: its log extends every floor `kvLogLb E.γs F` (`KVStoreCore.writer_floor`). -/
 def envAus (E : AEnv GF) : IProp GF :=
   iprop(□ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
         auBegin E.γ (stAt log c) X) ∗
@@ -463,7 +465,8 @@ def envAus (E : AEnv GF) : IProp GF :=
         E.Cp (sint.Z rev) -∗ auCompact E.γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
           wSt E.γs log (cmpRevAfter c rev) ∗ crOwn E.γs (cmpRevAfter c rev)))) ∗
     □ (∀ log c, wSt E.γs log c ={⊤}=∗ wSt E.γs log c ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
-        ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝))
+        ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝) ∗
+    □ (∀ log c F, wSt E.γs log c -∗ kvLogLb E.γs F ={⊤}=∗ wSt E.γs log c ∗ ⌜F <+: log⌝))
 
 instance envAus_persistent (E : AEnv GF) : Persistent (envAus E) := by
   unfold envAus; infer_instance

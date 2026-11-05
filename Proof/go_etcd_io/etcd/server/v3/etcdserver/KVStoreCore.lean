@@ -554,6 +554,35 @@ theorem writer_facts (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
   iframe Hrc
   ipureintro; exact ⟨Hf.1, Hf.2.1⟩
 
+/-- **The writer's log extends every floor** (strict M1, 2026-11-05: the chain's KV methods' floor
+`floorOkO`, `envAus`'s last conjunct): the writer's half is the invariant's state, whose committed
+log is the authority of every floor `kvLogLb γs F`. -/
+theorem writer_floor (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
+    (γs : KVSNames) (log : mvcc.Log) (c : Int) (F : mvcc.Log) :
+    kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
+      wSt γs log c -∗ kvLogLb γs F ={⊤}=∗ wSt γs log c ∗ ⌜F <+: log⌝ := by
+  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
+  iintro #Hk Hw #HF
+  iunfold kvStoreInvG at Hk
+  icases Hk with ⟨#Hm, #Hinv⟩
+  iunfold wSt at Hw
+  icases Hw with ⟨Hw1, Hw2⟩
+  iinv Hinv with ⟨%σ, >Hs, >Hst, >Hcr, >Hsl, >Hnl, >#Hnx1, >#Hnx2, >#Hrc, >#Hco⟩ Hclose
+  icombine Hst Hw1 gives %H1
+  iunfold kvLogLb at HF
+  ihave %HL0 := mono_list_auth_lb_valid γs.slog 1 σ.log F $$ Hsl HF
+  imod Hclose $$ [Hs Hst Hcr Hsl Hnl] with -
+  · inext
+    iexists σ
+    iframe Hs Hst Hcr Hsl Hnl Hnx1 Hnx2 Hrc Hco
+  imodintro
+  iunfold wSt
+  iframe Hw1 Hw2
+  ipureintro
+  have hl : σ.log = log := (Prod.mk.inj H1.2).1
+  rw [← hl]; exact HL0.2
+
 /-- **A write's end** (`auEnd`'s two nested updates), from the writer's half and the committed
 log's witness: the notify step moves the pending revision's halves and the notified log (its
 receipt mvcc's), the commit step the committed log's. -/

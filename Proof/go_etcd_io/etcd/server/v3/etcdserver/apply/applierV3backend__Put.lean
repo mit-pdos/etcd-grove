@@ -1,5 +1,8 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
+txn's restated `Put.spec`, its updates built by the server's builders, `envAus`: the begin at the
+writer's state, the end of the put's change with its witness, `KVBuild.lean`; the floor by
+`envAus`'s writer floor.)
 -/
 module
 
@@ -7,6 +10,9 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVBuild
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
@@ -20,6 +26,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+open mvcc.api (MvccState)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -28,109 +35,213 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
+/-- A put's pending changes at the writer's state: none (the key missing for an ignore flag), else
+its one change. -/
+theorem apply.putPend_cases (o : OpFull) (log : mvcc.Log) (c : Int) :
+    (txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧
+        txn.putPend o (srvApi.stAt log c) = []) ∨
+      ((txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome) ∧
+        txn.putPend o (srvApi.stAt log c) =
+          [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]) := by
+  unfold txn.putPend
+  simp only [srvApi.stAt]
+  by_cases h : txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none
+  · left; exact ⟨h.1, h.2, by simp [h]⟩
+  · right
+    refine ⟨fun hn => ?_, by simp [h]⟩
+    cases hf : mvcc.findKey o.key (mvcc.stateAfter log) with
+    | none => exact absurd ⟨hn, hf⟩ h
+    | some _ => rfl
+
 theorem apply.applierV3backend.Put.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hPut : txn.Put.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Put.spec (GF := GF) (hG := hG) := by
   intro E p r rq o log F Pre Q Post info
-  wp_start as ⟨#Hb, Hpre, #HF⟩
+  wp_start as ⟨#Hb, Hpre, #HF, Htt⟩
   iunfold apply.putPre at Hpre
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
   iunfold apply.mPre at Hpre
-  iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
+  icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
-  icases txn.kvWriter_len _ _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
-  iunfold apply.backendIs at Hb
-  icases Hb with ⟨%opts, #Hopts, #Hok⟩
+  ihave #Hb' := Hb
+  iunfold apply.backendIs at Hb'
+  icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, #Hkv, #Hhook, #Hle, -⟩
+  icases Hok with ⟨%Hlg, #Hkv, -, #Haus, #Hle, -⟩
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, #Hfloor⟩
+  iunfold apply.isApplyKV at Hkv
+  icases Hkv with #Hkv
+  iunfold apply.isApplyLessor at Hle
+  icases Hle with ⟨#Hle, -⟩
+  -- the writer's facts: its floor, its log's witness and reachability
+  imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
+  imod Hfacts $$ %log %c Hw with ⟨Hw, Hnx0, -, %Hreach⟩
+  have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
+  have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
+  -- the witness of the log the put commits
+  ihave Hnx : E.Nx (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c))) $$ [Hnx0]
+  · rcases apply.putPend_cases o log c with ⟨-, -, hp⟩ | ⟨hn, hp⟩
+    · rw [hp]; unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
+    · rw [hp]
+      unfold mvcc.commitLog
+      simp only [reduceCtorEq, ↓reduceIte]
+      iapply (apply.certPre_backend_applied E rq log _ false ?_) $$ Hcp
+      unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr ⟨hn, rfl⟩)⟩
+  ihave #Hlok := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
+  -- the put's updates (only for a live lease; else the writer's half kept)
+  ihave Hif : iprop((if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then
+        txn.putAU E.γ o L (mvcc.leaseItemsOf (mvcc.stateAfter log))
+          (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
+            srvApi.wSt E.γs (mvcc.commitLog log (txn.putPend o σ)) c))
+      else iprop(True)) ∗
+      (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then iprop(True)
+       else srvApi.wSt E.γs log c)) $$ [Hw Hnx]
+  · by_cases hl : o.leaseID = W64 0 ∨ o.leaseID ∈ L
+    · simp only [hl, decide_true, ↓reduceIte]
+      isplitl [Hw Hnx]; rotate_left
+      · itrivial
+      unfold txn.putAU
+      iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
+      iapply HauB $$ %log %c %_ Hw
+      iintro Hw
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · cases hig : o.ignoreLease
+        · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+        · simp only [↓reduceIte]
+          simp only [srvApi.stAt]
+          iapply Hlok; ipureintro; first | exact hig | trivial | rfl
+      iapply apply.commitAU_of_auEnd
+      ihave He := HauE $$ %log %c %_ Hw Hnx
+      iapply apply.auEnd_wand $$ He
+      iintro HY
+      isplitr
+      · ipureintro; rfl
+      iexact HY
+    · simp only [hl, decide_false, Bool.false_eq_true, ↓reduceIte]
+      isplitr
+      · itrivial
+      iexact Hw
+  icases Hif with ⟨Hau, Hw0⟩
+  ihave Hkb : txn.kvBackend E.γ 1 B (E.Pk B) E.f $$ [Hbk Hhk]
+  · iunfold txn.kvBackend; iframe Hbk Hhk
+  ihave Hcs : txn.csA (E.Pk B) E.f Pre Q Post $$ [Hcs]
+  · iunfold srvApi.csContractA at Hcs; iunfold txn.csA; iexact Hcs
   iStructNamed Hopts
   wp_auto
   wp_apply hTODO
-  iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, -⟩
-  iunfold apply.isApplyLessor at Hle
-  icases Hle with ⟨#Hle, -⟩
-  have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
-  ihave #Hcok : iprop(□ (⌜txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome⌝ -∗
-      mvcc.certOk E.γ (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]))) $$ []
-  · imodintro
-    iintro %hn
-    iapply (apply.certPre_backend_applied E rq log
-      (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false
-      (by unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)) $$ Hcp
-  ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
-  wp_apply (txn.put_soleWriter_floor hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f L none false hlen F) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
-    as %resp %trace %err ⟨Hrd, %Htr, Htrc, -, Hout⟩
-  · iframe #
-    isplitr
+  wp_apply (hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV' E.γ r o 1 B (E.Pk B)
+      Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _)
+      $$ [$Hkv $Htt $Hle $Hu $Hr $Hkb $Hcs $Hau]
+    as %resp %trace %err ⟨Htt, Hkb, %Htrn, ⟨%te', Htrc⟩, -, Hout⟩
+  · isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo
     simp only [traceutil.ownTraceOpt]; itrivial
+  iunfold txn.kvBackend at Hkb
+  icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ
+  iframe Htt
   isplitr [Htrc]
   rotate_left
-  · iunfold apply.traceRes; iright; iexact Htrc
+  · iunfold apply.traceRes; iright; iexists te'; iexact Htrc
   iapply apply.kvPostF_backend
   obtain ⟨hput, hk, -⟩ := Hrq
-  icases Hout with (⟨%Hn, #He, Hsw, HPre, Hu⟩ | ⟨%Hn, #He, Hsw, HPost, Hu⟩ |
-    ⟨%Herr, #Hresp, Hhdr, Hsw, #Hlok, HPost, Hu, -⟩)
-  · -- the lease not found
+  icases Hout with (⟨⟨%Hnl, %Hnin, %Hrn⟩, #He, HPre, Hu⟩ |
+    ⟨%σ₀, -, HPost, ⟨%Hσ, Hw'⟩, Hcase⟩)
+  · -- the lease not found: nothing written, the writer's half kept
+    have hd : ¬ (o.leaseID = W64 0 ∨ o.leaseID ∈ L) := fun h => h.elim Hnl Hnin
+    simp only [hd, decide_false, Bool.false_eq_true, ↓reduceIte] at *
     iexists (.rejected .backend)
     isplitr
     · ipureintro
       unfold apply.chainStep apply.backendStep
       rw [hk]
-      exact ⟨⟨o, hput, Or.inl ⟨Hn.1, rfl⟩⟩, fun _ _ h => by cases h⟩
+      exact ⟨⟨o, hput, Or.inl ⟨Hnl, rfl⟩⟩, fun _ _ h => by cases h⟩
     simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres
     isplitl []
     · isplitl []
-      · ipureintro; exact Hn.2.2
+      · ipureintro; exact Hrn
       ileft; iexact He
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+    isplitl [Hw0 Hbk Hhk Htie Hu Hard]
+    · iapply (apply.kvOwn_of_split E log B c)
+      iframe Hw0 Htie
+      iunfold apply.kvRest
+      iframe Hbk Hhk Hard
+      iunfold apply.leasesLive; iexists L; iframe Hknown Hu
     iright; iexact HPre
-  · -- the previous key-value missing
-    iexists (.rejected .backend)
-    isplitr
-    · ipureintro
-      unfold apply.chainStep apply.backendStep
-      rw [hk]
-      exact ⟨⟨o, hput, Or.inr (Or.inl ⟨Hn.1, Hn.2.1, rfl⟩)⟩, fun _ _ h => by cases h⟩
-    simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-    iframe Hres
-    isplitl []
-    · isplitl []
-      · ipureintro; exact Hn.2.2
-      iright; iexact He
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
-    ileft; iexact HPost
-  · -- the put committed
-    iexists (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
-    isplitr
-    · ipureintro
-      unfold apply.chainStep apply.backendStep
-      rw [hk]
-      exact ⟨⟨o, hput, Or.inr (Or.inr ⟨Herr.2.2, rfl⟩)⟩, fun _ _ _ => Herr.2.1⟩
-    simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, Bool.false_eq_true,
-      ↓reduceIte, apply.appliedHdr]
-    iframe Hres Hresp Hhdr
-    isplitl []
-    · ipureintro; exact ⟨Herr.1, Hl2, hlen⟩
-    isplitl [Hrd Hsw Hu Hard]
-    · iunfold apply.kvOwn
-      iframe Hrd Hsw Hard
-      iunfold apply.leasesLive
-      iexists L
-      iframe Hu
-      iapply apply.leasesKnown_putChange
-      iframe #
-    ileft; iexact HPost
+  · subst Hσ
+    rcases apply.putPend_cases o log c with ⟨hn, hf, hp⟩ | ⟨hn, hp⟩
+    · -- the key missing: nothing written
+      have hcl : mvcc.commitLog log (txn.putPend o (srvApi.stAt log c)) = log := by
+        rw [hp]; unfold mvcc.commitLog; simp
+      rw [hcl]
+      icases Hcase with (⟨⟨-, -, %Hrn⟩, #He, Hu⟩ | ⟨⟨-, %Hnps⟩, -⟩)
+      · iexists (.rejected .backend)
+        isplitr
+        · ipureintro
+          unfold apply.chainStep apply.backendStep
+          rw [hk]
+          exact ⟨⟨o, hput, Or.inr (Or.inl ⟨hn, hf, rfl⟩)⟩, fun _ _ h => by cases h⟩
+        simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+        iframe Hres
+        isplitl []
+        · isplitl []
+          · ipureintro; exact Hrn
+          iright; iexact He
+        isplitl [Hw' Hbk Hhk Htie Hu Hard]
+        · iapply (apply.kvOwn_of_split E log B c)
+          iframe Hw' Htie
+          iunfold apply.kvRest
+          iframe Hbk Hhk Hard
+          iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+        ileft; iexact HPost
+      · exfalso
+        have := Hnps hn
+        simp only [srvApi.stAt] at this
+        rw [hf] at this; simp at this
+    · -- the put committed
+      have hcl : mvcc.commitLog log (txn.putPend o (srvApi.stAt log c)) =
+          log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]] := by
+        rw [hp]; unfold mvcc.commitLog; simp
+      rw [hcl]
+      icases Hcase with (⟨⟨%Hnp, %Hfk, -⟩, -⟩ | ⟨⟨%Herr, -⟩, #Hresp, Hhdr, #Hlok', Hu⟩)
+      · exfalso
+        have := hn Hnp
+        simp only [srvApi.stAt] at Hfk
+        rw [Hfk] at this; simp at this
+      iexists (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
+      isplitr
+      · ipureintro
+        unfold apply.chainStep apply.backendStep
+        rw [hk]
+        exact ⟨⟨o, hput, Or.inr (Or.inr ⟨hn, rfl⟩)⟩, fun _ _ _ => HFl⟩
+      simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
+        Bool.false_eq_true, ↓reduceIte, apply.appliedHdr, srvApi.stAt]
+      iframe Hres Hresp Hhdr
+      isplitl []
+      · ipureintro; exact ⟨Herr, h2, hlen⟩
+      isplitl [Hw' Hbk Hhk Htie Hu Hard]
+      · iapply (apply.kvOwn_of_split E _ B c)
+        iframe Hw' Htie
+        iunfold apply.kvRest
+        iframe Hbk Hhk Hard
+        iunfold apply.leasesLive
+        iexists L
+        isplitr [Hu]
+        · iapply apply.leasesKnown_putChange
+          iframe #
+        rw [txn.stateAfter_snoc]
+        simp only [srvApi.stAt] at hp
+        rw [hp]
+        iexact Hu
+      ileft; iexact HPost
 
 end proof
 
