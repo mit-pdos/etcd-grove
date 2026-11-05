@@ -10,7 +10,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktSpec
 public import Proof.go_etcd_io.bbolt.Spill.STreeMono
-public import Proof.go_etcd_io.bbolt.Spill.TreeDataSpill
+public import Proof.go_etcd_io.bbolt.Model.LTree
 
 @[expose] public section
 

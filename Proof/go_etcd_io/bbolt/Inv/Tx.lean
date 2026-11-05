@@ -995,13 +995,42 @@ instance boltCurDef_timeless (B : BNs) (tx c : Loc) (T : TxView) (es : List Bolt
 
 -- `txBytesDef_acc`: proved in `Read/TxBytes` (U6w; it needs the view's cells' accessors).
 
+open Iris.ProofMode in
+/-- **A writer's bucket's `FillPercent`** (`Api.lean`'s `boltTx_fill`): the handle's registry
+fragment against `hdlAuth` puts it in `X.handles`, so its points-to is in `fills`, given back with
+any non-NaN value. -/
 theorem boltTxDef_fill (B : BNs) (N : Namespace) (tx b : Loc) (T : TxView) (n : GoString)
     (g : Nat) (hrw : T.rw = true) :
     boltTxDef (GF := GF) B N tx 1 T ∗ boltBktDef B tx b n g ⊢
       ∃ f : w64, b.[Bucket, go!"FillPercent"] ↦ f ∗
         (∀ f' : w64, ⌜¬ float64IsNaN f'⌝ -∗ b.[Bucket, go!"FillPercent"] ↦ f' -∗
           boltTxDef B N tx 1 T) := by
-  sorry
+  unfold boltTxDef boltBktDef reg
+  simp only [hrw, ↓reduceIte]
+  iintro ⟨⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, #Hreg, Hb, Hv, Hex, Hw⟩,
+    ⟨%r', #Hreg', -, Hh', -⟩⟩
+  icombine Hreg Hreg' gives %hr
+  obtain ⟨-, rfl⟩ := hr
+  unfold handleFrag
+  rw [if_pos Hc.2.2]
+  unfold wtxFrac hdlAuth
+  icases Hw with ⟨Hheap, Hfills, Hcells, Hst, ⟨Hbk, #Hf⟩, Hrest⟩
+  ihave %Hl := ghost_map_lookup $$ Hbk Hh'
+  unfold fills
+  icases (BigSepM.bigSepM_lookup_acc Hl).1 $$ Hfills with ⟨⟨%f, %Hnan, Hfp⟩, Hfb⟩
+  iexists f
+  iframe Hfp
+  iintro %f' %Hnan' Hfp
+  iexists db, p, sp, t0, r, c, X
+  isplitr
+  · ipureintro; exact Hc
+  isplitr
+  · iexact Hreg
+  iframe Hb Hv Hex Hheap Hcells Hst Hbk Hrest
+  isplitl [Hfb Hfp]
+  · iapply Hfb
+    iexists f'; iframe Hfp; ipureintro; exact Hnan'
+  iexact Hf
 
 /-- **A reader's `boltTx` is its `rdTx` with a pool loan, and the database** (design §3.13):
 the public reader triples are corollaries of the internal ones over `rdTx`. -/

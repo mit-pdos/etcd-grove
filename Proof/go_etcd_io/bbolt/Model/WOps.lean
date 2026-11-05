@@ -464,27 +464,6 @@ theorem flView_cover (X : WX) (fl : FLPg) (h : flView X fl) :
   · exact Or.inr hp
   · exact Or.inl ((h.1 s hs).2 hp)
 
-/-- **`node.free`'s `canFree`, from `flView`** (U8b): a live node read from a base page (covered by
-the logical tree, so not pending; a view slot, so not free; allocated before the view, so not by
-the writer; the ids distinct below `2^62`, so fewer than `2^62`). -/
-theorem flView_canFree (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl) (hvw : viewWF X.v)
-    (bl n : Loc) (B : BRec) (r : NRec) (pg : List w8) (hB : X.t.bs !! bl = some B)
-    (hr : B.ns !! n = some r) (hl : n ∈ X.live) (hp0 : r.nv.pgid' ≠ W64 0)
-    (hpg : X.v.pages !! r.nv.pgid'.toNat = some pg) (htx : X.v.txid < txid.toNat) :
-    fl.canFree txid r.nv.pgid' (1 + pageOverflow pg) := by
-  sorry
-
-/-- **`flView` through `node.free`** (U8b: the node's page leaves the logical tree's cover and
-becomes pending for the writer). -/
-theorem flView_nodeFree (X : WX) (fl : FLPg) (txid : w64) (bl n : Loc) (B : BRec) (r : NRec)
-    (pg : List w8) (hv : flView X fl) (hvw : viewWF X.v) (hu : covU X) (hB : X.t.bs !! bl = some B)
-    (hr : B.ns !! n = some r) (hp0 : r.nv.pgid' ≠ W64 0)
-    (hpg : X.v.pages !! r.nv.pgid'.toNat = some pg)
-    (hcan : fl.canFree txid r.nv.pgid' (1 + pageOverflow pg)) (htx : X.v.txid < txid.toNat) :
-    flView (X.setNode bl n { r with nv := { r.nv with pgid' := W64 0 } })
-      (fl.freePages txid r.nv.pgid' (1 + pageOverflow pg)) := by
-  sorry
-
 /-! ## Reachability and dereference (the coverage contract) -/
 
 /-- The buckets the code reaches from the root bucket through the `buckets` caches. -/

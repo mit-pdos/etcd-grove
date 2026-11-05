@@ -11,7 +11,7 @@ public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailPureAlloc
 public import Proof.go_etcd_io.bbolt.Spill.AllocDeref
 public import Proof.go_etcd_io.bbolt.Spill.StepComp
 public import Proof.go_etcd_io.bbolt.Spill.SlotInv
-public import Proof.go_etcd_io.bbolt.Spill.TreeDataSpill
+public import Proof.go_etcd_io.bbolt.Model.LTree
 public import Proof.go_etcd_io.bbolt.Spill.STreeBuild
 public import Proof.go_etcd_io.bbolt.Spill.PcStepG
 
