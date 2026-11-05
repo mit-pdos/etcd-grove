@@ -26,6 +26,8 @@ mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
   imports only mvcc's `ApiState`. And `covers_eq_inRangeM` (proved): the range `Watch`
   registers (`watchRangeOf`, its affine `covers`, through which `wsRecvOk` selects a watcher's
   events) is the tester's `inRange` for non-empty keys.
+- `rng.genKey` (a fresh byte slice of a key of `keyList`) and `rng.genEnd` (`nil`, `[]byte{}`, an
+  extra end or a key; its contents `[]` when `nil`): specs and proofs (2026-11-06).
 - `checkRange` (2026-11-06): spec and proof, no `sorry`. **Every check of a range read is proved
   from `Txn.Range.contract`'s outcome** (at compaction revision `-1`, `res ≠ null`), the
   `errVars.law` (G2's fix) for `err == ErrFutureRev`, and `txn.LogOk` of the read log: the future
@@ -183,7 +185,7 @@ stub cluster and the split `run`: `run(cfg)` does not panic but at `backend.New`
 
 ## Left
 
-- `checkRange`'s proof (above); the specs and proofs of the rest: `rng.genKey`/`genEnd`/`genRange`,
+- The specs and proofs of the rest: `rng.genRange`,
   `copyState`, `pending.put`/`del`, `history.*`, `writer.*` (the write paths over `KV.Write`,
   `Txn.*`, `Txn.End`; the hook's triple for `hookRun`), `reader`, `watchCheck.*` (`receive` over
   `wsChan_recv.law` and `wsRecv_ok.law`), `itoa`, `Run`, `Main`.
