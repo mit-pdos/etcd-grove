@@ -73,6 +73,14 @@ every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then pro
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*Go first* (2026-11-05, the user's): a stage that changes a top-level program's traffic or its
+model writes the Go side before any Lean statement: the driver's new traffic, the Go copy of the
+model, their tests, and a statistics test that reaches every new outcome (each new error, each new
+path), run against the real code. Draft then writes Lean against Go that is known to run. The
+evidence: phase 7b's driver and stats test (2026-11-05) found the store's cached no-op bug
+(`k8s-etcd3-cached-noop-skips-preconditions`, in `issues/` with branch `k8s-etcd3-7b`) in minutes, before any statement existed;
+found in Prove, it would have been an unprovable frozen statement.
+
 *Invariants written in full* (2026-11-04, the user's): each new or changed invariant's body, not only
 its name, with its ownership (who allocates it, who opens it, which ghost state it holds and who holds
 the other halves) and the laws its clients use. Nothing before Probe checks an invariant's strength
@@ -116,6 +124,12 @@ boundary") is ranked in the same two tiers, judged by the `spec` skill's princip
 (`PRINCIPLES.md`: TaDa, not HoCAP, the client keeping its own invariant; a bound reasoned about where
 it is owned; a new mode redefining the shared predicates in place; laws, not unfolds; a hub naming it
 through a sealed slot), and against the Go code it mirrors.
+
+*Parallel reviewers* (2026-11-05, the user's): a round may review independent targets with one fresh
+reviewer each, at the same time, when the targets share no hub statement (`notes/spec-first-plan.md`,
+"Hubs") and no sealed slot; a hub statement and every slot in it always go to one reviewer, who sees
+both sides of each slot. Rounds are cheap next to the user's decisions and the builds, so this is an
+option for a large stage, not a rule.
 
 *Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
 repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
