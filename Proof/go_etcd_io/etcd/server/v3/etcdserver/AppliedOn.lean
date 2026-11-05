@@ -72,13 +72,6 @@ theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (
     · obtain ⟨A', h1, h2, h3⟩ := Hm k L' hk
       exact ⟨A', h1.trans h, h2, h3⟩
 
-/-- The applied logs of `kvLogsPubM` (E3u). -/
-theorem kvLogsPubM_ok (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
-    (a : w64) : kvLogsPubM (GF := GF) on E γr M a ⊢ kvLogsOkM on γr M := by
-  iintro H
-  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨H, -⟩
-  iexact H
-
 /-- `kvLogsOkM_insert` under `kvLogsPubM` (E3u; the current applied index unchanged). -/
 theorem kvLogsPubM_insert (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
     (a v : w64) (L : mvcc.Log) :
@@ -148,36 +141,6 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   isplitr
   · iunfold appliedLogAt; iexact HLv'
   ipureintro; exact hv
-
-/-- **An applied log is the mode's KV model of the committed raft log through its index**
-(`appliedLogAt_kvLogAt`'s counterpart). -/
-theorem appliedLogAt_kvLogAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
-    (i : w64) (L1 : mvcc.Log) :
-    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ appliedLogAt γr i L1 ={⊤}=∗ kvLogAtM on γr i L1 := by
-  iintro #Hinv #H1
-  iunfold srvAppliedInvM at Hinv
-  iinv Hinv with Hi Hclose
-  iunfold srvAppliedBodyM at Hi
-  icases Hi with ⟨%vat, %v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
-  ihave %Hm1 : iprop(⌜M.lookup i = some L1⌝) $$ [HM]
-  · iunfold appliedLogAt at H1
-    iapply ghost_map_lookup $$ HM H1
-  imod Hclose $$ [Hat Hauth HM Hp] with -
-  · inext
-    iunfold srvAppliedBodyM
-    iexists vat, v, L, M, p
-    iframe Hat Hauth HM Hp HL Hc Hkl
-    ipureintro; exact HMk
-  imodintro
-  ihave #Hkl := kvLogsPubM_ok on E γr M v $$ Hkl
-  iunfold kvLogsOkM at Hkl
-  icases Hkl with ⟨%Lb, #Hlb, %Hm⟩
-  obtain ⟨A, hA, h1, h2⟩ := Hm i L1 Hm1
-  iunfold kvLogAtM
-  iexists A
-  isplitr
-  · iapply srvRLogLb_mono γr.raft A Lb hA $$ Hlb
-  ipureintro; exact ⟨h1, h2⟩
 
 end applied
 

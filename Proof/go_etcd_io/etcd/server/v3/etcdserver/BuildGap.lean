@@ -253,7 +253,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
 /-- **`start`'s construction premise from `NewServer`'s built part and the residual**
 (`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts
 completed with its own (the uber-applier's field and contracts into `#Hfb` and `Happ`, `srv.kv`
-and its read view and `storeSmall` into `#Hrdb`), and the residual's snapshot contract. -/
+and its store handle into `#Hrdb`), and the residual's snapshot contract. -/
 theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
@@ -263,7 +263,7 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
       #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
-      ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
+      ⟨%kv, #Hkv, #HisKV, %HkvE⟩, HWB, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci Hmid HmetaSnap
   iframe Hloop Hsend Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
@@ -275,9 +275,10 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     iframe Hfb
   isplitr
   · unfold srvReadBuiltNK
-    iexists { vr with kv := kv, rv := rv }
+    iexists { vr with kv := kv }
     unfold srvReadBuilt
-    iframe Hkv HisKV Hrv HisRV Hsmall Hrdb
+    iframe Hkv HisKV Hrdb
+    ipureintro; exact HkvE
   isplitr
   · ipureintro; exact HEr
   isplitr

@@ -29,6 +29,14 @@ Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the meta reads of ev
 J8a-4).
 
 The stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`),
+(Strict M1, 2026-11-06.) Over mvcc's API: a backend is a `BkRef` (`d.γB`, `d.P`, `d.b`), the
+stores' contracts at the backend tie `srvBkTie d` and the batch lock's invariant `Pk` of every
+backend of the epoch (`fun _ => Pk`) in place of the store's names `γ` with `γ.kb = some d`; the
+backend's compaction mode and the store's watch flag gone (the API's backend always compacts, its
+store has one form), the KV a store handle (`□ isMvcc kv E.γ`), the lessor at the store's lessor
+names (`mvccLeases E.γ`); the KV's closer (`srvKVCloser`, `srvKVCloserW`) deleted: what `Restore`
+takes of the store, mvcc's open token `mvccOpen`, is the apply thread's (`apply.cmpOwn`).
+
 `memberDirIs`, `srvMembersDir` and `lessorLookupOk` moved here from `InvBoot.lean` and
 `SnapApplyDefs.lean` (J1a), unchanged (`memberDirIs` and `srvMembersDir` moved on to
 `InvApRes.lean`, 2026-11-01, for `ccMembRes`); `authRecoverOk` is S8d's `srvAuthRecoverOk`, renamed.
@@ -58,6 +66,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+open mvcc.api (BkRef isMvcc mvccLeases)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -77,10 +86,10 @@ stays true when `Recover` moves the store to another backend (the old user's hal
 one names the new backend; until S7c the contract was for `NewAlarmStore`'s backend only, false
 once `Recover` runs). -/
 def alarmApplyOk (a : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.be) -∗
-    apply.isAlarmStore a γ Pk #f RW)
+  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.b) -∗
+    apply.isAlarmStore a (fun _ => Pk) f (srvBkTie d) RW)
 
 instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
   unfold alarmApplyOk; infer_instance
@@ -90,19 +99,19 @@ instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF)
 the store's verdicts in the mode `M`; the real store in the mode `on γa` meets it (`authApplyOkM_on`,
 `AuthApplyOn.lean`; its admin clauses vacuous there, `apply.adminAdmitted`). -/
 def authApplyOkM (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD M RW)
+  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.b) -∗
+    apply.isAuthStore (auth.authIface stl) (fun _ => Pk) f (srvBkTie d) RD M RW)
 
 /-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
 `auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
 `alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
 def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
-    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD .off RW)
+  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.b) -∗
+    apply.isAuthStore (auth.authIface stl) (fun _ => Pk) f (srvBkTie d) RD .off RW)
 
 theorem authApplyOk_eq (stl : Loc) (RD : IProp GF) :
     authApplyOk (GF := GF) stl RD = authApplyOkM .off stl RD := rfl
@@ -121,10 +130,10 @@ whole client half `backend.rbOwn`), given back with the record put (leases T3, L
 until then the write right lent the half, `srvRestRW`, and the put's effect was not stated; the
 real backend's `LockInsideApply` does not need it, its `UnsafePut` does). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    rwLens RW (lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
+  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+    rwLens RW (lease.lessorBeOn lp d.b) -∗
+    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (apply.bkRT d)
       (backend.rbPart d.γB (· = go!"lease")))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
@@ -165,19 +174,20 @@ theorem lease_not_clusterBkts : ¬ membership.clusterBkts mvcc.leaseName := by
 /-- **The server's rest resource lends the lessor's revocation its buckets** (the lease-revoke
 plan, 2026-10-31; `apply.isApplyLessor_of_lessorInv`'s lens): at the store's real backend `d` (its
 parameters naming the `Lease` bucket, tracked, with no hook keys: `leaseParams`, a boot fact), the
-`Lease` bucket's part as the store's right `storeRb` and the lessor's half of `le.b`, given back at
+`Lease` bucket's part (`rbPart`, with the parameters' `leaseParams`: what `lessor.Revoke.spec` takes;
+strict M1, 2026-11-06: until then mvcc's `storeRb`, the same) and the lessor's half of `le.b`, given back at
 any buckets agreeing with the model's off `lease`. (2026-11-02, the backend-auth-split stage: the
 part of `Lease`, split off `srvRestOwn`'s part of the non-cluster buckets; until then the whole
 client half, given back at any buckets.) -/
 theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-    (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
-    (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
-    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
-      ∃ d' : mvcc.KBReal, ⌜γ.kb = some d'⌝ ∗ mvcc.storeRb γ rs.bk ∗ lease.lessorBeOn lp d'.be ∗
+    (d : BkRef) (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
+    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.b) rs -∗
+      backend.rbPart d.γB (· = mvcc.leaseName) rs.bk ∗ ⌜mvcc.leaseParams d.P⌝ ∗
+        lease.lessorBeOn lp d.b ∗
         (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
           ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
-          mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d'.be -∗
-          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
+          backend.rbPart d.γB (· = mvcc.leaseName) bk ∗ lease.lessorBeOn lp d.b -∗
+          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.b) { rs with bk := bk })) := by
   have hlc := lease_not_clusterBkts
   have hset : ∀ n, (¬ membership.clusterBkts n) ↔
       (n = mvcc.leaseName ∨ (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName)) := by
@@ -196,16 +206,10 @@ theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assum
   ihave Hnc := (backend.rbPart_set (GF := GF) d.γB _ _ rs.bk hset).1 $$ Hnc
   icases (backend.rbPart_split (GF := GF) d.γB (· = mvcc.leaseName)
     (fun n => ¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName) rs.bk hd).1 $$ Hnc with ⟨Hl, Hnc⟩
-  iexists d
-  unfold mvcc.storeRb
-  rw [hk]
-  simp only [mvcc.kbRb]
-  isplitr
-  · ipureintro; trivial
   iframe Hl Hle
   isplitr
   · ipureintro; exact hlp
-  iintro %bk %hbk %hl ⟨⟨Hl, -⟩, Hle⟩
+  iintro %bk %hbk %hl ⟨Hl, Hle⟩
   iunfold srvRestOwnH
   iunfold srvObjsOn
   iunfold srvRestOwn
@@ -243,13 +247,13 @@ right hold the rest buckets present, and the members' client URLs are read-only.
 rows claimed a return where Go panics or is fatal; they still do above bbolt's `MaxValueSize`, as
 `isCluster` says.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
-  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
+  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),
-    ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
-    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
-    apply.isCluster c γ' Pk #f RO RW)
+    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.b)) -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.b) -∗
+    apply.isCluster c (fun _ => Pk) f (srvBkTie d) RO RW)
 
 instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
   unfold clusterApplyOk; infer_instance
@@ -270,19 +274,19 @@ back. (2026-11-02, the backend-auth-split stage: until then the reader's token a
 `mvcc.bkRTx` and the writer's half `rbOwn`, with `authRoles` empty too; `NewAuthStore.spec`'s last
 two bullets say why.) -/
 def authRecoverOk (ast : Loc) : IProp GF :=
-  iprop(□ (∀ (oldbe abl lg : Loc) (dn : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
+  iprop(□ (∀ (oldbe abl lg : Loc) (dn : BkRef) (W Pk : IProp GF) (qo : Qp)
           (r : GMap GoString backend.BktData),
         {{ authBeOn ast oldbe ∗ ⌜lg ≠ null⌝ ∗
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
               (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-                #dn.be : GoInterface) ∗
+                #dn.b : GoInterface) ∗
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
-            backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.bOpen dn.γB qo ∗
-            backend.bkRPool dn.γB dn.P dn.be ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
+            backend.isBackend dn.γB dn.P W Pk dn.b ∗ backend.bOpen dn.γB qo ∗
+            backend.bkRPool dn.γB dn.P dn.b ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
             ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ }}
           (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
             go!"Recover")) (Val #(authBkIface abl)))
-        {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.be ∗
+        {{ RET #(); authBeOn ast dn.b ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.b ∗
             threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r }}))
 
 instance authRecoverOk_persistent (ast : Loc) : Persistent (authRecoverOk (GF := GF) ast) := by
@@ -378,22 +382,20 @@ counter `γt`. -/
 def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) : IProp GF :=
   iprop(□ ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk lgh stp : Loc) (γd : GName)
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
-      (d : mvcc.KBReal),
-    ⌜E.γ.kb = some d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
+      (d : BkRef),
+    ⌜E.BkTie = srvBkTie d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
       -- (2026-11-01, J8a-1, item 7) the environment's facts `specSnap` takes: the snapshot files'
-      -- opens, the backend's compaction mode the environment's (the snapshot case's mode off gives
-      -- `specSnap`'s `d.cm = false`) and its parameters, the store watchable, the rest
-      -- buckets' resource at this backend, the receipts' bound
-      storage.snapOpensOk ∧ d.cm = E.cmp ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
+      -- opens, the backend's parameters, the rest buckets' resource at this backend, the receipts'
+      -- bound (strict M1: the backend's compaction mode and the store's watch flag gone)
+      storage.snapOpensOk ∧ mvcc.bridgeParams d.P ∧ ciKeys d.P ∧
       storage.hooksParams d.P ∧ d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ mvcc.leaseParams d.P ∧
       -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table, which the alarm
       -- store's `Recover` takes (`bootOk`'s)
       d.P.has mvcc.alarmBI ∧
-      E.γ.watchQ = true ∧
-      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
+      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.b) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
@@ -421,11 +423,10 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗ srvMembersDir cl ps dir ∗
     -- the Key bucket's size bound of every backend at the boot parameters
     □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗
-    -- (2026-11-01, J8a-1, item 7) the lessor's invariant, the KV the watchable store
-    lease.lessorInv lp E.γ.leases ∗
-    (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-     mvcc.isWatchableStore wsl E.s γw0) ∗
+    -- (2026-11-01, J8a-1, item 7) the lessor's invariant, the KV the store's handle (strict M1:
+    -- `□ isMvcc`, as the reader's view; until then the watchable store)
+    lease.lessorInv lp (mvccLeases E.γ) ∗
+    (srvKVAddr s ↦□ E.kv ∗ □ isMvcc E.kv E.γ) ∗
     -- (J8a-3, 2026-11-01) **the configuration's rebuild**: the whole struct read-only at `cfg` but
     -- for the two fields `start` writes (`SnapshotCount`, `SnapshotCatchUpEntries`), from those
     -- read-only (`isServerRun`'s `"#Hsncfg"`, which `start` persists): `applySnapshot.specSnap`'s
@@ -445,20 +446,28 @@ theorem authMode_off_of (E : apply.AEnv GF) (h : E.authOn = false) : E.authMode 
   unfold apply.AEnv.authOn at h
   cases hm : E.authMode <;> simp_all [auth.AuthMode.isOn]
 
+/-- **The server's backend tie names one backend** (strict M1, 2026-11-06): two ties agree only at
+the same backend. -/
+theorem srvBkTie_inj (d0 d : BkRef) (h : srvBkTie (GF := GF) d0 = srvBkTie d) : d0 = d := by
+  have h1 := congrFun h d0
+  unfold srvBkTie at h1
+  have h2 : (emp : IProp GF) ⊢ iprop(⌜d0 = d⌝) := h1 ▸ BI.pure_intro rfl
+  exact Iris.pure_soundness h2
+
 /-- (2026-11-01, J8a-1, item 5) **The bundle at the next backend**: `srvSnapRO` at the environment
-`E'` a snapshot install moves to (`beSucc`: the store's logical names, the auth store's reader
-resource and mode, the store kept), from the new backend's facts `srvSnapApplied` gives (`E'` on
-`d'`, at the boot parameters, its compaction mode the environment's, the rest buckets' resource at
-it) and the stores' addresses, which name the bundle's. -/
+`E'` a snapshot install moves to (`beSucc`: the store's handle and names, the auth store's reader
+resource and mode kept), from the new backend's facts `srvSnapApplied` gives (`E'` on `d'`, at the
+boot parameters, the rest buckets' resource at it) and the stores' addresses, which name the
+bundle's. (Strict M1, 2026-11-06: the backends `BkRef`s, named by the environments' ties.) -/
 theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc) (γr : ReadNames)
-    (γt : GName) (d d' : mvcc.KBReal) (al ast lp cl : Loc)
-    (hb : beSucc γ E γ' E') (hkb : E.γ.kb = some d) (hkb' : E'.γ.kb = some d')
-    (hcm' : d'.cm = E.cmp) (hP : d'.P = d.P)
-    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
+    (γt : GName) (d d' : BkRef) (al ast lp cl : Loc)
+    (hb : beSucc γ E γ' E') (hkb : E.BkTie = srvBkTie d) (hkb' : E'.BkTie = srvBkTie d')
+    (hP : d'.P = d.P)
+    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.b)) :
     srvSnapRO s ci E γr γt ∗ srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ⊢
     srvSnapRO s ci E' γr γt := by
-  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := hb
+  obtain ⟨-, b, P, f, c, RO, RW, rfl⟩ := hb
   iintro ⟨#H, #Hal, #Hau, #Hle, #Hcl⟩
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
@@ -469,10 +478,10 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   icombine Hle H16 gives %e3
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
-  obtain ⟨hkb0, hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, -, hbr, hci, hhk, hwf, hlim, hlp, halbi, hwq,
+  obtain ⟨hkb0, hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
     -, hrb⟩ := Hp
   rw [hkb] at hkb0
-  cases hkb0
+  obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
     simp only [intoVal_eq_iff, true_and] at e2; first | exact e2 | exact e2.symm
   have e3' : lp = lp0 := by
@@ -483,60 +492,29 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
   isplitr
   · ipureintro
-    refine ⟨hkb', hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hcm', ?_, ?_, ?_, ?_, ?_, ?_, ?_, hwq,
+    refine ⟨hkb', hlg, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
       hRO, hrb⟩ <;> rw [hP] <;> assumption
-  have e5 : (E.onBe p P f c RO RW).authMode = E.authMode := rfl
-  have e6 : (E.onBe p P f c RO RW).RD = E.RD := rfl
-  have e7 : (E.onBe p P f c RO RW).γ.leases = E.γ.leases := rfl
-  have e8 : (E.onBe p P f c RO RW).s = E.s := rfl
+  have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
+  have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
+  have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl
+  have e8 : (E.onBe b P f c RO RW).kv = E.kv := rfl
   rw [e5, e6, e7, e8, hP]
   iframe #
-
-/-- **The KV's closer, kept** (D22 S-g, 2026-10-19, D22d (A); until then `NewServer` dropped it, D19m
-(C)): the right to close the server's watchable store (`mvcc.wsCloser`: its stop channel's close,
-the wait for its loops, and the inner store's `storeCloser`, the stop channel's close, the
-scheduler's stop token and the compaction jobs' queue). `store.Restore` (`applySnapshot`'s
-`s.kv.Restore(newbe)`, D22 S-j) closes the inner store's `stopc` and stops its scheduler with
-it; the server's `Stop` path would close the store with it. -/
-def srvKVCloser (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ wsl : Loc,
-    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-    mvcc.wsCloser wsl E.s E.γ)
-
-/-- **The KV's closer without the compaction right** (M2's apply side, item 20; review round 1's
-F-6): off, `srvKVCloser`; on, the watchable store's own parts (its stop channel's close and its
-waiter), the inner store's compaction right being the apply thread's (`apply.cmpOwn` in
-`apply.applyKV`, A1). What `NewServer` hands out (in compaction mode after giving the right to the
-boot state). -/
-def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  if mvcc.kbCmpM E.γ.kb then
-    iprop(∃ wsl : Loc,
-      srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-      ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
-  else srvKVCloser s E
-
-/-- Off, the closer. -/
-theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) :
-    srvKVCloserW (GF := GF) s E = srvKVCloser s E := by
-  unfold srvKVCloserW; simp only [h, ↓reduceIte]
 
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
 the new one (`srvSnapApplied`): the backend's stop channels and the constructors' half of its open
 token (W7: the old backend's `Close` goroutine takes them), the alarm store's field (until
 2026-11-01, J8a-5, also its `Get` under a resource `Tal`, `zal`: `specSnap` now gets `Get` with no
-alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
-`store.Restore`) and the backend file's directory entry at the configuration's data directory
-(`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install). -/
+alarm from `Recover`'s `alarmEmpty`); and the backend file's directory entry at the configuration's
+data directory (`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every
+install). (Until strict M1, 2026-11-06, also the KV's closer, `srvKVCloserW`, for `store.Restore`:
+over the API, `Restore` takes mvcc's open token, the apply thread's `apply.cmpOwn`.) -/
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
-    ⌜E.γ.kb = some d⌝ ∗
-    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
+  iprop(∃ (d : BkRef) (al : Loc) (dd : GoString),
+    ⌜E.BkTie = srvBkTie d⌝ ∗
+    backend.isStopChans d.γB d.b ∗ backend.bOpen d.γB (1 : Qp).half ∗
     srvAlarmStoreAddr s ↦□ al ∗
-    srvKVCloserW s E ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh

@@ -28,7 +28,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOnDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
@@ -149,8 +149,8 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
         out.waived = false ∧ authTie st rq out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
+      E.Nx y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
       authnArM true E ar rq out)
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
@@ -252,8 +252,8 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧
         out.waived = false ∧ modelOutM on ρ.kv rq L y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
+      E.Nx y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out)
 
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
@@ -332,8 +332,8 @@ def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRM
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
-    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log ∗
+    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ srvApi.kvLogLb E.γs x'.log ∗
+    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ E.Nx x'.log ∗
     authnAnsM on E rq' resp)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/

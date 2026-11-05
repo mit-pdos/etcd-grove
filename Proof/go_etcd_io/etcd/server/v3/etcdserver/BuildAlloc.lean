@@ -236,7 +236,7 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
       sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) (W64 0) -∗
       monoNatAuthOwn γr.applied 1 0 -∗ monoNatAuthOwn γr.committed 1 0 -∗
       ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) -∗ ghostVar γr.pend 1 false -∗
-      mvcc.idxCert E.γ.idx γr.kv.log0 -∗ srvRLogLb γr.raft [] ={Ec}=∗
+      srvApi.kvLogLb E.γs γr.kv.log0 -∗ srvRLogLb γr.raft [] ={Ec}=∗
       srvAppliedInv s E γr ∗ srvAppliedOwn γr (W64 0) ∗ appliedLogAt γr (W64 0) γr.kv.log0 ∗
       srvCommittedInv s γr ∗ srvCommittedOwn γr (W64 0) ∗
       inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) := by

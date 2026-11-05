@@ -266,7 +266,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
@@ -464,7 +464,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
-    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
