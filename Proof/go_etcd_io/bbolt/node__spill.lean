@@ -128,7 +128,8 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     iframe
     ipureintro
     refine ⟨⟨rfl, rfl, rfl, HG, HG.2.1, fun s hs => hs, fun x hx => absurd rfl hx,
-      fun F _ h => h, id⟩, Or.inl ⟨Hsp, rfl, rfl⟩⟩
+      fun F _ h => h, id, fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩,
+      Or.inl ⟨Hsp, rfl, rfl⟩⟩
   · -- the unspilled case: the sort, the children's loop, the rest (`spillTail_wp`), from the
     -- permuted state `Xp` (`n`'s children sorted) and back (`spPost_unperm`)
     obtain ⟨Hut, Hctx, Hsl, Hfr, Hvc, Hfc, Hts, Hpar0⟩ := Hu

@@ -139,15 +139,45 @@ theorem applySteps_append (fl : FLPg) (txid : w64) (s1 s2 : List FLStep) :
     fl.applySteps txid (s1 ++ s2) = (fl.applySteps txid s1).applySteps txid s2 := by
   unfold FLPg.applySteps; rw [List.foldl_append]
 
+theorem markGrow_refl (X : WX) : markGrow X X :=
+  ⟨fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩
+
+/-- `markGrow` composes. -/
+theorem markGrow_trans {X1 X2 X3 : WX} (h1 : markGrow X1 X2) (h2 : markGrow X2 X3) :
+    markGrow X1 X3 := by
+  refine ⟨fun id pg h => h2.1 id pg (h1.1 id pg h), fun s hs1 hs3 => ?_⟩
+  by_cases hs2 : s < X2.t.mv.pgid'.toNat
+  · obtain ⟨id, pg, hb, ha, hb'⟩ := h1.2 s hs1 hs2
+    exact ⟨id, pg, h2.1 id pg hb, ha, hb'⟩
+  · exact h2.2 s (Nat.le_of_not_lt hs2) hs3
+
+/-- `markGrow` to a state with the same buffers and mark. -/
+theorem markGrow_congr {X X1 X1' : WX} (h : markGrow X X1) (hb : X1'.t.bufs = X1.t.bufs)
+    (hm : X1'.t.mv.pgid' = X1.t.mv.pgid') : markGrow X X1' := by
+  refine ⟨fun id pg h' => by rw [hb]; exact h.1 id pg h', fun s h1 h2 => ?_⟩
+  rw [hm] at h2; rw [hb]; exact h.2 s h1 h2
+
+/-- `markGrow` from a state with the same buffers and mark. -/
+theorem markGrow_congrL {X X' X1 : WX} (h : markGrow X X1) (hb : X'.t.bufs = X.t.bufs)
+    (hm : X'.t.mv.pgid' = X.t.mv.pgid') : markGrow X' X1 := by
+  refine ⟨fun id pg h' => h.1 id pg (by rw [← hb]; exact h'), fun s h1 h2 => ?_⟩
+  rw [hm] at h1; exact h.2 s h1 h2
+
 theorem spStep_refl {X : WX} {w : WDb} (O : List Nat) (hG : spG X w.wtxid (mapLen w.ms) w.fl)
     (hm : X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms) : spStep X X w w O [] :=
-  ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h, id⟩
+  ⟨rfl, rfl, rfl, hG, hm, fun _ h => h, fun _ h => absurd rfl h, fun _ _ h => h, id,
+    markGrow_refl X⟩
+
+/-- **A spill step grows the buffers over the mark's growth** (`markGrow`). -/
+theorem spStep_markGrow {X X' : WX} {w w' : WDb} {O : List Nat} {st : List FLStep}
+    (h : spStep X X' w w' O st) : markGrow X X' :=
+  h.2.2.2.2.2.2.2.2.2
 
 /-- **A spill step keeps the buffers dirty pages of fresh slots** (`bufsOK`; `Bucket.spill`'s
 `RInv.bufs`, U9x's `bkDone_bufsOK`). -/
 theorem spStep_bufsOK {X X' : WX} {w w' : WDb} {O : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hb : bufsOK X w.C w.fl) : bufsOK X' w.C w'.fl :=
-  h.2.2.2.2.2.2.2.2 hb
+  h.2.2.2.2.2.2.2.2.1 hb
 
 /-- The freelist's steps only take ids out of the free list. -/
 theorem applySteps_free_sub (st : List FLStep) : ∀ (fl : FLPg) (txid : w64) (y : w64),
@@ -164,9 +194,9 @@ theorem applySteps_free_sub (st : List FLStep) : ∀ (fl : FLPg) (txid : w64) (y
 /-- A step for a larger frame of owned slots is one for a smaller. -/
 theorem spStep_mono {X X' : WX} {w w' : WDb} {O O' : List Nat} {st : List FLStep}
     (h : spStep X X' w w' O st) (hO : ∀ x ∈ O', x ∈ O) : spStep X X' w w' O' st := by
-  obtain ⟨a, b, c, d, e, f, g, i, j⟩ := h
+  obtain ⟨a, b, c, d, e, f, g, i, j, k⟩ := h
   exact ⟨a, b, c, d, e, f, fun x hx => ⟨fun hm => (g x hx).1 (hO x hm), (g x hx).2⟩,
-    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr, j⟩
+    fun F hF hfr => i F (fun id hid => hO id (hF id hid)) hfr, j, k⟩
 
 theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
   unfold WDb.wtxid; rw [h]
@@ -175,13 +205,13 @@ theorem wtxid_of_C {w w' : WDb} (h : w'.C = w.C) : w'.wtxid = w.wtxid := by
 theorem spStep_trans {X1 X2 X3 : WX} {w1 w2 w3 : WDb} {O : List Nat} {s1 s2 : List FLStep}
     (h1 : spStep X1 X2 w1 w2 O s1) (h2 : spStep X2 X3 w2 w3 O s2) :
     spStep X1 X3 w1 w3 O (s1 ++ s2) := by
-  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1⟩ := h1
-  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2⟩ := h2
+  obtain ⟨a1, b1, c1, d1, e1, f1, g1, i1, j1, k1⟩ := h1
+  obtain ⟨a2, b2, c2, d2, e2, f2, g2, i2, j2, k2⟩ := h2
   have ht : w2.wtxid = w1.wtxid := wtxid_of_C a1
   rw [ht] at b2 d2 i2
   refine ⟨a2.trans a1, by rw [b2, b1, applySteps_append], c2.trans c1, d2, e2,
     fun s hs => f2 s (f1 s hs), fun x hx => ?_, fun F hF hfr => i2 F hF (i1 F hF hfr),
-    fun hb => by have := j2 (by rw [a1]; exact j1 hb); rwa [a1] at this⟩
+    fun hb => by have := j2 (by rw [a1]; exact j1 hb); rwa [a1] at this, markGrow_trans k1 k2⟩
   by_cases hx1 : spP X2 !! x = spP X1 !! x
   · obtain ⟨hO, hp⟩ := g2 x (by rw [hx1]; exact hx)
     exact ⟨hO, fun hm => hp (f1 x hm)⟩

@@ -145,7 +145,7 @@ theorem rinv_nil (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c 
 theorem bkDone_bufsOK {X X' : WX} {w w' : WDb} {c : Loc} {C : BRec} {O D : List Nat}
     {st' : List FLStep} {C0 : CommitSt} (hd : bkDone X X' w w' c C O D st')
     (hb : bufsOK X C0 w.fl) (hC0 : w.C = C0) : bufsOK X' C0 w'.fl := by
-  subst hC0; exact hd.1.2.2.2.2.2.2.2.2 hb
+  subst hC0; exact hd.1.2.2.2.2.2.2.2.2.1 hb
 
 /-- **After `child.spill()`**: its new header (`bkRooted`) staged. -/
 theorem rinv_spilled (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.Nodup)

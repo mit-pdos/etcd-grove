@@ -195,6 +195,8 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
     spStep Xi X3 wi w2 O st := by
   have hbk := pcStepX_bufsOK hs hn hpl hG1 hcnt hbody hv hfc htl hsl.2.2.1 hsl.2.2.2
   have hfresh := pcStepX_fresh hs hsl
+  obtain ⟨ra0, -, -, -, -, -, -, -, -, -, -, -, -, -, hbuf0, hnone0⟩ :=
+    pcStepX_state hs hn hpl hG1 (fun y hy => hsl.2.2.2 y (List.mem_append_left _ hy))
   obtain ⟨X1, w1, X2, p, ra, rp, s, ins, stf, sta, hfr, rfl, hal, hfl2, -, hC, -, -, -, -, hX3⟩ := hs
   obtain ⟨hmv, hbf, hpm1, hv1, -, hC1, -, hfree, hfl1⟩ := pcFreed_basic hfr
   obtain ⟨hpd1, hal1⟩ := pcFreed_fl hfr
@@ -225,7 +227,8 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
       exact (List.nodup_append.1 hsl.2.2.1).2.2 id hin id hz rfl
     · have := hsl.2.2.2 id (List.mem_append_right _ hz)
       rw [hid, hmv] at this; omega
-  refine ⟨by rw [hC, hC1], by rw [applySteps_append, hfl2, hfl1], hvp, hG3, hG3.2.1, ?_, ?_, ?_, ?_⟩
+  refine ⟨by rw [hC, hC1], by rw [applySteps_append, hfl2, hfl1], hvp, hG3, hG3.2.1, ?_, ?_, ?_, ?_,
+    ?_⟩
   · intro y hy; rw [hpd2]; exact hpd1 y hy
   · intro x hx
     have hxe : x = id.toNat := Classical.byContradiction fun hne => hx (hPne x hne)
@@ -245,6 +248,21 @@ theorem pcStepX_step {Xi X3 : WX} {wi w2 : WDb} {bl l : Loc} {rl : NRec} {count 
         rw [← he, w64_toNat_of_lt hy62] at hL
         exact (List.nodup_append.1 hsl.1).2.2 y hyO y hL rfl
   · exact hbk
+  · -- (U9w6) the new buffer is the allocation's run; at the mark, the mark's growth
+    refine ⟨fun y pg hy => ?_, fun t h1 h2 => ?_⟩
+    · have hne : y ≠ id := fun e => by rw [e, hnone0] at hy; cases hy
+      rw [hbuf0, GMap.lookup_insert_ne _ _ (Ne.symm hne)]; exact hy
+    · have hmv3 : X3.t.mv = X2.t.mv := by
+        rw [hX3]; unfold pcFin WX.setBuf; split <;> simp only [setNode_t_mv]
+      have hov : pageOverflow (pcPage id ra0.nv.isLeaf' ra0.ws count) = count - 1 := by
+        unfold pcPage; rw [wPage_overflow]; word
+      rw [hmv3] at h2
+      rcases hab5 with ⟨-, -, hm⟩ | ⟨hid, -, -, hm⟩
+      · rw [hm, hmv] at h2; omega
+      · have hid' : id.toNat = Xi.t.mv.pgid'.toNat := by rw [hid, hmv]
+        refine ⟨id, pcPage id ra0.nv.isLeaf' ra0.ws count, by rw [hbuf0, GMap.lookup_insert_eq],
+          by omega, ?_⟩
+        rw [hov]; omega
 
 end bufs
 

@@ -116,6 +116,14 @@ def bufsOK (X : WX) (C : CommitSt) (fl : FLPg) : Prop :=
       ∀ id' pg', X.t.bufs !! id' = some pg' → ∀ j' < 1 + pageOverflow pg',
         id.toNat + j = id'.toNat + j' → id' = id
 
+/-- **The buffers grow and cover the mark's growth** (D-K, U9w6: for `Bucket.spill`'s `markCov`):
+every buffer of `X` is one of `X'`, and every slot from `X`'s mark to `X'`'s lies in a buffer's
+extent of `X'` (the mark moves only by `allocate`'s mark case, which adds the run as a buffer). -/
+def markGrow (X X' : WX) : Prop :=
+  (∀ id pg, X.t.bufs !! id = some pg → X'.t.bufs !! id = some pg) ∧
+  ∀ s, X.t.mv.pgid'.toNat ≤ s → s < X'.t.mv.pgid'.toNat →
+    ∃ id pg, X'.t.bufs !! id = some pg ∧ id.toNat ≤ s ∧ s < id.toNat + (1 + pageOverflow pg)
+
 end pieces
 
 section spec
@@ -134,14 +142,14 @@ child's spill freed keeps its page through its siblings' spills), what the other
 need kept, and (coordinator's decision, for `Bucket.spill`'s `RInv.bufs`) the buffers dirty pages
 of fresh slots (`bufsOK`: every new buffer an allocation written with its header and length below
 the new mark, on no tree slot of `w.C`; no buffer slot made pending: the spill frees only base
-pages). -/
+pages); (U9w6, D-K) the buffers grown over the mark's growth (`markGrow`). -/
 def spStep (X X' : WX) (w w' : WDb) (O : List Nat) (st : List FLStep) : Prop :=
   w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧
   spG X' w.wtxid (mapLen w'.ms) w'.fl ∧ X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
   (∀ s ∈ pendSlots w.fl, s ∈ pendSlots w'.fl) ∧
   (∀ x, spP X' !! x ≠ spP X !! x → x ∉ O ∧ x ∉ pendSlots w.fl) ∧
   (∀ F, (∀ id ∈ F, id ∈ O) → spFree X w.fl w.wtxid F → spFree X' w'.fl w.wtxid F) ∧
-  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl)
+  (bufsOK X w.C w.fl → bufsOK X' w.C w'.fl) ∧ markGrow X X'
 
 /-- **`n.spill()`'s pre** (pure): `n` a node of `bl` (record `rn`), the spill's global state, and
 `n` spilled (a piece) or the top of an unspilled tree in the context `cs`, its slots owned with
