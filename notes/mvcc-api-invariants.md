@@ -700,3 +700,66 @@ channel invariant open (its `chanApiAt` and `sentAuth`) and the store's slots in
 update (the client's `mvccState`/`wsState`), and deposit the watcher's `regTok` where the sends find
 it (`chanRegFact`). `isWatchable` is generic over `WatchParams` and v3rpc's proofs use it (red under
 strict M1).
+
+## Hand-off: stage 2, the registration and the stream's contracts (2026-11-05)
+
+**Done** (the mvcc library builds: `mvcc.Link`, `Results`, `Api/WatchLaws`, `Api/Instance`; no new
+`sorry`, no axiom; no frozen statement found false). `#print axioms` of `mvcc.watchStream.wp_Watch`,
+`wp_Cancel`, `wp_Close` (the API's `WatchStream.Watch/Cancel/Close.contract` at `*watchStream`,
+`Spec/.../mvcc/watchStream__{Watch,Cancel,Close}.lean` now the API's contracts): no `sorryAx`.
+`watcher.wp_send` still has it (`chanApi_send_M1`).
+- **The stream knows its client's state.** `WsAbs.cl` (`WatchChanNames.acl`): the history at the
+  client's last event, a ghost variable, half in `wsStateI`, half in the stream's mutex invariant
+  (`watchStreamInv`'s `"Hacl"`), with the pure tie `wsRel nextID closed CM CS (replay d lm).S` at
+  every decoding `d` (the client's state closed exactly when the stream is; its watchers' ids in
+  `[0, nextID)`; every cancel closure a watcher's; every live watcher of an open stream has its
+  closure; every id of `CS` a watcher not live). `CS` (`WsStreamNames.cs`, a monotone list,
+  lower bounds `idCancelled`) is what `Cancel`'s second critical section needs to drop a closure.
+  The client's steps take the stream's half too (`chanApiAt_reg`, `chanApiAt_cancel`,
+  `chanApiAt_close`, `wsStateI_cl`); the `wsRel` steps are pure (`wsRel_register`, `_cancel`,
+  `_delete`, `_close`, `_next`; `replay_ws_isSome`: which ids are watched is decoding-free).
+- **The registration callback is the store's** (`WatchParams.RegCb`, the store's `regCb`): run by
+  `watch_register` with the channel invariant open (the history `l`), `s.revMu`'s part of the view
+  (`revMuAbs` at the committed log `C`) and the watch lock's pending revision (`wsSlot` is now
+  `pndPart … none`: the watchable `End` notifies and commits under `s.mu`; `pndOk` gone), it
+  appends `.reg rg.id rg fg lo` at the exact sent count and gives the store its parts back. The
+  filters are the caller's predicates (`WatchParams.FI`, `filtersImpl`; `F` gone), saved under the
+  watcher's `fg`. `Api/StreamHandle.watch_regCb` builds it from `Watch`'s update (the store's
+  state agreeing with the client's: `σ.log = C`, `σ.pending = none`, `watchLo σ startRev = lo`).
+- **Cancel tokens** in place of `rsnFor`: `chanCancelTok γc id` (a history lower bound ending in
+  `.cancel id` after the registration; `api.cancelTok` at the stream's names), minted by
+  `Cancel`'s update for a watcher of the client's state (`cancel_fire`, `chanApiAt_cancel_tok`);
+  `cancelledFor` and `rsnW` carry it. `rsnFor`/`progFact`'s saved predicates and the stream's
+  `watchStreamOpen` token are now unused by mvcc (left for the cleanup; `NewWatchStream` still
+  returns them).
+- **`isMvccWatchStream`** holds the stream over the watchable store at its channel
+  (`isWatchStreamAt`, split out of `isWatchStream`), the store's watch-token pool and a thread pool
+  of `watchReader`s (`watchRdPoolN`): `Watch` borrows a reader with its thread token and takes a
+  watch token for a time receipt. `NewWatchStream`'s contract must produce them (from `isMvcc`,
+  still `True`: its pools, §4.7).
+- `Api/StreamHandle.lean` (private, `import all`ed by the contracts' proofs: its statements mix
+  the sealed names with the internals', which only a module seeing the sealed bodies can state):
+  `isMvccWatchStream_open`, `watch_regCb`, `watch_fire_closed`, `cancel_fire`, `close_fire`,
+  `watchChanInv_api`. `wsAbsOf` is an `abbrev` (so `(wsAbsOf γ ch γc).cl` is `γc.acl` to `iexact`).
+- `Close`'s contract proved as well (the invariant change needed its proof redone): its update
+  fires at the lock, its premise `S.closed = false` excludes a second close.
+
+**Left** (in order):
+1. **Each send's `stepOk`**, then `chanApi_send_M1` deleted (`watcher.send`, `WatchCmpSend`),
+   as "Hand-off: stage 2, the sends' bounds" says, with two pieces of infrastructure first, both
+   established in `watch_register` right after the callback (it knows `w`, its `chanRegAt γc w
+   sent.length`, `watcherFixed w r fcs`, `γw.fg`, `γw.lo`, and the history's new last event):
+   (a) a registration token per channel-registered watcher (`chanRegTok γc r.id r γw.fg γw.lo`,
+   `api.regTok` at the stream's names; in `chanWatcher`, or in `covFact`, for the covered
+   watchers of a `-1` response), for `factAgree`; (b) `chanApi`'s per-registration witness (each
+   `.reg id rg fg lo` at position `p` of the history is a watcher `wl` with `chanRegAt γc wl
+   (sendsOf (l.take p)).length`, `watcherFixed wl rg _`, `watcherMeta` with `fg`, `lo`), kept by
+   the sends, cancels and closes (no registration), for `stampsAt`: with `regsOk`, every such `wl`
+   is in a `-1` response's `regs`, so covered or `rsnW` (whose `chanCancelTok` is `deadIn`'s). The
+   `-1` sender then names its `cov` and `dead` lists from `x.cov` and the `rsnW` watchers (a choice
+   over a list of persistent existentials, as `filters_choose`).
+2. `Chan`, `RequestProgress`, `RequestProgressAll`, `Rev` at `*watchStream` (their internal specs
+   are still the generic ones over `WatchParams`); `NewWatchStream` at `*watchableStore` (needs
+   `isMvcc`'s pools).
+3. The cleanup: `rsnFor`, `WsStreamNames.rsn`, `progFact`'s use by `progressAll` (the `-1`
+   response's API fact replaces it), `watchStreamOpen`.
