@@ -5,7 +5,7 @@ A root entry the loop does not rewrite keeps its value `v0`: an unopened bucket'
 cached child's without a root node (`oldN`). Its tree is a `bvalS` over the view, holding plain
 entries (`bvalData`): for an unopened bucket its base tree's (`bktEntries`), read from its leaf
 node's `bvalOK` or from the view page's `matNest` (`Write.BoundNest`); for a cached child its
-logical entries (`lbktEnts`), its view tree read by its walk (`vl_lleaves_fuel`) and plain
+logical entries (`lbktEnts`), its view tree read by its walk (`WOpen.lleaves_viewL_fuel`) and plain
 by `posShape` (a bucket other than the root). An inline cached child's page is its value's
 (`cachedNil_ipg`: `bktNested`'s inline clause, maintainer 13's item 5).
 -/
@@ -16,7 +16,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktEndDisj
 public import Proof.go_etcd_io.bbolt.Spill.BktEndVals
 public import Proof.go_etcd_io.bbolt.Spill.BktEndRootLeaf
 public import Proof.go_etcd_io.bbolt.Write.BoundNest
-public import Proof.go_etcd_io.bbolt.Spill.BktViewL
+public import Proof.go_etcd_io.bbolt.Read.WOpenWOK
 
 @[expose] public section
 
@@ -169,14 +169,14 @@ theorem nilBkt_leavesR {X : WX} {c : Loc} {Cc : BRec} (hok : wOKR X)
     · rw [hnm]; rfl
   unfold WX.leaves
   rw [hrp]
-  have hL : ∀ q, ltree X c q = vlL X.v c c q := by
+  have hL : ∀ q, ltree X c q = WOpen.viewL X.v c c q := by
     intro q
-    unfold ltree vlL; rw [hc]; simp only [hres, ↓reduceIte]
+    unfold ltree WOpen.viewL; rw [hc]; simp only [hres, ↓reduceIte]
     unfold wpageAt; rw [if_neg hC0]
     cases X.v.pages !! q.toNat <;> rfl
-  rw [vl_congr _ (vlL X.v c) c hL]
+  rw [WOpen.lleaves_congr' _ (WOpen.viewL X.v c) c hL]
   have hf : X.fuel = X.v.pages.size + 1 + X.t.bs.size := by unfold WX.fuel; omega
-  rw [hf, vl_lleaves_fuel X.v hv c _ _]
+  rw [hf, WOpen.lleaves_viewL_fuel X.v hv c _ _]
 
 /-- The leaves of a bucket without nodes: its value's (see the module doc). -/
 theorem nilBkt_leaves {X : WX} {c : Loc} {Cc : BRec} (hok : wOKR X) (hc : X.t.bs !! c = some Cc)
@@ -270,7 +270,7 @@ theorem oldN {X : WX} {C : CommitSt} (hok : wOKR X) (hreach : liveReach X) (hcok
         obtain ⟨id', -, -, ho, hp', hfl', -, -⟩ :=
           leavesF_page _ _ _ _ _ _ hs.wf hs.keys pg hpg
         exact ⟨Or.inr ⟨hz, id', ho, hp', hfl'⟩, hfl'⟩
-    exact vl_plain_pageWs pg hpl'.2 fun j hj => (hpl pg hpl'.1 j hj).1
+    exact WOpen.plain_pageWs pg hpl'.2 fun j hj => (hpl pg hpl'.1 j hj).1
   rw [e]; exact hd
 
 /-- **The writer's data of a root entry's name** (the root's names distinct). -/
