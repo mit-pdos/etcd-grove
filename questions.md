@@ -213,3 +213,12 @@ review; `stop_monitorRT` stays the marked `sorry`.
   design the user approved said a persistent `goWaited`; this makes it an exclusive half, with the
   same contradiction against a receipt. Internal (`InvGoAttach`, `InvApplier`); no hub statement
   changes.
+- **D6, amended (2026-11-05).** A discarded γbe quarter would not rule out the retired case: the
+  swap's own ¾ against a discarded fraction is valid. So there is no retired case. Instead:
+  - `EtcdServer.Cleanup.spec` takes any fraction `dq` of `γbe` (pre and post), where it took `own ¼`.
+    It is a verified spec, and its proof only frames the fraction.
+  - The pool keeps its quarter. Its checked-out case holds `γbe (own q) d` and either a running
+    receipt or the stop's `goWaited` half.
+  - The stop deposits ⅛ of its quarter with its `goWaited` half, and `Cleanup` gets the other ⅛.
+
+  The swap's ½ + ¼ + ¼ + q > 1 rules out the checked-out case as before.
