@@ -133,6 +133,34 @@ theorem reach_prefix (σ : MvccState) (h : MvccReachable σ) :
   | compact σ r _ _ _ _ _ ih =>
     simpa [MvccState.compactTo, MvccState.notifiedLog] using ih
 
+/-- **A reachable state's log has a revision per change past its first two**, and its pending
+revision (if any) changes something (strict M1, 2026-11-05: the apply thread's small log,
+`srvApplyKV_small`, until then the sole writer's `txn.soleWriter_small'`). -/
+theorem reach_len_logCh (σ : MvccState) (h : MvccReachable σ) :
+    σ.log.length ≤ mvcc.logCh σ.log + 2 ∧ ∀ p, σ.pending = some p → p ≠ [] := by
+  induction h with
+  | start => exact ⟨by simp [mvccStart], fun p hp => by simp [mvccStart] at hp⟩
+  | notify σ pend _ _ _ ih =>
+    refine ⟨by simpa [MvccState.notify] using ih.1, fun p hp => ?_⟩
+    simp only [MvccState.notify] at hp
+    split at hp
+    · cases hp
+    · cases hp; assumption
+  | commit σ _ ih =>
+    refine ⟨?_, fun p hp => by simp [MvccState.commitPending] at hp⟩
+    simp only [MvccState.commitPending]
+    unfold mvcc.commitLog
+    split
+    · exact ih.1
+    · rename_i hne
+      have : 0 < (σ.pending.getD []).length := List.length_pos_iff.mpr hne
+      have := ih.1
+      simp only [List.length_append, List.length_singleton, mvcc.logCh, List.map_append,
+        List.map_cons, List.map_nil, List.sum_append, List.sum_cons, List.sum_nil] at this ⊢
+      omega
+  | compact σ r _ _ _ _ _ ih =>
+    exact ⟨by simpa [MvccState.compactTo] using ih.1, by simpa [MvccState.compactTo] using ih.2⟩
+
 /-- The writer's view's notified log is its log. -/
 @[simp] theorem stAt_log (log : mvcc.Log) (c : Int) : (stAt log c).log = log := rfl
 @[simp] theorem stAt_crev (log : mvcc.Log) (c : Int) : (stAt log c).crev = c := rfl
