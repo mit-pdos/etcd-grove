@@ -1260,6 +1260,46 @@ call):
 - putget's chain needs the bundle at a `γn` that `alloc1` does not fix. Then `memberFreshRes` drops
   `γn` when `peer = none`: a separate one-member form, D3 revisited.
 
+##### Where the Draft stands (2026-11-05, Order steps 1-6 done, proved)
+
+Session etcd-grove-83's Draft run, branch `hub-step7` (lean `080f18c48f` + the Scope notes). Steps
+1-6 are proved, with no new `sorry` or axiom; steps 7-9 are not started.
+
+- **Done.** `etcdstart/StartRes.lean` (the three bundles, sealed, `etc/import-all.txt`: only
+  `Alloc3` imports it whole), L1-L3; L4 as `etcd_adequate_members` and
+  `etcd_adequate_alloc_members`, in `etcdstart/AdequacyMembers.lean` (D6); R (`alloc3` on the start
+  bundles, over the renamed old one, `alloc3Http`); S1-S6 (`newServerMode` eliminates by
+  `memberFreshRes_boot`, `NewMember` by `memberFreshRes_peer`, the rest pass the bundle on;
+  `newServer.specCompact` deleted, D9); E7 (`auth.startServer`); M1 and A1 for all 12 one-member
+  examples; M2 and A2 for putget3.
+- **Not done in this run** (steps 7-9): E1-E3/E2, the `cluster3` bundle, M3/A3 (partition's two
+  Mains, `MainPartition`); S7 (`BuildServer.specRestart`) and `BuildServer.specStop` (D8), E3-E6
+  (restart); the `etcdstart` importable list and its interfaces (Q4); deleting the pass-throughs
+  `alloc3Http` and `memberFreshRes_intro_peer` (D7), which `cluster3.StartCluster`, `restart.Run` and
+  `cluster3.StartMember` use until then (their statements unchanged).
+- **What the probes showed** (none of "What would make us revise the design" happened):
+  - the sealed `Option` matches reduce in the laws only: the callers use `rfl` for the premise
+    (`a.client = some c`, `a.peer = none`), and the bundle given back at `{a with client := none}` is
+    accepted where `{}` or `⟨some p, none⟩` is expected (definitional); no caller unfolds a bundle;
+  - the literals: `List.Perm.refl _` closes both of A1's premises, `go!"putget" ++ go!".etcd"`
+    meeting `HDs`'s `go!"putget.etcd"` by definitional unfolding (also through the compactor's
+    `abbrev`s `memberName`/`clientAddr`); one exception: `auth.startServer`'s configuration has the
+    literal data directory `go!"authkv.etcd"`, so `memberFreshRes_boot` needs the name given
+    (`go!"authkv"`), not inferred;
+  - the permutation: putget3's `hA` (`[peer₁, client₁, peer₂, peer₃]` against `putget3Addrs`'
+    `[peer₁, peer₂, peer₃, client₁]`) is closed by `decide`;
+  - `alloc3` folds `memberFreshRes` by `simp only [memberStartRes, memberFreshRes]` inside `etcdstart`;
+  - the 11 other one-member examples were mechanical (a script: the `Main`'s two lines, the proof's
+    `wp_start` pattern, one `memberStartRes_client` and one `memberStartRes_fresh`, the adequacy's
+    `etcd_adequate_members` call), except three small variants: the compactor's `Main` (its
+    `etcd_adequate_alloc`, hence `etcd_adequate_alloc_members`), `k8s/etcd3` (its adequacy calls
+    `goose_adequacy_start` directly, so it applies `memberStartRes_intro` itself), and auth's
+    literal data directory (above).
+- **Spec files naming a start resource** (the success measure): 34 before, 15 now: the consumers
+  (`Serve`, `cluster3.StartBridge`, `restart.restartCheck`/`serveClient`, `net/Listen`) and the
+  step 7-8 files (partition's three, `cluster3`'s `StartCluster`/`StartMember`, `MainPartition`,
+  restart's `Run`/`startMember`/`stop`, `BuildServer.specStop`/`specRestart`).
+
 ### The slot convention (approved 2026-11-03, step 1)
 
 Approved by the user as drafted (draft 1), with the WAL as its first slot.
