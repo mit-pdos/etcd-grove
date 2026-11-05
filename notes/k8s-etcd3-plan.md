@@ -535,6 +535,35 @@ nor `statusErrOk`/`errCellOk` say it.
   compactor's `k8s_compactor_safe` rests on the same specs).
 - Recommended: (b) now, (c) as a later client change that restores the check.
 
+### 7b: Draft, the cached no-op (2026-11-05; a user point)
+
+Drafting `GuaranteedUpdate`'s spec with a cached object found that the store's answer is not the
+model's on a path the approved traffic reaches (`nonissues/k8s-etcd3-cached-noop-skips-preconditions.md`;
+`examples/k8s/etcd3/cachednoop_test.go` reproduces it against an etcd member). When `tryUpdate`
+leaves the cached object unchanged, the store re-reads the key (`store.go:556`) and, if the bytes
+are equal, returns the current object (or, if stale, writes) without re-running the preconditions
+or `tryUpdate` on the re-read state, whose revision may differ from the cached object's. With a
+resource version precondition naming the cached version, the store answers the object at the newer
+version where the model (and `correctness.Model`) answers `InvalidObj`. The driver reaches it: a
+cached object, an RV precondition and an update that leaves the object as it is (`NoOp`, or a value
+equal to the current one), after the key was rewritten with equal bytes (a non-canonical seed's
+rewrite, or a delete and an `ignoreNotFound` re-create of the same object). Without an RV
+precondition the answers agree (the driver's `tryUpdate` ignores the resource version, and a UID
+precondition is the same on equal bytes); `Delete` has no such shortcut.
+
+- **(a)** The traffic: an update with a cached object carries no RV precondition (UID preconditions
+  stay; RV preconditions stay on updates without a cached object and on every `Delete`). The theorem
+  does not cover the case; the finding is recorded, for an upstream report once a test in the
+  store's own harness exists (the `upstream-report` skill). Cost: one line in `genFrom`, the stats
+  test unchanged.
+- **(b)** Fix the store on a copy of `k8s.io/apiserver` (a `replace` in `examples/k8s/etcd3/go.mod`
+  to a patched module, translated by goose): continue the loop after the re-read unless its
+  revision is the cached one. The traffic as approved. Cost: a patched copy of the module in the
+  repository (or a fork to push), and a fix not upstream.
+- **(c)** Weaken the model to the store's behavior (the update takes the cached object's version
+  and admits the newer object): the theorem states the bug as correct. Not recommended.
+- Recommended: (a).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
