@@ -30498,3 +30498,24 @@ of the lessor and close of the backend, so the theorem is about `runChecks`. The
 passes under `-race`; the translation is regenerated (`etc/goose.py` maps semver to the empty root
 for the project).
 
+
+## mvcc's API over its storage abstraction, not etcd's backend (2026-11-06 · the user · branch `mvcc-api`)
+
+Found by the mvcc core track proving `New.spec`/`NewStore.spec` (M3): the frozen
+`mvccBackendFor_open.law` takes etcd's concrete backend open (`backend.newPostKP γB P …`) at any
+configuration `P`, but mvcc's store needs its storage contract (`isKeyBackendG`), which the bridge
+(`storeBackend_of_backendC`, `mvcc/BackendBridge.lean`) derives from the backend's proved contract
+only for a real instance whose configuration has mvcc's layout (`bridgeParams P`: the `Key` and
+`Meta` buckets, `Key` the safe-range bucket, the hook's buckets all but `Key`). Two fixes were
+offered: (a) the premise `⌜∃ d : KBReal, d.P = P ∧ bridgeParams P⌝` on the law (and on the server's
+`dbImageA_open.law`, `bootBackend.law`), keeping the API tied to etcd's backend; (b) restate the open
+(and what else names the concrete backend) over mvcc's storage contract, so mvcc works over any
+implementation meeting it, and the server, which chooses etcd's backend, discharges the contract
+through the bridge from the `bridgeParams d.P` it holds (`InvBoot`, `SnapRO`).
+
+**Decision (the user): (b).** "mvcc should respect the abstractions it builds on (e.g. the
+abstraction of the backend)." `bridgeParams` leaves mvcc's API; it becomes a fact the server uses
+about its backend. Open point for the restatement: `mvccImage_snapshot.law` observes the concrete
+backend's snapshot; either the storage contract gets a snapshot operation of its own, or that law
+stays a fact of etcd's backend stated in the server's (or the bridge's) terms. The principle is in
+the `spec` skill (`PRINCIPLES.md`, "An API is stated over the abstractions it builds on").

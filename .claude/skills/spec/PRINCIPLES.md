@@ -152,6 +152,15 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   fractions, helper definitions that hide part of the statement, internal records or fields,
   internal namespaces in masks, or the implementation's own logs and certificates. (`put.md`,
   critique 2; `notes/spec-first-plan.md`, Review)
+- **An API is stated over the abstractions it builds on, not over its dependencies' implementations**:
+  where a package assumes a contract of a dependency (mvcc of its storage: `isKeyBackendG`), its
+  API's statements take that contract, never the concrete dependency's predicates or configuration
+  (`backend.newPostKP γB P …`, `bridgeParams P`); so the package works over any implementation
+  meeting the contract, and the client that chooses the implementation discharges the contract for
+  it (the server proves mvcc's storage contract for etcd's backend through the bridge, from the
+  `bridgeParams d.P` it holds). A premise about the concrete dependency appearing in the API is the
+  symptom. (The mvcc API's open law, the user, 2026-11-06: "mvcc should respect the abstractions it
+  builds on.")
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
 - **Canonical specs are per (concrete type, method); an interface value gets a bundle.** The
