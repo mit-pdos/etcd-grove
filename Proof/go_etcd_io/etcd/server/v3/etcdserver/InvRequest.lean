@@ -474,11 +474,18 @@ theorem logRevGrantIds_none (lm : lease.Mode) (L : List EntryModel) (h : ∀ m �
   unfold entryRevGrantId
   rw [if_neg (h m hm)]
 
+/-- **The prefix of the revocable-mode grant ids** (the lease-expiry plan's E3 (c), 2026-11-05):
+in the revocable mode the KV names' id prefix (the one member's generator's), `0` otherwise (no
+such id). -/
+def kvPfx (γk : KVNames) : w64 := if γk.lm = .revocable then γk.ids.pfx else 0
+
 /-- **The KV invariant's generated grant ids** (the lease-expiry plan's E3 (b)): the log's
 revocable-mode grant ids are the ids `U` masked, each `U`'s claim right owned (so `U` has no
-repeat). -/
+repeat); (E3 (c)) each of the prefix `kvPfx`, so that the masked ids have no repeat either
+(`leaseIdMask_nodup_of_pfx`). -/
 def kvGrantIds (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(∃ U : List w64, ⌜logRevGrantIds γk.lm L = U.map (· &&& leaseIdMask) ∧ U.Nodup⌝ ∗
+  iprop(∃ U : List w64, ⌜logRevGrantIds γk.lm L = U.map (· &&& leaseIdMask) ∧ U.Nodup ∧
+      ∀ u ∈ U, idPfx u = kvPfx γk⌝ ∗
     [∗list] u ∈ U, idUnclaimed γk.ids u)
 
 instance kvGrantIds_timeless (γk : KVNames) (L : List EntryModel) :
@@ -486,11 +493,12 @@ instance kvGrantIds_timeless (γk : KVNames) (L : List EntryModel) :
   unfold kvGrantIds idUnclaimed; infer_instance
 
 /-- **What a proposal of `rq` hands the KV invariant for its grant id**: in the revocable mode, a
-grant's id is a generated id `u` masked, with `u`'s claim right; nothing otherwise. -/
+grant's id is a generated id `u` masked, of the KV names' prefix (E3 (c)), with `u`'s claim right;
+nothing otherwise. -/
 def grantIdOwn (γk : KVNames) (rq : apply.IRRModel) : IProp GF :=
   match rqRevGrantId γk.lm rq with
   | none => iprop(True)
-  | some g => iprop(∃ u : w64, ⌜g = u &&& leaseIdMask⌝ ∗ idUnclaimed γk.ids u)
+  | some g => iprop(∃ u : w64, ⌜g = u &&& leaseIdMask ∧ idPfx u = γk.ids.pfx⌝ ∗ idUnclaimed γk.ids u)
 
 /-- A request of another kind than a grant hands nothing. -/
 theorem grantIdOwn_nonGrant (γk : KVNames) (rq : apply.IRRModel)
@@ -527,7 +535,7 @@ theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds
   iunfold kvGrantIds
   iexists []
   isplitr
-  · ipureintro; exact ⟨h, List.nodup_nil⟩
+  · ipureintro; exact ⟨h, List.nodup_nil, fun _ h => (List.not_mem_nil h).elim⟩
   iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
   itrivial
 
@@ -567,9 +575,18 @@ theorem kvGrantIds_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel) (
     iexists U ++ [u]
     isplitr
     · ipureintro
-      refine ⟨?_, List.nodup_append.2 ⟨HU.2, List.pairwise_singleton _ u, ?_⟩⟩
-      · rw [logRevGrantIds_snoc, he, hr, HU.1, Hgu]; simp
+      have hrev : γk.lm = .revocable := by
+        unfold rqRevGrantId at hr; split at hr
+        · next h => exact h.1
+        · cases hr
+      refine ⟨?_, List.nodup_append.2 ⟨HU.2.1, List.pairwise_singleton _ u, ?_⟩, ?_⟩
+      · rw [logRevGrantIds_snoc, he, hr, HU.1, Hgu.1]; simp
       · intro a ha b hb; rw [List.mem_singleton] at hb; subst hb; intro hab; subst hab; exact hin ha
+      · intro a ha
+        rcases List.mem_append.1 ha with ha | ha
+        · exact HU.2.2 a ha
+        · rw [List.mem_singleton] at ha; subst ha
+          unfold kvPfx; rw [if_pos hrev]; exact Hgu.2
     iapply BigSepL.bigSepL_snoc.2
     iframe HUs Hu
 
@@ -985,12 +1002,12 @@ theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
 open Iris.ProofMode in
 /-- **The law of the log's grant ids** (the lease-expiry plan's E3 (b)): with the KV invariant, the
 revocable-mode grant ids of a prefix `L₀` of the requested log (`srvReqLogLb`) are distinct
-generated ids masked: `U` has no repeat (each id's claim right is exclusive). So they are distinct
-when `U`'s ids share one prefix (`leaseIdMask_nodup_of_pfx`: the ids of one member's generators). -/
+generated ids masked: `U` has no repeat (each id's claim right is exclusive), and its ids share the
+prefix `kvPfx` (E3 (c)), so the masked ids are distinct (`leaseIdMask_nodup_of_pfx`). -/
 theorem kv_grantIds_nodup (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E)
     (L₀ : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvReqLogLb γ L₀ ={E}=∗
-      ⌜∃ U : List w64, logRevGrantIds γk.lm L₀ = U.map (· &&& leaseIdMask) ∧ U.Nodup⌝ := by
+      ⌜(logRevGrantIds γk.lm L₀).Nodup⌝ := by
   iintro #Hinv #Hlb
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -1009,8 +1026,12 @@ theorem kv_grantIds_nodup (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (h
   have hU := HU.1
   unfold logRevGrantIds at hU ⊢
   rw [List.filterMap_append] at hU
-  refine ⟨U.take (L₀.filterMap (entryRevGrantId γk.lm)).length, ?_, HU.2.sublist (List.take_sublist _ _)⟩
-  rw [List.map_take, ← hU, List.take_left]
+  have hT : L₀.filterMap (entryRevGrantId γk.lm) =
+      (U.take (L₀.filterMap (entryRevGrantId γk.lm)).length).map (· &&& leaseIdMask) := by
+    rw [List.map_take, ← hU, List.take_left]
+  rw [hT]
+  exact leaseIdMask_nodup_of_pfx _ (kvPfx γk) (HU.2.1.sublist (List.take_sublist _ _))
+    (fun u hu => HU.2.2 u (List.mem_of_mem_take hu))
 
 omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/

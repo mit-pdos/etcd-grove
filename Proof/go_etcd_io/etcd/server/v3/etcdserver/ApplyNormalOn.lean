@@ -428,19 +428,22 @@ theorem appliedMono_of_invM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   ipureintro
   exact HMk.2.2 i j L1 L2 Hm1 Hm2 hij
 
+open Iris.ProofMode in
 /-- **An admin entry leaves the rest buckets** (`restAfter_other`: it sets no cluster field). -/
 theorem srvRest_admin (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hk : apply.adminKindOk rq) :
-    srvRest E γr (A ++ [m]) = srvRest E γr A := by
+    srvRest E γr A ⊢ srvRest E γr (A ++ [m]) := by
   obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hk
   have hg : apply.dispatchKind rq ≠ .leaseGrant := fun h => by
     unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
   have hr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
     unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
-  rw [srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr),
-    restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
-  rfl
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  iapply srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr)
+  rw [restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
+  iframe H HU
 
 /-- **After the entry, in the mode `on`** (`kvApplied_next`'s counterpart): the apply thread's KV
 ghost state at the next state `x'` and auth state `st'` (the model's after `A ++ [m]`, the chain

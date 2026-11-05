@@ -66,13 +66,13 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     intro h; apply Hlow; rw [h]; decide
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (env₀ idx cok rev cmp)
   imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
-      (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow) cmp cret lm) $$ Hmarsh
+      (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow) cmp cret lm (idPfxOf (W16 (uint.Z id)))) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg⟩ := Hγ
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
-  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp [Hwn]
+  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok (fun _ => hgp)) $$ Hkv Hp [Hwn]
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hklg', hwn', hfs', hinc'⟩ := Hρ

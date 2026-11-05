@@ -74,7 +74,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
   -- (the lease-expiry plan's E3 (b)) in the revocable mode, the generated id's claim right kept
   ihave HI : (∃ i : w64, structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ i ∗
       (⌜i = W64 0 ∨ ρ.kv.lm ≠ .revocable⌝ ∨
-        ∃ u : w64, ⌜i = u &&& leaseIdMask⌝ ∗ idUnclaimed ρ.ids u)) $$ [HID]
+        ∃ u : w64, ⌜i = u &&& leaseIdMask ∧ idPfx u = ρ.ids.pfx⌝ ∗ idUnclaimed ρ.ids u)) $$ [HID]
   · iexists _; iframe HID; ileft; ipureintro
     by_cases hm : ρ.kv.lm = .revocable
     · exact Or.inl (hrev hm)
@@ -93,9 +93,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
     iexists _; iframe
     iright
     iunfold idFresh at Hfr
-    icases Hfr with ⟨Hun, -, -⟩
+    icases Hfr with ⟨Hun, -, %Hpf⟩
     iexists nid; iframe Hun
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hpf⟩
   have hid : i ≠ W64 0 := fun h => Hif (by subst h; rfl)
   rw [decide_eq_false hid]; simp only [Bool.false_eq_true, ↓reduceIte]
   ipersist HI

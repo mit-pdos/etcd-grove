@@ -795,7 +795,7 @@ theorem mergedCreate_window
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hl2 Hg with ⟨Ht2, Hg⟩
   ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
   -- the rest buckets
-  ihave ⟨%f, HRs, HLt, #HGI⟩ := srvRest_open E γr A $$ HRs
+  ihave ⟨%f, HRs, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
@@ -951,9 +951,9 @@ theorem mergedCreate_window
       isplitl [Hra]
       · iexact Hra
       iexact Hw
-    isplitl [Hrc Hrn Hcl HH HLt]
+    isplitl [Hrc Hrn Hcl HH HLt HEv]
     · iapply srvRest_close
-      iframe HLt HGI
+      iframe HLt HGI HEv
       iexists f
       rw [hRO]
       iunfold srvRestOwnH

@@ -435,14 +435,16 @@ theorem applySnapshot_walk
     exact List.eq_nil_of_length_eq_zero ((mvcc.bktEnts_length ∅).trans GMap.map_size_empty)
   wp_apply hLR lp E.γ.leases d.be d' (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
-      (fun _ => True) (backend.rbData d.P D) _ rd0 Ll _ false [] trivial (by rw [hP']; exact hlpw)
-      hbe (fun h => by cases h)
+      (fun _ => True) (backend.rbData d.P D) _ rd0 Ll _ false [] [] trivial (by rw [hP']; exact hlpw)
+      hbe (fun h => by cases h) (by simp)
     $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB Hro]
-    as ⟨HnLe, HlOwn, HlRv, Hro, HnOh, HnRB, -⟩
+    as ⟨HnLe, HlOwn, -, HlRv, Hro, HnOh, HnRB, -⟩
   · -- (2026-11-02, the backend-auth-split stage) at every bucket (`rbOwn` is `rbPart ⊤`): the
     -- lessor, first on the new backend, gives its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at HnRB
     rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB Hro
+    isplitl []
+    · ileft; ipureintro; rfl
     imodintro
     simp only [List.map_nil]
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial

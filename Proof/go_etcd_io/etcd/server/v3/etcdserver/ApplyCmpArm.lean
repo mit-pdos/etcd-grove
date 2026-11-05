@@ -569,7 +569,8 @@ theorem srvRest_applyP (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ⊢
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) :=
   have hk := plainOrCmp_nonLease rq hp
   srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch hk.2 (fun h => absurd h hk.1)
@@ -585,12 +586,13 @@ theorem srvRest_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     srvGrantIf E ∗ apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗
       E.RO (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ⊢
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) := by
   have hk := (plainOrCmp_nonLease rq hp).1
-  iintro ⟨HGI, HLt, HR⟩
+  iintro ⟨HGI, HLt, HR, HU⟩
   iapply srvRest_applyP E γr A m rq v3 x x' out f ht hd hdec hv3 hch hp hs
-  iframe HGI
+  iframe HGI HU
   isplitl []
   · ipureintro
     cases out with
@@ -684,7 +686,8 @@ theorem srvRest_applyPG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ⊢
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) :=
   have hp' : plainOrCmpG E.lm rq := by rcases hp with h | h; exact Or.inl h; exact Or.inr (Or.inl h)
   srvRest_applyG E γr A m rq v3 x x' out f ht hd hdec hv3 hch (plainOrCmpG_rev _ rq hp)
@@ -787,7 +790,8 @@ theorem srvRest_applyR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
       apply.ltHalf E (apply.revokeIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
         (apply.restOut rq v3 out (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ⊢
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) := by
   have hk := hr.2.1
   have hlg : E.lg = true := apply.AEnv.lg_true_of_lm (by rw [hr.1]; decide)
@@ -801,11 +805,11 @@ theorem srvRest_applyR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
   obtain ⟨hT, hR⟩ := revokeA_table γr A m rq v3 x x' out f ht hd hdec hv3 hch hch0 hr.2 hs
     (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
     (fun id => restRevoke_restModel id _ _ _)
-  unfold srvRest srvGrantIf srvIds
+  unfold srvRest srvRestAt srvGrantIf srvIds
   simp only [hlg, ↓reduceIte, hro]
   rw [hR, ← hT, hre]
-  iintro ⟨#HG, HL, %t, HR⟩
-  iframe HL HG
+  iintro ⟨#HG, HL, ⟨%t, HR⟩, HU⟩
+  iframe HL HG HU
   iexists f
   iexact HR
 
@@ -824,7 +828,8 @@ theorem srvRest_applyPGR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
       (∃ t : w64, E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
         (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
           (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-            (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))))))) ⊢
+            (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))))))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) := by
   by_cases hk : apply.dispatchKind rq = .leaseRevoke
   · have hr : revokePropOk E.lm rq := by
@@ -835,14 +840,14 @@ theorem srvRest_applyPGR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     have hng : apply.dispatchKind rq ≠ .leaseGrant := by rw [hk]; decide
     rw [apply.grantIdsA_nonGrant _ _ _ _ hng]
     simp only [apply.grantRestA_nonGrant _ _ _ _ _ hng]
-    iintro ⟨#HG, -, HL, HR⟩
+    iintro ⟨#HG, -, HL, HR, HU⟩
     iapply srvRest_applyR E γr A m rq v3 x x' out f ht hd hdec hv3 hch hch0 hr hs
-    iframe HG HL HR
-  · iintro ⟨#HG, %Hgo, HL, HR⟩
+    iframe HG HL HR HU
+  · iintro ⟨#HG, %Hgo, HL, HR, HU⟩
     ihave ⟨HL, HR⟩ := revokeA_drop E rq v3 out _ _ _ hk $$ [$HL $HR]
     iapply srvRest_applyPG E γr A m rq v3 x x' out f ht hd hdec hv3 hch
       (plainOrCmpG_nonRev _ rq hp hk) hs
-    iframe HG HL HR
+    iframe HG HL HR HU
     ipureintro; exact Hgo
 
 open Iris.ProofMode in
