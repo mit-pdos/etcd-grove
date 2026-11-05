@@ -192,7 +192,7 @@ review; `stop_monitorRT` stays the marked `sorry`.
     configuration clause needs (`RestConf.restModel_confState`). `NewServer`'s `bootOk` has them, but
     `run`'s context does not.
   `restart3` meets both. `run.specStop` is a draft.
-- **D5. W's second field is a set-once register, not `GoNames` (2026-11-05).** `NewServer` allocates
+- **D5. W's second field is a set-once register, not `GoNames` (2026-11-05; an implementation detail within the user's approval of the smaller design, confirmed by the coordinator: the register's ownership travels inside `srvWTBudget`'s body, not as a new conjunct of a hub statement).** `NewServer` allocates
   the pool (stage B3), but `γg` exists only later, in `start` (`goAttach_init` needs the `stopping`
   channel, which `start` makes). So `W = ⟨cnt, reg⟩`:
   - `NewServer` allocates `dghostVar reg (own 1) none`;
