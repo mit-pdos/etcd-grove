@@ -486,6 +486,171 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     iapply HΦ
     itrivial
 
+/-- `Run(d)`, from `d`'s ghost entry `g0` with nothing in flight and no directory at `seg.log`:
+it does not panic (nor is it stuck). -/
+theorem wp_Run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
+    (d : GoString) (g0 : DirG) (hp0 : g0.pend = []) (hnd : NoDirL g0) :
+    {{ osInv (GF := GF) ∗ logInv (GF := GF) d ∗
+        osDir (GF := GF) d (DFrac.own (1 : Qp).half) g0 ∗ osNsBusy (GF := GF) false }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Run)) (Val #d))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hinv, Hd, Hz⟩
+  wp_auto
+  wp_apply wp_readNames d (1 : Qp).half g0 $$ [Hos Hd] as %sl %ok ⟨Hd, Hr⟩
+  · iframe; iexact Hos
+  icases Hr with (%hok | ⟨%names, %hn, Hsl⟩)
+  · subst hok
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, hnodup, hmem⟩ := hn
+  (try wp_auto)
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+  try rw [show d ++ go!"/seg.log" = child d logB from rfl]
+  ihave IH : iprop(∃ (i : w64) (nv : GoString) (g : DirG),
+      "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ nv ∗
+      "Hd" ∷ osDir (GF := GF) d (DFrac.own (1 : Qp).half) g ∗ "Hz" ∷ osNsBusy (GF := GF) false ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ names.length ∧
+        g = (if logB ∈ names.take (sint.nat i) then g0.push (.del logB) else g0)⌝) $$ [i n Hd Hz]
+  · iexists W64 0, _, g0
+    iframe
+    ipureintro
+    refine ⟨by decide, ?_, ?_⟩ <;> rw [show sint.nat (W64 0) = 0 from rfl] <;> simp
+  wp_for IH
+  obtain ⟨hi0, hil, hg⟩ := Hi
+  wp_if_destruct
+  · have Hlt : sint.nat i < names.length := by word
+    have Hbnd : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨hi0, Hif⟩
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    obtain ⟨b, hb⟩ : ∃ b, names[sint.nat i]? = some b := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    wp_apply wp_load_slice_index sl (sint.Z i) names (DFrac.own 1) b hi0 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact hb
+    have htake : names.take (sint.nat (i + W64 1)) = names.take (sint.nat i) ++ [b] := by
+      rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word]
+      rw [List.take_add_one, hb]; rfl
+    (try wp_auto)
+    have hbt0 : b ∉ names.take (sint.nat i) := not_mem_take_of_nodup hnodup hb
+    by_cases hbl : b = logB
+    · subst hbl
+      rw [decide_eq_true (show logB = go!"seg.log" from rfl)]
+      wp_auto
+      have hg0 : g = g0 := by rw [hg, if_neg hbt0]
+      subst hg0
+      obtain ⟨x, hx⟩ : ∃ x, g.now !! logB = some x := by
+        have := (hmem logB).1 (List.mem_of_getElem? hb)
+        cases h : g.now !! logB with
+        | none => rw [h] at this; cases this
+        | some x => exact ⟨x, rfl⟩
+      obtain ⟨k, rfl⟩ : ∃ k, x = .file k := by
+        cases x with
+        | file k => exact ⟨k, rfl⟩
+        | dir => exact absurd hx (hnd g.now g.crashTo_now)
+      wp_apply wp_removeLog d k g hx $$ [Hos Hinv Hd Hz] as %err ⟨Hz, %g', Hd, %hg'⟩
+      · iframe; iframe #
+      cases err with
+      | ok ie =>
+        (try wp_auto)
+        wp_for_post
+        iapply HΦ
+        itrivial
+      | nil =>
+      obtain rfl := hg' rfl
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists i + W64 1, logB, g.push (.del logB)
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_⟩
+      rw [htake]; simp
+    rw [decide_eq_false (show ¬ b = go!"seg.log" from hbl)]
+    wp_auto
+    wp_for_post
+    iframe
+    iexists i + W64 1, b, g
+    iframe
+    ipureintro
+    refine ⟨by word, by word, ?_⟩
+    rw [htake, hg]; simp [Ne.symm hbl]
+  · -- the loop is done
+    have hie : sint.nat i = names.length := by word
+    rw [hie, List.take_length] at hg
+    have hn : g.now !! logB = none := by
+      rw [hg]; split
+      · rw [DirG.push_now]; exact GMap.lookup_delete_eq _ _
+      · rename_i ht
+        cases h : g0.now !! logB with
+        | none => rfl
+        | some x => exact absurd ((hmem logB).2 (by rw [h]; rfl)) ht
+    (try wp_auto)
+    wp_apply wp_newData as %sl2 Hsl2
+    (try wp_auto)
+    wp_apply wp_Segment wp_Fd wp_Close wp_WriteAt wp_Fdatasync d g hn sl2 (DFrac.own 1)
+      $$ [Hos Hinv Hd Hz Hsl2] as %e %err ⟨Hz, Hr⟩
+    · iframe; iframe #
+    icases Hr with (⟨%hr, %k, Hd, Hsf⟩ | %herr)
+    rotate_left
+    · cases err with
+      | nil => exact absurd rfl herr
+      | ok ie =>
+      (try wp_auto)
+      iapply HΦ
+      itrivial
+    obtain ⟨rfl, rfl⟩ := hr
+    (try wp_auto)
+    rw [show (W64 2 ||| W64 64) = W64 66 from by decide]
+    have hk1 : (g.push (.put logB (.file k))).now !! logB = some (.file k) := by
+      rw [DirG.push_now]; exact GMap.lookup_insert_eq _ _ _
+    unfold segFile
+    icases Hsf with ⟨%m, %bs, %hm, Hm, Hb⟩
+    obtain ⟨hmaps, hsz, hbl⟩ := hm
+    wp_apply wp_openLogExisting d k _ _ hk1 (DFrac.own 1) (some m) (W32 384) $$ [Hos Hd Hm Hz]
+      as %f %err ⟨-, Hd, Hm, Hz, Hr⟩
+    · iframe; iexact Hos
+    icases Hr with (⟨%fd, %herr, Hf, Ho, Hfd⟩ | %herr)
+    rotate_left
+    · cases err with
+      | nil => exact absurd rfl herr
+      | ok ie =>
+      (try wp_auto)
+      iapply HΦ
+      itrivial
+    obtain ⟨rfl, hfd0⟩ := herr
+    (try wp_auto)
+    wp_apply os.File.Seek.wp_start f fd (child d logB) (DFrac.own 1) (W64 0) (W64 8) (by decide)
+      (by decide) $$ [Hf Ho] as ⟨Hf, Ho⟩
+    · iframe
+    (try wp_auto)
+    wp_apply wp_ZeroToEnd wp_Fd f fd (child d logB) (DFrac.own 1) (DFrac.own 1) k m bs hfd0 hmaps hsz hbl
+      $$ [Hos Hf Ho Hfd Hm Hb] as %err ⟨Hf, Hfd, -, Hr⟩
+    · iframe; iexact Hos
+    icases Hr with (⟨%herr, %m', %hm', Hm, Hb⟩ | %herr)
+    rotate_left
+    · cases err with
+      | nil => exact absurd rfl herr
+      | ok ie =>
+      (try wp_auto)
+      wp_apply wp_Close f fd (child d logB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+      · iframe; iexact Hos
+      (try wp_auto)
+      iapply HΦ
+      itrivial
+    subst herr
+    (try wp_auto)
+    wp_apply wp_Close f fd (child d logB) ⟨k, true, true⟩ $$ [Hos Hf Hfd] as %e' -
+    · iframe; iexact Hos
+    (try wp_auto)
+    wp_apply wp_Reread wp_Close d k _ _ hk1 (DFrac.own 1) (DFrac.own 1) m' (bs.take 8) hm'.1 hm'.2
+      (by rw [List.length_take, hbl]; rfl) $$ [Hos Hd Hm Hb] as %sl3 %err3 -
+    · iframe; iexact Hos
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+
 end prog
 
 end osfs_walfs
