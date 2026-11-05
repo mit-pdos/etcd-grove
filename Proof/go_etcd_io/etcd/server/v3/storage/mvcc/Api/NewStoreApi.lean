@@ -78,8 +78,9 @@ variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 /-- **(Placeholder, false in general.)** The range deleter `NewStore` gives the lessor
 (`SetRangeDeleter(func() TxnDelete { return s.Write(traceutil.TODO()) })`) meets `mvccDeleter`: it
-is the store's `Write`, whose contract is `KV.Write.contract`'s at `*store`. M1-REPLACE:
-`KV.Write.contract` (and `mvccTxn` defined). -/
+is the store's `Write`, whose contract is `KV.Write.contract`'s at `*store` (`New`'s, track A: the
+watchable store's `Write`, at `*watchableStore`). M1-REPLACE: `KV.Write.contract` (and `mvccTxn`
+defined). -/
 theorem mvccDeleter_M1 (rd : GoFunc) (γ : MvccName) : ⊢ mvccDeleter (GF := GF) rd γ := by
   sorry -- M1-REPLACE: KV.Write.contract (the deleter is the store's Write)
 

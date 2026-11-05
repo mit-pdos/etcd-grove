@@ -34,6 +34,51 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+omit package_sem in
+/-- **The restored store's cut** (track A, 2026-11-06): at the restored log `L`, the image's entries
+`ents` cut at its records' compaction revision (`restoreImageM`'s), nothing deleted yet, the image's
+records `r` and the job's cursor at the finished record, before every entry, the tracked
+compaction's pure fact holds. -/
+theorem mvcc.cmpOk_restored (L : mvcc.Log) (hb : mvcc.LogB L) (r : mvcc.CmpRecs)
+    (ents : List mvcc.KvEnt) (hrec : mvcc.recsOk L r) (hpos : mvcc.recsPos r)
+    (hcut : mvcc.entsCutAt L r.crev ents) :
+    mvcc.snap.cmpOk L (mvcc.bucketOfEnts ents) (∅ : backend.VData) r
+      (r.finRev, (⟨W64 0, W64 0⟩ : mvcc.Rev)) := by
+  have hfb := mvcc.CmpRecs.finRev_bounds L r hrec
+  refine ⟨ents, hcut, ?_, hrec, hpos, ?_, ?_, hfb.1, hfb.2, Int.le_refl _⟩
+  · intro k
+    simp [mvcc.snap.physLookup]
+  · intro k h; simp at h
+  · intro e he hlt _
+    have hbd := mvcc.logEnts_bounds L hb.1 hb.2 0 L.length (Nat.le_refl _) e he
+    unfold mvcc.Rev.lt at hlt
+    have h0 : sint.Z (W64 0) = 0 := by decide
+    simp only [h0] at hlt
+    omega
+
+/-- **The restored store's tracked compaction** (track A, 2026-11-06; in place of `cmpTrack_new_M1`
+at `store.Restore`): the image's values' halves at its records (`restoreImageM`'s on-arm, from the
+open's exact `fkCl`), nothing deleted, and the new names' fresh ghost state at the records (the
+compaction revision's half, the job cursor's half at the finished record and the lower bounds'
+authority at the compaction revision). -/
+theorem mvcc.cmpTrack_restored (γ : mvcc.StoreNames) (d' : mvcc.KBReal) (hk : γ.kb = some d')
+    (hon : d'.cm = true) (L : mvcc.Log) (hb : mvcc.LogB L) (r : mvcc.CmpRecs)
+    (ents : List mvcc.KvEnt) (hrec : mvcc.recsOk L r) (hpos : mvcc.recsPos r)
+    (hcut : mvcc.entsCutAt L r.crev ents) :
+    mvcc.kbVals (GF := GF) (some d') (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∅ ∗
+      ghostVar γ.rcv (1 : Qp).half r.crev ∗
+      ghostVar γ.jc (1 : Qp).half (r.finRev, (⟨W64 0, W64 0⟩ : mvcc.Rev)) ∗
+      monoNatAuthOwn γ.rcl 1 (mvcc.crevN r.crev) ⊢
+      mvcc.cmpTrack γ L (mvcc.bucketOfEnts ents) r := by
+  unfold mvcc.cmpTrack
+  rw [hk]
+  simp only [hon, ↓reduceIte, mvcc.kbVals]
+  iintro ⟨⟨Hf, Hd⟩, Hr, Hj, Hl⟩
+  iframe Hf Hr Hl
+  iexists ∅, (r.finRev, (⟨W64 0, W64 0⟩ : mvcc.Rev))
+  iframe Hd Hj
+  ipureintro; exact mvcc.cmpOk_restored L hb r ents hrec hpos hcut
+
 theorem mvcc.store.Restore.wp_proof
     (hStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hNewIdx : mvcc.newTreeIndex.spec (GF := GF) (hG := hG))
@@ -193,16 +238,18 @@ theorem mvcc.store.Restore.wp_proof
     imod (saved_prop_alloc (GF := GF) P' DFrac.discard DFrac.valid_discard) with ⟨%γh', #Hh'⟩
     imod ghostVar_alloc (GF := GF) () with ⟨%γwk', Hwk'⟩
     imod ghostVar_alloc (GF := GF) ([[], []] ++ R) with ⟨%γwv', Hwv'⟩
-    imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm', Hmeta'⟩
-    imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin', Hfin', -⟩
+    -- (track A, 2026-11-06) the meta keys' record and the finished counter at the image's records
+    imod ghostVar_alloc (GF := GF) ((r.sched, r.fin) : Option w64 × Option w64) with ⟨%γm', Hmeta'⟩
+    imod mono_nat_own_alloc (GF := GF) (mvcc.crevN (mvcc.finRev r.fin)) with ⟨%γfin', Hfin', -⟩
     imod ghostVar_alloc (GF := GF) true with ⟨%γmk', Hmk'⟩
-    imod ghostVar_alloc (GF := GF) (-1 : Int) with ⟨%γrcv', Hrcv'⟩
+    imod ghostVar_alloc (GF := GF) r.crev with ⟨%γrcv', Hrcv'⟩
     icases ghostVar_halves γrcv' _ $$ Hrcv' with ⟨Hrcv', -⟩
-    -- (the job, 2026-11-06) the job's cursor, at no job, and the lower bounds' authority
-    imod ghostVar_alloc (GF := GF) (((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev)) : Int × mvcc.Rev)
+    -- (the job, 2026-11-06; track A) the job's cursor at the finished record, before every entry,
+    -- and the lower bounds' authority at the records' compaction revision
+    imod ghostVar_alloc (GF := GF) ((r.finRev, (⟨W64 0, W64 0⟩ : mvcc.Rev)) : Int × mvcc.Rev)
       with ⟨%γjc', Hjc'⟩
     icases ghostVar_halves γjc' _ $$ Hjc' with ⟨Hjc1', Hjc2'⟩
-    imod mono_nat_own_alloc (GF := GF) (mvcc.crevN (-1)) with ⟨%γrcl', Hrcl', -⟩
+    imod mono_nat_own_alloc (GF := GF) (mvcc.crevN r.crev) with ⟨%γrcl', Hrcl', -⟩
     obtain ⟨p', hnv, hcmn, hb, hh, hk, hm, hfin, hs, hwk, hwv, hmk, hsx, hrcv, hjc, hrcl⟩ :
         ∃ p' : mvcc.PhysNames,
         p'.nev = nv ∧ p'.cmp = cm ∧ p'.bucket = γb' ∧ p'.hook = γh' ∧ p'.kb = some d' ∧
@@ -271,18 +318,18 @@ theorem mvcc.store.Restore.wp_proof
     -- the compaction's fresh record and the write right's key
     icases mvcc.mwSlot_alloc (γ.withPhys p') $$ [Hmk'] with ⟨Hslot, Hmwr⟩
     · simp only [mvcc.StoreNames.withPhys_mwk]; iexact Hmk'
-    -- (a placeholder until M3's exact open and the image's cut) the tracked compaction
+    -- the tracked compaction at the image's records (track A: the values' halves from the image)
     ihave HtrC : mvcc.cmpTrack (GF := GF) (γ.withPhys p') ([[], []] ++ R) (mvcc.bucketOfEnts ents)
-        ⟨none, none⟩ $$ [Hrcv' Hjc2' Hrcl']
-    · iapply mvcc.cmpTrack_new_M1 _ _ _ _ ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev))
+        r $$ [Hvals Hrcv' Hjc2' Hrcl']
+    · iapply mvcc.cmpTrack_restored (γ.withPhys p') d' (by simp only [mvcc.StoreNames.withPhys_kb, hk])
+        hd'on _ hlb r ents hrec hpos hcut
       rw [mvcc.StoreNames.withPhys_rcv, mvcc.StoreNames.withPhys_jc, mvcc.StoreNames.withPhys_rcl,
-        hrcv, hjc, hrcl,
-        show (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 from mvcc.CmpRecs.crev_empty]
-      iframe Hrcv' Hjc2' Hrcl'
+        hrcv, hjc, hrcl]
+      iframe Hvals Hrcv' Hjc2' Hrcl'
     ihave Hcres : mvcc.compactRes (GF := GF) (γ.withPhys p') ([[], []] ++ R)
         $$ [Hmeta' Hfin' Hslot HviewC HtrC]
     · iunfold mvcc.compactRes
-      iexists none, none, 0, mvcc.bucketOfEnts ents
+      iexists r.sched, r.fin, mvcc.crevN (mvcc.finRev r.fin), mvcc.bucketOfEnts ents
       iunfold mvcc.metaCompact
       simp only [mvcc.StoreNames.withPhys_cmeta, mvcc.StoreNames.withPhys_fin]
       iframe Hmeta' Hfin' Hslot HviewC HtrC
@@ -534,13 +581,13 @@ theorem mvcc.store.Restore.wp_proof
             · iapply (mvcc.compactJobResM_on _ hon').2
               simp only [mvcc.StoreNames.withPhys_kb, hk]
               iframe HjRT Hsr
-            iexists ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev))
+            iexists (r.finRev, (⟨W64 0, W64 0⟩ : mvcc.Rev))
             isplitl [Hjc1']
             · iapply mvcc.jobCur_intro
               rw [mvcc.StoreNames.withPhys_jc, hjc]; iexact Hjc1'
             ipureintro
-            show (-1 : Int) ≤ r.crev
-            omega
+            show r.finRev ≤ r.crev
+            exact hfb.2
           iintro ⟨-, H⟩
           iexact H
         iexists ⟨b', ti, sc, stopc⟩

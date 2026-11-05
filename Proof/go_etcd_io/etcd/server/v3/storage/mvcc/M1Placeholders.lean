@@ -16,7 +16,8 @@ caller's ghost steps (`Api/TxnSteps.lean`: `endCb`, `wsEndCb`) and the frozen st
 
 The snapshot image's store-side tracking (2026-11-05, `notes/mvcc-api-invariants.md`, "the snapshot
 image's tracking in place"): the batch lock's resource pins the tracked compaction (`cmpTrack`), so
-the steps that move it must re-establish it; the one not yet proved is `cmpTrack_new_M1` below (the
+the steps that move it must re-establish it; all are proved (`cmpTrack_new_M1` is gone, track A,
+2026-11-06: `NewStore`'s `cmpTrack_fresh`, `store.Restore`'s `cmpTrack_restored` from the image; the
 job's, `cmpTrack_job_M1`, is gone: the job's cursor and its per-entry cut, `Api/CmpJob.lean`,
 2026-11-06; `regLent_excl_M1` and `rcvSched_M1` are gone: `updateCompactRev` fires its caller's ghost
 step, `cmpCb`, inside `SetScheduledCompact`'s loan, with the writer's state found checked in, the
@@ -54,17 +55,6 @@ M1-REPLACE: `KV.Write.contract` (the writer's backend share, `mvccBackend γ q`,
 compaction, `compactLockfree`'s excluder: the restorer's share). -/
 theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢ False := by
   sorry -- M1-REPLACE: KV.Write.contract, KV.Restore.contract (the backend share)
-
-/-- **(Placeholder, false in general.)** A new batch lock's tracked compaction (`NewStore`'s and
-`store.Restore`'s), from the halves of the records' compaction revision and of the job's cursor
-(at the last job's `jc`) and the lower bounds' authority only. M1-REPLACE: M3's exact open
-(`mvccBackendFor_open.law`: the backend's open gives `fkdOwn γ (fkVals D) ∗ dlsOwn γ ∅`, `fkCl`),
-the image's cut (`imageOk`'s `ents`), and `NewStore`'s and `Restore`'s order (the values' halves
-taken before `restore()`). -/
-theorem cmpTrack_new_M1 (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) (jc : Int × Rev) :
-    ghostVar (GF := GF) γ.rcv (1 : Qp).half rc.crev ∗ ghostVar γ.jc (1 : Qp).half jc ∗
-      monoNatAuthOwn γ.rcl 1 (crevN rc.crev) ⊢ cmpTrack γ L m rc := by
-  sorry -- M1-REPLACE: M3's exact open, the image's cut (NewStore, store.Restore)
 
 end placeholders
 
