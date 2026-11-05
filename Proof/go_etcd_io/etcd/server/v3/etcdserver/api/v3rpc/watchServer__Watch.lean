@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 set_option hygiene false in
 /-- `Watch`'s end, after the `select`: `sws.close()`, then `return err`. -/
 local macro "watch_tail" : tactic => `(tactic| (
-  wp_apply hClose sws_ptr r Up Dn st ci cd (W32 0 + W32 1) iprop(True ∗ True)
+  wp_apply hClose sws_ptr r Up Dn _ ci cd (W32 0 + W32 1) iprop(True ∗ True)
     $$ [Hcl Htt Hcc Hadd] as Htt
   · iframe #; iframe
   iapply HΦ
@@ -73,9 +73,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) := by
   intro p R W st γs Up Dn ci cd
-  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Htt⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ kv γ, Persistent (mvcc.api.isMvcc (GF := GF) kv γ) := hP.1
+  have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
+  have := v3rpc.swsIs_persistent (GF := GF) hP
+  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, HRD, %Htb, Htt⟩
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
   icases HWS' with ⟨%Hnn, #Plg, #Pcid, #Pmid, #Pmrb, #Psg, #Pwa, #Pag, #Hsrv⟩
@@ -158,7 +160,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
   · iunfold v3rpc.swsIs
     rw [hP]
     iframe #
-    ipureintro; exact ⟨Hswsn, Hnn.2⟩
+    isplitr
+    · ipureintro; exact ⟨Hswsn, Hnn.2⟩
+    isplitr
+    · simp only [r, v3rpc.auxOf]; iexact HauxIs
+    simp only [r, v3rpc.wsInv]; iexact Hinv
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
     $$ [$Hadd] as ⟨Hadd, Hdone⟩
   · iframe #; ipureintro; decide

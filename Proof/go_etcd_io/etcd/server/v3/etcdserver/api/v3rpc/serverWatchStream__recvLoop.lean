@@ -38,7 +38,7 @@ set_option hygiene false in
 /-- `sws.watchStream.Rev()` (its update `rev_au`, nothing learned), into `%rv`. -/
 macro "ws_rev" : tactic => `(tactic| (
   ihave Hrau := v3rpc.rev_au hP r.W r.srv.wsl $$ HW
-  wp_apply (hRev r.W.γm r.ι (fun _ => iprop(True))) $$ [$Htt $Hrau] as %rv ⟨Htt, -⟩
+  wp_apply (hRev r.W.γm r.ι (fun _ => iprop(True))) $$ [$(frameH `Htt) $(frameH `Hrau)] as %rv ⟨Htt, -⟩
   · iframe #))
 
 set_option hygiene false in
@@ -194,6 +194,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd L0 sent0
+  have := v3rpc.swsIs_persistent (GF := GF) hP
   wp_start as ⟨#Hsws, Hrt, Hprod, Hpool, HRD, Htt⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
@@ -267,6 +268,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       iapply HΦ
       isplitr
       · ipureintro; left; rfl
+      iframe Htt
       iexists sent; iexact Hprod
     iunfold v3rpc.watchReqRecv at Hreq
     icases Hreq with ⟨%u, #Hu, Hm⟩
@@ -312,14 +314,14 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       wp_if_destruct
       · -- a negative start revision: the compacted response
         ws_rev
-        wp_apply (hHdr sws r Up Dn st ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+        wp_apply (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
         · iframe #
         err_msg eC HeCm
         create_refused msg
       -- the permission check
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
-      wp_apply hPerm sws r Up Dn st ci cd cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
+      wp_apply hPerm sws r Up Dn _ ci cd cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
         (DFrac.own 1) (DFrac.own 1) c.bound $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, #Hcls⟩
       · iframe #
         ipureintro
@@ -459,6 +461,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           iframe Hfl
           isplitr
           · ipureintro; rfl
+          simp only [List.zip_nil_left]
           iapply BigSepL.bigSepL_nil.2; iempintro
         -- `Watch`'s update (O1): from the run's invariant and the server's peek
         ihave Hwau := v3rpc.watch_au (v3rpc.cancelQ r.γs) hP r.W r.srv.wsl r.ι r.γreg r.γtok r.γcl
@@ -499,7 +502,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
               exact ⟨Herr, Hrng0⟩
             iexists σ
             iexact HQ
-        icases Hout with (#Hge | ⟨%Hwe, %σ, %i, #Hreg, Hidt, #Hk, #Hlog, %Hi⟩)
+        icases Hout with (#Hge | ⟨%Hwe, %σ, %i, #Hreg, Hidt, #Hk, Hlog, %Hi⟩)
         rotate_left
         · -- registered
           obtain ⟨Hwe, Hrng⟩ := Hwe
@@ -534,7 +537,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             iframe
             ipureintro; exact HVF
           ws_rev
-          wp_apply (hHdr sws r Up Dn st ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+          wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
           · iframe #
           wp_auto_lc 3
           irename «$r0» => Hwr
@@ -560,7 +563,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             · ipureintro; exact ⟨rfl, rfl⟩
             isplit
             · iunfold isSpsc at Hspsc; icases Hspsc with ⟨$, -⟩
-            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans Hidt]
+            iapply spsc_send_au r.γctrl r.ctrl _ _ sent «$r0_ptr» _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hans Hidt Hlog]
             · iframe Hprod
               iunfold v3rpc.ctrlP
               iexists m
@@ -586,7 +589,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
                   · simp [h2, Hes2.2 h1]
                   · simp only [h1, h2, ↓reduceIte, Hes2.2 h1]
               iframe Hreg Hidt Hk
-              isplitr
+              isplitl [Hlog]
               · -- the first revision: the start revision, or the certified log's length
                 by_cases h0 : c.startRev = W64 0
                 · rw [ite_eq_left h0]
@@ -635,9 +638,9 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           subst Hwei
           wp_auto
           ws_rev
-          wp_apply (hHdr sws r Up Dn st ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+          wp_apply (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
           · iframe #
-          wp_auto
+          (try wp_auto)
           err_msg ei Heim
           create_refused msg
       -- not permitted: the denied response
@@ -683,7 +686,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
           wp_auto
           wp_join_done
       ws_rev
-      wp_apply (hHdr sws r Up Dn st ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+      wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
       · iframe #
       create_refused reason
     · -- cancel
@@ -703,11 +706,12 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         iexact Hat
       wp_apply (hCancel r.W.γm r.ι cid (fun _ => iprop(True))) $$ [$Htt $Hcau] as %cerr ⟨Htt, -⟩
       · iframe #
-      wp_auto
-      wp_if_destruct
+      rcases cerr with ce | _
+      rotate_left
       · -- `err == nil`: the canceled response (whichever of `Cancel`'s outcomes)
+        wp_auto
         ws_rev
-        wp_apply +noauto (hHdr sws r Up Dn st ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
+        wp_apply +noauto (hHdr sws r Up Dn _ ci cd) $$ [] as %h ⟨%t, %ld, #Hh⟩
         · iframe #
         wp_auto_lc 3
         irename «$r0» => Hwr
@@ -794,6 +798,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         iapply BigAndL.bigAndL_nil.2
         itrivial
       · -- an error: nothing
+        wp_auto
         recv_next
     · -- progress
       ihave ⟨Hrt, #Hat⟩ := v3rpc.srvRecvTok_upAtW r.γs L .progress $$ Hrt
@@ -833,6 +838,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; right; exact HeofL.2
+    iframe Htt
     iexists _; iexact Hprod
   · -- another error
     iunfold v3rpc.streamErr at Hse
@@ -850,6 +856,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       iapply HΦ
       isplitr
       · ipureintro; right; exact Hty
+      iframe Htt
       iexists _; iexact Hprod
     · exact absurd rfl Hne
 

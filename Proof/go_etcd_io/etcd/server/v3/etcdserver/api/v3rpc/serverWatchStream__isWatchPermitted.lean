@@ -50,11 +50,11 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.isWatchPermitted.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd wcr ks es k e dk de n
-  wp_start as ⟨#Hs, HRD, #HaLb, #Hpub, Hk, #Hks, He, #Hes, %Hkl⟩
+  wp_start as ⟨Hs, HRD, #HaLb, #Hpub, Hk, #Hks, He, #Hes, %Hkl⟩
   iunfold v3rpc.swsIs at Hs
   icases Hs with ⟨%Hnn, -, -, -, -, -, -, #Hag, #Hst, -, -, -, -, -, -, #Hok, #Hstr, -⟩
   iunfold v3rpc.watchSrvOk at Hok
-  icases Hok with ⟨-, ⟨%sta, %cca, %P, %f, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
+  icases Hok with ⟨-, ⟨%sta, %cca, %P, %f, %BT, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr
   icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, -⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []

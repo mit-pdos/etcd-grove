@@ -31,7 +31,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem v3rpc.serverWatchStream.newResponseHeader.wp_proof :
     v3rpc.serverWatchStream.newResponseHeader.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd rev
-  wp_start as #Hs
+  wp_start as Hs
   iapply wp_fupd
   iunfold v3rpc.swsIs at Hs
   icases Hs with ⟨%Hnn, -, #Hcid, #Hmid, -, #Hsg, -, -, -, -, -, -, -, -, -, #Hok, -⟩

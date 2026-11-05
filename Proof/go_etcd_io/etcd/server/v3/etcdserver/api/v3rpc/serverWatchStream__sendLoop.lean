@@ -1541,6 +1541,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (hRER : mvcc.ReportEventReceived.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd
+  have := v3rpc.swsIs_persistent (GF := GF) hP
   wp_start as ⟨#Hsws, Hst, Hcons, Hwc, HA, %Hiv, Hmu, Htt⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1

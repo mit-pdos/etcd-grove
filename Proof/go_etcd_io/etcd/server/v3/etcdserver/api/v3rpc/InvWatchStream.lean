@@ -346,8 +346,6 @@ theorem watchAuthed_elim (tag : GName) (s : Loc) (tok : Option GoString) (n : Na
         ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
   unfold watchAuthed; iintro H; iexact H
 
-/-- **The watcher a created response names** (the watch slice's units W-M and W-C): for a
-
 /-- **The stream's cancellation reason** (unit W-K, K1b): the client sent a cancel request for
 `id`. `recvLoop` has it when it calls `Cancel id`, and keeps it in the run's invariant (`wsInv`)
 for the watcher it makes not live, so a progress response of id `-1` covers every watcher of the

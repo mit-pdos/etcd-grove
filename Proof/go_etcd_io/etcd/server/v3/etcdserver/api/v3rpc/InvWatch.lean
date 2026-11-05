@@ -160,10 +160,11 @@ theorem watchVars_of_init :
 /-- **The server's contract for the watch path** (persistent; see the file header). -/
 def watchSrvOk (s : Loc) (E : apply.AEnv GF) (tag : GName) : IProp GF :=
   iprop(raftStatusOk s ∗
-    (∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
+    (∃ (st : GoInterface) (cca : Bool) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc)
+        (BT : mvcc.api.BkRef → IProp GF),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authMode E.RW) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st Pk f BT E.RD E.authMode E.RW) ∗
     watchVars ∗ auth.modeTag tag E.authMode ∗
     -- (G2, 2026-10-30) the server's auth store at a reader's lower bound (what
     -- `isWatchPermitted` takes for a create's bound)
@@ -476,6 +477,15 @@ def swsIs (sws : Loc) (r : WRun GF) (Up : Nat → WatchReqM → IProp GF)
     isSpsc r.γctrl r.ctrl (ctrlP r ci) (fun _ => iprop(True)) ∗
     ownBroadcastChan r.cc r.γcc iprop(True) .Unknown ∗
     sync.isRWMutexGuard (hlc := HasLC.hasLC) (swsF sws go!"mu") (swsMu r.pm r.vm r.fm))
+
+/-- `swsIs` is persistent (its mvcc parts by the API's `persistent.law`). -/
+theorem swsIs_persistent (hP : mvcc.api.persistent.law (GF := GF)) (sws : Loc) (r : WRun GF)
+    (Up : Nat → WatchReqM → IProp GF) (Dn : Nat → WatchRespM → IProp GF) (st : GoInterface)
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (swsIs sws r Up Dn st ci cd) := by
+  have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
+  have := srvWOk_persistent hP r.W r.srv.wsl wsN
+  unfold swsIs; infer_instance
 
 /-- **A run's resources** (what grpc's run slot holds for a watch stream; the draft's
 `R.E.RD ∗ ⌜threadBound …⌝`): the auth store's reader resource (`isWatchPermitted`) and the thread

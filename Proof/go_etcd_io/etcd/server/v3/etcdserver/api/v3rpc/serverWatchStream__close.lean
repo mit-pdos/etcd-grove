@@ -34,6 +34,7 @@ theorem v3rpc.serverWatchStream.close.wp_proof
     (hP : mvcc.api.persistent.law (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG) := by
   intro sws r Up Dn st ci cd n P
+  have := v3rpc.swsIs_persistent (GF := GF) hP
   wp_start as ⟨#Hsws, Htok, Htt, Hcc, Hadd⟩
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
   ihave #Hsws' := Hsws
