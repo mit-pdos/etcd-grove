@@ -14,6 +14,7 @@ Untrusted.
 module
 
 public import GooseLang.Ext.OsFs.Specs
+public import GooseLang.Ext.OsFs.NsLemmas
 
 @[expose] public section
 
@@ -184,5 +185,182 @@ instance osNsBusy_timeless (b : Bool) : Timeless (osNsBusy (L := L) b) := by
   unfold osNsBusy; infer_instance
 
 end resources
+
+/-! ## Specs -/
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
+  [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+variable {s : Stuckness} {E : CoPset}
+attribute [local instance] Classical.propDecidable
+
+/-- A step that leaves the files alone exists from any heap the cells' view agrees with. -/
+theorem step_filesSame {st st' : OsState} {h : GMap Loc (NonAtomic val)} (hwf : OsWf st)
+    (hs : FilesSame st st')
+    (Hag : ∀ l x, cellView st !! l = some x → ∃ m, h !! l = some (m, toCellVal x.1)) :
+    MapsFresh st st' h ∧ HeapRendered st st' h h :=
+  ⟨mapsFresh_same hs.2.2.2,
+    heapRendered_same (osWf_filesSame hs hwf) hs.2.2.2 (cellView_filesSame hs) Hag⟩
+
+theorem filesSame_refl (st : OsState) : FilesSame st st := ⟨rfl, rfl, rfl, rfl⟩
+
+/-- `Regime(p)` of a directory of the namespace, or of a valid name in it: `1`. -/
+theorem wp_osRegimeNs (p d : GoString) (dq : DFrac) (g : DirG)
+    (hp : p = d ∨ ∃ b, NameOk b ∧ p = child d b) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDir (L := L) d dq g -∗
+      (osDir (L := L) d dq g -∗ Φ (#(1 : w64))) -∗
+      WP (ExternalOp osFsExt.name "Regime" (Val (#p))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hd HΦ
+  iapply wp_os_stepN "Regime" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDir
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hpf : p ∉ st.files := by
+    rcases hp with rfl | ⟨b, hb, rfl⟩
+    · exact hw.dir_not_files hdir
+    · exact hw.child_not_files hdir hb
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_refl st) Hag
+    exact ⟨_, h, st, ⟨p, rfl, rfl, rfl⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨p', hv, hst, rfl⟩ := Hst
+  subst st'
+  cases go.intoVal_inj hv
+  imod osWorld_filesSame (filesSame_refl st) Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
+  · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, Γdf
+  unfold osWorld
+  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  iframe
+  isplitr
+  · ipureintro; exact Hwc'
+  isplitr
+  · ipureintro; exact ⟨hw, hc⟩
+  iapply wp_value'
+  rw [if_neg hpf]
+  iapply HΦ $$ Hd
+
+/-- `FdKind(fd)` of a directory fd: `1`. -/
+theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : GoString × DirPh) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDirFd (L := L) fd dq x -∗
+      (osDirFd (L := L) fd dq x -∗ Φ (#(1 : w64))) -∗
+      WP (ExternalOp osFsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd HΦ
+  iapply wp_os_stepN "FdKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDirFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  obtain ⟨df, hdf⟩ : ∃ df, st.dfds !! fd = some df := by
+    have := hc.fds fd; rw [Hfl] at this
+    cases h0 : st.dfds !! fd with
+    | none => rw [h0] at this; cases this
+    | some df => exact ⟨df, rfl⟩
+  have hnf : st.fds !! fd = none := by
+    cases h0 : st.fds !! fd with
+    | none => rfl
+    | some d => have := hw.disj fd (by rw [h0]; simp); rw [hdf] at this; cases this
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_refl st) Hag
+    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr ⟨hnf, ⟨df, hdf⟩, rfl⟩⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', hv, hst, hres⟩ := Hst
+  subst st'
+  cases go.intoVal_inj hv
+  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩
+  · rw [hnf] at hd; cases hd
+  imod osWorld_filesSame (filesSame_refl st) Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
+  · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, Γdf
+  unfold osWorld
+  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  iframe
+  isplitr
+  · ipureintro; exact Hwc'
+  isplitr
+  · ipureintro; exact ⟨hw, hc⟩
+  iapply wp_value'
+  iapply HΦ $$ Hfd
+
+/-- `NsBegin()`, with the in-flight flag unset: it is set. -/
+theorem wp_osNsBegin (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osNsBusy (L := L) false -∗
+      (osNsBusy (L := L) true -∗ Φ (#())) -∗
+      WP (ExternalOp osFsExt.name "NsBegin" (Val (#()))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hz HΦ
+  iapply wp_os_stepN "NsBegin" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osNsBusy
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hb : st.nsBusy = false := by
+    simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
+  obtain ⟨st1, hst1⟩ : ∃ st1 : OsState, st1 = { st with nsBusy := true } := ⟨_, rfl⟩
+  have hs : FilesSame st st1 := by subst hst1; exact ⟨rfl, rfl, rfl, rfl⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf hs Hag
+    exact ⟨_, h, st1, ⟨rfl, hb, hst1, rfl⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨-, -, hst', rfl⟩ := Hst
+  have : st' = st1 := hst'.trans hst1.symm
+  subst this
+  imod osWorld_filesSame hs Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
+  · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh⟩
+  imod gAuth_update _ _ _ _ _ true $$ HAz Hz with ⟨HAz, Hz⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, Γdf
+  unfold osWorld
+  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  have : (<[() := true]> (busyMap st.nsBusy)) = busyMap st'.nsBusy := by
+    subst hst'; apply GMap.ext; intro u; cases u; simp [busyMap]
+  rw [this] at *
+  iframe
+  isplitr
+  · ipureintro; exact Hwc'
+  isplitr
+  · ipureintro
+    subst hst'
+    refine ⟨?_, hc.congr rfl rfl rfl rfl⟩
+    exact ⟨hw.roots, hw.replay, hw.hist, hw.legacy, hw.dfds, hw.disj⟩
+  iapply wp_value'
+  iapply HΦ $$ Hz
+
+end specs
 
 end Perennial

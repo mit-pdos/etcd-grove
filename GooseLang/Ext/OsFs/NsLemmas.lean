@@ -350,6 +350,141 @@ theorem nsCoh_fileOp {d : GoString} {g : DirG} {o : NsOp} {lo : LOp}
 
 end coh
 
+/-! ## The shape a file operation keeps -/
+
+section shape
+variable {R : List GoString} {m : NsMap}
+
+theorem shape_create {d b k : GoString} (hs : NsShape R m) (hd : m !! d = some .dir)
+    (hdf : ∃ r ∈ R, d = r ∨ CanonBelow r d) (hb : NameOk b) (hn : m !! child d b = none)
+    (hk : ∀ q, m !! q ≠ some (.file k)) : NsShape R (<[child d b := .file k]> m) := by
+  obtain ⟨hR, hP, hL⟩ := hs
+  have hne : ∀ q, m !! q = some .dir → child d b ≠ q := fun q hq h => by subst h; rw [hn] at hq; cases hq
+  refine ⟨fun r hr => ?_, fun p x hp => ?_, fun p q k' hp hq => ?_⟩
+  · rw [GMap.lookup_insert_ne _ _ (hne r (hR r hr))]; exact hR r hr
+  · by_cases hpc : child d b = p
+    · subst hpc
+      obtain ⟨r, hr, hdr⟩ := hdf
+      refine .inr ⟨⟨r, hr, canonBelow_child hdr hb⟩, d, parentOf_child' d b hb, ?_⟩
+      rw [GMap.lookup_insert_ne _ _ (hne d hd)]; exact hd
+    · rw [GMap.lookup_insert_ne _ _ hpc] at hp
+      rcases hP p x hp with h | ⟨hc, dd, hdd, hddir⟩
+      · exact .inl h
+      · exact .inr ⟨hc, dd, hdd, by rw [GMap.lookup_insert_ne _ _ (hne dd hddir)]; exact hddir⟩
+  · by_cases hpc : child d b = p <;> by_cases hqc : child d b = q
+    · subst hpc; exact hqc
+    · subst hpc; rw [GMap.lookup_insert] at hp; cases hp
+      rw [GMap.lookup_insert_ne _ _ hqc] at hq; exact absurd hq (hk q)
+    · subst hqc; rw [GMap.lookup_insert] at hq; cases hq
+      rw [GMap.lookup_insert_ne _ _ hpc] at hp; exact absurd hp (hk p)
+    · rw [GMap.lookup_insert_ne _ _ hpc] at hp; rw [GMap.lookup_insert_ne _ _ hqc] at hq
+      exact hL p q k' hp hq
+
+theorem shape_remove {p k : GoString} (hs : NsShape R m) (hf : m !! p = some (.file k)) :
+    NsShape R (GMap.delete p m) := by
+  obtain ⟨hR, hP, hL⟩ := hs
+  have hne : ∀ q, m !! q = some .dir → p ≠ q := fun q hq h => by subst h; rw [hf] at hq; cases hq
+  refine ⟨fun r hr => ?_, fun p' x hp' => ?_, fun p1 q1 k' hp1 hq1 => ?_⟩
+  · rw [GMap.lookup_delete_ne _ (hne r (hR r hr))]; exact hR r hr
+  · by_cases hpp : p = p'
+    · subst hpp; rw [GMap.lookup_delete] at hp'; cases hp'
+    · rw [GMap.lookup_delete_ne _ hpp] at hp'
+      rcases hP p' x hp' with h | ⟨hc, dd, hdd, hddir⟩
+      · exact .inl h
+      · exact .inr ⟨hc, dd, hdd, by rw [GMap.lookup_delete_ne _ (hne dd hddir)]; exact hddir⟩
+  · by_cases h1 : p = p1
+    · subst h1; rw [GMap.lookup_delete] at hp1; cases hp1
+    · by_cases h2 : p = q1
+      · subst h2; rw [GMap.lookup_delete] at hq1; cases hq1
+      · rw [GMap.lookup_delete_ne _ h1] at hp1; rw [GMap.lookup_delete_ne _ h2] at hq1
+        exact hL p1 q1 k' hp1 hq1
+
+theorem shape_rename {d s bt k : GoString} (hs : NsShape R m) (hd : m !! d = some .dir)
+    (hdf : ∃ r ∈ R, d = r ∨ CanonBelow r d) (hbt : NameOk bt) (hf : m !! s = some (.file k))
+    (ht : m !! child d bt ≠ some .dir) (hne : s ≠ child d bt) :
+    NsShape R (<[child d bt := .file k]> (GMap.delete s m)) := by
+  obtain ⟨hR, hP, hL⟩ := hs
+  have hneT : ∀ q, m !! q = some .dir → child d bt ≠ q := fun q hq h => by subst h; exact ht hq
+  have hneS : ∀ q, m !! q = some .dir → s ≠ q := fun q hq h => by subst h; rw [hf] at hq; cases hq
+  have hlook : ∀ q, m !! q = some .dir →
+      (<[child d bt := OsNode.file k]> (GMap.delete s m)) !! q = some .dir := fun q hq => by
+    rw [GMap.lookup_insert_ne _ _ (hneT q hq), GMap.lookup_delete_ne _ (hneS q hq)]; exact hq
+  refine ⟨fun r hr => hlook r (hR r hr), fun p x hp => ?_, fun p q k' hp hq => ?_⟩
+  · by_cases hpt : child d bt = p
+    · subst hpt
+      obtain ⟨r, hr, hdr⟩ := hdf
+      exact .inr ⟨⟨r, hr, canonBelow_child hdr hbt⟩, d, parentOf_child' d bt hbt, hlook d hd⟩
+    · rw [GMap.lookup_insert_ne _ _ hpt] at hp
+      by_cases hps : s = p
+      · subst hps; rw [GMap.lookup_delete] at hp; cases hp
+      · rw [GMap.lookup_delete_ne _ hps] at hp
+        rcases hP p x hp with h | ⟨hc, dd, hdd, hddir⟩
+        · exact .inl h
+        · exact .inr ⟨hc, dd, hdd, hlook dd hddir⟩
+  · have hget : ∀ p k', (<[child d bt := OsNode.file k]> (GMap.delete s m)) !! p = some (.file k') →
+        (p = child d bt ∧ k' = k) ∨ (p ≠ child d bt ∧ p ≠ s ∧ m !! p = some (.file k')) := by
+      intro p k' hp
+      by_cases hpt : child d bt = p
+      · subst hpt; rw [GMap.lookup_insert] at hp; cases hp; exact .inl ⟨rfl, rfl⟩
+      · rw [GMap.lookup_insert_ne _ _ hpt] at hp
+        by_cases hps : s = p
+        · subst hps; rw [GMap.lookup_delete] at hp; cases hp
+        · rw [GMap.lookup_delete_ne _ hps] at hp
+          exact .inr ⟨Ne.symm hpt, Ne.symm hps, hp⟩
+    rcases hget p k' hp with ⟨rfl, rfl⟩ | ⟨hp1, hp2, hp3⟩ <;>
+      rcases hget q k' hq with ⟨rfl, hk⟩ | ⟨hq1, hq2, hq3⟩
+    · rfl
+    · exact absurd (hL q s _ hq3 hf) hq2
+    · subst hk; exact absurd (hL p s _ hp3 hf) hp2
+    · exact hL p q k' hp3 hq3
+
+end shape
+
+/-! ## The well-formedness a file operation keeps -/
+
+theorem nsWf_fileOp {st st1 : OsState} {o : NsOp} (hw : NsWf st)
+    (h1 : st1.ns = st.ns) (h2 : st1.nsDur = st.nsDur) (h3 : st1.nsLog = st.nsLog)
+    (h4 : st1.dfds = st.dfds) (hr : st1.roots = st.roots) (hfds : st1.fds = st.fds)
+    (hfiles : ∀ k f, st.files !! k = some (some f) → ∃ f', st1.files !! k = some (some f'))
+    (hdom : ∀ k, k ∈ st1.files → k ∈ st.files ∨ IsInoKey k)
+    (hshape : NsShape st.roots (o.apply st.ns))
+    (hkeys : ∀ p k, o.apply st.ns !! p = some (.file k) →
+      IsInoKey k ∧ ∃ f, st1.files !! k = some (some f))
+    (hdir : ∀ e, (o.apply st.ns !! e = some .dir) ↔ (st.ns !! e = some .dir)) :
+    NsWf (st1.nsDo o) := by
+  have hlog : (st1.nsDo o).nsLog = st.nsLog ++ [o] := by
+    show st1.nsLog ++ [o] = _; rw [h3]
+  have hns : (st1.nsDo o).ns = o.apply st.ns := by show o.apply st1.ns = _; rw [h1]
+  have hdur : (st1.nsDo o).nsDur = st.nsDur := h2
+  have hroots : (st1.nsDo o).roots = st.roots := hr
+  refine ⟨hroots ▸ hw.roots, ?_, fun n hn => ?_, fun k hk hni r hr' => ?_, fun fd df hdf => ?_,
+    fun fd hfd => ?_⟩
+  · rw [hns, hlog, hdur, nsReplay_snoc, ← hw.replay]
+  · rw [hlog] at hn ⊢; rw [hdur, hroots]
+    simp only [List.length_append, List.length_singleton] at hn
+    by_cases hle : n ≤ st.nsLog.length
+    · rw [List.take_append_of_le_length hle]
+      obtain ⟨hs, hk⟩ := hw.hist n hle
+      refine ⟨hs, fun p k hp => ?_⟩
+      obtain ⟨hino, f, hf⟩ := hk p k hp
+      exact ⟨hino, hfiles k f hf⟩
+    · rw [List.take_of_length_le (by simp; omega), nsReplay_snoc, ← hw.replay]
+      exact ⟨hshape, hkeys⟩
+  · rw [hroots] at hr'
+    rcases hdom k hk with h | h
+    · exact hw.legacy k h hni r hr'
+    · exact absurd h hni
+  · have hdf' : (GMap.fmap (·.note o) st1.dfds) !! fd = some df := hdf
+    rw [GMap.lookup_fmap, h4] at hdf'
+    cases hd0 : st.dfds !! fd with
+    | none => rw [hd0] at hdf'; cases hdf'
+    | some df0 =>
+      rw [hd0] at hdf'; simp only [Option.map_some, Option.some.injEq] at hdf'
+      subst hdf'
+      rw [hns, OsDirFd.note_path, hdir]; exact hw.dfds fd df0 hd0
+  · have : (st1.nsDo o).dfds !! fd = (GMap.fmap (·.note o) st1.dfds) !! fd := rfl
+    rw [this, GMap.lookup_fmap, h4, hw.disj fd (by rwa [← hfds])]; rfl
+
 end Perennial
 
 end

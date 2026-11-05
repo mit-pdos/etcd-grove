@@ -615,10 +615,11 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       e' = Val (PairV (#isDir) (#e))
   /- `rename(2)` of managed paths, after `NsBegin`: `(#s, #t) ↦ #errno`. As `RenameOk` says, or a
   no-op on an entry renamed to itself; any case may fail, a failure with or without the effect.
-  Stuck while a directory fd is open in `s`'s tree or on `t`. -/
+  Stuck while a directory fd is open on `t`, or, for a directory `s`, in `s`'s tree. -/
   | "Rename" => ∃ s t : GoString, v = PairV (#s) (#t) ∧ st.NsName s ∧ st.NsName t ∧
       st.nsBusy = true ∧
-      (∀ fd df, st.dfds !! fd = some df → ¬ IsUnder s df.path ∧ df.path ≠ t) ∧
+      (∀ fd df, st.dfds !! fd = some df →
+        (st.ns !! s = some .dir → ¬ IsUnder s df.path) ∧ df.path ≠ t) ∧
       ((RenameOk st s t ∧ (st' = st.nsFree.nsDo (.rename s t) ∧ e' = Val (#(0 : w64)) ∨
           ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
             (st' = st.nsFree ∨ st' = st.nsFree.nsDo (.rename s t)))) ∨
