@@ -1757,3 +1757,155 @@ frozen or exported statements since:
   id ∈ L` (an id the lessor had is still live), its post `leaseEver γl (U ∪ ids)`: in a snapshot
   restore the follower usually already had some of the snapshot's leases, so the frozen premise was
   false in the normal case. To be applied in S2–S4's Draft (branch `lease-p1`'s successor).
+
+## S2–S4 Draft (2026-11-05)
+
+Branch `lease-snap` (off lean `1f992c54b0`). **Stopped on item 1 (`Recover.spec`'s ever-set premise),
+and therefore on items 2–4, before any frozen or hub statement was edited.** What is committed is
+true today and consumes nothing: the image's lease vocabulary and the S2 table lemmas
+(`Proof/go_etcd_io/etcd/server/v3/etcdserver/ImageLeases.lean`). The statements of items 1–4 are
+below as text, with what stops them.
+
+### The stop: a recovered live lease is a new `*Lease` with a possibly different TTL
+
+Go's `initAndRecover` (`lessor.go:808-835`) makes a fresh `Lease` per record, its `ttl` the
+record's raised to *this member's* `minLeaseTTL`. The record is the leader's: `Grant` wrote
+`max(req, leader's minLeaseTTL)`. `minLeaseTTL` is per member (`server.go:344-349`:
+`ceil((3·ElectionTicks/2)·TickMs)` of that member's configuration). So when a follower that applied
+a grant later restores a snapshot containing the lease, the lease is the same id, a new `*Lease`
+and, when the members' `minLeaseTTL` differ, a different TTL. Example: leader `minLeaseTTL` 10,
+follower 2, `Grant(TTL 5)`: the follower's lessor has TTL 5, then 10 after the restore, and its
+`TimeToLive` answers `GrantedTTL` 5, then 10.
+
+The approved premise `id ∈ U → id ∈ L` admits exactly this case. That is right: it is the normal
+case, and the old premise `id ∉ U` was false there. But the lessor's reader invariant
+(`lessorRdBody`, `InvLessor.lean`) and two laws do not admit it:
+- `histOnce` (internal) says an id live at `i` and at `k ≥ i` is live at every index between with
+  **the same `*Lease`**. `Recover` appends a snapshot that maps a live id to a fresh `*Lease`.
+  `closers_recover` (`LessorRecoverLemmas.lean:353`) closes the invariant through `histOnce_fresh`,
+  which needs every recovered id new to the history. Under the new premise that step is false, so
+  `Recover.wp_proof` cannot be repaired by a local `sorry` without asserting a false lemma.
+- Weakening `histOnce` to ids (live over an interval, the `*Lease` free) is internal and keeps
+  `lessorAt_absent_stays`: a revoked id is in `U` and not in `L`, so the premise keeps it out of
+  `recs`. But it removes `histOnce_lease`, whose only consumer is **`leaseTTLAt_ttl_agree`**
+  (`LessorHist.lean:528`, in `lease-expiry-frozen`): "a lease's TTL at any index of the history is
+  its `ttl` field". After the restore above that law is **false of Go**, not only unprovable.
+  `leaseexpiry`'s `Main` uses it to refute a found answer with `GrantedTTL = 0`.
+
+The generalized snapshot specs (items 2, 3) and the deletion of `srvGrantOpen` (item 4) are provable
+only through a `Recover` that admits recovered live ids, so they wait on this too. Writing them now
+with `sorry`s would put statements that are unprovable under the current lessor invariant behind
+marked `sorry`s. The brief excludes that.
+
+**Options (for 82 and the user):**
+- (A) *Weaken the frozen law to what `Main` uses* (recommended). `Main` only needs a found TTL
+  `≠ 0`. Candidate: "every TTL the history records for `id` is at least the lessor's
+  `minLeaseTTL`". Grant raises to it (`grantTTL`), `Recover` raises to it (`recTTLs`), and
+  `lF "minLeaseTTL" lp ↦□ mt` is persistent. This would be a new `lessorRdBody` clause beside
+  `ttlTie`. `Main` then needs `mt ≥ 1`, a fact of its own fixed configuration (`ElectionTicks`,
+  `TickMs`), not a scope premise. Alternatively "at least the grant's requested TTL", but that needs
+  the image's TTLs constrained (`f id ≥ req`), which changes `bkRestAtL` (frozen in lease-grant and
+  #7). With (A), `histOnce` becomes ids-only, `histOnce_lease` and `leaseTTLAt_ttl_agree` are
+  replaced, and `leaseexpiry/Main.lean:324` is re-proved from the new law. These are frozen and
+  exported proofs: the user's decision.
+- (B) *Keep the law by a cluster premise* "all members share `minLeaseTTL`": a scope premise on the
+  exported results, false for heterogeneous clusters. Not recommended.
+- (C) *Per-epoch agreement* (the law only between restores): `Main` cannot show that no restore
+  happened, because `run`'s proof is generic. Does not work.
+
+S5's Go test should cover this: a follower with a smaller `ElectionTicks` than the leader,
+`TimeToLive` before and after its restore. It is Go's documented behavior (TTL raised to the
+member's minimum), so it goes in `nonissues/` if anywhere.
+
+### The statements, before → after (not applied)
+
+1. **`lease.lessor.Recover.spec`** (`Spec/.../lease/lessor__Recover.lean:64`, frozen; change
+   approved, Q-S2):
+   - before: `(∀ id ∈ recs.map (·.1), id ∉ U)`
+   - after: `(∀ id ∈ recs.map (·.1), id ∈ U → id ∈ L)`
+   - post unchanged: `(⌜recs = []⌝ ∨ lease.leaseEver γl (U ++ recs.map (·.1)))`. **The list form
+     `++` is kept for the approved `U ∪ ids`.** `leaseEver` is a ghost variable over `List w64`, and
+     every use is membership (`histIn`, `Grant`'s `id ∉ U`, `histIn_mono`). `++` has the union's
+     membership, needs no lawful `BEq` (which `List.union` would), and matches `Grant`'s
+     `U ++ [id]`.
+   - re-checked:
+     - `□ [∗list] id ∈ recs.map (·.1), leaseGranted γl id` fits: in a granting cluster `srvRest`'s
+       `srvGrantable` gives `□ ∀ id, leaseGranted`.
+     - the mode premise `mono = true → ∀ id ∈ L, id ∈ recs.map (·.1)` fits, from
+       `appliedTable_mono_sub`.
+     - `⌜recs = []⌝ ∨ leaseEver γl U` fits: granting, the apply thread's `everOwn` is `leaseEver`;
+       not granting, `recs = []` (`imageLeasesAt_nil` with the empty table).
+     - **But see the stop:** the proof's `closers_recover` needs `lessorRdBody` changed.
+2. **`EtcdServer.applySnapshot.specSnapM`** (hub 3, approved):
+   - `E.lg = false →` dropped.
+   - `(hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)` becomes
+     `(hlease : imageLeasesAt γr d.P D A')`, placed after `A'`.
+   - **Also needed, beyond the Scope's wording:** `lease.lessorRevocable E.γ.leases` becomes
+     `lease.lessorModeIs E.γ.leases (decide (E.lm = .mono))`. In the monotone mode no caller can
+     give a revocable lessor. `Recover` takes the mode, and `srvSnapRO` already holds this fact
+     (`HlpM`).
+   - `hA'` (`snapRestImgM`) stays: the rest model's lease bucket is always empty
+     (`restModel_lease`), so "the image's buckets with `lease` emptied" is still the rest model's.
+   - What the proof needs:
+     - the walk calls `Recover` with `imageLeasesAt_recs`'s records;
+     - the mode premise comes from `appliedTable_mono_sub` and the KV invariant's
+       `plainLogM γk.cmp .mono`;
+     - the ever-set premise comes from `appliedTable_granted_live`, `srvEverOk` and `kvGrantIds`'
+       `Nodup`;
+     - after the restore, `srvRest E' γr A'`'s leased arm: `E'.RO (restLeasesWith f (appliedTable
+       γr A').ids (restModel …))` from `hA'` and `imageLeasesAt`, plus `ltHalf` and `srvEver` at
+       `A'`.
+3. **`EtcdServer.applyAll.specSnap`/`specSnapM`** (`EtcdServer__applyAll.lean:163, 258`): drop
+   `γr.kv.lg = false →`.
+   - Their proofs (`ApplyAllSnap.lean`, `ApplyAllSnapOn.lean`) give `hlease` from
+     `SnapImageFacts(On).hlease`. That field becomes `imageLeasesAt γr d.P D A'`, which
+     `snapRecv_image(On)` gets at any `lg` from `imageAt`'s `bkRestAtL` (`imageLeasesAt_of_bkRestAtL`,
+     proved) instead of from `bkRestAt_of_L` at `lg = false`.
+   - `snapRecv_image` itself takes `HElg` for `plainLogM … .none` (the conf-change and restore-log
+     facts). Those must be restated at the KV names' mode: `restoreLogOk_kvRaftOf` and
+     `kvTableOf_plainM` take `.none` today. This is an open point.
+   - `run_job_snap`: its `case true` (`srvGrantOpen_snap`) goes, and the `lg = false` proof covers
+     both cases. `run_snap_jobOn` stops passing `Hcmlg.2`.
+4. **`lease.bootCfg`/`lease.runCfg`** (hub request, accepted):
+   - drop `(m ≠ .none → srvGrantOpen)`;
+   - delete `lease.bootCfg_open`, `lease.runCfg_open`, `srvGrantOpen`, `srvGrantOpen_snap`,
+     `runSnapLgOkBody` (`LeaseRun.lean:51`) and `srvGrantOpen_open` (`EtcdServer__run.lean:281`);
+   - `bootCfg_mono`/`_revocable` and `runCfg_mono`/`_revocable` lose `hopen`;
+   - `etcd_leasegrant`/`etcd_leaseexpiry`'s `Main` and `_safe` lose `hslg`, and their `MainLinked`
+     files stop passing `srvGrantOpen_open`.
+5. **`imageAt`** (#7's Freeze): **no change needed.** It already states `bkRestAtL` (lease-grant's
+   Freeze amendment (D), `InvImage.lean:114`). The receiver reduced it to the plain case with
+   `bkRestAt_of_L` at `lg = false` (`SnapRecvFacts.lean:485`), and the leased case reads
+   `bkRestAtL` directly.
+
+### New vocabulary (committed, `ImageLeases.lean`)
+- `imageLeasesAt γr P D A'`: the image's lease bucket is `restLeasesWith f (appliedTable γr A').ids`
+  over the rest model's bucket, for some `f`. That is one record per id of the snapshot's table (ids
+  only, TTLs existential, remaining TTL 0), in the same form as `bkRestAtL` and `srvRest`'s leased
+  arm. No `leasepb` decoding law is needed: the records are `leaseRecEnc`'s, which
+  `MustUnsafeGetAllLeases` already takes.
+- `imageLeasesAt_of_bkRestAtL` (proved), `imageLeasesAt_nil` (proved: an empty table gives the old
+  `hlease`).
+- `imageLeasesAt_recs` (DRAFT `sorry`): `Recover`'s `recs`.
+- `appliedTable_mono_sub` (DRAFT `sorry`): S2, monotone mode.
+- `appliedTable_granted_live` (DRAFT `sorry`): S2, revocable mode.
+
+### Open points (besides the stop)
+- **The monotone mode's ever-set.** `srvEverOk` bounds `U` only in the revocable mode
+  (`U ⊆ srvGrantLog A`). In the monotone mode `Recover`'s premise needs `U ⊆ L`. It holds (nothing
+  leaves a monotone lessor), but nothing records it. Add `E.lm = .mono → ∀ u ∈ U, u ∈
+  (appliedTable γr A).ids` to `srvEverOk`, or a lessor law `U ⊆ L` in the monotone mode.
+- **`ltHalf`'s list order.** `Recover` gives `leaseOwn γl (recs.map (·.1))`, in key order.
+  `srvRestAt` holds `ltHalf E (appliedTable γr A).ids`, in log order, and `ltHalf_agree` is list
+  equality. After a restore the two orders differ. Either `ltHalf`/`leaseOwn` become set-like (a
+  permutation), or the apply side keeps the lessor's order.
+- **`snapRecv_image(On)` at the KV names' mode** (item 3's note).
+- The S2 lemmas' statements are believed true but unproved: `appliedTable_granted_live` relies on
+  every successful grant of the table being an entry counted by `logRevGrantIds` (grants with data,
+  decoded).
+
+### Build and trust base
+`lake build Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases` passes. Nothing imports the
+module, so no importer rebuilds. Sorry delta: three new declarations with `sorry`, each marked
+`-- DRAFT S2–S4` and reached by no result, so `etc/tcb-report.py`'s results and collections are
+unchanged. No axiom.
