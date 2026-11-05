@@ -1752,3 +1752,8 @@ frozen or exported statements since:
   `EtcdServer.revokeExpiredLeases.spec` already quantified over it; `run`'s proof now passes its own.
 - Merged beside it, not a change to a frozen statement: `NewServer.specG`'s post keeps the lease slot
   (`lease.srvInv`, `leaseTTLRowR`) and restart's stop slot (`srvStop.keep`).
+- **2026-11-05, S2–S4 Scope (approved change to a frozen statement, by the user via etcd-grove-82):**
+  `lease.lessor.Recover.spec`'s ever-set premise `∀ id ∈ recs, id ∉ U` becomes `∀ id ∈ recs, id ∈ U →
+  id ∈ L` (an id the lessor had is still live), its post `leaseEver γl (U ∪ ids)`: in a snapshot
+  restore the follower usually already had some of the snapshot's leases, so the frozen premise was
+  false in the normal case. To be applied in S2–S4's Draft (branch `lease-p1`'s successor).
