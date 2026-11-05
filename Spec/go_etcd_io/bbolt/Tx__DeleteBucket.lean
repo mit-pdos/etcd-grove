@@ -31,7 +31,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.DeleteBucket(name)` in a write transaction: the bucket deleted and its name's generation
 bumped (its handles are no longer current: bbolt frees its nodes); or, if absent,
-`errors.ErrBucketNotFound`'s value and nothing changed. -/
+`errors.ErrBucketNotFound`'s value and nothing changed; or, for the empty name (never a bucket's:
+`CreateBucket` refuses it), `errors.ErrIncompatibleValue`'s value and nothing changed (D-M: in an
+empty root bucket the seek finds no key and `bytes.Equal([]byte{}, nil)` holds, so bbolt reports
+an incompatible value; `nonissues/bbolt-deletebucket-empty-name.md`). -/
 abbrev Tx.DeleteBucket.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac),
   {{ boltTx (GF := GF) tx γ 1 T ∗ name ↦*{dq} n ∗ ⌜T.rw = true⌝ }}
@@ -39,6 +42,8 @@ abbrev Tx.DeleteBucket.spec : Prop :=
   {{ (err : GoInterface), RET #err; name ↦*{dq} n ∗
       ((⌜T.cur.lookup n = none⌝ ∗ boltTx tx γ 1 T ∗
          globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound ↦□ err) ∨
+       (⌜n = [] ∧ T.cur.lookup n = none⌝ ∗ boltTx tx γ 1 T ∗
+         globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue ↦□ err) ∨
        (⌜T.cur.lookup n ≠ none ∧ err = GoInterface.nil⌝ ∗ boltTx tx γ 1 (T.dropBkt n))) }}
 
 end spec

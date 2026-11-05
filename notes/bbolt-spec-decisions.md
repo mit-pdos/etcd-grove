@@ -1884,3 +1884,12 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   `flCurOK`/`flCurOKr`'s last clause `pageId pg = f` (from `flFileOK` at `Open`,
   `LoadFL.flCurOK_ofInit`; from the written page at `Commit`, `flCurOK_flPgB`);
   `Commit/FreeFlOK.wb_pageId` gives `pageId (w.wb f) = f` under `wdbOK`.
+- **D-M** (2026-11-05, maintainer 16, U7m's finding; decided by the coordinator, **for the user's
+  review**: it changes the frozen `Tx.DeleteBucket.spec`). For the empty name the post allows a
+  third case, `n = [] ∧ T.cur.lookup n = none`, `boltTx` unchanged and `errors.ErrIncompatibleValue`'s
+  value, besides `ErrBucketNotFound`. Why: in an empty root bucket `c.seek([]byte{})` returns a nil
+  key, `bytes.Equal([]byte{}, nil)` holds, and the nil entry's flags are `0`, so Go returns
+  `ErrIncompatibleValue` (U7m's Go test, `nonissues/bbolt-deletebucket-empty-name.md`); the old
+  post (`ErrBucketNotFound` for every absent name) was false there. The real behaviour is stated, no
+  premise added; no bucket has the empty name (`CreateBucket` refuses it), so `T.cur.lookup [] =
+  none` always, and a caller that never deletes the empty name sees the old two cases.
