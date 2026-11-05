@@ -318,6 +318,74 @@ def etcdTxnSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames
       ∀ m : TxnRespM, txnReplied E ρ.rd γr c F t Q cid mid m -∗
         txnAuthOn s E ρ γr c n (auth.mdTokenOf md) t -∗ Φ m)
 
+/-! ### The KV methods' specs in the auth mode `on` (the auth component's stage 5)
+
+One spec per method over the mode, as the server's rows (`v3rpc.kvOpAuM`): with auth on the facts
+of the `…SpecOn` texts, with auth off those of `etcd…Spec` (`KVService.lean`), each gated by the mode
+(`⌜on = true⌝ → …`, `⌜on = false⌝ → …`). The two texts stay, as its views (`etcdPutSpecM_true`,
+`etcdPutSpecM_false`, ...). -/
+
+/-- **etcd's `Put` in the auth mode `on`**: the update by `v3rpc.kvOpAuM`; the reply with the
+revision's lower bound with auth off, with the put's grant with auth on. -/
+def etcdPutSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
+  fun md (o : OpFull) (Φ : PutRespM → IProp GF) =>
+    iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+      ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
+        v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.put o) Q ∗
+        ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
+          (⌜on = false⌝ → kvRevLb ρ.rd.kv m.hdr.revision) -∗
+          (⌜on = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut o)) -∗ Φ m)
+
+/-- **etcd's `DeleteRange` in the auth mode `on`**: with auth on, for a key and range end of the
+shape the permission cache decides; the update by `v3rpc.kvOpAuM`; the reply with the delete's
+grant with auth on. -/
+def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
+  fun md (o : OpFull) (Φ : DelRespM → IProp GF) =>
+    iprop(⌜on = true → auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+      ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗
+        v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.deleteRange o) Q ∗
+        ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
+          (⌜on = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrDeleteRange o)) -∗ Φ m)
+
+/-- **etcd's `Range` in the auth mode `on`**: with a lower bound `n` of the published auth index,
+the reply with the read's check with auth on. -/
+def etcdRangeSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
+  fun md (o : OpFull) (Φ : RangeRespM → IProp GF) =>
+    iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF) (n : Nat), committedAtLeast γr c ∗
+      mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
+      (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
+      ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗
+        (⌜on = true⌝ → v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) o) -∗ Φ m)
+
+/-- **etcd's `Txn` in the auth mode `on`**: with auth on, a writing transaction's every permission
+of the shape the permission cache decides; a writing one's update by `v3rpc.kvOpAuM`; the reply with
+the revision's lower bound with auth off, with the transaction's auth facts with auth on. -/
+def etcdTxnSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cid mid : w64) : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse :=
+  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) =>
+    iprop(⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (on = true → txn.txnReadonly t = false →
+        ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw))⌝ ∗
+      ∃ Q : KVState → IProp GF,
+      (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
+        (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
+        (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
+          v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
+      ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
+      mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
+      ∀ m : TxnRespM, txnReplied E ρ.rd γr c F t Q cid mid m -∗
+        (⌜on = false⌝ → txnRevLb ρ.rd.kv t m) -∗
+        (⌜on = true⌝ → txnAuthOn s E ρ γr c n (auth.mdTokenOf md) t) -∗ Φ m)
+
+/-- **etcd's `Compact` in the auth mode `on`**: specified with auth off only. With auth on Go's
+`kvServer.Compact` first checks that the caller is admin (`key.go:139–142`, `isPermitted`), which no
+spec here covers, so the spec is then vacuous (`etcdCompactSpec`'s with `⌜on = false⌝`). -/
+def etcdCompactSpecM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+  fun o Φ => iprop(⌜on = false⌝ ∗ etcdCompactSpec E ρ.rd cid mid o Φ)
+
 /-- **A client write's grant** (persistent; the auth-mode merge's 5a, 2026-10-29): the write's grant
 (`v3rpc.opGrantT`) at the token of some attempt of the call `ctx` on `conn` (the caller does not
 know which attempt's metadata the server saw). -/

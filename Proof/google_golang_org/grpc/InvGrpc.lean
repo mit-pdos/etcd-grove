@@ -750,6 +750,33 @@ theorem isGrpcRpcMd_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
   iframe Hs
   iapply (grpcMethodOkMd_mono mh srv ics S Spec Spec' h) $$ Hm
 
+/-- A method meeting the metadata-indexed `Spec` meets a `Spec'` that gives `Spec` after an update
+(`Spec` is only the method triple's precondition, where an update is eliminated). -/
+theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ, Spec' md m Φ ⊢ |==> Spec md m Φ) :
+    grpcMethodOkMd mh srv ics S Spec ⊢ grpcMethodOkMd mh srv ics S Spec' := by
+  iintro #Hm
+  unfold grpcMethodOkMd
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  ihave HSpec := (h _ m Φ) $$ HSpec
+  imod HSpec
+  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
+  iframe
+
+/-- A registration with the metadata-indexed `Spec` is one with a `Spec'` that gives `Spec` after an
+update. -/
+theorem isGrpcRpcMd_mono_upd {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec Spec' : GrpcSpecMd Req Rep) (h : ∀ md m Φ, Spec' md m Φ ⊢ |==> Spec md m Φ) :
+    isGrpcRpcMd addr name Spec ⊢ isGrpcRpcMd addr name Spec' := by
+  iintro #H
+  iunfold isGrpcRpcMd at H
+  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  unfold isGrpcRpcMd
+  iexists mh, srv, ics, S
+  iframe Hs
+  iapply (grpcMethodOkMd_mono_upd mh srv ics S Spec Spec' h) $$ Hm
+
 /-- A served method handler that meets the metadata-indexed `Spec` registers it. -/
 theorem isGrpcRpcMd_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val)
     (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
