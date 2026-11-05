@@ -59,7 +59,17 @@ path. Only the watch path: the KV, lease, auth and maintenance parts of v3rpc ar
 - `ServerKV.lean` (the KV path, not this track's, red for its own reasons): `w64_rev_ne_zero` and
   `writeRev_ne_zero` take `+ 3` (the server's `appliedHdr` bound, coordinator's request).
 
-## How it was checked (the server is red)
+## Built of record (fourth session, 2026-11-05)
+
+`lake build` (under the lock) of `WatchApi`, `InvWatchStream`, `InvWatch`, the seven spec files,
+`WatchLemmas`, the six proofs and `WatchClass`: all build. `#print axioms` of the six `wp_proof`s and
+`ctrlWatcher_authorized`: no `sorryAx`; beyond `propext`/`Quot.sound`/`Classical.choice`, only the
+Goose packages' axiomatized types and Perennial's `time.Now.wp_proof`. Fixes: `persistent.law`
+gained `storageReq`'s persistence (fifth conjunct), so `mvccState`/`wsState`'s timelessness are
+`hP.2.2.2.2.2.1`/`hP.2.2.2.2.2.2.1` (`WatchApi`); `mvcc.api.BkRef` → `mvcc.KBReal` (`InvWatch`'s
+`watchSrvOk`, `apply.isAuthStore`'s binders). The scratch stubs below are obsolete.
+
+## How it was checked before (the server was red; superseded by the above)
 
 `InvWatchStream` imports `AuthReqDerive`, `InvWatch` imports `ReadOn`, the spec of
 `isWatchPermitted` imports `AuthBound` (→ `AuthGuard`); all four import the server's `InvRead`,

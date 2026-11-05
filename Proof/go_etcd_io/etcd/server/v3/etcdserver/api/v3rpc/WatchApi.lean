@@ -231,7 +231,7 @@ instance wrespIs_persistent (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchRes
 theorem wsInvG_timeless (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName)
     (γreg γtok γcl : GName) (cq : w64 → IProp GF) [∀ id, Timeless (cq id)] :
     Timeless (wsInvG ι γreg γtok γcl cq) := by
-  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.1
+  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   unfold wsInvG; infer_instance
 
 theorem srvWOk_persistent (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : Loc)
@@ -342,8 +342,8 @@ theorem watch_au (hP : mvcc.api.persistent.law (GF := GF)) (W : SrvW GF) (wsl : 
                { rg := mvcc.watchRangeOf kk e endk startRev id, fs := [],
                  lo := mvcc.api.watchLo σ startRev, k := k, live := true })),
         COMM watchQ W ι γreg γtok kk e endk startRev σ S id }> := by
-  have : ∀ γ σ, Timeless (mvcc.api.mvccState (GF := GF) γ σ) := hP.2.2.2.2.1
-  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.1
+  have : ∀ γ σ, Timeless (mvcc.api.mvccState (GF := GF) γ σ) := hP.2.2.2.2.2.1
+  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   have : ∀ ι n, Persistent (mvcc.api.wsSentLb (GF := GF) ι n) := hP.2.2.1
   have := wsInvG_timeless hP ι γreg γtok γcl cq
   have := srvWOk_persistent hP W wsl wsN
@@ -451,7 +451,7 @@ theorem cancel_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsNam
     inv wsN (wsInvG ι γreg γtok γcl cq) ∗ cq id ⊢
     AU <{ ∃∃ (S : mvcc.api.StreamState), mvcc.api.wsState ι S }> @ ⊤ \ ↑mvcc.api.mvccN, ∅
       <{ mvcc.api.wsState ι (S.cancel id), COMM True }> := by
-  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.1
+  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   have := wsInvG_timeless hP ι γreg γtok γcl cq
   iintro ⟨#Hinv, #Hq⟩
   iauintro
@@ -539,7 +539,7 @@ theorem close_au (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName
     AU <{ ∃∃ (S : mvcc.api.StreamState), mvcc.api.wsState ι S ∗ ⌜S.closed = false⌝ }>
         @ ⊤ \ ↑mvcc.api.mvccN, ∅
       <{ mvcc.api.wsState ι S.close, COMM True }> := by
-  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.1
+  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   have := wsInvG_timeless hP ι γreg γtok γcl cq
   iintro ⟨#Hinv, Htok⟩
   iauintro
@@ -665,8 +665,8 @@ theorem snap_after_recv (hP : mvcc.api.persistent.law (GF := GF))
       rcvSnapG W γreg cq rs σ S ∗
       ⌜∀ X i, M !! X = some i → ∃ w, S.ws !! X = some w ∧ regInfoOf w = i⌝ := by
   have : ∀ ws γ ι, Persistent (mvcc.api.isMvccWatchStream (GF := GF) ws γ ι) := hP.2.1
-  have : ∀ γ σ, Timeless (mvcc.api.mvccState (GF := GF) γ σ) := hP.2.2.2.2.1
-  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.1
+  have : ∀ γ σ, Timeless (mvcc.api.mvccState (GF := GF) γ σ) := hP.2.2.2.2.2.1
+  have : ∀ ι S, Timeless (mvcc.api.wsState (GF := GF) ι S) := hP.2.2.2.2.2.2.1
   have := wsInvG_timeless hP ι γreg γtok γcl cq
   have := srvWOk_persistent hP W wsl wsN
   iintro ⟨#Hws, #Hinv, #HW, Hr, #HM⟩

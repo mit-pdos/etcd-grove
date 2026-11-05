@@ -160,8 +160,8 @@ theorem watchVars_of_init :
 /-- **The server's contract for the watch path** (persistent; see the file header). -/
 def watchSrvOk (s : Loc) (E : apply.AEnv GF) (tag : GName) : IProp GF :=
   iprop(raftStatusOk s ∗
-    (∃ (st : GoInterface) (cca : Bool) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc)
-        (BT : mvcc.api.BkRef → IProp GF),
+    (∃ (st : GoInterface) (cca : Bool) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+        (BT : mvcc.KBReal → IProp GF),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
       srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st Pk f BT E.RD E.authMode E.RW) ∗
