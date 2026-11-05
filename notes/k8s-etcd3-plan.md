@@ -711,6 +711,48 @@ key, vacuously for the others: `genFrom` attaches a cached object to an operatio
 model (`KModel.lean`/`Refine.lean`): `kStep` with `KPre`, `invalidObj` → `EInvalid`, the minimum,
 `ignoreNotFound` updates; the refinement restated.
 
+### 7b: Draft, the driver as written (2026-11-05; decided by the agent, pending the user)
+
+The design's driver paragraph above, as the statements came out (commits `5468af8faf`, `08c4901da6`):
+
+- **The table** (`Proof/.../k8s/etcd3/Cache.lean`): `cachedObjOk c ob := ⌜name, UID < 256 ∧ ob.RV ≠ 0⌝ ∗
+  □ ∀ k, versionAt c k ob.RV (dobjOf ob)` (every key, D2: `genFrom` attaches the cached object to an
+  operation on any key, as the test); `cacheInv c tbl := ∃ mp m, tbl.objs ↦ mp ∗ mp ↦$ m ∗ [∗ map]
+  _ ↦ ob ∈ m, cachedObjOk c ob`; `isCache c tbl := sync.isMutex tbl.mu (cacheInv c tbl)`;
+  `cachedIn c x := if x.UseCached then cachedObjOk c x.Cached else True`. So the design's "`GenIn`
+  gains: a cached object's name is the input's key" is dropped (D2 keeps the test's traffic).
+- **The generator**: `genFrom.spec` (old: `∀ n, {{ True }} genFrom(n) {{ x; ⌜GenIn x⌝ }}`): `∀ n id c hasC,
+  {{ isPkgInit }} genFrom(n, id, c, hasC) {{ x; ⌜GenIn x ∧ (x.UseCached → hasC ∧ x.Cached = c)⌝ }}`;
+  `GenIn` gains `UID < 256`, `parseRVD MinRV` defined, `CachedNoRV x` (D1 in the traffic: `UseCached →
+  Kind = update → ¬HasPreRV`). `Gen.spec` (old: `⊢ lintest.genSpec Gen kInOk`): a triple `{{ isPkgInit ∗
+  isCache c tbl }} Gen(tbl, id) {{ x; ⌜GenIn x⌝ ∗ cachedIn c x }}`; `Check`'s closure gives
+  `lintest.genSpec` (proved). `kInOk c i := ∃ x, ⌜i = boxIn x ∧ GenIn x⌝ ∗ cachedIn c x` (old: pure,
+  no `c`). New: `uidOf`/`withPre`/`minRV` (`RET #(uidOfL u)`, `withPreL`, `minRVL`: Lean functions of
+  the Go code), `newCache` (`isCache c tbl` for any `c`), `cache.get` (`if ok then cachedObjOk c o`),
+  `cache.put` (takes `cachedObjOk c o`), `preconditions` (`preAt pp (kpreOf x)`), `cachedObj` (`if
+  UseCached then ∃ p, cx = &p ∗ p ↦ x.Cached else cx = nil`).
+- **`call.spec`**: gains `CachedNoRV x` and `cachedIn c x`; `callPre`'s steps take `preD x` and, for an
+  update, `x.IgnoreNotFound`; `InOk` gains `UID < 256` and `parseRVD MinRV` defined. **`Apply.spec`**
+  gains the table (`Apply(s, tbl, i)`, `isCache c tbl`) and `kInOk c`. **`Check.spec`, `Main.spec`,
+  `k8s_etcd3_adequate`: unchanged** (the `metav1.Object` conjunct of `objTyOk` is proved from the
+  instances the adequacy theorem already has).
+- **The model's answers**: `errIs` gains `EInvalid` (`invalidErrIs err k`, `⟨5, k, 0, …⟩`);
+  `NoOddErr` no longer excludes `tooLarge` (placed as `EOther`); `kStep_err`/`kStep_ans` take
+  `Kind ∈ {create, delete, update} ∨ minOf x ≤ rev` (the model answers `EOther` to a too-large
+  minimum, as `mget`); `get_read_au` therefore needs the minimum reached at the read's revision
+  (D5). `errOutL` is now `otherL`'s value.
+- **Proved in the Draft**: `Gen`, `Check`, `call`'s `Create` and `Get` branches, `errOut` (with
+  `EInvalid`), `seedOne`, `Seed`'s relation (the UID `""`), the `Calls`/`InvSteps` glue. **Sorry at
+  the failing step, text kept** (`835795d4d1` on `lean` had them): `genFrom`; `call`'s `Delete` and
+  `GuaranteedUpdate` branches (preconditions, cached object, `cachedOk` from `cachedIn`); `Apply`'s
+  put of an answer (four branches: `cachedObjOk` from the answer's state, D4) and its too-large
+  `EOther` `Get`; `kStep_ans`'s `Get` case; `get_read_au`'s minimum (D5); `respIs_call`'s
+  `tooLarge` branch (the sentinels by `drvInit`); the new functions' bodies (`uidOf`, `withPre`,
+  `minRV`, `newCache`, `cache.get`/`put`, `preconditions`, `cachedObj`, `rvBytes`, `preOk`,
+  `sameObj`), `decodeObj`, the model functions (`mget`, `mdelete`, `mupdate`), `Refine`'s
+  `refine_*`, the store's loops (`deleteOnce`, `updateOnce`, `conditionalDelete`,
+  `GuaranteedUpdate`) and `stFrom_item`.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

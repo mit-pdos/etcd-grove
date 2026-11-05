@@ -50,3 +50,38 @@ The `axiom` skill found the extended list sound (`notes/audit.md`). It noted tha
 of `fmt.SprintfArgOk` does not ask the value to have its type's shape (a `LeaseID` holding a
 non-`w64` would make the post `False`); unreachable by Go's typing. Narrowing it is a change to a
 trusted statement (a hard stop): left for the user, not done.
+
+## D4. `cachedObjOk` at every key, from the revision's changes (decided by the agent, pending the user)
+
+`Apply` caches every answer with a name; `cache.put` takes `cachedObjOk c o`: `□ ∀ k, versionAt c k
+o.RV (dobjOf o)`. For the answer's own key it comes from the state the answer is from (a `Get`'s or a
+no-op update's read: `kvSeen`; a write's: the revision's changes, `revSeen`); for any other key from
+the revision's changes holding one key. A `Delete`'s answer (the object at the deletion's revision)
+holds vacuously: the key has no value there.
+- **Decided by the agent:** the definition above; the Prove phase needs the driver's invariant to
+  keep "every revision since the seed changes one key" (each `KvNext` of the store's updates is a
+  one-key transaction; the seed's two puts likewise) and `inv_next` to return `revSeen` (the Draft
+  drops it).
+- Alternative: cache an object only for operations on its own key (`genFrom` checks the name):
+  a deviation from the test's traffic (D2's alternative).
+
+## D5. A `Get` with a minimum resource version above the read's revision (decided by the agent, pending the user)
+
+The store answers `TooLargeResourceVersion` (a `*StatusError`), which `errOut` places as `EOther`,
+and so does the Lean model (`mgetL`: `otherL`, as the Go `mget`). `Apply`'s prophecy then says
+`EOther` and the read commits nothing (a failed read). But `get_read_au`, the update for a `Get`
+prophesied to answer, commits at the first firing at the prophesied revision `R` with the model's
+answer there, and needs that answer not `EOther`, i.e. `minOf x ≤ R`.
+- **Decided by the agent:** for the Draft, a marked `sorry` in `get_read_au`; the Prove phase makes
+  the read update commit only when `minOf x ≤ σ.rev` (otherwise as `plain_read_au`), and `Apply`
+  derives the contradiction when the call answers after a read below the minimum (the store's
+  answer there is too large, `EOther`, against the prophecy).
+- Alternative: `getCall`'s maker takes `R` only with `minOf x ≤ R` (a premise `Apply` cannot check
+  before the call).
+
+## D6. `Gen`'s spec as a triple (decided by the agent, pending the user)
+
+`Gen` now takes the table (`Gen(tbl, id)`); `Check` passes `func(id) any { return Gen(tbl, id) }`.
+- **Decided by the agent:** `Gen.spec` a plain triple (`isCache c tbl` in, `GenIn x ∗ cachedIn c x`
+  out), `Check`'s proof gives the closure's `lintest.genSpec` (as it does `applySpec` for `Apply`'s
+  closure). One spec, restated: not a second family.
