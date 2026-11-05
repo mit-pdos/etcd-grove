@@ -415,6 +415,143 @@ theorem wp_osRename (d bs bt k : GoString) (g : DirG) (hbs : NameOk bs) (hbt : N
     iapply wp_value'
     iapply HΦ $$ %e %_ %(.inr ⟨he, .inl rfl⟩) Hd Hz
 
+/-- `fsync(2)` of a directory fd: any errno; the namespace's ghost state as it was (a commit only
+narrows what a crash may leave). -/
+theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : GoString × DirPh) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDirFd (L := L) fd dq x -∗
+      (∀ e : w64, osDirFd (L := L) fd dq x -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd HΦ
+  iapply wp_os_stepN "DirSync" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDirFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  obtain ⟨df, hdf⟩ : ∃ df, st.dfds !! fd = some df := by
+    have := hc.fds fd; rw [Hfl] at this
+    cases h0 : st.dfds !! fd with
+    | none => rw [h0] at this; cases this
+    | some df => exact ⟨df, rfl⟩
+  have hs : ∀ n, FilesSame st (st.nsCommit n) := fun n => ⟨rfl, rfl, rfl, rfl⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (hs _) Hag
+    exact ⟨_, h, st.nsCommit (dirCommitLen df.path st.nsLog),
+      ⟨fd, df, _, rfl, hdf, Nat.le_refl _, rfl, .inl ⟨rfl, rfl⟩⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', df', n, hv, -, -, rfl, hres⟩ := Hst
+  cases go.intoVal_inj hv
+  imod ns_step_close hwf hcoh (hs n) Hr Hfr (nsWf_nsCommit hw n) (nsCoh_nsCommit hc n) st.nsBusy rfl
+    $$ HAb HAm HAf HAt Htok Hcells Hσ HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, Γdf
+  unfold osWorld nsWorld
+  iframe Hw Hn
+  rcases hres with ⟨-, rfl⟩ | ⟨e, -, rfl⟩
+  · iapply wp_value'; iapply HΦ $$ %0 Hfd
+  · iapply wp_value'; iapply HΦ $$ %e Hfd
+
+/-- What closing a directory fd gives back: the fraction of the directory's ghost entry its read
+holds, if it is reading. -/
+def rdBack (x : GoString × DirPh) : IProp GF := rdPart (gooseOsGS (L := L)) x
+
+/-- `close(2)` of a directory fd, whole: any errno; the fd gone, and a read's fraction back. -/
+theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDirFd (L := L) fd (DFrac.own 1) x -∗
+      (∀ e : w64, rdBack (L := L) x -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "DirClose" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd HΦ
+  iapply wp_os_stepN "DirClose" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDirFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  obtain ⟨df, hdf⟩ : ∃ df, st.dfds !! fd = some df := by
+    have := hc.fds fd; rw [Hfl] at this
+    cases h0 : st.dfds !! fd with
+    | none => rw [h0] at this; cases this
+    | some df => exact ⟨df, rfl⟩
+  have hs : FilesSame st { st with dfds := GMap.delete fd st.dfds } := ⟨rfl, rfl, rfl, rfl⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf hs Hag
+    exact ⟨_, h, _, ⟨fd, 0, df, rfl, hdf, rfl, rfl⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', e, df', hv, -, hst, rfl⟩ := Hst
+  cases go.intoVal_inj hv
+  -- the fd's part of the reads' fractions, back
+  unfold rdRes
+  icases (BigSepM.bigSepM_delete (M := GMap w64)
+    (Φ := fun (_ : w64) (x : GoString × DirPh) => rdPart (gooseOsGS (L := L)) x) Hfl).1 $$ Hrd
+    with ⟨Hx, Hrd⟩
+  imod gAuth_delete _ _ _ _ _ $$ HAdf Hfd with HAdf
+  have hs' : FilesSame st st' := by rw [hst]; exact hs
+  have hw' : NsWf st' := by
+    rw [hst]
+    refine ⟨hw.roots, hw.replay, hw.hist, hw.legacy, fun fd' df' h' => ?_, fun fd' h' => ?_⟩
+    · have : st.dfds !! fd' = some df' := by
+        have h'' : (GMap.delete fd st.dfds) !! fd' = some df' := h'
+        rw [GMap.lookup_delete_iff] at h''; split at h''
+        · cases h''
+        · exact h''
+      exact hw.dfds fd' df' this
+    · show (GMap.delete fd st.dfds) !! fd' = none
+      rw [GMap.lookup_delete_iff]; split
+      · rfl
+      · exact hw.disj fd' h'
+  have hc' : NsCoh st' Γd (GMap.delete fd Γdf) := by
+    rw [hst]
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hc
+    refine ⟨h1, h2, h3, h4, fun fd' => ?_, fun fd' x' df' hx hd => ?_,
+      fun fd' d rs g q hx => ?_⟩
+    · show ((GMap.delete fd Γdf) !! fd').map (·.1) = ((GMap.delete fd st.dfds) !! fd').map (·.path)
+      rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]; split
+      · rfl
+      · exact h5 fd'
+    · have hx' : Γdf !! fd' = some x' := by
+        rw [GMap.lookup_delete_iff] at hx; split at hx
+        · cases hx
+        · exact hx
+      have hd' : st.dfds !! fd' = some df' := by
+        have hd'' : (GMap.delete fd st.dfds) !! fd' = some df' := hd
+        rw [GMap.lookup_delete_iff] at hd''; split at hd''
+        · cases hd''
+        · exact hd''
+      exact h6 fd' x' df' hx' hd'
+    · rw [GMap.lookup_delete_iff] at hx; split at hx
+      · cases hx
+      · exact h7 fd' d rs g q hx
+  ihave Hrd : rdRes (gooseOsGS (L := L)) (GMap.delete fd Γdf) $$ [Hrd]
+  · unfold rdRes; iexact Hrd
+  imod ns_step_close hwf hcoh hs' Hr Hfr hw' hc' st.nsBusy (by rw [hst]) $$ HAb HAm HAf HAt Htok
+    Hcells Hσ HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, (GMap.delete fd Γdf)
+  unfold osWorld nsWorld rdRes
+  iframe Hw Hn
+  iapply wp_value'
+  iapply HΦ $$ %e
+  unfold rdBack; iexact Hx
+
 end specs
 
 end Perennial
