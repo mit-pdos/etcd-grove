@@ -243,8 +243,7 @@ theorem trunc_prefix (nl : Loc → Option (Loc × Nat)) (v : View) (hv : viewWF 
     (rt : Nat) (E T : List elemRef) (e e' : elemRef) (P U : List Nat) (p : Nat)
     (hPE : P.length = E.length) (hp : sPathR nl v b rt (E ++ e :: T) (P ++ p :: U))
     (hpg : e'.page' = e.page') (hnd : e'.node' = e.node')
-    (hidx : e'.index'.toNat = e.index'.toNat + 1)
-    (hlt : T ≠ [] → ∀ pg, v.pages !! p = some pg → e.index'.toNat + 1 < pageCount pg) :
+    (hlt : T ≠ [] → ∀ pg, v.pages !! p = some pg → e'.index'.toNat < pageCount pg) :
     sPrefix nl v b rt (E ++ [e']) (P ++ [p]) ∧
     (sPathR nl v b rt (E ++ [e']) (P ++ [p]) → T = [] ∧ U = []) := by
   obtain ⟨-, hlen, hhd, hall⟩ := hp
@@ -281,7 +280,7 @@ theorem trunc_prefix (nl : Loc → Option (Loc × Nat)) (v : View) (hv : viewWF 
         · exact Or.inl h
         · exact Or.inr ⟨pg, hpg', Or.inl hf⟩
       · obtain ⟨pg, hpg', hf, -, -⟩ := a3 (by cases T with | nil => exact absurd rfl hT | cons _ _ => simp)
-        exact Or.inr ⟨pg, hpg', Or.inr ⟨hf, by rw [hidx]; exact hlt hT pg hpg'⟩⟩
+        exact Or.inr ⟨pg, hpg', Or.inr ⟨hf, hlt hT pg hpg'⟩⟩
   · have hT : T = [] := by
       refine Classical.byContradiction fun hT => ?_
       obtain ⟨pg, hpg', hf, -, -⟩ := a3 (by cases T with | nil => exact absurd rfl hT | cons _ _ => simp)
@@ -289,6 +288,61 @@ theorem trunc_prefix (nl : Loc → Option (Loc × Nat)) (v : View) (hv : viewWF 
       exact leaf_not_branch v hv p pg hpg' hf (c4 (by simp))
     subst hT
     exact ⟨rfl, List.eq_nil_of_length_eq_zero (by simpa using hUT)⟩
+
+/-! ## A level's count -/
+
+/-- **`count()` of level `j` of a stack**: its branch page's count, or the leaf's entries. -/
+def cntAt (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) (j : Nat) : Nat :=
+  if j + 1 < els.length then ((v.pages !! pids.getD j 0).map pageCount).getD 0
+  else leafCnt v es pids els
+
+theorem cntAt_br (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) (j : Nat)
+    (pid : Nat) (pg : List w8) (hj : j + 1 < els.length) (hpid : pids[j]? = some pid)
+    (hpg : v.pages !! pid = some pg) : cntAt v es pids els j = pageCount pg := by
+  unfold cntAt; rw [if_pos hj, List.getD_eq_getElem?_getD, hpid]; simp [hpg]
+
+theorem cntAt_leaf (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) (j : Nat)
+    (hj : j + 1 = els.length) : cntAt v es pids els j = leafCnt v es pids els := by
+  unfold cntAt; rw [if_neg (by omega)]
+
+/-- A branch level's page. -/
+theorem sPathR_br (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (rt : Nat)
+    (pids : List Nat) (els : List elemRef) (hp : sPathR nl v b rt els pids) (j : Nat)
+    (hj : j + 1 < els.length) (e : elemRef) (he : els[j]? = some e) :
+    ∃ pid pg, pids[j]? = some pid ∧ v.pages !! pid = some pg ∧ pageFlags pg = branchPageFlag ∧
+      e.index'.toNat < pageCount pg := by
+  obtain ⟨pid, hpid⟩ : ∃ pid, pids[j]? = some pid :=
+    ⟨_, List.getElem?_eq_getElem (by have := hp.2.1; omega)⟩
+  obtain ⟨pg, hpg, hf, hlt, -⟩ := (hp.2.2.2 j e pid he hpid).2.2.1 hj
+  exact ⟨pid, pg, hpid, hpg, hf, hlt⟩
+
+/-- The scan's step at a level that can not move. -/
+theorem scanOK_step (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (rt : Nat)
+    (es : List BoltEnt) (pids : List Nat) (els : List elemRef) (hp : sPathR nl v b rt els pids)
+    (k : Nat) (hk : k < els.length) (hs : scanOK v es pids els (k + 1)) (e : elemRef)
+    (he : els[k]? = some e) (hge : cntAt v es pids els k ≤ e.index'.toNat + 1) :
+    scanOK v es pids els k := by
+  by_cases hk1 : k + 1 < els.length
+  · obtain ⟨pid, pg, hpid, hpg, -, -⟩ := sPathR_br nl v b rt pids els hp k hk1 e he
+    rw [cntAt_br v es pids els k pid pg hk1 hpid hpg] at hge
+    exact scanOK_br nl v b rt es pids els hp k hk1 hs e pid pg he hpid hpg hge
+  · rw [cntAt_leaf v es pids els k (by omega)] at hge
+    exact scanOK_leaf v es pids els k (by omega) e he hge
+
+/-- A level's index is at most its count. -/
+theorem cntAt_idx (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (b : Loc)
+    (rt : Nat) (ipg : List w8) (els : List elemRef) (pids : List Nat)
+    (hw : wStk nl v es b rt ipg els pids) (k : Nat) (hk : k < els.length) (e : elemRef)
+    (he : els[k]? = some e) : e.index'.toNat ≤ cntAt v es pids els k := by
+  by_cases hk1 : k + 1 < els.length
+  · obtain ⟨pid, pg, hpid, hpg, -, hlt⟩ := sPathR_br nl v b rt pids els hw.1 k hk1 e he
+    rw [cntAt_br v es pids els k pid pg hk1 hpid hpg]; omega
+  · rw [cntAt_leaf v es pids els k (by omega)]
+    have hl : els.getLast? = some e := by
+      rw [List.getLast?_eq_getElem?, show els.length - 1 = k by omega]; exact he
+    have := hw.2.2
+    rw [leafIdx_of els e hl] at this
+    exact this
 
 /-- A leaf page's entries do not depend on the leaf index. -/
 theorem sLeafOK_snoc (v : View) (ipg : List w8) (es : List BoltEnt) (E : List elemRef)
