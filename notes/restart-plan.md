@@ -1588,8 +1588,8 @@ eliminations each give one consumer what it takes:
 
 `memberBuilt`'s `K` gains the key's name. `srvShutdownPre` moved to `StopApi`.
 
-**Stage 5c/5d done but H2 (2026-11-05).** `run`'s proof is one proof over a stop flag,
-`run.wp_proofG stp`, with `run.spec` at `false` and `run.specStop` at `true` (`questions.md`, D2).
+**Stage 5c/5d done (2026-11-05; `notes/decisions.md`, "The stop's slot, the shutdown, and the monitor's read token").** `run`'s proof is one proof over a stop flag,
+`run.wp_proofG stp`, with `run.spec` at `false` and `run.specStop` at `true`.
 The deferred shutdown is proved step by step:
 - `wgMu.Lock`, `goAttach_close`, `close(stopping)` (`wp_stop_chan_close_at`, the closer's flag at
   `wgMuP`'s names), `Unlock`;
@@ -1609,13 +1609,13 @@ What `Cleanup()` does, with its stop commit's request and the image:
 - `stop_mergedObsP` (`stop_mergedObs` at the writer's pin, since the census consumed `writerFrag`);
 - `merged_imageAt`, `restModel_confState`, `srvFiles`.
 
-New scope premises on `run.specStop` (a draft): no compactor, auth off (D1), no compaction mode and
-the boot log's `Nodup`/`srvBootLogOk` (D4).
+New scope premises on `run.specStop` (a draft): no compactor, auth off , no compaction mode and
+the boot log's `Nodup`/`srvBootLogOk`.
 
-**H2: the storage-version monitor's read token.** The census needs the monitor's read token, which
+**The storage-version monitor's read token.** The census needs the monitor's read token, which
 sits in `srvWTPool`'s invariant. Its checked-out case (a monitor session) could not be ruled out:
 the monitor's trusted contract posted `True`, and `GoAttach`'s `Done` returned nothing. The user
-approved widening the monitor's contract, with the smaller design that followed (H3, D5):
+approved widening the monitor's contract, with the smaller design that followed:
 - the pool's names become a record `W = ⟨cnt, reg⟩`, where `reg` is a set-once register of `γg.run`
   that `start` records;
 - `GoAttach` hands the goroutine's receipt `goRunning γ` to `f`;
@@ -1623,5 +1623,6 @@ approved widening the monitor's contract, with the smaller design that followed 
   it returns;
 - `wg.Wait()` gives the persistent `goWaited γ`, which contradicts any receipt.
 
-Until that lands, `StopShutdown.stop_monitorRT` is the one `sorry` of the stop. F4 (`run.spec`
-replaced by `run.specStop`) is deferred (D3).
+This is done (`stop_monitorRT` proved; `goWaited` is an exclusive half, and `Cleanup` takes any
+fraction of `γbe`). The widened contract survives the `axiom` skill's attack. F4 (`run.spec`
+replaced by `run.specStop`) is deferred until the scope premises are lifted or carried (R2d).
