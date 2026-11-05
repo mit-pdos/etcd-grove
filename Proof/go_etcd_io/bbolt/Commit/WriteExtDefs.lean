@@ -246,10 +246,10 @@ theorem gap_acc (b : Loc) (p : GoString) (U : List Nat) (sz off : Nat) (hnd : U.
     omega
 
 /-- **The target slots in the writer's form, holding anything at the file's size** (a slot across
-the end must hold at least its part inside the file). -/
+the end must hold at least its part inside the file: `h2`, the spec's `hpart`). -/
 theorem wrSlotsSz_toZ (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) (sz : Nat)
     (h1 : ∀ s ∈ S, 4096 * (s + 1) ≤ sz → (wb s).length = 4096)
-    (h2 : ∀ s ∈ S, 4096 * s < sz → sz ≤ 4096 * s + (wb s).length) :
+    (h2 : ∀ s ∈ S, 4096 * s < sz → sz < 4096 * (s + 1) → sz - 4096 * s ≤ (wb s).length) :
     wrSlotsSz (GF := GF) b p S wb sz ⊢ [∗list] s ∈ S, slotAnyZ b p sz s := by
   unfold wrSlotsSz wBytes
   refine BigSepL.bigSepL_sep_eqv.2.trans (BigSepL.bigSepL_mono ?_)
@@ -274,7 +274,7 @@ theorem wrSlotsSz_toZ (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List
       rw [show min (4096 * s) sz = 4096 * s by omega]
       iframe Hx
       ipureintro
-      have := h2 s hm hst
+      have := h2 s hm hst (by omega)
       rw [← List.length_map (f := Prod.fst), hx, List.length_take]; omega
     · simp only [hst, ite_false]
       iexists []
@@ -445,7 +445,7 @@ theorem tInOut_perm (T : List Nat) (sz0 : Nat) : T.Perm (tIn T sz0 ++ tOut T sz0
 
 /-- **On an error**: every target slot (the pages' `A`, a permutation of `bufSlots`, the tail's
 outside the old file) holding anything at the size `sz`, and the tail's slots inside the old file
-untouched, are the spec's slots. -/
+untouched, are the spec's slots, each holding a whole page's bytes. -/
 theorem errZ_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (A T : List Nat)
     (wb : Nat → List w8) (sz0 sz : Nat) (hA : A.Perm (bufSlots bufs))
     (hnd : (bufSlots bufs ++ T).Nodup) (hle : sz0 ≤ sz)
@@ -453,7 +453,8 @@ theorem errZ_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (A T : L
     ([∗list] s ∈ A ++ tOut T sz0, slotAnyZ (GF := GF) b p sz s) ∗ wrSlotsSz b p (tIn T sz0) wb sz0 ⊢
       ∃ wb' : Nat → List w8,
         ⌜(∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ sz → (wb' s).length = 4096) ∧
-          (∀ s ∈ T, 4096 * (s + 1) ≤ sz0 → wb' s = wb s)⌝ ∗
+          (∀ s ∈ T, 4096 * (s + 1) ≤ sz0 → wb' s = wb s) ∧
+          ∀ s ∈ bufSlots bufs ++ T, (wb' s).length = 4096⌝ ∗
         wrSlotsSz b p (bufSlots bufs ++ T) wb' sz := by
   have hP : (A ++ tOut T sz0 ++ tIn T sz0).Perm (bufSlots bufs ++ T) := by
     rw [List.append_assoc]
@@ -466,18 +467,19 @@ theorem errZ_final (b : Loc) (p : GoString) (bufs : GMap w64 (List w8)) (A T : L
   iintro ⟨H, Hin⟩
   icases Z_toWrSlotsSz b p _ sz hndA $$ H with ⟨%f, %hf, H⟩
   iexists wbUpd (A ++ tOut T sz0) f wb
+  have hall : ∀ s ∈ bufSlots bufs ++ T, (wbUpd (A ++ tOut T sz0) f wb s).length = 4096 := by
+    intro s hs
+    by_cases hm : s ∈ A ++ tOut T sz0
+    · simp only [wbUpd, hm, ite_true]; exact hf s hm
+    · simp only [wbUpd, hm, ite_false]
+      have hs2 := hP.mem_iff.2 hs
+      rcases List.mem_append.1 hs2 with h | h
+      · exact absurd h hm
+      · have h' := List.mem_filter.1 h
+        exact hwb s (List.mem_append_right _ (h'.1)) (by simpa using h'.2)
   isplitr
   · ipureintro
-    constructor
-    · intro s hs hs'
-      by_cases hm : s ∈ A ++ tOut T sz0
-      · simp only [wbUpd, hm, ite_true]; exact hf s hm
-      · simp only [wbUpd, hm, ite_false]
-        have hs2 := hP.mem_iff.2 hs
-        rcases List.mem_append.1 hs2 with h | h
-        · exact absurd h hm
-        · have h' := List.mem_filter.1 h
-          exact hwb s (List.mem_append_right _ (h'.1)) (by simpa using h'.2)
+    refine ⟨fun s hs _ => hall s hs, ?_, hall⟩
     · intro s hs hs'
       have hm : s ∈ tIn T sz0 := List.mem_filter.2 ⟨hs, by simpa using hs'⟩
       simp only [wbUpd, hdis s hm, ite_false]
@@ -500,7 +502,8 @@ theorem slotsOwn_congrZ (ms : MapSt) (p : GoString) (S : List Nat) (bs bs' : Nat
   rcases ms with _ | ⟨base, _⟩ <;> simp only [he] <;> exact .rfl
 
 /-- **On success**: the pages' slots (`slotsOwn`, holding `wb''`) and the tail: the tail's slots
-outside the old file holding anything at the size `sz`, those inside untouched. -/
+outside the old file holding anything at the size `sz`, those inside untouched; every slot then
+holds a whole page's bytes. -/
 theorem okZ_final (b : Loc) (l : Nat) (p : GoString) (bufs : GMap w64 (List w8)) (T : List Nat)
     (wb wb'' : Nat → List w8) (sz0 sz : Nat) (hnd : (bufSlots bufs ++ T).Nodup) (hle : sz0 ≤ sz)
     (hwb : ∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ sz0 → (wb s).length = 4096)
@@ -509,7 +512,8 @@ theorem okZ_final (b : Loc) (l : Nat) (p : GoString) (bufs : GMap w64 (List w8))
       ([∗list] s ∈ tOut T sz0, slotAnyZ b p sz s) ∗ wrSlotsSz b p (tIn T sz0) wb sz0 ⊢
       ∃ wb' : Nat → List w8,
         ⌜(∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ sz → (wb' s).length = 4096) ∧
-          (∀ s ∈ T, 4096 * (s + 1) ≤ sz0 → wb' s = wb s) ∧ ∀ s ∈ bufSlots bufs, wb' s = wb'' s⌝ ∗
+          (∀ s ∈ T, 4096 * (s + 1) ≤ sz0 → wb' s = wb s) ∧ (∀ s ∈ bufSlots bufs, wb' s = wb'' s) ∧
+          ∀ s ∈ bufSlots bufs ++ T, (wb' s).length = 4096⌝ ∗
         slotsOwn (some (b, l) : MapSt) p (bufSlots bufs) wb' ∗ wrSlotsSz b p T wb' sz := by
   have hdBT : ∀ s ∈ T, s ∉ bufSlots bufs := fun s hs hs' => (List.nodup_append.1 hnd).2.2 s hs' s hs rfl
   have hndT : T.Nodup := (List.nodup_append.1 hnd).2.1
@@ -521,10 +525,9 @@ theorem okZ_final (b : Loc) (l : Nat) (p : GoString) (bufs : GMap w64 (List w8))
   iintro ⟨Ho, H, Hin⟩
   icases Z_toWrSlotsSz b p _ sz hndO $$ H with ⟨%f, %hf, H⟩
   iexists wbUpd (bufSlots bufs) wb'' (wbUpd (tOut T sz0) f wb)
-  isplitr
-  · ipureintro
-    refine ⟨?_, ?_, fun s hs => by simp only [wbUpd, hs, ite_true]⟩
-    · intro s hs hs'
+  have hall : ∀ s ∈ bufSlots bufs ++ T,
+      (wbUpd (bufSlots bufs) wb'' (wbUpd (tOut T sz0) f wb) s).length = 4096 := by
+      intro s hs
       by_cases hb : s ∈ bufSlots bufs
       · simp only [wbUpd, hb, ite_true]; exact hwb'' s hb
       · simp only [wbUpd, hb, ite_false]
@@ -540,6 +543,9 @@ theorem okZ_final (b : Loc) (l : Nat) (p : GoString) (bufs : GMap w64 (List w8))
             · exact h
             · exact absurd h ho
           exact hwb s hs (by have := (List.mem_filter.1 hi).2; simpa using this)
+  isplitr
+  · ipureintro
+    refine ⟨fun s hs _ => hall s hs, ?_, fun s hs => by simp only [wbUpd, hs, ite_true], hall⟩
     · intro s hs hs'
       have hi : s ∈ tIn T sz0 := List.mem_filter.2 ⟨hs, by simpa using hs'⟩
       simp only [wbUpd, hdBT s hs, hdis s hi, ite_false]
