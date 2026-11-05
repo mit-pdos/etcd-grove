@@ -2,8 +2,8 @@
 module
 
 public import Code.os
-public import Perennial.Code.io
 public import Code.syscall
+public import Perennial.Code.io
 public import Code.golang_org.x.sys.unix
 public import Perennial.Golang.Defn
 
@@ -291,7 +291,7 @@ noncomputable def checkDir.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- newData is the fixed value of a committed segment.
 
-    go: segdir.go:22:6 -/
+    go: segdir.go:23:6 -/
 noncomputable def newData.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -314,7 +314,7 @@ noncomputable def newData.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- dataOk says that b is the 8 bytes of newData.
 
-    go: segdir.go:27:6 -/
+    go: segdir.go:28:6 -/
 noncomputable def dataOk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -332,7 +332,7 @@ noncomputable def dataOk.impl [GooseExts] [GoGlobalContext] : val :=
 /-- readNames lists the names in the directory dir, as fileutil.ReadDir does
     (without its sort).
 
-    go: segdir.go:34:6 -/
+    go: segdir.go:35:6 -/
 noncomputable def readNames.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -412,7 +412,7 @@ noncomputable def readNames.impl [GooseExts] [GoGlobalContext] : val :=
 /-- syncDir makes the entries of the directory dir durable, as fileutil.OpenDir
     and fileutil.Fsync do.
 
-    go: segdir.go:49:6 -/
+    go: segdir.go:50:6 -/
 noncomputable def syncDir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -458,9 +458,10 @@ noncomputable def syncDir.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- Boot removes a leftover seg.tmp, then checks the committed segment, or
-    commits it if there is none. On any error it returns.
+    commits it if there is none. On any error (a leftover it cannot remove
+    included) it returns.
 
-    go: segdir.go:61:6 -/
+    go: segdir.go:63:6 -/
 noncomputable def Boot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -502,9 +503,17 @@ noncomputable def Boot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "n")) (Val #(go!"seg.tmp")))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "dir")) (Val #(go!"/seg.tmp"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Remove []))) (Val #())) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "dir")) (Val #(go!"/seg.tmp"))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Remove []))) (Val #())) (Var "$a0"))))
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "n")) (Val #(go!"seg")))))
@@ -532,7 +541,7 @@ noncomputable def Boot.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- check is the committed case: the segment holds the data.
 
-    go: segdir.go:83:6 -/
+    go: segdir.go:87:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
@@ -595,16 +604,17 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "f") (Var "$r0"))))))))))))))
   (Val #())))
 
-/-- commit writes the data to seg.tmp and makes it durable, then renames it to
-    seg and makes the directory durable, and checks the result.
+/-- commit writes the data to seg.tmp (absent: Boot removed it) and makes it
+    durable (fdatasync, as the WAL's sync() does), then renames it to seg and
+    makes the directory durable, and checks the result.
 
-    go: segdir.go:101:6 -/
+    go: segdir.go:106:6 -/
 noncomputable def commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Seq (App (Val exceptionDo)
   (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dir"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "dir")) (Val #(go!"/seg.tmp"))))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val #(W64 2)) (Val #(W64 64)))) (Val #(W64 512))))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val #(W64 2)) (Val #(W64 64))))
   (Let "$a2" (Val #(W32 438))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.OpenFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -644,7 +654,8 @@ noncomputable def commit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "f"))) (Val #()))))))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Sync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "f"))) (Val #()))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "f"))) (Val #())))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Fdatasync []))) (Val #())) (Var "$a0")))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -1169,7 +1180,7 @@ noncomputable def Reread.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.osfs.walfs where
-  pkgImportedPkgs := [pkg_id.os, pkg_id.io, pkg_id.syscall, pkg_id.golang_org.x.sys.unix]
+  pkgImportedPkgs := [pkg_id.os, pkg_id.syscall, pkg_id.io, pkg_id.golang_org.x.sys.unix]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1181,9 +1192,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.os.initialize') (Val #())))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.golang_org.x.sys.unix.initialize') (Val #()))))))))
 
@@ -1203,8 +1214,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ZeroToEnd_unfold : FuncUnfold ZeroToEnd [] ZeroToEnd.impl
   Reread_unfold : FuncUnfold Reread [] Reread.impl
   import_os_Assumption : _root_.Perennial.os.Assumptions
-  import_io_Assumption : _root_.Perennial.io.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  import_io_Assumption : _root_.Perennial.io.Assumptions
   import_unix_Assumption : _root_.Perennial.golang_org.x.sys.unix.Assumptions
 
 attribute [instance] Assumptions.Create_unfold
@@ -1222,8 +1233,8 @@ attribute [instance] Assumptions.Create_unfold
   Assumptions.ZeroToEnd_unfold
   Assumptions.Reread_unfold
   Assumptions.import_os_Assumption
-  Assumptions.import_io_Assumption
   Assumptions.import_syscall_Assumption
+  Assumptions.import_io_Assumption
   Assumptions.import_unix_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.osfs.walfs

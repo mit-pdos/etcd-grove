@@ -410,8 +410,10 @@ def RenameOk (st : OsState) (s t : GoString) : Prop :=
   | some .dir => ¬ IsUnder s t ∧ (st.ns !! t = none ∨ NsEmptyDir st t)
   | none => False
 
-/-- Whether `b` is now a name in the directory `d`. -/
-def nsPresent (st : OsState) (d : GoString) (b : GoString) : Bool := (st.ns !! (d ++ slashB :: b)).isSome
+/-- Whether `b` is now a name in the directory `d`: a valid name (a direct entry: a path below `d/b`
+is not one of `d`'s names). -/
+def nsPresent (st : OsState) (d : GoString) (b : GoString) : Bool :=
+  decide (NameOk b) && (st.ns !! (d ++ slashB :: b)).isSome
 
 /-- A directory fd's read, as its next step finds it: begun now if it was not. -/
 def OsDirRead.cur (st : OsState) (d : GoString) :

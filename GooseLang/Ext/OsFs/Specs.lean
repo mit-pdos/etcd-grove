@@ -206,9 +206,9 @@ section nsframe
 
 theorem NsFrame.trans {st st' st'' : OsState} (h1 : NsFrame st st') (h2 : NsFrame st' st'') :
     NsFrame st st'' := by
-  obtain ⟨r1, n1, d1, l1, f1, dom1, s1, fd1⟩ := h1
-  obtain ⟨r2, n2, d2, l2, f2, dom2, s2, fd2⟩ := h2
-  refine ⟨r2.trans r1, n2.trans n1, d2.trans d1, l2.trans l1, f2.trans f1,
+  obtain ⟨r1, n1, d1, l1, f1, b1, dom1, s1, fd1⟩ := h1
+  obtain ⟨r2, n2, d2, l2, f2, b2, dom2, s2, fd2⟩ := h2
+  refine ⟨r2.trans r1, n2.trans n1, d2.trans d1, l2.trans l1, f2.trans f1, b2.trans b1,
     fun k => (dom2 k).trans (dom1 k), fun k f h => ?_, fun fd h => ?_⟩
   · obtain ⟨f', h'⟩ := s1 k f h; exact s2 k f' h'
   · rcases fd2 fd h with h' | h'
@@ -217,15 +217,15 @@ theorem NsFrame.trans {st st' st'' : OsState} (h1 : NsFrame st st') (h2 : NsFram
 
 theorem nsFrame_inflight (st : OsState) (X : GMap Nat OsChange) :
     NsFrame st { st with inflight := X } :=
-  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
 
 theorem nsFrame_maps (st : OsState) (X : GMap Loc OsMap) : NsFrame st { st with maps := X } :=
-  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
 
 theorem nsFrame_fds (st : OsState) (X : GMap w64 OsFd)
     (hX : ∀ fd, X !! fd ≠ none → st.fds !! fd ≠ none ∨ st.dfds !! fd = none) :
     NsFrame st { st with fds := X } :=
-  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, hX⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, hX⟩
 
 theorem nsFrame_fds_delete (st : OsState) (fd : w64) :
     NsFrame st { st with fds := GMap.delete fd st.fds } := by
@@ -243,7 +243,7 @@ theorem nsFrame_fds_insert (st : OsState) (fd : w64) (d : OsFd) (h : st.dfds !! 
 
 theorem nsFrame_setFile (st : OsState) (p : GoString) (f : OsFile) (hp : st.files !! p ≠ none) :
     NsFrame st (st.setFile p f) := by
-  refine ⟨rfl, rfl, rfl, rfl, rfl, fun k => ?_, fun k f0 h => ?_, fun _ h => Or.inl h⟩
+  refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun k => ?_, fun k f0 h => ?_, fun _ h => Or.inl h⟩
   · rw [GMap.mem_iff, GMap.mem_iff]
     by_cases he : p = k
     · subst he

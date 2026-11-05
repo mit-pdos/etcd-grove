@@ -258,9 +258,9 @@ theorem start_files : ∀ F : GMap GoString (Option OsFile),
 theorem osStart_files (st : OsState) :
     osStart hL st ⊢ ([∗map] p ↦ fo ∈ st.files, fileStart hL p fo) ∗
       gVar hL (1 : Qp).half ((∅ : GMap Loc (Option w8 × Bool)), 0) := by
-  unfold osStart
+  unfold osStart osStartF
   rw [bytesMap_eq, metaMap_eq]
-  iintro ⟨Hb, Hm, Hv⟩
+  iintro ⟨⟨Hb, Hm, Hv⟩, -⟩
   iframe Hv
   iapply start_files hL st.files; iframe
 
@@ -317,8 +317,8 @@ theorem os_local_crash (hPre : OsGpreS GF) (hL : OsGS GF) (st st' : OsState)
     (hc : OsCrash st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStart hL hL' := by
   unfold osCtx osCtxF nsCtx
-  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, -, -, -⟩, %hns⟩
-  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns hc
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, -, -, -⟩, ⟨%Γd, %Γdf, %hns, -, -, -, -⟩⟩
+  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns.1 hc
   imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
   unfold osCtx osCtxF nsCtx
   icases osStart_files hL' st' $$ Hst with ⟨Hfs, Hv⟩

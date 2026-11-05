@@ -16,6 +16,7 @@ package walfs
 
 import (
 	"os"
+	"syscall"
 )
 
 // newData is the fixed value of a committed segment.
@@ -57,7 +58,8 @@ func syncDir(dir string) bool {
 }
 
 // Boot removes a leftover seg.tmp, then checks the committed segment, or
-// commits it if there is none. On any error it returns.
+// commits it if there is none. On any error (a leftover it cannot remove
+// included) it returns.
 func Boot(dir string) {
 	names, ok := readNames(dir)
 	if !ok {
@@ -69,7 +71,9 @@ func Boot(dir string) {
 			have = true
 		}
 		if n == "seg.tmp" {
-			os.Remove(dir + "/seg.tmp")
+			if err := os.Remove(dir + "/seg.tmp"); err != nil {
+				return
+			}
 		}
 	}
 	if have {
@@ -96,10 +100,11 @@ func check(dir string) {
 	}
 }
 
-// commit writes the data to seg.tmp and makes it durable, then renames it to
-// seg and makes the directory durable, and checks the result.
+// commit writes the data to seg.tmp (absent: Boot removed it) and makes it
+// durable (fdatasync, as the WAL's sync() does), then renames it to seg and
+// makes the directory durable, and checks the result.
 func commit(dir string) {
-	f, err := os.OpenFile(dir+"/seg.tmp", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
+	f, err := os.OpenFile(dir+"/seg.tmp", os.O_RDWR|os.O_CREATE, 0o666)
 	if err != nil {
 		return
 	}
@@ -107,7 +112,7 @@ func commit(dir string) {
 		f.Close()
 		return
 	}
-	if err := f.Sync(); err != nil {
+	if err := syscall.Fdatasync(int(f.Fd())); err != nil {
 		f.Close()
 		return
 	}

@@ -222,8 +222,8 @@ theorem os_local_crashQT (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) 
     (st st' : OsState) (hc : OsCrash st st') (hQ : Q st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStartQT Q hL hL' := by
   unfold osCtx osCtxF nsCtx
-  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, %hns⟩
-  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns hc
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, ⟨%Γd, %Γdf, %hns, -, -, -, -⟩⟩
+  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns.1 hc
   imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
   unfold osCtx osCtxF nsCtx
   icases osStart_files hL' st' $$ Hst with ⟨Hfs, Hv⟩

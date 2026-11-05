@@ -100,12 +100,15 @@ inductive NsOp where
   /-- `s` (and its tree) moved to `t`, replacing a file at `t`. -/
   | rename (s t : GoString)
 
-/-- The effect of an operation on a namespace. -/
+/-- The effect of an operation on a namespace. A rename of a file moves its entry (replacing one at
+`t`); of a directory, its tree (`nsMove`, nothing at `t`, or an empty directory, removed). -/
 def NsOp.apply : NsOp → NsMap → NsMap
   | .create p key, m => <[p := .file key]> m
   | .mkdir p, m => <[p := .dir]> m
   | .remove p, m => GMap.delete p m
-  | .rename s t, m => nsMove (GMap.delete t m) s t
+  | .rename s t, m => match m !! s with
+    | some (.file k) => <[t := .file k]> (GMap.delete s m)
+    | _ => nsMove (GMap.delete t m) s t
 
 /-- The operations `ops`, in order, replayed on `m`. -/
 def nsReplay (ops : List NsOp) (m : NsMap) : NsMap := ops.foldl (fun m o => o.apply m) m
@@ -158,7 +161,7 @@ def NsOp.touched (d : GoString) : NsOp → List GoString
       (if parentOf t = some d then [baseOf t] else [])
 
 /-- The names in the directory `d` of the namespace `m`. -/
-def entryIn (m : NsMap) (d b : GoString) : Prop := (m !! (d ++ slashB :: b)).isSome
+def entryIn (m : NsMap) (d b : GoString) : Prop := NameOk b ∧ (m !! (d ++ slashB :: b)).isSome
 
 end Perennial
 

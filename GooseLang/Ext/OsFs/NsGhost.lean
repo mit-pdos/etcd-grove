@@ -150,6 +150,49 @@ theorem entsOf_delete_other (m : NsMap) (d p : GoString) (hp : parentOf p ≠ so
     rw [GMap.lookup_delete_ne _ this]
   · rfl
 
+/-! ## Ghost values -/
+
+/-- What the ghost state knows of a directory: its entries as of a point known durable, and the
+changes since, in order; its entries now are the changes replayed on them (`DirG.now`). A crash
+leaves some prefix of the changes replayed. -/
+structure DirG where
+  dur : Ents
+  pend : List LOp
+
+/-- The entries now. -/
+def DirG.now (g : DirG) : Ents := lreplay g.pend g.dur
+
+/-- The entries a crash may leave. -/
+def DirG.CrashTo (g : DirG) (e : Ents) : Prop := ∃ i, i ≤ g.pend.length ∧ e = lreplay (g.pend.take i) g.dur
+
+def OsNode.enc : OsNode → Option GoString
+  | .file k => some k
+  | .dir => none
+
+instance OsNode.countable : Pos.Countable OsNode :=
+  Pos.Countable.ofInjective (fun n => Pos.Countable.encode n.enc)
+    (fun a b h => by
+      have h : a.enc = b.enc := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all [OsNode.enc])
+
+def LOp.enc : LOp → Nat × GoString × GoString × Option OsNode
+  | .put b n => (0, b, [], some n)
+  | .del b => (1, b, [], none)
+  | .mv b c => (2, b, c, none)
+
+instance LOp.countable : Pos.Countable LOp :=
+  Pos.Countable.ofInjective (fun o => Pos.Countable.encode o.enc)
+    (fun a b h => by
+      have h : a.enc = b.enc := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all [LOp.enc])
+
+instance DirG.countable : Pos.Countable DirG :=
+  Pos.Countable.ofInjective (fun g => Pos.Countable.encode (g.dur, g.pend))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2⟩ := h; subst h1 h2; rfl)
+
 end Perennial
 
 end
