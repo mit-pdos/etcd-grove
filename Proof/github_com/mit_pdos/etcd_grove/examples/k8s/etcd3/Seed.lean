@@ -216,7 +216,7 @@ theorem seed_au (γs : GName) (γk : KVNames) (op : KVOp) (σ : KVState) :
         iframe
       imodintro
       iexact Hs
-    · iintro Hσ
+    · iintro ⟨Hσ, -⟩
       imod Hclose2 with -
       imod ghostVar_update_halves (kvOpStep op σ') γs σ' σ' $$ Hs' Hs with ⟨Hs', Hs⟩
       imod Hclose $$ [Hσ Hs'] with -

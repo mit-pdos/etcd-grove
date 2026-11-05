@@ -334,7 +334,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
   rcases hk with ⟨hro, hlin⟩ | ⟨hro, hfree⟩
   · -- read-only, linearizable: the read update after the floor
     have hs : txn.txnSerializable (txnWireOf b.model) = false := by rw [hser, hlin]; rfl
-    ihave #Hau := km_read_au0 γ lf $$ [$Hinv $Hlf]
+    ihave #Hau := km_read_au γ lf $$ [$Hinv $Hlf]
     iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b (kmSeenQ γ lf)) $$ [Hobj]
     · iframe
       iframe #
@@ -346,6 +346,8 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
       iright; ileft
       isplitl []
       · ipureintro; exact ⟨hro, hs⟩
+      iunfold kvReadAu at Hau
+      iunfold kvAu at Hau
       iexact Hau
     simp only [hro, hs, ↓reduceIte, Bool.false_eq_true]
     inext
@@ -373,7 +375,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
       · iright; ipureintro; exact ⟨Herr.1, Hce⟩
   · -- writing, covered: the write's update after the floor
     have hl := kmFree_leaseFree _ hfree
-    ihave Hau := km_write_au0 γ lf (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $Hlf]
+    ihave Hau := km_write_au γ lf (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $Hlf]
     iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b
       (kmWriteQ γ lf (.txn (txnWireOf b.model)))) $$ [Hobj Hau]
     · iframe
@@ -386,6 +388,8 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
       iright; iright
       isplitl []
       · ipureintro; exact ⟨hro, txnPlain_wire _ hp hx hl, txnNoZeroEnd_wire _ hp hx hro⟩
+      iunfold kvOpAu1 at Hau
+      iunfold kvAu1 at Hau
       iexact Hau
     simp only [hro, ↓reduceIte, Bool.false_eq_true]
     inext
@@ -440,22 +444,24 @@ theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧
           txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ.kv σ, COMM □ Q σ }>) ∨
+            <{ etcdKV γ.kv σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
           txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ.kv (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) $$ []
+            <{ etcdKV γ.kv (kvOpStep (.txn (txnWireOf b.model)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) $$ []
   · cases hro : txn.txnReadonly (txnWireOf b.model)
     · have hf : TxnModel.kmFree b.model := by
         rcases hk with h | h
         · rw [hro] at h; cases h
         · exact h
-      ihave Hau := km_write_au0 γ [] (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $H0]
+      ihave Hau := km_write_au γ [] (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $H0]
       iexists (kmWriteQ γ [] (.txn (txnWireOf b.model)))
       iright; iright
       isplitl []
       · ipureintro
         exact ⟨rfl, txnPlain_wire _ hp hx (kmFree_leaseFree _ hf), txnNoZeroEnd_wire _ hp hx hro⟩
+      iunfold kvOpAu1 at Hau
+      iunfold kvAu1 at Hau
       iexact Hau
     · iexists (fun _ => iprop(True))
       ileft; ipureintro; exact ⟨rfl, rfl⟩

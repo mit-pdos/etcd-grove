@@ -62,7 +62,7 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
     rw [(wire_fields _).2.2.2.2.2.2.1]; exact Hlin
   -- the floor: changes the client saw, `lo` of them or more, and the read update after them
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
-  ihave #Hau := km_read_au0 γ l0 $$ [$Hinv $Hl0]
+  ihave #Hau := km_read_au γ l0 $$ [$Hinv $Hl0]
   iapply (v3.kv.wp_Get api γ.kv dup ci cd key sl gs R (kmSeenQ γ l0)) $$ [HR]
   · iframe #
     iframe
@@ -72,7 +72,11 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
     · ipureintro; exact Hsz
     imodintro
     iright
-    ipureintro; exact hws
+    isplitl []
+    · ipureintro; exact hws
+    iunfold kvReadAu at Hau
+    iunfold kvAu at Hau
+    iexact Hau
   inext
   iintro %resp %err ⟨HR, Hout⟩
   iapply HΦ

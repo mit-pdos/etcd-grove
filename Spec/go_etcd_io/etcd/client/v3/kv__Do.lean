@@ -32,20 +32,21 @@ def doRunOk (γ : KVNames) (dup : Bool) (o : OpFull) (Q : KVState → IProp GF) 
   iprop((⌜o.t = W64 1⌝ ∗ sortNamesIf o.base.sortSet ∗
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf o).base.serializable = false⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>))) ∨
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>))) ∨
     (⌜o.t = W64 2 ∧ (putWireOf o).leaseID = W64 0⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep (.put (putWireOf o)) σ), COMM Q σ }>)) ∨
+        <{ etcdKV γ (kvOpStep (.put (putWireOf o)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ∨
     (⌜o.t = W64 3 ∧ (deleteWireOf o).base.rangeEnd ≠ [W8 0]⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf o)) σ), COMM Q σ }>)))
+        <{ etcdKV γ (kvOpStep (.deleteRange (deleteWireOf o)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)))
 
 /-- `kv.Do(ctx, op)` on a `*kv` of etcd's KV `γ` (`isKv`, D44), for an `Op` `op` modelled by `op_m`
 that is a range, a put or a delete (`doRunOk`): the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
 or `DeleteRange`, with the client's call options; `doOut` with the reply's fields as functions of
 the state the update fired at (`rangeStOk`, `putStOk`, `delStOk`). The request fits a gRPC message
-(`opSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
+(`opSizeOk`; 2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
 abbrev kv.Do.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (op : go_etcd_io.etcd.client.v3.Op) (op_m : OpFull)

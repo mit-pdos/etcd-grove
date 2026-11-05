@@ -1016,7 +1016,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
 predicate `P.Q`; it fires at every response (`recvCmpl`). -/
 def wsAu (P : WsPrm GF) : IProp GF :=
   iprop(□ (AU <{ ∃∃ (σ : KVState), etcdKV P.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-    <{ etcdKV P.kv σ, COMM □ P.Q σ }>))
+    <{ etcdKV P.kv σ ∗ ⌜kvRoom σ⌝, COMM □ P.Q σ }>))
 
 instance wsAu_persistent (P : WsPrm GF) : Persistent (wsAu P) := by
   unfold wsAu; infer_instance

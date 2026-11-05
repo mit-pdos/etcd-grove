@@ -279,7 +279,9 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : 
     iframe #
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
-  ihave Hau := km_write_au0 γ l0 (.put (putWireOf (opPutModel key val gs))) (KMWritable.keep _) $$ [$Hinv $Hl0]
+  ihave Hau := km_write_au γ l0 (.put (putWireOf (opPutModel key val gs))) (KMWritable.keep _) $$ [$Hinv $Hl0]
+  iunfold kvOpAu1 at Hau
+  iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Put api γ.kv false todoCtxVal cd key val sl gs
     (kmWriteQ γ l0 (.put (putWireOf (opPutModel key val gs))))) $$ [Hau]
   · iframe #
@@ -328,7 +330,9 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx
       have := h.length_le; omega
     · iexists l0; iframe Hl0; ipureintro
       have := h.length_le; omega
-  ihave Hau := km_write_au0 γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))) (KMWritable.keep _) $$ [$Hinv $HL]
+  ihave Hau := km_write_au γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))) (KMWritable.keep _) $$ [$Hinv $HL]
+  iunfold kvOpAu1 at Hau
+  iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Delete api γ.kv false todoCtxVal cd key sl gs
     (kmWriteQ γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))))) $$ [Hau]
   · iframe #

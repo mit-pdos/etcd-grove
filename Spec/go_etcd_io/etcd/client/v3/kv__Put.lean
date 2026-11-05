@@ -34,7 +34,7 @@ revision `σ`'s next and its previous key-value the key's record in `σ`'s curre
 reached the reply's revision (`kvRevLb`, persistent: what a later `Compact` takes; the client's
 `kv.Compact`, 2026-11-01); or a client error
 (`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`).
--/
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
 abbrev kv.Put.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key val : GoString) (opts_sl : GoSlice)
@@ -44,7 +44,7 @@ abbrev kv.Put.spec : Prop :=
       ⌜¬ (opPutModel key val opts).putPanics ∧ (opPutModel key val opts).t = W64 2 ∧
         (putWireOf (opPutModel key val opts)).leaseID = W64 0⌝ ∗
       □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ), COMM Q σ }>) ∗
+        <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val opts))) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>) ∗
       ⌜opSizeOk (opPutModel key val opts)⌝ }}
     (App (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #opts_sl))

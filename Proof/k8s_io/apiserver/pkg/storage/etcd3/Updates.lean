@@ -233,7 +233,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
         isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
         imod Hcommit $$ [Hkv] with -
         · iframe Hkv
-          ipureintro; exact Hroom
+          ipureintro; exact ⟨Hroom, trivial⟩
         imodintro
         simp only [Bool.false_or, Bool.false_eq_true, ↓reduceIte]
         iframe HW

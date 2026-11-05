@@ -32217,10 +32217,16 @@ by the marked `sorry` `revRoom` (D30n), false as stated.
   firing's room of the pre-state, `inv_next` takes `kvRoom σ` (decided by the agent: it still needs
   the post-state's room for `histOwn_next`, which `kvRoom σ` gives, so its premise changed instead of
   going).
-- Clients that state an update without the room (`KVService`'s specs' `AU`s, the watcher's spec's
-  read update in `KMWatch`) are unchanged: an update not told the room is one told it (`au_room`,
-  `km_read_au0`; `aupd_post_mono`).
-
+- The client library (H-rr1's extension, decided by etcd-grove-82, 2026-11-05: the first
+  version kept the client's specs and stopped, `client_Get_kv` and the kubernetes client's
+  `Client.Optimistic*`, over `kvReadAu`/`kvOpAu1`, having to pass a room-told update into a spec
+  whose update was not told it): the updates of `kv.Get`, `kv.Put`, `kv.Delete`, `kv.Do`,
+  `txn.Commit` and `watcher.Watch` (`Spec/go_etcd_io/etcd/client/v3/`) are told `⌜kvRoom σ⌝` at
+  their commit, as the server's. `KVService`'s `writeAu_upd`/`readAu_upd`/`txnAu_upd` are the
+  identity again; the watch's read update (`wsAu`, `InvWatch`; `raw_to_state`, `WatchFire`) is
+  told the room, fired by `srvKVCoreM_fire`, which proves it from the KV invariant as the other
+  firing sites. A caller holding an update not told the room passes it on through `au_room`
+  (`KVService`: an update not told the room is one told it, `aupd_post_mono`).
 **Unchanged.** `Main.spec`, `k8setcd3_safe`, `NewServer`/`bootOk`, the etcdstart starters, every
 exported result. No axiom; the trust base loses the `sorry` `k8s_etcd3.revRoom`.
 

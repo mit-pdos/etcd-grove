@@ -571,7 +571,8 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
         isKv api γ dup ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val []))) σ), COMM Q σ }>) }}
+          <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val []))) σ) ∗ ⌜kvRoom σ⌝,
+            COMM Q σ }>) }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

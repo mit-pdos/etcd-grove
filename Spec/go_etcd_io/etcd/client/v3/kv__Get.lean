@@ -32,7 +32,8 @@ update's, `□ Q σ`, if linearizable) at whose current revision the reply's hea
 key-values and count the selection of `σ`'s store at the revision the range reads (`readRev`: the
 one asked, at most the current, or the current), `σ` a well-formed small log's state (`kvLogOk`,
 D48); or a client error (`kvErr`) and no reply. The request fits a gRPC message (`opSizeOk`;
-2026-10-30, `grpcInvokerOk`). -/
+2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
 abbrev kv.Get.spec : Prop :=
   ∀ (kv : Loc) (γ : KVNames) (dup : Bool) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
@@ -43,7 +44,7 @@ abbrev kv.Get.spec : Prop :=
       ⌜¬ opGetPanics opts ∧ (opGetModel key opts).t = W64 1⌝ ∗
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜(rangeWireOf (opGetModel key opts)).base.serializable = false⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>)) ∗
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>)) ∗
       ⌜opSizeOk (opGetModel key opts)⌝ }}
     (App (App (App (Val (kv @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Get")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))

@@ -374,7 +374,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗ mvcc.idxSealed E.γ.idx L -∗
       mvcc.certOk E.γ L -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) ={⊤}=∗
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ={⊤}=∗
       ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
   cases on
   · rw [srvKVCoreM_false]
@@ -433,7 +433,9 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
-    · iunfold etcdKV; rw [hst]; iexact Hc2
+    · iunfold etcdKV; rw [hst]; isplitl [Hc2]
+      · iexact Hc2
+      · ipureintro; rw [← Hag]; exact kvRoom_model γr.kv Lf Hok'.2.2.2.2.2.2.2.2
     imod Hback with -
     imod Hclose $$ [HLf Hσ' HG] with -
     · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
@@ -499,7 +501,9 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
-    · iunfold etcdKV; rw [hst]; iexact Hc2
+    · iunfold etcdKV; rw [hst]; isplitl [Hc2]
+      · iexact Hc2
+      · ipureintro; rw [← Hag]; exact kvRoom_modelOn γr.kv srvAuthSt0 Lf Hok'.2.2.2.2.2.2.2
     imod Hback with -
     imod Hclose $$ [HLf Hσ' Hh] with -
     · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
