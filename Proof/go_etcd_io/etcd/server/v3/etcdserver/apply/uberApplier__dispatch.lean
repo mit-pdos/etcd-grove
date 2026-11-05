@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.ApplySecObserve
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRequest
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfFailedRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -97,7 +98,7 @@ set_option hygiene false in
 /-- The postcondition for a request that leaves the KV and the chain as they are. -/
 local macro "fin_same" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
-  iframe Hres
+  iframe Htt Hrt Hres
   rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
   iframe Hco
   iexists (GoInterface.ok ai), c, (Outcome.applied log false)
@@ -124,7 +125,7 @@ set_option hygiene false in
 /-- The postcondition for a request whose outcome `oc` is the chain's (`Hst`). -/
 local macro "fin_kv" : tactic => `(tactic| (
   (try ihave Hres := apply.chainResAny_of _ _ _ $$ Hres)
-  iframe Hres
+  iframe Htt Hrt Hres
   rw [apply.dispatchCrev_nonCmp c rq _ crev (by simp [hk])]
   iframe Hco
   iexists (GoInterface.ok ai), c, oc
@@ -173,7 +174,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, %HcE, #HF, HFS, HSp, %Hrr, HRO, Hco⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, %Hok, #Hcpr, %HcE, #HF, Htt, HFS, HSp, %Hrr, HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
@@ -259,7 +260,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hsv : semverValid x ∧ semverAtMostServer x := by
       have := Hok.1; simp only [rqOk, hk] at this; exact this x hs
     wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post
-        %(apply.ClusterReq.ver x) %rs %info [] [Hkv Hres Hc Hwt HFS HRO] as ⟨Hpost, HFS, HRO⟩
+        %(apply.ClusterReq.ver x) %rs %info [] [Hkv Hres HFS HRO] as ⟨Hpost, HFS, HRO⟩
     · ipureintro; simp [apply.clusterMethods]
     · iunfold apply.clusterFacts
       isplitr
@@ -267,8 +268,9 @@ theorem apply.uberApplier.dispatch.wp_proof
         · ipureintro; rfl
         iframe HR
         ipureintro; exact hsv
-      iunfold apply.mPreV
-      iframe
+      iframe HFS HRO
+      iapply apply.kvOwnPre_mPreV
+      iframe Hkv Hres
     persist_ar
     ok_path
     ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
@@ -278,7 +280,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iapply HΦ
     iframe HFS HRO
     iunfold apply.mPostV at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterVersionSet : rq.clusterVersionSet = none := nCV.1 (by simpa using Hif)
@@ -289,7 +291,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCM
     have hk : dispatchKind rq = .clusterMemberAttrSet := by simp [dispatchKind, zClusterVersionSet, hs]
     wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post
-        %(apply.ClusterReq.attr x) %rs %info [] [Hkv Hres Hc Hwt HFS HRO] as ⟨Hpost, HFS, HRO⟩
+        %(apply.ClusterReq.attr x) %rs %info [] [Hkv Hres HFS HRO] as ⟨Hpost, HFS, HRO⟩
     · ipureintro; simp [apply.clusterMethods]
     · iunfold apply.clusterFacts
       isplitr
@@ -297,8 +299,9 @@ theorem apply.uberApplier.dispatch.wp_proof
         · ipureintro; rfl
         iframe HR
         ipureintro; exact apply.restReqOk_attr rq rs x Hrr hk hs
-      iunfold apply.mPreV
-      iframe
+      iframe HFS HRO
+      iapply apply.kvOwnPre_mPreV
+      iframe Hkv Hres
     persist_ar
     ok_path
     ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
@@ -308,7 +311,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iapply HΦ
     iframe HFS HRO
     iunfold apply.mPostV at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
+    icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterMemberAttrSet : rq.clusterMemberAttrSet = none := nCM.1 (by simpa using Hif)
@@ -336,8 +339,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     ok_path
     iapply HΦ
     iframe HFS HRO
-    ihave HPP : iprop(cPost v3 Pre Post) $$ [Hc]
-    · iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hc
+    ihave ⟨Hkv, Hrt, HPP⟩ := apply.kvOwnPre_kvOwn v3 E log Pre Q Post $$ Hkv
+    ihave HPP : iprop(cPost v3 Pre Post) $$ [HPP]
+    · iapply apply.cPost_of_pre; iexact HPP
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zDowngradeVersionTest : rq.downgradeVersionTest = false := nDT.1 (by simpa using Hif)
@@ -349,15 +353,16 @@ theorem apply.uberApplier.dispatch.wp_proof
     ok_path
     iapply HΦ
     iframe HFS HRO
+    ihave ⟨Hkv, Hrt, Hc⟩ := apply.kvOwnPre_kvOwn false E log Pre Q Post $$ Hkv
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
-    iframe Hres
+    iframe Htt Hrt Hres
     rw [apply.dispatchCrev_noV3]
     iframe Hco
     iexists (GoInterface.ok ai), c, (Outcome.applied log false)
     simp only [apply.Outcome.logAfter]
     iframe Ha Hs Hkv
     isplitl [Hc]
-    · simp only [apply.cPost, apply.cPre, Bool.false_eq_true, ↓reduceIte]; iexact Hc
+    · simp only [apply.cPost, Bool.false_eq_true, ↓reduceIte]; iexact Hc
     isplitr
     · ipureintro; simp [apply.kvFloorOk, apply.dispatchStep, apply.chainAfter, hpre]
     isplitl []
@@ -367,8 +372,6 @@ theorem apply.uberApplier.dispatch.wp_proof
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, _root_.or_self, ↓reduceIte]
     ipureintro; trivial
   (try wp_auto)
-  ihave Hc : iprop(mvcc.csContract E.P E.f Pre Q Post) $$ [Hc]
-  · simp only [apply.cPre, ↓reduceIte]; iexact Hc
   ihave #HSp : apply.ciSplit E Pre $$ [HSp]
   · simp only [↓reduceIte]; iexact HSp
   ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp
@@ -379,7 +382,8 @@ theorem apply.uberApplier.dispatch.wp_proof
       (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
       a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
-      (apply.chainResAny c (GoInterface.ok ai) ∗ apply.cmpOwn E (apply.dispatchCrev c rq true crev) ∗
+      (threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗
+        apply.chainResAny c (GoInterface.ok ai) ∗ apply.cmpOwn E (apply.dispatchCrev c rq true crev) ∗
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
@@ -387,7 +391,7 @@ theorem apply.uberApplier.dispatch.wp_proof
             apply.kvFloorOk rq true F log o ∧ a' = GoInterface.ok ai ∧ c' = c⌝ ∗
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
-    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco]
+    with [a r ar op «$r0» Hres Ha Hkv Htt Hco]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -395,8 +399,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .range := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HRange $$ %lRa %rq %x %log %info [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.rangePre
+    ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn true E log Pre Q Post $$ Hkv
+    wp_apply HRange $$ %lRa %rq %x %log %info [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt
+      iunfold apply.rangePre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
       iframe HR
@@ -405,8 +411,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, #Hcls⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [Hc]
-    · iright; iapply apply.csContract_pre; iexact Hc
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
+    · iright; iexact HPre
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
@@ -418,14 +424,13 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post %info [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iframe HF
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt HF
       iunfold apply.putPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok⟩
-      iframe HR Hcp
-      iunfold apply.mPre
-      iframe
+      iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
@@ -441,14 +446,13 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .deleteRange := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HDel $$ %lDe %rq %x %log %F %Pre %Q %Post %info [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iframe HF
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HDel $$ %lDe %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt HF
       iunfold apply.deletePre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
-      iframe HR Hcp
-      iunfold apply.mPre
-      iframe
+      iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
@@ -464,14 +468,13 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .txn := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iframe HF
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt HF
       iunfold apply.txnPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
-      iframe HR Hcp
-      iunfold apply.mPre
-      iframe
+      iframe HR Hcp Hmp
     iunfold apply.kvPostF at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP, #Hcls, -⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
@@ -485,24 +488,22 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCo.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCo
     have hk : dispatchKind rq = .compaction := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, hs]
-    have hadm : apply.cmpAdmitRev E.γ.kb log x := Hok.2.2 hk x hs
-    wp_apply HCmp $$ %lCo %x %log %crev %Pre %Q %Post %info [Hkv Hres Hc Hco]
-      as %resp %physc %trace %err ⟨Hkv, Hres, HPP, Hco, Hans⟩
-    · iframe HR
+    have hadm : apply.cmpAdmitRev log x := Hok.2.2 hk x hs
+    ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
+    wp_apply HCmp $$ %lCo %x %log %crev %Pre %Q %Post %info [Htt Hmp Hco]
+      as %resp %physc %trace %err ⟨Htt, Hkv, Hres, HPP, Hco, Hans, -⟩
+    · iframe HR Htt Hmp Hco
       isplitr
       · ipureintro; exact hadm
-      isplitr
-      · iunfold apply.cmpPermRq at Hcpr
-        iapply Hcpr
-        · ipureintro; exact hk
-        · ipureintro; exact hs
-      iunfold apply.mPre
-      iframe
+      iunfold apply.cmpPermRq at Hcpr
+      iapply Hcpr
+      · ipureintro; exact hk
+      · ipureintro; exact hs
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.cmpAnswerIs_errIs _ _ _ _ _ _ _) $$ [$Hev $Hans]
     ihave ⟨Htrc, Hans⟩ := apply.cmpAnswerIs_split _ _ _ _ _ _ _ log $$ Hans
     join_ar
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
-    iframe Hres
+    iframe Htt Hrt Hres
     have hcr : apply.dispatchCrev c rq true crev =
         (if apply.chainCompacts c then apply.cmpRevAfter crev x else crev) := by
       unfold apply.dispatchCrev
@@ -613,11 +614,12 @@ theorem apply.uberApplier.dispatch.wp_proof
       · exact absurd (nAS.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authStatus := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, hs]
-    wp_apply HStatus $$ %log %info [Hkv Hres] as %resp %err ⟨Hkv, Hres, #HeI⟩
+    ihave ⟨Hkv, Hrt, HPre⟩ := apply.kvOwnPre_kvOwn true E log Pre Q Post $$ Hkv
+    wp_apply HStatus $$ %log %info [Htt Hkv Hres] as %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
     · iframe
     join_ar
-    ihave HPP : iprop(Post ∨ Pre) $$ [Hc]
-    · iright; iapply apply.csContract_pre; iexact Hc
+    ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
+    · iright; iexact HPre
     fin_same
     itrivial
   have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)

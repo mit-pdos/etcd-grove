@@ -287,6 +287,70 @@ theorem mPreV_of_rest (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
   iunfold mPreV
   iframe
 
+/-! ### `kvOwnPre` (`uberApplier.dispatch`'s and `Apply`'s resources), split per method -/
+
+/-- `kvOwnPre` is `mPreV`'s rest (the same resources). -/
+theorem kvOwnPre_eq_rest (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    kvOwnPre v3 E log Pre Q Post = mPreVRest v3 E log Pre Q Post := rfl
+
+/-- **For a cluster method**: `mPreV` from `kvOwnPre` and the chain's resources. -/
+theorem kvOwnPre_mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    kvOwnPre v3 E log Pre Q Post ∗ chainRes c a info ⊢ mPreV v3 E c a info log Pre Q Post := by
+  rw [kvOwnPre_eq_rest]; exact mPreV_of_rest v3 E c a info log Pre Q Post
+
+/-- **For a method that does not write** (a read, `AuthStatus`, a request with nothing to do):
+the thread's KV resources, the reader token, and `Pre` (the contract unused; the write-back token
+dropped). -/
+theorem kvOwnPre_kvOwn (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    kvOwnPre v3 E log Pre Q Post ⊢ kvOwn E log ∗ (∃ B : BkRef, bkRT B) ∗ Pre := by
+  iintro H
+  iunfold kvOwnPre at H
+  icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, -, Hrt, Hc⟩
+  isplitl [Hw Hll Hrd Hbk Hhk Htie]
+  · iunfold kvOwn
+    iframe Hw Hll Hrd
+    iunfold kvBk
+    iexists B
+    iframe Hbk Hhk Htie
+  isplitl [Hrt]
+  · iexists B; iexact Hrt
+  iapply cPre_pre; iexact Hc
+
+/-- **For a KV method that writes through the store** (`Put`, `DeleteRange`, `Txn`,
+`Compaction`): `mPre` from `kvOwnPre true` and the chain's resources, the reader token aside (the
+write-back token dropped: the store's own write takes none). -/
+theorem kvOwnPre_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    kvOwnPre true E log Pre Q Post ∗ chainRes c a info ⊢
+      mPre E c a info log Pre Q Post ∗ (∃ B : BkRef, bkRT B) := by
+  iintro ⟨H, Hres⟩
+  iunfold kvOwnPre at H
+  icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, -, Hrt, Hc⟩
+  isplitr [Hrt]
+  · iunfold mPre
+    iframe Hw Hll Hrd Hres
+    iexists B
+    iframe Hbk Hhk Htie
+    simp only [cPre, ↓reduceIte]
+    iexact Hc
+  iexists B; iexact Hrt
+
+/-- **`kvOwnPre` lends the auth store's reader resource** (`uberApplier.Apply`'s `rdLend`, as
+`rdLend_kvOwn`). -/
+theorem rdLend_kvOwnPre (v3 : Bool) (E : AEnv GF) (X : IProp GF) (log : mvcc.Log)
+    (Pre Q Post Y : IProp GF) :
+    ⊢ rdLend E iprop(X ∗ kvOwnPre v3 E log Pre Q Post ∗ Y) := by
+  unfold rdLend
+  iintro !> ⟨HX, Hkv, HY⟩
+  iunfold kvOwnPre at Hkv
+  icases Hkv with ⟨Hw, Hll, Hrd, Hb⟩
+  iframe Hrd
+  iintro Hrd
+  iframe HX HY
+  iunfold kvOwnPre
+  iframe
+
 end lemmas
 
 end apply
