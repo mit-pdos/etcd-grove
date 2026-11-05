@@ -181,4 +181,10 @@ Decided by the coordinator, 2026-11-05:
   `executeTxn`'s gap E′ placeholder is gone;
 - **F** (the API, the mvcc track): `Txn.DeleteRange`'s post gives `⌜LogWf' (σ.log ++ [pend]) ∧ ∀ cs ∈
   σ.log ++ [pend], cs.length < 2 ^ 63⌝` (`deleteRange` without `PrevKv` reads no range).
-`TxnSpecs.lean` is updated for B, D and E.
+- **G** (this draft; the server's finding 1, `notes/mvcc-migration/server.md`), decided by the
+  coordinator, 2026-11-06: `Txn.specSole`'s write wand also takes
+  `⌜txn.PathsIgnOk (stateAfter log) (t.branch (txnOk (stateAfter log) t))⌝`: the wand is given before
+  the call, used only once `checkTxn` passed, and the server's write updates build a commit witness
+  that exists only when the request's paths find their previous key-values. txn's proof supplies
+  `checkTxn`'s `PathsIgnOk` where it uses the wand.
+`TxnSpecs.lean` is updated for B, D, E and G.

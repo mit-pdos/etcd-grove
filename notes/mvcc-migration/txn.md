@@ -45,6 +45,14 @@ the spec files and `notes/mvcc-api-clients/TxnSpecs.lean` (`clients-txn.md` §8)
 changes by the mvcc track (`Txn.Range`/`KV.Range`: `⌜LogWf' log ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝`;
 `Txn.Changes`: `⌜0 ≤ sint.Z chs.len⌝`). With B and D, `checkRange` and `Txn` are proved (no sorry).
 
+**Decided by the coordinator, 2026-11-06 (gap G, the server's finding 1,
+`notes/mvcc-migration/server.md`):** `Txn.specSole`'s write wand also takes
+`⌜txn.PathsIgnOk (stateAfter log) (t.branch (txnOk (stateAfter log) t))⌝` (spec file,
+`TxnSpecs.lean`, `clients-txn.md` §8). The wand is handed over before the call, but txn uses it only
+after `checkTxn` passed, and the server's write updates need the fact (their commit witness exists
+only when the paths find their previous key-values). A strengthening for the caller: `Txn`'s proof
+passes `checkTxn`'s `PathsIgnOk` (`Hign`) to the wand; still no sorry.
+
 **Gap A (the API too weak; blocks `executeRange`, `getPrevKV`, `applyCompare`, `deleteRange`).**
 `Txn.Range.contract`'s post gives the outcome as `rangeOutcomeC r err k.readLog k.readRev ...`,
 which is over mvcc's *index answers* (`rangeAnswers`/`rangeTaken`/`rangeTotal` of the log). Every

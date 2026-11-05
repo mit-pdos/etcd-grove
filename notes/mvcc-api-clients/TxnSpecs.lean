@@ -279,8 +279,9 @@ abbrev txn.api.DeleteRange.spec : Prop :=
 /-- **`Txn(...)` at the sole writer of `log`** (the apply thread), at a context never canceled:
 the read transaction at the caller's read update, whose commit the caller gives with the pin
 (`σ.log = log`) and `Qr σ`; for a request that writes, once the checks passed, txn turns `Qr σ`
-into the write updates by the caller's wand (`txnBeginAU`: the begin, with the pin again, then the
-commit of the run's changes). Either one of `checkTxn`'s errors (no response, no trace, nothing
+into the write updates by the caller's wand, told that the checks passed (the paths find their
+previous key-values, `PathsIgnOk`; decided by the coordinator, 2026-11-06, `clients-txn.md` §8)
+(`txnBeginAU`: the begin, with the pin again, then the commit of the run's changes). Either one of `checkTxn`'s errors (no response, no trace, nothing
 written, `Pre`, `Qr σ` back), or the
 server's transaction at `log` (`srvRunTxn`), its response with header revision `writeRev log chs`,
 the leases still known; a write request's under the batch lock (`Post`) and committed by the
@@ -301,7 +302,9 @@ abbrev txn.api.Txn.specSole : Prop :=
       txn.api.csA P f Pre Q Post ∗
       txn.api.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
       (if txn.txnReadonly t then iprop(True)
-       else iprop(∀ σ : MvccState, Qr σ -∗ txn.api.txnBeginAU γ log t Qw)) }}
+       else iprop(∀ σ : MvccState,
+         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+         Qr σ -∗ txn.api.txnBeginAU γ log t Qw)) }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
