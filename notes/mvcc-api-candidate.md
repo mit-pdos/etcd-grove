@@ -840,3 +840,11 @@ come with the contracts):
   [pend ++ ds], cs.length < 2 ^ 63⌝`: the transaction's state after the delete (its pending revision
   `pend ++ ds`) well formed and each revision of fewer than `2 ^ 63` changes, as A for `Txn.Range`'s
   read log.
+
+**The server's migration, 2026-11-05: decided by the coordinator.** A law for the server track's
+`lessor.Revoke` (CLAUDE.md's Package APIs: a client needing a fact of a sealed predicate gets a law,
+the predicate stays sealed): `mvccBackend_isBackend.law : mvccBackend γ q B Pk ⊢ ∃ gx, □
+backend.isBackend B.γB B.P (mvccW gx) Pk B.b` (the backend share's backend open at the store's
+write invariant). Immediate from `mvccBackend`'s body (`isBackend d.γB d.P (mvccW d.gx) Pk d.be`,
+`B = ⟨d.γB, d.P, d.be⟩`); its proof, `mvccBackend_isBackend.law_holds` (`Api/SnapLaws.lean`), lands
+with the mvcc track's next commit (the snapshot image's tracking).

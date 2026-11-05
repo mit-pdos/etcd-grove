@@ -369,6 +369,10 @@ def mvcc.api.KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
                   (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal B'.b))))
               {{ Φ }}
 
+def mvcc.api.mvccBackend_isBackend.law : Prop :=
+  ∀ (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.BkRef) (Pk : IProp GF),
+    mvcc.api.mvccBackend γ q B Pk ⊢ ∃ gx, □ backend.isBackend B.γB B.P (mvcc.api.mvccW gx) Pk B.b
+
 def mvcc.api.KV.Read.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (mode : w32) (trace : Loc) (te : Bool) (Q : mvcc.api.MvccState → IProp GF),
     ⊢

@@ -865,6 +865,14 @@ backend is opened at (`backend.New`'s `W := mvccW gx`; stage 2, 2026-11-05: the 
 left the client no `mvccW gx` to open the backend with). -/
 abbrev mvccW_alloc.law : Prop := ⊢ |==> ∃ gx : GName, mvccWReg (GF := GF) gx ∗ mvccW gx
 
+/-- **A backend share's backend is open at the store's write invariant** (the server's migration,
+2026-11-05: decided by the coordinator, for `lessor.Revoke`'s batch-transaction calls): `B`'s
+persistent `isBackend` at `mvccW gx` (the registration name the backend was opened with) and the
+batch lock's invariant `Pk`. -/
+abbrev mvccBackend_isBackend.law : Prop :=
+  ∀ (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF),
+    mvccBackend (GF := GF) γ q B Pk ⊢ ∃ gx : GName, □ backend.isBackend B.γB B.P (mvccW gx) Pk B.b
+
 /-- **The store's part of an opened backend** (decision 2, the user, 2026-11-03: over the store's
 needs, at any opener; the review of round 13's decisions: at the pooled post): what a backend's
 opener returns with its reader slots pooled (`backend.newPostKP`, at whatever the client
