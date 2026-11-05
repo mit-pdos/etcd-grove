@@ -1784,6 +1784,10 @@ Landed (each built over the importers that name what changed, then committed and
    the objOwn half: `/home/ubuntu/.claude-E/jobs/e232d4e0/tmp/m14/objown_scratch.patch`
    (`nodesOwn_ne`, `NodeRblBase.nodesOwn_of_map`). Build the leaves of
    `etc/importers.py --leaves Proof/go_etcd_io/bbolt/Inv/WtxHeap.lean` (40) in one window.
+   Cheapest placement (maintainer 14's estimate: `heapOK` has ~106 mentions in ~51 files, most
+   pass-through): fold the fact into `heapOK`'s third clause, `B.bv.tx' = tx ∧ B.bv.nodes' ≠ null`,
+   so producers that move it by `rw [hbv]` keep working; consumers of the equality take `.1`; only
+   fresh buckets (`bktOpened`, `Txn/WInit`) and field-level proofs need new work.
 2. **(B) `bktNested` gains, per opened child entry, `bvalOK vw.pages T.mv.pgid'.toNat v` and
    `inBucketRoot v ≠ 0 → treeKeys vw.pages (inBucketRoot v) none none`** (U7j). Producers: opening
    (`Read/WOpenWOK`: `hbv`, `htk` are already in `wOK_XO`'s premises), `Write/MatOK` (the mark may
