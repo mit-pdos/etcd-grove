@@ -261,6 +261,9 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) the image's lease
   bucket the records of its log's live leases -/
   hlease : imageLeasesAt γr d.P D A'
+  /-- (S2–S4, review r1 F2) the image's log grants none (a cluster that grants none,
+  `kvTableOf_plainM`) -/
+  hlnil : (appliedTable γr A').ids = []
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
     ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
@@ -485,8 +488,10 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have hsplit := kvModel_split γr.kv A' hlog0
   obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrestL, hwf⟩ := himA
   -- (the lease-grant plan's (D)) the committed log grants nothing: the plain image
-  have hrest := bkRestAt_of_L (by
-    rw [hpre0, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A' Hpl]; rfl) hrestL
+  have hTnil : (appliedTable γr A').ids = [] := by
+    unfold appliedTable; rw [hpre0, List.nil_append]; unfold kvLeases
+    rw [kvTableOf_plainM _ _ _ A' Hpl]; rfl
+  have hrest := bkRestAt_of_L hTnil hrestL
   rw [← hdcm] at hkI
   imod image_restoreRes E γr d A' r D hkI hr $$ HkI HrI Hcp HA' Hrcp with ⟨#Hrcpt, #Hpf, #Hpc⟩
   imodintro
@@ -522,6 +527,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     hRok := hrok
     hlen := kvModel_len_of_rok γr.kv A' _ hsplit hrok
     hlease := imageLeasesAt_of_bkRestAtL d hrestL
+    hlnil := hTnil
     halarm := hb.2.1
     hauthb := hb.2.2
     hmemb := image_membBuckets d hrest

@@ -565,7 +565,7 @@ theorem srvRest_applyP (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out)
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
@@ -584,7 +584,7 @@ theorem srvRest_applyP0 (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hp : plainOrCmp rq) (hs : apply.applyStep rq v3 x x' out)
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     srvGrantIf E ∗ apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗
       E.RO (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
@@ -686,7 +686,7 @@ theorem srvRest_applyPG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hp : plainOrCmp rq ∨ grantPropOk E.lm rq) (hs : apply.applyStep rq v3 x x' out)
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
@@ -791,7 +791,7 @@ theorem srvRest_applyR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hch0 : γr.kv.ch0 = apply.alarmChain false false false)
     (hr : revokePropOk E.lm rq) (hs : apply.applyStep rq v3 x x' out)
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     srvGrantIf E ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA (srvIds E (appliedTable γr A).ids) rq v3 out
@@ -824,7 +824,7 @@ theorem srvRest_applyR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
   iframe HL HG HU
   iexists f
   iframe HR
-  ipureintro; exact leaseTTLsAbove_sub (hfb hlg) hsub
+  ipureintro; exact leaseTTLsGeReq_sub (hfb hlg) hsub
 
 open Iris.ProofMode in
 /-- **`srvRest` one entry later, through `Apply`'s post** (its revocation wrappers over the grant's):
@@ -835,7 +835,7 @@ theorem srvRest_applyPGR (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMo
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
     (hch0 : γr.kv.ch0 = apply.alarmChain false false false)
     (hp : plainOrCmpG E.lm rq) (hs : apply.applyStep rq v3 x x' out)
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     srvGrantIf E ∗ ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
       apply.ltHalf E (apply.revokeIdsA rq v3 out
         (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids))) ∗

@@ -150,15 +150,15 @@ theorem dispatchTableA_ids (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.Apply
       (apply.grantOutOk_nonGrant _ _ _ _ _ hk), apply.grantIds_rejected]
 
 /-- **The TTL bound one request later** (the lease-expiry plan's S2–S4, Q-S6 (A-ii)): the table
-`dispatch` leaves, of a request that revokes nothing, keeps `leaseTTLsAbove` at TTLs `f'` that are
+`dispatch` leaves, of a request that revokes nothing, keeps `leaseTTLsGeReq` at TTLs `f'` that are
 the old ones' on the table and the record's `t` (at least the request's, `grantTTLOk`) at an id the
 grant added. -/
 theorem dispatchTable_ttls (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
     (o : apply.Outcome) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
     (hgo : apply.grantOutOk c rq v3 lt.ids o) (f' : w64 → w64) (t : w64)
-    (hlt : leaseTTLsAbove lt f') (htt : apply.grantTTLOk rq t)
+    (hlt : leaseTTLsGeReq lt f') (htt : apply.grantTTLOk rq t)
     (hnew : ∀ id ∈ apply.grantIds rq v3 o lt.ids, id ∉ lt.ids → f' id = t) :
-    leaseTTLsAbove (dispatchTable c rq v3 lt) f' := by
+    leaseTTLsGeReq (dispatchTable c rq v3 lt) f' := by
   by_cases hk : apply.dispatchKind rq = .leaseGrant
   · have hpre : apply.preV3Kind (apply.dispatchKind rq) = false := by rw [hk]; rfl
     cases v3
@@ -196,9 +196,9 @@ theorem dispatchTableA_ttls (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.Appl
     (out : apply.ApplyOut) (lt : LeaseTable) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
     (hg : apply.dispatchKind rq = .leaseGrant → apply.grantKindOk rq)
     (hs : apply.applyStep rq v3 x x' out) (hgo : apply.grantOutOkA x.chain rq v3 lt.ids out)
-    (f' : w64 → w64) (t : w64) (hlt : leaseTTLsAbove lt f') (htt : apply.grantTTLOk rq t)
+    (f' : w64 → w64) (t : w64) (hlt : leaseTTLsGeReq lt f') (htt : apply.grantTTLOk rq t)
     (hnew : ∀ id ∈ apply.grantIdsA rq v3 out lt.ids, id ∉ lt.ids → f' id = t) :
-    leaseTTLsAbove (dispatchTable x.chain rq v3 lt) f' := by
+    leaseTTLsGeReq (dispatchTable x.chain rq v3 lt) f' := by
   cases out with
   | dispatched o sk => exact dispatchTable_ttls x.chain rq v3 lt o hr hgo f' t hlt htt hnew
   | skipped =>

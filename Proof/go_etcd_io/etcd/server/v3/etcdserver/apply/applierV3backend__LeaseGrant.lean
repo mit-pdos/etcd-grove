@@ -104,7 +104,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       isplitl [HRO]
       · iexists g.ttl
         isplitr
-        · ipureintro; exact Int.le_refl _
+        · ipureintro; exact apply.grantTTLOk_of rq g _ Hg (Int.le_refl _)
         rw [apply.grantRest_rejected]; iexact HRO
       iunfold apply.grantAnswer
       rw [Hg]
@@ -163,7 +163,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     isplitl [HRO]
     · iexists t
       isplitr
-      · ipureintro; exact Htge
+      · ipureintro; exact apply.grantTTLOk_of rq g t Hg Htge
       rw [apply.grantRest_applied t rq g log false rs Hk Hg]; iexact HRO
     iunfold apply.grantAnswer
     rw [Hg]
@@ -197,10 +197,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word
-    iexists 0, l, t
-    iframe Hlf Hlt
-    isplitr
-    · ipureintro; exact Htge
+    iexists 0, l
+    iframe Hlf
     iexact Hreq
 
 end proof

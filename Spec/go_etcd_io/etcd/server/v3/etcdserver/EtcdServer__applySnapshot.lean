@@ -53,7 +53,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
 discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `hlp`, `halarm`,
-`hmemb`, `himg`, `hA'`, `hauthI`), the server's auth mode (`hany`), the auth store's `Recover` facts
+`hmemb`, `himg`, `hA'`, `hAA'`, `hlnil`, `hauthI`), the server's auth mode (`hany`), the auth store's `Recover` facts
 (`snapAuthResM`), the members' directory (`srvMembersDir`) (until J8a-6, 2026-11-01, also `8·|ps|` reader
 slots of the transport's `lgMu`), the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
 whichever backend (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`).
@@ -114,14 +114,20 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
     (hbuq : apply.backendUnderQuota)
     -- (S8d's named premise, S-j1's) the snapshot's entries `A'`: the rest model after them is the
-    -- image's rest buckets (with the lessor's and the alarm store's emptied by their `Recover`)
-    -- and the decoded members
+    -- image's rest buckets, with the `lease` and `alarm` buckets set to empty (the rest model holds
+    -- neither: their contents are the lessor's and the alarm store's), and the decoded members
     (A' : List EntryModel)
+    -- (the lease-expiry plan's S2–S4, review r1 F1, 2026-11-05) in either auth mode, the image's log
+    -- extends the applied one (until then the `on` arm's alone, `snapAuthImgM`)
+    (hAA' : A <+: A')
     (hA' : snapRestImgM E.authOn γr d.P D A' ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty, at a cluster that
     -- grants none) the image's lease bucket the records of its log's live leases
     (hlease : imageLeasesAt γr d.P D A')
+    -- (review r1 F2) in a cluster that grants none, the image's log grants none (its table empty;
+    -- the receive side's `snapRecv_image(On)`, from the committed log's plain mode)
+    (hlnil : E.lg = false → (appliedTable γr A').ids = [])
     -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`), and the image's
     -- auth facts by it (`off`: lean's `hauthb`; `on`: `snapRecv_imageOn`'s), in place of `hoff`
     (hany : E.authMode ≠ .any) (hauthI : snapAuthImgM E.authMode γr d.P D A A')
@@ -145,6 +151,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
+       -- (S2–S4, review r1 F1) in either auth mode, the image's log committed (until then the `on`
+       -- arm's alone, `snapAuthResM`)
+       srvRLogLb γr.raft A' ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
        -- (the lease-grant plan's D2, 2026-11-02) the lessor's mode, `Recover`'s premise (the
        -- lease-expiry plan's S2–S4, Q-S5, 2026-11-05: the environment's, `srvSnapRO`'s; until then

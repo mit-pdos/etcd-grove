@@ -42,9 +42,10 @@ the lessor on `d`, the live set the records' ids with no item (`leaseOwn γl ids
 (created if absent) and **the part idle** (`rbOwnIn d.γB S (r.insert "lease" _)`), at two
 write-back tokens; and the lessor's history has at some index the recovered snapshot: one lease per
 record (fresh `*Lease`s `ls`, `recMap`), no item, each record's TTL raised to the minimum `mt`
-(`recTTLs`, the lease-expiry plan's R5). (E3 (c), 2026-11-05) The records' ids are new to the
-ids the lessor ever had (`leaseEver γl U`), which gain them; with no record, nothing is asked of
-them (`⌜recs = []⌝ ∨ …`: a cluster that grants none restores a snapshot without the ids' half).
+(`recTTLs`, the lease-expiry plan's R5). (E3 (c), 2026-11-05; review r1 F5) The records' ids are
+added to the ids the lessor ever had (`leaseEver γl U`); one it already had must be live (`id ∈ L`);
+with no record, nothing is asked of them (`⌜recs = []⌝ ∨ …`: a cluster that grants none restores a
+snapshot without the ids' half).
 
 What Go does (`lessor.go:600-609`, `initAndRecover` `:808-835`): under `le.mu`, `le.b = b`,
 `le.rd = rd`, fresh `leaseMap` and `itemMap`, then `initAndRecover`
@@ -55,23 +56,25 @@ after `Revoke`) and their close rights are dropped. (2026-11-04, the lease-expir
 until then an axiom taking an empty bucket and a revocable lessor, and not returning `le.rd`'s
 half, which the audit flagged.) (The lease-expiry plan's S2–S4, 2026-11-05: Q-S4 (A), Q-S7, Q-S8)
 A record's id need not be new to `U`: one the lessor ever had must be live (`id ∈ L`, so that each
-id stays live over an interval of the history); the caller names each record's request `rq`, at
-most its TTL, and for an id of `U` holds its request (`leaseReqIs`), which every recovered lease
-then has; and the caller picks the order `Lr` of the recovered live set (a permutation of the
-records' ids). -/
+id stays live over an interval of the history); the caller names each record's request `reqOf`
+(review r1 F8: until then `rq`), at most its TTL, and for an id of `U` holds its request
+(`leaseReqIs`), which every recovered lease then has; and the live set is the records' ids in the
+caller's order `Lr` (a permutation of them). (Review r1 F6) A scope restriction: Go recovers any
+records; this spec excludes a revoked id granted again (an explicit `ID`), which the revocable
+mode's generated ids (`kvGrantIds`) and the monotone mode's `histMono` rule out. -/
 abbrev lease.lessor.Recover.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
     (S : GoString → Prop) (r : GMap GoString backend.BktData) (rd rd0 : GoFunc) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (mono : Bool)
-    (recs : List (w64 × w64 × w64)) (U : List w64) (rq : w64 → w64) (Lr : List w64),
+    (recs : List (w64 × w64 × w64)) (U : List w64) (reqOf : w64 → w64) (Lr : List w64),
   S go!"lease" → mvcc.leaseParams d.P →
   backend.bktEnts ((r.lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc →
   (mono = true → ∀ id ∈ L, id ∈ recs.map (·.1)) → (∀ id ∈ recs.map (·.1), id ∈ U → id ∈ L) →
-  (∀ x ∈ recs, sint.Z (rq x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
+  (∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorModeIs γl mono ∗
       (⌜recs = []⌝ ∨ lease.leaseEver γl U) ∗
-      □ ([∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨ lease.leaseReqIs γl x.1 (rq x.1)) ∗
+      □ ([∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨ lease.leaseReqIs γl x.1 (reqOf x.1)) ∗
       lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L I ∗ lease.leaseRevokers γl L ∗
       lease.rdOwn γl rd0 ∗ □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted γl id) ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
@@ -82,7 +85,7 @@ abbrev lease.lessor.Recover.spec : Prop :=
       (Val #rd))
   {{ RET #(); lease.lessorBeOn lp d.be ∗ lease.leaseOwn γl Lr ∅ ∗
       (⌜recs = []⌝ ∨ lease.leaseEver γl (U ++ recs.map (·.1))) ∗
-      □ ([∗list] x ∈ recs, lease.leaseReqIs γl x.1 (rq x.1)) ∗
+      □ ([∗list] x ∈ recs, lease.leaseReqIs γl x.1 (reqOf x.1)) ∗
       lease.leaseRevokers γl Lr ∗ lease.rdOwn γl rd ∗
       backend.bOpen d.γB qo ∗
       backend.rbOwnIn d.γB S (r.insert go!"lease" ((r.lookup go!"lease").getD ∅)) ∗

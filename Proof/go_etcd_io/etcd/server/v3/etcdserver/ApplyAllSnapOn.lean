@@ -78,10 +78,6 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
     sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
-  -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise `γr.kv.lg = false`)
-  cases hlgk : γr.kv.lg
-  case true =>
-    sorry -- DRAFT S2–S4 (Prove: a granting cluster's snapshot; with auth off as `ApplyAllSnap`'s, with auth on refuted by the auth/lease coupling)
   cases hM : E.authMode with
   | any => exact absurd hM hany
   | off =>
@@ -114,6 +110,9 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   iunfold srvKVInvsOn at Hkvi2
   icases Hkvi2 with ⟨#HkI0, -, #Hrli, -, -, -, %Hcmlg⟩
   have Hcmf := Hcmlg.1
+  -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise) auth on, the
+  -- cluster grants none (`srvKVInvsOn`'s)
+  have hlgk : γr.kv.lg = false := Hcmlg.2
   -- the cluster runs auth on, the member's KV invariant says
   imod (kvInvOn_authOn γr.raft γr.kv srvAuthSt0) $$ HkI0 with %hao
   -- the applied auth state is the applied log's
@@ -221,7 +220,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm
       halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      (by rw [hon]; exact Hif.hA') Hif.hlease hany
+      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (fun _ => Hif.hlnil) hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI, Hif.pre,
         by have := Hif.len; omega⟩)
       γnc

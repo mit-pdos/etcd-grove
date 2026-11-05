@@ -291,22 +291,24 @@ def LeaseTable.ids (ls : LeaseTable) : List w64 := ls.map Prod.fst
 
 /-- **The records' TTLs `f` at least the table's** (the lease-expiry plan's S2–S4, Q-S6 (A-ii),
 2026-11-05): each live lease's record TTL at least the TTL its grant requested (the table's, the
-request's `TTL`), as the lessor's `grantTTL` makes it (`lease.grantTTL_ge`). -/
-def leaseTTLsAbove (T : LeaseTable) (f : w64 → w64) : Prop :=
+request's `TTL`), as the lessor's `grantTTL` makes it (`lease.grantTTL_ge`). (Review r1 F14: until
+then `leaseTTLsAbove`; its one-request form is `apply.grantTTLOk`, which `grantPost` and the
+chain's specs take.) -/
+def leaseTTLsGeReq (T : LeaseTable) (f : w64 → w64) : Prop :=
   ∀ p ∈ T, sint.Z p.2 ≤ sint.Z (f p.1)
 
-theorem leaseTTLsAbove_nil (f : w64 → w64) : leaseTTLsAbove [] f := fun _ h => absurd h List.not_mem_nil
+theorem leaseTTLsGeReq_nil (f : w64 → w64) : leaseTTLsGeReq [] f := fun _ h => absurd h List.not_mem_nil
 
-theorem leaseTTLsAbove_of_ids_nil {T : LeaseTable} (h : T.ids = []) (f : w64 → w64) :
-    leaseTTLsAbove T f := by
+theorem leaseTTLsGeReq_of_ids_nil {T : LeaseTable} (h : T.ids = []) (f : w64 → w64) :
+    leaseTTLsGeReq T f := by
   have : T = [] := List.map_eq_nil_iff.mp h
-  subst this; exact leaseTTLsAbove_nil f
+  subst this; exact leaseTTLsGeReq_nil f
 
-theorem leaseTTLsAbove_sub {T T' : LeaseTable} {f : w64 → w64} (h : leaseTTLsAbove T f)
-    (hs : ∀ p ∈ T', p ∈ T) : leaseTTLsAbove T' f := fun p hp => h p (hs p hp)
+theorem leaseTTLsGeReq_sub {T T' : LeaseTable} {f : w64 → w64} (h : leaseTTLsGeReq T f)
+    (hs : ∀ p ∈ T', p ∈ T) : leaseTTLsGeReq T' f := fun p hp => h p (hs p hp)
 
-theorem leaseTTLsAbove_congr {T : LeaseTable} {f f' : w64 → w64} (h : leaseTTLsAbove T f)
-    (he : ∀ id ∈ T.ids, f' id = f id) : leaseTTLsAbove T f' := fun p hp => by
+theorem leaseTTLsGeReq_congr {T : LeaseTable} {f f' : w64 → w64} (h : leaseTTLsGeReq T f)
+    (he : ∀ id ∈ T.ids, f' id = f id) : leaseTTLsGeReq T f' := fun p hp => by
   rw [he p.1 (List.mem_map.2 ⟨p, hp, rfl⟩)]; exact h p hp
 
 /-- `lessor.Grant`'s maximum TTL (`MaxLeaseTTL`, `lessor.go`). -/

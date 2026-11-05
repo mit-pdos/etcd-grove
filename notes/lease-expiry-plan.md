@@ -2223,6 +2223,163 @@ apply chain dropped: the record's TTL is carried up to `srvRestAt`, then to the 
 `appliedTable_mono_sub`, `appliedTable_granted_live`; `SnapRecvOn`: `hlease` with auth on; `EtcdServer__applySnapshot`: the granting walk (`lg = true`)
 and the empty bucket at `lg = false`; `ApplyAllSnap`, `ApplyAllSnapOn`: the `lg = true` case.
 
+### Review round 1 fixes (`notes/spec-review/lease-snap-r1.md`, 2026-11-05): applied, as DRAFT
+
+**F1 (blocker).** `applySnapshot.specSnapM` gains, in both auth modes, `(hAA' : A <+: A')` (a binder
+before `hA'`) and `srvRLogLb γr.raft A'` in the pre (after `srvRest E γr A`); until then only the
+`on` arm's `snapAuthImgM` had them, so the granting walk could not relate the applied table to the
+image's. The callers hold both: `SnapImageFacts.pre`/`SnapImageFactsOn.pre` and `run_job_snap`'s
+pre (the image's log is a committed extension of the applied one).
+
+**F2/F16.** The non-granting path no longer reaches a new `sorry`:
+- `specSnapM` gains `(hlnil : E.lg = false → (appliedTable γr A').ids = [])` (a cluster that grants
+  none: its image's log has an empty table). Its source is the receive side's plain-log facts
+  (`kvTableOf_plainM`, `kvTableOf_plainOn`), recorded as a new field `hlnil` of `SnapImageFacts`
+  and `SnapImageFactsOn`. It is derivable in principle inside `applySnapshot` from `isServerM`
+  and `srvRLogLb`, but the receive side already proves it, so the premise is cheaper.
+- `applySnapshot`'s `lg = false` bucket: `imageLeasesAt_nil (hlnil _) hlease` (proved).
+- `SnapRecvOn`'s `hlease`: `imageLeasesAt_of_nil` (new, proved) from the empty table and the
+  image's empty lease bucket; the `sorry` is gone. `kvTable_plainOn`/`kvTableOf_plainOn` moved
+  from `MergedImageOn` to `SnapRecvOn` (statements unchanged).
+- `ApplyAllSnapOn`'s `lg = true` case: refuted (auth on gives `γr.kv.lg = false`, `srvKVInvsOn`);
+  the `sorry` is gone.
+- What remains: the granting walk (`applySnapshot`, `E.lg = true`), `ApplyAllSnap`'s `lg = true`
+  case (auth off), and the lessor's `Recover` lemmas. These are inside proofs that every server
+  result links (`applySnapshot.wp_proof`, `applyAll`'s snapshot case, `lessor.Recover.wp_proof`),
+  so every result that links them reaches them: a `sorry`'s reach is per constant, not per branch.
+  Confining them to the lease examples needs a gated premise in the specs (the deleted
+  `srvGrantOpen`'s role, which item 4 removed), or the proofs themselves. Neither is done here; see
+  "Build and trust base" below for the collections' deltas.
+
+**F3.** `hA'`'s comment: "the image's rest buckets, with the `lease` and `alarm` buckets set to
+empty (the rest model holds neither ...)". Until then it said they were "emptied by their
+`Recover`", which is wrong for `lease`.
+
+**F5, F6, F8 (`lessor.Recover.spec`).**
+- The docstring summary now says the records' ids are added to the ids the lessor ever had, and
+  one it already had must be live (`id ∈ L`). It also says the live set is the records' ids in the
+  caller's order `Lr`.
+- F6: "A scope restriction: Go recovers any records; this spec excludes a revoked id granted again
+  (an explicit `ID`), which the revocable mode's generated ids (`kvGrantIds`) and the monotone
+  mode's `histMono` rule out."
+- F8: the binder `rq : w64 → w64` is renamed `reqOf`, in the spec and the proof.
+
+**F12.** The conjunct `lsF "ttl" l ↦□ t ∗ ⌜req ≤ t⌝` is dropped from:
+- `apply.grantAnswer`;
+- `leaseGrantedResp`;
+- `v3rpc.grantLiveG`;
+- `etcdLeaseGrantSpecLive`.
+
+No consumer reads it since `leaseReqIs` (`Main` used `leaseTTLAt_ge_req`). It stays only in
+`isApplyLessor`'s `Grant` clause, the source of the TTL bound. `leaseexpiry/Main`'s `Q` and its
+`icases` lose it too.
+
+**F14.**
+- `apply.grantPost`'s `⌜sint.Z g.ttl ≤ sint.Z t⌝` becomes `⌜apply.grantTTLOk rq t⌝`, the dispatch's
+  form. Its producers use `grantTTLOk_of`, and `dispatch` passes it through.
+- `leaseTTLsAbove` is renamed `leaseTTLsGeReq` (with `_nil`, `_of_ids_nil`, `_sub`, `_congr`).
+  `grantTTLOk` is its one-request form.
+- `isApplyLessor`'s `⌜ttl ≤ t⌝` stays: it is the lessor's own contract, over its arguments.
+
+**F15.** `imageLeasesAt_recs` (DRAFT `sorry`): `∀ id, id ∈ recs.map (·.1) ↔ id ∈ (appliedTable γr
+A').ids` becomes `(recs.map (·.1)).Perm (appliedTable γr A').ids`, which is what `Recover`'s
+`Lr.Perm` takes. It is true because the bucket's keys are distinct, and so are the table's ids
+(`leaseGrantOk`).
+
+**F11.** The Proof section of `nonissues/etcd-lease-ttl-differs-across-members.md` now describes
+(A-ii): `leaseReqIs`, `leaseTTLAt_ge_req` and `leaseTTLsGeReq`.
+
+**F13.** `etcdLeaseGrantSpecLive`'s docstring now notes that `leaseReqIs γl` is one member's ghost
+state, as `leaseLiveFrom γl` is. The cluster-level form is the log's grant entry with a per-member
+law (`srvEver`, F7).
+
+**Choices on the optional NITs.**
+- F10: `leaseReqIs` keeps its name. Every producer today (`Grant`, and `Recover` at the caller's
+  requests) gives the grant's request, and the TTL floor is its law (`leaseTTLAt_ge_req`).
+- F4/F9: `specSnapM`'s `hlease`/`hlnil` and `Recover`'s new pure premises stay Lean binders.
+  `specSnapM`'s premises are all named binders (S-j1), and so are `Recover`'s; converting only
+  the changed ones would mix the two forms in one spec.
+
+**F7: "the log's request of u", per mode (for `srvEver`'s new clause, a Prove item, not applied).**
+`srvEver`'s `∃ U` gains `□ [∗list] u ∈ U, lease.leaseReqIs E.γ.leases u (logReq lm L u)`, with
+`L` the applied log and `logReq` defined per mode:
+- **Revocable:** the TTL of the one grant entry of `L` whose id is `u`. It is unique because
+  `kvGrantIds` makes the log's grant ids distinct generated ids, so a revoked id is never granted
+  again. Only the entries that took effect count; a rejected grant leaves no id.
+- **Monotone:** the TTL of the first successful grant of `u` in `L`, which is the applied table's
+  entry for `u`. A later grant of `u` fails `leaseGrantOk` (`id ∉ lt.ids`, `KVModelDefs.lean`),
+  and no id leaves the table (no revocation in the monotone mode, X7), so the entry is the first
+  grant's while the log is applied.
+- **Uniform:** in both modes, `logReq lm L u` is `(appliedTable γr L).lookup u` while `u` is live.
+  For an id of `U` no longer live (revocable, revoked), it is the grant entry's TTL. That needs
+  `kvGrantIds`' uniqueness, and with it `srvEver_same`'s `everOwn E U ⊢ srvEver …` must take the
+  log's grant entries.
+
+**The scope of `kvGrantIds` (the reviewer's "uncertain").** `kvPfx γk` is the KV names' generator
+prefix in the revocable mode, and `0` otherwise. The member allocation fixes it:
+- `srvMemberBoot_alloc` (`NewServerAlloc.lean`) takes `hpfx : γk.lm = .revocable → γk.ids.pfx =
+  idPfxOf (W16 (uint.Z id))`.
+- `kvInv_congr` requires `kvPfx` agreement between a member's names and the cluster's.
+
+So in the revocable mode **only one member of a cluster can be booted at all**, not only one
+proposer: two members with distinct low 16 bits (`alloc3`'s `Hlow`) cannot both meet `hpfx`. A
+restart keeps the member's prefix (only `inc` changes), so it is allowed. `alloc3`, the only
+multi-member allocation, takes `γk.lm = .none`.
+
+In the monotone mode, `kvPfx = 0` and `logRevGrantIds` is empty, so `kvGrantIds` restricts
+nothing: any member may propose grants, and `srvMemberBoot_alloc` allows a multi-member monotone
+cluster. No allocation builds one today, though (`alloc3` is `.none`).
+
+Consequence for the snapshot results: a follower restores a snapshot only in a multi-member
+cluster. So the revocable granting walk is unreachable under today's allocations, and the walk's
+revocable arm matters only once the revocable scope is widened to several members. That widening
+needs `kvGrantIds` per prefix: one generator per member, the masked ids distinct across prefixes
+(`leaseIdMask_nodup_of_pfx` per prefix). The monotone arm is the one a multi-member cluster can
+reach. Its F6 premise has no source until `histCover`. Not changed (the brief: report the scope).
+
+**Build and trust base (this round).** `lake build` passes (full build). `etc/tcb-report.py --check`
+(baselines not updated: the Draft's `sorry`s are temporary) reports:
+- **New:** five `sorry`s, `EtcdServer.applyAll.wp_proofSnap`, `EtcdServer.applySnapshot.wp_proof_snapM`,
+  `lease.closers_recover`, `lease.lessor_live_perm`, `lease.recover_hist`.
+- **Gone:** `srvGrantOpen_open`. No axiom changed.
+
+The collections that gain them:
+- **All five:** `authkv`, `cachekv`, `compactkv`, `k8scompactor`, `k8setcd3`, `leaseexpiry` (which
+  also loses `srvGrantOpen_open`), `leasekv`, `linkv3p`, `linkvtxn`, `m2`, `putget`, `putget3`,
+  `server`, `watchkv`.
+- **All but `applyAll.wp_proofSnap`:** `snapshot`.
+- **None:** every other collection.
+
+So the reach is server-wide, not the lease examples alone. The reach is per constant:
+- the two `applySnapshot`/`applyAll` `sorry`s sit in the `lg = true` branch of proofs every server
+  result links;
+- the three lessor ones sit in `lessor.Recover.wp_proof`'s lemmas, which `applySnapshot` calls in
+  every mode.
+
+The `lg = false` step itself is proved (F2 above), so no non-granting path goes through a `sorry`.
+The constants still do. To confine them to the lease examples before the Prove phase, the specs
+would need a gated premise discharged only there: `srvGrantOpen`'s role for the walk, and for
+`Recover` a premise on non-empty `recs`. That reverses item 4's deletion, so it is not applied
+here; it is the coordinator's and the user's call.
+
+**The batch: additions from this round** (frozen or exported, each old → new, cause).
+
+14. `applySnapshot.specSnapM`: + `(hAA' : A <+: A')`, + `srvRLogLb γr.raft A'` (pre), +
+   `(hlnil : E.lg = false → (appliedTable γr A').ids = [])`. Cause: F1, F2.
+15. `SnapImageFacts`, `SnapImageFactsOn` (internal structures, exported): + field `hlnil`. Cause:
+   F2.
+16. `apply.grantAnswer`, `leaseGrantedResp`, `v3rpc.grantLiveG`, `etcdLeaseGrantSpecLive` (the
+   client's exported contract): `∃ i l t, leaseLiveFrom … ∗ lsF "ttl" l ↦□ t ∗ ⌜req ≤ t⌝ ∗
+   leaseReqIs …` → `∃ i l, leaseLiveFrom … ∗ leaseReqIs …`. Cause: F12. This weakens items 2–5:
+   the dropped conjunct was unused.
+17. `apply.grantPost`: `⌜sint.Z g.ttl ≤ sint.Z t⌝` → `⌜apply.grantTTLOk rq t⌝` (item 9's
+   conjunct). Cause: F14.
+18. `leaseTTLsAbove` → `leaseTTLsGeReq`, a rename in items 11–13. Cause: F14.
+19. `lessor.Recover.spec`: `rq` → `reqOf`, a binder rename with the docstring rewritten. Cause:
+   F5, F6, F8.
+20. `imageLeasesAt_recs` (DRAFT): the membership `↔` becomes `List.Perm`. Cause: F15.
+21. New lemma `imageLeasesAt_of_nil` (proved). `kvTable_plainOn` and `kvTableOf_plainOn` moved.
+
 ## S2–S4 Test (2026-11-05)
 
 `examples/etcd/leasesnap/leasesnap_test.go` (build tag `leasesnap`; the examples module lacks the

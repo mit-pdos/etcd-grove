@@ -295,6 +295,8 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
   hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63
   /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) -/
   hlease : imageLeasesAt γr d.P D A'
+  /-- (S2–S4, review r1 F2) the image's log grants none: a mode-on log (`kvTableOf_plainOn`) -/
+  hlnil : (appliedTable γr A').ids = []
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   /-- the auth buckets hold the state after the image's log -/
   hauthI : authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData d.P D)
@@ -309,6 +311,40 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk.lookup n =
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))).lookup n) ∧
     (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI
+
+/-- **A mode-on entry changes no lease table** (`kvTable_plainM`'s twin: an auth-on log's entries are
+plain KV requests or auth admin ones, none a lease's). -/
+theorem kvTable_plainOn (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
+    (hp : plainEntryOn m) : kvTable c₀ ch lt m = lt := by
+  unfold kvTable
+  split
+  · rename_i ht
+    split
+    · rfl
+    · rename_i hd
+      split
+      · rename_i rq hdec
+        unfold dispatchTable
+        split
+        · rfl
+        · rcases hp ht hd rq hdec with h | ⟨hk, -⟩
+          · exact chainTable_plain rq lt h.1.1 ch
+          · refine chainTable_nonwrite rq lt (fun hw => ?_) ch
+            unfold apply.adminKindOk at hk
+            rcases hw with hw | hw | hw | hw | hw <;> simp [hw] at hk
+      · rfl
+  · rfl
+
+/-- **A mode-on log grants no lease** (`kvTableOf_plainM`'s twin). -/
+theorem kvTableOf_plainOn (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)
+    (hp : plainLogOn A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
+  induction A with
+  | nil => intro lt; rfl
+  | cons m A ih =>
+    intro lt
+    show kvTableOf c₀ ch (kvTable c₀ ch lt m) A = lt
+    rw [kvTable_plainOn c₀ ch lt m (hp m (List.mem_cons_self ..))]
+    exact ih (fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')) lt
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -513,6 +549,8 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
   iframe Hrcpt
   have hxl : x.log = kvModelOn γr.kv srvAuthSt0 A := by
     unfold kvModelOn; rw [← Hl]
+  have hTnil : (appliedTable γr A').ids = [] := by
+    unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]; rfl
   have hfacts : SnapImageFactsOn γr d D cl i A A' x ((kvModelOn γr.kv srvAuthSt0 A').drop 2) r
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem := {
     pre := hAA'
@@ -527,8 +565,8 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
       rw [← hsplit]
       have := hrok.2.1.2.1
       omega
-    hlease := by
-      sorry -- DRAFT S2–S4 (Prove: with auth on no grant, the table empty, `image_leaseAlarmNA`'s empty bucket)
+    hlnil := hTnil
+    hlease := imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
     halarm := (image_leaseAlarmNA d hrest').2
     hauthI := authBucketsAt_rbData d D _ hauth
     hmemb := image_membBucketsNA d hrest'

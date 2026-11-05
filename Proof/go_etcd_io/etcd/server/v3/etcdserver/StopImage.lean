@@ -42,7 +42,7 @@ theorem stop_mergedObs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) 
     (A : List EntryModel) (x : apply.ApplyKV) (d : mvcc.KBReal) (f : w64 → w64) (st : ApplyState)
     (D : backend.Data) (hkb : E.γ.kb = some d) (hcK : ciKeys d.P)
     (hRB : ∀ n ∈ restBuckets, d.P.RB n = true) (hcm : d.cm = E.cmp) (hci : ciEff γA st.k = ai)
-    (Hwf : mvcc.IdxWf x.log []) (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (Hwf : mvcc.IdxWf x.log []) (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     freezeY γA st ∗
       backend.rbOwnIn d.γB membership.clusterBkts
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)

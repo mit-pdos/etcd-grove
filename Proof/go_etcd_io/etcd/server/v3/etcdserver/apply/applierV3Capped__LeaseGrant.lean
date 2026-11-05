@@ -67,7 +67,7 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
   isplitl [HRO]
   · iexists g.ttl
     isplitr
-    · ipureintro; exact Int.le_refl _
+    · ipureintro; exact apply.grantTTLOk_of rq g _ Hg (Int.le_refl _)
     rw [apply.grantRest_rejected]; iexact HRO
   iunfold apply.grantAnswer
   rw [Hg]

@@ -207,7 +207,7 @@ theorem EtcdServer.applyAll.wp_proofSnap
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      (by rw [Hoff]; exact Hif.hA') Hif.hlease (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
+      Hif.pre (by rw [Hoff]; exact Hif.hA') Hif.hlease (fun _ => Hif.hlnil) (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
   rw [Hoff] at hS
   simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM] at hS
   wp_apply hS

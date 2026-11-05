@@ -9,7 +9,7 @@ names whose lessor is revocable (`etcdstart.alloc1` at the mode `.revocable`, wi
 lease-TTL row (`leaseTTLRowR`); `go holdToken()`; `etcdstart.Serve` with
 `etcdstart.kv_lease_served` at `.revocable` (the live grant, `TimeToLive` and `Leases` contracts
 registered at the address); `etcdstart.NewClient`; `cli.Lease.Grant(1)` (`Q`: the lease live in
-the lessor's history from an index, with its read-only `ttl` field at least the requested `1`).
+the lessor's history from an index, with its request `1`, `leaseReqIs`).
 The poll loop keeps "`gone` → the lease absent from the history at an index at or after the
 grant's": a `TimeToLive` answer `TTL = -1 ∧ GrantedTTL = 0` is, under the row (`leaseTTLRow`, from
 `leaseTTLRowR` and the history's empty first snapshot), either the lease's recorded TTL `0` at a
@@ -222,11 +222,10 @@ theorem Main.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cli.Lease.Grant(gctx, grantTTL)`, `Q`: the lease live in the history from an index, its
-  -- `ttl` at least `1`
+  -- request `1`
   wp_apply (wp_Grant lp [go!"127.0.0.1:23976"]
       (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases)
-      (fun m => iprop(∃ (i : Nat) (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i m.id l ∗
-        lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z (W64 1) ≤ sint.Z t⌝ ∗
+      (fun m => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i m.id l ∗
         lease.leaseReqIs E.γ.leases m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
@@ -250,7 +249,7 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Hgerr
   (try wp_auto)
-  icases HQg with ⟨%gi, %gl, %gt, #Hlive, #Hgttl, %Hgt, #Hgreq⟩
+  icases HQg with ⟨%gi, %gl, #Hlive, #Hgreq⟩
   ihave #Hlive' := Hlive
   iunfold lease.leaseLiveFrom at Hlive'
   icases Hlive' with ⟨%i0, %σg, %Hσg, #Hσat⟩

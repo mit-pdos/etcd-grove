@@ -270,7 +270,7 @@ theorem stop_mergedObsP (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames)
     (D : backend.Data) (hkb : E.γ.kb = some d) (hcK : ciKeys d.P)
     (hRB : ∀ n ∈ restBuckets, d.P.RB n = true) (hcm : d.cm = E.cmp) (hoffc : d.cm = false)
     (hci : ciEff γA st.k = ai) (Hwf : mvcc.IdxWf x.log [])
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     freezeY (GF := GF) γA st ∗
       backend.rbOwnIn d.γB membership.clusterBkts
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)

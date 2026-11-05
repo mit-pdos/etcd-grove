@@ -638,7 +638,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitl [HRO]
     · iexists t
       isplitr
-      · ipureintro; exact apply.grantTTLOk_of rq x t hs Htt
+      · ipureintro; exact Htt
       rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
     isplitr
     · ipureintro

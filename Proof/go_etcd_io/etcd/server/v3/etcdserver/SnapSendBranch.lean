@@ -637,7 +637,7 @@ theorem bkRestIf_of_rb {P : backend.BParams} (hRB : ∀ n ∈ restBuckets, P.RB 
     (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (f : w64 → w64) (D : backend.Data)
     (hrb : backend.rbData P D = (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk)
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     if E.lg then bkRestAtL γr.kv γr.raft.raft.boot (γr.raft.pre ++ A) D
     else bkRestAt γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
   unfold srvIds at hrb
@@ -652,10 +652,10 @@ mode `M`** (the auth-on snapshot plan's P5, 2026-11-03): `bkRestAt` at the clust
 `restSet M`'s, which in `on` leaves out the auth store's (whose contents are the auth realization's,
 not the rest model's); with the records of the leases `T` at some TTLs (the lease-grant stage's
 `bkRestAtL`; `T` empty in a cluster that grants none), (the lease-expiry plan's S2–S4, Q-S6 (A-ii),
-2026-11-05) the TTLs at least the table's requests (`leaseTTLsAbove`). -/
+2026-11-05) the TTLs at least the table's requests (`leaseTTLsGeReq`). -/
 def bkRestAtM (M : auth.AuthMode) (T : LeaseTable) (c0 : w64) (bootLog : List EntryM)
     (L : List EntryModel) (D : backend.Data) : Prop :=
-  ∃ f : w64 → w64, leaseTTLsAbove T f ∧ ∀ n ∈ restBuckets, (membership.clusterBkts n ∨ restSet M n) →
+  ∃ f : w64 → w64, leaseTTLsGeReq T f ∧ ∀ n ∈ restBuckets, (membership.clusterBkts n ∨ restSet M n) →
     D.lookup n = (apply.restLeasesWith f T.ids (restModel c0 bootLog L)).bk.lookup n
 
 /-- **`mergedObs` in the mode `M`** (P5): its rest buckets `bkRestAtM M`, the auth ones left out in
@@ -704,7 +704,7 @@ theorem mergedObsM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) (A : 
       (mvcc.bucketMap x.log).lookup k)
     (hwo : apply.windowObs d x.log x.crev (backend.sData d.P D) (backend.fkVals D))
     (hnc : d.cm = false → backend.fkAbsD D) (Hwf : mvcc.IdxWf x.log [])
-    (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     mergedObsM E.authMode γr E.cmp E.lg ai A x.log x.crev D := by
   have hrec := apply.windowObs_image d x.log x.crev D hwo
   have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
@@ -717,7 +717,7 @@ theorem mergedObsM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) (A : 
       γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
     refine ⟨f, ?_, fun n hn hs => ?_⟩
     · cases hlg : E.lg
-      · exact leaseTTLsAbove_nil f
+      · exact leaseTTLsGeReq_nil f
       · exact hfb hlg
     · have := hrbD n hs
       simp only [backend.rbData_lookup, hRB n hn, ↓reduceIte] at this

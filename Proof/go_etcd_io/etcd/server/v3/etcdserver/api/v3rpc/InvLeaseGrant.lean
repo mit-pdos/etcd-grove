@@ -43,12 +43,13 @@ abbrev lessorGrantOkL (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
 
 /-- **The lease live in the lessor's history from some index**: the grant contract's success fact
 with no lease mode (the lease-expiry plan's X2, 2026-11-04: what the reply carries in every mode,
-`leaseGrantedResp`'s `leaseLiveFrom`); (2026-11-05, the lease-expiry plan's E3/R5: the granted TTL)
-and its read-only `ttl` field at least the request `m`'s TTL (`m.1`); (the lease-expiry plan's
-S2–S4, Q-S8, 2026-11-05) and the lease's request, `m.1` (`lease.leaseReqIs`). -/
+`leaseGrantedResp`'s `leaseLiveFrom`); (the lease-expiry plan's S2–S4, Q-S8, 2026-11-05) and the
+lease's request, the request `m`'s TTL `m.1` (`lease.leaseReqIs`). (Review r1 F12, 2026-11-05:
+until then also the lease's read-only `ttl` field at least `m.1`, E3/R5, which no consumer reads
+since `leaseReqIs`.) -/
 def grantLiveG (E : apply.AEnv GF) : w64 × w64 → w64 → IProp GF :=
-  fun m id => iprop(∃ (i : Nat) (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i id l ∗
-    lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z m.1 ≤ sint.Z t⌝ ∗ lease.leaseReqIs E.γ.leases id m.1)
+  fun m id => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i id l ∗
+    lease.leaseReqIs E.γ.leases id m.1)
 
 instance grantLiveG_persistent (E : apply.AEnv GF) (m : w64 × w64) (id : w64) :
     Persistent (grantLiveG (GF := GF) E m id) := by

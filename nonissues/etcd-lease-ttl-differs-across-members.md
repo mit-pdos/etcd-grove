@@ -30,6 +30,9 @@ normally configured with the same election timeout.
 ## Proof
 
 no: the lease-expiry proof's law that an id's TTL agrees across the lessor's history
-(`lease.leaseTTLAt_ttl_agree`) is false once snapshots carry leases. The S2–S4 plan
-(`notes/lease-expiry-plan.md`) replaces it with "every recorded TTL ≥ the member's minimum TTL"
-(option (A), pending the user), which the top-level result needs without a premise.
+(`lease.leaseTTLAt_ttl_agree`) is false once snapshots carry leases. The S2–S4 Draft
+(`notes/lease-expiry-plan.md`, Q-S6 (A-ii), approved) replaces it: the lessor's history records each
+id's request (`lease.leaseReqIs`, the TTL its grant asked for, which `Grant` and `Recover` both
+give), and every TTL the history gives the id is at least it (`lease.leaseTTLAt_ge_req`), on any
+member and across restores (the records' TTLs are at least the requests: `leaseTTLsGeReq`). The
+top-level result needs only that bound, with no premise on the members' minimum TTLs.

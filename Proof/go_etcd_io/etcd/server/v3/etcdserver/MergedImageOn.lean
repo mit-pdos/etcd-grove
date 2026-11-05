@@ -34,40 +34,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem authBkts_rest (n : GoString) (h : auth.authBkts n) : n ∈ restBuckets := by
   rcases h with rfl | rfl | rfl <;> simp [mvcc.restBuckets]
 
-/-- **A mode-on entry changes no lease table** (`kvTable_plainM`'s twin: an auth-on log's entries are
-plain KV requests or auth admin ones, none a lease's). -/
-theorem kvTable_plainOn (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
-    (hp : plainEntryOn m) : kvTable c₀ ch lt m = lt := by
-  unfold kvTable
-  split
-  · rename_i ht
-    split
-    · rfl
-    · rename_i hd
-      split
-      · rename_i rq hdec
-        unfold dispatchTable
-        split
-        · rfl
-        · rcases hp ht hd rq hdec with h | ⟨hk, -⟩
-          · exact chainTable_plain rq lt h.1.1 ch
-          · refine chainTable_nonwrite rq lt (fun hw => ?_) ch
-            unfold apply.adminKindOk at hk
-            rcases hw with hw | hw | hw | hw | hw <;> simp [hw] at hk
-      · rfl
-  · rfl
-
-/-- **A mode-on log grants no lease** (`kvTableOf_plainM`'s twin). -/
-theorem kvTableOf_plainOn (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)
-    (hp : plainLogOn A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
-  induction A with
-  | nil => intro lt; rfl
-  | cons m A ih =>
-    intro lt
-    show kvTableOf c₀ ch (kvTable c₀ ch lt m) A = lt
-    rw [kvTable_plainOn c₀ ch lt m (hp m (List.mem_cons_self ..))]
-    exact ih (fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')) lt
-
 /-- **The auth buckets agree with a part of them** (`authBucketsAt` reads only them). -/
 theorem authBucketsAt_congr (st : auth.AuthState) (D r : GMap GoString backend.BktData)
     (h : ∀ n, auth.authBkts n → D.lookup n = r.lookup n) (hr : authBucketsAt st r) :

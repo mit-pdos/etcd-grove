@@ -90,18 +90,19 @@ clientv3's `Grant` sends; in the revocable mode `EtcdServer.LeaseGrant` takes no
 whose lease ID is not `NoLease`, whose header revision etcd has reached, and whose lease is live in
 the lessor's history from some index (`leaseLiveFrom`: a revocable lessor may revoke it later, so no
 listing need list it). Until E3 it covered any request, and the old contract followed from it
-(`isGrpcRpc_leaseGrantLive_any`, unused, removed). (2026-11-05, the lease-expiry plan's E3/R5: the
-granted TTL) And the lease's read-only `ttl` field `t` is at least the requested TTL (`req.1`): the
-lessor's `grantTTL` only raises a TTL to its minimum (`lease.grantTTL_ge`). (The lease-expiry
-plan's S2–S4, Q-S8, 2026-11-05) And the lease's request is `req.1` (`lease.leaseReqIs`): every TTL
-the history gives the id is at least `req.1` (`lease.leaseTTLAt_ge_req`; until S2–S4 the history's
-TTL was `t` itself, `lease.leaseTTLAt_ttl_agree`, which `Recover` replacing a lease's `*Lease`
-breaks). -/
+(`isGrpcRpc_leaseGrantLive_any`, unused, removed). (The lease-expiry plan's S2–S4, Q-S8,
+2026-11-05) And the lease's request is `req.1` (`lease.leaseReqIs`): every TTL the history gives the
+id is at least `req.1` (`lease.leaseTTLAt_ge_req`; until S2–S4 the history's TTL was the lease's
+read-only `ttl` field itself, `lease.leaseTTLAt_ttl_agree`, which `Recover` replacing a lease's
+`*Lease` breaks). (Review r1 F12, 2026-11-05: until then also that field at least `req.1`, E3/R5,
+which no consumer reads since `leaseReqIs`.) (Review r1 F13) `leaseReqIs γl`, like `leaseLiveFrom
+γl`, is one member's (the lessor `γl`'s) ghost state: a client asking `TimeToLive` at another member
+cannot use it. The cluster-level form is the log's grant entry (`appliedTable`'s `(id, ttl)`) with a
+per-member law tying each lessor's request of the id to it (the plan's `srvEver`, a Prove item). -/
 def etcdLeaseGrantSpecLive (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
-  etcdLeaseGrantSpecGR (fun (req : w64 × w64) id => iprop(∃ (i : Nat) (l : Loc) (t : w64),
-      lease.leaseLiveFrom γl i id l ∗ lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z req.1 ≤ sint.Z t⌝ ∗
-      lease.leaseReqIs γl id req.1))
+  etcdLeaseGrantSpecGR (fun (req : w64 × w64) id => iprop(∃ (i : Nat) (l : Loc),
+      lease.leaseLiveFrom γl i id l ∗ lease.leaseReqIs γl id req.1))
     (fun m => m.2 = W64 0)
 
 end specs

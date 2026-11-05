@@ -45,7 +45,7 @@ Q-S6 (A-ii)), and no other record. Stated as `restLeasesWith`'s bucket over the 
 model's (empty) one, as `bkRestAtL` and `srvRest`'s leased arm state theirs. -/
 def imageLeasesAt [GooseExts] (γr : ReadNames) (P : BParams) (D : Data) (A' : List EntryModel) :
     Prop :=
-  ∃ f : w64 → w64, leaseTTLsAbove (appliedTable γr A') f ∧ ((rbData P D).lookup go!"lease").getD ∅ =
+  ∃ f : w64 → w64, leaseTTLsGeReq (appliedTable γr A') f ∧ ((rbData P D).lookup go!"lease").getD ∅ =
     ((apply.restLeasesWith f (appliedTable γr A').ids
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup go!"lease").getD ∅
 
@@ -70,15 +70,26 @@ theorem imageLeasesAt_nil [GooseExts] {γr : ReadNames} {P : BParams} {D : Data}
   have := restModel_lease γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')
   exact (congrArg (fun o => Option.getD o ∅) this).trans rfl
 
+/-- **An empty bucket at an empty table** (`imageLeasesAt_nil`'s converse): a cluster that grants
+none (review r1 F2). -/
+theorem imageLeasesAt_of_nil [GooseExts] {γr : ReadNames} {P : BParams} {D : Data}
+    {A' : List EntryModel} (hn : (appliedTable γr A').ids = [])
+    (h : ((rbData P D).lookup go!"lease").getD ∅ = ∅) : imageLeasesAt γr P D A' := by
+  refine ⟨fun _ => W64 0, leaseTTLsGeReq_of_ids_nil hn _, ?_⟩
+  rw [h, hn, apply.restLeasesWith_nil]
+  have := restModel_lease γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')
+  exact ((congrArg (fun o => Option.getD o ∅) this).trans rfl).symm
+
 /-- **The image's lease bucket is `Recover`'s records** (`lease.lessor.Recover.spec`'s `recs`): its
-entries in key order are `leaseRecEnc` of some records whose ids are exactly the snapshot's table's
-(each with remaining TTL `0`), each record's TTL at least its table entry's (the grant's request:
-`Recover`'s `rq` premise, Q-S6 (A-ii)). -/
+entries in key order are `leaseRecEnc` of some records whose ids are the snapshot's table's, as a
+permutation (review r1 F15: `Recover`'s `Lr.Perm`; the bucket's keys are distinct, and so are the
+table's ids, `leaseGrantOk`), each with remaining TTL `0`, each record's TTL at least its table
+entry's (the grant's request: `Recover`'s `reqOf` premise, Q-S6 (A-ii)). -/
 theorem imageLeasesAt_recs [GooseExts] {γr : ReadNames} {P : BParams} {D : Data}
     {A' : List EntryModel} (h : imageLeasesAt γr P D A') :
     ∃ recs : List (w64 × w64 × w64),
       bktEnts (((rbData P D).lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc ∧
-      (∀ id : w64, id ∈ recs.map (·.1) ↔ id ∈ (appliedTable γr A').ids) ∧
+      (recs.map (·.1)).Perm (appliedTable γr A').ids ∧
       (∀ x ∈ recs, x.2.2 = W64 0) ∧
       ∀ x ∈ recs, ∀ p ∈ appliedTable γr A', p.1 = x.1 → sint.Z p.2 ≤ sint.Z x.2.1 := by
   sorry -- DRAFT S2–S4

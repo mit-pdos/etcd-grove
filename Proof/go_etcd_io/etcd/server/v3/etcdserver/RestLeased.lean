@@ -24,17 +24,17 @@ open backend go_etcd_io.etcd.server.v3.storage
 
 /-- **`D`'s other buckets are the leased image of the committed log `L`**: `restModel`'s, with
 the records of `L`'s live leases at some TTLs; (the lease-expiry plan's S2–S4, Q-S6 (A-ii),
-2026-11-05) each at least its grant's request (`leaseTTLsAbove`, the table's TTLs). -/
+2026-11-05) each at least its grant's request (`leaseTTLsGeReq`, the table's TTLs). -/
 def bkRestAtL [GooseExts] (γk : KVNames) (bootLog : List EntryM) (L : List EntryModel) (D : Data) :
     Prop :=
-  ∃ f : w64 → w64, leaseTTLsAbove (kvLeases γk L) f ∧ ∀ n ∈ mvcc.restBuckets,
+  ∃ f : w64 → w64, leaseTTLsGeReq (kvLeases γk L) f ∧ ∀ n ∈ mvcc.restBuckets,
     D.lookup n = (apply.restLeasesWith f (kvLeases γk L).ids (restModel γk.c0 bootLog L)).bk.lookup n
 
 /-- **The leased rest buckets of a snapshot's data from its observation** (as `bkRestAt_of_rb`):
 the tracked buckets `rbData P D` the leased image's. -/
 theorem bkRestAtL_of_rb {P : BParams} (hRB : ∀ n ∈ mvcc.restBuckets, P.RB n = true)
     [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel} {D : Data}
-    (f : w64 → w64) (hf : leaseTTLsAbove (kvLeases γk L) f)
+    (f : w64 → w64) (hf : leaseTTLsGeReq (kvLeases γk L) f)
     (hrb : rbData P D =
       (apply.restLeasesWith f (kvLeases γk L).ids (restModel γk.c0 bootLog L)).bk) :
     bkRestAtL γk bootLog L D := by
