@@ -1466,3 +1466,30 @@ readers.
   invariant gives up the whole stock, as `Restore`'s write lock does.
 - **4c′.** Where the request path's readers are at the stop, and the premise that returns them.
   To be designed after looking at how the request path borrows its readers.
+
+### R2b-3d gap 4: the store's readers at the stop, a census (2026-11-05)
+
+`backend.Close` needs every share of the open token. `NewServer`'s own error path (R-D1, the
+deferred `b.Close()` after `kv.Close()`) is the template: it collects every store reader and
+retires them at once (`storeReaders_retire`, `storeRTs_shares`), then adds `bkRPool`'s shares and
+the constructors' half (`bOpen_one_pool`). On the success path, `NewStore`'s
+`rdStockN − nJobRd` readers go:
+| readers | where | at the stop |
+|---|---|---|
+| 64 (request goroutines, `Hsrs`) | `srvServeBuilt` → `memberUp`'s serving stocks (`kvServeStocks`) | the caller: the stopped member of `restart3` never served gRPC (only member 1 serves before the restart), so they are unused |
+| 64 (watch run slots, `Hwrx`) | `srvWatchReaders` in `memberUp` | the caller, unused likewise |
+| 1 (compactor, `HwrC`) | `srvCompactR` (`NewServer.lean:1942-1974`) | with the compactor; `restart3` runs none (to check) |
+| 1 retired (storage version monitor, `HrtSV`) | `srvWTStock` (`:1809-1817`) | to trace (the server's goroutines, `s.wg.Wait`) |
+| 1 retired (apply thread, `HrtA`) | `apply.kvOwn`'s `writerOwn` | `applyResC` |
+| 2 (watchable store's loops) | the watchable store | `watchableStore.Close`'s post (`Cleanup`) |
+| the compaction job's resource | the store | `compactJobResM`, `watchableStore.Close`'s post |
+| **the rest, about 805 million (`Hwrds`)** | **dropped** (`NewServer.lean:2380`: one taken, the rest `-`) | **lost: must be kept** |
+So the stop needs no new store law: `storeReaders_retire` with every reader is it (4b′ dropped).
+4c′ is plumbing:
+1. `NewServer` keeps the remainder (`srvStopKeep` gains the readers; a stronger post).
+2. The stop's caller returns the member's unused serving stocks (`memberUp`'s request and watch
+   readers). This is the "request path stopped first" premise, met in `restart3` because the
+   member never served.
+3. The compactor's and the monitor's readers are traced.
+4. The shutdown (stage 5) assembles the token as R-D1 does.
+Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
