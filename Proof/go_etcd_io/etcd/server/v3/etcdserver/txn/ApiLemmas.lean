@@ -5,6 +5,7 @@ handle's dynamic type meets its interface's contracts (from `shapes.law`), keepi
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnLemmas
 
 @[expose] public section
 
@@ -78,6 +79,55 @@ theorem txn.kindState_read (σ : MvccState) (h : txn.Reach σ) :
     unfold mvcc.api.MvccState.rev; omega
   rw [this]
   exact txn.stateAt_lastRev σ.log hne (by omega)
+
+/-- A transaction's read revision is not negative. -/
+theorem txn.readRev_nonneg (k : MTxn) (h : txn.Reach k.state) : 0 ≤ sint.Z k.readRev := by
+  have h3 := h.2
+  cases k with
+  | read σ =>
+    simp only [mvcc.api.MTxn.state, mvcc.api.MTxn.readRev] at h3 ⊢
+    unfold mvcc.api.MvccState.rev; word
+  | write σ pend =>
+    simp only [mvcc.api.MTxn.state, mvcc.api.MTxn.readRev] at h3 ⊢
+    have : mvcc.writeRev σ.log pend ≤ σ.log.length := by unfold mvcc.writeRev; split <;> omega
+    word
+
+/-- No change appended: the same transaction. -/
+theorem txn.MTxn.append_nil (k : MTxn) : txn.MTxn.append k [] = k := by
+  cases k <;> simp [txn.MTxn.append]
+
+/-- A read transaction's changes leave it as it is. -/
+theorem txn.MTxn.append_read (k : MTxn) (X : List mvcc.Change) (h : txn.MTxn.isRead k = true) :
+    txn.MTxn.append k X = k := by
+  cases k <;> simp_all [txn.MTxn.append, txn.MTxn.isRead]
+
+/-- A write transaction's state after more changes. -/
+theorem txn.mstate_append (k : MTxn) (X : List mvcc.Change) (h : txn.MTxn.isRead k = false) :
+    txn.mstate (txn.MTxn.append k X) =
+      mvcc.applyChanges (W64 (k.state.log.length : Int)) (txn.mstate k) X := by
+  cases k with
+  | read σ => simp [txn.MTxn.isRead] at h
+  | write σ pend =>
+    simp only [txn.MTxn.append, txn.mstate, mvcc.api.MTxn.state]
+    exact txn.pendState_append σ.log pend X
+
+/-- The state a transaction reads after changes (none for a read transaction). -/
+theorem txn.kindState_append (k : MTxn) (X : List mvcc.Change) (h : txn.Reach k.state)
+    (hX : txn.MTxn.isRead k = true → X = []) :
+    txn.kindState (txn.MTxn.append k X) =
+      mvcc.applyChanges (W64 (k.state.log.length : Int)) (txn.mstate k) X := by
+  have h2 := txn.reach_len _ h.1
+  have h3 := h.2
+  cases k with
+  | read σ =>
+    rw [hX rfl]
+    simp only [txn.MTxn.append, txn.mstate, mvcc.api.MTxn.state] at *
+    exact txn.kindState_read σ h
+  | write σ pend =>
+    simp only [txn.MTxn.append, txn.mstate, mvcc.api.MTxn.state] at *
+    have hne : σ.log ≠ [] := by intro h0; rw [h0] at h2; simp at h2
+    rw [txn.kindState_write σ (pend ++ X) hne (by omega)]
+    exact txn.pendState_append σ.log pend X
 
 /-- A transaction's begin state after changes. -/
 theorem txn.MTxn.append_state (k : MTxn) (chs : List mvcc.Change) :
@@ -243,7 +293,67 @@ theorem txn.end_write {ty : go.GoType} {v : val}
   iapply HΦ
   iframe Htt Hbk HQ
 
+/-- A read transaction after changes is the read transaction. -/
+theorem txn.mvccTxn_append_read (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn)
+    (X : List mvcc.Change) (h : txn.MTxn.isRead k = true) :
+    mvcc.api.mvccTxn (GF := GF) t γ trace (txn.MTxn.append k X) ⊢ mvcc.api.mvccTxn t γ trace k := by
+  rw [txn.MTxn.append_read k X h]
+
 end lemmas
+
+/-! ## `fmt.Errorf` (a copy of mvcc's `Errorf.lean`, an internal module, until mvcc's API re-exports
+it: `notes/mvcc-migration/txn.md`, the re-export list) -/
+
+section errorf
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [errors_sem : _root_.Perennial.errors.Assumptions] [fmt_sem : _root_.Perennial.fmt.Assumptions]
+
+/-- `errors.New(msg)` with the exact type of what it returns (as Perennial's
+`context.wp_New_errorString`, without its section's method-set classes). -/
+theorem txn.wp_New_errorString (msg : GoString) :
+    {{ (True : IProp GF) }}
+      (App (Val (@! _root_.Perennial.errors.New)) (Val #msg))
+    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x);
+        □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+          WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+            go!"Error" #x)) (Val #())) {{ Φ }} }} := by
+  wp_start
+  wp_auto
+  wp_alloc x as Hx
+  iStructNamed Hx
+  ipersist s
+  wp_auto
+  iapply HΦ
+  imodintro
+  iintro %Φ HΦ
+  rw [method_unfold]
+  wp_auto
+  iexact HΦ
+
+/-- **`fmt.Errorf(format, args...)`** returns an error `errorfIs` describes (Perennial's model:
+`errors.New(format)`). -/
+theorem txn.wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice) (args : List GoAny) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
+      (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
+    {{ (err : GoInterface), RET #err; mvcc.errorfIs err }} := by
+  wp_start as _
+  wp_apply txn.wp_New_errorString as %x #Herr
+  iapply HΦ
+  iunfold mvcc.errorfIs
+  iexists x
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %Φ HΦ
+  iapply Herr
+  inext
+  iapply HΦ
+
+end errorf
+
 
 end EtcdGrove
 end Perennial

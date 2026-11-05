@@ -68,7 +68,10 @@ range, which nothing gives (`mvccTxn` is opaque; no law gives its state reachabl
 internal spec has; its one caller, `checkTxn`, holds it. (Or an API law
 `mvccTxn t γ trace k ⊢ ⌜MvccReachable k.state⌝`.)
 
-**Gap C (the API too weak; blocks `executeTxn`).** `executeTxn` computes a range's header revision
+**Gap C (the API; claimed to block `executeTxn`: an overstatement, corrected 2026-11-05).** The
+proof turned out not to need it: `len(txnWrite.Changes()) > 0` only sets a header-only range's
+revision, which `responseOpIs` leaves unconstrained. The API's strengthened post is harmless. The
+original finding: `executeTxn` computes a range's header revision
 as `txnWrite.Rev()` plus one when `len(txnWrite.Changes()) > 0` (`txn.go`, a signed `GoGt go.int`
 on the slice's length). `Txn.Changes.contract` gives only `uint.nat chs.len = k.pend.length`, no
 ownership of the slice: a length `≥ 2 ^ 63` (negative as an `int`) is not excluded, and nothing
@@ -123,12 +126,11 @@ gave `Txn.Range`'s.
 
 ## Status per proof (every module of the package builds but `Link`, `Results`)
 
-Proved over the API (no sorry): `executeRange`, `applyCompare` (after A's fix), `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
+Proved over the API (no sorry): `executeRange`, `applyCompare` (after A's fix), `executeTxn`, `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
 `compareToPath`, `checkTxn`, `txn`, `Range`, `Count`, `Put`, `DeleteRange`, and every proof with no
 mvcc callee (the list in "Done"), and since B and D were decided, `checkRange` and `Txn`.
 
-`M1-REPLACE` placeholders (whole proofs, `sorry`): `getPrevKV` (gap E), `deleteRange` (gap F), `executeTxn`
-(gap C fixed: in progress); the old proofs over the internals
+`M1-REPLACE` placeholders (whole proofs, `sorry`): `getPrevKV` (gap E), `deleteRange` (gap F); the old proofs over the internals
 are in the history (`645402be7a~1`), most of each reusable once the gap closes (`executeRange_core`
 was already parametric in the transaction; `KindOk`/`prevKvIs_of_outcome`/`rangeOutcome_sel` are
 over `MTxn` in `Write.lean`).
@@ -146,12 +148,11 @@ New `wp_proof` hypotheses (for `etc/link-lean-first-txn.txt`), in order:
 - `Txn`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `IsTxnReadonly`,
   `Trace.StepWithFunction`, `compareToPath`, `Trace.AddField`, `checkTxn`, `Trace.Step`,
   `mvcc.api.NewReadOnlyTxnWrite`, `txn`;
-- `checkRange`: `shapes`; placeholders: `executeRange`: `shapes`, `Get`, `rangeLimit`, `mkGteRange`, `filterRangeResults`,
-  `sortRangeResults`, `Trace.Step`, `asembleRangeResponse`; `getPrevKV`: `shapes`,
-  `StepWithFunction`, `context.TODO`; `applyCompare`: `shapes`, `context.TODO`, `mkGteRange`,
-  `compareKV`; `deleteRange`: `shapes`, `mkGteRange`; `executeTxn`:
-  `shapes`, `Get`, `StartSubTrace`, `executeRange`, `StopSubTrace`, `proto.Size`, `getPrevKV`,
-  `put`, `deleteRange`.
+- `checkRange`: `shapes`; `executeRange`: `shapes`, `Get`, `rangeLimit`, `mkGteRange`, `filterRangeResults`,
+  `sortRangeResults`, `Trace.Step`, `asembleRangeResponse`; `applyCompare`: `shapes`, `context.TODO`,
+  `mkGteRange`, `compareKV`; `executeTxn`: `shapes`, `Get`, `StartSubTrace`, `executeRange`,
+  `StopSubTrace`, `proto.Size`, `getPrevKV`, `put`, `deleteRange`; placeholders: `getPrevKV`: `shapes`,
+  `StepWithFunction`, `context.TODO`; `deleteRange`: `shapes`, `mkGteRange`.
 
 ## Renamed and replaced (for the server track)
 
@@ -177,7 +178,7 @@ New `wp_proof` hypotheses (for `etc/link-lean-first-txn.txt`), in order:
 
 Named in txn's statements and reached today only through `Api.lean`'s public imports of mvcc's
 internals: `mvcc.txnCtx`, `mvcc.rangeCtx`, `mvcc.txnCtx_rangeCtx`, `mvcc.neverDone`,
-`mvcc.errorfIs` (and `errorfIs_ne_nil`), `mvcc.isLessor`, `mvcc.kvPtrIs`, `mvcc.kvIs`,
+`mvcc.errorfIs` (and `errorfIs_ne_nil`; `Errorf.lean`'s `wp_Errorf_errorfIs`/`wp_New_errorString`, copied into `ApiLemmas.lean` as `txn.wp_*` until re-exported), `mvcc.isLessor`, `mvcc.kvPtrIs`, `mvcc.kvIs`,
 `mvcc.rangeRev`, `mvcc.rangeOutcome(C)` and `rangeKvs` (inside `Txn.Range`'s contract),
 `mvcc.Log`, `mvcc.Change`, `mvcc.stateAfter`, `mvcc.stateAt`, `mvcc.findKey`,
 `mvcc.applyChanges`, `mvcc.commitLog`, `mvcc.writeRev` (`writeRev_lt`, `stateAt_writeRev`),

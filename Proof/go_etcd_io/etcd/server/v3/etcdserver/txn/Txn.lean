@@ -38,19 +38,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 
-/-- A branch of gets runs with no change. -/
-theorem txn.srvOps_gets_nil (s0 : List EtcdKv) (r : w64) :
-    ∀ (s : List EtcdKv) (ops : List TxnOp), (∀ op ∈ ops, opIsGet op = true) →
-      (srvOps s0 r s ops).1 = []
-  | _, [], _ => rfl
-  | s, op :: ops, h => by
-    cases op with
-    | get o =>
-      rw [srvOps_cons, srvOp_get]
-      simp only [List.nil_append, applyChanges_nil']
-      exact txn.srvOps_gets_nil s0 r s ops (fun op hop => h op (by simp [hop]))
-    | _ => have := h _ (List.mem_cons.2 (Or.inl rfl)); simp [opIsGet] at this
-
 /-- A branch of gets meets the run's premises when each get does at the state. -/
 theorem txn.opsOk_gets (w : Bool) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) :
     ∀ ops : List TxnOp, (∀ op ∈ ops, opIsGet op = true) →
