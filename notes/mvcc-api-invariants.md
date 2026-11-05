@@ -490,6 +490,23 @@ authority (`chanApiAt_regTok`, `chanApiAt_cancelTok`) and used at it (`chanApiAt
 registered watcher's id is the watcher's sent events, today's `chanWatcher` filter by `x.w`), so (b)
 and (c) below are done but for minting the tokens where the events are appended.
 
+**Done since** (2026-11-05, item 2, no `sorry`): **`wsChan_recv.law` proved**
+(`Api/WatchLaws.wsChan_recv.law_holds`, over `wsChan_recvI` at a stream's names `wsAbsOf γw ch γc`;
+`#print axioms`: no `sorryAx`). `isMvccWatchStreamRest` defined (private, sealed): a watchable
+store's names `γw` (`γw.st = γ`) and the channel's `γc` with `ι = wsAbsOf γw ι.ch γc`, the buffered
+channel (`isChan`, `0 < chanCap`) and `inv watchN (watchChanInv γw ι.ch γc)`; item 3 adds the
+stream's own invariant (`isWatchStream`). The API view is tied to the channel's received prefix:
+`chanApi γ ch γc sent recv` (the history's consumer view `recv.map toW`); `watchConsumer γc ms` is
+both halves (`γc.recv` at `ms`, `γc.arcv` at `ms.map toW`), and the API's `wsRecvI` holds it
+(`WsAbs.crecv := γc.recv`; `rx` an exclusive token fixed at `0`, so a receive needs no update
+outside the invariant); `RespM` moved to `WatchModel`, `RespM.toW` to `Api/StreamGhost`. The receive
+lemmas (`watch_recv_au`, `watch_tryrecv_au_alt`) move both views at each receive (`chanApi_recv`) and
+hand the receiver its lower bound (`apiRecvLb`, in `watchRecvResult`, now taking `ch`); the
+non-blocking receive takes a `wsSentLbI` and its empty case gives `n ≤ received.length`
+(`chanApi_sentLb`). `NewWatchStream` returns `wsRecvI` in place of `watchConsumer γc []` (v3rpc's
+`sendLoop` uses the latter: red under strict M1). `chanApiAt_recv` (the abstract receive step)
+removed, superseded.
+
 **What each remaining step needs of the internals** (found wiring; none is a frozen statement's
 problem: no frozen statement found false):
 - *The send's `stepOk`* (replacing `chanApi_send_M1`): the sender passes its event `.send (toW x)
@@ -548,9 +565,8 @@ problem: no frozen statement found false):
    at the exact sent count (today's `chanRegAt w n` has `n ≤ sent.length`: make it exact, opened
    at the registration's atomic step); `Cancel`'s first check appends a cancel when the stream's
    state changes.
-2. **`isMvccWatchStreamRest`**: the channel invariant's `inv`, `isChan ι.ch ι.chn`, today's
-   `isWatchStream`; then **`wsChan_recv.law`** from today's `watch_recv_au`/`watch_tryrecv_au_alt`
-   extended to move `ι.rcv`/`ι.rx` and mint the receiver's `logTok` and `ns` lower bound.
+2. ~~**`isMvccWatchStreamRest`** ... **`wsChan_recv.law`**~~ (done 2026-11-05, above; the
+   stream's `isWatchStream` to add at item 3, and the law's proof to adjust then).
 3. **The `WatchStream` contracts** at `*watchStream` and `NewWatchStream` (allocating `WsAbs`),
    then the store's side of `mvccState` (its other halves in the internals: they exist, §1).
 
