@@ -21,7 +21,7 @@ namespace EtcdGrove
 namespace apply
 
 open Iris Iris.BI Iris.ProofMode
-open mvcc.api (BkRef mvccBackend hookIs)
+open mvcc.api (BkRef mvccBackend hookIs mvccLeases)
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -185,6 +185,54 @@ theorem mPreW_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
   iunfold mPreWRest at H
   icases H with ⟨Hw, Hll, Hrd, Hb⟩
   iunfold mPreW
+  iframe
+
+/-- **A rejection, the contract kept** (the auth layer's rejection lemmas take it). -/
+theorem mPreRest_reject_cs (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreRest E log Pre Q Post ⊢
+      kvOwn E log ∗ ∃ B : BkRef, srvApi.csContractA (E.Pk B) E.f Pre Q Post := by
+  iintro H
+  iunfold mPreRest at H
+  icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, Hcs⟩
+  isplitr [Hcs]
+  · iunfold kvOwn
+    iframe Hw Hll Hrd
+    iunfold kvBk
+    iexists B
+    iframe
+  · iexists B; iexact Hcs
+
+/-- The auth store's reader resource and the lease owner's resource of `mPreRest`, lent out (as
+`kvOwn_lend`). -/
+theorem mPreRest_lend (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreRest E log Pre Q Post ⊢ E.RD ∗ ∃ L : List w64,
+      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+        mPreRest E log Pre Q Post) := by
+  iintro H
+  iunfold mPreRest at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iunfold leasesLive at Hll
+  icases Hll with ⟨%L, #Hk, Hu⟩
+  iframe Hrd
+  iexists L
+  iframe Hu
+  iintro Hrd Hu
+  iunfold mPreRest
+  iframe Hw Hrd Hb
+  iunfold leasesLive
+  iexists L
+  iframe Hk Hu
+
+/-- The auth store's reader resource of `mPreRest`, lent out (as `kvOwn_rd`). -/
+theorem mPreRest_rd (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    mPreRest E log Pre Q Post ⊢ E.RD ∗ (E.RD -∗ mPreRest E log Pre Q Post) := by
+  iintro H
+  iunfold mPreRest at H
+  icases H with ⟨Hw, Hll, Hrd, Hb⟩
+  iframe Hrd
+  iintro Hrd
+  iunfold mPreRest
   iframe
 
 end lemmas
