@@ -272,7 +272,7 @@ abbrev senderImage.law : Prop :=
   backend.backend.Snapshot.spec (GF := GF) (hG := hG) →
   mvccImage_snapshot.law (GF := GF) (hG := hG) → kvAus.law (GF := GF) →
   ∀ (kv : GoInterface) (γ : MvccName) (γr : ReadNames) (γs : KVSNames) (i : w64)
-    (A : List EntryModel) (B : BkRef) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
+    (A : List EntryModel) (B : mvcc.KBReal) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
     (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop),
   (∀ D, Q (backend.hkData B.P D) (backend.rbData B.P D) →
     imageRestAt γr.kv γr.raft.raft.boot i (γr.raft.pre ++ A) D) →
@@ -282,7 +282,7 @@ abbrev senderImage.law : Prop :=
       srvRLogLb γr.raft A ∗ mvccBackend γ 1 B Pk ∗ backend.bOpen B.γB qo ∗ backend.wbTok B.γB ∗
       R ∗ □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) }}
-    (App (Val (B.b @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
+    (App (Val (B.be @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty
       @!! go!"Snapshot")) (Val #()))
   {{ (sp : Loc) (D : backend.Data),
       RET #(interface.mkOk
@@ -290,37 +290,42 @@ abbrev senderImage.law : Prop :=
       backend.snapOpen sp D ∗ backend.bOpen B.γB qo ∗ R ∗ mvccBackend γ 1 B Pk ∗
       wSt γs (kvModel γr.kv A) (crevOf γr.kv A) ∗ dbImageA γr.raft γr.kv i D }}
 
-/-- **The receiver's backend over the image** (from `mvccBackendFor_open.law`, at the snapshot
+/-- **The receiver's backend over the image** (from `etcdStorage_open.law`, at the snapshot
 opener's post `newPostKP` at `K := snapOpenK`, with the store's part of the payment rights): the
-store's resources at the image's history. -/
+store's resources at the image's history. (Phase A of mvcc's API over its storage abstraction,
+2026-11-06: at a real instance `bk` of etcd's backend with mvcc's layout, `bridgeParams bk.P`, in
+compaction mode, `mvccStorageFor` of its storage `etcdStorage bk`; until then `mvccBackendFor` at
+the `BkRef` `⟨γB, P, b⟩` with the registration name `gx`.) -/
 abbrev dbImageA_open.law : Prop :=
-  ∀ (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : backend.Data) (γB : backend.BNames)
-    (P : backend.BParams) (Pk K : backend.BNames → IProp GF) (b : Loc) (gx : GName),
-  dbImageA (GF := GF) γ γk i D ∗ □ (∀ γ' b', mvcc.keySized γ' P b') ∗
-    backend.newPostKP γB P (fun _ => mvccW gx) Pk K b D ∗ mvccWReg gx ∗
-    backend.wbTok γB ∗ backend.wbTok γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok γB) ∗
-    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γB backend.rdOpen) ={⊤}=∗
+  ∀ (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : backend.Data) (bk : mvcc.KBReal)
+    (Pk K : backend.BNames → IProp GF),
+  mvcc.bridgeParams bk.P → bk.cm = true →
+  dbImageA (GF := GF) γ γk i D ∗ □ (∀ γ' b', mvcc.keySized γ' bk.P b') ∗
+    backend.newPostKP bk.γB bk.P (fun _ => mvccW bk.gx) Pk K bk.be D ∗ mvccWReg bk.gx ∗
+    backend.wbTok bk.γB ∗ backend.wbTok bk.γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok bk.γB) ∗
+    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen) ={⊤}=∗
   ∃ (A : List EntryModel) (u : Bool), srvRLogLb γ A ∗
     ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageRestAt γk γ.raft.boot i (γ.pre ++ A) D⌝ ∗
-    mvccBackendFor ⟨γB, P, b⟩ (Pk γB) (kvModel γk A) (crevOf γk A) u ∗ backendRest γB P K b D
+    mvccStorageFor bk (Pk bk.γB) (kvModel γk A) (crevOf γk A) u ∗ backendRest bk.γB bk.P K bk.be D
 
 /-- **The boot's backend for the store** (`NewServer`'s step 4-5, F3: `mvccImage_fresh.law` under an
 update, which the boot's fupd absorbs): `backend.New`'s pooled post at the store's write invariant
 over fresh data (no `Key` entry, no compaction key: a new cluster's data directory, `bootOk`'s
-empty bucket), with the store's part of the payment rights, gives `New`'s `mvccBackendFor` at
-`mvccStart` and the client's rest. Derived from `mvccImage_fresh.law` and `mvccBackendFor_open.law`. -/
+empty bucket), with the store's part of the payment rights, gives `New`'s `mvccStorageFor` at
+`mvccStart` and the client's rest. Derived from `mvccImage_fresh.law` and `etcdStorage_open.law`
+(phase A, 2026-11-06: at a real instance `bk` with `bridgeParams bk.P`, in compaction mode). -/
 abbrev bootBackend.law : Prop :=
-  mvccImage_fresh.law (GF := GF) → mvccBackendFor_open.law (GF := GF) →
-  ∀ (γB : backend.BNames) (P : backend.BParams) (Pk K : backend.BNames → IProp GF) (b : Loc)
-    (D : backend.Data) (gx : GName),
+  mvccImage_fresh.law (GF := GF) → etcdStorage_open.law (GF := GF) →
+  ∀ (bk : mvcc.KBReal) (Pk K : backend.BNames → IProp GF) (D : backend.Data),
+  mvcc.bridgeParams bk.P → bk.cm = true →
   (∀ k, backend.dget D mvcc.keyName k = none) →
   backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none →
   backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none →
-  □ (∀ γ' b', mvcc.keySized (GF := GF) γ' P b') ∗
-    backend.newPostKP γB P (fun _ => mvccW gx) Pk K b D ∗ mvccWReg gx ∗
-    backend.wbTok γB ∗ backend.wbTok γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok γB) ∗
-    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γB backend.rdOpen) ={⊤}=∗
-  mvccBackendFor ⟨γB, P, b⟩ (Pk γB) mvccStart.log mvccStart.crev false ∗ backendRest γB P K b D
+  □ (∀ γ' b', mvcc.keySized (GF := GF) γ' bk.P b') ∗
+    backend.newPostKP bk.γB bk.P (fun _ => mvccW bk.gx) Pk K bk.be D ∗ mvccWReg bk.gx ∗
+    backend.wbTok bk.γB ∗ backend.wbTok bk.γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok bk.γB) ∗
+    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen) ={⊤}=∗
+  mvccStorageFor bk (Pk bk.γB) mvccStart.log mvccStart.crev false ∗ backendRest bk.γB bk.P K bk.be D
 
 /-- **The model's restored state is reachable** (a server model lemma, from the KV invariant's
 claims of the committed entries: their changes well formed, deletes of present keys, compactions
@@ -344,13 +349,13 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`KV.Restore.contract`'s precondition** (round 16; without `pkgInit`), at the update `Q`. -/
-def restorePreA (kv : GoInterface) (γ : MvccName) (B B' : BkRef) (Pk Pk' : IProp GF)
+def restorePreA (kv : GoInterface) (γ : MvccName) (B B' : mvcc.KBReal) (Pk Pk' : IProp GF)
     (σ' : MvccState) (u : Bool) (L : List w64) (dq : DFrac) (f : GoFunc)
     (Pre Q' Post X Y : IProp GF) (Q : MvccState → IProp GF) : IProp GF :=
   iprop(isMvcc kv γ ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
-    mvccBackendFor B' Pk' σ'.log σ'.crev u ∗ ⌜MvccReachable σ' ∧ σ'.pending = none⌝ ∗
+    mvccStorageFor B' Pk' σ'.log σ'.crev u ∗ ⌜MvccReachable σ' ∧ σ'.pending = none⌝ ∗
     backend.plHookAt B'.γB dq f ∗ Pre ∗ mvcc.api.hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
-    X ∗ backend.commitReq B'.γB B'.P Pk' B'.b X Y ∗
+    X ∗ backend.commitReq B'.γB B'.P Pk' B'.be X Y ∗
     lease.leaseOwn (mvccLeases γ) L ∅ ∗
     ⌜∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid →
       lid ∈ L ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ ∗
@@ -370,7 +375,7 @@ live (the image's lease bucket, `bkRestAt`: the workload has no lease, so `Ls = 
 the contract's whole precondition, its update committing the apply thread to the restored state. -/
 abbrev restoreArgs.law : Prop :=
   ∀ (kv : GoInterface) (γ : MvccName) (γr : ReadNames) (on : Bool) (γs : KVSNames)
-    (log : mvcc.Log) (c : Int) (A A' : List EntryModel) (B B' : BkRef) (Pk : BkRef → IProp GF)
+    (log : mvcc.Log) (c : Int) (A A' : List EntryModel) (B B' : mvcc.KBReal) (Pk : mvcc.KBReal → IProp GF)
     (u : Bool) (Ls : List w64) (dq : DFrac) (f : GoFunc) (Pre Q' Post : IProp GF),
   let σ' := stAt (kvModelM on γr.kv A') (crevOf γr.kv A')
   log = kvModelM on γr.kv A → c = crevOf γr.kv A → A <+: A' → MvccReachable σ' →
@@ -378,7 +383,7 @@ abbrev restoreArgs.law : Prop :=
     lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1) →
   kvStoreInv (GF := GF) kv γ γr on γs ∗ wSt γs log c ∗ crOwn γs c ∗ srvRLogLb γr.raft A' ∗
     crevOk γr σ'.crev ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B (Pk B) ∗
-    mvccBackendFor B' (Pk B') σ'.log σ'.crev u ∗
+    mvccStorageFor B' (Pk B') σ'.log σ'.crev u ∗
     backend.plHookAt B'.γB dq f ∗ Pre ∗ mvcc.api.hookRun (Pk B') f Pre Q' ∗
     (Q' ={⊤}=∗ Pk B' ∗ Post) ∗ lease.leaseOwn (mvccLeases γ) Ls ∅ ⊢
   restorePreA kv γ B B' (Pk B) (Pk B') σ' u Ls dq f Pre Q' Post iprop(True) iprop(True)

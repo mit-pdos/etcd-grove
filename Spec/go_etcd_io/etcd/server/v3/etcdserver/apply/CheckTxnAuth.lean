@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`CheckTxnAuth(as, ai, lessor, rt)`**: `checkTxnPermission`. -/
 abbrev apply.CheckTxnAuth.spec : Prop :=
-  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc) (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
+  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : TxnModel)
     (U : apply.LeaseView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st Pk f BT RD on RW ∗ apply.isApplyLessorAny le γ Pk f BT RW ∗ ai ↦{dq} info ∗ RD ∗

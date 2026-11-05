@@ -56,7 +56,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.etcdserver
-open mvcc.api (BkRef mvccW MvccReachable)
+open mvcc.api (mvccW MvccReachable)
 
 section addrs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -514,14 +514,14 @@ def srvFS (s : Loc) : IProp GF :=
 /-- **The server's backend tie** (strict M1, 2026-11-05; the chain's `E.BkTie`, persistent): the
 backend is the epoch's `B₀` (an epoch's environment is fixed: `applySnapshot` makes the next one,
 `beSucc`). -/
-def srvBkTie (B₀ : BkRef) (B : BkRef) : IProp GF := iprop(⌜B = B₀⌝)
+def srvBkTie (B₀ : mvcc.KBReal) (B : mvcc.KBReal) : IProp GF := iprop(⌜B = B₀⌝)
 
 /-- **A backend's key** (strict M1, 2026-11-05): what the ghost variable `E.γbe` of the server's
-current backend records (until then mvcc's `KBReal`, countable; a `BkRef`'s parameters hold
+current backend records (until then mvcc's `KBReal`, countable; a `mvcc.KBReal`'s parameters hold
 functions, so its value is the backend's names and location). -/
-def bkKey (B : BkRef) : backend.BNames × Loc := (B.γB, B.b)
+def bkKey (B : mvcc.KBReal) : backend.BNames × Loc := (B.γB, B.be)
 
-instance srvBkTie_persistent (B₀ B : BkRef) : Persistent (srvBkTie (GF := GF) B₀ B) := by
+instance srvBkTie_persistent (B₀ B : mvcc.KBReal) : Persistent (srvBkTie (GF := GF) B₀ B) := by
   unfold srvBkTie; infer_instance
 
 /-- **The resources the consistent index reads under** (D14i): the apply protocol's state, not
@@ -547,14 +547,14 @@ interim restriction: `applySnapshot.specSnap`'s `d.cm = false`, until restore in
 (2026-11-01, `restorePre_of_apply`) And the store's logical mode is the server's (`E.γ.cm = E.cmp`,
 `envAgree`'s at `NewServer`; a restore keeps both): what makes a compaction-off store frozen
 (`isWatchableStore_frozen`) for `Restore`. (Strict M1, 2026-11-05: over mvcc's API the backend is
-a `BkRef`, the epoch's `B`, which the chain's tie `E.BkTie` names (`srvBkTie B`, in place of the
+a `mvcc.KBReal`, the epoch's `B`, which the chain's tie `E.BkTie` names (`srvBkTie B`, in place of the
 store's names' `E.γ.kb = some d`); the two mode clauses gone, the API's backend always compacting
 and the store having no mode.) -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
-      ∃ (B : BkRef) (al st lp : Loc), E.BkTie = srvBkTie B ∧ B.γB = γB ∧
-        H = srvObjsOn al st lp cl B.b
+      ∃ (B : mvcc.KBReal) (al st lp : Loc), E.BkTie = srvBkTie B ∧ B.γB = γB ∧
+        H = srvObjsOn al st lp cl B.be
 
 /-- **The server's current backend, with its hooks** (persistent; 2026-11-02, the user's approval,
 branch `snap-window`): the store's backend `d` (`E.γ.kb`) is the real backend whose batch lock has
@@ -565,14 +565,14 @@ epoch's backend `B` of the tie, opened at mvcc's write invariant `mvccW gx`). Wh
 snapshot's window needs to freeze the stored index (`storeReq_freeze`). Made where the backend is:
 `NewServer` (`bootOk`'s), `applySnapshot` (`OpenSnapshotBackend`'s). -/
 def srvBeHooked (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (B : BkRef) (bh lgh : Loc) (gx : GName),
+  iprop(∃ (B : mvcc.KBReal) (bh lgh : Loc) (gx : GName),
     ⌜E.BkTie = srvBkTie B ∧ ciKeys B.P ∧ storage.hooksParams B.P⌝ ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ bh ∗
     storage.isBackendHooks bh
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩
       lgh ∗
-    backend.hooksAt B.b (storage.hooksIface bh) ∗
-    backend.isBackend B.γB B.P (mvccW gx) (batchLockInv γ (metaTM B.γB B.P)) B.b)
+    backend.hooksAt B.be (storage.hooksIface bh) ∗
+    backend.isBackend B.γB B.P (mvccW gx) (batchLockInv γ (metaTM B.γB B.P)) B.be)
 
 instance srvBeHooked_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) :
     Persistent (srvBeHooked (GF := GF) s γ ci E) := by
@@ -651,10 +651,10 @@ abbrev srvBeIface (be : Loc) : GoInterface :=
 2026-10-23): its contract at the store's late-bound writer resource and some hooks' resource
 (`backend.isBackend`), what the storage-version monitor writes it through. True of every backend
 the server ever holds, so it is kept in `s.bemu`'s lock invariant with the field (`bemuP`). -/
-def srvBeRO (d : BkRef) : IProp GF :=
-  iprop(∃ (gx : GName) (Pk : IProp GF), backend.isBackend d.γB d.P (mvccW gx) Pk d.b)
+def srvBeRO (d : mvcc.KBReal) : IProp GF :=
+  iprop(∃ (gx : GName) (Pk : IProp GF), backend.isBackend d.γB d.P (mvccW gx) Pk d.be)
 
-instance srvBeRO_persistent (d : BkRef) : Persistent (srvBeRO (GF := GF) d) := by
+instance srvBeRO_persistent (d : mvcc.KBReal) : Persistent (srvBeRO (GF := GF) d) := by
   unfold srvBeRO; infer_instance
 
 /-- **The apply thread's part of the server's backend** (D22 receiver epochs, S7b, 2026-10-23;
@@ -674,10 +674,10 @@ the new backend's at `applySnapshot`), lent to each entry's `Apply`/`dispatch` (
 `applyConfChange`, given back through `apply.bkRTOf E` (`bkRTOf_srv`). Until then mvcc's
 `storeRT` was in the sole writer's `writerOwn`. -/
 def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗
-    srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.b ∗
+  iprop(∃ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ∗
+    srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) ∗
-    srvBeRO d ∗ backend.bkRPool d.γB d.P d.b ∗ apply.bkRT d)
+    srvBeRO d ∗ backend.bkRPool d.γB d.P d.be ∗ apply.bkRT d)
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
 (D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
@@ -973,7 +973,7 @@ def srvWTN : Namespace := nroot .@ "srvWT"
 deriving instance Inhabited for backend.DBNames
 deriving instance Inhabited for backend.BNames
 deriving instance Inhabited for backend.BParams
-deriving instance Inhabited for BkRef
+deriving instance Inhabited for mvcc.KBReal
 
 /-- The backends' stocks' invariants' name (disjoint from the budget's, `srvWTN`). -/
 def srvWTStockN : Namespace := nroot .@ "srvWTStock"
@@ -988,11 +988,11 @@ budget's counter), with `receiptBound ≤ m + n + 1`: every take raises the coun
 into the budget), so the stock never runs out before the receipts do. Named by `d`, which a backend
 swap does not change, so a persistent supply of `d` (a compaction job's, `kbWTSupplyM (some d)`)
 stays good after `applySnapshot` moves `E.γbe` to the next backend. -/
-def srvWTStockInv (γp : GName) (d : BkRef) : IProp GF :=
+def srvWTStockInv (γp : GName) (d : mvcc.KBReal) : IProp GF :=
   inv srvWTStockN iprop(∃ (m n : Nat), monoNatLbOwn γp m ∗ ownToks d.γB.wb n ∗
     ⌜receiptBound GF ≤ m + n + 1⌝)
 
-instance srvWTStockInv_persistent (γp : GName) (d : BkRef) :
+instance srvWTStockInv_persistent (γp : GName) (d : mvcc.KBReal) :
     Persistent (srvWTStockInv (GF := GF) γp d) := by
   unfold srvWTStockInv; infer_instance
 
@@ -1026,7 +1026,7 @@ new backend's stock fact in place of the old one's and takes no token out, so a 
 of any backend with a stock survives swaps (restore in compaction mode). A take costs a later
 credit (the stock's fact is under the budget's `▷`). -/
 def srvWTPool (E : apply.AEnv GF) (γp : GName) : IProp GF :=
-  inv srvWTN iprop(∃ (a : Nat) (d : BkRef), ⧗ a ∗
+  inv srvWTN iprop(∃ (a : Nat) (d : mvcc.KBReal), ⧗ a ∗
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) ∗ srvWTStockInv γp d ∗
     monoNatAuthOwn γp 1 a ∗
     (apply.bkRT d ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) (bkKey d)))
@@ -1039,7 +1039,7 @@ instance srvWTPool_persistent (E : apply.AEnv GF) (γp : GName) :
 tokens of the store's backend `d`, the budget's quarter of the current backend's ghost variable at
 `d` and the storage-version monitor's read token of `d` (`NewServer`'s). -/
 def srvWTStock (E : apply.AEnv GF) (N : Nat) : IProp GF :=
-  iprop(∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗
+  iprop(∃ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ∗
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) ∗ ownToks d.γB.wb N ∗
     apply.bkRT d)
 
@@ -1075,7 +1075,7 @@ theorem srvWTTaken_le (γp : GName) (n n' : Nat) (h : n' ≤ n) :
 
 /-- **A backend's stock from its fresh tokens** (`start`'s at the boot backend, the snapshot
 walk's before `Restore`). -/
-theorem srvWTStock_alloc (γp : GName) (d : BkRef) (n : Nat) (h : receiptBound GF ≤ n + 1)
+theorem srvWTStock_alloc (γp : GName) (d : mvcc.KBReal) (n : Nat) (h : receiptBound GF ≤ n + 1)
     (Ms : CoPset) :
     ⊢ ownToks (GF := GF) d.γB.wb n ={Ms}=∗ srvWTStockInv γp d := by
   iintro Hn
@@ -1124,7 +1124,7 @@ instance srvWTBudget_persistent (E : apply.AEnv GF) : Persistent (srvWTBudget (G
   unfold srvWTBudget; infer_instance
 
 /-- One write-back token of the backend `d` off a supply. -/
-theorem wbToks_split (d : BkRef) (n : Nat) :
+theorem wbToks_split (d : mvcc.KBReal) (n : Nat) :
     ownToks (GF := GF) d.γB.wb (n + 1) ⊢ backend.wbTok d.γB ∗ ownToks d.γB.wb n := by
   unfold backend.wbTok
   rw [Nat.add_comm]
@@ -1134,11 +1134,11 @@ theorem wbToks_split (d : BkRef) (n : Nat) :
 mvcc's `storeWT E.γ`, the same of the store's backend): what a component's write takes (the
 chain's `bkWT`, at the backend the tie names). -/
 def srvWT (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗ apply.bkWT d)
+  iprop(∃ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ∗ apply.bkWT d)
 
 /-- The apply thread's quarter of `E.γbe`, lent from its part of `s.be` (S7b). -/
 theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
-    srvBeOwn (GF := GF) s E ⊢ ∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗
+    srvBeOwn (GF := GF) s E ⊢ ∃ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) ∗
       (dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) -∗ srvBeOwn s E) := by
   iintro H
@@ -1158,9 +1158,9 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
 (2026-11-02, the backend-auth-split stage): at the current backend `d` (the tie's, `E.BkTie`),
 `srvBeRO d` and the pool (`backend.bkRPool`), the pool to give back. -/
 theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
-    srvBeOwn (GF := GF) s E ⊢ ∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗ srvBeRO d ∗
-      backend.bkRPool d.γB d.P d.b ∗ apply.bkRT d ∗
-      (backend.bkRPool d.γB d.P d.b -∗ apply.bkRT d -∗ srvBeOwn s E) := by
+    srvBeOwn (GF := GF) s E ⊢ ∃ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ∗ srvBeRO d ∗
+      backend.bkRPool d.γB d.P d.be ∗ apply.bkRT d ∗
+      (backend.bkRPool d.γB d.P d.be -∗ apply.bkRT d -∗ srvBeOwn s E) := by
   iintro H
   iunfold srvBeOwn at H
   icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl, Hrt⟩
@@ -1177,7 +1177,7 @@ theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
 omit package_sem in
 /-- **The server's backend tie names one backend** (strict M1, 2026-11-06): two ties agree only at
 the same backend. -/
-theorem srvBkTie_inj (d0 d : BkRef) (h : srvBkTie (GF := GF) d0 = srvBkTie d) : d0 = d := by
+theorem srvBkTie_inj (d0 d : mvcc.KBReal) (h : srvBkTie (GF := GF) d0 = srvBkTie d) : d0 = d := by
   have h1 := congrFun h d0
   unfold srvBkTie at h1
   have h2 : (emp : IProp GF) ⊢ iprop(⌜d0 = d⌝) := h1 ▸ BI.pure_intro rfl
@@ -1186,7 +1186,7 @@ theorem srvBkTie_inj (d0 d : BkRef) (h : srvBkTie (GF := GF) d0 = srvBkTie d) : 
 omit package_sem in
 /-- **The server's tie pins the backend** (2026-11-06): a backend `B` its tie `srvBkTie d` does not
 refute (`apply.tieOk`) is `d`. -/
-theorem tieOk_srv (E : apply.AEnv GF) (d B : BkRef) (hd : E.BkTie = srvBkTie d)
+theorem tieOk_srv (E : apply.AEnv GF) (d B : mvcc.KBReal) (hd : E.BkTie = srvBkTie d)
     (h : apply.tieOk E B) : B = d := by
   apply Classical.byContradiction
   intro hne
@@ -1198,7 +1198,7 @@ theorem tieOk_srv (E : apply.AEnv GF) (d B : BkRef) (hd : E.BkTie = srvBkTie d)
 
 omit package_sem in
 /-- **A write-back token of the server's current backend, at the tie's backend** (2026-11-06). -/
-theorem srvWT_at (E : apply.AEnv GF) (d : BkRef) (hd : E.BkTie = srvBkTie d) :
+theorem srvWT_at (E : apply.AEnv GF) (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
     srvWT (GF := GF) E ⊢ apply.bkWT d := by
   iintro H
   iunfold srvWT at H
@@ -1210,7 +1210,7 @@ theorem srvWT_at (E : apply.AEnv GF) (d : BkRef) (hd : E.BkTie = srvBkTie d) :
 omit package_sem in
 /-- **The reader token given back, at the server's tie** (2026-11-06): `dispatch`'s and `Apply`'s
 `apply.bkRTOf E` is the token of the tie's backend `d`. -/
-theorem bkRTOf_srv (E : apply.AEnv GF) (d : BkRef) (hd : E.BkTie = srvBkTie d) :
+theorem bkRTOf_srv (E : apply.AEnv GF) (d : mvcc.KBReal) (hd : E.BkTie = srvBkTie d) :
     apply.bkRTOf (GF := GF) E ⊢ apply.bkRT d := by
   iintro H
   iunfold apply.bkRTOf at H
@@ -1242,7 +1242,7 @@ theorem srvApplyKV_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
 /-- **A token of a backend with a stock, for a receipt** (M2's item 15, stage B): the receipt goes
 into the budget (its count up by one, from any lower bound `k` to `k + 1`), the token out of the
 stock. -/
-theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : BkRef) (k : Nat) :
+theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (k : Nat) :
     ⊢ srvWTPool (GF := GF) E γp -∗ srvWTStockInv γp d -∗ ⧗ 1 -∗ monoNatLbOwn γp k ={⊤}=∗
       backend.wbTok d.γB ∗ monoNatLbOwn γp (k + 1) := by
   have hm := srvWTStockN_mask
@@ -1275,7 +1275,7 @@ theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : BkRef) (k : Nat) 
 after any number of swaps (moved from the step's Draft). (Strict M1, 2026-11-05: until then mvcc's
 `kbWTSupplyM (some d)`, the compaction job's supply, which is now mvcc's own, in
 `mvccBackendFor`; the supply stated over the backend's tokens.) -/
-theorem wbSupply_of_stock (E : apply.AEnv GF) (γp : GName) (d : BkRef) :
+theorem wbSupply_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
     srvWTPool (GF := GF) E γp ∗ srvWTStockInv γp d ⊢ □ (⧗ 1 ={⊤}=∗ backend.wbTok d.γB) := by
   iintro ⟨#Hp, #Hs⟩
   iintro !> Hr
@@ -1286,7 +1286,7 @@ theorem wbSupply_of_stock (E : apply.AEnv GF) (γp : GName) (d : BkRef) :
 
 /-- **The current backend's stock** (M2's item 15, stage B): a taker's part of `E.γbe` at `d` agrees
 with the budget's, whose stock fact (under the budget's `▷`: a later credit) is `d`'s. -/
-theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : BkRef) (dq : DFrac) :
+theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :
     ⊢ srvWTPool (GF := GF) E γp -∗ £ 1 -∗ dghostVar E.γbe dq (bkKey d) ={⊤}=∗
       srvWTStockInv γp d ∗ dghostVar E.γbe dq (bkKey d) := by
   iintro #Hp Hlc Hg
@@ -1308,7 +1308,7 @@ theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : BkRef) (dq : DF
 /-- **One write-back token of the current backend `d` for the entry at `v + 1`** (S7b): the
 taker's part of `E.γbe` at `d` agrees with the budget's; from the lower bound at `v` to one at
 `v + 1`. -/
-theorem srvWTPool_take_at_d (E : apply.AEnv GF) (γp : GName) (d : BkRef) (dq : DFrac)
+theorem srvWTPool_take_at_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac)
     (v : w64) (hv : uint.Z v + 1 < 2 ^ 64) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp v -∗ dghostVar E.γbe dq (bkKey d) ={⊤}=∗
       backend.wbTok d.γB ∗ srvWTAt γp (v + W64 1) ∗ dghostVar E.γbe dq (bkKey d) := by
@@ -1372,7 +1372,7 @@ backend `d` (S7b): the merged snapshot's two write-backs (`KV().Commit()`'s `For
 `be.Snapshot()`'s own commit) are paid from the pool, a Go step's receipt each, as an entry's is
 (`srvWTPool_take_at`); the count of tokens taken grows past the applied index, whose lower bound
 (`srvWTAt`) stays one. -/
-theorem srvWTPool_take_extra_d (E : apply.AEnv GF) (γp : GName) (d : BkRef) (dq : DFrac) :
+theorem srvWTPool_take_extra_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ dghostVar E.γbe dq (bkKey d) ={⊤}=∗
       backend.wbTok d.γB ∗ dghostVar E.γbe dq (bkKey d) := by
   iintro #Hp Hr Hlc Hg

@@ -144,7 +144,7 @@ instance isAuthStepsX_persistent (st : GoInterface) (P : IProp GF) (f : GoFunc) 
 def backendAuthStepsX (E : AEnv GF) (p : Loc) (X : List auth.AuthState → IProp GF) (W : IProp GF) :
     IProp GF :=
   iprop(∃ opts : ApplierOptions, structFieldRef applierV3backend go!"options" p ↦□ opts ∗
-    □ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD)
+    □ ∀ B : mvcc.KBReal, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD)
 
 instance backendAuthStepsX_persistent (E : AEnv GF) (p : Loc) (X : List auth.AuthState → IProp GF)
     (W : IProp GF) : Persistent (backendAuthStepsX E p X W) := by

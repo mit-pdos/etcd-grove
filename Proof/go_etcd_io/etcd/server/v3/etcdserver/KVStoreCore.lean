@@ -259,7 +259,7 @@ theorem kvPeekG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (
       histLbG Nx γs σ.notifiedLog ∗ Cp σ.crev ∗ kvLogLb γs σ.log ∗
       (mvccState γ σ ={E \ ↑kvsN, E}=∗ True) := by
   haveI := Hp.1 kv γ
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk
   iunfold kvStoreInvG at Hk
@@ -295,7 +295,7 @@ theorem histLb_bootG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
     (kv : GoInterface) (γ : MvccName) (γs : KVSNames) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ={⊤}=∗ histLbG Nx γs [[], []] := by
   haveI := Hp.1 kv γ
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk
   iunfold kvStoreInvG at Hk
@@ -325,7 +325,7 @@ theorem au_begin (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccN
     (γs : KVSNames) (log : mvcc.Log) (c : Int) (X : IProp GF) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
       wSt γs log c -∗ (wSt γs log c -∗ X) -∗ auBegin γ (stAt log c) X := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw HX
   iunfold kvStoreInvG at Hk
@@ -373,7 +373,7 @@ theorem au_wread (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccN
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
       wSt γs log c -∗ (wSt γs log c -∗ X) -∗
         auRead γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X)) := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw HX
   iunfold kvStoreInvG at Hk
@@ -422,7 +422,7 @@ theorem au_snap (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccNa
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
       wSt γs log c -∗ (wSt γs log c -∗ X) -∗
         auSnap γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X)) := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw HX
   iunfold kvStoreInvG at Hk
@@ -471,7 +471,7 @@ theorem au_read (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (
     (kv : GoInterface) (γ : MvccName) (γs : KVSNames)
     (L₀ : mvcc.Log) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢ kvLogLb γs L₀ -∗ auRead γ (kvReadAtG Nx γs L₀) := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   haveI := Hp.1 kv γ
   iintro #Hk #HL
@@ -524,7 +524,7 @@ theorem writer_facts (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
       wSt γs log c ={⊤}=∗ wSt γs log c ∗ kvLogLb γs log ∗ Nx log ∗
         ⧖ (mvcc.logCh log) ∗ ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝ := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   haveI := Hp.1 kv γ
   iintro #Hk Hw
@@ -561,7 +561,7 @@ theorem writer_floor (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : M
     (γs : KVSNames) (log : mvcc.Log) (c : Int) (F : mvcc.Log) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
       wSt γs log c -∗ kvLogLb γs F ={⊤}=∗ wSt γs log c ∗ ⌜F <+: log⌝ := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw #HF
   iunfold kvStoreInvG at Hk
@@ -591,7 +591,7 @@ theorem au_end (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccNam
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
       wSt γs log c -∗ Nx (mvcc.commitLog log pend) -∗
         auEnd γ (stAt log c) pend (wSt γs (mvcc.commitLog log pend) c) := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw #Hnx
   iunfold kvStoreInvG at Hk
@@ -678,7 +678,7 @@ theorem au_compact (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : Mvc
       wSt γs log c -∗ crOwn γs c -∗ Cp (sint.Z rev) -∗
         auCompact γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
           wSt γs log (crevAfter c rev) ∗ crOwn γs (crevAfter c rev))) := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw Hc #Hcp
   iunfold kvStoreInvG at Hk
@@ -743,7 +743,7 @@ theorem au_restore (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : Mvc
       wSt γs log c -∗ crOwn γs c -∗ Nx log' -∗ Cp c' -∗
         auRestore γ (stAt log' c') (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wSt γs log' c' ∗
           crOwn γs c')) := by
-  haveI := fun σ => Hp.2.2.2.2.1 γ σ
+  haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw Hc #Hnx #Hcp
   iunfold kvStoreInvG at Hk

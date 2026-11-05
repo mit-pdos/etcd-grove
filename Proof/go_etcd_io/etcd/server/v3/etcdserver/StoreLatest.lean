@@ -164,21 +164,21 @@ def authApplyResB (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : L
 for the real backend `d` with its frozen hook `f'` (not `nil`) at the batch lock `Pk'`, the write
 contract at every schema auth backend on `d`'s backend and the store's admin steps there, at the
 write token `T`. -/
-def authStepsAtHook (stl : Loc) (d : mvcc.api.BkRef) (γa : auth.AuthNames) (T RD : IProp GF) : IProp GF :=
+def authStepsAtHook (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T RD : IProp GF) : IProp GF :=
   iprop(□ ∀ (W' Pk' : IProp GF) (f' : GoFunc),
-    backend.isBackend d.γB d.P W' Pk' d.b -∗ backend.plHookRO d.γB f' -∗ ⌜f' ≠ func.nil⌝ -∗
-    authWBackendAt d.b (.on γa) Pk' f' T ∗
+    backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗ ⌜f' ≠ func.nil⌝ -∗
+    authWBackendAt d.be (.on γa) Pk' f' T ∗
       apply.isAuthStepsX (auth.authIface stl) Pk' f' (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl d.b (.on γa) Pk' f' T) RD)
+        (adminW stl d.be (.on γa) Pk' f' T) RD)
 
-instance authStepsAtHook_persistent (stl : Loc) (d : mvcc.api.BkRef) (γa : auth.AuthNames) (T RD : IProp GF) :
+instance authStepsAtHook_persistent (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T RD : IProp GF) :
     Persistent (authStepsAtHook (GF := GF) stl d γa T RD) := by
   unfold authStepsAtHook; infer_instance
 
 /-- **The apply thread's auth resource before the hook is frozen** (E3n): `authApplyResB`'s with
 its hook-dependent facts for every frozen hook (`authStepsAtHook`), what the store's construction
 gives (`authStoreKit`'s post); `authApplyResB_of_pre` instantiates it at the server's hook. -/
-def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : mvcc.api.BkRef)
+def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : mvcc.KBReal)
     (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : GoFunc) (T : IProp GF)
@@ -203,7 +203,7 @@ field holds, `authApplyResB` in the environment's mode on the backend `bel` at t
 hook (its batch lock's invariant `Pk`, `E.f`), and the equation of the backend names: the
 environment's write right lends the store's half of `be` on `bel`, and (E3n) so does its rest
 resource, at the same rest value. (Strict M1, 2026-11-06: the environment's batch lock invariant
-is per backend, `E.Pk : BkRef → IProp`; the server's is one invariant for every backend of the
+is per backend, `E.Pk : mvcc.KBReal → IProp`; the server's is one invariant for every backend of the
 epoch, `⌜E.Pk = fun _ => Pk⌝`, as `srvFieldsAt`'s.) -/
 def srvAuthApplyResB (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) : IProp GF :=
   iprop(∃ (stl bel : Loc) (Pk : IProp GF), ⌜E.Pk = fun _ => Pk⌝ ∗
@@ -340,7 +340,7 @@ omit auth_sem in
 /-- **The construction's apply resource publishes its latest state** (E3u): `authPubAt_publish` at
 `authApplyResPre`, before the server's applied index's invariant is allocated. -/
 theorem authApplyResPre_publish (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
-    (d : mvcc.api.BkRef) (RD : IProp GF) :
+    (d : mvcc.KBReal) (RD : IProp GF) :
     authPublishM (GF := GF) M stl ⊢ authApplyResPre M stl st d RD ={⊤}=∗
       authApplyResPre M stl st d RD ∗ authPubAt M st := by
   cases M with
@@ -391,10 +391,10 @@ theorem authApplyResAt_of_B (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState
 /-- **The construction's auth resource at the server's frozen hook** (E3n): `authApplyResPre`
 instantiated at a real backend `d` on `bel` with its frozen hook `f` at the batch lock `Pk`. -/
 theorem authApplyResB_of_pre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
-    (d : mvcc.api.BkRef) (W Pk RD : IProp GF) (f : GoFunc) :
-    authApplyResPre (GF := GF) M stl st d RD ∗ backend.isBackend d.γB d.P W Pk d.b ∗
+    (d : mvcc.KBReal) (W Pk RD : IProp GF) (f : GoFunc) :
+    authApplyResPre (GF := GF) M stl st d RD ∗ backend.isBackend d.γB d.P W Pk d.be ∗
       backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ⊢
-      authApplyResB M stl st d.b Pk f RD ∗ authFreshInit M := by
+      authApplyResB M stl st d.be Pk f RD ∗ authFreshInit M := by
   cases M with
   | on γa =>
     unfold authApplyResPre authApplyResB authFreshInit

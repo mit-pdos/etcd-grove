@@ -89,7 +89,7 @@ writer's fragment and reader token, `txn.kvWriter`'s, and mvcc's `storeWT`.) -/
 theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (ua : GoInterface) (γp : GName) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
-      ∃ B : mvcc.api.BkRef, mvcc.api.mvccBackend E.γ 1 B (E.Pk B) ∗ E.BkTie B ∗ srvWT E ∗
+      ∃ B : mvcc.KBReal, mvcc.api.mvccBackend E.γ 1 B (E.Pk B) ∗ E.BkTie B ∗ srvWT E ∗
       (mvcc.api.mvccBackend E.γ 1 B (E.Pk B) -∗ E.BkTie B -∗ srvApplyKVCore s E γw x ua) := by
   iintro #Hp Hr Hlc Hc
   iunfold srvApplyKVCore at Hc

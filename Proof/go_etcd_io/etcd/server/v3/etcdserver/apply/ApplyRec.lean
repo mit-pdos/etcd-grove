@@ -38,7 +38,7 @@ names** (strict M1, 2026-11-06): for a backend `B` of the tie, a write-back and 
 and the caller's update; the tie given back. What `specRec`'s caller adds to the applier state
 for `uberApplier.Apply`'s `kvOwnPre` (the server: at its tie's backend `d`). -/
 def apply.bkToks (v3 : Bool) (E : AEnv GF) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(∀ B : mvcc.api.BkRef, E.BkTie B -∗ E.BkTie B ∗ apply.bkWT B ∗ apply.bkRT B ∗
+  iprop(∀ B : mvcc.KBReal, E.BkTie B -∗ E.BkTie B ∗ apply.bkWT B ∗ apply.bkRT B ∗
     (if v3 then iprop(mvcc.api.hookRun (E.Pk B) E.f Pre Q ∗ (Q ={⊤}=∗ E.Pk B ∗ Post))
      else iprop(True)))
 

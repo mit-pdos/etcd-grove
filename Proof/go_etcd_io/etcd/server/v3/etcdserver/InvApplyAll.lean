@@ -39,7 +39,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
-open mvcc.api (BkRef)
 
 section addrs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -67,10 +66,10 @@ backend `d`, the current backend's ghost variable `γbe` at `d` at half the frac
 and a quarter of `γbe` are the apply thread's, `srvBeOwn`, a quarter of `γbe` the write budget's,
 `srvWTPool`; `applySnapshot` holds all of them to swap the backend. Until then (D19i part 2) the
 other half of `s.be` was `↦□`, `NewServer`'s, so the backend was known for good, which
-`applySnapshot`'s store refutes.) (Strict M1, 2026-11-06: the backend a `BkRef`, the ghost
+`applySnapshot`'s store refutes.) (Strict M1, 2026-11-06: the backend a `mvcc.KBReal`, the ghost
 variable at its key `bkKey d`, as `srvBeOwn`.) -/
 def bemuP (s : Loc) (γbe : GName) (q : Qp) : IProp GF :=
-  iprop(∃ d : BkRef, srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.b ∗
+  iprop(∃ d : mvcc.KBReal, srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be ∗
     dghostVar γbe (DFrac.own q.half) (bkKey d) ∗ srvBeRO d)
 
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
@@ -237,7 +236,7 @@ permit `Cp`, `RD`, `γrev`, `authMode`, `FS`, `γbe`) kept. What `applySnapshot`
 takes after the swap. (Strict M1, 2026-11-06: the store is restored in place, `KV.Restore`, so its
 names `E.γ` are kept, the backend named by the tie; until then the store's names at the physical
 names `p`, `mvcc.StoreNames.withPhys`.) -/
-def apply.AEnv.onBe (E : apply.AEnv GF) (BT : BkRef → IProp GF) (Pk : BkRef → IProp GF)
+def apply.AEnv.onBe (E : apply.AEnv GF) (BT : mvcc.KBReal → IProp GF) (Pk : mvcc.KBReal → IProp GF)
     (f : GoFunc) (ciC : IProp GF → w64 → Prop) (RO : apply.RestM → IProp GF) (RW : IProp GF) :
     apply.AEnv GF :=
   { E with BkTie := BT, Pk := Pk, f := f, ciC := ciC, RO := RO, RW := RW }
@@ -246,7 +245,7 @@ def apply.AEnv.onBe (E : apply.AEnv GF) (BT : BkRef → IProp GF) (Pk : BkRef �
 `γ'` are `γ`'s at some physical names, the environment `E'` is `E` on some backend
 (`AEnv.onBe`). `applyAll` keeps its backend but `applySnapshot` moves it (S8). -/
 def beSucc (γ : ApplyNames) (E : apply.AEnv GF) (γ' : ApplyNames) (E' : apply.AEnv GF) : Prop :=
-  γ' = γ.withPh γ'.ph ∧ ∃ (BT Pk : BkRef → IProp GF) (f : GoFunc) (ciC : IProp GF → w64 → Prop)
+  γ' = γ.withPh γ'.ph ∧ ∃ (BT Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (ciC : IProp GF → w64 → Prop)
     (RO : apply.RestM → IProp GF) (RW : IProp GF), E' = E.onBe BT Pk f ciC RO RW
 
 theorem beSucc_refl (γ : ApplyNames) (E : apply.AEnv GF) : beSucc γ E γ E :=

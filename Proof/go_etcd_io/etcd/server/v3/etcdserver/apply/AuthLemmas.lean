@@ -150,8 +150,8 @@ theorem apply.auth_pass_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain)
   · iapply apply.chainLeaseClass_auth_pass $$ Hlc
 
 /-- `checkTxnPermission`'s triple, as a hypothesis (the Löb induction's). -/
-def apply.txnPermT (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc)
-    (BT : mvcc.api.BkRef → IProp GF)
+def apply.txnPermT (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+    (BT : mvcc.KBReal → IProp GF)
     (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac)
     (U : apply.LeaseView) : IProp GF :=
   iprop(□ ∀ (rt : Loc) (t : TxnModel) (Φ : val → IProp GF),
@@ -166,8 +166,8 @@ def apply.txnPermT (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api
     WP (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt)) {{ Φ }})
 
-instance apply.txnPermT_persistent (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api.BkRef → IProp GF)
-    (f : GoFunc) (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+instance apply.txnPermT_persistent (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF)
+    (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (dq : DFrac) (U : apply.LeaseView) : Persistent (apply.txnPermT st le γ Pk f BT RD on RW ai info dq U) := by
   unfold apply.txnPermT; infer_instance
 
@@ -175,8 +175,8 @@ instance apply.txnPermT_persistent (st le : GoInterface) (γ : mvcc.api.MvccName
 nested transactions). -/
 theorem apply.checkTxnReqs_of
     (hPut : apply.checkPutAuth.spec (GF := GF) (hG := hG)) :
-  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc)
-    (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF)
+  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+    (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF)
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
     (ps : List Loc) (ops : List TxnOp) (U : apply.LeaseView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗

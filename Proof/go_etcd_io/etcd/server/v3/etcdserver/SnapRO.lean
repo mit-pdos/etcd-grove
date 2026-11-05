@@ -29,7 +29,7 @@ Not here (J1a's findings, `notes/decisions.md`, "D22 J1a"): the meta reads of ev
 J8a-4).
 
 The stores' apply contracts (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`),
-(Strict M1, 2026-11-06.) Over mvcc's API: a backend is a `BkRef` (`d.γB`, `d.P`, `d.b`), the
+(Strict M1, 2026-11-06.) Over mvcc's API: a backend is a `mvcc.KBReal` (`d.γB`, `d.P`, `d.be`), the
 stores' contracts at the backend tie `srvBkTie d` and the batch lock's invariant `Pk` of every
 backend of the epoch (`fun _ => Pk`) in place of the store's names `γ` with `γ.kb = some d`; the
 backend's compaction mode and the store's watch flag gone (the API's backend always compacts, its
@@ -66,7 +66,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
-open mvcc.api (BkRef isMvcc mvccLeases)
+open mvcc.api (isMvcc mvccLeases)
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -86,9 +86,9 @@ stays true when `Recover` moves the store to another backend (the old user's hal
 one names the new backend; until S7c the contract was for `NewAlarmStore`'s backend only, false
 once `Recover` runs). -/
 def alarmApplyOk (a : Loc) : IProp GF :=
-  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.b) -∗
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.be) -∗
     apply.isAlarmStore a (fun _ => Pk) f (srvBkTie d) RW)
 
 instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
@@ -99,18 +99,18 @@ instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF)
 the store's verdicts in the mode `M`; the real store in the mode `on γa` meets it (`authApplyOkM_on`,
 `AuthApplyOn.lean`; its admin clauses vacuous there, `apply.adminAdmitted`). -/
 def authApplyOkM (M : auth.AuthMode) (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.b) -∗
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
     apply.isAuthStore (auth.authIface stl) (fun _ => Pk) f (srvBkTie d) RD M RW)
 
 /-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
 `auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
 `alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
 def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
-  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
-    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.b) -∗
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
     apply.isAuthStore (auth.authIface stl) (fun _ => Pk) f (srvBkTie d) RD .off RW)
 
 theorem authApplyOk_eq (stl : Loc) (RD : IProp GF) :
@@ -130,9 +130,9 @@ whole client half `backend.rbOwn`), given back with the record put (leases T3, L
 until then the write right lent the half, `srvRestRW`, and the put's effect was not stated; the
 real backend's `LockInsideApply` does not need it, its `UnsafePut` does). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
-  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    rwLens RW (lease.lessorBeOn lp d.b) -∗
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+    rwLens RW (lease.lessorBeOn lp d.be) -∗
     lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (apply.bkRT d)
       (backend.rbPart d.γB (· = go!"lease")))
 
@@ -180,14 +180,14 @@ any buckets agreeing with the model's off `lease`. (2026-11-02, the backend-auth
 part of `Lease`, split off `srvRestOwn`'s part of the non-cluster buckets; until then the whole
 client half, given back at any buckets.) -/
 theorem srvRestOwnH_lens_revoke [go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
-    (d : BkRef) (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
-    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.b) rs -∗
+    (d : mvcc.KBReal) (hlp : mvcc.leaseParams d.P) (al ast lp cl : Loc) :
+    ⊢ □ (∀ rs : apply.RestM, srvRestOwnH (GF := GF) d.γB cl (srvObjsOn al ast lp cl d.be) rs -∗
       backend.rbPart d.γB (· = mvcc.leaseName) rs.bk ∗ ⌜mvcc.leaseParams d.P⌝ ∗
-        lease.lessorBeOn lp d.b ∗
+        lease.lessorBeOn lp d.be ∗
         (∀ bk, ⌜∀ n, n ≠ mvcc.leaseName → bk.lookup n = rs.bk.lookup n⌝ -∗
           ⌜(rs.bk.lookup mvcc.leaseName).isSome → (bk.lookup mvcc.leaseName).isSome⌝ -∗
-          backend.rbPart d.γB (· = mvcc.leaseName) bk ∗ lease.lessorBeOn lp d.b -∗
-          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.b) { rs with bk := bk })) := by
+          backend.rbPart d.γB (· = mvcc.leaseName) bk ∗ lease.lessorBeOn lp d.be -∗
+          srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) { rs with bk := bk })) := by
   have hlc := lease_not_clusterBkts
   have hset : ∀ n, (¬ membership.clusterBkts n) ↔
       (n = mvcc.leaseName ∨ (¬ membership.clusterBkts n ∧ n ≠ mvcc.leaseName)) := by
@@ -247,12 +247,12 @@ right hold the rest buckets present, and the members' client URLs are read-only.
 rows claimed a return where Go panics or is fatal; they still do above bbolt's `MaxValueSize`, as
 `isCluster` says.) -/
 def clusterApplyOk (c : Loc) : IProp GF :=
-  iprop(□ ∀ (d : BkRef) (W Pk : IProp GF) (f : GoFunc)
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
       (RO : apply.RestM → IProp GF) (RW : IProp GF),
-    backend.isBackend d.γB d.P W Pk d.b -∗ backend.plHookRO d.γB f -∗
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
-    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.b)) -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.b) -∗
+    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
     apply.isCluster c (fun _ => Pk) f (srvBkTie d) RO RW)
 
 instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
@@ -274,19 +274,19 @@ back. (2026-11-02, the backend-auth-split stage: until then the reader's token a
 `mvcc.bkRTx` and the writer's half `rbOwn`, with `authRoles` empty too; `NewAuthStore.spec`'s last
 two bullets say why.) -/
 def authRecoverOk (ast : Loc) : IProp GF :=
-  iprop(□ (∀ (oldbe abl lg : Loc) (dn : BkRef) (W Pk : IProp GF) (qo : Qp)
+  iprop(□ (∀ (oldbe abl lg : Loc) (dn : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
           (r : GMap GoString backend.BktData),
         {{ authBeOn ast oldbe ∗ ⌜lg ≠ null⌝ ∗
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
               (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-                #dn.b : GoInterface) ∗
+                #dn.be : GoInterface) ∗
             structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
-            backend.isBackend dn.γB dn.P W Pk dn.b ∗ backend.bOpen dn.γB qo ∗
-            backend.bkRPool dn.γB dn.P dn.b ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
+            backend.isBackend dn.γB dn.P W Pk dn.be ∗ backend.bOpen dn.γB qo ∗
+            backend.bkRPool dn.γB dn.P dn.be ∗ threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r ∗
             ⌜(r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅⌝ }}
           (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
             go!"Recover")) (Val #(authBkIface abl)))
-        {{ RET #(); authBeOn ast dn.b ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.b ∗
+        {{ RET #(); authBeOn ast dn.be ∗ backend.bOpen dn.γB qo ∗ backend.bkRPool dn.γB dn.P dn.be ∗
             threadTok ∗ backend.rbOwnIn dn.γB auth.authBkts r }}))
 
 instance authRecoverOk_persistent (ast : Loc) : Persistent (authRecoverOk (GF := GF) ast) := by
@@ -382,7 +382,7 @@ counter `γt`. -/
 def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) : IProp GF :=
   iprop(□ ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk lgh stp : Loc) (γd : GName)
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
-      (d : BkRef),
+      (d : mvcc.KBReal),
     ⌜E.BkTie = srvBkTie d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
@@ -395,7 +395,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table, which the alarm
       -- store's `Recover` takes (`bootOk`'s)
       d.P.has mvcc.alarmBI ∧
-      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.b) ∧
+      E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be) ∧
       receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
@@ -450,12 +450,12 @@ theorem authMode_off_of (E : apply.AEnv GF) (h : E.authOn = false) : E.authMode 
 `E'` a snapshot install moves to (`beSucc`: the store's handle and names, the auth store's reader
 resource and mode kept), from the new backend's facts `srvSnapApplied` gives (`E'` on `d'`, at the
 boot parameters, the rest buckets' resource at it) and the stores' addresses, which name the
-bundle's. (Strict M1, 2026-11-06: the backends `BkRef`s, named by the environments' ties.) -/
+bundle's. (Strict M1, 2026-11-06: the backends `mvcc.KBReal`s, named by the environments' ties.) -/
 theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc) (γr : ReadNames)
-    (γt : GName) (d d' : BkRef) (al ast lp cl : Loc)
+    (γt : GName) (d d' : mvcc.KBReal) (al ast lp cl : Loc)
     (hb : beSucc γ E γ' E') (hkb : E.BkTie = srvBkTie d) (hkb' : E'.BkTie = srvBkTie d')
     (hP : d'.P = d.P)
-    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.b)) :
+    (hRO : E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) :
     srvSnapRO s ci E γr γt ∗ srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ⊢
     srvSnapRO s ci E' γr γt := by
@@ -503,9 +503,9 @@ data directory (`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename tar
 install). (Until strict M1, 2026-11-06, also the KV's closer, `srvKVCloserW`, for `store.Restore`:
 over the API, `Restore` takes mvcc's open token, the apply thread's `apply.cmpOwn`.) -/
 def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (d : BkRef) (al : Loc) (dd : GoString),
+  iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.BkTie = srvBkTie d⌝ ∗
-    backend.isStopChans d.γB d.b ∗ backend.bOpen d.γB (1 : Qp).half ∗
+    backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
     srvAlarmStoreAddr s ↦□ al ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
 

@@ -430,9 +430,9 @@ theorem applierAdmin_baseX
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (opts : ApplierOptions)
     (a : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      baseShape opts a ∗ backendOptsOk E opts ∗ (□ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
+      baseShape opts a ∗ backendOptsOk E opts ∗ (□ ∀ B : mvcc.KBReal, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
       applierAdmin E (baseChain E.authOn) a W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) := by
-  apply applierAdmin_baseG E W _ iprop(□ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) opts a
+  apply applierAdmin_baseG E W _ iprop(□ ∀ B : mvcc.KBReal, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) opts a
   intro pb
   iintro ⟨#Hpkg, #Hbk, #Hpb, #Hst⟩
   ihave #Hbs : backendAuthStepsX E pb X W $$ []
@@ -471,10 +471,10 @@ theorem applierAdmin_uberX
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc)
     (opts : ApplierOptions) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      uberIs E p opts ∗ (□ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
+      uberIs E p opts ∗ (□ ∀ B : mvcc.KBReal, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
       ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         applierAdmin E (baseChain E.authOn) base W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
-  applierAdmin_uberG E W _ (fun st => iprop(□ ∀ B : mvcc.api.BkRef, isAuthStepsX st (E.Pk B) E.f E.authMode X W E.RD)) p opts
+  applierAdmin_uberG E W _ (fun st => iprop(□ ∀ B : mvcc.KBReal, isAuthStepsX st (E.Pk B) E.f E.authMode X W E.RD)) p opts
     (fun a => applierAdmin_baseX hUA hRA hUGR hRGP hAE hAu E X W opts a)
 
 /-- **The alarms' wrappers' admin triples** (the auth plan's E2o): the base applier's, through

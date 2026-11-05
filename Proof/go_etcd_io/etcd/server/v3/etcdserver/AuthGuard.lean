@@ -201,8 +201,8 @@ instance srvAdminNilOk_persistent (s : Loc) (E : apply.AEnv GF) :
 real store's spec covers a `nil` auth info, `apply.isAuthStore` states it): `adminNilOk` and
 `srvAdminNilOk` are derivable, and the guarded entry points' specs can drop them (a mechanical
 follow-up). -/
-theorem adminNilOk_of_isAuthStore (st : GoInterface) (Pk : mvcc.api.BkRef → IProp GF)
-    (f : GoFunc) (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (M : auth.AuthMode)
+theorem adminNilOk_of_isAuthStore (st : GoInterface) (Pk : mvcc.KBReal → IProp GF)
+    (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (M : auth.AuthMode)
     (RW : IProp GF) :
     apply.isAuthStore st Pk f BT RD M RW ⊢ adminNilOk st RD M := by
   iintro H

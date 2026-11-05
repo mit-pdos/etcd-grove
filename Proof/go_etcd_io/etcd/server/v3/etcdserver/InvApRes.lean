@@ -500,11 +500,11 @@ lent** (2026-11-02, the backend-auth-split stage: for `applyConfChange`, which t
 thread's own of the tie's backend `d`, in `srvBeOwn`; until then mvcc's `storeRT`, in the sole
 writer's `writerOwn`.) -/
 theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
       ⌜E.BkTie = srvBkTie d⌝ ∗
       srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
-      backend.bkRPool d.γB d.P d.b ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.b -∗
+      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.be -∗
         srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
@@ -533,7 +533,7 @@ theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : a
 /-- **The uber-applier and the apply thread's reader token, lent** (for a normal entry's `Apply`,
 which takes the token in `kvOwnPre` and gives it back as `apply.bkRTOf E`, `bkRTOf_srv`). -/
 theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
       ⌜E.BkTie = srvBkTie d⌝ ∗
       srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
       (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ srvApplyKV s E γw x) := by

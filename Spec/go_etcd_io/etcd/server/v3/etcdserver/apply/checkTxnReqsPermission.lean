@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`checkTxnReqsPermission(as, ai, lessor, reqs)`**: each operation's check (a range's `IsRangePermitted`, a put's `checkPutAuth`, a delete's `IsRangePermitted` with `PrevKv` and `IsDeleteRangePermitted`, a nested transaction's `checkTxnPermission`): the first error, or `nil`; the `AuthInfo` kept, nothing written. With the lease owner's view (`U = some (L, I)`: `lease.lessorUser`, lent and given back), a `nil` answer also gives the operations' lease class at `I` (`opsLeaseClass`); without (`none`, the server's read path), every operation is a get. -/
 abbrev apply.checkTxnReqsPermission.spec : Prop :=
-  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc) (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
+  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice) (ps : List Loc) (ops : List TxnOp)
     (U : apply.LeaseView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st Pk f BT RD on RW ∗ apply.isApplyLessorAny le γ Pk f BT RW ∗ ai ↦{dq} info ∗ RD ∗

@@ -806,11 +806,11 @@ theorem srvApplyKVOn_small [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
 lent, with auth on** (`srvApplyKV_ua_rt_pool`'s, for `applyConfChange`). -/
 theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) :
-    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
       ⌜E.BkTie = srvBkTie d⌝ ∗
       srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
-      backend.bkRPool d.γB d.P d.b ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.b -∗
+      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.be -∗
         srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
@@ -842,7 +842,7 @@ theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x :
 (`srvApplyKV_ua_rt`'s). -/
 theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) :
-    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal),
       ⌜E.BkTie = srvBkTie d⌝ ∗
       srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
       (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ srvApplyKVOn s E γw x st) := by

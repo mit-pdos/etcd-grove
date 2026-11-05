@@ -28,7 +28,7 @@ until then an axiom, its statement the trust boundary). `s.applyConfChange(cc, e
 the change `cc` (`ValidateConfigurationChange`, reading the member backend: its read contract over
 the tracked buckets) and applies it to the cluster (`s.cluster`, whose backend is the server's:
 the batch lock `E.Pk d` with the post-lock hook `E.f` (strict M1, 2026-11-06: the backend `d` a
-`BkRef`, named by the tie `E.BkTie`; its write-back and reader tokens `bkWT d`/`bkRT d` in place of
+`mvcc.KBReal`, named by the tie `E.BkTie`; its write-back and reader tokens `bkWT d`/`bkRT d` in place of
 mvcc's `storeWT`/`storeRT`; the hook's triple `hookRun`), `mvcc.hookOk` from the uber applier), to raft
 (`s.r.ApplyConfChange`: raft's static mode's clause of `srvRaftNode`, or the dynamic contract
 `srvRaftNodeDyn`), to `ep.confState` and the backend hooks' conf state (`s.beHooks`,
@@ -69,12 +69,12 @@ backend's read and writes take; 2026-11-02, the backend-auth-split stage). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
-    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.api.BkRef) (al st lp : Loc)
+    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc)
     (dv : Option Loc) (ds : List LogEntry) (v : ConfigView) (k : Nat)
     (m' : Membership) (e : LogEntry)
     (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
     (cid : w64),
-  ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.b) →
+  ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
   E.BkTie = srvBkTie d → d.γB = γB →
   -- (2026-10-30, the repair: raft's one mode, a conf entry's batch hands the view over; until
   -- then, without a view, a static cluster)
@@ -96,7 +96,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
       srvTransportAddr s ↦□ srvTrIface tl ∗
       srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ apply.bkRT d ∗
-      ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.b ∗ threadTok ∗ srvBeRO d ∗
+      ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗ srvBeRO d ∗
       (if v3 then iprop(apply.bkWT d ∗
           mvcc.api.hookRun (E.Pk d) E.f Pre Q ∗
           (Q ={⊤}=∗ E.Pk d ∗ Post) ∗
@@ -113,7 +113,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
         (epCsVoters γs csl ∨ ⌜membership.ccValidOn rs.bk m = false ∧ csl = cs⌝)) ∗
       E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) ∗
       dvCCPost γs dv k m' ∗ ccMembRes γs cl tl lid (ccPeersAfter v3 m rs.bk prs) ∗
-      apply.bkRT d ∗ backend.bkRPool d.γB d.P d.b ∗ threadTok }}
+      apply.bkRT d ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok }}
 
 end spec
 

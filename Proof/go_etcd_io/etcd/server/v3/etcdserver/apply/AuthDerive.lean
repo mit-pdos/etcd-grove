@@ -37,7 +37,6 @@ namespace EtcdGrove
 namespace apply
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.api.v3
-open mvcc.api (BkRef)
 open srvApi (csContractA)
 
 section defs
@@ -51,22 +50,22 @@ reads `u.Roles` of an axiomatized `authpb.User`) and the admin requests, each a 
 (`AuthEnable`, `AuthDisable`, `Authenticate`, the user and role requests: their write side is not
 translated), with the write right `RW` of the auth buckets (D22, 2026-10-23), admitted in the mode
 `M` only (`adminAdmitted`, the auth plan's E2i: in the mode `on` vacuous, `isAuthStoreAdmin_on`). -/
-def isAuthStoreAdmin (st : GoInterface) (Pk : BkRef → IProp GF) (f : GoFunc) (BT : BkRef → IProp GF)
+def isAuthStoreAdmin (st : GoInterface) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RW : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (u r : GoString),
       {{ ⌜adminAdmitted M⌝ }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
       {{ (b : Bool), RET #b; True }}) ∗
-    □ (∀ (B : BkRef) (Pre Q Post : IProp GF),
+    □ (∀ (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ ⌜adminAdmitted M⌝ ∗ ⌜M.isOn = true⌝ ∗ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗
           bkRT B ∗ BT B ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ applyErrIs err ∗ RW }}) ∗
-    □ (∀ (B : BkRef) (Pre Q Post : IProp GF),
+    □ (∀ (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ ⌜adminAdmitted M⌝ ∗ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
       {{ RET #(); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW }}) ∗
-    □ (∀ (ctx : GoInterface) (name pw : GoString) (B : BkRef) (Pre Q Post : IProp GF),
+    □ (∀ (ctx : GoInterface) (name pw : GoString) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ ⌜adminAdmitted M⌝ ∗ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}
         (App (App (App (Val #(methods ai.ty go!"Authenticate" ai.v)) (Val #ctx)) (Val #name))
           (Val #pw))
@@ -86,8 +85,8 @@ def isAuthStoreAdmin (st : GoInterface) (Pk : BkRef → IProp GF) (f : GoFunc) (
     authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse Pk f BT RW M ∗
     authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse Pk f BT RW M)
 
-instance isAuthStoreAdmin_persistent (st : GoInterface) (Pk : BkRef → IProp GF) (f : GoFunc)
-    (BT : BkRef → IProp GF) (RW : IProp GF) (M : auth.AuthMode) :
+instance isAuthStoreAdmin_persistent (st : GoInterface) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+    (BT : mvcc.KBReal → IProp GF) (RW : IProp GF) (M : auth.AuthMode) :
     Persistent (isAuthStoreAdmin st Pk f BT RW M) := by
   unfold isAuthStoreAdmin authReqContract authReqContractN; infer_instance
 
@@ -311,7 +310,7 @@ theorem isAuthStore_of_authInv
     (hAdmin : auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG))
     (hEn : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (Pk : BkRef → IProp GF) (f : GoFunc) (BT : BkRef → IProp GF)
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RW : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ∗
       isAuthStoreAdmin (auth.authIface st) Pk f BT RW M ⊢
@@ -417,7 +416,7 @@ theorem isAuthStore_of_authInv
 
 /-- **`isAuthStoreAdmin` in the mode `on`** (the auth plan's E2i): vacuous (`adminAdmitted`), so
 of any store `st`, its interface's methods unconstrained. -/
-theorem isAuthStoreAdmin_on (ai : GoInterfaceOk) (Pk : BkRef → IProp GF) (f : GoFunc) (BT : BkRef → IProp GF)
+theorem isAuthStoreAdmin_on (ai : GoInterfaceOk) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RW : IProp GF) (γa : auth.AuthNames) :
     ⊢ isAuthStoreAdmin (GF := GF) (GoInterface.ok ai) Pk f BT RW (.on γa) := by
   have h := adminAdmitted_on γa

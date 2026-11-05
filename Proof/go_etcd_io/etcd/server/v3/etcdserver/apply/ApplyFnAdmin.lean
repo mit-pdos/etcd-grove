@@ -104,7 +104,7 @@ theorem apply.uberAuthSteps_of_stepsX
     (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.uberIs E p opts ∗
-        (□ ∀ B : mvcc.api.BkRef, apply.isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
+        (□ ∀ B : mvcc.KBReal, apply.isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
       apply.uberAuthSteps (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) E W
         (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) := by
   iintro ⟨#Hpkg, #Hu, #Hst⟩

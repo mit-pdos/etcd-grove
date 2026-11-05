@@ -73,7 +73,7 @@ namespace EtcdGrove
 namespace apply
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
-open mvcc.api (BkRef MvccName MvccState MvccReachable mvccLeases isMvcc mvccBackend hookIs
+open mvcc.api (MvccName MvccState MvccReachable mvccLeases isMvcc mvccBackend hookIs
   mvccDeleter mvccOpen compactChanOk)
 open srvApi (KVSNames wSt crOwn kvLogLb csContractA stAt auBegin auRead auEnd auCompact)
 
@@ -400,7 +400,7 @@ structure AEnv (GF : BundledGFunctors) where
   γ : MvccName
   γs : KVSNames
   Nx : mvcc.Log → IProp GF
-  Pk : BkRef → IProp GF
+  Pk : mvcc.KBReal → IProp GF
   f : GoFunc
   RD : IProp GF
   γrev : GName
@@ -430,7 +430,7 @@ structure AEnv (GF : BundledGFunctors) where
   /-- the compaction permit of a revision (the server's `crevOk`) -/
   Cp : Int → IProp GF
   /-- the backend tie (the server's: `B` is its current backend) -/
-  BkTie : BkRef → IProp GF
+  BkTie : mvcc.KBReal → IProp GF
   /-- the server's compaction mode (whether its compactor runs), which the apply package does not
   use (as `γrev`) -/
   cmp : Bool := false
@@ -475,7 +475,7 @@ instance envAus_persistent (E : AEnv GF) : Persistent (envAus E) := by
 backend `B` at its batch lock's invariant `E.Pk B`, the whole share, its hook `E.f` frozen, the
 server's tie. -/
 def kvBk (E : AEnv GF) : IProp GF :=
-  iprop(∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B)
+  iprop(∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B)
 
 /-- **The apply thread's KV resources** at the committed log `log` (strict M1, 2026-11-05: the
 draft's `kvOwnA`): its half of the store's state (`wSt`), the backend's share and hook (`kvBk`),
@@ -1013,11 +1013,11 @@ theorem certPre_backend_applied (E : AEnv GF) (rq : IRRModel) (log log' : mvcc.L
 tie at `B` is not inconsistent. For the server's tie (`srvBkTie d`, `B = d`) this is `B = d`
 (`InvApplier.tieOk_srv`). A pure fact, so a method that hands the tie on (into `kvOwn`) can keep it
 beside the reader token it gives back (`bkRTOf`). -/
-def tieOk (E : AEnv GF) (B : BkRef) : Prop := ¬ (E.BkTie B ⊢ iprop(False))
+def tieOk (E : AEnv GF) (B : mvcc.KBReal) : Prop := ¬ (E.BkTie B ⊢ iprop(False))
 
 open Iris.ProofMode in
 /-- The tie at `B` gives `tieOk E B` (kept). -/
-theorem tieOk_of (E : AEnv GF) (B : BkRef) : E.BkTie B ⊢ E.BkTie B ∗ ⌜tieOk E B⌝ := by
+theorem tieOk_of (E : AEnv GF) (B : mvcc.KBReal) : E.BkTie B ⊢ E.BkTie B ∗ ⌜tieOk E B⌝ := by
   by_cases h : (E.BkTie B ⊢ iprop(False))
   · iintro H
     ihave Hf := h $$ H
@@ -1030,11 +1030,11 @@ theorem tieOk_of (E : AEnv GF) (B : BkRef) : E.BkTie B ⊢ E.BkTie B ∗ ⌜tieO
 `∃ B, bkRT B`, which lost the backend, so the apply thread could not lend it to the next entry):
 the reader token of a backend `B` the tie does not refute (`tieOk`). The writing methods' and
 `dispatch`'s/`Apply`'s postconditions give it back. -/
-def bkRTOf (E : AEnv GF) : IProp GF := iprop(∃ B : BkRef, ⌜tieOk E B⌝ ∗ bkRT B)
+def bkRTOf (E : AEnv GF) : IProp GF := iprop(∃ B : mvcc.KBReal, ⌜tieOk E B⌝ ∗ bkRT B)
 
 open Iris.ProofMode in
 /-- The reader token of the tie's backend, given back. -/
-theorem bkRTOf_intro (E : AEnv GF) (B : BkRef) :
+theorem bkRTOf_intro (E : AEnv GF) (B : mvcc.KBReal) :
     E.BkTie B ∗ bkRT B ⊢ E.BkTie B ∗ bkRTOf E := by
   iintro ⟨Ht, Hrt⟩
   icases tieOk_of E B $$ Ht with ⟨Ht, %Hok⟩
@@ -1052,7 +1052,7 @@ def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.ser
     (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
     chainRes c a info ∗
-    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       csContractA (E.Pk B) E.f Pre Q Post)
 
 /-- The common postcondition of a writing method that leaves the log as it is (the chain's
@@ -1071,7 +1071,7 @@ def mPreW (E : AEnv GF) (c : Chain) (a : GoInterface)
     IProp GF :=
   iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
     chainRes c a info ∗
-    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       csContractA (E.Pk B) E.f Pre Q Post)
 
 /-- Its postcondition: `mPost`'s, and the reader token back. -/
@@ -1086,7 +1086,7 @@ def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (Pre Q Post : IProp GF) : IProp GF :=
   iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
     chainRes c a info ∗
-    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 
 /-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write), the reader token
@@ -1101,7 +1101,7 @@ def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 batch lock of the backend `kvBk` holds, and the backend's tokens for the components' writes). -/
 def kvOwnPre (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
-    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log

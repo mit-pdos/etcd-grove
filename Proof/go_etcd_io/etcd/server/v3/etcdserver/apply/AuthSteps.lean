@@ -198,7 +198,7 @@ read-only, whose auth store has `isAuthSteps` with the environment's lock, hook 
 M1, 2026-11-05: at every backend's lock, `E.Pk B`). -/
 def backendAuthSteps (E : AEnv GF) (p : Loc) (W : IProp GF) : IProp GF :=
   iprop(∃ opts : ApplierOptions, structFieldRef applierV3backend go!"options" p ↦□ opts ∗
-    □ ∀ B : mvcc.api.BkRef, isAuthSteps opts.AuthStore' (E.Pk B) E.f E.authMode W)
+    □ ∀ B : mvcc.KBReal, isAuthSteps opts.AuthStore' (E.Pk B) E.f E.authMode W)
 
 instance backendAuthSteps_persistent (E : AEnv GF) (p : Loc) (W : IProp GF) :
     Persistent (backendAuthSteps E p W) := by
@@ -218,7 +218,7 @@ half (for `newHeader`), the chain's resources, the contract at the backend `B`'s
 of the thread's KV resources to rebuild `kvOwn` with the half. -/
 theorem mPre_split (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPre E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.api.BkRef), srvApi.wSt E.γs log cr ∗
+    mPre E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wSt E.γs log cr ∗
       chainRes c a info ∗ srvApi.csContractA (E.Pk B) E.f Pre Q Post ∗
       (srvApi.wSt E.γs log cr -∗ kvOwn E log) := by
   iintro H
