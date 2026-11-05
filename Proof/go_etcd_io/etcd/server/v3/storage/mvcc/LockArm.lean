@@ -66,35 +66,43 @@ hook lent, and the caller's update from `Pre` to `Post` with `P` passing through
 running nothing: `lockNilSpec`). (`KV.Compact.contract`, 2026-11-06: the writer's fragment is no
 longer lent, the hook's facts `hookOk` in place of the writer's `hookIs`, and the unset arm's update
 sees `P`: an API compactor holds a share of the backend, not the writer's fragment, and its hook
-contract's nil arm, `hookRun`, updates `P ∗ Pre`.) -/
-def lockCtxM (γ : StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF) :
-    IProp GF :=
+contract's nil arm, `hookRun`, updates `P ∗ Pre`.) (§4.8, a store without a hook, 2026-11-06) The
+unset arm lends the share `dq` of the hook at `nil` (`kbHookNilAt`): the client's half (the default,
+`restore()`'s resumed compaction), or the hook frozen at `nil` (`DFrac.discard`: the API's compactor
+on a store the server never sets a hook on). -/
+def lockCtxM (γ : StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF)
+    (dq : DFrac := DFrac.own (1 : Qp).half) : IProp GF :=
   match hk with
   | some f => iprop(hookOk γ P f ∗ csContract P f Pre Q Post)
-  | none => iprop(hookP γ P ∗ kbHookNil γ.kb ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post))
+  | none => iprop(hookP γ P ∗ kbHookNilAt γ.kb dq ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post))
 
 /-- What the call gives back of the context (with `Post` or `Pre` beside it). -/
-def lockBackM (γ : StoreNames) (P : IProp GF) (hk : Option val) : IProp GF :=
+def lockBackM (γ : StoreNames) (P : IProp GF) (hk : Option val)
+    (dq : DFrac := DFrac.own (1 : Qp).half) : IProp GF :=
   match hk with
   | some f => hookOk γ P f
-  | none => iprop(hookP γ P ∗ kbHookNil γ.kb)
+  | none => iprop(hookP γ P ∗ kbHookNilAt γ.kb dq)
 
-theorem lockCtxM_some (γ : StoreNames) (P : IProp GF) (f : val) (Pre Q Post : IProp GF) :
-    lockCtxM γ P (some f) Pre Q Post = iprop(hookOk γ P f ∗ csContract P f Pre Q Post) := rfl
+theorem lockCtxM_some (γ : StoreNames) (P : IProp GF) (f : val) (Pre Q Post : IProp GF)
+    (dq : DFrac) :
+    lockCtxM γ P (some f) Pre Q Post dq = iprop(hookOk γ P f ∗ csContract P f Pre Q Post) := rfl
 
-theorem lockBackM_some (γ : StoreNames) (P : IProp GF) (f : val) :
-    lockBackM γ P (some f) = hookOk γ P f := rfl
+theorem lockBackM_some (γ : StoreNames) (P : IProp GF) (f : val)
+    (dq : DFrac) :
+    lockBackM γ P (some f) dq = hookOk γ P f := rfl
 
-theorem lockCtxM_none (γ : StoreNames) (P : IProp GF) (Pre Q Post : IProp GF) :
-    lockCtxM γ P none Pre Q Post =
-      iprop(hookP γ P ∗ kbHookNil γ.kb ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post)) := rfl
+theorem lockCtxM_none (γ : StoreNames) (P : IProp GF) (Pre Q Post : IProp GF)
+    (dq : DFrac) :
+    lockCtxM γ P none Pre Q Post dq =
+      iprop(hookP γ P ∗ kbHookNilAt γ.kb dq ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post)) := rfl
 
-theorem lockBackM_none (γ : StoreNames) (P : IProp GF) :
-    lockBackM γ P none = iprop(hookP γ P ∗ kbHookNil γ.kb) := rfl
+theorem lockBackM_none (γ : StoreNames) (P : IProp GF) (dq : DFrac) :
+    lockBackM γ P none dq = iprop(hookP γ P ∗ kbHookNilAt γ.kb dq) := rfl
 
 /-- The caller's `Pre`, out of the context (the error paths give it back). -/
-theorem lockCtxM_pre (γ : StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF) :
-    lockCtxM (GF := GF) γ P hk Pre Q Post ⊢ lockBackM γ P hk ∗ Pre := by
+theorem lockCtxM_pre (γ : StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF)
+    (dq : DFrac) :
+    lockCtxM (GF := GF) γ P hk Pre Q Post dq ⊢ lockBackM γ P hk dq ∗ Pre := by
   cases hk with
   | some f =>
     unfold lockCtxM lockBackM csContract

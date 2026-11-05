@@ -760,7 +760,7 @@ theorem mvcc.isKeyBackendG_of_backend [schema_sem :
     (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk Del W W iprop(True) Cmp Pk
     (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) (fun r => iprop(backend.rbPart γ (fun x => x =
     mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) iprop(True) iprop(True) (mvcc.bkMW γ)
-    (backend.plHook γ func.nil)
+    fun dq => backend.plHookAt γ dq func.nil
 
 theorem mvcc.rtHeld_returnQ [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ :
     backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv : backend.RView) : backend.rtHeldF γ P b
@@ -808,15 +808,15 @@ theorem mvcc.isKeyBackendG_of_backendC [schema_sem :
     (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk (mvcc.bkDel γ) W W
     iprop(True) Cmp Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) (fun r => iprop(backend.rbPart γ (fun x
     => x = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) (backend.srSlot b)
-    (backend.srHeld b) (mvcc.bkMW γ) (backend.plHook γ func.nil)
+    (backend.srHeld b) (mvcc.bkMW γ) fun dq => backend.plHookAt γ dq func.nil
 
 theorem mvcc.bt_lockInNil [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hLI :
     backend.batchTxBuffered.LockInsideApply.spec) {P : backend.BParams} (hP : mvcc.bridgeParams P)
-    (γ : backend.BNames) (W Pk : IProp GF) (b t : Loc) : isPkgInit
+    (γ : backend.BNames) (W Pk : IProp GF) (b t : Loc) (dq : DFrac) : isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
     (backend.bF go!"batchTx" b) t DFrac.discard ⊢ mvcc.lockNilSpec { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType, v := intoVal t }
-    (mvcc.bkRTx γ P b) (backend.wbTok γ) W Pk (backend.plHook γ func.nil) (mvcc.bkLocked γ P b)
+    (mvcc.bkRTx γ P b) (backend.wbTok γ) W Pk (backend.plHookAt γ dq func.nil) (mvcc.bkLocked γ P b)
 
 theorem mvcc.rbData_insert_tracked {P : backend.BParams} {S : backend.Data} {n : GoString} (b :
     backend.BktData) (h : P.RB n = true) : backend.rbData P <[n := b]>S = <[n := b]>(backend.rbData

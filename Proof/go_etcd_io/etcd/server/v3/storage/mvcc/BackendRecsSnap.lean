@@ -46,7 +46,7 @@ theorem isKeyBackendGR_of_G (bi : GoInterfaceOk) (View : Qp → Bucket → IProp
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) :
     isKeyBackendG (GF := GF) (GoInterface.ok bi) View RT WT NC' PutOk Del W Wi Dep Cmp P HF Req
         Rb Bt SR SRh MW HN ∗
       □ (∀ (q : Qp) (m : Bucket),

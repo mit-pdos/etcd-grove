@@ -294,7 +294,7 @@ def mvcc.storeBackend (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IP
       mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbNoCmp γ.kb γ.bucket)
         (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) P (mvcc.hookFn γ)
         (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket)
-        (mvcc.kbHookNil γ.kb))
+        (mvcc.kbHookNilAt γ.kb))
 
 def mvcc.crevFrozen (γ : mvcc.StoreNames) : IProp GF :=
   inv mvcc.crevFrozenN (mvcc.crevUB γ.idx (Qp.half 1) (-1))
@@ -329,9 +329,9 @@ theorem mvcc.isKeyBackendG_persistent (b : GoInterface) (View : Qp → mvcc.Buck
     NC : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString →
     IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Req : IProp
     GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk →
-    IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
-    Persistent (mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW
-    HN)
+    IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac →
+    IProp GF) : Persistent (mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt
+    SR SRh MW HN)
 
 def mvcc.revLag (γ : mvcc.StoreNames) (q : Qp) (c cp : Int) : IProp GF :=
   iprop(⌜-1 ≤ cp ∧ cp ≤ c⌝ ∗ if cp = c then True else ghostVar γ.wsd q.half.half ())
@@ -449,7 +449,7 @@ def mvcc.batchTxSpecG (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp 
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF) (W
     Dep : IProp GF) (Cmp : Prop) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val → IProp
     GF) (Rb : GMap GoString backend.BktData → IProp GF := fun x => iprop(True)) (MW : backend.FkVals
-    → backend.VData → IProp GF) (HN : IProp GF := iprop(False)) : IProp GF :=
+    → backend.VData → IProp GF) (HN : DFrac → IProp GF := fun x => iprop(False)) : IProp GF :=
   iprop((□
         ∀ Pre Q f,
           □
@@ -631,7 +631,7 @@ def mvcc.batchTxSpecG (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp 
                                         (intoVal b))
                                       (intoVal key))
                                     {{ Φ }}) ∗
-                      mvcc.lockNilSpec bt RT WT W P HN Locked)
+                      □ ∀ dq, mvcc.lockNilSpec bt RT WT W P (HN dq) Locked)
 
 def (sealed) mvcc.viewFk (γb : GName) (f : Nat) : IProp GF
 
@@ -726,8 +726,8 @@ theorem mvcc.isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → mvcc.Buck
     : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString →
     IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Rb : GMap
     GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals →
-    backend.VData → IProp GF) (HN : IProp GF) : Persistent (mvcc.isBatchTxG bt View RT WT PutOk Del
-    W Wi Dep Cmp P HF Rb Bt MW HN)
+    backend.VData → IProp GF) (HN : DFrac → IProp GF) : Persistent (mvcc.isBatchTxG bt View RT WT
+    PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN)
 
 theorem mvcc.batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (Del :
     GoString → IProp GF) (W Dep : IProp GF) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val
@@ -1184,6 +1184,9 @@ def mvcc.revToken (γ : mvcc.StoreNames) : IProp GF :=
 def mvcc.txQ : Qp :=
   (Qp.half 1).half + (Qp.half 1).half.half
 
+theorem mvcc.kbHookNilAt_half (kb : Option mvcc.KBReal) : mvcc.kbHookNilAt kb (DFrac.own (Qp.half
+    1)) = mvcc.kbHookNil kb
+
 def mvcc.physNames_countable : Pos.Countable mvcc.PhysNames :=
   countableOfLeftInverse
     (fun x =>
@@ -1472,8 +1475,8 @@ theorem mvcc.isKeyBackendG_noNil (b : GoInterface) (View : Qp → mvcc.Bucket �
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp
     GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Req : IProp GF →
     IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp
-    GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
-    mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
+    GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF)
+    : mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
     mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW
 
 theorem mvcc.revMuBodyL_mu (s : Loc) (γ γp : mvcc.StoreNames) (q q' : Qp) (dq : DFrac) (cm : Int)
@@ -1814,11 +1817,11 @@ theorem mvcc.isKeyBackendG_cmpOn (b : GoInterface) (s : Loc) (γ : mvcc.StoreNam
     GF) (HF : val → IProp GF) (h : mvcc.storeCmp γ) : mvcc.isKeyBackendG b (mvcc.bucketView γ)
     (mvcc.storeRT γ) (mvcc.storeWT γ) iprop(False) (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW
     s γ) (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) P HF (mvcc.storeReq γ) (mvcc.storeRb γ)
-    (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNil
+    (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt
     γ.kb) ⊢ mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) iprop(False)
     (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) Dep True P HF
     (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb)
-    (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNil γ.kb)
+    (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt γ.kb)
 
 theorem mvcc.pendPuts_length_le (ilog : mvcc.Log) (pend : List mvcc.Change) : (mvcc.pendPuts ilog
     pend).length ≤ pend.length
@@ -2070,8 +2073,8 @@ theorem mvcc.batchTxSpecG_persistent (bt : GoInterfaceOk) (View : Qp → mvcc.Bu
     WT : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString →
     IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF :
     val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals →
-    backend.VData → IProp GF) (HN : IProp GF) : Persistent (mvcc.batchTxSpecG bt View RT WT PutOk
-    Del W Dep Cmp Locked P HF Rb MW HN)
+    backend.VData → IProp GF) (HN : DFrac → IProp GF) : Persistent (mvcc.batchTxSpecG bt View RT WT
+    PutOk Del W Dep Cmp Locked P HF Rb MW HN)
 
 theorem mvcc.bucketLog_append (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (m :
     mvcc.Bucket) (hne : ilog ≠ []) : mvcc.bucketLog γ ilog m ⊢ mvcc.bucketLog γ (ilog ++ [pend])
@@ -2350,7 +2353,12 @@ def mvcc.storeBackendT (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : I
   mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbNoCmp γ.kb γ.bucket)
     (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) iprop(True) (mvcc.storeCmp γ) P (mvcc.hookFn γ)
     (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket)
-    (mvcc.kbHookNil γ.kb)
+    (mvcc.kbHookNilAt γ.kb)
+
+def mvcc.kbHookNilAt (kb : Option mvcc.KBReal) (dq : DFrac) : IProp GF :=
+  match kb with
+  | none => iprop(False)
+  | some d => backend.plHookAt d.γB dq func.nil
 
 theorem mvcc.isTxnRead_crev (mw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (log : mvcc.Log) (rev :
     w64) (crev : Int) (Z : IProp GF) : mvcc.isTxnRead mw s γ trace log rev crev Z ⊢ ⌜-1 ≤ crev ∧
@@ -2521,7 +2529,7 @@ theorem mvcc.isKeyBackendG_wand {b : GoInterface} {View : Qp → mvcc.Bucket →
     IProp GF} {PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop} {Del : GoString → IProp
     GF} {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ :
     mvcc.StoreNames} {Rb : GMap GoString backend.BktData → IProp GF} {Bt : GoInterfaceOk → IProp GF}
-    {SR SRh : IProp GF} {MW : backend.FkVals → backend.VData → IProp GF} {HN : IProp GF} :
+    {SR SRh : IProp GF} {MW : backend.FkVals → backend.VData → IProp GF} {HN : DFrac → IProp GF} :
     mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF (mvcc.storeReq γ) Rb Bt SR SRh MW
     HN ⊢ mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF (fun X Y => iprop(□ (X -∗
     Y))) Rb Bt SR SRh MW
@@ -2672,7 +2680,7 @@ def mvcc.physOk (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) : IProp GF
             mvcc.isKeyBackendG o.b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) iprop(False) (mvcc.storePutOk γ)
               (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) Ph (mvcc.hookFn γ)
               (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb)
-              (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNil γ.kb) ∗
+              (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt γ.kb) ∗
           "#Hdep" ∷ □ Dep ∗
             "#Hti" ∷ mvcc.isTreeIndex o.ti γ.idx ∗
               "#HisSched" ∷ schedule.isFifo o.ssched γ.sch ∗
@@ -2850,8 +2858,8 @@ theorem mvcc.isBatchTxG_noNil (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket �
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp
     GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString
     backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData
-    → IProp GF) (HN : IProp GF) : mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW
-    HN ⊢ mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW
+    → IProp GF) (HN : DFrac → IProp GF) : mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF
+    Rb Bt MW HN ⊢ mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW
 
 def mvcc.keyView (vd : backend.VData) (m : mvcc.Bucket) : Prop :=
   ∀ (n k : GoString), vd !! (n, k) = if n = mvcc.keyName then m !! k else none
@@ -2966,8 +2974,8 @@ def mvcc.isBatchTxG (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF) (W Wi
     Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString
     backend.BktData → IProp GF := fun x => iprop(True)) (Bt : GoInterfaceOk → IProp GF := fun x =>
-    iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF := iprop(False)) :
-    IProp GF :=
+    iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF := fun x =>
+    iprop(False)) : IProp GF :=
   iprop(∃ Locked LockedO,
       mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN ∗
         mvcc.batchTxInitSpec bt RT WT W Wi Dep LockedO P ∗ □ Bt bt)
@@ -3129,8 +3137,8 @@ theorem mvcc.batchTxSpecG_noNil (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket 
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp
     GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF : val →
     IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals → backend.VData →
-    IProp GF) (HN : IProp GF) : mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb
-    MW HN ⊢ mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW
+    IProp GF) (HN : DFrac → IProp GF) : mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P
+    HF Rb MW HN ⊢ mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW
 
 theorem mvcc.storeW_put (s : Loc) (γ : mvcc.StoreNames) : mvcc.storeRegd s γ ∗ mvcc.writerRes s γ ⊢
     mvcc.storeW s γ
@@ -3183,8 +3191,8 @@ def mvcc.isKeyBackendG (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF
     Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Req : IProp GF → IProp GF →
     IProp GF := fun X Y => iprop(□ (X -∗ Y))) (Rb : GMap GoString backend.BktData → IProp GF := fun
     x => iprop(True)) (Bt : GoInterfaceOk → IProp GF := fun x => iprop(True)) (SR SRh : IProp GF :=
-    iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF := iprop(False)) :
-    IProp GF :=
+    iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF := fun x =>
+    iprop(False)) : IProp GF :=
   iprop(∃ bi,
       ⌜b = GoInterface.ok bi⌝ ∗
         (□

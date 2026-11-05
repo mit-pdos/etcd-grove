@@ -618,14 +618,14 @@ theorem mvcc.store.Restore.wp_proof
             iprop(True) iprop(True) (by exact hon') hlt' h1r)
           $$ [Hmu' Hright HrtA Hhn Hwr] as %ch %err ⟨HrtA, Hback, Hwr, %Herr, Hmu, Hright, -, -, -, Hlag⟩
         · rw [mvcc.isStore_withPhys, mvcc.crevPermAt_withPhys, hsr, mvcc.lockCtxM_none,
-            mvcc.StoreNames.withPhys_wr]
+            mvcc.kbHookNilAt_half, mvcc.StoreNames.withPhys_wr]
           iframe Hmu' Hright HrtA Hs HpC Hwr
           iunfold mvcc.hookP
           simp only [mvcc.StoreNames.withPhys_hook, mvcc.StoreNames.withPhys_kb, hk]
           iframe Hh' Hhn Hwts
           repeat' (first | isplitl [] | (ipureintro; exact hcl) |
             (iintro ⟨HP, -⟩; imodintro; iframe HP) | itrivial)
-        rw [mvcc.lockBackM_none]
+        rw [mvcc.lockBackM_none, mvcc.kbHookNilAt_half]
         icases Hback with ⟨-, Hhn⟩
         ihave Hmu : mvcc.muInvAt (GF := GF) s (γ.withPhys p') 1 r.crev $$ [Hmu]
         · rw [← hsr]; iexact Hmu

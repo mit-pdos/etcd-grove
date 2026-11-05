@@ -6,23 +6,3 @@ theorem mvcc.watchStream.Cancel.wp_proof : mvcc.watchStream.Cancel.spec
   -- `Perennial.EtcdGrove.mvcc.watchStream.Cancel.spec`, unfolded:
   ∀ (w : Loc),
     mvcc.api.WatchStream.Cancel.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal w)
-
-theorem mvcc.WatchParams.mk.congr_simp.{u_1} (IW IW✝ : Loc → IProp GF) (e_IW : IW = IW✝) (WC WC✝ :
-    Loc → IProp GF) (e_WC : WC = WC✝) (C C✝ : GoChan → IProp GF) (e_C : C = C✝) (FI FI✝ : GoSlice →
-    List (mvcc.EvM → Bool) → IProp GF) (e_FI : FI = FI✝) (RegCb RegCb✝ : GoChan →
-    mvcc.WatchChanNames → mvcc.WatchRange → List (mvcc.EvM → Bool) → (Loc → IProp GF) → IProp GF)
-    (e_RegCb : RegCb = RegCb✝) (RevCb RevCb✝ : (mvcc.Log → IProp GF) → IProp GF) (e_RevCb : RevCb =
-    RevCb✝) (CR CR✝ : GoChan → mvcc.WatchChanNames → List Loc → IProp GF) (e_CR : CR = CR✝) (R R✝ :
-    IProp GF) (e_R : R = R✝) (T T✝ : IProp GF) (e_T : T = T✝) (IWF IWF✝ : Loc → mvcc.WatchRange →
-    GoSlice → Nat → IProp GF) (e_IWF : IWF = IWF✝) (OC OC✝ : Loc → mvcc.WatchChanNames → IProp GF)
-    (e_OC : OC = OC✝) (WS WS✝ : Loc → IProp GF) (e_WS : WS = WS✝) (IW_pers : ∀ (w : Loc), Persistent
-    (IW w)) (WC_pers : ∀ (w : Loc), Persistent (WC w)) (C_pers : ∀ (ch : GoChan), Persistent (C ch))
-    (FI_pers : ∀ (fcs : GoSlice) (fs : List (mvcc.EvM → Bool)), Persistent (FI fcs fs)) (IWF_pers :
-    ∀ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat), Persistent (IWF w r fcs lo))
-    (OC_pers : ∀ (w : Loc) (γc : mvcc.WatchChanNames), Persistent (OC w γc)) (WS_pers : ∀ (w : Loc),
-    Persistent (WS w)) : { IW := IW, WC := WC, C := C, FI := FI, RegCb := RegCb, RevCb := RevCb, CR
-    := CR, R := R, T := T, IWF := IWF, OC := OC, WS := WS, IW_pers := IW_pers, WC_pers := WC_pers,
-    C_pers := C_pers, FI_pers := FI_pers, IWF_pers := IWF_pers, OC_pers := OC_pers, WS_pers :=
-    WS_pers } = { IW := IW✝, WC := WC✝, C := C✝, FI := FI✝, RegCb := RegCb✝, RevCb := RevCb✝, CR :=
-    CR✝, R := R✝, T := T✝, IWF := IWF✝, OC := OC✝, WS := WS✝, IW_pers := ⋯, WC_pers := ⋯, C_pers :=
-    ⋯, FI_pers := ⋯, IWF_pers := ⋯, OC_pers := ⋯, WS_pers := ⋯ }

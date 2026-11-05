@@ -49,7 +49,7 @@ theorem mvcc.store.compactLockfree.wp_proof
   -- the compaction revision is already `rev`: the identity step, `s.mu`'s deposit ghost the excluder
   ihave Hcb := mvcc.cmpCb_refl (GF := GF) γ (sint.Z rev) cp
   ihave #Hreq0 := mvcc.storeReq_true (GF := GF) γ
-  wp_apply (h1 s γ rev (sint.Z rev) cp P hk Pre Q Post iprop(ghostVar γ.wr 1 ()) iprop(True)
+  wp_apply (h1 s γ rev (sint.Z rev) cp P hk (DFrac.own (1 : Qp).half) Pre Q Post iprop(ghostVar γ.wr 1 ()) iprop(True)
       iprop(True) iprop(False) iprop(True) iprop(True) hcmp (fun _ => Int.le_refl _) h1r (mvcc.wr_frozen_excl γ)
       (mvcc.wr_restoring_excl γ))
     $$ [$Hmu $Hright $Hctx $HRTok $Hwr $Hcb] as %ch %prev %err ⟨HRTok, Hhook, Hwr, Hres⟩

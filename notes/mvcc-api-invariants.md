@@ -1168,3 +1168,27 @@ one new listed placeholder, `hookNilRO_M1`; no frozen statement found false or t
 - §4.8: `hookNilRO_M1`.
 - The TCB baseline (`etc/tcb-baseline.txt`, not mine): two `sorry`s fewer (`rcvSched_M1`,
   `regLent_excl_M1`), one more (`hookNilRO_M1`).
+
+## Hand-off: stage 2, §4.8 and M3 (2026-11-06)
+
+**§4.8, a store without a hook** (`hookNilRO_M1` deleted; no axiom; no frozen statement changed):
+`batchTxSpecG`'s nil-hook clause is now at **any share** of the hook at `nil`: its `HN` is a family
+`DFrac → IProp` (default `fun _ => False`) and the clause `□ ∀ dq, lockNilSpec … (HN dq) …`;
+the store's is `kbHookNilAt γ.kb` (`InvStore`: the real backend's `plHookAt d.γB dq nil`,
+`kbHookNilAt_half : kbHookNilAt kb ½ = kbHookNil kb`), proved by `bt_lockInNil` at any `dq` (the
+backend's `LockInsideApply` spec already takes any share). `lockCtxM`/`lockBackM` take the share
+(`dq`, default ½; their `_some`/`_none`/`_pre` lemmas take it explicitly); `updateCompactRev.spec`
+and `store.Compact.core` quantify it; `KV.Compact.contract`'s nil arm lends the hook frozen at `nil`
+(`DFrac.discard`, the API's `hookIs B nil`). `bkHookIs`'s `≠ nil` is kept (not needed: the nil arm
+goes through `lockNilSpec`, not the hook arm; dropping it would break the server's
+`SnapApplyOptsLemmas.snap_hookOk`). `KV.Write.contract`'s nil arm (when it is proved) uses the
+same clause.
+
+**Layout**: `WatchParams.mk.congr_simp` realized once in `InvWatchStream`
+(`WatchParams.mk_congr_simp_realized`; `#check` does not keep it): `--check --layout` reports 0 new
+(and 5 fixed, for the coordinator to drop from the baseline).
+
+**Internal definitions changed that modules outside mvcc import**: `batchTxSpecG`, `isBatchTxG`,
+`isKeyBackendG`, `isKeyBackendGR` (the `HN` parameter's type), `lockCtxM`, `lockBackM` (a trailing
+`dq`), `store.updateCompactRev.spec`, `store.Compact.core` (`dq`). No module outside mvcc names
+them (checked with `etc/importers.py --uses`).

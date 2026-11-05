@@ -25,39 +25,41 @@ def mvcc.cmpCb (γ : mvcc.StoreNames) (c cp rev : Int) (Fok Fce Ffr : IProp GF) 
         ∀ L, ⌜↑(List.length L) - 1 < rev ∧ c < ↑(List.length L)⌝ -∗ mvcc.slotX γ 1 L c ={⊤}=∗ mvcc.slotX γ 1 L c ∗ Ffr)
 
 theorem mvcc.lockCtxM_pre (γ : mvcc.StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp
-    GF) : mvcc.lockCtxM γ P hk Pre Q Post ⊢ mvcc.lockBackM γ P hk ∗ Pre
+    GF) (dq : DFrac) : mvcc.lockCtxM γ P hk Pre Q Post dq ⊢ mvcc.lockBackM γ P hk dq ∗ Pre
 
 theorem mvcc.lockArmS_none (bt : GoInterfaceOk) (RT WT W P : IProp GF) (HF : val → IProp GF) (Locked
     : mvcc.Puts → IProp GF) (HN Pre Q Post : IProp GF) : mvcc.lockArmS bt RT WT W P HF Locked HN
     none Pre Q Post = iprop(HN ∗ mvcc.lockNilSpec bt RT WT W P HN Locked ∗ (P ∗ Pre ∗ HN ={⊤}=∗ P ∗
     Post))
 
-def mvcc.lockCtxM (γ : mvcc.StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF) :
-    IProp GF :=
+def mvcc.lockCtxM (γ : mvcc.StoreNames) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF) (dq
+    : DFrac := DFrac.own (Qp.half 1)) : IProp GF :=
   match hk with
   | some f => iprop(mvcc.hookOk γ P f ∗ mvcc.csContract P f Pre Q Post)
-  | none => iprop(mvcc.hookP γ P ∗ mvcc.kbHookNil γ.kb ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post))
+  | none => iprop(mvcc.hookP γ P ∗ mvcc.kbHookNilAt γ.kb dq ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post))
 
 theorem mvcc.cmpCb_refl (γ : mvcc.StoreNames) (rev cp : Int) : ⊢ mvcc.cmpCb γ rev cp rev iprop(True)
     iprop(True) iprop(False)
 
-def mvcc.lockBackM (γ : mvcc.StoreNames) (P : IProp GF) (hk : Option val) : IProp GF :=
+def mvcc.lockBackM (γ : mvcc.StoreNames) (P : IProp GF) (hk : Option val) (dq : DFrac := DFrac.own
+    (Qp.half 1)) : IProp GF :=
   match hk with
   | some f => mvcc.hookOk γ P f
-  | none => iprop(mvcc.hookP γ P ∗ mvcc.kbHookNil γ.kb)
+  | none => iprop(mvcc.hookP γ P ∗ mvcc.kbHookNilAt γ.kb dq)
 
-theorem mvcc.lockBackM_some (γ : mvcc.StoreNames) (P : IProp GF) (f : val) : mvcc.lockBackM γ P
-    (some f) = mvcc.hookOk γ P f
+theorem mvcc.lockBackM_some (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (dq : DFrac) :
+    mvcc.lockBackM γ P (some f) dq = mvcc.hookOk γ P f
 
-theorem mvcc.lockCtxM_some (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (Pre Q Post : IProp GF) :
-    mvcc.lockCtxM γ P (some f) Pre Q Post = iprop(mvcc.hookOk γ P f ∗ mvcc.csContract P f Pre Q
-    Post)
+theorem mvcc.lockCtxM_some (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (Pre Q Post : IProp GF)
+    (dq : DFrac) : mvcc.lockCtxM γ P (some f) Pre Q Post dq = iprop(mvcc.hookOk γ P f ∗
+    mvcc.csContract P f Pre Q Post)
 
-theorem mvcc.lockBackM_none (γ : mvcc.StoreNames) (P : IProp GF) : mvcc.lockBackM γ P none =
-    iprop(mvcc.hookP γ P ∗ mvcc.kbHookNil γ.kb)
+theorem mvcc.lockBackM_none (γ : mvcc.StoreNames) (P : IProp GF) (dq : DFrac) : mvcc.lockBackM γ P
+    none dq = iprop(mvcc.hookP γ P ∗ mvcc.kbHookNilAt γ.kb dq)
 
-theorem mvcc.lockCtxM_none (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) : mvcc.lockCtxM γ P none
-    Pre Q Post = iprop(mvcc.hookP γ P ∗ mvcc.kbHookNil γ.kb ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post))
+theorem mvcc.lockCtxM_none (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (dq : DFrac) :
+    mvcc.lockCtxM γ P none Pre Q Post dq = iprop(mvcc.hookP γ P ∗ mvcc.kbHookNilAt γ.kb dq ∗ Pre ∗
+    (P ∗ Pre ={⊤}=∗ P ∗ Post))
 
 theorem mvcc.lockArmS_some (bt : GoInterfaceOk) (RT WT W P : IProp GF) (HF : val → IProp GF) (Locked
     : mvcc.Puts → IProp GF) (HN : IProp GF) (f : val) (Pre Q Post : IProp GF) : mvcc.lockArmS bt RT

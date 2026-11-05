@@ -268,6 +268,13 @@ structure WatchParams (GF : BundledGFunctors) where
   WS_pers : ∀ w, Persistent (WS w)
 
 
+/- The structure's reserved congruence lemma, realized once here: `simp` in the stream's proof files
+(`watchStream__Cancel`, `Close`, ...) would otherwise realize it in each, which the layout check
+reports as exposed by a proof file. (A statement mentioning it realizes it in the public part;
+`#check` does not keep it.) -/
+theorem WatchParams.mk_congr_simp_realized :
+    @WatchParams.mk.congr_simp = @WatchParams.mk.congr_simp := rfl
+
 instance WatchParams.WS_persistent (P : WatchParams GF) (w : Loc) :
     Persistent (P.WS w) := P.WS_pers w
 

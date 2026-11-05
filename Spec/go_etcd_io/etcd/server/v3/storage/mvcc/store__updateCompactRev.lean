@@ -30,7 +30,8 @@ section's context by the post-lock hook's state (`lockCtxM`; M2, the storage sid
 `SetScheduledCompact`'s `LockInsideApply` runs the hook); unset (`hk = none`: `restore()`'s
 resumed compaction, inside `kv.Restore`, before the server sets the new backend's hook), the
 unset hook lent and the caller's update from `P ∗ Pre` to `P ∗ Post` (`LockInsideApply` runs
-nothing). **The caller's ghost step** (`cmpCb`; `KV.Compact.contract`, 2026-11-06: until then the
+nothing), at any share `dq` of the hook at `nil` (§4.8, 2026-11-06: the frozen one of a store
+without a hook). **The caller's ghost step** (`cmpCb`; `KV.Compact.contract`, 2026-11-06: until then the
 placeholders `rcvSched_M1`, `slotX_step_M1` and `regLent_excl_M1` moved the API's ghost state with
 no client) is fired at the code's three outcomes, and the caller's excluder `S` (lent, given back)
 keeps the writer's invariant out of its frozen and restoring states (`hS1`, `hS2`) while the
@@ -67,17 +68,17 @@ stored the finished record, at a revision `rev` at least `c`; the success case's
 lag's token back (`lagTok`), the error cases' not. -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c cp : Int) (P : IProp GF) (hk : Option val)
-    (Pre Q Post S Fok Fce Ffr X Y : IProp GF),
+    (dq : DFrac) (Pre Q Post S Fok Fce Ffr X Y : IProp GF),
   mvcc.storeCmp γ → (cp < c → c ≤ sint.Z rev) → 1 ≤ sint.Z rev →
   (mvcc.slotF γ ∗ S ⊢ False) → (ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ S ⊢ False) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvLag s γ c cp ∗ mvcc.compactRightR s γ c ∗
       mvcc.crevPermAt γ (sint.Z rev) ∗
-      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ S ∗
+      mvcc.lockCtxM γ P hk Pre Q Post dq ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ S ∗
       mvcc.cmpCb γ c cp (sint.Z rev) Fok Fce Ffr ∗ X ∗ mvcc.storeReq γ X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);
-      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗ S ∗
+      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk dq ∗ S ∗
       ((⌜err = GoInterface.nil ∧ ch = chan.nil ∧ prev = W64 cp ∧ cp < sint.Z rev ∧ c ≤ sint.Z rev⌝ ∗
         mvcc.muInvAt s γ 1 (sint.Z rev) ∗ mvcc.compactRightR s γ (sint.Z rev) ∗ Post ∗
         mvcc.compactJobPre s γ rev ∗ mvcc.lagTok γ c cp ∗ Fok ∗ Y) ∨

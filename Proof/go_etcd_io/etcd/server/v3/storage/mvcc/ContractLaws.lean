@@ -70,7 +70,7 @@ theorem keyReadSnap_monoDel (View : Qp → Bucket → IProp GF) (RT NC : IProp G
 theorem batchTxSpecG_weaken (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del Del' : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp Cmp' : Prop) (Locked : Puts → IProp GF) (P : IProp GF)
-    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW MW' : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF)
+    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW MW' : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF)
     (hC : ¬ Cmp') :
     batchTxSpecG (GF := GF) bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN ∗
       □ (∀ k, Del k -∗ Del' k) ⊢
@@ -102,7 +102,7 @@ theorem isBatchTxG_weaken (bt : GoInterfaceOk) (View : Qp → Bucket → IProp G
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del Del' : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp Cmp' : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (MW MW' : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hC : ¬ Cmp') :
+    (MW MW' : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) (hC : ¬ Cmp') :
     isBatchTxG (GF := GF) bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN ∗
       □ (∀ k, Del k -∗ Del' k) ⊢
     isBatchTxG bt View RT WT PutOk Del' W Wi Dep Cmp' P HF Rb Bt MW' HN := by
@@ -125,7 +125,7 @@ theorem isKeyBackendG_weaken (b : GoInterface) (View : Qp → Bucket → IProp G
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del Del' : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp Cmp' : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR' SRh' : IProp GF) (MW' : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hC : ¬ Cmp') :
+    (Bt : GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR' SRh' : IProp GF) (MW' : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) (hC : ¬ Cmp') :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗
       □ (∀ k, Del k -∗ Del' k) ⊢
     isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req Rb Bt SR' SRh' MW' HN := by
@@ -185,7 +185,7 @@ theorem isKeyBackendG_weaken_noDel (b : GoInterface) (View : Qp → Bucket → I
     (Del Del' : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp Cmp' : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR' SRh' : IProp GF) (MW' : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hC : ¬ Cmp') :
+    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR' SRh' : IProp GF) (MW' : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) (hC : ¬ Cmp') :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗
       □ (∀ k, Del k -∗ False) ⊢
     isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req Rb Bt SR' SRh' MW' HN := by
@@ -267,7 +267,7 @@ theorem batchTxSpecG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IPr
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del Del' : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
     (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) :
     batchTxSpecG (GF := GF) bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN ∗
       □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     batchTxSpecG bt View RT WT PutOk Del' W Dep Cmp Locked P HF Rb MW HN := by
@@ -325,7 +325,7 @@ theorem isBatchTxG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IProp
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del Del' : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) :
     isBatchTxG (GF := GF) bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN ∗
       □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     isBatchTxG bt View RT WT PutOk Del' W Wi Dep Cmp P HF Rb Bt MW HN := by
@@ -349,7 +349,7 @@ theorem isKeyBackendG_congrDel (b : GoInterface) (View : Qp → Bucket → IProp
     (Del Del' : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗
       □ (∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
     isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN := by

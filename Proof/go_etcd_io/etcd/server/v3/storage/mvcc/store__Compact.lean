@@ -38,7 +38,7 @@ theorem mvcc.store.Compact.wp_proof
     mvcc.store.Compact.spec (GF := GF) (hG := hG) := by
   -- the core (`mvcc.store.Compact.core`), then the contract over it (`store.Compact.wp_api`)
   have hcore : mvcc.store.Compact.core (GF := GF) (hG := hG) := by
-    intro s γ trace rev c P hk Pre Q Post S Fok Fce Ffr XB YB te htr hcmp hc hpos1 hS1 hS2
+    intro s γ trace rev c P hk dq Pre Q Post S Fok Fce Ffr XB YB te htr hcmp hc hpos1 hS1 hS2
     wp_start as ⟨#Hs, Hright, #HpermR, Hctx, Htrc, HRTok, #HsupM, HS, Hcb, HXB, #HreqB⟩
     ihave #Hs' := Hs
     iunfold mvcc.isStore at Hs'
@@ -67,7 +67,7 @@ theorem mvcc.store.Compact.wp_proof
     · iframe #
     ihave Hright := Hrclose $$ Hfs Hq
     (try wp_auto)
-    wp_apply (h1 s γ rev c' c' P hk Pre Q Post S Fok Fce Ffr XB YB hcmp
+    wp_apply (h1 s γ rev c' c' P hk dq Pre Q Post S Fok Fce Ffr XB YB hcmp
         (fun h => absurd h (Int.lt_irrefl c')) hpos1 hS1 hS2)
       $$ [$Hmu1 $Hright $HRTok $Hctx $HS $Hcb $HXB] as %ch %prev %err ⟨HRTok, Hback, HS, Hres⟩
     · iframe #

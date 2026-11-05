@@ -9,7 +9,7 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
 * `store.Compact.wp_api`: the contract's body at a store `s` from the core: the open token at the
   store's location and current names, the backend share's token the excluder, its names the right's,
   its batch lock's invariant the store's; the hook's contract set (`csContract`) or `nil` (the unset
-  arm, by the placeholder `hookNilRO_M1`).
+  arm at the hook frozen at `nil`, `DFrac.discard`: §4.8, a store without a hook).
 * `watchableStore.Compact.wp_proof`: the promoted method, `store.Compact`'s at the inner store.
 * `restore()`'s excluders (`wr_restoring_excl`, `wr_frozen_excl`, the latter by `slotF_excl_M1`).
 -/
@@ -52,17 +52,17 @@ committed log, `ErrFutureRev`, no channel, `Pre`, `Ffr`, `X`. The reader token a
 are given back in every case. -/
 abbrev mvcc.store.Compact.core : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF)
-    (hk : Option val) (Pre Q Post S Fok Fce Ffr X Y : IProp GF) (te : Bool),
+    (hk : Option val) (dq : DFrac) (Pre Q Post S Fok Fce Ffr X Y : IProp GF) (te : Bool),
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c → 1 ≤ sint.Z rev →
   (mvcc.slotF γ ∗ S ⊢ False) → (ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ S ⊢ False) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
-      mvcc.crevPermAt γ (sint.Z rev) ∗ mvcc.lockCtxM γ P hk Pre Q Post ∗
+      mvcc.crevPermAt γ (sint.Z rev) ∗ mvcc.lockCtxM γ P hk Pre Q Post dq ∗
       traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ S ∗
       mvcc.cmpCb γ c c (sint.Z rev) Fok Fce Ffr ∗ X ∗ mvcc.storeReq γ X Y }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
-      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗ S ∗
+      mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk dq ∗ S ∗
       ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗
         Fok ∗ Y) ∨
@@ -81,7 +81,7 @@ inner one), the open token at the store's current names (`mvccOpen`: the compact
 quarter of the API's compaction authority, the reader token and the supply), the backend share
 (`mvccBackend`: its token the excluder `S`, the names agreeing with the right's, the batch lock's
 invariant the store's `hookP`), the hook's contract (`hookRun`: set, `csContract`; `nil`, the unset
-arm, by the placeholder `hookNilRO_M1`), the backend's commit request, and the client's update made
+arm at the frozen share of the hook at `nil`, §4.8), the backend's commit request, and the client's update made
 the ghost step (`compact_cmpCb`). -/
 
 /-- A compaction's channel, tracked, can be received on (`compactChanOk`). -/
@@ -373,23 +373,23 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
   ihave #Hsup' : mvcc.kbWTSupplyM (GF := GF) ((γ : mvcc.StoreNames).withPhys p).kb $$ []
   · rw [mvcc.StoreNames.withPhys_kb]; iexact Hsup
   -- the hook's context: set, the hook's facts and the caller's contract; nil, the unset arm
-  ihave ⟨%hk, Hctx⟩ : (∃ hk : Option val, mvcc.lockCtxM (GF := GF) ((γ : mvcc.StoreNames).withPhys p)
-      P hk Pre Q' Post) $$ [HPre Hrun Hupd]
+  ihave ⟨%hk, %dq, Hctx⟩ : (∃ (hk : Option val) (dq : DFrac),
+      mvcc.lockCtxM (GF := GF) ((γ : mvcc.StoreNames).withPhys p) P hk Pre Q' Post dq)
+      $$ [HPre Hrun Hupd]
   · by_cases hf : f = func.nil
-    · iexists none
+    · iexists none, DFrac.discard
       rw [mvcc.lockCtxM_none]
       iunfold mvcc.api.hookRun at Hrun
       simp only [hf, ↓reduceIte]
       iframe Hhp HPre
       isplitr
       · rw [mvcc.StoreNames.withPhys_kb, hpk]
-        iunfold mvcc.kbHookNil
-        iapply mvcc.hookNilRO_M1
+        iunfold mvcc.kbHookNilAt
         rw [← hf]; iexact Hhk
       iintro HPP
       imod Hrun $$ HPP with HQ'
       iapply Hupd $$ HQ'
-    · iexists (some #f)
+    · iexists (some #f), DFrac.discard
       rw [mvcc.lockCtxM_some]
       iunfold mvcc.api.hookRun at Hrun
       simp only [hf, ↓reduceIte]
@@ -409,7 +409,7 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
   -- the client's update, the store's ghost step
   ihave Hcb := mvcc.compact_cmpCb γ p c (sint.Z rev) hpos1 Q $$ [Hcra HAU]
   · iframe Hcra HAU
-  iapply (hcore s ((γ : mvcc.StoreNames).withPhys p) trace rev c P hk Pre Q' Post
+  iapply (hcore s ((γ : mvcc.StoreNames).withPhys p) trace rev c P hk dq Pre Q' Post
       (mvcc.api.shareTok (γ : mvcc.StoreNames).api q)
       iprop(mvcc.api.crevAuth (γ : mvcc.StoreNames).api (1 : Qp).half.half (sint.Z rev) ∗
         ∃ σ : mvcc.api.MvccState, Q σ ∗ ⌜σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)⌝)

@@ -37,7 +37,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h2 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c cp P hk Pre Q Post S Fok Fce Ffr XB YB hcmp hlag hpos1 hS1 hS2
+  intro s γ rev c cp P hk dq Pre Q Post S Fok Fce Ffr XB YB hcmp hlag hpos1 hS1 hS2
   wp_start as ⟨#Hs, HmuA, Hright, #HpermR, Hctx, HRTok, #HsupM, HS, Hcb, HXB, #HreqB⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
@@ -175,7 +175,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe #
         ipureintro; exact ⟨Hne, Hbudget, Hc⟩
       (try wp_auto)
-      icases mvcc.lockCtxM_pre γ P hk Pre Q Post $$ Hctx with ⟨Hback, HPre⟩
+      icases mvcc.lockCtxM_pre γ P hk Pre Q Post dq $$ Hctx with ⟨Hback, HPre⟩
       iapply HΦ
       iframe HRTok Hback HS
       iright
@@ -241,7 +241,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         · iunfold mvcc.revLag; iframe Hlag; ipureintro; exact Hp'
         ipureintro; exact Hc
       (try wp_auto)
-      icases mvcc.lockCtxM_pre γ P hk Pre Q Post $$ Hctx with ⟨Hback, HPre⟩
+      icases mvcc.lockCtxM_pre γ P hk Pre Q Post dq $$ Hctx with ⟨Hback, HPre⟩
       iapply HΦ
       iframe HRTok Hback HS
       iright
@@ -310,7 +310,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         (Val #(GoInterface.ok bt))) (Val #rev))
       -- (M2, item 31) by the hook's state: set, the caller's contract; unset (`restore()`'s resumed
       -- compaction), `LockInsideApply`'s nil arm (`batchTxSpecG`'s `lockNilSpec`, the unset hook lent)
-      iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ mvcc.storeRT γ ∗ Post ∗ mvcc.lockBackM γ P hk ∗
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ mvcc.storeRT γ ∗ Post ∗ mvcc.lockBackM γ P hk dq ∗
         (mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ ∗ S ∗
           mvcc.curAt γ (DFrac.own mvcc.q8.half) ⟨GoInterface.ok bi, ti, GoInterface.ok sci, sstop⟩ ∗
           mvcc.slotX γ 1 log (sint.Z rev) ∗ Fok))))
@@ -362,10 +362,11 @@ theorem mvcc.store.updateCompactRev.wp_proof
           ihave #Hbt' := Hbt
           iunfold mvcc.batchTxSpecG at Hbt'
           icases Hbt' with ⟨-, -, -, -, -, -, -, -, -, #HLN⟩
+          ispecialize HLN $$ %dq
           iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
               (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-              (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNil γ.kb) none rev Pre Q
-              iprop(Post ∗ mvcc.kbHookNil γ.kb)
+              (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNilAt γ.kb dq) none rev Pre Q
+              iprop(Post ∗ mvcc.kbHookNilAt γ.kb dq)
               iprop(mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ ∗ S ∗
                 mvcc.curAt γ (DFrac.own mvcc.q8.half) ⟨GoInterface.ok bi, ti, GoInterface.ok sci, sstop⟩ ∗
                 mvcc.slotX γ 1 log (sint.Z rev) ∗ Fok)

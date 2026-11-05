@@ -6,7 +6,7 @@ theorem mvcc.store.updateCompactRev.wp_proof (h0 : schedule.NewJob.spec) (h1 :
     mvcc.store.compactBarrier.spec) (h2 : schedule.Scheduler.Schedule.spec) (h3 :
     mvcc.SetScheduledCompact.spec) : mvcc.store.updateCompactRev.spec
   -- `Perennial.EtcdGrove.mvcc.store.updateCompactRev.spec`, unfolded:
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c cp : Int) (P : IProp GF) (hk : Option val)
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c cp : Int) (P : IProp GF) (hk : Option val) (dq : DFrac)
     (Pre Q Post S Fok Fce Ffr X Y : IProp GF),
     mvcc.storeCmp γ →
       (cp < c → c ≤ sint.Z rev) →
@@ -20,14 +20,14 @@ theorem mvcc.store.updateCompactRev.wp_proof (h0 : schedule.NewJob.spec) (h1 :
                         mvcc.muInvLag s γ c cp ∗
                           mvcc.compactRightR s γ c ∗
                             mvcc.crevPermAt γ (sint.Z rev) ∗
-                              mvcc.lockCtxM γ P hk Pre Q Post ∗
+                              mvcc.lockCtxM γ P hk Pre Q Post dq ∗
                                 mvcc.storeRT γ ∗
                                   mvcc.kbWTSupplyM γ.kb ∗
                                     S ∗ mvcc.cmpCb γ c cp (sint.Z rev) Fok Fce Ffr ∗ X ∗ mvcc.storeReq γ X Y -∗
                     (▷
                         ∀ ch prev err,
                           mvcc.storeRT γ ∗
-                              mvcc.lockBackM γ P hk ∗
+                              mvcc.lockBackM γ P hk dq ∗
                                 S ∗
                                   (⌜err = GoInterface.nil ∧
                                           ch = chan.nil ∧ prev = W64 cp ∧ cp < sint.Z rev ∧ c ≤ sint.Z rev⌝ ∗

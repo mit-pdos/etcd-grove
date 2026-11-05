@@ -18,8 +18,8 @@ job's, `cmpTrack_job_M1`, is gone: the job's cursor and its per-entry cut, `Api/
 step, `cmpCb`, inside `SetScheduledCompact`'s loan, with the writer's state found checked in, the
 frozen and restoring states excluded by the caller's share, `KV.Compact.contract`, 2026-11-06).
 `snapObs_M1` (the frozen store's part of a snapshot's observation) is gone:
-`mvccImage_snapshot.law_holds` is proved. `hookNilRO_M1` (2026-11-06): `KV.Compact.contract`'s
-nil-hook arm, until §4.8 (a store without a hook).
+`mvccImage_snapshot.law_holds` is proved. `hookNilRO_M1` (2026-11-06) is gone: §4.8, a store without
+a hook (`batchTxSpecG`'s nil-hook clause at any share of the hook at `nil`, `kbHookNilAt`).
 -/
 module
 
@@ -61,16 +61,6 @@ M1-REPLACE: `KV.Write.contract`, `Txn.End.contract` (the writer's backend share,
 compaction, `compactLockfree`'s excluder: the restorer's share). -/
 theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢ False := by
   sorry -- M1-REPLACE: KV.Write.contract, Txn.End.contract, KV.Restore.contract (the backend share)
-
-/-- **(Placeholder, false in general.)** The backend's hook frozen at `nil` lent as the unset hook
-(`kbHookNil`, the client's half at `nil`): what `KV.Compact.contract`'s nil-hook arm gives
-`SetScheduledCompact`'s unset arm (`lockNilSpec`, whose `HN` is the store's `kbHookNil`, at its
-half; `LockInsideApply` runs nothing either way). M1-REPLACE: §4.8 (a store without a hook:
-`lockNilSpec` at any share of the hook at `nil`, `bt_lockInNil` over `LockInsideApply`'s nil arm at
-the frozen share; `KV.Write.contract`'s nil arm needs it too). -/
-theorem hookNilRO_M1 (γB : backend.BNames) :
-    backend.plHookRO (GF := GF) γB func.nil ⊢ backend.plHook γB func.nil := by
-  sorry -- M1-REPLACE: §4.8, a store without a hook (KV.Compact.contract's and KV.Write.contract's nil arm)
 
 /-- **(Placeholder, false in general.)** A new batch lock's tracked compaction (`NewStore`'s and
 `store.Restore`'s), from the halves of the records' compaction revision and of the job's cursor
