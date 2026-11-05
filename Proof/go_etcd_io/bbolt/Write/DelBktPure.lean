@@ -15,6 +15,7 @@ U7o (`notes/bbolt-proof-plan.md`): **`DeleteBucket`'s records, pure** (the root 
 module
 
 public import Proof.go_etcd_io.bbolt.Write.DelBktHeap
+public import Proof.go_etcd_io.bbolt.Write.DelBktPlain
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -51,12 +52,6 @@ theorem setDead_setDead (X : WX) (c : Loc) (D D' : BRec) :
 theorem delMid_setDead (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D D' : BRec) :
     (delMid X1 c C R1 n D).setDead c D' = delMid X1 c C R1 n D' := by
   unfold delMid; rw [setDead_setDead]
-
-/-- **A bucket other than the root holds no nested bucket** (`leafShape`, `posShape`). -/
-theorem allEnts_plain_nonroot (X : WX) (bl : Loc) (B : BRec) (hok : wOK X)
-    (hB : X.t.bs !! bl = some B) (hroot : bl ≠ X.rl) :
-    ∀ w ∈ X.allEnts bl, ¬ isBktFlag w.flags := by
-  sorry
 
 /-- **The deletion's records are well-formed** (see the module doc). -/
 theorem wOK_delMid (T : TxView) (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D : BRec)
