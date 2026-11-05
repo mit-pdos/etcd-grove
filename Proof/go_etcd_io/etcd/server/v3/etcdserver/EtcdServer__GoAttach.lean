@@ -32,15 +32,15 @@ theorem EtcdServer.GoAttach.wp_proof
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) := by
-  intro s f P
+  intro s γ f P
   wp_start as ⟨Hgr, Hlr, HP, Hf⟩
-  iunfold srvGoRes at Hgr
+  iunfold srvGoResAt at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  iunfold srvWgReader at Hwr
-  icases Hwr with ⟨%γ, #Hok, Hrd⟩
+  iunfold srvWgReaderAt at Hwr
+  icases Hwr with ⟨#Hok, Hrd⟩
   ihave #Hok' := Hok
   iunfold srvGoAttachOk at Hok'
   icases Hok' with ⟨%ch, %c, #Hch, #Hint, #Hwg, #Hinv, #Hguard, #Hctx, ⟨%l, #Hlg, %Hlgnn⟩, %Hbound⟩
@@ -78,10 +78,9 @@ theorem EtcdServer.GoAttach.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hlr
-      iunfold srvGoRes
+      iunfold srvGoResAt
       iframe Htok
-      iunfold srvWgReader
-      iexists γ
+      iunfold srvWgReaderAt
       iframe Hok Hrd
     · iintro Hnr
       icases BigSepL.bigSepL_singleton.1 $$ Hnr with Hf
@@ -114,9 +113,10 @@ theorem EtcdServer.GoAttach.wp_proof
         wp_apply wp_with_defer as %defer' defer'
         (try wp_auto)
         wp_bind (App (Val #f) (Val #()))
-        iapply Hf $$ HP
+        iapply Hf $$ [HP Hrun]
+        · iframe HP Hrun
         inext
-        iintro -
+        iintro Hrun
         (try wp_auto)
         wp_apply wp_goAttach_Done s γ $$ [$Hsync $Hwg $Hinv $Hrun] as Htok
         (try wp_auto)
@@ -128,10 +128,9 @@ theorem EtcdServer.GoAttach.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hlr
-      iunfold srvGoRes
+      iunfold srvGoResAt
       iframe Htok
-      iunfold srvWgReader
-      iexists γ
+      iunfold srvWgReaderAt
       iframe Hok Hrd
 
 end proof

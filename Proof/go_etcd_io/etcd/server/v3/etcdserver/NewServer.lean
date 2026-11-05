@@ -1834,7 +1834,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · rw [← Hγw.2.2.1]; iexact HrtSV
     rw [mvcc.kbRT_some]
     iexact HrtSV
-  imod srvWTPool_alloc _ N ⊤ HrbN $$ HWS with ⟨%γp, #HWBp, #HWA0, ⟨%d0, %Hd0, #Hst⟩, -⟩
+  imod srvWTPool_alloc _ N ⊤ HrbN $$ HWS with ⟨%γp, #HWBp, #HWA0, ⟨%d0, %Hd0, #Hst⟩, HWreg⟩
   have Hd0' : d0 = ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal) :=
     Option.some.inj (Hd0.symm.trans Hγw.2.2.1)
   subst Hd0'
@@ -2281,9 +2281,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists _, rv
     iframe #
   -- `HWB`: the stores' write budget, made above
-  isplitr
+  isplitl [HWreg]
   · iunfold srvWTBudget; iexists γp
-    iframe HWBp HWA0
+    iframe HWBp HWA0 HWreg
   -- the lifetime premises (D17): `storeSmall` at the store's names (`E₀`'s index names), the id
   -- supply from the time-receipt bound (D19b), the thread bound; `ClusterVersion()` from the cluster's
   -- `Version` contract

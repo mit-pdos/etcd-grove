@@ -42,8 +42,9 @@ close each of what it closes (`server.go`'s `Cleanup`; each field's `nil` check 
   empty; with auth on, `authStore.Close`'s proof at the token provider's admin share; until then
   the store's invariant and that share): `authStore.Close`, whose error `Cleanup` ignores;
 * the backend `d` (`s.be`): a reader slot of `bemu` (its `Lock` takes it, `Unlock` gives it back),
-  the apply side's half of `s.be` and quarter of `bemu`'s ghost variable (which name `d` under the
-  lock), its stop channels at the client resources `W`, `Pk` and the clients' whole open token
+  the apply side's half of `s.be` and a part of `bemu`'s ghost variable (which name `d` under the
+  lock; any fraction `dq`, H2, 2026-11-05: the shutdown keeps a part of the apply thread's quarter
+  in the write budget, `stop_monitorRT`; until then the quarter), its stop channels at the client resources `W`, `Pk` and the clients' whole open token
   (R2b-3d stage 5c, 2026-11-05: as an update from what `kv.Close` gives back, the watch loops'
   store readers and the compaction job's resource; the caller has every other reader of the store
   and retires them all there, gap 4's census. Until then `bOpen 1` up front, which the stop could
@@ -54,7 +55,7 @@ close each of what it closes (`server.go`'s `Cleanup`; each field's `nil` check 
   nothing). -/
 abbrev EtcdServer.Cleanup.spec : Prop :=
   ∀ (s lp wsl st : Loc) (γw : mvcc.WsNames) (c : Int) (stl : Loc) (K : IProp GF)
-    (γbe : GName) (d : mvcc.KBReal) (W Pk : IProp GF) (cp : GoInterface)
+    (γbe : GName) (d : mvcc.KBReal) (dq : DFrac) (W Pk : IProp GF) (cp : GoInterface)
     (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp ∗
@@ -63,7 +64,7 @@ abbrev EtcdServer.Cleanup.spec : Prop :=
       mvcc.isWatchableStore wsl st γw ∗ mvcc.wsCloserM wsl st γw.st c ∗
       srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloser stl K ∗ K ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-      dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗
+      dghostVar γbe dq d ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.isStopChans d.γB d.P W Pk d.be ∗
       (mvcc.wsCloseRes st γw.st ={⊤}=∗ backend.bOpen d.γB 1) ∗
       -- (2026-11-04, R2b-3d stage 3) a request `X ⇒ Y` of the backend's stop commit
@@ -72,7 +73,7 @@ abbrev EtcdServer.Cleanup.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
   {{ RET #(); K ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
-      dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗ Y ∗
+      dghostVar γbe dq d ∗ Y ∗
       ∃ D : backend.Data, backend.bStopView d.γB d.P W Pk D ∗
         ((∃ path : GoString, backend.bFile d.γB path ∗ backend.fileHolds path D) ∨
           ⌜¬ backend.dbCloseOk⌝) }}

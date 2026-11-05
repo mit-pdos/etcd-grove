@@ -142,7 +142,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (d' : mvcc.KBR
   icombine Hg2 Hg3 as Hg23
   icombine Hg1 Hg23 as Hg
   imod lc_fupd_elim_later (E := ⊤ \ ↑srvWTN) $$ Hlc Hrt with Hrt
-  icases Hrt with (Hrt | ⟨%q, Hq⟩)
+  icases Hrt with (Hrt | ⟨%q, Hq, -⟩)
   rotate_left
   · iexfalso
     icombine Hg Hq gives %Hv

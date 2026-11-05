@@ -790,7 +790,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
   iunfold isServerRunC at Hpre
   iNamed Hpre
   obtain ⟨HEC, HEγr, Hc0a⟩ := HEr
-  icases HWB with ⟨%γp, #HWB, #HWA0⟩
+  icases HWB with ⟨%γp, #HWB, #HWA0, #HWreg⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := (isServerM_C C s γ ci TM E ρ γr).2 $$ Hsrv
   iunfold isServerM at Hsrv'
@@ -1383,7 +1383,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
       as ⟨Hlk, HwP⟩
     iunfold wgMuP at HwP
     icases HwP with ⟨%bo, Hbo, Hsp⟩
-    imod goAttach_close γg bo $$ [$Hinv $Hclose $Hbo] with ⟨%hbo, Hbo, Hwz⟩
+    imod goAttach_close γg bo $$ [$Hinv $Hclose $Hbo] with ⟨%hbo, Hbo, Hwz, Hwwt⟩
     subst hbo
     iunfold stopPart at Hsp
     simp only [↓reduceIte]
@@ -1421,7 +1421,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     · iframe HQ HR
     -- `s.wg.Wait()`
     (try wp_auto)
-    wp_apply wp_goAttach_Wait s γg $$ [$Hsync $Hwg $Hinv $Hwz]
+    wp_apply wp_goAttach_Wait s γg $$ [$Hsync $Hwg $Hinv $Hwz $Hwwt] as Hgw
     -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
     icases stop_split C _ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
     iunfold srvShutdownPre at Hpre
@@ -1438,7 +1438,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
         A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp hvs
       $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
-        Hlc2 Hlc3] as Himg
+        Hlc2 Hlc3 $HWreg $Hgw] as Himg
     · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
     -- `close(s.done)`, the image escrowed (`srvDoneInv`)
     imod inv_alloc srvStopN ⊤ iprop(srvDiskImage ρ.rd.raft.raft ρ γn.id dd ∨ token c) $$ [Himg]

@@ -38,7 +38,10 @@ lease (`acLessor C`), in the environment's mode, it sets the snapshot defaults, 
 the pure premise `receiptBound GF ≤ N + 1`); it returns the server's persistent views in the
 mode (`isServerReqM`, at the wait's fresh names, and `isServerReadM`), the store's range check at a
 reader's lower bound (`srvAuthLb`, trivial with auth off), and what `Start`'s goroutines and the
-request path's get (`srvStarted`, at the mode's model state). A new server: the apply thread from
+request path's get (`srvStarted`, at the mode's model state), and (H2, 2026-11-05) the write
+budget with its register set to `GoAttach`'s receipts' name `γg.run`, with `Start`'s reader slot of
+`wgMu` at `γg` (so that the storage-version monitor `Start` attaches runs with a receipt at the
+registered name). A new server: the apply thread from
 index `0` (each applied entry takes a write token, which bounds the applied index,
 `srvWTPool_bound`). -/
 abbrev EtcdServer.start.spec : Prop :=
@@ -52,7 +55,8 @@ abbrev EtcdServer.start.spec : Prop :=
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗
       srvStarted s γr ρ Er.RQ (kvStM C.isOn γr.kv) ∗
-      ∃ γp : WTNames, srvWTPool E γp }}
+      ∃ (γp : WTNames) (γg : GoNames), srvWTPool E γp ∗
+        dghostVar γp.reg DFrac.discard (some γg.run) ∗ srvWgReaderAt s γg }}
 
 end spec
 

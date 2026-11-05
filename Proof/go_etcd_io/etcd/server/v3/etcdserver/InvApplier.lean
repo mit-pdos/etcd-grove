@@ -1050,10 +1050,16 @@ server's current backend `d`, of which the invariant holds a quarter of the ghos
 taker agrees on `d` with it: the apply thread through `srvBeOwn`, the storage-version monitor through
 its share of `bemuP` under `s.bemu`'s read lock. The invariant also holds the monitor's read token
 of `d` (`mvcc.bkRTx`, until S7b the monitor's own for good, `srvSVRes`), or, while the monitor has
-it checked out for a session, a part of the monitor's share of `E.γbe` in its place.
-`applySnapshot`, holding `bemu`'s write side, gathers all of `E.γbe` from `bemuP`, `srvBeOwn` and
-this invariant (so no session is open: a checked-out part would make more than the whole), moves
-it to the new backend and puts in the new one's stock: one invariant over the current backend.
+it checked out for a session, a part of the monitor's share of `E.γbe` in its place, with (H2,
+2026-11-05) the monitor goroutine's running receipt at the registered name (`W.reg`, which `start`
+sets to `GoAttach`'s `γg.run`: `ownToks r 1`), so that the shutdown, once its `Wait` returned
+(`goWaited`), knows no session is open. `applySnapshot`, holding `bemu`'s write side, gathers all of
+`E.γbe` from `bemuP`, `srvBeOwn` and this invariant (so no session is open: a checked-out part would
+make more than the whole), moves it to the new backend and puts in the new one's stock: one
+invariant over the current backend. (H2) Once the shutdown took the read token out
+(`stop_monitorRT`), the checked-out case holds a part of the shutdown's share of `E.γbe` with its
+`goWaited` (half the receipts' authority at `0`, at the registered name) in place of a receipt: so
+no swap follows (the part), and no second stop takes the token (`goWaited` is exclusive).
 
 **One stock per backend** (M2's item 15, stage B, 2026-11-02): the current backend's tokens and
 their bound are its stock (`srvWTStockInv γp d`), which shares the budget's counter; a swap puts the
@@ -1064,7 +1070,9 @@ def srvWTPool (E : apply.AEnv GF) (W : WTNames) : IProp GF :=
   inv srvWTN iprop(∃ (a : Nat) (d : mvcc.KBReal), ⧗ a ∗
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ srvWTStockInv W.cnt d ∗
     monoNatAuthOwn W.cnt 1 a ∗
-    (mvcc.bkRTx d.γB d.P d.be ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) d))
+    (mvcc.bkRTx d.γB d.P d.be ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) d ∗
+      ∃ r : GName, dghostVar W.reg DFrac.discard (some r) ∗
+        (ownToks r 1 ∨ ownTokAuthDfrac r (DFrac.own (1 : Qp).half) 0)))
 
 instance srvWTPool_persistent (E : apply.AEnv GF) (γp : WTNames) :
     Persistent (srvWTPool (GF := GF) E γp) := by
@@ -1155,14 +1163,13 @@ theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
     iframe Hs
     ipureintro; exact Hd
 
-/-- (M2's item 15, stage B3) **The write budget as `NewServer` hands it on** (persistent): the
-budget made (`srvWTPool`, which `start` made until stage B3, so that a compaction's supply draws on
-the same stock), its counter at least `0`. -/
+/-- (M2's item 15, stage B3) **The write budget as `NewServer` hands it on**: the budget made
+(`srvWTPool`, which `start` made until stage B3, so that a compaction's supply draws on the same
+stock), its counter at least `0`, and (H2, 2026-11-05; not persistent since) its register, unset,
+which `start` sets to `GoAttach`'s receipts' name. -/
 def srvWTBudget (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt (W64 0))
-
-instance srvWTBudget_persistent (E : apply.AEnv GF) : Persistent (srvWTBudget (GF := GF) E) := by
-  unfold srvWTBudget; infer_instance
+  iprop(∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt (W64 0) ∗
+    dghostVar γp.reg (DFrac.own 1) (none : Option GName))
 
 /-- One write-back token of the backend `d` off a supply. -/
 theorem wbToks_split (d : mvcc.KBReal) (n : Nat) :

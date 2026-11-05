@@ -149,18 +149,82 @@ theorem stop_rep_cast (P : IProp GF) (a b : Nat) (h : a = b) :
     ([∗list] _x ∈ List.replicate a (), P) ⊢ [∗list] _x ∈ List.replicate b (), P := by
   subst h; exact .rfl
 
-/-- **The storage-version monitor's read token of the current backend `d`, at the stop** (hard stop
-H2, `questions.md`): `srvWTPool`'s invariant holds the monitor's read token of the backend its
-quarter of `E.γbe` names, or, while the monitor's session has it checked out, a part of `E.γbe` in
-its place. The stop's census needs the token (its share of the backend's open token, for `Close`);
-nothing yet says the monitor's session is over when `s.wg.Wait()` returns. Stated at the apply
-thread's quarter of `E.γbe` at `d` (which fixes the backend) and one later credit (the invariant's
+/-- **The storage-version monitor's read token of the current backend `d`, at the stop** (H2,
+`questions.md`; 2026-11-05): `srvWTPool`'s invariant holds the monitor's read token of the backend
+its quarter of `E.γbe` names, or, while the monitor's session has it checked out, a part of `E.γbe`
+with the monitor goroutine's receipt at the registered name (`W.reg`, `GoAttach`'s `γg.run`). Once
+the shutdown's `Wait` returned (`goWaited γg`), no receipt is running (`goWaited_running`), so the
+token is in. The stop takes it and leaves in its place an eighth of the apply thread's quarter of
+`E.γbe` with its `goWaited` (so that no swap follows, and no second stop: three halves of the
+receipts' authority with `GoAttach`'s invariant's). Stated at the apply thread's quarter of `E.γbe`
+at `d` (which fixes the backend; an eighth comes back) and one later credit (the invariant's
 opening). -/
-theorem stop_monitorRT (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) :
-    £ 1 ∗ srvWTPool (GF := GF) E γp ∗ dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ⊢
-      |={⊤}=> dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ mvcc.bkRTx d.γB d.P d.be := by
-  -- H2 (questions.md): the monitor's session may hold it; hard stop pending
-  sorry
+theorem stop_monitorRT (E : apply.AEnv GF) (γp : WTNames) (γg : GoNames) (d : mvcc.KBReal) :
+    £ 1 ∗ srvWTPool (GF := GF) E γp ∗ inv goAttachN (goAttachInv γg) ∗
+      dghostVar γp.reg DFrac.discard (some γg.run) ∗ goWaited γg ∗
+      dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ⊢
+      |={⊤}=> dghostVar E.γbe (DFrac.own (1 : Qp).half.half.half) d ∗
+        mvcc.bkRTx d.γB d.P d.be := by
+  iintro ⟨Hlc, #Hp, #Hgi, #Hreg, Hw, Hq⟩
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %d0, >Ha, >Hg0, #Hs0, >Hc, Hrt⟩ Hclose
+  ihave %Hdd := dghostVar_agree E.γbe d _ d0 _ $$ Hq Hg0
+  subst Hdd
+  imod lc_fupd_elim_later (E := ⊤ \ ↑srvWTN) $$ Hlc Hrt with Hrt
+  icases Hrt with (Hrt | ⟨%q, Hdep, %r, #Hreg', Hrun⟩)
+  · -- the token in: out, an eighth of the quarter and `goWaited` in its place
+    icases (dghostVar_split (GF := GF) E.γbe d (DFrac.own (1 : Qp).half.half.half)
+      (DFrac.own (1 : Qp).half.half.half)) $$ [Hq] with ⟨Hq1, Hq2⟩
+    · rw [DFrac.op_own, Qp.half_add_half]; iexact Hq
+    imod Hclose $$ [Ha Hg0 Hc Hq2 Hw] with -
+    · inext
+      iexists a, d
+      iframe Ha Hg0 Hs0 Hc
+      iright
+      iexists (1 : Qp).half.half.half
+      iframe Hq2
+      iexists γg.run
+      iframe Hreg
+      iright
+      iunfold goWaited at Hw
+      iexact Hw
+    imodintro
+    iframe Hq1 Hrt
+  · -- checked out: the receipt is at `γg.run`
+    ihave %Hr := dghostVar_agree γp.reg _ _ _ _ $$ Hreg Hreg'
+    obtain rfl := Option.some.inj Hr
+    icases Hrun with (Hrun | Hw')
+    · iexfalso
+      iapply goWaited_running γg
+      iframe Hw
+      iunfold goRunning
+      iexact Hrun
+    · -- a second stop's: three halves of the authority with the protocol's
+      have hmask : (↑goAttachN : CoPset) ⊆ ⊤ \ ↑srvWTN :=
+        sync.wg_mask_ndot_ne nroot "srvGoAttach" "srvWT" (by decide)
+      imod inv_acc (E := ⊤ \ ↑srvWTN) (N := goAttachN) hmask $$ Hgi with ⟨Hi, -⟩
+      iunfold goAttachInv at Hi
+      icases Hi with ⟨%b, %ctr, %k, %dq, -, -, -, >Hra, -, >%Hdq, -⟩
+      iunfold goWaited at Hw
+      icombine Hw Hra gives %Hv0
+      obtain ⟨Hv0, Hk⟩ := Hv0
+      subst Hk
+      have hf := (ownTokAuth_fractional (GF := GF) γg.run 0).fractional (1 : Qp).half (1 : Qp).half
+      rw [Qp.half_add_half] at hf
+      rcases Hdq with rfl | ⟨rfl, -, -⟩
+      · exfalso
+        rw [DFrac.op_own] at Hv0
+        have h := DFrac.valid_own.1 Hv0
+        have hq := ((1 : Qp).half).2
+        simp only [Qp.val_add, Qp.val_one] at h
+        grind
+      · ihave H := hf.2 $$ [Hw Hra]
+        · iframe Hw Hra
+        icombine H Hw' gives %Hv
+        obtain ⟨Hv, -⟩ := Hv
+        exfalso
+        rw [DFrac.op_own] at Hv
+        exact Qp_one_add_not_le _ (DFrac.valid_own.1 Hv)
 
 /-- **The census** (gap 4, as `NewServer`'s error path R-D1): `m` idle readers of the store, the
 writer's fragment (the pin `storeReaders_retire` needs), the writer's retired count with its own
@@ -335,7 +399,8 @@ what `kv.Close` takes, `wsCloserR`, and what the image's observation reads, `app
 voters the bootstrap log's members, distinct (`bootOk`'s `γ.vs = ps ∧ ps.Nodup ∧ srvBootLogOk ps
 γ.boot`: what the image's configuration point needs). Besides: the write budget's invariant (the
 storage-version monitor's read token, `stop_monitorRT`), `isServerApplyAll` (the KV names' start
-log), two later credits. A `Prop`, so that `run`'s proof takes it as a hypothesis. -/
+log), two later credits, and (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts' name
+and `Wait`'s `goWaited` (which rule the monitor's open session out). A `Prop`, so that `run`'s proof takes it as a hypothesis. -/
 abbrev stopCleanupImage.spec : Prop :=
   ∀ (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) (Er : RNEnv GF)
     (γg : GoNames) (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF)
@@ -360,7 +425,9 @@ abbrev stopCleanupImage.spec : Prop :=
           rnWalClosed C.rn (srvRAddr C.s) σ ∗
           ⌜StorageHolds S σ ∧ σ.b ≤ (C.rn.pre ++ A).length ∧
             (C.rn.pre ++ A).length ≤ σ.commit⌝) ∗
-        srvWTPool C.E C.wt ∗ isServerApplyAll C.s C.γr ∗ £ 2 }}
+        srvWTPool C.E C.wt ∗ isServerApplyAll C.s C.γr ∗ £ 2 ∗
+        -- (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts, and `Wait` returned
+        dghostVar C.wt.reg DFrac.discard (some γg.run) ∗ goWaited γg }}
       (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
     {{ RET #(); srvDiskImage C.ρ.rd.raft.raft C.ρ C.rn.id dd }}
 
@@ -377,7 +444,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
   intro K C A Er γg γcx v SP TM cfg dd hM hoff hcp hEr hdisk hcmp hvs
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
-    ⟨%S, %σ, Hrst, Hwc, %hσ⟩, #Hpool, #Hsa, Hlc⟩ HΦ
+    ⟨%S, %σ, Hrst, Hwc, %hσ⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
   cases K with
   | on γa =>
@@ -491,8 +558,13 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   rw [hBbe]
   -- the monitor's read token (H2)
   icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
-  imod stop_monitorRT C.E C.wt d $$ [Hlc1 Hg] with ⟨Hg, HrtM⟩
-  · iframe Hlc1 Hpool Hg
+  ihave #Hrf' := Hrf
+  iunfold srvRunFieldsAt at Hrf'
+  icases Hrf' with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hgok⟩
+  iunfold srvGoAttachOk at Hgok
+  icases Hgok with ⟨%gch, %gc, -, -, -, #Hginv, -⟩
+  imod stop_monitorRT C.E C.wt γg d $$ [Hlc1 Hg Hwd] with ⟨Hg, HrtM⟩
+  · iframe Hlc1 Hpool Hginv Hreg Hwd Hg
   -- the census (gap 4): the slot's readers with the compactor's, the caller's 128, the apply
   -- thread's own, at the current names
   iunfold srvRunFieldsAt at Hrf
@@ -539,7 +611,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hsch with ⟨-, #HSC⟩
   -- `s.Cleanup()`
   iapply wp_fupd
-  wp_apply hCl C.s lp wsl B.E.s γw (-1) stl iprop(True) C.E.γbe d (mvcc.lateWD d)
+  wp_apply hCl C.s lp wsl B.E.s γw (-1) stl iprop(True) C.E.γbe d _ (mvcc.lateWD d)
       (batchLockInv B.γ (metaTM d.γB d.P)) v.compactor (applyThread B.γ st) (freezeY B.γ st)
     $$ [Hlst Hwcm Hbr Hbe Hg Hwand' Hst]
     as ⟨-, -, -, -, HY, %D, Hsv, Hfile⟩

@@ -137,10 +137,12 @@ theorem EtcdServer.sendMergedSnap.wp_proof
   -- `s.GoAttach(func() { ... })`: the release goroutine, with the fields' capacity for `append`
   iunfold stopChan at Hstg
   icases Hstg with ⟨%γsg, #Hstg⟩
-  wp_apply hGA s _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hlr Hfcap]
+  icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
+  wp_apply hGA s γg _ (ownSliceCap go_uber_org.zap.zapcore.Field _ (DFrac.own 1)) $$ [Hgr Hlr Hfcap]
     as ⟨Hgr, Hlr⟩
   · iframe Hgr Hlr Hfcap
-    iintro !> %Φ' Hfcap HΦ'
+    iintro !> %Φ' ⟨Hfcap, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto_lc 2
     wp_apply hCN mg cc $$ []
     · iframe #
@@ -253,6 +255,7 @@ theorem EtcdServer.sendMergedSnap.wp_proof
     itrivial
   (try wp_auto)
   iapply HΦ
+  ihave Hgr := srvGoResAt_close s γg $$ Hgr
   iframe Hgr Hlr
 
 end proof
