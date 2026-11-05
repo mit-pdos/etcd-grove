@@ -1,4 +1,4 @@
-# Plan: the Linux file extension, version 2 (one namespace, inodes, sectors)
+# Plan: the Linux file extension, version 2 (one directory tree, inodes, sectors)
 
 **Date:** 2026-11-05. **Status:** design agreed with the user in outline (this note); not
 implemented. Supersedes the two-regime design of `notes/walfs-ext-plan.md` (N2) and the per-byte
@@ -7,15 +7,15 @@ crash model of `notes/osfs-ext-plan.md` (D1) once it lands.
 ## Why
 
 The extension as of `worktree-walfs-ext` has two ways to name a file: the original fixed table of
-paths (`files : GMap GoString (Option OsFile)`, the "old regime") and the namespace under fixed
+paths (`files : GMap GoString (Option OsFile)`, the "old regime") and the directory tree under fixed
 roots, whose files live in the same table under NUL-byte keys. The split is not a Linux concept: it
-exists because the original extension never modelled path resolution. Version 2 has one namespace,
+exists because the original extension never modelled path resolution. Version 2 has one directory tree,
 files keyed by internal inode numbers, the machine's state separated from the process's, and a
 crash model at the granularity of 512-byte sectors, which is what etcd's WAL needs to restart.
 
 ## Decisions
 
-- **V1, one namespace.** Every path a program uses is resolved in the namespace under the roots
+- **V1, one directory tree.** Every path a program uses is resolved in the directory tree under the roots
   (directories fixed at boot); any other path is stuck. No `Regime` query, no second `Open`.
 - **V2, inodes, internal.** Files are keyed by `Ino := Nat`, allocated fresh at create; no call
   takes or returns one. File identity is needed because Linux's fds, mappings and in-flight
@@ -25,16 +25,20 @@ crash model at the granularity of 512-byte sectors, which is what etcd's WAL nee
   commits: `a.tmp` may hold `Y`). A state keyed by path alone either misses that execution
   (unsound) or rebuilds identity elsewhere (fd paths rewritten on rename, orphans held by fds, the
   log replayed on file locations). An unlinked file stays in `files`; a crash drops every inode
-  the surviving namespace does not name. Nothing is dropped before a crash.
+  the surviving directory tree does not name. Nothing is dropped before a crash.
 - **V3, machine and process.** `FsState` (names, files: the machine, what survives the process)
   and `ProcState` (fds, directory fds, in-flight changes, mappings, the metadata flag: the
   process). Both are the extension's per-node `LocalState` (Perennial's node is one machine running
   one Go program).
-- **V4, names: a base and a log.** `FsState` holds `nsDur`, the namespace as of the last journal
-  commit the model knows of, and `nsLog`, the metadata operations since, in order. The namespace now
-  is derived, `nsNow fs := nsReplay fs.nsLog fs.nsDur` (no stored copy, so no invariant to keep).
-  A metadata step checks its preconditions against `nsNow` and appends to `nsLog`; a commit of `k`
-  operations folds `nsLog.take k` into `nsDur`; a crash keeps `nsReplay (nsLog.take n) nsDur` for
+- **Naming.** The map from paths to what is there is the *directory tree* (POSIX: the file
+  hierarchy; Linux implements it as directory entries, dentries), `Tree`; create, mkdir, remove and
+  rename are *metadata operations*, `MetaOp`. "Namespace" is not used: Linux namespaces (mount,
+  PID, ...) are a different thing.
+- **V4, names: a base and a log.** `FsState` holds `treeDur`, the directory tree as of the last journal
+  commit the model knows of, and `metaLog`, the metadata operations since, in order. The directory tree now
+  is derived, `treeNow fs := replay fs.metaLog fs.treeDur` (no stored copy, so no invariant to keep).
+  A metadata step checks its preconditions against `treeNow` and appends to `metaLog`; a commit of `k`
+  operations folds `metaLog.take k` into `treeDur`; a crash keeps `replay (metaLog.take n) treeDur` for
   some `n` (ext4/xfs: metadata reaches the journal in order and the journal commits in order).
   Names keep a base and a log, where file contents do not, because a crash keeps a prefix of one
   global order. A directory `fsync` commits through the last operation that changed its entries
@@ -61,8 +65,8 @@ crash model at the granularity of 512-byte sectors, which is what etcd's WAL nee
 abbrev Ino := Nat
 
 inductive OsNode | dir | file (i : Ino)
-abbrev NsMap := GMap GoString OsNode           -- canonical path ↦ what is there
-inductive NsOp                                 -- a metadata operation, as logged
+abbrev Tree := GMap GoString OsNode           -- canonical path ↦ what is there
+inductive MetaOp                                 -- a metadata operation, as logged
   | create (p : GoString) (i : Ino) | mkdir (p : GoString)
   | remove (p : GoString) | rename (s t : GoString)
 
@@ -81,8 +85,8 @@ structure OsFile where
 
 structure FsState where                        -- the machine
   roots : List GoString
-  nsDur : NsMap
-  nsLog : List NsOp
+  treeDur : Tree
+  metaLog : List MetaOp
   files : GMap Ino OsFile
 
 structure OsFd     where ino : Ino; readable writable : Bool
@@ -95,7 +99,7 @@ structure ProcState where                      -- the process
   dfds : GMap w64 OsDirFd
   inflight : GMap Nat OsChange
   maps : GMap Loc OsMap
-  nsBusy : Bool                                -- a metadata call between NsBegin and its step
+  metaBusy : Bool                                -- a metadata call between MetaBegin and its step
 
 structure OsState where
   fs : FsState
@@ -124,15 +128,15 @@ sync writes it and collapses its list, as rewriting a page dirties it again in L
 
 The metadata steps are those of `worktree-walfs-ext` (`open` with `O_CREAT`, `rename`, `unlink`,
 `rmdir`, `mkdir`, readdir, directory `fsync` and `close`, `lstat`'s directory test, `fallocate`,
-OFD locks), over `nsNow` and inodes; `open` with `O_CREAT` allocates an inode not in `files` and
+OFD locks), over `treeNow` and inodes; `open` with `O_CREAT` allocates an inode not in `files` and
 logs `create p i`. The misuse, failure and race discipline of the existing extension (stuck on
 misuse, any errno on environmental failure, two-step changes with holes for racing mapped loads)
 is unchanged.
 
 ## Crash
 
-**Machine crash** (`OsCrash`): `nsDur' = nsReplay (nsLog.take n) nsDur` for some `n ≤ |nsLog|`,
-`nsLog' = []`; `files'` holds exactly the inodes `nsDur'` names, each a crash image of its file;
+**Machine crash** (`OsCrash`): `treeDur' = replay (metaLog.take n) treeDur` for some `n ≤ |metaLog|`,
+`metaLog' = []`; `files'` holds exactly the inodes `treeDur'` names, each a crash image of its file;
 the process state is empty. A crash image of a file:
 
 - its size is in `[sizeLo, sizeHi]`, or between those and the target of an in-flight change;
@@ -171,7 +175,7 @@ is one of the per-byte model, carries the existing per-byte crash reasoning over
 not written since the last successful sync agrees across every version of its sector; the
 per-byte model is conservative after a failed sync, where the sector model knows more). A
 sector-level resource is added when a proof needs the sector guarantee (etcd's WAL restart). The
-namespace's ghost state (the history, `osDir` its directory views) is keyed by inodes in place of
+directory tree's ghost state (the history, `osDir` its directory views) is keyed by inodes in place of
 NUL keys.
 
 ## Phases
@@ -181,9 +185,9 @@ NUL keys.
    the `os`/`unix` trusted models (one `OpenFile` path; fds hold inodes), the crash interpretation,
    `Tests.lean`/`TestsNs.lean`; a fresh-agent review of the trusted diff.
 3. The program logic: the ghost state by inode, the per-byte interpretation and the bridge lemma,
-   the namespace history over inodes, the old regime's specs removed.
+   the directory tree history over inodes, the old regime's specs removed.
 4. The clients: bbolt, crashlog, the three walfs examples. bbolt's and crashlog's theorem
-   statements change (their initial state: a namespace in which the file's path names an inode);
+   statements change (their initial state: a directory tree in which the file's path names an inode);
    the statement diffs go to the user before they are committed.
 5. Gates, notes, interfaces.
 6. V6, process restart, with its proof repairs (every generation's boot precondition then admits
