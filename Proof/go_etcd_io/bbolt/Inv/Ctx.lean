@@ -71,7 +71,7 @@ def wtxCore (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
     ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own 1) X ∗ fills X.handles (DFrac.own 1) ∗
-    hdlAuth r 1 X.handles ∗ ghostMapAuth r.n.nl 1 X.nloc ∗
+    hdlAuth r 1 X.handles ∗ nlAuth r 1 X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} r.db ∗ viewBase r X.v ∗ statsTok r m 1)
 
 /-- **The writer's working state** (U0b): what a writer's internal functions run over, from its
@@ -94,7 +94,7 @@ def wtxCoreQ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) : IPro
     ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
       txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
     wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
-    hdlAuth r q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
+    hdlAuth r q X.handles ∗ nlAuth r q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ viewBase r X.v ∗ statsTok r m q)
 
 /-- **The writer's working state at fraction `q`** (U6w, "Writer reads at a fraction" of

@@ -158,6 +158,75 @@ instance hdlAuth_fractional (r : TxReg) (H : GMap Loc (GoString × Nat)) :
       iapply ((ghostMapAuth_fractional r.n.bk H).fractional p q).2
       iframe
 
+/-- **The writer's node-location registry's fragments** (persistent; U6y's F1): one per entry of
+`M` (`X.nloc`). What a writer cursor's `nodeLoc` takes its node elements' fragments from. -/
+def nlFrags (r : TxReg) (M : GMap Loc (Loc × Nat)) : IProp GF :=
+  iprop([∗map] l ↦ y ∈ M, l ↪[r.n.nl]□ y)
+
+instance nlFrags_persistent (r : TxReg) (M : GMap Loc (Loc × Nat)) :
+    Persistent (nlFrags (GF := GF) r M) := by
+  unfold nlFrags; infer_instance
+
+instance nlFrags_timeless (r : TxReg) (M : GMap Loc (Loc × Nat)) :
+    Timeless (nlFrags (GF := GF) r M) := by
+  unfold nlFrags; infer_instance
+
+/-- **The writer's node-location registry at `q`** (U6y's F1, as `hdlAuth`): its auth at `q` and
+every entry's persistent fragment (`wtxCore`, `wtxCoreQ`, `wtxFrac`). -/
+def nlAuth (r : TxReg) (q : Qp) (M : GMap Loc (Loc × Nat)) : IProp GF :=
+  iprop(ghostMapAuth r.n.nl q M ∗ nlFrags r M)
+
+open Iris.ProofMode in
+omit hos in
+/-- An entry's fragment out of `nlFrags`. -/
+theorem nlFrags_lookup (r : TxReg) (M : GMap Loc (Loc × Nat)) (l : Loc) (y : Loc × Nat)
+    (hl : M !! l = some y) : nlFrags (GF := GF) r M ⊢ l ↪[r.n.nl]□ y := by
+  unfold nlFrags
+  iintro #Hf
+  iapply (BigSepM.bigSepM_lookup (Φ := fun k u => (k ↪[r.n.nl]□ u : IProp GF)) hl) $$ Hf
+
+open Iris.ProofMode in
+omit hos in
+/-- A new entry's fragment added to `nlFrags`. -/
+theorem nlFrags_insert (r : TxReg) (M : GMap Loc (Loc × Nat)) (l : Loc) (y : Loc × Nat)
+    (hl : M !! l = none) : nlFrags (GF := GF) r M ∗ l ↪[r.n.nl]□ y ⊢ nlFrags r (M.insert l y) := by
+  unfold nlFrags
+  iintro ⟨#Hf, #Hb⟩
+  iapply (BigSepM.bigSepM_insert (Φ := fun k u => (k ↪[r.n.nl]□ u : IProp GF)) hl).2
+  iframe #
+
+open Iris.ProofMode in
+omit hos in
+/-- The empty node registry, with its (no) fragments. -/
+theorem nlAuth_of_empty (r : TxReg) :
+    ghostMapAuth (GF := GF) r.n.nl 1 (∅ : GMap Loc (Loc × Nat)) ⊢ nlAuth r 1 ∅ := by
+  unfold nlAuth nlFrags
+  iintro Ha
+  iframe Ha
+  iapply BigSepM.bigSepM_empty.2
+  iempintro
+
+instance nlAuth_timeless (r : TxReg) (q : Qp) (M : GMap Loc (Loc × Nat)) :
+    Timeless (nlAuth (GF := GF) r q M) := by
+  unfold nlAuth; infer_instance
+
+open Iris.ProofMode in
+omit hos in
+instance nlAuth_fractional (r : TxReg) (M : GMap Loc (Loc × Nat)) :
+    Fractional (fun q => nlAuth (GF := GF) r q M) where
+  fractional p q := by
+    unfold nlAuth
+    constructor
+    · iintro ⟨Ha, #Hf⟩
+      icases ((ghostMapAuth_fractional r.n.nl M).fractional p q).1 $$ Ha with ⟨H1, H2⟩
+      isplitl [H1]
+      · iframe; iframe #
+      · iframe; iframe #
+    · iintro ⟨⟨H1, #Hf⟩, ⟨H2, -⟩⟩
+      iframe #
+      iapply ((ghostMapAuth_fractional r.n.nl M).fractional p q).2
+      iframe
+
 /-- Bytes at `p` (a page, an inline page): in a page of the view `v`, or persistent heap bytes. -/
 def locOwn (v : View) (p : Loc) (bs : List w8) : IProp GF :=
   iprop(⌜inViewLoc v p bs⌝ ∨ bytesPointsto p DFrac.discard bs)
@@ -256,7 +325,7 @@ facts (batch 43/44: ending with `wrFacts`). -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
     viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
-    hdlAuth r q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
+    hdlAuth r q X.handles ∗ nlAuth r q X.nloc ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗
     (∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half))
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗

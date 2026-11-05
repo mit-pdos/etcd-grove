@@ -165,7 +165,13 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
       | some y =>
         have := Hok.2.2.2.2.1 _ y h
         rw [Hfresh] at this; cases this
-    imod (ghost_map_insert «$r0_ptr» (bl, pgid.toNat) hnl0) $$ Hnl with ⟨Hnl, -⟩
+    iunfold nlAuth at Hnl
+    icases Hnl with ⟨Hnl, #Hnlf⟩
+    imod (ghost_map_insert_persist «$r0_ptr» (bl, pgid.toNat) hnl0) $$ Hnl with ⟨Hnl, #Hnfr⟩
+    ihave #Hnlf := nlFrags_insert r X.nloc «$r0_ptr» (bl, pgid.toNat) hnl0 $$ [Hnlf Hnfr]
+    · iframe #
+    ihave Hnl : nlAuth (GF := GF) r 1 (X.nloc.insert «$r0_ptr» (bl, pgid.toNat)) $$ [Hnl]
+    · unfold nlAuth; iframe; iframe #
     -- the parent, if any
     let Ls : List Loc := if parent = null then [] else [parent]
     have hLs : ∃ f : Loc → NRec, ∀ k ∈ Ls, B.ns !! k = some (f k) ∧ (f k).nv.isLeaf' = false ∧

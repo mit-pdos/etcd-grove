@@ -330,6 +330,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       (metaOf (w.C.slot w.C.txid)).root' (View.ofC b w.C))) (View.ofC b w.C) hbn
     with ⟨%n, Hv, Hex, Hbka, Hnla, Hdone, Hpga, Hpgt, #Hvw, #Hvn, Hvwo⟩
   ihave Hbka := hdlAuth_of_empty (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ Hbka
+  ihave Hnla := nlAuth_of_empty (GF := GF) (⟨K.db, n, true, .loan⟩ : TxReg) $$ Hnla
   ihave ⟨Hv1, Hv2⟩ := (ghostVar_split_half n.v 1 _).1 $$ Hv
   ihave ⟨Hd1, Hd2⟩ := (ghostVar_split_half n.done 1 false).1 $$ Hdone
   ihave ⟨Hmfa, Hmfb⟩ := mapFields_halve K.db (1 : Qp).half (some (b, l)) $$ Hmf
