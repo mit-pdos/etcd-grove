@@ -1500,3 +1500,17 @@ not-found implication for its own errors (`requireAuthInfo`, the keys check,
 `ErrAuthOldRevision`: `errors.Is` against `ErrLeaseNotFound` false, distinct error cells); `Main`
 gets `leaseTTLRow s` from `StartServer`'s `memberUp` (`isServerBuiltC_mid` gives the member id
 field, `ps = [id]`).
+
+**E3 (c), decided (the user, 2026-11-05: route (A)).** Groundwork `6a515b550c` (`histOnce`,
+`everIn` and their pure laws). **Approved trusted-statement change:** the trust-boundary axiom
+`lease.NewLessor.wp_proof`'s postcondition gains `lease.leaseEver γl ∅`. It is ghost-only and true of
+Go, because a fresh lessor has had no lease. It must go through the `axiom` skill before Freeze.
+Then:
+- `LessorRdNames` gains U's ghost name;
+- `lessorRdBody` holds U's other half, with `histOnce` and "every id in the history is in U";
+- `Grant` takes `leaseEver γl U` and, in the revocable mode, `id ∉ U`, and returns `U ++ [id]`;
+- `Revoke`/`Attach`/`Detach` leave U unchanged;
+- `Recover` takes its ids `∉ U` and returns `U ++ ids`;
+- stage 2 is in `srvRest`, with the one-prefix fact (E3 (b)'s open item) as an explicit premise of
+  the revocable mode. That premise is untrusted, true under the single-member row, and stays until
+  E2 is approved.
