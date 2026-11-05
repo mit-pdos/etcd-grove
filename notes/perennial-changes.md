@@ -1659,17 +1659,21 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   bbolt's `Open` sets `pagePool.New = func() any { return make([]byte, db.pageSize) }` over its named
   result `db`, which every `return` writes. The Go code is safe (`New` runs only in `Get`, reached
   only while the database is open); the spec is too strict.
-- **Needed by.** bbolt's `Open` (the pool `sorry` in `Proof/go_etcd_io/bbolt/Open.lean`).
-- **Workaround here.** A named `sorry` in `Open`, where `dbFixed`'s `isPool` is produced.
+- **Needed by.** bbolt's `Open` (`Proof/go_etcd_io/bbolt/Open.lean`, the page pool's `New`).
+- **Workaround here.** None left on the local branch `bbolt-pool-new-later` (built against
+  `pool-new-later`, all 908 bbolt modules, no `sorry` in `Open`): a `Get` caller lends `New` a
+  lease `poolR γbq N P` (U11i), and `New` borrows a fraction of `db`'s cell from `Open`'s protocol
+  `Open/PoolNew.dpProt` for its whole read, depositing `P` (saved under a name, the borrow in a
+  ghost map) as collateral; `Open`'s last write collects every fraction around one of its own
+  steps (`wp_step_fupd`), refuting a borrow still out by its lease and the whole token (U11j).
+  On `main`'s pin a named `sorry` stays where `dbFixed`'s `isPool` is produced.
 - **Proposed change.** Perennial branch `pool-new-later` (`/home/ubuntu/perennial`, commit
   `3b91c3ee1`, off the pin `b3e996d84`): `isPool p f R P` with
   `newSpec f R P := ⌜f = nil⌝ ∨ {{ R }} f() {{ x, P x ∗ R }}`; `Get` takes and returns `R`; `Put`
   and `init_Pool` take the parameter; `R := True` is the old spec (`newSpec_of_true`);
   `init_Pool` consumes the pool's points-to, so the spec can be chosen after `Pool{New: f}` is
-  stored. No model or trusted change.
-- **bbolt adaptation.** `R := iprop(True)` on the local branch `bbolt-pool-new-later` (`345b9d17b1`,
-  unbuilt, unpushed).
-- **Status.** Not landed. Necessary, not sufficient: `Open`'s final non-atomic store into `db`
-  must also not race with a `New` running under a writer, which needs a bbolt protocol (writers
-  gated on a "returned" one-shot inside the sealed `isBolt`, or a lease threaded through `Open`'s
-  own commit).
+  stored. No model or trusted change. To add before it lands: `isPool_respec` (an `isPool` with
+  another `New` spec `R'` for which `newSpec f R' P` holds: `isPool` is the field, the spec and an
+  invariant that does not mention the spec), now proved in bbolt's `Open/PoolNew.lean`, so that a
+  pool can serve a family of lenders (`∀ Q, isPool p f (R Q) P`).
+- **Status.** Not landed. With it, `Open` needs nothing more of Perennial.

@@ -8,8 +8,8 @@ unchanged (`Begin`, `Commit`, over the client's `boltState` it then returns).
 
 Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once the transaction
 began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
-Open: one named `sorry`, the page pool's `New` (it reads the named result `db`, which the
-returns write; reported).
+The page pool's `New` reads the named result `db`, which the returns write: it borrows the cell
+from the protocol `Open/PoolNew.dpProt` against its caller's lease (U11j).
 A local assumption until the method is translated: `fs.FileMode.String.spec`.
 -/
 module
@@ -180,30 +180,31 @@ macro "open_exit_j" hv:term:max xs:term:max : tactic => `(tactic| (
   ipureintro
   first | exact ⟨rfl, fun h => nomatch h⟩ | exact ⟨trivial, fun h => nomatch h⟩ | simp))
 
-/-- **`Open`'s last write of `db` begins** (U11i, `Open/PoolNew.dp_lock`): the whole validity
-token of the client's `boltState` lent to the protocol, which excludes every `New`. -/
+/-- **`Open`'s last write of `db` begins** (U11i, U11j; `Open/PoolNew.dp_lock`): the whole
+validity token of the client's `boltState` lent to the protocol, which gives back the cell's
+other half around one step of `Open`'s (`open_step`). -/
 theorem open_lock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
     (dp db : Loc) :
-    inv (dpN N) (dpInv (GF := GF) γs B.bq dp db) ∗ ghostVar γs (1 : Qp).half 0 ∗
-      dp ↦{DFrac.own (1 : Qp).half} db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
-    |={⊤}=> ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗ ghostVar B.st (1 : Qp).half D := by
-  iintro ⟨#Hinv, Hs, Hdp, Hst⟩
+    dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 0 ∗
+      boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
+    ghostVar B.st (1 : Qp).half D ∗ (|={⊤, ⊤ \ ↑(dpN N)}=> ▷ |={⊤ \ ↑(dpN N), ⊤}=>
+      ghostVar γs (1 : Qp).half 1 ∗ dp ↦{DFrac.own (1 : Qp).half} db) := by
+  iintro ⟨#Hinv, Hs, Hst⟩
   unfold boltState boltStateDef
   rw [bnsOf_mkGs]
   icases Hst with ⟨Hst, Hbq⟩
-  imod dp_lock ⊤ N γs B.bq dp db CoPset.subseteq_top $$ [Hinv Hs Hdp Hbq] with ⟨Hs, Hdp⟩
-  · iframe; iframe #
-  imodintro
-  iframe
+  iframe Hst
+  iapply dp_lock N γs B.bq dp db $$ [Hinv Hs Hbq]
+  iframe; iframe #
 
 /-- **`Open`'s last write of `db` done, on success**: the token back, `db` persistent. -/
 theorem open_unlock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
     (dp db : Loc) :
-    inv (dpN N) (dpInv (GF := GF) γs B.bq dp db) ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
+    dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
       ghostVar B.st (1 : Qp).half D ⊢
     |={⊤}=> dp ↦□ db ∗ boltState (GF := GF) ⟨mkGs B, N⟩ 1 D := by
   iintro ⟨#Hinv, Hs, Hdp, Hst⟩
-  imod dp_unlock ⊤ N γs B.bq dp db CoPset.subseteq_top $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
+  imod dp_unlock N γs B.bq dp db $$ [Hinv Hs Hdp] with ⟨Hbq, #Hdp⟩
   · iframe; iframe #
   imodintro
   iframe Hdp
@@ -212,12 +213,27 @@ theorem open_unlock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D 
   iframe
 
 set_option hygiene false in
+/-- `Open`'s next operation (before its write of `db`) with the page pool's lock `Hlk`
+(`open_lock`) taken around it (`wp_step_fupd`): the cell's other half back, joined to `Open`'s
+(`db`), and the protocol's tag `Hs` at `1`. -/
+macro "open_step" : tactic => `(tactic| (
+  try wp_pures
+  wp_bind
+  iapply (wp_step_fupd (E₂ := ⊤ \ ↑(dpN N)) (by rfl) CoPset.subseteq_top) $$ Hlk
+  try wp_auto
+  iintro ⟨Hs, Hdp'⟩
+  ihave db := (typedPointsto_half_split db_ptr dbl 1).2 $$ [db Hdp']
+  · iframe
+  imodintro))
+
+set_option hygiene false in
 /-- `Open`'s success exit (`return db, nil`) with the client's state `Hst'`: `db` written under
 the page pool's protocol (`open_lock`, `open_unlock`), the deferred log (`Hdef`), and the
 database. -/
 macro "open_ret" : tactic => `(tactic| (
-  imod open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs db Hst'] with ⟨Hs, db, Hstq⟩
+  ihave ⟨Hstq, Hlk⟩ := open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs Hst']
   · iframe; iframe #
+  open_step
   try wp_auto
   wp_bind (App (Val #dv) (Val #()))
   iapply Hdef $$ [err]
@@ -265,8 +281,9 @@ macro "open_tx_exit" : tactic => `(tactic| (
   wp_apply hClose dbl ⟨mkGs B, N⟩ $$ []
   · unfold isBolt; rw [bnsOf_mkGs]; iexact Hbolt
   iintro %cerr -
-  imod open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs db Hst'] with ⟨-, db, -⟩
+  ihave ⟨-, Hlk⟩ := open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs Hst']
   · iframe; iframe #
+  open_step
   try wp_auto
   wp_bind (App (Val #dv) (Val #()))
   iapply Hdef $$ [err]
@@ -761,8 +778,8 @@ theorem Open.wp_proof [sync.Assumptions]
   imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γs, Hs⟩
   icases (ghostVar_split_half γs 1 (0 : Nat)).1 $$ Hs with ⟨Hs, Hs'⟩
   icases (typedPointsto_half_split db_ptr dbl 1).1 $$ db with ⟨db, Hdp⟩
-  imod inv_alloc (dpN N) ⊤ (dpInv (GF := GF) γs γbq db_ptr dbl) $$ [Hs' Hdp] with #Hdpi
-  · inext; unfold dpInv; iexists 0; iframe Hs'; ileft; iframe Hdp; ipureintro; rfl
+  imod dp_init ⊤ N γs γbq db_ptr dbl $$ [Hs' Hdp] with #Hdpi
+  · iframe
   imod init_Pool_all _ _ (poolR γbq N) pageBuf ⊤ $$ [pagePool] with #Hp
   · iframe pagePool
     isplitl
@@ -771,12 +788,36 @@ theorem Open.wp_proof [sync.Assumptions]
       iright
       wp_start as HR
       wp_auto
-      -- **A gap (`sorry`, U11i):** the read `![*DB] #db_ptr` is non-atomic (`Read`:
-      -- `StartRead`, `FinishRead`), so it needs a fraction of `db_ptr` across two steps, which
-      -- `dpInv` (state 0) can lend only against collateral `Open`'s `dp_lock` can refute: the
-      -- reader's `P` (from `HR`), deposited and returned identically (a saved proposition per
-      -- borrow). In state 2 the read is from `db_ptr ↦□ dbl`; state 1 is refuted by `HR`.
-      sorry
+      -- the read `![*DB] #db_ptr` (non-atomic) on a loan of the protocol's (U11j,
+      -- `dp_borrow`): the persistent cell (state 2), or a fraction against the lease `P`,
+      -- given back after the read (`wp_load_loan`, `P` under two laters the next steps take off)
+      unfold poolR
+      icases HR with ⟨HP, #Href⟩
+      imod dp_borrow N γs γbq db_ptr dbl P $$ [HP] with (⟨#Hdp, HP⟩ | ⟨%q, Hdp, Hloan⟩)
+      · iframe; iframe #
+      · wp_auto
+        wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hsl, -⟩
+        · ipureintro; decide
+        try wp_auto
+        iapply HΦ
+        iframe HP; iframe #
+        unfold pageBuf
+        iexists sl
+        rw [show (zero_val w8 : w8) = W8 0 from rfl] at *
+        iframe Hsl
+        ipureintro; rfl
+      · wp_apply (wp_load_loan N γs γbq db_ptr dbl P q) $$ [Hdp Hloan] as HP
+        · iframe
+        wp_apply wp_slice_make2 (V := w8) $$ [] as %sl ⟨Hsl, -⟩
+        · ipureintro; decide
+        try wp_auto
+        iapply HΦ
+        iframe HP; iframe #
+        unfold pageBuf
+        iexists sl
+        rw [show (zero_val w8 : w8) = W8 0 from rfl] at *
+        iframe Hsl
+        ipureintro; rfl
     · ipureintro; rfl
   ihave #Hpool : (∃ pf : GoFunc,
       (∀ P : IProp GF, sync.isPool dbl.[DB, go!"pagePool"] pf (poolR γbq N P) pageBuf) ∗
