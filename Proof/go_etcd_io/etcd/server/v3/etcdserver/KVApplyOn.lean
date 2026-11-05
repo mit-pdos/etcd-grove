@@ -294,13 +294,24 @@ instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : a
     Persistent (authHistTie (GF := GF) E γr st₀) := by
   unfold authHistTie; split <;> infer_instance
 
+/-- **The log `l` is the mode-`on` model, from `st₀`, of a committed raft log** (persistent; strict
+M1, 2026-11-06: `kvNxOff`'s; `KVStoreApi.lean`'s `kvNx γr true` at `st₀ = srvAuthSt0`, by `rfl`). -/
+def kvNxOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (l : mvcc.Log) : IProp GF :=
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModelOn γk st₀ A = l⌝)
+
+instance kvNxOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (l : mvcc.Log) : Persistent (kvNxOn (GF := GF) γ γk st₀ l) := by
+  unfold kvNxOn; infer_instance
+
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
 store's history's tie to the log (`authHistTie`). (Strict M1, 2026-11-06, as `srvKVInvs`: the tie
 `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store invariant
-`kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place.) -/
+`kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
+witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝)
+    authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝ ∗
+    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by
