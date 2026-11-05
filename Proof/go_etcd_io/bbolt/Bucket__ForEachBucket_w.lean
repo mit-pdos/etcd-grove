@@ -1,9 +1,12 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_w.lean`: not yet (U6, `notes/bbolt-proof-plan.md`).
+The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_w.lean`: a `sorry`. Proved over `wCurCtx`
+(`Read/WFeb.ForEachBucket_w.wp_proof'`); the spec's premises (`bktLocalOK`, `pmFresh`) do not give
+it (no `wOK`, no `nlocCur`, the root bucket allowed), and the writer cursor moves need it.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_w
+public import Proof.go_etcd_io.bbolt.Read.WFeb
 
 @[expose] public section
 
