@@ -6,7 +6,7 @@ R2b-2, 2026-11-02; DRAFT). Lean-first (no Rocq counterpart).
 (`memberBuiltR`: the apply thread starting at its image's index, not `0`). A statement the restart's
 proofs take as a hypothesis: `Start.spec` takes `ai₀ = 0`, and its generalization is R2d's.
 (R2b-2) It also gives the right to stop the server (`srvStopRight`), as does `Start_builtS_spec`,
-a first start's, from what `NewServer` kept for the stop (`srvStopKeep`). A restarted member's
+a first start's, from what `NewServer` kept for the stop (`srvStop.keep`). A restarted member's
 right needs its `run` (R2d: `run.specStop` covers first starts only). When R2b-2's proof is done,
 `Start.spec` gives the right and these collapse into it (one spec per function).
 -/
@@ -39,8 +39,8 @@ def Start_builtR_spec : Prop :=
     (N : Nat) (sv : Bool) (dd : GoString) [ReceiptBoundLe GF (N + 1)],
     ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
           memberBuiltR s ρ E₀ lg γn id N sv ∗ srvDataDir s dd ∗
-          (∃ (γrn : RNNames) (wd : GoString) (st : Loc) (γst : mvcc.StoreNames),
-            srvStopKeep s γrn wd st γst) ∗ threadTok }}
+          (∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
+            (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) ∗ threadTok }}
         (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
       {{ RET #(); memberUp s ρ E₀ lg γn id ∗ srvStopRight s ρ.rd.raft.raft ρ id dd }}
 

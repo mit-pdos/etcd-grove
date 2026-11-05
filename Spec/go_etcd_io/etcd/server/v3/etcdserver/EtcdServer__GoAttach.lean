@@ -23,17 +23,20 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.GoAttach(f)`, by a goroutine with a reader slot of `wgMu` and its thread token
-(`srvGoRes`) and the logger's reader slot (`Logger()` in the stopped case), of a closure `f` with
-`P` (`{P} f() {True}`): if `stopping` is closed, nothing (`P` dropped: `f` never runs); else `f`
-runs in a goroutine counted by `s.wg`. The caller gets its slots and thread token back. -/
+/-- `s.GoAttach(f)`, by a goroutine with a reader slot of `wgMu` at the protocol's names `γ` and
+its thread token (`srvGoResAt`) and the logger's reader slot (`Logger()` in the stopped case), of a
+closure `f` with `P` (`{P ∗ goRunning γ} f() {goRunning γ}`): if `stopping` is closed, nothing (`P`
+dropped: `f` never runs); else `f` runs in a goroutine counted by `s.wg`, with that goroutine's
+receipt (`goRunning γ`), which it gives back for its `Done` (H2, 2026-11-05: so a goroutine can
+deposit its receipt in a protocol of its own while it runs, and the shutdown's `goWaited` excludes
+it). The caller gets its slots and thread token back. -/
 abbrev EtcdServer.GoAttach.spec : Prop :=
-  ∀ (s : Loc) (f : GoFunc) (P : IProp GF),
+  ∀ (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvGoRes s ∗ srvLgReader s ∗ P ∗
-      {{ P }} (App (Val #f) (Val #())) {{ RET #(); True }} }}
+      srvGoResAt s γ ∗ srvLgReader s ∗ P ∗
+      {{ P ∗ goRunning γ }} (App (Val #f) (Val #())) {{ RET #(); goRunning γ }} }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
-  {{ RET #(); srvGoRes s ∗ srvLgReader s }}
+  {{ RET #(); srvGoResAt s γ ∗ srvLgReader s }}
 
 end spec
 

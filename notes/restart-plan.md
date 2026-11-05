@@ -1576,3 +1576,53 @@ an update from `kv.Close`'s returns (the loops' `wsLoopN` readers, `compactJobRe
 - the stop commit's request (`commitReq_freeze`) and the image (`srvDiskImage`) for `close(done)`
   (allocating `srvDoneInv`'s invariant with the image in it);
 - the deferred function's WP in `run.specStop`'s proof (5d).
+
+**Stage 5, the stop slot (2026-11-05, hub request H1, accepted).** The stop's pieces that were inline
+in `NewServer.specG`'s post (`srvTrKeyOf`, `srvStopKeep`, `srvCleanupOwn`'s mode clause) are one
+sealed slot, `srvStop.keep s cfg E γrn γk` (`StopApi.lean`, modelled on `WalApi.lean`). Its narrow
+eliminations each give one consumer what it takes:
+- `raft_stop`: `raftNode.stop`'s `ST`;
+- `cleanup_pieces`: `Cleanup`'s lessor and auth closer;
+- `census_readers`: the census's readers;
+- `image_inputs`: the image's registry and WAL directory.
+
+`memberBuilt`'s `K` gains the key's name. `srvShutdownPre` moved to `StopApi`.
+
+**Stage 5c/5d done (2026-11-05; `notes/decisions.md`, "The stop's slot, the shutdown, and the monitor's read token").** `run`'s proof is one proof over a stop flag,
+`run.wp_proofG stp`, with `run.spec` at `false` and `run.specStop` at `true`.
+The deferred shutdown is proved step by step:
+- `wgMu.Lock`, `goAttach_close`, `close(stopping)` (`wp_stop_chan_close_at`, the closer's flag at
+  `wgMuP`'s names), `Unlock`;
+- `cancel()`;
+- `sched.Stop()`, then saved-proposition agreement for the last job's `Q`, which gives `applyResC … A`
+  and `nodeRunning ½`;
+- `wg.Wait()`;
+- `r.stop()`, with `srvApRes`'s transport and the slot's key giving `Er.ST`, and `stop_split`;
+- `Cleanup()` (`StopShutdown.stopCleanupImage.spec`; see the list below);
+- `inv_alloc` of `srvDoneInv` with the image, then `close(done)`.
+
+What `Cleanup()` does, with its stop commit's request and the image:
+- the census, as `NewServer`'s R-D1 path: the slot's readers and the nil compactor's, the 128 unused
+  serving readers, the apply thread's, and the loops' from `wsCloseRes`, retired; then the retired
+  `writerOwn` reader and the monitor's; the stock, the pool and the constructors' half give `bOpen 1`;
+- `commitReq_freeze`;
+- `stop_mergedObsP` (`stop_mergedObs` at the writer's pin, since the census consumed `writerFrag`);
+- `merged_imageAt`, `restModel_confState`, `srvFiles`.
+
+New scope premises on `run.specStop` (a draft): no compactor, auth off , no compaction mode and
+the boot log's `Nodup`/`srvBootLogOk`.
+
+**The storage-version monitor's read token.** The census needs the monitor's read token, which
+sits in `srvWTPool`'s invariant. Its checked-out case (a monitor session) could not be ruled out:
+the monitor's trusted contract posted `True`, and `GoAttach`'s `Done` returned nothing. The user
+approved widening the monitor's contract, with the smaller design that followed:
+- the pool's names become a record `W = ⟨cnt, reg⟩`, where `reg` is a set-once register of `γg.run`
+  that `start` records;
+- `GoAttach` hands the goroutine's receipt `goRunning γ` to `f`;
+- the monitor's session deposits that receipt in the pool's checked-out case and takes it back before
+  it returns;
+- `wg.Wait()` gives the persistent `goWaited γ`, which contradicts any receipt.
+
+This is done (`stop_monitorRT` proved; `goWaited` is an exclusive half, and `Cleanup` takes any
+fraction of `γbe`). The widened contract survives the `axiom` skill's attack. F4 (`run.spec`
+replaced by `run.specStop`) is deferred until the scope premises are lifted or carried (R2d).

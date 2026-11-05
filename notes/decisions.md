@@ -32066,3 +32066,108 @@ back only from `kv.Close()` inside it, where they were dropped. Gap 4's census n
 what `Close` returns: the loops' readers and `compactJobResM`) and applies it after
 `kv.Close()`; the shutdown builds it from the census (`storeReaders_retire`, `storeRTs_shares`,
 `bOpen_one_pool`, as `NewServer`'s error path R-D1). `Cleanup` had no client yet.
+
+## The stop's slot, the shutdown, and the monitor's read token (2026-11-05 · R2b-3d stage 5; the coordinator's acceptance of the slot (H1); the user's approval of the monitor contract's widening (H2) and of the smaller design that carries it out · branch `r2b3`)
+
+- **The slot (H1).** The stop's pieces `NewServer.specG` posted inline are one sealed slot,
+  `srvStop.keep s cfg E γrn γk` (`StopApi.lean`, on `WalApi.lean`'s model). Its arguments are whole
+  records and names. Its eliminations are narrow, one per consumer: `raft_stop`, `cleanup_pieces`,
+  `census_readers`, `image_inputs`. `memberBuilt`'s `K` gains the key's name, and no example passes
+  it.
+- **One proof of `run` over a stop flag.** `run.wp_proofG stp` gives `run.spec` (`false`) and
+  `run.specStop` (`true`); the two differ only in the loop's stop branch. The shutdown's helper is a
+  hypothesis of the flag's case (`stopCleanupImage.spec`), so `run.spec`'s linked proof does not
+  depend on it.
+- **`run.specStop`'s scope** (a draft): `restart3`'s configuration, that is, no compactor, auth off and
+  no compaction mode, plus the boot log's facts the image's configuration needs (`Nodup`,
+  `srvBootLogOk`). F4, replacing `run.spec` with `run.specStop`, waits until these premises are
+  lifted or carried by `Start`'s stop variant (R2d).
+- **The monitor's read token (H2).** The census needs every share of the backend's open token,
+  including the one in the storage-version monitor's read token, which `srvWTPool`'s invariant holds.
+  The invariant's checked-out case (a session) could not be ruled out: the monitor's trusted contract
+  posted `True`, and `GoAttach` returned nothing at `Done`. The user approved widening the contract,
+  and then the smaller design over a ticket route (which would have changed `Start`'s post and the
+  starters' hubs):
+  - `GoAttach` hands `f` its goroutine's running receipt `goRunning γ` and takes it back (one spec,
+    generalized in place);
+  - the monitor's session deposits the receipt in the pool's checked-out case, and its contract takes
+    the receipt and gives it back;
+  - `wg.Wait()` returns `goWaited γ`, an exclusive half of the run-token authority at 0 (a new waiter
+    token `γ.wt` shows the protocol closed), which contradicts any receipt;
+  - the pool's names are a record `WTNames = ⟨cnt, reg⟩`. `reg` is a set-once register of the
+    receipt's name: `NewServer` allocates the pool before `start` makes the goroutine names, and
+    `start` sets the register, which travels inside `srvWTBudget`'s body;
+  - the stop takes the token and deposits its `goWaited` with ⅛ of its `γbe` quarter (a discarded
+    quarter would not rule out a retired case against the snapshot swap's ¾), so `Cleanup.spec`
+    takes any fraction of `γbe`.
+
+  The widened contract was attacked with the `axiom` skill in the same round and survives
+  (`notes/axiom-review/monitor-storage-version-receipt.md`).
+
+## The auth component, stage 5: the served KV side and `Serve` merged (2026-11-05 · the Freeze of candidate 6, "yes, freeze c6" · branch `auth-comp5`)
+
+Supersedes stage 4's "Left: L3 ... and L4" for the served side of L3 and for L4, and, for these two
+layers, stage 4's "no per-row bridges" (below). The spec example `auth-component.md` ("Stage 5")
+keeps the review rounds' history; the frozen text is candidate 6 (D1–D7).
+
+**What.**
+- **5-1, the specs.** One `GrpcSpecMd` per KV method over the mode (`etcd{Put,Range,Delete,Txn}SpecM
+  on`, `KVServiceOn.lean`); `Compact`'s `etcdCompactSpecM on := ⌜on = false⌝ ∗ etcdCompactSpec`, a
+  `GrpcSpec`. Registration laws under an update, `grpcMethodOkMd_mono_upd`, `isGrpcRpcMd_mono_upd`.
+- **5-2, the served side.** One handler proof per method at `E.authOn`, in `client/v3/Results.lean`
+  in place of the off ones (`etcd_{put,range,delete,txn}HandlerM`, from the on handlers over
+  `srvKVAnsM`; the off-only revision bounds under `E.authOn = false`, with the gated premise
+  `hρ : E.authOn = false → ρ.rd = γr`), the generic methods `etcd_*MethodMd`, `etcd_compactMethodM`
+  (the off handler, and the spec's `⌜true = false⌝` with auth on), `etcdKVMethodsM` and
+  `etcd_kv_servedM_with`. `etcd_kv_served(_with)`, `etcd_kv_lease_served` and
+  `etcd_kv_auth_served_on` keep their texts, re-derived from it. `ServedOn.lean`, the off and on
+  handlers and methods, `etcd_kv_served_on`, v3rpc's `*_end_to_end_on` and the dead helpers gone;
+  `kvServerAt_revR` (`v3rpc/ServerKV.lean`) moves a `*kvServer` between answers with one `revR`.
+- **5-3, `Serve`.** One `Serve.spec` (views at `E.authOn`, `srvAuthLb`, the pure premises in the
+  precondition with `E.authMode ≠ .any`; the caller's ghost step from `grpcUpM E.authOn`, the KV
+  answers in the mode with the Auth and Lease services' registrations) and one proof, through
+  `grpcCfgOk_of_startedM` (any mode, any answers `A` with `raftKV s A`; `grpcCfgOk_of_started_w`,
+  text kept, is its instance). `grpcUpM_false`/`_true` give `grpcUp`/`grpcUpOn` through the
+  mode-free transfer laws `grpcCfgOk_A`, `kvServerIs_mono`, `leaseServerAt_revR` and the v3rpc
+  bridges `raftKV_srvKVAnsM_false`/`_true`. The 12 clients and the auth example moved;
+  `Serve.specOn`, `wp_proofOn`, `LinkOn`, `ServeFromStartOn`, `raftKV_serverOn` gone.
+
+**The views' variance.** The merged spec's extra post facts are gated (`(⌜on = true⌝ → …) -∗`,
+`(⌜on = false⌝ → …) -∗`) or read at the mode. The on view (`etcdXSpecOn ⊢ etcdXSpecM true`) opens the
+gates at `rfl` and identifies the update (`kvDepOwnM_true`, `⊣⊢`); the off view (`etcdXSpec ⊢ |==>
+etcdXSpecM false`) needs an update, for the auth bound `0` (`authPubLbM_zero`) and for the plain
+update to the mode's (`kvDepOwnM_of_dep`), which only weakens the grant at off (stage 4's variance
+rule). Hence the registration laws under `|==>`.
+
+**Per-row bridges** (a departure from stage 4's "no per-row bridges", forced by D1 and the off view's
+`|==>`): the client library stays on `GrpcSpec` (it never reads metadata, and moving it would change
+every off client's statement for no proof saved), so each KV method's off and on registrations are
+views of the merged one by a named law per row and mode, `etcdXSpecM_false`/`_true`.
+
+**Departures from the frozen text.**
+- **The mode gate** fell further than §4 counted: 300 → 281 (5-2; client/v3 18 → 7, v3rpc 29 → 21)
+  → 277 (5-3: client/v3 → 5, etcdstart's twins 2 → 0) → 288 (5-4;
+  client/v3 → 16: the 11 literal bridges of `KVServiceOn`, two more than §4 counted, `kvOpAuM_of_on`
+  and the `kvOpAuM false` inside `etcdTxnSpecM_false`; against lean's 300 a fall of 12). 5-2 first
+  stated the `_false`/`_true` laws over a free `on` with an `(hon : on = b)` premise, which hid their
+  literals from the gate against `PRINCIPLES.md` ("A law that holds at one mode only is stated at that literal");
+  5-4 restated them at their literal, as frozen, and the callers rewrite `E.authOn` first.
+- **`grpcCfgOk_of_startedM` takes `srvAuthLb s E`** (the watch server's contract reads it; the on
+  `_w` took it, the off one derived it with `srvAuthLb_off`).
+- **The v3rpc bridges live in `ServerKVOn.lean`** after `raftKV_mono`, as planned; `raftKV_server`
+  is `raftKV_serverM` followed by the off one.
+- **A helper for the clients** (`etcdstart/Defs.lean`, mode-free): `serveViews_off` (an auth-off
+  member's views at `E.authOn`, its auth bound and `≠ .any`). Each client's change is the call, the
+  pure conjunct framed, `rw` of `E.authOn` to its literal and the ghost step composed through
+  `grpcUpM_false` (auth: `grpcUpM_true`) (≈ 9 lines).
+- **Sizes:** 5-2 +882/−1,731 (≈ 640 new lines, bound ≈ 900); 5-3 +390/−410 (bound ≈ 420).
+
+**`Compact` with auth on** stays out of scope: `etcdCompactSpecM true` is vacuous (its precondition
+`⌜true = false⌝`), as before stage 5, where `Compact` had no on registration. A later stage would need
+a spec of `isPermitted`'s admin check (`server/etcdserver/api/v3rpc/key.go:139–142`, the `AuthAdmin`
+guard) and the store's verdict for it.
+
+**Left** (D1, D6): the client library and `ResultsOn` (over `GrpcSpec`); `AuthnServedOn`'s
+`Authenticate` half; `memberUpOn`/`memberBootOn`; the printed non-`w` `grpcCfgOk_of_started`; the
+request path's `specOff`s and the admin entries' `specOn`s (stage 4's D5, D7); layer A,
+`applyEntryNormal`'s twins, `NewServer`.

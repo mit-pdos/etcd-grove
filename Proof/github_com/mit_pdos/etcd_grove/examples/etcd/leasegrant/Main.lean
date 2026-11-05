@@ -138,13 +138,19 @@ theorem Main.wp_proof
   -- registered at the address; the forked goroutine's token goes into the one gRPC slot
   haveI := Hms
   have hlgw : ({ ρ with wait := γw } : ReqNames).rd.kv.lg = true := hlgρ
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23956" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23956" ∗
-        etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23956"
       cid mid R Hrb48 (by omega) Hrf HlP rfl
     rw [hlgw] at h

@@ -124,26 +124,22 @@ theorem grpcCfgOk_of_started (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     iexact Hrc
   · ipureintro; exact ⟨rfl, rfl⟩
 
-/-- **`grpcCfgOk_of_started` with the watchable store's reader slots** (2026-10-20, watchkv):
-`NewServer`'s `srvWatchReaders` in place of `srvWatchBuilt`, its `K` reader slots at the
-configuration's watchable store (`C.wsl`, `C.γ`: the watch server's, `v3rpc.Server`'s `R`). -/
-theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+/-- **`v3rpc.Server`'s premises from a started server, in the auth mode `on`** (the auth component's
+stage 5; `Start.spec`'s views in the mode, `isServerReqM on`, `isServerReadM on`, `srvAuthLb`): at any KV answers
+`A` the server's contract holds at (`raftKV s A`; `raftKV_serverM`'s at the mode's answers). -/
+theorem grpcCfgOk_of_startedM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
-    (hlg : cfg.Logger' ≠ null) (K : Nat) :
+    (hlg : cfg.Logger' ≠ null) (K : Nat) (on : Bool) (A : v3rpc.KVAns GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
-        srvWatchReaders s E K ∗
+        isServerReqM on s E ρ ∗ isServerReadM on s E γr ∗ srvAuthLb s E ∗ v3rpc.raftKV s A ∗
+        srvServeFacts s E cfg ∗ srvWatchReaders s E K ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
         cfg.TracerOptions' ↦*□ tos ⊢
-      ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
-        ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
+      ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗ ⌜C.A = A ∧ C.E = E⌝ ∗
         [∗list] _x ∈ List.replicate K (), mvcc.watchReader C.wsl E.s C.γ := by
-  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
-  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hlb, #Hkv, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
   ihave #Hwv := v3rpc.watchVars_of_init $$ [Hv3 Heof]
-  · iframe #
-  ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
   · iframe #
   ihave #Hkv' := Hkv
   iunfold v3rpc.raftKV at Hkv'
@@ -157,20 +153,20 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   icases Hwb with ⟨%wsl, %γ, #Hkvf, #Hws, %Hγ, #Hpool, #Htag, Hrds⟩
   iunfold srvServeCfg at Hcf
   icases Hcf with ⟨#Hlg0, #Hqb, #Hn, %Hmto, #Hwd, #Hmt, #Htr, #Htsl, #Hmcs, -⟩
-  iunfold isServerReq at Hsrv
-  icases Hsrv with ⟨⟨%v, #Hv⟩, -⟩
-  iunfold srvReqFieldsAt at Hv
+  ihave #Hsp := (isServerReqM_split on s E ρ).1 $$ Hsrv
+  icases Hsp with ⟨⟨%v, #Hv⟩, -⟩
+  iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm, #Hauth, #HisReq, -, -,
     #Hmid, #Hlead, #Hcl, -, #Hpeers, -, -, -, -⟩
-  iunfold isServerRead at Hsrd
+  iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
-  iunfold srvReadFieldsAt at Hw
+  iunfold srvReadFieldsAtM at Hw
   icases Hw with ⟨-, -, -, -, -, -, -, -, #Hauth', #HisAuth, #Hlgf, %Hlgn, -, -, -, -, -, -, -,
     -, -, -, -, #Hstp, #Hstc, #Hrb⟩
   icombine Hauth Hauth' gives %Hae
   iunfold srvPeersOk at Hpeers
   icases Hpeers with ⟨-, #Hrc, -⟩
-  iexists (⟨v3rpc.srvKVAns s E ρ γr (W64 0) [] .none, E, γ, wsl, w.lg, cfg.Logger',
+  iexists (⟨A, E, γ, wsl, w.lg, cfg.Logger',
     cfg.QuotaBackendBytes', v.memberID, cfg.MaxTxnOps', cfg.WarningUnaryRequestDuration',
     v.cluster, w.stopping, v.tickMs, v.electionTicks, v.maxReq, v.fg, cfg.Metrics',
     cfg.EnableDistributedTracing', cfg.TracerOptions', tos, cfg.MaxConcurrentStreams'⟩ :
@@ -201,6 +197,31 @@ theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   iexact Hrds
+
+/-- **`grpcCfgOk_of_started` with the watchable store's reader slots** (2026-10-20, watchkv):
+`NewServer`'s `srvWatchReaders` in place of `srvWatchBuilt`, its `K` reader slots at the
+configuration's watchable store (`C.wsl`, `C.γ`: the watch server's, `v3rpc.Server`'s `R`). -/
+theorem grpcCfgOk_of_started_w (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface)
+    (hlg : cfg.Logger' ≠ null) (K : Nat) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
+        srvWatchReaders s E K ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
+        cfg.TracerOptions' ↦*□ tos ⊢
+      ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
+        ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
+        [∗list] _x ∈ List.replicate K (), mvcc.watchReader C.wsl E.s C.γ := by
+  iintro ⟨#Hpkg, #Hsrv, #Hsrd, #Hf, Hwb, #Hv3, #Heof, #Hnrl, #Htos⟩
+  ihave %hon := isServerReq_authOn s E ρ $$ Hsrv
+  ihave #Hlb := srvAuthLb_off s E ρ $$ Hsrv
+  ihave #Hkv := v3rpc.raftKV_server s E ρ γr (W64 0) [] .none $$ [Hpkg Hsrv Hsrd]
+  · iframe #
+  iapply (grpcCfgOk_of_startedM s E ρ γr cfg tos hlg K E.authOn
+    (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none))
+  rw [hon, isServerReqM_false, isServerReadM_false]
+  iframe; iframe #
 
 /-- **`N` of the watch service's run slots** (2026-10-20, watchkv; `etcd_watch_served_chain`'s
 `watchRunSlot`s): two reader slots of the watchable store and one of the auth store each, under

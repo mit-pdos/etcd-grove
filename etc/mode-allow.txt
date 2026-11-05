@@ -12,7 +12,6 @@
 
 * corollary ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ModeSpecs\.lean::
 lit-mode bridge ::[\w.']*_(false|true|off|on|of_on|onPart|nil_on|of_false)::
-* pair ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Serve\.lean::
 
 match-mode flag ::(hdrBoundM|infoBoundM|infoBoundTM|authnArM|authnAnsM|pubAfterM|appliedPubM|kvTieM|authFloorAt)::
 lit-mode flag ::(hdrBoundM|infoBoundM|pubAfterM|kvTieM)(\s*\(\w+\s*:=\s*\w+\))* (true|false)$
@@ -112,12 +111,10 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapApplyNames\.lea
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/StartOn\.lean::  # 5
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/UberKit\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthService\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 8
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 6
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKV\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKVOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/AuthnServedOn\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServeFromStartOn\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServedOn\.lean::  # 9
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/WatchLawsHist\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Defs\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3

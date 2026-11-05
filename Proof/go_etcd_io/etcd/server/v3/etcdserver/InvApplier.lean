@@ -1023,6 +1023,14 @@ instance srvWTStockInv_persistent (γp : GName) (d : mvcc.KBReal) :
     Persistent (srvWTStockInv (GF := GF) γp d) := by
   unfold srvWTStockInv; infer_instance
 
+/-- The write budget's names (`srvWTPool`): the counter `cnt` (its `monoNat`), and `reg`, a set-once
+register of the server's goroutine-receipt name (`GoAttach`'s `γg.run`), which `start` records. The
+storage-version monitor's session will hold a running piece at the registered name (H2/H3 of the
+restart track's questions.md). -/
+structure WTNames where
+  cnt : GName
+  reg : GName
+
 /-- **The apply thread's write budget** (D19b, 2026-10-18; persistent): an invariant holding,
 for the `a` write tokens taken so far, `a` time receipts, and `n` write tokens of the store
 left, with `receiptBound GF ≤ a + n + 1`. The apply loop takes one token per entry with the
@@ -1042,23 +1050,31 @@ server's current backend `d`, of which the invariant holds a quarter of the ghos
 taker agrees on `d` with it: the apply thread through `srvBeOwn`, the storage-version monitor through
 its share of `bemuP` under `s.bemu`'s read lock. The invariant also holds the monitor's read token
 of `d` (`mvcc.bkRTx`, until S7b the monitor's own for good, `srvSVRes`), or, while the monitor has
-it checked out for a session, a part of the monitor's share of `E.γbe` in its place.
-`applySnapshot`, holding `bemu`'s write side, gathers all of `E.γbe` from `bemuP`, `srvBeOwn` and
-this invariant (so no session is open: a checked-out part would make more than the whole), moves
-it to the new backend and puts in the new one's stock: one invariant over the current backend.
+it checked out for a session, a part of the monitor's share of `E.γbe` in its place, with (H2,
+2026-11-05) the monitor goroutine's running receipt at the registered name (`W.reg`, which `start`
+sets to `GoAttach`'s `γg.run`: `ownToks r 1`), so that the shutdown, once its `Wait` returned
+(`goWaited`), knows no session is open. `applySnapshot`, holding `bemu`'s write side, gathers all of
+`E.γbe` from `bemuP`, `srvBeOwn` and this invariant (so no session is open: a checked-out part would
+make more than the whole), moves it to the new backend and puts in the new one's stock: one
+invariant over the current backend. (H2) Once the shutdown took the read token out
+(`stop_monitorRT`), the checked-out case holds a part of the shutdown's share of `E.γbe` with its
+`goWaited` (half the receipts' authority at `0`, at the registered name) in place of a receipt: so
+no swap follows (the part), and no second stop takes the token (`goWaited` is exclusive).
 
 **One stock per backend** (M2's item 15, stage B, 2026-11-02): the current backend's tokens and
 their bound are its stock (`srvWTStockInv γp d`), which shares the budget's counter; a swap puts the
 new backend's stock fact in place of the old one's and takes no token out, so a persistent supply
 of any backend with a stock survives swaps (restore in compaction mode). A take costs a later
 credit (the stock's fact is under the budget's `▷`). -/
-def srvWTPool (E : apply.AEnv GF) (γp : GName) : IProp GF :=
+def srvWTPool (E : apply.AEnv GF) (W : WTNames) : IProp GF :=
   inv srvWTN iprop(∃ (a : Nat) (d : mvcc.KBReal), ⧗ a ∗
-    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ srvWTStockInv γp d ∗
-    monoNatAuthOwn γp 1 a ∗
-    (mvcc.bkRTx d.γB d.P d.be ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) d))
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d ∗ srvWTStockInv W.cnt d ∗
+    monoNatAuthOwn W.cnt 1 a ∗
+    (mvcc.bkRTx d.γB d.P d.be ∨ ∃ q : Qp, dghostVar E.γbe (DFrac.own q) d ∗
+      ∃ r : GName, dghostVar W.reg DFrac.discard (some r) ∗
+        (ownToks r 1 ∨ ownTokAuthDfrac r (DFrac.own (1 : Qp).half) 0)))
 
-instance srvWTPool_persistent (E : apply.AEnv GF) (γp : GName) :
+instance srvWTPool_persistent (E : apply.AEnv GF) (γp : WTNames) :
     Persistent (srvWTPool (GF := GF) E γp) := by
   unfold srvWTPool; infer_instance
 
@@ -1119,8 +1135,9 @@ theorem srvWTStock_alloc (γp : GName) (d : mvcc.KBReal) (n : Nat) (h : receiptB
 `kbWTSupplyM_of_stock`). -/
 theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
     (h : receiptBound GF ≤ N + 1) :
-    srvWTStock (GF := GF) E N ⊢ |={Ms}=> ∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0) ∗
-      ∃ d, ⌜E.γ.kb = some d⌝ ∗ srvWTStockInv γp d := by
+    srvWTStock (GF := GF) E N ⊢ |={Ms}=> ∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt (W64 0) ∗
+      (∃ d, ⌜E.γ.kb = some d⌝ ∗ srvWTStockInv γp.cnt d) ∗
+      dghostVar γp.reg (DFrac.own 1) (none : Option GName) := by
   iintro HW
   iunfold srvWTStock at HW
   icases HW with ⟨%d, %Hd, Hg, Hw, Hrt⟩
@@ -1131,8 +1148,9 @@ theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
   imod receipt_zero (GF := GF) with H0
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γp, Ha, #Hlb⟩
   imod srvWTStock_alloc γp d N h Ms $$ Hw with #Hs
-  iexists γp
-  isplitl
+  imod dghostVar_alloc (GF := GF) (none : Option GName) with ⟨%γr, Hreg⟩
+  iexists ⟨γp, γr⟩
+  isplitl [H0 Hg Ha Hrt]
   · unfold srvWTPool
     iapply inv_alloc srvWTN Ms
     inext
@@ -1140,19 +1158,18 @@ theorem srvWTPool_alloc (E : apply.AEnv GF) (N : Nat) (Ms : CoPset)
     iframe H0 Hg Hs Ha
     ileft; iexact Hrt
   · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]
-    iframe Hlb
+    iframe Hlb Hreg
     iexists d
     iframe Hs
     ipureintro; exact Hd
 
-/-- (M2's item 15, stage B3) **The write budget as `NewServer` hands it on** (persistent): the
-budget made (`srvWTPool`, which `start` made until stage B3, so that a compaction's supply draws on
-the same stock), its counter at least `0`. -/
+/-- (M2's item 15, stage B3) **The write budget as `NewServer` hands it on**: the budget made
+(`srvWTPool`, which `start` made until stage B3, so that a compaction's supply draws on the same
+stock), its counter at least `0`, and (H2, 2026-11-05; not persistent since) its register, unset,
+which `start` sets to `GoAttach`'s receipts' name. -/
 def srvWTBudget (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ γp, srvWTPool E γp ∗ srvWTAt γp (W64 0))
-
-instance srvWTBudget_persistent (E : apply.AEnv GF) : Persistent (srvWTBudget (GF := GF) E) := by
-  unfold srvWTBudget; infer_instance
+  iprop(∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt (W64 0) ∗
+    dghostVar γp.reg (DFrac.own 1) (none : Option GName))
 
 /-- One write-back token of the backend `d` off a supply. -/
 theorem wbToks_split (d : mvcc.KBReal) (n : Nat) :
@@ -1227,17 +1244,17 @@ theorem srvApplyKV_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.
 /-- **A token of a backend with a stock, for a receipt** (M2's item 15, stage B): the receipt goes
 into the budget (its count up by one, from any lower bound `k` to `k + 1`), the token out of the
 stock. -/
-theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (k : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTStockInv γp d -∗ ⧗ 1 -∗ monoNatLbOwn γp k ={⊤}=∗
-      backend.wbTok d.γB ∗ monoNatLbOwn γp (k + 1) := by
+theorem srvWTStock_take (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) (k : Nat) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTStockInv γp.cnt d -∗ ⧗ 1 -∗ monoNatLbOwn γp.cnt k ={⊤}=∗
+      backend.wbTok d.γB ∗ monoNatLbOwn γp.cnt (k + 1) := by
   have hm := srvWTStockN_mask
   iintro #Hp #Hs Hr #Hk
   unfold srvWTPool
   iinv Hp with ⟨%a, %d0, >Ha, >Hg, #Hs0, >Hc, Hrt⟩ Hclose
   unfold srvWTStockInv
   iinv Hs with ⟨%m, %n, >#Hm, >Hn, >%Hb⟩ Hclose2
-  ihave %Hma := monoNatLbOwn_valid γp 1 a m $$ Hc Hm
-  ihave %Hka := monoNatLbOwn_valid γp 1 a k $$ Hc Hk
+  ihave %Hma := monoNatLbOwn_valid γp.cnt 1 a m $$ Hc Hm
+  ihave %Hka := monoNatLbOwn_valid γp.cnt 1 a k $$ Hc Hk
   icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
   · iframe
   obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by have := Hma.2; omega⟩
@@ -1258,14 +1275,14 @@ theorem srvWTStock_take (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (k :
 
 /-- **The compaction's write-back supply of a backend with a stock** (M2's item 15, stage B):
 persistent, good after any number of swaps (moved from the step's Draft). -/
-theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) :
-    srvWTPool (GF := GF) E γp ∗ srvWTStockInv γp d ⊢ mvcc.kbWTSupplyM (some d) := by
+theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) :
+    srvWTPool (GF := GF) E γp ∗ srvWTStockInv γp.cnt d ⊢ mvcc.kbWTSupplyM (some d) := by
   iintro ⟨#Hp, #Hs⟩
   unfold mvcc.kbWTSupplyM
   split
   · unfold mvcc.kbWTSupply
     iintro !> Hr
-    imod monoNatLbOwn_0 (GF := GF) γp with #H0
+    imod monoNatLbOwn_0 (GF := GF) γp.cnt with #H0
     imod srvWTStock_take E γp d 0 $$ Hp Hs Hr H0 with ⟨Ht, -⟩
     imodintro
     iexact Ht
@@ -1273,9 +1290,9 @@ theorem kbWTSupplyM_of_stock (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal)
 
 /-- **The current backend's stock** (M2's item 15, stage B): a taker's part of `E.γbe` at `d` agrees
 with the budget's, whose stock fact (under the budget's `▷`: a later credit) is `d`'s. -/
-theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :
+theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) (dq : DFrac) :
     ⊢ srvWTPool (GF := GF) E γp -∗ £ 1 -∗ dghostVar E.γbe dq d ={⊤}=∗
-      srvWTStockInv γp d ∗ dghostVar E.γbe dq d := by
+      srvWTStockInv γp.cnt d ∗ dghostVar E.γbe dq d := by
   iintro #Hp Hlc Hg
   ihave #Hp' := Hp
   unfold srvWTPool
@@ -1293,10 +1310,10 @@ theorem srvWTPool_stockOf (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (d
 /-- **One write-back token of the current backend `d` for the entry at `v + 1`** (S7b): the
 taker's part of `E.γbe` at `d` agrees with the budget's; from the lower bound at `v` to one at
 `v + 1`. -/
-theorem srvWTPool_take_at_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac)
+theorem srvWTPool_take_at_d (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) (dq : DFrac)
     (v : w64) (hv : uint.Z v + 1 < 2 ^ 64) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp v -∗ dghostVar E.γbe dq d ={⊤}=∗
-      backend.wbTok d.γB ∗ srvWTAt γp (v + W64 1) ∗ dghostVar E.γbe dq d := by
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp.cnt v -∗ dghostVar E.γbe dq d ={⊤}=∗
+      backend.wbTok d.γB ∗ srvWTAt γp.cnt (v + W64 1) ∗ dghostVar E.γbe dq d := by
   iintro #Hp Hr Hlc #Hv Hg
   imod srvWTPool_stockOf E γp d dq $$ Hp Hlc Hg with ⟨#Hs, Hg⟩
   unfold srvWTAt
@@ -1312,10 +1329,11 @@ theorem srvWTPool_take_at_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) 
 /-- (2026-10-19, D21 M3) **One write token for the entry at `v + 1`**: as `srvWTPool_take`, from
 the apply thread's lower bound at `v` to one at `v + 1`; (S7b) at the apply thread's backend (its
 applier state's part of `s.be`, `srvBeOwn`). -/
-theorem srvWTPool_take_at (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+theorem srvWTPool_take_at (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : GName)
+    (x : apply.ApplyKV)
     (v : w64) (hv : uint.Z v + 1 < 2 ^ 64) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp v -∗ srvApplyKV s E γw x ={⊤}=∗
-      mvcc.storeWT E.γ ∗ srvWTAt γp (v + W64 1) ∗ srvApplyKV s E γw x := by
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTAt γp.cnt v -∗ srvApplyKV s E γw x ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTAt γp.cnt (v + W64 1) ∗ srvApplyKV s E γw x := by
   iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKV_beOwn s E γw x $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
@@ -1328,10 +1346,11 @@ theorem srvWTPool_take_at (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : a
 
 /-- (D22 J5, 2026-10-26) **One write token, the count raised by one** (`srvWTPool_take_at` over the
 count `srvWTTaken`, with no bound on it: the count is a natural number). -/
-theorem srvWTPool_take_n (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+theorem srvWTPool_take_n (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : GName)
+    (x : apply.ApplyKV)
     (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKV s E γw x ={⊤}=∗
-      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKV s E γw x := by
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp.cnt n -∗ srvApplyKV s E γw x ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTTaken γp.cnt (n + 1) ∗ srvApplyKV s E γw x := by
   iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKV_beOwn s E γw x $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
@@ -1349,18 +1368,18 @@ backend `d` (S7b): the merged snapshot's two write-backs (`KV().Commit()`'s `For
 `be.Snapshot()`'s own commit) are paid from the pool, a Go step's receipt each, as an entry's is
 (`srvWTPool_take_at`); the count of tokens taken grows past the applied index, whose lower bound
 (`srvWTAt`) stays one. -/
-theorem srvWTPool_take_extra_d (E : apply.AEnv GF) (γp : GName) (d : mvcc.KBReal) (dq : DFrac) :
+theorem srvWTPool_take_extra_d (E : apply.AEnv GF) (γp : WTNames) (d : mvcc.KBReal) (dq : DFrac) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ dghostVar E.γbe dq d ={⊤}=∗
       backend.wbTok d.γB ∗ dghostVar E.γbe dq d := by
   iintro #Hp Hr Hlc Hg
   imod srvWTPool_stockOf E γp d dq $$ Hp Hlc Hg with ⟨#Hs, Hg⟩
-  imod monoNatLbOwn_0 (GF := GF) γp with #H0
+  imod monoNatLbOwn_0 (GF := GF) γp.cnt with #H0
   imod srvWTStock_take E γp d 0 $$ Hp Hs Hr H0 with ⟨Ht, -⟩
   imodintro
   iframe Ht Hg
 
 /-- `srvWTPool_take_extra_d` at the apply thread's backend (`srvBeOwn`). -/
-theorem srvWTPool_take_extra (s : Loc) (E : apply.AEnv GF) (γp : GName) :
+theorem srvWTPool_take_extra (s : Loc) (E : apply.AEnv GF) (γp : WTNames) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvBeOwn s E ={⊤}=∗
       mvcc.storeWT E.γ ∗ srvBeOwn s E := by
   iintro #Hp Hr Hlc Hbo
@@ -1372,7 +1391,7 @@ theorem srvWTPool_take_extra (s : Loc) (E : apply.AEnv GF) (γp : GName) :
   iapply storeWT_of_wbTok E.γ d Hd $$ Ht
 
 /-- (D22 S-l sender) **The merged snapshot's two write tokens**, for two receipts. -/
-theorem srvWTPool_take_two (s : Loc) (E : apply.AEnv GF) (γp : GName) :
+theorem srvWTPool_take_two (s : Loc) (E : apply.AEnv GF) (γp : WTNames) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ ⧗ 1 -∗ £ 1 -∗ £ 1 -∗ srvBeOwn s E ={⊤}=∗
       mvcc.storeWT E.γ ∗ mvcc.storeWT E.γ ∗ srvBeOwn s E := by
   iintro #Hp Hr1 Hr2 Hlc1 Hlc2 Hbo
@@ -1383,13 +1402,13 @@ theorem srvWTPool_take_two (s : Loc) (E : apply.AEnv GF) (γp : GName) :
 
 /-- (2026-10-19, D21 M3) **The applied index is below the receipts' bound**: at most the tokens
 taken, each with its receipt. -/
-theorem srvWTPool_bound (E : apply.AEnv GF) (γp : GName) (v : w64) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTAt γp v ={⊤}=∗ ⌜uint.Z v < receiptBound GF⌝ := by
+theorem srvWTPool_bound (E : apply.AEnv GF) (γp : WTNames) (v : w64) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTAt γp.cnt v ={⊤}=∗ ⌜uint.Z v < receiptBound GF⌝ := by
   iintro #Hp #Hv
   unfold srvWTPool
   iinv Hp with ⟨%a, %d, >Ha, >Hg, #Hs, >Hc, Hrt⟩ Hclose
   unfold srvWTAt
-  icases monoNatLbOwn_valid γp 1 a (uint.nat v) $$ Hc Hv with %Hva
+  icases monoNatLbOwn_valid γp.cnt 1 a (uint.nat v) $$ Hc Hv with %Hva
   replace Hva := Hva.2
   ihave %Hlt := receipt_lt a $$ Ha
   imod Hclose $$ [Ha Hg Hc Hrt] with -
@@ -1402,13 +1421,13 @@ theorem srvWTPool_bound (E : apply.AEnv GF) (γp : GName) (v : w64) :
   omega
 
 /-- (D22 J5) **The count is below the receipts' bound** (`srvWTPool_bound` over the count). -/
-theorem srvWTPool_bound_n (E : apply.AEnv GF) (γp : GName) (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTTaken γp n ={⊤}=∗ ⌜n < receiptBound GF⌝ := by
+theorem srvWTPool_bound_n (E : apply.AEnv GF) (γp : WTNames) (n : Nat) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ srvWTTaken γp.cnt n ={⊤}=∗ ⌜n < receiptBound GF⌝ := by
   iintro #Hp #Hv
   unfold srvWTPool
   iinv Hp with ⟨%a, %d, >Ha, >Hg, #Hs, >Hc, Hrt⟩ Hclose
   unfold srvWTTaken
-  icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
+  icases monoNatLbOwn_valid γp.cnt 1 a n $$ Hc Hv with %Hva
   replace Hva := Hva.2
   ihave %Hlt := receipt_lt a $$ Ha
   imod Hclose $$ [Ha Hg Hc Hrt] with -

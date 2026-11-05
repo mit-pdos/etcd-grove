@@ -47,7 +47,6 @@ public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.LinkOn
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -248,7 +247,7 @@ include h_auth_startServer
 
 theorem wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_auth.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_auth.Main.wp_proof zap.wp_NewNop h_auth_startServer etcdstart.wp_ServeOn etcdstart.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground etcdstart.wp_Collect client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithRange wp_Permitted
+  EtcdGrove.etcd_auth.Main.wp_proof zap.wp_NewNop h_auth_startServer etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground etcdstart.wp_Collect client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithRange wp_Permitted
 
 end links_pending
 

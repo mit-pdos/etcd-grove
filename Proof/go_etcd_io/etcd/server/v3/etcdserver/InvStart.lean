@@ -298,16 +298,15 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction, for `run`
     "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
-/-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
-`Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the
-reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`), `s.wgMu`'s
+/-- **What `start` hands to `Start`'s goroutines** (not persistent): the read loop's precondition
+with its resources (`srvReadLR`), and the reader slots left over for request goroutines: `s.read.mux`'s (`srvReadReader`), `s.wgMu`'s
 (`srvWgReader`), `s.leaderChanged`'s; and (2026-10-16, stage R7b) that the request path's read
 names are `γr` (`isServerBuilt`'s premise, which the read server's discharge takes,
-`isReadServer_of_server`). -/
+`isReadServer_of_server`). (H2, 2026-11-05) `Start`'s own reader slot of `wgMu` is in `start`'s
+post, at the protocol's names. -/
 def srvStarted (s : Loc) (γr : ReadNames) (ρ : ReqNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF)
     (F : List EntryModel → KVState := kvStOff γr.kv) : IProp GF :=
   iprop("%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    "Hgo" ∷ srvWgReader s ∗
     "Hrl" ∷ (∃ r : Loc, srvReadAddr s ↦□ r ∗
       isReadLoopPre r γr RQ (srvReadLR s) (idCred ρ.ids 1) F) ∗
     "HLR" ∷ srvReadLR s ∗
@@ -374,7 +373,8 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
       srvWgAddr s ↦ (zero_val sync.WaitGroup) -∗ srvWgMuAddr s ↦ (zero_val sync.RWMutex) -∗
       srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l ={⊤}=∗
       ∃ γ : GoNames, srvGoAttachOk s γ ∗ token γ.close ∗
-        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), srvWgReader s := by
+        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          srvWgReaderAt s γ := by
   iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg
   unfold ownStopChan
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
@@ -382,18 +382,21 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   imod ghostVar_alloc true with ⟨%γb, Hb⟩
   icases ghostVar_halves γb true $$ Hb with ⟨Hb1, Hb2⟩
   imod token_alloc with ⟨%γclose, Hclose⟩
+  imod token_alloc with ⟨%γwt, Hwt⟩
   imod ownTokAuth_alloc with ⟨%γrun, Hrun⟩
   ihave H0 := threadToks_zero (GF := GF)
-  let γ : GoNames := ⟨γb, γclose, γwg, γrun, γch, γchi⟩
-  imod inv_alloc goAttachN ⊤ (goAttachInv γ) $$ [Hb2 Hctr Hrun H0 Hwait] with #Hinv
+  let γ : GoNames := ⟨γb, γclose, γwg, γrun, γch, γchi, γwt⟩
+  imod inv_alloc goAttachN ⊤ (goAttachInv γ) $$ [Hb2 Hctr Hrun H0 Hwait Hwt] with #Hinv
   · inext
     iunfold goAttachInv
-    iexists true, (W32 0), 0
+    iexists true, (W32 0), 0, DFrac.own 1
     iframe Hb2 Hctr Hrun H0
     isplitr
     · ipureintro; constructor <;> simp
+    isplitr
+    · ipureintro; exact Or.inl rfl
     iright
-    iframe Hwait
+    iframe Hwait Hwt
     ipureintro; rfl
   imod sync.init_RWMutex (wgMuP γ) (srvWgMuAddr s) $$ [Hb1 Hflag] HwgMu with Hslots
   · inext
@@ -416,8 +419,7 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   iframe Hok Hclose
   iapply replicate_map _ _ (srvGoAttachOk s γ) $$ [$Hok $Hslots]
   iintro ⟨#Hok', Hslot⟩
-  iunfold srvWgReader
-  iexists γ
+  iunfold srvWgReaderAt
   iframe Hok' Hslot
 
 end lemmas
