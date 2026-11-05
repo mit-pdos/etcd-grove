@@ -552,6 +552,118 @@ theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ
   iapply HΦ $$ %e
   unfold rdBack; iexact Hx
 
+/-- `unlink(2)` of an absent name of `d`, with the in-flight flag set: it fails, the flag cleared. -/
+theorem wp_osUnlinkAbsent (d b : GoString) (dq : DFrac) (g : DirG) (hb : NameOk b)
+    (hn : g.now !! b = none) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDir (L := L) d dq g -∗ osNsBusy (L := L) true -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osDir (L := L) d dq g -∗ osNsBusy (L := L) false -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Unlink" (Val (#(child d b)))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hd Hz HΦ
+  iapply wp_os_stepN "Unlink" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDir osNsBusy
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hb1 : st.nsBusy = true := by
+    simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
+  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hnone : st.ns !! child d b = none := by
+    rw [← entsOf_child st.ns d b hb, hc.now d g Hdl]; exact hn
+  have hs0 : FilesSame st st.nsFree := filesSame_nsFree st
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf hs0 Hag
+    exact ⟨_, h, st.nsFree, ⟨child d b, rfl, hw.nsName_child hdir hb, hb1,
+      .inr ⟨1, by decide, rfl, rfl⟩⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨p', hv, -, -, hres⟩ := Hst
+  cases go.intoVal_inj hv
+  rcases hres with ⟨⟨k, hk⟩, -⟩ | ⟨e, he, rfl, rfl⟩
+  · rw [hnone] at hk; cases hk
+  imod gAuth_update _ _ _ _ _ false $$ HAz Hz with ⟨HAz, Hz⟩
+  rw [busyMap_insert]
+  imod ns_step_close hwf hcoh hs0 Hr Hfr (nsWf_nsFree hw) (nsCoh_nsFree hc) false rfl $$ HAb HAm
+    HAf HAt Htok Hcells Hσ HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, Γdf
+  unfold osWorld nsWorld
+  iframe Hw Hn
+  iapply wp_value'
+  iapply HΦ $$ %e %he Hd Hz
+
+/-- `rename(2)` of an absent name of `d`, with the in-flight flag set: it fails, the flag
+cleared. -/
+theorem wp_osRenameAbsent (d bs bt : GoString) (dq : DFrac) (g : DirG) (hbs : NameOk bs)
+    (hbt : NameOk bt) (hne : bs ≠ bt) (hn : g.now !! bs = none) (ht : g.now !! bt ≠ some .dir)
+    (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDir (L := L) d dq g -∗ osNsBusy (L := L) true -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osDir (L := L) d dq g -∗ osNsBusy (L := L) false -∗ Φ (#e)) -∗
+      WP (ExternalOp osFsExt.name "Rename" (Val (PairV (#(child d bs)) (#(child d bt))))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv Hd Hz HΦ
+  iapply wp_os_stepN "Rename" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDir osNsBusy
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hb1 : st.nsBusy = true := by
+    simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
+  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hnone : st.ns !! child d bs = none := by
+    rw [← entsOf_child st.ns d bs hbs, hc.now d g Hdl]; exact hn
+  have hcne : child d bs ≠ child d bt := fun h => hne (List.cons.inj (List.append_cancel_left h)).2
+  have hnofd : ∀ fd df, st.dfds !! fd = some df →
+      (st.ns !! child d bs = some .dir → ¬ IsUnder (child d bs) df.path) ∧ df.path ≠ child d bt := by
+    intro fd df hdf
+    refine ⟨(fun h => by rw [hnone] at h; cases h), fun he => ?_⟩
+    have ht' : st.ns !! child d bt ≠ some .dir := by
+      rw [← entsOf_child st.ns d bt hbt, hc.now d g Hdl]; exact ht
+    exact ht' (he ▸ hw.dfds fd df hdf)
+  have hs0 : FilesSame st st.nsFree := filesSame_nsFree st
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf hs0 Hag
+    exact ⟨_, h, st.nsFree, ⟨child d bs, child d bt, rfl, hw.nsName_child hdir hbs,
+      hw.nsName_child hdir hbt, hb1, hnofd, .inr (.inr ⟨1, by decide, rfl, rfl⟩)⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨s', t', hv, -, -, -, -, hres⟩ := Hst
+  injection hv with hv1 hv2
+  cases go.intoVal_inj hv1; cases go.intoVal_inj hv2
+  rcases hres with ⟨⟨-, -, -, hok⟩, -⟩ | ⟨heq, -⟩ | ⟨e, he, rfl, rfl⟩
+  · rw [hnone] at hok; exact hok.elim
+  · exact absurd heq hcne
+  imod gAuth_update _ _ _ _ _ false $$ HAz Hz with ⟨HAz, Hz⟩
+  rw [busyMap_insert]
+  imod ns_step_close hwf hcoh hs0 Hr Hfr (nsWf_nsFree hw) (nsCoh_nsFree hc) false rfl $$ HAb HAm
+    HAf HAt Htok Hcells Hσ HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
+  imodintro
+  iexists Γb, Γm, Γf, Γt, Γd, Γdf
+  unfold osWorld nsWorld
+  iframe Hw Hn
+  iapply wp_value'
+  iapply HΦ $$ %e %he Hd Hz
+
 end specs
 
 end Perennial

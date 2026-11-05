@@ -785,6 +785,129 @@ theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : Dir
     iapply HΦ
     unfold osDirFd; iright; iright; iexists e; iframe Hfd; ipureintro; exact ⟨he, rfl⟩
 
+/-- `open(2)` with `O_RDWR | O_CREAT` of the existing file `b` of `d` (of key `k`), with the
+in-flight flag set and a fraction of `k`'s `OsMeta`: the flag cleared; a new fd on `k`, or an
+errno. -/
+theorem wp_osNsOpenCreatExisting (d b k : GoString) (dq : DFrac) (g : DirG) (hb : NameOk b)
+    (hf : g.now !! b = some (.file k)) (dqm : DFrac) (mo : Option OsMeta) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osDir (L := L) d dq g -∗ osMeta (L := L) k dqm mo -∗
+      osNsBusy (L := L) true -∗
+      (∀ fd : w64, ∀ e : w64, ⌜mo ≠ none⌝ -∗ ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+        osDir (L := L) d dq g -∗ osMeta (L := L) k dqm mo -∗ osNsBusy (L := L) false -∗
+        (if e = 0 then osFd (L := L) fd (DFrac.own 1) ⟨k, true, true⟩ else emp) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp osFsExt.name "NsOpen" (Val (PairV (#(child d b)) (#flCreat)))) @ s; E
+        {{ Φ }} := by
+  iintro #Hinv Hd Hm Hz HΦ
+  iapply wp_os_stepN "NsOpen" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDir osMeta osNsBusy
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hb1 : st.nsBusy = true := by
+    simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
+  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hfile : st.ns !! child d b = some (.file k) := by
+    rw [← entsOf_child st.ns d b hb, hc.now d g Hdl]; exact hf
+  obtain ⟨-, f, hkf⟩ := hw.keys hfile
+  have hmo : mo ≠ none := by
+    rintro rfl
+    have := (hcoh.meta_none k).1 Hml; rw [hkf] at this; cases this
+  have hfk : st.nsFree.file k = some f := file_eq_some.2 hkf
+  have hcr : decide ((flCreat.toNat / O_CREAT) % 2 = 1) = true := by decide
+  have htr : decide ((flCreat.toNat / O_TRUNC) % 2 = 1) = false := by decide
+  have hacc : flCreat.toNat % 4 = 2 := by decide
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_nsFree st) Hag
+    refine ⟨_, h, st.nsFree, ⟨child d b, flCreat, rfl, .inr (hw.nsName_child hdir hb), flCreat_ok,
+      fun _ => hb1, .inr ⟨1, by decide, rfl, .inl ?_⟩⟩, hfr, hr⟩
+    simp only [hcr, ↓reduceIte]
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨p', fl', hv, -, -, -, hres⟩ := Hst
+  injection hv with hv1 hv2
+  cases go.intoVal_inj hv1; cases go.intoVal_inj hv2
+  simp only [hcr, htr, hacc, Bool.false_eq_true, ↓reduceIte] at hres
+  imod gAuth_update _ _ _ _ _ false $$ HAz Hz with ⟨HAz, Hz⟩
+  rw [busyMap_insert]
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  · unfold NsOpenEffect at heff
+    rw [show st.nsFree.ns = st.ns from rfl, hfile] at heff
+    obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff
+    simp only [Bool.false_eq_true, ↓reduceIte] at hst1
+    subst st1
+    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    have hfdn' : st.fds !! fd = none := hfdn
+    have hdfn' : st.dfds !! fd = none := hdfn
+    have hΓf : Γf !! fd = none := by rw [hcoh.fds]; exact hfdn'
+    imod gAuth_insert _ _ _ fd (⟨k, true, true⟩ : OsFd) hΓf $$ HAf with ⟨HAf, Hfd⟩
+    have hst' : st' = { st.nsFree with fds := <[fd := ⟨k, true, true⟩]> st.nsFree.fds } := by
+      rw [hst]; simp [O_WRONLY, O_RDONLY]
+    subst hst'
+    have hwf0 := osWf_filesSame (filesSame_nsFree st) hwf
+    have hcoh0 := osCoh_filesSame (filesSame_nsFree st) hcoh
+    have hwf' := osWf_addFd hwf0 fd ⟨k, true, true⟩ ⟨f, hfk⟩
+    have hcv : cellView { st.nsFree with fds := <[fd := ⟨k, true, true⟩]> st.nsFree.fds } =
+        cellView st := cellView_congr rfl rfl rfl
+    imod cells_same hwf hwf' Hr Hfr rfl hcv $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    have hw' : NsWf { st.nsFree with fds := <[fd := ⟨k, true, true⟩]> st.nsFree.fds } := by
+      refine ⟨hw.roots, hw.replay, hw.hist, hw.legacy, hw.dfds, fun fd' h' => ?_⟩
+      show st.dfds !! fd' = none
+      by_cases he : fd = fd'
+      · subst he; exact hdfn'
+      · apply hw.disj fd'
+        have h'' : (<[fd := (⟨k, true, true⟩ : OsFd)]> st.fds) !! fd' ≠ none := h'
+        rwa [GMap.lookup_insert_ne _ _ he] at h''
+    have hcoh' : OsCoh { st.nsFree with fds := <[fd := ⟨k, true, true⟩]> st.nsFree.fds } Γb Γm
+        (<[fd := ⟨k, true, true⟩]> Γf) Γt := by
+      have : Γf = st.nsFree.fds := by rw [hcoh.fds]; rfl
+      rw [this]; exact osCoh_fds hcoh0 _
+    ihave Htok : tokRes (gooseOsGS (L := L))
+        { st.nsFree with fds := <[fd := ⟨k, true, true⟩]> st.nsFree.fds } Γt $$ [Htok]
+    · rw [show tokRes (gooseOsGS (L := L))
+          { st.nsFree with fds := <[fd := ⟨k, true, true⟩]> st.nsFree.fds } Γt =
+          tokRes (gooseOsGS (L := L)) st Γt from rfl]
+      iexact Htok
+    ihave Hwn := worlds_fold ⟨hwf', hcoh'⟩ ⟨hw', hc.congr rfl rfl rfl rfl⟩ false rfl
+      $$ HAb HAm HAf HAt Htok Hcells Hσ HAd HAdf HAz Hrd
+    icases Hwn with ⟨Hw, Hn⟩
+    imodintro
+    iexists Γb, Γm, (<[fd := ⟨k, true, true⟩]> Γf), Γt, Γd, Γdf
+    unfold osWorld nsWorld
+    iframe Hw Hn
+    iapply wp_value'
+    iapply HΦ $$ %fd %0 %hmo %(.inl ⟨rfl, hfd0⟩) Hd Hm Hz
+    rw [if_pos rfl]; unfold osFd; iexact Hfd
+  · have hst' : st' = st.nsFree := by
+      rcases hst with rfl | ⟨tgt, heff⟩
+      · rfl
+      · unfold NsOpenEffect at heff; rw [show st.nsFree.ns = st.ns from rfl, hfile] at heff
+        obtain ⟨⟨f', -, h1⟩, -⟩ := heff
+        simpa using h1
+    subst hst'
+    imod ns_step_close hwf hcoh (filesSame_nsFree st) Hr Hfr (nsWf_nsFree hw) (nsCoh_nsFree hc)
+      false rfl $$ HAb HAm HAf HAt Htok Hcells Hσ HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
+    imodintro
+    iexists Γb, Γm, Γf, Γt, Γd, Γdf
+    unfold osWorld nsWorld
+    iframe Hw Hn
+    iapply wp_value'
+    iapply HΦ $$ %(-1) %e %hmo %(.inr ⟨he, rfl⟩) Hd Hm Hz
+    rw [if_neg he]; iempintro
+
 end specs
 
 end Perennial
