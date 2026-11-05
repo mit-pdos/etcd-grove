@@ -27,6 +27,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TxnEnd
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
+
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
@@ -92,8 +94,8 @@ private theorem txn_read_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := h
     inv worldN (worldInv h γ) ∗ ghostVar γ.σ (1 : Qp).half σ ⊢
       AU <{ ∃∃ σ', mvccState γ.kv σ' }> @ ⊤ \ ↑mvccN, ∅
         <{ mvccState γ.kv σ', COMM iprop(⌜σ' = σ ∧ σ.crev = -1⌝ ∗ ghostVar γ.σ (1 : Qp).half σ) }> := by
-  haveI := hpers.2.2.2.2.1
   haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
   haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
     unfold worldInv; infer_instance
   have Hm := worldN_mask''
@@ -135,8 +137,8 @@ private theorem txn_write_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := 
       AU <{ ∃∃ σ', mvccState γ.kv σ' }> @ ⊤ \ ↑mvccN, ∅
         <{ ⌜σ'.pending = none⌝ ∗ mvccState γ.kv σ',
           COMM iprop(⌜σ' = σ ∧ σ.crev = -1 ∧ 1 ≤ σ.rev⌝ ∗ ghostVar γ.σ (1 : Qp).half σ) }> := by
-  haveI := hpers.2.2.2.2.1
   haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
   haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
     unfold worldInv; infer_instance
   have Hm := worldN_mask''
@@ -186,10 +188,10 @@ private theorem end_readT {ty : go.GoType} {v : val}
         mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
     {{ RET #(); threadTok }} := by
-  have hB : Nonempty BkRef := by
-    refine ⟨⟨?_, ?_, null⟩⟩
+  have hB : Nonempty MvccStorage := by
+    refine ⟨etcdStorage ⟨?_, ∅, 0, W64 0, null, ?_, false⟩⟩
     · constructor <;> first | exact default | (constructor <;> exact default)
-    · constructor <;> exact default
+    · exact default
   obtain ⟨B⟩ := hB
   iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
   iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]

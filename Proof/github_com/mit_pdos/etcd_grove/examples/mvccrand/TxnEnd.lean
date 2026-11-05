@@ -117,7 +117,7 @@ theorem endCb_txnEnd {ty : go.GoType} {v : val}
     (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
     (h : Loc) (γ : RandNames) (σ : MvccState) (Hs : List HRev) (pend : List Change) (P : PendM)
-    (trace : Loc) (q : Qp) (B : BkRef)
+    (trace : Loc) (q : Qp) (B : MvccStorage)
     (hok : pendOk σ Hs pend P) (_hpn : σ.pending = none) (hlen : Hs.length = σ.log.length)
     (hrev : ∀ r < Hs.length, ∃ e, Hs[r]? = some e ∧ revOk σ.log Hs r e) :
     ⊢ endCb (GF := GF) (methods ty go!"End" v) γ σ pend (histAfter Hs P)
@@ -125,8 +125,8 @@ theorem endCb_txnEnd {ty : go.GoType} {v : val}
           inv worldN (worldInv h γ) ∗
           mvccTxn (interface.mkOk ty v) γ.kv trace (.write σ pend) ∗ mvccBackend γ.kv q B iprop(True))
         (mvccBackend γ.kv q B iprop(True)) := by
-  haveI := fun σ => hpers.2.2.2.2.1 γ.kv σ
-  haveI := fun S => hpers.2.2.2.2.2.1 γ.ws S
+  haveI := fun σ => hpers.2.2.2.2.2.1 γ.kv σ
+  haveI := fun S => hpers.2.2.2.2.2.2.1 γ.ws S
   haveI : Timeless (worldInv (GF := GF) h γ) := by unfold worldInv; infer_instance
   have hdisj : (↑worldN : CoPset) ⊆ ⊤ \ ↑mvccN :=
     nclose_subseteq' "world" (mask_ndot_ne' nroot "mvccrand" "mvcc" (by decide))

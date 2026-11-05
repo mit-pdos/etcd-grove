@@ -143,18 +143,16 @@ theorem writer.view.wp_proof (wp_snapshot : history.snapshot.spec (GF := GF) (hG
     (try wp_auto)
     have hcap : s.len = s.cap := Hcap.symm
     ihave Hscap := ownSliceCap_empty (GF := GF) (V := GoMap) s hcap Hsl.2
-    wp_apply wp_slice_append_dfrac s ms DFrac.discard osl [pv.st'] (DFrac.own 1)
+    wp_apply wp_slice_append_dfrac s ms DFrac.discard _ [pv.st'] (DFrac.own 1)
       $$ [$Hms $Hscap $Hosl] as %s2 ⟨Hs2, -, -⟩
     · ipureintro; exact DFrac.valid_discard
     (try wp_auto)
     iapply HΦ
     iframe
-    isplitr [Hp Hst Hchs Hcap Hs2]
+    isplitr [Hp Hst Hchs Hcap]
     · iunfold writerIdle; iframe; ipureintro; exact Hid
     isplitr
     · ipureintro; unfold viewRev; simp only [hc, ↓reduceIte, Hrev]
-    iexists DFrac.discard, ms ++ [pv.st']
-    iframe Hs2
     unfold viewSt viewDq
     simp only [hc, ↓reduceIte]
     isplitr [Hp Hchs Hcap]

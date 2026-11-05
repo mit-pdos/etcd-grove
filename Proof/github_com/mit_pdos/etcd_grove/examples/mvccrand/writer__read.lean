@@ -85,8 +85,8 @@ private theorem writer_read_au (hpers : mvcc.api.persistent.law (GF := GF) (hG :
     inv worldN (worldInv h γ) ∗ ghostVar γ.σ (1 : Qp).half σ ⊢
       AU <{ ∃∃ σ', mvccState γ.kv σ' }> @ ⊤ \ ↑mvccN, ∅
         <{ mvccState γ.kv σ', COMM iprop(⌜σ' = σ ∧ σ.crev = -1⌝ ∗ ghostVar γ.σ (1 : Qp).half σ) }> := by
-  haveI := hpers.2.2.2.2.1
   haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
   haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
     unfold worldInv; infer_instance
   have Hm := worldN_mask'

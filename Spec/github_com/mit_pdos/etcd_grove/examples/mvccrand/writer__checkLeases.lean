@@ -32,11 +32,11 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.checkLeases.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (q : Qp) (σ : MvccState)
+  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : mvcc.KBReal) (f : GoFunc) (q : Qp) (σ : MvccState)
     (Hs : List HRev) (L : List w64) (n : w64) (k : Nat) (T R : IProp GF),
-  {{ writerCtx w wv γ B f ∗ writerOwn wv γ B q σ Hs L ∗ writerLe w wv γ B f L n k T R }}
+  {{ writerCtx w wv γ (etcdStorage B) f ∗ writerOwn wv γ (etcdStorage B) q σ Hs L ∗ writerLe w wv γ B f L n k T R }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"checkLeases")) (Val #()))
-  {{ RET #(); writerOwn wv γ B q σ Hs L ∗ writerLe w wv γ B f L n k T R }}
+  {{ RET #(); writerOwn wv γ (etcdStorage B) q σ Hs L ∗ writerLe w wv γ B f L n k T R }}
 
 end spec
 

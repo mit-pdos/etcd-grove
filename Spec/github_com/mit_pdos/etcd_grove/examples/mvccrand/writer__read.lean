@@ -29,7 +29,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.read.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (q : Qp) (σ : MvccState)
+  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : GoFunc) (q : Qp) (σ : MvccState)
     (Hs : List HRev) (L : List w64),
   {{ writerCtx w wv γ B f ∗ writerOwn wv γ B q σ Hs L }}
     (App (Val (w @!! go.GoType.PointerType writer.ty @!! go!"read")) (Val #()))

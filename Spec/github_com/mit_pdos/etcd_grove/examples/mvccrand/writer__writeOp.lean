@@ -33,7 +33,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.writeOp.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (σ : MvccState)
+  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : GoFunc) (σ : MvccState)
     (Hs : List HRev) (L : List w64) (tw : GoInterface) (trace : Loc) (te : Bool) (p : Loc)
     (P : PendM) (pend : List Change) (n : w64),
   pendOk σ Hs pend P → txn.LogOk (σ.log ++ [pend]) → σ.crev = -1 → 1 ≤ σ.rev →

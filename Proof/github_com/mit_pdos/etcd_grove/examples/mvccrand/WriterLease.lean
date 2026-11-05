@@ -16,7 +16,7 @@ item map. **`writerLe`** holds the rest of the lessor, which only the writer's l
   tokens `T` (each `Grant` spends one);
 - what `Revoke` needs beyond the store's handle: the range deleter's owner `rdOwn` at the store's
   deleter (`mvccDeleter`), the lessor's user half of its `le.b` (`lessorBeOn`, at the store's
-  backend `B.b`), the lease bucket's part of the tracked buckets (`rbPart`, which `Grant`'s put
+  backend `B.be`), the lease bucket's part of the tracked buckets (`rbPart`, which `Grant`'s put
   also takes), the lease bucket's parameters (`leaseParams`);
 - the writer's `nextID` field at `n` (`0 ≤ n`), every live lease's id in `(0, n]` (so `nextID + 1`
   is never live and no live lease is `0`).
@@ -29,6 +29,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Writer
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
 
@@ -147,7 +148,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The writer's lessor, persistently** (see the file header). -/
-def writerLeRO (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (lp : Loc) (T R : IProp GF) :
+def writerLeRO (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (lp : Loc) (T R : IProp GF) :
     IProp GF :=
   iprop(⌜wv.le' = lease.lessorIface lp⌝ ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
@@ -155,19 +156,19 @@ def writerLeRO (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (lp : Loc
     lease.lessorGuard (mvccLeases γ.kv) (fun _ => iprop(True)) ∗
     lease.lessorBackend lp iprop(True) #f T R (backend.rbPart B.γB (· = leaseName)))
 
-instance writerLeRO_persistent (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (lp : Loc)
+instance writerLeRO_persistent (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (lp : Loc)
     (T R : IProp GF) : Persistent (writerLeRO (GF := GF) wv γ B f lp T R) := by
   unfold writerLeRO; infer_instance
 
 /-- **The writer's lessor resources** (see the file header), at the live leases `L`, the writer's
 `nextID` at `n` and `k` write tokens left. -/
-def writerLe (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (L : List w64)
+def writerLe (w : Loc) (wv : writer) (γ : RandNames) (B : KBReal) (f : GoFunc) (L : List w64)
     (n : w64) (k : Nat) (T R : IProp GF) : IProp GF :=
   iprop(∃ (lp : Loc) (rd : GoFunc) (r : GMap GoString backend.BktData),
     writerLeRO wv γ B f lp T R ∗
     lease.lessorRd lp (mvccLeases γ.kv) ∗ lease.leaseRevokers (mvccLeases γ.kv) L ∗
     R ∗ ([∗list] _x ∈ List.replicate k (), T) ∗
-    lease.rdOwn (mvccLeases γ.kv) rd ∗ mvccDeleter rd γ.kv ∗ lease.lessorBeOn lp B.b ∗
+    lease.rdOwn (mvccLeases γ.kv) rd ∗ mvccDeleter rd γ.kv ∗ lease.lessorBeOn lp B.be ∗
     backend.rbPart B.γB (· = leaseName) r ∗ ⌜leaseParams B.P⌝ ∗
     wF go!"nextID" w ↦ n ∗
     ⌜0 ≤ sint.Z n ∧ ∀ id ∈ L, 0 < sint.Z id ∧ sint.Z id ≤ sint.Z n⌝)
@@ -178,8 +179,8 @@ theorem writer_pub_pos (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG)) (
     (γ : RandNames) (p : w64) :
     inv worldN (worldInv h γ) ∗ ghostVar γ.pv (1 : Qp).half p ⊢
       |={⊤}=> ghostVar γ.pv (1 : Qp).half p ∗ ⌜1 ≤ sint.Z p⌝ := by
-  haveI := fun σ => hpers.2.2.2.2.1 γ.kv σ
-  haveI := fun S => hpers.2.2.2.2.2.1 γ.ws S
+  haveI := fun σ => hpers.2.2.2.2.2.1 γ.kv σ
+  haveI := fun S => hpers.2.2.2.2.2.2.1 γ.ws S
   haveI : Timeless (worldInv (GF := GF) h γ) := by unfold worldInv; infer_instance
   iintro ⟨#Hinv, Hp⟩
   iinv Hinv with >Hi Hclose

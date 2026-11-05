@@ -60,8 +60,8 @@ theorem writer.put.wp_proof
     writer.put.spec (GF := GF) (hG := hG) := by
   intro w wv γ B f q σ Hs L i s n hn0 hn1
   haveI := hpers.1 wv.kv' γ.kv
-  haveI := fun σ => hpers.2.2.2.2.1 γ.kv σ
-  haveI := fun S => hpers.2.2.2.2.2.1 γ.ws S
+  haveI := fun σ => hpers.2.2.2.2.2.1 γ.kv σ
+  haveI := fun S => hpers.2.2.2.2.2.2.1 γ.ws S
   haveI : Timeless (worldInv (GF := GF) wv.h' γ) := by unfold worldInv; infer_instance
   have hdisj : (↑worldN : CoPset) ⊆ ⊤ \ ↑mvccN :=
     nclose_subseteq' "world" (mask_ndot_ne' nroot "mvccrand" "mvcc" (by decide))

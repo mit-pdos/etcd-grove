@@ -19,6 +19,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Std.Namespaces
 
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
+
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
@@ -171,8 +173,8 @@ theorem reader_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
       AU <{ ∃∃ σ, mvccState γ.kv σ }> @ ⊤ \ ↑mvccN, ∅
         <{ mvccState γ.kv σ, COMM readQ γ fl σ }> := by
   haveI := hpers.1 kv γ.kv
-  haveI := hpers.2.2.2.2.1
   haveI := hpers.2.2.2.2.2.1
+  haveI := hpers.2.2.2.2.2.2.1
   haveI : ∀ h γ, Timeless (worldInv (GF := GF) h γ) := fun _ _ => by
     unfold worldInv; infer_instance
   have Hm := worldN_mask
@@ -245,10 +247,10 @@ theorem end_read {ty : go.GoType} {v : val}
         mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
     {{ RET #(); threadTok }} := by
-  have hB : Nonempty BkRef := by
-    refine ⟨⟨?_, ?_, null⟩⟩
+  have hB : Nonempty MvccStorage := by
+    refine ⟨etcdStorage ⟨?_, ∅, 0, W64 0, null, ?_, false⟩⟩
     · constructor <;> first | exact default | (constructor <;> exact default)
-    · constructor <;> exact default
+    · exact default
   obtain ⟨B⟩ := hB
   iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
   iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]

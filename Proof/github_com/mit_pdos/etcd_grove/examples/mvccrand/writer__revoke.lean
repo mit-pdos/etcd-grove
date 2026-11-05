@@ -93,8 +93,8 @@ theorem writer_reach (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     (kv : GoInterface) (h : Loc) (γ : RandNames) (σ : MvccState) :
     isMvcc kv γ.kv ∗ inv worldN (worldInv h γ) ∗ ghostVar γ.σ (1 : Qp).half σ ⊢
       |={⊤}=> ghostVar γ.σ (1 : Qp).half σ ∗ ⌜MvccReachable σ⌝ := by
-  haveI := fun σ => hpers.2.2.2.2.1 γ.kv σ
-  haveI := fun S => hpers.2.2.2.2.2.1 γ.ws S
+  haveI := fun σ => hpers.2.2.2.2.2.1 γ.kv σ
+  haveI := fun S => hpers.2.2.2.2.2.2.1 γ.ws S
   haveI := hpers.1 kv γ.kv
   haveI : Timeless (worldInv (GF := GF) h γ) := by unfold worldInv; infer_instance
   iintro ⟨#Hkv, #Hinv, Hw⟩
@@ -121,8 +121,8 @@ theorem revoke_au (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
     inv worldN (worldInv h γ) ∗ ghostVar γ.σ (1 : Qp).half σ ∗ monoListLbOwn γ.h.l (histAfter Hs P) ⊢
       srvApi.auBegin γ.kv σ
         (srvApi.auEnd γ.kv σ pend (ghostVar γ.σ (1 : Qp).half (commitSt σ pend))) := by
-  haveI := fun σ => hpers.2.2.2.2.1 γ.kv σ
-  haveI := fun S => hpers.2.2.2.2.2.1 γ.ws S
+  haveI := fun σ => hpers.2.2.2.2.2.1 γ.kv σ
+  haveI := fun S => hpers.2.2.2.2.2.2.1 γ.ws S
   haveI : Timeless (worldInv (GF := GF) h γ) := by unfold worldInv; infer_instance
   have hdisj : (↑worldN : CoPset) ⊆ ⊤ \ ↑mvccN :=
     nclose_subseteq' "world" (mask_ndot_ne' nroot "mvccrand" "mvcc" (by decide))

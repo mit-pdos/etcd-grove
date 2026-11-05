@@ -100,7 +100,7 @@ def hookOk (wv : writer) (f : GoFunc) : IProp GF :=
 
 /-- **The writer's context** (persistent): the packages, the struct's fixed fields, the tester's and
 the history's invariants, the store's handle, the backend's hook (frozen at `f`) and its triple. -/
-def writerCtx (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) : IProp GF :=
+def writerCtx (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : GoFunc) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
@@ -112,7 +112,7 @@ store's backend (the batch lock's invariant `True`), its reader slot of the hist
 `σ` and the history at `Hs` (`writerIdle`), its generator, and the leases: the model's live leases
 `Lm` (a map to `true`), mvcc's lease ownership at the live leases `L` (the same) and the items of
 the store's state. -/
-def writerOwn (wv : writer) (γ : RandNames) (B : BkRef) (q : Qp) (σ : MvccState) (Hs : List HRev)
+def writerOwn (wv : writer) (γ : RandNames) (B : MvccStorage) (q : Qp) (σ : MvccState) (Hs : List HRev)
     (L : List w64) : IProp GF :=
   iprop(threadTok ∗ mvccBackend γ.kv q B iprop(True) ∗ histRd wv.h' γ.h ∗ writerIdle γ σ Hs ∗
     (∃ g : rng, wv.r' ↦ g) ∗

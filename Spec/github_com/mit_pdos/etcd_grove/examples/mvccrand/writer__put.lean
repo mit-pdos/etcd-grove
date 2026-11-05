@@ -31,7 +31,7 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- See the file header. -/
 abbrev writer.put.spec : Prop :=
-  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) (q : Qp) (σ : MvccState)
+  ∀ (w : Loc) (wv : writer) (γ : RandNames) (B : MvccStorage) (f : GoFunc) (q : Qp) (σ : MvccState)
     (Hs : List HRev) (L : List w64) (i s n : w64),
   0 ≤ sint.Z n → sint.Z n + 1 < 2 ^ 63 →
   {{ writerCtx w wv γ B f ∗ writerOwn wv γ B q σ Hs L ∗ hookPre wv i s ∗ wF go!"vals" w ↦ n }}
