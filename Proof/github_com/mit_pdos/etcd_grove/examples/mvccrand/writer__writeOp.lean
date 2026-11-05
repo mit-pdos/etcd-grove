@@ -232,7 +232,147 @@ theorem writer.writeOp.wp_proof
     isplitl [Hpv Hpst Hpch Hpcap]
     · iunfold ownPending; iexists pv; iframe; ipureintro; exact Hprev
     ipureintro; exact HLm
-  · sorry
+  · rw [decide_eq_false hx0]
+    (try wp_auto)
+    by_cases hx1 : x = W64 1
+    · -- a range delete
+      rw [decide_eq_true hx1]
+      (try wp_auto)
+      wp_apply wp_genKey wv.r' g1 $$ [$Hpkg $Hg] as %ks ⟨⟨%g2, Hg⟩, %kk, Hks, -, %Hkk⟩
+      wp_apply wp_genEnd wv.r' g2 $$ [$Hpkg $Hg] as %es ⟨⟨%g3, Hg⟩, %e, Hes, -, %He⟩
+      (try wp_auto)
+      imod ownSlice_persist _ _ _ $$ Hks with #Hks
+      imod ownSlice_persist _ _ _ $$ Hes with #Hes
+      wp_apply wp_del p P ks es kk e DFrac.discard DFrac.discard
+        $$ [$Hpkg $Hp $Hks $Hes] as ⟨Hp, -, -⟩
+      (try wp_auto)
+      wp_apply (hDelC γ.kv trace σ pend ks es kk e L) $$ [$Hmv $Htx $Hks $Hes $Hlo]
+        as %n2 %rev ⟨Htx, Hlo, %Hnr, %Hlwf⟩
+      have hks := delKeys_eq_match σ.log pend hne hLok (decide (es = slice.nil)) kk e P.st hok.2
+      have hok' := pendOk_del' σ Hs pend P hok (decide (es = slice.nil)) kk e hks
+      have hLog' : txn.LogOk (σ.log ++ [pend ++
+          (delKeys σ.log pend (decide (es = slice.nil)) kk e).map Change.del]) :=
+        txn.LogOk.of_cert ⟨Hlwf.1, by simp; omega, Hlwf.2⟩ (by simp)
+      have hdl : ((delKeys σ.log pend (decide (es = slice.nil)) kk e).map Change.del).length ≤ 6 := by
+        rw [List.length_map, hks]; exact matchKeys_length_le _ _ _ _
+      rw [hks] at Hnr
+      obtain ⟨rfl, rfl⟩ := Hnr
+      (try wp_auto)
+      wp_apply wp_check
+      · ipureintro; simp
+      (try wp_auto)
+      iunfold ownPending at Hp
+      icases Hp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
+      ihave %Hcl := ownSlice_len $$ Hpch
+      have hcl' := pendOk_chs_length' hok'
+      have hrevP : (P.del (decide (es = slice.nil)) kk e).rev = W64 (σ.log.length : Int) := by
+        rw [pendOk_rev' hok', Hlen]
+      rw [hrevP] at Hprev
+      (try wp_auto)
+      wp_if_destruct
+      · wp_apply wp_check
+        · ipureintro
+          have hD : pend ++ List.map Change.del (delKeys σ.log pend (decide (es = slice.nil)) kk e) ≠ [] := by
+            intro h0
+            rw [h0] at hcl'
+            have h0' : sint.Z (W64 0) = 0 := by decide
+            have : sint.nat pv.changes'.len = (sint.Z pv.changes'.len).toNat := rfl
+            simp only [List.length_nil] at hcl'
+            omega
+          rw [← hks]
+          simp [Hprev, writeRev, hD]
+        (try wp_auto)
+        iapply HΦ
+        iexists (delKeys σ.log pend (decide (es = slice.nil)) kk e).map Change.del,
+          P.del (decide (es = slice.nil)) kk e, n
+        iframe
+        isplitr
+        · ipureintro; exact ⟨hok', hLog', hdl, Or.inl rfl⟩
+        isplitl [Hpv Hpst Hpch Hpcap]
+        · iunfold ownPending; iexists pv; iframe; ipureintro; rw [hrevP]; exact Hprev
+        ipureintro; exact HLm
+      · wp_apply wp_check
+        · ipureintro
+          have hD : pend ++ List.map Change.del (delKeys σ.log pend (decide (es = slice.nil)) kk e) = [] := by
+            apply List.eq_nil_of_length_eq_zero
+            have h0' : sint.Z (W64 0) = 0 := by decide
+            have : sint.nat pv.changes'.len = (sint.Z pv.changes'.len).toNat := rfl
+            omega
+          rw [← hks]
+          simp only [Hprev, writeRev, hD, ↓reduceIte, decide_eq_true_eq]
+          rw [w64_pred _ (by omega) (by omega)]
+        (try wp_auto)
+        iapply HΦ
+        iexists (delKeys σ.log pend (decide (es = slice.nil)) kk e).map Change.del,
+          P.del (decide (es = slice.nil)) kk e, n
+        iframe
+        isplitr
+        · ipureintro; exact ⟨hok', hLog', hdl, Or.inl rfl⟩
+        isplitl [Hpv Hpst Hpch Hpcap]
+        · iunfold ownPending; iexists pv; iframe; ipureintro; rw [hrevP]; exact Hprev
+        ipureintro; exact HLm
+    · -- a range read, at the transaction's revision, against `view`'s states
+      rw [decide_eq_false hx1]
+      (try wp_auto)
+      wp_apply wp_view w wv γ σ Hs p P hPrev $$ [$Hpkg $Hw $Hrd $Hidle $Hp]
+        as %sts %cur ⟨Hrd, Hidle, %Hcur, %dsl, %ms, Hsts, HstAt, Hback⟩
+      (try wp_auto)
+      have h63 : σ.log.length < 2 ^ 63 := by omega
+      rw [viewRev_writeRev σ Hs pend P hok Hlen (by omega) h63] at Hcur
+      subst Hcur
+      have hwr : writeRev σ.log pend ≤ σ.log.length := by unfold writeRev; split <;> omega
+      have hcurZ : sint.Z (W64 ((writeRev σ.log pend : Nat) : Int)) = writeRev σ.log pend := by
+        have : writeRev σ.log pend < 2 ^ 63 := by omega
+        word
+      have hcurN : sint.nat (W64 ((writeRev σ.log pend : Nat) : Int)) = writeRev σ.log pend := by
+        have : sint.nat (W64 ((writeRev σ.log pend : Nat) : Int)) =
+            (sint.Z (W64 ((writeRev σ.log pend : Nat) : Int))).toNat := rfl
+        omega
+      wp_apply wp_genRange wv.r' g1 (W64 ((writeRev σ.log pend : Nat) : Int)) (by omega) (by omega)
+          $$ [$Hpkg $Hg]
+        as %qq ⟨⟨%g2, Hg⟩, %kk, %e, Hk, Hkcap, He, Hecap, %Hq⟩
+      imod ownSlice_persist $$ Hk with #Hk
+      imod ownSlice_persist $$ He with #He
+      (try wp_auto)
+      wp_apply wp_ctxTODO
+      (try wp_auto)
+      ihave #Hctxr : mvcc.rangeCtx true todoCtxVal
+          ({ Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) } :
+            context.ContextDesc (IProp GF)) $$ []
+      · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
+      wp_apply (hRangeC γ.kv trace te (.write σ pend) todoCtxVal _ true qq.key' qq.end' kk e qq.ro')
+          $$ [$Hmv $Htx $Htrc $Hctxr $Hk $He]
+        as %rr %err ⟨%Hrn, Htx, Htrc, Hout, -, -⟩
+      have hrr : (MTxn.write σ pend).readRev = W64 ((writeRev σ.log pend : Nat) : Int) := rfl
+      have hrl : (MTxn.write σ pend).readLog = σ.log ++ [pend] := rfl
+      have hcr : (MTxn.write σ pend).state.crev = -1 := hcrev
+      rw [hrr, hrl, hcr]
+      ihave Hout := mvcc.rangeOutcomeC_neg _ _ _ _ _ _ _ _ (by omega) $$ Hout
+      iunfold statesAt at HstAt
+      icases HstAt with ⟨%Hml, HstAt⟩
+      have hnil : P.chs = [] ↔ pend = [] := by rw [hok.1]; exact pendOf_chs_nil_iff _ _ _
+      have hcurlt : writeRev σ.log pend < ms.length := by
+        rw [Hml.1, viewSt_length', Hlen]
+        unfold writeRev
+        by_cases hp : pend = []
+        · simp only [hp, hnil.2 hp, ↓reduceIte]; omega
+        · have hc : P.chs ≠ [] := fun h => hp (hnil.1 h)
+          simp only [hp, hc, ↓reduceIte]; omega
+      wp_apply (wp_checkRange sts dsl ms (viewSt Hs P) (viewDq Hs P)
+          (W64 ((writeRev σ.log pend : Nat) : Int)) qq kk e DFrac.discard DFrac.discard rr err
+          (σ.log ++ [pend]) hLok (by omega) (by rw [hcurN]; exact hcurlt)
+          (fun r hr => viewSt_match' σ Hs pend P hok Hlen (by omega) Hmatch r
+            (by rw [hcurN] at hr; exact hr)))
+        $$ [$Hpkg $Hmv $Hsts HstAt $Hk $He $Hout] as ⟨Hsts, HstAt, -, -⟩
+      · iunfold statesAt; iframe HstAt
+        ipureintro; exact ⟨Hml, Hrn rfl⟩
+      ihave Hp := Hback $$ HstAt
+      (try wp_auto)
+      iapply HΦ
+      iexists [], P, n
+      simp only [List.append_nil]
+      iframe
+      ipureintro; exact ⟨⟨hok, hLok, by simp, Or.inl trivial⟩, HLm⟩
 
 end proof
 
