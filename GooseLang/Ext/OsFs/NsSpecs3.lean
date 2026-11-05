@@ -61,6 +61,46 @@ theorem nsCoh_addDirFd {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) {fd : 
     · cases hx
     · exact h7 fd' e rs g q hx
 
+/-- A directory fd's read moved on: the namespace's invariants, with the fd's new ghost phase. -/
+theorem nsWfCoh_setRd {st : OsState} {Γd Γdf} (hw : NsWf st) (hc : NsCoh st Γd Γdf) {fd : w64}
+    {df : OsDirFd} {x : GoString × DirPh} (hdf : st.dfds !! fd = some df) (hx : Γdf !! fd = some x)
+    (rd' : OsDirRead) (ph' : DirPh) (hph : PhOk ph' rd')
+    (hrd : ∀ rs g q, ph' = .reading rs g q → Γd !! x.1 = some g) :
+    NsWf { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } ∧
+    NsCoh { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } Γd (<[fd := (x.1, ph')]> Γdf) := by
+  have hpath : x.1 = df.path := by have := hc.fds fd; rw [hx, hdf] at this; simpa using this
+  refine ⟨⟨hw.roots, hw.replay, hw.hist, hw.legacy, fun fd' df' h' => ?_, fun fd' h' => ?_⟩, ?_⟩
+  · have h'' : (<[fd := { df with rd := rd' }]> st.dfds) !! fd' = some df' := h'
+    rw [GMap.lookup_insert_eq_iff] at h''; split at h''
+    · cases h''; exact hw.dfds fd df hdf
+    · exact hw.dfds fd' df' h''
+  · show (<[fd := { df with rd := rd' }]> st.dfds) !! fd' = none
+    rw [GMap.lookup_insert_eq_iff]; split
+    · subst_vars; have := hw.disj _ h'; rw [hdf] at this; cases this
+    · exact hw.disj fd' h'
+  · obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hc
+    refine ⟨h1, h2, h3, h4, fun fd' => ?_, fun fd' x' df' hx' hd' => ?_, fun fd' e rs g q hx' => ?_⟩
+    · show ((<[fd := (x.1, ph')]> Γdf) !! fd').map (·.1) =
+        ((<[fd := { df with rd := rd' }]> st.dfds) !! fd').map (·.path)
+      rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]; split
+      · simp [hpath]
+      · exact h5 fd'
+    · have hd'' : (<[fd := { df with rd := rd' }]> st.dfds) !! fd' = some df' := hd'
+      rw [GMap.lookup_insert_eq_iff] at hx' hd''
+      split at hx'
+      · rw [if_pos ‹_›] at hd''; cases hx'; cases hd''; exact hph
+      · rw [if_neg ‹_›] at hd''; exact h6 fd' x' df' hx' hd''
+    · rw [GMap.lookup_insert_eq_iff] at hx'; split at hx'
+      · cases hx'; exact hrd rs g q rfl
+      · exact h7 fd' e rs g q hx'
+
+/-- The names a read begun now sees: the directory's entries. -/
+theorem nsPresent_eq {st : OsState} {d : GoString} {g : DirG} (h : entsOf st.ns d = g.now)
+    (b : GoString) : nsPresent st d b = (g.now !! b).isSome := by
+  rw [← h, entsOf_lookup]
+  unfold nsPresent
+  by_cases hb : NameOk b <;> simp [hb]
+
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
@@ -549,6 +589,201 @@ theorem wp_osNsOpenCreate (d b : GoString) (g : DirG) (hb : NameOk b) (hn : g.no
     · ipureintro; exact hk
     unfold osDir osMeta
     iframe
+
+theorem phOk_idle {rd : OsDirRead} (h : PhOk .idle rd) : rd = .idle := by
+  cases rd <;> simp_all [PhOk]
+
+theorem phOk_reading {rs : List GoString} {g : DirG} {q : Qp} {rd : OsDirRead}
+    (h : PhOk (.reading rs g q) rd) : ∃ u s r, rd = .reading u s r ∧
+      ∀ b, u b = (g.now !! b).isSome ∧ s b = (g.now !! b).isSome ∧ r b = decide (b ∈ rs) := by
+  cases rd with
+  | reading u s r => exact ⟨u, s, r, rfl, h⟩
+  | _ => simp [PhOk] at h
+
+/-- The values of a step of `Readdirnames`: a name, the end, an errno. -/
+abbrev rdName (b : GoString) : val := PairV (#b) (PairV (#(0 : w64)) (#(0 : w64)))
+abbrev rdEnd : val := PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64)))
+abbrev rdErr (e : w64) : val := PairV (#([] : GoString)) (PairV (#(0 : w64)) (#e))
+
+theorem lend_lookup (d : GoString) (g : DirG) (q : Qp) (fresh : Bool)
+    (Γd : GMap GoString DirG) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd Γd -∗
+      (if fresh then osDir (L := L) d (DFrac.own q) g else emp) -∗
+      ⌜fresh = true → Γd !! d = some g⌝ := by
+  cases fresh with
+  | false => iintro _ _; ipureintro; intro h; cases h
+  | true =>
+    simp only [↓reduceIte]
+    iintro HA Hd
+    unfold osDir
+    icases gAuth_lookup _ _ _ _ _ _ $$ HA Hd with %h
+    ipureintro; exact fun _ => h
+
+/-- One step of a read of a directory fd, its read begun (`rs` the names returned) or about to be
+(`fresh`: the caller lends the read a fraction `q` of the directory's ghost entry `g`): a name of
+the directory not returned, the end once all were, or an errno. At the end the fraction is back. -/
+theorem wp_osDirReadStep (fd : w64) (d : GoString) (rs : List GoString) (g : DirG) (q : Qp)
+    (fresh : Bool) (hfr : fresh = true → rs = []) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗
+      osDirFd (L := L) fd (DFrac.own 1) (d, if fresh then .idle else .reading rs g q) -∗
+      (if fresh then osDir (L := L) d (DFrac.own q) g else emp) -∗
+      (∀ v, ((∃ b, ⌜v = rdName b ∧ (g.now !! b).isSome ∧ b ∉ rs⌝ ∗
+              osDirFd (L := L) fd (DFrac.own 1) (d, .reading (b :: rs) g q)) ∨
+            (⌜v = rdEnd ∧ ∀ b, (g.now !! b).isSome → b ∈ rs⌝ ∗
+              osDirFd (L := L) fd (DFrac.own 1) (d, .done) ∗ osDir (L := L) d (DFrac.own q) g) ∨
+            (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗
+              osDirFd (L := L) fd (DFrac.own 1) (d, .reading rs g q))) -∗ Φ v) -∗
+      WP (ExternalOp osFsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hd HΦ
+  iapply wp_os_stepN "DirReadNext" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %Γd %Γdf %h Hw Hn
+  unfold osWorld nsWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  obtain ⟨hw, hc⟩ := Hns
+  unfold osDirFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  obtain ⟨df, hdf⟩ : ∃ df, st.dfds !! fd = some df := by
+    have := hc.fds fd; rw [Hfl] at this
+    cases h0 : st.dfds !! fd with
+    | none => rw [h0] at this; cases this
+    | some df => exact ⟨df, rfl⟩
+  have hpath : df.path = d := by have := hc.fds fd; rw [Hfl, hdf] at this; simpa using this.symm
+  have hph := hc.ph fd _ df Hfl hdf
+  -- the directory's ghost entry, and the read's state
+  have hgd : Γd !! d = some g → entsOf st.ns d = g.now := hc.now d g
+  have hcur : (fresh = true → Γd !! d = some g) → ∃ u s r,
+      df.rd.cur st df.path = some (u, s, r) ∧
+      ∀ b, u b = (g.now !! b).isSome ∧ s b = (g.now !! b).isSome ∧ r b = decide (b ∈ rs) := by
+    intro hg
+    cases fresh with
+    | true =>
+      have hrd := phOk_idle hph
+      have hents := hgd (hg rfl)
+      refine ⟨nsPresent st d, nsPresent st d, fun _ => false, by rw [hrd, hpath]; rfl,
+        fun b => ⟨nsPresent_eq hents b, nsPresent_eq hents b, ?_⟩⟩
+      rw [hfr rfl]; simp
+    | false =>
+      obtain ⟨u, s, r, hrd, hus⟩ := phOk_reading hph
+      exact ⟨u, s, r, by rw [hrd]; rfl, hus⟩
+  -- Γd's entry: lent by the caller, or held by the read
+  icases lend_lookup d g q fresh Γd $$ HAd Hd with %Hdl0
+  have Hdl : Γd !! d = some g := by
+    cases fresh with
+    | true => exact Hdl0 rfl
+    | false => exact hc.rd fd d rs g q (by simpa using Hfl)
+  obtain ⟨u, s, r, hcur', hus⟩ := hcur (fun _ => Hdl)
+  have hents := hgd Hdl
+  have hs : ∀ rd', FilesSame st { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } :=
+    fun _ => ⟨rfl, rfl, rfl, rfl⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨hfr', hr⟩ := step_filesSame (h := h) hwf (hs (.reading u s r)) Hag
+    exact ⟨_, h, _, ⟨fd, df, u, s, r, rfl, hdf, hcur', .inr (.inr ⟨1, by decide, rfl, rfl⟩)⟩,
+      hfr', hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr', Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', df', u', s', r', hv, hdf', hcur'', hres⟩ := Hst
+  cases go.intoVal_inj hv
+  rw [hdf] at hdf'; cases hdf'
+  rw [hcur'] at hcur''; cases hcur''
+  -- the reads' fractions, with the fd's entry swapped
+  unfold rdRes
+  icases (BigSepM.bigSepM_insert_acc (M := GMap w64)
+    (Φ := fun (_ : w64) (x : GoString × DirPh) => rdPart (gooseOsGS (L := L)) x) Hfl) $$ Hrd
+    with ⟨Hx, Hrd⟩
+  -- the fd's ghost entry, to the new phase
+  have hfinish : ∀ (rd' : OsDirRead) (ph' : DirPh), PhOk ph' rd' →
+      (∀ rs' g' q', ph' = .reading rs' g' q' → Γd !! d = some g') →
+      st' = { st with dfds := <[fd := { df with rd := rd' }]> st.dfds } →
+      ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm -∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf -∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt -∗
+        tokRes (gooseOsGS (L := L)) st Γt -∗ cellsRes (GF := GF) (cellView st) -∗ naHeapCtx tls h -∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd Γd -∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf -∗
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd (DFrac.own 1)
+          (d, if fresh then DirPh.idle else .reading rs g q) -∗
+        gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γz (busyMap st.nsBusy) -∗
+        ([∗map] k ↦ v ∈ <[fd := (d, ph')]> Γdf, rdPart (gooseOsGS (L := L)) v) ==∗
+        osWorld (L := L) st' Γb Γm Γf Γt h' ∗ nsWorld (L := L) st' Γd (<[fd := (d, ph')]> Γdf) ∗
+        osDirFd (L := L) fd (DFrac.own 1) (d, ph') := by
+    intro rd' ph' hok hrd hst
+    subst hst
+    obtain ⟨hw', hc'⟩ := nsWfCoh_setRd hw hc hdf Hfl rd' ph' hok hrd
+    iintro HAb HAm HAf HAt Htok Hcells Hσ HAd HAdf Hfd HAz Hrd
+    imod gAuth_update _ _ _ _ _ (d, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
+    imod ns_step_close hwf hcoh (hs rd') Hr Hfr' hw' hc' st.nsBusy rfl $$ HAb HAm HAf HAt Htok
+      Hcells Hσ HAd HAdf HAz [Hrd] with ⟨Hw, Hn⟩
+    · unfold rdRes; iexact Hrd
+    imodintro
+    iframe Hw Hn
+    unfold osDirFd; iexact Hfd
+  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, hst, rfl⟩
+  · -- a name
+    have hb : (g.now !! b).isSome := by rw [← (hus b).2.1]; exact hsb
+    have hbr : b ∉ rs := by
+      intro hm; have := (hus b).2.2; rw [hrb] at this; simp [hm] at this
+    have hok : PhOk (.reading (b :: rs) g q) (.reading u s (fun x => r x || decide (x = b))) := by
+      intro x
+      refine ⟨(hus x).1, (hus x).2.1, ?_⟩
+      show (r x || decide (x = b)) = _
+      rw [(hus x).2.2]; by_cases hx : x = b <;> simp [hx]
+    ihave Hrd := Hrd $$ %(d, .reading (b :: rs) g q) [Hx Hd]
+    · cases fresh with
+      | true => simp only [↓reduceIte] at *; unfold rdPart osDir; dsimp only; iexact Hd
+      | false => simp only [Bool.false_eq_true, ↓reduceIte] at *; unfold rdPart; dsimp only; iexact Hx
+    imod hfinish _ _ hok (fun rs' g' q' h => by cases h; exact Hdl) hst $$ HAb HAm HAf HAt Htok
+      Hcells Hσ HAd HAdf Hfd HAz Hrd with ⟨Hw, Hn, Hfd⟩
+    imodintro
+    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .reading (b :: rs) g q)]> Γdf)
+    unfold osWorld nsWorld rdRes
+    iframe Hw Hn
+    iapply wp_value'
+    iapply HΦ
+    unfold osDirFd; ileft; iexists b; iframe Hfd; ipureintro; exact ⟨rfl, hb, hbr⟩
+  · -- the end: every name returned
+    have hall' : ∀ b, (g.now !! b).isSome → b ∈ rs := by
+      intro b hb
+      have := hall b (by rw [(hus b).1]; exact hb) (by rw [nsPresent_eq (hpath ▸ hents) b]; exact hb)
+      rw [(hus b).2.2] at this; simpa using this
+    ihave Hrd := Hrd $$ %(d, DirPh.done) []
+    · unfold rdPart; iempintro
+    ihave Hback : osDir (L := L) d (DFrac.own q) g $$ [Hx Hd]
+    · cases fresh with
+      | true => simp only [↓reduceIte]; iexact Hd
+      | false =>
+        simp only [Bool.false_eq_true, ↓reduceIte] at *; unfold rdPart osDir; dsimp only; iexact Hx
+    imod hfinish _ _ (by trivial : PhOk .done .done) (fun _ _ _ h => by cases h) hst $$ HAb HAm HAf
+      HAt Htok Hcells Hσ HAd HAdf Hfd HAz Hrd with ⟨Hw, Hn, Hfd⟩
+    imodintro
+    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .done)]> Γdf)
+    unfold osWorld nsWorld rdRes
+    iframe Hw Hn
+    iapply wp_value'
+    iapply HΦ
+    unfold osDirFd; iright; ileft; iframe Hfd Hback; ipureintro; exact ⟨rfl, hall'⟩
+  · -- an errno: the read begun, nothing returned
+    have hok : PhOk (.reading rs g q) (.reading u s r) := fun x => hus x
+    ihave Hrd := Hrd $$ %(d, .reading rs g q) [Hx Hd]
+    · cases fresh with
+      | true => simp only [↓reduceIte] at *; unfold rdPart osDir; dsimp only; iexact Hd
+      | false => simp only [Bool.false_eq_true, ↓reduceIte] at *; unfold rdPart; dsimp only; iexact Hx
+    imod hfinish _ _ hok (fun rs' g' q' h => by cases h; exact Hdl) hst $$ HAb HAm HAf HAt Htok
+      Hcells Hσ HAd HAdf Hfd HAz Hrd with ⟨Hw, Hn, Hfd⟩
+    imodintro
+    iexists Γb, Γm, Γf, Γt, Γd, (<[fd := (d, .reading rs g q)]> Γdf)
+    unfold osWorld nsWorld rdRes
+    iframe Hw Hn
+    iapply wp_value'
+    iapply HΦ
+    unfold osDirFd; iright; iright; iexists e; iframe Hfd; ipureintro; exact ⟨he, rfl⟩
 
 end specs
 
