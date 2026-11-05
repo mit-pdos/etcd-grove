@@ -5,7 +5,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.v3election`
 Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
 2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
 initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
-Perennial's `errors.wp_New_errorString`).
+Perennial's `context.wp_New_errorString`).
 -/
 module
 

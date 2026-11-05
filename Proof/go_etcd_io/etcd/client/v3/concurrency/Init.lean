@@ -5,7 +5,7 @@ Package initialization of `go_etcd_io.etcd.client.v3.concurrency`
 Its fact (`concurrencyInit`, `Base.lean`): `Mutex`'s three errors and `Election`'s two each
 hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
 translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
-`errors.wp_New_errorString`).
+`context.wp_New_errorString`).
 -/
 module
 
