@@ -62,9 +62,9 @@ theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hr : r ∈ w.fl.free) (h
   · exact h5 x ((List.mem_filter.1 hx).1)
   · have h := h6 f hf
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := h f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14⟩ := h f' hf'
     refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ?_, fun x hx => c10 x
-      ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx, fun a ha => ?_⟩
+      ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx, fun a ha => ?_, c14⟩
     rotate_left
     · have hff : f' = f := Option.some.inj (hf'.symm.trans hf)
       subst hff

@@ -1871,3 +1871,16 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   mark and the buffers' ids and overflows; `Bucket.spill.spec`'s and `Tx.commitFreelist.spec`'s
   success posts carry it, `cmPubPre` adds it, and `cm_pub_ok` uses `Tx.write_ext`'s success post
   (every page slot inside the new file) to get `pgid · 4096 ≤ size'`.
+- **D-L** (2026-11-05, maintainer 14, item 1 of its queue; decided by the coordinator, **for the
+  user's review**: it changes `fileHolds`, a public, sealed predicate). `flFileOK` (behind
+  `fileHolds`; `Api.lean`'s docstring updated) gains that **the synced freelist page's header names
+  its own id** (`pageId (filePage xs f) = f`). Why it is needed: `Commit` frees the page by
+  `tx.db.freelist.Free(txid, tx.db.page(tx.meta.Freelist()))`, and `Free` frees `p.Id()` through
+  `p.Id() + p.Overflow()`: with another header id it frees a different run (`cm_free_fl`'s `hid`).
+  Go's `freelist.Read` does not check the id, so nothing at `Open` gives it. Why it is true of every
+  file bbolt writes: `init` writes the freelist page with id 2 (`Open/InitImage`), and
+  `commitFreelist` writes the page `allocate` returns, whose header id `allocate` sets
+  (`Commit/FlPageIds.flPgB_id`); `WriteTo` copies such files. Kept in the writer side by
+  `flCurOK`/`flCurOKr`'s last clause `pageId pg = f` (from `flFileOK` at `Open`,
+  `LoadFL.flCurOK_ofInit`; from the written page at `Commit`, `flCurOK_flPgB`);
+  `Commit/FreeFlOK.wb_pageId` gives `pageId (w.wb f) = f` under `wdbOK`.

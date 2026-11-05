@@ -32,7 +32,7 @@ theorem flCurOKr_rollback (fl : FLPg) (C : CommitSt) (pg : List w8) (wtx : w64)
     (h : flCurOKr fl C wtx pg) :
     flCurOK (fl.rollback wtx) C pg := by
   intro f hf
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩ := h f hf
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14⟩ := h f hf
   have hfree : (fl.rollback wtx).free = fl.free := rollback_free _ _
   have hsub : ∀ t pd, (fl.rollback wtx).pending !! t = some pd → fl.pending !! t = some pd :=
     fun t pd hp => rollback_pending_sub _ _ t pd hp
@@ -40,7 +40,7 @@ theorem flCurOKr_rollback (fl : FLPg) (C : CommitSt) (pg : List w8) (wtx : w64)
     rintro x ⟨t, pd, hp, hx, ht⟩
     exact ⟨t, pd, hsub t pd hp, hx, ht⟩
   refine ⟨a1, a2, a3, a4, a5, a6, a7, a8, fun s h1 h2 => ⟨(a9 s h1 h2).1, ?_⟩,
-    fun x hx => ?_, fun x hx => a11 x (hcp x hx), fun x hx => ?_, fun a ha => ?_⟩
+    fun x hx => ?_, fun x hx => a11 x (hcp x hx), fun x hx => ?_, fun a ha => ?_, a14⟩
   · intro hm
     obtain ⟨-, -, hnf, hpt⟩ := a9 s h1 h2
     rcases List.mem_append.1 hm with hm | hm

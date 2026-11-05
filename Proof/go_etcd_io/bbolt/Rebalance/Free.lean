@@ -49,7 +49,7 @@ theorem wdbOK_free (w : WDb) (id : w64) (pg : List w8) (hok : wdbOK w)
     · rintro ⟨a, b, c, d⟩; exact ⟨a, b, c, fun h => h.elim d (fun h' => c (hS s h'.1 h'.2))⟩
     · rintro ⟨a, b, c, d⟩; exact ⟨a, b, c, fun h => d (Or.inl h)⟩
   · intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := h6 f hf f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14⟩ := h6 f hf f' hf'
     have hcp : ∀ x, committedPending (w.fl.freePages w.wtxid id (1 + pageOverflow pg)) w.C x →
         committedPending w.fl w.C x := by
       rintro x ⟨t, pd, hp, hx, ht⟩
@@ -62,7 +62,7 @@ theorem wdbOK_free (w : WDb) (id : w64) (pg : List w8) (hok : wdbOK w)
       obtain ⟨pd', hp', hsub⟩ := freePages_pending_mono _ w.wtxid id _ t pd hp
       exact ⟨t, pd', hp', hsub x hx, ht⟩
     refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s hs1 hs2 => ⟨(c9 s hs1 hs2).1, ?_⟩, c10,
-      fun x hx => c11 x (hcp x hx), fun x hx => (c12 x hx).imp_left (hcp' x), fun a ha => ?_⟩
+      fun x hx => c11 x (hcp x hx), fun x hx => (c12 x hx).imp_left (hcp' x), fun a ha => ?_, c14⟩
     rotate_right
     · simp only [WDb.withFl, FLPg.freePages] at ha
       by_cases e : id = W64 (f' : Int)

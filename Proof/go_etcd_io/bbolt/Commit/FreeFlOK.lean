@@ -32,7 +32,7 @@ theorem flAlloc_ne_wtxid (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = so
     (w.fl.allocs !! W64 (f : Int)).getD 0 ≠ w.wtxid := by
   have htx : w.C.txid + 1 < 2 ^ 64 := hok.2.2.2.2.2.2.1
   have hT : w.wtxid.toNat = w.C.txid + 1 := toNat_W64_of_lt _ htx
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, c13⟩ := hok.2.2.2.2.2.1 f hf f hf
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, c13, -⟩ := hok.2.2.2.2.2.1 f hf f hf
   intro e
   have := congrArg BitVec.toNat e
   rw [hT] at this
@@ -42,6 +42,21 @@ theorem flAlloc_ne_wtxid (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = so
     have := c13 a h
     simp only [Option.getD_some] at *
     omega
+
+/-- **The synced freelist page's header names its id** (`flCurOK`'s last clause, read from the
+extent's first slot, which holds the header: `cm_free_fl`'s `hid`). -/
+theorem wb_pageId (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f) :
+    pageId (w.wb f) = f := by
+  have h16 := wb_header w hok f hf
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hpid⟩ := hok.2.2.2.2.2.1 f hf f hf
+  have e : pageId (extentBytes w.wb f) = pageId (w.wb f) := by
+    unfold pageId pageHdr bytesAt
+    congr 3
+    unfold extentBytes
+    rw [show 1 + pageOverflow (w.wb f) = (pageOverflow (w.wb f)) + 1 by omega, List.range'_succ,
+      List.flatMap_cons, List.drop_zero, List.drop_zero,
+      List.take_append_of_le_length h16]
+  exact e.symm.trans hpid
 
 /-- **`wdbOK' true` after `Commit`'s free of the synced freelist page** `f` (its `n = 1 +
 pageOverflow (w.wb f)` slots), from `wdbOK`: the run pending for the writer, its slots out of
@@ -60,7 +75,7 @@ theorem wdbOK'_free_fl (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some
       List.flatMap_cons, List.drop_zero, List.drop_zero,
       List.take_append_of_le_length h16]
   obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm, hmap, hsmall, hslots, hfree⟩ := hok
-  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, -⟩ := h6 f hf f hf
+  obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, -, c14⟩ := h6 f hf f hf
   rw [hov, hn] at c2 c3 c8 c9
   have hT : w.wtxid.toNat = w.C.txid + 1 := toNat_W64_of_lt _ htx
   have hf64 : f < 2 ^ 64 := by omega
@@ -103,7 +118,7 @@ theorem wdbOK'_free_fl (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some
     simp only
     rw [hov, hn]
     refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ⟨(c9 s a b).1, (hpend s).2 (.inr ⟨a, b⟩),
-      ?_, ?_⟩, c10, fun x hx => c11 x (hcp x hx), fun x hx => (c12 x hx).imp_left (hcp' x), ?_⟩
+      ?_, ?_⟩, c10, fun x hx => c11 x (hcp x hx), fun x hx => (c12 x hx).imp_left (hcp' x), ?_, c14⟩
     · exact fun hm => hnotAll s a b (List.mem_append_left _ hm)
     · intro t pd hp hm
       rcases freePages_pending_lookup _ _ _ _ _ _ hp with ⟨-, hp'⟩ | ⟨rfl, -⟩

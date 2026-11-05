@@ -181,7 +181,10 @@ either
     the file reaches it even under `NoGrowSync` (where `grow` does not truncate); a failed commit
     keeps the old mark; `WriteTo`'s images are `hwm · pageSize` long);
   - (round 6) **the synced freelist page** (if the meta has one) is of freelist type, its count
-    and ids lie within its own extent, and its ids are distinct and in `[2, hwm)` (`Read` panics
+    and ids lie within its own extent, (2026-11-05, decided by the coordinator) **its header id is
+    its page number** (true of every file bbolt writes: `init` writes it with id 2, `commitFreelist`
+    the page `allocate` returns, whose header id `allocate` sets; `Commit` frees the page by
+    `p.Id()` and its overflow), and its ids are distinct and in `[2, hwm)` (`Read` panics
     on another page type; `Allocate` panics on ids 0 and 1; an id at or past the high-water mark
     or a duplicate is handed out wrongly, twice, or as a root above the mark);
   - keys strictly sorted within and across the pages of each tree, and (round 3) **each branch

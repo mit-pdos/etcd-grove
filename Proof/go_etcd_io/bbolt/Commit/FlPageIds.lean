@@ -174,7 +174,8 @@ theorem flCurOK_flPgB (fl : FLPg) (C : CommitSt) (id : w64) (cnt : Nat)
     rw [hids]; exact (sortPgids_perm _).mem_iff
   have h1 : 1 + pageOverflow (flPgB fl id cnt) = cnt := by omega
   rw [h1]
-  refine ⟨h2, hend, hlen, flPgB_flags fl id cnt, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨h2, hend, hlen, flPgB_flags fl id cnt, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    flPgB_id fl id cnt⟩
   · rw [flPgB_countIdx fl id cnt hn, hlen]
     split <;> omega
   · rw [hids]; exact (sortPgids_perm _).nodup_iff.2 hwf.1

@@ -59,13 +59,13 @@ theorem flCurOK_ofInit (ys : List w8) (C : CommitSt) (g : Nat) (hg : C.flpg = so
     flCurOK (FLPg.ofInit (flIds (filePage ys g))) C (filePage ys g) := by
   intro f hf
   rw [hg] at hf; cases hf
-  obtain ⟨h2, hext, hflag, hbnd, hnd, hids, hown, hcov⟩ := hfl g hg
+  obtain ⟨h2, hext, hflag, hbnd, hnd, hids, hown, hcov, hpid⟩ := hfl g hg
   have hlen := filePage_length ys g (by
     have : (g + (1 + pageOverflow (filePage ys g))) * 4096 ≤ C.hwm * 4096 :=
       Nat.mul_le_mul_right _ hext
     rw [Nat.add_mul] at this; omega)
   refine ⟨h2, hext, hlen, hflag, hbnd, hnd, fun x hx => (hids x hx).1,
-    fun x hx => (hown x hx).1, ?_, ?_, ?_, ?_, fun a ha => ?_⟩
+    fun x hx => (hown x hx).1, ?_, ?_, ?_, ?_, fun a ha => ?_, hpid⟩
   · intro s h1 h2'
     refine ⟨hcov s h1 h2', ?_⟩
     unfold FLPg.allIds
@@ -103,7 +103,7 @@ theorem freeIdsOf_facts (C : CommitSt) (hhwm : C.hwm < 2 ^ 64) (x : w64)
 theorem flIds_facts (ys : List w8) (C : CommitSt) (g : Nat) (hg : C.flpg = some g)
     (hfl : flFileOK ys C) (x : w64) (hx : x ∈ (FLPg.ofInit (flIds (filePage ys g))).free) :
     x.toNat < C.hwm ∧ x.toNat ∉ treeSlots C := by
-  obtain ⟨-, -, -, -, -, hids, hown, -⟩ := hfl g hg
+  obtain ⟨-, -, -, -, -, hids, hown, -, -⟩ := hfl g hg
   have hx' : x ∈ flIds (filePage ys g) := (mem_sortPgids_lf _ x).1 hx
   exact ⟨(hids x hx').2, not_coversSlot_treeSlots C _ (hown x hx').2⟩
 

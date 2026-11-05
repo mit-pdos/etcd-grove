@@ -162,10 +162,10 @@ theorem flCurOK_mono (fl fl' : FLPg) (C : CommitSt) (pg : List w8)
       fl.allocs !! W64 (f : Int) = some a ∨ W64 (f : Int) ∈ fl.pendingIds)
     (h : flCurOK fl C pg) : flCurOK fl' C pg := by
   intro f hf
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩ := h f hf
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14⟩ := h f hf
   refine ⟨a1, a2, a3, a4, a5, a6, a7, a8,
     fun s h1 h2 => ⟨(a9 s h1 h2).1, fun hm => (a9 s h1 h2).2 (hall _ hm)⟩, fun x hx => ?_,
-    fun x hx => a11 x (hcp x hx), fun x hx => ?_, fun a ha => ?_⟩
+    fun x hx => a11 x (hcp x hx), fun x hx => ?_, fun a ha => ?_, a14⟩
   rotate_right
   · rcases hal f hf a ha with h | h
     · exact a13 a h

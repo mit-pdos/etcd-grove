@@ -45,7 +45,8 @@ def flCurOKr (fl : FLPg) (C : CommitSt) (wtx : w64) (pg : List w8) : Prop :=
     (∀ x ∈ fl.free, x ∈ flIds pg) ∧ (∀ x, committedPending fl C x → x ∈ flIds pg) ∧
     (∀ x ∈ flIds pg, committedPending fl C x ∨
       (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat)) ∧
-    (∀ a, fl.allocs !! W64 (f : Int) = some a → a.toNat ≤ C.txid)
+    (∀ a, fl.allocs !! W64 (f : Int) = some a → a.toNat ≤ C.txid) ∧
+    pageId pg = f
 
 /-- The synced freelist page's clause of `wdbOK'`: `flCurOK`, or with the flag `flCurOKr` for the
 writer's txid. -/
@@ -132,7 +133,7 @@ theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (hr : r �
   cases fr
   · intro f hf
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := h f hf f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14⟩ := h f hf f' hf'
     have hff : f' = f := Option.some.inj (hf'.symm.trans hf)
     subst hff
     have hnf : W64 (f' : Int) ∉ w.fl.free := fun hm =>
@@ -140,17 +141,17 @@ theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (hr : r �
     exact ⟨c1, c2, c3, c4, c5, c6, c7, c8,
       fun s a b => ⟨(c9 s a b).1, fun hm => (c9 s a b).2 (hsub _ hm)⟩,
       fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx,
-      fun a ha => c13 a (hal f' hnf a ha)⟩
+      fun a ha => c13 a (hal f' hnf a ha), c14⟩
   · intro f hf
     refine ⟨(h f hf).1, ?_⟩
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := (h f hf).2 f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14⟩ := (h f hf).2 f' hf'
     have hff : f' = f := Option.some.inj (hf'.symm.trans hf)
     subst hff
     have hnf : W64 (f' : Int) ∉ w.fl.free := (c9 f' (Nat.le_refl _) (by omega)).2.2.1
     refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ?_,
       fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx,
-      fun a ha => c13 a (hal f' hnf a ha)⟩
+      fun a ha => c13 a (hal f' hnf a ha), c14⟩
     obtain ⟨d1, d2, d3, d4⟩ := c9 s a b
     exact ⟨d1, d2, fun hm => d3 ((List.mem_filter.1 hm).1), d4⟩
 

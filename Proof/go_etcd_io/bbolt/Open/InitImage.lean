@@ -246,7 +246,8 @@ theorem initC_flFileOK : flFileOK initImg initC := by
   have hids : flIds (emptyPg 2 (W16 16)) = [] := by unfold flIds; rw [hc]; rfl
   rw [emptyPg_overflow, emptyPg_flags, hc, hids, emptyPg_length]
   refine ⟨Nat.le_refl _, by show 2 + 1 ≤ 4; omega, rfl, by omega, List.nodup_nil,
-    fun x hx => absurd hx List.not_mem_nil, fun x hx => absurd hx List.not_mem_nil, ?_⟩
+    fun x hx => absurd hx List.not_mem_nil, fun x hx => absurd hx List.not_mem_nil, ?_,
+    emptyPg_id _ _ (by omega)⟩
   intro s h1 h2 hcov
   have := initC_coversSlot s hcov
   omega

@@ -38,7 +38,10 @@ def fileImage (xs : List w8) (C : CommitSt) : Prop :=
   C.pages = treePages (filePages xs C.hwm) C.root
 
 /-- **The file's synced freelist page** (when `C` names one): a freelist page within `[2, hwm)`,
-its ids within it, distinct, in `[2, hwm)`, none on its own slots or a tree page's. -/
+its ids within it, distinct, in `[2, hwm)`, none on its own slots or a tree page's, its header
+naming its own id (maintainer 14, item 1, decided by the coordinator: `init` writes it with id 2,
+`commitFreelist` writes the page `allocate` returns, whose header id `allocate` sets; `Commit`
+frees `tx.meta.freelist`'s extent by the header's overflow, `Free`'s `p.Id()`). -/
 def flFileOK (xs : List w8) (C : CommitSt) : Prop :=
   ∀ f, C.flpg = some f →
     let pg := filePage xs f
@@ -47,7 +50,8 @@ def flFileOK (xs : List w8) (C : CommitSt) : Prop :=
     (flIds pg).Nodup ∧ (∀ x ∈ flIds pg, 2 ≤ x.toNat ∧ x.toNat < C.hwm) ∧
     (∀ x ∈ flIds pg, ¬ (f ≤ x.toNat ∧ x.toNat < f + (1 + pageOverflow pg)) ∧
       ¬ coversSlot C.pages x.toNat) ∧
-    ∀ s, f ≤ s → s < f + (1 + pageOverflow pg) → ¬ coversSlot C.pages s
+    (∀ s, f ≤ s → s < f + (1 + pageOverflow pg) → ¬ coversSlot C.pages s) ∧
+    pageId pg = f
 
 end image
 
