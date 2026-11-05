@@ -14,7 +14,8 @@ them since 2026-10-30 (snapshots allowed).
 **The pure premises:** the logic's thread bound and the time-receipt
 bounds; the server's raft names of the cluster (its peers `ps`, static, its bootstrap log), the log
 shorter than `2 ^ 60`, the network's payload the server's and its directory `dir`; the logger not
-`nil`; the auto-compactor off (the retention zero); the named effect premises of the server's
+`nil`; the auto-compactor off (the retention zero), in either compaction mode `cmp` (compaction
+mode with every compaction a client's: Kubernetes' deployment); the named effect premises of the server's
 construction.
 
 **`specCompact`** (M2, `notes/m2-plan.md`): the same with the auto-compactor on (the retention
@@ -49,7 +50,7 @@ abbrev newServer.spec : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool),
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -69,7 +70,7 @@ abbrev newServer.spec : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      memberBoot γ ctxs ρ E₀ Φs id cmp ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it
       netHttpOk γn id ∗

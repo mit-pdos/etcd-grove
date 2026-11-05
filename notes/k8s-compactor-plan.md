@@ -255,8 +255,49 @@ collection, `etc/tcb-collections/k8s-compactor.txt`.
     second one: two of its five API servers share the process's compactor, through a local
     interface and one `check`); its adequacy theorem allocates the registry
     (`etcd_adequate_alloc`) and gives `Main` `regAuth ∅`; the store example keeps a fixed name.
-- Three members and partitions, as `etcd/partition`.
+- Three members and partitions, as `etcd/partition` (K6, below).
 - Q2 (ii) with the store's phase 5.
+
+## K6. Three members and partitions (2026-11-05, the user's "go ahead with three members")
+
+**Survey.** A three-member cluster in the client-only mode needs no Go change to the start: Go's
+`NewMember` already passes retention `0`, which is that mode (`bootCfg_off` admits any `cmp`, `cret`).
+The pins are ghost-only: `newServer.spec`/`NewMember.spec` fixed `memberBoot … false`, `alloc3`
+had no mode, and the partition example's shared cluster facts pin compaction off (`memberAt`'s
+`E.γ.cm = false`, `memberWatch`'s). No new `sorry` or axiom: the compaction-mode snapshot send
+(F2, `apply.cmpObs`) and install (M2 item 15) are proved; no three-member closed theorem has run in
+compaction mode yet, so the partition schedule's snapshots (`SnapCount = 1`) exercise them for the
+first time. The compactor's specs, `cinv` and `Aus` are already generic in the member list; the
+compactor's `Main` is one-member only (`alloc1_false`, `[clientAddr]`, the watch server's no-duplicate
+fact `noDupKeys_of_one` before `Serve`). `watchEnv_conn` (the partition example's `MainWatch`) is the
+client's watch through the three bridges, which the compactor's watch loop needs.
+
+**Steps.**
+1. *The mode* (done on branch `k8s3m`): `newServer.spec` and `NewMember.spec` take `cmp`
+   (`memberBoot … cmp`), `alloc3` takes `cmp`/`cret` (defaults off) and posts them; callers pass
+   `false`.
+2. *The Go example* (Go first: it changes the traffic): `examples/k8s/compactorp`, the compactor
+   example's workload on three members through bridges, with the partition schedule; a test.
+3. *The shared cluster start*: `memberAt`/`memberWatch` by the mode, the no-duplicate fact
+   provided before each member serves watches.
+4. *Draft* of the new `Main.spec` and the closed theorem; **Freeze** (the user's).
+5. *Prove* `Main`, the adequacy theorem over every schedule; a TCB collection.
+
+**Decided by the agent, pending the user** (scope; the user vetoes):
+- *D1. A new example, `k8s/compactorp`,* beside the one-member one (kept: it is the small case and
+  its proof is the base). Alternative: replace it.
+- *D2. The partition helpers shared, not copied:* `startMember`, `startBridge`, `peerStep`,
+  `clientStep`, `partitioner`, `startCluster` move to a library package (`examples/lib/cluster3`),
+  parameterized by the token and the addresses, and the partition example re-points to it; their
+  proofs move with them. Copying would make a second family of the same six proofs. Cost: the
+  partition example's Go translation and its proofs re-pointed.
+- *D3. Snapshots kept* (`SnapCount = 1`, as `partition`): the compaction-mode send and install
+  paths run end to end for the first time.
+- *D4. Kubernetes' deployment:* each API server's client lists all three bridges (one client
+  endpoint set, so `StartCompactorPerEndpoint`'s sharing keys on all three: claims for each); the
+  writer likewise.
+- *D5. Any schedule,* as `partition`'s theorem; no separate watch variant (the compactor's watch
+  loop already watches).
 
 ## Risks
 

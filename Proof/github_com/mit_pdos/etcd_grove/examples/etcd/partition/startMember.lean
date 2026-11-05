@@ -104,7 +104,7 @@ theorem startMember.wp_proof
   -- lg)`: frequent snapshots
   wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" (W64 1) (W64 1) peer cluster lg
       (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
-      (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn
+      (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn false
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
