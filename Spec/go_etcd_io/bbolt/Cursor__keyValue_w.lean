@@ -46,6 +46,18 @@ abbrev Cursor.keyValue_w.spec : Prop :=
   {{ (k vl : GoSlice) (fl : w32), RET (PairV (PairV #k #vl) #fl); wtxW K tx r m X ∗
       c ↦ Cursor.mk bl stk ∗ stk ↦* (els ++ [e]) ∗ wKV X bl ws (sint.Z e.index').toNat k vl fl }}
 
+/-- **`keyValue` at a fraction** (U6w): `Cursor.keyValue_w.spec` over `wtxWQ` at any `q`, given
+back unchanged. `spec` is its case `q = 1`. -/
+abbrev Cursor.keyValue_w.specQ : Prop :=
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
+    (stk : GoSlice) (els : List elemRef) (e : elemRef) (pid : w64) (ws : List WEntry),
+  X.t.bs !! bl = some B → bktLocalOK X bl → pmFresh X → inlSrcOK X bl → posOK X bl B pid →
+  refAt X bl pid e → ltree X bl pid = some (true, ws) → 0 ≤ sint.Z e.index' →
+  {{ wtxWQ (GF := GF) K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* (els ++ [e]) }}
+    (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"keyValue")) (Val #()))
+  {{ (k vl : GoSlice) (fl : w32), RET (PairV (PairV #k #vl) #fl); wtxWQ K tx r m q X ∗
+      c ↦ Cursor.mk bl stk ∗ stk ↦* (els ++ [e]) ∗ wKV X bl ws (sint.Z e.index').toNat k vl fl }}
+
 end spec
 
 end bbolt

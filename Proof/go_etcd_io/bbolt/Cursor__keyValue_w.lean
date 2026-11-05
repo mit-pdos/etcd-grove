@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Inode__Key
 public import Spec.go_etcd_io.bbolt.internal.common.Inode__Value
 public import Spec.go_etcd_io.bbolt.internal.common.Inode__Flags
 public import Proof.go_etcd_io.bbolt.Read.WSearch
+public import Proof.go_etcd_io.bbolt.Read.WQ
 public import Proof.go_etcd_io.bbolt.Read.Open
 public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
 
@@ -36,7 +37,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Cursor.keyValue_w.wp_proof
+theorem Cursor.keyValue_w.wp_proofQ
     (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
     (hLPE : internal.common.Page.LeafPageElement.spec (GF := GF) (hG := hG))
     (hK : internal.common.leafPageElement.Key.spec (GF := GF) (hG := hG))
@@ -45,13 +46,13 @@ theorem Cursor.keyValue_w.wp_proof
     (hIK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hIV : internal.common.Inode.Value.spec (GF := GF) (hG := hG))
     (hIF : internal.common.Inode.Flags.spec (GF := GF) (hG := hG)) :
-    Cursor.keyValue_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B c stk els e pid ws hB hloc hpm hinl hpos hra hlt hi0
+    Cursor.keyValue_w.specQ (GF := GF) (hG := hG) := by
+  intro K tx r m q X bl B c stk els e pid ws hB hloc hpm hinl hpos hra hlt hi0
   wp_start as ⟨Hw, Hc, Hs⟩
-  icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
+  icases wtxWQ_pkgInit K tx r m q X $$ Hw with ⟨Hw, #Hpkg⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
-  ihave %Hmax := wtxW_page_maxMap K tx r m X $$ Hw
+  ihave %Hmax := wtxWQ_page_maxMap K tx r m q X $$ Hw
   obtain ⟨-, B0, hB0, hclean, hkeys, hpgl, hnsl, hvw⟩ := id hloc
   rw [hB] at hB0; cases hB0
   obtain ⟨B', hB', hm⟩ := hra
@@ -103,10 +104,10 @@ theorem Cursor.keyValue_w.wp_proof
           · rw [if_neg h1] at hr; cases hr
         rw [if_pos ⟨h0, hrn⟩, pgSrc_inl X bl B hB hinl h0 hrn]
       · rw [if_neg (fun h => h0 h.1)]; unfold pgSrc; rw [if_neg h0]
-    icases wtxW_page_srcLoc K tx r m X bl B pid e.page' pg hB hloc.1 hwp hsrc hpa $$ Hw
+    icases wtxWQ_page_srcLoc K tx r m q X bl B pid e.page' pg hB hloc.1 hwp hsrc hpa $$ Hw
       with ⟨Hw, #Hsrc⟩
-    icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
-    icases Write.srcLoc_acc wq X.v e.page' (pgSrc B) pg $$ [Hcells] with ⟨%dq, Hp, Hpb⟩
+    icases wtxWQ_cells_acc K tx r m q X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
+    icases Write.srcLoc_acc (QpMul q wq) X.v e.page' (pgSrc B) pg $$ [Hcells] with ⟨%dq, Hp, Hpb⟩
     · iframe; iframe #
     icases Read.bytesPointsto_bounds e.page' dq pg (by intro h; simp [h] at h16) $$ Hp
       with ⟨Hp, %Hlb⟩
@@ -265,7 +266,7 @@ theorem Cursor.keyValue_w.wp_proof
       unfold resolve at hr; rw [if_pos h0, if_pos h1] at hr; cases hr
     have hlv := hnsl l rn hrn
     have hnc := hclean.2.2.2.2.2.2.2.1 l rn hrn
-    icases wtxW_node_cells_acc K tx r m X bl B l rn hB hrn hlv $$ Hw with ⟨%Hbase, Ho, Hcells, Hwb⟩
+    icases wtxWQ_node_cells_acc K tx r m q X bl B l rn hB hrn hlv $$ Hw with ⟨%Hbase, Ho, Hcells, Hwb⟩
     isimp only [objOwn] at Ho
     icases Ho with ⟨Hn, Hins, Hcapn, Hws, Hch, Hchcap, Hnk⟩
     ihave %Hinl := ownSlice_len _ _ _ $$ Hins
@@ -280,17 +281,17 @@ theorem Cursor.keyValue_w.wp_proof
     -- the closing of the node, the cells and the stack
     ihave Hclose : (∀ (k vl : GoSlice) (fl : w32),
         sliceIndexRef elemRef (els.length : Int) stk ↦ e -∗
-        l.[node, go!"inodes"] ↦ rn.nv.inodes' -∗ rn.nv.inodes' ↦* rn.ins -∗
+        l.[node, go!"inodes"] ↦{DFrac.own q} rn.nv.inodes' -∗ rn.nv.inodes' ↦*{DFrac.own q} rn.ins -∗
         ([∗list] it;w ∈ rn.ins;rn.ws, wOwn X.v true it w) -∗
         wKV X bl rn.ws (sint.Z e.index').toNat k vl fl -∗
         Φ (PairV (PairV #k #vl) #fl)) $$ [HΦ Hc Hsback Hcells Hwb Hcapn Hch Hchcap Hnk
         bucket isLeaf unbalanced spilled key pgid parent children]
     · iintro %k %vl %fl He inodes Hins Hws Hkv
-      ihave Hn : (l ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      ihave Hn : (l ↦{DFrac.own q} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
       · iapply typedPointsto_combine _ _ _ Hnn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
-      ihave Ho : objOwn X.v l (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
+      ihave Ho : objOwn X.v l (DFrac.own q) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
       · simp only [objOwn]; iframe
       ihave Hw := Hwb $$ Ho Hcells
       ihave Hs := Hsback $$ He
@@ -365,6 +366,23 @@ theorem Cursor.keyValue_w.wp_proof
       rw [this] at Hkl
       omega
     iframe; iframe #
+
+/-- `keyValue` over the whole writer (`q = 1`). -/
+theorem Cursor.keyValue_w.wp_proof
+    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
+    (hLPE : internal.common.Page.LeafPageElement.spec (GF := GF) (hG := hG))
+    (hK : internal.common.leafPageElement.Key.spec (GF := GF) (hG := hG))
+    (hV : internal.common.leafPageElement.Value.spec (GF := GF) (hG := hG))
+    (hF : internal.common.leafPageElement.Flags.spec (GF := GF) (hG := hG))
+    (hIK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hIV : internal.common.Inode.Value.spec (GF := GF) (hG := hG))
+    (hIF : internal.common.Inode.Flags.spec (GF := GF) (hG := hG)) :
+    Cursor.keyValue_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r m X bl B c stk els e pid ws hB hloc hpm hinl hpos hra hlt hi0
+  have h := Cursor.keyValue_w.wp_proofQ hCnt hLPE hK hV hF hIK hIV hIF K tx r m 1 X bl B c stk els e pid ws
+    hB hloc hpm hinl hpos hra hlt hi0
+  simp only [wtxWQ_one] at h
+  exact h
 
 end proof
 
