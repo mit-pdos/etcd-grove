@@ -872,3 +872,12 @@ one copy for every thread but one), and of the backend's `rdStockN` counted read
 held for good outside it (the two sync loops' and the compactor's, `mvccOpen`'s). The server
 (`threadBound ≤ 2 ^ 28`, `rdStockN = 805306367`) still meets it. Not taken: halving it for a second
 pool (one pool, shared by the watchable store and its inner store's handle).
+
+**v3rpc's migration (2026-11-06): the clients' server log over raft's witness (F2).** The server
+draft restated the clients' model over `srvApi.srvLogA`, built on `histLb` (a lower bound of the
+*notified* log); a read's log is a lower bound of the *committed* log, which can run ahead of it,
+so "a range's state is etcd's state" (client/v3's `Get`) could not be proved over it. v3rpc's
+`ClientModel` defines `srvLog γr on log` over the raft witness (a prefix of the KV model of a
+committed raft log, witnessed by `srvApi.kvNx`), which both a read's log and `histLb` give; no
+frozen statement changed (`notes/mvcc-migration/v3rpc.md`).
+
