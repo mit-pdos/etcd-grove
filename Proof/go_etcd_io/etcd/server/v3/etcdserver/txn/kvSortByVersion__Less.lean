@@ -53,7 +53,7 @@ theorem txn.kvSortByVersion.Less.wp_proof : txn.kvSortByVersion.Less.spec (GF :=
   wp_auto
   ihave Hkvs := Hclose $$ [Hp2]
   · iexists ks2, st2, uf2, sc2; iframe Hk2; iexists vs2; iframe Hv2; iexact Hp2
-  rw [sub_neg_iff _ _ (by unfold kvOk at hoka; omega) (by unfold kvOk at hokb; omega), ← kvLtBy_version]
+  rw [sub_neg_iff _ _ (by have := kvSortOk_nonneg _ hoka; omega) (by have := kvSortOk_nonneg _ hokb; omega), ← kvLtBy_version]
   iapply HΦ
   iframe
 

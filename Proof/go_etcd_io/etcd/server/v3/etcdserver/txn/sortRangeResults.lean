@@ -44,12 +44,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 /-- What a sorter over the slice `sl` holds: the pointers of `l`, their key-values (owned), with
 non-negative revisions and versions. -/
 def txn.sorterR (sl : GoSlice) (l : List (Loc × EtcdKv)) : IProp GF :=
-  iprop(sl ↦* l.map Prod.fst ∗ txn.kvsAt l ∗ ⌜∀ x ∈ l, txn.kvOk x.2⌝)
+  iprop(sl ↦* l.map Prod.fst ∗ txn.kvsAt l ∗ ⌜∀ x ∈ l, mvcc.api.kvSortOk x.2⌝)
 
 set_option hygiene false in
 /-- A `kvSortBy*` sorter's `sorterSpec` from its `Len`, `Less` and `Swap` specs (`hLen`, `hLess`,
 `hSwap`), the same for the five orders but for `Less`'s premise: the indices alone (`Key`, `Value`)
-or with the `kvOk` of both key-values (`Version`, `CreateRevision`, `ModRevision`). -/
+or with the `kvSortOk` of both key-values (`Version`, `CreateRevision`, `ModRevision`). -/
 local macro "sorter_proof" : tactic => `(tactic| (
     iintro ⟨#Hpkg, #Hsp, #Hks⟩
     unfold sorterSpec txn.sorterR
@@ -340,7 +340,7 @@ theorem txn.sortRangeResults.wp_proof
     have Hsorts : ¬(so = W32 0 ∨ target = W32 0 ∧ so = W32 1) := by assumption
     have Heffs : o.effSortOrder = W64 (sint.Z so) := by rw [Heff, ite_eq_right Hsorts]
     have Hpre : (o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) →
-        l.length ≤ 2 ^ 62 ∧ ∀ y ∈ l, txn.kvOk y.2 := by
+        l.length ≤ 2 ^ 62 ∧ ∀ y ∈ l, mvcc.api.kvSortOk y.2 := by
       intro h
       obtain ⟨h1, h2⟩ := Hprem h
       subst Hl
