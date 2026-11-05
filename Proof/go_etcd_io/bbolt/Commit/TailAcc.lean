@@ -57,15 +57,16 @@ theorem wdbOK_reslot (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8
     (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 63)
     (hmaps : m.maps = w.m.maps)
     (hwb : ∀ s ∈ w.W, 4096 * (s + 1) ≤ m.size → (wb s).length = 4096)
-    (hfl : ∀ f, w.C.flpg = some f → extentBytes wb f = extentBytes w.wb f) :
+    (hfl : ∀ f, w.C.flpg = some f → extentBytes wb f = extentBytes w.wb f)
+    (hpart : ∀ s, 4096 * s < m.size → m.size < 4096 * (s + 1) → m.size - 4096 * s ≤ (wb s).length) :
     wdbOK (w.reslot m W wb) := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ := hok
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, -, h17⟩ := hok
   have hmax : max (mapLen w.ms) m.size = max (mapLen w.ms) w.m.size := by omega
   simp only [wdbOK, WDb.reslot]
   refine ⟨fun b l e => by rw [hmaps]; exact h1 b l e, fun e => by rw [hmaps]; exact h2 e,
     by omega, fun s => by rw [hW, hmax]; exact h4 s, h5,
     fun f hf => by rw [hfl f hf]; exact h6 f hf, h7, h8, h9,
-    fun b l e hl => ?_, h11, h12, hsz63, fun b l e => ?_, fun s hs hz => hwb s ((hW s).1 hs) hz⟩
+    fun b l e hl => ?_, h11, h12, hsz63, fun b l e => ?_, fun s hs hz => hwb s ((hW s).1 hs) hz, hpart, h17⟩
   · have := h10 b l e hl
     rw [e] at hsz2; simp only [mapLen] at hsz2
     omega

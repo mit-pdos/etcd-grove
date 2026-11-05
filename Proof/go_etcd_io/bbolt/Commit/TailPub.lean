@@ -23,10 +23,37 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 section pure
 variable [GooseExts]
 
+/-- `pubC`'s fields (by the field lemmas: relating `metaSummed mv` to `mv` by `rfl` unfolds the
+checksum, `Commit/Step.metaSummed_txid`). -/
+theorem pubC_hwm (C : CommitSt) (mv : Meta) (P : Pages) : (pubC C mv P).hwm = mv.pgid'.toNat := by
+  show (metaSummed mv).pgid'.toNat = _; unfold metaSummed; rfl
+
+theorem pubC_txid (C : CommitSt) (mv : Meta) (P : Pages) :
+    (pubC C mv P).txid = mv.txid'.toNat := by
+  show (metaSummed mv).txid'.toNat = _; unfold metaSummed; rfl
+
+theorem pubC_root (C : CommitSt) (mv : Meta) (P : Pages) :
+    (pubC C mv P).root = mv.root'.root'.toNat := by
+  show (metaSummed mv).root'.root'.toNat = _; unfold metaSummed; rfl
+
+theorem pubC_flpg (C : CommitSt) (mv : Meta) (P : Pages) :
+    (pubC C mv P).flpg = metaFlpg mv := by
+  show metaFlpg (metaSummed mv) = _; unfold metaSummed metaFlpg; rfl
+
+theorem pubC_pages (C : CommitSt) (mv : Meta) (P : Pages) : (pubC C mv P).pages = P := rfl
+
+/-- **Every slot from `hwm` to the records' mark is a dirty page's** (D-K, maintainer 13: the mark
+moves only by `allocate`'s runs, which stay in `tx.pages` until `tx.write`; so after the write the
+file reaches the new mark). Defined here (U10l) for `cmPubPg`; `Bucket.spill.spec`'s and
+`Tx.commitFreelist.spec`'s posts are to carry it. -/
+def markCov (X : WX) (hwm : Nat) : Prop :=
+  ∀ s, hwm ≤ s → s < X.t.mv.pgid'.toNat → s ∈ bufSlots X.t.bufs
+
 /-- **The new tree's facts** (`cmPubPre`'s last part): its pages `Pg`, its committed state
 `pubC w.C X.t.mv Pg` well-formed, holding the data `D`, its dropped slots pending, its pages the
 committed ones or buffers, its slots store slots or the buffers', its new synced freelist page a
-buffer that reloads the freelist `w.fl`. -/
+buffer that reloads the freelist `w.fl`; the slots from the committed mark to the new one dirty
+pages' (`markCov`). -/
 def cmPubPg (D : Data) (X : WX) (w : WDb) (Pg : Pages) : Prop :=
   treeData (pubC w.C X.t.mv Pg) = D ∧ treeOK (pubC w.C X.t.mv Pg) ∧
   (pubC w.C X.t.mv Pg).hwm ≤ 2 ^ 62 ∧
@@ -36,7 +63,8 @@ def cmPubPg (D : Data) (X : WX) (w : WDb) (Pg : Pages) : Prop :=
   (∀ id pg, Pg !! id = some pg → w.C.pages !! id = some pg ∨ X.t.bufs !! W64 (id : Int) = some pg) ∧
   (∀ s ∈ treeSlots (pubC w.C X.t.mv Pg), s ∈ slotsOf w.C w.fl ∨ s ∈ bufSlots X.t.bufs) ∧
   (∀ f, (pubC w.C X.t.mv Pg).flpg = some f → ∃ pg, X.t.bufs !! W64 (f : Int) = some pg ∧
-    flCurOK w.fl (pubC w.C X.t.mv Pg) pg)
+    flCurOK w.fl (pubC w.C X.t.mv Pg) pg) ∧
+  markCov X w.C.hwm
 
 /-- **The publish's facts at the join** (see the file header), for the transaction's data `D`:
 the dirty pages (`tx.pages`' buffers: whole pages in `[2, pgid)`, pairwise disjoint, outside the
@@ -97,14 +125,16 @@ theorem wdbOK_written (w : WDb) (m : OsMeta) (SBT : List Nat) (wb' : Nat → Lis
     (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 63)
     (hmaps : m.maps = w.m.maps)
     (hlen : ∀ s ∈ SBT, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
-    (hold : ∀ s ∈ w.W, s ∉ SBT → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none) :
+    (hold : ∀ s ∈ w.W, s ∉ SBT → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none)
+    (hpart : ∀ s, 4096 * s < m.size → m.size < 4096 * (s + 1) →
+      m.size - 4096 * s ≤ (wbUpd SBT wb' w.wb s).length) :
     wdbOK (w.reslot m (SBT ++ wMinus w.W SBT) (wbUpd SBT wb' w.wb)) := by
-  apply wdbOK_reslot w m _ _ hok (mem_SB_wMinus w.W SBT hsub) hsz1 hsz2 hsz63 hmaps
+  apply wdbOK_reslot w m _ _ hok (mem_SB_wMinus w.W SBT hsub) hsz1 hsz2 hsz63 hmaps _ _ hpart
   · intro s hs hz
     unfold wbUpd
     split
     · exact hlen s (by assumption) hz
-    · exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2 s hs (hold s hs (by assumption))
+    · exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s hs (hold s hs (by assumption))
   · intro f hf; rw [hfl] at hf; cases hf
 
 @[simp] theorem WDb.reslot_reslot (w : WDb) (m m' : OsMeta) (W W' : List Nat)
@@ -131,7 +161,7 @@ theorem cm_write_pre (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (hpre : c
     (Nat.le_div_iff_mul_le (by decide)).2 hmapl
   have hml : mapLen w.ms = l := by rw [hms]; rfl
   refine ⟨fun id pg hp => ?_, fun s hs => ?_, fun s hs hgt => ?_, fun s hs hz =>
-    hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2 s hs hz, fun s hs hle => ?_⟩
+    hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s hs hz, fun s hs hle => ?_⟩
   · obtain ⟨h1, h2, h3, h4⟩ := hb id pg hp
     exact ⟨h1, h2, h3, by omega⟩
   · obtain ⟨id, pg, hp, h1, h2⟩ := (mem_bufSlots X.t.bufs s).1 hs
@@ -181,10 +211,13 @@ theorem cm_unpub_ok (w : WDb) (m : OsMeta) (SB T : List Nat) (P : Nat → Bool)
     (hsz1 : w.m.size ≤ m.size) (hsz2 : m.size ≤ max w.m.size (mapLen w.ms))
     (hsz63 : m.size < 2 ^ 63) (hmaps : m.maps = w.m.maps)
     (hlen : ∀ s ∈ SB ++ T, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
-    (hold : ∀ s ∈ w.W, s ∉ SB ++ T → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none) :
+    (hold : ∀ s ∈ w.W, s ∉ SB ++ T → 4096 * (s + 1) ≤ w.m.size) (hfl : w.C.flpg = none)
+    (hpart : ∀ s, 4096 * s < m.size → m.size < 4096 * (s + 1) →
+      m.size - 4096 * s ≤ (wbUpd (SB.filter P) wb' (wbUpd (SB.filter (fun s => !P s)) wb'
+        (wbUpd T wb' w.wb)) s).length) :
     wdbOK (w.reslot m (SB.filter P ++ (SB.filter (fun s => !P s) ++ (T ++ wMinus w.W (SB ++ T))))
       (wbUpd (SB.filter P) wb' (wbUpd (SB.filter (fun s => !P s)) wb' (wbUpd T wb' w.wb)))) := by
-  apply wdbOK_reslot w m _ _ hok (mem_cm_lists w.W SB T P hsub) hsz1 hsz2 hsz63 hmaps
+  apply wdbOK_reslot w m _ _ hok (mem_cm_lists w.W SB T P hsub) hsz1 hsz2 hsz63 hmaps _ _ hpart
   · intro s hs hz
     unfold wbUpd
     split
@@ -194,7 +227,7 @@ theorem cm_unpub_ok (w : WDb) (m : OsMeta) (SB T : List Nat) (P : Nat → Bool)
       · split
         · exact hlen s (List.mem_append_right _ (by assumption)) hz
         · rename_i h1 h2 h3
-          refine hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2 s hs (hold s hs ?_)
+          refine hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s hs (hold s hs ?_)
           intro hm
           rcases List.mem_append.1 hm with h | h
           · cases hP : P s
@@ -202,32 +235,6 @@ theorem cm_unpub_ok (w : WDb) (m : OsMeta) (SB T : List Nat) (P : Nat → Bool)
             · exact h1 (List.mem_filter.2 ⟨h, hP⟩)
           · exact h3 h
   · intro f hf; rw [hfl] at hf; cases hf
-
-/-- **The publish's pure facts** (OPEN, U10k): after the write (the file `m'`, the slots' bytes
-`wb'`) and the meta write (the file `m''`), `commitStep_commit`'s premises for the published slots
-`S = SB.filter (pubP w X Pg)`, and `wdbOK` of the published writer side (the rest `R` of the
-written slots and the tail `T` among its `W` slots, its committed state `pubC w.C X.t.mv Pg`).
-From `cmPubPre`/`cmPubPg`; `wdbOK`'s `C'.hwm · 4096 ≤ m''.size` needs every slot below the new
-high-water mark inside the file, which the write gives for the dirty pages only (a page allocated
-at the mark and freed again in the same transaction is no buffer): reported. -/
-theorem cm_pub_ok (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (Pg : Pages)
-    (m' m'' : OsMeta) (wb' : Nat → List w8) (hpre : cmPubPre D X w) (hpg : cmPubPg D X w Pg)
-    (htx : X.t.mv.txid' = w.wtxid) (hok : wdbOK w) (hms : w.ms = some (b, l))
-    (hmapl : X.t.mv.pgid'.toNat * 4096 ≤ l) (hflpg : w.C.flpg = none)
-    (hm' : w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
-      ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
-        (wb' s).length = 4096)
-    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps)
-    (hin : ∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size)
-    (hch : ∀ id pg, X.t.bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
-      wb' (id.toNat + j) = pageChunk pg j) :
-    cpOK w.C w.fl b l X.t.mv Pg D ((bufSlots X.t.bufs).filter (pubP w X Pg)) wb' ∧
-    wdbOK ((w.reslot m'' ((bufSlots X.t.bufs).filter (fun s => !pubP w X Pg s) ++
-        (cmTail w (bufSlots X.t.bufs) l ++
-          wMinus w.W (bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l)))
-      (wbUpd ((bufSlots X.t.bufs).filter (fun s => !pubP w X Pg s)) wb'
-        (wbUpd (cmTail w (bufSlots X.t.bufs) l) wb' w.wb))).withC (pubC w.C X.t.mv Pg)) := by
-  sorry
 
 end pure
 
