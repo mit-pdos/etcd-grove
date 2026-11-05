@@ -1514,3 +1514,106 @@ Then:
 - stage 2 is in `srvRest`, with the one-prefix fact (E3 (b)'s open item) as an explicit premise of
   the revocable mode. That premise is untrusted, true under the single-member row, and stays until
   E2 is approved.
+
+**E2, revision 5 (2026-11-05, after a third fresh `spec-reviewer` round, on revision 4).** The
+review found the Go argument right: the leader path, the forwarded path under the row
+(`setLead` only from `updateLead`, before `applyc`; `isLeader` is `MemberID() == Lead()`; a sole
+voter is always active, raft `raft.go:967-969,1299-1310`), restarts excluded (`StartNode` only when
+`len(peers) > 0`, `bootstrap.go:580-583`; `NewServer.spec` covers only a first start), the callers
+able to carry `□ (leaseTTLRow s … -∗ …)`, and the found arm's disjunction enough for `Main`. No Go
+bug. What it found, and what revision 5 does:
+- *S1: the row's facts were not tied to one cluster or one lessor* (`srvRaftNamesOf` does not exist;
+  nothing pins one `ServerRaftNames` to `s`; `lessorPin` maps `γl → lp`, not back). Revision 5:
+  **one set of existentials, through `s`'s node object**, and the spec's own `γl`:
+  `nodeStartedFresh` (only `StartNode` makes it, for its fresh `n`) pins the cluster to `n`.
+- *S2: `nodeStartedFresh` had no body.* Revision 5 gives one: the node's `isNode` and the cluster's
+  `nodeBoot`, and a persistent lower bound of the node's driver history at its start,
+  `nodeDriverFrom n (NodeDriverState.init …)` — a new raft-internal persistent fact minted only by
+  `StartNode`'s proof (`RestartNode`'s driver starts elsewhere, `RestartNode.lean:39-45`).
+- *A1: "no membership change admitted" was not stated*: `srvRule 0 boot` admits any validating
+  change and every cluster has it (`rnEnvOk`, `InvRaftNode.lean:474-476`); the model is static only
+  through `ccPolOk`/`srv_confAt_simple`. Revision 5 states the consequence: **at every committed
+  index the configuration is `simple {mid}`** (raft's `confAt`).
+- *C1: typing.* `rule`/`boot` are `SrvRaft`'s (now unused); `srvNodeAddr s` holds a `GoInterface`.
+- *C2: where the row is returned:* a separate conjunct of `BuildServer.spec`'s and `StartServer`'s
+  postconditions (first start), inside neither `memberBuilt` nor `memberUp` (both used by the
+  restart example); a restart `NewServer` must not return it.
+- *C3 (`Main`'s chain, not this spec):* a law `lessorAt γl i σ ⊢ lessorLb γl i` and E3 (c)'s TTL
+  `≥ 1` law.
+- *M1-M3, docstring:* cite `MoveLeader`'s member check (`server.go:1268-1271`) and raft's
+  ignoring a transfer to self (`raft.go:1667-1669`), not only `server.go:1258,1316`; `≥ m` comes
+  from `lessorLb`'s monotonicity, not `waitAppliedIndex`; `lessorAt γl 0 ∅` holds of every lessor
+  today (`NewLessor` takes an empty bucket) and becomes meaningful once restarts recover leases.
+- *Unverified by the reviewer* (the wrapper's proof obligations, not the spec's text): `errIsTrue`
+  against `ErrLeaseNotFound` refutable for the leader path's other leaf errors (`ErrLeaderChanged`,
+  `ErrTimeoutWaitAppliedIndex`) and the wrapper's own: distinct error cells.
+
+**Proposed, awaiting the user (trusted): E2, revision 5, exact text.** (Supersedes revisions 3-4's.)
+
+`apply/Base.lean`, beside `exactRels` (unchanged since revision 3):
+```lean
+/-- **`errors.Is(err, target)` answers `true`** (Go's walk of `err`'s exact tree, the relation
+`errors.Is.spec` posts; with `exactRels`, `isWalk_det` makes the answer Go's). -/
+def errIsTrue (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree S I U target ∗
+    ⌜S err ∧ exactRels I U ∧ _root_.Perennial.errors.IsWalk true I U target err true⌝)
+```
+
+Raft's node API (`Spec/go_etcd_io/raft/v3/Api.lean` vocabulary, sealed; `StartNode.spec`'s
+postcondition gains it; an API change, its interface diff for review; `nodeDriverFrom` is a new
+raft-internal persistent lower bound of a node's driver states, `StartNode`'s proof mints it at
+`NodeDriverState.init`, `RestartNode`'s at its restart state):
+```lean
+/-- **The node `n` of the cluster `γ` was made by `StartNode`** (persistent): `n` is the node of
+`id` in `γ` (`isNode`), `γ` was bootstrapped with the voters `vs` (`nodeBoot`), and `n`'s driver
+began in the initial state, over a fresh storage (`nodeDriverFrom … NodeDriverState.init`), so its
+log began as the bootstrap log. `RestartNode` gives no such fact. -/
+@[no_expose] def nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+    (ctxs : List (List w8)) (id : w64) : IProp GF :=
+  iprop(isNode n γ N id ∗ nodeBoot γ N vs ctxs id ∗ ⌜id ∈ vs⌝ ∗
+    ∃ (si : GoInterfaceOk) (K : GName), nodeDriverFrom n γ N (NodeDriverState.init (interface.ok si) K))
+```
+
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseRead.lean`, the trusted spec's vocabulary:
+```lean
+/-- **The lease-TTL row** (the lease-expiry plan's E2, the user's): this member `mid` is the
+cluster's only member, no membership change is admitted, and it is in its first start. Through
+`s`'s own node object `n`: `n` was made by `StartNode` with the voters `[mid]` (its log began as
+the bootstrap log), every committed index's configuration is `{mid}` alone, with no learner, and
+the lessor `γl`'s history begins empty (true of every lessor today, `NewLessor` taking an empty
+bucket; meaningful once a restart recovers leases). Returned by `BuildServer`'s and `StartServer`'s
+first-start postconditions, as their own conjunct; a restart gives none. -/
+def leaseTTLRow (s : Loc) (γl : GName) : IProp GF :=
+  iprop(∃ (mid : w64) (n : Loc) (cl : Cluster) (ctxs : List (List w8)),
+    srvMemberIDAddr s ↦□ mid ∗
+    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
+    nodeStartedFresh n cl srvClusterN [mid] ctxs mid ∗
+    □ (∀ (l : List LogEntry) (k : Nat), isCommittedLogLb cl l -∗ ⌜k ≤ l.length⌝ ={⊤}=∗
+        confAt cl k (Membership.simple (GMap.listToSet [mid]))) ∗
+    lease.lessorAt γl 0 (∅, ∅, ∅))
+```
+
+The spec: revision 4's, with `leaseTTLRow s γl` for `leaseTTLRow s` in both facts:
+```lean
+          □ (leaseTTLRow s γl -∗
+              (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+              lease.leaseAbsentFrom γl m v.ID')) ∨
+       ...
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
+```
+(the rest of the triple exactly as revision 4).
+
+Docstring addition: revision 4's, with: "at an index `≥ m`" justified by the caller's `lessorLb γl m`
+and the history's monotonicity (not by `waitAppliedIndex`); the sole voter keeps its leadership:
+CheckQuorum counts the leader active (raft `raft.go:967-969,1299-1310`), shutdown transfer skipped
+for a single voter (`server.go:1258,1316`), `MoveLeader` rejects a non-member transferee
+(`server.go:1268-1271`) and raft ignores a transfer to self (`raft.go:1667-1669`), no other member
+exists to send a higher term or a snapshot (`confAt … {mid}`; the transport contract, decisions.md
+D21b (A)); "a change admitting configuration changes or restarts with leases must revisit this
+spec".
+
+Not part of the trusted text, needed by `Main`: a law `lessorAt γl i σ ⊢ lessorLb γl i`; E3 (c)'s
+"TTL is the grant's, `≥ 1`"; the wrapper's distinct-error-cell refutations.
