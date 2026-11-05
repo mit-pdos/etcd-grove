@@ -1493,3 +1493,6 @@ So the stop needs no new store law: `storeReaders_retire` with every reader is i
 3. The compactor's and the monitor's readers are traced.
 4. The shutdown (stage 5) assembles the token as R-D1 does.
 Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
+- **Step 1 done (2026-11-05):** `NewServer` keeps the remainder (`srvKeepRdN γst` store readers in
+  `srvStopKeep s γn wdir st γst`). `srvShutdownPre` and `run.specStop` take the store, and
+  `memberBuilt`'s `K` receives the environment.

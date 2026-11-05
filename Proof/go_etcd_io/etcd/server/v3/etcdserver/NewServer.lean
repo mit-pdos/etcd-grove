@@ -1838,8 +1838,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · rw [Hγw.2.1]; iexact HlPool
   -- (2026-11-04, R2b-3d) what the stop needs of the construction (`srvStopKeep`): the raft loop's
   -- stop claim, the registry's authority, the lessor's stop right, the WAL's directory
+  -- (2026-11-05, R2b-3d gap 4) the apply thread's reader of the store (`apply.kvOwn`'s, below), and
+  -- the rest of the store's readers kept for the stop (until then dropped)
+  icases replicate_take1 _ _ (by have HwL : mvcc.wsLoopN = 2 := rfl; omega) $$ Hwrds with ⟨Hwrd, Hwrds⟩
+  ihave Hkeep := replicate_mono _ (mvcc.storeReader kst γw.st) _
+    (mvcc.watchReader_storeReader _ _ _) $$ Hwrds
   ihave HStopK : srvStopKeep (GF := GF) s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir')
-      $$ [Hrsc Hrauth Hlstop]
+      kst γw.st $$ [Hrsc Hrauth Hlstop Hkeep]
   · iunfold srvStopKeep
     iframe Hrsc
     isplitl [Hrauth]
@@ -1852,10 +1857,15 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ihave #HfixS := Hfix
     iunfold rnFixed at HfixS
     iNamed HfixS
-    iexists rvr.raftNodeConfig'.storage'
-    iframe storageC
-    ipureintro
-    rw [Hrnwal]; exact HwDir
+    isplitr
+    · iexists rvr.raftNodeConfig'.storage'
+      iframe storageC
+      ipureintro
+      rw [Hrnwal]; exact HwDir
+    rw [show srvKeepRdN γw.st = backend.rdStockN -
+        mvcc.nJobRd (some ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)) -
+        mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1 by rw [srvKeepRdN, Hγw.2.2.1]]
+    iexact Hkeep
   imodintro
   wp_auto
   iapply HΦ
@@ -2377,7 +2387,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
   obtain ⟨hns, hcr⟩ := Hz trivial
   subst hns hcr
-  icases replicate_take1 _ _ (by have HwL : mvcc.wsLoopN = 2 := rfl; omega) $$ Hwrds with ⟨Hwrd, -⟩
   iunfold mvcc.watchReader at Hwrd
   icases Hwrd with ⟨Hsrd, -⟩
   isplitr [Hwtok HsnapB]
