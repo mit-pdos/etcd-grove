@@ -12,34 +12,22 @@ public import Proof.go_etcd_io.etcd.client.v3.WithCreatedNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.WithProgressNotify
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
-public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.New
-public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Blackhole
-public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
-public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
 public import Proof.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
-public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
-public import Proof.google_golang_org.grpc.Server__Serve
-public import Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.clientStep
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.partitioner
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.peerStep
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startBridge
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.config
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startCluster
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.writer
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 
 @[expose] public section
 
@@ -95,37 +83,9 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
 variable [NaInvG GF]
 
-theorem bridge.wp_New :
-    EtcdGrove.bridge.New.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bridge.New.wp_proof
-
-theorem bridge.bridge.wp_Blackhole :
-    EtcdGrove.bridge.bridge.Blackhole.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bridge.bridge.Blackhole.wp_proof
-
-theorem bridge.bridge.wp_DropConnections :
-    EtcdGrove.bridge.bridge.DropConnections.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bridge.bridge.DropConnections.wp_proof
-
-theorem bridge.bridge.wp_Unblackhole :
-    EtcdGrove.bridge.bridge.Unblackhole.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bridge.bridge.Unblackhole.wp_proof
-
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
-
-theorem grpc.wp_KeepaliveEnforcementPolicy :
-    EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
-
-theorem grpc.Server.wp_Serve :
-    EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
-
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
 
 theorem wp_Apply :
     EtcdGrove.etcd_partition.Apply.spec (GF := GF) (hG := hG) :=
@@ -135,33 +95,17 @@ theorem wp_Check :
     EtcdGrove.etcd_partition.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock etcd_txnlin.wp_Model etcd_txnlin.wp_Gen wp_Apply
 
-theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
-    EtcdGrove.etcd_partition.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.startMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
-
-theorem wp_startBridge :
-    EtcdGrove.etcd_partition.startBridge.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.startBridge.wp_proof net.wp_Listen bridge.wp_New
+theorem wp_config :
+    EtcdGrove.etcd_partition.config.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcd_partition.config.wp_proof
 
 theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.startCluster.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.startCluster.wp_proof wp_startMember wp_startBridge etcdstart.wp_NewClients
-
-theorem wp_peerStep :
-    EtcdGrove.etcd_partition.peerStep.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.peerStep.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_CutPeer EtcdServer.wp_MendPeer
-
-theorem wp_clientStep :
-    EtcdGrove.etcd_partition.clientStep.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.clientStep.wp_proof bridge.bridge.wp_Blackhole bridge.bridge.wp_Unblackhole bridge.bridge.wp_DropConnections
-
-theorem wp_partitioner :
-    EtcdGrove.etcd_partition.partitioner.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.partitioner.wp_proof wp_peerStep wp_clientStep
+  EtcdGrove.etcd_partition.startCluster.wp_proof wp_config cluster3.wp_StartCluster cluster3.wp_NewClient
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.Main.wp_proof zap.wp_NewNop wp_startCluster wp_partitioner wp_Check
+  EtcdGrove.etcd_partition.Main.wp_proof zap.wp_NewNop wp_startCluster cluster3.wp_Partitioner wp_Check
 
 theorem wp_writer :
     EtcdGrove.etcd_partition.writer.spec (GF := GF) (hG := hG) :=
@@ -169,7 +113,7 @@ theorem wp_writer :
 
 theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_partition.MainWatch.wp_proof etcdstart.wp_GenAll zap.wp_NewNop wp_startCluster wp_partitioner wp_writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
+  EtcdGrove.etcd_partition.MainWatch.wp_proof etcdstart.wp_GenAll zap.wp_NewNop wp_startCluster cluster3.wp_Partitioner wp_writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 
 end links_hasLC
 

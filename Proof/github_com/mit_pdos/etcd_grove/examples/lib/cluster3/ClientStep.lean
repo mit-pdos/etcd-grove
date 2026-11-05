@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/partition/clientStep.lean`. Lean-first (no Rocq
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/lib/cluster3/ClientStep.lean`. Lean-first (no Rocq
 counterpart). The range check (a return); the bridge out of the read-only slice and its ownership
 out of the `[∗list]`; by the kind, `Blackhole` (only if `holed[a]` is `false`, the flag the
 ownership carries: `Blackhole`'s premise) and `holed[a] = true`, or `Unblackhole` and
@@ -7,7 +7,7 @@ ownership carries: `Blackhole`'s premise) and `holed[a] = true`, or `Unblackhole
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.clientStep
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.ClientStep
 public import Spec.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Blackhole
 public import Spec.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
 public import Spec.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
@@ -20,7 +20,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_partition
+namespace cluster3
 
 open Iris Iris.BI Iris.ProofMode
 
@@ -29,13 +29,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
-theorem clientStep.wp_proof
+theorem ClientStep.wp_proof
     (wp_Blackhole : bridge.bridge.Blackhole.spec (GF := GF) (hG := hG))
     (wp_Unblackhole : bridge.bridge.Unblackhole.spec (GF := GF) (hG := hG))
     (wp_DropConnections : bridge.bridge.DropConnections.spec (GF := GF) (hG := hG)) :
-    clientStep.spec (GF := GF) (hG := hG) := by
+    ClientStep.spec (GF := GF) (hG := hG) := by
   intro brs holed bs hs kind a
   wp_start as ⟨#Hbrs, Hholed, Hown⟩
   ihave #Pbr : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge
@@ -160,6 +160,6 @@ theorem clientStep.wp_proof
 
 end proof
 
-end etcd_partition
+end cluster3
 end EtcdGrove
 end Perennial

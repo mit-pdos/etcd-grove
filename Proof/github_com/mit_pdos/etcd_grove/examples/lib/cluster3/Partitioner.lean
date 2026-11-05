@@ -1,16 +1,16 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/partition/partitioner.lean` (the partition
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/lib/cluster3/Partitioner.lean` (the partition
 plan's S3a, 2026-10-20; the client steps since 2026-10-21, `notes/client-cut-plan.md` K3).
 Lean-first (no Rocq counterpart). The flags `holed` made all `false` (every bridge not blackholed:
 its owner's flag); the range loop over the steps, each copied into the loop's variable;
-`time.Sleep` (Perennial's spec: it returns); a peer step (`peerStep`) or a client step
-(`clientStep`, which keeps each bridge's ownership with its flag as `holed` holds it) by the kind.
+`time.Sleep` (Perennial's spec: it returns); a peer step (`PeerStep`) or a client step
+(`ClientStep`, which keeps each bridge's ownership with its flag as `holed` holds it) by the kind.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.partitioner
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.peerStep
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.clientStep
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Partitioner
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.PeerStep
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.ClientStep
 public import Perennial.Proof.time.Link
 
 @[expose] public section
@@ -22,7 +22,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_partition
+namespace cluster3
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
@@ -31,12 +31,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
-theorem partitioner.wp_proof
-    (wp_peerStep : peerStep.spec (GF := GF) (hG := hG))
-    (wp_clientStep : clientStep.spec (GF := GF) (hG := hG)) :
-    partitioner.spec (GF := GF) (hG := hG) := by
+theorem Partitioner.wp_proof
+    (wp_peerStep : PeerStep.spec (GF := GF) (hG := hG))
+    (wp_clientStep : ClientStep.spec (GF := GF) (hG := hG)) :
+    Partitioner.spec (GF := GF) (hG := hG) := by
   intro hpp γn srvs brs sched ss bs steps
   wp_start as ⟨#Hsrvs, #Hbrs, #Hsched, Hmem, Hown⟩
   ihave %Hbl := ownSlice_len $$ Hbrs
@@ -50,7 +50,7 @@ theorem partitioner.wp_proof
     rw [Hbl.1]; rfl
   rw [hrep]
   -- the loop over the steps: `i` the index, `st` the current step
-  ihave HI : (∃ (j : w64) (st0 : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step)
+  ihave HI : (∃ (j : w64) (st0 : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
       (hs : List Bool),
       "i" ∷ i_ptr ↦ j ∗ "st" ∷ st_ptr ↦ st0 ∗ "Hhl" ∷ hl ↦* hs ∗
       "Hown" ∷ ([∗list] br; h ∈ bs; hs, ∃ addr : GoString, bridge.ownBridge br addr h) ∗
@@ -137,6 +137,6 @@ theorem partitioner.wp_proof
 
 end proof
 
-end etcd_partition
+end cluster3
 end EtcdGrove
 end Perennial

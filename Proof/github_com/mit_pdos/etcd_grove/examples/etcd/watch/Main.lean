@@ -308,10 +308,11 @@ theorem Main.wp_proof
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
   -- the client's `KV`: a client of etcd's KV, sending a write at most once
-  imod (client.isKv_of_newClient cl go!"127.0.0.1:23872"
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv) R.E ρ.rd
-      cid mid ρ.rd.kv (kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%api, #Hkvf, #Hkv⟩
+  imod (client.isKv_of_newClient cl [(⟨go!"127.0.0.1:23872", R.E, ρ.rd, cid, mid⟩ : client.SrvAt GF)] [go!"127.0.0.1:23872"]
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv) ρ.rd.kv rfl
+      (fun _ hx => by simp only [List.mem_singleton] at hx; subst hx; exact kvSame_refl _) (by omega)) $$ [Hnc Hwo HKV] with ⟨%api, #Hkvf, #Hkv⟩
   · iframe #
+    iapply BigSepL.bigSepL_nil.2; itrivial
   -- the client's `Watcher`, with the watch server's facts (D19f): a watcher of etcd's KV
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
     [go!"127.0.0.1:23872"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null ρ.rd.kv) rfl

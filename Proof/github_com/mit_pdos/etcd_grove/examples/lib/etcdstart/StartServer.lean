@@ -71,7 +71,7 @@ theorem StartServer.wp_proof
   wp_apply (wp_newServer N name peerAddr client name (W64 0) (W64 10000) (W64 281474976710656)
       (slice.mk peer (W64 1) (W64 1)) pm lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
-      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
+      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn false Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg (by decide) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres

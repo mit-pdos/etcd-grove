@@ -51,7 +51,7 @@ variable [go_gctx : GoGlobalContext]
 /-- The watch run: `linkv3p`'s initialization, then `MainWatch(nw, nops, sched)` with the schedule
 built as a slice literal. -/
 def linkv3pWatchProgram [GoSemanticsFunctions] (nw nops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) : Expr :=
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize' #() ;;
   App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch)) (Val #nw))
     (Val #nops)) (schedLit steps)
@@ -78,7 +78,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step)
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
@@ -120,25 +120,25 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
   -- (`wp_slice_literal`)
   wp_bind (schedLit steps)
   unfold schedLit
-  iapply (wp_slice_literal (V := github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (l := steps)
-    (kvs := steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
+  iapply (wp_slice_literal (V := github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (l := steps)
+    (kvs := steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
   have hp := pure_wp_array_lit_full (hlc := HasLC.hasLC) (GF := linkvGF)
     (go.arrayLiteralSize
-      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
-    github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty steps _ rfl
+      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+    github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty steps _ rfl
     (by rw [arrayLiteralSize_vals]; simp)
     (by rw [arrayLiteralSize_vals]; simpa using Hsteps)
   have hp' : ∀ Ψ : val → IProp linkvGF,
       iprop(▷ (£ 1 -∗ WP (Val #(array.mk
           (go.arrayLiteralSize
-            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
+            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
           steps)) {{ Ψ }})) ⊢
         WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType
             (go.arrayLiteralSize
-              (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
-            github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty))))
+              (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+            github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
           (Val (LiteralValueV
-            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))))
+            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
           {{ Ψ }} :=
     fun Ψ => hp.pure_wp_wp _ _ Ψ [] trivial
   iapply (hp' _)
@@ -153,9 +153,9 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
   have hM := etcd_partition.wp_MainWatch (GF := linkvGF) n id₁ id₂ id₃ ps ctxs boot nw nops
     (slice.mk sl
       (W64 (go.arrayLiteralSize
-        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty))))
+        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
       (W64 (go.arrayLiteralSize
-        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))))
+        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     H0 H31 Hops Hmul

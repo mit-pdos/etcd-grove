@@ -4,10 +4,12 @@ counterpart).
 
 The step between a started server and a program above the KV's API: the program's proof sees
 `isKv api γk dup` (with the client's `KV` field), never the members. `isKv_of_newClient`: `New`'s
-client of the endpoint `ep` (`isNewClient`), the KV methods registered there by the member's
-server (`kvRegsAt`, what the server's start gives), at the KV `γk`'s state name, a client that
-sends a write at most once (`clientWriteOnce`: the endpoint never refuses a request), the store's
-receipts bounded: its `KV` field is a client of `γk` that sends a write at most once.
+client of the members `ms`' endpoints (`isNewClient`; one member, or a cluster's members at their
+bridges, K6 of `notes/k8s-compactor-plan.md`, 2026-11-05: until then one endpoint), the KV methods
+registered at each by its member's server (`kvRegsAt`, what the server's start gives), each member
+at names the same as the KV `γk`'s, a client that sends a write at most once (`clientWriteOnce`: no
+endpoint refuses a request), the store's receipts bounded: its `KV` field is a client of `γk` that
+sends a write at most once.
 -/
 module
 
@@ -37,32 +39,28 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`New`'s client is a client of etcd's KV** (see the file header). -/
-theorem isKv_of_newClient (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid : w64) (γk : KVNames) (hst : kvSame γr.kv γk)
+theorem isKv_of_newClient (cl : Loc) (ms : List (SrvAt GF)) (eps : List GoString) (V : WEnv GF)
+    (γk : KVNames) (heps : ms.map SrvAt.addr = eps) (hst : ∀ x ∈ ms, kvSame x.γr.kv γk)
     (hrb : receiptBound GF ≤ 2 ^ 62) :
-    isNewClient cl [ep] V ∗ clientWriteOnce cl [ep] ∗
-        kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ⊢
+    isNewClient cl eps V ∗ clientWriteOnce cl eps ∗ ([∗list] x ∈ ms, kvRegsAt x) ⊢
       |==> ∃ api : Loc,
         structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□
           GoInterface.ok (kvIfaceOf api) ∗ isKv api γk false := by
+  subst heps
   iintro ⟨#Hnc, #Hwo, #Hreg⟩
   iunfold clientWriteOnce at Hwo
   icases Hwo with %Hwo
   iunfold isNewClient at Hnc
   icases Hnc with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  imod (srvStart_alloc (GF := GF) [(⟨ep, E, γr, cid, mid⟩ : SrvAt GF)]) with #Hs
+  imod (srvStart_alloc (GF := GF) ms) with #Hs
   imodintro
   iexists api
   isplitr
   · iExactEq Hkvf; rfl
-  iapply (isKv_intro api γk false [(⟨ep, E, γr, cid, mid⟩ : SrvAt GF)]
-    (fun x hx => by simp only [List.mem_singleton] at hx; subst hx; exact hst)
-    (fun _ x hx => by simp only [List.mem_singleton] at hx; subst hx; exact Hwo ep (by simp)) hrb)
+  iapply (isKv_intro api γk false ms hst
+    (fun _ x hx => Hwo x.addr (List.mem_map_of_mem hx)) hrb)
   iframe #
-  isplitr
-  · iExactEq Hkv; rfl
   unfold kvRegs
-  iapply BigSepL.bigSepL_singleton.2
   iexact Hreg
 
 end proofs

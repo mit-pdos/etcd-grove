@@ -27,8 +27,11 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   the struct finally lives: `isRaftNode_of_rnParts`, `NodeStart.lean`, which adds what the node
   and the server provide, `rnEnvOk`, the node's contract, the storage's, the transport's),
   `cfg`'s fields as the caller gave them, both halves of `applyc` with `cum` at `[[]]`, and the
-  right to close `done`. The names `γ` are the wrapper's (`RNNames`): `newRaftNode` allocates
-  `ap`, `cum` and `done`, the rest are the caller's.
+  right to close `done`, and the claim on the stop's escrow (`rnStopClaim`). The names `γ` are the
+  wrapper's (`RNNames`): `newRaftNode` allocates `ap`, `cum`, `done` and `sc`, the rest are the
+  caller's.
+* **`rnStartCfg`**: the raft configuration and the peers a new cluster's node boots with (pure),
+  shared by `bootstrappedRaft.newRaftNode.spec`, `NodeStartSpec` and `bootOk`.
 * `srvIdxOk_boot`: the bootstrap log (`srvBootLogOk`) passes the server's `srvIdxOk` at the applied
   index `0` (its entries are v1 conf changes whose bytes decode: `isConfChangeEncoding`).
 -/
@@ -53,10 +56,34 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-! ## The bootstrap log passes `srvIdxOk` -/
+/-! ## The boot configuration -/
 
 section pure
-variable [GooseExts]
+variable [GooseExts] [go_gctx : GoGlobalContext]
+
+/-- **The raft configuration and the peers a new cluster's node boots with** (pure; 2026-11-05,
+the `newRaftNode` review's M: until then the same conjuncts spelled out in
+`bootstrappedRaft.newRaftNode.spec`'s, `NodeStartSpec`'s and `bootOk`'s `Hraft`): the wrapper's
+logger `b.lg` non-nil (`newRaftNode`'s), `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s;
+its storage the `MemoryStorage` `b.storage`; `CheckQuorum` and `PreVote` either way since
+2026-10-17), and the peers `pv` non-empty (`len(b.peers) != 0`: `StartNode`'s branch) with their
+ids `ps`. What each user needs beyond it (the heartbeat, the peers' distinctness, the cluster's
+voters, ...) it states beside it. -/
+structure rnStartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (pv : List Peer)
+    (ps : List w64) : Prop where
+  lg : bv.lg' ≠ null
+  valid : ConfigValid cv
+  logger : cv.Logger' = interface.ok lok
+  storage : cv.Storage' = memStorIface bv.storage'
+  inflight : sint.Z cv.MaxInflightMsgs' < 2 ^ 62
+  noForwarding : cv.DisableProposalForwarding' = false
+  readOnly : cv.ReadOnlyOption' = W64 0
+  ccValidation : cv.DisableConfChangeValidation' = false
+  sizes : cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0
+  noAsync : cv.AsyncStorageWrites' = false
+  applied : cv.Applied' = W64 0
+  peers : ps = pv.map Peer.ID'
+  peersNe : ps ≠ []
 
 end pure
 
@@ -199,7 +226,8 @@ value `rv`, owned whole at `r` (to be copied), with `cfg`'s fields as the caller
 (`raftNodeConfig' = cv`, so `transport` is `cv`'s, nil), its `tickMu` a fresh `RWMutex` (the
 guard over `latestTickTs` is made where the struct finally lives, `isRaftNode_of_rnParts`), the
 components' predicates (`rnParts`), `applyc`'s two halves with `cum` at `[[]]` (the loop's and
-the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), and the right to close `done`. -/
+the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), the right to close `done`, and the
+claim on the stop's escrow (`rnStopClaim`). -/
 def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) : IProp GF :=
   iprop(∃ rv : raftNode,
     "Hr" ∷ r ↦ rv ∗

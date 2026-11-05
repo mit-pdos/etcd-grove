@@ -1,9 +1,9 @@
 /-
 `Main(clients, ops, sched)` (`examples/etcd/partition/etcd_partition.go`; the partition plan's S3b, 2026-10-20):
-three etcd members started in process and served (`startMember`, on linkv3p's names and ports), a
-bridge to each member's client address (`startBridge`, etcd's test bridge), three clients (etcd's
-default retries) each connected to all three bridges (`newClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
-partitioner(srvs, brs, sched)`: the links between members cut and mended, and the links between
+three etcd members started in process and served (`cluster3.StartMember`, on linkv3p's names and ports), a
+bridge to each member's client address (`cluster3.StartBridge`, etcd's test bridge), three clients (etcd's
+default retries) each connected to all three bridges (`cluster3.NewClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
+cluster3.Partitioner(srvs, brs, sched)`: the links between members cut and mended, and the links between
 each client and its member blackholed, unblackholed or dropped, as its steps say, any steps;
 `notes/client-cut-plan.md`), and `Check(clis, clients, ops, 0)` (linkvtxn's KV workload since 2026-10-20, linkv's
 before; each operation through a random member), with a panic if porcupine reports the history `Illegal`. Lean-first (no Rocq
@@ -51,7 +51,7 @@ abbrev Main.spec : Prop :=
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64) (sched : GoSlice)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step),
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step),
   BootFacts id₁ id₂ id₃ ps ctxs boot →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave

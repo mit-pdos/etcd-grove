@@ -9,6 +9,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Base
 
 @[expose] public section
 

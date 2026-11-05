@@ -4,7 +4,9 @@
 shared start (`etcdstart`'s `Link.lean`), of Kubernetes' compactor (etcd3's `Link.lean`, whose
 `NewCompactor` is linked under the named hypothesis of `clock.RealClock.After`, as in client-go's link),
 of `context`, to `ready`, `writer`, `check` and `apiserver` over them, and to the trust-boundary axioms of
-`zap.NewNop` and `strconv.Itoa`. `Results.lean` restates it.
+`zap.NewNop` and `strconv.Itoa`. `MainPartition` (K6, 2026-11-05) likewise, over the three-member
+cluster's linked results (`cluster3`'s `Link.lean`) and `clusterConfig`'s. `Results.lean` restates
+them.
 -/
 module
 
@@ -13,6 +15,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.apiserver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.clusterConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -72,6 +77,21 @@ theorem k8s_compactor.wp_Main [Float64ToInt64Semantics]
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer
     etcdstart.wp_Serve etcdstart.wp_NewClient context.wp_ErrAny
+    k8s_compactor.wp_ready k8s_compactor.wp_writer (k8s_compactor.wp_apiserver h_After)
+
+theorem k8s_compactor.wp_clusterConfig : k8s_compactor.clusterConfig.spec (GF := GF) (hG := hG) :=
+  k8s_compactor.clusterConfig.wp_proof
+
+include h_After in
+/-- **The compactor example's `MainPartition` does not panic** (K6;
+`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainPartition.lean`), under the semantic
+premises of its callees' linked results (`Main`'s, and the three-member cluster's) and the named
+hypothesis of `clock.RealClock.After`. -/
+theorem k8s_compactor.wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
+    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
+  k8s_compactor.MainPartition.wp_proof zap.NewNop.wp_proof k8s_compactor.wp_clusterConfig
+    cluster3.wp_StartCluster cluster3.wp_NewClient cluster3.wp_Partitioner context.wp_ErrAny
     k8s_compactor.wp_ready k8s_compactor.wp_writer (k8s_compactor.wp_apiserver h_After)
 
 end results
