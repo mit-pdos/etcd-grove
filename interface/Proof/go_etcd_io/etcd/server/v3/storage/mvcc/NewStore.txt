@@ -71,7 +71,13 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
                                                 mvcc.writerFrag γ ∗
                                                   mvcc.writerPin γ [[], []] ∗
                                                     mvcc.crevUB γ.idx (Qp.half 1) (-1) ∗
-                                                      mvcc.retiredAt γ (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ Perm) -∗
+                                                      mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
+                                                        mvcc.crevPermIs γ Perm ∗
+                                                          mvcc.writerReg s γ ∗
+                                                            (∃ pr,
+                                                                ⌜mvcc.pndW γ + pr = 1⌝ ∗
+                                                                  mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗
+                                                              £ 1) -∗
                     Φ (intoVal s)) -∗
               WP
                 (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.NewStore [])) (intoVal lg)) (intoVal b))

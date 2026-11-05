@@ -264,6 +264,14 @@ compaction revision, and its part `pw` of the pending revision, at `none` (while
 def writerAbs (a : AbsNames) (pw : Qp) (L : Log) : IProp GF :=
   iprop(∃ c : Int, absPart a (1 : Qp).half.half L c ∗ pndPart a pw none)
 
+/-- **The client's parts of a new store's API ghost state** (`absNames_alloc_store`'s, which `NewStore`
+returns since M3, 2026-11-06): half the view, the pending revision's part `pr`, half and a quarter (the
+compaction right's) of the compaction authority and its lower bound, the whole share token, the
+notified log's authority and the store's location. -/
+def newClient (a : AbsNames) (L : Log) (c : Int) (pr : Qp) (l : Loc) : IProp GF :=
+  iprop(absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
+    crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L ∗ locIs a l)
+
 /-- **A new store's API ghost state, split as §1 gives** (strict M1, 2026-11-04: `NewStore`): the
 lock's slot (`revMuAbs` at the whole lock), the writer's (`writerAbs` at its part `pw` of the
 pending revision), the frozen flag down; and the client's parts (half the view, the pending

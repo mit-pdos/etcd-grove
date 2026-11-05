@@ -1440,3 +1440,30 @@ waits on them.
 client parts, `absNames_alloc_store`'s; `mvccLeases` defined; `mvccOpen`'s reader token by
 `storeReader_retire`; `Perm := True`); `store.Restore`'s tracking (`Hvals`, the record at `r`, the cursor
 at `(r.finRev, ⟨0, 0⟩)`), `KV.Restore`/`KV.Close`; phase B.
+
+## Hand-off: M3, `NewStore.spec` over `mvccStorageFor` (2026-11-06)
+
+**Done** (no axiom; one new listed placeholder, `mvccDeleter_M1`; no frozen statement changed):
+- `Api/NewStoreApi.lean`: `api.NewStore.wp_proof` (the API's `NewStore.spec`, from the internal
+  `mvcc.NewStore.spec` and the bridge's 26 backend specs; not linked: `Link.lean` is generated).
+  `mvccStorageFor` at `mvccStart` gives the internal premises (`imageOk_start`: an empty `Key` bucket,
+  no records, so `bkNoCmp_fkV_of_fkCl`; `storeBackend_of_backendC` over the registration fixed at fresh
+  index names; the view from `bViewC`; the reader tokens, `bkRTx_of_rdToks`; the slot, the tokens,
+  the registration); the post: `isMvcc` (`isMvccPlain`, `Perm := True`), `mvccState γ mvccStart` (the
+  client's parts), `mvccOpen` (`compactRightR_of_closer`, the right's quarter, a reader retired from
+  the pool with the internal spec's new credit, `storeReader_retire`, the supply), `mvccBackend γ 1`
+  (the share token, the writer's fragment, the registration, `hookP` from `hookInit`).
+- The internal `mvcc.NewStore.spec`'s post gains, at its end, `writerReg s γ`, the client's parts
+  `∃ pr, ⌜pndW γ + pr = 1⌝ ∗ api.newClient γ.api [[], []] (-1) pr s` (`Api/Ghost.lean`, the
+  `absNames_alloc_store` parts it dropped) and `£ 1` (`wp_auto_lc 1` at its first steps). Its
+  callers' patterns end in `-` (`newWatchableStore`, `NewStore_backend`; the server's `New.spec`
+  callers see the internal `New.spec`, unchanged).
+- `mvccLeases` defined (`(γ : StoreNames).leases`; was opaque).
+
+**Placeholder added**: `mvccDeleter_M1 : ⊢ mvccDeleter rd γ` (`Api/NewStoreApi.lean`, listed in
+`M1Placeholders.lean`'s header): the range deleter is the store's `Write`, so its contract is
+`KV.Write.contract`'s (M1-REPLACE: `KV.Write.contract`, with `mvccTxn` defined; still opaque `True`).
+
+**Left**: `New.spec` (the watchable store: the internal `New.spec`'s post with the client's parts and
+the watch layer's, `wsSlot_make_M1`); `store.Restore`'s tracking, `KV.Restore`/`KV.Close`;
+`KV.Write.contract` (then `mvccDeleter_M1` goes); phase B.

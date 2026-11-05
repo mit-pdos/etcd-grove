@@ -5,6 +5,14 @@
 theorem mvcc.api.shareTok_split (γ : mvcc.api.AbsNames) (q1 q2 : Qp) : mvcc.api.shareTok γ (q1 + q2)
     ⊢ mvcc.api.shareTok γ q1 ∗ mvcc.api.shareTok γ q2
 
+def mvcc.api.newClient (a : mvcc.api.AbsNames) (L : mvcc.Log) (c : Int) (pr : Qp) (l : Loc) : IProp
+    GF :=
+  iprop(mvcc.api.absPart a (Qp.half 1) L c ∗
+      mvcc.api.pndPart a pr none ∗
+        mvcc.api.crevAuth a (Qp.half 1) c ∗
+          mvcc.api.crevAuth a (Qp.half 1).half c ∗
+            mvcc.api.crevAtLeast a c ∗ mvcc.api.shareTok a 1 ∗ mvcc.api.nlAuth a 1 L ∗ mvcc.api.locIs a l)
+
 theorem mvcc.api.crevAtLeast_persistent (γ : mvcc.api.AbsNames) (c : Int) : Persistent
     (mvcc.api.crevAtLeast γ c)
 

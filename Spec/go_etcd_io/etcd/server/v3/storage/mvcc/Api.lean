@@ -129,8 +129,9 @@ invariants stage). -/
 @[no_expose] def MvccName : Type := StoreNames
 /-- **A watch stream's name** (pure, opaque). -/
 @[no_expose] def WsName : Type := api.WsAbs
-/-- **The store's lessor's ghost name** (its `lease.leaseOwn`). -/
-opaque mvccLeases (γ : MvccName) : GName
+/-- **The store's lessor's ghost name** (its `lease.leaseOwn`; M3, 2026-11-06: defined, the store's
+names' `leases`). -/
+@[no_expose] def mvccLeases (γ : MvccName) : GName := (γ : StoreNames).leases
 /-- **The stream's channel** (fixed at its creation). -/
 @[no_expose] def wsChanOf (ι : WsName) : GoChan := (ι : api.WsAbs).ch
 /-- **The stream's channel's ghost names** (fixed at its creation; the probe of v3rpc's watch,

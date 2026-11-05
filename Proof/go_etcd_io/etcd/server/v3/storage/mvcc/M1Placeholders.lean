@@ -8,7 +8,8 @@ Today's specs of the methods that move it (`storeTxnWrite.End`, `store.updateCom
 take the API's steps; each such step is one of the lemmas below, **false in general** and proved
 by `sorry`, marked `M1-REPLACE` with the API contract whose proof replaces it at stage 2 (the
 proofs using them are rewritten against the API's contracts, and this module goes). Nothing new
-may use them. (Elsewhere, listed: `RestoreMoves`' five local ones.)
+may use them. (Elsewhere, listed: `RestoreMoves`' five local ones; `Api/NewStoreApi.lean`'s `mvccDeleter_M1`, the
+range deleter's contract, M1-REPLACE: `KV.Write.contract`.)
 
 The snapshot image's store-side tracking (2026-11-05, `notes/mvcc-api-invariants.md`, "the snapshot
 image's tracking in place"): the batch lock's resource pins the tracked compaction (`cmpTrack`), so

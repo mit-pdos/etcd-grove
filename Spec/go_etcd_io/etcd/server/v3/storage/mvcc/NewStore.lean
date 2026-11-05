@@ -99,7 +99,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 * (M2, the storage side, item 26) The store's logical compaction mode (`γ.cm`) is the instance's
   (`decide (kbCmpM kb)`); a restore keeps it. 
 The store's compaction permit is the caller's `Perm` (`crevPermIs`, C3's store law, 2026-11-02):
-every compaction revision the store holds satisfies it.
+every compaction revision the store holds satisfies it. (M3, 2026-11-06) The store's registration in
+its backend's batch lock (`writerReg`) and the client's parts of the API's ghost state
+(`api.newClient`: the API's constructors' `mvccState`, `mvccOpen`'s quarter, the share token, the
+location), and a later credit (the API's constructor retires a reader with it).
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
 counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
 until then all `actualMaxReaders` of them. -/
@@ -136,7 +139,8 @@ abbrev mvcc.NewStore.spec : Prop :=
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
       mvcc.writerPin γ [[], []] ∗
       mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
-      mvcc.crevPermIs γ Perm }}
+      mvcc.crevPermIs γ Perm ∗ mvcc.writerReg s γ ∗
+      (∃ pr : Qp, ⌜mvcc.pndW γ + pr = 1⌝ ∗ mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗ £ 1 }}
 
 end spec
 

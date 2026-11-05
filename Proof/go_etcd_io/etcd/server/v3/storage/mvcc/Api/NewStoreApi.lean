@@ -1,0 +1,257 @@
+/-
+**`NewStore.spec` over mvcc's storage abstraction** (M3, 2026-11-06). Lean-first (no Rocq
+counterpart). Over the sealed definitions of `Api.lean` (imported with `import all`).
+
+* `imageOk_start`: the image of the empty history has an empty `Key` bucket and no compaction
+  record (`noCmpData`).
+* `NewStore.wp_proof`: `NewStore.spec` (the API's) from the internal `mvcc.NewStore.spec` and the
+  bridge's backend specs: `mvccStorageFor` at `mvccStart` gives the internal premises (the bridge's
+  contract `storeBackend_of_backendC` over the registration fixed at fresh index names, the empty
+  view, the exact no-compaction token and the bit from the open's `fkCl`, the reader tokens, the
+  safe-range slot); the post's `isMvcc` (`isMvccPlain`: the store, its location, the permit `True`),
+  `mvccState γ mvccStart` (the client's parts `api.newClient`), `mvccOpen` (the compaction right
+  from the closer, its quarter of the authority, a reader retired from the pool, the supply) and the
+  whole backend share (`mvccBackend γ 1`).
+* `mvccDeleter_M1` (**placeholder**, listed in `M1Placeholders.lean`'s header): the range deleter's
+  contract, which is `KV.Write.contract`'s at the store (M1-REPLACE: `KV.Write.contract`).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace mvcc
+namespace api
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
+
+/-- **The image of the empty history**: an empty `Key` bucket and no compaction record. -/
+theorem imageOk_start {D : backend.Data} (h : snap.imageOk D mvccStart.log mvccStart.crev false) :
+    (∀ k, backend.dget D keyName k = none) ∧ noCmpData D := by
+  obtain ⟨rc, ents, hk, hfin, hsch, -, hpos, hcut, hrc, hu, -⟩ := h
+  have he : ents = [] := by
+    have hs := hcut.1
+    rw [show logEnts mvccStart.log 0 mvccStart.log.length = [] from by decide] at hs
+    exact List.sublist_nil.1 hs
+  subst he
+  have hfr : rc.finRev = -1 := by
+    have h1 : mvccStart.crev = -1 := rfl
+    unfold CmpRecs.crev at hrc; rw [hu, h1] at hrc; simpa using hrc
+  have hf : rc.fin = none := by
+    cases hx : rc.fin with
+    | none => rfl
+    | some x =>
+      have := hpos.1 x hx
+      unfold CmpRecs.finRev at hfr; rw [hx] at hfr; simp at hfr; omega
+  have hs : rc.sched = none := by
+    cases hx : rc.sched with
+    | none => rfl
+    | some x =>
+      have h1 := hpos.2 x hx
+      have h2 : rc.resumes = true := by
+        unfold CmpRecs.resumes CmpRecs.schedRev; rw [hfr, hx]; simp; omega
+      rw [h2] at hu; cases hu
+  refine ⟨fun k => by rw [hk]; rfl, ?_, ?_⟩
+  · rw [hsch, hs]; rfl
+  · rw [hfin, hf]; rfl
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
+variable [backend_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
+
+/-- **(Placeholder, false in general.)** The range deleter `NewStore` gives the lessor
+(`SetRangeDeleter(func() TxnDelete { return s.Write(traceutil.TODO()) })`) meets `mvccDeleter`: it
+is the store's `Write`, whose contract is `KV.Write.contract`'s at `*store`. M1-REPLACE:
+`KV.Write.contract` (and `mvccTxn` defined). -/
+theorem mvccDeleter_M1 (rd : GoFunc) (γ : MvccName) : ⊢ mvccDeleter (GF := GF) rd γ := by
+  sorry -- M1-REPLACE: KV.Write.contract (the deleter is the store's Write)
+
+/-- Each reader slot's token with the reader's share of the open token (`bkRTx`). -/
+theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) : ∀ n : Nat,
+    ([∗list] _x ∈ List.replicate n (), backend.rdTok (GF := GF) γ P b) ∗
+      ([∗list] _x ∈ List.replicate n (), backend.bOpen γ backend.rdOpen) ⊢
+      [∗list] _x ∈ List.replicate n (), bkRTx γ P b
+  | 0 => by
+    simp only [List.replicate]
+    iintro -
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | n + 1 => by
+    simp only [List.replicate]
+    iintro ⟨Hr, Ho⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hr1, Hr⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ho with ⟨Ho1, Ho⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hr1 Ho1]
+    · unfold bkRTx; iframe Hr1 Ho1
+    iapply bkRTx_of_rdToks γ P b n
+    iframe Hr Ho
+
+/-- **`NewStore.spec`** (the API's) from the internal one and the bridge's backend specs. -/
+theorem NewStore.wp_proof
+    (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
+    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
+    NewStore.spec (GF := GF) (hG := hG) := by
+  intro lg le cfg B Pk γl rd0 hcfg hrb _
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
+  iunfold mvccStorageFor at Hfor
+  icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
+    Hopen⟩
+  obtain ⟨hB, hP, hcm, himg⟩ := Hf
+  subst hB
+  obtain ⟨hk0, hnc⟩ := imageOk_start himg
+  -- the internal premises: the bridge's contract at fresh index names, the view, the token
+  imod idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
+  imod storeDlReg_fix bk.γB γi $$ Hdl with #Hreg
+  icases bkNoCmp_fkV_of_fkCl bk.γB bk.P hnc $$ Hfk with ⟨Hncmp, #Hfv⟩
+  ihave #Hsz1 := Hsz $$ %bk.γB %bk.be
+  ihave #Hbk := storeBackend_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
+    hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP bk hP Pk γl γi
+    $$ [$Hbpkg $Hsch $Hb $Hsz1 $Hreg $Hfv]
+  imod ghost_map_alloc_empty (K := w64) (V := Log) (GF := GF) with ⟨%γok, Hok0⟩
+  ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be backend.rdStockN $$ [Hrs Hopen]
+  · iunfold backend.rdStock at Hrs; iframe Hrs Hopen
+  haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
+  have hsv : storageVal (bk : MvccStorage) =
+      interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        #bk.be := rfl
+  rw [hsv]
+  iapply wp_fupd
+  wp_apply +noauto (hNewStore lg _ le cfg (some bk) γl γl Pk #func.nil rd0 false γi γok
+      (fun _ => iprop(True)) hcfg)
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, -, #Hhk, -, Hrds, -, -, -, Hcl, -, -, Hfrag, -, Hcu, Hret,
+      #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc1⟩
+  · iframe Hle Hro Hifresh Hok0
+    isplitr
+    · iexact Hbk
+    rw [show kbRT (GF := GF) (some bk) = bkRTx bk.γB bk.P bk.be from rfl]
+    simp only [kbView_some, kbNoCmp_some, kbRegRight_some, kbNoDelOff, kbCmpM, hcm, kbWT,
+      kbSRM, kbSR, ↓reduceIte]
+    isplitl [Hv]
+    · unfold bkView
+      iexists _
+      isplitl [Hv]
+      · unfold backend.bView; iexists true; iexact Hv
+      ipureintro
+      exact keyView_of_dget hP (fun k => by rw [hk0]; rfl)
+    iframe Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd
+  obtain ⟨-, hγl, hγk, hγw, -, -, -⟩ := Hγ
+  -- the pending revision's client part: half (a plain store)
+  have hpr' : pr = (1 : Qp).half := by
+    unfold pndW at hpr
+    rw [hγw] at hpr
+    simp only [Bool.false_eq_true, ↓reduceIte] at hpr
+    rw [Qp.ext_iff] at hpr ⊢
+    simp only [Qp.val_add, Qp.val_half, Qp.val_one] at hpr ⊢
+    grind
+  subst hpr'
+  iunfold api.newClient at Hnc
+  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hlb, Htok, Hnl, #Hloc⟩
+  -- a reader retired from the pool for the open token's reader (the compactor's)
+  iunfold writerFrag at Hfrag
+  icases Hfrag with ⟨%o, Hcur⟩
+  have hn : backend.rdStockN - nJobRd (some bk) = (backend.rdStockN - nJobRd (some bk) - 1) + 1 := by
+    have : 2 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+    have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
+    omega
+  rw [hn, List.replicate_succ]
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, -⟩
+  ihave Hrd1 : storeReader (GF := GF) s γ $$ [Hrd1]
+  · iunfold storeReader; iexact Hrd1
+  imod storeReader_retire s γ _ o (nJobRd (some bk)) $$ Hlc1 Hs Hcur Hrd1 Hret with ⟨HRT, -, Hcur⟩
+  -- the compaction right from the closer
+  imod compactRightR_of_closer s γ ⊤ $$ Hcl Hcu with Hright
+  imodintro
+  iapply HΦ
+  iexists γ
+  isplitr
+  · ipureintro; exact hγl
+  isplitr
+  · iunfold isMvcc
+    iintro !>
+    ileft
+    iunfold isMvccPlain
+    iexists s
+    iframe Hs Hloc Hcp
+    ipureintro; rfl
+  isplitl [Hab Hpn Hcr2 Hnl]
+  · iunfold mvccState
+    iunfold api.mvccStateI
+    rw [show (mvccStart : MvccState) = ⟨[[], []], -1, none⟩ from rfl]
+    simp only [MvccState.notifiedLog]
+    iframe Hab Hpn Hcr2 Hnl
+    ipureintro; exact MvccReachable.start
+  isplitl [Hright Hcr4 HRT]
+  · iunfold mvccOpen
+    iexists s, γ.phys, (-1)
+    rw [StoreNames.withPhys_self]
+    iframe Hloc Hright Hcr4 HRT
+    isplitr
+    · rw [show γ.phys.kb = some bk from hγk]
+      simp only [kbWTSupplyM, kbCmpM, hcm, kbWTSupply, ↓reduceIte]
+      iexact Hsup
+    ipureintro; exact Int.le_refl _
+  isplitl [Htok Hcur]
+  · iunfold mvccBackend
+    iframe Htok
+    iexists γ.phys, o, bk
+    rw [StoreNames.withPhys_self]
+    iframe Hcur Hb
+    isplitr
+    · ipureintro; exact ⟨hγk, hcm, rfl⟩
+    isplitr
+    · iintro !>; iexists s; iexact Hwreg
+    iunfold hookInit at Hhk
+    icases Hhk with ⟨#HhP, -⟩
+    iintro !>; iexact HhP
+  iexists rd
+  iframe Hro
+  iapply (mvccDeleter_M1 (GF := GF) rd γ)
+
+end proof
+
+end api
+end mvcc
+end EtcdGrove
+end Perennial

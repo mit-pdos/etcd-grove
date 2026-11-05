@@ -179,7 +179,8 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
-  wp_auto
+  -- (M3) a later credit for the caller (`NewStore.spec`'s: the API's constructor retires a reader)
+  wp_auto_lc 1
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -306,7 +307,7 @@ theorem mvcc.NewStore.wp_proof
   -- (the mvcc API, strict M1) the API's ghost names at the start: the lock's and the writer's slots
   -- and the frozen flag kept; the client's parts dropped (today's spec returns none of them)
   obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
-  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, -⟩
+  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, HCl⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv, hγjc, hγrcl⟩ :
       ∃ γ : mvcc.StoreNames,
@@ -799,9 +800,15 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.writerFrag; iexists _; iexact HcurFrag
   -- the compaction right's half of the revision's authority at `-1`
   iframe Hright
-  iframe HcpIs
-  iunfold mvcc.retiredAt
-  iexact Hret0
+  iframe HcpIs HrgI Hlc1
+  isplitl [Hret0]
+  · iunfold mvcc.retiredAt; iexact Hret0
+  iexists pr
+  isplitr
+  · ipureintro; unfold mvcc.pndW; rw [hγw]; exact hpr
+  rw [hγapi]
+  iunfold mvcc.api.newClient
+  iexact HCl
 
 end proof
 

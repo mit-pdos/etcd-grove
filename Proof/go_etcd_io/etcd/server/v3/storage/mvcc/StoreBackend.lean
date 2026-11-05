@@ -178,7 +178,7 @@ theorem mvcc.NewStore_backend
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hpin, Hcr, Hret,
-    #HcpIs⟩
+    #HcpIs, -⟩
   ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
