@@ -72,8 +72,9 @@ def kvDepPreOn (d : KVDep GF) (q : KVReq) : Prop :=
 /-- **A successful `Range` of `o` with auth on** (`rangeAnsOk` at the mode-`on` model). -/
 def rangeAnsOkOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (resp : Loc) (r : w64) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧
+      F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -82,8 +83,9 @@ def rangeAnsOkOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) 
 /-- **A successful read-only `Txn` of `t` with auth on** (`txnReadAns` at the mode-`on` model). -/
 def txnReadAnsOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
     (Q : List EntryModel → IProp GF) (resp : Loc) (r : w64) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1) ∧
+      F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     (if txn.txnSerializable t then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -208,7 +210,7 @@ the caller's lower bound `n` of the published auth index, and a write's deposit 
 def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : KVDep GF) (n : Nat) (tok : Option GoString) : KVAns GF where
   call ctx := iprop(srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnOn s E ρ γr tok d ∗
-    mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗ ⌜auth.ctxTokenOf ctx = tok⌝)
+    srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗ ⌜auth.ctxTokenOf ctx = tok⌝)
   pre q := (match q with
     | .txn cs ts es => txnInModel cs ts es
     | _ => True) ∧ kvDepPreOn d q
@@ -230,7 +232,7 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
     | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
-  revR := mvcc.storeReader E.s E.γ
+  revR := threadTok
 
 /-- A deposit is a read deposit at the mode-`on` model's state (`kvDep_of_dep`'s). -/
 theorem kvDep_of_depOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
@@ -338,7 +340,7 @@ theorem kvPutOk_of_serverOn (hPut : EtcdServer.Put.specOn (GF := GF) (hG := hG))
   ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, #Hcok,
+  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit, Hcok,
     HQv, #Hhb, %L, %Hga, #HpAf⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
@@ -353,7 +355,7 @@ theorem kvPutOk_of_serverOn (hPut : EtcdServer.Put.specOn (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 (x.log.length : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) (mvcc.storeReader E.s E.γ)
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h (W64 (x.log.length : Int)) threadTok
       (w64_rev_ne_zero _ (by omega) Hlen.2) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -418,7 +420,7 @@ theorem kvDeleteOk_of_serverOn (hDel : EtcdServer.DeleteRange.specOn (GF := GF) 
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit,
-    #Hcok, HQv, #Hhb, %L, %Hga, #HpAf⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    Hcok, HQv, #Hhb, %L, %Hga, #HpAf⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     have Hrq : rq' = apply.withHeader (irrDeleteRange o) hm := Hwire.2.2.2 HnzW
     subst Herr
@@ -433,7 +435,7 @@ theorem kvDeleteOk_of_serverOn (hDel : EtcdServer.DeleteRange.specOn (GF := GF) 
     isplitr
     · ipureintro; exact ⟨trivial, Hrn⟩
     iexists h, W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
       (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
@@ -496,7 +498,7 @@ theorem kvRangeOk_of_serverOn (hRange : EtcdServer.Range.specOn (GF := GF) (hG :
   icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOkM at Hok'
-    icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hres, Hown⟩
+    icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hres, Hown⟩
     ihave #Hres' := Hres
     icases Hres' with ⟨%crev, Hres'⟩
     iunfold txn.rangeResult at Hres'
@@ -512,17 +514,17 @@ theorem kvRangeOk_of_serverOn (hRange : EtcdServer.Range.specOn (GF := GF) (hG :
     isplitr
     · ipureintro; exact ⟨rfl, Hrn⟩
     iexists h, W64 ((log.length : Int) - 1)
-    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
-      (w64_last_ne_zero log Hlen.1 Hlen.2.1) $$ [$Hown]
+    ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
+      (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
     · iframe #; ipureintro; exact Hhn
     iframe Hhf2 Hw Hri
     simp only
     iframe Hrc Hcred Hlt
-    isplitl [Hlin HQl]
+    isplitl [Hcok Hlin HQl]
     · iunfold rangeAnsOkOn
       iexists log
-      iframe Hcert Hcok Hres Hlin HQl
-      ipureintro; exact ⟨Hlen.1, Hlen.2.1, rfl, Hlen.2.2⟩
+      iframe Hcert Hcok Hrcp Hres Hlin HQl
+      ipureintro; exact ⟨Hlen.1, Hlen.2.1, Hlen.2.2.1, rfl, Hlen.2.2.2⟩
     iunfold rangeAuthed
     icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
     iexists info, m
@@ -578,7 +580,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
     iunfold isServerReadM at Hsrd
     icases Hsrd with ⟨%w, #Hw⟩
     iunfold srvReadFieldsAtM at Hw
-    icases Hw with ⟨-, -, -, -, -, -, -, -, -, -, #Hlga, %Hlgn, -⟩
+    icases Hw with ⟨-, -, -, -, -, -, -, -, -, #Hlga, %Hlgn, -⟩
     iunfold srvRdCall at Hrc
     icases Hrc with ⟨Hsr, Hlgr, Hca, Hrr, Hard⟩
     wp_apply hTxn s E ρ ci cd r t (opDepQ d) none false F w.lg $$ [Hlt Hard Hcred Hlgr Hdep]
@@ -598,7 +600,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%tw, %hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
-        #Hcok, HQv⟩
+        Hcok, HQv⟩
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩
@@ -611,7 +613,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       · ipureintro; exact ⟨by first | rfl | trivial, Hrn⟩
       iexists h, W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
         (writeRev_ne_zero _ _ Hlen.1 Hlen.2) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
@@ -663,7 +665,7 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
     icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hne, #HaE⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnReadOkM at Hok'
-      icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hresp, Hown⟩
+      icases Hok' with ⟨%log, #Hcert, Hcok, #Hrcp, %Hlen, Hlin, HQl, #Hresp, Hown⟩
       ihave #Hresp' := Hresp
       iunfold txn.txnResponseIs at Hresp'
       icases Hresp' with ⟨-, #Hf⟩
@@ -673,8 +675,8 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨rfl, Hrn⟩
       iexists h, W64 ((log.length : Int) - 1)
-      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ (mvcc.storeReader E.s E.γ)
-        (w64_last_ne_zero log Hlen.1 Hlen.2.1) $$ [$Hown]
+      ihave ⟨#Hhf2, Hw, Hri⟩ := hdr_of_own _ h _ threadTok
+        (w64_last_ne_zero log Hlen.2.1 Hlen.2.2.1) $$ [$Hown]
       · iframe #; ipureintro; exact Hhn
       iframe Hhf2 Hw Hri
       simp only
@@ -684,11 +686,11 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       · ipureintro; exact hm
       simp only [hro, ↓reduceIte]
       iframe Hcred
-      isplitl [Hlin HQl]
+      isplitl [Hcok Hlin HQl]
       · iunfold txnReadAnsOn
         iexists log
-        iframe Hcert Hcok Hresp Hlin HQl
-        ipureintro; exact ⟨Hlen.1, Hlen.2.1, rfl, Hlen.2.2⟩
+        iframe Hcert Hcok Hrcp Hresp Hlin HQl
+        ipureintro; exact ⟨Hlen.1, Hlen.2.1, Hlen.2.2.1, rfl, Hlen.2.2.2⟩
       iunfold txnAuthed
       icases Hcls with ⟨%info, %m, %Hm, #Hc, #Hib, #Hf⟩
       iexists info, m
@@ -707,10 +709,13 @@ theorem kvTxnOk_of_serverOn (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
       simp only [hro, ↓reduceIte]
       iexact Hcred
 
-/-- **`raftKV`'s getters with auth on, from the server's** (as `kvGetOk_of_server`) (`KV().Rev()`: `store.Rev` on the bare store with
-the store's reader slots, `revR`; `Cluster().ID()`, `MemberID`, `Term`, `Leader`). -/
+/-- **`raftKV`'s getters with auth on, from the server's** (as `kvGetOk_of_server`: `KV().Rev()`
+by `KV.Rev.contract` with the thread's token, `revR`; `Cluster().ID()`, `MemberID`, `Term`,
+`Leader`). -/
 theorem kvGetOk_of_serverOn (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cluster.spec (GF := GF) (hG := hG))
     (hID : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
@@ -721,7 +726,6 @@ theorem kvGetOk_of_serverOn (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM true s E ρ ∗ isServerReadM true s E γr ⊢
       kvGetOk s (srvKVAnsOn s E ρ γr c F d n tok) := by
-  have hRev := mvcc.store.Rev.spec_R hRev
   iintro ⟨#Hpkg, #Hsrv, #Hsrd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -736,12 +740,17 @@ theorem kvGetOk_of_serverOn (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨-, -, #Hkvf, #Hkv, #Hrvf, #Hrv, -, -, -, -, -, -, -, #Hterm, -⟩
-  ihave %Hkvok := txn.isKV_ok _ E.s E.γ $$ Hkv
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave ⟨#Hko0, #Hst⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
-  ihave #Hko : mvcc.kvOver (interface.mkOk kty kvv) E.s $$ []
-  · rw [← Hkveq]; iexact Hko0
+  icases Hw with ⟨-, -, #Hkvf, #Hkv, %Hkvw, -, -, -, -, -, -, -, #Hterm, ⟨%log₀, #Hl0, -⟩, -, #Hkvi, -⟩
+  icases txn.isMvcc_shape hsh w.kv E.γ $$ Hkv with ⟨%Hsh, -⟩
+  obtain ⟨kty, kvv, Hkveq, -, -, hRevC, -⟩ := Hsh
+  ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq]; imodintro; iexact Hkv
+  icases Hkv' with #Hkv'
+  iunfold srvKVInvsM at Hkvi
+  icases Hkvi with ⟨#Hkon, -⟩
+  iunfold srvKVInvsOn at Hkon
+  icases Hkon with ⟨-, -, -, -, #Hks, %Hks2, -⟩
+  obtain ⟨⟨hNxP, hNxT, hCpP, hCpT⟩, -⟩ := Hks2
   iunfold kvGetOk
   simp only [srvKVAnsOn]
   isplitr
@@ -752,15 +761,12 @@ theorem kvGetOk_of_serverOn (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     iexists ⟨kty, kvv⟩
     isplitr
     · ipureintro; exact Hkveq
-    iintro !> %Φ' Hrd HΦ'
-    imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-    imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #Hc0
-    iapply mvcc.kvOver_rev_wp kty kvv E.s
-    iframe Hko
-    wp_apply hRev E.s w.rv E.γ 0 [] $$ [Hrd Hnone] as %rv ⟨Hrd, -, -⟩
-    · iframe #; iframe Hrd Hnone
+    iintro !> %Φ' Htt HΦ'
+    ihave Hau := srvApi.au_read E.Nx E.Cp hP hR E.kv E.γ E.γs log₀ $$ Hks Hl0
+    iunfold srvApi.auRead at Hau
+    wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hau] as %rv ⟨Htt, -⟩
     iapply HΦ'
-    iexact Hrd
+    iexact Htt
   isplitr
   · iintro !> %Φ - HΦ
     wp_apply hCl s v.cluster $$ []
@@ -804,7 +810,9 @@ theorem raftKV_of_serverOn (hPut : EtcdServer.Put.specOn (GF := GF) (hG := hG))
     (hTxn : EtcdServer.Txn.specOn (GF := GF) (hG := hG))
     (hTxnR : EtcdServer.Txn.specOnR (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hRev : mvcc.store.Rev.spec (GF := GF) (hG := hG))
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cluster.spec (GF := GF) (hG := hG))
     (hID : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
@@ -825,7 +833,7 @@ theorem raftKV_of_serverOn (hPut : EtcdServer.Put.specOn (GF := GF) (hG := hG))
   · iapply kvDeleteOk_of_serverOn hDel s E ρ γr c F d n tok; iframe #
   isplitr
   · iapply kvTxnOk_of_serverOn hTxn hTxnR s E ρ γr c F d n tok γa hγa; iframe #
-  iapply kvGetOk_of_serverOn hKV hRev hCl hID hMID hTerm hLead s E ρ γr c F d n tok; iframe #
+  iapply kvGetOk_of_serverOn hKV hsh hP hR hCl hID hMID hTerm hLead s E ρ γr c F d n tok; iframe #
 
 end proofs
 

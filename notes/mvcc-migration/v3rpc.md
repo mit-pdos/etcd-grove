@@ -110,23 +110,78 @@ check of record** once `InvRead` builds: `lk.sh lake build` the six proof module
   (hZD : zap.Logger.Debug.spec) (hZW : zap.Logger.Warn.spec) (hZE : zap.Error.spec)
   (hCV : prometheus.CounterVec.WithLabelValues.spec)`
 
+- (fourth session) `raftKV_of_server hPut hDel hRange hTxn hKV (hsh : mvcc.api.shapes.law)
+  (hP : mvcc.api.persistent.law) (hR : mvcc.api.mvccState_reachable.law) hCl hID hMID hTerm hLead`
+  (was `… hKV hRev hCl …`, `hRev : mvcc.store.Rev.spec`); `kvGetOk_of_server` likewise;
+  `raftKV_of_serverOn hPut hDel hRange hTxn hTxnR hKV hsh hP hR hCl hID hMID hTerm hLead`,
+  `kvGetOk_of_serverOn` likewise.
+
 ## Left
 
 - `Results.lean`, `Link.lean` (the coordinator's): the watch callees are now the API's laws
   (`shapes`, `persistent`, `wsChan_recv`, `wsRecv_ok`, `wsSentLb_zero`), taken as mvcc's results;
-  `watch_registered_authorized` restated as `ctrlWatcher_authorized` (above).
-- **`ClientModel.lean`, `HistoryModel.lean`, `WatchStep.lean`: not migrated, blocked.** They are the
-  clients' model of etcd at the server (`etcdModelOfServer E`, `etcdModelOfHistory`), over mvcc's
-  internals `idxSealed`/`idxCert`/`certOk`/`storeSmall`/`E.γ.idx` and the server's `revTok`,
-  `srvKVInvs`; `ClientModel` imports `v3rpc/ServerKV` (the KV path, red: `mvcc.storeReader E.s`).
-  The draft restates only the watch part (§8 `srvWL2 W L := W.histLb L`); the rest follows the
-  server's read path (`srvApi.srvLogA`, `rangeReadOkA`, `srvRevLbA`, `histLb_model.law` in
-  `KVStoreApi`/`KVStoreRead`), and `KVStoreRead` imports `InvRead` (red). Plan: `srvLog` :=
-  `srvApi.srvLogA γr on E.γs` (`etcdModelOfServer` then takes `γr on` beside `E`), `srvReachedAt`
-  := `srvRevLbA`, `srvReadAt` over `kvLogLb E.γs`, the agreement laws from `histLb`'s prefix law
-  (`histLbG`'s, `KVStoreCore`), `etcdState_of_cert*` from `rangeReadOkA`'s floor and receipt;
-  `WatchStep.srvStep_of_watch` over `histLb`. Their clients (client/v3, cache, examples) follow.
-  Not started: it needs `InvRead`, `ServerKV` and the server's read path first.
+  `watch_registered_authorized` restated as `ctrlWatcher_authorized` (above). Their KV and model
+  parts follow the fourth session's restatements (below): `raftKV_of_server(On)`'s new hypotheses,
+  `etcdModelOfServer E γr on`, the bridges' new names (`read_keys` and the server's `srvKVCoreM_*`
+  are the server's).
+- The clients of `ClientModel`/`HistoryModel`/`ServerKV` (client/v3, the cache, the examples;
+  other tracks): `etcdModelOfServer E` → `etcdModelOfServer E γr on`; `srvLog E` → `srvLog γr on`
+  (now a prefix of a witnessed log); `etcdState_of_cert(_last)`/`_of_sealed(_last)` →
+  `etcdState_of_nx(_last)` (premises `LogWf'`, `LogSmall`, the length, the keys' bound, in place of
+  `storeSmall`); `etcdReached_of_certOk` → `etcdReached_of_nx`; `histLog_of_cert` →
+  `histLog_of_srv` (pure, no `srvKVInvs`/mask); `histReached_of_cert` → `histReached_of_nx`;
+  `histWL_of_sealed` → `histWL_of_srv`; `srvStep_of_watch E … : srvLog ∗ certOk ⊢ …` →
+  `srvStep_of_watch γr on … : srvLog γr on log ⊢ …`; the answers' `E.Nx` (spatial: persistent
+  under `envWitOk E`, `srvKVInvs`'), the `+ 3` room.
+
+## Fourth session (2026-11-05/06): the KV path and the clients' model
+
+All five build (`lake build` under the lock: `ServerKV`, `ServerKVOn`, `ClientModel`,
+`HistoryModel`, `WatchStep`); `#print axioms` of `raftKV_of_server(On)`, `etcdModelOfServer`,
+`etcdModelOfHistory`, `etcdState_of_nx_last`, `etcdReached_of_nx`, `srvLog_of_histLb`,
+`histStep_of_srv`, `histWL_of_srv`, `histReached_of_nx`, `srvStep_of_watch`: no `sorryAx`.
+
+- **`ServerKV`, `ServerKVOn` restated over the server's restated request and read path** (the
+  answers `putApplied`, `deleteApplied`, `txnAppliedAns`: `srvApi.kvLogLb E.γs x'.log` and the
+  witness `E.Nx x'.log` in place of `mvcc.idxCert E.γ.idx x'.log`/`mvcc.certOk E.γ x'.log`, the
+  room `x.log.length + 3 ≤ 2 ^ 63` (`appliedHdr`'s, was `+ 4`); `rangeAnsOk`, `txnReadAns` and
+  their `On` forms as `rangeReadOk(M)`: `kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (logCh log) ∗
+  ⌜LogWf' log ∧ …⌝`, no longer persistent (`E.Nx` is persistent only under `envWitOk`); a call's
+  floor `kvLogLb E.γs F`; `revR := threadTok` (was `mvcc.storeReader E.s E.γ`). The getters'
+  `KV().Rev()` by `KV.Rev.contract` at the store handle's type (`shapes.law`, `txn.isMvcc_shape`),
+  the update `srvApi.au_read` at the read side's floor `log₀` (`srvReadFieldsAt(M)`'s), the
+  instances of `E.Nx`/`E.Cp` from `srvKVInvs(On)`'s `envWitOk`. No mvcc internal (the imports
+  `storage.mvcc.ReaderSpecs`, `store__Rev` dropped).
+- **`ClientModel` restated** (no mvcc internal): `srvLog γr on log := ∃ L', srvApi.kvNx γr on L' ∗
+  ⌜log <+: L' ∧ LogWf' log ∧ log.length < 2 ^ 63 ∧ LogSmall log ∧ LogPutsLe etcdKeyMax log⌝` (a
+  prefix of the KV model of a committed raft log); `srvEtcdState γr on`, `srvStep γr on` over it
+  (`srvStep` without `certOk`: the witness is `srvLog`'s); `srvReachedAt γr on r :=
+  srvApi.srvRevLbA γr on (sint.Z r)`; `srvReadAt E r := ∃ log, kvLogLb E.γs log ∗ ⌜r < len⌝`;
+  **`etcdModelOfServer E γr on`** (was `etcdModelOfServer E`). `srvLog_two` by
+  `srvRLogLb_prefix` and `kvModelM_prefix` (new, both modes; `kvEntryOn_extends`,
+  `kvRaftOfOn_extends`), `logWf'_of_prefix` (new). Bridges: `etcdReached_of_nx` (was
+  `_of_certOk`), `srvLog_of_nx`, `srvLog_of_histLb`, `etcdState_of_nx`, `etcdState_of_nx_last`
+  (were `etcdState_of_sealed/cert(_last)`, with `storeSmall`).
+- **`HistoryModel` restated**: `histLog` a prefix of `kvModel γk A` (was equal: the laws need only
+  prefix order); the member bridges plain entailments at the mode off, no update, no short-log case:
+  `histLog_of_srv`, `histStep_of_srv`, `histReached_of_srv`, `histReached_of_nx`, `histWL_of_srv`
+  (were `histLog_of_cert`, `histStep_of_srv` over `srvKVInvs`, `histReached_of_cert`,
+  `histWL_of_sealed`).
+- **`WatchStep.srvStep_of_watch γr on`**: `srvLog γr on log ⊢ srvStep γr on …` (no `certOk`).
+
+**F2 (a draft too weak, fixed locally; for the coordinator).** The server's draft restates the
+clients' model "over `srvApi.srvLogA` (`histLb`)". `histLb` is a lower bound of the *notified*
+log, and a read's log (`rangeReadOk`'s `kvLogLb E.γs log`, a lower bound of the *committed* log)
+need not be one (the committed log runs ahead of the notified one between a write's `End` and its
+notify). So `etcdState_of_cert` (a range's state is etcd's, client/v3's `Get`) is unprovable over
+`srvLogA`. Fix, local to v3rpc: `srvLog` is "a prefix of the KV model of a committed raft log"
+(`kvNx` of an extension), which both a read's log (`E.Nx log` itself) and `histLb` give
+(`srvLog_of_nx`, `srvLog_of_histLb`); two are prefix-comparable through raft's committed log. No
+frozen statement changes; `srvApi.srvLogA` is then unused by v3rpc.
+
+**The server's watch-built restatements (`srvWatchBuilt`, `srvServeFacts`, "For v3rpc" in
+`server.md`)**: nothing in v3rpc names them (nor `srvWatchReaders`); only `client/v3`'s
+`ServeFromStart(On)` and the examples do. Nothing to follow here.
 
 ## Placeholders (`M1-REPLACE`)
 

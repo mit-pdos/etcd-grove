@@ -8,8 +8,8 @@ member after a cut, D32) cannot name the member in its contract. `etcdModelOfHis
 instantiates the model with the cluster's history instead, at the raft names `γ` the members share
 and the KV names `γk` they agree on (`c0`, `ch0`, `log0`, what the KV model reads):
 
-* its logs (`histLog`) are the KV models of committed raft prefixes (`srvRLogLb γ A`, `kvModel γk
-  A`), well formed, fewer than `2 ^ 63` revisions, small. Two such logs are in prefix order by a
+* its logs (`histLog`) are prefixes of the KV models of committed raft prefixes (`srvRLogLb γ A`,
+  `kvModel γk A`), well formed, fewer than `2 ^ 63` revisions, small. Two such logs are in prefix order by a
   plain entailment (`histLog_two`: `srvRLogLb_prefix`, `kvRaftOf_prefix`), which is all the laws
   need of logs: they are `ClientModel.lean`'s, with `srvLog_two` replaced;
 * `etcdState`, `EtcdStep`: `srvEtcdState`'s and `srvStep`'s, over history logs;
@@ -18,11 +18,13 @@ and the KV names `γk` they agree on (`c0`, `ch0`, `log0`, what the KV model rea
 * `etcdRevToken`: `False`. A revision's token is the apply thread's of one member (`revTok`), which
   no member-free contract can hand out; no watch result needs one.
 
-**From a member's facts** (`hist_*`): a member whose KV invariants (`srvKVInvs`) are at `γ` and at
-KV names agreeing with `γk` turns its certified facts into the history's, by `kv_cert_read` (an
-update: it opens the certificates' invariant). Its sealed and certified logs of more than two
-revisions are history logs (`histLog_of_cert`); its steps and states over them are the history's
-(`histStep_of_srv`, `histEtcdState_of_srv`); a certified revision is reached (`histReached_of_cert`).
+**From a member's facts**: a member whose read names `γr` agree with `γ` and `γk` (`memberOf`)
+turns its facts into the history's by plain entailments (strict M1, 2026-11-05: over the member's
+raft witness, `srvApi.kvNx γr false`; mvcc's certificates and their invariant are gone): its logs
+(`ClientModel`'s `srvLog`, prefixes of the models of committed raft logs) are history logs, which
+are such prefixes too (`histLog_of_srv`); its steps are the history's (`histStep_of_srv`); its
+reached revisions are (`histReached_of_srv`, `histReached_of_nx`), and its watched logs
+(`histWL_of_srv`).
 -/
 module
 
@@ -50,11 +52,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-! ## The predicates -/
 
-/-- **A log of the history** (persistent): the KV model of a committed raft prefix, well formed,
-of fewer than `2 ^ 63` revisions, small, (2026-10-30, `notes/keylen.md`) its keys short. -/
+/-- **A log of the history** (persistent): a prefix of the KV model of a committed raft prefix
+(strict M1, 2026-11-05: a prefix, as `ClientModel`'s `srvLog`, whose witness is the server's
+`kvNx` of an extension), well formed, of fewer than `2 ^ 63` revisions, small, (2026-10-30,
+`notes/keylen.md`) its keys short. -/
 def histLog (γ : ServerRaftNames) (γk : KVNames) (log : Log) : IProp GF :=
   iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
-    ⌜kvModel γk A = log ∧ LogWf' log ∧ log.length < 2 ^ 63 ∧ LogSmall log ∧
+    ⌜log <+: kvModel γk A ∧ LogWf' log ∧ log.length < 2 ^ 63 ∧ LogSmall log ∧
       mvcc.LogPutsLe etcdKeyMax log⌝)
 
 instance histLog_persistent (γ : ServerRaftNames) (γk : KVNames) (log : Log) :
@@ -114,10 +118,9 @@ theorem histLog_two (γ : ServerRaftNames) (γk : KVNames) (L1 L2 : Log) :
   obtain ⟨e1, w1, l1, s1, -⟩ := h1
   obtain ⟨e2, w2, l2, s2, -⟩ := h2
   have hc : L1 <+: L2 ∨ L2 <+: L1 := by
-    subst e1 e2
     rcases Hp with h | h
-    · exact Or.inl (kvRaftOf_prefix _ _ _ _ _ h)
-    · exact Or.inr (kvRaftOf_prefix _ _ _ _ _ h)
+    · exact List.prefix_or_prefix_of_prefix (e1.trans (kvRaftOf_prefix _ _ _ _ _ h)) e2
+    · exact List.prefix_or_prefix_of_prefix e1 (e2.trans (kvRaftOf_prefix _ _ _ _ _ h))
   obtain ⟨L, p1, p2, hL⟩ := longer_log hc
   refine ⟨L, p1, p2, ?_⟩
   rcases hL with rfl | rfl
@@ -355,6 +358,9 @@ theorem etcdModelOfHistory_EtcdStep (γ : ServerRaftNames) (γk : KVNames) :
 
 /-! ## From a member's facts -/
 
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
 /-- **A member's KV names agree with the history's** on what the model reads, and its raft names
 are the history's but for the storage registry (2026-10-27, the server port: `SrvRaft.reg` is the
 member's own `MemoryStorage` registry, which the history does not read; until then the raft names
@@ -373,100 +379,81 @@ theorem srvRLogLb_reg (γ : ServerRaftNames) (r : GName) (A : List EntryModel) :
     srvRLogLb (GF := GF) γ A ⊢ srvRLogLb { γ with raft := { γ.raft with reg := r } } A :=
   BI.entails_refl
 
-/-- **A member's certified, sealed, small log of more than two revisions is a history log.** -/
-theorem histLog_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
-    (γr : ReadNames) (hm : memberOf γ γk γr) (Em : CoPset) (hEm : ↑kvcN ⊆ Em) (log : Log)
-    (h2 : 2 < log.length) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ srvLog E log -∗ certOk E.γ log ={Em}=∗ histLog γ γk log := by
+/-- **A member's log is a history log** (strict M1, 2026-11-05: `ClientModel`'s `srvLog` at the
+mode off, a prefix of the model of a committed raft log by the member's witness; no update: mvcc's
+certificates' invariant is gone, and with it the short logs' case). -/
+theorem histLog_of_srv (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames)
+    (hm : memberOf γ γk γr) (log : Log) :
+    srvLog (GF := GF) γr false log ⊢ histLog γ γk log := by
   obtain ⟨hr, hc0, hch, hlog⟩ := hm
-  iintro #Hinvs #Hl #Hc
-  iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #Hcinv, -, %Hcok, -⟩
+  iintro #Hl
   iunfold srvLog at Hl
-  icases Hl with ⟨#Hs, %Hsm⟩
-  ihave %Hw := sealed_pure E.γ.idx log $$ Hs
-  imod kv_cert_read γr.raft γr.kv E.γ Hcok Em hEm log $$ Hcinv Hc with (%hl | ⟨%A, #HA, %hA⟩)
-  · exfalso; omega
-  imodintro
+  icases Hl with ⟨%L', #Hx, %h⟩
+  iunfold srvApi.kvNx at Hx
+  icases Hx with ⟨%A, #HA, %hA⟩
   iunfold histLog
   iexists A
   rw [← hr]
   ihave #HA' := srvRLogLb_reg γr.raft γ.raft.reg A $$ HA
   iframe HA'
   ipureintro
-  refine ⟨?_, Hw.1, Hw.2, Hsm.1, Hsm.2⟩
-  rw [← hA, kvModel_congr γk γr.kv hc0 hch hlog]
+  obtain ⟨hp, hw, hl, hs, hk⟩ := h
+  refine ⟨?_, hw, hl, hs, hk⟩
+  rw [← kvModel_congr γk γr.kv hc0 hch hlog]
+  rw [kvModelM_false] at hA
+  rw [hA]; exact hp
 
-/-- **A member's step is the history's** (its log of more than two revisions). -/
-theorem histStep_of_srv (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
-    (γr : ReadNames) (hm : memberOf γ γk γr) (Em : CoPset) (hEm : ↑kvcN ⊆ Em) (r0 r1 : w64)
-    (pfx : GoString) (evs : List EtcdEv) (h2 : 2 ≤ sint.Z r1) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ srvStep E r0 r1 pfx evs ={Em}=∗ histStep γ γk r0 r1 pfx evs := by
-  iintro #Hinvs #Hs
+/-- **A member's step is the history's.** -/
+theorem histStep_of_srv (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames)
+    (hm : memberOf γ γk γr) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) :
+    srvStep (GF := GF) γr false r0 r1 pfx evs ⊢ histStep γ γk r0 r1 pfx evs := by
+  iintro #Hs
   iunfold srvStep at Hs
-  icases Hs with ⟨%log, #Hl, #Hc, %h⟩
-  imod histLog_of_cert γ γk E γr hm Em hEm log (by omega) $$ Hinvs Hl Hc with #Hh
-  imodintro
+  icases Hs with ⟨%log, #Hl, %h⟩
+  ihave #Hh := histLog_of_srv γ γk γr hm log $$ Hl
   iunfold histStep
   iexists log
   iframe Hh
   ipureintro; exact h
 
-/-- **A member's certified revision is the history's**: a revision of a log the member
-certified is reached in the history. -/
-theorem histReached_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
-    (γr : ReadNames) (hm : memberOf γ γk γr) (Em : CoPset) (hEm : ↑kvcN ⊆ Em) (log : Log)
-    (r : w64) (h : sint.Z r < log.length) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ certOk E.γ log ={Em}=∗
-      etcdReached (EM := etcdModelOfHistory γ γk) r := by
+/-- **A member's reached revision is the history's.** -/
+theorem histReached_of_srv (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames)
+    (hm : memberOf γ γk γr) (r : w64) :
+    srvReachedAt (GF := GF) γr false r ⊢ histReachedAt γ γk r := by
   obtain ⟨hr, hc0, hch, hlog⟩ := hm
-  iintro #Hinvs #Hc
-  iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #Hcinv, -, %Hcok, -⟩
-  unfold etcdReached
-  by_cases hle : sint.Z r ≤ 0
-  · imodintro; ileft; ipureintro; exact hle
-  -- the log's committed prefix, or (at most two revisions) any committed prefix: the model of
-  -- every one extends the start log, of at least two revisions
-  ihave #Hcinv' := Hcinv
-  iunfold kvCertInv at Hcinv'
-  iinv Hcinv' with >Hi Hclose
-  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-  imod Hclose $$ [HC Hhi'] with -
-  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
-  imod kv_cert_read γr.raft γr.kv E.γ Hcok Em hEm log $$ Hcinv Hc with (%hl | ⟨%A, #HA, %hA⟩)
-  · imodintro
-    iright
-    iexists r
-    isplitr
-    · ipureintro; exact Int.le_refl _
-    imodintro
-    rw [etcdModelOfHistory_etcdReachedAt]
-    iunfold histReachedAt
-    iexists Lb
-    rw [← hr]
-    ihave #HLb' := srvRLogLb_reg γr.raft γ.raft.reg Lb $$ HLb
-    iframe HLb'
-    ipureintro
-    have h0 := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 Lb
-    have hl0 : 2 ≤ γk.log0.length := by rw [← hlog]; exact Hok.2
-    unfold kvModel
-    have := h0.length_le
-    omega
-  imodintro
-  iright
-  iexists r
-  isplitr
-  · ipureintro; exact Int.le_refl _
-  imodintro
-  rw [etcdModelOfHistory_etcdReachedAt]
+  iintro H
+  unfold srvReachedAt srvApi.srvRevLbA
+  icases H with ⟨%A, #HA, %hA⟩
   iunfold histReachedAt
   iexists A
   rw [← hr]
   ihave #HA' := srvRLogLb_reg γr.raft γ.raft.reg A $$ HA
   iframe HA'
   ipureintro
-  rw [← kvModel_congr γk γr.kv hc0 hch hlog, hA]; exact h
+  rw [← kvModel_congr γk γr.kv hc0 hch hlog]
+  rw [kvModelM_false] at hA; exact hA
+
+/-- **A member's witnessed revision is the history's**: a revision of the KV model of a
+committed raft log (the member's witness `kvNx`, a read's or a write's `E.Nx log`) is reached in
+the history. -/
+theorem histReached_of_nx (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames)
+    (hm : memberOf γ γk γr) (log : Log) (r : w64) (h : sint.Z r < log.length) :
+    srvApi.kvNx (GF := GF) γr false log ⊢ etcdReached (EM := etcdModelOfHistory γ γk) r := by
+  iintro #Hx
+  unfold etcdReached
+  iright
+  iexists r
+  isplitr
+  · ipureintro; exact Int.le_refl _
+  imodintro
+  rw [etcdModelOfHistory_etcdReachedAt]
+  iapply histReached_of_srv γ γk γr hm r
+  unfold srvReachedAt srvApi.srvRevLbA
+  iunfold srvApi.kvNx at Hx
+  icases Hx with ⟨%A, #HA, %hA⟩
+  iexists A
+  iframe HA
+  ipureintro; rw [hA]; exact h
 
 /-! ## The watched logs of a client of the cluster (W4c) -/
 
@@ -503,7 +490,8 @@ theorem histWL_reached (γ : ServerRaftNames) (γk : KVNames) (L : Log) (r : w64
   iframe HA
   ipureintro
   have := hp.length_le
-  rw [hA.1]; omega
+  have := hA.1.length_le
+  omega
 
 /-- A watched log's states are the history's. -/
 theorem histWL_state (γ : ServerRaftNames) (γk : KVNames) (L : Log) (r : w64) (pfx : GoString)
@@ -550,53 +538,17 @@ theorem startLog_ok : LogWf' ([[], []] : Log) ∧ ([[], []] : Log).length < 2 ^ 
     subst hcs; simp at hi
   · unfold LogSmall; decide
 
-/-- **A member's watched log is the history's** (W4c): one of more than two revisions is a history
-log (`histLog_of_cert`); one of at most two is a prefix of the start log `[[], []]` (the member's
-store sealed it, `NewStore`'s certificate), the history log of the empty committed prefix. -/
-theorem histWL_of_sealed (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
-    (γr : ReadNames) (hm : memberOf γ γk γr) (hlog0 : γk.log0 = [[], []]) (Em : CoPset)
-    (hEm : ↑kvcN ⊆ Em) (L : Log) (hs : LogSmall L) (hk : mvcc.LogPutsLe etcdKeyMax L) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ idxSealed E.γ.idx [[], []] -∗ idxSealed E.γ.idx L -∗
-      certOk E.γ L ={Em}=∗ histWL γ γk L := by
-  iintro #Hinvs #H0 #Hs #Hc
-  by_cases h2 : 2 < L.length
-  · ihave #Hl : srvLog E L $$ []
-    · iunfold srvLog; iframe Hs; ipureintro; exact ⟨hs, hk⟩
-    imod histLog_of_cert γ γk E γr hm Em hEm L h2 $$ Hinvs Hl Hc with #Hh
-    imodintro
-    iunfold histWL
-    iexists L
-    iframe Hh
-    ipureintro; exact List.prefix_refl L
-  ihave %hc := idxSealed_cmp E.γ.idx L [[], []] $$ Hs H0
-  have hp : L <+: ([[], []] : Log) := by
-    rcases hc with h | h
-    · exact h
-    · have := h.length_le
-      have he := h.eq_of_length (by simp at this ⊢; omega)
-      rw [he]; exact List.prefix_refl L
-  obtain ⟨hr, -, -, -⟩ := hm
-  iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨-, #Hcinv, -, -⟩
-  iunfold kvCertInv at Hcinv
-  iinv Hcinv with >Hi Hclose
-  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-  imod Hclose $$ [HC Hhi'] with -
-  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
-  ihave #H0lb := srvRLogLb_mono γr.raft [] Lb (List.nil_prefix) $$ HLb
-  imodintro
+/-- **A member's watched log is the history's** (W4c; strict M1: a member's log, `srvLog`, is a
+history log, `histLog_of_srv`). -/
+theorem histWL_of_srv (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames)
+    (hm : memberOf γ γk γr) (L : Log) :
+    srvLog (GF := GF) γr false L ⊢ histWL γ γk L := by
+  iintro #Hl
+  ihave #Hh := histLog_of_srv γ γk γr hm L $$ Hl
   iunfold histWL
-  iexists [[], []]
-  isplitl
-  · iunfold histLog
-    iexists []
-    rw [← hr]
-    ihave #H0lb' := srvRLogLb_reg γr.raft γ.raft.reg [] $$ H0lb
-    iframe H0lb'
-    ipureintro
-    refine ⟨?_, startLog_ok.1, startLog_ok.2.1, startLog_ok.2.2, mvcc.LogPutsLe.empties _⟩
-    unfold kvModel; rw [kvRaftOf_nil, hlog0]
-  ipureintro; exact hp
+  iexists L
+  iframe Hh
+  ipureintro; exact List.prefix_refl L
 
 end model
 
