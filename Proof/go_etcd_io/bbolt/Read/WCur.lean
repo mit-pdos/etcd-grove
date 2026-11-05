@@ -37,9 +37,9 @@ def nlocCur (X : WX) : Prop :=
 
 /-- **The writer's facts a cursor move of the top-level bucket `n` (handle `bl`) reads under**:
 `X` well-formed, `bl` its opened bucket, its registry current (`nlocCur`), its root position
-`rt` (U6y's F5). -/
+`rt` (U6y's F5), and not the root bucket (U6aa: a leaf node's entries are plain, `leafShape`). -/
 def wCurCtx (X : WX) (n : GoString) (bl : Loc) (rt : Nat) : Prop :=
-  wOK X ∧ bktLoc X n = some bl ∧ nlocCur X ∧ X.rootPid bl = W64 (rt : Int)
+  wOK X ∧ bktLoc X n = some bl ∧ nlocCur X ∧ (X.rootPid bl).toNat = rt ∧ bl ≠ X.rl
 
 /-- The entries of the top-level bucket `n` of the writer, in order (`boltCur`'s `es`). -/
 def wEs (X : WX) (n : GoString) : List BoltEnt := bktEnts (((wtxData X) !! n).getD ∅)

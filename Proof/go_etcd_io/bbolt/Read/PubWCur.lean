@@ -68,7 +68,7 @@ maintainer: `wrFacts`'): the node registry names current nodes (`nlocCur`), and 
 bucket's root position is `wRoot` (U6y's F5: its base root while its generation is `0`; inline once
 deleted and re-created; kept by `beginRWTx`, `CreateBucket`, `DeleteBucket` and the open). -/
 def wrCurFacts (T : TxView) (X : WX) : Prop :=
-  nlocCur X ∧ ∀ n b, bktLoc X n = some b → X.rootPid b = W64 (wRoot X.v T n : Int)
+  nlocCur X ∧ ∀ n b, bktLoc X n = some b → (X.rootPid b).toNat = wRoot X.v T n
 
 /-- `wrCurFacts` of a writer (OPEN: not yet in `wtxFrac`'s facts; see `wrCurFacts`). -/
 theorem wrCurFacts_of (T : TxView) (X : WX) (hok : wOK X) (hg : gensOK T X) (hwr : wrFacts X)
@@ -147,7 +147,7 @@ theorem wrCur_open (B : BNs) (N : Namespace) (tx c : Loc) (q : Qp) (T : TxView)
   iframe #
   isplitr
   · ipureintro
-    exact ⟨⟨hok, hbl, hnlc, hroot n b hbl⟩, hesX, hbr, Hpos⟩
+    exact ⟨⟨hok, hbl, hnlc, hroot n b hbl, hbr⟩, hesX, hbr, Hpos⟩
   iintro %stk' %els' %nl' %ipg' %pos' Hw Hc Hs Hcap #Hown %Hpos'
   isplitl [Hw Hv Hst]
   · iapply (boltTxDef_wtxWQ K.B N tx q T hrw).2
