@@ -463,7 +463,8 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
       (⌜∀ id : w64, ¬ snapHas σ' id⌝ ∨ leaseEver γl (U ++ Un)) ∗
       ⌜(∀ id : w64, snapHas σ' id → id ∈ U1) ∧ (∀ x, x ∈ U0 → x ∈ U1) ∧
         ∀ τ : LSnap, hs.getLast? = some τ → ∀ id : w64, (σ'.1.lookup id).isSome → id ∈ U0 →
-          (τ.1.lookup id).isSome⌝ ∗ ⌜Un = [] ∨ ∀ x : w64, x ∉ U → x ∉ U0⌝) $$ [HU HUo]
+          (τ.1.lookup id).isSome⌝ ∗ ⌜Un = [] ∨ ∀ x : w64, x ∉ U → x ∉ U0⌝ ∗
+      ⌜∀ x ∈ U1, x ∈ U0 ∨ (σ'.1.lookup x).isSome⌝) $$ [HU HUo]
   · icases HUo with (%Hno | HUo)
     · imodintro; iexists U0; iframe HU
       isplitr
@@ -472,8 +473,10 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
       · ipureintro
         exact ⟨fun id h => absurd h (Hno id), fun _ h => h,
           fun _ _ id h => absurd (Or.inl h) (Hno id)⟩
-      ipureintro; left
-      exact List.eq_nil_iff_forall_not_mem.2 fun id h => Hno id (Or.inl (hUn id h))
+      isplitr
+      · ipureintro; left
+        exact List.eq_nil_iff_forall_not_mem.2 fun id h => Hno id (Or.inl (hUn id h))
+      ipureintro; exact fun x hx => Or.inl hx
     · iunfold leaseEver at HUo
       icases HUo with ⟨%γr2, #Hp2, HUo⟩
       ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
@@ -489,8 +492,14 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
       · ipureintro
         exact ⟨fun id h => List.mem_append_right _ (hin id h), fun x hx => List.mem_append_left _ hx,
           hfresh⟩
-      ipureintro; right; exact fun _ h => h
-  imod HUx with ⟨%U1, HU, HUo, %HUi1, %HUU⟩
+      isplitr
+      · ipureintro; right; exact fun _ h => h
+      ipureintro
+      intro x hx
+      rcases List.mem_append.1 hx with h | h
+      · exact Or.inl h
+      · exact Or.inr (hUn x h)
+  imod HUx with ⟨%U1, HU, HUo, %HUi1, %HUU, %HUc⟩
   -- the requests (S2–S4 Probe): the ids of `Un` new to `U0` inserted at `rq`, the others already
   -- requested at `rq` (the caller's `leaseReqIs`), every one's request issued (`req_issue`)
   have hUU : ∀ x ∈ Un, x ∉ U → x ∉ U0 := by
@@ -511,7 +520,7 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   have hQ0 : ∀ id r, Q.lookup id = some r → id ∈ U0 := fun id r hr => by
     obtain ⟨i, σ, hi, hl⟩ := HQok.2 id r hr
-    exact HUi.2 i σ id hi (Or.inl hl)
+    exact HUi.2.1 i σ id hi (Or.inl hl)
   imod req_issue γr.2.2.2.2 U0 rq Q hQ0 Un [] Q (fun id r hr => Or.inl hr)
     (fun _ h => by cases h) $$ [$HQa $Hnil $HrqE] with ⟨%Q', HQa, %HQ', #HeOut⟩
   simp only [List.nil_append] at HQ' ⊢
@@ -520,7 +529,7 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     refine reqOk_snoc_gen HQok (fun id r hr => ?_) (fun id t r hl ht hr => ?_)
     · rcases H1 id r hr with h | ⟨hn, hm, _⟩
       · exact Or.inl h
-      · exact Or.inr ⟨hUn id hm, not_everIn_of_histIn HUi.2 hn⟩
+      · exact Or.inr ⟨hUn id hm, not_everIn_of_histIn HUi.2.1 hn⟩
     · have hm := hin id (Or.inl hl)
       rw [H2 id hm] at hr; cases hr
       exact hrq id t hl ht
@@ -544,13 +553,17 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     isplitr
     · ipureintro; exact fun h => hmono h (Hmono h)
     iexists U1; iframe HU; ipureintro
-    refine ⟨?_, histIn_snoc_new (histIn_mono HUi.2 HUi1.2.1) HUi1.1⟩
+    refine ⟨?_, histIn_snoc_new (histIn_mono HUi.2.1 HUi1.2.1) HUi1.1, fun u hu => ?_⟩
+    rotate_left
+    · rcases HUc u hu with h | h
+      · exact everIn_snoc_of σ' (HUi.2.2 u h)
+      · exact everIn_last hs σ' u h
     rcases hsl : hs.getLast? with _ | τ
     · rw [List.getLast?_eq_none_iff] at hsl; subst hsl; exact histOnce_single σ'
     · refine histOnce_recover hsl (fun id h => ?_) HUi.1
       by_cases hU0 : id ∈ U0
       · exact Or.inl (HUi1.2.2 τ hsl id h hU0)
-      · exact Or.inr (not_everIn_of_histIn HUi.2 hU0)
+      · exact Or.inr (not_everIn_of_histIn HUi.2.1 hU0)
   imodintro
   iframe Ho Hl HSo HUo HrqOut
 

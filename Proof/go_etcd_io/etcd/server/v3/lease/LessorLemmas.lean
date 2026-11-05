@@ -337,7 +337,7 @@ theorem hist_append (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     isplitr
     · ipureintro; exact fun h => hmono h (Hmono h)
     isplitl [HU]
-    · iexists U; iframe HU; ipureintro; exact ⟨honce HUo.1, histIn_snoc hlast hhas HUo.2⟩
+    · iexists U; iframe HU; ipureintro; exact ⟨honce HUo.1, histIn_snoc hlast hhas HUo.2.1, histCover_snoc σ' HUo.2.2⟩
     iexists Q; iframe HQ; ipureintro; exact reqOk_snoc_sub hlast (htie HτD) HQo
   imodintro
   iframe
@@ -389,7 +389,7 @@ theorem hist_append_set (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     isplitr
     · ipureintro; exact fun h => hmono h (Hmono h)
     isplitl [HU]
-    · iexists U; iframe HU; ipureintro; exact ⟨honce HUo.1, histIn_snoc hlast hhas HUo.2⟩
+    · iexists U; iframe HU; ipureintro; exact ⟨honce HUo.1, histIn_snoc hlast hhas HUo.2.1, histCover_snoc σ' HUo.2.2⟩
     isplitr
     · iapply (BigSepM.bigSepM_insert_exist_elim (Φ := fun l _ => iprop(∃ id : w64, lsF go!"ID" l ↦□ id))
         (x' := S') (show Iris.Std.PartialMap.get? Sm l = some S from HlS) .rfl)
@@ -454,7 +454,7 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   have hev : ¬ everIn hs id := by
     rcases hfresh with h | h
     · exact not_everIn_of_mono hlast (Hmono h) hM
-    · exact not_everIn_of_histIn HUi.2 h
+    · exact not_everIn_of_histIn HUi.2.1 h
   have hQn : Q.lookup id = none := by
     cases hq : Q.lookup id with
     | none => rfl
@@ -475,13 +475,18 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
         · exact Or.inr ⟨hk', hk⟩) (Hmono h)
     isplitl [HU]
     · iexists U ++ [id]; iframe HU; ipureintro
-      refine ⟨histOnce_grant hlast hev HUi.1, ?_⟩
-      apply histIn_snoc_new (histIn_mono HUi.2 (fun x hx => List.mem_append_left _ hx))
+      refine ⟨histOnce_grant hlast hev HUi.1, ?_, fun u hu => ?_⟩
+      rotate_left
+      · rcases List.mem_append.1 hu with hu | hu
+        · exact everIn_snoc_of _ (HUi.2.2 u hu)
+        · rw [List.mem_singleton] at hu; subst hu
+          exact everIn_last hs _ _ (by simp [GMap.lookup_insert])
+      apply histIn_snoc_new (histIn_mono HUi.2.1 (fun x hx => List.mem_append_left _ hx))
       intro x hx
       by_cases hxi : id = x
       · subst hxi; exact List.mem_append_right _ (List.mem_singleton_self _)
       · apply List.mem_append_left
-        apply HUi.2 _ (M, I, T) x (getLast?_getElem? hlast).1
+        apply HUi.2.1 _ (M, I, T) x (getLast?_getElem? hlast).1
         rcases hx with hx | ⟨it, hx⟩
         · left; dsimp only at hx ⊢; rw [GMap.lookup_insert_ne _ _ hxi] at hx; exact hx
         · right; exact ⟨it, hx⟩

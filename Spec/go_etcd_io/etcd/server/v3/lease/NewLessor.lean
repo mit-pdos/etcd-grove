@@ -118,7 +118,8 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
 * (The lease-expiry plan's E3 (c), route A, the user's approval 2026-11-05) **The ids the lessor
   ever had** (`leaseEver γl []`), ghost state only: a ghost variable at `[]`, allocated with the
   readers' names (their fourth, `γr.2.2.2.1`), halved between the readers' invariant (which also
-  keeps `histOnce` and `histIn` of the single empty snapshot, trivially) and the caller.
+  keeps `histOnce` and `histIn` of the single empty snapshot, and (the S2–S4 Probe, 2026-11-05)
+  `histCover` of `[]`, trivially) and the caller.
 * (The lease-expiry plan's S2–S4, Q-S6 (A-ii), the user's approval 2026-11-05) **The leases'
   requested TTLs** (`leaseReqIs`), ghost state only: a ghost map, allocated empty with the readers'
   names (their fifth, `γr.2.2.2.2`), its whole authority in the readers' invariant, which keeps

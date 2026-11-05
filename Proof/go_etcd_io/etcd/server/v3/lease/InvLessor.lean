@@ -346,6 +346,26 @@ def snapHas (σ : LSnap) (id : w64) : Prop :=
 def histIn (hs : List LSnap) (U : List w64) : Prop :=
   ∀ (i : Nat) (σ : LSnap) (id : w64), hs[i]? = some σ → snapHas σ id → id ∈ U
 
+/-- **Every id of `U` is an id of the history** (the lease-expiry plan's S2–S4 Probe, 2026-11-05;
+`histIn`'s converse, approved with Q-S7): with `histMono`, in the monotone mode every id the lessor
+ever had is live in its last snapshot (`ever_live_mono`), which `Recover`'s ever-set premise
+takes. `Grant` keeps it (its id is in the new snapshot), `Recover` too (its records' ids are in
+the recovered one); the others leave `U` and only append. -/
+def histCover (hs : List LSnap) (U : List w64) : Prop := ∀ u ∈ U, everIn hs u
+
+theorem everIn_snoc_of {hs : List LSnap} {id : w64} (σ : LSnap) (h : everIn hs id) :
+    everIn (hs ++ [σ]) id := by
+  obtain ⟨i, τ, hi, hl⟩ := h
+  have hlt : i < hs.length := (List.getElem?_eq_some_iff.1 hi).1
+  exact ⟨i, τ, by rw [List.getElem?_append_left hlt]; exact hi, hl⟩
+
+theorem everIn_last (hs : List LSnap) (σ : LSnap) (id : w64) (h : (σ.1.lookup id).isSome) :
+    everIn (hs ++ [σ]) id :=
+  ⟨hs.length, σ, by simp, h⟩
+
+theorem histCover_snoc {hs : List LSnap} {U : List w64} (σ : LSnap) (h : histCover hs U) :
+    histCover (hs ++ [σ]) U := fun u hu => everIn_snoc_of σ (h u hu)
+
 def lessorRdN : Namespace := nroot .@ "lessor_rd"
 
 /-- **The requested TTLs `Q` bound the history's TTLs from below** (the lease-expiry plan's S2–S4,
@@ -386,7 +406,8 @@ so a `*Lease` `Grant` has just made, whose `ID` it owns, is not one of them); (t
 plan's D2, 2026-11-02) in the monotone mode (`γr.2.2.1`), `histMono`; (the lease-expiry plan's E3
 (c), 2026-11-05) in both modes each id live over an interval of the history (`histOnce`), and
 half of the ids the lessor ever had, `U` (the owner holds the other half, `leaseEver`), every id of
-the history among them (`histIn`); (the lease-expiry plan's R5, 2026-11-04) every snapshot's TTLs
+the history among them (`histIn`) and (the S2–S4 Probe, 2026-11-05) every one of them an id of the
+history (`histCover`); (the lease-expiry plan's R5, 2026-11-04) every snapshot's TTLs
 its leases' `ttl` fields (`ttlTie`); (the lease-expiry plan's S2–S4, Q-S6, 2026-11-05) the
 authority of the requested TTLs' map `Q`, which bounds the history's TTLs from below (`reqOk`). -/
 def lessorRdBody (γr : LessorRdNames) : IProp GF :=
@@ -394,7 +415,7 @@ def lessorRdBody (γr : LessorRdNames) : IProp GF :=
     monoListAuthOwn γr.1 Qp.quarter hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗
     ⌜setsOk hs Sm ∧ histOk hs⌝ ∗ ⌜γr.2.2.1 = true → histMono hs⌝ ∗
     (∃ U : List w64, dghostVar γr.2.2.2.1 (DFrac.own (1 : Qp).half) U ∗
-      ⌜histOnce hs ∧ histIn hs U⌝) ∗
+      ⌜histOnce hs ∧ histIn hs U ∧ histCover hs U⌝) ∗
     ([∗list] σ ∈ hs, ttlTie σ) ∗
     ([∗map] l ↦ _S ∈ Sm, ∃ id : w64, lsF go!"ID" l ↦□ id) ∗
     ∃ Q : GMap w64 w64, ghostMapAuth γr.2.2.2.2 (1 : Qp) Q ∗ ⌜reqOk hs Q⌝)
@@ -1242,11 +1263,11 @@ theorem lessorAt_empty (γl : GName) (E : CoPset) (hE : ↑lessorRdN ⊆ E) :
   have h1 : ∀ k, σ.1.lookup k = none := fun k => by
     cases h : σ.1.lookup k with
     | none => rfl
-    | some _ => exact absurd (HUi.2 0 σ k hσ (Or.inl (by simp [h]))) List.not_mem_nil
+    | some _ => exact absurd (HUi.2.1 0 σ k hσ (Or.inl (by simp [h]))) List.not_mem_nil
   have h2 : ∀ it, σ.2.1.lookup it = none := fun it => by
     cases h : σ.2.1.lookup it with
     | none => rfl
-    | some k => exact absurd (HUi.2 0 σ k hσ (Or.inr ⟨it, h⟩)) List.not_mem_nil
+    | some k => exact absurd (HUi.2.1 0 σ k hσ (Or.inr ⟨it, h⟩)) List.not_mem_nil
   have h3 : ∀ k, σ.2.2.lookup k = none := fun k => by
     cases h : σ.2.2.lookup k with
     | none => rfl

@@ -592,6 +592,55 @@ theorem leaseTTLAt_ge_req (γl : GName) (j : Nat) (id r t : w64) (E : CoPset)
   ipureintro
   exact HQo.1 j τ id t r Hhj ((Hdom id).1 (by rw [Hτ]; rfl)) Hτ Hqr
 
+/-- **In the monotone mode every id the lessor ever had is live** (the lease-expiry plan's S2–S4
+Probe, 2026-11-05; `Recover`'s ever-set premise, `∀ id ∈ recs, id ∈ U → id ∈ L`, for a monotone
+lessor): each id of `U` is an id of the history (`histCover`), and no lease leaves a monotone
+history (`histMono`), so it is live in the last snapshot, the owner's (`leaseClosers`). -/
+theorem ever_live_mono (γl : GName) (U L : List w64) (I : GMap LeaseItem w64) (E : CoPset)
+    (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ lessorModeIs γl true ∗ leaseEver γl U ∗ leaseOwn γl L I ⊢
+      |={E}=> leaseEver γl U ∗ leaseOwn γl L I ∗ ⌜∀ u ∈ U, u ∈ L⌝ := by
+  unfold lessorRdInv lessorModeIs leaseEver leaseOwn leaseClosers
+  iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, ⟨%γr2, #Hp2, %Hm⟩, ⟨%γr3, #Hp3, HUo⟩, Hf, %lp, %γga, %γcl, %C, %im,
+    #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm, #Hpr, Ha, %Hlast, HSm⟩
+  ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hpr $Hp1]
+  ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hpr $Hp2]
+  ihave %H3 := lessorPinR_agree γl γr γr3 $$ [$Hpr $Hp3]
+  subst H1; subst H2; subst H3
+  iinv Hinv with Hb Hclose
+  iunfold lessorRdBody at Hb
+  icases Hb with ⟨%hs0, %Sm0, >Ho, >HS, >%Hok, >%Hmono, >HU, Hrest⟩
+  icases HU with ⟨%U0, HU, %HUi⟩
+  ihave %HUe := dghostVar_agree γr.2.2.2.1 _ _ _ _ $$ HUo HU
+  subst HUe
+  ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hs0 $$ Ha Ho
+  obtain ⟨-, rfl⟩ := Hh
+  imod Hclose $$ [Ho HS HU Hrest] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm0; iframe Ho HS Hrest
+    isplitr
+    · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hmono
+    iexists U; iframe HU; ipureintro; exact HUi
+  imodintro
+  isplitl [HUo]
+  · iexists γr; iframe Hpr HUo
+  isplitl
+  · iframe Hf
+    iexists lp, γga, γcl, C, im
+    iframe Hp Him HI Hcs
+    isplitr; · ipureintro; exact HC
+    isplitr; · ipureintro; exact HIL
+    isplitr; · ipureintro; exact HIS
+    iexists γr, hs, Sm; iframe Hpr Ha HSm; ipureintro; exact Hlast
+  ipureintro
+  intro u hu
+  obtain ⟨T, hT⟩ := Hlast
+  rw [HC]
+  cases hc : C.lookup u with
+  | some _ => rfl
+  | none => exact absurd (HUi.2.2 u hu) (not_everIn_of_mono hT (Hmono Hm) hc)
+
 end laws
 
 end lease
