@@ -23,7 +23,19 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 private theorem nan_bits (f : w64) (h1 : f &&& W64 9218868437227405312 = W64 9218868437227405312)
     (h2 : ¬ f &&& W64 4503599627370495 = W64 0) : float64IsNaN f := by
   have h1' : f &&& 0x7FF0000000000000#64 = 0x7FF0000000000000#64 := h1
-  have e1 : (f >>> 52) &&& 0x7FF#64 = 0x7FF#64 := by bv_decide
+  -- bit by bit (not `bv_decide`, whose proof rests on native evaluation)
+  have e1 : (f >>> 52) &&& 0x7FF#64 = 0x7FF#64 := by
+    have hc : ∀ i, i < 11 → (0x7FF0000000000000#64).getLsbD (52 + i) = true ∧
+        (0x7FF#64).getLsbD i = true := by decide
+    have hz : ∀ i, i < 64 → ¬ i < 11 → (0x7FF#64).getLsbD i = false := by decide
+    apply BitVec.eq_of_getLsbD_eq
+    intro i hi
+    have h := congrArg (fun x => x.getLsbD (52 + i)) h1'
+    simp only [BitVec.getLsbD_and, BitVec.getLsbD_ushiftRight] at h ⊢
+    by_cases hi11 : i < 11
+    · obtain ⟨ha, hb⟩ := hc i hi11
+      rw [ha, Bool.and_true] at h; rw [hb, Bool.and_true, h]
+    · rw [hz i hi hi11, Bool.and_false]
   have e2 := congrArg BitVec.toNat e1
   rw [BitVec.toNat_and, BitVec.toNat_ushiftRight, Nat.shiftRight_eq_div_pow] at e2
   have e3 : f.toNat % 2 ^ 52 ≠ 0 := by

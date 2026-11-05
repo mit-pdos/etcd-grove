@@ -15,16 +15,12 @@ public import Proof.go_etcd_io.bbolt.Bucket__Bucket_r
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
-public import Proof.go_etcd_io.bbolt.Bucket__Cursor_kvr
-public import Proof.go_etcd_io.bbolt.Bucket__Cursor_kvw
 public import Proof.go_etcd_io.bbolt.Bucket__Delete
-public import Proof.go_etcd_io.bbolt.Bucket__Delete_kv
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_r
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_rP
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__Get
 public import Proof.go_etcd_io.bbolt.Bucket__Put
-public import Proof.go_etcd_io.bbolt.Bucket__Put_kv
 public import Proof.go_etcd_io.bbolt.Bucket__dereference
 public import Proof.go_etcd_io.bbolt.Bucket__free
 public import Proof.go_etcd_io.bbolt.Bucket__free_dead
@@ -47,10 +43,8 @@ public import Proof.go_etcd_io.bbolt.Commit.Getters
 public import Proof.go_etcd_io.bbolt.Cursor__First
 public import Proof.go_etcd_io.bbolt.Cursor__Last
 public import Proof.go_etcd_io.bbolt.Cursor__Next
-public import Proof.go_etcd_io.bbolt.Cursor__Next_kv
 public import Proof.go_etcd_io.bbolt.Cursor__Prev
 public import Proof.go_etcd_io.bbolt.Cursor__Seek
-public import Proof.go_etcd_io.bbolt.Cursor__Seek_kv
 public import Proof.go_etcd_io.bbolt.Cursor__first_r
 public import Proof.go_etcd_io.bbolt.Cursor__first_w
 public import Proof.go_etcd_io.bbolt.Cursor__goToFirstElementOnTheStack_r
@@ -75,13 +69,9 @@ public import Proof.go_etcd_io.bbolt.Cursor__seek_r
 public import Proof.go_etcd_io.bbolt.Cursor__seek_w
 public import Proof.go_etcd_io.bbolt.DB__Begin
 public import Proof.go_etcd_io.bbolt.DB__Begin_err
-public import Proof.go_etcd_io.bbolt.DB__Begin_kv
 public import Proof.go_etcd_io.bbolt.DB__Close
-public import Proof.go_etcd_io.bbolt.DB__Close_kv
 public import Proof.go_etcd_io.bbolt.DB__Info
-public import Proof.go_etcd_io.bbolt.DB__Info_kv
 public import Proof.go_etcd_io.bbolt.DB__Stats
-public import Proof.go_etcd_io.bbolt.DB__Stats_kv
 public import Proof.go_etcd_io.bbolt.DB__beginRWTx
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__beginTx_s
@@ -111,7 +101,6 @@ public import Proof.go_etcd_io.bbolt.Open.Flock
 public import Proof.go_etcd_io.bbolt.Open.MetasZero
 public import Proof.go_etcd_io.bbolt.Open.MmapOwn
 public import Proof.go_etcd_io.bbolt.Open.PageSize
-public import Proof.go_etcd_io.bbolt.Open_kv
 public import Proof.go_etcd_io.bbolt.Options__String
 public import Proof.go_etcd_io.bbolt.Read.SearchEv
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
@@ -135,25 +124,16 @@ public import Proof.go_etcd_io.bbolt.TxStats__IncSplit
 public import Proof.go_etcd_io.bbolt.TxStats__IncWrite
 public import Proof.go_etcd_io.bbolt.TxStats__IncWriteTime
 public import Proof.go_etcd_io.bbolt.Tx__Bucket
-public import Proof.go_etcd_io.bbolt.Tx__Bucket_kvr
-public import Proof.go_etcd_io.bbolt.Tx__Bucket_kvw
 public import Proof.go_etcd_io.bbolt.Tx__Commit
 public import Proof.go_etcd_io.bbolt.Tx__Commit_err
-public import Proof.go_etcd_io.bbolt.Tx__Commit_kv
 public import Proof.go_etcd_io.bbolt.Tx__CreateBucket
 public import Proof.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists
-public import Proof.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists_kv
 public import Proof.go_etcd_io.bbolt.Tx__DB
-public import Proof.go_etcd_io.bbolt.Tx__DB_kv
 public import Proof.go_etcd_io.bbolt.Tx__DeleteBucket
-public import Proof.go_etcd_io.bbolt.Tx__DeleteBucket_kv
 public import Proof.go_etcd_io.bbolt.Tx__Rollback
-public import Proof.go_etcd_io.bbolt.Tx__Rollback_kv
 public import Proof.go_etcd_io.bbolt.Tx__Rollback_r
 public import Proof.go_etcd_io.bbolt.Tx__Size
-public import Proof.go_etcd_io.bbolt.Tx__Size_kv
 public import Proof.go_etcd_io.bbolt.Tx__Stats
-public import Proof.go_etcd_io.bbolt.Tx__Stats_kv
 public import Proof.go_etcd_io.bbolt.Tx__allocate
 public import Proof.go_etcd_io.bbolt.Tx__allocate_f
 public import Proof.go_etcd_io.bbolt.Tx__close_r
@@ -526,14 +506,6 @@ theorem Bucket.wp_Cursor :
     _root_.Perennial.EtcdGrove.bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Bucket.Cursor.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i
 
-theorem Bucket.wp_Cursor_kvr :
-    _root_.Perennial.EtcdGrove.bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Bucket.Cursor_kvr.wp_proof
-
-theorem Bucket.wp_Cursor_kvw :
-    _root_.Perennial.EtcdGrove.bbolt.Bucket.Cursor_kvw.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Bucket.Cursor_kvw.wp_proof
-
 theorem internal.common.wp_Assert :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.Assert.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.internal.common.Assert.wp_proof
@@ -606,10 +578,6 @@ theorem Bucket.wp_Delete :
     _root_.Perennial.EtcdGrove.bbolt.Bucket.Delete.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Bucket.Delete.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_w _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_node _root_.Perennial.EtcdGrove.bbolt.node.wp_del _root_.Perennial.bytes.wp_Equal
 
-theorem Bucket.wp_Delete_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Bucket.Delete_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Bucket.Delete_kv.wp_proof
-
 theorem Cursor.wp_goToFirstElementOnTheStack_r :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack_r.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack_r.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_pageNode_r _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_IsLeafPage _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_BranchPageElement _root_.Perennial.EtcdGrove.bbolt.internal.common.branchPageElement.wp_Pgid
@@ -673,10 +641,6 @@ theorem node.wp_put :
 theorem Bucket.wp_Put :
     _root_.Perennial.EtcdGrove.bbolt.Bucket.Put.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Bucket.Put.wp_proof _root_.Perennial.EtcdGrove.bbolt.wp_cloneBytes _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_w _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_node _root_.Perennial.EtcdGrove.bbolt.node.wp_put _root_.Perennial.bytes.wp_Equal
-
-theorem Bucket.wp_Put_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Bucket.Put_kv.wp_proof
 
 theorem node.wp_root :
     _root_.Perennial.EtcdGrove.bbolt.node.root.spec (GF := GF) (hG := hG) :=
@@ -1006,10 +970,6 @@ theorem Cursor.wp_Next :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.Next.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.Next.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r0 _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_weQ
 
-theorem Cursor.wp_Next_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Cursor.Next_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Cursor.Next_kv.wp_proof
-
 theorem Cursor.wp_prev_r :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.prev_r.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.prev_r.wp_proof _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_first_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_last_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_keyValue_r
@@ -1021,10 +981,6 @@ theorem Cursor.wp_Prev :
 theorem Cursor.wp_Seek :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.Seek.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Cursor.Seek.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_r _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_r _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Count _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_wQ _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_next_wQ
-
-theorem Cursor.wp_Seek_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Cursor.Seek_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Cursor.Seek_kv.wp_proof
 
 theorem Cursor.wp_keyValue_w :
     _root_.Perennial.EtcdGrove.bbolt.Cursor.keyValue_w.spec (GF := GF) (hG := hG) :=
@@ -1062,10 +1018,6 @@ theorem DB.wp_beginTx :
     _root_.Perennial.EtcdGrove.bbolt.DB.beginTx.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.beginTx.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Copy _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_RootBucket _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_IncTxid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Txid _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_AddReadonlyTXID
 
-theorem DB.wp_Begin_kv :
-    _root_.Perennial.EtcdGrove.bbolt.DB.Begin_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.Begin_kv.wp_proof
-
 theorem syscall.wp_Flock :
     _root_.Perennial.EtcdGrove.syscall.Flock.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.syscall.Flock.wp_proof
@@ -1082,25 +1034,13 @@ theorem DB.wp_Close :
     _root_.Perennial.EtcdGrove.bbolt.DB.Close.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned
 
-theorem DB.wp_Close_kv :
-    _root_.Perennial.EtcdGrove.bbolt.DB.Close_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.Close_kv.wp_proof
-
 theorem DB.wp_Info :
     _root_.Perennial.EtcdGrove.bbolt.DB.Info.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.Info.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert
 
-theorem DB.wp_Info_kv :
-    _root_.Perennial.EtcdGrove.bbolt.DB.Info_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.Info_kv.wp_proof
-
 theorem DB.wp_Stats :
     _root_.Perennial.EtcdGrove.bbolt.DB.Stats.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.Stats.wp_proof
-
-theorem DB.wp_Stats_kv :
-    _root_.Perennial.EtcdGrove.bbolt.DB.Stats_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.DB.Stats_kv.wp_proof
 
 theorem DB.wp_beginTx_s :
     _root_.Perennial.EtcdGrove.bbolt.DB.beginTx_s.spec (GF := GF) (hG := hG) :=
@@ -1342,25 +1282,9 @@ theorem Options.wp_String :
     _root_.Perennial.EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Options.String.wp_proof
 
-theorem wp_Open_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Open_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Open_kv.wp_proof
-
 theorem Tx.wp_Bucket :
     _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Bucket_r _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Bucket_w
-
-theorem Tx.wp_Bucket_kvr :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket_kvr.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket_kvr.wp_proof
-
-theorem Tx.wp_Bucket_kvw :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket_kvw.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket_kvw.wp_proof
-
-theorem Tx.wp_Commit_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.Commit_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.Commit_kv.wp_proof
 
 theorem Tx.wp_CreateBucket :
     _root_.Perennial.EtcdGrove.bbolt.Tx.CreateBucket.spec (GF := GF) (hG := hG) :=
@@ -1370,45 +1294,21 @@ theorem Tx.wp_CreateBucketIfNotExists :
     _root_.Perennial.EtcdGrove.bbolt.Tx.CreateBucketIfNotExists.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.CreateBucketIfNotExists.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Bucket_w _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_w _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_node _root_.Perennial.EtcdGrove.bbolt.node.wp_put _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_write _root_.Perennial.EtcdGrove.bbolt.wp_cloneBytes _root_.Perennial.bytes.wp_Equal _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_openBucket_w
 
-theorem Tx.wp_CreateBucketIfNotExists_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.CreateBucketIfNotExists_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.CreateBucketIfNotExists_kv.wp_proof
-
 theorem Tx.wp_DB :
     _root_.Perennial.EtcdGrove.bbolt.Tx.DB.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.DB.wp_proof
-
-theorem Tx.wp_DB_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.DB_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.DB_kv.wp_proof
 
 theorem Tx.wp_DeleteBucket :
     _root_.Perennial.EtcdGrove.bbolt.Tx.DeleteBucket.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.DeleteBucket.wp_proof _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Bucket_w _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_Cursor_i _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_seek_w _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_ForEachBucket_w _root_.Perennial.EtcdGrove.bbolt.Cursor.wp_node _root_.Perennial.EtcdGrove.bbolt.node.wp_del _root_.Perennial.EtcdGrove.bbolt.Bucket.wp_free_dead _root_.Perennial.EtcdGrove.bbolt.wp_cloneBytes _root_.Perennial.bytes.wp_Equal
 
-theorem Tx.wp_DeleteBucket_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.DeleteBucket_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.DeleteBucket_kv.wp_proof
-
-theorem Tx.wp_Rollback_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.Rollback_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
-
 theorem Tx.wp_Size :
     _root_.Perennial.EtcdGrove.bbolt.Tx.Size.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.Size.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Pgid
 
-theorem Tx.wp_Size_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.Size_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.Size_kv.wp_proof
-
 theorem Tx.wp_Stats :
     _root_.Perennial.EtcdGrove.bbolt.Tx.Stats.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.Stats.wp_proof
-
-theorem Tx.wp_Stats_kv :
-    _root_.Perennial.EtcdGrove.bbolt.Tx.Stats_kv.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Tx.Stats_kv.wp_proof
 
 theorem Tx.wp_write :
     _root_.Perennial.EtcdGrove.bbolt.Tx.write.spec (GF := GF) (hG := hG) :=

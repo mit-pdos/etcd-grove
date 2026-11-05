@@ -19,6 +19,23 @@ stand, what is left, and how to work in this tree without breaking it.
 - Only real bugs justify fork changes, and those go to the user.
 - Prove the frozen specs as they are; for example, writer reads stay fractional.
 
+## Integration done (2026-11-05, after integrator-2; supersedes the state below where they differ)
+
+- **Full `lake build` green** (13083 jobs). integrator-2's build failed only at `Write/CreateBktIfWp`,
+  which its own last commit (`19386308ba`) had fixed.
+- **Linked.** `etc/gen-link.py --bbolt` (`etc/link_bbolt.py`) writes `Link.lean`/`Results.lean`.
+  Linking needed 18 duplicate declarations resolved: modules never imported together, each
+  declaring the same name; the unused copy made `private`, or one copy renamed. A way to find
+  such clashes without building `Link` repeatedly: read every module's `.olean` constant names
+  (`Lean.readModuleData`) and compare; ignore stale `.olean`s whose source is gone.
+- **Interfaces regenerated**, `--layout` baseline recorded (276 violations: lemmas and internal specs
+  in proof modules; a clean-up item).
+- **Trust.** `sort.SliceIsSorted`/`reflect.DeepEqual` are trust-boundary axioms now (approved);
+  `links_pending` keeps `fs.FileMode.String.spec` (deferred to the lean merge) and
+  `PidSetDeleteUnfold` (Perennial's fix landed at `542338360`; drop it at the pin catch-up).
+- Left from the list below: the concurrent test, the backend switch, the merge, clean-up,
+  Perennial proposals. `Open/ScratchInit.lean` is still untracked (owner unknown; not committed).
+
 ## State at ba28e7c8b8 (branch `worktree-bbolt-v2`, pushed)
 
 - **Every frozen public triple is proved, and there are no `sorry`s** in `Proof/go_etcd_io/bbolt` or

@@ -61,8 +61,11 @@ when proved.
 
 **Goose reports nothing it cannot translate**, with Perennial `b3e996d84`. Nothing of bbolt is
 `trusted`, and there is no `TrustedCode/go_etcd_io/bbolt`. The only axioms are goose's, for the two
-names left out (`Options`' generated instances are `sorry -- axiomatized type`, as before, and no
-result uses them).
+names left out (`Options`' generated instances are `sorry -- axiomatized type`, as before; no
+result used them then. Since the proof was linked (2026-11-05) the public results reach
+`Options_typed_pointsto`/`Options_into_val_typed`: the D13 option axioms of
+`Proof/go_etcd_io/bbolt/Options.lean` speak of `Options` values, as `reflect.Type'`'s instance is
+reached elsewhere; recorded in `etc/tcb-baseline.txt`).
 
 **The pin bump to Perennial `b3e996d84`** (origin/lean; it was `c4a24e323`) was necessary.
 `c4a24e323`'s goose crashes on bbolt: it emits a nil `BinaryExpr` for `x++` on a `uint16`.

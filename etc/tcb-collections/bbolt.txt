@@ -6,3 +6,23 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/bbolt/(Link|Results)\.lean$
+axiom bbolt.Options.String.wp_proof
+axiom bbolt.optsAt_bool_rd
+axiom bbolt.optsAt_freelist_rd
+axiom bbolt.optsAt_int_rd
+axiom bbolt.optsAt_logger_rd
+axiom bbolt.optsAt_mlock_rd
+axiom bbolt.optsAt_mmapFlags_rd
+axiom bbolt.optsAt_nonnull
+axiom bbolt.optsAt_openFile_rd
+axiom bbolt.optsAt_pageSize_rd
+axiom bbolt.optsAt_readOnly_rd
+axiom bbolt.optsAt_timeout_rd
+axiom fmt.Errorf.wp_proof
+axiom os.Getenv.wp_proof
+axiom reflect.DeepEqual.wp_proof_pgidSet
+axiom sort.SliceIsSorted.wp_proof
+axiom sort.Sort.wp_anyLess
+axiom strings.ToLower.wp_proof
+sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
+sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto

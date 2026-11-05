@@ -114,6 +114,13 @@ LINK_PENDING = {m: proof_roots.link_pending(m) for m in LINKS}
 # The qualifiers of the packages Goose translates (`v3`, `zap`, `proto`, …).
 QUALIFIERS = {pkg.rsplit("/", 1)[-1].replace("-", "_").replace(".", "_")
               for p in goose.PROJECTS for _, _, pkgs, _ in goose.pieces(p) for pkg in pkgs}
+# the dotted paths of the projects' packages (`go.etcd.io/bbolt/internal/common`:
+# `internal.common`, `bbolt.internal.common`, ...: every tail of two segments or more), for a
+# Link that names a subpackage's functions by the path below its own (`bbolt.internal.common.
+# Page.wp_SetId`): such a path is shortened to its qualifier (`common.Page.SetId`)
+SUBPATHS = {".".join(seg[i:]).replace("-", "_")
+            for p in goose.PROJECTS for _, _, pkgs, _ in goose.pieces(p) for pkg in pkgs
+            for seg in [pkg.split("/")] for i in range(len(seg) - 1)}
 # a package whose path has a segment like this is a test helper
 TEST_PKG = re.compile(r"(^|/)[^/]*(test|mock)[^/]*(/|$)")
 
@@ -302,6 +309,10 @@ def local_proofs(objs):
             rest = name.removeprefix(lns).split(".")
             if len(rest) > 1 and rest[0] in QUALIFIERS and rest[0] + "." != lns:
                 name = ".".join(rest)
+            for k in range(len(rest) - 1, 1, -1):
+                if ".".join(rest[:k]) in SUBPATHS:
+                    name = ".".join(rest[k - 1:])
+                    break
         *pre, last = name.split(".")
         fn = ".".join(pre + [last.removeprefix("wp_")])
         inherited = {s for u in r["uses"] if used(r, u) for s in used(r, u)["sorries"]}
