@@ -51,7 +51,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.PkgTa
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
-public import Perennial.Golang.Theory.ArrayLit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 
 @[expose] public section
 
@@ -106,40 +106,6 @@ instance linkvGF_naInvG : NaInvG linkvGF := ⟨⟨11, rfl⟩⟩
 /-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
 abbrev linkvHeapAt (hG : HeapGS .hasLC linkvGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvGF :=
   ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
-/-! ## The schedule as a slice literal -/
-
-section lit
-variable [GooseExts] [go_gctx : GoGlobalContext]
-
-/-- The fold of `go.arrayLiteralSize` over the keyed elements of values counts them. -/
-theorem foldl_arrayLitKE {V : Type} (t : go.GoType) (F : Int × Int → keyed_element → Int × Int)
-    (hF : ∀ (i m : Int) (x : V), F (i, m) (arrayLitKE t x) = (i + 1, m)) :
-    ∀ (l : List V) (i m : Int), List.foldl F (i, m) (l.map (arrayLitKE t)) = (i + l.length, m)
-  | [], i, m => by simp
-  | x :: xs, i, m => by
-    rw [List.map_cons, List.foldl_cons, hF, foldl_arrayLitKE t F hF xs]
-    simp only [List.length_cons]
-    congr 1
-    push_cast
-    omega
-
-/-- **A literal of values has the values' count as size** (`go.arrayLiteralSize`). -/
-theorem arrayLiteralSize_vals {V : Type} (t : go.GoType) (l : List V) :
-    go.arrayLiteralSize (l.map (arrayLitKE t)) = l.length := by
-  unfold go.arrayLiteralSize
-  rw [foldl_arrayLitKE t _ (fun _ _ _ => rfl) l 0 0]
-  simp
-
-/-- **The schedule `steps` as the Go slice literal `[]Step{...}`**: what a caller of `Main` builds
-(its keyed elements as the value they take one pure step to become, `LiteralValueV`). -/
-def schedLit (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  App (Val (GoInstruction (CompositeLiteral
-    (go.GoType.SliceType github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
-    (Val (LiteralValueV
-      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
-
-end lit
 
 /-! ## The closed theorem -/
 
