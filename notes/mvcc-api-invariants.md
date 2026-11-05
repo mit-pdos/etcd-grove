@@ -829,3 +829,92 @@ found false; interfaces regenerated, the API's unchanged):
    `True`).
 2. The other contracts (`KV.*` at both stores with `readCb` at the reads, `Txn.*`, the
    constructors producing `isMvcc`), replacing the remaining `M1-REPLACE` placeholders.
+
+## Hand-off: stage 2, the snapshot image (2026-11-05)
+
+**Done** (the mvcc modules build; no axiom; one new `sorry`, the listed placeholder `snapObs_M1`; no
+frozen statement found false; one frozen statement found insufficient for the clients, finding 5):
+- **`Api/SnapImage.lean`** (pure, no `sorry`): probe 2's proved cores (`entsCutAt_jobs`,
+  `entsCutAt_jobStep`, `jobPast_skip`, `KeyDel_down`, `KeyDel_mono`, `reach_shape`, `image_of_obs_exact`);
+  the image's facts **`imageOk D L c u`** (the `Key` bucket entries `ents` cut at `c`, the compaction
+  keys the records `rc` of `L` past `0`, `rc.crev = c`, `rc.resumes = u`, `restore()`'s last
+  revision, `L` well formed of a reachable shape), `imageOk_keyImageM` (the restore image, both modes
+  at `-1`), `imageOk_fresh`; the image from an observation over **any** logical view (`cutOk L m X c`:
+  the physical bucket, `m` but the deleted `X`, is entries cut at `c`; `key_of_cut`, `imageOk_of_cut`;
+  a restored store's view is thinned, so the probe's `hLv : Lv = bucketMap L` does not hold in general);
+  the cut under the store's steps (`physLookup`, `cutOk_mono`, `cutAt_del`: the job's delete with its
+  loop invariant and the backend's record of the delete, `hX'`).
+- **`Api.lean`**: `mvccImage D L c u := ⧖ (logCh L) ∗ ⌜snap.imageOk D L c u⌝` and **`mvccBackend γ q B
+  Pk`** (`shareTok γ.api q`, `curAt (γ.withPhys p) q/8 o` at the current names, `p.kb = some d`,
+  `d.cm` (the API is always compacting), `B = ⟨d.γB, d.P, d.be⟩`, `□ isBackend … (mvccW d.gx) Pk d.be`),
+  sealed. `mvccW`/`mvccWReg` still opaque (finding 5).
+- **`Api/SnapLaws.lean`**: `mvccImage_fresh.law_holds`, `mvccBackend_agree.law_holds`,
+  `mvccBackend_fractional`, `mvccImage_persistent`, `isMvcc_persistent` (no `sorryAx`);
+  **`mvccImage_snapshot.law_holds`**, whose `#print axioms` has `sorryAx` only through `snapObs_M1`.
+  The proof: the share's token and the current names from `mvccBackend γ 1`; the writer frozen
+  (`writerInv_freezeNL`); the client's update committed at once, the frozen writer's slot `slotY`
+  agreeing with `mvccState` (so the state is the writer's log and compaction revision); the
+  snapshot called with `R ∗ snapFrozen` and the observation `Q d r ∧ b ∧ snapObsOk σ.log σ.crev vd
+  v`; thawed (`writerInv_thawNL`); the image from `imageOk_of_snapObsOk` (`sData`'s `Key` part is
+  the data's, `fkVals` the records) and the frozen writer's certificate's receipt.
+- **`Api/SnapFreeze.lean`**: `writerInv_freezeNL`/`_thawNL` (no later credit), `writerL_split`,
+  `snapFrozen s γ σ b` (the frozen flag's half and the writer's state at `σ`, or the open writer's
+  key), `snapObsOk`, `imageOk_of_snapObsOk`, and the placeholder **`snapObs_M1`** (`M1-REPLACE`: the
+  frozen store's part of the observation, `snapFrozen ∗ mvccW d.gx ∗ viewAtD ∗ dlsOwn X ∗ fkdOwn v ⊢
+  ⌜b = true ∧ snapObsOk σ.log σ.crev vd v⌝`; listed in `M1Placeholders.lean`'s header).
+
+**Findings** (what the store-side tracking must be, replacing `snapObs_M1`):
+1. **No later credit.** The law's code is the `Snapshot()` call alone: no step before or after it, so
+   the freeze and thaw open `writerInv` without credits, the taken state kept under the later but for
+   its timeless parts (`writerL_split`). Any store-side fact the replacement needs non-later must be
+   timeless or taken out at the freeze.
+2. **The observation opens nothing.** `backend.Snapshot`'s observation is a plain wand to `⌜Q⌝`, so
+   what it needs of the store is in `W` (`mvccW d.gx`, the batch lock's client resource: `lateW`,
+   `writerRes`) or in the freezer's `R`. Hence:
+   (a) **mvcc's halves of `fkdOwn` and `dlsOwn` move out of `mwInv`** (today inside the write right
+   `kbMW = ∃ f, fkOwn γB f`, which the observation cannot reach) into `compactRes`, pinned: `fkdOwn γB
+   (recBytes fin, recBytes sched)` of `metaCompact`'s records, `dlsOwn γB X` with `cutOk L m X
+   rc.crev` (`m` the writer's view: `writerRes` must name its bucket, today hidden in `bucketViewL`),
+   `recsOk L rc`, `recsPos rc`, and for the running job its cursor (`entsCutAt_jobStep`'s `hpast`, a
+   ghost variable half with the job). `mwInv` keeps the flag's half; a session holder assembles
+   `fkOwn` from the swap and `compactRes`, and splits it back.
+   (b) **The store's backend contract hides the values.** `batchTxSpecG`'s delete and `Meta` put (and
+   the backend's `UnsafeDelete`/`UnsafePut` specs, via `dlPut`/`fkPut`) take and give back `∃ f, fkOwn
+   γB f`: the job cannot re-pin (a). The contract (`InvStore`, proved in `BackendBridge` from
+   `batchLocked`'s exact session state, `batchLocked_fkd` and its `dlsOwn` analogue) must expose the
+   delete's `X'` (`cutAt_del`'s `hX'`: the entry recorded iff present, `BSess.del`) and the put's new
+   compaction-key values.
+   (c) **The records' revision tied to the writer's.** `compactRes` knows `(sched, fin)`, not `σ.crev`;
+   `Compact` writes `compactMainRev` (with `writerInv` open) before `SetScheduledCompact` (under the
+   batch lock). A ghost `AbsNames.rcv`, half in `compactRes` at `rc.crev`, half in `writerAbs` with
+   `cr = c ∨ ∃ q, shareTok a q` (`Compact` deposits part of its share between the two writes): the
+   whole share then gives `rc.crev = σ.crev`.
+   (d) **The pending registration.** After a `Restore` that resumes nothing, `writerReg` holds `kbRegRight
+   ∗ writerRes` and the lock's `lateW` is unregistered until the first lock holder: the observation
+   sees neither. Fix: the freezer takes `writerRes` out of a pending `writerReg` into its `R` (a third
+   state, lent), every other opener excluded: writers and `Compact` by their share (the frozen state in
+   `writerInv`), the job by a `storeRegd` in its premise (a job is scheduled only by `Compact` or a
+   resuming `Restore`, both of which take the batch lock, hence register, first).
+   (e) **An open write transaction** (`b = false`): its writer's key is the freezer's, so a commit's
+   `W` (registered: `storeRegd`) holding `writerKey` contradicts it: provable once `mvccW := lateW`.
+3. `cutOk` is the right inductive fact for the observation (not the probe's jobs list): it covers a
+   restored, thinned view; the jobs' closed form `entsOfJobs` stays the cut's witness for a store
+   booted fresh.
+4. **`mvccBackendFor_open.law` needs** (M3): `mvccW`/`mvccWReg` defined (`lateW`/`lateReg`); from
+   `mvccImage`, `imageOk_keyImageM` for `restoreImageM_of_open`, the receipt kept in `mvccBackendFor`;
+   the store's tracked state at the open (a): `X = ∅` and the open's compaction-key values, which
+   `fkCl`'s `fkOwn γ (fkInit D)` hides (`∃ v, fkdOwn γ v`, `∃ X, dlsOwn γ X`): the backend's open
+   (`NewAlloc`, `fkCl`) must give `fkdOwn γ (fkVals D) ∗ dlsOwn γ ∅`; the cut at the open from
+   `imageOk`'s `ents` (`physLookup m ∅ = bucketOfEnts ents`, `m` the restored view).
+5. **Finding on a frozen statement (insufficient, not false): `mvccW_alloc.law`.** It gives `∃ gx,
+   mvccWReg gx` only, but the boot (`notes/mvcc-api-clients/clients-server.md`, step 2) and the snapshot
+   path open the backend at `W := mvccW gx`: `backend.New`'s pre needs the client's `∀ γ, hkOwn ∗
+   bFresh ={⊤}=∗ W γ ∗ Pk γ ∗ K γ`, i.e. `mvccW gx` from the client, which no law gives; and
+   `mvccBackendFor_open` consumes `mvccWReg gx` as well. With `mvccW := lateW` (the lock's unregistered
+   half of `gx`) it cannot be made from nothing (a lock holder could otherwise forge it). Minimal fix:
+   `mvccW_alloc.law : ⊢ |==> ∃ gx, mvccWReg gx ∗ mvccW gx`. Not changed here (frozen; M3's to decide).
+
+**Left** (in order): (a)-(e), replacing `snapObs_M1` (then `mvccImage_snapshot.law` without `sorry`):
+the contract's values (b) first, then `compactRes`'s halves (a) through the job (`cutAt_del`),
+`updateCompactRev` (`cutOk_mono`, (c)), `End`'s commit (a cut lemma for a new revision, not written),
+`NewStore`/`Restore`; then M3 (`mvccBackendFor`, `_open`, finding 5).
