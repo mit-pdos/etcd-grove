@@ -51,7 +51,7 @@ local macro "put_prev_found" : tactic => `(tactic| (
     imod txn.kvPtrIs_kvIs pk' kv $$ Hpk with #Hkv
     ihave #Hkv0 := Hkv
     iunfold txn.kvIs at Hkv
-    icases Hkv with ⟨%keySl, %valSl, #HkK, #HkKs, #HkC, #HkM, #HkVer, #HkV, #HkVs, #HkL⟩
+    icases Hkv with ⟨%keySl, %valSl, #HkK, #HkKs, #HkC, #HkM, #HkVer, #HkV, #HkVs, #HkL, -⟩
   ))
 
 set_option hygiene false in

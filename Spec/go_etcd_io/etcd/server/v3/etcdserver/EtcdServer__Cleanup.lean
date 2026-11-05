@@ -43,8 +43,12 @@ close each of what it closes (`server.go`'s `Cleanup`; each field's `nil` check 
   the store's invariant and that share): `authStore.Close`, whose error `Cleanup` ignores;
 * the backend `d` (`s.be`): a reader slot of `bemu` (its `Lock` takes it, `Unlock` gives it back),
   the apply side's half of `s.be` and quarter of `bemu`'s ghost variable (which name `d` under the
-  lock), its stop channels at the client resources `W`, `Pk` and the clients' whole open token:
-  `backend.Close`, whose post `Cleanup` passes on (the data `D` the stop's commit left, what the
+  lock), its stop channels at the client resources `W`, `Pk` and the clients' whole open token
+  (R2b-3d stage 5c, 2026-11-05: as an update from what `kv.Close` gives back, the watch loops'
+  store readers and the compaction job's resource; the caller has every other reader of the store
+  and retires them all there, gap 4's census. Until then `bOpen 1` up front, which the stop could
+  not give: the loops hold their readers until `kv.Close`): `backend.Close`, whose post `Cleanup`
+  passes on (the data `D` the stop's commit left, what the
   stopped batch lock held at it, `bStopView`, and the file holding `D`, or bbolt's close error);
 * the compactor (`s.compactor`), nil or with its contract (`compactorOk`, whose `Stop` needs
   nothing). -/
@@ -61,7 +65,7 @@ abbrev EtcdServer.Cleanup.spec : Prop :=
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
       dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.isStopChans d.γB d.P W Pk d.be ∗
-      backend.bOpen d.γB 1 ∗
+      (mvcc.wsCloseRes st γw.st ={⊤}=∗ backend.bOpen d.γB 1) ∗
       -- (2026-11-04, R2b-3d stage 3) a request `X ⇒ Y` of the backend's stop commit
       X ∗ backend.commitReq d.γB d.P Pk d.be X Y ∗
       srvCompactorAddr s ↦□ cp ∗ compactorOk cp }}
