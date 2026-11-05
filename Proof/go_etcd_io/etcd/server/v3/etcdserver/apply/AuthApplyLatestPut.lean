@@ -79,13 +79,13 @@ abbrev apply.authApplierV3.Put.specL : Prop :=
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.lessorNil p ∗ apply.applierSpec E c inner ∗
       apply.putPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post
         (apply.authOutL E.authMode hs (auth.authInfoM info) c rq log (apply.putPerms o)) ∗
-      mvcc.idxCert E.γ.idx F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.putPerms o)⌝ }}
+      srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.putPerms o)⌝ ∗ threadTok }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
         (apply.putAnswerIs log o resp err) Pre Post
         (apply.authOutL E.authMode hs (auth.authInfoM info) c rq log (apply.putPerms o)) ∗
-      L hs ∗ apply.traceRes trace }}
+      L hs ∗ apply.traceRes trace ∗ threadTok }}
 
 end spec
 
@@ -211,7 +211,7 @@ theorem apply.authApplierV3.Put.wp_latest
     (hPut : apply.checkPutAuth.specL (GF := GF) (hG := hG)) :
     apply.authApplierV3.Put.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log F Pre Q Post info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hlnil, #Hinner, Hpre, #HF, HL, %Hsh⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hlnil, #Hinner, Hpre, #HF, HL, %Hsh, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
@@ -219,10 +219,9 @@ theorem apply.authApplierV3.Put.wp_latest
   iunfold apply.lessorNil at Hlnil
   icases Hlnil with ⟨%le, #Hlef, #Hnil⟩
   iunfold apply.putPreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -240,11 +239,12 @@ theorem apply.authApplierV3.Put.wp_latest
   | ok e' =>
     wp_auto
     iapply HΦ
-    iframe HL
+    iframe HL Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ Pre Q Post _ hk
+    icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
+    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post _ hk
       (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h))
       (Or.inl ⟨rfl, Hvd.2 (fun h => by cases h)⟩) $$ Happ [] Hkv Hinfo Hres Hcs
     simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs]
@@ -260,14 +260,16 @@ theorem apply.authApplierV3.Put.wp_latest
     (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩) $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
-  wp_apply HI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.putPre
-    iunfold apply.mPre
-    iframe
+  wp_apply HI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.putPre
     iframe #
-    ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hk
+    iapply apply.mPre_of_rest
+    iframe
   iapply HΦ
-  iframe HL
+  iframe HL Htt
   isplitr [Htrc]
   rotate_left
   · iexact Htrc

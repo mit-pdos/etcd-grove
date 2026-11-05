@@ -169,28 +169,58 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   `mPreVRest`, `mPreV_split_chain`, `mPreV_of_rest` for the cluster methods' pass-throughs). So every
   `apply/` spec proof but `uberApplier.{Apply, dispatch}` builds over the API (with the two
   placeholders above).
-- **Next in step 2**: `uberApplier.dispatch` (770 lines; its spec takes `kvOwnPre v3 …`, the KV
-  methods' `mPre` from it by dropping `bkWT`/`bkRT` into the post's `∃ B, bkRT B`, the writing
-  methods' `mPreW`/`mPreV` directly; `threadTok` through every triple), `uberApplier.Apply` (its
-  lent `A` now `kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ …` in place of `kvOwn ∗ storeWT ∗
-  cPre`; `rdLend` of it needs a `kvOwnPre` form of `rdLend_kvOwn`), then `applyAll`. The `Link.lean`
-  hypotheses changed: `newHeader` (`shapes` for `mvcc.store.Rev`), `Compaction` (`hTODO`, `hEnsure`,
-  `shapes`).
-- **The auth track's follow-ups (its `cca7e9a4a9`, `notes/mvcc-migration/auth.md`)**: done in
-  `AuthSteps`; not yet in `AuthStepsX` (red below on `AuthFuel`), `StoreLatest`, `AuthApplyRes`
-  (`f : val` → `GoFunc`), `AuthSrv`, `Results.lean` (drop `isAuthSteps_of_authInv`'s `hf`),
-  `SnapRO.authApplyOk`/`authRecoverOk` and `InvBoot` (over `BkRef`, `auth.authParams`; `InvBoot`
-  blocks auth's last two modules).
-- **Not started**: step 2's `applyAll`; step 3 (`lease.lessor.Revoke`'s proof: `mvccBackend_isBackend.law`
-  landed, `c1f1565c78`; but see Found (2) of the third session, the not-live arm); the boot (step 3:
-  `mvccW_alloc`, `mvccImage_fresh`, `mvccBackendFor_open`, and `backendRest_open.law` once mvcc lands
-  it); the snapshot (step 4).
-
-**The frontier** (red, next): `InvProposer` (a floor over `idxCert`), `InvApplier` (the old
-`srvKVInvs`, `envAgree`'s mode ties, the sole writer: its restatement is the draft's
-`srvKVInvsA`), on which `KVModel` → `KVApply` → `KVChainOff` → `KVAuthModel` → `KVModelM` →
-`KVStoreApi` wait; `apply/AuthDerive` (partly restated), `AuthLemmas`, `AuthSteps` (proofs over
-the old `E.P`, `kvOwn`); the chain's method proofs.
+- **Fourth session (2026-11-06)**, each building, no `sorry`:
+  - **The two decisions** ("Decisions (2026-11-06)" below): `LeaseRevoke` and `Txn` discharged.
+  - **`uberApplier.dispatch` and `uberApplier.Apply`** over `kvOwnPre` and the thread's token
+    (`WriteLemmas`: `kvOwnPre_kvOwn` for the reads, `AuthStatus` and the requests with nothing to
+    do, giving `kvOwn ∗ (∃ B, bkRT B) ∗ Pre`; `kvOwnPre_mPre` for `Put`/`DeleteRange`/`Txn`/
+    `Compaction`, the write-back token dropped, the reader token aside; `kvOwnPre_mPreV` for the
+    cluster methods (`kvOwnPre` is `mPreVRest`, by `rfl`); `rdLend_kvOwnPre`). So **every `apply/`
+    spec proof builds over the API, no `sorry`**.
+  - **`lease.lessor.Revoke`** (step 3) over the restated spec: `rd()` by `mvccDeleter` at the
+    caller's begin update (`R σ := ⌜σ = σ₀⌝ ∗ auEnd …`, `subst σ`), each `Txn.DeleteRange(key, nil)`
+    by `Txn.DeleteRange.contract` at the transaction's dynamic type (`shapes.law`'s third conjunct,
+    `persistent_entails_right`), the key alone by `txn.logOk_of_del` on the call's post then
+    `txn.delKeys_eq`; `le.b.BatchTx()` by `backend.backend.BatchTx.spec` over
+    `mvccBackend_isBackend.law`; `UnsafeDeleteLease` with its callback from `mvccTxn_leaseDelete.law`,
+    whose `End` triple runs at the caller's end update (`rw [hD]`: the deletions are the sorted
+    keys'). Hypotheses: `hKeys hSort hUDL hBT hsh hisB hLD` (was `hKeys hSort hUDL hDel hEnd`).
+  - **v3rpc's path (the coordinator's priority, 2026-11-06)**: `InvRead` restated (the draft's read
+    path; choices below), `KVApplyOn`, `InvApRes`, `apply.AuthFuel`, `apply.AuthApplyLatest`,
+    `AuthApplyRes`; `KVStoreRead` builds over them; `AuthReqDerive`'s `InvRead` import dropped.
+- **Choices (fourth session)**, minor:
+  - `InvRead`: `srvReadFieldsAt`'s KV is `□ isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝` (boxed: `persistent.law`),
+    the `ReadView` field and its conjuncts gone (the API's `KV.Rev.contract` is on the handle), the
+    lessor and auth store at `E.Pk`/`E.BkTie`, the floor `kvLogLb E.γs log₀`; `storeSmall` (and
+    `storeSmall_of_receipts`, `_of_read`, `_small`) **deleted** (every sort's premise is txn's
+    `stateOk`; the size facts come from the receipts, `logOk_of_receipt`); `srvRdCall` is the draft's
+    `srvRdCallA`; `rangeReadOk`/`txnReadOk` are the draft's `rangeReadOkA` at the mode off but with
+    the witness **`E.Nx log`** in place of `kvNx γr on log` (the two are equal by `srvKVInvsA`'s tie;
+    `E.Nx` is what `kvReadAt` gives from `srvKVInvs`, and `InvRead` need not import the KV model's
+    `kvNx`), with `⧖ (logCh log)` and `LogWf' log`; `txnAppliedOk` as `InvRequest`'s `resultIsW`
+    (`kvLogLb`, `E.Nx`); `readIndexOk_logR` over the floors (`mono_list_lb_valid`). `isServerRead`
+    now needs mvcc's `Assumptions` (`isMvcc`).
+  - `KVApplyOn.srvKVInvsOn`: as step 1's `srvKVInvs`, `□ kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
+    ⌜envWitOk E⌝` in place of `⌜E.γ.cok = γr.kv.cok⌝ ∗ crevPermIs`.
+  - `InvApRes`: `srvApplyKV_rt`, `srvApplyKV_ua_rt` deleted (mvcc's `storeRT` was the sole writer's);
+    `srvApplyKV_ua_rt_pool` restated as `srvApplyKV_ua_pool` (the uber-applier and the backend's
+    reader pool `bkRPool d.γB d.P d.b`, `d` the tie's): a backend reader token comes from the pool.
+  - `AuthFuel`'s fuel specs take and give `threadTok` (as `AuthSteps`' step specs);
+    `AuthApplyLatest`'s `Range.specL`/`DeleteRange.specL` take and give `threadTok`, `DeleteRange`'s
+    floor `kvLogLb`, `certPreW` over `E.Nx`, `put/delete/txnPreW` without `storeWT` (`txnPreW` at
+    `TxnPreA`), `auth_reject_kvPostFL` at any batch-lock invariant `P` (as `auth_reject_kvPostF`).
+- **Next**: `applyAll` (step 2's last). It sits high: its spec imports `InvApplyAll`, `InvGoAttach`,
+  `ApplyNormalOn`, `SnapTake`, `SnapRO`, `NotifyC2`, `InvRaftNode`, and its proof takes
+  `applyEntries`, `applySnapshot`, `snapshotIfNeededAndCompactRaftLog` and the merged snapshot's
+  `mvcc.store.Commit.spec` (internal: `KV.Commit.contract`) and `backend.Snapshot`. Below it,
+  red: `EtcdServer.applyEntryNormal`'s spec (`mvcc.storeWT E.γ`, the budget's `srvWT E` now),
+  `EtcdServer.apply`, `ApplyNormalOn`, `ApplyEntryOn`, the apply chain's package-level `apply.Apply`
+  (`apply/ApplyRec`, `ApplyKVL`, `ApplyFnKVL`, `ApplyFnAdminL`, `ApplyAdmin`, `DispatchKVL`,
+  `DispatchAdmin`: over `uberApplier.Apply`'s restated spec), and the auth follow-ups (step 4).
+  The users of the deleted `storeRT` lenders: `EtcdServer__apply.lean:539`, `ApplyNormalOn.lean:794`.
+- **Not started**: the auth follow-ups (`StoreLatest`, `AuthSrv`, `Results.lean`, `SnapRO`,
+  `InvBoot`); the boot (`mvccW_alloc`, `mvccImage_fresh`, `mvccBackendFor_open`,
+  `backendRest_open.law`); the snapshot.
 
 ## For the parallel tracks
 
@@ -280,6 +310,19 @@ No axiom.
    σ₀ dels Y) else iprop(True))` in the precondition, and the not-live arm without it (the code
    returns `ErrLeaseNotFound` before calling `rd()`, `lessor.go`'s `Revoke`). The caller knows `L`
    (`leasesLive`).
+
+## For the parallel tracks (fourth session, 2026-11-06)
+
+- **`InvRead` builds** (`a25b814824`), with `KVApplyOn`, `InvApRes`, `apply.AuthFuel`,
+  `apply.AuthApplyLatest`, `AuthApplyRes` and `KVStoreRead`.
+- Callers outside this track that the restatements break (not fixed here): `Link.lean`s generated by
+  `etc/gen-link.py` (`etcdserver/Link.lean`, `client/v3/Link.lean`: `lessor.Revoke.wp_proof`'s new
+  hypotheses `hBT hsh hisB hLD` in place of `hDel hEnd`); `client/v3/lessor__Revoke.lean`; the users
+  of `InvRead`'s restated read path and of the deleted `storeSmall*`: v3rpc's `ServerKV`,
+  `ServerKVOn`, `ClientModel`, `Results`; client/v3's `InvServerKV`, `ServerKVGet`, `ServerKVPut`,
+  `ServerKVTxn`, `ServerWatcher`, `InvWatch`, `ServedOn`, `ServeFromStart(On)`, `Results`; txn's
+  `ClientLaws`; mvcc's `InvCompact`; the examples' `common/{Defs,Served,ServedLease,Serve}`,
+  `watchkv`, `linkv3p`, `restart3`, `cachekv`, `compactkv`.
 
 ## For the parallel tracks (second session)
 

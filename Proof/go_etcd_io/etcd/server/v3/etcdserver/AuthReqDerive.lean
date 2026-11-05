@@ -17,7 +17,6 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthnStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthDerive
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
