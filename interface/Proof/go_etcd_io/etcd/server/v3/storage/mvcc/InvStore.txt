@@ -82,6 +82,8 @@ structure mvcc.StoreNames : Type where
   cperm : GName
   api : mvcc.api.AbsNames
   rcv : GName
+  jc : GName
+  rcl : GName
 
 theorem mvcc.crevRightM_off (γs : mvcc.StoreNames) (h : γs.cm = false) : mvcc.crevRightM γs ⊣⊢ True
 
@@ -102,6 +104,11 @@ theorem mvcc.delKey_eq_delKeyI (γ : mvcc.StoreNames) (k : GoString) : mvcc.delK
 theorem mvcc.bucketView_join_quarters (γ : mvcc.StoreNames) (m1 m2 : mvcc.Bucket) : mvcc.bucketView
     γ (Qp.half 1).half m1 ∗ mvcc.bucketView γ (Qp.half 1).half m2 ⊢ ⌜m1 = m2⌝ ∗ mvcc.bucketView γ
     (Qp.half 1) m1
+
+def mvcc.jobCur (γ : mvcc.StoreNames) (jc : Int × mvcc.Rev) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then ghostVar γ.jc (Qp.half 1) jc else iprop(True)
+  | none => iprop(True)
 
 theorem mvcc.slotX_withPhys (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : mvcc.slotX (γ.withPhys p) =
     mvcc.slotX γ
@@ -264,9 +271,14 @@ def mvcc.cmpTrack (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc : 
   | some d =>
     if d.cm = true then
       iprop(backend.fkdOwn d.γB (mvcc.recBytes rc.fin, mvcc.recBytes rc.sched) ∗
-          ghostVar γ.rcv (Qp.half 1) rc.crev ∗ ∃ X jc, backend.dlsOwn d.γB X ∗ ⌜mvcc.snap.cmpOk L m X rc jc⌝)
+          ghostVar γ.rcv (Qp.half 1) rc.crev ∗
+            monoNatAuthOwn γ.rcl 1 (mvcc.crevN rc.crev) ∗
+              ∃ X jc, backend.dlsOwn d.γB X ∗ ghostVar γ.jc (Qp.half 1) jc ∗ ⌜mvcc.snap.cmpOk L m X rc jc⌝)
     else iprop(True)
   | none => iprop(True)
+
+theorem mvcc.StoreNames.withPhys_rcl (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).rcl
+    = p.rcl
 
 theorem mvcc.bucketViewL_exact (γ : mvcc.StoreNames) (q : Qp) (L : mvcc.Log) : mvcc.bucketView γ q
     (mvcc.bucketMap L) ⊢ mvcc.bucketViewL γ q L
@@ -352,6 +364,9 @@ theorem mvcc.kbWTSupply_persistent (kb : Option mvcc.KBReal) : Persistent (mvcc.
 
 def mvcc.stopPayAt (γx : GName) (γs : schedule.SchedNames) (o : mvcc.StoreObjs) : IProp GF :=
   iprop(dghostVar γx DFrac.discard o.sstop ∗ schedule.schedPayIs γs (mvcc.stopPay γx))
+
+theorem mvcc.StoreNames.withPhys_jc (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).jc =
+    p.jc
 
 def mvcc.storeReaderC (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
   iprop("Hmu" ∷ sync.ownRWMutex (mvcc.muAddr s) (mvcc.muInv s γ) ∗
@@ -517,65 +532,71 @@ def mvcc.batchTxSpecG (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp 
                             {{ Φ }}) ∗
                 □
                     (⌜Cmp⌝ -∗
-                      ∀ q m b lo hi klo khi limit dqlo dqhi,
+                      ∀ q m b lo hi klo khi limit dqlo dqhi w0 X0,
                         ⌜0 < sint.Z limit ∧ sint.Z limit ≤ mvcc.rangeLimitMax ∧ khi ≠ []⌝ →
                           □
                             ∀ Φ,
                               typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) b DFrac.discard ∗
-                                  Locked [] ∗ View q m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi -∗
+                                  Locked [] ∗ View q m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi ∗ MW w0 X0 -∗
                                 (▷
                                     ∀ ks vs,
                                       (View q m ∗
                                           ownSlice lo klo dqlo ∗
                                             ownSlice hi khi dqhi ∗
-                                              ∃ m' Rd U,
-                                                U ((sint.Z limit).toNat + 1) ∗
-                                                  mvcc.snapThin m m' Del ∗
-                                                    (□ ∀ n, mvcc.rdCap Rd (U n)) ∗
-                                                      (□ ∀ n, mvcc.rdCap2 Rd (U n)) ∗
-                                                        mvcc.pairVals Rd ks vs
-                                                            (List.take (sint.Z limit).toNat
-                                                              (mvcc.bucketRange m' klo khi)) ∗
-                                                          (□
-                                                              ∀ key k n w X,
-                                                                □
-                                                                  ∀ Φ,
-                                                                    typedPointsto
-                                                                          (globalAddr
-                                                                            go_etcd_io.etcd.server.v3.storage.schema.Key)
-                                                                          b DFrac.discard ∗
-                                                                        U (n + 1) ∗
-                                                                          Del k ∗
-                                                                            □ Rd key k ∗
-                                                                              ⌜(m' !! k).isSome = true⌝ ∗ MW w X -∗
-                                                                      ▷
-                                                                          ((U n ∗ ∃ X', MW w X' ∗ ⌜mvcc.dlStep X X' k⌝) -∗
-                                                                            Φ (intoVal ())) -∗
-                                                                        WP
-                                                                          (((intoVal
-                                                                                (methods bt.ty
-                                                                                  go!"UnsafeDelete"
-                                                                                  bt.v))
-                                                                              (intoVal b))
-                                                                            (intoVal key))
-                                                                          {{ Φ }}) ∗
-                                                            (□
-                                                                ∀ n w X,
-                                                                  mvcc.metaPutCap bt iprop(U (n + 1) ∗ MW w X) fun k v =>
-                                                                    iprop(U n ∗ MW (mvcc.fkPutV w k v) X)) ∗
-                                                              □
-                                                                ∀ n,
+                                              MW w0 X0 ∗
+                                                ∃ m' Rd U,
+                                                  U ((sint.Z limit).toNat + 1) ∗
+                                                    mvcc.snapThin m m' Del ∗
+                                                      ⌜∀ (k : GoString),
+                                                            mvcc.snap.physLookup m X0 k ≠ none →
+                                                              (m' !! k).isSome = true⌝ ∗
+                                                        (□ ∀ n, mvcc.rdCap Rd (U n)) ∗
+                                                          (□ ∀ n, mvcc.rdCap2 Rd (U n)) ∗
+                                                            mvcc.pairVals Rd ks vs
+                                                                (List.take (sint.Z limit).toNat
+                                                                  (mvcc.bucketRange m' klo khi)) ∗
+                                                              (□
+                                                                  ∀ key k n w X,
+                                                                    □
+                                                                      ∀ Φ,
+                                                                        typedPointsto
+                                                                              (globalAddr
+                                                                                go_etcd_io.etcd.server.v3.storage.schema.Key)
+                                                                              b DFrac.discard ∗
+                                                                            U (n + 1) ∗
+                                                                              Del k ∗
+                                                                                □ Rd key k ∗
+                                                                                  ⌜(m' !! k).isSome = true⌝ ∗ MW w X -∗
+                                                                          ▷
+                                                                              ((U n ∗
+                                                                                  ∃ X', MW w X' ∗ ⌜mvcc.dlStep X X' k⌝) -∗
+                                                                                Φ (intoVal ())) -∗
+                                                                            WP
+                                                                              (((intoVal
+                                                                                    (methods bt.ty
+                                                                                      go!"UnsafeDelete"
+                                                                                      bt.v))
+                                                                                  (intoVal b))
+                                                                                (intoVal key))
+                                                                              {{ Φ }}) ∗
+                                                                (□
+                                                                    ∀ n w X,
+                                                                      mvcc.metaPutCap bt iprop(U (n + 1) ∗ MW w X)
+                                                                        fun k v =>
+                                                                        iprop(U n ∗ MW (mvcc.fkPutV w k v) X)) ∗
                                                                   □
-                                                                    ∀ Φ,
-                                                                      U n ∗ W ∗ P -∗
-                                                                        ▷ (True -∗ Φ (intoVal ())) -∗
-                                                                          WP
-                                                                            ((intoVal
-                                                                                (methods bt.ty
-                                                                                  go!"Unlock"
-                                                                                  bt.v))
-                                                                              (intoVal ()))
-                                                                            {{ Φ }}) -∗
+                                                                    ∀ n,
+                                                                      □
+                                                                        ∀ Φ,
+                                                                          U n ∗ W ∗ P -∗
+                                                                            ▷ (True -∗ Φ (intoVal ())) -∗
+                                                                              WP
+                                                                                ((intoVal
+                                                                                    (methods bt.ty
+                                                                                      go!"Unlock"
+                                                                                      bt.v))
+                                                                                  (intoVal ()))
+                                                                                {{ Φ }}) -∗
                                         Φ (intoVal ks, intoVal vs)) -∗
                                   WP
                                     (((((intoVal
@@ -614,6 +635,9 @@ def mvcc.batchTxSpecG (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp 
 
 def (sealed) mvcc.viewFk (γb : GName) (f : Nat) : IProp GF
 
+theorem mvcc.storeRegd_regLent (s : Loc) (γ : mvcc.StoreNames) : mvcc.storeRegd s γ ∗ mvcc.regLent γ
+    ⊢ False
+
 theorem mvcc.isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (mvcc.isLessor le γl)
 
 theorem mvcc.delKeyI_timeless (γi : mvcc.IdxNames) (k : GoString) : Timeless (mvcc.delKeyI γi k)
@@ -646,7 +670,7 @@ theorem mvcc.crevUB_raise (γ : mvcc.IdxNames) (c c2 : Int) (h : c ≤ c2) : ⊢
     mvcc.crevLb γ c2
 
 def mvcc.compactTok (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
-  iprop((∃ c', ⌜c' ≤ c⌝ ∗ mvcc.idxCompactor γ.idx c') ∗ mvcc.compactJobResM γ.kb)
+  iprop((∃ c', ⌜c' ≤ c⌝ ∗ mvcc.idxCompactor γ.idx c') ∗ mvcc.compactJobResM γ.kb ∗ ∃ jc, mvcc.jobCur γ jc ∗ ⌜jc.fst ≤ c⌝)
 
 def mvcc.leaseParams (P : backend.BParams) : Prop :=
   P.has mvcc.leaseBI ∧ P.RB mvcc.leaseName = true ∧ ∀ (k : GoString), P.hk mvcc.leaseName k = false
@@ -659,6 +683,9 @@ theorem mvcc.isTxnWrite_split {trace : Loc} (mw s : Loc) (γ : mvcc.StoreNames) 
     iprop(True)) (ld : Bool := false) : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize
     crev Z ld ⊢ ∃ chs ps, mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps
     false crev Z ld ∗ ownSlice chs ps (DFrac.own 1) ∗ mvcc.changesAre ps ilog pend
+
+theorem mvcc.cmpTrack_off (γ : mvcc.StoreNames) (h : ¬mvcc.kbCmpM γ.kb) (L : mvcc.Log) (m :
+    mvcc.Bucket) (rc : mvcc.CmpRecs) : ⊢ mvcc.cmpTrack γ L m rc
 
 theorem mvcc.curAt_agree_o (γ : mvcc.StoreNames) (dq dq' : DFrac) (o o' : mvcc.StoreObjs) :
     mvcc.curAt γ dq o ∗ mvcc.curAt γ dq' o' ⊢ ⌜o = o'⌝
@@ -686,7 +713,7 @@ def mvcc.StoreNames.withPhys (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : mvcc.
     clog := γ.clog, leases := γ.leases, revs := γ.revs, hook := p.hook, hookFn := p.hookFn, kb := p.kb, cmeta := p.cmeta,
     fin := p.fin, sch := p.sch, cok := γ.cok, watchQ := γ.watchQ, wr := γ.wr, wk := p.wk, wv := p.wv, cur := γ.cur,
     rst := γ.rst, tk := γ.tk, tko := γ.tko, wsd := γ.wsd, tkw := γ.tkw, tkr := γ.tkr, mwk := p.mwk, cm := γ.cm,
-    sx := p.sx, cperm := γ.cperm, api := γ.api, rcv := p.rcv }
+    sx := p.sx, cperm := γ.cperm, api := γ.api, rcv := p.rcv, jc := p.jc, rcl := p.rcl }
 
 def mvcc.rcvW (γ : mvcc.StoreNames) (q : Qp) (c : Int) : IProp GF :=
   match γ.kb with
@@ -813,8 +840,8 @@ theorem mvcc.muHeld_tree (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) :
     ⊢ mvcc.muHeld s γ c ti ∗ mvcc.isTreeIndex ti γ.idx
 
 def mvcc.mwLend (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f : backend.FkVals
-    → backend.FkVals) : IProp GF :=
-  iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ w X, MW w X ∗ (MW (f w) X ={⊤}=∗ W)))
+    → backend.FkVals) (Q : IProp GF := iprop(True)) : IProp GF :=
+  iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ w X, MW w X ∗ (MW (f w) X ={⊤}=∗ W ∗ Q)))
 
 theorem mvcc.hookOk_agree (γ : mvcc.StoreNames) (P P' : IProp GF) (f f' : val) : mvcc.hookOk γ P f ∗
     mvcc.hookOk γ P' f' ⊢ ⌜f = f'⌝ ∗ ▷ P ≡ P'
@@ -874,6 +901,9 @@ theorem mvcc.keyReadLocked_cap (RT NC : IProp GF) (rng : Bool) (rt : GoInterface
     mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) :
     mvcc.keyReadLocked RT NC rng rt m Rd Tok cl ⊢ mvcc.rdCap Rd Tok
 
+theorem mvcc.jobCur_off (γ : mvcc.StoreNames) (h : ¬mvcc.kbCmpM γ.kb) (jc : Int × mvcc.Rev) : ⊢
+    mvcc.jobCur γ jc
+
 theorem mvcc.muInvAt_withPhys (s : Loc) (γ : mvcc.StoreNames) (p : mvcc.PhysNames) (q : Qp) (c :
     Int) : mvcc.muInvAt s (γ.withPhys p) q c = mvcc.muInvAt s γ q c
 
@@ -890,6 +920,9 @@ theorem mvcc.muHeld_phys (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) :
     ⊢ ∃ o, ⌜o.ti = ti⌝ ∗ □ mvcc.physOk s γ o
 
 theorem mvcc.snapThin_refl (m : mvcc.Bucket) (Del : GoString → IProp GF) : ⊢ mvcc.snapThin m m Del
+
+theorem mvcc.jobCur_intro (γ : mvcc.StoreNames) (jc : Int × mvcc.Rev) : ghostVar γ.jc (Qp.half 1) jc
+    ⊢ mvcc.jobCur γ jc
 
 theorem mvcc.isTxnWriteCore_seal {trace : Loc} (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log)
     (pend : List mvcc.Change) (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (hne :
@@ -1153,7 +1186,9 @@ def mvcc.txQ : Qp :=
 
 def mvcc.physNames_countable : Pos.Countable mvcc.PhysNames :=
   countableOfLeftInverse
-    (fun x => (((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx), x.rcv))
+    (fun x =>
+      (((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx), x.rcv, x.jc,
+        x.rcl))
     (fun q' =>
       have q := q'.fst;
       have p := q.fst;
@@ -1161,7 +1196,7 @@ def mvcc.physNames_countable : Pos.Countable mvcc.PhysNames :=
         hookFn := p.snd.snd.snd.snd.fst, kb := p.snd.snd.snd.snd.snd.fst, cmeta := p.snd.snd.snd.snd.snd.snd.fst,
         fin := p.snd.snd.snd.snd.snd.snd.snd.fst, sch := p.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         wk := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst, wv := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd,
-        mwk := q.snd.fst, sx := q.snd.snd, rcv := q'.snd })
+        mwk := q.snd.fst, sx := q.snd.snd, rcv := q'.snd.fst, jc := q'.snd.snd.fst, rcl := q'.snd.snd.snd })
     mvcc.physNames_countable._proof_1
 
 def mvcc.revMuTok (γ γp : mvcc.StoreNames) (q : Qp) : IProp GF :=
@@ -1970,7 +2005,11 @@ def mvcc.cmpRest (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc : m
     backend.VData) : IProp GF :=
   match γ.kb with
   | some d =>
-    if d.cm = true then iprop(ghostVar γ.rcv (Qp.half 1) rc.crev ∗ ∃ jc, ⌜mvcc.snap.cmpOk L m X rc jc⌝) else iprop(True)
+    if d.cm = true then
+      iprop(ghostVar γ.rcv (Qp.half 1) rc.crev ∗
+          monoNatAuthOwn γ.rcl 1 (mvcc.crevN rc.crev) ∗
+            ∃ jc, ghostVar γ.jc (Qp.half 1) jc ∗ ⌜mvcc.snap.cmpOk L m X rc jc⌝)
+    else iprop(True)
   | none => iprop(True)
 
 theorem mvcc.muHeld_crev_idx (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) : mvcc.muHeld s γ
@@ -2236,6 +2275,8 @@ theorem mvcc.StoreNames.withPhys_revs (γ : mvcc.StoreNames) (p : mvcc.PhysNames
 
 theorem mvcc.retiredAt_timeless (γ : mvcc.StoreNames) (r : Nat) : Timeless (mvcc.retiredAt γ r)
 
+theorem mvcc.cmpLb_persistent (γ : mvcc.StoreNames) (c : Int) : Persistent (mvcc.cmpLb γ c)
+
 def mvcc.revMuInv (s : Loc) (γ : mvcc.StoreNames) (q : Qp) : IProp GF :=
   iprop(∃ m, dghostVar γ.rst (DFrac.own q.half) m ∗ if m = true then mvcc.revMuRest s q else mvcc.revMuCur s γ q)
 
@@ -2251,7 +2292,8 @@ theorem mvcc.keyReaderD_thin (rt : GoInterfaceOk) (mv m : mvcc.Bucket) (R : IPro
 
 def mvcc.StoreNames.phys (γ : mvcc.StoreNames) : mvcc.PhysNames :=
   { nev := γ.idx.nev, cmp := γ.idx.cmp, bucket := γ.bucket, hook := γ.hook, hookFn := γ.hookFn, kb := γ.kb,
-    cmeta := γ.cmeta, fin := γ.fin, sch := γ.sch, wk := γ.wk, wv := γ.wv, mwk := γ.mwk, sx := γ.sx, rcv := γ.rcv }
+    cmeta := γ.cmeta, fin := γ.fin, sch := γ.sch, wk := γ.wk, wv := γ.wv, mwk := γ.mwk, sx := γ.sx, rcv := γ.rcv,
+    jc := γ.jc, rcl := γ.rcl }
 
 def mvcc.keyRangeSpec (rt : GoInterfaceOk) (m : mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF)
     (Tok : IProp GF) : IProp GF :=
@@ -2323,7 +2365,7 @@ def mvcc.fkPutV (w : backend.FkVals) (k v : GoString) : backend.FkVals :=
 theorem mvcc.noCompactor_of_frozen (γs : mvcc.StoreNames) : mvcc.crevFrozen γs ⊢ mvcc.noCompactor γs
 
 theorem mvcc.mwLend_persistent (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f :
-    backend.FkVals → backend.FkVals) : Persistent (mvcc.mwLend W MW f)
+    backend.FkVals → backend.FkVals) (Q : IProp GF) : Persistent (mvcc.mwLend W MW f Q)
 
 theorem mvcc.cmpTrack_timeless (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc :
     mvcc.CmpRecs) : Timeless (mvcc.cmpTrack γ L m rc)
@@ -2362,6 +2404,11 @@ theorem mvcc.logLent_agree (γ : mvcc.IdxNames) (q0 : Qp) (log : mvcc.Log) (oa :
 
 theorem mvcc.crevPermAt_of (γ : mvcc.StoreNames) (Perm : Int → IProp GF) (c : Int) : mvcc.crevPermIs
     γ Perm ∗ □ Perm c ⊢ mvcc.crevPermAt γ c
+
+def mvcc.cmpLb (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then iprop(monoNatLbOwn γ.rcl (mvcc.crevN c) ∗ ⌜1 ≤ c⌝) else iprop(True)
+  | none => iprop(True)
 
 def mvcc.keyReadSnap (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (Del : GoString → IProp
     GF) (rng : Bool) (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) : IProp GF :=
@@ -2865,6 +2912,8 @@ structure mvcc.PhysNames : Type where
   mwk : GName
   sx : GName
   rcv : GName
+  jc : GName
+  rcl : GName
 
 theorem mvcc.hookOk_agree_lc (E : CoPset) (γ : mvcc.StoreNames) (P P' : IProp GF) (f f' : val) : £ 1
     ∗ mvcc.hookOk γ P f ∗ mvcc.hookOk γ P' f' ⊢ |={E}=> ⌜f = f'⌝ ∗ □ (P -∗ P') ∗ □ (P' -∗ P)
@@ -2979,7 +3028,7 @@ def mvcc.storeNames_countable : Pos.Countable mvcc.StoreNames :=
               x.cm, x.sx),
             x.cperm),
           x.api),
-        x.rcv))
+        x.rcv, x.jc, x.rcl))
     (fun r3 =>
       have r2 := r3.fst;
       have r1 := r2.fst;
@@ -3002,7 +3051,8 @@ def mvcc.storeNames_countable : Pos.Countable mvcc.StoreNames :=
         tko := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         wsd := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         tkw := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd, tkr := q.snd,
-        mwk := r.snd, cm := r0.snd.fst, sx := r0.snd.snd, cperm := r1.snd, api := r2.snd, rcv := r3.snd })
+        mwk := r.snd, cm := r0.snd.fst, sx := r0.snd.snd, cperm := r1.snd, api := r2.snd, rcv := r3.snd.fst,
+        jc := r3.snd.snd.fst, rcl := r3.snd.snd.snd })
     mvcc.storeNames_countable._proof_1
 
 theorem mvcc.crevUB_lb_keep (γ : mvcc.IdxNames) (q : Qp) (c c' : Int) (hc : -1 ≤ c) : mvcc.crevUB γ

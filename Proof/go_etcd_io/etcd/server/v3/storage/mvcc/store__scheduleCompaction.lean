@@ -25,6 +25,7 @@ public import Spec.time.Time__Unix
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 public import Proof.ReceiptTactics
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpJob
 
 @[expose] public section
 
@@ -216,7 +217,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   intro s γ rev prev q o
   wp_start as ⟨#Hjob, Hfs, #Hstopch, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, -, %Hcmp, #Hlb, #HsupM, %log, #Hcert, #Hnevc, %Hrev'⟩
+  icases Hjob with ⟨#Hs, -, %Hcmp, #Hlb, #HsupM, #HcLb, #HregJ, %log, #Hcert, #Hnevc, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := Hrev'
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
   · iapply mvcc.CompactSmall_of_cert s γ log (sint.Z rev) $$ [Hs Hcert]
@@ -254,7 +255,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iunfold mvcc.compactTok at Htok
-  icases Htok with ⟨⟨%c', %hc', Htok⟩, Hjr⟩
+  icases Htok with ⟨⟨%c', %hc', Htok⟩, Hjr, %jcv0, Hjc0, %Hjc0⟩
   -- the job's budgets (question 5's core stage): its reader's token, the safe-range slot
   icases (mvcc.compactJobResM_on γ.kb hcmpM).1 $$ Hjr with ⟨HRT, HSR⟩
   wp_auto
@@ -308,12 +309,18 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       "%Hbs" ∷ ⌜bs.length = 17⌝ ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
       "h" ∷ (h_ptr ↦ hv' ∗ ⌜mvcc.kvHasherOk hv'⌝) ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧
-        ∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k ∧ go.GoStringLt k bs⌝)
-    $$ [last HlastS HlastC keyCompactions h]
+        ∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k ∧ go.GoStringLt k bs⌝ ∗
+      -- (the snapshot image's tracking) the job's half of the cursor: the last job's before the
+      -- first batch (`bs` the zeros), the job's own at `bs` after
+      "Hjc" ∷ (∃ jcv : Int × mvcc.Rev, mvcc.jobCur γ jcv ∗
+        ⌜jcv.1 ≤ sint.Z rev ∧ (bs = List.replicate 17 (W8 0) ∨
+          (jcv.1 = sint.Z rev ∧ mvcc.snap.bsCur bs jcv.2))⌝))
+    $$ [last HlastS HlastC keyCompactions h Hjc0]
   · iexists lastS, _, W64 0, hv, []
     simp only [named]
     iframe
-    ipureintro; simp [Hhv]
+    ipureintro
+    refine ⟨by simp, Hhv, by simp, Hjc0, Or.inl rfl⟩
   wp_for HI
   wp_apply +noauto time.wp_Now as %tst -
   -- (question 5's core stage) a receipt for the session's write-back token
@@ -332,10 +339,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iframe HRT Hwt1; iframe #
   inext
   iintro ⟨Hlocked, HW, HP, HRT⟩
-  ihave HE : iprop(emp) $$ []
-  · iempintro
-  imod mvcc.storeW_open s γ ⊤ (by solve_ndisj) iprop(emp) (mvcc.regLent_excl_M1 γ) $$ Hrg HE HW
-    with ⟨HW, #Hreg, -⟩
+  -- (the snapshot image's (d)) the store registered (`updateCompactRev`'s, the job's premise): no
+  -- snapshot's loan of the registration
+  imod mvcc.storeW_open s γ ⊤ (by solve_ndisj) (mvcc.storeRegd s γ) (mvcc.storeRegd_regLent s γ)
+    $$ Hrg HregJ HW with ⟨HW, #Hreg, -⟩
   -- (question 5's core stage, part (1)) a later credit for the last batch's swap of the key
   wp_auto_lc 1
   iunfold mvcc.writerRes at HW
@@ -351,11 +358,43 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iframe Hcert HcertW
   iunfold mvcc.idxCert at HcW'
   icases HcW' with ⟨-, %HilWf, -⟩
+  have hbI : mvcc.LogB ilog := ⟨HilWf.2.1, HilWf.2.2⟩
+  have hbL : mvcc.LogB log := ⟨Hlwf.2.1, Hlwf.2.2⟩
+  have hLI : 0 < ilog.length := List.length_pos_iff.2 HneW
+  -- (2026-11-04, probe M2) the key in the batch lock's resource swapped for the compaction keys'
+  -- write right for the whole batch (lent to the range, whose reads it makes exact; the deletes;
+  -- the last batch's `Meta` put); swapped back before `Unlock`
+  iunfold mvcc.compactRes at HcresW
+  icases HcresW with ⟨%sched, %fin, %nf, %mC, Hmeta, Hfin, %Hnf, Hmk, HbmC, HtrC⟩
+  ihave %HmWC := mvcc.bucketView_agree γ _ _ mW mC $$ [HbvW HbmC]
+  · iframe HbvW HbmC
+  ihave Hmk := (mvcc.mwSlot_on γ hcmpM).1 $$ Hmk
+  ihave #Hswk0 := Hswk
+  iunfold mvcc.mwSwap at Hswk0
+  imod Hswk0 $$ [Hmk Hlc1] with ⟨HMWf, Hback⟩
+  · iframe Hmk Hlc1
+  -- (the snapshot image's (a)) the values' halves from the tracked compaction: the right at the
+  -- records' values; the rest, with the job's half of the cursor, the session's tracking at the
+  -- job's revision and its cursor `pc` (`⟨0, 0⟩` at the first batch)
+  icases (mvcc.cmpTrack_split γ hcmpM ilog mC ⟨fin, sched⟩).1 $$ HtrC with ⟨%X0, Hv0, Hrest⟩
+  ihave HMW0 := (mvcc.kbMWv_split γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X0).2
+    $$ [HMWf Hv0]
+  · iframe HMWf Hv0
+  icases Hjc with ⟨%jcv, Hjc, %Hjcv⟩
+  obtain ⟨pc, hpc, hopen⟩ : ∃ pc : mvcc.Rev, mvcc.snap.bsCur bs pc ∧
+      (jcv.1 ≤ sint.Z rev ∧ (pc = ⟨W64 0, W64 0⟩ ∨ jcv = (sint.Z rev, pc))) := by
+    rcases Hjcv with ⟨h1, h2 | ⟨h3, h4⟩⟩
+    · exact ⟨⟨W64 0, W64 0⟩, Or.inl ⟨h2, rfl⟩, h1, Or.inl rfl⟩
+    · exact ⟨jcv.2, h4, h1, Or.inr (by rw [← h3])⟩
+  ihave Hsess := mvcc.sess_open γ ilog hbI mC ⟨fin, sched⟩ X0 jcv (sint.Z rev) pc hopen
+    $$ [Hrest Hjc HcLb]
+  · iframe Hrest Hjc HcLb
   ispecialize HRng $$ []
   · ipureintro; trivial
   wp_bind (App (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #lst)) (Val #endS)) (Val #_))
   iapply HRng $$ %(1 : Qp).half.half.half %mW %bK %lst %endS %bs %(u64Be (rev + W64 1))
-    %scfg.CompactionBatchLimit' %(DFrac.own 1) %(DFrac.own 1) [] [Hlocked HbvW HlastS HendS]
+    %scfg.CompactionBatchLimit' %(DFrac.own 1) %(DFrac.own 1) %(mvcc.recBytes fin, mvcc.recBytes sched)
+    %X0 [] [Hlocked HbvW HlastS HendS HMW0]
   · ipureintro
     refine ⟨Hcfgl.1, Hcfgl.2, ?_⟩
     intro hn
@@ -365,8 +404,9 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   inext
   -- (the backend-compaction stage, R2-3) the session ends in the range's token `U`, at the budget
   -- `limit + 1`: a delete or the `Meta` put spends one, `Unlock` takes any
-  iintro %ks %vs ⟨HbvW, HlastS, HendS, %m', %Rd, %U, HU, #Hthin0, #Hcap, #Hcap2, #Hpv,
+  iintro %ks %vs ⟨HbvW, HlastS, HendS, HMW0, %m', %Rd, %U, HU, #Hthin0, %Hex, #Hcap, #Hcap2, #Hpv,
     #HDelC, #HMetaC, #HUnlU⟩
+  rw [HmWC] at Hex
   ihave #Hthin := mvcc.snapThin_trans (mvcc.bucketMap ilog) mW m' _ $$ [HthW Hthin0]
   · iframe HthW Hthin0
   ihave HbvW : mvcc.bucketViewL γ (1 : Qp).half.half.half ilog $$ [HbvW]
@@ -374,22 +414,6 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   rename_i igo
   irename : (igo ↦ zero_val w64 : IProp GF) => Higo
-  -- (2026-11-04, probe M2) the key in the batch lock's resource swapped for the compaction keys'
-  -- write right for the whole batch: its deletes (the backend's safe-range deleted entries' half,
-  -- inside it) and the last batch's `Meta` put; swapped back before `Unlock`
-  iunfold mvcc.compactRes at HcresW
-  icases HcresW with ⟨%sched, %fin, %nf, %mC, Hmeta, Hfin, %Hnf, Hmk, HbmC, HtrC⟩
-  ihave Hmk := (mvcc.mwSlot_on γ hcmpM).1 $$ Hmk
-  ihave #Hswk0 := Hswk
-  iunfold mvcc.mwSwap at Hswk0
-  imod Hswk0 $$ [Hmk Hlc1] with ⟨HMWf, Hback⟩
-  · iframe Hmk Hlc1
-  -- (the snapshot image's (a)) the values' halves from the tracked compaction: the right at the
-  -- records' values, for the whole batch
-  icases (mvcc.cmpTrack_split γ hcmpM ilog mC ⟨fin, sched⟩).1 $$ HtrC with ⟨%X0, Hv0, Hrest⟩
-  ihave HMW : iprop(∃ X : backend.VData,
-      mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X) $$ [HMWf Hv0]
-  · iexists X0; iapply (mvcc.kbMWv_split γ.kb γ.bucket _ X0).2; iframe HMWf Hv0
   iunfold mvcc.snapThin at Hthin
   icases Hthin with ⟨%Hsub, -⟩
   (try simp only [List.foldl_nil] at Hsub)
@@ -423,14 +447,20 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "keyCompactions" ∷ keyCompactions_ptr ↦ kc ∗
       "h" ∷ (h_ptr ↦ hv ∗ ⌜mvcc.kvHasherOk hv⌝) ∗ "rev" ∷ rev_ptr ↦ rv ∗
       "Hlocked" ∷ (∃ c : Nat, U c ∗ ⌜L.length + 1 ≤ c + sint.nat n⌝) ∗
-      "HMW" ∷ (∃ X : backend.VData,
-        mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X) ∗
+      "HMW" ∷ (∃ (X : backend.VData) (pc' : mvcc.Rev),
+        mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X ∗
+        mvcc.sessTrk γ ilog mC ⟨fin, sched⟩ X (sint.Z rev, pc') ∗
+        ⌜(∀ k, (X0.lookup (mvcc.keyName, k)).isSome → (X.lookup (mvcc.keyName, k)).isSome) ∧
+          ((sint.nat n = 0 ∧ pc' = pc) ∨
+            (∃ (r0 : mvcc.Rev) (t0 : Bool), 0 < sint.nat n ∧
+              (L[sint.nat n - 1]?).map Prod.fst = some (mvcc.revBytes r0 t0) ∧ mvcc.snap.RevOk r0 ∧
+              pc' = mvcc.snap.revSucc r0 ∧ rv = mvcc.revVal r0))⌝) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ L.length⌝ ∗
       "%HD" ∷ ⌜sint.Z kc = D.length ∧ D.Nodup ∧ (∀ k ∈ D, mvcc.sc_space log (sint.Z rev) k) ∧
         (∀ k ∈ D, ∀ j (hj : j < L.length), sint.nat n ≤ j → go.GoStringLt k (L[j]).1) ∧
         (sint.Z n = 0 ∨ ∀ k ∈ D, go.GoStringLt k
           (mvcc.revBytes (mvcc.revOf ⟨rv.Main', rv.Sub' + W64 1⟩) false))⌝)
-    $$ [i Higo keyCompactions h rev HU HMW]
+    $$ [i Higo keyCompactions h rev HU HMW0 Hsess]
   · iexists W64 0, _, _, _, _, D
     simp only [named]
     ihave HU : iprop(∃ c : Nat, U c ∗ ⌜L.length + 1 ≤ c + sint.nat (W64 0)⌝) $$ [HU]
@@ -441,7 +471,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       rw [h0]; omega
     iframe
     ipureintro
-    refine ⟨⟨by decide, by simp⟩, HD.1, HD.2.1, fun k hk => (HD.2.2 k hk).1, ?_, Or.inl (by decide)⟩
+    refine ⟨⟨fun k h => h, Or.inl ⟨by decide, rfl⟩⟩, ⟨by decide, by simp⟩, HD.1, HD.2.1,
+      fun k hk => (HD.2.2 k hk).1, ?_, Or.inl (by decide)⟩
     intro k hk j hj _
     exact Hlt_le (HD.2.2 k hk).2 (HLmem _ (List.getElem_mem hj)).2
   wp_for IH
@@ -482,45 +513,78 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     have Hesp : mvcc.sc_space log (sint.Z rev) e.1 :=
       mvcc.sc_mem log ilog rev Hrev.2 HilWf.2.1 Hpre Hsub (HLmem e (List.mem_of_getElem? He)).1 r t
         Hk Hrm
+    -- (the snapshot image's tracking) the entry's step of the cut: no physical entry between the
+    -- cursor and it (`job_gap`), the entry deleted or kept moves the cursor past it
+    icases HMW with ⟨%X, %pc', HMW, Hsess, %Hcur⟩
+    have hmB : (mvcc.bucketMap ilog).lookup (mvcc.revBytes r t) = some e.2 := by
+      rw [← Hk]; exact Hsub _ _ (HLmem e (List.mem_of_getElem? He)).1
+    have hgap : mvcc.snap.gapOk mC X pc' r :=
+      mvcc.snap.job_gap Hex Hcur.1 hL HnL (by rw [HeL]; exact Hk) ⟨Hr0, Hs0⟩
+        (by rcases Hcur.2 with ⟨h0, rfl⟩ | ⟨r0, t0, h0, hk0, hr0, hpc', -⟩
+            · exact Or.inl ⟨h0, hpc⟩
+            · exact Or.inr ⟨r0, t0, h0, hk0, hr0, hpc'⟩)
+    have hconv : ∀ _ : mvcc.snap.cmpOk ilog mC X ⟨fin, sched⟩ (sint.Z rev, pc'), ∀ k,
+        mvcc.KeyDel log (sint.Z rev) k ↔ mvcc.KeyDel ilog (sint.Z rev) k := fun h k =>
+      mvcc.snap.KeyDel_conv Hpre hbL hbI (by omega) Hrev.2 (mvcc.snap.cmpOk_jc_lt h hLI).2 k
     wp_join iprop(∃ (kc' : w64) (D' : List GoString), keyCompactions_ptr ↦ kc' ∗
         (∃ c' : Nat, U c' ∗ ⌜L.length + 1 ≤ c' + (sint.nat n + 1)⌝) ∗
-        (∃ X : backend.VData, mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X) ∗
+        (∃ X' : backend.VData, mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X' ∗
+          mvcc.sessTrk γ ilog mC ⟨fin, sched⟩ X' (sint.Z rev, mvcc.snap.revSucc r) ∗
+          ⌜∀ k, (X0.lookup (mvcc.keyName, k)).isSome → (X'.lookup (mvcc.keyName, k)).isSome⌝) ∗
         keys_ptr ↦ ks ∗ igo ↦ n ∗ tx_ptr ↦ GoInterface.ok bt ∗
         ⌜sint.Z kc' = D'.length ∧ D'.Nodup ∧ (∀ k ∈ D', mvcc.sc_space log (sint.Z rev) k) ∧
           ∀ k ∈ D', k = e.1 ∨ k ∈ D⌝)
-      with [keyCompactions Hlocked HMW keys Higo tx]
+      with [keyCompactions Hlocked HMW Hsess keys Higo tx]
       as ⟨%kc', %D', keyCompactions, Hlocked, HMW, keys, Higo, tx, %HD'⟩
     · iexists kc, D
       ihave Hlocked : iprop(∃ cc : Nat, U cc ∗ ⌜L.length + 1 ≤ cc + (sint.nat n + 1)⌝) $$ [Hlocked]
       · iexists c; iframe Hlocked; ipureintro; omega
+      -- the entry kept: compaction at `rev` keeps it, so it is not deletable
+      ihave Hsess := mvcc.sess_mono γ ilog mC ⟨fin, sched⟩ X X (sint.Z rev, pc')
+        (sint.Z rev, mvcc.snap.revSucc r)
+        (fun h => mvcc.snap.cmpOk_step hbI HilWf.1 h hgap hmB (Or.inr ⟨fun hd =>
+          mvcc.snap.not_KeyDel_of_keep t ((HA r).1 Hif) ((hconv h _).2 hd), rfl⟩)) $$ Hsess
       iframe
       ipureintro
-      exact ⟨HD.1, HD.2.1, HD.2.2.1, fun k hk => Or.inr hk⟩
+      exact ⟨Hcur.1, HD.1, HD.2.1, HD.2.2.1, fun k hk => Or.inr hk⟩
     · (try wp_auto)
       simp only [Hbnd2, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index ks (sint.Z n) kss DFrac.discard ksl Hn.1 $$ [$Hks] as -
       · ipureintro; exact Hkv.1
+      have hnk : (A.lookup (mvcc.revVal r)).isSome = false := by
+        revert Hif; cases (A !! mvcc.revVal r).isSome <;> simp
+      have hdelL : mvcc.KeyDel log (sint.Z rev) e.1 :=
+        mvcc.sc_keyDel log rev A HA Hrev.2 r t e.1 Hk Hr0 Hrm hnk
       ihave #Hdk : mvcc.delKey γ e.1 $$ []
       · iunfold mvcc.delKey
         iexists (sint.Z rev), log
         iframe Hlb Hcert
         ipureintro
-        refine ⟨by omega, mvcc.sc_keyDel log rev A HA Hrev.2 r t e.1 Hk Hr0 Hrm ?_⟩
-        revert Hif; cases (A !! mvcc.revVal r).isSome <;> simp
+        exact ⟨by omega, hdelL⟩
       (try wp_auto)
       wp_bind (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #ksl))
       -- (Draft round 2) the key slice `keys[i]` passed lent, as the range returned it; (R2-3) one
       -- of the range's budget spent (`c ≥ 2`: a key left to read, and the `Meta` put's)
       obtain ⟨c'', rfl⟩ : ∃ c'', c = c'' + 1 := ⟨c - 1, by omega⟩
-      icases HMW with ⟨%X, HMW⟩
       iapply HDelC $$ %ksl %e.1 %c'' %(mvcc.recBytes fin, mvcc.recBytes sched) %X [Hlocked HMW]
       · iframe Hlocked HMW; iframe #
         ipureintro; rw [(HLmem e (List.mem_of_getElem? He)).1]; rfl
       inext
-      iintro ⟨Hlocked, %X', HMW, -⟩
-      ihave HMW : iprop(∃ X : backend.VData,
-          mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X) $$ [HMW]
-      · iexists X'; iexact HMW
+      iintro ⟨Hlocked, %X', HMW, %HdX⟩
+      -- the entry deleted, the backend recording it (`dlStep`): `cutAt_del`
+      rw [Hk] at HdX hdelL
+      ihave Hsess := mvcc.sess_mono γ ilog mC ⟨fin, sched⟩ X X' (sint.Z rev, pc')
+        (sint.Z rev, mvcc.snap.revSucc r)
+        (fun h => mvcc.snap.cmpOk_step hbI HilWf.1 h hgap hmB
+          (Or.inl ⟨(hconv h _).1 hdelL, HdX⟩)) $$ Hsess
+      have HX0' : ∀ k, (X0.lookup (mvcc.keyName, k)).isSome → (X'.lookup (mvcc.keyName, k)).isSome := by
+        intro k hk; rw [HdX k, Hcur.1 k hk]
+      ihave HMW : iprop(∃ X' : backend.VData,
+          mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X' ∗
+          mvcc.sessTrk γ ilog mC ⟨fin, sched⟩ X' (sint.Z rev, mvcc.snap.revSucc r) ∗
+          ⌜∀ k, (X0.lookup (mvcc.keyName, k)).isSome → (X'.lookup (mvcc.keyName, k)).isSome⌝)
+        $$ [HMW Hsess]
+      · iexists X'; iframe HMW Hsess; ipureintro; exact HX0'
       (try wp_auto)
       wp_join_done
       -- the key deleted: one more in `D`, still fewer than the job's changes
@@ -569,8 +633,26 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ihave Hlocked := Hkvback $$ Hkp Hvp
     (try wp_auto)
     wp_for_post
-    iframe
     have Hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+    -- (the snapshot image's tracking) the cursor past the entry
+    icases HMW with ⟨%X', HMW, Hsess, %HX'⟩
+    have hrok := mvcc.snap.bucketMap_revOk hbI hmB
+    ihave HMW : iprop(∃ (X : backend.VData) (pc'' : mvcc.Rev),
+        mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X ∗
+        mvcc.sessTrk γ ilog mC ⟨fin, sched⟩ X (sint.Z rev, pc'') ∗
+        ⌜(∀ k, (X0.lookup (mvcc.keyName, k)).isSome → (X.lookup (mvcc.keyName, k)).isSome) ∧
+          ((sint.nat (n + W64 1) = 0 ∧ pc'' = pc) ∨
+            (∃ (r0 : mvcc.Rev) (t0 : Bool), 0 < sint.nat (n + W64 1) ∧
+              (L[sint.nat (n + W64 1) - 1]?).map Prod.fst = some (mvcc.revBytes r0 t0) ∧
+              mvcc.snap.RevOk r0 ∧ pc'' = mvcc.snap.revSucc r0 ∧ mvcc.revVal r = mvcc.revVal r0))⌝)
+      $$ [HMW Hsess]
+    · iexists X', mvcc.snap.revSucc r
+      iframe HMW Hsess
+      ipureintro
+      refine ⟨HX', Or.inr ⟨r, t, by omega, ?_, hrok, rfl, rfl⟩⟩
+      rw [Hn1, Nat.add_sub_cancel, He]
+      simp [Hk]
+    iframe
     ihave Hlocked : iprop(∃ cc : Nat, U cc ∗ ⌜L.length + 1 ≤ cc + sint.nat (n + W64 1)⌝) $$ [Hlocked]
     · iexists c'; iframe Hlocked; ipureintro; rw [Hn1]; exact Hc'
     iexists n + W64 1, n, kc', hv2, mvcc.revVal r, D'
@@ -611,7 +693,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     -- compaction keys' write right for the `Meta` put, and back
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    icases HMW with ⟨%X, HMW⟩
+    icases HMW with ⟨%X, %pc', HMW, Hsess, %Hcur⟩
     iapply (h6 bt iprop(U (c0 + 1) ∗
         mvcc.kbMWv γ.kb γ.bucket (mvcc.recBytes fin, mvcc.recBytes sched) X)
       (fun k v => iprop(U c0 ∗ mvcc.kbMWv γ.kb γ.bucket
@@ -628,8 +710,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     imod Hback $$ HMWf with ⟨Hmk, -⟩
     ihave Hmk := (mvcc.mwSlot_on γ hcmpM).2 $$ Hmk
     -- (the snapshot image's (a)) the tracked compaction at the finished record and the deletes
-    ihave HtrC := mvcc.cmpTrack_job_M1 γ ilog mC ⟨fin, sched⟩ ⟨some rev, sched⟩ X0 X $$ [Hrest Hv]
-    · iframe Hrest Hv
+    -- (`cmpOk_fin`), the cursor's halves the lock's and the job's
+    ihave Hsess := mvcc.sess_fin γ ilog hbI hLI mC fin sched X (sint.Z rev) pc' rev (by word)
+      $$ [Hsess HcLb]
+    · iframe Hsess HcLb
+    imod mvcc.sess_close γ ilog mC ⟨some rev, sched⟩ X (sint.Z rev, pc') $$ Hsess with ⟨Hrest, Hjc⟩
+    ihave HtrC := (mvcc.cmpTrack_split γ hcmpM ilog mC ⟨some rev, sched⟩).2 $$ [Hrest Hv]
+    · iexists X; iframe Hrest Hv
     (try wp_auto)
     iunfold mvcc.metaCompact at Hmeta
     imod ghostVar_update (sched, some rev) γ.cmeta _ $$ Hmeta with Hmeta
@@ -723,17 +810,21 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iapply Hfclose; iunfold mvcc.storeFields; simp only [named]; iframe
     isplitl [HRT HSR]
     · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
+    isplitl [Hjc]
+    · iexists (sint.Z rev, pc'); iframe Hjc; ipureintro; exact Int.le_refl _
     ileft
     iframe Hdone
     ipureintro; rfl
   -- a full batch: committed, then the next one after the sleep, unless the store stops
-  icases HMW with ⟨%X, HMW⟩
+  icases HMW with ⟨%X, %pc', HMW, Hsess, %Hcur⟩
   icases (mvcc.kbMWv_split γ.kb γ.bucket _ X).1 $$ HMW with ⟨HMWf, Hv⟩
   imod Hback $$ HMWf with ⟨Hmk, -⟩
   ihave Hmk := (mvcc.mwSlot_on γ hcmpM).2 $$ Hmk
-  -- (the snapshot image's (a)) the tracked compaction at the batch's deletes
-  ihave HtrC := mvcc.cmpTrack_job_M1 γ ilog mC ⟨fin, sched⟩ ⟨fin, sched⟩ X0 X $$ [Hrest Hv]
-  · iframe Hrest Hv
+  -- (the snapshot image's (a)) the tracked compaction at the batch's deletes, the cursor's halves
+  -- the lock's and the job's
+  imod mvcc.sess_close γ ilog mC ⟨fin, sched⟩ X (sint.Z rev, pc') $$ Hsess with ⟨Hrest, Hjc⟩
+  ihave HtrC := (mvcc.cmpTrack_split γ hcmpM ilog mC ⟨fin, sched⟩).2 $$ [Hrest Hv]
+  · iexists X; iframe Hrest Hv
   ihave HcresW : mvcc.compactRes γ ilog $$ [Hmeta Hfin Hmk HbmC HtrC]
   · iunfold mvcc.compactRes; iexists sched, fin, nf, mC; iframe; ipureintro; exact Hnf
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
@@ -790,14 +881,28 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     simp only [named]
     iframe
     ipureintro
-    refine ⟨by rw [List.length_append, mvcc.revBytes_length]; simp [Hbs], HD.1, HD.2.1,
-      fun k hk => ⟨HD.2.2.1 k hk, ?_⟩⟩
-    rw [List.drop_eq_nil_of_le (by omega), List.append_nil]
-    rcases HD.2.2.2.2 with h0 | hlt
-    · exfalso
-      clear HDk
-      exact absurd h0 (by omega)
-    · exact hlt k hk
+    have hdrop : List.drop 17 bs = [] := List.drop_eq_nil_of_le (by omega)
+    refine ⟨by rw [List.length_append, mvcc.revBytes_length]; simp [Hbs],
+      ⟨HD.1, HD.2.1, fun k hk => ⟨HD.2.2.1 k hk, ?_⟩⟩, Int.le_refl _, Or.inr ⟨rfl, ?_⟩⟩
+    · rw [hdrop, List.append_nil]
+      rcases HD.2.2.2.2 with h0 | hlt
+      · exfalso
+        clear HDk
+        exact absurd h0 (by omega)
+      · exact hlt k hk
+    · -- the next batch's first key is the cursor's, past the batch's last entry
+      rw [hdrop, List.append_nil]
+      rcases Hcur.2 with ⟨h0, -⟩ | ⟨r0, t0, -, -, hr0, hpc', hrv⟩
+      · exfalso
+        clear HDk
+        have h0' : sint.Z n = 0 := by have := Hn.1; word
+        exact absurd h0' (by omega)
+      · right
+        subst hpc' hrv
+        obtain ⟨h1, h2, h3⟩ := hr0
+        refine ⟨rfl, h1, ?_⟩
+        show 0 ≤ sint.Z (r0.sub + W64 1)
+        word
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -835,6 +940,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iapply Hfclose; iunfold mvcc.storeFields; simp only [named]; iframe
     isplitl [HRT HSR]
     · iapply (mvcc.compactJobResM_on γ.kb hcmpM).2; iframe HRT HSR
+    isplitl [Hjc]
+    · iexists (sint.Z rev, pc'); iframe Hjc; ipureintro; exact Int.le_refl _
     iright
     iframe Herr
     iunfold mvcc.storeStopped

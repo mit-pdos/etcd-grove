@@ -2919,6 +2919,45 @@ theorem cursorRange_bucket (B : BktData) (klo khi : GoString) (lim : w64) (hne :
   unfold window
   rw [h]
 
+/-- **The deleted entries agree with a client's view, under the batch lock** (`batchViewQ_bView_dl`
+at the held lock). -/
+theorem batchLocked_dlsW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (q : Qp) (vd : VData) :
+    batchLocked (GF := GF) γ P b st ∗ bView γ q vd ⊢
+      batchLocked γ P b st ∗ bView γ q vd ∗ ⌜dlsW P st vd⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, Hrest⟩, %Hwf⟩, Hc⟩
+  ihave ⟨Hv, Hc, %Hd⟩ := batchViewQ_bView_dl γ P st q vd $$ [$Hv $Hc]
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact Hwf
+  ipureintro; exact Hd
+
+/-- **The session's `Key` bucket holds every entry of the physical one** (the logical view `m` but
+the deleted entries the session records): what the compacting range reads (the job's cursor; the
+snapshot image's tracking, 2026-11-06). -/
+theorem key_phys_sub {P : BParams} (hP : bridgeParams P) {st : BSess} {vd : VData} {m m' : Bucket}
+    (hvd : keyView vd m) (hS : keyView (sData P st.S) m') (hdl : dlsOk P st vd) (k : GoString)
+    (hk : snap.physLookup m (dlR P st.dl) k ≠ none) : (m'.lookup k).isSome := by
+  have hsb : P.SB keyName = true := by rw [hP.2.2.2.1]; exact decide_eq_true rfl
+  have hhb : P.HB keyName = false := key_not_HB hP
+  unfold snap.physLookup at hk
+  rw [dlR_key hP] at hk
+  cases hx : st.dl.lookup (keyName, k) with
+  | some x => rw [hx] at hk; simp at hk
+  | none =>
+    rw [hx] at hk
+    simp only [Option.isSome_none, Bool.false_eq_true, ↓reduceIte] at hk
+    have hv : vd.lookup (keyName, k) ≠ none := by
+      rw [hvd keyName k]; simpa using hk
+    have hS' := hS keyName k
+    simp only [↓reduceIte] at hS'
+    cases hs : (sData P st.S).lookup (keyName, k) with
+    | none => exact absurd hx (hdl.1 (keyName, k) hsb hhb hv hs)
+    | some v => rw [hs] at hS'; rw [← hS']; rfl
+
 /-- **The compacting range's token** (`batchTxSpecG`'s limited-range clause; review round 2, R2-3):
 the batch lock held in a session of the write transaction `tx` the range read, whose operations
 since its fresh lock are deletes of registered `Key` keys and puts into `Meta` (so the writer's
@@ -2955,18 +2994,19 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
       □ (∀ (q : Qp) (m : Bucket) (bk : GoInterface) (lo hi : GoSlice)
-          (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),
+          (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac) (w0 : FkVals) (X0 : VData),
         ⌜0 < sint.Z limit ∧ sint.Z limit ≤ rangeLimitMax ∧ khi ≠ []⌝ →
         {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bk ∗ bkLocked γ P b [] ∗
-            bkView γ q m ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi }}
+            bkView γ q m ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗ bkMW γ w0 X0 }}
           (App (App (App (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeRange" #t))
             (Val #bk)) (Val #lo)) (Val #hi)) (Val #limit))
         {{ (ks vs : GoSlice), RET (PairV #ks #vs); bkView γ q m ∗ lo ↦*{dqlo} klo ∗
-            hi ↦*{dqhi} khi ∗
+            hi ↦*{dqhi} khi ∗ bkMW γ w0 X0 ∗
             ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (U : Nat → IProp GF),
               U ((sint.Z limit).toNat + 1) ∗
               snapThin m m' (bkDel γ) ∗
+              ⌜∀ k, snap.physLookup m X0 k ≠ none → (m'.lookup k).isSome⌝ ∗
               (□ ∀ n : Nat, rdCap Rd (U n)) ∗ (□ ∀ n : Nat, rdCap2 Rd (U n)) ∗
               pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
               □ (∀ (key : GoSlice) (k : GoString) (n : Nat),
@@ -2985,8 +3025,8 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
                     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"Unlock" #t))
                     (Val #()))
                   {{ RET #(); True }}) }}) := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %q %m %bk %lo %hi %klo %khi %lim %dqlo %dqhi %Hlim %Φ
-    !> ⟨#HK, Hl, Hv, Hlo, Hhi⟩ HΦ
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %q %m %bk %lo %hi %klo %khi %lim %dqlo %dqhi %w0 %X0 %Hlim %Φ
+    !> ⟨#HK, Hl, Hv, Hlo, Hhi, HMW⟩ HΦ
   obtain ⟨hl0, hlm, hne⟩ := Hlim
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
     %HPw⟩
@@ -3005,6 +3045,15 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
   have hB : bktOf st.S go_etcd_io.etcd.server.v3.storage.schema.keyName =
       GMap.filter (fun k _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome) m :=
     GMap.ext (fun k => bktOf_of_sData hP hS k)
+  -- (the job's cursor) the range reads every entry of the physical bucket
+  icases batchLocked_bkMW γ P b st w0 X0 $$ [$Hl $HMW] with ⟨Hl, HMW, %HwX⟩
+  icases batchLocked_dlsW γ P b st q vd $$ [$Hl $Hv] with ⟨Hl, Hv, %HdW⟩
+  have Hphys : ∀ k, snap.physLookup m X0 k ≠ none →
+      ((GMap.filter (fun k _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome) m).lookup k).isSome := by
+    intro k hk
+    rw [HwX.2] at hk
+    have := key_phys_sub hP Hvd hS (HdW.2.1 (HdW.2.2 Hs.2.2.2.2)) k hk
+    simpa using this
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
   ihave %Hiff := endKey_nil_iff hi khi dqhi hne $$ Hhi
   iapply wp_fupd
@@ -3016,7 +3065,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
   imod kvsOutRd_pairVals st.tx ks vs _ $$ Hout with #Hkv
   imodintro
   iapply HΦ
-  iframe Hlo Hhi
+  iframe Hlo Hhi HMW
   isplitl [Hv]
   · iunfold bkView
     iexists vd
@@ -3047,7 +3096,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     have : ((sint.Z lim).toNat : Int) = sint.Z lim := Int.toNat_of_nonneg (by omega)
     push_cast
     omega
-  -- the bucket read: the logical bucket thin of the registered keys
+  -- the bucket read: the logical bucket thin of the registered keys, holding the physical one
   isplitr
   · iunfold snapThin
     isplitr
@@ -3074,6 +3123,8 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
         ipureintro
         refine ⟨?_, hq⟩
         rw [Hvd]; simp [hm]
+  isplitr
+  · ipureintro; exact Hphys
   -- its slices, readable under the token
   isplitr
   · iintro !> %n

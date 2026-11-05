@@ -220,6 +220,17 @@ structure StoreNames where
   compaction revision), so that the holder of the writer's state sees the records restore to the
   API's compaction revision (`mvccImage_snapshot.law`) -/
   rcv : GName := 0
+  /-- (the snapshot image's tracking, the job, 2026-11-06; physical) the compaction job's cursor
+  (`ghostVar (Int × Rev)`, a compacting real backend's): half in the batch lock's resource
+  (`cmpTrack`, the last job's revision and position, `snap.cmpOk`'s `jc`), half the compactor's
+  (`compactTok`'s `jobCur`, handed from job to job), so that a job finds its own cursor between its
+  batches -/
+  jc : GName := 0
+  /-- (the job, 2026-11-06; physical) the records' compaction revision's lower bounds
+  (`monoNatAuthOwn` of `crevN`): the authority in the batch lock's resource (`cmpTrack`), a lower
+  bound minted by `updateCompactRev` at the revision it schedules (`cmpLb`, in the job's premise),
+  so that the job's revision is at most the records' -/
+  rcl : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -257,8 +268,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => (((((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx), x.cperm), x.api), x.rcv))
-    (fun r3 => let r2 := r3.1; let r1 := r2.1; let r0 := r1.1; let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2, r1.2, r2.2, r3.2⟩)
+    (fun x : StoreNames => (((((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx), x.cperm), x.api), (x.rcv, x.jc, x.rcl)))
+    (fun r3 => let r2 := r3.1; let r1 := r2.1; let r0 := r1.1; let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2, r1.2, r2.2, r3.2.1, r3.2.2.1, r3.2.2.2⟩)
     (fun _ => rfl)
 
 /-- **The store's physical ghost names** (D22 receiver epochs, S5b, 2026-10-22): those of one
@@ -284,23 +295,26 @@ structure PhysNames where
   sx : GName
   /-- (the snapshot image's (c)) the records' compaction revision (`StoreNames.rcv`) -/
   rcv : GName
+  /-- (the job, 2026-11-06) the job's cursor and the records' lower bounds (`StoreNames.jc`, `rcl`) -/
+  jc : GName
+  rcl : GName
 
 instance physNames_countable : Pos.Countable PhysNames :=
   countableOfLeftInverse
-    (fun x : PhysNames => (((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx), x.rcv))
-    (fun q' => let q := q'.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2, q.2.1, q.2.2, q'.2⟩)
+    (fun x : PhysNames => (((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx), (x.rcv, x.jc, x.rcl)))
+    (fun q' => let q := q'.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2, q.2.1, q.2.2, q'.2.1, q'.2.2.1, q'.2.2.2⟩)
     (fun _ => rfl)
 
 /-- The physical names of the store's names `γ`. -/
 def StoreNames.phys (γ : StoreNames) : PhysNames :=
   ⟨γ.idx.nev, γ.idx.cmp, γ.bucket, γ.hook, γ.hookFn, γ.kb, γ.cmeta, γ.fin, γ.sch, γ.wk, γ.wv, γ.mwk,
-    γ.sx, γ.rcv⟩
+    γ.sx, γ.rcv, γ.jc, γ.rcl⟩
 
 /-- **The store's names `γ` at the physical names `p`** (S5b): the logical names `γ`'s. -/
 def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
   ⟨⟨γ.idx.hist, p.nev, γ.idx.log, γ.idx.crev, p.cmp⟩, p.bucket, γ.clog, γ.leases, γ.revs, p.hook,
     p.hookFn, p.kb, p.cmeta, p.fin, p.sch, γ.cok, γ.watchQ, γ.wr, p.wk, p.wv, γ.cur, γ.rst, γ.tk,
-    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx, γ.cperm, γ.api, p.rcv⟩
+    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx, γ.cperm, γ.api, p.rcv, p.jc, p.rcl⟩
 
 @[simp] theorem StoreNames.withPhys_phys (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).phys = p := rfl
@@ -408,6 +422,12 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 
 @[simp] theorem StoreNames.withPhys_rcv (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).rcv = p.rcv := rfl
+
+@[simp] theorem StoreNames.withPhys_jc (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).jc = p.jc := rfl
+
+@[simp] theorem StoreNames.withPhys_rcl (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).rcl = p.rcl := rfl
 
 
 /-- **The store's objects** (D22 receiver epochs, S3, 2026-10-22): the values of the four fields
@@ -1528,7 +1548,9 @@ readable under any `U n` (`rdCap`/`rdCap2`: bbolt's slices die at the session's 
 returned that compaction may delete (`Del k`, the store's `delKey`) is deleted, and a compaction key
 (`metaCompactKey`) put into `Meta` with a value the store writes there (`metaRevVal`), each from
 `U (n + 1)` to `U n`, the view unchanged (the deletion shows only in what later reads may miss);
-`Unlock` takes any `U n`. A `Meta` put on its own (`metaPutCap`) goes from `Locked []` to such a
+`Unlock` takes any `U n`. (The snapshot image's tracking, the job, 2026-11-06) The range, lent the
+right `MW w0 X0`, reads every entry of the physical bucket (the view but the deleted entries `X0`
+the backend records, `snap.physLookup`): what the job's cursor needs. A `Meta` put on its own (`metaPutCap`) goes from `Locked []` to such a
 token. Every `Meta` put of a compaction key, the job's and the one on its own, also takes and gives
 back the right `MW w X` to write them (`kbMWv`: the real backend's half of its compaction-key flag;
 review rounds 8-9), at the compaction keys' values `w` and the deleted entries `X` the backend
@@ -1594,17 +1616,19 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
     -- `Meta` from `U (n + 1)` to `U n`, and `Unlock` takes any `U n`; no put or second range after
     -- it (the job makes neither), so the backend's count stays local to the call
     □ (⌜Cmp⌝ -∗ ∀ (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
-        (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),
+        (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac) (w0 : backend.FkVals)
+        (X0 : backend.VData),
       ⌜0 < sint.Z limit ∧ sint.Z limit ≤ rangeLimitMax ∧ khi ≠ []⌝ →
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked [] ∗ View q m ∗
-          lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi }}
+          lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗ MW w0 X0 }}
         (App (App (App (App (Val #(methods bt.ty go!"UnsafeRange" bt.v)) (Val #b)) (Val #lo))
           (Val #hi)) (Val #limit))
       {{ (ks vs : GoSlice), RET (PairV #ks #vs); View q m ∗ lo ↦*{dqlo} klo ∗
-          hi ↦*{dqhi} khi ∗
+          hi ↦*{dqhi} khi ∗ MW w0 X0 ∗
           ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (U : Nat → IProp GF),
             U ((sint.Z limit).toNat + 1) ∗
             snapThin m m' Del ∗
+            ⌜∀ k, snap.physLookup m X0 k ≠ none → (m'.lookup k).isSome⌝ ∗
             (□ ∀ n : Nat, rdCap Rd (U n)) ∗ (□ ∀ n : Nat, rdCap2 Rd (U n)) ∗
             pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
             □ (∀ (key : GoSlice) (k : GoString) (n : Nat),
@@ -2451,6 +2475,14 @@ instance crevUB_timeless (γ : IdxNames) (q : Qp) (c : Int) :
     Timeless (crevUB (GF := GF) γ q c) := by
   unfold crevUB; infer_instance
 
+/-- **The compactor's half of the job's cursor** (the job, 2026-11-06; `StoreNames.jc`): a compacting
+real backend's, at the last job's revision and position `jc`; nothing otherwise. In `compactTok`,
+handed from job to job. -/
+def jobCur (γ : StoreNames) (jc : Int × Rev) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then ghostVar γ.jc (1 : Qp).half jc else iprop(True)
+  | none => iprop(True)
+
 /-- **The index compactor's token, at or below `c`** (exclusive): the index's compactor token
 (`idxCompactor`, `treeIndex.Compact`'s) at the revision of the last compaction of the index, at most
 `c` (a compaction job at `c` may find the index compacted below it: an earlier job interrupted
@@ -2458,17 +2490,20 @@ before its pass, by a cancelled context, leaves the token where it was; 2026-10-
 the job's budgets (`compactJobResM`: a compacting real store's reader token and safe-range slot;
 question 5's core stage, part (1)), handed from job to job with it. -/
 def compactTok (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop((∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c') ∗ compactJobResM γ.kb)
+  iprop((∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c') ∗ compactJobResM γ.kb ∗
+    ∃ jc : Int × Rev, jobCur γ jc ∗ ⌜jc.1 ≤ c⌝)
 
 /-- The compactor's token is good at any higher revision. -/
 theorem compactTok_mono (γ : StoreNames) (c c' : Int) (h : c ≤ c') :
     compactTok (GF := GF) γ c ⊢ compactTok γ c' := by
   unfold compactTok
-  iintro ⟨⟨%c₀, %h₀, H⟩, Hj⟩
+  iintro ⟨⟨%c₀, %h₀, H⟩, Hj, %jc, Hc, %hjc⟩
   iframe Hj
-  iexists c₀
-  iframe H
-  ipureintro; omega
+  isplitl [H]
+  · iexists c₀
+    iframe H
+    ipureintro; omega
+  iexists jc; iframe Hc; ipureintro; omega
 
 /-- **The compaction jobs' queue** at `c` (exclusive; 2026-10-13, unit 5c): the store's
 scheduler's queue of tracked jobs (`schedule.schedQueue`), whose last name `p` saves the `Post`
@@ -2889,8 +2924,9 @@ def cmpTrack (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) : IProp GF 
   match γ.kb with
   | some d => if d.cm = true then
       iprop(backend.fkdOwn d.γB (recBytes rc.fin, recBytes rc.sched) ∗
-        ghostVar γ.rcv (1 : Qp).half rc.crev ∗
-        ∃ (X : backend.VData) (jc : Int × Rev), backend.dlsOwn d.γB X ∗ ⌜snap.cmpOk L m X rc jc⌝)
+        ghostVar γ.rcv (1 : Qp).half rc.crev ∗ monoNatAuthOwn γ.rcl 1 (crevN rc.crev) ∗
+        ∃ (X : backend.VData) (jc : Int × Rev), backend.dlsOwn d.γB X ∗
+          ghostVar γ.jc (1 : Qp).half jc ∗ ⌜snap.cmpOk L m X rc jc⌝)
     else iprop(True)
   | none => iprop(True)
 
@@ -2899,9 +2935,42 @@ compaction revision's half and the cut. -/
 def cmpRest (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) (X : backend.VData) : IProp GF :=
   match γ.kb with
   | some d => if d.cm = true then
-      iprop(ghostVar γ.rcv (1 : Qp).half rc.crev ∗ ∃ jc : Int × Rev, ⌜snap.cmpOk L m X rc jc⌝)
+      iprop(ghostVar γ.rcv (1 : Qp).half rc.crev ∗ monoNatAuthOwn γ.rcl 1 (crevN rc.crev) ∗
+        ∃ jc : Int × Rev, ghostVar γ.jc (1 : Qp).half jc ∗ ⌜snap.cmpOk L m X rc jc⌝)
     else iprop(True)
   | none => iprop(True)
+
+/-- The compactor's half of the job's cursor, from its ghost variable (dropped for a backend that
+does not track it). -/
+theorem jobCur_intro (γ : StoreNames) (jc : Int × Rev) :
+    ghostVar (GF := GF) γ.jc (1 : Qp).half jc ⊢ jobCur γ jc := by
+  unfold jobCur
+  split
+  · split
+    · iintro H; iexact H
+    · iintro -; itrivial
+  · iintro -; itrivial
+
+/-- A store that does not compact has no cursor to hand on. -/
+theorem jobCur_off (γ : StoreNames) (h : ¬ kbCmpM γ.kb) (jc : Int × Rev) : ⊢ jobCur (GF := GF) γ jc := by
+  unfold jobCur kbCmpM at *
+  split
+  · rename_i d hk; rw [hk] at h; simp only at h; simp only [h, Bool.false_eq_true, ↓reduceIte]
+    iintro; itrivial
+  · iintro; itrivial
+
+/-- **A lower bound of the records' compaction revision** (persistent; the job, 2026-11-06;
+`StoreNames.rcl`): for a compacting real backend, the records' compaction revision is at least `c`,
+a revision past `0` (`updateCompactRev` mints it at the revision it schedules, for the job). -/
+def cmpLb (γ : StoreNames) (c : Int) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then iprop(monoNatLbOwn γ.rcl (crevN c) ∗ ⌜1 ≤ c⌝) else iprop(True)
+  | none => iprop(True)
+
+instance cmpLb_persistent (γ : StoreNames) (c : Int) : Persistent (cmpLb (GF := GF) γ c) := by
+  unfold cmpLb; split
+  · split <;> infer_instance
+  · infer_instance
 
 /-- **A compacting store's tracked compaction is its values' halves and the rest** (what a session
 holder takes out with the write right's flag, `kbMWv_split`). -/
@@ -2916,15 +2985,24 @@ theorem cmpTrack_split (γ : StoreNames) (h : kbCmpM γ.kb) (L : Log) (m : Bucke
     simp only at h
     simp only [h, ↓reduceIte]
     constructor
-    · iintro ⟨Hf, Hr, %X, %jc, Hd, %Hc⟩
-      iexists X; iframe Hf Hd Hr; iexists jc; ipureintro; exact Hc
-    · iintro ⟨%X, ⟨Hf, Hd⟩, Hr, %jc, %Hc⟩
-      iframe Hf Hr; iexists X, jc; iframe Hd; ipureintro; exact Hc
+    · iintro ⟨Hf, Hr, Hl, %X, %jc, Hd, Hj, %Hc⟩
+      iexists X; iframe Hf Hd Hr Hl; iexists jc; iframe Hj; ipureintro; exact Hc
+    · iintro ⟨%X, ⟨Hf, Hd⟩, Hr, Hl, %jc, Hj, %Hc⟩
+      iframe Hf Hr Hl; iexists X, jc; iframe Hd Hj; ipureintro; exact Hc
   | none =>
     simp only
     constructor
     · iintro -; iexists ∅; isplitl <;> itrivial
     · iintro -; itrivial
+
+/-- A store that does not compact tracks nothing. -/
+theorem cmpTrack_off (γ : StoreNames) (h : ¬ kbCmpM γ.kb) (L : Log) (m : Bucket) (rc : CmpRecs) :
+    ⊢ cmpTrack (GF := GF) γ L m rc := by
+  unfold cmpTrack kbCmpM at *
+  split
+  · rename_i d hk; rw [hk] at h; simp only at h; simp only [h, Bool.false_eq_true, ↓reduceIte]
+    iintro; itrivial
+  · iintro; itrivial
 
 /-- The compaction's part of the batch lock's resource (at the batch lock's log `L`): the meta keys' record and the finished
 compactions' counter, at or above the record's finished revision (the highest revision a job
@@ -3262,15 +3340,16 @@ instance mwSwap_persistent (W MW : IProp GF) : Persistent (mwSwap (GF := GF) W M
 /-- **A lock holder's loan of the write right at its values, for one put** (the snapshot image's
 (a), 2026-11-05: `SetScheduledCompact`'s, in place of `mwSwap`): the batch lock's resource `W` and a
 later credit give the right at some values `w` and deleted entries `X`, and the right at the put's
-values `f w` (the same deleted entries) gives `W` back. The store's re-pins its tracked compaction at
-the new record there (`compactRes`). -/
+values `f w` (the same deleted entries) gives `W` back, with `Q` (the job's lower bound of the
+records' compaction revision, `cmpLb`: the job, 2026-11-06). The store re-pins its tracked
+compaction at the new record there (`compactRes`). -/
 def mwLend (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
-    (f : backend.FkVals → backend.FkVals) : IProp GF :=
+    (f : backend.FkVals → backend.FkVals) (Q : IProp GF := iprop(True)) : IProp GF :=
   iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ (w : backend.FkVals) (X : backend.VData), MW w X ∗
-    (MW (f w) X ={⊤}=∗ W)))
+    (MW (f w) X ={⊤}=∗ W ∗ Q)))
 
 instance mwLend_persistent (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
-    (f : backend.FkVals → backend.FkVals) : Persistent (mwLend (GF := GF) W MW f) := by
+    (f : backend.FkVals → backend.FkVals) (Q : IProp GF) : Persistent (mwLend (GF := GF) W MW f Q) := by
   unfold mwLend; infer_instance
 
 instance kbWTSupply_persistent (kb : Option KBReal) : Persistent (kbWTSupply (GF := GF) kb) := by
@@ -3338,6 +3417,19 @@ def regLent (γ : StoreNames) : IProp GF :=
 
 instance regLent_timeless (γ : StoreNames) : Timeless (regLent (GF := GF) γ) := by
   unfold regLent; split <;> infer_instance
+
+/-- **A registered store's registration is not lent** (the job's exclusion of a freezer's loan,
+`storeW_open`'s `LE`: the job, 2026-11-06). -/
+theorem storeRegd_regLent (s : Loc) (γ : StoreNames) :
+    storeRegd (GF := GF) s γ ∗ regLent γ ⊢ False := by
+  unfold storeRegd regLent
+  cases γ.kb with
+  | none => simp only; iintro ⟨-, H⟩; iexact H
+  | some d =>
+    simp only
+    iintro ⟨H1, H2, -⟩
+    ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ H1 H2
+    cases Hc
 
 /-- The registration's invariant's name. -/
 abbrev regN : Namespace := (nroot .@ "mvcc") .@ "reg"

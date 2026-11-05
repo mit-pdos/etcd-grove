@@ -31,8 +31,9 @@ theorem mvcc.store.scheduleCompaction.wp_proof (h0 : mvcc.treeIndex.Compact.spec
                 mvcc.fieldShareAt s γ q o ∗
                     mvcc.idxCompactor γ.idx (sint.Z rev) ∗
                       mvcc.compactJobResM γ.kb ∗
-                        (⌜err = GoInterface.nil⌝ ∗ mvcc.compactedAt γ (sint.Z rev) ∨
-                          mvcc.errorfIs err ∗ mvcc.storeStopped γ) -∗
+                        (∃ jc, mvcc.jobCur γ jc ∗ ⌜jc.fst ≤ sint.Z rev⌝) ∗
+                          (⌜err = GoInterface.nil⌝ ∗ mvcc.compactedAt γ (sint.Z rev) ∨
+                            mvcc.errorfIs err ∗ mvcc.storeStopped γ) -∗
                   Φ (intoVal h, intoVal err)) -∗
             WP
               (((intoVal

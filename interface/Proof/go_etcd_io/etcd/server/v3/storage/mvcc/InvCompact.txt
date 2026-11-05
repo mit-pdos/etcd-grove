@@ -64,8 +64,10 @@ def mvcc.compactJobPre (s : Loc) (γ : mvcc.StoreNames) (rev : w64) : IProp GF :
         ⌜mvcc.storeCmp γ⌝ ∗
           mvcc.crevLb γ.idx (sint.Z rev) ∗
             mvcc.kbWTSupplyM γ.kb ∗
-              ∃ log,
-                mvcc.idxCert γ.idx log ∗ mvcc.idxNevLb γ.idx log ∗ ⌜0 ≤ sint.Z rev ∧ sint.Z rev < ↑(List.length log)⌝)
+              mvcc.cmpLb γ (sint.Z rev) ∗
+                mvcc.storeRegd s γ ∗
+                  ∃ log,
+                    mvcc.idxCert γ.idx log ∗ mvcc.idxNevLb γ.idx log ∗ ⌜0 ≤ sint.Z rev ∧ sint.Z rev < ↑(List.length log)⌝)
 
 def mvcc.barrierCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(⌜ctx = mvcc.todoCtxV⌝ ∨ context.isContext ctx cd)

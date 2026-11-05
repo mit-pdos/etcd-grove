@@ -296,19 +296,22 @@ theorem batchTxSpecG_congrDel (bt : GoInterfaceOk) (View : Qp → Bucket → IPr
       iframe HT Hback Hcap Hv Hkey
       iright
       iframe Hks Hvs Hdk'
-  iintro !> %hc %q %m %b %lo %hi %klo %khi %limit %dqlo %dqhi %hl %Φ !> Hpre HΦ
+  iintro !> %hc %q %m %b %lo %hi %klo %khi %limit %dqlo %dqhi %w0 %X0 %hl %Φ !> Hpre HΦ
   iapply wp_fupd
-  iapply H7 $$ %hc %q %m %b %lo %hi %klo %khi %limit %dqlo %dqhi %hl Hpre
+  iapply H7 $$ %hc %q %m %b %lo %hi %klo %khi %limit %dqlo %dqhi %w0 %X0 %hl Hpre
   inext
-  iintro %ks %vs ⟨Hv, Hlo, Hhi, %m', %Rd, %U, HU, #Hth, #Hc1, #Hc2, Hpv, #Hdel, #Hmp, #Hul⟩
+  iintro %ks %vs ⟨Hv, Hlo, Hhi, HMW0, %m', %Rd, %U, HU, #Hth, %Hph, #Hc1, #Hc2, Hpv, #Hdel, #Hmp,
+    #Hul⟩
   ihave Hth' := snapThin_congr m m' Del Del' $$ [$Hth]
   · iintro !>; iexact Hf
   imod Hth'
   imodintro
   iapply HΦ
-  iframe Hv Hlo Hhi
+  iframe Hv Hlo Hhi HMW0
   iexists m', Rd, U
   iframe HU Hth' Hc1 Hc2 Hpv Hmp Hul
+  isplitr
+  · ipureintro; exact Hph
   iintro !> %key %k %n %w %X %Ψ !> ⟨HK, HU, HDk, #HRd, %Hm, Hmw⟩ HΨ
   iapply Hdel $$ %key %k %n %w %X [HK HU HDk Hmw] HΨ
   iframe HK HU HRd Hmw

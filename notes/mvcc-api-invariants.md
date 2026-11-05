@@ -1059,3 +1059,55 @@ found false or too weak):
 
 **Left**: the four placeholders above (the job's first, then `NewStore`/`Restore` with M3); M3
 (`mvccBackendFor`, `mvccBackendFor_open.law`, `fkCl` exact).
+
+## Hand-off: stage 2, the job's tracking (2026-11-06)
+
+**Done** (no axiom; `cmpTrack_job_M1` deleted; no frozen statement found false or too weak):
+- **The compacting range exact on the physical bucket** (`batchTxSpecG`'s limited range, lent the
+  right `MW w0 X0`, gives it back with `⌜∀ k, snap.physLookup m X0 k ≠ none → (m'.lookup k).isSome⌝`:
+  every entry of the physical bucket is in the range's bucket). Proved in `BackendBridge`
+  (`bt_rangeC`, from `batchLocked_bkMW`, the new `batchLocked_dlsW` and `key_phys_sub`: the session's
+  `Key` bucket is the logical view but the recorded deletes, `dlsOk`). Stated one way only (the
+  range's bucket holds the physical one, not equals it), so mvcc's assumed backend, whose `MW`
+  ignores `X0`, can still meet it (a backend that never deletes physically).
+- **The job's cursor** (`StoreNames.jc`/`PhysNames.jc`, `ghostVar (Int × Rev)`): half in `cmpTrack`
+  (with `snap.cmpOk`'s `jc`), half the compactor's (`jobCur γ jc`, in `compactTok` with `jc.1 ≤ c`;
+  the job's spec gives it back at its revision). **The records' compaction revision's lower bounds**
+  (`StoreNames.rcl`, `monoNatAuthOwn` of `crevN` in `cmpTrack`/`cmpRest`): `updateCompactRev` mints
+  `cmpLb γ rev` (with `1 ≤ rev`) at the record's write, out of `SetScheduledCompact`'s loan
+  (`mwLend W MW f Q`: the loan's new output `Q`, returned by `SetScheduledCompact`'s spec), into
+  `compactJobPre`. `NewStore` and `store.Restore` allocate both (the cursor at `(-1, ⟨0, 0⟩)`).
+- **`Api/CmpJob.lean`**: pure, the cursor's order on keys (`rb_lt`, `rb_le`, `zeros_le`,
+  `revSucc_lt`), `job_gap` (no physical entry between the cursor and the batch's `i`th entry, from the
+  range's exactness and key order), `cmpOk_step` (one entry deleted, `cutAt_del`, or kept,
+  `not_KeyDel_of_keep`), `cmpOk_start` (a job's first batch at cursor `⟨0, 0⟩`, from `cmpLb`);
+  Iris, the session's tracking `sessTrk` (the cursor's ghost whole): `sess_open`, `sess_mono`,
+  `sess_fin` (`cmpOk_fin`), `sess_close`.
+- **`store.scheduleCompaction`** keeps the tracked compaction through every batch: per entry the
+  cut and cursor move (`cmpOk_step`), the last batch's finished record (`sess_fin`), the cursor's
+  halves split back at each `Unlock`.
+
+- **The job's registration** (`regLent_excl_M1`'s first use gone): `compactJobPre` holds
+  `storeRegd s γ`, minted with `cmpLb` in `updateCompactRev`'s loan (whose `storeW_open` registers);
+  the job's `storeW_open` excludes a snapshot's loan with it (`storeRegd_regLent`).
+
+**Placeholders left** (`M1Placeholders.lean`, three of the snapshot tracking's four):
+- `regLent_excl_M1`: now only `compactLend_sched` (`updateCompactRev`'s loan). Fix (unchanged): the
+  compactor's backend share in `updateCompactRev`'s premise (`KV.Compact.contract`), `storeW_open`'s
+  exclusion generalized to an update opening `writerInv` (the freezer's frozen state holds the whole
+  share, `shareTok 1`, so a share in hand and the lent flag's quarter contradict every state:
+  `▷ False` is timeless), the restore's resumed compaction by its restoring state.
+- `rcvSched_M1`: unchanged. Finding: it cannot be fixed apart from `slotX_step_M1`. The writer's slot
+  `slotY` ties its `rcv` half to its view's compaction revision (`absPart γ.api ¼ L c ∗ … ∗ rcvW ½ c`),
+  so moving `rcv` to `rev` at the record's write moves the writer's part of the API's compaction
+  authority too: `KV.Compact.contract`'s update (the client's atomic update) must fire there, inside
+  `SetScheduledCompact`'s loan, with `s.revMu`'s part (today `slotX_step_M1`, earlier, under
+  `s.revMu`). `updateCompactRev`'s spec then carries the contract's update into the loan, and its
+  compactor's share keeps a freeze out of the window between `s.revMu`'s section and the batch
+  lock's (`snapObs` needs `rc.crev = σ.crev` at a freeze): the share is the key of both this and
+  `regLent_excl_M1`'s fix.
+- `cmpTrack_new_M1` (restated: from the halves of `rcv` and `jc` and the `rcl` authority; still the
+  values' halves and the cut missing): M3, unchanged.
+
+**Left**: the three placeholders above; M3 (`mvccBackendFor`, `mvccBackendFor_open.law`, `fkCl`
+exact, `NewStore`/`Restore` from the image).

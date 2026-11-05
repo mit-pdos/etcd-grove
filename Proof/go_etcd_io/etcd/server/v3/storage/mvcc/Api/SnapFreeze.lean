@@ -255,8 +255,9 @@ theorem bucketView_some (q : Qp) (m : Bucket) : bucketView (GF := GF) γ q m ⊣
 theorem cmpTrack_some (hc : d.cm = true) (L : Log) (m : Bucket) (rc : CmpRecs) :
     cmpTrack (GF := GF) γ L m rc ⊣⊢
       backend.fkdOwn d.γB (recBytes rc.fin, recBytes rc.sched) ∗
-        ghostVar γ.rcv (1 : Qp).half rc.crev ∗
-        ∃ (X : backend.VData) (jc : Int × Rev), backend.dlsOwn d.γB X ∗ ⌜snap.cmpOk L m X rc jc⌝ := by
+        ghostVar γ.rcv (1 : Qp).half rc.crev ∗ monoNatAuthOwn γ.rcl 1 (crevN rc.crev) ∗
+        ∃ (X : backend.VData) (jc : Int × Rev), backend.dlsOwn d.γB X ∗
+          ghostVar γ.jc (1 : Qp).half jc ∗ ⌜snap.cmpOk L m X rc jc⌝ := by
   unfold cmpTrack; rw [hk]; simp only [hc, ↓reduceIte]; exact .rfl
 theorem rcvW_some (hc : d.cm = true) (q : Qp) (c : Int) :
     rcvW (GF := GF) γ q c ⊣⊢ ghostVar γ.rcv q c := by
@@ -446,7 +447,7 @@ theorem snapObs_writerRes (s' : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb 
   subst HL
   iunfold compactRes at Hcres
   icases Hcres with ⟨%sched, %fin, %n, %m, -, -, -, -, Hbv, Htr⟩
-  icases (cmpTrack_some γ d hk hc L m _).1 $$ Htr with ⟨Hfk', Hrc', %X', %jc, Hdl', %Hok⟩
+  icases (cmpTrack_some γ d hk hc L m _).1 $$ Htr with ⟨Hfk', Hrc', -, %X', %jc, Hdl', -, %Hok⟩
   ihave Hrc := (rcvW_some γ d hk hc _ c).1 $$ Hrc
   iunfold backend.fkdOwn at Hfk Hfk'
   iunfold backend.dlsOwn at Hdl Hdl'

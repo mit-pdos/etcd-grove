@@ -12,8 +12,9 @@ may use them. (Elsewhere, listed: `RestoreMoves`' five local ones.)
 
 The snapshot image's store-side tracking (2026-11-05, `notes/mvcc-api-invariants.md`, "the snapshot
 image's tracking in place"): the batch lock's resource pins the tracked compaction (`cmpTrack`), so
-the steps that move it must re-establish it; those not yet proved are the four below
-(`regLent_excl_M1`, `rcvSched_M1`, `cmpTrack_new_M1`, `cmpTrack_job_M1`). `snapObs_M1` (the frozen
+the steps that move it must re-establish it; those not yet proved are the three below
+(`regLent_excl_M1`, `rcvSched_M1`, `cmpTrack_new_M1`; the job's, `cmpTrack_job_M1`, is gone: the job's
+cursor and its per-entry cut, `Api/CmpJob.lean`, 2026-11-06). `snapObs_M1` (the frozen
 store's part of a snapshot's observation) is gone: `mvccImage_snapshot.law_holds` is proved.
 -/
 module
@@ -56,10 +57,10 @@ theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢
   sorry -- M1-REPLACE: KV.Write.contract, Txn.End.contract (the backend share)
 
 /-- **(Placeholder, false in general.)** The registration lent to a snapshot's freezer excluded by
-the compaction's opener (`updateCompactRev`'s session, the job's) without the means to.
+`updateCompactRev`'s session (`compactLend_sched`) without the means to. (The job's is gone: its
+premise `storeRegd`, minted by `updateCompactRev`, excludes the loan, `storeRegd_regLent`.)
 M1-REPLACE: `KV.Compact.contract` (the compactor's backend share excludes the freezer, which holds
-the whole share; the restore's resumed compaction: the restoring state excludes it) and the job's
-registration premise (`storeRegd`, from `updateCompactRev`). -/
+the whole share; the restore's resumed compaction: the restoring state excludes it). -/
 theorem regLent_excl_M1 (γ : StoreNames) : iprop(emp) ∗ regLent (GF := GF) γ ⊢ False := by
   sorry -- M1-REPLACE: KV.Compact.contract (the share excludes the freezer's loan), the job's storeRegd
 
@@ -74,24 +75,15 @@ theorem rcvSched_M1 (γ : StoreNames) (L : Log) (c rev : Int) :
   sorry -- M1-REPLACE: KV.Compact.contract (the writer's slot moves with the records)
 
 /-- **(Placeholder, false in general.)** A new batch lock's tracked compaction (`NewStore`'s and
-`store.Restore`'s), from the records' compaction revision's half only. M1-REPLACE: M3's exact open
+`store.Restore`'s), from the halves of the records' compaction revision and of the job's cursor
+(at the last job's `jc`) and the lower bounds' authority only. M1-REPLACE: M3's exact open
 (`mvccBackendFor_open.law`: the backend's open gives `fkdOwn γ (fkVals D) ∗ dlsOwn γ ∅`, `fkCl`),
 the image's cut (`imageOk`'s `ents`), and `NewStore`'s and `Restore`'s order (the values' halves
 taken before `restore()`). -/
-theorem cmpTrack_new_M1 (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) :
-    rcvW (GF := GF) γ (1 : Qp).half rc.crev ⊢ cmpTrack γ L m rc := by
+theorem cmpTrack_new_M1 (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) (jc : Int × Rev) :
+    ghostVar (GF := GF) γ.rcv (1 : Qp).half rc.crev ∗ ghostVar γ.jc (1 : Qp).half jc ∗
+      monoNatAuthOwn γ.rcl 1 (crevN rc.crev) ⊢ cmpTrack γ L m rc := by
   sorry -- M1-REPLACE: M3's exact open, the image's cut (NewStore, store.Restore)
-
-/-- **(Placeholder, false in general.)** The compaction job's session keeps the tracked compaction:
-its deletes (`X` to `X'`) and its finished record. M1-REPLACE: the job's cursor (`StoreNames.jc`,
-`compactTok`), `cutAt_del`/`jobPast_skip` per entry, the compacting range's exactness on the
-physical view, `cmpOk_fin` (`notes/mvcc-api-invariants.md`, "the snapshot image's tracking in
-place"). -/
-theorem cmpTrack_job_M1 (γ : StoreNames) (L : Log) (m : Bucket) (rc rc' : CmpRecs)
-    (X X' : backend.VData) :
-    cmpRest (GF := GF) γ L m rc X ∗ kbVals γ.kb (recBytes rc'.fin, recBytes rc'.sched) X' ⊢
-      cmpTrack γ L m rc' := by
-  sorry -- M1-REPLACE: the job's cursor and per-entry cut (store.scheduleCompaction)
 
 end placeholders
 

@@ -263,7 +263,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
         (Val #(GoInterface.ok bt))) (Val #rev))
       -- (M2, item 31) by the hook's state: set, the caller's contract; unset (`restore()`'s resumed
       -- compaction), `LockInsideApply`'s nil arm (`batchTxSpecG`'s `lockNilSpec`, the unset hook lent)
-      iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ mvcc.storeRT γ ∗ Post ∗ mvcc.lockBackM γ P hk)))
+      iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ mvcc.storeRT γ ∗ Post ∗ mvcc.lockBackM γ P hk ∗
+        mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ)))
         $$ [Hctx HRTok Hwt1 Hlc2]
       · cases hk with
         | some f =>
@@ -287,7 +288,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
           -- (question 5's core stage) the store's swap of its lock's resource for the right
           iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
               (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-              (mvcc.kbMWv γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
+              (mvcc.kbMWv γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post
+              iprop(mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ)
+              hrev0) $$ [HPre Hupd HRTok Hwt1]
           · rw [mvcc.lockArmS_some]
             iframe #
             iframe HPre HRTok Hwt1
@@ -298,8 +301,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
             iframe HP0 HPost HW
 
           inext
-          iintro ⟨HRTok, HPost⟩
-          iframe HRTok HPost
+          iintro ⟨HRTok, HPost, #HQl, #HQr⟩
+          iframe HRTok HPost HQl HQr
           isplitr
           · ipureintro; rfl
           iapply (mvcc.hookIs_split γ P f).2; iframe HwFrag HhookC
@@ -312,7 +315,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
           iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
               (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
               (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNil γ.kb) none rev Pre Q
-              iprop(Post ∗ mvcc.kbHookNil γ.kb) hrev0) $$ [HPre Hupd HRTok Hwt1 Hnil]
+              iprop(Post ∗ mvcc.kbHookNil γ.kb) iprop(mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ)
+              hrev0)
+              $$ [HPre Hupd HRTok Hwt1 Hnil]
           · rw [mvcc.lockArmS_none]
             iframe #
             iframe HPre HRTok Hwt1 Hnil
@@ -321,12 +326,12 @@ theorem mvcc.store.updateCompactRev.wp_proof
             imodintro
             iframe HPost Hn
           inext
-          iintro ⟨HRTok, HPost, Hnil⟩
-          iframe HRTok HPost
+          iintro ⟨HRTok, ⟨HPost, Hnil⟩, #HQl, #HQr⟩
+          iframe HRTok HPost HQl HQr
           isplitr
           · ipureintro; rfl
           iframe HhP HwFrag Hnil
-      iintro %v ⟨%Hv, HRTok, HPost, Hback⟩
+      iintro %v ⟨%Hv, HRTok, HPost, Hback, #HQl, #HQr⟩
       subst Hv
       -- `s.b.ForceCommit()`, with a write-back token from the supply
       imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2

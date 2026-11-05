@@ -361,36 +361,38 @@ theorem mvcc.bt_rangeC [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     = false) (hFV : ∀ (v : GoString), mvcc.metaRevVal v → P.FV v) (γ : backend.BNames) (W Pk : IProp
     GF) (b t : Loc) : isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
-    (backend.bF go!"batchTx" b) t DFrac.discard ⊢ □ ∀ q m bk lo hi klo khi limit dqlo dqhi, ⌜0 <
-    sint.Z limit ∧ sint.Z limit ≤ mvcc.rangeLimitMax ∧ khi ≠ []⌝ → □ ∀ Φ, typedPointsto (globalAddr
-    go_etcd_io.etcd.server.v3.storage.schema.Key) bk DFrac.discard ∗ mvcc.bkLocked γ P b [] ∗
-    mvcc.bkView γ q m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi -∗ (▷ ∀ ks vs, (mvcc.bkView γ q
-    m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi ∗ ∃ m' Rd U, U ((sint.Z limit).toNat + 1) ∗
-    mvcc.snapThin m m' (mvcc.bkDel γ) ∗ (□ ∀ n, mvcc.rdCap Rd (U n)) ∗ (□ ∀ n, mvcc.rdCap2 Rd (U n))
-    ∗ mvcc.pairVals Rd ks vs (List.take (sint.Z limit).toNat (mvcc.bucketRange m' klo khi)) ∗ (□ ∀
-    key k n w X, □ ∀ Φ, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) bk
-    DFrac.discard ∗ U (n + 1) ∗ mvcc.bkDel γ k ∗ □ Rd key k ∗ ⌜(m' !! k).isSome = true⌝ ∗ mvcc.bkMW
-    γ w X -∗ ▷ ((U n ∗ ∃ X', mvcc.bkMW γ w X' ∗ ⌜mvcc.dlStep X X' k⌝) -∗ Φ (intoVal ())) -∗ WP
-    (((intoVal (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-    go!"UnsafeDelete" (intoVal t))) (intoVal bk)) (intoVal key)) {{ Φ }}) ∗ (□ ∀ n w X,
-    mvcc.metaPutCap { ty :=
-                                                        go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType,
-                                                      v := intoVal t }
-                                                    iprop(U (n + 1) ∗ mvcc.bkMW γ w X) fun k v =>
-                                                    iprop(U n ∗ mvcc.bkMW γ (mvcc.fkPutV w k v) X)) ∗
-                                              □
-                                                ∀ n,
+    (backend.bF go!"batchTx" b) t DFrac.discard ⊢ □ ∀ q m bk lo hi klo khi limit dqlo dqhi w0 X0, ⌜0
+    < sint.Z limit ∧ sint.Z limit ≤ mvcc.rangeLimitMax ∧ khi ≠ []⌝ → □ ∀ Φ, typedPointsto
+    (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) bk DFrac.discard ∗ mvcc.bkLocked γ P b
+    [] ∗ mvcc.bkView γ q m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi ∗ mvcc.bkMW γ w0 X0 -∗ (▷ ∀
+    ks vs, (mvcc.bkView γ q m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi ∗ mvcc.bkMW γ w0 X0 ∗ ∃
+    m' Rd U, U ((sint.Z limit).toNat + 1) ∗ mvcc.snapThin m m' (mvcc.bkDel γ) ∗ ⌜∀ (k : GoString),
+    mvcc.snap.physLookup m X0 k ≠ none → (m' !! k).isSome = true⌝ ∗ (□ ∀ n, mvcc.rdCap Rd (U n)) ∗
+    (□ ∀ n, mvcc.rdCap2 Rd (U n)) ∗ mvcc.pairVals Rd ks vs (List.take (sint.Z limit).toNat
+    (mvcc.bucketRange m' klo khi)) ∗ (□ ∀ key k n w X, □ ∀ Φ, typedPointsto (globalAddr
+    go_etcd_io.etcd.server.v3.storage.schema.Key) bk DFrac.discard ∗ U (n + 1) ∗ mvcc.bkDel γ k ∗ □
+    Rd key k ∗ ⌜(m' !! k).isSome = true⌝ ∗ mvcc.bkMW γ w X -∗ ▷ ((U n ∗ ∃ X', mvcc.bkMW γ w X' ∗
+    ⌜mvcc.dlStep X X' k⌝) -∗ Φ (intoVal ())) -∗ WP (((intoVal (methods
+    go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType go!"UnsafeDelete"
+    (intoVal t))) (intoVal bk)) (intoVal key)) {{ Φ }}) ∗ (□ ∀ n w X, mvcc.metaPutCap { ty :=
+                                                            go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType,
+                                                          v := intoVal t }
+                                                        iprop(U (n + 1) ∗ mvcc.bkMW γ w X) fun k v =>
+                                                        iprop(U n ∗ mvcc.bkMW γ (mvcc.fkPutV w k v) X)) ∗
                                                   □
-                                                    ∀ Φ,
-                                                      U n ∗ W ∗ Pk -∗
-                                                        ▷ (True -∗ Φ (intoVal ())) -∗
-                                                          WP
-                                                            ((intoVal
-                                                                (methods
-                                                                  go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-                                                                  go!"Unlock" (intoVal t)))
-                                                              (intoVal ()))
-                                                            {{ Φ }}) -∗
+                                                    ∀ n,
+                                                      □
+                                                        ∀ Φ,
+                                                          U n ∗ W ∗ Pk -∗
+                                                            ▷ (True -∗ Φ (intoVal ())) -∗
+                                                              WP
+                                                                ((intoVal
+                                                                    (methods
+                                                                      go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
+                                                                      go!"Unlock"
+                                                                      (intoVal t)))
+                                                                  (intoVal ()))
+                                                                {{ Φ }}) -∗
                         Φ (intoVal ks, intoVal vs)) -∗
                   WP
                     (((((intoVal
@@ -536,9 +538,19 @@ theorem mvcc.keyView_thin [schema_sem : go_etcd_io.etcd.server.v3.storage.schema
     mvcc.Bucket) (hv : mvcc.keyView vd m) : backend.thinV γ (backend.vData P rv) vd ⊢ ∃ m',
     ⌜mvcc.keyView (backend.vData P rv) m'⌝ ∗ mvcc.snapThin m m' (mvcc.bkDel γ)
 
+theorem mvcc.batchLocked_dlsW [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ
+    : backend.BNames) (P : backend.BParams) (b : Loc) (st : backend.BSess) (q : Qp) (vd :
+    backend.VData) : backend.batchLocked γ P b st ∗ backend.bView γ q vd ⊢ backend.batchLocked γ P b
+    st ∗ backend.bView γ q vd ∗ ⌜backend.dlsW P st vd⌝
+
 theorem mvcc.sessPuts_del_room {P : backend.BParams} (hPw : P.Wf) {st : backend.BSess} {l :
     mvcc.Puts} (hs : mvcc.sessPuts P st l) (hwf : backend.sessWf P st) : sint.Z st.pend + 1 < 2 ^ 58
     ∧ sint.Z (st.pend + W64 1) + ↑P.hookMax < 2 ^ 58
+
+theorem mvcc.key_phys_sub {P : backend.BParams} (hP : mvcc.bridgeParams P) {st : backend.BSess} {vd
+    : backend.VData} {m m' : mvcc.Bucket} (hvd : mvcc.keyView vd m) (hS : mvcc.keyView
+    (backend.sData P st.S) m') (hdl : backend.dlsOk P st vd) (k : GoString) (hk :
+    mvcc.snap.physLookup m (backend.dlR P st.dl) k ≠ none) : (m' !! k).isSome = true
 
 theorem mvcc.batchLocked_wf [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ :
     backend.BNames) (P : backend.BParams) (b : Loc) (st : backend.BSess) : backend.batchLocked γ P b

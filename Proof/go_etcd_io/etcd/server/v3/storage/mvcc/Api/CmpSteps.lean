@@ -34,14 +34,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **`Compact`'s scheduled record re-pins the tracked compaction** at `rev`. -/
+/-- **`Compact`'s scheduled record re-pins the tracked compaction** at `rev`, the records'
+compaction revision's lower bounds raised to it (one minted for the job, `cmpLb`). -/
 theorem cmpRest_sched (γ : StoreNames) (L : Log) (hb : LogB L) (m : Bucket) (fin sched : Option w64)
     (X : backend.VData) (rev : w64) :
-    cmpRest (GF := GF) γ L m ⟨fin, sched⟩ X ⊢ cmpRest γ L m ⟨fin, some rev⟩ X := by
-  unfold cmpRest
+    ⊢ cmpRest (GF := GF) γ L m ⟨fin, sched⟩ X ==∗
+      cmpRest γ L m ⟨fin, some rev⟩ X ∗ cmpLb γ (sint.Z rev) := by
+  unfold cmpRest cmpLb
   split
   · split
-    · iintro ⟨Hr, %jc, %Hok⟩
+    · iintro ⟨Hr, Hl, %jc, Hj, %Hok⟩
       ihave ⟨%Hb, Hr⟩ := rcvSched_M1 γ L _ (sint.Z rev) $$ Hr
       obtain ⟨h1, hcr, hrl⟩ := Hb
       have hw : (W64 (sint.Z rev) : w64) = rev := by word
@@ -49,10 +51,16 @@ theorem cmpRest_sched (γ : StoreNames) (L : Log) (hb : LogB L) (m : Bucket) (fi
       rw [hw] at hok hc
       simp only at hc ⊢
       rw [hc]
-      iframe Hr
-      iexists jc; ipureintro; exact hok
-    · iintro -; itrivial
-  · iintro -; itrivial
+      have hn : crevN (CmpRecs.crev ⟨fin, sched⟩) ≤ crevN (sint.Z rev) := by
+        unfold crevN; omega
+      imod mono_nat_own_update (crevN (sint.Z rev)) hn $$ Hl with ⟨Hl, #Hlb⟩
+      imodintro
+      iframe Hr Hl Hlb
+      isplitl
+      · iexists jc; iframe Hj; ipureintro; exact hok
+      ipureintro; exact h1
+    · iintro -; imodintro; isplitl <;> itrivial
+  · iintro -; imodintro; isplitl <;> itrivial
 
 /-- **A commit keeps the tracked compaction** (`storeTxnWrite.End`'s new revision `pend` above
 `L`: `snap.cmpOk_append`). -/
@@ -63,10 +71,10 @@ theorem cmpTrack_append (γ : StoreNames) (L : Log) (pend : List Change) (hb : L
   unfold cmpTrack
   split
   · split
-    · iintro ⟨Hf, Hr, %X, %jc, Hd, %Hok⟩
-      iframe Hf Hr
+    · iintro ⟨Hf, Hr, Hl, %X, %jc, Hd, Hj, %Hok⟩
+      iframe Hf Hr Hl
       iexists X, jc
-      iframe Hd
+      iframe Hd Hj
       ipureintro; exact snap.cmpOk_append hb hne Hok
     · iintro -; itrivial
   · iintro -; itrivial
@@ -131,7 +139,8 @@ header): the record updated to `rev` and the tracked compaction re-pinned when t
 back at the put's values. -/
 theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : w64) :
     physCmp (GF := GF) s γ ⊢ mwLend (storeW s γ) (kbMWv γ.kb γ.bucket)
-      (fun w => fkPutV w schedKeyBytes (revBytes ⟨rev, W64 0⟩ false)) := by
+      (fun w => fkPutV w schedKeyBytes (revBytes ⟨rev, W64 0⟩ false))
+      iprop(cmpLb γ (sint.Z rev) ∗ storeRegd s γ) := by
   iintro #HmwP
   icases (physCmp_on s γ h).1 $$ HmwP with ⟨#Hmwi, #Hrg⟩
   ihave #Hswk := mwSwap_of_inv γ iprop(True) $$ Hmwi
@@ -165,8 +174,9 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
   ihave Hmk := (mwSlot_on γ h).2 $$ Hmk
   iunfold metaCompact at Hmeta
   imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
-  ihave Hrest := cmpRest_sched γ L hb m fin sched X rev $$ Hrest
+  imod cmpRest_sched γ L hb m fin sched X rev $$ Hrest with ⟨Hrest, #Hlb⟩
   imodintro
+  iframe Hlb Hreg
   iapply storeW_put s γ
   iframe Hreg
   iunfold writerRes

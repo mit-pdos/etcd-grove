@@ -203,10 +203,16 @@ theorem mvcc.NewStore.wp_proof
   -- tracked compaction's
   imod ghostVar_alloc (GF := GF) (-1 : Int) with ⟨%γrcv, Hrcv⟩
   icases ghostVar_halves γrcv _ $$ Hrcv with ⟨Hrcv1, Hrcv2⟩
+  -- (the job, 2026-11-06) the job's cursor, at no job (`-1`): half the compactor's token's, half the
+  -- tracked compaction's; the records' compaction revision's lower bounds, at `-1`
+  imod ghostVar_alloc (GF := GF) (((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev)) : Int × mvcc.Rev)
+    with ⟨%γjc, Hjc⟩
+  icases ghostVar_halves γjc _ $$ Hjc with ⟨Hjc1, Hjc2⟩
+  imod mono_nat_own_alloc (GF := GF) (mvcc.crevN (-1)) with ⟨%γrcl, Hrcl, -⟩
   -- the store's objects, pinned (D22 receiver epochs, S3: until S5)
   -- (S5b) the store's current objects and physical names, set once the names are made
   imod (dghostVar_alloc (GF := GF) (((⟨b, ti, sc, stopc⟩ : mvcc.StoreObjs),
-      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, γmk, γx, γrcv⟩ : mvcc.PhysNames)) :
+      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, γmk, γx, γrcv, γjc, γrcl⟩ : mvcc.PhysNames)) :
       mvcc.StoreObjs × mvcc.PhysNames)) with ⟨%γcur, Hcur1⟩
   -- `s.revMu`'s restoring flag, down: half the lock's, half the fields' shares' (S3)
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γrst, Hrst⟩
@@ -233,17 +239,18 @@ theorem mvcc.NewStore.wp_proof
   obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
   imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr) with ⟨%γa, HXa, HYa, HFla, -⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv, hγjc, hγrcl⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
-      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp ∧ γ.api = γa ∧ γ.rcv = γrcv :=
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp ∧ γ.api = γa ∧ γ.rcv = γrcv ∧
+      γ.jc = γjc ∧ γ.rcl = γrcl :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp, γa, γrcv⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp, γa, γrcv, γjc, γrcl⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   ihave #HcpIs : mvcc.crevPermIs γ Perm $$ []
   · iunfold mvcc.crevPermIs; rw [hγcp]; iexact Hcp
   ihave #Hperm0 := mvcc.crevPermAt_none (GF := GF) γ
@@ -280,7 +287,7 @@ theorem mvcc.NewStore.wp_proof
   ihave Hmk : ghostVar (GF := GF) γ.mwk 1 true $$ [Hmk]
   · rw [hγmk]; iexact Hmk
   icases mvcc.mwSlot_alloc γ $$ Hmk with ⟨Hslot, Hmrest⟩
-  rw [← hγrcv] at *
+  rw [← hγrcv, ← hγjc, ← hγrcl] at *
   ihave #HisSched' : schedule.isFifo sc γ.sch $$ []
   · rw [hγs]; iexact HisFifo
   rw [← hγi, ← hγc, ← hγr]
@@ -294,11 +301,10 @@ theorem mvcc.NewStore.wp_proof
   icases (mvcc.bucketView_halves γ (1 : Qp).half.half _).1 $$ Hbv1 with ⟨Hbv1, HbvC⟩
   -- the compaction's part: nothing written, and (a placeholder until M3's exact open) the tracked
   -- compaction of the fresh backend
-  ihave HtrC : mvcc.cmpTrack γ [[], []] ∅ ⟨none, none⟩ $$ [Hrcv2]
-  · iapply mvcc.cmpTrack_new_M1
-    iapply mvcc.rcvW_intro
+  ihave HtrC : mvcc.cmpTrack γ [[], []] ∅ ⟨none, none⟩ $$ [Hrcv2 Hjc2 Hrcl]
+  · iapply mvcc.cmpTrack_new_M1 _ _ _ _ ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev))
     rw [show (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 from mvcc.CmpRecs.crev_empty]
-    iexact Hrcv2
+    iframe Hrcv2 Hjc2 Hrcl
   ihave Hcres : mvcc.compactRes γ [[], []] $$ [Hmeta Hfin Hslot HbvC HtrC]
   · iunfold mvcc.compactRes
     iexists none, none, 0, ∅
@@ -672,19 +678,24 @@ theorem mvcc.NewStore.wp_proof
     iexact Htks
   -- the compaction jobs' queue: the index compactor's token at `-1` beside the scheduler's
   -- queue, whose last name saves the initial `True` (2026-10-13, unit 5c)
-  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0 Hjrt Hsrm]
+  ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0 Hjrt Hsrm Hjc1]
   · iunfold mvcc.compactQueue
     iexists [n₀], p₀, iprop(True), mvcc.compactTok γ (-1)
     rw [hγs, List.singleton_append]
     iframe Hq0 Hp0
-    isplitl [Hcmp0 Hjrt Hsrm]
+    isplitl [Hcmp0 Hjrt Hsrm Hjc1]
     · iunfold mvcc.compactTok
       isplitl [Hcmp0]
       · iexists -1
         rw [hγi]
         iframe Hcmp0
         ipureintro; exact Int.le_refl _
-      iapply mvcc.compactJobResM_of; iframe Hjrt Hsrm
+      isplitl [Hjrt Hsrm]
+      · iapply mvcc.compactJobResM_of; iframe Hjrt Hsrm
+      iexists ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev))
+      isplitl [Hjc1]
+      · iapply mvcc.jobCur_intro; iexact Hjc1
+      ipureintro; exact Int.le_refl _
     iintro ⟨-, H⟩
     iexact H
   -- the right to close: the stop channel's close, the scheduler's stop token, the queue (D19m (C))

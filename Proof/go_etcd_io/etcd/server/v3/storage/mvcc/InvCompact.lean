@@ -478,10 +478,13 @@ compaction revision (`Compact` set it), a certified log with revision `rev` (unt
 receiver epochs, S1). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's physical bound;
 now the job derives it, `CompactSmall_of_cert`.) And (M2, the storage side, Q1 (a), 2026-10-30) the
 write-back supply (`kbWTSupplyM γ.kb`, persistent), which `store.Compact`'s caller gave and the
-job's write sessions spend. -/
+job's write sessions spend. (The snapshot image's tracking, the job, 2026-11-06) And the records'
+compaction revision at least `rev` (`cmpLb`, minted by `updateCompactRev` at its record's write),
+and the store registered in its backend (`storeRegd`, from the same write: so the job's lock excludes a
+snapshot's loan of the registration, `storeRegd_regLent`). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ (∃ o : StoreObjs, storeStopR s γ o) ∗ ⌜storeCmp γ⌝ ∗
-    crevLb γ.idx (sint.Z rev) ∗ kbWTSupplyM γ.kb ∗
+    crevLb γ.idx (sint.Z rev) ∗ kbWTSupplyM γ.kb ∗ cmpLb γ (sint.Z rev) ∗ storeRegd s γ ∗
     ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝)
 
