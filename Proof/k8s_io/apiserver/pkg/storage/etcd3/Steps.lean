@@ -1022,6 +1022,118 @@ theorem updStepOk_item {E : Type} (c : StoreCfg GF Obj) (key : GoString) (hpk : 
   rw [this]
   rfl
 
+/-! ## `GuaranteedUpdate`'s loop (stage 7b) -/
+
+/-- **What a read at `σ` gave of the key**: its key-value's state, or (`ignoreNotFound`, the key
+absent) the zero state. -/
+def rdOf (c : StoreCfg GF Obj) (key : GoString) (ign : Bool) (σ : KVState) (s : OState Obj) : Prop :=
+  (∃ kv, mvcc.findKey key σ.kvs = some kv ∧ stOfKv c kv s) ∨
+  (mvcc.findKey key σ.kvs = none ∧ ign = true ∧ s = zeroSt c)
+
+/-- The model's current object at a read's state is the state's. -/
+theorem rd_current (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key) (ign : Bool)
+    (σ : KVState) (s : OState Obj) (h : rdOf c key ign σ s) :
+    (c.abs σ).current key ign c.S.zero = some (s.o, uint.nat s.rev) := by
+  rcases h with ⟨kv, hf, hs⟩ | ⟨hf, hi, rfl⟩
+  · have hd : c.S.dec kv.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+      simp [ObjCodec.dec, hs.2.1, hs.2.2.1]
+    have hit := c.abs_some σ key hpk kv hf _ _ hd
+    unfold KSt.current
+    rw [hit, hs.1]
+  · unfold KSt.current
+    rw [c.abs_none σ key hf, hi]
+    rfl
+
+theorem current_of_item (st : KSt Obj) (key : GoString) (ign : Bool) (z o : Obj) (r : Nat) (b : Bool)
+    (h : st.items key = some ⟨o, r, b⟩) : st.current key ign z = some (o, r) := by
+  unfold KSt.current
+  rw [h]
+
+/-- `update` when the preconditions fail on the current object. -/
+theorem update_cur_pre {E : Type} (st : KSt Obj) (key : GoString) (ign : Bool) (z : Obj)
+    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (o : Obj) (r : Nat)
+    (hc : st.current key ign z = some (o, r)) (hp : pre o r = false) :
+    st.update key ign z pre f = (st, .err (.invalidObj key)) := by
+  unfold KSt.update
+  rw [hc]
+  simp only [hp]
+
+/-- `update` when `tryUpdate` fails on the current object. -/
+theorem update_cur_err {E : Type} (st : KSt Obj) (key : GoString) (ign : Bool) (z : Obj)
+    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (o : Obj) (r : Nat)
+    (hc : st.current key ign z = some (o, r)) (hp : pre o r = true) (e : E)
+    (he : f o r = .error e) :
+    st.update key ign z pre f = (st, .err (.user e)) := by
+  unfold KSt.update
+  rw [hc]
+  simp only [hp, he]
+
+/-- **A read's state that `updateOnce` will write does not hand**. -/
+theorem rd_hand_upd {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (s : OState Obj) (ign : Bool) (hrd : rdOf c key ign σ s)
+    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (o' : Obj)
+    (hpre : pre s.o (uint.nat s.rev) = true) (hok : f s.o (uint.nat s.rev) = .ok o')
+    (hw : (!s.stale && decide (c.S.encode o' = s.data)) = false) :
+    stepHand c (updStep key ign c.S.zero pre f) σ = false := by
+  apply hand_false
+  have hcase : (s.rev = W64 0 ∧ (c.abs σ).items key = none ∧ ign = true ∧ s.o = c.S.zero) ∨
+      (∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩ ∧
+        (b = true → (!s.stale && decide (c.S.encode s.o = s.data)) = true)) := by
+    rcases hrd with ⟨kv, hf, hs⟩ | ⟨hf, hi, rfl⟩
+    · have hd : c.S.dec kv.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+        simp [ObjCodec.dec, hs.2.1, hs.2.2.1]
+      have hit := c.abs_some σ key hpk kv hf _ _ hd
+      rw [← hs.1] at hit
+      exact .inr ⟨_, hit, fun h => h⟩
+    · exact .inl ⟨rfl, c.abs_none σ key hf, hi, rfl⟩
+  simp only [updStep, update_item c (c.abs σ) key s ign c.S.zero pre f o' hcase hpre hok hw]
+  exact KSt.ne_of_rv
+
+/-- **The cached object's state** (`stFrom`'s third case, the only one not current). -/
+theorem stFrom_cached (c : StoreCfg GF Obj) (key : GoString) (s : OState Obj) :
+    stFrom c key s ⊢ ⌜s.current = false → s.stale = false ∧ s.data = c.S.encode s.o ∧ s.rev ≠ W64 0⌝ := by
+  unfold stFrom
+  iintro #Hf
+  icases Hf with (⟨%σ0, %kv0, -, %Hk0⟩ | ⟨%σ0, -, %Hz⟩ | ⟨%Hc, -⟩)
+  · ipureintro
+    intro h
+    rw [Hk0.2.2.2.2] at h
+    exact absurd h (by decide)
+  · ipureintro
+    intro h
+    rw [Hz.2] at h
+    cases h
+  · ipureintro
+    exact fun _ => Hc.2
+
+/-- **A read's state is where it came from**, current, at revision `0` only with
+`ignoreNotFound`. -/
+theorem stFrom_rdOf (c : StoreCfg GF Obj) (key : GoString) (ign : Bool) (σ : KVState) (s : OState Obj)
+    (h : rdOf c key ign σ s) :
+    rdFacts c σ ⊢ stFrom c key s ∗ ⌜(s.rev = W64 0 → ign = true) ∧ s.current = true⌝ := by
+  iintro #Hfs
+  rcases h with ⟨kv, hf, hs⟩ | ⟨hf, hi, rfl⟩
+  · ihave Hr := (stFrom_read c key σ kv s hf hs) $$ Hfs
+    icases Hr with ⟨#Hfr, %Hr⟩
+    iframe Hfr
+    ipureintro
+    exact ⟨fun h => absurd h Hr, hs.2.2.2⟩
+  · isplitl
+    · unfold stFrom
+      iright
+      ileft
+      iexists σ
+      iframe Hfs
+      ipureintro; exact ⟨hf, rfl⟩
+    · ipureintro
+      exact ⟨fun _ => hi, rfl⟩
+
+/-- The preconditions without a resource version do not depend on it (D1). -/
+theorem preOk_rv_none (c : StoreCfg GF Obj) (pr : KPre) (h : pr.rv = none) (o : Obj) (n m : Nat) :
+    c.S.preOk pr o n = c.S.preOk pr o m := by
+  unfold ObjCodec.preOk KPre.ok
+  simp [h]
+
 end steps
 
 end k8s
