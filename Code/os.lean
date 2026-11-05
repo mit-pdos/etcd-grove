@@ -182,8 +182,6 @@ axiom Signal.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom ProcessState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LinkError.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 axiom noReadFrom.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom fileWithoutReadFrom.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -1030,6 +1028,36 @@ noncomputable def File.Name.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- Open opens the named file for reading. If successful, methods on
+    the returned file can be used for reading; the associated file
+    descriptor has mode [O_RDONLY].
+    If there is an error, it will be of type [*PathError].
+
+    go: file.go:389:6 -/
+noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType File.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (Val O_RDONLY)
+  (Let "$a2" (Val #(W32 0))
+  (App (App (App (App (Val (GoInstruction (FuncResolve OpenFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType File.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
 /-- go: types_unix.go:23:21 -/
 noncomputable def fileStat.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fs"
@@ -1320,20 +1348,56 @@ attribute [instance] ProcessState.TypeAssumptions.type_repr
   ProcessState.TypeAssumptions.method_set
   ProcessState.TypeAssumptions.ptr_method_set
 
-axiom LinkError : Type
-axiom LinkError.zero_val : ZeroVal LinkError
-attribute [instance] LinkError.zero_val
+structure LinkError [GooseExts] where
+  mk ::
+  Op' : GoString
+  Old' : GoString
+  New' : GoString
+  Err' : GoError
+
+noncomputable instance LinkError.zero_val [GooseExts] : ZeroVal LinkError :=
+  ⟨LinkError.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def LinkError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Op" go.string),
+(go.field_decl.FieldDecl go!"Old" go.string),
+(go.field_decl.FieldDecl go!"New" go.string),
+(go.field_decl.FieldDecl go!"Err" go.error)]
+
+@[irreducible] noncomputable def LinkError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  LinkError.fieldsUnsealed
+
+noncomputable instance equals_unfold_LinkError [GooseExts] [GoGlobalContext] :
+    EqualsUnfold LinkError.fields LinkError.fieldsUnsealed :=
+  ⟨by unfold LinkError.fields; rfl⟩
+
+@[reducible] noncomputable def LinkError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LinkError.fields)
 
 class LinkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LinkError.underlying LinkError
   underlying : go.UnderlyingDirectedEq LinkError.ty LinkError.underlying
-  isUnderlying : go.IsUnderlying LinkError.underlying LinkError.underlying
+  get_Op : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Op") #x (Val #(x.Op'))
+  set_Op : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : LinkError)))
+  get_Old : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Old") #x (Val #(x.Old'))
+  set_Old : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Old") (PairV #x #y) (Val #(({ x with Old' := y } : LinkError)))
+  get_New : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"New") #x (Val #(x.New'))
+  set_New : ∀ (x : LinkError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"New") (PairV #x #y) (Val #(({ x with New' := y } : LinkError)))
+  get_Err : ∀ (x : LinkError), go.IsGoStepPureDetTagged under (StructFieldGet LinkError.underlying go!"Err") #x (Val #(x.Err'))
+  set_Err : ∀ (x : LinkError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LinkError)))
   method_set : go.MethodSetIs LinkError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LinkError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] LinkError.TypeAssumptions.type_repr
   LinkError.TypeAssumptions.underlying
-  LinkError.TypeAssumptions.isUnderlying
+  LinkError.TypeAssumptions.get_Op
+  LinkError.TypeAssumptions.set_Op
+  LinkError.TypeAssumptions.get_Old
+  LinkError.TypeAssumptions.set_Old
+  LinkError.TypeAssumptions.get_New
+  LinkError.TypeAssumptions.set_New
+  LinkError.TypeAssumptions.get_Err
+  LinkError.TypeAssumptions.set_Err
   LinkError.TypeAssumptions.method_set
   LinkError.TypeAssumptions.ptr_method_set
 
@@ -1583,6 +1647,7 @@ class File.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Fd" File.Fd.impl
   ptr_Name_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Name" File.Name.impl
   ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadAt" File.ReadAt.impl
+  ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Readdirnames" File.Readdirnames.impl
   ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Stat" File.Stat.impl
   ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Sync" File.Sync.impl
   ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Truncate" File.Truncate.impl
@@ -1598,6 +1663,7 @@ attribute [instance] File.TypeAssumptions.type_repr
   File.TypeAssumptions.ptr_Fd_unfold
   File.TypeAssumptions.ptr_Name_unfold
   File.TypeAssumptions.ptr_ReadAt_unfold
+  File.TypeAssumptions.ptr_Readdirnames_unfold
   File.TypeAssumptions.ptr_Stat_unfold
   File.TypeAssumptions.ptr_Sync_unfold
   File.TypeAssumptions.ptr_Truncate_unfold
@@ -1643,7 +1709,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   errSymlink_instance : errSymlink.TypeAssumptions
   File_instance : File.TypeAssumptions
   fileStat_instance : fileStat.TypeAssumptions
+  Mkdir_unfold : FuncUnfold Mkdir [] Mkdir.impl
+  Open_unfold : FuncUnfold Open [] Open.impl
   OpenFile_unfold : FuncUnfold OpenFile [] OpenFile.impl
+  Rename_unfold : FuncUnfold Rename [] Rename.impl
+  Remove_unfold : FuncUnfold Remove [] Remove.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
@@ -1675,7 +1745,11 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.errSymlink_instance
   Assumptions.File_instance
   Assumptions.fileStat_instance
+  Assumptions.Mkdir_unfold
+  Assumptions.Open_unfold
   Assumptions.OpenFile_unfold
+  Assumptions.Rename_unfold
+  Assumptions.Remove_unfold
   Assumptions.import_io_Assumption
   Assumptions.import_fs_Assumption
   Assumptions.import_syscall_Assumption

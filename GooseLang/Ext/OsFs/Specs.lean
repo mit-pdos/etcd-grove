@@ -200,6 +200,141 @@ theorem osInv_alloc (E : CoPset) :
 
 end resources
 
+/-! ## The steps that leave the namespace alone -/
+
+section nsframe
+
+theorem NsFrame.trans {st st' st'' : OsState} (h1 : NsFrame st st') (h2 : NsFrame st' st'') :
+    NsFrame st st'' := by
+  obtain ⟨r1, n1, d1, l1, f1, dom1, s1, fd1⟩ := h1
+  obtain ⟨r2, n2, d2, l2, f2, dom2, s2, fd2⟩ := h2
+  refine ⟨r2.trans r1, n2.trans n1, d2.trans d1, l2.trans l1, f2.trans f1,
+    fun k => (dom2 k).trans (dom1 k), fun k f h => ?_, fun fd h => ?_⟩
+  · obtain ⟨f', h'⟩ := s1 k f h; exact s2 k f' h'
+  · rcases fd2 fd h with h' | h'
+    · exact fd1 fd h'
+    · rw [f1] at h'; exact Or.inr h'
+
+theorem nsFrame_inflight (st : OsState) (X : GMap Nat OsChange) :
+    NsFrame st { st with inflight := X } :=
+  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
+
+theorem nsFrame_maps (st : OsState) (X : GMap Loc OsMap) : NsFrame st { st with maps := X } :=
+  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
+
+theorem nsFrame_fds (st : OsState) (X : GMap w64 OsFd)
+    (hX : ∀ fd, X !! fd ≠ none → st.fds !! fd ≠ none ∨ st.dfds !! fd = none) :
+    NsFrame st { st with fds := X } :=
+  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, hX⟩
+
+theorem nsFrame_fds_delete (st : OsState) (fd : w64) :
+    NsFrame st { st with fds := GMap.delete fd st.fds } := by
+  refine nsFrame_fds st _ (fun fd' h => Or.inl ?_)
+  intro h'; apply h; rw [GMap.lookup_delete_iff]; split
+  · rfl
+  · exact h'
+
+theorem nsFrame_fds_insert (st : OsState) (fd : w64) (d : OsFd) (h : st.dfds !! fd = none) :
+    NsFrame st { st with fds := <[fd := d]> st.fds } := by
+  refine nsFrame_fds st _ (fun fd' h' => ?_)
+  by_cases he : fd = fd'
+  · subst he; exact Or.inr h
+  · left; rwa [GMap.lookup_insert_ne _ _ he] at h'
+
+theorem nsFrame_setFile (st : OsState) (p : GoString) (f : OsFile) (hp : st.files !! p ≠ none) :
+    NsFrame st (st.setFile p f) := by
+  refine ⟨rfl, rfl, rfl, rfl, rfl, fun k => ?_, fun k f0 h => ?_, fun _ h => Or.inl h⟩
+  · rw [GMap.mem_iff, GMap.mem_iff]
+    by_cases he : p = k
+    · subst he
+      show ((<[p := some f]> st.files) !! p).isSome = true ↔ (st.files !! p).isSome = true
+      rw [GMap.lookup_insert]
+      cases h' : st.files !! p
+      · exact absurd h' hp
+      · simp
+    · show ((<[p := some f]> st.files) !! k).isSome = true ↔ (st.files !! k).isSome = true
+      rw [GMap.lookup_insert_ne _ _ he]
+  · by_cases he : p = k
+    · subst he; exact ⟨f, GMap.lookup_insert _ _ _⟩
+    · exact ⟨f0, by show (<[p := some f]> st.files) !! k = _; rw [GMap.lookup_insert_ne _ _ he]; exact h⟩
+
+theorem nsFrame_setFile_of (st : OsState) (p : GoString) (f f0 : OsFile)
+    (hp : st.file p = some f0) : NsFrame st (st.setFile p f) :=
+  nsFrame_setFile st p f (by rw [file_eq_some.1 hp]; simp)
+
+theorem nsFrame_openEffect {st st1 : OsState} {p : GoString} {creat trunc : Bool}
+    (hp : p ∈ st.files) (h : openEffect st p creat trunc = some st1) : NsFrame st st1 := by
+  have hp' : st.files !! p ≠ none := by
+    intro h0; have : (st.files.lookup p).isSome := hp
+    simp [show st.files.lookup p = none from h0] at this
+  unfold openEffect at h
+  split at h
+  · simp only [Option.some.injEq] at h; subst h
+    split
+    · exact nsFrame_setFile st p _ hp'
+    · exact NsFrame.refl st
+  · split at h
+    · simp only [Option.some.injEq] at h; subst h; exact nsFrame_setFile st p _ hp'
+    · cases h
+
+/-- The operations that leave the namespace alone: all but the namespace's. -/
+def OldOp (o : String) : Prop :=
+  o ∈ ["Open", "PRead", "PWriteStart", "PWriteFinish", "Fstat", "FtruncateStart",
+    "FtruncateFinish", "Fsync", "Flock", "Close", "Mmap", "Munmap", "Regime", "FdKind"]
+
+open Classical in
+/-- Every step of an operation that is not the namespace's leaves the namespace alone. -/
+theorem nsFrame_old [GooseExts] [GoGlobalContext] {o : String} (ho : OldOp o) {v : val}
+    {st st' : OsState} {e' : Expr} (h : IsOsStep o v st e' st') : NsFrame st st' := by
+  simp only [OldOp, List.mem_cons, List.mem_nil_iff, or_false] at ho
+  rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · -- Open
+    obtain ⟨p, fl, -, hp, -, hres⟩ := h
+    rcases hres with ⟨st1, fd, heff, -, ⟨-, hdf⟩, rfl, -⟩ | ⟨e, -, -, rfl | heff⟩
+    · have h1 := nsFrame_openEffect hp heff
+      refine h1.trans (nsFrame_fds_insert st1 fd _ ?_)
+      rw [h1.dfds]; exact hdf
+    · exact NsFrame.refl _
+    · exact nsFrame_openEffect hp heff
+  · obtain ⟨_, _, _, _, _, -, -, -, -, -, rfl, -⟩ := h; exact NsFrame.refl _
+  · obtain ⟨_, _, _, _, _, -, -, -, -, h1, -⟩ := h
+    obtain ⟨-, -, rfl⟩ := h1
+    exact nsFrame_inflight _ _
+  · obtain ⟨t, p, off, data, f, k, e, -, -, hf, -, -, hst, -⟩ := h
+    subst hst
+    split
+    · exact nsFrame_inflight _ _
+    · exact (nsFrame_inflight st _).trans
+        (nsFrame_setFile_of _ p _ f (by simpa [OsState.file] using hf))
+  · obtain ⟨_, _, _, -, -, -, rfl, -⟩ := h; exact NsFrame.refl _
+  · obtain ⟨_, _, _, _, -, -, -, -, -, -, rfl, -⟩ := h; exact nsFrame_inflight _ _
+  · obtain ⟨t, p, sz, f, -, -, hf, hres⟩ := h
+    have h0 := nsFrame_inflight st (GMap.delete t st.inflight)
+    have h1 := h0.trans (nsFrame_setFile_of _ p (f.truncate sz) f (by simpa [OsState.file] using hf))
+    rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, rfl | rfl⟩
+    · exact h1
+    · exact h0
+    · exact h1
+  · obtain ⟨fd, d, f, -, -, hf, hres⟩ := h
+    rcases hres with ⟨rfl, -⟩ | ⟨-, -, -, -, rfl⟩
+    · exact nsFrame_setFile_of _ _ _ f hf
+    · exact nsFrame_setFile_of _ _ _ f hf
+  · obtain ⟨_, _, _, _, -, -, rfl, -⟩ := h; exact NsFrame.refl _
+  · obtain ⟨fd, _, _, -, -, rfl, -⟩ := h; exact nsFrame_fds_delete _ _
+  · obtain ⟨_, _, _, _, _, _, -, -, -, -, -, -, -, -, hres⟩ := h
+    rcases hres with ⟨_, -, -, -, rfl, -⟩ | ⟨_, -, rfl, -⟩
+    · exact nsFrame_maps _ _
+    · exact NsFrame.refl _
+  · obtain ⟨_, _, _, _, -, -, -, -, hres⟩ := h
+    rcases hres with ⟨rfl, -⟩ | ⟨_, -, -, rfl | rfl⟩
+    · exact nsFrame_maps _ _
+    · exact NsFrame.refl _
+    · exact nsFrame_maps _ _
+  · obtain ⟨_, -, rfl, -⟩ := h; exact NsFrame.refl _
+  · obtain ⟨_, -, rfl, -⟩ := h; exact NsFrame.refl _
+
+end nsframe
+
 /-! ## The step of an operation -/
 
 section step
@@ -221,7 +356,7 @@ def osWorld (st : OsState) (Γb : GMap (GoString × Nat) (w8 × Bool))
 /-- The lifting of an operation `o` of the extension: from the world before the step, the step
 exists, and every step leads to a world after it, and the rest of the program. -/
 theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) :
+    (hE : ↑osN ⊆ E) (ho : OldOp o) :
     ⊢ osInv (L := L) -∗
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h ==∗
         ⌜∃ e' h' st', OsStep o v h st () e' h' st' ()⌝ ∗
@@ -232,8 +367,8 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   iapply wp_extStep o v Φ hv
   iintro %h %σ %g Hheap Hl -
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
-  unfold osCtx
-  icases Hl with ⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩
+  unfold osCtx osCtxF
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -260,12 +395,14 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   · inext; iexists (cellView σ'), (GMap.size σ'.inflight); iframe
   imodintro
   iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv]
+  isplitl [HAb HAm HAf HAt Htok Hv Hns]
   · iapply (os_local_ctx_eq σ').mpr
-    unfold osCtx
-    iexists Γb', Γm', Γf', Γt'
-    iframe
-    ipureintro; exact Hwc'
+    unfold osCtx osCtxF
+    isplitl [HAb HAm HAf HAt Htok Hv]
+    · iexists Γb', Γm', Γf', Γt'
+      iframe
+      ipureintro; exact Hwc'
+    · iapply nsCtx_frame _ (nsFrame_old ho Hst.1) $$ Hns
   · have : (ExtInterp.globalCtx (E := osFsExt) (extGlobalGS osFsExt) g' : IProp GF) =
         iprop(True) := rfl
     rw [this]; itrivial
@@ -323,7 +460,7 @@ theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
       (ExternalOp osFsExt.name "Close" (Val (#fd))) @ s; E
     {{ (e : w64), RET #e; True }} := by
   iintro %Φ ⟨#Hinv, Hfd⟩ HΦ
-  iapply wp_os_step "Close" (#fd) Φ (by simp) hE $$ Hinv
+  iapply wp_os_step "Close" (#fd) Φ (by simp) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -406,7 +543,7 @@ theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (�
       (∀ e : w64, osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "Flock" (Val (PairV (#fd) (#how)))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_os_step "Flock" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "Flock" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -435,6 +572,86 @@ theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (�
   iapply wp_value'
   iapply HΦ $$ Hfd
 
+/-- `Regime(p)` of a path whose `OsMeta` the client holds: `0`, the regime of `Open` (`p` is in the
+domain of `files`). -/
+theorem wp_osRegime (p : GoString) (dq : DFrac) (mo : Option OsMeta) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osMeta (L := L) p dq mo -∗
+      (osMeta (L := L) p dq mo -∗ Φ (#(0 : w64))) -∗
+      WP (ExternalOp osFsExt.name "Regime" (Val (#p))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hm HΦ
+  iapply wp_os_step "Regime" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hpf : p ∈ st.files := by
+    show (st.files.lookup p).isSome
+    cases h' : st.files.lookup p
+    · rw [(hcoh.meta_dom p).2 h'] at Hml; cases Hml
+    · rfl
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨p, rfl, rfl, rfl⟩, mapsFresh_same rfl, heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨p', hv, rfl, rfl⟩ := Hst
+  cases go.intoVal_inj hv
+  imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+  · iframe
+  imodintro
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  isplitr
+  · ipureintro; exact ⟨hwf, hcoh⟩
+  iapply wp_value'
+  rw [if_pos hpf]
+  iapply HΦ $$ Hm
+
+/-- `FdKind(fd)` of a file's fd: `0`. -/
+theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
+      (osFd (L := L) fd dq d -∗ Φ (#(0 : w64))) -∗
+      WP (ExternalOp osFsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd HΦ
+  iapply wp_os_step "FdKind" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  obtain ⟨hwf, hcoh⟩ := Hwc
+  unfold osFd
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hfd : st.fds !! fd = some d := hcoh.fds ▸ Hfdl
+  imodintro
+  isplitr
+  · ipureintro
+    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inl ⟨⟨d, hfd⟩, rfl⟩⟩, mapsFresh_same rfl,
+      heapRendered_same hwf rfl rfl Hag⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsOsStep] at Hst
+  obtain ⟨fd', hv, rfl, hres⟩ := Hst
+  cases go.intoVal_inj hv
+  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩
+  · imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
+    · iframe
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    iframe
+    isplitr
+    · ipureintro; exact ⟨hwf, hcoh⟩
+    iapply wp_value'
+    iapply HΦ $$ Hfd
+  · rw [hfd] at hn; cases hn
+
 /-- `fstat(fd)`'s size, with a fraction of the file's `OsMeta`: its size, or an errno. -/
 theorem wp_osFstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
@@ -443,7 +660,7 @@ theorem wp_osFstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑
         osFd (L := L) fd dq d -∗ osMeta (L := L) d.path dqm (some m) -∗ Φ (PairV (#sz) (#e))) -∗
       WP (ExternalOp osFsExt.name "Fstat" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm HΦ
-  iapply wp_os_step "Fstat" _ Φ (by simp) hE $$ Hinv
+  iapply wp_os_step "Fstat" _ Φ (by simp) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -499,7 +716,7 @@ theorem wp_osPRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
       WP (ExternalOp osFsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hfd Hm Hbs HΦ
-  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -573,7 +790,7 @@ theorem wp_osPRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
       WP (ExternalOp osFsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hfd Hbs HΦ
-  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -667,7 +884,7 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
       WP (ExternalOp osFsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hfd Hbs HΦ
-  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "PRead" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -812,7 +1029,7 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
         osBytes (L := L) d.path lo2 dq2 ys2 -∗ osFd (L := L) fd dq d -∗ Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "Fsync" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm Hbs Hys HΦ
-  iapply wp_os_step "Fsync" _ Φ (by simp) hE $$ Hinv
+  iapply wp_os_step "Fsync" _ Φ (by simp) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -991,7 +1208,7 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
       WP (ExternalOp osFsExt.name "Mmap"
         (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm HΦ
-  iapply wp_os_step "Mmap" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "Mmap" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -1195,7 +1412,7 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : GoString) (m : OsMeta) (n 
       WP (ExternalOp osFsExt.name "Munmap" (Val (PairV (#base) (PairV (#len) (#cap))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hm Hc HΦ
-  iapply wp_os_step "Munmap" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "Munmap" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -1521,7 +1738,7 @@ theorem wp_osOpen (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp osFsExt.name "Open" (Val (PairV (#p) (#fl)))) @ s; E {{ Φ }} := by
   iintro #Hinv Hm HΦ
-  iapply wp_os_step "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "Open" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -1632,7 +1849,7 @@ theorem wp_osOpen (p : GoString) (fl : w64) (q : DFrac) (mo : Option OsMeta) (hE
     imod hghost st1 heff $$ [HAm Hm] with ⟨%Γm', %Hgh, HAm, Hm, %htr1⟩
     · iframe
     obtain ⟨hwf1, hcoh1, hcv, hin1, hmp1, hfds1, -, hex1⟩ := Hgh
-    have hΓf : Γf !! fd = none := by rw [hcoh.fds]; exact hfdn
+    have hΓf : Γf !! fd = none := by rw [hcoh.fds]; exact hfdn.1
     imod gAuth_insert _ _ _ fd (openFd p fl) hΓf $$ HAf with ⟨HAf, Hfd⟩
     have hwf' := osWf_addFd hwf1 fd (openFd p fl) hex1
     have hcv' : cellView { st1 with fds := <[fd := openFd p fl]> st1.fds } = cellView st := by
@@ -1694,8 +1911,8 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFr
   iapply wp_ext_acc (X := osFsExt) e Φ htv
   iintro %σ %g Hl Hg
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
-  unfold osCtx
-  icases Hl with ⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩
+  unfold osCtx osCtxF
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
@@ -1723,9 +1940,10 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFr
   imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ), (GMap.size σ.inflight); iframe
   imodintro
-  isplitl [HAb HAm HAf HAt Htok Hv]
+  isplitl [HAb HAm HAf HAt Htok Hv Hns]
   · iapply (os_local_ctx_eq σ).mpr
-    unfold osCtx
+    unfold osCtx osCtxF
+    iframe Hns
     iexists Γb, Γm, Γf, Γt
     iframe
     ipureintro; exact ⟨hwf, hcoh⟩

@@ -69,6 +69,29 @@ theorem osStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : O
     rcases hs with ⟨_, -, -, -, -, rfl⟩ | ⟨_, -, -, rfl⟩ <;> rfl
   · obtain ⟨_, _, _, _, -, -, -, -, hs⟩ := hs
     rcases hs with ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  -- the namespace's operations
+  · obtain ⟨_, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, -, -, hs⟩ := hs
+    rcases hs with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ <;> rfl
+  · obtain ⟨_, _, -, -, -, hs⟩ := hs
+    rcases hs with ⟨_, _, _, -, -, -, rfl⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  · obtain ⟨_, _, _, -, -, -, -, hs⟩ := hs
+    rcases hs with ⟨-, rfl⟩ | ⟨_, -, rfl⟩ <;> rfl
+  · obtain ⟨_, _, _, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, _, _, _, -, -, -, hs⟩ := hs
+    rcases hs with ⟨_, -, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨_, -, -, rfl⟩ <;> rfl
+  · obtain ⟨_, _, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, -, -, -, -, hs⟩ := hs
+    rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨-, -, -, rfl⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  · obtain ⟨_, -, -, hs⟩ := hs
+    rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  · obtain ⟨_, -, -, -, hs⟩ := hs
+    rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  · obtain ⟨_, -, -, hs⟩ := hs
+    rcases hs with ⟨-, -, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  · obtain ⟨_, _, _, _, _, -, -, -, -, -, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, _, _, _, -, -, -, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, _, _, -, -, -, rfl⟩ := hs; rfl
   · exact hs.elim
 
 /-- An operation of the extension is atomic: it takes one step, to a value. -/

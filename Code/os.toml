@@ -5,11 +5,15 @@
 translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_EXCL", "O_SYNC",
   "O_TRUNC", "File", "FileInfo", "FileMode", "PathError",
   # real Go over the trusted layouts of `file` and `fileStat` (`return f.name`, `return fs.size`)
-  "File.Name", "fileStat.Size"]
+  "File.Name", "fileStat.Size",
+  # real Go over OpenFile (`return OpenFile(name, O_RDONLY, 0)`); the error type of Rename
+  "Open", "LinkError"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall"]
 # The functions and methods minibolt calls, modeled by the Linux file extension osFsExt
 # (TrustedCode/os.lean, GooseLang/Ext/OsFs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
 # `syscall.Stat_t`) with the layouts the models need.
 trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.Stat",
-  "File.Truncate", "File.Sync", "File.Close", "File.Fd"]
+  "File.Truncate", "File.Sync", "File.Close", "File.Fd",
+  # the namespace, for the WAL's calls (examples/osfs/walfs, notes/walfs-ext-plan.md)
+  "Rename", "Remove", "Mkdir", "File.Readdirnames"]

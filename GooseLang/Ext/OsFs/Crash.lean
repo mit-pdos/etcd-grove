@@ -82,9 +82,11 @@ theorem fileCrashed_of_g {Γb : GMap (GoString × Nat) (w8 × Bool)} {p : GoStri
 /-- The crash keeps what `OsCoh` says: the crashed state is an initial one, related to the old
 ghost maps by `CrashRel`. -/
 theorem osCrash_rel {st st' : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt)
-    (hc : OsCrash st st') : OsInit st' ∧ CrashRel Γb Γm st'.files [] := by
-  obtain ⟨hfd, hin, hmp, hfiles⟩ := hc
-  refine ⟨⟨hfd, hin, hmp, fun p f hf => ?_⟩, fun p mo hmo _ => ?_⟩
+    (hns : NsWf st) (hc : OsCrash st st') : OsInit st' ∧ CrashRel Γb Γm st'.files [] := by
+  obtain ⟨hcf, hcn⟩ := hc
+  have hni := nsCrash_init hns hcf hcn
+  obtain ⟨hfd, hin, hmp, hfiles⟩ := hcf
+  refine ⟨⟨⟨hfd, hin, hmp, fun p f hf => ?_⟩, hni⟩, fun p mo hmo _ => ?_⟩
   · have hp := hfiles p
     revert hp
     rcases st.files !! p with _ | _ | f0
@@ -179,7 +181,8 @@ theorem bigSepM_insertBytes (p : GoString) :
     iframe
 
 /-- The state with the files `F` and nothing else. -/
-abbrev filesState (F : GMap GoString (Option OsFile)) : OsState := ⟨F, ∅, ∅, ∅⟩
+abbrev filesState (F : GMap GoString (Option OsFile)) : OsState :=
+  { files := F, fds := ∅, inflight := ∅, maps := ∅ }
 
 theorem bytesMap_eq (st : OsState) : bytesMap st = bytesMap (filesState st.files) := rfl
 theorem metaMap_eq (st : OsState) : metaMap st = metaMap (filesState st.files) := rfl
@@ -313,11 +316,11 @@ the crashed state (an initial one), and the restart gets `osCrashStart`. -/
 theorem os_local_crash (hPre : OsGpreS GF) (hL : OsGS GF) (st st' : OsState)
     (hc : OsCrash st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStart hL hL' := by
-  unfold osCtx
-  iintro ⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, -, -, -⟩
-  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hc
+  unfold osCtx osCtxF nsCtx
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, -, -, -⟩, %hns⟩
+  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns hc
   imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
-  unfold osCtx
+  unfold osCtx osCtxF nsCtx
   icases osStart_files hL' st' $$ Hst with ⟨Hfs, Hv⟩
   imodintro
   iexists hL'

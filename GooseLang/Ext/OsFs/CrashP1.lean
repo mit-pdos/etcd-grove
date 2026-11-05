@@ -103,11 +103,11 @@ crashed state and the premise. -/
 theorem os_local_crashQ (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (hL : OsGS GF)
     (st st' : OsState) (hc : OsCrash st st') (hQ : Q st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStartQ Q hL hL' := by
-  unfold osCtx
-  iintro ⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, -, -, -⟩
-  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hc
+  unfold osCtx osCtxF nsCtx
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, -, -, -⟩, %hns⟩
+  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns hc
   imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
-  unfold osCtx
+  unfold osCtx osCtxF nsCtx
   icases osStart_files hL' st' $$ Hst with ⟨Hfs, Hv⟩
   imodintro
   iexists hL'

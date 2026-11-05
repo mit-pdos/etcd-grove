@@ -221,11 +221,11 @@ flight. -/
 theorem os_local_crashQT (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (hL : OsGS GF)
     (st st' : OsState) (hc : OsCrash st st') (hQ : Q st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStartQT Q hL hL' := by
-  unfold osCtx
-  iintro ⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩
-  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hc
+  unfold osCtx osCtxF nsCtx
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, %hns⟩
+  obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns hc
   imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
-  unfold osCtx
+  unfold osCtx osCtxF nsCtx
   icases osStart_files hL' st' $$ Hst with ⟨Hfs, Hv⟩
   imodintro
   iexists hL'

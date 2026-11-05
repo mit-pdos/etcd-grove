@@ -341,7 +341,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
       (∀ t : Nat, osFd (L := L) fd dq d -∗ ftTok (L := L) t d.path sz.toNat m -∗ Φ (osTokV t)) -∗
       WP (ExternalOp osFsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm Hc HΦ
-  iapply wp_os_step "FtruncateStart" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "FtruncateStart" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -524,7 +524,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : GoString) (sz : Nat) (m : OsMeta) (h
         Φ (#e)) -∗
       WP (ExternalOp osFsExt.name "FtruncateFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
-  iapply wp_os_step "FtruncateFinish" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "FtruncateFinish" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩

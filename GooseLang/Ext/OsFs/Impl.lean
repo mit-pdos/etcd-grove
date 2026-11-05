@@ -17,6 +17,17 @@ media errors (a torn sector would garble durable neighbours of a dirty byte, and
 a mapped page is SIGBUS where the model's load succeeds). Opening any other path is stuck, so
 path resolution is never modelled.
 
+**The namespace** (`notes/walfs-ext-plan.md`; the paths and the log are `Names.lean`). The
+*roots* (`OsState.roots`) name distinct directories on that filesystem, none in another's tree,
+nothing in their trees is a symlink, a mount point or a hard link of anything else, and no other
+process changes their trees; the namespace of the state at boot (`ns`) is their trees' entries,
+and the paths in the domain of `files` that are not keys of the namespace's files (`IsInoKey`) lie
+outside the roots' trees. The filesystem is ext4 (`data=ordered` or `data=journal`, with the
+journal, without `fast_commit`) or xfs: metadata operations reach the journal in the order they
+are made and the journal commits in order, and an `fsync` of a directory commits it up to the
+last change of that directory's entries (N1). Paths in the roots' trees are resolved by the
+namespace; any other path, as before, is one of the domain of `files` or the step is stuck.
+
 **Soundness discipline.** The model is never more defined than Linux:
 * *Misuse is stuck* (D6): a closed, forged or wrong-mode fd, an unsupported flag, `PROT_WRITE`,
   a nonzero `mmap` offset, a `munmap` of anything but a whole mapping, a negative offset.
@@ -62,11 +73,12 @@ unchanged.
 anyway); each file becomes a crash image (`CrashImage`): a file created since boot may vanish
 (D4); the size is one the file had since its last successful sync, or that an in-flight change
 would give it; a byte is the durable one unless it is dirty, lost by a failed sync, in-flight, or
-past the durable image, when it is arbitrary (D1).
+past the durable image, when it is arbitrary (D1). The namespace becomes the durable one with a
+prefix of the operations since replayed (`NsCrash`, N1), and every file it names survives.
 -/
 module
 
-public import Perennial.GooseLang.Lang
+public import GooseLang.Ext.OsFs.Names
 
 @[expose] public section
 
@@ -118,17 +130,43 @@ structure OsMap where
   path : GoString
   len : Nat
 
-/-- The files, fds, in-flight changes and mappings of a node. -/
+/-- Where a directory fd's `Readdirnames` is: not begun; begun, with the names (last
+components) that were there when it began and that no operation has touched since
+(`untouched`), the names there at some point since it began (`seen`), and those it has returned
+(`returned`); or done (a second read of the fd is stuck). -/
+inductive OsDirRead where
+  | idle
+  | reading (untouched seen returned : GoString → Bool)
+  | done
+
+/-- An open directory: its path when opened (a directory with an open fd is never moved or
+removed: the steps that would are stuck), and its read. -/
+structure OsDirFd where
+  path : GoString
+  rd : OsDirRead
+
+/-- The files, fds, in-flight changes and mappings of a node, and its namespace. -/
 structure OsState where
-  /-- The allowed paths (the domain), and their files (`none`: no such file). -/
+  /-- The allowed paths (the domain), and their files (`none`: no such file); and the keys of
+  the namespace's files (`IsInoKey`). -/
   files : GMap GoString (Option OsFile)
   fds : GMap w64 OsFd
   /-- In-flight changes, by the token their first step returned (`osTokV`). -/
   inflight : GMap Nat OsChange
   /-- Mappings, by base address. -/
   maps : GMap Loc OsMap
+  /-- The roots of the namespace: directories fixed at boot. -/
+  roots : List GoString := []
+  /-- The namespace: every path in a root's tree that exists. -/
+  ns : NsMap := ∅
+  /-- The namespace as of the last commit of the journal known to the model. -/
+  nsDur : NsMap := ∅
+  /-- The metadata operations since, in order: `ns` is them replayed on `nsDur`. -/
+  nsLog : List NsOp := []
+  /-- Directory fds. Their numbers are distinct from `fds`'s. -/
+  dfds : GMap w64 OsDirFd := ∅
 
-instance : Inhabited OsState := ⟨⟨∅, ∅, ∅, ∅⟩⟩
+instance : Inhabited OsState := ⟨{ files := ∅, fds := ∅, inflight := ∅, maps := ∅ }⟩
 
 /-- The Linux file extension. Its values are the tokens of in-flight changes; it has no global
 state. -/
@@ -252,7 +290,7 @@ def HeapRendered [GooseExts] [GoGlobalContext] (st st' : OsState) (h h' : GMap L
 
 /-! ## Effects -/
 
-section effects
+noncomputable section effects
 
 /-- The file at `p` replaced by `f` (`p` allowed). -/
 def OsState.setFile (st : OsState) (p : GoString) (f : OsFile) : OsState :=
@@ -298,6 +336,78 @@ def openEffect (st : OsState) (p : GoString) (creat trunc : Bool) : Option OsSta
   | none => if creat then
       some (st.setFile p { OsFile.ofDisk [] with named := false }) else none
 
+/-- A read of the directory `df.path` told of the operation `o`: the names it touches there are no
+longer untouched, and those it adds have been seen. -/
+def OsDirFd.note (o : NsOp) (df : OsDirFd) : OsDirFd :=
+  match df.rd with
+  | .reading u s r =>
+    let u' : GoString → Bool := fun b => u b && decide (b ∉ o.touched df.path)
+    let s' : GoString → Bool := fun b => s b || decide (b ∈ o.adds df.path)
+    { df with rd := OsDirRead.reading u' s' r }
+  | _ => df
+
+/-- `st` after the metadata operation `o`: the namespace changed, `o` logged, the directory reads
+told. -/
+def OsState.nsDo (st : OsState) (o : NsOp) : OsState :=
+  { st with ns := o.apply st.ns, nsLog := st.nsLog ++ [o], dfds := GMap.fmap (·.note o) st.dfds }
+
+/-- `st` with the first `n` operations of its log committed. -/
+def OsState.nsCommit (st : OsState) (n : Nat) : OsState :=
+  { st with nsDur := nsReplay (st.nsLog.take n) st.nsDur, nsLog := st.nsLog.drop n }
+
+/-- `p` is a managed path that may be created, renamed or removed: canonical, strictly in a root's
+tree. -/
+def OsState.NsName (st : OsState) (p : GoString) : Prop := ∃ r ∈ st.roots, CanonBelow r p
+
+/-- `p` is a managed path: a root, or an `NsName`. -/
+def OsState.NsPath (st : OsState) (p : GoString) : Prop := p ∈ st.roots ∨ st.NsName p
+
+/-- The directory `p` is in exists in the namespace. -/
+def OsState.ParentDir (st : OsState) (p : GoString) : Prop :=
+  ∃ d, parentOf p = some d ∧ st.ns !! d = some .dir
+
+/-- A new file of the namespace: empty, not durably named (its name is the namespace's). -/
+def nsNewFile : OsFile := { OsFile.ofDisk [] with named := false }
+
+/-- What `NsOpen(p)` does before its fd (`st1`), and what the fd will be on: an existing file
+(`some k`, its key; truncated with `trunc`); a new file under a fresh key `k`, with `create p k`
+logged (`O_CREAT`, in an existing directory); or a directory (`none`), opened read-only without
+`O_CREAT` or `O_TRUNC` (Linux refuses the rest, `EISDIR`). -/
+def NsOpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (st1 : OsState)
+    (tgt : Option GoString) : Prop :=
+  match st.ns !! p with
+  | some .dir => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = none
+  | some (.file k) => (∃ f, st.file k = some f ∧
+      st1 = (if trunc then st.setFile k (f.truncate 0) else st)) ∧ tgt = some k
+  | none => creat = true ∧ p ∉ st.roots ∧ st.ParentDir p ∧
+      ∃ k, IsInoKey k ∧ k ∉ st.files ∧ st1 = (st.setFile k nsNewFile).nsDo (.create p k) ∧
+        tgt = some k
+
+/-- The directory `d` has no entries. -/
+def NsEmptyDir (st : OsState) (d : GoString) : Prop :=
+  st.ns !! d = some .dir ∧ ∀ b, ¬ entryIn st.ns d b
+
+/-- A `rename(2)` that Linux performs (all else fails): of an existing entry to another name in
+an existing directory; a file onto nothing or onto a file (replaced: an fd of the replaced file
+keeps it); a directory onto nothing or onto an empty directory (replaced), not into its own
+tree. -/
+def RenameOk (st : OsState) (s t : GoString) : Prop :=
+  s ≠ t ∧ st.ParentDir s ∧ st.ParentDir t ∧
+  match st.ns !! s with
+  | some (.file _) => st.ns !! t ≠ some .dir
+  | some .dir => ¬ IsUnder s t ∧ (st.ns !! t = none ∨ NsEmptyDir st t)
+  | none => False
+
+/-- Whether `b` is now a name in the directory `d`. -/
+def nsPresent (st : OsState) (d : GoString) (b : GoString) : Bool := (st.ns !! (d ++ slashB :: b)).isSome
+
+/-- A directory fd's read, as its next step finds it: begun now if it was not. -/
+def OsDirRead.cur (st : OsState) (d : GoString) :
+    OsDirRead → Option ((GoString → Bool) × (GoString → Bool) × (GoString → Bool))
+  | .idle => some (nsPresent st d, nsPresent st d, fun _ => false)
+  | .reading u s r => some (u, s, r)
+  | .done => none
+
 end effects
 
 /-! ## The step relation -/
@@ -314,6 +424,10 @@ abbrev osRes (v : val) (e : w64) : Expr := Val (PairV v (#e))
 
 /-- An open fd and its description. -/
 def FdOpen (st : OsState) (fd : w64) (d : OsFd) : Prop := st.fds !! fd = some d
+
+/-- `fd` is free: no fd of a file or of a directory has it. -/
+def FdFree (st : OsState) (fd : w64) : Prop :=
+  0 ≤ fd.toInt ∧ st.fds !! fd = none ∧ st.dfds !! fd = none
 
 /-- The flags `Open` supports: an access mode and `O_CREAT`, `O_TRUNC`, `O_CLOEXEC`. -/
 def OpenFlagsOk (fl : Nat) : Prop :=
@@ -332,7 +446,7 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       let creat := fl.toNat / O_CREAT % 2 = 1
       let trunc := fl.toNat / O_TRUNC % 2 = 1
       ((∃ (st1 : OsState) (fd : w64), openEffect st p creat trunc = some st1 ∧ 0 ≤ fd.toInt ∧
-          st.fds !! fd = none ∧
+          (st.fds !! fd = none ∧ st.dfds !! fd = none) ∧
           st' = { st1 with fds := <[fd := ⟨p, acc ≠ O_WRONLY, acc ≠ O_RDONLY⟩]> st1.fds } ∧
           e' = osRes (#fd) 0) ∨
        (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
@@ -411,6 +525,112 @@ def IsOsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       let st1 := { st with maps := GMap.delete base st.maps }
       (st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st1))
+  /- The namespace (`notes/walfs-ext-plan.md`). -/
+  /- Which regime `p` is in: `#p ↦ #0` for a path of the domain of `files` (`Open`), `#1`
+  otherwise (`NsOpen`). A query of the model, not a system call: `os.OpenFile`'s model asks it
+  to choose the step that opens `p`. -/
+  | "Regime" => ∃ p : GoString, v = #p ∧ st' = st ∧
+      e' = Val (#(if p ∈ st.files then (0 : w64) else 1))
+  /- What `fd` is: `#fd ↦ #0` for a file's fd, `#1` for a directory's; stuck on any other. A
+  query of the model, not a system call (`File.Sync`'s and `File.Close`'s models ask it). -/
+  | "FdKind" => ∃ fd : w64, v = #fd ∧ st' = st ∧
+      ((∃ d, st.fds !! fd = some d) ∧ e' = Val (#(0 : w64)) ∨
+       st.fds !! fd = none ∧ (∃ df, st.dfds !! fd = some df) ∧ e' = Val (#(1 : w64)))
+  /- `open(p, flags)` of a managed path: `(#p, #flags) ↦ (#fd, #errno)`, as `NsOpenEffect`
+  says, with a fresh fd (of a file, on its key, or of a directory). On failure, the effect may or
+  may not have happened, without the fd. -/
+  | "NsOpen" => ∃ (p : GoString) (fl : w64), v = PairV (#p) (#fl) ∧ st.NsPath p ∧
+      OpenFlagsOk fl.toNat ∧
+      let acc := fl.toNat % 4
+      let creat := decide (fl.toNat / O_CREAT % 2 = 1)
+      let trunc := decide (fl.toNat / O_TRUNC % 2 = 1)
+      ((∃ (st1 : OsState) (tgt : Option GoString) (fd : w64),
+          NsOpenEffect st p acc creat trunc st1 tgt ∧ FdFree st fd ∧
+          st' = (match tgt with
+            | some k => { st1 with fds := <[fd := ⟨k, acc ≠ O_WRONLY, acc ≠ O_RDONLY⟩]> st1.fds }
+            | none => { st1 with dfds := <[fd := ⟨p, .idle⟩]> st1.dfds }) ∧
+          e' = osRes (#fd) 0) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
+          (st' = st ∨ ∃ tgt, NsOpenEffect st p acc creat trunc st' tgt)))
+  /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success commits the log up to the last
+  operation that changed the directory's entries (`commitLen`); a failure may have committed any
+  part of that. -/
+  | "DirSync" => ∃ (fd : w64) (df : OsDirFd) (n : Nat), v = #fd ∧ st.dfds !! fd = some df ∧
+      n ≤ commitLen df.path st.nsLog ∧ st' = st.nsCommit n ∧
+      (n = commitLen df.path st.nsLog ∧ e' = Val (#(0 : w64)) ∨
+       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e))
+  /- `close(fd)` of a directory: `#fd ↦ #errno`; the fd is freed whatever the errno. -/
+  | "DirClose" => ∃ (fd e : w64) (df : OsDirFd), v = #fd ∧ st.dfds !! fd = some df ∧
+      st' = { st with dfds := GMap.delete fd st.dfds } ∧ e' = Val (#e)
+  /- One step of `Readdirnames(-1)` on a directory fd: `#fd ↦ (#name, #done, #errno)`. A name it
+  has not returned and that the directory had at some point since the read began; or the end,
+  once it has returned every name the directory had when the read began, still has, and that no
+  operation touched since (POSIX's `readdir`: an entry added or removed meanwhile may or may not
+  be returned); or an errno, the read unchanged. After the end, a second read is stuck. -/
+  | "DirReadNext" => ∃ (fd : w64) (df : OsDirFd) (u s r : GoString → Bool), v = #fd ∧
+      st.dfds !! fd = some df ∧ df.rd.cur st df.path = some (u, s, r) ∧
+      ((∃ b, s b = true ∧ r b = false ∧
+          st' = { st with dfds := <[fd := { df with
+            rd := .reading u s (fun x => r x || decide (x = b)) }]> st.dfds } ∧
+          e' = Val (PairV (#b) (PairV (#(0 : w64)) (#(0 : w64))))) ∨
+       ((∀ b, u b = true → nsPresent st df.path b = true → r b = true) ∧
+          st' = { st with dfds := <[fd := { df with rd := .done }]> st.dfds } ∧
+          e' = Val (PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64))))) ∨
+       (∃ e : w64, e ≠ 0 ∧
+          st' = { st with dfds := <[fd := { df with rd := .reading u s r }]> st.dfds } ∧
+          e' = Val (PairV (#([] : GoString)) (PairV (#(0 : w64)) (#e)))))
+  /- `lstat(p)`'s "is it a directory", as `os.Rename` asks it of its destination:
+  `#p ↦ (#isDir, #errno)`. `#1` for a directory of the namespace, else `#0`; with any errno (an
+  `lstat` may fail, `Rename`'s model then goes on to `rename(2)` as Go does, and the errno is the
+  one `os.Rename` may return besides `EEXIST`). -/
+  | "NsLstatDir" => ∃ (p : GoString) (e : w64), v = #p ∧ st.NsPath p ∧ st' = st ∧
+      e' = Val (PairV (#(if st.ns !! p = some .dir then (1 : w64) else 0)) (#e))
+  /- `rename(2)` of managed paths: `(#s, #t) ↦ #errno`. As `RenameOk` says, or a no-op on an
+  entry renamed to itself; any case may fail, a failure with or without the effect. Stuck while a
+  directory fd is open in `s`'s tree or on `t`. -/
+  | "Rename" => ∃ s t : GoString, v = PairV (#s) (#t) ∧ st.NsName s ∧ st.NsName t ∧
+      (∀ fd df, st.dfds !! fd = some df → ¬ IsUnder s df.path ∧ df.path ≠ t) ∧
+      ((RenameOk st s t ∧ (st' = st.nsDo (.rename s t) ∧ e' = Val (#(0 : w64)) ∨
+          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.nsDo (.rename s t)))) ∨
+       (s = t ∧ st.ns !! s ≠ none ∧ st' = st ∧ e' = Val (#(0 : w64))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st))
+  /- `unlink(2)` of a managed path: `#p ↦ #errno`. A file is removed (its fds keep it); any case
+  may fail, a failure with or without the effect. -/
+  | "Unlink" => ∃ p : GoString, v = #p ∧ st.NsName p ∧
+      (((∃ k, st.ns !! p = some (.file k)) ∧ (st' = st.nsDo (.remove p) ∧ e' = Val (#(0 : w64)) ∨
+          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.nsDo (.remove p)))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st))
+  /- `rmdir(2)` of a managed path: `#p ↦ #errno`. An empty directory is removed; any case may
+  fail, a failure with or without the effect. Stuck while a directory fd is open on `p`. -/
+  | "Rmdir" => ∃ p : GoString, v = #p ∧ st.NsName p ∧
+      (∀ fd df, st.dfds !! fd = some df → df.path ≠ p) ∧
+      ((NsEmptyDir st p ∧ (st' = st.nsDo (.remove p) ∧ e' = Val (#(0 : w64)) ∨
+          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.nsDo (.remove p)))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st))
+  /- `os.Mkdir(p)` (`mkdir(2)`): `#p ↦ #errno`. A new directory where nothing is, in an existing
+  directory; any case may fail, a failure with or without the effect. -/
+  | "Mkdir" => ∃ p : GoString, v = #p ∧ st.NsName p ∧
+      ((st.ns !! p = none ∧ st.ParentDir p ∧ (st' = st.nsDo (.mkdir p) ∧ e' = Val (#(0 : w64)) ∨
+          ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.nsDo (.mkdir p)))) ∨
+       (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st))
+  /- The first step of `fallocate(fd, 0, off, len)`: `(#fd, #off, #len) ↦ token`, a truncate
+  to `max size (off + len)` in flight, finished by `FtruncateFinish` (fallocate's visible effect is
+  ftruncate's to that size: zeros past the end; the blocks it allocates are not modelled). As
+  `FtruncateStart`: no other change may be in flight on the file. -/
+  | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd),
+      v = PairV (#fd) (PairV (#off) (#len)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
+      0 < len.toInt ∧ ¬ BusyAt st d.path ∧ st.inflight !! t = none ∧
+      st' = { st with inflight := <[t := ⟨d.path,
+        .truncate (max (st.size d.path) (off.toNat + len.toNat))⟩]> st.inflight } ∧
+      e' = Val (osTokV t)
+  /- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: `(#fd, #off, #len) ↦ #errno`. No visible
+  change (it allocates blocks, which are not modelled); any errno. -/
+  | "FallocKeep" => ∃ (fd off len e : w64) (d : OsFd), v = PairV (#fd) (PairV (#off) (#len)) ∧
+      FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧ 0 < len.toInt ∧ st' = st ∧ e' = Val (#e)
+  /- `fcntl(fd, F_OFD_SETLK[W], ...)`: `(#fd, #cmd) ↦ #errno`. Trivial, as `Flock` (D7): the lock
+  state is not modelled, so the errno is anything. -/
+  | "OfdLock" => ∃ (fd cmd e : w64) (d : OsFd), v = PairV (#fd) (#cmd) ∧ FdOpen st fd d ∧
+      st' = st ∧ e' = Val (#e)
   | _ => False
 
 /-- The cells a new mapping takes are free, in `(0, maxAddr]`. -/
@@ -439,15 +659,48 @@ def CrashImage (st : OsState) (p : GoString) (f : OsFile) (img : List w8) : Prop
   ∀ i (hi : i < img.length), ¬ f.dirty i → ¬ f.lost i → ¬ InflightAt st p i →
     (hd : i < f.durable.length) → img[i] = f.durable[i]
 
-/-- A crash: fds, in-flight changes and mappings are gone; each file becomes a crash image, as
-on disk at the next boot, or vanishes if it was created since boot. -/
-def OsCrash (st st' : OsState) : Prop :=
+/-- A crash of the files: fds, in-flight changes and mappings are gone; each file becomes a crash
+image, as on disk at the next boot, or vanishes if it was created since boot. -/
+def OsCrashFiles (st st' : OsState) : Prop :=
   st'.fds = ∅ ∧ st'.inflight = ∅ ∧ st'.maps = ∅ ∧
   ∀ p, match st.files !! p with
     | none => st'.files !! p = none
     | some none => st'.files !! p = some none
     | some (some f) => (¬ f.named ∧ st'.files !! p = some none) ∨
         ∃ img, CrashImage st p f img ∧ st'.files !! p = some (some (OsFile.ofDisk img))
+
+/-- The roots: distinct, none empty or with a NUL byte, none in another's tree. -/
+def RootsOk (roots : List GoString) : Prop :=
+  roots.Nodup ∧ ∀ r ∈ roots, r ≠ [] ∧ nulB ∉ r ∧ ∀ r' ∈ roots, r ≠ r' → ¬ IsUnder r r'
+
+/-- `m` is a namespace over `roots`: each root a directory; every other name canonical in a
+root's tree, in a directory of `m`; no file named twice (no hard links). -/
+def NsShape (roots : List GoString) (m : NsMap) : Prop :=
+  (∀ r ∈ roots, m !! r = some .dir) ∧
+  (∀ p x, m !! p = some x → p ∈ roots ∨
+    ((∃ r ∈ roots, CanonBelow r p) ∧ ∃ d, parentOf p = some d ∧ m !! d = some .dir)) ∧
+  (∀ p q k, m !! p = some (.file k) → m !! q = some (.file k) → p = q)
+
+/-- A namespace the program may start in (with `OsInit`'s files, `Ghost.lean`): no directory fd,
+nothing logged, all of it durable; the roots and the namespace well formed; every file it names
+a file of `files` under a key (`IsInoKey`); the other paths of `files` outside the roots' trees
+(the environment assumptions, the module docstring). -/
+def NsInit (st : OsState) : Prop :=
+  st.dfds = ∅ ∧ st.nsLog = [] ∧ st.nsDur = st.ns ∧ RootsOk st.roots ∧ NsShape st.roots st.ns ∧
+  (∀ p k, st.ns !! p = some (.file k) → IsInoKey k ∧ ∃ f, st.files !! k = some (some f)) ∧
+  (∀ k, k ∈ st.files → ¬ IsInoKey k → ∀ r ∈ st.roots, ¬ IsUnder r k)
+
+/-- A crash of the namespace (N1): the roots stay, directory fds are gone, and the namespace is
+the durable one with a prefix of the operations since replayed, all of it durable; every file it
+names survives the crash (`OsCrashFiles` lets a file created since boot vanish: one the
+namespace names does not). -/
+def NsCrash (st st' : OsState) : Prop :=
+  st'.roots = st.roots ∧ st'.dfds = ∅ ∧ st'.nsLog = [] ∧ st'.nsDur = st'.ns ∧
+  (∃ n, n ≤ st.nsLog.length ∧ st'.ns = nsReplay (st.nsLog.take n) st.nsDur) ∧
+  ∀ p k, st'.ns !! p = some (.file k) → ∃ f, st'.files !! k = some (some f)
+
+/-- A crash: of the files and of the namespace. -/
+def OsCrash (st st' : OsState) : Prop := OsCrashFiles st st' ∧ NsCrash st st'
 
 instance osFs_semantics : ExtSemantics osFsExt where
   step := OsStep

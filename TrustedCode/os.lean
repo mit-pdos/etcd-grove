@@ -144,7 +144,10 @@ noncomputable def model.wrapErrno : val :=
 
 `open` is `openat(AT_FDCWD, name, flag|O_CLOEXEC|O_LARGEFILE, perm)`, `O_LARGEFILE` being 0 on
 amd64: the extension's `Open` (`(name, flags) ↦ (fd, errno)`, stuck on a path outside its domain
-or on a flag it does not support, among them `O_APPEND`, `O_EXCL`, `O_SYNC` and `O_NONBLOCK`).
+or on a flag it does not support, among them `O_APPEND`, `O_EXCL`, `O_SYNC` and `O_NONBLOCK`) for a
+path of the domain of its files, `NsOpen` for a path of the namespace (of a file or a directory,
+`notes/walfs-ext-plan.md`): the model asks which (`Regime`, a query of the model's state, not a
+system call; a path's regime never changes).
 `newFile` makes the `File{&file{...}}` with the fd and the name; its other work (an `fstat` to
 decide that a regular file is not pollable, the finalizer) is invisible to Go code. `perm` matters
 only to the mode of a created file, which the extension does not model. A name with a NUL byte,
@@ -153,7 +156,9 @@ assumptions of `GooseLang/Ext/OsFs/Impl.lean`). -/
 noncomputable def OpenFile.impl : val :=
   λ: "name" "flag" "perm",
     (rec: "open" <> :=
-      let: "r" := ExternalOp osFsExt.name "Open" ("name", "flag" |⟨go.int⟩ #(W64 0x80000)) in
+      let: "r" := if: ExternalOp osFsExt.name "Regime" "name" =⟨go.uintptr⟩ #(W64 0) then
+          ExternalOp osFsExt.name "Open" ("name", "flag" |⟨go.int⟩ #(W64 0x80000))
+        else ExternalOp osFsExt.name "NsOpen" ("name", "flag" |⟨go.int⟩ #(W64 0x80000)) in
       if: Snd "r" =⟨go.uintptr⟩ #(W64 0) then
         let: "inner" := GoAlloc model.file (GoZeroVal model.file #()) in
         StructFieldRef model.file go!"fd" "inner" <-[go.int] Fst "r" ;;
@@ -173,13 +178,16 @@ noncomputable def File.Fd.impl : val :=
 /-- `(*File).Close() error` (`file_posix.go`, `file_unix.go`'s `file.close`): `pfd.Close`, which
 closes the fd (`close(2)`, not retried on `EINTR`: Linux frees the fd whatever the errno) and sets
 `Sysfd` to -1; an error is `&PathError{"close", name, Errno(e)}`. The extension's `Close` frees the
-fd whatever the errno it returns. -/
+fd whatever the errno it returns; `DirClose` for a directory's fd (the model asks which, `FdKind`, a
+query of the model's state, not a system call). -/
 noncomputable def File.Close.impl : val :=
   λ: "f" <>,
     let: "inner" := model.inner "f" in
     let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    let: "kind" := ExternalOp osFsExt.name "FdKind" "fd" in
     StructFieldRef model.file go!"fd" "inner" <-[go.int] #(-1 : w64) ;;
-    let: "e" := ExternalOp osFsExt.name "Close" "fd" in
+    let: "e" := if: "kind" =⟨go.uintptr⟩ #(W64 0) then ExternalOp osFsExt.name "Close" "fd"
+      else ExternalOp osFsExt.name "DirClose" "fd" in
     if: "e" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
     else model.wrapErrno #"close" "inner" "e"
 
@@ -355,16 +363,155 @@ noncomputable def File.Truncate.impl : val :=
 
 /-- `(*File).Sync() error` (`file_posix.go`, `poll.FD.Fsync`): `fsync(2)`, `EINTR` retried (each
 failed attempt loses the writeback of the dirty bytes, D2, as on Linux), an error being
-`&PathError{"sync", name, Errno(e)}`: the extension's `Fsync` (`fd ↦ errno`). -/
+`&PathError{"sync", name, Errno(e)}`: the extension's `Fsync` (`fd ↦ errno`), or `DirSync` for a
+directory's fd (`FdKind`, as in `Close`). -/
 noncomputable def File.Sync.impl : val :=
   λ: "f" <>,
     let: "inner" := model.inner "f" in
     let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    let: "kind" := ExternalOp osFsExt.name "FdKind" "fd" in
     (rec: "fsync" <> :=
-      let: "e" := ExternalOp osFsExt.name "Fsync" "fd" in
+      let: "e" := if: "kind" =⟨go.uintptr⟩ #(W64 0) then ExternalOp osFsExt.name "Fsync" "fd"
+        else ExternalOp osFsExt.name "DirSync" "fd" in
       if: "e" =⟨go.uintptr⟩ #(W64 4) then "fsync" #() -- EINTR
       else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then model.wrapErrno #"sync" "inner" "e"
       else #GoInterface.nil) #()
+
+
+/-! The namespace (`notes/walfs-ext-plan.md`). -/
+
+/-- `LinkError` (`file.go`), as goose names it. -/
+@[reducible] def model.LinkError : go.GoType := go.GoType.Named go!"os.LinkError" []
+
+/-- `&LinkError{op, old, new, err}` as an `error`. -/
+noncomputable def model.linkError : val :=
+  λ: "op" "old" "new" "err",
+    let: "le" := GoAlloc model.LinkError (GoZeroVal model.LinkError #()) in
+    StructFieldRef model.LinkError go!"Op" "le" <-[go.string] "op" ;;
+    StructFieldRef model.LinkError go!"Old" "le" <-[go.string] "old" ;;
+    StructFieldRef model.LinkError go!"New" "le" <-[go.string] "new" ;;
+    StructFieldRef model.LinkError go!"Err" "le" <-[go.error] "err" ;;
+    Convert (go.PointerType model.LinkError) go.error "le"
+
+/-- `Rename(oldpath, newpath string) error` (`file.go`, `file_unix.go`'s `rename`):
+
+```go
+	fi, err := Lstat(newname)
+	if err == nil && fi.IsDir() {
+		if ofi, err := Lstat(oldname); err != nil {
+			if pe, ok := err.(*PathError); ok {
+				err = pe.Err
+			}
+			return &LinkError{"rename", oldname, newname, err}
+		} else if newname == oldname || !SameFile(fi, ofi) {
+			return &LinkError{"rename", oldname, newname, syscall.EEXIST}
+		}
+	}
+	err = ignoringEINTR(func() error {
+		return syscall.Rename(oldname, newname)
+	})
+	if err != nil {
+		return &LinkError{"rename", oldname, newname, err}
+	}
+	return nil
+```
+
+The `lstat` of `newname` is the extension's `NsLstatDir` (`newname ↦ (isDir, e)`, `e` nonzero):
+for a directory, Go returns a `LinkError` whose error is `EEXIST`, or the error of the `lstat` of
+`oldname` (two distinct names of the namespace are never the same file: no hard links, and the
+filesystem is case-sensitive), so the model returns one with an arbitrary nonzero `Errno` (`e`).
+A failed `lstat` of `newname` is not a directory, as in Go. Then `rename(2)` is the extension's
+`Rename`, `EINTR` retried. -/
+noncomputable def Rename.impl : val :=
+  λ: "oldname" "newname",
+    let: "l" := ExternalOp osFsExt.name "NsLstatDir" "newname" in
+    if: Fst "l" =⟨go.uintptr⟩ #(W64 1) then
+      model.linkError #"rename" "oldname" "newname" (syscall.model.errno (Snd "l"))
+    else
+      (rec: "rename" <> :=
+        let: "e" := ExternalOp osFsExt.name "Rename" ("oldname", "newname") in
+        if: "e" =⟨go.uintptr⟩ #(W64 4) then "rename" #() -- EINTR
+        else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
+          model.linkError #"rename" "oldname" "newname" (syscall.model.errno "e")
+        else #GoInterface.nil) #()
+
+/-- `Remove(name string) error` (`file_unix.go`):
+
+```go
+	e := ignoringEINTR(func() error {
+		return syscall.Unlink(name)
+	})
+	if e == nil {
+		return nil
+	}
+	e1 := ignoringEINTR(func() error {
+		return syscall.Rmdir(name)
+	})
+	if e1 == nil {
+		return nil
+	}
+	if e1 != syscall.ENOTDIR {
+		e = e1
+	}
+	return &PathError{Op: "remove", Path: name, Err: e}
+```
+
+`unlink(2)` and `rmdir(2)` are the extension's `Unlink` and `Rmdir`. -/
+noncomputable def Remove.impl : val :=
+  λ: "name",
+    let: "e" := (rec: "unlink" <> :=
+      let: "e" := ExternalOp osFsExt.name "Unlink" "name" in
+      if: "e" =⟨go.uintptr⟩ #(W64 4) then "unlink" #() else "e") #() in
+    if: "e" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
+    else
+      let: "e1" := (rec: "rmdir" <> :=
+        let: "e1" := ExternalOp osFsExt.name "Rmdir" "name" in
+        if: "e1" =⟨go.uintptr⟩ #(W64 4) then "rmdir" #() else "e1") #() in
+      if: "e1" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
+      else model.pathError #"remove" "name"
+        (syscall.model.errno (if: "e1" ≠⟨go.uintptr⟩ #(W64 20) then "e1" else "e")) -- ENOTDIR
+
+/-- `Mkdir(name string, perm FileMode) error` (`file.go`): `mkdir(2)` (`EINTR` retried), an error
+being `&PathError{"mkdir", name, Errno(e)}`; on Linux nothing follows it
+(`supportsCreateWithStickyBit`). `fixLongPath` is the identity off Windows; `perm` matters only to
+the mode, which the extension does not model. -/
+noncomputable def Mkdir.impl : val :=
+  λ: "name" "perm",
+    (rec: "mkdir" <> :=
+      let: "e" := ExternalOp osFsExt.name "Mkdir" "name" in
+      if: "e" =⟨go.uintptr⟩ #(W64 4) then "mkdir" #() -- EINTR
+      else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
+        model.pathError #"mkdir" "name" (syscall.model.errno "e")
+      else #GoInterface.nil) #()
+
+/-- `(*File).Readdirnames(n int) (names []string, err error)` (`dir.go`, `dir_unix.go`'s
+`readdir`) for `n ≤ 0`, the WAL's: every name of the directory but `.` and `..`, read by
+`getdents(2)` calls until one returns nothing (`EINTR` retried); an error returns the names so
+far and `&PathError{"readdirent", name, Errno(e)}`; the result is never a nil slice. The
+extension's `DirReadNext` gives a name at a time (`fd ↦ (name, done, errno)`), with POSIX's
+`readdir` across concurrent changes; it is stuck on a fd that is not a directory's (Go:
+`ENOTDIR`) and on a second read of one fd (Go returns no names; the WAL never reads a directory fd
+twice). `n > 0` is not modelled: a panic, never reached by a proved program. -/
+noncomputable def File.Readdirnames.impl : val :=
+  λ: "f" "n",
+    let: "inner" := model.inner "f" in
+    let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    if: "n" >⟨go.int⟩ #(W64 0) then Panic "os: Readdirnames with n > 0 not modelled"
+    else
+      (rec: "loop" "names" :=
+        let: "r" := ExternalOp osFsExt.name "DirReadNext" "fd" in
+        let: "e" := Snd (Snd "r") in
+        if: "e" =⟨go.uintptr⟩ #(W64 4) then "loop" "names" -- EINTR
+        else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
+          ("names", model.wrapErrno #"readdirent" "inner" "e")
+        else if: Fst (Snd "r") =⟨go.uintptr⟩ #(W64 1) then ("names", #GoInterface.nil)
+        else
+          let: "nm" := Fst "r" in
+          "loop" ((FuncResolve go.append [go.GoType.SliceType go.string]) #() "names"
+            (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
+              (LiteralValue [KeyedElement none (ElementExpression go.string (Var "nm"))]))))
+        (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
+          (LiteralValue []))
 
 end code
 end os

@@ -103,6 +103,35 @@ noncomputable def Madvise.impl : val :=
     if: "advice" ≤⟨go.uint64⟩ #(W64 3) then syscall.model.errno ArbitraryInt
     else Panic "golang.org/x/sys/unix.Madvise: advice not modelled"
 
+/-- `Fallocate(fd int, mode uint32, off int64, len int64) error` (`zsyscall_linux_amd64.go`: one
+`fallocate(2)`, `EINTR` not retried). A negative `off` or a `len` not above 0 is `EINVAL` before
+the file is looked at. Mode 0 is the extension's `FallocStart`, a truncate to
+`max size (off + len)` in flight, and `FtruncateFinish`; `FALLOC_FL_KEEP_SIZE` (1) is
+`FallocKeep`, no visible change, any errno (`notes/walfs-ext-plan.md`). Other modes (punching or
+zeroing a range, collapsing, inserting) are not modelled: a panic, never reached by a proved
+program. -/
+noncomputable def Fallocate.impl : val :=
+  λ: "fd" "mode" "off" "len",
+    if: ("off" <⟨go.int64⟩ #(W64 0)) || ("len" ≤⟨go.int64⟩ #(W64 0)) then
+      syscall.model.errno #(W64 22) -- EINVAL
+    else if: "mode" =⟨go.uint32⟩ #(W32 0) then
+      syscall.model.errno (ExternalOp osFsExt.name "FtruncateFinish"
+        (ExternalOp osFsExt.name "FallocStart" ("fd", ("off", "len"))))
+    else if: "mode" =⟨go.uint32⟩ #(W32 1) then
+      syscall.model.errno (ExternalOp osFsExt.name "FallocKeep" ("fd", ("off", "len")))
+    else Panic "golang.org/x/sys/unix.Fallocate: mode not modelled"
+
+/-- `FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error` (`fcntl.go`: one `fcntl(2)` with the
+lock description `lk`): the extension's `OfdLock`, trivial (any errno; the lock state is not
+modelled, `notes/osfs-ext-plan.md` D7, `notes/walfs-ext-plan.md`), stuck on an fd that is not a
+file's. `lk` is not read: no outcome depends on it, and a getter command (`F_GETLK`, `F_OFD_GETLK`)
+that would write it is not modelled (a panic, never reached by a proved program). -/
+noncomputable def FcntlFlock.impl : val :=
+  λ: "fd" "cmd" "lk",
+    if: ("cmd" =⟨go.int⟩ #(W64 5)) || ("cmd" =⟨go.int⟩ #(W64 36)) then
+      Panic "golang.org/x/sys/unix.FcntlFlock: a lock query is not modelled"
+    else syscall.model.errno (ExternalOp osFsExt.name "OfdLock" ("fd", "cmd"))
+
 end code
 end golang_org.x.sys.unix
 

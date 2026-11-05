@@ -551,7 +551,7 @@ theorem wp_osPWriteStart (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
       WP (ExternalOp osFsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hfd Hm Hbs Hc HΦ
-  iapply wp_os_step "PWriteStart" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "PWriteStart" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -1237,7 +1237,7 @@ theorem wp_osPWriteFinish (t : Nat) (p : GoString) (off : Nat) (data : List w8) 
         Φ (PairV (#(W64 k)) (#e))) -∗
       WP (ExternalOp osFsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
-  iapply wp_os_step "PWriteFinish" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iapply wp_os_step "PWriteFinish" _ Φ (by simp [val.isPanic]) hE (by simp [OldOp]) $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩

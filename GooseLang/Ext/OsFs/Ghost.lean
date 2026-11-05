@@ -200,7 +200,56 @@ structure OsCoh (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString
     j < affHi st ti.c - affLo st ti.c ∧
     ∃ f, st.file ti.c.path = some f ∧ CleanPhys f (affLo st ti.c + j)
 
+/-- The namespace is well formed (`notes/walfs-ext-plan.md`): the roots are; the namespace is the
+log replayed on its durable part, and so is what any prefix of the log gives, each well formed,
+its files of `files` under keys; the legacy paths lie outside the roots' trees; a directory fd is
+on a directory; no fd number is both a file's and a directory's. -/
+structure NsWf : Prop where
+  roots : RootsOk st.roots
+  replay : st.ns = nsReplay st.nsLog st.nsDur
+  hist : ∀ n, n ≤ st.nsLog.length →
+    NsShape st.roots (nsReplay (st.nsLog.take n) st.nsDur) ∧
+    ∀ p k, nsReplay (st.nsLog.take n) st.nsDur !! p = some (.file k) →
+      IsInoKey k ∧ ∃ f, st.files !! k = some (some f)
+  legacy : ∀ k, k ∈ st.files → ¬ IsInoKey k → ∀ r ∈ st.roots, ¬ IsUnder r k
+  dfds : ∀ fd df, st.dfds !! fd = some df → st.ns !! df.path = some .dir
+  disj : ∀ fd, st.fds !! fd ≠ none → st.dfds !! fd = none
+
 end derived
+
+/-- `st'` is `st` after a step that leaves the namespace alone: the namespace, its log and its
+directory fds are the same, every path and key of `files` stays one, every file stays one, and a
+new file fd is no directory fd. Every step of the extension but the namespace's does this
+(`nsFrame_step`, `Specs.lean`). -/
+structure NsFrame (st st' : OsState) : Prop where
+  roots : st'.roots = st.roots
+  ns : st'.ns = st.ns
+  nsDur : st'.nsDur = st.nsDur
+  nsLog : st'.nsLog = st.nsLog
+  dfds : st'.dfds = st.dfds
+  dom : ∀ k, k ∈ st'.files ↔ k ∈ st.files
+  some : ∀ k f, st.files !! k = some (some f) → ∃ f', st'.files !! k = some (some f')
+  fds : ∀ fd, st'.fds !! fd ≠ none → st.fds !! fd ≠ none ∨ st.dfds !! fd = none
+
+theorem NsFrame.wf {st st' : OsState} (h : NsFrame st st') (hw : NsWf st) : NsWf st' := by
+  obtain ⟨hr, hns, hd, hl, hdf, hdom, hsome, hfds⟩ := h
+  refine ⟨hr ▸ hw.roots, by rw [hns, hd, hl]; exact hw.replay, fun n hn => ?_, ?_, ?_, ?_⟩
+  · rw [hl] at hn ⊢; rw [hd, hr]
+    obtain ⟨h1, h2⟩ := hw.hist n hn
+    refine ⟨h1, fun p k hp => ?_⟩
+    obtain ⟨hk, f, hf⟩ := h2 p k hp
+    exact ⟨hk, hsome k f hf⟩
+  · intro k hk hn r hr'
+    rw [hr] at hr'
+    exact hw.legacy k ((hdom k).1 hk) hn r hr'
+  · intro fd df h; rw [hdf] at h; rw [hns]; exact hw.dfds fd df h
+  · intro fd h; rw [hdf]
+    rcases hfds fd h with h' | h'
+    · exact hw.disj fd h'
+    · exact h'
+
+theorem NsFrame.refl (st : OsState) : NsFrame st st :=
+  ⟨rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ f h => ⟨f, h⟩, fun _ h => Or.inl h⟩
 
 /-! ## The view of the mapped cells -/
 
@@ -585,14 +634,26 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
     gElem hL hL.γm ti.c.path (DFrac.own ti.q) (some ti.om) ∗
     bytesG hL ti.c.path (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))
 
-/-- The interpretation of the state `st`. -/
-def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+/-- The interpretation of the namespace of `st`. -/
+def nsCtx (_hL : OsGS GF) (st : OsState) : IProp GF := iprop(⌜NsWf st⌝)
+
+/-- A step that leaves the namespace alone keeps its interpretation. -/
+theorem nsCtx_frame (hL : OsGS GF) {st st' : OsState} (h : NsFrame st st') :
+    nsCtx hL st ⊢ nsCtx hL st' := by
+  unfold nsCtx; iintro %hw; ipureintro; exact h.wf hw
+
+/-- The interpretation of the files of `st`. -/
+def osCtxF (hL : OsGS GF) (st : OsState) : IProp GF :=
   iprop(∃ (Γb : GMap (GoString × Nat) (w8 × Bool)) (Γm : GMap GoString (Option OsMeta))
       (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo),
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ gAuth hL hL.γf Γf ∗ gAuth hL hL.γt Γt ∗
     tokRes hL st Γt ∗
     gVar hL (1 : Qp).half (cellView st, GMap.size st.inflight))
+
+/-- The interpretation of the state `st`: its files and its namespace. -/
+def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(osCtxF hL st ∗ nsCtx hL st)
 
 /-- The start resources for a state with no fd, change or mapping: every file and byte, whole,
 and the half of the cells' view that the invariant takes (`osInv_alloc`). -/
@@ -603,10 +664,14 @@ def osStart (hL : OsGS GF) (st : OsState) : IProp GF :=
 
 end ghost
 
-/-- A state the program may start in: no fd, change or mapping, and every file as on disk. -/
-def OsInit (st : OsState) : Prop :=
+/-- The files of a state the program may start in: no fd, change or mapping, and every file as
+on disk. -/
+def OsInitFiles (st : OsState) : Prop :=
   st.fds = ∅ ∧ st.inflight = ∅ ∧ st.maps = ∅ ∧
     ∀ p f, st.files !! p = some (some f) → f = OsFile.ofDisk f.cur
+
+/-- A state the program may start in: its files (`OsInitFiles`) and its namespace (`NsInit`). -/
+def OsInit (st : OsState) : Prop := OsInitFiles st ∧ NsInit st
 
 theorem file_eq_some {st : OsState} {p : GoString} {f : OsFile} :
     st.file p = some f ↔ st.files !! p = some (some f) := by
@@ -617,7 +682,7 @@ theorem file_eq_some {st : OsState} {p : GoString} {f : OsFile} :
 
 theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by
-  obtain ⟨hfd, hin, hmp, hdisk⟩ := h
+  obtain ⟨⟨hfd, hin, hmp, hdisk⟩, -⟩ := h
   have hdisk' : ∀ p f, st.file p = some f → f = OsFile.ofDisk f.cur :=
     fun p f hf => hdisk p f (file_eq_some.1 hf)
   have hnoinfl : ∀ p i, ¬ InflightAt st p i := by
@@ -679,6 +744,37 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
   · intro t ti h; simp at h
   · intro t ti h; simp at h
 
+/-- An initial namespace is well formed. -/
+theorem nsInit_wf {st : OsState} (h : NsInit st) : NsWf st := by
+  obtain ⟨hdf, hlog, hdur, hroots, hshape, hkeys, hleg⟩ := h
+  refine ⟨hroots, by rw [hlog, hdur]; rfl, fun n _ => ?_, hleg, ?_, ?_⟩
+  · rw [hlog]; simp only [List.take_nil, nsReplay, List.foldl_nil]
+    rw [hdur]; exact ⟨hshape, hkeys⟩
+  · intro fd df h; simp [hdf] at h
+  · intro fd _; simp [hdf]
+
+/-- A crash keeps the keys of `files`. -/
+theorem crashFiles_dom {st st' : OsState} (h : OsCrashFiles st st') (k : GoString) :
+    k ∈ st'.files ↔ k ∈ st.files := by
+  have hk := h.2.2.2 k
+  rw [GMap.mem_iff, GMap.mem_iff]
+  revert hk
+  rcases hp : st.files !! k with _ | _ | f
+  · intro hk; simp only at hk; rw [hk]
+  · intro hk; simp only at hk; rw [hk]
+  · rintro (⟨-, hk⟩ | ⟨img, -, hk⟩) <;> (rw [hk]; simp)
+
+/-- The namespace a crash leaves is an initial one. -/
+theorem nsCrash_init {st st' : OsState} (hw : NsWf st) (hf : OsCrashFiles st st')
+    (hn : NsCrash st st') : NsInit st' := by
+  obtain ⟨hroots, hdf, hlog, hdur, ⟨n, hn, hns⟩, hkeys⟩ := hn
+  obtain ⟨hshape, hino⟩ := hw.hist n hn
+  refine ⟨hdf, hlog, hdur, hroots ▸ hw.roots, ?_, fun p k hp => ?_, fun k hk hni r hr => ?_⟩
+  · rw [hns, hroots]; exact hshape
+  · exact ⟨(hino p k (hns ▸ hp)).1, hkeys p k hp⟩
+  · rw [hroots] at hr
+    exact hw.legacy k ((crashFiles_dom hf k).1 hk) hni r hr
+
 theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState) (h : OsInit st) :
     ⊢@{IProp GF} |==> ∃ hL : OsGS GF, osCtx hL st ∗ osStart hL st := by
   letI := hPre.osPreAllG
@@ -692,13 +788,15 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv⟩ : OsGS GF)
   isplitl [Hab Ham Haf Hat Hv1]
-  · unfold osCtx tokRes gAuth gVar
-    iexists (bytesMap st), (metaMap st), ∅, ∅
-    rw [cellView_of_maps_empty h.2.2.1, h.2.1, GMap.map_size_empty]
-    iframe Hab Ham Haf Hat Hv1
-    isplitr
-    · ipureintro; exact ⟨hwf, hcoh⟩
-    · iapply BigSepM.bigSepM_empty.2; itrivial
+  · unfold osCtx osCtxF nsCtx tokRes gAuth gVar
+    isplitl
+    · iexists (bytesMap st), (metaMap st), ∅, ∅
+      rw [cellView_of_maps_empty h.1.2.2.1, h.1.2.1, GMap.map_size_empty]
+      iframe Hab Ham Haf Hat Hv1
+      isplitr
+      · ipureintro; exact ⟨hwf, hcoh⟩
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+    · ipureintro; exact nsInit_wf h.2
   · unfold osStart gElem gVar
     iframe
 

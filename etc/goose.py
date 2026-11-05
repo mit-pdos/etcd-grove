@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -563,6 +563,20 @@ PROJECTS = [
                     "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "crashlog")],
+    ),
+    Project(
+        name="walfs",
+        # the WAL's file-system calls (`examples/osfs/walfs`, notes/walfs-ext-plan.md): a segment
+        # committed by rename (segdir.go), a directory made to appear by rename (dirswap.go), a
+        # segment's own calls (seglog.go). Its `os`, `syscall` and `golang.org/x/sys/unix` are
+        # project bboltfs's translations, as for crashlog. A package of the examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "osfs", "walfs"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
     Project(
         name="durablekv",

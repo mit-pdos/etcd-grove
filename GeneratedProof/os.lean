@@ -220,12 +220,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : os.Assumptions]
 
 noncomputable instance LinkError_typed_pointsto :
-    TypedPointsto (GF := GF) os.LinkError :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) os.LinkError where
+  typedPointstoDef l v dq := iprop(
+    "Op" ∷ typedPointsto (structFieldRef os.LinkError go!"Op" l) v.Op' dq ∗
+    "Old" ∷ typedPointsto (structFieldRef os.LinkError go!"Old" l) v.Old' dq ∗
+    "New" ∷ typedPointsto (structFieldRef os.LinkError go!"New" l) v.New' dq ∗
+    "Err" ∷ typedPointsto (structFieldRef os.LinkError go!"Err" l) v.Err' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance LinkError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) os.LinkError os.LinkError.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) os.LinkError os.LinkError.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance LinkError_access_load_Op (l : Loc) (v : os.LinkError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"Op" l) v.Op' dq)
+      (typedPointsto (structFieldRef os.LinkError go!"Op" l) v.Op' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_store_Op (l : Loc) (v : os.LinkError) (Op' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"Op" l) v.Op' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.LinkError go!"Op" l) Op' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := Op' } : os.LinkError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_load_Old (l : Loc) (v : os.LinkError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"Old" l) v.Old' dq)
+      (typedPointsto (structFieldRef os.LinkError go!"Old" l) v.Old' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_store_Old (l : Loc) (v : os.LinkError) (Old' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"Old" l) v.Old' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.LinkError go!"Old" l) Old' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := Old' } : os.LinkError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_load_New (l : Loc) (v : os.LinkError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"New" l) v.New' dq)
+      (typedPointsto (structFieldRef os.LinkError go!"New" l) v.New' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_store_New (l : Loc) (v : os.LinkError) (New' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"New" l) v.New' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.LinkError go!"New" l) New' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with New' := New' } : os.LinkError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_load_Err (l : Loc) (v : os.LinkError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef os.LinkError go!"Err" l) v.Err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance LinkError_access_store_Err (l : Loc) (v : os.LinkError) (Err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef os.LinkError go!"Err" l) v.Err' (DFrac.own 1))
+      (typedPointsto (structFieldRef os.LinkError go!"Err" l) Err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : os.LinkError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end LinkError
