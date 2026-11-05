@@ -502,7 +502,7 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
       (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 ((L'.length : Int) - 1) : w64) :
         IProp GF) -∗ ⧖ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
       ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗
-      bucketViewL (γ.withPhys p') (1 : Qp).half.half L' -∗ compactRes (γ.withPhys p') -∗
+      bucketViewL (γ.withPhys p') (1 : Qp).half.half.half L' -∗ compactRes (γ.withPhys p') L' -∗
       kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' ∗ writerReg s (γ.withPhys p') := by
   iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
   iunfold restoreWriter at Hw

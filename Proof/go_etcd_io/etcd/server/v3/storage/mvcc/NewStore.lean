@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreNC
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 
 @[expose] public section
 
@@ -198,10 +199,14 @@ theorem mvcc.NewStore.wp_proof
   -- (question 5's core stage, part (1)) the compaction keys' write right's lock key, at `true`: half
   -- for the batch lock's resource, half for the write right's invariant, when the store compacts
   imod ghostVar_alloc (GF := GF) true with ⟨%γmk, Hmk⟩
+  -- (the snapshot image's (c)) the records' compaction revision: half the writer's slot's, half the
+  -- tracked compaction's
+  imod ghostVar_alloc (GF := GF) (-1 : Int) with ⟨%γrcv, Hrcv⟩
+  icases ghostVar_halves γrcv _ $$ Hrcv with ⟨Hrcv1, Hrcv2⟩
   -- the store's objects, pinned (D22 receiver epochs, S3: until S5)
   -- (S5b) the store's current objects and physical names, set once the names are made
   imod (dghostVar_alloc (GF := GF) (((⟨b, ti, sc, stopc⟩ : mvcc.StoreObjs),
-      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, γmk, γx⟩ : mvcc.PhysNames)) :
+      (⟨γi.nev, γi.cmp, γb, γh, γhf, kb, γm, γfin, γs, γwk, γwv, γmk, γx, γrcv⟩ : mvcc.PhysNames)) :
       mvcc.StoreObjs × mvcc.PhysNames)) with ⟨%γcur, Hcur1⟩
   -- `s.revMu`'s restoring flag, down: half the lock's, half the fields' shares' (S3)
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γrst, Hrst⟩
@@ -228,17 +233,17 @@ theorem mvcc.NewStore.wp_proof
   obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
   imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr) with ⟨%γa, HXa, HYa, HFla, -⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
       γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw ∧ γ.tkr = γtkr ∧ γ.mwk = γmk ∧
-      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp ∧ γ.api = γa :=
+      γ.cm = decide (mvcc.kbCmpM kb) ∧ γ.sx = γx ∧ γ.cperm = γcp ∧ γ.api = γa ∧ γ.rcv = γrcv :=
     ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
-        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp, γa⟩,
+        γwsd, γtkw, γtkr, γmk, decide (mvcc.kbCmpM kb), γx, γcp, γa, γrcv⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   ihave #HcpIs : mvcc.crevPermIs γ Perm $$ []
   · iunfold mvcc.crevPermIs; rw [hγcp]; iexact Hcp
   ihave #Hperm0 := mvcc.crevPermAt_none (GF := GF) γ
@@ -275,13 +280,7 @@ theorem mvcc.NewStore.wp_proof
   ihave Hmk : ghostVar (GF := GF) γ.mwk 1 true $$ [Hmk]
   · rw [hγmk]; iexact Hmk
   icases mvcc.mwSlot_alloc γ $$ Hmk with ⟨Hslot, Hmrest⟩
-  ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin Hslot]
-  · iunfold mvcc.compactRes
-    iexists none, none, 0
-    iunfold mvcc.metaCompact
-    rw [hγm, hγfin]
-    iframe Hmeta Hfin Hslot
-    ipureintro; exact Nat.le_refl _
+  rw [← hγrcv] at *
   ihave #HisSched' : schedule.isFifo sc γ.sch $$ []
   · rw [hγs]; iexact HisFifo
   rw [← hγi, ← hγc, ← hγr]
@@ -291,6 +290,22 @@ theorem mvcc.NewStore.wp_proof
   icases (mvcc.bucketView_halves γ 1 _).1 $$ Hbv with ⟨Hbv1, Hbv2⟩
   -- the writer's half: `writerRes`'s quarter and the writer's pin's (M2's item 37)
   icases (mvcc.bucketView_quarters γ _).1 $$ Hbv1 with ⟨Hbv1, HbvP⟩
+  -- (the snapshot image's (a)) `writerRes`'s quarter: its eighth and the compaction's part's
+  icases (mvcc.bucketView_halves γ (1 : Qp).half.half _).1 $$ Hbv1 with ⟨Hbv1, HbvC⟩
+  -- the compaction's part: nothing written, and (a placeholder until M3's exact open) the tracked
+  -- compaction of the fresh backend
+  ihave HtrC : mvcc.cmpTrack γ [[], []] ∅ ⟨none, none⟩ $$ [Hrcv2]
+  · iapply mvcc.cmpTrack_new_M1
+    iapply mvcc.rcvW_intro
+    rw [show (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 from mvcc.CmpRecs.crev_empty]
+    iexact Hrcv2
+  ihave Hcres : mvcc.compactRes γ [[], []] $$ [Hmeta Hfin Hslot HbvC HtrC]
+  · iunfold mvcc.compactRes
+    iexists none, none, 0, ∅
+    iunfold mvcc.metaCompact
+    rw [hγm, hγfin]
+    iframe Hmeta Hfin Hslot HbvC HtrC
+    ipureintro; exact Nat.le_refl _
   ihave Hbv1 := mvcc.bucketViewL_init γ _ $$ Hbv1
   ihave HbvP := mvcc.bucketViewL_init γ _ $$ HbvP
   -- the compaction revision's authority: half the compaction right's, a quarter for each lock
@@ -463,8 +478,12 @@ theorem mvcc.NewStore.wp_proof
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
-  ihave HY : mvcc.slotY γ [[], []] $$ [HYa]
-  · unfold mvcc.slotY mvcc.pndW; rw [hγapi, hγw]; iexact HYa
+  ihave HY : mvcc.slotY γ [[], []] $$ [HYa Hrcv1]
+  · unfold mvcc.slotY mvcc.pndW; rw [hγapi, hγw]
+    iexists (-1)
+    icases HYa with ⟨HYa1, HYa2⟩
+    iframe HYa1 HYa2
+    iapply mvcc.rcvW_intro; iexact Hrcv1
   ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY]
   · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
@@ -560,11 +579,12 @@ theorem mvcc.NewStore.wp_proof
   -- the no-compaction token: a compacting store's write right (in `mwInv`), else the writer's loan
   -- (M2's item 37)
   ihave HpinW : mvcc.writerPin (GF := GF) γ [[], []] ∗
-      (if mvcc.kbCmpM γ.kb then mvcc.kbMW γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw]
+      (if mvcc.kbCmpM γ.kb then mvcc.kbMWf γ.kb γ.bucket else iprop(True)) $$ [HbvP Hmw]
   · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
     by_cases hcm : mvcc.kbCmpM γ.kb
     · simp only [hcm, ↓reduceIte]
       iframe HbvP
+      iapply mvcc.kbMW_flag
       iapply mvcc.kbNoCmp_MW _ _ $$ Hmw
     · simp only [hcm, ↓reduceIte]
       iframe HbvP Hmw

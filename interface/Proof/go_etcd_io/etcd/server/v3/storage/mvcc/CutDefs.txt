@@ -28,6 +28,16 @@ def mvcc.recsOk (L : mvcc.Log) (r : mvcc.CmpRecs) : Prop :=
 def mvcc.CmpRecs.finRev (r : mvcc.CmpRecs) : Int :=
   (Option.map sint.Z r.fin).getD (-1)
 
+def mvcc.snap.cmpOk (L : mvcc.Log) (m : mvcc.Bucket) (X : backend.VData) (rc : mvcc.CmpRecs) (jc :
+    Int × mvcc.Rev) : Prop :=
+  ∃ ents,
+    mvcc.entsCutAt L rc.crev ents ∧
+      (∀ (k : GoString), mvcc.snap.physLookup m X k = mvcc.bucketOfEnts ents !! k) ∧
+        mvcc.recsOk L rc ∧
+          mvcc.recsPos rc ∧
+            (∀ (k : GoString), (X !! (mvcc.keyName, k)).isSome = true → mvcc.KeyDel L rc.crev k) ∧
+              mvcc.snap.jobPast L jc.fst jc.snd ents ∧ -1 ≤ jc.fst ∧ jc.fst ≤ rc.crev ∧ rc.finRev ≤ jc.fst
+
 structure mvcc.KvEnt : Type where
   rev : mvcc.Rev
   tomb : Bool

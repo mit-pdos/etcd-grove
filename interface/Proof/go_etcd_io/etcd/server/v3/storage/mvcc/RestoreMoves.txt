@@ -65,8 +65,8 @@ theorem mvcc.restore_finish (s : Loc) (γ : mvcc.StoreNames) (o' : mvcc.StoreObj
     go_etcd_io.etcd.server.v3.storage.mvcc.store go!"currentRev" s) (W64 (↑(List.length L') - 1))
     (DFrac.own (Qp.half 1)) -∗ ⧖(mvcc.logCh L') -∗ monoNatLbOwn p'.nev (mvcc.evsOf (L' ++
     [[]])).length -∗ ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗ mvcc.bucketViewL (γ.withPhys p')
-    (Qp.half 1).half L' -∗ mvcc.compactRes (γ.withPhys p') -∗ mvcc.kbRegRight p'.kb ={⊤}=∗ ghostVar
-    γ.wr 1 () ∗ mvcc.idxCert γ.idx L' ∗ mvcc.writerReg s (γ.withPhys p')
+    (Qp.half 1).half.half L' -∗ mvcc.compactRes (γ.withPhys p') L' -∗ mvcc.kbRegRight p'.kb ={⊤}=∗
+    ghostVar γ.wr 1 () ∗ mvcc.idxCert γ.idx L' ∗ mvcc.writerReg s (γ.withPhys p')
 
 theorem mvcc.restoreView_of (b : GoInterface) (γ : mvcc.StoreNames) (RT : IProp GF) (q : Qp) (R :
     mvcc.Log) : mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗ mvcc.keyCleanRead b

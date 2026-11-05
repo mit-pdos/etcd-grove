@@ -82,16 +82,16 @@ instance mvccBackend_fractional (γ : MvccName) (B : BkRef) (Pk : IProp GF) :
     have hq : (q1 + q2).half.half.half = q1.half.half.half + q2.half.half.half := by
       rw [Qp_half_add, Qp_half_add, Qp_half_add]
     constructor
-    · iintro ⟨HF, %p, %o, %d, Hc, %Hd, #Hb⟩
+    · iintro ⟨HF, %p, %o, %d, Hc, %Hd, #Hb, #Hrg⟩
       iunfold shareTok at HF
       icases ht.1 $$ HF with ⟨HF1, HF2⟩
       rw [hq]
       icases ((curAt_fractional (GF := GF) ((γ : StoreNames).withPhys p) o).fractional
         q1.half.half.half q2.half.half.half).1 $$ Hc with ⟨Hc1, Hc2⟩
       isplitl [HF1 Hc1]
-      · iunfold shareTok; iframe HF1; iexists p, o, d; iframe Hc1 Hb; ipureintro; exact Hd
-      · iunfold shareTok; iframe HF2; iexists p, o, d; iframe Hc2 Hb; ipureintro; exact Hd
-    · iintro ⟨⟨HF1, %p, %o, %d, Hc1, %Hd, #Hb⟩, ⟨HF2, %p', %o', %d', Hc2, %Hd', -⟩⟩
+      · iunfold shareTok; iframe HF1; iexists p, o, d; iframe Hc1 Hb Hrg; ipureintro; exact Hd
+      · iunfold shareTok; iframe HF2; iexists p, o, d; iframe Hc2 Hb Hrg; ipureintro; exact Hd
+    · iintro ⟨⟨HF1, %p, %o, %d, Hc1, %Hd, #Hb, #Hrg⟩, ⟨HF2, %p', %o', %d', Hc2, %Hd', -, -⟩⟩
       ihave %Hv := curAt_agree ((γ : StoreNames).withPhys p) ((γ : StoreNames).withPhys p') rfl
         _ _ o o' $$ [Hc1 Hc2]
       · iframe Hc1 Hc2
@@ -110,7 +110,7 @@ instance mvccBackend_fractional (γ : MvccName) (B : BkRef) (Pk : IProp GF) :
       · iapply ((curAt_fractional (GF := GF) ((γ : StoreNames).withPhys p) o).fractional
           q1.half.half.half q2.half.half.half).2
         iframe Hc1 Hc2
-      iframe Hb
+      iframe Hb Hrg
       ipureintro; exact Hd
 
 /-- **`mvccBackend_agree.law`**: two shares hold parts of the store's current physical names,
@@ -118,7 +118,7 @@ which agree, so the same backend. -/
 theorem mvccBackend_agree.law_holds : mvccBackend_agree.law (GF := GF) := by
   intro γ q q' B B' Pk Pk'
   unfold mvccBackend
-  iintro ⟨⟨-, %p, %o, %d, Hc1, %Hd, -⟩, ⟨-, %p', %o', %d', Hc2, %Hd', -⟩⟩
+  iintro ⟨⟨-, %p, %o, %d, Hc1, %Hd, -, -⟩, ⟨-, %p', %o', %d', Hc2, %Hd', -, -⟩⟩
   ihave %Hv := curAt_agree (((γ : StoreNames)).withPhys p) ((γ : StoreNames).withPhys p') rfl
     _ _ o o' $$ [Hc1 Hc2]
   · iframe Hc1 Hc2
@@ -131,6 +131,16 @@ theorem mvccBackend_agree.law_holds : mvccBackend_agree.law (GF := GF) := by
   rw [h1] at h2
   cases h2
   rfl
+
+/-- **`mvccBackend_isBackend.law`** (the server's migration, 2026-11-05): the share's body records
+`isBackend` at `mvccW d.gx`. -/
+theorem mvccBackend_isBackend.law_holds : mvccBackend_isBackend.law (GF := GF) := by
+  intro γ q B Pk
+  unfold mvccBackend
+  iintro ⟨-, %p, %o, %d, -, %Hd, #Hb, -⟩
+  obtain ⟨-, -, rfl⟩ := Hd
+  iexists d.gx
+  iexact Hb
 
 /-- **`mvccW_alloc.law`** (M3, 2026-11-05): the registration slot allocated unset, its halves the
 right to register (`lateReg`) and the batch lock's late-bound resource (`lateW`'s unset branch). -/
@@ -156,10 +166,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [bk_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`mvccImage_snapshot.law`** (see the file header): the client's update committed first (the
-state unchanged, nothing pending), the writer frozen with the whole share (`writerInv_freezeNL`),
-the snapshot taken with the frozen writer's state lent to the observation (`snapObs_M1`), the
-writer thawed (`writerInv_thawNL`), the image from the observation (`imageOk_of_snapObsOk`) and the
+/-- **`mvccImage_snapshot.law`** (see the file header): the writer frozen with the whole share, the
+registration lent if pending (`writerInv_freezeR`); the client's update committed at once (the state
+unchanged, nothing pending), the frozen writer's slot agreeing with `mvccState`; the snapshot taken
+with the frozen writer's state lent to the observation (`snapObs`: the batch lock's writer's
+resource pins the tracked compaction); the registration given back (`reg_unlend`) and the writer
+thawed (`writerInv_thawNL`); the image from the observation (`imageOk_of_snapObsOk`) and the
 frozen writer's certificate (the receipt). -/
 theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   intro hSnap kv
@@ -168,21 +180,21 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   iintro %Ψ ⟨#Hpkg, Hmv, HB, Ho, Hwb, HR, #HQ, HAU⟩ HΨ
   ihave ⟨%s, #Hs⟩ := isMvcc_store kv γ $$ Hmv
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩⟩
   obtain ⟨hpk, hcm, rfl⟩ := Hd
   simp only []
   have hk : ((γ : StoreNames).withPhys p).kb = some d := hpk
   ihave #Hs0 := Hs
   iunfold isStore at Hs0
   iNamed Hs0
-  -- freeze the writer with the whole share (no later credit: the code is the call alone)
-  imod writerInv_freezeNL s ((γ : StoreNames).withPhys p) (γ : StoreNames).api rfl _ o $$
-    [Hwi] HF Hcur with ⟨HT, Hfz, Hcur⟩
+  -- freeze the writer with the whole share, the registration lent if pending (no later credit)
+  imod writerInv_freezeR s s' ((γ : StoreNames).withPhys p) (γ : StoreNames).api rfl d hk _ o $$
+    [Hwi] Hrg HF Hcur with ⟨Hcur, HT⟩
   · rw [show writerInv (GF := GF) s ((γ : StoreNames).withPhys p) = writerInv s γ from rfl]
     iexact Hwi
   -- the client's update at the frozen writer's state: committed now, the state unchanged
   ihave Hst : iprop(|={⊤}=> ∃ (σ : MvccState) (bb : Bool), Φ σ ∗
-      snapFrozen s ((γ : StoreNames).withPhys p) σ bb ∗ ⌜MvccReachable σ⌝) $$ [HT HAU Hfz]
+      snapFrozen s s' ((γ : StoreNames).withPhys p) σ bb ∗ ⌜MvccReachable σ⌝) $$ [HT HAU]
   · ihave HAU := atomic_update_mask_weaken (Eo2 := ⊤) CoPset.subseteq_top $$ HAU
     ihave Hacc := aupd_aacc $$ HAU
     unfold atomic_acc
@@ -194,13 +206,25 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
     iunfold mvccState at Hσ
     iunfold mvccStateI at Hσ
     icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
-    iunfold writerTaken at HT
-    icases HT with (⟨HwL, HwR⟩ | HK)
+    icases HT with (⟨⟨HwL, HwR⟩, Hfz, HRg⟩ | ⟨Hfz, HK⟩)
+    rotate_left 1
+    · icases HK with ⟨>HK, >Hd, >Hreg⟩
+      imod Hcommit $$ [Ha Hp Hcr Hnl] with HΦσ
+      · iunfold mvccState
+        iunfold mvccStateI
+        iframe
+        ipureintro; exact Hreach
+      imodintro
+      iexists σ, false
+      iframe HΦσ
+      isplitl
+      · iunfold snapFrozen
+        simp only [StoreNames.withPhys_api, Bool.false_eq_true, ↓reduceIte]
+        iframe Hfz HK Hd Hreg
+      · ipureintro; exact Hreach
     · ihave HwL := later_mono (writerL_split s ((γ : StoreNames).withPhys p)).1 $$ HwL
       icases HwL with ⟨%L, >Hwv, >HY, >Hcert, HLR⟩
-      ihave HY := (slotY_some (γ := (γ : StoreNames).withPhys p) rfl L).1 $$ HY
-      iunfold writerAbs at HY
-      icases HY with ⟨%c, Hac, Hpw⟩
+      icases (slotY_some (γ := (γ : StoreNames).withPhys p) rfl L).1 $$ HY with ⟨%c, Hac, Hpw, Hrc⟩
       iunfold absPart at Ha Hac
       simp only [StoreNames.withPhys_api]
       icombine Ha Hac gives %Hag
@@ -219,45 +243,20 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
       iframe HΦσ
       isplitl
       · iunfold snapFrozen
-        simp only [StoreNames.withPhys_api]
-        isplitl [Hfz]
-        · iexact Hfz
-        simp only [↓reduceIte]
-        iframe Hwv Hcert HLR HwR
-        iapply (slotY_some (γ := (γ : StoreNames).withPhys p) rfl σ.log).2
-        iunfold writerAbs
-        iexists σ.crev
-        simp only [StoreNames.withPhys_api]
-        isplitl [Hac]
-        · iunfold absPart; iexact Hac
-        · iexact Hpw
-      · ipureintro; exact Hreach
-    · imod Hcommit $$ [Ha Hp Hcr Hnl] with HΦσ
-      · iunfold mvccState
-        iunfold mvccStateI
-        iframe
-        ipureintro; exact Hreach
-      imodintro
-      iexists σ, false
-      iframe HΦσ
-      isplitl
-      · iunfold snapFrozen
-        simp only [StoreNames.withPhys_api]
-        isplitl [Hfz]
-        · iexact Hfz
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        iexact HK
+        simp only [StoreNames.withPhys_api, ↓reduceIte]
+        iframe Hwv Hcert HLR HwR Hpw Hrc Hfz HRg
+        iunfold absPart; iexact Hac
       · ipureintro; exact Hreach
   imod Hst with ⟨%σ, %bb, HΦσ, HFR, %Hreach⟩
   -- the snapshot, the frozen writer's state lent to the observation
   iapply wp_fupd
   iapply (hSnap d.γB d.P (mvccW d.gx) Pk d.be qo
-    iprop(R ∗ snapFrozen s ((γ : StoreNames).withPhys p) σ bb)
+    iprop(R ∗ snapFrozen s s' ((γ : StoreNames).withPhys p) σ bb)
     (fun vd dd r v => Q dd r ∧ bb = true ∧ snapObsOk σ.log σ.crev vd v)) $$ [Ho Hwb HR HFR]
   · iframe Hpkg Hbk Ho Hwb HR HFR
     iintro !> %vd %dd %r %v %X ⟨HR', HFR'⟩ HW HPk Hva Hdl Hhk Hrb Hfk
     ihave %H1 := HQ $$ %dd %r HR' HPk Hhk Hrb
-    ihave %H2 := snapObs_M1 s ((γ : StoreNames).withPhys p) d hk hcm σ Hreach bb vd X v $$
+    ihave %H2 := snapObs s s' ((γ : StoreNames).withPhys p) d hk hcm σ bb vd X v $$
       [HFR' HW Hva Hdl Hfk]
     · iframe
     ipureintro; exact ⟨H1, H2.1, H2.2⟩
@@ -266,16 +265,30 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   subst hbb
   iunfold snapFrozen at HFR
   simp only [↓reduceIte]
-  icases HFR with ⟨Hfz, Hwv, HY, #Hcert, HLR, HwR⟩
+  icases HFR with ⟨Hwv, Hac, Hpw, Hrc, #Hcert, HLR, HwR, Hfz, HRg⟩
+  -- the registration given back
+  ihave Hfz2 : iprop(|={⊤}=> ghostVar ((γ : StoreNames).withPhys p).api.frz (1 : Qp).half.half true)
+    $$ [HRg]
+  · icases HRg with (⟨-, Hfz2⟩ | ⟨Ht, HWr⟩)
+    · imodintro; iexact Hfz2
+    · iapply reg_unlend s' ((γ : StoreNames).withPhys p) d hk ⊤ (by solve_ndisj) $$ Hrg
+      iframe Ht HWr
+  imod Hfz2 with Hfz2
+  ihave Hfz := (ghostVar_split_half (GF := GF) ((γ : StoreNames).withPhys p).api.frz
+    (1 : Qp).half true).2 $$ [Hfz Hfz2]
+  · iframe Hfz Hfz2
   -- thaw
-  ihave HT : iprop(▷ writerTaken s ((γ : StoreNames).withPhys p)) $$ [Hwv HY HLR HwR]
+  ihave HT : iprop(▷ writerTaken s ((γ : StoreNames).withPhys p)) $$ [Hwv Hac Hpw Hrc HLR HwR]
   · inext
     iunfold writerTaken
     ileft
-    isplitl [Hwv HY HLR]
+    isplitl [Hwv Hac Hpw Hrc HLR]
     · iapply (writerL_split s ((γ : StoreNames).withPhys p)).2
       iexists σ.log
-      iframe Hwv HY HLR Hcert
+      iframe Hwv HLR Hcert
+      iapply (slotY_some (γ := (γ : StoreNames).withPhys p) rfl σ.log).2
+      iexists σ.crev
+      iframe Hac Hpw Hrc
     · iexact HwR
   simp only [StoreNames.withPhys_api]
   imod writerInv_thawNL s ((γ : StoreNames).withPhys p) (γ : StoreNames).api rfl _ o $$
@@ -290,7 +303,9 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
     iframe HF
     iexists p, o, d
     iframe Hcur Hbk
-    ipureintro; exact ⟨hpk, hcm, rfl⟩
+    isplitr
+    · ipureintro; exact ⟨hpk, hcm, rfl⟩
+    iexists s'; iexact Hrg
   isplitr
   · ipureintro; exact hQ
   iunfold idxCert at Hcert
@@ -309,6 +324,7 @@ end snapshot
 #print axioms mvccImage_snapshot.law_holds
 #print axioms mvccBackend_agree.law_holds
 #print axioms mvccBackend_fractional
+#print axioms mvccBackend_isBackend.law_holds
 
 end api
 end mvcc

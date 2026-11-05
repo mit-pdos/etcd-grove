@@ -779,15 +779,22 @@ theorem entsOfRev_pairs (L : Log) (pend : List Change) (hne : L ≠ []) :
   funext p
   cases changeKv (W64 L.length) (stateAfter L) pend p.2 <;> rfl
 
-/-- **A commit keeps the cut** (`storeTxnWrite.End`'s new revision `pend` above `L`): the physical
+/-- **A commit keeps the cut** (`storeTxnWrite.End`'s new revision `pend` above `L`; with its
+witness, the old entries and the new revision's: `cutOk_append`): the physical
 bucket gains the revision's entries, whose keys the backend never recorded deleted (`hX`), and the
 cut's shape holds of the old entries and the new ones (a new entry is above every old one, and
 compaction at `c < |L|` deletes no new entry: `KeyDel_prefix`). -/
-theorem cutOk_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (hne : L ≠ [])
+theorem cutAt_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (hne : L ≠ [])
     {m : Bucket} {X : backend.VData} {c : Int} (h0 : -1 ≤ c) (hc : c < L.length)
-    (h : cutOk L m X c) (hX : ∀ p ∈ pendPuts L pend, X.lookup (keyName, p.1) = none) :
-    cutOk (L ++ [pend]) ((pendPuts L pend).foldl (fun m p => GMap.insert p.1 p.2 m) m) X c := by
-  obtain ⟨ents, hcut, hB⟩ := h
+    {ents : List KvEnt} (hcut : entsCutAt L c ents)
+    (hB : ∀ k, (if (X.lookup (keyName, k)).isSome then none else m.lookup k) =
+      (bucketOfEnts ents).lookup k)
+    (hX : ∀ p ∈ pendPuts L pend, X.lookup (keyName, p.1) = none) :
+    entsCutAt (L ++ [pend]) c
+        (ents ++ entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend) ∧
+      ∀ k, (if (X.lookup (keyName, k)).isSome then none
+          else ((pendPuts L pend).foldl (fun m p => GMap.insert p.1 p.2 m) m).lookup k) =
+        (bucketOfEnts (ents ++ entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend)).lookup k := by
   let N := entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend
   have hlog : logEnts (L ++ [pend]) 0 (L ++ [pend]).length = logEnts L 0 L.length ++ N := by
     rw [List.length_append, List.length_singleton]; exact logEnts_snoc L pend
@@ -805,7 +812,7 @@ theorem cutOk_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (h
     simp only
     word
   have hpre : L <+: L ++ [pend] := List.prefix_append _ _
-  refine ⟨ents ++ N, ⟨?_, ?_, ?_⟩, ?_⟩
+  refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
   · rw [hlog]; exact hcut.1.append (List.Sublist.refl N)
   · intro e he hn
     rw [hlog] at he
@@ -850,6 +857,13 @@ theorem cutOk_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (h
     · rw [if_neg hx]
       rw [if_neg hx] at hk
       exact foldl_ins_lookup k _ _ _ (Or.inr hk)
+
+theorem cutOk_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (hne : L ≠ [])
+    {m : Bucket} {X : backend.VData} {c : Int} (h0 : -1 ≤ c) (hc : c < L.length)
+    (h : cutOk L m X c) (hX : ∀ p ∈ pendPuts L pend, X.lookup (keyName, p.1) = none) :
+    cutOk (L ++ [pend]) ((pendPuts L pend).foldl (fun m p => GMap.insert p.1 p.2 m) m) X c := by
+  obtain ⟨ents, hcut, hB⟩ := h
+  exact ⟨_, cutAt_append hb hne h0 hc hcut hB hX⟩
 
 /-- **A commit keeps the job's loop invariant** (`cutOk_append`'s entries): the new revision's
 entries are above `c₁`, so compaction at `c₁` deletes none of them. -/

@@ -250,7 +250,8 @@ pending revision), the frozen flag down; and the client's parts (half the view, 
 revision's rest `pr`, half the compaction authority and its lower bound, the whole share token)
 and the compaction right's quarter of the authority. -/
 theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) :
-    ⊢ |==> ∃ a : AbsNames, revMuAbs (GF := GF) a 1 L c ∗ writerAbs a pw L ∗ ghostVar a.frz 1 false ∗
+    ⊢ |==> ∃ a : AbsNames, revMuAbs (GF := GF) a 1 L c ∗
+      (absPart a (1 : Qp).half.half L c ∗ pndPart a pw none) ∗ ghostVar a.frz 1 false ∗
       absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
       crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L := by
   iintro
@@ -275,7 +276,7 @@ theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1)
   iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn
   isplitl [Ha3 Hc3]
   · iunfold revMuAbs; iframe Ha3 Hc3
-  · iunfold writerAbs; iexists c; iframe Ha4 Hpw
+  · iframe Ha4 Hpw
 
 end ghost
 

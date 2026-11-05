@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
 
@@ -134,7 +135,8 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
   · iframe Hwv HwvW
   subst HL
-  ihave Hbv := mvcc.bucketViewL_join γ (1 : Qp).half ilog logP $$ [Hbv HbvP]
+  ihave Hbv := mvcc.bucketViewL_join2 γ (1 : Qp).half.half.half (1 : Qp).half.half ilog logP
+    $$ [Hbv HbvP]
   · iframe Hbv HbvP
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)

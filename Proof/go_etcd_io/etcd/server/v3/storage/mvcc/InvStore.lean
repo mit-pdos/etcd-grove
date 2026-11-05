@@ -214,6 +214,12 @@ structure StoreNames where
   the compaction authority, the share token, the frozen flag), which the slots (`slotX`, `slotY`,
   `slotF`, `slotFr`, `slotFl`) hold; logical, `withPhys` keeps it -/
   api : api.AbsNames := ⟨0, 0, 0, 0, 0, 0⟩
+  /-- (the snapshot image's (c), 2026-11-05; physical) the meta keys' records' compaction revision
+  (`ghostVar Int`, a compacting real backend's): half in the batch lock's resource (`compactRes`'s
+  `cmpTrack`, at the records' `CmpRecs.crev`), half in the writer's slot (`slotY`, at its view's
+  compaction revision), so that the holder of the writer's state sees the records restore to the
+  API's compaction revision (`mvccImage_snapshot.law`) -/
+  rcv : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -251,8 +257,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => ((((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx), x.cperm), x.api))
-    (fun r2 => let r1 := r2.1; let r0 := r1.1; let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2, r1.2, r2.2⟩)
+    (fun x : StoreNames => (((((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw), x.tkr), x.mwk), x.cm, x.sx), x.cperm), x.api), x.rcv))
+    (fun r3 => let r2 := r3.1; let r1 := r2.1; let r0 := r1.1; let r := r0.1; let q := r.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, q.2, r.2, r0.2.1, r0.2.2, r1.2, r2.2, r3.2⟩)
     (fun _ => rfl)
 
 /-- **The store's physical ghost names** (D22 receiver epochs, S5b, 2026-10-22): those of one
@@ -276,23 +282,25 @@ structure PhysNames where
   mwk : GName
   /-- (M2, the storage side, item 34) the scheduler's payload's agreement name (`stopPayAt`) -/
   sx : GName
+  /-- (the snapshot image's (c)) the records' compaction revision (`StoreNames.rcv`) -/
+  rcv : GName
 
 instance physNames_countable : Pos.Countable PhysNames :=
   countableOfLeftInverse
-    (fun x : PhysNames => ((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx))
-    (fun q => let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2, q.2.1, q.2.2⟩)
+    (fun x : PhysNames => (((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx), x.rcv))
+    (fun q' => let q := q'.1; let p := q.1; ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2, q.2.1, q.2.2, q'.2⟩)
     (fun _ => rfl)
 
 /-- The physical names of the store's names `γ`. -/
 def StoreNames.phys (γ : StoreNames) : PhysNames :=
   ⟨γ.idx.nev, γ.idx.cmp, γ.bucket, γ.hook, γ.hookFn, γ.kb, γ.cmeta, γ.fin, γ.sch, γ.wk, γ.wv, γ.mwk,
-    γ.sx⟩
+    γ.sx, γ.rcv⟩
 
 /-- **The store's names `γ` at the physical names `p`** (S5b): the logical names `γ`'s. -/
 def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
   ⟨⟨γ.idx.hist, p.nev, γ.idx.log, γ.idx.crev, p.cmp⟩, p.bucket, γ.clog, γ.leases, γ.revs, p.hook,
     p.hookFn, p.kb, p.cmeta, p.fin, p.sch, γ.cok, γ.watchQ, γ.wr, p.wk, p.wv, γ.cur, γ.rst, γ.tk,
-    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx, γ.cperm, γ.api⟩
+    γ.tko, γ.wsd, γ.tkw, γ.tkr, p.mwk, γ.cm, p.sx, γ.cperm, γ.api, p.rcv⟩
 
 @[simp] theorem StoreNames.withPhys_phys (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).phys = p := rfl
@@ -398,6 +406,9 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 @[simp] theorem StoreNames.withPhys_sx (γ : StoreNames) (p : PhysNames) :
     (γ.withPhys p).sx = p.sx := rfl
 
+@[simp] theorem StoreNames.withPhys_rcv (γ : StoreNames) (p : PhysNames) :
+    (γ.withPhys p).rcv = p.rcv := rfl
+
 
 /-- **The store's objects** (D22 receiver epochs, S3, 2026-10-22): the values of the four fields
 `store.Restore` writes (`s.b`, `s.kvindex`'s tree index, `s.fifoSched`, `s.stopc`). Their
@@ -482,9 +493,19 @@ theorem pndW_compl (wq : Bool) :
     have h2 := Qp_div_2_lt (1 : Qp)
     simp only [Qp.lt_iff] at *; grind
 
+/-- **The records' compaction revision's part `q`** (`StoreNames.rcv`; the snapshot image's (c),
+2026-11-05): a compacting real backend's ghost variable at `c`, nothing otherwise. -/
+def rcvW (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then ghostVar γ.rcv q c else iprop(True)
+  | none => iprop(True)
+
 /-- **The writer's state's slot**: the API's writer quarter of the view and its part of the
-pending revision at `none`. -/
-def slotY (γ : StoreNames) (L : Log) : IProp GF := api.writerAbs γ.api (pndW γ) L
+pending revision at `none`, with (the snapshot image's (c)) the writer's half of the records'
+compaction revision at the view's compaction revision. -/
+def slotY (γ : StoreNames) (L : Log) : IProp GF :=
+  iprop(∃ c : Int, api.absPart γ.api (1 : Qp).half.half L c ∗ api.pndPart γ.api (pndW γ) none ∗
+    rcvW γ (1 : Qp).half c)
 
 /-- **The frozen state's deposit**: the whole backend share token. -/
 def slotF (γ : StoreNames) : IProp GF := api.shareTok γ.api 1
@@ -503,8 +524,6 @@ instance slotX_fractional (γ : StoreNames) (L : Log) (c : Int) :
 
 theorem slotX_withPhys (γ : StoreNames) (p : PhysNames) :
     slotX (GF := GF) (γ.withPhys p) = slotX γ := rfl
-theorem slotY_withPhys (γ : StoreNames) (p : PhysNames) :
-    slotY (GF := GF) (γ.withPhys p) = slotY γ := rfl
 theorem slotF_withPhys (γ : StoreNames) (p : PhysNames) :
     slotF (GF := GF) (γ.withPhys p) = slotF γ := rfl
 theorem slotFr_withPhys (γ : StoreNames) (p : PhysNames) :
@@ -662,6 +681,37 @@ such store comes from `NewStore`/`New`/`newWatchableStore`, which take `viewNoCm
 results hold of no backend until the wiring step, and do not count as verified until then. -/
 def kbMW (kb : Option KBReal) (γb : GName) : IProp GF :=
   iprop(∃ (w : backend.FkVals) (X : backend.VData), kbMWv kb γb w X)
+
+/-- **The write right's flag part** (the snapshot image's (a), 2026-11-05): what the write right's
+invariant (`mwInv`) keeps, the client's half of the compaction-key flag; the values' halves
+(`kbVals`) are the batch lock's resource's (`compactRes`'s `cmpTrack`), pinned at the store's
+records. -/
+def kbMWf (kb : Option KBReal) (γb : GName) : IProp GF :=
+  match kb with
+  | none => iprop(∃ f : Nat, viewFk γb f)
+  | some d => iprop(∃ f : Nat, monoNatAuthOwn d.γB.fk (1 : Qp).half f)
+
+/-- **The write right's values' halves** (the client's halves of the compaction keys' values and of
+the deleted entries; nothing for mvcc's assumed backend). -/
+def kbVals (kb : Option KBReal) (w : backend.FkVals) (X : backend.VData) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => iprop(backend.fkdOwn d.γB w ∗ backend.dlsOwn d.γB X)
+
+/-- The write right at its values is its flag part and its values' halves. -/
+theorem kbMWv_split (kb : Option KBReal) (γb : GName) (w : backend.FkVals) (X : backend.VData) :
+    kbMWv (GF := GF) kb γb w X ⊣⊢ kbMWf kb γb ∗ kbVals kb w X := by
+  cases kb with
+  | none =>
+    unfold kbMWv kbMWf kbVals
+    constructor
+    · iintro H; iframe H
+    · iintro ⟨H, -⟩; iexact H
+  | some d =>
+    simp only [kbMWv, kbMWf, kbVals, bkMW]
+    constructor
+    · iintro ⟨H1, H2, H3⟩; iframe H1 H2 H3
+    · iintro ⟨H1, H2, H3⟩; iframe H1 H2 H3
 
 /-- The no-compaction token is a write right (both backends): what `store.restore` gives back
 after its reads (question 5's decision (ii)). -/
@@ -2829,15 +2879,65 @@ def mwSlot (γ : StoreNames) : IProp GF :=
 theorem mwSlot_off (γ : StoreNames) (h : ¬ kbCmpM γ.kb) : ⊢ mwSlot (GF := GF) γ := by
   unfold mwSlot; rw [if_neg h]; iintro; itrivial
 
-/-- The compaction's part of the batch lock's resource: the meta keys' record and the finished
+/-- **The tracked compaction of a compacting real backend** (the snapshot image's (a), 2026-11-05;
+`notes/mvcc-api-invariants.md`, "the snapshot image"): mvcc's halves of the compaction keys' values,
+at the records' bytes, and of the deleted entries (`backend.fkdOwn`, `backend.dlsOwn`: the client's
+halves, which a backend snapshot's observation compares with the batch lock's), half the records'
+compaction revision (`rcvW`, the other half the writer's slot's), and the cut (`snap.cmpOk`) of the
+physical `Key` bucket at the log `L` and the logical view `m`; nothing for any other backend. -/
+def cmpTrack (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then
+      iprop(backend.fkdOwn d.γB (recBytes rc.fin, recBytes rc.sched) ∗
+        ghostVar γ.rcv (1 : Qp).half rc.crev ∗
+        ∃ (X : backend.VData) (jc : Int × Rev), backend.dlsOwn d.γB X ∗ ⌜snap.cmpOk L m X rc jc⌝)
+    else iprop(True)
+  | none => iprop(True)
+
+/-- **The tracked compaction but its values' halves** (at the deleted entries `X`): the records'
+compaction revision's half and the cut. -/
+def cmpRest (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) (X : backend.VData) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then
+      iprop(ghostVar γ.rcv (1 : Qp).half rc.crev ∗ ∃ jc : Int × Rev, ⌜snap.cmpOk L m X rc jc⌝)
+    else iprop(True)
+  | none => iprop(True)
+
+/-- **A compacting store's tracked compaction is its values' halves and the rest** (what a session
+holder takes out with the write right's flag, `kbMWv_split`). -/
+theorem cmpTrack_split (γ : StoreNames) (h : kbCmpM γ.kb) (L : Log) (m : Bucket) (rc : CmpRecs) :
+    cmpTrack (GF := GF) γ L m rc ⊣⊢
+      ∃ X : backend.VData, kbVals γ.kb (recBytes rc.fin, recBytes rc.sched) X ∗ cmpRest γ L m rc X := by
+  unfold cmpTrack cmpRest kbVals
+  unfold kbCmpM at h
+  cases hk : γ.kb with
+  | some d =>
+    rw [hk] at h
+    simp only at h
+    simp only [h, ↓reduceIte]
+    constructor
+    · iintro ⟨Hf, Hr, %X, %jc, Hd, %Hc⟩
+      iexists X; iframe Hf Hd Hr; iexists jc; ipureintro; exact Hc
+    · iintro ⟨%X, ⟨Hf, Hd⟩, Hr, %jc, %Hc⟩
+      iframe Hf Hr; iexists X, jc; iframe Hd; ipureintro; exact Hc
+  | none =>
+    simp only
+    constructor
+    · iintro -; iexists ∅; isplitl <;> itrivial
+    · iintro -; itrivial
+
+/-- The compaction's part of the batch lock's resource (at the batch lock's log `L`): the meta keys' record and the finished
 compactions' counter, at or above the record's finished revision (the highest revision a job
 finished at: the jobs run in the order of their revisions, but the batch lock's resource does not
 know it, so a job finishing writes its revision and raises the counter to it, if below;
 2026-10-13, unit 5c, contract correction: the counter was the record's revision exactly), and the
-write right's key (`mwSlot`: question 5's core stage, part (1)). -/
-def compactRes (γ : StoreNames) : IProp GF :=
-  iprop(∃ (sched fin : Option w64) (n : Nat), metaCompact γ 1 sched fin ∗
-    monoNatAuthOwn γ.fin 1 n ∗ ⌜crevN (finRev fin) ≤ n⌝ ∗ mwSlot γ)
+write right's key (`mwSlot`: question 5's core stage, part (1)); (the snapshot image's (a),
+2026-11-05) an eighth of the bucket's view, at the logical view `m`, and the tracked compaction at
+`L` and `m` (`cmpTrack`). -/
+def compactRes (γ : StoreNames) (L : Log) : IProp GF :=
+  iprop(∃ (sched fin : Option w64) (n : Nat) (m : Bucket), metaCompact γ 1 sched fin ∗
+    monoNatAuthOwn γ.fin 1 n ∗ ⌜crevN (finRev fin) ≤ n⌝ ∗ mwSlot γ ∗
+    bucketView γ (1 : Qp).half.half.half m ∗ cmpTrack γ L m ⟨fin, sched⟩)
 
 /-! ## The locks -/
 
@@ -3016,19 +3116,19 @@ theorem bucketViewL_join (γ : StoreNames) (q : Qp) (L1 L2 : Log) :
 /-- The batch lock's resource for the store (`W` of `isKeyBackend`; physical, per backend: D22
 receiver epochs, S2, 2026-10-22, until then also the writer's state, now `writerL`): the batch
 lock's key, half the ghost of the log `L` the bucket's view is of (the other half is the
-writer's state's, so the writer's log is the view's), a quarter of the bucket's view at `L` (the
-writer's pin holds another, `writerPin`; the other half under `s.revMu`: the write transaction's
-reads of the bucket, through the batch transaction),
+writer's state's, so the writer's log is the view's), an eighth of the bucket's view at `L` (another eighth
+in the compaction's part, the writer's pin a quarter, `writerPin`; the other half under `s.revMu`:
+the write transaction's reads of the bucket, through the batch transaction),
 the certificate of `L`, and the compaction's part (`compactRes`: the meta keys' record, the
 finished compactions' counter). -/
 def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ L : Log,
     "Hwk" ∷ writerKey γ ∗
     "Hwv" ∷ ghostVar γ.wv (1 : Qp).half L ∗
-    "Hbv" ∷ bucketViewL γ (1 : Qp).half.half L ∗
+    "Hbv" ∷ bucketViewL γ (1 : Qp).half.half.half L ∗
     "#Hcert" ∷ idxCert γ.idx L ∗
     "%Hne" ∷ ⌜L ≠ []⌝ ∗
-    "Hcres" ∷ compactRes γ)
+    "Hcres" ∷ compactRes γ L)
 
 /-- **The backend of the instance `kb` has nothing deletable** (persistent): for the real
 backend, its creator fixed its deletable keys at none (`backend.dlNoDel`: a store that does not
@@ -3053,6 +3153,16 @@ def kbNoDelOff (kb : Option KBReal) : IProp GF :=
 
 instance kbNoDelOff_persistent (kb : Option KBReal) : Persistent (kbNoDelOff (GF := GF) kb) := by
   unfold kbNoDelOff; split <;> infer_instance
+
+/-- **A write transaction's part of the bucket's view** (the snapshot image's (a), 2026-11-05):
+the writer's pin's quarter and `writerRes`'s eighth (the compaction's part keeps its own eighth). -/
+abbrev txQ : Qp := (1 : Qp).half.half + (1 : Qp).half.half.half
+
+/-- The view's parts: `s.revMu`'s half, a transaction's and the compaction's part's eighth. -/
+theorem txQ_one : (1 : Qp).half + (txQ + (1 : Qp).half.half.half) = 1 := by
+  apply Subtype.ext
+  show (1 : Rat) / 2 + ((1 / 2 / 2 + 1 / 2 / 2 / 2) + 1 / 2 / 2 / 2) = 1
+  grind
 
 /-- **The writer's pin** (M2's item 37, 2026-11-02; `notes/decisions.md`, "The writer's pin"): the
 sole writer's quarter of the bucket's view at its log `log` (with `writerRes`'s quarter, the
@@ -3134,7 +3244,7 @@ right back): the other half of the key's ghost variable, and the right when it i
 agree on where the right is, so no exclusivity of the right is needed. -/
 def mwInv (γ : StoreNames) : IProp GF :=
   inv mwN iprop(∃ b : Bool, ghostVar γ.mwk (1 : Qp).half b ∗
-    if b then kbMW γ.kb γ.bucket else iprop(True))
+    if b then kbMWf γ.kb γ.bucket else iprop(True))
 
 instance mwInv_persistent (γ : StoreNames) : Persistent (mwInv (GF := GF) γ) := by
   unfold mwInv; infer_instance
@@ -3148,6 +3258,20 @@ def mwSwap (W MW : IProp GF) : IProp GF :=
 
 instance mwSwap_persistent (W MW : IProp GF) : Persistent (mwSwap (GF := GF) W MW) := by
   unfold mwSwap; infer_instance
+
+/-- **A lock holder's loan of the write right at its values, for one put** (the snapshot image's
+(a), 2026-11-05: `SetScheduledCompact`'s, in place of `mwSwap`): the batch lock's resource `W` and a
+later credit give the right at some values `w` and deleted entries `X`, and the right at the put's
+values `f w` (the same deleted entries) gives `W` back. The store's re-pins its tracked compaction at
+the new record there (`compactRes`). -/
+def mwLend (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (f : backend.FkVals → backend.FkVals) : IProp GF :=
+  iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ (w : backend.FkVals) (X : backend.VData), MW w X ∗
+    (MW (f w) X ={⊤}=∗ W)))
+
+instance mwLend_persistent (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (f : backend.FkVals → backend.FkVals) : Persistent (mwLend (GF := GF) W MW f) := by
+  unfold mwLend; infer_instance
 
 instance kbWTSupply_persistent (kb : Option KBReal) : Persistent (kbWTSupply (GF := GF) kb) := by
   unfold kbWTSupply; cases kb <;> simp only <;> infer_instance
@@ -3183,7 +3307,16 @@ instance kbView_timeless (kb : Option KBReal) (g : GName) (q : Qp) (m : Bucket) 
 instance bucketViewL_timeless (γ : StoreNames) (q : Qp) (L : Log) :
     Timeless (bucketViewL (GF := GF) γ q L) := by
   unfold bucketViewL bucketLog bucketView; infer_instance
-instance compactRes_timeless (γ : StoreNames) : Timeless (compactRes (GF := GF) γ) := by
+instance cmpTrack_timeless (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) :
+    Timeless (cmpTrack (GF := GF) γ L m rc) := by
+  unfold cmpTrack backend.fkdOwn backend.dlsOwn
+  split
+  · split <;> infer_instance
+  · infer_instance
+instance bucketView_timeless (γ : StoreNames) (q : Qp) (m : Bucket) :
+    Timeless (bucketView (GF := GF) γ q m) := by
+  unfold bucketView; infer_instance
+instance compactRes_timeless (γ : StoreNames) (L : Log) : Timeless (compactRes (GF := GF) γ L) := by
   unfold compactRes metaCompact mwSlot mwKey; split <;> infer_instance
 instance writerRes_timeless (s : Loc) (γ : StoreNames) : Timeless (writerRes (GF := GF) s γ) := by
   unfold writerRes writerKey; simp only [named]; infer_instance
@@ -3191,6 +3324,20 @@ instance kbRegRight_timeless (kb : Option KBReal) : Timeless (kbRegRight (GF := 
   unfold kbRegRight; split <;> (try unfold lateReg) <;> infer_instance
 instance storeRegd_timeless (s : Loc) (γ : StoreNames) : Timeless (storeRegd (GF := GF) s γ) := by
   unfold storeRegd; split <;> infer_instance
+
+/-- **The pending registration lent to a snapshot's freezer** (the snapshot image's (d),
+2026-11-05): a quarter of the right to register (the freezer holds the other quarter, so the lock's
+resource is not registered meanwhile) and a quarter of the frozen flag up (so a writer, which finds
+the writer's invariant unfrozen, excludes it); the freezer holds the batch lock's writer's resource
+through the snapshot. Only for the real backend. -/
+def regLent (γ : StoreNames) : IProp GF :=
+  match γ.kb with
+  | none => iprop(False)
+  | some d => iprop(dghostVar d.gx (DFrac.own (1 : Qp).half.half) (none : Option (Loc × StoreNames)) ∗
+      ghostVar γ.api.frz (1 : Qp).half.half true)
+
+instance regLent_timeless (γ : StoreNames) : Timeless (regLent (GF := GF) γ) := by
+  unfold regLent; split <;> infer_instance
 
 /-- The registration's invariant's name. -/
 abbrev regN : Namespace := (nroot .@ "mvcc") .@ "reg"
@@ -3202,10 +3349,11 @@ batch lock's resource to deposit (`kbRegRight`, `writerRes`): after `store.Resto
 backend's batch lock holds its unregistered `lateW` (`Restore` does not take the batch lock), until
 the first holder of the batch lock registers it (`storeW_open`: a writer's `LockInsideApply`,
 `writerInv_checkout`, or in compaction mode the resumed or next compaction's). `NewStore`
-registers at its first `Unlock`. In the writer's state and, in compaction mode, in `physOk`
+registers at its first `Unlock`. (The snapshot image's (d), 2026-11-05) Or lent to a snapshot's
+freezer, pending (`regLent`): its opener excludes it (`storeW_open`'s `LE`). In the writer's state and, in compaction mode, in `physOk`
 (`physCmp`). -/
 def writerReg (s : Loc) (γ : StoreNames) : IProp GF :=
-  inv regN iprop(storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ)
+  inv regN iprop(storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ ∨ regLent γ)
 
 instance writerReg_persistent (s : Loc) (γ : StoreNames) : Persistent (writerReg (GF := GF) s γ) := by
   unfold writerReg; infer_instance
@@ -3224,7 +3372,7 @@ theorem writerReg_allocP (s : Loc) (γ : StoreNames) (E : CoPset) :
   iintro H
   iunfold writerReg
   iapply inv_alloc regN E
-  inext; iright; iexact H
+  inext; iright; ileft; iexact H
 
 /-- **The store's compaction facts in `physOk`** (the Draft's `physCmpW`, review round 15's N3, gated
 by the mode): the write right's invariant and the store's registration in its backend (the swap from
@@ -3265,14 +3413,14 @@ theorem mwSlot_alloc (γ : StoreNames) :
 /-- **`NewStore`'s allocation of the compaction facts** (after `restore` gives the right back): the
 invariant at `true` with the right, and the registration. -/
 theorem physCmp_alloc (s : Loc) (γ : StoreNames) :
-    mwRest (GF := GF) γ ∗ (if kbCmpM γ.kb then kbMW γ.kb γ.bucket else iprop(True)) ∗
+    mwRest (GF := GF) γ ∗ (if kbCmpM γ.kb then kbMWf γ.kb γ.bucket else iprop(True)) ∗
       writerReg s γ ={⊤}=∗ physCmp s γ := by
   unfold mwRest physCmp
   by_cases hc : kbCmpM γ.kb
   · simp only [hc, ↓reduceIte]
     iintro ⟨Hh, Hmw, #Hr⟩
     imod (inv_alloc mwN ⊤ iprop(∃ b : Bool, ghostVar γ.mwk (1 : Qp).half b ∗
-        if b then kbMW γ.kb γ.bucket else iprop(True))) $$ [Hh Hmw] with #Hi
+        if b then kbMWf γ.kb γ.bucket else iprop(True))) $$ [Hh Hmw] with #Hi
     · inext
       iexists true
       iframe Hh
@@ -3398,24 +3546,26 @@ theorem storeW_pending (s : Loc) (γ : StoreNames) :
 registration's invariant, the lock's resource gives the writer's, the store registered (if the
 registration was pending, it is made now: `storeW_pending`). No later credit: the invariant's
 contents are timeless. -/
-theorem storeW_open (s : Loc) (γ : StoreNames) (E : CoPset) (h : ↑regN ⊆ E) :
-    writerReg (GF := GF) s γ ⊢ storeW s γ ={E}=∗ writerRes s γ ∗ storeRegd s γ := by
-  iintro #Hi HW
+theorem storeW_open (s : Loc) (γ : StoreNames) (E : CoPset) (h : ↑regN ⊆ E) (LE : IProp GF)
+    (hLE : LE ∗ regLent γ ⊢ False) :
+    writerReg (GF := GF) s γ ⊢ LE -∗ storeW s γ ={E}=∗ writerRes s γ ∗ storeRegd s γ ∗ LE := by
+  iintro #Hi HLE HW
   iunfold writerReg at Hi
   imod inv_acc (E := E) (N := regN) (P := iprop(storeRegd (GF := GF) s γ ∨ kbRegRight γ.kb ∗
-    writerRes s γ)) h $$ Hi with ⟨HP, Hclose⟩
-  ihave HP : ◇ iprop(storeRegd (GF := GF) s γ ∨ kbRegRight γ.kb ∗ writerRes s γ) $$ [HP]
+    writerRes s γ ∨ regLent γ)) h $$ Hi with ⟨HP, Hclose⟩
+  ihave HP : ◇ iprop(storeRegd (GF := GF) s γ ∨ kbRegRight γ.kb ∗ writerRes s γ ∨ regLent γ) $$ [HP]
   · iapply Timeless.timeless; iexact HP
   imod HP with HP
-  icases HP with (#Hreg | ⟨Hrr, HWr⟩)
+  icases HP with (#Hreg | ⟨Hrr, HWr⟩ | Hl)
   · ihave HWr := storeW_get s γ $$ [$Hreg $HW]
     imod Hclose $$ [] with -
     · inext; ileft; iexact Hreg
-    imodintro; iframe HWr Hreg
+    imodintro; iframe HWr Hreg HLE
   · imod storeW_pending s γ $$ [$HW $Hrr $HWr] with ⟨HWr, #Hreg⟩
     imod Hclose $$ [] with -
     · inext; ileft; iexact Hreg
-    imodintro; iframe HWr Hreg
+    imodintro; iframe HWr Hreg HLE
+  · iexfalso; iapply hLE; iframe HLE Hl
 
 /-- **The store's backend contract with its compaction on** (question 5's core stage, parts
 (2)-(4), decided by the agent; until then `isKeyBackendG_cmp`, which reduced it to mvcc's assumed
@@ -5436,7 +5586,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
-    "Hbv" ∷ bucketViewL γ (1 : Qp).half ilog ∗
+    "Hbv" ∷ bucketViewL γ txQ ilog ∗
     "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
     "HY" ∷ slotY γ ilog ∗
     "Htko" ∷ ownToks γ.tko 1 ∗
@@ -5446,7 +5596,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ (compactRes γ ∗ writerLoan γ) ∗
+    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -5483,7 +5633,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
-    "Hbv" ∷ bucketViewL γ (1 : Qp).half ilog ∗
+    "Hbv" ∷ bucketViewL γ txQ ilog ∗
     "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
     "HY" ∷ slotY γ ilog ∗
     "Htko" ∷ ownToks γ.tko 1 ∗
@@ -5493,7 +5643,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-    "Hcres" ∷ (compactRes γ ∗ writerLoan γ) ∗
+    "Hcres" ∷ (compactRes γ ilog ∗ writerLoan γ) ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ilog.length⌝ ∗
     "#HZ" ∷ □ Z)
@@ -6175,9 +6325,16 @@ theorem hookP_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f : val
 /-- The batch lock's resource and the registration (done or pending) give the writer's resource,
 the store registered (S6). -/
 theorem writerReg_get (s : Loc) (γ : StoreNames) (E : CoPset) (h : ↑regN ⊆ E) :
-    storeW (GF := GF) s γ ∗ writerReg s γ ={E}=∗ writerRes s γ ∗ storeRegd s γ := by
-  iintro ⟨HW, #Hrg⟩
-  iapply storeW_open s γ E h $$ Hrg HW
+    storeW (GF := GF) s γ ∗ writerReg s γ ∗ slotFl γ 1 false ={E}=∗
+      writerRes s γ ∗ storeRegd s γ ∗ slotFl γ 1 false := by
+  iintro ⟨HW, #Hrg, Hfz⟩
+  iapply storeW_open s γ E h (slotFl γ 1 false) ?_ $$ Hrg Hfz HW
+  unfold regLent slotFl
+  split
+  · iintro ⟨-, H⟩; iexact H
+  · iintro ⟨H1, -, H2⟩
+    ihave %Hv := ghostVar_valid_2 γ.api.frz false 1 true _ $$ H1 H2
+    exact absurd Hv.1 (Qp_one_add_not_le _)
 
 /-- **A writer checks the writer's state out** (one later credit), with the batch lock's resource
 (`storeW`, from its `LockInsideApply`) and its part of `s.mu`'s deposit ghost, at its pin (S5b: the
@@ -6189,8 +6346,8 @@ theorem writerInv_checkoutG (s : Loc) (γ : StoreNames) (G : IProp GF)
     (hFG : slotF γ ∗ G ⊢ False) (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ G -∗ curAt γ dq o -∗ storeW s γ -∗ wDep γ ={⊤}=∗
       writerL s γ ∗ storeRegd s γ ∗ G ∗
-      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketViewL γ (1 : Qp).half.half L ∗
-        idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ) ∗ curAt γ dq o := by
+      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketViewL γ (1 : Qp).half.half.half L ∗
+        idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ L) ∗ curAt γ dq o := by
   iintro Hlc #Hi HG Hpin HW Hd
   iunfold writerInv at Hi
   imod inv_acc (E := ⊤) (N := writerN) (P := writerInvBody (GF := GF) s γ)
@@ -6207,7 +6364,7 @@ theorem writerInv_checkoutG (s : Loc) (γ : StoreNames) (G : IProp GF)
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
   icases HP with (⟨Hfz, (⟨HL, Hrg⟩ | ⟨Hk', -, #Hreg'⟩)⟩ | ⟨-, HF⟩)
-  · imod writerReg_get s γ _ (by solve_ndisj) $$ [$HW $Hrg] with ⟨HWr, #Hreg⟩
+  · imod writerReg_get s γ _ (by solve_ndisj) $$ [$HW $Hrg $Hfz] with ⟨HWr, #Hreg, Hfz⟩
     iunfold writerRes at HWr
     icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres⟩
     imod Hclose $$ [Hc Hwk Hd Hfz] with -
@@ -6677,7 +6834,7 @@ right's invariant, a resource holding the key swaps for the right and back. Acqu
 agree on `true`; take the right, set both to `false`. Return: they agree on `false`; put it back,
 set both to `true`. -/
 theorem mwSwap_of_inv (γ : StoreNames) (R : IProp GF) :
-    mwInv (GF := GF) γ ⊢ mwSwap iprop(mwKey γ.mwk ∗ R) (kbMW γ.kb γ.bucket) := by
+    mwInv (GF := GF) γ ⊢ mwSwap iprop(mwKey γ.mwk ∗ R) (kbMWf γ.kb γ.bucket) := by
   iintro #Hinv
   iunfold mwSwap
   iintro !> ⟨⟨Hk, HR⟩, Hlc⟩
@@ -6697,8 +6854,8 @@ theorem mwSwap_of_inv (γ : StoreNames) (R : IProp GF) :
     itrivial
   imodintro
   isplitl [Hm]
-  · iapply (show iprop(if true = true then kbMW (GF := GF) γ.kb γ.bucket else iprop(True)) ⊢
-        kbMW γ.kb γ.bucket from by simp only [↓reduceIte]; exact .rfl) $$ Hm
+  · iapply (show iprop(if true = true then kbMWf (GF := GF) γ.kb γ.bucket else iprop(True)) ⊢
+        kbMWf γ.kb γ.bucket from by simp only [↓reduceIte]; exact .rfl) $$ Hm
   iintro HMW
   iinv Hinv with Hi Hclose
   icases Hi with ⟨%b, >Hh, Hm⟩
@@ -6743,60 +6900,6 @@ theorem mwSwap_frameU (K W MW : IProp GF) :
   iintro Hm
   imod Hr $$ Hm with Hk
   iapply Hb $$ Hk
-
-/-- A compacting store's batch lock's resource holds the key. -/
-theorem writerRes_key (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
-    writerRes (GF := GF) s γ ⊢ mwKey γ.mwk ∗ (mwKey γ.mwk -∗ writerRes s γ) := by
-  unfold writerRes compactRes mwSlot
-  rw [if_pos h]
-  simp only [named]
-  iintro ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, ⟨%sc, %fi, %n, Hm, Hf, %Hle, Hk⟩⟩
-  iframe Hk
-  iintro Hk
-  iexists L
-  iframe Hwk Hwv Hbv Hcert
-  isplitr
-  · ipureintro; exact Hne
-  iexists sc, fi, n
-  iframe Hm Hf Hk
-  ipureintro; exact Hle
-
-/-- **A compacting store's swap of its writer's resource** (from the invariant). -/
-theorem mwSwap_writerRes (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
-    mwInv (GF := GF) γ ⊢ mwSwap (writerRes s γ) (kbMW γ.kb γ.bucket) := by
-  iintro #Hi
-  iapply mwSwap_frame (mwKey γ.mwk)
-  isplitr
-  · iintro !> HW
-    iapply writerRes_key s γ h $$ HW
-  iapply mwSwap_frame iprop(mwKey γ.mwk ∗ True)
-  isplitr
-  · iintro !> Hk
-    isplitl [Hk]
-    · iframe Hk
-    iintro ⟨Hk, -⟩
-    iexact Hk
-  iapply mwSwap_of_inv γ iprop(True) $$ Hi
-
-/-- **The swap law at the store's lock resource** (the Draft's `mwSwap_of_physOk.stmt`, review round
-15's N3; proved): a compacting store's physical facts swap its batch lock's resource `storeW` for
-the right (through its registration, for the real backend's late-bound `lateW`). -/
-theorem mwSwap_of_physOk (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) :
-    physCmp (GF := GF) s γ ⊢ mwSwap (storeW s γ) (kbMW γ.kb γ.bucket) := by
-  unfold physCmp
-  rw [if_pos h]
-  iintro ⟨#Hi, #Hr⟩
-  iapply mwSwap_frameU (writerRes s γ)
-  isplitr
-  · iintro !> HW
-    imod storeW_open s γ ⊤ (by solve_ndisj) $$ Hr HW with ⟨HW, #Hreg⟩
-    imodintro
-    iframe HW
-    iintro HW
-    imodintro
-    iapply storeW_put s γ
-    iframe Hreg HW
-  iapply mwSwap_writerRes s γ h $$ Hi
 
 /-- A compacting store's slot is the key. -/
 theorem mwSlot_on (γ : StoreNames) (h : kbCmpM γ.kb) : mwSlot (GF := GF) γ ⊣⊢ mwKey γ.mwk := by

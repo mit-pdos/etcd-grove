@@ -38,7 +38,8 @@ theorem slotX_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) (q : Qp
   unfold slotX; simp only [h]; exact .rfl
 
 theorem slotY_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) (L : Log) :
-    slotY (GF := GF) γ L ⊣⊢ api.writerAbs a (pndW γ) L := by
+    slotY (GF := GF) γ L ⊣⊢ ∃ c : Int, api.absPart a (1 : Qp).half.half L c ∗
+      api.pndPart a (pndW γ) none ∗ rcvW γ (1 : Qp).half c := by
   unfold slotY; simp only [h]; exact .rfl
 
 theorem slotF_some {γ : StoreNames} {a : api.AbsNames} (h : γ.api = a) :

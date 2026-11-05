@@ -81,6 +81,7 @@ structure mvcc.StoreNames : Type where
   sx : GName
   cperm : GName
   api : mvcc.api.AbsNames
+  rcv : GName
 
 theorem mvcc.crevRightM_off (γs : mvcc.StoreNames) (h : γs.cm = false) : mvcc.crevRightM γs ⊣⊢ True
 
@@ -129,6 +130,11 @@ theorem mvcc.storeBackend_persistent (b : GoInterface) (s : Loc) (γ : mvcc.Stor
 
 def mvcc.writerFrag (γ : mvcc.StoreNames) : IProp GF :=
   iprop(∃ o, mvcc.curAt γ (DFrac.own (Qp.half 1).half.half) o)
+
+def mvcc.kbMWf (kb : Option mvcc.KBReal) (γb : GName) : IProp GF :=
+  match kb with
+  | none => iprop(∃ f, mvcc.viewFk γb f)
+  | some d => iprop(∃ f, monoNatAuthOwn d.γB.fk (Qp.half 1) f)
 
 def mvcc.revLockW (s : Loc) (q : Qp) (RevP RevK : IProp GF) : IProp GF :=
   iprop(∀ Ψ,
@@ -249,8 +255,18 @@ def mvcc.writerRes (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
   iprop(∃ L,
       "Hwk" ∷ mvcc.writerKey γ ∗
         "Hwv" ∷ ghostVar γ.wv (Qp.half 1) L ∗
-          "Hbv" ∷ mvcc.bucketViewL γ (Qp.half 1).half L ∗
-            "#Hcert" ∷ mvcc.idxCert γ.idx L ∗ "%Hne" ∷ ⌜L ≠ []⌝ ∗ "Hcres" ∷ mvcc.compactRes γ)
+          "Hbv" ∷ mvcc.bucketViewL γ (Qp.half 1).half.half L ∗
+            "#Hcert" ∷ mvcc.idxCert γ.idx L ∗ "%Hne" ∷ ⌜L ≠ []⌝ ∗ "Hcres" ∷ mvcc.compactRes γ L)
+
+def mvcc.cmpTrack (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc : mvcc.CmpRecs) : IProp
+    GF :=
+  match γ.kb with
+  | some d =>
+    if d.cm = true then
+      iprop(backend.fkdOwn d.γB (mvcc.recBytes rc.fin, mvcc.recBytes rc.sched) ∗
+          ghostVar γ.rcv (Qp.half 1) rc.crev ∗ ∃ X jc, backend.dlsOwn d.γB X ∗ ⌜mvcc.snap.cmpOk L m X rc jc⌝)
+    else iprop(True)
+  | none => iprop(True)
 
 theorem mvcc.bucketViewL_exact (γ : mvcc.StoreNames) (q : Qp) (L : mvcc.Log) : mvcc.bucketView γ q
     (mvcc.bucketMap L) ⊢ mvcc.bucketViewL γ q L
@@ -322,7 +338,8 @@ def mvcc.wsDep (γ : mvcc.StoreNames) : IProp GF :=
   ghostVar γ.wsd 1 ()
 
 theorem mvcc.writerReg_get (s : Loc) (γ : mvcc.StoreNames) (E : CoPset) (h : ↑mvcc.regN ⊆ E) : ⊢
-    mvcc.storeW s γ ∗ mvcc.writerReg s γ ={E}=∗ mvcc.writerRes s γ ∗ mvcc.storeRegd s γ
+    mvcc.storeW s γ ∗ mvcc.writerReg s γ ∗ mvcc.slotFl γ 1 false ={E}=∗ mvcc.writerRes s γ ∗
+    mvcc.storeRegd s γ ∗ mvcc.slotFl γ 1 false
 
 theorem mvcc.rangeOutcomeC_latest (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (crev :
     Int) (endNil : Bool) (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
@@ -618,7 +635,7 @@ def mvcc.kbRT (kb : Option mvcc.KBReal) : IProp GF :=
   | some d => iprop(backend.rdTok d.γB d.P d.be ∗ backend.bOpen d.γB backend.rdOpen)
 
 theorem mvcc.mwSwap_of_inv (γ : mvcc.StoreNames) (R : IProp GF) : mvcc.mwInv γ ⊢ mvcc.mwSwap
-    iprop(mvcc.mwKey γ.mwk ∗ R) (mvcc.kbMW γ.kb γ.bucket)
+    iprop(mvcc.mwKey γ.mwk ∗ R) (mvcc.kbMWf γ.kb γ.bucket)
 
 def mvcc.bucketViewC (γ : mvcc.StoreNames) (q : Qp) (m : mvcc.Bucket) : IProp GF :=
   mvcc.kbViewC γ.kb γ.bucket q m
@@ -669,7 +686,12 @@ def mvcc.StoreNames.withPhys (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : mvcc.
     clog := γ.clog, leases := γ.leases, revs := γ.revs, hook := p.hook, hookFn := p.hookFn, kb := p.kb, cmeta := p.cmeta,
     fin := p.fin, sch := p.sch, cok := γ.cok, watchQ := γ.watchQ, wr := γ.wr, wk := p.wk, wv := p.wv, cur := γ.cur,
     rst := γ.rst, tk := γ.tk, tko := γ.tko, wsd := γ.wsd, tkw := γ.tkw, tkr := γ.tkr, mwk := p.mwk, cm := γ.cm,
-    sx := p.sx, cperm := γ.cperm, api := γ.api }
+    sx := p.sx, cperm := γ.cperm, api := γ.api, rcv := p.rcv }
+
+def mvcc.rcvW (γ : mvcc.StoreNames) (q : Qp) (c : Int) : IProp GF :=
+  match γ.kb with
+  | some d => if d.cm = true then ghostVar γ.rcv q c else iprop(True)
+  | none => iprop(True)
 
 theorem mvcc.isStore_persistent (s : Loc) (γ : mvcc.StoreNames) : Persistent (mvcc.isStore s γ)
 
@@ -740,6 +762,8 @@ def mvcc.kbCmpM_dec (kb : Option mvcc.KBReal) : Decidable (mvcc.kbCmpM kb) :=
           | some d => d.cm = true))
       kb (fun h => ⋯ ▸ inferInstance) (fun val h => ⋯ ▸ inferInstance) ⋯)
 
+theorem mvcc.regLent_timeless (γ : mvcc.StoreNames) : Timeless (mvcc.regLent γ)
+
 def mvcc.keyReaderD (rt : GoInterfaceOk) (m : mvcc.Bucket) (R : IProp GF) (Del : GoString → IProp
     GF) : IProp GF :=
   iprop(∀ b key k dq,
@@ -787,6 +811,10 @@ def mvcc.lockedIs (ld : Bool) (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket �
 
 theorem mvcc.muHeld_tree (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) : mvcc.muHeld s γ c ti
     ⊢ mvcc.muHeld s γ c ti ∗ mvcc.isTreeIndex ti γ.idx
+
+def mvcc.mwLend (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f : backend.FkVals
+    → backend.FkVals) : IProp GF :=
+  iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ w X, MW w X ∗ (MW (f w) X ={⊤}=∗ W)))
 
 theorem mvcc.hookOk_agree (γ : mvcc.StoreNames) (P P' : IProp GF) (f f' : val) : mvcc.hookOk γ P f ∗
     mvcc.hookOk γ P' f' ⊢ ⌜f = f'⌝ ∗ ▷ P ≡ P'
@@ -920,8 +948,8 @@ def mvcc.rangeOutcome (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
 theorem mvcc.writerInv_checkoutG (s : Loc) (γ : mvcc.StoreNames) (G : IProp GF) (hFG : mvcc.slotF γ
     ∗ G ⊢ False) (dq : DFrac) (o : mvcc.StoreObjs) : ⊢ £ 1 -∗ mvcc.writerInv s γ -∗ G -∗ mvcc.curAt
     γ dq o -∗ mvcc.storeW s γ -∗ mvcc.wDep γ ={⊤}=∗ mvcc.writerL s γ ∗ mvcc.storeRegd s γ ∗ G ∗ (∃
-    L, ghostVar γ.wv (Qp.half 1) L ∗ mvcc.bucketViewL γ (Qp.half 1).half L ∗ mvcc.idxCert γ.idx L ∗
-    ⌜L ≠ []⌝ ∗ mvcc.compactRes γ) ∗ mvcc.curAt γ dq o
+    L, ghostVar γ.wv (Qp.half 1) L ∗ mvcc.bucketViewL γ (Qp.half 1).half.half L ∗ mvcc.idxCert γ.idx
+    L ∗ ⌜L ≠ []⌝ ∗ mvcc.compactRes γ L) ∗ mvcc.curAt γ dq o
 
 theorem mvcc.certFree_persistent (γ : mvcc.StoreNames) : Persistent (mvcc.certFree γ)
 
@@ -1087,9 +1115,6 @@ def mvcc.finKeyBytes : GoString :=
 def mvcc.crevRightM (γs : mvcc.StoreNames) : IProp GF :=
   if γs.cm = true then mvcc.crevUB γs.idx (Qp.half 1) (-1) else iprop(True)
 
-theorem mvcc.mwSwap_writerRes (s : Loc) (γ : mvcc.StoreNames) (h : mvcc.kbCmpM γ.kb) : mvcc.mwInv γ
-    ⊢ mvcc.mwSwap (mvcc.writerRes s γ) (mvcc.kbMW γ.kb γ.bucket)
-
 def mvcc.keyReadSnapC (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (rt : GoInterfaceOk)
     (m : mvcc.Bucket) (L : IProp GF) : IProp GF :=
   iprop(□
@@ -1123,16 +1148,20 @@ theorem mvcc.StoreNames.withPhys_leases (γ : mvcc.StoreNames) (p : mvcc.PhysNam
 def mvcc.revToken (γ : mvcc.StoreNames) : IProp GF :=
   ownToks γ.revs 1
 
+def mvcc.txQ : Qp :=
+  (Qp.half 1).half + (Qp.half 1).half.half
+
 def mvcc.physNames_countable : Pos.Countable mvcc.PhysNames :=
   countableOfLeftInverse
-    (fun x => ((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx))
-    (fun q =>
+    (fun x => (((x.nev, x.cmp, x.bucket, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.wk, x.wv), x.mwk, x.sx), x.rcv))
+    (fun q' =>
+      have q := q'.fst;
       have p := q.fst;
       { nev := p.fst, cmp := p.snd.fst, bucket := p.snd.snd.fst, hook := p.snd.snd.snd.fst,
         hookFn := p.snd.snd.snd.snd.fst, kb := p.snd.snd.snd.snd.snd.fst, cmeta := p.snd.snd.snd.snd.snd.snd.fst,
         fin := p.snd.snd.snd.snd.snd.snd.snd.fst, sch := p.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         wk := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst, wv := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd,
-        mwk := q.snd.fst, sx := q.snd.snd })
+        mwk := q.snd.fst, sx := q.snd.snd, rcv := q'.snd })
     mvcc.physNames_countable._proof_1
 
 def mvcc.revMuTok (γ γp : mvcc.StoreNames) (q : Qp) : IProp GF :=
@@ -1209,20 +1238,30 @@ def mvcc.rdSplit (rt : GoInterfaceOk) (m : mvcc.Bucket) (Rd : GoSlice → GoStri
         TokA ∗
           TokB ∗ mvcc.rdCap Rd TokA ∗ mvcc.rdCap Rd TokB ∗ □ mvcc.keyRangeLimSpec rt m Rd TokA cl ∗ (TokA -∗ TokB -∗ Tok))
 
+def mvcc.kbVals (kb : Option mvcc.KBReal) (w : backend.FkVals) (X : backend.VData) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => iprop(backend.fkdOwn d.γB w ∗ backend.dlsOwn d.γB X)
+
 theorem mvcc.isTxn_toEnd {trace : Loc} (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
     (crev : Int) (Z : IProp GF := iprop(True)) : mvcc.isTxn mw s γ trace kind crev Z ⊢ mvcc.isTxnEnd
     mw s γ trace kind crev Z
 
-def mvcc.compactRes (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(∃ sched fin n,
-      mvcc.metaCompact γ 1 sched fin ∗ monoNatAuthOwn γ.fin 1 n ∗ ⌜mvcc.crevN (mvcc.finRev fin) ≤ n⌝ ∗ mvcc.mwSlot γ)
+def mvcc.compactRes (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
+  iprop(∃ sched fin n m,
+      mvcc.metaCompact γ 1 sched fin ∗
+        monoNatAuthOwn γ.fin 1 n ∗
+          ⌜mvcc.crevN (mvcc.finRev fin) ≤ n⌝ ∗
+            mvcc.mwSlot γ ∗
+              mvcc.bucketView γ (Qp.half 1).half.half m ∗ mvcc.cmpTrack γ L m { fin := fin, sched := sched })
 
 theorem mvcc.fieldShare_fractional (s : Loc) (γ : mvcc.StoreNames) : Fractional (mvcc.fieldShare s
     γ)
 
 theorem mvcc.kbWTSupplyM_persistent (kb : Option mvcc.KBReal) : Persistent (mvcc.kbWTSupplyM kb)
 
-theorem mvcc.compactRes_timeless (γ : mvcc.StoreNames) : Timeless (mvcc.compactRes γ)
+theorem mvcc.compactRes_timeless (γ : mvcc.StoreNames) (L : mvcc.Log) : Timeless (mvcc.compactRes γ
+    L)
 
 theorem mvcc.stopPayAt_persistent (γx : GName) (γs : schedule.SchedNames) (o : mvcc.StoreObjs) :
     Persistent (mvcc.stopPayAt γx γs o)
@@ -1237,9 +1276,6 @@ theorem mvcc.storeReader_withPhys (s : Loc) (γ : mvcc.StoreNames) (p : mvcc.Phy
 def mvcc.muHeld (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) : IProp GF :=
   iprop(sync.ownRWMutexRLocked (mvcc.muAddr s) (mvcc.muInv s γ) ∗
       mvcc.muInvAt s γ sync.rfrac c ∗ ∃ o, ⌜o.ti = ti⌝ ∗ mvcc.fieldShareAt s γ sync.rfrac.half o)
-
-theorem mvcc.slotY_withPhys (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : mvcc.slotY (γ.withPhys p) =
-    mvcc.slotY γ
 
 theorem mvcc.storeReaderC_withPhys (s : Loc) (γ : mvcc.StoreNames) (p : mvcc.PhysNames) :
     mvcc.storeReaderC s (γ.withPhys p) = mvcc.storeReaderC s γ
@@ -1318,7 +1354,7 @@ def mvcc.storeTxnWriteIs (tw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ilog
                                               (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
                                                 go!"currentRev" s)
                                               (W64 (↑(List.length ilog) - 1)) (DFrac.own (Qp.half 1)) ∗
-                                          "Hbv" ∷ mvcc.bucketViewL γ (Qp.half 1) ilog ∗
+                                          "Hbv" ∷ mvcc.bucketViewL γ mvcc.txQ ilog ∗
                                             "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
                                               "HY" ∷ mvcc.slotY γ ilog ∗
                                                 "Htko" ∷ ownToks γ.tko 1 ∗
@@ -1329,7 +1365,7 @@ def mvcc.storeTxnWriteIs (tw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ilog
                                                             sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗
                                                           "Hti" ∷ mvcc.idxReader ti γ.idx ∗
                                                             "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-                                                              "Hcres" ∷ (mvcc.compactRes γ ∗ mvcc.writerLoan γ) ∗
+                                                              "Hcres" ∷ (mvcc.compactRes γ ilog ∗ mvcc.writerLoan γ) ∗
                                                                 "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
                                                                   "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ↑(List.length ilog)⌝ ∗
                                                                     "#HZ" ∷ □ Z)
@@ -1348,9 +1384,6 @@ theorem mvcc.StoreNames.withPhys_mwk (γ : mvcc.StoreNames) (p : mvcc.PhysNames)
 theorem mvcc.kbHookIs_agree (kb : Option mvcc.KBReal) (hfn : GName) (f f' : val) : mvcc.kbHookIs kb
     hfn f ∗ mvcc.kbHookIs kb hfn f' ⊢ ⌜f = f'⌝
 
-theorem mvcc.writerRes_key (s : Loc) (γ : mvcc.StoreNames) (h : mvcc.kbCmpM γ.kb) : mvcc.writerRes s
-    γ ⊢ mvcc.mwKey γ.mwk ∗ (mvcc.mwKey γ.mwk -∗ mvcc.writerRes s γ)
-
 theorem mvcc.txnEndPost_plain (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (puts deletes putSize : w64) (h : γ.watchQ = false) : mvcc.txnEndPost γ (mvcc.TxnKind.write ilog
     pend puts deletes putSize) ⊢ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗ (if pend = [] then
@@ -1358,9 +1391,6 @@ theorem mvcc.txnEndPost_plain (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : L
 
 def mvcc.viewNoCmp (γb : GName) : IProp GF :=
   mvcc.viewFk γb 0
-
-theorem mvcc.mwSwap_of_physOk (s : Loc) (γ : mvcc.StoreNames) (h : mvcc.kbCmpM γ.kb) : mvcc.physCmp
-    s γ ⊢ mvcc.mwSwap (mvcc.storeW s γ) (mvcc.kbMW γ.kb γ.bucket)
 
 def mvcc.revMuRest (s : Loc) (q : Qp) : IProp GF :=
   iprop(∃ v c,
@@ -1382,6 +1412,9 @@ theorem mvcc.StoreNames.withPhys_sch (γ : mvcc.StoreNames) (p : mvcc.PhysNames)
 theorem mvcc.fieldShare_pin (s : Loc) (γ : mvcc.StoreNames) (q : Qp) (dq : DFrac) (o :
     mvcc.StoreObjs) : mvcc.curAt γ dq o ∗ mvcc.fieldShare s γ q ⊢ mvcc.curAt γ dq o ∗
     mvcc.fieldShareAt s γ q o
+
+theorem mvcc.StoreNames.withPhys_rcv (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).rcv
+    = p.rcv
 
 theorem mvcc.slotX_fractional (γ : mvcc.StoreNames) (L : mvcc.Log) (c : Int) : Fractional fun q =>
     mvcc.slotX γ q L c
@@ -1827,8 +1860,9 @@ def mvcc.bucketLog (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) : IPr
 theorem mvcc.kbReq_persistent (kb : Option mvcc.KBReal) (X Y : IProp GF) : Persistent (mvcc.kbReq kb
     X Y)
 
-theorem mvcc.storeW_open (s : Loc) (γ : mvcc.StoreNames) (E : CoPset) (h : ↑mvcc.regN ⊆ E) :
-    mvcc.writerReg s γ ⊢ mvcc.storeW s γ ={E}=∗ mvcc.writerRes s γ ∗ mvcc.storeRegd s γ
+theorem mvcc.storeW_open (s : Loc) (γ : mvcc.StoreNames) (E : CoPset) (h : ↑mvcc.regN ⊆ E) (LE :
+    IProp GF) (hLE : LE ∗ mvcc.regLent γ ⊢ False) : mvcc.writerReg s γ ⊢ LE -∗ mvcc.storeW s γ
+    ={E}=∗ mvcc.writerRes s γ ∗ mvcc.storeRegd s γ ∗ LE
 
 theorem mvcc.compactedAt_persistent (γ : mvcc.StoreNames) (rev : Int) : Persistent (mvcc.compactedAt
     γ rev)
@@ -1932,6 +1966,13 @@ def mvcc.changesAre (ps : List Loc) (ilog : mvcc.Log) (pend : List mvcc.Change) 
 theorem mvcc.StoreNames.withPhys_tk (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).tk =
     γ.tk
 
+def mvcc.cmpRest (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc : mvcc.CmpRecs) (X :
+    backend.VData) : IProp GF :=
+  match γ.kb with
+  | some d =>
+    if d.cm = true then iprop(ghostVar γ.rcv (Qp.half 1) rc.crev ∗ ∃ jc, ⌜mvcc.snap.cmpOk L m X rc jc⌝) else iprop(True)
+  | none => iprop(True)
+
 theorem mvcc.muHeld_crev_idx (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) : mvcc.muHeld s γ
     c ti ⊢ mvcc.crevUB γ.idx sync.rfrac.half.half c ∗ typedPointsto (structFieldRef
     go_etcd_io.etcd.server.v3.storage.mvcc.store go!"kvindex" s) (interface.mkOk
@@ -1951,6 +1992,12 @@ theorem mvcc.certFree_certOkNext (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend 
     mvcc.certFree γ ⊢ mvcc.certOkNext γ ilog pend
 
 theorem mvcc.crevUB_timeless (γ : mvcc.IdxNames) (q : Qp) (c : Int) : Timeless (mvcc.crevUB γ q c)
+
+theorem mvcc.kbMWv_split (kb : Option mvcc.KBReal) (γb : GName) (w : backend.FkVals) (X :
+    backend.VData) : mvcc.kbMWv kb γb w X ⊣⊢ mvcc.kbMWf kb γb ∗ mvcc.kbVals kb w X
+
+theorem mvcc.bucketView_timeless (γ : mvcc.StoreNames) (q : Qp) (m : mvcc.Bucket) : Timeless
+    (mvcc.bucketView γ q m)
 
 def mvcc.rangeLimitMax : Int :=
   2 ^ 56
@@ -1992,7 +2039,7 @@ theorem mvcc.bucketLog_append (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : L
     (List.foldl (fun m p => <[p.fst := p.snd]>m) m (mvcc.pendPuts ilog pend))
 
 def mvcc.writerReg (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  inv mvcc.regN iprop(mvcc.storeRegd s γ ∨ mvcc.kbRegRight γ.kb ∗ mvcc.writerRes s γ)
+  inv mvcc.regN iprop(mvcc.storeRegd s γ ∨ mvcc.kbRegRight γ.kb ∗ mvcc.writerRes s γ ∨ mvcc.regLent γ)
 
 def mvcc.kbSRM (kb : Option mvcc.KBReal) : IProp GF :=
   if mvcc.kbCmpM kb then mvcc.kbSR kb else iprop(True)
@@ -2032,7 +2079,7 @@ def mvcc.storeTxnWriteCore (tw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (il
                                           (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
                                             go!"currentRev" s)
                                           (W64 (↑(List.length ilog) - 1)) (DFrac.own (Qp.half 1)) ∗
-                                      "Hbv" ∷ mvcc.bucketViewL γ (Qp.half 1) ilog ∗
+                                      "Hbv" ∷ mvcc.bucketViewL γ mvcc.txQ ilog ∗
                                         "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
                                           "HY" ∷ mvcc.slotY γ ilog ∗
                                             "Htko" ∷ ownToks γ.tko 1 ∗
@@ -2042,7 +2089,7 @@ def mvcc.storeTxnWriteCore (tw s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (il
                                                     "HrevMu" ∷ sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗
                                                       "Hti" ∷ mvcc.idxReader ti γ.idx ∗
                                                         "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
-                                                          "Hcres" ∷ (mvcc.compactRes γ ∗ mvcc.writerLoan γ) ∗
+                                                          "Hcres" ∷ (mvcc.compactRes γ ilog ∗ mvcc.writerLoan γ) ∗
                                                             "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
                                                               "%Hcrev" ∷ ⌜-1 ≤ crev ∧ crev < ↑(List.length ilog)⌝ ∗
                                                                 "#HZ" ∷ □ Z)
@@ -2204,7 +2251,7 @@ theorem mvcc.keyReaderD_thin (rt : GoInterfaceOk) (mv m : mvcc.Bucket) (R : IPro
 
 def mvcc.StoreNames.phys (γ : mvcc.StoreNames) : mvcc.PhysNames :=
   { nev := γ.idx.nev, cmp := γ.idx.cmp, bucket := γ.bucket, hook := γ.hook, hookFn := γ.hookFn, kb := γ.kb,
-    cmeta := γ.cmeta, fin := γ.fin, sch := γ.sch, wk := γ.wk, wv := γ.wv, mwk := γ.mwk, sx := γ.sx }
+    cmeta := γ.cmeta, fin := γ.fin, sch := γ.sch, wk := γ.wk, wv := γ.wv, mwk := γ.mwk, sx := γ.sx, rcv := γ.rcv }
 
 def mvcc.keyRangeSpec (rt : GoInterfaceOk) (m : mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF)
     (Tok : IProp GF) : IProp GF :=
@@ -2274,6 +2321,12 @@ def mvcc.fkPutV (w : backend.FkVals) (k v : GoString) : backend.FkVals :=
   if k = mvcc.finKeyBytes then (some v, w.snd) else (w.fst, some v)
 
 theorem mvcc.noCompactor_of_frozen (γs : mvcc.StoreNames) : mvcc.crevFrozen γs ⊢ mvcc.noCompactor γs
+
+theorem mvcc.mwLend_persistent (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f :
+    backend.FkVals → backend.FkVals) : Persistent (mvcc.mwLend W MW f)
+
+theorem mvcc.cmpTrack_timeless (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc :
+    mvcc.CmpRecs) : Timeless (mvcc.cmpTrack γ L m rc)
 
 theorem mvcc.physCmp_persistent (s : Loc) (γ : mvcc.StoreNames) : Persistent (mvcc.physCmp s γ)
 
@@ -2468,6 +2521,8 @@ def mvcc.hookP (γ : mvcc.StoreNames) (P : IProp GF) : IProp GF :=
 def mvcc.muInv (s : Loc) (γ : mvcc.StoreNames) (q : Qp) : IProp GF :=
   iprop(∃ c, mvcc.muInvAt s γ q c ∗ ghostVar γ.wr q () ∗ mvcc.fieldShare s γ q.half)
 
+theorem mvcc.txQ_one : Qp.half 1 + (mvcc.txQ + (Qp.half 1).half.half) = 1
+
 theorem mvcc.fieldShare_gather (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) :
     mvcc.fieldShare s γ (Qp.half 1) ∗ mvcc.fieldShare s γ (Qp.half 1).half ∗ mvcc.fieldShareAt s γ
     (Qp.half 1).half o ⊢ mvcc.fieldShareAt s γ 1 o
@@ -2522,6 +2577,10 @@ theorem mvcc.StoreNames.withPhys_idx_crev (γ : mvcc.StoreNames) (p : mvcc.PhysN
 theorem mvcc.storeReq_of_wand (γ : mvcc.StoreNames) (X Y : IProp GF) : □ (X -∗ Y) ⊢ mvcc.storeReq γ
     X Y
 
+theorem mvcc.cmpTrack_split (γ : mvcc.StoreNames) (h : mvcc.kbCmpM γ.kb) (L : mvcc.Log) (m :
+    mvcc.Bucket) (rc : mvcc.CmpRecs) : mvcc.cmpTrack γ L m rc ⊣⊢ ∃ X, mvcc.kbVals γ.kb
+    (mvcc.recBytes rc.fin, mvcc.recBytes rc.sched) X ∗ mvcc.cmpRest γ L m rc X
+
 theorem mvcc.StoreNames.withPhys_cperm (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys
     p).cperm = γ.cperm
 
@@ -2537,6 +2596,11 @@ theorem mvcc.fkOwn_bkMW (γB : backend.BNames) (f : Nat) : backend.fkOwn γB f �
 
 def mvcc.storeWT (γ : mvcc.StoreNames) : IProp GF :=
   mvcc.kbWT γ.kb
+
+def mvcc.regLent (γ : mvcc.StoreNames) : IProp GF :=
+  match γ.kb with
+  | none => iprop(False)
+  | some d => iprop(dghostVar d.gx (DFrac.own (Qp.half 1).half) none ∗ ghostVar γ.api.frz (Qp.half 1).half true)
 
 def mvcc.compactQueue (γ : mvcc.StoreNames) (c : Int) : IProp GF :=
   iprop(∃ Ps p Q R, schedule.schedQueue γ.sch (Ps ++ [p]) ∗ schedule.savedProp p Q ∗ R ∗ (Q ∗ R -∗ mvcc.compactTok γ c))
@@ -2577,7 +2641,8 @@ def mvcc.kbHookNil (kb : Option mvcc.KBReal) : IProp GF :=
   | some d => backend.plHook d.γB func.nil
 
 def mvcc.slotY (γ : mvcc.StoreNames) (L : mvcc.Log) : IProp GF :=
-  mvcc.api.writerAbs γ.api (mvcc.pndW γ) L
+  iprop(∃ c,
+      mvcc.api.absPart γ.api (Qp.half 1).half L c ∗ mvcc.api.pndPart γ.api (mvcc.pndW γ) none ∗ mvcc.rcvW γ (Qp.half 1) c)
 
 def mvcc.writerL (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
   iprop(∃ ilog ntok,
@@ -2799,6 +2864,7 @@ structure mvcc.PhysNames : Type where
   wv : GName
   mwk : GName
   sx : GName
+  rcv : GName
 
 theorem mvcc.hookOk_agree_lc (E : CoPset) (γ : mvcc.StoreNames) (P P' : IProp GF) (f f' : val) : £ 1
     ∗ mvcc.hookOk γ P f ∗ mvcc.hookOk γ P' f' ⊢ |={E}=> ⌜f = f'⌝ ∗ □ (P -∗ P') ∗ □ (P' -∗ P)
@@ -2906,14 +2972,16 @@ def mvcc.restoreLogOk (R : mvcc.Log) : Prop :=
 def mvcc.storeNames_countable : Pos.Countable mvcc.StoreNames :=
   countableOfLeftInverse
     (fun x =>
-      ((((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ,
-                  x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw),
-                x.tkr),
-              x.mwk),
-            x.cm, x.sx),
-          x.cperm),
-        x.api))
-    (fun r2 =>
+      (((((((x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ,
+                    x.wr, x.wk, x.wv, x.cur, x.rst, x.tk, x.tko, x.wsd, x.tkw),
+                  x.tkr),
+                x.mwk),
+              x.cm, x.sx),
+            x.cperm),
+          x.api),
+        x.rcv))
+    (fun r3 =>
+      have r2 := r3.fst;
       have r1 := r2.fst;
       have r0 := r1.fst;
       have r := r0.fst;
@@ -2934,7 +3002,7 @@ def mvcc.storeNames_countable : Pos.Countable mvcc.StoreNames :=
         tko := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         wsd := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.fst,
         tkw := p.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd.snd, tkr := q.snd,
-        mwk := r.snd, cm := r0.snd.fst, sx := r0.snd.snd, cperm := r1.snd, api := r2.snd })
+        mwk := r.snd, cm := r0.snd.fst, sx := r0.snd.snd, cperm := r1.snd, api := r2.snd, rcv := r3.snd })
     mvcc.storeNames_countable._proof_1
 
 theorem mvcc.crevUB_lb_keep (γ : mvcc.IdxNames) (q : Qp) (c c' : Int) (hc : -1 ≤ c) : mvcc.crevUB γ
@@ -3240,7 +3308,7 @@ theorem mvcc.revMuInv_closeL (s : Loc) (γ γp : mvcc.StoreNames) (q : Qp) : mvc
     ∗ mvcc.revMuTok γ γp q ⊢ mvcc.revMuInv s γ q
 
 theorem mvcc.physCmp_alloc (s : Loc) (γ : mvcc.StoreNames) : ⊢ mvcc.mwRest γ ∗ (if mvcc.kbCmpM γ.kb
-    then mvcc.kbMW γ.kb γ.bucket else True) ∗ mvcc.writerReg s γ ={⊤}=∗ mvcc.physCmp s γ
+    then mvcc.kbMWf γ.kb γ.bucket else True) ∗ mvcc.writerReg s γ ={⊤}=∗ mvcc.physCmp s γ
 
 def mvcc.bkReq (γB : backend.BNames) (P : backend.BParams) (b : Loc) (X Y : IProp GF) : IProp GF :=
   iprop(□ (X -∗ Y) ∨ ∃ W Pk, backend.isBackend γB P W Pk b ∗ backend.commitReq γB P Pk b X Y)
@@ -3300,7 +3368,7 @@ def mvcc.kvOver (kv : GoInterface) (s : Loc) : IProp GF :=
             s DFrac.discard)
 
 def mvcc.mwInv (γ : mvcc.StoreNames) : IProp GF :=
-  inv mvcc.mwN iprop(∃ b, ghostVar γ.mwk (Qp.half 1) b ∗ if b = true then mvcc.kbMW γ.kb γ.bucket else True)
+  inv mvcc.mwN iprop(∃ b, ghostVar γ.mwk (Qp.half 1) b ∗ if b = true then mvcc.kbMWf γ.kb γ.bucket else True)
 
 theorem mvcc.keyReadLocked_split (RT NC : IProp GF) (rt : GoInterfaceOk) (m : mvcc.Bucket) (Rd :
     GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) : mvcc.keyReadLocked RT NC

@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 public import Proof.ReceiptTactics
 
 @[expose] public section
@@ -233,8 +234,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- (question 5's core stage, parts (2)-(4): its tokens, lock resource and write right)
       have hcM := mvcc.storeCmp_cmpM γ hcmp
       ihave #Hbk' := mvcc.isKeyBackendG_cmpOn b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
-      ihave #Hsw := mvcc.mwSwap_of_physOk s γ hcM $$ HmwP
-      iunfold mvcc.kbMW at Hsw
+      -- (the snapshot image's (a)) the store's loan of the write right at its values, for the put:
+      -- the record updated and the tracked compaction re-pinned there
+      ihave #Hsw := mvcc.compactLend_sched s γ hcM rev $$ HmwP
       icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg⟩
       -- (M2, the storage side, Q1 (a)) the supply from the pre
       ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcM).1 $$ HsupM
@@ -292,30 +294,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
             iintro ⟨HQ, HW⟩
             imod Hupd $$ HQ with ⟨HP, HPost⟩
             ihave HP0 := HPP0 $$ HP
-            imod mvcc.storeW_open s γ ⊤ (by solve_ndisj) $$ Hreg HW with ⟨HW, #Hregd⟩
-            iunfold mvcc.writerRes at HW
-            icases HW with ⟨%ilog, HW⟩
-            iNamed HW
-            iunfold mvcc.compactRes at Hcres
-            icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn, Hmk⟩
-            iunfold mvcc.metaCompact at Hmeta
-            imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
             imodintro
-            iframe HP0 HPost
-            iapply mvcc.storeW_put s γ
-            iframe Hregd
-            iunfold mvcc.writerRes
-            iexists ilog
-            simp only [named]
-            iframe
-            iframe #
-            isplitr
-            · ipureintro; exact Hne
-            iunfold mvcc.compactRes
-            iexists (some rev), fin, n
-            iunfold mvcc.metaCompact
-            iframe
-            ipureintro; exact Hn
+            iframe HP0 HPost HW
 
           inext
           iintro ⟨HRTok, HPost⟩

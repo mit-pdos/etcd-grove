@@ -49,10 +49,10 @@ def mvcc.api.absPart (γ : mvcc.api.AbsNames) (q : Qp) (L : mvcc.Log) (c : Int) 
   ghostVar γ.abs q (L, c)
 
 theorem mvcc.api.absNames_alloc_store (L : mvcc.Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) : ⊢
-    |==> ∃ a, mvcc.api.revMuAbs a 1 L c ∗ mvcc.api.writerAbs a pw L ∗ ghostVar a.frz 1 false ∗
-    mvcc.api.absPart a (Qp.half 1) L c ∗ mvcc.api.pndPart a pr none ∗ mvcc.api.crevAuth a (Qp.half
-    1) c ∗ mvcc.api.crevAuth a (Qp.half 1).half c ∗ mvcc.api.crevAtLeast a c ∗ mvcc.api.shareTok a 1
-    ∗ mvcc.api.nlAuth a 1 L
+    |==> ∃ a, mvcc.api.revMuAbs a 1 L c ∗ (mvcc.api.absPart a (Qp.half 1).half L c ∗
+    mvcc.api.pndPart a pw none) ∗ ghostVar a.frz 1 false ∗ mvcc.api.absPart a (Qp.half 1) L c ∗
+    mvcc.api.pndPart a pr none ∗ mvcc.api.crevAuth a (Qp.half 1) c ∗ mvcc.api.crevAuth a (Qp.half
+    1).half c ∗ mvcc.api.crevAtLeast a c ∗ mvcc.api.shareTok a 1 ∗ mvcc.api.nlAuth a 1 L
 
 theorem mvcc.api.pndPart_update (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (h : q1 + q2 = 1) (p1 p2 p' :
     Option (List mvcc.Change)) : mvcc.api.pndPart γ q1 p1 ∗ mvcc.api.pndPart γ q2 p2 ⊢ |==>

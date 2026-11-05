@@ -5,6 +5,7 @@ mode: in compaction mode `RestoreOn.lean`'s proof (M2's item 15); off, the proof
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreNC
@@ -194,12 +195,14 @@ theorem mvcc.store.Restore.wp_proof
     imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm', Hmeta'⟩
     imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin', Hfin', -⟩
     imod ghostVar_alloc (GF := GF) true with ⟨%γmk', Hmk'⟩
-    obtain ⟨p', hnv, hcmn, hb, hh, hk, hm, hfin, hs, hwk, hwv, hmk, hsx⟩ : ∃ p' : mvcc.PhysNames,
+    imod ghostVar_alloc (GF := GF) (-1 : Int) with ⟨%γrcv', Hrcv'⟩
+    icases ghostVar_halves γrcv' _ $$ Hrcv' with ⟨Hrcv', -⟩
+    obtain ⟨p', hnv, hcmn, hb, hh, hk, hm, hfin, hs, hwk, hwv, hmk, hsx, hrcv⟩ : ∃ p' : mvcc.PhysNames,
         p'.nev = nv ∧ p'.cmp = cm ∧ p'.bucket = γb' ∧ p'.hook = γh' ∧ p'.kb = some d' ∧
         p'.cmeta = γm' ∧ p'.fin = γfin' ∧ p'.sch = γs ∧ p'.wk = γwk' ∧ p'.wv = γwv' ∧
-        p'.mwk = γmk' ∧ p'.sx = γx' :=
-      ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γmk', γx'⟩,
-        rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+        p'.mwk = γmk' ∧ p'.sx = γx' ∧ p'.rcv = γrcv' :=
+      ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γmk', γx', γrcv'⟩,
+        rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
     have hpb : p'.bucket = γb' ∧ p'.kb = some d' := ⟨hb, hk⟩
     have hon' : mvcc.kbCmpM (γ.withPhys p').kb := by
       simp only [mvcc.StoreNames.withPhys_kb, hk]; exact hd'on
@@ -226,6 +229,8 @@ theorem mvcc.store.Restore.wp_proof
       simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]
       iexact HviewW
     icases (mvcc.bucketView_quarters _ _).1 $$ HviewW with ⟨HviewW, HviewP⟩
+    -- (the snapshot image's (a)) `writerRes`'s eighth and the compaction's part's
+    icases (mvcc.bucketView_halves _ (1 : Qp).half.half _).1 $$ HviewW with ⟨HviewW, HviewC⟩
     ihave #HcrT' := HcrT $$ %p' %hpb
     ihave Hnc : mvcc.kbRecs (GF := GF) (γ.withPhys p').kb (γ.withPhys p').bucket r $$ [Hrecs]
     · simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]
@@ -258,12 +263,20 @@ theorem mvcc.store.Restore.wp_proof
     -- the compaction's fresh record and the write right's key
     icases mvcc.mwSlot_alloc (γ.withPhys p') $$ [Hmk'] with ⟨Hslot, Hmwr⟩
     · simp only [mvcc.StoreNames.withPhys_mwk]; iexact Hmk'
-    ihave Hcres : mvcc.compactRes (GF := GF) (γ.withPhys p') $$ [Hmeta' Hfin' Hslot]
+    -- (a placeholder until M3's exact open and the image's cut) the tracked compaction
+    ihave HtrC : mvcc.cmpTrack (GF := GF) (γ.withPhys p') ([[], []] ++ R) (mvcc.bucketOfEnts ents)
+        ⟨none, none⟩ $$ [Hrcv']
+    · iapply mvcc.cmpTrack_new_M1
+      iapply mvcc.rcvW_intro
+      rw [mvcc.StoreNames.withPhys_rcv, hrcv,
+        show (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 from mvcc.CmpRecs.crev_empty]; iexact Hrcv'
+    ihave Hcres : mvcc.compactRes (GF := GF) (γ.withPhys p') ([[], []] ++ R)
+        $$ [Hmeta' Hfin' Hslot HviewC HtrC]
     · iunfold mvcc.compactRes
-      iexists none, none, 0
+      iexists none, none, 0, mvcc.bucketOfEnts ents
       iunfold mvcc.metaCompact
       simp only [mvcc.StoreNames.withPhys_cmeta, mvcc.StoreNames.withPhys_fin]
-      iframe Hmeta' Hfin' Hslot
+      iframe Hmeta' Hfin' Hslot HviewC HtrC
       ipureintro; exact Nat.le_refl _
     ihave Hrr : mvcc.kbRegRight (GF := GF) p'.kb $$ [Hrr]
     · rw [hk]; iexact Hrr
@@ -445,6 +458,7 @@ theorem mvcc.store.Restore.wp_proof
       imod mvcc.physCmp_alloc s (γ.withPhys p') $$ [Hmwr Hnc] with #HmwN
       · iframe Hmwr Hreg'
         simp only [hon', ↓reduceIte]
+        iapply mvcc.kbMW_flag
         iapply mvcc.kbRecs_MW $$ Hnc
       ihave #Hph2 : mvcc.physOk (GF := GF) s (γ.withPhys p') ⟨b', ti, sc, stopc⟩ $$ []
       · iunfold mvcc.physOk
@@ -812,11 +826,14 @@ theorem mvcc.store.Restore.wp_proof
   imod ghostVar_alloc (GF := GF) ([[], []] ++ R) with ⟨%γwv', Hwv'⟩
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm', Hmeta'⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin', Hfin', -⟩
-  obtain ⟨p', hnv, hcm, hb, hh, hk, hm, hfin, hs, hwk, hwv, hsx⟩ : ∃ p' : mvcc.PhysNames,
+  imod ghostVar_alloc (GF := GF) (-1 : Int) with ⟨%γrcv', Hrcv'⟩
+  icases ghostVar_halves γrcv' _ $$ Hrcv' with ⟨Hrcv', -⟩
+  obtain ⟨p', hnv, hcm, hb, hh, hk, hm, hfin, hs, hwk, hwv, hsx, hrcv⟩ : ∃ p' : mvcc.PhysNames,
       p'.nev = nv ∧ p'.cmp = cm ∧ p'.bucket = γb' ∧ p'.hook = γh' ∧ p'.kb = some d' ∧
-      p'.cmeta = γm' ∧ p'.fin = γfin' ∧ p'.sch = γs ∧ p'.wk = γwk' ∧ p'.wv = γwv' ∧ p'.sx = γx' :=
-    ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γ.mwk, γx'⟩,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      p'.cmeta = γm' ∧ p'.fin = γfin' ∧ p'.sch = γs ∧ p'.wk = γwk' ∧ p'.wv = γwv' ∧ p'.sx = γx' ∧
+      p'.rcv = γrcv' :=
+    ⟨⟨nv, cm, γb', γh', γ.hookFn, some d', γm', γfin', γs, γwk', γwv', γ.mwk, γx', γrcv'⟩,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   have hpb : p'.bucket = γb' ∧ p'.kb = some d' := ⟨hb, hk⟩
   rw [← hnv, ← hcm, ← hh, ← hm, ← hfin, ← hs, ← hwk, ← hwv]
   rw [show (⟨γ.idx.hist, p'.nev, γ.idx.log, γ.idx.crev, p'.cmp⟩ : mvcc.IdxNames) =
@@ -836,6 +853,8 @@ theorem mvcc.store.Restore.wp_proof
     iexact HviewW
   -- the writer's half of it: `writerRes`'s quarter and the new pin's (M2's item 37)
   icases (mvcc.bucketView_quarters _ _).1 $$ HviewW with ⟨HviewW, HviewP⟩
+  -- (the snapshot image's (a)) `writerRes`'s eighth and the compaction's part's
+  icases (mvcc.bucketView_halves _ (1 : Qp).half.half _).1 $$ HviewW with ⟨HviewW, HviewC⟩
   ihave HviewW := mvcc.bucketViewL_exact _ _ _ $$ HviewW
   ihave HviewP := mvcc.bucketViewL_exact _ _ _ $$ HviewP
   ihave #HcrT' := HcrT $$ %p' %hpb
@@ -985,12 +1004,18 @@ theorem mvcc.store.Restore.wp_proof
   -- no compaction facts
   have hnc : ¬ mvcc.kbCmpM (γ.withPhys p').kb := by
     simp only [mvcc.StoreNames.withPhys_kb, hk]; exact (mvcc.cmOff_res (GF := GF) d' Hcm').1
-  ihave Hcres : mvcc.compactRes (GF := GF) (γ.withPhys p') $$ [Hmeta' Hfin']
+  ihave HtrC : mvcc.cmpTrack (GF := GF) (γ.withPhys p') ([[], []] ++ R)
+      (mvcc.bucketMap ([[], []] ++ R)) ⟨none, none⟩ $$ [Hrcv']
+  · iapply mvcc.cmpTrack_new_M1
+    iapply mvcc.rcvW_intro
+    rw [mvcc.StoreNames.withPhys_rcv, hrcv,
+      show (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 from mvcc.CmpRecs.crev_empty]; iexact Hrcv'
+  ihave Hcres : mvcc.compactRes (GF := GF) (γ.withPhys p') ([[], []] ++ R) $$ [Hmeta' Hfin' HviewC HtrC]
   · iunfold mvcc.compactRes
-    iexists none, none, 0
+    iexists none, none, 0, mvcc.bucketMap ([[], []] ++ R)
     iunfold mvcc.metaCompact
     simp only [mvcc.StoreNames.withPhys_cmeta, mvcc.StoreNames.withPhys_fin]
-    iframe Hmeta' Hfin'
+    iframe Hmeta' Hfin' HviewC HtrC
     isplitr
     · ipureintro; exact Nat.le_refl _
     iapply mvcc.mwSlot_off _ hnc

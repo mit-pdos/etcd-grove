@@ -132,7 +132,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   iunfold mvcc.bucketViewL at Hbv
   icases Hbv with ⟨%m, Hbv, #Hbl⟩
   ihave %Hmsub := mvcc.bucketLog_sub γ ilog m $$ Hbl
-  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %mvcc.txQ %m
     %bK %ib' %d %_ %_
   -- (by hand: `wp_apply` loses the context here)
   wp_bind (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) _) _) _)
@@ -143,7 +143,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
       (mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm)
   inext
   iintro ⟨Hlocked, Hbv⟩
-  ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
+  ihave Hbv : mvcc.bucketViewL γ mvcc.txQ ilog $$ [Hbv]
   · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
   icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
   (try wp_auto)

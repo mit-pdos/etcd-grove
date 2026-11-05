@@ -15,7 +15,8 @@ theorem mvcc.SetScheduledCompact.wp_proof (h0 : mvcc.UnsafeSetScheduledCompact.s
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
               mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗
-                mvcc.mwSwap W iprop(∃ w X, MW w X) ∗
+                (mvcc.mwLend W MW fun w =>
+                    mvcc.fkPutV w mvcc.schedKeyBytes (mvcc.revBytes { main := value, sub := W64 0 } false)) ∗
                   RT ∗ WT ∗ Pre ∗ mvcc.lockArmS bt RT WT W P HF Locked HN hk Pre Q Post -∗
             ▷ (RT ∗ Post -∗ Φ (intoVal ())) -∗
               WP

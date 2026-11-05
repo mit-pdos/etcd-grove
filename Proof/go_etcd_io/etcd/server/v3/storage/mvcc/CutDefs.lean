@@ -140,6 +140,21 @@ batches (the snapshot image's (a)). -/
 def jobPast (L : Log) (c₁ : Int) (p : Rev) (ents : List KvEnt) : Prop :=
   ∀ e' ∈ logEnts L 0 L.length, Rev.lt e'.rev p → KeyDel L c₁ (revBytes e'.rev e'.tomb) → e' ∉ ents
 
+/-- **The store's tracked compaction** (the snapshot image's (a), 2026-11-05: what the batch lock's
+resource keeps of a compacting real backend, `compactRes`'s `cmpTrack`) at its log `L`, its logical
+view `m` of the `Key` bucket, the entries `X` the backend records deleted, the meta keys' records
+`rc` and the last job's revision and cursor `jc`: the physical bucket is entries cut at the records'
+compaction revision (`cutOk`'s, with the witness kept for the job's cursor), the records of `L`
+past `0`, every recorded delete one compaction at that revision may make, and the last job's loop
+invariant (`jobPast`) with its revision between the finished record and the compaction revision
+(the jobs run one after the other, `compactTok`). -/
+def cmpOk (L : Log) (m : Bucket) (X : backend.VData) (rc : CmpRecs) (jc : Int × Rev) : Prop :=
+  ∃ ents : List KvEnt, entsCutAt L rc.crev ents ∧
+    (∀ k, physLookup m X k = (bucketOfEnts ents).lookup k) ∧
+    recsOk L rc ∧ recsPos rc ∧
+    (∀ k, (X.lookup (keyName, k)).isSome → KeyDel L rc.crev k) ∧
+    jobPast L jc.1 jc.2 ents ∧ -1 ≤ jc.1 ∧ jc.1 ≤ rc.crev ∧ rc.finRev ≤ jc.1
+
 end pure
 
 end snap

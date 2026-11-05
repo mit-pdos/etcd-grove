@@ -994,3 +994,68 @@ of present keys), `Txn.Changes`'s `0 ≤ sint.Z chs.len` (the pending length, bo
 receipt). (F) `Txn.DeleteRange`'s proof must give `LogWf' (σ.log ++ [pend ++ ds])` and its revisions'
 size bound (the transaction's pending revision well formed: `ds` deletes only keys present after
 `pend`, `delKeys`; its length bounded by the writer's receipt `⧖ (logCh ilog + pend.length)`).
+
+## Hand-off: stage 2, the snapshot image's tracking in place (2026-11-05)
+
+**Done** (`snapObs_M1` deleted; `#print axioms mvccImage_snapshot.law_holds` has no `sorryAx`; no
+axiom; four new listed `M1-REPLACE` placeholders in the maintenance, below; no frozen statement
+found false or too weak):
+- **The pinned tracking (a)** (`InvStore`): `compactRes γ L` (the batch lock's log `L`) holds an
+  eighth of the bucket's view at the logical view `m` and `cmpTrack γ L m rc` (`rc` the meta keys'
+  record): for a compacting real backend mvcc's halves of `fkdOwn` (at `recBytes` of the record) and
+  `dlsOwn X`, half of the records' compaction revision (`StoreNames.rcv`, physical: (c)), and
+  `snap.cmpOk L m X rc jc` (`CutDefs`: the physical bucket the entries cut at `rc.crev`, with the
+  witness; `recsOk`, `recsPos`; every recorded delete `KeyDel L rc.crev`; the last job's
+  `jobPast` with `finRev ≤ jc.1 ≤ rc.crev`); nothing for any other backend. `writerRes` keeps an
+  eighth of the view (`writerRes`'s quarter split with the compaction's part); a write
+  transaction's part is `txQ` (the pin's quarter and `writerRes`'s eighth). `mwInv` keeps only the
+  write right's flag (`kbMWf`); a session holder assembles `kbMWv w X` from it and the tracked
+  values (`kbMWv_split`, `cmpTrack_split`, `cmpRest`).
+- **(c)**: `slotY` carries the writer's half of `rcv` at its view's compaction revision (`rcvW`),
+  so the frozen writer's slot gives `rc.crev = σ.crev`.
+- **(d)**: `writerReg`'s third state, lent (`regLent`: a quarter of the right to register and a
+  quarter of the frozen flag); `mvccBackend` records the registration's invariant (`∃ s,
+  writerReg s γp`, its body only: no statement changes); `Api/SnapFreeze.lean`'s
+  `writerInv_freezeR` (the registration opened with the writer's invariant: a pending one's
+  writer's resource taken, the invariant left lent; lent already excluded by the unfrozen flag) and
+  `reg_unlend`. `storeW_open` takes an excluder of the lent state (`LE`): a writer's the unfrozen
+  flag (`writerReg_get`).
+- **(e)**: `snapFrozen`'s open-transaction case holds the writer's key, stripped of the later; a
+  registered lock resource's `writerRes` contradicts it.
+- **The observation** (`snapObs`, `snapObs_writerRes`, `vd_of_cut`): the lock's resource is the
+  registered store's writer's resource or (unregistered) the freezer's lent one; its tracked
+  values, deleted entries and `rcv` agree with the lock's halves and the freezer's slot; the
+  bucket's eighth with `viewAtD`'s quarter (`keyView`); so `snapObsOk`.
+- **Maintenance proved**: `storeTxnWrite.End`'s commit re-pins the tracking at the new log and view
+  (`Api/CmpTrack.lean`'s `cmpOk_append`, with `cutAt_append`, the explicit-witness form of
+  `cutOk_append`; `cmpTrack_append`); `updateCompactRev`'s record update moved into
+  `SetScheduledCompact`'s loan (`mwLend`, the spec's new form: the right lent at its values and
+  taken back at the put's, `fkPutV`), re-pinning at the new record (`cmpOk_sched`,
+  `compactLend_sched`); `cmpOk_fin` (the job's finished record keeps the compaction revision) and
+  `cmpOk_crev` proved, not yet used.
+- `mvccBackend_isBackend.law_holds` (the coordinator's law, `c1f1565c78`).
+
+**Placeholders added** (`M1Placeholders.lean`, listed in its header):
+- `regLent_excl_M1`: the compaction's openers of the registration (`updateCompactRev`'s loan, the
+  job) exclude the lent state without the means. Fix: the job's premise `storeRegd` (from
+  `updateCompactRev`, which registers), `updateCompactRev` with the compactor's share
+  (`KV.Compact.contract`), the restore path by the restoring state.
+- `rcvSched_M1`: the records' compaction revision moved to `rev` without the writer's half, with
+  `1 ≤ rev`, `c ≤ rev`, `rev < |L|`. Fix: `KV.Compact.contract`'s update fired at the record write
+  (inside `SetScheduledCompact`'s loan: `s.revMu` and `s.mu` held, the writer's state checked in,
+  frozen excluded by the share), moving the client's, `s.revMu`'s and the writer's view with the
+  writer's `rcv` half.
+- `cmpTrack_new_M1`: `NewStore`'s and `store.Restore`'s new tracking from the `rcv` half only. Fix
+  (M3): the backend's open giving `fkdOwn γ (fkVals D) ∗ dlsOwn γ ∅` (`fkCl`, `NewAlloc`), taken
+  before `restore()` (whose `kbRecs` needs only the flag), the record allocated at the image's
+  `rc` (today `(none, none)`, a latent mismatch with the backend's values), the cut from `imageOk`'s
+  `ents` (`physLookup m ∅ = bucketOfEnts ents`).
+- `cmpTrack_job_M1`: the job's session keeps the tracking (its deletes `X` to `X'`, its finished
+  record). Fix, in this order: the compacting range's post exact on the physical view (`m'.lookup k
+  = physLookup m X k` on the range, from `MW w X`; `BackendBridge`); the job's cursor ghost
+  (`StoreNames.jc`, half in `cmpTrack`, half in `compactTok` with `jc.1 ≤ c`, so the next job knows
+  `finRev ≤ c₁`); a persistent lower bound of `rc.crev` minted by `updateCompactRev` for the job
+  (`c₁ ≤ rc.crev`); then per entry `cutAt_del`/`jobPast_skip`, and `cmpOk_fin` at the last batch.
+
+**Left**: the four placeholders above (the job's first, then `NewStore`/`Restore` with M3); M3
+(`mvccBackendFor`, `mvccBackendFor_open.law`, `fkCl` exact).

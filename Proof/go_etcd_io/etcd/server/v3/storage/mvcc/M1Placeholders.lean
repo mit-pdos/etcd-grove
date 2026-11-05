@@ -8,9 +8,13 @@ Today's specs of the methods that move it (`storeTxnWrite.End`, `store.updateCom
 take the API's steps; each such step is one of the lemmas below, **false in general** and proved
 by `sorry`, marked `M1-REPLACE` with the API contract whose proof replaces it at stage 2 (the
 proofs using them are rewritten against the API's contracts, and this module goes). Nothing new
-may use them. (Elsewhere, listed: `RestoreMoves`' five local ones; `Api/SnapFreeze.lean`'s
-`snapObs_M1`, 2026-11-05, the frozen store's part of a snapshot's observation, used once by
-`mvccImage_snapshot.law_holds`: the store does not yet track its compaction against the backend.)
+may use them. (Elsewhere, listed: `RestoreMoves`' five local ones.)
+
+The snapshot image's store-side tracking (2026-11-05, `notes/mvcc-api-invariants.md`, "the snapshot
+image's tracking in place"): the batch lock's resource pins the tracked compaction (`cmpTrack`), so
+the steps that move it must re-establish it; those not yet proved are the four below
+(`regLent_excl_M1`, `rcvSched_M1`, `cmpTrack_new_M1`, `cmpTrack_job_M1`). `snapObs_M1` (the frozen
+store's part of a snapshot's observation) is gone: `mvccImage_snapshot.law_holds` is proved.
 -/
 module
 
@@ -50,6 +54,44 @@ M1-REPLACE: `KV.Write.contract`, `Txn.End.contract` (the writer's backend share,
 `mvccBackend γ q`, excludes it: `slotF_share_excl`). -/
 theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢ False := by
   sorry -- M1-REPLACE: KV.Write.contract, Txn.End.contract (the backend share)
+
+/-- **(Placeholder, false in general.)** The registration lent to a snapshot's freezer excluded by
+the compaction's opener (`updateCompactRev`'s session, the job's) without the means to.
+M1-REPLACE: `KV.Compact.contract` (the compactor's backend share excludes the freezer, which holds
+the whole share; the restore's resumed compaction: the restoring state excludes it) and the job's
+registration premise (`storeRegd`, from `updateCompactRev`). -/
+theorem regLent_excl_M1 (γ : StoreNames) : iprop(emp) ∗ regLent (GF := GF) γ ⊢ False := by
+  sorry -- M1-REPLACE: KV.Compact.contract (the share excludes the freezer's loan), the job's storeRegd
+
+/-- **(Placeholder, false in general.)** `Compact`'s scheduled record at `rev`: the records'
+compaction revision moved to `rev` without the writer's half, and `rev` above it and a revision of
+the batch lock's log, past `0`. M1-REPLACE: `KV.Compact.contract` (the writer's slot, with the
+compactor's share: its compaction revision is `s.revMu`'s, below `rev`, and its log `s.revMu`'s;
+`1 ≤ rev` its premise; the restore's resumed compaction: the image's record, `recsPos`). -/
+theorem rcvSched_M1 (γ : StoreNames) (L : Log) (c rev : Int) :
+    ghostVar (GF := GF) γ.rcv (1 : Qp).half c ⊢
+      ⌜1 ≤ rev ∧ c ≤ rev ∧ rev < L.length⌝ ∗ ghostVar γ.rcv (1 : Qp).half rev := by
+  sorry -- M1-REPLACE: KV.Compact.contract (the writer's slot moves with the records)
+
+/-- **(Placeholder, false in general.)** A new batch lock's tracked compaction (`NewStore`'s and
+`store.Restore`'s), from the records' compaction revision's half only. M1-REPLACE: M3's exact open
+(`mvccBackendFor_open.law`: the backend's open gives `fkdOwn γ (fkVals D) ∗ dlsOwn γ ∅`, `fkCl`),
+the image's cut (`imageOk`'s `ents`), and `NewStore`'s and `Restore`'s order (the values' halves
+taken before `restore()`). -/
+theorem cmpTrack_new_M1 (γ : StoreNames) (L : Log) (m : Bucket) (rc : CmpRecs) :
+    rcvW (GF := GF) γ (1 : Qp).half rc.crev ⊢ cmpTrack γ L m rc := by
+  sorry -- M1-REPLACE: M3's exact open, the image's cut (NewStore, store.Restore)
+
+/-- **(Placeholder, false in general.)** The compaction job's session keeps the tracked compaction:
+its deletes (`X` to `X'`) and its finished record. M1-REPLACE: the job's cursor (`StoreNames.jc`,
+`compactTok`), `cutAt_del`/`jobPast_skip` per entry, the compacting range's exactness on the
+physical view, `cmpOk_fin` (`notes/mvcc-api-invariants.md`, "the snapshot image's tracking in
+place"). -/
+theorem cmpTrack_job_M1 (γ : StoreNames) (L : Log) (m : Bucket) (rc rc' : CmpRecs)
+    (X X' : backend.VData) :
+    cmpRest (GF := GF) γ L m rc X ∗ kbVals γ.kb (recBytes rc'.fin, recBytes rc'.sched) X' ⊢
+      cmpTrack γ L m rc' := by
+  sorry -- M1-REPLACE: the job's cursor and per-entry cut (store.scheduleCompaction)
 
 end placeholders
 

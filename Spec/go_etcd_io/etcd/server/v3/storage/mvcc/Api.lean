@@ -231,13 +231,16 @@ M3, 2026-11-05), allocated before the backend is opened (`mvccW_alloc`). -/
 excludes every step that changes the history) and `q` of the writer's fragment of the store's
 current objects and physical names (`curAt`, an eighth at `q = 1`), whose backend is the real one
 `B`, compacting (the API has no compaction mode), opened at the store's write invariant
-(`isBackend` at `mvccW`) with the batch lock's invariant `Pk`. -/
+(`isBackend` at `mvccW`) with the batch lock's invariant `Pk`, and (the snapshot image's (d),
+2026-11-05) the store's registration's invariant in it at the current names (`writerReg`: a
+snapshot's freezer lends a pending registration through it). -/
 @[no_expose] def mvccBackend (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF) : IProp GF :=
   iprop(api.shareTok (γ : StoreNames).api q ∗
     ∃ (p : PhysNames) (o : StoreObjs) (d : KBReal),
       curAt ((γ : StoreNames).withPhys p) (DFrac.own q.half.half.half) o ∗
       ⌜p.kb = some d ∧ d.cm = true ∧ B = ⟨d.γB, d.P, d.be⟩⌝ ∗
-      □ backend.isBackend d.γB d.P (mvccW d.gx) Pk d.be)
+      □ backend.isBackend d.γB d.P (mvccW d.gx) Pk d.be ∗
+      □ (∃ s : Loc, writerReg s ((γ : StoreNames).withPhys p)))
 
 /-- **The backend `B`, with batch-lock invariant `Pk`, holds the history `L` compacted at `c`, ready
 for a store over it**, its image recording an unfinished compaction iff `u` (which `Restore`

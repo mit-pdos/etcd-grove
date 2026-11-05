@@ -32,9 +32,11 @@ nothing (`lockNilSpec`, with the unset hook `HN`): the batch lock's invariant `P
 the `Unlock`, and the caller's update is `Pre ∗ HN ={⊤}=∗ Post`. Over the batch transaction in full
 generality (question 5's Draft, review round 14's F6, R9-3; the core stage, part (1)): its read and
 write tokens `RT`/`WT` (lent to `LockInsideApply`, the read token given back), put condition, tracked
-buckets' right and the compaction keys' write right `MW` are the caller's, and the caller's swap of
-the lock's resource for that right (`mwSwap W MW`: the store's, from its write right's invariant)
-gives the right for the `Meta` put. -/
+buckets' right and the compaction keys' write right `MW` are the caller's, and the caller's loan of
+the right at its values from the lock's resource, for the put (`mwLend W MW`, the snapshot image's
+(a), 2026-11-05: until then a swap of the whole resource, `mwSwap`, which a resource pinning the
+values cannot give back), gives the right for the `Meta` put and takes it back at the put's values
+(`fkPutV`). -/
 abbrev mvcc.SetScheduledCompact.spec : Prop :=
   ∀ (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
@@ -43,7 +45,8 @@ abbrev mvcc.SetScheduledCompact.spec : Prop :=
     (value : w64) (Pre Q Post : IProp GF),
   0 ≤ sint.Z value →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗ mvcc.mwSwap W iprop(∃ (w : backend.FkVals) (X : backend.VData), MW w X) ∗
+      mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep True Locked P HF Rb MW ∗
+      mvcc.mwLend W MW (fun w => mvcc.fkPutV w mvcc.schedKeyBytes (mvcc.revBytes ⟨value, W64 0⟩ false)) ∗
       RT ∗ WT ∗ Pre ∗ mvcc.lockArmS bt RT WT W P HF Locked HN hk Pre Q Post }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact)) (Val #(GoInterface.ok bt)))
       (Val #value))

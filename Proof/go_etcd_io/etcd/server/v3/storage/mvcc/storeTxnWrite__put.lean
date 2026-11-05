@@ -134,13 +134,13 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
     iunfold mvcc.bucketViewL at Hbv
     icases Hbv with ⟨%m, Hbv, #Hbl⟩
     ihave %Hmsub := mvcc.bucketLog_sub γ ilog m $$ Hbl
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m %bK %ib'
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %mvcc.txQ %m %bK %ib'
       %d %_ %_ [$(frameH `HKeyG) $(frameH `Hlocked) $(frameH `Hbv) $(frameH `Hib)
           $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
     · ipureintro
       exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
         (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb)
-    ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
+    ihave Hbv : mvcc.bucketViewL γ mvcc.txQ ilog $$ [Hbv]
     · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
     icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
     (try wp_auto)
