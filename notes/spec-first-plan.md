@@ -1260,10 +1260,48 @@ call):
 - putget's chain needs the bundle at a `γn` that `alloc1` does not fix. Then `memberFreshRes` drops
   `γn` when `peer = none`: a separate one-member form, D3 revisited.
 
-##### Where the Draft stands (2026-11-05, Order steps 1-7 done, proved)
+##### Step 8 glue list (the restart; 2026-11-05, as drafted and proved)
+
+For the restart track's R2c Scope: the statements step 8 left, and what each proof does with the
+bundles. `run.specStop` and its scope premises are untouched (R2c lifts them); so are
+`restartCheck.spec` and `serveClient.spec` (consumers of the client address, `netAddrFree caddr`).
+
+- **S7.** `etcdstart.BuildServer.specStop` takes `memberFreshRes name {} γn` (in place of
+  `walDirFresh (memberWalDir name)`); `BuildServer.specRestart` takes `memberRestartRes name {} γn γ ρ id`
+  (in place of `srvDiskImage γ ρ id (name ++ ".etcd")`). Both stay drafts without proofs (the restart
+  starter's proofs take them as hypotheses); their posts are unchanged. R2c's proof of `specRestart`
+  gets the image by `memberRestartRes_boot`; `specStop`'s, the WAL's boot slot by `memberFreshRes_boot`
+  (as `newServerMode` does).
+- **E3.** `restart.startMember.spec` takes `memberFreshRes name ⟨some peerAddr, none⟩ γn` (in place of
+  `netAddrFree peerAddr`, `httpProtoOwn peerAddr (raftProto (netRh γn))`, `walDirFresh`):
+  `memberFreshRes_peer` gives the peer listener's pieces, the rest (`memberFreshRes name {} γn`) goes to
+  `specStop`.
+- **E4.** `restart.startMember.specRestart` takes `memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id`
+  (in place of `netAddrFree peerAddr`, `srvDiskImage …`, `httpProtoOwn …`): a new law
+  `memberRestartRes_raft` (the image's raft names, `srvDiskImage_raft` through the bundle, D14) gives
+  `ρ.rd.raft.raft = γ`; `memberRestartRes_peer` the peer listener's pieces; the rest goes to
+  `specRestart`.
+- **E5.** `restart.stop.spec`: its data-directory binder `dd` is now the member's name `name`
+  (`memberStop … (name ++ ".etcd")`, the table's row 33, first option, D15); its post is
+  `memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id`, folded by `memberRestartRes_intro` from
+  `HardStop`'s image and the listener's close. `restartCheck` passes the bundle from `stop` to
+  `specRestart` whole.
+- **E6.** `restart.runRes` (`Run.spec`'s and `Main.spec`'s precondition, whose text is unchanged) is
+  `memberStartRes nameᵢ ⟨some peerAddrᵢ, some clientAddrᵢ⟩` (i = 1..3) `∗ threadTok ∗ threadTok ∗
+  premises …` (the table's row 17); `Run`'s proof calls `alloc3` (names, `some clientAddrᵢ`), takes each
+  client address's right out by `memberFreshRes_client` (to `serveClient`, `restartCheck`) and passes
+  `memberFreshRes nameᵢ ⟨some peerAddrᵢ, none⟩ γn` to `startMember.spec`. `alloc3Http` is `private`
+  in `Alloc3.lean` (`alloc3`'s proof uses it; no other user, D16).
+- **For R2c's closed theorem** (restart has none yet): `etcd_adequate_members` at the three members
+  `(nameᵢ, ⟨some peerAddrᵢ, some clientAddrᵢ⟩)` and `Bs := []`, `hA` by `decide` against the
+  program's address list, `hD` by `List.Perm.refl _`, then unfold `runRes` (it is not sealed) and
+  frame the three bundles.
+
+##### Where the Draft stands (2026-11-05, Order steps 1-8 done, proved)
 
 Session etcd-grove-83's Draft runs, branch `hub-step7` (lean `080f18c48f` + the Scope notes). Steps
-1-7 are proved, with no new `sorry` or axiom; step 8 (the restart) is next, step 9 after it.
+1-8 are proved, with no new `sorry` or axiom (step 8 after merging `lean` at `1622b02d13`, the
+Perennial pin `84d538063`); step 9 is next.
 
 - **Done, steps 1-6.** `etcdstart/StartRes.lean` (the three bundles, sealed, `etc/import-all.txt`:
   only `Alloc3` imports it whole), L1-L3; L4 as `etcd_adequate_members` and
@@ -1279,8 +1317,8 @@ Session etcd-grove-83's Draft runs, branch `hub-step7` (lean `080f18c48f` + the 
   `MainWatch` and K6's `MainPartition` on `cluster3.startRes clusterCfg` (M3); their adequacy (A3:
   `etcd_adequate_members`/`_alloc_members` at `members clusterCfg` and `Bs := bridges clusterCfg`,
   `hA` by `decide`, D13). The pass-through `memberFreshRes_intro_peer` is gone.
-- **Left:** step 8 (S7 `BuildServer.specRestart`, `specStop` (D8), E3-E6; `restart.Run` still calls
-  `alloc3Http`, deleted after E6); step 9 (the `etcdstart` importable list and its interfaces, Q4).
+- **Done, step 8.** S7, E3-E6 as in "Step 8 glue list" above (D14-D16); `alloc3Http` private.
+- **Left:** step 9 (the `etcdstart` importable list and its interfaces, Q4).
 - **What the probes showed** (none of "What would make us revise the design" happened):
   - the sealed `Option` matches reduce in the laws only: the callers use `rfl` for the premise
     (`a.client = some c`, `a.peer = none`), and the bundle given back at `{a with client := none}` is
@@ -1299,9 +1337,10 @@ Session etcd-grove-83's Draft runs, branch `hub-step7` (lean `080f18c48f` + the 
     `etcd_adequate_alloc`, hence `etcd_adequate_alloc_members`), `k8s/etcd3` (its adequacy calls
     `goose_adequacy_start` directly, so it applies `memberStartRes_intro` itself), and auth's
     literal data directory (above).
-- **Spec files naming a start resource** (the success measure): 34 before, 9 now: the consumers
-  (`Serve`, `cluster3.StartBridge`, `restart.restartCheck`/`serveClient`, `net/Listen`) and step 8's
-  (restart's `Run`/`startMember`/`stop`, `BuildServer.specStop`/`specRestart`).
+- **Spec files naming a start resource in a statement** (the success measure): 34 before, 5 now,
+  the consumers only (`Serve`, `cluster3.StartBridge`, `restart.restartCheck`/`serveClient`,
+  `net/Listen`), the Scope's target. (Thirteen `Main` files still name `netAddrFree` in prose: their
+  headers and the comment on the bundle say what it holds.)
 
 ### The slot convention (approved 2026-11-03, step 1)
 

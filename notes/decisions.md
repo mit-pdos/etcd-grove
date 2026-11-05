@@ -32259,3 +32259,14 @@ restart's `startMember` (D8); `newServer.specCompact` deleted now (Q2, D9).
 bundle's body names the axiomatized token `httpProtoFree` in its peer branch (unused here: the peer is
 `none`). A predicate constant the statement is written in, not a new assumption; the other examples'
 collections already had it (their closed theorems' `startRights`).
+
+**Steps 7-8 (2026-11-05).** Step 7 gave the three-member cluster a bundle of its own,
+`cluster3.startRes cfg` (sealed, `cluster3/StartRes.lean`; the members' start bundles and the bridges'
+listen rights; D11-D13), taken by `cluster3.StartCluster`, partition's `startCluster`, `Main`,
+`MainWatch` and K6's `MainPartition`. Step 8 moved the restart onto the bundles: `BuildServer.specStop`
+and `specRestart` (drafts, their preconditions only), restart's `startMember.spec`/`specRestart`,
+`stop`'s post (the restart bundle; its binder `dd` became the member's `name`) and `Run`'s `runRes`
+over `alloc3`; one new law, `memberRestartRes_raft` (D14-D17). The pass-throughs are gone
+(`memberFreshRes_intro_peer` deleted, `alloc3Http` private). `run.specStop` and its scope premises are
+unchanged, left for R2c. Statements naming a start resource: the five consumers only. Trust base
+unchanged (`notes/spec-first-plan.md`, "Step 8 glue list", "Where the Draft stands").
