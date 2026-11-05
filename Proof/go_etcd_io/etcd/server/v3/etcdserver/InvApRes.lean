@@ -494,65 +494,28 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
   rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
   exact Hp.2.1 k hk
 
-/-- The store's reader's token, lent from the apply thread's applier state (its sole writer's,
-`mvcc.writerOwn_rt`). -/
-theorem srvApplyKV_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢
-      mvcc.storeRT E.γ ∗ (mvcc.storeRT E.γ -∗ srvApplyKV s E γw x) := by
-  iintro H
-  iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iframe Hrt
-  iintro Hrt
-  ihave Hwo := Hwo $$ Hrt
-  iunfold srvApplyKV
-  iexists ua
-  isplitl [Hua]
-  · iexact Hua
-  isplitr
-  · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
-  iexact Hrest
-
-/-- `srvApplyKV_ua_rt` with the current backend's reader pool lent too (2026-11-02, the
-backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). -/
-theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
-      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
-        srvApplyKV s E γw x) := by
+/-- **The uber-applier and the current backend's reader pool, lent** (2026-11-02, the
+backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). (Strict M1,
+2026-11-06: the store's reader token `mvcc.storeRT` gone with the sole writer's `writerOwn`; a
+backend reader token comes from the pool, at the backend `d` the environment's tie names; the
+lenders `srvApplyKV_rt` and `srvApplyKV_ua_rt` deleted with it.) -/
+theorem srvApplyKV_ua_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+      backend.bkRPool d.γB d.P d.b ∗ srvBeRO d ∗
+      (srvUberApplyAddr s ↦ ua -∗ backend.bkRPool d.γB d.P d.b -∗ srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
   icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
   iexists ua, d
-  iframe Hua Hrt Hpl Hbro
+  iframe Hua Hpl Hbro
   isplitr
   · ipureintro; exact Hd
   isplitr
   · iexact Hap
-  iintro Hua Hrt Hpl
-  ihave Hwo := Hwo $$ Hrt
+  iintro Hua Hpl
   ihave Hbo := Hbo $$ Hpl
   iunfold srvApplyKV
   iexists ua
@@ -560,51 +523,8 @@ theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : a
   · iexact Hua
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
-  iexact Hrest
-
-/-- `srvApplyKV_ua` and `srvApplyKV_rt` at once. -/
-theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
-    srvApplyKV (GF := GF) s E γw x ⊢ ∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗
-      apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ srvApplyKV s E γw x) := by
-  iintro H
-  iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iexists ua
-  iframe Hua Hrt
-  isplitr
-  · iexact Hap
-  iintro Hua Hrt
-  ihave Hwo := Hwo $$ Hrt
-  iunfold srvApplyKV
-  iexists ua
-  isplitl [Hua]
-  · iexact Hua
-  isplitr
-  · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
+  isplitl [Hkv]
+  · iexact Hkv
   isplitl [Hbo]
   · iexact Hbo
   iexact Hrest

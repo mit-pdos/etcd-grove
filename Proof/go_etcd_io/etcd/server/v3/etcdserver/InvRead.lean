@@ -4,10 +4,19 @@ The request path's read side (`v3_server.go`'s `Range`, the read-only `Txn`, `do
 specs. Lean-first (no Rocq counterpart); the request path's unit 3b (2026-10-12); plan:
 `notes/decisions.md`, "The request path".
 
+(Strict M1, 2026-11-06: over mvcc's API, the frozen draft's read path,
+`notes/mvcc-api-clients/ServerSpecs.lean` §5-§6 (`srvRdCallA`, `rangeReadOkA`): the KV a store
+handle of the API (`isMvcc`, `E.kv`) in place of the bare store and its `ReadView`; the floors
+`kvLogLb E.γs` in place of `idxCert`; the certificates `E.Nx` (the raft witness, the draft's
+`kvNx γr on` by `srvKVInvsA`'s tie) in place of `certOk`; a read's log with its receipt and
+well-formedness (`kvReadAt`'s); the thread's token in place of the store's reader slot;
+`storeSmall` deleted: every sort's premise is txn's `stateOk`, and the size facts come from the
+receipts, `logOk_of_receipt`.)
+
 **The server, as a reader sees it** (`isServerRead s E γr`, persistent): the fields the read side
-reads besides `isServerReq`'s: the read loop (`read`, its contract `isReadNotify`), the KV (`kv`: the
-bare store of the applier's environment `E`, the apply package's standing premise `txn.isKV`;
-its `ReadView` for `KV().Rev()`), the lessor (`apply.isApplyLessor`: `CheckTxnAuth` and the
+reads besides `isServerReq`'s: the read loop (`read`, its contract `isReadNotify`), the KV (`kv`: a
+store handle of mvcc's API at the environment's names, `isMvcc v.kv E.γ`, boxed: its persistence
+is the API's `persistent.law`; the handle `E.kv`), the lessor (`apply.isApplyLessor`: `CheckTxnAuth` and the
 txn package's `checkTxn`), the auth store (`apply.isAuthStore`: `IsRangePermitted`,
 `CheckTxnAuth`'s checks, `Revision`), the logger (`lg`, not nil), the configuration's
 `WarningApplyDuration`, the term's atomic (`Term`), a certificate of a log of `NewStore`'s two
@@ -16,13 +25,11 @@ revisions (`idxCert`: every read is of a log at least that long, so a read's rev
 committed indices' invariants, `srvAppliedInv`/`srvCommittedInv`; the applied index's waiters
 `applyWait`, a `WaitTime` for `appliedAtLeast γr`, `isWaitTime`; the notifiers `leaderChanged` and
 `firstCommitInTerm`; the `stopping` channel, closed, never sent on: `stopChan`, buffered, 2026-10-13,
-unit 4c), and **the store stays small** (`storeSmall`: every sealed log has at most `2 ^ 62`
-changes, `txn.LogSmall`, the sort's premise; a premise, as the apply thread's `rangeOk`/`TxnPre`
-of its entries).
+unit 4c).
 
 **A read call's resources** (`srvRdCall s E γr c`, ctx-independent; 2026-10-14, unit A2: and
-the auth store's reader resource `E.RD`): the store's reader slots
-(`mvcc.storeReader`: its `RWMutex`es admit a bounded number of readers), a reader slot of the
+the auth store's reader resource `E.RD`): the thread's token (`threadTok`, strict M1: the store's
+reads take it, in place of the store's reader slots), a reader slot of the
 logger's lock (`srvLgReader`), a lower bound `c` of the cluster's committed index the caller
 knew of (`committedAtLeast`: what a linearizable read's `readIndexOk` is relative to), and a
 reader slot of the read loop's lock (`srvReadReader`, 2026-10-13, unit 4a).
@@ -40,6 +47,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
@@ -75,32 +83,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-/-- **The store stays small** (persistent; a theorem since D19b, `storeSmall_of_receipts`,
-until then a premise of `NewServer.spec`): every sealed log (`mvcc.idxSealed`: every
-certified one, `idxCert_sealed`, and the one a writer has sealed and not yet committed, one
-revision more; unit W-M2b) has at most `2 ^ 62` changes (`txn.LogSmall`: the sort's premise,
-`sort.Sort`'s bound and the comparators' non-negative values). -/
-def storeSmall (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(□ ∀ log : mvcc.Log, mvcc.idxSealed γ.idx log -∗ ⌜txn.LogSmall log⌝)
-
-instance storeSmall_persistent (γ : mvcc.StoreNames) : Persistent (storeSmall (GF := GF) γ) := by
-  unfold storeSmall; infer_instance
-
-/-- **The store stays small, from time receipts** (D19b, 2026-10-18): a sealed log has fewer
-changes than the receipts' bound (the index's writer holds a receipt per change,
-`mvcc.idxSealed_small`). -/
-theorem storeSmall_of_receipts [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-    (γ : mvcc.StoreNames) (h : receiptBound GF ≤ 2 ^ 62) :
-    ⊢ storeSmall (GF := GF) γ := by
-  iintro
-  iunfold storeSmall
-  iintro !> %log Hs
-  ihave %Hsm := mvcc.idxSealed_small _ _ $$ Hs
-  ipureintro
-  unfold txn.LogSmall txn.logChanges
-  unfold mvcc.logCh at Hsm
-  omega
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- The values of the server's fields the read side reads (besides `ReqFields`). -/
 structure ReadFields where
@@ -110,7 +93,6 @@ structure ReadFields where
   auth : GoInterface
   lg : Loc
   wad : w64
-  rv : Loc
   aw : GoInterface
   lc : Loc
   fc : Loc
@@ -120,18 +102,13 @@ structure ReadFields where
 header). -/
 def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFields) : IProp GF :=
   iprop(srvReadAddr s ↦□ v.read ∗ isReadNotify v.read γr ∗
-    srvKVAddr s ↦□ v.kv ∗ txn.isKV v.kv E.s E.γ ∗
-    E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-        #v.rv : GoInterface) ∗
-    mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
+    srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+    (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
       ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvAppliedInv s E γr ∗ srvKVInvs E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
@@ -165,13 +142,12 @@ def srvReadLR (s : Loc) : IProp GF :=
   iprop(srvLgReader s ∗ (∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) ∗
     (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n))
 
-/-- **A read call's resources** (see the file header): the store's reader slots, a reader slot
-of `s.lgMu`, the committed index `c` the caller knew of, (2026-10-13, unit 4a) a reader slot
+/-- **A read call's resources** (see the file header; strict M1: the draft's `srvRdCallA`): the
+thread's token, a reader slot of `s.lgMu`, the committed index `c` the caller knew of, (2026-10-13, unit 4a) a reader slot
 of the read loop's lock (`srvReadReader`), and (2026-10-14, unit A2) the auth store's reader
 resource (`E.RD`: `AuthInfoFromCtx`, the permission checks). -/
 def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr ∗
-    E.RD)
+  iprop(threadTok ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr ∗ E.RD)
 
 /-- **A linearizable read of `log` after the committed index `c`** (persistent; 2026-10-13, the
 request path's unit 4b): the read index (`readIndexOk`: the applied index reached some index at
@@ -197,11 +173,13 @@ the caller saw (the read's transaction is opened at a log extending it: lineariz
 2026-10-14 (unit T1): a linearizable read's `log` is the KV model of a committed raft log `L`, at
 which the read's update (`Q`, deposited with the read index: `kvDep`) gave `□ Q L`. Unit W-M3:
 the caller's certificate of `log` (`certOk`, what `store.Read` returns), which makes its revisions
-reached in the clients' model. -/
+reached in the clients' model. Strict M1 (the draft's `rangeReadOkA` at the mode off): the log a
+floor (`kvLogLb`), its witness `E.Nx` in place of `certOk`, its receipt and `LogWf'` (`kvReadAt`'s),
+the compaction revision of the result left to it. -/
 def rangeReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (resp : Loc) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -214,11 +192,11 @@ response's header revision `log`'s last, read after the read index unless every 
 serializable (`txnSerializable`; `readLogOk`, as `rangeReadOk`'s), the header's id fields owned,
 `log` extending the floor `F` (unit V2, as `rangeReadOk`'s), the caller's certificate of `log`
 and, if linearizable, the read deposit's result at a committed raft log whose model is `log`
-(unit W-M3, as `rangeReadOk`'s). -/
+(unit W-M3, as `rangeReadOk`'s; strict M1, as `rangeReadOk`'s). -/
 def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (t : TxnModel)
     (Q : List EntryModel → IProp GF) (resp : Loc) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     (if txn.txnSerializable t then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -237,7 +215,8 @@ transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`applie
 certificate of the log after; and (unit V2) `x.log` extends the floor `F`; and (unit W-M3) the
 caller's certificate of the log after (`certOk`) and `Q` of the state of the log the entry met
 (the transaction's update fired there, at most once: not persistent since 2026-10-20, linkv-txn
-stage A); and (linkv-txn stage B1) its ranges run (`skip = false`). -/
+stage A); and (linkv-txn stage B1) its ranges run (`skip = false`). Strict M1: the floor
+`kvLogLb` and the witness `E.Nx` of the log after (`resultIsW`'s). -/
 def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (resp : Loc) : IProp GF :=
   iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
@@ -248,8 +227,8 @@ def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnMo
       skip = false⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
+    srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
+    E.Nx x'.log ∗ Q (kvStateOf x.log))
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied); of the wire
@@ -269,26 +248,8 @@ theorem srvKVInvs_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iunfold isServerRead at Hsrd
   icases Hsrd with ⟨%v, Hsrd⟩
   iunfold srvReadFieldsAt at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hk, -⟩
   iexact Hk
-
-/-- The store's size premise of the read path (`storeSmall`; G2's follow-up: the server's law, until then
-the client's). -/
-theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    isServerRead (GF := GF) s E γr ⊢ storeSmall E.γ := by
-  iintro #Hsrd
-  iunfold isServerRead at Hsrd
-  icases Hsrd with ⟨%v, Hsrd⟩
-  iunfold srvReadFieldsAt at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
-  iexact Hsm
-
-/-- `storeSmall`'s meaning (G2's follow-up, 2026-10-30: so that a client need not unfold it). -/
-theorem storeSmall_small (γ : mvcc.StoreNames) :
-    storeSmall (GF := GF) γ ⊢ □ ∀ log : mvcc.Log, mvcc.idxSealed γ.idx log -∗ ⌜txn.LogSmall log⌝ := by
-  iintro #H
-  iunfold storeSmall at H
-  iexact H
 
 end defs
 
@@ -325,17 +286,21 @@ theorem readLogOk_if_mono (b : Bool) (γr : ReadNames) (c : w64) (log log' : mvc
     iintro -; itrivial
 
 /-- **The linearizable read's log** (`Range`'s and the read-only `Txn`'s, after
-`LinearizableReadNotify`): from the read index and the applied index's invariant, a certified log
+`LinearizableReadNotify`): from the read index and the applied index's invariant, a floor
 extending both the reader's `log₀` and the log applied through some index `ci₀ ≥ c`, which
-`txn.Range`/`txn.Txn` take as their lower bound (`log₀`). -/
+the read takes as its lower bound (`log₀`). (Strict M1: over the floors `kvLogLb`, two of which
+are comparable, `mono_list_lb_valid`.) -/
 theorem readIndexOk_logR [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (log₀ : mvcc.Log) :
-    ⊢ srvAppliedInv s E γr -∗ readIndexOk γr c -∗ mvcc.idxCert E.γ.idx log₀ ={⊤}=∗
-      ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR := by
+    ⊢ srvAppliedInv s E γr -∗ readIndexOk γr c -∗ srvApi.kvLogLb E.γs log₀ ={⊤}=∗
+      ∃ logR : mvcc.Log, srvApi.kvLogLb E.γs logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR := by
   iintro #Hinv #Hri #Hc0
   imod readIndexOk_log s E γr c $$ Hinv Hri with ⟨%ci₀, %L₀, %Hci, #HL, #HcL⟩
-  ihave %Hpre := mvcc.idxCert_prefix E.γ.idx log₀ L₀ $$ [Hc0 HcL]
-  · iframe Hc0 HcL
+  ihave #Hc0' := Hc0
+  ihave #HcL' := HcL
+  iunfold srvApi.kvLogLb at Hc0'
+  iunfold srvApi.kvLogLb at HcL'
+  ihave %Hpre := mono_list_lb_valid E.γs.slog log₀ L₀ $$ Hc0' HcL'
   imodintro
   rcases Hpre with h | h
   · iexists L₀

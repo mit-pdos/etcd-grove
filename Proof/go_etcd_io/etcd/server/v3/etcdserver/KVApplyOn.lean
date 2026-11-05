@@ -295,10 +295,12 @@ instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : a
   unfold authHistTie; split <;> infer_instance
 
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
-store's history's tie to the log (`authHistTie`). -/
+store's history's tie to the log (`authHistTie`). (Strict M1, 2026-11-06, as `srvKVInvs`: the tie
+`E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store invariant
+`kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
+    authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by
@@ -399,7 +401,7 @@ theorem kv_applied_step_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.A
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, -⟩
   iunfold kvAppliedOn at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_log_plain_on γr.raft γr.kv st₀ (A ++ [m]) $$ HkI HrI Hlb with %Hpc
