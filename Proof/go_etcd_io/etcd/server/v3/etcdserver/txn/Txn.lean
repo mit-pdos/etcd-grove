@@ -147,7 +147,7 @@ theorem txn.Txn_sole
       (mvcc.leaseItemsOf (mvcc.stateAfter σr.log))) $$ [Hu]
   · iright; iexact Hu
   wp_apply (hCheck _ γ trace te2 σr rt t le (mvcc.api.mvccLeases γ) sl [] L _ true (fun h => by cases h))
-    $$ [$Htx $Htrc $Hrt $Hle $Hu] as %n %err ⟨Htx, Htrc, Hu, Hres⟩
+    $$ [$Htx $Htrc $Hrt $Hle $Hu] as %n %err ⟨Htx, ⟨%te3, Htrc⟩, Hu, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
     isplitl []
@@ -175,13 +175,13 @@ theorem txn.Txn_sole
       iframe Hce HPre Hu HQr
       isplitr
       · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
-      iexists trace, te2
+      iexists trace, te3
       iframe Htrc
       ipureintro; exact Hteq
   obtain ⟨rfl, -, Hign⟩ := Hok
   ihave %Hlok := txn.leasesOk_paths L _ _ $$ Hleases
   wp_auto
-  wp_apply (hStep trace te2 _ _) $$ [$Htrc] as Htrc
+  wp_apply (hStep trace te3 _ _) $$ [$Htrc] as Htrc
   · iapply traceutil.ownFields_nil
   have hoks := opsOk_strong _ _ _ _ Hpre Hign
   ihave #Hnd' : mvcc.neverDone { cd with Values := vs } $$ []
@@ -193,7 +193,7 @@ theorem txn.Txn_sole
     wp_apply (hNewRo _ γ trace σr) $$ [$Htx] as %trw Hro
     icases txn.mvccTxn_shape hsh trw γ trace (.read σr) $$ Hro with ⟨%Hshw, Hro⟩
     obtain ⟨wty, wv, rfl, -, -, -, -, -, -, hEndW⟩ := Hshw
-    have htxn' := htxn ctx' { cd with Values := vs } true lg γ trace te2 (interface.mkOk wty wv) true σr
+    have htxn' := htxn ctx' { cd with Values := vs } true lg γ trace te3 (interface.mkOk wty wv) true σr
       rt t sl skip L
     simp only [Bool.not_true, ↓reduceIte, txn.MTxn.append] at htxn'
     wp_apply htxn'
@@ -221,7 +221,7 @@ theorem txn.Txn_sole
     · ipureintro; rfl
     iintro %fs ⟨Hfs, -⟩
     wp_auto
-    wp_apply (hAdd trace te2 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+    wp_apply (hAdd trace te3 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
     · ipureintro
       exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
         (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
@@ -241,7 +241,7 @@ theorem txn.Txn_sole
     isplitl []
     · ipureintro; refine ⟨?_, Htr, ?_, Hign, Hlok⟩ <;> simp
     isplitl [Htrc]
-    · iexists te2; iexact Htrc
+    · iexists te3; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
     simp only [hro, ↓reduceIte]
@@ -255,14 +255,14 @@ theorem txn.Txn_sole
     ihave Hbeg := Hwand $$ %σr HQr
     iunfold txn.txnBeginAU at Hbeg
     ihave Hbeg := txn.beginAU_reach hpers hreach _ γ _ $$ Hkv Hbeg
-    wp_apply (hWriteC γ trace te2 q B P Pre Q f _) $$ [$Hkv $Htt $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]
+    wp_apply (hWriteC γ trace te3 q B P Pre Q f _) $$ [$Hkv $Htt $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]
       as %tw ⟨Htrc, Hbk, ⟨%σw, Htw, ⟨%Hreachw, %Hlogw, Hcommit⟩⟩, HQ⟩
     · ipureintro; exact Htr
     icases txn.mvccTxn_shape hsh tw γ trace (.write σw []) $$ Htw with ⟨%Hshw, Htw⟩
     obtain ⟨wty, wv, rfl, -, -, -, -, -, -, hEndW⟩ := Hshw
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
     imod Hupd $$ HQ with ⟨HP, HPost⟩
-    have htxn' := htxn ctx' { cd with Values := vs } true lg γ trace te2 (interface.mkOk wty wv) false σw
+    have htxn' := htxn ctx' { cd with Values := vs } true lg γ trace te3 (interface.mkOk wty wv) false σw
       rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true, txn.MTxn.append, List.nil_append] at htxn'
     rw [Hlogw] at htxn'
@@ -296,7 +296,7 @@ theorem txn.Txn_sole
     · ipureintro; rfl
     iintro %fs ⟨Hfs, -⟩
     wp_auto
-    wp_apply (hAdd trace te2 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+    wp_apply (hAdd trace te3 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
     · ipureintro
       exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
         (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
@@ -313,7 +313,7 @@ theorem txn.Txn_sole
     isplitl []
     · ipureintro; refine ⟨?_, Htr, ?_, Hign, Hlok⟩ <;> simp
     isplitl [Htrc]
-    · iexists te2; iexact Htrc
+    · iexists te3; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
     rw [stateAfter_commitLog]
@@ -389,7 +389,7 @@ theorem txn.Txn_read
     iexists false; iexact Htrc
   ipersist Hsl
   wp_apply (hCheck _ γ trace te2 σr rt t le (mvcc.api.mvccLeases γ) sl [] [] ∅ false (fun _ => hro))
-    $$ [$Htx $Htrc $Hrt $Hle] as %n %err ⟨Htx, Htrc, -, Hres⟩
+    $$ [$Htx $Htrc $Hrt $Hle] as %n %err ⟨Htx, ⟨%te3, Htrc⟩, -, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
     isplitl []
@@ -416,12 +416,12 @@ theorem txn.Txn_read
       iframe Hce
       isplitr
       · ipureintro; exact ⟨rfl, rfl, Hne⟩
-      iexists trace, te2
+      iexists trace, te3
       iframe Htrc
       ipureintro; exact Hteq
   obtain ⟨rfl, -, -⟩ := Hok
   wp_auto
-  wp_apply (hStep trace te2 _ _) $$ [$Htrc] as Htrc
+  wp_apply (hStep trace te3 _ _) $$ [$Htrc] as Htrc
   · iapply traceutil.ownFields_nil
   have hoks := txn.readTxn_opsOk t σr.log hro hgets false (W64 (σr.log.length : Int))
   have hnil := txn.srvOps_gets_nil (mvcc.stateAfter σr.log) (W64 (σr.log.length : Int))
@@ -429,7 +429,7 @@ theorem txn.Txn_read
   wp_apply (hNewRo _ γ trace σr) $$ [$Htx] as %trw Hro
   icases txn.mvccTxn_shape hsh trw γ trace (.read σr) $$ Hro with ⟨%Hshw, Hro⟩
   obtain ⟨wty, wv, rfl, -, -, -, -, -, -, hEndW⟩ := Hshw
-  have htxn' := htxn ctx' { cd with Values := vs } false lg γ trace te2 (interface.mkOk wty wv) true σr
+  have htxn' := htxn ctx' { cd with Values := vs } false lg γ trace te3 (interface.mkOk wty wv) true σr
     rt t sl skip []
   simp only [Bool.not_true, ↓reduceIte, Bool.false_eq_true, txn.MTxn.append] at htxn'
   wp_apply htxn'
@@ -485,7 +485,7 @@ theorem txn.Txn_read
   · ipureintro; rfl
   iintro %fs ⟨Hfs, -⟩
   wp_auto
-  wp_apply (hAdd trace te2 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+  wp_apply (hAdd trace te3 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
   · ipureintro
     exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
       (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
@@ -500,7 +500,7 @@ theorem txn.Txn_read
     isplitr
     · ipureintro; exact ⟨Herr, Htr⟩
     isplitl [Htrc]
-    · iexists te2; iexact Htrc
+    · iexists te3; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
     iframe Hresp Hhdr
@@ -508,7 +508,7 @@ theorem txn.Txn_read
     isplitr
     · ipureintro; exact Htr
     isplitl [Htrc]
-    · iexists te2; iexact Htrc
+    · iexists te3; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
     iframe He Hrd Hhdr

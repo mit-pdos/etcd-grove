@@ -28,8 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
 
-/-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader
-(`specRead`, the server's read-only transactions); one function's two triples, by caller. -/
+/-- `checkPut(trace, txnWrite, lessor, p)` at a transaction of either kind: the lease check
+(`ErrLeaseNotFound`), then `checkAndGetPrevKV`'s (`ErrKeyNotFound`).
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
+(The trace given back as `∃ te', ownTrace trace te'`, decided by the coordinator, 2026-11-05:
+`getPrevKV` reads in `Trace.StepWithFunction`, which gives back `∃ e'`.) -/
 
 abbrev txn.checkPut.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (le : GoInterface)
@@ -39,7 +43,8 @@ abbrev txn.checkPut.spec : Prop :=
       ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o ∗ txn.isTxnLessor le γl ∗
       lease.lessorUser γl L I }}
     (App (App (App (App (Val (@! txn.checkPut)) (Val #trace)) (Val #t)) (Val #le)) (Val #p))
-  {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
+  {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace k ∗
+      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
       lease.lessorUser γl L I ∗
       ((⌜err = GoInterface.nil ∧
           (txn.needsPrev o = true → (mvcc.findKey o.key (txn.mstate k)).isSome)⌝ ∗

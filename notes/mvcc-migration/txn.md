@@ -35,7 +35,9 @@ them (frozen), its proofs over the API's contracts and laws, no mvcc internal im
 
 ## Found: statements that cannot be proved over the frozen API/draft
 
-**Decided by the coordinator, 2026-11-05:** B and D in txn's draft as their minimal fixes below
+**Decided by the coordinator, 2026-11-05:** E as its minimal fix below (`getPrevKV`,
+`checkAndGetPrevKV`, `checkPut`, `checkTxn` give the trace back `∃ te'`), applied in the spec files
+and `TxnSpecs.lean` (`clients-txn.md` §8); F as an API change by the mvcc track. And earlier: B and D in txn's draft as their minimal fixes below
 (`checkRange.spec` takes `⌜txn.Reach σ⌝`; `txn.spec` takes `ro = false → σ.pending = none`), applied in
 the spec files and `notes/mvcc-api-clients/TxnSpecs.lean` (`clients-txn.md` §8); A and C as API
 changes by the mvcc track (`Txn.Range`/`KV.Range`: `⌜LogWf' log ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝`;
@@ -126,33 +128,55 @@ gave `Txn.Range`'s.
 
 ## Status per proof (every module of the package builds but `Link`, `Results`)
 
-Proved over the API (no sorry): `executeRange`, `applyCompare` (after A's fix), `executeTxn`, `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
-`compareToPath`, `checkTxn`, `txn`, `Range`, `Count`, `Put`, `DeleteRange`, and every proof with no
-mvcc callee (the list in "Done"), and since B and D were decided, `checkRange` and `Txn`.
+Proved over the API (no sorry): `Range`, `Count`, `Put`, `DeleteRange`, `Txn`, `txn`, `executeRange`,
+`applyCompare`, `applyCompares`, `compareToPath`, `getPrevKV`, `checkAndGetPrevKV`, `checkPut`,
+`checkRange`, `checkTxn`, `put`, and every proof with no mvcc callee (the list in "Done").
 
-`M1-REPLACE` placeholders (whole proofs, `sorry`): `getPrevKV` (gap E), `deleteRange` (gap F); the old proofs over the internals
-are in the history (`645402be7a~1`), most of each reusable once the gap closes (`executeRange_core`
-was already parametric in the transaction; `KindOk`/`prevKvIs_of_outcome`/`rangeOutcome_sel` are
-over `MTxn` in `Write.lean`).
+`M1-REPLACE` placeholders:
+- `deleteRange` (whole proof): gap F, waiting for the mvcc track's `Txn.DeleteRange` post;
+- `executeTxn`: proved but for one obligation in its put branch, gap E′ (below): the trace's flag
+  back after `getPrevKV`.
 
-New `wp_proof` hypotheses (for `etc/link-lean-first-txn.txt`), in order:
-- `put`: `shapes`, `traceutil.Get`, `Trace.AddField`;
-- `checkAndGetPrevKV`: `getPrevKV`; `checkPut`: `checkLease`, `checkAndGetPrevKV`;
-- `applyCompares`: `applyCompare`; `compareToPath`: `applyCompares`; `checkTxn`: `checkRange`, `checkPut`;
-- `txn`: `shapes`, `newTxnResp`, `executeTxn`, `zap.Error`, `zap.Logger.Error`;
-- `Range`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `RangeSecObserve`, `executeRange`;
-- `Count`: `Range`;
-- `Put`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `proto.Size`, `checkLease`,
-  `checkAndGetPrevKV`, `put`;
-- `DeleteRange`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `deleteRange`;
-- `Txn`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `IsTxnReadonly`,
-  `Trace.StepWithFunction`, `compareToPath`, `Trace.AddField`, `checkTxn`, `Trace.Step`,
-  `mvcc.api.NewReadOnlyTxnWrite`, `txn`;
-- `checkRange`: `shapes`; `executeRange`: `shapes`, `Get`, `rangeLimit`, `mkGteRange`, `filterRangeResults`,
-  `sortRangeResults`, `Trace.Step`, `asembleRangeResponse`; `applyCompare`: `shapes`, `context.TODO`,
-  `mkGteRange`, `compareKV`; `executeTxn`: `shapes`, `Get`, `StartSubTrace`, `executeRange`,
-  `StopSubTrace`, `proto.Size`, `getPrevKV`, `put`, `deleteRange`; placeholders: `getPrevKV`: `shapes`,
-  `StepWithFunction`, `context.TODO`; `deleteRange`: `shapes`, `mkGteRange`.
+The old proofs over the internals are in the history (`645402be7a~1`).
+
+**Gap E′ (found 2026-11-05, applying E's decision).** With E, `getPrevKV` gives back
+`∃ te', ownTrace trace te'`; `executeTxn` calls it in its put branch, but `executeTxn.spec`'s post
+(and `txn.spec`'s, which passes it on) gives back the caller's `ownTrace trace te`. My report of E
+said `executeTxn` "works at the `te` returned": wrong for its post. `te` is the trace's `isEmpty`
+field (`traceutil/Defs.lean`), written only at the trace's creation, so the code keeps it; the
+specs lose it at `Trace.StepWithFunction.spec`'s `∃ e'`.
+*Minimal fix*, either: (a) `traceutil`'s `Trace.StepWithFunction.spec` gives back `ownTrace t e`
+(true of the code: no step writes `isEmpty`), which also makes E's weakening unnecessary; or (b)
+`executeTxn.spec`'s and `txn.spec`'s posts give back `∃ te', ownTrace trace te'` (`Txn` already
+does). The placeholder is one `sorry` turning `∃ te'` into `te` after `getPrevKV`.
+
+## Final hypothesis orders (for `etc/link-lean-first-txn.txt`)
+
+`shapes`, `persistent`, `mvccState_reachable` are `mvcc.api.shapes.law`, `persistent.law`,
+`mvccState_reachable.law`; `NewReadOnlyTxnWrite` is `mvcc.api.NewReadOnlyTxnWrite.spec`.
+
+| `wp_proof` | hypotheses, in order |
+|---|---|
+| `Range` | `shapes`, `persistent`, `mvccState_reachable`, `traceutil.EnsureTrace`, `txn.RangeSecObserve`, `txn.executeRange` |
+| `Count` | `txn.Range` |
+| `Put` | `shapes`, `persistent`, `mvccState_reachable`, `traceutil.EnsureTrace`, `proto.Size`, `txn.checkLease`, `txn.checkAndGetPrevKV`, `txn.put` |
+| `DeleteRange` | `shapes`, `persistent`, `mvccState_reachable`, `traceutil.EnsureTrace`, `txn.deleteRange` |
+| `Txn` | `shapes`, `persistent`, `mvccState_reachable`, `traceutil.EnsureTrace`, `txn.IsTxnReadonly`, `traceutil.Trace.StepWithFunction`, `txn.compareToPath`, `traceutil.Trace.AddField`, `txn.checkTxn`, `traceutil.Trace.Step`, `NewReadOnlyTxnWrite`, `txn.txn` |
+| `txn` | `shapes`, `txn.newTxnResp`, `txn.executeTxn`, `zap.Error`, `zap.Logger.Error` |
+| `executeTxn` | `shapes`, `traceutil.Get`, `traceutil.Trace.StartSubTrace`, `txn.executeRange`, `traceutil.Trace.StopSubTrace`, `proto.Size`, `txn.getPrevKV`, `txn.put`, `txn.deleteRange` |
+| `executeRange` | `shapes`, `traceutil.Get`, `txn.rangeLimit`, `txn.mkGteRange`, `txn.filterRangeResults`, `txn.sortRangeResults`, `traceutil.Trace.Step`, `txn.asembleRangeResponse` |
+| `getPrevKV` | `shapes`, `traceutil.Trace.StepWithFunction`, `context.TODO` |
+| `checkAndGetPrevKV` | `txn.getPrevKV` |
+| `checkPut` | `txn.checkLease`, `txn.checkAndGetPrevKV` |
+| `checkTxn` | `txn.checkRange`, `txn.checkPut` |
+| `checkRange` | `shapes` |
+| `applyCompare` | `shapes`, `context.TODO`, `txn.mkGteRange`, `txn.compareKV` |
+| `applyCompares` | `txn.applyCompare` |
+| `compareToPath` | `txn.applyCompares` |
+| `put` | `shapes`, `traceutil.Get`, `traceutil.Trace.AddField` |
+| `deleteRange` (placeholder) | `shapes`, `txn.mkGteRange` |
+
+The proofs with no mvcc callee keep their hypotheses as before M1.
 
 ## Renamed and replaced (for the server track)
 
@@ -187,4 +211,11 @@ internals: `mvcc.txnCtx`, `mvcc.rangeCtx`, `mvcc.txnCtx_rangeCtx`, `mvcc.neverDo
 and the model's theorem behind `rangeAnswers_stateAt` (`kiGet_indexOf`), `mvcc.LogWf`/`LogWf'`
 (`LogWf.of_wf'`), `mvcc.stateAt_sorted`, `mvcc.inRange`, `mvcc.mvccInit` (the package's facts:
 `ErrFutureRev`, `ErrCompacted`), mvcc's `IsPkgInit` instance (today in `mvcc/Base.lean`), and the
-Go names `RangeResult`, `RangeOptions`, `ErrCompacted`, `ErrFutureRev`.
+Go names `RangeResult`, `RangeOptions`, `ErrCompacted`, `ErrFutureRev`. Also used by the proofs:
+`mvcc.rangeOutcomeC_latest`, `mvcc.W64_sint_nat`, `mvcc.stateAt_last`, `mvcc.delKeys_present`.
+
+**The `Errorf` lemmas** (mvcc's `Proof/.../mvcc/Errorf.lean`, internal): `mvcc.wp_Errorf_errorfIs`
+(`fmt.Errorf` returns an `errorfIs` error; `executeTxn`'s context error) and the
+`mvcc.wp_New_errorString` it rests on. Copied into `ApiLemmas.lean` as `txn.wp_Errorf_errorfIs`,
+`txn.wp_New_errorString` so as not to import an internal module: delete the copies once the API
+re-exports them.

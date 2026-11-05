@@ -28,8 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
 
-/-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader
-(`specRead`, the server's read-only transactions); one function's two triples, by caller. -/
+/-- `checkTxn(trace, rv, rt, lessor, txnPath)` on a read transaction at `σ`: the checks of the
+path's ranges and puts (`checkRange`, `checkPut`), the number of nested transactions, or the first
+error.
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
+(The trace given back as `∃ te', ownTrace trace te'`, decided by the coordinator, 2026-11-05:
+`getPrevKV` reads in `Trace.StepWithFunction`, which gives back `∃ e'`.) -/
 
 abbrev txn.checkTxn.spec : Prop :=
   ∀ (tw : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (rt : Loc)
@@ -43,7 +48,7 @@ abbrev txn.checkTxn.spec : Prop :=
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace)) (Val #tw)) (Val #rt)) (Val #le))
       (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.api.mvccTxn tw γ trace (.read σ) ∗
-      traceutil.ownTrace trace te ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
+      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter σ.log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter σ.log)
             (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))⌝ ∗

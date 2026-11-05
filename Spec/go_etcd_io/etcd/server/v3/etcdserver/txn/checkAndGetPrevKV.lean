@@ -28,8 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
 
-/-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader
-(`specRead`, the server's read-only transactions); one function's two triples, by caller. -/
+/-- `checkAndGetPrevKV(trace, txnWrite, p)` at a transaction of either kind: `getPrevKV`'s answer,
+or `ErrKeyNotFound` when an ignore flag needs a previous key-value the state has not.
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
+(The trace given back as `∃ te', ownTrace trace te'`, decided by the coordinator, 2026-11-05:
+`getPrevKV` reads in `Trace.StepWithFunction`, which gives back `∃ e'`.) -/
 
 abbrev txn.checkAndGetPrevKV.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (p : Loc) (o : OpFull),
@@ -37,7 +41,7 @@ abbrev txn.checkAndGetPrevKV.spec : Prop :=
       ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o }}
     (App (App (App (Val (@! txn.checkAndGetPrevKV)) (Val #trace)) (Val #t)) (Val #p))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); mvcc.api.mvccTxn t γ trace k ∗
-      traceutil.ownTrace trace te ∗
+      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
       ((⌜err = GoInterface.nil⌝ ∗
           ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.mstate k)).isSome⌝ ∗
           if txn.readsPrev o then txn.prevKvIs r (txn.mstate k) o.key else ⌜r = null⌝) ∨

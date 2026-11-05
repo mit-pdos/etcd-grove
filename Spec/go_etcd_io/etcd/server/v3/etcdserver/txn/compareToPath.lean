@@ -28,8 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
 
-/-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader
-(`specRead`, the server's read-only transactions); one function's two triples, by caller. -/
+/-- `compareToPath(rv, rt)` on a read transaction at `σ`: the request's path (`txnPath`) at its
+state, in a fresh slice.
+
+(Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.) -/
 
 abbrev txn.compareToPath.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (rt : Loc)

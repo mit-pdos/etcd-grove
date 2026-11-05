@@ -173,4 +173,9 @@ Decided by the coordinator, 2026-11-05:
 - **A, C** (the API, the mvcc track): `KV.Range`/`Txn.Range` posts give `⌜LogWf' log ∧ ∀ cs ∈ log,
   cs.length < 2 ^ 63⌝` of the read log (the model's theorem relating the index's answers to the
   state needs it); `Txn.Changes` gives `⌜0 ≤ sint.Z chs.len⌝` (`executeTxn`'s signed `len(..) > 0`).
-`TxnSpecs.lean` is updated for B and D.
+- **E** (this draft): `getPrevKV`, `checkAndGetPrevKV`, `checkPut` and `checkTxn` give the trace back
+  as `∃ te', ownTrace trace te'` (`getPrevKV` reads inside `Trace.StepWithFunction`, which gives back
+  `∃ e'`);
+- **F** (the API, the mvcc track): `Txn.DeleteRange`'s post gives `⌜LogWf' (σ.log ++ [pend]) ∧ ∀ cs ∈
+  σ.log ++ [pend], cs.length < 2 ^ 63⌝` (`deleteRange` without `PrevKv` reads no range).
+`TxnSpecs.lean` is updated for B, D and E.
