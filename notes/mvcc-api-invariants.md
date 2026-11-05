@@ -772,3 +772,60 @@ strict M1).
 no `sorryAx`). `isMvccWatchStream` gains the channel's progress fact (`progFact γc.prog`, what
 `progressAll` is lent); the reader slot each borrows from the handle's pool with its thread token,
 given back before the last step (`wp_fupd`).
+
+## Hand-off: stage 2, the sends' stepOk, Rev and NewWatchStream (2026-11-05)
+
+**Done** (the whole mvcc tree builds, 394 modules; no new `sorry`, no axiom; no frozen statement
+found false; interfaces regenerated, the API's unchanged):
+- **Each send's `stepOk`, `chanApi_send_M1` deleted.** `#print axioms mvcc.watcher.wp_send`: no
+  `sorryAx` (nor `cmp_send_inner`'s users, `syncWatchers`). The two pieces of infrastructure:
+  (a) **registration tokens**: `chanRegTok γc id rg fg lo` (`InvWatchStream`, a lower bound of
+  `γc.aev` holding the `.reg`; `api.regTok` at the stream's names), and `chanRegW γ γc w` (the
+  watcher's names, fixed range and its `chanRegTok`), kept for every registered watcher in
+  `watchChanInv` (`"#Hrt"`, beside `"#Hrf"`), minted by `watch_register` right after the callback
+  (`chanApiAt_regTok`); (b) **registration witnesses**: `regWit γc l` in `chanApi` (every `.reg id rg
+  _ _` of the history is a watcher of the channel's registered set `γc.reg`, with fixed range `rg`,
+  `id = rg.id`), kept by every non-registration step (`regWit_app`), extended by `watch_register`
+  (`regWit_reg`), `regWit_nil` at `NewWatchStream`. (Not with positions/stamps: a `-1` response's
+  `regs` is the channel's whole registered list `L`, so membership suffices.)
+  The assembly (`WatchSendApi.lean`, "A send's premises"): `stepOk_own`/`stepOk_all` (pure: the
+  replay's registry info from the `.reg` in the history, `replay_reg`; stamps from
+  `replay_ws_reg`); `own_cert` (the watcher's registration in the history, its saved filters the
+  decoding's, `chan_recvEvs`, `chanWatcher_cert`); `cov_certs` (each covered watcher's
+  `covFact_recv`, joined); `stamps_of` (a `-1` response: every registration a watcher of `L = x.regs`,
+  so covered — one of `cs`, by its fixed range's id — or `rsnW`, its id in the replay's cancelled
+  set: `chanApiAt_dead`); `chanApi_finish` (the event appended, `crevAtLeast (-1)` minted when no
+  compaction bound); `chanApi_send_resp` (`watcher.send`: own or `-1`; `dead` is the replay's whole
+  cancelled set) and `chanApi_send_cmp` (`cmp_send_inner`, its compaction bound from `cmpPerm`).
+- **`WatchStream.Rev.contract` at `*watchStream`** (`#print axioms mvcc.watchStream.wp_Rev`: no
+  `sorryAx`). The read's update fires in `store.Read` under `s.revMu`: `store.Read.spec` takes a
+  **read callback** `readCb γ F` (`InvStore`: run with `s.revMu`'s `slotX` at the log read, giving
+  `F log` in the post; callers with nothing to fire pass `readCb_true`: `kvOver_Read`,
+  `store.Read.spec_R`, `Results`' `mvcc_store_Read_after_Compact`, `progressIfSync`'s `rev`);
+  `watchableStore.rev.spec`/`specR` pass it through; `WatchParams.RevCb` (the store's: `readCb γ.st`)
+  and `isWatchable`'s `rev()` triple `∀ F, {{ P.R ∗ P.RevCb F }} … {{ r, P.R ∗ ∃ L, F L ∗ ⌜L ≠ [] ∧ r =
+  L.length - 1⌝ }}`; `StreamHandle.rev_readCb` builds the callback from `Rev`'s update (agreement of
+  the client's `absPart` with the slot's). The same callback is what `KV.Read`/`Rev`/`FirstRev`'s and
+  `Range`'s contracts at the store need (§3, first row).
+- **`WatchableKV.NewWatchStream.contract` at `*watchableStore`** (its spec file now the contract;
+  `#print axioms mvcc.watchableStore.NewWatchStream.wp_proof`: no `sorryAx`; the linked
+  `wp_NewWatchStream` has one only through `metricsTxnWrite.wp_End`, the store's `End` and its
+  `M1-REPLACE` placeholders, via `watchableStore.rev`/`progress`/`progressAll`). **`isMvcc` defined**
+  (`Api.lean`, `@[no_expose]`): `□ (isMvccPlain kv γ ∨ isMvccWatchable kv γ)`, a plain store's handle
+  (`isStore`) or a watchable store's (`isWatchableStore s st γw` with `γw.st = γ`, `watchTokPool γw`,
+  a thread pool of `watchReader`s at `watchRdPoolN`). The stream's progress fact is `True` (the
+  saved proposition), its cancel reason `fun _ => True`; `watchStreamOpen` no longer returned.
+  **Left of `isMvcc`** (§2): the plain store's readers' pool, the write-back supply, the store's
+  own goroutines' readers from the pool (U2), and what `mvccState_reachable.law` and the shape law
+  need (the receipt bound, the contracts at the type); no producer of `isMvcc` yet (`New`/`NewStore`
+  give it at their contracts).
+
+**Left** (in order):
+1. The cleanup (not done: not cheap enough for the time left): `rsnFor` and `WsStreamNames.rsn`/
+   `WatchChanNames.rsn` (unused by mvcc now; `client/v3`'s `WatchRun` still names `rsnFor`),
+   `watchStreamOpen`/`WsStreamNames.tok` (unused by mvcc; v3rpc's `serverWatchStream.close` spec
+   names it), `progFact`'s use by `progressAll` (`watchChanInv`'s `"#Hpf"`, `complW`: the `-1`
+   response's API fact replaces it; `isMvccWatchStream` still carries `progFact γc.prog`, now of
+   `True`).
+2. The other contracts (`KV.*` at both stores with `readCb` at the reads, `Txn.*`, the
+   constructors producing `isMvcc`), replacing the remaining `M1-REPLACE` placeholders.
