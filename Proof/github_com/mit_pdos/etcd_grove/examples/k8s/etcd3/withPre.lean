@@ -26,7 +26,17 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 theorem withPre.wp_proof
     (wp_rvString : rvString.spec (GF := GF) (hG := hG)) :
     withPre.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro x uid rv c hasC
+  cases hasC
+  · simp only [withPreL, Bool.false_eq_true, ↓reduceIte]
+    wp_start as -
+    wp_auto
+    iapply HΦ; itrivial
+  cases uid <;> cases rv <;> simp only [withPreL, Bool.false_eq_true, ↓reduceIte]
+  all_goals wp_start as -
+  all_goals (try wp_auto)
+  all_goals (try (wp_apply wp_rvString; (try wp_auto)))
+  all_goals (iapply HΦ; itrivial)
 
 end proof
 

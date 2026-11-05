@@ -26,8 +26,23 @@ theorem sameObj.wp_proof :
     sameObj.spec (GF := GF) (hG := hG) := by
   intro a b
   wp_start as -
-  -- Stage 7b: Prove phase (three string comparisons).
-  sorry
+  wp_auto
+  by_cases h1 : a.Name' = b.Name'
+  · rw [decide_eq_true h1]
+    wp_auto
+    by_cases h2 : a.UID' = b.UID'
+    · rw [decide_eq_true h2]
+      wp_auto
+      rw [show decide (a.Value' = b.Value') = sameObjL a b by simp [sameObjL, h1, h2]]
+      iapply HΦ; itrivial
+    · rw [decide_eq_false h2]
+      wp_auto
+      rw [show false = sameObjL a b by simp [sameObjL, h1, h2]]
+      iapply HΦ; itrivial
+  · rw [decide_eq_false h1]
+    wp_auto
+    rw [show false = sameObjL a b by simp [sameObjL, h1]]
+    iapply HΦ; itrivial
 
 end proof
 
