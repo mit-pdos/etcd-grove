@@ -41,6 +41,20 @@ Seven steps, in order (renamed 2026-10-28; the notes and commits before then num
 | **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified; every new or restated axiom attacked by the `axiom` skill |
 | **Prove** | phase 4 | the remaining proofs, in parallel |
 
+**The order is a gate, not a checklist** (2026-11-05, from the dsverify ablation runs,
+`/shared/dsverify-lab`). Given the phases as text, an agent with idle time while reviewers ran started
+proof agents on every package, wrote "deviation recorded" in its notes, and froze after the proofs:
+each phase left its record, in the wrong order, and the review's repairs and a Probe-sized gap then
+invalidated 23 finished proofs (a cascade three call levels deep). So:
+- **No proof agent before the freeze**, and no function proof beyond Draft's listed glue and Probe's
+  named proofs. The freeze is an annotated tag `stageN-frozen` on the commit with the frozen
+  statements, made when the user freezes; before each batch of proof agents,
+  `git rev-parse -q --verify refs/tags/stageN-frozen` is checked and its output goes in their brief.
+- **Writing a deviation down does not allow it**: proving during Review, or freezing after the
+  proofs, is the skipped phase, recorded.
+- **While Review runs**, the work that may go on alongside it is Test, the axiom attacks, the listed
+  glue, the Probe proofs and the next reviewer bundle; not the remaining proofs.
+
 **Freeze: the axioms attacked first** (the user's, 2026-11-02). Before the user freezes a stage, the
 `axiom` skill runs on every axiom the stage adds or restates (`etc/tcb-report.py --check` lists
 the new ones; a same-name restatement is in the diff of the stage's trust-boundary files): it tries
@@ -73,6 +87,14 @@ every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then pro
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*The glue is a list* (2026-11-05, from the dsverify ablation): the stage plan lists the glue before
+any of it is proved, each entry with its reason. A body is glue only when it decides nothing over
+shared state: it takes no lock, opens no invariant, updates no ghost state and loops over no protocol
+state; it calls its callees and passes their results on. Leaves (getters, pure helpers,
+constructors) are not glue: they wait for Probe or Prove. A Draft agent's brief names the glue it may
+prove; any other proof it finishes is a Prove proof done early. (A run with the gate above but no
+list proved 49 of its 94 functions in Draft as "glue".) The glue is usually a small part of a stage's
+functions; a long list is a sign the line was drawn to prove early.
 *Go first* (2026-11-05, the user's): a stage that changes a top-level program's traffic or its
 model writes the Go side before any Lean statement: the driver's new traffic, the Go copy of the
 model, their tests, and a statistics test that reaches every new outcome (each new error, each new
@@ -216,7 +238,9 @@ so later reviews in the repository start from it.
   same treatment: random call sequences against the real library, checked against the axiom's pure
   model. One refuting trace is what the audit had to find by reading.
 
-**Probe (was phase 3): a few proofs per package.** Prove fully the one or two riskiest bodies of each
+**Probe (was phase 3): a few proofs per package.** The Probe set is named in the stage plan before the
+probes start (2026-11-05, from the dsverify ablation): at most two proofs per package, an easy one and
+a hard one; a proof not on the list waits for the freeze. Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
 sufficiency, the ghost design, logical atomicity. *The hard proof is chosen by its invariant* (2026-11-04, the
 user's): the step that must preserve a new or changed invariant in its riskiest case (the concurrent
@@ -248,7 +272,8 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 `Value(TraceKey{})`).
 
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
-which suits agents).
+which suits agents). Each proof agent's brief names the freeze tag (with the gate's output) and the
+functions it proves; it writes no spec: a spec it finds missing or wrong goes in the change log below.
 
 **The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
 statement goes in the stage's change log (old → new, why), as raft-unified's did
