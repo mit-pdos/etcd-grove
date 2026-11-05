@@ -2,7 +2,8 @@
 The proof of `Spec/go_etcd_io/bbolt/Cursor__Seek.lean` (U6h, U6i, `notes/bbolt-proof-plan.md`):
 split on `T.rw`. A reader (`wp_reader`): `seek` (`Cursor.seek_r`), whose stack is at entry
 `seekIdx es kb` (`rRoute_seekPos`); past its leaf's end, `next` (`Cursor.next_r`, the stack
-unchanged past the last entry); the result as the public `curAt`. A writer (`wp_writer`): U6w's.
+unchanged past the last entry); the result as the public `curAt`. A writer (`wp_writer`):
+`Read/PubWSeek`'s.
 -/
 module
 
@@ -14,6 +15,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Page__Count
 public import Proof.go_etcd_io.bbolt.Read.PubR
 public import Proof.go_etcd_io.bbolt.Read.SeekPos
 public import Proof.go_etcd_io.bbolt.Txn.RdInit
+public import Proof.go_etcd_io.bbolt.Read.PubWSeek
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -32,22 +34,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- `curAt` of a nil key: the value is nil too. -/
-theorem curAt_nil_key [HasExt osFsExt] (γ : BoltName) (tx : Loc) (es : List BoltEnt) (j : Nat) (vl : GoSlice) :
-    curAt (GF := GF) tx γ es j slice.nil vl ⊢ ⌜vl = slice.nil⌝ := by
-  unfold curAt
-  split
-  · iintro ⟨%h, -⟩; exact absurd rfl h
-  · iintro %h; ipureintro; exact h.2
-
-/-- `curAt` on an entry: the key is not nil. -/
-theorem curAt_some_key [HasExt osFsExt] (γ : BoltName) (tx : Loc) (es : List BoltEnt) (j : Nat)
-    (k vl : GoSlice) (x : BoltEnt) (h : es[j]? = some x) :
-    curAt (GF := GF) tx γ es j k vl ⊢ ⌜k ≠ slice.nil⌝ := by
-  unfold curAt
-  rw [h]
-  iintro ⟨%hk, -⟩; ipureintro; exact hk
 
 /-- **A reader's `Seek`.** -/
 theorem Cursor.Seek.wp_reader [HasExt osFsExt]
@@ -216,26 +202,35 @@ theorem Cursor.Seek.wp_reader [HasExt osFsExt]
       icases Hfin with ⟨Ht, Hc⟩
       iframe; iframe #
 
-/-- **A writer's `Seek`**: U6w's (`Cursor.Seek.wp_writer`, `Read/PubW*`). -/
+/-- **A writer's `Seek`** (U6aa): `Read/PubWSeek`'s, over `seek_w`/`next_w`; `gensOK`'s third
+clause by `gensOK_handle_bktLoc` and the cursor's writer facts by `wrCurFacts_of` (both OPEN). -/
 theorem Cursor.Seek.wp_writer [HasExt osFsExt]
+    (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hseekw : Cursor.seek_w.specQ (GF := GF) (hG := hG))
+    (hnxw : Cursor.next_w.specQ (GF := GF) (hG := hG))
+    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
     (key : GoSlice) (kb : GoString) (dk : DFrac)
     (hrw : T.rw = true) :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos ∗ key ↦*{dk} kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Seek")) (Val #key))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗ key ↦*{dk} kb ∗
-      boltCur tx γ c T es (some (seekIdx es kb)) ∗ curAt tx γ es (seekIdx es kb) k v }} := by
-  sorry
+      boltCur tx γ c T es (some (seekIdx es kb)) ∗ curAt tx γ es (seekIdx es kb) k v }} :=
+  Cursor.Seek.wp_writerW hA hseekw hnxw hCnt tx c γ q T es pos key kb dk hrw
+    (gensOK_handle_bktLoc T)
+    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.Seek.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hseek : ∀ [HasExt osFsExt], Cursor.seek_r.spec (GF := GF) (hG := hG))
     (hnx : ∀ [HasExt osFsExt], Cursor.next_r.spec (GF := GF) (hG := hG))
-    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG)) :
+    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
+    (hseekw : ∀ [HasExt osFsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))
+    (hnxw : ∀ [HasExt osFsExt], Cursor.next_w.specQ (GF := GF) (hG := hG)) :
     Cursor.Seek.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos key kb dk
   by_cases hrw : T.rw = true
-  · exact Cursor.Seek.wp_writer tx c γ q T es pos key kb dk hrw
+  · exact Cursor.Seek.wp_writer hA hseekw hnxw hCnt tx c γ q T es pos key kb dk hrw
   · exact Cursor.Seek.wp_reader hA hseek hnx hCnt tx c γ q T es pos key kb dk
       (Bool.eq_false_iff.2 hrw)
 
