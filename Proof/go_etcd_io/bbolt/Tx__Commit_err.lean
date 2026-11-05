@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.bbolt.Commit.PubOk
 public import Proof.go_etcd_io.bbolt.Commit.PubPre
 public import Proof.go_etcd_io.bbolt.Commit.PubFlBuf
 public import Proof.go_etcd_io.bbolt.Commit.PubFacts
+public import Proof.go_etcd_io.bbolt.Commit.PubFl
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
 import all Spec.go_etcd_io.bbolt.Api
@@ -520,6 +521,10 @@ theorem Tx.Commit_err.wp_proof'
           · -- joins the tail
             ihave Hwdb := wdbW'_wdbW K tx _ w4 $$ Hwdb
             icases (cm_keep_pure (cm_wdbW_ok K tx _ w4)) $$ Hwdb with ⟨Hwdb, %Hw4ok⟩
+            imod cm_wdbW_cfacts (GF := GF) K tx X4.v w4 $$ [Hwdb] with ⟨Hwdb, %Hcf4⟩
+            · iframe; iframe #
+            icases (cm_keep_pure (cm_wdbW_mapLen K tx X4.v w4)) $$ Hwdb with ⟨Hwdb, %Hml4⟩
+            icases (cm_keep_pure (cm_wdbW_bounds K tx X4.v w4)) $$ Hwdb with ⟨Hwdb, %Hbd4⟩
             obtain ⟨htt4, hrl4, htx4⟩ := allocRes_keep _ _ _ _ _ _ _ _ Hal.1
             have htt5 : X4.t.t = X.t.t := by rw [htt4, htt3, htt2, htt1]
             imod cm_excl_update K r X3 (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))) _
@@ -547,8 +552,37 @@ theorem Tx.Commit_err.wp_proof'
             · show X4.t.t.meta' ≠ null ∧ 0 < X4.t.t.meta'.addr; rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
             · rw [Hal.2.1]; exact hC2fl
             · rw [Hal.2.1, hC2]; exact hbase
-            · -- OPEN (U10k): the publish's facts from spill's, rebalance's and commitFreelist's posts
-              sorry
+            · -- the publish's facts (`cmPubPre_commitFl`), from spill's, rebalance's and
+              -- commitFreelist's posts
+              have hCh : w2.C.hwm ≤ X2.t.mv.pgid'.toNat := by
+                rw [hC2]; show w.C.hwm ≤ _; rw [← hopg]; exact BitVec.le_def.1 hspOK.2.2.2.1
+              have htxl2 : w2.C.txid + 1 < 2 ^ 63 := by rw [hC2]; exact Htxl
+              have htxC : X3.t.mv.txid'.toNat = w2.C.txid + 1 := by
+                rw [htx3]; unfold WDb.wtxid
+                simp only [W64, BitVec.toNat_ofInt]; omega
+              have hml4 : X4.t.mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF :=
+                Nat.le_trans Hal.2.2.1 Hml4
+              have hh48 : w2.C.hwm * 4096 ≤ 0xFFFFFFFFFFFF := by
+                have := Hw4ok.1.2.2.2.2.2.2.2.2.1 _ _ Hw4ok.2.1
+                rw [Hal.2.1] at this
+                exact Nat.le_trans this Hml4
+              refine cmPubPre_commitFl T.cur X1 X2 X3 X4 w2 w4 fl1 _ p4 id4
+                (by rw [hC2]; exact hspOK) (Hf.2.1.trans hrbOK.2.1.symm) (by rw [hC2]; exact hbufs2)
+                (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
+                (by rw [← hX3]; unfold WX.rootPage; rw [hB2]; rfl) (by rw [← hX3]; rfl)
+                (by rw [← hX3]; show X2.t.mv.magic'.toNat = _; rw [hmv2]
+                    show X1.t.mv.magic'.toNat = _; rw [hmv1]; exact Hmeta.1)
+                (by rw [← hX3]; show X2.t.mv.version'.toNat = _; rw [hmv2]
+                    show X1.t.mv.version'.toNat = _; rw [hmv1]; exact Hmeta.2.1)
+                (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]
+                    show X1.t.mv.pageSize'.toNat = _; rw [hmv1]; exact Hmeta.2.2.1)
+                Hal.1 Hal.2.1 htxC hCh hml4 hh48 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hbd2.1
+                Hw4ok.1 Hbd4.1 Hcf4.2.2.2.2.1 (by omega) ?_ ?_
+              · -- OPEN (U10l): the new tree's slots are not pending: not in
+                -- `Bucket.spill.spec`'s post (reported)
+                sorry
+              · -- OPEN (U10l): `markCov` (D-K): not yet in `Bucket.spill.spec`'s post
+                sorry
           · -- `commitFreelist` failed (rolled back): log, return the error
             obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
               cases err2 with
