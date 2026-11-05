@@ -19,6 +19,7 @@ public import Proof.go_etcd_io.bbolt.Write.DelBktPlain
 public import Proof.go_etcd_io.bbolt.Write.DelBktOpen
 public import Proof.go_etcd_io.bbolt.Write.DelBktFound
 public import Proof.go_etcd_io.bbolt.Write.DelBktFree
+public import Proof.go_etcd_io.bbolt.Write.DelBktWOk
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -39,31 +40,6 @@ namespace Write
 
 open Iris Iris.BI go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
-section pure
-variable [GooseExts]
-
-/-- The records after `delete(b.buckets, key)` (the root's record `R1` without `n`), the child `c`
-(record `C`) dead, its dead record `D`. -/
-def delMid (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D : BRec) : WX :=
-  ((X1.setBkt X1.rl (bUnopen R1 n)).killBkt c C).setDead c D
-
-theorem setDead_setDead (X : WX) (c : Loc) (D D' : BRec) :
-    (X.setDead c D).setDead c D' = X.setDead c D' := by
-  unfold WX.setDead
-  simp only [GMap.insert_insert]
-
-theorem delMid_setDead (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D D' : BRec) :
-    (delMid X1 c C R1 n D).setDead c D' = delMid X1 c C R1 n D' := by
-  unfold delMid; rw [setDead_setDead]
-
-/-- **The deletion's records are well-formed** (see the module doc). -/
-theorem wOK_delMid (T : TxView) (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D : BRec)
-    (hok : wOK X1) (hwr : wrFacts X1) (hgens : gensOK T X1) (hR1 : X1.t.bs !! X1.rl = some R1)
-    (hn : R1.bm !! n = some c) (hC : X1.t.bs !! c = some C) :
-    wOK (delMid X1 c C R1 n D) := by
-  sorry
-
-end pure
 
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
