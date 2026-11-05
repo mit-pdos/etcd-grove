@@ -4,7 +4,7 @@ A reader (`wp_reader`): the root's reference at its last index, `last` (`Cursor.
 the bucket's last entry, or the empty root leaf at index `-1` (`rEmptyAt`); the loop over
 trailing empty leaves never runs (a reader's leaves below a branch are not empty, `rKeysAt`), and
 `keyValue` (`Cursor.keyValue_r`, `Cursor.keyValue_r0` on the empty root leaf). A writer
-(`wp_writer`): U6w's.
+(`wp_writer`): `Read/PubWLast`'s.
 -/
 module
 
@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Proof.go_etcd_io.bbolt.Read.Root
 public import Proof.go_etcd_io.bbolt.Read.PubR
 public import Proof.go_etcd_io.bbolt.Txn.RdInit
+public import Proof.go_etcd_io.bbolt.Read.PubWLast
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -302,15 +303,26 @@ theorem Cursor.Last.wp_reader [HasExt osFsExt]
       rw [hlen]
       iframe; iframe #)
 
-/-- **A writer's `Last`**: U6w's (`Cursor.Last.wp_writer`, `Read/PubW*`). -/
+/-- **A writer's `Last`** (U6aa): `Read/PubWLast`'s, over `pageNode_w`, `last_w`, `prev_w` and
+`keyValue_ws`; `gensOK`'s third clause by `gensOK_handle_bktLoc` and the cursor's writer facts by
+`wrCurFacts_of` (both OPEN). -/
 theorem Cursor.Last.wp_writer [HasExt osFsExt]
+    (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
+    (hpnw : Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
+    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
+    (hlastw : Cursor.last_w.specQ (GF := GF) (hG := hG))
+    (hprevw : Cursor.prev_w.specQ (GF := GF) (hG := hG))
+    (hkvw : Cursor.keyValue_ws.specQ (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
     (hrw : T.rw = true) :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Last")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
-      boltCur tx γ c T es (some (es.length - 1)) ∗ curAt tx γ es (es.length - 1) k v }} := by
-  sorry
+      boltCur tx γ c T es (some (es.length - 1)) ∗ curAt tx γ es (es.length - 1) k v }} :=
+  Cursor.Last.wp_writerW hA hRP hpnw hCnt hlastw hprevw hkvw tx c γ q T es pos hrw
+    (gensOK_handle_bktLoc T)
+    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.Last.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
@@ -319,11 +331,15 @@ theorem Cursor.Last.wp_proof
     (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
     (hlast : ∀ [HasExt osFsExt], Cursor.last_r.spec (GF := GF) (hG := hG))
     (hkv : ∀ [HasExt osFsExt], Cursor.keyValue_r.spec (GF := GF) (hG := hG))
-    (hkv0 : ∀ [HasExt osFsExt], Cursor.keyValue_r0.spec (GF := GF) (hG := hG)) :
+    (hkv0 : ∀ [HasExt osFsExt], Cursor.keyValue_r0.spec (GF := GF) (hG := hG))
+    (hpnw : ∀ [HasExt osFsExt], Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
+    (hlastw : ∀ [HasExt osFsExt], Cursor.last_w.specQ (GF := GF) (hG := hG))
+    (hprevw : ∀ [HasExt osFsExt], Cursor.prev_w.specQ (GF := GF) (hG := hG))
+    (hkvw : ∀ [HasExt osFsExt], Cursor.keyValue_ws.specQ (GF := GF) (hG := hG)) :
     Cursor.Last.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos
   by_cases hrw : T.rw = true
-  · exact Cursor.Last.wp_writer tx c γ q T es pos hrw
+  · exact Cursor.Last.wp_writer hA hRP hpnw hCnt hlastw hprevw hkvw tx c γ q T es pos hrw
   · exact Cursor.Last.wp_reader hA hRP hpn hCnt hlast hkv hkv0 tx c γ q T es pos
       (Bool.eq_false_iff.2 hrw)
 
