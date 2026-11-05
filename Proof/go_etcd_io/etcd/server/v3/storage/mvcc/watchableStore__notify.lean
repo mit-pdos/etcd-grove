@@ -246,7 +246,7 @@ def memberDone (γ : WsNames) (σ : WsState) (N : Nat) (w : Loc) (st : WatcherSt
     (evsw ext : List EvM) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-    watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+    watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
     monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
     dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
     ⌜(γw.lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev = N + 1⌝ ∗
@@ -265,7 +265,7 @@ theorem memberRes_synced (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : 
     memberRes γ q σ w st ⊢ ∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
       (evsw : List EvM) (d : Nat),
       ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-      watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+      watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
       ⌜σ.E !! w = some (evsw, d)⌝ ∗ monoListAuthOwn γw.evs q.half evsw ∗
       dghostVar γw.live (DFrac.own q.half) true ∗
       ⌜(γw.lo : Int) ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ d⌝ ∗ evsWf γ r γw.lo evsw d := by

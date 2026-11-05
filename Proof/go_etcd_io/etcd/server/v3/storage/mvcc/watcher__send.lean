@@ -83,8 +83,8 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
   iunfold mvcc.watcherFixed at Hfix'
   icases Hfix' with ⟨%Hwnn, %ks, %ens, #Hkey, #Hks, #Hend, #Hens, #HstartRev, #Hidf, #Hfcs⟩
   ihave #Hfok' := Hfok
-  iunfold mvcc.filtersOk at Hfok'
-  icases Hfok' with ⟨%fs, #Hfi⟩
+  iunfold mvcc.watcherFilters at Hfok'
+  icases Hfok' with ⟨%fs, #Hfi, #Hsf⟩
   ihave #Hfi' := Hfi
   iunfold mvcc.filtersImpl at Hfi'
   icases Hfi' with ⟨%fps, #Hfps, %Hfpl, #Hfsp⟩
@@ -342,7 +342,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
       simp [Deliv.sent, hA.1, hA.2]
     imod mvcc.entries_deliver γ γw.wc (EtcdGrove.chanIsClosed s) sent L w γw r fcs fs evsw d evm
       (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ Hnd.1 Hwl rfl rfl rfl
-      $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
+      $$ Hmeta Hfix Hfi Hsf Hevs Hws with ⟨Hevs, Hws⟩
     have hsent : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
         [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)] else []) = sent := by
       rw [hds]; simp
@@ -469,7 +469,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                     fun h => absurd rfl h⟩
               imod mvcc.entries_deliver γ γw.wc _ sent L w γw r fcs fs evsw d evm
                 (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ Hnd.1 Hwl
-                rfl rfl rfl $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
+                rfl rfl rfl $$ Hmeta Hfix Hfi Hsf Hevs Hws with ⟨Hevs, Hws⟩
               have hs2 : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
                   [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)] else []) =
                   sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩] := by

@@ -622,7 +622,7 @@ theorem sw_memberRes_unsynced (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (
     memberRes (GF := GF) γ q σ w st ⊢ ∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
       (evsw : List EvM),
       ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-      watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+      watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
       ⌜σ.E !! w = some (evsw, sint.nat st.minRev)⌝ ∗ monoListAuthOwn γw.evs q.half evsw ∗
       dghostVar γw.live (DFrac.own q.half) true ∗ ⌜(γw.lo : Int) ≤ sint.Z st.minRev⌝ ∗
       evsWf γ r γw.lo evsw (sint.nat st.minRev) ∗
@@ -643,7 +643,7 @@ theorem sw_memberRes_intro (γ : WsNames) (σ : WsState) (w : Loc) (st : Watcher
     (hl : σ.live w) (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM) (d : Nat)
     (hM : σ.M !! w = some γw) (hE : σ.E !! w = some (evsw, d))
     (hsr : sint.Z r.startRev ≤ (γw.lo : Int)) :
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       popFacts γ σ w r γw.lo st evsw d ⊢
     memberRes (GF := GF) γ 1 σ w st := by
@@ -814,7 +814,7 @@ theorem sw_memberRes_new_synced (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
     (r : WatchRange) (st' : WatcherSt) (γw : WatcherNames) (fcs : GoSlice) (evsw : List EvM)
     (D : Nat) (hM : σ.M !! key = some γw) (hsr : sint.Z r.startRev ≤ (γw.lo : Int))
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ sint.Z st'.minRev ≤ D) :
-    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
+    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw D ∗ evsWf γ r γw.lo evsw (sint.nat st'.minRev) ⊢
     memberRes (GF := GF) γ 1 ((v.step key r .synced st' (evsw, D)).st σ) key st' := by
@@ -834,7 +834,7 @@ theorem sw_memberRes_new_unsynced (γ : WsNames) (σ : WsState) (v : SyncVars) (
     (hWs0 : v.Ws !! key = none) (hWu0 : v.Wu !! key = some r)
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev)
     (hLc : sint.nat st'.minRev ≤ max γw.lo Lc.length) (hcp : st'.compacted = false) :
-    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
+    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw D ∗ idxCert γ.st.idx Lc ⊢
     memberRes (GF := GF) γ 1 ((v.step key r .unsynced st' (evsw, D)).st σ) key st' := by
@@ -863,7 +863,7 @@ theorem sw_memberRes_new_victim (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
     (hvo : σ.victimOf key = none)
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev ∧ victimBatchOk γw.lo st' B ∧
       B.evs ≠ []) :
-    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
+    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo (evsw ++ B.evs) D ⊢
     memberRes (GF := GF) γ 1 ((v.step key r (.victim B) st' (evsw, D)).st σ) key st' := by

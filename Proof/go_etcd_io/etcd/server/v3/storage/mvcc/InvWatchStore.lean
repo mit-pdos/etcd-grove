@@ -86,16 +86,20 @@ structure WatcherNames where
   on (`WsState.srBelow`). Any other watcher's first revision is its start revision, which
   `progressIfSync`'s guard bounds (no progress notification below a watcher's start). -/
   now : Bool
+  /-- (stage 2 of the mvcc API, 2026-11-05) the saved name of its filters' predicates
+  (`api.savedFilters`, allocated at the registration): one predicate list per watcher, the
+  stream's history's (`watcherFilters`) -/
+  fg : GName
 
 instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
       g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
-      g.wc.rsn, g.wc.aev, g.wc.ans, g.wc.arcv, g.wc.arx, g.lo, g.now))
+      g.wc.rsn, g.wc.aev, g.wc.ans, g.wc.arcv, g.wc.arx, g.lo, g.now, g.fg))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3, a1, a2, a3, a4⟩, g, g2⟩
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3, a1, a2, a3, a4⟩, g, g2, g3⟩
         ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3', a1', a2', a3',
-          a4'⟩, g', g2'⟩ h
+          a4'⟩, g', g2', g3'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -338,6 +342,22 @@ def filtersOk (fcs : GoSlice) : IProp GF := iprop(∃ fs, filtersImpl fcs fs)
 instance filtersOk_persistent (fcs : GoSlice) : Persistent (filtersOk (GF := GF) fcs) := by
   unfold filtersOk; infer_instance
 
+/-- **A registered watcher's filters** (persistent; stage 2 of the mvcc API, 2026-11-05): the
+filters `fcs` implement the predicates saved under the watcher's name `γw.fg` (the registration's
+choice), so that every delivery to it is filtered by the same predicates. -/
+def watcherFilters (γw : WatcherNames) (fcs : GoSlice) : IProp GF :=
+  iprop(∃ fs, filtersImpl fcs fs ∗ api.savedFilters γw.fg fs)
+
+instance watcherFilters_persistent (γw : WatcherNames) (fcs : GoSlice) :
+    Persistent (watcherFilters (GF := GF) γw fcs) := by
+  unfold watcherFilters; infer_instance
+
+theorem watcherFilters_ok (γw : WatcherNames) (fcs : GoSlice) :
+    watcherFilters (GF := GF) γw fcs ⊢ filtersOk fcs := by
+  unfold watcherFilters filtersOk
+  iintro ⟨%fs, #H, -⟩
+  iexists fs; iexact H
+
 /-! ## Responses -/
 
 /-- The `WatchResponse` value `v` is the response `r`: its id, revision and compaction revision,
@@ -571,7 +591,8 @@ def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
     ⌜(D.map Prod.fst).flatten = evsw ∧
       (sent.filter (fun x => decide (x.w = w))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd⌝ ∗
-    □ (([∗list] dl ∈ D, ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    □ (([∗list] dl ∈ D, ∃ fs, filtersImpl fcs fs ∗ api.savedFilters γw.fg fs ∗
+        ⌜dl.2 = filtered fs dl.1⌝) ∗
       delivsCut γ r γw.lo D) ∗
     evsWf γ r γw.lo evsw d ∗
     ((⌜closed = false⌝ ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true) ∨ cancelled γw))
@@ -596,7 +617,8 @@ def covFact (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) 
     IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (D : List Deliv) (L : Log) (d : Nat),
     watcherMeta γ w' γw ∗ ⌜γw.wc = γc⌝ ∗ watcherFixed w' r fcs ∗ evLog γ.st L ∗
-    □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    □ (∀ dl : Deliv, ⌜dl ∈ D⌝ -∗ ∃ fs, filtersImpl fcs fs ∗ api.savedFilters γw.fg fs ∗
+      ⌜dl.2 = filtered fs dl.1⌝) ∗
     (⌜(D.map Prod.fst).flatten = watchEvents L r γw.lo d⌝ ∨ doomed γ γw.lo) ∗
     ⌜(pre.filter (fun y => decide (y.w = w'))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
       (d ≤ L.length ∨ d ≤ γw.lo) ∧
@@ -1467,7 +1489,7 @@ def memberRes (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : WatcherSt) 
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
     if σ.live w then
-      watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+      watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
       ∃ (evsw : List EvM) (d : Nat), ⌜σ.E !! w = some (evsw, d)⌝ ∗
         monoListAuthOwn γw.evs q.half evsw ∗ dghostVar γw.live (DFrac.own q.half) true ∗
         popFacts γ σ w r γw.lo st evsw d

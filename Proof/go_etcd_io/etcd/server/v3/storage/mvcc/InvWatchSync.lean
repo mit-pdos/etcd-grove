@@ -108,7 +108,7 @@ what the batch delivers: the delivered events and the batch's are the range's up
 `minRev` (`evsWf`, as a victim's `popFacts`), with `victimBatchOk`. -/
 def moverRes (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
     ⌜sint.Z r.startRev ≤ (γw.lo : Int) ∧ (γw.lo : Int) ≤ sint.Z st.minRev ∧
       victimBatchOk γw.lo st B⌝ ∗
     watcherOwn w st (1 : Qp).half ∗ monoListAuthOwn γw.evs (1 : Qp).half evsw ∗

@@ -111,12 +111,13 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
     (fs : List (EvM → Bool)) (evsw : List EvM) (d : Nat) (evm kept : List EvM) (rr : RespM)
     (hk : kept = filtered fs evm) (hrw : rr.w = w) (hre : rr.evs = kept) :
     ⊢ watcherMeta (GF := GF) γ w γw -∗ watcherFixed w r fcs -∗ filtersImpl fcs fs -∗
+      api.savedFilters γw.fg fs -∗
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ evsWf γ r γw.lo (evsw ++ evm) d) -∗
       chanWatcher γ γc closed sent w ==∗
       (if evm = [] then iprop(True) else monoListAuthOwn γw.evs (1 : Qp).half (evsw ++ evm)) ∗
       chanWatcher γ γc closed (sent ++ (if Deliv.sent (evm, kept) then [rr] else [])) w := by
-  iintro #Hm #Hf #Hfi Hevs Hc
+  iintro #Hm #Hf #Hfi #Hsf Hevs Hc
   iunfold chanWatcher at Hc
   icases Hc with ⟨%γw', %r', %fcs', %evsw', %D, %d', #Hm', %Hwc, %Hslo, #Hf', Ha, %HD, #HDf, #Hwf, Hlc⟩
   ihave %He := watcherMeta_agree γ w γw γw' $$ Hm Hm'
@@ -161,7 +162,7 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
     · iapply BigSepL.bigSepL_snoc.2
       iframe HDf
       iexists fs
-      iframe Hfi
+      iframe Hfi Hsf
       ipureintro; rfl
     iapply delivsCut_snoc γ r γw.lo D ([], []) evsw' d' (by simp [HD1]) $$ [$HDc $Hwf]
   · simp only [hevm, ↓reduceIte]
@@ -189,7 +190,7 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
     · iapply BigSepL.bigSepL_snoc.2
       iframe HDf
       iexists fs
-      iframe Hfi
+      iframe Hfi Hsf
       ipureintro; exact hk
     iapply delivsCut_snoc γ r γw.lo D (evm, kept) (evsw ++ evm) d (by simp [HD1]) $$ [$HDc $Hwf2]
 
@@ -240,17 +241,18 @@ theorem entries_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
     (rr : RespM) (hnd : L.Nodup) (hw : w ∈ L)
     (hk : kept = filtered fs evm) (hrw : rr.w = w) (hre : rr.evs = kept) :
     ⊢ watcherMeta (GF := GF) γ w γw -∗ watcherFixed w r fcs -∗ filtersImpl fcs fs -∗
+      api.savedFilters γw.fg fs -∗
       (if evm = [] then iprop(True) else
         monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ evsWf γ r γw.lo (evsw ++ evm) d) -∗
       ([∗list] x ∈ L, chanWatcher γ γc closed sent x) ==∗
       (if evm = [] then iprop(True) else monoListAuthOwn γw.evs (1 : Qp).half (evsw ++ evm)) ∗
       ([∗list] x ∈ L, chanWatcher γ γc closed
         (sent ++ (if Deliv.sent (evm, kept) then [rr] else [])) x) := by
-  iintro #Hm #Hf #Hfi Hevs Hall
+  iintro #Hm #Hf #Hfi #Hsf Hevs Hall
   obtain ⟨i, hi⟩ : ∃ i, L[i]? = some w := List.mem_iff_getElem?.1 hw
   icases (BigSepL.bigSepL_lookup_acc_impl (Φ := fun _ x => chanWatcher γ γc closed sent x) hi) $$ Hall with ⟨Hw, Hback⟩
   imod chanWatcher_deliver γ γc closed sent w γw r fcs fs evsw d evm kept rr hk hrw hre
-    $$ Hm Hf Hfi Hevs Hw with ⟨Hmine, Hw⟩
+    $$ Hm Hf Hfi Hsf Hevs Hw with ⟨Hmine, Hw⟩
   imodintro
   iframe Hmine
   iapply Hback $$ %(fun (_ : Nat) (x : Loc) => chanWatcher γ γc closed

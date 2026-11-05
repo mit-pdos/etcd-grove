@@ -41,7 +41,7 @@ namespace mvcc
 names, fixed fields and filters, its channel's invariant, and its liveness fragment at `ql`. -/
 def cmpSendPre (γ : WsNames) (w : Loc) (ch : Loc) (ql : Qp) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ filtersOk fcs ∗ watcherChan γ w γw ch ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherFilters γw fcs ∗ watcherChan γ w γw ch ∗
     dghostVar γw.live (DFrac.own ql) true)
 
 /-- The compaction response's model: `w`'s, its id, no events, no revision, no coverage, at the
@@ -56,15 +56,15 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     (ch : Loc) (ql : Qp) (v : WatchResponse) (c : w64)
     (hv : v.WatchID' = r.id ∧ v.Revision' = W64 0 ∧ v.CompactRevision' = c ∧ v.Events' = slice.nil)
     (hcp : 0 < sint.Z c) (Φ : IProp GF) :
-    crevPermAt γ.st (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ filtersOk fcs ∗ watcherChan γ w γw ch ∗
+    crevPermAt γ.st (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherFilters γw fcs ∗ watcherChan γ w γw ch ∗
       dghostVar γw.live (DFrac.own ql) true ∗ (dghostVar γw.live (DFrac.own ql) true -∗ Φ) ⊢
       nonblockingSendAuInner γw.wc.ch v Φ := by
   have hc : c ≠ W64 0 := by intro h; rw [h] at hcp; exact absurd hcp (by decide)
   iintro ⟨#Hperm, #Hmeta, #Hfix, #Hfok, #Hwc, Hlive, HΦ⟩
   iunfold watcherChan at Hwc
   icases Hwc with ⟨#Hisch, #Hinv, #Hregw⟩
-  iunfold filtersOk at Hfok
-  icases Hfok with ⟨%fs, #Hfi⟩
+  iunfold watcherFilters at Hfok
+  icases Hfok with ⟨%fs, #Hfi, #Hsf⟩
   unfold nonblockingSendAuInner
   iinv Hinv with Hi Hclose
   all_goals try exact CoPset.subseteq_top
@@ -129,7 +129,7 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
       ipureintro
       simp [Hrid]
     imod entries_deliver γ γw.wc _ sent L w γw r fcs fs [] 0 [] [] (cmpResp w r.id sent.length c)
-      Hnd.1 Hwl (by rfl) rfl rfl $$ Hmeta Hfix Hfi [] Hws with ⟨-, Hws⟩
+      Hnd.1 Hwl (by rfl) rfl rfl $$ Hmeta Hfix Hfi Hsf [] Hws with ⟨-, Hws⟩
     · simp only [↓reduceIte]; itrivial
     have hs2 : sent ++ (if Deliv.sent (([] : List EvM), ([] : List EvM)) then
         [cmpResp w r.id sent.length c] else []) = sent ++ [cmpResp w r.id sent.length c] := by

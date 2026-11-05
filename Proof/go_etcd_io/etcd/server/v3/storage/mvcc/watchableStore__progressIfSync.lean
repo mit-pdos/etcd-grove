@@ -52,7 +52,7 @@ def mvcc.memberFacts (γ : mvcc.WsNames) (σ : mvcc.WsState) (w : Loc) (st : mvc
     IProp GF :=
   iprop(∃ (γw : mvcc.WatcherNames) (r : mvcc.WatchRange) (fcs : GoSlice),
     ⌜σ.M !! w = some γw⌝ ∗ mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗
-    (⌜¬ σ.live w⌝ ∨ (⌜σ.live w⌝ ∗ mvcc.watcherChan γ w γw st.ch ∗ mvcc.filtersOk fcs ∗
+    (⌜¬ σ.live w⌝ ∨ (⌜σ.live w⌝ ∗ mvcc.watcherChan γ w γw st.ch ∗ mvcc.watcherFilters γw fcs ∗
       ∃ (evsw : List mvcc.EvM) (d : Nat), ⌜σ.E !! w = some (evsw, d)⌝ ∗
         monoListLbOwn γw.evs evsw ∗ mvcc.popFacts γ σ w r γw.lo st evsw d)))
 

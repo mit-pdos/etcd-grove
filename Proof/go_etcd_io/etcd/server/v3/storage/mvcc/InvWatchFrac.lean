@@ -238,7 +238,7 @@ theorem memberRes_fractional (γ : WsNames) (σ : WsState) (w : Loc) (st : Watch
   have heq : ∀ q, memberRes (GF := GF) γ q σ w st ⊣⊢ iprop(∃ x : WatcherNames × WatchRange × GoSlice,
       ⌜σ.M !! w = some x.1⌝ ∗ watcherMeta γ w x.1 ∗ watcherFixed w x.2.1 x.2.2 ∗
       if σ.live w then
-        watcherChan γ w x.1 st.ch ∗ filtersOk x.2.2 ∗ ⌜sint.Z x.2.1.startRev ≤ (x.1.lo : Int)⌝ ∗
+        watcherChan γ w x.1 st.ch ∗ watcherFilters x.1 x.2.2 ∗ ⌜sint.Z x.2.1.startRev ≤ (x.1.lo : Int)⌝ ∗
         ∃ y : List EvM × Nat, ⌜σ.E !! w = some (y.1, y.2)⌝ ∗
           monoListAuthOwn x.1.evs q.half y.1 ∗ dghostVar x.1.live (DFrac.own q.half) true ∗
           popFacts γ σ w x.2.1 x.1.lo st y.1 y.2

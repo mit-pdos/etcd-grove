@@ -138,7 +138,8 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
   isplitr
   · iintro !> %dl %hdl
     icases BigSepL.bigSepL_mem_acc (List.mem_of_mem_take hdl) $$ HDs with ⟨H, -⟩
-    iexact H
+    icases H with ⟨%fs, #H1, -, %H2⟩
+    iexists fs; iframe H1; ipureintro; exact H2
   · iintro !> %x %hx
     icases BigSepL.bigSepL_mem_acc (List.mem_filter.1 (hrs.subset hx)).1 $$ Hok with ⟨H, -⟩
     iexact H

@@ -41,7 +41,7 @@ abbrev mvcc.watcher.send.spec : Prop :=
     (es : List Loc) (evm : List mvcc.EvM) (dq : DFrac) (cs : List mvcc.CovArg) (qa : Qp)
     (nl : Option (Qp × mvcc.Log)) (CS : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.filtersOk fcs ∗
+      mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.watcherFilters γw fcs ∗
       mvcc.watcherChan γ w γw ch ∗
       typedPointsto (structFieldRef watcher go!"ch" w) ch (DFrac.own qc) ∗
       dghostVar γw.live (DFrac.own ql) true ∗

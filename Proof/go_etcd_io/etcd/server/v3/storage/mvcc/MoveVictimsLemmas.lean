@@ -921,7 +921,7 @@ def outW (γ : WsNames) (w : Loc) (B : EventBatch) : IProp GF :=
 def moverResG (γ : WsNames) (w : Loc) (st : WatcherSt) (B : EventBatch) (evsw : List EvM)
     (γw : WatcherNames) : IProp GF :=
   iprop(∃ (r : WatchRange) (fcs : GoSlice),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
     ⌜sint.Z r.startRev ≤ (γw.lo : Int) ∧ (γw.lo : Int) ≤ sint.Z st.minRev ∧
       victimBatchOk γw.lo st B⌝ ∗
     watcherOwn w st (1 : Qp).half ∗ monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
@@ -1096,7 +1096,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
       ghostMapAuth γ.wmeta 1 σ.M ∗ watchBudget γ 1 σ.M ∗
       ([∗map] k ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed k r fcs) ∗
       ([∗map] k ↦ v ∈ σ.ST, memberRes γ 1 σ k v) ∗ ([∗map] k ↦ v ∈ σ.Wo, outRes γ σ k v) ∗
-      watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+      watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw (sint.nat st.minRev) ∗
       (if b then iprop(True) else
