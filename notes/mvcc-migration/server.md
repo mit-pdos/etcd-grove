@@ -240,10 +240,7 @@ restate in place). Not drafted, to decide before step 1 (all "by reference" in
 
 ## Placeholders
 
-- `apply/applierV3backend__Txn.lean`: `-- M1-REPLACE` in the write wand for a request whose paths
-  miss a previous key-value (Found, third session, (1); decided: discharged once txn's wand with
-  `PathsIgnOk` lands, see "Decisions (2026-11-06)").
-
+None in the proved modules (both of the third session's discharged, "Decisions (2026-11-06)").
 No axiom.
 
 ## Decisions (the coordinator, 2026-11-06)
@@ -255,8 +252,10 @@ No axiom.
   `id ∈ L`, so the not-live arm keeps the writer's half: no `sorry`. Recorded in the draft
   (`ServerSpecs.lean` §5's docstring and header, `clients-server.md`'s "Superseded (2026-11-06)").
 - **Finding (1), txn's `specSole`:** its write wand takes `⌜txn.PathsIgnOk (stateAfter log)
-  (t.branch (txnOk (stateAfter log) t))⌝ -∗ Qr σ -∗ …` (the txn track); `applierV3backend.Txn`'s
-  wand takes the fact and builds the end update with `certPre`'s witness: no `sorry`.
+  (t.branch (txnOk (stateAfter log) t))⌝ -∗ Qr σ -∗ …` (the txn track's `ffa7dc68fb`);
+  `applierV3backend.Txn`'s wand takes the fact (`iintro %σ %hig …`) and builds the end update with
+  `certPre`'s witness: no `sorry`. (`EtcdServer__Txn.lean` calls only the read-only `hTxn.2` and
+  is not migrated yet: no write wand there.)
 
 ## Found (third session, 2026-11-05; both decided 2026-11-06, above)
 

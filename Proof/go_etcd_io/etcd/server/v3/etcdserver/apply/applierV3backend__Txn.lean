@@ -1,10 +1,8 @@
 /-
 Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
 txn's restated `Txn.specSole`, its read update at the writer's read, its write updates built by
-the server's builders, `envAus`. One placeholder, `M1-REPLACE` below: the write updates of a
-request whose paths miss a previous key-value, which the frozen `Txn.specSole` makes the caller
-give without saying they are used only after `checkTxn` passed; `notes/mvcc-migration/server.md`,
-"Found".)
+the server's builders, `envAus`, told that the checks passed (`PathsIgnOk`, txn's wand, decided
+by the coordinator, 2026-11-06); `notes/mvcc-migration/server.md`.)
 -/
 module
 
@@ -81,36 +79,31 @@ theorem apply.applierV3backend.Txn.wp_proof
     ipureintro; rfl
   -- the write updates, given once the checks passed
   ihave Hwand : iprop(if txn.txnReadonly t then iprop(True) else
-      iprop(∀ σ : MvccState, (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ -∗
+      iprop(∀ σ : MvccState,
+        ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
+        (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ -∗
         txn.txnBeginAU E.γ log t (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
           srvApi.wSt E.γs (mvcc.commitLog log (txn.txnChs log t)) c)))) $$ []
   · cases hro : txn.txnReadonly t
     · simp only [Bool.false_eq_true, ↓reduceIte]
-      by_cases hig : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))
-      · iintro %σ ⟨%Hσ, Hw⟩
-        subst Hσ
-        unfold txn.txnBeginAU
-        iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
-        iapply HauB $$ %log %c %_ Hw
-        iintro Hw
-        isplitr
-        · ipureintro; rfl
-        iapply apply.commitAU_of_auEnd
-        ihave Hnx := apply.certPre_backend_applied E rq log _ false
-          (by unfold apply.backendStep; rw [hk]
-              exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩) $$ Hcp
-        ihave He := HauE $$ %log %c %_ Hw Hnx
-        iapply apply.auEnd_wand $$ He
-        iintro HY
-        isplitr
-        · ipureintro; first | rfl | trivial
-        iexact HY
-      · -- M1-REPLACE: `Txn.specSole`'s write wand is required before `checkTxn` and is not told
-        -- that the checks passed (the paths find their previous key-values, `PathsIgnOk`); without
-        -- it the end's witness `E.Nx (commitLog log (txnChs log t))` is not the chain's
-        -- (`certPre` gives it only for `backendStep`'s outcomes). Minimal fix (txn's spec): the
-        -- wand also takes `⌜txn.PathsIgnOk (stateAfter log) (t.branch (txnOk (stateAfter log) t))⌝`.
-        sorry
+      iintro %σ %hig ⟨%Hσ, Hw⟩
+      subst Hσ
+      unfold txn.txnBeginAU
+      iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
+      iapply HauB $$ %log %c %_ Hw
+      iintro Hw
+      isplitr
+      · ipureintro; rfl
+      iapply apply.commitAU_of_auEnd
+      ihave Hnx := apply.certPre_backend_applied E rq log _ false
+        (by unfold apply.backendStep; rw [hk]
+            exact ⟨t, ht, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig⟩⟩) $$ Hcp
+      ihave He := HauE $$ %log %c %_ Hw Hnx
+      iapply apply.auEnd_wand $$ He
+      iintro HY
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iexact HY
     · simp only [↓reduceIte]; itrivial
   iunfold srvApi.auRead at Hau
   ihave Hkb : txn.kvBackend E.γ 1 B (E.Pk B) E.f $$ [Hbk Hhk]
