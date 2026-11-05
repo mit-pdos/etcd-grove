@@ -278,6 +278,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
           · isplit
             · wp_auto
               iframe
+              ipureintro; exact isPanic_intoVal _
             · iframe
           iintro pgId
           try wp_auto
@@ -408,7 +409,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
         have := Write.objs_isSome_node X.t bl B parent hB (by rw [(hf parent hk).1]; rfl)
         rw [e, Hfresh] at this; cases this
     ihave Hh := Hback $$ %B' %f' %r0 [] [HL] [Hbo] [Hf] [Hrf] [Ho]
-    · ipureintro; exact ⟨hLsB, hLsO, ⟨rfl, rfl⟩, hparL, hparN⟩
+    · ipureintro; exact ⟨hLsB, hLsO, ⟨htx, rfl⟩, hparL, hparN⟩
     · iexact HL
     · iexact Hbo
     · iexact Hf
