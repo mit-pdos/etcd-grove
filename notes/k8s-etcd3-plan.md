@@ -477,7 +477,13 @@ baseline.
   (a) The driver's model checks every `Get` exactly (the model's `get` at the linearization point):
   a stronger theorem, true of the store. (b) Copy `validateGet`'s weaker check. Recommended: (a).
 
-### 7b: Draft, the trusted statements (2026-11-05; a user point)
+### 7b: Draft, the trusted statements (2026-11-05; approved by the user 2026-11-05)
+
+**Approved (the user, 2026-11-05), with the recommendations:** T1, `types.UID` added to
+`fmt.methodlessNamedTypes` (the general fix recorded in `notes/perennial-changes.md`; the `axiom`
+skill's attack still due before the Freeze). T2 (b), the driver answers a too-large error as `EOther`
+for now; (c), strengthening the client's `clientErr` to exclude a `*apierrors.StatusError`, is a later
+client change that restores the exact check (below, "From the etcd client proof").
 
 Done since the approval: the driver's Go (`examples/k8s/etcd3/k8setcd3.go`: objects with a UID,
 preconditions, cached objects, `IgnoreNotFound`, minimum resource versions, the per-client table,
@@ -580,6 +586,12 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
   and feature gates as no-ops).
 
 ## From the etcd client proof (coordinate with its owner)
+
+- **The client's errors are not `*apierrors.StatusError`s** (k8s etcd3 stage 7b, T2 (c), approved as
+  a later change, 2026-11-05): `clientErr` (or `statusErrOk`/`errCellOk`) strengthened to exclude a
+  `*StatusError`, so that the k8setcd3 driver's `errOut` can again tell the store's
+  `NewTooLargeResourceVersionError` (`ETooLarge`) from a client failure and the model check a `Get`'s
+  too-large answer exactly. Shared with `k8s_compactor_safe`.
 
 1. `Range`'s error side: `ErrFutureRev` exactly when the revision is above the current one,
    `ErrCompacted` exactly when below the compaction revision (the compaction revision in the

@@ -467,6 +467,18 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `wp_apply` support atomic specs directly.
 - **Status.** Not started.
 
+### Specs: `fmt`'s `ArgWf` for named non-integer basic types (2026-11-05, k8s etcd3 stage 7b)
+
+- **Missing.** `fmt.wp_Sprintf` admits a named type's argument only when its underlying type is an
+  integer (`IsIntArgType`, with `fmt.NoFmtMethods`); `types.UID` (`type UID string`, no methods) is
+  formatted by `storage.Preconditions.Check` with `%v`.
+- **Workaround here.** `types.UID` added to `fmt.methodlessNamedTypes`, the list of the trust-boundary
+  axiom `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), next to `LeaseID`.
+- **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
+  type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
+  `NoFmtMethods` from goose's method sets, the list and the axiom go.
+- **Status.** Not started.
+
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
 
 - **Missing.** Perennial's `fmt.Errorf` spec requires each argument well formed (`ArgWf`), which
