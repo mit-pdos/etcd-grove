@@ -31854,3 +31854,13 @@ conjunction after `iNamed`, with the old hypothesis names; the composition passe
 names by `simp [srvErM, HρRaft]`). `newRaftNode.spec`'s precondition was already two pure
 conjuncts and stays so.
 
+
+**The fresh review round** (one spec-reviewer, the three specs): no T. Open, for the user: (S)
+premises the proofs never use: `bootstrappedRaft.newRaftNode.spec`'s `ps.Nodup`, `W64 0 ∉ ps`, the
+peers' length bound, `cv.ID' ∈ ps`, `γr.vs = ps` (unused as implications before this change too);
+`NodeStartSpec`'s `cv.ID' ∈ ps`, the three `E.γr.raft` names and `srvRaftLogInv E.γr.raft` (all in
+the installer's `rnEnvOk`); (M) the peers' slice not returned although `StartNode.spec` now gives it
+back (stale comments say it keeps it); one named `Prop` for the config block shared with `InvBoot`'s
+`Hraft`; stale docs (`newRaftNode`'s header on read-only fields and the names it allocates,
+`NodeStart.lean`'s header premises, `InvRaftNode`'s header on `E.T`); `isRNTicker`'s nil arm
+excluded by every spec, unfolded in `raftNode.start`/`onStop` instead of a law.
