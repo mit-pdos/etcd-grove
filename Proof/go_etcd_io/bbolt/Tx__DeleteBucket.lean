@@ -5,9 +5,8 @@ The proof of `Spec/go_etcd_io/bbolt/Tx__DeleteBucket.lean` (U7m, `notes/bbolt-pr
 `Write.Bucket.DeleteBucket.wp_root` (`Write/DelBktWp`); the exclusive part put back and `boltTx`
 closed at `T` (an absent name) or `T.dropBkt n` (`dbk_close`, from `deleteOK`).
 
-One case is not provable: the empty name in an empty root bucket, where Go returns
-`ErrIncompatibleValue` and the frozen triple says `ErrBucketNotFound` (U7m's finding, reported; the
-`sorry` below). `wrCurFacts T X` comes from `wrCurFacts_of` (OPEN) until maintainer 16 adds it to
+The empty name in an empty root bucket returns `ErrIncompatibleValue` (U7m's finding; the triple's
+middle case since D-M). `wrCurFacts T X` comes from `wrCurFacts_of` (OPEN) until maintainer 16 adds it to
 `boltTx`'s writer facts; `deleteOK`'s `wrCurFacts (T.dropBkt n) X'` is then what closes with.
 -/
 module
@@ -93,9 +92,16 @@ theorem Tx.DeleteBucket.wp_proof
       ileft
       iframe Ht; iframe #
       ipureintro; exact hex
-    · -- U7m's finding: the empty name in an empty root bucket returns `ErrIncompatibleValue`;
-      -- the frozen triple says `ErrBucketNotFound`. Not provable as stated.
-      sorry
+    · -- the empty name in an empty root bucket: `ErrIncompatibleValue` (D-M)
+      imod Write.dbk_close K tx r c c X X w extra T hTc ⟨hok, hrw, hcur', hbase, hgens, hwr⟩ Hxf
+        $$ [Hv Hw Hrwl Hcls Hwdb Hshape Hst] with Ht
+      · iframe; iframe #
+      imodintro
+      iapply HΦ
+      iframe Hname
+      iright; ileft
+      iframe Ht; iframe #
+      ipureintro; exact ⟨hn, hex⟩
   rw [if_neg hex]
   icases Hres with ⟨%he, %X', %w', Hw, Hwdb, %Hd⟩
   obtain ⟨hok', hd', hg', hwr', hv', hmv', hC', hfl', hsh', -⟩ := Hd
@@ -110,7 +116,7 @@ theorem Tx.DeleteBucket.wp_proof
   imodintro
   iapply HΦ
   iframe Hname
-  iright
+  iright; iright
   iframe Ht
   ipureintro; exact ⟨hex, he⟩
 
