@@ -821,3 +821,8 @@ data is the image `restore()` reads. What the store must keep (stage 2): the cli
 `fkOwn`, in the compaction's resources) at what its jobs deleted, with the jobs' cursors. No API
 statement changes: `mvccImage_snapshot.law` keeps its statement over the strengthened axiom.
 
+**`mvccW_alloc.law` strengthened (2026-11-05, stage 2).** The snapshot law's proof found it gave only
+the registration `mvccWReg gx`, while a client's boot opens the backend at `W := mvccW gx`
+(`backend.New`'s precondition needs the client to produce it) and no law gave it. Now
+`⊢ |==> ∃ gx, mvccWReg gx ∗ mvccW gx`: a strengthening, decided by me (clear by the skill).
+

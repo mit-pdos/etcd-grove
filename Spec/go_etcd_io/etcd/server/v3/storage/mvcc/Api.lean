@@ -852,8 +852,10 @@ abbrev excl.law : Prop :=
   (∀ ι rs rs', wsRecv (GF := GF) ι rs ∗ wsRecv ι rs' ⊢ False) ∧
   (∀ γ, mvccOpen (GF := GF) γ ∗ mvccOpen γ ⊢ False)
 
-/-- **A registration name**, before the backend is opened. -/
-abbrev mvccW_alloc.law : Prop := ⊢ |==> ∃ gx : GName, mvccWReg (GF := GF) gx
+/-- **A registration name**, before the backend is opened, with the store's write invariant the
+backend is opened at (`backend.New`'s `W := mvccW gx`; stage 2, 2026-11-05: the registration alone
+left the client no `mvccW gx` to open the backend with). -/
+abbrev mvccW_alloc.law : Prop := ⊢ |==> ∃ gx : GName, mvccWReg (GF := GF) gx ∗ mvccW gx
 
 /-- **The store's part of an opened backend** (decision 2, the user, 2026-11-03: over the store's
 needs, at any opener; the review of round 13's decisions: at the pooled post): what a backend's

@@ -828,7 +828,7 @@ def (sealed) mvcc.api.mvccW (gx : GName) : IProp GF
 def (sealed) mvcc.api.mvccState (γ : mvcc.api.MvccName) (σ : mvcc.api.MvccState) : IProp GF
 
 def mvcc.api.mvccW_alloc.law : Prop :=
-  ⊢ |==> ∃ gx, mvcc.api.mvccWReg gx
+  ⊢ |==> ∃ gx, mvcc.api.mvccWReg gx ∗ mvcc.api.mvccW gx
 
 def mvcc.api.Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (σ : mvcc.api.MvccState) (pend : List mvcc.Change)
