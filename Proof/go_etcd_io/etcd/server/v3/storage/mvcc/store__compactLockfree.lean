@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompac
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 
 @[expose] public section
 
@@ -28,28 +29,50 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+/-- `restore()`'s excluder, `s.mu`'s deposit ghost whole: the restoring state holds it too. -/
+theorem mvcc.wr_restoring_excl (γ : mvcc.StoreNames) :
+    ghostVar (GF := GF) γ.wr 1 () ∗ mvcc.slotFr γ ∗ ghostVar γ.wr 1 () ⊢ False := by
+  iintro ⟨H1, -, H2⟩
+  ihave %Hv := ghostVar_valid_2 γ.wr () 1 () 1 $$ H1 H2
+  exact absurd Hv.1 (Qp_one_add_not_le _)
+
+/-- `restore()`'s excluder of the frozen state: none yet (the placeholder `slotF_excl_M1`;
+M1-REPLACE: `KV.Restore.contract`, the restorer's share of the backend token). -/
+theorem mvcc.wr_frozen_excl (γ : mvcc.StoreNames) :
+    mvcc.slotF (GF := GF) γ ∗ ghostVar γ.wr 1 () ⊢ False := by
+  iintro ⟨HF, -⟩
+  iapply (mvcc.slotF_excl_M1 γ)
+  isplitl [HF]
+  · iexact HF
+  · iempintro
+
 theorem mvcc.store.compactLockfree.wp_proof
     (h0 : mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG))
     (h1 : mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG))
     (h2 : traceutil.TODO.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
-  intro s γ rev c cp P hk Pre Q Post log hcmp hlag
-  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, #HcertC, %HrevC, Hctx, HRTok, #HsupM⟩
+  intro s γ rev cp P hk Pre Q Post hcmp hlt h1r
+  wp_start as ⟨#Hs, Hmu, Hright, #HpermR, Hctx, HRTok, #HsupM, Hwr⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
   -- `s.b`, read through the right's closer's eighth (M2, the storage side, item 17)
-  icases mvcc.compactRightR_take s γ c $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
+  icases mvcc.compactRightR_take s γ (sint.Z rev) $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩
   wp_apply (h0 s γ mvcc.q8 o hcmp) $$ [$HRTok $Hfs] as %pcc ⟨Hfs, HRTok⟩
   · iframe #
   ihave Hright := Hrclose $$ Hfs Hq
   (try wp_auto)
-  wp_apply (h1 s γ rev c cp P hk Pre Q Post log hcmp hlag) $$ [$Hmu $Hright $Hctx $HRTok] as %ch %prev %err ⟨HRTok, Hhook, Hres⟩
-  · iframe #; ipureintro; exact HrevC
+  -- the compaction revision is already `rev`: the identity step, `s.mu`'s deposit ghost the excluder
+  ihave Hcb := mvcc.cmpCb_refl (GF := GF) γ (sint.Z rev) cp
+  wp_apply (h1 s γ rev (sint.Z rev) cp P hk Pre Q Post iprop(ghostVar γ.wr 1 ()) iprop(True)
+      iprop(True) iprop(False) hcmp (fun _ => Int.le_refl _) h1r (mvcc.wr_frozen_excl γ)
+      (mvcc.wr_restoring_excl γ))
+    $$ [$Hmu $Hright $Hctx $HRTok $Hwr $Hcb] as %ch %prev %err ⟨HRTok, Hhook, Hwr, Hres⟩
+  · iframe #
   (try wp_auto)
-  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag⟩ |
-    ⟨⟨%Hle, %Hcp, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩)
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt, %Hle'⟩, Hmu, Hright, HPost, #Hjob, Hlag, -⟩ |
+    ⟨⟨%Hle, %Hcp, %Hprev⟩, -⟩ | ⟨-, -, -, -, -, Hf⟩)
   · subst Herr
     (try wp_auto)
     wp_apply h2 as %t ⟨%Ht, Htrc⟩
@@ -60,24 +83,16 @@ theorem mvcc.store.compactLockfree.wp_proof
     ihave Hright := Hrclose $$ Hfs Hq
     (try wp_auto)
     iapply HΦ
-    iframe HRTok Hhook
-    ileft
+    iframe HRTok Hhook Hwr
     iframe Hmu HPost Hch' Hlag
     isplitr
-    · ipureintro; exact ⟨rfl, Hlt, Hle'⟩
+    · ipureintro; rfl
     iframe Hright
     iunfold mvcc.compactJobPre at Hjob
     icases Hjob with ⟨-, -, -, #Hlb, -, -⟩
     iexact Hlb
-  · subst Herr
-    (try wp_auto)
-    iapply HΦ
-    iframe HRTok Hhook
-    iright
-    iframe Hmu Hright HPre Hch
-    isplitr
-    · ipureintro; exact ⟨Hle, Hcp⟩
-    iexists ec; iframe Hec; ipureintro; rfl
+  · exfalso; omega
+  · iexfalso; iexact Hf
 
 end proof
 

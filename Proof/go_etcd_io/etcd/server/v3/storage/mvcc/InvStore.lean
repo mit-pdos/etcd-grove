@@ -3342,15 +3342,13 @@ instance mwSwap_persistent (W MW : IProp GF) : Persistent (mwSwap (GF := GF) W M
 later credit give the right at some values `w` and deleted entries `X`, and the right at the put's
 values `f w` (the same deleted entries) gives `W` back, with `Q` (the job's lower bound of the
 records' compaction revision, `cmpLb`: the job, 2026-11-06). The store re-pins its tracked
-compaction at the new record there (`compactRes`). -/
+compaction at the new record there (`compactRes`). One-shot (`KV.Compact.contract`, 2026-11-06: until
+then persistent): the store's loan fires the client's compaction update inside it, so it holds the
+update and the lock's slot. -/
 def mwLend (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
     (f : backend.FkVals → backend.FkVals) (Q : IProp GF := iprop(True)) : IProp GF :=
-  iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ (w : backend.FkVals) (X : backend.VData), MW w X ∗
-    (MW (f w) X ={⊤}=∗ W ∗ Q)))
-
-instance mwLend_persistent (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
-    (f : backend.FkVals → backend.FkVals) (Q : IProp GF) : Persistent (mwLend (GF := GF) W MW f Q) := by
-  unfold mwLend; infer_instance
+  iprop(W ∗ £ 1 ={⊤}=∗ ∃ (w : backend.FkVals) (X : backend.VData), MW w X ∗
+    (MW (f w) X ={⊤}=∗ W ∗ Q))
 
 instance kbWTSupply_persistent (kb : Option KBReal) : Persistent (kbWTSupply (GF := GF) kb) := by
   unfold kbWTSupply; cases kb <;> simp only <;> infer_instance

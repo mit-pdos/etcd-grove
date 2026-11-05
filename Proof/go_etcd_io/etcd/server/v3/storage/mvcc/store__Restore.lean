@@ -53,7 +53,7 @@ theorem mvcc.store.Restore.wp_proof
     have hj1 : mvcc.nJobRd γ.kb = 1 := by rw [hd]; simp [mvcc.nJobRd, hdon]
     ihave #Hrc := (mvcc.restoreRcptM_on d' _ hd'on).1 $$ Hrc0
     icases (mvcc.restoreImageM_on d' γb' _ r hd'on).1 $$ Himg with ⟨%ents, Hview, Hrecs, -, %Himg⟩
-    obtain ⟨hrec, -, hcut⟩ := Himg
+    obtain ⟨hrec, hpos, hcut⟩ := Himg
     ihave Hsr := (mvcc.kbSRM_on (some d') hd'on).1 $$ Hsr
     icases (mvcc.writerOwn_on γ hj1).1 $$ Hown with ⟨HrtOld, Htkr⟩
     have hlen := mvcc.restoreLogOk_len hR
@@ -605,27 +605,35 @@ theorem mvcc.store.Restore.wp_proof
         icases HY with ⟨Hmu', Hright, HrtA, Hfrag', Hwr, HfsM, HfsW, Htkr, Hwsd, Hrest, Hlr,
           #HcertL⟩
         ihave Hhn := (mvcc.resumeHookM_yes d' r hd'on hres).1 $$ HrH
-        wp_apply (hCLF s (γ.withPhys p') (r.sched.getD (W64 0)) r.crev r.finRev P' none iprop(True)
-            iprop(True) iprop(True) ([[], []] ++ R) (by exact hon') (fun _ => by omega))
-          $$ [Hmu' Hright HrtA Hfrag' Hhn] as %ch %err ⟨HrtA, Hback, Hres⟩
-        · rw [mvcc.isStore_withPhys, mvcc.crevPermAt_withPhys, mvcc.idxCert_withPhys, hsr,
-            mvcc.lockCtxM_none]
-          iframe Hmu' Hright HrtA Hfrag' Hs HpC HcertL
+        -- the resumed revision is past `0` (the records' `recsPos`)
+        have h1r : 1 ≤ sint.Z (r.sched.getD (W64 0)) := by
+          have hres' := hres
+          unfold mvcc.CmpRecs.resumes at hres'
+          simp only [decide_eq_true_eq] at hres'
+          cases hsch : r.sched with
+          | none => simp [mvcc.CmpRecs.schedRev, hsch] at hres'
+          | some x => simp only [Option.getD_some]; exact hpos.2 x hsch
+        have hlt' : r.finRev < sint.Z (r.sched.getD (W64 0)) := by rw [hsr]; exact hlt
+        wp_apply (hCLF s (γ.withPhys p') (r.sched.getD (W64 0)) r.finRev P' none iprop(True)
+            iprop(True) iprop(True) (by exact hon') hlt' h1r)
+          $$ [Hmu' Hright HrtA Hhn Hwr] as %ch %err ⟨HrtA, Hback, Hwr, %Herr, Hmu, Hright, -, -, -, Hlag⟩
+        · rw [mvcc.isStore_withPhys, mvcc.crevPermAt_withPhys, hsr, mvcc.lockCtxM_none,
+            mvcc.StoreNames.withPhys_wr]
+          iframe Hmu' Hright HrtA Hs HpC Hwr
           iunfold mvcc.hookP
           simp only [mvcc.StoreNames.withPhys_hook, mvcc.StoreNames.withPhys_kb, hk]
           iframe Hh' Hhn Hwts
-          repeat' (first | isplitl [] | (ipureintro; exact hcl) | (iintro -; imodintro; itrivial) |
-            itrivial)
+          repeat' (first | isplitl [] | (ipureintro; exact hcl) |
+            (iintro ⟨HP, -⟩; imodintro; iframe HP) | itrivial)
         rw [mvcc.lockBackM_none]
-        icases Hback with ⟨-, Hfrag', Hhn⟩
-        icases Hres with (⟨%Hok, Hmu, Hright, -, -, -, Hlag⟩ | ⟨%Herr, -⟩)
-        rotate_left 1
-        · exact absurd Herr.2 (Int.ne_of_lt hlt)
+        icases Hback with ⟨-, Hhn⟩
         ihave Hmu : mvcc.muInvAt (GF := GF) s (γ.withPhys p') 1 r.crev $$ [Hmu]
         · rw [← hsr]; iexact Hmu
         ihave Hright : mvcc.compactRightR (GF := GF) s (γ.withPhys p') r.crev $$ [Hright]
         · rw [← hsr]; iexact Hright
         rw [mvcc.lagTok_withPhys]
+        ihave Hlag : mvcc.lagTok (GF := GF) γ r.crev r.finRev $$ [Hlag]
+        · rw [← hsr]; iexact Hlag
         ihave HwsdL := mvcc.lagTok_rest γ r.crev r.finRev $$ [Hlag Hlr]
         · iframe Hlag Hlr
         iapply HΨ

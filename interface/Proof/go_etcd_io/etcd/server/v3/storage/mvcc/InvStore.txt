@@ -841,7 +841,7 @@ theorem mvcc.muHeld_tree (s : Loc) (γ : mvcc.StoreNames) (c : Int) (ti : Loc) :
 
 def mvcc.mwLend (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f : backend.FkVals
     → backend.FkVals) (Q : IProp GF := iprop(True)) : IProp GF :=
-  iprop(□ (W ∗ £ 1 ={⊤}=∗ ∃ w X, MW w X ∗ (MW (f w) X ={⊤}=∗ W ∗ Q)))
+  iprop(W ∗ £ 1 ={⊤}=∗ ∃ w X, MW w X ∗ (MW (f w) X ={⊤}=∗ W ∗ Q))
 
 theorem mvcc.hookOk_agree (γ : mvcc.StoreNames) (P P' : IProp GF) (f f' : val) : mvcc.hookOk γ P f ∗
     mvcc.hookOk γ P' f' ⊢ ⌜f = f'⌝ ∗ ▷ P ≡ P'
@@ -2363,9 +2363,6 @@ def mvcc.fkPutV (w : backend.FkVals) (k v : GoString) : backend.FkVals :=
   if k = mvcc.finKeyBytes then (some v, w.snd) else (w.fst, some v)
 
 theorem mvcc.noCompactor_of_frozen (γs : mvcc.StoreNames) : mvcc.crevFrozen γs ⊢ mvcc.noCompactor γs
-
-theorem mvcc.mwLend_persistent (W : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (f :
-    backend.FkVals → backend.FkVals) (Q : IProp GF) : Persistent (mvcc.mwLend W MW f Q)
 
 theorem mvcc.cmpTrack_timeless (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (rc :
     mvcc.CmpRecs) : Timeless (mvcc.cmpTrack γ L m rc)

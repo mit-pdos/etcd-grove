@@ -30,7 +30,7 @@ theorem mvcc.SetScheduledCompact.wp_proof
     (h0 : mvcc.UnsafeSetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG) := by
   intro bt View RT WT PutOk Del W Dep Locked P HF Rb MW HN hk value Pre Q Post Ql Hv
-  wp_start as ⟨#Hbt, #Hsw, Hrt, Hwt, Hpre, Harm⟩
+  wp_start as ⟨#Hbt, Hsw, Hrt, Hwt, Hpre, Harm⟩
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -, -, -, #HMeta, -⟩
   ihave #Hcap := HMeta $$ []
@@ -106,7 +106,7 @@ theorem mvcc.SetScheduledCompact.wp_proof
     icases Hua with ⟨#HUnlock0, -⟩
     (try wp_auto)
     -- the caller's update (the unset hook given back through it), then the deferred `tx.Unlock()`
-    imod Hupd $$ [$Hpre $Hhn] with HPost
+    imod Hupd $$ [$HP $Hpre $Hhn] with ⟨HP, HPost⟩
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
     iapply HUnlock0 $$ [HU HW HP]
     · iframe HU HW HP

@@ -6,60 +6,53 @@ theorem mvcc.store.Compact.wp_proof (h0 : mvcc.store.checkPrevCompactionComplete
     mvcc.store.updateCompactRev.spec) (h2 : traceutil.Trace.Step.spec) (h3 :
     mvcc.store.compact.spec) : mvcc.store.Compact.spec
   -- `Perennial.EtcdGrove.mvcc.store.Compact.spec`, unfolded:
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val) (Pre Q Post : IProp GF)
-    (log : mvcc.Log) (te : Bool),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (hk : Option val)
+    (Pre Q Post S Fok Fce Ffr : IProp GF) (te : Bool),
     trace ≠ null →
       mvcc.storeCmp γ →
         -1 ≤ c →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-                  mvcc.isStore s γ ∗
-                    mvcc.compactRightR s γ c ∗
-                      mvcc.crevPermAt γ (sint.Z rev) ∗
-                        mvcc.idxCert γ.idx log ∗
-                          ⌜sint.Z rev < ↑(List.length log)⌝ ∗
-                            mvcc.hookIs γ P f ∗
-                              mvcc.csContract P f Pre Q Post ∗
-                                traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb -∗
-                (▷
-                    ∀ ch err,
-                      traceutil.ownTrace trace te ∗
-                          mvcc.storeRT γ ∗
-                            mvcc.hookIs γ P f ∗
-                              (⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗
-                                  mvcc.compactRightR s γ (sint.Z rev) ∗
-                                    mvcc.crevLb γ.idx (sint.Z rev) ∗
-                                      Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∨
-                                ⌜sint.Z rev ≤ c⌝ ∗
-                                  (∃ ec,
-                                      typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
-                                          (GoInterface.ok ec) DFrac.discard ∗
-                                        ⌜err = GoInterface.ok ec⌝) ∗
-                                    mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) -∗
-                        Φ (intoVal ch, intoVal err)) -∗
-                  WP
-                    (((intoVal
-                          (methods go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType
-                            go!"Compact" (intoVal s)))
-                        (intoVal trace))
-                      (intoVal rev))
-                    {{ Φ }}
-
-theorem mvcc.store.Compact.wp_of_le (h0 : mvcc.store.checkPrevCompactionCompleted.spec) (h1 :
-    mvcc.store.updateCompactRev.spec) (h2 : traceutil.Trace.Step.spec) (h3 :
-    mvcc.store.compact.spec) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P
-    : IProp GF) (f : val) (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool) (htr : trace ≠ null)
-    (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) : ⊢ ∀ Φ, isPkgInit
-    pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗
-    mvcc.crevPermAt γ (sint.Z rev) ∗ mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < ↑(List.length log)⌝ ∗
-    mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT
-    γ ∗ mvcc.kbWTSupplyM γ.kb -∗ (▷ ∀ ch err, traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
-    mvcc.hookIs γ P f ∗ (⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRightR s γ (sint.Z
-    rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z
-    rev)) ∨ ⌜sint.Z rev ≤ c⌝ ∗ (∃ ec, typedPointsto (globalAddr
-    go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted) (GoInterface.ok ec) DFrac.discard ∗ ⌜err =
-    GoInterface.ok ec⌝) ∗ mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True)) -∗ Φ
-    (intoVal ch, intoVal err)) -∗ WP (((intoVal (methods
-    go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType go!"Compact" (intoVal s))) (intoVal
-    trace)) (intoVal rev)) {{ Φ }}
+          1 ≤ sint.Z rev →
+            (mvcc.slotF γ ∗ S ⊢ False) →
+              (ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ S ⊢ False) →
+                ⊢
+                  ∀ Φ,
+                    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+                        mvcc.isStore s γ ∗
+                          mvcc.compactRightR s γ c ∗
+                            mvcc.crevPermAt γ (sint.Z rev) ∗
+                              mvcc.lockCtxM γ P hk Pre Q Post ∗
+                                traceutil.ownTrace trace te ∗
+                                  mvcc.storeRT γ ∗
+                                    mvcc.kbWTSupplyM γ.kb ∗ S ∗ mvcc.cmpCb γ c c (sint.Z rev) Fok Fce Ffr -∗
+                      (▷
+                          ∀ ch err,
+                            traceutil.ownTrace trace te ∗
+                                mvcc.storeRT γ ∗
+                                  mvcc.lockBackM γ P hk ∗
+                                    S ∗
+                                      (⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗
+                                          mvcc.compactRightR s γ (sint.Z rev) ∗
+                                            mvcc.crevLb γ.idx (sint.Z rev) ∗
+                                              Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗ Fok ∨
+                                        ⌜sint.Z rev ≤ c⌝ ∗
+                                            (∃ ec,
+                                                typedPointsto
+                                                    (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
+                                                    (GoInterface.ok ec) DFrac.discard ∗
+                                                  ⌜err = GoInterface.ok ec⌝) ∗
+                                              mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True) ∗ Fce ∨
+                                          ⌜ch = chan.nil⌝ ∗
+                                            (∃ ef,
+                                                typedPointsto
+                                                    (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev)
+                                                    (GoInterface.ok ef) DFrac.discard ∗
+                                                  ⌜err = GoInterface.ok ef⌝) ∗
+                                              mvcc.compactRightR s γ c ∗ Pre ∗ Ffr) -∗
+                              Φ (intoVal ch, intoVal err)) -∗
+                        WP
+                          (((intoVal
+                                (methods go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType
+                                  go!"Compact" (intoVal s)))
+                              (intoVal trace))
+                            (intoVal rev))
+                          {{ Φ }}

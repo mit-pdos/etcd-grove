@@ -29,7 +29,7 @@ M2, the storage side, item 31, 2026-10-30): set to `f`, `LockInsideApply` runs i
 its record of the meta key there), comes before the `Unlock`: `Q ∗ W ={⊤}=∗ P ∗ W ∗ Post`; unset
 (the new backend `restore()` resumes a compaction on, inside `kv.Restore`), `LockInsideApply` runs
 nothing (`lockNilSpec`, with the unset hook `HN`): the batch lock's invariant `P` passes through to
-the `Unlock`, and the caller's update is `Pre ∗ HN ={⊤}=∗ Post`. Over the batch transaction in full
+the `Unlock`, and the caller's update is `P ∗ Pre ∗ HN ={⊤}=∗ P ∗ Post` (`P` seen since 2026-11-06). Over the batch transaction in full
 generality (question 5's Draft, review round 14's F6, R9-3; the core stage, part (1)): its read and
 write tokens `RT`/`WT` (lent to `LockInsideApply`, the read token given back), put condition, tracked
 buckets' right and the compaction keys' write right `MW` are the caller's, and the caller's loan of
