@@ -12,7 +12,6 @@ public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.client.v3.kubernetes
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.k8s_io.apimachinery.pkg.api.errors
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema

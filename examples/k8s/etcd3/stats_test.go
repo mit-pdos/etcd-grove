@@ -73,7 +73,11 @@ func TestTrafficReachesCases(t *testing.T) {
 		if out.Err == ENone && out.Name != "" {
 			tbl.put(in.Client, Obj{Name: out.Name, UID: out.UID, Value: out.Value, ResourceVersion: out.RV})
 		}
-		if out.Err == EOther {
+		if out.Err == EOther && in.Kind == KGet {
+			if _, want := mstep(in, st); want.Err == EOther {
+				counts["get/toolarge"]++ // the store's too-large error, as the model's EOther
+			}
+		} else if out.Err == EOther {
 			t.Fatalf("op %d %+v: unexpected error", i, in)
 		}
 		next, want := mstep(in, st)
@@ -82,7 +86,7 @@ func TestTrafficReachesCases(t *testing.T) {
 		}
 		st = next
 		kinds := []string{"create", "delete", "update", "get"}
-		errs := []string{"ok", "notfound", "exists", "rejected", "other", "invalid", "toolarge"}
+		errs := []string{"ok", "notfound", "exists", "rejected", "other", "invalid"}
 		counts[kinds[in.Kind]+"/"+errs[out.Err]]++
 		if in.UseCached {
 			counts[kinds[in.Kind]+"/cached/"+errs[out.Err]]++

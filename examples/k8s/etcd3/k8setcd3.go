@@ -46,7 +46,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -372,9 +371,11 @@ const (
 	// a *storage.StorageError, "invalid object" (storage.ErrCodeInvalidObj: a failed
 	// precondition), with ErrKey
 	EInvalid = 5
-	// storage.NewTooLargeResourceVersionError's error (a Get's minimum above the revision read)
-	ETooLarge = 6
 )
+
+// (storage.NewTooLargeResourceVersionError's error, a Get's minimum above the revision read, is
+// an EOther: telling it from the client's errors needs that these are not *apierrors.StatusErrors,
+// which the client's specs do not say; notes/k8s-etcd3-plan.md, 7b, T2.)
 
 // An Output is a call's answer: the object it returned (its name, UID, value and resource
 // version), or its error.
@@ -611,16 +612,16 @@ func mupdate(in Input, st mstore) (mstore, Output) {
 	return mstore{items: setItem(st.items, item{key: in.Key, obj: o, canon: true}), rv: rv}, objOut(o)
 }
 
-// mget is the Model's get: the minimum resource version's error if it is above the store's, the
-// stored object, the zero object for a missing key with IgnoreNotFound, or "not found". (A
-// minimum that does not parse answers the versioner's error, an EOther; the traffic sends none.)
+// mget is the Model's get: an EOther if the minimum resource version is above the store's (the
+// too-large error) or does not parse (the versioner's error; the traffic sends none), the stored
+// object, the zero object for a missing key with IgnoreNotFound, or "not found".
 func mget(in Input, st mstore) Output {
 	req, err := parseRV(in.MinRV)
 	if err != nil {
 		return Output{Err: EOther}
 	}
 	if req > st.rv {
-		return Output{Err: ETooLarge}
+		return Output{Err: EOther}
 	}
 	it, ok := lookup(st.items, in.Key)
 	if !ok {
@@ -944,21 +945,6 @@ func Gen(tbl *cache, id int) Input {
 // ---------------------------------------------------------------------------------------------
 // The calls
 
-// isTooLarge says whether err is storage.NewTooLargeResourceVersionError's error: a
-// *apierrors.StatusError with reason Timeout whose one cause is a too-large resource version
-// (what storage.IsTooLargeResourceVersion tests).
-func isTooLarge(err error) bool {
-	se, ok := err.(*apierrors.StatusError)
-	if !ok {
-		return false
-	}
-	d := se.ErrStatus.Details
-	if se.ErrStatus.Reason != metav1.StatusReasonTimeout || d == nil || len(d.Causes) != 1 {
-		return false
-	}
-	return d.Causes[0].Type == metav1.CauseTypeResourceVersionTooLarge
-}
-
 // errOut is a call's error as an output.
 func errOut(err error) Output {
 	if se, ok := err.(*storage.StorageError); ok {
@@ -971,9 +957,6 @@ func errOut(err error) Output {
 		if se.Code == storage.ErrCodeInvalidObj {
 			return Output{Err: EInvalid, ErrKey: se.Key}
 		}
-	}
-	if isTooLarge(err) {
-		return Output{Err: ETooLarge}
 	}
 	if err == errDeleteRejected || err == errUpdateRejected {
 		return Output{Err: ERejected}

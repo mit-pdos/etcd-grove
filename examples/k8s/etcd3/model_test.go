@@ -121,7 +121,8 @@ func response(real *correctness.Model, in Input, out Output) correctness.Respons
 			cur = o
 		}
 		return correctness.Response{Err: tPre(in).Check(out.ErrKey, cur)}
-	case ETooLarge:
+	case EOther:
+		// the only EOther of the driver's model on the traffic: a Get's too-large minimum
 		req, _ := parseRV(in.MinRV)
 		return correctness.Response{Err: storage.NewTooLargeResourceVersionError(req, real.ResourceVersion, 0)}
 	case ENotFound:
