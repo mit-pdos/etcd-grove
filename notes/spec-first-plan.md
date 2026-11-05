@@ -1325,7 +1325,10 @@ Session etcd-grove-83's Draft runs, branch `hub-step7` (lean `080f18c48f` + the 
   `etc/api/etcdstart-layout.txt`, 115 known layout violations (the specs and proofs are in the
   package's namespace `etcdstart`, as backend's, plus `congr_simp` lemmas and `BuildServer`'s two
   draft specs); D18-D20. `gates.sh` and CI read every `etc/api/*.txt`.
-- **Left:** the Freeze (the user, via etcd-grove-82), then landing.
+- **Frozen** (the user, via etcd-grove-82, 2026-11-05: D1-D20 included; tag `hub-step7-frozen`) and landed.
+  D20 done at the Freeze (the two `memberStartRes_of_lists` helpers private).
+- **Follow-up, D4** (not in this landing): `leaseTTLRowR` into the lease slot (H-a). Handed by
+  etcd-grove-82 to the lease-expiry session (etcd-grove-c9).
 - **What the probes showed** (none of "What would make us revise the design" happened):
   - the sealed `Option` matches reduce in the laws only: the callers use `rfl` for the premise
     (`a.client = some c`, `a.peer = none`), and the bundle given back at `{a with client := none}` is

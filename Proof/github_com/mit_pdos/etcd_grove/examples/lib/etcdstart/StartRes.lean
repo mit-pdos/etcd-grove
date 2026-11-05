@@ -215,7 +215,7 @@ theorem memberStartRes_client (n : GoString) (a : MemberAddrs) (c : GoString)
 /-! ## L3: the introduction from program start -/
 
 /-- One member's start bundle from its share of program start's lists. -/
-theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
+private theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
     ([∗list] x ∈ a.addrs, netAddrFree (GF := GF) x) ∗ ([∗list] x ∈ a.addrs, httpProtoFree (GF := GF) x) ∗
       walDirFresh (GF := GF) (memberWalDir n) ⊢ memberStartRes n a := by
   unfold memberStartRes MemberAddrs.addrs
@@ -233,7 +233,7 @@ theorem memberStartRes_of_lists (n : GoString) (a : MemberAddrs) :
     iframe
 
 /-- The members' start bundles from their shares of program start's lists, member by member. -/
-theorem memberStartRes_of_lists_all (ms : List (GoString × MemberAddrs)) :
+private theorem memberStartRes_of_lists_all (ms : List (GoString × MemberAddrs)) :
     ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), netAddrFree (GF := GF) x) ∗
       ([∗list] x ∈ ms.flatMap (fun m => m.2.addrs), httpProtoFree (GF := GF) x) ∗
       ([∗list] d ∈ ms.map (fun m => memberWalDir m.1), walDirFresh (GF := GF) d) ⊢
