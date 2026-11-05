@@ -163,6 +163,50 @@ theorem nsMove_old {m : NsMap} {s t : GoString} (ht : ∀ x, (m !! x).isSome →
     · rw [rekey_not_under hc] at h2; exact absurd (by rw [h2]; exact hs) hc
   · rfl
 
+/-! ## Nothing under an absent path -/
+
+theorem split_last_slash (r : GoString) :
+    slashB ∉ r ∨ ∃ a b, r = a ++ slashB :: b ∧ slashB ∉ b := by
+  induction r with
+  | nil => left; simp
+  | cons c l ih =>
+    rcases ih with h | ⟨a, b, rfl, hb⟩
+    · by_cases hc : c = slashB
+      · subst hc; right; exact ⟨[], l, by simp, h⟩
+      · left; simp [h, Ne.symm hc]
+    · right; exact ⟨c :: a, b, by simp, hb⟩
+
+/-- In a namespace of the shape `NsShape` (every name's parent a directory), nothing is under a path
+that is absent (and has no root under it). -/
+theorem shape_no_under {R : List GoString} {m : NsMap} {t : GoString} (hs : NsShape R m)
+    (ht : m !! t = none) (hR : ∀ r ∈ R, ¬ IsUnder t r) : ∀ x, (m !! x).isSome → ¬ IsUnder t x := by
+  suffices h : ∀ n x, x.length ≤ n → (m !! x).isSome → ¬ IsUnder t x from
+    fun x => h x.length x (Nat.le_refl _)
+  intro n
+  induction n with
+  | zero =>
+    intro x hl hx hu
+    obtain ⟨r, rfl, hr⟩ := (isUnder_iff t x).1 hu
+    rcases hr with rfl | ⟨r', rfl⟩
+    · rw [List.append_nil, ht] at hx; cases hx
+    · simp at hl
+  | succ n ih =>
+    intro x hl hx hu
+    obtain ⟨r, rfl, hr⟩ := (isUnder_iff t x).1 hu
+    rcases hr with rfl | ⟨r', rfl⟩
+    · rw [List.append_nil, ht] at hx; cases hx
+    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hx
+    rcases hs.2.1 _ v hv with hroot | ⟨-, d, hd, hdir⟩
+    · exact hR _ hroot hu
+    rcases split_last_slash r' with hns | ⟨a, b, rfl, hb⟩
+    · rw [parentOf_child t r' hns] at hd; cases hd
+      rw [ht] at hdir; cases hdir
+    · have he : t ++ slashB :: (a ++ slashB :: b) = (t ++ slashB :: a) ++ slashB :: b := by simp
+      rw [he, parentOf_child _ b hb] at hd; cases hd
+      have hlt : (t ++ slashB :: a).length ≤ n := by simp at hl ⊢; omega
+      exact ih (t ++ slashB :: a) hlt (by rw [hdir]; rfl)
+        ((isUnder_iff t _).2 ⟨slashB :: a, rfl, .inr ⟨a, rfl⟩⟩)
+
 end Perennial
 
 end
