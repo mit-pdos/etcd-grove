@@ -101,19 +101,23 @@ theorem chanApiAt_tok (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM →
   · iframe #; ipureintro; exact hw.1
 
 /-- **A new stream** (`NewWatchStream`): its names, the channel invariant's part at the empty
-history, the client's state at `wsStart` and its consumer's view at `[]`. -/
+history, the client's state at `wsStart` and its consumer's view at `[]`, and the stream's half of
+the client's history (`ι.cl`, for its mutex invariant). -/
 theorem chanApi_alloc (st : AbsNames) (ch : GoChan) (chn : ChanNames) (gcr : GName) :
     ghostVar (GF := GF) gcr (1 : Qp).half ([] : List RespM) ⊢ |==> ∃ ι : WsAbs,
       ⌜ι.st = st ∧ ι.ch = ch ∧ ι.chn = chn ∧ ι.crecv = gcr⌝ ∗
-      chanApiAt (GF := GF) ι [] (fun _ => []) [] ∗ wsStateI ι wsStart ∗ wsRecvI ι [] := by
+      chanApiAt (GF := GF) ι [] (fun _ => []) [] ∗ wsStateI ι wsStart ∗ wsRecvI ι [] ∗
+      ghostVar ι.cl (1 : Qp).half ([] : List SEv) := by
   iintro Hcr
   imod mono_list_own_alloc (GF := GF) ([] : List SEv) with ⟨%gev, Hev, #Hevlb⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gns, Hns, #Hnslb⟩
   imod ghostVar_alloc (GF := GF) ([] : List WResp) with ⟨%grcv, Hrcv⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%grx, Hrx, -⟩
+  imod ghostVar_alloc (GF := GF) ([] : List SEv) with ⟨%gcl, Hcl⟩
   icases (ghostVar_split_half grcv (1 : Qp) ([] : List WResp)).1 $$ Hrcv with ⟨Hr1, Hr2⟩
+  icases (ghostVar_split_half gcl (1 : Qp) ([] : List SEv)).1 $$ Hcl with ⟨Hc1, Hc2⟩
   imodintro
-  iexists ⟨st, gev, gns, grcv, grx, ch, chn, gcr⟩
+  iexists ⟨st, gev, gns, grcv, grx, ch, chn, gcr, gcl⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   have hwf : LogWF (fun _ => []) ([] : List SEv) := fun p e hp => by simp at hp
@@ -125,15 +129,16 @@ theorem chanApi_alloc (st : AbsNames) (ch : GoChan) (chn : ChanNames) (gcr : GNa
     simp only [fgsOf, List.flatMap_nil, nsCount]
     iframe Hnslb
     isplitl <;> (iapply BigSepL.bigSepL_nil.2; itrivial)
-  isplitl [Hns]
+  isplitl [Hns Hc1]
   · iexists [], (fun _ => [])
     simp only [nsCount, fgsOf, List.flatMap_nil]
-    iframe Hns Hevlb
+    iframe Hns Hevlb Hc1
     isplitr
     · isplitr
       · ipureintro; exact hwf
       isplitl <;> (iapply BigSepL.bigSepL_nil.2; itrivial)
     · ipureintro; rfl
+  isplitr [Hc2]
   · iexists [], (fun _ => [])
     simp only [nsCount, fgsOf, List.flatMap_nil, List.length_nil]
     iframe Hr2 Hrx Hevlb Hnslb
@@ -144,6 +149,7 @@ theorem chanApi_alloc (st : AbsNames) (ch : GoChan) (chn : ChanNames) (gcr : GNa
     isplitr
     · ipureintro; exact List.nil_prefix
     iexists []; iframe Hcr; ipureintro; rfl
+  iexact Hc2
 
 /-- **A send** (the channel invariant's step at every send): its event appended, the sender
 having proved its premises and holding its filters' saved names and its bounds' tokens. -/
@@ -172,13 +178,19 @@ theorem chanApiAt_send (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM �
     iframe Het
     iapply BigSepL.bigSepL_nil.2; itrivial
 
-/-- The client's lower bound is the invariant's history up to sends, its state the replay's. -/
+/-- The client's lower bound is the invariant's history up to sends, its state the replay's; the
+stream's half of the client's history agrees with the client's (`lm`), so the stream's view of the
+replay is the invariant's at every decoding. -/
 theorem chanApiAt_wsState (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
-    (recv : List WResp) (S : StreamState) :
-    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ⊢
-      chanApiAt ι l dec recv ∗ monoNatAuthOwn ι.ns 1 (nsCount l) ∗ ⌜(replay dec l).S = S⌝ := by
+    (recv : List WResp) (S : StreamState) (lm : List SEv) :
+    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ∗ ghostVar ι.cl (1 : Qp).half lm ⊢
+      chanApiAt ι l dec recv ∗ monoNatAuthOwn ι.ns 1 (nsCount l) ∗
+      ghostVar ι.cl (1 : Qp).half lm ∗ ghostVar ι.cl (1 : Qp).half lm ∗
+      ⌜(replay dec l).S = S ∧ ∀ d, (replay d l).S = (replay d lm).S⌝ := by
   unfold chanApiAt wsStateI logTok
-  iintro ⟨⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩, ⟨%lc, %dc, Hns, ⟨#Hlbc, %Hwfc, #Hfc, #Hec⟩, %HS⟩⟩
+  iintro ⟨⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩, ⟨%lc, %dc, Hcl, Hns, ⟨#Hlbc, %Hwfc, #Hfc, #Hec⟩, %HS⟩, Hm⟩
+  ihave %hlm := ghostVar_agree ι.cl lc _ lm _ $$ Hcl Hm
+  subst hlm
   ihave %hpre := mono_list_auth_lb_valid ι.ev 1 l lc $$ Ha Hlbc
   ihave %hle := monoNatLbOwn_valid ι.ns 1 (nsCount lc) (nsCount l) $$ Hns Hn
   ihave %hag := savedFilters_agreeL (fgsOf lc) (fgsOf l) dc dec $$ [$Hfc $Hf]
@@ -193,7 +205,10 @@ theorem chanApiAt_wsState (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM
   · iframe Ha Hr Hf He Hn; ipureintro; exact hw
   isplitl [Hns]
   · rw [hcnt]; iexact Hns
-  · ipureintro; exact hS
+  iframe Hcl Hm
+  ipureintro
+  refine ⟨hS, fun d => ?_⟩
+  rw [← hlt]; exact (replay_sends d lc t ht).1
 
 /-- A client event appended: the history's authority, the client's count and the invariant's lower
 bound of it, the client's new lower bound. -/
@@ -219,16 +234,22 @@ theorem chanApiAt_client (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM 
   · iframe #; ipureintro; exact hwf
 
 /-- **A registration** (`Watch`'s update): the watcher registered at the exact sent count, the
-client's state moved, and the sent count's lower bound. -/
+client's state moved, the stream's half of the client's history with it (its replay the
+registration's, at every decoding), and the sent count's lower bound. -/
 theorem chanApiAt_reg (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
-    (recv : List WResp) (S : StreamState) (id : w64) (rg : WatchRange) (fg : GName)
+    (recv : List WResp) (S : StreamState) (lm : List SEv) (id : w64) (rg : WatchRange) (fg : GName)
     (fs : List (EvM → Bool)) (lo : Nat) (hnone : S.ws !! id = none) (hneg : id ≠ W64 (-1)) :
-    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ∗ savedFilters fg fs ==∗
+    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ∗ ghostVar ι.cl (1 : Qp).half lm ∗
+      savedFilters fg fs ==∗
       ∃ dec' : GName → List (EvM → Bool), chanApiAt ι (l ++ [.reg id rg fg lo]) dec' recv ∗
         wsStateI ι (S.register id ⟨rg, fs, lo, (sendsOf l).length, true⟩) ∗
+        ghostVar ι.cl (1 : Qp).half (l ++ [.reg id rg fg lo]) ∗
+        ⌜∀ d, (replay d (l ++ [.reg id rg fg lo])).S =
+          (replay d lm).S.register id ⟨rg, d fg, lo, (sendsOf l).length, true⟩⌝ ∗
         wsSentLbI ι (sendsOf l).length := by
-  iintro ⟨Hc, Hs, #Hfg⟩
-  icases chanApiAt_wsState ι l dec recv S $$ [$Hc $Hs] with ⟨Hc, Hns, %HS⟩
+  iintro ⟨Hc, Hs, Hm, #Hfg⟩
+  icases chanApiAt_wsState ι l dec recv S lm $$ [$Hc $Hs $Hm] with ⟨Hc, Hns, Hcl, Hm, %HS⟩
+  obtain ⟨HS, Hlm⟩ := HS
   iunfold chanApiAt at Hc
   icases Hc with ⟨Ha, %hw, #Hf, #He, Hr, -⟩
   -- the new name's filters agree with the decoding wherever the history has it
@@ -270,16 +291,21 @@ theorem chanApiAt_reg (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM →
     · iapply BigSepL.bigSepL_nil.2; itrivial
   imod chanApiAt_client ι l dec' recv (.reg id rg fg lo) rfl hwf hw.2 $$ [$Ha $Hns $Hr $Hf' $He']
     with ⟨Hc, Hns, #Htok⟩
+  imod ghostVar_update_halves (l ++ [.reg id rg fg lo]) ι.cl _ _ $$ Hcl Hm with ⟨Hcl, Hm⟩
   imodintro
   iexists dec'
-  iframe Hc
-  isplitl [Hns]
+  iframe Hc Hm
+  isplitl [Hns Hcl]
   · unfold wsStateI
     iexists l ++ [.reg id rg fg lo], dec'
-    iframe Hns Htok
+    iframe Hns Htok Hcl
     ipureintro
     rw [replay_snoc, step_reg, hrep, HS]
     simp only [dec', if_pos rfl]; rw [sendsOf_eq dec l, List.length_map]
+  isplitr
+  · ipureintro
+    intro d
+    rw [replay_snoc, step_reg, Hlm d, sendsOf_eq d l, List.length_map]
   · unfold wsSentLbI logTok
     icases Htok with ⟨#Hlb, -⟩
     iright
@@ -288,36 +314,92 @@ theorem chanApiAt_reg (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM →
     ipureintro
     rw [sendsOf_append]; simp
 
-/-- **A cancel** (`Cancel`'s update at its first check): the client's state moved. -/
-theorem chanApiAt_cancel (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
-    (recv : List WResp) (S : StreamState) (id : w64) :
-    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ==∗
-      chanApiAt ι (l ++ [.cancel id]) dec recv ∗ wsStateI ι (S.cancel id) := by
-  iintro ⟨Hc, Hs⟩
-  icases chanApiAt_wsState ι l dec recv S $$ [$Hc $Hs] with ⟨Hc, Hns, %HS⟩
+/-- A client event that is not a registration, appended (the cancel's and the close's step). -/
+theorem chanApiAt_plain (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (S : StreamState) (lm : List SEv) (e : SEv) (hns : nsCount [e] = 1)
+    (hfg : e.fgs = []) (hev : evTok (GF := GF) ι.st e = iprop(True))
+    (hok : stepOk dec (replay dec l) e) :
+    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ∗ ghostVar ι.cl (1 : Qp).half lm ==∗
+      chanApiAt ι (l ++ [e]) dec recv ∗ wsStateI ι ((replay dec l).step dec e).S ∗
+      ghostVar ι.cl (1 : Qp).half (l ++ [e]) ∗
+      ⌜(replay dec l).S = S ∧ ∀ d, (replay d l).S = (replay d lm).S⌝ := by
+  iintro ⟨Hc, Hs, Hm⟩
+  icases chanApiAt_wsState ι l dec recv S lm $$ [$Hc $Hs $Hm] with ⟨Hc, Hns, Hcl, Hm, %HS⟩
   iunfold chanApiAt at Hc
   icases Hc with ⟨Ha, %hw, #Hf, #He, Hr, -⟩
-  have hwf : LogWF dec (l ++ [.cancel id]) := (LogWF_snoc dec l _).2 ⟨hw.1, trivial⟩
-  ihave #Hf' : [∗list] x ∈ fgsOf (l ++ [.cancel id]), savedFilters (GF := GF) x (dec x) $$ []
-  · rw [fgsOf_append]; simp only [fgsOf, SEv.fgs, List.flatMap_cons, List.flatMap_nil,
+  have hwf : LogWF dec (l ++ [e]) := (LogWF_snoc dec l _).2 ⟨hw.1, hok⟩
+  ihave #Hf' : [∗list] x ∈ fgsOf (l ++ [e]), savedFilters (GF := GF) x (dec x) $$ []
+  · rw [fgsOf_append]; simp only [fgsOf, hfg, List.flatMap_cons, List.flatMap_nil,
       List.append_nil]
     iexact Hf
-  ihave #He' : [∗list] e' ∈ l ++ [.cancel id], evTok (GF := GF) ι.st e' $$ []
+  ihave #He' : [∗list] e' ∈ l ++ [e], evTok (GF := GF) ι.st e' $$ []
   · iapply BigSepL.bigSepL_append.2
     iframe He
     iapply BigSepL.bigSepL_cons.2
     isplitl
-    · unfold evTok; itrivial
+    · rw [hev]; itrivial
     · iapply BigSepL.bigSepL_nil.2; itrivial
-  imod chanApiAt_client ι l dec recv (.cancel id) rfl hwf hw.2 $$ [$Ha $Hns $Hr $Hf' $He']
+  imod chanApiAt_client ι l dec recv e hns hwf hw.2 $$ [$Ha $Hns $Hr $Hf' $He']
     with ⟨Hc, Hns, #Htok⟩
+  imod ghostVar_update_halves (l ++ [e]) ι.cl _ _ $$ Hcl Hm with ⟨Hcl, Hm⟩
   imodintro
-  iframe Hc
-  unfold wsStateI
-  iexists l ++ [.cancel id], dec
-  iframe Hns Htok
+  iframe Hc Hm
+  isplitl
+  · unfold wsStateI
+    iexists l ++ [e], dec
+    iframe Hns Htok Hcl
+    ipureintro
+    rw [replay_snoc]
+  · ipureintro; exact HS
+
+/-- **A cancel** (`Cancel`'s update at its first check): the client's state moved, the stream's
+half of the client's history with it. -/
+theorem chanApiAt_cancel (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (S : StreamState) (lm : List SEv) (id : w64) :
+    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ∗ ghostVar ι.cl (1 : Qp).half lm ==∗
+      chanApiAt ι (l ++ [.cancel id]) dec recv ∗ wsStateI ι (S.cancel id) ∗
+      ghostVar ι.cl (1 : Qp).half (l ++ [.cancel id]) ∗
+      ⌜(replay dec l).S = S ∧ ∀ d, (replay d (l ++ [.cancel id])).S = (replay d lm).S.cancel id⌝ := by
+  iintro H
+  imod chanApiAt_plain ι l dec recv S lm (.cancel id) rfl rfl rfl trivial $$ H with
+    ⟨Hc, Hs, Hm, %HS⟩
+  rw [step_cancel, HS.1]
+  iframe Hc Hs Hm
   ipureintro
-  rw [replay_snoc, step_cancel, HS]
+  refine ⟨rfl, fun d => ?_⟩
+  rw [replay_snoc, step_cancel, HS.2 d]
+
+/-- **A close** (`Close`'s update): the client's state moved, the stream's half of the client's
+history with it. -/
+theorem chanApiAt_close (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (S : StreamState) (lm : List SEv) :
+    chanApiAt (GF := GF) ι l dec recv ∗ wsStateI ι S ∗ ghostVar ι.cl (1 : Qp).half lm ==∗
+      chanApiAt ι (l ++ [.close]) dec recv ∗ wsStateI ι S.close ∗
+      ghostVar ι.cl (1 : Qp).half (l ++ [.close]) ∗
+      ⌜(replay dec l).S = S ∧ ∀ d, (replay d (l ++ [.close])).S = (replay d lm).S.close⌝ := by
+  iintro H
+  imod chanApiAt_plain ι l dec recv S lm .close rfl rfl rfl trivial $$ H with ⟨Hc, Hs, Hm, %HS⟩
+  rw [step_close, HS.1]
+  iframe Hc Hs Hm
+  ipureintro
+  refine ⟨rfl, fun d => ?_⟩
+  rw [replay_snoc, step_close, HS.2 d]
+
+/-- **The stream's state, read with the client's** (no event appended): the stream's half of the
+client's history agrees with the client's, so the client's state is the replay of the stream's
+at the client's decoding. -/
+theorem wsStateI_cl (ι : WsAbs) (S : StreamState) (lm : List SEv) :
+    wsStateI (GF := GF) ι S ∗ ghostVar ι.cl (1 : Qp).half lm ⊢
+      wsStateI ι S ∗ ghostVar ι.cl (1 : Qp).half lm ∗ ⌜∃ d, (replay d lm).S = S⌝ := by
+  unfold wsStateI
+  iintro ⟨⟨%lc, %dc, Hcl, Hns, Htok, %HS⟩, Hm⟩
+  ihave %h := ghostVar_agree ι.cl lc _ lm _ $$ Hcl Hm
+  subst h
+  isplitl [Hcl Hns Htok]
+  · iexists lc, dc; iframe Hcl Hns Htok; ipureintro; exact HS
+  isplitl [Hm]
+  · iexact Hm
+  · ipureintro; exact ⟨dc, HS⟩
 
 /-- **The non-blocking receive's empty case**: a lower bound of the sent count is at most the
 sends of the history. -/
@@ -378,6 +460,16 @@ theorem chanApiAt_cancelTok (ι : WsAbs) (l1 l : List SEv) (dec : GName → List
   ihave #Hlb' := monoListLbOwn_le (l1 ++ [.cancel id]) hp $$ Hlb
   iframe Ha Hr
   iexists l1, rg, fg, lo; iframe Hlb'; ipureintro; exact hm
+
+/-- **A cancel of a registered watcher gives its token**: the history just after the cancel, the
+watcher in the replayed state before it. -/
+theorem chanApiAt_cancel_tok (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
+    (recv : List WResp) (id : w64) (w : WInfo) (hw : (replay dec l).S.ws !! id = some w) :
+    chanApiAt (GF := GF) ι (l ++ [.cancel id]) dec recv ⊢
+      chanApiAt ι (l ++ [.cancel id]) dec recv ∗ cancelTok ι id := by
+  obtain ⟨rg, fg, lo, hm⟩ := replay_ws_reg dec l id w hw
+  exact chanApiAt_cancelTok (GF := GF) ι l (l ++ [SEv.cancel id]) dec recv id rg fg lo
+    (List.prefix_refl (l ++ [SEv.cancel id])) hm
 
 /-- **A sender's registration token, at the history**: the replay has the watcher's info. -/
 theorem chanApiAt_regAgree (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))

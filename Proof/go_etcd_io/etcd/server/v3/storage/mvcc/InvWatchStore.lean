@@ -96,11 +96,12 @@ instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
       g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
-      g.wc.rsn, g.wc.aev, g.wc.ans, g.wc.arcv, g.wc.arx, g.lo, g.now, g.fg))
+      g.wc.rsn, g.wc.aev, g.wc.ans, g.wc.arcv, g.wc.arx, g.wc.acl, g.lo, g.now, g.fg))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3, a1, a2, a3, a4⟩, g, g2, g3⟩
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3, a1, a2, a3, a4, a5⟩, g, g2,
+          g3⟩
         ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3', a1', a2', a3',
-          a4'⟩, g', g2', g3'⟩ h
+          a4', a5'⟩, g', g2', g3'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -673,10 +674,10 @@ instance covFact_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List Re
     (rev : w64) : Persistent (covFact (GF := GF) γ γc pre w' rev) := by
   unfold covFact; infer_instance
 
-/-- **A watcher cancelled for its reason** (persistent; K1b): its fixed range's id has the
-channel's cancellation reason (`rsnFor`). -/
+/-- **A watcher cancelled by its stream's client** (persistent; K1b; 2026-11-05, the stream's
+history): its fixed range's id was cancelled in the stream's history (`chanCancelTok`). -/
 def rsnW (γc : WatchChanNames) (w : Loc) : IProp GF :=
-  iprop(∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs ∗ rsnFor γc.rsn r.id)
+  iprop(∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs ∗ chanCancelTok γc r.id)
 
 /-- The completeness of a response of id `-1` (K1b): every watcher registered on the channel when
 it was sent (`x.regs`) is covered, or cancelled for its reason; and it has no events and its
@@ -877,8 +878,8 @@ theorem recvEvs_toW (sent : List RespM) (id : w64) (w : Loc)
 
 /-- **The stream's API names** (`api.WsAbs`) of the channel `ch` (names `γc`) of a stream of the
 watchable store `γ`. -/
-def wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
-  ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch, γc.recv⟩
+abbrev wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
+  ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch, γc.recv, γc.acl⟩
 
 /-- **The channel invariant's API part** (stage 2 of the mvcc API, the watch chain, 2026-11-05):
 the stream's history (`api.chanApiAt`, `Api/StreamSteps.lean`), its sends the responses sent on
@@ -1644,6 +1645,9 @@ theorem watchBudget_spend (γ : WsNames) (M : GMap Loc WatcherNames) (w : Loc)
 
 def watchTokN : Namespace := (nroot .@ "mvcc") .@ "watchTok"
 
+/-- The namespace of the readers' pool a stream's calls of its store draw on (`watchReader`). -/
+def watchRdPoolN : Namespace := (nroot .@ "mvcc") .@ "watchRdPool"
+
 /-- **The watch-token pool** (persistent): an invariant holding, for the `a` tokens taken so
 far, `a` time receipts, and the `n` tokens left, with `receiptBound GF ≤ a + n + 1`. A token
 costs a receipt of the taker's own Go step (`watchTokPool_take`): `a + 1 < receiptBound GF`, so
@@ -1791,19 +1795,14 @@ def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :
     "#Hout" ∷ ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ∗
     "%Hok" ∷ ⌜WsOk σ⌝)
 
-/-- **A pending revision agrees with the notified log**: a pending revision is the notified log's
-last (the watchable `End` notifies, extending the notified log, before it bumps). -/
-def pndOk (Lmu : Log) (p : Option (List Change)) : Prop :=
-  ∀ ps, p = some ps → Lmu.getLast? = some ps
-
 /-- **The watchable store's lock's part of the API's ghost state** (the mvcc API, stage 1, strict
 M1; `notes/mvcc-api-invariants.md` §1) at fraction `q`: a quarter of `q` of the pending revision,
-agreeing with the lock's notified log `Lmu`; and a lower bound of the API's notified log at `Lmu`
+at `none` (2026-11-05: the watchable `End` notifies and commits under `s.mu`, so no revision is
+pending while the lock is free; what `Watch`'s update needs at the registration); and a lower bound of the API's notified log at `Lmu`
 (stage 2, per watcher, 2026-11-05: what a doomed watcher's witness and a send's bound take; minted
 with the client's authority where the notified log grows, `New`'s and `End`'s notify step). -/
 def wsSlot (γ : WsNames) (q : Qp) (Lmu : Log) : IProp GF :=
-  iprop((∃ p : Option (List Change), api.pndPart γ.st.api q.half.half p ∗ ⌜pndOk Lmu p⌝) ∗
-    api.nlLb γ.st.api Lmu)
+  iprop(api.pndPart γ.st.api q.half.half none ∗ api.nlLb γ.st.api Lmu)
 
 /-- `s.revMu`'s slot gives a lower bound of the API's compaction revision. -/
 theorem slotX_crevLb (γ : StoreNames) (q : Qp) (L : Log) (c : Int) :
@@ -2029,6 +2028,24 @@ instance watcherIs_persistent (γ : WsNames) (w : Loc) (r : WatchRange) (fcs : G
     (lo : Nat) : Persistent (watcherIs (GF := GF) γ w r fcs lo) := by
   unfold watcherIs; infer_instance
 
+/-- **The store's registration callback** (2026-11-05; the stream's `Watch` gives it, `watch`
+runs it at the registration): for the new watcher `w` of the range `rg` and the filters' predicates
+`fs` (saved under `fg`), from the first revision `lo` (its start revision, or for `0` the length
+of the committed log `C`), run with the stream's channel invariant open (its history `l`) and the
+store's state in hand (`s.revMu`'s part of the API's view at `C`, the watch lock's pending
+revision at `none`): it appends the registration to the history, records `rg.id` for `w` in the
+channel's id map and makes `Back w`, giving the store's parts back. -/
+def regCb (γ : WsNames) (ch : GoChan) (γc : WatchChanNames) (rg : WatchRange)
+    (fs : List (EvM → Bool)) (Back : Loc → IProp GF) : IProp GF :=
+  iprop(∀ (w : Loc) (fg : GName) (lo : Nat) (l : List api.sent.SEv)
+      (dec : GName → List (EvM → Bool)) (recv : List api.WResp) (C : Log) (c : Int) (q q2 : Qp),
+    ⌜w ≠ null ∧ lo = (if rg.startRev = W64 0 then C.length else (sint.Z rg.startRev).toNat)⌝ -∗
+    api.savedFilters fg fs -∗ api.chanApiAt (wsAbsOf γ ch γc) l dec recv -∗
+    api.revMuAbs γ.st.api q C c -∗ api.pndPart γ.st.api q2 none -∗
+    |={⊤ \ ↑watchN}=> ∃ dec' : GName → List (EvM → Bool), chanIdAssigned γc rg.id w ∗ Back w ∗
+      api.chanApiAt (wsAbsOf γ ch γc) (l ++ [.reg rg.id rg fg lo]) dec' recv ∗
+      api.revMuAbs γ.st.api q C c ∗ api.pndPart γ.st.api q2 none)
+
 /-- The store's choices for the stream's contract (`isWatchable`): a watcher of the store
 (`IW`), cancelled (`WC`), nothing of the channel (`C`: the close right has its invariant),
 filters deciding predicates (`F`), the close right (`CR`: the channel, its invariant, the
@@ -2043,7 +2060,8 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
     ⌜γw.now = false → (γw.lo : Int) ≤ sint.Z r.startRev⌝)
   WC w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ cancelled γw)
   C _ := iprop(True)
-  F f := iprop(∃ p : EvM → Bool, filterSpec f p)
+  FI := filtersImpl
+  RegCb := regCb γ
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
@@ -2054,7 +2072,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance
-  F_pers _ := by infer_instance
+  FI_pers _ _ := by infer_instance
   IWF_pers _ _ _ _ := by infer_instance
   OC_pers _ _ := by infer_instance
   WS_pers _ := by infer_instance

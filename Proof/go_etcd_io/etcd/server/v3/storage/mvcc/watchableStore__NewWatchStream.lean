@@ -49,9 +49,9 @@ theorem mvcc.isWatchable_store
   · ipureintro; rfl
   isplitr
   · iintro !> %key %endk %fcs %k %e %fs %startRev %id %ch %γc %L %Back !> %Φ
-      ⟨#Hk, #He, #Hf, #Hfs, #HC, HCR, HR, HT, %Hsr, Hcb⟩ HΦ
+      ⟨#Hk, #He, #Hf, #HC, HCR, HR, HT, %Hsr, Hcb⟩ HΦ
     iapply (hWatch s st γ key endk fcs k e fs startRev id ch γc L Back) $$ [HCR HR HT Hcb] HΦ
-    iframe Hpkg Hws Hk He Hf Hfs HC HCR HR HT Hcb
+    iframe Hpkg Hws Hk He Hf HC HCR HR HT Hcb
     ipureintro; exact Hsr
   isplitr
   · iintro !> %w !> %Φ ⟨#HIW, HR⟩ HΦ
@@ -115,9 +115,10 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Nat) with ⟨%γri, Hri⟩
   imod (saved_pred_alloc (GF := GF) Ψ DFrac.discard DFrac.valid_discard) with ⟨%γrs, #Hrs⟩
   -- the stream's API names (stage 2 of the mvcc API): its history, the client's state, its view
-  imod api.chanApi_alloc (GF := GF) γ.st.api ch γch γrecv $$ Hrecv2 with ⟨%ι, %Hι, Hapi, Hwst, Hwrc⟩
+  imod api.chanApi_alloc (GF := GF) γ.st.api ch γch γrecv $$ Hrecv2 with
+    ⟨%ι, %Hι, Hapi, Hwst, Hwrc, Hacl⟩
   let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl, γri, γrs, ι.ev, ι.ns, ι.rcv,
-    ι.rx⟩
+    ι.rx, ι.cl⟩
   have hι : mvcc.wsAbsOf γ ch γc = ι := by
     obtain ⟨h1, h2, h3, h4⟩ := Hι
     cases ι; simp only at h1 h2 h3 h4; subst h1 h2 h3 h4; rfl
@@ -172,9 +173,10 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
-  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp, γsl, γrs, γri⟩
+  imod mono_list_own_alloc (GF := GF) ([] : List w64) with ⟨%γcs, Hcs, -⟩
+  let γo : mvcc.WsStreamNames := ⟨γt, γi, γf, γp, γsl, γrs, γri, γcs⟩
   imod sync.init_Mutex (mvcc.watchStreamInv wsl (mvcc.storeWatchParams s st γ) ch γc γo) ⊤
-    (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids Hidf]
+    (wsl.[watchStream, go!"mu"]) $$ mu [nextID closed cancels watchers Hcm Hwm Hregl2 Hids Hidf Hacl Hcs]
     with #Hmu
   · inext
     iunfold mvcc.watchStreamInv
@@ -196,6 +198,15 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
       ipureintro
       refine ⟨by first | decide | rfl | (show (0 : Int) ≤ 0; omega) | word, fun i hi => ?_⟩
       simp [GMap.lookup_empty] at hi
+    isplitl [Hacl Hcs]
+    · iexists [], []
+      isplitl [Hacl]
+      · iexact Hacl
+      iframe Hcs
+      ipureintro
+      intro dec
+      refine ⟨rfl, fun i h => ?_, fun i h => ?_, fun i w h => ?_, fun i h => ?_⟩ <;>
+        simp [api.sent.replay, api.sent.rStart, api.wsStart, GMap.lookup_empty] at h
     iexists []
     isplitl [Hregl2]
     · simp only [mvcc.storeWatchParams]
@@ -220,6 +231,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, by rw [Hcap]; decide⟩
   iunfold mvcc.isWatchStream
   iexists ch, γc
+  iunfold mvcc.isWatchStreamAt
   simp only [named]
   iframe watchable ch Hwable Hmu
   isplitr

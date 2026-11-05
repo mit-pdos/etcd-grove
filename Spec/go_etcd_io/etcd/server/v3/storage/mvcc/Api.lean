@@ -168,14 +168,19 @@ thread token until its `End`, not the trace). -/
 opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
 
 /-- The rest of a stream's handle: its channel (buffered) and the channel's invariant, at a
-watchable store of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs; the
-stream's contracts add the stream's own invariant, `isWatchStream`). -/
+watchable store `s` of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs);
+the stream `ws` itself (`isWatchStreamAt`, over the store at that channel), and the store's
+pools its calls draw on: the watch tokens (`watchTokPool`, a registration's cost) and the
+readers' slots (a thread pool of `watchReader`s, lent to each call of the store). -/
 private def isMvccWatchStreamRest (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF :=
-  iprop(∃ (γw : WsNames) (γc : WatchChanNames),
+  iprop(∃ (γw : WsNames) (γc : WatchChanNames) (w s st : Loc) (γo : WsStreamNames) (γp : GName),
     ⌜(ι : api.WsAbs) = wsAbsOf γw (ι : api.WsAbs).ch γc ∧ γw.st = (γ : StoreNames) ∧
-      0 < sint.Z γc.ch.chanCap⌝ ∗
+      0 < sint.Z γc.ch.chanCap ∧ ws = interface.mkOk (go.GoType.PointerType watchStream.ty) #w⌝ ∗
     isChan (ι : api.WsAbs).ch γc.ch WatchResponse ∗
-    inv watchN (watchChanInv γw (ι : api.WsAbs).ch γc))
+    inv watchN (watchChanInv γw (ι : api.WsAbs).ch γc) ∗
+    isWatchStreamAt w (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
+      (storeWatchParams s st γw) γo (ι : api.WsAbs).ch γc ∗
+    watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw))
 
 /-- **`ws` (the `WatchStream` `NewWatchStream` returned) is a stream of `γ`, named `ι`**
 (persistent). -/

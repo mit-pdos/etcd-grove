@@ -50,7 +50,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
   cases closed with
   | true =>
     simp only [↓reduceIte]
-    icases Hcl with ⟨Hop, #Hall⟩
+    icases Hcl with #Hall
     ihave #Hpa := HprogAll $$ %wm %(DFrac.own 1) %WM %γc %false %ch %([] : List Loc)
     wp_apply Hpa $$ [$Hwm $Hws2 $Hpf $HPR]
       as %b ⟨Hwm, -, HPR⟩
@@ -58,7 +58,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
       simp only [Bool.false_eq_true, ↓reduceIte]
       iintro !> %id %w %h
       iapply Hall $$ %id %w %h
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hop]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hacl]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, true, cm, wm, CM, WM
@@ -80,7 +80,7 @@ theorem mvcc.watchStream.RequestProgressAll.wp_proof :
     iunfold mvcc.progCompl at HPC
     simp only [↓reduceIte]
     icases HPC with ⟨HCR, -⟩
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids HCR]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked HnextID Hclosed Hcf Hwf Hcm Hwm Hids Hacl HCR]
     · inext
       iunfold mvcc.watchStreamInv
       iexists nextID, false, cm, wm, CM, WM

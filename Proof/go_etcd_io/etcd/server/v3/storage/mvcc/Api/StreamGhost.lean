@@ -60,6 +60,10 @@ structure WsAbs where
   /-- the channel invariant's received prefix (`γc.recv`, its responses as the store sent them):
   half the consumer's, in `wsRecv` (2026-11-05, the receive law) -/
   crecv : GName
+  /-- the history at the client's last event (a ghost variable of `List SEv`): half the client's,
+  in `wsState`, half the stream's mutex invariant's, so that the stream, under its lock, knows the
+  client's state (stage 2, the registration, 2026-11-05) -/
+  cl : GName
 
 /-- A response as the API's client sees it (`WResp`): its id, events, revision and compaction
 revision. -/
@@ -136,7 +140,7 @@ def mvccStateI (a : AbsNames) (σ : MvccState) : IProp GF :=
 
 /-- **The stream's state is `S`.** -/
 def wsStateI (ι : WsAbs) (S : StreamState) : IProp GF :=
-  iprop(∃ (l : List SEv) (dec : GName → List (EvM → Bool)),
+  iprop(∃ (l : List SEv) (dec : GName → List (EvM → Bool)), ghostVar ι.cl (1 : Qp).half l ∗
     monoNatAuthOwn ι.ns 1 (nsCount l) ∗ logTok ι l dec ∗ ⌜(replay dec l).S = S⌝)
 
 /-- **The consumer has received `rs`.** -/
@@ -181,7 +185,7 @@ theorem mvccStateI_excl (a : AbsNames) (σ σ' : MvccState) :
 theorem wsStateI_excl (ι : WsAbs) (S S' : StreamState) :
     wsStateI (GF := GF) ι S ∗ wsStateI ι S' ⊢ False := by
   unfold wsStateI
-  iintro ⟨⟨%l, %d, H1, -⟩, ⟨%l', %d', H2, -⟩⟩
+  iintro ⟨⟨%l, %d, -, H1, -⟩, ⟨%l', %d', -, H2, -⟩⟩
   iapply monoNatAuthOwn_exclusive ι.ns _ _ $$ H1 H2
 
 theorem wsRecvI_excl (ι : WsAbs) (rs rs' : List WResp) :
@@ -264,7 +268,7 @@ theorem wsRecv_okI (ι : WsAbs) (rs : List WResp) (S : StreamState) (σ : MvccSt
     wsRecvI (GF := GF) ι rs ∗ wsStateI ι S ∗ mvccStateI ι.st σ ⊢ ⌜wsRecvOk σ S rs⌝ := by
   unfold wsRecvI wsStateI mvccStateI logTok
   iintro ⟨⟨%lr, %dr, -, -, ⟨#Hlbr, %Hwfr, #Hfr, #Her⟩, #Hnsr, %Hrs, -⟩,
-          ⟨%lc, %dc, Hns, ⟨#Hlbc, %Hwfc, #Hfc, #Hec⟩, %HS⟩,
+          ⟨%lc, %dc, -, Hns, ⟨#Hlbc, %Hwfc, #Hfc, #Hec⟩, %HS⟩,
           ⟨-, -, Hc, Hn, %Hreach⟩⟩
   ihave %hcmp := mono_list_lb_valid ι.ev lr lc $$ Hlbr Hlbc
   ihave %hns := monoNatLbOwn_valid ι.ns 1 (nsCount lc) (nsCount lr) $$ Hns Hnsr

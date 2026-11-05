@@ -336,16 +336,11 @@ theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG
       (wFractional_sep (wFractional_bigSepM _ _ (fun w st => memberRes_fractional γ σ w st))
       (wFractional_sep (wFractional_persistent _) (wFractional_pure _))))))))))))))))))
 
-/-- The lock's slot is fractional (its parts agree on the pending revision). -/
+/-- The lock's slot is fractional. -/
 theorem wsSlot_fractional (γ : WsNames) (L : Log) : Fractional (fun q => wsSlot (GF := GF) γ q L) := by
   unfold wsSlot
-  refine wFractional_sep (fractional_exists_agree _ (fun p => wFractional_sep
-    (wFractional_half (wFractional_half (api.pndPart_fractional γ.st.api p))) (wFractional_pure _)) ?_)
+  exact wFractional_sep (wFractional_half (wFractional_half (api.pndPart_fractional γ.st.api none)))
     (wFractional_persistent _)
-  intro p1 p2 q1 q2
-  iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
-  iapply api.pndPart_agree γ.st.api _ _ p1 p2
-  iframe H1 H2
 
 theorem relAuth_fractional (γ : WsNames) (L : Log) : Fractional (fun q => relAuth (GF := GF) γ q L) := by
   unfold relAuth

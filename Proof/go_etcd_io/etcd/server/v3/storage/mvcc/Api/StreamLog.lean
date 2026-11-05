@@ -341,6 +341,67 @@ theorem replay_cancel (dec : GName → List (EvM → Bool)) (l1 l : List SEv) (h
   show id ∈ (if ((replay dec l1).S.ws !! id).isSome then id :: _ else _)
   rw [hw]; exact List.mem_cons_self ..
 
+/-- **Which ids the replayed state has watchers of does not depend on the decoding.** -/
+theorem replay_ws_isSome (dec dec' : GName → List (EvM → Bool)) (l : List SEv) (i : w64) :
+    ((replay dec l).S.ws !! i).isSome = ((replay dec' l).S.ws !! i).isSome := by
+  revert i
+  refine snoc_induction (P := fun l => ∀ i,
+    ((replay dec l).S.ws !! i).isSome = ((replay dec' l).S.ws !! i).isSome) (fun _ => rfl) ?_ l
+  intro l e ih i
+  rw [replay_snoc, replay_snoc]
+  cases e with
+  | reg id rg fg lo =>
+    rw [step_reg, step_reg]
+    simp only [StreamState.register, GMap.lookup_insert_eq_iff]
+    split
+    · rfl
+    · exact ih i
+  | cancel id =>
+    rw [step_cancel, step_cancel]
+    obtain ⟨g, -, hlk, -, -⟩ := cancel_lookup (replay dec l).S id i
+    obtain ⟨g', -, hlk', -, -⟩ := cancel_lookup (replay dec' l).S id i
+    show (((replay dec l).S.cancel id).ws !! i).isSome =
+      (((replay dec' l).S.cancel id).ws !! i).isSome
+    rw [hlk, hlk']
+    have := ih i
+    cases h1 : (replay dec l).S.ws !! i <;> cases h2 : (replay dec' l).S.ws !! i <;>
+      simp_all
+  | close => rw [step_close, step_close]; exact ih i
+  | send r fg rg lo L c0 cov dead => rw [step_send, step_send]; exact ih i
+
+/-- **A watcher of the replayed state was registered in the history.** -/
+theorem replay_ws_reg (dec : GName → List (EvM → Bool)) (l : List SEv) (id : w64) (w : WInfo)
+    (h : (replay dec l).S.ws !! id = some w) : ∃ rg fg lo, SEv.reg id rg fg lo ∈ l := by
+  revert w h
+  refine snoc_induction (P := fun l => ∀ w, (replay dec l).S.ws !! id = some w →
+    ∃ rg fg lo, SEv.reg id rg fg lo ∈ l) ?_ ?_ l
+  · intro w h; simp [replay, rStart, wsStart, GMap.lookup_empty] at h
+  intro l e ih w h
+  have up : ∀ rg fg lo, SEv.reg id rg fg lo ∈ l → SEv.reg id rg fg lo ∈ l ++ [e] :=
+    fun _ _ _ hm => List.mem_append_left _ hm
+  rw [replay_snoc] at h
+  cases e with
+  | reg id' rg fg lo =>
+    rw [step_reg] at h
+    by_cases hi : id' = id
+    · subst hi; exact ⟨rg, fg, lo, by simp⟩
+    · simp only [StreamState.register, GMap.lookup_insert_ne _ _ hi] at h
+      obtain ⟨a, b, c, hm⟩ := ih w h; exact ⟨a, b, c, up _ _ _ hm⟩
+  | cancel id' =>
+    rw [step_cancel] at h
+    obtain ⟨g, -, hlk, -, -⟩ := cancel_lookup (replay dec l).S id' id
+    simp only at h
+    rw [hlk] at h
+    cases hw : (replay dec l).S.ws !! id with
+    | none => rw [hw] at h; cases h
+    | some w0 => obtain ⟨a, b, c, hm⟩ := ih w0 hw; exact ⟨a, b, c, up _ _ _ hm⟩
+  | close =>
+    rw [step_close] at h
+    obtain ⟨a, b, c, hm⟩ := ih w h; exact ⟨a, b, c, up _ _ _ hm⟩
+  | send r fg rg lo L c0 cov dead =>
+    rw [step_send] at h
+    obtain ⟨a, b, c, hm⟩ := ih w h; exact ⟨a, b, c, up _ _ _ hm⟩
+
 /-! ## The bridge -/
 
 /-- **A well-formed history keeps `SentInv`**, its facts' bounds below the store's state. -/

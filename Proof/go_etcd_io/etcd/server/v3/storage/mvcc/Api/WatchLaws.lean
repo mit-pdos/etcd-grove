@@ -200,8 +200,8 @@ theorem wsChan_recvI (γw : WsNames) (ch : Loc) (γc : WatchChanNames)
 theorem wsChan_recv.law_holds : wsChan_recv.law (GF := GF) := by
   intro ws γ ι
   unfold isMvccWatchStream isMvccWatchStreamRest wsChanOf wsChanNames wsRecv wsSentLb
-  iintro ⟨%hst, #⟨%γw, %γc, %hι, #Hch, #Hinv⟩⟩
-  obtain ⟨hι, -, hcap⟩ := hι
+  iintro ⟨%hst, #⟨%γw, %γc, %w, %s, %st, %γo, %γp, %hι, #Hch, #Hinv, -⟩⟩
+  obtain ⟨hι, -, hcap, -⟩ := hι
   have key : ∀ (ι : WsAbs), ι = wsAbsOf γw ι.ch γc →
       isChan (GF := GF) ι.ch γc.ch WatchResponse ∗ inv watchN (watchChanInv γw ι.ch γc) ⊢
       isChan ι.ch ι.chn WatchResponse ∗
@@ -219,9 +219,9 @@ theorem wsChan_recv.law_holds : wsChan_recv.law (GF := GF) := by
           (wsRecvI ι rs -∗ ⌜n ≤ rs.length⌝ -∗ Ψ)) -∗
         nonblockingRecvAuAlt ι.chn WatchResponse Φ Ψ) := by
     intro ι h
-    obtain ⟨st, ev, ns, rcv, rx, c, chn, crecv⟩ := ι
+    obtain ⟨st, ev, ns, rcv, rx, c, chn, crecv, cl⟩ := ι
     simp only [wsAbsOf, WsAbs.mk.injEq] at h
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, -, rfl, rfl⟩ := h
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, -, rfl, rfl, rfl⟩ := h
     exact wsChan_recvI γw c γc hcap
   iapply key (ι : WsAbs) hι $$ [$Hch $Hinv]
 
