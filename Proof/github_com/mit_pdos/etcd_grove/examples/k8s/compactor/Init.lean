@@ -43,6 +43,7 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 variable [_root_.Perennial.errors.Assumptions]
 variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [_root_.Perennial.log.NewModel]
 
 namespace github_com.mit_pdos.etcd_grove.examples.k8s.compactor

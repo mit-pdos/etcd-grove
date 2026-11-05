@@ -243,7 +243,18 @@ collection, `etc/tcb-collections/k8s-compactor.txt`.
     with it); its invariant keeps the key's history (`histOk`, `KeyHist.lean`) and one change per
     revision (the watch server's `noDupKeys`, `NoDup.lean`); `Main` serves watches as
     `compactwatch`'s (`wk_served_nd`).
-- Q1 (c).
+- Q1 (c), `StartCompactorPerEndpoint`: C1, C2 and C3 *done (2026-11-05)* (the user's choices of A1 and
+  of option (i); `notes/decisions.md`, "The compactor registry's name"):
+  - C1: `etcd3`'s package fact is the registry (`registryFact`, `RegistryDefs.lean`), at the name a
+    typeclass holds (`CompactorRegistry`), which the adequacy theorem picks; endpoint claims are saved
+    predicates (`epClaim`, from `regAuth`); `onClose` generalized (`closeOk`: `NewCompactor` takes
+    it, `Stop` calls it); `isNewClient` keeps the client's endpoints (`clientEndpointsAt`).
+  - C2: `StartCompactorPerEndpoint` proved and linked (the lookup, the `onClose` closure, the
+    registration).
+  - C3: the compactor example starts compactors through the registry (in the example itself, not a
+    second one: two of its five API servers share the process's compactor, through a local
+    interface and one `check`); its adequacy theorem allocates the registry
+    (`etcd_adequate_alloc`) and gives `Main` `regAuth ∅`; the store example keeps a fixed name.
 - Three members and partitions, as `etcd/partition`.
 - Q2 (ii) with the store's phase 5.
 

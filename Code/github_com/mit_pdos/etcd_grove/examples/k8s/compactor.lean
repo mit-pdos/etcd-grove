@@ -29,6 +29,11 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 
+noncomputable def compactorAPI.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.compactorAPI" [])
+
+attribute [irreducible] compactorAPI.ty
+
 @[reducible] noncomputable def clientAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23976")
 
@@ -43,6 +48,9 @@ namespace github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 
 @[reducible] noncomputable def servers [GooseExts] [GoGlobalContext] : val :=
   #(3 : Int)
+
+@[reducible] noncomputable def sharedServers [GooseExts] [GoGlobalContext] : val :=
+  #(2 : Int)
 
 @[reducible] noncomputable def interval [GooseExts] [GoGlobalContext] : val :=
   #(W64 20000000)
@@ -62,13 +70,16 @@ noncomputable def ready [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def apiserver [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.apiserver"
 
+noncomputable def check [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.check"
+
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/compactor.Main"
 
 /-- writer puts writeKey writes times, each Put in a context with the request timeout; a failed Put
     is skipped.
 
-    go: compactor.go:64:6 -/
+    go: compactor.go:70:6 -/
 noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Seq (App (Val exceptionDo)
@@ -120,7 +131,7 @@ noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ready reports whether a latest Get through cli succeeds within the request timeout.
 
-    go: compactor.go:73:6 -/
+    go: compactor.go:79:6 -/
 noncomputable def ready.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -167,28 +178,50 @@ noncomputable def ready.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- apiserver runs one API server's compactor on cli: it starts it, samples its CompactRevision
-    every interval, stops it and checks the package's guarantees, panicking if one fails. An error
-    from a final Get skips the checks against it. The key's value is checked against a second Get,
-    issued after the first returned it: a revision the cluster reached is at most the revision of a
-    read that starts after it is known (the read-side law the proof uses).
+/-- apiserver runs one API server's compactor on cli: its own (NewCompactor) or, if shared, the
+    process's (StartCompactorPerEndpoint), then check.
 
-    go: compactor.go:85:6 -/
+    go: compactor.go:95:6 -/
 noncomputable def apiserver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
+  (Lam "shared"
   (Seq (App (Val exceptionDo)
+  (Let "shared" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "shared"))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "shared"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty) compactorAPI.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (Val interval)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.StartCompactorPerEndpoint []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty) compactorAPI.ty))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
   (Let "$a1" (Val interval)
   (Let "$a2" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.utils.clock.RealClock.ty _root_.Perennial.k8s_io.utils.clock.Clock.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.utils.clock.RealClock.ty))) (LiteralValue [])))
   (Let "$a3" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val UntypedNil))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+  (Val #()))))
+
+/-- check samples the compactor's CompactRevision every interval, stops it and checks the package's
+    guarantees, panicking if one fails. An error from a final Get skips the checks against it. The
+    key's value is checked against a second Get, issued after the first returned it: a revision the
+    cluster reached is at most the revision of a read that starts after it is known (the read-side
+    law the proof uses).
+
+    go: compactor.go:108:6 -/
+noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cli"
+  (Lam "c"
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc compactorAPI.ty))) (Var "c"))
+  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
   (Let "last" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty) go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (Var "c"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve compactorAPI.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad compactorAPI.ty))) (Var "c"))) (Val #()))
   (Let "r" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -320,14 +353,14 @@ noncomputable def apiserver.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "r") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (Var "c"))) (Val #()))))))
+  (App (App (Val (GoInstruction (MethodResolve compactorAPI.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad compactorAPI.ty))) (Var "c"))) (Val #()))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val samples)))))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty) go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (Var "c"))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve compactorAPI.ty go!"CompactRevision"))) (App (Val (GoInstruction (GoLoad compactorAPI.ty))) (Var "c"))) (Val #()))
   (Let "r" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -349,17 +382,16 @@ noncomputable def apiserver.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.compactor.ty)))) (Pair (Var "c") (Var "$r0")))))))))
-  (Val #())))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))
+  (Val #()))))
 
 /-- Main starts one member of a new cluster in compaction mode with etcd's compactor off, waits for
-    the member to serve, and runs the writer and the API servers, each on its own client, until
+    the member to serve, and runs the writer and the API servers (servers with their own compactor,
+    then sharedServers sharing one), each on its own client, until
     every API server has stopped its compactor and made its checks. An error before the API servers
     start (the member not serving within the request timeout) ends Main without a check.
 
-    go: compactor.go:133:6 -/
+    go: compactor.go:156:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -405,7 +437,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val servers)))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 5)))))) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -418,6 +450,9 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val servers))))
+  (Let "shared" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
   (Seq (App (Val exceptionDo)
@@ -426,7 +461,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Done"))) (Var "wg")) (Val #())))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val (GoInstruction (FuncResolve apiserver []))) (Val #())) (Var "$a0"))))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "shared"))
+  (App (App (App (Val (GoInstruction (FuncResolve apiserver []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (Val #())))
   (App (Val doExecute)
   (Fork
@@ -434,6 +470,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "shared") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doBreak) (Val #()))
   (App (Val doExecute)
@@ -524,10 +562,26 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))))
 
+abbrev compactorAPI [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def compactorAPI.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CompactRevision" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false []))])
+
+class compactorAPI.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq compactorAPI.ty compactorAPI.underlying
+  method_set : go.MethodSetIs compactorAPI.ty [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType compactorAPI.ty) []
+
+attribute [instance] compactorAPI.TypeAssumptions.underlying
+  compactorAPI.TypeAssumptions.method_set
+  compactorAPI.TypeAssumptions.ptr_method_set
+
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  compactorAPI_instance : compactorAPI.TypeAssumptions
   writer_unfold : FuncUnfold writer [] writer.impl
   ready_unfold : FuncUnfold ready [] ready.impl
   apiserver_unfold : FuncUnfold apiserver [] apiserver.impl
+  check_unfold : FuncUnfold check [] check.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
@@ -539,9 +593,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
   import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
 
-attribute [instance] Assumptions.writer_unfold
+attribute [instance] Assumptions.compactorAPI_instance
+  Assumptions.writer_unfold
   Assumptions.ready_unfold
   Assumptions.apiserver_unfold
+  Assumptions.check_unfold
   Assumptions.Main_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_strconv_Assumption

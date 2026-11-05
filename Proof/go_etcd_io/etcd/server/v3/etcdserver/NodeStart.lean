@@ -33,7 +33,7 @@ its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok
 * premises: `rnLogFits` (pure since D19b stage 5: the receipt bound past the bootstrap log, so
   raft's `Ready`s fit the `MemoryStorage`; D10 until then), `rnStopOkStarted` (D19r (A): `Stop` returns, of a started node)
   (`Stop` returns), (until 2026-11-03) `rnTickerOk` (`time.NewTicker`'s contract, at `isRNTicker`;
-  now Perennial's proved specs, callees of `newRaftNode`'s proof, at `E.T = True`), the `InitialState`
+  now Perennial's proved specs, callees of `newRaftNode`'s proof; at `E.T = True` until 2026-11-05), the `InitialState`
   closure in `StartNode.spec`'s `□` shape (a `MemoryStorage`'s `InitialState` consumes
   `memStorMeta`, which is not persistent: `MemoryStorage.InitialState.spec` cannot be the `□`
   closure; `StartNode` calls it once -- B's spec could drop the `□`), `bootMarshal` (protobuf's
@@ -132,7 +132,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       rnDurInv γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
-      rnFixed a rv ∗ rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗
+      rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
       rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage'))
         .Pending ⊢
@@ -140,7 +140,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
-    #Hfix, transportC, latestTickTsR, Hmu, Hdtok⟩
+    #Hfix, #transportC, latestTickTsR, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
   iunfold rnFixed at Hfix
@@ -150,7 +150,6 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
-  ipersist transportC
   imodintro
   isplitr
   · iunfold isRaftNode
@@ -361,31 +360,35 @@ abbrev NodeStartSpec : Prop :=
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (ν : WalNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
-    -- `NewRawNode`'s premises on `b.config`
-    ConfigValid cv → cv.Logger' = interface.ok lok →
-    cv.Storage' = memStorIface bv.storage' →
-    sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-    cv.DisableProposalForwarding' = false → cv.ReadOnlyOption' = W64 0 →
-    cv.DisableConfChangeValidation' = false →
-    (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-    cv.AsyncStorageWrites' = false → cv.Applied' = W64 0 →
-    -- the peers, the cluster's voters
-    ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
-    (ps.length : Int) < 2 ^ 62 → cv.ID' ∈ ps → γr.vs = ps →
-    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
-    storage.walReady wal →
-    -- the time-receipt bound past the bootstrap log (`rnLogFits`)
-    receiptBound GF + γr.boot.length ≤ 2 ^ 61 →
-    -- the server's names: the cluster, the start log empty
-    E.γr.raft.raft = γr → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 →
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        -- `newRaftNode`'s premises: (2026-11-03: until then the implication `bv.lg' ≠ null →`) a
-        -- logger; (the final whole-`bootOk` review's S2: until then the implication
-        -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction; (2026-11-03) ticks carrying
-        -- nothing (`newRaftNode.spec`'s)
-        "%Hlg" ∷ ⌜bv.lg' ≠ null⌝ ∗ "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗ "%HT" ∷ ⌜E.T = iprop(True)⌝ ∗
+        -- the pure premises, one conjunction (2026-11-05, the user's M1: until then the
+        -- configuration's, the peers', the WAL's, the bound's and the names' were implications
+        -- before the triple; the conjuncts in the order of `InvBoot`'s `Hraft`)
+        "%Hraft" ∷ ⌜
+          -- `newRaftNode`'s premises: (2026-11-03) a logger; (the final whole-`bootOk` review's
+          -- S2: until then the implication `heartbeat ≠ 0`) a positive heartbeat, a scope
+          -- restriction (2026-11-03 to 2026-11-05, the user's S1: also `E.T = iprop(True)`,
+          -- ticks carrying nothing, which `isRNTicker` now says)
+          bv.lg' ≠ null ∧ 0 < sint.Z bv.heartbeat' ∧
+          -- `NewRawNode`'s premises on `b.config`
+          ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
+          cv.Storage' = memStorIface bv.storage' ∧
+          sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
+          cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
+          cv.DisableConfChangeValidation' = false ∧
+          (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
+          cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
+          -- the peers, the cluster's voters
+          ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
+          (ps.length : Int) < 2 ^ 62 ∧ cv.ID' ∈ ps ∧ γr.vs = ps ∧
+          -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+          storage.walReady wal ∧
+          -- the time-receipt bound past the bootstrap log (`rnLogFits`)
+          receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
+          -- the server's names: the cluster, the start log empty
+          E.γr.raft.raft = γr ∧ E.γr.raft.pre = [] ∧ E.γr.raft.ai0 = W64 0⌝ ∗
         -- the receiver, the config and its logger
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- (2026-10-30, the repair) the fresh registered `MemoryStorage`, as `NewMemoryStorage`
@@ -438,10 +441,11 @@ abbrev NodeStartSpec : Prop :=
           -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
           -- wrapper's names, the committed index's invariant of the server `s` and the read
-          -- contexts' invariant (2026-10-27)
+          -- contexts' invariant (2026-10-27); (2026-11-05, R2b-3d stage 5c) the `transport` field
+          -- read-only already (the caller's environment's `Stop` names it, `srvTrStop`)
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
-            rnFixed a rv -∗ rnTransportAddr a ↦ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
+            rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
@@ -489,12 +493,13 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued Hvalid Hlok Hstor Hinfl
-    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal Hfit HEγ HEpre HEai
+  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
+  obtain ⟨Hlg, Hhb, Hvalid, Hlok, Hstor, Hinfl, Hdpf, Hro, Hdccv, Hsizes, Hasync, Happlied,
+    Hps, Hpsne, Hnodup, H0, Hpslen, Hid, Hvs, Hwal, Hfit, HEγ, HEpre, HEai⟩ := Hraft
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
@@ -506,13 +511,13 @@ theorem raftNode_of_StartNode
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
   wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
-    Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
-    (by omega) Hid Hvs Hwal)
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
-    ipureintro; exact ⟨Hlg, Hhb, HT⟩
+    ipureintro
+    exact ⟨Hlg, Hhb, Hvalid, Hlok, Hstor, Hinfl, Hdpf, Hro, Hdccv, Hsizes, Hasync, Happlied,
+      Hps, Hpsne, Hnodup, H0, by omega, Hid, Hvs, Hwal⟩
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal⟩ := Hnames

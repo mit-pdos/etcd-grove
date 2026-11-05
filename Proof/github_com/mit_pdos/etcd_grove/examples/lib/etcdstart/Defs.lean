@@ -291,7 +291,8 @@ first start's (`0` and the boot store) unless given: a restarted member's (`Rest
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
     (x₀ : apply.ApplyKV := bootKV)
-    (K : RNNames → go_etcd_io.etcd.server.v3.config.ServerConfig → IProp GF := fun _ _ => iprop(True)) :
+    (K : RNNames → go_etcd_io.etcd.server.v3.config.ServerConfig → apply.AEnv GF → IProp GF :=
+      fun _ _ _ => iprop(True)) :
     IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
@@ -299,12 +300,12 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     srvWatchBuilt s E ∗
-    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk))
+    isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64 ∗ srvLeaseRd s E ∗ K γrn cfg)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E ∗ K γrn cfg E)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens

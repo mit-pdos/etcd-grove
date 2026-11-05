@@ -1493,3 +1493,86 @@ So the stop needs no new store law: `storeReaders_retire` with every reader is i
 3. The compactor's and the monitor's readers are traced.
 4. The shutdown (stage 5) assembles the token as R-D1 does.
 Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
+- **Step 1 done (2026-11-05):** `NewServer` keeps the remainder (`srvKeepRdN γst` store readers in
+  `srvStopKeep s γn wdir st γst`). `srvShutdownPre` and `run.specStop` take the store, and
+  `memberBuilt`'s `K` receives the environment.
+- **The compactor's reader (2026-11-05):** `restart3`'s members run none. With no compactor its
+  reader was dropped too. `srvStopKeep` now keeps it when the compactor field is nil (a disjunction
+  on `cp`); with a compactor, the compactor's run keeps it. Census closed for `restart3`: the stop
+  collects `srvStopKeep`'s readers, the compactor's (nil), the apply thread's (`apply.kvOwn`,
+  `writerOwn`), the monitor's retired one (`srvWTPool`), the loops' (`watchableStore.Close`) and
+  the caller's unused serving stocks (`memberUp`).
+
+### R2b-3d stage 5: the shutdown and `run.specStop` (2026-11-05, plan)
+
+`run`'s deferred function (`server.go`):
+```
+s.wgMu.Lock(); close(s.stopping); s.wgMu.Unlock(); s.cancel(); sched.Stop(); s.wg.Wait()
+s.r.stop(); s.Cleanup(); close(s.done)
+```
+Each step and its source:
+| step | spec | gives |
+|---|---|---|
+| `wgMu.Lock`, `close(stopping)` | `wgMuP`'s protocol (`GoAttach`) | no goroutine attached after |
+| `cancel()` | `context`'s | — |
+| `sched.Stop()` | `schedule.fifo.Stop.spec` | the last job's saved post: `applyResC … A ∗ nodeRunning ½` |
+| `s.wg.Wait()` | the server's wait group | the attached goroutines' tokens |
+| `s.r.stop()` | `raftNode.stop.specStop` | `nodeVacant`, `raftState S`, `StorageHolds S σ`, the WAL's closed files |
+| `Cleanup()` | `EtcdServer.Cleanup.spec` with `commitReq_freeze`'s request | `freezeY`, `bStopView` at `D`, `fileHolds path D`, `bFile` |
+| `close(done)` | `srvDoneInv` | the image escrowed |
+The image (`srvDiskImage`), clause by clause:
+- raft's part from `r.stop`;
+- the backend's from `StopImage.stop_mergedObs`, then the pure part of `merged_imageC` (`mergedObsM` → `imageAt`);
+- the configuration from `RestConf.restModel_confState` (premises from `srvRaftLogInv`, `srvBootLogOk`, `srvClusterOk`'s `bootURLsOk`, `srv_committed_ccBoot`; empty V2 entries excluded);
+- the files from `Cleanup`'s and `r.stop`'s posts (`srvFiles`, `bFile_agree`);
+- the registry's authority from `srvStopKeep`;
+- `bootLen ≤ i` from the stop request's `srvBootApplied`.
+`Cleanup`'s whole open token is gap 4's census: `srvStopKeep`'s readers, the apply thread's, the loops' and the caller's unused serving stocks. So `run.specStop` (or `HardStop`'s caller) also takes `memberUp`'s unused stocks.
+
+Steps: (5a) the image's pure assembly lemma (`imageAt`, the configuration, the index bounds), from the observations, in a module of its own; (5b) `Cleanup`'s preconditions from `applyResC`, `srvSnapRes`, `srvStopKeep` and the stocks (the open token by `bOpen_one_pool`, as R-D1); (5c) the deferred function's WP; (5d) `run.specStop` (a variant of `run.wp_proof`, the stop clause taken).
+
+**Stage 5a done (2026-11-05, `3e8f0abc0c`):** `StopImage.merged_imageAt`, `imageAt` from
+`mergedObs` (the pure part of `merged_image`).
+
+**Stage 5b, the design.** `Cleanup`'s preconditions at the stop:
+- from `srvStopKeep`: the lessor's stop right, and the compactor field (nil in `restart3`;
+  `compactorOk nil` is its left case);
+- from `applyResC`: the KV's closer (`srvSnapRes`'s `srvKVCloserW`; off, `wsCloser`, which is
+  `wsCloserM`'s off case), `bemu`'s reader slot, the apply side's half of `s.be` and quarter of
+  `γbe` (`srvApplyKVCore`'s `srvBeOwn`), and the stop channels at the server's resources
+  (`srvStopChans`);
+- the request: `commitReq_freeze` over the idle apply thread (`applyThread γ st`, from
+  `applyResC`; its premises are `isServer`'s);
+- `bOpen 1`, by gap 4's census;
+- two pieces to add:
+  1. `srvShutdownPre` takes the caller's unused serving stocks: `memberUp`'s 64 request and 64 watch
+     store readers, routed through the drafts.
+  2. `srvCleanupOwn` is defined: the auth store's `tpAdmin`, which `NewServer` keeps (off mode,
+     `restart3`).
+
+**Stage 5b, the two pieces done (2026-11-05):** (1) `srvShutdownPre` takes 128 store readers (the
+unused request and watch stocks; the watch readers through `watchReader_storeReader`). (2) With
+auth off nothing held `tpAdmin` or the store's invariant (the off store is `NewAuthStore`'s axiom's),
+so the user approved a persistent `Close` contract in the axiom's post (`authCloseOk`, reviewed:
+`notes/axiom-review/auth-close.md`). `Cleanup` takes a closer `authCloser stl K ∗ K`;
+`srvCleanupOwn s` is the `authStore` field with `authCloseOk`, which `NewServer` posts with auth off.
+`notes/decisions.md`, "The auth store's `Close` at the stop". Left of 5b: assembling `Cleanup`'s
+whole precondition at the stop (with `bOpen 1` from the census), done inside 5c's proof.
+
+**Stage 5c, first part (2026-11-05): two gaps closed.** (1) `raftNode.stop` takes the environment's
+`ST`, which was `False` for the server: now `srvTrStopK γk`, rebuilt at the stop from `srvApRes`'s
+live transport and `NewServer`'s `srvTrKeyOf` (`srvApRes_trStop`, `srvTrStopK_of`). `run.specStop`
+must add `⌜Er.ST = srvTrStopK γk⌝ ∗ srvTrKeyOf s γk` (5d). (2) `Cleanup` takes, in place of `bOpen 1`,
+an update from `kv.Close`'s returns (the loops' `wsLoopN` readers, `compactJobResM`) to `bOpen 1`.
+`GoAttach`'s side: `goAttach_close` (the writer under `wgMu`: flag open, closed, "no waiters" out),
+`wp_goAttach_Wait`. Left of 5c:
+- the census update for `Cleanup` (off mode): `bOpen ½` (`srvSnapRes`), the pool's shares
+  (`srvBeOwn`'s `bkRPool`), and `rdStockN` shares from `storeRTs_shares`: retire (one `£`,
+  `writerFrag` from `kvOwn`'s `kvWriter`, `retiredAt (2 + nJobRd)` from `writerOwn`) the readers:
+  `srvKeepRdN` and the compactor's (`srvStopKeep`), 128 (`srvShutdownPre`), the apply thread's own
+  (`kvOwn`), the loops' 2 (`kv.Close`); with the retired ones: `writerOwn`'s `storeRT` and the
+  monitor's, in `srvWTPool`'s invariant (`bkRTx`, swapped out for a fraction of `dghostVar E.γbe`:
+  `Cleanup` passes its quarter through untouched, so a smaller fraction will do there);
+- the stop commit's request (`commitReq_freeze`) and the image (`srvDiskImage`) for `close(done)`
+  (allocating `srvDoneInv`'s invariant with the image in it);
+- the deferred function's WP in `run.specStop`'s proof (5d).

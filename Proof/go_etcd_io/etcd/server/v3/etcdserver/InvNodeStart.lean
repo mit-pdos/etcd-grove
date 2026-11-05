@@ -96,14 +96,15 @@ def rnTimeoutDetectorOk : IProp GF :=
 instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF := GF)) := by
   unfold rnTimeoutDetectorOk; infer_instance
 
-/-- **A ticker of `time.NewTicker` is the wrapper's ticker** at ticks carrying nothing (2026-11-03;
-until then `rnTickerOk`, a contract `newRaftNode`'s spec took, and from the final whole-`bootOk`
-review's S2 to here a theorem of this repository's `time` axioms, `rnTickerOk_of_time`): Perennial's
-`isTicker`'s channel bag is `isRNTicker`'s at `E.T = True`, and its `Stop` returns. Over `Stop`'s
-spec as a hypothesis (a callee spec: `newRaftNode`'s proof takes it). -/
-theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (E : RNEnv GF)
-    (h : E.T = iprop(True)) (tk ch : Loc) (γ : ChanNames) :
-    time.isTicker (GF := GF) tk ch γ ⊢ isRNTicker E tk := by
+/-- **A ticker of `time.NewTicker` is the wrapper's ticker** (2026-11-03; until then `rnTickerOk`,
+a contract `newRaftNode`'s spec took, and from the final whole-`bootOk` review's S2 to here a theorem
+of this repository's `time` axioms, `rnTickerOk_of_time`): Perennial's `isTicker`'s channel bag is
+`isRNTicker`'s (ticks carrying nothing; until 2026-11-05, the user's S1, at `E.T = True`, a
+premise), and its `Stop` returns. Over `Stop`'s spec as a hypothesis (a callee spec:
+`newRaftNode`'s proof takes it). -/
+theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG))
+    (tk ch : Loc) (γ : ChanNames) :
+    time.isTicker (GF := GF) tk ch γ ⊢ isRNTicker tk := by
   iintro #Ht
   ihave #Ht' := Ht
   iunfold time.isTicker at Ht'
@@ -113,7 +114,7 @@ theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG)) (
   isplitr
   · iexact HC
   isplitr
-  · iright; iexists γ; rw [h]; iexact Hbag
+  · iright; iexists γ; iexact Hbag
   iintro !> %Ψ !> - HΨ
   wp_apply wpS tk
   · iexists ch, γ; iexact Ht
@@ -183,7 +184,7 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Hmsci" ∷ isRNMsgSnapC γ rv.msgSnapC' ∗
     "#Hapci" ∷ isRNApplyc E γ rv.applyc' ∗
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
-    "#Htki" ∷ isRNTicker E rv.ticker' ∗
+    "#Htki" ∷ isRNTicker rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
     "#Hstci" ∷ rnStopBag E γ (storage.walOf rv.raftNodeConfig'.storage') rv.stopped' ∗
     "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done

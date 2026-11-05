@@ -5,7 +5,8 @@
 
 * **`k8s_compactor_Main`** (`MainLinked.lean`): `Main` does not panic. From `isPkgInit`, the right
   to listen on the client address, the main thread's token, the member's start premises
-  (`etcdstart.premises`) and a fresh WAL directory, under the named hypothesis of
+  (`etcdstart.premises`), a fresh WAL directory and the compactor registry's authority with no
+  endpoint claimed (`regAuth ∅`), under the named hypothesis of
   `clock.RealClock.After`.
 * **`k8s_compactor_safe`** (`Adequacy.lean`'s `k8s_compactor_adequate`): the closed theorem. Every
   real execution of `n` steps of the example's initialization followed by `Main()`, from a fresh state
@@ -35,6 +36,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_Main`). -/

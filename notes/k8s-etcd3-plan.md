@@ -314,7 +314,8 @@ traffic grows):
   until upstream takes it; `reflect.DeepEqual` and the list/meta accessors at the trust boundary.
 
 Also, independent of the stages: the three `sorry`s of `k8setcd3_safe`'s own (`revRoom`,
-`client_ctx_field`, `kvIs_ne_null`); the server's `sorry`s it rests on (`EtcdServer.run`, ...) are
+`client_ctx_field`, `kvIs_ne_null`; the last two proved 2026-11-05, `revRoom`'s options in branch
+`k8s-sorrys`'s `questions.md`, after 7b); the server's `sorry`s it rests on (`EtcdServer.run`, ...) are
 the server repair's (Stage P), not this plan's.
 
 Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c and 7d with 7e
@@ -900,7 +901,8 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    should carry `⌜l ≠ null⌝`. The store branches on `getResp.KV == nil`, so
    `kubernetes.Client.Get`'s spec needs a found key's pointer non-nil. Its one `sorry` is
    exactly that. The fix: `txn.kvAt_persist'` takes it from the struct's typed points-to
-   (`typedPointsto_not_null`), and the dozen destructuring sites gain a pattern.
+   (`typedPointsto_not_null`), and the dozen destructuring sites gain a pattern. **Done
+   2026-11-05** (branch `k8s-sorrys`): the fact is `kvIs`'s last conjunct; `kvIs_ne_null` proved.
 4. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
    watches under any prefix (the contract's `V.pfx` is fixed).
 5. (2026-10-22; partly landed 2026-10-23 as D37, `kvErr`/`errCellOk`: a client error is no
@@ -926,6 +928,8 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    checker), which reads `clientv3.Client.ctx`; `isNewClient` (the client's `New` spec) does not
    give that field. `etcd3.New`'s spec takes `∃ cx, structFieldRef Client "ctx" cl ↦□ cx` as a
    premise for now; wanted: `New`'s postcondition (or `isNewClient`) includes it, read-only.
+   **Done 2026-11-05** (branch `k8s-sorrys`): `isNewClient`'s last conjunct, `isNewClient_ctx`;
+   `client_ctx_field` proved.
 
 ## Open
 

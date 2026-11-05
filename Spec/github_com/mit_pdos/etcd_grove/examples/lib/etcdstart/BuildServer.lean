@@ -151,7 +151,8 @@ abbrev BuildServer.specRestart : Prop :=
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
           ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗
           -- (R2d's: inside `memberBuiltR`, at its names, as `memberBuiltS`)
-          ∃ (γrn : RNNames) (wd : GoString), srvStopKeep s γrn wd) }}
+          ∃ (γrn : RNNames) (wd : GoString) (st : Loc) (γst : mvcc.StoreNames),
+            srvStopKeep s γrn wd st γst) }}
 
 end spec
 

@@ -11,7 +11,7 @@ timeout detector (`contention.NewTimeoutDetector(2 * heartbeat)`: a contract), t
 (`readStateC` of capacity 1, `msgSnapC` of capacity `maxInFlightMsgSnap`, `applyc`, `stopped` and
 `done` unbuffered) and the ticker (`time.NewTicker(heartbeat)`: since 2026-11-03 a callee of the
 proof, Perennial's proved spec; until then a contract, `rnTickerOk`, in the precondition; its ticks
-carry nothing, `E.T = True`, as the server's `E` has it since D19b),
+carry nothing, `isRNTicker`'s bag, since 2026-11-05 with no premise on `E.T`),
 and returns the struct `r` as `rnBuilt` describes it: its fields read-only but `transport`
 (`cfg`'s, nil, which `NewServer` sets), the channels' and the mutex's predicates, both halves of
 `applyc`'s SPSC channel and the right to close `done`. The wrapper's names `γ` are the caller's
@@ -47,9 +47,9 @@ abbrev newRaftNode.spec : Prop :=
       -- the contracts (`InvNodeStart.lean`; 2026-11-03: `rnTickerOk E` gone, the ticker proved)
       rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗
       -- (2026-11-03: until then the implication `cv.lg' ≠ null →`) a logger; (S2: until then the
-      -- implication `heartbeat ≠ 0`) a positive heartbeat; (2026-11-03) ticks carrying nothing
-      -- (see the file header)
-      ⌜cv.lg' ≠ null⌝ ∗ ⌜0 < sint.Z cv.heartbeat'⌝ ∗ ⌜E.T = iprop(True)⌝ }}
+      -- implication `heartbeat ≠ 0`) a positive heartbeat (2026-11-03 to 2026-11-05, the user's
+      -- S1: also `⌜E.T = iprop(True)⌝`, ticks carrying nothing, which `isRNTicker` now says)
+      ⌜cv.lg' ≠ null⌝ ∗ ⌜0 < sint.Z cv.heartbeat'⌝ }}
     (App (Val (@! newRaftNode)) (Val #cv))
   {{ (r : Loc), RET #r;
       ∃ γ : RNNames,

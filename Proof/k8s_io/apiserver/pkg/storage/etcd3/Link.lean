@@ -39,6 +39,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.component_base.tracing.Span__End
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.StartCompactorPerEndpoint
 public import Proof.strings.TrimSuffix
 public import Proof.reflect.TypeOf
 public import Proof.k8s_io.klog.v2.Verbose__Infof
@@ -122,6 +123,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 theorem v3.Client.wp_Ctx :
     EtcdGrove.Client.Ctx.spec (GF := GF) (hG := hG) :=
@@ -241,6 +243,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 theorem v3.Client.wp_Endpoints :
     EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG) :=
@@ -504,6 +507,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable (h_clock_RealClock__After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
 include h_clock_RealClock__After
 
@@ -514,6 +518,10 @@ theorem compactor.wp_runCompactLoop :
 theorem wp_NewCompactor :
     EtcdGrove.k8s.NewCompactor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.NewCompactor.wp_proof (compactor.wp_runCompactLoop h_clock_RealClock__After) compactor.wp_runWatchLoop
+
+theorem wp_StartCompactorPerEndpoint :
+    EtcdGrove.k8s.StartCompactorPerEndpoint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.StartCompactorPerEndpoint.wp_proof (wp_NewCompactor h_clock_RealClock__After) v3.Client.wp_Endpoints klog.wp_V klog.Verbose.wp_Infof
 
 end links_pending
 

@@ -39,10 +39,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q
   letI := srvStor (GF := GF) γr
-  intro Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
-    Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal
   wp_start as Hpre
   iNamed Hpre
+  obtain ⟨Hlg, Hhb, Hvalid, Hlok, Hstor, Hinfl, Hdpf, Hro, Hdccv, Hsizes, Hasync, Happlied,
+    Hps, Hpsne, Hnodup, H0, Hpslen, Hid, Hvs, Hwal⟩ := Hraft
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
   iStructNamedSuffix Hb "B"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -125,7 +125,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     (raftNodeConfig.mk bv.lg' _ (interface.mkOk (go.GoType.PointerType node.ty) #n) bv.storage' st
       bv.heartbeat' GoInterface.nil)) $$ [] as %r ⟨%γw, %Hγw, Hbuilt⟩
   · iframe #
-    ipureintro; exact ⟨Hlg, Hhb, HT⟩
+    ipureintro; exact ⟨Hlg, Hhb⟩
   (try wp_auto)
   ihave Hb : b ↦{dq} bv $$ [lgB heartbeatB peersB configB storageB]
   · iapply typedPointsto_combine _ _ _ Hbnn

@@ -287,6 +287,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
@@ -473,20 +475,20 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave Hnboot' : iprop(nodeBoot γ.cl srvClusterN ps ctxs cv.ID' ∗
       raftState γ.cl cv.ID' RaftState.init ∗ nodeVacant γ.cl cv.ID') $$ [Hnboot]
   · rw [← Hrvs, Hrid]; iexact Hnboot
-  wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) bs.raft'
-    bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued Hrvalid Hrlok
-    Hrstor Hrinfl Hrdpf Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem
-    Hrvs HwalR (by omega) (by simp [srvErM, HρRaft]) (by simp [srvErM, HρRaft])
-    (by simp [srvErM, HρRaft]))
+  wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) bs.raft'
+    bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, #Hminv, Hmsmeta, Hrsc⟩
   · iframe Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok Hdur
     simp only [srvErM]
     iframe #
-    -- the logger and the heartbeat (`raftNode.bootCfg`); the ticks' `E.T = True`, `srvErM`'s, is
-    -- closed by the `simp` above
+    -- the pure premises: the logger and the heartbeat (`raftNode.bootCfg`), `bootOk`'s `Hraft`,
+    -- the directory's bound, the WAL read, the receipt bound and the server's names
     ipureintro
-    exact ⟨Hrlg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc⟩
+    exact ⟨Hrlg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, Hrvalid, Hrlok, Hrstor,
+      Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync, Hrapplied, Hrps, Hrpsne, Hrnodup, Hr0,
+      Hrpslen, Hrmem, Hrvs, HwalR, by omega, by simp [srvErM, HρRaft], by simp [srvErM, HρRaft],
+      by simp [srvErM, HρRaft]⟩
   (try wp_auto)
   -- the configuration, field by field from here on
   iStructNamed cfg
@@ -818,7 +820,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa HrbA HkIn]
     as %ast ⟨Hopen, Hhook, HkOut, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauSK, #Hbc⟩
+      #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauC, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn
     ipureintro
@@ -1410,17 +1412,20 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D19i part 2) the storage version monitor's
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨HbmSV, -⟩
   -- the raft node, its transport installed
-  ihave #Henv : rnEnvOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)) γrn $$ []
+  ihave #Henv : rnEnvOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) γrn $$ []
   · iapply (rnEnvOk_of_clusterM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      (by rw [Hrn1, Hrule, Hc0]) id (srvTrKey γn γk)
+      (by rw [Hrn1, Hrule, Hc0]) id (srvTrKey γn γk) (srvTrStopK γk)
       (by rw [Hrn5, Hrid]))
     iframe Hkvinv Hsrl
     iapply clusterWorkloadOkM_of on ρ E₀
     iframe Hkvinv Hsrl HNZ0
+  -- (R2b-3d stage 5c) the `transport` field read-only before the install: the environment's
+  -- `Stop` names it (`srvTrStop`)
+  ipersist Htrf
   imod Hinst $$ %(srvRAddr s) %s %(interface.mkOk (go.GoType.PointerType api.rafthttp.Transport.ty) #t)
-    [Henv] [Hcmi] [] [] [Htrf] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, #Htrf⟩
+    [Henv] [Hcmi] [] [] [] [HlatestTs] [] [Hrtm] with ⟨#Hrn, Hrdone, #Hnodef, #Hprop, -⟩
   · iexact Henv
   · iexact Hcmi
   · simp only [srvErM]; iexact Hrdctx
@@ -1429,13 +1434,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iexact HlatestTs
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
     ihave #Htrall' : netTransport γn id (transportIface t)
-        (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)).S
-        (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)).ST $$ []
-    · rw [show (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)).S = srvTrKey γn γk
+        (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)).S
+        (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)).ST $$ []
+    · rw [show (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)).S = srvTrKey γn γk
         from rfl,
-        show (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk)).ST = iprop(False)
+        show (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)).ST = srvTrStopK γk
         from rfl]
-      iexact Htrall
+      -- (R2b-3d stage 5c) its `Stop` at the server's stop right (`srvTrStop`), the apply thread's
+      -- live transport (until then `False`, `Htrall`'s)
+      iapply (netTransport_srvTrStop hPeerStop hRemoteStop γn id γk (s, t, c.lid, c.γd, c.γs, c.γr) s t
+        rfl rfl)
+      iframe Hrhpkg Hkx Htrf Htrall
     iapply isRNTransport_of_net γn id $$ [] Htrall'
     iintro !> %m HM
     simp only [srvErM]
@@ -1802,6 +1811,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexists astl, c
     rw [← Hastl]
     iframe authStore Hc Hau
+  -- (R2b-3d stage 5b, 2026-11-05) with auth off, the store's `Close` (`srvCleanupOwn`, for the stop)
+  ihave #HCO : iprop(□ (⌜on = false⌝ → srvCleanupOwn s)) $$ []
+  · iintro !> %hoff
+    icases HM with %HM
+    have hM : M = auth.AuthMode.off := by
+      have h1 := HM.1; rw [hoff] at h1; cases M <;> simp_all [auth.AuthMode.isOn]
+    ihave #Hcl := HauC $$ %hM
+    iunfold srvCleanupOwn
+    iexists astl
+    rw [← Hastl]
+    iframe authStore Hcl
   -- (M2) the boot log's certificate (the compactor's first lower bound, `srvRevLb … 0`)
   ihave ⟨Hkvw, #Hc0⟩ := txn.kvWriter_cert _ _ _ $$ Hkvw
   -- (M2's item 15, stage B3) the stores' write budget, made here (by `start` until then), and from
@@ -1838,8 +1858,23 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · rw [Hγw.2.1]; iexact HlPool
   -- (2026-11-04, R2b-3d) what the stop needs of the construction (`srvStopKeep`): the raft loop's
   -- stop claim, the registry's authority, the lessor's stop right, the WAL's directory
+  -- (2026-11-05, R2b-3d gap 4) the apply thread's reader of the store (`apply.kvOwn`'s, below), and
+  -- the rest of the store's readers kept for the stop (until then dropped)
+  icases replicate_take1 _ _ (by have HwL : mvcc.wsLoopN = 2 := rfl; omega) $$ Hwrds with ⟨Hwrd, Hwrds⟩
+  ihave Hkeep := replicate_mono _ (mvcc.storeReader kst γw.st) _
+    (mvcc.watchReader_storeReader _ _ _) $$ Hwrds
+  -- the compactor's reader: kept for the stop when there is no compactor, else the compactor's
+  ihave ⟨HcpK, HwrC⟩ : iprop(((⌜cpv = GoInterface.nil⌝ ∗ mvcc.storeReader kst γw.st) ∨
+      ⌜cpv ≠ GoInterface.nil⌝) ∗ (⌜cpv = GoInterface.nil⌝ ∨ mvcc.storeReader kst γw.st)) $$ [HwrC]
+  · by_cases hc : cpv = GoInterface.nil
+    · isplitl [HwrC]
+      · ileft; iframe HwrC; ipureintro; exact hc
+      · ileft; ipureintro; exact hc
+    · isplitr
+      · iright; ipureintro; exact hc
+      · iright; iexact HwrC
   ihave HStopK : srvStopKeep (GF := GF) s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir')
-      $$ [Hrsc Hrauth Hlstop]
+      kst γw.st $$ [Hrsc Hrauth Hlstop Hkeep HcpK]
   · iunfold srvStopKeep
     iframe Hrsc
     isplitl [Hrauth]
@@ -1852,10 +1887,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ihave #HfixS := Hfix
     iunfold rnFixed at HfixS
     iNamed HfixS
-    iexists rvr.raftNodeConfig'.storage'
-    iframe storageC
-    ipureintro
-    rw [Hrnwal]; exact HwDir
+    isplitr
+    · iexists rvr.raftNodeConfig'.storage'
+      iframe storageC
+      ipureintro
+      rw [Hrnwal]; exact HwDir
+    rw [show srvKeepRdN γw.st = backend.rdStockN -
+        mvcc.nJobRd (some ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)) -
+        mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1 by rw [srvKeepRdN, Hγw.2.2.1]]
+    iframe Hkeep
+    iexists cpv
+    iframe compactor HcpK
   imodintro
   wp_auto
   iapply HΦ
@@ -1869,7 +1911,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK
+  -- (R2b-3d stage 5c) the transport's key names the server
+  ihave #HkOf : srvTrKeyOf s γk $$ []
+  · iunfold srvTrKeyOf; iexists _; iframe Hkx; ipureintro; rfl
+  iframe HkOf
+  iframe HLnil HBF ClientCertAuthEnabledS HpeerRt HlessRd HlPool' HStopK HCO
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr
@@ -1947,6 +1993,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iunfold compactorRun
     icases Hcpt with (%Hn | ⟨%Hcm, %Hcrm, %T, %γf, #Hcpo, HT⟩)
     · ileft; ipureintro; exact Hn
+    -- (2026-11-05) a compactor, so its reader was not kept for the stop
+    icases HwrC with (%Hnil | HwrC)
+    · iexfalso
+      iunfold v3compactor.compactorOk at Hcpo
+      icases Hcpo with ⟨%ci, %Hci, -⟩
+      rw [Hnil] at Hci; cases Hci
     iright
     subst Hcm
     -- (K1) auth off in compaction mode; the mode's permit carried from where the compactor is built
@@ -2377,7 +2429,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
   obtain ⟨hns, hcr⟩ := Hz trivial
   subst hns hcr
-  icases replicate_take1 _ _ (by have HwL : mvcc.wsLoopN = 2 := rfl; omega) $$ Hwrds with ⟨Hwrd, -⟩
   iunfold mvcc.watchReader at Hwrd
   icases Hwrd with ⟨Hsrd, -⟩
   isplitr [Hwtok HsnapB]
@@ -2509,6 +2560,8 @@ theorem NewServer.wp_proofM (on : Bool)
     (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
@@ -2581,7 +2634,7 @@ theorem NewServer.wp_proofM (on : Bool)
     NewServer.specM (GF := GF) (hG := hG) on :=
   -- `specG` at `cmp = false`: the compaction mode's specs are not asked for
   NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18
-    h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 h42 h46
+    h19 h20 h21 h22 h23 h24 hTP hKit h26 h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46
     h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70
     h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88
     h89 h90 h91 h92 h93 h94 h95 hAG hBSC
@@ -2638,6 +2691,8 @@ theorem NewServer.wp_proof
     (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (h42 : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
     (h46 : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (h47 : schema.bucket.Name.spec (GF := GF) (hG := hG))
@@ -2715,7 +2770,7 @@ theorem NewServer.wp_proof
   -- `specG` at auth off, in the caller's compaction mode
   NewServer.wp_proofG false cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 h27 h28 h29 h31 h32 h33 h34 h35
-    h36 h37 h38 h39 h41 h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
+    h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hBSC
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hRevS) (fun _ => hCmpS)

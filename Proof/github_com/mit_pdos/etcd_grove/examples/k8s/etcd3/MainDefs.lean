@@ -69,13 +69,13 @@ abbrev premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEnt
   etcdstart.premises go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" N id ctxs boot
 
 omit package_sem in
-/-- **The client's `ctx` field** (read-only; `etcd3.New` reads it through `c.Ctx()`): a marked
-`sorry` until the client's `New` spec gives it ("From the etcd client proof", item 6 of
+/-- **The client's `ctx` field** (read-only; `etcd3.New` reads it through `c.Ctx()`): the client's
+`New` spec gives it (`isNewClient_ctx`; "From the etcd client proof", item 6 of
 `notes/k8s-etcd3-plan.md`). -/
 theorem client_ctx_field (cl : Loc) (eps : List GoString) (V : client.WEnv GF) :
     isNewClient cl eps V ⊢
-      ∃ cx : GoInterface, structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ cx := by
-  sorry
+      ∃ cx : GoInterface, structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ cx :=
+  isNewClient_ctx cl eps V
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by

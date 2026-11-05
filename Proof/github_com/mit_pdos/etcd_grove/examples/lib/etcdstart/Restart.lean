@@ -59,7 +59,7 @@ pieces at the names `run`'s `isServerRun` names. -/
 abbrev memberBuiltS (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) : IProp GF :=
   memberBuilt s ρ E₀ lg γn id N served (W64 0) (W64 0) (W64 0) bootKV
-    (fun γrn cfg => srvStopKeep s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+    (fun γrn cfg E => srvStopKeep s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') E.s E.γ)
 
 end defs
 

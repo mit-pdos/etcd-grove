@@ -90,6 +90,61 @@ theorem stop_mergedObs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) 
   obtain ⟨⟨hciO, hrbD, -⟩, ⟨-, hex⟩, hwo⟩ := h
   exact mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf
 
+/-- **The image clause of the stopped backend's data** (the restart plan's R2b-3d stage 5a; the
+pure part of `merged_image`): an observation `mergedObs` of `D` at the applied index `ai` of the
+applied log `A`, at the server with the KV's start values, is `imageAt` of `A` at `ai`, the KV
+names' (`srvDiskImage`'s backend clause). -/
+theorem merged_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai : w64) (A : List EntryModel)
+    (x : apply.ApplyKV) (D : backend.Data)
+    (h0 : γr.kv.c0 = W64 0 ∧ γr.kv.log0 = [[], []]) :
+    ⌜mergedObs γr E.cmp E.lg ai A x.log x.crev D⌝ ∗ isServer s γ ci TM E ρ γr ∗
+      kvApplied γr.raft γr.kv A x ⊢
+      |={⊤}=> kvApplied γr.raft γr.kv A x ∗
+        ⌜imageAt γr.kv γr.raft.raft.boot ai (γr.raft.pre ++ A) A D⌝ := by
+  iintro ⟨%hobs, #Hsrv, Hka⟩
+  obtain ⟨⟨r, hkI, hr⟩, hci, hterm, hrest, hwf⟩ := hobs
+  iunfold isServer at Hsrv
+  icases Hsrv with ⟨-, -, -, Hat, -, -⟩
+  iunfold srvAtomics at Hat
+  icases Hat with ⟨-, -, Hki⟩
+  iunfold srvKVInvs at Hki
+  icases Hki with ⟨#Hki, -, #Hrl, -, %Hcm, %Hlgk, -⟩
+  ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
+  iunfold kvApplied at Hka
+  icases Hka with ⟨Hka, %hx⟩
+  iunfold kvAppliedL at Hka
+  icases Hka with ⟨#HA, Hhi, Hcert, %hlog⟩
+  imod crevOf_offM γr.raft γr.kv A $$ Hki Hrl HA with %Hoff
+  imod kv_log_plain γr.raft γr.kv A $$ Hki Hrl HA with %Hpl0
+  imodintro
+  isplitl [Hhi Hcert]
+  · iunfold kvApplied
+    iunfold kvAppliedL
+    iframe HA Hhi Hcert
+    ipureintro; exact ⟨hlog, hx⟩
+  ipureintro
+  have hpre : γr.raft.pre = [] := by rw [hraft]
+  rw [hlog] at hkI hwf
+  have hrc : r.crev = crevOf γr.kv A := by
+    cases hc : E.cmp
+    · rw [hc] at hkI
+      obtain ⟨-, rfl⟩ := (mvcc.keyImageM_off _ _ D).1 hkI
+      rw [mvcc.CmpRecs.crev_empty]; exact (Hoff (Hcm.1.trans hc)).symm
+    · rw [hr hc, hx.2]
+  refine ⟨⟨r, ?_, hrc⟩, hci, hterm, ?_, hwf⟩
+  · rw [Hcm.1]; exact hkI
+  · cases hlg : E.lg
+    · rw [hlg] at hrest
+      simp only [Bool.false_eq_true, ↓reduceIte] at hrest
+      have hpl : plainLogM γr.kv.cmp false A := by
+        have := Hpl0.1; rw [Hlgk.2, hlg] at this; exact this
+      have hn : (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
+        rw [hpre, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A hpl]; rfl
+      exact bkRestAtL_of_nil hn hrest
+    · rw [hlg] at hrest
+      exact hrest
+
 end proof
 
 end EtcdGrove

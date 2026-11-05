@@ -6,7 +6,6 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Stop
-public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 
@@ -31,11 +30,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.Cleanup.wp_proof
     (hLS : lease.lessor.Stop.spec (GF := GF) (hG := hG))
     (hKC : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
-    (hAC : auth.authStore.Close.spec (GF := GF) (hG := hG))
     (hBC : backend.backend.Close.spec (GF := GF) (hG := hG)) :
     EtcdServer.Cleanup.spec (GF := GF) (hG := hG) := by
-  intro s lp wsl st γw c stl R M γbe d W Pk cp X Y
-  wp_start as ⟨#Hlf, Hstop, #Hkvf, #Hws, Hwcl, #Hauf, #Hainv, Htpa, Hbr, Hbe, Hγbe, #Hb, #Hsc, Hopen,
+  intro s lp wsl st γw c stl K γbe d W Pk cp X Y
+  wp_start as ⟨#Hlf, Hstop, #Hkvf, #Hws, Hwcl, #Hauf, #HaC, Htpa, Hbr, Hbe, Hγbe, #Hb, #Hsc, Hopen,
     HX, #Hreq, #Hcpf, #Hcpok⟩
   (try wp_auto)
   -- `s.lessor.Stop()`
@@ -46,15 +44,18 @@ theorem EtcdServer.Cleanup.wp_proof
   -- `s.kv.Close()`
   ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  -- (R-D1: `Close` gives back the loops' readers and the compaction job's resource; dropped here)
-  wp_apply (hKC wsl st γw c) $$ [$Hwcl] as ⟨-, -⟩
+  -- `Close` gives back the loops' readers and the compaction job's resource: with the caller's
+  -- census, the backend's whole open token (R2b-3d stage 5c; until then dropped here)
+  wp_apply (hKC wsl st γw c) $$ [$Hwcl] as ⟨Hlrs, Hjob⟩
   · iframe #
+  imod Hopen $$ [Hlrs Hjob] with Hopen
+  · iunfold mvcc.wsCloseRes; iframe Hlrs Hjob
   (try wp_auto)
   -- `s.authStore.Close()`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
-  wp_apply (hAC stl R M) $$ [$Htpa] as %aerr ⟨-, Htpa⟩
-  · iframe #
+  iunfold authCloser at HaC
+  wp_apply HaC $$ [$Hapkg $Htpa] as %aerr ⟨-, Htpa⟩
   (try wp_auto)
   -- `s.bemu.Lock(); s.be.Close(); s.bemu.Unlock()`: the lock's invariant kept whole (the apply
   -- side's half of `s.be` reads it)

@@ -7,6 +7,7 @@ the compactor. Lean-first (no Rocq counterpart); `notes/restart-plan.md`, "R2b-3
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WsCloserR
@@ -36,34 +37,40 @@ close each of what it closes (`server.go`'s `Cleanup`; each field's `nil` check 
   `lessor.Stop`;
 * the watchable store `wsl` (`s.kv`), with its closer by the mode (`wsCloserM`, what
   `watchableStore.Close` takes);
-* the auth store `stl` (`s.authStore`), with the token provider's admin share (`tpAdmin`, given
-  back): `authStore.Close`, whose error `Cleanup` ignores;
+* the auth store `stl` (`s.authStore`), with a closer of it at a resource `K`, given back
+  (`authCloser`; R2b-3d stage 5b, 2026-11-05: with auth off, `NewAuthStore`'s `authCloseOk`, `K`
+  empty; with auth on, `authStore.Close`'s proof at the token provider's admin share; until then
+  the store's invariant and that share): `authStore.Close`, whose error `Cleanup` ignores;
 * the backend `d` (`s.be`): a reader slot of `bemu` (its `Lock` takes it, `Unlock` gives it back),
   the apply side's half of `s.be` and quarter of `bemu`'s ghost variable (which name `d` under the
-  lock), its stop channels at the client resources `W`, `Pk` and the clients' whole open token:
-  `backend.Close`, whose post `Cleanup` passes on (the data `D` the stop's commit left, what the
+  lock), its stop channels at the client resources `W`, `Pk` and the clients' whole open token
+  (R2b-3d stage 5c, 2026-11-05: as an update from what `kv.Close` gives back, the watch loops'
+  store readers and the compaction job's resource; the caller has every other reader of the store
+  and retires them all there, gap 4's census. Until then `bOpen 1` up front, which the stop could
+  not give: the loops hold their readers until `kv.Close`): `backend.Close`, whose post `Cleanup`
+  passes on (the data `D` the stop's commit left, what the
   stopped batch lock held at it, `bStopView`, and the file holding `D`, or bbolt's close error);
 * the compactor (`s.compactor`), nil or with its contract (`compactorOk`, whose `Stop` needs
   nothing). -/
 abbrev EtcdServer.Cleanup.spec : Prop :=
-  ∀ (s lp wsl st : Loc) (γw : mvcc.WsNames) (c : Int) (stl : Loc) (R : IProp GF)
-    (M : auth.AuthMode) (γbe : GName) (d : mvcc.KBReal) (W Pk : IProp GF) (cp : GoInterface)
+  ∀ (s lp wsl st : Loc) (γw : mvcc.WsNames) (c : Int) (stl : Loc) (K : IProp GF)
+    (γbe : GName) (d : mvcc.KBReal) (W Pk : IProp GF) (cp : GoInterface)
     (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp ∗
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
       mvcc.isWatchableStore wsl st γw ∗ mvcc.wsCloserM wsl st γw.st c ∗
-      srvAuthStoreAddr s ↦□ auth.authIface stl ∗ auth.authInv stl R M ∗ auth.tpAdmin stl M ∗
+      srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloser stl K ∗ K ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
       dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.isStopChans d.γB d.P W Pk d.be ∗
-      backend.bOpen d.γB 1 ∗
+      (mvcc.wsCloseRes st γw.st ={⊤}=∗ backend.bOpen d.γB 1) ∗
       -- (2026-11-04, R2b-3d stage 3) a request `X ⇒ Y` of the backend's stop commit
       X ∗ backend.commitReq d.γB d.P Pk d.be X Y ∗
       srvCompactorAddr s ↦□ cp ∗ compactorOk cp }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Cleanup")) (Val #()))
-  {{ RET #(); auth.tpAdmin stl M ∗
+  {{ RET #(); K ∗
       srvBemuReaderAt s γbe ∗ srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.be ∗
       dghostVar γbe (DFrac.own (1 : Qp).half.half) d ∗ Y ∗
       ∃ D : backend.Data, backend.bStopView d.γB d.P W Pk D ∗

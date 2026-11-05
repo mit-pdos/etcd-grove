@@ -35,6 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [sync_sem : sync.Assumptions]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
@@ -44,8 +45,8 @@ theorem NewCompactor.wp_proof
     (wp_runCompactLoop : compactor.runCompactLoop.spec (GF := GF) (hG := hG))
     (wp_runWatchLoop : compactor.runWatchLoop.spec (GF := GF) (hG := hG)) :
     NewCompactor.spec (GF := GF) (hG := hG) := by
-  intro _ _ cl ms V γk Seen recorded _ _ iv ck hsame hcmp hcret hiv
-  wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr⟩
+  intro _ _ cl ms V γk Seen recorded _ _ iv ck f hsame hcmp hcret hiv
+  wp_start as ⟨#Hcl, Hone, Hregs, #Hko, #Hwo, #Hcas, #Hkr, #Hclose⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []

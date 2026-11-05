@@ -75,7 +75,7 @@ theorem txn.compareKV.wp_proof
   -- the operand's wrapper is not a typed `nil` (`compareIs`): `tv != nil` holds
   have hw : ∀ (t : go.GoType) (w : Loc), u = interface.mkOk t #w → w ≠ null := Hw
   iunfold txn.kvIs at Hkv
-  icases Hkv with ⟨%keySl, %valSl, #HK, #HKs, #HC, #HM, #HV, #HVl, #HVs, #HL⟩
+  icases Hkv with ⟨%keySl, %valSl, #HK, #HKs, #HC, #HM, #HV, #HVl, #HVs, #HL, -⟩
   ihave #Hnil := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   rcases cm with ⟨key, re, target, op, num, val⟩
   cases target

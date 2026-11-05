@@ -157,6 +157,9 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   subst Hlctx
   subst HL
   letI : HeapGS .hasLC k8setcd3GF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs, th, cr⟩⟩
+  -- (Q1 (c), 2026-11-05) the compactor registry's name (`etcd3`'s package fact): the program
+  -- registers no compactor (`StartCompactorPerEndpoint` is not called), so any name will do
+  letI : EtcdGrove.k8s.CompactorRegistry := ⟨0⟩
   haveI := Hctx0
   unfold IsInit at Hinit
   rw [Hinit]

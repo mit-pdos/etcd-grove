@@ -10,7 +10,9 @@ no revision writes a key twice, `noDupKeys_of_one`), with the example's invarian
 member's start state (no key; `cinv_alloc`). Then the writer's client and its readiness check, the
 writer (`go writer(wcli)`), and the API servers, each with a client of its own (its KV handle,
 `isKv_of_newClient`, and its watcher, `isNewClient_watcher`: the compactor's watch loop runs, Q1 (b)),
-forked under a wait group (`sync.join`) that `Main` waits for.
+forked under a wait group (`sync.join`) that `Main` waits for; the client address claimed for the
+cluster from the registry's authority (`epOf_alloc`, Q1 (c), C3), for the API servers sharing the
+process's compactor.
 -/
 module
 
@@ -53,13 +55,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
 /-- The API servers' loop's counters: one more round, one more `Add`. -/
 theorem loop_step (n : w64) (k : w32)
-    (hk : sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 3 ∧ 0 ≤ sint.Z k)
-    (h3 : sint.Z n < sint.Z (W64 3)) :
-    sint.Z (k + W32 1) ≤ sint.Z (n + W64 1) ∧ 0 ≤ sint.Z (n + W64 1) ∧ sint.Z (n + W64 1) ≤ 3 ∧
+    (hk : sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z k)
+    (h3 : sint.Z n < sint.Z (W64 5)) :
+    sint.Z (k + W32 1) ≤ sint.Z (n + W64 1) ∧ 0 ≤ sint.Z (n + W64 1) ∧ sint.Z (n + W64 1) ≤ 5 ∧
       0 ≤ sint.Z (k + W32 1) := by
   obtain ⟨h1, h2, h4, h5⟩ := hk
   word
@@ -76,7 +79,7 @@ theorem Main.wp_proof
     (wp_apiserver : apiserver.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
+  wp_start as ⟨Haddr, Htok, #Hprem, Hwdf, Hreg⟩
   iunfold etcdstart.premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
@@ -280,11 +283,17 @@ theorem Main.wp_proof
   imod (sync.init_WaitGroup (sync.join.wgjN.@"wg") wg_ptr) $$ wg with ⟨%γwg, #Hwg, Hctr, Hwaiters⟩
   imod (sync.join.init _ γwg) $$ [Hctr Hwaiters] with Hadd
   · iframe #; iframe
+  -- the client address, claimed for the cluster (the API servers sharing the process's compactor)
+  imod (k8s.epOf_alloc (∅ : GMap GoString GName) clientAddr ρ.rd.kv (fun _ => iprop(True)) rfl)
+    $$ Hreg with ⟨%γa, -, #Hep⟩
+  ihave #Heps : [∗list] ep ∈ [clientAddr], k8s.epOf (GF := GF) ep ρ.rd.kv (fun _ => iprop(True))
+    $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iexact Hep
   have hsame : ∀ y ∈ [x], kvSame y.γr.kv ρ.rd.kv := fun y hy => by
     simp only [List.mem_singleton] at hy; subst hy; exact kvSame_refl _
   ihave IH : (∃ (n : w64) (k : w32), "i" ∷ i_ptr ↦ n ∗
       "Hadd" ∷ sync.join.ownAdder wg_ptr k iprop(True) ∗
-      "%Hk" ∷ ⌜sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 3 ∧ 0 ≤ sint.Z k⌝ : IProp GF)
+      "%Hk" ∷ ⌜sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z k⌝ : IProp GF)
     $$ [i Hadd]
   · iexists _, (W32 0); iframe; ipureintro; decide
   wp_for IH
@@ -330,10 +339,10 @@ theorem Main.wp_proof
     ihave Hadd := sync.join.ownAdder_wand iprop(True) _ _ _ $$ [] Hadd
     · iintro _; itrivial
     (try wp_auto)
-    -- `go func() { apiserver(cli); wg.Done() }()`
-    wp_apply wp_fork $$ [Hdone cli]
+    -- `go func() { apiserver(cli, shared); wg.Done() }()`
+    wp_apply wp_fork $$ [Hdone cli shared]
     · (try wp_auto)
-      wp_apply (wp_apiserver cl [x] V ρ.rd.raft ρ.rd.kv γc hsame hkc hkr) $$ []
+      wp_apply (wp_apiserver cl [x] V ρ.rd.raft ρ.rd.kv γc _ hsame hkc hkr) $$ []
       · iframe #
         rw [show List.map client.SrvAt.addr [x] = [clientAddr] from rfl]
         iframe #

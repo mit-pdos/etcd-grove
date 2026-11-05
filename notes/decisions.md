@@ -30959,7 +30959,7 @@ statements (`NewServer.spec`'s post, `EtcdServer.Start`'s), a definition body ch
 round's approval (equivalent wherever `E.T = True`). (M1) `bootstrappedRaft.newRaftNode.spec` and
 `NodeStartSpec` still take about 18 configuration and peer premises as implications beside the
 three pure conjuncts; converting them all (one `⌜…⌝` conjunction, close to `InvBoot`'s `Hraft`) is
-its own step.
+its own step. *Superseded* (both): "The raft wrapper's ticker bag and pure boot premises" (2026-11-05).
 
 Supersedes in part "The boot premises" (its Q2, `rnTickerOk_of_time` in `NewServer`'s proofs, and
 the open T2/T3 points).
@@ -31823,3 +31823,179 @@ the example runs Kubernetes' default configuration.
 - *A kernel rejection* of auto-abstracted inline `omega`/`word` proofs in two proofs
   (`getCompactRev`, `fromWatchResponse`): moved to standalone lemmas (an "application type mismatch"
   in an auxiliary `_proof_…` term after elaboration succeeded).
+
+## The raft wrapper's ticker bag and pure boot premises (2026-11-05 · the user's approval, "do the two items" · branch `rn-cleanups`)
+
+Supersedes the open items (S1) and (M1) of "The ticker where it is made" (2026-11-03).
+
+**S1: `isRNTicker`'s bag carries `True`.** `isRNTicker`'s channel bag was `fun _ => E.T`; nothing
+read it (the tick receive in `raftNode.start` drops what the bag gives; `raftNode.tick` takes its
+credit from a Go step of its own since D19b), and `rnEnvOk` pins `E.T = True`. The bag is now
+`fun _ => iprop(True)`, Perennial's `isTicker`'s own bag, and `isRNTicker` lost its `E` argument
+(`isRNTicker tk`, as `isRNTimeoutDetector td`). The premise `⌜E.T = iprop(True)⌝` it forced is gone
+from `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec`, and
+`isRNTicker_of_time` lost its `E.T = True` hypothesis (and `E`). `NewServer`'s discharge no longer
+closes it. `isRNTicker` is inside `isRaftNode`, which is in the vocabulary of exported statements
+(`NewServer.spec`'s post, `EtcdServer.Start`'s spec): **the user approved this definition-body
+change** (2026-11-05, "do the two items"); it is equivalent wherever `E.T = True`, which `rnEnvOk`
+(also inside `isRaftNode`) requires. The text of no exported statement, trusted statement or
+example theorem changed. `RNEnv.T` itself stays (out of scope; its removal would change the record
+`EtcdServer.Start`'s and `start`'s exported specs bind).
+
+**M1: the configuration premises pure preconditions.** `bootstrappedRaft.newRaftNode.spec` took 18
+premises as implications before the triple (`NewRawNode`'s on the config, the peers', the WAL
+read), `NodeStartSpec` 22 (those, the receipt bound and the three names of `E.γr.raft`), beside
+the pure conjuncts `bv.lg' ≠ null`, the positive heartbeat (and `E.T`'s). Each spec now has one
+conjunct `"%Hraft" ∷ ⌜…⌝` in the precondition, the conjuncts in the order of `InvBoot`'s `Hraft`
+(logger, heartbeat, config, peers), then the WAL read, then (`NodeStartSpec` only) the receipt
+bound and the names (PRINCIPLES, "Pure premises go in the precondition"). The proofs `obtain` the
+conjunction after `iNamed`, with the old hypothesis names; the composition passes it on, and
+`NewServer` builds it from `bootOk`'s `Hraft` with the facts it proved before (`Hrpslen`, the
+names by `simp [srvErM, HρRaft]`). `newRaftNode.spec`'s precondition was already two pure
+conjuncts and stays so.
+
+
+**The fresh review round** (one spec-reviewer, the three specs): no T. Open, for the user: (S)
+premises the proofs never use: `bootstrappedRaft.newRaftNode.spec`'s `ps.Nodup`, `W64 0 ∉ ps`, the
+peers' length bound, `cv.ID' ∈ ps`, `γr.vs = ps` (unused as implications before this change too);
+`NodeStartSpec`'s `cv.ID' ∈ ps`, the three `E.γr.raft` names and `srvRaftLogInv E.γr.raft` (all in
+the installer's `rnEnvOk`); (M) the peers' slice not returned although `StartNode.spec` now gives it
+back (stale comments say it keeps it); one named `Prop` for the config block shared with `InvBoot`'s
+`Hraft`; stale docs (`newRaftNode`'s header on read-only fields and the names it allocates,
+`NodeStart.lean`'s header premises, `InvRaftNode`'s header on `E.T`); `isRNTicker`'s nil arm
+excluded by every spec, unfolded in `raftNode.start`/`onStop` instead of a law.
+
+## The compactor registry's name (2026-11-05 · Q1 (c) of `notes/k8s-compactor-plan.md`, C1-C2; the user's choice of A1, then of option (i) · branch `q1c`)
+
+**The problem.** `StartCompactorPerEndpoint` returns the compactor registered for one of the client's
+endpoints, whichever call registered it. Its result is useful only at the caller's cluster names
+`γk`, so the registry (`compact.go`'s `endpointsMapMu`/`endpointsMap`, made by the package's
+`init()`) must tie each endpoint to names, and the caller must know the tie is its own. The registry
+lives in `etcd3`'s package fact, which is persistent and cannot hand out the exclusive authority a
+caller needs to make the first claim of an endpoint; and ghost names allocated in two places (the
+fact's, by the initializer; a token's, at program start) never agree.
+
+**The choice (option (i)).** A typeclass, `EtcdGrove.k8s.CompactorRegistry`, holds the registry's
+ghost name. The adequacy theorem picks it before the initializer runs; `etcd3`'s initializer builds
+the lock invariant at it (`registryFact`, its package fact), and `Main` makes claims from the
+authority (`regAuth ∅`) at the same name: they agree by construction. Rejected: (ii) initializer
+outputs (the dual of D19e's `ownInitRes`), which would need every generated init theorem to say it
+initializes only its import closure; (iii) claims handed out by the shared start (`etcdstart`),
+coupling every example's start to one Kubernetes package; (iv) a weak post (no names) or deferring.
+The cost: every module stating `etcd3`'s package fact, or an importer's, declares
+`variable [reg : EtcdGrove.k8s.CompactorRegistry]` (`gen-init`'s `vars`/`table_vars`, `gen-link`'s
+`EXTRA_VARS`), and the two k8s examples' adequacy theorems choose a name (any name while they start no
+compactor through the registry).
+
+**The claims are saved predicates.** `epClaim ep Ψ`: the ghost map `γreg` maps `ep` to a name holding
+the saved predicate `Ψ` over `(compactor, client, revision name)`; claims agree (`epClaim_agree`,
+under a later, stripped by the map lookup's step). Not `ep ↦ γk`: a ghost map stores countable
+values and `KVNames` holds logs. The lock invariant keeps, for each entry, a claim and its predicate
+of the entry's compactor; the caller's claim is `epOf ep γk recorded`, the claim for
+`compactorFor γk recorded` (a compactor of `γk` and `recorded`, with the lower bound 0), made by
+`epOf_alloc`. Any persistent `recorded` (draft 1 had `recorded := True` only, wrongly thinking the
+saved predicate's later could not be stripped: the map lookup's step strips it; the spec review's
+finding).
+
+**Found while proving.**
+- *The client's endpoints.* `Client.Endpoints`' spec (names-only) relates its result to the
+  `endpoints` field when that is read-only; nothing exported said so. `isNewClient` gains its last
+  conjunct, `clientEndpointsAt cl eps` (`New`'s proof had both facts persistent): a stronger
+  postcondition of `New`, no new premise; every destructuring of `isNewClient` ends with `-`.
+- *`onClose`* is `closeOk f` in `compactorCore` (`nil`, or a function that returns), `NewCompactor`
+  takes it (`closeOk_nil`: the compactor example), `Stop` calls it when non-nil.
+- *The spec review* (`spec-reviewer`): besides `recorded`, the `epOf` vocabulary (not the saved
+  predicate's domain), the laws `closeOk_nil` and `isNewClient_endpoints`; and a second nonissue,
+  `nonissues/k8s-apiserver-compactor-shared-across-transports.md` (the factory's refcount per
+  transport key while the registry shares a compactor per endpoint).
+- *A stale entry after an endpoint change* (`onClose` deletes the endpoints as they are at `Stop`) is
+  `nonissues/k8s-apiserver-compactor-per-endpoint-stale-entry.md`: Kubernetes' compactor client never
+  changes its endpoints.
+
+**C3: the example and the allocation (2026-11-05, branch `q1c3`).** The compactor example's API
+servers go through one function, `check(cli, c)`, over a local interface (`compactorAPI`:
+`CompactRevision`, `Stop`), since both constructors return the unexported `*compactor`; three call
+`NewCompactor`, two share the process's compactor (`StartCompactorPerEndpoint`). One example rather
+than a second one: its invariant and checks are the same, and the `NewCompactor` servers keep the
+compare-and-swap race between compactors. The registry is allocated before the program's proof is
+chosen: `progOk` fixes the initializer's triple (and so the class's instance) before any ghost update,
+so `etcd_adequate_alloc` (`etcdstart/Adequacy.lean`) takes `∃ X T, (⊢ |==> ∃ x, T x) ∧ ∀ x, progOk
+… (B ∗ T x) …`; the example picks `X := GName`, `T γ := regAuth ∅` at `⟨γ⟩` (`regAuth_alloc`).
+`Main` claims the client address once the cluster's names are known (`epOf_alloc`). The store example
+still takes a fixed name: it registers no compactor.
+
+## The auth store's `Close` at the stop (2026-11-05 · R2b-3d stage 5b; the user's choice "Close contract" · branch `r2b3`)
+
+`Cleanup`'s `authStore.Close` took the store's invariant and the token provider's admin share
+(`authInv ∗ tpAdmin`). With auth off, `restart3`'s mode, nothing gives either: the off store comes
+from `NewAuthStore`'s axiom, whose post hides both behind its contracts. Three options were put to
+the user: (1) a persistent `Close` contract in the axiom's post (`authCloseOk stl`, the triple
+`{{ isPkgInit auth }} Close {{ err; ⌜err = nil⌝ }}`); (2) `authInv stl R .off ∗ tpAdmin stl .off` in
+the axiom's post, the store's three lock protocols and the provider's contract made trusted; (3)
+the off store proved from the code, like `newAuthStore_on`. The user chose (1), the smallest
+trusted claim; it survives the axiom review (`notes/axiom-review/auth-close.md`, a Go test under the
+race detector). `Cleanup`'s spec now takes a closer at a resource `K` (`authCloser stl K ∗ K`, `K`
+given back): with auth off `K` is `True` (`authCloseOk`); with auth on it is the admin share
+(`authCloser_of_inv`, from `authStore.Close`'s proof under `authInv`). The off kit and `NewServer`
+pass it on (`□ (⌜on = false⌝ → srvCleanupOwn srv)`), and `srvCleanupOwn` (opaque since R2b-2) is now
+defined from it. Until R2b-3 needs auth on at the stop, `Cleanup`'s on-mode closer is the apply
+thread's `tpAdmin` (in `authApplyRes`).
+
+## Two of `k8setcd3_safe`'s own `sorry`s discharged; `revRoom` designed (2026-11-05 · the user's assignment, via etcd-grove-82 · branch `k8s-sorrys`)
+
+`k8setcd3_safe` rested on three marked `sorry`s of its own (`notes/k8s-etcd3-plan.md`, "From the
+etcd client proof", items 3 and 6, and D30n). Two are proved, by stronger postconditions of proved
+code; no statement of the k8s side changed (the two theorems' bodies only).
+
+- **`kubernetes.kvIs_ne_null`** (item 3). The server's response predicate `txn.kvIs l v`
+  (`txn/Requests.lean`) gains `⌜l ≠ null⌝`: a field's points-to does not imply its struct's pointer
+  is not `nil` (`typedPointsto`'s non-null fact is about its own address). Its sources have the
+  struct's typed points-to: `txn.kvAt_persist'`, `txn.kvPtrIs_kvIs` (`typedPointsto_not_null_dup`
+  before splitting) and `applyCompare`'s zero key-value (its allocation). The fact is the *last*
+  conjunct, inside the `∃`, so that the destructuring sites, which end their pattern with `-` or a
+  name for the `Lease` field, need no edit; the two that load `Lease` afterwards (`txn.put`,
+  `txn.compareKV`) end with `, -` now (a named last pattern would bind `Lease ↦□ _ ∗ ⌜_⌝`, which
+  `wp_auto` does not use as a points-to). The client's `kvValAt` (the cache's, the same fields)
+  no longer equals it: `kvValAt_of_kvIs` (`client/v3/ServerKVGet.lean`) drops the fact. Cost:
+  `Requests.lean` has 2034 importers; no smaller change proves the theorem.
+- **`k8s_etcd3.client_ctx_field`** (item 6). `isNewClient` (the client `New`'s postcondition,
+  proved in `newClient.lean`, not a trust-boundary axiom) gains a last conjunct
+  `∃ cx, clientF cl "ctx" ↦□ cx` with a law `isNewClient_ctx`, as Q1 (c)'s endpoints: the field is
+  never written after the composite literal (`newClient` reads it, `ctx, cancel = client.ctx, …`),
+  so the proof persists it where the struct is split (renamed apart from the local variable `ctx`
+  it shadows). Every destructuring of `isNewClient` ends with `-`: no caller changed. Not given:
+  what the field holds (`WithCancel(TODO)`'s context, `isContext`); no caller needs it.
+- **`revRoom`** (D30n) is false as stated (any two states one revision apart); it keeps the
+  driver's `KOk.room` across a write. Designed only (InvSteps is being rewritten by 7b): the
+  options and the recommendation (the server hands the bound it owns, from the sole writer's
+  receipts, with the state its updates commit; or `lintest` hands each call a budget token from
+  `Run`'s `clients * ops < 2 ^ 60`) are in the branch's `questions.md`; neither changes `Main.spec`
+  or `k8setcd3_safe`.
+## The transport's stop right and `Cleanup`'s open token (2026-11-05 · R2b-3d stage 5c · branch `r2b3`)
+
+Two gaps between the shutdown's steps and the specs they call, found while assembling `run`'s
+deferred function.
+
+**The transport's stop right.** `raftNode.stop` takes the raft environment's `ST` (the right to stop
+the transport, which `stopped` carries to `onStop`, D43 M5c). The server's environment had
+`ST := False` (D43 M5e: "asked of no one", the static server's transport frozen, its stop token the
+apply thread's), so no shutdown could call `r.stop()`. The apply thread does own the live transport
+(`srvApRes`'s `ccMembRes`: `trLive γn t c rs`, at names it quantifies). The environment is built
+before the server and its transport exist (`NewServer` passes it to the node's start), so its `ST`
+names the transport through the same ghost key as its `S` (`srvTrKey`): `srvTrStopK γk`, the live
+transport of the server the key names (`srvTrStop`, with the server's `transport` field). `NewServer`
+proves the transport's `Stop` from it (`netTransport_srvTrStop`: the key's and the field's
+agreement, then `Transport.Stop_live`, whose two callee specs `NewServer` now takes) and posts
+`srvTrKeyOf srv γk`; the shutdown rebuilds the right from `srvApRes` (`srvApRes_trStop`,
+`srvTrStopK_of`). For the field's agreement inside the environment's `Stop`, the node's installer
+(`NodeStartSpec`) now takes the `transport` field read-only (`↦□`), which `NewServer` persists before
+installing; the installer only persisted it, so `NodeStartSpec` is stronger, not weaker.
+`srvEr`/`srvErM` take `ST` as a parameter, as `S`.
+
+**`Cleanup`'s open token.** `Cleanup` took the backend's whole open token (`bOpen 1`) up front, but
+two of the store's readers (the watch loops', `wsLoopN`) and the compaction job's resource come
+back only from `kv.Close()` inside it, where they were dropped. Gap 4's census needs every reader.
+`Cleanup` now takes an update `mvcc.wsCloseRes st γ ={⊤}=∗ bOpen 1` (`wsCloseRes`, the owner's name for
+what `Close` returns: the loops' readers and `compactJobResM`) and applies it after
+`kv.Close()`; the shutdown builds it from the census (`storeReaders_retire`, `storeRTs_shares`,
+`bOpen_one_pool`, as `NewServer`'s error path R-D1). `Cleanup` had no client yet.

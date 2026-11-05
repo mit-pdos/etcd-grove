@@ -301,6 +301,29 @@ def authRecoverOk (ast : Loc) : IProp GF :=
 instance authRecoverOk_persistent (ast : Loc) : Persistent (authRecoverOk (GF := GF) ast) := by
   unfold authRecoverOk; infer_instance
 
+/-- **A closer of the auth store `ast` at the resource `K`** (persistent; the restart plan's R2b-3d
+stage 5b, 2026-11-05): `ast.Close()` takes `K` and gives it back, returning `nil`. What
+`EtcdServer.Cleanup` takes, with `K`: with auth off, `authCloseOk`'s (`K` empty, the trust
+boundary's); with auth on it would be `authStore.Close`'s proof, at the token provider's admin share
+(`auth.tpAdmin`) under the store's invariant. -/
+def authCloser (ast : Loc) (K : IProp GF) : IProp GF :=
+  iprop(□ {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ K }}
+    (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
+      go!"Close")) (Val #()))
+    {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ K }})
+
+instance authCloser_persistent (ast : Loc) (K : IProp GF) :
+    Persistent (authCloser (GF := GF) ast K) := by
+  unfold authCloser; infer_instance
+
+/-- **The disabled auth store `ast`'s `Close`** (persistent; R2b-3d stage 5b, 2026-11-05, the user's
+decision; `auth.NewAuthStore.spec`'s, the trust boundary): a closer at no resource
+(`authCloser ast True`). -/
+def authCloseOk (ast : Loc) : IProp GF := authCloser ast iprop(True)
+
+instance authCloseOk_persistent (ast : Loc) : Persistent (authCloseOk (GF := GF) ast) := by
+  unfold authCloseOk; infer_instance
+
 /-- The lessor `lp`'s `Lookup` (`lease.NewLessor.spec`'s, the trust boundary; S8d's named premise,
 threaded from `NewServer`): what `isApplyLessor_of_lessorInv` takes. -/
 def lessorLookupOk (lp : Loc) : IProp GF :=
