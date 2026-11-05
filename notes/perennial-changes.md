@@ -1529,3 +1529,13 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `iStructNamed` and put it back with `typedPointsto_combine` (`op_split`/`op_join` in
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
+
+## A slice literal of map literals (2026-11-06, the mvcc tester)
+
+No WP lemma covers a slice composite literal whose elements are map literals
+(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`), so its proof is not attempted
+(the spec stands, `Spec/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, no proof
+file; `notes/mvcc-migration/mvccrand.md`). Local workaround if needed: build the slice from
+`make` and two `map` makes in Go is not an option (the tester's code is what it is), so a local
+lemma over the literal's expansion. The general change: the slice-literal rule taking elements
+of any type with a composite-literal WP, maps included.
