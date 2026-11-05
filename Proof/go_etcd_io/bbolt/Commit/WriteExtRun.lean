@@ -92,7 +92,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   icases Hcore' with ⟨#Hdbl, #Ht0, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, #Hsl, #Hpi, #Hti⟩
   iunfold dbFixed at Hfix
   icases Hfix with ⟨#Hps, #Hsp, ⟨%lg, #Hlg, #Hlgok⟩, -, -, -, ⟨%ns, #Hns⟩, -, -, -, -, -, -, -, -, -,
-    -, ⟨%pf, #Hpool, -⟩, -⟩
+    -, ⟨%pf, #HisPool, -⟩, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
@@ -881,8 +881,10 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
               fun h => Bool.false_ne_true (GoGlobalContext.intoVal_inj_bool h))]
             try simp only [Bool.false_eq_true, ↓reduceIte]
             try wp_auto
-            wp_apply sync.Pool.wp_Put _ pf pageBuf _ $$ [Hbuf]
+            wp_apply sync.Pool.wp_Put _ pf (poolR _ _ iprop(True)) pageBuf _ $$ [Hbuf]
             · iframe #
+              isplitr
+              · iapply HisPool
               unfold pageBuf
               iexists _
               iframe
