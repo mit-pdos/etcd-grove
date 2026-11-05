@@ -434,7 +434,7 @@ theorem wp_openLogExisting (d k : GoString) (dq : DFrac) (g : DirG)
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d logB))) (Val #(W64 66))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ⌜mo ≠ none⌝ ∗ osDir d dq g ∗
         osMeta k dqm mo ∗ osNsBusy false ∗
-        ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d logB) (DFrac.own 1) ∗
+        ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d logB) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗ osFd fd (DFrac.own 1) ⟨k, true, true⟩) ∨
          ⌜err ≠ interface.nil⌝) }} := by
   wp_start as ⟨#Hinv, Hd, Hm, Hz⟩
@@ -447,7 +447,7 @@ theorem wp_openLogExisting (d k : GoString) (dq : DFrac) (g : DirG)
   rw [show (W64 66 ||| W64 524288) = flCreat from by decide]
   wp_apply wp_osNsOpenCreatExisting d logB k dq g logB_ok hk dqm mo CoPset.subseteq_top
     $$ Hinv Hd Hm Hz as %fd %e %hmo %hres Hd Hm Hz Hfd
-  rcases hres with ⟨rfl, -⟩ | ⟨he0, rfl⟩
+  rcases hres with ⟨rfl, hfd0⟩ | ⟨he0, rfl⟩
   · rw [decide_eq_true (show (0 : w64) = W64 0 from rfl), if_pos rfl]
     wp_auto
     iStructNamed inner
@@ -464,7 +464,7 @@ theorem wp_openLogExisting (d k : GoString) (dq : DFrac) (g : DirG)
     iexists fd
     iframe Hfd
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, hfd0⟩
     unfold os.ownFile os.ownOff
     isplitr [off]
     · iexists inner_ptr
