@@ -1,8 +1,10 @@
 /-
-`Verify`'s proof (`internal/common/verify.go`): a stub. `getEnvVerify` is
-`strings.ToLower(os.Getenv(ENV_VERIFY))`: `os.Getenv` has a spec (`Spec/os/Getenv.lean`, a
-trust-boundary axiom, any `hlc` since 2026-11-04), but `strings.ToLower` is names-only in Perennial
-and has none (`notes/bbolt-proof-plan.md`, batch 7).
+`Verify`'s proof (`internal/common/verify.go`): a stub, because `Verify.spec` is false (final wave
+D): its precondition `WP f {{ _, Q }}` lets `f` panic (a WP's postcondition also receives
+`PanicV p`), and `Verify(f)` then panics when `BBOLT_VERIFY` asks for the check, where the spec
+promises `RET #()`. With `f`'s WP excluding a panic (`⌜v.isPanic = false⌝ ∗ Q`), it is proved:
+`Lemmas/VerifyNP.Verify.wp_proofNP` (over `os.Getenv`'s and `strings.ToLower`'s trust-boundary
+specs, `Spec/os/Getenv.lean`, `Spec/strings/ToLower.lean`); once the spec is corrected, this is it.
 -/
 module
 

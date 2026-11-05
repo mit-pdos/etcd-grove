@@ -87,12 +87,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 ### `strings.ToLower` has no spec (2026-11-04, bbolt's `internal/common`)
 
 - **Limitation.** `strings.ToLower` is names-only in Perennial, with no spec.
-- **Needed by.** bbolt's `common.Verify` (`getEnvVerify` is `strings.ToLower(os.Getenv(...))`),
-  whose proof is a stub (`Proof/go_etcd_io/bbolt/internal/common/Verify.lean`).
-- **Here.** Nothing yet (no local axiom added).
-- **Proposal.** Translate `strings.ToLower` in Perennial (pure Go; its ASCII fast path and
-  `unicode.ToLower` path), or a spec "returns some string".
-- **Status.** Not started.
+- **Needed by.** bbolt's `common.Verify` (`getEnvVerify` is `strings.ToLower(os.Getenv(...))`,
+  `IsVerificationEnabled` compares with `strings.ToLower(verification)`).
+- **Here.** (2026-11-05, bbolt final wave D, the user approved the new trust) a local
+  trust-boundary axiom, `Spec/strings/ToLower.lean` / `Proof/strings/ToLower.lean`:
+  `{{ True }} strings.ToLower s {{ (r : GoString), RET #r; True }}` (any `hlc`, like
+  `os.Getenv`'s): it returns, without panicking, some string. `Verify` is proved over it and
+  `os.Getenv`'s (`Proof/go_etcd_io/bbolt/internal/common/Lemmas/VerifyNP.lean`).
+- **Proposal.** Perennial provides a translated or specified `strings.ToLower` (pure Go; its ASCII
+  fast path and its `strings.Map(unicode.ToLower, s)` path), at least "returns some string"; then
+  drop the local axiom.
+- **Status.** Not started in Perennial; local axiom in place.
 
 ### `wp_load`/`wp_store` through a whole-struct points-to (2026-11-04, bbolt's `internal/common`, U1)
 
