@@ -37,6 +37,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+open mvcc.api (MvccReachable)
 
 section pure
 variable [GooseExts]
@@ -183,7 +184,7 @@ theorem adminKindOk_nonwrite (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
 /-- **The mode-`on` model's log after an entry is within the revision budget** (`kvEntry_len`'s,
 with `entryOkOn`: an admin request writes nothing). -/
 theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x : apply.ApplyKV)
-    (m : EntryModel) (hok : entryOkOn x m) (hl : x.log.length < 2 ^ 63) :
+    (m : EntryModel) (hok : entryOkOn x m) (hl : x.log.length + 3 ≤ 2 ^ 63) :
     (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
   have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
@@ -191,16 +192,16 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
     · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
     · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]
-      exact hl
+      omega
   unfold kvEntryOn
   split
   · split
     · split
-      · exact hl
+      · simp only; omega
       · split
-        · exact hl
+        · simp only; omega
         · exact hk
-    · exact hl
+    · simp only; omega
   · exact hk
 
 /-- The inner chain with auth on (quota over the backend) never answers the auth layer's
@@ -447,11 +448,14 @@ theorem kvApplied_nextOn (γr : ReadNames) (A : List EntryModel) (m : EntryModel
     rw [← Hl]
 
 /-- **The certificates `apply.Apply` asks of a request that writes nothing** (a cluster request,
-`kv_certPre`'s): every outcome leaves the log, which is certified. -/
-theorem kv_certPre_keep (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok)
+`kv_certPre`'s): every outcome leaves the log, which has the mode's raft witness (strict M1,
+2026-11-06: `kvNxOn`, which `srvKVInvsOn` ties `E.Nx` to; until then `kvCert` and mvcc's
+`certOk`). -/
+theorem kv_certPre_keep (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
+    (st₀ : auth.AuthState) (hNx : E.Nx = kvNxOn γ γk st₀)
     (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log) (hp : plainCover rq)
     (hw : ¬ writeKind (apply.dispatchKind rq)) :
-    kvCert (GF := GF) γk log ⊢ apply.certPre E c rq log := by
+    kvNxOn (GF := GF) γ γk st₀ log ⊢ apply.certPre E c rq log := by
   iintro #Hc
   unfold apply.certPre
   imodintro
@@ -460,8 +464,8 @@ theorem kv_certPre_keep (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γ
     rcases chainStep_plain [] c rq log oc hp hs with h | ⟨h, -⟩
     · rw [h, chainLog_nonwrite rq [] log hw c]
     · exact h
-  rw [hl]
-  iapply kvCert_certOk γk E.γ hγ $$ Hc
+  rw [hl, hNx]
+  iexact Hc
 
 /-- `kvAppliedLOn`'s certificate and model equation. -/
 theorem kvAppliedLOn_cert (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
@@ -517,11 +521,12 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The apply thread's auth row with auth on, opened** (see the file header). -/
 theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
     (st : auth.AuthState) (hM : E.authMode = .on γa) :
-    srvAuthApplyResB (GF := GF) s E st ⊢ ∃ (stl bel : Loc) (T : IProp GF) (hs : List auth.AuthState),
+    srvAuthApplyResB (GF := GF) s E st ⊢ ∃ (stl bel : Loc) (T Pk : IProp GF)
+      (hs : List auth.AuthState), ⌜E.Pk = fun _ => Pk⌝ ∗
       srvAuthStoreAddr s ↦□ auth.authIface stl ∗ roLendsAuthBe E.RO stl bel ∗
-      authWBackendAt bel (.on γa) E.P E.f T ∗
-      apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) E.RD ∗
+      authWBackendAt bel (.on γa) Pk E.f T ∗
+      apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
+        (adminW stl bel (.on γa) Pk E.f T) E.RD ∗
       auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝ ∗ T ∗
       auth.tpAdmin stl (.on γa) ∗
       (∀ (hs' : List auth.AuthState) (st' : auth.AuthState), auth.authOwnFu γa hs' -∗
@@ -529,21 +534,25 @@ theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
         auth.tpAdmin stl (.on γa) -∗ srvAuthApplyResB s E st') := by
   iintro HR
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl, %bel, #Hf, HB, #Hlens, #Hro⟩
-  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel E.P E.f E.RD =
-      authApplyResB (GF := GF) (.on γa) stl st' bel E.P E.f E.RD := by intro; rw [hM]
+  icases HR with ⟨%stl, %bel, %Pk, %HPk, #Hf, HB, #Hlens, #Hro⟩
+  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel Pk E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st' bel Pk E.f E.RD := by intro; rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
   iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hwa, #Hsteps⟩
-  iexists stl, bel, T, hs
+  iexists stl, bel, T, Pk, hs
   iframe Hf Hro Hwa Hsteps Ho HX HT Htp
+  isplitr
+  · ipureintro; exact HPk
   isplitr
   · ipureintro; exact Hl
   iintro %hs' %st' Ho' HX' %Hl' HT' Htp'
   iunfold srvAuthApplyResB
-  iexists stl, bel
+  iexists stl, bel, Pk
   iframe Hf Hlens Hro
+  isplitr
+  · ipureintro; exact HPk
   rw [hB]
   unfold authApplyResB
   iexists hs', P0, f0, T, be
@@ -558,7 +567,7 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
     srvUberBase (GF := GF) s ua E ⊢ srvAuthApplyResB s E st ={⊤}=∗
       srvAuthApplyResB s E st ∗ authPubAt E.authMode st := by
   iintro #Hb HAR
-  icases srvAuthApplyResB_open s E γa st hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hf, #Hro, #Hwa,
+  icases srvAuthApplyResB_open s E γa st hM $$ HAR with ⟨%stl, %bel, %T, %Pk, %hs, -, #Hf, #Hro, #Hwa,
     #Hsteps, Hfu, Ht, %Hl, HT, Htp, Hclose⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, -, -, -, %stl', %Hau, #HPub, -⟩
@@ -631,12 +640,12 @@ theorem srv_uberAuthStepsL_at
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames) (stl bel : Loc)
-    (T : IProp GF) (hM : E.authMode = .on γa) :
+    (T Pk : IProp GF) (hM : E.authMode = .on γa) (hPk : E.Pk = fun _ => Pk) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-      apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
-      apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+      apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
+        (adminW stl bel (.on γa) Pk E.f T) E.RD ⊢
+      apply.uberAuthStepsL ua E (adminW stl bel (.on γa) Pk E.f T)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
         (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, #Hf, #Hsteps⟩
@@ -650,24 +659,26 @@ theorem srv_uberAuthStepsL_at
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
     rw [hM]; rfl
   iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
-    le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) E.P E.f T) (auth.latestRes stl (.on γa)))
+    le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) Pk E.f T) (auth.latestRes stl (.on γa)))
   iframe Hpkg Hub
   isplitr
   · rw [← hL]; iexact HL
-  rw [hM]
+  rw [hM, hPk]
+  iintro !> %B
   iexact Hsteps
 
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `srvApplyKVOn`'s log certificate and chain mode (`srvApplyKV_idxCert`'s, `applyKV_authOn`). -/
-theorem srvApplyKVOn_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+/-- `srvApplyKVOn`'s chain mode (`applyKV_authOn`). (Strict M1, 2026-11-06: until then with the
+sole writer's certificate of its log, `srvApplyKVOn_idxCert`; the writer's facts are
+`srvApplyKVOn_writer`'s.) -/
+theorem srvApplyKVOn_authOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) :
-    srvApplyKVOn (GF := GF) s E γw x st ⊢ srvApplyKVOn s E γw x st ∗ mvcc.idxCert E.γ.idx x.log ∗
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ srvApplyKVOn s E γw x st ∗
       ⌜x.chain.authOn = E.authOn⌝ := by
   iintro H
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hw⟩
-  icases applyKV_idxCert E ua x $$ Hkv with ⟨Hkv, #Hc⟩
   ihave ⟨Hkv, %Ha⟩ := applyKV_authOn E ua x $$ Hkv
   isplitl [Hua Hkv Hw]
   · iunfold srvApplyKVOn
@@ -681,9 +692,50 @@ theorem srvApplyKVOn_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : ap
     isplitl [Hkv]
     · iexact Hkv
     iexact Hw
-  iframe Hc
   ipureintro; exact Ha
 
+/-- **The apply thread's writer facts, with auth on** (`srvApplyKV_writer`'s, at `srvKVInvsOn`). -/
+theorem srvApplyKVOn_writer [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvKVInvsOn E γr st₀ ⊢ srvApplyKVOn s E γw x st ={⊤}=∗ srvApplyKVOn s E γw x st ∗
+      srvApi.kvLogLb E.γs x.log ∗ E.Nx x.log ∗ ⧖ (mvcc.logCh x.log) ∗
+      ⌜∃ c, MvccReachable (srvApi.stAt x.log c) ∧ x.log.length + 3 ≤ 2 ^ 63⌝ := by
+  iintro #Hk H
+  iunfold srvKVInvsOn at Hk
+  icases Hk with ⟨-, -, -, -, #Hs, %Hwit, -⟩
+  obtain ⟨h1, h2, h3, h4⟩ := Hwit
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hrest⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp', Ho, Hk, Hc⟩
+  iunfold apply.kvOwn at Hk
+  icases Hk with ⟨⟨%c, Hw⟩, Hk⟩
+  imod srvApi.writer_facts E.Nx E.Cp Hp Hr E.kv E.γ E.γs x.log c $$ Hs Hw with ⟨Hw, #Hlb, #Hnx, #Hrc, %Hre⟩
+  imodintro
+  iframe Hlb Hnx Hrc
+  isplitl
+  · iunfold srvApplyKVOn
+    iexists ua
+    isplitl [Hua]
+    · iexact Hua
+    isplitr
+    · iexact Hb
+    isplitr
+    · iexact Hap
+    isplitl [Ho Hc Hk Hw]
+    · iunfold apply.applyKV
+      iexists p
+      iframe Ho Hc
+      isplitr
+      · ipureintro; exact Hp'
+      iunfold apply.kvOwn
+      iframe Hk
+      iexists c
+      iframe Hw
+    · iexact Hrest
+  · ipureintro; exact ⟨c, Hre⟩
 
 /-- `srvApplyKVOn`'s backend ownership, lent (`srvApplyKV_beOwn`'s). -/
 theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
@@ -713,7 +765,7 @@ theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
 theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) (n : Nat) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
-      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
+      srvWT E ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
   iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
@@ -724,44 +776,46 @@ theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : 
   ihave HKV := HKV $$ Hbo
   imodintro
   iframe HKV Hlb
-  iapply storeWT_of_wbTok E.γ d Hd $$ Ht
+  iunfold srvWT
+  iexists d
+  iunfold apply.bkWT
+  iframe Ht
+  ipureintro; exact Hd
 
 /-- **The apply thread's KV log is small, with auth on** (`srvApplyKV_small`'s). -/
-theorem srvApplyKVOn_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
-    (st : auth.AuthState) :
-    srvApplyKVOn (GF := GF) s E γw x st ⊢
+theorem srvApplyKVOn_small [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (Hp : mvcc.api.persistent.law (GF := GF)) (Hr : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hrb : receiptBound GF ≤ 2 ^ 48)
+    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    srvKVInvsOn E γr st₀ ⊢ srvApplyKVOn s E γw x st ={⊤}=∗
       ⌜x.log.length ≤ mvcc.logCh x.log + 2 ∧ mvcc.logCh x.log < 2 ^ 48⌝ ∗
         srvApplyKVOn s E γw x st := by
-  apply persistent_entails_right
-  iintro H
-  iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, -, -, -, Hkv, -⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, -, -, Hk, -⟩
-  iunfold apply.kvOwn at Hk
-  icases Hk with ⟨-, Hsw, -⟩
-  iunfold txn.kvWriter at Hsw
-  icases Hsw with ⟨Hsw, -⟩
-  iapply txn.soleWriter_small' $$ Hsw
+  iintro #Hk H
+  imod srvApplyKVOn_writer Hp Hr s E γr st₀ γw x st $$ Hk H with ⟨H, -, -, #Hrc, %Hre⟩
+  ihave %Hlt := preceipt_lt _ $$ Hrc
+  iframe H
+  imodintro
+  ipureintro
+  obtain ⟨c, hre, -⟩ := Hre
+  have := (srvApi.reach_len_logCh _ hre).1
+  simp only [srvApi.stAt] at this
+  omega
 
-/-- `srvApplyKVOn_ua_rt` with the current backend's reader pool lent too (2026-11-02, the
-backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). -/
+/-- **The uber-applier, the current backend's reader pool and the apply thread's reader token,
+lent, with auth on** (`srvApplyKV_ua_rt_pool`'s, for `applyConfChange`). -/
 theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) :
-    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.KBReal), ⌜E.γ.kb = some d⌝ ∗
-      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      backend.bkRPool d.γB d.P d.be ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ backend.bkRPool d.γB d.P d.be -∗
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
+      backend.bkRPool d.γB d.P d.b ∗ srvBeRO d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.b -∗
         srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
   icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
-  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hrt, Hbo⟩
   iexists ua, d
   iframe Hua Hrt Hpl Hbro
   isplitr
@@ -769,8 +823,7 @@ theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x :
   isplitr
   · iexact Hap
   iintro Hua Hrt Hpl
-  ihave Hwo := Hwo $$ Hrt
-  ihave Hbo := Hbo $$ Hpl
+  ihave Hbo := Hbo $$ Hpl Hrt
   iunfold srvApplyKVOn
   iexists ua
   isplitl [Hua]
@@ -779,59 +832,28 @@ theorem srvApplyKVOn_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x :
   · iexact Hb
   isplitr
   · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
+  isplitl [Hkv]
+  · iexact Hkv
   isplitl [Hbo]
   · iexact Hbo
   iexact Hrest
 
-/-- **The uber-applier and the store's reader's token, lent, with auth on** (`srvApplyKV_ua_rt`'s,
-for `applyConfChange`). -/
+/-- **The uber-applier and the apply thread's reader token, lent, with auth on**
+(`srvApplyKV_ua_rt`'s). -/
 theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) :
-    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗
-      apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
-      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ srvApplyKVOn s E γw x st) := by
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ srvApplyKVOn s E γw x st) := by
   iintro H
-  iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
-  iunfold apply.applyKV at Hkv
-  icases Hkv with ⟨%p, %Hp, Hu, Ho, Hco⟩
-  iunfold apply.kvOwn at Ho
-  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
-  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
-  iexists ua
-  iframe Hua Hrt
+  icases srvApplyKVOn_ua_rt_pool s E γw x st $$ H with ⟨%ua, %d, %Hd, Hua, #Hap, Hrt, Hpl, -, Hk⟩
+  iexists ua, d
+  iframe Hua Hap Hrt
   isplitr
-  · iexact Hap
+  · ipureintro; exact Hd
   iintro Hua Hrt
-  ihave Hwo := Hwo $$ Hrt
-  iunfold srvApplyKVOn
-  iexists ua
-  isplitl [Hua]
-  · iexact Hua
-  isplitr
-  · iexact Hb
-  isplitr
-  · iexact Hap
-  isplitl [Hu Hsr Hsw Hll Hrd Hwo Hco]
-  · iunfold apply.applyKV
-    iexists p
-    iframe Hu
-    isplitr
-    · ipureintro; exact Hp
-    iunfold apply.kvOwn
-    iframe
-  isplitl [Hbo]
-  · iexact Hbo
-  iexact Hrest
-
+  iapply Hk $$ Hua Hrt Hpl
 
 /-- **The mode-`on` row lends its part shared with the mode-off row** (`srvApplyKV_core`'s; E3p, for
 `snapshot`). -/

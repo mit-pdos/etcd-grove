@@ -69,10 +69,10 @@ theorem srvUberOn_of_kit (hk : uberKitM (GF := GF) (hG := hG) true) (s : Loc) :
     iframe Hf
     iapply apply.uberKVC_of hK
     iframe Hpkg HL
-  · iintro %stl %bel %T #Hf #Hsteps
+  · iintro %stl %bel %T %Pk %hPk #Hf #Hsteps
     iapply apply.uberAdmC_of hAd
     iframe Hpkg
-    iapply srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAu hApplyL hApply s ua E γa stl bel T hM
+    iapply srv_uberAuthStepsL_at hUA hRA hUGR hRGP hAE hAu hApplyL hApply s ua E γa stl bel T Pk hM hPk
     iframe Hpkg Hb Hf Hsteps
 
 end kit
