@@ -5562,7 +5562,8 @@ unchecked at first). Needs from the client proof: `Range`'s error identity (`Err
 
 ## bbolt: every public triple proved and linked (2026-11-05, branch `worktree-bbolt-v2`)
 
-Every frozen public triple of bbolt (`Spec/go_etcd_io/bbolt/Api.lean`: `Open`, `Close`, `Begin`,
+Every frozen public triple of bbolt (the one-function specs `Spec/go_etcd_io/bbolt/<T>__<M>.lean`,
+over `Api.lean`'s sealed predicates and laws: `Open`, `Close`, `Begin`,
 `Commit`, `Rollback`, `Tx.Bucket`, `CreateBucket(IfNotExists)`, `DeleteBucket`, `Bucket.Get`, `Put`,
 `Delete`, `Cursor`, the cursor's `First`/`Last`/`Next`/`Seek`/`Prev`, `Info`, `Stats`) is proved, with no `sorry` in `Proof/go_etcd_io/bbolt` or
 `Spec/go_etcd_io/bbolt`, and linked: `Proof/go_etcd_io/bbolt/Link.lean` (`etc/gen-link.py --bbolt`,
@@ -5585,7 +5586,7 @@ New trust since the API spec, all user-approved: `strings.ToLower` (returns some
 axioms `Proof/{strings/ToLower,sort/SliceIsSorted,reflect/DeepEqual}.lean`,
 `notes/perennial-changes.md`), and `fmt.Errorf`'s post with `IsPointerError`. Spec decisions made
 while proving (D-H to D-M) are in `notes/bbolt-spec-decisions.md`; where the proof stands and what
-is left, `notes/bbolt-coordinator-handoff.md`. Next: the concurrent bbolt test over `Api.lean`, the
+is left, `notes/bbolt-coordinator-handoff.md`. Next: the concurrent bbolt test over those spec files, the
 backend switch (etcd's backend off the `_kv` axioms), the merge into `lean` with the Perennial
 catch-up.
 

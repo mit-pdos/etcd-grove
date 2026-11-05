@@ -96,7 +96,9 @@ stand, what is left, and how to work in this tree without breaking it.
    are regenerated and the TCB baseline updated. Ask the user before updating the baseline if any
    axiom appears that is not on the list above.
 2. **The concurrent bbolt test** is the top-level goal. Find it on etcd-grove `lean`; the other agent
-   adds it under `examples/`. Prove it against `Spec/go_etcd_io/bbolt/Api.lean`'s triples, with an
+   adds it under `examples/`. Prove it against the one-function specs (`Spec/go_etcd_io/bbolt/<T>__<M>.lean`, e.g.
+   `Bucket__Get.lean`, the importable list `etc/api/bbolt.txt`), taken as callee specs and linked
+   to bbolt's results; `Api.lean` holds only the sealed predicates and their laws. With an
    adequacy theorem.
 3. **The backend switch.** etcd's backend proofs still rest on the old bbolt `_kv` axioms. Derive
    those as corollaries of the new triples, then delete the axioms. The trust baseline then drops.
