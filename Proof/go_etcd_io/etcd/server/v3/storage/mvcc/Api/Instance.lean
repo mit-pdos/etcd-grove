@@ -131,9 +131,10 @@ theorem writerInv_thaw (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.ap
   iunfold writerInvBody at HP
   icases HP with (⟨%p, %o', Hc, HP⟩ | ⟨-, -, -, Hfz'⟩)
   rotate_left 1
-  · icases (slotFl_some h 1 false).1 $$ Hfz' with Hfz'
-    ihave %Hv := ghostVar_valid_2 a.frz false 1 true (1 : Qp).half $$ Hfz' Hfz
-    exact absurd Hv.1 (Qp_one_add_not_le _)
+  · -- the restoring state's half of the flag is down (track A, the coordinator's (b))
+    icases (slotFl_some h _ false).1 $$ Hfz' with Hfz'
+    ihave %Hv := ghostVar_agree a.frz false _ true _ $$ Hfz' Hfz
+    cases Hv
   ihave %Hv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hv

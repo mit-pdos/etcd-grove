@@ -3657,7 +3657,10 @@ state, which it moves to the new backend and index, is `Restore`'s (`restore_tak
 `restore_finish`). (S6) Checked in
 with the backend's registration
 (`writerReg`: pending after a restore), checked out with the store registered (`storeRegd`, until
-S6 in `physOk`: a restored backend is registered only at its first writer's lock). -/
+S6 in `physOk`: a restored backend is registered only at its first writer's lock). (Track A,
+2026-11-06, the coordinator's (b)) The restoring state holds half the frozen flag down; the restorer
+keeps the other half from the takeover to the finish, where it excludes a frozen state (`slotFl ½
+true`) and rejoins the flag whole for the checked-in state. -/
 def writerInvBody (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop((∃ (p : PhysNames) (o : StoreObjs),
     curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
@@ -3666,7 +3669,7 @@ def writerInvBody (s : Loc) (γ : StoreNames) : IProp GF :=
           writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))) ∨
       slotFl γ (1 : Qp).half true ∗ slotF γ)) ∨
     ghostVar γ.wr 1 () ∗ (∃ h : List HistItem, monoListAuthOwn γ.idx.hist (1 : Qp).half h) ∗
-      slotFr γ ∗ slotFl γ 1 false)
+      slotFr γ ∗ slotFl γ (1 : Qp).half false)
 
 /-- The writer's invariant (`writerInvBody`). -/
 def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
@@ -5717,7 +5720,9 @@ M2's item 37), both halves of the view's log ghost, the revision token the trans
 transaction's tokens (with its slot of the index's lock, out of the readers' pool): `s.mu` held shared at the compaction revision `crev` the
 transaction observed (one of `ilog`'s revisions, or `-1`), and the reader's tag `Z` (persistent,
 given back at `End`). By default the frozen transaction (`crev = -1`, `Z = crevFrozen γ`: a store
-never compacted, as the packages above mvcc state it; 2026-10-13, unit 6a). -/
+never compacted, as the packages above mvcc state it; 2026-10-13, unit 6a). (M4, track B,
+2026-11-06) The batch lock's invariant by the store's name of it (`hookP`), not the hook's facts: a
+store without a hook has none (`store.Write`'s nil arm). -/
 def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (crev : Int) (Z : IProp GF := iprop(True)) (ld : Bool := false) : IProp GF :=
   iprop(∃ (ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (chs : GoSlice)
@@ -5735,7 +5740,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "%Hps" ∷ ⌜ps.length = pend.length⌝ ∗
     "Hkvs" ∷ changesAre ps ilog pend ∗
     "#Hs" ∷ isStore s γ ∗
-    "#Hhook" ∷ hookOk γ Pw fw ∗
+    "#Hhook" ∷ hookP γ Pw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMWv γ.kb γ.bucket) ∗
     "#HbtB" ∷ storeBt γ bt ∗
@@ -5782,7 +5787,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
     "%Hps" ∷ ⌜ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
     "#Hs" ∷ isStore s γ ∗
-    "#Hhook" ∷ hookOk γ Pw fw ∗
+    "#Hhook" ∷ hookP γ Pw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMWv γ.kb γ.bucket) ∗
     "#HbtB" ∷ storeBt γ bt ∗

@@ -24,7 +24,9 @@ step, `cmpCb`, inside `SetScheduledCompact`'s loan, with the writer's state foun
 frozen and restoring states excluded by the caller's share, `KV.Compact.contract`, 2026-11-06).
 `snapObs_M1` (the frozen store's part of a snapshot's observation) is gone:
 `mvccImage_snapshot.law_holds` is proved. `wsSlot_make_M1` (the watchable store's lock's slot) is
-gone: `newWatchableStore` makes it from the client's parts `NewStore` returns (track A, 2026-11-06). `hookNilRO_M1` (2026-11-06) is gone: §4.8, a store without
+gone: `newWatchableStore` makes it from the client's parts `NewStore` returns (track A, 2026-11-06). `wcrRestore_M1`
+(track B's, 2026-11-06) is gone: `store.Restore` moves `s.mu`'s and the old writer's halves to the
+restored compaction revision (track A). `hookNilRO_M1` (2026-11-06) is gone: §4.8, a store without
 a hook (`batchTxSpecG`'s nil-hook clause at any share of the hook at `nil`, `kbHookNilAt`).
 -/
 module
@@ -55,14 +57,6 @@ M1-REPLACE: `KV.Write.contract` (the writer's backend share, `mvccBackend γ q`,
 compaction, `compactLockfree`'s excluder: the restorer's share). -/
 theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢ False := by
   sorry -- M1-REPLACE: KV.Write.contract, KV.Restore.contract (the backend share)
-
-/-- **(Placeholder, false in general.)** A share of the writer's and `s.mu`'s compaction revision
-(`api.AbsNames.wcr`, M4 track B, 2026-11-06) made from nothing, at the restored compaction revision.
-M1-REPLACE: `KV.Restore.contract` (`store.Restore` moves the old halves, `s.mu`'s from its `muInvAt`
-and the writer's from the old writer's `slotY`, to `r.crev` with `api.wcrPart_update`; the hand-off,
-"the writer's compaction revision tied to `s.mu`'s"). -/
-theorem wcrRestore_M1 (a : api.AbsNames) (q : Qp) (c : Int) : ⊢ api.wcrPart (GF := GF) a q c := by
-  sorry -- M1-REPLACE: KV.Restore.contract (the compaction revision's ghost moved by Restore)
 
 end placeholders
 

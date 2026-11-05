@@ -130,7 +130,8 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
       dghostVar γ.rst (DFrac.own 1) false ∗ curAt γ (DFrac.own (1 : Qp).half) o ∗
       curAt γ (DFrac.own (1 : Qp).half.half.half) o ∗ curAt γ (DFrac.own (1 : Qp).half.half.half) o ∗
       crevUB γ.idx (1 : Qp).half.half c ∗ restoreHeld γ L' c ∗
-      monoListLbOwn γ.idx.hist (histShape L' []) := by
+      monoListLbOwn γ.idx.hist (histShape L' []) ∗
+      slotFl γ (1 : Qp).half false ∗ (∃ cw : Int, api.wcrPart γ.api (1 : Qp).half cw) := by
   iintro Hlc #Hwi HR Hrst Hcur Hwr #HcL Hrv HlogQ Hcrev Hcmp
   -- `s.revMu`'s body, at the current names
   icases revMuInv_open_cur s γ 1 _ _ o $$ [HR Hrst Hcur] with ⟨HB, HT, Hrst, Hcur⟩
@@ -170,6 +171,9 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   iNamed HL
   iunfold idxWriter at Hw
   icases Hw with ⟨Hhist, -, %Hwf, Hlw, -⟩
+  -- (track A) the writer's half of its compaction revision's ghost, for the restorer
+  iunfold slotY at HY
+  icases HY with ⟨%cw, -, -, -, Hwc⟩
   -- the committed log is the writer's, and the caller's certified log
   icases ghostVar_join_halves γ.clog log ilog $$ [HclogB Hclog] with ⟨Hclog, %Hlog⟩
   · iframe HclogB Hclog
@@ -222,13 +226,20 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
     (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hh
   icases hh.1 $$ Hhist with ⟨Hhist, HhistI⟩
+  -- (track A, the coordinator's (b)) the frozen flag split: half into the restoring state, half kept
+  iunfold slotFl at Hfz
+  icases ghostVar_halves γ.api.frz _ $$ Hfz with ⟨Hfz, HfzK⟩
+  ihave Hfz : slotFl (GF := GF) γ (1 : Qp).half false $$ [Hfz]
+  · iunfold slotFl; iexact Hfz
+  ihave HfzK : slotFl (GF := GF) γ (1 : Qp).half false $$ [HfzK]
+  · iunfold slotFl; iexact HfzK
   imod Hclose $$ [Hwr HhistI Hfz] with -
   · inext; iunfold writerInvBody; iright; iframe Hwr Hfz
     isplitl [HhistI]
     · iexists _; iexact HhistI
     exact sorry -- M1-REPLACE: KV.Restore.contract (the restorer's deposit: its whole share token)
   imodintro
-  iframe Hcm Hrst Hcur Hcur2 Hc HcrevB
+  iframe Hcm Hrst Hcur Hcur2 Hc HcrevB HfzK
   isplitl [Hcr]
   · iexists _; iexact Hcr
   isplitl [Hclog Hla Htoks Hcrev Hlrd Hhist]
@@ -236,8 +247,10 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
     simp only [named]
     iframe Hclog Hla Htoks Hcrev Hlrd Hhist
     iframe #
-  rw [histShape_nil]
-  iexact Hhlb
+  isplitr [Hwc]
+  · rw [histShape_nil]
+    iexact Hhlb
+  iexists cw; iexact Hwc
 
 /-- `a + b` copies of `P`, in two parts. -/
 theorem rep_split (P : IProp GF) (a b : Nat) :
@@ -503,8 +516,9 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
         IProp GF) -∗ ⧖ (logCh L') -∗ monoNatLbOwn p'.nev (evsOf (L' ++ [[]])).length -∗
       ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗
       bucketViewL (γ.withPhys p') (1 : Qp).half.half.half L' -∗ compactRes (γ.withPhys p') L' -∗
-      kbRegRight p'.kb ={⊤}=∗ ghostVar γ.wr 1 () ∗ idxCert γ.idx L' ∗ writerReg s (γ.withPhys p') := by
-  iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hrr
+      kbRegRight p'.kb -∗ slotFl γ (1 : Qp).half false ={⊤}=∗
+      ghostVar γ.wr 1 () ∗ idxCert γ.idx L' ∗ writerReg s (γ.withPhys p') := by
+  iintro Hlc #Hwi Hc Hw Hcur #Hrc #Hnv Hwk Hwv Hbv Hcres Hrr HfzK
   iunfold restoreWriter at Hw
   icases Hw with ⟨%ntok, Hw⟩
   iNamed Hw
@@ -520,7 +534,10 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
     obtain ⟨rfl, rfl⟩ := Hv
     icases HP with (⟨-, (⟨HL, -⟩ | ⟨Hk, -, -⟩)⟩ | ⟨Hfz, -⟩)
     rotate_left 2
-    · exact sorry -- M1-REPLACE: KV.Restore.contract (the finish excludes the frozen state)
+    · -- (track A, the coordinator's (b)) the restorer's half of the flag is down
+      iunfold slotFl at Hfz HfzK
+      ihave %Hv := ghostVar_agree γ.api.frz true _ false _ $$ Hfz HfzK
+      cases Hv
     · iunfold writerL at HL
       icases HL with ⟨%l, %n, HL⟩
       iNamedSuffix HL "2"
@@ -531,7 +548,13 @@ theorem restore_finish (s : Loc) (γ : StoreNames) (o' : StoreObjs) (p' : PhysNa
       simp only [StoreNames.withPhys_wk]
       ihave %Hv := ghostVar_valid_2 p.wk () 1 () 1 $$ Hwk Hk
       exact absurd Hv.1 (Qp_one_add_not_le _)
-  -- the restoring state: the history's authority is at `L'`
+  -- the restoring state: the frozen flag whole again (its half and the restorer's), the history's
+  -- authority at `L'`
+  iunfold slotFl at Hfl HfzK
+  icases ghostVar_join_halves γ.api.frz false false $$ [Hfl HfzK] with ⟨Hfl, -⟩
+  · iframe Hfl HfzK
+  ihave Hfl : slotFl (GF := GF) γ 1 false $$ [Hfl]
+  · iunfold slotFl; iexact Hfl
   ihave %Hh := monoListAuthOwn_agree γ.idx.hist _ _ _ _ $$ Hh Hhist
   obtain ⟨-, rfl⟩ := Hh
   have hh := (monoListAuthOwn_fractional (GF := GF) γ.idx.hist (histOf L')).fractional

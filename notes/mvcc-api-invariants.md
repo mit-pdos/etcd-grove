@@ -1729,3 +1729,17 @@ follows from the transaction's `slotY` and `muHeld` (`wcrPart_agree`).
 4. `stateOk` of the read states (`Txn.Range`, `KV.Range`): not proved anywhere in mvcc yet (pure:
    every live key-value's revisions and version positive and below the receipt bound, the state at
    most `logCh` entries).
+
+**Applied (2026-11-06, after track B's `96917c82cb`):**
+- **The coordinator's (b)**: `writerInvBody`'s restoring arm holds `slotFl γ ½ false` (`InvStore`);
+  `restore_takeover` splits the checked-in state's flag and returns the restorer's half (and the old
+  writer's `wcrPart ½`, from its `slotY`); `restore_finish` takes the half, refutes the frozen arm by
+  `ghostVar_agree` (`false` against `true`) and rejoins the flag whole for the checked-in state. The
+  finish's placeholder is gone (four local ones left in `RestoreMoves`: the takeover's two, the
+  switch's slot step, the finish's writer slot). `Api/Instance.writerInv_thaw` refutes the restoring
+  arm by agreement too (its `½ true` against the arm's `½ false`). `slotFr` stays the whole token, so
+  `slotFr_share_excl` and `KV.Compact` are unchanged.
+- **Request 2**: `store.Restore` (both modes) joins `s.mu`'s `wcrPart ½` (its `muInvAt`) with the old
+  writer's and moves them to the restored compaction revision (`r.crev`; `-1` off), `s.mu`'s half
+  into the restored `muInvLag`/`muInvAt`; the writer's half is dropped until the finish's writer slot
+  placeholder goes (then into its `slotY`). `wcrRestore_M1` is gone.
