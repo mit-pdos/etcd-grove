@@ -51,8 +51,8 @@ def deleteOK (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) : 
     (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) ∧
     wrCurFacts (T.dropBkt n) X'
 
-/-- `node.del`'s inodes after a found key, as long as its entries (as `Write/DelWp.delAt_len`). -/
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
+/-- `node.del`'s inodes after a found key, as long as its entries (as `Write/DelWp.delAt_len`). -/
 theorem dbkDelAt_len (ins : List Inode) (ws : List WEntry) (kb : List w8)
     (hl : ins.length = ws.length) (hf : wsFound ws kb) :
     (ins.eraseIdx (wsIdx ws kb)).length = (wsDelAt ws kb).length := by
