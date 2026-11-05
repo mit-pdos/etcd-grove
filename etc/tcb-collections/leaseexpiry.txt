@@ -1,0 +1,13 @@
+# The closed lease-expiry example (2026-11-05, `notes/lease-expiry-plan.md`): one member whose
+# lessor revokes expired leases, a client's Grant(1), TimeToLive polled until not found, then
+# Leases(), which must not list the lease (examples/etcd/leaseexpiry). Its results: `Main` linked
+# (`etcd_leaseexpiry.wp_Main`, restated `leaseexpiry_Main`) and the closed theorem
+# (`etcd_leaseexpiry_adequate`/`_safe`). The trust base: the server's, v3rpc's and the client's, the
+# restated `EtcdServer.leaseTimeToLive` (E2 revision 5), and the `sorry`s `srvGrantOpen_open` and
+# `srvRevokeOpen_open` (the open cases of a granting and of a revoking cluster, until the plan's P1).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/leaseexpiry.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \b(etcd_leaseexpiry\.wp_Main|leaseexpiry_Main|etcd_leaseexpiry_adequate|etcd_leaseexpiry_safe)$

@@ -123,3 +123,16 @@ No first-tier finding: `nodeStartedFresh` holds of every node `StartNode` makes,
   node as a restart (`node.go:258-261`). Recorded in
   `nonissues/raft-startnode-nonempty-storage-silent-restart.md` (`blocks-proof: no`: etcd never
   does it, and `StartNode.spec` takes an empty storage).
+
+## Hub requests
+- **H-a (approved by the user, 2026-11-05, via etcd-grove-82):** `leaseTTLRow` is, for now, a
+  separate conjunct of the starters' postconditions that holds only on a first start (option (c)).
+  It moves into the lease slot with hub step 7.
+- **H-b (approved by the user, 2026-11-05, via etcd-grove-82):** the lease slot in `NewServer`
+  (binder `m : lease.Mode`, premise `lease.bootCfg`, postcondition `lease.srvInv`) is accepted.
+- `nodeStartedFresh` is a change to raft's API, not to a hub. Its review findings are in the
+  section above.
+- Landing goes only through `etc/land.sh`: after merging `lean`, and only once the coordinator says
+  go. Never fast-forward `lean` by hand, and never wrap `land.sh` in `flock`. The restart branch
+  `r2b3` is adding a sealed stop slot (`srvStop.keep`, `StopApi.lean`) next to the lease slot in
+  `NewServer`'s postcondition; whichever branch lands second resolves that conflict.
