@@ -6,13 +6,14 @@ predicates are definitions over raft's own (`Proof/go_etcd_io/raft/v3/InvNode.le
 node contract is to be discharged from raft's specs.
 
 - **The environment** `E : RNEnv` is what the node contract is stated over: `C L`, "`L` is a
-  prefix of the cluster's committed log"; `M m`, "raft may send the message `m`"; `T`, a tick's
-  resource (node.go's term-budget credit); and (2026-10-13, the request path's unit 4b) the read
+  prefix of the cluster's committed log"; `M m`, "raft may send the message `m`"; `T`, once a
+  tick's resource (node.go's term-budget credit), now unused and pinned to `True`; and (2026-10-13, the request path's unit 4b) the read
   names `γr` and the read-index registrations `RQ id n` (`ReadIndex` registered the request id
   `id` at a lower bound `n` of the committed index), which the read states a `Ready` carries
   answer (`srvReadStateOk`, `read/Inv.lean`). What the discharge needs of `E` is `rnEnvOk E γ`
-  (persistent, in `isRaftNode`): `E.T` a tick's resource (raft's tick credit until D19b; `True`
-  since, which `rnEnvOk` pins), `E.M` of a message raft handed out
+  (persistent, in `isRaftNode`): `E.T` is `True` (raft's tick credit until D19b; since then
+  nothing reads it: `raftNode.tick` takes its credit from a Go step of its own, and since 2026-11-05
+  the ticker's bag carries `True` itself, `isRNTicker`), `E.M` of a message raft handed out
   (with its read credit, D21 stage M1),
   `E.C` from the committed log (and back: the log prefix and the indices), `E.RQ` raft's read
   registration (`srvRQ`), and the names tied (`E.γr.raft.raft = γ.node`, ...).
@@ -33,7 +34,7 @@ node contract is to be discharged from raft's specs.
   the node's delivered log `L`.
 - **The other components** are persistent predicates of triples (the WAL, the
   `MemoryStorage`, the transport, the timeout detector, the ready handler's closures, the
-  ticker, whose ticks carry nothing: `E.T` until 2026-11-05, `True` since D19b), and the wrapper's fields are read-only after `start` but
+  ticker, whose ticks carry nothing, `True`: until 2026-11-05 its bag was `E.T`), and the wrapper's fields are read-only after `start` but
   `latestTickTs`, under `tickMu` (`rnTickInv`).
 -/
 module

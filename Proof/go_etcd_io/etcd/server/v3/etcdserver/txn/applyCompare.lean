@@ -119,7 +119,8 @@ theorem txn.applyCompare.wp_proof
     all_goals wp_auto
     all_goals first
       | (simp only [bne_self_eq_false, Bool.false_and]; iapply HΦ; iframe Htx; done)
-      | (ihave Hz := «$a1»
+      | (icases typedPointsto_not_null_dup _ _ _ $$ «$a1» with ⟨«$a1», %Ha1nn⟩
+         ihave Hz := «$a1»
          iStructNamedPrefix Hz "Z"
          ipersist ZKey
          ipersist ZCreateRevision
@@ -138,7 +139,8 @@ theorem txn.applyCompare.wp_proof
            isplitr; · iExactEq ZVersion; rfl
            isplitr; · iexact ZValue
            isplitr; · iexact Hnil
-           iExactEq ZLease; rfl
+           isplitr; · iExactEq ZLease; rfl
+           ipureintro; exact Ha1nn
          wp_apply (hKV c «$a1_ptr» cm (zeroKv [])) $$ [$Hc $Hz]
          have hz : cmpKv cm (zeroKv []) = cmpKv cm (zeroKv cm.key) := by
            unfold cmpKv zeroKv; rfl

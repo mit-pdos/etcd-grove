@@ -13,25 +13,27 @@ from `b` (`lg`, `heartbeat`, `raftStorage = b.storage`), the node, the WAL
 (`serverstorage.NewStorage(b.lg, wal, ss)`, a contract: `isRNWal`) and the closure `isIDRemoved`
 over `cl.IsIDRemoved` (a contract on the cluster: `isRNIDRemoved`).
 
-**The premises on `b.config`** are `StartNode.spec`'s (`NewRawNode`'s on a new cluster's
-config, the storage `b.storage` a fresh `MemoryStorage`: `NewMemoryStorage`'s `memStorEmpty`, as
-raft's `ownStorage (memStorIface ms)` under the `MemoryStorage` instance, which the composition
-holds with the registry; raft owns it from the call on). `PreVote` and `CheckQuorum` either way
-since 2026-10-17 (notes/STATUS.md, "Raft: CheckQuorum and PreVote on"; until then both were
-required `false`, D12: etcd's `raftConfig` sets both). The `InitialState` closure premise is `StartNode.spec`'s
-(D7's shape; a fresh `MemoryStorage`'s conf state is empty); since D17d (2026-10-18) it borrows the
-application's snapshot token (`memSnapTok`), which the call takes and gives back.
+**The premises** (2026-11-05, rewritten from the spec's text: the paragraphs they replace named the
+storage tokens, the `InitialState` closure and the static/dynamic boot tokens of before the node
+API's unified `StartNode.spec`): the configuration and the peers (`rnStartCfg`: the wrapper's
+logger, `NewRawNode`'s premises on `b.config` with `b.storage` its `MemoryStorage`, `PreVote` and
+`CheckQuorum` either way since 2026-10-17; the peers non-empty with their ids `ps`), a positive
+heartbeat (`newRaftNode`'s, a scope restriction), the WAL read (`NewStorage`'s contract); the
+receiver and `b.config`, the logger; the storage as `StartNode` boots it (`restartStorage` at the
+empty contents, the zero hard state and the empty conf state, with the frame `Q` its
+`InitialState`'s continuation gives at the storage's key: the server's from `srvMem_bootStorage`);
+the peers and their contexts; the cluster's allocation for this node, allocated before (raft's
+`cluster_alloc`): its boot token `nodeBoot`, its id vacant (`nodeVacant`) and its durable state at
+`RaftState.init` (`raftState`); and the contracts (`InvNodeStart.lean`).
 
-**The ghost state** is the cluster's, allocated before (2026-10-27: the node API's
-`cluster_alloc`/`dynamicCluster_alloc`): this node's boot token (`nodeBoot`/`nodeDynamicBoot`), the
-storage's certificate link (a static cluster) or its cap (a dynamic one), as `StartNode` takes them.
-
-**The post**: the node API's (`isNode`, `nodeDriver` at its start, in a dynamic cluster
-`nodeConfig` at the peers' membership), and the wrapper as `newRaftNode`
-leaves it (`rnBuilt`, over the config built here: the closure meets `isRNIDRemoved`, the WAL
-`isRNWal`; `transport` nil, owned) with the wrapper's names tied to the node's (`node`, `id`,
-`nl`, `ms = b.storage`, `γs`, `reg`, and `pre` the caller's). The receiver comes back at its
-fraction; the peers' slice does not (the node API's `StartNode` keeps it).
+**The post**: the node API's (`isNode`, `nodeDriver` at its start at the storage's key `γw.key`,
+`raftState` unchanged at `RaftState.init`, `nodeConfig` at the peers' membership, the whole
+running token `nodeRunning 1`), and the wrapper as `newRaftNode` leaves it (`rnBuilt`, over the
+config built here: the closure meets `isRNIDRemoved`, the storage `isWalStorage`, a `*storage`
+over `ss` and the WAL `wal`; `transport` nil) with the wrapper's names tied to the node's (`node`,
+`id`, `nl`, `ms = b.storage`, `γs`, the WAL's `wal`, and `pre` the caller's; `key` the storage's,
+which `StartNode` names). The receiver and the peers' slice come back at their fraction
+(`StartNode` only reads the peers), and the frame at the key, `Q γw.key`.
 -/
 module
 
@@ -63,29 +65,13 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   letI := srvStor (GF := GF) γr
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the pure premises, one conjunction (2026-11-05, the user's M1: until then the
-      -- configuration's, the peers' and the WAL's were implications before the triple; the
-      -- conjuncts in the order of `InvBoot`'s `Hraft`)
-      "%Hraft" ∷ ⌜
-        -- `newRaftNode`'s premises: (2026-11-03) a logger; (the final whole-`bootOk` review's
-        -- S2: until then the implication `heartbeat ≠ 0`) a positive heartbeat, a scope
-        -- restriction (2026-11-03 to 2026-11-05, the user's S1: also `E.T = iprop(True)`, ticks
-        -- carrying nothing, which `isRNTicker` now says)
-        bv.lg' ≠ null ∧ 0 < sint.Z bv.heartbeat' ∧
-        -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
-        -- `MemoryStorage`); `CheckQuorum` and `PreVote` either way since 2026-10-17
-        ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
-        cv.Storage' = memStorIface bv.storage' ∧
-        sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
-        cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
-        cv.DisableConfChangeValidation' = false ∧
-        (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-        cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
-        -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster's
-        -- voters
-        ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
-        (ps.length : Int) ≤ 2 ^ 62 ∧ cv.ID' ∈ ps ∧ γr.vs = ps ∧
-        -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
-        storage.walReady wal⌝ ∗
+      -- configuration's, the peers' and the WAL's were implications before the triple): the
+      -- configuration and the peers (`rnStartCfg`; 2026-11-05, the review's S: until then also the
+      -- peers distinct, non-zero, at most `2 ^ 62`, this node among them and the cluster's voters,
+      -- which nothing here uses), a positive heartbeat (`newRaftNode`'s: the final whole-`bootOk`
+      -- review's S2, a scope restriction), and (2026-10-31, `notes/axiom-review/savesnap.md`) the
+      -- WAL read (`NewStorage`'s contract)
+      "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧ storage.walReady wal⌝ ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
       -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the
@@ -130,9 +116,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗
-        -- (2026-10-27) the peers' slice not back: the node API's `StartNode` keeps it (proposed:
-        -- give it back, it only reads it)
-        b ↦{dq} bv ∗
+        -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
+        -- it gave it back) the peers' slice
+        b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
         -- (2026-10-30, the repair) the storage's frame (`InitialState` ran before the node's
         -- goroutine), at the storage's key (2026-11-01, durability stage II (l): the frame depends
         -- on the key, as `restartStorage`'s, so that the storage's invariant allocated at the key
