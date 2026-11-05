@@ -862,3 +862,13 @@ missing (`notes/mvcc-migration/mvccrand.md`, G1 and G2), both true by the defini
   compacted" ∗ errorsNewVar ErrFutureRev "mvcc: required revision is a future revision" ∗
   errorsNewVar ErrEmptyWatcherRange "mvcc: watcher range is empty"` (`mvccInit`'s facts, so a client's
   `err == ErrFutureRev` needs no debt module; `errVars.law_holds`, from `isPkgInit_access`).
+
+**`mvccReaderN`, a sealed-constant refinement, 2026-11-06: decided by the coordinator.** The sealed
+constant `mvccReaderN` (the bound on the store's threads in `New.spec`'s and `NewStore.spec`'s premise
+`threadBound GF ≤ mvccReaderN`) is `backend.rdStockN - 3`, no longer `backend.rdStockN` (track A,
+`ad3f837780`; `EtcdBackend.mvccReaderN_eq`). The statements are unchanged in text; the premise is
+slightly stronger. Why: the watchable store's handle holds a readers' pool (`threadPool.isThreadPool`,
+one copy for every thread but one), and of the backend's `rdStockN` counted reader slots three are
+held for good outside it (the two sync loops' and the compactor's, `mvccOpen`'s). The server
+(`threadBound ≤ 2 ^ 28`, `rdStockN = 805306367`) still meets it. Not taken: halving it for a second
+pool (one pool, shared by the watchable store and its inner store's handle).

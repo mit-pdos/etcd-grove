@@ -1610,3 +1610,26 @@ fits); and a persistent write-back supply is per backend instance (`kbWTSupplyM 
 `Restore` it is the new backend's: in the handle it must be at the current names (as `mvccOpen`'s
 is, under `p`), not at `γ.kb`. (2) the compaction revision's ghost at `Restore`'s switch: waits on
 track B's definition.
+
+**The coordinator's decisions (2026-11-06) and their status:**
+1. **`restore_finish`'s frozen exclusion: `slotFr := shareTok ½`, the restorer keeping the other
+   half** (decided). Not applied yet, because it would break a proved lemma: `slotFr_share_excl`
+   (`ghostVar γ.wr 1 () ∗ slotFr γ ∗ shareTok q ⊢ False`, `KV.Compact`'s excluder of the restoring
+   state at the compactor's share `q`, `CmpCb`) holds only while `slotFr` is the whole token; at `½`
+   it is false for `q ≤ ½` (the restorer's kept half is not in the lemma). Two ways out, for the
+   coordinator: (a) as decided, and `KV.Compact`'s core excludes the restoring state by `s.mu`'s
+   deposit ghost (`wr_restoring_excl`'s form, `γ.wr 1` from `muInv` whole under `updateCompactRev`'s
+   exclusive `s.mu`) instead of the share (a change to `store.Compact`'s core, `CmpCb`); or (b) keep
+   `slotFr` the whole token and split the frozen flag instead: the restoring arm holds `slotFl γ ½
+   false`, the restorer keeps the other half from the takeover to the finish, where it agrees
+   (`false`) with nothing in the frozen arm's `slotFl γ ½ true` (a contradiction), and the finish
+   rejoins it to `slotFl γ 1 false` for the checked-in arm. (b) changes only `writerInvBody`'s
+   restoring arm (`InvStore`) and `RestoreMoves`; the restoring arm's other openers put it back as
+   they found it.
+2. **Request 3's pool: one pool** (decided): the watchable handle's readers' pool, the inner store's
+   `isMvccPlain` built over the same pool (parameterized by it, or by a reader-supplying resource the
+   watchable handle lends), `mvccReaderN = rdStockN - 3` kept (recorded in
+   `notes/mvcc-api-candidate.md`). The write-back supply at the current names (agreed). Not applied
+   yet: waits on track B's exact shapes (its hand-off) and on its uncommitted `InvStore`/`NewStore`
+   edit (`api.wcrPart`, `muInvAt`'s `HwcM`), which also touches `store.Restore`'s `muInvLag`/`muInvAt`
+   (request 2: `store__Restore.lean` must add the new conjunct where it builds them).
