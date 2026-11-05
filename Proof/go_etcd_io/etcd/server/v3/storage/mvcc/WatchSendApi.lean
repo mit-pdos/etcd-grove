@@ -20,6 +20,8 @@ the larger compaction bound is kept), so a send gathers all of its facts at one 
 - `revApi_cert`: the response's revision is below every larger log's length.
 - `chanWatcher_cert`, `covFact_recv`: a registered watcher's sent events (all, or those before a
   response covering it), by its saved filters, over every larger log.
+- `holds_own`, `holds_cmp`, `holds_all` (pure): a send's `SentFact.holds` from those facts, for each
+  kind of response.
 -/
 module
 
@@ -73,6 +75,51 @@ theorem watchEvents_transfer {L' L : Log} (hp : L' <+: L) (r : WatchRange) {lo d
   · exact ⟨d, Nat.le_trans hd hp.length_le, watchEvents_prefix hp r hd⟩
   · exact ⟨0, Nat.zero_le _, by
       rw [watchEvents_empty _ _ hd, watchEvents_empty _ _ (Nat.zero_le _)]⟩
+
+/-! ## A send's fact, from its parts (pure) -/
+
+/-- **A watcher's own response's fact** (`watcher.send`'s, id its watcher's): its shape from the
+response's own facts and `rev < |L|`; its delivery and, without events, its progress, from the
+certificates. -/
+theorem holds_own (pre : List api.WResp) (r : api.WResp) (rg : WatchRange) (fs : List (EvM → Bool))
+    (lo : Nat) (L : Log) (c0 : Int) (dead : List w64)
+    (hid : r.id ≠ W64 (-1)) (hc : r.compactRev = W64 0)
+    (hle : ∀ ev ∈ r.evs, sint.Z ev.kv.modRev ≤ sint.Z r.rev)
+    (hrev : sint.nat r.rev < L.length) (hpos : ∀ ev ∈ r.evs, evPos ev)
+    (hdel : api.onceUpTo L lo c0 → ∃ hi, hi ≤ L.length ∧
+      api.recvEvs (pre ++ [r]) r.id = filtered fs (watchEvents L rg lo hi))
+    (hprog : r.evs = [] → api.onceUpTo L lo c0 →
+      api.recvEvs (pre ++ [r]) r.id = filtered fs (watchEvents L rg lo (sint.nat r.rev + 1))) :
+    api.sent.SentFact.holds pre ⟨r, rg, fs, lo, L, c0, [], dead⟩ := by
+  refine ⟨⟨hle, fun _ => hrev, fun h => absurd hc h, fun h => absurd h hid, hpos⟩,
+    fun _ hon => hdel hon, fun _ he _ hon => hprog he hon, fun h => absurd h hid⟩
+
+/-- **A compaction response's fact** (`chooseAll`'s: no events, revision `0`, its watcher's id): its
+shape from its compaction revision's bounds; its delivery from the certificate. -/
+theorem holds_cmp (pre : List api.WResp) (r : api.WResp) (rg : WatchRange) (fs : List (EvM → Bool))
+    (lo : Nat) (L : Log) (c0 : Int) (dead : List w64)
+    (hid : r.id ≠ W64 (-1)) (hc : r.compactRev ≠ W64 0) (he : r.evs = []) (hr : r.rev = W64 0)
+    (hc1 : 0 < sint.Z r.compactRev) (hc2 : sint.Z r.compactRev ≤ c0)
+    (hdel : api.onceUpTo L lo c0 → ∃ hi, hi ≤ L.length ∧
+      api.recvEvs (pre ++ [r]) r.id = filtered fs (watchEvents L rg lo hi)) :
+    api.sent.SentFact.holds pre ⟨r, rg, fs, lo, L, c0, [], dead⟩ := by
+  refine ⟨⟨fun ev hev => by simp [he] at hev, fun h => absurd h hc,
+    fun _ => ⟨he, hid, hr, hc1, hc2⟩, fun h => absurd h hid, fun ev hev => by simp [he] at hev⟩,
+    fun _ hon => hdel hon, fun _ _ h => absurd h hc, fun h => absurd h hid⟩
+
+/-- **A stream-wide (`-1`) progress response's fact** (`progressAll`'s): its shape from its
+completeness facts and `rev < |L|`; each covered watcher's events up to its revision from the
+certificates. -/
+theorem holds_all (pre : List api.WResp) (r : api.WResp) (L : Log) (c0 : Int)
+    (cov : List api.sent.CovEntry) (dead : List w64) (rg : WatchRange) (fs : List (EvM → Bool))
+    (lo : Nat) (hid : r.id = W64 (-1)) (he : r.evs = []) (hc : r.compactRev = W64 0)
+    (h1 : 1 ≤ sint.Z r.rev) (hrev : sint.nat r.rev < L.length)
+    (hcov : ∀ c ∈ cov, api.onceUpTo L c.lo c0 →
+      api.recvEvs (pre ++ [r]) c.id = filtered c.fs (watchEvents L c.rg c.lo (sint.nat r.rev + 1))) :
+    api.sent.SentFact.holds pre ⟨r, rg, fs, lo, L, c0, cov, dead⟩ := by
+  refine ⟨⟨fun ev hev => by simp [he] at hev, fun _ => hrev, fun h => absurd hc h,
+    fun _ => ⟨he, hc, h1⟩, fun ev hev => by simp [he] at hev⟩,
+    fun h => absurd hid h, fun h => absurd hid h, fun _ => hcov⟩
 
 /-! ## Delivery certificates -/
 
