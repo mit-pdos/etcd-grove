@@ -128,7 +128,7 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · iexact Hcert
     isplitr
-    · iunfold mvcc.wsWatchFrozen; ileft; ipureintro; rfl
+    · iunfold mvcc.wsWatchFrozen; itrivial
     isplitr
     · iapply ownSlice_nil
     isplitr

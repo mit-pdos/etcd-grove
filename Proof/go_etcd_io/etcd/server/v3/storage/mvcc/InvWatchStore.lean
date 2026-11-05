@@ -1637,15 +1637,12 @@ theorem wlogQ_auth_agree (γ : WsNames) (q q' : Qp) (L C : Log) :
   ihave %H := monoListAuthOwn_agree _ _ _ _ _ $$ Hc Ha
   ipureintro; exact H.2
 
-/-- **No watcher, or no compactor** (M2, the storage side, 2026-10-30: review round 1's F1, the
-user's: no watchers in compaction mode; a conjunct of the lock's body, `watchStoreBody`): no
-watcher is registered, or the inner store is frozen or (watches across a compaction, 2026-11-01)
-without duplicate keys (`watchNoDup`). `watch` (registration) has the fact from the create token
-(`storeWatchParams`'s `T`); `syncWatchers`' non-empty
-branch (`Wu ≠ ∅`, so `M ≠ ∅`: `wsOk_M_ne_of_Wu`) takes it here; every other step keeps `M` empty or
-the fact. -/
-def wsWatchFrozen (γ : WsNames) (σ : WsState) : IProp GF :=
-  iprop(⌜σ.M = ∅⌝ ∨ watchNoDup γ.st)
+/-- **Vestigial** (per watcher, 2026-11-05): was "no watcher, or no compactor or no duplicate keys"
+(`watchNoDup`, M2's F1 and watches across a compaction), which `syncWatchers` took to read exactly;
+now each watcher's delivery is exact or `doomed` (`evsWf`), so nothing is needed and the
+registration takes no such fact (the frozen `Watch` contract gives none). Kept as `True` in the
+lock's body until a cleanup removes the conjunct from its users. -/
+def wsWatchFrozen (_γ : WsNames) (_σ : WsState) : IProp GF := iprop(True)
 
 instance wsWatchFrozen_persistent (γ : WsNames) (σ : WsState) :
     Persistent (wsWatchFrozen (GF := GF) γ σ) := by
@@ -1655,23 +1652,18 @@ omit package_sem in
 /-- With the frozen fact, any state. -/
 theorem wsWatchFrozen_of_frozen (γ : WsNames) (σ : WsState) :
     crevFrozen (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
-  iintro #H; iunfold wsWatchFrozen; iright; iunfold watchNoDup; ileft
-  iapply noCompactor_of_frozen $$ H
+  iintro -; iunfold wsWatchFrozen; itrivial
 
 omit package_sem in
-/-- With the registration's fact, any state. -/
-theorem wsWatchFrozen_of_noDup (γ : WsNames) (σ : WsState) :
-    watchNoDup (GF := GF) γ.st ⊢ wsWatchFrozen γ σ := by
-  iintro #H; iunfold wsWatchFrozen; iright; iexact H
+/-- Any state. -/
+theorem wsWatchFrozen_any (γ : WsNames) (σ : WsState) : ⊢ wsWatchFrozen (GF := GF) γ σ := by
+  iunfold wsWatchFrozen; itrivial
 
 omit package_sem in
-/-- A step that registers no watcher keeps it (the new names empty if the old ones were). -/
-theorem wsWatchFrozen_mono (γ : WsNames) (σ σ' : WsState) (h : σ.M = ∅ → σ'.M = ∅) :
+/-- A step keeps it. -/
+theorem wsWatchFrozen_mono (γ : WsNames) (σ σ' : WsState) (_h : σ.M = ∅ → σ'.M = ∅) :
     wsWatchFrozen (GF := GF) γ σ ⊢ wsWatchFrozen γ σ' := by
-  iunfold wsWatchFrozen
-  iintro (%Hm | #H)
-  · ileft; ipureintro; exact h Hm
-  · iright; iexact H
+  iintro -; iunfold wsWatchFrozen; itrivial
 
 omit package_sem in
 /-- **An unsynced watcher has names** (review round 1's open check, `WsOk`): `Wu ≠ ∅` gives `M ≠ ∅`
@@ -1685,18 +1677,6 @@ theorem wsOk_M_ne_of_Wu (σ : WsState) (h : WsOk σ) (w : Loc)
   rw [hM] at this
   simp at this
 
-omit package_sem in
-/-- **`syncWatchers`' frozen fact** (M2, the storage side): with an unsynced watcher, the store is
-frozen (`wsWatchFrozen`'s second arm: the first, no watcher, is excluded by `wsOk_M_ne_of_Wu`). -/
-theorem wsWatchFrozen_of_Wu (γ : WsNames) (σ : WsState) (h : WsOk σ) (hsz : GMap.size σ.Wu ≠ 0) :
-    wsWatchFrozen (GF := GF) γ σ ⊢ watchNoDup γ.st := by
-  obtain ⟨w, v, hw⟩ := (GMap.map_size_ne_0_lookup σ.Wu).mp hsz
-  have hM := wsOk_M_ne_of_Wu σ h w (by rw [hw]; rfl)
-  iintro H
-  iunfold wsWatchFrozen at H
-  icases H with (%Hm | #H)
-  · exact absurd Hm hM
-  · iexact H
 
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
@@ -1962,7 +1942,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
-  T := iprop(watchTok γ ∗ watchNoDup γ.st)
+  T := watchTok γ
   IWF := watcherIs γ
   OC w γc := iprop(∃ γw : WatcherNames, watcherMeta γ w γw ∗ ⌜γw.wc = γc⌝)
   WS w := iprop(∃ γw : WatcherNames, watcherMeta γ w γw)

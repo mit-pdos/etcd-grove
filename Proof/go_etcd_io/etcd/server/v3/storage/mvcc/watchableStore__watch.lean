@@ -289,15 +289,14 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
       □ ([∗map] w' ↦ st ∈ σ.Wo, mvcc.outRes γ σ w' st) ∗
       mvcc.watcherMeta γ w γw ∗ mvcc.watcherChan γ w γw st0.ch ∗ mvcc.filtersOk fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half ([] : List mvcc.EvM) ∗
-      dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗ mvcc.idxCert γ.st.idx C ∗
-      mvcc.watchNoDup γ.st ⊢
+      dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗ mvcc.idxCert γ.st.idx C ⊢
     |==> mvcc.watchStoreBody s γ 1 (σ.addW b w r st0 γw) := by
   obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := hok.fresh hM
   iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hst0, Hwo, Hmeta,
-    Hwt, #Hmfix, #Hfixed, Hmem, #Hout, #Hmw, #Hwc, #Hfo, He, Hl, #HC, #Hfz⟩
+    Hwt, #Hmfix, #Hfixed, Hmem, #Hout, #Hmw, #Hwc, #Hfo, He, Hl, #HC⟩
   imod ghostVar_update (σ.addW b w r st0 γw) γ.wst σ $$ Hσ with Hσ
-  -- (M2, the storage side) a watcher registered: the store frozen (the create token's fact)
-  ihave #Hwfz := mvcc.wsWatchFrozen_of_noDup γ (σ.addW b w r st0 γw) $$ Hfz
+  ihave #Hwfz : mvcc.wsWatchFrozen γ (σ.addW b w r st0 γw) $$ []
+  · iapply mvcc.wsWatchFrozen_any
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
   imod (monoNatLbOwn_0 (GF := GF) γ.rel) with #Hrl0
@@ -666,10 +665,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   have hAdd := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ key endk fcs k e fs startRev id ch γc L Back
   simp only [mvcc.storeWatchParams]
-  wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, ⟨Htok, #Hnc⟩, %Hsr0, Hcb⟩
-  -- the create token's fact: the store frozen, or without duplicate keys (watches across a
-  -- compaction, 2026-11-01; until then frozen, M2's F1)
-  ihave #Hfz := Hnc
+  wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, Htok, %Hsr0, Hcb⟩
   obtain ⟨Hsr, Hidm⟩ := Hsr0
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
