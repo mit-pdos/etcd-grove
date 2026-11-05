@@ -76,6 +76,47 @@ theorem wdbOK_reslot (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8
     · have : m.size = w.m.size := by omega
       rw [this]; exact h14 b l e
 
+/-- **The partial last page after a write** (`wdbOK`'s clause of maintainer 13): the write's
+slots `S` cover the file's part of a partial last slot, and the file either kept its size or ends
+on a page; the slots' final bytes `wbF` are the write's on `S`, the old ones elsewhere. -/
+theorem cm_write_part (w : WDb) (m' : OsMeta) (S : List Nat) (wb' wbF : Nat → List w8)
+    (hok : wdbOK w)
+    (hw : ∀ s ∈ S, 4096 * s < m'.size → m'.size < 4096 * (s + 1) →
+      m'.size - 4096 * s ≤ (wb' s).length)
+    (hgrow : m'.size = w.m.size ∨ m'.size % 4096 = 0)
+    (hF : ∀ s, (s ∈ S ∧ wbF s = wb' s) ∨ wbF s = w.wb s) :
+    ∀ s, 4096 * s < m'.size → m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wbF s).length := by
+  intro s h1 h2
+  rcases hF s with ⟨hs, e⟩ | e
+  · rw [e]; exact hw s hs h1 h2
+  · rw [e]
+    rcases hgrow with g | g
+    · rw [g] at h1 h2 ⊢
+      exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s h1 h2
+    · omega
+
+theorem wbUpd_cases (S : List Nat) (wb' wb : Nat → List w8) (s : Nat) :
+    (s ∈ S ∧ wbUpd S wb' wb s = wb' s) ∨ wbUpd S wb' wb s = wb s := by
+  unfold wbUpd
+  by_cases h : s ∈ S
+  · exact Or.inl ⟨h, by rw [if_pos h]⟩
+  · exact Or.inr (by rw [if_neg h])
+
+theorem wbUpd3_cases (SB T : List Nat) (P : Nat → Bool) (wb' wb : Nat → List w8) (s : Nat) :
+    (s ∈ SB ++ T ∧ wbUpd (SB.filter P) wb' (wbUpd (SB.filter (fun s => !P s)) wb'
+      (wbUpd T wb' wb)) s = wb' s) ∨
+    wbUpd (SB.filter P) wb' (wbUpd (SB.filter (fun s => !P s)) wb' (wbUpd T wb' wb)) s = wb s := by
+  unfold wbUpd
+  by_cases h1 : s ∈ SB.filter P
+  · exact Or.inl ⟨List.mem_append_left _ (List.mem_filter.1 h1).1, by rw [if_pos h1]⟩
+  · rw [if_neg h1]
+    by_cases h2 : s ∈ SB.filter (fun s => !P s)
+    · exact Or.inl ⟨List.mem_append_left _ (List.mem_filter.1 h2).1, by rw [if_pos h2]⟩
+    · rw [if_neg h2]
+      by_cases h3 : s ∈ T
+      · exact Or.inl ⟨List.mem_append_right _ h3, by rw [if_pos h3]⟩
+      · exact Or.inr (by rw [if_neg h3])
+
 end pure
 
 section acc
