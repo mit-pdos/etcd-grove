@@ -59,10 +59,10 @@ theorem kvEntry_of_chainLog (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (l
 /-- **An entry's model log is within the revision budget** when its request's premises hold
 (`entryOk`: a put's or a delete's room for one more revision). -/
 theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply.ApplyKV)
-    (m : EntryModel) (hok : entryOk x m) (hl : x.log.length < 2 ^ 63) :
+    (m : EntryModel) (hok : entryOk x m) (hl : x.log.length + 3 ≤ 2 ^ 63) :
     (kvEntry c₀ ch lt x.log m).length < 2 ^ 63 := by
   rcases kvEntry_grow c₀ ch lt x.log m with h | ⟨cs, h⟩
-  · rw [h]; exact hl
+  · rw [h]; omega
   · rcases hok with hd | ⟨rq, hdec, -, hrq, -⟩
     · rw [kvEntry_nonwrite c₀ ch lt x.log m (Or.inl hd)] at h; simp at h
     · by_cases hk : writeKind (apply.dispatchKind rq)
@@ -82,8 +82,7 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply
             simp at h
         · cases ho : rq.txn with
           | some t =>
-            have := hrq; simp only [apply.rqOk, hk] at this
-            have := (this t ho).1; omega
+            omega
           | none =>
             have hb : backendLog lt rq x.log = x.log := by
               unfold backendLog; rw [hk]; simp only [ho]
@@ -169,22 +168,37 @@ theorem kv_log_plain_off (γ : ServerRaftNames) (γk : KVNames) (B : List EntryM
   rw [h, plainLogM_false] at Hp
   imodintro; ipureintro; exact Hp
 
-/-- A KV certificate is the store's (at the server's names). -/
-theorem kvCert_certOk (γk : KVNames) (γs : mvcc.StoreNames) (hγ : γs.cok = γk.cok)
-    (l : mvcc.Log) : kvCert (GF := GF) γk l ⊢ mvcc.certOk γs l := by
-  unfold kvCert mvcc.certOk
-  rw [hγ]
-  iintro (%h | #H)
-  · ileft; ipureintro; exact h
-  · iright; ileft; iexact H
+/-- **The log `l` is the off model of a committed raft log** (persistent; strict M1, 2026-11-05):
+`KVStoreApi.lean`'s raft witness `kvNx γr false`, by `rfl` (`kvNx_off`), stated here below the
+model's other mode; the chain's `E.Nx` in the mode off. Replaces mvcc's certificate `certOk`, which
+the KV certificate `kvCert` gave (`kvCert_certOk`). -/
+def kvNxOff (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) : IProp GF :=
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModel γk A = l⌝)
+
+instance kvNxOff_persistent (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) :
+    Persistent (kvNxOff (GF := GF) γ γk l) := by
+  unfold kvNxOff; infer_instance
+
+/-- The apply thread's KV ghost state gives its log's raft witness. -/
+theorem kvAppliedL_nx (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :
+    kvAppliedL (GF := GF) γ γk B l ⊢ kvNxOff γ γk l := by
+  iintro H
+  iunfold kvAppliedL at H
+  icases H with ⟨#HB, -, -, %Hl⟩
+  iunfold kvNxOff
+  iexists B
+  iframe HB
+  ipureintro; exact Hl.symm
 
 /-- **The certificates `apply.Apply` asks of a plain entry's request** (`certPreV`): with `v3`,
-every outcome's log is the entry's model log (auth disabled), which is certified. -/
-theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
+every outcome's log is the entry's model log (auth disabled), which is certified (strict M1: the
+chain's raft witness `E.Nx`, in the mode off `kvNxOff`). -/
+theorem kv_certPre (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
+    (hNx : E.Nx = kvNxOff γ γk) (c₀ : w64)
     (lt : LeaseTable) (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool)
     (hp : plainCover rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index)) :
-    kvCert (GF := GF) γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
+    kvNxOff (GF := GF) γ γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   iintro #Hc
   cases v3
   · simp only [apply.certPreV, Bool.false_eq_true, ↓reduceIte]; itrivial
@@ -196,7 +210,7 @@ theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok
     rcases chainStep_plain lt x.chain rq x.log oc hp hs with h | ⟨-, h⟩
     · rw [h, kvEntry_chainLog c₀ x.chain lt x.log m rq ht hd hdec hv'
         (fun hk => by unfold plainCover at hp; rw [hk] at hp; exact hp)]
-      iapply kvCert_certOk γk E.γ hγ $$ Hc
+      rw [hNx]; iexact Hc
     · rw [hoff] at h; cases h
 
 /-- **The apply thread's compaction revision follows the model's** (`kvCrevEntry`) on an entry
@@ -252,7 +266,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -⟩
   iunfold kvApplied at Ha
   icases Ha with ⟨Ha, %Hch'⟩
   obtain ⟨Hch, Hcr⟩ := Hch'
@@ -294,47 +308,35 @@ theorem mask_ndot_ne2 (x y z : String) (hxy : x ≠ y) (hxz : x ≠ z) :
 
 /-- **A certified log is below the committed KV state** (unit W-M3): the state `σ` of a holder of
 `etcdKV` is the state of the committed raft log's model (the KV invariant's other half), and a
-log the server certified (`certOk` at the KV's names) is the model of a committed raft prefix
-(`kv_cert_read`), or has at most `NewStore`'s two revisions, so its length is at most `σ`'s
-revision and one. Any mask without the three invariants' namespaces (a client's invariant
+log the server certified (strict M1: its raft witness `kvNxOff`, until then mvcc's `certOk` at the
+KV's names, through `kv_cert_read`) is the model of a committed raft prefix, so its length is at
+most `σ`'s revision and one. Any mask without the three invariants' namespaces (a client's invariant
 holding `etcdKV` open: `nroot.@x`). -/
-theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNames)
-    (hγ : γs.cok = γk.cok) (x : String) (hx1 : x ≠ "server_kv") (hx2 : x ≠ "server_kv_cert")
-    (hx3 : x ≠ "raft_commit") (l : mvcc.Log) (σ : KVState) :
-    ⊢ kvInv (GF := GF) γ γk -∗ kvCertInv γ γk -∗ srvRaftLogInv γ -∗ mvcc.certOk γs l -∗
+theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames)
+    (x : String) (hx1 : x ≠ "server_kv") (hx3 : x ≠ "raft_commit") (l : mvcc.Log) (σ : KVState) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ kvNxOff γ γk l -∗
       etcdKV γk σ ={⊤ \ ↑(nroot.@x)}=∗ etcdKV γk σ ∗ ⌜l.length ≤ σ.rev + 1⌝ := by
-  have hc : (↑kvcN : CoPset) ⊆ ⊤ \ ↑(nroot.@x) := mask_ndot_ne' nroot "server_kv_cert" x (Ne.symm hx2)
   have hk : (↑kvN : CoPset) ⊆ ⊤ \ ↑(nroot.@x) := mask_ndot_ne' nroot "server_kv" x (Ne.symm hx1)
   have hr : (↑srvRaftN : CoPset) ⊆ (⊤ \ ↑(nroot.@x)) \ ↑kvN :=
     mask_ndot_ne2 "raft_commit" x "server_kv" (Ne.symm hx3) (by decide)
-  iintro #HkI #HcI #HrI #Hc Hσ
-  -- the start log has two revisions (the certificates' invariant)
-  ihave #HcI' := HcI
-  iunfold kvCertInv at HcI'
-  iinv HcI' with >Hi Hclose
-  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-  imod Hclose $$ [HC Hhi'] with -
-  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
-  have h2 := Hok.2
-  imod kv_cert_read γ γk γs hγ (⊤ \ ↑(nroot.@x)) hc l $$ HcI Hc with Hcase
+  iintro #HkI #HrI #Hc Hσ
   ihave #HkI' := HkI
   iunfold kvInv at HkI'
   iinv HkI' with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw⟩
   iunfold etcdKV at Hσ
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ' Hσ
-  have hlen := (kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L).length_le
   ihave Hp : iprop(|={(⊤ \ ↑(nroot.@x)) \ ↑kvN}=> srvRLog γ L ∗
-      ⌜l.length ≤ (kvModel γk L).length⌝) $$ [HL Hcase]
-  · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
-    · imodintro; iframe HL; ipureintro; unfold kvModel; omega
-    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
-      ihave %HAi := srvRLogLb_idx γ A $$ HA
-      obtain ⟨A', HA'L, HAA'⟩ := srv_eqv_prefix γ A L HAi Hp.1 Hp.2.1 Hp.2.2
-      imodintro; iframe HL; ipureintro
-      have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A' L HA'L).length_le
-      have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
-      unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
+      ⌜l.length ≤ (kvModel γk L).length⌝) $$ [HL Hc]
+  · iunfold kvNxOff at Hc
+    icases Hc with ⟨%A, #HA, %hA⟩
+    imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γ A $$ HA
+    obtain ⟨A', HA'L, HAA'⟩ := srv_eqv_prefix γ A L HAi Hp.1 Hp.2.1 Hp.2.2
+    imodintro; iframe HL; ipureintro
+    have := (kvRaftOf_prefix γk.c0 γk.ch0 γk.log0 A' L HA'L).length_le
+    have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
+    unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ'] with -
   · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'

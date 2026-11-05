@@ -86,8 +86,9 @@ def isAuthStoreAdmin (st : GoInterface) (Pk : BkRef → IProp GF) (f : GoFunc) (
     authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse Pk f BT RW M ∗
     authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse Pk f BT RW M)
 
-instance isAuthStoreAdmin_persistent (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
-    (f : val) (RW : IProp GF) (M : auth.AuthMode) : Persistent (isAuthStoreAdmin st Pk f BT RW M) := by
+instance isAuthStoreAdmin_persistent (st : GoInterface) (Pk : BkRef → IProp GF) (f : GoFunc)
+    (BT : BkRef → IProp GF) (RW : IProp GF) (M : auth.AuthMode) :
+    Persistent (isAuthStoreAdmin st Pk f BT RW M) := by
   unfold isAuthStoreAdmin authReqContract authReqContractN; infer_instance
 
 end defs

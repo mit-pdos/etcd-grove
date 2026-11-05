@@ -391,14 +391,14 @@ end restore
 Restated in place in `apply/Chain.lean` (strict M1, 2026-11-05: `apply.AEnv` has the draft's
 `AEnvA` fields, `apply.kvOwn` is `kvOwnA`, ...); the draft's names are these aliases. -/
 
-abbrev AEnvA (GF : BundledGFunctors) := apply.AEnv GF
-
 section apply
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+abbrev AEnvA (G : BundledGFunctors) := apply.AEnv G
 
 abbrev envAus (E : AEnvA GF) : IProp GF := apply.envAus E
 abbrev kvBk (E : AEnvA GF) : IProp GF := apply.kvBk E

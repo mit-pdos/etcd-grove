@@ -49,7 +49,9 @@ theorem kvPeek_holds (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
 /-- **The never-compacting cluster's compaction revision** (`crevOk_off.law`). -/
 theorem crevOk_off_holds : crevOk_off.law (GF := GF) := by
   intro γr c h
-  iintro ⟨-, %H⟩
+  iintro H
+  iunfold crevOk at H
+  icases H with ⟨-, %H⟩
   ipureintro; exact H h
 
 /-- **The boot's bound** (`histLb_boot.law`). -/
@@ -63,6 +65,7 @@ theorem histLb_boot_holds (Hp : persistent.law (GF := GF))
 committed raft log's empty prefix, the permit of `-1`. -/
 theorem bootStore_holds (Hp : persistent.law (GF := GF)) : bootStore.law (GF := GF) := by
   intro kv γ γr on γs h0
+  haveI := Hp.1 kv γ
   rw [kvStoreInv_eq]
   iintro ⟨#Hm, Hs, Hf, #Hlb⟩
   iunfold newServerStoreFreshA at Hf
@@ -78,6 +81,48 @@ theorem bootStore_holds (Hp : persistent.law (GF := GF)) : bootStore.law (GF := 
   isplitl []
   · ileft; ipureintro; rfl
   ipureintro; intro _; rfl
+
+/-- The mode-off raft witness is `KVApply`'s `kvNxOff` (by `rfl`). -/
+theorem kvNx_off (γr : ReadNames) : kvNx (GF := GF) γr false = kvNxOff γr.raft γr.kv := rfl
+
+/-- **The server's witness and permit are persistent and timeless** (`envWitOk`, which the
+apply thread's `srvKVInvs` carries). -/
+theorem envWitOk_srv (E : apply.AEnv GF) (γr : ReadNames) (on : Bool)
+    (hNx : E.Nx = kvNx γr on) (hCp : E.Cp = crevOk γr) : envWitOk E := by
+  unfold envWitOk; rw [hNx, hCp]
+  exact ⟨fun _ => inferInstance, fun _ => inferInstance, fun _ => inferInstance,
+    fun _ => inferInstance⟩
+
+/-- **The draft's `srvKVInvsA` from the apply thread's `srvKVInvs`** and the ties of the store
+handle, the witness and the permit (strict M1, 2026-11-05: `srvKVInvs`, below the KV model, has
+no tie naming it; the server's mode-level facts carry them). -/
+theorem srvKVInvsA_of (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (wsl : Loc)
+    (h : E.kv = wsIfaceA wsl ∧ E.Nx = kvNx γr on ∧ E.Cp = crevOk γr) :
+    srvKVInvs (GF := GF) E γr ⊢ srvKVInvsA on E γr wsl := by
+  iintro H
+  iunfold srvKVInvs at H
+  icases H with ⟨#Hk, -, #Hr, #Hs, %Hm⟩
+  iunfold srvKVInvsA
+  iframe Hk Hr
+  isplitl
+  · rw [kvStoreInv_eq, ← h.2.1, ← h.2.2]; iexact Hs
+  · ipureintro; exact ⟨h.1, h.2.1, h.2.2, Hm.1, Hm.2.1⟩
+
+/-- **The apply thread's `srvKVInvs` from the store invariant**, the KV and raft invariants and the
+KV certificates' (`kvCertInv`, the server's own), at the server's witness and permit. -/
+theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (on : Bool) (E : apply.AEnv GF)
+    (γr : ReadNames) (hNx : E.Nx = kvNx γr on) (hCp : E.Cp = crevOk γr)
+    (hm : γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret) :
+    kvInv (GF := GF) γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
+      kvStoreInv E.kv E.γ γr on E.γs ⊢ srvKVInvs E γr := by
+  haveI : Persistent (kvStoreInv (GF := GF) E.kv E.γ γr on E.γs) := by
+    rw [kvStoreInv_eq]; exact kvStoreInvG_persistent Hp E.kv E.γ (kvNx γr on) (crevOk γr) E.γs
+  iintro ⟨#Hk, #Hc, #Hr, #Hs⟩
+  iunfold srvKVInvs
+  iframe Hk Hc Hr
+  isplitl
+  · rw [hNx, hCp, ← kvStoreInv_eq]; iexact Hs
+  · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr on hNx hCp⟩
 
 end laws
 
