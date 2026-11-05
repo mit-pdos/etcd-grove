@@ -38,11 +38,11 @@ theorem rCurKV_first_pos (v : View) (bv : List w8) (pp : Loc) (els : List elemRe
     rCurKV (GF := GF) v bv pp els 0 k vl fl ⊢ ⌜rCurPos v bv pp els (some 0)⌝ := by
   unfold rCurKV
   iintro (⟨%pg, %idx, %H, -⟩ | %H)
-  · ipureintro; exact Or.inl ⟨1, H.1⟩
+  · ipureintro; exact Or.inl ⟨1, H.1, fun h => by omega⟩
   · ipureintro
-    obtain ⟨-, -, -, -, i, hi⟩ := H
+    obtain ⟨hl, -, -, -, i, hi⟩ := H
     rcases rPosAt_s hi with h | h
-    · subst h; exact Or.inl ⟨0, hi⟩
+    · subst h; exact Or.inl ⟨0, hi, fun _ => by omega⟩
     · omega
 
 end curPos

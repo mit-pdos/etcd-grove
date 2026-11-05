@@ -297,7 +297,7 @@ theorem Cursor.Last.wp_reader [HasExt osFsExt]
       iapply HΦ
       ihave Hfin := Hcl $$ %stk2 %(els2.dropLast ++ [e2]) %(some (es.length - 1)) Hk Hcc Hs Hcap
       ihave Hfin := Hfin $$ []
-      · ipureintro; rw [hlen, hsp2]; exact Or.inl ⟨_, hpos⟩
+      · ipureintro; rw [hlen, hsp2]; exact Or.inl ⟨_, hpos, fun h => by omega⟩
       icases Hfin with ⟨Ht, Hc⟩
       rw [hlen]
       iframe; iframe #)

@@ -59,7 +59,10 @@ theorem Cursor.prev_r.wp_proof
   have hpre : rPrevPre v bv pp els pos := by
     cases pos with
     | none => exact hpos
-    | some j => exact hpos
+    | some j =>
+      rcases hpos with ⟨s, h, -⟩ | h
+      · exact Or.inl ⟨s, h⟩
+      · exact Or.inr h
   wp_auto
   ihave IH : (∃ (stk1 : GoSlice) (kk : Nat),
       "i" ∷ i_ptr ↦ W64 ((kk : Int) - 1) ∗ "Hk" ∷ rdTxK K tx src q T v ∗

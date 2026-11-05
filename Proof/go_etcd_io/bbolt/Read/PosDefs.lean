@@ -82,11 +82,13 @@ def rEmptyAt (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) : Prop :=
     (e.index' = W64 0 ∨ e.index' = W64 (-1))
 
 /-- **A reader cursor's stack at `pos`** (`boltCurDef`'s reader branch): unpositioned, the empty
-stack (`Bucket.Cursor`'s); at entry `i`, a stack at `i` (`rPosAt`, `next` going anywhere), or the
-empty bucket's root leaf at `i = 0`. -/
+stack (`Bucket.Cursor`'s); at entry `i`, a stack at `i` (`rPosAt`), past its leaf's end only past
+the bucket's last entry (from such a stack mid-bucket Go's `next` returns entry `i`, not `i + 1`;
+coordinator's decision for U6i, item 1), or the empty bucket's root leaf at `i = 0`. -/
 def rCurPos (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) : Option Nat → Prop
   | none => els = []
-  | some i => (∃ s, rPosAt v bv pp els i s) ∨ (i = 0 ∧ rEmptyAt v bv pp els)
+  | some i => (∃ s, rPosAt v bv pp els i s ∧ (s = i → (rEnts v bv).length ≤ i)) ∨
+      (i = 0 ∧ rEmptyAt v bv pp els)
 
 end posDefs
 

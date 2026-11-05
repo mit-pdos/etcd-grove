@@ -103,7 +103,7 @@ theorem Cursor.Prev.wp_proof
     iapply HΦ
     ihave Hfin := Hcl $$ %stk' %els' %(some i) Hk Hc Hs Hcap
     ihave Hfin := Hfin $$ []
-    · ipureintro; exact Or.inl ⟨_, hp⟩
+    · ipureintro; exact Or.inl ⟨_, hp, fun h => by omega⟩
     icases Hfin with ⟨Ht, Hc⟩
     iframe; iframe #
 

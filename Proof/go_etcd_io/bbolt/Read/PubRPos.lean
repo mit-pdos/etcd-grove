@@ -115,6 +115,62 @@ theorem rTlF_down (A : List elemRef) (m pid o s : Nat) (e e' : elemRef) (pg pgc 
     rw [hs, hsucc, ← rLeaves_tree v bv _ _ hbr.1, rLeaves_leaf v bv pp m' _ _ pgc hpa hfl,
       entCount_single, Nat.add_assoc]
 
+/-! ### Empty leaves (`next`) -/
+
+/-- A reader bucket's root has fuel left. -/
+theorem rFuel_succ (v : View) (bv : List w8) : ∃ n, rFuel v bv = n + 1 := by
+  unfold rFuel; split <;> exact ⟨_, rfl⟩
+
+/-- **A stack whose top leaf is empty is the root alone** (`rBktOK`: every leaf reached through a
+branch has entries, `rKeys_child_pg`). -/
+theorem rPosAt_empty_top (hok : rBktOK v bv) (els : List elemRef) (i s : Nat)
+    (h : rPosAt v bv pp els i s) (e : elemRef) (pidL : Nat) (pg : List w8) (idx : Nat)
+    (hl : els.getLast? = some e) (hlf : rLfAt v bv pp pidL e pg idx) (h0 : pageCount pg = 0) :
+    els = [e] ∧ rPageAt v bv pp (inBucketRoot bv) = some (e.page', pg) := by
+  obtain ⟨A, rfl⟩ := List.getLast?_eq_some_iff.mp hl
+  rcases List.eq_nil_or_concat A with rfl | ⟨A', p, rfl⟩
+  · obtain ⟨n, hn⟩ := rFuel_succ v bv
+    unfold rPosAt at h
+    rw [hn] at h
+    obtain ⟨pg', hlf', -⟩ := h
+    refine ⟨rfl, ?_⟩
+    have := rPageAt_det v bv pp _ _ _ _ _ hlf'.1 hlf.1
+    rw [hlf'.1, this]
+  · exfalso
+    unfold rPosAt at h
+    rw [show A'.concat p ++ [e] = A' ++ [p, e] by simp] at h
+    obtain ⟨m, pid', o, i', s', hp, hr, -, -⟩ := (rPosF_append A' _ _ [p, e] i s (by simp)).mp h
+    match m, hr with
+    | 0, hr => exact absurd hr (by simp [rPosF])
+    | m + 1, ⟨pg1, j, i2, s2, hbr, hr2, _, _⟩ =>
+      match m, hr2 with
+      | 0, hr2 => exact absurd hr2 (by simp [rPosF])
+      | m + 1, ⟨pg3, hlf3, _⟩ =>
+        have hk := rPreF_keys A' _ _ _ _ _ hp (rKeys_root hok)
+        have hc := rKeys_child_pg hk hbr hlf3.1
+        have := rPageAt_det v bv pp _ _ _ _ _ hlf3.1 hlf.1
+        subst this; omega
+
+/-- **A stack in a bucket whose root is a leaf** is that leaf alone. -/
+theorem rPosAt_root_leaf (els : List elemRef) (i s : Nat) (h : rPosAt v bv pp els i s) (l : Loc)
+    (pg : List w8) (hr : rPageAt v bv pp (inBucketRoot bv) = some (l, pg))
+    (hfl : pageFlags pg = leafPageFlag) :
+    ∃ x, els = [x] ∧ rLfAt v bv pp (inBucketRoot bv) x pg i := by
+  obtain ⟨n, hn⟩ := rFuel_succ v bv
+  unfold rPosAt at h
+  rw [hn] at h
+  match els, h with
+  | [], h => exact absurd h (by simp [rPosF])
+  | [x], ⟨pg', hlf', _⟩ =>
+    have := rPageAt_same hlf'.1 hr
+    subst this
+    exact ⟨x, rfl, hlf'⟩
+  | x :: y :: es, ⟨pg', j, _, _, hbr, _⟩ =>
+    have := rPageAt_same hbr.2.1 hr
+    subst this
+    have := hbr.2.2.2.1
+    rw [hfl] at this; simp [branchPageFlag, leafPageFlag] at this
+
 /-! ### `prev`'s moves -/
 
 /-- **A stack whose indices are all at most `0` is at position `0`.** -/

@@ -66,10 +66,10 @@ theorem Cursor.First.wp_reader [HasExt osFsExt]
   have hvl := Hvl hfl
   subst hvl
   have hcp : rCurPos v bv pp els' (some 0) := by
-    rcases hp with h | ⟨-, i, hi⟩
-    · exact Or.inl ⟨1, h⟩
+    rcases hp with h | ⟨hl, i, hi⟩
+    · exact Or.inl ⟨1, h, fun h => by omega⟩
     · rcases rPosAt_s hi with h | h
-      · subst h; exact Or.inl ⟨0, hi⟩
+      · subst h; exact Or.inl ⟨0, hi, fun _ => by omega⟩
       · omega
   try wp_auto
   rw [decide_eq_true hfl]
