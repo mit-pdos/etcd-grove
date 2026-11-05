@@ -1,10 +1,13 @@
 // Package compactor runs Kubernetes' etcd compactor (k8s.io/apiserver/pkg/storage/etcd3,
 // compact.go) the way a cluster of API servers runs it, against one etcd member in compaction mode
 // with etcd's own compactor off (retention 0: every compaction is a client's). Each simulated API
-// server has its own client and its own compactor (NewCompactor, a real clock, a short interval);
-// they coordinate through the key compact_rev_key, which only they write, while a writer puts
-// other keys. Each API server samples its compactor's CompactRevision every interval, stops it,
-// and checks:
+// server has its own client; servers of them start their own compactor (NewCompactor, a real
+// clock, a short interval), sharedServers more share one, the process's compactor of the cluster
+// (StartCompactorPerEndpoint, which registers a compactor per endpoint: the first to call it
+// starts it, the others find it). The compactors coordinate through the key compact_rev_key,
+// which only they write, while a writer puts other keys. Each API server samples its compactor's
+// CompactRevision every interval, stops it (a shared compactor's second Stop does nothing), and
+// checks:
 //
 //   - CompactRevision never decreases (across the samples and after Stop);
 //   - after Stop it is at most the revision of a later latest Get (a revision the cluster reached);
@@ -47,8 +50,11 @@ const compactRevKey = "compact_rev_key"
 // The key the writer puts, outside the compactors' key.
 const writeKey = "/registry/objs/w"
 
-// The number of API servers, each with a compactor.
+// The number of API servers with a compactor of their own.
 const servers = 3
+
+// The number of API servers sharing the process's compactor.
+const sharedServers = 2
 
 // The compactors' interval.
 const interval = 20 * time.Millisecond
@@ -77,13 +83,29 @@ func ready(cli *clientv3.Client) bool {
 	return err == nil
 }
 
-// apiserver runs one API server's compactor on cli: it starts it, samples its CompactRevision
-// every interval, stops it and checks the package's guarantees, panicking if one fails. An error
-// from a final Get skips the checks against it. The key's value is checked against a second Get,
-// issued after the first returned it: a revision the cluster reached is at most the revision of a
-// read that starts after it is known (the read-side law the proof uses).
-func apiserver(cli *clientv3.Client) {
-	c := etcd3.NewCompactor(cli, interval, clock.RealClock{}, nil)
+// compactorAPI is what an API server uses of its compactor (etcd3's *compactor, which both
+// constructors return and which the package does not export).
+type compactorAPI interface {
+	CompactRevision() int64
+	Stop()
+}
+
+// apiserver runs one API server's compactor on cli: its own (NewCompactor) or, if shared, the
+// process's (StartCompactorPerEndpoint), then check.
+func apiserver(cli *clientv3.Client, shared bool) {
+	if shared {
+		check(cli, etcd3.StartCompactorPerEndpoint(cli, interval))
+	} else {
+		check(cli, etcd3.NewCompactor(cli, interval, clock.RealClock{}, nil))
+	}
+}
+
+// check samples the compactor's CompactRevision every interval, stops it and checks the package's
+// guarantees, panicking if one fails. An error from a final Get skips the checks against it. The
+// key's value is checked against a second Get, issued after the first returned it: a revision the
+// cluster reached is at most the revision of a read that starts after it is known (the read-side
+// law the proof uses).
+func check(cli *clientv3.Client, c compactorAPI) {
 	var last int64
 	for i := 0; i < samples; i++ {
 		time.Sleep(interval)
@@ -127,7 +149,8 @@ func apiserver(cli *clientv3.Client) {
 }
 
 // Main starts one member of a new cluster in compaction mode with etcd's compactor off, waits for
-// the member to serve, and runs the writer and the API servers, each on its own client, until
+// the member to serve, and runs the writer and the API servers (servers with their own compactor,
+// then sharedServers sharing one), each on its own client, until
 // every API server has stopped its compactor and made its checks. An error before the API servers
 // start (the member not serving within the request timeout) ends Main without a check.
 func Main() {
@@ -151,14 +174,15 @@ func Main() {
 	go writer(wcli)
 
 	var wg sync.WaitGroup
-	for i := 0; i < servers; i++ {
+	for i := 0; i < servers+sharedServers; i++ {
 		cli, err := etcdstart.NewClient(clientAddr, lg)
 		if err != nil {
 			break
 		}
+		shared := i >= servers
 		wg.Add(1)
 		go func() {
-			apiserver(cli)
+			apiserver(cli, shared)
 			wg.Done()
 		}()
 	}

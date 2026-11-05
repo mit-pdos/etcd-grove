@@ -3,7 +3,7 @@
 `MainLinked.lean`: `k8s_compactor.Main.wp_proof` applied to the linked results of the examples'
 shared start (`etcdstart`'s `Link.lean`), of Kubernetes' compactor (etcd3's `Link.lean`, whose
 `NewCompactor` is linked under the named hypothesis of `clock.RealClock.After`, as in client-go's link),
-of `context`, to `ready`, `writer` and `apiserver` over them, and to the trust-boundary axioms of
+of `context`, to `ready`, `writer`, `check` and `apiserver` over them, and to the trust-boundary axioms of
 `zap.NewNop` and `strconv.Itoa`. `Results.lean` restates it.
 -/
 module
@@ -12,6 +12,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.ready
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.apiserver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -51,11 +52,15 @@ theorem k8s_compactor.wp_writer : k8s_compactor.writer.spec (GF := GF) (hG := hG
   k8s_compactor.writer.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny strconv.Itoa.wp_proof
 
+theorem k8s_compactor.wp_check : k8s_compactor.check.spec (GF := GF) (hG := hG) :=
+  k8s_compactor.check.wp_proof k8s.compactor.wp_CompactRevision k8s.compactor.wp_Stop
+    strconv.ParseInt.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
+    context.wp_ErrAny
+
 include h_After in
 theorem k8s_compactor.wp_apiserver : k8s_compactor.apiserver.spec (GF := GF) (hG := hG) :=
-  k8s_compactor.apiserver.wp_proof (k8s.wp_NewCompactor h_After) k8s.compactor.wp_CompactRevision
-    k8s.compactor.wp_Stop strconv.ParseInt.wp_proof context.wp_Background
-    context.WithTimeoutBackground.wp_proof context.wp_ErrAny
+  k8s_compactor.apiserver.wp_proof (k8s.wp_NewCompactor h_After)
+    (k8s.wp_StartCompactorPerEndpoint h_After) k8s_compactor.wp_check
 
 include h_After in
 /-- **The compactor example's `Main` does not panic** (see the file header;

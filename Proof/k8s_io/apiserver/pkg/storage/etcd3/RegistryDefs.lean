@@ -133,6 +133,24 @@ theorem epClaim_agree (ep : GoString) (Ψ1 Ψ2 : CompactorId → IProp GF) (x : 
 
 end laws
 
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **Allocate a registry**: a name, and the claims' authority at it, empty (what the adequacy
+theorem of a program that registers compactors does, before choosing the class's instance). -/
+theorem regAuth_alloc :
+    ⊢ (|==> ∃ γ : GName, regAuth (reg := ⟨γ⟩) (∅ : GMap GoString GName) : IProp GF) := by
+  imod ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName) with ⟨%γ, H⟩
+  imodintro
+  iexists γ
+  iunfold regAuth
+  iexact H
+
+end alloc
+
 end k8s
 end EtcdGrove
 end Perennial
