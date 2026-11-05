@@ -22,19 +22,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 section wcurPure
 variable [GooseExts]
 
-/-- **The node-location registry is the live buckets' node caches** (U6z; not yet in the invariant,
-OPEN for the maintainer: `wrFacts`'): a registered node of a live bucket is that bucket's
-materialized node of its position, and every materialized node of a live bucket is registered at
-its position (`nodeAdded` does both). Before `Commit` a bucket's node cache only grows, and a dead
-bucket (`DeleteBucket`) is out of `liveB`. What lets a writer cursor's node reference, registered
-when the cursor moved, be read later (its object is the live node of its position), and a move
-register the nodes it reaches (their fragments, `nlFrags`). -/
-def nlocCur (X : WX) : Prop :=
-  (∀ l b p, X.nloc !! l = some (b, p) → b ∈ X.liveB →
-    ∃ B, X.t.bs !! b = some B ∧ B.nm !! W64 (p : Int) = some l) ∧
-  ∀ b B c l, X.t.bs !! b = some B → b ∈ X.liveB → B.nm !! c = some l →
-    X.nloc !! l = some (b, c.toNat)
-
 /-- **The writer's facts a cursor move of the top-level bucket `n` (handle `bl`) reads under**:
 `X` well-formed, `bl` its opened bucket, its registry current (`nlocCur`), its root position
 `rt` (U6y's F5), and not the root bucket (U6aa: a leaf node's entries are plain, `leafShape`). -/

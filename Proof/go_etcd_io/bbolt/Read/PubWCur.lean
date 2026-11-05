@@ -63,28 +63,15 @@ theorem wtxWQ_db_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX
   iframe; iframe #
   ipureintro; exact ⟨rfl, Hc.2⟩
 
-/-- **The writer facts a cursor needs that the invariant does not hold yet** (OPEN, for the
-maintainer: `wrFacts`'): the node registry names current nodes (`nlocCur`), and a top-level
-bucket's root position is `wRoot` (U6y's F5: its base root while its generation is `0`; inline once
-deleted and re-created; kept by `beginRWTx`, `CreateBucket`, `DeleteBucket` and the open). -/
-def wrCurFacts (T : TxView) (X : WX) : Prop :=
-  nlocCur X ∧ ∀ n b, bktLoc X n = some b → (X.rootPid b).toNat = wRoot X.v T n
-
-/-- `wrCurFacts` of a writer (OPEN: not yet in `wtxFrac`'s facts; see `wrCurFacts`). -/
-theorem wrCurFacts_of (T : TxView) (X : WX) (hok : wOK X) (hg : gensOK T X) (hwr : wrFacts X)
-    (hcur : T.cur = wtxData X) (hbase : T.base = X.v.data) : wrCurFacts T X := by
-  sorry
-
 /-- **A writer's transaction and cursor at `q`, opened** (the public writer cursor triples' frame):
 the writer's `wtxWQ`, the cursor's stack at `wCurAt … pos` with its persistent part, the bucket's
 facts, the registration and view (for `curAt`); closed at any new position of the same bucket. `hD1`
-is `gensOK`'s third clause (maintainer 14), `hW` the facts `wrCurFacts` names. -/
+is `gensOK`'s third clause (maintainer 14); the cursor's facts are `wtxFrac`'s (`wrCurFacts`). -/
 theorem wrCur_open (B : BNs) (N : Namespace) (tx c : Loc) (q : Qp) (T : TxView)
     (es : List BoltEnt) (pos : Option Nat) (hrw : T.rw = true)
     (hD1 : ∀ X : WX, gensOK T X →
       ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b)
-    (hW : ∀ X : WX, wOK X → gensOK T X → wrFacts X → T.cur = wtxData X → T.base = X.v.data →
-      wrCurFacts T X) :
+ :
     boltTxDef (GF := GF) B N tx q T ∗ boltCurDef B tx c T es pos ⊢
     ∃ (K : BC) (r : TxReg) (X : WX) (n : GoString) (b : Loc) (stk : GoSlice)
       (els : List elemRef) (nl : Loc → Option (Loc × Nat)) (ipg : List w8),
@@ -104,7 +91,7 @@ theorem wrCur_open (B : BNs) (N : Namespace) (tx c : Loc) (q : Qp) (T : TxView)
   ihave Ht := (boltTxDef_wtxWQ B N tx q T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %cv, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur, hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur, hbase, hgens, hwr, hwc⟩ := Hf
   unfold boltCurDef
   have hfp : ∀ (r' : TxReg) (b : Loc) (n : GoString) (g : Nat),
       Persistent (handleFrag (GF := GF) r' b n g) := fun r' b n g => by
@@ -128,7 +115,8 @@ theorem wrCur_open (B : BNs) (N : Namespace) (tx c : Loc) (q : Qp) (T : TxView)
   isimp only [Hrw, ↓reduceIte] at Hbr
   icases Hbr with ⟨%nl, %ipg, #Hnl, #Hinl, %Hpos⟩
   have hbl := hD1 X hgens b n hhd
-  obtain ⟨hnlc, hroot⟩ := hW X hok hgens hwr hcur hbase
+  have hnlc := hwc.1
+  have hroot := hwc.2.1
   have hbr : b ≠ X.rl := by
     intro e
     unfold bktLoc at hbl
@@ -153,7 +141,7 @@ theorem wrCur_open (B : BNs) (N : Namespace) (tx c : Loc) (q : Qp) (T : TxView)
   · iapply (boltTxDef_wtxWQ K.B N tx q T hrw).2
     iexists K, r', cv, X
     iframe; iframe #
-    ipureintro; exact ⟨⟨rfl, hKN, hTc⟩, hok, hcur, hbase, hgens, hwr⟩
+    ipureintro; exact ⟨⟨rfl, hKN, hTc⟩, hok, hcur, hbase, hgens, hwr, hwc⟩
   iexists r', b, n, (T.gen n), stk', els', X.v
   iframe; iframe #
   isplitr

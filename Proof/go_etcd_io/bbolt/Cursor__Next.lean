@@ -153,7 +153,7 @@ theorem Cursor.Next.wp_reader [HasExt osFsExt]
       ipureintro; exact ⟨rfl, rfl⟩
 
 /-- **A writer's `Next`** (U6z): `Read/PubWNext`'s, over `next_w`/`next_we`; `gensOK`'s third
-clause by `gensOK_handle_bktLoc` and the cursor's writer facts by `wrCurFacts_of` (both OPEN). -/
+clause by `gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
 theorem Cursor.Next.wp_writer [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hnxw : Cursor.next_w.specQ (GF := GF) (hG := hG))
@@ -168,7 +168,6 @@ theorem Cursor.Next.wp_writer [HasExt osFsExt]
        | some i => iprop(boltCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
            curAt tx γ es (i + 1) k v)) }} :=
   Cursor.Next.wp_writerW hA hnxw hnxe tx c γ q T es pos hrw (gensOK_handle_bktLoc T)
-    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.Next.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))

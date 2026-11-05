@@ -85,7 +85,7 @@ theorem Cursor.First.wp_reader [HasExt osFsExt]
   iframe; iframe #
 
 /-- **A writer's `First`** (U6z): `Read/PubWFirst`'s, over `first_w`; `gensOK`'s third clause by
-`gensOK_handle_bktLoc` and the cursor's writer facts by `wrCurFacts_of` (both OPEN). -/
+`gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
 theorem Cursor.First.wp_writer [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hfw : Cursor.first_w.specQ (GF := GF) (hG := hG))
@@ -96,7 +96,6 @@ theorem Cursor.First.wp_writer [HasExt osFsExt]
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
       boltCur tx γ c T es (some 0) ∗ curAt tx γ es 0 k v }} :=
   Cursor.First.wp_writerW hA hfw tx c γ q T es pos hrw (gensOK_handle_bktLoc T)
-    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.First.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))

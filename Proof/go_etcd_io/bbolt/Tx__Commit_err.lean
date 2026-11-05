@@ -330,7 +330,7 @@ theorem Tx.Commit_err.wp_proof'
   have hvwf : viewWF X.v := Hf.1.2.2.2.2.2.2.2
   have hld : ∀ bl, X.t.bs !! bl ≠ none → leafDepthOK X bl := fun bl hb =>
     leafDepthOK_rt X bl (rtOK_init X bl Hf.1 hvwf (Option.isSome_iff_ne_none.2 hb))
-  wp_apply wp_rebalance K tx r false X w Hf.1 hld Hf.2.2.2.2.1 Hflv.1 $$ [Hw Hwdb]
+  wp_apply wp_rebalance K tx r false X w Hf.1 hld Hf.2.2.2.2.1.1 Hflv.1 $$ [Hw Hwdb]
     as ⟨%X1, %fl1, Hw, Hwdb, %Hrb⟩
   · iframe
   imod cm_excl_update K r X X1 _ $$ Hex
@@ -379,7 +379,7 @@ theorem Tx.Commit_err.wp_proof'
   -- `gensOK` of `X`, the root bucket's `bm` kept by `rebalance`)
   have hroot1 : ∀ B0, X1.t.bs !! X1.rl = some B0 → (∀ k c, B0.bm !! k = some c → c ≠ X1.rl) ∧
       ∀ k k' c, B0.bm !! k = some c → B0.bm !! k' = some c → k = k' :=
-    cm_root_children T X X1 Hf.2.2.2.1 Hf.2.2.2.2.2.2 hrbOK.2.2.2.2.1 hbm1
+    cm_root_children T X X1 Hf.2.2.2.1 Hf.2.2.2.2.1.2.2 hrbOK.2.2.2.2.1 hbm1
   have hstart1 : spillStartOK X1 (w.withFl fl1) :=
     ⟨Hflv.2.2, by rw [hmv1, Hmeta.2.2.2.1]; exact Nat.le_refl _, hroot1⟩
   -- the writer's txid below `2 ^ 63` (the receipts' budget, maintainer 12, item 1)
@@ -672,7 +672,7 @@ theorem Tx.Commit_err.wp_proof'
           · show X4.t.mv.txid' = w4.wtxid
             rw [htx4, htx3]; unfold WDb.wtxid; rw [Hal.2.1]
           · rw [Hal.2.1, hC2]; exact hopg.symm
-          · show X4.t.t.commitHandlers' = slice.nil; rw [htt5]; exact Hf.2.2.2.2.2.1
+          · show X4.t.t.commitHandlers' = slice.nil; rw [htt5]; exact Hf.2.2.2.2.1.2.1
           · show X4.t.t.meta' ≠ null ∧ 0 < X4.t.t.meta'.addr; rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
           · intro h; rw [Hal.2.1]; exact hfr h
           · rw [Hal.2.1, hC2]; exact hbase
@@ -780,7 +780,7 @@ theorem Tx.Commit_err.wp_proof'
           word
         · rw [← hX3]; exact hmap2
         · rw [hC2]; exact hopg.symm
-        · rw [htt5]; exact Hf.2.2.2.2.2.1
+        · rw [htt5]; exact Hf.2.2.2.2.1.2.1
         · rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
         · rw [hC2]; exact hbase
         · -- the publish's facts (`cmPubPre_noSync`), from spill's and rebalance's posts

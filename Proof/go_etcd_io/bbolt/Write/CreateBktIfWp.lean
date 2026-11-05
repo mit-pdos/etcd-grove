@@ -6,6 +6,7 @@ child returned early (its handle from `gensOK`) and an existing bucket entry ope
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Write.WrCur
 public import Proof.go_etcd_io.bbolt.Write.CreateBktWp
 public import Proof.go_etcd_io.bbolt.Read.WOpenWOK
 public import Proof.go_etcd_io.bbolt.Read.WQ
@@ -35,7 +36,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- What `CreateBucketIfNotExists` of a present `n` gives of the records `X'`: the data kept. -/
 def openOK (T : TxView) (r : TxReg) (X X' : WX) : Prop :=
   wOK X' ∧ wtxData X' = wtxData X ∧ gensOK T X' ∧ wrFacts X' ∧ XclKeep X X' ∧
-    ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra
+    (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra) ∧ wrCurFacts T X'
 
 omit hos in
 theorem cbi_ownMap_nonnull (l : Loc) (dq : DFrac) (m : GMap GoString Loc) :
@@ -59,7 +60,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
     (hopen : Bucket.openBucket_w.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (X : WX) (T : TxView) (name : GoSlice) (n : GoString)
     (dq : DFrac) (hok : wOK X) (hcur : T.cur = wtxData X) (hgens : gensOK T X)
-    (hwr : wrFacts X) (hkm : n.length ≤ maxKeySize) :
+    (hwr : wrFacts X) (hwc : wrCurFacts T X) (hkm : n.length ≤ maxKeySize) :
   {{ wtxW (GF := GF) K tx r true X ∗ name ↦*{dq} n }}
     (App (Val (X.rl @!! go.GoType.PointerType Bucket.ty @!! go!"CreateBucketIfNotExists"))
       (Val #name))
@@ -298,7 +299,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
       iframe #
     ipureintro
     rw [if_neg hfound]
-    exact ⟨hok, rfl, hgens, hwr, ⟨rfl, rfl, fun _ h => h⟩, fun _ => .rfl⟩
+    exact ⟨hok, rfl, hgens, hwr, ⟨rfl, rfl, fun _ h => h⟩, fun _ => .rfl, hwc⟩
   rw [hbmc]
   simp only [Option.getD_none]
   rw [decide_eq_true (show (zero_val Loc : Loc) = null from rfl)]
@@ -492,10 +493,11 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
         ⟨by rw [hXe], by rw [hXe],
           fun fl h => PubW.flViewU_bktOpened_root' X X' c n (T.gen n) fl hok hokX' hop h⟩
       refine ⟨hokX', hdX', ?_, ?_, hk', fun extra =>
-        txShape_bktOpened r.n.pg X X' X.rl c n (T.gen n) extra hokX' hop⟩
+        txShape_bktOpened r.n.pg X X' X.rl c n (T.gen n) extra hokX' hop, ?_⟩
       · exact gensOK_bktOpened T X X' X.rl c n (T.gen n) hop hok.2.2.2.2.1 (Nat.le_refl _)
           (fun _ => rfl) (fun h => absurd rfl h) hgens
       · exact PubW.wrFacts_bktOpened X X' X.rl c n (T.gen n) hop hloc.1 (by rw [hR]; rfl) hwr
+      · exact wrCurFacts_bktOpened T X X' c n (T.gen n) hop hok hwc
     try wp_auto
     wp_bind (App (Val #_) (Val #()))
     iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil ∗ name ↦*{dq} n)))
@@ -691,11 +693,14 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
         exact ⟨by rw [hX'], by rw [hX'],
           fun fl h => PubW.flViewU_bktOpened_root' X4 X' b n (T.gen n) fl hok4 hokX' hop' h⟩
       refine ⟨hokX', by rw [hdX', hd4], ?_, ?_, xclKeep_trans hk4 hk', fun extra =>
-        (hsh4 extra).trans (txShape_bktOpened r.n.pg X4 X' X.rl b n (T.gen n) extra hokX' hop)⟩
+        (hsh4 extra).trans (txShape_bktOpened r.n.pg X4 X' X.rl b n (T.gen n) extra hokX' hop), ?_⟩
       · exact gensOK_bktOpened T X4 X' X.rl b n (T.gen n) hop hok4.2.2.2.2.1 (Nat.le_refl _)
           (fun _ => rfl) (fun h => absurd hrl4.symm h) hgens4
       · exact PubW.wrFacts_bktOpened X4 X' X.rl b n (T.gen n) hop (hrl4 ▸ hok4.2.2.2.2.2.1.1)
           (by rw [hrl4, hR4]; rfl) hwr4
+      · exact wrCurFacts_bktOpened T X4 X' b n (T.gen n) (hrl4 ▸ hop) hok4
+          (wrCurFacts_createPost T X X3 n (zero_val InBucket) l B3 rl sl ins' hok hcur Hmg hok3 HB3 Hrl
+            hlf hnew rfl hwc)
   wp_bind (App (Val #_) (Val #()))
   iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil ∗ name ↦*{dq} n)))
     $$ [err Hkey Hlgp Hname]

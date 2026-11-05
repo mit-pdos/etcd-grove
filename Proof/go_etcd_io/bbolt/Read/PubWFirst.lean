@@ -29,8 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **A writer's `First`** at any fraction, over `first_w` (`hD1`: `gensOK`'s third clause; `hW`:
-`wrCurFacts`, OPEN). -/
+/-- **A writer's `First`** at any fraction, over `first_w` (`hD1`: `gensOK`'s third clause). -/
 theorem Cursor.First.wp_writerW [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hfirst : Cursor.first_w.specQ (GF := GF) (hG := hG))
@@ -38,15 +37,14 @@ theorem Cursor.First.wp_writerW [HasExt osFsExt]
     (hrw : T.rw = true)
     (hD1 : ∀ X : WX, gensOK T X →
       ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b)
-    (hW : ∀ X : WX, wOK X → gensOK T X → wrFacts X → T.cur = wtxData X → T.base = X.v.data →
-      wrCurFacts T X) :
+ :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"First")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
       boltCur tx γ c T es (some 0) ∗ curAt tx γ es 0 k v }} := by
   wp_start as ⟨Ht, Hc⟩
   unfold boltTx boltCur
-  icases wrCur_open _ _ tx c q T es pos hrw hD1 hW $$ [Ht Hc] with
+  icases wrCur_open _ _ tx c q T es pos hrw hD1 $$ [Ht Hc] with
     ⟨%K, %r, %X, %n, %b, %stk, %els, %nl, %ipg, Hw, Hc, Hs, Hcap, #Hown, #Hreg, #Hvo, %Hf, Hcl⟩
   · iframe
   obtain ⟨hctx, hes, hbrl, -⟩ := Hf

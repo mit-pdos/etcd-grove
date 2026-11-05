@@ -9,6 +9,7 @@ handle fragment.
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Write.WrCur
 public import Spec.go_etcd_io.bbolt.Tx__Bucket
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket_r
 public import Proof.go_etcd_io.bbolt.Read.Pub
@@ -128,7 +129,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur', hbase, hgens, hwr, hwc⟩ := Hf
   icases wtxW_heapOK' K tx r true X $$ Hw with ⟨Hw, %Hhok⟩
   obtain ⟨R, hR⟩ : ∃ R, X.t.bs !! X.rl = some R := Option.isSome_iff_exists.1 hok.1.2.2.2.2.1
   have hloc := PubW.bktLocalOK_of_wOK X hok X.rl R hR
@@ -155,7 +156,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
     · iapply (boltTxDef_wtxW _ _ tx T hrw).2
       iexists K, r, c, X
       iframe; iframe #
-      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
     ileft; ipureintro
     exact ⟨by rw [hdT]; exact PubW.wtxData_none_of X n hnone, hb0⟩
   · icases Hcf with (%hb0 | #Hcf)
@@ -218,7 +219,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
       · iapply (boltTxDef_wtxW _ _ tx T hrw).2
         iexists K, r, c, X
         iframe; iframe #
-        ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+        ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
       iright
       iframe #
       ipureintro; exact ⟨hsome, hbn⟩
@@ -235,7 +236,8 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
           (by rw [hR]; rfl) hwr
       imod boltTxDef_wclose K tx r c c X X' T ⊤ (by simp) hTc hk
         (fun extra => txShape_bktOpened r.n.pg X X' X.rl b n (T.gen n) extra hokX' hop)
-        ⟨hokX', hrw, by rw [hdT, hdX'], by rw [hvX]; exact hbase, hgens', hwr'⟩ $$
+        ⟨hokX', hrw, by rw [hdT, hdX'], by rw [hvX]; exact hbase, hgens', hwr',
+          Write.wrCurFacts_bktOpened T X X' b n (T.gen n) hop hok hwc⟩ $$
         [Hv Hw Hst] with Ht
       · rw [hKB, hvX]; iframe; iframe #
       imodintro

@@ -6,6 +6,7 @@ by `putPost` and `boltTxDef_wclose`; the logger and the deferred line as `Tx.Com
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Write.WrCur
 public import Spec.go_etcd_io.bbolt.Bucket__Put
 public import Spec.go_etcd_io.bbolt.cloneBytes
 public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
@@ -116,7 +117,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur', hbase, hgens, hwr, hwc⟩ := Hf
   unfold boltBktDef
   icases Hb with ⟨%r', #Hreg', #Hbtx, #Hh, -⟩
   ihave #Hreg'' : reg (GF := GF) tx K.B r' $$ []
@@ -295,7 +296,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
     iapply (boltTxDef_wtxW _ _ tx T hrw).2
     iexists K, r, c, X
     iframe; iframe #
-    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
   have hl0 : key.len ≠ W64 0 := by
     obtain ⟨h1, h2⟩ := Hkl
     intro h; rw [h] at h1; exact hk0 h1
@@ -327,7 +328,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
     iapply (boltTxDef_wtxW _ _ tx T hrw).2
     iexists K, r, c, X
     iframe; iframe #
-    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
   rw [decide_eq_false (show ¬ (32768 : Int) < kb.length by unfold maxKeySize at hkL; omega)]
   wp_auto
   ihave %Hvl := ownSlice_len _ _ _ $$ Hval
@@ -473,7 +474,8 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
         (by rw [Hll]; exact entNoTok_plain _ _ _ (by simp [putEnt, isBktFlag])))
   have hv4 := hk4.v
   imod boltTxDef_wclose K tx r c _ X _ (T.setBkt n (m.insert kb vb)) ⊤ (by simp) hT' hk4 hsh
-    ⟨hok4, hrw, by rw [hd4, Hm]; rfl, by rw [hv4]; exact hbase, hg4, hwr4⟩ $$
+    ⟨hok4, hrw, by rw [hd4, Hm]; rfl, by rw [hv4]; exact hbase, hg4, hwr4,
+      Write.wrCurFacts_leafStep T _ X X3 b l B3 _ hok Hmg HB3 (Write.bktLoc_ne_root X hwr n b hbl) rfl hwc⟩ $$
     [Hv Hw Hst] with Ht
   · rw [hKB, hv4]; iframe; iframe #
   wp_bind (App (Val #f) (Val #()))

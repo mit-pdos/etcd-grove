@@ -96,7 +96,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A writer's `Last`** at any fraction, over `pageNode_w`, `last_w`, `prev_w` and `keyValue_ws`
-(`hD1`: `gensOK`'s third clause; `hW`: `wrCurFacts`, OPEN). -/
+(`hD1`: `gensOK`'s third clause). -/
 theorem Cursor.Last.wp_writerW [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
@@ -109,15 +109,14 @@ theorem Cursor.Last.wp_writerW [HasExt osFsExt]
     (hrw : T.rw = true)
     (hD1 : ∀ X : WX, gensOK T X →
       ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b)
-    (hW : ∀ X : WX, wOK X → gensOK T X → wrFacts X → T.cur = wtxData X → T.base = X.v.data →
-      wrCurFacts T X) :
+ :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Last")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
       boltCur tx γ c T es (some (es.length - 1)) ∗ curAt tx γ es (es.length - 1) k v }} := by
   wp_start as ⟨Ht, Hc⟩
   unfold boltTx boltCur
-  icases wrCur_open _ _ tx c q T es pos hrw hD1 hW $$ [Ht Hc] with
+  icases wrCur_open _ _ tx c q T es pos hrw hD1 $$ [Ht Hc] with
     ⟨%K, %r, %X, %n, %b, %stk, %els, %nl, %ipg, Hw, Hc, Hs, Hcap, #Hown, #Hreg, #Hvo, %Hf, Hcl⟩
   · iframe
   obtain ⟨hctx, hes, hbrl, -⟩ := Hf

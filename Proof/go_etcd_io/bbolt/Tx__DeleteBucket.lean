@@ -6,8 +6,8 @@ The proof of `Spec/go_etcd_io/bbolt/Tx__DeleteBucket.lean` (U7m, `notes/bbolt-pr
 closed at `T` (an absent name) or `T.dropBkt n` (`dbk_close`, from `deleteOK`).
 
 The empty name in an empty root bucket returns `ErrIncompatibleValue` (U7m's finding; the triple's
-middle case since D-M). `wrCurFacts T X` comes from `wrCurFacts_of` (OPEN) until maintainer 16 adds it to
-`boltTx`'s writer facts; `deleteOK`'s `wrCurFacts (T.dropBkt n) X'` is then what closes with.
+middle case since D-M). `wrCurFacts T X` is `boltTx`'s writer facts' (maintainer 16); `deleteOK`'s
+`wrCurFacts (T.dropBkt n) X'` is what closes with.
 -/
 module
 
@@ -53,7 +53,7 @@ theorem Tx.DeleteBucket.wp_proof
     (hFeb : ∀ [HasExt osFsExt], Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG))
     (hNode : ∀ [HasExt osFsExt], Cursor.node.spec (GF := GF) (hG := hG))
     (hDel : node.del.spec (GF := GF) (hG := hG))
-    (hFree : ∀ [HasExt osFsExt], Bucket.free.spec (GF := GF) (hG := hG))
+    (hFree : ∀ [HasExt osFsExt], Bucket.free_dead.spec (GF := GF) (hG := hG))
     (hClone : cloneBytes.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Tx.DeleteBucket.spec (GF := GF) (hG := hG) := by
@@ -63,7 +63,7 @@ theorem Tx.DeleteBucket.wp_proof
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur', hbase, hgens, hwr, hwc⟩ := Hf
   icases wtxW_heapOK' K tx r true X $$ Hw with ⟨Hw, %Hhok⟩
   have hrl : X.rl = txRoot (GF := GF) tx := Hhok.1
   imod Write.dbk_open K tx r X c $$ [Hw Hv] with Hx
@@ -76,14 +76,14 @@ theorem Tx.DeleteBucket.wp_proof
   iapply wp_fupd
   wp_apply Write.Bucket.DeleteBucket.wp_root hBw hCur hSeek hFeb hNode hDel hFree hClone hEq K tx r
     X w T name n dq hok hcur' hgens hwr
-    (wrCurFacts_of T X hok hgens hwr hcur' hbase) Hxf.1 $$ [Hw Hwdb Hname] as %err ⟨Hname, Hres⟩
+    hwc Hxf.1 $$ [Hw Hwdb Hname] as %err ⟨Hname, Hres⟩
   · iframe
   rw [← hKB, ← hKN]
   by_cases hex : T.cur.lookup n = none
   · rw [if_pos hex]
     icases Hres with ⟨Hw, Hwdb, Herr⟩
     icases Herr with (#He | ⟨%hn, #He⟩)
-    · imod Write.dbk_close K tx r c c X X w extra T hTc ⟨hok, hrw, hcur', hbase, hgens, hwr⟩ Hxf
+    · imod Write.dbk_close K tx r c c X X w extra T hTc ⟨hok, hrw, hcur', hbase, hgens, hwr, hwc⟩ Hxf
         $$ [Hv Hw Hrwl Hcls Hwdb Hshape Hst] with Ht
       · iframe; iframe #
       imodintro
@@ -93,7 +93,7 @@ theorem Tx.DeleteBucket.wp_proof
       iframe Ht; iframe #
       ipureintro; exact hex
     · -- the empty name in an empty root bucket: `ErrIncompatibleValue` (D-M)
-      imod Write.dbk_close K tx r c c X X w extra T hTc ⟨hok, hrw, hcur', hbase, hgens, hwr⟩ Hxf
+      imod Write.dbk_close K tx r c c X X w extra T hTc ⟨hok, hrw, hcur', hbase, hgens, hwr, hwc⟩ Hxf
         $$ [Hv Hw Hrwl Hcls Hwdb Hshape Hst] with Ht
       · iframe; iframe #
       imodintro
@@ -104,12 +104,12 @@ theorem Tx.DeleteBucket.wp_proof
       ipureintro; exact ⟨hn, hex⟩
   rw [if_neg hex]
   icases Hres with ⟨%he, %X', %w', Hw, Hwdb, %Hd⟩
-  obtain ⟨hok', hd', hg', hwr', hv', hmv', hC', hfl', hsh', -⟩ := Hd
+  obtain ⟨hok', hd', hg', hwr', hv', hmv', hC', hfl', hsh', hwc'⟩ := Hd
   have hT' : T.dropBkt n = TxView.ofC (dropC c n) := by rw [hTc]; exact dropBkt_ofC c n
   ihave Hshape := hsh' extra $$ Hshape
   rw [show X.v = X'.v from hv'.symm]
   imod Write.dbk_close K tx r c (dropC c n) X X' w' extra (T.dropBkt n) hT'
-      ⟨hok', hrw, hd'.symm, by rw [hv']; exact hbase, hg', hwr'⟩
+      ⟨hok', hrw, hd'.symm, by rw [hv']; exact hbase, hg', hwr', hwc'⟩
       ⟨hfl', by rw [hmv', hC']; exact Hxf.2.1, by rw [hC']; exact Hxf.2.2⟩
     $$ [Hv Hw Hrwl Hcls Hwdb Hshape Hst] with Ht
   · iframe; iframe #

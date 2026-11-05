@@ -424,14 +424,15 @@ private theorem QpMul_one_left_c (q : Qp) : QpMul 1 q = q :=
 open Iris.ProofMode in
 /-- **A whole write transaction is its working state** (U5 proves; U7, U8, U9, U10 open their
 `boltTx` with it): `wtxW` in mode `true`, its agreed state's half, the full database, the
-committed data's quarter, and `wtxFrac`'s facts (batch 43/44: with `wrFacts`). -/
+committed data's quarter, and `wtxFrac`'s facts (batch 43/44: with `wrFacts`; maintainer 16: then `wrCurFacts`). -/
 theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : T.rw = true) :
     boltTxDef (GF := GF) B N tx 1 T ⊣⊢
       ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗ wtxW K tx r true X ∗
         ghostVar B.st (1 : Qp).half.half T.base ∗
-        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X⌝ := by
+        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X ∧
+          wrCurFacts T X⌝ := by
   unfold boltTxDef
   simp only [hrw, ↓reduceIte]
   constructor
@@ -441,7 +442,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, ⟨#Hvf, #Hvo⟩, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
-    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9⟩ := Hfacts
+    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9, h10⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
@@ -459,7 +460,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
       isplitr
       · ipureintro; exact ⟨hdb, hrw', h6, h7, h8, hma⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
-    ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
+    ipureintro; exact ⟨h1, h3, h4, h5, h9, h10⟩
   · iintro ⟨%K, %r, %c, %X, %HK, #Hb, #Hvf, Hv, Hw, Hst, %Hfacts⟩
     obtain ⟨rfl, rfl, hT⟩ := HK
     unfold wtxW wtxCore statsTok
@@ -481,7 +482,7 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     · unfold viewW; iframe #
     ipureintro
     exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
-      Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2⟩
+      Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2.1, Hfacts.2.2.2.2.2⟩
 
 open Iris.ProofMode in
 /-- **A fraction of a write transaction is its working state at that fraction** (U6w; the
@@ -495,7 +496,8 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
         ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗ viewOf r X.v ∗
         ghostVar r.n.v q.half (c, TxX.wr X) ∗ wtxWQ K tx r true q X ∗
         ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
-        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X⌝ := by
+        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X ∧
+          wrCurFacts T X⌝ := by
   unfold boltTxDef
   simp only [hrw, ↓reduceIte]
   constructor
@@ -504,7 +506,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
     icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, ⟨#Hvf, #Hvo⟩, %Hfacts⟩
     iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
     obtain ⟨hT, hdb, hrw'⟩ := Hc
-    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9⟩ := Hfacts
+    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9, h10⟩ := Hfacts
     isplitr
     · ipureintro; exact ⟨rfl, rfl, hT⟩
     unfold BC.full
@@ -522,7 +524,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
       isplitr
       · ipureintro; exact ⟨hdb, hrw', h6, h7, h8, hma⟩
       iexists l; iframe Hmf; ipureintro; exact Hl
-    ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
+    ipureintro; exact ⟨h1, h3, h4, h5, h9, h10⟩
   · iintro ⟨%K, %r, %c, %X, %HK, #Hb, #Hvf, Hv, Hw, Hst, %Hfacts⟩
     obtain ⟨rfl, rfl, hT⟩ := HK
     unfold wtxWQ wtxCoreQ statsTok
@@ -543,7 +545,7 @@ theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxVie
     · unfold viewW; iframe #
     ipureintro
     exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
-      Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2⟩
+      Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2.1, Hfacts.2.2.2.2.2⟩
 
 /-- **A reader is a reader with its view** (U6 proves; the read path's internal reader specs are
 over `rdTxK`). -/

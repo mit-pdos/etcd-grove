@@ -190,7 +190,7 @@ theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' 
     (hk : XclKeep X X')
     (hsh : ∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra)
     (hf : wOK X' ∧ T'.rw = true ∧ T'.cur = wtxData X' ∧ T'.base = X'.v.data ∧ gensOK T' X' ∧
-      wrFacts X') :
+      wrFacts X' ∧ wrCurFacts T' X') :
     K.full (GF := GF) ∗ viewOf r X'.v ∗ ghostVar r.n.v (1 : Qp).half (c, TxX.wr X) ∗
         wtxW K tx r true X' ∗ ghostVar K.B.st (1 : Qp).half.half T'.base ⊢
       |={E}=> boltTxDef K.B K.N tx 1 T' := by
@@ -226,7 +226,7 @@ theorem boltTxDef_wclose (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' 
   · unfold viewW; iframe #
   ipureintro
   exact ⟨hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
-    Hr.2.2.2.2.1, Hr.2.2.2.2.2, hf.2.2.2.2.2⟩
+    Hr.2.2.2.2.1, Hr.2.2.2.2.2, hf.2.2.2.2.2.1, hf.2.2.2.2.2.2⟩
 
 end retarget
 

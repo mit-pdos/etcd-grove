@@ -101,7 +101,8 @@ def bboltErrorsVars : IProp GF :=
     bboltErrVar (globalAddr ErrMaxSizeReached) ∗
     bboltErrVar (globalAddr ErrIncompatibleValue) ∗
     bboltErrVar (globalAddr ErrSameBuckets) ∗
-    bboltErrVar (globalAddr ErrDifferentDB))
+    bboltErrVar (globalAddr ErrDifferentDB) ∗
+    bboltErrVar (globalAddr ErrBucketNotFound))
 
 /-- (A `def` with its own instance: the instance search through the nineteen conjuncts exceeds its
 size limit inside `bboltErrorsInit`.) -/

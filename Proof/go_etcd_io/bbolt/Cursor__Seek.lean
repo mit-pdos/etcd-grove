@@ -203,7 +203,7 @@ theorem Cursor.Seek.wp_reader [HasExt osFsExt]
       iframe; iframe #
 
 /-- **A writer's `Seek`** (U6aa): `Read/PubWSeek`'s, over `seek_w`/`next_w`; `gensOK`'s third
-clause by `gensOK_handle_bktLoc` and the cursor's writer facts by `wrCurFacts_of` (both OPEN). -/
+clause by `gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
 theorem Cursor.Seek.wp_writer [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hseekw : Cursor.seek_w.specQ (GF := GF) (hG := hG))
@@ -218,7 +218,6 @@ theorem Cursor.Seek.wp_writer [HasExt osFsExt]
       boltCur tx γ c T es (some (seekIdx es kb)) ∗ curAt tx γ es (seekIdx es kb) k v }} :=
   Cursor.Seek.wp_writerW hA hseekw hnxw hCnt tx c γ q T es pos key kb dk hrw
     (gensOK_handle_bktLoc T)
-    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.Seek.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))

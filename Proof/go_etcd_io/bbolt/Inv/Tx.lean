@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Bolt
 public import Proof.go_etcd_io.bbolt.Model.Cursor
+public import Proof.go_etcd_io.bbolt.Model.WrCur
 public import Proof.go_etcd_io.bbolt.Model.WOps
 public import Proof.go_etcd_io.bbolt.Read.PosDefs
 
@@ -355,7 +356,7 @@ def wrFacts (X : WX) : Prop :=
 `FillPercent`s at `q`, its base view's cells at `q · wq`, the library's quarter of the committed
 data at `q`, its handle and node registries' auths at `q`, its fields' share, `mmaplock`'s
 mapping fields at `q · ¼` (the base view's pages inside the mapping, as a reader's), and its
-facts (batch 43/44: ending with `wrFacts`). -/
+facts (batch 43/44: `wrFacts`; maintainer 16: ending with the cursor facts `wrCurFacts`). -/
 def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IProp GF :=
   iprop(wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
     viewCells (QpMul q wq) X.v ∗ ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
@@ -365,7 +366,8 @@ def wtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (X : WX) : IP
       (some (X.v.base, l) : MapSt) ∗ ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
     viewW r X.v ∗
     ⌜wOK X ∧ T.rw = true ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ tx ≠ null ∧
-      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr ∧ wrFacts X⌝)
+      X.t.t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr ∧ wrFacts X ∧
+      wrCurFacts T X⌝)
 
 /-- **A read transaction over the core** (A2, round 4 N5): `boltTx`'s reader part with
 `isBoltCore` in place of `isBolt`, its pair's source `src` (a pool loan carries the pool). -/

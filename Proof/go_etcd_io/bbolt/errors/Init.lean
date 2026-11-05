@@ -245,9 +245,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexists _; iframe HErrSameBuckets; isplitr
     · ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩
     iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrSameBuckets
-  iexists _; iframe HErrDifferentDB; isplitr
+  isplitr
+  · iexists _; iframe HErrDifferentDB; isplitr
+    · ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩
+    iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrDifferentDB
+  iexists _; iframe HErrBucketNotFound; isplitr
   · ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩
-  iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrDifferentDB
+  iapply EtcdGrove.errorString_fmtErrorOk; iexact MErrBucketNotFound
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

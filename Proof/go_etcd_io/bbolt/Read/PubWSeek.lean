@@ -57,7 +57,7 @@ theorem curAt_some_key [HasExt osFsExt] (γ : BoltName) (tx : Loc) (es : List Bo
   iintro ⟨%hk, -⟩; ipureintro; exact hk
 
 /-- **A writer's `Seek`** at any fraction, over `seek_w` and `next_w` (`hD1`: `gensOK`'s third
-clause; `hW`: `wrCurFacts`, OPEN). -/
+clause). -/
 theorem Cursor.Seek.wp_writerW [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hseek : Cursor.seek_w.specQ (GF := GF) (hG := hG))
@@ -68,15 +68,14 @@ theorem Cursor.Seek.wp_writerW [HasExt osFsExt]
     (hrw : T.rw = true)
     (hD1 : ∀ X : WX, gensOK T X →
       ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b)
-    (hW : ∀ X : WX, wOK X → gensOK T X → wrFacts X → T.cur = wtxData X → T.base = X.v.data →
-      wrCurFacts T X) :
+ :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos ∗ key ↦*{dk} kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Seek")) (Val #key))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗ key ↦*{dk} kb ∗
       boltCur tx γ c T es (some (seekIdx es kb)) ∗ curAt tx γ es (seekIdx es kb) k v }} := by
   wp_start as ⟨Ht, Hc, Hkey⟩
   unfold boltTx boltCur
-  icases wrCur_open _ _ tx c q T es pos hrw hD1 hW $$ [Ht Hc] with
+  icases wrCur_open _ _ tx c q T es pos hrw hD1 $$ [Ht Hc] with
     ⟨%K, %r, %X, %n, %b, %stk, %els, %nl, %ipg, Hw, Hc, Hs, Hcap, #Hown, #Hreg, #Hvo, %Hf, Hcl⟩
   · iframe
   obtain ⟨hctx, hes, hbrl, -⟩ := Hf

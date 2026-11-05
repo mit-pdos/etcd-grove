@@ -44,14 +44,14 @@ theorem Tx.CreateBucket.wp_proof
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur', hbase, hgens, hwr, hwc⟩ := Hf
   icases wtxW_heapOK' K tx r true X $$ Hw with ⟨Hw, %Hhok⟩
   have hrl : X.rl = txRoot (GF := GF) tx := Hhok.1
   wp_auto
   rw [show tx.[Tx, go!"root"] = txRoot (GF := GF) tx from rfl, ← hrl]
   iapply wp_fupd
   wp_apply Write.Bucket.CreateBucket.wp_root hBw hCur hSeek hNode hPut hWrite hClone hEq K tx r X T
-    name n dq hok hcur' hgens hwr hkm $$ [Hw Hname] as %b %err ⟨Hname, Hres⟩
+    name n dq hok hcur' hgens hwr hwc hkm $$ [Hw Hname] as %b %err ⟨Hname, Hres⟩
   · iframe
   by_cases hn0 : n.length = 0
   · rw [if_pos hn0] at *
@@ -64,7 +64,7 @@ theorem Tx.CreateBucket.wp_proof
     · iapply (boltTxDef_wtxW _ _ tx T hrw).2
       iexists K, r, c, X
       iframe; iframe #
-      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
     ipureintro; exact he
   by_cases hex : T.cur.lookup n ≠ none
   · simp only [hn0, hex, ↓reduceIte, ne_eq, not_false_eq_true] at *
@@ -76,18 +76,18 @@ theorem Tx.CreateBucket.wp_proof
     iapply (boltTxDef_wtxW _ _ tx T hrw).2
     iexists K, r, c, X
     iframe; iframe #
-    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
   have hnew : T.cur !! n = none := by simpa using hex
   have hne : ¬ (T.cur !! n ≠ none) := fun h => h hnew
   have hor : ¬ (n.length = 0 ∨ T.cur !! n ≠ none) := by
     rintro (h | h); exact hn0 h; exact h hnew
   rw [if_neg hn0, if_neg hne, if_neg hor]
   icases Hres with ⟨%he, %X', Hw, #Hbkt, %Hc⟩
-  obtain ⟨hokX', hdX', hgX', hwrX', hk, hsh⟩ := Hc
+  obtain ⟨hokX', hdX', hgX', hwrX', hk, hsh, hwcX'⟩ := Hc
   let c' : TxViewC := (c.1, c.2.1, c.2.2.1.insert n ∅, c.2.2.2)
   have hTc' : T.setBkt n ∅ = TxView.ofC c' := by rw [hTc]; rfl
   imod boltTxDef_wclose K tx r c c' X X' (T.setBkt n ∅) ⊤ (by simp) hTc' hk hsh
-    ⟨hokX', hrw, by rw [hdX']; rfl, by rw [hk.v]; exact hbase, hgX', hwrX'⟩ $$
+    ⟨hokX', hrw, by rw [hdX']; rfl, by rw [hk.v]; exact hbase, hgX', hwrX', hwcX'⟩ $$
     [Hv Hw Hst] with Ht
   · rw [hk.v, hKB, show (T.setBkt n ∅).base = T.base from rfl]; iframe; iframe #
   imodintro

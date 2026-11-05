@@ -92,7 +92,7 @@ omit package_sem in
 theorem dbk_close (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' : WX) (w' : WDb)
     (extra : GMap Nat Unit) (T' : TxView) (hT : T' = TxView.ofC c')
     (hf : wOK X' ∧ T'.rw = true ∧ T'.cur = wtxData X' ∧ T'.base = X'.v.data ∧ gensOK T' X' ∧
-      wrFacts X')
+      wrFacts X' ∧ wrCurFacts T' X')
     (hx : flViewU X' w'.fl ∧ metaCopyOK X'.t.mv w'.C ∧ treeOK w'.C) :
     K.full (GF := GF) ∗ viewOf r X'.v ∗ ghostVar r.n.v 1 (c, TxX.wr X) ∗ wtxW K tx r false X' ∗
         sync.ownMutex K.db.[DB, go!"rwlock"] ∗ ghostVar K.B.cls (1 : Qp).half false ∗
@@ -141,7 +141,7 @@ theorem dbk_close (K : BC) (tx : Loc) (r : TxReg) (c c' : TxViewC) (X X' : WX) (
   · unfold viewW; iframe #
   ipureintro
   exact ⟨hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
-    Hr.2.2.2.2.1, Hr.2.2.2.2.2, hf.2.2.2.2.2⟩
+    Hr.2.2.2.2.1, Hr.2.2.2.2.2, hf.2.2.2.2.2.1, hf.2.2.2.2.2.2⟩
 
 end xcl
 

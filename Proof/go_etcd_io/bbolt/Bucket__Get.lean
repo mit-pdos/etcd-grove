@@ -210,13 +210,13 @@ theorem Bucket.Get.wp_writer [HasExt osFsExt]
   ihave Ht := (boltTxDef_wtxWQ _ _ tx q T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur', hbase, hgens, hwr, hwc⟩ := Hf
   ihave Hcl : wtxWQ (GF := GF) K tx r true q X -∗ boltTxDef (bnsOf γ.gs) γ.ns tx q T $$ [Hv Hst]
   · iintro Hw
     iapply (boltTxDef_wtxWQ _ _ tx q T hrw).2
     iexists K, r, c, X
     iframe; iframe #
-    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+    ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
   unfold boltBktDef
   icases Hb with ⟨%r', #Hreg', #Hbtx, #Hh, Hrb⟩
   ihave #Hreg'' : reg (GF := GF) tx K.B r' $$ []

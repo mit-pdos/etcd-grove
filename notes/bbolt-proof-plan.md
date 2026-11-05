@@ -1860,6 +1860,19 @@ the `wp_root`s take `hwc`; `Read/PubWCur`'s `wrCurFacts_of` and every `hW` remov
 `bboltErrVar` (its `fmtErrorOk`), `etc/gen-init.py` updated, then regenerate the `Init.lean`s).
 Then build the leaves of `Inv/Tx` but `WriteExtRun`'s downstream, fix, commit in one window.
 
+### Maintainer 17 (2026-11-05): `wrCurFacts` in the invariant, landed
+
+Maintainer 16's patch and `land.py --errors` applied: `wtxFrac`'s facts and `boltTxDef_wtxW`/`_wtxWQ`'s
+end `∧ wrCurFacts T X`; the closers, `createOK`/`openOK`, the `wp_root`s and `beginRWTx` carry it
+(`Write/WrCur`'s step lemmas); `Read/PubWCur.wrCurFacts_of` (**sorry**) and every `hW` of
+`Read/PubW*`/`Cursor__*` gone; `bboltErrorsVars` ends with `ErrBucketNotFound`'s `bboltErrVar`
+(`Init.lean`s regenerated, `gen-init --check` clean). Fixes beyond the script: `Tx__DeleteBucket`'s
+two early closes and its `wp_root` call take `hwc`; `Tx__Commit_err`'s projections of the facts
+(`Hf.2.2.2.2` is now `wrFacts ∧ wrCurFacts`: `.1.1`, `.1.2.1`, `.1.2.2`); `PubWCur` reads `hwc.1`,
+`hwc.2.1` (kept for the close); `createOK`/`openOK` parenthesised; `CreateBktWp` states `hwc4 :
+wrCurFacts T X4` (by `wrCurFacts_createPost`) before the case split, used by both cases. Every leaf of
+`Inv/Tx` built, `Commit/WriteExtRun` included (1424 s).
+
 ## Writer reads at a fraction (U6w, 2026-11-05)
 
 **The cause** (found by the coordinator). The public read triples (`Bucket.Get`, `Bucket.Cursor`,

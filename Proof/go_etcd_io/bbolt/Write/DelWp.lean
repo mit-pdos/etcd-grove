@@ -9,6 +9,7 @@ resources any `R` lending the key (the closed `boltTx` and the key, `delR_lend`)
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Write.WrCur
 public import Spec.go_etcd_io.bbolt.Bucket__Delete
 public import Spec.go_etcd_io.bbolt.node__del
 public import Proof.go_etcd_io.bbolt.Write.PutWp
@@ -160,7 +161,7 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
   ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
   icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hKB, hKN, hTc⟩ := HK
-  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  obtain ⟨hok, hcur', hbase, hgens, hwr, hwc⟩ := Hf
   unfold boltBktDef
   icases Hb with ⟨%r', #Hreg', #Hbtx, #Hh, -⟩
   ihave #Hreg'' : reg (GF := GF) tx K.B r' $$ []
@@ -391,7 +392,7 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
     · iapply (boltTxDef_wtxW _ _ tx T hrw).2
       iexists K, r, c, X
       iframe; iframe #
-      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
     ihave Hko := Hkback $$ Hkr
     wp_bind (App (Val #f) (Val #()))
     iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil ∗
@@ -464,7 +465,8 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
     have hv4 := hk4.v
     imod boltTxDef_wclose K tx r c _ X _ (T.setBkt n (m.delete kb)) ⊤ (by simp) hT' hk4
       (fun extra => txShape_matGrow _ X X3 b extra hloc Hmg)
-      ⟨hok3, hrw, by rw [hd4, Hm]; rfl, by rw [hv4]; exact hbase, hg4, hwr4⟩ $$
+      ⟨hok3, hrw, by rw [hd4, Hm]; rfl, by rw [hv4]; exact hbase, hg4, hwr4,
+        Write.wrCurFacts_gen T _ X3 rfl (Write.wrCurFacts_matGrow T X X3 b hok Hmg hwc)⟩ $$
       [Hv Hw Hst] with Ht
     · rw [hKB, hv4]; iframe; iframe #
     ihave Hkr : keyR X.v key kr kb $$ [Hkr]
@@ -508,7 +510,8 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
     have hv4 := hk4.v
     imod boltTxDef_wclose K tx r c _ X _ (T.setBkt n (m.delete kb)) ⊤ (by simp) hT' hk4
       (fun extra => (txShape_matGrow _ X X3 b extra hloc Hmg).trans (txShape_delAt _ X3 b l B3 rl sl _ kb true extra HB3 Hrl))
-      ⟨hok4, hrw, by rw [hd4, Hm]; rfl, by rw [hv4]; exact hbase, hg4, hwr4⟩ $$
+      ⟨hok4, hrw, by rw [hd4, Hm]; rfl, by rw [hv4]; exact hbase, hg4, hwr4,
+        Write.wrCurFacts_leafStep T _ X X3 b l B3 _ hok Hmg HB3 (Write.bktLoc_ne_root X hwr n b hbl) rfl hwc⟩ $$
       [Hv Hw Hst] with Ht
     · rw [hKB, hv4]; iframe; iframe #
     ihave Hkr : keyR X.v key kr kb $$ [Hkr]

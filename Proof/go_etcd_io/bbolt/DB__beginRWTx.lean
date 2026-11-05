@@ -7,6 +7,7 @@ writer state begins (`store_wbegin`) and the transaction is registered with its 
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Write.WrCur
 public import Spec.go_etcd_io.bbolt.DB__beginTx_s
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__ReleasePendingPages
 public import Proof.go_etcd_io.bbolt.Txn.Init
@@ -407,7 +408,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   · unfold viewW viewOf viewBase; iframe #
   ipureintro
   refine ⟨wOK_wx0 _ _ _ _ _ _ _ htree hi, ?_, (wtxData_wx0 _ _ _ _ _ _ _ htree hi).symm, rfl,
-    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, Hmpos, wrFacts_wx0 _ _ _ _ _ _ rfl⟩
+    gensOK_wx0 _ _ _ _ _ _ _, Htxn, rfl, Hrtn, Hmpos, wrFacts_wx0 _ _ _ _ _ _ rfl,
+    Write.wrCurFacts_wx0 _ _ _ _ _ _ _ _ htree hi (fun _ => rfl)⟩
   trivial
 
 end proof

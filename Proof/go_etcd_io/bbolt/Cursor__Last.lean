@@ -304,8 +304,7 @@ theorem Cursor.Last.wp_reader [HasExt osFsExt]
       iframe; iframe #)
 
 /-- **A writer's `Last`** (U6aa): `Read/PubWLast`'s, over `pageNode_w`, `last_w`, `prev_w` and
-`keyValue_ws`; `gensOK`'s third clause by `gensOK_handle_bktLoc` and the cursor's writer facts by
-`wrCurFacts_of` (both OPEN). -/
+`keyValue_ws`; `gensOK`'s third clause by `gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
 theorem Cursor.Last.wp_writer [HasExt osFsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
@@ -322,7 +321,6 @@ theorem Cursor.Last.wp_writer [HasExt osFsExt]
       boltCur tx γ c T es (some (es.length - 1)) ∗ curAt tx γ es (es.length - 1) k v }} :=
   Cursor.Last.wp_writerW hA hRP hpnw hCnt hlastw hprevw hkvw tx c γ q T es pos hrw
     (gensOK_handle_bktLoc T)
-    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.Last.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))

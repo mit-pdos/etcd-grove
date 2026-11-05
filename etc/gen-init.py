@@ -261,6 +261,9 @@ FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPa
 # `Proof/go_etcd_io/bbolt/PkgInit.lean`)
 _BBOLT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'ErrVersionMismatch', 'ErrChecksum', 'ErrTimeout', 'ErrTxNotWritable', 'ErrTxClosed', 'ErrDatabaseReadOnly', 'ErrFreePagesNotLoaded', 'ErrBucketNotFound', 'ErrBucketExists', 'ErrBucketNameRequired', 'ErrKeyRequired', 'ErrKeyTooLarge', 'ErrValueTooLarge', 'ErrMaxSizeReached', 'ErrIncompatibleValue', 'ErrSameBuckets', 'ErrDifferentDB']
 _BBOLT_VARS = [x for x in _BBOLT_ERRS if x != 'ErrBucketNotFound']
+# (maintainer 16) `bboltErrorsVars` ends with `ErrBucketNotFound`'s `bboltErrVar` (its `fmtErrorOk`,
+# for `DeleteBucket`'s deferred log line)
+_BBOLT_VARSX = _BBOLT_VARS + ['ErrBucketNotFound']
 SPECIAL['go_etcd_io.bbolt.errors'] = dict(
     doc='''Its fact (`bboltErrorsInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `ErrBucketNotFound`
 holds an `errors.New` error, a leaf pointer error without an `Is` method
@@ -279,11 +282,11 @@ Perennial's `errors.wp_New_errorString`); the other variables' errors are `*erro
             'unfold go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar'] +
            # (batch 30) each other variable: an `errors.New` pointer error, `fmtErrorOk` by
            # `EtcdGrove.errorString_fmtErrorOk` of its method spec `M{x}`
-           [l for x in _BBOLT_VARS[:-1] for l in ['isplitr', f'· iexists _; iframe H{x}; isplitr',
+           [l for x in _BBOLT_VARSX[:-1] for l in ['isplitr', f'· iexists _; iframe H{x}; isplitr',
                                                    '  · ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
                                                    f'  iapply EtcdGrove.errorString_fmtErrorOk; iexact M{x}']] +
-           [f'iexists _; iframe H{_BBOLT_VARS[-1]}; isplitr', '· ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
-            f'iapply EtcdGrove.errorString_fmtErrorOk; iexact M{_BBOLT_VARS[-1]}'],
+           [f'iexists _; iframe H{_BBOLT_VARSX[-1]}; isplitr', '· ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
+            f'iapply EtcdGrove.errorString_fmtErrorOk; iexact M{_BBOLT_VARSX[-1]}'],
 )
 
 SPECIAL['go_etcd_io.bbolt.internal.common'] = dict(
@@ -357,7 +360,7 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
                 'ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []',
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar',
-                'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + '⟩'],
+                'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + ', -⟩'],
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},
