@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.DB.meta.wp_proof [hos : HasExt osFsExt] : bbolt.DB.meta.spec
+theorem bbolt.DB.meta.wp_proof (hTxid : bbolt.internal.common.Meta.Txid.spec) (hValidate :
+    bbolt.internal.common.Meta.Validate.spec) : bbolt.DB.meta.spec
   -- `Perennial.EtcdGrove.bbolt.DB.meta.spec`, unfolded:
   ∀ (db b : Loc) (l : Nat) (C : bbolt.CommitSt) (dq : DFrac) (q : Qp),
     C.metaOk →

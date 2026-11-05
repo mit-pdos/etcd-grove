@@ -2,7 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.Bucket.wp_proof : bbolt.Tx.Bucket.spec
+theorem bbolt.Tx.Bucket.wp_writer [HasExt osFsExt] (hBw : bbolt.Bucket.Bucket_w.spec) (tx : Loc) (γ
+    : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (name : GoSlice) (n : GoString) (dq : DFrac) (hrw
+    : T.rw = true) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ ownSlice name n dq ∗ ⌜T.rw = true → q = 1⌝ -∗ (▷
+    ∀ b, bbolt.boltTx tx γ q T ∗ ownSlice name n dq ∗ (⌜T.cur !! n = none ∧ b = null⌝ ∨ ⌜T.cur !! n
+    ≠ none ∧ b ≠ null⌝ ∗ bbolt.boltBkt tx γ b n (T.gen n)) -∗ Φ (intoVal b)) -∗ WP ((intoVal
+    (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Bucket" (intoVal tx))) (intoVal name)) {{ Φ }}
+
+theorem bbolt.Tx.Bucket.wp_proof (hBr : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Bucket_r.spec) (hBw
+    : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Bucket_w.spec) : bbolt.Tx.Bucket.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Bucket.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (name : GoSlice) (n : GoString)
     (dq : DFrac),
@@ -21,3 +29,11 @@ theorem bbolt.Tx.Bucket.wp_proof : bbolt.Tx.Bucket.spec
                   (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Bucket" (intoVal tx)))
                 (intoVal name))
               {{ Φ }}
+
+theorem bbolt.Tx.Bucket.wp_reader [HasExt osFsExt] (hmint : bbolt.RdHandleMint) (hBr :
+    bbolt.Bucket.Bucket_r.spec) (tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (name :
+    GoSlice) (n : GoString) (dq : DFrac) (hro : T.rw = false) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗
+    ownSlice name n dq ∗ ⌜T.rw = true → q = 1⌝ -∗ (▷ ∀ b, bbolt.boltTx tx γ q T ∗ ownSlice name n dq
+    ∗ (⌜T.cur !! n = none ∧ b = null⌝ ∨ ⌜T.cur !! n ≠ none ∧ b ≠ null⌝ ∗ bbolt.boltBkt tx γ b n
+    (T.gen n)) -∗ Φ (intoVal b)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType
+    go!"Bucket" (intoVal tx))) (intoVal name)) {{ Φ }}

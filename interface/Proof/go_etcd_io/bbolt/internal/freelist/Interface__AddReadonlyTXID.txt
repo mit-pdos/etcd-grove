@@ -11,9 +11,7 @@ theorem bbolt.internal.freelist.Interface.AddReadonlyTXID.wp_proof [hos : HasExt
         isPkgInit pkg_id.go_etcd_io.bbolt.internal.freelist ∗ bbolt.flRoOwn fli ro -∗
           ▷ (bbolt.flRoOwn fli (ro ++ [tid]) -∗ Φ (intoVal ())) -∗
             WP
-              ((intoVal
-                  (methods go_etcd_io.bbolt.internal.freelist.Interface.ty
-                    go!"AddReadonlyTXID"
-                    (intoVal fli)))
+              ((bbolt.ifaceCall fli
+                  go!"AddReadonlyTXID")
                 (intoVal tid))
               {{ Φ }}

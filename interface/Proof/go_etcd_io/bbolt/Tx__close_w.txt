@@ -2,16 +2,53 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.close_w.wp_proof [hos : HasExt osFsExt] : bbolt.Tx.close_w.spec
+theorem bbolt.metaR.congr_simp [hos : HasExt osFsExt] (B B✝ : bbolt.BNs) (e_B : B = B✝) (db db✝ :
+    Loc) (e_db : db = db✝) (p p✝ : GoString) (e_p : p = p✝) : bbolt.metaR B db p = bbolt.metaR B✝
+    db✝ p✝
+
+theorem bbolt.mapFields_combine [hos : HasExt osFsExt] (db : Loc) (a b : Qp) (ms1 ms2 : bbolt.MapSt)
+    : bbolt.mapFields db (DFrac.own a) ms1 ∗ bbolt.mapFields db (DFrac.own b) ms2 ⊢ ⌜ms1 = ms2⌝ ∗
+    bbolt.mapFields db (DFrac.own (a + b)) ms1
+
+def bbolt.closeStats (st : go_etcd_io.bbolt.Stats) (ts : go_etcd_io.bbolt.TxStats) (fl : bbolt.FLPg)
+    : go_etcd_io.bbolt.Stats :=
+  { TxStats' := ts, FreePageN' := W64 ↑fl.free.length, PendingPageN' := W64 ↑fl.pendingIds.length,
+    FreeAlloc' := (W64 ↑fl.free.length + W64 ↑fl.pendingIds.length) * W64 4096,
+    FreelistInuse' := W64 ↑(16 + 8 * (fl.allIds.length + if 65535 ≤ fl.allIds.length then 1 else 0)), TxN' := st.TxN',
+    OpenTxN' := st.OpenTxN' }
+
+theorem bbolt.Tx.close_w.wp_proof [hos : HasExt osFsExt] (wp_FreeCount :
+    bbolt.internal.freelist.Interface.FreeCount.spec) (wp_PendingCount :
+    bbolt.internal.freelist.Interface.PendingCount.spec) (wp_EWPS :
+    bbolt.internal.freelist.Interface.EstimatedWritePageSize.spec) : bbolt.Tx.close_w.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.close_w.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (X : bbolt.WX) (ws : bbolt.WSt) (w : bbolt.WDb),
     (∃ v wt pb wl,
-        ws = (some v, some wt, pb, wl) ∧ (pb = true ∨ w.fl.pending !! W64 ↑wt = none) ∧ (wl = true ↔ w.ms ≠ none)) →
+        ws = (some v, some wt, pb, wl) ∧
+          (pb = true ∨ w.fl.pending !! W64 ↑wt = none) ∧ (wl = true ↔ w.ms ≠ none) ∧ (wl = true → v = X.v)) →
       ⊢
         ∀ Φ,
           bbolt.wtxEnd K tx r X ws w -∗
-            ▷ (bbolt.txDoneDef tx -∗ Φ (intoVal ())) -∗
+            ▷
+                (bbolt.txDoneDef tx ∗
+                    typedPointsto
+                      (structFieldRef go_etcd_io.bbolt.Tx
+                        go!"commitHandlers"
+                        tx)
+                      X.t.t.commitHandlers' (DFrac.own 1) -∗
+                  Φ (intoVal ())) -∗
               WP
                 ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"close" (intoVal tx)))
                   (intoVal ()))
                 {{ Φ }}
+
+theorem bbolt.wtxHeap_root_out [hos : HasExt osFsExt] (tx : Loc) (X : bbolt.WX) (B : bbolt.BRec) (hb
+    : X.t.bs !! X.rl = some B) : bbolt.wtxHeap tx (DFrac.own 1) X ⊢ bbolt.txFields tx (DFrac.own 1)
+    X ∗ bbolt.rootFill tx (DFrac.own 1) ∗ ⌜X.rl = bbolt.txRoot tx ∧ B.bv.tx' = tx⌝ ∗ typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Bucket go!"InBucket" X.rl) B.bv.InBucket' (DFrac.own 1) ∗
+    typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" X.rl) B.bv.tx' (DFrac.own 1) ∗
+    typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"buckets" X.rl) B.bv.buckets'
+    (DFrac.own 1) ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"page" X.rl) B.bv.page'
+    (DFrac.own 1) ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"rootNode" X.rl)
+    B.bv.rootNode' (DFrac.own 1) ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket go!"nodes"
+    X.rl) B.bv.nodes' (DFrac.own 1)

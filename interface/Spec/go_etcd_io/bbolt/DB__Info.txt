@@ -6,7 +6,7 @@ def bbolt.DB.Info.spec : Prop :=
   ∀ [inst : HasExt osFsExt] (db tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
-        bbolt.isBolt db γ ∗ bbolt.txDB tx db ∗ bbolt.boltTx tx γ q T -∗
+        bbolt.isBolt db γ ∗ bbolt.txDB tx γ db ∗ bbolt.boltTx tx γ q T -∗
           (▷ ∀ i, (bbolt.boltTx tx γ q T ∗ ∃ v, typedPointsto i v (DFrac.own 1)) -∗ Φ (intoVal i)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Info" (intoVal db)))

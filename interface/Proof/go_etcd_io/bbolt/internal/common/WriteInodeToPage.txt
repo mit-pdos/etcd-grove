@@ -2,11 +2,28 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.common.WriteInodeToPage.wp_proof :
+theorem bbolt.internal.common.WriteInodeToPage.wp_proof (wp_UnsafeByteSlice :
+    bbolt.internal.common.UnsafeByteSlice.spec) (wp_Page_PageElementSize :
+    bbolt.internal.common.Page.PageElementSize.spec) (wp_Page_IsLeafPage :
+    bbolt.internal.common.Page.IsLeafPage.spec) (wp_Page_LeafPageElement :
+    bbolt.internal.common.Page.LeafPageElement.spec) (wp_Page_BranchPageElement :
+    bbolt.internal.common.Page.BranchPageElement.spec) (wp_Page_Id :
+    bbolt.internal.common.Page.Id.spec) (wp_leafPageElement_SetPos :
+    bbolt.internal.common.leafPageElement.SetPos.spec) (wp_leafPageElement_SetFlags :
+    bbolt.internal.common.leafPageElement.SetFlags.spec) (wp_leafPageElement_SetKsize :
+    bbolt.internal.common.leafPageElement.SetKsize.spec) (wp_leafPageElement_SetVsize :
+    bbolt.internal.common.leafPageElement.SetVsize.spec) (wp_branchPageElement_SetPos :
+    bbolt.internal.common.branchPageElement.SetPos.spec) (wp_branchPageElement_SetKsize :
+    bbolt.internal.common.branchPageElement.SetKsize.spec) (wp_branchPageElement_SetPgid :
+    bbolt.internal.common.branchPageElement.SetPgid.spec) (wp_branchPageElement_Pgid :
+    bbolt.internal.common.branchPageElement.Pgid.spec) (wp_Inode_Key :
+    bbolt.internal.common.Inode.Key.spec) (wp_Inode_Value : bbolt.internal.common.Inode.Value.spec)
+    (wp_Inode_Flags : bbolt.internal.common.Inode.Flags.spec) (wp_Inode_Pgid :
+    bbolt.internal.common.Inode.Pgid.spec) (wp_Assert : bbolt.internal.common.Assert.spec) :
     bbolt.internal.common.WriteInodeToPage.spec
   -- `Perennial.EtcdGrove.bbolt.internal.common.WriteInodeToPage.spec`, unfolded:
-  ∀ (s : GoSlice) (ins : List go_etcd_io.bbolt.internal.common.Inode) (ms : List bbolt.InodeM) (dqs dqb : DFrac) (p : Loc)
-    (hdr : go_etcd_io.bbolt.internal.common.Page) (rest : List w8),
+  ∀ (s : GoSlice) (ins : List go_etcd_io.bbolt.internal.common.Inode) (ms : List bbolt.InodeM) (dqs : DFrac)
+    (qk qv : Nat → DFrac) (p : Loc) (hdr : go_etcd_io.bbolt.internal.common.Page) (rest : List w8),
     0 < p.addr →
       bbolt.pageFits ms →
         (bbolt.pageBody true ms).length ≤ rest.length →
@@ -15,15 +32,15 @@ theorem bbolt.internal.common.WriteInodeToPage.wp_proof :
               ∀ Φ,
                 isPkgInit pkg_id.go_etcd_io.bbolt.internal.common ∗
                     ownSlice s ins dqs ∗
-                      ([∗list] it;m ∈ ins;ms,
+                      ([∗list] k ↦ it;m ∈ ins;ms,
                           iprop(⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-                              ownSlice it.key' m.key dqb ∗ ownSlice it.value' m.value dqb)) ∗
+                              ownSlice it.key' m.key (qk k) ∗ ownSlice it.value' m.value (qv k))) ∗
                         typedPointsto p hdr (DFrac.own 1) ∗ bytesPointsto (p.add 16) (DFrac.own 1) rest -∗
                   ▷
                       (ownSlice s ins dqs ∗
-                          ([∗list] it;m ∈ ins;ms,
+                          ([∗list] k ↦ it;m ∈ ins;ms,
                               iprop(⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-                                  ownSlice it.key' m.key dqb ∗ ownSlice it.value' m.value dqb)) ∗
+                                  ownSlice it.key' m.key (qk k) ∗ ownSlice it.value' m.value (qv k))) ∗
                             typedPointsto p hdr (DFrac.own 1) ∗
                               bytesPointsto (p.add 16) (DFrac.own 1)
                                 (bbolt.pageBody (decide (hdr.flags' = W16 2)) ms ++

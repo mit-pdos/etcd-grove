@@ -2,38 +2,40 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.ForEachBucket_r.wp_proof [hos : HasExt osFsExt] :
-    bbolt.Bucket.ForEachBucket_r.spec
+theorem bbolt.Bucket.ForEachBucket_r.wp_proof [hos : HasExt osFsExt] (hcur :
+    bbolt.Bucket.Cursor_i.spec) (hfst : bbolt.Cursor.first_r.spec) (hnx : bbolt.Cursor.next_r.spec)
+    : bbolt.Bucket.ForEachBucket_r.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_r.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) (b : Loc) (dq : DFrac)
-    (bv : List w8) (fn : GoFunc) (I : Nat → IProp GF),
+    (bv : List w8) (ibp pp : Loc) (fn : GoFunc) (I : Nat → IProp GF) (E : GoInterface → IProp GF),
     (bv = bbolt.rootVal v ∨ ∃ n, (n, bv) ∈ bbolt.treeEntries v.pages v.root) →
       ⊢
         ∀ Φ,
           (bbolt.rdTxK K tx src q T v ∗
-              bbolt.rBkt v tx b dq bv ∗
+              bbolt.rBktP v tx b dq bv ibp pp ∗
                 I 0 ∗
                   □
                     ∀ i k kb ks,
                       □
                         ∀ Φ,
                           bbolt.rdTxK K tx src q T v ∗
-                              bbolt.rBkt v tx b dq bv ∗
+                              bbolt.rBktP v tx b dq bv ibp pp ∗
                                 I i ∗
                                   bbolt.srcOwn v k ks kb ∗
                                     ⌜ks ≠ bbolt.Src.stale ∧ (bbolt.bktNames v.pages bv)[i]? = some kb⌝ -∗
                             (▷
                                 ∀ err,
-                                  bbolt.rdTxK K tx src q T v ∗ bbolt.rBkt v tx b dq bv ∗ I (i + 1) -∗ Φ (intoVal err)) -∗
+                                  bbolt.rdTxK K tx src q T v ∗
+                                      bbolt.rBktP v tx b dq bv ibp pp ∗
+                                        (⌜err = GoInterface.nil⌝ ∗ I (i + 1) ∨ ⌜err ≠ GoInterface.nil⌝ ∗ E err) -∗
+                                    Φ (intoVal err)) -∗
                               WP ((intoVal fn) (intoVal k)) {{ Φ }}) -∗
             (▷
                 ∀ err,
-                  (∃ i,
-                      bbolt.rdTxK K tx src q T v ∗
-                        bbolt.rBkt v tx b dq bv ∗
-                          I i ∗
-                            ⌜i ≤ (bbolt.bktNames v.pages bv).length ∧
-                                (err = GoInterface.nil → i = (bbolt.bktNames v.pages bv).length)⌝) -∗
+                  bbolt.rdTxK K tx src q T v ∗
+                      bbolt.rBktP v tx b dq bv ibp pp ∗
+                        (⌜err = GoInterface.nil⌝ ∗ I (bbolt.bktNames v.pages bv).length ∨
+                          ⌜err ≠ GoInterface.nil⌝ ∗ E err) -∗
                     Φ (intoVal err)) -∗
               WP
                 ((intoVal

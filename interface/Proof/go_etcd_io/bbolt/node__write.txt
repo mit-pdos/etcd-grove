@@ -2,10 +2,14 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.node.write.wp_proof [hos : HasExt osFsExt] : bbolt.node.write.spec
+theorem bbolt.node.write.wp_proof (hA : bbolt.internal.common.Assert.spec) (hCount :
+    bbolt.internal.common.Page.Count.spec) (hFlags : bbolt.internal.common.Page.Flags.spec)
+    (hSetFlags : bbolt.internal.common.Page.SetFlags.spec) (hSetCount :
+    bbolt.internal.common.Page.SetCount.spec) (hW : bbolt.internal.common.WriteInodeToPage.spec) :
+    bbolt.node.write.spec
   -- `Perennial.EtcdGrove.bbolt.node.write.spec`, unfolded:
   ∀ (n : Loc) (nv : go_etcd_io.bbolt.node) (ins : List go_etcd_io.bbolt.internal.common.Inode) (ms : List bbolt.InodeM)
-    (dq dqi dqb : DFrac) (p : Loc) (hdr : go_etcd_io.bbolt.internal.common.Page) (R : Nat),
+    (dq dqi : DFrac) (qk qv : Nat → DFrac) (p : Loc) (hdr : go_etcd_io.bbolt.internal.common.Page) (R : Nat),
     hdr.count' = W16 0 →
       hdr.flags' = W16 0 →
         ms.length < 65535 →
@@ -19,17 +23,17 @@ theorem bbolt.node.write.wp_proof [hos : HasExt osFsExt] : bbolt.node.write.spec
                         isPkgInit pkg_id.go_etcd_io.bbolt ∗
                             typedPointsto n nv dq ∗
                               ownSlice nv.inodes' ins dqi ∗
-                                ([∗list] it;m ∈ ins;ms,
+                                ([∗list] k ↦ it;m ∈ ins;ms,
                                     iprop(⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-                                        ownSlice it.key' m.key dqb ∗ ownSlice it.value' m.value dqb)) ∗
+                                        ownSlice it.key' m.key (qk k) ∗ ownSlice it.value' m.value (qv k))) ∗
                                   typedPointsto p hdr (DFrac.own 1) ∗
                                     bytesPointsto (p.add 16) (DFrac.own 1) (List.replicate R (W8 0)) -∗
                           ▷
                               (typedPointsto n nv dq ∗
                                   ownSlice nv.inodes' ins dqi ∗
-                                    ([∗list] it;m ∈ ins;ms,
+                                    ([∗list] k ↦ it;m ∈ ins;ms,
                                         iprop(⌜it.flags' = m.flags ∧ it.pgid' = m.pgid⌝ ∗
-                                            ownSlice it.key' m.key dqb ∗ ownSlice it.value' m.value dqb)) ∗
+                                            ownSlice it.key' m.key (qk k) ∗ ownSlice it.value' m.value (qv k))) ∗
                                       typedPointsto p (bbolt.hdrWritten hdr nv.isLeaf' ms.length) (DFrac.own 1) ∗
                                         bytesPointsto (p.add 16) (DFrac.own 1)
                                           (bbolt.pageBody nv.isLeaf' ms ++

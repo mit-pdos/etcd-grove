@@ -2,25 +2,26 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.Bucket_r.wp_proof [hos : HasExt osFsExt] : bbolt.Bucket.Bucket_r.spec
+theorem bbolt.Bucket.Bucket_r.wp_proof [hos : HasExt osFsExt] (hcur : bbolt.Bucket.Cursor_i.spec)
+    (hseek : bbolt.Cursor.seek_r.spec) (hopen : bbolt.Bucket.openBucket_r.spec) (hEq :
+    bytes.Equal.spec) : bbolt.Bucket.Bucket_r.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.Bucket_r.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) (b : Loc) (dq : DFrac)
-    (bv : List w8) (name : GoSlice) (nb : List w8) (ks : bbolt.Src),
+    (bv : List w8) (ibp pp : Loc) (name : GoSlice) (kr : bbolt.KeyR) (nb : List w8),
     (bv = bbolt.rootVal v ∨ ∃ n, (n, bv) ∈ bbolt.treeEntries v.pages v.root) →
-      ks ≠ bbolt.Src.stale →
-        ⊢
-          ∀ Φ,
-            bbolt.rdTxK K tx src q T v ∗ bbolt.rBkt v tx b dq bv ∗ bbolt.srcOwn v name ks nb -∗
-              (▷
-                  ∀ c,
-                    bbolt.rdTxK K tx src q T v ∗
-                        bbolt.rBkt v tx b dq bv ∗
+      ⊢
+        ∀ Φ,
+          bbolt.rdTxK K tx src q T v ∗ bbolt.rBktP v tx b dq bv ibp pp ∗ bbolt.keyR v name kr nb -∗
+            (▷
+                ∀ c,
+                  bbolt.rdTxK K tx src q T v ∗
+                      bbolt.rBktP v tx b dq bv ibp pp ∗
+                        bbolt.keyR v name kr nb ∗
                           (⌜c = null ∧ ¬nb ∈ bbolt.bktNames v.pages bv⌝ ∨
                             ∃ cv, ⌜c ≠ null ∧ bbolt.bktEntry v.pages bv nb cv⌝ ∗ bbolt.rBkt v tx c DFrac.discard cv) -∗
-                      Φ (intoVal c)) -∗
-                WP
-                  ((intoVal
-                      (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"Bucket"
-                        (intoVal b)))
-                    (intoVal name))
-                  {{ Φ }}
+                    Φ (intoVal c)) -∗
+              WP
+                ((intoVal
+                    (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"Bucket" (intoVal b)))
+                  (intoVal name))
+                {{ Φ }}

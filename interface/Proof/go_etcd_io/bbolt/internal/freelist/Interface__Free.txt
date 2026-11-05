@@ -2,8 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.freelist.Interface.Free.wp_proof [hos : HasExt osFsExt] :
-    bbolt.internal.freelist.Interface.Free.spec
+theorem bbolt.internal.freelist.Interface.Free.wp_proof [hos : HasExt osFsExt] (hId :
+    bbolt.internal.common.Page.Id.spec) (hOv : bbolt.internal.common.Page.Overflow.spec) (hVerify :
+    bbolt.internal.common.Verify.spec) : bbolt.internal.freelist.Interface.Free.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.Free.spec`, unfolded:
   ∀ (fli : GoInterface) (fl : bbolt.FLPg) (txid : w64) (p : Loc) (hdr : go_etcd_io.bbolt.internal.common.Page)
     (dq : DFrac),
@@ -15,9 +16,10 @@ theorem bbolt.internal.freelist.Interface.Free.wp_proof [hos : HasExt osFsExt] :
                 (bbolt.flPgOwn fli (fl.freePages txid hdr.id' (1 + BitVec.toNat hdr.overflow')) ∗
                     typedPointsto p hdr dq -∗
                   Φ (intoVal ())) -∗
-              WP
-                (((intoVal
-                      (methods go_etcd_io.bbolt.internal.freelist.Interface.ty go!"Free" (intoVal fli)))
-                    (intoVal txid))
-                  (intoVal p))
-                {{ Φ }}
+              WP (((bbolt.ifaceCall fli go!"Free") (intoVal txid)) (intoVal p)) {{ Φ }}
+
+theorem bbolt.FLImpl.mk.congr_simp (ity ity✝ : go.GoType) (e_ity : ity = ity✝) (iv iv✝ : val) (e_iv
+    : iv = iv✝) (own own✝ : List w64 → IProp GF) (e_own : own = own✝) (hdl hdl✝ : Loc → IProp GF)
+    (e_hdl : hdl = hdl✝) (hdl_persistent : ∀ (s : Loc), Persistent (hdl s)) : { ity := ity, iv :=
+    iv, own := own, hdl := hdl, hdl_persistent := hdl_persistent } = { ity := ity✝, iv := iv✝, own
+    := own✝, hdl := hdl✝, hdl_persistent := ⋯ }

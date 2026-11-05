@@ -2,7 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.DeleteBucket.wp_proof : bbolt.Tx.DeleteBucket.spec
+theorem bbolt.Tx.DeleteBucket.wp_proof (hBw : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Bucket_w.spec)
+    (hCur : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Cursor_i.spec) (hSeek : ∀ [inst : HasExt
+    osFsExt], bbolt.Cursor.seek_w.spec) (hFeb : ∀ [inst : HasExt osFsExt],
+    bbolt.Bucket.ForEachBucket_w.spec) (hNode : ∀ [inst : HasExt osFsExt], bbolt.Cursor.node.spec)
+    (hDel : bbolt.node.del.spec) (hFree : ∀ [inst : HasExt osFsExt], bbolt.Bucket.free_dead.spec)
+    (hClone : bbolt.cloneBytes.spec) (hEq : bytes.Equal.spec) : bbolt.Tx.DeleteBucket.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.DeleteBucket.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView) (name : GoSlice) (n : GoString)
     (dq : DFrac),
@@ -15,7 +20,10 @@ theorem bbolt.Tx.DeleteBucket.wp_proof : bbolt.Tx.DeleteBucket.spec
                     (⌜T.cur !! n = none⌝ ∗
                         bbolt.boltTx tx γ 1 T ∗
                           typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound) err DFrac.discard ∨
-                      ⌜T.cur !! n ≠ none ∧ err = GoInterface.nil⌝ ∗ bbolt.boltTx tx γ 1 (T.dropBkt n)) -∗
+                      ⌜n = [] ∧ T.cur !! n = none⌝ ∗
+                          bbolt.boltTx tx γ 1 T ∗
+                            typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue) err DFrac.discard ∨
+                        ⌜T.cur !! n ≠ none ∧ err = GoInterface.nil⌝ ∗ bbolt.boltTx tx γ 1 (T.dropBkt n)) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal
@@ -23,3 +31,9 @@ theorem bbolt.Tx.DeleteBucket.wp_proof : bbolt.Tx.DeleteBucket.spec
                     go!"DeleteBucket" (intoVal tx)))
                 (intoVal name))
               {{ Φ }}
+
+theorem bbolt.dropBkt_ofC (c : bbolt.TxViewC) (n : GoString) : (bbolt.TxView.ofC c).dropBkt n =
+    bbolt.TxView.ofC (bbolt.dropC c n)
+
+def bbolt.dropC (c : bbolt.TxViewC) (n : GoString) : bbolt.TxViewC :=
+  (c.fst, c.snd.fst, GMap.delete n c.snd.snd.fst, <[n := (c.snd.snd.snd !! n).getD 0 + 1]>c.snd.snd.snd)

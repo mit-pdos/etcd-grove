@@ -13,7 +13,7 @@ def bbolt.DB.Begin.spec : Prop :=
           (▷
               ∀ tx err,
                 ((⌜err = GoInterface.nil⌝ ∗
-                      bbolt.txDB tx db ∗
+                      bbolt.txDB tx γ db ∗
                         ∃ D,
                           if w = true then bbolt.boltTx tx γ 1 (bbolt.TxView.wr D)
                           else bbolt.boltTx tx γ 1 (bbolt.TxView.ro D) ∗ Q D) ∨

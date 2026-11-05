@@ -2,25 +2,196 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.rebalance.wp_proof [hos : HasExt osFsExt] : bbolt.Bucket.rebalance.spec
+theorem bbolt.nInv_step (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List
+    w64) (i : Nat) (m' : GMap w64 Loc) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (B1 : bbolt.BRec) (key :
+    w64) (v : Loc) (h : bbolt.nInv X w dbl bl B keys i m' X1 fl1 B1) (hk : keys[i]? = some key) (hv
+    : m' !! key = some v) (X2 : bbolt.WX) (fl2 : bbolt.FLPg) (hI2 : bbolt.rblX X2 fl2 bl none) (hR2
+    : bbolt.rblRel X1 fl1 X2 fl2 X1.t.mv.txid') (hS2 : bbolt.rblStepX X1 X2 bl v) : ∃ B2, bbolt.nInv
+    X w dbl bl B keys (i + 1) B2.nm X2 fl2 B2
+
+def bbolt.balanced (X : bbolt.WX) (c : Loc) : Prop :=
+  ∀ (B : bbolt.BRec), X.t.bs !! c = some B → ∀ (l : Loc) (r : bbolt.NRec), B.ns !! l = some r → r.nv.unbalanced' = false
+
+theorem bbolt.nInv_init (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List
+    w64) (hI : bbolt.rblX X w.fl dbl none) (hb : X.t.bs !! bl = some B) (hk : ∀ (k : w64), k ∈ keys
+    ↔ (B.nm !! k).isSome = true) : bbolt.nInv X w dbl bl B keys 0 B.nm X w.fl B
+
+def bbolt.bInv (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List GoString)
+    (i : Nat) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) : Prop :=
+  bbolt.rblX X1 fl1 dbl none ∧
+    bbolt.rblRel X w.fl X1 fl1 X.t.mv.txid' ∧
+      bbolt.balanced X1 bl ∧
+        (∀ (c : Loc), bbolt.balanced X c → bbolt.balanced X1 c) ∧
+          ∀ (k : Nat) (name : GoString) (c : Loc),
+            k < i → keys[k]? = some name → B.bm !! name = some c → ∀ (d : Loc), bbolt.bReach X c d → bbolt.balanced X1 d
+
+def bbolt.nInv (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List w64) (i :
+    Nat) (m' : GMap w64 Loc) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (B1 : bbolt.BRec) : Prop :=
+  X1.t.bs !! bl = some B1 ∧
+    B1.nm = m' ∧
+      B1.bv = B.bv ∧
+        bbolt.rblX X1 fl1 dbl none ∧
+          bbolt.rblRel X w.fl X1 fl1 X.t.mv.txid' ∧
+            (∀ (l : Loc) (r : bbolt.NRec),
+                B1.ns !! l = some r → r.nv.unbalanced' = true → r.nv.pgid' ∈ List.drop i keys) ∧
+              ∀ (c : Loc), bbolt.balanced X c → bbolt.balanced X1 c
+
+theorem bbolt.bReach_rel (X X' : bbolt.WX) (fl fl' : bbolt.FLPg) (t : w64) (h : bbolt.rblRel X fl X'
+    fl' t) (a d : Loc) (hr : bbolt.bReach X a d) : bbolt.bReach X' a d
+
+inductive bbolt.bReach (X : bbolt.WX) : Loc → Loc → Prop
+  | bbolt.bReach.self {X : bbolt.WX} (b : Loc) : bbolt.bReach X b b
+  | bbolt.bReach.child {X : bbolt.WX} (b c d : Loc) (B : bbolt.BRec) (n : GoString) : X.t.bs !! b =
+      some B → B.bm !! n = some c → bbolt.bReach X c d → bbolt.bReach X b d
+
+theorem bbolt.bReach_of_bktReach (X : bbolt.WX) (c : Loc) (h : bbolt.bktReach X c) : bbolt.bReach X
+    X.rl c
+
+theorem bbolt.nInv_end (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List
+    w64) (m' : GMap w64 Loc) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (B1 : bbolt.BRec) (h : bbolt.nInv X
+    w dbl bl B keys keys.length m' X1 fl1 B1) : bbolt.balanced X1 bl
+
+theorem bbolt.nm_of_ns (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (dbl bl : Loc) (B1 : bbolt.BRec) (hI :
+    bbolt.rblX X1 fl1 dbl none) (hb : X1.t.bs !! bl = some B1) (l : Loc) (r : bbolt.NRec) (hl :
+    B1.ns !! l = some r) : B1.nm !! r.nv.pgid' = some l
+
+theorem bbolt.wdbW_view [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (v : bbolt.View) (w :
+    bbolt.WDb) : bbolt.wdbW K tx v w ⊢ ⌜v = bbolt.View.ofC v.base w.C⌝ ∗ bbolt.wdbW K tx v w
+
+theorem bbolt.wtxW_rl [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool)
+    (X : bbolt.WX) : bbolt.wtxW K tx r m X ⊢ ⌜bbolt.heapOK tx X⌝ ∗ bbolt.wtxW K tx r m X
+
+theorem bbolt.bReach_snoc (X : bbolt.WX) (a b c : Loc) (B : bbolt.BRec) (n : GoString) (h :
+    bbolt.bReach X a b) (hb : X.t.bs !! b = some B) (hn : B.bm !! n = some c) : bbolt.bReach X a c
+
+theorem bbolt.bInv_step (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List
+    GoString) (i : Nat) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (key : GoString) (c : Loc) (h :
+    bbolt.bInv X w dbl bl B keys i X1 fl1) (hk : keys[i]? = some key) (hc : B.bm !! key = some c)
+    (X2 : bbolt.WX) (fl2 : bbolt.FLPg) (hI2 : bbolt.rblX X2 fl2 dbl none) (hR2 : bbolt.rblRel X1 fl1
+    X2 fl2 X1.t.mv.txid') (hr2 : ∀ (d : Loc), bbolt.bReach X1 c d → bbolt.balanced X2 d) (hb2 : ∀ (c
+    : Loc), bbolt.balanced X1 c → bbolt.balanced X2 c) : bbolt.bInv X w dbl bl B keys (i + 1) X2 fl2
+
+theorem bbolt.Bucket.rebalance.wp_proof [hos : HasExt osFsExt] (hSize : bbolt.node.size.spec) (hNum
+    : bbolt.node.numChildren.spec) (hIdx : bbolt.node.childIndex.spec) (hNext :
+    bbolt.node.nextSibling.spec) (hPrev : bbolt.node.prevSibling.spec) (hDel : bbolt.node.del.spec)
+    (hRm : bbolt.node.removeChild.spec) (hFree : bbolt.node.free.spec) (hNode :
+    bbolt.Bucket.node.spec) (hInc : bbolt.TxStats.IncRebalance.spec) (hAssert :
+    bbolt.internal.common.Assert.spec) (hPg : bbolt.internal.common.Inode.Pgid.spec) :
+    bbolt.Bucket.rebalance.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.rebalance.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb),
     bbolt.wOK X →
       (∀ (bl : Loc), X.t.bs !! bl ≠ none → bbolt.leafDepthOK X bl) →
         bbolt.liveReach X →
-          ⊢
-            ∀ Φ,
-              bbolt.wtxW K tx r m X ∗ bbolt.wdbW K tx X.v w -∗
-                ▷
-                    ((∃ X' fl',
-                        bbolt.wtxW K tx r m X' ∗
-                          bbolt.wdbW K tx X.v (w.withFl fl') ∗
-                            ⌜bbolt.rebalOK X X' w.fl fl' w.wtxid ∧ bbolt.liveReach X'⌝) -∗
-                      Φ (intoVal ())) -∗
-                  WP
-                    ((intoVal
-                        (methods go_etcd_io.bbolt.Bucket.ty.PointerType
-                          go!"rebalance"
-                          (intoVal (structFieldRef go_etcd_io.bbolt.Tx go!"root" tx))))
-                      (intoVal ()))
-                    {{ Φ }}
+          bbolt.flViewU X w.fl →
+            ⊢
+              ∀ Φ,
+                bbolt.wtxW K tx r m X ∗ bbolt.wdbW K tx X.v w -∗
+                  ▷
+                      ((∃ X' fl',
+                          bbolt.wtxW K tx r m X' ∗
+                            bbolt.wdbW K tx X.v (w.withFl fl') ∗
+                              ⌜bbolt.rebalOK X X' w.fl fl' w.wtxid ∧
+                                  bbolt.liveReach X' ∧
+                                    bbolt.flViewU X' fl' ∧
+                                      X'.t.t = X.t.t ∧
+                                        X'.t.mv = X.t.mv ∧
+                                          Option.map bbolt.BRec.bm (X'.t.bs !! X.rl) =
+                                            Option.map bbolt.BRec.bm (X.t.bs !! X.rl)⌝) -∗
+                        Φ (intoVal ())) -∗
+                    WP
+                      ((intoVal
+                          (methods go_etcd_io.bbolt.Bucket.ty.PointerType
+                            go!"rebalance"
+                            (intoVal (structFieldRef go_etcd_io.bbolt.Tx go!"root" tx))))
+                        (intoVal ()))
+                      {{ Φ }}
+
+theorem bbolt.rebalB_loeb [hos : HasExt osFsExt] (hn : bbolt.node.rebalance.spec') : ⊢ bbolt.rebalBw
+
+def bbolt.rebalBw [hos : HasExt osFsExt] : IProp GF :=
+  iprop(∀ K tx r m X w bl dbl,
+      ⌜bbolt.rblX X w.fl dbl none ∧ (X.t.bs !! bl).isSome = true⌝ →
+        ∀ Φ,
+          bbolt.wtxW K tx r m X ∗ bbolt.wdbW K tx X.v w -∗
+            (▷
+                ∀ X' fl',
+                  bbolt.wtxW K tx r m X' ∗
+                      bbolt.wdbW K tx X.v (w.withFl fl') ∗
+                        ⌜bbolt.rblX X' fl' dbl none ∧
+                            bbolt.rblRel X w.fl X' fl' X.t.mv.txid' ∧
+                              (∀ (c : Loc), bbolt.bReach X bl c → bbolt.balanced X' c) ∧
+                                ∀ (c : Loc), bbolt.balanced X c → bbolt.balanced X' c⌝ -∗
+                    Φ (intoVal ())) -∗
+              WP
+                ((intoVal
+                    (methods go_etcd_io.bbolt.Bucket.ty.PointerType
+                      go!"rebalance" (intoVal bl)))
+                  (intoVal ()))
+                {{ Φ }})
+
+def bbolt.Bucket.rebalance.spec' [hos : HasExt osFsExt] : Prop :=
+  ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (bl dbl : Loc),
+    bbolt.rblX X w.fl dbl none →
+      (X.t.bs !! bl).isSome = true →
+        ⊢
+          ∀ Φ,
+            bbolt.wtxW K tx r m X ∗ bbolt.wdbW K tx X.v w -∗
+              ▷
+                  ((∃ X' fl',
+                      bbolt.wtxW K tx r m X' ∗
+                        bbolt.wdbW K tx X.v (w.withFl fl') ∗
+                          ⌜bbolt.rblX X' fl' dbl none ∧
+                              bbolt.rblRel X w.fl X' fl' X.t.mv.txid' ∧
+                                (∀ (c : Loc), bbolt.bReach X bl c → bbolt.balanced X' c) ∧
+                                  ∀ (c : Loc), bbolt.balanced X c → bbolt.balanced X' c⌝) -∗
+                    Φ (intoVal ())) -∗
+                WP
+                  ((intoVal
+                      (methods go_etcd_io.bbolt.Bucket.ty.PointerType
+                        go!"rebalance" (intoVal bl)))
+                    (intoVal ()))
+                  {{ Φ }}
+
+theorem bbolt.Bucket.rebalance.wp_proof' [hos : HasExt osFsExt] (hn : bbolt.node.rebalance.spec') :
+    bbolt.Bucket.rebalance.spec'
+  -- `Perennial.EtcdGrove.bbolt.Bucket.rebalance.spec'`, unfolded:
+  ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (bl dbl : Loc),
+    bbolt.rblX X w.fl dbl none →
+      (X.t.bs !! bl).isSome = true →
+        ⊢
+          ∀ Φ,
+            bbolt.wtxW K tx r m X ∗ bbolt.wdbW K tx X.v w -∗
+              ▷
+                  ((∃ X' fl',
+                      bbolt.wtxW K tx r m X' ∗
+                        bbolt.wdbW K tx X.v (w.withFl fl') ∗
+                          ⌜bbolt.rblX X' fl' dbl none ∧
+                              bbolt.rblRel X w.fl X' fl' X.t.mv.txid' ∧
+                                (∀ (c : Loc), bbolt.bReach X bl c → bbolt.balanced X' c) ∧
+                                  ∀ (c : Loc), bbolt.balanced X c → bbolt.balanced X' c⌝) -∗
+                    Φ (intoVal ())) -∗
+                WP
+                  ((intoVal
+                      (methods go_etcd_io.bbolt.Bucket.ty.PointerType
+                        go!"rebalance" (intoVal bl)))
+                    (intoVal ()))
+                  {{ Φ }}
+
+theorem bbolt.nInv_skip (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List
+    w64) (i : Nat) (m' : GMap w64 Loc) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (B1 : bbolt.BRec) (key :
+    w64) (h : bbolt.nInv X w dbl bl B keys i m' X1 fl1 B1) (hk : keys[i]? = some key) (hv : m' !!
+    key = none) : bbolt.nInv X w dbl bl B keys (i + 1) m' X1 fl1 B1
+
+theorem bbolt.bInv_end (X : bbolt.WX) (w : bbolt.WDb) (dbl bl : Loc) (B : bbolt.BRec) (keys : List
+    GoString) (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (hb : X.t.bs !! bl = some B) (hk : ∀ (k :
+    GoString), k ∈ keys ↔ (B.bm !! k).isSome = true) (h : bbolt.bInv X w dbl bl B keys keys.length
+    X1 fl1) (d : Loc) : bbolt.bReach X bl d → bbolt.balanced X1 d
+
+theorem bbolt.ns_of_nm (X1 : bbolt.WX) (fl1 : bbolt.FLPg) (dbl bl : Loc) (B1 : bbolt.BRec) (hI :
+    bbolt.rblX X1 fl1 dbl none) (hb : X1.t.bs !! bl = some B1) (k : w64) (v : Loc) (hv : B1.nm !! k
+    = some v) : ∃ r, B1.ns !! v = some r
+
+theorem bbolt.balanced_step (X1 X2 : bbolt.WX) (fl1 fl2 : bbolt.FLPg) (t : w64) (bl n : Loc) (hR :
+    bbolt.rblRel X1 fl1 X2 fl2 t) (hS : bbolt.rblStepX X1 X2 bl n) (c : Loc) (h : bbolt.balanced X1
+    c) : bbolt.balanced X2 c

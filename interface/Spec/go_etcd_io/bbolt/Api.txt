@@ -58,7 +58,7 @@ def (sealed) bbolt.boltBkt [HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (b 
 
 def (sealed) bbolt.dbCloseOk : Prop
 
-def (sealed) bbolt.txDB [HasExt osFsExt] (tx db : Loc) : IProp GF
+def (sealed) bbolt.txDB [HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (db : Loc) : IProp GF
 
 theorem bbolt.boltPageSize_eq_osPageSize : bbolt.boltPageSize = osPageSize
 
@@ -100,7 +100,8 @@ theorem bbolt.txBytes_acc [hos : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName
     bbolt.TxView) (s : GoSlice) (b : GoString) : bbolt.txBytes tx γ s b ∗ bbolt.boltTx tx γ q T ⊢ ∃
     dq, ownSlice s b dq ∗ (ownSlice s b dq -∗ bbolt.boltTx tx γ q T)
 
-theorem bbolt.txDB_persistent [hos : HasExt osFsExt] (tx db : Loc) : Persistent (bbolt.txDB tx db)
+theorem bbolt.txDB_persistent [hos : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (db : Loc) :
+    Persistent (bbolt.txDB tx γ db)
 
 theorem bbolt.fileHolds_new [hos : HasExt osFsExt] (path : GoString) (mo : Option OsMeta) : (osMeta
     path (DFrac.own 1) mo ∗ match mo with | none => emp | some m => ⌜m.size = 0 ∧ m.maps = ∅⌝ ∗

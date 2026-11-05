@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.Cursor.wp_proof : bbolt.Bucket.Cursor.spec
+theorem bbolt.Bucket.Cursor.wp_proof (hcur : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Cursor_i.spec)
+    : bbolt.Bucket.Cursor.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.Cursor.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (b : Loc) (n : GoString)
     (m : bbolt.BktData),

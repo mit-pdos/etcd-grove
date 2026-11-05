@@ -2,7 +2,7 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.DB.pageInBuffer.wp_proof [hos : HasExt osFsExt] : bbolt.DB.pageInBuffer.spec
+theorem bbolt.DB.pageInBuffer.wp_proof : bbolt.DB.pageInBuffer.spec
   -- `Perennial.EtcdGrove.bbolt.DB.pageInBuffer.spec`, unfolded:
   ∀ (db : Loc) (b : GoSlice) (id : w64),
     BitVec.toNat id * 4096 < BitVec.toNat b.len →

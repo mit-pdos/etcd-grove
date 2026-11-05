@@ -2,8 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.common.Page.FreelistPageCount.wp_proof :
-    bbolt.internal.common.Page.FreelistPageCount.spec
+theorem bbolt.internal.common.Page.FreelistPageCount.wp_proof (wp_Page_IsFreelistPage :
+    bbolt.internal.common.Page.IsFreelistPage.spec) (wp_UnsafeAdd :
+    bbolt.internal.common.UnsafeAdd.spec) : bbolt.internal.common.Page.FreelistPageCount.spec
   -- `Perennial.EtcdGrove.bbolt.internal.common.Page.FreelistPageCount.spec`, unfolded:
   ∀ (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (dq : DFrac) (c : w64),
     v.flags' = W16 16 →

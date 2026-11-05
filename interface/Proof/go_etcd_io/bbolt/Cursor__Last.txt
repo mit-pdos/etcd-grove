@@ -2,7 +2,18 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.Last.wp_proof : bbolt.Cursor.Last.spec
+theorem bbolt.Cursor.keyValue_r.spec.congr_simp [hos : HasExt osFsExt] :
+    bbolt.Cursor.keyValue_r.spec = bbolt.Cursor.keyValue_r.spec
+
+theorem bbolt.Cursor.Last.wp_proof (hA : bbolt.internal.common.Assert.spec) (hRP :
+    bbolt.internal.common.InBucket.RootPage.spec) (hpn : ∀ [inst : HasExt osFsExt],
+    bbolt.Bucket.pageNode_r.spec) (hCnt : bbolt.internal.common.Page.Count.spec) (hlast : ∀ [inst :
+    HasExt osFsExt], bbolt.Cursor.last_r.spec) (hkv : ∀ [inst : HasExt osFsExt],
+    bbolt.Cursor.keyValue_r.spec) (hkv0 : ∀ [inst : HasExt osFsExt], bbolt.Cursor.keyValue_r0.spec)
+    (hpnw : ∀ [inst : HasExt osFsExt], bbolt.Bucket.pageNode_w.specQ) (hlastw : ∀ [inst : HasExt
+    osFsExt], bbolt.Cursor.last_w.specQ) (hprevw : ∀ [inst : HasExt osFsExt],
+    bbolt.Cursor.prev_w.specQ) (hkvw : ∀ [inst : HasExt osFsExt], bbolt.Cursor.keyValue_ws.specQ) :
+    bbolt.Cursor.Last.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.Last.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx c : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt)
     (pos : Option Nat),
@@ -18,3 +29,32 @@ theorem bbolt.Cursor.Last.wp_proof : bbolt.Cursor.Last.spec
               ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType go!"Last" (intoVal c)))
                 (intoVal ()))
               {{ Φ }}
+
+theorem bbolt.Cursor.Last.wp_writer [HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec) (hRP :
+    bbolt.internal.common.InBucket.RootPage.spec) (hpnw : bbolt.Bucket.pageNode_w.specQ) (hCnt :
+    bbolt.internal.common.Page.Count.spec) (hlastw : bbolt.Cursor.last_w.specQ) (hprevw :
+    bbolt.Cursor.prev_w.specQ) (hkvw : bbolt.Cursor.keyValue_ws.specQ) (tx c : Loc) (γ :
+    bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hrw :
+    T.rw = true) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v,
+    bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es (some (es.length - 1)) ∗ bbolt.curAt tx γ es
+    (es.length - 1) k v -∗ Φ (intoVal k, intoVal v)) -∗ WP ((intoVal (methods
+    go_etcd_io.bbolt.Cursor.ty.PointerType go!"Last" (intoVal c))) (intoVal ())) {{ Φ }}
+
+theorem bbolt.Cursor.last_r.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.last_r.spec =
+    bbolt.Cursor.last_r.spec
+
+theorem bbolt.Cursor.Last.wp_reader [HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec) (hRP :
+    bbolt.internal.common.InBucket.RootPage.spec) (hpn : bbolt.Bucket.pageNode_r.spec) (hCnt :
+    bbolt.internal.common.Page.Count.spec) (hlast : bbolt.Cursor.last_r.spec) (hkv :
+    bbolt.Cursor.keyValue_r.spec) (hkv0 : bbolt.Cursor.keyValue_r0.spec) (tx c : Loc) (γ :
+    bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hro :
+    T.rw = false) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v,
+    bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es (some (es.length - 1)) ∗ bbolt.curAt tx γ es
+    (es.length - 1) k v -∗ Φ (intoVal k, intoVal v)) -∗ WP ((intoVal (methods
+    go_etcd_io.bbolt.Cursor.ty.PointerType go!"Last" (intoVal c))) (intoVal ())) {{ Φ }}
+
+theorem bbolt.Bucket.pageNode_r.spec.congr_simp [hos : HasExt osFsExt] :
+    bbolt.Bucket.pageNode_r.spec = bbolt.Bucket.pageNode_r.spec
+
+theorem bbolt.Cursor.keyValue_r0.spec.congr_simp [hos : HasExt osFsExt] :
+    bbolt.Cursor.keyValue_r0.spec = bbolt.Cursor.keyValue_r0.spec

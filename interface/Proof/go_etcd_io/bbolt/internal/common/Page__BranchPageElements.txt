@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.common.Page.BranchPageElements.wp_proof :
-    bbolt.internal.common.Page.BranchPageElements.spec
+theorem bbolt.internal.common.Page.BranchPageElements.wp_proof (wp_UnsafeAdd :
+    bbolt.internal.common.UnsafeAdd.spec) : bbolt.internal.common.Page.BranchPageElements.spec
   -- `Perennial.EtcdGrove.bbolt.internal.common.Page.BranchPageElements.spec`, unfolded:
   ∀ (l : Loc) (v : go_etcd_io.bbolt.internal.common.Page) (dq : DFrac),
     0 < l.addr →

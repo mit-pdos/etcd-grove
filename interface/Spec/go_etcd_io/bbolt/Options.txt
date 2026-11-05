@@ -27,7 +27,7 @@ def bbolt.mapPopulate : Nat :=
 def bbolt.loggerPtrOk : GoInterface → Prop :=
   match x✝ with
   | GoInterface.nil => True
-  | GoInterface.ok li => ∃ t, li.ty = t.PointerType
+  | GoInterface.ok li => ∃ t l, li.ty = t.PointerType ∧ li.v = intoVal l
 
 def bbolt.optsZero : bbolt.OptsM :=
   { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil, mlock := false,

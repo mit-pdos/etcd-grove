@@ -2,6 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem bbolt.FLImpl.mk.congr_simp (ity ity✝ : go.GoType) (e_ity : ity = ity✝) (iv iv✝ : val) (e_iv
+    : iv = iv✝) (own own✝ : List w64 → IProp GF) (e_own : own = own✝) (hdl hdl✝ : Loc → IProp GF)
+    (e_hdl : hdl = hdl✝) (hdl_persistent : ∀ (s : Loc), Persistent (hdl s)) : { ity := ity, iv :=
+    iv, own := own, hdl := hdl, hdl_persistent := hdl_persistent } = { ity := ity✝, iv := iv✝, own
+    := own✝, hdl := hdl✝, hdl_persistent := ⋯ }
+
 theorem bbolt.internal.freelist.Interface.PendingCount.wp_proof [hos : HasExt osFsExt] :
     bbolt.internal.freelist.Interface.PendingCount.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.PendingCount.spec`, unfolded:
@@ -11,8 +17,6 @@ theorem bbolt.internal.freelist.Interface.PendingCount.wp_proof [hos : HasExt os
         isPkgInit pkg_id.go_etcd_io.bbolt.internal.freelist ∗ bbolt.flPgOwn fli fl -∗
           ▷ (bbolt.flPgOwn fli fl -∗ Φ (intoVal (W64 ↑fl.pendingIds.length))) -∗
             WP
-              ((intoVal
-                  (methods go_etcd_io.bbolt.internal.freelist.Interface.ty
-                    go!"PendingCount" (intoVal fli)))
+              ((bbolt.ifaceCall fli go!"PendingCount")
                 (intoVal ()))
               {{ Φ }}

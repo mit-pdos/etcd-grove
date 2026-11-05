@@ -2,7 +2,17 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.CreateBucket.wp_proof : bbolt.Tx.CreateBucket.spec
+theorem bbolt.Cursor.node.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.node.spec =
+    bbolt.Cursor.node.spec
+
+theorem bbolt.Bucket.Bucket_w.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.Bucket_w.spec =
+    bbolt.Bucket.Bucket_w.spec
+
+theorem bbolt.Tx.CreateBucket.wp_proof (hBw : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Bucket_w.spec)
+    (hCur : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Cursor_i.spec) (hSeek : ∀ [inst : HasExt
+    osFsExt], bbolt.Cursor.seek_w.spec) (hNode : ∀ [inst : HasExt osFsExt], bbolt.Cursor.node.spec)
+    (hPut : ∀ [HasExt osFsExt], bbolt.node.put.spec) (hWrite : bbolt.Bucket.write.spec) (hClone :
+    bbolt.cloneBytes.spec) (hEq : bytes.Equal.spec) : bbolt.Tx.CreateBucket.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.CreateBucket.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView) (name : GoSlice) (n : GoString)
     (dq : DFrac),
@@ -25,3 +35,9 @@ theorem bbolt.Tx.CreateBucket.wp_proof : bbolt.Tx.CreateBucket.spec
                     go!"CreateBucket" (intoVal tx)))
                 (intoVal name))
               {{ Φ }}
+
+theorem bbolt.Bucket.Cursor_i.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.Cursor_i.spec =
+    bbolt.Bucket.Cursor_i.spec
+
+theorem bbolt.Cursor.seek_w.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.seek_w.spec =
+    bbolt.Cursor.seek_w.spec

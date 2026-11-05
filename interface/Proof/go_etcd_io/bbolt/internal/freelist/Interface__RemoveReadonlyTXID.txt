@@ -11,9 +11,7 @@ theorem bbolt.internal.freelist.Interface.RemoveReadonlyTXID.wp_proof [hos : Has
         isPkgInit pkg_id.go_etcd_io.bbolt.internal.freelist ∗ bbolt.flRoOwn fli ro -∗
           ▷ ((∃ ro', bbolt.flRoOwn fli ro' ∗ ⌜ro'.Perm (ro.erase tid)⌝) -∗ Φ (intoVal ())) -∗
             WP
-              ((intoVal
-                  (methods go_etcd_io.bbolt.internal.freelist.Interface.ty
-                    go!"RemoveReadonlyTXID"
-                    (intoVal fli)))
+              ((bbolt.ifaceCall fli
+                  go!"RemoveReadonlyTXID")
                 (intoVal tid))
               {{ Φ }}

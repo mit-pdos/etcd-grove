@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.fdatasync.wp_proof [hos : HasExt osFsExt] : bbolt.fdatasync.spec
+theorem bbolt.fdatasync.wp_proof [hos : HasExt osFsExt] (hFd : os.File.Fd.spec) (hSync :
+    syscall.Fdatasync.spec) (hErr : bbolt.errnoErrOk) : bbolt.fdatasync.spec
   -- `Perennial.EtcdGrove.bbolt.fdatasync.spec`, unfolded:
   ∀ (db f : Loc) (fd : w64) (p : GoString) (m : OsMeta) (dqf dq : DFrac),
     ⊢

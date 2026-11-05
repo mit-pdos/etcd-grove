@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.DB.hasSyncedFreelist.wp_proof [hos : HasExt osFsExt] : bbolt.DB.hasSyncedFreelist.spec
+theorem bbolt.DB.hasSyncedFreelist.wp_proof (hmeta : bbolt.DB.meta.spec) (hFreelist :
+    bbolt.internal.common.Meta.Freelist.spec) : bbolt.DB.hasSyncedFreelist.spec
   -- `Perennial.EtcdGrove.bbolt.DB.hasSyncedFreelist.spec`, unfolded:
   ∀ (db b : Loc) (l : Nat) (C : bbolt.CommitSt) (dq : DFrac) (q : Qp),
     C.metaOk →

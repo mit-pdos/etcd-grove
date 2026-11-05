@@ -2,25 +2,38 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.node.childIndex.wp_proof [hos : HasExt osFsExt] : bbolt.node.childIndex.spec
+theorem bbolt.wsIdx_of_bounds [hos : HasExt osFsExt] (ws : List bbolt.WEntry) (kb : List w8) (idx :
+    Nat) (hle : idx ≤ ws.length) (hbelow : ∀ (k : Nat), k < idx → go.GoStringLt (bbolt.wKey ws k)
+    kb) (hat : idx < ws.length → ¬go.GoStringLt (bbolt.wKey ws idx) kb) : bbolt.wsIdx ws kb = idx
+
+theorem bbolt.node.childIndex.wp_proof [hos : HasExt osFsExt] (hK :
+    bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) :
+    bbolt.node.childIndex.spec
   -- `Perennial.EtcdGrove.bbolt.node.childIndex.spec`, unfolded:
   ∀ (v : bbolt.View) (n bl : Loc) (r : bbolt.NRec) (dq : DFrac) (qv : Qp) (child : Loc) (cv : go_etcd_io.bbolt.node)
     (dqc : DFrac) (ks : bbolt.Src) (kb : List w8),
     bbolt.wsSorted r.ws →
       bbolt.wsLive r.ws →
         ks ≠ bbolt.Src.stale →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.go_etcd_io.bbolt ∗
-                  bbolt.objOwn v n dq true (bbolt.WObj.node bl r) ∗
-                    bbolt.viewCells qv v ∗ typedPointsto child cv dqc ∗ bbolt.srcOwn v cv.key' ks kb -∗
-                ▷
-                    (bbolt.objOwn v n dq true (bbolt.WObj.node bl r) ∗
-                        bbolt.viewCells qv v ∗ typedPointsto child cv dqc -∗
-                      Φ (intoVal (W64 ↑(bbolt.wsIdx r.ws kb)))) -∗
-                  WP
-                    ((intoVal
-                        (methods go_etcd_io.bbolt.node.ty.PointerType
-                          go!"childIndex" (intoVal n)))
-                      (intoVal child))
-                    {{ Φ }}
+          0 < v.base.addr →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.bbolt ∗
+                    bbolt.objOwn v n dq true (bbolt.WObj.node bl r) ∗
+                      bbolt.viewCells qv v ∗ typedPointsto child cv dqc ∗ bbolt.srcOwn v cv.key' ks kb -∗
+                  ▷
+                      (bbolt.objOwn v n dq true (bbolt.WObj.node bl r) ∗
+                          bbolt.viewCells qv v ∗ typedPointsto child cv dqc -∗
+                        Φ (intoVal (W64 ↑(bbolt.wsIdx r.ws kb)))) -∗
+                    WP
+                      ((intoVal
+                          (methods go_etcd_io.bbolt.node.ty.PointerType
+                            go!"childIndex" (intoVal n)))
+                        (intoVal child))
+                      {{ Φ }}
+
+theorem bbolt.ciPred_mono [hos : HasExt osFsExt] (ws : List bbolt.WEntry) (kb : List w8) (hs :
+    bbolt.wsSorted ws) : sort.IsMonoPred (bbolt.ciPred ws kb) ↑ws.length
+
+def bbolt.ciPred (ws : List bbolt.WEntry) (kb : List w8) (i : Int) : Bool :=
+  decide ¬go.GoStringLt (bbolt.wKey ws i.toNat) kb

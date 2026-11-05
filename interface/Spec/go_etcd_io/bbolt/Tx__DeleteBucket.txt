@@ -14,7 +14,10 @@ def bbolt.Tx.DeleteBucket.spec : Prop :=
                     (⌜T.cur !! n = none⌝ ∗
                         bbolt.boltTx tx γ 1 T ∗
                           typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound) err DFrac.discard ∨
-                      ⌜T.cur !! n ≠ none ∧ err = GoInterface.nil⌝ ∗ bbolt.boltTx tx γ 1 (T.dropBkt n)) -∗
+                      ⌜n = [] ∧ T.cur !! n = none⌝ ∗
+                          bbolt.boltTx tx γ 1 T ∗
+                            typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue) err DFrac.discard ∨
+                        ⌜T.cur !! n ≠ none ∧ err = GoInterface.nil⌝ ∗ bbolt.boltTx tx γ 1 (T.dropBkt n)) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal

@@ -2,7 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.common.Meta.Write.wp_proof : bbolt.internal.common.Meta.Write.spec
+theorem bbolt.internal.common.Meta.Write.wp_proof (wp_Meta_Sum64 :
+    bbolt.internal.common.Meta.Sum64.spec) (wp_Meta_Copy : bbolt.internal.common.Meta.Copy.spec)
+    (wp_Page_Meta : bbolt.internal.common.Page.Meta.spec) (wp_Page_SetFlags :
+    bbolt.internal.common.Page.SetFlags.spec) : bbolt.internal.common.Meta.Write.spec
   -- `Perennial.EtcdGrove.bbolt.internal.common.Meta.Write.spec`, unfolded:
   ∀ (l p : Loc) (v : go_etcd_io.bbolt.internal.common.Meta) (hdr : go_etcd_io.bbolt.internal.common.Page)
     (w : go_etcd_io.bbolt.internal.common.Meta),

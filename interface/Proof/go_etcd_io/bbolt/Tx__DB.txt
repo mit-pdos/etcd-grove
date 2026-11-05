@@ -7,6 +7,6 @@ theorem bbolt.Tx.DB.wp_proof : bbolt.Tx.DB.spec
   ∀ [inst : HasExt osFsExt] (tx db : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
-        bbolt.boltTx tx γ q T ∗ bbolt.txDB tx db -∗
+        bbolt.boltTx tx γ q T ∗ bbolt.txDB tx γ db -∗
           ▷ (bbolt.boltTx tx γ q T -∗ Φ (intoVal db)) -∗
             WP ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"DB" (intoVal tx))) (intoVal ())) {{ Φ }}

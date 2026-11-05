@@ -11,9 +11,10 @@ theorem bbolt.internal.freelist.Interface.Rollback.wp_proof [hos : HasExt osFsEx
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.bbolt.internal.freelist ∗ bbolt.flPgOwn fli fl -∗
             ▷ (bbolt.flPgOwn fli (fl.rollback txid) -∗ Φ (intoVal ())) -∗
-              WP
-                ((intoVal
-                    (methods go_etcd_io.bbolt.internal.freelist.Interface.ty
-                      go!"Rollback" (intoVal fli)))
-                  (intoVal txid))
-                {{ Φ }}
+              WP ((bbolt.ifaceCall fli go!"Rollback") (intoVal txid)) {{ Φ }}
+
+theorem bbolt.FLImpl.mk.congr_simp (ity ity✝ : go.GoType) (e_ity : ity = ity✝) (iv iv✝ : val) (e_iv
+    : iv = iv✝) (own own✝ : List w64 → IProp GF) (e_own : own = own✝) (hdl hdl✝ : Loc → IProp GF)
+    (e_hdl : hdl = hdl✝) (hdl_persistent : ∀ (s : Loc), Persistent (hdl s)) : { ity := ity, iv :=
+    iv, own := own, hdl := hdl, hdl_persistent := hdl_persistent } = { ity := ity✝, iv := iv✝, own
+    := own✝, hdl := hdl✝, hdl_persistent := ⋯ }

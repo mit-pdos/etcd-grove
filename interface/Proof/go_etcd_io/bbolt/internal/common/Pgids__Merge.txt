@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.common.Pgids.Merge.wp_proof : bbolt.internal.common.Pgids.Merge.spec
+theorem bbolt.internal.common.Pgids.Merge.wp_proof (wp_Mergepgids : bbolt.Mergepgids.spec) :
+    bbolt.internal.common.Pgids.Merge.spec
   -- `Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec`, unfolded:
   ∀ (s b : GoSlice) (xs ys : List w64) (qa qb : DFrac),
     bbolt.PgidsSorted xs →

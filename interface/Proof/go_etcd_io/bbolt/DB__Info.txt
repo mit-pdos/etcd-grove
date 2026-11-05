@@ -2,14 +2,18 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.DB.Info.wp_proof : bbolt.DB.Info.spec
+theorem bbolt.DB.Info.wp_proof (wp_Assert : bbolt.internal.common.Assert.spec) : bbolt.DB.Info.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Info.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (db tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
-        bbolt.isBolt db γ ∗ bbolt.txDB tx db ∗ bbolt.boltTx tx γ q T -∗
+        bbolt.isBolt db γ ∗ bbolt.txDB tx γ db ∗ bbolt.boltTx tx γ q T -∗
           (▷ ∀ i, (bbolt.boltTx tx γ q T ∗ ∃ v, typedPointsto i v (DFrac.own 1)) -∗ Φ (intoVal i)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Info" (intoVal db)))
                 (intoVal ()))
               {{ Φ }}
+
+theorem bbolt.isBoltCore.congr_simp [hos : HasExt osFsExt] (B B✝ : bbolt.BNs) (e_B : B = B✝) (N N✝ :
+    Namespace) (e_N : N = N✝) (db db✝ : Loc) (e_db : db = db✝) : bbolt.isBoltCore B N db =
+    bbolt.isBoltCore B✝ N✝ db✝

@@ -2,7 +2,16 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.Size.wp_proof : bbolt.Tx.Size.spec
+theorem bbolt.boltTxDef_size_acc [HasExt osFsExt] (B : bbolt.BNs) (N : Namespace) (tx : Loc) (q :
+    Qp) (T : bbolt.TxView) : bbolt.boltTxDef B N tx q T ⊢ ∃ m mv db dq dq', typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Tx go!"meta" tx) m dq ∗ typedPointsto m mv dq ∗ typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Tx go!"db" tx) db dq' ∗ typedPointsto (structFieldRef
+    go_etcd_io.bbolt.DB go!"pageSize" db) (W64 4096) DFrac.discard ∗ isPkgInit
+    pkg_id.go_etcd_io.bbolt ∗ (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" tx) m dq
+    -∗ typedPointsto m mv dq -∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" tx) db dq'
+    -∗ bbolt.boltTxDef B N tx q T)
+
+theorem bbolt.Tx.Size.wp_proof (wp_Pgid : bbolt.internal.common.Meta.Pgid.spec) : bbolt.Tx.Size.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Size.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView),
     ⊢

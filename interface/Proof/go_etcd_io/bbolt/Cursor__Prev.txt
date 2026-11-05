@@ -2,7 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.Prev.wp_proof : bbolt.Cursor.Prev.spec
+theorem bbolt.curAt.congr_simp [hos : HasExt osFsExt] (tx tx✝ : Loc) (e_tx : tx = tx✝) (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (es es✝ : List bbolt.BoltEnt) (e_es : es = es✝) (i i✝ : Nat) (e_i
+    : i = i✝) (k k✝ : GoSlice) (e_k : k = k✝) (v v✝ : GoSlice) (e_v : v = v✝) : bbolt.curAt tx γ es
+    i k v = bbolt.curAt tx✝ γ✝ es✝ i✝ k✝ v✝
+
+theorem bbolt.Cursor.Prev.wp_proof (hA : bbolt.internal.common.Assert.spec) (hprev : ∀ [inst :
+    HasExt osFsExt], bbolt.Cursor.prev_r.spec) : bbolt.Cursor.Prev.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.Prev.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx c : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt)
     (pos : Option Nat),

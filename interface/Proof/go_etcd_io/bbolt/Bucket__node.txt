@@ -2,29 +2,41 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.node.wp_proof [hos : HasExt osFsExt] : bbolt.Bucket.node.spec
+theorem bbolt.Bucket.node.wp_proof [hos : HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec)
+    (hV : bbolt.internal.common.Verify.spec) (hpage : bbolt.Tx.page.spec) (hread :
+    bbolt.node.read.spec) (hinc : bbolt.TxStats.IncNodeCount.spec) : bbolt.Bucket.node.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.node.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (bl : Loc) (B : bbolt.BRec) (pgid : w64)
     (parent : Loc),
     X.t.bs !! bl = some B →
-      bl ∈ X.live →
+      bl ∈ X.liveB →
         B.bv.nodes' ≠ null →
           (∀ (l : Loc), B.nm !! pgid = some l → l ≠ null) →
             (B.nm !! pgid = none →
                 bbolt.matReady X B pgid ∧
                   (parent = null ∨ ∃ rp, B.ns !! parent = some rp ∧ rp.nv.isLeaf' = false ∧ parent ∈ X.live)) →
-              ⊢
-                ∀ Φ,
-                  bbolt.wtxW K tx r m X -∗
-                    (▷
-                        ∀ l,
-                          (∃ X',
-                              bbolt.wtxW K tx r m X' ∗
-                                ⌜B.nm !! pgid = some l ∧ X' = X ∨ bbolt.nodeAdded X X' bl l pgid parent⌝) -∗
-                            Φ (intoVal l)) -∗
-                      WP
-                        (((intoVal
-                              (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"node" (intoVal bl)))
-                            (intoVal pgid))
-                          (intoVal parent))
-                        {{ Φ }}
+              (B.nm !! pgid = none → B.ib.root' ≠ W64 0 → B.bv.page' = null) →
+                ⊢
+                  ∀ Φ,
+                    bbolt.wtxW K tx r m X -∗
+                      (▷
+                          ∀ l,
+                            (∃ X',
+                                bbolt.wtxW K tx r m X' ∗
+                                  ⌜B.nm !! pgid = some l ∧ X' = X ∨ bbolt.nodeAdded X X' bl l pgid parent⌝) -∗
+                              Φ (intoVal l)) -∗
+                        WP
+                          (((intoVal
+                                (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"node"
+                                  (intoVal bl)))
+                              (intoVal pgid))
+                            (intoVal parent))
+                          {{ Φ }}
+
+theorem bbolt.bkt_tx_acc (bl t : Loc) (c : Prop) [Decidable c] : (if c then typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" bl) t (DFrac.own 1) else typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" bl) t DFrac.discard) ⊢ ∃ dq, typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Bucket go!"tx" bl) t dq ∗ (typedPointsto (structFieldRef
+    go_etcd_io.bbolt.Bucket go!"tx" bl) t dq -∗ if c then typedPointsto (structFieldRef
+    go_etcd_io.bbolt.Bucket go!"tx" bl) t (DFrac.own 1) else typedPointsto (structFieldRef
+    go_etcd_io.bbolt.Bucket go!"tx" bl) t DFrac.discard)

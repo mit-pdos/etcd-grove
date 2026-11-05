@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.freelist.Interface.EstimatedWritePageSize.wp_proof [hos : HasExt osFsExt] :
+theorem bbolt.internal.freelist.Interface.EstimatedWritePageSize.wp_proof [hos : HasExt osFsExt]
+    (hFC : ∀ (I : bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreeCountSpec) :
     bbolt.internal.freelist.Interface.EstimatedWritePageSize.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.EstimatedWritePageSize.spec`, unfolded:
   ∀ (fli : GoInterface) (fl : bbolt.FLPg),
@@ -13,9 +14,13 @@ theorem bbolt.internal.freelist.Interface.EstimatedWritePageSize.wp_proof [hos :
               (bbolt.flPgOwn fli fl -∗
                 Φ (intoVal (W64 ↑(16 + 8 * (fl.allIds.length + if 65535 ≤ fl.allIds.length then 1 else 0))))) -∗
             WP
-              ((intoVal
-                  (methods go_etcd_io.bbolt.internal.freelist.Interface.ty
-                    go!"EstimatedWritePageSize"
-                    (intoVal fli)))
+              ((bbolt.ifaceCall fli
+                  go!"EstimatedWritePageSize")
                 (intoVal ()))
               {{ Φ }}
+
+theorem bbolt.FLImpl.mk.congr_simp (ity ity✝ : go.GoType) (e_ity : ity = ity✝) (iv iv✝ : val) (e_iv
+    : iv = iv✝) (own own✝ : List w64 → IProp GF) (e_own : own = own✝) (hdl hdl✝ : Loc → IProp GF)
+    (e_hdl : hdl = hdl✝) (hdl_persistent : ∀ (s : Loc), Persistent (hdl s)) : { ity := ity, iv :=
+    iv, own := own, hdl := hdl, hdl_persistent := hdl_persistent } = { ity := ity✝, iv := iv✝, own
+    := own✝, hdl := hdl✝, hdl_persistent := ⋯ }

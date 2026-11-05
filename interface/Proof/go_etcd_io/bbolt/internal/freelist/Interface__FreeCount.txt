@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.freelist.Interface.FreeCount.wp_proof [hos : HasExt osFsExt] :
+theorem bbolt.internal.freelist.Interface.FreeCount.wp_proof [hos : HasExt osFsExt] (hFC : ∀ (I :
+    bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreeCountSpec) :
     bbolt.internal.freelist.Interface.FreeCount.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.FreeCount.spec`, unfolded:
   ∀ (fli : GoInterface) (fl : bbolt.FLPg),
@@ -10,9 +11,4 @@ theorem bbolt.internal.freelist.Interface.FreeCount.wp_proof [hos : HasExt osFsE
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.bbolt.internal.freelist ∗ bbolt.flPgOwn fli fl -∗
           ▷ (bbolt.flPgOwn fli fl -∗ Φ (intoVal (W64 ↑fl.free.length))) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.bbolt.internal.freelist.Interface.ty
-                    go!"FreeCount" (intoVal fli)))
-                (intoVal ()))
-              {{ Φ }}
+            WP ((bbolt.ifaceCall fli go!"FreeCount") (intoVal ())) {{ Φ }}

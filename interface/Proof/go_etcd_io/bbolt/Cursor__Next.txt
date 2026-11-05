@@ -2,7 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.Next.wp_proof : bbolt.Cursor.Next.spec
+theorem bbolt.Cursor.Next.wp_proof (hA : bbolt.internal.common.Assert.spec) (hnx : ∀ [inst : HasExt
+    osFsExt], bbolt.Cursor.next_r.spec) (hnx0 : ∀ [inst : HasExt osFsExt],
+    bbolt.Cursor.next_r0.spec) (hnxw : ∀ [inst : HasExt osFsExt], bbolt.Cursor.next_w.specQ) (hnxe :
+    ∀ [inst : HasExt osFsExt], bbolt.Cursor.next_we.specQ) : bbolt.Cursor.Next.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.Next.spec`, unfolded:
   ∀ [inst : HasExt osFsExt] (tx c : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt)
     (pos : Option Nat),
@@ -22,3 +25,22 @@ theorem bbolt.Cursor.Next.wp_proof : bbolt.Cursor.Next.spec
               ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType go!"Next" (intoVal c)))
                 (intoVal ()))
               {{ Φ }}
+
+theorem bbolt.Cursor.Next.wp_writer [HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec) (hnxw
+    : bbolt.Cursor.next_w.specQ) (hnxe : bbolt.Cursor.next_we.specQ) (tx c : Loc) (γ :
+    bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hrw :
+    T.rw = true) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v,
+    (bbolt.boltTx tx γ q T ∗ match pos with | none => bbolt.boltCur tx γ c T es none ∗ ⌜k =
+    slice.nil ∧ v = slice.nil⌝ | some i => bbolt.boltCur tx γ c T es (some (if i + 1 < es.length
+    then i + 1 else i)) ∗ bbolt.curAt tx γ es (i + 1) k v) -∗ Φ (intoVal k, intoVal v)) -∗ WP
+    ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType go!"Next" (intoVal c))) (intoVal ()))
+    {{ Φ }}
+
+theorem bbolt.Cursor.Next.wp_reader [HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec) (hnx :
+    bbolt.Cursor.next_r.spec) (hnx0 : bbolt.Cursor.next_r0.spec) (tx c : Loc) (γ : bbolt.BoltName)
+    (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hro : T.rw = false) :
+    ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v, (bbolt.boltTx tx γ q T
+    ∗ match pos with | none => bbolt.boltCur tx γ c T es none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝ |
+    some i => bbolt.boltCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
+    bbolt.curAt tx γ es (i + 1) k v) -∗ Φ (intoVal k, intoVal v)) -∗ WP ((intoVal (methods
+    go_etcd_io.bbolt.Cursor.ty.PointerType go!"Next" (intoVal c))) (intoVal ())) {{ Φ }}
