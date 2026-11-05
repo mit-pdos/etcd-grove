@@ -409,6 +409,18 @@ and each stop cost a round trip with the agent idle. **Hard stops** stay stops:
 - the escalation trigger below; a change to a frozen or top-level statement;
 - anything upstream or a fork change.
 
+**Frozen changes found in a later stage's Draft come in one batch** (2026-11-05, the user's). A
+Draft that reaches into an earlier stage's frozen statements tends to find them one at a time: the
+lease S2–S4 Draft stopped three times in a row (Q-S4 the TTL-agreement law, Q-S6 the
+requested-TTL bound, Q-S8 the grant chain), each a round trip with the agent idle, each found only
+after the previous one was applied. After its Scope is approved, such a Draft applies each further
+change to a frozen statement or exported definition on its branch as a DRAFT, logged old → new with
+its cause, finishes the Draft, and brings the list to the user once; nothing lands before its
+Freeze, so a change the user rejects is a revert on the branch. Trust-base growth still stops at
+once. Before relaying a "frozen statement must change" stop, the coordinator checks the claim
+against the freeze tag: one stop that day (lease-expiry's `∀ SP`, 2026-11-05) was a misread error,
+the frozen spec already quantified.
+
 A scope narrowing around a recorded finding (7b's cached no-op: the traffic avoids it, the bug in
 `issues/`) proceeds: it is recorded and in the batch, not a stop.
 
