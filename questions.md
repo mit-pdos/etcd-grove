@@ -192,3 +192,12 @@ review; `stop_monitorRT` stays the marked `sorry`.
     configuration clause needs (`RestConf.restModel_confState`). `NewServer`'s `bootOk` has them, but
     `run`'s context does not.
   `restart3` meets both. `run.specStop` is a draft.
+- **D5. W's second field is a set-once register, not `GoNames` (2026-11-05).** `NewServer` allocates
+  the pool (stage B3), but `γg` exists only later, in `start` (`goAttach_init` needs the `stopping`
+  channel, which `start` makes). So `W = ⟨cnt, reg⟩`:
+  - `NewServer` allocates `dghostVar reg (own 1) none`;
+  - `start` sets it to `some γg.run` and discards it;
+  - the pool's checked-out case holds `∃ r, dghostVar W.reg discard (some r) ∗ ownToks r 1`;
+  - `goWaited γg` (the discarded run-token authority at `0`) contradicts `ownToks γg.run 1`.
+
+  The approved design is otherwise unchanged (no ticket, `Start`'s post untouched).
