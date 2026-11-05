@@ -10,6 +10,7 @@ module
 public import Proof.go_etcd_io.bbolt.Read.LRoutes
 public import Proof.go_etcd_io.bbolt.Read.WPos
 public import Proof.go_etcd_io.bbolt.Write.Bound
+public import Proof.go_etcd_io.bbolt.Write.BoundNest
 
 @[expose] public section
 
@@ -246,10 +247,10 @@ theorem leafBkt (p : w64) (hI : posI X B p) (ws : List WEntry)
     obtain ⟨C, hok, hvC⟩ := hv
     have hpv : X.v.pages = C.pages := by rw [← hvC]; rfl
     have hgood : pageGood pg := hok.1.2.1.1 _ pg (by rw [← hpv]; exact hpg)
-    -- batch 37 (item 12): the nested-plainness clause, from the view page (`rootShape`,
-    -- `viewUnique`, as `leafBkt_nest_plain`): OPEN, owner U6e
+    -- the nested-plainness clause, from the view page (`viewWF_matNest`)
     refine ⟨⟨hbw, fun h0 => ⟨(hgood.1 hlf i hic).2 hmod' h0,
-      Write.viewWF_leafInl X.v ⟨C, hok, hvC⟩ _ pg hpg hlf i hic hmod' h0⟩, sorry⟩,
+      Write.viewWF_leafInl X.v ⟨C, hok, hvC⟩ _ pg hpg hlf i hic hmod' h0⟩,
+      fun _ bpg hbp => viewWF_matNest X.v ⟨C, hok, hvC⟩ _ pg hpg hlf i hic hmod' bpg hbp⟩,
       Or.inl trivial, Or.inr ⟨c, p.toNat, pg, i, hpr, hown, hpg, hlf, hic, rfl, hmod', rfl⟩, ?_,
       fun h => hi h.1⟩
     intro hroot
@@ -339,16 +340,16 @@ theorem lPath_leaf (els : List elemRef) (pids : List w64) (hp : lPath X bl els p
   rw [List.getLast?_eq_getElem?, List.getElem?_eq_getElem (by omega)]
   simp only [hL]
 
-/-- **A stored nested bucket's leaves hold no nested bucket** (the open's `posShape` and data).
-OPEN (U6e's report): for an entry of a view page this follows from `viewWF` (the page is the root
-bucket's own, by `rootShape` and `viewUnique`, whose entries' trees are plain); for an entry of a
-node it does not follow from `wOK` (a node entry's value may name any page of the view: `bvalOK`
-needs a nested-plainness clause, as batch 22's `inlineBnd`). -/
+/-- **A stored nested bucket's leaves hold no nested bucket** (`leafBkt`'s `bvalOK`, its third
+clause: a view page's entry by `viewWF_matNest`, a node's by `nodeClean`). An opened bucket's
+entry (`B.bm !! w.key ≠ none`) is excluded: `nodeClean` constrains its value only while it is
+not opened. -/
 theorem leafBkt_nest_plain (p : w64) (hI : posI X B p) (ws : List WEntry)
     (hL : ltree X bl p = some (true, ws)) (w : WEntry) (hw : w ∈ ws) (hf : isBktFlag w.flags)
+    (hbm : B.bm !! w.key = none)
     (h0 : inBucketRoot w.value ≠ 0) (pg : List w8) (hpg : bktLeafPg X.v.pages w.value pg) :
-    ∀ j < pageCount pg, leafFlags pg j % 2 = 0 := by
-  sorry
+    ∀ j < pageCount pg, leafFlags pg j % 2 = 0 := fun j hj =>
+  ((leafBkt X bl B hB hb p hI ws hL w hw hf hbm).1.2.2 h0 pg hpg j hj).1
 
 end posi
 
