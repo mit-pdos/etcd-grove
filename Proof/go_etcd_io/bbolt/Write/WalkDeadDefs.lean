@@ -33,6 +33,27 @@ def pExt (v : View) (pid : w64) : Option (w64 × Nat) :=
 def WX.setDead (X : WX) (bl : Loc) (B' : BRec) : WX :=
   { X with t := { X.t with deadB := X.t.deadB.insert bl B' } }
 
+/-- A dead bucket (not in `bs`) is its bucket object. -/
+theorem bobjs_dead (T : WTx) (bl : Loc) (B : BRec) (hbs : T.bs !! bl = none)
+    (hd : T.deadB !! bl = some B) : T.bobjs !! bl = some B := by
+  unfold WTx.bobjs
+  rw [GMap.lookup_union, hbs, hd]; rfl
+
+/-- A dead bucket's objects after its record is replaced. -/
+theorem bobjs_setDead (X : WX) (bl : Loc) (B' : BRec) (hbs : X.t.bs !! bl = none) :
+    (X.setDead bl B').t.bobjs = X.t.bobjs.insert bl B' := by
+  apply GMap.map_eq
+  intro k
+  by_cases hk : k = bl
+  · subst hk
+    simp only [WX.setDead, WTx.bobjs, GMap.lookup_union, GMap.lookup_insert, hbs]; rfl
+  · have hk' : bl ≠ k := Ne.symm hk
+    simp only [WX.setDead, WTx.bobjs, GMap.lookup_union, GMap.lookup_insert_ne _ _ hk']
+
+theorem setDead_lookup (X : WX) (bl : Loc) (B' : BRec) :
+    (X.setDead bl B').t.deadB !! bl = some B' := by
+  unfold WX.setDead; simp only [GMap.lookup_insert]
+
 end deaddefs
 
 end bbolt

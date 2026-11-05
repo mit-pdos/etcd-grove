@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.bbolt.Tx__page
 public import Spec.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Proof.go_etcd_io.bbolt.Read.Base
 public import Proof.go_etcd_io.bbolt.Rebalance.Objs
+public import Proof.go_etcd_io.bbolt.Write.WalkDeadDefs
 
 @[expose] public section
 
@@ -28,13 +29,6 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-omit [GooseSemantics] [GooseInterp] go_gctx hos in
-/-- A dead bucket (not in `bs`) is its bucket object. -/
-theorem bobjs_dead (T : WTx) (bl : Loc) (B : BRec) (hbs : T.bs !! bl = none)
-    (hd : T.deadB !! bl = some B) : T.bobjs !! bl = some B := by
-  unfold WTx.bobjs
-  rw [GMap.lookup_union, hbs, hd]; rfl
 
 theorem Bucket.pageNode_d.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
