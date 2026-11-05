@@ -52,7 +52,7 @@ theorem NewMember.wp_proof
       ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg
       (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr

@@ -65,7 +65,8 @@ abbrev StartServer.spec : Prop :=
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer))
       (Val #name)) (Val #peerAddr)) (Val #client)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨ (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id lm) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ memberUp s ρ E₀ lg γn id lm ∗ leaseTTLRowR s [id]) }}
 
 end spec
 

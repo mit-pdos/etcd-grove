@@ -973,6 +973,170 @@ theorem kv_entry_claim (γ : ServerRaftNames) (γk : KVNames)
   obtain ⟨-, -, hc0, -, -, hcl, -⟩ := Hok
   exact cmpEntryOk_transfer γ γk γk.cmp A L m HBi Hp.1 Hp.2.1 Hp.2.2 hc0 hcl
 
+/-- The revocable-mode grant id of a raft log entry with data (`entryRevGrantId`'s, E3 (c)). -/
+def leRevGrantId (lm : lease.Mode) (e : LogEntry) : Option w64 :=
+  if e.type = W32 0 ∧ e.data ≠ [] then (apply.irrDecode e.data).bind (rqRevGrantId lm) else none
+
+/-- Fillers and empty `ConfChangeV2`s have no data, so no grant id. -/
+theorem filterMap_leRevGrantId_opsOf (lm : lease.Mode) (l : List LogEntry) :
+    (opsOf l).filterMap (leRevGrantId lm) = l.filterMap (leRevGrantId lm) := by
+  unfold opsOf
+  induction l with
+  | nil => rfl
+  | cons e l ih =>
+    rw [List.filter_cons]
+    split
+    · rw [List.filterMap_cons, List.filterMap_cons, ih]
+    · next h =>
+      have hd : e.data = [] := by
+        by_cases h1 : e.isFiller
+        · exact h1.1
+        by_cases h2 : e.isEmptyV2
+        · exact h2.1
+        simp [h1, h2] at h
+      have hn : leRevGrantId lm e = none := by
+        unfold leRevGrantId; rw [if_neg (fun h => h.2 hd)]
+      rw [List.filterMap_cons, hn, ih]
+
+/-- The applied log's entries with data, through raft's entries. -/
+theorem logRevGrantIds_filter_data (lm : lease.Mode) (X : List EntryModel) :
+    logRevGrantIds lm (X.filter fun m => decide (m.data ≠ [])) =
+      (X.map EntryModel.toLE).filterMap (leRevGrantId lm) := by
+  unfold logRevGrantIds
+  induction X with
+  | nil => rfl
+  | cons x X ih =>
+    rw [List.filter_cons, List.map_cons]
+    by_cases hd : x.data = []
+    · have hn : leRevGrantId lm x.toLE = none := by
+        unfold leRevGrantId; rw [if_neg (fun h => h.2 hd)]
+      rw [if_neg (by simp [hd]), List.filterMap_cons_none hn]
+      exact ih
+    · have he : entryRevGrantId lm x = leRevGrantId lm x.toLE := by
+        unfold entryRevGrantId leRevGrantId
+        by_cases ht : x.typ = W32 0
+        · rw [if_pos ht, if_pos ⟨ht, hd⟩]; rfl
+        · rw [if_neg ht, if_neg (fun h => ht h.1)]
+      rw [if_pos (by simp [hd]), List.filterMap_cons, List.filterMap_cons, he, ih]
+
+/-- A log with no filler nor empty `ConfChangeV2` (the requested log): its grant ids through raft's
+entries. -/
+theorem logRevGrantIds_noFill (lm : lease.Mode) (L : List EntryModel)
+    (hnf : ∀ e ∈ L, ¬ e.toLE.isFiller ∧ ¬ e.toLE.isEmptyV2) :
+    logRevGrantIds lm L = (L.map EntryModel.toLE).filterMap (leRevGrantId lm) := by
+  unfold logRevGrantIds
+  induction L with
+  | nil => rfl
+  | cons x L ih =>
+    have hx : entryRevGrantId lm x = leRevGrantId lm x.toLE := by
+      unfold entryRevGrantId leRevGrantId
+      show _ = (if x.typ = W32 0 ∧ x.data ≠ [] then _ else none)
+      by_cases ht : x.typ = W32 0
+      · have hd : x.data ≠ [] := fun hd => (hnf x List.mem_cons_self).1 ⟨hd, ht⟩
+        rw [if_pos ht, if_pos ⟨ht, hd⟩]; rfl
+      · rw [if_neg ht, if_neg (fun h => ht h.1)]
+    rw [List.filterMap_cons, List.map_cons, List.filterMap_cons, hx,
+      ih (fun e he => hnf e (List.mem_cons_of_mem _ he))]
+
+/-- **A committed entry's grant id is not an earlier one's** (E3 (c)): the requested log's grant
+ids have no repeat, and the applied log's entries with data, then `m`, are a prefix of them. -/
+theorem grantId_fresh_transfer (lm : lease.Mode) (A L : List EntryModel) (m : EntryModel)
+    (hnf : ∀ e ∈ L, ¬ e.toLE.isFiller ∧ ¬ e.toLE.isEmptyV2)
+    (h : opsOf ((A ++ [m]).map EntryModel.toLE) <+: L.map EntryModel.toLE)
+    (hnd : (logRevGrantIds lm L).Nodup) (hd : m.data ≠ []) (gid : w64)
+    (hg : entryRevGrantId lm m = some gid) :
+    gid ∉ logRevGrantIds lm (A.filter fun m => decide (m.data ≠ [])) := by
+  have h1 := h.filterMap (leRevGrantId lm)
+  rw [filterMap_leRevGrantId_opsOf, ← logRevGrantIds_noFill lm L hnf] at h1
+  have hn := hnd.sublist h1.sublist
+  have hm : leRevGrantId lm m.toLE = some gid := by
+    rw [← hg]
+    unfold entryRevGrantId leRevGrantId
+    show (if m.typ = W32 0 ∧ m.data ≠ [] then _ else none) = _
+    by_cases ht : m.typ = W32 0
+    · rw [if_pos ⟨ht, hd⟩, if_pos ht]; rfl
+    · rw [if_neg (fun h => ht h.1), if_neg ht]
+  rw [List.map_append, List.filterMap_append, List.map_singleton, List.filterMap_cons_some hm,
+    List.filterMap_nil, ← logRevGrantIds_filter_data] at hn
+  intro hin
+  exact (List.nodup_append.1 hn).2.2 gid hin gid (List.mem_singleton_self _) rfl
+
+open Iris.ProofMode in
+/-- **A committed entry's grant id is new** (E3 (c), `grantId_fresh_transfer`): an entry `m` of the
+committed log after `A` (as `kv_entry_claim`) has a revocable-mode grant id that no entry of `A` with
+data has, from the KV invariant's (`kvGrantIds`: generated ids of one prefix, no repeat). -/
+theorem kv_entry_grantFresh (γ : ServerRaftNames) (γk : KVNames)
+    (A : List EntryModel) (m : EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ (A ++ [m]) ={⊤}=∗
+      ⌜m.data ≠ [] → ∀ gid, entryRevGrantId γk.lm m = some gid →
+        gid ∉ logRevGrantIds γk.lm (A.filter fun m => decide (m.data ≠ []))⌝ := by
+  iintro #Hinv #Hr #HB
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L (A ++ [m]) $$ Hr HL HB with ⟨HL, %Hp⟩
+  iunfold kvGrantIds at HG
+  icases HG with ⟨%U, %HU, HUs⟩
+  imod Hclose $$ [HL Hσ HUs] with -
+  · inext; iexists L; iframe HL Hσ Hw
+    isplitr
+    · ipureintro; exact Hok
+    iunfold kvGrantIds; iexists U; iframe HUs; ipureintro; exact HU
+  imodintro
+  ipureintro
+  intro hd gid hg
+  have hnd : (logRevGrantIds γk.lm L).Nodup := by
+    rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
+  exact grantId_fresh_transfer γk.lm A L m Hp.2.1 Hp.2.2 hnd hd gid hg
+
+/-- A grant the entry carries is in a cluster that grants leases. -/
+theorem plainOrCmpG_lg (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmpG E.lm rq) :
+    apply.dispatchKind rq = .leaseGrant → E.lg = true :=
+  fun hk => apply.AEnv.lg_true_of_lm (plainOrCmpG_grant _ rq hp hk).1
+
+open Iris.ProofMode in
+/-- **What `applyEntryNormal` hands `Apply` of the ids** (E3 (c)): the apply thread's half of the
+ids the lessor ever had, `U`, and the entry's grant new to it (`srvGrantFresh`, from
+`kv_entry_grantFresh`'s `Hgf` at the KV names' mode, the server's). -/
+theorem srvEver_applyPre (E : apply.AEnv GF) (γk : KVNames) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
+    (hdec : apply.irrDecode m.data = some rq) (hp : plainOrCmpG E.lm rq) (hlm : γk.lm = E.lm)
+    (Hgf : m.data ≠ [] → ∀ gid, entryRevGrantId γk.lm m = some gid →
+      gid ∉ logRevGrantIds γk.lm (A.filter fun m => decide (m.data ≠ []))) :
+    srvGrantIf E ∗ srvEver E A ⊢
+      ∃ U : List w64, apply.everOwn E U ∗ apply.grantFresh E rq U ∗ ⌜srvEverOk E A U⌝ := by
+  have hfr : E.lm = .revocable → apply.dispatchKind rq = .leaseGrant →
+      ∀ g : apply.LeaseGrantModel, rq.leaseGrant = some g → g.id ∉ srvGrantLog A := by
+    intro hr hk g hg
+    have h := Hgf hd g.id (by
+      unfold entryRevGrantId rqRevGrantId
+      rw [if_pos ht, hdec]
+      simp [hlm, hr, hk, hg])
+    rw [hlm, hr] at h
+    exact h
+  iintro ⟨#HG, HE⟩
+  ihave ⟨%U, HU, %Hok⟩ := srvEver_open E A $$ HE
+  iexists U
+  iframe HU
+  isplitl []
+  · iapply srvGrantFresh E A U rq Hok (plainOrCmpG_lg E rq hp) hfr $$ HG
+  ipureintro; exact Hok
+
+open Iris.ProofMode in
+/-- `srvEver_applyPre` for a request that grants nothing (`grantFresh_of_not_grant`). -/
+theorem srvEver_applyPreN (E : apply.AEnv GF) (A : List EntryModel) (rq : apply.IRRModel)
+    (hk : apply.dispatchKind rq ≠ .leaseGrant) :
+    srvEver E A ⊢
+      ∃ U : List w64, apply.everOwn E U ∗ apply.grantFresh E rq U ∗ ⌜srvEverOk E A U⌝ := by
+  iintro HE
+  ihave ⟨%U, HU, %Hok⟩ := srvEver_open E A $$ HE
+  iexists U
+  iframe HU
+  isplitl []
+  · iapply apply.grantFresh_of_not_grant E rq U hk
+  ipureintro; exact Hok
+
 /-- **Off, a committed log has no compaction** (`kv_log_plain`, `crevOf_plain`). -/
 theorem crevOf_off (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) (hcm : γk.cmp = false) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗ ⌜crevOf γk A = -1⌝ := by

@@ -74,7 +74,8 @@ abbrev newServerMode.spec : Prop :=
       (Val #retention)) (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm)) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
+          leaseTTLRowR s ps) }}
 
 end spec
 

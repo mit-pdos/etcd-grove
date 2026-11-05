@@ -113,7 +113,7 @@ theorem Main.wp_proof
       (by simp [leasegrantDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
-  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_

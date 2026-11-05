@@ -1770,6 +1770,30 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iframe HLnil HpeerRt HlessRd HlPool'
     rw [Hγw.2.1]
     iframe Hlmode Hl0
+  -- (E3 (c) stage 2) the lease-TTL row's raft part (`leaseTTLRowR`): the member id, the node
+  -- `StartNode` made (`nodeStartedFresh`), every committed configuration the boot's
+  -- (`srv_confAt_simple`)
+  ihave #HttlR : leaseTTLRowR s γ.vs $$ []
+  · iunfold leaseTTLRowR
+    iexists id, γrn.nl, γ, ctxs
+    isplitr
+    · ipureintro; rw [Hrvs]; exact Hrid ▸ Hrmem
+    isplitr
+    · rw [← Hid]; iexact memberID
+    isplitr
+    · iexact HNodeC
+    isplitr
+    · rw [Hrvs, ← Hrid]; iexact Hsfresh
+    iintro !> %l %k #Hl %hk
+    ihave #Hsrl0 : srvRaftLogInv (GF := GF) (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
+    · rw [← HρRaft]; iexact Hsrl
+    imod srv_confAt_simple (GF := GF) ⟨γ, [], W64 0⟩ l k hk ⊤ (fun _ _ => CoPset.mem_full)
+      (fun _ _ => CoPset.mem_full) $$ [$Hsrl0 $Hl] with #Hc
+    imodintro
+    irevert Hc
+    simp only [SrvRaft.cfg]
+    iintro #Hc
+    iexact Hc
   imodintro
   wp_auto
   iapply HΦ
@@ -1783,7 +1807,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
-  iframe HLsrv HBF ClientCertAuthEnabledS
+  iframe HLsrv HttlR HBF ClientCertAuthEnabledS
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
   isplitr

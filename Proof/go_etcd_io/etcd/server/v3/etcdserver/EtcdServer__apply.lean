@@ -587,7 +587,7 @@ theorem EtcdServer.apply.wp_proofOff
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
-        ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
+        ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -705,9 +705,10 @@ theorem EtcdServer.apply.wp_proofOff
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
         -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
-        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt]
-        · rw [srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide)),
-            restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt HEv]
+        · iapply srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide))
+          iframe HEv
+          rw [restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_true ((HkB.2 m hmem).1 (by omega))]
           iapply (srvRestAt_open E _ _).2
           iexists f
@@ -1475,7 +1476,7 @@ theorem EtcdServer.apply.wp_proofOn
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
-        ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
+        ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -1593,9 +1594,10 @@ theorem EtcdServer.apply.wp_proofOn
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
         -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
-        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt]
-        · rw [srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide)),
-            restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt HEv]
+        · iapply srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide))
+          iframe HEv
+          rw [restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_true ((HkB.2 m hmem).1 (by omega))]
           iapply (srvRestAt_open E _ _).2
           iexists f

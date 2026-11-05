@@ -121,7 +121,7 @@ theorem newServerMode.wp_proof
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlsrv, -, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlsrv, #Httl, -, -⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
@@ -139,10 +139,13 @@ theorem newServerMode.wp_proof
     iframe Hmf Hfgc
   ihave #Hlr : srvLeaseRd srv E lm $$ []
   · iunfold srvLeaseRd; iexists _; iexact Hlsrv
+  -- (the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part, at the peers
+  ihave #Httl' : leaseTTLRowR srv ps $$ []
+  · rw [← hvs]; iexact Httl
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
-  iframe Htok
+  iframe Htok Httl'
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, _, γk, τ
   simp only [Bool.false_eq_true, ↓reduceIte]

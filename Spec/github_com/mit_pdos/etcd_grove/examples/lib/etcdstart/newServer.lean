@@ -81,7 +81,8 @@ abbrev newServer.spec : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm)) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
+          leaseTTLRowR s ps) }}
 
 /-- See the file header (`specCompact`). -/
 abbrev newServer.specCompact : Prop :=
@@ -127,7 +128,8 @@ abbrev newServer.specCompact : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm)) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
+          leaseTTLRowR s ps) }}
 
 end spec
 

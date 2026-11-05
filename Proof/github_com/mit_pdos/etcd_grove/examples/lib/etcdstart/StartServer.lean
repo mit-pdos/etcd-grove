@@ -76,7 +76,7 @@ theorem StartServer.wp_proof
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg (by decide) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, #Httl⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr

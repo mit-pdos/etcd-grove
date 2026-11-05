@@ -628,12 +628,33 @@ def srvGrantable (E : apply.AEnv GF) : IProp GF :=
 instance srvGrantable_persistent (E : apply.AEnv GF) : Persistent (srvGrantable (GF := GF) E) := by
   unfold srvGrantable; infer_instance
 
+/-- **The revocable-mode grant ids of the applied log's entries with data** (E3 (c)): the apply
+thread applies no entry without data, so these are the ids it can have granted. -/
+def srvGrantLog (A : List EntryModel) : List w64 :=
+  logRevGrantIds .revocable (A.filter fun m => decide (m.data ≠ []))
+
+theorem srvGrantLog_snoc_sub (A : List EntryModel) (m : EntryModel) (u : w64)
+    (h : u ∈ srvGrantLog A) : u ∈ srvGrantLog (A ++ [m]) := by
+  unfold srvGrantLog at h ⊢
+  rw [List.filter_append]
+  unfold logRevGrantIds at h ⊢
+  rw [List.filterMap_append]
+  exact List.mem_append_left _ h
+
+theorem srvGrantLog_snoc_data (A : List EntryModel) (m : EntryModel) (hd : m.data ≠ []) :
+    srvGrantLog (A ++ [m]) = srvGrantLog A ++ (entryRevGrantId .revocable m).toList := by
+  unfold srvGrantLog
+  rw [List.filter_append]
+  have h1 : [m].filter (fun m => decide (m.data ≠ [])) = [m] := by simp [hd]
+  rw [h1]
+  exact logRevGrantIds_snoc _ _ _
+
 /-- **The ids the lessor ever had, `U`, at the applied log `A`** (the lease-expiry plan's E3 (c),
 2026-11-05): none in a cluster that grants none; in the revocable mode, each the revocable-mode grant
-id of an entry of `A` (`logRevGrantIds`), so that a grant's id, distinct from the log's earlier ones,
+id of an entry of `A` with data (`srvGrantLog`), so that a grant's id, distinct from the log's earlier ones,
 is new to `U`. -/
 def srvEverOk (E : apply.AEnv GF) (A : List EntryModel) (U : List w64) : Prop :=
-  (E.lg = false → U = []) ∧ (E.lm = .revocable → ∀ u ∈ U, u ∈ logRevGrantIds .revocable A)
+  (E.lg = false → U = []) ∧ (E.lm = .revocable → ∀ u ∈ U, u ∈ srvGrantLog A)
 
 /-- **The apply thread's half of the ids the lessor ever had** (E3 (c)): `apply.everOwn` at some
 `U` good for `A` (`srvEverOk`). -/
@@ -719,12 +740,10 @@ theorem srvRest_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
   · simp only [↓reduceIte]
     exact .rfl
 
-/-- **The ids one entry later** (the log only grows: `logRevGrantIds_snoc`). -/
+/-- **The ids one entry later** (the log only grows: `srvGrantLog_snoc_sub`). -/
 theorem srvEverOk_snoc (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) (U : List w64)
-    (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) U := by
-  refine ⟨h.1, fun hm u hu => ?_⟩
-  rw [logRevGrantIds_snoc]
-  exact List.mem_append_left _ (h.2 hm u hu)
+    (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) U :=
+  ⟨h.1, fun hm u hu => srvGrantLog_snoc_sub A m u (h.2 hm u hu)⟩
 
 open Iris.ProofMode in
 theorem srvEver_snoc (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) :
@@ -762,7 +781,7 @@ theorem grantIdsA_sub (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (
 revocable-mode grant id; a grant only where the cluster grants. -/
 theorem srvEverOk_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (U : List w64)
-    (ht : m.typ = W32 0) (hdec : apply.irrDecode m.data = some rq)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true)
     (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) (apply.grantIdsA rq v3 out U) := by
   refine ⟨fun hf => ?_, fun hm u hu => ?_⟩
@@ -773,7 +792,7 @@ theorem srvEverOk_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryMode
     rcases grantIdsA_sub rq v3 out [] u hu with hu | ⟨hk, -⟩
     · exact absurd hu List.not_mem_nil
     · rw [hlg hk] at hf; cases hf
-  · rw [logRevGrantIds_snoc]
+  · rw [srvGrantLog_snoc_data A m hd]
     rcases grantIdsA_sub rq v3 out U u hu with hu | ⟨hk, g, hg, rfl⟩
     · exact List.mem_append_left _ (h.2 hm u hu)
     · apply List.mem_append_right
@@ -879,14 +898,45 @@ open Iris.ProofMode in
 /-- **The ids closed again, one entry later, after a request** (`grantIdsA`). -/
 theorem srvEver_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (U : List w64)
-    (ht : m.typ = W32 0) (hdec : apply.irrDecode m.data = some rq)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true) (h : srvEverOk E A U) :
     apply.everOwn (GF := GF) E (apply.grantIdsA rq v3 out U) ⊢ srvEver E (A ++ [m]) := by
   iintro HU
   iunfold srvEver
   iexists _
   iframe HU
-  ipureintro; exact srvEverOk_grant E A m rq v3 out U ht hdec hlg h
+  ipureintro; exact srvEverOk_grant E A m rq v3 out U ht hd hdec hlg h
+
+open Iris.ProofMode in
+/-- **A grant's id is new to the lessor** (`apply.grantFresh`, E3 (c)): in the monotone mode the
+lessor's mode (`srvGrantIf`'s `lessorModeIs true`); in the revocable mode the id is new to `U`, whose
+ids are the applied log's grant ids (`srvEverOk`), which the id is not (`hfr`); no grant otherwise. -/
+theorem srvGrantFresh (E : apply.AEnv GF) (A : List EntryModel) (U : List w64) (rq : apply.IRRModel)
+    (h : srvEverOk E A U) (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true)
+    (hfr : E.lm = .revocable → apply.dispatchKind rq = .leaseGrant →
+      ∀ g : apply.LeaseGrantModel, rq.leaseGrant = some g → g.id ∉ srvGrantLog A) :
+    srvGrantIf E ⊢ apply.grantFresh E rq U := by
+  unfold srvGrantIf srvGrantable
+  iintro #HG
+  iunfold apply.grantFresh
+  iintro !> %hk %g %hg
+  have hl := hlg hk
+  irevert HG
+  simp only [hl, ↓reduceIte]
+  iintro ⟨-, #Hm⟩
+  cases hm : E.lm with
+  | none => exact absurd hm (apply.AEnv.lm_of_lg_true hl)
+  | mono =>
+    ileft
+    irevert Hm
+    simp only [hm, decide_true]
+    iintro #Hm
+    iexact Hm
+  | revocable =>
+    iright
+    ipureintro
+    intro hu
+    exact hfr hm hk g hg (h.2 hm g.id hu)
 
 open Iris.ProofMode in
 /-- **The ids closed again, one entry later, unchanged.** -/

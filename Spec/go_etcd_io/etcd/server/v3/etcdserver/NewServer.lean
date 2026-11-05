@@ -343,6 +343,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- lease (E3zb, lease-grant D1), the peers' round tripper and the lessor's reader side (K7),
           -- the lessor's reader pool (the lease-src plan); until then four conjuncts here
           lease.srvInv on srv E m ∗
+          -- (2026-11-05, the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part at
+          -- the peers (`leaseTTLRowR`, `LeaseRead.lean`): the member id, the node `StartNode` made
+          -- (a first start), every committed configuration the boot's
+          leaseTTLRowR srv γ.vs ∗
           -- (authkv's Main, 2026-10-30) the TLS fallback's configuration field, the
           -- configuration's (`srvTLSId_false` refutes the fallback when it is `false`), and with
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its

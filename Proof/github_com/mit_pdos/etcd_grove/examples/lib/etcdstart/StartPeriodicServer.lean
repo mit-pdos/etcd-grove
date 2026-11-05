@@ -80,7 +80,7 @@ theorem StartPeriodicServer.wp_proof
       (v3compactor.bootCfg_periodic _ _ Hper Hcret) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
