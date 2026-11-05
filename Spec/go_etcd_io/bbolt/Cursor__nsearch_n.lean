@@ -43,6 +43,20 @@ abbrev Cursor.nsearch_n.spec : Prop :=
       stk ↦* (els ++ [⟨e.page', e.node', W64 (wsIdx rn.ws kb : Int)⟩]) ∗
       objOwn v e.node' (DFrac.own 1) true (.node bl rn) ∗ viewCells q v ∗ keyR v key kr kb }}
 
+/-- **`nsearch` on a node at a fraction** (U6w): `spec` with the node's object at `qn` (a
+fraction of the writer's heap, `wtxWQ`). `spec` is its case `qn = 1`. -/
+abbrev Cursor.nsearch_n.specQ : Prop :=
+  ∀ (c b : Loc) (stk : GoSlice) (els : List elemRef) (e : elemRef) (v : View) (bl : Loc)
+    (rn : NRec) (qn : Qp) (q : Qp) (key : GoSlice) (kr : KeyR) (kb : List w8),
+  e.node' ≠ null → wsSorted rn.ws → wsLive rn.ws → 0 < v.base.addr →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ c ↦ Cursor.mk b stk ∗
+      stk ↦* (els ++ [e]) ∗ objOwn v e.node' (DFrac.own qn) true (.node bl rn) ∗ viewCells q v ∗
+      keyR v key kr kb }}
+    (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"nsearch")) (Val #key))
+  {{ RET #(); c ↦ Cursor.mk b stk ∗
+      stk ↦* (els ++ [⟨e.page', e.node', W64 (wsIdx rn.ws kb : Int)⟩]) ∗
+      objOwn v e.node' (DFrac.own qn) true (.node bl rn) ∗ viewCells q v ∗ keyR v key kr kb }}
+
 end spec
 
 end bbolt

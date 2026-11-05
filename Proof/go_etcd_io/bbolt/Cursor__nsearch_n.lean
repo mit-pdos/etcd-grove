@@ -31,11 +31,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Cursor.nsearch_n.wp_proof
+theorem Cursor.nsearch_n.wp_proofQ
     (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
-    Cursor.nsearch_n.spec (GF := GF) (hG := hG) := by
-  intro c b stk els e v bl rn q key kr kb hnode Hsorted Hlive Hbase
+    Cursor.nsearch_n.specQ (GF := GF) (hG := hG) := by
+  intro c b stk els e v bl rn qn q key kr kb hnode Hsorted Hlive Hbase
   wp_start as ⟨Hc, Hs, Ho, Hv, Hkp⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
@@ -61,13 +61,13 @@ theorem Cursor.nsearch_n.wp_proof
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
   try wp_auto
-  ihave Hn : (e.node' ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+  ihave Hn : (e.node' ↦{DFrac.own qn} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   have Hlen : sint.Z rn.nv.inodes'.len = (rn.ws.length : Int) := by word
   wp_apply hS rn.nv.inodes'.len _ (Write.gePred rn.ws kb)
-    iprop(n_ptr ↦ e.node' ∗ key_ptr ↦ key ∗ e.node' ↦ rn.nv ∗ rn.nv.inodes' ↦* rn.ins ∗
+    iprop(n_ptr ↦ e.node' ∗ key_ptr ↦ key ∗ e.node' ↦{DFrac.own qn} rn.nv ∗ rn.nv.inodes' ↦*{DFrac.own qn} rn.ins ∗
       ([∗list] it;w ∈ rn.ins;rn.ws, wOwn v true it w) ∗ viewCells q.half v ∗
       key ↦*{dk} kb) $$ [n key Hn Hins Hws Hv2 Hk]
   · iframe
@@ -79,7 +79,7 @@ theorem Cursor.nsearch_n.wp_proof
       wp_start as ⟨⟨Hnp, Hkp', Hn, Hins, Hws, Hv2, Hk⟩, %Hb⟩
       iStructNamed Hn
       wp_auto
-      ihave Hn : (e.node' ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      ihave Hn : (e.node' ↦{DFrac.own qn} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
       · iapply typedPointsto_combine _ _ _ Hnn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -144,6 +144,14 @@ theorem Cursor.nsearch_n.wp_proof
   · simp only [objOwn]; iframe
   iapply (viewCells_halves q v).2
   iframe
+
+/-- `nsearch` on a node owned whole (`qn = 1`). -/
+theorem Cursor.nsearch_n.wp_proof
+    (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
+    Cursor.nsearch_n.spec (GF := GF) (hG := hG) := by
+  intro c b stk els e v bl rn q
+  exact Cursor.nsearch_n.wp_proofQ hK hS hC c b stk els e v bl rn 1 q
 
 end proof
 
