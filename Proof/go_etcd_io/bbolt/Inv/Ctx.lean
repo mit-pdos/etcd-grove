@@ -86,6 +86,38 @@ def wtxW (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
     ∃ l : Nat, mapFields r.db (DFrac.own (1 : Qp).half.half) (some (X.v.base, l) : MapSt) ∗
       ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝)
 
+/-- **The writer's core at fraction `q`** (U6w): `wtxCore` with its heap, fills, registries'
+auths, `tx.db`'s share and statistics' token at `q` (a holder of a fraction of a writer's
+`boltTx`; at `q = 1` it is `wtxCore`, `wtxCoreQ_one`). -/
+def wtxCoreQ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
+    ⌜r.db = K.db ∧ r.rw = true ∧ tx ≠ null ∧ X.t.t.managed' = false ∧
+      txRoot (GF := GF) tx ≠ null ∧ 0 < X.t.t.meta'.addr⌝ ∗ reg tx K.B r ∗
+    wtxHeap tx (DFrac.own q) X ∗ fills X.handles (DFrac.own q) ∗
+    ghostMapAuth r.n.bk q X.handles ∗ ghostMapAuth r.n.nl q X.nloc ∗
+    tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ viewOf r X.v ∗ statsTok r m q)
+
+/-- **The writer's working state at fraction `q`** (U6w, "Writer reads at a fraction" of
+`notes/bbolt-proof-plan.md`): `wtxW` with `wtxCoreQ` at `q`, the view's cells at `q · wq` and the
+mapping fields at `q · ¼`; what the writer's read-only internal specs run over (a fraction of a
+writer's `boltTx`, `boltTxDef_wtxWQ`). At `q = 1` it is `wtxW` (`wtxWQ_one`). -/
+def wtxWQ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) : IProp GF :=
+  iprop(wtxCoreQ K tx r m q X ∗ viewCells (QpMul q wq) X.v ∗
+    ∃ l : Nat, mapFields r.db (DFrac.own (QpMul q (1 : Qp).half.half)) (some (X.v.base, l) : MapSt) ∗
+      ⌜∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝)
+
+private theorem QpMul_one_left_w (q : Qp) : QpMul 1 q = q :=
+  Subtype.ext (by simp [QpMul])
+
+theorem wtxCoreQ_one (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxCoreQ (GF := GF) K tx r m 1 X = wtxCore K tx r m X := rfl
+
+/-- **At `q = 1`, `wtxWQ` is `wtxW`.** -/
+theorem wtxWQ_one (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxWQ (GF := GF) K tx r m 1 X = wtxW K tx r m X := by
+  unfold wtxWQ wtxW
+  simp only [QpMul_one_left_w, wtxCoreQ_one]
+
 /-- **The writer's state after a failed remap** (the mapping lost, design §4.2): `wtxCore`, no
 view cells, the mapping fields' quarter unmapped. -/
 def wtxLost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) : IProp GF :=
@@ -440,6 +472,66 @@ theorem boltTxDef_wtxW (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) (hrw : 
     iframe Hreg Hb Hv Hex
     unfold wtxFrac
     simp only [QpMul_one_left_c]
+    iframe Hh Hf Hvc Hst Hbk Hnl Hvo
+    isplitl [Hdb]
+    · iexact Hdb
+    isplitl [Hmf]
+    · iexists l; iframe Hmf; ipureintro; exact Hl
+    ipureintro
+    exact ⟨Hfacts.1, hrw, Hfacts.2.1, Hfacts.2.2.1, Hfacts.2.2.2.1, Hr.2.2.1, Hr.2.2.2.1,
+      Hr.2.2.2.2.1, Hr.2.2.2.2.2, Hfacts.2.2.2.2⟩
+
+open Iris.ProofMode in
+/-- **A fraction of a write transaction is its working state at that fraction** (U6w; the
+generalization of `boltTxDef_wtxW`, which is its case `q = 1` up to `wtxWQ_one`): `wtxWQ` at `q`
+in mode `true`, its agreed state's share, the full database, the committed data's share, and
+`wtxFrac`'s facts. -/
+theorem boltTxDef_wtxWQ (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxView)
+    (hrw : T.rw = true) :
+    boltTxDef (GF := GF) B N tx q T ⊣⊢
+      ∃ (K : BC) (r : TxReg) (c : TxViewC) (X : WX),
+        ⌜K.B = B ∧ K.N = N ∧ T = TxView.ofC c⌝ ∗ K.full ∗
+        ghostVar r.n.v q.half (c, TxX.wr X) ∗ wtxWQ K tx r true q X ∗
+        ghostVar B.st (QpMul q (1 : Qp).half.half) T.base ∗
+        ⌜wOK X ∧ T.cur = wtxData X ∧ T.base = X.v.data ∧ gensOK T X ∧ wrFacts X⌝ := by
+  unfold boltTxDef
+  simp only [hrw, ↓reduceIte]
+  constructor
+  · iintro ⟨%db, %p, %sp, %t0, %r, %c, %X, %Hc, #Hreg, #Hb, Hv, Hex, Hw⟩
+    unfold wtxFrac
+    icases Hw with ⟨Hh, Hf, Hvc, Hst, Hbk, Hnl, Hdb, ⟨%l, Hmf, %Hl⟩, #Hvo, %Hfacts⟩
+    iexists ⟨B, N, db, p, sp, t0⟩, r, c, X
+    obtain ⟨hT, hdb, hrw'⟩ := Hc
+    obtain ⟨h1, -, h3, h4, h5, h6, h7, h8, hma, h9⟩ := Hfacts
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, hT⟩
+    unfold BC.full
+    iframe Hb Hv Hst
+    isplitl [Hh Hf Hvc Hbk Hnl Hdb Hex Hmf]
+    · unfold wtxWQ wtxCoreQ statsTok BC.core
+      simp only [↓reduceIte]
+      ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt $$ []
+      · unfold isBoltP isBoltCoreP
+        icases Hb with ⟨⟨-, -, -, $, -⟩, -⟩
+      ihave #Hc : isBoltCoreP B N db p sp t0 $$ []
+      · unfold isBoltP; icases Hb with ⟨$, -⟩
+      iframe Hpk Hc Hreg Hh Hf Hbk Hnl Hvc Hvo Hex
+      iframe Hdb
+      isplitr
+      · ipureintro; exact ⟨hdb, hrw', h6, h7, h8, hma⟩
+      iexists l; iframe Hmf; ipureintro; exact Hl
+    ipureintro; exact ⟨h1, h3, h4, h5, h9⟩
+  · iintro ⟨%K, %r, %c, %X, %HK, #Hb, Hv, Hw, Hst, %Hfacts⟩
+    obtain ⟨rfl, rfl, hT⟩ := HK
+    unfold wtxWQ wtxCoreQ statsTok
+    simp only [↓reduceIte]
+    icases Hw with ⟨⟨-, -, %Hr, #Hreg, Hh, Hf, Hbk, Hnl, Hdb, #Hvo, Hex⟩, Hvc, %l, Hmf, %Hl⟩
+    iexists K.db, K.p, K.sp, K.t0, r, c, X
+    isplitr
+    · ipureintro; exact ⟨hT, Hr.1, Hr.2.1⟩
+    unfold BC.full
+    iframe Hreg Hb Hv Hex
+    unfold wtxFrac
     iframe Hh Hf Hvc Hst Hbk Hnl Hvo
     isplitl [Hdb]
     · iexact Hdb
