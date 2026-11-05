@@ -154,9 +154,6 @@ theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : 
         (mcreateL x g).1 ∧
       outOf (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.UID', x.Val'), hlen⟩ 0).2 =
         (mcreateL x g).2 := by
-  -- Stage 7b: the proof (835795d4d1 (lean)'s, without the UID) is adapted in the Prove phase.
-  sorry
-/- the proof at 835795d4d1 (lean):
   unfold KSt.create mcreateL
   simp only [ne_eq, not_true_eq_false, ↓reduceIte]
   cases hk : ks.items (mkeyL x.Key') with
@@ -172,7 +169,6 @@ theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : 
       rw [w64_succ _ hrv, h.2.1]
     · simp only [outOf]
       rw [w64_succ _ hrv, h.2.1]
--/
 
 /-- An object's driver form: `ItemRel`'s object. -/
 theorem itemRel_obj {ki : KItem DObj} {it : item} (h : ItemRel ki it) :
@@ -186,8 +182,10 @@ theorem itemRel_obj {ki : KItem DObj} {it : item} (h : ItemRel ki it) :
 /-- **The store's preconditions are the driver's** (`preOk`) on related objects. -/
 theorem preOk_rel (x : Input) (ki : KItem DObj) (it : item) (h : ItemRel ki it) :
     driverCodec.preOk (kpreOf x) ki.obj ki.rv = preOkL x it.obj' := by
-  -- Stage 7b: Prove phase.
-  sorry
+  obtain ⟨h1, h2, -⟩ := h
+  have hu : ki.obj.uid = it.obj'.UID' := congrArg (fun p => p.2.1) h1
+  simp only [ObjCodec.preOk, driverCodec, KPre.ok, kpreOf, preOkL, hu, h2]
+  cases x.HasPreUID' <;> cases x.HasPreRV' <;> simp
 
 /-- **`Delete`** of the input's name, with the input's preconditions (`kpreOf`) and
 `validateFor(in.Reject)` rejecting with `eD`. -/
@@ -197,9 +195,6 @@ theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD 
         (mdeleteL x g).1 ∧
       outOf (ks.delete (mkeyL x.Key') (driverCodec.preOk (kpreOf x)) (rejD eD x.Reject')).2 =
         (mdeleteL x g).2 := by
-  -- Stage 7b: the proof (835795d4d1 (lean)'s, without preconditions) is adapted in the Prove phase.
-  sorry
-/- the proof at 835795d4d1 (lean):
   unfold KSt.delete mdeleteL
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
@@ -210,16 +205,53 @@ theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD 
   | some ki =>
     obtain ⟨hf, hr⟩ := krel_some h _ ki hk
     simp only [hf, Bool.not_true, Bool.false_eq_true, ↓reduceIte, rejD]
-    have hv : ki.obj.1.2 = (lookupL g.items x.Key').1.obj'.Value' := by rw [hr.1]
+    rw [preOk_rel x ki _ hr]
+    cases hp : preOkL x (lookupL g.items x.Key').1.obj'
+    · simp only [Bool.not_false, ↓reduceIte]
+      exact ⟨h, rfl⟩
+    simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+    have hn1 : ki.obj.name = (lookupL g.items x.Key').1.obj'.Name' := congrArg (fun p => p.1) hr.1
+    have hu1 : ki.obj.uid = (lookupL g.items x.Key').1.obj'.UID' :=
+      congrArg (fun p => p.2.1) hr.1
+    have hv : ki.obj.val = (lookupL g.items x.Key').1.obj'.Value' := congrArg (fun p => p.2.2) hr.1
     rw [hv]
     cases hrj : rejects x.Reject' (lookupL g.items x.Key').1.obj'.Value'
     · simp only [Bool.false_eq_true, ↓reduceIte]
       refine ⟨krel_del ks g h x.Key' hrv, ?_⟩
-      simp only [outOf, objOutL]
-      rw [w64_succ _ hrv, h.2.1, hr.1]
+      simp only [outOf, objOutL, hn1, hu1, hv]
+      rw [w64_succ _ hrv, h.2.1]
     · simp only [↓reduceIte]
       exact ⟨h, rfl⟩
--/
+
+/-- `updObj` and `updatedL` agree on objects that do. -/
+theorem updObj_rel (x : Input) (hlen : x.Key'.length < 256) (o : DObj) (O : Obj)
+    (ho : o.1 = (O.Name', O.UID', O.Value')) :
+    (updObj x o).1 = ((updatedL x O).Name', (updatedL x O).UID', (updatedL x O).Value') := by
+  obtain ⟨h1, h2, h3⟩ := updObj_fields x o hlen
+  have hn : o.name = O.Name' := congrArg (fun p => p.1) ho
+  have hu : o.uid = O.UID' := congrArg (fun p => p.2.1) ho
+  have hv : o.val = O.Value' := congrArg (fun p => p.2.2) ho
+  show ((updObj x o).name, (updObj x o).uid, (updObj x o).val) = _
+  rw [h1, h2, h3, hn, hu, hv]
+  unfold updatedL
+  cases x.NoOp' <;> simp
+
+/-- An update's write: the relation kept, the answers alike. -/
+theorem upd_write {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input)
+    (hlen : x.Key'.length < 256) (hrv : ks.rv + 1 < 2 ^ 64) (o : DObj) (O : Obj)
+    (ho : o.1 = (O.Name', O.UID', O.Value')) :
+    KRel ⟨ks.setItem (mkeyL x.Key') ⟨updObj x o, ks.rv + 1, true⟩, ks.rv + 1⟩
+        ⟨setItemL g.items ⟨x.Key', ⟨(updatedL x O).Name', (updatedL x O).UID', (updatedL x O).Value',
+          g.rv + W64 1⟩, true⟩, g.rv + W64 1⟩ ∧
+      outOf (E := E) (.obj (updObj x o) (ks.rv + 1)) =
+        objOutL ⟨(updatedL x O).Name', (updatedL x O).UID', (updatedL x O).Value', g.rv + W64 1⟩ := by
+  have hu := updObj_rel x hlen o O ho
+  have hw : W64 ((ks.rv + 1 : Nat) : Int) = g.rv + W64 1 := by rw [w64_succ _ hrv, h.2.1]
+  refine ⟨krel_set ks g h x.Key' _ _ rfl ⟨hu, hw, rfl⟩ hrv, ?_⟩
+  have h1 : (updObj x o).name = (updatedL x O).Name' := congrArg (fun p => p.1) hu
+  have h2 : (updObj x o).uid = (updatedL x O).UID' := congrArg (fun p => p.2.1) hu
+  have h3 : (updObj x o).val = (updatedL x O).Value' := congrArg (fun p => p.2.2) hu
+  simp only [outOf, h1, h2, h3, hw]
 
 /-- **`GuaranteedUpdate`** of the input's name by `tryUpdateFor(in)` (rejecting with `eU`), with
 the input's preconditions (`kpreOf`) and `ignoreNotFound` (from the zero object `dzero`, which
@@ -230,63 +262,70 @@ theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU 
         (updD eU x)).1 (mupdateL x g).1 ∧
       outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preOk (kpreOf x))
         (updD eU x)).2 = (mupdateL x g).2 := by
-  -- Stage 7b: the proof (835795d4d1 (lean)'s, without preconditions or `ignoreNotFound`) is adapted in
-  -- the Prove phase.
-  sorry
-/- the proof at 835795d4d1 (lean):
   unfold KSt.update KSt.current mupdateL
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
     have hn := krel_none h _ hk
-    simp only [hn, Bool.not_false, Bool.false_eq_true, ↓reduceIte]
-    refine ⟨h, ?_⟩
-    simp only [outOf, notFoundL, h.2.1]
+    cases hi : x.IgnoreNotFound'
+    · simp only [hn, hi, Bool.not_false, Bool.and_self, ↓reduceIte, Bool.false_eq_true]
+      refine ⟨h, ?_⟩
+      simp only [outOf, notFoundL, h.2.1]
+    · simp only [hn, hi, Bool.not_false, Bool.not_true, Bool.and_false, Bool.false_eq_true,
+        ↓reduceIte]
+      have hpz : driverCodec.preOk (kpreOf x) dzero 0 = preOkL x zObj :=
+        preOk_rel x ⟨dzero, 0, true⟩ ⟨x.Key', zObj, true⟩ ⟨rfl, rfl, rfl⟩
+      rw [hpz]
+      cases hp : preOkL x zObj
+      · simp only [Bool.not_false, ↓reduceIte]
+        exact ⟨h, rfl⟩
+      simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte, updD]
+      rw [show dzero.val = zObj.Value' from rfl]
+      cases hrj : rejects x.Reject' zObj.Value'
+      · simp only [Bool.false_eq_true, ↓reduceIte, _root_.false_and]
+        exact upd_write ks g h x hlen hrv dzero zObj rfl
+      · simp only [↓reduceIte]
+        exact ⟨h, rfl⟩
   | some ki =>
     obtain ⟨hf, hr⟩ := krel_some h _ ki hk
-    simp only [hf, Bool.not_true, Bool.false_eq_true, ↓reduceIte, updD]
-    have hv : ki.obj.1.2 = (lookupL g.items x.Key').1.obj'.Value' := by rw [hr.1]
+    simp only [hf, Bool.not_true, Bool.false_and, Bool.false_eq_true, ↓reduceIte, updD]
+    rw [preOk_rel x ki _ hr]
+    cases hp : preOkL x (lookupL g.items x.Key').1.obj'
+    · simp only [Bool.not_false, ↓reduceIte]
+      exact ⟨h, rfl⟩
+    simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+    have hv : ki.obj.val = (lookupL g.items x.Key').1.obj'.Value' := congrArg (fun p => p.2.2) hr.1
     rw [hv]
     cases hrj : rejects x.Reject' (lookupL g.items x.Key').1.obj'.Value'
-    · simp only [Bool.false_eq_true, ↓reduceIte, updatedL]
-      generalize hit : (lookupL g.items x.Key').1 = it at hr hv
-      have hk' : it.key' = x.Key' := lookupL_key g.items x.Key' it (by rw [← hit, ← hf])
-      by_cases hsame : (if x.NoOp' = true then it.obj'.Value' else x.Val') = it.obj'.Value' ∧
-          it.canon' = true
-      · have hobj : updObj x ki.obj = ki.obj := by
-          apply Subtype.ext
-          simp only [updObj, hr.1, hsame.1]
-        have hc : ki.canon = true := hr.2.2.trans hsame.2
-        simp only [hobj, hc, and_self, ↓reduceIte, hsame, true_and]
+    · simp only [Bool.false_eq_true, ↓reduceIte, _root_.true_and]
+      generalize hit : (lookupL g.items x.Key').1 = it at hr hv hp
+      have heq : updObj x ki.obj = ki.obj ↔ sameObjL (updatedL x it.obj') it.obj' = true := by
+        have key : updObj x ki.obj = ki.obj ↔ (updObj x ki.obj).1 = ki.obj.1 :=
+          ⟨congrArg _, fun e => Subtype.ext e⟩
+        rw [key, updObj_rel x hlen ki.obj it.obj' hr.1, hr.1]
+        simp [sameObjL, and_assoc]
+      by_cases hsame : sameObjL (updatedL x it.obj') it.obj' = true ∧ it.canon' = true
+      · rw [if_pos ⟨heq.2 hsame.1, hr.2.2.trans hsame.2⟩, if_pos hsame]
         refine ⟨h, ?_⟩
         simp only [outOf]
         rw [itemRel_obj hr]
-      · have hne : ¬ (updObj x ki.obj = ki.obj ∧ ki.canon = true) := by
-          rintro ⟨h1, h2⟩
-          apply hsame
-          have h1' := congrArg (fun o : DObj => o.1.2) h1
-          simp only [updObj, hr.1] at h1'
-          exact ⟨h1', hr.2.2 ▸ h2⟩
-        simp only [hne, ↓reduceIte, true_and, hsame]
-        refine ⟨krel_set ks g h x.Key' _ _ rfl ⟨?_, ?_, rfl⟩ hrv, ?_⟩
-        · simp only [updObj, hr.1]
-        · show W64 ((ks.rv + 1 : Nat) : Int) = g.rv + W64 1
-          rw [w64_succ _ hrv, h.2.1]
-        · simp only [outOf, objOutL, updObj, hr.1]
-          rw [w64_succ _ hrv, h.2.1]
+      · rw [if_neg (fun hc => hsame ⟨heq.1 hc.1, hr.2.2 ▸ hc.2⟩), if_neg hsame]
+        exact upd_write ks g h x hlen hrv ki.obj it.obj' hr.1
     · simp only [↓reduceIte]
       exact ⟨h, rfl⟩
--/
 
 /-- **`Get`** of the input's name, with the minimum resource version `n` (the input's `MinRV`,
 parsed) and `ignoreNotFound` as given. -/
 theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (n : w64)
     (hn : parseRVD x.MinRV' = some n) :
     outOf (ks.get (E := E) (mkeyL x.Key') (uint.nat n) x.IgnoreNotFound') = mgetL x g := by
-  -- Stage 7b: the proof (835795d4d1 (lean)'s, without a minimum) is adapted in the Prove phase.
-  sorry
-/- the proof at 835795d4d1 (lean):
   unfold KSt.get mgetL
-  simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte]
+  rw [hn]
+  simp only [gt_iff_lt]
+  have hrv : uint.nat g.rv = ks.rv := by rw [← h.2.1]; have := h.2.2.1; word
+  by_cases hlt : ks.rv < uint.nat n
+  · rw [if_pos hlt, if_pos (show uint.nat g.rv < uint.nat n by omega)]
+    rfl
+  rw [if_neg hlt, if_neg (show ¬ uint.nat g.rv < uint.nat n by omega)]
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
     have hn := krel_none h _ hk
@@ -298,7 +337,6 @@ theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Inp
     obtain ⟨hf, hr⟩ := krel_some h _ ki hk
     simp only [hf, Bool.not_true, Bool.false_eq_true, ↓reduceIte, outOf]
     rw [itemRel_obj hr]
--/
 
 end go
 
