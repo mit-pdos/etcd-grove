@@ -26,5 +26,6 @@ stock ^Proof/go_etcd_io/etcd/server/v3/auth/InvAuth\.lean$
 # The store's readers NewServer keeps for its shutdown (the restart plan's R2b-3d gap 4,
 # 2026-11-05): the readers of `NewStore`'s count it does not hand out (`srvKeepRdN`), so that the
 # server's stop returns every reader for the backend's `Close` (`storeReaders_retire`,
-# `storeRTs_shares`), as `NewServer`'s error path does (R-D1).
-stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvRestart\.lean$
+# `storeRTs_shares`), as `NewServer`'s error path does (R-D1). (Stage 5, 2026-11-05) The stop's slot
+# keeps them (`StopApi`), and the shutdown's census retires them all (`StopShutdown`).
+stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(InvRestart|StopApi|StopShutdown)\.lean$
