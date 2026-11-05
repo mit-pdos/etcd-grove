@@ -16,6 +16,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Write.DelBktHeap
 public import Proof.go_etcd_io.bbolt.Write.DelBktPlain
+public import Proof.go_etcd_io.bbolt.Write.DelBktOpen
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -88,19 +89,6 @@ def deleteOK0 (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) :
   wOK X' ∧ wtxData X' = T.cur.delete n ∧ gensOK (T.dropBkt n) X' ∧ wrFacts X' ∧
     X'.v = X.v ∧ X'.t.mv = X.t.mv ∧ w'.C = w.C ∧ flViewU X' w'.fl ∧
     (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra)
-
-/-- **The child opened** (`b.Bucket(newKey)`'s post, the name present): the root's record `R1`
-caches it at `n`, its tree that of `R`; the writer's facts kept. -/
-theorem dbk_opened (T : TxView) (X X1 : WX) (R : BRec) (c : Loc) (n : GoString) (fl : FLPg)
-    (hok : wOK X) (hcur : T.cur = wtxData X) (hgens : gensOK T X) (hwr : wrFacts X)
-    (hfl : flViewU X fl) (hR : X.t.bs !! X.rl = some R) (hcn : c ≠ null)
-    (hcase : (R.bm !! n = some c ∧ X1 = X) ∨ bktOpened X X1 X.rl c n (T.gen n))
-    (hok1 : wOK X1) :
-    ∃ R1 C, X1.t.bs !! X.rl = some R1 ∧ R1.bm !! n = some c ∧ sameTreeB R R1 ∧
-      X1.t.bs !! c = some C ∧ c ≠ X.rl ∧ X1.rl = X.rl ∧ X1.v = X.v ∧ X1.t.mv = X.t.mv ∧
-      gensOK T X1 ∧ wrFacts X1 ∧ flViewU X1 fl ∧
-      ∀ γ extra, txShape (GF := GF) γ X extra ⊢ txShape γ X1 extra := by
-  sorry
 
 /-- **The deleted name is in the leaf** `c.node()` returns. -/
 theorem dbk_found (X5 X6 : WX) (l : Loc) (B6 : BRec) (rl : NRec) (n : GoString)
