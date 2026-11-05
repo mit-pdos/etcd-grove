@@ -67,6 +67,50 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   - `kvModelM` moved from `ServerOn` to `KVModelM.lean`; the draft's read-path definitions
     (`srvRdCallA`, `rangeReadOkA`, `newHeaderPostA`, `logOk_of_receipt`, ...) to `KVStoreRead.lean`.
 
+- **Step 1 of the hand-off, done (2026-11-05, second session; builds, no `sorry`)**: `InvProposer`,
+  `InvApplier`, `KVModel`, `KVApply`, `KVChainOff`, `KVAuthModel`, `KVModelM`, `InvImage`,
+  `KVStoreApi`, `KVStoreLaws`, `apply.AuthDerive`, `apply.AuthLemmas`, `apply.AuthSteps`. Choices:
+  - `srvKVInvs E γr` (in `isServer`'s atomics) is `kvInv ∗ kvCertInv ∗ srvRaftLogInv ∗
+    □ kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜cmp, cret ties ∧ envWitOk E⌝`: the draft's
+    `srvKVInvsA` without its ties of `E.kv`/`E.Nx`/`E.Cp` (they name `kvNx`, which needs the KV
+    model, above `InvApplier`), the store invariant boxed (its persistence is the API's
+    `persistent.law`, `isMvcc` being sealed), `envWitOk E` (the witness and permit persistent and
+    timeless, what `writer_facts` needs). `kvCertInv` (the server's own KV certificates' ghost
+    state) is kept: `kvApplied` still carries `kvCert`; removing it is a later cleanup.
+    `KVStoreLaws`: `srvKVInvsA_of` (`srvKVInvs` and the ties give the draft's `srvKVInvsA`),
+    `srvKVInvs_of` (the converse direction's builder, at `kvNx`/`crevOk`, with `kvCertInv`),
+    `kvNx_off` (`kvNx γr false = kvNxOff`, `rfl`), `envWitOk_srv`.
+  - **The backend over `BkRef`.** An epoch's environment fixes its backend through the tie:
+    `E.BkTie = srvBkTie B` (`⌜B' = B⌝`), in `srvEnvOk` (in place of `E.γ.kb = some d`; the two mode
+    clauses `E.γ.cm = E.cmp`, `d.cm = E.cmp` dropped: the API's backend always compacts, the store
+    has no mode; `srvEnvOk_kbCmp`/`_cm`/`_off` deleted, 3 users outside step 1). `srvFieldsAt`:
+    `E.Pk = fun _ => batchLockInv γ TM ∧ v.hook = #E.f`. `srvBeHooked` at `mvccW gx` (∃ gx),
+    `srvBeRO B := ∃ gx Pk, isBackend … (mvccW gx) Pk B.b`.
+  - **`E.γbe` records `bkKey B = (B.γB, B.b)`**, not the backend: a `BkRef`'s parameters hold
+    functions (not `Pos.Countable`), so agreement gives the names and location, not `P`. Enough for
+    the write budget (`srvWTStockInv` uses only `B.γB`). **Open**: the storage-version monitor's
+    checkout of `bkRT d` from `srvWTPool` gets the invariant's `d.P`; a proof that needs it equal to
+    its own backend's `P` needs `P` fixed (it is server-wide: `applySnapshot` keeps `d'.P = d.P`).
+  - `srvWT E` (`∃ d, ⌜E.BkTie = srvBkTie d⌝ ∗ bkWT d`) in place of `mvcc.storeWT E.γ` in the
+    budget's takes; `wbSupply_of_stock` (a backend-level supply) in place of `kbWTSupplyM_of_stock`.
+  - `srvApplyKV_writer` (in place of `srvApplyKV_idxCert`) and `srvApplyKV_small` (now a fupd)
+    take mvcc's `persistent.law`, `mvccState_reachable.law` (and `receiptBound GF ≤ 2 ^ 48` for the
+    small log) and `srvKVInvs`; `KVStoreCore.reach_len_logCh` (a reachable log has a revision per
+    change past its first two) replaces the sole writer's time receipts.
+  - `KVApply`: `kvNxOff γ γk l` (the off mode's raft witness, `= kvNx γr false`) replaces mvcc's
+    `certOk` (`kvCert_certOk` → `kvAppliedL_nx`); `kv_certPre` takes `E.Nx = kvNxOff γ γk`;
+    `kv_cert_floor` takes `kvNxOff` (no `kvCertInv`, `γs`, `hγ`, `hx2`); `kvEntry_len` takes
+    `x.log.length + 3 ≤ 2 ^ 63` (the writer's facts; `TxnPreA` has no size clause).
+  - `AuthSteps`: `isAuthSteps st P (f : GoFunc)` over `csContractA`; `backendAuthSteps` at every
+    backend's lock (`□ ∀ B, isAuthSteps … (E.Pk B) E.f …`); the step specs take and give
+    `threadTok` (`newHeader`'s); `mPre_split`; `isAuthSteps_of_authInv` takes `f ≠ func.nil` and
+    bridges to the auth store's specs, still over mvcc's internal `mvcc.csContract P #f`
+    (`csContractA_old`; the auth package is outside this track).
+  - `AuthLemmas`: `txnPermT`/`checkTxnReqs_of` at `MvccName`, `Pk`, `f : GoFunc`, `BT` (as
+    `checkTxnPermission.spec`); the rejection lemmas take `csContractA P E.f` at any `P`.
+  - Still on mvcc's internals but building (not API): `KVLemmas.kv_cert_read` (`mvcc.certOk`),
+    `InvImage` (`mvcc.keyImageM`, pure).
+
 **The frontier** (red, next): `InvProposer` (a floor over `idxCert`), `InvApplier` (the old
 `srvKVInvs`, `envAgree`'s mode ties, the sole writer: its restatement is the draft's
 `srvKVInvsA`), on which `KVModel` → `KVApply` → `KVChainOff` → `KVAuthModel` → `KVModelM` →
@@ -122,6 +166,12 @@ restate in place). Not drafted, to decide before step 1 (all "by reference" in
 ## Placeholders
 
 None (no `sorry`, no axiom).
+
+## For the parallel tracks (second session)
+
+- Callers outside this track that break on step 1's restatements: `client/v3/InvServerKV.lean`
+  (`kv_cert_floor`'s new signature), the `Results.lean`/`AuthSrv`/`ApplyNormalOn` users of
+  `isAuthSteps_of_authInv` (new `hf`), `srvEnvOk_kbCmp`'s three users.
 
 ## Decisions (the coordinator, 2026-11-05)
 
