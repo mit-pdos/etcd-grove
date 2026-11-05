@@ -20,6 +20,7 @@ public import Proof.go_etcd_io.bbolt.Write.DelBktOpen
 public import Proof.go_etcd_io.bbolt.Write.DelBktFound
 public import Proof.go_etcd_io.bbolt.Write.DelBktFree
 public import Proof.go_etcd_io.bbolt.Write.DelBktWOk
+public import Proof.go_etcd_io.bbolt.Write.DelBktPost2
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -58,6 +59,40 @@ def deleteOK0 (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) :
     X'.v = X.v ∧ X'.t.mv = X.t.mv ∧ w'.C = w.C ∧ flViewU X' w'.fl ∧
     (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra)
 
+/-- **The freelist's agreement after `DeleteBucket`** (open, U7p): the child's tree's extents
+(`t.pos`'s, freed into the writer's pending list) are exactly the base slots the deletion uncovers
+(the child's positions: the view tree's, `Write/DelBktFree`); the other buckets' covers kept. -/
+theorem dbk_flView (X1 X6 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D : BRec) (w w' : WDb)
+    (l : Loc) (B6 : BRec) (rl : NRec) (s : GoSlice) (ins : List Inode) (t : RTree)
+    (hok1 : wOK X1) (hR1 : X1.t.bs !! X1.rl = some R1) (hn : R1.bm !! n = some c)
+    (hC : X1.t.bs !! c = some C) (hwr1 : wrFacts X1) (hfl1 : flViewU X1 w.fl)
+    (hdo1 : objsDisj X1.t)
+    (hD : (C.ib.root' = W64 0 ∧ D = deadRec { C with ns := ∅ } ∧ w' = w) ∨
+      (C.ib.root' ≠ W64 0 ∧ ltIs (pltree X1.v) c t ∧ t.pid = C.ib.root' ∧
+        D = { deadRec { C with ns := ∅ } with ib := { C.ib with root' := W64 0 } } ∧
+        w' = w.withFl (w.fl.freeAll w.wtxid (t.pos.filterMap (pExt X1.v)))))
+    (hmg : matGrow (delMid X1 c C R1 n D) X6 X1.rl) (hok6 : wOK X6)
+    (hB6 : X6.t.bs !! X1.rl = some B6) (hrl : B6.ns !! l = some rl) (hlf : leafFor X6 X1.rl n l)
+    (hfd : wsFound rl.ws n) :
+    flViewU (X6.setNode X1.rl l (rl.withEntsU s ins (wsDelAt rl.ws n) true)) w'.fl := by
+  sorry
+
+/-- **The page tokens after `DeleteBucket`** (open, U7p): `txShape_delBkt` (the child's record
+out), `txShape_matGrow` on the records with the root's cache `R1` (a materialization does not read
+the cache: a lemma to add), `txShape_delAt` (the leaf's entry `n` out), `txShape_unopen` (no entry
+`n` left in the root, so un-caching it adds no token), then the final records (one view, one
+`bs`). -/
+theorem dbk_shape (γ : GName) (X1 X6 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D : BRec)
+    (l : Loc) (B6 : BRec) (rl : NRec) (s : GoSlice) (ins : List Inode)
+    (hok1 : wOK X1) (hR1 : X1.t.bs !! X1.rl = some R1) (hn : R1.bm !! n = some c)
+    (hC : X1.t.bs !! c = some C) (hwr1 : wrFacts X1)
+    (hmg : matGrow (delMid X1 c C R1 n D) X6 X1.rl) (hok6 : wOK X6)
+    (hB6 : X6.t.bs !! X1.rl = some B6) (hrl : B6.ns !! l = some rl) (hlf : leafFor X6 X1.rl n l)
+    (hfd : wsFound rl.ws n) (extra : GMap Nat Unit) :
+    txShape (GF := GF) γ X1 extra ⊢
+      txShape γ (X6.setNode X1.rl l (rl.withEntsU s ins (wsDelAt rl.ws n) true)) extra := by
+  sorry
+
 /-- **`DeleteBucket`'s post** (see the module doc). -/
 theorem dbk_post (T : TxView) (r : TxReg) (X X1 X6 : WX) (c : Loc) (C R1 : BRec) (n : GoString)
     (D : BRec) (w w' : WDb) (l : Loc) (B6 : BRec) (rl : NRec) (s : GoSlice) (ins : List Inode)
@@ -67,18 +102,28 @@ theorem dbk_post (T : TxView) (r : TxReg) (X X1 X6 : WX) (c : Loc) (C R1 : BRec)
     (hok1 : wOK X1) (hd1 : wtxData X1 = wtxData X) (hR1 : X1.t.bs !! X.rl = some R1)
     (hn : R1.bm !! n = some c) (hC : X1.t.bs !! c = some C) (hcr : c ≠ X.rl) (hrl1 : X1.rl = X.rl)
     (hv1 : X1.v = X.v) (hmv1 : X1.t.mv = X.t.mv) (hgens1 : gensOK T X1) (hwr1 : wrFacts X1)
-    (hfl1 : flViewU X1 w.fl)
+    (hfl1 : flViewU X1 w.fl) (hdo1 : objsDisj X1.t)
     (hsh1 : ∀ γ extra, txShape (GF := GF) γ X extra ⊢ txShape γ X1 extra)
     (hD : (C.ib.root' = W64 0 ∧ D = deadRec { C with ns := ∅ } ∧ w' = w) ∨
       (C.ib.root' ≠ W64 0 ∧ ltIs (pltree X1.v) c t ∧ t.pid = C.ib.root' ∧
         D = { deadRec { C with ns := ∅ } with ib := { C.ib with root' := W64 0 } } ∧
         w' = w.withFl (w.fl.freeAll w.wtxid (t.pos.filterMap (pExt X1.v)))))
-    (hmg : matGrow (delMid X1 c C R1 n D) X6 X.rl) (hok6 : wOK X6)
+    (hmg : matGrow (delMid X1 c C R1 n D) X6 X.rl) (hok6 : wOK X6) (hd6 : objsDisj X6.t)
     (hB6 : X6.t.bs !! X.rl = some B6) (hrl : B6.ns !! l = some rl) (hlf : leafFor X6 X.rl n l)
     (hfd : wsFound rl.ws n) (hins : ins.length = (wsDelAt rl.ws n).length) :
     deleteOK0 (GF := GF) T r n X (X6.setNode X.rl l (rl.withEntsU s ins (wsDelAt rl.ws n) true))
       w w' := by
-  sorry
+  obtain ⟨c1, c2, c3, c4, c5, c6⟩ := dbk_core T X X1 X6 c C R1 n D l B6 rl s ins hcur hok1 hd1 hR1
+    hn hC hrl1 hv1 hmv1 hgens1 hwr1 hdo1 hfl1.2.2.1 hmg hok6 hd6 hB6 hrl hlf hins
+  have hC' : w'.C = w.C := by
+    rcases hD with ⟨-, -, rfl⟩ | ⟨-, -, -, -, rfl⟩ <;> rfl
+  refine ⟨c1, c2, c3, c4, c5, c6, hC', ?_, fun extra => (hsh1 _ extra).trans ?_⟩
+  · rw [← hrl1] at hR1 hmg hB6 hlf ⊢
+    exact dbk_flView X1 X6 c C R1 n D w w' l B6 rl s ins t hok1 hR1 hn hC hwr1 hfl1 hdo1 hD hmg
+      hok6 hB6 hrl hlf hfd
+  · rw [← hrl1] at hR1 hmg hB6 hlf ⊢
+    exact dbk_shape (GF := GF) _ X1 X6 c C R1 n D l B6 rl s ins hok1 hR1 hn hC hwr1 hmg hok6 hB6
+      hrl hlf hfd extra
 
 end heap
 
