@@ -1757,6 +1757,16 @@ frozen or exported statements since:
   id ∈ L` (an id the lessor had is still live), its post `leaseEver γl (U ∪ ids)`: in a snapshot
   restore the follower usually already had some of the snapshot's leases, so the frozen premise was
   false in the normal case. To be applied in S2–S4's Draft (branch `lease-p1`'s successor).
+- **2026-11-05, S2–S4 Draft stop, option (A) (approved change to a frozen statement, by the user via
+  etcd-grove-82, Q-S4).** `lease.leaseTTLAt_ttl_agree` (`LessorHist.lean:528`), an id's TTL is the
+  same at every index of the lessor's history, is false of Go once snapshots carry leases: a restore
+  rebuilds each lease with TTL raised to *this* member's `minLeaseTTL`, which differs between members
+  configured differently (`nonissues/etcd-lease-ttl-differs-across-members.md`). It is replaced by a
+  min-TTL law: every TTL the history records is at least the lessor's `minLeaseTTL`, which is a new
+  `lessorRdBody` clause. The internal `histOnce` becomes ids-only (the `*Lease` is free), and
+  `leaseexpiry/Main.lean:324` is re-proved from the new law plus `minLeaseTTL ≥ 1` of its own
+  configuration. The statements of `etcd_leaseexpiry_safe` and `leaseexpiry_Main` are unchanged
+  (checked at the end with `etc/gen-interface.py` / the TCB roots).
 
 ## S2–S4 Draft (2026-11-05)
 
