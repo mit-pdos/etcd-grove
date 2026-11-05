@@ -627,6 +627,10 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
   rw [← hX4] at hcp hsh4
   rw [← hX4]
   obtain ⟨hok4, hd4, hgens4, hwr4, hk4⟩ := hcp
+  have hwc4 : wrCurFacts T X4 := by
+    rw [hX4]
+    exact wrCurFacts_createPost T X X3 n (zero_val InBucket) l B3 rl sl ins' hok hcur Hmg hok3 HB3
+      Hrl hlf hnew rfl hwc
   have hrl4 : X4.rl = X.rl := by rw [hX4, setNode_eq X3 X.rl l B3 _ HB3]; exact k2
   obtain ⟨R4, hR4⟩ : ∃ R, X4.t.bs !! X.rl = some R := by
     rw [← hrl4]; exact Option.isSome_iff_exists.1 hok4.1.2.2.2.2.1
@@ -686,7 +690,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
   have hpost : createOK (GF := GF) T r n X X' := by
     rcases hcase with ⟨-, hXX⟩ | hop
     · subst X'
-      exact ⟨hok4, hd4, hgens4, hwr4, hk4, hsh4⟩
+      exact ⟨hok4, hd4, hgens4, hwr4, hk4, hsh4, hwc4⟩
     · have hop' : bktOpened X4 X' X4.rl b n (T.gen n) := by rw [hrl4]; exact hop
       have hk' : XclKeep X4 X' := by
         obtain ⟨B, C', w, hB, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hX'⟩ := id hop
@@ -698,9 +702,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
           (fun _ => rfl) (fun h => absurd hrl4.symm h) hgens4
       · exact PubW.wrFacts_bktOpened X4 X' X.rl b n (T.gen n) hop (hrl4 ▸ hok4.2.2.2.2.2.1.1)
           (by rw [hrl4, hR4]; rfl) hwr4
-      · exact wrCurFacts_bktOpened T X4 X' b n (T.gen n) (hrl4 ▸ hop) hok4
-          (wrCurFacts_createPost T X X3 n (zero_val InBucket) l B3 rl sl ins' hok hcur Hmg hok3 HB3 Hrl
-            hlf hnew rfl hwc)
+      · exact wrCurFacts_bktOpened T X4 X' b n (T.gen n) (hrl4 ▸ hop) hok4 hwc4
   wp_bind (App (Val #_) (Val #()))
   iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil ∗ name ↦*{dq} n)))
     $$ [err Hkey Hlgp Hname]
