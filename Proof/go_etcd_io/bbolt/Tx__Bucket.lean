@@ -1,7 +1,7 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/Tx__Bucket.lean` (U6g, `notes/bbolt-proof-plan.md`).
 A reader (`wp_reader`): half of its `rdTxK` beside half of its root bucket (`rdTxK_root_split`),
-`tx.root.Bucket(name)` by `Bucket.Bucket_r.specK` (the name caller-owned); a miss is no bucket of
+`tx.root.Bucket(name)` by `Bucket.Bucket_r.spec` (the name caller-owned); a miss is no bucket of
 the view's data (`rd_root_lookup_none`), a hit is one (`rd_root_lookup_some`) whose handle is the
 opened child, over `RdHandleMint` (the handle's registry fragment; OPEN, reported). A writer
 (`wp_writer`): OPEN, `Bucket.Bucket_w.spec` takes the name as `srcOwn` (persistent) and gives no
@@ -34,7 +34,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Tx.Bucket.wp_reader [HasExt osFsExt] (hmint : RdHandleMint (GF := GF))
-    (hBr : Bucket.Bucket_r.specK (GF := GF) (hG := hG))
+    (hBr : Bucket.Bucket_r.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac)
     (hro : T.rw = false) :
   {{ boltTx (GF := GF) tx γ q T ∗ name ↦*{dq} n ∗ ⌜T.rw = true → q = 1⌝ }}
@@ -115,7 +115,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
        (⌜T.cur.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ boltBkt tx γ b n (T.gen n))) }} := by
   sorry
 
-theorem Tx.Bucket.wp_proof (hBr : ∀ [HasExt osFsExt], Bucket.Bucket_r.specK (GF := GF) (hG := hG)) :
+theorem Tx.Bucket.wp_proof (hBr : ∀ [HasExt osFsExt], Bucket.Bucket_r.spec (GF := GF) (hG := hG)) :
     Tx.Bucket.spec (GF := GF) (hG := hG) := by
   intro _ tx γ q T name n dq
   by_cases hrw : T.rw = true

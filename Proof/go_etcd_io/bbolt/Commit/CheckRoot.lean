@@ -204,8 +204,9 @@ theorem Tx.recursivelyCheckBucket_root.wp_proof
     ihave Hb : rBktP v tx (txRoot (GF := GF) tx) (DFrac.own q.half) (rootVal v) ibp pp $$ [Hb]
     · unfold rBktP; iexact Hb
     wp_auto
+    icases srcOwn_keyR v k ks kb Hc.1 $$ Hks with ⟨%kr, Hkr⟩
     wp_apply wp_bkt K tx src q.half T v (txRoot (GF := GF) tx) (DFrac.own q.half) (rootVal v) ibp pp
-      k kb ks (.inl rfl) Hc.1 $$ [Hk Hb Hks] as %c ⟨Hk, Hb, Hres⟩
+      k kr kb (.inl rfl) $$ [Hk Hb Hkr] as %c ⟨Hk, Hb, -, Hres⟩
     · iframe
     icases Hres with (%Hnil | ⟨%cv, %Hce, Hcb⟩)
     · exact absurd (List.mem_of_getElem? Hc.2) Hnil.2
