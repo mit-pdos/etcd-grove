@@ -304,7 +304,8 @@ theorem hist_append (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     (hlast : hs.getLast? = some τ)
     (htie : (∀ id : w64, (τ.2.2.lookup id).isSome ↔ (τ.1.lookup id).isSome) → tieSub τ σ')
     (hstep : setsOk hs Sm → histOk hs → setsOk (hs ++ [σ']) Sm ∧ histOk (hs ++ [σ']))
-    (hmono : γr.2.2 = true → histMono hs → histMono (hs ++ [σ'])) :
+    (hmono : γr.2.2.1 = true → histMono hs → histMono (hs ++ [σ']))
+    (honce : histOnce hs → histOnce (hs ++ [σ'])) (hhas : ∀ id : w64, snapHas σ' id → snapHas τ id) :
     lessorRdInv (GF := GF) γl ∗ lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗
       monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ⊢
     |={E}=> monoListAuthOwn γr.1 (1 : Qp).half (hs ++ [σ']) ∗
@@ -315,7 +316,8 @@ theorem hist_append (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   subst H1
   iinv Hinv with Hb Hclose
   iunfold lessorRdBody at Hb
-  icases Hb with ⟨%hs0, %Sm0, >Ha, >HS, >%Hok, >%Hmono, #>Htie, #>Hids⟩
+  icases Hb with ⟨%hs0, %Sm0, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, #>Hids⟩
+  icases HU with ⟨%U, HU, %HUo⟩
   ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hs0 $$ Ho Ha
   obtain ⟨-, rfl⟩ := Hh
   ihave %HSm := ghostMapAuth_agree γr.2.1 _ _ Sm Sm0 $$ HSo HS
@@ -327,9 +329,13 @@ theorem hist_append (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   ihave Hfull := (hist_full γr.1 hs).2 $$ [$Ho $Hl $Ha]
   imod monoListAuthOwn_update_app [σ'] $$ Hfull with ⟨Hfull, -⟩
   icases (hist_full γr.1 _).1 $$ Hfull with ⟨Ho, Hl, Ha⟩
-  imod Hclose $$ [Ha HS] with -
+  imod Hclose $$ [Ha HS HU] with -
   · inext; iunfold lessorRdBody; iexists hs ++ [σ'], Sm; iframe Ha HS Htie' Hids
-    ipureintro; exact ⟨hstep Hok.1 Hok.2, fun h => hmono h (Hmono h)⟩
+    isplitr
+    · ipureintro; exact hstep Hok.1 Hok.2
+    isplitr
+    · ipureintro; exact fun h => hmono h (Hmono h)
+    iexists U; iframe HU; ipureintro; exact ⟨honce HUo.1, histIn_snoc hlast hhas HUo.2⟩
   imodintro
   iframe
 
@@ -341,7 +347,8 @@ theorem hist_append_set (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     (htie : (∀ id : w64, (τ.2.2.lookup id).isSome ↔ (τ.1.lookup id).isSome) → tieSub τ σ')
     (hstep : setsOk hs Sm → histOk hs → Sm.lookup l = some S →
       setsOk (hs ++ [σ']) (Sm.insert l S') ∧ histOk (hs ++ [σ']))
-    (hmono : γr.2.2 = true → histMono hs → histMono (hs ++ [σ'])) :
+    (hmono : γr.2.2.1 = true → histMono hs → histMono (hs ++ [σ']))
+    (honce : histOnce hs → histOnce (hs ++ [σ'])) (hhas : ∀ id : w64, snapHas σ' id → snapHas τ id) :
     lessorRdInv (GF := GF) γl ∗ lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗
       monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗
       ghostMapElem γr.2.1 l (DFrac.own 1) S ⊢
@@ -354,7 +361,8 @@ theorem hist_append_set (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   subst H1
   iinv Hinv with Hb Hclose
   iunfold lessorRdBody at Hb
-  icases Hb with ⟨%hs0, %Sm0, >Ha, >HS, >%Hok, >%Hmono, #>Htie, #>Hids⟩
+  icases Hb with ⟨%hs0, %Sm0, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, #>Hids⟩
+  icases HU with ⟨%U, HU, %HUo⟩
   ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hs0 $$ Ho Ha
   obtain ⟨-, rfl⟩ := Hh
   ihave %HSm := ghostMapAuth_agree γr.2.1 _ _ Sm Sm0 $$ HSo HS
@@ -370,12 +378,14 @@ theorem hist_append_set (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   ihave HSf := (ghostMapAuth_halves γr.2.1 Sm).2 $$ [$HSo $HS]
   imod ghost_map_update S' $$ HSf He with ⟨HSf, He⟩
   icases (ghostMapAuth_halves γr.2.1 _).1 $$ HSf with ⟨HSo, HS⟩
-  imod Hclose $$ [Ha HS] with -
+  imod Hclose $$ [Ha HS HU] with -
   · inext; iunfold lessorRdBody; iexists hs ++ [σ'], Sm.insert l S'; iframe Ha HS Htie'
     isplitr
     · ipureintro; exact hstep Hok.1 Hok.2 HlS
     isplitr
     · ipureintro; exact fun h => hmono h (Hmono h)
+    isplitl [HU]
+    · iexists U; iframe HU; ipureintro; exact ⟨honce HUo.1, histIn_snoc hlast hhas HUo.2⟩
     iapply (BigSepM.bigSepM_insert_exist_elim (Φ := fun l _ => iprop(∃ id : w64, lsF go!"ID" l ↦□ id))
       (x' := S') (show Iris.Std.PartialMap.get? Sm l = some S from HlS) .rfl)
     iexact Hids
@@ -389,21 +399,28 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     (Sm : GMap Loc (GMap LeaseItem Unit)) (M : GMap w64 Loc) (I : GMap LeaseItem w64)
     (T : GMap w64 w64) (id : w64) (t : w64)
     (l : Loc) (E : CoPset) (hE : ↑lessorRdN ⊆ E) (hlast : hs.getLast? = some (M, I, T))
-    (hM : M.lookup id = none) (hI : ∀ it : LeaseItem, I.lookup it ≠ some id) :
+    (hM : M.lookup id = none) (hI : ∀ it : LeaseItem, I.lookup it ≠ some id) (U : List w64)
+    (hfresh : γr.2.2.1 = true ∨ id ∉ U) :
     lessorRdInv (GF := GF) γl ∗ lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗
       monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗
-      lsF go!"ID" l ↦ id ∗ lsF go!"ttl" l ↦□ t ⊢
+      lsF go!"ID" l ↦ id ∗ lsF go!"ttl" l ↦□ t ∗ leaseEver γl U ⊢
     |={E}=> monoListAuthOwn γr.1 (1 : Qp).half (hs ++ [(M.insert id l, I, T.insert id t)]) ∗
       monoListAuthOwn γr.1 (1 : Qp).half.half (hs ++ [(M.insert id l, I, T.insert id t)]) ∗
       ghostMapAuth γr.2.1 (1 : Qp).half (Sm.insert l (∅ : GMap LeaseItem Unit)) ∗
-      ghostMapElem γr.2.1 l (DFrac.own 1) (∅ : GMap LeaseItem Unit) ∗ lsF go!"ID" l ↦□ id := by
-  unfold lessorRdInv
-  iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, #Hp, Ho, Hl, HSo, HID, #Httl⟩
+      ghostMapElem γr.2.1 l (DFrac.own 1) (∅ : GMap LeaseItem Unit) ∗ lsF go!"ID" l ↦□ id ∗
+      leaseEver γl (U ++ [id]) := by
+  unfold lessorRdInv leaseEver
+  iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, #Hp, Ho, Hl, HSo, HID, #Httl, ⟨%γr2, #Hp2, HUo⟩⟩
   ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hp $Hp1]
   subst H1
+  ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
+  subst H2
   iinv Hinv with Hb Hclose
   iunfold lessorRdBody at Hb
-  icases Hb with ⟨%hs0, %Sm0, >Ha, >HS, >%Hok, >%Hmono, #>Htie, #>Hids⟩
+  icases Hb with ⟨%hs0, %Sm0, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, #>Hids⟩
+  icases HU with ⟨%U0, HU, %HUi⟩
+  ihave %HUe := dghostVar_agree γr.2.2.2 _ _ _ _ $$ HUo HU
+  subst HUe
   ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hs0 $$ Ho Ha
   obtain ⟨-, rfl⟩ := Hh
   ihave %HSm := ghostMapAuth_agree γr.2.1 _ _ Sm Sm0 $$ HSo HS
@@ -426,7 +443,12 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   imod ghost_map_insert l (∅ : GMap LeaseItem Unit) Hfresh $$ HSf with ⟨HSf, He⟩
   icases (ghostMapAuth_halves γr.2.1 _).1 $$ HSf with ⟨HSo, HS⟩
   ipersist HID
-  imod Hclose $$ [Ha HS] with -
+  imod dghostVar_update_halves (U ++ [id]) γr.2.2.2 U U $$ HUo HU with ⟨HUo, HU⟩
+  have hev : ¬ everIn hs id := by
+    rcases hfresh with h | h
+    · exact not_everIn_of_mono hlast (Hmono h) hM
+    · exact not_everIn_of_histIn HUi.2 h
+  imod Hclose $$ [Ha HS HU] with -
   · inext; iunfold lessorRdBody; iexists hs ++ [(M.insert id l, I, T.insert id t)], Sm.insert l ∅
     iframe Ha HS Htie'
     isplitr
@@ -438,14 +460,26 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
         by_cases hk' : id = k
         · exact Or.inl hk'
         · exact Or.inr ⟨hk', hk⟩) (Hmono h)
+    isplitl [HU]
+    · iexists U ++ [id]; iframe HU; ipureintro
+      refine ⟨histOnce_grant hlast hev HUi.1, ?_⟩
+      apply histIn_snoc_new (histIn_mono HUi.2 (fun x hx => List.mem_append_left _ hx))
+      intro x hx
+      by_cases hxi : id = x
+      · subst hxi; exact List.mem_append_right _ (List.mem_singleton_self _)
+      · apply List.mem_append_left
+        apply HUi.2 _ (M, I, T) x (getLast?_getElem? hlast).1
+        rcases hx with hx | ⟨it, hx⟩
+        · left; dsimp only at hx ⊢; rw [GMap.lookup_insert_ne _ _ hxi] at hx; exact hx
+        · right; exact ⟨it, hx⟩
     iapply (BigSepM.bigSepM_insert (Φ := fun l _ => iprop(∃ id : w64, lsF go!"ID" l ↦□ id))
       (show Iris.Std.PartialMap.get? Sm l = none from Hfresh)).2
     isplitr
     · iexists id; iexact HID
     iexact Hids
   imodintro
-  iframe
-  iexact HID
+  iframe Ho Hl HSo He HID
+  iexists γr; iframe Hp HUo
 
 /-- **A lock's spare reader slots make a thread pool** (Part B; the lease-read plan): the
 `actualMaxReaders - 1 = 2^30 - 2` slots `init_RWMutex` leaves after one, under
@@ -476,8 +510,10 @@ the lease's pool under `threadBound GF ≤ 2^30 - 1` (`isLeaseObj`); (the lease-
 theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64)
     (l : Loc) (c : GoChan) (I I0 : GMap LeaseItem w64) (sm : Loc) (t : w64) (E : CoPset)
     (hE : ↑lessorRdN ⊆ E) (hl : l ≠ null) (hM : M.lookup id = none)
-    (hL : ∀ x : w64, x ∈ L ↔ (M.lookup x).isSome) :
-    lessorRdInv (GF := GF) γl ∗ lessorAuth γl 1 lp L M ∗ leaseClosers γl L I0 ∗
+    (hL : ∀ x : w64, x ∈ L ↔ (M.lookup x).isSome) (U : List w64) :
+    lessorRdInv (GF := GF) γl ∗ (lessorModeIs γl true ∨ ⌜id ∉ U⌝) ∗ leaseEver γl U ∗
+        lessorAuth γl 1 lp L M ∗
+        leaseClosers γl L I0 ∗
         leaseRevokers γl L ∗
         (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
           monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗ ⌜∃ T, hs.getLast? = some (M, I, T)⌝) ∗
@@ -492,8 +528,8 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
         (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
           monoListAuthOwn γr.1 (1 : Qp).half.half hs ∗
           ⌜∃ T, hs.getLast? = some (M.insert id l, I, T)⌝) ∗
-        isLeaseObj γl l ∗ lsF go!"ID" l ↦□ id ∗ leaseLiveFrom γl 0 id l := by
-  iintro ⟨#Hrd, Ha, Hcls, Hrvk, ⟨%γrl, %hsl, #Hprl, Hl, %Hlastl⟩, #Httl, #Hrc, Hrcl, HiS, Hsm,
+        isLeaseObj γl l ∗ lsF go!"ID" l ↦□ id ∗ leaseLiveFrom γl 0 id l ∗ leaseEver γl (U ++ [id]) := by
+  iintro ⟨#Hrd, Hfr, HUo, Ha, Hcls, Hrvk, ⟨%γrl, %hsl, #Hprl, Hl, %Hlastl⟩, #Httl, #Hrc, Hrcl, HiS, Hsm,
     Hmu0, HID, #HexG, HexRest⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm,
@@ -520,8 +556,13 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
     | some _ => exact absurd ((HC' id).2 (by rw [h]; rfl)) hnotL
   have hI : ∀ it : LeaseItem, I.lookup it ≠ some id := fun it h => hnotL (HIL it id h)
   -- the history: `l` registered, the snapshot with it appended
-  imod grant_hist γl γr hs Sm M I T id t l E hE Hlast hM hI $$ [$Hrd $Hpr $Ho $Hl $HSo $HID $Httl]
-    with ⟨Ho, Hl, HSo, He, #HID⟩
+  ihave %Hfr : ⌜γr.2.2.1 = true ∨ id ∉ U⌝ $$ [Hfr]
+  · icases Hfr with (#Hmode | %Hn)
+    · ihave %Hm := lessorModeIs_pin γl true γr $$ [$Hmode $Hpr]
+      ipureintro; exact Or.inl Hm
+    · ipureintro; exact Or.inr Hn
+  imod grant_hist γl γr hs Sm M I T id t l E hE Hlast hM hI U Hfr
+    $$ [$Hrd $Hpr $Ho $Hl $HSo $HID $Httl $HUo] with ⟨Ho, Hl, HSo, He, #HID, HUo⟩
   -- (the lease-grant plan's D2) the new snapshot, with the lease, at the history's last index
   ihave #Hlb0 := monoListLbOwn_get γr.1 _ _ $$ Ho
   ihave #Hidx0 := monoListIdxOwn_get hs.length (M.insert id l, I, T.insert id t)
@@ -560,7 +601,7 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
   have hlast' : (hs ++ [(M.insert id l, I, T.insert id t)]).getLast? =
       some (M.insert id l, I, T.insert id t) := by simp
   imodintro
-  iframe Ha Hlo HID Hlive
+  iframe Ha Hlo HID Hlive HUo
   isplitl [Him HI Hcs He2 HiS' Hsm' HmuR Ho HSo]
   · iunfold leaseClosers
     iexists lp, γga, γcl, (M.insert id l), im

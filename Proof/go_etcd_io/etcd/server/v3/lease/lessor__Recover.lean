@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 theorem lease.lessor.Recover.wp_proof
     (hIR : lease.lessor.initAndRecover.spec (GF := GF) (hG := hG)) :
     lease.lessor.Recover.spec (GF := GF) (hG := hG) := by
-  intro lp γl oldbe d W Pk qo S r rd rd0 L I mono recs hS hLp hrecs hmono
-  wp_start as ⟨#Hinv, #Hcfg, #Hmode, Hbo, Hown, Hrvk, Hro, #Hgr, #HB, Ho, Htoks, Hrb⟩
+  intro lp γl oldbe d W Pk qo S r rd rd0 L I mono recs U hS hLp hrecs hmono hU
+  wp_start as ⟨#Hinv, #Hcfg, #Hmode, HUo, Hbo, Hown, Hrvk, Hro, #Hgr, #HB, Ho, Htoks, Hrb⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
@@ -99,9 +99,9 @@ theorem lease.lessor.Recover.wp_proof
   icases ownMap_halves_split im' (∅ : GMap LeaseItem w64) $$ HI' with ⟨HI', HI''⟩
   iapply fupd_wp
   imod closers_recover γl lp lp L M C I I' mono mt (recs.zip ls) im' γga γcl ⊤
-      (fun _ _ => CoPset.mem_full) HL hnd hmono'
-    $$ [$Hrd $Hmode $Ha $Hg $Hown $Hp $Hcs $Hch $Hhist $Hrvk $Himw' $HI'' $Hgr' $Hrl]
-    with ⟨Ha, Hg, Hown, Hrvk, Hhist, #Hlos, Hmetas, %i, #Hat⟩
+      (fun _ _ => CoPset.mem_full) HL hnd hmono' U (by rw [hids]; exact hU)
+    $$ [$Hrd $Hmode $HUo $Ha $Hg $Hown $Hp $Hcs $Hch $Hhist $Hrvk $Himw' $HI'' $Hgr' $Hrl]
+    with ⟨Ha, Hg, Hown, Hrvk, Hhist, #Hlos, Hmetas, HUo, %i, #Hat⟩
   imodintro
   ihave #Hsz' : ⧖ (GMap.size (recMap (recs.zip ls))) $$ []
   · iapply (preceipt_mono (GF := GF) (m := GMap.size (recMap (recs.zip ls)))
@@ -124,7 +124,7 @@ theorem lease.lessor.Recover.wp_proof
   (try wp_auto)
   iapply HΦ
   rw [← hids]
-  iframe Hown Hrvk Ho
+  iframe Hown Hrvk Ho HUo
   isplitl [Hb]
   · iunfold lessorBeOn; iexact Hb
   isplitl [Hrdw]

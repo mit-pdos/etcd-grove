@@ -132,6 +132,15 @@ theorem lease.lessor.Detach.wp_proof : lease.lessor.Detach.spec (GF := GF) (hG :
         (fun id' hne it => detach_other I id id' ys Hxs0 hne it)
         (fun h => itemKeysShort_deleteAll I ys h))
       (fun _ => histMono_snoc Hlastl (fun _ h => by subst hCM; exact h))
+      (histOnce_items Hlastl)
+      (fun x hx => by
+        rcases hx with hx | ⟨it, hx⟩
+        · exact Or.inl hx
+        · dsimp only at hx
+          rw [deleteAll_lookup] at hx
+          split at hx
+          · cases hx
+          · exact Or.inr ⟨it, hx⟩)
       $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
     imodintro
     have hlast' : (hs ++ [(M, deleteAll I ys, Tl)]).getLast? = some (M, deleteAll I ys, Tl) := by

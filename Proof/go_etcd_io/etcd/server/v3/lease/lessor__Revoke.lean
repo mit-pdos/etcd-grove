@@ -440,7 +440,18 @@ theorem lease.lessor.Revoke.wp_proof
       ihave %Hmode := lessorModeIs_pin _ false γr $$ [$Hrev $Hpr]
       imod hist_append _ γr hs Sm _ (C4.delete id, _, T.delete id) ⊤ (fun _ _ => CoPset.mem_full)
         Hlast (fun hT => tieSub_delete C4 _ _ T id hT)
-        (fun hok hh => setsOk_delete Hlast hok hh) (fun h => by rw [Hmode] at h; cases h) $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
+        (fun hok hh => setsOk_delete Hlast hok hh) (fun h => by rw [Hmode] at h; cases h)
+        (histOnce_delete Hlast)
+        (fun x hx => by
+          rcases hx with hx | ⟨it, hx⟩
+          · left; dsimp only at hx ⊢
+            rw [GMap.lookup_delete_iff] at hx
+            split at hx
+            · cases hx
+            · exact hx
+          · left; dsimp only at hx ⊢
+            exact (HC4 x).1 (HIL4 it x hx))
+        $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
       imodintro
       have hlast' : (hs ++ [(C4.delete id, mvcc.pendItems log (ks'.map mvcc.Change.del),
           T.delete id)]).getLast? =

@@ -301,6 +301,7 @@ private theorem wp_StartNode_impl
   intro γ N vs ctxs c cv lok si csm Q F peers dq pv H1 H2 H3 H4 H5 H6 H7 H8 H9 Happ Hv Hvo Hl Hln
     Hal Hvs
   wp_start as ⟨Hc, #Hlg, #Hboot, Hvac, HAU, Hrs, Hpeers, #Hctx⟩
+  ihave #Hboot0 := Hboot
   iunfold EtcdGrove.nodeBoot at Hboot
   iunfold nodeBootU at Hboot
   icases Hboot with ⟨#Hcl, %Hbp, #Hmarsh, #Hcb, #Hbinv, #Htlb1⟩
@@ -519,6 +520,10 @@ private theorem wp_StartNode_impl
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   icases dghostVar_halves _ _ $$ Hlive with ⟨Hlive1, Hlive2⟩
   icases dghostVar_halves _ _ $$ Hdur with ⟨Hdur1, Hdur2⟩
+  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start record: the initial state
+  imod dghostVar_alloc (GF := GF) (nodeStartRec (NodeDriverState.init (interface.ok si) K))
+    with ⟨%gstart, Hstart⟩
+  imod dghostVar_persist gstart 1 _ $$ Hstart with #Hstart
   ihave Hgen : slotLive (GF := GF) γ.raft cv.ID' ((1 : Qp).half + (1 : Qp).half) gen $$ [Hgen]
   · rw [Qp.half_add_half]; iexact Hgen
   icases ((slotLive_fractional (GF := GF) γ.raft cv.ID' gen).fractional (1 : Qp).half
@@ -553,7 +558,8 @@ private theorem wp_StartNode_impl
                           live := glive
                           gen := gen
                           dur := gdur
-                          bw := gbw }
+                          bw := gbw
+                          start := gstart }
   have Hnok : NodeOk γ γn := ⟨rfl, rfl, rfl⟩
   have Hdy : γn.mode.isDyn = true := HdynOk γn Hnok
   -- the node's table entry, while its struct is owned whole
@@ -627,12 +633,25 @@ private theorem wp_StartNode_impl
   isplitr
   · ipureintro; rfl
   iframe HQ HF Hpeers
-  isplitr
+  ihave #HisN : EtcdGrove.isNode (GF := GF) np γ N cv.ID' $$ []
   · iunfold EtcdGrove.isNode
     unfold isNode
     iexists γn
     iframe Hnode Htb Hci Hpool
     ipureintro; exact ⟨Hnok, HU⟩
+  -- (2026-11-05, the lease-expiry plan's E2 revision 5) the node started fresh
+  isplitr
+  · iunfold EtcdGrove.nodeStartedFresh
+    iframe HisN Hboot0
+    isplitr
+    · ipureintro; exact Hid
+    iexists si, K
+    unfold nodeDriverFrom
+    iexists γn
+    iframe Htb Hstart
+    ipureintro; rfl
+  isplitr
+  · iexact HisN
   isplitl [Hdlv2 Hreq1 Hreq2 Hdur2]
   · iunfold EtcdGrove.nodeDriver
     unfold nodeDriver NodeDriverState.init

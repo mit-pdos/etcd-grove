@@ -1651,7 +1651,7 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1660,7 +1660,10 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
   (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk,
     -- (2026-11-01, durability stage II(g), approved fix A) the generation of the id's slot, so that
     -- a `nodeRunning` share is at the driver's generation (`api_enter`)
-    γn.gen)
+    γn.gen,
+    -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start record's name, so that
+    -- `nodeDriverFrom` is of the node object
+    γn.start)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1955,6 +1958,26 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
        (match L with
         | none => iprop(True)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')))))
+
+/-- (2026-11-05, the lease-expiry plan's E2 revision 5) **What a node's start record holds** of a
+`Ready` loop state: all of it but the storage, which the node's names hold (`NodeNames.stor`). -/
+def nodeStartRec (st : NodeDriverState) :
+    RaftState × StateType × List LogEntry × HardStateM × Option (List EntryM × Option SnapLoan) ×
+      GName :=
+  (st.durable, st.role, st.delivered, st.hardState, st.handling, st.key)
+
+/-- (2026-11-05, the lease-expiry plan's E2 revision 5) **The node `n`'s `Ready` loop started in
+the state `st`** (persistent; a lower bound of the loop's states, every later one being reached
+from it): `n`'s entry of the cluster's table names the start record (`NodeNames.start`), which
+holds `st` (its storage the node's), discarded. Only a node's start mints it: `StartNode` at
+`NodeDriverState.init`, `RestartNode` at its restart state. -/
+def nodeDriverFrom (n : Loc) (γ : Cluster) (_N : Namespace) (st : NodeDriverState) : IProp GF :=
+  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ ⌜γn.stor = st.storage⌝ ∗
+    dghostVar γn.start DFrac.discard (nodeStartRec st))
+
+instance nodeDriverFrom_persistent (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+    Persistent (nodeDriverFrom (GF := GF) n γ N st) := by
+  unfold nodeDriverFrom; infer_instance
 
 /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
 def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
@@ -2419,7 +2442,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
   have Hgen : γ1.gen = γn.gen := by
     simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
-    exact Hcn.2.2.2.2.2.2.2.2.2.2
+    exact Hcn.2.2.2.2.2.2.2.2.2.2.1
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
   ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]

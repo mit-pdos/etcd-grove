@@ -431,6 +431,8 @@ abbrev NodeStartSpec : Prop :=
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           -- (D21 M2) the node's inbound methods (`Process`'s), from the start
           rnStepIfc γw (rnNodeIface γw) ∗
+          -- (2026-11-05, the lease-expiry plan's E2 revision 5) the node made by `StartNode`
+          nodeStartedFresh γw.nl γr.cl srvClusterN ps ctxs cv.ID' ∗
           -- `isServerBuilt`'s rows but `isRaftNode`; (2026-10-30, the repair) the apply side's
           -- half of the node's running token (`StartNode`'s `nodeRunning 1`, the other half in
           -- `rnLoopTok`)
@@ -511,7 +513,7 @@ theorem raftNode_of_StartNode
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
     ipureintro; exact ⟨Hlg, Hhb, HT⟩
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hsfresh, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
     %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal⟩ := Hnames
   iunfold rnBuilt at Hbuilt
@@ -560,6 +562,8 @@ theorem raftNode_of_StartNode
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node)
     iframe Hpkg Hisnode
+  isplitr
+  · rw [Hwnl]; iexact Hsfresh
   isplitl [Hrun2]
   · rw [Hwnode, Hwnl]; iexact Hrun2
   -- the installer

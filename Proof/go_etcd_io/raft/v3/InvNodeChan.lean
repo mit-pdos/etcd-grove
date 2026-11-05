@@ -434,6 +434,10 @@ structure NodeNames [GooseExts] where
   `run`'s and the driver's (`readyCut`), which comes back at `Advance` with the fragments *enter*
   minted (`advanceP`), for the batch's self-addressed messages -/
   bw : GName := 0
+  /-- (2026-11-05, the lease-expiry plan's E2 revision 5) the state the node's `Ready` loop
+  started in, recorded at the start, discarded (`nodeDriverFrom`): `StartNode`'s
+  `NodeDriverState.init`, `RestartNode`'s restart state -/
+  start : GName := 0
   -- (raft-final phase 1, 2026-10-29, U9) `snapIn` (the application may deliver a `MsgSnap`, D22 S-d4)
   -- deleted: in every cluster.
 

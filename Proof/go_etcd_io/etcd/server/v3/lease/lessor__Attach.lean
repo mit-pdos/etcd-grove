@@ -129,6 +129,17 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
         (fun id' hne it => attach_other I id id' ys Hxs0 hne it)
         (fun h => itemKeysShort_insertAll I ys id h Hshort))
       (fun _ => histMono_snoc Hlastl (fun _ h => by subst hCM; exact h))
+      (histOnce_items Hlastl)
+      (fun x hx => by
+        rcases hx with hx | ⟨it, hx⟩
+        · exact Or.inl hx
+        · dsimp only at hx
+          rw [insertAll_lookup] at hx
+          split at hx
+          · cases hx
+            have hMl' : M.lookup id = some l := HMl
+            left; show (M.lookup id).isSome; rw [hMl']; rfl
+          · exact Or.inr ⟨it, hx⟩)
       $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hel] with ⟨Ho, Hhl, HSo, Hel⟩
     imodintro
     have hlast' : (hs ++ [(M, insertAll I ys id, Tl)]).getLast? = some (M, insertAll I ys id, Tl) := by

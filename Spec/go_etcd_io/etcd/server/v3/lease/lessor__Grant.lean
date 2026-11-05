@@ -35,22 +35,25 @@ minimum (its `minLeaseTTL`) and `ttl`, and its record (`leaseEnc` of the id, tha
 remaining TTL of 0) is put into the tracked buckets `Rb` holds, under the id's 8 big-endian bytes;
 on an error they are left. (The lease-grant plan's D2, 2026-11-02) The new lease is in the lessor's
 history (`leaseLiveFrom γl 0 id l`: the snapshot `Grant` appends under `le.mu`, with `l` at `id`),
-which a monotone lessor keeps (`leaseGrantedAt_of_live`). -/
+which a monotone lessor keeps (`leaseGrantedAt_of_live`). (The lease-expiry plan's E3 (c),
+2026-11-05) The ids the lessor ever had, `U` (`leaseEver`): `id` must be new to them unless the
+lessor is monotone (so that an id is one lease over an interval of the history), and is added. -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (I : GMap LeaseItem w64) (P : IProp GF)
     (f : val) (T Ln R : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (rb : GMap GoString backend.BktData) (Pre Q Post : IProp GF),
+    (rb : GMap GoString backend.BktData) (Pre Q Post : IProp GF) (U : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
       lessorCfg lp ∗ lessorBackend lp P f T Ln R Rb ∗ leaseOwn γl L I ∗ leaseRevokers γl L ∗ mvcc.csContract P f Pre Q Post ∗
-      T ∗ Ln ∗ R ∗ Rb rb ∗ leaseGranted γl id }}
+      T ∗ Ln ∗ R ∗ Rb rb ∗ leaseGranted γl id ∗ leaseEver γl U ∗ (lessorModeIs γl true ∨ ⌜id ∉ U⌝) }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Grant")) (Val #id)) (Val #ttl))
   {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗ Ln ∗
       ((⌜err ≠ GoInterface.nil ∧ (id = W64 0 ∨ 9000000000 < sint.Z ttl ∨ id ∈ L)⌝ ∗ lessorErrIs err ∗
-        leaseOwn γl L I ∗ leaseRevokers γl L ∗ Pre ∗ Rb rb) ∨
+        leaseOwn γl L I ∗ leaseRevokers γl L ∗ Pre ∗ Rb rb ∗ leaseEver γl U) ∨
       (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L⌝ ∗ leaseOwn γl (L ++ [id]) I ∗ leaseRevokers γl (L ++ [id]) ∗ Post ∗
         lsF go!"ID" l ↦□ id ∗ leaseLiveFrom γl 0 id l ∗ ∃ mt : w64, lF go!"minLeaseTTL" lp ↦□ mt ∗
         lsF go!"ttl" l ↦□ grantTTL mt ttl ∗
-        Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id (grantTTL mt ttl) (W64 0))))) }}
+        Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id (grantTTL mt ttl) (W64 0))) ∗
+        leaseEver γl (U ++ [id]))) }}
 
 end spec
 

@@ -116,7 +116,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
           γw.γs = γs ∧ γw.wal = ν⌝ ∗
         -- the node API's node, its driver at the storage's key (the wrapper's, `γw.key`: raft
         -- names it at the attach), and (2026-11-01, durability layer 4) the node's durable state,
-        -- unchanged by the update
+        -- unchanged by the update; (2026-11-05, the lease-expiry plan's E2 revision 5) made by
+        -- `StartNode` (`nodeStartedFresh`)
+        nodeStartedFresh n γr.cl srvClusterN ps ctxs cv.ID' ∗
         isNode n γr.cl srvClusterN cv.ID' ∗
         nodeDriver n γr.cl srvClusterN (NodeDriverState.init (memStorIface bv.storage') γw.key) ∗
         raftState γr.cl cv.ID' RaftState.init ∗

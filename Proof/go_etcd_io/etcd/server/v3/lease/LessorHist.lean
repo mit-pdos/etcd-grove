@@ -443,6 +443,35 @@ theorem histOnce_lease {hs : List LSnap} (h : histOnce hs) {i j : Nat} {σ τ : 
   · have := h j i i τ σ σ id l' l hji (Nat.le_refl i) hj hi hi hl' hl
     rw [hl] at this; exact Option.some.inj this
 
+/-- **`histIn` with a snapshot appended** whose ids are in `U`. -/
+theorem histIn_snoc_new {hs : List LSnap} {σ' : LSnap} {U : List w64} (h : histIn hs U)
+    (hσ : ∀ id : w64, snapHas σ' id → id ∈ U) : histIn (hs ++ [σ']) U := by
+  intro i σ id hi hh
+  rcases getElem?_snoc_cases hs σ' σ i hi with ⟨_, hi'⟩ | ⟨_, hσ'⟩
+  · exact h i σ id hi' hh
+  · rw [hσ'] at hh; exact hσ id hh
+
+/-- **`histIn` with a snapshot appended** whose ids the last snapshot has. -/
+theorem histIn_snoc {hs : List LSnap} {τ σ' : LSnap} {U : List w64} (hlast : hs.getLast? = some τ)
+    (hhas : ∀ id : w64, snapHas σ' id → snapHas τ id) (h : histIn hs U) :
+    histIn (hs ++ [σ']) U :=
+  histIn_snoc_new h (fun id hid => h _ τ id (getLast?_getElem? hlast).1 (hhas id hid))
+
+/-- **`histIn` for a larger `U`.** -/
+theorem histIn_mono {hs : List LSnap} {U U' : List w64} (h : histIn hs U)
+    (hU : ∀ x, x ∈ U → x ∈ U') : histIn hs U' :=
+  fun i σ id hi hh => hU id (h i σ id hi hh)
+
+/-- **An id not in `U` the history never had.** -/
+theorem not_everIn_of_histIn {hs : List LSnap} {U : List w64} {id : w64} (h : histIn hs U)
+    (hid : id ∉ U) : ¬ everIn hs id := by
+  rintro ⟨i, σ, hi, hl⟩
+  exact hid (h i σ id hi (Or.inl hl))
+
+/-- **The lease map's ids are the snapshot's.** -/
+theorem snapHas_lease {σ : LSnap} {id : w64} (h : (σ.1.lookup id).isSome) : snapHas σ id :=
+  Or.inl h
+
 end hist
 
 end lease

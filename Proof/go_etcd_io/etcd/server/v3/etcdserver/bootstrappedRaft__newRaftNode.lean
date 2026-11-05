@@ -96,7 +96,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
       bv.peers' dq pv Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied
       rfl rfl rfl rfl rfl Hps) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-    as %nd ⟨%n, %K, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, -⟩
+    as %nd ⟨%n, %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, -⟩
   · iframe #; iframe Hc Hpeers Hboot Hvac Hau
     iExactEq Hbs; rfl
   subst Hnd
@@ -139,7 +139,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     exact ⟨h1, h2, h3, h4, h5, h6, h8⟩
   obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
   subst hkey
-  iframe Hnode Hst Hbuilt Hb HQ Hrun Hncfg Hrst
+  iframe Hfresh Hnode Hst Hbuilt Hb HQ Hrun Hncfg Hrst
   isplitl [Hdrv]
   · iExactEq Hdrv; rfl
   isplitr
