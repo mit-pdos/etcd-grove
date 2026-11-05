@@ -611,9 +611,53 @@ def kbNoCmp (kb : Option KBReal) (γb : GName) : IProp GF :=
   | none => viewNoCmp γb
   | some d => bkNoCmp d.γB
 
+/-- **The real backend's write right at its values** (the contract's `MW w X`; the snapshot
+image's (b), 2026-11-05): the client's half of the compaction-key flag (at some value) with the
+client's halves of the compaction keys' values `w` (`backend.fkdOwn`) and of the safe-range buckets'
+deleted entries `X` (`backend.dlsOwn`): `backend.fkOwn` with its values exposed, which the
+contract's delete and `Meta` put move exactly (`dlStep`, `fkPutV`). -/
+def bkMW (γB : backend.BNames) (w : backend.FkVals) (X : backend.VData) : IProp GF :=
+  iprop((∃ f : Nat, monoNatAuthOwn γB.fk (1 : Qp).half f) ∗ backend.fkdOwn γB w ∗
+    backend.dlsOwn γB X)
+
+omit package_sem in
+instance bkMW_timeless (γB : backend.BNames) (w : backend.FkVals) (X : backend.VData) :
+    Timeless (bkMW (GF := GF) γB w X) := by
+  unfold bkMW backend.fkdOwn backend.dlsOwn; infer_instance
+
+omit package_sem in
+/-- The write right at its values is the backend's client half (`dlPut`'s, `fkPut`'s). -/
+theorem bkMW_fkOwn (γB : backend.BNames) (w : backend.FkVals) (X : backend.VData) :
+    bkMW (GF := GF) γB w X ⊢ ∃ f : Nat, backend.fkOwn γB f := by
+  unfold bkMW backend.fkOwn
+  iintro ⟨⟨%f, Hf⟩, Hw, HX⟩
+  iexists f
+  iframe Hf
+  isplitl [Hw]
+  · iexists w; iexact Hw
+  · iexists X; iexact HX
+
+omit package_sem in
+/-- The backend's client half is the write right at its values. -/
+theorem fkOwn_bkMW (γB : backend.BNames) (f : Nat) :
+    backend.fkOwn (GF := GF) γB f ⊢ ∃ (w : backend.FkVals) (X : backend.VData), bkMW γB w X := by
+  unfold bkMW backend.fkOwn
+  iintro ⟨Hf, ⟨%w, Hw⟩, ⟨%X, HX⟩⟩
+  iexists w, X
+  iframe Hw HX
+  iexists f; iexact Hf
+
+/-- **The write right at its values in the instance `kb`** (the contract's `MW`): the real
+backend's `bkMW`; for mvcc's assumed backend, its flag at any value (the values not tracked). -/
+def kbMWv (kb : Option KBReal) (γb : GName) (w : backend.FkVals) (X : backend.VData) : IProp GF :=
+  match kb with
+  | none => iprop(∃ f : Nat, viewFk γb f)
+  | some d => bkMW d.γB w X
+
 /-- **The right to write the compaction keys in the instance `kb`** (the contract's `MW`; the
 backend-compaction stage, review round 8, R8-2): for the real backend, the client's half of its
-compaction-key flag, at any value (`backend.fkOwn`: a put of a compaction key needs it, `fkPut`);
+compaction-key flag, at any value (`backend.fkOwn`: a put of a compaction key needs it, `fkPut`),
+i.e. `kbMWv` at some values (2026-11-05);
 for mvcc's assumed backend, its flag `viewFk` over the store's bucket name `γb`, at any value
 (question 5's core stage, part (1), 2026-10-29: until then nothing). The store holds the right for
 its compaction (`store.restore` gives the no-compaction token back as it, `kbNoCmp_MW`; the write
@@ -622,9 +666,7 @@ right's invariant `mwInv` keeps it, swapped for the batch lock's key, `mwSwap`).
 such store comes from `NewStore`/`New`/`newWatchableStore`, which take `viewNoCmp`: the compaction's
 results hold of no backend until the wiring step, and do not count as verified until then. -/
 def kbMW (kb : Option KBReal) (γb : GName) : IProp GF :=
-  match kb with
-  | none => iprop(∃ f : Nat, viewFk γb f)
-  | some d => iprop(∃ f : Nat, backend.fkOwn d.γB f)
+  iprop(∃ (w : backend.FkVals) (X : backend.VData), kbMWv kb γb w X)
 
 /-- The no-compaction token is a write right (both backends): what `store.restore` gives back
 after its reads (question 5's decision (ii)). -/
@@ -632,15 +674,14 @@ theorem kbNoCmp_MW (kb : Option KBReal) (γb : GName) :
     kbNoCmp (GF := GF) kb γb ⊢ kbMW kb γb := by
   cases kb with
   | none =>
-    unfold kbNoCmp kbMW viewNoCmp
+    unfold kbNoCmp kbMW kbMWv viewNoCmp
     iintro H
-    iexists 0
+    iexists (none, none), ∅, 0
     iexact H
   | some d =>
-    unfold kbNoCmp kbMW bkNoCmp
+    unfold kbNoCmp kbMW kbMWv bkNoCmp
     iintro H
-    iexists 0
-    iexact H
+    iapply fkOwn_bkMW $$ H
 
 /-! ## The backend's contract -/
 
@@ -1347,17 +1388,29 @@ good (`↦*□`): the backend's write buffer keeps them (`txWriteBuffer.put` sto
 copies; review round 6's finding: until then they were lent fractionally and given back, which no
 buffering backend can meet); mvcc's callers never write them again (`UnsafeSet*Compact`'s
 `rbytes`). -/
-def metaPutCap (bt : GoInterfaceOk) (X Y : IProp GF) : IProp GF :=
+def metaPutCap (bt : GoInterfaceOk) (X : IProp GF) (Y : GoString → GoString → IProp GF) : IProp GF :=
   iprop(□ ∀ (b : GoInterface) (key val : GoSlice) (k v : GoString),
     ⌜metaCompactKey k ∧ metaRevVal v⌝ →
     {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ X ∗ key ↦*□ k ∗
         val ↦*□ v }}
       (App (App (App (Val #(methods bt.ty go!"UnsafePut" bt.v)) (Val #b)) (Val #key)) (Val #val))
-    {{ RET #(); Y }})
+    {{ RET #(); Y k v }})
 
-instance metaPutCap_persistent (bt : GoInterfaceOk) (X Y : IProp GF) :
-    Persistent (metaPutCap (GF := GF) bt X Y) := by
+instance metaPutCap_persistent (bt : GoInterfaceOk) (X : IProp GF)
+    (Y : GoString → GoString → IProp GF) : Persistent (metaPutCap (GF := GF) bt X Y) := by
   unfold metaPutCap; infer_instance
+
+/-- **The compaction keys' values after a put of `v` at the compaction key `k`** (the snapshot
+image's (b), 2026-11-05): the finished key's or the scheduled key's value replaced
+(`backend.fkVals`' pair: finished, scheduled). -/
+def fkPutV (w : backend.FkVals) (k v : GoString) : backend.FkVals :=
+  if k = finKeyBytes then (some v, w.2) else (w.1, some v)
+
+/-- **The deleted entries after a compaction delete of the `Key` bucket's key `k`** (the snapshot
+image's (b), 2026-11-05; `Api/SnapImage.lean`'s `cutAt_del`, `hX'`): `k` recorded, every other
+`Key` entry's record unchanged. -/
+def dlStep (X X' : backend.VData) (k : GoString) : Prop :=
+  ∀ k', (X'.lookup (keyName, k')).isSome = ((X.lookup (keyName, k')).isSome || decide (k' = k))
 
 /-- **The limited range's batch bound** (the backend-compaction stage, decision O3; review round 2,
 R2-3): a compacting range reads at most `2^56` entries, so the session it ends (`limit` deletes and
@@ -1432,8 +1485,11 @@ returned that compaction may delete (`Del k`, the store's `delKey`) is deleted, 
 `U (n + 1)` to `U n`, the view unchanged (the deletion shows only in what later reads may miss);
 `Unlock` takes any `U n`. A `Meta` put on its own (`metaPutCap`) goes from `Locked []` to such a
 token. Every `Meta` put of a compaction key, the job's and the one on its own, also takes and gives
-back the right `MW` to write them (`kbMW`: the real backend's half of its compaction-key flag;
-review rounds 8-9). The store's record of the meta keys is its own (`metaCompact`).
+back the right `MW w X` to write them (`kbMWv`: the real backend's half of its compaction-key flag;
+review rounds 8-9), at the compaction keys' values `w` and the deleted entries `X` the backend
+records (the snapshot image's (b), 2026-11-05): a delete of a key the range read records it
+(`dlStep`), a put moves the values (`fkPutV`). The store's record of the meta keys is its own
+(`metaCompact`).
 
 **The lessor's delete** (leases T3, 2026-10-25; `notes/leases-plan.md`): `lessor.Revoke` deletes
 the lease's record from the `Lease` bucket under the lock of the KV write transaction its range
@@ -1455,7 +1511,7 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF)
     (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
-    (MW : IProp GF) (HN : IProp GF := iprop(False)) :
+    (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF := iprop(False)) :
     IProp GF :=
   iprop(□ (∀ (Pre Q : IProp GF) (f : val),
       {{ Pre ∗ RT ∗ WT ∗ HF f ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
@@ -1507,19 +1563,21 @@ def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT
             (□ ∀ n : Nat, rdCap Rd (U n)) ∗ (□ ∀ n : Nat, rdCap2 Rd (U n)) ∗
             pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
             □ (∀ (key : GoSlice) (k : GoString) (n : Nat),
+              ∀ (w : backend.FkVals) (X : backend.VData),
               {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ U (n + 1) ∗
-                  Del k ∗ □ Rd key k ∗ MW }}
+                  Del k ∗ □ Rd key k ∗ ⌜(m'.lookup k).isSome⌝ ∗ MW w X }}
                 (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
-              {{ RET #(); U n ∗ MW }}) ∗
-            (□ ∀ n : Nat, metaPutCap bt iprop(U (n + 1) ∗ MW) iprop(U n ∗ MW)) ∗
+              {{ RET #(); U n ∗ ∃ X' : backend.VData, MW w X' ∗ ⌜dlStep X X' k⌝ }}) ∗
+            (□ ∀ (n : Nat) (w : backend.FkVals) (X : backend.VData),
+              metaPutCap bt iprop(U (n + 1) ∗ MW w X) (fun k v => iprop(U n ∗ MW (fkPutV w k v) X))) ∗
             □ (∀ n : Nat, {{ U n ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
                 {{ RET #(); True }}) }}) ∗
     -- (R2-3) a compaction key put into `Meta` in a fresh session (`SetScheduledCompact`'s) ends
     -- it in a token only `Unlock` takes, as the lessor's delete does; with the right `MW` to write
     -- the compaction keys, given back (the real backend's client half of its compaction-key flag,
     -- `backend.fkOwn`: the backend-compaction stage, 2026-10-29; `True` for mvcc's assumed backend)
-    □ (⌜Cmp⌝ -∗ metaPutCap bt iprop(Locked [] ∗ MW)
-      iprop((∃ U : IProp GF, U ∗ unlockAt bt View W P U []) ∗ MW)) ∗
+    □ (⌜Cmp⌝ -∗ ∀ (w : backend.FkVals) (X : backend.VData), metaPutCap bt iprop(Locked [] ∗ MW w X)
+      (fun k v => iprop((∃ U : IProp GF, U ∗ unlockAt bt View W P U []) ∗ MW (fkPutV w k v) X))) ∗
     □ (∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
         (r : GMap GoString backend.BktData),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b ∗ Locked l ∗
@@ -1534,7 +1592,7 @@ instance batchTxSpecG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → 
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
     (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (MW HN : IProp GF) :
+    (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
     Persistent (batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN) := by
   unfold batchTxSpecG; infer_instance
 
@@ -1543,7 +1601,7 @@ contract without it (`SetScheduledCompact`'s, `SetFinishedCompact`'s) take. -/
 theorem batchTxSpecG_noNil (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF)
-    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW HN : IProp GF) :
+    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
     batchTxSpecG (GF := GF) bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN ⊢
       batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW := by
   iintro #H
@@ -1588,7 +1646,7 @@ def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT :
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
-    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) (MW : IProp GF)
+    (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF)
     (HN : IProp GF := iprop(False)) :
     IProp GF :=
   iprop(∃ (Locked : Puts → IProp GF) (LockedO : Nat → IProp GF),
@@ -1598,7 +1656,7 @@ def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT :
 instance isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW HN : IProp GF) :
+    (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
     Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN) := by
   unfold isBatchTxG; infer_instance
 
@@ -1618,13 +1676,13 @@ def keyPutOk (m : Bucket) (l : Puts) (k _v : GoString) : Prop :=
 /-- The store's batch transaction contract over mvcc's assumed backend: no tokens, no condition
 on the puts, the compaction's calls. -/
 def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : GoString → IProp GF)
-    (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF) (MW : IProp GF) :
+    (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) :
     IProp GF :=
   batchTxSpecG bt View iprop(True) iprop(True) noPutCond Del W Dep True Locked P HF (MW := MW)
 
 instance batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF)
-    (HF : val → IProp GF) (MW : IProp GF) : Persistent (batchTxSpec bt View Del W Dep Locked P HF MW) := by
+    (HF : val → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) : Persistent (batchTxSpec bt View Del W Dep Locked P HF MW) := by
   unfold batchTxSpec; infer_instance
 
 /-- **The batch transaction under its lock is a reader of its own puts over the view**, but for
@@ -1633,7 +1691,7 @@ deletable" premise). -/
 theorem batchTx_readerD (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF) (HF : val → IProp GF)
-    (Rb : GMap GoString backend.BktData → IProp GF) (MW : IProp GF) (l : Puts) (q : Qp) (m : Bucket) :
+    (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (l : Puts) (q : Qp) (m : Bucket) :
     batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW ⊢
       keyReaderD bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) Del := by
   iintro #H
@@ -1679,8 +1737,8 @@ and `ReadTx()` with no view, for the reads of the `Meta` bucket's compaction key
 (`metaReadTx`: `checkPrevCompactionCompleted`; its `RLock` takes the reader's token `RT`, which
 its `RUnlock` gives back). Under `NC` (the backend records no compaction:
 `kbNoCmp`) a `ReadTx` reader's reads of those keys find nothing (`keyReadLocked`); their writes, in
-the batch transaction's `Cmp` clauses, need the right `MW` (`kbMW`: the real backend's half of its
-compaction-key flag). The instance of mvcc's assumed backend
+the batch transaction's `Cmp` clauses, need the right `MW` at its values (`kbMWv`: the real
+backend's half of its compaction-key flag with its halves of the values, `bkMW`). The instance of mvcc's assumed backend
 (`isKeyBackend`) has no tokens, no condition on the puts (`batchTxSpecG`'s `PutOk`) and `Cmp`;
 `BackendBridge.lean` proves the general one of the backend, `Cmp` false (2026-10-13, unit 4; the
 merge with the compaction, unit 5a). -/
@@ -1690,7 +1748,7 @@ def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT N
     (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y)))
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True))
     (Bt : GoInterfaceOk → IProp GF := fun _ => iprop(True))
-    (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) (HN : IProp GF := iprop(False)) :
+    (SR SRh : IProp GF := iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF := iprop(False)) :
     IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
@@ -1723,7 +1781,7 @@ instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IP
     (RT WT NC : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (SR SRh MW HN : IProp GF) :
+    (Bt : GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
     Persistent (isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN) := by
   unfold isKeyBackendG; infer_instance
 
@@ -1732,7 +1790,7 @@ theorem isBatchTxG_noNil (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF
     (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
     (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (MW HN : IProp GF) :
+    (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
     isBatchTxG (GF := GF) bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN ⊢
     isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW := by
   iintro #H
@@ -1750,7 +1808,7 @@ theorem isKeyBackendG_noNil (b : GoInterface) (View : Qp → Bucket → IProp GF
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW HN : IProp GF) :
+    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
     isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW := by
   iintro #H
@@ -2103,7 +2161,7 @@ theorem isKeyBackendG_wand {b : GoInterface} {View : Qp → Bucket → IProp GF}
     {PutOk : Bucket → Puts → GoString → GoString → Prop} {Del : GoString → IProp GF}
     {W Wi Dep : IProp GF} {Cmp : Prop} {P : IProp GF} {HF : val → IProp GF} {γ : StoreNames}
     {Rb : GMap GoString backend.BktData → IProp GF} {Bt : GoInterfaceOk → IProp GF}
-    {SR SRh MW HN : IProp GF} :
+    {SR SRh : IProp GF} {MW : backend.FkVals → backend.VData → IProp GF} {HN : IProp GF} :
     isKeyBackendG (GF := GF) b View RT WT NC PutOk Del W Wi Dep Cmp P HF (storeReq γ) Rb Bt
         SR SRh MW HN ⊢
       isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR)
@@ -3375,11 +3433,11 @@ theorem isKeyBackendG_cmpOn (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P
     isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P HF (storeReq γ) (storeRb γ) (storeBt γ)
-      (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) ⊢
+      (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNil γ.kb) ⊢
     isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep True P HF (storeReq γ) (storeRb γ) (storeBt γ)
-      (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) := by
+      (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNil γ.kb) := by
   rw [eq_true h]
 
 /-- A store whose backend supports the compaction compacts (`kbCmpM`: its resources are on). -/
@@ -4174,7 +4232,7 @@ def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
     "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) iprop(False)
       (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
-      (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb) ∗
+      (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNil γ.kb) ∗
     "#Hdep" ∷ □ Dep ∗
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch ∗
@@ -4830,7 +4888,7 @@ def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : 
   iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ)
     (kbNoCmp γ.kb γ.bucket) (storePutOk γ)
     (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
-    (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb))
+    (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNil γ.kb))
 
 instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackend (GF := GF) b s γ P) := by
@@ -4845,7 +4903,7 @@ def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
   isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket) (storePutOk γ)
     (delKey γ) (storeW s γ)
     (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
-    (kbSR γ.kb) (kbSRh γ.kb) (kbMW γ.kb γ.bucket) (kbHookNil γ.kb)
+    (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNil γ.kb)
 
 instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackendT (GF := GF) b s γ P) := by
@@ -5298,7 +5356,7 @@ theorem lockedIs_unlock (ld : Bool) (bt : GoInterfaceOk) (View : Qp → Bucket �
     (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
     (P : IProp GF) (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (MW : IProp GF) (l : Puts) :
+    (MW : backend.FkVals → backend.VData → IProp GF) (l : Puts) :
     batchTxSpecG (GF := GF) bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW ∗
       lockedIs ld bt View W P Locked l ⊢ ∃ U : IProp GF, U ∗ unlockAt bt View W P U l := by
   iintro ⟨#Hbt, Hl⟩
@@ -5374,7 +5432,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "#Hs" ∷ isStore s γ ∗
     "#Hhook" ∷ hookOk γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMW γ.kb γ.bucket) ∗
+      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMWv γ.kb γ.bucket) ∗
     "#HbtB" ∷ storeBt γ bt ∗
     "#Hreg" ∷ storeRegd s γ ∗
     "Hrt" ∷ storeRT γ ∗
@@ -5421,7 +5479,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "#Hs" ∷ isStore s γ ∗
     "#Hhook" ∷ hookOk γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMW γ.kb γ.bucket) ∗
+      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMWv γ.kb γ.bucket) ∗
     "#HbtB" ∷ storeBt γ bt ∗
     "#Hreg" ∷ storeRegd s γ ∗
     "Hrt" ∷ storeRT γ ∗
@@ -5536,7 +5594,7 @@ theorem storeTxnWriteIs_leaseDel (tw s : Loc) (γ : StoreNames) (ilog : Log) (pe
   · iexact HbtB
   iintro %b %key %k %dq %r %Φ #HL Hkey Hrb HΦ
   ihave #Hbt0 : batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
-      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMW γ.kb γ.bucket) $$ []
+      (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) (storeRb γ) (kbMWv γ.kb γ.bucket) $$ []
   · iexact Hbt
   iunfold batchTxSpecG at Hbt0
   icases Hbt0 with ⟨-, -, -, -, -, -, -, -, #HDel, -⟩

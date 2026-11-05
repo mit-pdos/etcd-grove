@@ -64,6 +64,8 @@ theorem mvcc.UnsafeSetFinishedCompact.wp_proof
   iintro Hy
   (try wp_auto)
   iapply HΦ
+  have hr : mvcc.revOf { Main' := value, Sub' := 0 } = ⟨value, W64 0⟩ := rfl
+  rw [hr]
   iexact Hy
 
 

@@ -501,10 +501,15 @@ theorem mvcc.store.scheduleCompaction.wp_proof
       -- (Draft round 2) the key slice `keys[i]` passed lent, as the range returned it; (R2-3) one
       -- of the range's budget spent (`c ≥ 2`: a key left to read, and the `Meta` put's)
       obtain ⟨c'', rfl⟩ : ∃ c'', c = c'' + 1 := ⟨c - 1, by omega⟩
-      iapply HDelC $$ %ksl %e.1 %c'' [Hlocked HMW]
+      iunfold mvcc.kbMW at HMW
+      icases HMW with ⟨%w, %X, HMW⟩
+      iapply HDelC $$ %ksl %e.1 %c'' %w %X [Hlocked HMW]
       · iframe Hlocked HMW; iframe #
+        ipureintro; rw [(HLmem e (List.mem_of_getElem? He)).1]; rfl
       inext
-      iintro ⟨Hlocked, HMW⟩
+      iintro ⟨Hlocked, %X', HMW, -⟩
+      ihave HMW : mvcc.kbMW γ.kb γ.bucket $$ [HMW]
+      · iunfold mvcc.kbMW; iexists _, _; iexact HMW
       (try wp_auto)
       wp_join_done
       -- the key deleted: one more in `D`, still fewer than the job's changes
@@ -595,13 +600,16 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     -- compaction keys' write right for the `Meta` put, and back
     wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact))
       (Val #(GoInterface.ok bt))) (Val #rev))
-    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMW γ.kb γ.bucket) iprop(U c0 ∗ mvcc.kbMW γ.kb γ.bucket)
-      rev Hrev.1) $$ [HU HMW]
+    iunfold mvcc.kbMW at HMW
+    icases HMW with ⟨%w, %X, HMW⟩
+    iapply (h6 bt iprop(U (c0 + 1) ∗ mvcc.kbMWv γ.kb γ.bucket w X)
+      (fun k v => iprop(U c0 ∗ mvcc.kbMWv γ.kb γ.bucket (mvcc.fkPutV w k v) X)) rev Hrev.1) $$ [HU HMW]
     · iframe HU HMW; iframe #
       iapply HMetaC
     inext
     iintro ⟨HU, HMW⟩
-    imod Hback $$ HMW with ⟨Hmk, -⟩
+    imod Hback $$ [HMW] with ⟨Hmk, -⟩
+    · iunfold mvcc.kbMW; iexists _, _; iexact HMW
     ihave Hmk := (mvcc.mwSlot_on γ hcmpM).2 $$ Hmk
     (try wp_auto)
     iunfold mvcc.metaCompact at Hmeta

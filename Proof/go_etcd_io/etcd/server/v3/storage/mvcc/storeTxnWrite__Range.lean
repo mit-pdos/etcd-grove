@@ -93,7 +93,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     icases Hbv with ⟨%m, Hbv, #Hbl⟩
     ihave #Hrdr0 := mvcc.batchTx_readerD bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ)
-      (mvcc.storeRb γ) (mvcc.kbMW γ.kb γ.bucket) (mvcc.pendPuts ilog pend) (1 : Qp).half m $$ Hbt
+      (mvcc.storeRb γ) (mvcc.kbMWv γ.kb γ.bucket) (mvcc.pendPuts ilog pend) (1 : Qp).half m $$ Hbt
     ihave #Hthin := mvcc.snapThin_foldl_insert (mvcc.pendPuts ilog pend) (mvcc.bucketMap ilog) m
       (mvcc.delKey γ) $$ [Hbl]
     · iapply mvcc.bucketLog_thin; iexact Hbl

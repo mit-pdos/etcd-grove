@@ -228,7 +228,7 @@ theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
         iprop(True) Cmp
         Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b)
         (fun r => iprop(backend.rbPart γ (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b)
-        (MW := iprop(∃ f : Nat, backend.fkOwn γ f)) := by
+        (MW := mvcc.bkMW γ) := by
   -- (M2, item 31) the bridge's nil-hook clause dropped (`isKeyBackendG_noNil`)
   iintro H
   iapply mvcc.isKeyBackendG_noNil

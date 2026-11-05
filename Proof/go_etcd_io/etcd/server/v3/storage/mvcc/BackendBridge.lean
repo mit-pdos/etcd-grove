@@ -2425,6 +2425,140 @@ theorem bt_unlockOAt (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG :
     iintro -
     iapply HΦ; iexact HQ
 
+/-! #### The values the compaction's writes move (the snapshot image's (b), 2026-11-05) -/
+
+/-- **The client's half of the safe-range deleted entries agrees with the batch lock's state**
+(`backend.batchLocked_fkd`'s analogue). -/
+theorem batchLocked_dls (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (X : VData) :
+    batchLocked (GF := GF) γ P b st ∗ dlsOwn γ X ⊢
+      batchLocked γ P b st ∗ dlsOwn γ X ∗ ⌜X = dlR P st.dl⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt fkHalf dlsOwn
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, ⟨Hfk, Hd, Hx⟩, %Hok⟩,
+    %Hwf⟩, Hc⟩
+  icombine Hc Hx gives %Heq
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hok, Hwf⟩
+  · ipureintro; exact Heq.2
+
+/-- **The write right at its values agrees with the batch lock's state**: its compaction keys'
+values are the writer's contents', its deleted entries the session's. -/
+theorem batchLocked_bkMW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (w : FkVals) (X : VData) :
+    batchLocked (GF := GF) γ P b st ∗ bkMW γ w X ⊢
+      batchLocked γ P b st ∗ bkMW γ w X ∗ ⌜w = fkVals st.S ∧ X = dlR P st.dl⌝ := by
+  iintro ⟨Hl, Hmw⟩
+  iunfold bkMW at Hmw
+  icases Hmw with ⟨Hf, Hw, HX⟩
+  icases batchLocked_fkd γ P b st w $$ [$Hl $Hw] with ⟨Hl, Hw, %H1⟩
+  icases batchLocked_dls γ P b st X $$ [$Hl $HX] with ⟨Hl, HX, %H2⟩
+  iframe Hl
+  iunfold bkMW
+  iframe Hf Hw HX
+  ipureintro; exact ⟨H1, H2⟩
+
+theorem metaName_ne_keyName :
+    go_etcd_io.etcd.server.v3.storage.schema.metaName ≠ keyName := by decide
+
+/-- A put at a compaction key of the `Meta` bucket moves the compaction keys' values (`fkPutV`). -/
+theorem fkVals_putMeta (S : Data) (k v : GoString) (hk : metaCompactKey k) :
+    fkVals (S.insert metaBI.name ((bktOf S metaBI.name).insert k v)) = fkPutV (fkVals S) k v := by
+  have hm : metaBI.name = go!"meta" := rfl
+  rw [hm]
+  rcases hk with rfl | rfl <;>
+    simp (config := { decide := true }) [fkVals, fkPutV, dget, bktOf, schedKeyBytes, finKeyBytes,
+      GMap.lookup_insert_eq_iff] <;>
+    cases S !! go!"meta" <;> simp
+
+/-- A delete from the `Key` bucket leaves the compaction keys' values. -/
+theorem fkVals_delKey (S : Data) (k : GoString) :
+    fkVals (S.insert keyBI.name ((bktOf S keyBI.name).delete k)) = fkVals S := by
+  have hk : keyBI.name = go!"key" := rfl
+  rw [hk]
+  simp (config := { decide := true }) [fkVals, dget, GMap.lookup_insert_eq_iff]
+
+/-- The session's deleted entries of the `Key` bucket are its safe-range ones (`dlR`). -/
+theorem dlR_key {P : BParams} (hP : bridgeParams P) (X : VData) (k : GoString) :
+    (dlR P X).lookup (keyName, k) = X.lookup (keyName, k) := by
+  unfold dlR
+  rw [GMap.lookup_filter]
+  have h1 : P.SB keyName = true := by rw [hP.2.2.2.1]; exact decide_eq_true rfl
+  have h2 : P.HB keyName = false := key_not_HB hP
+  cases X.lookup (keyName, k) <;> simp [Option.filter, h1, h2]
+
+/-- **The range's keys are still there or recorded deleted** (the compacting range's token,
+`bkLockedC`): every key of the bucket `m'` the range read is in the writer's `Key` bucket or among
+the session's deleted entries. -/
+def keysKept (m' : Bucket) (st : BSess) : Prop :=
+  ∀ k, (m'.lookup k).isSome → ((bktOf st.S keyName).lookup k).isSome ∨ (st.dl.lookup (keyName, k)).isSome
+
+theorem keysKept_del {m' : Bucket} {st : BSess} (k : GoString) (h : keysKept m' st) :
+    keysKept m' (st.del keyBI k) := by
+  intro k' hk'
+  have hS : (st.del keyBI k).S = st.S.insert keyName ((bktOf st.S keyName).delete k) := rfl
+  have hD : (st.del keyBI k).dl = match (bktOf st.S keyName).lookup k with
+      | some v => st.dl.insert (keyName, k) v | none => st.dl := rfl
+  rw [hS, hD]
+  have hb : bktOf (st.S.insert keyName ((bktOf st.S keyName).delete k)) keyName =
+      (bktOf st.S keyName).delete k := by
+    unfold bktOf; rw [GMap.lookup_insert]; rfl
+  rw [hb]
+  by_cases he : k' = k
+  · subst he
+    right
+    cases hq : (bktOf st.S keyName).lookup k' with
+    | some v => simp
+    | none =>
+      rcases h k' hk' with h1 | h1
+      · rw [hq] at h1; cases h1
+      · exact h1
+  · rw [GMap.lookup_delete_ne _ (Ne.symm he)]
+    rcases h k' hk' with h1 | h1
+    · left; exact h1
+    · right
+      cases (bktOf st.S keyName).lookup k with
+      | some v =>
+        rw [GMap.lookup_insert_ne _ _ (fun e => he (Prod.mk.inj e).2.symm)]; exact h1
+      | none => exact h1
+
+theorem keysKept_putMeta {m' : Bucket} {st : BSess} (k v : GoString) (h : keysKept m' st) :
+    keysKept m' (st.put metaBI k v false) := by
+  intro k' hk'
+  have hS : (st.put metaBI k v false).S =
+      st.S.insert metaBI.name ((bktOf st.S metaBI.name).insert k v) := rfl
+  have hD : (st.put metaBI k v false).dl = st.dl := rfl
+  rw [hS, hD]
+  have hb : bktOf (st.S.insert metaBI.name ((bktOf st.S metaBI.name).insert k v)) keyName =
+      bktOf st.S keyName := by
+    unfold bktOf; rw [GMap.lookup_insert_ne _ _ (show metaBI.name ≠ keyName from metaName_ne_keyName)]
+  rw [hb]
+  exact h k' hk'
+
+/-- **A compaction delete of a kept key records it** (`dlStep`). -/
+theorem dlStep_del {P : BParams} (hP : bridgeParams P) {st : BSess} {k : GoString}
+    (hin : ((bktOf st.S keyName).lookup k).isSome ∨ (st.dl.lookup (keyName, k)).isSome) :
+    dlStep (dlR P st.dl) (dlR P (st.del keyBI k).dl) k := by
+  intro k'
+  rw [dlR_key hP, dlR_key hP]
+  have hD : (st.del keyBI k).dl = match (bktOf st.S keyName).lookup k with
+      | some v => st.dl.insert (keyName, k) v | none => st.dl := rfl
+  rw [hD]
+  by_cases he : k' = k
+  · subst he
+    simp only [decide_true, Bool.or_true]
+    cases hq : (bktOf st.S keyName).lookup k' with
+    | some v => simp
+    | none =>
+      rcases hin with h1 | h1
+      · rw [hq] at h1; cases h1
+      · exact h1
+  · simp only [he, decide_false, Bool.or_false]
+    cases (bktOf st.S keyName).lookup k with
+    | some v => rw [GMap.lookup_insert_ne _ _ (fun e => he (Prod.mk.inj e).2.symm)]
+    | none => rfl
+
 /-- **A compaction key put into `Meta` in a fresh session** (the backend-compaction stage, R2-3;
 `batchTxSpecG`'s `Meta` clause): the backend's `UnsafePut` into the hook bucket `Meta` (not
 safe-range, untracked, the key not a hook's own: `hHK`), from the lock with no puts to the token
@@ -2443,12 +2577,13 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
-      metaPutCap ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty,
-        #t⟩ iprop(bkLocked γ P b [] ∗ ∃ f : Nat, fkOwn γ f)
-        iprop((∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
+      □ ∀ (w : FkVals) (X : VData), metaPutCap ⟨go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩
+        iprop(bkLocked γ P b [] ∗ bkMW γ w X)
+        (fun k v => iprop((∃ U : IProp GF, U ∗ unlockAt ⟨go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ (bkView γ) W Pk U []) ∗
-          ∃ f : Nat, fkOwn γ f) := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩
+          bkMW γ (fkPutV w k v) X)) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %w %X
   iunfold metaPutCap
   iintro !> %bk %key %val %k %v %Hkv %Φ !> ⟨#HM, ⟨Hl, Hfk⟩, #Hk, #Hv⟩ HΦ
   obtain ⟨hk, hv⟩ := Hkv
@@ -2459,6 +2594,9 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
   iunfold bkLockedAt at Hl
   icases Hl with ⟨Hl, Hwb, %Hs⟩
   icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
+  icases batchLocked_bkMW γ P b st w X $$ [$Hl $Hfk] with ⟨Hl, Hfk, %Hwx⟩
+  obtain ⟨rfl, rfl⟩ := Hwx
+  ihave Hfk := bkMW_fkOwn γ _ _ $$ Hfk
   ihave #Hbk := meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
   have hvs := viewSame_noPuts hP Hwf Hs
   obtain ⟨hd, hp, -, -, hhw⟩ := Hs
@@ -2484,6 +2622,13 @@ theorem bt_metaPut (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG 
       iprop(∃ f : Nat, fkOwn γ f) := by
     exact fkPut_of_fk γ _ _ (fkKey_meta hk)
   rw [hfk]
+  icases Hfp with ⟨%f', Hfp⟩
+  icases fkOwn_bkMW γ f' $$ Hfp with ⟨%w', %X', Hfp⟩
+  icases batchLocked_bkMW γ P b _ w' X' $$ [$Hl $Hfp] with ⟨Hl, Hfp, %Hwx'⟩
+  obtain ⟨rfl, rfl⟩ := Hwx'
+  have e1 : fkVals (st.put metaBI k v false).S = fkPutV (fkVals st.S) k v := fkVals_putMeta st.S k v hk
+  have e2 : (st.put metaBI k v false).dl = st.dl := rfl
+  rw [e1, e2]
   iapply HΦ
   isplitr [Hfp]
   rotate_left
@@ -2781,11 +2926,12 @@ contents off the hook's buckets are thin of the readers' view, and the write buf
 off the hook's buckets), out of the hook's window, with room for `n` more operations and a commit's
 hook, and a write-back's budget: what `Unlock`'s first branch (nothing the readers see changed
 but registered deletes) takes. -/
-def bkLockedC (γ : BNames) (P : BParams) (b : Loc) (tx : Loc) (n : Nat) : IProp GF :=
+def bkLockedC (γ : BNames) (P : BParams) (b : Loc) (tx : Loc) (m' : Bucket) (n : Nat) : IProp GF :=
   iprop(∃ st : BSess, batchLocked γ P b st ∗ wbTok γ ∗
     thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
     ⌜st.tx = tx ∧ st.cnt.hw = false ∧ sint.Z st.pend + n + P.hookMax < 2 ^ 58 ∧
-      (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])⌝)
+      (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []) ∧
+      keysKept m' st⌝)
 
 /-- **The compacting range** (`batchTxSpecG`'s limited-range clause, the real backend's; the
 backend-compaction stage, 3.1-3.5; R2-3): `UnsafeRange(Key, lo, hi, limit)` from a fresh session's
@@ -2824,15 +2970,16 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
               (□ ∀ n : Nat, rdCap Rd (U n)) ∗ (□ ∀ n : Nat, rdCap2 Rd (U n)) ∗
               pairVals Rd ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) ∗
               □ (∀ (key : GoSlice) (k : GoString) (n : Nat),
+                ∀ (w : FkVals) (X : VData),
                 {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bk ∗ U (n + 1) ∗
-                    bkDel γ k ∗ □ Rd key k ∗ ∃ f : Nat, fkOwn γ f }}
+                    bkDel γ k ∗ □ Rd key k ∗ ⌜(m'.lookup k).isSome⌝ ∗ bkMW γ w X }}
                   (App (App (Val #(methods (go.GoType.PointerType
                     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete"
                     #t)) (Val #bk)) (Val #key))
-                {{ RET #(); U n ∗ ∃ f : Nat, fkOwn γ f }}) ∗
-              (□ ∀ n : Nat, metaPutCap ⟨go.GoType.PointerType
+                {{ RET #(); U n ∗ ∃ X' : VData, bkMW γ w X' ∗ ⌜dlStep X X' k⌝ }}) ∗
+              (□ ∀ (n : Nat) (w : FkVals) (X : VData), metaPutCap ⟨go.GoType.PointerType
                 go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩
-                iprop(U (n + 1) ∗ ∃ f : Nat, fkOwn γ f) iprop(U n ∗ ∃ f : Nat, fkOwn γ f)) ∗
+                iprop(U (n + 1) ∗ bkMW γ w X) (fun k v => iprop(U n ∗ bkMW γ (fkPutV w k v) X))) ∗
               □ (∀ n : Nat, {{ U n ∗ W ∗ Pk }}
                   (App (Val #(methods (go.GoType.PointerType
                     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"Unlock" #t))
@@ -2876,7 +3023,8 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     iframe Hv
     ipureintro; exact Hvd
   iexists (GMap.filter (fun k _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome) m),
-    (rdB st.tx), (bkLockedC γ P b st.tx)
+    (rdB st.tx), (bkLockedC γ P b st.tx
+      (GMap.filter (fun k _ => ((vData P (st.C, st.R)).lookup (keyName, k)).isSome) m))
   have hroom0 := HPw.2.2.1
   have hhm := HPw.2.2.2.1
   have hp0 := Hs.2.1
@@ -2890,7 +3038,11 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
     ihave ⟨Hthin, %HW⟩ := viewSame_thin (GF := GF) γ P st (viewSame_noPuts hP Hwf Hs)
     iframe Hthin
     ipureintro
-    refine ⟨rfl, Hs.2.2.2.2, ?_, HW⟩
+    refine ⟨rfl, Hs.2.2.2.2, ?_, HW, fun k hk => Or.inl ?_⟩
+    rotate_left
+    · have hB' := hB
+      simp only [keyName] at hB' ⊢
+      rw [hB']; exact hk
     unfold rangeLimitMax at hlm
     have : ((sint.Z lim).toNat : Int) = sint.Z lim := Int.toNat_of_nonneg (by omega)
     push_cast
@@ -2960,14 +3112,17 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
   · iexact Hkv
   -- a delete of a registered key the range returned
   isplitr
-  · iintro !> %key %k %n %Φ' !> ⟨#HK', HU, Hd, #HRd, Hmw⟩ HΦ'
+  · iintro !> %key %k %n %w %X %Φ' !> ⟨#HK', HU, Hd, #HRd, %Hmk, Hmw⟩ HΦ'
     iunfold bkLockedC at HU
     icases HU with ⟨%st', Hl', Hwb', #Hth', %Hc⟩
     ihave %Hsub' := thinV_sub γ _ _ $$ Hth'
     have hsbK : P.SB keyBI.name = true := by
       rw [hP.2.2.2.1]; exact decide_eq_true rfl
+    icases batchLocked_bkMW γ P b st' w X $$ [$Hl' $Hmw] with ⟨Hl', Hmw, %Hwx⟩
+    obtain ⟨rfl, rfl⟩ := Hwx
+    ihave Hmw := bkMW_fkOwn γ _ _ $$ Hmw
     ihave Hdlp := dlPut_sb_intro (GF := GF) γ P keyBI.name hsbK $$ Hmw
-    obtain ⟨htx, hhw, hroom, hW⟩ := Hc
+    obtain ⟨htx, hhw, hroom, hW, hK⟩ := Hc
     icases batchLocked_wf γ P b st' $$ Hl' with ⟨Hl', %Hwf'⟩
     have hp0' : 0 ≤ sint.Z st'.pend := Hwf'.2.2.2.2.1
     have hpend : sint.Z st'.pend + 1 < 2 ^ 58 := by push_cast at hroom; omega
@@ -2990,8 +3145,18 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
           | some v => rw [Hsub' _ v hq]; simp))
       $$ [$Hb $Ht $Hl' $Hbk $Harg $Hrb $Hdlp] as ⟨Hl', -, -, Hdlp⟩
     ihave Hmw := dlPut_sb_elim (GF := GF) γ P go_etcd_io.etcd.server.v3.storage.schema.keyName hsbK $$ Hdlp
+    icases Hmw with ⟨%f', Hmw⟩
+    icases fkOwn_bkMW γ f' $$ Hmw with ⟨%w', %X', Hmw⟩
+    icases batchLocked_bkMW γ P b _ w' X' $$ [$Hl' $Hmw] with ⟨Hl', Hmw, %Hwx'⟩
+    obtain ⟨rfl, rfl⟩ := Hwx'
+    have he : fkVals (st'.del keyBI k).S = fkVals st'.S := fkVals_delKey st'.S k
+    rw [he]
     iapply HΦ'
-    iframe Hmw
+    isplitr [Hmw]
+    rotate_left
+    · iexists _
+      iframe Hmw
+      ipureintro; exact dlStep_del hP (hK k Hmk)
     iunfold bkLockedC
     iexists (st'.del keyBI k)
     iframe Hl' Hwb'
@@ -3006,21 +3171,24 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
       rw [← hkn]
       iexact Hd
     · ipureintro
-      refine ⟨htx, hhw, ?_, hW⟩
+      refine ⟨htx, hhw, ?_, hW, keysKept_del k hK⟩
       show sint.Z (st'.pend + W64 1) + n + P.hookMax < _
       have : sint.Z (st'.pend + W64 1) = sint.Z st'.pend + 1 := by word
       push_cast at hroom
       omega
   -- a compaction key put into `Meta`, with the flag's half
   isplitr
-  · iintro !> %n
+  · iintro !> %n %w %X
     iunfold metaPutCap
     iintro !> %bk2 %key %val %k %v %Hkv %Φ' !> ⟨#HM, ⟨HU, Hfk⟩, #Hk, #Hv⟩ HΦ'
     obtain ⟨hk, hv⟩ := Hkv
     iunfold bkLockedC at HU
     icases HU with ⟨%st', Hl', Hwb', #Hth', %Hc⟩
-    obtain ⟨htx, hhw, hroom, hW⟩ := Hc
+    obtain ⟨htx, hhw, hroom, hW, hK⟩ := Hc
     icases batchLocked_wf γ P b st' $$ Hl' with ⟨Hl', %Hwf'⟩
+    icases batchLocked_bkMW γ P b st' w X $$ [$Hl' $Hfk] with ⟨Hl', Hfk, %Hwx⟩
+    obtain ⟨rfl, rfl⟩ := Hwx
+    ihave Hfk := bkMW_fkOwn γ _ _ $$ Hfk
     have hp0' : 0 ≤ sint.Z st'.pend := Hwf'.2.2.2.2.1
     have hpend : sint.Z st'.pend + 1 < 2 ^ 58 := by push_cast at hroom; omega
     ihave #Hbk2 := meta_isBucket hID hName hSafe bk2 $$ [$Hsch $HM]
@@ -3043,8 +3211,18 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
         iprop(∃ f : Nat, fkOwn γ f) := by
       exact fkPut_of_fk γ _ _ (fkKey_meta hk)
     rw [hfk]
+    icases Hfp with ⟨%f', Hfp⟩
+    icases fkOwn_bkMW γ f' $$ Hfp with ⟨%w', %X', Hfp⟩
+    icases batchLocked_bkMW γ P b _ w' X' $$ [$Hl' $Hfp] with ⟨Hl', Hfp, %Hwx'⟩
+    obtain ⟨rfl, rfl⟩ := Hwx'
+    have e1 : fkVals (st'.put metaBI k v false).S = fkPutV (fkVals st'.S) k v :=
+      fkVals_putMeta st'.S k v hk
+    have e2 : (st'.put metaBI k v false).dl = st'.dl := rfl
+    rw [e1, e2]
     iapply HΦ'
-    iframe Hfp
+    isplitr [Hfp]
+    rotate_left
+    · iexact Hfp
     iunfold bkLockedC
     iexists (st'.put metaBI k v false)
     iframe Hl' Hwb'
@@ -3055,7 +3233,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
       rw [hsd, hC', hR']
       iexact Hth'
     · ipureintro
-      refine ⟨htx, hhw, ?_, wbNoKey_putHB HPw hHB hP.2.1 hW⟩
+      refine ⟨htx, hhw, ?_, wbNoKey_putHB HPw hHB hP.2.1 hW, keysKept_putMeta k v hK⟩
       show sint.Z (st'.pend + W64 1) + n + P.hookMax < _
       have : sint.Z (st'.pend + W64 1) = sint.Z st'.pend + 1 := by word
       push_cast at hroom
@@ -3064,7 +3242,7 @@ theorem bt_rangeC (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG
   iintro !> %n %Φ' !> ⟨HU, HW, HPk⟩ HΦ'
   iunfold bkLockedC at HU
   icases HU with ⟨%st', Hl', Hwb', #Hth', %Hc⟩
-  obtain ⟨htx, hhw, hroom, hW⟩ := Hc
+  obtain ⟨htx, hhw, hroom, hW, -⟩ := Hc
   have hr : sint.Z st'.pend + P.hookMax < 2 ^ 58 := by omega
   wp_apply ((backend.batchTxBuffered.Unlock.bare hUL) γ P W Pk b t st' iprop(True) hhw hr) $$ [$Hb $Ht $Hl' $Hwb' HW HPk]
   · ileft
@@ -3126,7 +3304,7 @@ theorem isKeyBackendG_of_backendC
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk (bkDel γ) W W iprop(True) Cmp Pk
         (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbPart γ (· = leaseName) r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (backend.srSlot b) (backend.srHeld b) iprop(∃ f : Nat, fkOwn γ f)
+        (bkBt b) (backend.srSlot b) (backend.srHeld b) (bkMW γ)
         (plHook γ func.nil) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hfv⟩
   iunfold isKeyBackendG
@@ -3308,7 +3486,7 @@ theorem isKeyBackendG_of_backend
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
         (bkView γ) (bkRTx γ P b) (wbTok γ) (bkNoCmp γ) keyPutOk Del W W iprop(True) Cmp Pk
         (bkHookIs γ) (bkReq γ P b) (fun r => iprop(rbPart γ (· = leaseName) r ∗ ⌜leaseParams P⌝))
-        (bkBt b) (MW := iprop(∃ f : Nat, fkOwn γ f)) (HN := plHook γ func.nil) := by
+        (bkBt b) (MW := bkMW γ) (HN := plHook γ func.nil) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe, #Hnd⟩
   ihave #HC := isKeyBackendG_of_backendC hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR
     hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe False False.elim False.elim False.elim hP
@@ -3385,10 +3563,10 @@ theorem storeBackendT_of_backend
     unfold storeBt kbBt; rw [hk]
   iunfold storeBackendT
   rw [hv, hrt, hwt, hpo, hw, hhf, hrq, hrb, hbt, hk]
-  simp only [kbWi, kbNoCmp, kbMW, kbSR, kbSRh, kbHookNil]
+  simp only [kbWi, kbNoCmp, kbMWv, kbSR, kbSRh, kbHookNil]
   -- (question 5's core stage) the slots of a store that does not compact are anything
   iapply isKeyBackendG_weaken (Del := delKey γ) (Del' := delKey γ) (Cmp := False)
-    (SR := iprop(True)) (SRh := iprop(True)) (MW := iprop(∃ f : Nat, fkOwn d.γB f))
+    (SR := iprop(True)) (SRh := iprop(True)) (MW := bkMW d.γB)
     (HN := plHook d.γB func.nil) (hC := hc)
   isplitl
   · iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
@@ -3517,7 +3695,7 @@ theorem storeBackendT_of_backendC
     unfold storeBt kbBt; rw [hk]
   have hsr : kbSR (GF := GF) γ.kb = srSlot d.be := by unfold kbSR; rw [hk]
   have hsrh : kbSRh (GF := GF) γ.kb = srHeld d.be := by unfold kbSRh; rw [hk]
-  have hmw : kbMW (GF := GF) γ.kb γ.bucket = iprop(∃ f : Nat, fkOwn d.γB f) := by unfold kbMW; rw [hk]
+  have hmw : kbMWv (GF := GF) γ.kb γ.bucket = bkMW d.γB := by unfold kbMWv; rw [hk]
   have hnc : kbNoCmp (GF := GF) γ.kb γ.bucket = bkNoCmp d.γB := by unfold kbNoCmp; rw [hk]
   have hwi : kbWi (GF := GF) γ.kb = lateW d.gx := by unfold kbWi; rw [hk]
   have hhn : kbHookNil (GF := GF) γ.kb = plHook d.γB func.nil := by unfold kbHookNil; rw [hk]

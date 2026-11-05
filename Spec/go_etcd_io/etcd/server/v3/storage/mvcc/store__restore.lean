@@ -76,7 +76,7 @@ abbrev mvcc.store.restore.spec : Prop :=
     (HF : val → IProp GF) (RT WT W Wi Dep NC : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
     (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR SRh : IProp GF)
     (dqb dqi : DFrac)
     (R : mvcc.Log) (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp)
     (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt) (Fin : IProp GF) (ns : Bool),

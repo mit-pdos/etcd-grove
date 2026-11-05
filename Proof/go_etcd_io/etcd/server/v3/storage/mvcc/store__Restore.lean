@@ -282,7 +282,7 @@ theorem mvcc.store.Restore.wp_proof
         (mvcc.storeW s (γ.withPhys p')) (mvcc.kbWi (γ.withPhys p').kb) iprop(True)
         (mvcc.kbRecs (γ.withPhys p').kb (γ.withPhys p').bucket r) (mvcc.storeCmp (γ.withPhys p'))
         (mvcc.storePutOk (γ.withPhys p')) (mvcc.storeRb (γ.withPhys p'))
-        (mvcc.storeBt (γ.withPhys p')) (mvcc.kbMW (γ.withPhys p').kb (γ.withPhys p').bucket)
+        (mvcc.storeBt (γ.withPhys p')) (mvcc.kbMWv (γ.withPhys p').kb (γ.withPhys p').bucket)
         (mvcc.kbSR (γ.withPhys p').kb) (mvcc.kbSRh (γ.withPhys p').kb) (DFrac.own 1) (DFrac.own 1) R
         (mvcc.restoreOnP0 s γ) (mvcc.restoreOnP s γ (r.fin.getD (W64 (-1))))
         (mvcc.restoreOnK s γ (r.fin.getD (W64 (-1))))

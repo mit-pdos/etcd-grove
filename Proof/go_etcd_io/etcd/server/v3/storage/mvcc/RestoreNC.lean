@@ -33,7 +33,7 @@ abbrev mvcc.store.restore.specNC : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF)
+    (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR SRh : IProp GF)
     (dqb dqi : DFrac)
     (R : mvcc.Log) (RevP RevK RevQ : IProp GF) (dqc : DFrac) (q1 q2 : Qp),
   mvcc.restoreLogOk R → q1 + q2 = 1 →
@@ -178,7 +178,7 @@ theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := G
     refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
   iapply (h s γ b le ti lg q iprop(True) (fun _ => iprop(True)) RT iprop(True) iprop(True) iprop(True)
       iprop(True) (mvcc.kbNoCmp γ.kb γ.bucket) True (fun _ _ _ _ => True) (fun _ => iprop(True))
-      (fun _ => iprop(True)) iprop(True) iprop(True) iprop(True)
+      (fun _ => iprop(True)) (fun _ _ => iprop(True)) iprop(True) iprop(True)
       dqb dqi R RevP RevP RevK RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty
       (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
       iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗

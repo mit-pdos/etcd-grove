@@ -234,6 +234,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       have hcM := mvcc.storeCmp_cmpM γ hcmp
       ihave #Hbk' := mvcc.isKeyBackendG_cmpOn b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
       ihave #Hsw := mvcc.mwSwap_of_physOk s γ hcM $$ HmwP
+      iunfold mvcc.kbMW at Hsw
       icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg⟩
       -- (M2, the storage side, Q1 (a)) the supply from the pre
       ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcM).1 $$ HsupM
@@ -284,7 +285,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
           -- (question 5's core stage) the store's swap of its lock's resource for the right
           iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
               (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-              (mvcc.kbMW γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
+              (mvcc.kbMWv γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post hrev0) $$ [HPre Hupd HRTok Hwt1]
           · rw [mvcc.lockArmS_some]
             iframe #
             iframe HPre HRTok Hwt1
@@ -330,7 +331,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
           icases Hbt' with ⟨-, -, -, -, -, -, -, -, -, #HLN⟩
           iapply (h3 bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.storePutOk γ)
               (mvcc.delKey γ) (mvcc.storeW s γ) Dep Locked Ph (mvcc.hookFn γ) (mvcc.storeRb γ)
-              (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbHookNil γ.kb) none rev Pre Q
+              (mvcc.kbMWv γ.kb γ.bucket) (mvcc.kbHookNil γ.kb) none rev Pre Q
               iprop(Post ∗ mvcc.kbHookNil γ.kb) hrev0) $$ [HPre Hupd HRTok Hwt1 Hnil]
           · rw [mvcc.lockArmS_none]
             iframe #
