@@ -95,8 +95,11 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
             (wb' s).length = 4096⌝ ∗
         wtxW K tx r false (X.clearPages pml) ∗
         ((⌜err = interface.nil⌝ ∗ ⌜(∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size) ∧
-            ∀ id pg, X.t.bufs !! id = some pg →
-              ∀ j < 1 + pageOverflow pg, wb' (id.toNat + j) = pageChunk pg j⌝ ∗
+            (∀ id pg, X.t.bufs !! id = some pg →
+              ∀ j < 1 + pageOverflow pg, wb' (id.toNat + j) = pageChunk pg j) ∧
+            (∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * s < m'.size →
+              m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length) ∧
+            (m'.size = w.m.size ∨ m'.size % 4096 = 0)⌝ ∗
           wdbLive K.B K.db K.p K.sp K.t0 tx ws
             (w.reslot m' (cmTail w (bufSlots X.t.bufs) l ++
                 wMinus w.W (bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l))

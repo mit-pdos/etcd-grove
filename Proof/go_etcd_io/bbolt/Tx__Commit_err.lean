@@ -46,6 +46,7 @@ public import Proof.go_etcd_io.bbolt.Commit.PubFacts
 public import Proof.go_etcd_io.bbolt.Commit.PubFl
 public import Proof.go_etcd_io.bbolt.Commit.FreeStep
 public import Proof.go_etcd_io.bbolt.Commit.FreeTail
+public import Proof.go_etcd_io.bbolt.Commit.FreeRunBufs
 public import Proof.go_etcd_io.bbolt.Commit.TailFWrap
 public import Proof.go_etcd_io.bbolt.Commit.TailFWrapFl
 public import Proof.go_etcd_io.bbolt.Commit.TailFAcc
@@ -383,6 +384,7 @@ theorem Tx.Commit_err.wp_proof'
   -- the writer's txid below `2 ^ 63` (the receipts' budget, maintainer 12, item 1)
   icases wdbW_txid_lt K tx _ (w.withFl fl1) $$ [Hwdb] with ⟨Hwdb, %Htxl⟩
   · iframe; iframe #
+  icases (cm_keep_pure (cm_wdbW_ok K tx _ (w.withFl fl1))) $$ Hwdb with ⟨Hwdb, %Hw1ok⟩
   have hopg : X1.t.mv.pgid'.toNat = w.C.hwm := by rw [hmv1, Hmeta.2.2.2.1]
   have htx63 : X1.t.mv.txid'.toNat < 2 ^ 63 := by
     rw [hmv1, ← Hf.1.1.2.2.2.1, show X.v.txid = w.C.txid by rw [Hwok.2.2]; rfl]
@@ -399,7 +401,7 @@ theorem Tx.Commit_err.wp_proof'
   · -- spilled
     subst He1
     obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hbufs2, htt2, hrl2e, hrl2, hmv2, hnp2,
-      hmc2⟩ := Hsp
+      hmc2, hsrc2⟩ := Hsp
     try wp_auto
     wp_apply time.wp_Since as %d -
     try wp_auto
@@ -521,13 +523,16 @@ theorem Tx.Commit_err.wp_proof'
         ihave Hw := Hwb $$ Hdbp
         have hid : pageId (w2.wb X2.t.mv.freelist'.toNat) = X2.t.mv.freelist'.toNat :=
           wb_pageId w2 _ Hw2ok.1 hf2
-        -- OPEN (U10n, reported): no dirty page lies in the freed page's run. `Bucket.spill.spec`'s
-        -- post does not say where the dirty pages come from; it should say that each dirty page's
-        -- slots were free at the spill's start or at or past the committed mark (the run is in no
-        -- list and below the mark: `flCurOK`)
+        -- the freed page's run holds no dirty page (`cm_bufs_off_flrun`: the spill's buffer
+        -- slots were free at its start or at or past the mark; the run, by the start's `flCurOK`,
+        -- neither). OPEN (U10o, reported): `Bucket.spill.spec`'s post does not say the synced
+        -- freelist page's first slot's bytes are kept (`w2.wb f = w.wb f`; true: `allocate`'s
+        -- `wdbRemap` keeps every `W` slot's bytes, and the run's slots are `W` slots, never pending)
+        have hwbf : w2.wb X2.t.mv.freelist'.toNat = (w.withFl fl1).wb X2.t.mv.freelist'.toNat :=
+          sorry
         have hbx : ∀ s ∈ bufSlots X2.t.bufs, ¬ (X2.t.mv.freelist'.toNat ≤ s ∧
             s < X2.t.mv.freelist'.toNat + (1 + pageOverflow (w2.wb X2.t.mv.freelist'.toNat))) :=
-          sorry
+          cm_bufs_off_flrun (w.withFl fl1) w2 _ _ Hw1ok.1 (by have h := hf2; rw [hC2] at h; exact h) hwbf hsrc2
         have hn : X2.t.mv.freelist'.toNat + (1 + pageOverflow (w2.wb X2.t.mv.freelist'.toNat)) <
             2 ^ 64 := by omega
         have hcov : ∀ s, X2.t.mv.freelist'.toNat ≤ s →
@@ -973,18 +978,15 @@ theorem Tx.Commit_err.wp_proof'
           · exact ((mem_cmTail _ _ _ s).1 h).2.1
         have hmax : m'.size ≤ max wg.m.size (mapLen wg.ms) := Hm'.2.1
         have hm63 : m'.size < 2 ^ 63 := by omega
-        have hwx : (∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
-            4096 * s < m'.size → m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length) ∧
-            (m'.size = wg.m.size ∨ m'.size % 4096 = 0) := by
-          -- OPEN (U10l): the file's partial last page after the write (maintainer 13's new `wdbOK`
-          -- clause): not in `Tx.write_ext.spec`'s post, which should say that a written slot
-          -- covers its part of the file and that a grown file ends on a page (reported)
-          sorry
-        have hpartT := cm_write_part' fr wg m' (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb'
-          (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb) Hwgok.1
-          (fun s hs => hwx.1 s (List.mem_append_right _ hs)) hwx.2 (wbUpd_cases _ _ _)
         icases Hres with (⟨%He4, %Hch, Hwl, HSB⟩ | ⟨%He4, #Hfe4, Hwl⟩)
         · subst He4
+          -- the file's partial last page after the write (`Tx.write_ext.spec`'s success facts)
+          have hwx : (∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
+              4096 * s < m'.size → m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length) ∧
+              (m'.size = wg.m.size ∨ m'.size % 4096 = 0) := Hch.2.2
+          have hpartT := cm_write_part' fr wg m' (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb'
+            (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb) Hwgok.1
+            (fun s hs => hwx.1 s (List.mem_append_right _ hs)) hwx.2 (wbUpd_cases _ _ _)
           obtain ⟨-, -, -, -, hroot, hflp, h2hwm, -, -, Pg, hpg⟩ := hpre'
           have hinSB : ∀ s ∈ (bufSlots Xt.t.bufs), 4096 * (s + 1) ≤ mapLen wg.ms ∧ 4096 * (s + 1) ≤ m'.size := by
             intro s hs
@@ -1014,7 +1016,7 @@ theorem Tx.Commit_err.wp_proof'
           obtain ⟨hcp, hokP⟩ := cm_pub_ok' fr T.cur Xt wg Xt.v.base (mapLen wg.ms) Pg m' m' wb'
             (cmPubPre_congr T.cur Xt wt wg Hgr.1 Hgr.2.1 hpre) hpg
             (by rw [htxt]; unfold WDb.wtxid; rw [Hgr.1]) Hwgok.1 hms hmapl
-            Hm' ⟨rfl, rfl⟩ hm63 Hch.1 Hch.2 hpartT
+            Hm' ⟨rfl, rfl⟩ hm63 Hch.1 Hch.2.1 hpartT
           unfold cmExcl
           icases Hex with ⟨Hrwl, Hcls, Hagr, Hstq⟩
           ihave Hstq : ghostVar K.B.st (1 : Qp).half.half (treeData ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C) $$ [Hstq]
@@ -1054,7 +1056,7 @@ theorem Tx.Commit_err.wp_proof'
               have hokF := (cm_pub_ok' fr T.cur Xt wg Xt.v.base (mapLen wg.ms) Pg m' m'' wb'
                 (cmPubPre_congr T.cur Xt wt wg Hgr.1 Hgr.2.1 hpre) hpg
                 (by rw [htxt]; unfold WDb.wtxid; rw [Hgr.1]) Hwgok.1 hms hmapl
-                Hm' Hm'' hm63 Hch.1 Hch.2 hpartT).2
+                Hm' Hm'' hm63 Hch.1 Hch.2.1 hpartT).2
               icases Hagr with ⟨%c5, Hagr⟩
               imod ghostVar_update (c5, TxX.wr ((Xt.clearPages pml).withMv (metaSummed Xt.t.mv)))
                 r.n.v _ $$ Hagr with Hagr
@@ -1091,7 +1093,7 @@ theorem Tx.Commit_err.wp_proof'
                 simp [slice.nil] at Hif <;>
                   exact Bool.false_ne_true (GoGlobalContext.intoVal_inj_bool Hif)
               · try (rw [hcht, if_pos (by simp [slice.nil])])
-                wp_bind (App (Val #_) (Val #()))
+                try wp_bind (App (Val #_) (Val #()))
                 iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil)))
                   $$ [err HtxId Hlgp]
                 · iapply Hdf $$ [] err HtxId Hlgp
@@ -1133,7 +1135,7 @@ theorem Tx.Commit_err.wp_proof'
               have hokF := (cm_pub_ok' fr T.cur Xt wg Xt.v.base (mapLen wg.ms) Pg m' m'' wb'
                 (cmPubPre_congr T.cur Xt wt wg Hgr.1 Hgr.2.1 hpre) hpg
                 (by rw [htxt]; unfold WDb.wtxid; rw [Hgr.1]) Hwgok.1 hms hmapl
-                Hm' Hm'' hm63 Hch.1 Hch.2 hpartT).2
+                Hm' Hm'' hm63 Hch.1 Hch.2.1 hpartT).2
               have hDn : treeData ((((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).reslot m'' ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).W ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).wb).withC (pubC ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C (Xt.clearPages pml).t.mv Pg)).C = T.cur := hcp.2.2.2.1
               have htx5 : ((Xt.clearPages pml).withMv (metaSummed Xt.t.mv)).t.mv.txid' = W64 ((((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).C.txid + 1 : Nat) : Int) := by
                 show (metaSummed Xt.t.mv).txid' = _
@@ -1251,6 +1253,13 @@ theorem Tx.Commit_err.wp_proof'
               irename Hfe5 => Hfe1
               cm_return
         · -- `write` failed: log, roll back, return the error
+          -- OPEN (U10o, reported): the file's partial last page after a failed write (`wdbOK`'s
+          -- clauses for the rolled-back writer side): `Tx.write_ext.spec`'s error post does not
+          -- give them (its success post does)
+          have hwx : (∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
+              4096 * s < m'.size → m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length) ∧
+              (m'.size = wg.m.size ∨ m'.size % 4096 = 0) :=
+            sorry
           obtain ⟨ii, rfl⟩ : ∃ ii, err4 = GoInterface.ok ii := by
             cases err4 with
             | nil => exact absurd rfl He4
