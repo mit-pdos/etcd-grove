@@ -916,6 +916,181 @@ premises with slots.
    not an extension of a fresh start. **When:** with the restart contracts' stage 2 (`walFiles`),
    the next change that would thread a start resource through the examples.
 
+#### Step 7 Scope (2026-11-05)
+
+Session etcd-grove-83, branch `hub-step7` (off `lean` fd99415136). Scope only; for the user via
+etcd-grove-82 (hard stop: the Main specs). The questions, with options and recommendations, are in
+the branch's `questions.md`: Q1 (the Mains), Q2 (the twins), Q3 (the premise lists), Q4 (the API
+module and an importable list), and D1-D5 (decided by the agent, pending the user).
+
+**Order assumption.** Written against `lean` plus the four branches landing first:
+- K6, `k8s3m`;
+- `lease-expiry`;
+- `r2b3`;
+- `auth-comp5`.
+
+Draft starts after K6 and lease-expiry land. It merges `lean` again before Prove.
+
+**The bundles** (sealed, `@[no_expose]`, in a new API module
+`Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/StartRes.lean`, owned by `etcdstart`;
+`import all` only by `etcdstart`'s own proofs, listed in `etc/import-all.txt`; Q4):
+
+```lean
+structure MemberAddrs where      -- the addresses the program listens on for this member
+  peer : Option GoString := none   -- the peer address, served with raft's HTTP protocol
+  client : Option GoString := none -- the client address
+abbrev memberWalDir (name : GoString) : GoString := config.walDirOf (name ++ go!".etcd") go!""
+
+-- what a Main takes per member: program start (startRights' items)
+@[no_expose] def memberStartRes (name : GoString) (a : MemberAddrs) : IProp GF :=
+  walDirFresh (memberWalDir name) ∗
+  (match a.peer with | some p => netAddrFree p ∗ httpProtoFree p | none => emp) ∗
+  (match a.client with | some c => netAddrFree c | none => emp)
+-- what a first-start starter takes: the same, the peer's protocol reserved at the cluster's network
+@[no_expose] def memberFreshRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF) : IProp GF :=
+  walDirFresh (memberWalDir name) ∗
+  (match a.peer with | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn)) | none => emp) ∗
+  (match a.client with | some c => netAddrFree c | none => emp)
+-- what a restart starter takes: what the stop gave back (restart/stop.spec's post)
+@[no_expose] def memberRestartRes (name : GoString) (a : MemberAddrs) (γn : NetNames GF)
+    (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
+  srvDiskImage γ ρ id (name ++ go!".etcd") ∗      -- holds srvFiles: walFiles, the backend's file
+  (match a.peer with | some p => netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn)) | none => emp) ∗
+  (match a.client with | some c => netAddrFree c | none => emp)
+```
+
+The addresses are optional (D3) because the closed theorems fix `As`:
+- the one-member examples' `HAs` names only the client address;
+- putget3's names only member 1's client.
+
+A bundle with a mandatory peer would change those theorems.
+
+**Laws** (introduction where callers hold the pieces; narrow eliminations into what the consumer
+takes, each returning the rest of the bundle at a smaller `MemberAddrs`, never the body restated):
+
+| law | statement (Lean-like) | used by |
+|---|---|---|
+| `memberStartRes_intro` | `(ms.flatMap addrsOf ++ Bs).Perm As → (ms.map (memberWalDir ∘ fst)).Perm Ds → ([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, walDirFresh d) ⊢ ([∗list] m ∈ ms, memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b` (D2); packaged as `etcd_adequate_members` in `etcdstart/Adequacy.lean` | each example's `Adequacy.lean`, once |
+| `alloc3` (restated) | takes `memberStartRes nᵢ ⟨some aᵢ, cᵢ⟩` for the three members, gives `netHttpOk γn idᵢ ∗ memberFreshRes nᵢ ⟨some aᵢ, cᵢ⟩ γn` (the network's reservation: the start slot into the starter's) | putget3, partition/`cluster3`, restart |
+| `memberStartRes_fresh` | `a.peer = none → memberStartRes n a ⊢ memberFreshRes n a γn` | the one-member Mains |
+| `memberStartRes_client`, `memberFreshRes_client` | `a.client = some c → B n a ⊢ netAddrFree c ∗ B n {a with client := none}` | the Mains (to `Serve`), `cluster3.StartMember`'s client listener, restart |
+| `memberFreshRes_peer`, `memberRestartRes_peer` | `a.peer = some p → B n a γn … ⊢ (netAddrFree p ∗ http.httpProtoOwn p (raftProto (netRh γn))) ∗ B n {a with peer := none} γn …` | `NewMember`, restart's `startMember` (its own peer listener) |
+| `memberFreshRes_boot` | `memberFreshRes n {} γn ⊢ ⌜cfg.DataDir' = n ++ go!".etcd" ∧ cfg.DedicatedWALDir' = go!""⌝ -∗ wal.bootRes cfg` (through `wal.bootRes_intro`) | `newServerMode`, `auth.startServer` |
+| `memberRestartRes_boot` | `memberRestartRes n {} γn γ ρ id ⊢ srvDiskImage γ ρ id (n ++ go!".etcd")`; it becomes the restart contract's input slot when the restart owner defines one (L3) | `BuildServer.specRestart`'s proof |
+| `memberRestartRes_intro` | from `stop`'s pieces (`srvDiskImage`, `netAddrFree p`, `httpProtoOwn p …`) | `restart/stop`'s proof, if its post returns the bundle (the restart owner's call) |
+
+A new start resource then changes:
+- a bundle's sealed body;
+- `startRights` (a trust-base change, a hard stop of its own);
+- the intro;
+- one elimination for its consumer.
+
+It does not change the examples. The restart's next resources (`walFiles`, the backend's file) are
+already inside `srvDiskImage` (R2b-3c's `srvFiles`), so they change no statement of this list.
+
+**The statements that change** (old → new; the full table, with every Main's address and name, is
+in `/shared/tmp/hub7-scope-statements.md`; `wd n` is `memberWalDir n`). TOP marks a statement that a
+closed theorem consumes: the user's hard stop.
+
+- **The one-member Mains (TOP, 12):** putget, watch, txnlin, lease, leasegrant, compactwatch,
+  compacted, cache, k8s/etcd3, k8s/compactor's `Main`, auth, and lease-expiry's `leaseexpiry`. Each
+  goes from `netAddrFree c ∗ … ∗ walDirFresh (config.walDirOf go!"X.etcd" go!"")` to
+  `etcdstart.memberStartRes go!"X" ⟨none, some c⟩`.
+- **putget3's Main (TOP):**
+  - old: `netAddrFree peerAddr₁..₃ ∗ netAddrFree clientAddr₁ ∗ httpProtoFree peerAddr₁..₃ ∗ … ∗
+    walDirFresh (wd name₁..₃)`;
+  - new: `memberStartRes name₁ ⟨some peerAddr₁, some clientAddr₁⟩ ∗ memberStartRes name₂ ⟨some
+    peerAddr₂, none⟩ ∗ memberStartRes name₃ ⟨some peerAddr₃, none⟩`.
+- **partition's `Main` and `MainWatch`, K6's `MainPartition` (TOP, 3):**
+  - old: 9 `netAddrFree` (peers, clients, bridges), 3 `httpProtoFree`, 3 `walDirFresh`;
+  - new: `cluster3.startRes cfg` (D1), or, without D1, the three members' `memberStartRes` with their
+    clients and the bridges' `netAddrFree` inline.
+- **restart's `runRes`** (a def, used by `Run.spec` and `Main.spec`, whose text does not change;
+  draft, no closed theorem): the same as partition without the bridges, as three `memberStartRes`.
+- **`etcdstart`'s starters:**
+  - `walDirFresh (wd name)` → `memberFreshRes name {} γn` in `newServer.spec`, `newServerMode.spec`,
+    `BuildServer.spec`/`specStop`, `StartServer`, `StartCompactingServer` and `StartPeriodicServer`;
+  - `netAddrFree peerAddr ∗ … ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗ walDirFresh (wd
+    name)` → `memberFreshRes name ⟨some peerAddr, none⟩ γn` in `NewMember` and `StartMember`;
+  - `srvDiskImage γ ρ id (name ++ go!".etcd")` → `memberRestartRes name {} γn γ ρ id` in
+    `BuildServer.specRestart`;
+  - `newServer.specCompact` is deleted (Q2: proved, used by nothing, not linked);
+  - `Serve` is unchanged: it is the consumer of the client address.
+- **The example-local starters:**
+  - `partition.startMember`, which is `cluster3.StartMember` after K6: `memberFreshRes name ⟨some
+    peerAddr, some client⟩ γn`;
+  - `partition.startCluster`/`cluster3.StartCluster`: `cluster3.startRes cfg`;
+  - `restart.startMember.spec`: `memberFreshRes name ⟨some peerAddr, none⟩ γn`;
+  - `restart.startMember.specRestart`: `memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id`;
+  - `restart.stop.spec`'s post: `memberRestartRes …`, with `stop`'s `dd` as `name ++ ".etcd"` (the
+    restart owner's call);
+  - `auth.startServer`: `memberFreshRes go!"authkv" {} γn`.
+- **Unchanged consumers:** `startBridge`/`cluster3.StartBridge`, `restartCheck`, `serveClient` and
+  `net.Listen` keep `netAddrFree addr`.
+
+Counts:
+- 16 Main statements, all TOP (14 on `lean`), and restart's draft `runRes`;
+- 11 `etcdstart` starter statements (10 changed, 1 deleted), 6 example-local ones, and `alloc3`;
+- no closed theorem's text and no trust-base item (`startRights`, `goose_adequacy_start`, the
+  `HAs`/`HDs` lists) changes.
+
+Spec files naming a start resource: 34 on `lean`, 5 after (the consumers).
+
+**How the four branches fit.**
+- **K6 (`k8s3m`), hub request H1:**
+  - `newServer` and `NewMember` take `(cmp : Bool)`: orthogonal to the bundle (other lines of the
+    same statements).
+  - It moves partition's starters into a new `examples/lib/cluster3` (`StartMember`, `StartCluster`,
+    `StartBridge`) and adds `MainPartition`. Those become the bundle's users: `cluster3.StartMember`
+    takes `memberFreshRes`, `cluster3.StartCluster` the cluster bundle (D1, which K6's `Config`
+    record makes natural).
+  - Its `cmp` on `newServer.spec` is what lets Q2 delete `specCompact` instead of merging it.
+  - If K6 lands after step 7, its moved files take the bundles when it merges `lean`. If it does not
+    land, D1 falls back to the inline bridges, and partition's own starters take the bundles.
+- **lease-expiry:**
+  - `lm : lease.Mode` on every starter and `memberBoot … (m := lm)`: other lines; no conflict in
+    meaning.
+  - Its `leaseTTLRowR s ps` post conjunct (H-a: "moves into the lease slot with step 7") moves by D4
+    (a defaulted `fresh` flag on `memberBuilt`/`memberUp`, false from `memberBuiltR`). Its new
+    `leaseexpiry` Main is one more one-member Main (TOP).
+  - If it lands after step 7, it takes the bundle in its Main and D4 waits for it.
+- **The restart (`r2b3`):**
+  - `srvStop.keep` is in `NewServer`'s post and in `BuildServer.specRestart`'s post existential; the
+    transport key `γk` goes inside `memberBuilt`'s `K` (its type gains a `GName`; no example passes
+    `K`). Both are posts or inside `memberBuilt`. Step 7 changes `specRestart`'s precondition only:
+    no textual overlap but the one statement.
+  - `memberRestartRes`'s contents are `stop.spec`'s post as it stands on `lean` and on `r2b3`
+    (`r2b3` does not change `stop`), and `srvDiskImage` already holds `walFiles` (`srvFiles`).
+  - The restart owner decides `stop`'s post (return the bundle or its pieces) and
+    `memberRestartRes_boot`'s target (the restart contract, L3). Their questions.md records no
+    decision against this.
+  - If `r2b3` changes `stop`'s post before step 7's Draft, the bundle follows it.
+- **auth stage 5 (`auth-comp5`):**
+  - `Serve.spec` merged across the modes, still taking `netAddrFree addr`: a consumer, unchanged by
+    step 7, so no conflict.
+  - The auth example's own starter (`auth.startServer`, which calls `NewServer` directly) takes
+    `memberFreshRes` and eliminates it with `memberFreshRes_boot`.
+- The k8s etcd3 sessions (7b, k8s-sorrys) edit `k8s/etcd3`'s `MainDefs`/`Main`. A conflict there is
+  one precondition line.
+
+**The build budget** (`etc/importers.py`, from the sources):
+- The step's edits: about 30 files, rebuilding 132 modules (20.6k lines; 28 `--leaves` targets) with
+  `StartRes` imported directly by the edited specs, or 193 modules (28.3k lines) through `Defs`
+  (166 importers). So Q4 imports it directly.
+- Today a new start resource edits the 33 example spec files, whose importers are 111 modules (17.6k
+  lines). After the step, a body change rebuilds `StartRes` and its `import all` users (about 4), and
+  the intro's change rebuilds `etcdstart/Adequacy`'s 49 importers.
+
+**Surprises found by the Scope.**
+- `newServer.specCompact` is dead: proved, used by nothing, not linked.
+- The closed theorems' address lists are not in member order and differ by example (one-member:
+  client only; putget3: one client). That forces optional addresses (D3) and a permutation intro
+  (D2).
+- `httpProtoFree` cannot go to the starters: the three peers' protocols are reserved together, to
+  form the network invariant (`netHttp_reserve3` in `alloc3`). So the start bundle (`Main`'s) and
+  the fresh bundle (the starters') are two predicates, with `alloc3` between them.
+- `restart.Main.spec`'s text does not change: its resources are behind `runRes`.
+
 ### The slot convention (approved 2026-11-03, step 1)
 
 Approved by the user as drafted (draft 1), with the WAL as its first slot.
