@@ -27,6 +27,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`ls.LeaseLeases(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
 (`leaseServerAt`), whose lease reads meet the contract `raftLeaseRead s E γl S A.revR`, with the

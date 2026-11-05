@@ -7,6 +7,9 @@ the readers' invariant's facts (`setsOk`, `histOk`). Pure. Lean-first (no Rocq c
 new snapshot is in the last one under the same id or in no snapshot yet, a lease of it has the
 items the new item map attaches to its id, and a lease not in it keeps its set (or is new, with
 the empty set).
+
+The reader-side laws a client's `Main` uses (the lease-expiry plan's E3, 2026-11-05), from the
+reader invariant's `histOnce` and `ttlTie`: `lessorAt_absent_stays`, `leaseTTLAt_ttl_agree`.
 -/
 module
 
@@ -473,6 +476,95 @@ theorem snapHas_lease {σ : LSnap} {id : w64} (h : (σ.1.lookup id).isSome) : sn
   Or.inl h
 
 end hist
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : Iris.HasLC} {GF : Iris.BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
+open Iris Iris.BI Iris.ProofMode
+
+/-- **An id absent after being live stays absent** (the lease-expiry plan's E3, 2026-11-05; for a
+client's `Main`): a snapshot at `i` with a lease of `id`, one at `k ≥ i` without, and one at
+`j ≥ k`: the last has none (`histOnce_absent`: each id is one lease over an interval of the
+history). -/
+theorem lessorAt_absent_stays (γl : GName) (i k j : Nat) (σ ρ τ : LSnap) (id : w64) (E : CoPset)
+    (hE : ↑lessorRdN ⊆ E) (hσ : (σ.1.lookup id).isSome) (hik : i ≤ k)
+    (hρ : ρ.1.lookup id = none) (hkj : k ≤ j) :
+    lessorRdInv (GF := GF) γl ∗ lessorAt γl i σ ∗ lessorAt γl k ρ ∗ lessorAt γl j τ ⊢
+      |={E}=> ⌜τ.1.lookup id = none⌝ := by
+  unfold lessorRdInv lessorAt
+  iintro ⟨⟨%γr, #Hp, #Hinv⟩, ⟨%γr1, #Hp1, #Hi⟩, ⟨%γr2, #Hp2, #Hk⟩, ⟨%γr3, #Hp3, #Hj⟩⟩
+  ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hp $Hp1]
+  ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
+  ihave %H3 := lessorPinR_agree γl γr γr3 $$ [$Hp $Hp3]
+  subst H1; subst H2; subst H3
+  iinv Hinv with Hb Hclose
+  iunfold lessorRdBody at Hb
+  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, Hids⟩
+  icases HU with ⟨%U, HU, %HUi⟩
+  ihave %Hhi := mono_list_auth_idx_lookup γr.1 _ hs i σ $$ Ha Hi
+  ihave %Hhk := mono_list_auth_idx_lookup γr.1 _ hs k ρ $$ Ha Hk
+  ihave %Hhj := mono_list_auth_idx_lookup γr.1 _ hs j τ $$ Ha Hj
+  imod Hclose $$ [Ha HS HU Hids] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS Htie Hids
+    isplitr
+    · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hmono
+    iexists U; iframe HU; ipureintro; exact HUi
+  imodintro
+  ipureintro
+  obtain ⟨l, hl⟩ := Option.isSome_iff_exists.1 hσ
+  exact histOnce_absent HUi.1 hik hkj Hhi hl Hhk hρ Hhj
+
+/-- **A lease's TTL in the history is its `ttl` field** (the lease-expiry plan's E3, 2026-11-05;
+for a client's `Main`): a lease `l` of `id` live from `m` (`Grant`'s) whose `ttl` field holds `t`,
+and a TTL `t'` of `id` at any index of the history (`leaseTTLAt`, `TimeToLive`'s): `t' = t`. The
+id is one lease throughout the history (`histOnce_lease`), and each snapshot's TTL its lease's
+read-only `ttl` field (`ttlTie`). -/
+theorem leaseTTLAt_ttl_agree (γl : GName) (m j : Nat) (id : w64) (l : Loc) (t t' : w64)
+    (E : CoPset) (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ leaseLiveFrom γl m id l ∗ lsF go!"ttl" l ↦□ t ∗
+      leaseTTLAt γl j id t' ⊢ |={E}=> ⌜t' = t⌝ := by
+  unfold lessorRdInv leaseLiveFrom leaseTTLAt lessorAt
+  iintro ⟨⟨%γr, #Hp, #Hinv⟩, ⟨%i, %σ, %Hi, %γr1, #Hp1, #Hidx⟩, #Ht, ⟨%τ, %Hτ, %γr2, #Hp2, #Hj⟩⟩
+  ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hp $Hp1]
+  ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
+  subst H1; subst H2
+  iinv Hinv with Hb Hclose
+  iunfold lessorRdBody at Hb
+  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, Hids⟩
+  icases HU with ⟨%U, HU, %HUi⟩
+  ihave %Hhi := mono_list_auth_idx_lookup γr.1 _ hs i σ $$ Ha Hidx
+  ihave %Hhj := mono_list_auth_idx_lookup γr.1 _ hs j τ $$ Ha Hj
+  ihave #Hτt := BigSepL.bigSepL_lookup (Φ := fun _ σ => ttlTie (GF := GF) σ) Hhj $$ Htie
+  iunfold ttlTie at Hτt
+  icases Hτt with ⟨%Hdom, #Hm⟩
+  obtain ⟨l', hl'⟩ : ∃ l', τ.1.lookup id = some l' :=
+    Option.isSome_iff_exists.1 ((Hdom id).1 (by rw [Hτ]; rfl))
+  have hll : l = l' := histOnce_lease HUi.1 Hhi Hi.2 Hhj hl'
+  subst hll
+  ihave ⟨%t'', %Ht'', #Ht2⟩ := BigSepM.bigSepM_lookup (Φ := fun i x => (iprop(∃ t' : w64,
+    ⌜τ.2.2.lookup i = some t'⌝ ∗ lsF go!"ttl" x ↦□ t') : IProp GF))
+    (show Iris.Std.PartialMap.get? τ.1 id = some l from hl') $$ Hm
+  icombine Ht Ht2 gives %Heq
+  imod Hclose $$ [Ha HS HU Hids] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS Htie Hids
+    isplitr
+    · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hmono
+    iexists U; iframe HU; ipureintro; exact HUi
+  imodintro
+  ipureintro
+  rw [Hτ] at Ht''
+  have h1 : t' = t'' := Option.some.inj Ht''
+  rw [h1]; exact Heq.symm
+
+end laws
 
 end lease
 end EtcdGrove

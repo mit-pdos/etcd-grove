@@ -30,7 +30,10 @@ with the token binding (`isReqAuthBound`), the auth info is moreover bound to th
 came from the TLS fallback (`ctxBoundOrTLS`; the auth plan's E1/E3zb). The binding is gated by the
 mode only because the server's store with auth off comes from `NewAuthStore`'s axiom, which names
 the unbound request side (the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec, candidate
-G of `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). -/
+G of `notes/decisions.md`, "`AuthInfoFromCtx`: one spec, the binding gated by the mode"). With auth
+on, the error is moreover `nil` or one of the auth package's error variables (`authErrVarIs`; the
+store returns only `ErrInvalidAuthToken`; the lease-expiry plan's E3, 2026-11-05, gated as the
+binding is). -/
 abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
   ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
@@ -41,7 +44,8 @@ abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ applyErrIs err ∗
-      □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) }}
+      □ (⌜M.isOn = true⌝ → ctxBoundOrTLS s M (GoInterface.ok ctx) a) ∗
+      □ (⌜M.isOn = true⌝ → authErrVarIs err) }}
 
 end spec
 

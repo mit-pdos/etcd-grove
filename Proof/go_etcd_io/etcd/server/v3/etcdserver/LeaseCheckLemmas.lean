@@ -69,6 +69,95 @@ theorem leaseCheckErrs [_root_.Perennial.errors.Assumptions]
   · iapply errVarLeaf_get
     iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HOR
 
+/-- **A leaf's walk** (pure): an error that is not `target`, whose `Is` answers `false` and which
+unwraps to nothing, under exact relations, does not answer `true`. -/
+theorem isWalk_leaf_not_true {I : GoInterfaceOk → Bool → Prop}
+    {U : GoInterfaceOk → List GoInterface → Prop} {target : GoInterface} {ii : GoInterfaceOk}
+    (hex : exactRels I U) (hI : I ii false) (hU : U ii []) (hne : GoInterface.ok ii ≠ target) :
+    ¬ _root_.Perennial.errors.IsWalk true I U target (GoInterface.ok ii) true := by
+  intro h
+  cases h with
+  | eq _ heq => exact hne heq
+  | is _ hI' => exact absurd (hex.1 _ _ _ hI hI') (by decide)
+  | hit _ _ hU' hcs => rw [hex.2 _ _ _ hU' hU] at hcs; cases hcs
+  | miss _ _ _ _ hes => cases hes
+
+/-- A leaf error's node of a walk tree: its `Is` answers `false`, its `Unwrap` nothing. -/
+theorem errorWalkNode_leaf (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+    (U : GoInterfaceOk → List GoInterface → Prop) (target : GoInterface) (ii : GoInterfaceOk)
+    (hl : errLeaf ii) :
+    _root_.Perennial.errors.errorWalkNode (GF := GF) S I U target ii ⊢ ⌜I ii false ∧ U ii []⌝ := by
+  obtain ⟨-, ⟨-, hU1, hU2⟩, hIs⟩ := hl
+  unfold _root_.Perennial.errors.errorWalkNode
+  simp only [hIs, hU1, hU2, ↓reduceIte]
+  iintro ⟨%h1, %h2⟩
+  ipureintro; exact ⟨h1, h2⟩
+
+/-- **`errors.Is` of a leaf error and another error is false** (`errIsTrue` refuted): Go's
+`errors.New` errors are leaves (`errLeaf`), so the walk answers `true` only at the target itself. -/
+theorem errIsTrue_leaf_ne (e1 e : GoInterfaceOk) (hl : errLeaf e1) (hne : e1 ≠ e) :
+    errIsTrue (GF := GF) (GoInterface.ok e1) (GoInterface.ok e) ⊢ False := by
+  iunfold errIsTrue
+  iintro ⟨%S, %I, %U, #Ht, %H⟩
+  obtain ⟨hS, hex, hw⟩ := H
+  ihave Hn := Ht $$ %e1 %hS
+  ihave %hIU := errorWalkNode_leaf S I U _ e1 hl $$ Hn
+  exfalso
+  exact isWalk_leaf_not_true hex hIU.1 hIU.2 (fun h => hne (GoInterface.ok.inj h)) hw
+
+/-- `errors.Is(nil, target)` is false for a non-nil target. -/
+theorem errIsTrue_nil (e : GoInterfaceOk) :
+    errIsTrue (GF := GF) GoInterface.nil (GoInterface.ok e) ⊢ False := by
+  iunfold errIsTrue
+  iintro ⟨%S, %I, %U, -, %H⟩
+  obtain ⟨-, -, hw⟩ := H
+  exfalso
+  cases hw with
+  | nilSkip _ h => cases h
+
+/-- **An auth package error is not `lease.ErrLeaseNotFound`, as `errors.Is` sees it** (the
+lease-expiry plan's E3): `nil` or one of the auth package's error variables (`authErrVarIs`), a leaf
+holding an error other than `ErrLeaseNotFound`'s (the variables' message cells: "lease not found" is
+none of the auth package's messages). -/
+theorem authErrVarIs_not_leaseNotFound (err : GoInterface) (e : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ authErrVarIs err ∗
+      globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e ∗
+      errIsTrue err (GoInterface.ok e) ⊢ False := by
+  iintro ⟨#Hap, #Hlp, #Hv, #He, Hi⟩
+  iunfold authErrVarIs at Hv
+  icases Hv with (%Hnil | ⟨%g, %e1, %Hg, #Hge, %He1⟩)
+  · subst Hnil; iapply errIsTrue_nil e $$ Hi
+  subst He1
+  ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hap
+  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #AUC⟩
+  ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hlp
+  icases Hli with ⟨-, -, -, -, -, -, -, #CLNF, -⟩
+  ihave #Hall := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound
+    go!"lease not found" go_etcd_io.etcd.server.v3.auth.authErrMsgs
+    (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CLNF AUC
+  ihave #Hap2 := Hall $$ %g %Hg.1
+  iunfold errVarApart at Hap2
+  icases Hap2 with ⟨%e2, %e3, #H2, #H3, %Hne⟩
+  icombine He H2 gives %h2
+  icombine Hge H3 gives %h3
+  cases h2; cases h3
+  iapply errIsTrue_leaf_ne e1 e Hg.2 (fun h => Hne h.symm) $$ Hi
+
+/-- `authErrVarIs_not_leaseNotFound` as the lease rows' not-found clause takes it: anything follows
+from `errors.Is(err, ErrLeaseNotFound)` of an auth package error. -/
+theorem authErrVarIs_leaseNotFound_absurd (err : GoInterface) (P : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ authErrVarIs err ⊢
+      □ (∀ e : GoInterfaceOk,
+        globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+        errIsTrue err (GoInterface.ok e) -∗ P) := by
+  iintro ⟨#Hap, #Hlp, #Hv⟩ !> %e #He Hi
+  iexfalso
+  iapply authErrVarIs_not_leaseNotFound err e $$ [$Hap $Hlp $Hv $He $Hi]
+
 open Iris.ProofMode in
 /-- `IsAuthEnabled` answers `true` (from an index) only in a mode that may refuse (the lease-grant
 plan's (F3): the lease checks fail only with auth on). -/

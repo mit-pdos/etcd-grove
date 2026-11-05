@@ -67,28 +67,34 @@ instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) :
     Persistent (etcdLeaseGrantAt addr E) := by
   unfold etcdLeaseGrantAt; infer_instance
 
-/-- **`LeaseGrant` registered at the live spec** (persistent; the lease-expiry plan's X2,
-2026-11-04): in the revocable lease mode, a grant's reply carries its lease live in the lessor
-`E.γ.leases`'s history (`etcdLeaseGrantSpecLive`); the listing is the lease reads' (no grant listed:
-the lessor may have revoked it). -/
-def etcdLeaseGrantLiveAt (addr : GoString) (E : apply.AEnv GF) : IProp GF :=
+/-- **`LeaseGrant`, `LeaseTimeToLive` and `LeaseLeases` registered at the revocable mode's specs**
+(persistent; the lease-expiry plan's X2, 2026-11-04, the reads since E3, 2026-11-05): a grant's reply
+carries its lease live in the lessor `E.γ.leases`'s history (`etcdLeaseGrantSpecLive`); a TTL
+reply, at the caller's lower bound of the history, the lease's TTL there or its absence, under the
+lease-TTL row of the server `s` (`etcdLeaseTTLSpecLive`); a listing, the lease ids of a snapshot no
+older than the caller's lower bound (`etcdLeaseLeasesSpecLive`: no grant listed, the lessor may have
+revoked it). -/
+def etcdLeaseGrantLiveAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-    (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases))
+      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive E.γ.leases s) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive E.γ.leases))
 
-instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (E : apply.AEnv GF) :
-    Persistent (etcdLeaseGrantLiveAt addr E) := by
+instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) :
+    Persistent (etcdLeaseGrantLiveAt addr s E) := by
   unfold etcdLeaseGrantLiveAt; infer_instance
 
 /-- **What a served member registers besides the lease reads, by its lease mode `m`** (the
 lease-expiry plan's X2, 2026-11-04): the KV calls in the mode `none` (a cluster that grants no
 lease); the grant and the listing at the lessor's history in the monotone mode (`etcdLeaseGrantAt`);
-the grant at the live spec in the revocable mode (`etcdLeaseGrantLiveAt`). -/
-def etcdLeaseServedAt (m : lease.Mode) (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames)
-    (γr : ReadNames) (cid mid : w64) : IProp GF :=
+the grant at the live spec and the reads at the server `s`'s lessor in the revocable mode
+(`etcdLeaseGrantLiveAt`). -/
+def etcdLeaseServedAt (m : lease.Mode) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : IProp GF :=
   match m with
   | .none => etcdKVAt addr E ρ γr cid mid
   | .mono => etcdLeaseGrantAt addr E
-  | .revocable => etcdLeaseGrantLiveAt addr E
+  | .revocable => etcdLeaseGrantLiveAt addr s E
 
 /-- **etcd's lease reads, and by the member's lease mode `m` the KV calls, the grant and the listing
 at the lessor's history, or the live grant, registered at the address** (see the file header;
@@ -108,7 +114,7 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
       |={⊤}=> grpcServeTok gs lis ∗ client.etcdLeaseReadAt addr ∗
-        etcdLeaseServedAt m addr E ρ γr cid mid := by
+        etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Htok, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
@@ -276,12 +282,12 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
       iintro ⟨Hlt, Hrd⟩
       iframe
     ihave #Hlms := client.etcd_leaseGrantLiveMethodsOk pl ql s C.A lcid lmid E γr il im iu
-        (by rw [HCA]; rfl) $$ []
+        (by rw [HCA]; rfl) Hoff $$ []
     · iframe #
     rw [HCA]
     imod (client.etcd_kv_started_with addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
         sregs 1 iprop(client.etcdGrpcSlot s E γr ∗ threadTok) threadTok
-        (client.etcdLeaseGrantLiveMethods ql E) (by iintro H; iexact H) (by iintro H; iexact H)
+        (client.etcdLeaseGrantLiveMethods ql s E) (by iintro H; iexact H) (by iintro H; iexact H)
         (by
           simp only [client.etcdKVMethods, client.etcdLeaseGrantLiveMethods, List.map,
             List.cons_append, List.nil_append]
@@ -304,6 +310,9 @@ theorem kv_lease_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
+    -- the lease reads at the old specs, from the revocable mode's, at the lower bound `0`
+    ihave #H1a := isGrpcRpc_leaseTTL_live_any addr E.γ.leases s 0 $$ [$Hlb0 $H1']
+    ihave #H2a := isGrpcRpc_leaseLeases_live_any addr E.γ.leases 0 $$ [$Hlb0 $H2']
     imodintro
     iframe Hserv
     simp only [etcdLeaseServedAt]

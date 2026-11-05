@@ -792,7 +792,7 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
     ihave #Hreqb := srvAuthBound_gate s E st $$ [$Hst $Hbd2]
     iapply (hAuth s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
     · iframe Hrd; iframe #
-    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb⟩
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb, -⟩
       iapply HΦ; iframe Hrd Ha Herr
       iintro !> -
       iapply Hb; ipureintro; exact hon

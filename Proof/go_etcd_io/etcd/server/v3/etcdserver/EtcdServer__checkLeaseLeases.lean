@@ -77,7 +77,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   ihave %HaOn := enabledVerdictFrom_true_isOn E.authMode n $$ Hen
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
-  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb, -⟩
   · iframe #
   (try wp_auto)
   rcases err with ei | _

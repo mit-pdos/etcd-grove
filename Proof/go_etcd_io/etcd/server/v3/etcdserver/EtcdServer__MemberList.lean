@@ -55,7 +55,7 @@ theorem EtcdServer.MemberList.wp_proof
   (try wp_auto)
   cases lin
   · (try wp_auto)
-    wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+    wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout, -⟩
     · iframe #
     ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
     iunfold authedOut at Hout
@@ -99,7 +99,7 @@ theorem EtcdServer.MemberList.wp_proof
     · (try wp_auto)
       ihave Hri' : (readIndexOk γr c ∗ readServed γr c g) $$ [Hri]
       · iapply Hri; ipureintro; rfl
-      wp_apply (hReq s E ctx cd) $$ [$HRD] as %err2 ⟨HRD, #Hout⟩
+      wp_apply (hReq s E ctx cd) $$ [$HRD] as %err2 ⟨HRD, #Hout, -⟩
       · iframe #
       ihave #Hout := authedOut_of_authedOutB _ _ _ _ $$ Hout
       iunfold authedOut at Hout

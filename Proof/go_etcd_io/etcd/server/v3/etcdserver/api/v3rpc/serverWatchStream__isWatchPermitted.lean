@@ -69,7 +69,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   wp_apply Hctx
   (try wp_auto)
   wp_apply (hAI r.srv.s _ r.srv.E.RD r.srv.E.authMode cca
-      r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+      r.ci r.cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb, -⟩
   · iframe #
     iunfold mvcc.txnCtx
     iright; iexact Hic

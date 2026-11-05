@@ -86,7 +86,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   subst Hsi
   (try wp_auto)
   -- `requireAuthInfo`: `nil` with auth off
-  wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae⟩
+  wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
   · iframe #; iframe Hrd
   iunfold authedOutB at Hae
   icases Hae with ⟨-, %Hoffe, -⟩
