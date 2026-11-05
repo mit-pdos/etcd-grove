@@ -1919,3 +1919,99 @@ member's minimum), so it goes in `nonissues/` if anywhere.
 module, so no importer rebuilds. Sorry delta: three new declarations with `sorry`, each marked
 `-- DRAFT S2–S4` and reached by no result, so `etc/tcb-report.py`'s results and collections are
 unchanged. No axiom.
+
+### Resumption after Q-S4 (A) and Q-S5, 2026-11-05: stopped again, at `Main`'s `minLeaseTTL ≥ 1`
+
+Option (A) and the `specSnapM` mode change are approved (`d8ee999600`). Before any Lean edit, I
+checked the one step (A) needs outside the lessor: `leaseexpiry/Main.lean:324` re-proved from the
+min-TTL law plus "`minLeaseTTL ≥ 1`, a fact of `Main`'s own configuration". **That fact is not
+derivable in the model, and every way to supply it changes a trusted or frozen statement that was
+not approved.** Nothing was applied: the lessor, `Recover.spec`, items 2–4 and `Main` are as on
+lean. Items 2–4's proofs go through `Recover`, whose proof needs the lessor change, whose law
+`Main` cannot use yet. So they wait too: applying them with `sorry`s would put statements behind
+`sorry`s that are unprovable under the current definitions.
+
+**Why `minLeaseTTL ≥ 1` has no source.**
+- `Main` holds the lessor's reader invariant, its own lease (`leaseLiveFrom`, its `ttl` field
+  `gt` with `1 ≤ gt` from `Grant`'s post) and the answer's `leaseTTLAt j id t'`. It does not see
+  the lessor's location or its `minLeaseTTL` field.
+- `lease.NewLessor.wp_proof` is an axiom whose post gives `lessorCfg lp`, i.e.
+  `∃ mt, lF "minLeaseTTL" lp ↦□ mt`. `mt` is not tied to `cfg.MinLeaseTTL'`.
+- `NewServer` computes `MinLeaseTTL` as `int64(math.Ceil(minTTL.Seconds()))`. In the model
+  `int64(f)` steps to an uninterpreted `float64ToInt64 f` (`Float64ToInt64Semantics`,
+  `FloatToInt.lean`), so `MinLeaseTTL ≥ 1` is unprovable whatever `Main`'s `ElectionTicks` and
+  `TickMs` are.
+- A `sorry` on "this lessor's `minLeaseTTL ≥ 1`" would be false in some models of the hypothesis
+  class (where `float64ToInt64` gives `0`). The rules exclude it.
+
+**The routes, each beyond what is approved:**
+- (A-i) *Configuration route* (the brief's intent). Three changes:
+  - `NewLessor`'s axiom post names the configured minimum, `lF "minLeaseTTL" lp ↦□
+    cfg.MinLeaseTTL'`. It is true of Go (`newLessor` sets `minLeaseTTL: cfg.MinLeaseTTL`), but it
+    strengthens a trusted statement: it needs the `axiom` skill and the user.
+  - A trusted float fact: `int64(math.Ceil(d.Seconds())) ≥ 1` for a duration `d > 0`. This needs
+    `Float64ToInt64Semantics` and `math.Ceil` interpreted, a Perennial change to propose on its own.
+    Or else a local trust-boundary fact, which grows the trust base.
+  - The lease slot (`lease.srvInv`) carries "the lessor's minimum is `mt`, `1 ≤ mt`" to `Main`.
+    That slot sits in `NewServer.specG`'s post, so it is a hub change.
+- (A-ii) *Request route* (no floats). The history records, per id, at least the TTL its grant
+  requested. That holds of Go: a leader's `Grant` writes `max(req, its minLeaseTTL) ≥ req`, and
+  `Recover` only raises. `Main` then gets `t' ≥ 1` from its request `1`. It needs the image's and
+  `srvRest`'s record TTLs bounded below by the table's requested TTL. The table already stores
+  `(g.id, g.ttl)`, so the change is `∃ f, (∀ (id, r) ∈ table, r ≤ f id) ∧ …` in `bkRestAtL` and
+  `srvRestAt`, both frozen (#7's `imageAt` via `bkRestAtL`; lease-grant's `srvRest`). It also
+  needs the lessor to keep a ghost map of requested TTLs (`Grant` writes it, `Recover`'s premise
+  bounds the records by it). The map's allocation is a ghost-only change to `NewLessor`'s axiom
+  post, as E3 (c)'s `leaseEver` was.
+- (A-iii) *Per-snapshot lower bound kept by `Main`'s own lease*. Not true: the recovered
+  `max(rec, mt)` has no relation to the follower's earlier `max(req, mt)` unless `rec ≥ req`,
+  which is (A-ii)'s image fact.
+
+Recommendation: **(A-ii)**. It is true of Go without float reasoning. Its trusted part is
+ghost-only (the requested-TTL map, as `leaseEver`'s was), and its frozen part is a weakening of
+nothing: it adds a true conjunct to what the sender already proves (`Grant`'s `grantTTL` is
+`≥ req`, `RestLease.lean`). (A-i) is closer to the approved wording but needs a float fact Perennial
+cannot state today.
+
+### The open points: proposed resolutions (not applied; each the smallest true change)
+
+- **The monotone ever-set** (`Recover`'s premise needs `U ⊆ L` when `mono`). Add to
+  `lessorRdBody`, mode-free, the converse of `histIn`: `histCover hs U : ∀ u ∈ U, everIn hs u`
+  (every id the lessor ever had appears in some snapshot).
+  - `Grant` keeps it: its id is in the new snapshot. `Recover` keeps it: its ids are in the
+    recovered snapshot. The others leave `U`.
+  - With `histMono`, in the monotone mode an id that appears once is live in the last snapshot, so
+    the law `lessorRdInv γl ∗ lessorModeIs γl true ∗ leaseEver γl U ∗ leaseOwn γl L I ⊢ |={E}=>
+    ⌜∀ u ∈ U, u ∈ L⌝` gives `Recover`'s premise.
+  - Internal to the lessor. `NewLessor`'s initial `U = []` makes it vacuous there, so the
+    axiom's post is unchanged in substance. No change to `srvEverOk`, which frozen specs carry
+    through `srvRest`.
+- **`ltHalf`'s order** (`Recover`'s `leaseOwn γl (recs.map (·.1))` is in key order; `srvRestAt`
+  and `leasesLive` hold `ltHalf` at the table's log order; `ltHalf_agree` is list equality).
+  - The lessor's lists are order-free in Go: `leaseMap` is a map, and `lessorMu`, `leaseClosers`
+    and `lessorAuth` read `L` through membership only. So the smallest change is in `Recover.spec`:
+    a caller-chosen order `Lr` with `Lr.Perm (recs.map (·.1))`, the post at `Lr`
+    (`leaseOwn γl Lr ∅`, `leaseRevokers γl Lr`). The walk picks the snapshot table's ids. One
+    frozen spec, one caller.
+  - **This is a change to `Recover.spec` beyond the approved premise: it needs approval.**
+  - The alternative, `srvRestAt` holding `∃ T', T'.Perm T ∗ ltHalf E T'`, is internal to
+    `InvRest`. But it reaches every grant and revoke lemma that threads `ltHalf` (`InvRest.lean`
+    838–1027, `ApplyCmpArm.lean`, `ApplyRec.lean`, `applierV3backend__LeaseRevoke.lean`) and
+    changes `srvRest`'s meaning under frozen specs. Larger.
+- **`snapRecv_image(On)` at the KV names' mode**: internal lemmas only.
+  - `restoreLogOk_kvRaftOf` (`KVModelRestore.lean:280`, today at `plainLogM cmp .none`)
+    generalizes to `plainLogM cmp lm`: a grant leaves the KV log, and a revocation is `revokeLog`
+    of no attached key, the identity (X7's lease-free-keys fact).
+  - `bkRestAt_of_L` is replaced by `imageLeasesAt_of_bkRestAtL` (proved, `ImageLeases.lean`), and
+    the other buckets come from `restLeasesWith_lookup_other`. So the plain-image lemmas
+    `image_bootBuckets`, `image_membBuckets`, `clusterImageOk_of_bkRestAt` and
+    `restModel_bk_of_bkRestAt` get `bkRestAtL` twins whose lease arm is the emptied one, as `hA'`
+    already states.
+  - `SnapImageFacts(On).hlease` becomes `imageLeasesAt γr d.P D A'`. The mode-on receiver
+    (`snapRecv_imageOn`) needs no lease case if `plainLogOn` admits no grant: to check in Prove.
+  - No frozen statement changes.
+
+### Build and sorries
+No Lean change in this round: the build is unchanged, and the DRAFT sorries are still the three
+of `ImageLeases.lean` (`imageLeasesAt_recs`, `appliedTable_mono_sub`,
+`appliedTable_granted_live`), reached by no result.
