@@ -352,7 +352,7 @@ def restoreViewR (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (n
 /-- At no record and the whole bucket it is today's `restoreView`. -/
 theorem restoreViewR_empty (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log) :
     restoreView (GF := GF) b γ RT q R ⊢
-      restoreViewR b γ RT q (decide (R = [])) (bucketMap ([[], []] ++ R)) (kbNoCmp γ.kb γ.bucket)
+      restoreViewR b γ RT q (decide (R = [])) (bucketMap ([[], []] ++ R)) (kbNoCmpF γ.kb γ.bucket)
         CmpRecs.empty := by
   iintro Hview
   iunfold restoreView at Hview

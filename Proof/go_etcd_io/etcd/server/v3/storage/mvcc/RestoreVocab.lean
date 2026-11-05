@@ -90,30 +90,32 @@ compaction-key write right (`kbRecs_MW`: a compacting store's `mwInv` keeps it, 
 resumed `updateCompactRev` writes through it) and, held unmoved, the license to read the records
 (`metaReadSpecR`). mvcc's assumed backend has no records vocabulary: only `r = empty`. -/
 def mvcc.kbRecs (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) : IProp GF :=
-  if r = mvcc.CmpRecs.empty then mvcc.kbNoCmp kb γb
+  if r = mvcc.CmpRecs.empty then mvcc.kbNoCmpF kb γb
   else match kb with
     | none => iprop(False)
-    | some d => iprop(∃ n : Nat, backend.fkOwn d.γB n ∗
+    | some d => iprop(∃ n : Nat, backend.fkFlag d.γB n ∗
         backend.fkOpenD d.γB n (mvcc.recBytes r.fin, mvcc.recBytes r.sched))
 
-/-- No record is today's no-compaction token. -/
+/-- No record is the no-compaction flag (`kbNoCmpF`; M3, 2026-11-06: the flag alone, the values
+being the store's tracked compaction's). -/
 theorem mvcc.kbRecs_empty (kb : Option mvcc.KBReal) (γb : GName) :
-    mvcc.kbRecs (GF := GF) kb γb mvcc.CmpRecs.empty = mvcc.kbNoCmp kb γb := by
+    mvcc.kbRecs (GF := GF) kb γb mvcc.CmpRecs.empty = mvcc.kbNoCmpF kb γb := by
   unfold mvcc.kbRecs; simp
 
-/-- **The records are the write right** (`restore` gives it back as `kbMW`, as today's
-`kbNoCmp_MW`). -/
-theorem mvcc.kbRecs_MW (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) :
-    mvcc.kbRecs (GF := GF) kb γb r ⊢ mvcc.kbMW kb γb := by
+/-- **The records are the write right's flag part** (`restore` gives it back for the write right's
+invariant, `mwInv`; M3, 2026-11-06: until then the whole right `kbMW`, whose values' halves are now
+the tracked compaction's). -/
+theorem mvcc.kbRecs_MWf (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) :
+    mvcc.kbRecs (GF := GF) kb γb r ⊢ mvcc.kbMWf kb γb := by
   unfold mvcc.kbRecs
   split
-  · exact mvcc.kbNoCmp_MW kb γb
+  · exact mvcc.kbNoCmpF_MWf kb γb
   · cases kb with
     | none => iintro H; iexfalso; iexact H
     | some d =>
-      unfold mvcc.kbMW mvcc.kbMWv
+      simp only [mvcc.kbMWf, backend.fkFlag]
       iintro ⟨%n, H, -⟩
-      iapply mvcc.fkOwn_bkMW $$ H
+      iexists n; iexact H
 
 /-- **`storeBackendT` with the records**: `NC` the records' `kbRecs … r`. -/
 def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
@@ -167,13 +169,17 @@ theorem mvcc.restoreRegM_fix (d' : mvcc.KBReal) (γ : mvcc.StoreNames) :
 pre's `kbViewC (some d') γb' 1 (bucketMap L') ∗ kbNoCmp (some d') γb'`): off, the whole `Key`
 bucket at the log `L'` and no record; on, a view of the image's entries `ents` of the job's shape
 at the records' revision `r.crev`, the records with the write right (`kbRecs`: the client's half of
-the compaction-key flag, which the walk holds from `OpenBackend`'s `fkCl`), the compaction keys
-well formed (`fkVM`, the merged ghost), and the image's pure facts. -/
+the compaction-key flag, which the walk holds from `OpenBackend`'s `fkCl`) and, with them (M3,
+2026-11-06), the client's halves of the compaction keys' values at the records' bytes and of the
+deleted entries at none (`kbVals`, `fkCl_exact`: what `Restore`'s tracked compaction pins), the
+compaction keys well formed (`fkVM`, the merged ghost), and the image's pure facts. -/
 def mvcc.restoreImageM (d' : mvcc.KBReal) (γb' : GName) (L : mvcc.Log) (r : mvcc.CmpRecs) :
     IProp GF :=
   if d'.cm then
     iprop(∃ ents : List mvcc.KvEnt, mvcc.kbViewC (some d') γb' 1 (mvcc.bucketOfEnts ents) ∗
-      mvcc.kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
+      (mvcc.kbRecs (some d') γb' r ∗
+        mvcc.kbVals (some d') (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∅) ∗
+      backend.fkVM d'.γB true ∗
       ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents⌝)
   else iprop(mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap L) ∗ mvcc.kbNoCmp (some d') γb' ∗
     ⌜r = mvcc.CmpRecs.empty⌝)

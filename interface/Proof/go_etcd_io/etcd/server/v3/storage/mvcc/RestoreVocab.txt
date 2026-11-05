@@ -4,14 +4,14 @@
 
 theorem mvcc.nJobRd_off (kb : Option mvcc.KBReal) (h : ¬mvcc.kbCmpM kb) : mvcc.nJobRd kb = 0
 
+theorem mvcc.kbRecs_MWf (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) : mvcc.kbRecs kb
+    γb r ⊢ mvcc.kbMWf kb γb
+
 theorem mvcc.kbNoDelOff_off (kb : Option mvcc.KBReal) (h : ¬mvcc.kbCmpM kb) : mvcc.kbNoDelOff kb =
     mvcc.kbNoDel kb
 
 def backend.fkVM (γ : backend.BNames) (w : Bool) : IProp GF :=
   iprop(∃ n v, backend.fkVD γ w n v)
-
-theorem mvcc.kbRecs_MW (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) : mvcc.kbRecs kb γb
-    r ⊢ mvcc.kbMW kb γb
 
 def mvcc.restoreRcptM (d' : mvcc.KBReal) (L : mvcc.Log) : IProp GF :=
   if d'.cm = true then ⧖(mvcc.logCh L) else iprop(True)
@@ -32,14 +32,14 @@ theorem mvcc.compactJobResM_off (kb : Option mvcc.KBReal) (h : ¬mvcc.kbCmpM kb)
     mvcc.compactJobResM kb = iprop(True)
 
 theorem mvcc.kbRecs_empty (kb : Option mvcc.KBReal) (γb : GName) : mvcc.kbRecs kb γb
-    mvcc.CmpRecs.empty = mvcc.kbNoCmp kb γb
+    mvcc.CmpRecs.empty = mvcc.kbNoCmpF kb γb
 
 def mvcc.restoreImageM (d' : mvcc.KBReal) (γb' : GName) (L : mvcc.Log) (r : mvcc.CmpRecs) : IProp GF
     :=
   if d'.cm = true then
     iprop(∃ ents,
         mvcc.kbViewC (some d') γb' 1 (mvcc.bucketOfEnts ents) ∗
-          mvcc.kbRecs (some d') γb' r ∗
+          (mvcc.kbRecs (some d') γb' r ∗ mvcc.kbVals (some d') (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∅) ∗
             backend.fkVM d'.γB true ∗ ⌜mvcc.recsOk L r ∧ mvcc.recsPos r ∧ mvcc.entsCutAt L r.crev ents⌝)
   else iprop(mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap L) ∗ mvcc.kbNoCmp (some d') γb' ∗ ⌜r = mvcc.CmpRecs.empty⌝)
 
@@ -88,11 +88,11 @@ theorem mvcc.restoreRcptM_on (d' : mvcc.KBReal) (L : mvcc.Log) (h : d'.cm = true
     mvcc.restoreRcptM d' L ⊣⊢ ⧖(mvcc.logCh L)
 
 def mvcc.kbRecs (kb : Option mvcc.KBReal) (γb : GName) (r : mvcc.CmpRecs) : IProp GF :=
-  if r = mvcc.CmpRecs.empty then mvcc.kbNoCmp kb γb
+  if r = mvcc.CmpRecs.empty then mvcc.kbNoCmpF kb γb
   else
     match kb with
     | none => iprop(False)
-    | some d => iprop(∃ n, backend.fkOwn d.γB n ∗ backend.fkOpenD d.γB n (mvcc.recBytes r.fin, mvcc.recBytes r.sched))
+    | some d => iprop(∃ n, backend.fkFlag d.γB n ∗ backend.fkOpenD d.γB n (mvcc.recBytes r.fin, mvcc.recBytes r.sched))
 
 def mvcc.restoreFixM (d' : mvcc.KBReal) (γ : mvcc.StoreNames) : IProp GF :=
   if d'.cm = true then mvcc.storeDlReg d'.γB γ.idx else iprop(True)

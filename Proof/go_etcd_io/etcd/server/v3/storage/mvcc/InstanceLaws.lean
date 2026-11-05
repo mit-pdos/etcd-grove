@@ -41,6 +41,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 @[simp] theorem kbNoCmp_some (d : KBReal) (γb : GName) :
     kbNoCmp (GF := GF) (some d) γb = bkNoCmp d.γB := rfl
 
+/-- The no-compaction flag at the real backend (`bkNoCmpF`). -/
+@[simp] theorem kbNoCmpF_some (d : KBReal) (γb : GName) :
+    kbNoCmpF (GF := GF) (some d) γb = bkNoCmpF d.γB := rfl
+
 /-- The right to register the store's lock resource at the real backend (`lateReg`). -/
 @[simp] theorem kbRegRight_some (d : KBReal) : kbRegRight (GF := GF) (some d) = lateReg d.gx := rfl
 

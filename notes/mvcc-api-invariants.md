@@ -1378,7 +1378,7 @@ client chose etcd's backend), `B.γB`/`B.b` → `d.γB`/`d.be` through the bridg
    introduction law in the contract's terms).
 - TCB: no axiom or `sorry` added or removed.
 
-## Hand-off: M3, `NewStore`'s values through `restore` (2026-11-06, begun)
+## Hand-off: M3, `NewStore`'s values through `restore` (2026-11-06; done, see the next section)
 
 **Done**: the backend's flag alone, `backend.fkFlag γ n` (the client's half of the compaction-key flag,
 without `fkOwn`'s values' halves), `fkOwn_flag`, and its read laws `fkRd_absF`, `fkRd_openF`
@@ -1407,3 +1407,36 @@ may need its rewrites re-checked; no statement outside mvcc changes.
 
 **Left after it**: `New.spec`/`NewStore.spec` over `mvccStorageFor` (the previous hand-off's item 1),
 `store.Restore`'s tracking, `KV.Restore`/`KV.Close`, phase B.
+
+## Hand-off: M3, `NewStore`'s tracked compaction proved (2026-11-06)
+
+**Done** (no axiom; `cmpTrack_new_M1`'s `NewStore` use gone, its `store.Restore` use left; no frozen
+statement changed): the design of the previous section, as written.
+- `bkNoCmp γB` exact (`fkFlag γB 0 ∗ fkdOwn γB (none, none) ∗ dlsOwn γB ∅`; `bkNoCmp_of_fkCl`,
+  `bkNoCmp_fkV_of_fkCl` from `fkCl`'s exact body, `fkVals_of_noCmp`); `bkNoCmpF`/`kbNoCmpF` (the flag
+  alone), `kbNoCmp_split` (`kbNoCmp ⊣⊢ kbNoCmpF ∗ kbVals kb (none, none) ∅`), `kbNoCmpF_MWf`,
+  `kbNoCmpF_some`.
+- The `NC` of `storeBackend`, `storeBackendT`, `restoreView`'s `keyCleanRead`, `RestoreNC`'s
+  specs, `RestoreOff`'s, `RestoreMoves.restoreView_of`, `RestoreRecs`' `restoreViewR` and the bridge's
+  read clauses (`BackendBridge`, `Results.mvcc_backend_bridge`) is `bkNoCmpF`/`kbNoCmpF`; `bkRecs`/`kbRecs`
+  are flag-only (`kbRecs_empty : … = kbNoCmpF …`; `kbRecs_MW` → `kbRecs_MWf`, into `mwInv`'s flag).
+- `restoreImageM`'s on-arm: `(kbRecs … r ∗ kbVals (some d') (recBytes r.fin, recBytes r.sched) ∅)`, grouped
+  so that `etcdserver/SnapRestoreM.restoreImageM_fkV`'s pattern is unchanged (`restoreImageM_on`,
+  `restoreImageM_of_openOn` from `fkCl`'s exact body). `store.Restore` binds the values (`Hvals`, unused
+  until its tracking) and, off, splits the token for `restore` and rejoins it for the writer's loan.
+- `NewStore`: `kbNoCmp` split at the start; `cmpTrack_fresh` (with `cmpOk_fresh`) makes the tracked
+  compaction from the values when compacting and gives them back (`⌜¬ kbCmpM⌝ -∗ kbVals …`) for the
+  writer's loan otherwise; `restore` takes the flag; `kbNoCmpF_MWf` for `mwInv`.
+
+**Statements changed outside mvcc's own uses** (none in other packages): `kbRecs_empty`'s right side
+(`kbNoCmpF`), `keyCleanRead_of_backend`'s and the bridge lemmas' `NC` (`bkNoCmpF`), `kbRecs_MW` renamed
+`kbRecs_MWf` (flag part), `restoreImageM`'s body. `SnapRestoreM` uses the first two and the body through
+`restoreImageM_fkV`; its rewrite chain is consistent with them, **but it could not be built**: its
+imports (`SnapApplyDefs` → `SnapApply`, `InvWatchBuilt`, `InvServe`) fail on the server's own pending
+migration (`apply.AEnv.s`, `MvccName.kb`, `txn.isKV`), not on these changes. `mvcc.Results` likewise
+waits on them.
+
+**Left**: `New.spec`/`NewStore.spec` over `mvccStorageFor` (internal `NewStore` to return the API's
+client parts, `absNames_alloc_store`'s; `mvccLeases` defined; `mvccOpen`'s reader token by
+`storeReader_retire`; `Perm := True`); `store.Restore`'s tracking (`Hvals`, the record at `r`, the cursor
+at `(r.finRev, ⟨0, 0⟩)`), `KV.Restore`/`KV.Close`; phase B.

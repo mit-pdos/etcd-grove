@@ -79,5 +79,14 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
                   (intoVal cfg))
                 {{ Φ }}
 
+theorem mvcc.cmpTrack_fresh [go_etcd_io.etcd.cache.v3.Assumptions] (γ : mvcc.StoreNames) :
+    mvcc.kbVals γ.kb (none, none) ∅ ∗ ghostVar γ.rcv (Qp.half 1) (-1) ∗ ghostVar γ.jc (Qp.half 1)
+    (-1, { main := W64 0, sub := W64 0 }) ∗ monoNatAuthOwn γ.rcl 1 (mvcc.crevN (-1)) ⊢ mvcc.cmpTrack
+    γ [[], []] ∅ { fin := none, sched := none } ∗ (⌜¬mvcc.kbCmpM γ.kb⌝ -∗ mvcc.kbVals γ.kb (none,
+    none) ∅)
+
+theorem mvcc.cmpOk_fresh : mvcc.snap.cmpOk [[], []] ∅ ∅ { fin := none, sched := none } (-1, { main
+    := W64 0, sub := W64 0 })
+
 theorem mvcc.slot_take [go_etcd_io.etcd.cache.v3.Assumptions] (Q : IProp GF) : ([∗list] _x ∈
     List.replicate mvcc.nReaders (), Q) ⊢ Q ∗ (Q -∗ [∗list] _x ∈ List.replicate mvcc.nReaders (), Q)

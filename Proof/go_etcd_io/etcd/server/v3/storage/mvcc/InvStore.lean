@@ -625,8 +625,18 @@ last two conjuncts, `Image.lean`; D22 S-j). Defined since the backend-compaction
 (2026-10-29; until then opaque, and the axiom `kbNoCmp_metaNone` gave its reads): the client's half
 of the backend's compaction-key flag at `0` (`backend.fkOwn`), which the backend's constructor gives
 over such data (`bkNoCmp_of_fkCl`), and under which a held reader's state has neither key
-(`backend.fkRd_abs`). -/
-def bkNoCmp (γB : backend.BNames) : IProp GF := backend.fkOwn γB 0
+(`backend.fkRd_abs`). (M3, 2026-11-06) At known values: the flag at `0` (`backend.fkFlag`) with the
+client's halves of the compaction keys' values at none and of the deleted entries at none (the
+open's, `backend.fkCl_exact`), so that `NewStore` deposits the values in its tracked compaction
+and lends `restore` the flag alone (`bkNoCmpF`). -/
+def bkNoCmp (γB : backend.BNames) : IProp GF :=
+  iprop(backend.fkFlag γB 0 ∗ backend.fkdOwn γB (none, none) ∗
+    backend.dlsOwn γB (∅ : GMap (GoString × GoString) GoString))
+
+/-- **The no-compaction flag alone** (M3, 2026-11-06): the client's half of the compaction-key flag
+at `0`, what a reader of the compaction keys needs (`backend.fkRd_absF`): the contract's and
+`restore`'s token (`NC`), the values being the store's tracked compaction's. -/
+def bkNoCmpF (γB : backend.BNames) : IProp GF := backend.fkFlag γB 0
 
 /-- **mvcc's assumed backend's compaction-key flag** (`kb = none`, the store's own ghost map
 `γb`; question 5's wiring, (iii), 2026-10-29): opaque, the assumed backend's counterpart of the real
@@ -644,6 +654,13 @@ def kbNoCmp (kb : Option KBReal) (γb : GName) : IProp GF :=
   match kb with
   | none => viewNoCmp γb
   | some d => bkNoCmp d.γB
+
+/-- **The no-compaction flag alone in the instance `kb`** (M3, 2026-11-06; `bkNoCmpF`): the
+contract's and `restore`'s token. mvcc's assumed backend's is its whole token (`viewNoCmp`). -/
+def kbNoCmpF (kb : Option KBReal) (γb : GName) : IProp GF :=
+  match kb with
+  | none => viewNoCmp γb
+  | some d => bkNoCmpF d.γB
 
 /-- **The real backend's write right at its values** (the contract's `MW w X`; the snapshot
 image's (b), 2026-11-05): the client's half of the compaction-key flag (at some value) with the
@@ -744,9 +761,40 @@ theorem kbNoCmp_MW (kb : Option KBReal) (γb : GName) :
     iexists (none, none), ∅, 0
     iexact H
   | some d =>
-    unfold kbNoCmp kbMW kbMWv bkNoCmp
+    simp only [kbNoCmp, kbMW, kbMWv, bkNoCmp, bkMW, backend.fkFlag]
+    iintro ⟨H1, H2, H3⟩
+    iexists _, _
+    iframe H2 H3
+    iexists 0; iexact H1
+
+/-- **The no-compaction token is its flag and its values** (M3, 2026-11-06): the flag alone
+(`kbNoCmpF`, the contract's and `restore`'s) and the values' halves at none (`kbVals`). -/
+theorem kbNoCmp_split (kb : Option KBReal) (γb : GName) :
+    kbNoCmp (GF := GF) kb γb ⊣⊢ kbNoCmpF kb γb ∗ kbVals kb (none, none) ∅ := by
+  cases kb with
+  | none =>
+    unfold kbNoCmp kbNoCmpF kbVals
+    constructor
+    · iintro H; iframe H
+    · iintro ⟨H, -⟩; iexact H
+  | some d =>
+    simp only [kbNoCmp, kbNoCmpF, kbVals, bkNoCmp, bkNoCmpF]
+    constructor
+    · iintro ⟨H1, H2, H3⟩; iframe H1 H2 H3
+    · iintro ⟨H1, H2, H3⟩; iframe H1 H2 H3
+
+/-- The flag alone is the write right's flag part (what `store.restore` gives back, `mwInv`'s). -/
+theorem kbNoCmpF_MWf (kb : Option KBReal) (γb : GName) :
+    kbNoCmpF (GF := GF) kb γb ⊢ kbMWf kb γb := by
+  cases kb with
+  | none =>
+    unfold kbNoCmpF kbMWf viewNoCmp
     iintro H
-    iapply fkOwn_bkMW $$ H
+    iexists 0; iexact H
+  | some d =>
+    simp only [kbNoCmpF, kbMWf, bkNoCmpF, backend.fkFlag]
+    iintro H
+    iexists 0; iexact H
 
 /-! ## The backend's contract -/
 
@@ -5136,7 +5184,7 @@ store's contract no longer fixes the hook, which the etcd server installs after 
 with some deposit witness. -/
 def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
   iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ)
-    (kbNoCmp γ.kb γ.bucket) (storePutOk γ)
+    (kbNoCmpF γ.kb γ.bucket) (storePutOk γ)
     (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
     (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNilAt γ.kb))
 
@@ -5150,7 +5198,7 @@ instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (
 first `Unlock` deposits it). What `store.Restore` takes of its new backend: it never locks the new
 backend's batch transaction, so it has no witness of its own. -/
 def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
-  isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmp γ.kb γ.bucket) (storePutOk γ)
+  isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (kbNoCmpF γ.kb γ.bucket) (storePutOk γ)
     (delKey γ) (storeW s γ)
     (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ) (storeReq γ) (storeRb γ) (storeBt γ)
     (kbSR γ.kb) (kbSRh γ.kb) (kbMWv γ.kb γ.bucket) (kbHookNilAt γ.kb)
@@ -6264,7 +6312,7 @@ def restoreViewOut (γ : StoreNames) (q : Qp) (R : Log) : IProp GF :=
 /-- `restoreViewOut` with, for a bucket with data, the backend's clean-view `ReadTx`. -/
 def restoreView (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log) : IProp GF :=
   iprop(restoreViewOut γ q R ∗
-    (if R = [] then iprop(True) else keyCleanRead b (bucketViewC γ) RT (kbNoCmp γ.kb γ.bucket)))
+    (if R = [] then iprop(True) else keyCleanRead b (bucketViewC γ) RT (kbNoCmpF γ.kb γ.bucket)))
 
 /-- Two parts summing to one make the whole points-to. -/
 theorem typedPointsto_parts {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) (q1 q2 : Qp)

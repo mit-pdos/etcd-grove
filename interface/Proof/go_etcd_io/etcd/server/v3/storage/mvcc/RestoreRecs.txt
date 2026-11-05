@@ -168,7 +168,7 @@ theorem mvcc.keyReadSnapR_empty (View : Qp → mvcc.Bucket → IProp GF) (RT NC 
 
 theorem mvcc.restoreViewR_empty (b : GoInterface) (γ : mvcc.StoreNames) (RT : IProp GF) (q : Qp) (R
     : mvcc.Log) : mvcc.restoreView b γ RT q R ⊢ mvcc.restoreViewR b γ RT q (decide (R = []))
-    (mvcc.bucketMap ([[], []] ++ R)) (mvcc.kbNoCmp γ.kb γ.bucket) mvcc.CmpRecs.empty
+    (mvcc.bucketMap ([[], []] ++ R)) (mvcc.kbNoCmpF γ.kb γ.bucket) mvcc.CmpRecs.empty
 
 theorem mvcc.keyRangeSpec_frame (rt : GoInterfaceOk) (m : mvcc.Bucket) (Rd : GoSlice → GoString →
     IProp GF) (Tok X : IProp GF) : □ mvcc.keyRangeSpec rt m Rd Tok ⊢ □ mvcc.keyRangeSpec rt m Rd

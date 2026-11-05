@@ -58,7 +58,7 @@ abbrev mvcc.watchableStore.Restore.specOff : Prop :=
         mvcc.storeBackendT b' st (γ.st.withPhys p) P') ∗
       (∀ p : mvcc.PhysNames, ⌜p.bucket = γb' ∧ p.kb = some d'⌝ →
         mvcc.keyCleanRead b' (mvcc.bucketViewC (γ.st.withPhys p)) (mvcc.storeRT (γ.st.withPhys p))
-          (mvcc.kbNoCmp (γ.st.withPhys p).kb (γ.st.withPhys p).bucket)) ∗
+          (mvcc.kbNoCmpF (γ.st.withPhys p).kb (γ.st.withPhys p).bucket)) ∗
       mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbNoDel (some d') ∗ mvcc.kbRegRight (some d') ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}

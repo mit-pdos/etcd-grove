@@ -9,8 +9,8 @@ theorem mvcc.rt_metaRecs [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     mvcc.CmpRecs) (n : Nat) (hpos : ∀ (kn : GoString) (x : w64), mvcc.metaCompactKey kn → r.at kn =
     some x → 0 ≤ sint.Z x) : isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
-    (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ backend.fkOwn γ n ∗
-    backend.fkOpen γ n (mvcc.recsVals r) ⊢ backend.fkOwn γ n ∗ mvcc.metaReadSpecR { ty :=
+    (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ backend.fkFlag γ n ∗
+    backend.fkOpen γ n (mvcc.recsVals r) ⊢ backend.fkFlag γ n ∗ mvcc.metaReadSpecR { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } (some r)
     (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
 
@@ -32,7 +32,8 @@ theorem mvcc.rt_lockedR [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) true
 
 def mvcc.bkRecs (γ : backend.BNames) (r : mvcc.CmpRecs) : IProp GF :=
-  if r = mvcc.CmpRecs.empty then mvcc.bkNoCmp γ else iprop(∃ n, backend.fkOwn γ n ∗ backend.fkOpen γ n (mvcc.recsVals r))
+  if r = mvcc.CmpRecs.empty then mvcc.bkNoCmpF γ
+  else iprop(∃ n, backend.fkFlag γ n ∗ backend.fkOpen γ n (mvcc.recsVals r))
 
 theorem mvcc.bridge_rt_cleanR [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
     (hRT : backend.backend.ReadTx.spec) (hRL : backend.readTx.RLock.spec) (hRU :

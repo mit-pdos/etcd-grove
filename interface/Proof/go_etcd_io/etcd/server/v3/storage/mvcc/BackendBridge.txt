@@ -72,7 +72,7 @@ theorem mvcc.bridge_rt [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ mvcc.keySized γ
     P b ∗ backend.dlNoDel γ ⊢ □ ∀ q m, □ ∀ Φ, mvcc.bkView γ q m ∗ mvcc.bkRTx γ P b -∗ (▷ ∀ rt,
-    (mvcc.bkView γ q m ∗ ∃ L, L ∗ mvcc.keyReadSnap (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmp
+    (mvcc.bkView γ q m ∗ ∃ L, L ∗ mvcc.keyReadSnap (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmpF
     γ) Del true rt m L) -∗ Φ (intoVal (GoInterface.ok rt))) -∗ WP ((intoVal (methods
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType go!"ReadTx" (intoVal b)))
     (intoVal ())) {{ Φ }}
@@ -193,8 +193,8 @@ theorem mvcc.rt_metaNone [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     (γ : backend.BNames) (W Pk : IProp GF) (b rt rtx : Loc) (rv : backend.RView) (qo : Qp) :
     isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
-    (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ mvcc.bkNoCmp γ ⊢
-    mvcc.bkNoCmp γ ∗ mvcc.metaReadSpec { ty :=
+    (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ mvcc.bkNoCmpF γ ⊢
+    mvcc.bkNoCmpF γ ∗ mvcc.metaReadSpec { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } true
     (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
 
@@ -464,7 +464,7 @@ theorem mvcc.bridge_crtC [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ⊢ □ ∀ q m, □ ∀ Φ,
     mvcc.bkView γ q m ∗ mvcc.bkRTx γ P b -∗ (▷ ∀ rt, (mvcc.bkView γ q m ∗ ∃ L, L ∗ mvcc.keyReadSnap
-    (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmp γ) (mvcc.bkDel γ) false rt m L) -∗ Φ (intoVal
+    (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmpF γ) (mvcc.bkDel γ) false rt m L) -∗ Φ (intoVal
     (GoInterface.ok rt))) -∗ WP ((intoVal (methods
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType go!"ConcurrentReadTx" (intoVal
     b))) (intoVal ())) {{ Φ }}
@@ -502,7 +502,7 @@ theorem mvcc.keyCleanRead_of_backend [schema_sem :
     (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗ backend.dlNoDel d.γB ⊢ ∀ γ, ⌜γ.bucket
     = γb ∧ γ.kb = some d⌝ → mvcc.keyCleanRead (interface.mkOk
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal d.be))
-    (mvcc.bucketViewC γ) (mvcc.storeRT γ) (mvcc.kbNoCmp γ.kb γ.bucket)
+    (mvcc.bucketViewC γ) (mvcc.storeRT γ) (mvcc.kbNoCmpF γ.kb γ.bucket)
 
 theorem mvcc.sessPuts_put {P : backend.BParams} (hPw : P.Wf) {st : backend.BSess} {l : mvcc.Puts} {k
     v : GoString} (hs : mvcc.sessPuts P st l) (hl : List.length l < 2 ^ 56) : mvcc.sessPuts P
@@ -647,7 +647,7 @@ theorem mvcc.bridge_rtC [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ mvcc.keySized γ
     P b ⊢ □ ∀ q m, □ ∀ Φ, mvcc.bkView γ q m ∗ mvcc.bkRTx γ P b -∗ (▷ ∀ rt, (mvcc.bkView γ q m ∗ ∃ L,
-    L ∗ mvcc.keyReadSnap (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmp γ) (mvcc.bkDel γ) true rt
+    L ∗ mvcc.keyReadSnap (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmpF γ) (mvcc.bkDel γ) true rt
     m L) -∗ Φ (intoVal (GoInterface.ok rt))) -∗ WP ((intoVal (methods
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType go!"ReadTx" (intoVal b)))
     (intoVal ())) {{ Φ }}
@@ -757,7 +757,7 @@ theorem mvcc.isKeyBackendG_of_backend [schema_sem :
     ∗ isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗
     mvcc.keySized γ P b ∗ backend.dlNoDel γ ⊢ mvcc.isKeyBackendG (interface.mkOk
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal b)) (mvcc.bkView γ)
-    (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk Del W W iprop(True) Cmp Pk
+    (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmpF γ) mvcc.keyPutOk Del W W iprop(True) Cmp Pk
     (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) (fun r => iprop(backend.rbPart γ (fun x => x =
     mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) iprop(True) iprop(True) (mvcc.bkMW γ)
     fun dq => backend.plHookAt γ dq func.nil
@@ -805,7 +805,7 @@ theorem mvcc.isKeyBackendG_of_backendC [schema_sem :
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ mvcc.keySized γ
     P b ∗ □ (⌜Cmp⌝ -∗ backend.fkV γ true) ⊢ mvcc.isKeyBackendG (interface.mkOk
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal b)) (mvcc.bkView γ)
-    (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk (mvcc.bkDel γ) W W
+    (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmpF γ) mvcc.keyPutOk (mvcc.bkDel γ) W W
     iprop(True) Cmp Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) (fun r => iprop(backend.rbPart γ (fun x
     => x = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) (backend.srSlot b)
     (backend.srHeld b) (mvcc.bkMW γ) fun dq => backend.plHookAt γ dq func.nil
@@ -863,7 +863,7 @@ theorem mvcc.bridge_rt_clean [schema_sem : go_etcd_io.etcd.server.v3.storage.sch
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ mvcc.keySized γ
     P b ∗ backend.dlNoDel γ ⊢ □ ∀ q m, □ ∀ Φ, mvcc.bkViewC γ q m ∗ mvcc.bkRTx γ P b -∗ (▷ ∀ rt,
     (mvcc.bkViewC γ q m ∗ ∃ L, L ∗ mvcc.keyReadSnapC (mvcc.bkViewC γ) (mvcc.bkRTx γ P b)
-    (mvcc.bkNoCmp γ) rt m L) -∗ Φ (intoVal (GoInterface.ok rt))) -∗ WP ((intoVal (methods
+    (mvcc.bkNoCmpF γ) rt m L) -∗ Φ (intoVal (GoInterface.ok rt))) -∗ WP ((intoVal (methods
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType go!"ReadTx" (intoVal b)))
     (intoVal ())) {{ Φ }}
 
@@ -901,7 +901,7 @@ theorem mvcc.rt_locked [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     rv.snd := by simp) : isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ mvcc.keySized γ P b ∗ backend.fkRd γ P rv ⊢
-    mvcc.keyReadLocked (mvcc.bkRTx γ P b) (mvcc.bkNoCmp γ) true { ty :=
+    mvcc.keyReadLocked (mvcc.bkRTx γ P b) (mvcc.bkNoCmpF γ) true { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
     (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) cl
 
@@ -931,7 +931,7 @@ theorem mvcc.bridge_crt [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ backend.dlNoDel
     γ ⊢ □ ∀ q m, □ ∀ Φ, mvcc.bkView γ q m ∗ mvcc.bkRTx γ P b -∗ (▷ ∀ rt, (mvcc.bkView γ q m ∗ ∃ L, L
-    ∗ mvcc.keyReadSnap (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmp γ) Del false rt m L) -∗ Φ
+    ∗ mvcc.keyReadSnap (mvcc.bkView γ) (mvcc.bkRTx γ P b) (mvcc.bkNoCmpF γ) Del false rt m L) -∗ Φ
     (intoVal (GoInterface.ok rt))) -∗ WP ((intoVal (methods
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType go!"ConcurrentReadTx" (intoVal
     b))) (intoVal ())) {{ Φ }}

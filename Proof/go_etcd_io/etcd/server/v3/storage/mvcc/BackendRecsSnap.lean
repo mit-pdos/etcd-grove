@@ -89,13 +89,13 @@ theorem rt_lockedRS [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Ass
     $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe $Hfk]
   by_cases he : r = CmpRecs.empty
   · subst he
-    have hnc : bkRecs (GF := GF) γ CmpRecs.empty = bkNoCmp γ := by unfold bkRecs; simp
+    have hnc : bkRecs (GF := GF) γ CmpRecs.empty = bkNoCmpF γ := by unfold bkRecs; simp
     rw [hnc, keyReadLockedR_empty]
     iexact Hl
-  · iapply keyReadLockedR_of_locked (NC' := bkNoCmp γ)
+  · iapply keyReadLockedR_of_locked (NC' := bkNoCmpF γ)
     iframe Hl
     iintro !> Hnc
-    have hnc : bkRecs (GF := GF) γ r = iprop(∃ n : Nat, fkOwn γ n ∗ fkOpen γ n (recsVals r)) := by
+    have hnc : bkRecs (GF := GF) γ r = iprop(∃ n : Nat, fkFlag γ n ∗ fkOpen γ n (recsVals r)) := by
       unfold bkRecs; simp [he]
     rw [hnc]
     icases Hnc with ⟨%n, Ho, #Hop⟩
@@ -234,7 +234,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
   rw [hrc]
   rw [hv, hrt] at *
   iapply isKeyBackendGR_of_G _ (bkView d.γB) (bkRTx d.γB d.P d.be) (storeWT γ) (bkRecs d.γB r)
-    (kbNoCmp γ.kb γ.bucket)
+    (kbNoCmpF γ.kb γ.bucket)
   iframe HT
   iexact HR
 

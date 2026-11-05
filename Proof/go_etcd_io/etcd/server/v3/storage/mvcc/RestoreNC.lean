@@ -39,9 +39,9 @@ abbrev mvcc.store.restore.specNC : Prop :=
   mvcc.restoreLogOk R → q1 + q2 = 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
-      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT (mvcc.kbNoCmp γ.kb γ.bucket) PutOk (mvcc.delKey γ) W Wi Dep
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT (mvcc.kbNoCmpF γ.kb γ.bucket) PutOk (mvcc.delKey γ) W Wi Dep
         Cmp P HF (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) ∗
-      RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗ mvcc.restoreView b γ RT q R ∗
+      RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗ mvcc.restoreView b γ RT q R ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
@@ -57,7 +57,7 @@ abbrev mvcc.store.restore.specNC : Prop :=
             mvcc.idxReader ti γ.idx) ∗
           ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+  {{ RET #GoInterface.nil; RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -75,8 +75,8 @@ abbrev mvcc.store.restore.specNCc : Prop :=
   mvcc.restoreLogOk R → q1 + q2 = 1 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
-      RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗ mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗
-      mvcc.keyCleanRead b (mvcc.bucketViewC γ) RT (mvcc.kbNoCmp γ.kb γ.bucket) ∗
+      RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗ mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗
+      mvcc.keyCleanRead b (mvcc.bucketViewC γ) RT (mvcc.kbNoCmpF γ.kb γ.bucket) ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx (mvcc.evsOf (([[], []] ++ R) ++ [[]])).length ∗
@@ -92,7 +92,7 @@ abbrev mvcc.store.restore.specNCc : Prop :=
             mvcc.idxReader ti γ.idx) ∗
           ⧖ (mvcc.logCh ([[], []] ++ R))) RevQ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
-  {{ RET #GoInterface.nil; RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+  {{ RET #GoInterface.nil; RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗
       ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
       s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -112,10 +112,10 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
   have hrec : mvcc.recsOk ([[], []] ++ R) mvcc.CmpRecs.empty := by
     unfold mvcc.recsOk mvcc.CmpRecs.empty
     refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
-  iapply (h s γ b le ti lg q P HF RT WT W Wi Dep (mvcc.kbNoCmp γ.kb γ.bucket) Cmp PutOk Rb Bt MW SR SRh
+  iapply (h s γ b le ti lg q P HF RT WT W Wi Dep (mvcc.kbNoCmpF γ.kb γ.bucket) Cmp PutOk Rb Bt MW SR SRh
       dqb dqi R RevP RevP RevK RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty
       (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
-      iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+      iprop(RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗
         ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
         s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
         s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -135,8 +135,8 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
     ihave Hk : mvcc.resumeK s mvcc.CmpRecs.empty
         (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R)
           (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) mvcc.CmpRecs.empty RT
-          (mvcc.kbNoCmp γ.kb γ.bucket) RevQ)
-        iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+          (mvcc.kbNoCmpF γ.kb γ.bucket) RevQ)
+        iprop(RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗
           ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
           s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
           s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -151,7 +151,7 @@ theorem mvcc.store.restore.specNC_of_spec (h : mvcc.store.restore.spec (GF := GF
       iframe H1 H2 H3
     -- the branch flag, as the restored log's emptiness
     ihave #Hbk' : (if R = [] then mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT
-        (mvcc.kbNoCmp γ.kb γ.bucket) PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF
+        (mvcc.kbNoCmpF γ.kb γ.bucket) PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF
         (Rb := Rb) (Bt := Bt) (SR := SR) (SRh := SRh) (MW := MW) else iprop(True)) $$ []
     · split
       · iexact Hbk
@@ -177,11 +177,11 @@ theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := G
     unfold mvcc.recsOk mvcc.CmpRecs.empty
     refine ⟨?_, ?_⟩ <;> intro x hx <;> cases hx
   iapply (h s γ b le ti lg q iprop(True) (fun _ => iprop(True)) RT iprop(True) iprop(True) iprop(True)
-      iprop(True) (mvcc.kbNoCmp γ.kb γ.bucket) True (fun _ _ _ _ => True) (fun _ => iprop(True))
+      iprop(True) (mvcc.kbNoCmpF γ.kb γ.bucket) True (fun _ _ _ _ => True) (fun _ => iprop(True))
       (fun _ => iprop(True)) (fun _ _ => iprop(True)) iprop(True) iprop(True)
       dqb dqi R RevP RevP RevK RevQ dqc DFrac.discard q1 q2 mvcc.CmpRecs.empty
       (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length)
-      iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+      iprop(RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗
         ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
         s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
         s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗
@@ -194,7 +194,7 @@ theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := G
     simp only [Bool.false_eq_true, ↓reduceIte]
     ihave Hig := (mvcc.idxLockG_at _ _).1 $$ Hig
     ihave Hview : mvcc.restoreViewR (GF := GF) b γ RT q false (mvcc.bucketMap ([[], []] ++ R))
-        (mvcc.kbNoCmp γ.kb γ.bucket) mvcc.CmpRecs.empty $$ [Hview]
+        (mvcc.kbNoCmpF γ.kb γ.bucket) mvcc.CmpRecs.empty $$ [Hview]
     · iunfold mvcc.restoreViewR
       simp only [Bool.false_eq_true, ↓reduceIte]
       rw [mvcc.keyCleanReadR_empty]
@@ -206,8 +206,8 @@ theorem mvcc.store.restore.specNCc_of_spec (h : mvcc.store.restore.spec (GF := G
     ihave Hk : mvcc.resumeK s mvcc.CmpRecs.empty
         (mvcc.restoreDone s b ti q1 dqb dqi dqc ([[], []] ++ R)
           (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) mvcc.CmpRecs.empty RT
-          (mvcc.kbNoCmp γ.kb γ.bucket) RevQ)
-        iprop(RT ∗ mvcc.kbNoCmp γ.kb γ.bucket ∗
+          (mvcc.kbNoCmpF γ.kb γ.bucket) RevQ)
+        iprop(RT ∗ mvcc.kbNoCmpF γ.kb γ.bucket ∗
           ⧗ (mvcc.logCh ([[], []] ++ R)) ∗ RevQ ∗
           s.[store, go!"currentRev"] ↦{DFrac.own q1} (W64 ((([[], []] ++ R).length : Int) - 1) : w64) ∗
           s.[store, go!"compactMainRev"] ↦{dqc} (W64 (-1) : w64) ∗

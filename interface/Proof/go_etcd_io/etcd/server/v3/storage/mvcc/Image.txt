@@ -14,6 +14,9 @@ def mvcc.keyImage (log : mvcc.Log) (D : backend.Data) : Prop :=
     backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none ∧
       backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none
 
+theorem mvcc.fkVals_of_noCmp {D : backend.Data} (h : mvcc.noCmpData D) : backend.fkVals D = (none,
+    none)
+
 theorem mvcc.dget_of_keyView {P : backend.BParams} (hP : mvcc.bridgeParams P) {m : mvcc.Bucket} {D :
     backend.Data} (h : mvcc.keyView (backend.sData P D) m) (k : GoString) : backend.dget D
     mvcc.keyName k = m !! k

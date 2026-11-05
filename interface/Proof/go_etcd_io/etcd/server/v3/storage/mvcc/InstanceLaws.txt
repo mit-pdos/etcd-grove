@@ -22,6 +22,9 @@ theorem mvcc.kbWTSupplyM_alloc (d : mvcc.KBReal) (n : Nat) (h : receiptBound GF 
 theorem mvcc.kbView_some (d : mvcc.KBReal) (γb : GName) (q : Qp) (m : mvcc.Bucket) : mvcc.kbView
     (some d) γb q m = mvcc.bkView d.γB q m
 
+theorem mvcc.kbNoCmpF_some (d : mvcc.KBReal) (γb : GName) : mvcc.kbNoCmpF (some d) γb =
+    mvcc.bkNoCmpF d.γB
+
 theorem mvcc.kbWT_some (d : mvcc.KBReal) : mvcc.kbWT (some d) = backend.wbTok d.γB
 
 def mvcc.wtSupplyN : Namespace :=

@@ -70,7 +70,7 @@ theorem mvcc.restore_finish (s : Loc) (γ : mvcc.StoreNames) (o' : mvcc.StoreObj
 
 theorem mvcc.restoreView_of (b : GoInterface) (γ : mvcc.StoreNames) (RT : IProp GF) (q : Qp) (R :
     mvcc.Log) : mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗ mvcc.keyCleanRead b
-    (mvcc.bucketViewC γ) RT (mvcc.kbNoCmp γ.kb γ.bucket) ⊢ mvcc.restoreView b γ RT q R
+    (mvcc.bucketViewC γ) RT (mvcc.kbNoCmpF γ.kb γ.bucket) ⊢ mvcc.restoreView b γ RT q R
 
 theorem mvcc.histShape_nil (L : mvcc.Log) : mvcc.histShape L [] = mvcc.histOf L
 

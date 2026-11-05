@@ -224,7 +224,8 @@ theorem rep_back3 (P : IProp GF) :
 theorem restoreImageM_on (d' : KBReal) (γb' : GName) (L : Log) (r : CmpRecs) (h : d'.cm = true) :
     restoreImageM (GF := GF) d' γb' L r ⊣⊢
       ∃ ents : List KvEnt, kbViewC (some d') γb' 1 (bucketOfEnts ents) ∗
-        kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
+        (kbRecs (some d') γb' r ∗ kbVals (some d') (recBytes r.fin, recBytes r.sched) ∅) ∗
+        backend.fkVM d'.γB true ∗
         ⌜recsOk L r ∧ recsPos r ∧ entsCutAt L r.crev ents⌝ := by
   unfold restoreImageM; simp only [h, ↓reduceIte]; exact .rfl
 

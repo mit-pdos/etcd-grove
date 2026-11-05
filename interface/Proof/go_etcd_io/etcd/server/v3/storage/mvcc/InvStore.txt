@@ -291,7 +291,7 @@ def mvcc.metaCompact (γ : mvcc.StoreNames) (q : Qp) (sched fin : Option w64) : 
 
 def mvcc.storeBackend (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) : IProp GF :=
   iprop(∃ Dep,
-      mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbNoCmp γ.kb γ.bucket)
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbNoCmpF γ.kb γ.bucket)
         (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) Dep (mvcc.storeCmp γ) P (mvcc.hookFn γ)
         (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket)
         (mvcc.kbHookNilAt γ.kb))
@@ -695,7 +695,7 @@ theorem mvcc.writerRes_timeless (s : Loc) (γ : mvcc.StoreNames) : Timeless (mvc
 def mvcc.restoreView (b : GoInterface) (γ : mvcc.StoreNames) (RT : IProp GF) (q : Qp) (R : mvcc.Log)
     : IProp GF :=
   iprop(mvcc.restoreViewOut γ q R ∗
-      if R = [] then True else mvcc.keyCleanRead b (mvcc.bucketViewC γ) RT (mvcc.kbNoCmp γ.kb γ.bucket))
+      if R = [] then True else mvcc.keyCleanRead b (mvcc.bucketViewC γ) RT (mvcc.kbNoCmpF γ.kb γ.bucket))
 
 theorem mvcc.bucketLog_off (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) (h : ¬mvcc.kbCmpM
     γ.kb) : mvcc.bucketLog γ L m ⊢ ⌜m = mvcc.bucketMap L⌝
@@ -2261,6 +2261,9 @@ def mvcc.storeReq (γ : mvcc.StoreNames) : IProp GF → IProp GF → IProp GF :=
 theorem mvcc.bucketLog_sub (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.Bucket) : mvcc.bucketLog γ
     L m ⊢ ⌜∀ (k v : GoString), m !! k = some v → mvcc.bucketMap L !! k = some v⌝
 
+theorem mvcc.kbNoCmp_split (kb : Option mvcc.KBReal) (γb : GName) : mvcc.kbNoCmp kb γb ⊣⊢
+    mvcc.kbNoCmpF kb γb ∗ mvcc.kbVals kb (none, none) ∅
+
 theorem mvcc.crevFrozen_lb (γ : mvcc.StoreNames) (c : Int) (hc : -1 ≤ c) : ⊢ mvcc.crevFrozen γ -∗
     mvcc.crevLb γ.idx c ={⊤}=∗ ⌜c = -1⌝
 
@@ -2350,7 +2353,7 @@ theorem mvcc.stopPay_of_done (γx : GName) (γs : schedule.SchedNames) (o : mvcc
 
 def mvcc.storeBackendT (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) : IProp GF
     :=
-  mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbNoCmp γ.kb γ.bucket)
+  mvcc.isKeyBackendG b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbNoCmpF γ.kb γ.bucket)
     (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) iprop(True) (mvcc.storeCmp γ) P (mvcc.hookFn γ)
     (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket)
     (mvcc.kbHookNilAt γ.kb)
@@ -2376,6 +2379,11 @@ theorem mvcc.cmpTrack_timeless (γ : mvcc.StoreNames) (L : mvcc.Log) (m : mvcc.B
     mvcc.CmpRecs) : Timeless (mvcc.cmpTrack γ L m rc)
 
 theorem mvcc.physCmp_persistent (s : Loc) (γ : mvcc.StoreNames) : Persistent (mvcc.physCmp s γ)
+
+def mvcc.kbNoCmpF (kb : Option mvcc.KBReal) (γb : GName) : IProp GF :=
+  match kb with
+  | none => mvcc.viewNoCmp γb
+  | some d => mvcc.bkNoCmpF d.γB
 
 def mvcc.compactedAt (γ : mvcc.StoreNames) (rev : Int) : IProp GF :=
   monoNatLbOwn γ.fin (mvcc.crevN rev)
@@ -2462,6 +2470,9 @@ theorem mvcc.revMuBodyL_noLag (s : Loc) (γ γp : mvcc.StoreNames) (q : Qp) : mv
 
 def mvcc.mwRest (γ : mvcc.StoreNames) : IProp GF :=
   if mvcc.kbCmpM γ.kb then ghostVar γ.mwk (Qp.half 1) true else iprop(True)
+
+def mvcc.bkNoCmpF (γB : backend.BNames) : IProp GF :=
+  backend.fkFlag γB 0
 
 theorem mvcc.muHeld_frozen (s : Loc) (γ : mvcc.StoreNames) (crev : Int) (ti : Loc) : ⊢
     mvcc.crevFrozen γ -∗ mvcc.muHeld s γ crev ti ={⊤}=∗ mvcc.muHeld s γ crev ti ∗ ⌜crev = -1⌝
@@ -2717,6 +2728,9 @@ theorem mvcc.kbWTSupplyM_on (kb : Option mvcc.KBReal) (h : mvcc.kbCmpM kb) : mvc
 theorem mvcc.StoreNames.withPhys_tko (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).tko
     = γ.tko
 
+theorem mvcc.kbNoCmpF_MWf (kb : Option mvcc.KBReal) (γb : GName) : mvcc.kbNoCmpF kb γb ⊢ mvcc.kbMWf
+    kb γb
+
 def mvcc.rangeOutcomeC (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (c : Int) (endNil
     : Bool) (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) : IProp GF
     :=
@@ -2742,7 +2756,7 @@ theorem mvcc.storeReader_toC (s : Loc) (γ : mvcc.StoreNames) : mvcc.storeReader
     mvcc.storeReaderC s γ
 
 def mvcc.bkNoCmp (γB : backend.BNames) : IProp GF :=
-  backend.fkOwn γB 0
+  iprop(backend.fkFlag γB 0 ∗ backend.fkdOwn γB (none, none) ∗ backend.dlsOwn γB ∅)
 
 theorem mvcc.delKey_timeless (γ : mvcc.StoreNames) (k : GoString) : Timeless (mvcc.delKey γ k)
 

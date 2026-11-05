@@ -52,7 +52,8 @@ theorem mvcc.store.Restore.wp_proof
     have hd'on : d'.cm = true := by rw [hcm]; exact hdon
     have hj1 : mvcc.nJobRd γ.kb = 1 := by rw [hd]; simp [mvcc.nJobRd, hdon]
     ihave #Hrc := (mvcc.restoreRcptM_on d' _ hd'on).1 $$ Hrc0
-    icases (mvcc.restoreImageM_on d' γb' _ r hd'on).1 $$ Himg with ⟨%ents, Hview, Hrecs, -, %Himg⟩
+    icases (mvcc.restoreImageM_on d' γb' _ r hd'on).1 $$ Himg with
+      ⟨%ents, Hview, ⟨Hrecs, Hvals⟩, -, %Himg⟩
     obtain ⟨hrec, hpos, hcut⟩ := Himg
     ihave Hsr := (mvcc.kbSRM_on (some d') hd'on).1 $$ Hsr
     icases (mvcc.writerOwn_on γ hj1).1 $$ Hown with ⟨HrtOld, Htkr⟩
@@ -466,8 +467,7 @@ theorem mvcc.store.Restore.wp_proof
       imod mvcc.physCmp_alloc s (γ.withPhys p') $$ [Hmwr Hnc] with #HmwN
       · iframe Hmwr Hreg'
         simp only [hon', ↓reduceIte]
-        iapply mvcc.kbMW_flag
-        iapply mvcc.kbRecs_MW $$ Hnc
+        iapply mvcc.kbRecs_MWf $$ Hnc
       ihave #Hph2 : mvcc.physOk (GF := GF) s (γ.withPhys p') ⟨b', ti, sc, stopc⟩ $$ []
       · iunfold mvcc.physOk
         iexists P', iprop(True)
@@ -885,7 +885,7 @@ theorem mvcc.store.Restore.wp_proof
   ihave #HcrT' := HcrT $$ %p' %hpb
   ihave #HcrN : mvcc.keyCleanRead (GF := GF) b' (mvcc.bucketViewC (γ.withPhys p'))
       iprop(mvcc.storeRT (γ.withPhys p') ∗ mvcc.restoreRegM d')
-      (mvcc.kbNoCmp (γ.withPhys p').kb (γ.withPhys p').bucket) $$ []
+      (mvcc.kbNoCmpF (γ.withPhys p').kb (γ.withPhys p').bucket) $$ []
   · rw [← mvcc.kbRecs_empty (γ.withPhys p').kb (γ.withPhys p').bucket, ← mvcc.keyCleanReadR_empty]
     iexact HcrT'
   ihave #HbkT' : mvcc.storeBackendT (GF := GF) b' s (γ.withPhys p') P' $$ [HbkT]
@@ -912,6 +912,8 @@ theorem mvcc.store.Restore.wp_proof
   ihave Hnew := mvcc.rep_one _ $$ Hnew
   ihave Hnc : mvcc.kbNoCmp (GF := GF) (γ.withPhys p').kb (γ.withPhys p').bucket $$ [Hnc]
   · simp only [mvcc.StoreNames.withPhys_kb, mvcc.StoreNames.withPhys_bucket, hk, hb]; iexact Hnc
+  -- (M3) `restore` reads with the flag alone; the values' halves kept for the writer's loan
+  icases (mvcc.kbNoCmp_split _ _).1 $$ Hnc with ⟨Hnc, HncV⟩
   -- the writer's old backend token, and its retired ticket
   have hj0 : mvcc.nJobRd γ.kb = 0 := by
     obtain ⟨d0, hd0, hc0⟩ := Hkb
@@ -1106,13 +1108,14 @@ theorem mvcc.store.Restore.wp_proof
     iexact HfsM
   (try wp_auto)
   -- the new pin: the view's quarter, the new backend's no-compaction token and nothing deletable
-  ihave HpinN : mvcc.writerPin (GF := GF) (γ.withPhys p') ([[], []] ++ R) $$ [HviewP Hnc]
+  ihave HpinN : mvcc.writerPin (GF := GF) (γ.withPhys p') ([[], []] ++ R) $$ [HviewP Hnc HncV]
   · iunfold mvcc.writerPin; iunfold mvcc.writerLoan
     rw [if_neg hnc]
     iframe HviewP
-    isplitl [Hnc]
+    isplitl [Hnc HncV]
     · rw [← mvcc.StoreNames.withPhys_kb γ p', ← mvcc.StoreNames.withPhys_bucket γ p']
-      iexact Hnc
+      iapply (mvcc.kbNoCmp_split _ _).2
+      iframe Hnc HncV
     simp only [mvcc.kbNoDel, mvcc.StoreNames.withPhys_kb, hk]; iexact Hnd
   iapply HΦ
   iexists p'

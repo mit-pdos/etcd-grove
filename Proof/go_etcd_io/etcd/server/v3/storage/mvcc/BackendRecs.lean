@@ -63,13 +63,13 @@ theorem rt_metaRecs (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
     (hpos : ∀ kn x, metaCompactKey kn → r.at kn = some x → 0 ≤ sint.Z x) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ fkRd γ P rv ∗ fkOwn γ n ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ fkRd γ P rv ∗ fkFlag γ n ∗
       fkOpen γ n (recsVals r) ⊢
-      fkOwn γ n ∗
+      fkFlag γ n ∗
         metaReadSpecR ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
           (some r) (rdB rtx) (rtTok γ P b rtx rv qo) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hfk, Ho, #Hop⟩
-  icases fkRd_open γ P rv n (recsVals r) $$ [$Ho $Hop $Hfk] with ⟨Ho, %Hval⟩
+  icases fkRd_openF γ P rv n (recsVals r) $$ [$Ho $Hop $Hfk] with ⟨Ho, %Hval⟩
   iframe Ho
   by_cases hne : r = CmpRecs.empty
   · -- no record: the open's values are none, the reads find nothing
@@ -146,7 +146,7 @@ theorem rt_metaRecs (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
 record, today's no-compaction token; else the client's half of the compaction-key flag at its
 value at the open, over data whose compaction keys held the records' bytes. -/
 def bkRecs (γ : BNames) (r : CmpRecs) : IProp GF :=
-  if r = CmpRecs.empty then bkNoCmp γ else iprop(∃ n : Nat, fkOwn γ n ∗ fkOpen γ n (recsVals r))
+  if r = CmpRecs.empty then bkNoCmpF γ else iprop(∃ n : Nat, fkFlag γ n ∗ fkOpen γ n (recsVals r))
 
 /-- **The held read transaction at the records** (`rt_locked` with the records' meta clause,
 `rt_metaRecs`). -/
@@ -169,13 +169,13 @@ theorem rt_lockedR (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe $Hfk]
   by_cases he : r = CmpRecs.empty
   · subst he
-    have hnc : bkRecs (GF := GF) γ CmpRecs.empty = bkNoCmp γ := by unfold bkRecs; simp
+    have hnc : bkRecs (GF := GF) γ CmpRecs.empty = bkNoCmpF γ := by unfold bkRecs; simp
     rw [hnc, keyReadLockedR_empty]
     iexact Hl
-  · iapply keyReadLockedR_of_locked (NC' := bkNoCmp γ)
+  · iapply keyReadLockedR_of_locked (NC' := bkNoCmpF γ)
     iframe Hl
     iintro !> Hnc
-    have hnc : bkRecs (GF := GF) γ r = iprop(∃ n : Nat, fkOwn γ n ∗ fkOpen γ n (recsVals r)) := by
+    have hnc : bkRecs (GF := GF) γ r = iprop(∃ n : Nat, fkFlag γ n ∗ fkOpen γ n (recsVals r)) := by
       unfold bkRecs; simp [he]
     rw [hnc]
     icases Hnc with ⟨%n, Ho, #Hop⟩

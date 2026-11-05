@@ -191,9 +191,9 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
     rcases hk' with rfl | rfl
     · rw [hsched'] at hv; exact mvcc.recBytes_metaRevVal hpos.2 hv
     · rw [hfin'] at hv; exact mvcc.recBytes_metaRevVal hpos.1 hv
-  iintro ⟨Hv, Hfk⟩
-  icases backend.fkCl_open d'.γB d'.P D $$ Hfk with ⟨Ho, Hw, #Hop⟩
+  unfold backend.fkCl
   rw [backend.fkWInit_of_wf hwf, hfv]
+  iintro ⟨Hv, Ho, Hd, Hx, #Hvr⟩
   unfold mvcc.restoreImageM
   simp only [hcm, ↓reduceIte]
   iexists ents
@@ -202,35 +202,36 @@ theorem mvcc.restoreImageM_of_openOn (d' : mvcc.KBReal) (γb : GName) (L : mvcc.
     iexists _
     iframe Hv
     ipureintro; exact mvcc.keyView_of_dget hbr hk
-  isplitl [Ho]
-  · unfold mvcc.kbRecs
-    by_cases hr : r = mvcc.CmpRecs.empty
-    · have habs : backend.fkAbsD D := by
-        intro n k hk'
-        obtain ⟨rfl, hk'⟩ := hk'
-        subst hr
-        rcases hk' with rfl | rfl
-        · rw [hsched']; rfl
-        · rw [hfin']; rfl
-      simp only [hr, ↓reduceIte]
-      rw [mvcc.kbNoCmp_some, backend.fkInit_of_abs habs]
-      unfold mvcc.bkNoCmp
-      iexact Ho
-    · simp only [hr, ↓reduceIte]
-      iexists _
-      iframe Ho
-      unfold backend.fkOpenD backend.fkVD
-      iunfold backend.fkOpen at Hop
-      icases Hop with ⟨%w, Hop⟩
-      iexists w
-      iunfold backend.fkVR at Hop
-      iexact Hop
-  isplitl [Hw]
+  isplitl [Ho Hd Hx]
+  · isplitl [Ho]
+    · unfold mvcc.kbRecs
+      by_cases hr : r = mvcc.CmpRecs.empty
+      · have habs : backend.fkAbsD D := by
+          intro n k hk'
+          obtain ⟨rfl, hk'⟩ := hk'
+          subst hr
+          rcases hk' with rfl | rfl
+          · rw [hsched']; rfl
+          · rw [hfin']; rfl
+        simp only [hr, ↓reduceIte]
+        rw [mvcc.kbNoCmpF_some, backend.fkInit_of_abs habs]
+        unfold mvcc.bkNoCmpF backend.fkFlag
+        iexact Ho
+      · simp only [hr, ↓reduceIte]
+        iexists _
+        unfold backend.fkFlag
+        iframe Ho
+        unfold backend.fkOpenD backend.fkVD
+        iexists true
+        iunfold backend.fkVR at Hvr
+        iexact Hvr
+    · simp only [mvcc.kbVals]
+      iframe Hd Hx
+  isplitr
   · unfold backend.fkVM backend.fkVD
-    iunfold backend.fkV at Hw
-    icases Hw with ⟨%n, %v, Hw⟩
-    iexists n, v
-    iexact Hw
+    iexists _, _
+    iunfold backend.fkVR at Hvr
+    iexact Hvr
   ipureintro; exact ⟨hok, hpos, hcut⟩
 
 /-- **Off, the image `Restore` takes, from the backend's open** (what the walk built inline until
