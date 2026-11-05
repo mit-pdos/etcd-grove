@@ -16,4 +16,6 @@ imports = ["!*", "errors", "io", "io/fs", "syscall"]
 trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.Stat",
   "File.Truncate", "File.Sync", "File.Close", "File.Fd",
   # the namespace, for the WAL's calls (examples/osfs/walfs, notes/walfs-ext-plan.md)
-  "Rename", "Remove", "Mkdir", "File.Readdirnames"]
+  "Rename", "Remove", "Mkdir", "File.Readdirnames",
+  # the file offset, for the segment's sequential I/O (examples/osfs/walfs's seglog.go)
+  "File.Seek", "File.Write", "File.Read"]

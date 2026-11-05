@@ -104,8 +104,62 @@ func Reread(path string, n int) ([]byte, error) {
 	}
 	defer f.Close()
 	buf := make([]byte, n)
-	if _, err := io.ReadFull(f, buf); err != nil {
+	if err := readFull(f, buf); err != nil {
 		return nil, err
 	}
 	return buf, nil
+}
+
+// readFull fills buf by Reads at the file offset, as io.ReadFull does, returning
+// the first error (io.ReadFull's io.ErrUnexpectedEOF for a short file is an error
+// too, here the Read's own).
+func readFull(f *os.File, buf []byte) error {
+	n := 0
+	for n < len(buf) {
+		m, err := f.Read(buf[n:])
+		if err != nil {
+			return err
+		}
+		n += m
+	}
+	return nil
+}
+
+// Run is seglog's boot program over the directory dir: it removes a leftover
+// segment dir/seg.log, appends the data to a new one (Segment), zeroes it past
+// the data (ZeroToEnd, from the offset Segment returned) and reads the data back
+// (Reread). Every call it makes is one the extension's trusted models cover
+// (their panics never fire, however often the node crashes:
+// Proof/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/SegLog*.lean).
+func Run(dir string) {
+	path := dir + "/seg.log"
+	names, ok := readNames(dir)
+	if !ok {
+		return
+	}
+	for _, n := range names {
+		if n == "seg.log" {
+			if err := os.Remove(path); err != nil {
+				return
+			}
+		}
+	}
+	end, err := Segment(path, newData())
+	if err != nil {
+		return
+	}
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
+	if err != nil {
+		return
+	}
+	if _, err := f.Seek(end, io.SeekStart); err != nil {
+		f.Close()
+		return
+	}
+	if err := ZeroToEnd(f); err != nil {
+		f.Close()
+		return
+	}
+	f.Close()
+	Reread(path, int(end))
 }

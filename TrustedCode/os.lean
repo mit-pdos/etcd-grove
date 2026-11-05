@@ -8,8 +8,10 @@ linux/amd64, Go 1.27.3 (`etc/goose.py`'s `GO_TOOLCHAIN`). Perennial's own transl
 **Files.** Go's `File` is `struct{ *file }` (`types.go`), with `file` (`file_unix.go`) holding a
 `poll.FD` (the fd `Sysfd`, a reference count and the poller), the name and flags. goose translates
 `File` as it is (a struct whose one field `file` points to a `file`); `file` is trusted, with the
-layout `struct{ fd int; name string }` (`file.underlying`): `fd` is `pfd.Sysfd`, and `name` the
-name. Copies of a `File` value share the inner cell, as in Go. The other fields of Go's `file`
+layout `struct{ fd int; name string; off int64 }` (`file.underlying`): `fd` is `pfd.Sysfd`, `name`
+the name, and `off` the file offset of the fd's open file description (the kernel's `f_pos`,
+which Go does not keep: `Seek`, `Write` and `Read` use it, below). Copies of a `File` value share
+the inner cell, as in Go. The other fields of Go's `file`
 are not observable to code outside `os` (they are unexported), and the methods modelled here do
 not depend on them for a file `OpenFile` returns: `nonblock` and `appendMode` are false
 (`O_APPEND` and `O_NONBLOCK` are among the flags the extension's `Open` refuses), `dirinfo` is
@@ -42,13 +44,14 @@ namespace Perennial
 
 namespace os
 
-/-- The model's `file` (`file.underlying`): the fd and the name. -/
+/-- The model's `file` (`file.underlying`): the fd, the name and the file offset. -/
 structure file where
   mk ::
   fd' : w64
   name' : GoString
+  off' : w64
 
-instance file.zero_val : ZeroVal file := ⟨file.mk zeroValDef zeroValDef⟩
+instance file.zero_val : ZeroVal file := ⟨file.mk zeroValDef zeroValDef zeroValDef⟩
 
 /-- The model's `fileStat` (`fileStat.underlying`): the size. -/
 structure fileStat where
@@ -60,11 +63,12 @@ instance fileStat.zero_val : ZeroVal fileStat := ⟨fileStat.mk zeroValDef⟩
 section code
 variable [GooseExts] [GoGlobalContext]
 
-/-- `file` (`file_unix.go`): `pfd.Sysfd` as `fd`, and `name` (the module docstring says why the
-other fields are not needed). -/
+/-- `file` (`file_unix.go`): `pfd.Sysfd` as `fd`, `name`, and the kernel's file offset `off` (the
+module docstring says why the other fields are not needed). An open file's `off` starts at 0, as
+`open(2)` sets `f_pos` (`O_APPEND` is refused). -/
 @[reducible] def file.underlying : go.GoType :=
   go.GoType.StructType [go.field_decl.FieldDecl go!"fd" go.int,
-    go.field_decl.FieldDecl go!"name" go.string]
+    go.field_decl.FieldDecl go!"name" go.string, go.field_decl.FieldDecl go!"off" go.int64]
 
 /-- `fileStat` (`types_unix.go`): only `size`. A `fileStat` is made only by `Stat.impl`, and its
 methods but `Size` (`Name`, `Mode`, `ModTime`, `IsDir`, `Sys`) are not translated (stuck). -/
@@ -86,6 +90,10 @@ class file.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
   set_name : ∀ (x : file) (y : GoString), go.IsGoStepPureDetTagged Tag.under
     (StructFieldSet file.underlying go!"name") (PairV #x #y)
     (Val #(({ x with name' := y } : file)))
+  get_off : ∀ (x : file), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet file.underlying go!"off") #x (Val #(x.off'))
+  set_off : ∀ (x : file) (y : w64), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet file.underlying go!"off") (PairV #x #y) (Val #(({ x with off' := y } : file)))
 
 /-- The struct-field facts goose emits for every translated struct, stated by hand for
 `fileStat`, whose layout `fileStat.underlying` is trusted (as `file.FieldAssumptions`). Part of
@@ -99,6 +107,7 @@ class fileStat.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop w
 
 attribute [instance] file.FieldAssumptions.get_fd file.FieldAssumptions.set_fd
   file.FieldAssumptions.get_name file.FieldAssumptions.set_name
+  file.FieldAssumptions.get_off file.FieldAssumptions.set_off
   fileStat.FieldAssumptions.get_size fileStat.FieldAssumptions.set_size
 
 /-! The types as goose names them (their `.ty` is in `Code.os`, which imports this file), and
@@ -326,6 +335,106 @@ noncomputable def File.WriteAt.impl : val :=
             else if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then
               (#(W64 0), model.wrapErrno #"write" "inner" (Snd "r"))
             else "pwrite" "nn") #(W64 0)
+
+/-- The bound below which the model keeps file offsets (`2^62`): past it Linux's `lseek` fails
+(`EINVAL` past the filesystem's maximum file size, which the extension does not model) and an
+`int64` sum may wrap, so the model does not go there: a panic, never reached by a proved
+program. -/
+abbrev model.offMax : w64 := W64 0x4000000000000000
+
+/-- `(*File).Seek(offset int64, whence int) (int64, error)` (`file.go`, `file_unix.go`'s
+`seek`, `poll.FD.Seek`): one `lseek(2)`, whose result Go returns, an error being
+`&PathError{"seek", name, Errno(e)}`. Linux's `lseek` on a regular file computes the new offset
+from the start (`SEEK_SET`, 0), the offset (`SEEK_CUR`, 1) or the size (`SEEK_END`, 2), and fails
+with `EINVAL` on another `whence` or a negative result, changing nothing. The model keeps the
+offset in the `file`'s `off` (the module docstring) and reads the size by the extension's `Fstat`
+(an `lseek` is not a call to `fstat`, and cannot fail with its errnos: the model has more outcomes
+than Linux, which only weakens what a proof shows). A `SEEK_CUR` after a failed `Write` (whose
+effect on the offset the model does not know, `off` being -1) and a result at or past
+`model.offMax` are not modelled (a panic). The check of Go's `Seek` that a directory's fd (one
+`Readdirnames` used) returns `EISDIR` does not arise: the extension's `Fstat` is stuck on a
+directory's fd, and `Seek` of one is not modelled. -/
+noncomputable def File.Seek.impl : val :=
+  λ: "f" "offset" "whence",
+    let: "inner" := model.inner "f" in
+    let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    let: "cur" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
+    let: "base" :=
+      if: "whence" =⟨go.int⟩ #(W64 0) then (#(W64 0), #(W64 0))
+      else if: "whence" =⟨go.int⟩ #(W64 1) then
+        (if: "cur" <⟨go.int64⟩ #(W64 0) then Panic "os: Seek from an unknown offset not modelled"
+         else ("cur", #(W64 0)))
+      else if: "whence" =⟨go.int⟩ #(W64 2) then ExternalOp osFsExt.name "Fstat" "fd"
+      else (#(W64 0), #(W64 22)) in -- EINVAL
+    if: Snd "base" ≠⟨go.uintptr⟩ #(W64 0) then
+      (#(W64 0), model.wrapErrno #"seek" "inner" (Snd "base"))
+    else
+      let: "n" := Fst "base" +⟨go.int64⟩ "offset" in
+      if: "n" <⟨go.int64⟩ #(W64 0) then (#(W64 0), model.wrapErrno #"seek" "inner" #(W64 22))
+      else if: (#model.offMax ≤⟨go.int64⟩ "n") || (#model.offMax ≤⟨go.int64⟩ Fst "base") ||
+          (#model.offMax ≤⟨go.int64⟩ "offset") then
+        Panic "os: Seek past 2^62 not modelled"
+      else
+        StructFieldRef model.file go!"off" "inner" <-[go.int64] "n" ;;
+        ("n", #GoInterface.nil)
+
+/-- `(*File).Write(b []byte) (n int, err error)` (`file.go`, `file_posix.go`'s `write`,
+`poll.FD.Write`): `write(2)` calls at the file offset until all of `b` is written, `EINTR`
+retried, an error being `&PathError{"write", name, Errno(e)}`; the offset advances by what was
+written. A `write(2)` is a `pwrite(2)` at the offset that then moves it: the model is `WriteAt`'s
+(`File.WriteAt.impl`, the same loop of the extension's `PWriteStart`/`PWriteFinish` as Go's
+`Pwrite`, whose result Go's `Write` gives too: `len(b)` and nil, or an error) at `off`, then `off`
+moves past `b`. On an error the model's `WriteAt` does not say how much was written, so the offset
+is unknown (`off` set to -1): a later `Write`, `Read` or `SEEK_CUR` is not modelled (a panic; a
+`SEEK_SET` sets a known offset again). A write reaching `model.offMax` is not modelled. -/
+noncomputable def File.Write.impl : val :=
+  λ: "f" "b",
+    let: "inner" := model.inner "f" in
+    let: "off" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
+    let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
+    if: "off" <⟨go.int64⟩ #(W64 0) then Panic "os: Write at an unknown offset not modelled"
+    else if: #model.offMax ≤⟨go.int64⟩ ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") then
+      Panic "os: Write past 2^62 not modelled"
+    else
+      let: "r" := File.WriteAt.impl "f" "b" "off" in
+      (if: Snd "r" =⟨go.error⟩ #GoInterface.nil then
+        StructFieldRef model.file go!"off" "inner" <-[go.int64]
+          ("off" +⟨go.int64⟩ Convert go.int go.int64 "len")
+      else StructFieldRef model.file go!"off" "inner" <-[go.int64] #(W64 (-1))) ;;
+      "r"
+
+/-- `(*File).Read(b []byte) (n int, err error)` (`file.go`, `file_posix.go`'s `read`,
+`poll.FD.Read`): for a non-empty `b`, one `read(2)` at the file offset of at most `maxRW` (1 GiB)
+bytes, `EINTR` retried; the offset advances by what was read; 0 bytes is `io.EOF`; an error is
+`&PathError{"read", name, Errno(e)}` with `n = 0`, the offset unchanged. A `read(2)` is a
+`pread(2)` at the offset that then moves it: the extension's `PRead` at `off` (as
+`File.ReadAt.impl`'s), whose bytes are copied into `b`. An empty `b` returns `0, nil` at once
+(`poll.FD.Read`). A read from an unknown offset (after a failed `Write`) or reaching
+`model.offMax` is not modelled (a panic). -/
+noncomputable def File.Read.impl : val :=
+  λ: "f" "b",
+    let: "inner" := model.inner "f" in
+    let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
+    let: "off" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
+    let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
+    if: "len" =⟨go.int⟩ #(W64 0) then (#(W64 0), #GoInterface.nil)
+    else if: "off" <⟨go.int64⟩ #(W64 0) then Panic "os: Read at an unknown offset not modelled"
+    else if: #model.offMax ≤⟨go.int64⟩ ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") then
+      Panic "os: Read past 2^62 not modelled"
+    else
+      (rec: "read" <> :=
+        let: "r" := ExternalOp osFsExt.name "PRead" ("fd", ("off",
+          if: "len" >⟨go.int⟩ #(W64 0x40000000) then #(W64 0x40000000) else "len")) in
+        if: Snd "r" =⟨go.uintptr⟩ #(W64 4) then "read" #() -- EINTR
+        else if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then
+          (#(W64 0), model.wrapErrno #"read" "inner" (Snd "r"))
+        else
+          let: "m" := (FuncResolve go.copy [go.GoType.SliceType go.byte]) #() "b"
+            (Convert go.string (go.GoType.SliceType go.byte) (Fst "r")) in
+          StructFieldRef model.file go!"off" "inner" <-[go.int64]
+            ("off" +⟨go.int64⟩ Convert go.int go.int64 "m") ;;
+          if: "m" =⟨go.int⟩ #(W64 0) then (#(W64 0), ![go.error] (GlobalVarAddr io.EOF #()))
+          else ("m", #GoInterface.nil)) #()
 
 /-- `(*File).Stat() (FileInfo, error)` (`stat_unix.go`): `pfd.Fstat` (`fstat(2)`, `EINTR`
 retried) into a fresh `fileStat`, an error being `&PathError{"stat", name, Errno(e)}`. The

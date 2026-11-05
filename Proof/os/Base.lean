@@ -50,8 +50,10 @@ struct; their `IntoValTyped` needs the struct-field facts of `TrustedCode/os.lea
 layout. -/
 
 instance file_fields_unfold :
-    EqualsUnfold [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string]
-      [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string] :=
+    EqualsUnfold [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string,
+        go.field_decl.FieldDecl go!"off" go.int64]
+      [go.field_decl.FieldDecl go!"fd" go.int, go.field_decl.FieldDecl go!"name" go.string,
+        go.field_decl.FieldDecl go!"off" go.int64] :=
   ⟨rfl⟩
 
 instance fileStat_fields_unfold :
@@ -63,6 +65,7 @@ noncomputable instance file_typed_pointsto : TypedPointsto (GF := GF) os.file wh
   typedPointstoDef l v dq := iprop(
     "fd" ∷ typedPointsto (structFieldRef os.file go!"fd" l) v.fd' dq ∗
     "name" ∷ typedPointsto (structFieldRef os.file go!"name" l) v.name' dq ∗
+    "off" ∷ typedPointsto (structFieldRef os.file go!"off" l) v.off' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless

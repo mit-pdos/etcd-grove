@@ -143,3 +143,24 @@ func TestSegment(t *testing.T) {
 		t.Fatalf("after ZeroToEnd: len %d, %x", len(b), b[:3])
 	}
 }
+
+// TestRun runs seglog's driver twice: the segment ends up with the data at 0,
+// zeros after it, and the preallocated size.
+func TestRun(t *testing.T) {
+	dir := t.TempDir()
+	for i := 0; i < 2; i++ {
+		Run(dir)
+		b, err := os.ReadFile(dir + "/seg.log")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(b) != segSize || !dataOk(b[:8]) {
+			t.Fatalf("run %d: size %d, head %x", i, len(b), b[:8])
+		}
+		for _, c := range b[8:] {
+			if c != 0 {
+				t.Fatalf("run %d: a nonzero byte past the data", i)
+			}
+		}
+	}
+}

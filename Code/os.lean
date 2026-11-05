@@ -1646,11 +1646,14 @@ class File.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Close" File.Close.impl
   ptr_Fd_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Fd" File.Fd.impl
   ptr_Name_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Name" File.Name.impl
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Read" File.Read.impl
   ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadAt" File.ReadAt.impl
   ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Readdirnames" File.Readdirnames.impl
+  ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Seek" File.Seek.impl
   ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Stat" File.Stat.impl
   ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Sync" File.Sync.impl
   ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Truncate" File.Truncate.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Write" File.Write.impl
   ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteAt" File.WriteAt.impl
 
 attribute [instance] File.TypeAssumptions.type_repr
@@ -1662,11 +1665,14 @@ attribute [instance] File.TypeAssumptions.type_repr
   File.TypeAssumptions.ptr_Close_unfold
   File.TypeAssumptions.ptr_Fd_unfold
   File.TypeAssumptions.ptr_Name_unfold
+  File.TypeAssumptions.ptr_Read_unfold
   File.TypeAssumptions.ptr_ReadAt_unfold
   File.TypeAssumptions.ptr_Readdirnames_unfold
+  File.TypeAssumptions.ptr_Seek_unfold
   File.TypeAssumptions.ptr_Stat_unfold
   File.TypeAssumptions.ptr_Sync_unfold
   File.TypeAssumptions.ptr_Truncate_unfold
+  File.TypeAssumptions.ptr_Write_unfold
   File.TypeAssumptions.ptr_WriteAt_unfold
 
 class fileStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
