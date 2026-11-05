@@ -23,7 +23,14 @@ mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
   keys `rangeAnswers` answers at a revision, through which `rangeOutcomeC` gives the count, the
   limit's cut and the key-values in order, are exactly `checkRange`'s `match` (the tester's keys in
   its order, in its map and in the range). Imports txn's `Lemmas` (`rangeAnswers_keys`), which
-  imports only mvcc's `ApiState`.
+  imports only mvcc's `ApiState`. And `covers_eq_inRangeM` (proved): the range `Watch`
+  registers (`watchRangeOf`, its affine `covers`, through which `wsRecvOk` selects a watcher's
+  events) is the tester's `inRange` for non-empty keys.
+- `checkRange`: the spec (`Spec/.../checkRange.lean`: from `rangeOutcome` at a well-formed log
+  whose states match the tester's maps up to `cur`, and `res ≠ null`, it returns). Its proof
+  (`Proof/.../checkRange.lean`) is in progress, not committed while it has a `sorry`: the two
+  error arms and the future arm are done; left, the match loop and the key-value loop (the steps
+  are `answers_keys_eq_match`, then `rangeKvs`' elements through `checkKV`).
 
 ## The checks against the API (2026-11-05, by reading; each to be proved)
 
@@ -99,6 +106,22 @@ abbrev backendRest_open.law : Prop :=
 
 (the tester needs the first four. The server's boot, which also sets the hook and makes the lessor
 after `backend.New`, would need the same of its `bootBackend.law`'s `backendRest`; not checked.)
+
+**G2 (latent: holds today only through mvcc's internals; found 2026-11-05). The API states no fact
+of mvcc's error variables' values, which a client's `==` on them needs.** The contracts give an error
+as `globalAddr ErrFutureRev ↦□ err` (`rangeOutcome`'s future arm), `globalAddr ErrEmptyWatcherRange
+↦□ err` (`WatchStream.Watch.contract`), `ErrCompacted`, `ErrWatcherNotExist`. The tester compares
+(`err == mvcc.ErrFutureRev` in `checkRange`, `err == mvcc.ErrEmptyWatcherRange` in `register`), and
+Go's interface `==` panics on a non-comparable dynamic type (Perennial's `go_eq_interface`:
+`CheckComparable i1.ty`), so the proof needs the variables' dynamic type. Today it unfolds
+`isPkgInit mvcc` to `mvccInit` (`isPkgInit_access`; `errorsNewVar`: an `*errors.errorString`), as
+the migrated server does (`applierV3backend__Compaction.lean`, `DispatchKVL.lean`): `mvccInit` is in
+mvcc's `Base.lean`, in `etc/api/mvcc.txt`'s debt group, so sealing `isPkgInit mvcc` breaks every
+such client. **Minimal strengthening**: a law in `Api.lean`, e.g.
+`errVars.law : isPkgInit mvcc ⊢ errorsNewVar ErrCompacted "…" ∗ errorsNewVar ErrFutureRev "…" ∗
+errorsNewVar ErrEmptyWatcherRange "…"` (or a weaker `∃ x, globalAddr X ↦□ interface.mkOk
+(PointerType errorString.ty) #x` per variable; `ErrWatcherNotExist`, which `Cancel` returns, has
+no such fact even in `mvccInit`, only `∃ e, globalAddr … ↦□ ok e`).
 
 ## Blockers outside mvcc's API (for the top-level result)
 

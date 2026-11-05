@@ -129,6 +129,28 @@ theorem answers_keys_eq_match (L : Log) (hok : txn.LogOk L) (endNil : Bool) (k e
   · rintro ⟨-, hm, hin⟩
     exact ⟨hx.1 hm, hin⟩
 
+/-- **The probe of the watch range** (`WatchStream.Watch.contract` registers `watchRangeOf kk e
+endk startRev id`, whose `covers` selects a watcher's events in `wsRecvOk`): for non-empty keys it
+is the tester's `inRange` (the affine order's empty end, `[]byte{}`, is the from-key range). -/
+theorem covers_eq_inRangeM (kk e : GoString) (endk : GoSlice) (s id : w64) (k : GoString)
+    (hk : k ≠ []) (hkk : kk ≠ []) :
+    (watchRangeOf kk e endk s id).covers k = inRangeM (decide (endk = slice.nil)) kk e k := by
+  unfold watchRangeOf WatchRange.covers inRangeM
+  by_cases hn : endk = slice.nil
+  · simp [hn]
+  · simp only [hn, ↓reduceIte, decide_false, Bool.false_eq_true, mvcc.inRange]
+    rw [Bool.eq_iff_iff]
+    simp only [decide_eq_true_eq, Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not,
+      Bool.or_eq_true]
+    rw [adt.affCmp_nonneg_iff, adt.affCmp_neg_iff, adt.affLt_iff_of_ne k kk hkk]
+    unfold adt.affLt
+    have hk' : k ≠ go!"" := hk
+    constructor
+    · rintro ⟨h1, -, h2⟩
+      exact ⟨fun h => h1 ⟨hk', h⟩, h2.elim (fun h => Or.inl (by simpa using h)) Or.inr⟩
+    · rintro ⟨h1, h2⟩
+      exact ⟨fun h => h1 h.2, hk', h2.elim (fun h => Or.inl (by simpa using h)) Or.inr⟩
+
 end model
 
 end mvccrand
