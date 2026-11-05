@@ -1327,3 +1327,53 @@ or the moved laws: the server (`KVStoreApi`'s `dbImageA_open.law`, `bootBackend.
 snapshot's send and receive, `lessor.Revoke`'s lease delete, the boot) imports the bridge module;
 `examples/mvccrand` (its backend boot: `backendRest_open`, `mvccW_alloc`). `B.γB`/`B.b` uses become
 `d.γB`/`d.be` at `B := etcdStorage d`.
+
+## Hand-off: stage 2, the API over its storage abstraction (phase A) and M3's open (2026-11-06)
+
+**Done** (no axiom; no placeholder added or removed):
+- **Phase A of the design above** (approved by the user, 2026-11-06): `Api.lean`/`ApiState.lean` name
+  no backend. `BkRef` is gone; the vocabulary is `MvccStorage` (sealed, `:= KBReal`), `storageVal`,
+  `storageHook` (fractional), `hookIs := storageHook · DFrac.discard`, `storageReq`, `storageRest`,
+  `mvccReaderN`, `mvccStorageFor` (in place of `mvccBackendFor`); `persistent.law`'s image conjunct is
+  replaced by `hookIs`'s and `storageReq`'s persistence (instances in `Api.lean`). The bridge module
+  `Spec/.../mvcc/EtcdBackend.lean` (listed importable in `etc/api/mvcc.txt`): `etcdStorage bk`, its
+  equations (`etcdStorage_val/_hook/_hookIs/_req/_rest`, `mvccReaderN_eq`, `etcdStorage_inj`),
+  `mvccW`, `mvccWReg`, `mvccImage` (+ `mvccImage_persistent`), `backendRest`, and the laws
+  `mvccW_alloc`, `mvccBackend_isBackend` (now at `etcdStorage bk`, `mvccW bk.gx`),
+  `backendRest_open`, `etcdStorage_open` (in place of `mvccBackendFor_open`: at a real instance `bk`
+  with `bridgeParams bk.P` and `bk.cm`), `mvccImage_fresh`, `mvccTxn_leaseDelete`,
+  `mvccImage_snapshot` (all at `etcdStorage bk`). Proofs adapted (`SnapLaws`, `SnapFreeze`, `CmpCb`).
+- **`mvccStorageFor` defined** (phase A body: the store's part of `newPostKP` at the image's data, the
+  image's receipt and facts, `bridgeParams`, compaction mode, `keySized`, the registration, the payment
+  rights) and **`etcdStorage_open.law` proved** (`Api/StorageOpen.lean`).
+- `excl.law` (earlier this day).
+
+**Reverted** (`2e310b1b99`): the `kbVals kb (none, none) ∅` premise on `NewStore`/`newWatchableStore`/
+`New` (`678a84c392`). It was vacuous for a real backend: `fkCl` gives one client half of
+`fkdOwn`/`dlsOwn`, which `kbNoCmp` (`bkNoCmp = fkOwn 0`) already holds. `cmpTrack_new_M1` is back at
+`NewStore`. The fix: pin the values in the no-compaction token `restore` threads (`NC`): a
+`kbNoCmp` at known values (`fkOwn` with `fkdOwn (none, none)`, `dlsOwn ∅`), or `restore` giving its
+`NC` back as it took it, so that `NewStore` reads the values out after `restore`.
+
+**Breaks outside mvcc** (not fixed; `etc/importers.py --uses` of `BkRef`, `mvccBackendFor`,
+`mvccImage`, `backendRest`, `mvccW`, `hookIs`, the moved laws): the server (`etcdserver.InvApplier`,
+`InvApplyAll`, `KVStoreApi`, `Results`, `SnapRO`, `StoreLatest`, `apply.{AuthDerive,Chain,Contracts,
+WriteLemmas}`, `txn.{ApiVocab,Results}` and the txn specs `Spec/.../etcdserver/txn/*`,
+`EtcdServer__applyConfChange`), the lessor (`lease.MvccShapes`, `lessor__Revoke` spec and proof),
+`examples/mvccrand` (`TxnEnd`, `Writer`, `WriterLease`, `reader`, `writer__txn`, the writer specs) and
+the drafts under `notes/`. The rewrite: `B : BkRef` → `B : MvccStorage` (`etcdStorage d` where the
+client chose etcd's backend), `B.γB`/`B.b` → `d.γB`/`d.be` through the bridge's equations, import
+`EtcdBackend` for the moved names, `mvccBackendFor_open` → `etcdStorage_open` (with
+`bridgeParams d.P`, which the server holds).
+
+**Left** (in order):
+1. `NewStore`'s values through `restore` (above), then `New.spec`/`NewStore.spec` over
+   `mvccStorageFor`: from its body at `mvccStart` the internal premises (`bkView ∅` from `bViewC` and
+   `imageOk`, `bkNoCmp` from `fkCl`, `bkRTx` from `rdStock` and the `bOpen` shares, `kbSRM` from
+   `srSlot`, the bridge `storeBackend_of_backendC`); `NewStore` must return the API's client parts it
+   drops (`absNames_alloc_store`'s `-`), `Perm := True`, `mvccLeases` defined (opaque today),
+   `mvccOpen` (`compactRightR_of_closer`, a reader token, the supply); `wsSlot_make_M1`.
+2. `store.Restore`'s `cmpTrack_new_M1` (the image's records and cut), `KV.Restore`/`KV.Close`.
+3. Phase B (the store's instance a record of the contract's predicates; `mvccStorageFor`'s
+   introduction law in the contract's terms).
+- TCB: no axiom or `sorry` added or removed.
