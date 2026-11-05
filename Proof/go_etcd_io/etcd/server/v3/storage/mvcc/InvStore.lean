@@ -218,7 +218,7 @@ structure StoreNames where
   M1, no scaffold") the API's ghost names (`api.AbsNames`: the client's view, the pending revision,
   the compaction authority, the share token, the frozen flag), which the slots (`slotX`, `slotY`,
   `slotF`, `slotFr`, `slotFl`) hold; logical, `withPhys` keeps it -/
-  api : api.AbsNames := ⟨0, 0, 0, 0, 0⟩
+  api : api.AbsNames := ⟨0, 0, 0, 0, 0, 0⟩
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))

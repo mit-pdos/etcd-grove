@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoNat
+public import Perennial.Ghost.MonoList
 
 @[expose] public section
 
@@ -41,10 +42,14 @@ structure AbsNames where
   crevLb : GName
   tok : GName
   frz : GName
+  /-- the notified log (`σ.notifiedLog`), a monotone list: its authority whole in `mvccState`
+  (stage 2, the watch chain, 2026-11-04: a send records a lower bound of it, which the client
+  compares with its state in `wsRecv_ok.law`'s plain entailment) -/
+  nl : GName
 
 instance absNames_countable : Pos.Countable AbsNames :=
-  countableOfLeftInverse (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
 
 /-- A compaction revision as the lower bound's count (`-1` is `0`). -/
 def crevN (c : Int) : Nat := (c + 1).toNat
@@ -66,6 +71,27 @@ def crevAtLeast (γ : AbsNames) (c : Int) : IProp GF := monoNatLbOwn γ.crevLb (
 
 /-- A share `q` of the backend share token. -/
 def shareTok (γ : AbsNames) (q : Qp) : IProp GF := dghostVar γ.tok (.own q) ()
+
+/-- The notified log's authority, at `N`. -/
+def nlAuth (γ : AbsNames) (q : Qp) (N : Log) : IProp GF := monoListAuthOwn γ.nl q N
+
+/-- A lower bound of the notified log (persistent). -/
+def nlLb (γ : AbsNames) (N : Log) : IProp GF := monoListLbOwn γ.nl N
+
+instance nlLb_persistent (γ : AbsNames) (N : Log) : Persistent (nlLb (GF := GF) γ N) := by
+  unfold nlLb; infer_instance
+instance nlLb_timeless (γ : AbsNames) (N : Log) : Timeless (nlLb (GF := GF) γ N) := by
+  unfold nlLb; infer_instance
+instance nlAuth_timeless (γ : AbsNames) (q : Qp) (N : Log) : Timeless (nlAuth (GF := GF) γ q N) := by
+  unfold nlAuth; infer_instance
+
+/-- A lower bound is a prefix of the authority's log. -/
+theorem nlLb_valid (γ : AbsNames) (q : Qp) (N L : Log) :
+    nlAuth (GF := GF) γ q N ∗ nlLb γ L ⊢ ⌜L <+: N⌝ := by
+  unfold nlAuth nlLb
+  iintro ⟨H1, H2⟩
+  ihave %h := mono_list_auth_lb_valid γ.nl q N L $$ H1 H2
+  ipureintro; exact h.2
 
 instance crevAtLeast_persistent (γ : AbsNames) (c : Int) : Persistent (crevAtLeast (GF := GF) γ c) := by
   unfold crevAtLeast; infer_instance
@@ -166,17 +192,18 @@ theorem crevAtLeast_valid (γ : AbsNames) (q : Qp) (c c0 : Int) (hc : -1 ≤ c) 
 
 /-- **The store's API ghost state at a new store** (`NewStore`, at `mvccStart`): the view, the
 pending revision, the compaction authority, the whole share token and the frozen flag (down). -/
-theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) :
+theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) :
     ⊢ |==> ∃ γ : AbsNames, absPart (GF := GF) γ 1 L c ∗ pndPart γ 1 p ∗ crevAuth γ 1 c ∗
-      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false := by
+      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false ∗ nlAuth γ 1 N := by
   imod ghostVar_alloc (GF := GF) (L, c) with ⟨%ga, Ha⟩
   imod ghostVar_alloc (GF := GF) p with ⟨%gp, Hp⟩
   imod mono_nat_own_alloc (GF := GF) (crevN c) with ⟨%gc, Hc, Hlb⟩
   imod dghostVar_alloc (GF := GF) () with ⟨%gt, Ht⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%gf, Hf⟩
+  imod mono_list_own_alloc (GF := GF) N with ⟨%gn, Hn, -⟩
   imodintro
-  iexists ⟨ga, gp, gc, gt, gf⟩
-  unfold absPart pndPart crevAuth crevAtLeast shareTok
+  iexists ⟨ga, gp, gc, gt, gf, gn⟩
+  unfold absPart pndPart crevAuth crevAtLeast shareTok nlAuth
   iframe
 
 /-- **`s.revMu`'s part of the API's ghost state** at fraction `q` (§1): a quarter of `q` of the
@@ -216,9 +243,9 @@ and the compaction right's quarter of the authority. -/
 theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) :
     ⊢ |==> ∃ a : AbsNames, revMuAbs (GF := GF) a 1 L c ∗ writerAbs a pw L ∗ ghostVar a.frz 1 false ∗
       absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
-      crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 := by
+      crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L := by
   iintro
-  imod absNames_alloc (GF := GF) L c none with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf⟩
+  imod absNames_alloc (GF := GF) L c none L with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn⟩
   have ha1 := (absPart_fractional (GF := GF) a L c).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at ha1
   icases ha1.1 $$ Ha with ⟨Ha1, Ha2⟩
@@ -236,7 +263,7 @@ theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1)
   icases hp'.1 $$ Hp with ⟨Hpw, Hpr⟩
   imodintro
   iexists a
-  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb
+  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn
   isplitl [Ha3 Hc3]
   · iunfold revMuAbs; iframe Ha3 Hc3
   · iunfold writerAbs; iexists c; iframe Ha4 Hpw
