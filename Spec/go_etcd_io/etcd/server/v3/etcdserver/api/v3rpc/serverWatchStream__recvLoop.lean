@@ -26,22 +26,30 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`sws.recvLoop()`**: receives the client's requests until the stream ends (`io.EOF`: `nil`;
 another error: it), or `closec` is closed (`nil`): each create request is registered with the
-mvcc watch stream (its watch token spent) or refused, each cancel request cancels, each progress
-request asks for the progress of all; every create and cancel request answered by a control
-response on the control stream (`ctrlP`: the response answers the request at its position, with
-the answer token it mints from `ansPool` when it receives the request; the watch slice's unit
-W-C).
+mvcc watch stream (`Watch`, its update `WatchApi.watch_au`, the registry entry and the id token
+minted at its commit) or refused, each cancel request cancels (`Cancel`, the client's cancel
+request kept in the run's invariant), each progress request asks for the progress of all; every
+create and cancel request answered by a control response on the control stream (`ctrlP`: the
+response answers the request at its position, with the answer token it mints from `ansPool` when it
+receives the request; the watch slice's unit W-C). The mvcc API migration (2026-11-05, the draft
+`notes/mvcc-api-clients/WatchSpecs.lean` §6): the thread token in place of the store's reader slot
+(the API's `Watch`, `Cancel`, `Rev` and `RequestProgressAll` take one); the auth store's reader
+resource `r.srv.E.RD` (`isWatchPermitted`).
 Returns the control stream's producer token. -/
 abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
-  ∀ (sws : Loc) (r : v3rpc.WRun GF) (L : List v3rpc.WatchReqM) (sent : List Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r ∗ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
-      spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ v3rpc.recvRes r.srv }}
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (L : List v3rpc.WatchReqM) (sent : List Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
+      spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ r.srv.E.RD ∗ threadTok }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"recvLoop")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil ∨ context.isTypedErr err⌝ ∗
-      ∃ sent' : List Loc, spscProducer r.γctrl sent' }}
+      threadTok ∗ ∃ sent' : List Loc, spscProducer r.γctrl sent' }}
 
 end spec
 

@@ -26,16 +26,26 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`sws.sendLoop()`**: sends down the mvcc watch stream's responses (buffered until their
-watch id's created response is sent), the control responses and, on the progress ticker, asks
-for the progress of the watchers that want it; until a send fails, the control stream or the
-mvcc stream's channel is closed, or `closec` is. Every response it sends at down position `j`
-carries `watchDn j m` (`watchStreamSpec`). -/
+watch id's created response is sent), the control responses (a created one after draining the
+stream's channel down to its watcher's stamp) and, on the progress ticker, asks for the progress of
+the watchers that want it; until a send fails, the control stream or the mvcc stream's channel is
+closed, or `closec` is. Every response it sends at down position `j` carries `watchDn j m`
+(`watchStreamSpec`). The mvcc API migration (2026-11-05, the draft
+`notes/mvcc-api-clients/WatchSpecs.lean` §6): the consumer's `wsRecv ι []` and the received list's
+authority at `[]` in place of mvcc's `watchConsumer`; no reader slot of the store (the thread
+bound stays, for `GetProgressReportInterval`). -/
 abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
-  ∀ (sws : Loc) (r : v3rpc.WRun GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
-      spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.watchConsumer r.γc [] ∗ v3rpc.sendRes r.srv ∗
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
+      spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.api.wsRecv r.ι [] ∗
+      monoListAuthOwn r.γr 1 ([] : List mvcc.api.WResp) ∗
+      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗ threadTok }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"sendLoop")) (Val #()))
   {{ RET #(); threadTok }}
