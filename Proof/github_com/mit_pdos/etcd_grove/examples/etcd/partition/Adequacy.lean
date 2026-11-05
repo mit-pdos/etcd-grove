@@ -8,7 +8,7 @@ raft, linkvtxn, porcupine, the driver `lintest`, ...) followed by `Main(clients,
 etcd members started in process and served (`startMember`), a copy of etcd's test bridge to each
 member's client address (`startBridge`, `third_party/bridge`, since 2026-10-21), three clients
 (etcd's default retries, D31) each of all three bridges (failover, since 2026-10-21: each attempt to one of the members,
-`notes/decisions.md` D27), the partitioner forked on the schedule `sched` (`go partitioner(srvs, brs,
+`notes/decisions.md` D27), the partitioner forked on the schedule `sched` (`go cluster3.Partitioner(srvs, brs,
 sched)`: the links between members cut and mended, in both directions, with etcd's own
 `CutPeer`/`MendPeer`, and the links between each client and its member blackholed, unblackholed or
 dropped, with the bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say;
@@ -51,7 +51,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.PkgTa
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
-public import Perennial.Golang.Theory.ArrayLit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 
 @[expose] public section
 
@@ -107,40 +107,6 @@ instance linkvGF_naInvG : NaInvG linkvGF := ⟨⟨11, rfl⟩⟩
 abbrev linkvHeapAt (hG : HeapGS .hasLC linkvGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvGF :=
   ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
-/-! ## The schedule as a slice literal -/
-
-section lit
-variable [GooseExts] [go_gctx : GoGlobalContext]
-
-/-- The fold of `go.arrayLiteralSize` over the keyed elements of values counts them. -/
-theorem foldl_arrayLitKE {V : Type} (t : go.GoType) (F : Int × Int → keyed_element → Int × Int)
-    (hF : ∀ (i m : Int) (x : V), F (i, m) (arrayLitKE t x) = (i + 1, m)) :
-    ∀ (l : List V) (i m : Int), List.foldl F (i, m) (l.map (arrayLitKE t)) = (i + l.length, m)
-  | [], i, m => by simp
-  | x :: xs, i, m => by
-    rw [List.map_cons, List.foldl_cons, hF, foldl_arrayLitKE t F hF xs]
-    simp only [List.length_cons]
-    congr 1
-    push_cast
-    omega
-
-/-- **A literal of values has the values' count as size** (`go.arrayLiteralSize`). -/
-theorem arrayLiteralSize_vals {V : Type} (t : go.GoType) (l : List V) :
-    go.arrayLiteralSize (l.map (arrayLitKE t)) = l.length := by
-  unfold go.arrayLiteralSize
-  rw [foldl_arrayLitKE t _ (fun _ _ _ => rfl) l 0 0]
-  simp
-
-/-- **The schedule `steps` as the Go slice literal `[]Step{...}`**: what a caller of `Main` builds
-(its keyed elements as the value they take one pure step to become, `LiteralValueV`). -/
-def schedLit (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) : Expr :=
-  App (Val (GoInstruction (CompositeLiteral
-    (go.GoType.SliceType github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty))))
-    (Val (LiteralValueV
-      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty))))
-
-end lit
-
 /-! ## The closed theorem -/
 
 section adequacy
@@ -149,7 +115,7 @@ variable [go_gctx : GoGlobalContext]
 /-- The program: `linkv3p`'s initialization, then `Main(clients, ops, sched)` with the schedule
 built as a slice literal. -/
 def linkv3pProgram [GoSemanticsFunctions] (clients ops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) : Expr :=
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize' #() ;;
   App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.Main)) (Val #clients))
     (Val #ops)) (schedLit steps)
@@ -184,7 +150,7 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step)
+    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
@@ -225,25 +191,25 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   -- (`wp_slice_literal`)
   wp_bind (schedLit steps)
   unfold schedLit
-  iapply (wp_slice_literal (V := github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (l := steps)
-    (kvs := steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
+  iapply (wp_slice_literal (V := github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (l := steps)
+    (kvs := steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
   have hp := pure_wp_array_lit_full (hlc := HasLC.hasLC) (GF := linkvGF)
     (go.arrayLiteralSize
-      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
-    github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty steps _ rfl
+      (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+    github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty steps _ rfl
     (by rw [arrayLiteralSize_vals]; simp)
     (by rw [arrayLiteralSize_vals]; simpa using Hsteps)
   have hp' : ∀ Ψ : val → IProp linkvGF,
       iprop(▷ (£ 1 -∗ WP (Val #(array.mk
           (go.arrayLiteralSize
-            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
+            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
           steps)) {{ Ψ }})) ⊢
         WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType
             (go.arrayLiteralSize
-              (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))
-            github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty))))
+              (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))
+            github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
           (Val (LiteralValueV
-            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))))
+            (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
           {{ Ψ }} :=
     fun Ψ => hp.pure_wp_wp _ _ Ψ [] trivial
   iapply (hp' _)
@@ -258,9 +224,9 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   have hM := etcd_partition.wp_Main (GF := linkvGF) n id₁ id₂ id₃ ps ctxs boot clients ops
     (slice.mk sl
       (W64 (go.arrayLiteralSize
-        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty))))
+        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
       (W64 (go.arrayLiteralSize
-        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.ty)))))
+        (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul

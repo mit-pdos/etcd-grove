@@ -269,7 +269,7 @@ theorem batchWaitOk_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beS
 
 /-- The write budget does not depend on the environment's backend (only on `γbe`). -/
 theorem srvWTPool_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
-    (γp : GName) : srvWTPool E' γp = srvWTPool E γp := by
+    (γp : WTNames) : srvWTPool E' γp = srvWTPool E γp := by
   obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
 
 end defs

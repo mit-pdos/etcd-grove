@@ -39,7 +39,7 @@ theorem BuildServer.wp_proof
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu
-      Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn (ThreadBoundLe.le (GF := GF) (2 ^ 28))
+      Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn false (ThreadBoundLe.le (GF := GF) (2 ^ 28))
       (ReceiptBoundLe.le (GF := GF) (2 ^ 48)) (ReceiptBoundLe.le (GF := GF) (N + 1)) HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU HU8 Hlg (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #

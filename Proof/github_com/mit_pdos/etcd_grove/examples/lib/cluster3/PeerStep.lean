@@ -1,6 +1,6 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/partition/peerStep.lean` (until 2026-10-21
-`partitioner`'s loop body, the partition plan's S3a). Lean-first (no Rocq counterpart). The range
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/lib/cluster3/PeerStep.lean` (until 2026-10-21
+`Partitioner`'s loop body, the partition plan's S3a). Lean-first (no Rocq counterpart). The range
 check (a return if an index is out of range or the two are equal); otherwise the two servers out
 of the read-only slice, their members' places in the network out of the `[∗list]`, `MemberID` of
 each (the member id `srvNetMember` carries) and `CutPeer` or `MendPeer` of each with the other's
@@ -8,7 +8,7 @@ id.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.peerStep
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.PeerStep
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CutPeer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MendPeer
@@ -22,7 +22,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_partition
+namespace cluster3
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
@@ -31,7 +31,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
 /-- A server of the list, its place in the network with a reader's token, lent (2026-10-24, rafthttp
 stage 6d: until then its place in the network, persistent). -/
@@ -51,11 +51,11 @@ theorem srvPeerCtl_acc (γn : NetNames GF) (ss : List Loc) (k : Nat) (s : Loc)
   rw [hset]
   iexact Hl
 
-theorem peerStep.wp_proof
+theorem PeerStep.wp_proof
     (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (wp_CutPeer : EtcdServer.CutPeer.spec (GF := GF) (hG := hG))
     (wp_MendPeer : EtcdServer.MendPeer.spec (GF := GF) (hG := hG)) :
-    peerStep.spec (GF := GF) (hG := hG) := by
+    PeerStep.spec (GF := GF) (hG := hG) := by
   intro hpp γn srvs ss kind a b
   wp_start as ⟨#Hsrvs, Hmem⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -179,6 +179,6 @@ theorem peerStep.wp_proof
 
 end proof
 
-end etcd_partition
+end cluster3
 end EtcdGrove
 end Perennial

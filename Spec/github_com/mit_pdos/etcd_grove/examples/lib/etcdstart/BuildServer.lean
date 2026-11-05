@@ -8,7 +8,7 @@ example that keeps its listeners (`examples/etcd/restart`). Lean-first (no Rocq 
 a new cluster's first start), at any snapshot settings.
 
 **`specStop`** (DRAFT, R2b): `spec`'s, with the server's data directory recorded (`srvDataDir`,
-the name's `.etcd`) and what it keeps for the stop (`srvStopKeep`), from which `Start` gives the
+the name's `.etcd`) and what it keeps for the stop (`srvStop.keep`), from which `Start` gives the
 right to stop it (`etcdstart.Start_builtS_spec`;
 R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to give; `start`
 makes the channels it names).
@@ -151,8 +151,8 @@ abbrev BuildServer.specRestart : Prop :=
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
           ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗
           -- (R2d's: inside `memberBuiltR`, at its names, as `memberBuiltS`)
-          ∃ (γrn : RNNames) (wd : GoString) (st : Loc) (γst : mvcc.StoreNames),
-            srvStopKeep s γrn wd st γst) }}
+          ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
+            (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) }}
 
 end spec
 

@@ -73,7 +73,7 @@ theorem srvSnapApplied_of_walk
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (r : mvcc.CmpRecs) (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     (hlp : mvcc.leaseParams d.P)
-    (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)

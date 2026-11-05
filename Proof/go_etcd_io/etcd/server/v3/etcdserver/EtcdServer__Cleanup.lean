@@ -32,7 +32,7 @@ theorem EtcdServer.Cleanup.wp_proof
     (hKC : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
     (hBC : backend.backend.Close.spec (GF := GF) (hG := hG)) :
     EtcdServer.Cleanup.spec (GF := GF) (hG := hG) := by
-  intro s lp wsl st γw c stl K γbe d W Pk cp X Y
+  intro s lp wsl st γw c stl K γbe d dq W Pk cp X Y
   wp_start as ⟨#Hlf, Hstop, #Hkvf, #Hws, Hwcl, #Hauf, #HaC, Htpa, Hbr, Hbe, Hγbe, #Hb, #Hsc, Hopen,
     HX, #Hreq, #Hcpf, #Hcpok⟩
   (try wp_auto)

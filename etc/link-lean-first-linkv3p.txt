@@ -4,33 +4,11 @@
 # `linkv3p`. Perennial's standard-library results (`time.Sleep`, `primitive.RandomUint64`) are
 # used directly by the proofs, not linked here.
 #
-# `startMember`: the examples' shared `NewMember` (linked in `common`'s `Link.lean`), the
-# server's `Start` (linked in its `Link.lean`), then its gRPC server (v3rpc's results, linked in
-# its `Link.lean`; `net.Listen`'s, grpc's `KeepaliveEnforcementPolicy`'s and `Serve`'s
-# trust-boundary axioms)
-etcdstart_NewMember: @
-EtcdServer__Start: @
-v3rpc_Server: @
-net_Listen:
-grpc_Server__Serve:
-grpc_KeepaliveEnforcementPolicy:
-partition_startMember: etcdstart_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve
-# `etcdstart.NewClients`: the examples' client constructor (common's `Link.lean`; notes/client-timeouts-plan.md)
-etcdstart_NewClients: @
-# `startBridge`: `net.Listen` and the bridge's `New` (the bridge's trust-boundary axioms, D26)
-bridge_New:
-partition_startBridge: net_Listen bridge_New
-# `partitioner`: `peerStep` over etcd's partition hooks and the member id (linked in the server's
-# `Link.lean`), `clientStep` over the bridge's `Blackhole`, `Unblackhole`, `DropConnections`
-EtcdServer__MemberID: @
-EtcdServer__CutPeer: @
-EtcdServer__MendPeer: @
-partition_peerStep: EtcdServer__MemberID EtcdServer__CutPeer EtcdServer__MendPeer
-bridge__Blackhole:
-bridge__Unblackhole:
-bridge__DropConnections:
-partition_clientStep: bridge__Blackhole bridge__Unblackhole bridge__DropConnections
-partition_partitioner: partition_peerStep partition_clientStep
+# The cluster's start and partitioner (`examples/lib/cluster3`, linked in its `Link.lean`; until
+# 2026-11-05 this package's `startMember`, `startBridge`, `peerStep`, `clientStep`, `partitioner`)
+cluster3_StartCluster: @
+cluster3_NewClient: @
+cluster3_Partitioner: @
 # `Apply` over linkvtxn's; `Check` over the driver's `Run` and `CounterClock`, linkvtxn's `Model`
 # and `Gen` (all linked in their `Link.lean`s)
 txnlin_Apply: @
@@ -40,12 +18,14 @@ CounterClock: @
 txnlin_Model: @
 txnlin_Gen: @
 partition_Check: Run CounterClock txnlin_Model txnlin_Gen partition_Apply
-# `startCluster`: the members, the bridges and the clients (W4 of `notes/watch-cut-plan.md`)
-partition_startCluster: partition_startMember partition_startBridge etcdstart_NewClients
+# `startCluster`: the configuration (`config`), the members and the bridges, and the clients (W4 of
+# `notes/watch-cut-plan.md`)
+partition_config:
+partition_startCluster: partition_config cluster3_StartCluster cluster3_NewClient
 # `Main`: the start of the cluster, the partitioner forked, the check (zap's trust-boundary axiom;
 # the rest linkv3p's own)
 zap_NewNop:
-partition_Main: zap_NewNop partition_startCluster partition_partitioner partition_Check
+partition_Main: zap_NewNop partition_startCluster cluster3_Partitioner partition_Check
 # `MainWatch` (W4 of `notes/watch-cut-plan.md`): watchkv's workload over the cluster: the examples'
 # shared `GenAll`, `MaxRev`, `Collect` and `Check` (linked in `common`'s `Link.lean`), linkv3p's own
 # `writer` (each put through a client picked at random), the cluster's start, the partitioner, the
@@ -63,4 +43,4 @@ WithRev:
 WithProgressNotify:
 WithCreatedNotify:
 watcher__Watch: @
-partition_MainWatch: etcdstart_GenAll zap_NewNop partition_startCluster partition_partitioner partition_writer etcdstart_MaxRev etcdstart_Collect etcdstart_Check context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
+partition_MainWatch: etcdstart_GenAll zap_NewNop partition_startCluster cluster3_Partitioner partition_writer etcdstart_MaxRev etcdstart_Collect etcdstart_Check context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

@@ -19,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
@@ -74,11 +75,11 @@ func inChild(t *testing.T, name string) bool {
 }
 
 // isolate returns the steps that, after delay, cut member m from the two others.
-func isolate(delay time.Duration, m int) []Step {
-	var steps []Step
+func isolate(delay time.Duration, m int) []cluster3.Step {
+	var steps []cluster3.Step
 	for o := 0; o < 3; o++ {
 		if o != m {
-			steps = append(steps, Step{Delay: delay, Kind: PeerCut, A: m, B: o})
+			steps = append(steps, cluster3.Step{Delay: delay, Kind: cluster3.PeerCut, A: m, B: o})
 			delay = 0
 		}
 	}
@@ -86,11 +87,11 @@ func isolate(delay time.Duration, m int) []Step {
 }
 
 // heal returns the steps that, after delay, mend member m's links to the two others.
-func heal(delay time.Duration, m int) []Step {
-	var steps []Step
+func heal(delay time.Duration, m int) []cluster3.Step {
+	var steps []cluster3.Step
 	for o := 0; o < 3; o++ {
 		if o != m {
-			steps = append(steps, Step{Delay: delay, Kind: PeerMend, A: m, B: o})
+			steps = append(steps, cluster3.Step{Delay: delay, Kind: cluster3.PeerMend, A: m, B: o})
 			delay = 0
 		}
 	}
@@ -126,7 +127,7 @@ func TestMainRun(t *testing.T) {
 		return
 	}
 	t.Chdir(t.TempDir())
-	var sched []Step
+	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {
 		delay := time.Duration(0)
 		if m == 0 {
@@ -134,11 +135,11 @@ func TestMainRun(t *testing.T) {
 		}
 		sched = append(sched, isolate(delay, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
 		}
 		sched = append(sched, heal(3*time.Second, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2}, cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
 		}
 	}
 	start := time.Now()
@@ -148,7 +149,7 @@ func TestMainRun(t *testing.T) {
 	if !ok {
 		t.Fatal("the cluster did not start")
 	}
-	go partitioner(srvs, brs, sched)
+	go cluster3.Partitioner(srvs, brs, sched)
 	r := Check(clis, 3, 150, 0)
 	if r == porcupine.Illegal {
 		panic("linkv3p: porcupine found the history not linearizable")
@@ -242,15 +243,15 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 	var brs []bridge.Bridge
 	var clis []*clientv3.Client
 	for i := 0; i < 3; i++ {
-		s, err := startMember([]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"}[i], peer[i],
-			peerAddrs[i], clientAddrs[i], cluster, lg)
+		s, err := cluster3.StartMember([]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"}[i], peer[i],
+			peerAddrs[i], clientAddrs[i], cluster, "linkv3p", SnapCount, SnapCatchUp, lg)
 		if err != nil {
 			t.Fatal(err)
 		}
 		srvs = append(srvs, s)
 	}
 	for i := 0; i < 3; i++ {
-		br, err := startBridge(bridgeAddrs[i], clientAddrs[i])
+		br, err := cluster3.StartBridge(bridgeAddrs[i], clientAddrs[i])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -287,7 +288,7 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 // operations so far and the time since the run's start); it checks porcupine's verdict is Ok and
 // returns the operations.
 func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
-	clis []*clientv3.Client, sched []Step, n int, pause time.Duration,
+	clis []*clientv3.Client, sched []cluster3.Step, n int, pause time.Duration,
 	control func(snap func() []cutOp, since func() time.Duration)) []cutOp {
 	t.Helper()
 	var mu sync.Mutex
@@ -308,7 +309,7 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 		mu.Unlock()
 		return out
 	}
-	go partitioner(srvs, brs, sched)
+	go cluster3.Partitioner(srvs, brs, sched)
 	if control != nil {
 		snap := func() []cutOp {
 			mu.Lock()
@@ -393,11 +394,11 @@ func TestClientCuts(t *testing.T) {
 	// the drops first, while every worker runs; then the blackhole, which soon holds every worker
 	// (each picks client 1 sooner or later), so the run outlasts it however fast operations are
 	const blackholeAt, unblackholeAt = 100 * time.Millisecond, 3100 * time.Millisecond
-	sched := []Step{
-		{Delay: 20 * time.Millisecond, Kind: ClientDrop, A: 1},
-		{Delay: 30 * time.Millisecond, Kind: ClientDrop, A: 1},
-		{Delay: blackholeAt - 50*time.Millisecond, Kind: ClientBlackhole, A: 0},
-		{Delay: unblackholeAt - blackholeAt, Kind: ClientUnblackhole, A: 0},
+	sched := []cluster3.Step{
+		{Delay: 20 * time.Millisecond, Kind: cluster3.ClientDrop, A: 1},
+		{Delay: 30 * time.Millisecond, Kind: cluster3.ClientDrop, A: 1},
+		{Delay: blackholeAt - 50*time.Millisecond, Kind: cluster3.ClientBlackhole, A: 0},
+		{Delay: unblackholeAt - blackholeAt, Kind: cluster3.ClientUnblackhole, A: 0},
 	}
 	ops := cutRun(t, srvs, brs, clis, sched, 600, 0, nil)
 	var cut1, okAfter1 bool
@@ -861,7 +862,7 @@ func TestMainWatch(t *testing.T) {
 		return
 	}
 	t.Chdir(t.TempDir())
-	var sched []Step
+	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {
 		delay := time.Duration(0)
 		if m == 0 {
@@ -869,11 +870,11 @@ func TestMainWatch(t *testing.T) {
 		}
 		sched = append(sched, isolate(delay, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
 		}
 		sched = append(sched, heal(3*time.Second, m)...)
 		if m == 0 {
-			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2}, cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
 		}
 	}
 	start := time.Now()

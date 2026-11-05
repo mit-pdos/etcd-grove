@@ -19,6 +19,11 @@
 // recorded revision, the key's values increasing, one interval between reaching a revision and
 // compacting it) are compactor_test.go's.
 //
+// MainPartition runs the same workload on three members under network partitions, as
+// examples/etcd/partition's (examples/lib/cluster3): every client dials every member's bridge, so
+// the shared compactor is registered at the three bridge addresses; Main's checks hold for every
+// schedule.
+//
 // The API servers run Kubernetes' default configuration: ListFromCacheSnapshot (beta, on by default
 // since 1.34) makes NewCompactor also start its watch loop, which follows compact_rev_key through a
 // watch (the plan's Q1 (b)).
@@ -35,6 +40,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/utils/clock"
 
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -43,6 +49,20 @@ const clientAddr = "127.0.0.1:23976"
 
 // The member's peer address (not served: the cluster has no other member).
 const peerAddr = "127.0.0.1:23986"
+
+// MainPartition's cluster (cluster3.Config): three members, each with its peer, client and bridge
+// address (the API servers' clients dial the bridges), its own token and names, and snapshots as
+// examples/etcd/partition's (a member a cut kept behind is caught up by a snapshot).
+func clusterConfig() cluster3.Config {
+	return cluster3.Config{
+		Token: "k8scompactorp", Name1: "k8scompactorp-1", Name2: "k8scompactorp-2",
+		Name3: "k8scompactorp-3",
+		Peer1: "127.0.0.1:23941", Peer2: "127.0.0.1:23942", Peer3: "127.0.0.1:23943",
+		Client1: "127.0.0.1:23931", Client2: "127.0.0.1:23932", Client3: "127.0.0.1:23933",
+		Bridge1: "127.0.0.1:23951", Bridge2: "127.0.0.1:23952", Bridge3: "127.0.0.1:23953",
+		SnapCount: 1, SnapCatchUp: 1,
+	}
+}
 
 // The key the compactors coordinate through (etcd3's compactRevKey).
 const compactRevKey = "compact_rev_key"
@@ -176,6 +196,47 @@ func Main() {
 	var wg sync.WaitGroup
 	for i := 0; i < servers+sharedServers; i++ {
 		cli, err := etcdstart.NewClient(clientAddr, lg)
+		if err != nil {
+			break
+		}
+		shared := i >= servers
+		wg.Add(1)
+		go func() {
+			apiserver(cli, shared)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+// MainPartition is Main's workload on a three-member cluster under network partitions (K6 of
+// notes/k8s-compactor-plan.md): the cluster started in Kubernetes' deployment of etcd, every
+// compaction a client's (cluster3.StartCluster: the members' auto-compactor off), a client of
+// every member's bridge that waits for the cluster to serve, a partitioner on sched
+// (cluster3.Partitioner: peer cuts and mends, client blackholes and drops) and the writer on that
+// client, then the API servers as Main's, each with its own client of every bridge, until every API
+// server has stopped its compactor and made its checks. An error before the API servers start ends
+// MainPartition without a check.
+func MainPartition(sched []cluster3.Step) {
+	lg := zap.NewNop()
+	cfg := clusterConfig()
+	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	if !ok {
+		return
+	}
+	wcli, err := cluster3.NewClient(cfg, lg)
+	if err != nil {
+		return
+	}
+	if !ready(wcli) {
+		return
+	}
+	go cluster3.Partitioner(srvs, brs, sched)
+	go writer(wcli)
+
+	var wg sync.WaitGroup
+	for i := 0; i < servers+sharedServers; i++ {
+		cli, err := cluster3.NewClient(cfg, lg)
 		if err != nil {
 			break
 		}

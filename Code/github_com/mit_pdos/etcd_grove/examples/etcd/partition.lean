@@ -2,20 +2,16 @@
 module
 
 public import Perennial.Code.context
-public import Code.net
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.go_uber_org.zap
-public import Code.google_golang_org.grpc
-public import Code.google_golang_org.grpc.keepalive
-public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
+public import Code.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import Code.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import Perennial.Golang.Defn
@@ -36,11 +32,6 @@ noncomputable def github_com.mit_pdos.etcd_grove.examples.etcd.partition : GoStr
 end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.partition
-
-noncomputable def Step.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.Step" [])
-
-attribute [irreducible] Step.ty
 
 @[reducible] noncomputable def peerAddr1 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23841")
@@ -69,21 +60,6 @@ attribute [irreducible] Step.ty
 @[reducible] noncomputable def bridgeAddr3 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23853")
 
-@[reducible] noncomputable def PeerCut [GooseExts] [GoGlobalContext] : val :=
-  #(0 : Int)
-
-@[reducible] noncomputable def PeerMend [GooseExts] [GoGlobalContext] : val :=
-  #(1 : Int)
-
-@[reducible] noncomputable def ClientBlackhole [GooseExts] [GoGlobalContext] : val :=
-  #(2 : Int)
-
-@[reducible] noncomputable def ClientUnblackhole [GooseExts] [GoGlobalContext] : val :=
-  #(3 : Int)
-
-@[reducible] noncomputable def ClientDrop [GooseExts] [GoGlobalContext] : val :=
-  #(4 : Int)
-
 @[reducible] noncomputable def SnapCount [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
@@ -102,26 +78,14 @@ attribute [irreducible] Step.ty
 @[reducible] noncomputable def WatchEnded [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-noncomputable def startMember [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.startMember"
-
-noncomputable def startBridge [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.startBridge"
-
-noncomputable def peerStep [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.peerStep"
-
-noncomputable def clientStep [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.clientStep"
-
-noncomputable def partitioner [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.partitioner"
-
 noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.Apply"
 
 noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.Check"
+
+noncomputable def config [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.config"
 
 noncomputable def startCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.startCluster"
@@ -135,333 +99,9 @@ noncomputable def writer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MainWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/partition.MainWatch"
 
-/-- startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
-    URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
-    examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
-    server served on a listener at client.
-
-    go: linkv3p.go:108:6 -/
-noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "name"
-  (Lam "peer"
-  (Lam "peerAddr"
-  (Lam "client"
-  (Lam "cluster"
-  (Lam "lg"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "cluster" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "client" (App (Val (GoInstruction (GoAlloc go.string))) (Var "client"))
-  (Let "peerAddr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "peerAddr"))
-  (Let "peer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "peerAddr"))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a5" (Val #(go!"linkv3p"))
-  (Let "$a6" (Val SnapCount)
-  (Let "$a7" (Val SnapCatchUp)
-  (Let "$a8" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "cl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))
-  (Let "$a3" (Let "$sl0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 1000000000))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MinTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.KeepaliveEnforcementPolicy []))) (Val #())) (Var "$a0")))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "cl"))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "cl") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))))
-
-/-- startBridge starts a bridge at addr to the member's client address client: the listener, then
-    the bridge's accept loop (bridge.New).
-
-    go: linkv3p.go:134:6 -/
-noncomputable def startBridge.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "addr"
-  (Lam "client"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Val #())))
-  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "client" (App (Val (GoInstruction (GoAlloc go.string))) (Var "client"))
-  (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "l"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.New []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "l") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
-
-/-- peerStep applies a peer step to the members srvs: cuts or mends the link between members a and
-    b in both directions (etcd's CutPeer/MendPeer, as its integration tests'
-    InjectPartition/RecoverPartition).
-
-    go: linkv3p.go:145:6 -/
-noncomputable def peerStep.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "srvs"
-  (Lam "kind"
-  (Lam "a"
-  (Lam "b"
-  (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc go.int))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc go.int))) (Var "a"))
-  (Let "kind" (App (Val (GoInstruction (GoAlloc go.int))) (Var "kind"))
-  (Let "srvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "a")))))
-  (Let "sa" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "b")))))
-  (Let "sb" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "kind")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val PeerCut)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sa"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"CutPeer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sb"))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sb"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"CutPeer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sa"))) (Var "$a0")))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sa"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MendPeer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sb"))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sb"))) (Val #()))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MendPeer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "sa"))) (Var "$a0"))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "sb") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "sa") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))]))) (Val #())) (Var "$a0")))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "b")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))]))) (Val #())) (Var "$a0")))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "b"))))))
-  (App (Val doReturn)
-  (Val #()))
-  (App (Val doExecute)
-  (Val #())))))))))
-  (Val #()))))))
-
-/-- clientStep applies a client step to member a's bridge (brs[a]), as etcd's integration tests
-    do (Member.Bridge().Blackhole(), ...); holed[a] says whether that bridge is blackholed. A
-    blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
-    unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
-
-    go: linkv3p.go:164:6 -/
-noncomputable def clientStep.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "brs"
-  (Lam "holed"
-  (Lam "kind"
-  (Lam "a"
-  (Seq (App (Val exceptionDo)
-  (Let "a" (App (Val (GoInstruction (GoAlloc go.int))) (Var "a"))
-  (Let "kind" (App (Val (GoInstruction (GoAlloc go.int))) (Var "kind"))
-  (Let "holed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.bool)))) (Var "holed"))
-  (Let "brs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs")) (App (Val (GoInstruction (GoLoad go.int))) (Var "a")))))
-  (Let "br" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "kind")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ClientBlackhole)))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "holed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "a"))))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "holed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "a")))) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty go!"Blackhole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "br"))) (Val #()))))
-  (App (Val doExecute)
-  (Val #())))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "kind")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ClientUnblackhole)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #false)
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "holed")) (App (Val (GoInstruction (GoLoad go.int))) (Var "a")))) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty go!"Unblackhole"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "br"))) (Val #()))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty go!"DropConnections"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "br"))) (Val #())))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Pair (Var "br") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "a")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)]))) (Val #())) (Var "$a0")))))))
-  (App (Val doReturn)
-  (Val #()))
-  (App (Val doExecute)
-  (Val #())))))))))
-  (Val #()))))))
-
-/-- partitioner applies the schedule sched to the members srvs and their bridges brs: each step,
-    after its delay.
-
-    go: linkv3p.go:184:6 -/
-noncomputable def partitioner.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "srvs"
-  (Lam "brs"
-  (Lam "sched"
-  (Seq (App (Val exceptionDo)
-  (Let "sched" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Step.ty)))) (Var "sched"))
-  (Let "brs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (Let "srvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.bool)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)]))) (Val #())) (Var "$a0"))))
-  (Let "holed" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.bool)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Step.ty)))) (Var "sched"))
-  (Let "st" (App (Val (GoInstruction (GoAlloc Step.ty))) (App (Val (GoInstruction (GoZeroVal Step.ty))) (Val #())))
-  (App (App (Val (slice.forRange Step.ty)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val PeerCut)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val PeerMend))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st")))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"A"))) (Var "st")))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"B"))) (Var "st")))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve peerStep []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ClientBlackhole)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ClientUnblackhole))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ClientDrop))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "holed"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Kind"))) (Var "st")))
-  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"A"))) (Var "st")))
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve clientStep []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Step.ty go!"Delay"))) (Var "st")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Step.ty))) (Pair (Var "st") (Var "$value"))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.bool)))) (Pair (Var "holed") (Var "$r0")))))))))))
-  (Val #())))))
-
 /-- Apply runs one operation through a client of clis picked at random (txnlin.Apply).
 
-    go: linkv3p.go:197:6 -/
+    go: linkv3p.go:75:6 -/
 noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "input"
@@ -489,7 +129,7 @@ noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
     clients clis (one per member, each operation's picked at random), and returns porcupine's
     verdict against linkvtxn's model.
 
-    go: linkv3p.go:205:6 -/
+    go: linkv3p.go:83:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "clients"
@@ -533,11 +173,43 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0"))))))))
 
-/-- startCluster starts the three members of a new cluster, a bridge to each member's client
-    address, and three clients, each of every bridge (failover). It returns the members, the
-    bridges and the clients, and false if a step failed (the specs allow every step to fail).
+/-- config is the cluster's (cluster3.Config): linkv3p's token, member names and addresses, and
+    snapshot settings.
 
-    go: linkv3p.go:214:6 -/
+    go: linkv3p.go:91:6 -/
+noncomputable def config.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$v0" (Val #(go!"linkv3p"))
+  (Let "$v1" (Val #(go!"linkv3p-1"))
+  (Let "$v2" (Val #(go!"linkv3p-2"))
+  (Let "$v3" (Val #(go!"linkv3p-3"))
+  (Let "$v4" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr1))
+  (Let "$v5" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr2))
+  (Let "$v6" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr3))
+  (Let "$v7" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr1))
+  (Let "$v8" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr2))
+  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr3))
+  (Let "$v10" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr1))
+  (Let "$v11" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr2))
+  (Let "$v12" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr3))
+  (Let "$v13" (Val SnapCount)
+  (Let "$v14" (Val SnapCatchUp)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Token")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Name1")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name2")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Name3")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Peer1")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Peer2")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"Peer3")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"Client1")) (ElementExpression go.string (Var "$v7"))), (KeyedElement (some (KeyField go!"Client2")) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyField go!"Client3")) (ElementExpression go.string (Var "$v9"))), (KeyedElement (some (KeyField go!"Bridge1")) (ElementExpression go.string (Var "$v10"))), (KeyedElement (some (KeyField go!"Bridge2")) (ElementExpression go.string (Var "$v11"))), (KeyedElement (some (KeyField go!"Bridge3")) (ElementExpression go.string (Var "$v12"))), (KeyedElement (some (KeyField go!"SnapCount")) (ElementExpression go.uint64 (Var "$v13"))), (KeyedElement (some (KeyField go!"SnapCatchUp")) (ElementExpression go.uint64 (Var "$v14")))])))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Var "$res0")))))
+
+/-- startCluster starts the three members of a new cluster and a bridge to each member's client
+    address (cluster3.StartCluster), and three clients, each of every bridge (cluster3.NewClient:
+    failover). It returns the members, the bridges and the clients, and false if a step failed (the
+    specs allow every step to fail).
+
+    go: linkv3p.go:105:6 -/
 noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val #())))
@@ -546,141 +218,40 @@ noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res3" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$r0" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr1))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "peer1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve config []))) (Val #())) (Val #()))
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr2))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "peer2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Var "cfg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "brs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val #())))
+  (Let "srvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr3))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "peer3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$k0" (Val #(go!"linkv3p-1"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer1"))
-  (Let "$k2" (Val #(go!"linkv3p-2"))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer2"))
-  (Let "$k4" (Val #(go!"linkv3p-3"))
-  (Let "$v5" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer3"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v5")))]))))))))
-  (Let "cluster" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"linkv3p-1"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer1"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr1))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr1))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Var "cfg"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
-  (Let "s1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"linkv3p-2"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer2"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr2))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr2))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "s2" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"linkv3p-3"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer3"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr3))
-  (Let "$a3" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr3))
-  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve startMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5"))))))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "s3" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s1"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s2"))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s3"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v2")))])))))
-  (Let "srvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr1))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr1))
-  (App (App (App (Val (GoInstruction (FuncResolve startBridge []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "br1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr2))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr2))
-  (App (App (App (Val (GoInstruction (FuncResolve startBridge []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "br2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr3))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr3))
-  (App (App (App (Val (GoInstruction (FuncResolve startBridge []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "br3" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "br1"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "br2"))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Var "br3"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty (Var "$v2")))])))))
-  (Let "brs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr1))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr2))
-  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr3))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))])))))
-  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
   (Let "cli1" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -689,9 +260,9 @@ noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Var "cfg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -800,12 +371,8 @@ noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli1") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "eps") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "brs") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli1") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val UntypedNil))
   (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Val UntypedNil))
@@ -827,158 +394,27 @@ noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r2")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Pair (Var "br3") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val UntypedNil))
-  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Val UntypedNil))
-  (Let "$r3" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "brs") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res3") (Var "$r3")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "srvs") (Var "$r0")))))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (Var "$res2") (Var "$r2")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Pair (Var "br2") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val UntypedNil))
-  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Val UntypedNil))
-  (Let "$r3" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res3") (Var "$r3")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (Var "$res2") (Var "$r2")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty))) (Pair (Var "br1") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "srvs") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val UntypedNil))
-  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Val UntypedNil))
-  (Let "$r3" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res3") (Var "$r3")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (Var "$res2") (Var "$r2")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s3") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val UntypedNil))
-  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Val UntypedNil))
-  (Let "$r3" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res3") (Var "$r3")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (Var "$res2") (Var "$r2")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s2") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Val UntypedNil))
-  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val UntypedNil))
-  (Let "$r2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Val UntypedNil))
-  (Let "$r3" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res3") (Var "$r3")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (Var "$res2") (Var "$r2")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s1") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Pair (Var "cluster") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer3") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer2") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer1") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
   (Pair (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Var "$res2"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res3")))))))))
 
 /-- Main starts the cluster (startCluster: three members, a bridge to each, three clients each of
     every bridge), starts the partitioner on sched and runs Check; it panics if porcupine finds the
     history illegal. A failed start ends Main without a check.
 
-    go: linkv3p.go:274:6 -/
+    go: linkv3p.go:131:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
   (Lam "sched"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "sched" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Step.ty)))) (Var "sched"))
+  (Let "sched" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched"))
   (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
   (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
@@ -1002,8 +438,8 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Step.ty)))) (Var "sched"))
-  (Let "$go" (App (Val (GoInstruction (FuncResolve partitioner []))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched"))
+  (Let "$go" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Partitioner []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Var "clis"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
@@ -1052,7 +488,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 /-- writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
     logging in w each that returned no error, with its reply's revision.
 
-    go: linkv3p.go:306:6 -/
+    go: linkv3p.go:163:6 -/
 noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "w"
@@ -1145,14 +581,14 @@ noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
     prefix from revision 1 through the first client, starts the partitioner on sched, runs nw
     writers of nops puts each, then reads the watch and checks it against the writes.
 
-    go: linkv3p.go:325:6 -/
+    go: linkv3p.go:182:6 -/
 noncomputable def MainWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
   (Lam "sched"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "sched" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Step.ty)))) (Var "sched"))
+  (Let "sched" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched"))
   (Let "nops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nops"))
   (Let "nw" (App (Val (GoInstruction (GoAlloc go.int))) (Var "nw"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "nw")) (App (Val (GoInstruction (GoLoad go.int))) (Var "nops"))))
@@ -1205,8 +641,8 @@ noncomputable def MainWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty))))) (Var "srvs"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Var "brs"))
-  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Step.ty)))) (Var "sched"))
-  (Let "$go" (App (Val (GoInstruction (FuncResolve partitioner []))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))) (Var "sched"))
+  (Let "$go" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Partitioner []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes.ty))) (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes.ty))) (LiteralValue [])))
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes.ty)))) (Val #())))
@@ -1342,7 +778,7 @@ noncomputable def MainWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.partition where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart, pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1360,14 +796,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1379,137 +809,60 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))))
 
-structure Step [GooseExts] where
-  mk ::
-  Delay' : _root_.Perennial.time.Duration
-  Kind' : w64
-  A' : w64
-  B' : w64
-
-noncomputable instance Step.zero_val [GooseExts] : ZeroVal Step :=
-  ⟨Step.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def Step.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"Delay" _root_.Perennial.time.Duration.ty),
-(go.field_decl.FieldDecl go!"Kind" go.int),
-(go.field_decl.FieldDecl go!"A" go.int),
-(go.field_decl.FieldDecl go!"B" go.int)]
-
-@[irreducible] noncomputable def Step.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  Step.fieldsUnsealed
-
-noncomputable instance equals_unfold_Step [GooseExts] [GoGlobalContext] :
-    EqualsUnfold Step.fields Step.fieldsUnsealed :=
-  ⟨by unfold Step.fields; rfl⟩
-
-@[reducible] noncomputable def Step.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType Step.fields)
-
-class Step.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Step.underlying Step
-  underlying : go.UnderlyingDirectedEq Step.ty Step.underlying
-  get_Delay : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Delay") #x (Val #(x.Delay'))
-  set_Delay : ∀ (x : Step) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"Delay") (PairV #x #y) (Val #(({ x with Delay' := y } : Step)))
-  get_Kind : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Kind") #x (Val #(x.Kind'))
-  set_Kind : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : Step)))
-  get_A : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"A") #x (Val #(x.A'))
-  set_A : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"A") (PairV #x #y) (Val #(({ x with A' := y } : Step)))
-  get_B : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"B") #x (Val #(x.B'))
-  set_B : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"B") (PairV #x #y) (Val #(({ x with B' := y } : Step)))
-  method_set : go.MethodSetIs Step.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Step.ty) []
-
-attribute [instance] Step.TypeAssumptions.type_repr
-  Step.TypeAssumptions.underlying
-  Step.TypeAssumptions.get_Delay
-  Step.TypeAssumptions.set_Delay
-  Step.TypeAssumptions.get_Kind
-  Step.TypeAssumptions.set_Kind
-  Step.TypeAssumptions.get_A
-  Step.TypeAssumptions.set_A
-  Step.TypeAssumptions.get_B
-  Step.TypeAssumptions.set_B
-  Step.TypeAssumptions.method_set
-  Step.TypeAssumptions.ptr_method_set
-
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  Step_instance : Step.TypeAssumptions
-  startMember_unfold : FuncUnfold startMember [] startMember.impl
-  startBridge_unfold : FuncUnfold startBridge [] startBridge.impl
-  peerStep_unfold : FuncUnfold peerStep [] peerStep.impl
-  clientStep_unfold : FuncUnfold clientStep [] clientStep.impl
-  partitioner_unfold : FuncUnfold partitioner [] partitioner.impl
   Apply_unfold : FuncUnfold Apply [] Apply.impl
   Check_unfold : FuncUnfold Check [] Check.impl
+  config_unfold : FuncUnfold config [] config.impl
   startCluster_unfold : FuncUnfold startCluster [] startCluster.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   writer_unfold : FuncUnfold writer [] writer.impl
   MainWatch_unfold : FuncUnfold MainWatch [] MainWatch.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
-  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
-  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
-  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
   import_txnlin_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions
+  import_cluster3_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions
+  import_etcdstart_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions
   import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
 
-attribute [instance] Assumptions.Step_instance
-  Assumptions.startMember_unfold
-  Assumptions.startBridge_unfold
-  Assumptions.peerStep_unfold
-  Assumptions.clientStep_unfold
-  Assumptions.partitioner_unfold
-  Assumptions.Apply_unfold
+attribute [instance] Assumptions.Apply_unfold
   Assumptions.Check_unfold
+  Assumptions.config_unfold
   Assumptions.startCluster_unfold
   Assumptions.Main_unfold
   Assumptions.writer_unfold
   Assumptions.MainWatch_unfold
   Assumptions.import_context_Assumption
-  Assumptions.import_net_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
   Assumptions.import_primitive_Assumption
   Assumptions.import_zap_Assumption
-  Assumptions.import_grpc_Assumption
-  Assumptions.import_keepalive_Assumption
-  Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_etcdserver_Assumption
-  Assumptions.import_v3rpc_Assumption
-  Assumptions.import_etcdstart_Assumption
   Assumptions.import_txnlin_Assumption
+  Assumptions.import_cluster3_Assumption
+  Assumptions.import_etcdstart_Assumption
   Assumptions.import_lintest_Assumption
   Assumptions.import_bridge_Assumption
 

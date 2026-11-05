@@ -32067,6 +32067,43 @@ what `Close` returns: the loops' readers and `compactJobResM`) and applies it af
 `kv.Close()`; the shutdown builds it from the census (`storeReaders_retire`, `storeRTs_shares`,
 `bOpen_one_pool`, as `NewServer`'s error path R-D1). `Cleanup` had no client yet.
 
+## The stop's slot, the shutdown, and the monitor's read token (2026-11-05 · R2b-3d stage 5; the coordinator's acceptance of the slot (H1); the user's approval of the monitor contract's widening (H2) and of the smaller design that carries it out · branch `r2b3`)
+
+- **The slot (H1).** The stop's pieces `NewServer.specG` posted inline are one sealed slot,
+  `srvStop.keep s cfg E γrn γk` (`StopApi.lean`, on `WalApi.lean`'s model). Its arguments are whole
+  records and names. Its eliminations are narrow, one per consumer: `raft_stop`, `cleanup_pieces`,
+  `census_readers`, `image_inputs`. `memberBuilt`'s `K` gains the key's name, and no example passes
+  it.
+- **One proof of `run` over a stop flag.** `run.wp_proofG stp` gives `run.spec` (`false`) and
+  `run.specStop` (`true`); the two differ only in the loop's stop branch. The shutdown's helper is a
+  hypothesis of the flag's case (`stopCleanupImage.spec`), so `run.spec`'s linked proof does not
+  depend on it.
+- **`run.specStop`'s scope** (a draft): `restart3`'s configuration, that is, no compactor, auth off and
+  no compaction mode, plus the boot log's facts the image's configuration needs (`Nodup`,
+  `srvBootLogOk`). F4, replacing `run.spec` with `run.specStop`, waits until these premises are
+  lifted or carried by `Start`'s stop variant (R2d).
+- **The monitor's read token (H2).** The census needs every share of the backend's open token,
+  including the one in the storage-version monitor's read token, which `srvWTPool`'s invariant holds.
+  The invariant's checked-out case (a session) could not be ruled out: the monitor's trusted contract
+  posted `True`, and `GoAttach` returned nothing at `Done`. The user approved widening the contract,
+  and then the smaller design over a ticket route (which would have changed `Start`'s post and the
+  starters' hubs):
+  - `GoAttach` hands `f` its goroutine's running receipt `goRunning γ` and takes it back (one spec,
+    generalized in place);
+  - the monitor's session deposits the receipt in the pool's checked-out case, and its contract takes
+    the receipt and gives it back;
+  - `wg.Wait()` returns `goWaited γ`, an exclusive half of the run-token authority at 0 (a new waiter
+    token `γ.wt` shows the protocol closed), which contradicts any receipt;
+  - the pool's names are a record `WTNames = ⟨cnt, reg⟩`. `reg` is a set-once register of the
+    receipt's name: `NewServer` allocates the pool before `start` makes the goroutine names, and
+    `start` sets the register, which travels inside `srvWTBudget`'s body;
+  - the stop takes the token and deposits its `goWaited` with ⅛ of its `γbe` quarter (a discarded
+    quarter would not rule out a retired case against the snapshot swap's ¾), so `Cleanup.spec`
+    takes any fraction of `γbe`.
+
+  The widened contract was attacked with the `axiom` skill in the same round and survives
+  (`notes/axiom-review/monitor-storage-version-receipt.md`).
+
 ## The auth component, stage 5: the served KV side and `Serve` merged (2026-11-05 · the Freeze of candidate 6, "yes, freeze c6" · branch `auth-comp5`)
 
 Supersedes stage 4's "Left: L3 ... and L4" for the served side of L3 and for L4, and, for these two

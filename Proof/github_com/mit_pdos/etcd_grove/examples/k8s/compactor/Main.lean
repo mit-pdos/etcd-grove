@@ -240,6 +240,8 @@ theorem Main.wp_proof
   ihave #Hregs : ([∗list] y ∈ [x], client.kvRegsAt y) $$ []
   · iapply BigSepL.bigSepL_cons.2; iframe Hreg1; iapply BigSepL.bigSepL_nil.2; itrivial
   have hrb : receiptBound GF ≤ 2 ^ 62 := by omega
+  have hsame : ∀ y ∈ [x], kvSame y.γr.kv ρ.rd.kv := fun y hy => by
+    simp only [List.mem_singleton] at hy; subst hy; exact kvSame_refl _
   have htb : threadBound GF ≤ 2 ^ 31 := by omega
   let V : client.WEnv GF := EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv
   -- `wcli, err := NewClient(clientAddr, lg)`
@@ -272,8 +274,8 @@ theorem Main.wp_proof
   · iunfold client.clientWriteOnce; ipureintro
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
-  imod (client.isKv_of_newClient wcl clientAddr V E ρ.rd cid mid ρ.rd.kv (kvSame_refl _) hrb)
-    $$ [Hwnc Hone1 Hreg1] with ⟨%wapi, #Hwkvf, #Hwkv⟩
+  imod (client.isKv_of_newClient wcl [x] [clientAddr] V ρ.rd.kv rfl hsame hrb)
+    $$ [Hwnc Hone1 Hregs] with ⟨%wapi, #Hwkvf, #Hwkv⟩
   · iframe #
   ihave #Hwko : k8s.clientKvOk (GF := GF) wcl ρ.rd.kv $$ []
   · iunfold k8s.clientKvOk; iexists wapi, false; iframe #
@@ -295,8 +297,6 @@ theorem Main.wp_proof
   ihave #Heps : [∗list] ep ∈ [clientAddr], k8s.epOf (GF := GF) ep ρ.rd.kv (fun _ => iprop(True))
     $$ []
   · iapply BigSepL.bigSepL_singleton.2; iexact Hep
-  have hsame : ∀ y ∈ [x], kvSame y.γr.kv ρ.rd.kv := fun y hy => by
-    simp only [List.mem_singleton] at hy; subst hy; exact kvSame_refl _
   ihave IH : (∃ (n : w64) (k : w32), "i" ∷ i_ptr ↦ n ∗
       "Hadd" ∷ sync.join.ownAdder wg_ptr k iprop(True) ∗
       "%Hk" ∷ ⌜sint.Z k ≤ sint.Z n ∧ 0 ≤ sint.Z n ∧ sint.Z n ≤ 5 ∧ 0 ≤ sint.Z k⌝ : IProp GF)
@@ -326,8 +326,8 @@ theorem Main.wp_proof
     · iunfold client.clientWriteOnce; ipureintro
       intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
       subst ha; exact Hnr
-    imod (client.isKv_of_newClient cl clientAddr V E ρ.rd cid mid ρ.rd.kv (kvSame_refl _) hrb)
-      $$ [Hnc Hone2 Hreg1] with ⟨%capi, #Hckvf, #Hckv⟩
+    imod (client.isKv_of_newClient cl [x] [clientAddr] V ρ.rd.kv rfl hsame hrb)
+      $$ [Hnc Hone2 Hregs] with ⟨%capi, #Hckvf, #Hckv⟩
     · iframe #
     ihave #Hcko : k8s.clientKvOk (GF := GF) cl ρ.rd.kv $$ []
     · iunfold k8s.clientKvOk; iexists capi, false; iframe #
