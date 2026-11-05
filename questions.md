@@ -46,10 +46,11 @@ the extension to be built autonomously; nothing is on `lean`.
 8. **`fallocate`**: mode 0 is a truncate to `max size (off+len)` (two steps, as `ftruncate`);
    `KEEP_SIZE` changes nothing visible; other modes panic in the model.
 
-9. **Not in this round**: `Seek`/`Write`/`Read` at the file offset (the plan: an offset field in the
-   trusted `os.file` model over `pread`/`pwrite`), `RemoveAll` (translatable Go), `MkdirAll`, and
-   the proofs of `dirswap` and `seglog` (see 13). The namespace's program logic and `segdir.Boot`'s
-   crash safety are done (round 3, `notes/walfs-ext-plan.md`).
+9. **Not in this round**: `RemoveAll` (translatable Go) and `MkdirAll`. The file offset is
+   modelled (round 4: a field of the trusted `os.file`, `File.Seek`/`Write`/`Read` over
+   `pread`/`pwrite`; after a failed `Write` the model sets the offset to `-1` (unknown)
+   where Go's has moved by the bytes written, so the model is less defined there than Go, never more; an offset that would
+   pass `2^62` is a model panic, unreachable for etcd's 64 MB segments).
 
 10. **No two metadata calls at once** (round 1 of the review, finding 4; `NsBegin`): two calls that
     change the namespace and overlap in time are a stuck run, since the journal may order them
@@ -74,12 +75,15 @@ the extension to be built autonomously; nothing is on `lean`.
     meet there; the per-key ghost state is the same for both, so the gap is `Open`'s regime, not
     the file specs.
 
-13. **Adequacy is proved for `segdir.Boot` only** (round 3): `Proof/.../examples/osfs/walfs/Results.lean`,
-    `crash_safety`, no `sorry`. `dirswap` (a directory renamed with its file) needs extension-level
-    specs the program logic does not have yet: `Mkdir`, `rmdir` of a directory, and a `Rename` of a
-    directory, which moves the ghost entries (`osDir`) of the directory's whole subtree to new
-    paths (and is stuck while a directory fd is open inside it). `seglog` needs specs of
-    `Fallocate`, the OFD lock and `Seek`. Neither is started.
+13. **Adequacy is proved for all three examples** (round 4, `notes/walfs-ext-plan.md`):
+    `crash_safety` (segdir), `seglog_crash_safety`, `dirswap_crash_safety`, no `sorry`. The
+    namespace's ghost state is one element, the history since boot: a program that changes
+    directories (`dirswap`) holds it whole around each call, so **two threads cannot change the
+    namespace concurrently under this logic** (one owner; a per-directory view, `osDir`, can be
+    shared for reading and for file operations in a directory that stays one). That is enough for
+    the examples and for etcd's WAL (one goroutine creates, renames and purges), not for a program
+    whose threads make directories concurrently: before such a client, split the history (e.g.
+    an authoritative history with per-subtree fragments).
 
 14. **`os.Rename.wp_proof` is still an axiom** (`Proof/os/Rename.lean`, D22 S-f, used by the
     server's `Link.lean`), stated over the server's abstract `fileHolds`/`pathOwn`. This branch
@@ -89,7 +93,9 @@ the extension to be built autonomously; nothing is on `lean`.
     (the server's file predicates are not tied to the namespace) or plan its proof from the
     model (needs the server's data directory as a root, item 12).
 
-15. **What `crash_safety` assumes about the initial state**: `OsInit`, `dir` a directory of the
+15. **What the crash-safety theorems assume about the initial state** (stated for `crash_safety`;
+    `seglog_crash_safety`: `dir` a directory, `seg.log` not one; `dirswap_crash_safety`: the
+    namespace `Safe`, `wal`'s `seg` `DataGood` if `wal` is a directory): `OsInit`, `dir` a directory of the
     namespace, `seg` and `seg.tmp` not directories, and `seg`'s file, if any, `DataGood` (exactly
     the data). As for crashlog, the package initializer is a hypothesis (`Hinit_wp`). The theorem's
     axioms are the axiomatized Go types and untranslated initializers (`X.init`) of `os`,

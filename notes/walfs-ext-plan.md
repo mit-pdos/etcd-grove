@@ -254,3 +254,42 @@ What the proof found about the semantics' specs: none wrong; `wp_osRenameAbsent`
 Left: `dirswap` (directory `Mkdir`, `rmdir`, and directory `Rename`, whose ghost update moves the
 subtree's entries), `seglog` (`Fallocate`, the OFD lock, `Seek`), and the concurrent-metadata repair
 (`questions.md`, 10) before etcd's WAL.
+Round 4 (below) did `dirswap` and `seglog`; the concurrent-metadata repair is still left.
+
+## Round 4: the namespace as its history; `seglog` and `dirswap` (2026-11-05)
+
+Done, no `sorry`: `seglog_crash_safety` (`SegLogResults.lean`) and `dirswap_crash_safety`
+(`DirSwapResults.lean`), with `segdir`'s `crash_safety` re-proved; `lake build` of the three, of
+bbolt's and crashlog's results and of `TestsNs` succeeds.
+
+- **The ghost state is the namespace's history** (`Ghost.lean`, `NsGhost.lean`, `NsView.lean`):
+  one ghost element `V = (H0, H)`, the namespace at boot and the operations since, held whole
+  (`osNsAll 1 V`) by a program that changes directories, or as a directory's view
+  (`osDir d dq g := ∃ V, osNsAll dq V ∗ ⌜g = dview V.1 V.2 d ∧ AllDir V d⌝`, `d` a directory in
+  every prefix). The per-directory ghost entries of round 3 could neither say what a crash leaves
+  across two directories (a rename between them) nor express a directory made or moved since boot.
+  A crash keeps `nsReplay (H.take n) H0` for some `n` (`osNsCrash_takeAll`; `osNsCrash_take` for a
+  directory's view). The per-directory specs kept their statements.
+- **Directory fds hold a fraction of the history for their lifetime** (`DirPh` carries it), so the
+  holder of the whole history knows no directory fd is open (`rdRes_none`), which `rmdir` and a
+  directory's `rename` need (the steps are stuck on an open fd there).
+- **Global specs** (`NsSpecsDir.lean`, `NsSpecsDirMk.lean`, `NsSpecsDirMv.lean`), over
+  `osNsAll 1 V` with premises on the namespace now: `Regime`, `NsLstatDir`, `unlink`, `O_CREAT`
+  open (fresh and retried), `mkdir`, `rmdir`, a directory renamed onto an absent sibling (with what
+  `nsMove` leaves, looked up: `NsMove.lean`), and a rename of an absent source. Total where a
+  program cannot know the state (`unlink`, `rmdir`, `mkdir` of a name in a directory or in a name
+  of one, `NsBelowDir`). The shape and well-formedness lemmas of a directory made, removed and
+  moved are in those files.
+- **seglog**: the trusted file offset (`os.file.off`, `File.Seek`/`Write`/`Read` models in
+  `TrustedCode/os.lean`; a failed write leaves it `-1`, an offset past `2^62` is a model panic),
+  `Fallocate` (grow; keep-size), the OFD lock, a shrinking `ftruncate`
+  (`GooseLang/Ext/OsFs/{Falloc,TruncateShrink}.lean`, `Proof/os/{Off,TruncateShrink}.lean`); the
+  program's own `readFull` (goose does not translate `io.ReadFull`).
+- **dirswap** (`DirSwap.lean`): the invariant `dsInv` holds half the history and says every prefix
+  is `Safe` (`dir` a directory, `wal.tmp` and `wal` no files, `wal`'s `seg` the file of the key if
+  `wal` is a directory); `Create` tracks that `wal` is absent from every prefix (`WAbs`), which lets
+  it change the key before the rename.
+
+What the proofs found: no bug in the examples or the semantics. The spec statements changed once:
+`mkdir`'s success gives "nothing below the new directory", which `Create`'s next `open` needs.
+
