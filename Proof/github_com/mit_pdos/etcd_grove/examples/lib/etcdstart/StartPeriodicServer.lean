@@ -38,7 +38,7 @@ theorem StartPeriodicServer.wp_proof
     (wp_newServerMode : newServerMode.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartPeriodicServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client period lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN
+  intro CS N name peerAddr client period lg bootLog ctxs dir id γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN
     hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hname8 Hlg Hper Hcret Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hwdf⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -74,13 +74,13 @@ theorem StartPeriodicServer.wp_proof
       (W64 281474976710656) (slice.mk peer (W64 1) (W64 1)) pm
       lg
       (GMap.insert name (slice.mk peer (W64 1) (W64 1)) ∅) (fun _ => [httpURL peerAddr])
-      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true Htb Hrb48 HrbN HwbN
+      (urls1 name peerAddr client) [id] bootLog ctxs dir id γ ρ E₀ Φs γn true lm Htb Hrb48 HrbN HwbN
       hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
       (utf8Keys_insert _ _ _ Hname8 utf8Keys_empty) Hlg
       (v3compactor.bootCfg_periodic _ _ Hper Hcret) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -90,7 +90,7 @@ theorem StartPeriodicServer.wp_proof
   subst Herr
   wp_auto
   -- `s.Start()`
-  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN) $$ [Hmb Htok] as Hup
+  wp_apply (wp_Start_built wp_Start s ρ E₀ lg γn id N _ HrbN lm) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iapply HΦ

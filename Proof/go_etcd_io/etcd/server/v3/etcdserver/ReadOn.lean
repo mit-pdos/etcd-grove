@@ -374,7 +374,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗ mvcc.idxSealed E.γ.idx L -∗
       mvcc.certOk E.γ L -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) ={⊤}=∗
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ={⊤}=∗
       ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
   cases on
   · rw [srvKVCoreM_false]
@@ -391,7 +391,7 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     · iframe H0 HL
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     -- `L` is a prefix of the committed log's model
     ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗ ⌜L <+: kvModel γr.kv Lf⌝) $$ [HLf Hcase]
     · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
@@ -433,13 +433,15 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
-    · iunfold etcdKV; rw [hst]; iexact Hc2
+    · iunfold etcdKV; rw [hst]; isplitl [Hc2]
+      · iexact Hc2
+      · ipureintro; rw [← Hag]; exact kvRoom_model γr.kv Lf Hok'.2.2.2.2.2.2.2.2
     imod Hback with -
-    imod Hclose $$ [HLf Hσ'] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
     iexists kvModel γr.kv Lf
-    rw [← kvModelSt_plain γr.kv Lf (Hlg ▸ Hok'.1), Hag]
+    rw [← kvModelSt_plain γr.kv Lf (KVNames.lm_of_lg_false Hlg ▸ Hok'.1), Hag]
     iframe HQ0
     ipureintro; exact HpL
   · rw [srvKVCoreM_true]
@@ -499,7 +501,9 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
-    · iunfold etcdKV; rw [hst]; iexact Hc2
+    · iunfold etcdKV; rw [hst]; isplitl [Hc2]
+      · iexact Hc2
+      · ipureintro; rw [← Hag]; exact kvRoom_modelOn γr.kv srvAuthSt0 Lf Hok'.2.2.2.2.2.2.2
     imod Hback with -
     imod Hclose $$ [HLf Hσ' Hh] with -
     · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
@@ -562,15 +566,15 @@ theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     · imodintro; ipureintro; exact hshort hl Hp0
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     ihave #Hw2 := Hw
     iunfold kvWork at Hw2
     icases Hw2 with ⟨%Hws, -⟩
     imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
       Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
     ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ'] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
     ipureintro
     obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
@@ -642,7 +646,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- Firing every registered read update at the state of `L`'s mode-`on` model, the KV authority's
 half agreeing (`kv_fire_reads`'s). -/
-theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) :
+theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (hroom : kvRoom (kvStOn γk st₀ L)) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStOn γk st₀ L) -∗
         ([∗list] g ∈ gs, regOk γk g (kvStOn γk st₀)) -∗
@@ -664,7 +669,7 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
     iunfold kvDep at Hd
     icases Hd with (⟨%Q0, %HQeq, #Hau⟩ | %HQeq)
     rotate_left
-    · imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
+    · imod kv_fire_reads_on γk st₀ L hroom gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
       imodintro
       iframe Hσ
       unfold readQs
@@ -688,8 +693,10 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc] with #HQ0
-    · iunfold etcdKV; iexact Hc
-    imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
+    · iunfold etcdKV; isplitl [Hc]
+      · iexact Hc
+      · ipureintro; rw [← Hag]; exact hroom
+    imod kv_fire_reads_on γk st₀ L hroom gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
     imodintro
     iframe Hσ
     unfold readQs
@@ -745,7 +752,7 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
-  imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
+  imod kv_fire_reads_on γk st₀ L (kvRoom_modelOn γk st₀ L Hok.2.2.2.2.2.2.2) gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask

@@ -764,7 +764,7 @@ theorem mergedCreate_window
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (st : ApplyState)
-    (ai a t : w64) (A : List EntryModel) (x : apply.ApplyKV) (γw γp : GName) (ua kv : GoInterface)
+    (ai a t : w64) (A : List EntryModel) (x : apply.ApplyKV) (γw : GName) (γp : WTNames) (ua kv : GoInterface)
     (hok : loopOk γ st ai) (hci : ciEff γ st.k = ai) (hpos : 0 < uint.Z ai)
     (hlen : uint.Z ai = A.length) (SA : GoString → Prop)
     (QA : GMap GoString backend.BktData → Prop) (RA : IProp GF)
@@ -837,7 +837,7 @@ theorem mergedCreate_window
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hl2 Hg with ⟨Ht2, Hg⟩
   ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
   -- the rest buckets
-  ihave ⟨%f, HRs, HLt, #HGI⟩ := srvRest_open E γr A $$ HRs
+  ihave ⟨%f, HRs, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
@@ -970,9 +970,9 @@ theorem mergedCreate_window
       isplitl [Hra]
       · iexact Hra
       iexact Hw
-    isplitl [Hrc Hrn Hcl HH HLt]
+    isplitl [Hrc Hrn Hcl HH HLt HEv]
     · iapply srvRest_close
-      iframe HLt HGI
+      iframe HLt HGI HEv
       iexists f
       rw [hRO]
       iunfold srvRestOwnH
@@ -1054,8 +1054,10 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
     · -- (the lease-grant stage) a cluster that grants none: its log grants nothing, the plain image
       rw [hlg] at hrest
       simp only [Bool.false_eq_true, ↓reduceIte] at hrest
-      have hpl : plainLogM γr.kv.cmp false A := by
-        have := Hpl0.1; rw [Hlgk.2, hlg] at this; exact this
+      have hpl : plainLogM γr.kv.cmp .none A := by
+        have := Hpl0.1
+        rw [Hlgk.2, apply.AEnv.lm_of_lg_false hlg] at this
+        exact this
       have hn : (kvLeases γr.kv (γr.raft.pre ++ A)).ids = [] := by
         rw [hpre, List.nil_append]; unfold kvLeases; rw [kvTableOf_plainM _ _ _ A hpl]; rfl
       simpa [hpre] using bkRestAtL_of_nil hn hrest

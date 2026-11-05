@@ -327,6 +327,13 @@ theorem EtcdServer.start.wp_proof
     (Nat.le_trans Hbound (by unfold backend.rdPoolN; omega)) Hlgn $$ Hstopping Hsg Hwg HwgMu
     Hctx Hlgf with ⟨%γg, #Hgok, Hclose, Hwgs⟩
   icases replicate_take2 _ _ sync.actualMaxReaders_ge_2 $$ Hwgs with ⟨Hwg1, Hwg2, Hwgs⟩
+  ihave Hwg1 : srvWgReader s $$ [Hwg1]
+  · iunfold srvWgReader; iexists γg; iexact Hwg1
+  ihave Hwgs := replicate_map _ (srvWgReader s) (srvGoAttachOk s γg) _ $$ [$Hgok $Hwgs]
+  · iintro ⟨-, Hslot⟩
+    iunfold srvWgReader
+    iexists γg
+    iexact Hslot
   -- the views `run` needs
   ihave #HkviM := (srvKVInvsM_C (GF := GF) C s E γr).2 $$ Hkvi
   ihave #Hsrv : isServerC C s γ ci TM E { ρ with wait := γw } γr $$ []
@@ -395,13 +402,13 @@ theorem EtcdServer.start.wp_proof
   -- the apply thread's resources
   iunfold applyBuiltC at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA,
-    Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
+    Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
   -- the read side, from the component's row (`acRes_read`)
   icases acRes_read C s E ua srvAuthSt0 hm $$ Hres with ⟨Hres, #HaR⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
   icases srvSnapOwn_of_boot s ci E γr γ ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
   ihave Hstart : applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw $$
-      [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA Hres Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
+      [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
   · iunfold applyStartC
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Halg Hbm Hao Hso Hfs Hwg1 Hlog Hkr Hrest Hap Htok
@@ -421,12 +428,14 @@ theorem EtcdServer.start.wp_proof
     · iexact HRA
     isplitl [Hres]
     · iexact Hres
-    iexists w, RD
-    isplitr
-    · iexact Hw
-    isplitr
-    · iapply isWait_waitOk $$ Hwait
-    iexact HRD
+    isplitr [Hrdat]
+    · iexists w, RD
+      isplitr
+      · iexact Hw
+      isplitr
+      · iapply isWait_waitOk $$ Hwait
+      iexact HRD
+    iexact Hrdat
   -- the views (before the compactor's run, whose precondition `NewServer` makes from them)
   icases Hreqb with ⟨%vq, #Hvq⟩
   iunfold srvReqBuiltM at Hvq
@@ -488,7 +497,10 @@ theorem EtcdServer.start.wp_proof
   -- `go s.run()`, with the write budget backed by time receipts (D19b; made by `NewServer` since
   -- M2's item 15, stage B3)
   iunfold srvWTBudget at HWB
-  icases HWB with ⟨%γp, #HWB, #HWA0⟩
+  icases HWB with ⟨%γp, #HWB, #HWA0, HWreg⟩
+  -- (H2, 2026-11-05) the budget's register set to `GoAttach`'s receipts' name, for good
+  imod dghostVar_update (some γg.run) γp.reg none $$ HWreg with HWreg
+  imod dghostVar_persist γp.reg 1 _ $$ HWreg with #HWreg
   -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
   -- `nonissues/etcd-compactor-started-before-start.md`): its run, once (`compactorRun`; M2, S4)
   icases Hcrun with ⟨%cr, #Hcra, Hcr⟩
@@ -539,7 +551,7 @@ theorem EtcdServer.start.wp_proof
       iframe Hsnapb
       isplitr
       · iexists γp
-        iframe HWB
+        iframe HWB HWreg
         rw [Hai0]; iexact HWA0
       iexists _, _; iframe Hsc Hscu
     ipureintro; exact isPanic_intoVal ()
@@ -563,14 +575,15 @@ theorem EtcdServer.start.wp_proof
   · rw [← HEr.2.1]
     iapply isReadRaft_of_raftNode hRSt hRI Er γn (srvRAddr s) $$ [$Hpkg $Hrn]
   icases replicate_take1 _ _ (by have := sync.actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
-  ihave #HWBx : iprop(∃ γp, srvWTPool (GF := GF) E γp) $$ []
-  · iexists γp; iexact HWB
+  ihave HWBx : iprop(∃ (γp : WTNames) (γg : GoNames), srvWTPool (GF := GF) E γp ∗
+      dghostVar γp.reg DFrac.discard (some γg.run) ∗ srvWgReaderAt s γg) $$ [Hwg2]
+  · iexists γp, γg; iframe HWB HWreg Hwg2
   iapply HΦ
   iexists γw
   ihave #HauLb := acRead_lb C s E $$ HaR
   iframe Hreq Hrd HauLb HWBx
   iunfold srvStarted
-  iframe Hwg2 Hwgs HNR
+  iframe Hwgs HNR
   isplitr
   · ipureintro; exact Hρrd
   isplitr

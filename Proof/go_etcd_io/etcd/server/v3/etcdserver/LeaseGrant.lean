@@ -55,10 +55,14 @@ receiver (the Lease service's handler, `v3rpc.leaseHdrAns`) needs it: its lease 
 `TTL` and `Error` read-only; its header's four id fields owned (`txn.respHdrOwn`: the gRPC layer's
 `header.fill` writes them) and its revision read-only, not `0`, a revision the store has reached
 (`srvRevLb`: a certified log longer than it, from which the clients' `etcdReached` follows,
-`v3rpc.etcdReached_of_certOk`); and the lease granted at an index `i` of the lessor's history.
+`v3rpc.etcdReached_of_certOk`); and the lease live in the lessor's history from an index `i`
+(`leaseLiveFrom`; the lease-expiry plan's X2, 2026-11-04: mode-free, until then `leaseGrantedAt`,
+which `lease.srvInv_grantedAt` gives back in the monotone mode), and the lease's read-only `ttl`
+field at least the request's TTL `reqTTL` (2026-11-05, the lease-expiry plan's E3/R5: the granted
+TTL; the lessor's `grantTTL` raises a TTL below its minimum, never lowers one).
 (The review's M3, 2026-11-02: until then the applied log itself, its certificate and witness, the
 supplier's mechanism.) -/
-def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) : IProp GF :=
+def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) (reqTTL : w64) : IProp GF :=
   iprop(∃ (id ttl : w64) (e : GoString) (i : Nat) (h : Loc) (rv : w64),
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Header" resp ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗ ⌜rv ≠ W64 0⌝ ∗
@@ -67,7 +71,8 @@ def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) : IProp GF :=
     structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ ⌜id ≠ W64 0⌝ ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" resp ↦□ ttl ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" resp ↦□ e ∗
-    lease.leaseGrantedAt E.γ.leases i id)
+    ∃ (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i id l ∗ lease.lsF go!"ttl" l ↦□ t ∗
+      ⌜sint.Z reqTTL ≤ sint.Z t⌝)
 
 end defs
 

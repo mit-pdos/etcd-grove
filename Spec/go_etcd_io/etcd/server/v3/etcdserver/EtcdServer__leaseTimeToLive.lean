@@ -55,23 +55,57 @@ and its header set, as etcd's lease handler (`leasehttp.NewHandler`) does; a 200
 former panics (`issues/etcd-leasehttp-timetolive-nil-response-panic.md`). A peer listener that does
 not serve that path (the examples' members serve only the raft handler, `examples/lib/etcdstart`'s
 `NewMember`) answers 404, which `TimeToLiveHTTP` reads as `ErrLeaseNotFound`: an error the triple
-allows, though the lease may exist (seen 2026-11-02, `examples/etcd/lease/leasekv_cluster_test.go`). -/
+allows, though the lease may exist (seen 2026-11-02, `examples/etcd/lease/leasekv_cluster_test.go`).
+
+**What the answer says of the lessor `γl`** (the lease-expiry plan's E2, revision 5, the user's,
+2026-11-05), at the caller's lower bound `m` of its history (`lessorLb γl m`), under the lease-TTL
+row (`leaseTTLRow s γl`: `s` is its cluster's only member, no membership change is admitted, in its
+first start): a found lease's `GrantedTTL` is its TTL at an index `≥ m`, or the lease is absent from
+`m` on; `ErrLeaseNotFound` (`errIsTrue` against it) means it is absent from `m` on. Why it is true of
+Go (`v3_server.go:636-696`): *the leader path* (`isLeader()` true at the check), without the row:
+`Lookup` runs after the check, at an index `≥ m` (the caller's `lessorLb γl m` and the history's
+monotonicity); found, `GrantedTTL` is `le.TTL()`, the lease's `ttl` field, written only by `Grant`
+before the lease enters the map (`lessor.go:301-302`; `ttlTie`); not found, `Lookup` returned `nil`.
+*The forwarded path* (`isLeader()` false), under the row: `s`'s first start (its node made by
+`StartNode`, `nodeStartedFresh`, so its log began as the bootstrap's configuration changes, and its
+lessor's history begins empty) applies no lease before raft stores its leadership (`r.lead` is
+stored from the `Ready` before its committed entries are sent to the apply loop,
+`raft.go:190-202,237`), and a sole voter (every committed configuration `{mid}`, `confAt`) keeps
+it once it has it: CheckQuorum counts the leader itself active (raft `raft.go:967-969,1299-1310`),
+the shutdown's leadership transfer is skipped for a single voter (`server.go:1258,1316`),
+`MoveLeader` rejects a transferee that is not a member (`server.go:1268-1271`) and raft ignores a
+transfer to itself (`raft.go:1667-1669`), no other member exists to send a higher term or a
+snapshot, and the trusted transport contract (decisions.md D21b (A)) delivers only the cluster's
+members' messages; so at the check's index (`≥ m`) the lessor had no lease at all, whatever the
+forwarded reply (`404`, which the examples' raft-only peer listeners answer,
+`etcdstart/common.go:172`, or another answer). Hence the found arm's disjunction and the not-found
+arm (Go's returned errors are leaves: `errIsTrue` with `ErrLeaseNotFound` means `err` is it).
+Without the row both are false (a follower forwards to another member's lessor; a restarted member
+applies replayed grants before its election and forwards: review round 3, R7). A change admitting
+configuration changes or restarts with leases must revisit this spec. -/
 abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (dq : DFrac)
-    (v : etcdserverpb.LeaseTimeToLiveRequest),
+    (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
       context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
-      r ↦{dq} v }}
+      lease.lessorLb γl m ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗
       r ↦{dq} v ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse, resp ↦ w ∗
-          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ ∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+          ⌜w.Header' ≠ null⌝ ∗ ⌜w.ID' = v.ID'⌝ ∗ (∃ hv : etcdserverpb.ResponseHeader, w.Header' ↦ hv) ∗
+          □ (leaseTTLRow s γl -∗
+              (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
+              lease.leaseAbsentFrom γl m v.ID')) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+          □ (∀ e : GoInterfaceOk,
+              globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□ GoInterface.ok e -∗
+              errIsTrue err (GoInterface.ok e) -∗ leaseTTLRow s γl -∗
+              lease.leaseAbsentFrom γl m v.ID'))) }}
 
 end spec
 

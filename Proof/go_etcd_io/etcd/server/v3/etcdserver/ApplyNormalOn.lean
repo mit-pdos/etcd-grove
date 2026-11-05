@@ -46,22 +46,22 @@ request with an id that `rqOk` admits at the apply thread's log or an admitted a
 (`adminKindOk`), dispatchable on the apply thread's chain. -/
 def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    (apply.rqOk false x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
+    (apply.rqOk .none x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
 off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the lease-grant stage's
 §2.8; auth on is a cluster that grants none). -/
-def entryOkM (on lg : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+def entryOkM (on : Bool) (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
-  | false => entryOk lg x m
+  | false => entryOk lm x m
   | true => entryOkOn x m
 
-theorem entryOkM_false (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
-    entryOkM false lg x m = entryOk lg x m :=
+theorem entryOkM_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM false lm x m = entryOk lm x m :=
   rfl
 
-theorem entryOkM_true (lg : Bool) (x : apply.ApplyKV) (m : EntryModel) :
-    entryOkM true lg x m = entryOkOn x m :=
+theorem entryOkM_true (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM true lm x m = entryOkOn x m :=
   rfl
 
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
@@ -152,6 +152,14 @@ theorem adminKindOk_nonGrant (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
   rw [hk] at h
   exact h
 
+/-- An admin request is not a revocation (the lease-expiry plan's X6). -/
+theorem adminKindOk_nonRevoke (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq ≠ .leaseRevoke := by
+  intro hk
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact h
+
 /-- An admitted admin request sets neither cluster field (`dispatchKind` tries them first). -/
 theorem adminKindOk_noCluster (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
     rq.clusterVersionSet = none ∧ rq.clusterMemberAttrSet = none := by
@@ -199,7 +207,7 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
     (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
   have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
-    · exact kvEntry_len c₀ ch [] x m (lg := false) (Or.inl hd) hl
+    · exact kvEntry_len c₀ ch [] x m (lm := .none) (Or.inl hd) hl
     · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
     · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]
@@ -420,19 +428,22 @@ theorem appliedMono_of_invM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   ipureintro
   exact HMk.2.2 i j L1 L2 Hm1 Hm2 hij
 
+open Iris.ProofMode in
 /-- **An admin entry leaves the rest buckets** (`restAfter_other`: it sets no cluster field). -/
 theorem srvRest_admin (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hk : apply.adminKindOk rq) :
-    srvRest E γr (A ++ [m]) = srvRest E γr A := by
+    srvRest E γr A ⊢ srvRest E γr (A ++ [m]) := by
   obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hk
   have hg : apply.dispatchKind rq ≠ .leaseGrant := fun h => by
     unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
   have hr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
     unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
-  rw [srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr),
-    restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
-  rfl
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  iapply srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr)
+  rw [restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
+  iframe H HU
 
 /-- **After the entry, in the mode `on`** (`kvApplied_next`'s counterpart): the apply thread's KV
 ghost state at the next state `x'` and auth state `st'` (the model's after `A ++ [m]`, the chain
@@ -763,10 +774,10 @@ theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iexact Hrest
 
 /-- **One write token, the count raised by one, with auth on** (`srvWTPool_take_n`'s). -/
-theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
-      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp.cnt n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTTaken γp.cnt (n + 1) ∗ srvApplyKVOn s E γw x st := by
   iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
@@ -895,7 +906,7 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
         (srvApplyKVCore s E γw x ua -∗ srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -929,7 +940,9 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- **The mode-`on` row lends its shared part and its auth row** (`srvApplyKVOn_core`'s, with the
 auth row `srvAuthApplyResB`, which lends the auth buckets to the merged snapshot's window: #7-on). -/
@@ -940,7 +953,7 @@ theorem srvApplyKVOn_coreA (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
         (srvApplyKVCore s E γw x ua -∗ srvAuthApplyResB s E st -∗ srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -976,7 +989,9 @@ theorem srvApplyKVOn_coreA (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
 theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)

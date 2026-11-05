@@ -147,7 +147,7 @@ theorem server_kv_watchable_of
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st ∗ mvcc.retiredAt γw.st 0 ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
+        mvcc.wsCloser ws st γw.st ∗ mvcc.retiredAt γw.st 0 ∗ lease.rdAt γl st ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif, Hok⟩ HΦ
   -- this store never compacts: the registration fixed at "nothing deletable"
   imod backend.dlNoDel_fix d.γB $$ Hdl with #Hnd
@@ -308,7 +308,7 @@ theorem server_kv_watchable_ofM (c : Bool)
         mvcc.crevPermIs γw.st Perm ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some ({ d with cm := c, ties := t, snap := false } :
           mvcc.KBReal))) ∗
-        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
+        lease.rdAt γl st ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif,
     Hok, #Hfv, Hsr⟩ HΦ
   -- (F2, stage 2) the instance's ties, fresh (`kbTie_alloc`)

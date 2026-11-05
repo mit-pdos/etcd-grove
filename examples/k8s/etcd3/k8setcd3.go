@@ -21,19 +21,22 @@
 // call that returned no error took effect at once and answered as the model; a failed write may
 // take effect at any later time, or never; a failed read constrains nothing.
 //
-// The traffic is the minimal unary traffic of Kubernetes' storage correctness test
-// (test/integration/apiserver/storage/traffic.go): consistent Gets (no resource version), Creates
-// without a resource version or TTL, Deletes and GuaranteedUpdates without preconditions or a
-// cached object, updates without ignoreNotFound or a TTL, with the test's rejecting
+// The traffic is the unary traffic of Kubernetes' storage correctness test
+// (test/integration/apiserver/storage/traffic.go, TestCorrectness's requestDistribution) without
+// lists (notes/k8s-etcd3-plan.md, stage 7b): Creates (a new UID, no resource version or TTL),
+// Deletes and GuaranteedUpdates with UID and resource-version preconditions and a cached object
+// (the client's last answer, as the test's), updates with ignoreNotFound, the test's rejecting
 // validateDeletion and tryUpdate (a sentinel error when the stored object's value is the one
-// drawn) and its no-op updates. Main panics if porcupine finds the history not linearizable; the
-// theorem to prove is that it does not.
+// drawn) and its no-op updates, and Gets with IgnoreNotFound and a minimum resource version (empty,
+// 0, 1, the cached object's, or relative to it). Main panics if porcupine finds the history not
+// linearizable; the theorem to prove is that it does not.
 package etcd3
 
 import (
 	"context"
 	"errors"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -43,8 +46,10 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/value"
@@ -56,11 +61,13 @@ import (
 // ---------------------------------------------------------------------------------------------
 // The driver's objects, codec, versioner, decoder and transformer
 
-// An Obj is the driver's object: its name (the key it is stored at), a value, and its resource
-// version (0 for none). Kubernetes' objects keep it as a decimal string; the driver keeps the
-// number, and its versioner's string form of it is rvString's.
+// An Obj is the driver's object: its name (the key it is stored at), its UID (Kubernetes' objects'
+// identity across a delete and a re-create: a Create's is drawn at random), a value, and its
+// resource version (0 for none). Kubernetes' objects keep it as a decimal string; the driver keeps
+// the number, and its versioner's string form of it is rvString's.
 type Obj struct {
 	Name            string
+	UID             string
 	Value           string
 	ResourceVersion uint64
 }
@@ -82,40 +89,46 @@ const (
 	tagV0 = "v0:"
 )
 
-// encodeWith is the encoding of an object's name and value (not its resource version) under the
-// tag tag: the tag, the name's length (one byte; names are shorter than 256 bytes), the name and
-// the value.
-func encodeWith(tag string, name string, val string) []byte {
+// encodeWith is the encoding of an object's name, UID and value (not its resource version) under
+// the tag tag: the tag, the name's length (one byte; names are shorter than 256 bytes), the name,
+// the UID's length (one byte; UIDs are shorter than 256 bytes), the UID and the value.
+func encodeWith(tag string, name string, uid string, val string) []byte {
 	out := []byte(tag)
 	out = append(out, byte(len(name)))
 	out = append(out, []byte(name)...)
+	out = append(out, byte(len(uid)))
+	out = append(out, []byte(uid)...)
 	return append(out, []byte(val)...)
 }
 
 // encodeObj is the current encoding of an object.
 func encodeObj(o *Obj) []byte {
-	return encodeWith(tagV1, o.Name, o.Value)
+	return encodeWith(tagV1, o.Name, o.UID, o.Value)
 }
 
 // encodeV0 is the older encoding. The driver seeds some keys with it.
-func encodeV0(name string, val string) []byte {
-	return encodeWith(tagV0, name, val)
+func encodeV0(name string, uid string, val string) []byte {
+	return encodeWith(tagV0, name, uid, val)
 }
 
-// decodeObj decodes either encoding: the name and value, or false.
-func decodeObj(data []byte) (string, string, bool) {
+// decodeObj decodes either encoding: the name, UID and value, or false.
+func decodeObj(data []byte) (string, string, string, bool) {
 	if len(data) < 4 {
-		return "", "", false
+		return "", "", "", false
 	}
 	tag := string(data[:3])
 	if tag != tagV1 && tag != tagV0 {
-		return "", "", false
+		return "", "", "", false
 	}
 	n := int(data[3])
-	if len(data) < 4+n {
-		return "", "", false
+	if len(data) < 5+n {
+		return "", "", "", false
 	}
-	return string(data[4 : 4+n]), string(data[4+n:]), true
+	m := int(data[4+n])
+	if len(data) < 5+n+m {
+		return "", "", "", false
+	}
+	return string(data[4 : 4+n]), string(data[5+n : 5+n+m]), string(data[5+n+m:]), true
 }
 
 var errNotObj = errors.New("k8setcd3: not an *Obj")
@@ -144,11 +157,12 @@ func (codec) Decode(data []byte, defaults *schema.GroupVersionKind, into runtime
 	if !ok {
 		return nil, nil, errNotObj
 	}
-	name, val, ok := decodeObj(data)
+	name, uid, val, ok := decodeObj(data)
 	if !ok {
 		return nil, nil, errBadData
 	}
 	o.Name = name
+	o.UID = uid
 	o.Value = val
 	return o, nil, nil
 }
@@ -168,6 +182,59 @@ func parseRV(s string) (uint64, error) {
 	}
 	return n, nil
 }
+
+// rvBytes is the eight bytes (big-endian) of n.
+func rvBytes(n uint64) string {
+	b := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		b[i] = byte(n >> (56 - 8*uint64(i)))
+	}
+	return string(b)
+}
+
+// rvString is the versioner's string form of a resource version, which parseRV parses: empty for
+// 0, its eight bytes otherwise.
+func rvString(n uint64) string {
+	if n == 0 {
+		return ""
+	}
+	return rvBytes(n)
+}
+
+// The metav1.Object interface, which Preconditions.Check reads through meta.Accessor: the name,
+// the UID and the resource version (as the versioner's string) are the object's; the rest of the
+// metadata is empty and its setters do nothing.
+
+func (o *Obj) GetNamespace() string                                       { return "" }
+func (o *Obj) SetNamespace(namespace string)                              {}
+func (o *Obj) GetName() string                                            { return o.Name }
+func (o *Obj) SetName(name string)                                        { o.Name = name }
+func (o *Obj) GetGenerateName() string                                    { return "" }
+func (o *Obj) SetGenerateName(name string)                                {}
+func (o *Obj) GetUID() types.UID                                          { return types.UID(o.UID) }
+func (o *Obj) SetUID(uid types.UID)                                       { o.UID = string(uid) }
+func (o *Obj) GetResourceVersion() string                                 { return rvString(o.ResourceVersion) }
+func (o *Obj) SetResourceVersion(version string)                          {}
+func (o *Obj) GetGeneration() int64                                       { return 0 }
+func (o *Obj) SetGeneration(generation int64)                             {}
+func (o *Obj) GetSelfLink() string                                        { return "" }
+func (o *Obj) SetSelfLink(selfLink string)                                {}
+func (o *Obj) GetCreationTimestamp() metav1.Time                          { return metav1.Time{} }
+func (o *Obj) SetCreationTimestamp(timestamp metav1.Time)                 {}
+func (o *Obj) GetDeletionTimestamp() *metav1.Time                         { return nil }
+func (o *Obj) SetDeletionTimestamp(timestamp *metav1.Time)                {}
+func (o *Obj) GetDeletionGracePeriodSeconds() *int64                      { return nil }
+func (o *Obj) SetDeletionGracePeriodSeconds(s *int64)                     {}
+func (o *Obj) GetLabels() map[string]string                               { return nil }
+func (o *Obj) SetLabels(labels map[string]string)                         {}
+func (o *Obj) GetAnnotations() map[string]string                          { return nil }
+func (o *Obj) SetAnnotations(annotations map[string]string)               {}
+func (o *Obj) GetFinalizers() []string                                    { return nil }
+func (o *Obj) SetFinalizers(finalizers []string)                          {}
+func (o *Obj) GetOwnerReferences() []metav1.OwnerReference                { return nil }
+func (o *Obj) SetOwnerReferences(refs []metav1.OwnerReference)            {}
+func (o *Obj) GetManagedFields() []metav1.ManagedFieldsEntry              { return nil }
+func (o *Obj) SetManagedFields(managedFields []metav1.ManagedFieldsEntry) {}
 
 // versioner is the driver's storage.Versioner, on Obj's ResourceVersion.
 type versioner struct{}
@@ -214,11 +281,12 @@ func (decoder) Decode(data []byte, objPtr runtime.Object, rev int64) error {
 	if !ok {
 		return errNotObj
 	}
-	name, val, ok := decodeObj(data)
+	name, uid, val, ok := decodeObj(data)
 	if !ok {
 		return errBadData
 	}
 	o.Name = name
+	o.UID = uid
 	o.Value = val
 	o.ResourceVersion = uint64(rev)
 	return nil
@@ -261,11 +329,15 @@ const (
 	KGet    = 3
 )
 
-// An Input is an operation on the key Key (a name: the store's key is "/objs/" + Key): a Create of
-// the object with value Val; a Delete whose validateDeletion rejects a stored object of value
-// Reject (none if empty); a GuaranteedUpdate whose tryUpdate rejects a stored object of value
-// Reject, and otherwise sets the value Val, or, if NoOp, returns the object unchanged; or a Get,
-// IgnoreNotFound as given. A plain value (porcupine's model decodes it purely).
+// An Input is client Client's operation on the key Key (a name: the store's key is "/objs/" +
+// Key): a Create of the object with UID UID and value Val; a Delete whose validateDeletion rejects
+// a stored object of value Reject (none if empty); a GuaranteedUpdate whose tryUpdate rejects a
+// stored object of value Reject, and otherwise sets the value Val (on the zero object, also the
+// name Key), or, if NoOp, returns the object unchanged, with ignoreNotFound IgnoreNotFound; or a
+// Get, IgnoreNotFound as given, with the minimum resource version MinRV (the versioner's string;
+// empty for none). A Delete and an update have the preconditions PreUID (if HasPreUID) and PreRV
+// (the versioner's string, if HasPreRV), and the cached object Cached (if UseCached), a copy of
+// the client's last answer. A plain value (porcupine's model decodes it purely).
 type Input struct {
 	Kind           int
 	Key            string
@@ -273,6 +345,15 @@ type Input struct {
 	Reject         string
 	NoOp           bool
 	IgnoreNotFound bool
+	UID            string
+	HasPreUID      bool
+	PreUID         string
+	HasPreRV       bool
+	PreRV          string
+	UseCached      bool
+	Cached         Obj
+	MinRV          string
+	Client         int
 }
 
 // The kinds of error an output carries (Output.Err).
@@ -287,15 +368,23 @@ const (
 	ERejected = 3
 	// any other error (the client's: the call may or may not have taken effect)
 	EOther = 4
+	// a *storage.StorageError, "invalid object" (storage.ErrCodeInvalidObj: a failed
+	// precondition), with ErrKey
+	EInvalid = 5
 )
 
-// An Output is a call's answer: the object it returned (its name, value and resource version),
-// or its error.
+// (storage.NewTooLargeResourceVersionError's error, a Get's minimum above the revision read, is
+// an EOther: telling it from the client's errors needs that these are not *apierrors.StatusErrors,
+// which the client's specs do not say; notes/k8s-etcd3-plan.md, 7b, T2.)
+
+// An Output is a call's answer: the object it returned (its name, UID, value and resource
+// version), or its error.
 type Output struct {
 	Err    int
 	ErrKey string
 	ErrRV  int64
 	Name   string
+	UID    string
 	Value  string
 	RV     uint64
 }
@@ -332,13 +421,17 @@ func validateFor(reject string) storage.ValidateObjectFunc {
 
 // updated is a GuaranteedUpdate's result on the object o (a new object), or its error: the
 // correctness test's randomUpdate, specialized (traffic.go: a copy, rejected on the drawn value,
-// unchanged for a no-op, else the new value).
+// unchanged for a no-op, else the new value; the zero object, met with ignoreNotFound, becomes
+// the key's object, as the test's validPod, without a UID).
 func updated(in Input, o *Obj) (*Obj, error) {
 	if in.Reject != "" && o.Value == in.Reject {
 		return nil, errUpdateRejected
 	}
 	c := *o
 	if !in.NoOp {
+		if c.Name == "" {
+			c.Name = in.Key
+		}
 		c.Value = in.Val
 	}
 	return &c, nil
@@ -434,8 +527,29 @@ func notFound(st mstore, key string) Output {
 	return Output{Err: ENotFound, ErrKey: Prefix + storeKey(key), ErrRV: int64(st.rv)}
 }
 
+func invalidObj(key string) Output {
+	return Output{Err: EInvalid, ErrKey: Prefix + storeKey(key)}
+}
+
 func objOut(o Obj) Output {
-	return Output{Err: ENone, Name: o.Name, Value: o.Value, RV: o.ResourceVersion}
+	return Output{Err: ENone, Name: o.Name, UID: o.UID, Value: o.Value, RV: o.ResourceVersion}
+}
+
+// preOk is the Model's preconditions.Check on the object o: the UID and the resource version (as
+// the versioner's string), where given, are o's.
+func preOk(in Input, o Obj) bool {
+	if in.HasPreUID && in.PreUID != o.UID {
+		return false
+	}
+	if in.HasPreRV && in.PreRV != rvString(o.ResourceVersion) {
+		return false
+	}
+	return true
+}
+
+// sameObj says whether two objects are equal but for their resource versions.
+func sameObj(a Obj, b Obj) bool {
+	return a.Name == b.Name && a.UID == b.UID && a.Value == b.Value
 }
 
 // mcreate is the Model's create: "key exists", or the object at the next resource version.
@@ -444,16 +558,20 @@ func mcreate(in Input, st mstore) (mstore, Output) {
 		return st, Output{Err: EExists, ErrKey: Prefix + storeKey(in.Key), ErrRV: 0}
 	}
 	rv := st.rv + 1
-	o := Obj{Name: in.Key, Value: in.Val, ResourceVersion: rv}
+	o := Obj{Name: in.Key, UID: in.UID, Value: in.Val, ResourceVersion: rv}
 	return mstore{items: setItem(st.items, item{key: in.Key, obj: o, canon: true}), rv: rv}, objOut(o)
 }
 
-// mdelete is the Model's delete: "not found", validateDeletion's error on the stored object, or
-// the item gone at the next resource version, answered with the object at that version.
+// mdelete is the Model's delete: "not found", a failed precondition on the stored object,
+// validateDeletion's error on it, or the item gone at the next resource version, answered with
+// the object at that version.
 func mdelete(in Input, st mstore) (mstore, Output) {
 	it, ok := lookup(st.items, in.Key)
 	if !ok {
 		return st, notFound(st, in.Key)
+	}
+	if !preOk(in, it.obj) {
+		return st, invalidObj(in.Key)
 	}
 	c := it.obj
 	if err := validateFor(in.Reject)(context.Background(), &c); err != nil {
@@ -465,21 +583,27 @@ func mdelete(in Input, st mstore) (mstore, Output) {
 	return mstore{items: delItem(st.items, in.Key), rv: rv}, objOut(o)
 }
 
-// mupdate is the Model's update (no ignoreNotFound): "not found", tryUpdate's error on the
-// stored object, the stored object if tryUpdate left it unchanged (its resource version aside)
-// and the item is canonical (D30g; the Model: unchanged), or the result at the next resource
-// version.
+// mupdate is the Model's update: from the stored object, or the zero object at resource version
+// 0 for a missing key with ignoreNotFound ("not found" without): a failed precondition,
+// tryUpdate's error, the stored object if tryUpdate left it unchanged (its resource version
+// aside) and the item is canonical (D30g; the Model: unchanged), or the result at the next
+// resource version.
 func mupdate(in Input, st mstore) (mstore, Output) {
 	it, ok := lookup(st.items, in.Key)
-	if !ok {
+	cur := Obj{}
+	if ok {
+		cur = it.obj
+	} else if !in.IgnoreNotFound {
 		return st, notFound(st, in.Key)
 	}
-	cur := it.obj
+	if !preOk(in, cur) {
+		return st, invalidObj(in.Key)
+	}
 	r, err := updated(in, &cur)
 	if err != nil {
 		return st, Output{Err: ERejected}
 	}
-	if r.Name == it.obj.Name && r.Value == it.obj.Value && it.canon {
+	if ok && sameObj(*r, it.obj) && it.canon {
 		return st, objOut(it.obj)
 	}
 	rv := st.rv + 1
@@ -488,9 +612,17 @@ func mupdate(in Input, st mstore) (mstore, Output) {
 	return mstore{items: setItem(st.items, item{key: in.Key, obj: o, canon: true}), rv: rv}, objOut(o)
 }
 
-// mget is the Model's get (no resource version): the stored object, the zero object for a
-// missing key with IgnoreNotFound, or "not found".
+// mget is the Model's get: an EOther if the minimum resource version is above the store's (the
+// too-large error) or does not parse (the versioner's error; the traffic sends none), the stored
+// object, the zero object for a missing key with IgnoreNotFound, or "not found".
 func mget(in Input, st mstore) Output {
+	req, err := parseRV(in.MinRV)
+	if err != nil {
+		return Output{Err: EOther}
+	}
+	if req > st.rv {
+		return Output{Err: EOther}
+	}
 	it, ok := lookup(st.items, in.Key)
 	if !ok {
 		if in.IgnoreNotFound {
@@ -521,7 +653,7 @@ func isWrite(in Input) bool {
 
 func outEqual(a, b Output) bool {
 	return a.Err == b.Err && a.ErrKey == b.ErrKey && a.ErrRV == b.ErrRV && a.Name == b.Name &&
-		a.Value == b.Value && a.RV == b.RV
+		a.UID == b.UID && a.Value == b.Value && a.RV == b.RV
 }
 
 func inputEqual(a, b Input) bool {
@@ -641,7 +773,7 @@ func Model(st0 mstore) porcupine.Model {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The workload (the correctness test's unary traffic, minimal)
+// The workload (the correctness test's unary traffic, without lists)
 
 func workloadKeys() []string {
 	return []string{"a", "b", "c"}
@@ -656,41 +788,162 @@ func pick(n uint64, m uint64) (uint64, uint64) {
 	return n % m, n / m
 }
 
-// genFrom is the operation Gen picks for the random number n (out of 100): a Create (25), a
-// Delete (15), a GuaranteedUpdate (35) or a Get (25), of a random key and value; a quarter of the
-// Deletes and updates reject a random value, a fifth of the updates are no-ops, half the Gets
-// ignore "not found".
-func genFrom(n uint64) Input {
-	keys := workloadKeys()
-	vals := workloadVals()
-	w, n := pick(n, 100)
-	ki, n := pick(n, uint64(len(keys)))
-	vi, n := pick(n, uint64(len(vals)))
-	rj, n := pick(n, 4)
-	ri, n := pick(n, uint64(len(vals)))
-	nop, n := pick(n, 5)
-	ign, _ := pick(n, 2)
-	k := keys[ki]
-	v := vals[vi]
-	reject := ""
-	if rj == 0 {
-		reject = vals[ri]
-	}
-	if w < 25 {
-		return Input{Kind: KCreate, Key: k, Val: v}
-	}
-	if w < 40 {
-		return Input{Kind: KDelete, Key: k, Reject: reject}
-	}
-	if w < 75 {
-		return Input{Kind: KUpdate, Key: k, Val: v, Reject: reject, NoOp: nop == 0}
-	}
-	return Input{Kind: KGet, Key: k, IgnoreNotFound: ign == 0}
+// uidOf is the UID a Create draws for the number u (its two low bytes).
+func uidOf(u uint64) string {
+	return string([]byte{byte(u >> 8), byte(u)})
 }
 
-// Gen picks an operation at random (genFrom of a random number).
-func Gen(id int) any {
-	return genFrom(primitive.RandomUint64())
+// withPre sets in's preconditions from the cached object c (if any): its UID if uid, its resource
+// version if rv. As the test (pickPreconditions), with no cached object there are none.
+func withPre(in Input, uid bool, rv bool, c Obj, hasC bool) Input {
+	if !hasC {
+		return in
+	}
+	in.HasPreUID = uid
+	if uid {
+		in.PreUID = c.UID
+	}
+	in.HasPreRV = rv
+	if rv {
+		in.PreRV = rvString(c.ResourceVersion)
+	}
+	return in
+}
+
+// minRV is a Get's minimum resource version for the draw m (out of 100) and the offset d (1 to
+// 200), as the test's resolveResourceVersion: empty (30), 0 (15), 1 (10), the cached object's
+// (15), and relative to it (the test's are relative to the store's current one): current (14),
+// past (14), future (2); empty when a relative one has no cached object.
+func minRV(m uint64, d uint64, c Obj, hasC bool) string {
+	if m < 30 {
+		return ""
+	}
+	if m < 45 {
+		return rvBytes(0)
+	}
+	if m < 55 {
+		return rvBytes(1)
+	}
+	if !hasC {
+		return ""
+	}
+	r := c.ResourceVersion
+	if m < 84 {
+		return rvBytes(r)
+	}
+	if m < 98 {
+		if r <= d {
+			return rvBytes(1)
+		}
+		return rvBytes(r - d)
+	}
+	return rvBytes(r + d)
+}
+
+// genFrom is the operation client id picks for the random number n with its cached object c (if
+// hasC), with TestCorrectness's weights without lists (out of 75): a Create (15), a Delete (20), a
+// Get (10) or a GuaranteedUpdate (30) of a random key. A Delete has a UID precondition, a
+// resource-version precondition, the cached object and a rejecting validateDeletion a quarter of
+// the time each; an update a UID and a resource-version precondition a fifth of the time each, a
+// no-op, the cached object and ignoreNotFound (not with a no-op) 15% each, and a rejecting
+// tryUpdate a quarter; a Get ignores "not found" half the time, with a minimum (minRV).
+func genFrom(n uint64, id int, c Obj, hasC bool) Input {
+	keys := workloadKeys()
+	vals := workloadVals()
+	w, n := pick(n, 75)
+	ki, n := pick(n, uint64(len(keys)))
+	in := Input{Key: keys[ki], Client: id}
+	if w < 15 {
+		vi, n := pick(n, uint64(len(vals)))
+		u, _ := pick(n, 65536)
+		in.Kind = KCreate
+		in.Val = vals[vi]
+		in.UID = uidOf(u)
+		return in
+	}
+	if w < 35 {
+		pu, n := pick(n, 4)
+		pr, n := pick(n, 4)
+		uc, n := pick(n, 4)
+		rj, n := pick(n, 4)
+		ri, _ := pick(n, uint64(len(vals)))
+		in.Kind = KDelete
+		in = withPre(in, pu == 0, pr == 0, c, hasC)
+		if uc == 0 && hasC {
+			in.UseCached = true
+			in.Cached = c
+		}
+		if rj == 0 {
+			in.Reject = vals[ri]
+		}
+		return in
+	}
+	if w < 45 {
+		ig, n := pick(n, 2)
+		m, n := pick(n, 100)
+		d, _ := pick(n, 200)
+		in.Kind = KGet
+		in.IgnoreNotFound = ig == 0
+		in.MinRV = minRV(m, d+1, c, hasC)
+		return in
+	}
+	vi, n := pick(n, uint64(len(vals)))
+	pu, n := pick(n, 5)
+	pr, n := pick(n, 5)
+	np, n := pick(n, 100)
+	uc, n := pick(n, 100)
+	ig, n := pick(n, 100)
+	rj, n := pick(n, 4)
+	ri, _ := pick(n, uint64(len(vals)))
+	in.Kind = KUpdate
+	in.Val = vals[vi]
+	// No RV precondition with a cached object (the scope premise of notes/k8s-etcd3-plan.md, 7b):
+	// the store's cached no-op skips the preconditions on a key rewritten with equal bytes
+	// (issues/k8s-etcd3-cached-noop-skips-preconditions.md).
+	cached := uc < 15 && hasC
+	in = withPre(in, pu == 0, pr == 0 && !cached, c, hasC)
+	if cached {
+		in.UseCached = true
+		in.Cached = c
+	}
+	in.IgnoreNotFound = ig < 15
+	in.NoOp = np < 15 && !in.IgnoreNotFound
+	if rj == 0 {
+		in.Reject = vals[ri]
+	}
+	return in
+}
+
+// A cache holds each client's cached object: its last answer with a name (the test's cachedObj).
+type cache struct {
+	mu   sync.Mutex
+	objs map[int]Obj
+}
+
+func newCache() *cache {
+	return &cache{objs: make(map[int]Obj)}
+}
+
+// get returns client id's cached object, if any.
+func (c *cache) get(id int) (Obj, bool) {
+	c.mu.Lock()
+	o, ok := c.objs[id]
+	c.mu.Unlock()
+	return o, ok
+}
+
+// put makes o client id's cached object.
+func (c *cache) put(id int, o Obj) {
+	c.mu.Lock()
+	c.objs[id] = o
+	c.mu.Unlock()
+}
+
+// Gen picks client id's next operation at random (genFrom of a random number and the client's
+// cached object).
+func Gen(tbl *cache, id int) Input {
+	c, ok := tbl.get(id)
+	return genFrom(primitive.RandomUint64(), id, c, ok)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -705,11 +958,40 @@ func errOut(err error) Output {
 		if se.Code == storage.ErrCodeKeyExists {
 			return Output{Err: EExists, ErrKey: se.Key, ErrRV: se.ResourceVersion}
 		}
+		if se.Code == storage.ErrCodeInvalidObj {
+			return Output{Err: EInvalid, ErrKey: se.Key}
+		}
 	}
 	if err == errDeleteRejected || err == errUpdateRejected {
 		return Output{Err: ERejected}
 	}
 	return Output{Err: EOther}
+}
+
+// preconditions is an input's preconditions (nil if none).
+func preconditions(in Input) *storage.Preconditions {
+	if !in.HasPreUID && !in.HasPreRV {
+		return nil
+	}
+	p := &storage.Preconditions{}
+	if in.HasPreUID {
+		u := types.UID(in.PreUID)
+		p.UID = &u
+	}
+	if in.HasPreRV {
+		r := in.PreRV
+		p.ResourceVersion = &r
+	}
+	return p
+}
+
+// cachedObj is an input's cached object, a new copy (nil if none).
+func cachedObj(in Input) runtime.Object {
+	if !in.UseCached {
+		return nil
+	}
+	c := in.Cached
+	return &c
 }
 
 // call runs one operation through the store s: its output (the object it left in a fresh out, or
@@ -719,15 +1001,16 @@ func call(s storage.Interface, in Input) Output {
 	out := &Obj{}
 	var err error
 	if in.Kind == KCreate {
-		err = s.Create(ctx, storeKey(in.Key), &Obj{Name: in.Key, Value: in.Val}, out, 0)
+		err = s.Create(ctx, storeKey(in.Key), &Obj{Name: in.Key, UID: in.UID, Value: in.Val}, out, 0)
 	} else if in.Kind == KDelete {
-		err = s.Delete(ctx, storeKey(in.Key), out, nil, validateFor(in.Reject), nil,
-			storage.DeleteOptions{})
+		err = s.Delete(ctx, storeKey(in.Key), out, preconditions(in), validateFor(in.Reject),
+			cachedObj(in), storage.DeleteOptions{})
 	} else if in.Kind == KUpdate {
-		err = s.GuaranteedUpdate(ctx, storeKey(in.Key), out, false, nil, tryUpdateFor(in), nil)
+		err = s.GuaranteedUpdate(ctx, storeKey(in.Key), out, in.IgnoreNotFound, preconditions(in),
+			tryUpdateFor(in), cachedObj(in))
 	} else {
-		err = s.Get(ctx, storeKey(in.Key), storage.GetOptions{IgnoreNotFound: in.IgnoreNotFound},
-			out)
+		err = s.Get(ctx, storeKey(in.Key),
+			storage.GetOptions{IgnoreNotFound: in.IgnoreNotFound, ResourceVersion: in.MinRV}, out)
 	}
 	if err != nil {
 		return errOut(err)
@@ -738,29 +1021,34 @@ func call(s storage.Interface, in Input) Output {
 // Apply runs one operation through the store s, resolving a prophecy with the output's numeric
 // fields (its error kind, its error's resource version, its object's resource version): what the
 // proof's linearization point compares the store's answer at a read with, the rest of the output
-// following from them.
-func Apply(s storage.Interface, input any) any {
+// following from them. An answer with a name becomes the client's cached object in tbl.
+func Apply(s storage.Interface, tbl *cache, input any) any {
 	in := input.(Input)
 	p := primitive.NewProph()
 	out := call(s, in)
 	p.ResolveU64(uint64(out.Err))
 	p.ResolveU64(uint64(out.ErrRV))
 	p.ResolveU64(out.RV)
+	if out.Err == ENone && out.Name != "" {
+		tbl.put(in.Client, Obj{Name: out.Name, UID: out.UID, Value: out.Value, ResourceVersion: out.RV})
+	}
 	return out
 }
 
 // Check runs lintest.Run of clients concurrent clients of the store s, each running ops
 // operations, and returns porcupine's verdict against Model from the store st0.
 func Check(s storage.Interface, st0 mstore, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
-	apply := func(input any) any { return Apply(s, input) }
-	return lintest.Run(Model(st0), apply, Gen, lintest.CounterClock(), clients, ops, timeout)
+	tbl := newCache()
+	apply := func(input any) any { return Apply(s, tbl, input) }
+	gen := func(id int) any { return Gen(tbl, id) }
+	return lintest.Run(Model(st0), apply, gen, lintest.CounterClock(), clients, ops, timeout)
 }
 
 // seedOne writes the key k's object of value "x" in the older encoding directly through the
 // client cli (non-canonical data, as a store with an older codec left: D30g) and returns the
 // model's store st with it, or false if the put failed.
 func seedOne(cli *clientv3.Client, st mstore, k string) (mstore, bool) {
-	resp, err := cli.Put(context.Background(), Prefix+storeKey(k), string(encodeV0(k, "x")))
+	resp, err := cli.Put(context.Background(), Prefix+storeKey(k), string(encodeV0(k, "", "x")))
 	if err != nil {
 		return mstore{}, false
 	}

@@ -139,7 +139,7 @@ compaction in M2's scope at a reached revision, its result trivial. -/
 def reqPropOkD (γk : KVNames) (cmp : Bool) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop(reqPropOk γk rq Qr ∨
-    (⌜cmp = true ∧ compactPropOk rq ∧ rqShape false rq ∧ irrNoZeroEnd rq ∧
+    (⌜cmp = true ∧ compactPropOk rq ∧ rqShape .none rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
       ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLb γk r))
 

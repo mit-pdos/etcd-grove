@@ -32,10 +32,10 @@ abbrev decodeObj.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       sl ↦*{dq} d }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decodeObj)) (Val #sl))
-  {{ (name val : GoString) (ok : Bool), RET (PairV (PairV #name #val) #ok);
+  {{ (name uid val : GoString) (ok : Bool), RET (PairV (PairV (PairV #name #uid) #val) #ok);
       sl ↦*{dq} d ∗
       ⌜match decodeD d with
-        | some (n, v) => ok = true ∧ name = n ∧ val = v
+        | some (n, u, v) => ok = true ∧ name = n ∧ uid = u ∧ val = v
         | none => ok = false⌝ }}
 
 end spec

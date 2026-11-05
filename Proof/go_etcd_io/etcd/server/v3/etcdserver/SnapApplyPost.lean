@@ -73,7 +73,7 @@ theorem srvSnapApplied_of_walk
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (r : mvcc.CmpRecs) (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     (hlp : mvcc.leaseParams d.P)
-    (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
@@ -110,7 +110,7 @@ theorem srvSnapApplied_of_walk
   icases Hw with ⟨%γB, %d', %gx, %π0, %p', %γw, %ws, %g, %up', %opts', %L, %spc, %Ll, %jf, %γcf,
     %w0, %RD0, %up, %lg, %wsk, %stck, %ua, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', #HnSup,
     #Hws, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, #HplRO, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
-    Hleb, Hlo, Hlrd, Hlrv, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
+    Hleb, Hlo, Hlrd, Hlrv, Hrdat, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
     Hcsa, Hcso, Hpath, #Hbf, Halb, HRD2, Hube, Hua, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
@@ -146,8 +146,8 @@ theorem srvSnapApplied_of_walk
   · iframe #; iframe Hauar
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
       rfl hkb' hγw hwq hpre hRok hrbw hlg r.crev E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') $$
-      [Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0 Hcr]
-  · iframe #; iframe Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0
+      [Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv Hrdat HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0 Hcr]
+  · iframe #; iframe Huo' Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd Hlrv Hrdat HRD2 Hbea Hgv Hpl' Hra Hauar Hwok HRD0
     iunfold apply.cmpOwn
     iframe Hcr
     simp only [snapE_γ, mvcc.StoreNames.withPhys_kb, hkb']

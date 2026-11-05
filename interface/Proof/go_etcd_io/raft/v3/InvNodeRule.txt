@@ -37,6 +37,9 @@ theorem ownConfDecisions_lookup [package_sem : Assumptions] (γ : Cluster) (D : 
     ConfDecision) (k : Nat) (d : ConfDecision) : ownConfDecisions γ D ∗ confDecided γ k d ⊢ ⌜D !! k
     = some d⌝
 
+theorem nodeStartedFresh_persistent (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs :
+    List (List w8)) (id : w64) : Persistent (nodeStartedFresh n γ N vs ctxs id)
+
 theorem snapshotCert_made [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (k : SnapTrip) :
     isCluster γ N ∗ snapshotCert γ N k ⊢ ∃ l m, isCommittedLogLb γ l ∗ confAt γ l.length m ∗
     snapMade γ { index := l.length, conf := m, data := k.dat } ∗ ⌜l.length = uint.nat k.sid.index' ∧
@@ -122,6 +125,9 @@ theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Names
     N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢ snapshotValid γ sv
 
 def (sealed) isCluster (γ : Cluster) (N : Namespace) : IProp GF
+
+def (sealed) nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs : List
+    (List w8)) (id : w64) : IProp GF
 
 def restartStorage (γ : Cluster) (st : Storage) (σ : StorContents) (csm : ConfStateM) (A : Nat) (F :
     GName → IProp GF) : IProp GF :=

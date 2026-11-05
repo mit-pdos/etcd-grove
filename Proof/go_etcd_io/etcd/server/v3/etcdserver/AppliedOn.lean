@@ -278,7 +278,7 @@ def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       srvWAddr s ↦□ v.w ∗ waitInvM on v.w ρ E ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
@@ -332,13 +332,15 @@ lessor (`srvUberBase`, what the latest-state triples come from: `srv_uberKVL_on`
 admin steps `apply.uberAuthStepsL_of_base`), and the auth resource at `st` (`srvAuthApplyResB`: the
 store's history's latest state is the model's). E3o: the latest-state triples are derived where
 they are used rather than carried (until E3o this row named them, for families the construction
-did not yet fix); `applyBuiltOn` holds the same parts. -/
+did not yet fix); `applyBuiltOn` holds the same parts; (2026-11-04) the range deleter, as
+`srvApplyKV`'s. -/
 def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
     apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
-    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
-      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
+    (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
+      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
+    lease.rdAt E.γ.leases E.s)
 
 /-- **The apply thread's applier state in the mode `on`** (the auth-mode merge's step 1,
 2026-10-29): `srvApplyKV` off (the auth state `st` unused), `srvApplyKVOn` on. -/

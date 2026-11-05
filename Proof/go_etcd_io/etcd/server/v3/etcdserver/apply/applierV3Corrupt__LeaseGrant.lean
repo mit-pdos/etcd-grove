@@ -28,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Corrupt.LeaseGrant.wp_proof :
     apply.applierV3Corrupt.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq g log T rs Pre Q Post info
+  intro E c inner p r rq g log T rs U Pre Q Post info
   wp_start as ⟨-, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, -, -, -, HltT, HRO, -, Hpre, -⟩
+  icases Hgp with ⟨%Hrq, -, -, HltT, HRO, -, Hpre, -, HU, -⟩
   obtain ⟨-, Hg, Hk⟩ := Hrq
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -62,8 +62,8 @@ theorem apply.applierV3Corrupt.LeaseGrant.wp_proof :
     · constructor
       · intro h; cases h
       · rintro ⟨h, -⟩; cases h
-  rw [apply.grantIds_rejected]
-  iframe HltT
+  rw [apply.grantIds_rejected, apply.grantIds_rejected]
+  iframe HltT HU
   isplitl [HRO]
   · iexists (W64 0); rw [apply.grantRest_rejected]; iexact HRO
   iunfold apply.grantAnswer

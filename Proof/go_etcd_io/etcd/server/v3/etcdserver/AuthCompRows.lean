@@ -44,7 +44,7 @@ have no producer (`kvTieM`, ReqOn, is a different row: the request side's). -/
 def kvNameTiesM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : Prop :=
   match on with
   | false => (γr.kv.cmp = E.cmp ∧ (mvcc.kbCmpM E.γ.kb ↔ E.cmp = true)) ∧
-             (γr.kv.cret = E.cret ∧ γr.kv.lg = E.lg)
+             (γr.kv.cret = E.cret ∧ γr.kv.lm = E.lm)
   | true => True
 
 /-- **The apply thread's KV ghost state at `A`** (a model row): `kvRun` off (the auth state `st`
@@ -61,8 +61,10 @@ def srvApplyKVC (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : app
     (st : auth.AuthState) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x ∗
     srvBeOwn s E ∗ revAuth E x.log ∗ acRes C s E ua st ∗
-    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
-      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
+    (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
+      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
+    -- (the lease-expiry merge) the lessor's range deleter (`srvApplyKV`'s, `srvApplyKVOn`'s)
+    lease.rdAt E.γ.leases E.s)
 
 /-- **The apply thread's KV invariants** (`srvKVInvsM`'s): the mode's KV and certificates'
 invariants from `srvAuthSt0`, the raft log's, the KV names' ties (off's, `kvNameTiesM`), the modes
@@ -109,6 +111,8 @@ def applyBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ acRes C s E ua srvAuthSt0 ∗
       apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗
+    -- (the lease-expiry merge) the lessor's range deleter (`applyBuilt`'s, `applyBuiltOn`'s)
+    lease.rdAt E.γ.leases E.s ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
 
@@ -141,8 +145,9 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
-    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
@@ -223,8 +228,9 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
-    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
@@ -236,7 +242,9 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "Hstart" ∷ applyStartC C s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
+    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀ ∗
+      dghostVar γp.reg DFrac.discard (some γg.run)) ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
@@ -259,7 +267,7 @@ def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
-    (∃ w : Nat, srvWTTaken C.wt w) ∗ acTok K (ciEff B.γ st.k) ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
@@ -380,16 +388,16 @@ theorem applyBuilt_C (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E
   simp only [srvTokRights, hC]
   constructor
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, Hfor, Hakv⟩, Hra,
-      Har, Hao, Hal, Hkr, Hrest, Hap, Hfs⟩
+      Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrest Hap Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hrdat Hao Hal Hkr Hrest Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iexists ua; iframe Hua Har Hfor Hakv
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, Har, Hfor, Hakv⟩, Hra,
-      Hao, Hal, Hkr, Hrest, Hap, Hfs, -⟩
+      Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, -⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hkr Hrest Hap Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hkr Hrest Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iexists ua; iframe Hua Hfor Hakv
@@ -407,18 +415,18 @@ theorem applyBuiltOn_C (γa : auth.AuthNames) (s : Loc) (γ : ApplyNames) (ci : 
   dsimp only [AuthC.isOn, kvAuthM]
   constructor
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, Hub, Hfor, Hakv⟩, Hra,
-      Har, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
+      Har, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hrest Hap Hfs Htok
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hrdat Hao Hal Hrest Hap Hfs Htok
     isplitr
     · ipureintro; exact Hok
     isplitl [Hua Hub Har Hfor Hakv]
     · iexists ua; iframe Hua Hub Har Hfor Hakv
     iapply (kvRunM_nil_on γr ai₀ c₀ x₀).1 $$ Hkr
   · iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, ⟨%ua, Hua, ⟨Hub, Har⟩, Hfor, Hakv⟩,
-      Hra, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
+      Hra, Hrdat, Hao, Hal, Hkr, Hrest, Hap, Hfs, Htok⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hrest Hap Hfs Htok
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hrest Hap Hfs Htok
     isplitr
     · ipureintro; exact Hok
     isplitl [Hua Hub Hfor Hakv]
@@ -689,7 +697,7 @@ theorem srvApplyKVC_coreA (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName
         (srvApplyKVCore s E γw x ua -∗ acRes C s E ua st -∗ srvApplyKVC C s E γw x st) := by
   iintro H
   iunfold srvApplyKVC at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -723,7 +731,9 @@ theorem srvApplyKVC_coreA (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- **The applier row's index certificate**. -/
 theorem srvApplyKVC_idxCert (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName)
@@ -852,6 +862,20 @@ theorem isServerC_lg (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
   cases K with
   | off =>
     refine (isServer_lg s γ ci TM E ρ γr).trans ?_
+    iintro %h; ipureintro; exact ⟨h.1, fun _ => h.2⟩
+  | on γa =>
+    iintro H
+    iunfold isServerM at H
+    icases H with ⟨%h, -⟩
+    ipureintro; exact ⟨h, fun h' => by cases h'⟩
+
+theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerC (GF := GF) K s γ ci TM E ρ γr ⊢ ⌜ρ.rd = γr ∧ (K.isOn = false → γr.kv.lm = E.lm)⌝ := by
+  refine (isServerM_C (GF := GF) K s γ ci TM E ρ γr).2.trans ?_
+  cases K with
+  | off =>
+    refine (isServer_lm s γ ci TM E ρ γr).trans ?_
     iintro %h; ipureintro; exact ⟨h.1, fun _ => h.2⟩
   | on γa =>
     iintro H

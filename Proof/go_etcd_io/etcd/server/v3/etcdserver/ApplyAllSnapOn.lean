@@ -127,9 +127,16 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   obtain ⟨hkb, hlg, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hcm, hbr, hci, hhk, hwf, hlim, hlp,
     halbi, hwq, hRO, hrb⟩ := Hp
   -- (the lease-grant stage, 2.9) the lessor revocable refutes the rest's leased arm
+  -- (the lease-expiry plan's X2) the mode of a cluster that grants none: `none`
+  icases HlpM with ⟨%Hmo, #HlpM⟩
+  have hEm : E.lm = .none := by
+    have h := hlgk; rw [KVNames.lg_eq, ← Hmo] at h; simpa using h
+  ihave #HlpM : lease.lessorModeIs E.γ.leases (decide (lease.Mode.none = .mono)) $$ []
+  · iExactEq HlpM <;> rw [hEm]
   ihave #Hlrev : lease.lessorModeIs E.γ.leases false $$ []
-  · rw [← hlgk]; iexact HlpM
-  ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev $HRS]
+  · iExactEq HlpM <;> rfl
+  ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A .none (by decide)
+    (by rw [apply.AEnv.lg_eq, hEm]) $$ [$HlpM $Hlrev $HRS]
   rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn
   subst Hidn
@@ -211,7 +218,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       (by rw [hon]; exact Hif.hA') hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI, Hif.pre,
         by have := Hif.len; omega⟩)
-      γnc
+      γnc HElg
   rw [hon] at hS
   simp only [srvApplyKVM_true] at hS
   wp_apply hS

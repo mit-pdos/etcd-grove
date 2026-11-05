@@ -93,7 +93,7 @@ theorem store.Create.wp_proof
   ihave Hkc' := Hkc
   iStructNamed Hkc'
   iunfold contractOk at Hcon
-  icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+  icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave %Hobjn := c.S.objAt_ne_nil obj o rv $$ Hobj
   wp_auto
   wp_bind (App (Val wrapDefer) _)

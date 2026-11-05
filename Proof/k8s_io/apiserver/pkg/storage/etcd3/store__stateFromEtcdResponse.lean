@@ -48,13 +48,13 @@ theorem store.stateFromEtcdResponse.wp_proof
     (wp_Type : reflect.Value.Type.spec (GF := GF) (hG := hG))
     (wp_Interface : reflect.Value.Interface.spec (GF := GF) (hG := hG)) :
     store.stateFromEtcdResponse.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ctx kvp mkv rev key v p hdec
+  intro _ _ Obj _ sp c ctx kvp mkv rev key v p ign hdec
   wp_start as ⟨#Hst, #Hkv, %Hv⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon⟩
   iunfold contractOk at Hcon
-  icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+  icases Hcon with ⟨%Hty, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave #Prf : isPkgInit (PROP := IProp GF) pkg_id.reflect $$ []
   · iPkgInit
   ihave #Psg : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage $$ []
@@ -66,7 +66,7 @@ theorem store.stateFromEtcdResponse.wp_proof
   wp_apply wp_Interface w c.S.objTy p $$ []
   · iframe #
     ipureintro; exact Hw
-  obtain ⟨hObj, hUns⟩ := Hty
+  obtain ⟨hObj, hUns, -⟩ := Hty
   simp only [hUns, Bool.false_eq_true, ↓reduceIte]
   (try wp_auto)
   wp_apply wp_Type v_ptr (DFrac.own 1) v c.S.objTy p $$ [$Hvp] as %rt ⟨Hvp, %Hrt⟩
@@ -86,18 +86,45 @@ theorem store.stateFromEtcdResponse.wp_proof
     iunfold kubernetes.kvOut at Hkv
     icases Hkv with %HKV
     wp_if_destruct
-    · (try wp_auto)
-      iapply wp_fupd
-      wp_apply wp_NewKeyNotFoundError key rev as %ep Hep
-      ipersist Hep
-      imodintro
-      iapply HΦ
-      simp only [storageErrIs]
-      isplitr
-      · ipureintro; trivial
-      iexists ep
-      iframe Hep
-      ipureintro; rfl
+    · cases ign with
+      | false =>
+        (try wp_auto)
+        iapply wp_fupd
+        wp_apply wp_NewKeyNotFoundError key rev as %ep Hep
+        ipersist Hep
+        imodintro
+        iapply HΦ
+        simp only [storageErrIs, Bool.false_eq_true, ↓reduceIte]
+        isplitr
+        · ipureintro; trivial
+        iexists ep
+        iframe Hep
+        ipureintro; rfl
+      | true =>
+        (try wp_auto)
+        imod (c.S.newObj p') $$ Hnew with Hobj
+        iunfold zeroOk at Hzero
+        wp_bind
+        iapply Hzero $$ Hobj
+        inext
+        iintro %zerr ⟨%hz, Hobj⟩
+        subst hz
+        (try wp_auto)
+        icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hstp, %Hnn⟩
+        iapply HΦ
+        simp only [↓reduceIte]
+        isplitr
+        · ipureintro; trivial
+        iunfold ownState
+        iexists (interface.mkOk (go.GoType.PointerType c.S.objTy) #p'), «$v0_ptr», slice.nil
+        simp only [zeroSt]
+        rw [c.S.fmt_zero, show (W64 0 : w64) = 0 from rfl]
+        isplitr
+        · ipureintro; exact Hnn
+        iframe Hstp Hobj
+        isplitr
+        · iapply (ownSlice_nil (V := w8) DFrac.discard)
+        iexact «$v0»
     · exact absurd HKV Hif
   | some kv =>
     iunfold kubernetes.kvOut at Hkv

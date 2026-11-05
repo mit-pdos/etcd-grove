@@ -112,6 +112,16 @@ theorem exactRels_leaf :
     exactRels (fun _ b => b = false) (fun _ (cs : List GoInterface) => cs = []) :=
   ⟨fun _ _ _ h h' => h.trans h'.symm, fun _ _ _ h h' => h.trans h'.symm⟩
 
+/-- **`errors.Is(err, target)` answers `true`** (Go's walk of `err`'s exact tree, the relation
+`errors.Is.spec` posts; with `exactRels`, `isWalk_det` makes the answer Go's). (The lease-expiry
+plan's E2, revision 5, 2026-11-05: the vocabulary of `EtcdServer.leaseTimeToLive.spec`'s not-found
+arm.) -/
+def errIsTrue (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree S I U target ∗
+    ⌜S err ∧ exactRels I U ∧ _root_.Perennial.errors.IsWalk true I U target err true⌝)
+
 /-- A target `errors.Is` can compare with by `==` in the model (Perennial's `errors.wp_Is`): `nil`
 or a pointer error. -/
 def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=

@@ -43,15 +43,15 @@ theorem mcreate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
   cases ok
   · have hn : (lookupL g.items x.Key').2 = false := hok.symm
     (try wp_auto)
-    wp_apply wp_setItem s.items' g.items DFrac.discard ⟨x.Key', ⟨x.Key', x.Val', s.rv' + W64 1⟩, true⟩
+    wp_apply wp_setItem s.items' g.items DFrac.discard ⟨x.Key', ⟨x.Key', x.UID', x.Val', s.rv' + W64 1⟩, true⟩
       $$ [$Hk] as %out ⟨-, Hout, -⟩
     · ipureintro; exact Hb
     ipersist Hout
     (try wp_auto)
     wp_apply wp_objOut
     iapply HΦ
-    have : mcreateL x g = (⟨setItemL g.items ⟨x.Key', ⟨x.Key', x.Val', g.rv + W64 1⟩, true⟩,
-        g.rv + W64 1⟩, objOutL ⟨x.Key', x.Val', g.rv + W64 1⟩) := by simp [mcreateL, hn]
+    have : mcreateL x g = (⟨setItemL g.items ⟨x.Key', ⟨x.Key', x.UID', x.Val', g.rv + W64 1⟩, true⟩,
+        g.rv + W64 1⟩, objOutL ⟨x.Key', x.UID', x.Val', g.rv + W64 1⟩) := by simp [mcreateL, hn]
     rw [this, ← Hr]
     iframe Hout
     ipureintro; exact ⟨rfl, rfl⟩

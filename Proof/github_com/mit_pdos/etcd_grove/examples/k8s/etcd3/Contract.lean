@@ -22,6 +22,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner__
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformFromStorage
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity__TransformToStorage
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder__Decode
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetUID
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetResourceVersion
 
 @[expose] public section
 
@@ -75,13 +77,13 @@ theorem driver_encodeOk (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG))
   iapply (wp_Encode (interface.mk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.ty
       #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.mk))
       (interface.mkOk (go.GoType.PointerType objTyD) #p)
-      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.1.1 o.1.2 n)
-      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.1.1 o.1.2 n)
-      (encodeWith tagV1 o.1.1 o.1.2)) $$ [Hp] [HΦ]
+      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n)
+      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n)
+      (encodeWith tagV1 o.name o.uid o.val)) $$ [Hp] [HΦ]
   · iframe Hrt Hp
     iintro %b %Ψ HP Hb HΨ
     dsimp only [interface.mk]
-    wp_apply wp_cEncode p (DFrac.own 1) o.1.1 o.1.2 n b [] $$ [$HP $Hb] as ⟨HP, Hb⟩
+    wp_apply wp_cEncode p (DFrac.own 1) o.name o.uid o.val n b [] $$ [$HP $Hb] as ⟨HP, Hb⟩
     iapply HΨ
     iframe HP
     isimp only [List.nil_append] at Hb
@@ -113,7 +115,7 @@ theorem driver_versionerOk
     iunfold objAtD at Hx
     icases Hx with ⟨%p, %n, %Hxp, Hp⟩
     obtain ⟨rfl, hp, rfl⟩ := Hxp
-    wp_apply wp_ORV p (DFrac.own 1) o.1.1 o.1.2 n $$ [$Hp] as Hp
+    wp_apply wp_ORV p (DFrac.own 1) o.name o.uid o.val n $$ [$Hp] as Hp
     iapply HΦ $$ [Hp]
     · iunfold objAtD
       iexists p, n
@@ -127,7 +129,7 @@ theorem driver_versionerOk
     iunfold objAtD at Hx
     icases Hx with ⟨%p, %n, %Hxp, Hp⟩
     obtain ⟨rfl, hp, rfl⟩ := Hxp
-    wp_apply wp_Prep p o.1.1 o.1.2 n $$ [$Hp] as Hp
+    wp_apply wp_Prep p o.name o.uid o.val n $$ [$Hp] as Hp
     iapply HΦ
     isplitl
     · iunfold objAtD
@@ -141,7 +143,7 @@ theorem driver_versionerOk
     iunfold objAtD at Hx
     icases Hx with ⟨%p, %n, %Hxp, Hp⟩
     obtain ⟨rfl, hp, rfl⟩ := Hxp
-    wp_apply wp_Upd p o.1.1 o.1.2 n m $$ [$Hp] as Hp
+    wp_apply wp_Upd p o.name o.uid o.val n m $$ [$Hp] as Hp
     iapply HΦ
     isplitl
     · iunfold objAtD
@@ -199,7 +201,7 @@ theorem driver_decoderOk (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG)) :
   iunfold objAtD at Hx
   icases Hx with ⟨%p, %n, %Hxp, Hp⟩
   obtain ⟨rfl, hp, rfl⟩ := Hxp
-  wp_apply wp_Dec dsl DFrac.discard d p o.1.1 o.1.2 n rev $$ [$Hd $Hp] as %err ⟨-, Hr⟩
+  wp_apply wp_Dec dsl DFrac.discard d p o.name o.uid o.val n rev $$ [$Hd $Hp] as %err ⟨-, Hr⟩
   iapply HΦ
   cases hdec : decodeD d with
   | none =>
@@ -215,8 +217,8 @@ theorem driver_decoderOk (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG)) :
     iframe Hp
     ipureintro; exact ⟨rfl, hp, rfl⟩
   | some nv =>
-    rcases nv with ⟨n', v'⟩
-    rw [decodeObjD_of d n' v' hdec]
+    rcases nv with ⟨n', u', v'⟩
+    rw [decodeObjD_of d n' u' v' hdec]
     simp only
     icases Hr with ⟨%He, Hp⟩
     isplitr
@@ -249,10 +251,56 @@ theorem driver_zeroOk (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := 
   isplitr
   · ipureintro; exact ⟨rfl, hp, rfl⟩
   have hz : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) =
-      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk driverCodec.zero.1.1
-        driverCodec.zero.1.2 (W64 0) := rfl
+      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk driverCodec.zero.name driverCodec.zero.uid
+        driverCodec.zero.val (W64 0) := rfl
   rw [← hz]
   iexact Hp
+
+/-- **The driver's objects are `metav1.Object`s** (stage 7b): `GetUID` and `GetResourceVersion`
+answer the object's UID and the versioner's string of its resource version. -/
+theorem driver_metaOk (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
+    (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
+    (hty : (driverSpec (GF := GF)).tyOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ⊢
+    metaOk (driverSpec (GF := GF)) := by
+  iintro #Hpkg
+  unfold metaOk metaAt
+  imodintro
+  iintro %x %o %rv
+  simp only [driverSpec, driverCodec]
+  isplitr
+  · imodintro
+    iintro Hx
+    iunfold objAtD at Hx
+    icases Hx with ⟨%p, %n, %h, -⟩
+    obtain ⟨rfl, -, -⟩ := h
+    ipureintro
+    exact ⟨_, rfl, hty.2.2⟩
+  isplitr
+  · imodintro
+    iintro %ii %Φ %hx Hx HΦ
+    iunfold objAtD at Hx
+    icases Hx with ⟨%p, %n, %h, Hp⟩
+    obtain ⟨rfl, hpn, hrv⟩ := h
+    cases hx
+    wp_apply wp_UID $$ [$Hp] as Hp
+    iapply HΦ
+    iunfold objAtD
+    iexists p, n
+    iframe Hp
+    ipureintro; exact ⟨rfl, hpn, hrv⟩
+  · imodintro
+    iintro %ii %Φ %hx Hx HΦ
+    iunfold objAtD at Hx
+    icases Hx with ⟨%p, %n, %h, Hp⟩
+    obtain ⟨rfl, hpn, rfl⟩ := h
+    cases hx
+    wp_apply wp_RV $$ [$Hp] as Hp
+    iapply HΦ
+    iunfold objAtD
+    iexists p, n
+    iframe Hp
+    ipureintro; exact ⟨rfl, hpn, rfl⟩
 
 /-- **The driver meets the store's contract** (see the file header). -/
 theorem driver_contractOk (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG))
@@ -265,6 +313,8 @@ theorem driver_contractOk (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG)
     (wp_To : identity.TransformToStorage.spec (GF := GF) (hG := hG))
     (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG))
     (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
+    (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
+    (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
     (hty : (driverSpec (GF := GF)).tyOk) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime ∗
       isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ⊢
@@ -285,8 +335,11 @@ theorem driver_contractOk (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG)
   isplitr
   · iapply driver_decoderOk wp_Dec
     iexact Hpkg
-  iapply driver_zeroOk wp_SetZero
-  iexact Hrt
+  isplitr
+  · iapply driver_zeroOk wp_SetZero
+    iexact Hrt
+  iapply driver_metaOk wp_UID wp_RV hty
+  iexact Hpkg
 
 end proof
 

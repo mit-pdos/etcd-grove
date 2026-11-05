@@ -295,14 +295,14 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     exact ⟨hd, ht⟩
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
   · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2.1
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   -- (2026-10-27) `B`'s entries are the server's log's or fillers
@@ -459,7 +459,8 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
   imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
-  have Hpl : plainLogM γr.kv.cmp false A' := by rw [← hlg, ← Hlgk.2]; exact Hpl0.1
+  have Hpl : plainLogM γr.kv.cmp .none A' := by
+    rw [← apply.AEnv.lm_of_lg_false hlg, ← Hlgk.2]; exact Hpl0.1
   -- the cluster's in-memory members, from the rest resource
   rw [hRO]
   iunfold srvRestOwnH at Hrest

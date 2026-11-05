@@ -8,7 +8,7 @@ example that keeps its listeners (`examples/etcd/restart`). Lean-first (no Rocq 
 a new cluster's first start), at any snapshot settings.
 
 **`specStop`** (DRAFT, R2b): `spec`'s, with the server's data directory recorded (`srvDataDir`,
-the name's `.etcd`) and what it keeps for the stop (`srvStopKeep`), from which `Start` gives the
+the name's `.etcd`) and what it keeps for the stop (`srvStop.keep`), from which `Start` gives the
 right to stop it (`etcdstart.Start_builtS_spec`;
 R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to give; `start`
 makes the channels it names).
@@ -49,7 +49,7 @@ abbrev BuildServer.spec : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -69,7 +69,7 @@ abbrev BuildServer.spec : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       netHttpOk γn id ∗
       -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
       walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
@@ -79,7 +79,8 @@ abbrev BuildServer.spec : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
+          leaseTTLRowR s ps) }}
 
 /-- See the file header (`specStop`). -/
 abbrev BuildServer.specStop : Prop :=
@@ -88,7 +89,7 @@ abbrev BuildServer.specStop : Prop :=
     (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -105,7 +106,7 @@ abbrev BuildServer.specStop : Prop :=
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id ∗
+      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
       netHttpOk γn id ∗
       -- (2026-11-03, the WAL's API, change 6) the member's WAL directory fresh: a first start
       walDirFresh (config.walDirOf (name ++ go!".etcd") go!"") }}
@@ -115,7 +116,7 @@ abbrev BuildServer.specStop : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuiltS s ρ E₀ lg γn id N false ∗
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuiltS s ρ E₀ lg γn id N false lm ∗
           srvDataDir s (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
@@ -151,8 +152,8 @@ abbrev BuildServer.specRestart : Prop :=
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
           ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗
           -- (R2d's: inside `memberBuiltR`, at its names, as `memberBuiltS`)
-          ∃ (γrn : RNNames) (wd : GoString) (st : Loc) (γst : mvcc.StoreNames),
-            srvStopKeep s γrn wd st γst) }}
+          ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
+            (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) }}
 
 end spec
 

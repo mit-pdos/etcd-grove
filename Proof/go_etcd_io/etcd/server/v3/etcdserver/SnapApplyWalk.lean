@@ -11,6 +11,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRestoreM
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestorePreM
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
+public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 
 @[expose] public section
 
@@ -97,7 +99,7 @@ theorem applySnapshot_walk
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (hRel : storage.storage.Release.spec (GF := GF) (hG := hG))
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
@@ -132,7 +134,11 @@ theorem applySnapshot_walk
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (M2's item 15, stage B2) the contract of a compacting backend
     (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    -- (the lease-expiry plan's X2, 2026-11-04, until S4) a cluster that grants no lease
+    (hlgE : E.lg = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -150,6 +156,9 @@ theorem applySnapshot_walk
        srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
        lease.lessorRevocable E.γ.leases ∗
+       -- (2026-11-04, the lease-expiry plan's step 2) the lessor's configuration (`minLeaseTTL`, for
+       -- `Recover`'s TTLs)
+       lease.lessorCfg lp ∗
        srvKVCloserW s E ∗
        (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
@@ -194,7 +203,7 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -364,9 +373,9 @@ theorem applySnapshot_walk
   ihave HnPl := backend.bkRPool_intro γB d.P d'.be $$ [$HnPool $HnOp]
   ihave HnRTx := bkRTx_of_rdToks γB d.P d'.be _ $$ [$HnRT $HnOs]
   -- the old backend's objects, from the rest resource
-  -- (the lease-grant stage, 2.9) the revocable lessor refutes the leased arm: a cluster that
-  -- grants none
-  ihave ⟨%Hlg0, HRS⟩ := srvRest_revocable E γr A $$ [$Hlrev $HRS]
+  -- (the lease-grant stage, 2.9; the lease-expiry plan's X2) a cluster that grants none
+  ihave HRS : E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) $$ [HRS]
+  · rw [← srvRest_false E γr A hlgE]; iexact HRS
   rw [hRO]
   iunfold srvRestOwnH at HRS
   icases HRS with ⟨HoRO, HoObj⟩
@@ -377,7 +386,7 @@ theorem applySnapshot_walk
   icases HoObj with ⟨HoAl, HoAu, HoLe, HoCl⟩
   -- the apply thread's KV resources
   ihave HKV := (srvApplyKVM_open _ _ _ _ _ _).1 $$ HKV
-  icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, %w0, %RD0, #Hwf, #Hwok, HRD0⟩
+  icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, ⟨%w0, %RD0, #Hwf, #Hwok, HRD0⟩, Hrdat⟩
   iunfold apply.applyKV at HaKV
   -- (M2's item 15) the old store's compaction right, by the mode, for `Restore`
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn, HcO⟩
@@ -405,7 +414,7 @@ theorem applySnapshot_walk
   icases HlLive with ⟨%Ll, #HlK, HlUser, -⟩
   iunfold lease.lessorUser at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
-  ihave %Hwseq := isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]
+  ihave %Hwseq := mvcc.isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]
   subst Hwseq
   (try wp_auto)
   -- `s.lessor.Recover(newbe, …)`: the lessor on the new backend, no lease live
@@ -418,16 +427,61 @@ theorem applySnapshot_walk
   icases ownToks_add_1 2 _ γB.wb $$ Hnwb with ⟨Hnwb, Hwb2⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
+  -- (the lease-expiry plan's S1) the range deleter's owner's half, for `Recover` to replace
+  ihave ⟨%rd0, Hro, -⟩ := lease.rdAt_elim _ _ $$ Hrdat
+  have hbe : backend.bktEnts (((backend.rbData d.P D).lookup go!"lease").getD ∅) =
+      ([] : List (w64 × w64 × w64)).map lease.leaseRecEnc := by
+    rw [hlease]
+    exact List.eq_nil_of_length_eq_zero ((mvcc.bktEnts_length ∅).trans GMap.map_size_empty)
   wp_apply hLR lp E.γ.leases d.be d' (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
-      (fun _ => True) (backend.rbData d.P D) _ Ll _ trivial (by rw [hP']; exact hlpw)
-    $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB]
-    as ⟨HnLe, HlOwn, HlRv, HnOh, HnRB⟩
+      (fun _ => True) (backend.rbData d.P D) _ rd0 Ll _ false [] [] trivial (by rw [hP']; exact hlpw)
+      hbe (fun h => by cases h) (by simp)
+    $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB Hro]
+    as ⟨HnLe, HlOwn, -, HlRv, Hro, HnOh, HnRB, -⟩
   · -- (2026-11-02, the backend-auth-split stage) at every bucket (`rbOwn` is `rbPart ⊤`): the
     -- lessor, first on the new backend, gives its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at HnRB
-    rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB
-    ipureintro; exact hlease
+    rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB Hro
+    isplitl []
+    · ileft; ipureintro; rfl
+    imodintro
+    simp only [List.map_nil]
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+  ipersist s
+  ihave HnRB : backend.rbOwnIn d'.γB (fun _ => True)
+      ((backend.rbData d.P D).insert go!"lease" ∅) $$ [HnRB]
+  · iExactEq HnRB
+    exact congrArg (fun v => backend.rbOwnIn (GF := GF) d'.γB (fun _ => True)
+      ((backend.rbData d.P D).insert go!"lease" v)) hlease
+  -- the new range deleter, `s.kv.Write(traceutil.TODO())`: every watchable store over `E.s` is
+  -- `s.kv`'s (`mvcc.isWatchableStore_agree`), and `Write`'s spec takes any names
+  ihave Hrdat : lease.rdAt E.γ.leases E.s $$ [Hro]
+  · iapply lease.rdAt_intro
+    iframe Hro
+    iintro !> %ws' %γ' #Hws'
+    ihave %Hwseq := mvcc.isWatchableStore_agree ws' ws E.s γ' γw0 $$ [$Hws' $Hwsl]
+    subst Hwseq
+    iunfold mvcc.rdIs
+    isplitr
+    · ipureintro; intro h; injection h with _ _ h3; cases h3
+    iintro !> %L %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hww, %Hlen, Hh, Hpre, #Hfw⟩ HΦ'
+    ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+    · iPkgInit
+    ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+    · iPkgInit
+    wp_auto
+    wp_apply hTODO as %tr ⟨%Htrnn, Htr⟩
+    (try wp_auto)
+    wp_apply (hWrite ws' E.s γ' tr L Pw Pre Q fw true)
+      $$ [$Hrd $Hwt $Hww $Hh $Hpre $Htr] as %tw %crev ⟨Htw, HQ, Hh'⟩
+    · iframe #
+      ipureintro; exact ⟨Hlen, Htrnn⟩
+    (try wp_auto)
+    iapply HΦ'
+    iframe HQ Hh'
+    iexists crev
+    iexact Htw
   (try wp_auto)
   -- `s.kv.Restore(newbe)`: the store over the image's log at the new backend
   wp_apply hInfo $$ []
@@ -452,7 +506,7 @@ theorem applySnapshot_walk
   -- `Restore`: its supply is what a resumed compaction pays with)
   icases toks_take γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb1⟩
   icases toks_take γB.wb _ 2 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb2'⟩
-  imod srvWTStock_alloc γp d' (backend.wbInit - 2 - 1 - 2) (by omega) ⊤ $$ [Hnwb] with #HnS
+  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2) (by omega) ⊤ $$ [Hnwb] with #HnS
   · rw [hγ']; iexact Hnwb
   ihave #HnSup := kbWTSupplyM_of_stock E γp d' $$ [$HWP $HnS]
   -- the received backend's parts of `Restore`'s precondition, by the mode
@@ -740,7 +794,7 @@ theorem applySnapshot_walk
   ihave %Hmsll := ownSlice_len _ _ _ $$ Hmsl
   simp only [List.length_map] at Hmsll
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
-      "s" ∷ s_ptr ↦ s ∗
+      "#s" ∷ s_ptr ↦□ s ∗
       "Htlive" ∷ trLive γn t c L ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
@@ -751,13 +805,13 @@ theorem applySnapshot_walk
     refine ⟨⟨by decide, by have := Hmsll.2; word, by simp⟩, fun k p hk _ _ => ?_⟩
     exact absurd hk (by simp)
   iapply wp_fupd
-  wp_join (iprop(∃ (L : List w64), "s" ∷ s_ptr ↦ s ∗
+  wp_join (iprop(∃ (L : List w64), "#s" ∷ s_ptr ↦□ s ∗
       "Hmsl" ∷ msl ↦* List.map Prod.fst mps ∗
       "Hmso" ∷ ([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.fst p.snd) ∗
       "Htlive" ∷ trLive γn t c L ∗
       "%Hcov" ∷ ⌜∀ f, (netRh γn).member f → f ≠ idm → f ∈ L⌝))
     at (App (App (App (Val doFor) _) _) _) with [Hmsl Hmso IH2]
-    as ⟨%L, s, Hmsl, Hmso, Htlive, %Hcov⟩
+    as ⟨%L, #s, Hmsl, Hmso, Htlive, %Hcov⟩
   · wp_for IH2
     wp_if_destruct
     · obtain ⟨px, Hpx⟩ : ∃ px, mps[(sint.Z n).toNat]? = some px :=
@@ -796,6 +850,7 @@ theorem applySnapshot_walk
         iframe
         iexists n + W64 1, _, L
         iframe
+        iframe s
         ipureintro
         refine ⟨⟨by word, by word, by omega⟩, ?_⟩
         rw [Hn1]
@@ -822,6 +877,7 @@ theorem applySnapshot_walk
         iframe
         iexists n + W64 1, _, L ++ [px.2]
         iframe
+        iframe s
         ipureintro
         refine ⟨⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩, ?_⟩
         rw [Hn1]
@@ -830,6 +886,7 @@ theorem applySnapshot_walk
     · wp_join_done
       iexists L
       iframe
+      iframe s
       ipureintro
       exact membersCov_done γn dir hdir ps hps mps Hmps idm L (sint.Z n).toNat
         (by have h1 : mps.length = (sint.Z msl.len).toNat := Hmsll.1; omega) Hcov

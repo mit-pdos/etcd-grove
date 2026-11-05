@@ -107,12 +107,12 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (putgetDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790" lg
-      (LogEntry.toEntries boot 0) ctxs (putgetDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
+      (LogEntry.toEntries boot 0) ctxs (putgetDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [putgetDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
-  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
@@ -126,12 +126,18 @@ theorem Main.wp_proof
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      (fun cid mid _ => etcdstart.etcdKVAt go!"127.0.0.1:23790" E { ρ with wait := γw } ρ.rd cid mid))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iapply (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23790" cid mid
       R Hrb48 Hrf rfl)
     unfold etcdstart.kvServeStocks

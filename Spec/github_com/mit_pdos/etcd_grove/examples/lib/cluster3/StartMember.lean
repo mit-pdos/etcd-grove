@@ -42,7 +42,8 @@ abbrev StartMember.spec : Prop :=
     (peer : GoSlice) (cluster lg : Loc) (sl₁ sl₂ sl₃ : GoSlice)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool)
+    (lm : lease.Mode),
   cfgOk cfg →
   -- (W4 of `notes/watch-cut-plan.md`) the members' workload, granting no lease
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
@@ -64,7 +65,7 @@ abbrev StartMember.spec : Prop :=
       sl₃ ↦*□ initURLs3 cfg cfg.Name3' ∗
       bootPremise cfg N ps bootLog ctxs dir name peerAddr client id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id cmp ∗
+      memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it and the right to serve its peer address with the raft protocol
       netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗

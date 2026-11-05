@@ -232,22 +232,19 @@ theorem mdeleteL_length (x : Input) (st : GSt) :
   dsimp only
   split
   · simp
-  · split
-    · simp
-    · have := delItemL_length st.items x.Key'
-      simp only; omega
+  split
+  · simp
+  split
+  · simp
+  have := delItemL_length st.items x.Key'
+  simp only; omega
 
 theorem mupdateL_length (x : Input) (st : GSt) :
     (mupdateL x st).1.items.length ≤ st.items.length + 1 := by
   unfold mupdateL
   dsimp only
-  split
-  · simp
-  · split
-    · simp
-    · split
-      · simp
-      · exact setItemL_length _ _
+  repeat' split
+  all_goals first | exact setItemL_length _ _ | simp
 
 /-- A step adds at most one item. -/
 theorem mstepL_length (x : Input) (st : GSt) :

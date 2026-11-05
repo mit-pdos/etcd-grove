@@ -78,7 +78,7 @@ local macro "cc_kv_applied" : tactic => `(tactic| (
     ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
       hcc0.symm Hpe.2.1
       (crevOf_batchStep γr.kv _ m xj xj Hpe.1
-        (by unfold batchStep; rw [if_neg (by rw [h1]; decide)]) Hpe.2.1 Hpe.2.2.2) $$ Hka
+        (by unfold batchStep; rw [if_neg (by rw [h1]; decide)]) Hpe.2.1 Hpe.2.2.2.1) $$ Hka
     imod applied_predeposit s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
       $$ Hainv Hao Hlog HkL with Hpre
     wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
@@ -224,7 +224,7 @@ theorem EtcdServer.apply.wp_proofOff
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       -- (D22 J5) the write tokens taken, one per entry
-      "#HWA" ∷ srvWTTaken γp (w + sint.nat j) ∗
+      "#HWA" ∷ srvWTTaken γp.cnt (w + sint.nat j) ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
       "HRS" ∷ srvRest E γr (A ++ ms.take (sint.nat j)) ∗
       "HAR" ∷ srvApRes s γr (A ++ ms.take (sint.nat j)) ∗
@@ -237,7 +237,7 @@ theorem EtcdServer.apply.wp_proofOff
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
           epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
           srvAppliedOwn γr appliedi ∗
-          srvWTTaken γp (w + ms.length) ∗
+          srvWTTaken γp.cnt (w + ms.length) ∗
           (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
             appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗
             srvRest E γr (A ++ ms)) ∗
@@ -282,8 +282,8 @@ theorem EtcdServer.apply.wp_proofOff
     have hmem : m ∈ ms := List.mem_of_getElem? Hm_lookup
     -- the entry's premise at the KV's log, from its shape and the log's smallness (D19c's move)
     icases srvApplyKV_small s E ρ.wait xj $$ HKV with ⟨%Hsmall, HKV⟩
-    have hOk1 : m.typ = W32 0 → entryOk E.lg xj m := fun ht =>
-      entryOk_of_shape E.lg xj m (hEok m hmem) ht Hsmall.1 Hsmall.2
+    have hOk1 : m.typ = W32 0 → entryOk E.lm xj m := fun ht =>
+      entryOk_of_shape E.lm xj m (hEok m hmem) ht Hsmall.1 Hsmall.2
     have hjn' : ((sint.nat j : Nat) : Int) = sint.Z j := by
       unfold sint.nat; exact Int.toNat_of_nonneg Hj.1
     have hlenA : (A ++ ms.take (sint.nat j)).length = A.length + sint.nat j := by
@@ -367,7 +367,7 @@ theorem EtcdServer.apply.wp_proofOff
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
     imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
-    ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
+    ihave #HWA2 : srvWTTaken γp.cnt (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
       iexact HWA1
     (try wp_auto)
@@ -587,7 +587,7 @@ theorem EtcdServer.apply.wp_proofOff
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
-        ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
+        ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -705,9 +705,10 @@ theorem EtcdServer.apply.wp_proofOff
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
         -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
-        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt]
-        · rw [srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide)),
-            restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt HEv]
+        · iapply srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide))
+          iframe HEv
+          rw [restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_true ((HkB.2 m hmem).1 (by omega))]
           iapply (srvRestAt_open E _ _).2
           iexists f
@@ -1091,7 +1092,7 @@ theorem EtcdServer.apply.wp_proofOn
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
       -- (D22 J5) the write tokens taken, one per entry
-      "#HWA" ∷ srvWTTaken γp (w + sint.nat j) ∗
+      "#HWA" ∷ srvWTTaken γp.cnt (w + sint.nat j) ∗
       "Hka" ∷ kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ ms.take (sint.nat j)) xj saj ∗
       "HRS" ∷ srvRest E γr (A ++ ms.take (sint.nat j)) ∗
       "HAR" ∷ srvApRes s γr (A ++ ms.take (sint.nat j)) ∗
@@ -1105,7 +1106,7 @@ theorem EtcdServer.apply.wp_proofOn
           ciApplying ci a' at' ∗
           epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
           srvAppliedOwn γr appliedi ∗
-          srvWTTaken γp (w + ms.length) ∗
+          srvWTTaken γp.cnt (w + ms.length) ∗
           (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVOn s E ρ.wait x' sa' ∗
             ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
             kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗
@@ -1242,7 +1243,7 @@ theorem EtcdServer.apply.wp_proofOn
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
     imod srvWTPool_take_nOn s E γp ρ.wait xj saj (w + sint.nat j) $$ HWP Hr Hlc HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
-    ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
+    ihave #HWA2 : srvWTTaken γp.cnt (w + sint.nat (j + W64 1)) $$ []
     · rw [hjs, ← Nat.add_assoc]
       iexact HWA1
     (try wp_auto)
@@ -1475,7 +1476,7 @@ theorem EtcdServer.apply.wp_proofOn
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
-        ihave ⟨%f, HRS, HLt, #HGI⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
+        ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -1593,9 +1594,10 @@ theorem EtcdServer.apply.wp_proofOn
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
         -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
-        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt]
-        · rw [srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide)),
-            restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS HLt HEv]
+        · iapply srvRest_snoc _ _ _ _ (appliedTable_cc _ _ _ (by rw [h1]; decide))
+          iframe HEv
+          rw [restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_true ((HkB.2 m hmem).1 (by omega))]
           iapply (srvRestAt_open E _ _).2
           iexists f

@@ -80,7 +80,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
           1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
         □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
         □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ σ, COMM □ Q σ }>) }}
+          <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
     {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;

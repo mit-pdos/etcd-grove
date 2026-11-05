@@ -90,6 +90,7 @@ axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom heap.Init_.wp_proof
 axiom http.Flush_ok
 axiom http.HeaderGetOwnPtr_ok
 axiom http.HeaderGetPtr_ok
@@ -111,7 +112,6 @@ axiom http.respWrite_ok
 axiom httputil.GracefulClose.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -147,6 +147,7 @@ axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof

@@ -118,7 +118,7 @@ theorem server_kv_watchable_ofD
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st ∗ mvcc.crevRightM γw.st ∗
         mvcc.retiredAt γw.st (mvcc.nJobRd (some d)) ∗
-        (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
+        lease.rdAt γl st ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw, Hsr, Htie, Hrts, Hlrd,
     #Hle, Hro, Hif, Hok⟩ HΦ
   -- the backend's deletable keys fixed by the mode, and the store's contract the bridge's of it

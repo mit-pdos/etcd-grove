@@ -708,6 +708,19 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leasegrant")],
     ),
     Project(
+        name="leaseexpiry",
+        # the closed lease-expiry example (2026-11-04, notes/lease-expiry-plan.md, Part E): one
+        # member started in-process, a client, a lease of the shortest TTL granted (`Grant`), its
+        # `TimeToLive` polled until not found, then listed (`Leases`), checked.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "leaseexpiry"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseexpiry")],
+    ),
+    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
         # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,

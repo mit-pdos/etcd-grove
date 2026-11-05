@@ -24,6 +24,10 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommitted
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setCommittedIndex
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
+public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopShutdown
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Perennial.Proof.time
@@ -60,7 +64,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     (K : AuthC) (hM : C.E.authMode = K.mode) (hRB : acReceiptOk (GF := GF) K)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
     (dv : Option Loc) (γnc : NotifyNames)
-    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lg (A ++ ce))
+    (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeM K.isOn C.ρ.kv.lm (A ++ ce))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, no conf entry;
     -- with one, a fresh start (`c₀ ≤ ai₀`) at the server's rule (2026-10-30, the repair: one mode)
@@ -125,8 +129,8 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
   have hun : unapplied ai ce = ce := unapplied_all ai ce habove
   have hcong : ∀ m ∈ ce, (uint.Z (ciEff B.γ st.k) < uint.Z m.index ↔ uint.Z C.c₀ < uint.Z m.index) :=
     fun m hm => ciJ_iff _ _ _ HJ m (habove m hm)
-  ihave %Hlgt := isServerC_lg K C.s B.γ C.ci B.TM B.E C.ρ C.γr $$ Hsrv
-  have hok' : logShapeM K.isOn B.E.lg (unapplied ai ce) := by
+  ihave %Hlgt := isServerC_lm K C.s B.γ C.ci B.TM B.E C.ρ C.γr $$ Hsrv
+  have hok' : logShapeM K.isOn B.E.lm (unapplied ai ce) := by
     rw [hun]
     cases hK : K.isOn
     · rw [hK, logShapeM_false] at hok
@@ -270,10 +274,23 @@ theorem run_job_body_match (γs : ServerRaftNames) (dv : Option Loc) :
 /-- (open, the lease-grant plan's D2, 2026-11-02; since its B1/B2 commit 1 the bundle) **The open
 cases of a cluster that grants leases** (`srvGrantOpen`, `InvRun.lean`: `run`'s snapshot job, and the
 grant's cases as the plan adds them): not proved. `run` does not use it: it takes the case as
-`isServerRun`'s premise `γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen` (from `NewServer`'s precondition), which a
-cluster that grants none discharges by its `lg = false`; only a lease-granting result
+`isServerRun`'s premise `∃ m, lease.runCfg γr.kv.lm m` (from `NewServer`'s precondition; until
+2026-11-04 `γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen`), which a cluster that grants
+none discharges by its `lg = false`; only a lease-granting result
 (`etcd_leasegrant.wp_Main`) uses this theorem, so it is in their trust base only. -/
 theorem srvGrantOpen_open : srvGrantOpen (GF := GF) := by
+  sorry
+
+/-- (open, the lease-expiry plan's Part E, decided 2026-11-04; its P1) **The open case of a
+revocable-lease cluster** (`srvRevokeOpen`, `LeaseRun.lean`: `EtcdServer.revokeExpiredLeases.spec`,
+`run`'s expiry arm): not proved. Its proof waits on thread tokens by level (the plan's P1:
+`revokeExpiredLeases` attaches a goroutine with `GoAttach` whose `LeaseRevoke` proposals the apply
+thread serves), and the spec itself is to be restated (the plan's "Plumbing: Part E", the
+`srvRevokeOpen` analysis). `run` does not use it: it takes the case as `lease.runCfg`'s revocable
+conjunct; only a revocable-lease result (`etcd_leaseexpiry.wp_Main`) uses this theorem, so it is in
+their trust base only. A theorem here rather than a `sorry` proof of `revokeExpiredLeases` itself,
+so that no proof of it enters the server's `Link.lean` before the spec is restated. -/
+theorem srvRevokeOpen_open : srvRevokeOpen (GF := GF) (hG := hG) := by
   sorry
 
 /-- **A snapshot payload's job** (J8b, 2026-11-01; `s.applyAll(&ep, &ap)` on raft's snapshot
@@ -285,7 +302,8 @@ snapshot's (`ciJ`'s second disjunct, a fresh start's `c₀ = 0`). The member's i
 reads are `isServerRun`'s (`#Hmid`, `#HmetaSnap`), the index past the boot log the payload's
 (`rnReadySnap_bootLen`, open). In either compaction mode since M2's item 15, stage C (until then
 the compaction mode was `run_job_snap_cmp`, open); in a cluster that grants leases, the premise
-`hslg` (its `srvGrantOpen`, `isServerRun`'s `%Hslg`, opened by `srvGrantOpen_snap`). -/
+`hslg` (its `srvGrantOpen`, `isServerRun`'s `%Hslg`, `lease.runCfg_open`, opened by
+`srvGrantOpen_snap`). -/
 theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
@@ -297,7 +315,7 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
     (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
-    (hslg : C.γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) (hrn : C.rn = γn) :
+    (hslg : ∃ m : lease.Mode, lease.runCfg (GF := GF) C.γr.kv.lm m) (hrn : C.rn = γn) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -319,7 +337,9 @@ theorem run_job_snap (hAA : EtcdServer.applyAll.specSnap (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C A' }} := by
   cases hlgc : C.γr.kv.lg
   case true =>
-    exact srvGrantOpen_snap (hslg hlgc).2 C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
+    obtain ⟨m, hm⟩ := hslg
+    exact srvGrantOpen_snap (lease.runCfg_open (by
+      intro h; rw [KVNames.lg_eq, h] at hlgc; exact absurd hlgc (by decide)) hm) C A A' apL es sn sv rac nc γs γnc γn rt ha00 hc0 hpre hγn hρ hpr hγs hγw hlt
       hlen h61 hboot hlgc
   iintro %Φ ⟨#Hpkg, #Hsa, #Hmid, #Hmeta, #Hes, #Hesl, #Hsnf, Hsnv, #Hcl, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrtok, Hrun, HR, #HWc, #Hlbr⟩ HΦ
@@ -685,7 +705,7 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     (hlen : (γn.pre ++ A').length = uint.nat sv.Metadata'.Index')
     (h61 : uint.Z sv.Metadata'.Index' < 2 ^ 61)
     (hboot : (γn.node.boot.length : Int) ≤ uint.Z sv.Metadata'.Index')
-    (hslg : C.γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)) (hrn : C.rn = γn) :
+    (hslg : ∃ m : lease.Mode, lease.runCfg (GF := GF) C.γr.kv.lm m) (hrn : C.rn = γn) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ srvMemberIDAddr C.s ↦□ γn.id ∗ srvMetaSnap C.γ ∗
         taEntriesAddr apL ↦□ es ∗ es ↦*□ ([] : List Loc) ∗
@@ -727,11 +747,26 @@ theorem run_job_snapC (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG)
     iframe Hrun
     iapply (applyResC_on γa C A' hM).2 $$ HR
 
+/-- A conditional proposition at a true condition. -/
+theorem iteE_pos {b : Bool} {P Q : IProp GF} {R : IProp GF → IProp GF} (h : b = true) :
+    R (if b then P else Q) ⊢ R P := by simp [h]
+
+/-- A conditional proposition at a false condition. -/
+theorem iteE_neg {b : Bool} {P Q : IProp GF} {R : IProp GF → IProp GF} (h : ¬ b = true) :
+    R (if b then P else Q) ⊢ R Q := by simp [h]
+
 set_option maxHeartbeats 0 in
-/-- **`run.spec`**, in both auth modes (the auth component's stage 2c, 2026-11-04: one proof over
-the component `C`, the environment's; until then `wp_proofOff` and `wp_proofOn`): the loop's
-resources `applyResC C`, the jobs over `applyAll.spec` (`run_job_body`, `run_job_snapC`). -/
-theorem EtcdServer.run.wp_proof
+/-- **`run`, stoppable or not** (2026-11-05, the restart plan's R2b-3d stage 5d): `run.spec`'s proof
+(`stp = false`: no stop request, `done` announcing `True`) and `run.specStop`'s (`stp = true`: stop
+requests carrying `srvBootApplied`, `done` announcing the escrowed image, with the shutdown's
+resources), one proof: the two differ only in the loop's stop branch, where `run` returns and its
+deferred shutdown runs. The shutdown's callees are needed only when `stp = true`. In both auth
+modes (the auth component's stage 2c, 2026-11-04: one proof over the component `C`, the
+environment's; until then `wp_proofOff` and `wp_proofOn`): the loop's resources `applyResC C`, the
+jobs over `applyAll.spec` (`run_job_body`, `run_job_snapC`). -/
+theorem EtcdServer.run.wp_proofG (stp : Bool)
+    (hStop : stp = true → schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) ∧
+      raftNode.stop.specStop (GF := GF) (hG := hG) ∧ stopCleanupImage.spec (GF := GF) (hG := hG))
     (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
@@ -748,14 +783,30 @@ theorem EtcdServer.run.wp_proof
     (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
     (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
-    EtcdServer.run.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
-  wp_start as ⟨%hP, Hpre⟩
+    ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC)
+      (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+      (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
+      (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName) (γk : GName),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
+        isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+          (if stp then srvBootApplied ρ else iprop(False))
+          (if stp then srvDoneInv ρ.rd.raft.raft ρ γn.id dd c else iprop(True)) ∗
+        (if stp then iprop(∃ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
+          srvShutdownPre s cfg E γn γk dd ∗
+          ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧
+            E.cmp = false ∧
+            (ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk ρ.rd.raft.raft.vs ρ.rd.raft.raft.boot)⌝)
+          else iprop(True)) }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
+    {{ RET #(); True }} := by
+  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c γk
+  wp_start as ⟨%hP, Hpre, Hsd⟩
   obtain ⟨hM, hRB⟩ := hP
   iunfold isServerRunC at Hpre
   iNamed Hpre
   obtain ⟨HEC, HEγr, Hc0a⟩ := HEr
-  icases HWB with ⟨%γp, #HWB, #HWA0⟩
+  icases HWB with ⟨%γp, #HWB, #HWA0, #HWreg⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := (isServerM_C C s γ ci TM E ρ γr).2 $$ Hsrv
   iunfold isServerM at Hsrv'
@@ -820,7 +871,7 @@ theorem EtcdServer.run.wp_proof
   have Hcs0 : cs ≠ null := Hcs0n
   (try wp_auto)
   -- the FIFO scheduler: its stop token, its queue `[n₀, p₀]` (`p₀` saving `True`)
-  wp_apply hFifo fv.lg iprop(True) $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0, -⟩
+  wp_apply hFifo fv.lg iprop(True) $$ [] as %sc ⟨%γs, %n₀, %p₀, #Hfifo, Hstoptok, Hq, #Hp0, #Hpay⟩
   · ipureintro; exact Hlg0
   ihave #Hfifo' := Hfifo
   iunfold schedule.isFifo at Hfifo'
@@ -1286,9 +1337,11 @@ theorem EtcdServer.run.wp_proof
     iunfold named
     iintro !> ⟨H, -⟩
     iexact H
-  -- `leases := <-expiredLeaseC`: nothing is sent on it (D19n, D19q: the workload's grant guard
-  -- holds of no lease, `lessorOk`'s `noGrant`, so no lease is granted and none expires);
-  -- `revokeExpiredLeases` is never reached
+  -- `leases := <-expiredLeaseC` (the lease-expiry plan's X1, 2026-11-04; until then dead in every
+  -- mode): a slice of expired leases under the server's grant guard (`lessorOk`), so the cluster
+  -- grants leases and auth is off; by the lease mode (`lease.runCfg`): `none` grants none (dead),
+  -- `mono` lets none expire (dead: `leasesNoExpiry`), `revocable` revokes them
+  -- (`revokeExpiredLeases`, through the open premise `srvRevokeOpen`)
   iapply BigAndL.bigAndL_cons.2
   isplit
   · simp only [chan.blockingClausePre]
@@ -1299,8 +1352,39 @@ theorem EtcdServer.run.wp_proof
     · iapply is_bag_is_chan $$ Helc
     iapply bag_recv_au γel elc _ _ $$ [$Hlc1 $Hlc2] Helc
     inext
-    iintro %ls Hf
-    iexfalso; iexact Hf
+    iintro %ls ⟨%Hnx, #Hls⟩
+    ihave %Hg := srvGrantGuard_expired E.lg E.authMode.isOn ls $$ Hls
+    ihave %Hlgt := isServerC_lg C s γ ci TM E ρ γr $$ Hsrv
+    have hCoff : C.isOn = false := by
+      have h2 := Hg.2
+      rw [hM, AuthC.mode_isOn] at h2
+      exact h2
+    obtain ⟨mo, Hmo⟩ := Hslg
+    cases mo with
+    | none =>
+      have h1 : γr.kv.lg = false := by rw [KVNames.lg_eq, lease.runCfg_lm Hmo]; rfl
+      have h2 := Hlgt.2 hCoff
+      iexfalso; ipureintro
+      rw [h1, Hg.1] at h2
+      exact Bool.false_ne_true h2
+    | mono =>
+      iexfalso; ipureintro
+      exact Hnx (lease.runCfg_noExpiry Hmo)
+    | revocable =>
+      have hrev := srvRevokeOpen_spec (lease.runCfg_revoke Hmo)
+      ihave #Hfa : srvFieldsAt s γ ci TM E ρ fv $$ []
+      · rw [← srvFieldsAtM_false, ← hCoff]; iexact Hfv
+      ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+      · iPkgInit
+      (try wp_auto)
+      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ []
+      · iframe #
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists A, Ps, pl, Q, R
+      iframe
+      iframe #
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2
@@ -1328,10 +1412,169 @@ theorem EtcdServer.run.wp_proof
     · iapply is_bag_is_chan $$ Hstb
     iapply bag_recv_au γst v.stop _ _ $$ [$Hlc1 $Hlc2] Hstb
     inext
-    iintro %u Hf
-    iexfalso; iexact Hf
+    iintro %u HSP
+    by_cases hst : stp = true
+    rotate_left
+    · iexfalso; iapply (iteE_neg (R := fun X => X) hst) $$ HSP
+    -- (R2b-3d stage 5d) a stop request: `run` returns, and its deferred shutdown runs
+    obtain ⟨hSStop, hRStop, hCl⟩ := hStop hst
+    ihave HSP := (iteE_pos (R := fun X => X) hst) $$ HSP
+    ihave Hsd := (iteE_pos (R := fun X => X) hst) $$ Hsd
+    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff, %hcmp, %hvs⟩
+    ihave Hdc := (iteE_pos (R := fun D => ownBroadcastChan v.done γd D .Pending) hst) $$ Hdc
+    (try wp_auto)
+    wp_for_post
+    -- the deferred shutdown: `wgMu.Lock(); close(s.stopping); wgMu.Unlock()`
+    ihave #Hgok' := Hgok
+    iunfold srvGoAttachOk at Hgok'
+    icases Hgok' with ⟨%chs, %cx, #Hchs, #Hint, #Hwg, #Hinv, #Hguard, -, -, -⟩
+    wp_apply sync.RWMutex.wp_Lock_guard (srvWgMuAddr s) (wgMuP γg) $$ [$Hsync $Hguard]
+      as ⟨Hlk, HwP⟩
+    iunfold wgMuP at HwP
+    icases HwP with ⟨%bo, Hbo, Hsp⟩
+    imod goAttach_close γg bo $$ [$Hinv $Hclose $Hbo] with ⟨%hbo, Hbo, Hwz, Hwwt⟩
+    subst hbo
+    iunfold stopPart at Hsp
+    simp only [↓reduceIte]
+    (try wp_auto)
+    wp_apply wp_stop_chan_close_at chs γg.ch γg.chi iprop(True) $$ [$Hint $Hsp] as #Hsd
+    · imodintro; itrivial
+    (try wp_auto)
+    wp_apply sync.RWMutex.wp_Unlock_guard (srvWgMuAddr s) (wgMuP γg) $$ [$Hsync $Hlk Hbo]
+    · iunfold wgMuP; iexists false; iframe Hbo; iunfold stopPart
+      simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hsd
+    -- `s.cancel()`
+    (try wp_auto)
+    wp_bind (App (Val #v.cancel) (Val #()))
+    ihave #Hcfs' := Hcfs
+    iunfold context.cancelSpec at Hcfs'
+    iapply Hcfs' $$ []
+    · imodintro; itrivial
+    inext
+    iintro -
+    -- `sched.Stop()`: the last job's post, `Q`, and with the loop's `R` the apply thread's resources
+    wp_auto_lc 3
+    wp_apply +noauto hSStop sci γs (Ps ++ [pl]) $$ [Hstoptok Hq] as ⟨HlastP, -⟩
+    · iframe Hstoptok Hq; iframe #; iapply schedule.schedPay_true $$ Hpay
+    rw [List.getLast?_concat]
+    icases HlastP with ⟨%P, #HP, HPl⟩
+    iunfold schedule.savedProp at HP Hpl
+    ihave #Heq := saved_prop_agree pl DFrac.discard DFrac.discard P Q $$ HP Hpl
+    ihave HQl : ▷ Q $$ [HPl]
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨Hiff, -⟩
+      iapply Hiff $$ HPl
+    imod (lc_fupd_elim_later (E := ⊤) (P := Q)) $$ Hlc1 HQl with HQ
+    ihave ⟨Hres, Hrunh⟩ := HQR $$ [HQ HR]
+    · iframe HQ HR
+    -- `s.wg.Wait()`
+    (try wp_auto)
+    wp_apply wp_goAttach_Wait s γg $$ [$Hsync $Hwg $Hinv $Hwz $Hwwt] as Hgw
+    -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
+    icases stop_split C _ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
+    iunfold srvShutdownPre at Hpre
+    icases Hpre with ⟨Hkeep, Hdd, Hrds⟩
+    icases (srvStop.keep_split s cfg E γn γk) $$ Hkeep with ⟨Hrp, Hclp, Hcsp, Himp⟩
+    icases srvStop.raft_stop s γn γk $$ [$Hrp $Htrs] with ⟨Hsc, HST⟩
+    rw [← hST]
+    (try wp_auto)
+    wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
+      as ⟨Hvac, Hrst⟩
+    -- `s.Cleanup()`: the backend closed, the image
+    (try wp_auto)
+    wp_apply hCl C
+        (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
+        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp hvs
+      $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
+        Hlc2 Hlc3 $HWreg $Hgw] as Himg
+    · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
+    -- `close(s.done)`, the image escrowed (`srvDoneInv`)
+    imod inv_alloc srvStopN ⊤ iprop(srvDiskImage ρ.rd.raft.raft ρ γn.id dd ∨ token c) $$ [Himg]
+      with #Hdi
+    · inext; ileft; iexact Himg
+    (try wp_auto)
+    wp_apply +noauto wp_broadcast_chan_close _ γd (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) $$ [$Hdc]
+      as -
+    · imodintro; iunfold srvDoneInv; iexact Hdi
+    (try wp_auto)
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
+
+/-- `run.spec`: `wp_proofG` with no stop. -/
+theorem EtcdServer.run.wp_proof
+    (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
+    (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
+    (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
+    (hSL : EtcdServer.setLead.spec (GF := GF) (hG := hG))
+    (hIL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
+    (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
+    (hBL : v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG))
+    (hGCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
+    (hSCI : EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG))
+    (hRS : raftNode.start.spec (GF := GF) (hG := hG))
+    (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
+    (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
+    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
+    EtcdServer.run.spec (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
+  have h := EtcdServer.run.wp_proofG false (fun h => nomatch h) hAA hLg hGI hGT hFifo hGL hSL hIL
+    hN hBL hGCI hSCI hRS hRA hNJ hSch s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ [] γd.1
+    γd.1
+  simp only [Bool.false_eq_true, ↓reduceIte] at h
+  iintro %Φ ⟨#Hi, %hP, Hpre⟩ HΦ
+  iapply h $$ [Hpre] HΦ
+  iframe Hi Hpre
+  ipureintro; exact hP
+
+/-- (R2b-3d stage 5d) `run.specStop`: `wp_proofG` with the stop. -/
+theorem EtcdServer.run.wp_proofStop
+    (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
+    (hRStop : raftNode.stop.specStop (GF := GF) (hG := hG))
+    (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
+    (hFifo : schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG))
+    (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
+    (hSL : EtcdServer.setLead.spec (GF := GF) (hG := hG))
+    (hIL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
+    (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
+    (hBL : v2stats.ServerStats.BecomeLeader.spec (GF := GF) (hG := hG))
+    (hGCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
+    (hSCI : EtcdServer.setCommittedIndex.spec (GF := GF) (hG := hG))
+    (hRS : raftNode.start.spec (GF := GF) (hG := hG))
+    (hRA : raftNode.apply.spec (GF := GF) (hG := hG))
+    (hNJ : schedule.NewJob.spec (GF := GF) (hG := hG))
+    (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
+    EtcdServer.run.specStop (GF := GF) (hG := hG) := by
+  intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c cfg γk
+  have h := EtcdServer.run.wp_proofG true (fun _ => ⟨hSStop, hRStop,
+    stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe⟩) hAA hLg hGI hGT hFifo
+    hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀
+    c₀ x₀ dd c γk
+  simp only [↓reduceIte] at h
+  iintro %Φ ⟨#Hi, %hP, Hpre, Hsd, %Hsp⟩ HΦ
+  iapply h $$ [Hpre Hsd] HΦ
+  iframe Hi Hpre
+  isplitr
+  · ipureintro; exact hP
+  iexists cfg
+  iframe Hsd
+  ipureintro; exact Hsp
 
 end proof
 

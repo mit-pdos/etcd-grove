@@ -49,7 +49,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     (hWA : trace.WithAttributes.spec (GF := GF) (hG := hG))
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r ttl id0 hg
+  intro s E ρ ctx cd r ttl id0 hg hrev
   obtain ⟨hlg, hoff⟩ := hg
   have hRR := hRR0 s E ρ
   rw [hoff] at hRR
@@ -72,19 +72,34 @@ theorem EtcdServer.LeaseGrant.wp_proof
   icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
   (try wp_auto)
   -- the loop: a fresh id while `r.ID` is `0`
-  ihave HI : (∃ i : w64, structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ i) $$ [HID]
-  · iexists _; iexact HID
+  -- (the lease-expiry plan's E3 (b)) in the revocable mode, the generated id's claim right kept
+  ihave HI : (∃ i : w64, structFieldRef etcdserverpb.LeaseGrantRequest go!"ID" r ↦ i ∗
+      (⌜i = W64 0 ∨ ρ.kv.lm ≠ .revocable⌝ ∨
+        ∃ u : w64, ⌜i = u &&& leaseIdMask ∧ idPfx u = ρ.ids.pfx⌝ ∗ idUnclaimed ρ.ids u)) $$ [HID]
+  · iexists _; iframe HID; ileft; ipureintro
+    by_cases hm : ρ.kv.lm = .revocable
+    · exact Or.inl (hrev hm)
+    · exact Or.inr hm
   wp_for HI
+  icases HI with ⟨HI, Hu⟩
+  (try wp_auto)
   wp_if_destruct
-  · imod Hcred with Hc
-    wp_apply hNext ρ.ids v.gen (srvFloorFact E) $$ [Hc] as %nid -
+  · iclear Hu
+    imod Hcred with Hc
+    wp_apply hNext ρ.ids v.gen (srvFloorFact E) $$ [Hc] as %nid ⟨Hfr, -⟩
     · iframe #; iframe Hc
     (try wp_auto)
     wp_for_post
     iframe
     iexists _; iframe
+    iright
+    iunfold idFresh at Hfr
+    icases Hfr with ⟨Hun, -, %Hpf⟩
+    iexists nid; iframe Hun
+    ipureintro; exact ⟨rfl, Hpf⟩
+  have hid : i ≠ W64 0 := fun h => Hif (by subst h; rfl)
+  rw [decide_eq_false hid]; simp only [Bool.false_eq_true, ↓reduceIte]
   ipersist HI
-  have hid : i ≠ W64 0 := Hif
   (try wp_auto)
   wp_apply hI64 as %kv1 -
   (try wp_auto)
@@ -113,7 +128,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
   subst Hsi
   (try wp_auto)
   -- `requireAuthInfo`: `nil` with auth off
-  wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae⟩
+  wp_apply hAuth s E ctx1 _ $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
   · iframe #; iframe Hrd
   iunfold authedOutB at Hae
   icases Hae with ⟨-, %Hoffe, -⟩
@@ -165,9 +180,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
     subst hg'; exact hid
   have HnzW : irrNoZeroEnd rq := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [rq, apply.irrEmpty] at h
-  have Hshape : rqShape ρ.kv.lg rq := by
+  have Hshape : rqShape ρ.kv.lm rq := by
     refine ⟨fun on => ⟨by rw [Hk]; decide, by rw [Hk]; intro h; cases h⟩, fun log _ => ?_⟩
-    unfold apply.rqOk; rw [Hk]; rw [hlg]; exact Hgk
+    exact (apply.rqOk_leaseGrant _ _ _ Hk).2 ⟨KVNames.lm_of_lg_true hlg, Hgk⟩
   ihave #HirrNo : irrNoHdrIs «$a1_ptr» rq $$ []
   · iunfold irrNoHdrIs
     simp only [rq, apply.irrEmpty, apply.optReqIs, apply.presentIs, apply.irrField, apply.leaseGrantIs]
@@ -182,11 +197,11 @@ theorem EtcdServer.LeaseGrant.wp_proof
   imod Hcred with Hc
   wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
       (apply.irrDepthOk_of_txnW_none rfl)
-      $$ [Hlt Hrd Hc Header] as %resp %err ⟨Hlt, Hrd, Hres⟩
+      $$ [Hlt Hrd Hc Header Hu] as %resp %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd Hc
     isplitr
     · rw [isServerReqM_false]; iexact Hsrv
-    isplitr
+    isplitl [Hu]
     · iunfold reqPropOkM
       try dsimp only
       isplitl
@@ -196,7 +211,20 @@ theorem EtcdServer.LeaseGrant.wp_proof
       isplitl
       · iunfold reqPropOk
         iright; iright
-        ipureintro; exact ⟨⟨hlg, Hgk⟩, Hshape, HnzW, rfl⟩
+        isplitr
+        · ipureintro; exact ⟨Or.inl ⟨KVNames.lm_of_lg_true hlg, Hgk⟩, Hshape, HnzW, rfl⟩
+        -- (the lease-expiry plan's E3 (b)) in the revocable mode, the generated id's claim right
+        by_cases hm : ρ.kv.lm = .revocable
+        · have hr : rqRevGrantId ρ.kv.lm rq = some i := by
+            unfold rqRevGrantId; rw [if_pos ⟨hm, Hk⟩]; rfl
+          iunfold grantIdOwn
+          rw [hr]
+          icases Hu with (%Hu | Hu)
+          · exfalso; rcases Hu with h | h
+            · exact hid h
+            · exact h hm
+          iexact Hu
+        · iapply grantIdOwn_nonRev ρ.kv rq hm
       ipureintro; rfl
     iexists _; iexact Header
   (try wp_auto)
@@ -205,7 +233,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     have Hrq : rq' = apply.withHeader rq hm := Hwire.2.2.2 HnzW
     subst Hrq
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, Hans⟩
+    icases Hok with ⟨%x, %x', %o, %skip, -, -, -, -, -, -, -, Hans, -⟩
     have Hk' : apply.dispatchKind (apply.withHeader rq hm) = .leaseGrant := by
       rw [← Hk]; exact Hwire.2.2.1.trans rfl
     iunfold grantAnsM at Hans
@@ -233,8 +261,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
       refine ⟨rfl, ?_⟩
       exact Hrn
     iunfold leaseGrantedResp
+    icases Hgr with ⟨%gl, %gt, #Hgl, #Hgt, %Hgtge⟩
     iexists i, t, e, gi, hh, rv
-    iframe Hh Hrv Hown Hid' Ht He Hgr
+    iframe Hh Hrv Hown Hid' Ht He
     isplitr
     · ipureintro; intro h; subst h; simp at Hrvl; omega
     isplitr
@@ -242,7 +271,11 @@ theorem EtcdServer.LeaseGrant.wp_proof
       iexists log
       iframe Hic Hcok
       ipureintro; omega
-    ipureintro; exact hid
+    isplitr
+    · ipureintro; exact hid
+    iexists gl, gt
+    iframe Hgl Hgt
+    ipureintro; exact Hgtge
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _

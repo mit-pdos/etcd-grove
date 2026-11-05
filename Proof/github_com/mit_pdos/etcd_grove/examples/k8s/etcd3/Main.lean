@@ -75,12 +75,14 @@ theorem Main.wp_proof
     (wp_To : identity.TransformToStorage.spec (GF := GF) (hG := hG))
     (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG))
     (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
+    (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
+    (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
-    wp_Dec wp_SetZero (driverSpec_tyOk Hty)
+    wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
@@ -124,12 +126,12 @@ theorem Main.wp_proof
   have Hdirok : netDirOk (k8setcd3Dir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (LogEntry.toEntries boot 0) ctxs
-      (k8setcd3Dir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs
+      (k8setcd3Dir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
       (by simp [k8setcd3Dir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
-  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
@@ -145,13 +147,19 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
   -- members' axiom), and etcd's KV calls registered at the address
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23896" E { ρ with wait := γw } ρ.rd cid mid ∗
-        ⌜noRefusalAt go!"127.0.0.1:23896"⌝))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        ⌜noRefusalAt go!"127.0.0.1:23896"⌝)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23896" cid mid R HEo $$ [Hg]
     · iframe; iframe #
@@ -240,7 +248,7 @@ theorem Main.wp_proof
   imod (seedInv_cancel γs ρ.rd.kv σs2) $$ [Hs] with Hetcd
   · iframe #
     iframe Hs
-  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist⟩
+  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
   -- `etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix, ...)`; the
   -- conversion to `runtime.Codec` (`type Codec Serializer`) unfolds two named types
   haveI : go.UnderlyingEq k8s_io.apimachinery.pkg.runtime.Codec.ty
@@ -291,6 +299,7 @@ theorem Main.wp_proof
       cl := cl, ms := [x], V := V, mt := mt, lt := lt, γh := γh }
   imod (kInv_seed ρ.rd.kv c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
   · iframe
+    iexact Hsr
   wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs hse (by simp [c])
       (by omega) H0 H31 Hops Hmul (by rw [g0s_items]; simp)) $$ [Hks] as %r %hr
   · iframe #

@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (38)
+## Not reported (39)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -20,6 +20,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [etcdserver: a transaction nested about 5000 deep panics every member, permanently (with --max-txn-ops of 5000 or more)](etcd-txn-nested-depth-apply-panic.md) | yes |  |
 | [watch: a progress notification requested before a watch is created can reach that watch before its events](etcd-watch-progress-before-created.md) | yes | etcd-io/etcd#15220 issue closed; etcd-io/etcd#15237 pr merged; etcd-io/etcd#20229 pr merged |
 | [clientv3: after a reconnect, a watch from a future revision can deliver events below its start revision](etcd-watch-resume-below-start-revision.md) | yes | etcd-io/etcd#20221 issue closed; etcd-io/etcd#20229 pr merged; etcd-io/etcd#20263 pr closed; etcd-io/etcd#15248 pr merged |
+| [apiserver etcd3: GuaranteedUpdate from a cached object that changes nothing ignores a failed resource version precondition](k8s-etcd3-cached-noop-skips-preconditions.md) | yes | kubernetes/kubernetes#82303 pr closed; kubernetes/kubernetes#89828 pr closed |
 | [clientv3/leasing: a transaction answered from the cache takes the wrong branch when it compares a missing key or a lease](leasing-evalcmp-missing-key.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a Get of a key another client has leased ignores the request's options](leasing-get-failed-acquire-options.md) | yes | etcd-io/etcd#20704 issue closed |
 | [clientv3/leasing: a Put or Delete of a key the leasing KV has not cached is applied twice](leasing-modify-uncached-once.md) | yes | etcd-io/etcd#20704 issue closed |

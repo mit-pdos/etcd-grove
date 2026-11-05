@@ -92,7 +92,7 @@ theorem startServer.wp_proof
         [etcdstart.httpURL go!"127.0.0.1:23916"],
         GMap.insert go!"authkv" (slice.mk peer (W64 1) (W64 1)) ∅,
         fun _ => [etcdstart.httpURL go!"127.0.0.1:23926"]⟩
-      γ id ctxs ρ E₀ N Φs γn dir γd hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
+      γ id ctxs ρ E₀ N Φs γn dir γd .none hraft (by rw [hboot]; exact hrule) hc0 hch hlog hcok hkcmp
       Hlg ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
       (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
       v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ (by first | rfl | simp))
@@ -102,7 +102,9 @@ theorem startServer.wp_proof
       -- (2026-11-03, the final whole-`bootOk` review) the raft node's and the transport's slots: the
       -- literal's clock, the directory of the peers
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
-      (fun _ => ⟨rfl, by word, by word⟩) (fun _ => hlgf)
+      (fun _ => ⟨rfl, by word, by word⟩)
+      -- (2026-11-04, the lease-expiry plan's Part C) the lease slot: auth on grants no lease
+      (lease.bootCfg_none _ _ (by simpa [KVNames.lg_eq] using hlgf) Hck)
       -- (2026-11-03, the whole-`bootOk` review) `bootstrap`'s configuration conditions, from the
       -- literal, and the write budget
       (etcdstart.bootCfgOk_of _ Hlg rfl rfl rfl rfl)
@@ -129,14 +131,12 @@ theorem startServer.wp_proof
     · iapply wal.bootRes_intro _ _ _ rfl rfl; iexact Hwdf
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
-    isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
     isplitr; · ipureintro; exact Hdbo
-    isplitr; · ipureintro; exact hslg
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, -, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -146,7 +146,7 @@ theorem startServer.wp_proof
   subst Herr
   wp_auto
   -- (the lease-grant plan's D1) the lessor finds no lease, auth being on
-  ihave #HLnil := HLnil $$ %(by trivial)
+  ihave #HLnil := lease.srvInv_lessorNil true srv E .none rfl $$ Hlsrv
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
   -- what `Start` takes: the built part with auth on (at the boot state `x₀` and the read loop's

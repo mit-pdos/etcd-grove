@@ -65,9 +65,12 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   (`GA` of its id, under the guard), which the lock keeps for every lease of the map
   (`lessorAuth`). The loop's `revokeExpiredLeases` sends on `expiredC` only a non-empty slice
   (`if len(ls) != 0`, `lessor.go:652`) of leases `findExpiredLeases` took from `leaseMap` under the
-  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so some lease
+  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so every lease
   of it has `GA` of its id (the guard agrees with the saved one, after a step): `expiredC`'s
-  predicate `∃ id, GA id` (`lessorExpiredC lp GA`). The map starts empty (the fresh `Lease`
+  predicate (`lessorExpiredC lp GA`). (The lease-expiry plan's X3, 2026-11-04; until then `∃ id,
+  GA id`) The slice is the loop's own, never written after the send (`ls ↦*□ ps`, `ps ≠ []`), its
+  elements the map's non-null `*Lease`s, each `ID` set by `NewLease` and never written again
+  (`lsF "ID" p ↦□ id`), each with `GA id` (`expiredLeases GA`). The map starts empty (the fresh `Lease`
   bucket; `Recover`, not called, would reload it).
 * The backend's contract (`lessorBackend lp Pk f T Ln R Rb`, used by `Grant` and `Checkpoint` through
   `Lease.persistTo`): `BatchTx()` returns the batch transaction; `LockInsideApply` needs the
@@ -112,6 +115,10 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   caller and pinned with the readers' names: monotone (`mono = true`), the invariant also keeps
   `histMono` (trivial of the single snapshot), and `Revoke` and `Recover`, which take the other
   mode (`lessorRevocable`), are not called. Ghost state only.
+* (The lease-expiry plan's E3 (c), route A, the user's approval 2026-11-05) **The ids the lessor
+  ever had** (`leaseEver γl []`), ghost state only: a ghost variable at `[]`, allocated with the
+  readers' names (their fourth, `γr.2.2.2`), halved between the readers' invariant (which also
+  keeps `histOnce` and `histIn` of the single empty snapshot, trivially) and the caller.
 * (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
   for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
 abbrev lease.NewLessor.spec : Prop :=
@@ -134,7 +141,8 @@ abbrev lease.NewLessor.spec : Prop :=
       lease.lessorCfg lp ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
-      lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
+      lease.leaseOwn γl [] ∅ ∗ lease.leaseEver γl [] ∗ lease.leaseRevokers γl [] ∗
+      lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
       lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
       -- (2026-11-04, R2b-3c part 2, the user's approval) the right to stop it
       lease.lessorStopTok lp ∗

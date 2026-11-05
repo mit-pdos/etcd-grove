@@ -55,7 +55,7 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proof
   · iPkgInit
   (try wp_auto)
   wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb, -⟩
   · iframe #
   (try wp_auto)
   rcases err with ei | _

@@ -55,25 +55,25 @@ variable [GooseExts]
 
 /-- **The committed log's shapes in the auth mode `on`**: `logShape` off (in a cluster that grants
 leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn` on. -/
-def logShapeM (on lg : Bool) (L : List EntryModel) : Prop :=
+def logShapeM (on : Bool) (lm : lease.Mode) (L : List EntryModel) : Prop :=
   match on with
-  | false => logShape lg L
+  | false => logShape lm L
   | true => logShapeOn L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
-theorem logShapeM_cc (on lg : Bool) (L : List EntryModel) (h : logShapeM on lg L) :
+theorem logShapeM_cc (on : Bool) (lm : lease.Mode) (L : List EntryModel) (h : logShapeM on lm L) :
     ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0 := by
   cases on
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
-theorem logShapeM_false (lg : Bool) (L : List EntryModel) : logShapeM false lg L = logShape lg L :=
+theorem logShapeM_false (lm : lease.Mode) (L : List EntryModel) : logShapeM false lm L = logShape lm L :=
   rfl
 
-theorem logShapeM_true (lg : Bool) (L : List EntryModel) : logShapeM true lg L = logShapeOn L := rfl
+theorem logShapeM_true (lm : lease.Mode) (L : List EntryModel) : logShapeM true lm L = logShapeOn L := rfl
 
-theorem logShapeM_append (on lg : Bool) (A B : List EntryModel) (h : logShapeM on lg (A ++ B)) :
-    logShapeM on lg A := by
+theorem logShapeM_append (on : Bool) (lm : lease.Mode) (A B : List EntryModel) (h : logShapeM on lm (A ++ B)) :
+    logShapeM on lm A := by
   cases on
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)
@@ -251,7 +251,7 @@ instance kvCertInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames
 /-- **The server's `E.C` in the auth mode `on`** (`srvC` with the mode's shapes). -/
 def srvCM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (L : List EntryModel) : IProp GF :=
-  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
+  iprop(⌜srvIdxOk ai₀ L ∧ logShapeM on ρ.kv.lm L⌝ ∗ batchWaitOk ρ E L ∗ srvRLogLb ρ.raft L)
 
 instance srvCM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
     (x₀ : apply.ApplyKV) (L : List EntryModel) :
@@ -274,7 +274,7 @@ theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x�
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
 def clusterWorkloadOkM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lg L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShapeM on ρ.kv.lm L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOkM_persistent (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOkM (GF := GF) on ρ E) := by
@@ -319,6 +319,8 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`mvcc.New`'s)
+    lease.rdAt E.γ.leases E.s ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
@@ -470,8 +472,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
     -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition)
-    "%Hslg" ∷ ⌜γr.kv.lg = true → lease.leasesNoExpiry ∧ srvGrantOpen (GF := GF)⌝ ∗
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`srvBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
@@ -552,9 +555,9 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
     applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
   cases on
   · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
-    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs, -⟩
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hrs, Hap, Hfs, -⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hap Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hrdat Hao Hal Hkr Hrs Hap Hfs
     isplitr
     · ipureintro; exact Hok
     iapply srvAuthApplyRes_of_At
@@ -779,7 +782,7 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   imodintro
   isplitr
   · ipureintro; exact HshL
-  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true ρ.kv.lg L HshL) HcclL HatL $$ HclL HNZ HL
+  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true ρ.kv.lm L HshL) HcclL HatL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
@@ -901,21 +904,23 @@ on, a non-empty start log): from the client's half of raft's committed log at `b
 KV state's variable at the bootstrap log's mode-`on` model, the invariant and the client's
 `etcdKV`. The bootstrap log's entries are conf changes: of the mode-`on` log and determinate
 vacuously (both ask of normal entries only). So `NewServer.specM true`'s KV invariant is
-satisfiable. -/
+satisfiable. (2026-11-05, H-rr1) The start log and the bootstrap log at most `2 ^ 61` long (`hsm`,
+as `kvInv_alloc_boot`'s). -/
 theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (ps : List w64) (E : CoPset)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
     (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
-    (hao : γs.raft.authOn = true) :
+    (hao : γs.raft.authOn = true)
+    (hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
       kvInvOn γs γk st₀ ∗
         etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ∗
         authHistView γk [st₀] := by
-  generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
+  generalize hbl : γs.raft.boot = bootLog at hboot hcc hsm ⊢
   iintro HL Hv Hh
   icases onGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
   icases authHist_split γk [st₀] $$ Hh with ⟨Hhv, Hh⟩
@@ -945,8 +950,9 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true := by
-    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao⟩
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
+      kvLogSmall γk (bootEntries bootLog) := by
+    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao, hsm.1, by unfold bootEntries; simpa using hsm.2⟩
     · intro m hm h0
       rw [hty m hm] at h0
       exact absurd h0 (by decide)
@@ -985,7 +991,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true⌝ ∗
+        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
+        kvLogSmall γk L⌝ ∗
         kvWorkOn γs.raft γk L))
     $$ [HL Hv1 Hh] with #Hinv
   · inext

@@ -33,15 +33,15 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E S G ci cd r m
-  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid⟩
+  intro p s A cid mid E S G R ci cd r m
+  wp_start as ⟨#Hls, #HL, HS, #Hctx, #Hrc, #Hr, Hid, %HR⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
   iunfold v3rpc.lessorGrantOkG at HL
   wp_auto
   wp_apply HL $$ [HS Hid] as %resp %err ⟨HS, Hans, Hg⟩
-  · iframe; iframe #
+  · iframe; iframe #; try (ipureintro; exact HR)
   iunfold v3rpc.leaseGrantAns at Hans
   icases Hans with (⟨%Hok, Hh, #Hf⟩ | #Hse)
   · obtain ⟨He, Hrn⟩ := Hok

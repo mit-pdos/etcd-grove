@@ -23,7 +23,9 @@ translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary
   "lessor.Leases", "lessor.unsafeLeases", "leasesByExpiry", "leasesByExpiry.Len",
   "leasesByExpiry.Less", "leasesByExpiry.Swap", "Lease.Remaining",
   "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
-  "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate"]
+  "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate",
+  # the lease-expiry plan's S1 (2026-11-03, the user's): the snapshot's restore, proved
+  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init"]
 imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/version",
   "go.etcd.io/etcd/server/v3/lease/leasepb",

@@ -142,7 +142,7 @@ theorem authnArM_of_on (E : apply.AEnv GF) (γa : auth.AuthNames) (ar : Loc) (rq
 the auth layer's verdict the model's at the auth state `st` the entry met, `authTie`; and (E3x) an
 admin request's result without error the model's step from `st` succeeding, `adminTieAr`; and (C1's
 A3) an `Authenticate`'s response, owned, `authnArM`; the lease-grant plan's 2.6, a grant's answer,
-`grantArM`). -/
+`grantArM`; the lease-expiry plan's X6, a revocation's, `revokeArM`). -/
 def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -152,7 +152,7 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       mvcc.certOk E.γ y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
-      authnArM true E ar rq out ∗ grantArM E ar rq out)
+      authnArM true E ar rq out ∗ grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
 theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
@@ -160,11 +160,11 @@ theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRMod
     resultIsWOn (GF := GF) E γr rq F ar lb st ⊢ resultIsW E γr rq F ar lb := by
   iunfold resultIsWOn
   iunfold resultIsW
-  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, Hg⟩
+  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, Hg, Hv⟩
   isplitr
   · ipureintro; exact Hnn
   iexists y, y', out
-  iframe Hr Hc Hm Hw Hk Hg
+  iframe Hr Hc Hm Hw Hk Hg Hv
   ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
 
 /-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
@@ -245,7 +245,8 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
 `processInternalRaftRequestOnce.spec` with auth on): `resultIsW`'s, at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`modelOutM`); (C1's A3) an
-`Authenticate`'s response, `authnArM`; (the lease-grant plan's 2.6) a grant's answer, `grantArM`. -/
+`Authenticate`'s response, `authnArM`; (the lease-grant plan's 2.6) a grant's answer, `grantArM`; (the lease-expiry plan's X6) a revocation's,
+`revokeArM`. -/
 def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (L : List EntryModel) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -255,7 +256,7 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
       mvcc.certOk E.γ y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out ∗
-      grantArM E ar rq out)
+      grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
@@ -328,7 +329,8 @@ theorem authnAnsM_of_ar (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.I
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`; and (E3x) an admin request's step
 succeeded, `adminDoneM`; (C1's A3) an `Authenticate`'s response and its token's issue,
-`authnAnsM`; the lease-grant plan's 2.6, a grant's answer, `grantAnsM`). -/
+`authnAnsM`; the lease-grant plan's 2.6, a grant's answer, `grantAnsM`; the lease-expiry plan's X6, a revocation's,
+`revokeAnsM`). -/
 def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (L : List EntryModel) : IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
@@ -336,7 +338,7 @@ def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRM
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log ∗
-    authnAnsM on E rq' resp ∗ grantAnsM E rq' resp)
+    authnAnsM on E rq' resp ∗ grantAnsM E rq' resp ∗ revokeAnsM E rq' resp)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
@@ -630,7 +632,7 @@ log (`writeGrantG`), the result at the stamped header's grant (`grantedRes`). -/
 theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (op : KVOp)
     (Q : KVState → IProp GF) (γc : GName) (L₀ : List EntryModel) (hp : plainReq rq)
-    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape false rq) (ha : kvShapeAll rq) :
+    (hop : reqKVOp rq = some op) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq) (ha : kvShapeAll rq) :
     srvReqLogLb (GF := GF) γ L₀ ∗ kvAu1G γk (kvOpStep op) (writeGrantG γk srvAuthSt0 Gb rq L₀) Q ⊢
       reqPropOkM true γ γk Gb rq
         (fun hm => grantedRes γk srvAuthSt0 (apply.withHeader rq hm) γc Q) := by
@@ -653,7 +655,7 @@ theorem reqPropOkM_true_write (γ : ServerRaftNames) (γk : KVNames)
 case). -/
 theorem reqPropOkM_true_nowrite (γ : ServerRaftNames) (γk : KVNames)
     (Gb : apply.HeaderModel → IProp GF) (rq : apply.IRRModel) (hp : plainReq rq)
-    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hz : irrNoZeroEnd rq) (hs : rqShape false rq)
+    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hz : irrNoZeroEnd rq) (hs : rqShape .none rq)
     (ha : kvShapeAll rq) (hat : attrIdOk γ.raft.cfg rq) :
     ⊢ reqPropOkM (GF := GF) true γ γk Gb rq (fun _ _ => iprop(True)) := by
   iunfold reqPropOkM
@@ -798,7 +800,7 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
     ihave #Hreqb := srvAuthBound_gate s E st $$ [$Hst $Hbd2]
     iapply (hAuth s st E.RD E.authMode cca ctx cd) $$ [Hrd] [HΦ]
     · iframe Hrd; iframe #
-    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb⟩
+    · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb, -⟩
       iapply HΦ; iframe Hrd Ha Herr
       iintro !> -
       iapply Hb; ipureintro; exact hon
@@ -857,7 +859,7 @@ theorem putPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
   have hop : reqKVOp (irrPut op) = some (.put op) := by unfold reqKVOp; rw [hk]; rfl
   have hz : irrNoZeroEnd (irrPut op) := by
     refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
-  have hs : rqShape false (irrPut op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have hs : rqShape .none (irrPut op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
   have ha : kvShapeAll (irrPut op) := by
     intro x hx
     have hr : reqPerms (irrPut op) = apply.putPerms op := by unfold reqPerms; rw [hk]; rfl
@@ -1013,7 +1015,7 @@ theorem deletePermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
     · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hz
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
-  have hs : rqShape false (irrDeleteRange op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have hs : rqShape .none (irrDeleteRange op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
   have ha : kvShapeAll (irrDeleteRange op) := by
     intro x hx
     have hr : reqPerms (irrDeleteRange op) = (op.key, op.base.rangeEnd, .write) ::
@@ -1081,7 +1083,7 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
-  have hs : rqShape false (irrTxn tw) := rqShape_of_txn _ hpl hk (fun t' h => by
+  have hs : rqShape .none (irrTxn tw) := rqShape_of_txn _ hpl hk (fun t' h => by
     simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2)
   have hq : txnQhOn (GF := GF) γk tw γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn tw) hm) γc Q := rfl
@@ -1154,8 +1156,8 @@ theorem txnPermit_of_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.He
       ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantG γk srvAuthSt0 Gb (irrTxn tw) L₀ σ)) Q ⊢
       kvAu1 γk (kvOpStep (.txn t)) Q := by
     unfold kvAu1G kvAu1
-    exact aupd_post_mono (fun _ _ => sep_emp.2.trans (sep_mono_right (by
-      iintro - %h; cases h)))
+    exact aupd_post_mono (fun _ _ => sep_mono_right (sep_emp.2.trans (sep_mono_right (by
+      iintro - %h; cases h))))
   iapply hG $$ Hau
 
 /-- On, `txnPermitM` is `txnPermitOn`. -/

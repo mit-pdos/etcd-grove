@@ -38,7 +38,8 @@ theorem errOut.wp_proof : errOut.spec (GF := GF) (hG := hG) := by
   · iapply isPkgInit_access $$ Hpkg
   icases Hi with ⟨-, -, -, -, ⟨%lD, #HD, -⟩, ⟨%lU, #HU, -⟩⟩
   iunfold errIs at Hy
-  icases Hy with (⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %rv, Hse, %Hy⟩ | ⟨Hs, %Hy⟩ | ⟨%Hy, %eD, %eU, #HD', #HU', %Hne⟩)
+  icases Hy with (⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, %rv, Hse, %Hy⟩ | ⟨%k, Hse, %Hy⟩ | ⟨Hs, %Hy⟩ |
+    ⟨%Hy, %eD, %eU, #HD', #HU', %Hne⟩)
   · -- not found
     iunfold k8s.storageErrIs at Hse
     icases Hse with ⟨%p, %He, #Hp⟩
@@ -50,6 +51,14 @@ theorem errOut.wp_proof : errOut.spec (GF := GF) (hG := hG) := by
   · -- key exists
     iunfold k8s.storageErrIs at Hse
     icases Hse with ⟨%p, %He, #Hp⟩
+    subst He Hy
+    iStructNamed Hp
+    wp_auto
+    iapply HΦ
+    itrivial
+  · -- an invalid object (a failed precondition; stage 7b)
+    iunfold k8s.invalidErrIs at Hse
+    icases Hse with ⟨%p, %e, %He, #Hp⟩
     subst He Hy
     iStructNamed Hp
     wp_auto

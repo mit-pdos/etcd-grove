@@ -104,6 +104,8 @@ theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : M
     simp only
     rw [show waitInvM on v.w ρ (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp
       v.cluster d'.be) = waitInvM on v.w ρ E from rfl]
+    -- (the lease-expiry plan's X4) `lessorOk` at the environment's flag and auth mode, unchanged
+    rw [snapE_lg, snapE_authMode]
     iframe #
     ipureintro
     exact ⟨Hlgn, ⟨rfl, rfl⟩, hok⟩

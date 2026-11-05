@@ -33,6 +33,7 @@ names).
 | `etcd/cache` | `cachekv` | `watch` read through etcd's cache, its `Get` and progress notifications checked | `etcd_cache_safe` |
 | `etcd/lease` | `leasekv` | the client's lease reads (`Leases`, `TimeToLive`) | `etcd_lease_safe` |
 | `etcd/leasegrant` | `leasegrant` | a lease granted, then listed: the listing has it (three-member cluster test of amendment (E)'s failure answers) | `etcd_leasegrant_safe` |
+| `etcd/leaseexpiry` | -- | a lease of the minimum TTL granted, polled until not found, then listed: the listing does not have it (no proof yet: `notes/lease-expiry-plan.md`) | -- |
 | `etcd/auth` | `authkv` | authentication: users, roles, permissions, tokens | (in progress) |
 | `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | `etcd_txnlin_safe` |
 | `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | `etcd_partition_safe` |

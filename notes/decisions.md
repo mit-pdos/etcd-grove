@@ -16633,7 +16633,10 @@ over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backe
   (`Proof/.../k8setcd3/InvSteps.lean`) and `clientErr_other` (`Calls.lean`); `Apply` is proved
   against `k8setcd3S g0` with them (`Apply.lean`).
 - **D30o: etcd's revision overflow stays an assumption, for now** (2026-11-01, the user's
-  decision, during the redesign of the store's specs with the `spec` skill). The store's write
+  decision, during the redesign of the store's specs with the `spec` skill). *Superseded
+  2026-11-05* by "The KV updates hand back the revision room" (H-rr1, below): the server tells
+  every update the room of the state it fires at; the store's updates and the driver no longer
+  assume it, and `revRoom` is gone. The store's write
   updates keep `σ.rev + 2 < 2 ^ 63` in their precondition: etcd's revisions are `int64`s and its
   model keeps a key's mod revision as a `w64` (`EtcdKv.modRev`), so a write past `2 ^ 63` would
   reuse an old revision; the store's model step (`KWf_put`/`KWf_del`) needs the new one to fit.
@@ -32066,3 +32069,164 @@ back only from `kv.Close()` inside it, where they were dropped. Gap 4's census n
 what `Close` returns: the loops' readers and `compactJobResM`) and applies it after
 `kv.Close()`; the shutdown builds it from the census (`storeReaders_retire`, `storeRTs_shares`,
 `bOpen_one_pool`, as `NewServer`'s error path R-D1). `Cleanup` had no client yet.
+
+## The stop's slot, the shutdown, and the monitor's read token (2026-11-05 · R2b-3d stage 5; the coordinator's acceptance of the slot (H1); the user's approval of the monitor contract's widening (H2) and of the smaller design that carries it out · branch `r2b3`)
+
+- **The slot (H1).** The stop's pieces `NewServer.specG` posted inline are one sealed slot,
+  `srvStop.keep s cfg E γrn γk` (`StopApi.lean`, on `WalApi.lean`'s model). Its arguments are whole
+  records and names. Its eliminations are narrow, one per consumer: `raft_stop`, `cleanup_pieces`,
+  `census_readers`, `image_inputs`. `memberBuilt`'s `K` gains the key's name, and no example passes
+  it.
+- **One proof of `run` over a stop flag.** `run.wp_proofG stp` gives `run.spec` (`false`) and
+  `run.specStop` (`true`); the two differ only in the loop's stop branch. The shutdown's helper is a
+  hypothesis of the flag's case (`stopCleanupImage.spec`), so `run.spec`'s linked proof does not
+  depend on it.
+- **`run.specStop`'s scope** (a draft): `restart3`'s configuration, that is, no compactor, auth off and
+  no compaction mode, plus the boot log's facts the image's configuration needs (`Nodup`,
+  `srvBootLogOk`). F4, replacing `run.spec` with `run.specStop`, waits until these premises are
+  lifted or carried by `Start`'s stop variant (R2d).
+- **The monitor's read token (H2).** The census needs every share of the backend's open token,
+  including the one in the storage-version monitor's read token, which `srvWTPool`'s invariant holds.
+  The invariant's checked-out case (a session) could not be ruled out: the monitor's trusted contract
+  posted `True`, and `GoAttach` returned nothing at `Done`. The user approved widening the contract,
+  and then the smaller design over a ticket route (which would have changed `Start`'s post and the
+  starters' hubs):
+  - `GoAttach` hands `f` its goroutine's running receipt `goRunning γ` and takes it back (one spec,
+    generalized in place);
+  - the monitor's session deposits the receipt in the pool's checked-out case, and its contract takes
+    the receipt and gives it back;
+  - `wg.Wait()` returns `goWaited γ`, an exclusive half of the run-token authority at 0 (a new waiter
+    token `γ.wt` shows the protocol closed), which contradicts any receipt;
+  - the pool's names are a record `WTNames = ⟨cnt, reg⟩`. `reg` is a set-once register of the
+    receipt's name: `NewServer` allocates the pool before `start` makes the goroutine names, and
+    `start` sets the register, which travels inside `srvWTBudget`'s body;
+  - the stop takes the token and deposits its `goWaited` with ⅛ of its `γbe` quarter (a discarded
+    quarter would not rule out a retired case against the snapshot swap's ¾), so `Cleanup.spec`
+    takes any fraction of `γbe`.
+
+  The widened contract was attacked with the `axiom` skill in the same round and survives
+  (`notes/axiom-review/monitor-storage-version-receipt.md`).
+
+## The auth component, stage 5: the served KV side and `Serve` merged (2026-11-05 · the Freeze of candidate 6, "yes, freeze c6" · branch `auth-comp5`)
+
+Supersedes stage 4's "Left: L3 ... and L4" for the served side of L3 and for L4, and, for these two
+layers, stage 4's "no per-row bridges" (below). The spec example `auth-component.md` ("Stage 5")
+keeps the review rounds' history; the frozen text is candidate 6 (D1–D7).
+
+**What.**
+- **5-1, the specs.** One `GrpcSpecMd` per KV method over the mode (`etcd{Put,Range,Delete,Txn}SpecM
+  on`, `KVServiceOn.lean`); `Compact`'s `etcdCompactSpecM on := ⌜on = false⌝ ∗ etcdCompactSpec`, a
+  `GrpcSpec`. Registration laws under an update, `grpcMethodOkMd_mono_upd`, `isGrpcRpcMd_mono_upd`.
+- **5-2, the served side.** One handler proof per method at `E.authOn`, in `client/v3/Results.lean`
+  in place of the off ones (`etcd_{put,range,delete,txn}HandlerM`, from the on handlers over
+  `srvKVAnsM`; the off-only revision bounds under `E.authOn = false`, with the gated premise
+  `hρ : E.authOn = false → ρ.rd = γr`), the generic methods `etcd_*MethodMd`, `etcd_compactMethodM`
+  (the off handler, and the spec's `⌜true = false⌝` with auth on), `etcdKVMethodsM` and
+  `etcd_kv_servedM_with`. `etcd_kv_served(_with)`, `etcd_kv_lease_served` and
+  `etcd_kv_auth_served_on` keep their texts, re-derived from it. `ServedOn.lean`, the off and on
+  handlers and methods, `etcd_kv_served_on`, v3rpc's `*_end_to_end_on` and the dead helpers gone;
+  `kvServerAt_revR` (`v3rpc/ServerKV.lean`) moves a `*kvServer` between answers with one `revR`.
+- **5-3, `Serve`.** One `Serve.spec` (views at `E.authOn`, `srvAuthLb`, the pure premises in the
+  precondition with `E.authMode ≠ .any`; the caller's ghost step from `grpcUpM E.authOn`, the KV
+  answers in the mode with the Auth and Lease services' registrations) and one proof, through
+  `grpcCfgOk_of_startedM` (any mode, any answers `A` with `raftKV s A`; `grpcCfgOk_of_started_w`,
+  text kept, is its instance). `grpcUpM_false`/`_true` give `grpcUp`/`grpcUpOn` through the
+  mode-free transfer laws `grpcCfgOk_A`, `kvServerIs_mono`, `leaseServerAt_revR` and the v3rpc
+  bridges `raftKV_srvKVAnsM_false`/`_true`. The 12 clients and the auth example moved;
+  `Serve.specOn`, `wp_proofOn`, `LinkOn`, `ServeFromStartOn`, `raftKV_serverOn` gone.
+
+**The views' variance.** The merged spec's extra post facts are gated (`(⌜on = true⌝ → …) -∗`,
+`(⌜on = false⌝ → …) -∗`) or read at the mode. The on view (`etcdXSpecOn ⊢ etcdXSpecM true`) opens the
+gates at `rfl` and identifies the update (`kvDepOwnM_true`, `⊣⊢`); the off view (`etcdXSpec ⊢ |==>
+etcdXSpecM false`) needs an update, for the auth bound `0` (`authPubLbM_zero`) and for the plain
+update to the mode's (`kvDepOwnM_of_dep`), which only weakens the grant at off (stage 4's variance
+rule). Hence the registration laws under `|==>`.
+
+**Per-row bridges** (a departure from stage 4's "no per-row bridges", forced by D1 and the off view's
+`|==>`): the client library stays on `GrpcSpec` (it never reads metadata, and moving it would change
+every off client's statement for no proof saved), so each KV method's off and on registrations are
+views of the merged one by a named law per row and mode, `etcdXSpecM_false`/`_true`.
+
+**Departures from the frozen text.**
+- **The mode gate** fell further than §4 counted: 300 → 281 (5-2; client/v3 18 → 7, v3rpc 29 → 21)
+  → 277 (5-3: client/v3 → 5, etcdstart's twins 2 → 0) → 288 (5-4;
+  client/v3 → 16: the 11 literal bridges of `KVServiceOn`, two more than §4 counted, `kvOpAuM_of_on`
+  and the `kvOpAuM false` inside `etcdTxnSpecM_false`; against lean's 300 a fall of 12). 5-2 first
+  stated the `_false`/`_true` laws over a free `on` with an `(hon : on = b)` premise, which hid their
+  literals from the gate against `PRINCIPLES.md` ("A law that holds at one mode only is stated at that literal");
+  5-4 restated them at their literal, as frozen, and the callers rewrite `E.authOn` first.
+- **`grpcCfgOk_of_startedM` takes `srvAuthLb s E`** (the watch server's contract reads it; the on
+  `_w` took it, the off one derived it with `srvAuthLb_off`).
+- **The v3rpc bridges live in `ServerKVOn.lean`** after `raftKV_mono`, as planned; `raftKV_server`
+  is `raftKV_serverM` followed by the off one.
+- **A helper for the clients** (`etcdstart/Defs.lean`, mode-free): `serveViews_off` (an auth-off
+  member's views at `E.authOn`, its auth bound and `≠ .any`). Each client's change is the call, the
+  pure conjunct framed, `rw` of `E.authOn` to its literal and the ghost step composed through
+  `grpcUpM_false` (auth: `grpcUpM_true`) (≈ 9 lines).
+- **Sizes:** 5-2 +882/−1,731 (≈ 640 new lines, bound ≈ 900); 5-3 +390/−410 (bound ≈ 420).
+
+**`Compact` with auth on** stays out of scope: `etcdCompactSpecM true` is vacuous (its precondition
+`⌜true = false⌝`), as before stage 5, where `Compact` had no on registration. A later stage would need
+a spec of `isPermitted`'s admin check (`server/etcdserver/api/v3rpc/key.go:139–142`, the `AuthAdmin`
+guard) and the store's verdict for it.
+
+**Left** (D1, D6): the client library and `ResultsOn` (over `GrpcSpec`); `AuthnServedOn`'s
+`Authenticate` half; `memberUpOn`/`memberBootOn`; the printed non-`w` `grpcCfgOk_of_started`; the
+request path's `specOff`s and the admin entries' `specOn`s (stage 4's D5, D7); layer A,
+`applyEntryNormal`'s twins, `NewServer`.
+
+## The KV updates hand back the revision room (2026-11-05 · H-rr1, Q1 option B, the user's approval · branch `revroom-b`)
+
+**What it was.** The server's client-facing updates on the KV state (`kvAu`, `kvAu1`, `kvAu1G`,
+and `kvOpAu`/`kvOpAu1`/`kvReadAu` through them, `InvRequest.lean`) handed back only the caller's
+half, `etcdKV γk (f σ)`: nothing about the state `σ` they fired at. The k8s store's updates
+(`k8sAu1`, `k8sAuRW`, `Updates.lean`) needed `σ.rev + 2 < 2 ^ 63` for the model's step
+(`StepOk`: the store's `uint64` resource version of etcd's `int64` revision), so took it in their
+`∃∃` precondition (D30o), and the etcd3 driver kept it in its invariant (`KOk.room`) across writes
+by the marked `sorry` `revRoom` (D30n), false as stated.
+
+**What it is.** The bound comes from where the revision is owned, the server (CLAUDE.md,
+"Bounds"):
+- `kvRoom σ := σ.rev + 4 ≤ 2 ^ 63` (`InvRequest.lean`); the three updates' atomic postconditions
+  are `etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝` (`kvAu1G`: `… ∗ ⌜kvRoom σ⌝ ∗ G σ`). `kvAu1_G`, `kvOpAu_one`,
+  `kvAu1G_mono` keep their statements. `+ 4` leaves the store's `+ 2` and one revision more (the
+  driver's post-state, `inv_next`).
+- Raft API law `isCommittedLogLb_small : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝`
+  (`InvNode.lean`, next to `isCommittedLogLb_length`; raft's interface regenerated).
+- `srvPropAu1`'s commit also tells `γ.pre.length + L.length + 1 < 2 ^ 61` (proved in
+  `srvPropAu_api` from the law and `srv_next_bound`).
+- `kvInv`/`kvInvOn` gain, last in their pure conjunction, `kvLogSmall γk L := γk.log0.length ≤ 2 ^ 61
+  ∧ L.length ≤ 2 ^ 61` (decided by the agent: the design's single `γk.log0.length + L.length <
+  2 ^ 62` cannot be kept at an append, which bounds `L` but not `log0`; the two halves can).
+  Kept at appends from `srvPropAu1`'s commit (`kvLogSmall_snoc`, `kvInv_facts_snoc`,
+  `kvInvOn_facts_snoc`, `kv_prop_au_cmp`, `kv_prop_au_grant`); at allocation from a new premise:
+  `kvInv_alloc_boot`/`kvInvOn_alloc_boot` take `γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤
+  2 ^ 61` (the invariant's first requested log is the bootstrap log, not `[]`; its callers have
+  `log0 = [[], []]` and `receiptBound GF + boot.length ≤ 2 ^ 61`), `kvInvOn_alloc`
+  `γk.log0.length ≤ 2 ^ 61` (`notes/restart-plan.md`, "R2c requirement from revroom-b").
+- Every firing site opens the invariant and proves `kvRoom` of the model's state from it
+  (`kvRoom_model`, `kvRoom_modelOn`; `kvRaftOf_length_le`, `kvRaftOfOn_length_le`: one revision per
+  entry at most): `kv_prop_auW`'s two firing arms, `kv_fire_reads` (from `kv_read_compose`),
+  `kv_prop_au_on`'s granted arm (`ProposeOn`), `kv_fire_reads_on` (`ReadOn`). The room comes from
+  the invariant at the firing state, not from the commit (the route differs from Q1's text, which
+  named the sole writer's receipts: those are the apply side's; the updates fire at raft's commit).
+- The k8s store: `k8sAu1`'s and `k8sAuRW`'s preconditions drop the room; `k8sAu1`'s commit tells
+  `kvRoom σ` (with `KvNext`), `k8sAuRW`'s every firing (`⌜kvRoom σ⌝`, read or write);
+  `k8sAu1_kvAu1`/`k8sAuRW_kvAu1` take it from `kvAu1`'s commit; `rdFacts` keeps its room, now the
+  server's. The driver: `KOk.room` and `revRoom` deleted; `kOk_ok`/`kOk_pend`/`kStep_ans` take the
+  firing's room of the pre-state, `inv_next` takes `kvRoom σ` (decided by the agent: it still needs
+  the post-state's room for `histOwn_next`, which `kvRoom σ` gives, so its premise changed instead of
+  going).
+- The client library (H-rr1's extension, decided by etcd-grove-82, 2026-11-05: the first
+  version kept the client's specs and stopped, `client_Get_kv` and the kubernetes client's
+  `Client.Optimistic*`, over `kvReadAu`/`kvOpAu1`, having to pass a room-told update into a spec
+  whose update was not told it): the updates of `kv.Get`, `kv.Put`, `kv.Delete`, `kv.Do`,
+  `txn.Commit` and `watcher.Watch` (`Spec/go_etcd_io/etcd/client/v3/`) are told `⌜kvRoom σ⌝` at
+  their commit, as the server's. `KVService`'s `writeAu_upd`/`readAu_upd`/`txnAu_upd` are the
+  identity again; the watch's read update (`wsAu`, `InvWatch`; `raw_to_state`, `WatchFire`) is
+  told the room, fired by `srvKVCoreM_fire`, which proves it from the KV invariant as the other
+  firing sites. A caller holding an update not told the room passes it on through `au_room`
+  (`KVService`: an update not told the room is one told it, `aupd_post_mono`).
+**Unchanged.** `Main.spec`, `k8setcd3_safe`, `NewServer`/`bootOk`, the etcdstart starters, every
+exported result. No axiom; the trust base loses the `sorry` `k8s_etcd3.revRoom`.
+

@@ -45,7 +45,7 @@ abbrev seedOne.spec : Prop :=
   {{ (s' : mstore) (ok : Bool), RET (PairV #s' #ok);
       ⌜ok = false⌝ ∨
       (⌜ok = true⌝ ∗ ghostVar γs (1 : Qp).half (kvOpStep (seedOp k) σ) ∗
-        storeOwn s' ⟨setItemL g.items ⟨k, ⟨k, go!"x", W64 ((σ.rev + 1 : Nat) : Int)⟩, false⟩,
+        storeOwn s' ⟨setItemL g.items ⟨k, ⟨k, go!"", go!"x", W64 ((σ.rev + 1 : Nat) : Int)⟩, false⟩,
           W64 ((σ.rev + 1 : Nat) : Int)⟩ ∗ ⌜kvRevFits (σ.rev + 1)⌝) }}
 
 end spec

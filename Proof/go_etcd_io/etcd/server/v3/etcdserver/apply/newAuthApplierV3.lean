@@ -127,31 +127,31 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- LeaseRevoke: the auth applier's
     imodintro
-    iintro %r %rq %id %log %rs %Pre %Q %Post %info
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log T rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
   · -- `LeaseGrant` (the lease-grant stage, 2.11): the inner applier's (promoted)
     imodintro
-    iintro %r %rq %g %log %T %rs %Pre %Q %Post %info
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
     rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"LeaseGrant")]
     wp_call
     wp_auto
     iunfold apply.grantPre at Hpre
-    icases Hpre with ⟨%Hrq, #Hr, #Hgr, #Hmode, HltT, HRO, Hwt, Hm, #Hsp⟩
+    icases Hpre with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hm, #Hsp, HU, HUf⟩
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
-    iapply HGrant $$ %r %rq %g %log %T %rs %Pre %Q %Post %info' [HltT HRO Hwt Hkv Hres Hcs]
+    iapply HGrant $$ %r %rq %g %log %T %rs %U %Pre %Q %Post %info' [HltT HRO Hwt Hkv Hres Hcs HU HUf]
     · iunfold apply.grantPre
-      iframe HltT HRO Hwt Hr Hgr Hmode Hsp
+      iframe HltT HRO Hwt Hr Hgr Hsp HU HUf
       isplitr
       · ipureintro; exact Hrq
       iunfold apply.mPre
@@ -161,11 +161,11 @@ theorem apply.newAuthApplierV3.wp_proof
     iapply HΦ'
     iexists o
     iunfold apply.grantPost at Hpost
-    icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, Hans⟩
+    icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, HU, Hans⟩
     iunfold apply.mPost at Hpm
     icases Hpm with ⟨Hkv, Hres, HPP⟩
     iunfold apply.grantPost
-    iframe HeI HlE Hlt HRO Hans
+    iframe HeI HlE Hlt HRO HU Hans
     isplitl [Hkv Hres HPP Hi]
     · iunfold apply.mPost
       iframe Hkv HPP

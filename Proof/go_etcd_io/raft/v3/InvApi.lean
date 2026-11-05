@@ -1651,7 +1651,7 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1660,7 +1660,10 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
   (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk,
     -- (2026-11-01, durability stage II(g), approved fix A) the generation of the id's slot, so that
     -- a `nodeRunning` share is at the driver's generation (`api_enter`)
-    γn.gen)
+    γn.gen,
+    -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag's name, so that
+    -- `nodeStartTag` is of the node object
+    γn.start)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1955,6 +1958,19 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
        (match L with
         | none => iprop(True)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')))))
+
+/-- (2026-11-05, the lease-expiry plan's E2 revision 5; the tag after the review of 2026-11-05, N1)
+**How the node `n` was started** (persistent): `n`'s entry of the cluster's table names its start
+tag (`NodeNames.start`), which holds `boot`, discarded: `true` if `StartNode` made it (a new cluster's
+bootstrap), `false` if `RestartNode` did. Each start allocates a fresh tag and writes it once; the
+table pins the name per node object (`cfgNamesOf`), so a node has one tag. A write-once record of the
+start, not a fact about the loop's later states. -/
+def nodeStartTag (n : Loc) (γ : Cluster) (boot : Bool) : IProp GF :=
+  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ dghostVar γn.start DFrac.discard boot)
+
+instance nodeStartTag_persistent (n : Loc) (γ : Cluster) (boot : Bool) :
+    Persistent (nodeStartTag (GF := GF) n γ boot) := by
+  unfold nodeStartTag; infer_instance
 
 /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
 def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
@@ -2419,7 +2435,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
   have Hgen : γ1.gen = γn.gen := by
     simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
-    exact Hcn.2.2.2.2.2.2.2.2.2.2
+    exact Hcn.2.2.2.2.2.2.2.2.2.2.1
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
   ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]

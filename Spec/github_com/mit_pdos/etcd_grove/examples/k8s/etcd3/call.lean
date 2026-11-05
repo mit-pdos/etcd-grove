@@ -7,8 +7,11 @@ objects: `c.S = driverSpec`), with what its kind needs (`callPre`: a `Create`'s 
 update or read fired at (`callAt`), `kStep`'s output there.
 
 Premises: the input's key is one the store takes (`prepareKeyM`), its etcd key the model's
-(`mkeyL`), its name fits an object (`InOk`); a `Get`'s reads see the store's states; `errors.As`'s
-target (the client's context lemma).
+(`mkeyL`), its name and UID fit an object and its minimum resource version parses (`InOk`); its
+cached object, if any, one the store's keys held (`cachedIn`), with no resource version
+precondition on an update (`CachedNoRV`, the scope premise D1 of stage 7b,
+`issues/k8s-etcd3-cached-noop-skips-preconditions.md`); a `Get`'s reads see the store's states;
+`errors.As`'s target (the client's context lemma).
 -/
 module
 
@@ -45,13 +48,13 @@ abbrev call.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') →
   c.pathPrefix ++ storeKeyL x.Key' = mkeyL x.Key' →
-  InOk x → x.Val'.length ≤ 2 ^ 20 →
+  InOk x → x.Val'.length ≤ 2 ^ 20 → CachedNoRV x →
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ k8s.isStore sp c ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
-      callPre c eD eU x W Φ Q }}
+      cachedIn c x ∗ callPre c eD eU x W Φ Q }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call))
       (Val #(interface.mkOk (go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.store.ty)
         #sp))) (Val #x))

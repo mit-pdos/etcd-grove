@@ -94,6 +94,7 @@ variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci 
 @[simp] theorem snapE_RW : (snapE E γ' TM' ci p' g γB al ast lp cl be).RW =
     srvRestRWH γB (srvObjsOn al ast lp cl be) := rfl
 @[simp] theorem snapE_lg : (snapE E γ' TM' ci p' g γB al ast lp cl be).lg = E.lg := rfl
+@[simp] theorem snapE_lm : (snapE E γ' TM' ci p' g γB al ast lp cl be).lm = E.lm := rfl
 @[simp] theorem snapE_γbe : (snapE E γ' TM' ci p' g γB al ast lp cl be).γbe = E.γbe := rfl
 
 /-- The store's names on the new backend are its real backend's (`p'.kb`, `snapWalkPost`'s). -/
@@ -192,7 +193,7 @@ theorem storeReader_snapE :
       (snapE E γ' TM' ci p' g γB al ast lp cl be).γ = mvcc.storeReader E.s E.γ := rfl
 
 /-- The write budget is of `γbe` (step 7). -/
-theorem srvWTPool_snapE (γp : GName) :
+theorem srvWTPool_snapE (γp : WTNames) :
     srvWTPool (snapE E γ' TM' ci p' g γB al ast lp cl be) γp = srvWTPool E γp := rfl
 
 end snapE

@@ -100,7 +100,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (Hklg : γk.lg = false)
+    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (Hklg : γk.lm = .none)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev cmp)) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
@@ -121,7 +121,8 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   subst Hx
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
-  imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok) $$ Hkv' Hp
+  imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
+    (fun h => by rw [Hklg] at h; cases h)) $$ Hkv' Hp
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc'⟩ := Hρ
@@ -147,7 +148,8 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   isplitr
   · ipureintro
     refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
-      hpfx, ?_, trivial, by rw [hkc', Hkc], by simp [hklg', Hklg]⟩
+      hpfx, ?_, trivial, by rw [hkc', Hkc],
+      (by rw [hklg', Hklg]; exact lease.runCfg_none (GF := GF))⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
   rw [hiss', Hiss]
@@ -228,8 +230,8 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
       (fun id h => Hlow0 id (hperm.subset h)) cmp cret) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
-  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg⟩ := Hγ
-  isimp only [Bool.false_eq_true, ↓reduceIte] at Hetcd
+  obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, -⟩ := Hγ
+  isimp only [KVNames.lg, hklg, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   ihave Hms' := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩

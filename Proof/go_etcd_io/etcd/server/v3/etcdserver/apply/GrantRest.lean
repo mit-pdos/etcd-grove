@@ -39,6 +39,42 @@ def grantOutOkA (c : Chain) (rq : IRRModel) (v3 : Bool) (T : List w64) (out : Ap
   | .dispatched o _ => grantOutOk c rq v3 T o
   | _ => True
 
+/-- `revokeIds` over `apply.Apply`'s outcome (the lease-expiry plan's X7): a dispatched request's. -/
+def revokeIdsA (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64) : List w64 :=
+  match out with
+  | .dispatched o _ => revokeIds rq v3 o L
+  | _ => L
+
+/-- `revokeRest` over `apply.Apply`'s outcome: a dispatched request's. -/
+def revokeRestA (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (r : RestM) : RestM :=
+  match out with
+  | .dispatched o _ => revokeRest T rq v3 o r
+  | _ => r
+
+theorem revokeIdsA_nonRevoke (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
+    (h : dispatchKind rq ≠ .leaseRevoke) : revokeIdsA rq v3 out L = L := by
+  unfold revokeIdsA; split
+  · exact revokeIds_nonRevoke _ _ _ _ h
+  · rfl
+
+theorem revokeRestA_nonRevoke (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut)
+    (r : RestM) (h : dispatchKind rq ≠ .leaseRevoke) : revokeRestA T rq v3 out r = r := by
+  unfold revokeRestA; split
+  · exact revokeRest_nonRevoke _ _ _ _ _ h
+  · rfl
+
+theorem revokeIdsA_not_dispatched (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
+    (h : ∀ o sk, out ≠ .dispatched o sk) : revokeIdsA rq v3 out L = L := by
+  cases out with
+  | dispatched o sk => exact absurd rfl (h o sk)
+  | _ => rfl
+
+theorem revokeRestA_not_dispatched (T : List w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut)
+    (r : RestM) (h : ∀ o sk, out ≠ .dispatched o sk) : revokeRestA T rq v3 out r = r := by
+  cases out with
+  | dispatched o sk => exact absurd rfl (h o sk)
+  | _ => rfl
+
 theorem grantIdsA_not_dispatched (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
     (h : ∀ o sk, out ≠ .dispatched o sk) : grantIdsA rq v3 out L = L := by
   cases out with

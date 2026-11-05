@@ -132,25 +132,30 @@ theorem srvApplyKVM_open (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
     srvApplyKVM (GF := GF) on s E γw x st ⊣⊢
       iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
         apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ kvAuthM on s E ua st ∗
-        ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
-          waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) := by
+        (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
+          waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
+        lease.rdAt E.γ.leases E.s) := by
   cases on with
   | false => exact .rfl
   | true =>
     simp only [srvApplyKVM, srvApplyKVOn, kvAuthM]
     constructor
-    · iintro ⟨%ua, Ha, #Hb, Hf, Hk, Hbe, Hr, Hres, Hw⟩
+    · iintro ⟨%ua, Ha, #Hb, Hf, Hk, Hbe, Hr, Hres, Hw, Hrd⟩
       iexists ua
       iframe Ha Hf Hk Hbe Hr
       isplitl [Hres]
       · iframe Hres; iexact Hb
-      iexact Hw
-    · iintro ⟨%ua, Ha, Hf, Hk, Hbe, Hr, ⟨#Hb, Hres⟩, Hw⟩
+      isplitl [Hw]
+      · iexact Hw
+      iexact Hrd
+    · iintro ⟨%ua, Ha, Hf, Hk, Hbe, Hr, ⟨#Hb, Hres⟩, Hw, Hrd⟩
       iexists ua
       iframe Ha Hf Hk Hbe Hr Hres
       isplitr
       · iexact Hb
-      iexact Hw
+      isplitl [Hw]
+      · iexact Hw
+      iexact Hrd
 
 /-- **The install's auth row after `Recover`, by the mode**: off, the old auth resource (it does
 not name the backend); on, the base applier's auth layer and the auth resource on the new backend

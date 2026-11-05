@@ -40,13 +40,13 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
   · iframe #
   subst Hai
   wp_auto
-  wp_apply HFromCtx $$ %ctx %cd [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb⟩
+  wp_apply HFromCtx $$ %ctx %cd [Hrd] as %a %err ⟨Hrd, Ha, Herr, #Hb, #Hae⟩
   · iframe; iframe #
   wp_if_destruct
   · cases err with
     | ok ei =>
       wp_auto
-      iapply HΦ; iframe Hrd Ha Herr
+      iapply HΦ; iframe Hrd Ha Herr Hae
       iintro !> %h
       iunfold ctxBoundOrTLS; ileft; iapply Hb; ipureintro; exact h
     | nil =>
@@ -57,6 +57,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         · iunfold authInfoOpt; ileft; ipureintro; rfl
         isplitr
         · iapply applyErrIs_nil
+        iframe Hae
         iintro !> -
         iunfold ctxBoundOrTLS; ileft
         iunfold auth.ctxBound; ileft; ipureintro; rfl
@@ -69,10 +70,13 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         · iframe #
         iapply HΦ; iframe Hrd Ha'; isplitr
         · iapply applyErrIs_nil
+        isplitr
+        rotate_left
+        · iintro !> -; iunfold authErrVarIs; ileft; ipureintro; rfl
         iintro !> -
         iunfold ctxBoundOrTLS
         iunfold srvTLSId; iright; iexact Hcca
-  · iapply HΦ; iframe Hrd Ha Herr
+  · iapply HΦ; iframe Hrd Ha Herr Hae
     iintro !> %h
     iunfold ctxBoundOrTLS; ileft; iapply Hb; ipureintro; exact h
 

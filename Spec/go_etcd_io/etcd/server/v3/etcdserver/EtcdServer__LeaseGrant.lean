@@ -33,7 +33,9 @@ request-side facts, the auth store's contract (`srvAuthAt`, for `requireAuthInfo
 amendment (G), 2026-11-03), the leader-timeout reader, the backend reader `E.RD`, the id generator's
 credits, freely minted) and the decoded request (its `ID` owned): on `nil`, the server's response
 (`leaseGrantedResp`: a lease id not `0`, its header with a revision the store has reached, and the
-lease granted at an index of the lessor's history); on an error, no response and an error the gRPC layer can take.
+lease granted at an index of the lessor's history, its TTL at least the request's `ttl`: 2026-11-05,
+the lease-expiry plan's E3/R5, the granted TTL); on an error, no response and an error the gRPC
+layer can take.
 
 Why it is true of the Go code: while `r.ID` is `0` it writes `s.reqIDGen.Next() & (2^63-1)` there
 (the owned field); `requireAuthInfo` returns `nil` with auth off; `raftRequest` proposes
@@ -47,18 +49,24 @@ of a `LeaseGrant` request answers that type.
 The margin (the review's M4): the request's `ID` is not given back (the post drops it); Go's unary
 interceptors read no field of a `LeaseGrantRequest` after the handler (`v3rpc/interceptor.go`), so no
 caller needs it. Conditional, through `NewServer`, on the deployment premise
-`lease.leasesNoExpiry` (`srvGrantsLeases`). -/
+`lease.leasesNoExpiry` (`srvGrantsLeases`).
+
+(The lease-expiry plan's E3, 2026-11-04, the user's: generated ids only.) In the revocable lease mode
+the request's `ID` is `0` (clientv3's `Grant` always sends `0`), so the lease id is always the
+member's generator's: a revoked lease's id is never granted again (the plan's "absent stays absent").
+A weaker spec (a premise more); the other modes as before. -/
 abbrev EtcdServer.LeaseGrant.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (ttl id0 : w64),
   srvGrantsLeases E ρ →
+  (ρ.rd.kv.lm = .revocable → id0 = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvAuthAt s E ∗ srvLeadTimeReader s ∗ E.RD ∗ □ (|==> idCred ρ.ids 1) ∗
       context.isContext ctx cd ∗ leaseGrantReqOwn r ttl id0 }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

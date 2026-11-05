@@ -50,11 +50,13 @@ theorem v3rpc.monitorLeader.wp_proof
   · inext; iunfold v3rpc.streamsMapInv; iexists mp; iframe
   ipersist s
   ipersist smap
-  wp_apply wp_GoAttach s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
+  icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
+  wp_apply wp_GoAttach s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg
     isplitr
     · itrivial
-    iintro !> %Φ' - HΦ'
+    iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
+    ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
     ihave HI : (∃ n : w64, noLeaderCnt_ptr ↦ n) $$ [noLeaderCnt]
     · iexists _; iexact noLeaderCnt
@@ -132,6 +134,7 @@ theorem v3rpc.monitorLeader.wp_proof
     iapply BigAndL.bigAndL_nil.2
     itrivial
   iapply HΦ
+  ihave Hgr := srvGoResAt_close s γg $$ Hgr
   iframe Hgr Hlg
   iunfold v3rpc.streamsMapIs
   iexact Hmu

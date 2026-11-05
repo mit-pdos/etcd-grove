@@ -95,7 +95,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
       Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync Hcfg.applied
       rfl rfl rfl rfl rfl Hcfg.peers) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
-    as %nd ⟨%n, %K, %Hnd, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
+    as %nd ⟨%n, %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
   · iframe #; iframe Hc Hpeers Hboot Hvac Hau
     iExactEq Hbs; rfl
   subst Hnd
@@ -138,7 +138,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     exact ⟨h1, h2, h3, h4, h5, h6, h8⟩
   obtain ⟨-, -, -, -, -, -, hkey, -⟩ := Hγw
   subst hkey
-  iframe Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hncfg Hrst
+  iframe Hfresh Hnode Hst Hbuilt Hb Hpeers HQ Hrun Hncfg Hrst
   isplitl [Hdrv]
   · iExactEq Hdrv; rfl
   isplitr

@@ -176,6 +176,20 @@ theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthStat
     · rw [h]; exact List.prefix_refl _
     · rw [h]; exact List.prefix_append _ _
 
+/-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
+(`kvRaftOf_length_le`'s counterpart). -/
+theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.length ≤ s₀.2.length + A.length := by
+  induction A generalizing s₀ with
+  | nil => simp [kvRaftOfOn_nil]
+  | cons m A ih =>
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.length ≤ _
+    have h := ih (kvEntryOn c₀ ch s₀ m)
+    rcases kvEntryOn_grow c₀ ch s₀ m with he | ⟨cs, he⟩
+    · rw [he] at h; simp only [List.length_cons]; omega
+    · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
+      simp only [List.length_cons]; omega
+
 end pure
 
 section commit
@@ -184,6 +198,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- (2026-11-05, H-rr1) **The mode-`on` KV model of a small log has room** (`kvRoom_model`'s). -/
+theorem kvRoom_modelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (h : kvLogSmall γk L) : kvRoom (kvStateOf (kvModelOn γk st₀ L)) := by
+  apply kvRoom_stateOf
+  have := kvRaftOfOn_length_le γk.c0 γk.ch0 (st₀, γk.log0) L
+  unfold kvModelOn; unfold kvLogSmall at h; simp only at this; omega
 
 /-- The mode-`on` model after `L ++ [e]` is the step of `e` from the model after `L`. -/
 theorem kvModelOn_snoc (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)

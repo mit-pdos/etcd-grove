@@ -40,7 +40,7 @@ the KV commit contract with `RC`, post `RC ∨ RC'`.) -/
 abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γw : GName) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
     (ep : Loc) (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV)
-    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : GName) (w : Nat)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (γp : WTNames) (w : Nat)
     (TM : MetaCI → IProp GF) (ρ : ReqNames)
     (sa : auth.AuthState) (q : Qp) (γn : RNNames),
   loopOk γ st ai →
@@ -57,7 +57,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
-      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
       -- entry at `ai` frozen at `at'` (`snapshot`'s)
