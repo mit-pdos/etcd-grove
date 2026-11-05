@@ -68,6 +68,26 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
    `kvLogOk` (`logOk_of_receipt`, proved in `KVStoreApi.lean`).
 4. The snapshot send and receive (`senderImage.law`, `dbImageA_open.law`, `restoreArgs.law`, stated).
 
+### Why the server's foundations are red, and what step 1 needs decided
+
+Every server module imports `apply.Chain` (through `wait.Defs`/`apply.Base`, `apply.InvUber`,
+`InvRequest`), and `apply.Chain`/`apply.Contracts` name txn's deleted sole-writer API
+(`txn.kvWriter`, `txn/Writer.lean`, which no longer builds) and mvcc's internals (`mvcc.storeReader`,
+`writerOwn`, `idxCert`, `certOk`, `crevPermAt`, `kbCmpM E.γ.kb`, `storeWT`/`storeRT`,
+`csContract … (f : val)`). So nothing above `apply.Chain` builds until step 1 is done, which is
+why `KVStoreApi`/`KVStoreLaws` are unbuilt and the builders were proved generically in
+`KVStoreCore`. The draft settles `AEnv`/`kvOwn`/`cmpOwn`/`mPre`/`certPre` (its `AEnvA` ... ,
+restate in place). Not drafted, to decide before step 1 (all "by reference" in
+`clients-server.md`):
+- the components' write budget: `isAuthStore`, `isAlarmStore`, `isCluster`, `isApplyLessor`'s
+  writing clauses take mvcc's `storeWT γ`/`storeRT γ`, which are the current backend's
+  `backend.wbTok`/`rdTok`; over the API they would take those of the backend `B` the clause writes
+  (`∀ B, E.BkTie B -∗ … wbTok B.γB …`?), with `csContractA (E.Pk B) E.f`; the draft only says
+  "move to `E.Pk B` at the current backend";
+- `txnPre`'s `txn.TxnPre log t` (deleted by the txn track: its premise is now `OpsOk`-like);
+- `cmpTriple`'s premise (see "Found": `1 ≤ rev`), `cmpPermRq` over `E.Cp`;
+- `revokeClause` over the restated `lessor.Revoke.spec` (blocked, "Found").
+
 ## Placeholders
 
 None (no `sorry`, no axiom).
