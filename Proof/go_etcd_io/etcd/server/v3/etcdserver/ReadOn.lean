@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOnDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVReadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 

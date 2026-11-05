@@ -271,6 +271,47 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
     `hookRun (E.Pk d) E.f`).
 - **Next**: see "Left (fifth session)" below.
+## Left (fifth session, 2026-11-06; in order)
+
+1. **The red layer below `applyAll`** (step 2). Built since the fifth session's last commit:
+   `ApplyEntryOn` (`kv_certPreW_on`/`kv_certPreVW_on` at `kvNxOn γ γk st₀` and the tie, in place of
+   `kvCert` and mvcc's `certOk`), `ApplyKVCore` (`srvApplyKVCore_commit` lends `kvBk`'s
+   `mvccBackend E.γ 1 B (E.Pk B) ∗ E.BkTie B` and `srvWT E`: `KV.Commit.contract`'s), `StartOn`,
+   `apply.UberAdmLBase` (if the last build's `mvcc.BackendBridge`, another track's, was green). Then:
+   `UberOn`, `UberKit`, `ApplyNormalOn` (`:794`: `srvApplyKVOn_ua_rt` over mvcc's `storeRT`),
+   `EtcdServer__apply` (`:539`: `srvApplyKV_ua_rt_pool`, now `srvApplyKV_ua_pool`), `KVOutcomeOn`,
+   `EtcdServer.applyEntryNormal`, `EtcdServer.apply`, `ApplyAllSnap`, `applyAll` (its commit over
+   `KV.Commit.contract`, the decision; `backend.Snapshot` over `mvccImage_snapshot.law`).
+   **To decide first (minor, the server's own design): where the apply thread's backend reader
+   token lives.** `kvOwnPre` (what `dispatch`/`Apply` take) carries `bkWT B ∗ bkRT B`, and
+   `applyConfChange.spec` (restated) takes `bkRT d`; `dispatch` gives a reader token back. The
+   write-back token comes from the budget (`srvWT E`, `srvWTPool_take`); the reader token has no
+   source in the apply thread's state any more (mvcc's `storeRT` was in the sole writer's
+   `writerOwn`). The natural fix: a conjunct `∃ d, ⌜E.BkTie = srvBkTie d⌝ ∗ apply.bkRT d` in
+   `srvApplyKV`/`srvApplyKVCore` (one reader slot of the counted stock, `backend.rdStock`, taken at
+   `NewServer`, the new backend's at `applySnapshot`), lent to each entry. Borrowing from the pool
+   (`rdTok_borrow`) would spend the thread token, which `Apply` needs too.
+2. **The auth follow-ups** (step 3): `AuthSrv`, `Results.lean`, `InvBoot` (`auth.authParams d.P` for
+   the restated `NewAuthStore.spec`), `apply.LessorDerive` (`isApplyLessor_of_lessorInv` over
+   `SnapRO.srvRestOwnH_lens_revoke`'s restated lens), and the trust-boundary specs whose contracts
+   `SnapRO` restated (`v3alarm.NewAlarmStore.spec`, `lease.NewLessor.spec`, `lessor.Recover.spec`,
+   `EtcdServer.restoreAlarms.spec`: `d : BkRef`, `d.b`).
+3. **The boot** (`NewServer`, `NewServerAlloc(On)`, `CmpSupply`, `BootBackend`, `InvBoot`):
+   `backendRest_open.law`, `mvccW_alloc.law`, `mvccImage_fresh.law`, `mvccBackendFor_open.law`;
+   `envAgree` as restated (above); the stand-in `E₀` from `names_nonempty.law`.
+4. **The snapshot path** (`SnapApply*`, `RestorePre(M)`, `SnapSendBranch`, `SnapRecvFacts`,
+   `ApplyAllSnap`, `EtcdServer.applySnapshot.spec`): over `KV.Restore.contract` (its `mvccOpen` is the
+   apply thread's `cmpOwn`; `srvKVCloser*` are gone), `mvccImage_snapshot.law`, the draft's §3c-§3d.
+   The `M2*Draft*` modules (mvcc-internal drafts) are to delete or redo.
+5. **The request path's proofs** (`EtcdServer__Range`, `__Txn`, `__Put`, `__DeleteRange`,
+   `__Compact`, `__newHeader`, `__raftRequest`, `__processInternalRaftRequestOnce`, `__LeaseLeases`,
+   `__Authenticate`, `ReadServer`, `LeaseCheck`, `ProposeOn`): their statements' floor is
+   `kvLogLb E.γs F` (Range, Txn, Put, DeleteRange, raftRequest, processInternalRaftRequestOnce,
+   Authenticate restated); still to restate: `Compact` (`storeReaderC` → `threadTok`, the draft),
+   `newHeader` (`storeReader` → `threadTok`, post `newHeaderPostA`), `LeaseLeases` (`storeReader`
+   → `threadTok`). The proofs follow `readWit_fire`/`readServed_logR` (restated) and
+   `KVStoreRead`'s `srvRdCallA`.
+
 ## For the parallel tracks
 
 - v3rpc: `srvApi.histLb` (= `histLbG (kvNx γr on)`), `srvApi.kvPeek.law` (proved: `kvPeek_holds`),
@@ -359,6 +400,32 @@ No axiom.
    σ₀ dels Y) else iprop(True))` in the precondition, and the not-live arm without it (the code
    returns `ErrLeaseNotFound` before calling `rd()`, `lessor.go`'s `Revoke`). The caller knows `L`
    (`leasesLive`).
+
+## For the parallel tracks (fifth session, 2026-11-06)
+
+- **`ReadOn` builds** (`726ac24773`), and with it `EtcdServer.Range.spec`, `ReqOn`, `ServerOn`;
+  `EtcdServer.{Txn, Put, DeleteRange}.spec` build (`cfa6a13f50`). The read side imports
+  `ServerOnDefs`, not the built part.
+- Restated names a client sees (old → new):
+  - `srvKVCoreM_fire on E γr γ hst L Q : srvKVCoreM on E γr -∗ E.Nx L -∗ □ AU … ={⊤}=∗ ∃ C, …`
+    (was: `hlog`, `idxSealed [[],[]]`, `idxSealed L`, `certOk E.γ L`);
+  - `srvKVCoreM_keys on E γr l : srvKVCoreM on E γr -∗ E.Nx l ={⊤}=∗ ⌜LogPutsLe etcdKeyMax l⌝`
+    (was: a sealed floor `B` and `certOk`); `readM_keys`/`read_keys`: `isServerRead… -∗ E.Nx l`;
+  - `srvKVCoreM_cperm` deleted; `srvKVInvs` has a last conjunct `⌜E.Nx = kvNxOff γr.raft γr.kv⌝`,
+    `srvKVInvsOn` `⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝` (patterns ending `%h⟩` need `, -⟩`);
+  - `readWit_fire`/`readWit_fireOn` take `E.Nx l` (was `certOk E.γ l`); `readServed_logR(M)`,
+    `readIndexOk_logRM` over `kvLogLb E.γs`;
+  - `envAgree` is `E.γs = E'.γs ∧ E.Nx = E'.Nx ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp`;
+    `envAgree_mode`/`_off`/`_on` deleted (no store mode);
+  - `srvKVCloser`, `srvKVCloserW` deleted (`Restore` takes `mvccOpen`, in `cmpOwn`).
+- Callers outside this track that these break (not fixed): client/v3's `InvWatch`
+  (`srvKVCoreM_cperm`, `srvKVCoreM_keys`), `watcher__Watch`, `WatchFire`, `WatchLawsHist`
+  (`srvKVCoreM_fire`/`_keys`), `ServedOn` (`readM_keys`), `Results`, `InvServerKV` (`srvKVInvs`'s
+  patterns); v3rpc's `ClientModel`, `WatchApi` (`srvKVCoreM_keys`), `Results` (`read_keys`),
+  `ServerKVOn` (`rangeReadOkM`/`txnReadOkM`); the examples' `compactkv/NoDup`, `cachekv/NoDup`
+  (`srvKVCoreM_fire`), `compactkv/Main` (`srvKVInvs`), `watchkv/Main`, `authkv/Main`,
+  `linkv3p/startCluster` (`envAgree_off`); `etcdserver/Link.lean` (generated: the restated specs'
+  hypotheses).
 
 ## For the parallel tracks (fourth session, 2026-11-06)
 

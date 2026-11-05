@@ -72,7 +72,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗

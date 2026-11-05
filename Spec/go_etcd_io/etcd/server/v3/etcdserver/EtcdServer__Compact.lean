@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (v : etcdserverpb.ResponseHeader)
       (log : mvcc.Log), structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦ h ∗ h ↦ v ∗
-      mvcc.idxCert E.γ.idx log ∗
+      srvApi.kvLogLb E.γs log ∗
       ⌜log ≠ [] ∧ 2 ≤ log.length ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
     (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 
@@ -53,8 +53,9 @@ none`: `traceutil.EnsureTrace` reads `ctx.Value(TraceKey{})` and writes to a tra
 freeze repair, `notes/decisions.md`, "The compactor's contract after the freeze"),
 giving back the caller's reader slots (the lead-time and logger mutexes', `E.RD`; the logger's and
 the server's read facts, `isServerRead`, for `s.Logger()` and `s.kv.Rev()`: M2's S3 glue, which the
-pilot's statement lacked) and the store's compaction-aware reader (`storeReaderC`: the
-call's last line reads `s.kv.Rev()`).
+pilot's statement lacked) and the thread's token (`threadTok`: the call's last line reads
+`s.kv.Rev()`; strict M1, 2026-11-06, the draft's: until then the store's compaction-aware reader
+`storeReaderC`; the header's log a floor `kvLogLb`, mvcc's `idxCert` until then).
 (Phase 1's statement: what the apply does with the compaction, C2/C3, is not stated yet. The
 compactor's C1 permit stops here until then: a per-call permit parameter would be vacuous, since each
 caller picks it (round 3 of the review); C3 needs a server-wide permit, fixed at `NewServer` and
@@ -77,14 +78,14 @@ abbrev EtcdServer.Compact.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ ⌜E.cmp = true⌝ ∗ isServerRead s E ρ.rd ∗ srvLeadTimeReader s ∗
       srvLgReader s ∗ E.RD ∗
-      mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
+      threadTok ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx none ∗
       kvRevLbZ ρ.rd.kv (r + ρ.rd.kv.cret) ∗
       compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗
-      srvLgReader s ∗ E.RD ∗ mvcc.storeReaderC E.s E.γ ∗ compactOutIs E resp err }}
+      srvLgReader s ∗ E.RD ∗ threadTok ∗ compactOutIs E resp err }}
 
 end spec
 

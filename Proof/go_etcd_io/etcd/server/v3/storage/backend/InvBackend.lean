@@ -574,9 +574,15 @@ instance fkOpen_persistent (γ : BNames) (n : Nat) (v : FkVals) :
 /-- **What the constructor gives the client of the compaction keys** over bbolt's data `D`: the
 client's half of their flag, at `0` if `D` has none (`fkInit`), and the ghost value: the bit,
 `true` if `D`'s are well formed (`fkWInit`), with (items 27/29, 2026-10-30) the flag's value and
-`D`'s compaction-key values at the open (`fkVals`): `fkV` and `fkOpen` (`fkCl_parts`, `fkCl_open`). -/
+`D`'s compaction-key values at the open (`fkVals`): `fkV` and `fkOpen` (`fkCl_parts`, `fkCl_open`).
+(M3, the exact open, 2026-11-06) The client's halves of the compaction keys' values and of the
+deleted entries at what they are at the open, `D`'s values and none deleted (`fkCl_exact`): until
+then `fkOwn`'s, at some values, which left a store over the backend unable to pin its tracked
+compaction (`mvcc.cmpTrack`) at the image. -/
 def fkCl (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
-  iprop(fkOwn γ (fkInit D) ∗ fkVR γ (fkWInit P D, fkInit D, fkVals D))
+  iprop(monoNatAuthOwn γ.fk (1 : Qp).half (fkInit D) ∗ fkdOwn γ (fkVals D) ∗
+    dlsOwn γ (∅ : GMap (GoString × GoString) GoString) ∗
+    fkVR γ (fkWInit P D, fkInit D, fkVals D))
 
 /-- The batch lock's half of the flag, with what it and the ghost value say of its state
 (`fkOkG`), and (2026-11-04) its half of the compaction keys' values at the writer's contents'. -/

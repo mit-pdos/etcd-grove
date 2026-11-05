@@ -40,13 +40,13 @@ abbrev EtcdServer.LeaseLeases.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (mid cid : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ mvcc.storeReader E.s E.γ ∗
+      isServerReadM E.authOn s E γr ∗ srvHeaderFacts s cid mid ∗ threadTok ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
       lease.lessorLb γl m ∗ context.isContext ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗ ⌜receiptBound GF ≤ 2 ^ 62⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); mvcc.storeReader E.s E.γ ∗ E.RD ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ E.RD ∗
       threadTok ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗
           lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗

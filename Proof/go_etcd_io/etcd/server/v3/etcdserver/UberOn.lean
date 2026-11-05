@@ -185,7 +185,8 @@ theorem srv_uberKVL_on
 
 /-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
 plan's E3n): the built part's store fact (`srvUberBase`) and the apply thread's auth row
-(`srvAuthApplyResB`: the store's admin steps at the environment's hook, at `adminW`) give
+(`srvAuthApplyResB`: the store's admin steps at the environment's hook, at `adminW`, at the
+epoch's one batch-lock invariant `Pk`, `E.Pk = fun _ => Pk`, strict M1, 2026-11-06) give
 `apply.uberAuthStepsL` at the admin steps' resource `adminW stl bel` (its write token `T`), for the
 authority with its fuel and tie, the family `auth.latestRes stl`; the row is given back. -/
 theorem srv_uberAuthStepsL_on
@@ -201,9 +202,9 @@ theorem srv_uberAuthStepsL_on
     (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
-      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T : IProp GF),
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T Pk : IProp GF), ⌜E.Pk = fun _ => Pk⌝ ∗
         srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+        apply.uberAuthStepsL ua E (adminW stl bel (.on γa) Pk E.f T)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, HR⟩
@@ -211,36 +212,41 @@ theorem srv_uberAuthStepsL_on
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, #HLb, %stl, %Hau, #HPub, #HL, #HbB⟩
   subst Hau
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens, #Hro⟩
+  icases HR with ⟨%stl', %bel, %Pk, %HPk, #Hf, HB, #Hlens, #Hro⟩
   icombine Hauf Hf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
   subst Hst'
-  have hB : authApplyResB (GF := GF) E.authMode stl st bel E.P E.f E.RD =
-      authApplyResB (GF := GF) (.on γa) stl st bel E.P E.f E.RD := by rw [hM]
+  have hB : authApplyResB (GF := GF) E.authMode stl st bel Pk E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st bel Pk E.f E.RD := by rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
   iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hwa, #Hsteps⟩
   isplitl [Ho HX HT Htp]
   · iunfold srvAuthApplyResB
-    iexists stl, bel
+    iexists stl, bel, Pk
     iframe Hf Hlens Hro
+    isplitr
+    · ipureintro; exact HPk
     rw [hB]
     unfold authApplyResB
     iexists hs, P0, f0, T, be
     iframe Ho HX Hw HT Htp Hwa Hsteps
     ipureintro; exact Hl
-  iexists stl, bel, T
+  iexists stl, bel, T, Pk
   iframe Hauf
+  isplitr
+  · ipureintro; exact HPk
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
       apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
     rw [hM]; rfl
   iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
-    le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) E.P E.f T) (auth.latestRes stl (.on γa)))
+    le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) Pk E.f T) (auth.latestRes stl (.on γa)))
   iframe Hpkg Hub
   isplitr
   · rw [← hL]; iexact HL
-  rw [hM]
+  rw [hM, HPk]
+  iintro !> %B
   iexact Hsteps
 
 end proof

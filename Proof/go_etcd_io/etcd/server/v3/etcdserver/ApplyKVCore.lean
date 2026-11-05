@@ -81,14 +81,16 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
 
 
 /-- (2026-10-31, the snapshot track: #11's S6) **`s.KV().Commit()`'s resources, lent by the
-shared row**: the store writer's fragment and its reader token of the backend (`txn.kvWriter`'s
-and `apply.kvOwn`'s), and a write token from the budget for the commit's write-back
-(`srvWTPool_take_extra`, for a receipt and a later credit), given back after the commit. -/
+shared row**: the store's backend share (`kvBk`'s, whole: `KV.Commit.contract` takes any share), at
+the environment's tie (lent with it), and a write-back token of it from the budget for the commit's write-back
+(`srvWTPool_take_extra`, for a receipt and a later credit), the share given back after the commit.
+(Strict M1, 2026-11-06: over mvcc's API, `KV.Commit.contract`'s `mvccBackend`; until then the store
+writer's fragment and reader token, `txn.kvWriter`'s, and mvcc's `storeWT`.) -/
 theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (ua : GoInterface) (γp : GName) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
-      mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ mvcc.storeWT E.γ ∗
-      (mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ -∗ srvApplyKVCore s E γw x ua) := by
+      ∃ B : mvcc.api.BkRef, mvcc.api.mvccBackend E.γ 1 B (E.Pk B) ∗ E.BkTie B ∗ srvWT E ∗
+      (mvcc.api.mvccBackend E.γ 1 B (E.Pk B) -∗ E.BkTie B -∗ srvApplyKVCore s E γw x ua) := by
   iintro #Hp Hr Hlc Hc
   iunfold srvApplyKVCore at Hc
   icases Hc with ⟨Hua, #Hap, Hkv, Hbo, Hra, Hw⟩
@@ -96,22 +98,24 @@ theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
   iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p, %Hpe, Huo, Hko, Hcmp⟩
   iunfold apply.kvOwn at Hko
-  icases Hko with ⟨Hsr, Hkw, Hll, Hrd, Hwo⟩
-  iunfold txn.kvWriter at Hkw
-  icases Hkw with ⟨Hsw, Hwl, Hwf⟩
+  icases Hko with ⟨Hsw, Hbk, Hll, Hrd⟩
+  iunfold apply.kvBk at Hbk
+  icases Hbk with ⟨%B, Hmb, #Hhk, Htie⟩
   imodintro
-  iframe Hwf Hwo Hwt
-  iintro ⟨Hwf, Hwo⟩
-  ihave Hkv : apply.applyKV E ua x $$ [Huo Hsr Hsw Hwl Hwf Hll Hrd Hwo Hcmp]
+  iexists B
+  iframe Hmb Hwt Htie
+  iintro Hmb Htie
+  ihave Hkv : apply.applyKV E ua x $$ [Huo Hsw Hmb Htie Hll Hrd Hcmp]
   · iunfold apply.applyKV
     iexists p
     isplitr
     · ipureintro; exact Hpe
     iframe Huo Hcmp
     iunfold apply.kvOwn
-    iframe Hsr Hll Hrd Hwo
-    iunfold txn.kvWriter
-    iframe Hsw Hwl Hwf
+    iframe Hsw Hll Hrd
+    iunfold apply.kvBk
+    iexists B
+    iframe Hmb Hhk Htie
   iunfold srvApplyKVCore
   isplitl [Hua]
   · iexact Hua

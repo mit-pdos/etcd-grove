@@ -51,7 +51,7 @@ abbrev EtcdServer.Authenticate.spec : Prop :=
       isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
       authnStoreOk (GoInterface.ok ast) E.RD ∗
-      □ (|==> idCred ρ.ids 1) ∗ mvcc.idxCert E.γ.idx F ∗ context.isContext ctx cd ∗
+      □ (|==> idCred ρ.ids 1) ∗ srvApi.kvLogLb E.γs F ∗ context.isContext ctx cd ∗
       ⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthenticateRequest go!"Name" r ↦□ name ∗
       structFieldRef etcdserverpb.AuthenticateRequest go!"Password" r ↦ pw ∗
       srvLeadTimeReader s ∗ srvLgReader s ∗ srvReadReader s γr ∗ E.RD }}

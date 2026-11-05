@@ -711,13 +711,12 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     · unfold dlInit
       iframe Hdlg Hdlb
     isplitl [Hfkc Hfkdc Hdlsc]
-    · unfold fkCl fkOwn fkVR fkdOwn dlsOwn
+    · unfold fkCl fkVR fkdOwn dlsOwn
       iframe Hfkv
       iframe Hfkc
       isplitl [Hfkdc]
-      · iexists fkVals D
-        iexact Hfkdc
-      · iexists _
+      · iexact Hfkdc
+      · rw [show dlR P (∅ : GMap (GoString × GoString) GoString) = ∅ from GMap.map_filter_empty _]
         iexact Hdlsc
     iexact Hsr
   unfold runTok

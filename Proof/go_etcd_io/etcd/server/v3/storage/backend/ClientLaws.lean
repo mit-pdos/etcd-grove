@@ -52,11 +52,24 @@ their flag at `fkInit D` and the bit at `fkWInit P D`. (Until the M2 storage pla
 2026-10-30, an equivalence: `fkCl` now also records the open, `fkCl_open`.) -/
 theorem fkCl_parts (γ : BNames) (P : BParams) (D : Data) :
     fkCl (GF := GF) γ P D ⊢ fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D) := by
-  unfold fkCl fkV fkVR
-  iintro ⟨Ho, #Hv⟩
+  unfold fkCl fkV fkVR fkOwn
+  iintro ⟨Ho, Hd, Hx, #Hv⟩
   iframe Ho
+  isplitl [Hd Hx]
+  · isplitl [Hd]
+    · iexists _; iexact Hd
+    · iexists _; iexact Hx
   iexists fkInit D, fkVals D
   iexact Hv
+
+/-- **What the constructor gives of the compaction keys, exactly** (M3, the exact open, 2026-11-06):
+the client's half of their flag at `fkInit D`, its halves of their values at `D`'s (`fkVals`) and of
+the deleted entries at none, and the ghost value of the open. -/
+theorem fkCl_exact (γ : BNames) (P : BParams) (D : Data) :
+    fkCl (GF := GF) γ P D ⊣⊢ monoNatAuthOwn γ.fk (1 : Qp).half (fkInit D) ∗ fkdOwn γ (fkVals D) ∗
+      dlsOwn γ (∅ : GMap (GoString × GoString) GoString) ∗
+      fkVR γ (fkWInit P D, fkInit D, fkVals D) := by
+  unfold fkCl; exact .rfl
 
 /-- **What the constructor gives of the compaction keys, with the open** (the M2 storage plan's
 items 27/29, 2026-10-30): the client's half of their flag at `fkInit D`, the bit at `fkWInit P D`,
@@ -66,9 +79,13 @@ holds them (`fkRd_open`). -/
 theorem fkCl_open (γ : BNames) (P : BParams) (D : Data) :
     fkCl (GF := GF) γ P D ⊢
       fkOwn γ (fkInit D) ∗ fkV γ (fkWInit P D) ∗ fkOpen γ (fkInit D) (fkVals D) := by
-  unfold fkCl fkV fkOpen fkVR
-  iintro ⟨Ho, #Hv⟩
+  unfold fkCl fkV fkOpen fkVR fkOwn
+  iintro ⟨Ho, Hd, Hx, #Hv⟩
   iframe Ho
+  isplitl [Hd Hx]
+  · isplitl [Hd]
+    · iexists _; iexact Hd
+    · iexists _; iexact Hx
   isplitr
   · iexists fkInit D, fkVals D
     iexact Hv

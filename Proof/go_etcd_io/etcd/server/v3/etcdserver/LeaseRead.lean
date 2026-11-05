@@ -62,10 +62,13 @@ instance srvPeerRt_persistent (s : Loc) : Persistent (srvPeerRt (GF := GF) s) :=
   unfold srvPeerRt; infer_instance
 
 /-- **`newHeader()`'s header `h`** (owned): the cluster's id `cid`, the member's `mid`, the
-revision the last of a certified log (`newHeader.spec`'s post). -/
+revision the last of a certified log (`newHeader.spec`'s post; strict M1, 2026-11-06: its restated
+post, the log a floor `kvLogLb` with the witness `E.Nx`, its receipt and `LogWf'`). -/
 def srvHeaderAt (E : apply.AEnv GF) (h : Loc) (cid mid : w64) : IProp GF :=
-  iprop(∃ (v : etcdserverpb.ResponseHeader) (log : mvcc.Log), h ↦ v ∗ mvcc.idxCert E.γ.idx log ∗
-    ⌜log ≠ [] ∧ v.ClusterId' = cid ∧ v.MemberId' = mid ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝)
+  iprop(∃ (v : etcdserverpb.ResponseHeader) (log : mvcc.Log), h ↦ v ∗ srvApi.kvLogLb E.γs log ∗
+    E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ log ≠ [] ∧ v.ClusterId' = cid ∧ v.MemberId' = mid ∧
+      v.Revision' = W64 ((log.length : Int) - 1)⌝)
 
 /-- **A `LeaseLeasesResponse` value's listing of the lease ids `ids`** (owned): its `Leases` a
 slice of fresh `LeaseStatus`es, the `k`-th with the `k`-th id. -/
