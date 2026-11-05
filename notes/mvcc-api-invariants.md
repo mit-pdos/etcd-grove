@@ -1633,3 +1633,99 @@ track B's definition.
    yet: waits on track B's exact shapes (its hand-off) and on its uncommitted `InvStore`/`NewStore`
    edit (`api.wcrPart`, `muInvAt`'s `HwcM`), which also touches `store.Restore`'s `muInvLag`/`muInvAt`
    (request 2: `store__Restore.lean` must add the new conjunct where it builds them).
+
+## Hand-off: M4, track B, the writer's compaction revision tied to `s.mu`'s (2026-11-06)
+
+**Done** (the coordinator's decision 2; no axiom, no placeholder added):
+- `api.AbsNames.wcr` (`Api/Ghost.lean`): a ghost variable of the compaction revision,
+  `api.wcrPart a q c` (timeless, fractional; `wcrPart_agree`, `wcrPart_update`), allocated by
+  `absNames_alloc` at the store's compaction revision (whole), and by `absNames_alloc_store` as two
+  halves (its last two conjuncts).
+- `InvStore`: `muInvAt s γ q c` holds `"HwcM" ∷ api.wcrPart γ.api q.half c` (so `s.mu` held
+  exclusively, `q = 1`, has half; a transaction's `muHeld` at `sync.rfrac` a part), `muInvLag s γ c
+  cp` half at `c`; `slotY γ L` holds the other half at its compaction revision (`∃ c, absPart ¼ L c
+  ∗ pndPart (pndW γ) none ∗ rcvW γ ½ c ∗ api.wcrPart γ.api ½ c`; `Api/Instance.slotY_some`
+  likewise). So a holder of `s.mu` (shared) and the writer's slot knows the writer's view of the
+  compaction revision is `s.mu`'s (`wcrPart_agree`): a write transaction's reads answer at its
+  `σ₀.crev`.
+- Moved by `updateCompactRev` (`CmpSteps.compactLend_sched` takes `s.mu`'s half and gives it back
+  at `rev`, with the writer's half moved there in the writer's invariant); built by `NewStore` (the
+  two halves at `-1`); carried by `store.Read`/`Write`/`Compact`, `TxnSteps.muHeld_crevUB` and
+  `SnapLaws` (the frozen writer's slot).
+
+**Placeholder added (listed, `M1Placeholders.lean`)**: `wcrRestore_M1 : ⊢ api.wcrPart a q c`
+(M1-REPLACE: `KV.Restore.contract`), used twice in `store__Restore.lean` (the restored `muInvLag`'s
+half, and `restore()`'s fresh-store `muInvAt` at `-1`), so that it builds; everything of mvcc's
+`Link`/`Results` builds.
+
+**For track A: what `store.Restore` must do** (to replace `wcrRestore_M1`; local to
+`store__Restore.lean` and `RestoreMoves.lean`):
+1. `store__Restore.lean:126` (`iunfold mvcc.muInvAt at Hma`) now also gives `HwcM :
+   api.wcrPart γ.api ½ c` (the old compaction revision `c`).
+2. The writer's half is in the old writer's `slotY` (its last conjunct), which `restore_takeover`
+   takes out with the writer's state (`RestoreMoves`): destructure it there (`icases (slotY_some rfl
+   L).1 $$ HY with ⟨%c', Ha, Hp, Hr, Hw⟩`; `wcrPart_agree` gives `c' = c`) and hand `Hw` to
+   `store.Restore`.
+3. Join and move both halves to the restored compaction revision: `api.wcrPart_update γ.api _ _
+   (Qp.half_add_half 1) c c r.crev $$ [HwcM Hw]`.
+4. Put one half into `s.mu`'s resource: `store__Restore.lean` (~line 600) builds `muInvLag s
+   (γ.withPhys p') r.crev r.finRev` from `[HcmD HcmK HcrevM]`, its conjunct `"HwcM" ∷ api.wcrPart
+   γ.api ½ r.crev` now `iapply mvcc.wcrRestore_M1`: add the moved half to the list and `iexact` it
+   there; likewise ~line 1153 (`muInvAt … 1 (-1)`, the fresh-store arm, `api.wcrPart γ.api ½ (-1)`:
+   from the old `s.mu` half `Hma`'s `HwcM` and the writer's, moved to `-1`).
+5. Put the other into the restored writer's slot (`RestoreMoves.lean:557`, today the placeholder
+   `slotY (γ.withPhys p') L'`; once its placeholder goes, `iexists r.crev` with the half).
+6. `RestoreOn.lean:76/88` (`restoreArgsOn`'s `muInvLag`/`muInvAt`) need no edit: they name the
+   predicates, whose bodies grew.
+
+**For track A: the writer's resources in the handle** (decision 3; until they land, hypotheses of
+`KV.Write`'s proof). The exact shapes, at the store `s` of names `γ` (a plain store; for a
+watchable one at its inner store `st`, `γw.st = γ`):
+- the readers' pool: `threadPool.isThreadPool storeRdPoolN γp (storeReaderC s γ)` in
+  `isMvccPlain` (persistent; `KV.Read`/`Write` borrow with `threadTok`, `End` gives it back);
+- `certFree γ` (persistent; `□`), minted at `NewStore` from `γ.cok`'s authority (`ghostMapAuth γ.cok
+  1 ∅`: `ghost_map_insert_persist 0 []`), in both handles: every `End`'s `certOkNext`;
+- the write-back supply: `□ (⧗ 1 ={⊤}=∗ storeWT γ)` (ungated: `kbWTSupplyM` at a compacting store is
+  `kbWTSupply`, of this shape), in both handles: `store.Write`'s `storeWT γ`;
+- the writer's revision tokens and pin, **with the writer's state** (only the batch lock's holder
+  may take them): in `writerL`'s checked-in state, `ownToks γ.revs (2 ^ 63 - 3 - ilog.length)` and
+  `writerPin γ ilog` (so `ntok = 2 ^ 63 - 3 - |ilog|` and one token is free while `|ilog| ≤ 2^63 - 4`,
+  which the history's receipt gives: `|L| ≤ logCh L + 2 < 2^48 + 2`); `store.Write` then takes them
+  after its checkout instead of as premises, and `End` puts them back (`NewStore`'s
+  `ownToks γ.revs (2^63-5)` and `writerPin γ [[], []]` into the initial `writerL`). If they stay
+  outside `writerL`, `store.Write` cannot be called by concurrent writers.
+
+**Decision 5 done**: `Api/ReadCbC.lean`: `readCbC γ F` (`F : Log → Int → IProp`, the slot's compaction
+revision, which `store.Read` shows is its transaction's), `readCbC_of` (a `readCb` is one),
+`readCbC_true`. `store.Read.spec` takes `readCbC γ F` and returns `F log crev`; its callers
+(`ReaderSpecs`, `KVView.kvOver_Read`, `Results`, `watchableStore.rev` through `readCbC_of`) adapted.
+Decision 1 is not needed: with the tie, the writer slot's compaction revision is the transaction's
+`crev` (its `muHeld`'s), so `mvccTxn (.write σ₀ pend)` records `σ₀.crev = crev` and `Yat γ σ₀`
+follows from the transaction's `slotY` and `muHeld` (`wcrPart_agree`).
+
+**Next (the design the remaining contracts need; none is a frozen statement found false):**
+1. **The trace.** `KV.Read`/`Write` give the trace back to the caller, and `Txn.End`/`DeleteRange`/
+   `Rev`/`FirstRev`/`Changes` take none, but the internal transactions hold it (`isTxnRead`'s and
+   `isTxnWrite(Core)`'s `"Htrc"`), and none of those methods' code uses it (only `Range` and `Put`
+   take it, and the API gives it to them). So `mvccTxn` holds the internal transaction without its
+   trace: the internal specs of `End`, `DeleteRange`, `Rev`, `FirstRev`, `Changes` over a
+   transaction whose trace part is a parameter (as the cores' writer slot is now: `isTxnEndY`,
+   `isTxnWriteCoreY`, with `Tr := ∃ te, ownTrace trace te` today's), and `Range`/`Put` lending it in.
+2. **`End` over `hookP` alone.** `Txn.End.contract` gives `mvccBackend γ q B P ∗ P`, so the
+   internal `End` takes `hookP γ P` (the backend's, `mvccBackend`'s) in place of `hookIs γ P f`
+   (`hookP_agree` with the transaction's `hookOk γ Pw fw`), and no `writerFrag` (it only gave it back).
+3. **`mvccTxn`'s body** (`Api.lean`: `opaque` to `@[no_expose] def … := api.mvccTxnI …`, defined in a
+   new `Api/` module that `Api.lean` imports non-publicly): `.read σ`: `t = mkOk PM #mw`,
+   `isTxnRead mw s γ trace σ.log (W64 σ.rev) σ.crev True` (trace-free), the pool's loan
+   (`threadPool.ownThreadLoan γp` with the pool, and the wand from `storeReaderC s γ` to the pool's
+   resource: a watchable store's `watchReader` keeps its `s.mu` token in it), `⌜MvccReachable σ ∧
+   σ.pending = none⌝` and the history's receipt (`idxCert γ.idx σ.log`, from which `Range`'s
+   `stateOk`); `.write σ pend`: plain, `t = mkOk PM #mw` with `isTxnWrite mw s γ trace σ.log pend …
+   σ.crev True` (trace-free), `γ.watchQ = false`, `σ.pending = none`, the loan, `certFree γ`;
+   watched, `t = mkOk PT #tw` with `isWatchTxnWrite` likewise. Then `Txn.End` at `PM` from
+   `endCb_of_au` (the `Yat` from the transaction's `slotY` and `muHeld`), at `PT` from a watchable
+   `endCb_of_au` (the notify step with `wsSlot`'s quarter; `wsEndCb`'s no-change arm then at the
+   `Yat` too).
+4. `stateOk` of the read states (`Txn.Range`, `KV.Range`): not proved anywhere in mvcc yet (pure:
+   every live key-value's revisions and version positive and below the receipt bound, the state at
+   most `logCh` entries).

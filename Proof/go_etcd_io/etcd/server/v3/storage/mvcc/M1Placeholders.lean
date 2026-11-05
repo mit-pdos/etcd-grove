@@ -56,6 +56,14 @@ compaction, `compactLockfree`'s excluder: the restorer's share). -/
 theorem slotF_excl_M1 (γ : StoreNames) : slotF (GF := GF) γ ∗ iprop(emp) ⊢ False := by
   sorry -- M1-REPLACE: KV.Write.contract, KV.Restore.contract (the backend share)
 
+/-- **(Placeholder, false in general.)** A share of the writer's and `s.mu`'s compaction revision
+(`api.AbsNames.wcr`, M4 track B, 2026-11-06) made from nothing, at the restored compaction revision.
+M1-REPLACE: `KV.Restore.contract` (`store.Restore` moves the old halves, `s.mu`'s from its `muInvAt`
+and the writer's from the old writer's `slotY`, to `r.crev` with `api.wcrPart_update`; the hand-off,
+"the writer's compaction revision tied to `s.mu`'s"). -/
+theorem wcrRestore_M1 (a : api.AbsNames) (q : Qp) (c : Int) : ⊢ api.wcrPart (GF := GF) a q c := by
+  sorry -- M1-REPLACE: KV.Restore.contract (the compaction revision's ghost moved by Restore)
+
 end placeholders
 
 section placeholdersW

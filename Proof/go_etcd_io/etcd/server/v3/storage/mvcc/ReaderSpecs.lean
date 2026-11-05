@@ -65,7 +65,7 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
   iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hm, #Hc0, %Ht, Htrc⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  ihave Hcb := mvcc.readCb_true (GF := GF) γ
+  ihave Hcb := mvcc.readCbC_true (GF := GF) γ
   iapply (h s γ mode trace m log₀ te (-1) iprop(True) none) $$ %Φ [Hrd Hm Htrc Hcb]
   · iframe Hrd Hm Htrc Hcb; iframe #
     isplitr; · imodintro; itrivial

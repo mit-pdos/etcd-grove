@@ -239,7 +239,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
       · ipureintro; exact Hreach
     · ihave HwL := later_mono (writerL_split s ((γ : StoreNames).withPhys p)).1 $$ HwL
       icases HwL with ⟨%L, >Hwv, >HY, >Hcert, HLR⟩
-      icases (slotY_some (γ := (γ : StoreNames).withPhys p) rfl L).1 $$ HY with ⟨%c, Hac, Hpw, Hrc⟩
+      icases (slotY_some (γ := (γ : StoreNames).withPhys p) rfl L).1 $$ HY with ⟨%c, Hac, Hpw, Hrc, Hwc⟩
       iunfold absPart at Ha Hac
       simp only [StoreNames.withPhys_api]
       icombine Ha Hac gives %Hag
@@ -297,13 +297,13 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   · inext
     iunfold writerTaken
     ileft
-    isplitl [Hwv Hac Hpw Hrc HLR]
+    isplitl [Hwv Hac Hpw Hrc Hwc HLR]
     · iapply (writerL_split s ((γ : StoreNames).withPhys p)).2
       iexists σ.log
       iframe Hwv HLR Hcert
       iapply (slotY_some (γ := (γ : StoreNames).withPhys p) rfl σ.log).2
       iexists σ.crev
-      iframe Hac Hpw Hrc
+      iframe Hac Hpw Hrc Hwc
     · iexact HwR
   simp only [StoreNames.withPhys_api]
   imod writerInv_thawNL s ((γ : StoreNames).withPhys p) (γ : StoreNames).api rfl _ o $$

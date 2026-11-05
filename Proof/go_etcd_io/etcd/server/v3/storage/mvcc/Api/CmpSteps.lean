@@ -172,12 +172,12 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
     (hcp : cp < sint.Z rev) (hc : c ≤ sint.Z rev) (hr : sint.Z rev < L.length)
     (h1 : 1 ≤ sint.Z rev) :
     physCmp (GF := GF) s γ ∗ writerInv s γ ∗ £ 1 ∗ S ∗ curAt γ dq o ∗ slotX γ 1 L c ∗
-        cmpCb γ c cp (sint.Z rev) Fok Fce Ffr ⊢
+        api.wcrPart γ.api (1 : Qp).half c ∗ cmpCb γ c cp (sint.Z rev) Fok Fce Ffr ⊢
       mwLend (storeW s γ) (kbMWv γ.kb γ.bucket)
         (fun w => fkPutV w schedKeyBytes (revBytes ⟨rev, W64 0⟩ false))
         iprop(cmpLb γ (sint.Z rev) ∗ storeRegd s γ ∗ S ∗ curAt γ dq o ∗ slotX γ 1 L (sint.Z rev) ∗
-          Fok) := by
-  iintro ⟨#HmwP, #Hwi, Hlc0, HS, Hpin, HX, Hcb⟩
+          api.wcrPart γ.api (1 : Qp).half (sint.Z rev) ∗ Fok) := by
+  iintro ⟨#HmwP, #Hwi, Hlc0, HS, Hpin, HX, HwcM, Hcb⟩
   icases (physCmp_on s γ h).1 $$ HmwP with ⟨#Hmwi, #Hrg⟩
   ihave #Hswk := mwSwap_of_inv γ iprop(True) $$ Hmwi
   iunfold mwLend
@@ -216,7 +216,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
   ihave %HL1 := ghostVar_agree γ.wv _ _ _ _ $$ HwvB Hwv
   subst HL1
   iunfold slotY at HY
-  icases HY with ⟨%cY, HYa, HYp, HYr⟩
+  icases HY with ⟨%cY, HYa, HYp, HYr, HYw⟩
   iunfold slotX at HX
   iunfold api.revMuAbs at HX
   icases HX with ⟨HXa, HXc⟩
@@ -242,8 +242,12 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
   imod Hok $$ %L [] [HX HYa HYp] with ⟨HX, HYa, HYp, HFok⟩
   · ipureintro; exact ⟨hcp, hc, hr⟩
   · iframe HX HYa HYp
+  -- the writer's and `s.mu`'s compaction revision moved with it (M4, track B)
+  imod api.wcrPart_update γ.api _ _ (Qp.half_add_half 1) _ _ (sint.Z rev) $$ [HYw HwcM]
+    with ⟨HYw, HwcM⟩
+  · iframe HYw HwcM
   -- the writer's state back, at the moved view
-  imod Hclose $$ [Hc Hfz HYa HYp HYr Htoks Hw Hclog Hwv Hcur Hlrd] with -
+  imod Hclose $$ [Hc Hfz HYa HYp HYr HYw Htoks Hw Hclog Hwv Hcur Hlrd] with -
   · inext
     iunfold writerInvBody
     ileft
@@ -264,7 +268,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
     · ipureintro; exact Hne
     iunfold slotY
     iexists (sint.Z rev)
-    iframe HYa HYp HYr
+    iframe HYa HYp HYr HYw
   -- the key swapped for the right's flag
   ihave Hmk := (mwSlot_on γ h).1 $$ Hmk
   iunfold mwSwap at Hswk
@@ -282,7 +286,7 @@ theorem compactLend_sched (s : Loc) (γ : StoreNames) (h : kbCmpM γ.kb) (rev : 
   iunfold metaCompact at Hmeta
   imod ghostVar_update (some rev, fin) γ.cmeta _ $$ Hmeta with Hmeta
   imodintro
-  iframe Hlb Hreg HS Hpin HX HFok
+  iframe Hlb Hreg HS Hpin HX HwcM HFok
   iapply storeW_put s γ
   iframe Hreg
   iunfold writerRes

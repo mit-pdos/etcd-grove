@@ -58,8 +58,8 @@ theorem mvcc.store.Compact.wp_proof
     icases mvcc.compactRightR_crev s γ c $$ Hright with ⟨Hcr, Hrclose⟩
     ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ c' c HcM hc $$ HcrevM Hcr
     subst Hcc
-    ihave Hmu1 : mvcc.muInvLag s γ c' c' $$ [HcmpM HcrevM]
-    · iunfold mvcc.muInvLag; iframe HcmpM HcrevM; iframe #; ipureintro; exact ⟨HcM, Int.le_refl c'⟩
+    ihave Hmu1 : mvcc.muInvLag s γ c' c' $$ [HcmpM HcrevM HwcM]
+    · iunfold mvcc.muInvLag; iframe HcmpM HcrevM HwcM; iframe #; ipureintro; exact ⟨HcM, Int.le_refl c'⟩
     ihave Hright := Hrclose $$ Hcr
     -- `s.b`, read through the right's closer's eighth (M2, the storage side, item 17)
     icases mvcc.compactRightR_take s γ c' $$ Hright with ⟨%o, Hfs, Hq, Hrclose⟩

@@ -596,7 +596,7 @@ theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w
           ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
           ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ sint.Z rev ≤ crev⌝ }} := by
   iintro %Φ ⟨#Hpkg, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc⟩ HΦ
-  ihave Hcb := mvcc.readCb_true (GF := GF) γ
+  ihave Hcb := mvcc.readCbC_true (GF := GF) γ
   iapply (mvcc.store.wp_Read s γ mode trace m log₀ te (sint.Z rev) Z none) $$ %Φ [Hrd Hm Htrc Hcb]
   · iframe Hrd Hm Htrc Hcb; iframe #
     isplitr

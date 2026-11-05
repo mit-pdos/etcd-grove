@@ -220,7 +220,7 @@ theorem kvOver_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc, Hla⟩ HΦ
   iapply kvOver_read_wp ty v s mode trace
   iframe Hk
-  ihave Hcb := mvcc.readCb_true (GF := GF) γ
+  ihave Hcb := mvcc.readCbC_true (GF := GF) γ
   iapply (hRead s γ mode trace m log₀ te c Z oa) $$ [Hrd Hm Htrc Hla Hcb]
   · iframe Hrd Hm Htrc Hla Hcb; iframe #; ipureintro; exact Ht
   inext

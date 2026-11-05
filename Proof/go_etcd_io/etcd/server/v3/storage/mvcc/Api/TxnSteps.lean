@@ -219,7 +219,7 @@ theorem muHeld_crevUB (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) (q : Qp) 
   iframe Hc
   isplitl
   · iunfold muHeld; iframe Hl Hrest
-    iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
+    iunfold muInvAt; iframe HcmpM HcrevM HwcM; iframe #; ipureintro; exact HcM
   ipureintro; exact Hcc
 
 /-- **What `metricsTxnWrite.End` takes beside `txnEndPre`**: for a write transaction, the

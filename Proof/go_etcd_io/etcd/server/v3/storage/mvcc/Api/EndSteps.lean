@@ -78,15 +78,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- **The writer's slot at the state `σ`** (`slotY` with its compaction revision named). -/
 def Yat (γ : StoreNames) (σ : MvccState) : IProp GF :=
   iprop(absPart γ.api (1 : Qp).half.half σ.log σ.crev ∗ pndPart γ.api (pndW γ) none ∗
-    rcvW γ (1 : Qp).half σ.crev)
+    rcvW γ (1 : Qp).half σ.crev ∗ wcrPart γ.api (1 : Qp).half σ.crev)
 
 theorem Yat_slotY (γ : StoreNames) (σ : MvccState) : Yat (GF := GF) γ σ ⊢ slotY γ σ.log := by
   iintro H
   iunfold Yat at H
-  icases H with ⟨Ha, Hp, Hr⟩
+  icases H with ⟨Ha, Hp, Hr, Hw⟩
   iunfold slotY
   iexists σ.crev
-  iframe Ha Hp Hr
+  iframe Ha Hp Hr Hw
 
 /-- The client's update, nested (`Txn.End.contract`'s write arm, `mvccState` unfolded to its body
 at the store's names `γ`). -/
@@ -124,7 +124,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
     iapply (endCb_nil_iff γ σ₀.log crev _ Q).2
     iintro #Hcert HY
     iunfold Yat at HY
-    icases HY with ⟨HYa, HYp, HYr⟩
+    icases HY with ⟨HYa, HYp, HYr, HYw⟩
     ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
       (fun _ _ => CoPset.mem_full) $$ Hau
     ihave Hacc := aupd_aacc $$ Hau
@@ -181,11 +181,11 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
     iframe HQ
     iapply Yat_slotY
     iunfold Yat
-    iframe HYa HYp HYr
+    iframe HYa HYp HYr HYw
   · iapply (endCb_cons_iff γ σ₀.log pend hpe crev _ Q).2
     iintro #Hcert ⟨HX, HY⟩
     iunfold Yat at HY
-    icases HY with ⟨HYa, HYp, HYr⟩
+    icases HY with ⟨HYa, HYp, HYr, HYw⟩
     iunfold slotX at HX
     iunfold revMuAbs at HX
     icases HX with ⟨HXa, HXc⟩
@@ -294,7 +294,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
     iunfold slotY
     iexists σ.crev
     rw [hpw]
-    iframe HYa HYp HYr
+    iframe HYa HYp HYr HYw
 
 end steps
 

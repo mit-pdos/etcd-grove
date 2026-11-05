@@ -307,7 +307,7 @@ theorem mvcc.NewStore.wp_proof
   -- (the mvcc API, strict M1) the API's ghost names at the start: the lock's and the writer's slots
   -- and the frozen flag kept; the client's parts dropped (today's spec returns none of them)
   obtain ⟨pr, hpr⟩ := mvcc.pndW_compl wq
-  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, HCl⟩
+  imod (mvcc.api.absNames_alloc_store (GF := GF) [[], []] (-1) _ pr hpr «$r0_ptr») with ⟨%γa, HXa, HYa, HFla, HCa, HCp, HCc1, HCc4, #HClb, HCt, HCn, #HCl0, HwY, HwM⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
       hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw, hγtkr, hγmk, hγcm, hγsx, hγcp, hγapi, hγrcv, hγjc, hγrcl⟩ :
       ∃ γ : mvcc.StoreNames,
@@ -553,11 +553,11 @@ theorem mvcc.NewStore.wp_proof
   ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
-  ihave HY : mvcc.slotY γ [[], []] $$ [HYa Hrcv1]
+  ihave HY : mvcc.slotY γ [[], []] $$ [HYa Hrcv1 HwY]
   · unfold mvcc.slotY mvcc.pndW; rw [hγapi, hγw]
     iexists (-1)
     icases HYa with ⟨HYa1, HYa2⟩
-    iframe HYa1 HYa2
+    iframe HYa1 HYa2 HwY
     iapply mvcc.rcvW_intro; iexact Hrcv1
   ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd HY]
   · iunfold mvcc.writerL
@@ -699,14 +699,15 @@ theorem mvcc.NewStore.wp_proof
   iNamedSuffix HfldsQ "R"
   -- the deferred `s.mu.Unlock()` on private memory; then `s.mu`'s invariant is made
   wp_apply +noauto (plain.wp_Unlock sync.atomic.Int32.wp_Add (mvcc.muAddr «$r0_ptr»)) $$ [$mu] as mu
-  imod sync.init_RWMutex (mvcc.muInv «$r0_ptr» γ) (mvcc.muAddr «$r0_ptr») $$ [HcmpA HcuM Hwr Hfm] mu
+  imod sync.init_RWMutex (mvcc.muInv «$r0_ptr» γ) (mvcc.muAddr «$r0_ptr») $$ [HcmpA HcuM Hwr Hfm HwM] mu
     with Hmus
   · inext
     iunfold mvcc.muInv
     iexists -1
     iframe Hwr Hfm
     iunfold mvcc.muInvAt
-    iframe HcmpA HcuM
+    rw [hγapi]
+    iframe HcmpA HcuM HwM
     isplitl []
     · iapply mvcc.crevSafe_neg γ (-1) [[], []] (by decide) (by simp) $$ Hcert
     isplitr
@@ -808,7 +809,7 @@ theorem mvcc.NewStore.wp_proof
   · ipureintro; unfold mvcc.pndW; rw [hγw]; exact hpr
   rw [hγapi]
   iunfold mvcc.api.newClient
-  iexact HCl
+  iframe HCa HCp HCc1 HCc4 HClb HCt HCn HCl0
 
 end proof
 

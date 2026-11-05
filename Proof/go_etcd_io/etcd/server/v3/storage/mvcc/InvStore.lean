@@ -213,7 +213,7 @@ structure StoreNames where
   M1, no scaffold") the API's ghost names (`api.AbsNames`: the client's view, the pending revision,
   the compaction authority, the share token, the frozen flag), which the slots (`slotX`, `slotY`,
   `slotF`, `slotFr`, `slotFl`) hold; logical, `withPhys` keeps it -/
-  api : api.AbsNames := ⟨0, 0, 0, 0, 0, 0, 0⟩
+  api : api.AbsNames := ⟨0, 0, 0, 0, 0, 0, 0, 0⟩
   /-- (the snapshot image's (c), 2026-11-05; physical) the meta keys' records' compaction revision
   (`ghostVar Int`, a compacting real backend's): half in the batch lock's resource (`compactRes`'s
   `cmpTrack`, at the records' `CmpRecs.crev`), half in the writer's slot (`slotY`, at its view's
@@ -525,7 +525,7 @@ pending revision at `none`, with (the snapshot image's (c)) the writer's half of
 compaction revision at the view's compaction revision. -/
 def slotY (γ : StoreNames) (L : Log) : IProp GF :=
   iprop(∃ c : Int, api.absPart γ.api (1 : Qp).half.half L c ∗ api.pndPart γ.api (pndW γ) none ∗
-    rcvW γ (1 : Qp).half c)
+    rcvW γ (1 : Qp).half c ∗ api.wcrPart γ.api (1 : Qp).half c)
 
 /-- **The frozen state's deposit**: the whole backend share token. -/
 def slotF (γ : StoreNames) : IProp GF := api.shareTok γ.api 1
@@ -4774,6 +4774,7 @@ shared for its whole life, so its `rangeKeys` reads `compactMainRev` from its pa
 def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
   iprop("HcmpM" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own q.half} (W64 c : w64) : IProp GF) ∗
     "HcrevM" ∷ crevUB γ.idx q.half.half c ∗
+    "HwcM" ∷ api.wcrPart γ.api q.half c ∗
     "#HclM" ∷ crevSafe γ c ∗
     "#HpM" ∷ crevPermAt γ c ∗
     "%HcM" ∷ ⌜-1 ≤ c⌝)
@@ -4786,6 +4787,7 @@ def muInvLag (s : Loc) (γ : StoreNames) (c cp : Int) : IProp GF :=
   iprop("HcmpM" ∷ (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half} (W64 cp : w64) :
       IProp GF) ∗
     "HcrevM" ∷ crevUB γ.idx (1 : Qp).half.half c ∗
+    "HwcM" ∷ api.wcrPart γ.api (1 : Qp).half c ∗
     "#HclM" ∷ crevSafe γ c ∗
     "#HpM" ∷ crevPermAt γ c ∗
     "%HcM" ∷ ⌜-1 ≤ cp ∧ cp ≤ c⌝)
@@ -4800,10 +4802,10 @@ theorem muInvLag_at (s : Loc) (γ : StoreNames) (c : Int) :
     muInvLag (GF := GF) s γ c c ⊣⊢ muInvAt s γ 1 c := by
   unfold muInvLag muInvAt
   constructor
-  · iintro ⟨H1, H2, #H3, #H4, %H5⟩
-    iframe H1 H2 H3 H4; ipureintro; exact H5.1
-  · iintro ⟨H1, H2, #H3, #H4, %H5⟩
-    iframe H1 H2 H3 H4; ipureintro; exact ⟨H5, Int.le_refl c⟩
+  · iintro ⟨H1, H2, H2w, #H3, #H4, %H5⟩
+    iframe H1 H2 H2w H3 H4; ipureintro; exact H5.1
+  · iintro ⟨H1, H2, H2w, #H3, #H4, %H5⟩
+    iframe H1 H2 H2w H3 H4; ipureintro; exact ⟨H5, Int.le_refl c⟩
 
 /-- `s.mu`'s resource at fraction `q`: at some compaction revision, and the writer's deposit
 ghost at the fraction (D22 receiver epochs, S2: a holder of `s.mu` exclusively has all of it, so
@@ -4820,6 +4822,8 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
     have hwr := (ghostVar_fractional (GF := GF) γ.wr ()).fractional q1 q2
+    have hwc := fun (c : Int) =>
+      (api.wcrPart_fractional (GF := GF) γ.api c).fractional q1.half q2.half
     have hfs := (fieldShare_fractional (GF := GF) s γ).fractional q1.half q2.half
     unfold muInv muInvAt
     rw [Qp_half_add, Qp_half_add]
@@ -4829,11 +4833,12 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
       iNamed H
       icases (hcmp _).1 $$ HcmpM with ⟨Hm1, Hm2⟩
       icases (hcrev c).1 $$ HcrevM with ⟨Hv1, Hv2⟩
+      icases (hwc c).1 $$ HwcM with ⟨Hc1, Hc2⟩
       icases hwr.1 $$ Hwr with ⟨Hw1, Hw2⟩
       icases hfs.1 $$ Hfs with ⟨Hf1, Hf2⟩
-      isplitl [Hm1 Hv1 Hw1 Hf1]
-      · iexists c; simp only [named]; iframe Hm1 Hv1 Hw1 Hf1; iframe #; ipureintro; exact HcM
-      · iexists c; simp only [named]; iframe Hm2 Hv2 Hw2 Hf2; iframe #; ipureintro; exact HcM
+      isplitl [Hm1 Hv1 Hc1 Hw1 Hf1]
+      · iexists c; simp only [named]; iframe Hm1 Hv1 Hc1 Hw1 Hf1; iframe #; ipureintro; exact HcM
+      · iexists c; simp only [named]; iframe Hm2 Hv2 Hc2 Hw2 Hf2; iframe #; ipureintro; exact HcM
     · iintro ⟨H1, H2⟩
       icases H1 with ⟨%c, H1, Hw1, Hf1⟩
       icases H2 with ⟨%c2, H2, Hw2, Hf2⟩
@@ -4852,6 +4857,8 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
       · iapply (hcmp _).2; iframe HcmpM1 HcmpM2
       isplitl [HcrevM1 HcrevM2]
       · iapply (hcrev c).2; iframe HcrevM1 HcrevM2
+      isplitl [HwcM1 HwcM2]
+      · iapply (hwc c).2; iframe HwcM1 HwcM2
       isplitr
       · iexact HclM1
       isplitr
@@ -4955,7 +4962,7 @@ theorem muHeld_crev (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iunfold muHeld
   iframe Hl Hf
   iunfold muInvAt
-  iframe HcmpM Hc
+  iframe HcmpM Hc HwcM
   iframe #
   ipureintro; exact HcM
 
@@ -4984,7 +4991,7 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iunfold muHeld
   iframe Hl Hf
   iunfold muInvAt
-  iframe Hm Hc
+  iframe Hm Hc HwcM
   iframe #
   ipureintro; exact HcM
 
@@ -5007,8 +5014,8 @@ theorem revMuInv_open_held (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) (ti : 
   iframe H Htk
   iunfold muHeld
   iframe Hl
-  isplitl [HcmpM HcrevM]
-  · iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
+  isplitl [HcmpM HcrevM HwcM]
+  · iunfold muInvAt; iframe HcmpM HcrevM HwcM; iframe #; ipureintro; exact HcM
   iexists o
   isplitl []
   · ipureintro; exact Ho
@@ -5038,7 +5045,7 @@ theorem muHeld_crev_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iframe Hl
   isplitr [Hf]
   · iunfold muInvAt
-    iframe HcmpM Hc
+    iframe HcmpM Hc HwcM
     iframe #
     ipureintro; exact HcM
   iexists o
@@ -5077,7 +5084,7 @@ theorem muHeld_cmp_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iframe Hl
   isplitr [Hf]
   · iunfold muInvAt
-    iframe Hm Hc
+    iframe Hm Hc HwcM
     iframe #
     ipureintro; exact HcM
   iexists o
@@ -5454,7 +5461,7 @@ theorem muHeld_frozen (s : Loc) (γ : StoreNames) (crev : Int) (ti : Loc) :
   iframe
   isplitl
   · iunfold muHeld; iframe Hl Hfs
-    iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
+    iunfold muInvAt; iframe HcmpM HcrevM HwcM; iframe #; ipureintro; exact HcM
   ipureintro; exact Hc
 
 theorem isTxnRead_frozen (mw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log) (rev : w64)

@@ -185,7 +185,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       · ipureintro; exact ⟨hrc, trivial, rfl⟩
       isplitr
       · iexists ecp; iframe Hcomp; ipureintro; rfl
-      isplitl [HcmpM HcrevM]
+      isplitl [HcmpM HcrevM HwcM]
       · iunfold mvcc.muInvAt; simp only [named]; iframe; iframe #; ipureintro; exact HcM.1
       isplitl [Hcr Hq Hcur Hfb Hfidx Hfsch Hfstop Hfrst Hstc Htok]
       · iapply (mvcc.compactRightR_iff s γ _).2
@@ -251,8 +251,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
       · ipureintro; exact ⟨rfl, rfl⟩
       isplitr
       · iexists ef; iframe Hfut; ipureintro; rfl
-      isplitl [HcmpM HcrevM]
-      · iunfold mvcc.muInvLag; simp only [named]; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
+      isplitl [HcmpM HcrevM HwcM]
+      · iunfold mvcc.muInvLag; simp only [named]; iframe HcmpM HcrevM HwcM; iframe #; ipureintro; exact HcM
       iapply (mvcc.compactRightR_iff s γ _).2
       iframe Hcr Hq
       iexists ⟨b, ti, GoInterface.ok sci, sstop⟩
@@ -282,8 +282,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- at its values, for the put: the caller's ghost step fired there with the writer's state, the
       -- record updated and the tracked compaction re-pinned
       ihave Hsw := mvcc.compactLend_sched s γ hcM rev log c' cp S Fok Fce Ffr _ _ hS1 hS2 Hgt Hge
-        hrl hpos1 $$ [Hlc3 HS Hcur HX Hcb]
-      · iframe #; iframe Hlc3 HS Hcur HX Hcb
+        hrl hpos1 $$ [Hlc3 HS Hcur HX HwcM Hcb]
+      · iframe #; iframe Hlc3 HS Hcur HX HwcM Hcb
       icases (mvcc.physCmp_on s γ hcM).1 $$ HmwP with ⟨-, #Hreg⟩
       -- (M2, the storage side, Q1 (a)) the supply from the pre
       ihave #Hsup := (mvcc.kbWTSupplyM_on γ.kb hcM).1 $$ HsupM
@@ -313,7 +313,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ mvcc.storeRT γ ∗ Post ∗ mvcc.lockBackM γ P hk dq ∗
         (mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ ∗ S ∗
           mvcc.curAt γ (DFrac.own mvcc.q8.half) ⟨GoInterface.ok bi, ti, GoInterface.ok sci, sstop⟩ ∗
-          mvcc.slotX γ 1 log (sint.Z rev) ∗ Fok))))
+          mvcc.slotX γ 1 log (sint.Z rev) ∗ mvcc.api.wcrPart γ.api (1 : Qp).half (sint.Z rev) ∗ Fok))))
         $$ [Hctx HRTok Hwt1 Hlc2 Hsw]
       · cases hk with
         | some f =>
@@ -339,7 +339,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
               (mvcc.kbMWv γ.kb γ.bucket) iprop(True) (some f) rev Pre Q Post
               iprop(mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ ∗ S ∗
                 mvcc.curAt γ (DFrac.own mvcc.q8.half) ⟨GoInterface.ok bi, ti, GoInterface.ok sci, sstop⟩ ∗
-                mvcc.slotX γ 1 log (sint.Z rev) ∗ Fok)
+                mvcc.slotX γ 1 log (sint.Z rev) ∗ mvcc.api.wcrPart γ.api (1 : Qp).half (sint.Z rev) ∗ Fok)
               hrev0) $$ [HPre Hupd HRTok Hwt1 Hsw]
           · rw [mvcc.lockArmS_some]
             iframe #
@@ -369,7 +369,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
               iprop(Post ∗ mvcc.kbHookNilAt γ.kb dq)
               iprop(mvcc.cmpLb γ (sint.Z rev) ∗ mvcc.storeRegd s γ ∗ S ∗
                 mvcc.curAt γ (DFrac.own mvcc.q8.half) ⟨GoInterface.ok bi, ti, GoInterface.ok sci, sstop⟩ ∗
-                mvcc.slotX γ 1 log (sint.Z rev) ∗ Fok)
+                mvcc.slotX γ 1 log (sint.Z rev) ∗ mvcc.api.wcrPart γ.api (1 : Qp).half (sint.Z rev) ∗ Fok)
               hrev0)
               $$ [HPre Hupd HRTok Hwt1 Hnil Hsw]
           · rw [mvcc.lockArmS_none]
@@ -385,7 +385,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
           iintro ⟨HRTok, ⟨HPost, Hnil⟩, HQl⟩
           iframe HRTok HPost HQl HhP Hnil
           ipureintro; rfl
-      iintro %v ⟨%Hv, HRTok, HPost, Hback, #HQl, #HQr, HS, Hcur, HX, HFok⟩
+      iintro %v ⟨%Hv, HRTok, HPost, Hback, #HQl, #HQr, HS, Hcur, HX, HwcM, HFok⟩
       subst Hv
       -- `s.b.ForceCommit()`, with a write-back token from the supply
       imod mvcc.kbWTSupply_take γ.kb $$ [$Hsup $Hr2] with Hwt2
@@ -413,7 +413,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iframe HFok HYB
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, Hgt, Hge⟩
-      isplitl [HcmpM HcrevM]
+      isplitl [HcmpM HcrevM HwcM]
       · iunfold mvcc.muInvAt; simp only [named]
         rw [hrw]
         iframe

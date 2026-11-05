@@ -77,7 +77,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
   -- the caller's read callback, with `s.revMu`'s slot at the log read
-  iunfold mvcc.readCb at Hcb
+  iunfold mvcc.readCbC at Hcb
   imod Hcb $$ %_ %log %c HX with ⟨HX, HF⟩
   icases mvcc.logLent_agree γ.idx _ log oa $$ [$Hlog $HoA] with ⟨Hlog, HoA, %HoaL⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ cm c HcM Hc.1 $$ HcrevM Hcrev
@@ -158,13 +158,13 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       ipureintro; simpa using Hcmt
     ihave Hmul : sync.ownRWMutexRLocked (mvcc.muAddr s) (mvcc.muInv s (γ.withPhys p)) $$ [Hmul]
     · rw [mvcc.muInv_withPhys]; iexact Hmul
-    ihave Hmuh : mvcc.muHeld s (γ.withPhys p) cm o.ti $$ [Hmul HcmpM HcrevM Hfs]
+    ihave Hmuh : mvcc.muHeld s (γ.withPhys p) cm o.ti $$ [Hmul HcmpM HcrevM HwcM Hfs]
     · iunfold mvcc.muHeld
       iframe Hmul
       isplitr [Hfs]
       · rw [mvcc.muInvAt_withPhys]
         iunfold mvcc.muInvAt
-        iframe HcmpM HcrevM
+        iframe HcmpM HcrevM HwcM
         iframe #
         ipureintro; exact HcM
       iexists o

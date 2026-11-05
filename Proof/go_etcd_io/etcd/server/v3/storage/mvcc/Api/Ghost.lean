@@ -50,10 +50,18 @@ structure AbsNames where
   `locIs`): the handle's (`isMvcc`) and the open token's (`mvccOpen`) agree on the store they are
   of (the inner store of a watchable one) -/
   loc : GName := 0
+  /-- the compaction revision as `s.mu` and the writer's state see it (M4, track B, 2026-11-06: a
+  ghost variable, half in `s.mu`'s resource at the lock's fraction, half in the writer's slot), so
+  that a write transaction, holding `s.mu` shared and the writer's state, knows the writer's view
+  of the compaction revision is the one its reads answer at; moved by `updateCompactRev` and
+  `Restore`, which hold `s.mu` exclusively and the writer's state -/
+  wcr : GName := 0
 
 instance absNames_countable : Pos.Countable AbsNames :=
-  countableOfLeftInverse (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2⟩)
+  countableOfLeftInverse
+    (fun x : AbsNames => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc, x.wcr))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 /-- A compaction revision as the lower bound's count (`-1` is `0`). -/
@@ -73,6 +81,31 @@ def crevAuth (γ : AbsNames) (q : Qp) (c : Int) : IProp GF := monoNatAuthOwn γ.
 
 /-- The compaction revision is at least `c` (persistent). -/
 def crevAtLeast (γ : AbsNames) (c : Int) : IProp GF := monoNatLbOwn γ.crevLb (crevN c)
+
+/-- **A share `q` of the writer's and `s.mu`'s compaction revision** (`AbsNames.wcr`). -/
+def wcrPart (γ : AbsNames) (q : Qp) (c : Int) : IProp GF := ghostVar γ.wcr q c
+
+instance wcrPart_timeless (γ : AbsNames) (q : Qp) (c : Int) : Timeless (wcrPart (GF := GF) γ q c) := by
+  unfold wcrPart; infer_instance
+
+instance wcrPart_fractional (γ : AbsNames) (c : Int) : Fractional (fun q => wcrPart (GF := GF) γ q c) := by
+  unfold wcrPart; infer_instance
+
+/-- Two shares of it agree. -/
+theorem wcrPart_agree (γ : AbsNames) (q1 q2 : Qp) (c1 c2 : Int) :
+    wcrPart (GF := GF) γ q1 c1 ∗ wcrPart γ q2 c2 ⊢ ⌜c1 = c2⌝ := by
+  unfold wcrPart
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %H
+  ipureintro
+  exact H.2
+
+/-- Its update, from two shares making the whole. -/
+theorem wcrPart_update (γ : AbsNames) (q1 q2 : Qp) (h : q1 + q2 = 1) (c1 c2 c' : Int) :
+    wcrPart (GF := GF) γ q1 c1 ∗ wcrPart γ q2 c2 ⊢ |==> (wcrPart γ q1 c' ∗ wcrPart γ q2 c') := by
+  unfold wcrPart
+  iintro ⟨H1, H2⟩
+  iapply ghostVar_update_2 c' γ.wcr c1 q1 c2 q2 h $$ H1 H2
 
 /-- A share `q` of the backend share token. -/
 def shareTok (γ : AbsNames) (q : Qp) : IProp GF := dghostVar γ.tok (.own q) ()
@@ -211,7 +244,8 @@ theorem crevAtLeast_valid (γ : AbsNames) (q : Qp) (c c0 : Int) (hc : -1 ≤ c) 
 pending revision, the compaction authority, the whole share token and the frozen flag (down). -/
 theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) (l : Loc) :
     ⊢ |==> ∃ γ : AbsNames, absPart (GF := GF) γ 1 L c ∗ pndPart γ 1 p ∗ crevAuth γ 1 c ∗
-      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false ∗ nlAuth γ 1 N ∗ locIs γ l := by
+      crevAtLeast γ c ∗ shareTok γ 1 ∗ ghostVar γ.frz 1 false ∗ nlAuth γ 1 N ∗ locIs γ l ∗
+      wcrPart γ 1 c := by
   imod ghostVar_alloc (GF := GF) (L, c) with ⟨%ga, Ha⟩
   imod ghostVar_alloc (GF := GF) p with ⟨%gp, Hp⟩
   imod mono_nat_own_alloc (GF := GF) (crevN c) with ⟨%gc, Hc, Hlb⟩
@@ -220,9 +254,10 @@ theorem absNames_alloc (L : Log) (c : Int) (p : Option (List Change)) (N : Log) 
   imod mono_list_own_alloc (GF := GF) N with ⟨%gn, Hn, -⟩
   imod dghostVar_alloc (GF := GF) l with ⟨%gl, Hl⟩
   imod dghostVar_persist gl _ _ $$ Hl with #Hl
+  imod ghostVar_alloc (GF := GF) c with ⟨%gw, Hw⟩
   imodintro
-  iexists ⟨ga, gp, gc, gt, gf, gn, gl⟩
-  unfold absPart pndPart crevAuth crevAtLeast shareTok nlAuth locIs
+  iexists ⟨ga, gp, gc, gt, gf, gn, gl, gw⟩
+  unfold absPart pndPart crevAuth crevAtLeast shareTok nlAuth locIs wcrPart
   iframe
   iexact Hl
 
@@ -276,15 +311,19 @@ def newClient (a : AbsNames) (L : Log) (c : Int) (pr : Qp) (l : Loc) : IProp GF 
 lock's slot (`revMuAbs` at the whole lock), the writer's (`writerAbs` at its part `pw` of the
 pending revision), the frozen flag down; and the client's parts (half the view, the pending
 revision's rest `pr`, half the compaction authority and its lower bound, the whole share token)
-and the compaction right's quarter of the authority. -/
+and the compaction right's quarter of the authority. (M4, track B) The writer's and `s.mu`'s
+halves of the compaction revision (`wcrPart`), the last two. -/
 theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1) (l : Loc) :
     ⊢ |==> ∃ a : AbsNames, revMuAbs (GF := GF) a 1 L c ∗
       (absPart a (1 : Qp).half.half L c ∗ pndPart a pw none) ∗ ghostVar a.frz 1 false ∗
       absPart a (1 : Qp).half L c ∗ pndPart a pr none ∗ crevAuth a (1 : Qp).half c ∗
       crevAuth a (1 : Qp).half.half c ∗ crevAtLeast a c ∗ shareTok a 1 ∗ nlAuth a 1 L ∗
-      locIs a l := by
+      locIs a l ∗ wcrPart a (1 : Qp).half c ∗ wcrPart a (1 : Qp).half c := by
   iintro
-  imod absNames_alloc (GF := GF) L c none L l with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn, #Hl⟩
+  imod absNames_alloc (GF := GF) L c none L l with ⟨%a, Ha, Hp, Hc, #Hlb, Ht, Hf, Hn, #Hl, Hw⟩
+  have hw := (wcrPart_fractional (GF := GF) a c).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hw
+  icases hw.1 $$ Hw with ⟨Hw1, Hw2⟩
   have ha1 := (absPart_fractional (GF := GF) a L c).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at ha1
   icases ha1.1 $$ Ha with ⟨Ha1, Ha2⟩
@@ -302,7 +341,7 @@ theorem absNames_alloc_store (L : Log) (c : Int) (pw pr : Qp) (hp : pw + pr = 1)
   icases hp'.1 $$ Hp with ⟨Hpw, Hpr⟩
   imodintro
   iexists a
-  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn Hl
+  iframe Hf Ha1 Hpr Hc1 Hc4 Ht Hlb Hn Hl Hw1 Hw2
   isplitl [Ha3 Hc3]
   · iunfold revMuAbs; iframe Ha3 Hc3
   · iframe Ha4 Hpw

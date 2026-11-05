@@ -5,6 +5,7 @@ mode: in compaction mode `RestoreOn.lean`'s proof (M2's item 15); off, the proof
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpSteps
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
@@ -604,6 +605,8 @@ theorem mvcc.store.Restore.wp_proof
         isplitl [HcrevM]
         · rw [mvcc.crevUB_withPhys]; iexact HcrevM
         isplitl []
+        · iapply mvcc.wcrRestore_M1
+        isplitl []
         · rw [mvcc.crevSafe_withPhys]
           iunfold mvcc.crevSafe
           iexists ([[], []] ++ R)
@@ -1149,7 +1152,10 @@ theorem mvcc.store.Restore.wp_proof
     iexists (-1)
     iframe Hwr
     isplitl [Hcm HcrevM]
-    · iunfold mvcc.muInvAt; simp only [named]; iframe Hcm HcrevM; iframe #; ipureintro; decide
+    · iunfold mvcc.muInvAt; simp only [named]; iframe Hcm HcrevM; iframe #
+      isplitl []
+      · iapply mvcc.wcrRestore_M1
+      ipureintro; decide
     iunfold mvcc.fieldShare
     iexists p', ⟨b', ti, sc, stopc⟩
     iexact HfsM

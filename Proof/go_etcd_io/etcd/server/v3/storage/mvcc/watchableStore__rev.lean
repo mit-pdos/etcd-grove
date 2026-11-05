@@ -56,7 +56,9 @@ theorem mvcc.watchableStore.rev.wp_proof
   iunfold mvcc.isStore at Hs'
   iNamedSuffix Hs' "S"
   imod mvcc.crevLb_neg γ.st.idx with #Hlbn
-  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa F) $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA $Hcb]
+  ihave Hcb := mvcc.readCbC_of γ.st F $$ Hcb
+  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa (fun L _ => F L))
+      $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA $Hcb]
     as %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, %Hpre0, HoA, %HoaL, HF⟩
   · isplitr
     · iintro !>; itrivial

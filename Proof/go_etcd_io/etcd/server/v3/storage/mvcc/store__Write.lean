@@ -99,12 +99,12 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
     simp only [named]
     iframe Hcur Hfrst Hph
     iunfold mvcc.storeFields; simp only [named]; rw [Hbi]; iframe Hfb Hfidx Hfsch Hfstop
-  ihave Hmuh : mvcc.muHeld s γ cm ow.ti $$ [Hmul HcmpM HcrevM Hfs]
+  ihave Hmuh : mvcc.muHeld s γ cm ow.ti $$ [Hmul HcmpM HcrevM HwcM Hfs]
   · iunfold mvcc.muHeld
     iframe Hmul
     isplitr [Hfs]
     · iunfold mvcc.muInvAt
-      iframe HcmpM HcrevM
+      iframe HcmpM HcrevM HwcM
       iframe #
       ipureintro; exact HcM
     iexists ow
