@@ -211,6 +211,23 @@ theorem wp_osFsync_cf (fd : w64) (dq : DFrac) (d : OsFd) (N : Namespace) (γ : G
     ipureintro
     exact Hwf
 
+/-- `Regime(p)` of a file in a crash invariant, idle: `0`. -/
+theorem wp_osRegime_cf (p : GoString) (γ : GName) (s : CFile)
+    (hs : s = none ∨ ∃ m bs, s = some (m, bs, none)) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ cfOwn (L := L) p γ s -∗ (cfOwn (L := L) p γ s -∗ Φ (#(0 : w64))) -∗
+      WP (ExternalOp osFsExt.name "Regime" (Val (#p))) {{ Φ }} := by
+  iintro #Hinv Hown HΦ
+  unfold cfOwn
+  icases Hown with ⟨Hv, Hr, %Hwf⟩
+  rcases hs with rfl | ⟨m, bs, rfl⟩
+  · unfold thrRes
+    iapply wp_osRegime p _ none CoPset.subseteq_top $$ Hinv Hr
+    iintro Hr; iapply HΦ; dsimp only [thrRes]; iframe; ipureintro; exact Hwf
+  · unfold thrRes
+    icases Hr with ⟨Hm, Hb⟩
+    iapply wp_osRegime p _ (some m) CoPset.subseteq_top $$ Hinv Hm
+    iintro Hm; iapply HΦ; dsimp only [thrRes]; iframe; ipureintro; exact Hwf
+
 /-- `open(p, fl)` (with `O_CREAT`, without `O_TRUNC`) of a file in a crash invariant, absent or
 idle: on success it is `openState s` (created if absent, which the caller shows a crash of
 `Good`); on failure it may have been created. -/

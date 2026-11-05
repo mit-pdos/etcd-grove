@@ -31,6 +31,7 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
+  wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   wp_apply wp_osFsync fd dq d m lo xs CoPset.subseteq_top $$ Hinv Hosfd Hm Hbs as %e Hr Hosfd
   by_cases he4 : e = W64 4
   · icases Hr with (⟨%he, -, -⟩ | ⟨%he, -, -⟩)

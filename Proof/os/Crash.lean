@@ -46,14 +46,15 @@ theorem os.OpenFile.wp_proof_crash [os.file.FieldAssumptions] :
   have hm2 : s' = s ∨ s' = openState s := .inl hs'
   clear hs'
   iloeb as IH generalizing %s' %hm2 Hown HΦ
-  rw [os.file_ty_eq, os.File_ty_eq,
-    show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
   have hs2 : s' = none ∨ ∃ m bs, s' = some (m, bs, none) := by
     rcases hm2 with rfl | rfl
     · exact hs
     · rcases hs with rfl | ⟨m, bs, rfl⟩
       · exact .inr ⟨_, _, rfl⟩
       · exact .inr ⟨_, _, rfl⟩
+  wp_apply wp_osRegime_cf path γ s' hs2 $$ Hos Hown as Hown
+  rw [os.file_ty_eq, os.File_ty_eq,
+    show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
   have hos : openState s' = openState s := by
     rcases hm2 with rfl | rfl
     · rfl

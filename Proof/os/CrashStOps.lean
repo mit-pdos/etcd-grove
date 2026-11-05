@@ -881,6 +881,23 @@ theorem wp_osMunmap_cs (base : Loc) (len cap : w64) (p : GoString) (N : Namespac
 
 /-! ### Open -/
 
+/-- `Regime(p)` of a file in a crash invariant, idle: `0`. -/
+theorem wp_osRegime_cs (p : GoString) (γ : GName) (s : CState)
+    (hs : s = none ∨ ∃ m bs fa fb, s = some ⟨m, bs, fa, fb, .idle⟩) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ csOwn (L := L) p γ s -∗ (csOwn (L := L) p γ s -∗ Φ (#(0 : w64))) -∗
+      WP (ExternalOp osFsExt.name "Regime" (Val (#p))) {{ Φ }} := by
+  iintro #Hinv Hown HΦ
+  unfold csOwn
+  icases Hown with ⟨Hv, Hr, %Hwf⟩
+  rcases hs with rfl | ⟨m, bs, fa, fb, rfl⟩
+  · unfold thrResS
+    iapply wp_osRegime p _ none CoPset.subseteq_top $$ Hinv Hr
+    iintro Hr; iapply HΦ; dsimp only [thrResS]; iframe; ipureintro; exact Hwf
+  · unfold thrResS
+    icases Hr with ⟨Hm, Hb⟩
+    iapply wp_osRegime p _ (some m) CoPset.subseteq_top $$ Hinv Hm
+    iintro Hm; iapply HΦ; dsimp only [thrResS]; iframe; ipureintro; exact Hwf
+
 /-- `open(p, fl)` (with `O_CREAT`, without `O_TRUNC`) of a file in a crash invariant, absent or
 idle: on success `csOpen s` (created if absent, which the caller shows `Ok`); on failure maybe. -/
 theorem wp_osOpen_cs (p : GoString) (fl : w64) (N : Namespace) (γ : GName) (Ok : CState → Prop)

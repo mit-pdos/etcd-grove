@@ -30,6 +30,7 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
   have hm2 : mo' = mo ∨ mo' = openMeta mo true := .inl hmo'
   clear hmo'
   iloeb as IH generalizing %mo' %hm2 Hm HΦ
+  wp_apply wp_osRegime path q mo' CoPset.subseteq_top $$ Hinv Hm as Hm
   rw [os.file_ty_eq, os.File_ty_eq,
     show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
   have hq' : mo' = none → q = DFrac.own 1 := by

@@ -30,6 +30,7 @@ theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
+  wp_apply wp_osFdKind fd (DFrac.own 1) d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   wp_apply wp_osClose fd d CoPset.subseteq_top $$ [Hinv Hosfd] as %e -
   · iframe; iexact Hinv
   by_cases he : e = W64 0

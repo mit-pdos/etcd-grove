@@ -121,6 +121,7 @@ theorem os.File.Sync.wp_proof_crashS : os.File.Sync.specCrashS (GF := GF) (hG :=
   ihave #Hf2 := Hf
   iStructNamed Hf2
   wp_auto
+  wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hos Hosfd as Hosfd
   wp_apply wp_osFsync_cs fd dq d N γ Ok m H F T fa fb hH hF hd hc hN hok hokF
     $$ Hos Hinv Hosfd Hown as %e Hr Hosfd
   by_cases he4 : e = W64 4
@@ -162,14 +163,15 @@ theorem os.OpenFile.wp_proof_crashS [os.file.FieldAssumptions] :
   have hm2 : s' = s ∨ s' = csOpen s := .inl hs'
   clear hs'
   iloeb as IH generalizing %s' %hm2 Hown HΦ
-  rw [os.file_ty_eq, os.File_ty_eq,
-    show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
   have hs2 : s' = none ∨ ∃ m bs fa fb, s' = some ⟨m, bs, fa, fb, .idle⟩ := by
     rcases hm2 with rfl | rfl
     · exact hs
     · rcases hs with rfl | ⟨m, bs, fa, fb, rfl⟩
       · exact .inr ⟨_, _, _, _, rfl⟩
       · exact .inr ⟨_, _, _, _, rfl⟩
+  wp_apply wp_osRegime_cs path γ s' hs2 $$ Hos Hown as Hown
+  rw [os.file_ty_eq, os.File_ty_eq,
+    show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
   have hos : csOpen s' = csOpen s := by
     rcases hm2 with rfl | rfl
     · rfl
