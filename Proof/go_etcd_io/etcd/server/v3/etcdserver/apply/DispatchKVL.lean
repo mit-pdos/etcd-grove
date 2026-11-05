@@ -173,7 +173,7 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
       apply.applierKVL E c ci a L ∗ L hs ∗
       ⌜apply.isKVKind (apply.dispatchKind rq) = true ∧ apply.kvShapedL E.authMode hs rq⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ apply.chainResAny c a ∗
+  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗
       E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
@@ -580,7 +580,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
       a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
-      (threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ apply.chainResAny c (GoInterface.ok ai) ∗
+      (threadTok ∗ apply.bkRTOf E ∗ apply.chainResAny c (GoInterface.ok ai) ∗
         ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗

@@ -73,7 +73,7 @@ abbrev apply.Apply.adminSpec : Prop :=
       Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); threadTok ∗ apply.bkRTOf E ∗
       RD ∗ (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗

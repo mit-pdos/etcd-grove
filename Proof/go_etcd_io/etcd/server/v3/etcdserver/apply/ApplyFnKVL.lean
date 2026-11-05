@@ -80,7 +80,7 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
         ⌜x.chain = apply.baseChain E.authOn ∧ apply.isKVKind (apply.dispatchKind rq) = true ∧
           apply.kvShapedL E.authMode hs rq⌝ }}
       (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-    {{ (ar : Loc), RET #ar; threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ E.FS ∗
+    {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗ E.FS ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
         E.RO (apply.restOut rq v3 out rs) ∗
@@ -122,7 +122,7 @@ abbrev apply.Apply.kvSpecL : Prop :=
         apply.kvShapedL E.authMode hs rq⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); threadTok ∗ apply.bkRTOf E ∗
       RD ∗ E.FS ∗
       (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
@@ -183,7 +183,7 @@ theorem apply.Apply.wp_kvL (hA : apply.Apply.spec (GF := GF) (hG := hG)) :
   wp_apply (hA lg e m (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) w v3 rq id RD K G ot
       iprop(apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ E.FS ∗
         (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ L hh)
-      (fun sk ar => iprop(threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+      (fun sk ar => iprop(threadTok ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
         E.RO (apply.restOut rq v3 out rs) ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o sk) ∧

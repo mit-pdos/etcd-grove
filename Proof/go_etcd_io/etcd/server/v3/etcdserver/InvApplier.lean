@@ -667,12 +667,17 @@ of `s.be` (`server.go`'s `s.be = newbe`, under `bemu`'s write side), gathers all
 need: its facts (`srvBeRO d`, persistent; item T: `isBackend` for the membership readers and
 writers, which `applyConfChange` calls without `s.bemu`) and its pool of readers
 (`backend.bkRPool`, not persistent: the apply thread's one copy; `applySnapshot` hands the old
-backend's to the goroutine closing it, with its other open shares, and holds the new one's). -/
+backend's to the goroutine closing it, with its other open shares, and holds the new one's).
+(2026-11-06, the server track's sixth session) And the apply thread's reader token of `d`
+(`apply.bkRT d`: one slot of the backend's counted stock, `backend.rdStock`, taken at `NewServer`,
+the new backend's at `applySnapshot`), lent to each entry's `Apply`/`dispatch` (`kvOwnPre`) and to
+`applyConfChange`, given back through `apply.bkRTOf E` (`bkRTOf_srv`). Until then mvcc's
+`storeRT` was in the sole writer's `writerOwn`. -/
 def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d.b ∗
     dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) ∗
-    srvBeRO d ∗ backend.bkRPool d.γB d.P d.b)
+    srvBeRO d ∗ backend.bkRPool d.γB d.P d.b ∗ apply.bkRT d)
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
 (D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
@@ -1138,7 +1143,7 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
       (dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d) -∗ srvBeOwn s E) := by
   iintro H
   iunfold srvBeOwn at H
-  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl, Hrt⟩
   iexists d
   isplitr
   · ipureintro; exact Hd
@@ -1146,7 +1151,7 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
   iintro Hg
   iunfold srvBeOwn
   iexists d
-  iframe Hbe Hg Hro Hpl
+  iframe Hbe Hg Hro Hpl Hrt
   ipureintro; exact Hd
 
 /-- **The apply thread's backend facts and pool of readers, lent from its part of `s.be`**
@@ -1154,19 +1159,43 @@ theorem srvBeOwn_frag (s : Loc) (E : apply.AEnv GF) :
 `srvBeRO d` and the pool (`backend.bkRPool`), the pool to give back. -/
 theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
     srvBeOwn (GF := GF) s E ⊢ ∃ d : BkRef, ⌜E.BkTie = srvBkTie d⌝ ∗ srvBeRO d ∗
-      backend.bkRPool d.γB d.P d.b ∗ (backend.bkRPool d.γB d.P d.b -∗ srvBeOwn s E) := by
+      backend.bkRPool d.γB d.P d.b ∗ apply.bkRT d ∗
+      (backend.bkRPool d.γB d.P d.b -∗ apply.bkRT d -∗ srvBeOwn s E) := by
   iintro H
   iunfold srvBeOwn at H
-  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl⟩
+  icases H with ⟨%d, %Hd, Hbe, Hg, #Hro, Hpl, Hrt⟩
   iexists d
   isplitr
   · ipureintro; exact Hd
-  iframe Hro Hpl
-  iintro Hpl
+  iframe Hro Hpl Hrt
+  iintro Hpl Hrt
   iunfold srvBeOwn
   iexists d
-  iframe Hbe Hg Hro Hpl
+  iframe Hbe Hg Hro Hpl Hrt
   ipureintro; exact Hd
+
+/-- **The server's tie pins the backend** (2026-11-06): a backend `B` its tie `srvBkTie d` does not
+refute (`apply.tieOk`) is `d`. -/
+theorem tieOk_srv (E : apply.AEnv GF) (d B : BkRef) (hd : E.BkTie = srvBkTie d)
+    (h : apply.tieOk E B) : B = d := by
+  apply Classical.byContradiction
+  intro hne
+  apply h
+  rw [hd]
+  unfold srvBkTie
+  iintro %h'
+  exact absurd h' hne
+
+/-- **The reader token given back, at the server's tie** (2026-11-06): `dispatch`'s and `Apply`'s
+`apply.bkRTOf E` is the token of the tie's backend `d`. -/
+theorem bkRTOf_srv (E : apply.AEnv GF) (d : BkRef) (hd : E.BkTie = srvBkTie d) :
+    apply.bkRTOf (GF := GF) E ⊢ apply.bkRT d := by
+  iintro H
+  iunfold apply.bkRTOf at H
+  icases H with ⟨%B, %Hok, Hrt⟩
+  have hB := tieOk_srv E d B hd Hok
+  subst hB
+  iexact Hrt
 
 /-- The apply thread's part of `s.be`, lent from its applier state (S7b). -/
 theorem srvApplyKV_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :

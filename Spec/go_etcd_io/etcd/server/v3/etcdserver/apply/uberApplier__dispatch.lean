@@ -53,7 +53,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
       apply.cmpOwn E crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ apply.chainResAny c a ∗ E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
+  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗ apply.chainResAny c a ∗ E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗
       apply.cmpOwn E (apply.dispatchCrev c rq v3 crev) ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗

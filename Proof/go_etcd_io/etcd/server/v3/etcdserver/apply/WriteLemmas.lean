@@ -69,13 +69,14 @@ theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Pos
     srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ∗ (Post ∨ Pre) ∗ bkRT B ⊢
       mPostW E .backend a log Pre Post := by
   iintro ⟨Hw, Htie, Hr, HPP, Hrt⟩
+  icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   iunfold mPostW
   isplitr [Hrt]
   · iapply mPost_backend
     iframe HPP
     iapply kvOwn_of_split E log B cr
     iframe Hw Htie Hr
-  · iexists B; iexact Hrt
+  · iexact Hrt
 
 /-- `mPreV` (the cluster methods', with `v3`), split as `mPreW`. -/
 theorem mPreV_split (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
@@ -98,12 +99,13 @@ theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ∗ chainRes c a info ∗
       cPost v3 Pre Post ∗ bkRT B ⊢ mPostV v3 E c a info log Pre Post := by
   iintro ⟨Hw, Htie, Hr, Hres, HPP, Hrt⟩
+  icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   iunfold mPostV
   iframe Hres HPP
   isplitl [Hw Htie Hr]
   · iapply kvOwn_of_split E log B cr
     iframe Hw Htie Hr
-  · iexists B; iexact Hrt
+  · iexact Hrt
 
 /-- **`mPre` without the chain's resources** (strict M1, 2026-11-05): what a wrapper passes on
 unchanged, or gives back with `Pre` when it rejects (`mPreRest_reject`). -/
@@ -151,17 +153,18 @@ theorem mPreRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
 reader token back. -/
 theorem mPreW_reject (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPreW E c a info log Pre Q Post ⊢ kvOwn E log ∗ chainRes c a info ∗ Pre ∗ ∃ B : BkRef, bkRT B := by
+    mPreW E c a info log Pre Q Post ⊢ kvOwn E log ∗ chainRes c a info ∗ Pre ∗ bkRTOf E := by
   iintro H
   icases mPreW_split E c a info log Pre Q Post $$ H with
     ⟨%cr, %B, Hw, Hcs, -, Hrt, Htie, Hres, Hkv⟩
+  icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   iunfold srvApi.csContractA at Hcs
   icases Hcs with ⟨HPre, -, -⟩
   iframe HPre Hres
   isplitr [Hrt]
   · iapply kvOwn_of_split E log B cr
     iframe
-  · iexists B; iexact Hrt
+  · iexact Hrt
 
 /-- **`mPreW` without the chain's resources** (as `mPreRest`). -/
 def mPreWRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
@@ -248,10 +251,11 @@ theorem mPreWRest_rd (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
 
 /-- **A rejection of a writing method** from `mPreWRest`. -/
 theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPreWRest E log Pre Q Post ⊢ kvOwn E log ∗ Pre ∗ ∃ B : BkRef, bkRT B := by
+    mPreWRest E log Pre Q Post ⊢ kvOwn E log ∗ Pre ∗ bkRTOf E := by
   iintro H
   iunfold mPreWRest at H
   icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, -, Hrt, Hcs⟩
+  icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   iunfold srvApi.csContractA at Hcs
   icases Hcs with ⟨HPre, -, -⟩
   iframe HPre
@@ -261,7 +265,7 @@ theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) 
     iunfold kvBk
     iexists B
     iframe
-  · iexists B; iexact Hrt
+  · iexact Hrt
 
 /-- **`mPreV` without the chain's resources** (as `mPreRest`). -/
 def mPreVRest (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
@@ -303,10 +307,11 @@ theorem kvOwnPre_mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 the thread's KV resources, the reader token, and `Pre` (the contract unused; the write-back token
 dropped). -/
 theorem kvOwnPre_kvOwn (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    kvOwnPre v3 E log Pre Q Post ⊢ kvOwn E log ∗ (∃ B : BkRef, bkRT B) ∗ Pre := by
+    kvOwnPre v3 E log Pre Q Post ⊢ kvOwn E log ∗ bkRTOf E ∗ Pre := by
   iintro H
   iunfold kvOwnPre at H
   icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, -, Hrt, Hc⟩
+  icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   isplitl [Hw Hll Hrd Hbk Hhk Htie]
   · iunfold kvOwn
     iframe Hw Hll Hrd
@@ -314,7 +319,7 @@ theorem kvOwnPre_kvOwn (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : 
     iexists B
     iframe Hbk Hhk Htie
   isplitl [Hrt]
-  · iexists B; iexact Hrt
+  · iexact Hrt
   iapply cPre_pre; iexact Hc
 
 /-- **For a KV method that writes through the store** (`Put`, `DeleteRange`, `Txn`,
@@ -323,10 +328,11 @@ write-back token dropped: the store's own write takes none). -/
 theorem kvOwnPre_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
     kvOwnPre true E log Pre Q Post ∗ chainRes c a info ⊢
-      mPre E c a info log Pre Q Post ∗ (∃ B : BkRef, bkRT B) := by
+      mPre E c a info log Pre Q Post ∗ bkRTOf E := by
   iintro ⟨H, Hres⟩
   iunfold kvOwnPre at H
   icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, -, Hrt, Hc⟩
+  icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
   isplitr [Hrt]
   · iunfold mPre
     iframe Hw Hll Hrd Hres
@@ -334,7 +340,7 @@ theorem kvOwnPre_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     iframe Hbk Hhk Htie
     simp only [cPre, ↓reduceIte]
     iexact Hc
-  iexists B; iexact Hrt
+  iexact Hrt
 
 /-- **`kvOwnPre` lends the auth store's reader resource** (`uberApplier.Apply`'s `rdLend`, as
 `rdLend_kvOwn`). -/

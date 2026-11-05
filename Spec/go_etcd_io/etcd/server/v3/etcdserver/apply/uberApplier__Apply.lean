@@ -46,7 +46,7 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
       apply.cmpOwn E x.crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
+  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       E.RO (apply.restOut rq v3 out rs) ∗ apply.cmpOwn E x'.crev ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧

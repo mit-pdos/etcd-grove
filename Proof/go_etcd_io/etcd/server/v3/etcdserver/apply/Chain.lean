@@ -1009,6 +1009,41 @@ theorem certPre_backend_applied (E : AEnv GF) (rq : IRRModel) (log log' : mvcc.L
   simp only [Outcome.logAfter]
   iexact Hc
 
+/-- **A backend the tie does not refute** (2026-11-06, the server track's sixth session): the
+tie at `B` is not inconsistent. For the server's tie (`srvBkTie d`, `B = d`) this is `B = d`
+(`InvApplier.tieOk_srv`). A pure fact, so a method that hands the tie on (into `kvOwn`) can keep it
+beside the reader token it gives back (`bkRTOf`). -/
+def tieOk (E : AEnv GF) (B : BkRef) : Prop := ¬ (E.BkTie B ⊢ iprop(False))
+
+open Iris.ProofMode in
+/-- The tie at `B` gives `tieOk E B` (kept). -/
+theorem tieOk_of (E : AEnv GF) (B : BkRef) : E.BkTie B ⊢ E.BkTie B ∗ ⌜tieOk E B⌝ := by
+  by_cases h : (E.BkTie B ⊢ iprop(False))
+  · iintro H
+    ihave Hf := h $$ H
+    iexfalso; iexact Hf
+  · iintro H
+    iframe H
+    ipureintro; exact h
+
+/-- **A reader token given back** (2026-11-06, the server track's sixth session; until then
+`∃ B, bkRT B`, which lost the backend, so the apply thread could not lend it to the next entry):
+the reader token of a backend `B` the tie does not refute (`tieOk`). The writing methods' and
+`dispatch`'s/`Apply`'s postconditions give it back. -/
+def bkRTOf (E : AEnv GF) : IProp GF := iprop(∃ B : BkRef, ⌜tieOk E B⌝ ∗ bkRT B)
+
+open Iris.ProofMode in
+/-- The reader token of the tie's backend, given back. -/
+theorem bkRTOf_intro (E : AEnv GF) (B : BkRef) :
+    E.BkTie B ∗ bkRT B ⊢ E.BkTie B ∗ bkRTOf E := by
+  iintro ⟨Ht, Hrt⟩
+  icases tieOk_of E B $$ Ht with ⟨Ht, %Hok⟩
+  iframe Ht
+  iunfold bkRTOf
+  iexists B
+  iframe Hrt
+  ipureintro; exact Hok
+
 /-- **The common precondition of a writing method** (`info`: the principal, A3; strict M1,
 2026-11-05: the draft's `mPreA`): the apply thread's resources without the backend's share, the
 chain's, and the backend's share with the critical-section contract at its lock's invariant, at
@@ -1042,7 +1077,7 @@ def mPreW (E : AEnv GF) (c : Chain) (a : GoInterface)
 /-- Its postcondition: `mPost`'s, and the reader token back. -/
 def mPostW (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
-  iprop(mPost E c a log Pre Post ∗ ∃ B : BkRef, bkRT B)
+  iprop(mPost E c a log Pre Post ∗ bkRTOf E)
 
 /-- The precondition of a method that writes only with `shouldApplyV3` (`v3`: the cluster's):
 `cPre v3`, the critical-section contract with `v3`, else `Pre` alone, with the backend's tokens. -/
@@ -1059,7 +1094,7 @@ back. -/
 def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post ∗ ∃ B : BkRef, bkRT B)
+  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post ∗ bkRTOf E)
 
 /-- **The apply thread's resources at `log` with the contract of a write with `v3`**
 (`uberApplier.Apply`'s and `dispatch`'s, strict M1, 2026-11-05: `kvOwn` with the contract at the

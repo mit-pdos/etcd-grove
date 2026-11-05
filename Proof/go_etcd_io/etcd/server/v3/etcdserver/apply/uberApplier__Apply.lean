@@ -47,7 +47,7 @@ theorem apply.uberApplier.Apply.wp_proof
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
         apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ E.FS ∗
         (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev))
-      %(fun ar => iprop(threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗ E.FS ∗
+      %(fun ar => iprop(threadTok ∗ apply.bkRTOf E ∗ E.FS ∗
         E.RO (apply.restAfter rq v3 rs) ∗
         apply.cmpOwn E (apply.dispatchCrev x.chain rq v3 x.crev) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗

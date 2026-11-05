@@ -494,29 +494,30 @@ theorem srvApRes_normal (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : E
   rw [← List.append_assoc, restModel_append, restEntry_normal_memKeys _ _ _ ht] at hk
   exact Hp.2.1 k hk
 
-/-- **The uber-applier and the current backend's reader pool, lent** (2026-11-02, the
-backend-auth-split stage: for `applyConfChange`, which takes `backend.bkRPool`). (Strict M1,
-2026-11-06: the store's reader token `mvcc.storeRT` gone with the sole writer's `writerOwn`; a
-backend reader token comes from the pool, at the backend `d` the environment's tie names; the
-lenders `srvApplyKV_rt` and `srvApplyKV_ua_rt` deleted with it.) -/
-theorem srvApplyKV_ua_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+/-- **The uber-applier, the current backend's reader pool and the apply thread's reader token,
+lent** (2026-11-02, the backend-auth-split stage: for `applyConfChange`, which takes
+`backend.bkRPool` and `apply.bkRT d`). (Strict M1, 2026-11-06: the reader token is the apply
+thread's own of the tie's backend `d`, in `srvBeOwn`; until then mvcc's `storeRT`, in the sole
+writer's `writerOwn`.) -/
+theorem srvApplyKV_ua_rt_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
     srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
       ⌜E.BkTie = srvBkTie d⌝ ∗
-      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
       backend.bkRPool d.γB d.P d.b ∗ srvBeRO d ∗
-      (srvUberApplyAddr s ↦ ua -∗ backend.bkRPool d.γB d.P d.b -∗ srvApplyKV s E γw x) := by
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ backend.bkRPool d.γB d.P d.b -∗
+        srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hrest⟩
-  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hbo⟩
+  icases srvBeOwn_pool s E $$ Hbo with ⟨%d, %Hd, #Hbro, Hpl, Hrt, Hbo⟩
   iexists ua, d
-  iframe Hua Hpl Hbro
+  iframe Hua Hpl Hbro Hrt
   isplitr
   · ipureintro; exact Hd
   isplitr
   · iexact Hap
-  iintro Hua Hpl
-  ihave Hbo := Hbo $$ Hpl
+  iintro Hua Hrt Hpl
+  ihave Hbo := Hbo $$ Hpl Hrt
   iunfold srvApplyKV
   iexists ua
   isplitl [Hua]
@@ -528,6 +529,22 @@ theorem srvApplyKV_ua_pool (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   isplitl [Hbo]
   · iexact Hbo
   iexact Hrest
+
+/-- **The uber-applier and the apply thread's reader token, lent** (for a normal entry's `Apply`,
+which takes the token in `kvOwnPre` and gives it back as `apply.bkRTOf E`, `bkRTOf_srv`). -/
+theorem srvApplyKV_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV (GF := GF) s E γw x ⊢ ∃ (ua : GoInterface) (d : mvcc.api.BkRef),
+      ⌜E.BkTie = srvBkTie d⌝ ∗
+      srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.bkRT d ∗
+      (srvUberApplyAddr s ↦ ua -∗ apply.bkRT d -∗ srvApplyKV s E γw x) := by
+  iintro H
+  icases srvApplyKV_ua_rt_pool s E γw x $$ H with ⟨%ua, %d, %Hd, Hua, #Hap, Hrt, Hpl, -, Hk⟩
+  iexists ua, d
+  iframe Hua Hap Hrt
+  isplitr
+  · ipureintro; exact Hd
+  iintro Hua Hrt
+  iapply Hk $$ Hua Hrt Hpl
 
 /-- A conf change in the scope keeps the members among the boot configuration's. -/
 theorem ccRest_memKeys (v3 : Bool) (cm : ConfChangeM) (r : apply.RestM) (S : GSet w64)

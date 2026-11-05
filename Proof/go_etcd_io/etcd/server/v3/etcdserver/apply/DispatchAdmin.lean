@@ -130,7 +130,7 @@ abbrev apply.uberApplier.dispatch.adminSpec : Prop :=
         receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜c.authOn = E.authOn⌝ ∗
       Own γa hs ∗ ⧗ 1 ∗ W ∗ (if v3 then apply.adminExtra E γa rq hs Pre else iprop(True)) }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
-  {{ (ar : Loc), RET #ar; threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗
+  {{ (ar : Loc), RET #ar; threadTok ∗ apply.bkRTOf E ∗
       apply.chainResAny c a ∗ structFieldRef uberApplier go!"applyV3" p ↦ a ∗
       ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep c rq v3 log o⌝ ∗ apply.resTrace ar ∗
@@ -433,7 +433,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
       a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
       «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
-      (threadTok ∗ (∃ B : mvcc.api.BkRef, apply.bkRT B) ∗
+      (threadTok ∗ apply.bkRTOf E ∗
         apply.chainResAny c (GoInterface.ok ai) ∗ structFieldRef uberApplier go!"applyV3" p ↦ GoInterface.ok ai ∗
         ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o⌝ ∗ apply.resTrace «$r0_ptr» ∗
