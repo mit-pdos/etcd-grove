@@ -315,6 +315,11 @@ out.
 - `[E, proof, internal]` `clusterConfig.spec` (`RET #clusterCfg`) and its proof, as partition's
   `config`; `memberWatch_of_cinv` (a member's watch facts in the compacting cluster, from the
   invariant's `oneChangeAu`).
+- `[C, check, internal]` Bounds baseline: `MainPartition.spec`'s thread and receipt bounds (as every
+  example's `Main`, frozen with it) raise the compactor package's `spec-thread` 1 → 2 and
+  `spec-receipt` 2 → 4 (`etc/bounds-baseline.txt`); the collection `k8scompactor` gains 25 axioms
+  already in the trust base (the bridge's, the peers' HTTP, `probing`, `snap.SaveDBFrom`, ...: what
+  partition's `linkv3p` rests on); the trust base is unchanged (785 axioms, 4 `sorry`s).
 - `[C, proof, internal]` `schedLit` and its size lemmas moved from partition's `Adequacy.lean` to
   `cluster3/SchedLit.lean` (shared by the two closed theorems, not copied).
 
