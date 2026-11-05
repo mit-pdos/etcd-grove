@@ -355,7 +355,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- (2026-11-04, the restart plan's R2b-3d) what the stop needs of the construction: the
           -- raft loop's stop claim, the storage registry's authority, the lessor's stop right, the
           -- WAL's directory (`srvStopKeep`)
-          srvStopKeep srv γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') E.s E.γ }}
+          srvStopKeep srv γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') E.s E.γ ∗
+          -- (2026-11-05, R2b-3d stage 5b) with auth off, the auth store's `Close`, for `Cleanup`
+          -- (`srvCleanupOwn`)
+          □ (⌜on = false⌝ → srvCleanupOwn srv) }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/

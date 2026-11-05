@@ -45,3 +45,4 @@ programs' descriptions and outputs; the stream-key test is inlined in
 last commit was `b157b99a97`. The report keeps the program's description, the test outputs and the
 theorem's statement.
 | [members-decode](members-decode.md) | `membership.membersOf_decode` (R2b-3d gap 3, draft on `r2b3`) | **refuted as drafted** (Go panic shown; no Lean proof, the axiom not yet landed): `json.Marshal` coerces invalid UTF-8 in a peer URL, which reads back changed. **Restated** with `utf8Valid` peer URLs; the restatement survives (2026-11-04) |
+| [auth-close](auth-close.md) | `auth.NewAuthStore.wp_proof`'s `authCloseOk` conjunct (R2b-3d stage 5b, `r2b3`) | **survives** (2026-11-05): `Close` locks `enabledMu`, finds auth disabled (the off contract never enables it), unlocks, returns `nil`; it writes nothing, so repeated or concurrent `Close`s and `Recover` are fine (Go test, race detector) |

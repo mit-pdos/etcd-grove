@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
 public import Spec.go_etcd_io.etcd.server.v3.auth.NewAuthStore
 public import Spec.go_etcd_io.etcd.server.v3.auth.NewTokenProvider
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Close
 
 @[expose] public section
 
@@ -214,6 +215,9 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
+        -- (R2b-3d stage 5b, 2026-11-05) in the mode `off`, the store's `Close` (`NewAuthStore`'s
+        -- axiom's `authCloseOk`), for `Cleanup`
+        □ (⌜M = auth.AuthMode.off⌝ → authCloseOk stl) ∗
         -- (the auth-on snapshot plan's decision 8) in the mode `on`, its snapshot clause
         authSnapKitM M stl RD ∗
         -- (authkv's Main, 2026-10-30) with auth on, the store's cost field, read-only
@@ -283,6 +287,19 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
+/-- **A closer of the store at the token provider's admin share** (R2b-3d stage 5b, 2026-11-05),
+of `authStore.Close`'s proof under the store's invariant: what `Cleanup` would take with auth on
+(the admin share the apply thread's, `authApplyRes`). -/
+theorem authCloser_of_inv (hAC : auth.authStore.Close.spec (GF := GF) (hG := hG)) (stl : Loc)
+    (R : IProp GF) (M : auth.AuthMode) :
+    auth.authInv stl R M ⊢ authCloser stl (auth.tpAdmin stl M) := by
+  iintro #Hinv
+  iunfold authCloser
+  iintro !> %Φ !> ⟨#Hpkg, Ht⟩ HΦ
+  iapply (hAC stl R M) $$ [Ht]
+  · iframe Hpkg Hinv Ht
+  iexact HΦ
+
 /-- **The kit in the mode `off`**, of `NewAuthStore`'s axiom. -/
 theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (tp : GoInterface) :
     ⊢ authStoreKit (GF := GF) .off tp := by
@@ -298,7 +315,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
     Hhas.2.2) $$ [Ho Hh Hwb Hrb]
   · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
     ipureintro; exact ⟨Hlg, Htp, Hfit, Hab, Hr⟩
-  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR⟩
+  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
   isplitl [Hr]
@@ -335,6 +352,9 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · iintro !> -
     iexact HauR
+  isplitr
+  · iintro !> -
+    iexact HauC
   isplitr
   · unfold authSnapKitM; itrivial
   iintro !> %h; exact absurd h (by decide)
@@ -568,6 +588,10 @@ theorem authStoreKit_on
     icases HIP with ⟨#Hlife, -⟩
     iapply (auth.authRd_abandon stp R γa (backend.authRdN - 1) T) $$ Htot HRDs HW Hpt Hlife
   -- (D22 J1a) the mode is `on`: no `Recover` clause
+  isplitr
+  · iintro !> %Hm
+    exfalso; cases Hm
+  -- nor a `Close` clause (R2b-3d stage 5b)
   isplitr
   · iintro !> %Hm
     exfalso; cases Hm

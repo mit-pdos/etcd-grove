@@ -209,12 +209,18 @@ def srvStopRight (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStr
     srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
     token c)
 
-/-- (DRAFT, R2b-2/R2b-3) **What `Cleanup` closes besides the apply thread's resources** (opaque
-until R2b-3): the auth store's closer (its token provider's `tpAdmin`, for `authStore.Close`). (The
-lessor's stop right moved to `srvStopKeep`, 2026-11-04.) The KV store's closer and the backend's (`srvKVCloserW`,
-`bOpen ½`, `pathOwn`, in `srvSnapRes`) come back from the apply thread, through `sched.Stop`'s last
-job's post (R2b-2 review F3). -/
-opaque srvCleanupOwn (s : Loc) : IProp GF
+/-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
+thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s
+with auth off, the user's decision: `notes/axiom-review/auth-close.md`), what `Cleanup`'s closer is
+(`authCloser` at no resource). Auth off only, `restart3`'s mode: with auth on, the closer is the
+apply thread's, at the token provider's admin share (`authCloser_of_inv`). (The lessor's stop right
+is in `srvStopKeep`; the KV store's closer and the backend's come back from the apply thread through
+`sched.Stop`'s last job's post, R2b-2 review F3.) -/
+def srvCleanupOwn (s : Loc) : IProp GF :=
+  iprop(∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloseOk stl)
+
+instance srvCleanupOwn_persistent (s : Loc) : Persistent (srvCleanupOwn (GF := GF) s) := by
+  unfold srvCleanupOwn; infer_instance
 
 /-- (2026-11-05, R2b-3d gap 4) **The store's readers `NewServer` keeps for the stop**: of the
 `rdStockN - nJobRd` readers `NewStore` gives, all but the watch loops' (`wsLoopN`), the request
@@ -250,11 +256,17 @@ def srvStopKeep (s : Loc) (γn : RNNames) (wdir : GoString) (st : Loc) (γst : m
 /-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`; restated
 2026-11-04, R2b-3d, over `srvStopKeep`): what `NewServer` kept for the stop, at the data
 directory's WAL directory with no dedicated one (the scope), the data directory (`srvDataDir`, which
-the image names) and what `Cleanup` closes besides (`srvCleanupOwn`). Its sources (R2b-2 review F3):
-`NewServer` keeps `srvStopKeep`, `start` hands it to `run`. -/
+the image names) and what `Cleanup` closes besides (`srvCleanupOwn`), and (2026-11-05, R2b-3d stage
+5b) the store's readers of the serving stocks the server never used (`srvServeBuilt`'s 64 request
+readers and `srvWatchReaders`' 64 watch readers, `mvcc.watchReader_storeReader`): with
+`srvStopKeep`'s and the apply thread's, every reader of the store, for the backend's `Close` (gap
+4's census). The caller gives them back: the request path stopped first (in `restart3` the member
+never served). Its sources (R2b-2 review F3): `NewServer` keeps `srvStopKeep` and `srvCleanupOwn`,
+`start` hands them to `run`. -/
 def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) (st : Loc) (γst : mvcc.StoreNames) :
     IProp GF :=
-  iprop(srvStopKeep s γn (config.walDirOf dd "") st γst ∗ srvDataDir s dd ∗ srvCleanupOwn s)
+  iprop(srvStopKeep s γn (config.walDirOf dd "") st γst ∗ srvDataDir s dd ∗ srvCleanupOwn s ∗
+    ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader st γst))
 
 end defs
 

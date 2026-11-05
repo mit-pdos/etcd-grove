@@ -31911,3 +31911,20 @@ finding).
 - *A stale entry after an endpoint change* (`onClose` deletes the endpoints as they are at `Stop`) is
   `nonissues/k8s-apiserver-compactor-per-endpoint-stale-entry.md`: Kubernetes' compactor client never
   changes its endpoints.
+
+## The auth store's `Close` at the stop (2026-11-05 · R2b-3d stage 5b; the user's choice "Close contract" · branch `r2b3`)
+
+`Cleanup`'s `authStore.Close` took the store's invariant and the token provider's admin share
+(`authInv ∗ tpAdmin`). With auth off, `restart3`'s mode, nothing gives either: the off store comes
+from `NewAuthStore`'s axiom, whose post hides both behind its contracts. Three options were put to
+the user: (1) a persistent `Close` contract in the axiom's post (`authCloseOk stl`, the triple
+`{{ isPkgInit auth }} Close {{ err; ⌜err = nil⌝ }}`); (2) `authInv stl R .off ∗ tpAdmin stl .off` in
+the axiom's post, the store's three lock protocols and the provider's contract made trusted; (3)
+the off store proved from the code, like `newAuthStore_on`. The user chose (1), the smallest
+trusted claim; it survives the axiom review (`notes/axiom-review/auth-close.md`, a Go test under the
+race detector). `Cleanup`'s spec now takes a closer at a resource `K` (`authCloser stl K ∗ K`, `K`
+given back): with auth off `K` is `True` (`authCloseOk`); with auth on it is the admin share
+(`authCloser_of_inv`, from `authStore.Close`'s proof under `authInv`). The off kit and `NewServer`
+pass it on (`□ (⌜on = false⌝ → srvCleanupOwn srv)`), and `srvCleanupOwn` (opaque since R2b-2) is now
+defined from it. Until R2b-3 needs auth on at the stop, `Cleanup`'s on-mode closer is the apply
+thread's `tpAdmin` (in `authApplyRes`).
