@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.bbolt.Write.MatGrow
 public import Proof.go_etcd_io.bbolt.Write.CreateBktPost
 public import Proof.go_etcd_io.bbolt.Read.WOpenWOK
 public import Proof.go_etcd_io.bbolt.Read.PubWBkt
+public import Proof.go_etcd_io.bbolt.Txn.WInit
 
 @[expose] public section
 
@@ -219,6 +220,231 @@ theorem rootEnts_setNode_ne (X : WX) (b l : Loc) (B : BRec) (r' : NRec)
     unfold WX.rootPid; rw [hbs]
   unfold rootEnts WX.leaves
   rw [hrl, hfuel, hrp, WOpen.lleaves_congr' _ _ X.rl hlt]
+
+/-! ## The open of a top-level bucket -/
+
+theorem mem_rootEnts_of (X : WX) (w : WEntry) (hw : w ∈ X.allEnts X.rl) (hf : isBktFlag w.flags) :
+    (w.key, w.value) ∈ rootEnts X := by
+  unfold rootEnts
+  unfold WX.allEnts at hw
+  simp only [List.mem_flatMap, List.mem_filterMap, List.mem_flatten] at hw ⊢
+  obtain ⟨ws, hws, hw⟩ := hw
+  exact ⟨ws, hws, w, hw, by simp [hf]⟩
+
+/-- **The root's entry of a bucket entry's name is its value** (the root's keys are distinct). -/
+theorem rootEntVal_of_mem (X : WX) (hok : wOK X) (R : BRec) (hR : X.t.bs !! X.rl = some R)
+    (w : WEntry) (hw : w ∈ X.allEnts X.rl) (hf : isBktFlag w.flags) :
+    rootEntVal X w.key = some w.value := by
+  unfold rootEntVal
+  cases h : (rootEnts X).find? (fun e => decide (e.1 = w.key)) with
+  | none =>
+    have := List.find?_eq_none.1 h _ (mem_rootEnts_of X w hw hf)
+    simp at this
+  | some e =>
+    have hm := List.mem_of_find?_eq_some h
+    have he := List.find?_some h
+    simp only [decide_eq_true_eq] at he
+    obtain ⟨w', hw', -, hk', hv'⟩ := PubW.mem_rootEnts X e.1 e.2 hm
+    have := WOpen.allEnts_key_inj X hok X.rl R hR w' w hw' hw (hk'.trans he)
+    subst this
+    simp [hv']
+
+/-- **The open of a top-level bucket keeps `wrCurFacts`**: the new bucket (at a location no
+registered node names) caches nothing, its root is its entry's (`wRoot`, by the root entries'
+roots), and the root's entries are kept. -/
+theorem wrCurFacts_bktOpened (T : TxView) (X X' : WX) (c : Loc) (name : List w8) (g : Nat)
+    (hop : bktOpened X X' X.rl c name g) (hok : wOK X) (hw : wrCurFacts T X) :
+    wrCurFacts T X' := by
+  obtain ⟨B, C, w, hB, hwm, hk, hf, hbm, -, hcfresh, hCib, -, -, hCnm, -, -, -, -, hX'⟩ := hop
+  have hc : X.t.bs !! c = none := by
+    cases e : X.t.bs !! c with
+    | none => rfl
+    | some D =>
+      have := bobjs_bkt X.t c D e
+      rw [Option.isNone_iff_eq_none] at hcfresh; rw [hcfresh] at this; cases this
+  have hcrl : c ≠ X.rl := by intro e; rw [e, hB] at hc; cases hc
+  have hlk : ∀ d, X'.t.bs !! d =
+      if c = d then some C else if X.rl = d then some { B with bm := B.bm.insert name c }
+      else X.t.bs !! d := by
+    intro d; rw [hX']; simp only [GMap.lookup_insert_eq_iff]
+  have hrl' : X'.rl = X.rl := by rw [hX']
+  have hv' : X'.v = X.v := by rw [hX']
+  have hnl : X'.nloc = X.nloc := by rw [hX']
+  have hlb : X'.liveB = X.liveB.insert c () := by rw [hX']
+  have hXO : X' = WOpen.XO X X.rl c B C name (name, g) := by rw [hX']; rfl
+  have hre : rootEnts X' = rootEnts X := by
+    have hlv : X'.leaves X.rl = X.leaves X.rl := by
+      rw [hXO]; exact WOpen.XO_leaves_old X X.rl c B C name (name, g) hB hc hbm hok X.rl
+        (Ne.symm hcrl)
+    unfold rootEnts; rw [hrl', hlv]
+  have hrlB : X.rl ∈ X.liveB := hok.2.2.2.2.2.1.1
+  have hlv' : ∀ d, c ≠ d → d ∈ X'.liveB → d ∈ X.liveB := by
+    intro d hd h
+    rw [hlb, GMap.mem_iff, GMap.lookup_insert_eq_iff, if_neg hd] at h
+    exact h
+  have hbo : ∀ d, (X.t.bobjs !! d).isSome → (X'.t.bobjs !! d).isSome := by
+    intro d hd
+    have hdd : X'.t.deadB = X.t.deadB := by rw [hX']
+    unfold WTx.bobjs at hd ⊢
+    rw [GMap.lookup_union] at hd ⊢; rw [hlk, hdd]
+    split
+    · rfl
+    · split
+      · rfl
+      · exact hd
+  have hloc : ∀ n, bktLoc X' n = if name = n then some c else bktLoc X n := by
+    intro n
+    unfold bktLoc
+    rw [hrl', hlk, if_neg hcrl, if_pos rfl, hB]
+    simp only [Option.bind_some, GMap.lookup_insert_eq_iff]
+  have hrp : ∀ d, c ≠ d → X'.rootPid d = X.rootPid d := by
+    intro d hd
+    unfold WX.rootPid
+    rw [hlk, if_neg hd]
+    split
+    · rename_i e; subst e; rw [hB]; rfl
+    · rfl
+  obtain ⟨⟨h1, h2⟩, h3, h4, h5⟩ := hw
+  refine ⟨⟨fun l b p hl hb => ?_, fun b B' cc l hB' hb hcc => ?_⟩, fun n b hn => ?_, fun n => ?_,
+    fun l b p hl => ?_⟩
+  · rw [hnl] at hl
+    have hcb : c ≠ b := by
+      intro e; subst e
+      have := h5 l c p hl
+      rw [Option.isNone_iff_eq_none] at hcfresh; rw [hcfresh] at this; cases this
+    obtain ⟨B0, hB0, hm⟩ := h1 l b p hl (hlv' b hcb hb)
+    rw [hlk, if_neg hcb]
+    split
+    · rename_i e; subst e; rw [hB] at hB0; cases hB0; exact ⟨_, rfl, hm⟩
+    · exact ⟨B0, hB0, hm⟩
+  · rw [hnl]
+    rw [hlk] at hB'
+    split at hB'
+    · cases hB'; rw [hCnm] at hcc; simp at hcc
+    · rename_i hcb
+      split at hB'
+      · rename_i e; subst e; cases hB'
+        exact h2 X.rl B cc l hB hrlB hcc
+      · exact h2 b B' cc l hB' (hlv' b hcb hb) hcc
+  · rw [hloc] at hn
+    rw [hv']
+    split at hn
+    · rename_i e; subst e; cases hn
+      have hpc : X'.rootPid c = C.ib.root' := by
+        unfold WX.rootPid; rw [hlk, if_pos rfl]; rfl
+      rw [hpc, hCib, ← hk, ← h4 w.key]
+      unfold rootEntRef
+      rw [rootEntVal_of_mem X hok B hB w hwm hf]
+      rfl
+    · obtain ⟨D, v, hD, -⟩ := (hok.2.1 X.rl B hB).2 n b (by unfold bktLoc at hn; rw [hB] at hn; exact hn)
+      have hcb : c ≠ b := by intro e; subst e; rw [hc] at hD; cases hD
+      rw [hrp b hcb]; exact h3 n b hn
+  · rw [rootEntRef_of_rootEnts X X' hre, hv']; exact h4 n
+  · rw [hnl] at hl; exact hbo b (h5 l b p hl)
+
+/-! ## `CreateBucket`'s put -/
+
+/-- A node record replaced: the root's entries are `withWs`'s (the same leaf flag). -/
+theorem rootEnts_setNode_withWs (X : WX) (bl l : Loc) (B : BRec) (r r' : NRec)
+    (hB : X.t.bs !! bl = some B) (hr : B.ns !! l = some r) (hlf : r'.nv.isLeaf' = r.nv.isLeaf') :
+    rootEnts (X.setNode bl l r') = rootEnts (X.withWs bl l r'.ws) := by
+  have hS : (X.setNode bl l r').t.bs = X.t.bs.insert bl { B with ns := B.ns.insert l r' } := by
+    unfold WX.setNode WX.setBkt; rw [hB]
+  have hv : (X.setNode bl l r').v = X.v := by unfold WX.setNode WX.setBkt; rw [hB]
+  have hrl1 : (X.setNode bl l r').rl = X.rl := by unfold WX.setNode WX.setBkt; rw [hB]
+  have hf : (X.setNode bl l r').fuel = (X.withWs bl l r'.ws).fuel := by
+    rw [withWs_fuel X bl l r'.ws B r hB hr]
+    unfold WX.fuel
+    rw [hS, GMap.map_size_insert_Some _ _ _ _ hB, hv]
+  have hp : (X.setNode bl l r').rootPid X.rl = (X.withWs bl l r'.ws).rootPid X.rl := by
+    rw [withWs_rootPid X bl l r'.ws B r hB hr]
+    unfold WX.rootPid
+    rw [hS]
+    by_cases hc : X.rl = bl
+    · rw [hc, GMap.lookup_insert, hB]; rfl
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hc)]
+  unfold rootEnts WX.leaves
+  rw [hrl1, show (X.withWs bl l r'.ws).rl = X.rl from rfl, hf, hp,
+    ltree_setNode_eq X bl l B r r' hB hr hlf]
+
+/-- **`CreateBucket`'s put keeps `wrCurFacts`** (with `createPost`'s premises): the new entry is
+inline (root `0`) and its name had no entry (root `0` too). -/
+theorem wrCurFacts_createPost (T : TxView) (X X3 : WX) (kb : List w8) (ib : InBucket) (l : Loc)
+    (B3 : BRec) (rl : NRec) (s : GoSlice) (ins : List Inode)
+    (hok : wOK X) (hcur : T.cur = wtxData X)
+    (hmg : matGrow X X3 X.rl) (hok3 : wOK X3)
+    (hB3 : X3.t.bs !! X.rl = some B3) (hrl : B3.ns !! l = some rl) (hlf : leafFor X3 X.rl kb l)
+    (hnew : T.cur !! kb = none) (h0 : ib.root' = W64 0) (hwc : wrCurFacts T X) :
+    wrCurFacts T (X3.setNode X.rl l (rl.withEnts s ins (wsPutAt rl.ws kb (createEnt kb ib)))) := by
+  have hw3 := wrCurFacts_matGrow T X X3 X.rl hok hmg hwc
+  have k2 := (matGrow_keepW hmg).2.1
+  obtain ⟨B0, r0, bnd, hB0, hr0, hlf0, hbk, hkin⟩ := id hlf
+  rw [hB3] at hB0; cases hB0; rw [hrl] at hr0; cases hr0
+  have hpw : wsPw rl.ws :=
+    wsSorted_pw _ ((wOK_bktClean X3 hok3 X.rl B3 hB3).2.2.2.2.2.2.2.1 l rl hrl).2.2.2.1
+  have hput : wsPutAt rl.ws kb (createEnt kb ib) = wsPut rl.ws (createEnt kb ib) :=
+    wsPutAt_wsPut rl.ws (createEnt kb ib) hpw
+  have hdata3 : wtxData X3 = wtxData X := wtxData_matGrow X X3 X.rl hok hmg
+  have hnone3 := rootEnts_none X3 kb (by rw [hdata3, ← hcur]; exact hnew)
+  have hB3' : X3.t.bs !! X3.rl = some B3 := by rw [k2]; exact hB3
+  have hre : rootEnts (X3.setNode X.rl l (rl.withEnts s ins (wsPutAt rl.ws kb (createEnt kb ib)))) =
+      rootEnts (X3.withWs X3.rl l (wsPut rl.ws (createEnt kb ib))) := by
+    rw [rootEnts_setNode_withWs X3 X.rl l B3 rl
+      (rl.withEnts s ins (wsPutAt rl.ws kb (createEnt kb ib))) hB3 hrl rfl, k2]
+    show rootEnts (X3.withWs X.rl l (wsPutAt rl.ws kb (createEnt kb ib))) = _
+    rw [hput]
+  have hval3 : (rootEnts X3).find? (fun x => decide (x.1 = kb)) = none := by
+    cases h : (rootEnts X3).find? (fun x => decide (x.1 = kb)) with
+    | none => rfl
+    | some x =>
+      have hm := List.mem_of_find?_eq_some h
+      have he := List.find?_some h
+      simp only [decide_eq_true_eq] at he
+      exact absurd (he ▸ hm) (hnone3 x.2)
+  refine wrCurFacts_setNode T T X3 X.rl l B3 _ hB3 (fun _ => rfl) (fun n => ?_) hw3
+  unfold rootEntRef rootEntVal
+  rw [hre]
+  by_cases hn : n = kb
+  · rw [hn, hval3]
+    obtain ⟨hA, hBm⟩ := rootEnts_key_eq X3 l B3 rl bnd (createEnt kb ib) hok3 hB3' hrl hlf0 hbk
+      hkin (createEnt_flag kb ib)
+    cases h : (rootEnts (X3.withWs X3.rl l (wsPut rl.ws (createEnt kb ib)))).find?
+        (fun x => decide (x.1 = kb)) with
+    | none =>
+      have := List.find?_eq_none.1 h _ hBm
+      simp [createEnt] at this
+    | some x =>
+      have hm := List.mem_of_find?_eq_some h
+      have he := List.find?_some h
+      simp only [decide_eq_true_eq] at he
+      have hx := hA x hm he
+      rw [hx]
+      exact emptyBktVal_root ib h0
+  · have hp : ∀ x : GoString × List w8, decide (x.1 = n) = true →
+        decide (x.1 ≠ (createEnt kb ib).key) = true := by
+      intro x hx; simp only [decide_eq_true_eq] at hx ⊢; rw [hx]; exact hn
+    rw [find?_filter_of_imp _ _ hp, rootEnts_filter_ne X3 l B3 rl bnd (createEnt kb ib) hok3 hB3'
+      hrl hlf0 hbk hkin, ← find?_filter_of_imp _ _ hp]
+
+/-! ## `beginRWTx` -/
+
+/-- **The initial records' `wrCurFacts`** (generation `0` everywhere): no node registered, nothing
+opened, the root's entries the view's. -/
+theorem wrCurFacts_wx0 (T : TxView) (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta)
+    (bv : go_etcd_io.bbolt.Bucket) (ib : InBucket) (htree : treeOK C) (hi : Init0 C t mv bv ib)
+    (hgen : ∀ n, T.gen n = 0) : wrCurFacts T (wx0 rl t mv bv ib (View.ofC b C)) := by
+  refine ⟨⟨fun l b p hl _ => ?_, fun b' B c l hB _ hc => ?_⟩, fun n b' hn => ?_, fun n => ?_,
+    fun l b p hl => ?_⟩
+  · simp [wx0] at hl
+  · obtain ⟨-, rfl⟩ := wx0_bs_some rl t mv bv ib _ b' B hB
+    simp [brec0] at hc
+  · unfold bktLoc at hn
+    rw [wx0_bs] at hn
+    simp [brec0, wx0] at hn
+  · unfold wRoot rootEntRef rootEntVal baseRoot baseVal
+    rw [if_pos (hgen n), rootEnts_wx0 C b rl t mv bv ib htree hi]
+    rfl
+  · simp [wx0] at hl
 
 end wrcur
 
