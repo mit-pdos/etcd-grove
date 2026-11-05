@@ -991,4 +991,6 @@ dlsOwn γ ∅` (`fkCl` redefined with exact values; `NewAlloc` already allocates
 `KV.Range`'s and `Txn.Range`'s proofs must give the read log's `LogWf'` and its revisions' size bound
 (`MvccReachable`'s `LogWf` and the receipt; for a write transaction, the pending revision's deletes
 of present keys), `Txn.Changes`'s `0 ≤ sint.Z chs.len` (the pending length, bounded by the writer's
-receipt).
+receipt). (F) `Txn.DeleteRange`'s proof must give `LogWf' (σ.log ++ [pend ++ ds])` and its revisions'
+size bound (the transaction's pending revision well formed: `ds` deletes only keys present after
+`pend`, `delKeys`; its length bounded by the writer's receipt `⧖ (logCh ilog + pend.length)`).

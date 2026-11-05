@@ -785,7 +785,9 @@ def mvcc.api.Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
               ∀ n rev,
                 mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (mvcc.api.MTxn.write σ (pend ++ ds)) ∗
                     lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log (pend ++ ds)) ∗
-                      ⌜n = W64 ↑ds.length ∧ rev = W64 ↑(mvcc.writeRev σ.log (pend ++ ds))⌝ -∗
+                      ⌜n = W64 ↑ds.length ∧ rev = W64 ↑(mvcc.writeRev σ.log (pend ++ ds))⌝ ∗
+                        ⌜mvcc.LogWf' (σ.log ++ [pend ++ ds]) ∧
+                            ∀ (cs : List mvcc.Change), cs ∈ σ.log ++ [pend ++ ds] → cs.length < 2 ^ 63⌝ -∗
                   Φ (intoVal n, intoVal rev)) -∗
             WP
               (((intoVal (methods ty go!"DeleteRange" v))

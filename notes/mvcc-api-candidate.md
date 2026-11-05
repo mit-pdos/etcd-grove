@@ -836,3 +836,7 @@ come with the contracts):
   `LogWf'` is `LogLemmas`' (importable).
 - **C.** `Txn.Changes.contract`'s post gains `⌜0 ≤ sint.Z chs.len⌝` (Go's `len(...) > 0` is a signed
   comparison).
+- **F.** `Txn.DeleteRange.contract`'s post gains `⌜LogWf' (σ.log ++ [pend ++ ds]) ∧ ∀ cs ∈ σ.log ++
+  [pend ++ ds], cs.length < 2 ^ 63⌝`: the transaction's state after the delete (its pending revision
+  `pend ++ ds`) well formed and each revision of fewer than `2 ^ 63` changes, as A for `Txn.Range`'s
+  read log.

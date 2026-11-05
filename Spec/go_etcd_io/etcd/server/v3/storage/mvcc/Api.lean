@@ -568,6 +568,9 @@ abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
       traceutil.ownTrace trace te ∗
       lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (pend ++ [.put k vv leaseID])) }}
 
+/-- A write transaction's delete of a range: the deletes of the range's present keys appended to
+the pending revision; the state after them well formed, each revision of fewer than `2 ^ 63` changes
+(txn's migration, 2026-11-05: decided by the coordinator, F). -/
 abbrev Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Change) (key endk : GoSlice)
     (k e : GoString) (L : List w64),
@@ -578,7 +581,8 @@ abbrev Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
   {{ (n rev : w64), RET (PairV #n #rev);
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ ds)) ∗
       lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (pend ++ ds)) ∗
-      ⌜n = W64 (ds.length : Int) ∧ rev = W64 ((writeRev σ.log (pend ++ ds) : Nat) : Int)⌝ }}
+      ⌜n = W64 (ds.length : Int) ∧ rev = W64 ((writeRev σ.log (pend ++ ds) : Nat) : Int)⌝ ∗
+      ⌜LogWf' (σ.log ++ [pend ++ ds]) ∧ ∀ cs ∈ σ.log ++ [pend ++ ds], cs.length < 2 ^ 63⌝ }}
 
 abbrev Txn.Changes.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (k : MTxn),
