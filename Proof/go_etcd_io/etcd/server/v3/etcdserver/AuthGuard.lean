@@ -179,11 +179,11 @@ instance adminNilOk_persistent (st : GoInterface) (RD : IProp GF) (M : auth.Auth
 
 /-- **The server `s`'s auth fields** (persistent; see the file header). -/
 def srvAuthAt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
+  iprop(∃ (st : GoInterface) (cca : Bool),
     structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
     □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound st E.RD E.authMode) ∗
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗
-    apply.isAuthStore st E.γ P f E.RD E.authMode E.RW)
+    apply.isAuthStore st E.Pk E.f E.BkTie E.RD E.authMode E.RW)
 
 instance srvAuthAt_persistent (s : Loc) (E : apply.AEnv GF) : Persistent (srvAuthAt s E) := by
   unfold srvAuthAt; infer_instance
@@ -201,9 +201,10 @@ instance srvAdminNilOk_persistent (s : Loc) (E : apply.AEnv GF) :
 real store's spec covers a `nil` auth info, `apply.isAuthStore` states it): `adminNilOk` and
 `srvAdminNilOk` are derivable, and the guarded entry points' specs can drop them (a mechanical
 follow-up). -/
-theorem adminNilOk_of_isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF)
-    (f : val) (RD : IProp GF) (M : auth.AuthMode) (RW : IProp GF) :
-    apply.isAuthStore st γ P f RD M RW ⊢ adminNilOk st RD M := by
+theorem adminNilOk_of_isAuthStore (st : GoInterface) (Pk : mvcc.api.BkRef → IProp GF)
+    (f : GoFunc) (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (M : auth.AuthMode)
+    (RW : IProp GF) :
+    apply.isAuthStore st Pk f BT RD M RW ⊢ adminNilOk st RD M := by
   iintro H
   iunfold apply.isAuthStore at H
   icases H with ⟨%ai, %Hai, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
@@ -217,11 +218,11 @@ theorem srvAdminNilOk_of_srvAuthAt (s : Loc) (E : apply.AEnv GF) :
     srvAuthAt s E ⊢ srvAdminNilOk s E := by
   iintro H
   iunfold srvAuthAt at H
-  icases H with ⟨%st, %cca, %P, %f, #Has, -, -, -, #Hast⟩
+  icases H with ⟨%st, %cca, #Has, -, -, -, #Hast⟩
   iunfold srvAdminNilOk
   iexists st
   iframe Has
-  iapply adminNilOk_of_isAuthStore st E.γ P f E.RD E.authMode E.RW $$ Hast
+  iapply adminNilOk_of_isAuthStore st E.Pk E.f E.BkTie E.RD E.authMode E.RW $$ Hast
 
 /-- The server's auth fields, from the proposer's view (the store's request side, the flag) and
 the reader's (the store's contract). -/
@@ -235,12 +236,12 @@ theorem srvAuthAt_of_views (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iunfold isServerRead at Hr
   icases Hr with ⟨%vr, Hr⟩
   iunfold srvReadFieldsAt at Hr
-  icases Hr with ⟨-, -, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
+  icases Hr with ⟨-, -, -, -, -, -, -, #Has2, #Hast, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hrb⟩
   icombine Has Has2 gives %Heq
   ihave #Hreq' : isReqAuth vr.auth E.RD $$ []
   · rw [← Heq]; iexact Hreq
   iunfold srvAuthAt
-  iexists vr.auth, vq.cca, E.P, E.f
+  iexists vr.auth, vq.cca
   iframe #
 
 /-! ## The member operations' callees (names only), as contracts
