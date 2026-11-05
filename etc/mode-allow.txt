@@ -117,7 +117,6 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKV\
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKVOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/AuthnServedOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServeFromStartOn\.lean::  # 2
-lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/ServedOn\.lean::  # 9
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/WatchLawsHist\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Defs\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainServe\.lean::  # 3

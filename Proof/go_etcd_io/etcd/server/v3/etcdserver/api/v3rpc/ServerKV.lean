@@ -386,6 +386,13 @@ instance kvServerAt_persistent (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
     Persistent (kvServerAt p s A cid mid n) := by
   unfold kvServerAt; infer_instance
 
+/-- `kvServerAt` reads its answer only through the KV's `Rev()` resources (`hdrIs`): any answer with
+the same `revR` (the off, on and mode answers', whatever the parameters). -/
+theorem kvServerAt_revR (p s : Loc) (A A' : KVAns GF) (cid mid n : w64) (hR : A.revR = A'.revR) :
+    kvServerAt (GF := GF) p s A cid mid n = kvServerAt p s A' cid mid n := by
+  unfold kvServerAt hdrIs
+  rw [hR]
+
 theorem kvServerIs_of_at (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
     kvServerAt (GF := GF) p s A cid mid n ∗ raftKV s A ⊢ kvServerIs p s A cid mid n := by
   iintro ⟨#Hat, #HKV⟩

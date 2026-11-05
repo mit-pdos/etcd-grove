@@ -7,7 +7,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
-public import Proof.go_etcd_io.etcd.client.v3.ServedOn
+public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 
 @[expose] public section
 

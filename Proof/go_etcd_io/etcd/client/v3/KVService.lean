@@ -7,7 +7,7 @@ it** (D44, 2026-10-25; until then in `client/v3/Results.lean`). Lean-first (no R
 environment, read names and ids): a caller asking the request `o` gets a reply message `m` with
 `putReplied` (`putReplyOk`, persistent, and the token of the revision the put made, `revMinted`),
 `rangeReplyOk` at the committed index `c` the caller knows of, `deleteReplied`, `txnReplied`. The
-server's handlers meet them as grpc runs them (`Results.lean`'s `etcd_putMethodOk`, ...,
+server's handlers meet them as grpc runs them (`Results.lean`'s `etcd_putMethodMd`, ...,
 `etcd_kv_served`, `etcd_kv_started`), which registers them at the member's address
 (`isGrpcRpc`).
 

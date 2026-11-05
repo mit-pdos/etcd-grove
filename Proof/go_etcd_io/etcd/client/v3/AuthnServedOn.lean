@@ -19,7 +19,7 @@ they are conditional on it through the token, which their statements do not show
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.ServedOn
+public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 
@@ -208,6 +208,20 @@ theorem etcd_authenticateMethodOk (p : Loc)
   iapply HΨ
   iframe
 
+/-- The KV methods' run slot is the Auth methods' (`authSlot` and the interceptors'), with the rest
+of the KV handlers' slot and the quota check's. -/
+theorem etcdGrpcSlot_auth (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    etcdGrpcSlot (GF := GF) s E γr ⊣⊢
+      iprop((v3rpc.authSlot s E ∗ [∗list] R ∈ etcdIcRs s, R) ∗
+        (mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ srvReadReader s γr ∗ v3rpc.quotaRd s)) := by
+  unfold etcdGrpcSlot etcdRunSlot v3rpc.authSlot
+  constructor
+  · iintro ⟨⟨⟨Hlt, Hsr, Hlg, Hrd, Hard⟩, Hq⟩, Hics⟩
+    iframe
+  · iintro ⟨⟨⟨Hlt, Hard⟩, Hics⟩, Hsr, Hlg, Hrd, Hq⟩
+    iframe
+
+
 /-- The KV methods' run slot is `Authenticate`'s (`authnSlot` and the interceptors'), with the rest
 of the KV handlers' slot and the quota check's. -/
 theorem etcdGrpcSlot_authn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -266,45 +280,12 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         isGrpcRpc addr authnMethod (etcdAuthenticateSpec γa) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Has, #Hast, #Hcost, #Hauthn, #Hil, #Him,
     #Hiu, Hl, Hslots⟩
-  ihave #Hp := etcd_putHandlerOn p s E ρ γr cid mid n γa hγa $$ []
-  · iframe #
-  ihave #Hr := etcd_rangeHandlerOn p s E ρ γr cid mid n γa hγa $$ []
-  · iframe #
-  ihave #Hd := etcd_deleteHandlerOn p s E ρ γr cid mid n γa hγa $$ []
-  · iframe #
-  ihave #Ht := etcd_txnHandlerOn p s E ρ γr cid mid n γa hγa $$ []
-  · iframe #
-  ihave #Hqt := v3rpc.quotaKV_txnHandlerOkMd_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpecOn s E ρ γr cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    (etcdRunSlot s E γr) $$ []
-  · iframe #
-  ihave #Hqp := v3rpc.quotaKV_putHandlerOkMd_of v3rpc.quotaKVServer.wp_Put (etcdPutSpecOn s E ρ cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    (etcdRunSlot s E γr) $$ []
-  · iframe #
-  ihave #Hr' := grpcHandlerOkMd_frame _ _ (v3rpc.quotaRd s) (etcdRangeSpecOn s E γr cid mid) $$ Hr
-  ihave #Hd' := grpcHandlerOkMd_frame _ _ (v3rpc.quotaRd s) (etcdDeleteSpecOn s E ρ cid mid) $$ Hd
-  ihave #Hqr := v3rpc.quotaKV_promotedHandlerOkMd (etcdRangeSpecOn s E γr cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"Range" inferInstance $$ [Hq Hr']
-  · iframe #
-  ihave #Hqd := v3rpc.quotaKV_promotedHandlerOkMd (etcdDeleteSpecOn s E ρ cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"DeleteRange" inferInstance $$ [Hq Hd']
-  · iframe #
+  have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
+  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+  · iPkgInit
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
     iframe #
-  ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
-  · iPkgInit
-  ihave #Hmp := etcd_putMethodOn q _ _ _ (etcdPutSpecOn s E ρ cid mid) $$ [Hqp Ppb Hics]
-  · iframe #
-  ihave #Hmr := etcd_rangeMethodOn q _ _ _ (etcdRangeSpecOn s E γr cid mid) $$ [Hqr Ppb Hics]
-  · iframe #
-  ihave #Hmd := etcd_deleteMethodOn q _ _ _ (etcdDeleteSpecOn s E ρ cid mid) $$ [Hqd Ppb Hics]
-  · iframe #
-  ihave #Hmt := etcd_txnMethodOn q _ _ _ (etcdTxnSpecOn s E ρ γr cid mid) $$ [Hqt Ppb Hics]
-  · iframe #
   -- the Auth methods, at their slot (`authSlot` and the interceptors'), then at the KV's
   ihave #Hu := v3rpc.etcd_userAddHandlerOk pa s E ρ ast $$ []
   · iframe #
@@ -341,33 +322,41 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
   have hn1 := (etcdGrpcSlot_authn (GF := GF) s E γr).1
   have hn2 := (etcdGrpcSlot_authn (GF := GF) s E γr).2
   ihave #Hmn' := grpcMethodOkMd_slot _ _ _ _ _ _ _ hn1 hn2 $$ Hmn
-  imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdKVMethodsOn q s E ρ γr cid mid ++
-      v3rpc.etcdAuthMethods pa s E ρ ++ [etcdAuthnMethod pa γa])
-    (etcdGrpcSlot s E γr) N
-    (by simp only [etcdKVMethodsOn, v3rpc.etcdAuthMethods, etcdAuthnMethod, authnMethod, List.map,
+  -- the KV methods in the server's mode (`etcd_kv_servedM_with`), at auth on
+  rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none)
+    (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none) cid mid n rfl]
+  imod (etcd_kv_servedM_with addr p q s E ρ γr cid mid n il im iu regs N (etcdGrpcSlot s E γr)
+    iprop(True) (v3rpc.etcdAuthMethods pa s E ρ ++ [etcdAuthnMethod pa γa])
+    (by iintro H; iframe H) (by iintro ⟨H, -⟩; iexact H)
+    (by simp only [etcdKVMethodsM, v3rpc.etcdAuthMethods, etcdAuthnMethod, authnMethod, List.map,
           List.cons_append, List.nil_append]
         decide)
+    (fun x hx => hregs x (List.mem_append_left _ hx))
     (by
-      intro x hx
+      intro m hm
       apply hregs
-      simp only [etcdKVMethodsOn, v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append,
-        List.nil_append, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hx
-      rcases hx with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-        simp [etcdKVRegs, v3rpc.authRegs, authnMethod]))
-    $$ [Hl Hslots] with Hrpcs
-  · iframe
-    imodintro
-    simp only [etcdKVMethodsOn, v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append,
-      List.nil_append]
-    unfold etcdGrpcSlot
+      simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append,
+        List.mem_cons, List.mem_nil_iff, _root_.or_false] at hm
+      rcases hm with rfl | rfl | rfl | rfl | rfl | rfl <;>
+        simp [v3rpc.authRegs, authnMethod])
+    (fun h => by rw [hon] at h; cases h)) $$ [Hl Hslots] with ⟨#H1, #H2, #H3, #H4, -, Hms⟩
+  · rw [hon]
+    iframe; iframe #
+    isplitl []
+    · ipureintro; rw [hγa]; simp
+    iintro !>
+    simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append]
     iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  simp only [etcdKVMethodsOn, v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append,
-    List.nil_append]
-  icases Hrpcs with ⟨#H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9, #H10, -⟩
+  ihave #H1' := isGrpcRpcMd_mono _ _ _ _ (etcdPutSpecM_true _ hon s E ρ cid mid) $$ H1
+  ihave #H2' := isGrpcRpcMd_mono _ _ _ _ (etcdRangeSpecM_true _ hon s E γr cid mid) $$ H2
+  ihave #H3' := isGrpcRpcMd_mono _ _ _ _ (etcdDeleteSpecM_true _ hon s E ρ cid mid) $$ H3
+  ihave #H4' := isGrpcRpcMd_mono _ _ _ _ (etcdTxnSpecM_true _ hon s E ρ γr cid mid) $$ H4
+  simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append]
+  icases Hms with ⟨#H5, #H6, #H7, #H8, #H9, #H10, -⟩
   imodintro
-  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9
+  iframe H1' H2' H3' H4' H5 H6 H7 H8 H9
   iapply (isGrpcRpc_md _ _ _).2
   iexact H10
 
