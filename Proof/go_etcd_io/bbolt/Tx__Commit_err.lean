@@ -194,7 +194,7 @@ theorem Tx.Commit_err.wp_proof'
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
   icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, -⟩
-  ihave %Hlgty := dbFixed_logPtrTyped K.db K.sp lg $$ Hfix Hlg
+  ihave %Hlgty := dbFixed_logPtrTyped _ _ K.db K.sp lg $$ Hfix Hlg
   ihave #Hpkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   rw [hmg, hdb]
