@@ -1000,6 +1000,13 @@ record's TTL is at least the TTL its grant requested, because Grant and Recover 
   about Go, as E3 (c)'s `leaseEver`). Condition: it gets the axiom skill's attack in the round that
   writes it, before S2–S4's Freeze (`notes/axiom-review/`, `notes/audit.md`).
 
+**Amendment: (J), the user's, 2026-11-05 via etcd-grove-82** (lease-expiry's S2–S4, Q-S8,
+`notes/lease-expiry-plan.md`). `lease.lessor.Grant.spec`'s success post issues a persistent
+`lease.leaseReqIs γl id ttl` (the grant's request), and it is carried up the grant chain (the apply
+contract's Grant clause, `grantAnswer`, `leaseGrantedResp`, `EtcdServer.LeaseGrant.spec`'s post,
+v3rpc's grant instance, `etcdLeaseGrantSpecLive`'s success fact), so that a client can bound the TTL
+any member later reports from below by its own request (amendment (I)'s lower bound).
+
 ## Plumbing (2026-11-02)
 
 The design's §3 commits, as done, with their deviations and the problem found.

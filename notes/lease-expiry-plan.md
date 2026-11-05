@@ -1781,6 +1781,20 @@ frozen or exported statements since:
     permutation of the records' ids (Go's `leaseMap` is unordered), so that it matches `ltHalf`'s
     log order.
 
+- **2026-11-05, S2–S4 Draft, third stop, Q-S8 (approved change to frozen and exported statements, by the
+  user via etcd-grove-82).** Main cannot name its grant's request: Grant.spec's post gives only the
+  object's TTL, and on one lessor a TTL can fall from 10 to 0 across restores from leaders with
+  different minimum TTLs, so no law from objects alone gives `t' ≥ 1`.
+  - `lease.lessor.Grant.spec`'s success post issues a persistent `lease.leaseReqIs γl id ttl`. It is
+    carried up the frozen grant chain to the client contract: the apply contract's Grant clause,
+    `grantAnswer`, `leaseGrantedResp`, `EtcdServer.LeaseGrant.spec`'s post, v3rpc's grant
+    instance, and `etcdLeaseGrantSpecLive`'s success fact.
+  - `lease.lessor.Recover.spec` (its third change) takes the records' requests `rq` and issues
+    `leaseReqIs` for each record.
+  - New law `leaseTTLAt_ge_req`.
+  - From here on, the batching rule (the user's): further frozen or exported changes are applied as
+    DRAFT, logged old → new with their cause, and brought as one batch at the Draft's end.
+
 ## S2–S4 Draft (2026-11-05)
 
 Branch `lease-snap` (off lean `1f992c54b0`). **Stopped on item 1 (`Recover.spec`'s ever-set premise),
