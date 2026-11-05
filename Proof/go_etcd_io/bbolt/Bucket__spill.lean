@@ -59,7 +59,9 @@ def spillPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (err
           X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
           spillBufs X' w.C w'.fl ∧
           X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
-          X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝) ∨
+          X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' } ∧
+          (∀ s ∈ treeSlots (spillC X' w.C.pages), s ∉ pendSlots w'.fl) ∧
+          markCov X' w.C.hwm⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
@@ -107,7 +109,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     (hFree : Bucket.free.spec (GF := GF) (hG := hG))
     (hWrite : Bucket.write.spec (GF := GF) (hG := hG)) :
     Bucket.spill.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w Hpre Hreach Hml Hfv HsOK Htx
+  intro K tx r m X w Hpre Hreach Hml Hfv HsOK Htx Hmc
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
@@ -243,10 +245,10 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
       wp_apply wp_string_to_bytes key as %ksl ⟨Hksl, Hkcap⟩
       imod ownSlice_persist ksl _ _ $$ Hksl with #Hksl
       have HlocR : bktLocalOK X2 X.rl := HI2.rootOK.1
-      wp_apply hSeek K tx r m X2 X.rl cur stk [] ksl key (Src.own DFrac.discard) HlocR
-        (by intro h; cases h) (pmFresh_of_spG HI2.G) $$ [Hw Hcu Hs Hscap]
-        as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hcu, Hs, Hscap, %Hrt, Hkv⟩
-      · iframe; unfold srcOwn; iexact Hksl
+      wp_apply hSeek K tx r m X2 X.rl cur stk [] ksl key (KeyR.heap DFrac.discard) HlocR
+        (pmFresh_of_spG HI2.G) $$ [Hw Hcu Hs Hscap]
+        as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hcu, Hs, Hscap, Hkey, %Hrt, Hkv⟩
+      · iframe; unfold keyR; iexact Hksl
       obtain ⟨Hp, Hr⟩ := Hrt
       obtain ⟨p, ws, ⟨j, hpj⟩, hL, hle⟩ := WOpen.lPath_leaf X2 X.rl Br HBr HlocR els pids Hp
       have hpI := WOpen.lPath_posI X2 X.rl Br HBr HlocR els pids Hp j p hpj
@@ -427,10 +429,10 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
           wp_apply wp_string_to_bytes key as %ksl ⟨Hksl, Hkcap⟩
           imod ownSlice_persist ksl _ _ $$ Hksl with #Hksl
           have HlocR : bktLocalOK X2 X.rl := HI2.rootOK.1
-          wp_apply hSeek K tx r m X2 X.rl cur stk [] ksl key (Src.own DFrac.discard) HlocR
-            (by intro h; cases h) (pmFresh_of_spG HI2.G) $$ [Hw Hcu Hs Hscap]
-            as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hcu, Hs, Hscap, %Hrt, Hkv⟩
-          · iframe; unfold srcOwn; iexact Hksl
+          wp_apply hSeek K tx r m X2 X.rl cur stk [] ksl key (KeyR.heap DFrac.discard) HlocR
+            (pmFresh_of_spG HI2.G) $$ [Hw Hcu Hs Hscap]
+            as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hcu, Hs, Hscap, Hkey, %Hrt, Hkv⟩
+          · iframe; unfold keyR; iexact Hksl
           obtain ⟨Hp, Hr⟩ := Hrt
           obtain ⟨p, ws, ⟨j, hpj⟩, hL, hle⟩ := WOpen.lPath_leaf X2 X.rl Br HBr HlocR els pids Hp
           have hpI := WOpen.lPath_posI X2 X.rl Br HBr HlocR els pids Hp j p hpj
@@ -598,7 +600,10 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     iframe
     ipureintro
     exact ⟨Hok1, HI.C, HG.2.2.1, HG.2.2.2.1, HG.2.2.2.2.1, HG.2.1, Hsb1, HI.tt, Hrl,
-      by rw [Hrl, HB]; rfl, HI.mvEq⟩
+      by rw [Hrl, HB]; rfl, HI.mvEq,
+      -- OPEN (U9x10): the base tree's slots not pending at the end, `markCov` kept by the loop
+      -- (no `RInv` field; `spStep` does not say a new mark's slots are buffers). Reported.
+      sorry, sorry⟩
   rw [decide_eq_false Hnull]
   try wp_auto
   ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -718,7 +723,11 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     have Hrl2 : X2.rl = X.rl := Hfr.1.trans Hrl
     refine ⟨Hok', s1.trans HI.C, HG'.2.2.1, HG'.2.2.2.1, HG'.2.2.2.2.1, s5, Hsb',
       Hfr.2.2.2.2.2.2.1.trans HI.tt, Hrl2, ?_,
-      mv_trans HI.mvEq (Hfr.2.2.2.2.2.2.2.1 : X2.t.mv = { X1.t.mv with pgid' := X2.t.mv.pgid' })⟩
+      mv_trans HI.mvEq (Hfr.2.2.2.2.2.2.2.1 : X2.t.mv = { X1.t.mv with pgid' := X2.t.mv.pgid' }),
+      -- OPEN (U9x10): the new tree's slots not pending (`spDone`/`spStep` do not say which slots
+      -- the steps free), `markCov` (`spStep` does not say the new mark's slots are buffers).
+      -- Reported: `Spill/NodeSpec.spStep` needs the clauses.
+      sorry, sorry⟩
     show ((X2.t.bs.insert X.rl (bkRooted B1 rt rr.nv.pgid')) !! X2.rl).isSome
     rw [Hrl2, GMap.lookup_insert]; rfl
   · cases err with

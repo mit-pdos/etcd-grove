@@ -203,37 +203,6 @@ theorem nil_cover {X : WX} {fl : FLPg} {C : CommitSt} {B0 : BRec} (hpre : spillP
   · obtain ⟨ws, hws, w, hw, hbk, -, rfl⟩ := mem_rootEnts_leaf hmem
     exact hroot (Or.inr ⟨ws, hws, w, hw, hbk, hbc⟩)
 
-/-- **The base tree's elements give the root shape and the writer's data** (`endEls`; the root's
-leaf pages' entries bucket entries within the bounds, `posShape`; their nested buckets' leaves
-plain, the committed tree's `rootShape` below the root page; the names `rootEnts` (the logical
-tree reads the pages, `lleaves_pages`); a cached child's entries its value's tree's). -/
-theorem nil_els {X : WX} {fl : FLPg} {C : CommitSt} {B0 : BRec} (hpre : spillPre X fl)
-    (hreach : liveReach X) (hB0 : X.t.bs !! X.rl = some B0) (hrn : B0.bv.rootNode' = null)
-    (hkids : ∀ k c, B0.bm !! k = some c → ∃ C0, X.t.bs !! c = some C0 ∧ C0.bv.rootNode' = null)
-    (hcp : X.v.pages = C.pages) (hcok : treeOK C) :
-    endEls X (spP X) (pgSlots (spP X) (subPages C.pages X.rootPage))
-      (treeEls (spP X) X.rootPage) := by
-  sorry
-
-/-- **The root bucket's base tree at the end with no root node** (`end_nilTree`'s statement). -/
-theorem end_nilTree' {X0 : WX} {w0 : WDb} {B0 : BRec}
-    (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
-    (hB0 : X0.t.bs !! X0.rl = some B0) (hrn : B0.bv.rootNode' = null)
-    (hkids : ∀ k c, B0.bm !! k = some c →
-      ∃ C0, X0.t.bs !! c = some C0 ∧ C0.bv.rootNode' = null)
-    (hvC : X0.v = View.ofC X0.v.base w0.C) (hcok : treeOK w0.C)
-    (hhwm : w0.C.hwm ≤ X0.t.mv.pgid'.toNat) :
-    ∃ h S, sTree (spP X0) X0.t.mv.pgid'.toNat X0.rootPage none none h S ∧
-      (∀ s ∈ treeSlots w0.C, s ∈ pgSlots (spP X0) S ∨ s ∈ pendSlots w0.fl) ∧
-      (∀ s ∈ pgSlots (spP X0) S, s ∈ treeSlots w0.C) ∧
-      endEls X0 (spP X0) (pgSlots (spP X0) S) (treeEls (spP X0) X0.rootPage) := by
-  have hcp : X0.v.pages = w0.C.pages := by
-    have := congrArg View.pages hvC; simpa [View.ofC] using this
-  obtain ⟨h, hs⟩ := nil_sTree hpre hB0 hrn hcp hcok hhwm
-  have hP : spP X0 = w0.C.pages := by rw [spP_clean hpre.1.1.2.1.2.1, hcp]
-  exact ⟨h, _, hs, nil_cover hpre hreach hfv hB0 hrn hkids hcp hcok, nil_slots hP _,
-    nil_els hpre hreach hB0 hrn hkids hcp hcok⟩
-
 end nil
 
 end Spill

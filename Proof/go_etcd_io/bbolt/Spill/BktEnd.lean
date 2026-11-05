@@ -6,7 +6,7 @@ after it, the spill's success. The pieces are `Spill/BktEnd*`.
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Spill.BktEndNil
+public import Proof.go_etcd_io.bbolt.Spill.BktEndNilEls
 public import Proof.go_etcd_io.bbolt.Spill.BktEndRoot
 
 @[expose] public section
@@ -74,7 +74,9 @@ theorem rinv_end_nil {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoStrin
     | todo => exact absurd hkk hnt
     | nilc => rw [hkk] at hch; exact hch.2
     | val v p => exact absurd hkk (hnv k hkm v p)
-  obtain ⟨h, S, hS, hbase, hSb, hEls⟩ := end_nilTree' hpre hreach hfv hB0 hrn hkids hvC hI.cok hI.hwm0
+  obtain ⟨h, S, hS, hbase, hSb, hEls⟩ := end_nilTree' hpre hreach hfv hB0 hrn hkids
+    (fun k c hc => by obtain ⟨Dc0, -, hDc0⟩ := hI.lroot; obtain ⟨-, -, -, -, hne, -⟩ := hDc0 k c hc; exact hne)
+    hvC hI.cok hI.hwm0
   have hcp : w.C.pages = X.v.pages := by
     have := congrArg View.pages hvC; simpa [View.ofC] using this.symm
   obtain ⟨hshape, hnames, hbkts⟩ := hEls (spP X) X.rootPage _ h S hS rfl (fun _ _ => rfl)

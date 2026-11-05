@@ -8,11 +8,12 @@ root's own (a position's, `own_Lroot`) or a child's (`ent_class`); every owned s
 a root position's (`uTree_coverW`), a cached child's at the start (none: its tree's slots are
 `Dc0`, or its value's, `uTree_leafCov`), an unopened bucket's (`uTree_leafCov`), a put child's new
 value's (`entCov_D`). Its base pages are the root's own (`uTree_F_cov`), so freeable
-(`RInv.rootFree`). Its elements' shape and data (`endEls`): `end_els`, OPEN.
+(`RInv.rootFree`). Its elements' shape and data (`endEls`): `end_els` (U9x10).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.BktEndVals
+public import Proof.go_etcd_io.bbolt.Spill.BktEndOld
 
 @[expose] public section
 
@@ -35,16 +36,158 @@ variable {X0 X : WX} {w0 w : WDb} {B0 B : BRec} {keys : List GoString}
   {Lroot : List Nat} {st : List FLStep} {Dc : GoString → List Nat} {ks : GoString → KSt}
 
 /-- **The root's elements at the end give the root shape and the writer's data** (`endEls`; the
-root's tree's elements are its logical leaves', `E`, and its slots `D` the owned ones). OPEN. -/
+root's tree's elements are its logical leaves', `E`, whose nested slots are owned, `hcovD`, `hDo`):
+each a bucket entry (`RInv.rootBkt`) within the bounds (`RInv.entKeys`; a node's by `rootLoc`, a
+page's by `RInv.shape0`), its name the start's (`RInv.ents`), its value a put child's new one
+(`childSt`), a skipped child's or an unopened bucket's old one (`BktEndOld.oldN`, `oldU`). -/
 theorem end_els (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
     (hB0 : X0.t.bs !! X0.rl = some B0) (hk : ∀ k, k ∈ keys ↔ (B0.bm !! k).isSome)
     (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hks : ksAt keys keys.length ks)
-    (hB : X.t.bs !! X0.rl = some B) (hrn : B.bv.rootNode' ≠ null)
+    (hB : X.t.bs !! X0.rl = some B)
     (hvC : X.v = View.ofC X.v.base w.C) {D : List Nat} {E : List El}
     (hE : (X.leaves X0.rl).flatMap (List.map wEl) = E)
-    (hDo : ∀ s ∈ Lroot ++ keys.flatMap Dc, s ∈ D) (hDi : ∀ s ∈ D, s ∈ Lroot ++ keys.flatMap Dc) :
+    (hDo : ∀ s ∈ Lroot ++ keys.flatMap Dc, s ∈ D)
+    (hcovD : ∀ n v s, (n, v) ∈ rootEnts X → bucketCovers X0.v.pages v s → s ∈ D) :
     endEls X0 (spP X) D E := by
-  sorry
+  classical
+  have hok0 := hpre.1
+  have hrlX : X.rl = X0.rl := hI.rl
+  have hloc : bktLocalOK X X0.rl := hI.rootOK.1
+  obtain ⟨-, B', hB', hcl, -, -, -, -⟩ := hloc
+  rw [hB] at hB'; cases hB'
+  have h0 : B.ib.root' ≠ W64 0 := by rw [hI.rootIb B hB]; exact hI.rootPg
+  have h00 : B0.ib.root' ≠ W64 0 := hI.rootPg
+  have hrt0 : rtOK X0 X0.rl := hpre.2.2.2.1 X0.rl (by rw [hB0]; simp)
+  have hcp : X.v.pages = w0.C.pages := by
+    have := congrArg View.pages hvC; simp only [View.ofC] at this; rw [this, hI.C]
+  have hcp0 : X0.v.pages = w0.C.pages := by rw [← hI.pages]; exact hcp
+  have hext : pagesExt X0.v.pages := hfv.2.2.1
+  have hext' : pagesExt X.v.pages := by rw [hI.pages]; exact hext
+  have hag0 : pagesLe X0.v.pages (spP X) := by rw [← hI.pages]; exact spP_agree hI.G hext'
+  have hcm : w0.C.hwm ≤ X.t.mv.pgid'.toNat := Nat.le_trans hI.hwm0 hI.mark
+  have h640 : ∀ p pg, X0.v.pages !! p = some pg → p < 2 ^ 64 := by
+    intro p pg hp
+    have := hI.cok.2.2.2.1 p pg (by rw [← hcp0]; exact hp)
+    have := X.t.mv.pgid'.isLt
+    omega
+  -- the elements are the root's entries
+  have hmemE : ∀ e ∈ E, ∃ we ∈ X.allEnts X0.rl, e = wEl we := by
+    intro e he
+    rw [← hE] at he
+    obtain ⟨ws, hws, hm⟩ := List.mem_flatMap.1 he
+    obtain ⟨we, hwe, rfl⟩ := List.mem_map.1 hm
+    exact ⟨we, by unfold WX.allEnts; exact List.mem_flatten.2 ⟨ws, hws, hwe⟩, rfl⟩
+  -- an entry within `bboltEntryMax`: a node's (`rootLoc`), a page's (`shape0`)
+  have hbnd : ∀ we ∈ X.allEnts X0.rl, we.key.length + we.value.length ≤ bboltEntryMax := by
+    intro we hwe
+    have hwe' := hwe
+    unfold WX.allEnts WX.leaves at hwe'
+    obtain ⟨ws, hws, hw⟩ := List.mem_flatten.1 hwe'
+    have hrp : X.rootPid X0.rl = B.ib.root' := by unfold WX.rootPid; rw [hB]; rfl
+    rw [hrp] at hws
+    rcases walk_entryR hB hcl h0 _ _ (walkInv_root hcl h0) ws hws we hw with
+      ⟨l, r, hr, -, hw'⟩ | ⟨c, p, pg, i, hc, hown, hpg, hlf, hi, rfl⟩
+    · obtain ⟨B1, hB1, hn⟩ := hI.rootOK.2.2
+      rw [hB] at hB1; cases hB1
+      exact ((hn l r hr).2 we hw').2
+    · obtain ⟨c0, hc0, hto⟩ := hI.rootPos B hB c hc
+      obtain ⟨pgc, hpgc⟩ : ∃ pgc, X.v.pages !! c = some pgc := by
+        cases hown with
+        | root _ pg' h => exact ⟨_, h⟩
+        | child _ pg' _ _ h _ _ _ => exact ⟨_, h⟩
+      rw [hI.pages] at hpgc hown hpg
+      have hown0 := ownHas_trans (ownTo_ownHas hto hpgc) hown
+      have hs := hI.shape0 c0 p pg hc0 hown0 hpg hlf i hi
+      rw [(mat_pageW_leaf pg i hlf).2.2.1, (mat_pageW_leaf pg i hlf).2.2.2]
+      unfold leafKey leafValue
+      have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i) (leafKsize pg i)
+      have := Write.bytesAt_length_le pg (elemOff i + leafPos pg i + leafKsize pg i)
+        (leafVsize pg i)
+      omega
+  have hel : ∀ e ∈ E, e.1 % 2 = bucketLeafFlag ∧ (0 < e.2.1.length ∧ e.2.1.length ≤ maxKeySize) ∧
+      e.2.1.length + e.2.2.length ≤ bboltEntryMax := by
+    intro e he
+    obtain ⟨we, hwe, rfl⟩ := hmemE e he
+    refine ⟨?_, hI.entKeys we hwe, hbnd we hwe⟩
+    unfold bucketLeafFlag; exact (isBkt_iff _).1 (hI.rootBkt we hwe)
+  -- the names
+  have hnames : E.map (fun e => e.2.1) = (rootEnts X0).map Prod.fst := by
+    have h1 : (rootEnts X).map Prod.fst = (rootEnts X0).map Prod.fst := by
+      rw [hI.ents, List.map_map]; rfl
+    rw [← h1, ← hE, List.map_flatMap]
+    unfold rootEnts
+    rw [List.map_flatMap, hrlX]
+    apply Write.flatMap_congr'
+    intro ws hws
+    rw [filterMap_bkt_keys ws fun we hw => hI.rootBkt we (by
+      unfold WX.allEnts; exact List.mem_flatten.2 ⟨ws, hws, hw⟩), List.map_map]
+    rfl
+  -- the values
+  have hval : ∀ e ∈ E, elVal X0 (spP X) D e := by
+    intro e he
+    obtain ⟨we, hwe, rfl⟩ := hmemE e he
+    have hbk := hI.rootBkt we hwe
+    have hre : (we.key, we.value) ∈ rootEnts X :=
+      rootEnts_of_allEnts (X := X) (by rw [hrlX]; exact hwe) hbk
+    have he' : (we.key, we.value) ∈ (rootEnts X0).map (fun e => (e.1, (ks e.1).entVal e.2)) :=
+      hI.ents ▸ hre
+    obtain ⟨⟨n0, v0⟩, hm0, heq⟩ := List.mem_map.1 he'
+    simp only [Prod.mk.injEq] at heq
+    obtain ⟨hk0, hv0⟩ := heq
+    subst hk0
+    have hbd := bktData_mem hok0 hB0 h00 hm0
+    -- an old value over the view
+    have lift : ∀ hwmv Sv L, bvalS X0.v.pages hwmv v0 Sv → bvalData X0.v.pages v0 L →
+        v0 = we.value → bktDataOf X0 we.key v0 = GMap.ofList L → elVal X0 (spP X) D (wEl we) := by
+      intro hwmv Sv L hS hd hvv hdo
+      subst hvv
+      have hagS : ∀ x ∈ Sv, spP X !! x = X0.v.pages !! x := by
+        intro x hx
+        obtain ⟨pg, hpg⟩ := bvalS_page hS hx
+        rw [hpg]; exact hag0 x pg hpg
+      refine ⟨hwmv, Sv, L, bvalS_agree hagS (Nat.le_refl _) hS, ?_, bvalData_agree hS hagS hd, ?_⟩
+      · intro x hx
+        obtain ⟨pg, hpg⟩ := bvalS_page hS hx
+        exact hcovD _ _ x hre ⟨x, pg, (bvalS_has hS x).2 hx, hpg, Nat.le_refl _, by omega⟩
+      · show bktData X0 we.key = _
+        rw [hbd, hdo]
+    cases hbm : B0.bm !! we.key with
+    | none =>
+      have hnk : we.key ∉ keys := fun h => by have := (hk _).1 h; rw [hbm] at this; cases this
+      rw [hI.notKeys _ hnk] at hv0; simp only [KSt.entVal] at hv0
+      obtain ⟨hwmv, Sv, hS, hd⟩ := oldU hok0 hI.cok hcp0 hB0 h00 hm0 hbm
+      exact lift hwmv Sv _ hS hd hv0 (by simp only [bktDataOf, hB0, Option.bind_some, hbm]; rfl)
+    | some c =>
+      have hkk : we.key ∈ keys := (hk _).2 (by rw [hbm]; rfl)
+      have hch := hI.kids we.key c hbm
+      have hdo : bktDataOf X0 we.key v0 = GMap.ofList (lbktEnts X0 c) := by
+        simp only [bktDataOf, hB0, Option.bind_some, hbm]
+      cases hst : ks we.key with
+      | todo => exact absurd hst (ksEnd hks hkk).1
+      | val v p =>
+        cases p with
+        | false => exact absurd hst ((ksEnd hks hkk).2 v)
+        | true =>
+          rw [hst] at hv0 hch; simp only [KSt.entVal] at hv0
+          subst hv0
+          obtain ⟨S, hS, hDk, hd, -⟩ := hch
+          refine ⟨X.t.mv.pgid'.toNat, S, lbktEnts X0 c, hS, ?_, hd, ?_⟩
+          · intro x hx
+            obtain ⟨pg, hpg⟩ := bvalS_page hS hx
+            apply hDo
+            refine List.mem_append_right _ (List.mem_flatMap.2 ⟨we.key, hkk, ?_⟩)
+            rw [hDk]; exact mem_pgSlots_of hx hpg (Nat.le_refl _) (by omega)
+          · show bktData X0 we.key = _
+            rw [hbd, hdo]
+      | nilc =>
+        rw [hst] at hv0 hch; simp only [KSt.entVal] at hv0
+        obtain ⟨-, C0, hC0, hrwe.key⟩ := hch
+        obtain ⟨Dc0, -, hDc0⟩ := hI.lroot
+        obtain ⟨-, -, -, -, hne, -⟩ := hDc0 we.key c hbm
+        obtain ⟨hwmv, Sv, hS, hd⟩ :=
+          oldN hok0 hreach hI.cok hcp0 hB0 h00 hrt0 h640 hm0 hbm hC0 hrwe.key hne
+        exact lift hwmv Sv _ hS hd hv0 hdo
+  exact endEls_of hel hval hnames
 
 /-- **The root bucket's unspilled tree at the loop's end** (see the module doc). -/
 theorem end_rootTree (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : flViewU X0 w0.fl)
@@ -283,7 +426,7 @@ theorem end_rootTree (hpre : spillPre X0 w0.fl) (hreach : liveReach X0) (hfv : f
       exact own_Lroot hpre hreach hfv hB0 hk hI hq
     · rw [← hI.pages]; exact (uTree_F_view hu id hid).1
   exact ⟨rn, h, F, D, N, E, hnode, hpar, hsp, hu, hF, hnd, hDo, hDi,
-    end_els hpre hreach hfv hB0 hk hI hks hB hrn hvC hE hDo hDi⟩
+    end_els hpre hreach hfv hB0 hk hI hks hB hvC hE hDo hleaf⟩
 
 end root
 
