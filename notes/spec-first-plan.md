@@ -174,6 +174,12 @@ with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_m
 `lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
 transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
 skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+**When: in the round that writes it** (2026-11-05, the user's). A new, widened or restated
+trust-boundary statement gets its `axiom` attack in the Draft or repair round that introduces it, in
+parallel with the review, not batched before the freeze: proofs and glue built on it in between are
+lost if it is refuted. (lease-expiry restated `leaseTimeToLive` and widened `NewLessor`'s post, then
+built `Main`'s proof on them for a day before any attack started.) A statement changed again after
+its attack is attacked again, on what changed.
 
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
@@ -343,6 +349,23 @@ Perennial pin bump and `lean` merge, the same `.olean`s four times, each `lake b
   `flock /shared/tmp/etcd-grove-full-build.lock`, so at most one full build runs on the machine;
   targeted builds (`etc/importers.py --leaves`) and `etc/lean-check.py` do not take the lock.
 
+**Landing takes a lock** (2026-11-05, the user's). The gates and the fast-forward are one step, but
+other sessions moved `lean` in between: on 2026-11-05 a notes-only commit landed while `r2b3`'s
+gates ran, and its fast-forward failed after the full gates. So every landing, notes-only included,
+goes through `etc/land.sh` from the branch's worktree: under `flock /shared/tmp/etcd-grove-land.lock`
+it checks that `lean` is merged, runs `etc/gates.sh` under the full-build lock (skipped when the
+branch changes only `notes/`), and fast-forwards `lean`. A landing that finds the lock taken waits;
+one that finds `lean` moved merges it outside the lock and reruns. No `git merge --ff-only` into
+`lean` by hand.
+
+**The session registry** (2026-11-05, the user's). Sessions under two accounts work on this
+repository and cannot all message each other, so one file says who does what:
+`/shared/etcd-grove-sessions.md`, a table with one row per active session (session name, account,
+worktree, branch, stage, state, next hard stop, updated). A session adds its row when it starts a
+stage, updates it at each hard stop and landing, and removes it when its worktree goes. The
+coordinator reads it before sequencing landings or starting agents; a session about to touch a hub
+(`etc/spec-hubs.py`) checks it for others on the same hub.
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
@@ -395,6 +418,15 @@ the user" decision) to `questions.md` at its worktree's root, with the options, 
 and what depends on the answer, and goes on with what does not; the orchestrator relays the file to
 the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
 does not depend on it.
+
+*Where, and what counts as approved* (2026-11-05, the user's). The stage's worktree and branch are
+made at Scope, not at the freeze, so that `questions.md` is always at the worktree's root (not in a
+session's scratchpad, where no one else finds it). An entry the coordinator or the user's session
+marks **"approved by the user, <date>, via <session>"** (or "vetoed") is the user's decision: every
+agent on the branch acts on it without asking again. (On 2026-11-05 a sub-agent declined approvals
+the user had given in its own session because they reached it relayed, and they were relayed twice.)
+An approval given elsewhere (a dialog, a chat) is copied into `questions.md` in that form by the
+session that received it, before any agent acts on it.
 
 **The escalation trigger**, however small the change looks: a repair or design step that would add a
 spec or predicate family beside an existing one (a second spec of a function for a mode or special
@@ -824,6 +856,25 @@ premises with slots.
    slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+   **First check (2026-11-05, `lean` 256dbfc6d9 against 3fe0d5a4ef; slots: the WAL, the raft node,
+   the transport, the compactor; the lease's on `lease-expiry`).** `etc/spec-hubs.py` change counts,
+   11-03 → 11-05: `NewServer.specG` 9 → 24, `bootOk` 58 → 66, `srvBuilt`/`srvBuiltG`/`isServerBuilt`
+   +7 each, `bootstrapContract` 7 → 12, `KVNames` 11 → 18, `AEnv` 16 → 20; `RaftNames` and
+   `StoreNames` unchanged. The hub's rate is not lower yet (about 6 changes a day to `specG`, 4.3 a day
+   to `spec` before), but the 12 commits that changed `Spec/.../NewServer.lean` since 11-03 are mostly the
+   conversion itself: the slots, the bootOk review and the twins (6); a subsystem added through its slot
+   (R2b-1's WAL, 1); comments only (auth stage 3, 1); pre-convention (lease-grant 3b, 1). The compactor's
+   and auth's later stages (Q1 (b)/(c), auth 4-5) left the hub's text alone. **The misses: the restart's
+   stop (R2b-3d, 3 commits)** added `srvStopKeep` inline, then changed its arguments twice (fields of
+   `E`, not a names record: the follow-up under the transport's slot) and put an inline mode clause
+   beside it (`⌜on = false⌝ → srvCleanupOwn`); and the example entry points (hub 4) grew mode twins
+   (`BuildServer.specRestart`/`specStop`, `newServer.specCompact`, `Start{Compacting,Periodic}Server`),
+   step 7 not yet done. Parallel branches still collide: `lease-expiry` (+149 lines in
+   `NewServer.lean`, its lease slot) and `r2b3` both edit the postcondition. `etc/spec-churn.py`'s
+   `STAGES` has no stage since 11-02, so its tables do not measure the hubs yet (add K1, R2b-1, the
+   auth stages, 7b, auth 5 when they freeze). Next: the restart's stop pieces as a slot when R2b-3d next
+   touches the hub; step 7 before the restart's `walFiles`; land `lease-expiry` and `r2b3` one after
+   the other. Re-check after both land.
 6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
    **Done** (2026-11-03, branch `hub-twins`, after auth-on's whole branch landed): `specG` written
    out once, `spec := ∀ cmp, specG false cmp` (no wrapper needed: `newServerMode` passes its mode
@@ -901,6 +952,25 @@ that subsystem converts (step 4), into `<sub>.Names`; until then they stay as th
 
 **Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
 added only when its subsystem must change the hub anyway.
+
+**Hub changes are requests** (2026-11-05, the user's; from the dsverify skill's `2f67a2c`). A
+stage edits the inside of its own subsystem's slots (their sealed bodies and laws) freely. Any other
+change to a hub, which is a statement `etc/spec-hubs.py` lists with a fan-out of 6 or more
+directories (`NewServer.specG`, `bootOk`, `srvBuilt`/`isServerBuilt`, `bootstrapContract`, the
+`etcdstart` starters, the name and environment records, the apply and snapshot aggregators), is a
+**hub request**. That covers a new slot, conjunct, binder or premise; a conversion into a slot;
+an edit of another subsystem's slot; and an inline clause. The stage does not make it
+directly. It writes the request in its `questions.md` under "Hub requests": the hub, the change
+written out, the caller that needs it, and the alternative inside its own slot. It goes on with a
+marked `sorry` at the step that needs it, and tells the coordinator, who keeps the hub plan. The
+coordinator decides each request against the slot convention and against the other sessions on
+the same hub (the session registry). It answers in that `questions.md` ("accepted / rejected by
+the coordinator, <date>"; one that changes a top-level statement or grows the trust base still goes to
+the user). It also sets the order: the requesting stage then makes the accepted change as a commit
+of its own, and the coordinator tells every other session on that hub to merge it when it lands.
+(The case: the restart's stop added `srvStopKeep` and an inline mode clause to `NewServer`'s
+postcondition over three commits while `lease-expiry` converted the lease into a slot there on
+another branch. The step-5 check counted both, and they collide at landing.)
 
 **Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
 compaction on, a restart) generalizes the one written-out statement with a parameter; it does not

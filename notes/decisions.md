@@ -31940,3 +31940,62 @@ given back): with auth off `K` is `True` (`authCloseOk`); with auth on it is the
 pass it on (`□ (⌜on = false⌝ → srvCleanupOwn srv)`), and `srvCleanupOwn` (opaque since R2b-2) is now
 defined from it. Until R2b-3 needs auth on at the stop, `Cleanup`'s on-mode closer is the apply
 thread's `tpAdmin` (in `authApplyRes`).
+
+## Two of `k8setcd3_safe`'s own `sorry`s discharged; `revRoom` designed (2026-11-05 · the user's assignment, via etcd-grove-82 · branch `k8s-sorrys`)
+
+`k8setcd3_safe` rested on three marked `sorry`s of its own (`notes/k8s-etcd3-plan.md`, "From the
+etcd client proof", items 3 and 6, and D30n). Two are proved, by stronger postconditions of proved
+code; no statement of the k8s side changed (the two theorems' bodies only).
+
+- **`kubernetes.kvIs_ne_null`** (item 3). The server's response predicate `txn.kvIs l v`
+  (`txn/Requests.lean`) gains `⌜l ≠ null⌝`: a field's points-to does not imply its struct's pointer
+  is not `nil` (`typedPointsto`'s non-null fact is about its own address). Its sources have the
+  struct's typed points-to: `txn.kvAt_persist'`, `txn.kvPtrIs_kvIs` (`typedPointsto_not_null_dup`
+  before splitting) and `applyCompare`'s zero key-value (its allocation). The fact is the *last*
+  conjunct, inside the `∃`, so that the destructuring sites, which end their pattern with `-` or a
+  name for the `Lease` field, need no edit; the two that load `Lease` afterwards (`txn.put`,
+  `txn.compareKV`) end with `, -` now (a named last pattern would bind `Lease ↦□ _ ∗ ⌜_⌝`, which
+  `wp_auto` does not use as a points-to). The client's `kvValAt` (the cache's, the same fields)
+  no longer equals it: `kvValAt_of_kvIs` (`client/v3/ServerKVGet.lean`) drops the fact. Cost:
+  `Requests.lean` has 2034 importers; no smaller change proves the theorem.
+- **`k8s_etcd3.client_ctx_field`** (item 6). `isNewClient` (the client `New`'s postcondition,
+  proved in `newClient.lean`, not a trust-boundary axiom) gains a last conjunct
+  `∃ cx, clientF cl "ctx" ↦□ cx` with a law `isNewClient_ctx`, as Q1 (c)'s endpoints: the field is
+  never written after the composite literal (`newClient` reads it, `ctx, cancel = client.ctx, …`),
+  so the proof persists it where the struct is split (renamed apart from the local variable `ctx`
+  it shadows). Every destructuring of `isNewClient` ends with `-`: no caller changed. Not given:
+  what the field holds (`WithCancel(TODO)`'s context, `isContext`); no caller needs it.
+- **`revRoom`** (D30n) is false as stated (any two states one revision apart); it keeps the
+  driver's `KOk.room` across a write. Designed only (InvSteps is being rewritten by 7b): the
+  options and the recommendation (the server hands the bound it owns, from the sole writer's
+  receipts, with the state its updates commit; or `lintest` hands each call a budget token from
+  `Run`'s `clients * ops < 2 ^ 60`) are in the branch's `questions.md`; neither changes `Main.spec`
+  or `k8setcd3_safe`.
+## The transport's stop right and `Cleanup`'s open token (2026-11-05 · R2b-3d stage 5c · branch `r2b3`)
+
+Two gaps between the shutdown's steps and the specs they call, found while assembling `run`'s
+deferred function.
+
+**The transport's stop right.** `raftNode.stop` takes the raft environment's `ST` (the right to stop
+the transport, which `stopped` carries to `onStop`, D43 M5c). The server's environment had
+`ST := False` (D43 M5e: "asked of no one", the static server's transport frozen, its stop token the
+apply thread's), so no shutdown could call `r.stop()`. The apply thread does own the live transport
+(`srvApRes`'s `ccMembRes`: `trLive γn t c rs`, at names it quantifies). The environment is built
+before the server and its transport exist (`NewServer` passes it to the node's start), so its `ST`
+names the transport through the same ghost key as its `S` (`srvTrKey`): `srvTrStopK γk`, the live
+transport of the server the key names (`srvTrStop`, with the server's `transport` field). `NewServer`
+proves the transport's `Stop` from it (`netTransport_srvTrStop`: the key's and the field's
+agreement, then `Transport.Stop_live`, whose two callee specs `NewServer` now takes) and posts
+`srvTrKeyOf srv γk`; the shutdown rebuilds the right from `srvApRes` (`srvApRes_trStop`,
+`srvTrStopK_of`). For the field's agreement inside the environment's `Stop`, the node's installer
+(`NodeStartSpec`) now takes the `transport` field read-only (`↦□`), which `NewServer` persists before
+installing; the installer only persisted it, so `NodeStartSpec` is stronger, not weaker.
+`srvEr`/`srvErM` take `ST` as a parameter, as `S`.
+
+**`Cleanup`'s open token.** `Cleanup` took the backend's whole open token (`bOpen 1`) up front, but
+two of the store's readers (the watch loops', `wsLoopN`) and the compaction job's resource come
+back only from `kv.Close()` inside it, where they were dropped. Gap 4's census needs every reader.
+`Cleanup` now takes an update `mvcc.wsCloseRes st γ ={⊤}=∗ bOpen 1` (`wsCloseRes`, the owner's name for
+what `Close` returns: the loops' readers and `compactJobResM`) and applies it after
+`kv.Close()`; the shutdown builds it from the census (`storeReaders_retire`, `storeRTs_shares`,
+`bOpen_one_pool`, as `NewServer`'s error path R-D1). `Cleanup` had no client yet.

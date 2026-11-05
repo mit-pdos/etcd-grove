@@ -196,11 +196,13 @@ tick's resource `True`, the read names `ρ.rd`, the server's read registrations 
 borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its `Stop` (D43 M5e,
 2026-10-26) asked of no one (`ST := False`: the static server's transport is frozen, its stop token
 the apply thread's, `srvApRes`, which M6's stopping server hands over). (2026-10-27: no budget
-names, the node API's term budget is the cluster's.) -/
+names, the node API's term budget is the cluster's.) (2026-11-05, R2b-3d stage 5c) The stop right
+`ST` a parameter (the server's: `srvTrStop s`, the live transport the apply thread hands over at the
+shutdown), until then `False`. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (id : w64) (S : IProp GF) : RNEnv GF :=
+    (id : w64) (S ST : IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, ST⟩
 
 /- (2026-10-30, the repair: snapshots allowed) `rnSnapMsg_false` is gone: `msgSnapC` delivers raft's
 `MsgSnap`s (`rnSnapMsg`). -/

@@ -1558,3 +1558,21 @@ so the user approved a persistent `Close` contract in the axiom's post (`authClo
 `srvCleanupOwn s` is the `authStore` field with `authCloseOk`, which `NewServer` posts with auth off.
 `notes/decisions.md`, "The auth store's `Close` at the stop". Left of 5b: assembling `Cleanup`'s
 whole precondition at the stop (with `bOpen 1` from the census), done inside 5c's proof.
+
+**Stage 5c, first part (2026-11-05): two gaps closed.** (1) `raftNode.stop` takes the environment's
+`ST`, which was `False` for the server: now `srvTrStopK γk`, rebuilt at the stop from `srvApRes`'s
+live transport and `NewServer`'s `srvTrKeyOf` (`srvApRes_trStop`, `srvTrStopK_of`). `run.specStop`
+must add `⌜Er.ST = srvTrStopK γk⌝ ∗ srvTrKeyOf s γk` (5d). (2) `Cleanup` takes, in place of `bOpen 1`,
+an update from `kv.Close`'s returns (the loops' `wsLoopN` readers, `compactJobResM`) to `bOpen 1`.
+`GoAttach`'s side: `goAttach_close` (the writer under `wgMu`: flag open, closed, "no waiters" out),
+`wp_goAttach_Wait`. Left of 5c:
+- the census update for `Cleanup` (off mode): `bOpen ½` (`srvSnapRes`), the pool's shares
+  (`srvBeOwn`'s `bkRPool`), and `rdStockN` shares from `storeRTs_shares`: retire (one `£`,
+  `writerFrag` from `kvOwn`'s `kvWriter`, `retiredAt (2 + nJobRd)` from `writerOwn`) the readers:
+  `srvKeepRdN` and the compactor's (`srvStopKeep`), 128 (`srvShutdownPre`), the apply thread's own
+  (`kvOwn`), the loops' 2 (`kv.Close`); with the retired ones: `writerOwn`'s `storeRT` and the
+  monitor's, in `srvWTPool`'s invariant (`bkRTx`, swapped out for a fraction of `dghostVar E.γbe`:
+  `Cleanup` passes its quarter through untouched, so a smaller fraction will do there);
+- the stop commit's request (`commitReq_freeze`) and the image (`srvDiskImage`) for `close(done)`
+  (allocating `srvDoneInv`'s invariant with the image in it);
+- the deferred function's WP in `run.specStop`'s proof (5d).
