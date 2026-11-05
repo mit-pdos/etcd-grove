@@ -477,6 +477,58 @@ baseline.
   (a) The driver's model checks every `Get` exactly (the model's `get` at the linearization point):
   a stronger theorem, true of the store. (b) Copy `validateGet`'s weaker check. Recommended: (a).
 
+### 7b: Draft, the trusted statements (2026-11-05; a user point)
+
+Done since the approval: the driver's Go (`examples/k8s/etcd3/k8setcd3.go`: objects with a UID,
+preconditions, cached objects, `IgnoreNotFound`, minimum resource versions, the per-client table,
+the Go model and its tests, 1500-operation stats test with every new outcome reached) and
+`meta.Accessor` translated (`meta.toml`: `Accessor`; no axiom, as recommended in the Scope).
+Two questions came up before the Lean statements, both about trust.
+
+**T1. `fmt.Sprintf` with `types.UID` arguments.** `Preconditions.Check` (`interfaces.go:145`) answers
+a failed UID precondition with `NewInvalidObjError(key, fmt.Sprintf("Precondition failed: UID in
+precondition: %v, UID in object meta: %v", *p.UID, objMeta.GetUID()))`. Perennial's `fmt.wp_Sprintf`
+admits basic types and named integer types only (`ArgWf`); `types.UID` is `type UID string`.
+- *Proposed* (the smallest change): add `types.UID` to the list of the existing trust-boundary axiom
+  `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`, drafted on the branch, uncommitted until
+  approved):
+  old `fmt.methodlessNamedTypes = [LeaseID]`, new `= [LeaseID, types.UID]`; the statement of
+  `fmt.SprintfNamed.spec` is unchanged. No new axiom: the existing one admits more arguments.
+- *Why sound* (the `axiom` skill's question: a Go program that panics or returns other than the spec
+  says): `k8s.io/apimachinery/pkg/types/uid.go` is the whole declaration of `UID`, no methods (checked
+  at the pinned apimachinery), so Go's `fmt` calls no `Error`/`String`/`Format`/`GoString` and prints
+  the string; `fmt` never panics on an argument it formats by kind. What the spec promises of the
+  output: `SprintfOut format xs s`, where `%v` (and `%s`) of a non-`go.string`, non-integer argument is
+  not a `SimpleDirective`, so `SprintfOut.other` makes everything from the first `%v` on arbitrary;
+  the bytes before it are copied, as Go does. No promise about the UIDs' text, so nothing false to
+  derive. (The k8setcd3 statements need only "returns some string": the message is unspecified.)
+- *Who rests on it*: collections `concurrency` (already) and `k8setcd3` (new, through
+  `Preconditions.Check`). Proofs using membership (`Mutex.tryAcquire`, `Election.Campaign`) prove it
+  by `simp [fmt.methodlessNamedTypes]`, unaffected by a second element.
+- *General fix* (Perennial, independent, entry in `notes/perennial-changes.md`): `ArgWf` admits a
+  named type with `fmt.NoFmtMethods` whatever its basic underlying type (today integers only), the
+  output of a non-integer one arbitrary; then the list goes, with `LeaseID`'s.
+- *Alternatives*: (b) a separate axiom `Preconditions.Check.wp_proof` (larger: the whole function at
+  the trust boundary); (c) leave UID preconditions out of 7b (P3 checks RV only; the test's UID
+  traffic is the case #89828's class needs). Recommended: the list extension.
+
+**T2. The `TooLarge` answer's classification in the driver.** The driver's `errOut` tells a
+`TooLarge` answer by `apierrors.IsTooLargeResourceVersion` (a `*StatusError`, reason `Timeout`, a
+`ResourceVersionTooLarge` cause). Proving that `errOut` gives `ETooLarge` only for the store's own
+`NewTooLargeResourceVersionError` needs that the etcd client's errors (which the store passes through,
+answering `EOther`, which the model admits anywhere) are not such `*StatusError`s. Neither `clientErr`
+nor `statusErrOk`/`errCellOk` say it.
+- (a) A premise (or method-set axiom) "a client error is not a `*apierrors.StatusError`": new trust.
+- (b) The driver answers `EOther` for a `TooLarge` error (no `isTooLarge` test in `errOut`; the Go
+  model's `get` admits `EOther` where it answered `ETooLarge`). No trust growth. What is lost: the
+  check that the store answers too-large exactly when the minimum is above the read's revision.
+  What stays: the store's spec still states the shape (`tooLargeErrIs`, proved from
+  `NewTimeoutError`'s body); a `Get` that should be too large but returns an object (a stale read
+  served as fresh) is still caught, as a `Get` answering an object is checked exactly (Q4).
+- (c) Strengthen the client's `clientErr` to exclude `*StatusError` (the client's track; the
+  compactor's `k8s_compactor_safe` rests on the same specs).
+- Recommended: (b) now, (c) as a later client change that restores the check.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
