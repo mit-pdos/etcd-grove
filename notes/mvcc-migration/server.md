@@ -185,6 +185,24 @@ None (no `sorry`, no axiom).
 - `txnPre` and `cmpTriple`'s premise follow txn's restated specs as landed in
   `Spec/.../etcdserver/txn/`, else `notes/mvcc-api-clients/TxnSpecs.lean`.
 
+## Found (second session, 2026-11-05; not decided: Revoke's proof stopped)
+
+- **`lease.lessor.Revoke.spec` (as fixed) is unprovable over the frozen API: no backend fact for
+  `le.b.BatchTx()`.** After the deletes, `Revoke` runs `schema.UnsafeDeleteLease(le.b.BatchTx(),
+  …)`. `mvccTxn_leaseDelete.law` gives the WP of `UnsafeDelete` on the backend's batch transaction
+  `t` from `backend.bF go!"batchTx" B.b ↦□ t` (its premise), which only `backend.backend.BatchTx.spec`
+  gives, and that spec takes `backend.isBackend B.γB B.P W Pk' B.b` (some `W`, `Pk'`). Revoke's
+  precondition has `mvccBackend γ q B P` (sealed: its `□ isBackend … (mvccW gx) P B.b` is hidden),
+  `hookIs B f`, `lessorBeOn lp B.b` (only `le.b`'s field) and nothing else of `B`; no API law
+  exposes `isBackend` from `mvccBackend`. (The old proof took `BatchTx`'s triple from mvcc's
+  internal `bkBt`, inside the write transaction's facts.) **Minimal fix**, either:
+  (a) an API law `mvccBackend_isBackend.law : ∀ γ q B Pk, mvccBackend γ q B Pk ⊢
+      ∃ gx, □ backend.isBackend B.γB B.P (mvccW gx) Pk B.b` (true by `mvccBackend`'s body; the
+      server's other readers of `s.be` would use it too), or
+  (b) Revoke's precondition takes `□ backend.isBackend B.γB B.P W Pk' B.b` for some `W Pk'`
+      (both callers have one: the server's `srvBeRO B`, the tester's `backend.New`).
+  (a) is the API's; (b) a client-spec change. The Revoke proof is stopped until decided.
+
 ## Found (both decided above)
 
 - **`lessor.Revoke.specA` (landed as drafted) is unprovable over the frozen API: it lacks the
