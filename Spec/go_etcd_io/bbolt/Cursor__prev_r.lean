@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- What `prev` leaves from a cursor at `pos`: unpositioned, nil and the empty stack; at the first
 entry, nil and the stack at the first entry (`first`'s); at entry `j + 1`, the move to entry `j`
-(`rCurKV`). -/
+(`rCurKV`'s entry case). -/
 def rPrevPost (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (k vl : GoSlice)
     (fl : w32) : Option Nat → IProp GF
   | none => iprop(⌜k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0 ∧ els = []⌝)
   | some 0 => iprop(⌜k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0 ∧ rCurPos v bv pp els (some 0)⌝)
-  | some (j + 1) => rCurKV v bv pp els j k vl fl
+  | some (j + 1) => iprop(∃ pg idx, ⌜rPosAt v bv pp els j (j + 1) ∧ rLanded v bv pp els ∧
+      (rEnts v bv)[j]? = some (pg, idx)⌝ ∗ rKV v pg idx k vl fl)
 
 /-- `c.prev()` of a reader's cursor in bucket `b` (value `bv`, `rBktOK`) whose stack is at `pos`. -/
 abbrev Cursor.prev_r.spec : Prop :=

@@ -160,8 +160,7 @@ theorem Cursor.prev_r.wp_proof
       iexists stk2, els2.dropLast ++ [e3]
       iframe
       obtain rfl : j = i + 1 := by omega
-      unfold rPrevPost rCurKV
-      ileft
+      unfold rPrevPost
       iexists pg3, idx3
       rw [hix3, Int.toNat_natCast]
       iframe
