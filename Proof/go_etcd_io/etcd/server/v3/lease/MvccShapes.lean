@@ -12,6 +12,7 @@ takes `auBegin`/`auEnd` and `csContractA`; the server's store invariant and buil
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
 
@@ -22,6 +23,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace srvApi
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc mvcc.api
+
+/-- **etcd's backend of a real instance, as mvcc's storage** (strict M1, phase A of the API over its
+storage abstraction, 2026-11-06): the server and the lessor chose etcd's backend, so their
+statements name a real instance `d : KBReal` and mvcc's storage at it, `etcdStorage d` (shown `↑d`),
+the backend's own names (`d.γB`, `d.P`, `d.be`, `d.gx`) for what they write directly. -/
+instance : Coe mvcc.KBReal MvccStorage := ⟨etcdStorage⟩
+
+attribute [coe] etcdStorage
 
 /-! ## 0. The pure part -/
 

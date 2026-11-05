@@ -49,7 +49,7 @@ else True`, as txn's `Put` for a lease. The code returns `ErrLeaseNotFound` befo
 server's caller builds the update from its writer's half, which no law recovers from an unused
 update (`notes/mvcc-migration/server.md`, "Found", third session, (2)). -/
 abbrev lease.lessor.Revoke.spec : Prop :=
-  ∀ (lp : Loc) (γ : MvccName) (id : w64) (rd : GoFunc) (q : Qp) (B : BkRef) (P : IProp GF)
+  ∀ (lp : Loc) (γ : MvccName) (id : w64) (rd : GoFunc) (q : Qp) (B : mvcc.KBReal) (P : IProp GF)
     (f : GoFunc) (σ₀ : MvccState) (L : List w64) (r : GMap GoString backend.BktData)
     (Pre Q Post Y : IProp GF),
   let γl := mvccLeases γ
@@ -62,11 +62,11 @@ abbrev lease.lessor.Revoke.spec : Prop :=
         MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
       (if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀ dels Y) else iprop(True)) ∗
       lease.leaseOwn γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗ lease.leaseRevokers γl L ∗
-      backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.b }}
+      backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.be }}
     (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
       @!! go!"Revoke")) (Val #id))
   {{ (err : GoInterface), RET #err; threadTok ∗ lease.rdOwn γl rd ∗ mvccBackend γ q B P ∗
-      lease.lessorBeOn lp B.b ∗
+      lease.lessorBeOn lp B.be ∗
       ((⌜id ∉ L⌝ ∗
           (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□
             GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) ∗

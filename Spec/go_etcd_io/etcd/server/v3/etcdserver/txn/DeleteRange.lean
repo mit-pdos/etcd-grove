@@ -17,7 +17,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
-open mvcc.api (MvccState MTxn MvccReachable MvccName BkRef mvccN mvccLeases)
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -37,7 +37,7 @@ updates (`delPend o σ₀ true`), the response; or, with `PrevKv`, the range rea
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
-    (kv : GoInterface) (γ : MvccName) (dr : Loc) (o : OpFull) (q : Qp) (B : BkRef)
+    (kv : GoInterface) (γ : MvccName) (dr : Loc) (o : OpFull) (q : Qp) (B : MvccStorage)
     (P Pre Q Post : IProp GF) (f : GoFunc) (ot : Option Loc) (te : Bool) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.deleteRangeRequestIs dr o ∗

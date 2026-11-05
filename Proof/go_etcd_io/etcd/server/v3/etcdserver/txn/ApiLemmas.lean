@@ -4,6 +4,7 @@ handle's dynamic type meets its interface's contracts (from `shapes.law`), keepi
 -/
 module
 
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnLemmas
 
@@ -311,10 +312,10 @@ theorem txn.end_read {ty : go.GoType} {v : val}
         mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
       (App (Val #(methods ty go!"End" v)) (Val #()))
     {{ RET #(); threadTok }} := by
-  have hB : Nonempty mvcc.api.BkRef := by
-    refine ⟨⟨?_, ?_, null⟩⟩
+  have hB : Nonempty mvcc.api.MvccStorage := by
+    refine ⟨mvcc.api.etcdStorage ⟨?_, ∅, 0, 0, null, ?_, false⟩⟩
     · constructor <;> first | exact default | (constructor <;> exact default)
-    · constructor <;> exact default
+    · exact default
   obtain ⟨B⟩ := hB
   iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
   iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]
@@ -328,7 +329,7 @@ shape), the batch lock's invariant `P` given, the backend share and the thread t
 theorem txn.end_write {ty : go.GoType} {v : val}
     (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
     (γ : MvccName) (trace : Loc) (σ₀ : MvccState) (pend : List mvcc.Change) (q : Qp)
-    (B : mvcc.api.BkRef) (P Q : IProp GF) :
+    (B : mvcc.api.MvccStorage) (P Q : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (.write σ₀ pend) ∗
         mvcc.api.mvccBackend γ q B P ∗ P ∗ txn.commitAU γ σ₀ pend Q }}

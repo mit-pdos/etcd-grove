@@ -17,7 +17,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
-open mvcc.api (MvccState MTxn MvccReachable MvccName BkRef mvccN mvccLeases)
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,7 +39,7 @@ the batch lock (`Post`). The caller's pin, if any, is in its `R`.
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
-    (γ : MvccName) (p : Loc) (o : OpFull) (q : Qp) (B : BkRef) (P Pre Q Post : IProp GF)
+    (γ : MvccName) (p : Loc) (o : OpFull) (q : Qp) (B : MvccStorage) (P Pre Q Post : IProp GF)
     (f : GoFunc) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
     (ot : Option Loc) (te : Bool) (R : MvccState → IProp GF),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.isTxnLessor le (mvccLeases γ) ∗

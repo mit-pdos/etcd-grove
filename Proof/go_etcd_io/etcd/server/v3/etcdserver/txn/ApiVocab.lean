@@ -26,7 +26,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
-open mvcc.api (MvccState MTxn MvccReachable MvccName BkRef mvccN mvccLeases)
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 /-! ## The vocabulary (pure) -/
 
@@ -111,7 +111,7 @@ def txn.csA (P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) : IProp GF :=
 
 /-- **The writer's backend**: a share of the store's backend `B` (batch-lock invariant `P`) and its
 hook `f` (persistent). -/
-def txn.kvBackend (γ : MvccName) (q : Qp) (B : BkRef) (P : IProp GF) (f : GoFunc) :
+def txn.kvBackend (γ : MvccName) (q : Qp) (B : MvccStorage) (P : IProp GF) (f : GoFunc) :
     IProp GF :=
   iprop(mvcc.api.mvccBackend γ q B P ∗ mvcc.api.hookIs B f)
 

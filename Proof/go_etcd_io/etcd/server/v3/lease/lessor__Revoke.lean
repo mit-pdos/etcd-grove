@@ -365,9 +365,9 @@ theorem lease.lessor.Revoke.wp_proof
       -- `delete(le.leaseMap, l.ID)`
       wp_apply (wp_mapDelete lm2 C4 id LeaseID.ty (go.GoType.PointerType Lease.ty)) $$ HM as HM
       -- `le.b.BatchTx()`: the backend's batch transaction (`mvccBackend_isBackend.law`)
-      ihave ⟨⟨%gx, #HisB⟩, Hbk⟩ := (persistent_entails_right (hisB γ q B P)) $$ Hbk
+      ihave ⟨#HisB, Hbk⟩ := (persistent_entails_right (hisB γ q B P)) $$ Hbk
       (try wp_auto)
-      wp_apply (hBT B.γB B.P (mvccW gx) P B.b) $$ [$HisB] as %t #Hfld
+      wp_apply (hBT B.γB B.P (mvccW B.gx) P B.be) $$ [$HisB] as %t #Hfld
       (try wp_auto)
       -- `schema.UnsafeDeleteLease(tx, &leasepb.Lease{ID: l.ID})`: the record's delete inside the
       -- write transaction (`mvccTxn_leaseDelete.law`), which leaves it able only to end

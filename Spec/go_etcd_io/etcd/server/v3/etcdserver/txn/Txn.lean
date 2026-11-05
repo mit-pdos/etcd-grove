@@ -18,7 +18,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
-open mvcc.api (MvccState MTxn MvccReachable MvccName BkRef mvccN mvccLeases)
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -48,7 +48,7 @@ the coordinator, 2026-11-06, `clients-txn.md` §8.) -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (q : Qp)
-    (B : BkRef) (P Pre Q Post : IProp GF) (f : GoFunc) (L : List w64) (ot : Option Loc) (te : Bool)
+    (B : MvccStorage) (P Pre Q Post : IProp GF) (f : GoFunc) (L : List w64) (ot : Option Loc) (te : Bool)
     (Qr Qw : MvccState → IProp GF),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.kvBackend γ q B P f ∗
       txn.isTxnLessor le (mvccLeases γ) ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
