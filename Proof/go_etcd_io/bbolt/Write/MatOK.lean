@@ -397,7 +397,7 @@ theorem matR_nodes : ∀ j < pageCount pg, 0 < (pageKey pg j).length := by
 /-- **Materializing a bucket's root page keeps it clean.** -/
 theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.nil ↔ r.ws = [])
     (hx3 : ∀ w ∈ r.ws, isBktFlag w.flags → w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)
-    (hni : leafInl pg) :
+    (hni : leafInl pg) (hnest : matNest W.pages pg) :
     bktClean W hwm bl (matRBkt B B.ib.root' l r) := by
   have hfree := matR_free W hwm bl B hv hc hrn0 l hl pg r hr hpt hgood hcid hfile hinl
   have hposR := matR_pos W hwm bl B hv hc hrn0 l hl pg r hr hpt hgood hcid hfile hinl
@@ -469,10 +469,9 @@ theorem matR_clean (hx1 : r.ins.length = r.ws.length) (hx2 : r.nv.key' = slice.n
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
         · refine ⟨fun _ => ?_, hx3 x hx hbk⟩
           rw [e4, f4]
-          -- batch 37 (item 12): the nested-plainness clause, from the view page (`rootShape`,
-          -- `viewUnique`): OPEN, owner U7 (`Bucket.node`)
+          -- the nested-plainness clause, from the view page (`matNest`)
           exact ⟨hbw j hjc hbk', fun h0 => ⟨(hgood.1 hfl j hjc).2 hbk' h0, hni hfl j hjc hbk' h0⟩,
-            sorry⟩
+            fun _ bpg hb => hnest hfl j hjc hbk' bpg hb⟩
         · rw [hb] at hfl; exact absurd hfl mat_branch_ne_leaf
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -947,7 +946,12 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
           by_cases hin : B.ib.root' = W64 0
           · intro _ i hi hb _
             have := (hinl' hin).2 i hi; rw [hb] at this; unfold bucketLeafFlag at this; omega
-          · exact viewWF_leafInl X.v hv _ pg (hfile hin)))
+          · exact viewWF_leafInl X.v hv _ pg (hfile hin))
+        (by
+          by_cases hin : B.ib.root' = W64 0
+          · intro _ i hi hb
+            have := (hinl' hin).2 i hi; rw [hb] at this; unfold bucketLeafFlag at this; omega
+          · exact viewWF_matNest X.v hv _ pg (hfile hin)))
       (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' htk)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
       rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
@@ -1025,7 +1029,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
       exact ⟨rp, w, hrp, hbr, hw, rfl, hnone⟩
     refine wOK_matX X bl l w.pgid B (matBkt B w.pgid parent l rp' r) r hok hB hlo'
       (mat_clean X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r rp' hr
-        hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg))
+        hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg) (viewWF_matNest X.v hv _ pg hpg))
       (bktKeys_of_rbl X.v _ _ (rblKeys_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw
         hnone l hfresh hl0 pg hpg r rp' hr hp' hx bnd none (rblKeysB_of X.v B bnd hkb hbf hl0'))
         (rblAcyc_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
@@ -1175,7 +1179,12 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
           by_cases hin : B.ib.root' = W64 0
           · intro _ i hi hb _
             have := (hinl' hin).2 i hi; rw [hb] at this; unfold bucketLeafFlag at this; omega
-          · exact viewWF_leafInl X.v hv _ pg (hfile hin)))
+          · exact viewWF_leafInl X.v hv _ pg (hfile hin))
+        (by
+          by_cases hin : B.ib.root' = W64 0
+          · intro _ i hi hb
+            have := (hinl' hin).2 i hi; rw [hb] at this; unfold bucketLeafFlag at this; omega
+          · exact viewWF_matNest X.v hv _ pg (hfile hin)))
       (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' (hkb.1 hrn0))
       (by rw [hns', if_pos rfl]) ?_ hleafr
     intro y ry' hy
@@ -1211,7 +1220,7 @@ theorem bktLocalOK_nodeAdded (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc
       r rp' hr hp'
     refine bktLocalOK_matX X bl l w.pgid B (matBkt B w.pgid parent l rp' r) r hb hB
       (mat_clean X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r rp' hr
-        hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg))
+        hp' hx hcnt (Write.viewWF_leafInl X.v hv _ pg hpg) (viewWF_matNest X.v hv _ pg hpg))
       ⟨_, bktKeys_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg
         r rp' hr hp' hx bnd hkb⟩
       (by rw [mat_ns, if_pos rfl]) ?_ hleafr
