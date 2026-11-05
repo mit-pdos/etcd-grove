@@ -314,8 +314,21 @@ uncommitted edits of the time included):
   `mvcc.store.Commit.spec`; the merged image's receipt from `srvApplyKV_writer` (was
   `idxCert_rcpt`). `ApplyAllSnap` likewise (not built).
 
+**Since (same session, `52d72250bc`):** `InvWatchBuilt`, `InvServe` ("For v3rpc" below),
+`SnapApply` (`srv_be_swap` over the tie and `bkKey`), `BuildLemmas` (the internal `mvcc.New`
+bridges deleted), `SDSnapLemmas` build. **The next red layer under `applyAll`** is the snapshot
+receive's vocabulary, all over mvcc's internals: `RestorePre` (`restorePre_of_apply`: the sole
+writer, `srvKVCloser`, `mvcc.isWatchableStore`, `E.γ.watchQ`/`cm`; obsolete under
+`KV.Restore.contract`, whose `mvccOpen` is the apply thread's `cmpOwn`), `SnapApplyDefs` (imports
+`RestorePre`; `storeCloserM`, `writerFrag`, `watchWriter`, `withPhys`), `SnapRecvFacts`
+(`srvImage`/`keyImageM`, `crevPermIs`, `restoreRcptM`, `E.γ.kb`). `ApplyAllSnap` imports the last
+two, `applyAll` imports `ApplyAllSnap`. So `applyAll` builds only after the receive is restated over
+the draft's §3c-§3d (`dbImageA_open.law`, `restoreArgs.law`, `KV.Restore.contract`), which is coupled
+with the send (`srvNet`'s image to `dbImageA`, `senderImage.law`): one design step, next.
+
 **Left, in order:**
-1. **What blocks `applyAll`**: its imports `SDSnapLemmas` and `ApplyAllSnap` reach the snapshot
+1. **What blocks `applyAll`** (first written before `52d72250bc`; see "Since" above for what is
+   now done): its imports `SDSnapLemmas` and `ApplyAllSnap` reach the snapshot
    receive and the boot's vocabulary, red: `SnapApply` (`E.γ.kb`), `InvWatchBuilt` and `InvServe`
    (`E.s`, `mvcc.isWatchableStore wsl E.s γw`, `mvcc.watchReader`, `mvcc.storeReader E.s E.γ`:
    the watch store and its readers to restate over the API's handle, `□ isMvcc kv E.γ ∗ ⌜kv =
