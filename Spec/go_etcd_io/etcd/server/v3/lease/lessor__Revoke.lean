@@ -37,7 +37,12 @@ the writer's facts; a live key-value is a change, `receiptBound ≤ 2 ^ 48`; the
 The proof: `rd()` by `mvccDeleter` (its update this one), the deletes by `Txn.DeleteRange`
 (`shapes.law`), the record's delete by `mvccTxn_leaseDelete.law` (which gives `End`'s triple, not
 `mvccTxn`: the backend's batch session admits only `Unlock` after an `UnsafeDelete`), `End`'s triple
-with `P` from the hook's `Q` (`csContractA`) and the nested end update. -/
+with `P` from the hook's `Q` (`csContractA`) and the nested end update.
+**The begin state's reachability** (decided by the coordinator, 2026-11-05; superseding the
+draft's premise without it): `MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63`, which the deletes'
+`delKeys` need (`txn.delKeys_eq`'s `LogOk`) and the API gives only through `mvccState_reachable.law`
+(`isMvcc`, not held here); the server's caller has it from the writer's facts, the tester from
+`mvccState_reachable.law`. -/
 abbrev lease.lessor.Revoke.spec : Prop :=
   ∀ (lp : Loc) (γ : MvccName) (id : w64) (rd : GoFunc) (q : Qp) (B : BkRef) (P : IProp GF)
     (f : GoFunc) (σ₀ : MvccState) (L : List w64) (r : GMap GoString backend.BktData)
@@ -48,7 +53,8 @@ abbrev lease.lessor.Revoke.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       lease.lessorInv lp γl ∗ threadTok ∗ lease.rdOwn γl rd ∗ mvccDeleter rd γ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ csContractA P f Pre Q Post ∗
-      ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62⌝ ∗
+      ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧
+        MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
       auBegin γ σ₀ (auEnd γ σ₀ dels Y) ∗
       lease.leaseOwn γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗ lease.leaseRevokers γl L ∗
       backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.b }}

@@ -18,6 +18,19 @@ the watch path are drafted in parallel; their needs of this draft are answered i
 
 Paths below are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless they say otherwise.
 
+## Superseded (2026-11-05, decided by the coordinator)
+
+Found unprovable over the frozen API during the M1 proofs (`notes/mvcc-migration/server.md`,
+"Found"), both minor, every caller meeting them:
+- `lessor.Revoke.specA` takes `⌜MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝` beside its other
+  pure premises: the deletes' `delKeys` need the begin state's log well formed, which the API gives
+  only through `mvccState_reachable.law` (`isMvcc`, not in the precondition).
+- `applierV3backend.Compaction.specA` takes `⌜1 ≤ sint.Z rev⌝`, matching `KV.Compact.contract`
+  (added 2026-11-04) and `EtcdServer.Compact.spec`: `crevOk γr (-1)` admitted `rev = -1`.
+- The "by reference" parts: the auth, alarm, cluster and lessor contracts take the current backend
+  `B`'s `backend.wbTok`/`rdTok` in place of mvcc's `storeWT`/`storeRT`; `txnPre` and `cmpTriple`
+  follow txn's restated specs (`Spec/.../etcdserver/txn/`, else `TxnSpecs.lean`).
+
 ## What changed since round 14
 
 These follow the cross-review (`xreview-clients.md`) and API rounds 15-16.

@@ -92,7 +92,19 @@ restate in place). Not drafted, to decide before step 1 (all "by reference" in
 
 None (no `sorry`, no axiom).
 
-## Found
+## Decisions (the coordinator, 2026-11-05)
+
+- `lessor.Revoke.spec` takes `⌜MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝` (applied,
+  `Spec/.../lease/lessor__Revoke.lean`; the draft and `clients-server.md` record it superseded).
+- `applierV3backend.Compaction.spec` takes `⌜1 ≤ sint.Z rev⌝` (lands with the chain's
+  restatement; the draft records it).
+- The components' contracts (auth, alarm, cluster, lessor) take the current backend `B`'s
+  `backend.wbTok B.γB` / `backend.rdTok B.γB B.P B.b ∗ backend.bOpen B.γB backend.rdOpen` in place
+  of mvcc's `storeWT γ` / `storeRT γ` (which were exactly those of `γ`'s backend).
+- `txnPre` and `cmpTriple`'s premise follow txn's restated specs as landed in
+  `Spec/.../etcdserver/txn/`, else `notes/mvcc-api-clients/TxnSpecs.lean`.
+
+## Found (both decided above)
 
 - **`lessor.Revoke.specA` (landed as drafted) is unprovable over the frozen API: it lacks the
   begin state's reachability.** The proof must show that the loop's `Txn.DeleteRange(key, nil)`
