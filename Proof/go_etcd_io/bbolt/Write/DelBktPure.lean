@@ -18,6 +18,7 @@ public import Proof.go_etcd_io.bbolt.Write.DelBktHeap
 public import Proof.go_etcd_io.bbolt.Write.DelBktPlain
 public import Proof.go_etcd_io.bbolt.Write.DelBktOpen
 public import Proof.go_etcd_io.bbolt.Write.DelBktFound
+public import Proof.go_etcd_io.bbolt.Write.DelBktFree
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -60,16 +61,6 @@ theorem wOK_delMid (T : TxView) (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString)
     (hok : wOK X1) (hwr : wrFacts X1) (hgens : gensOK T X1) (hR1 : X1.t.bs !! X1.rl = some R1)
     (hn : R1.bm !! n = some c) (hC : X1.t.bs !! c = some C) :
     wOK (delMid X1 c C R1 n D) := by
-  sorry
-
-/-- **`child.free()`'s premises** (see the module doc): the child's tree in the view, its extents
-freeable by the writer. -/
-theorem dbk_freePre (X1 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (fl : FLPg) (txid : w64)
-    (hok : wOK X1) (hwr : wrFacts X1) (hR1 : X1.t.bs !! X1.rl = some R1)
-    (hn : R1.bm !! n = some c) (hC : X1.t.bs !! c = some C) (hfl : flViewU X1 fl)
-    (htx : X1.t.mv.txid' = txid) :
-    C.ib.root' ≠ W64 0 → C.bv.page' = null ∧ ∃ t : RTree, ltIs (pltree X1.v) c t ∧
-      t.pid = C.ib.root' ∧ fl.canFreeAll txid (t.pos.filterMap (pExt X1.v)) := by
   sorry
 
 end pure
