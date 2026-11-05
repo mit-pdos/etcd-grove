@@ -75,12 +75,20 @@ theorem ownState_split (c : StoreCfg GF Obj) (st : Loc) (s : OState Obj) :
   iframe Hst Hdsl Hm
   ipureintro; exact h
 
+/-- **The zero state** (`stateFromEtcdResponse` of an absent key with `ignoreNotFound`): the zero
+object at resource version `0`, no data, current, not stale. -/
+def zeroSt (c : StoreCfg GF Obj) : OState Obj :=
+  ⟨c.S.zero, W64 0, [], true, false⟩
+
 /-- **The store's answer for the key `key` at the state `σ`** (`stateFromEtcdResponse` of a read
-at `σ`): "not found" at `σ`'s revision, or a new `*objState` of its key-value. -/
-def stAt (c : StoreCfg GF Obj) (key : GoString) (σ : KVState) (st : Loc) (err : GoInterface) :
-    IProp GF :=
+at `σ`, with `ignoreNotFound` `ign`): for an absent key, "not found" at `σ`'s revision or (`ign`)
+a new `*objState` of the zero state; else a new `*objState` of its key-value. -/
+def stAt (c : StoreCfg GF Obj) (key : GoString) (ign : Bool) (σ : KVState) (st : Loc)
+    (err : GoInterface) : IProp GF :=
   match mvcc.findKey key σ.kvs with
-  | none => iprop(⌜st = null⌝ ∗ storageErrIs err (W64 1) key (W64 (σ.rev : Int)))
+  | none =>
+    if ign then iprop(⌜err = GoInterface.nil⌝ ∗ ownState c st (zeroSt c))
+    else iprop(⌜st = null⌝ ∗ storageErrIs err (W64 1) key (W64 (σ.rev : Int)))
   | some kv => iprop(⌜err = GoInterface.nil⌝ ∗ ∃ s, ownState c st s ∗ ⌜stOfKv c kv s⌝)
 
 /-- **`getCurrentState`'s closure `f`** (persistent: callable at each retry): given, for the call,
@@ -88,19 +96,19 @@ the caller's single-use maker of a read update at each member for the response's
 (`Client.Get.spec`'s, D30n), it reads the key through the client and answers `stAt` at the state
 `σ` the update fired at, with `R` at `σ`'s pair (`rdPair`'s parts) and `σ`'s values no longer
 than etcd's request limit (`Client.Get.spec`'s, from `etcdState_vals`), or fails with the client's
-error. -/
-def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVState → IProp GF)
-    (f : GoFunc) : IProp GF :=
+error (`ign`: the closure's `ignoreNotFound`). -/
+def getStateOk (c : StoreCfg GF Obj) (key : GoString) (ign : Bool)
+    (R : w64 → w64 → KVState → IProp GF) (f : GoFunc) : IProp GF :=
   iprop(□ ∀ Ψ : val → IProp GF,
     (∀ R0 m, |==> □ [∧list] x ∈ c.ms, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
       kvReadAu x.γr.kv (R R0 m)) -∗
     ▷ (∀ (st : Loc) (err : GoInterface),
         (unkErr c err ∨ ∃ σ, □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
-          ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
+          ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key ign σ st err) -∗ Ψ (PairV #st #err)) -∗
     WP (App (Val #f) (Val #())) {{ Ψ }})
 
-instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVState → IProp GF)
-    (f : GoFunc) : Persistent (getStateOk c key R f) := by
+instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (ign : Bool)
+    (R : w64 → w64 → KVState → IProp GF) (f : GoFunc) : Persistent (getStateOk c key ign R f) := by
   unfold getStateOk; infer_instance
 
 end defs

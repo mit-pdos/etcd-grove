@@ -135,7 +135,7 @@ theorem revOwn_elem (γ : KNames) (σ : KVState) :
 /-- **The invariant's ghost state follows a step of etcd's state** (see the file header): the
 revisions' map, the store's history, and the room for revisions (`revRoom`). -/
 theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
-    (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63) :
+    (hw : kvWf c σ) (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63) :
     revOwn (GF := GF) γ σ ∗ histAuth c.γh σ ⊢
       |==> (revOwn γ σ' ∗ histAuth c.γh σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝) := by
   have hr' : σ'.rev + 2 < 2 ^ 63 := by
@@ -148,7 +148,7 @@ theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : K
     · exact Or.inr hrv
   iintro ⟨Hrv, Hhist⟩
   ihave Hrv := (revOwn_next γ σ σ' hn') $$ Hrv
-  ihave Hhist := (histAuth_next c.γh σ σ' hn (by omega) hw'.1) $$ Hhist
+  ihave Hhist := (histAuth_next c.γh σ σ' hn (by omega) hw.1 hw'.1) $$ Hhist
   imod Hrv with Hrv
   imod Hhist with Hhist
   imodintro
@@ -242,7 +242,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
     iintro %σ' ⟨Hσ, %Hpost⟩
     obtain ⟨hw', habs, hn⟩ := Hpost
     imod Hclose2 with -
-    imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
+    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
     · iframe
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
     obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
@@ -325,7 +325,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       icases Hb with ⟨Htok, %Hpost⟩
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
-      imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
+      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
       · iframe
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
       obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
@@ -397,7 +397,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   · iintro %σ' ⟨Hσ, %Hpost⟩
     obtain ⟨hw', habs, hn⟩ := Hpost
     imod Hclose2 with -
-    imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
+    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
     · iframe
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
     iunfold pendTok at Htok
@@ -468,7 +468,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       icases Hb with ⟨Htok, %Hpost⟩
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
-      imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
+      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
       · iframe
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
       iunfold pendTok at Htok

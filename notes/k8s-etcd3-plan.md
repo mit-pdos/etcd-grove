@@ -605,13 +605,13 @@ def preAt (pp : Loc) (p : KPre) : IProp GF :=
 def KPre.ok (p : KPre) (uid rvs : GoString) : Bool := p.uid.all (· = uid) && p.rv.all (· = rvs)
 -- NewInvalidObjError(key, _): a *StorageError, code 4, the key, an inner error
 def invalidErrIs (err : GoInterface) (key : GoString) : IProp GF :=
-  ∃ l e, ⌜err = mkOk (*StorageError) #l ∧ e ≠ nil⌝ ∗ l ↦□ StorageError.mk 4 key 0 e
+  ∃ l e, ⌜err = mkOk (*StorageError) #l⌝ ∗ l ↦□ StorageError.mk 4 key 0 e  -- (review S5: no `e ≠ nil`)
 ```
 
 and in the store's `Steps.lean`: `c.S.preOk p o r := p.ok (c.S.uid o) (c.S.fmtRV (W64 r))`.
 
-**The cached object** (`Steps.lean`; `Store.lean`'s `kvSeen` with the history's values
-`Option GoString`, `none` recording a deletion at that mod revision, Q2):
+**The cached object** (`Steps.lean`; `Store.lean`'s `kvSeen` over the revision-keyed history, Q2 and
+D2 below):
 
 ```lean
 def versionAt (c) (key) (r : w64) (o : Obj) : IProp GF :=   -- persistent
@@ -622,12 +622,15 @@ def cachedOk (c) (key) (x : GoInterface) : Option (Obj × w64) → IProp GF
 ```
 
 **Callee specs, new or changed:**
-- `meta.Accessor.spec` (new; proved from its translated body): `{{ ⌜x = .ok ii ∧ typeSetContains ii.ty
-  metav1.Object.ty⌝ }} Accessor(x) {{ RET (x, nil) }}`.
+- `meta.Accessor.spec` (D3: the existing spec, the DaemonSet track's hypothesis for four pointer
+  types, generalized in place and proved from the translated body): `∀ ii, typeSetContains ii.ty
+  metav1.Object.ty = true → {{ True }} Accessor(.ok ii) {{ RET (.ok ii, nil) }}`;
+  `RealPodControl.createPods` gives the fact for `*apps.DaemonSet`.
 - `storage.NewInvalidObjError.spec` (new; body): `{{ True }} (key, msg) {{ p, RET #p; p ↦ StorageError.mk 4
   key 0 e ∗ ⌜e ≠ nil⌝ }}`.
-- `storage.Preconditions.Check.spec` (old: `p = nil` only): `{{ preAt pp p ∗ (⌜pp = null⌝ ∨ metaAt x R uid
-  rvs) ∗ R }} pp.Check(key, x) {{ err; R ∗ (if p.ok uid rvs then ⌜err = nil⌝ else invalidErrIs err key) }}`
+- `storage.Preconditions.Check.spec` (old: `p = nil` only): `{{ preAt pp p ∗ metaAt x R uid rvs ∗ R }}
+  pp.Check(key, x) {{ err; R ∗ (if p.ok uid rvs then ⌜err = nil⌝ else invalidErrIs err key) }}`
+  (review S7: `metaAt` always, `Check` calls `Accessor` before testing `pp`)
   (from `Accessor`, `NewInvalidObjError`, `fmt.SprintfNamed` (T1) and `fmt.wp_Sprintf`).
 - `storage.NewTooLargeResourceVersionError.spec` (old: `err ≠ nil`): `err = mkOk (*apierrors.StatusError)
   #l` for some `l` (body, `NewTimeoutError`'s spec).
@@ -649,7 +652,10 @@ def cachedOk (c) (key) (x : GoInterface) : Option (Obj × w64) → IProp GF
   it calls the closure (`getStateOk`, a maker for its read) and answers the client's error, or `stAt`
   at the read's state `σ` with `err' = if modAt key σ = s.rev then err else nil` (the old state's
   object dropped).
-- `store.deleteOnce.spec`/`updateOnce.spec`: `stFrom c key s` in place of `σ0, kv0, rdFacts σ0`,
+- `store.deleteOnce.spec`/`updateOnce.spec`: `stFrom c key s` in place of `σ0, kv0, rdFacts σ0`
+  (S3: the no-op `Update` path's re-read gives the witness of the state it returns, from that read's
+  `kvSeen`, `update_noop_reread`; S1: an `OptimisticPut` at mod revision `0`, the zero state with
+  `ign`, creates the key, `put_cases0`/`updStepOk0`),
   `c.S.preOk p s.o s.rev = true`, the step `delStep key pre validate` / `updStep key ign z pre f`;
   the answers `(c.abs σ).delete key pre validate` / `.update key ign z pre f`; on a conflict
   `stAt c key ign σ`.
@@ -666,9 +672,12 @@ def cachedOk (c) (key) (x : GoInterface) : Option (Obj × w64) → IProp GF
    validateOk c validate vf }}
   s.Delete(ctx, key, out, pp, vf, cx, opts)
 {{ err; delOut c (pathPrefix ++ k) (c.S.preOk p) validate Φ err out }}
--- store.GuaranteedUpdate.spec: likewise with `ign` (ignoreNotFound) and two more size premises:
+-- store.GuaranteedUpdate.spec: likewise with `ign` (ignoreNotFound); the pure premises are
+-- ⌜⌝ conjuncts of the precondition (review S4), two more size premises and the cached object's
+-- scope premise (D1, review F1: the cached no-op path runs neither on the re-read state):
 --   ign = true → ∀ o', f c.S.zero 0 = .ok o' → c.S.storedSizeOk o'
 --   ∀ o r, ca = some (o, r) → ∀ n o', f o n = .ok o' → c.S.encode o' ≠ c.S.encode o → c.S.storedSizeOk o'
+--   ∀ o r, ca = some (o, r) → p.rv = none ∧ ∀ n, f o n = f o (uint.nat r)            (D1)
 -- the step `updStep (pathPrefix ++ k) ign c.S.zero (c.S.preOk p) f`, the answer `updOut … ign …`
 -- store.Get.spec: `c.S.parseRV opts.ResourceVersion' = some n` (old: `= []`); the answer
 --   `(c.abs σ).get key (uint.nat n) opts.IgnoreNotFound'`
@@ -679,10 +688,13 @@ def cachedOk (c) (key) (x : GoInterface) : Option (Obj × w64) → IProp GF
 shape `∃ l, err = mkOk (*StatusError) #l` (T2 (b): the driver tells it from a `*StorageError` and its
 sentinels by type, and answers `EOther`); `delOut`/`updOut` take `pre` (and `ign`).
 
-**The history** (`Store.lean`, `History.lean`): `kvSeen γh σ := □ ∀ v ∈ σ.kvs, (v.key, v.modRev) ↦□
-some v.value`; `histAuth_next` also records `(k, σ'.rev) ↦ none` for each key of `σ` missing from `σ'`,
-and returns the new entries' fragments (the new key-values' and the deletions'), which the driver
-turns into witnesses. `kvSeen_agree` and the store's uses unchanged in form.
+**The history** (`Store.lean`, `History.lean`; D2, review F2: revision-keyed, so that a witness says
+a revision did not change a key): `γh : rev ↦□ Changes`, `Changes := List (GoString × Option
+GoString)` with distinct keys (`some` value written, `none` deleted); `kvSeen γh σ := □ ∀ v ∈ σ.kvs,
+∃ ch, v.modRev ↦□ ch ∗ ⌜(v.key, some v.value) ∈ ch ∧ keys distinct⌝`. `histAuth_next` adds `σ'.rev ↦
+chgOf σ σ'` (the step's new key-values, then its deleted keys) and returns it (`revSeen γh σ σ'`);
+`chgOf_new`/`chgOf_del`/`chgOf_keys` say what it holds. `kvSeen_agree` and the store's uses unchanged
+in form (done, checked).
 
 **The driver.** `DObj` gains the UID (`{ (name, uid, val) // name.length < 256 ∧ uid.length < 256 }`;
 the Go `Obj` its `UID` field, `encodeWith` its length and bytes), `codecD.uid`; `objTyD`'s method set
@@ -693,8 +705,9 @@ premise on a cached object holds for `updD`: a changed object takes the input's 
 and `r ≠ 0` (persistent). The table: `cacheInv c tbl := ∃ m, tbl's map ↦ m ∗ [∗ map] id ↦ ob ∈ m,
 versionAt c (mkeyL ob.Name) ob.RV (dobjOf ob) ∗ ⌜ob.RV ≠ 0⌝`, in the `sync.Mutex`'s lock invariant
 (`Gen` reads an entry under the lock, `Apply` writes one). Witnesses: a `Get` answer from its read's
-`kvSeen` (`Q` includes it); a `Create`/`Update` answer from the write's fragment
-`(key, rev') ↦□ some v`, `dec v = (o', true)`; a `Delete` answer from `(key, rev') ↦□ none`. The Lean
+`kvSeen` (`Q` includes it); a `Create`/`Update`/`Delete` answer from the write's `revSeen` (the
+revision's changes: the key's new value or `none`, and no other key, so `versionAt` holds for every
+key, vacuously for the others: `genFrom` attaches a cached object to an operation on any key, D2). The Lean
 model (`KModel.lean`/`Refine.lean`): `kStep` with `KPre`, `invalidObj` → `EInvalid`, the minimum,
 `ignoreNotFound` updates; the refinement restated.
 

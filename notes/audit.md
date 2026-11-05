@@ -297,7 +297,7 @@ recorded at commit/rollback and at `Begin`.
 | `zap.Logger.Debug`/`Info`/`Warn`/`Error` (4) | ok | Log only; etcd never sets `Development`, a panic hook or a fatal hook, so no `DPanic`. |
 | zap field constructors (`ByteString`, `Duration`, `Error`, `Int'`, `Int32`, `Int64`, `Stack`, `String`, `Stringer`, `Uint`, `Uint32`, `Uint64`) (12), `zap.NewNop` | benign | Values only. |
 | `fmt.Errorf`, `fmt.Printf` (2) | ok | `argsOk` asks each argument's `Error()`/`String()` for a spec; `Formatter`/`GoStringer` arguments are not excluded but no caller passes one. |
-| `fmt.SprintfClientPtr`, `fmt.SprintfNamed` (2) | ok | `*clientv3.Client` and `LeaseID` have no `String`/`Error`/`Format` method. |
+| `fmt.SprintfClientPtr`, `fmt.SprintfNamed` (2) | ok | `*clientv3.Client`, `LeaseID` and (2026-11-05, k8s etcd3 7b) `types.UID` have no `String`/`Error`/`Format` method; the `axiom` skill on the extended list (2026-11-05): sound (a `types.UID` never matches `SprintfOut`'s `str`/`int`/`hex` cases, so the output after its directive is unconstrained). Hazard noted: the named branch of `SprintfArgOk` does not ask that the value have its type's shape (a `LeaseID` holding a non-`w64` would make `%d` give `False`); not reachable by Go typing. |
 | `fmt.Sscanf` | ok | Matches `fmt/scan.go`'s `%d` path. |
 | `time.NewTicker`, `Ticker.Reset`, `Ticker.Stop` (3) | ok | A positive period required (Go panics otherwise); ticks over-approximated. |
 | `time.Duration.Seconds`, `Seconds_ptr`, `Duration.String`, `Time.After`, `Time.IsZero`, `Time.Unix` (6), `strconv.FormatBool` | benign | Values only. |

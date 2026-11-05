@@ -254,9 +254,10 @@ theorem seedInv_cancel (γs : GName) (γk : KVNames) (σ : KVState) :
 /-- **The store's history at the seeded state**: its two key-values. -/
 theorem histAuth_seed :
     ⊢ |==> ∃ γh, histAuth (GF := GF) γh σs2 := by
-  imod ghost_map_alloc_empty (GF := GF) (K := GoString × w64) (V := GoString) with ⟨%γh, HA⟩
-  imod ghost_map_insert_persist (kvA.key, kvA.modRev) kvA.value rfl $$ HA with ⟨HA, #Ha⟩
-  imod ghost_map_insert_persist (kvB.key, kvB.modRev) kvB.value (by rfl) $$ HA with ⟨HA, #Hb⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Changes) with ⟨%γh, HA⟩
+  imod ghost_map_insert_persist kvA.modRev [(kvA.key, some kvA.value)] rfl $$ HA with ⟨HA, #Ha⟩
+  imod ghost_map_insert_persist kvB.modRev [(kvB.key, some kvB.value)] (by rfl) $$ HA
+    with ⟨HA, #Hb⟩
   imodintro
   iexists γh
   iunfold histAuth
@@ -264,12 +265,12 @@ theorem histAuth_seed :
   iframe HA
   isplitr
   · ipureintro
-    intro k r v hv
-    by_cases e2 : (kvB.key, kvB.modRev) = (k, r)
-    · simp only [Prod.mk.injEq] at e2; obtain ⟨-, rfl⟩ := e2; decide
+    intro r ch hv
+    by_cases e2 : kvB.modRev = r
+    · subst e2; decide
     rw [GMap.lookup_insert_ne _ _ e2] at hv
-    by_cases e1 : (kvA.key, kvA.modRev) = (k, r)
-    · simp only [Prod.mk.injEq] at e1; obtain ⟨-, rfl⟩ := e1; decide
+    by_cases e1 : kvA.modRev = r
+    · subst e1; decide
     rw [GMap.lookup_insert_ne _ _ e1] at hv
     cases hv
   iunfold kvSeen
@@ -278,8 +279,12 @@ theorem histAuth_seed :
   rw [σs2_kvs] at hv
   simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
   rcases hv with rfl | rfl
-  · iexact Ha
-  · iexact Hb
+  · iexists _
+    iframe Ha
+    ipureintro; simp
+  · iexists _
+    iframe Hb
+    ipureintro; simp
 
 /-- **The instance's invariant at the seeded state**, and the library's initial state. -/
 theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
