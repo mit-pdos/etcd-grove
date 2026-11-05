@@ -422,6 +422,10 @@ theorem rinv_inline' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) (hnd : keys.No
       intro we hwe
       obtain ⟨we0, hwe0, hk0⟩ := allEnts_kept hleavesR hwe
       rw [hk0]; exact hI.entKeys we0 hwe0
+    rootBkt := by
+      intro we hwe
+      obtain ⟨we0, hwe0, hf0⟩ := allEnts_keptF hleavesR hwe
+      rw [hf0]; exact hI.rootBkt we0 hwe0
     inj := hI.inj
     cok := hI.cok
     bufs := by

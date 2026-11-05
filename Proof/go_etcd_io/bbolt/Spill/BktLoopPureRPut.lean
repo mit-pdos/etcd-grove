@@ -504,6 +504,33 @@ theorem rinv_put' (hI : RInv X0 w0 B0 keys Lroot X w st Dc ks) {k : GoString} {c
           rw [hall1, List.mem_flatten]; exact ⟨_, List.mem_map.2 ⟨x, hx, rfl⟩, hw⟩
         obtain ⟨we0, hwe0, hk0⟩ := allEnts_kept hleavesD hw1
         rw [hk0]; exact hI.entKeys we0 hwe0
+    rootBkt := by
+      intro we' hwe'
+      have hallP : X'.allEnts X0.rl = ((Write.lleavesB (ltree X1) X0.rl X1.fuel
+          (X1.rootPid X0.rl) (none, none)).map fun x =>
+            (if decide (X0.rl = X0.rl ∧ resolve B1 x.1 = some l) then (x.1, x.2.1, r'.ws)
+              else x).2.2).flatten := by
+        unfold WX.allEnts WX.leaves
+        rw [← Write.lleavesB_snd, hX', setNode_blocks hB1 hrl hleaf (r_lf.trans hleaf),
+          List.map_map]
+        rfl
+      rw [hallP, List.mem_flatten] at hwe'
+      obtain ⟨L, hL, hw⟩ := hwe'
+      obtain ⟨x, hx, rfl⟩ := List.mem_map.1 hL
+      by_cases hs : resolve B1 x.1 = some l
+      · rw [if_pos (decide_eq_true ⟨rfl, hs⟩)] at hw
+        rw [r_ws] at hw
+        rcases hmemP we' hw with rfl | h
+        · show isBktFlag (W32 1); unfold isBktFlag; decide
+        · have hw1 : we' ∈ X1.allEnts X0.rl := by
+            rw [hall1, List.mem_flatten]; exact ⟨_, List.mem_map.2 ⟨_, hmem, rfl⟩, h⟩
+          obtain ⟨we0, hwe0, hk0⟩ := allEnts_keptF hleavesD hw1
+          rw [hk0]; exact hI.rootBkt we0 hwe0
+      · rw [if_neg (by simp [hs])] at hw
+        have hw1 : we' ∈ X1.allEnts X0.rl := by
+          rw [hall1, List.mem_flatten]; exact ⟨_, List.mem_map.2 ⟨x, hx, rfl⟩, hw⟩
+        obtain ⟨we0, hwe0, hk0⟩ := allEnts_keptF hleavesD hw1
+        rw [hk0]; exact hI.rootBkt we0 hwe0
     inj := hI.inj
     cok := hI.cok
     bufs := by

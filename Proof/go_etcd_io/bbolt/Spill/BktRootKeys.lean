@@ -165,6 +165,118 @@ theorem rootKeys_wOKR {X : WX} (hok : wOKR X) :
       unfold resolve; rw [if_neg h0, hcl.2.2.2.1 hne]; rfl
     exact ⟨_, Or.inl ⟨hrn, h0, rfl⟩, Or.inl rfl⟩
 
+/-- A flag word whose low bit is set is a bucket's. -/
+theorem isBkt_of_lowBit {n : Nat} (hn : n < 2 ^ 32) (h : n % 2 = 1) :
+    isBktFlag (W32 (n : Int)) := by
+  unfold isBktFlag
+  intro e
+  have e' := congrArg BitVec.toNat e
+  rw [BitVec.toNat_and] at e'
+  have h1 : (W32 (n : Int)).toNat = n := by simp only [BitVec.toNat_ofInt]; omega
+  rw [h1] at e'
+  have h2 : n &&& (W32 1).toNat = n % 2 := by
+    show n &&& 1 = n % 2; rw [Nat.and_one_is_mod]
+  rw [h2, h] at e'
+  exact absurd e' (by decide)
+
+/-- **The walk of the root bucket's logical tree meets bucket entries only** (`leafShape` for a
+node's entries, `posShape` for a page's under a page position). -/
+theorem walk_bkt {X : WX} {B : BRec} (hok : wOKR X) (hB : X.t.bs !! X.rl = some B)
+    (h0 : B.ib.root' ≠ W64 0) :
+    ∀ n pid, walkInv X B pid → ∀ ws ∈ lleaves (ltree X) X.rl n pid, ∀ we ∈ ws,
+      isBktFlag we.flags := by
+  have hcl : bktClean X.v X.t.mv.pgid'.toNat X.rl B := (hok.1.2.2.2.2.2 X.rl B hB).1
+  intro n
+  induction n with
+  | zero => intro pid _ ws hws; simp [lleaves] at hws
+  | succ n ih =>
+    intro pid hinv ws hws we hwe
+    unfold lleaves at hws
+    cases hres : resolve B pid with
+    | some l =>
+      have hL : ltree X X.rl pid = (B.ns !! l).map (fun r => (r.nv.isLeaf', r.ws)) := by
+        unfold ltree; rw [hB]; simp only [hres]
+      rw [hL] at hws
+      cases hr : B.ns !! l with
+      | none => rw [hr] at hws; simp at hws
+      | some r =>
+        rw [hr] at hws
+        simp only [Option.map_some] at hws
+        cases hlf : r.nv.isLeaf' with
+        | true =>
+          rw [hlf] at hws
+          simp only [List.mem_singleton] at hws
+          subst hws
+          exact (hok.1.2.1.2.2.1 X.rl B hB l r hr hlf we hwe).2 rfl
+        | false =>
+          rw [hlf] at hws
+          obtain ⟨w, hw, hws'⟩ := List.mem_flatMap.1 hws
+          exact ih w.pgid (walkInv_node h0 hr hlf hw) ws hws' we hwe
+    | none =>
+      obtain ⟨c, hc, hto⟩ : ∃ c, posRoot B c ∧ ownTo X.v.pages c pid.toNat := by
+        rcases hinv with h | h
+        · rw [hres] at h; cases h
+        · exact h
+      cases hp : X.v.pages !! pid.toNat with
+      | none =>
+        have hL : ltree X X.rl pid = none := by
+          unfold ltree wpageAt; rw [hB]; simp only [hres]; rw [if_neg h0, hp]; rfl
+        rw [hL] at hws; simp at hws
+      | some pg =>
+        have hL : ltree X X.rl pid = some (decide (pageFlags pg = leafPageFlag), pageWs pg) := by
+          unfold ltree wpageAt; rw [hB]; simp only [hres]; rw [if_neg h0, hp]; rfl
+        rw [hL] at hws
+        have hown := ownTo_ownHas hto hp
+        have hpt : pageTreeWF X.v.pages X.t.mv.pgid'.toNat pg pg.length := by
+          rcases treeWF_ownHas hown (posRoot_treeWF hcl hc) with ⟨_, pg', _, _, hpg', _, _, hpt⟩
+          rw [hp] at hpg'; cases hpg'; exact hpt
+        by_cases hfl : pageFlags pg = leafPageFlag
+        · rw [decide_eq_true hfl] at hws
+          simp only [List.mem_singleton] at hws
+          subst hws
+          obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hwe
+          rw [List.mem_range] at hi
+          have hs := hok.1.2.1.2.2.2.1 X.rl B hB c pid.toNat pg hc hown hp hfl i hi
+          rw [(mat_pageW_leaf pg i hfl).1]
+          refine isBkt_of_lowBit (by unfold leafFlags; exact BitVec.isLt _) ?_
+          have := hs.1.2 rfl
+          unfold bucketLeafFlag at this; exact this
+        · rw [decide_eq_false hfl] at hws
+          obtain ⟨w, hw, hws'⟩ := List.mem_flatMap.1 hws
+          obtain ⟨i, hi, rfl⟩ := List.mem_map.1 hw
+          rw [List.mem_range] at hi
+          have hbr : pageFlags pg = branchPageFlag := by
+            rcases mat_kind hpt with ⟨h, -⟩ | ⟨h, -⟩
+            · exact absurd h hfl
+            · exact h
+          refine ih _ ?_ ws hws' we hwe
+          by_cases hs : (resolve B (pageW pg i).pgid).isSome
+          · exact Or.inl hs
+          · refine Or.inr ⟨c, hc, Or.inr ⟨pid.toNat, pg, i, hown, hp, hbr, hi, ?_⟩⟩
+            rw [pageW_pgid_branch pg i hbr, rp_cast_toNat (Write.branchPgid_lt pg i)]
+
+/-- **The root bucket's entries are bucket entries** (from `wOKR`; `RInv.rootBkt` at the start). -/
+theorem rootBkt_wOKR {X : WX} (hok : wOKR X) : ∀ we ∈ X.allEnts X.rl, isBktFlag we.flags := by
+  have htc := hok.1
+  obtain ⟨B, hB⟩ := Option.isSome_iff_exists.1 htc.2.2.2.2.1
+  have h0 : B.ib.root' ≠ W64 0 := htc.2.1.2.2.2.2 B hB
+  have hcl : bktClean X.v X.t.mv.pgid'.toNat X.rl B := (htc.2.2.2.2.2 X.rl B hB).1
+  intro we hwe
+  unfold WX.allEnts WX.leaves at hwe
+  obtain ⟨ws, hws, hw⟩ := List.mem_flatten.1 hwe
+  have hrp : X.rootPid X.rl = B.ib.root' := by unfold WX.rootPid; rw [hB]; rfl
+  rw [hrp] at hws
+  refine walk_bkt hok hB h0 _ _ ?_ ws hws we hw
+  by_cases hs : (resolve B B.ib.root').isSome
+  · exact Or.inl hs
+  · right
+    have hrn : B.bv.rootNode' = null := by
+      apply Classical.byContradiction
+      intro hne
+      apply hs
+      unfold resolve; rw [if_neg h0, hcl.2.2.2.1 hne]; rfl
+    exact ⟨_, Or.inl ⟨hrn, h0, rfl⟩, Or.inl rfl⟩
+
 end rootkeys
 
 end Spill

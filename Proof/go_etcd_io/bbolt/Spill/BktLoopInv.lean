@@ -177,6 +177,10 @@ structure RInv (X0 : WX) (w0 : WDb) (B0 : BRec) (keys : List GoString) (Lroot : 
   visited and still without a root node. Never `val` (`rinv_nilKid`). -/
   nilKids : ∀ k c C0, B0.bm !! k = some c → X0.t.bs !! c = some C0 → C0.bv.rootNode' = null →
     ks k = .nilc ∨ (ks k = .todo ∧ ∀ C, X.t.bs !! c = some C → C.bv.rootNode' = null)
+  /-- (U9x10) The root bucket's entries are bucket entries (`BktRootKeys.rootBkt_wOKR` at the
+  start: `leafShape`, `posShape`; a materialization and a child's spill keep the entries by data,
+  a put's `rootEnt` is a bucket's): for `endEls`'s root shape and names. -/
+  rootBkt : ∀ we ∈ X.allEnts X0.rl, isBktFlag we.flags
 
 /-- **A child with no root node at the start never gets a value** (`RInv.nilKids`). -/
 theorem rinv_nilKid {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString}

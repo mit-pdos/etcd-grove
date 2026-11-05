@@ -62,6 +62,15 @@ theorem allEnts_kept {X X' : WX} {bl : Loc}
   obtain ⟨we, hwe, he⟩ := mem_of_dat e hw
   exact ⟨we, hwe, wDat_key he⟩
 
+/-- `allEnts_kept` with the flags. -/
+theorem allEnts_keptF {X X' : WX} {bl : Loc}
+    (h : (X'.leaves bl).map (List.map wDat) = (X.leaves bl).map (List.map wDat)) {we' : WEntry}
+    (hw : we' ∈ X'.allEnts bl) : ∃ we ∈ X.allEnts bl, we'.flags = we.flags := by
+  have e : (X'.allEnts bl).map wDat = (X.allEnts bl).map wDat := by
+    unfold WX.allEnts; rw [List.map_flatten, List.map_flatten, h]
+  obtain ⟨we, hwe, he⟩ := mem_of_dat e hw
+  exact ⟨we, hwe, congrArg (fun d => d.1) he⟩
+
 /-- **The root bucket's facts through a kept step.** -/
 theorem rootLoc_kept {X X' : WX} {bl : Loc} (h : rootLoc X bl) (hkept : bktKept X X' bl)
     (hv : X'.v.pages = X.v.pages) (hvw : viewWF X'.v)
@@ -315,6 +324,10 @@ theorem rinv_spilled' {X0 X : WX} {w0 w : WDb} {B0 : BRec} {keys : List GoString
       intro we hwe
       obtain ⟨we0, hwe0, hk0⟩ := allEnts_kept hleavesR hwe
       rw [hk0]; exact hI.entKeys we0 hwe0
+    rootBkt := by
+      intro we hwe
+      obtain ⟨we0, hwe0, hf0⟩ := allEnts_keptF hleavesR hwe
+      rw [hf0]; exact hI.rootBkt we0 hwe0
     inj := hI.inj
     cok := hI.cok
     bufs := hbufs
