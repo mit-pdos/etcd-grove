@@ -626,7 +626,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     · word
   have hRB : ∀ n ∈ restBuckets, d.P.RB n = true := fun n hn => by
     simp [mvcc.KBReal.P, hn]
-  ihave ⟨%f, %Hfb, HRs, -, -⟩ := srvRest_open B.E C.γr A $$ HRs
+  ihave ⟨%f, %Hfb, HRs, -, -, -⟩ := srvRest_open B.E C.γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, -⟩

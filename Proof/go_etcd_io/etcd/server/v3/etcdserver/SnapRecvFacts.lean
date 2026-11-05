@@ -557,7 +557,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   have Hpl : plainLogM γr.kv.cmp γr.kv.lm A' := Hpl0.1
   -- the cluster's in-memory members, from the rest resource (S2–S4 Probe: in either lease mode,
   -- `srvRest_open`; the records leave the members, `restLeasesWith_mem`)
-  ihave ⟨%f, %Hf, Hrest, HL, HG, HU⟩ := srvRest_open E γr A $$ Hrest
+  ihave ⟨%f, %Hf, Hrest, HL, HG, #HRq, HU⟩ := srvRest_open E γr A $$ Hrest
   rw [hRO]
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
@@ -598,7 +598,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   isplitl [Hrb Hrn Hmem HH HL HG HU]
   · iapply srvRest_close
     iexists f
-    iframe HL HG HU
+    iframe HL HG HRq HU
     isplitr
     · ipureintro; exact Hf
     rw [hRO]

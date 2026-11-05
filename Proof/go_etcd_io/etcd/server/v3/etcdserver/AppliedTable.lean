@@ -249,6 +249,58 @@ theorem dispatchTable_sub_nonGrant (c : apply.Chain) (rq : apply.IRRModel) (v3 :
   · exact hp
   · exact chainTable_sub_nonGrant c rq lt hk p hp
 
+/-- **The table's entries one request later** (the lease-expiry plan's S2–S4, F7, DRAFT
+2026-11-05): of a request that revokes nothing, the old table's and an applied grant's. -/
+theorem dispatchTable_mem (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
+    (o : apply.Outcome) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hgo : apply.grantOutOk c rq v3 lt.ids o) (p : w64 × w64) (hp : p ∈ dispatchTable c rq v3 lt) :
+    p ∈ lt ∨ (apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧ ∃ g : apply.LeaseGrantModel,
+      rq.leaseGrant = some g ∧ p = (g.id, g.ttl) ∧ ∃ l ns, o = .applied l ns) := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · have hpre : apply.preV3Kind (apply.dispatchKind rq) = false := by rw [hk]; rfl
+    cases v3
+    · left; simpa [dispatchTable] using hp
+    · cases hgl : rq.leaseGrant with
+      | none =>
+        left
+        simp only [dispatchTable, hpre, Bool.false_eq_true, false_or, ↓reduceIte] at hp
+        rwa [chainTable_grantNone c rq lt hk hgl] at hp
+      | some g =>
+        have h := hgo hk rfl g hgl
+        simp only [dispatchTable, hpre, Bool.false_eq_true, false_or, ↓reduceIte] at hp
+        rw [chainTable_grant c rq g lt hk hgl] at hp
+        by_cases hc : apply.grantGoes c rq = true ∧ leaseGrantOk lt g.id g.ttl
+        · rw [if_pos hc] at hp
+          rcases List.mem_append.1 hp with hp | hp
+          · exact .inl hp
+          · simp at hp
+            exact .inr ⟨hk, rfl, g, rfl, hp, h.2 hc⟩
+        · rw [if_neg hc] at hp; exact .inl hp
+  · exact .inl (dispatchTable_sub_nonGrant c rq v3 lt hk p hp)
+
+/-- **`dispatchTable_mem` over `Apply`'s outcome** (as `dispatchTableA_ids`). -/
+theorem dispatchTableA_mem (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
+    (out : apply.ApplyOut) (lt : LeaseTable) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hg : apply.dispatchKind rq = .leaseGrant → apply.grantKindOk rq)
+    (hs : apply.applyStep rq v3 x x' out) (hgo : apply.grantOutOkA x.chain rq v3 lt.ids out)
+    (p : w64 × w64) (hp : p ∈ dispatchTable x.chain rq v3 lt) :
+    p ∈ lt ∨ (apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧ ∃ g : apply.LeaseGrantModel,
+      rq.leaseGrant = some g ∧ p = (g.id, g.ttl) ∧
+      ∃ o sk l ns, out = .dispatched o sk ∧ o = .applied l ns) := by
+  cases out with
+  | dispatched o sk =>
+    rcases dispatchTable_mem x.chain rq v3 lt o hr hgo p hp with h | ⟨hk, hv, g, hgl, hpg, l, ns, ho⟩
+    · exact .inl h
+    · exact .inr ⟨hk, hv, g, hgl, hpg, o, sk, l, ns, rfl, ho⟩
+  | skipped =>
+    have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      have := (hg hk).2.2.1; rw [hs.1] at this; cases this
+    exact .inl (dispatchTable_sub_nonGrant _ rq v3 lt hk p hp)
+  | rejected =>
+    have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      have := (hg hk).2.1; rw [hs.1] at this; cases this
+    exact .inl (dispatchTable_sub_nonGrant _ rq v3 lt hk p hp)
+
 /-- The table after a normal entry with no data, or a conf change: unchanged. -/
 theorem appliedTable_nodata [GooseExts] (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (ht : m.typ = W32 0) (hd : m.data = []) : appliedTable γr (A ++ [m]) = appliedTable γr A := by
