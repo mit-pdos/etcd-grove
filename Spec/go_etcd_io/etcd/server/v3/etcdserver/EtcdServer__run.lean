@@ -84,7 +84,11 @@ abbrev EtcdServer.run.specStop : Prop :=
       -- `restart3`'s) no compactor, whose run would hold one of the store's readers
       -- (2026-11-05) auth off (`restart3`'s mode: with auth on, `Cleanup`'s auth closer is the
       -- apply thread's, not yet threaded)
-      ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false⌝ }}
+      -- (2026-11-05, stage 5) no compaction mode (the closer and the image take the compaction
+      -- right otherwise, `apply.cmpOwn`), and the boot log's facts the image's configuration needs
+      -- (`NewServer`'s `bootOk`)
+      ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧ E.cmp = false ∧
+        (ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk ρ.rd.raft.raft.vs ρ.rd.raft.raft.boot)⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

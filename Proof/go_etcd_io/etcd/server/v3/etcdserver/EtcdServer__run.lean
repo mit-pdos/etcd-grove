@@ -750,7 +750,7 @@ environment's; until then `wp_proofOff` and `wp_proofOn`): the loop's resources 
 jobs over `applyAll.spec` (`run_job_body`, `run_job_snapC`). -/
 theorem EtcdServer.run.wp_proofG (stp : Bool)
     (hStop : stp = true → schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) ∧
-      raftNode.stop.specStop (GF := GF) (hG := hG) ∧ EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
+      raftNode.stop.specStop (GF := GF) (hG := hG) ∧ stopCleanupImage.spec (GF := GF) (hG := hG))
     (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
@@ -778,7 +778,9 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
           (if stp then srvDoneInv ρ.rd.raft.raft ρ γn.id dd c else iprop(True)) ∗
         (if stp then iprop(∃ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
           srvShutdownPre s cfg E γn γk dd ∗
-          ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false⌝)
+          ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧
+            E.cmp = false ∧
+            (ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk ρ.rd.raft.raft.vs ρ.rd.raft.raft.boot)⌝)
           else iprop(True)) }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
     {{ RET #(); True }} := by
@@ -1369,7 +1371,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     obtain ⟨hSStop, hRStop, hCl⟩ := hStop hst
     ihave HSP := (iteE_pos (R := fun X => X) hst) $$ HSP
     ihave Hsd := (iteE_pos (R := fun X => X) hst) $$ Hsd
-    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff⟩
+    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff, %hcmp, %hvs⟩
     ihave Hdc := (iteE_pos (R := fun D => ownBroadcastChan v.done γd D .Pending) hst) $$ Hdc
     (try wp_auto)
     wp_for_post
@@ -1402,7 +1404,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     inext
     iintro -
     -- `sched.Stop()`: the last job's post, `Q`, and with the loop's `R` the apply thread's resources
-    wp_auto_lc 1
+    wp_auto_lc 3
     wp_apply +noauto hSStop sci γs (Ps ++ [pl]) $$ [Hstoptok Hq] as ⟨HlastP, -⟩
     · iframe Hstoptok Hq; iframe #; iapply schedule.schedPay_true $$ Hpay
     rw [List.getLast?_concat]
@@ -1432,10 +1434,12 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
       as ⟨Hvac, Hrst⟩
     -- `s.Cleanup()`: the backend closed, the image
     (try wp_auto)
-    wp_apply stop_cleanup_image hCl C
+    wp_apply hCl C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
-        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk
-      $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst] as Himg
+        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp hvs
+      $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
+        Hlc2 Hlc3] as Himg
+    · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
     -- `close(s.done)`, the image escrowed (`srvDoneInv`)
     imod inv_alloc srvStopN ⊤ iprop(srvDiskImage ρ.rd.raft.raft ρ γn.id dd ∨ token c) $$ [Himg]
       with #Hdi
@@ -1484,6 +1488,13 @@ theorem EtcdServer.run.wp_proofStop
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hRStop : raftNode.stop.specStop (GF := GF) (hG := hG))
     (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
@@ -1502,7 +1513,8 @@ theorem EtcdServer.run.wp_proofStop
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.specStop (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c cfg γk
-  have h := EtcdServer.run.wp_proofG true (fun _ => ⟨hSStop, hRStop, hCl⟩) hAA hLg hGI hGT hFifo
+  have h := EtcdServer.run.wp_proofG true (fun _ => ⟨hSStop, hRStop,
+    stop_cleanup_image hCl hOn hSave hPut hUR hID hName hSafe⟩) hAA hLg hGI hGT hFifo
     hGL hSL hIL hN hBL hGCI hSCI hRS hRA hNJ hSch s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀
     c₀ x₀ dd c γk
   simp only [↓reduceIte] at h
