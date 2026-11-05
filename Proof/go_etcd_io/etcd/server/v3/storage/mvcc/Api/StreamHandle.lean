@@ -52,16 +52,17 @@ theorem isMvccWatchStream_open (w : Loc) (γ : MvccName) (ι : WsName) :
         inv watchN (watchChanInv γw (ι : WsAbs).ch γc) ∗
         isWatchStreamAt w (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
           (storeWatchParams s st γw) γo (ι : WsAbs).ch γc ∗
-        watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) := by
+        watchTokPool γw ∗ threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) ∗
+        progFact γc.prog := by
   unfold isMvccWatchStream isMvccWatchStreamRest
-  iintro ⟨-, #⟨%γw, %γc, %w', %s, %st, %γo, %γp, %h, -, #Hinv, #Hws, #Ht, #Hp⟩⟩
+  iintro ⟨-, #⟨%γw, %γc, %w', %s, %st, %γo, %γp, %h, -, #Hinv, #Hws, #Ht, #Hp, #Hpf⟩⟩
   obtain ⟨hι, hγ, -, hw⟩ := h
   have hw' : w' = w := by
     rw [interface_mkOk_inj] at hw
     exact (go.intoVal_inj hw.2).symm
   subst hw'
   iexists γw, γc, s, st, γo, γp
-  iframe Hinv Hws Ht Hp
+  iframe Hinv Hws Ht Hp Hpf
   ipureintro; exact ⟨hι, hγ⟩
 
 /-- `Watch`'s update (the contract's, as the stream's proof is handed it). -/

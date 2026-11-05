@@ -1,6 +1,6 @@
 /-
-`watchStream.Cancel` (watcher.go). Lean-first (no Rocq counterpart); see `InvWatchStream.lean` and the
-mvcc API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`).
+`watchStream.Cancel` (watcher.go). Lean-first (no Rocq counterpart); see `InvWatchStream.lean` and
+the mvcc API (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`).
 -/
 module
 
@@ -23,8 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`ws.Cancel`**: the API's contract at `*watchStream` (`mvcc.api.WatchStream.Cancel.contract`,
-`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`; stage 2 of the mvcc API, 2026-11-05: the
-stream's internal spec replaced by the API's, strict M1). -/
+`Spec/.../mvcc/Api.lean`; stage 2 of the mvcc API, 2026-11-05: the stream's internal spec replaced
+by the API's, strict M1). -/
 abbrev mvcc.watchStream.Cancel.spec : Prop :=
   ∀ w : Loc, mvcc.api.WatchStream.Cancel.contract (GF := GF)
     (go.GoType.PointerType watchStream.ty) #w

@@ -40,7 +40,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
   intro w γ ι ctx cd key endk fcs kk e fs startRev Q
   wp_start as ⟨Hws, Htt, #Hctx, #Hk, #He, #Hfi, %Hsr, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp⟩
+    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, #Htp, #Hrp, -⟩
   obtain ⟨hι, hγ⟩ := hι
   generalize hch : (ι : api.WsAbs).ch = ch at hι
   have hι' : ι = (mvcc.wsAbsOf γw ch γc : api.WsAbs) := hι

@@ -38,7 +38,7 @@ theorem mvcc.watchStream.Cancel.wp_proof :
   intro w γ ι id Q
   wp_start as ⟨Hws, Htt, Hau⟩
   icases mvcc.api.isMvccWatchStream_open w γ ι $$ Hws with
-    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, -, -⟩
+    ⟨%γw, %γc, %s, %st, %γo, %γp, %hι, #Hinv, #Hws, -, -, -⟩
   obtain ⟨hι, hγ⟩ := hι
   generalize hch : (ι : api.WsAbs).ch = ch at hι
   have hι' : ι = (mvcc.wsAbsOf γw ch γc : api.WsAbs) := hι
