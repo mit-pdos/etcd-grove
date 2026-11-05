@@ -287,8 +287,46 @@ client's watch through the three bridges, which the compactor's watch loop needs
    after the start: no provider premise on the start; compaction off gives it, `watchNoDup_of_off`).
 4. *Draft* of `MainPartition.spec` (written, `Spec/.../k8s/compactor/MainPartition.lean`) and the
    closed theorem (as `k8s_compactor_adequate` at the program `MainPartition #sched`, for every
-   schedule, with partition's hypotheses at `clusterCfg`); **Freeze** (the user's).
-5. *Prove* `Main`, the adequacy theorem over every schedule; a TCB collection.
+   schedule, with partition's hypotheses at `clusterCfg`); **frozen by the user, 2026-11-05** (F1;
+   tag `k8s-k6-frozen` on `fb3ec74234`).
+5. *Prove* (handed to the coordinator, etcd-grove-82, 2026-11-05): `MainPartition`, its link and the
+   closed theorem, as below. Landing waits on hub request H1 (`questions.md` at the worktree root:
+   the `etcdstart` starters' `cmp` binder, K6 step 1).
+
+**The proof plan for step 5** (no statement changes: a frozen-statement change goes to the user):
+- `clusterConfig` (Go leaf, returns the literal): spec and proof as partition's `config.lean`
+  (`RET #clusterCfg`).
+- `MainPartition.lean` (the proof), shaped as the one-member `Main.lean` for the compactor side and
+  partition's `Main.lean`/`MainWatch.lean` for the cluster side:
+  1. `cluster3.StartCluster clusterCfg … (cmp := true)`; on failure return. Unfold `clusterUp`/
+     `clusterAt`: three `memberAt … true`, `ρ₁.rd.kv.cmp = true`, `cret = 0`, `etcdKV` at the start
+     store, `kvSame`.
+  2. The example's invariant (`cinv_alloc`) from that `etcdKV`, as `Main.lean` does after the
+     member's start (nothing has written: the client view is still owned).
+  3. The registry: `epOf_alloc` three times from `regAuth ∅`, for the three bridge addresses
+     (distinct: `cfgOk`), at `recorded := True`.
+  4. Each member's store fact for watches, `mvcc.watchNoDup` (right arm): `noDupKeys_of_one` at the
+     member's `srvKVFacts` and `oneChangeAu` of `cinv` (`Main.lean` does it for one member, before
+     `wk_served_nd`); then `cluster3.memberWatch` ×3 and `cluster3.watchEnv_conn` for the clients'
+     watch facts (as partition's `MainWatch`).
+  5. Each client (`cluster3.NewClient` at `watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx`, the writer's and
+     the five API servers'): `clientWriteOnce` from the members' `noRefusalAt` through `forwards`;
+     `kvRegsAt` of the three members at the bridges (`isGrpcRpc_forwards`); `srvStart`
+     (`srvStart_alloc` of the three); **`clientKvOk` needs `client.isKv_of_newClient` for several
+     endpoints**: today it takes one (`isNewClient cl [ep]`); generalize it in place to a member list
+     `ms` (`isKv_intro` already takes one; about 20 lines, `KvOfNew.lean`, and its four callers pass
+     `[x]`); `clientWatchOk` from `isNewClient_watcher` at `V.kst = γk.st`.
+  6. `ready`, then `go cluster3.Partitioner` with the three `srvPeerCtl` and `ownBridge`s (as
+     partition's `Main`), `go writer`, then the five API servers' loop as `Main.lean`'s (bound 5),
+     `apiserver` at `ms` = the three members at the bridges, the claims `[∗list] ep ∈ bridges, epOf`.
+- `MainLinked.lean`: `wp_MainPartition` over the linked `cluster3` results (`etc/gen-link.py
+  --cluster3`'s), `clusterConfig`'s, and the existing compactor links.
+- `Adequacy.lean`: `k8s_compactor_partition_adequate` via `etcd_adequate_alloc` (the registry as in
+  `k8s_compactor_adequate`), for every `steps`, with partition's hypotheses at `clusterCfg` (the
+  ids, `BootFacts`, `HAs` the nine addresses, the three WAL directories distinct and absent, `Hprem`
+  at `cluster3.premises clusterCfg …`, `RealClock.After`); `Results.lean` restates it with
+  `#print axioms`; the `k8scompactor` TCB collection gains it (no new axiom or `sorry` expected).
+- Bounds: the new `Main` spec likely adds counts as the other examples' (record the reason).
 
 **Decided by the agent, pending the user** (scope; the user vetoes):
 - *D1. A new example, `k8s/compactorp`,* beside the one-member one (kept: it is the small case and
