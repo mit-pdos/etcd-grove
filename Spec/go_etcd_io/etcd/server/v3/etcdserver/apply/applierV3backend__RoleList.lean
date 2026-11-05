@@ -31,9 +31,9 @@ abbrev apply.applierV3backend.RoleList.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      (E.RW ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      (E.RW ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗ threadTok ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"RoleList")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

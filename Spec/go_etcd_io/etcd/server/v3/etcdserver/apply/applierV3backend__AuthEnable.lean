@@ -31,9 +31,9 @@ abbrev apply.applierV3backend.AuthEnable.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗ ⌜apply.adminAdmitted E.authMode⌝ ∗ ⌜E.authOn = true⌝ ∗
-      apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ E.RW }}
+      threadTok ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ E.RW }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthEnable")) (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

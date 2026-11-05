@@ -32,9 +32,9 @@ abbrev apply.applierV3Capped.LeaseGrant.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.cappedIs p inner ∗ apply.applierSpec E c inner ∗
       ((∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted (mvcc.api.mvccLeases E.γ) g.id) ∗ E.RW) ∗
-      apply.mPreW E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info log Pre Q Post }}
+      threadTok ∗ apply.mPreW E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Capped.ty @!! go!"LeaseGrant")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

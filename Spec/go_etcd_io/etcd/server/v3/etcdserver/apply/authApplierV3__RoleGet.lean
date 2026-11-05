@@ -32,10 +32,10 @@ abbrev apply.authApplierV3.RoleGet.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
       (((∃ n : GoString, apply.authRoleGetIs r n) ∗ E.RW) ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗
-      apply.mPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info log Pre Q Post ∗
+      threadTok ∗ apply.mPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info log Pre Q Post ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"RoleGet")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

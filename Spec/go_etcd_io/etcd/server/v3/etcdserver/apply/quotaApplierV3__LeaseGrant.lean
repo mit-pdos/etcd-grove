@@ -32,10 +32,10 @@ abbrev apply.quotaApplierV3.LeaseGrant.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.quotaIs p inner ∗ apply.applierSpec E c inner ∗
       ((∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted (mvcc.api.mvccLeases E.γ) g.id) ∗ E.RW) ∗
-      apply.mPreW E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info log Pre Q Post ∗
+      threadTok ∗ apply.mPreW E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info log Pre Q Post ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"LeaseGrant")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

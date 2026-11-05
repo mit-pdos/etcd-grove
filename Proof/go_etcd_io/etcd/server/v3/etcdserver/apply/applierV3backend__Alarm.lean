@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType__String
 public import Spec.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BackendLemmas2
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -36,16 +37,15 @@ theorem apply.applierV3backend.Alarm.wp_proof
     (hWLV : prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.Alarm.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post info
-  wp_start as ⟨#Hb, ⟨⟨%am, #Hr⟩, HRW⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨⟨%am, #Hr⟩, HRW⟩, Hpre⟩
   ihave Hai : (applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨⟨%gv, #Hgv, %Hgvl⟩, -⟩
-  iunfold apply.mPre at Hpre
-  icases Hpre with ⟨Hkv, Hres, Hcs⟩
+  icases apply.mPreW_split $$ Hpre with ⟨%cr, %B, Hsw, Hcs, Hwt, Hrt, Htie, Hres, Hkv⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, -, -, #Hal, -⟩
+  icases Hok with ⟨-, -, -, -, -, -, #Hal, -⟩
   iunfold apply.isAlarmStore at Hal
   icases Hal with ⟨%Halnn, #HGet, #HAct, #HDeact⟩
   iunfold apply.alarmRequestIs at Hr
@@ -59,7 +59,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
     iright
     iapply apply.csContract_pre
@@ -73,26 +73,19 @@ theorem apply.applierV3backend.Alarm.wp_proof
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iapply apply.mPost_backend
+      iapply (apply.mPostW_backend _ _ _ _ _ B cr)
       iframe
       iright
       iapply apply.csContract_pre
       iexact Hcs
-    iunfold apply.kvOwn at Hkv
-    icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-    icases Hard with ⟨Hard, Hwo⟩
-    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
-    wp_apply HAct $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm, HRW⟩
+    wp_apply HAct $$ %am.memberID %am.alarm %B %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt $Htie] as %m ⟨HPP, Hrt, Htie, Hm, HRW⟩
     · ipureintro; exact Hif
-    ihave Hwo := Hrdb $$ Hrt
-    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
-    · iunfold apply.kvOwn; iframe
     wp_if_destruct
     · -- no alarm member
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iapply apply.mPost_backend
+      iapply (apply.mPostW_backend _ _ _ _ _ B cr)
       iframe
     icases Hm with (%Hn | #Hm)
     · exact absurd Hn Hif
@@ -126,24 +119,17 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
   wp_if_destruct
   · -- DEACTIVATE
-    iunfold apply.kvOwn at Hkv
-    icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-    icases Hard with ⟨Hard, Hwo⟩
-    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
-    wp_apply HDeact $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm, HRW⟩
-    ihave Hwo := Hrdb $$ Hrt
-    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
-    · iunfold apply.kvOwn; iframe
+    wp_apply HDeact $$ %am.memberID %am.alarm %B %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt $Htie] as %m ⟨HPP, Hrt, Htie, Hm, HRW⟩
     wp_if_destruct
     · -- no alarm member
       iapply HΦ
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iapply apply.mPost_backend
+      iapply (apply.mPostW_backend _ _ _ _ _ B cr)
       iframe
     icases Hm with (%Hn | #Hm)
     · exact absurd Hn Hif
@@ -177,13 +163,13 @@ theorem apply.applierV3backend.Alarm.wp_proof
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
   · -- any other action
     iapply HΦ
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
     iright
     iapply apply.csContract_pre

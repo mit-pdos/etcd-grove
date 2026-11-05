@@ -32,9 +32,9 @@ abbrev apply.applierV3backend.UserGet.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       (((∃ n : GoString, apply.authUserGetIs r n) ∗ E.RW) ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗
-      apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      threadTok ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserGet")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

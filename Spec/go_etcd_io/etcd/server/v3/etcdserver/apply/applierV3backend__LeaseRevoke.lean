@@ -32,10 +32,10 @@ abbrev apply.applierV3backend.LeaseRevoke.spec : Prop :=
     (rs : apply.RestM) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      apply.revokePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq id log rs Pre Q Post }}
+      threadTok ∗ apply.revokePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info r rq id log rs Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseRevoke")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq log (apply.revokeOutcomeIs resp err) Pre Post ∗
+      threadTok ∗ apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info rq log (apply.revokeOutcomeIs resp err) Pre Post ∗
         apply.revokeResAfter E id rs err }}
 
 end spec

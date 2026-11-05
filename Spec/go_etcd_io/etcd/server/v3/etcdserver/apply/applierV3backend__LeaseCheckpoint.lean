@@ -32,9 +32,9 @@ abbrev apply.applierV3backend.LeaseCheckpoint.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       ((∃ cms : List CheckpointModel, apply.leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝) ∗ E.RW) ∗
-      apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
+      threadTok ∗ apply.mPreW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseCheckpoint")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

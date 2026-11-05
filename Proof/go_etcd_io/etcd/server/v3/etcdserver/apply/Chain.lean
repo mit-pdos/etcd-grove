@@ -1410,22 +1410,22 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗
-      {{ reqFacts E m r ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
+      {{ threadTok ∗ reqFacts E m r ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
+          threadTok ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ resp0Methods⌝ -∗
       ⌜(m = go!"AuthEnable" → E.authOn = true) ∧ adminAdmitted E.authMode⌝ -∗
-      {{ mPreW E c (.ok ai) info log Pre Q Post ∗ E.RW }}
+      {{ threadTok ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
+          threadTok ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (log : mvcc.Log) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ kvOwn E log ∗ chainRes c (.ok ai) info }}
+      {{ threadTok ∗ kvOwn E log ∗ chainRes c (.ok ai) info }}
         (App (Val #(methods ai.ty go!"AuthStatus" ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
+          threadTok ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (cr : ClusterReq) (rs : RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
       ⌜m ∈ clusterMethods⌝ -∗

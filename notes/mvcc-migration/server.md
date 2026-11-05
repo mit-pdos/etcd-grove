@@ -111,6 +111,27 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   - Still on mvcc's internals but building (not API): `KVLemmas.kv_cert_read` (`mvcc.certOk`),
     `InvImage` (`mvcc.keyImageM`, pure).
 
+- **Step 2 started (second session): the backend's writing methods proved over the API** (no
+  `sorry`): `applierV3backend.{Alarm, AuthStatus, AuthEnable, AuthDisable, Authenticate, LeaseGrant,
+  LeaseCheckpoint, UserAdd, UserDelete, UserChangePassword, UserGrantRole, UserRevokeRole, UserGet,
+  UserList, RoleAdd, RoleDelete, RoleGet, RoleList, RoleGrantPermission, RoleRevokePermission}`,
+  over `apply/WriteLemmas.lean` (`mPreW_split`: the writer's half, the contract at `B`'s lock,
+  `bkWT B`/`bkRT B`/`E.BkTie B`, the chain's resources, `kvRest`; `mPostW_backend`,
+  `kvOwn_of_split`). Choice (by reference, the draft's rule "threadTok beside the chain's KV
+  resources"): **every chain method that calls `newHeader` takes and gives `threadTok`** (its spec
+  has `threadTok ∗` before `mPre`/`mPreW`/`kvOwn`/`revokePre` and before the post's
+  `mPost`/`mPostW`/`kvOwn`/`kvPost`): the 20 `applierV3backend` specs above (but `Alarm`) and
+  `LeaseRevoke`, the wrappers `authApplierV3.{UserGet, RoleGet, LeaseRevoke}`,
+  `applierV3Capped.LeaseGrant`, `applierV3Corrupt.{LeaseGrant, LeaseRevoke}`,
+  `quotaApplierV3.LeaseGrant`, `uberApplier.Alarm`, and `applierSpec`'s generic triples of
+  `respMethods`, `resp0Methods` and `AuthStatus` (`Chain.lean`). Until then those specs had none,
+  and `newHeader.spec` (restated at the thread's token) was not callable from them.
+- Next in step 2: the cluster methods (`ClusterVersionSet`, `ClusterMemberAttrSet`,
+  `DowngradeInfoSet`, over `mPreV`: as above with `cPre v3`), `Compaction`, `LeaseRevoke`
+  (over `lessor.Revoke.spec`, a hypothesis, but see "Found"), the KV methods (`Put`, `Range`,
+  `DeleteRange`, `Txn`, over txn's specs), the wrappers (auth, capped, corrupt, quota), `dispatch`,
+  `Apply`, then `applyAll`.
+
 **The frontier** (red, next): `InvProposer` (a floor over `idxCert`), `InvApplier` (the old
 `srvKVInvs`, `envAgree`'s mode ties, the sole writer: its restatement is the draft's
 `srvKVInvsA`), on which `KVModel` → `KVApply` → `KVChainOff` → `KVAuthModel` → `KVModelM` →
