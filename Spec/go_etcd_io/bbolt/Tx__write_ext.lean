@@ -33,8 +33,8 @@ not lie inside the file). The target slots are the pages' `bufSlots bufs` and th
 slot of the mapping not wholly inside the file is one of them (a write past the end fills the gap
 before it with zeros, which needs the gap's cells: `os.File.WriteAt.spec`'s `mcellsAny`), all as
 `wrSlotsSz` (`Inv/WSlots`) at the file's size, a slot across the file's end holding at least its
-part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping or
-where it ended (`om.size ≤ om'.size ≤ max om.size l`), a tail slot inside the old file keeps its
+part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping's whole slots (the partial last slot `l / 4096` is never written) or
+where it ended (`om.size ≤ om'.size ≤ max om.size (4096 * (l / 4096))`), a tail slot inside the old file keeps its
 bytes, and a slot across the new end holds at least its part inside the file (on an error too: the
 slots the write touched hold some whole page's bytes); on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
 `store_publish` takes it) and the tail is `wrSlotsSz` at the new size; on an error all the slots
@@ -69,7 +69,7 @@ abbrev Tx.write_ext.spec : Prop :=
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
       ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.p (DFrac.own 1) (some om') ∗
-        ⌜om.size ≤ om'.size ∧ om'.size ≤ max om.size l ∧ om'.maps = om.maps ∧
+        ⌜om.size ≤ om'.size ∧ om'.size ≤ max om.size (4096 * (l / 4096)) ∧ om'.maps = om.maps ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
           (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * s < om'.size → om'.size < 4096 * (s + 1) →
