@@ -132,7 +132,7 @@ theorem Bucket.CreateBucket.wp_root
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
   icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, -⟩
-  ihave %Hlgty := dbFixed_logPtrTyped K.db K.sp lg $$ Hfix Hlg
+  ihave %Hlgty := dbFixed_logPtrTyped _ _ K.db K.sp lg $$ Hfix Hlg
   wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer

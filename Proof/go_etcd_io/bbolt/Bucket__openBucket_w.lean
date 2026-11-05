@@ -120,7 +120,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
         iframe Hw
         isplitl [HIB tx buckets page rootNode nodes Hib Hbm Hnm]
         · simp only [objOwn, pageOwn]
-          rw [if_neg hrt, if_pos trivial, nodesOwn_ne _ _ _ Hnmn']
+          rw [if_neg hrt, if_pos trivial, if_neg Hnmn']
           iframe; iframe #
           ipureintro; exact Hil
         isplitl [FillPercent]
@@ -137,7 +137,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
         iframe Hw
         isplitl [HIB tx buckets page rootNode nodes Hib Hbm Hnm]
         · simp only [objOwn, pageOwn]
-          rw [if_neg hrt, if_pos trivial, if_neg hpp, nodesOwn_ne _ _ _ Hnmn']
+          rw [if_neg hrt, if_pos trivial, if_neg hpp, if_neg Hnmn']
           iframe; iframe #
         isplitl [FillPercent]
         · iexists _; iframe; ipureintro; decide
@@ -156,7 +156,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       iframe Hw
       isplitl [HIB tx buckets page rootNode nodes Hib Hbm Hnm]
       · simp only [objOwn, pageOwn]
-        rw [if_neg hrt, if_pos trivial, if_pos trivial, nodesOwn_ne _ _ _ Hnmn']
+        rw [if_neg hrt, if_pos trivial, if_pos trivial, if_neg Hnmn']
         iframe; iframe #
       isplitl [FillPercent]
       · iexists _; iframe; ipureintro; decide
@@ -234,7 +234,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       iframe Hw
       isplitl [InBucket tx buckets page rootNode nodes Hib Hbm Hnm]
       · simp only [objOwn, pageOwn]
-        rw [if_neg hrt, if_pos trivial, if_neg hpp, nodesOwn_ne _ _ _ Hnmn']
+        rw [if_neg hrt, if_pos trivial, if_neg hpp, if_neg Hnmn']
         iframe; iframe #
         unfold inlinePage bucketHeaderSize
         iexact Hil
@@ -255,7 +255,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       iframe Hw
       isplitl [InBucket tx buckets page rootNode nodes Hib Hbm Hnm]
       · simp only [objOwn, pageOwn]
-        rw [if_neg hrt, if_pos trivial, if_pos trivial, nodesOwn_ne _ _ _ Hnmn']
+        rw [if_neg hrt, if_pos trivial, if_pos trivial, if_neg Hnmn']
         iframe; iframe #
       isplitl [FillPercent]
       · iexists _; iframe; ipureintro; decide

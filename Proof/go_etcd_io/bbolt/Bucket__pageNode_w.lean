@@ -41,6 +41,9 @@ theorem Bucket.pageNode_w.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
   rw [show decide (bl ∈ X.liveB) = true from decide_eq_true hlive]
   simp only [objOwn]
   icases Hb with ⟨HIB, Htx, Hbks, Hpage, Hroot, Hnodes, Hib, Hnm, Hbm, Hpo⟩
+  -- the bucket's node cache is a map (`heapOK`'s nodes' clause, `nodesOwn_ne`)
+  have hnn' : B.bv.nodes' ≠ null := (Hok.2.2.1 bl B hB).2
+  isimp only [nodesOwn_ne _ _ _ hnn'] at Hnm
   wp_auto
   wp_method_call; wp_call
   wp_auto
@@ -54,13 +57,13 @@ theorem Bucket.pageNode_w.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
     wp_auto
     wp_if_destruct
     · ihave Hobjs := Hobjs $$ [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
-      · iframe
+      · (try rw [nodesOwn_ne _ _ _ hnn']); iframe
       iapply HΦ
       iframe; iframe #
       ipureintro
       simp [resolve, wpageAt, *]
     · ihave Hobjs := Hobjs $$ [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
-      · iframe
+      · (try rw [nodesOwn_ne _ _ _ hnn']); iframe
       iapply HΦ
       iframe; iframe #
       ipureintro
@@ -122,7 +125,7 @@ theorem Bucket.pageNode_w.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
         rw [if_neg (show ¬ X.t.t.pages' = null from Hpmnn)]
         ihave Hcells := Hcells $$ Hpg
         ihave Hobjs := Hobjs $$ [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
-        · iframe
+        · (try rw [nodesOwn_ne _ _ _ hnn']); iframe
         ihave Hpgs := Hsp.2 $$ [Hp1 Hp2]
         · iframe
         ihave Hdb := Hsd.2 $$ [Hd1 Hd2]
@@ -135,7 +138,7 @@ theorem Bucket.pageNode_w.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
         exact ⟨rfl, pg', by unfold wpageAt; rw [if_neg Hroot0, hpg']; rfl⟩
     · -- a materialized node
       ihave Hobjs := Hobjs $$ [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
-      · iframe
+      · (try rw [nodesOwn_ne _ _ _ hnn']); iframe
       iapply HΦ
       iframe; iframe #
       ipureintro
