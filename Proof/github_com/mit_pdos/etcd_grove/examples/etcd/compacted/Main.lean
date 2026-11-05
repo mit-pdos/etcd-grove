@@ -133,12 +133,17 @@ theorem Main.wp_proof
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with etcd's KV calls registered at the address
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid _ => etcdstart.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid)
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+      (fun cid mid _ => etcdstart.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    ihave Hg := etcdstart.grpcUpM_off _ _ _ _ _ _ _ _ _ _ HsvOff.1 $$ Hg
     iapply (etcdstart.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid
       R Hrb48 Hrf rfl)
     unfold etcdstart.kvServeStocks

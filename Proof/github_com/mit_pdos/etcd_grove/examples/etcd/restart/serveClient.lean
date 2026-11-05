@@ -36,9 +36,15 @@ theorem serveClient.wp_proof
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_Serve s addr E ρ γr cfg Q Hlg Htr Hpn Hms Hbuq)
-    $$ [Haddr HWR Hlgr Hbemu Hgo Hstep] as %err Hres
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off s E ρ γr $$ []
+  · iframe #
+  wp_apply (wp_Serve s addr E ρ γr cfg Q) $$ [Haddr HWR Hlgr Hbemu Hgo Hstep] as %err Hres
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨Hlg, Htr, Hpn, Hms, Hbuq, HsvOff.2⟩
+    iintro %gs %lis %cid %mid %R Hg
+    ihave Hg := etcdstart.grpcUpM_off _ _ _ _ _ _ _ _ _ _ HsvOff.1 $$ Hg
+    iapply Hstep $$ Hg
   iapply HΦ
   iframe
 

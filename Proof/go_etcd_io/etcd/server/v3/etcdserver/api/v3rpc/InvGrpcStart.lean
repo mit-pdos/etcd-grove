@@ -348,6 +348,18 @@ instance v3rpc.grpcCfgOk_persistent (s : Loc) (C : v3rpc.GrpcCfg GF) :
     Persistent (v3rpc.grpcCfgOk s C) := by
   unfold v3rpc.grpcCfgOk; infer_instance
 
+open Iris.ProofMode in
+/-- **The configuration at other KV answers** (the auth component's stage 5): `grpcCfgOk` reads the
+answers only through the server's contract (`raftKV`), which moves along `h`. -/
+theorem v3rpc.grpcCfgOk_A (s : Loc) (C : v3rpc.GrpcCfg GF) (A' : v3rpc.KVAns GF)
+    (h : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s A') :
+    v3rpc.grpcCfgOk s C ⊢ v3rpc.grpcCfgOk s { C with A := A' } := by
+  unfold v3rpc.grpcCfgOk
+  iintro ⟨Hk, Hr⟩
+  isplitl [Hk]
+  · iapply h $$ Hk
+  iexact Hr
+
 end defs
 
 end EtcdGrove

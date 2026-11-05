@@ -162,8 +162,8 @@ theorem raftKV_serverM (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
     membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
     s E ρ γr c F d na tok
 
-/-- **The server's contract, discharged** (`raftKV_serverM` with auth off, through `raftKV_mono`: the
-off server's answers are the merged ones with the gated rows dropped). -/
+/-- **The server's contract, discharged** (`raftKV_serverM` with auth off, then the bridge
+`raftKV_srvKVAnsM_false`: the off server's answers are the merged ones with the gated rows dropped). -/
 theorem raftKV_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (F : mvcc.Log) (d : v3rpc.KVDep GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -179,32 +179,8 @@ theorem raftKV_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   · rw [hon, isServerReqM_false, isServerReadM_false]
     iframe #
     ipureintro; rw [hM]; simp
-  iapply (raftKV_mono s (srvKVAns s E ρ γr c F d) (srvKVAnsM E.authOn s E ρ γr c F d 0 none) rfl
-    (fun ctx => by
-      simp only [srvKVAns, srvKVAnsM, hM, auth.authPubLbM]
-      iintro ⟨Hc, Hrc, Hdep, #HF⟩
-      imod kvDepOwnM_of_dep _ s E ρ γr none d $$ Hdep with Hdep
-      imodintro
-      iframe Hc Hrc Hdep HF
-      ipureintro; rw [hon]; exact ⟨trivial, fun h => by cases h⟩)
-    (fun q h => ⟨h.1, h.2, fun h' => by rw [hon] at h'; cases h'⟩)
-    (fun q resp h r => by
-      cases q with
-      | put o => simp only [srvKVAns, srvKVAnsM]; iintro ⟨Hrc, Ha, -⟩; iframe
-      | deleteRange o => simp only [srvKVAns, srvKVAnsM]; iintro ⟨Hrc, Ha, -⟩; iframe
-      | range o =>
-        simp only [srvKVAns, srvKVAnsM, hon]; iintro ⟨Hrc, Hc, Hl, Ha, -⟩; iframe
-      | txn cs ts es =>
-        simp only [srvKVAns, srvKVAnsM, hon]
-        iintro ⟨Hrc, Hl, %t, %ht, H⟩
-        iframe Hrc Hl
-        iexists t
-        isplitr
-        · ipureintro; exact ht
-        cases hr : txn.txnReadonly t <;> simp only [Bool.false_eq_true, ↓reduceIte]
-        · icases H with ⟨H, -⟩; iexact H
-        · icases H with ⟨Hc, Ha, -⟩; iframe)
-    (fun q e => by simp only [srvKVAns, srvKVAnsM]; exact .rfl)) $$ HM
+  rw [hon]
+  iapply raftKV_srvKVAnsM_false $$ HM
 
 /-- **`put_end_to_end`** (see the section header). -/
 theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
@@ -378,56 +354,6 @@ theorem txn_end_to_end
   | none =>
     simp only [hc, kvOut, srvKVAns]
     iexact Hpost
-
-/-- **The server's contract with auth on, discharged** (`raftKV_serverM` in the mode `on γa`,
-through `raftKV_mono`: the gates opened; the auth plan's E3zb). -/
-theorem raftKV_serverOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
-    (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) (tok : Option GoString) (γa : auth.AuthNames)
-    (hγa : E.authMode = .on γa) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ⊢
-      raftKV s (srvKVAnsOn s E ρ γr c F d na tok) := by
-  iintro ⟨#Hp, #Hq, #Hd, #Hlb⟩
-  have hon : E.authOn = true := by
-    unfold apply.AEnv.authOn; rw [hγa]; rfl
-  ihave #HM := raftKV_serverM s E ρ γr c F d na tok $$ []
-  · rw [hon]
-    iframe #
-    ipureintro; rw [hγa]; simp
-  iapply (raftKV_mono s (srvKVAnsOn s E ρ γr c F d na tok) (srvKVAnsM E.authOn s E ρ γr c F d na tok)
-    rfl
-    (fun ctx => by
-      simp only [srvKVAnsOn, srvKVAnsM]
-      iintro ⟨Hc, Hrc, Hdep, #HF, #Hn, %Ht⟩
-      imodintro
-      rw [hon]
-      iframe Hc Hrc HF Hn
-      isplitl [Hdep]
-      · iapply (kvDepOwnM_true s E ρ γr tok d).2 $$ Hdep
-      ipureintro; exact fun _ => Ht)
-    (fun q h => ⟨h.1, kvDepPreM_of_on _ d q h.2⟩)
-    (fun q resp h r => by
-      cases q with
-      | put o =>
-        simp only [srvKVAnsOn, srvKVAnsM, hon]
-        iintro ⟨Hrc, Ha, Hg⟩; iframe Hrc Ha; iapply Hg; ipureintro; first | rfl | trivial
-      | deleteRange o =>
-        simp only [srvKVAnsOn, srvKVAnsM, hon]
-        iintro ⟨Hrc, Ha, Hg⟩; iframe Hrc Ha; iapply Hg; ipureintro; first | rfl | trivial
-      | range o =>
-        simp only [srvKVAnsOn, srvKVAnsM, hon]
-        iintro ⟨Hrc, Hc, Hl, Ha, Hg⟩; iframe Hrc Hc Hl Ha; iapply Hg; ipureintro; first | rfl | trivial
-      | txn cs ts es =>
-        simp only [srvKVAnsOn, srvKVAnsM, hon]
-        iintro ⟨Hrc, Hl, %t, %ht, H⟩
-        iframe Hrc Hl
-        iexists t
-        isplitr
-        · ipureintro; exact ht
-        cases hr : txn.txnReadonly t <;> simp only [Bool.false_eq_true, ↓reduceIte]
-        · icases H with ⟨Ha, Hg⟩; iframe Ha; iapply Hg; ipureintro; first | rfl | trivial
-        · icases H with ⟨Hc, Ha, Hg⟩; iframe Hc Ha; iapply Hg; ipureintro; first | rfl | trivial)
-    (fun q e => by simp only [srvKVAnsOn, srvKVAnsM]; exact .rfl)) $$ HM
 
 /-- **`put_end_to_end` in the server's auth mode** (the auth component's stage 4; `srvKVAnsM` at the
 caller's token): `put_end_to_end`'s, and with auth on the grant (`writeGrantOn`). Off it gives

@@ -158,14 +158,19 @@ theorem Main.wp_proof
   -- facts at the address; watches across a compaction: no revision writes a key twice, from the
   -- invariant, `noDupKeys_of_one`), the member refusal-free (D29) first
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv clientAddr E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt clientAddr⌝ ∗
         client.kvRegsAt (⟨clientAddr, E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv)))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        watchAddrFacts (EtcdGrove.client.srvWEnv R clientAddr [] null null go!"k" null ρ.rd.kv))))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    ihave Hg := etcdstart.grpcUpM_off _ _ _ _ _ _ _ _ _ _ HsvOff.1 $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
       #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩

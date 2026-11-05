@@ -504,6 +504,18 @@ instance kvServerIs_persistent (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
     Persistent (kvServerIs p s A cid mid n) := by
   unfold kvServerIs; infer_instance
 
+open Iris.ProofMode in
+/-- **The `*kvServer` at other answers** (the auth component's stage 5): its header reads the
+answers only through `revR`, and the contract moves along `h`. -/
+theorem kvServerIs_mono (p s : Loc) (A A' : KVAns GF) (cid mid n : w64) (hR : A.revR = A'.revR)
+    (h : raftKV s A ⊢ raftKV s A') :
+    kvServerIs p s A cid mid n ⊢ kvServerIs p s A' cid mid n := by
+  unfold kvServerIs hdrIs
+  rw [hR]
+  iintro ⟨Hp, Hh, Hkv, Hn, Ho, Haa, Hr⟩
+  iframe Hp Hh Hkv Hn Ho Haa
+  iapply h $$ Hr
+
 end contract
 
 end v3rpc

@@ -3,7 +3,7 @@
 callees' specs. Lean-first (no Rocq counterpart).
 
 The steps: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
-(`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.specOn`) with the
+(`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.spec` at `E.authOn`, `grpcUpM_on`) with the
 ghost steps `ak_served_kv` and `ak_served_watch` (`MainServe.lean`: the KV methods with auth on,
 the Auth service's admin methods and `Authenticate`; the watch server's facts at the clients'
 watcher environment `akV R`); `NewClient` (no user name, no token); `SetUp` (its puts under the
@@ -86,7 +86,7 @@ set_option maxHeartbeats 1600000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_startServer : startServer.spec (GF := GF) (hG := hG))
-    (wp_ServeOn : etcdstart.Serve.specOn (GF := GF) (hG := hG))
+    (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : etcdstart.NewClient.spec (GF := GF) (hG := hG))
     (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
@@ -165,16 +165,23 @@ theorem Main.wp_proof
   haveI := Hms
   let akV : v3rpc.WSrv GF → client.WEnv GF := fun R =>
     client.srvWEnv R go!"127.0.0.1:23916" [] null null go!"a" null ρ.rd.kv
-  wp_apply (wp_ServeOn srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg γa
+  have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
+  wp_apply (wp_Serve srv go!"127.0.0.1:23916" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ R.s = srv⌝ ∗
         akKVOn go!"127.0.0.1:23916" srv E { ρ with wait := γw } cid mid ∗
         setupAuthServed go!"127.0.0.1:23916" srv E { ρ with wait := γw } ∗
         isGrpcRpc go!"127.0.0.1:23916" authnMethod (client.etcdAuthenticateSpec γa) ∗
-        watchAddrFacts (akV R) ∗ auth.modeTag R.γ.tag E.authMode))
-      HEo (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        watchAddrFacts (akV R) ∗ auth.modeTag R.γ.tag E.authMode)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp⟩
+    isplitr
+    · rw [hon]; iexact Hreq
+    isplitr
+    · rw [hon]; iexact Hrd
     iintro %gs %lis %cid %mid %R Hg
+    ihave Hg := etcdstart.grpcUpM_on _ _ _ _ _ _ _ _ _ _ hon $$ Hg
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs,

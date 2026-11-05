@@ -548,8 +548,6 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
                  "--k8s-etcd3": ["Perennial.Proof.time.Link"],
-                 # `Serve`'s auth-on spec, linked by hand (`=etcdstart.wp_ServeOn` callee)
-                 "--authkv": ["Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.LinkOn"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
                  "--k8scache": ["Perennial.Proof.slices.Link", "Perennial.Proof.cmp.Link"],
                  # the informer factory's package (its assumptions, the section's variable)

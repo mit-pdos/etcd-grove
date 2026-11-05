@@ -287,15 +287,20 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23873" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23873"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23873", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
         watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv) ∗
-        srvGoRes srv ∗ mvcc.idxCert R.E.γ.idx [[], []]))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        srvGoRes srv ∗ mvcc.idxCert R.E.γ.idx [[], []])))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    ihave Hg := etcdstart.grpcUpM_off _ _ _ _ _ _ _ _ _ _ HsvOff.1 $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
       #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo2, HWRs, Hlis, -⟩

@@ -1058,6 +1058,80 @@ theorem raftKV_mono (s : Loc) (A A' : KVAns GF) (hR : A.revR = A'.revR)
   rw [hR]
   iexact Hget
 
+
+/-- **The off answers from the mode's at auth off** (a bridge; the auth component's stage 5): the
+server's contract at `srvKVAnsM false` with no auth bound gives it at the off answers `srvKVAns`
+(through `raftKV_mono`: the gated rows dropped, the auth bound `0` free, `authPubLbM_zero`). -/
+theorem raftKV_srvKVAnsM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (F : mvcc.Log) (d : KVDep GF) :
+    raftKV s (srvKVAnsM false s E ρ γr c F d 0 none) ⊢ raftKV s (srvKVAns s E ρ γr c F d) :=
+  raftKV_mono s _ _ rfl
+    (fun ctx => by
+      simp only [srvKVAns, srvKVAnsM]
+      iintro ⟨Hc, Hrc, Hdep, #HF⟩
+      imod kvDepOwnM_of_dep _ s E ρ γr none d $$ Hdep with Hdep
+      imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
+      imodintro
+      iframe Hc Hrc Hdep HF Hn
+      ipureintro; exact fun h => by cases h)
+    (fun q h => ⟨h.1, h.2, fun h' => by cases h'⟩)
+    (fun q resp h r => by
+      cases q with
+      | put o => simp only [srvKVAns, srvKVAnsM]; iintro ⟨Hrc, Ha, -⟩; iframe
+      | deleteRange o => simp only [srvKVAns, srvKVAnsM]; iintro ⟨Hrc, Ha, -⟩; iframe
+      | range o =>
+        simp only [srvKVAns, srvKVAnsM]; iintro ⟨Hrc, Hc, Hl, Ha, -⟩; iframe
+      | txn cs ts es =>
+        simp only [srvKVAns, srvKVAnsM]
+        iintro ⟨Hrc, Hl, %t, %ht, H⟩
+        iframe Hrc Hl
+        iexists t
+        isplitr
+        · ipureintro; exact ht
+        cases hr : txn.txnReadonly t <;> simp only [Bool.false_eq_true, ↓reduceIte]
+        · icases H with ⟨H, -⟩; iexact H
+        · icases H with ⟨Hc, Ha, -⟩; iframe)
+    (fun q e => by simp only [srvKVAns, srvKVAnsM]; exact .rfl)
+
+/-- **The on answers from the mode's at auth on** (a bridge; the auth component's stage 5): the
+server's contract at `srvKVAnsM true` gives it at `srvKVAnsOn` (through `raftKV_mono`: the gates
+opened at `rfl`). -/
+theorem raftKV_srvKVAnsM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (F : mvcc.Log) (d : KVDep GF) (na : Nat) (tok : Option GoString) :
+    raftKV s (srvKVAnsM true s E ρ γr c F d na tok) ⊢ raftKV s (srvKVAnsOn s E ρ γr c F d na tok) :=
+  raftKV_mono s _ _ rfl
+    (fun ctx => by
+      simp only [srvKVAnsOn, srvKVAnsM]
+      iintro ⟨Hc, Hrc, Hdep, #HF, #Hn, %Ht⟩
+      imodintro
+      iframe Hc Hrc HF Hn
+      isplitl [Hdep]
+      · iapply (kvDepOwnM_true s E ρ γr tok d).2 $$ Hdep
+      ipureintro; exact fun _ => Ht)
+    (fun q h => ⟨h.1, kvDepPreM_of_on _ d q h.2⟩)
+    (fun q resp h r => by
+      cases q with
+      | put o =>
+        simp only [srvKVAnsOn, srvKVAnsM]
+        iintro ⟨Hrc, Ha, Hg⟩; iframe Hrc Ha; iapply Hg; ipureintro; first | rfl | trivial
+      | deleteRange o =>
+        simp only [srvKVAnsOn, srvKVAnsM]
+        iintro ⟨Hrc, Ha, Hg⟩; iframe Hrc Ha; iapply Hg; ipureintro; first | rfl | trivial
+      | range o =>
+        simp only [srvKVAnsOn, srvKVAnsM]
+        iintro ⟨Hrc, Hc, Hl, Ha, Hg⟩; iframe Hrc Hc Hl Ha; iapply Hg; ipureintro; first | rfl | trivial
+      | txn cs ts es =>
+        simp only [srvKVAnsOn, srvKVAnsM]
+        iintro ⟨Hrc, Hl, %t, %ht, H⟩
+        iframe Hrc Hl
+        iexists t
+        isplitr
+        · ipureintro; exact ht
+        cases hr : txn.txnReadonly t <;> simp only [Bool.false_eq_true, ↓reduceIte]
+        · icases H with ⟨Ha, Hg⟩; iframe Ha; iapply Hg; ipureintro; first | rfl | trivial
+        · icases H with ⟨Hc, Ha, Hg⟩; iframe Hc Ha; iapply Hg; ipureintro; first | rfl | trivial)
+    (fun q e => by simp only [srvKVAnsOn, srvKVAnsM]; exact .rfl)
+
 end proofs
 
 end v3rpc

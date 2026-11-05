@@ -122,13 +122,18 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
   -- members' axiom), and etcd's KV calls registered at the address
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid _ => iprop(etcdstart.etcdKVAt go!"127.0.0.1:23796" E { ρ with wait := γw } ρ.rd cid mid ∗
-        ⌜noRefusalAt go!"127.0.0.1:23796"⌝))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        ⌜noRefusalAt go!"127.0.0.1:23796"⌝)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    ihave Hg := etcdstart.grpcUpM_off _ _ _ _ _ _ _ _ _ _ HsvOff.1 $$ Hg
     ihave ⟨Hg, %Hnr⟩ := etcdstart.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
       go!"127.0.0.1:23796" cid mid R HEo $$ [Hg]
     · iframe; iframe #
