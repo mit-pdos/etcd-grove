@@ -270,7 +270,60 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     … ∗ E.Nx x'.log`), `setAppliedIndex` (`kvLogLb`), `applyEntryNormal` (`srvWT E`), `applyAll`,
     `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
     `hookRun (E.Pk d) E.f`).
-- **Next**: see "Left (fifth session)" below.
+- **Next**: see "Left (sixth session)" below.
+## Left (sixth session, 2026-11-06; in order)
+
+**Stopped by the API's restatement.** Mid-session the mvcc track began restating mvcc's API over its
+storage abstraction (the user's decision, `notes/decisions.md`, "mvcc's API over its storage
+abstraction, not etcd's backend"): uncommitted `Api.lean`/`ApiState.lean` edits replace `BkRef` by an
+opaque `MvccStorage`, `mvccBackendFor` by `mvccStorageFor`, drop `mvccW`/`backendRest`/`mvccImage`,
+and `KVStoreCore` (so every module above it) no longer builds against them. Everything below was
+built against the API as of `c472039823`; once the new API lands, the server's `BkRef`-shaped
+vocabulary (`apply.bkWT`/`bkRT` over `B.γB`/`B.b`, `srvBkTie`, `srvBeOwn`, `srvWTStockInv`) has to be
+restated over `MvccStorage` (the server keeps etcd's backend facts through the bridge,
+`bridgeParams d.P`, as the decision says).
+
+**Done (this session):**
+- **The apply thread's reader token** (item 1's question, settled as proposed): `srvBeOwn` holds
+  `apply.bkRT d` of the tie's backend (so `srvApplyKV`, `srvApplyKVCore`, `srvApplyKVOn` all carry
+  it); `srvBeOwn_pool` lends it with the pool, `srvApplyKV_ua_rt_pool`/`srvApplyKV_ua_rt` (and the
+  `On` ones) in place of `srvApplyKV_ua_pool`. **Found and fixed (the chain's own specs):** the chain
+  gave the token back as `∃ B, bkRT B`, which loses the backend, so the apply thread could not lend
+  it to the next entry. Now `apply.bkRTOf E := ∃ B, ⌜tieOk E B⌝ ∗ bkRT B` (`tieOk E B := ¬ (E.BkTie B
+  ⊢ False)`, derivable from the tie, `tieOk_of`/`bkRTOf_intro`), in `mPostW`, `mPostV`, `dispatch`'s
+  and `Apply`'s posts and `WriteLemmas`' builders; at the server's tie `bkRTOf_srv : bkRTOf E ⊢ bkRT
+  d` (`tieOk_srv`). All the apply package's modules rebuilt (but `ApplyRec`, below).
+  Where the slot comes from is still to write: one slot of `backend.rdStock` at `NewServer` (step 3),
+  the new backend's at `applySnapshot` (step 4), the old backend's token to the closing goroutine.
+- Building: `ApplyEntryOn`, `ApplyKVCore`, `StartOn`, `apply.UberAdmLBase`, `UberOn`, `ApplyNormalOn`,
+  `UberKit`, `ModeSpecs`, `EtcdServer__apply` (both modes), `KVOutcomeOn`; applyAll's spec.
+- `ApplyNormalOn`: `kvEntryOn_len` at the writer's room `+ 3`; `kv_certPre_keep` over `kvNxOn`;
+  `srvAuthApplyResB_open`/`srv_uberAuthStepsL_at` at the epoch's batch-lock invariant `Pk`
+  (`E.Pk = fun _ => Pk`); `srvApplyKVOn_writer`/`srvApplyKVOn_authOn` in place of `_idxCert`;
+  `srvApplyKVOn_small` over the writer's facts.
+- **Premises strengthened (the server's own specs):** `EtcdServer.apply.spec`, `applyEntries.spec`
+  (and `ModeSpecs`' `specOff`s) take `receiptBound GF ≤ 2 ^ 48` in both modes (was: with auth on
+  only): the log's smallness now comes from the writer's receipt (`srvApplyKV_small`), bounded only
+  under it (until M1 the sole writer's receipts carried their own bound). `applyAll.specBatch` and
+  `run` will need the same premise (NewServer has it). `EtcdServer.apply.wp_proof(Off/On)` take
+  mvcc's `persistent.law`/`mvccState_reachable.law` (and `mvcc.Assumptions`), for the writer's facts.
+- `srvFieldsAt` (and `srvFieldsAtM`, `InvBuild`'s, `InvStart`'s) record `E.f ≠ func.nil` (the
+  server's hook is `getTxPostLockInsideApplyHook`'s closure): `mvcc.api.hookRun` at a non-nil hook is
+  the triple `hookSpec` gives. `NewServer`/`applySnapshot` must supply it.
+- `srvBkTie_inj` moved from `SnapRO` to `InvApplier`; `srvWT_at : E.BkTie = srvBkTie d → srvWT E ⊢
+  bkWT d`.
+- `apply.Apply.specRec` restated (`apply.bkToks v3 E Pre Q Post`: for the tie's backend its tokens
+  and hook run, `kvOwnPre_of_toks`; `threadTok`; `bkRTOf E` back; the floor `kvLogLb`; `cmpAdmit` at
+  the log), `spec_rec` adapted: **not checked** (committed `0255e5d962` after the API began to move).
+
+**Left, in order (after the API's restatement is adapted to):** check `ApplyRec`;
+`EtcdServer__applyEntryNormal` (the server builds `bkToks` from `srvApplyKV_ua_rt`, `srvWT_at`,
+`hookSpec` with `E.f ≠ nil`; gives `bkRTOf_srv`'s token back; `srvApplyKV(On)_writer` for the floor;
+`kv_certPre_keep`'s new arguments); then `ApplyAllSnap`, `applyAll` (with `receiptBound` above), and
+items 2-5 of "Left (fifth session)".
+
+**Placeholders:** none added. No axiom.
+
 ## Left (fifth session, 2026-11-06; in order)
 
 1. **The red layer below `applyAll`** (step 2). Built since the fifth session's last commit:
