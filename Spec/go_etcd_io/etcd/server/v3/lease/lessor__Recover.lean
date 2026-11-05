@@ -43,7 +43,8 @@ the lessor on `d`, the live set the records' ids with no item (`leaseOwn γl ids
 write-back tokens; and the lessor's history has at some index the recovered snapshot: one lease per
 record (fresh `*Lease`s `ls`, `recMap`), no item, each record's TTL raised to the minimum `mt`
 (`recTTLs`, the lease-expiry plan's R5). (E3 (c), 2026-11-05) The records' ids are new to the
-ids the lessor ever had (`leaseEver γl U`), which gain them.
+ids the lessor ever had (`leaseEver γl U`), which gain them; with no record, nothing is asked of
+them (`⌜recs = []⌝ ∨ …`: a cluster that grants none restores a snapshot without the ids' half).
 
 What Go does (`lessor.go:600-609`, `initAndRecover` `:808-835`): under `le.mu`, `le.b = b`,
 `le.rd = rd`, fresh `leaseMap` and `itemMap`, then `initAndRecover`
@@ -62,7 +63,8 @@ abbrev lease.lessor.Recover.spec : Prop :=
   backend.bktEnts ((r.lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc →
   (mono = true → ∀ id ∈ L, id ∈ recs.map (·.1)) → (∀ id ∈ recs.map (·.1), id ∉ U) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorModeIs γl mono ∗ lease.leaseEver γl U ∗
+      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorModeIs γl mono ∗
+      (⌜recs = []⌝ ∨ lease.leaseEver γl U) ∗
       lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L I ∗ lease.leaseRevokers γl L ∗
       lease.rdOwn γl rd0 ∗ □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted γl id) ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
@@ -72,7 +74,7 @@ abbrev lease.lessor.Recover.spec : Prop :=
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
       (Val #rd))
   {{ RET #(); lease.lessorBeOn lp d.be ∗ lease.leaseOwn γl (recs.map (·.1)) ∅ ∗
-      lease.leaseEver γl (U ++ recs.map (·.1)) ∗
+      (⌜recs = []⌝ ∨ lease.leaseEver γl (U ++ recs.map (·.1))) ∗
       lease.leaseRevokers γl (recs.map (·.1)) ∗ lease.rdOwn γl rd ∗
       backend.bOpen d.γB qo ∗
       backend.rbOwnIn d.γB S (r.insert go!"lease" ((r.lookup go!"lease").getD ∅)) ∗

@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.LeaseGrant.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E p r rq g log T rs Pre Q Post info
+  intro E p r rq g log T rs U Pre Q Post info
   wp_start as ⟨#Hb, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, -⟩
+  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, -, HU, HUf⟩
   obtain ⟨Hlg, Hg, Hk⟩ := Hrq
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
@@ -61,11 +61,11 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HGrant $$ [$Hcs $HRO $Hown $Hrvk $Hwt $Hrt $Hgr] as %l %err
+  wp_apply HGrant $$ [$Hcs $HRO $Hown $Hrvk $Hwt $Hrt $Hgr $HU $HUf] as %l %err
     ⟨Hrt, #HeI, Hres'⟩
   ihave Hwo := Hrdb $$ Hrt
-  icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO⟩ |
-    ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, ⟨%t, HRO⟩⟩)
+  icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO, HU⟩ |
+    ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, ⟨%t, HRO⟩⟩)
   · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
     · iright; iexact HPre
     ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL]
@@ -99,8 +99,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
         · constructor
           · intro h; cases h
           · rintro ⟨-, h⟩; exact absurd h Hne.2
-      rw [apply.grantIds_rejected]
-      iframe HltT
+      rw [apply.grantIds_rejected, apply.grantIds_rejected]
+      iframe HltT HU
       isplitl [HRO]
       · iexists (W64 0); rw [apply.grantRest_rejected]; iexact HRO
       iunfold apply.grantAnswer
@@ -155,8 +155,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       · simp [apply.chainStep, apply.backendStep, Hk]
       · exact ⟨fun _ => rfl, fun _ => ⟨log, false, rfl⟩⟩
       · exact ⟨fun _ => ⟨rfl, Hgi⟩, fun _ => rfl⟩
-    rw [apply.grantIds_applied rq g log false L Hk Hg]
-    iframe HltT
+    rw [apply.grantIds_applied rq g log false L Hk Hg, apply.grantIds_applied rq g log false U Hk Hg]
+    iframe HltT HU
     isplitl [HRO]
     · iexists t; rw [apply.grantRest_applied t rq g log false rs Hk Hg]; iexact HRO
     iunfold apply.grantAnswer

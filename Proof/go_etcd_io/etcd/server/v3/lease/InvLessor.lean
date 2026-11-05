@@ -1188,6 +1188,65 @@ theorem leaseLiveFrom_ttl (γl : GName) (m : Nat) (id : w64) (l : Loc) (t : w64)
   · ipureintro; exact Ht'
   iexists γr; iframe Hp Hidx
 
+/-- **A lessor that has had no lease starts empty** (the lease-expiry plan's E3 (c), 2026-11-05):
+with the ids it ever had none (`leaseEver γl []`), its history's first snapshot has no lease, no
+item and no TTL (`histIn`, `ttlTie`). What `NewServer` mints right after `NewLessor`. -/
+theorem lessorAt_empty (γl : GName) (E : CoPset) (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ leaseEver γl [] ⊢
+      |={E}=> lessorAt γl 0 (∅, ∅, ∅) ∗ leaseEver γl [] := by
+  unfold lessorRdInv leaseEver lessorAt
+  iintro ⟨⟨%γr, #Hp, #Hinv⟩, ⟨%γr2, #Hp2, HUo⟩⟩
+  ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
+  subst H2
+  iinv Hinv with Hb Hclose
+  iunfold lessorRdBody at Hb
+  icases Hb with ⟨%hs, %Sm, >Ha, >HS, >%Hok, >%Hmono, >HU, #>Htie, Hids⟩
+  icases HU with ⟨%U0, HU, %HUi⟩
+  ihave %HUe := dghostVar_agree γr.2.2.2 _ _ _ _ $$ HUo HU
+  subst HUe
+  obtain ⟨σ, hσ⟩ : ∃ σ, hs[0]? = some σ := by
+    cases hs with
+    | nil => exact absurd rfl Hok.2.1
+    | cons σ _ => exact ⟨σ, rfl⟩
+  ihave #Hσ := BigSepL.bigSepL_lookup (Φ := fun _ σ => ttlTie (GF := GF) σ) hσ $$ Htie
+  iunfold ttlTie at Hσ
+  icases Hσ with ⟨%Htt, -⟩
+  have h1 : ∀ k, σ.1.lookup k = none := fun k => by
+    cases h : σ.1.lookup k with
+    | none => rfl
+    | some _ => exact absurd (HUi.2 0 σ k hσ (Or.inl (by simp [h]))) List.not_mem_nil
+  have h2 : ∀ it, σ.2.1.lookup it = none := fun it => by
+    cases h : σ.2.1.lookup it with
+    | none => rfl
+    | some k => exact absurd (HUi.2 0 σ k hσ (Or.inr ⟨it, h⟩)) List.not_mem_nil
+  have h3 : ∀ k, σ.2.2.lookup k = none := fun k => by
+    cases h : σ.2.2.lookup k with
+    | none => rfl
+    | some _ =>
+      have := (Htt k).1 (by simp [h])
+      rw [h1 k] at this; cases this
+  have hσe : σ = (∅, ∅, ∅) := by
+    obtain ⟨a, b, c⟩ := σ
+    simp only [Prod.mk.injEq]
+    refine ⟨GMap.ext fun k => ?_, GMap.ext fun k => ?_, GMap.ext fun k => ?_⟩
+    · rw [h1 k, GMap.lookup_empty]
+    · rw [h2 k, GMap.lookup_empty]
+    · rw [h3 k, GMap.lookup_empty]
+  subst hσe
+  ihave #Hlb := monoListLbOwn_get γr.1 _ hs $$ Ha
+  ihave #Hidx := monoListIdxOwn_get 0 _ hσ $$ Hlb
+  imod Hclose $$ [Ha HS HU Hids] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm; iframe Ha HS Htie Hids
+    isplitr
+    · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hmono
+    iexists []; iframe HU; ipureintro; exact HUi
+  imodintro
+  isplitr
+  · iexists γr; iframe Hp Hidx
+  iexists γr; iframe Hp HUo
+
 /-- **A `w64` field owned whole is not also read-only** (a local workaround: Perennial's typed
 points-to has value agreement but no fraction validity, `notes/perennial-changes.md`): through its
 first byte's heap points-to. -/

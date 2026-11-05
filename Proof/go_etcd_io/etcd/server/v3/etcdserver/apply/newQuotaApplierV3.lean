@@ -193,10 +193,10 @@ theorem apply.newQuotaApplierV3.wp_proof
   isplitr
   · -- `LeaseGrant` (the lease-grant stage, 2.11): the layer's own
     imodintro
-    iintro %r %rq %g %log %T %rs %Pre %Q %Post %info
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hLG E c (.ok bi) p r rq g log T rs Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iunfold apply.quotaIs
     iframe #

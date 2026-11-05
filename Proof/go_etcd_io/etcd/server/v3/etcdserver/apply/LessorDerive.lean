@@ -286,7 +286,8 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %I %rs %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, HRO⟩ HΦ
+  · iintro !> %id %ttl %L %I %rs %Pre %Q %Post %U %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, HRO, HU,
+      HUf⟩ HΦ
     icases Hlens $$ HRO with ⟨%d, %hkb, Hrb, Hbe, Hcl⟩
     ihave #Hbd := Hbe0 $$ %d %hkb
     ihave ⟨Hrb, %hlp⟩ : iprop(backend.rbPart d.γB (· = mvcc.leaseName) rs.bk ∗
@@ -294,16 +295,16 @@ theorem isApplyLessor_of_lessorInv
     · unfold mvcc.storeRb; rw [hkb]; simp only [mvcc.kbRb]; iexact Hrb
     iapply (hGrant lp γ.leases id ttl L I P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be)
       (mvcc.storeRT γ) (backend.rbPart d.γB (· = mvcc.leaseName)) rs.bk
-      Pre Q Post) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb]
+      Pre Q Post U) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
     · iframe; iframe #
-    iintro !> %l %err ⟨Hrt, Hbe, (⟨%Hne, #Herr, Hown, Hrvk, HPre, Hrb⟩ |
-      ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb⟩⟩)⟩
+    iintro !> %l %err ⟨Hrt, Hbe, (⟨%Hne, #Herr, Hown, Hrvk, HPre, Hrb, HU⟩ |
+      ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb, HU⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
       isplitr
       · iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
       ileft
-      iframe HPre Hown Hrvk Herr
+      iframe HPre Hown Hrvk Herr HU
       isplitr
       · ipureintro
         refine ⟨Hne.1, ?_⟩
@@ -322,7 +323,7 @@ theorem isApplyLessor_of_lessorInv
       isplitr
       · iapply applyErrIs_nil
       iright
-      iframe HPost Hown Hrvk Hlive
+      iframe HPost Hown Hrvk Hlive HU
       isplitr
       · ipureintro; exact ⟨rfl, Hid0, Httl, Hnin⟩
       isplitr

@@ -719,6 +719,52 @@ theorem ltHalf_update (E : AEnv GF) (L T L' : List w64) :
   · simp only [↓reduceIte]
     exact ghostVar_update_halves (GF := GF) L' E.γlt L T
 
+/-- **The apply thread's half of the ids the lessor ever had, `U`** (the lease-expiry plan's E3 (c),
+2026-11-05): in a cluster that grants leases (`E.lg`), `lease.leaseEver E.γ.leases U`; `True`
+otherwise. `dispatch` and `Apply` take it and give it back with an applied grant's id added
+(`grantIds`). -/
+def everOwn (E : AEnv GF) (U : List w64) : IProp GF :=
+  if E.lg then lease.leaseEver E.γ.leases U else iprop(True)
+
+omit package_sem in
+theorem everOwn_false (E : AEnv GF) (U : List w64) (h : E.lg = false) :
+    everOwn E U = iprop(True) := by
+  unfold everOwn; rw [h]; rfl
+
+omit package_sem in
+theorem everOwn_true (E : AEnv GF) (U : List w64) (h : E.lg = true) :
+    everOwn E U = lease.leaseEver E.γ.leases U := by
+  unfold everOwn; rw [h]; rfl
+
+omit package_sem in
+theorem everOwn_of_lg (E : AEnv GF) (U : List w64) (h : E.lg = true) :
+    everOwn E U ⊢ lease.leaseEver E.γ.leases U := by
+  rw [everOwn_true E U h]
+
+omit package_sem in
+theorem everOwn_to_lg (E : AEnv GF) (U : List w64) (h : E.lg = true) :
+    lease.leaseEver E.γ.leases U ⊢ everOwn E U := by
+  rw [everOwn_true E U h]
+
+/-- **A request's grant id is new to `U`, unless the lessor is monotone** (E3 (c); persistent):
+for a request dispatched as the grant `g`, the lessor monotone or `g.id ∉ U` (what
+`lease.lessor.Grant.spec` takes); nothing for another kind. -/
+def grantFresh (E : AEnv GF) (rq : IRRModel) (U : List w64) : IProp GF :=
+  iprop(□ (⌜dispatchKind rq = .leaseGrant⌝ → ∀ g : LeaseGrantModel, ⌜rq.leaseGrant = some g⌝ →
+    lease.lessorModeIs E.γ.leases true ∨ ⌜g.id ∉ U⌝))
+
+instance grantFresh_persistent (E : AEnv GF) (rq : IRRModel) (U : List w64) :
+    Persistent (grantFresh (GF := GF) E rq U) := by
+  unfold grantFresh; infer_instance
+
+omit package_sem in
+open Iris.ProofMode in
+theorem grantFresh_of_not_grant (E : AEnv GF) (rq : IRRModel) (U : List w64)
+    (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantFresh (GF := GF) E rq U := by
+  iunfold grantFresh
+  iintro !> %hk
+  exact absurd hk h
+
 /-- **A fresh response header's four id fields owned** (2.11a, 2026-11-03): `ClusterId`, `MemberId`,
 `RaftTerm`, `LeaderId` at the header `h`, any values (`txn.respHdrOwn`'s body). -/
 def hdrFields (h : Loc) : IProp GF :=
@@ -1747,20 +1793,24 @@ instance cmpTriple_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
 `dispatch` has from `rqOk E.lg`'s grant arm: without it the two halves are `True` and do not tie the
 lessor's live set to `T`), a request dispatched as the grant `g` (its request `r`), the lease marked granted (`grantPermRq`'s; the lease-expiry plan's X2: no longer the lessor's mode), the
 apply thread's half of the live set `T`, the rest resource at `rs`, the store's write token, the
-common precondition and the consistent index's split. -/
+common precondition and the consistent index's split; (the lease-expiry plan's E3 (c), 2026-11-05)
+the apply thread's half of the ids the lessor ever had, `U` (`lease.leaseEver`), and the grant's id
+new to them unless the lessor is monotone (`lease.lessor.Grant.spec`'s premise). -/
 def grantPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64) (rs : RestM)
-    (Pre Q Post : IProp GF) : IProp GF :=
+    (U : List w64) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜E.lg = true ∧ rq.leaseGrant = some g ∧ dispatchKind rq = .leaseGrant⌝ ∗ leaseGrantIs r g ∗
     lease.leaseGranted E.γ.leases g.id ∗ ltHalf E T ∗
-    E.RO rs ∗ mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ ciSplit E Pre)
+    E.RO rs ∗ mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ ciSplit E Pre ∗
+    lease.leaseEver E.γ.leases U ∗ (lease.lessorModeIs E.γ.leases true ∨ ⌜g.id ∉ U⌝))
 
 /-- **The grant triple's postcondition** (2.11) at the outcome `o`: the chain's step
 (`chainStep backendStep`), applied exactly without error, which is exactly when the chain lets the
 grant through and the lessor's condition holds at `T`; the half of the live set and the rest
-resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's), the answer. -/
+resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's), the ids the lessor
+ever had after it (`grantIds` of `U`: the grant's id added exactly when applied), the answer. -/
 def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : LeaseGrantModel)
-    (log : mvcc.Log) (T : List w64) (rs : RestM) (Pre Post : IProp GF) (resp : Loc)
+    (log : mvcc.Log) (T : List w64) (rs : RestM) (U : List w64) (Pre Post : IProp GF) (resp : Loc)
     (err : GoInterface) (o : Outcome) : IProp GF :=
   iprop(mPost E c a log Pre Post ∗ applyErrIs err ∗
     -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
@@ -1768,6 +1818,7 @@ def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : L
     ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧
       (err = GoInterface.nil ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)⌝ ∗
     ltHalf E (grantIds rq true o T) ∗ (∃ t : w64, E.RO (grantRest t rq true o rs)) ∗
+    lease.leaseEver E.γ.leases (grantIds rq true o U) ∗
     grantAnswer E rq (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #resp) err)
 
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
@@ -1811,11 +1862,12 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
             (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post }}) ∗
     -- (the lease-grant stage, 2.11) `LeaseGrant`
     □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)
-        (rs : RestM) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ grantPre E c (.ok ai) info r rq g log T rs Pre Q Post }}
+        (rs : RestM) (U : List w64) (Pre Q Post : IProp GF)
+        (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+      {{ grantPre E c (.ok ai) info r rq g log T rs U Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseGrant" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs Pre Post resp err o }}) ∗
+          ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs U Pre Post resp err o }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗

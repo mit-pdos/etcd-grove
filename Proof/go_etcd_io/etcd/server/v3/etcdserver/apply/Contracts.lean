@@ -365,23 +365,27 @@ lessor's history (`leaseLiveFrom`). Until then: some superset of `L`, and on suc
 some live id. (The lease-grant stage, 2.12, 2026-11-03) `Grant`'s clause over the rest resource
 `RO rs` instead of the write right (the server's `RW` is `False`, and the grant writes the `lease`
 bucket the rest resource holds exactly): given back at `rs` on an error, at `rs` with the lease's
-record put at some TTL (`restGrantT`) on success; its condition `grantIdsOk`. -/
+record put at some TTL (`restGrantT`) on success; its condition `grantIdsOk`. (The lease-expiry
+plan's E3 (c), 2026-11-05) The ids the lessor ever had, `U` (`lease.leaseEver`), as
+`lease.lessor.Grant.spec`: `id` new to them unless the lessor is monotone, added on success. -/
 def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
-        (rs : RestM) (Pre Q Post : IProp GF),
+        (rs : RestM) (Pre Q Post : IProp GF) (U : List w64),
       {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗
           mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
-          lease.leaseGranted γ.leases id ∗ RO rs }}
+          lease.leaseGranted γ.leases id ∗ RO rs ∗ lease.leaseEver γ.leases U ∗
+          (lease.lessorModeIs γ.leases true ∨ ⌜id ∉ U⌝) }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); mvcc.storeRT γ ∗ applyErrIs err ∗
           ((⌜err ≠ GoInterface.nil ∧ ¬ grantIdsOk L id ttl⌝ ∗ lease.lessorErrIs err ∗ Pre ∗
-              lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗ RO rs) ∨
+              lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗ RO rs ∗
+              lease.leaseEver γ.leases U) ∨
             (⌜err = GoInterface.nil ∧ grantIdsOk L id ttl⌝ ∗ Post ∗
               lease.leaseOwn γ.leases (L ++ [id]) I ∗ lease.leaseRevokers γ.leases (L ++ [id]) ∗
               leaseTTLIs l id ∗ lease.leaseLiveFrom γ.leases 0 id l ∗
-              ∃ t : w64, RO (restGrantT id t rs))) }}) ∗
+              lease.leaseEver γ.leases (U ++ [id]) ∗ ∃ t : w64, RO (restGrantT id t rs))) }}) ∗
     -- `Revoke` (the lease-revoke plan, 2026-10-31; until then vacuous, D14h)
     revokeClause li s γ P f RO ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),

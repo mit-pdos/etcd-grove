@@ -628,16 +628,35 @@ def srvGrantable (E : apply.AEnv GF) : IProp GF :=
 instance srvGrantable_persistent (E : apply.AEnv GF) : Persistent (srvGrantable (GF := GF) E) := by
   unfold srvGrantable; infer_instance
 
+/-- **The ids the lessor ever had, `U`, at the applied log `A`** (the lease-expiry plan's E3 (c),
+2026-11-05): none in a cluster that grants none; in the revocable mode, each the revocable-mode grant
+id of an entry of `A` (`logRevGrantIds`), so that a grant's id, distinct from the log's earlier ones,
+is new to `U`. -/
+def srvEverOk (E : apply.AEnv GF) (A : List EntryModel) (U : List w64) : Prop :=
+  (E.lg = false → U = []) ∧ (E.lm = .revocable → ∀ u ∈ U, u ∈ logRevGrantIds .revocable A)
+
+/-- **The apply thread's half of the ids the lessor ever had** (E3 (c)): `apply.everOwn` at some
+`U` good for `A` (`srvEverOk`). -/
+def srvEver (E : apply.AEnv GF) (A : List EntryModel) : IProp GF :=
+  iprop(∃ U : List w64, apply.everOwn E U ∗ ⌜srvEverOk E A U⌝)
+
+/-- **The rest buckets at a table `T` and an image `r`** (internal: the laws' common form). -/
+def srvRestAt (E : apply.AEnv GF) (T : List w64) (r : apply.RestM) : IProp GF :=
+  if E.lg then
+    iprop((∃ f : w64 → w64, E.RO (apply.restLeasesWith f T r)) ∗ apply.ltHalf E T ∗ srvGrantable E)
+  else E.RO r
+
 /-- **The apply thread's rest buckets at the applied log `A`** (`AEnv.RO` at `restModel` of the
 log through `A`, from the start's consistent index and the boot log). (The lease-grant stage, 2.9,
 2026-11-03) In a cluster that grants leases (`E.lg`), with the record of every lease of the applied
 table (`appliedTable`), at some TTLs (`∃ f`, B1), the apply thread's half of the lessor's live set
-at those ids (`ltHalf`) and `srvGrantable`; at `E.lg = false` what it was (`srvRest_false`). -/
+at those ids (`ltHalf`) and `srvGrantable`; at `E.lg = false` what it was (`srvRest_false`). (The
+lease-expiry plan's E3 (c), 2026-11-05) In a cluster that grants leases, also the apply thread's
+half of the ids the lessor ever had (`srvEver`). -/
 def srvRest (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
   if E.lg then
-    iprop((∃ f : w64 → w64, E.RO (apply.restLeasesWith f (appliedTable γr A).ids
-        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))) ∗
-      apply.ltHalf E (appliedTable γr A).ids ∗ srvGrantable E)
+    iprop(srvRestAt E (appliedTable γr A).ids (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) ∗
+      srvEver E A)
   else E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
 
 /-- In a cluster that grants none, what it was. -/
@@ -670,15 +689,100 @@ theorem srvRest_revocable [go_etcd_io.etcd.server.v3.lease.Assumptions] (E : app
     simp at Hab
   | revocable => exact absurd rfl hm
 
-/-- **`srvRest` at the table ids `T` and the image `r`** (internal: the laws' common form). -/
-def srvRestAt (E : apply.AEnv GF) (T : List w64) (r : apply.RestM) : IProp GF :=
-  if E.lg then
-    iprop((∃ f : w64 → w64, E.RO (apply.restLeasesWith f T r)) ∗ apply.ltHalf E T ∗ srvGrantable E)
-  else E.RO r
+open Iris.ProofMode in
+/-- In a cluster that grants none, the ids are none. -/
+theorem srvEver_false (E : apply.AEnv GF) (A : List EntryModel) (h : E.lg = false) :
+    ⊢ srvEver (GF := GF) E A := by
+  iunfold srvEver
+  iexists []
+  rw [apply.everOwn_false E [] h]
+  isplitl
+  · itrivial
+  ipureintro; exact ⟨fun _ => rfl, fun _ u hu => absurd hu List.not_mem_nil⟩
 
+open Iris.ProofMode in
+/-- **`srvRest` at the table and the image, with the ids** (at any `E.lg`). -/
 theorem srvRest_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
-    srvRest E γr A = srvRestAt E (appliedTable γr A).ids
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := rfl
+    srvRest E γr A ⊣⊢ srvRestAt E (appliedTable γr A).ids
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) ∗ srvEver E A := by
+  unfold srvRest
+  cases h : E.lg
+  · have hat : srvRestAt E (appliedTable γr A).ids
+        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) =
+        E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
+      unfold srvRestAt; rw [h]; rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    rw [hat]
+    constructor
+    · iintro H; iframe H; iapply srvEver_false E A h
+    · iintro ⟨H, -⟩; iexact H
+  · simp only [↓reduceIte]
+    exact .rfl
+
+/-- **The ids one entry later** (the log only grows: `logRevGrantIds_snoc`). -/
+theorem srvEverOk_snoc (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) (U : List w64)
+    (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) U := by
+  refine ⟨h.1, fun hm u hu => ?_⟩
+  rw [logRevGrantIds_snoc]
+  exact List.mem_append_left _ (h.2 hm u hu)
+
+open Iris.ProofMode in
+theorem srvEver_snoc (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) :
+    srvEver (GF := GF) E A ⊢ srvEver E (A ++ [m]) := by
+  iunfold srvEver
+  iintro ⟨%U, HU, %Hok⟩
+  iexists U
+  iframe HU
+  ipureintro; exact srvEverOk_snoc E A m U Hok
+
+/-- The ids after `grantIdsA`: those before, and a grant's own. -/
+theorem grantIdsA_sub (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (L : List w64)
+    (u : w64) (hu : u ∈ apply.grantIdsA rq v3 out L) :
+    u ∈ L ∨ (apply.dispatchKind rq = .leaseGrant ∧ ∃ g, rq.leaseGrant = some g ∧ u = g.id) := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · cases hgl : rq.leaseGrant with
+    | none => rw [apply.grantIdsA_none _ _ _ _ hgl] at hu; exact .inl hu
+    | some g =>
+      cases out with
+      | skipped => exact .inl hu
+      | rejected => exact .inl hu
+      | dispatched o sk =>
+        simp only [apply.grantIdsA, apply.grantIds, hgl] at hu
+        split at hu
+        · cases o with
+          | rejected e => exact .inl hu
+          | applied l ns =>
+            rcases List.mem_append.1 hu with hu | hu
+            · exact .inl hu
+            · exact .inr ⟨hk, g, rfl, List.mem_singleton.1 hu⟩
+        · exact .inl hu
+  · rw [apply.grantIdsA_nonGrant _ _ _ _ hk] at hu; exact .inl hu
+
+/-- **The ids after a request's grant** (`grantIdsA`): an applied grant's id is the entry's
+revocable-mode grant id; a grant only where the cluster grants. -/
+theorem srvEverOk_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (U : List w64)
+    (ht : m.typ = W32 0) (hdec : apply.irrDecode m.data = some rq)
+    (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true)
+    (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) (apply.grantIdsA rq v3 out U) := by
+  refine ⟨fun hf => ?_, fun hm u hu => ?_⟩
+  · have hU := h.1 hf
+    subst hU
+    apply List.eq_nil_iff_forall_not_mem.2
+    intro u hu
+    rcases grantIdsA_sub rq v3 out [] u hu with hu | ⟨hk, -⟩
+    · exact absurd hu List.not_mem_nil
+    · rw [hlg hk] at hf; cases hf
+  · rw [logRevGrantIds_snoc]
+    rcases grantIdsA_sub rq v3 out U u hu with hu | ⟨hk, g, hg, rfl⟩
+    · exact List.mem_append_left _ (h.2 hm u hu)
+    · apply List.mem_append_right
+      have he : entryRevGrantId .revocable m = some g.id := by
+        unfold entryRevGrantId rqRevGrantId
+        rw [if_pos ht, hdec]
+        simp [hk, hg]
+      rw [he]; simp
+
 
 /-- The ids the image holds records of: the table's in a cluster that grants leases, none
 otherwise. -/
@@ -744,42 +848,98 @@ theorem srvGrantIf_perm [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem srvRest_open (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
     srvRest E γr A ⊢ ∃ f : w64 → w64, E.RO (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) ∗
-      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E := by
-  rw [srvRest_eq_at]; exact (srvRestAt_open E _ _).1
+      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E ∗ srvEver E A := by
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  ihave ⟨%f, H1, H2, H3⟩ := (srvRestAt_open E _ _).1 $$ H
+  iexists f
+  iframe H1 H2 H3 HU
 
+open Iris.ProofMode in
 /-- **`srvRest` closed again** (`srvRest_open`'s converse). -/
 theorem srvRest_close (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
     (∃ f : w64 → w64, E.RO (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
         (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) ∗
-      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E) ⊢ srvRest E γr A := by
-  rw [srvRest_eq_at]; exact (srvRestAt_open E _ _).2
+      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E ∗ srvEver E A) ⊢
+      srvRest E γr A := by
+  iintro ⟨%f, H1, H2, H3, HU⟩
+  iapply (srvRest_eq_at E γr A).2
+  iframe HU
+  iapply (srvRestAt_open E _ _).2
+  iexists f
+  iframe H1 H2 H3
 
+open Iris.ProofMode in
+/-- **The ids opened** (`srvEver`): the apply thread's half at some `U` good for `A`. -/
+theorem srvEver_open (E : apply.AEnv GF) (A : List EntryModel) :
+    srvEver (GF := GF) E A ⊢ ∃ U : List w64, apply.everOwn E U ∗ ⌜srvEverOk E A U⌝ := by
+  iunfold srvEver; iintro H; iexact H
+
+open Iris.ProofMode in
+/-- **The ids closed again, one entry later, after a request** (`grantIdsA`). -/
+theorem srvEver_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (U : List w64)
+    (ht : m.typ = W32 0) (hdec : apply.irrDecode m.data = some rq)
+    (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true) (h : srvEverOk E A U) :
+    apply.everOwn (GF := GF) E (apply.grantIdsA rq v3 out U) ⊢ srvEver E (A ++ [m]) := by
+  iintro HU
+  iunfold srvEver
+  iexists _
+  iframe HU
+  ipureintro; exact srvEverOk_grant E A m rq v3 out U ht hdec hlg h
+
+open Iris.ProofMode in
+/-- **The ids closed again, one entry later, unchanged.** -/
+theorem srvEver_same (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) (U : List w64)
+    (h : srvEverOk E A U) :
+    apply.everOwn (GF := GF) E U ⊢ srvEver E (A ++ [m]) := by
+  iintro HU
+  iunfold srvEver
+  iexists _
+  iframe HU
+  ipureintro; exact srvEverOk_snoc E A m U h
+
+open Iris.ProofMode in
 /-- **The rest buckets at the start** (`NewServer`, 2.13): with an empty prefix the table is empty,
-so the image is the boot's, at any TTLs. -/
+so the image is the boot's, at any TTLs; (E3 (c)) the lessor has had no lease. -/
 theorem srvRest_init (E : apply.AEnv GF) (γr : ReadNames) (h : γr.raft.pre = []) :
-    E.RO (restModel γr.kv.c0 γr.raft.raft.boot []) ∗ apply.ltHalf E [] ∗ srvGrantIf E ⊢
-      srvRest E γr [] := by
+    E.RO (restModel γr.kv.c0 γr.raft.raft.boot []) ∗ apply.ltHalf E [] ∗ srvGrantIf E ∗
+      apply.everOwn E [] ⊢ srvRest E γr [] := by
   have hT : srvIds E (appliedTable γr []).ids = [] := by
     unfold srvIds appliedTable; rw [h]; split <;> rfl
-  iintro ⟨HR, HL, HG⟩
+  iintro ⟨HR, HL, HG, HU⟩
   iapply srvRest_close
   rw [hT, h, List.append_nil]
   iexists (fun _ => W64 0)
   rw [apply.restLeasesWith_nil]
   iframe HR HL HG
+  iunfold srvEver
+  iexists []
+  iframe HU
+  ipureintro; exact ⟨fun _ => rfl, fun _ u hu => absurd hu List.not_mem_nil⟩
 
+open Iris.ProofMode in
 /-- **The rest buckets one entry later**, of an entry that leaves the lease table (`restEntry`). -/
 theorem srvRest_snoc (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (hT : appliedTable γr (A ++ [m]) = appliedTable γr A) :
-    srvRest E γr (A ++ [m]) =
-      srvRestAt E (appliedTable γr A).ids
-        (restEntry γr.kv.c0 m (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) := by
-  rw [srvRest_eq_at, hT, ← List.append_assoc, restModel_append]
+    srvRestAt E (appliedTable γr A).ids
+        (restEntry γr.kv.c0 m (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) ∗
+      srvEver E A ⊢ srvRest E γr (A ++ [m]) := by
+  iintro ⟨H, HU⟩
+  iapply (srvRest_eq_at E γr (A ++ [m])).2
+  rw [hT, ← List.append_assoc, restModel_append]
+  iframe H
+  iapply srvEver_snoc $$ HU
 
+open Iris.ProofMode in
 /-- An entry with no data leaves them. -/
 theorem srvRest_nodata (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
-    (ht : m.typ = W32 0) (hd : m.data = []) : srvRest E γr (A ++ [m]) = srvRest E γr A := by
-  rw [srvRest_snoc E γr A m (appliedTable_nodata γr A m ht hd), restEntry_nodata _ _ _ ht hd]; rfl
+    (ht : m.typ = W32 0) (hd : m.data = []) : srvRest E γr A ⊢ srvRest E γr (A ++ [m]) := by
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  iapply srvRest_snoc E γr A m (appliedTable_nodata γr A m ht hd)
+  rw [restEntry_nodata _ _ _ ht hd]
+  iframe H HU
 
 open Iris.ProofMode in
 /-- **The rest buckets one entry later, after `apply.Apply`** (the lease-grant stage, 2.9;
@@ -799,7 +959,8 @@ theorem srvRest_applyG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
       apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
       (∃ t : w64, E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ⊢
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) := by
   have hre : restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ [m])) =
       apply.restAfter rq v3 (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
@@ -807,7 +968,7 @@ theorem srvRest_applyG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
   have hcomm := apply.restLeasesWith_comm (apply.restAfter rq v3)
     (fun id t r => apply.restAfter_restGrantT rq v3 id t r)
   simp only [hr, hcomm]
-  iintro ⟨#Hgi, %Hgo, HL, %t, HR⟩
+  iintro ⟨#Hgi, %Hgo, HL, ⟨%t, HR⟩, HU⟩
   cases hlg : E.lg
   · have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
       exact (hg hk).1 (apply.AEnv.lm_of_lg_false hlg)
@@ -827,10 +988,10 @@ theorem srvRest_applyG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMode
       simp only [hdec]
       rw [← hv3, ← hch]
       exact (dispatchTableA_ids rq v3 x x' out _ hrev hgk hs Hgo).symm
-    unfold srvRest srvGrantIf
+    unfold srvRest srvRestAt srvGrantIf
     simp only [hlg, ↓reduceIte]
     rw [hf', hT, ← hre]
-    iframe HL Hgi
+    iframe HL Hgi HU
     iexists f'
     iexact HR
 

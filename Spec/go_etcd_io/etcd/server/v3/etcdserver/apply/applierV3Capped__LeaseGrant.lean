@@ -30,14 +30,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 until then the generic triple of the methods that leave the log, over the write right `E.RW`.) -/
 abbrev apply.applierV3Capped.LeaseGrant.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (g : LeaseGrantModel)
-    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (Pre Q Post : IProp GF)
+    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (U : List w64) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.cappedIs p inner ∗ apply.applierSpec E c inner ∗
-      apply.grantPre E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info r rq g log T rs
+      apply.grantPre E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) info r rq g log T rs U
         Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Capped.ty @!! go!"LeaseGrant")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ o : apply.Outcome,
-      apply.grantPost E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) rq g log T rs
+      apply.grantPost E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) rq g log T rs U
         Pre Post resp err o }}
 
 end spec

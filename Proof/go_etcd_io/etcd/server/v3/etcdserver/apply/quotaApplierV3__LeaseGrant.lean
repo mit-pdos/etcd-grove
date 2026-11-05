@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq g log T rs Pre Q Post info
+  intro E c inner p r rq g log T rs U Pre Q Post info
   wp_start as ⟨#Hq, #Hin, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, #Hsp⟩
+  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, #Hsp, HU, HUf⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -50,16 +50,16 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   · ipureintro; exact Or.inr (Or.inr rfl)
   subst Hok
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
-  wp_apply HGrant $$ %r %rq %g %log %T %rs %Pre %Q %Post %info [HltT HRO Hwt Hkv Hres Hcs]
+  wp_apply HGrant $$ %r %rq %g %log %T %rs %U %Pre %Q %Post %info [HltT HRO Hwt Hkv Hres Hcs HU HUf]
     as %resp %err ⟨%o, Hpost⟩
   · iunfold apply.grantPre
-    iframe HltT HRO Hwt Hr Hgr Hsp
+    iframe HltT HRO Hwt Hr Hgr Hsp HU HUf
     isplitr
     · ipureintro; exact Hrq
     iunfold apply.mPre
     iframe
   iunfold apply.grantPost at Hpost
-  icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, Hans⟩
+  icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, HU, Hans⟩
   iunfold apply.mPost at Hpm
   icases Hpm with ⟨Hkv, Hres, HPP⟩
   ihave Hres := apply.chainResAny_quota_in c p (.ok bi) $$ Hf Hres
@@ -67,7 +67,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   · iapply HΦ
     iexists o
     iunfold apply.grantPost
-    iframe HeI HlE Hlt HRO Hans
+    iframe HeI HlE Hlt HRO HU Hans
     isplitl [Hkv Hres HPP]
     · iunfold apply.mPost; iframe
     ipureintro; exact Hst

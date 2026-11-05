@@ -151,10 +151,10 @@ theorem apply.newApplierV3Backend.wp_proof
   isplitr
   · -- `LeaseGrant` (the lease-grant stage, 2.11)
     imodintro
-    iintro %r %rq %g %log %T %rs %Pre %Q %Post %info
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hLeaseGrant E p r rq g log T rs Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hLeaseGrant E p r rq g log T rs U Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr

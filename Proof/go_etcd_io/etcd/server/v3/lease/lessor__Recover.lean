@@ -98,10 +98,21 @@ theorem lease.lessor.Recover.wp_proof
   icases ptsto_halves_split _ _ $$ Himw with ⟨Himw, Himw'⟩
   icases ownMap_halves_split im' (∅ : GMap LeaseItem w64) $$ HI' with ⟨HI', HI''⟩
   iapply fupd_wp
+  ihave HUo : iprop(⌜recs.zip ls = []⌝ ∨ leaseEver (GF := GF) γl U) $$ [HUo]
+  · icases HUo with (%Hx | HUo)
+    · ileft; ipureintro; rw [Hx]; rfl
+    · iright; iexact HUo
   imod closers_recover γl lp lp L M C I I' mono mt (recs.zip ls) im' γga γcl ⊤
       (fun _ _ => CoPset.mem_full) HL hnd hmono' U (by rw [hids]; exact hU)
     $$ [$Hrd $Hmode $HUo $Ha $Hg $Hown $Hp $Hcs $Hch $Hhist $Hrvk $Himw' $HI'' $Hgr' $Hrl]
     with ⟨Ha, Hg, Hown, Hrvk, Hhist, #Hlos, Hmetas, HUo, %i, #Hat⟩
+  ihave HUo : iprop(⌜recs = []⌝ ∨ leaseEver (GF := GF) γl (U ++ (recs.zip ls).map (·.1.1))) $$ [HUo]
+  · icases HUo with (%Hx | HUo)
+    · ileft; ipureintro
+      have := congrArg List.length Hx
+      rw [List.length_zip, Hlen, Nat.min_self] at this
+      exact List.length_eq_zero_iff.1 this
+    · iright; iexact HUo
   imodintro
   ihave #Hsz' : ⧖ (GMap.size (recMap (recs.zip ls))) $$ []
   · iapply (preceipt_mono (GF := GF) (m := GMap.size (recMap (recs.zip ls)))

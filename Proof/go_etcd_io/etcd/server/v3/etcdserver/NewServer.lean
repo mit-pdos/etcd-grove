@@ -604,7 +604,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       (srvGrantGuard ρ.rd.kv.lg on) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
       trivial HlP)
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, #Hlgd, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, #Hllk'⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, Hlstop, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
     -- (2026-11-02, the backend-auth-split stage) at every bucket: `rbOwn` is `rbPart ⊤`, and the
@@ -615,6 +615,14 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (the lease-grant stage, 2.13) the lessor's live set's ghost variable at `[]`: one half to the
   -- boot's `leasesLive`, the other to the apply thread's image (`srvRest`'s leased arm, 3b)
   imod (ghostVar_alloc (GF := GF) ([] : List w64)) with ⟨%γlt, Hlt⟩
+  -- (the lease-expiry plan's E3 (c)) the lessor's history starts empty: its first snapshot
+  ihave #Hlrdinv : lease.lessorRdInv (GF := GF) γl $$ []
+  · ihave #Hli := Hlinv
+    iunfold lease.lessorInv at Hli
+    icases Hli with ⟨-, -, -, #H⟩
+    iexact H
+  imod (lease.lessorAt_empty γl ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hlrdinv $HlEv]
+    with ⟨#Hl0, HlEv⟩
   ihave ⟨Hlt1, HltS⟩ := (ghostVar_split_half (GF := GF) γlt 1 ([] : List w64)).1 $$ Hlt
   -- (the auth plan's E3zb) its `Lookup` at the guard `False`: no lease, and the weaker clause
   ihave #Hlnil : iprop(□ (⌜on = true⌝ → apply.lookupNil (lease.lessorIface lp))) $$ []
@@ -1760,7 +1768,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #HLsrv : lease.srvInv on s (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lm, γlt⟩ : apply.AEnv GF) m $$ [HLnil HpeerRt HlessRd HlPool']
   · iapply lease.srvInv_intro
     iframe HLnil HpeerRt HlessRd HlPool'
-    rw [Hγw.2.1]; iexact Hlmode
+    rw [Hγw.2.1]
+    iframe Hlmode Hl0
   imodintro
   wp_auto
   iapply HΦ
@@ -1988,7 +1997,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA HbkP Hrev HAR Hrdat Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HTR]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA HbkP Hrev HAR Hrdat Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HlEv HTR]
   · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
     iapply applyBuiltNAM_of_On
     unfold applyBuiltNAOn srvBemuReaderAt
@@ -2022,7 +2031,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     · iExactEq Hrdat; simp [Hγw.2.1]
     isplitr
     · simp only [bootKVOf]; rw [← Hlog0]; iexact Hal0
-    isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS]
+    isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HlEv]
     · unfold kvRun kvApplied kvAppliedL kvCert
       iframe Hrlb
       isplitl [Hkhi2]
@@ -2040,7 +2049,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       -- lease-grant stage, 2.13) the apply thread's half of the live set at `[]`, and in a cluster
       -- that grants leases the lessor's guard and mode (`srvGrantable`)
       have hpre : ρ.rd.raft.pre = [] := by simp [HρRaft]
-      isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe HltS]
+      isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe HltS HlEv]
       · iapply srvRest_init _ _ hpre
         rw [restModel_nil]
         dsimp only
@@ -2061,6 +2070,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
           cases ρ.rd.kv.lg
           · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
           · simp only [↓reduceIte]; iexact HltS
+        isplitr [HlEv]
+        rotate_left
+        · iunfold apply.everOwn
+          simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
+          cases ρ.rd.kv.lg
+          · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+          · simp only [↓reduceIte]; rw [Hγw.2.1]; iexact HlEv
         unfold srvGrantIf srvGrantable
         dsimp only
         simp only [apply.AEnv.lg_eq, KVNames.lg_fold]

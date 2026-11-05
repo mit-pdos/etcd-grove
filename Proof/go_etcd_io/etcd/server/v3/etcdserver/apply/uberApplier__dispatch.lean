@@ -103,6 +103,11 @@ local macro "grant_same" : tactic => `(tactic| (
       | rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk]),
           apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])]
     iexact HLt
+  isplitl [HEv]
+  · first
+      | rw [apply.grantIds_noV3]
+      | rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]
+    iexact HEv
   isplitl [Hrv]
   · iexact Hrv
   isplitl [HRO]
@@ -207,8 +212,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG))
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
-  intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev T
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, #Hgp, HLt, Hrv, %HcE, #HF, HFS, HSp,
+  intro E p opts c a r rq skip v3 log F Pre Q Post rs info crev T U
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, #Hcpr, #Hgp, HLt, HEv, #HGf, Hrv, %HcE, #HF, HFS, HSp,
     %Hrr, HRO, Hco⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
@@ -425,7 +430,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗
           apply.ltHalf E (apply.revokeIds rq true o (apply.grantIds rq true o T)) ∗
-          apply.revokeOwn E rq ∗
+          apply.everOwn E (apply.grantIds rq true o U) ∗ apply.revokeOwn E rq ∗
           (∃ t : w64, E.RO (apply.revokeRest T rq true o
             (apply.grantRest t rq true o (apply.restAfter rq true rs)))) ∗
           ⌜apply.grantOutOk c rq true T o⌝ ∗ apply.cPost true Pre Post ∗
@@ -434,7 +439,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           (∀ _ : true = true, apply.chainClass E.authMode info c rq o) ∗
           apply.grantRes E rq o «$r0_ptr» ∗ apply.revokeAnsR E rq «$r0_ptr» ∗
           apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
-    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco HLt HRO Hrv]
+    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt Hco HLt HEv HRO Hrv]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -600,20 +605,25 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hok := (apply.rqOk_leaseGrant _ _ _ hk).1 Hok.1
     iunfold apply.grantPermRq at Hgp
     ihave #Hgr := Hgp $$ %hk
-    wp_apply HGrant $$ %lLG %rq %x %log %T %(apply.restAfter rq true rs) %Pre %Q %Post %info
-      [HLt HRO Hwt Hkv Hres Hc] as %resp %err ⟨%o, Hpost⟩
+    have hlgT : E.lg = true := by simpa [apply.AEnv.lg_eq] using hok.1
+    ihave HEv := apply.everOwn_of_lg E U hlgT $$ HEv
+    iunfold apply.grantFresh at HGf
+    ihave #HGf' := HGf $$ %hk %x %hs
+    wp_apply HGrant $$ %lLG %rq %x %log %T %(apply.restAfter rq true rs) %U %Pre %Q %Post %info
+      [HLt HRO Hwt Hkv Hres Hc HEv] as %resp %err ⟨%o, Hpost⟩
     · iunfold apply.grantPre
       isplitr
       · ipureintro; exact ⟨by simpa [apply.AEnv.lg_eq] using hok.1, hs, hk⟩
-      iframe HR HSp
+      iframe HR HSp HGf'
       isplitr
       · iapply Hgr $$ %x %hs
       iunfold apply.mPre
       iframe
     iunfold apply.grantPost at Hpost
-    icases Hpost with ⟨Hmp, #HeI, HlE, %Hst, HLt, HRO, Hans⟩
+    icases Hpost with ⟨Hmp, #HeI, HlE, %Hst, HLt, HRO, HEv, Hans⟩
     iunfold apply.mPost at Hmp
     icases Hmp with ⟨Hkv, Hres, HPP⟩
+    ihave HEv := apply.everOwn_to_lg E _ hlgT $$ HEv
     have hlog : o.logAfter log = log := apply.chainStep_grant_logAfter rq hk log c o Hst.1
     join_ar
     iframe Hres
@@ -621,7 +631,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe Hco
     iexists (GoInterface.ok ai), c, o
     rw [hlog, apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])]
-    iframe Ha Hs Hkv HLt Hrv
+    iframe Ha Hs Hkv HLt HEv Hrv
     icases HRO with ⟨%t, HRO⟩
     isplitl [HRO]
     · iexists t; rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
@@ -702,6 +712,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     iframe Ha Hs Hkv
     isplitl [HLt]
     · rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]; iexact HLt
+    isplitl [HEv]
+    · rw [apply.grantIds_nonGrant _ _ _ _ (by simp [hk])]; iexact HEv
     isplitl [Hrdat]
     · iunfold apply.revokeOwn; rw [if_pos hk]; iframe Hrdat Hrev
     isplitl [HRO]
