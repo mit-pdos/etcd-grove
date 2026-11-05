@@ -36,15 +36,19 @@ crash model at the granularity of 512-byte sectors, which is what etcd's WAL nee
   A metadata step checks its preconditions against `nsNow` and appends to `nsLog`; a commit of `k`
   operations folds `nsLog.take k` into `nsDur`; a crash keeps `nsReplay (nsLog.take n) nsDur` for
   some `n` (ext4/xfs: metadata reaches the journal in order and the journal commits in order).
-  A directory `fsync` commits through the last operation that changed its entries
+  Names keep a base and a log, where file contents do not, because a crash keeps a prefix of one
+  global order. A directory `fsync` commits through the last operation that changed its entries
   (`dirCommitLen`); a file `fsync` commits no name (as before; weaker than ext4).
-- **V5, file contents by 512-byte sectors.** Each sector is `clean` (the disk holds the current
-  contents), `dirty old` (the disk holds one of the versions `old` it had since the last successful
-  sync, or the current one), or `lost old` (the same, and a sync does not write it: a failed sync's
-  pages, which Linux marks clean). This replaces `durable`/`dirty`/`lost` per byte: a byte not
-  written since the last sync agrees across every candidate, so the per-byte model's crash images
-  contain the sector model's (the bridge lemma below), and `durable` was redundant anyway (a clean
-  byte's durable value is its current one).
+- **V5, file contents by 512-byte sectors.** A file is a map from sector numbers to sectors. A
+  sector holds every version it had since the last successful sync (the last one is the page
+  cache's), and the kernel's dirty bit. A crash leaves one of the versions. There is no separate
+  page cache (`cur`) or disk image (`durable`): the page cache is the last version of each sector,
+  and what the disk may hold is the list. The dirty bit is needed only for failed fsyncs: Linux
+  marks a failed sync's pages clean, so no later sync writes them, though the disk may hold any of
+  their versions (D2's "lost" pages: not dirty, more than one version). Without failed fsyncs it
+  would equal "more than one version". Naming: "sector" is the kernel's word for the fixed 512-byte
+  unit (`sector_t`); "block" means the filesystem's block (4 KiB on ext4/xfs) or the device's
+  logical block (4096 on 4Kn drives), so it is not used for this unit.
 - **V6, process restart** (staged after V1–V5; see "Phases"). A crash outcome besides the machine
   crash: the process state is gone, the machine's is unchanged except that each in-flight change
   lands as some prefix. Today a process death is treated as a machine crash, which makes the files
@@ -62,15 +66,17 @@ inductive NsOp                                 -- a metadata operation, as logge
   | create (p : GoString) (i : Ino) | mkdir (p : GoString)
   | remove (p : GoString) | rename (s t : GoString)
 
-abbrev Sector := Vector w8 512
-inductive SecSt
-  | clean
-  | dirty (old : List Sector)
-  | lost (old : List Sector)
+structure Sector where
+  vers  : List (Vector w8 512)                 -- every version since the last successful sync,
+                                               --   oldest first; the last is the page cache's
+                                               --   (non-empty)
+  dirty : Bool                                 -- the kernel's dirty bit: the next sync writes
+                                               --   the last version
 
 structure OsFile where
-  cur : List w8                                -- the page cache; its length is the size
-  sec : Nat → SecSt                            -- sector s covers [512 s, 512 (s + 1))
+  secs   : Nat → Sector                        -- sector n covers bytes [512 n, 512 (n + 1));
+                                               --   default ⟨[zeros], false⟩
+  size   : Nat
   sizeLo sizeHi : Nat                          -- the sizes since the last successful sync
 
 structure FsState where                        -- the machine
@@ -96,21 +102,25 @@ structure OsState where
   proc : ProcState
 ```
 
-A sector's contents at a moment are the file's bytes `[512 s, 512 (s + 1))` then, zero-padded past
-its size: space a file grows into starts as zeros.
+The file's contents (what reads, `fstat` and mappings see) are derived: the last version of each
+sector, concatenated, cut to `size`. A sector never written, or past every size the file had, has
+the default: space a file grows into starts as zeros. Sectors past `size` keep their versions after
+a shrink, so a crash that keeps an older, larger size finds the old contents there.
 
 ## The steps
 
 Content steps find the file through `proc.fds !! fd` and then `fs.files !! ino`. Their effects on a
-file:
+file, sector by sector:
 
-| Step | `cur` | `sec` | sizes |
-|---|---|---|---|
-| `pread`, `fstat`, mapped loads | read | — | — |
-| `pwrite` (two steps, as now), `k` bytes landing | written | each sector touched: `clean` → `dirty [old]`, `dirty cs`/`lost cs` → `dirty (cs ++ [old])`, `old` its contents before | widened to the new size |
-| `ftruncate`, `fallocate` (grow) | resized, zero-filled | each sector whose contents change, as above | widened |
-| `fsync` succeeds | — | `dirty` not under an in-flight change → `clean`; `lost` unchanged | `sizeLo = sizeHi = size` |
-| `fsync` fails | — | `dirty` not under an in-flight change → `lost` (same `old`) | unchanged |
+| Step | Sector `n` | Size |
+|---|---|---|
+| `pread`, `fstat`, mapped loads | read the last version | — |
+| `pwrite` (two steps, as now), `k` bytes landing; `ftruncate`, `fallocate` (grow) | each sector whose contents change: `vers ++ [new]`, `dirty := true` (a shrink's cut sectors get zeros past the new size as their new version) | the new size; the range widened to include it |
+| `fsync` succeeds | `dirty` and not under an in-flight change: `⟨[last], false⟩`; otherwise unchanged (so a lost sector keeps its versions) | `sizeLo = sizeHi = size` |
+| `fsync` fails | `dirty` and not under an in-flight change: `dirty := false`, `vers` unchanged (now lost) | unchanged |
+
+A lost sector that is written again gets a new version and `dirty := true`, so the next successful
+sync writes it and collapses its list, as rewriting a page dirties it again in Linux.
 
 The metadata steps are those of `worktree-walfs-ext` (`open` with `O_CREAT`, `rename`, `unlink`,
 `rmdir`, `mkdir`, readdir, directory `fsync` and `close`, `lstat`'s directory test, `fallocate`,
@@ -122,13 +132,13 @@ is unchanged.
 ## Crash
 
 **Machine crash** (`OsCrash`): `nsDur' = nsReplay (nsLog.take n) nsDur` for some `n ≤ |nsLog|`,
-`nsLog' = []`; `files'` holds exactly the inodes `nsDur'` names, each a crash image of its file,
-all `clean`, `sizeLo = sizeHi` its size; the process state is empty. A crash image of a file:
+`nsLog' = []`; `files'` holds exactly the inodes `nsDur'` names, each a crash image of its file;
+the process state is empty. A crash image of a file:
 
 - its size is in `[sizeLo, sizeHi]`, or between those and the target of an in-flight change;
-- each sector below it is: the current contents if `clean`; otherwise one of `old`, the current
-  contents, or, under an in-flight `pwrite`, the current contents with any prefix of that write
-  applied; cut to the size.
+- each sector is one of its `vers`, or, under an in-flight `pwrite`, the last version with any
+  prefix of that write applied; it becomes `⟨[it], false⟩`;
+- `sizeLo = sizeHi = size`.
 
 **Process restart** (V6, staged): `fs'` is `fs` with each in-flight change landed as some prefix
 (a `pwrite` of `k` bytes for some `k`, a truncate applied or not, with the sector updates of the
@@ -155,11 +165,14 @@ errors), without the old regime's clause. For sectors:
 ## The program logic
 
 The ghost state keeps per-byte resources (`osBytes` with a clean flag per byte). Their
-interpretation relates them to the new state by: a byte the ghost state calls clean equals `cur`
-in every candidate of its sector. The **bridge lemma**, every sector-model crash image is a per-byte
-one, carries the existing per-byte crash reasoning over unchanged. A sector-level resource is added
-when a proof needs the sector guarantee (etcd's WAL restart). The namespace's ghost state (the
-history, `osDir` its directory views) is keyed by inodes in place of NUL keys.
+interpretation relates them to the new state by: a byte the ghost state calls clean has the same
+value in every version of its sector. The **bridge lemma**, every crash image of the sector model
+is one of the per-byte model, carries the existing per-byte crash reasoning over unchanged (a byte
+not written since the last successful sync agrees across every version of its sector; the
+per-byte model is conservative after a failed sync, where the sector model knows more). A
+sector-level resource is added when a proof needs the sector guarantee (etcd's WAL restart). The
+namespace's ghost state (the history, `osDir` its directory views) is keyed by inodes in place of
+NUL keys.
 
 ## Phases
 
