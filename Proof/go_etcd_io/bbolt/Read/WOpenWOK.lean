@@ -408,7 +408,7 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
         rw [hkc]
         have hb := hbv.2.2 hi0 pg (Or.inr ⟨hi0, p, hown, hpg, hlf⟩) i hi
         exact ⟨⟨fun e => by unfold bucketLeafFlag at e; omega, fun e => absurd e.symm hrl⟩,
-          ⟨hb.2.1, hb.2.2⟩, fun e => absurd e.symm hrl⟩
+          ⟨hb.2.1, hb.2.2⟩, fun e => absurd e.symm hrl, fun e => absurd e.symm hrl⟩
       · exact (hnsN l r hr).elim
     · rw [hDe] at hpr; exact tps k D0 hD0 c' p pg hpr hown hpg hlf i hi
   · -- the root bucket stays not inline (it is not `c`)

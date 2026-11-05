@@ -11,6 +11,7 @@ public import Perennial.Spec.sort.Search
 public import Perennial.Spec.bytes.Compare
 public import Proof.go_etcd_io.bbolt.Rebalance.Base
 public import Proof.go_etcd_io.bbolt.Write.NodeEnts
+public import Proof.go_etcd_io.bbolt.Read.WKey
 
 @[expose] public section
 
@@ -34,8 +35,8 @@ theorem Cursor.nsearch_n.wp_proof
     (hK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
     (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
     Cursor.nsearch_n.spec (GF := GF) (hG := hG) := by
-  intro c b stk els e v bl rn q key ks kb hnode Hsorted Hlive hks Hbase
-  wp_start as ⟨Hc, Hs, Ho, Hv, #Hkp⟩
+  intro c b stk els e v bl rn q key kr kb hnode Hsorted Hlive Hbase
+  wp_start as ⟨Hc, Hs, Ho, Hv, Hkp⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   isimp only [objOwn] at Ho
@@ -43,8 +44,8 @@ theorem Cursor.nsearch_n.wp_proof
   ihave %Hsl := ownSlice_len _ _ _ $$ Hins
   ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
   icases (viewCells_halves q v).1 $$ Hv with ⟨Hv1, Hv2⟩
-  icases srcOwn_acc q.half v key ks kb hks Hbase $$ [Hv1] with ⟨%dk, Hk, Hkb⟩
-  · iframe; iframe #
+  icases keyR_cells_acc q.half v Hbase key kr kb $$ [Hkp Hv1] with ⟨%dk, Hk, Hkb⟩
+  · iframe
   ihave %Hstl := ownSlice_len _ _ _ $$ Hs
   wp_auto
   have hidx : sint.Z (stk.len - W64 1) = (els.length : Int) := by
@@ -136,7 +137,7 @@ theorem Cursor.nsearch_n.wp_proof
   rw [show (els ++ [e]).set (↑els.length : Int).toNat
       ({ page' := e.page', node' := e.node', index' := idx } : elemRef) =
       els ++ [{ page' := e.page', node' := e.node', index' := idx }] by simp]
-  icases Hkb $$ Hk with ⟨-, Hv1⟩
+  icases Hkb $$ Hk with ⟨Hkp, Hv1⟩
   iapply HΦ
   iframe
   isplitl [Hn Hins Hcap Hws Hch Hchcap Hkey]

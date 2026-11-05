@@ -23,6 +23,7 @@ public import Proof.go_etcd_io.bbolt.Read.WSearch
 public import Proof.go_etcd_io.bbolt.Read.Bytes
 public import Proof.go_etcd_io.bbolt.Cursor__search_r
 public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
+public import Proof.go_etcd_io.bbolt.Read.WKey
 
 @[expose] public section
 
@@ -57,22 +58,22 @@ theorem Cursor.search_w.wp_aux
     (hS : Read.sort.SearchEv.spec (GF := GF) (hG := hG))
     (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
     ⊢ (∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
-        (stk : GoSlice) (els : List elemRef) (pid : w64) (key : GoSlice) (ks : Src) (kb : List w8),
-      ⌜X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧ ks ≠ Src.stale ∧
+        (stk : GoSlice) (els : List elemRef) (pid : w64) (key : GoSlice) (kr : KeyR) (kb : List w8),
+      ⌜X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
         posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0)⌝ →
       ∀ Φ, (wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
-          ownSliceCap elemRef stk (DFrac.own 1) ∗ srcOwn X.v key ks kb) -∗
+          ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR X.v key kr kb) -∗
         ▷ (∀ (stk' : GoSlice) (path : List elemRef) (pids : List w64),
           (wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ path) ∗
-            ownSliceCap elemRef stk' (DFrac.own 1) ∗
+            ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR X.v key kr kb ∗
             ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb ∧
               ∀ p ∈ pids, posOK X bl B p⌝) -∗ Φ #()) -∗
         WP (App (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key))
           (Val #pid)) {{ Φ }}
       : IProp GF) := by
   iloeb as IH
-  iintro %K %tx %r %m %X %bl %B %c %stk %els %pid %key %ks %kb %Hh %Φ ⟨Hw, Hc, Hs, Hcap, #Hkey⟩ HΦ
-  obtain ⟨hB, hloc, hpm, hinl, hks, hpos, hpid0⟩ := Hh
+  iintro %K %tx %r %m %X %bl %B %c %stk %els %pid %key %kr %kb %Hh %Φ ⟨Hw, Hc, Hs, Hcap, Hkey⟩ HΦ
+  obtain ⟨hB, hloc, hpm, hinl, hpos, hpid0⟩ := Hh
   have hlive : bl ∈ X.liveB := hloc.1
   have hnmnn := bktLocalOK_nm_nonnull X bl B hloc hB
   obtain ⟨-, B0, hB0, hclean, hkeys, hpgl, hnsl, hvw⟩ := id hloc
@@ -145,8 +146,8 @@ theorem Cursor.search_w.wp_aux
         simp only [TypedPointsto.typedPointstoDef]
         iframe
       icases (viewCells_halves wq X.v).1 $$ Hcells with ⟨Hv1, Hv2⟩
-      icases srcOwn_acc wq.half X.v key ks kb hks Hbase $$ [Hv1] with ⟨%dk, Hk, Hkb⟩
-      · iframe; iframe #
+      icases keyR_cells_acc wq.half X.v Hbase key kr kb $$ [Hkey Hv1] with ⟨%dk, Hk, Hkb⟩
+      · iframe
       have Hlen : sint.Z rn.nv.inodes'.len = (rn.ws.length : Int) := by word
       have hsorted := hnc.2.2.2.1
       have hwsl := hnc.2.2.2.2.2.1
@@ -309,7 +310,7 @@ theorem Cursor.search_w.wp_aux
       · isimp only [wOwn]; iframe; ipureintro; exact Hfp
       ihave Hins := Hsb $$ Hit
       rw [list_set_lookup_self _ _ _ Hit_lookup]
-      icases Hkb $$ Hk with ⟨-, Hv1⟩
+      icases Hkb $$ Hk with ⟨Hkey, Hv1⟩
       ihave Hcells : viewCells wq X.v $$ [Hv1 Hv2]
       · iapply (viewCells_halves wq X.v).2; iframe
       ihave Ho : objOwn X.v n (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
@@ -324,12 +325,12 @@ theorem Cursor.search_w.wp_aux
         have := hclean.2.2.2.2.2.2.1 h0 n rn hrn
         rw [hleaf] at this; cases this
       have Hch' : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
-          ks ≠ Src.stale ∧ posOK X bl B w.pgid ∧ (B.ib.root' = W64 0 → w.pgid = W64 0) :=
-        ⟨hB, hloc, hpm, hinl, hks, posOK_node_child X bl B n rn k w hloc hB hrn hleaf Hw_lookup,
+          posOK X bl B w.pgid ∧ (B.ib.root' = W64 0 → w.pgid = W64 0) :=
+        ⟨hB, hloc, hpm, hinl, posOK_node_child X bl B n rn k w hloc hB hrn hleaf Hw_lookup,
           fun h => absurd h hroot⟩
-      wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨null, n, ri⟩]) %w.pgid %key %ks %kb
-        %Hch' [Hw Hc Hs Hcap] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, %Hrt⟩
-      · iframe; iframe #
+      wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨null, n, ri⟩]) %w.pgid %key %kr %kb
+        %Hch' [Hw Hc Hs Hcap Hkey] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, Hkey, %Hrt⟩
+      · iframe
       iapply HΦ $$ %stk'' %((⟨null, n, ri⟩ : elemRef) :: path') %(pid :: pids')
       rw [List.append_assoc]
       iframe
@@ -347,9 +348,9 @@ theorem Cursor.search_w.wp_aux
       rw [hri]; exact nRoute_lroute rn.ws kb k hR1
     · -- a leaf node
       wp_auto
-      wp_apply hnn c bl s1 els ⟨null, n, W64 0⟩ X.v bl rn wq key ks kb hnn0 hnc.2.2.2.1
-        hnc.2.2.2.2.2.1 hks Hbase $$ [Hc Hs Ho Hcells] as ⟨Hc, Hs, Ho, Hcells⟩
-      · iframe; iframe #
+      wp_apply hnn c bl s1 els ⟨null, n, W64 0⟩ X.v bl rn wq key kr kb hnn0 hnc.2.2.2.1
+        hnc.2.2.2.2.2.1 Hbase $$ [Hc Hs Ho Hcells Hkey] as ⟨Hc, Hs, Ho, Hcells, Hkey⟩
+      · iframe
       ihave Hw := Hwb $$ Ho Hcells
       try wp_auto
       iapply HΦ $$ %s1 %([⟨null, n, W64 (wsIdx rn.ws kb : Int)⟩] : List elemRef) %([pid] : List w64)
@@ -376,7 +377,7 @@ theorem Cursor.search_w.wp_aux
     simp only [Option.some.injEq, Prod.mk.injEq] at hw'
     obtain ⟨rfl, rfl⟩ := hw'
     icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
-    icases cells_page_key_acc wq X.v Hbase pa (pgSrc B) pg key ks kb hks $$ [Hcells]
+    icases cells_page_keyR_acc wq X.v Hbase pa (pgSrc B) pg key kr kb $$ [Hcells Hkey]
       with ⟨%dq, %dk, Hp, Hk, Hpb⟩
     · iframe; iframe #
     icases Read.bytesPointsto_bounds pa dq pg (by intro e; simp [e] at h16) $$ Hp with ⟨Hp, %Hlb⟩
@@ -418,7 +419,7 @@ theorem Cursor.search_w.wp_aux
       wp_apply hnp c bl s1 els ⟨pa, null, W64 0⟩ dq pg key dk kb rfl hlf hlwf
         $$ [Hc Hs Hp Hk] as ⟨Hc, Hs, Hp, Hk⟩
       · iframe
-      ihave Hcells := Hpb $$ Hp Hk
+      icases Hpb $$ Hp Hk with ⟨Hkey, Hcells⟩
       ihave Hw := Hwb $$ Hcells
       try wp_auto
       iapply HΦ $$ %s1 %([⟨pa, null, W64 (pageSeekIdx pg kb : Int)⟩] : List elemRef) %([pid] : List w64)
@@ -650,22 +651,22 @@ theorem Cursor.search_w.wp_aux
       wp_apply hBP (pa +ₗ ((elemOff k : Nat) : Int)) be2 dq $$ [Hel] as Hel
       · iexact Hel
       ihave Hp := Helb $$ Hel
-      ihave Hcells := Hpb $$ Hp Hk
+      icases Hpb $$ Hp Hk with ⟨Hkey, Hcells⟩
       ihave Hw := Hwb $$ Hcells
       have hchild : be2.pgid'.toNat = branchPgid pg k := by unfold branchPgid; rw [hbe2]
       have hpw : be2.pgid' = (pageW pg k).pgid := by
         rw [(pageW_branch pg k hbr).2, ← hchild, Write.w64_ofNat_toNat]
       rw [hpw]
       have Hch' : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
-          ks ≠ Src.stale ∧ posOK X bl B (pageW pg k).pgid ∧
+          posOK X bl B (pageW pg k).pgid ∧
           (B.ib.root' = W64 0 → (pageW pg k).pgid = W64 0) :=
-        ⟨hB, hloc, hpm, hinl, hks, by
+        ⟨hB, hloc, hpm, hinl, by
           rw [(pageW_branch pg k hbr).2]
           exact posOK_page_child X bl B pid pg k hroot htw hnmf hpgv hbr hkc,
           fun h => absurd h hroot⟩
       wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨pa, null, ri⟩]) %(pageW pg k).pgid
-        %key %ks %kb %Hch' [Hw Hc Hs Hcap] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, %Hrt⟩
-      · iframe; iframe #
+        %key %kr %kb %Hch' [Hw Hc Hs Hcap Hkey] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, Hkey, %Hrt⟩
+      · iframe
       iapply HΦ $$ %stk'' %((⟨pa, null, ri⟩ : elemRef) :: path') %(pid :: pids')
       rw [List.append_assoc]
       iframe
@@ -711,13 +712,13 @@ theorem Cursor.search_w.wp_proof
     (hS : Read.sort.SearchEv.spec (GF := GF) (hG := hG))
     (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
     Cursor.search_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B c stk els pid key ks kb hB hloc hpm hinl hks hpos hpid0
+  intro K tx r m X bl B c stk els pid key kr kb hB hloc hpm hinl hpos hpid0
   iintro %Φ Hpre HΦ
   have hP : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
-      ks ≠ Src.stale ∧ posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0) :=
-    ⟨hB, hloc, hpm, hinl, hks, hpos, hpid0⟩
+      posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0) :=
+    ⟨hB, hloc, hpm, hinl, hpos, hpid0⟩
   iapply (Cursor.search_w.wp_aux hpn hnp hnn hIL hIB hBE hCnt hBK hBP hIK hIP hS hC) $$ %K %tx %r %m
-    %X %bl %B %c %stk %els %pid %key %ks %kb %hP Hpre
+    %X %bl %B %c %stk %els %pid %key %kr %kb %hP Hpre
   inext
   iintro %stk' %path %pids H
   iapply HΦ

@@ -158,7 +158,8 @@ theorem wtxHeap_addBkt (tx : Loc) (X : WX) (c : Loc) (C : BRec) (h : GoString ×
 /-- **The bucket cache of `bl` updated and a fresh bucket `c` opened** (`bktOpened`'s heap
 change): the parent's `buckets` field and cache map out of `wtxW`, with the view's cells (to read
 the name), and back with `name ↦ c` inserted and the new bucket added, live, registered as the
-handle `(name, g)`. -/
+handle `(name, g)`, whose registry fragment is minted persistent (maintainer R's U6g item 4:
+`Bucket.Bucket_w`'s post). -/
 theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
     (hB : X.t.bs !! bl = some B) (hlB : bl ∈ X.liveB) :
     wtxW (GF := GF) K tx r m X ⊢ bl.[Bucket, go!"buckets"] ↦ B.bv.buckets' ∗
@@ -168,7 +169,8 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
         B.bv.buckets' ↦$ (B.bm.insert name c) -∗ objOwn X.v c (DFrac.own 1) true (.bkt C) -∗
         (∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ c.[Bucket, go!"FillPercent"] ↦ f) -∗
         ⌜X.t.bobjs !! c = none ∧ X.handles !! c = none ∧ C.bv.tx' = tx ∧ C.ns = ∅⌝ -∗
-        |==> wtxW K tx r m ((X.setBkt bl { B with bm := B.bm.insert name c }).addBkt c C (name, g)) := by
+        |==> (wtxW K tx r m ((X.setBkt bl { B with bm := B.bm.insert name c }).addBkt c C (name, g)) ∗
+          c ↪[r.n.bk]□ (name, g)) := by
   unfold wtxW wtxCore
   iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
   icases wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh with %Hok
@@ -189,8 +191,9 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
   ihave Hh := wtxHeap_addBkt tx _ c C (name, g) hbo' hns htx $$ [Hh Hc]
   · iframe
   have hhd' : X.handles.lookup c = none := hhd
-  imod (ghost_map_insert c (name, g) hhd') $$ Hbk with ⟨Hbk, -⟩
+  imod (ghost_map_insert_persist c (name, g) hhd') $$ Hbk with ⟨Hbk, #Hfr⟩
   imodintro
+  iframe Hfr
   unfold WX.addBkt WX.setBkt
   simp only
   iframe

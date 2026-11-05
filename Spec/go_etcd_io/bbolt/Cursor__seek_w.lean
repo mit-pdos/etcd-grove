@@ -6,6 +6,7 @@ cross-unit contract). Proved by U6; used by U7 (`Put`, `Delete`, `CreateBucket*`
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Read.Src
 
 @[expose] public section
 
@@ -32,15 +33,15 @@ bucket has one), and the entry at the leaf's search index is returned (its key, 
 with their sources), or nil, nil, 0 past the leaf's end. Nothing of `X` changes. -/
 abbrev Cursor.seek_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl c : Loc) (stk : GoSlice)
-    (els0 : List elemRef) (key : GoSlice) (kb : List w8) (ks : Src),
-  bktLocalOK X bl → ks ≠ Src.stale → pmFresh X →
+    (els0 : List elemRef) (key : GoSlice) (kb : List w8) (kr : KeyR),
+  bktLocalOK X bl → pmFresh X →
   {{ wtxW (GF := GF) K tx r m X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els0 ∗
-      ownSliceCap elemRef stk (DFrac.own 1) ∗ srcOwn X.v key ks kb }}
+      ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR X.v key kr kb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
   {{ (k v : GoSlice) (fl : w32), RET (PairV (PairV #k #v) #fl);
       ∃ (stk' : GoSlice) (els : List elemRef) (pids : List w64),
       wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* els ∗
-      ownSliceCap elemRef stk' (DFrac.own 1) ∗ ⌜lPath X bl els pids ∧ lRoutes X bl els pids kb⌝ ∗
+      ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR X.v key kr kb ∗ ⌜lPath X bl els pids ∧ lRoutes X bl els pids kb⌝ ∗
       (match (lLeaf X bl pids)[wsIdx (lLeaf X bl pids) kb]? with
        | some w => iprop(⌜k ≠ slice.nil ∧ fl = w.flags⌝ ∗
            srcOwn X.v k (leafSrc X bl w.ks) w.key ∗ srcOwn X.v v (leafSrc X bl w.vs) w.value)

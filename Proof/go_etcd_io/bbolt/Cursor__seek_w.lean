@@ -74,9 +74,9 @@ theorem Cursor.seek_w.wp_proof
     (hkv : Cursor.keyValue_w.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
     Cursor.seek_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl c stk els0 key kb ks hloc hks hpm
+  intro K tx r m X bl c stk els0 key kb kr hloc hpm
   have hinl := inlSrcOK_of_bktLocalOK X bl hloc
-  wp_start as ⟨Hw, Hc, Hs, Hcap, #Hkey⟩
+  wp_start as ⟨Hw, Hc, Hs, Hcap, Hkey⟩
   obtain ⟨hlive, B, hB, -⟩ := id hloc
   icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
@@ -101,10 +101,10 @@ theorem Cursor.seek_w.wp_proof
   · iexact Hib
   ihave Hw := Hback $$ [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
   · isimp only [objOwn]; iframe
-  wp_apply hsw K tx r m X bl B c _ [] B.ib.root' key ks kb hB hloc hpm hinl hks
-    (posOK_root X bl B hloc hB) (fun h => h) $$ [Hw Hc Hs Hcap]
-    as ⟨%stk', %path, %pids, Hw, Hc, Hs, Hcap, %Hrt⟩
-  · iframe; iframe #
+  wp_apply hsw K tx r m X bl B c _ [] B.ib.root' key kr kb hB hloc hpm hinl
+    (posOK_root X bl B hloc hB) (fun h => h) $$ [Hw Hc Hs Hcap Hkey]
+    as ⟨%stk', %path, %pids, Hw, Hc, Hs, Hcap, Hkey, %Hrt⟩
+  · iframe
   obtain ⟨Hp, Hr, Hpos⟩ := Hrt
   simp only [List.nil_append]
   obtain ⟨hne, hlen, hhd, hall⟩ := Hp

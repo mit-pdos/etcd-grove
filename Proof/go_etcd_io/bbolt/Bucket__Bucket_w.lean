@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.bbolt.Bucket__openBucket_w
 public import Perennial.Spec.bytes.Equal
 public import Proof.go_etcd_io.bbolt.Read.WOpenH
 public import Proof.go_etcd_io.bbolt.Read.WOpenWOK
+public import Proof.go_etcd_io.bbolt.Read.WKey
 
 @[expose] public section
 
@@ -53,12 +54,12 @@ theorem Bucket.Bucket_w.wp_proof
     (hopen : Bucket.openBucket_w.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Bucket_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl B name nb ks g hB hloc hks hpm hwr
+  intro K tx r m X bl B name nb kr g hB hloc hpm hwr hhg
   have hbmn : ∀ c, B.bm !! nb = some c → c ≠ null := by
     obtain ⟨-, B', hB', hc, -⟩ := hloc
     rw [hB] at hB'; cases hB'
     exact fun c h => hc.2.2.2.2.2.2.2.2.2.2 nb c h
-  wp_start as ⟨Hw, #Hn⟩
+  wp_start as ⟨Hw, Hn, #Hhf⟩
   icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
   icases wtxW_buckets_fld K tx r m X bl B hB $$ Hw with ⟨Hbf, Hwb⟩
   wp_auto
@@ -69,11 +70,11 @@ theorem Bucket.Bucket_w.wp_proof
   rw [show (map.nil : Loc) = null from rfl, decide_eq_false Hbmn]
   wp_auto
   icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hc, Hwb⟩
-  icases viewCells_src_acc wq X.v Hbase name ks nb hks $$ [Hc] with ⟨%dn, Hnb, Hcb⟩
-  · iframe; iframe #
+  icases keyR_cells_acc wq X.v Hbase name kr nb $$ [Hn Hc] with ⟨%dn, Hnb, Hcb⟩
+  · iframe
   wp_apply wp_bytes_to_string $$ [Hnb] as Hnb
   · iexact Hnb
-  ihave Hc := Hcb $$ Hnb
+  icases Hcb $$ Hnb with ⟨Hn, Hc⟩
   ihave Hw := Hwb $$ Hc
   icases wtxW_bkt_acc K tx r m X bl B hB $$ Hw with ⟨Ho, Hwb⟩
   isimp only [objOwn] at Ho
@@ -90,9 +91,12 @@ theorem Bucket.Bucket_w.wp_proof
     simp only [Option.getD_some]
     rw [decide_eq_false hcn]
     wp_auto
+    ihave #Hcf := hdlFrags_lookup r X.handles c (nb, g) (hhg c hbmc) $$ Hhf
     iapply HΦ
     iexists X
-    iframe
+    iframe Hw Hn Hhf
+    isplitr
+    · iright; iexact Hcf
     ipureintro
     exact Or.inr ⟨hcn, Or.inl ⟨rfl, rfl⟩, fun h => ⟨h, rfl⟩⟩
   | none =>
@@ -104,9 +108,9 @@ theorem Bucket.Bucket_w.wp_proof
     · iframe; iframe #
     ihave Hw := Hwb $$ Hst Htx
     try wp_auto
-    wp_apply hseek K tx r m X bl c stk [] name nb ks hloc hks hpm $$ [Hw Hc Hs Hcap]
-      as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hc, Hs, Hcap, %Hrt, Hkv⟩
-    · iframe; iframe #
+    wp_apply hseek K tx r m X bl c stk [] name nb kr hloc hpm $$ [Hw Hc Hs Hcap Hn]
+      as %k %vl %fl ⟨%stk', %els, %pids, Hw, Hc, Hs, Hcap, Hn, %Hrt, Hkv⟩
+    · iframe
     obtain ⟨Hp, Hr⟩ := Hrt
     obtain ⟨p, ws, ⟨j, hpj⟩, hL, hle⟩ := WOpen.lPath_leaf X bl B hB hloc els pids Hp
     have hI := WOpen.lPath_posI X bl B hB hloc els pids Hp j p hpj
@@ -118,11 +122,11 @@ theorem Bucket.Bucket_w.wp_proof
       icases Hkv with %Hnil
       obtain ⟨rfl, rfl, rfl⟩ := Hnil
       icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hc, Hwb⟩
-      icases viewCells_src_acc wq X.v Hbase name ks nb hks $$ [Hc] with ⟨%d1, Hnm, Hcb⟩
-      · iframe; iframe #
+      icases keyR_cells_acc wq X.v Hbase name kr nb $$ [Hn Hc] with ⟨%d1, Hnm, Hcb⟩
+      · iframe
       wp_apply hEq name slice.nil d1 DFrac.discard nb [] $$ [Hnm] as ⟨Hnm, -⟩
       · iframe; iframe #; iapply ownSlice_nil
-      ihave Hc := Hcb $$ Hnm
+      icases Hcb $$ Hnm with ⟨Hn, Hc⟩
       ihave Hw := Hwb $$ Hc
       have hnone : ¬ ∃ w ∈ X.allEnts bl, w.key = nb ∧ isBktFlag w.flags := by
         rintro ⟨w', hw', hk', -⟩; rw [hfa w' hw' hk'] at hw; cases hw
@@ -131,24 +135,28 @@ theorem Bucket.Bucket_w.wp_proof
         simp only [Bool.not_true]
         wp_auto
         iapply HΦ
-        iexists X; iframe
+        iexists X; iframe Hw Hn Hhf
+        isplitr
+        · ileft; ipureintro; rfl
         ipureintro; exact Or.inl ⟨rfl, rfl, hnone⟩
       · rw [decide_eq_false hk]
         simp only [Bool.not_false]
         wp_auto
         iapply HΦ
-        iexists X; iframe
+        iexists X; iframe Hw Hn Hhf
+        isplitr
+        · ileft; ipureintro; rfl
         ipureintro; exact Or.inl ⟨rfl, rfl, hnone⟩
     | some w =>
       icases Hkv with ⟨%Hkw, #Hks, #Hvs⟩
       have hwm : w ∈ ws := List.mem_of_getElem? hw
       obtain ⟨hlk, hlv⟩ := WOpen.leaf_live X bl B hB hloc p hI ws hL w hwm
-      icases wtxW_src2_acc K tx r m X name k ks _ nb w.key hks
-        (WOpen.leafSrc_live X bl B hB hloc _ hlk) $$ [Hw] with ⟨%d1, %d2, Hnm, Hkk, Hback⟩
+      icases wtxW_keyR_src_acc K tx r m X name kr nb k _ w.key
+        (WOpen.leafSrc_live X bl B hB hloc _ hlk) $$ [Hw Hn] with ⟨%d1, %d2, Hnm, Hkk, Hback⟩
       · iframe; iframe #
       wp_apply hEq name k d1 d2 nb w.key $$ [Hnm Hkk] as ⟨Hnm, Hkk⟩
       · iframe
-      ihave Hw := Hback $$ Hnm Hkk
+      icases Hback $$ Hnm Hkk with ⟨Hw, Hn⟩
       have hand : ∀ f : w32, f &&& W32 1 = W32 0 ↔ ¬ isBktFlag f := by
         intro f; unfold isBktFlag; simp
       by_cases hk : nb = w.key
@@ -159,7 +167,9 @@ theorem Bucket.Bucket_w.wp_proof
         · rw [decide_eq_true hbf]
           wp_auto
           iapply HΦ
-          iexists X; iframe
+          iexists X; iframe Hw Hn Hhf
+          isplitr
+          · ileft; ipureintro; rfl
           ipureintro
           refine Or.inl ⟨rfl, rfl, ?_⟩
           rintro ⟨w', hw', hk', hf'⟩
@@ -204,20 +214,27 @@ theorem Bucket.Bucket_w.wp_proof
           wp_auto
           rw [show (map.nil : Loc) = null from rfl, decide_eq_false Hbmn]
           wp_auto
-          icases viewCells_src_acc wq X.v Hbase name ks nb hks $$ [Hcells] with ⟨%d3, Hnm, Hcb⟩
-          · iframe; iframe #
+          icases keyR_cells_acc wq X.v Hbase name kr nb $$ [Hn Hcells] with ⟨%d3, Hnm, Hcb⟩
+          · iframe
           wp_apply wp_bytes_to_string $$ [Hnm] as Hnm
           · iexact Hnm
-          ihave Hcells := Hcb $$ Hnm
+          icases Hcb $$ Hnm with ⟨Hn, Hcells⟩
           wp_apply wp_mapInsert $$ [Hbm] as Hbm
           · iexact Hbm
-          imod Hback $$ %nb %c %C %g Hbf Hcells Hbm Hco [Hfp] [] with Hw
+          imod Hback $$ %nb %c %C %g Hbf Hcells Hbm Hco [Hfp] [] with ⟨Hw, #Hcf⟩
           · iexists f; iframe; ipureintro; exact Hnan
           · ipureintro; exact ⟨Hbo, Hfr.1, hrec.2.1, hrec.2.2.2.2.2.1⟩
           wp_auto
           iapply HΦ
           iexists _
-          iframe Hw
+          iframe Hw Hn
+          isplitr
+          · rw [show ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)).handles =
+                X.handles.insert c (nb, g) from rfl]
+            iapply hdlFrags_insert r X.handles c (nb, g) Hfr.1
+            iframe #
+          isplitr
+          · iright; iexact Hcf
           ipureintro
           have hwa : w ∈ X.allEnts bl := by
             obtain ⟨w', hw', hk'⟩ := (lRoutes_found' X bl els pids nb hloc Hp Hr).2 (by
@@ -249,7 +266,9 @@ theorem Bucket.Bucket_w.wp_proof
         simp only [Bool.not_false]
         wp_auto
         iapply HΦ
-        iexists X; iframe
+        iexists X; iframe Hw Hn Hhf
+        isplitr
+        · ileft; ipureintro; rfl
         ipureintro
         refine Or.inl ⟨rfl, rfl, ?_⟩
         rintro ⟨w', hw', hk', -⟩
