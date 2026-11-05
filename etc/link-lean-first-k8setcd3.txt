@@ -10,13 +10,19 @@ delItem:
 storeKey:
 objOut:
 notFound: storeKey
+invalidObj: storeKey
+rvBytes:
+rvString: rvBytes
+preOk: rvString
+sameObj:
 validateFor:
 updated:
 tryUpdateFor: updated
 mcreate: lookup setItem storeKey objOut
-mdelete: lookup delItem notFound objOut validateFor
-mupdate: lookup setItem notFound objOut updated
-mget: lookup notFound objOut
+mdelete: lookup delItem notFound preOk invalidObj objOut validateFor
+mupdate: lookup setItem notFound preOk invalidObj objOut updated sameObj
+parseRV:
+mget: parseRV lookup notFound objOut
 mstep: mcreate mdelete mupdate mget
 isWrite:
 outEqual:
@@ -34,7 +40,6 @@ encodeWith:
 encodeObj: encodeWith
 encodeV0: encodeWith
 decodeObj:
-parseRV:
 # apimachinery's runtime, with bodies (stage 6c): what the driver's contract rests on (the trust
 # boundary: `bytes.Buffer`'s and `reflect`'s specs, and `conversion.EnforcePtr`)
 Buffer__Bytes:
@@ -50,6 +55,8 @@ decoder__Decode: decodeObj
 versioner__UpdateObject:
 versioner__PrepareObjectForStorage:
 versioner__ObjectResourceVersion:
+Obj__GetUID:
+Obj__GetResourceVersion: rvString
 versioner__ParseResourceVersion: parseRV
 identity__TransformFromStorage:
 identity__TransformToStorage:

@@ -27,16 +27,17 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev updated.spec : Prop :=
-  ∀ (inp : Input) (p : Loc) (dq : DFrac) (name vl : GoString) (n : w64),
+  ∀ (inp : Input) (p : Loc) (dq : DFrac) (name uid vl : GoString) (n : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      p ↦{dq} Obj.mk name vl n }}
+      p ↦{dq} Obj.mk name uid vl n }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.updated)) (Val #inp))
       (Val #p))
-  {{ (q : Loc) (err : GoInterface), RET (PairV #q #err); p ↦{dq} Obj.mk name vl n ∗
+  {{ (q : Loc) (err : GoInterface), RET (PairV #q #err); p ↦{dq} Obj.mk name uid vl n ∗
       (if rejects inp.Reject' vl then
         globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ err
       else ⌜err = GoInterface.nil ∧ q ≠ null⌝ ∗
-        q ↦ Obj.mk name (if inp.NoOp' then vl else inp.Val') n) }}
+        q ↦ Obj.mk (if inp.NoOp' then name else if name = [] then inp.Key' else name) uid
+          (if inp.NoOp' then vl else inp.Val') n) }}
 
 end spec
 

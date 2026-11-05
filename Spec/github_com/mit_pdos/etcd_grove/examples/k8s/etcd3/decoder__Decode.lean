@@ -27,14 +27,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev decoder.Decode.spec : Prop :=
-  ∀ (sl : GoSlice) (dq : DFrac) (d : GoString) (p : Loc) (name val : GoString) (rv rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ sl ↦*{dq} d ∗ p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name val rv }}
+  ∀ (sl : GoSlice) (dq : DFrac) (d : GoString) (p : Loc) (name uid val : GoString) (rv rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗ sl ↦*{dq} d ∗ p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
     (App (App (App (Val #(methods github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder.ty go!"Decode" #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder.mk))) (Val #sl)) (Val #(interface.mkOk (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #p))) (Val #rev))
   {{ (err : GoInterface), RET #err; sl ↦*{dq} d ∗
       match decodeD d with
-      | some (n, v) => ⌜err = GoInterface.nil⌝ ∗ p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk n v rev
+      | some (n, u, v) => ⌜err = GoInterface.nil⌝ ∗ p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk n u v rev
       | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err ∗
-          p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name val rv }}
+          p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
 
 end spec
 

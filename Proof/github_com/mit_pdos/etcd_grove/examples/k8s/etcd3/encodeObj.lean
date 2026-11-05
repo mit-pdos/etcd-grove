@@ -24,7 +24,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem encodeObj.wp_proof (wp_encodeWith : encodeWith.spec (GF := GF) (hG := hG)) :
     encodeObj.spec (GF := GF) (hG := hG) := by
-  intro p dq name val rv
+  intro p dq name uid val rv
   wp_start as Hp
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   iStructNamed Hp

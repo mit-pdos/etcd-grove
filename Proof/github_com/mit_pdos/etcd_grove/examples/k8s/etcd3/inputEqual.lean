@@ -29,8 +29,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem Input_eq_iff (a b : Input) : a = b ↔
     a.Kind' = b.Kind' ∧ a.Key' = b.Key' ∧ a.Val' = b.Val' ∧ a.Reject' = b.Reject' ∧
-    a.NoOp' = b.NoOp' ∧ a.IgnoreNotFound' = b.IgnoreNotFound' := by
-  cases a; cases b; simp [and_assoc]
+    a.NoOp' = b.NoOp' ∧ a.IgnoreNotFound' = b.IgnoreNotFound' ∧ a.UID' = b.UID' ∧
+    a.HasPreUID' = b.HasPreUID' ∧ a.PreUID' = b.PreUID' ∧ a.HasPreRV' = b.HasPreRV' ∧
+    a.PreRV' = b.PreRV' ∧ a.UseCached' = b.UseCached' ∧ a.Cached'.Name' = b.Cached'.Name' ∧
+    a.Cached'.UID' = b.Cached'.UID' ∧ a.Cached'.Value' = b.Cached'.Value' ∧
+    a.Cached'.ResourceVersion' = b.Cached'.ResourceVersion' ∧ a.MinRV' = b.MinRV' ∧
+    a.Client' = b.Client' := by
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, _⟩, _, _⟩ := a
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, _⟩, _, _⟩ := b
+  simp [and_assoc]
 
 theorem inputEqual.wp_proof : inputEqual.spec (GF := GF) (hG := hG) := by
   intro a b

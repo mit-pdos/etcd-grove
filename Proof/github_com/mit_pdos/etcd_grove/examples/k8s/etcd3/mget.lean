@@ -1,5 +1,6 @@
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mget
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.notFound
@@ -25,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem mget.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
+theorem mget.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
+    (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (wp_notFound : notFound.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG)) :
     mget.spec (GF := GF) (hG := hG) := by
@@ -34,6 +36,9 @@ theorem mget.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
   unfold storeOwn
   icases Hs with ⟨#Hk, %Hr⟩
   wp_auto
+  -- Stage 7b: the minimum resource version (`parseRV`, an `EOther` above the store's) before the lookup: Prove phase.
+  sorry
+/- the rest of the proof at a93fbf6a24:
   wp_apply wp_lookup $$ [$Hk] as %it %ok ⟨-, %Hlk⟩
   obtain ⟨hit, hok⟩ : it = (lookupL g.items x.Key').1 ∧ ok = (lookupL g.items x.Key').2 := by
     rw [← Hlk]; exact ⟨rfl, rfl⟩
@@ -63,6 +68,7 @@ theorem mget.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     rw [this]
     iapply HΦ
     (try ipureintro; trivial)
+-/
 
 end proof
 

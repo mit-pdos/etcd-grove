@@ -7,12 +7,15 @@ The store's specs answer in terms of `Model.lean`'s `KSt` (items by etcd key, re
 as numbers); the driver's model (`KModel.lean`'s `mstepL`) computes on `mstore`s (items sorted
 by name, 64-bit resource versions). `KRel ks g` relates them: the same resource version, and at
 every name `n`, the store's item at the etcd key `mkeyL n` (`"/registry/objs/" ++ n`) is `g`'s
-item of `n` (`ItemRel`: its object's name and value, its resource version, its canonical bit).
+item of `n` (`ItemRel`: its object's name, UID and value, its resource version, its canonical
+bit).
 
 `outOf r` is the driver's `Output` of the store's answer `r` (`call`: `objOut` of the object, an
 `errOut` of the error; a callback's error is `ERejected`). For each operation, on related states,
 the store's model and the driver's answer the same and stay related (`refine_create`,
 `refine_delete`, `refine_update`, `refine_get`), given the next resource version fits 64 bits.
+Stage 7b: the input's preconditions (`kpreOf`, the store's `preOk`), updates with
+`ignoreNotFound` (from `dzero`), and a `Get`'s minimum resource version.
 -/
 module
 
@@ -36,7 +39,8 @@ variable [GooseExts]
 
 /-- A store item and a driver item agree. -/
 def ItemRel (ki : KItem DObj) (it : item) : Prop :=
-  ki.obj.1 = (it.obj'.Name', it.obj'.Value') ∧ W64 (ki.rv : Int) = it.obj'.ResourceVersion' ∧
+  ki.obj.1 = (it.obj'.Name', it.obj'.UID', it.obj'.Value') ∧
+    W64 (ki.rv : Int) = it.obj'.ResourceVersion' ∧
     ki.canon = it.canon'
 
 /-- A store item and `lookupL`'s answer agree (both absent, or both present and related). -/
@@ -52,12 +56,18 @@ def KRel (ks : KSt DObj) (g : GSt) : Prop :=
 
 /-- **The driver's output of a store answer** (`call`'s `objOut`/`errOut`). -/
 def outOf {E : Type} : KResp DObj E → Output
-  | .obj o rv => objOutL ⟨o.1.1, o.1.2, W64 (rv : Int)⟩
+  | .obj o rv => objOutL ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩
   | .zero => zeroOutL
-  | .err (.notFound k rv) => ⟨W64 1, k, W64 (rv : Int), [], [], 0⟩
-  | .err (.keyExists k) => ⟨W64 2, k, W64 0, [], [], 0⟩
+  | .err (.notFound k rv) => ⟨W64 1, k, W64 (rv : Int), [], [], [], 0⟩
+  | .err (.keyExists k) => ⟨W64 2, k, W64 0, [], [], [], 0⟩
+  | .err (.invalidObj k) => ⟨W64 5, k, W64 0, [], [], [], 0⟩
   | .err (.user _) => rejectedL
-  | .err _ => ⟨W64 4, [], 0, [], [], 0⟩
+  | .err _ => otherL
+
+/-- **The store's preconditions of an input** (`preconditions(in)`, stage 7b): the UID and the
+resource version's string, where given. -/
+def kpreOf (x : Input) : KPre :=
+  ⟨if x.HasPreUID' then some x.PreUID' else none, if x.HasPreRV' then some x.PreRV' else none⟩
 
 theorem mkeyL_inj {a b : GoString} (h : mkeyL a = mkeyL b) : a = b := by
   unfold mkeyL storeKeyL at h
@@ -137,13 +147,16 @@ theorem krel_del (ks : KSt DObj) (g : GSt) (h : KRel ks g) (key : GoString)
 
 /-! ## The operations -/
 
-/-- **`Create`** of the input's name and value (no resource version). -/
+/-- **`Create`** of the input's name, UID and value (no resource version). -/
 theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input)
-    (hlen : x.Key'.length < 256) (hrv : ks.rv + 1 < 2 ^ 64) :
-    KRel (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.Val'), hlen⟩ 0).1
+    (hlen : x.Key'.length < 256 ∧ x.UID'.length < 256) (hrv : ks.rv + 1 < 2 ^ 64) :
+    KRel (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.UID', x.Val'), hlen⟩ 0).1
         (mcreateL x g).1 ∧
-      outOf (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.Val'), hlen⟩ 0).2 =
+      outOf (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.UID', x.Val'), hlen⟩ 0).2 =
         (mcreateL x g).2 := by
+  -- Stage 7b: the proof (a93fbf6a24's, without the UID) is adapted in the Prove phase.
+  sorry
+/- the proof at a93fbf6a24:
   unfold KSt.create mcreateL
   simp only [ne_eq, not_true_eq_false, ↓reduceIte]
   cases hk : ks.items (mkeyL x.Key') with
@@ -159,19 +172,34 @@ theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : 
       rw [w64_succ _ hrv, h.2.1]
     · simp only [outOf]
       rw [w64_succ _ hrv, h.2.1]
+-/
 
 /-- An object's driver form: `ItemRel`'s object. -/
 theorem itemRel_obj {ki : KItem DObj} {it : item} (h : ItemRel ki it) :
-    (⟨ki.obj.1.1, ki.obj.1.2, W64 (ki.rv : Int)⟩ : Obj) = it.obj' := by
+    (⟨ki.obj.name, ki.obj.uid, ki.obj.val, W64 (ki.rv : Int)⟩ : Obj) = it.obj' := by
   obtain ⟨h1, h2, -⟩ := h
-  rw [h1, h2]
+  have e : ki.obj.1 = (ki.obj.name, ki.obj.uid, ki.obj.val) := rfl
+  rw [e] at h1
+  simp only [Prod.mk.injEq] at h1
+  rw [h1.1, h1.2.1, h1.2.2, h2]
 
-/-- **`Delete`** of the input's name, `validateFor(in.Reject)` rejecting with `eD`. -/
+/-- **The store's preconditions are the driver's** (`preOk`) on related objects. -/
+theorem preOk_rel (x : Input) (ki : KItem DObj) (it : item) (h : ItemRel ki it) :
+    driverCodec.preOk (kpreOf x) ki.obj ki.rv = preOkL x it.obj' := by
+  -- Stage 7b: Prove phase.
+  sorry
+
+/-- **`Delete`** of the input's name, with the input's preconditions (`kpreOf`) and
+`validateFor(in.Reject)` rejecting with `eD`. -/
 theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD : GoInterface)
     (hrv : ks.rv + 1 < 2 ^ 64) :
-    KRel (ks.delete (mkeyL x.Key') (fun _ _ => none) (rejD eD x.Reject')).1 (mdeleteL x g).1 ∧
-      outOf (ks.delete (mkeyL x.Key') (fun _ _ => none) (rejD eD x.Reject')).2 =
+    KRel (ks.delete (mkeyL x.Key') (driverCodec.preOk (kpreOf x)) (rejD eD x.Reject')).1
+        (mdeleteL x g).1 ∧
+      outOf (ks.delete (mkeyL x.Key') (driverCodec.preOk (kpreOf x)) (rejD eD x.Reject')).2 =
         (mdeleteL x g).2 := by
+  -- Stage 7b: the proof (a93fbf6a24's, without preconditions) is adapted in the Prove phase.
+  sorry
+/- the proof at a93fbf6a24:
   unfold KSt.delete mdeleteL
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
@@ -191,14 +219,21 @@ theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD 
       rw [w64_succ _ hrv, h.2.1, hr.1]
     · simp only [↓reduceIte]
       exact ⟨h, rfl⟩
+-/
 
-/-- **`GuaranteedUpdate`** of the input's name by `tryUpdateFor(in)` (rejecting with `eU`; no
-`ignoreNotFound`, no preconditions). -/
+/-- **`GuaranteedUpdate`** of the input's name by `tryUpdateFor(in)` (rejecting with `eU`), with
+the input's preconditions (`kpreOf`) and `ignoreNotFound` (from the zero object `dzero`, which
+`updated` names `in.Key`). -/
 theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU : GoInterface)
-    (hrv : ks.rv + 1 < 2 ^ 64) :
-    KRel (ks.update (mkeyL x.Key') false dzero (fun _ _ => none) (updD eU x)).1 (mupdateL x g).1 ∧
-      outOf (ks.update (mkeyL x.Key') false dzero (fun _ _ => none) (updD eU x)).2 =
-        (mupdateL x g).2 := by
+    (hlen : x.Key'.length < 256) (hrv : ks.rv + 1 < 2 ^ 64) :
+    KRel (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preOk (kpreOf x))
+        (updD eU x)).1 (mupdateL x g).1 ∧
+      outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preOk (kpreOf x))
+        (updD eU x)).2 = (mupdateL x g).2 := by
+  -- Stage 7b: the proof (a93fbf6a24's, without preconditions or `ignoreNotFound`) is adapted in
+  -- the Prove phase.
+  sorry
+/- the proof at a93fbf6a24:
   unfold KSt.update KSt.current mupdateL
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
@@ -240,10 +275,16 @@ theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU 
           rw [w64_succ _ hrv, h.2.1]
     · simp only [↓reduceIte]
       exact ⟨h, rfl⟩
+-/
 
-/-- **`Get`** of the input's name (no resource version; `ignoreNotFound` as given). -/
-theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) :
-    outOf (ks.get (E := E) (mkeyL x.Key') 0 x.IgnoreNotFound') = mgetL x g := by
+/-- **`Get`** of the input's name, with the minimum resource version `n` (the input's `MinRV`,
+parsed) and `ignoreNotFound` as given. -/
+theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (n : w64)
+    (hn : parseRVD x.MinRV' = some n) :
+    outOf (ks.get (E := E) (mkeyL x.Key') (uint.nat n) x.IgnoreNotFound') = mgetL x g := by
+  -- Stage 7b: the proof (a93fbf6a24's, without a minimum) is adapted in the Prove phase.
+  sorry
+/- the proof at a93fbf6a24:
   unfold KSt.get mgetL
   simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte]
   cases hk : ks.items (mkeyL x.Key') with
@@ -257,6 +298,7 @@ theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Inp
     obtain ⟨hf, hr⟩ := krel_some h _ ki hk
     simp only [hf, Bool.not_true, Bool.false_eq_true, ↓reduceIte, outOf]
     rw [itemRel_obj hr]
+-/
 
 end go
 

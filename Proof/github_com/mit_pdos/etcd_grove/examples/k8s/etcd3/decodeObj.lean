@@ -27,6 +27,10 @@ theorem decodeObj.wp_proof : decodeObj.spec (GF := GF) (hG := hG) := by
   ihave %Hl := ownSlice_len $$ Hs
   ihave %Hwf := ownSlice_wf $$ Hs
   (try wp_auto)
+  -- Stage 7b: the proof below (complete at a93fbf6a24, for the encoding without the UID) is
+  -- adapted in the Prove phase: the UID's length byte and the UID after the name.
+  sorry
+/-
   wp_if_destruct
   · -- too short
     (try wp_auto)
@@ -216,6 +220,7 @@ theorem decodeObj.wp_proof : decodeObj.spec (GF := GF) (hG := hG) := by
       unfold decodeD
       rw [if_neg hnl, if_pos ⟨hv1, hv0⟩]
     rw [this]
+-/
 
 end proof
 

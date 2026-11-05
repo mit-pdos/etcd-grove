@@ -29,9 +29,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev codec.Encode.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (name val : GoString) (rv : w64) (b : Loc) (bs : List w8),
+  ∀ (p : Loc) (dq : DFrac) (name uid val : GoString) (rv : w64) (b : Loc) (bs : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name val rv ∗
+      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv ∗
       ownBuffer b bs }}
     (App (App (Val #(methods github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.ty go!"Encode"
         #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.mk)))
@@ -39,8 +39,8 @@ abbrev codec.Encode.spec : Prop :=
         github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #p)))
       (Val #(interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #b)))
   {{ RET #GoInterface.nil;
-      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name val rv ∗
-      ownBuffer b (bs ++ encodeWith tagV1 name val) }}
+      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv ∗
+      ownBuffer b (bs ++ encodeWith tagV1 name uid val) }}
 
 end spec
 

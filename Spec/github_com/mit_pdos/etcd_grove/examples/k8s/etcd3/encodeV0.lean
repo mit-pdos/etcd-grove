@@ -26,10 +26,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev encodeV0.spec : Prop :=
-  ∀ (name val : GoString),
+  ∀ (name uid val : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0)) (Val #name)) (Val #val))
-  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV0 name val }}
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0)) (Val #name)) (Val #uid)) (Val #val))
+  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV0 name uid val }}
 
 end spec
 

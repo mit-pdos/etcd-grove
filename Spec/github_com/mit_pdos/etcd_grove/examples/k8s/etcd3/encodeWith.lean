@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`encodeWith(tag, name, val)` (k8s_etcd3.go): the encoding `encodeWith tag name val` (the tag, the
+`encodeWith(tag, name, val)` (k8s_etcd3.go): the encoding `encodeWith tag name uid val` (the tag, the
 name's length byte, the name, the value), in a new slice.
 -/
 module
@@ -27,11 +27,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev encodeWith.spec : Prop :=
-  ∀ (tag name val : GoString),
+  ∀ (tag name uid val : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWith))
-      (Val #tag)) (Val #name)) (Val #val))
-  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tag name val }}
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWith))
+      (Val #tag)) (Val #name)) (Val #uid)) (Val #val))
+  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tag name uid val }}
 
 end spec
 

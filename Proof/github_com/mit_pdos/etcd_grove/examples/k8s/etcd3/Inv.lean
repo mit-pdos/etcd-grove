@@ -9,8 +9,9 @@ store's specs (`Proof/k8s_io/apiserver/pkg/storage/etcd3/`).
 ## The pure part
 
 - `kStep eD eU x ks`: the store's model (`KSt`) on the input `x` (its kind: `create` of the
-  object `mkObj x`, `delete` with `validateFor`'s function `rejD`, `update` with `tryUpdateFor`'s
-  `updD`, or `get`), its next state and the driver's output of its answer (`outOf`). On related
+  object `mkObj x`, `delete` with the input's preconditions `preD x` and `validateFor`'s function
+  `rejD`, `update` with `ignoreNotFound`, `preD x` and `tryUpdateFor`'s `updD`, or `get` at the
+  minimum `minOf x`), its next state and the driver's output of its answer (`outOf`). On related
   states (`KRel`) it is the driver's model's step (`refine_step`, from 6b's `refine_*`).
 - `KOk c g0 S σ M nx`: the instance's relation, as linkvtxn's `LinkvOk`: `S` closed under late
   effects, etcd's state the store's (`kvWf`) with room for two revisions, the pending writes `M`
@@ -46,17 +47,22 @@ open go_etcd_io.etcd.server.v3.etcdserver
 section enc
 variable [GooseExts]
 
+/-- An object, injectively. -/
+def encObj (o : Obj) : GoString × GoString × GoString × w64 :=
+  (o.Name', o.UID', o.Value', o.ResourceVersion')
+
 /-- An input, injectively. -/
-def encIn (x : Input) : w64 × GoString × GoString × GoString × Bool × Bool :=
-  (x.Kind', x.Key', x.Val', x.Reject', x.NoOp', x.IgnoreNotFound')
+def encIn (x : Input) : w64 × GoString × GoString × GoString × Bool × Bool × GoString × Bool ×
+    GoString × Bool × GoString × Bool × (GoString × GoString × GoString × w64) × GoString × w64 :=
+  (x.Kind', x.Key', x.Val', x.Reject', x.NoOp', x.IgnoreNotFound', x.UID', x.HasPreUID',
+    x.PreUID', x.HasPreRV', x.PreRV', x.UseCached', encObj x.Cached', x.MinRV', x.Client')
 
 theorem encIn_inj : Function.Injective encIn := by
   intro a b h
-  cases a; cases b
-  simp only [encIn, Prod.mk.injEq] at h
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  subst h1 h2 h3 h4 h5 h6
-  rfl
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, _⟩, _, _⟩ := a
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, _⟩, _, _⟩ := b
+  simp only [encIn, encObj, Prod.mk.injEq] at h
+  simp only [h]
 
 instance Input.countable : Pos.Countable Input :=
   .ofInjective (fun i => Pos.Countable.encode (encIn i))
@@ -71,12 +77,20 @@ instance KVState.inhabited : Inhabited KVState := ⟨{ compacted := 0, base := �
 section pure
 variable [GooseExts]
 
-/-- **An input `Gen` may return**, as far as the model needs: its name fits an object's. -/
-def InOk (x : Input) : Prop := x.Key'.length < 256
+/-- **An input `Gen` may return**, as far as the model needs: its name and UID fit an object's,
+and its minimum resource version parses (stage 7b). -/
+def InOk (x : Input) : Prop :=
+  x.Key'.length < 256 ∧ x.UID'.length < 256 ∧ (parseRVD x.MinRV').isSome
 
-/-- `call`'s object for a `Create` of `x` (`&Obj{Name: in.Key, Value: in.Val}`). -/
+/-- A `Get`'s minimum resource version (`0` if it does not parse: never, `InOk`). -/
+def minOf (x : Input) : w64 := (parseRVD x.MinRV').getD 0
+
+/-- `call`'s object for a `Create` of `x` (`&Obj{Name: in.Key, UID: in.UID, Value: in.Val}`). -/
 def mkObj (x : Input) : DObj :=
-  if h : x.Key'.length < 256 then ⟨(x.Key', x.Val'), h⟩ else dzero
+  if h : x.Key'.length < 256 ∧ x.UID'.length < 256 then ⟨(x.Key', x.UID', x.Val'), h⟩ else dzero
+
+/-- The store's preconditions of an input, as the store's model takes them. -/
+abbrev preD (x : Input) : DObj → Nat → Bool := driverCodec.preOk (kpreOf x)
 
 /-- **The store's model on the input `x`** (see the file header): its next state and the
 driver's output of its answer. -/
@@ -85,43 +99,49 @@ def kStep (eD eU : GoInterface) (x : Input) (ks : KSt DObj) : KSt DObj × Output
     ((ks.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).1,
       outOf (ks.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).2)
   else if x.Kind' = W64 1 then
-    ((ks.delete (mkeyL x.Key') (fun _ _ => none) (rejD eD x.Reject')).1,
-      outOf (ks.delete (mkeyL x.Key') (fun _ _ => none) (rejD eD x.Reject')).2)
+    ((ks.delete (mkeyL x.Key') (preD x) (rejD eD x.Reject')).1,
+      outOf (ks.delete (mkeyL x.Key') (preD x) (rejD eD x.Reject')).2)
   else if x.Kind' = W64 2 then
-    ((ks.update (mkeyL x.Key') false dzero (fun _ _ => none) (updD eU x)).1,
-      outOf (ks.update (mkeyL x.Key') false dzero (fun _ _ => none) (updD eU x)).2)
-  else (ks, outOf (ks.get (E := Empty) (mkeyL x.Key') 0 x.IgnoreNotFound'))
+    ((ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD eU x)).1,
+      outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD eU x)).2)
+  else (ks, outOf (ks.get (E := Empty) (mkeyL x.Key') (uint.nat (minOf x)) x.IgnoreNotFound'))
 
 /-- **The store's model refines the driver's on an input** (6b's `refine_*`). -/
 theorem refine_step (eD eU : GoInterface) (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input)
     (hx : InOk x) (hrv : ks.rv + 1 < 2 ^ 64) :
     KRel (kStep eD eU x ks).1 (mstepL x g).1 ∧ (kStep eD eU x ks).2 = (mstepL x g).2 := by
-  have hmk : mkObj x = ⟨(x.Key', x.Val'), hx⟩ := dif_pos hx
+  have hmk : mkObj x = ⟨(x.Key', x.UID', x.Val'), ⟨hx.1, hx.2.1⟩⟩ := dif_pos ⟨hx.1, hx.2.1⟩
   unfold kStep mstepL
   by_cases h0 : x.Kind' = W64 0
   · simp only [h0, ↓reduceIte, hmk]
-    exact refine_create ks g h x hx hrv
+    exact refine_create ks g h x ⟨hx.1, hx.2.1⟩ hrv
   by_cases h1 : x.Kind' = W64 1
   · simp only [h0, h1, ↓reduceIte]
     exact refine_delete ks g h x eD hrv
   by_cases h2 : x.Kind' = W64 2
   · simp only [h0, h1, h2, ↓reduceIte]
-    exact refine_update ks g h x eU hrv
+    exact refine_update ks g h x eU hx.1 hrv
   simp only [h0, h1, h2, ↓reduceIte]
-  exact ⟨h, refine_get ks g h x⟩
+  obtain ⟨n, hn⟩ := Option.isSome_iff_exists.1 hx.2.2
+  have hm : minOf x = n := by unfold minOf; rw [hn]; rfl
+  rw [hm]
+  exact ⟨h, refine_get ks g h x n hn⟩
 
-/-- **The driver's model never answers `EOther`**: its outputs are objects, "not found", "key
-exists", the zero object or a rejection. -/
-theorem mstepL_err (x : Input) (g : GSt) : (mstepL x g).2.Err' ≠ W64 4 := by
-  unfold mstepL mcreateL mdeleteL mupdateL mgetL
-  simp only [objOutL, existsL, notFoundL, rejectedL, zeroOutL]
-  repeat' split
-  all_goals simp
+/-- **The driver's model answers `EOther` only to a `Get`** (a minimum resource version above the
+store's, stage 7b): a write's outputs are objects, "not found", "key exists", "invalid object" or
+a rejection. -/
+theorem mstepL_err (x : Input) (g : GSt)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) : (mstepL x g).2.Err' ≠ W64 4 := by
+  unfold mstepL mcreateL mdeleteL mupdateL
+  rcases hk with h | h | h <;> simp only [h, objOutL, existsL, notFoundL, rejectedL, invalidObjL]
+  all_goals (repeat' split) <;> simp_all
 
-/-- An input's model answer, as porcupine's model decodes its output. -/
-theorem ansOf_mstepL (x : Input) (g : GSt) : ansOf (mstepL x g).2 = .ok (mstepL x g).2 := by
+/-- A write's model answer, as porcupine's model decodes its output. -/
+theorem ansOf_mstepL (x : Input) (g : GSt)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) :
+    ansOf (mstepL x g).2 = .ok (mstepL x g).2 := by
   unfold ansOf
-  rw [if_neg (mstepL_err x g)]
+  rw [if_neg (mstepL_err x g hk)]
 
 /-- The pending writes (in some order). -/
 def pendIns (M : GMap Nat Input) : List Input := M.toList.map Prod.snd

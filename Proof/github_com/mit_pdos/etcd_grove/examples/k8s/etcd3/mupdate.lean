@@ -1,5 +1,8 @@
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.sameObj
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preOk
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mupdate
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
@@ -30,8 +33,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (wp_setItem : setItem.spec (GF := GF) (hG := hG))
     (wp_notFound : notFound.spec (GF := GF) (hG := hG))
+    (wp_preOk : preOk.spec (GF := GF) (hG := hG))
+    (wp_invalidObj : invalidObj.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
-    (wp_updated : updated.spec (GF := GF) (hG := hG)) :
+    (wp_updated : updated.spec (GF := GF) (hG := hG))
+    (wp_sameObj : sameObj.spec (GF := GF) (hG := hG)) :
     mupdate.spec (GF := GF) (hG := hG) := by
   intro x s g
   wp_start as ⟨#Hs, %Hb⟩
@@ -43,6 +49,9 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     rw [← Hlk]; exact ⟨rfl, rfl⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
+  -- Stage 7b: `ignoreNotFound` (the zero object), the preconditions (`preOk`, `invalidObj`), `updated` naming the zero object, `sameObj`: Prove phase.
+  sorry
+/- the rest of the proof at a93fbf6a24:
   cases ok
   · have hn : (lookupL g.items x.Key').2 = false := hok.symm
     (try wp_auto)
@@ -122,6 +131,7 @@ theorem mupdate.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
         rw [this]
         iframe Hk
         ipureintro; exact ⟨Hr, rfl⟩
+-/
 
 end proof
 

@@ -24,7 +24,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem versioner.PrepareObjectForStorage.wp_proof  :
     versioner.PrepareObjectForStorage.spec (GF := GF) (hG := hG) := by
-  intro p name val rv
+  intro p name uid val rv
   wp_start as Hp
   (try wp_auto)
   iapply HΦ
