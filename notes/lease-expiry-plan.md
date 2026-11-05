@@ -2736,3 +2736,57 @@ committed when proved.
      unconditionally, true only in a cluster that grants none. It is now `γr.kv.lg = false →
      (appliedTable γr A').ids = []`. The `On` twin keeps the unconditional form (auth on, so the
      cluster grants none). Logged as batch item 22. No exported statement changed.
+4. **`EtcdServer.applySnapshot.wp_proof_snapM`'s granting walk: proved** (22:53–23:52, about an
+   hour, in four commits: `3feda4da04`, `d137281aa0`, `703f2dc598`, `441713419b`). With it the three
+   `ImageLeases` lemmas (`imageLeasesAt_recs`, `appliedTable_mono_sub`, `appliedTable_granted_live`)
+   are proved.
+   - **The walk** (`applySnapshot_walk`, `srvSnapApplied_of_walk`, `snap_srvRest`, `snap_applyKV`,
+     `kvOwn_snap`) no longer assumes `E.lg = false`. It calls `Recover` at the lessor's mode
+     (`decide (E.lm = .mono)`), over `imageLeasesAt_recs`'s records, with `reqOf` the snapshot
+     table's requests (`tableReq`) and `Lr` the table's ids. The apply thread's live-set half is
+     agreed with the lessor's and moved to `Lr` (`ltHalf_agree_upd`); in the monotone mode every id
+     the lessor ever had is live (`ever_live_modeM`, from part 2's `ever_live_mono`).
+   - **The monotone arm:** `appliedTable_mono_sub` gives `Recover`'s premise that the live set is
+     among the records; `appliedTable_mono_mem` with `table_eq_of_id` gives that an already-had id's
+     lease is the applied table's, so its request is the one `srvReqs` holds (F7).
+   - **The revocable arm:** `appliedTable_granted_live` gives `Recover`'s premise that a record whose
+     id the lessor had is live; `appliedTable_rev_mem` gives the request, as above. Both need the
+     log's grant ids distinct: `kv_grantLog_nodup` (new, from the KV invariant's `kvGrantIds`, as
+     `kv_entry_grantFresh`).
+   - With auth on, a cluster grants no lease (`srvKVInvsM_lg`), so the granting walk is the
+     auth-off one.
+   - **Spec problems found** (none a false statement):
+     - **F7 needed a home** (part 3). `Recover` needs `leaseReqIs` of each record whose id the
+       lessor had; the Draft had no resource that carried a lease's request to a snapshot. It is now
+       `srvReqs E T` in `srvRestAt`'s leased arm (every lease of the table at its request), kept by
+       `srvRest_applyG` from the grant's answer (`grantReqA`, from `grantAnswer` by
+       `grantReqA_of_res`). Batch item 25.
+     - **`specSnapM` was too weak** for the granting walk: it did not tie the receiver's log prefix
+       or the KV names' lease mode to the server's. Two premises, both discharged by `applyAll`'s
+       own (`hraft`, `Hmo`): `hpre0 : γr.raft.pre = []`, `hlmk : E.lm = γr.kv.lm`. Batch item 26.
+     - **`Recover`'s ever-set post is weak at `recs = []`:** `⌜recs = []⌝ ∨ leaseEver (U ++ ids)`
+       may drop the caller's `leaseEver`. The walk works around it (it passes `leaseEver` only at
+       `recs ≠ []`); no spec change. Noted for the Freeze review.
+     - The `ImageLeases` mode lemmas were stated over `γr.raft.pre ++ A'`, which no invariant makes
+       plain; restated over the log after the prefix, the KV invariant's (part 1). Batch item 23.
+     - `histCover` (approved with Q-S7) had no place in the lessor's reader invariant; it is now in
+       `lessorRdBody`, kept by `Grant` and `Recover` (part 2). Batch item 24.
+
+**The batch: additions from the Probe** (frozen or exported, each old → new, cause).
+
+22. `SnapImageFacts.hlnil`: `(appliedTable γr A').ids = []` → `γr.kv.lg = false → …`;
+   `snapRecv_image` drops its `E.lg = false` premise; `restoreLogOk_kvRaftOf`'s premise `.none` →
+   any lease mode. Cause: Probe 3 (the unconditional field is false in a granting cluster).
+23. `appliedTable_mono_sub`, `appliedTable_granted_live` (DRAFT): over the log after the prefix
+   (`plainLogM γr.kv.cmp .mono A'`, `(srvGrantLog A').Nodup`), + the per-lease forms
+   `appliedTable_mono_mem`, `appliedTable_rev_mem`. Cause: Probe 4 (the old form's plainness was
+   unprovable).
+24. `lease.lessorRdBody`: + `histCover hs U`; + `lease.ever_live_mono`. Cause: Probe 4 (`Recover`'s
+   monotone premise from the ever set).
+25. `srvRestAt` (leased arm): + `srvReqs E T`; `srvRest_open`/`_close`/`srvRestAt_open`: +
+   `srvReqsIf E T`; `srvRest_applyG`, `srvRest_applyP`/`P0`/`PG`/`R`/`PGR`: + `srvReqsIf`, +
+   `grantReqA` where a grant may apply; new `grantReqA_of_res`, `srvReqs_dispatchA`,
+   `dispatchTable_mem`. Cause: F7 (Probe 4).
+26. `EtcdServer.applySnapshot.specSnapM`: + `(hpre0 : γr.raft.pre = [])`, + `(hlmk : E.lm =
+   γr.kv.lm)`. Cause: Probe 4 (the walk's monotone and revocable arms need the KV invariant's log
+   at the server's mode).
