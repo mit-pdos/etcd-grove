@@ -241,7 +241,8 @@ abbrev apply.CheckTxnAuth.specL : Prop :=
 
 /-- **`Txn` on the apply thread**: `Txn.spec`'s, the lessor finding no lease, the request's wire
 transaction `tw` (its `PrevKv`s, E3e), the outcome decided at the latest state: the auth layer's rejection with a checkable permission refused, or the inner
-chain's outcome with the transaction's checked permissions granted. -/
+chain's outcome with the transaction's checked permissions granted. (Strict M1, 2026-11-06: as
+`Put.specL`, the thread's token in and back, the floor `kvLogLb`.) -/
 abbrev apply.authApplierV3.Txn.specL : Prop :=
   ∀ (E : apply.AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (skip : Bool)
     (rq : IRRModel) (t : TxnModel) (tw : txn.TxnModelW) (log F : mvcc.Log) (Pre Q Post : IProp GF)
@@ -255,7 +256,7 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
           (apply.chainStep apply.backendStep c rq log oc ∧
             ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
       txn.txnRequestIsW r tw ∗ ⌜rq.txnW = some tw⌝ ∗
-      mvcc.idxCert E.γ.idx F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay tw)⌝ }}
+      srvApi.kvLogLb E.γs F ∗ Lr hs ∗ ⌜apply.shapedMay E.authMode hs (apply.txnMay tw)⌝ ∗ threadTok }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -264,7 +265,7 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
             apply.refusedMay E.authMode hs (auth.authInfoM info) (apply.txnMay tw)) ∨
           (apply.chainStep apply.backendStep c rq log oc ∧
             ∃ L, apply.txnChecked tw L ∧ apply.passedL E.authMode hs (auth.authInfoM info) L)) ∗
-      Lr hs ∗ apply.traceRes trace }}
+      Lr hs ∗ apply.traceRes trace ∗ threadTok }}
 
 end spec
 
@@ -832,7 +833,7 @@ theorem apply.authApplierV3.Txn.wp_latest
     (hTxn : apply.CheckTxnAuth.specL (GF := GF) (hG := hG)) :
     apply.authApplierV3.Txn.specL (GF := GF) (hG := hG) := by
   intro E c inner p r skip rq t tw log F Pre Q Post info Lr hs
-  wp_start as ⟨#Hauth, #HauthL, #Hlnil, #Hinner, Hpre, #Hrw, %Htw, #HF, HL, %Hsh⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hlnil, #Hinner, Hpre, #Hrw, %Htw, #HF, HL, %Hsh, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
@@ -840,10 +841,9 @@ theorem apply.authApplierV3.Txn.wp_latest
   iunfold apply.lessorNil at Hlnil
   icases Hlnil with ⟨%le, #Hlef, #Hnil⟩
   iunfold apply.txnPreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -864,11 +864,12 @@ theorem apply.authApplierV3.Txn.wp_latest
   | ok e' =>
     wp_auto
     iapply HΦ
-    iframe HL
+    iframe HL Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
-    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ Pre Q Post _ hk
+    icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
+    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post _ hk
       (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h))
       (Or.inl ⟨rfl, Hvd.2 (fun h => by cases h)⟩) $$ Happ [] Hkv Hinfo Hres Hcs
     simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs]
@@ -889,14 +890,16 @@ theorem apply.authApplierV3.Txn.wp_latest
     (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩) $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
-  wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.txnPre
-    iunfold apply.mPre
-    iframe
+  wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.txnPre
     iframe #
-    ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hk
+    iapply apply.mPre_of_rest
+    iframe
   iapply HΦ
-  iframe HL
+  iframe HL Htt
   isplitr [Htrc]
   rotate_left
   · iexact Htrc

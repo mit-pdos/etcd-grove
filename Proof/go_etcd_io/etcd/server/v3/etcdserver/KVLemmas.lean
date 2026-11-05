@@ -1004,49 +1004,36 @@ theorem kv_cert_read (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNam
     simp only [List.length_nil] at this
     omega
 
-/-- **What a linearizable read reads** (2026-10-14, unit T1): a certified log `l` extending the
-log `L₀` applied through `i` (at least two revisions) is the KV model of a committed raft log
-through an index at least `i`. -/
-theorem kv_read_log (γr : ReadNames) (γs : mvcc.StoreNames) (hγ : γs.cok = γr.kv.cok)
-    (E : CoPset) (hE : ↑kvcN ⊆ E) (i : w64) (L₀ l : mvcc.Log) (hp : L₀ <+: l) :
-    ⊢ kvCertInv (GF := GF) γr.raft γr.kv -∗ kvLogAt γr i L₀ -∗ mvcc.certOk γs l ={E}=∗
+/-- **What a linearizable read reads** (2026-10-14, unit T1): a log `l` with the mode off's raft
+witness (`kvNxOff`), extending the log `L₀` applied through `i`, is the KV model of a committed raft
+log through an index at least `i`. (Strict M1, 2026-11-06: over the store's witness `E.Nx l`, which
+`srvKVInvs` ties to `kvNxOff`, in place of mvcc's certificate `certOk`; the certificates'
+invariant and the short-log case gone.) -/
+theorem kv_read_log (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Log) (hp : L₀ <+: l) :
+    ⊢ kvLogAt (GF := GF) γr i L₀ -∗ kvNxOff γr.raft γr.kv l ={E}=∗
       ∃ A, srvRLogLb γr.raft A ∗
         ⌜kvModel γr.kv A = l ∧ uint.Z i ≤ uint.Z γr.raft.ai0 + A.length⌝ := by
-  iintro #Hinv #Hat #Hc
+  iintro #Hat #Hc
   iunfold kvLogAt at Hat
   icases Hat with ⟨%AR, #HAR, %HR⟩
-  ihave #Hinv' := Hinv
-  iunfold kvCertInv at Hinv'
-  iinv Hinv' with >Hi Hclose
-  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-  imod Hclose $$ [HC Hhi'] with -
-  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
-  have h0 := Hok.2
-  have h2 : 2 ≤ L₀.length := by
-    have := (kvRaftOf_extends γr.kv.c0 γr.kv.ch0 γr.kv.log0 AR).length_le
-    rw [HR.2]; unfold kvModel; omega
-  imod kv_cert_read γr.raft γr.kv γs hγ E hE l $$ Hinv Hc with (%hl | ⟨%A', #HA', %hA'⟩)
-  · have heq : L₀ = l := hp.eq_of_length (by have := hp.length_le; omega)
-    imodintro
+  iunfold kvNxOff at Hc
+  icases Hc with ⟨%A', #HA', %hA'⟩
+  ihave %Hcmp := srvRLogLb_prefix γr.raft AR A' $$ [HAR HA']
+  · iframe HAR HA'
+  imodintro
+  rcases Hcmp with h | h
+  · iexists A'
+    iframe HA'
+    ipureintro
+    exact ⟨hA', by have := h.length_le; omega⟩
+  · have hk := kvRaftOf_prefix γr.kv.c0 γr.kv.ch0 γr.kv.log0 A' AR h
+    have hk' : l <+: L₀ := by
+      unfold kvModel at hA' HR
+      rw [hA', ← HR.2] at hk; exact hk
+    have heq : L₀ = l := hp.eq_of_length (Nat.le_antisymm hp.length_le hk'.length_le)
     iexists AR
     iframe HAR
     ipureintro; exact ⟨by rw [← heq]; exact HR.2.symm, by omega⟩
-  · ihave %Hcmp := srvRLogLb_prefix γr.raft AR A' $$ [HAR HA']
-    · iframe HAR HA'
-    imodintro
-    rcases Hcmp with h | h
-    · iexists A'
-      iframe HA'
-      ipureintro
-      exact ⟨hA', by have := h.length_le; omega⟩
-    · have hk := kvRaftOf_prefix γr.kv.c0 γr.kv.ch0 γr.kv.log0 A' AR h
-      have hk' : l <+: L₀ := by
-        unfold kvModel at hA' HR
-        rw [hA', ← HR.2] at hk; exact hk
-      have heq : L₀ = l := hp.eq_of_length (Nat.le_antisymm hp.length_le hk'.length_le)
-      iexists AR
-      iframe HAR
-      ipureintro; exact ⟨by rw [← heq]; exact HR.2.symm, by omega⟩
 
 end lemmas
 

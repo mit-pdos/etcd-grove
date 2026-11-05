@@ -101,7 +101,7 @@ theorem srvKVInvsA_of (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (wsl : L
     srvKVInvs (GF := GF) E γr ⊢ srvKVInvsA on E γr wsl := by
   iintro H
   iunfold srvKVInvs at H
-  icases H with ⟨#Hk, -, #Hr, #Hs, %Hm⟩
+  icases H with ⟨#Hk, -, #Hr, #Hs, %Hm, -⟩
   iunfold srvKVInvsA
   iframe Hk Hr
   isplitl
@@ -109,20 +109,23 @@ theorem srvKVInvsA_of (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (wsl : L
   · ipureintro; exact ⟨h.1, h.2.1, h.2.2, Hm.1, Hm.2.1⟩
 
 /-- **The apply thread's `srvKVInvs` from the store invariant**, the KV and raft invariants and the
-KV certificates' (`kvCertInv`, the server's own), at the server's witness and permit. -/
-theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (on : Bool) (E : apply.AEnv GF)
-    (γr : ReadNames) (hNx : E.Nx = kvNx γr on) (hCp : E.Cp = crevOk γr)
+KV certificates' (`kvCertInv`, the server's own), at the server's witness and permit (the mode
+off: `srvKVInvs` ties `E.Nx` to `kvNxOff`, 2026-11-06). -/
+theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (E : apply.AEnv GF)
+    (γr : ReadNames) (hNx : E.Nx = kvNx γr false) (hCp : E.Cp = crevOk γr)
     (hm : γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret) :
     kvInv (GF := GF) γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-      kvStoreInv E.kv E.γ γr on E.γs ⊢ srvKVInvs E γr := by
-  haveI : Persistent (kvStoreInv (GF := GF) E.kv E.γ γr on E.γs) := by
-    rw [kvStoreInv_eq]; exact kvStoreInvG_persistent Hp E.kv E.γ (kvNx γr on) (crevOk γr) E.γs
+      kvStoreInv E.kv E.γ γr false E.γs ⊢ srvKVInvs E γr := by
+  haveI : Persistent (kvStoreInv (GF := GF) E.kv E.γ γr false E.γs) := by
+    rw [kvStoreInv_eq]; exact kvStoreInvG_persistent Hp E.kv E.γ (kvNx γr false) (crevOk γr) E.γs
   iintro ⟨#Hk, #Hc, #Hr, #Hs⟩
   iunfold srvKVInvs
   iframe Hk Hc Hr
   isplitl
   · rw [hNx, hCp, ← kvStoreInv_eq]; iexact Hs
-  · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr on hNx hCp⟩
+  isplitl
+  · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr false hNx hCp⟩
+  · ipureintro; exact hNx
 
 end laws
 

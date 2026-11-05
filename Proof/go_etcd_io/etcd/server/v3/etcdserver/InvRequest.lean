@@ -255,6 +255,18 @@ instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF :
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
 
+/-- **The log `l` is the off model of a committed raft log** (persistent; strict M1, 2026-11-05):
+`KVStoreApi.lean`'s raft witness `kvNx γr false`, by `rfl` (`kvNx_off`), stated here below the
+model's other mode; the chain's `E.Nx` in the mode off (`srvKVInvs`' tie). Here, beside the model, since 2026-11-06
+(the tie needs it below `InvApplier`). Replaces mvcc's certificate `certOk`, which
+the KV certificate `kvCert` gave (`kvCert_certOk`). -/
+def kvNxOff (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) : IProp GF :=
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModel γk A = l⌝)
+
+instance kvNxOff_persistent (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) :
+    Persistent (kvNxOff (GF := GF) γ γk l) := by
+  unfold kvNxOff; infer_instance
+
 /-- **The lease table of the committed log `L`** (unit T3, L3a: the fold of `kvTable` from the
 empty table). -/
 def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk.c0 γk.ch0 [] L

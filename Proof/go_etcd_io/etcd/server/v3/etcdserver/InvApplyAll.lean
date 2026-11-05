@@ -39,6 +39,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
+open mvcc.api (BkRef)
 
 section addrs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
@@ -66,10 +67,11 @@ backend `d`, the current backend's ghost variable `γbe` at `d` at half the frac
 and a quarter of `γbe` are the apply thread's, `srvBeOwn`, a quarter of `γbe` the write budget's,
 `srvWTPool`; `applySnapshot` holds all of them to swap the backend. Until then (D19i part 2) the
 other half of `s.be` was `↦□`, `NewServer`'s, so the backend was known for good, which
-`applySnapshot`'s store refutes.) -/
+`applySnapshot`'s store refutes.) (Strict M1, 2026-11-06: the backend a `BkRef`, the ghost
+variable at its key `bkKey d`, as `srvBeOwn`.) -/
 def bemuP (s : Loc) (γbe : GName) (q : Qp) : IProp GF :=
-  iprop(∃ d : mvcc.KBReal, srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be ∗
-    dghostVar γbe (DFrac.own q.half) d ∗ srvBeRO d)
+  iprop(∃ d : BkRef, srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.b ∗
+    dghostVar γbe (DFrac.own q.half) (bkKey d) ∗ srvBeRO d)
 
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
 payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
@@ -228,29 +230,33 @@ theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64
 /-! ## The apply thread's backend, per batch (D22 receiver epochs, S7f) -/
 
 /-- **The apply environment `E` on another backend** (D22 receiver epochs, S7f, 2026-10-23): the
-store's names at the physical names `p` (`mvcc.StoreNames.withPhys`), the batch lock's invariant
-`P` and hook `f`, the consistent index's resources `ciC`, the rest buckets' resource `RO` and the
-write right `RW` of that backend; every other field (the store's logical names, `RD`, `γrev`,
-`authOn`, `FS`, `γbe`, `s`) kept. What `applySnapshot`'s `NewUberApplier` takes after the swap. -/
-def apply.AEnv.onBe (E : apply.AEnv GF) (p : mvcc.PhysNames) (P : IProp GF) (f : val)
-    (ciC : IProp GF → w64 → Prop) (RO : apply.RestM → IProp GF) (RW : IProp GF) : apply.AEnv GF :=
-  { E with γ := E.γ.withPhys p, P := P, f := f, ciC := ciC, RO := RO, RW := RW }
+backend tie `BT` (the server's `srvBkTie B'`), the batch lock's invariant `Pk` and hook `f`, the
+consistent index's resources `ciC`, the rest buckets' resource `RO` and the write right `RW` of that
+backend; every other field (the store's handle `kv` and names `γ`, `γs`, the witness `Nx`, the
+permit `Cp`, `RD`, `γrev`, `authMode`, `FS`, `γbe`) kept. What `applySnapshot`'s `NewUberApplier`
+takes after the swap. (Strict M1, 2026-11-06: the store is restored in place, `KV.Restore`, so its
+names `E.γ` are kept, the backend named by the tie; until then the store's names at the physical
+names `p`, `mvcc.StoreNames.withPhys`.) -/
+def apply.AEnv.onBe (E : apply.AEnv GF) (BT : BkRef → IProp GF) (Pk : BkRef → IProp GF)
+    (f : GoFunc) (ciC : IProp GF → w64 → Prop) (RO : apply.RestM → IProp GF) (RW : IProp GF) :
+    apply.AEnv GF :=
+  { E with BkTie := BT, Pk := Pk, f := f, ciC := ciC, RO := RO, RW := RW }
 
 /-- **The apply thread's backend after a batch** (D22 receiver epochs, S7f): the protocol's names
 `γ'` are `γ`'s at some physical names, the environment `E'` is `E` on some backend
 (`AEnv.onBe`). `applyAll` keeps its backend but `applySnapshot` moves it (S8). -/
 def beSucc (γ : ApplyNames) (E : apply.AEnv GF) (γ' : ApplyNames) (E' : apply.AEnv GF) : Prop :=
-  γ' = γ.withPh γ'.ph ∧ ∃ (p : mvcc.PhysNames) (P : IProp GF) (f : val) (ciC : IProp GF → w64 → Prop)
-    (RO : apply.RestM → IProp GF) (RW : IProp GF), E' = E.onBe p P f ciC RO RW
+  γ' = γ.withPh γ'.ph ∧ ∃ (BT Pk : BkRef → IProp GF) (f : GoFunc) (ciC : IProp GF → w64 → Prop)
+    (RO : apply.RestM → IProp GF) (RW : IProp GF), E' = E.onBe BT Pk f ciC RO RW
 
 theorem beSucc_refl (γ : ApplyNames) (E : apply.AEnv GF) : beSucc γ E γ E :=
-  ⟨rfl, E.γ.phys, E.P, E.f, E.ciC, E.RO, E.RW, rfl⟩
+  ⟨rfl, E.BkTie, E.Pk, E.f, E.ciC, E.RO, E.RW, rfl⟩
 
 theorem beSucc_trans {γ γ' γ'' : ApplyNames} {E E' E'' : apply.AEnv GF}
     (h1 : beSucc γ E γ' E') (h2 : beSucc γ' E' γ'' E'') : beSucc γ E γ'' E'' := by
-  obtain ⟨hg1, p1, P1, f1, c1, RO1, RW1, rfl⟩ := h1
-  obtain ⟨hg2, p2, P2, f2, c2, RO2, RW2, rfl⟩ := h2
-  refine ⟨?_, p2, P2, f2, c2, RO2, RW2, rfl⟩
+  obtain ⟨hg1, b1, P1, f1, c1, RO1, RW1, rfl⟩ := h1
+  obtain ⟨hg2, b2, P2, f2, c2, RO2, RW2, rfl⟩ := h2
+  refine ⟨?_, b2, P2, f2, c2, RO2, RW2, rfl⟩
   obtain ⟨⟩ := γ; obtain ⟨⟩ := γ'; obtain ⟨⟩ := γ''
   simp only [ApplyNames.withPh, ApplyNames.mk.injEq] at hg1 hg2 ⊢
   grind
@@ -258,17 +264,17 @@ theorem beSucc_trans {γ γ' γ'' : ApplyNames} {E E' E'' : apply.AEnv GF}
 /-- The environment's logical fields, kept by `beSucc`. -/
 theorem beSucc_γbe {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E') :
     E'.γbe = E.γbe := by
-  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
+  obtain ⟨-, b, P, f, c, RO, RW, rfl⟩ := h; rfl
 
 /-- The batch's claims do not depend on the environment's backend. -/
 theorem batchWaitOk_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
     (ρ : ReqNames) (ms : List EntryModel) : batchWaitOk ρ E' ms = batchWaitOk ρ E ms := by
-  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
+  obtain ⟨-, b, P, f, c, RO, RW, rfl⟩ := h; rfl
 
 /-- The write budget does not depend on the environment's backend (only on `γbe`). -/
 theorem srvWTPool_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
     (γp : GName) : srvWTPool E' γp = srvWTPool E γp := by
-  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
+  obtain ⟨-, b, P, f, c, RO, RW, rfl⟩ := h; rfl
 
 end defs
 

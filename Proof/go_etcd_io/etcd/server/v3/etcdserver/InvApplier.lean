@@ -346,11 +346,13 @@ tie `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, their
 invariant's; the KV certificates' invariant `kvCertInv` kept, the server's own ghost state, which
 the apply thread's `kvApplied` still carries (`kvStoreInvG` at the chain's witness `E.Nx` and
 permit `E.Cp`, boxed: its persistence is the API's `persistent.law`); the store's backend's mode
-gone, the API's backend always compacting.) -/
+gone, the API's backend always compacting.) (2026-11-06, the coordinator's decision: the draft's
+tie of the witness, `E.Nx = kvNx γr false`, as `kvNxOff`, which `InvRequest` now has: a reader's
+`readWit_fire` turns the store's `E.Nx l` into a committed raft log.) -/
 def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
     □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
-    ⌜γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret ∧ envWitOk E⌝)
+    ⌜γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret ∧ envWitOk E⌝ ∗ ⌜E.Nx = kvNxOff γr.raft γr.kv⌝)
 
 instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvs (GF := GF) E γr) := by
@@ -870,7 +872,7 @@ theorem srvApplyKV_writer [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.
       ⌜∃ c, MvccReachable (srvApi.stAt x.log c) ∧ x.log.length + 3 ≤ 2 ^ 63⌝ := by
   iintro #Hk H
   iunfold srvKVInvs at Hk
-  icases Hk with ⟨-, -, -, #Hs, %Hwit⟩
+  icases Hk with ⟨-, -, -, #Hs, %Hwit, -⟩
   obtain ⟨-, -, h1, h2, h3, h4⟩ := Hwit
   iunfold srvApplyKV at H
   icases H with ⟨%ua, Hua, #Hap, Hkv, Hrest⟩

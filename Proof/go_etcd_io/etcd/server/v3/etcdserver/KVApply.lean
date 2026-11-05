@@ -168,17 +168,6 @@ theorem kv_log_plain_off (γ : ServerRaftNames) (γk : KVNames) (B : List EntryM
   rw [h, plainLogM_false] at Hp
   imodintro; ipureintro; exact Hp
 
-/-- **The log `l` is the off model of a committed raft log** (persistent; strict M1, 2026-11-05):
-`KVStoreApi.lean`'s raft witness `kvNx γr false`, by `rfl` (`kvNx_off`), stated here below the
-model's other mode; the chain's `E.Nx` in the mode off. Replaces mvcc's certificate `certOk`, which
-the KV certificate `kvCert` gave (`kvCert_certOk`). -/
-def kvNxOff (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModel γk A = l⌝)
-
-instance kvNxOff_persistent (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) :
-    Persistent (kvNxOff (GF := GF) γ γk l) := by
-  unfold kvNxOff; infer_instance
-
 /-- The apply thread's KV ghost state gives its log's raft witness. -/
 theorem kvAppliedL_nx (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) (l : mvcc.Log) :
     kvAppliedL (GF := GF) γ γk B l ⊢ kvNxOff γ γk l := by

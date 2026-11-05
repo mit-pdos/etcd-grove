@@ -136,17 +136,18 @@ refusal; (C1's A2) an `Authenticate`'s, at its response `resp`: the authority as
 /-- **The admin triples of the `applierV3` value `ai` of the chain `c`** in the mode `on γa`
 (see the file header), with the store's write resource `W` and the authority family `Own` (E2l's
 `auth.authOwnFu`, or E2v's with the tie); (C1's A2) and what the request needs besides
-(`AdminReq.extraPre`). -/
+(`AdminReq.extraPre`). (Strict M1, 2026-11-06: the thread's token in and back, as the fuel
+triples', beside `mPre`/`mPost`.) -/
 def adminTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)
     (Own : auth.AuthNames → List auth.AuthState → IProp GF) : IProp GF :=
   iprop(□ ∀ (ar : AdminReq) (r : Loc) (γa : auth.AuthNames) (hs : List auth.AuthState)
       (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
     ⌜E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48 ∧ ar.nameOk⌝ -∗
-    {{ ar.reqIs r ∗ Own γa hs ∗ ⧗ 1 ∗ W ∗ mPre E c (.ok ai) info log Pre Q Post ∗
+    {{ ar.reqIs r ∗ Own γa hs ∗ ⧗ 1 ∗ W ∗ threadTok ∗ mPre E c (.ok ai) info log Pre Q Post ∗
         ar.extraPre E γa hs Pre }}
       (App (Val #(methods ai.ty ar.method ai.v)) (Val (ar.arg r)))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗ W ∗
+      threadTok ∗ mPost E c (.ok ai) log Pre Post ∗ applyErrIs err ∗ W ∗
       ar.result Own γa E.authMode hs resp err }})
 
 instance adminTriples_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) (W : IProp GF)
@@ -190,25 +191,24 @@ theorem applierAdmin_quota (E : AEnv GF) (c : Chain) (p : Loc) (inner : GoInterf
   iunfold adminTriples
   iintro !> %ar %r %γa %hs %log %Pre %Q %Post %info %hh
   cases ar <;> simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result] <;>
-  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Hm, Hx⟩ HΦ
+  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Htt, Hm, Hx⟩ HΦ
     rw [method_unfold (t := go.GoType.PointerType quotaApplierV3.ty)]
     wp_call
     wp_auto
-    iunfold mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
     ihave Hres := chainRes_quota_out c p (.ok bi) info $$ Hf Hres
     iunfold adminTriples at Ht
-    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info %hh [Hr Ho Hrc HW Hkv Hres Hcs Hx]
-    · iframe Hr Ho Hrc HW Hx
-      iunfold mPre
+    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info %hh [Hr Ho Hrc HW Htt Hm Hres Hx]
+    · iframe Hr Ho Hrc HW Htt Hx
+      iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
     iapply HΦ
     iunfold mPost at Hpost
     iunfold mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe HeI Hkv HPP HW HR
+    iframe Htt HeI Hkv HPP HW HR
     iapply chainResAny_quota_in c p (.ok bi) $$ Hf Hres
 
 /-- **The capped layer's admin triples**: the inner applier's (promoted). -/
@@ -228,25 +228,24 @@ theorem applierAdmin_capped (E : AEnv GF) (c : Chain) (p : Loc) (inner : GoInter
   iunfold adminTriples
   iintro !> %ar %r %γa %hs %log %Pre %Q %Post %info %hh
   cases ar <;> simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result] <;>
-  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Hm, Hx⟩ HΦ
+  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Htt, Hm, Hx⟩ HΦ
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty)]
     wp_call
     wp_auto
-    iunfold mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
     ihave Hres := chainRes_capped_out c p (.ok bi) info $$ Hf Hres
     iunfold adminTriples at Ht
-    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info %hh [Hr Ho Hrc HW Hkv Hres Hcs Hx]
-    · iframe Hr Ho Hrc HW Hx
-      iunfold mPre
+    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info %hh [Hr Ho Hrc HW Htt Hm Hres Hx]
+    · iframe Hr Ho Hrc HW Htt Hx
+      iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
     iapply HΦ
     iunfold mPost at Hpost
     iunfold mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe HeI Hkv HPP HW HR
+    iframe Htt HeI Hkv HPP HW HR
     iapply chainResAny_capped_in c p (.ok bi) $$ Hf Hres
 
 /-- **The corrupt layer's admin triples**: the inner applier's (promoted). -/
@@ -266,25 +265,24 @@ theorem applierAdmin_corrupt (E : AEnv GF) (c : Chain) (p : Loc) (inner : GoInte
   iunfold adminTriples
   iintro !> %ar %r %γa %hs %log %Pre %Q %Post %info %hh
   cases ar <;> simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result] <;>
-  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Hm, Hx⟩ HΦ
+  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Htt, Hm, Hx⟩ HΦ
     rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
     wp_call
     wp_auto
-    iunfold mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
     ihave Hres := chainRes_corrupt_out c p (.ok bi) info $$ Hf Hres
     iunfold adminTriples at Ht
-    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info %hh [Hr Ho Hrc HW Hkv Hres Hcs Hx]
-    · iframe Hr Ho Hrc HW Hx
-      iunfold mPre
+    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info %hh [Hr Ho Hrc HW Htt Hm Hres Hx]
+    · iframe Hr Ho Hrc HW Htt Hx
+      iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
     iapply HΦ
     iunfold mPost at Hpost
     iunfold mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe HeI Hkv HPP HW HR
+    iframe Htt HeI Hkv HPP HW HR
     iapply chainResAny_corrupt_in c p (.ok bi) $$ Hf Hres
 
 /-- **The auth layer's admin triples**: the inner applier's (promoted; the admin check is its
@@ -306,27 +304,26 @@ theorem applierAdmin_auth (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc) (inner
   iunfold adminTriples
   iintro !> %ar %r %γa %hs %log %Pre %Q %Post %info %hh
   cases ar <;> simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result] <;>
-  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Hm, Hx⟩ HΦ
+  · iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Htt, Hm, Hx⟩ HΦ
     rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
     wp_call
     wp_auto
-    iunfold mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
     ihave ⟨Hi, Hres⟩ := chainRes_auth_out c p (.ok bi) info $$ Hf Hres
     iunfold chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
     iunfold adminTriples at Ht
-    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info' %hh [Hr Ho Hrc HW Hkv Hres Hcs Hx]
-    · iframe Hr Ho Hrc HW Hx
-      iunfold mPre
+    iapply Ht $$ %_ %r %γa %hs %log %Pre %Q %Post %info' %hh [Hr Ho Hrc HW Htt Hm Hres Hx]
+    · iframe Hr Ho Hrc HW Htt Hx
+      iapply mPre_of_rest
       iframe
     inext
-    iintro %resp %err ⟨Hpost, #HeI, HW, HR⟩
+    iintro %resp %err ⟨Htt, Hpost, #HeI, HW, HR⟩
     iapply HΦ
     iunfold mPost at Hpost
     iunfold mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    iframe HeI Hkv HPP HW HR
+    iframe Htt HeI Hkv HPP HW HR
     iapply chainResAny_auth_in c p (.ok bi) info $$ Hf Hi Hres
 
 /-- **The base chain's admin triples, from its backend's** (E2m, continued; generic in the
@@ -378,47 +375,47 @@ theorem applierAdmin_backendX
   cases ar with
   | userAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
-    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hm] HΦ
-    iframe Hr Hsure Ho HX Hrc HW Hm
+    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, HW, Htt, Hm, #Hcap⟩ HΦ
+    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Htt Hm] HΦ
+    iframe Hr Hsure Ho HX Hrc HW Htt Hm
     iframe #
   | roleAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
-    iapply (hRA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hm
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Htt, Hm, #Hcap⟩ HΦ
+    iapply (hRA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho HX Hrc HW Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Htt Hm
     iframe #
   | userGrantRole u ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
-    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hm
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Htt, Hm, #Hcap⟩ HΦ
+    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Htt Hm
     iframe #
   | roleGrantPermission n w =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
-    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hm
+    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Htt, Hm, #Hcap⟩ HΦ
+    iapply (hRGP E γa X W p r log Pre Q Post info hs n w hM hb hn) $$ [Hr Ho HX Hrc HW Htt Hm] HΦ
+    iframe Hr Ho HX Hrc HW Htt Hm
     iframe #
   | authEnable =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, HW, Hm, #Hcap⟩ HΦ
-    iapply (hAE E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Hm] HΦ
-    iframe Ho HX Hrc HW Hm
+    iintro !> %Φ ⟨-, ⟨Ho, HX⟩, Hrc, HW, Htt, Hm, #Hcap⟩ HΦ
+    iapply (hAE E γa X W p log Pre Q Post info hs hM hb) $$ [Ho HX Hrc HW Htt Hm] HΦ
+    iframe Ho HX Hrc HW Htt Hm
     iframe #
   | authenticate n pre =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result, AdminReq.extraPre]
-    iintro !> %Φ ⟨⟨%am, #Hr, %Ham⟩, ⟨Ho, HX⟩, -, HW, Hm, ⟨%x, #HSp, Hfr⟩⟩ HΦ
+    iintro !> %Φ ⟨⟨%am, #Hr, %Ham⟩, ⟨Ho, HX⟩, -, HW, Htt, Hm, ⟨%x, #HSp, Hfr⟩⟩ HΦ
     obtain ⟨rfl, rfl⟩ := Ham
     iunfold auth.authOwnFu at Ho
     icases Ho with ⟨Ho, Hfu⟩
-    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM hn) $$ [Ho HX HW Hm Hfr]
-    · rw [hM]; iframe Ho HX HW Hm Hfr; iframe #
+    iapply (hAu E γa X W p r log Pre Q Post info hs am x hM hn) $$ [Ho HX HW Htt Hm Hfr]
+    · rw [hM]; iframe Ho HX HW Htt Hm Hfr; iframe #
     inext
-    iintro %resp %err ⟨Hpost, #HeI, Ho, HX, HW, Hout⟩
+    iintro %resp %err ⟨Htt, Hpost, #HeI, Ho, HX, HW, Hout⟩
     iapply HΦ
     rw [hM]
-    iframe Hpost HeI HW Hout HX
+    iframe Htt Hpost HeI HW Hout HX
     iunfold auth.authOwnFu; iframe Ho Hfu
 
 /-- **The base chain's admin triples carrying `X`** (the auth plan's E2v): as E2m's base chain's,
@@ -433,9 +430,9 @@ theorem applierAdmin_baseX
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (opts : ApplierOptions)
     (a : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      baseShape opts a ∗ backendOptsOk E opts ∗ isAuthStepsX opts.AuthStore' E.P E.f E.authMode X W E.RD ⊢
+      baseShape opts a ∗ backendOptsOk E opts ∗ (□ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
       applierAdmin E (baseChain E.authOn) a W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) := by
-  apply applierAdmin_baseG E W _ (isAuthStepsX opts.AuthStore' E.P E.f E.authMode X W E.RD) opts a
+  apply applierAdmin_baseG E W _ iprop(□ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) opts a
   intro pb
   iintro ⟨#Hpkg, #Hbk, #Hpb, #Hst⟩
   ihave #Hbs : backendAuthStepsX E pb X W $$ []
@@ -474,10 +471,10 @@ theorem applierAdmin_uberX
     (E : AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc)
     (opts : ApplierOptions) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      uberIs E p opts ∗ isAuthStepsX opts.AuthStore' E.P E.f E.authMode X W E.RD ⊢
+      uberIs E p opts ∗ (□ ∀ B : mvcc.api.BkRef, isAuthStepsX opts.AuthStore' (E.Pk B) E.f E.authMode X W E.RD) ⊢
       ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
         applierAdmin E (baseChain E.authOn) base W (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
-  applierAdmin_uberG E W _ (fun st => isAuthStepsX st E.P E.f E.authMode X W E.RD) p opts
+  applierAdmin_uberG E W _ (fun st => iprop(□ ∀ B : mvcc.api.BkRef, isAuthStepsX st (E.Pk B) E.f E.authMode X W E.RD)) p opts
     (fun a => applierAdmin_baseX hUA hRA hUGR hRGP hAE hAu E X W opts a)
 
 /-- **The alarms' wrappers' admin triples** (the auth plan's E2o): the base applier's, through
