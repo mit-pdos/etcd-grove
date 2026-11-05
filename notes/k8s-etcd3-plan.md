@@ -825,7 +825,16 @@ through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loop
   `stFrom_cached`, `stFrom_rdOf`, `preOk_rv_none` (`Steps.lean`); `stAt_cases`, `gu_answer`,
   `rd_noop`, `rd_data`, `rd_szOk` (private, in the proof file).
 
-**7b done (2026-11-05).** No post-freeze change to a frozen statement; the post-freeze changes above
+- `[C, check (the build after merging lean), touches the new specs' parameters (internal and driver), awaits the user]` Merge of
+  `lean` (2026-11-05): lean's `2811fb73f8` (Q1 (c), the compactor registry) gave the driver's
+  package init and every k8s etcd3 spec the instance parameter `[reg : EtcdGrove.k8s.CompactorRegistry]`;
+  the 18 specs 7b added or restated in those directories (`rvBytes`, `rvString`, `Obj.GetUID`,
+  `Obj.GetResourceVersion`, `uidOf`, `withPre`, `minRV`, `preOk`, `sameObj`, `preconditions`,
+  `cachedObj`, `newCache`, `cache.get`, `cache.put`, `invalidObj`, `genFrom`, `Gen`,
+  `store.getStateFromObject`) and their proofs get the same `variable` line. No other text changed.
+
+**7b done (2026-11-05).** One post-freeze change to frozen statements, the merge's follow-through
+above (C); otherwise the post-freeze changes above
 are internal (the driver's invariant, `InvSteps`' continuations, D5's read update). Trust base of
 `etc/tcb-collections/k8setcd3.txt`: before the stage (lean), 659 axioms and 3 `sorry`s (`client_ctx_field`, `revRoom`, `kvIs_ne_null`, none
 7b's); after, 660 axioms (the approved extension T1, `fmt.SprintfNamed.wp_proof`, already in
