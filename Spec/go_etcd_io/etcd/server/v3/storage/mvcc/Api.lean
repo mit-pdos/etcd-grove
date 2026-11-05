@@ -178,10 +178,6 @@ their revisions. **Scope restriction** (marked): compactions are not concurrent 
 with a restore or close (etcd compacts from its apply thread; the tester does not compact). -/
 opaque mvccOpen (γ : MvccName) : IProp GF := iprop(True)
 
-/-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
-(fractional; `New`'s or `NewStore`'s, then `Restore`'s). -/
-opaque mvccBackend (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF) : IProp GF := iprop(True)
-
 /-- **`t` is a transaction of `γ`, begun with `trace`, at `k`** (exclusive; it holds the caller's
 thread token until its `End`, not the trace). -/
 opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
@@ -227,6 +223,20 @@ opaque mvccW (gx : GName) : IProp GF := iprop(True)
 /-- **The right to register a store at `gx`** (exclusive; sealed: today's `lateReg gx`), allocated
 before the backend is opened (`mvccW_alloc`). -/
 opaque mvccWReg (gx : GName) : IProp GF := iprop(True)
+
+/-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
+(fractional; `New`'s or `NewStore`'s, then `Restore`'s). Defined at stage 2 (M2, 2026-11-05;
+`notes/mvcc-api-invariants.md` §2): `q` of the backend share token (of total 1: the whole share
+excludes every step that changes the history) and `q` of the writer's fragment of the store's
+current objects and physical names (`curAt`, an eighth at `q = 1`), whose backend is the real one
+`B`, compacting (the API has no compaction mode), opened at the store's write invariant
+(`isBackend` at `mvccW`) with the batch lock's invariant `Pk`. -/
+@[no_expose] def mvccBackend (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF) : IProp GF :=
+  iprop(api.shareTok (γ : StoreNames).api q ∗
+    ∃ (p : PhysNames) (o : StoreObjs) (d : KBReal),
+      curAt ((γ : StoreNames).withPhys p) (DFrac.own q.half.half.half) o ∗
+      ⌜p.kb = some d ∧ d.cm = true ∧ B = ⟨d.γB, d.P, d.be⟩⌝ ∗
+      □ backend.isBackend d.γB d.P (mvccW d.gx) Pk d.be)
 
 /-- **The backend `B`, with batch-lock invariant `Pk`, holds the history `L` compacted at `c`, ready
 for a store over it**, its image recording an unfinished compaction iff `u` (which `Restore`

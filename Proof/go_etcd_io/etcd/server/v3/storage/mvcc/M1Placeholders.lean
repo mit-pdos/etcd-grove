@@ -8,7 +8,9 @@ Today's specs of the methods that move it (`storeTxnWrite.End`, `store.updateCom
 take the API's steps; each such step is one of the lemmas below, **false in general** and proved
 by `sorry`, marked `M1-REPLACE` with the API contract whose proof replaces it at stage 2 (the
 proofs using them are rewritten against the API's contracts, and this module goes). Nothing new
-may use them.
+may use them. (Elsewhere, listed: `RestoreMoves`' five local ones; `Api/SnapFreeze.lean`'s
+`snapObs_M1`, 2026-11-05, the frozen store's part of a snapshot's observation, used once by
+`mvccImage_snapshot.law_holds`: the store does not yet track its compaction against the backend.)
 -/
 module
 
