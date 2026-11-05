@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.bbolt.Commit.PubFl
 public import Proof.go_etcd_io.bbolt.Commit.FreeStep
 public import Proof.go_etcd_io.bbolt.Commit.FreeTail
 public import Proof.go_etcd_io.bbolt.Commit.FreeRunBufs
+public import Proof.go_etcd_io.bbolt.Commit.TailPartErr
 public import Proof.go_etcd_io.bbolt.Commit.TailFWrap
 public import Proof.go_etcd_io.bbolt.Commit.TailFWrapFl
 public import Proof.go_etcd_io.bbolt.Commit.TailFAcc
@@ -401,7 +402,7 @@ theorem Tx.Commit_err.wp_proof'
   · -- spilled
     subst He1
     obtain ⟨hspOK, hC2, hderef2, hfresh2, hreach2, hmap2, hbufs2, htt2, hrl2e, hrl2, hmv2, hnp2,
-      hmc2, hsrc2⟩ := Hsp
+      hmc2, hsrc2, hwb2⟩ := Hsp
     try wp_auto
     wp_apply time.wp_Since as %d -
     try wp_auto
@@ -525,14 +526,15 @@ theorem Tx.Commit_err.wp_proof'
           wb_pageId w2 _ Hw2ok.1 hf2
         -- the freed page's run holds no dirty page (`cm_bufs_off_flrun`: the spill's buffer
         -- slots were free at its start or at or past the mark; the run, by the start's `flCurOK`,
-        -- neither). OPEN (U10o, reported): `Bucket.spill.spec`'s post does not say the synced
-        -- freelist page's first slot's bytes are kept (`w2.wb f = w.wb f`; true: `allocate`'s
-        -- `wdbRemap` keeps every `W` slot's bytes, and the run's slots are `W` slots, never pending)
+        -- neither), the page's first slot's bytes kept by the spill (a `W` slot not pending)
+        have hf1 : (w.withFl fl1).C.flpg = some X2.t.mv.freelist'.toNat := by
+          have h := hf2; rw [hC2] at h; exact h
         have hwbf : w2.wb X2.t.mv.freelist'.toNat = (w.withFl fl1).wb X2.t.mv.freelist'.toNat :=
-          sorry
+          hwb2 _ (cm_flpg_W (w.withFl fl1) _ Hw1ok.1 hf1)
+            ((Hw2ok.1.2.2.2.1 _).1 (cm_flpg_W w2 _ Hw2ok.1 hf2)).2.2.2
         have hbx : ∀ s ∈ bufSlots X2.t.bufs, ¬ (X2.t.mv.freelist'.toNat ≤ s ∧
             s < X2.t.mv.freelist'.toNat + (1 + pageOverflow (w2.wb X2.t.mv.freelist'.toNat))) :=
-          cm_bufs_off_flrun (w.withFl fl1) w2 _ _ Hw1ok.1 (by have h := hf2; rw [hC2] at h; exact h) hwbf hsrc2
+          cm_bufs_off_flrun (w.withFl fl1) w2 _ _ Hw1ok.1 hf1 hwbf hsrc2
         have hn : X2.t.mv.freelist'.toNat + (1 + pageOverflow (w2.wb X2.t.mv.freelist'.toNat)) <
             2 ^ 64 := by omega
         have hcov : ∀ s, X2.t.mv.freelist'.toNat ≤ s →
@@ -970,6 +972,8 @@ theorem Tx.Commit_err.wp_proof'
           Hwgok.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
           $$ [Hw Hwl] as %err4 ⟨%pml, %m', %wb', %Hm', Hw, Hres⟩
         · iframe
+        obtain ⟨hm1, hm2, hm3, hm4, hmT, hmP⟩ := Hm'
+        have Hm' := And.intro hm1 (And.intro hm2 (And.intro hm3 hm4))
         have hsub' : ∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
             s ∈ wg.W := by
           intro s hs
@@ -1093,7 +1097,8 @@ theorem Tx.Commit_err.wp_proof'
                 simp [slice.nil] at Hif <;>
                   exact Bool.false_ne_true (GoGlobalContext.intoVal_inj_bool Hif)
               · try (rw [hcht, if_pos (by simp [slice.nil])])
-                try wp_bind (App (Val #_) (Val #()))
+                try wp_auto
+                wp_bind (App (Val #_) (Val #()))
                 iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil)))
                   $$ [err HtxId Hlgp]
                 · iapply Hdf $$ [] err HtxId Hlgp
@@ -1253,13 +1258,6 @@ theorem Tx.Commit_err.wp_proof'
               irename Hfe5 => Hfe1
               cm_return
         · -- `write` failed: log, roll back, return the error
-          -- OPEN (U10o, reported): the file's partial last page after a failed write (`wdbOK`'s
-          -- clauses for the rolled-back writer side): `Tx.write_ext.spec`'s error post does not
-          -- give them (its success post does)
-          have hwx : (∀ s ∈ bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms),
-              4096 * s < m'.size → m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length) ∧
-              (m'.size = wg.m.size ∨ m'.size % 4096 = 0) :=
-            sorry
           obtain ⟨ii, rfl⟩ : ∃ ii, err4 = GoInterface.ok ii := by
             cases err4 with
             | nil => exact absurd rfl He4
@@ -1280,7 +1278,8 @@ theorem Tx.Commit_err.wp_proof'
           try wp_auto
           have hok4 := wdbOK_written' fr wg m' _ wb' Hwgok.1 hepg hsub' Hm'.1 hmax (by omega) Hm'.2.2.1
             Hm'.2.2.2 (cm_rest wg _ _ hinW)
-            (cm_write_part' fr wg m' _ wb' _ Hwgok.1 hwx.1 hwx.2 (wbUpd_cases _ _ _))
+            (cm_write_part_err' fr wg m' (bufSlots Xt.t.bufs) (mapLen wg.ms) wb' Hwgok.1 hW hm1 hmT
+              hmP)
           imod cm_excl_update K r Xt (Xt.clearPages pml) _ $$ Hex with Hex
           ihave Hend := cm_wtxEnd_live' fr K tx r (Xt.clearPages pml)
             (wg.reslot m' ((bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ wMinus wg.W (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))) (wbUpd (bufSlots Xt.t.bufs ++ cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)) hwrt hrlt
