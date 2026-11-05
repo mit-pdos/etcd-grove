@@ -20,11 +20,6 @@ def mvcc.entsEvents (W : GMap Loc mvcc.WatchRange) (ents : List mvcc.KvEnt) : Li
 def mvcc.wsWgWGN : Namespace :=
   (nroot.@"mvcc").@"waitGroup"
 
-structure mvcc.KvEnt : Type where
-  rev : mvcc.Rev
-  tomb : Bool
-  kv : EtcdKv
-
 def mvcc.moverRes (γ : mvcc.WsNames) (w : Loc) (st : mvcc.WatcherSt) (B : mvcc.EventBatch) : IProp
     GF :=
   iprop(∃ γw r fcs evsw,
@@ -37,10 +32,6 @@ def mvcc.moverRes (γ : mvcc.WsNames) (w : Loc) (st : mvcc.WatcherSt) (B : mvcc.
                   monoListAuthOwn γw.evs (Qp.half 1) evsw ∗
                     dghostVar γw.live (DFrac.own (Qp.half 1)) true ∗
                       mvcc.evsWf γ r γw.lo (evsw ++ B.evs) (sint.nat st.minRev))
-
-def mvcc.logEnts (log : mvcc.Log) (lo hi : Nat) : List mvcc.KvEnt :=
-  (List.map (fun m => mvcc.entsOfRev m (mvcc.stateAt log (m - 1)) (List.getD log m []))
-      (List.range' lo (hi - lo))).flatten
 
 theorem mvcc.wsWg_maskN : ↑mvcc.wsWgN ⊆ ⊤ \ ↑mvcc.wsWgWGN
 
@@ -61,21 +52,11 @@ def mvcc.KvEnt.ev (e : mvcc.KvEnt) : mvcc.EvM :=
 def mvcc.wsWgAddr [GoSemanticsFunctions] (s : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"wg" s
 
-def mvcc.KvEnt.pair (e : mvcc.KvEnt) : GoString × GoString :=
-  (mvcc.revBytes e.rev e.tomb, mvcc.kvEncode e.kv)
-
 def mvcc.wsWgInv (γwg : sync.WaitGroupNames) (γd : GName) : IProp GF :=
   iprop(∃ ctr n, sync.ownWaitGroup γwg ctr ∗ ownTokAuth γd n ∗ ⌜sint.Z ctr = ↑n⌝)
 
 def mvcc.wgCovers (W : GMap Loc mvcc.WatchRange) (k : GoString) : Bool :=
   decide (∃ w r, W !! w = some r ∧ r.covers k = true)
-
-def mvcc.entsOfRev (r : Nat) (before : List EtcdKv) (cs : List mvcc.Change) : List mvcc.KvEnt :=
-  List.filterMap
-    (fun p =>
-      Option.map (fun kv => { rev := { main := W64 ↑r, sub := W64 ↑p.snd }, tomb := p.fst.isDel, kv := kv })
-        (mvcc.changeKv (W64 ↑r) before cs p.snd))
-    cs.zipIdx
 
 def mvcc.wsWgN : Namespace :=
   (nroot.@"mvcc").@"wgCounter"

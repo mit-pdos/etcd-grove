@@ -15,9 +15,9 @@ theorem mvcc.isKeyBackendG_ncFalse (b : GoInterface) (View : Qp → mvcc.Bucket 
     : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString →
     IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Req : IProp
     GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk →
-    IProp GF) (SR SRh MW HN : IProp GF) : mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp
-    P HF Req Rb Bt SR SRh MW HN ⊢ mvcc.isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep
-    Cmp P HF Req Rb Bt SR SRh MW HN
+    IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢
+    mvcc.isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
 
 theorem mvcc.keyCleanReadR_persistent (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF) (RT NC
     : IProp GF) (r : mvcc.CmpRecs) : Persistent (mvcc.keyCleanReadR b View RT NC r)
@@ -47,8 +47,8 @@ def mvcc.isKeyBackendGR (b : GoInterface) (View : Qp → mvcc.Bucket → IProp G
     GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF := fun X Y => iprop(□ (X -∗ Y))) (Rb : GMap GoString
     backend.BktData → IProp GF := fun x => iprop(True)) (Bt : GoInterfaceOk → IProp GF := fun x =>
-    iprop(True)) (SR SRh : IProp GF := iprop(True)) (MW : IProp GF) (HN : IProp GF := iprop(False))
-    : IProp GF :=
+    iprop(True)) (SR SRh : IProp GF := iprop(True)) (MW : backend.FkVals → backend.VData → IProp GF)
+    (HN : IProp GF := iprop(False)) : IProp GF :=
   iprop(∃ bi,
       ⌜b = GoInterface.ok bi⌝ ∗
         (□
@@ -295,9 +295,10 @@ theorem mvcc.isKeyBackendGR_ncFalse (b : GoInterface) (View : Qp → mvcc.Bucket
     : IProp GF) (r : mvcc.CmpRecs) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp
     GF) (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt :
-    GoInterfaceOk → IProp GF) (SR SRh MW HN : IProp GF) : mvcc.isKeyBackendGR b View RT WT NC r
-    PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢ mvcc.isKeyBackendG b View RT WT
-    iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
+    GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (HN : IProp GF) : mvcc.isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR
+    SRh MW HN ⊢ mvcc.isKeyBackendG b View RT WT iprop(False) PutOk Del W Wi Dep Cmp P HF Req Rb Bt
+    SR SRh MW HN
 
 theorem mvcc.rdCap_frame (Rd : GoSlice → GoString → IProp GF) (Tok X : IProp GF) : mvcc.rdCap Rd Tok
     ⊢ mvcc.rdCap Rd iprop(Tok ∗ X)
@@ -306,9 +307,10 @@ theorem mvcc.isKeyBackendGR_noNil (b : GoInterface) (View : Qp → mvcc.Bucket �
     IProp GF) (r : mvcc.CmpRecs) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del
     : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF)
     (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt :
-    GoInterfaceOk → IProp GF) (SR SRh MW HN : IProp GF) : mvcc.isKeyBackendGR b View RT WT NC r
-    PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ⊢ mvcc.isKeyBackendGR b View RT WT NC r PutOk
-    Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW
+    GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (HN : IProp GF) : mvcc.isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR
+    SRh MW HN ⊢ mvcc.isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh
+    MW
 
 theorem mvcc.keyRangeLimSpec_frame (rt : GoInterfaceOk) (m : mvcc.Bucket) (Rd : GoSlice → GoString →
     IProp GF) (Tok X : IProp GF) (cl : Bool) : □ mvcc.keyRangeLimSpec rt m Rd Tok cl ⊢ □
@@ -344,8 +346,9 @@ theorem mvcc.isKeyBackendGR_persistent (b : GoInterface) (View : Qp → mvcc.Buc
     NC : IProp GF) (r : mvcc.CmpRecs) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop)
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp
     GF) (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt :
-    GoInterfaceOk → IProp GF) (SR SRh MW HN : IProp GF) : Persistent (mvcc.isKeyBackendGR b View RT
-    WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN)
+    GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (HN : IProp GF) : Persistent (mvcc.isKeyBackendGR b View RT WT NC r PutOk Del W Wi Dep Cmp P HF
+    Req Rb Bt SR SRh MW HN)
 
 theorem mvcc.keyReadSnapR_ncFalse (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (r :
     mvcc.CmpRecs) (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : mvcc.Bucket) (L
@@ -360,9 +363,10 @@ theorem mvcc.isKeyBackendGR_empty (b : GoInterface) (View : Qp → mvcc.Bucket �
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del : GoString → IProp
     GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Req : IProp GF →
     IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp
-    GF) (SR SRh MW HN : IProp GF) : mvcc.isKeyBackendGR b View RT WT NC mvcc.CmpRecs.empty PutOk Del
-    W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN = mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep
-    Cmp P HF Req Rb Bt SR SRh MW HN
+    GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    mvcc.isKeyBackendGR b View RT WT NC mvcc.CmpRecs.empty PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR
+    SRh MW HN = mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW
+    HN
 
 theorem mvcc.keyReadLockedR_meta (RT NC : IProp GF) (r : mvcc.CmpRecs) (rt : GoInterfaceOk) (m :
     mvcc.Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) :

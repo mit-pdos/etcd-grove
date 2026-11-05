@@ -100,6 +100,13 @@ theorem mvcc.viewSame_del {P : backend.BParams} {st : backend.BSess} {bi : backe
 theorem mvcc.window_sublist (es : List backend.Ent) (klo khi : GoString) : (mvcc.window es klo
     khi).Sublist es
 
+theorem mvcc.fkVals_putMeta (S : backend.Data) (k v : GoString) (hk : mvcc.metaCompactKey k) :
+    backend.fkVals <[mvcc.metaBI.name := <[k := v]>(backend.bktOf S mvcc.metaBI.name)]>S =
+    mvcc.fkPutV (backend.fkVals S) k v
+
+theorem mvcc.dlR_key {P : backend.BParams} (hP : mvcc.bridgeParams P) (X : backend.VData) (k :
+    GoString) : backend.dlR P X !! (mvcc.keyName, k) = X !! (mvcc.keyName, k)
+
 theorem mvcc.keyView_relog {P : backend.BParams} (hP : mvcc.bridgeParams P) {st : backend.BSess} {l
     : mvcc.Puts} {vd : backend.VData} {m : mvcc.Bucket} (hst : backend.sessWf P st) (hs :
     mvcc.sessPuts P st l) (hv : mvcc.keyView vd m) (hsub : ∀ (nk : GoString × GoString) (v :
@@ -112,6 +119,11 @@ theorem mvcc.lease_isBucket [schema_sem : go_etcd_io.etcd.server.v3.storage.sche
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ typedPointsto (globalAddr
     go_etcd_io.etcd.server.v3.storage.schema.Lease) b DFrac.discard ⊢ backend.isBucket b
     mvcc.leaseBI
+
+theorem mvcc.batchLocked_dls [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ
+    : backend.BNames) (P : backend.BParams) (b : Loc) (st : backend.BSess) (X : backend.VData) :
+    backend.batchLocked γ P b st ∗ backend.dlsOwn γ X ⊢ backend.batchLocked γ P b st ∗
+    backend.dlsOwn γ X ∗ ⌜X = backend.dlR P st.dl⌝
 
 theorem mvcc.bt_range [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hUR :
     backend.batchTxBuffered.UnsafeRange.spec) (hID : schema.bucket.ID.spec) (hName :
@@ -139,7 +151,13 @@ def mvcc.sessPuts (P : backend.BParams) (st : backend.BSess) (l : mvcc.Puts) : P
     sint.Z st.pend < sint.Z P.limit + ↑(List.length l) ∧
       backend.bkOf st.W.bks (W64 1) = l ∧ List.length l ≤ 2 ^ 56 ∧ st.cnt.hw = false
 
-def mvcc.bkLockedC (γ : backend.BNames) (P : backend.BParams) (b tx : Loc) (n : Nat) : IProp GF :=
+theorem mvcc.batchLocked_bkMW [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ
+    : backend.BNames) (P : backend.BParams) (b : Loc) (st : backend.BSess) (w : backend.FkVals) (X :
+    backend.VData) : backend.batchLocked γ P b st ∗ mvcc.bkMW γ w X ⊢ backend.batchLocked γ P b st ∗
+    mvcc.bkMW γ w X ∗ ⌜w = backend.fkVals st.S ∧ X = backend.dlR P st.dl⌝
+
+def mvcc.bkLockedC (γ : backend.BNames) (P : backend.BParams) (b tx : Loc) (m' : mvcc.Bucket) (n :
+    Nat) : IProp GF :=
   iprop(∃ st,
       backend.batchLocked γ P b st ∗
         backend.wbTok γ ∗
@@ -147,7 +165,8 @@ def mvcc.bkLockedC (γ : backend.BNames) (P : backend.BParams) (b tx : Loc) (n :
             ⌜st.tx = tx ∧
                 st.cnt.hw = false ∧
                   sint.Z st.pend + ↑n + ↑P.hookMax < 2 ^ 58 ∧
-                    ∀ (n : GoString) (i : w64), P.BT !! n = some i → P.HB n = false → backend.bkOf st.W.bks i = []⌝)
+                    (∀ (n : GoString) (i : w64), P.BT !! n = some i → P.HB n = false → backend.bkOf st.W.bks i = []) ∧
+                      mvcc.keysKept m' st⌝)
 
 theorem mvcc.bt_create [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hCB :
     backend.batchTxBuffered.UnsafeCreateBucket.spec) (hID : schema.bucket.ID.spec) (hName :
@@ -244,6 +263,9 @@ theorem mvcc.mem_dropWhile_sorted {es : List backend.Ent} (hs : backend.entsSort
 theorem mvcc.sData_del_HB {P : backend.BParams} {S : backend.Data} {n k : GoString} (h : P.HB n =
     true) : backend.sData P <[n := GMap.delete k (backend.bktOf S n)]>S = backend.sData P S
 
+theorem mvcc.fkVals_delKey (S : backend.Data) (k : GoString) : backend.fkVals <[mvcc.keyBI.name :=
+    GMap.delete k (backend.bktOf S mvcc.keyBI.name)]>S = backend.fkVals S
+
 theorem mvcc.crtSnap_wf [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ :
     backend.BNames) (P : backend.BParams) (b crt rtx : Loc) (rv : backend.RView) : backend.crtSnap γ
     P b crt rtx rv ⊢ backend.crtSnap γ P b crt rtx rv ∗ ⌜rv.snd.Wf⌝
@@ -277,6 +299,8 @@ theorem mvcc.rtRange_sublist {P : backend.BParams} (hP : mvcc.bridgeParams P) {r
     (hR : rv.snd.Wf) (hs : mvcc.keySafe rv) {m : mvcc.Bucket} (hv : mvcc.keyView (backend.vData P
     rv) m) (klo khi : GoString) (hne : khi ≠ []) (lim : w64) : (backend.rtRange rv mvcc.keyBI klo
     khi lim).Sublist (mvcc.bucketRange m klo khi)
+
+theorem mvcc.metaName_ne_keyName : go_etcd_io.etcd.server.v3.storage.schema.metaName ≠ mvcc.keyName
 
 theorem mvcc.bt_lockOutJ [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hLO :
     backend.batchTxBuffered.LockOutsideApply.spec) {P : backend.BParams} (hP : mvcc.bridgeParams P)
@@ -323,6 +347,9 @@ theorem mvcc.key_isBucket [schema_sem : go_etcd_io.etcd.server.v3.storage.schema
 
 theorem mvcc.not_strLt_iff_le (a b : GoString) : ¬backend.strLt a b ↔ go.GoStringLe b a
 
+theorem mvcc.keysKept_del {m' : mvcc.Bucket} {st : backend.BSess} (k : GoString) (h : mvcc.keysKept
+    m' st) : mvcc.keysKept m' (st.del mvcc.keyBI k)
+
 theorem mvcc.bktEnts_length (m : backend.BktData) : (backend.bktEnts m).length = GMap.size m
 
 theorem mvcc.bt_rangeC [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hUR :
@@ -341,15 +368,16 @@ theorem mvcc.bt_rangeC [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     m ∗ ownSlice lo klo dqlo ∗ ownSlice hi khi dqhi ∗ ∃ m' Rd U, U ((sint.Z limit).toNat + 1) ∗
     mvcc.snapThin m m' (mvcc.bkDel γ) ∗ (□ ∀ n, mvcc.rdCap Rd (U n)) ∗ (□ ∀ n, mvcc.rdCap2 Rd (U n))
     ∗ mvcc.pairVals Rd ks vs (List.take (sint.Z limit).toNat (mvcc.bucketRange m' klo khi)) ∗ (□ ∀
-    key k n, □ ∀ Φ, (typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) bk
-    DFrac.discard ∗ U (n + 1) ∗ mvcc.bkDel γ k ∗ □ Rd key k ∗ ∃ f, backend.fkOwn γ f) -∗ ▷ ((U n ∗ ∃
-    f, backend.fkOwn γ f) -∗ Φ (intoVal ())) -∗ WP (((intoVal (methods
-    go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType go!"UnsafeDelete"
-    (intoVal t))) (intoVal bk)) (intoVal key)) {{ Φ }}) ∗ (□ ∀ n, mvcc.metaPutCap { ty :=
+    key k n w X, □ ∀ Φ, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key) bk
+    DFrac.discard ∗ U (n + 1) ∗ mvcc.bkDel γ k ∗ □ Rd key k ∗ ⌜(m' !! k).isSome = true⌝ ∗ mvcc.bkMW
+    γ w X -∗ ▷ ((U n ∗ ∃ X', mvcc.bkMW γ w X' ∗ ⌜mvcc.dlStep X X' k⌝) -∗ Φ (intoVal ())) -∗ WP
+    (((intoVal (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
+    go!"UnsafeDelete" (intoVal t))) (intoVal bk)) (intoVal key)) {{ Φ }}) ∗ (□ ∀ n w X,
+    mvcc.metaPutCap { ty :=
                                                         go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType,
                                                       v := intoVal t }
-                                                    iprop(U (n + 1) ∗ ∃ f, backend.fkOwn γ f)
-                                                    iprop(U n ∗ ∃ f, backend.fkOwn γ f)) ∗
+                                                    iprop(U (n + 1) ∗ mvcc.bkMW γ w X) fun k v =>
+                                                    iprop(U n ∗ mvcc.bkMW γ (mvcc.fkPutV w k v) X)) ∗
                                               □
                                                 ∀ n,
                                                   □
@@ -404,6 +432,9 @@ theorem mvcc.storeBackendT_of_backend [schema_sem :
     Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗ backend.dlNoDel d.γB ⊢ ∀ s γ, ⌜γ.bucket = γb ∧ γ.kb =
     some d⌝ → mvcc.storeBackendT (interface.mkOk
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal d.be)) s γ Pk
+
+theorem mvcc.keysKept_putMeta {m' : mvcc.Bucket} {st : backend.BSess} (k v : GoString) (h :
+    mvcc.keysKept m' st) : mvcc.keysKept m' (st.put mvcc.metaBI k v false)
 
 theorem mvcc.mem_bktEnts (m : backend.BktData) (e : backend.Ent) : e ∈ backend.bktEnts m ↔ m !!
     e.fst = some e.snd
@@ -613,6 +644,11 @@ theorem mvcc.cursorRange_bucket (B : backend.BktData) (klo khi : GoString) (lim 
     []) (hl : 0 < sint.Z lim) : backend.cursorRange (backend.bktEnts B) klo khi lim = List.take
     (sint.Z lim).toNat (mvcc.bucketRange B klo khi)
 
+theorem mvcc.dlStep_del {P : backend.BParams} (hP : mvcc.bridgeParams P) {st : backend.BSess} {k :
+    GoString} (hin : (backend.bktOf st.S mvcc.keyName !! k).isSome = true ∨ (st.dl !! (mvcc.keyName,
+    k)).isSome = true) : mvcc.dlStep (backend.dlR P st.dl) (backend.dlR P (st.del mvcc.keyBI k).dl)
+    k
+
 theorem mvcc.keyView_sub {P : backend.BParams} {rv : backend.RView} {vd : backend.VData} {m :
     mvcc.Bucket} (hv : mvcc.keyView vd m) (hsub : ∀ (nk : GoString × GoString) (v : GoString),
     backend.vData P rv !! nk = some v → vd !! nk = some v) : mvcc.keyView (backend.vData P rv)
@@ -631,6 +667,11 @@ theorem mvcc.rtRange_clean {P : backend.BParams} (hP : mvcc.bridgeParams P) {rv 
     (hcl : backend.rbClean P rv.snd) (klo khi : GoString) (hne : khi ≠ []) (lim : w64) (hlim : 0 <
     sint.Z lim) : backend.rtRange rv mvcc.keyBI klo khi lim = List.take (sint.Z lim).toNat
     (mvcc.bucketRange m klo khi)
+
+def mvcc.keysKept (m' : mvcc.Bucket) (st : backend.BSess) : Prop :=
+  ∀ (k : GoString),
+    (m' !! k).isSome = true →
+      (backend.bktOf st.S mvcc.keyName !! k).isSome = true ∨ (st.dl !! (mvcc.keyName, k)).isSome = true
 
 theorem mvcc.zip_pairs (rtx : Loc) (l : List backend.Ent) (ks vs : List GoSlice) : ks.length =
     l.length → vs.length = l.length → (([∗list] x ∈ ks.zip (List.map Prod.fst l), backend.rdB rtx
@@ -706,8 +747,8 @@ theorem mvcc.isKeyBackendG_of_backend [schema_sem :
     go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal b)) (mvcc.bkView γ)
     (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk Del W W iprop(True) Cmp Pk
     (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) (fun r => iprop(backend.rbPart γ (fun x => x =
-    mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) iprop(True) iprop(True) iprop(∃ f,
-    backend.fkOwn γ f) (backend.plHook γ func.nil)
+    mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) iprop(True) iprop(True) (mvcc.bkMW γ)
+    (backend.plHook γ func.nil)
 
 theorem mvcc.rtHeld_returnQ [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ :
     backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv : backend.RView) : backend.rtHeldF γ P b
@@ -755,7 +796,7 @@ theorem mvcc.isKeyBackendG_of_backendC [schema_sem :
     (mvcc.bkRTx γ P b) (backend.wbTok γ) (mvcc.bkNoCmp γ) mvcc.keyPutOk (mvcc.bkDel γ) W W
     iprop(True) Cmp Pk (mvcc.bkHookIs γ) (mvcc.bkReq γ P b) (fun r => iprop(backend.rbPart γ (fun x
     => x = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams P⌝)) (mvcc.bkBt b) (backend.srSlot b)
-    (backend.srHeld b) iprop(∃ f, backend.fkOwn γ f) (backend.plHook γ func.nil)
+    (backend.srHeld b) (mvcc.bkMW γ) (backend.plHook γ func.nil)
 
 theorem mvcc.bt_lockInNil [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hLI :
     backend.batchTxBuffered.LockInsideApply.spec) {P : backend.BParams} (hP : mvcc.bridgeParams P)
@@ -863,11 +904,11 @@ theorem mvcc.bt_metaPut [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     = false) (hFV : ∀ (v : GoString), mvcc.metaRevVal v → P.FV v) (γ : backend.BNames) (W Pk : IProp
     GF) (b t : Loc) : isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
-    (backend.bF go!"batchTx" b) t DFrac.discard ⊢ mvcc.metaPutCap { ty :=
+    (backend.bF go!"batchTx" b) t DFrac.discard ⊢ □ ∀ w X, mvcc.metaPutCap { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType, v := intoVal t }
-    iprop(mvcc.bkLocked γ P b [] ∗ ∃ f, backend.fkOwn γ f) iprop((∃ U, U ∗ mvcc.unlockAt { ty :=
+    iprop(mvcc.bkLocked γ P b [] ∗ mvcc.bkMW γ w X) fun k v => iprop((∃ U, U ∗ mvcc.unlockAt { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType, v := intoVal t }
-    (mvcc.bkView γ) W Pk U []) ∗ ∃ f, backend.fkOwn γ f)
+    (mvcc.bkView γ) W Pk U []) ∗ mvcc.bkMW γ (mvcc.fkPutV w k v) X)
 
 theorem mvcc.bridge_crt [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hCRT :
     backend.backend.ConcurrentReadTx.spec) (hRL : backend.concurrentReadTx.RLock.spec) (hRU :

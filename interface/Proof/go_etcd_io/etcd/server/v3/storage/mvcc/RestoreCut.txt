@@ -9,9 +9,6 @@ theorem mvcc.restoreCur_cut (R : mvcc.Log) (hR : ∀ (cs : List mvcc.Change), cs
     R) r) (ents : List mvcc.KvEnt) (hcut : mvcc.entsCutAt ([[], []] ++ R) r.crev ents) : max (max
     (sint.Z (mvcc.restoreLastRev ents)) r.finRev) r.schedRev = ↑([[], []] ++ R).length - 1
 
-def mvcc.bucketOfEnts (ents : List mvcc.KvEnt) : mvcc.Bucket :=
-  List.foldl (fun m p => <[p.fst := p.snd]>m) GMap.empty (List.map mvcc.KvEnt.pair ents)
-
 theorem mvcc.entsFromE_next (L : mvcc.Log) (hb : mvcc.LogB L) {ents : List mvcc.KvEnt} (hs :
     ents.Sublist (mvcc.logEnts L 0 (List.length L))) (r : mvcc.Rev) (n : Nat) (hn : 0 < n) (e :
     mvcc.KvEnt) (he : (mvcc.entsFromE ents r)[n - 1]? = some e) : mvcc.entsFromE ents (mvcc.revNext

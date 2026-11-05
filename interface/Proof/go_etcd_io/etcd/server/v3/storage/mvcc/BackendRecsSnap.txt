@@ -35,12 +35,12 @@ theorem mvcc.isKeyBackendGR_of_G (bi : GoInterfaceOk) (View : Qp → mvcc.Bucket
     NC' : IProp GF) (r : mvcc.CmpRecs) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString →
     Prop) (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val →
     IProp GF) (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (SR SRh MW HN : IProp GF) : (mvcc.isKeyBackendG (GoInterface.ok
-    bi) View RT WT NC' PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗ □ ∀ q m, □ ∀ Φ, View q m
-    ∗ RT -∗ (▷ ∀ rt, (View q m ∗ ∃ L, L ∗ mvcc.keyReadSnapR View RT NC r Del true rt m L) -∗ Φ
-    (intoVal (GoInterface.ok rt))) -∗ WP ((intoVal (methods bi.ty go!"ReadTx" bi.v)) (intoVal ()))
-    {{ Φ }}) ⊢ mvcc.isKeyBackendGR (GoInterface.ok bi) View RT WT NC r PutOk Del W Wi Dep Cmp P HF
-    Req Rb Bt SR SRh MW HN
+    (Bt : GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp
+    GF) (HN : IProp GF) : (mvcc.isKeyBackendG (GoInterface.ok bi) View RT WT NC' PutOk Del W Wi Dep
+    Cmp P HF Req Rb Bt SR SRh MW HN ∗ □ ∀ q m, □ ∀ Φ, View q m ∗ RT -∗ (▷ ∀ rt, (View q m ∗ ∃ L, L ∗
+    mvcc.keyReadSnapR View RT NC r Del true rt m L) -∗ Φ (intoVal (GoInterface.ok rt))) -∗ WP
+    ((intoVal (methods bi.ty go!"ReadTx" bi.v)) (intoVal ())) {{ Φ }}) ⊢ mvcc.isKeyBackendGR
+    (GoInterface.ok bi) View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
 
 theorem mvcc.bridge_rtCR [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hRT :
     backend.backend.ReadTx.spec) (hRL : backend.readTx.RLock.spec) (hRU :

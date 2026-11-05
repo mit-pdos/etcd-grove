@@ -5,12 +5,12 @@
 theorem mvcc.UnsafeSetScheduledCompact.wp_proof (h0 : mvcc.NewRevBytes.spec) (h1 :
     mvcc.RevToBytes.spec) : mvcc.UnsafeSetScheduledCompact.spec
   -- `Perennial.EtcdGrove.mvcc.UnsafeSetScheduledCompact.spec`, unfolded:
-  ∀ (bt : GoInterfaceOk) (X Y : IProp GF) (value : w64),
+  ∀ (bt : GoInterfaceOk) (X : IProp GF) (Y : GoString → GoString → IProp GF) (value : w64),
     0 ≤ sint.Z value →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.metaPutCap bt X Y ∗ X -∗
-            ▷ (Y -∗ Φ (intoVal ())) -∗
+            ▷ (Y mvcc.schedKeyBytes (mvcc.revBytes { main := value, sub := W64 0 } false) -∗ Φ (intoVal ())) -∗
               WP
                 (((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact []))
                     (intoVal (GoInterface.ok bt)))

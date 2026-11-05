@@ -12,13 +12,13 @@ theorem mvcc.sc_count (log : mvcc.Log) (c : Int) (D : List GoString) (hnd : D.No
     GoString), k ∈ D → mvcc.sc_space log c k) : D.length ≤ (List.map List.length (List.take (c.toNat
     + 1) log)).sum
 
-theorem mvcc.store.scheduleCompaction.wp_proof [raftAsm : Assumptions] (h0 :
-    mvcc.treeIndex.Compact.spec) (h2 : binary.bigEndian.PutUint64.spec) (h3 : mvcc.newKVHasher.spec)
-    (h4 : mvcc.BytesToRev.spec) (h5 : mvcc.kvHasher.WriteKeyValue.spec) (h6 :
-    mvcc.UnsafeSetFinishedCompact.spec) (h7 : mvcc.kvHasher.Hash.spec) (h8 : zap.Int64.spec) (h9 :
-    zap.Duration.spec) (h10 : zap.Int'.spec) (h11 : zap.Uint32.spec) (h12 : zap.String.spec) (h13 :
-    go_humanize.Bytes.spec) (h14 : zap.Logger.Info.spec) (h15 : mvcc.RevToBytes.spec) (h16 :
-    time.Time.Unix.spec) : mvcc.store.scheduleCompaction.spec
+theorem mvcc.store.scheduleCompaction.wp_proof (h0 : mvcc.treeIndex.Compact.spec) (h2 :
+    binary.bigEndian.PutUint64.spec) (h3 : mvcc.newKVHasher.spec) (h4 : mvcc.BytesToRev.spec) (h5 :
+    mvcc.kvHasher.WriteKeyValue.spec) (h6 : mvcc.UnsafeSetFinishedCompact.spec) (h7 :
+    mvcc.kvHasher.Hash.spec) (h8 : zap.Int64.spec) (h9 : zap.Duration.spec) (h10 : zap.Int'.spec)
+    (h11 : zap.Uint32.spec) (h12 : zap.String.spec) (h13 : go_humanize.Bytes.spec) (h14 :
+    zap.Logger.Info.spec) (h15 : mvcc.RevToBytes.spec) (h16 : time.Time.Unix.spec) :
+    mvcc.store.scheduleCompaction.spec
   -- `Perennial.EtcdGrove.mvcc.store.scheduleCompaction.spec`, unfolded:
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev prev : w64) (q : Qp) (o : mvcc.StoreObjs),
     ⊢

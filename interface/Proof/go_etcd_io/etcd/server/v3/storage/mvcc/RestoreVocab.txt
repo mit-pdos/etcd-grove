@@ -31,9 +31,6 @@ theorem mvcc.restoreRightM_off (s : Loc) (γ : mvcc.StoreNames) (c : Int) (h : �
 theorem mvcc.compactJobResM_off (kb : Option mvcc.KBReal) (h : ¬mvcc.kbCmpM kb) :
     mvcc.compactJobResM kb = iprop(True)
 
-def mvcc.recBytes (x : Option w64) : Option GoString :=
-  Option.map (fun x => mvcc.revBytes { main := x, sub := W64 0 } false) x
-
 theorem mvcc.kbRecs_empty (kb : Option mvcc.KBReal) (γb : GName) : mvcc.kbRecs kb γb
     mvcc.CmpRecs.empty = mvcc.kbNoCmp kb γb
 
@@ -68,7 +65,7 @@ def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : 
     mvcc.CmpRecs) : IProp GF :=
   mvcc.isKeyBackendGR b (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ) (mvcc.kbRecs γ.kb γ.bucket r) r
     (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) (mvcc.kbWi γ.kb) iprop(True) (mvcc.storeCmp γ) P (mvcc.hookFn γ)
-    (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMW γ.kb γ.bucket)
+    (mvcc.storeReq γ) (mvcc.storeRb γ) (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMWv γ.kb γ.bucket)
     (mvcc.kbHookNil γ.kb)
 
 theorem mvcc.restoreRightM_on (s : Loc) (γ : mvcc.StoreNames) (c : Int) (h : mvcc.kbCmpM γ.kb) :

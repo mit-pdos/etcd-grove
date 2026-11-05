@@ -9,18 +9,19 @@ theorem mvcc.isKeyBackendG_weaken_noDel (b : GoInterface) (View : Qp → mvcc.Bu
     WT NC : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' :
     GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp Cmp' : Prop) (P : IProp GF) (HF : val → IProp
     GF) (Req : IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt :
-    GoInterfaceOk → IProp GF) (SR SRh MW SR' SRh' MW' HN : IProp GF) (hC : ¬Cmp') :
-    (mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗ □ ∀ k,
-    Del k -∗ False) ⊢ mvcc.isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req Rb Bt SR'
-    SRh' MW' HN
+    GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (SR' SRh' : IProp GF) (MW' : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hC :
+    ¬Cmp') : (mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
+    ∗ □ ∀ k, Del k -∗ False) ⊢ mvcc.isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req
+    Rb Bt SR' SRh' MW' HN
 
 theorem mvcc.isBatchTxG_congrDel (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT :
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' : GoString →
     IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Rb : GMap
-    GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW HN : IProp GF) :
-    mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN ∗ (□ ∀ k, Del k -∗ ◇ Del'
-    k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢ mvcc.isBatchTxG bt View RT WT PutOk Del' W Wi Dep Cmp P
-    HF Rb Bt MW HN
+    GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals →
+    backend.VData → IProp GF) (HN : IProp GF) : mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp
+    P HF Rb Bt MW HN ∗ (□ ∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
+    mvcc.isBatchTxG bt View RT WT PutOk Del' W Wi Dep Cmp P HF Rb Bt MW HN
 
 theorem mvcc.keyReadSnap_congrDel (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (Del Del'
     : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) :
@@ -30,19 +31,20 @@ theorem mvcc.keyReadSnap_congrDel (View : Qp → mvcc.Bucket → IProp GF) (RT N
 theorem mvcc.isBatchTxG_weaken (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT :
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' : GoString →
     IProp GF) (W Wi Dep : IProp GF) (Cmp Cmp' : Prop) (P : IProp GF) (HF : val → IProp GF) (Rb :
-    GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW MW' HN : IProp GF)
-    (hC : ¬Cmp') : (mvcc.isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN ∗ □ ∀ k,
-    Del k -∗ Del' k) ⊢ mvcc.isBatchTxG bt View RT WT PutOk Del' W Wi Dep Cmp' P HF Rb Bt MW' HN
+    GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF) (MW MW' :
+    backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hC : ¬Cmp') : (mvcc.isBatchTxG bt
+    View RT WT PutOk Del W Wi Dep Cmp P HF Rb Bt MW HN ∗ □ ∀ k, Del k -∗ Del' k) ⊢ mvcc.isBatchTxG
+    bt View RT WT PutOk Del' W Wi Dep Cmp' P HF Rb Bt MW' HN
 
 theorem mvcc.except0_pure_wand (φ : Prop) (Q : IProp GF) : (⌜φ⌝ -∗ ◇ Q) ⊢ ◇ (⌜φ⌝ -∗ Q)
 
 theorem mvcc.batchTxSpecG_congrDel (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT
     : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' : GoString
     → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : mvcc.Puts → IProp GF) (P : IProp GF) (HF :
-    val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW HN : IProp GF) :
-    mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN ∗ (□ ∀ k, Del k -∗ ◇
-    Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢ mvcc.batchTxSpecG bt View RT WT PutOk Del' W Dep
-    Cmp Locked P HF Rb MW HN
+    val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW : backend.FkVals →
+    backend.VData → IProp GF) (HN : IProp GF) : mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp
+    Locked P HF Rb MW HN ∗ (□ ∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
+    mvcc.batchTxSpecG bt View RT WT PutOk Del' W Dep Cmp Locked P HF Rb MW HN
 
 theorem mvcc.keyReadSnap_monoDel (View : Qp → mvcc.Bucket → IProp GF) (RT NC : IProp GF) (Del Del' :
     GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : mvcc.Bucket) (L : IProp GF) :
@@ -53,25 +55,28 @@ theorem mvcc.isKeyBackendG_weaken (b : GoInterface) (View : Qp → mvcc.Bucket �
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' : GoString →
     IProp GF) (W Wi Dep : IProp GF) (Cmp Cmp' : Prop) (P : IProp GF) (HF : val → IProp GF) (Req :
     IProp GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt :
-    GoInterfaceOk → IProp GF) (SR SRh MW SR' SRh' MW' HN : IProp GF) (hC : ¬Cmp') :
-    (mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗ □ ∀ k,
-    Del k -∗ Del' k) ⊢ mvcc.isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req Rb Bt
-    SR' SRh' MW' HN
+    GoInterfaceOk → IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF)
+    (SR' SRh' : IProp GF) (MW' : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) (hC :
+    ¬Cmp') : (mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
+    ∗ □ ∀ k, Del k -∗ Del' k) ⊢ mvcc.isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp' P HF Req
+    Rb Bt SR' SRh' MW' HN
 
 theorem mvcc.isKeyBackendG_congrDel (b : GoInterface) (View : Qp → mvcc.Bucket → IProp GF) (RT WT NC
     : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' : GoString
     → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (HF : val → IProp GF) (Req : IProp
     GF → IProp GF → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk →
-    IProp GF) (SR SRh MW HN : IProp GF) : mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp
-    P HF Req Rb Bt SR SRh MW HN ∗ (□ ∀ k, Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢
-    mvcc.isKeyBackendG b View RT WT NC PutOk Del' W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
+    IProp GF) (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : IProp GF) :
+    mvcc.isKeyBackendG b View RT WT NC PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN ∗ (□ ∀ k,
+    Del k -∗ ◇ Del' k) ∗ □ (⌜Cmp⌝ -∗ ∀ k, Del' k -∗ Del k) ⊢ mvcc.isKeyBackendG b View RT WT NC
+    PutOk Del' W Wi Dep Cmp P HF Req Rb Bt SR SRh MW HN
 
 theorem mvcc.batchTxSpecG_weaken (bt : GoInterfaceOk) (View : Qp → mvcc.Bucket → IProp GF) (RT WT :
     IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Del Del' : GoString →
     IProp GF) (W Dep : IProp GF) (Cmp Cmp' : Prop) (Locked : mvcc.Puts → IProp GF) (P : IProp GF)
-    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW MW' HN : IProp GF) (hC
-    : ¬Cmp') : (mvcc.batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P HF Rb MW HN ∗ □ ∀ k,
-    Del k -∗ Del' k) ⊢ mvcc.batchTxSpecG bt View RT WT PutOk Del' W Dep Cmp' Locked P HF Rb MW' HN
+    (HF : val → IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) (MW MW' : backend.FkVals →
+    backend.VData → IProp GF) (HN : IProp GF) (hC : ¬Cmp') : (mvcc.batchTxSpecG bt View RT WT PutOk
+    Del W Dep Cmp Locked P HF Rb MW HN ∗ □ ∀ k, Del k -∗ Del' k) ⊢ mvcc.batchTxSpecG bt View RT WT
+    PutOk Del' W Dep Cmp' Locked P HF Rb MW' HN
 
 theorem mvcc.snapThin_congr (m m' : mvcc.Bucket) (Del Del' : GoString → IProp GF) : (mvcc.snapThin m
     m' Del ∗ □ ∀ k, Del k -∗ ◇ Del' k) ⊢ ◇ mvcc.snapThin m m' Del'

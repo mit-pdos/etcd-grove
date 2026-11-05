@@ -8,7 +8,8 @@ theorem mvcc.rangeEvents.wp_proof (hNew : mvcc.NewRevBytes.spec) (hRevTo : mvcc.
   ∀ (lg : Loc) (b : GoInterface) (γ : mvcc.StoreNames) (Wr P : IProp GF) (HF : val → IProp GF) (q : Qp) (log : mvcc.Log)
     (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange) (RT WT NC Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (Rb : GMap GoString backend.BktData → IProp GF)
-    (Bt : GoInterfaceOk → IProp GF) (MW SR SRh : IProp GF) (qc : Qp) (c : Int),
+    (Bt : GoInterfaceOk → IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (SR SRh : IProp GF) (qc : Qp)
+    (c : Int),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗

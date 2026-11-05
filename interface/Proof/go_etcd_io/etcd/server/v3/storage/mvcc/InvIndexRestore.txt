@@ -78,15 +78,6 @@ theorem mvcc.genDrop_genPut_last (g : mvcc.Gen) (rev : mvcc.Rev) : mvcc.genDrop 
 theorem mvcc.logEnts_of_ev {L : mvcc.Log} {e : mvcc.Ev} (he : e ∈ mvcc.evsOf L) : ∃ ent, ent ∈
     mvcc.logEnts L 0 (List.length L) ∧ ent.rev = e.rev ∧ ent.kv.key = e.key ∧ ent.tomb = e.tomb
 
-def mvcc.entsCutAt (L : mvcc.Log) (c : Int) (ents : List mvcc.KvEnt) : Prop :=
-  ents.Sublist (mvcc.logEnts L 0 (List.length L)) ∧
-    (∀ (e : mvcc.KvEnt),
-        e ∈ mvcc.logEnts L 0 (List.length L) → ¬e ∈ ents → mvcc.KeyDel L c (mvcc.revBytes e.rev e.tomb)) ∧
-      ∀ (e₁ : mvcc.KvEnt),
-        e₁ ∈ mvcc.logEnts L 0 (List.length L) →
-          ∀ (e₂ : mvcc.KvEnt),
-            e₂ ∈ mvcc.logEnts L 0 (List.length L) → e₁.kv.key = e₂.kv.key → e₁.rev.lt e₂.rev → ¬e₂ ∈ ents → ¬e₁ ∈ ents
-
 theorem mvcc.idxGet_idxRestoreEnt {idx : mvcc.IndexM} (hs : List.Pairwise mvcc.idxLess idx) (e :
     mvcc.KvEnt) (k : GoString) : mvcc.idxGet (mvcc.idxRestoreEnt idx e) k = if e.kv.key = k then
     mvcc.restoreO e (mvcc.idxGet idx k) else mvcc.idxGet idx k

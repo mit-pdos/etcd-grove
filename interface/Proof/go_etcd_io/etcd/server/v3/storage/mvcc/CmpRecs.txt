@@ -2,16 +2,7 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def mvcc.CmpRecs.resumes (r : mvcc.CmpRecs) : Bool :=
-  decide (r.schedRev ≠ 0 ∧ r.finRev < r.schedRev)
-
 theorem mvcc.CmpRecs.finRev_empty : mvcc.CmpRecs.empty.finRev = -1
-
-def mvcc.CmpRecs.schedRev (r : mvcc.CmpRecs) : Int :=
-  (Option.map sint.Z r.sched).getD 0
-
-def mvcc.recsPos (r : mvcc.CmpRecs) : Prop :=
-  (∀ (x : w64), r.fin = some x → 1 ≤ sint.Z x) ∧ ∀ (x : w64), r.sched = some x → 1 ≤ sint.Z x
 
 theorem mvcc.recsPos_crev (r : mvcc.CmpRecs) (h : mvcc.recsPos r) : r.crev = -1 ∨ 1 ≤ r.crev
 
@@ -25,29 +16,12 @@ theorem mvcc.metaReadSpecR_empty (rt : GoInterfaceOk) (Rd : GoSlice → GoString
 theorem mvcc.recsOk_crev_lt (L : mvcc.Log) (r : mvcc.CmpRecs) (h : mvcc.recsOk L r) (hL : 2 ≤
     List.length L) : r.crev < ↑(List.length L)
 
-def mvcc.CmpRecs.crev (r : mvcc.CmpRecs) : Int :=
-  if r.resumes = true then r.schedRev else r.finRev
-
 theorem mvcc.CmpRecs.resumes_empty : mvcc.CmpRecs.empty.resumes = false
-
-structure mvcc.CmpRecs : Type where
-  fin : Option w64
-  sched : Option w64
 
 theorem mvcc.metaReadSpecR_persistent (rt : GoInterfaceOk) (rs : Option mvcc.CmpRecs) (Rd : GoSlice
     → GoString → IProp GF) (Tok : IProp GF) : Persistent (mvcc.metaReadSpecR rt rs Rd Tok)
 
-def mvcc.recsOk (L : mvcc.Log) (r : mvcc.CmpRecs) : Prop :=
-  (∀ (x : w64), r.fin = some x → 0 ≤ sint.Z x ∧ sint.Z x < ↑(List.length L)) ∧
-    ∀ (x : w64), r.sched = some x → 0 ≤ sint.Z x ∧ sint.Z x < ↑(List.length L)
-
-def mvcc.CmpRecs.finRev (r : mvcc.CmpRecs) : Int :=
-  (Option.map sint.Z r.fin).getD (-1)
-
 theorem mvcc.CmpRecs.crev_empty : mvcc.CmpRecs.empty.crev = -1
-
-def mvcc.CmpRecs.empty : mvcc.CmpRecs :=
-  { fin := none, sched := none }
 
 theorem mvcc.CmpRecs.at_sched (r : mvcc.CmpRecs) : r.at mvcc.schedKeyBytes = r.sched
 
@@ -57,9 +31,6 @@ theorem mvcc.recsSign_at (r : mvcc.CmpRecs) (h : mvcc.recsSign r) (kn : GoString
     r.at kn = some x) : 0 ≤ sint.Z x
 
 theorem mvcc.recsOk_sign (L : mvcc.Log) (r : mvcc.CmpRecs) (h : mvcc.recsOk L r) : mvcc.recsSign r
-
-def mvcc.instDecidableEqCmpRecs : DecidableEq mvcc.CmpRecs :=
-  mvcc.instDecidableEqCmpRecs.decEq
 
 def mvcc.metaReadSpecR (rt : GoInterfaceOk) (rs : Option mvcc.CmpRecs) (Rd : GoSlice → GoString →
     IProp GF) (Tok : IProp GF) : IProp GF :=
@@ -101,8 +72,3 @@ def mvcc.recsSign (r : mvcc.CmpRecs) : Prop :=
 
 theorem mvcc.metaReadSpecR_none (rt : GoInterfaceOk) (Rd : GoSlice → GoString → IProp GF) (Tok :
     IProp GF) : mvcc.metaReadSpecR rt none Rd Tok = mvcc.metaReadSpec rt false Rd Tok
-
-def mvcc.instDecidableEqCmpRecs.decEq (x✝ x✝¹ : mvcc.CmpRecs) : Decidable (x✝ = x✝¹) :=
-  match x✝¹, x✝ with
-  | { fin := a, sched := a_1 }, { fin := b, sched := b_1 } =>
-    if h : a = b then h ▸ if h : a_1 = b_1 then h ▸ isTrue ⋯ else isFalse ⋯ else isFalse ⋯
