@@ -241,7 +241,11 @@ def srvStopKeep (s : Loc) (γn : RNNames) (wdir : GoString) (st : Loc) (γst : m
     (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗ ⌜walDirOf (storage.walOf st) = wdir⌝) ∗
     -- (2026-11-05, R2b-3d gap 4) the store's readers it does not hand out (`srvKeepRdN`), for the
     -- backend's `Close` (every reader of the store back, `storeReaders_retire`)
-    ([∗list] _x ∈ List.replicate (srvKeepRdN γst) (), mvcc.storeReader st γst))
+    ([∗list] _x ∈ List.replicate (srvKeepRdN γst) (), mvcc.storeReader st γst) ∗
+    -- (2026-11-05) the compactor's reader (`srvCompactR`'s) when the server runs no compactor:
+    -- with one, the compactor's run keeps it
+    (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
+      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader st γst) ∨ ⌜cp ≠ GoInterface.nil⌝)))
 
 /-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`; restated
 2026-11-04, R2b-3d, over `srvStopKeep`): what `NewServer` kept for the stop, at the data

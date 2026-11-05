@@ -1496,3 +1496,9 @@ Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
 - **Step 1 done (2026-11-05):** `NewServer` keeps the remainder (`srvKeepRdN γst` store readers in
   `srvStopKeep s γn wdir st γst`). `srvShutdownPre` and `run.specStop` take the store, and
   `memberBuilt`'s `K` receives the environment.
+- **The compactor's reader (2026-11-05):** `restart3`'s members run none. With no compactor its
+  reader was dropped too. `srvStopKeep` now keeps it when the compactor field is nil (a disjunction
+  on `cp`); with a compactor, the compactor's run keeps it. Census closed for `restart3`: the stop
+  collects `srvStopKeep`'s readers, the compactor's (nil), the apply thread's (`apply.kvOwn`,
+  `writerOwn`), the monitor's retired one (`srvWTPool`), the loops' (`watchableStore.Close`) and
+  the caller's unused serving stocks (`memberUp`).

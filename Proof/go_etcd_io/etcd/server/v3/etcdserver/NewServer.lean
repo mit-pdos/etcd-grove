@@ -1843,8 +1843,18 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases replicate_take1 _ _ (by have HwL : mvcc.wsLoopN = 2 := rfl; omega) $$ Hwrds with ⟨Hwrd, Hwrds⟩
   ihave Hkeep := replicate_mono _ (mvcc.storeReader kst γw.st) _
     (mvcc.watchReader_storeReader _ _ _) $$ Hwrds
+  -- the compactor's reader: kept for the stop when there is no compactor, else the compactor's
+  ihave ⟨HcpK, HwrC⟩ : iprop(((⌜cpv = GoInterface.nil⌝ ∗ mvcc.storeReader kst γw.st) ∨
+      ⌜cpv ≠ GoInterface.nil⌝) ∗ (⌜cpv = GoInterface.nil⌝ ∨ mvcc.storeReader kst γw.st)) $$ [HwrC]
+  · by_cases hc : cpv = GoInterface.nil
+    · isplitl [HwrC]
+      · ileft; iframe HwrC; ipureintro; exact hc
+      · ileft; ipureintro; exact hc
+    · isplitr
+      · iright; ipureintro; exact hc
+      · iright; iexact HwrC
   ihave HStopK : srvStopKeep (GF := GF) s γrn (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir')
-      kst γw.st $$ [Hrsc Hrauth Hlstop Hkeep]
+      kst γw.st $$ [Hrsc Hrauth Hlstop Hkeep HcpK]
   · iunfold srvStopKeep
     iframe Hrsc
     isplitl [Hrauth]
@@ -1865,7 +1875,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     rw [show srvKeepRdN γw.st = backend.rdStockN -
         mvcc.nJobRd (some ({ d with cm := cmp, ties := tt, snap := false } : mvcc.KBReal)) -
         mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1 by rw [srvKeepRdN, Hγw.2.2.1]]
-    iexact Hkeep
+    iframe Hkeep
+    iexists cpv
+    iframe compactor HcpK
   imodintro
   wp_auto
   iapply HΦ
@@ -1957,6 +1969,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iunfold compactorRun
     icases Hcpt with (%Hn | ⟨%Hcm, %Hcrm, %T, %γf, #Hcpo, HT⟩)
     · ileft; ipureintro; exact Hn
+    -- (2026-11-05) a compactor, so its reader was not kept for the stop
+    icases HwrC with (%Hnil | HwrC)
+    · iexfalso
+      iunfold v3compactor.compactorOk at Hcpo
+      icases Hcpo with ⟨%ci, %Hci, -⟩
+      rw [Hnil] at Hci; cases Hci
     iright
     subst Hcm
     -- (K1) auth off in compaction mode; the mode's permit carried from where the compactor is built
