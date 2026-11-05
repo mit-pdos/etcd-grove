@@ -17,6 +17,7 @@ before the store is called:
 -/
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__put
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
@@ -65,10 +66,11 @@ local macro "resolve3" : tactic => `(tactic| (
   (try wp_auto)))
 
 set_option maxHeartbeats 3200000 in
-theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
+theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
+    (wp_put : cache.put.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp c g0 hc hpfx hrp hAs hse
-  iintro #Hpkg #Hpe #Hst #Hinvs %hne
+  intro _ _ _ γ sp tbl c g0 hc hpfx hrp hAs hse
+  iintro #Hpkg #Hpe #Hst #Hinvs %hne #Htbl
   obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ c.ms := by
     cases h : c.ms with
     | nil => exact absurd h hne
@@ -80,8 +82,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
   icases Hi with ⟨-, -, -, -, ⟨%lD, #HD, -⟩, ⟨%lU, #HU, -⟩⟩
   iintro %i
   imodintro
-  iintro %Φ %Hin HAU
-  obtain ⟨x, rfl, Hgen⟩ := Hin
+  iintro %Φ Hin HAU
+  iunfold kInOk at Hin
+  icases Hin with ⟨%x, %Hin, #Hca⟩
+  obtain ⟨rfl, Hgen⟩ := Hin
   obtain ⟨hx, hkey, hpp⟩ := genIn_ok x Hgen
   have hkey' : prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') := by
     rw [hrp]; exact hkey
@@ -115,7 +119,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
       ihave Hau := hau $$ [Htok]
       · iframe Htok Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Hau] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Hau] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_pos h0]
@@ -129,20 +133,20 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
-        exact absurd Hok (kStep_err _ _ _ _)
+        exact absurd Hok (kStep_err _ _ _ _ (Or.inl h0))
     · -- a `Delete`: committed now, pending; the store's firing is its late effect
       have hw : isWriteL x = true := by simp only [isWriteL, h1]; decide
       iapply fupd_wp
       imod (write_err_commit γ c g0 s0.γr.kv x hx hw Φ) $$ [HAU] with ⟨%n, HΦc, Htok⟩
       · iframe Hinv; iunfold linU; iexact HAU
       imodintro
-      have hstep : ∀ ks, delStep (mkeyL x.Key') (rejD (sentV lD) x.Reject') ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
+      have hstep : ∀ ks, delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.Reject') ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
         intro ks; rw [kStep, if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]; rfl
       ihave Haus := (BigSepL.bigSepL_mono (l := c.ms) (Φ := fun _ (sv : client.SrvAt GF) => kInv γ c g0 sv.γr.kv)
-          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (rejD (sentV lD) x.Reject')) (pendTok γ n x) (fun _ => iprop(True)))
+          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.Reject')) (pendTok γ n x) (fun _ => iprop(True)))
           (fun {_ sv} _ => pend_rw γ c g0 sv.γr.kv (sentV lD) (sentV lU) n x _ hstep)) $$ Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (pendTok γ n x) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Htok Haus] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Htok Haus] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]
@@ -156,20 +160,20 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
-        exact absurd Hok (kStep_err _ _ _ _)
+        exact absurd Hok (kStep_err _ _ _ _ (Or.inr (Or.inl h1)))
     · -- a `GuaranteedUpdate`: committed now, pending; the store's firing is its late effect
       have hw : isWriteL x = true := by simp only [isWriteL, h2]; decide
       iapply fupd_wp
       imod (write_err_commit γ c g0 s0.γr.kv x hx hw Φ) $$ [HAU] with ⟨%n, HΦc, Htok⟩
       · iframe Hinv; iunfold linU; iexact HAU
       imodintro
-      have hstep : ∀ ks, updStep (mkeyL x.Key') dzero (updD (sentV lU) x) ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
+      have hstep : ∀ ks, updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x) ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
         intro ks; rw [kStep, if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]; rfl
       ihave Haus := (BigSepL.bigSepL_mono (l := c.ms) (Φ := fun _ (sv : client.SrvAt GF) => kInv γ c g0 sv.γr.kv)
-          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') dzero (updD (sentV lU) x)) (pendTok γ n x) (fun _ => iprop(True)))
+          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x)) (pendTok γ n x) (fun _ => iprop(True)))
           (fun {_ sv} _ => pend_rw γ c g0 sv.γr.kv (sentV lD) (sentV lU) n x _ hstep)) $$ Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (pendTok γ n x) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Htok Haus] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Htok Haus] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]
@@ -183,7 +187,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
-        exact absurd Hok (kStep_err _ _ _ _)
+        exact absurd Hok (kStep_err _ _ _ _ (Or.inr (Or.inr (Or.inl h2))))
     · -- a `Get`: committed now, failed
       have hk : ¬(x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) := by
         rw [h3]; decide
@@ -198,7 +202,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
       ihave Hmk := plain_maker γ c g0 c.ms $$ [Hinvs]
       · iexact Hinvs
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Hmk] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Hmk] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg hk0, if_neg hk1, if_neg hk2]
@@ -212,7 +216,11 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
-        exact absurd Hok (kStep_err _ _ _ _)
+        -- Stage 7b: the model answers `EOther` too, to a minimum resource version above the
+        -- state's (too large: `kStep_err` needs it reached); then the output is `errOutL`, as the
+        -- branch above. For the Prove phase; at 835795d4d1 (lean):
+        -- exact absurd Hok (kStep_err _ _ _ _)
+        sorry
   · -- the prophecy says the call answers
     rcases Hgen.2.1 with h0 | h1 | h2 | h3
     · -- a `Create`: committed at the write's firing
@@ -228,7 +236,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
       · iframe Hinvs; iunfold linU; iexact HAU
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True)
           (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ)
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Hau] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Hau] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_pos h0]
@@ -241,8 +249,12 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         isimp only [if_pos (Or.inl h0)] at HΦc
         resolve3
         rw [← Hy]
+        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
+        sorry
+        /- the rest of this block at 835795d4d1 (lean):
         iapply HΦc
         iapply hioOk
+        -/
     · -- a `Delete`: committed where the store hands the call's token
       imod dghostVar_alloc (GF := GF) () with ⟨%γt, Htok⟩
       imod inv_alloc callN ⊤ iprop((linU γ g0 (boxIn x) Φ ∗ £ 1) ∨
@@ -254,19 +266,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         iexact HAU
       ihave #Hc : rwCall γ g0 γt x Φ $$ []
       · iunfold rwCall; iexact Hci
-      have hstep : ∀ ks, delStep (mkeyL x.Key') (rejD (sentV lD) x.Reject') ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
+      have hstep : ∀ ks, delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.Reject') ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
         intro ks; rw [kStep, if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]; rfl
       ihave Haus := (BigSepL.bigSepL_impl (l := c.ms) (Φ := fun _ (sv : client.SrvAt GF) => kInv γ c g0 sv.γr.kv)
-          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (rejD (sentV lD) x.Reject')) (dghostVar γt (DFrac.own 1) ())
+          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD (sentV lD) x.Reject')) (dghostVar γt (DFrac.own 1) ())
             (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ))) $$ Hinvs
       ihave Haus := Haus $$ []
       · imodintro
         iintro %k %sv %_ #Hi
-        iapply rw_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx _ hstep γt Φ
+        iapply rw_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx (Or.inl h1) _ hstep γt Φ
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
           (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ)
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Htok Haus] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Htok Haus] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]
@@ -279,8 +291,12 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         isimp only [if_pos (Or.inr (Or.inl h1))] at HΦc
         resolve3
         rw [← Hy]
+        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
+        sorry
+        /- the rest of this block at 835795d4d1 (lean):
         iapply HΦc
         iapply hioOk
+        -/
     · -- a `GuaranteedUpdate`: committed where the store hands the call's token
       imod dghostVar_alloc (GF := GF) () with ⟨%γt, Htok⟩
       imod inv_alloc callN ⊤ iprop((linU γ g0 (boxIn x) Φ ∗ £ 1) ∨
@@ -292,19 +308,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         iexact HAU
       ihave #Hc : rwCall γ g0 γt x Φ $$ []
       · iunfold rwCall; iexact Hci
-      have hstep : ∀ ks, updStep (mkeyL x.Key') dzero (updD (sentV lU) x) ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
+      have hstep : ∀ ks, updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x) ks = (kStep (sentV lD) (sentV lU) x ks).1 := by
         intro ks; rw [kStep, if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]; rfl
       ihave Haus := (BigSepL.bigSepL_impl (l := c.ms) (Φ := fun _ (sv : client.SrvAt GF) => kInv γ c g0 sv.γr.kv)
-          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') dzero (updD (sentV lU) x)) (dghostVar γt (DFrac.own 1) ())
+          (Ψ := fun _ (sv : client.SrvAt GF) => k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD (sentV lU) x)) (dghostVar γt (DFrac.own 1) ())
             (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ))) $$ Hinvs
       ihave Haus := Haus $$ []
       · imodintro
         iintro %k %sv %_ #Hi
-        iapply rw_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx _ hstep γt Φ
+        iapply rw_au γ c g0 sv.γr.kv (sentV lD) (sentV lU) x hx (Or.inr h2) _ hstep γt Φ
         iframe Hi Hc
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x (dghostVar γt (DFrac.own 1) ())
           (fun σ => contAt g0 x (kStep (sentV lD) (sentV lU) x (c.abs σ)).2 Φ)
-          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2 hQp) $$ [Htok Haus] as %y Hy
+          (fun _ _ => plainQ c) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQp) $$ [Htok Haus] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]
@@ -317,8 +333,12 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         isimp only [if_pos (Or.inr (Or.inr h2))] at HΦc
         resolve3
         rw [← Hy]
+        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
+        sorry
+        /- the rest of this block at 835795d4d1 (lean):
         iapply HΦc
         iapply hioOk
+        -/
     · -- a `Get`: committed at the first firing at the prophesied revision
       have hk : ¬(x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) := by
         rw [h3]; decide
@@ -351,7 +371,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         iintro ⟨%h, -⟩
         ipureintro; exact h.1
       wp_apply (wp_call sp c (sentV lD) (sentV lU) x iprop(True) (fun _ => iprop(True))
-          (fun R _ σ => readQ c γc R σ) hc hAs hse hkey' hpp' hx Hgen.2.2 hQr) $$ [Hmk] as %y Hy
+          (fun R _ σ => readQ c γc R σ) hc hAs hse hkey' hpp' hx Hgen.2.2.1 Hgen.2.2.2.2.2 hQr) $$ [Hmk] as %y Hy
       · iframe #
         iunfold callPre
         isimp only [if_neg hk0, if_neg hk1, if_neg hk2]
@@ -376,8 +396,12 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG)) :
         imodintro
         resolve3
         rw [← Hy]
+        -- Stage 7b: an answer with a name becomes the client's cached object (`cache.put`, its `cachedObjOk` from the history at the answer's state); for the Prove phase
+        sorry
+        /- the rest of this block at 835795d4d1 (lean):
         iapply HΦc
         iapply hioOk
+        -/
 
 end proof
 

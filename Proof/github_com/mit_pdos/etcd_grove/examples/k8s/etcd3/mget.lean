@@ -38,7 +38,7 @@ theorem mget.wp_proof (wp_parseRV : parseRV.spec (GF := GF) (hG := hG))
   wp_auto
   -- Stage 7b: the minimum resource version (`parseRV`, an `EOther` above the store's) before the lookup: Prove phase.
   sorry
-/- the rest of the proof at a93fbf6a24:
+/- the rest of the proof at 835795d4d1 (lean):
   wp_apply wp_lookup $$ [$Hk] as %it %ok ⟨-, %Hlk⟩
   obtain ⟨hit, hok⟩ : it = (lookupL g.items x.Key').1 ∧ ok = (lookupL g.items x.Key').2 := by
     rw [← Hlk]; exact ⟨rfl, rfl⟩

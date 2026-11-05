@@ -68,16 +68,24 @@ etcd3_store__Delete: @
 etcd3_store__GuaranteedUpdate: @
 etcd3_store__Get: @
 errOut:
-etcd3_call: errOut objOut storeKey validateFor tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get
-etcd3_Apply: etcd3_call
+preconditions:
+cachedObj:
+etcd3_call: errOut objOut storeKey preconditions validateFor cachedObj tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get
+newCache:
+cache__get:
+cache__put:
+etcd3_Apply: etcd3_call cache__put
 workloadKeys:
 workloadVals:
 pick:
-genFrom: workloadKeys workloadVals pick
-etcd3_Gen: genFrom
+uidOf:
+withPre: rvString
+minRV: rvBytes
+genFrom: workloadKeys workloadVals pick uidOf withPre minRV
+etcd3_Gen: cache__get genFrom
 Run: @
 CounterClock: @
-etcd3_Check: Run CounterClock etcd3_Model etcd3_Gen etcd3_Apply
+etcd3_Check: Run CounterClock etcd3_Model newCache etcd3_Gen etcd3_Apply
 #
 # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
 seedOne: storeKey encodeV0 setItem
@@ -88,4 +96,4 @@ kubernetes_New: @
 etcd3_New: @
 NewDefaultLeaseManagerConfig: @
 zap_NewNop:
-etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue etcd3_Check
+etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue Obj__GetUID Obj__GetResourceVersion etcd3_Check

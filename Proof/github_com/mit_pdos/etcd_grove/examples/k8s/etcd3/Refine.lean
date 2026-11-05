@@ -154,9 +154,9 @@ theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : 
         (mcreateL x g).1 ∧
       outOf (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.UID', x.Val'), hlen⟩ 0).2 =
         (mcreateL x g).2 := by
-  -- Stage 7b: the proof (a93fbf6a24's, without the UID) is adapted in the Prove phase.
+  -- Stage 7b: the proof (835795d4d1 (lean)'s, without the UID) is adapted in the Prove phase.
   sorry
-/- the proof at a93fbf6a24:
+/- the proof at 835795d4d1 (lean):
   unfold KSt.create mcreateL
   simp only [ne_eq, not_true_eq_false, ↓reduceIte]
   cases hk : ks.items (mkeyL x.Key') with
@@ -197,9 +197,9 @@ theorem refine_delete (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eD 
         (mdeleteL x g).1 ∧
       outOf (ks.delete (mkeyL x.Key') (driverCodec.preOk (kpreOf x)) (rejD eD x.Reject')).2 =
         (mdeleteL x g).2 := by
-  -- Stage 7b: the proof (a93fbf6a24's, without preconditions) is adapted in the Prove phase.
+  -- Stage 7b: the proof (835795d4d1 (lean)'s, without preconditions) is adapted in the Prove phase.
   sorry
-/- the proof at a93fbf6a24:
+/- the proof at 835795d4d1 (lean):
   unfold KSt.delete mdeleteL
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
@@ -230,10 +230,10 @@ theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU 
         (updD eU x)).1 (mupdateL x g).1 ∧
       outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (driverCodec.preOk (kpreOf x))
         (updD eU x)).2 = (mupdateL x g).2 := by
-  -- Stage 7b: the proof (a93fbf6a24's, without preconditions or `ignoreNotFound`) is adapted in
+  -- Stage 7b: the proof (835795d4d1 (lean)'s, without preconditions or `ignoreNotFound`) is adapted in
   -- the Prove phase.
   sorry
-/- the proof at a93fbf6a24:
+/- the proof at 835795d4d1 (lean):
   unfold KSt.update KSt.current mupdateL
   cases hk : ks.items (mkeyL x.Key') with
   | none =>
@@ -282,9 +282,9 @@ parsed) and `ignoreNotFound` as given. -/
 theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (n : w64)
     (hn : parseRVD x.MinRV' = some n) :
     outOf (ks.get (E := E) (mkeyL x.Key') (uint.nat n) x.IgnoreNotFound') = mgetL x g := by
-  -- Stage 7b: the proof (a93fbf6a24's, without a minimum) is adapted in the Prove phase.
+  -- Stage 7b: the proof (835795d4d1 (lean)'s, without a minimum) is adapted in the Prove phase.
   sorry
-/- the proof at a93fbf6a24:
+/- the proof at 835795d4d1 (lean):
   unfold KSt.get mgetL
   simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte]
   cases hk : ks.items (mkeyL x.Key') with

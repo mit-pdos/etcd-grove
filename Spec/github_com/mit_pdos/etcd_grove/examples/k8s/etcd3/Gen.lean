@@ -1,6 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
-`Gen(id)` (k8s_etcd3.go): `genFrom` of a random number, boxed: `Apply`'s input (`kInOk`), as `lintest.genSpec` takes it.
+`Gen(tbl, id)` (k8s_etcd3.go): `genFrom` of a random number and client `id`'s cached object in the
+table `tbl` (`isCache c tbl`): an input `Gen` may return, its cached object one of the store `c`
+(`cachedIn`): boxed, `Apply`'s input (`kInOk c`), as `Check`'s closure gives `lintest.genSpec`
+(stage 7b: the table).
 -/
 module
 
@@ -15,7 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8s_etcd3
 
-open Iris Iris.BI
+open Iris Iris.BI k8s
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item mstore mcfg state)
 
 section spec
@@ -27,7 +30,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev Gen.spec : Prop :=
-  ⊢ lintest.genSpec (GF := GF) (functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen []) kInOk
+  ∀ (c : StoreCfg GF DObj) (tbl : Loc) (id : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
+      isCache c tbl }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen)) (Val #tbl))
+      (Val #id))
+  {{ (x : Input), RET #x; ⌜GenIn x⌝ ∗ cachedIn c x }}
 
 end spec
 

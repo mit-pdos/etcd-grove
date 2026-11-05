@@ -1,6 +1,7 @@
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__get
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
@@ -24,18 +25,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
-theorem Gen.wp_proof (wp_genFrom : genFrom.spec (GF := GF) (hG := hG)) :
+theorem Gen.wp_proof (wp_get : cache.get.spec (GF := GF) (hG := hG))
+    (wp_genFrom : genFrom.spec (GF := GF) (hG := hG)) :
     Gen.spec (GF := GF) (hG := hG) := by
-  unfold Gen.spec lintest.genSpec
-  iintro %id
-  wp_start as _
+  intro c tbl id
+  wp_start as #Hc
   wp_auto
+  wp_apply wp_get c tbl id $$ [Hc] as %o %ok #Ho
+  · iframe Hc
+  (try wp_auto)
   wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %n _
-  wp_apply wp_genFrom n as %x %Hx
+  (try wp_auto)
+  wp_apply wp_genFrom n id o ok as %x %Hx
+  (try wp_auto)
   iapply HΦ
-  imodintro
-  ipureintro
-  exact ⟨x, rfl, Hx⟩
+  isplitr
+  · ipureintro; exact Hx.1
+  unfold cachedIn
+  by_cases hu : x.UseCached' = true
+  · obtain ⟨hok, hc⟩ := Hx.2 hu
+    simp only [hu, ↓reduceIte]
+    isimp only [hok, ↓reduceIte] at Ho
+    rw [hc]; iexact Ho
+  · simp only [hu, Bool.false_eq_true, ↓reduceIte]
+    itrivial
 
 end proof
 

@@ -9,6 +9,8 @@ store's model's (`respIs_call`): an error `errOut` places, or the object `objOut
 -/
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preconditions
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cachedObj
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.call
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errOut
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.objOut
@@ -74,31 +76,33 @@ local macro "call_tail" : tactic => `(tactic| (
 theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
     (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
+    (wp_preconditions : preconditions.spec (GF := GF) (hG := hG))
     (wp_validateFor : validateFor.spec (GF := GF) (hG := hG))
+    (wp_cachedObj : cachedObj.spec (GF := GF) (hG := hG))
     (wp_tryUpdateFor : tryUpdateFor.spec (GF := GF) (hG := hG))
     (wp_Create : store.Create.spec (GF := GF) (hG := hG))
     (wp_Delete : store.Delete.spec (GF := GF) (hG := hG))
     (wp_Update : store.GuaranteedUpdate.spec (GF := GF) (hG := hG))
     (wp_Get : store.Get.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ sp c eD eU x W _ Φu Q hc hAs hse hkey hpp hx hvl hQ
+  intro _ _ _ sp c eD eU x W _ Φu Q hc hAs hse hkey hpp hx hvl hD1 hQ
   have hkl : (c.pathPrefix ++ storeKeyL x.Key').length ≤ 2 ^ 27 := by
     rw [hpp]; unfold InOk at hx; simp [mkeyL, storeKeyL]; omega
-  wp_start as ⟨#Hst, #HD, #HU, Hpre⟩
+  wp_start as ⟨#Hst, #HD, #HU, #Hca, Hpre⟩
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   have hob : ∀ (p : Loc) (o : DObj) (n : w64),
-      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.1.1 o.1.2 n : IProp GF) ⊢
+      (p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n : IProp GF) ⊢
         c.S.objAt (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr n) := by
     intro p o n; rw [hc]; exact objAtD_pt p o n
-  have hmk : mkObj x = ⟨(x.Key', x.Val'), hx⟩ := dif_pos hx
+  have hmk : mkObj x = ⟨(x.Key', x.UID', x.Val'), ⟨hx.1, hx.2.1⟩⟩ := dif_pos ⟨hx.1, hx.2.1⟩
   irename : («$r0_ptr» ↦ zero_val Obj : IProp GF) => Hr0
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hi with ⟨-, -, -, -, #HvD, #HvU⟩
   have hz : (zero_val Obj) = github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk
-      dzero.1.1 dzero.1.2 0 := rfl
+      dzero.name dzero.uid dzero.val 0 := rfl
   by_cases h0 : x.Kind' = W64 0
   · -- Create
     rw [decide_eq_true h0]
@@ -113,7 +117,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     · rw [hmk]; iexact Hp1
     ihave Hout := hob _ dzero 0 $$ [Hr0]
     · have hz : (zero_val Obj) = github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk
-          dzero.1.1 dzero.1.2 0 := rfl
+          dzero.name dzero.uid dzero.val 0 := rfl
       rw [← hz]
       iexact Hr0
     wp_apply (wp_Create DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
@@ -122,8 +126,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         Φu hkey hkl
         (by
           rw [hc, hmk]; intro v hv; cases hv
-          show (encodeWith tagV1 x.Key' x.Val').length ≤ 2 ^ 28
-          simp [encodeWith]; unfold InOk at hx; omega)
+          show (encodeWith tagV1 x.Key' x.UID' x.Val').length ≤ 2 ^ 28
+          have := hx.1; have := hx.2.1; simp [encodeWith]; omega)
         (by rw [hc]; exact parseRVD_rvStr 0)) $$ [Hobj Hout Hpre] as %err0 ⟨-, Hres⟩
     · iframe #
       iframe Hobj Hout
@@ -171,6 +175,9 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     wp_auto
     wp_apply wp_storeKey
     (try wp_auto)
+    -- Stage 7b: the delete's preconditions (`preconditions`) and cached object (`cachedObj`, from `cachedIn`: the store's `cachedOk`); for the Prove phase
+    sorry
+    /- the rest of this block at 835795d4d1 (lean):
     wp_apply wp_validateFor as %vf #Hvf
     (try wp_auto)
     ihave Hout := hob _ dzero 0 $$ [Hr0]
@@ -215,6 +222,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         ipureintro
         simp [kStep, h0, h1, hpp]
     call_tail
+    -/
   rw [decide_eq_false h1]
   wp_auto
   have hz0 : c.S.zero = dzero := by rw [hc]; rfl
@@ -227,6 +235,9 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     wp_auto
     wp_apply wp_storeKey
     (try wp_auto)
+    -- Stage 7b: the update's preconditions (`preconditions`), cached object (`cachedObj`, from `cachedIn`: the store's `cachedOk`) and ignoreNotFound, D1 (`CachedNoRV`) for the store's scope premise; for the Prove phase
+    sorry
+    /- the rest of this block at 835795d4d1 (lean):
     wp_apply wp_tryUpdateFor as %uf #Huf
     (try wp_auto)
     ihave Hout := hob _ dzero 0 $$ [Hr0]
@@ -296,6 +307,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         ipureintro
         simp [kStep, h0, h1, h2, hpp]
     call_tail
+    -/
   · -- Get
     rw [decide_eq_false h2]
     iunfold callPre at Hpre
@@ -305,11 +317,20 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (try wp_auto)
     ihave Hout := hob _ dzero 0 $$ [Hr0]
     · rw [← hz]; iexact Hr0
+    have hparse : c.S.parseRV x.MinRV' = some (minOf x) := by
+      rw [hc]
+      show parseRVD x.MinRV' = some (minOf x)
+      have hs := hx.2.2
+      unfold minOf
+      cases h : parseRVD x.MinRV' with
+      | none => rw [h] at hs; cases hs
+      | some v => rfl
     wp_apply (wp_Get DObj sp c context.backgroundCtxVal cd (storeKeyL x.Key')
-        ⟨x.IgnoreNotFound', []⟩ (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr») dzero
-        (rvStr 0) (storeKeyL x.Key') Q hkey hkl rfl hQ) $$ [Hout Hpre] as %err0 Hres
+        ⟨x.IgnoreNotFound', x.MinRV'⟩ (interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr»)
+        dzero (rvStr 0) (storeKeyL x.Key') (minOf x) Q hQ) $$ [Hout Hpre] as %err0 Hres
     · iframe #
       iframe Hout Hpre
+      ipureintro; exact ⟨hkey, hkl, hparse⟩
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
         (⌜err0 = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
           ⌜interface.mkOk (go.GoType.PointerType objTyD) #«$r0_ptr» =
@@ -327,8 +348,9 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
           ipureintro; exact Hne
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
-          ((c.abs σ).get (E := Empty) (c.pathPrefix ++ storeKeyL x.Key') 0 x.IgnoreNotFound') err0 _
-          eD eU (get_noOdd _ _ _) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
+          ((c.abs σ).get (E := Empty) (c.pathPrefix ++ storeKeyL x.Key') (uint.nat (minOf x))
+            x.IgnoreNotFound') err0 _
+          eD eU (get_noOdd _ _ _ _) (fun e _ _ _ => nomatch e) $$ [HD HU Hr]
         · iframe HD HU Hr
         iexists _
         iframe Hy

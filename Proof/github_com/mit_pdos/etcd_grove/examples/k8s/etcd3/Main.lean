@@ -74,12 +74,14 @@ theorem Main.wp_proof
     (wp_To : identity.TransformToStorage.spec (GF := GF) (hG := hG))
     (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG))
     (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
+    (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
+    (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
-    wp_Dec wp_SetZero (driverSpec_tyOk Hty)
+    wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem

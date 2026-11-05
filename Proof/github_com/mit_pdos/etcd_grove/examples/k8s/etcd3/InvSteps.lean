@@ -92,12 +92,18 @@ theorem run_snoc (g0 : GSt) (h : List OpV) (S S' : linkv.PSet GSt Input) (a : Op
 `EOther`). -/
 theorem kStep_ans {c : StoreCfg GF DObj} {g0 : GSt} {S : linkv.PSet GSt Input} {σ : KVState}
     {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (eD eU : GoInterface) (x : Input)
-    (hx : InOk x) :
+    (hx : InOk x)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ uint.nat (minOf x) ≤ σ.rev) :
     ansOf (kStep eD eU x (c.abs σ)).2 = .ok (kStep eD eU x (c.abs σ)).2 := by
   obtain ⟨cf, -, hrel, -⟩ := H.cfg
   have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; have := H.room; omega
   rw [(refine_step eD eU _ _ hrel x hx hrv).2]
-  exact ansOf_mstepL x cf.st
+  rcases hk with h | h | h | hmin
+  · exact ansOf_mstepL x cf.st (Or.inl h)
+  · exact ansOf_mstepL x cf.st (Or.inr (Or.inl h))
+  · exact ansOf_mstepL x cf.st (Or.inr (Or.inr h))
+  -- a `Get` whose minimum resource version the state has reached: not the too-large `EOther`
+  sorry
 
 /-- The revisions' map, after a step: the next revision's state added, if it moved. -/
 theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : σ' = σ ∨ σ'.rev = σ.rev + 1) :
@@ -150,7 +156,7 @@ theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : K
   ihave Hrv := (revOwn_next γ σ σ' hn') $$ Hrv
   ihave Hhist := (histAuth_next c.γh σ σ' hn (by omega) hw.1 hw'.1) $$ Hhist
   imod Hrv with Hrv
-  imod Hhist with Hhist
+  imod Hhist with ⟨Hhist, -⟩
   imodintro
   iframe Hrv Hhist
   ipureintro; exact hr'
@@ -248,7 +254,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
     obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
     have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) =
         some S' := by
-      rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+      rw [step_box, kStep_ans Hok eD eU x hx (Or.inl hk)]; exact HS'
     imod (fupd_mask_subseteq HE) with Hclose3
     imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
     · iframe
@@ -265,7 +271,8 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
 /-- **A `Delete` or `GuaranteedUpdate` whose prophecy says it answers** (see the file header):
 the store's step is the model's on the input (`hstep`). -/
 theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
-    (eD eU : GoInterface) (x : Input) (hx : InOk x) (step : KSt DObj → KSt DObj)
+    (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 1 ∨ x.Kind' = W64 2)
+    (step : KSt DObj → KSt DObj)
     (hstep : ∀ ks, step ks = (kStep eD eU x ks).1) (γt : GName) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ rwCall γ g0 γt x Φ ⊢
       k8sAuRW γk c step (dghostVar γt (DFrac.own 1) ())
@@ -331,7 +338,8 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
       have Hst : (k8setcd3S (GF := GF) g0).M.step S
           (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-        rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+        rw [step_box, kStep_ans Hok eD eU x hx (hk.elim (fun h => Or.inr (Or.inl h))
+          (fun h => Or.inr (Or.inr (Or.inl h))))]; exact HS'
       unfold rwCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc⟩ | >Htok')
@@ -485,7 +493,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       itrivial
 
 /-- `call`'s output of an error it cannot place (`Output{Err: EOther}`). -/
-def errOutL : Output := ⟨W64 4, [], 0, [], [], 0⟩
+def errOutL : Output := ⟨W64 4, [], 0, [], [], [], 0⟩
 
 theorem ansOf_errOutL : ansOf errOutL = .err := by
   simp [ansOf, errOutL]
@@ -654,7 +662,10 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
         obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf Hok.room
         have Hst : (k8setcd3S (GF := GF) g0).M.step S
             (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-          rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+          rw [step_box, kStep_ans Hok eD eU x hx (Or.inr (Or.inr (Or.inr (by
+            -- 7b: the minimum resource version against the read's revision `R`: the store answers
+            -- (the prophecy) only if it is reached there; `get_read_au` does not yet know it
+            sorry))))]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe

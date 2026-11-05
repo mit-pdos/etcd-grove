@@ -50,7 +50,7 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
   · iapply isPkgInit_access $$ Hpkg
   -- Stage 7b: the preconditions (`preOk`, `invalidObj`) before `validateFor`: Prove phase.
   sorry
-/- the rest of the proof at a93fbf6a24:
+/- the rest of the proof at 835795d4d1 (lean):
   cases ok
   · have hn : (lookupL g.items x.Key').2 = false := hok.symm
     (try wp_auto)

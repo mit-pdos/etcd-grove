@@ -1,5 +1,6 @@
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newCache
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
@@ -56,14 +57,18 @@ theorem Check.wp_proof
     (wp_Run : lintest.Run.spec (GF := GF) (hG := hG))
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG))
     (wp_Model : Model.spec (GF := GF) (hG := hG))
+    (wp_newCache : newCache.spec (GF := GF) (hG := hG))
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
   intro _ _ _ γ sp c g0 s0 clients ops dur hc hpfx hrp hAs hse hne Hrb H0 H31 Hops Hmul Hg0
   wp_start as ⟨#Hcc, #Hst, #Hinvs, Hks, #Hs0⟩
   wp_auto
+  wp_apply wp_newCache c as %tbl #Htbl
+  (try wp_auto)
   ipersist s
-  ihave #HA := (wp_Apply γ sp c g0 hc hpfx hrp hAs hse) $$ Hpkg Hpkg2 Hst Hinvs %hne
+  ipersist tbl
+  ihave #HA := (wp_Apply γ sp tbl c g0 hc hpfx hrp hAs hse) $$ Hpkg Hpkg2 Hst Hinvs %hne Htbl
   wp_apply wp_Model s0 g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   · iframe #
     ipureintro; exact Hg0
@@ -71,7 +76,7 @@ theorem Check.wp_proof
   · iframe Hinit Hstep Heh
     ipureintro; exact ⟨Hp, Hsc⟩
   wp_apply wp_CounterClock clockN Hrb as %clock ⟨%clockVal, #Hclk, Hc0⟩
-  wp_apply wp_Run (linkv.PSet GSt Input) (k8setcd3S g0) m _ _ clock kInOk (kState γ g0) clockVal
+  wp_apply wp_Run (linkv.PSet GSt Input) (k8setcd3S g0) m _ _ clock (kInOk c) (kState γ g0) clockVal
     (W64 0) drvE ↑clockN clients ops dur lintestN_drvE lintestN_clockN H0 H31 Hops Hmul
     $$ [Hks Hc0]
   · iframe Hc0 Hcc Hm Hclk
@@ -82,7 +87,7 @@ theorem Check.wp_proof
       imodintro
       iintro %Φ' ⟨Hin, Htt⟩ HAU
       wp_auto
-      wp_bind (App (App (Val _) (Val _)) (Val _))
+      wp_bind (App (App (App (Val _) (Val _)) (Val _)) (Val _))
       iapply HA $$ %i Hin
       inext
       imod HAU with ⟨%S, Hs, Hc⟩
@@ -97,7 +102,21 @@ theorem Check.wp_proof
       wp_auto
       iexact HQ
     isplitr
-    · iapply wp_Gen
+    · -- the closure: `Gen` of the table, boxed
+      unfold lintest.genSpec
+      iintro %id
+      imodintro
+      iintro %Φ' %H0id HQg
+      wp_auto
+      wp_apply wp_Gen c tbl id $$ [] as %x ⟨%Hx, #Hcx⟩
+      · iframe #
+      (try wp_auto)
+      iapply HQg
+      imodintro
+      iunfold kInOk
+      iexists x
+      iframe Hcx
+      ipureintro; exact ⟨rfl, Hx⟩
     · iExactEq Hks; rfl
   iintro %r %Hr
   wp_auto

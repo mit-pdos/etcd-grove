@@ -30,8 +30,8 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item ms
 section pure
 variable [GooseExts]
 
-/-- A seed key's stored value: its object, value `x`, in the older encoding. -/
-def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"x"
+/-- A seed key's stored value: its object, no UID, value `x`, in the older encoding. -/
+def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"" go!"x"
 
 /-- `seedOne`'s put of the key `k`. -/
 def seedOp (k : GoString) : KVOp := .put (linkv.putOp (mkeyL k) (v0 k))
@@ -67,8 +67,8 @@ theorem absSt_σs2 : linkv.absSt σs2 = ⟨linkv.absM [kvA, kvB], 3⟩ := by
   unfold linkv.absSt; rw [σs2_kvs, σs2_rev]
 
 /-- The driver's seeded items (`seedOne`'s). -/
-def itA : item := ⟨go!"a", ⟨go!"a", go!"x", W64 2⟩, false⟩
-def itB : item := ⟨go!"b", ⟨go!"b", go!"x", W64 3⟩, false⟩
+def itA : item := ⟨go!"a", ⟨go!"a", go!"", go!"x", W64 2⟩, false⟩
+def itB : item := ⟨go!"b", ⟨go!"b", go!"", go!"x", W64 3⟩, false⟩
 
 /-- **The driver's seeded store** (`seed`'s result). -/
 def g0s : GSt := ⟨setItemL (setItemL [] itA) itB, W64 3⟩

@@ -1,5 +1,8 @@
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.uidOf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.withPre
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.minRV
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadKeys
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
@@ -27,9 +30,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := hG))
     (wp_workloadVals : workloadVals.spec (GF := GF) (hG := hG))
-    (wp_pick : pick.spec (GF := GF) (hG := hG)) :
+    (wp_pick : pick.spec (GF := GF) (hG := hG))
+    (wp_uidOf : uidOf.spec (GF := GF) (hG := hG))
+    (wp_withPre : withPre.spec (GF := GF) (hG := hG))
+    (wp_minRV : minRV.spec (GF := GF) (hG := hG)) :
     genFrom.spec (GF := GF) (hG := hG) := by
-  intro n
+  intro n id c hasC
   wp_start
   wp_auto
   wp_apply wp_workloadKeys as %ksl ⟨Hk, -⟩
@@ -42,6 +48,9 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     have := Hkl.1; simp only [List.length_cons, List.length_nil] at this; word
   have hvl : vsl.len = W64 3 := by
     have := Hvl.1; simp only [List.length_cons, List.length_nil] at this; word
+  -- Stage 7b: genFrom draws with the weights out of 75 and the new fields (UID, preconditions, cached object, ignoreNotFound, minimum resource version); the proof below is 6f's (commit 835795d4d1 (lean)), for the Prove phase
+  sorry
+/- the rest of the proof at 835795d4d1 (lean):
   wp_apply wp_pick n (W64 100) (by decide)
   (try wp_auto)
   rw [hkl]
@@ -116,6 +125,7 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
       iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inl rfl)), by first | exact hvb | simp⟩
     (try wp_auto)
     iapply HΦ; ipureintro; exact ⟨hgk, Or.inr (Or.inr (Or.inr rfl)), by first | exact hvb | simp⟩
+-/
 
 end proof
 
