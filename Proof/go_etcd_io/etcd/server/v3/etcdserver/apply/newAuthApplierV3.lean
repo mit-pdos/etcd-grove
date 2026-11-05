@@ -3,6 +3,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 -/
 module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__Apply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__Range
@@ -93,46 +94,50 @@ theorem apply.newAuthApplierV3.wp_proof
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · -- DeleteRange: the auth applier's
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hDel E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hDel E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · -- Range: the auth applier's
     imodintro
     iintro %r %rq %o %log %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hRange E c (.ok bi) p r rq o log info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hRange E c (.ok bi) p r rq o log info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · -- Txn: the auth applier's
     imodintro
     iintro %r %skip %rq %t %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · -- LeaseRevoke: the auth applier's
     imodintro
     iintro %r %rq %id %log %rs %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
-    iframe #
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre Htt]
+    · iframe Hpre Htt
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, H1, H2⟩
+    iapply HΦ'
+    iframe
   isplitr
   · -- the methods that leave the log as it is: `UserGet`, `RoleGet` the auth applier's, the
     -- others the inner applier's (promoted)
@@ -144,40 +149,45 @@ theorem apply.newAuthApplierV3.wp_proof
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl | rfl
     case inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
       simp [apply.reqFacts]
-      iapply (hUG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Hwt]
-      · iframe HR Hm Hwt
+      iapply (hUG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Htt]
+      · iframe HR Hm Htt
         iframe #
       inext
-      iintro %resp %err ⟨Hpost, #HeI, -⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI, -⟩
       iapply HΦ'
+      iframe Htt
       iframe Hpost HeI
     case inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inl =>
-      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
       simp [apply.reqFacts]
-      iapply (hRG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
-      iframe HR Hm Hwt
+      iapply (hRG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
+      iframe HR Hm Htt
       iframe #
     all_goals
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iunfold apply.mPre at Hm
-      icases Hm with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
       iunfold apply.chainResAny at Hres
       icases Hres with ⟨%info', Hres⟩
-      iapply HResp $$ %_ %r %log %Pre %Q %Post %info' [] [HR Hkv Hres Hcs Hwt]
+      iapply HResp $$ %_ %r %log %Pre %Q %Post %info' [] [Htt HR Hkv Hres]
       · ipureintro; simp [apply.respMethods]
-      · iframe HR
-        iunfold apply.mPre
-        iframe
+      · iframe Htt HR
         iframe #
+        iapply apply.mPreW_of_rest
+        iframe
       inext
-      iintro %resp %err ⟨Hpost, #HeI⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI⟩
       iapply HΦ'
+      iframe Htt
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -195,20 +205,25 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨Hpre, Hwt, HRW⟩
-      iunfold apply.mPre at Hpre
-      icases Hpre with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨Htt, Hpre, HRW⟩
+      icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hpre with ⟨Hkv, Hres⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
       iunfold apply.chainResAny at Hres
       icases Hres with ⟨%info', Hres⟩
-      iapply HResp0 $$ %_ %log %Pre %Q %Post %info' [] [] [Hkv Hres Hcs Hwt HRW]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post %info' [] [] [Htt Hkv Hres HRW]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
-      · iunfold apply.mPre
+      · iframe Htt HRW
+        iapply apply.mPreW_of_rest
         iframe
       inext
-      iintro %resp %err ⟨Hpost, #HeI⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI⟩
       iapply HΦ'
+      iframe Htt
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -219,19 +234,19 @@ theorem apply.newAuthApplierV3.wp_proof
     imodintro
     iintro %log %info
     imodintro
-    iintro %Φ' ⟨Hkv, Hres⟩ HΦ'
+    iintro %Φ' ⟨Htt, Hkv, Hres⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"AuthStatus")]
     wp_call
     wp_auto
     ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
-    iapply HStatus $$ %log %info' [Hkv Hres]
+    iapply HStatus $$ %log %info' [Htt Hkv Hres]
     · iframe
     inext
-    iintro %resp %err ⟨Hkv, Hres, #HeI⟩
+    iintro %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
     iapply HΦ'
-    iframe HeI Hkv
+    iframe Htt HeI Hkv
     ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
     iapply apply.chainRes_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
   isplitr
@@ -246,16 +261,15 @@ theorem apply.newAuthApplierV3.wp_proof
       rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
-      iunfold apply.mPreV at Hm
-      icases Hm with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨HR, Hm, HFS, HRO⟩
+      icases apply.mPreV_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
       ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
       iunfold apply.chainResAny at Hres
       icases Hres with ⟨%info', Hres⟩
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs %info' [] [HR Hkv Hres Hcs Hwt HFS HRO]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs %info' [] [HR Hkv Hres HFS HRO]
       · ipureintro; simp [apply.clusterMethods]
-      · iframe HR
-        iunfold apply.mPreV
+      · iframe HR HFS HRO
+        iapply apply.mPreV_of_rest
         iframe
       inext
       iintro ⟨Hpost, HFS, HRO⟩
@@ -263,8 +277,8 @@ theorem apply.newAuthApplierV3.wp_proof
       iframe HFS HRO
       iunfold apply.mPostV at Hpost
       iunfold apply.mPostV
-      icases Hpost with ⟨Hkv, Hres, HPP⟩
-      iframe Hkv HPP
+      icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+      iframe Hkv HPP Hrt
       ihave Hres := apply.chainResAny_of _ _ _ $$ Hres
       iapply apply.chainRes_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
   isplitr
@@ -282,20 +296,21 @@ theorem apply.newAuthApplierV3.wp_proof
     imodintro
     iintro %cr %rev %log %crev %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨#Hcr, %Hadm, #Hperm, Hm, Hc⟩ HΦ'
+    iintro %Φ' ⟨#Hcr, %Hadm, HCp, Htt, Hm, Hc⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"Compaction")]
     wp_call
     wp_auto
-    iunfold apply.mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
     ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
-    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info' [Hkv Hres Hcs Hc]
-    · iunfold apply.mPre; iframe; iframe #; ipureintro; exact Hadm
+    iapply HCmp $$ %cr %rev %log %crev %Pre %Q %Post %info' [HCp Htt Hkv Hres Hc]
+    · iframe HCp Htt Hc; iframe #; isplitr; · ipureintro; exact Hadm
+      iapply apply.mPre_of_rest; iframe
     inext
-    iintro %resp %ch %trace %err ⟨Hkv, Hres, HPP, Hc, Hans⟩
+    iintro %resp %ch %trace %err ⟨Htt, Hkv, Hres, HPP, Hc, Hans⟩
     iapply HΦ'
+    iframe Htt
     rw [apply.chainCompacts_auth E.authOn c, apply.cmpAnswerIs_congr (.auth E.authOn c) c (apply.chainCompacts_auth E.authOn c)]
     iframe Hkv HPP
     isplitr [Hc Hans]
