@@ -289,9 +289,20 @@ contract at `Pk` (the store's `isKeyBackendG` with the compaction's clauses and 
 view of the `Key` bucket at the image of `(L, c)` with the history's receipt `⧖ (logCh L)`, its
 compaction records' ownership, the store's write tokens and supply, `mvccReaderN` reader tokens, and
 the registration of the store's write resource. Made by the storage's provider (etcd's backend: the
-bridge's `etcdStorage_open.law`). -/
-opaque mvccStorageFor (B : MvccStorage) (Pk : IProp GF) (L : Log) (c : Int) (u : Bool) : IProp GF :=
-  iprop(True)
+bridge's `etcdStorage_open.law`). Phase A (M3, 2026-11-06): defined over etcd's backend's open, the
+store's part of `newPostKP` at the image's data `D`, the bridge's premises (`bridgeParams`, the
+compaction mode, `keySized`), and the payment rights. -/
+@[no_expose] def mvccStorageFor (B : MvccStorage) (Pk : IProp GF) (L : Log) (c : Int) (u : Bool) :
+    IProp GF :=
+  iprop(∃ (bk : KBReal) (D : backend.Data),
+    ⌜(bk : MvccStorage) = B ∧ bridgeParams bk.P ∧ bk.cm = true ∧ snap.imageOk D L c u⌝ ∗
+    ⧖ (logCh L) ∗
+    □ backend.isBackend bk.γB bk.P (lateW bk.gx) Pk bk.be ∗ □ (∀ γ b', keySized γ bk.P b') ∗
+    backend.bViewC bk.γB 1 (backend.vData bk.P (D, ⟨∅, W64 0⟩)) true ∗
+    backend.dlInit bk.γB ∗ backend.fkCl bk.γB bk.P D ∗ backend.srSlot bk.be ∗
+    backend.rdStock bk.γB bk.P bk.be ∗ lateReg bk.gx ∗
+    backend.wbTok bk.γB ∗ backend.wbTok bk.γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok bk.γB) ∗
+    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen))
 
 /-- **What the post-lock hook `f` does** under the batch lock of invariant `P`, from the caller's
 `Pre`: `f`'s triple to `Q`, or with no hook (`nil`), the caller's view shift. -/
