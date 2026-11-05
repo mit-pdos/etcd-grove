@@ -225,6 +225,36 @@ theorem wsChan_recv.law_holds : wsChan_recv.law (GF := GF) := by
     exact wsChan_recvI γw c γc hcap
   iapply key (ι : WsAbs) hι $$ [$Hch $Hinv]
 
+/-- **`excl.law`'s open-token conjunct** (2026-11-06): two open tokens' restorable compaction rights
+hold an eighth each of the fields at the current objects and names (`curAt`, logical), so their
+physical names agree, and with them the scheduler: its stop token is exclusive. -/
+theorem mvccOpen_excl (γ : MvccName) : mvccOpen (GF := GF) γ ∗ mvccOpen γ ⊢ False := by
+  unfold mvccOpen
+  iintro ⟨⟨%s, %p, %c, -, H1, -⟩, ⟨%s', %p', %c', -, H2, -⟩⟩
+  icases (compactRightR_iff _ _ _).1 $$ H1 with ⟨-, -, %o, ⟨Hf, -, -, Ht⟩, -⟩
+  icases (compactRightR_iff _ _ _).1 $$ H2 with ⟨-, -, %o', ⟨Hf', -, -, Ht'⟩, -⟩
+  icases fieldShareAt_cur s ((γ : StoreNames).withPhys p) _ o $$ Hf with ⟨Hc, -⟩
+  icases fieldShareAt_cur s' ((γ : StoreNames).withPhys p') _ o' $$ Hf' with ⟨Hc', -⟩
+  ihave %h := curAt_agree ((γ : StoreNames).withPhys p) ((γ : StoreNames).withPhys p') rfl
+    _ _ o o' $$ [Hc Hc']
+  · isplitl [Hc]
+    · iexact Hc
+    · iexact Hc'
+  have hp : p = p' := h.2
+  subst hp
+  iunfold schedule.schedStopTok at Ht Ht'
+  icases Ht with ⟨%n, #Hn, Hd⟩
+  icases Ht' with ⟨%n', #Hn', Hd'⟩
+  iunfold schedule.schedStopName at Hn Hn'
+  ihave %Hnn := mono_list_idx_agree _ 0 n n' $$ Hn Hn'
+  subst Hnn
+  ihave %Hv := dghostVar_valid_2 n () (DFrac.own 1) () (DFrac.own 1) $$ Hd Hd'
+  exact absurd Hv.1 (dfrac_own_one_op_invalid _)
+
+/-- **`excl.law`** (2026-11-06: its last conjunct, `mvccOpen_excl`). -/
+theorem excl.law_holds : excl.law (GF := GF) :=
+  ⟨mvccState_excl, wsState_excl, wsRecv_excl, mvccOpen_excl⟩
+
 end laws
 
 end api
