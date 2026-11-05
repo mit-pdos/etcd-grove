@@ -22,6 +22,26 @@ namespace bbolt
 
 open Iris Iris.BI go_etcd_io.bbolt
 
+section fbrec
+-- pure (no instances), so that pure modules can use `fbRec_lookup`
+
+/-- The bytes `pg` of the run of `n` slots from `id`, recorded (`store_free_fl`'s `fpb` value). -/
+def fbRec (id : w64) (n : Nat) (pg : Nat → List w8) : GMap Nat (List w8) :=
+  (List.range' id.toNat n).foldr (fun s m => m.insert s (pg s)) ∅
+
+theorem fbRec_lookup (id : w64) (n : Nat) (pg : Nat → List w8) (s : Nat) :
+    fbRec id n pg !! s = if s ∈ List.range' id.toNat n then some (pg s) else none := by
+  unfold fbRec
+  induction List.range' id.toNat n with
+  | nil => simp
+  | cons a S ih =>
+    simp only [List.foldr_cons, GMap.lookup_insert_eq_iff] at ih ⊢
+    by_cases h : a = s
+    · subst h; simp
+    · rw [if_neg h, ih]; simp [Ne.symm h]
+
+end fbrec
+
 section store
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -84,21 +104,6 @@ def fbInv (B : BNs) (σ : StoreSt) : IProp GF :=
   iprop(∃ F : GMap Nat (List w8), ghostVar B.fpb (1 : Qp).half F ∗
     (ghostVar B.fpb (1 : Qp).half F ∨ ⌜fbCond σ.C σ.fl σ.wtx σ.pub⌝) ∗
     ⌜fbCond σ.C σ.fl σ.wtx σ.pub → ∀ s v, F !! s = some v → s ∈ storeSlots σ → σ.bytes s = v⌝)
-
-/-- The bytes `pg` of the run of `n` slots from `id`, recorded (`store_free_fl`'s `fpb` value). -/
-def fbRec (id : w64) (n : Nat) (pg : Nat → List w8) : GMap Nat (List w8) :=
-  (List.range' id.toNat n).foldr (fun s m => m.insert s (pg s)) ∅
-
-theorem fbRec_lookup (id : w64) (n : Nat) (pg : Nat → List w8) (s : Nat) :
-    fbRec id n pg !! s = if s ∈ List.range' id.toNat n then some (pg s) else none := by
-  unfold fbRec
-  induction List.range' id.toNat n with
-  | nil => simp
-  | cons a S ih =>
-    simp only [List.foldr_cons, GMap.lookup_insert_eq_iff] at ih ⊢
-    by_cases h : a = s
-    · subst h; simp
-    · rw [if_neg h, ih]; simp [Ne.symm h]
 
 /-- **The writer's side of `fbInv`** (batch 40B) for the store's state `C`, `fl`, `ws`: the
 recorded bytes `F`' half when the writer has freed the synced freelist page (`fbCond`), nothing
