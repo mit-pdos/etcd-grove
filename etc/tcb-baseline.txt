@@ -790,3 +790,4 @@ sorry k8s_etcd3.client_ctx_field
 sorry k8s_etcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry srvGrantOpen_open
+sorry srvRevokeOpen_open

@@ -79,6 +79,12 @@ E3 (c) (2026-11-05)"; the agent proceeds on its recommendation.
 ## Freeze decisions (approved by the user, 2026-11-05, via etcd-grove-82)
 - `srvRevokeOpen_open`: option (a), land with the gated sorry; trust base 6 → 7 sorries
   (`etc/tcb-report.py --check --update`), the leaseexpiry collection.
+  Done (2026-11-05): `etc/tcb-baseline.txt` has 785 axioms and 7 sorries. The only new entry is
+  `sorry srvRevokeOpen_open`, reached by exactly three roots, all leaseexpiry's:
+  `etcd_leaseexpiry.wp_Main`, `leaseexpiry_Main` and `etcd_leaseexpiry_safe`.
+  `etc/tcb-collections/leaseexpiry.txt` has 596 axioms and the sorries `srvGrantOpen_open` and
+  `srvRevokeOpen_open`. (A `bv_decide` added in stage 2, in `leaseIdMask_inj_pfx`, had brought a
+  native-evaluation axiom with it; it is now proved bit by bit, so no axiom was added.)
 - A7 (the lease-TTL row's placement): option (c), the starter conjunct for now; hub step 7 moves
   it into the lease slot.
 - The four axiom reviews (NewLessor with `leaseEver ∅`, `MustUnsafeGetAllLeases`,
