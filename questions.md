@@ -78,8 +78,14 @@ are written without touching `NewServer`; `NewServer`'s intro of the slot waits 
 
 ### H2 (hard stop: a trusted contract). The storage-version monitor's read token at the stop (2026-11-05)
 
-**Status: sent to the coordinator, 2026-11-05; the proof goes on with a marked `sorry`
-(`StopShutdown.stop_monitorRT`).**
+**Status: approved by the user, 2026-11-05, via etcd-grove-82: option 1**, with these conditions:
+(1) the monitor's trusted contract returns the session key at exit (the widened post); (2)
+`GoAttach`/`Wait` carry a goroutine's final resource back to the waiter (`{P} f {Q}`, `Q` deposited
+at `Done`, handed out through `Wait`), in this repository's `GoAttach` protocol, with no Perennial
+change (needing one would be a separate hard stop); (3) the widened contract is attacked with the
+`axiom` skill in the same round (claim: when `monitorStorageVersion` returns, no backend read session
+is open), with a report in `notes/axiom-review/` and the `audit.md` row; (4) `GoAttach`'s other users
+keep proving with `Q := True`, the one spec generalized in place (no second family).
 
 `Cleanup`'s `backend.Close` needs the whole open token, so the stop's census must collect every
 reader's share, including the storage-version monitor's (`mvcc.bkRTx` in `srvWTPool`'s invariant).
@@ -105,6 +111,57 @@ does). Excluding the second case by fractions of `E.γbe` would need `bemuP`'s h
 **Recommendation: 1 (or 2).** The change is the honest contract: the real monitor ends its session
 before it returns. Until it is decided, `stop_monitorRT` is a `sorry` with this entry's name.
 
+### H3. H2's plumbing: the names the monitor's key and its return travel by (2026-11-05)
+
+**Status: sent to the coordinator, 2026-11-05.** H2 option 1 is approved. Implementing it needs two
+things the current statements cannot express, and both change spec statements.
+
+1. **The session key's name in the pool.** The key is an exclusive `token γsv`. While the monitor is
+   in a session, `srvWTPool`'s checked-out case holds it beside the deposited `γbe` fraction. The
+   monitor's contract takes it and gives it back (H2's widened post). So with the key in hand, the
+   stop knows the pool is in the other case and takes `bkRTx`. The pool's invariant must name `γsv`,
+   and `srvWTPool E γp` has no room for it: `γp` hosts the counter's `monoNat`, and Iris gives no way
+   to allocate a second camera's resource at a chosen name. Options:
+   - (a) `srvWTPool E W` with a names record `W := ⟨cnt, sv⟩` in place of `γp` (mechanical: 136
+     occurrences in 30 files; the Spec files `start`, `run`, `apply`, `applyAll`, `applyEntries`,
+     `applySnapshot` (`specSnapM`, a hub), `snapshot`, `snapshotIfNeededAndCompactRaftLog`,
+     `monitorStorageVersion`, and `NewServer`'s comment);
+   - (b) a field `γsv` of `apply.AEnv` (a hub record; every `AEnv` literal changes).
+   Recommendation: (a).
+2. **The goroutine's return reaching the shutdown.** `GoAttach` (generalized, `{P} f {Q}`) gives
+   its caller a ticket for `Q` at the protocol's names `γ`. `Wait` gives the waiter a persistent
+   `goWaited γ`, and ticket plus `goWaited` claims `▷ Q` (or `P` back if `f` was dropped). The
+   caller is `Start` and the claimer is `run`'s shutdown, so the ticket has to travel between them,
+   at `run`'s `γg`. Two obstacles:
+   - `srvGoRes s` hides its names (`∃ γ`), and nothing makes two `srvGoAttachOk s γ` agree on
+     `γ`. So `srvWgReader`/`srvGoRes` would take `γ` as an argument (`srvGoResAt s γ`), or
+     `srvGoAttachOk` would gain an agreement fact.
+   - The ticket has to reach `run` after `Start` made it. The natural route is the stop request:
+     `HardStop`'s payload `SP` (now `srvBootApplied ρ`) would also carry the monitor's ticket, which
+     `Start`'s post hands to the member's starter. That changes `Start.spec`'s post and `run`'s
+     stop-bag predicate, and through them the `etcdstart` starters (hubs, and hub step 7's area).
+   The alternative is an escrow invariant allocated by `start` (with `γg` and `γsv`), into which
+   `Start` puts the ticket. It needs a transit state (the key out, the ticket not yet in) that the
+   stop cannot rule out without more ghost state.
+   Recommendation: the stop request route, with `srvGoResAt s γg`.
+
+**Meanwhile (not blocked):** `GoAttach`'s generalization inside `InvGoAttach` (the deposit, `goWaited`,
+the claim, with `Q := True` for every current caller), the monitor contract's text, and its axiom
+review; `stop_monitorRT` stays the marked `sorry`.
+
 ## Decided by the agent, pending the user
 
-(none yet)
+- **D1. `run.specStop`'s scope premises `v.compactor = nil` and `E.authOn = false` (2026-11-05).**
+  These are `restart3`'s configuration. With a compactor, the compactor's run holds a store reader
+  that the census needs (`srvStop.census_readers`). With auth on, `Cleanup`'s auth closer is the
+  apply thread's, which is not yet threaded through. `run.specStop` is a draft (not exported, not
+  frozen), so these are not premises on a trusted or exported statement. Lifting them is part of
+  R2d/R2e (auth on) and the compactor's own stop.
+- **D2. One proof of `run` over a stop flag (2026-11-05).** `run.wp_proofG (stp : Bool)` proves
+  `run.spec` (`stp = false`) and `run.specStop` (`stp = true`). The two differ only in the loop's
+  stop branch. This avoids keeping two copies of a 1400-line proof. `Link.lean` keeps `run.spec`'s
+  hypotheses.
+- **D3. F4 (`run.spec` replaced by `run.specStop`) deferred (2026-11-05).** `run.specStop` carries
+  stage 5's scope premises (D1) and the H2 `sorry`. Replacing `run.spec` with it now would put a
+  `sorry` and the premises under every exported result through `start`. `run.spec` stays the linked
+  spec until H2 is decided and D1's premises are lifted or carried by `Start`'s stop variant (R2d).
