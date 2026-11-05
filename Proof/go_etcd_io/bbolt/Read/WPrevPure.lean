@@ -48,6 +48,33 @@ theorem idx_pred (x : w64) (h1 : x.toNat < 2 ^ 16) (h2 : 0 < sint.Z x) :
     Nat.mod_eq_of_lt (by omega)]
   omega
 
+
+theorem take_set_last {α : Type} (l : List α) (n : Nat) (x : α) (hn : n < l.length) :
+    (l.take (n + 1)).set n x = l.take n ++ [x] := by
+  rw [List.take_add_one, List.getElem?_eq_getElem hn]
+  have : (l.take n).length = n := by simp; omega
+  simp only [Option.toList_some]
+  rw [List.set_append_right _ _ (by omega), this, Nat.sub_self]
+  rfl
+
+theorem mem_dropLast_idx {α : Type} (l : List α) (x : α) (h : x ∈ l.dropLast) :
+    ∃ j, j + 1 < l.length ∧ l[j]? = some x := by
+  obtain ⟨j, hj, rfl⟩ := List.mem_iff_getElem.1 h
+  refine ⟨j, by simp at hj; omega, ?_⟩
+  rw [List.getElem_dropLast]; exact List.getElem?_eq_getElem _
+
+/-- **The levels the up-loop passed** (signed at most `0`) are at `0`, but for the leaf. -/
+theorem below_zero (nl : Loc → Option (Loc × Nat)) (v : View) (b : Loc) (rt : Nat)
+    (els : List elemRef) (pids : List Nat) (hp : sPathR nl v b rt els pids) (k : Nat)
+    (hall : ∀ j x, k ≤ j → els[j]? = some x → sint.Z x.index' ≤ 0) :
+    ∀ j x, k ≤ j → j + 1 < els.length → els[j]? = some x → x.index'.toNat = 0 := by
+  intro j x hk hj hx
+  obtain ⟨pid, hpid⟩ : ∃ pid, pids[j]? = some pid :=
+    ⟨_, List.getElem?_eq_getElem (by rw [hp.2.1]; omega)⟩
+  obtain ⟨pg, -, -, hlt, -⟩ := (hp.2.2.2 j x pid hx hpid).2.2.1 hj
+  have : pageCount pg < 2 ^ 16 := by unfold pageCount; exact BitVec.isLt _
+  exact idx_zero _ (by omega) (hall j x hk hx)
+
 open Classical in
 /-- **Every entry after the new leaf is in it** (`prev`'s move at the level of `p`: the old stack
 at `0` below it and its leaf empty, the new one one before at it and last below). -/
