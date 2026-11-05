@@ -1377,3 +1377,33 @@ client chose etcd's backend), `B.γB`/`B.b` → `d.γB`/`d.be` through the bridg
 3. Phase B (the store's instance a record of the contract's predicates; `mvccStorageFor`'s
    introduction law in the contract's terms).
 - TCB: no axiom or `sorry` added or removed.
+
+## Hand-off: M3, `NewStore`'s values through `restore` (2026-11-06, begun)
+
+**Done**: the backend's flag alone, `backend.fkFlag γ n` (the client's half of the compaction-key flag,
+without `fkOwn`'s values' halves), `fkOwn_flag`, and its read laws `fkRd_absF`, `fkRd_openF`
+(`ReadLemmas`): additions only, no statement changed.
+
+**The design (next)**: the values' halves must reach the batch lock's `cmpTrack` at `NewStore`'s first
+`Unlock`, *before* `restore()`, which today takes the no-compaction token `NC = kbNoCmp`
+(`bkNoCmp = fkOwn 0`, values inside). `restore()` reads the compaction keys with the flag only
+(`fkRd_abs`/`fkRd_open` use nothing else), so:
+1. `bkNoCmp γB` exact: `fkFlag γB 0 ∗ fkdOwn γB (none, none) ∗ dlsOwn γB ∅` (`bkNoCmp_of_fkCl` from
+   `fkCl_exact`; `NewStore`'s premise `kbNoCmp` unchanged in name, so the server's boot,
+   `bootBackend_of_newPost`, `BuildLemmas`, is unchanged).
+2. The contract's and `restore`'s token flag-only: `bkNoCmpF γB := fkFlag γB 0`, `kbNoCmpF`;
+   `storeBackend`/`storeBackendT`/`keyCleanRead`'s `NC`, `RestoreNC`'s `specNC`, the bridge's read
+   clauses (`BackendBridge` 757-1681, 2771-2819, 3357, 3540, 3753, 3843) at `bkNoCmpF`; `bkRecs`/`kbRecs`
+   (the records' token, also an `NC`) flag-only: empty `kbNoCmpF`, else `∃ n, fkFlag n ∗ fkOpen …`;
+   `restoreImageM`'s on-arm gains the values `kbVals (some d') (recBytes r.fin, recBytes r.sched) ∅`
+   (from `fkCl_exact` in `restoreImageM_of_openOn`).
+3. `NewStore`: `kbNoCmp` split into `kbNoCmpF` (to `restore`) and the values (to `cmpTrack` when
+   compacting: `cmpOk [[], []] ∅ ∅ CmpRecs.empty (-1, ⟨0, 0⟩)`, `logEnts_init`), reassembled for the
+   writer's loan when not compacting; `cmpTrack_new_M1`'s `NewStore` use gone. `store.Restore` likewise
+   from `restoreImageM`'s values, with its record allocated at `r` (not `(none, none)`) and the cursor
+   at `(r.finRev, ⟨0, 0⟩)`.
+Outside mvcc only `SnapRestoreM`'s proof (`kbRecs_empty`, `keyCleanReadR_empty`, `kbRecs_some` chain)
+may need its rewrites re-checked; no statement outside mvcc changes.
+
+**Left after it**: `New.spec`/`NewStore.spec` over `mvccStorageFor` (the previous hand-off's item 1),
+`store.Restore`'s tracking, `KV.Restore`/`KV.Close`, phase B.

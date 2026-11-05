@@ -541,6 +541,20 @@ def fkOwn (γ : BNames) (n : Nat) : IProp GF :=
 instance fkOwn_timeless (γ : BNames) (n : Nat) : Timeless (fkOwn (GF := GF) γ n) := by
   unfold fkOwn fkdOwn dlsOwn; infer_instance
 
+/-- **The client's half of the compaction keys' flag alone** (mvcc's M3, 2026-11-06): what a reader
+of the compaction keys needs (`fkRd_absF`, `fkRd_openF`), without the values' halves `fkOwn` also
+holds, which a store keeps elsewhere (its tracked compaction). -/
+def fkFlag (γ : BNames) (n : Nat) : IProp GF := monoNatAuthOwn γ.fk (1 : Qp).half n
+
+instance fkFlag_timeless (γ : BNames) (n : Nat) : Timeless (fkFlag (GF := GF) γ n) := by
+  unfold fkFlag; infer_instance
+
+/-- `fkOwn` is the flag and the values' halves, at some values. -/
+theorem fkOwn_flag (γ : BNames) (n : Nat) :
+    fkOwn (GF := GF) γ n ⊣⊢ fkFlag γ n ∗ (∃ v : FkVals, fkdOwn γ v) ∗
+      ∃ X : GMap (GoString × GoString) GoString, dlsOwn γ X := by
+  unfold fkOwn fkFlag; exact .rfl
+
 /-- **The compaction keys' well-formedness bit** (persistent; question 4, 2026-10-29): at `true`,
 every state of the backend holds only well-formed values (`P.FV`) at the compaction keys. The
 constructor gives it (`fkWInit`); it never changes. With the flag it is the three levels of the
