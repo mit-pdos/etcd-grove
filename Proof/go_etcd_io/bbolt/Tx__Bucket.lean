@@ -15,7 +15,7 @@ public import Proof.go_etcd_io.bbolt.Read.Pub
 public import Proof.go_etcd_io.bbolt.Read.GetFacts
 public import Proof.go_etcd_io.bbolt.Commit.CheckSplit
 public import Spec.go_etcd_io.bbolt.Bucket__Bucket_w
-public import Proof.go_etcd_io.bbolt.Read.PubWBkt
+public import Proof.go_etcd_io.bbolt.Read.PubWBktFl
 public import Proof.go_etcd_io.bbolt.Write.Retarget
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsOpen
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsGens
@@ -111,7 +111,7 @@ theorem Tx.Bucket.wp_reader [HasExt osFsExt] (hmint : RdHandleMint (GF := GF))
 cached child's handle at `T.gen n` by `gensOK`); a miss is no bucket of the data
 (`wtxData_none_of`), a cached child leaves the records as they are, and an open closes the new
 records back (`boltTxDef_wclose`: `txShape_bktOpened`, `gensOK_bktOpened`, `wrFacts_bktOpened`,
-and `flViewU_bktOpened_root`, OPEN). -/
+and `flViewU_bktOpened_root'`, `Read/PubWBktFl`). -/
 theorem Tx.Bucket.wp_writer [HasExt osFsExt]
     (hBw : Bucket.Bucket_w.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac)
@@ -225,7 +225,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
     · have hk : XclKeep X X' := by
         obtain ⟨B, C', w, hB, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hX'⟩ := id hop
         exact ⟨by rw [hX'], by rw [hX'],
-          fun fl h => PubW.flViewU_bktOpened_root X X' b n (T.gen n) fl hok hop h⟩
+          fun fl h => PubW.flViewU_bktOpened_root' X X' b n (T.gen n) fl hok hokX' hop h⟩
       have hvX : X'.v = X.v := hk.v
       have hgens' : gensOK T X' :=
         gensOK_bktOpened T X X' X.rl b n (T.gen n) hop hok.2.2.2.2.1 (Nat.le_refl _) (fun _ => rfl)

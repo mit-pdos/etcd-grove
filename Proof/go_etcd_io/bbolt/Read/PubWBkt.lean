@@ -2,7 +2,7 @@
 U6x (`notes/bbolt-proof-plan.md`, "Writer reads at a fraction"): what a writer's `Tx.Bucket`
 needs. Pure: the data's lookup of a top-level bucket from the root's entries
 (`wtxData_none_of`, `wtxData_some_of`), and what `Bucket.Bucket_w`'s open of a top-level bucket
-keeps (`wrFacts_bktOpened`; `flViewU_bktOpened_root`: OPEN). Separation: an opened child's `tx`
+keeps (`wrFacts_bktOpened`; `flViewU`'s is `Read/PubWBktFl.flViewU_bktOpened_root'`). Separation: an opened child's `tx`
 field (persistent).
 -/
 module
@@ -159,17 +159,6 @@ theorem wrFacts_bktOpened (X X' : WX) (bl c : Loc) (name : List w8) (g : Nat)
         · cases hk; exact hcrl
         · exact hroot B (he ▸ hB) k c' hk
       · exact hroot B0 hB0 k c' hk
-
-/-- **Opening a top-level bucket keeps the freelist's agreement** (`flViewU`): OPEN (U6x). The
-bucket `name`'s base pages, covered in `X` as an unopened root entry (`lCovers`' second case), are
-covered in `X'` by the opened bucket's positions (its first case, the bucket's logical tree read
-from the view, no node), once each. Needs that `bucketCovers` of a top-level bucket's value is the
-slots of its own tree's positions (a nested bucket's pages are not among a top-level bucket's
-positions: either no top-level bucket of a writer's view has a nested bucket, D12, or
-`bucketHas` is the bucket's own tree). -/
-theorem flViewU_bktOpened_root (X X' : WX) (c : Loc) (name : List w8) (g : Nat) (fl : FLPg)
-    (hok : wOK X) (h : bktOpened X X' X.rl c name g) (hf : flViewU X fl) : flViewU X' fl := by
-  sorry
 
 end pure
 
