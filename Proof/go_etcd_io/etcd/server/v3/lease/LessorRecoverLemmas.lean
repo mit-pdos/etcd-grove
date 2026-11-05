@@ -344,6 +344,87 @@ theorem recover_all (γl : GName) (γr : LessorRdNames) (hs : List LSnap) (mt : 
     iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
     iframe Hx Hl
 
+/-- **The requests of the ids `Un` issued** (the lease-expiry plan's S2–S4 Probe, 2026-11-05;
+`recover_hist`'s step): from the requested TTLs' authority at `Q` (whose ids are among `U0`, the
+ids the lessor ever had), each id of `Un` either new to `U0` or already requested at `rq id`, an
+authority at some `Q'` whose new entries are `Un`'s new ids at `rq`, every id of `Un` requested at
+`rq` (`acc`: the ids done so far). Duplicates in `Un` are allowed (an id already done is found in
+`acc`). -/
+theorem req_issue (γq : GName) (U0 : List w64) (rq : w64 → w64) (Q0 : GMap w64 w64)
+    (hQ0 : ∀ id r, Q0.lookup id = some r → id ∈ U0) :
+    ∀ (Un acc : List w64) (Q : GMap w64 w64),
+    (∀ id r, Q.lookup id = some r → Q0.lookup id = some r ∨ (id ∉ U0 ∧ id ∈ acc ∧ r = rq id)) →
+    (∀ id ∈ acc, Q.lookup id = some (rq id)) →
+    ghostMapAuth (GF := GF) γq 1 Q ∗ □ ([∗list] id ∈ acc, id ↪[γq]□ rq id) ∗
+      □ ([∗list] id ∈ Un, ⌜id ∉ U0⌝ ∨ id ↪[γq]□ rq id) ==∗
+    ∃ Q' : GMap w64 w64, ghostMapAuth γq 1 Q' ∗
+      ⌜(∀ id r, Q'.lookup id = some r →
+          Q0.lookup id = some r ∨ (id ∉ U0 ∧ id ∈ acc ++ Un ∧ r = rq id)) ∧
+        ∀ id ∈ acc ++ Un, Q'.lookup id = some (rq id)⌝ ∗
+      □ ([∗list] id ∈ acc ++ Un, id ↪[γq]□ rq id)
+  | [], acc, Q, h1, h2 => by
+    iintro ⟨Ha, #Hacc, -⟩
+    imodintro
+    iexists Q
+    simp only [List.append_nil]
+    iframe Ha Hacc
+    ipureintro; exact ⟨h1, h2⟩
+  | x :: xs, acc, Q, h1, h2 => by
+    iintro ⟨Ha, #Hacc, #Hl⟩
+    icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ Hl with ⟨#Hx, #Hl⟩
+    have happ : acc ++ x :: xs = (acc ++ [x]) ++ xs := by simp
+    rw [happ]
+    have hkeep : ∀ id r, Q.lookup id = some r →
+        Q0.lookup id = some r ∨ (id ∉ U0 ∧ id ∈ acc ++ [x] ∧ r = rq id) := fun id r hr => by
+      rcases h1 id r hr with h | ⟨a, b, c⟩
+      · exact Or.inl h
+      · exact Or.inr ⟨a, List.mem_append_left _ b, c⟩
+    ihave HQx : iprop(|==> ∃ Q1 : GMap w64 w64, ghostMapAuth (GF := GF) γq 1 Q1 ∗
+        ⌜(∀ id r, Q1.lookup id = some r →
+            Q0.lookup id = some r ∨ (id ∉ U0 ∧ id ∈ acc ++ [x] ∧ r = rq id)) ∧
+          ∀ id ∈ acc ++ [x], Q1.lookup id = some (rq id)⌝ ∗ x ↪[γq]□ rq x) $$ [Ha]
+    · icases Hx with (%Hn | #He)
+      · cases hq : Q.lookup x with
+        | none =>
+          imod ghost_map_insert_persist x (rq x) hq $$ Ha with ⟨Ha, #He⟩
+          imodintro; iexists Q.insert x (rq x); iframe Ha He
+          ipureintro
+          refine ⟨fun id r hr => ?_, fun id hid => ?_⟩
+          · by_cases hxi : x = id
+            · subst hxi; rw [GMap.lookup_insert] at hr; cases hr
+              exact Or.inr ⟨Hn, List.mem_append_right _ (List.mem_singleton_self _), rfl⟩
+            · rw [GMap.lookup_insert_ne _ _ hxi] at hr
+              exact hkeep id r hr
+          · by_cases hxi : x = id
+            · subst hxi; rw [GMap.lookup_insert]
+            · rw [GMap.lookup_insert_ne _ _ hxi]
+              rcases List.mem_append.1 hid with h | h
+              · exact h2 id h
+              · exact absurd (List.mem_singleton.1 h).symm hxi
+        | some v =>
+          rcases h1 x v hq with h | ⟨-, hxa, -⟩
+          · exact absurd (hQ0 x v h) Hn
+          · obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 hxa
+            ihave #He := BigSepL.bigSepL_lookup (PROP := IProp GF)
+              (Φ := fun _ id => iprop(id ↪[γq]□ rq id)) hk $$ Hacc
+            imodintro; iexists Q; iframe Ha He
+            ipureintro
+            refine ⟨hkeep, fun id hid => ?_⟩
+            rcases List.mem_append.1 hid with h | h
+            · exact h2 id h
+            · rw [List.mem_singleton.1 h]; exact h2 x hxa
+      · ihave %Hq := ghost_map_lookup $$ Ha He
+        imodintro; iexists Q; iframe Ha He
+        ipureintro
+        refine ⟨hkeep, fun id hid => ?_⟩
+        rcases List.mem_append.1 hid with h | h
+        · exact h2 id h
+        · rw [List.mem_singleton.1 h]; exact Hq
+    imod HQx with ⟨%Q1, Ha, %HH, #He⟩
+    ihave #Hacc' : iprop([∗list] id ∈ acc ++ [x], id ↪[γq]□ rq id) $$ []
+    · iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2; iframe Hacc He
+    iapply req_issue γq U0 rq Q0 hQ0 xs (acc ++ [x]) Q1 HH.1 HH.2 $$ [$Ha $Hacc' $Hl]
+
 /-- **The owner appends a snapshot whose TTLs are tied** (`Recover`: the snapshot is not derived
 from the last one, so its tie is given, `ttlTie σ'`; the item sets unchanged). (The lease-expiry
 plan's S2–S4, 2026-11-05) Each of its ids is new to `U` or live in the last snapshot (`histOnce`
@@ -376,25 +457,23 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   icases HU with ⟨%U0, HU, %HUi⟩
   ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hs0 $$ Ho Ha
   obtain ⟨-, rfl⟩ := Hh
-  -- the requests (S2–S4): the ids new to `U` inserted at `rq`, every id's request issued
-  ihave HQx : iprop(|==> ((∃ Q' : GMap w64 w64, ghostMapAuth (GF := GF) γr.2.2.2.2 (1 : Qp) Q' ∗
-      ⌜reqOk (hs ++ [σ']) Q'⌝) ∗ □ ([∗list] id ∈ Un, leaseReqIs γl id (rq id)))) $$ [HQ]
-  · sorry -- DRAFT S2–S4 (Prove: `ghost_map_insert_big` of `Un`'s ids not in `U`, which are no id of the history, `histIn`, so not in `Q`; persisted; `reqOk_snoc_gen` with `hrq`, the caller's `leaseReqIs` agreeing with `Q` for the others)
-  imod HQx with ⟨HQ, #HrqOut⟩
   -- the ids: the owner's half updated, or none in the new snapshot (`U` as it was)
   ihave HUx : iprop(|==> ∃ U1 : List w64,
       dghostVar (GF := GF) γr.2.2.2.1 (DFrac.own (1 : Qp).half) U1 ∗
       (⌜∀ id : w64, ¬ snapHas σ' id⌝ ∨ leaseEver γl (U ++ Un)) ∗
       ⌜(∀ id : w64, snapHas σ' id → id ∈ U1) ∧ (∀ x, x ∈ U0 → x ∈ U1) ∧
         ∀ τ : LSnap, hs.getLast? = some τ → ∀ id : w64, (σ'.1.lookup id).isSome → id ∈ U0 →
-          (τ.1.lookup id).isSome⌝) $$ [HU HUo]
+          (τ.1.lookup id).isSome⌝ ∗ ⌜Un = [] ∨ ∀ x : w64, x ∉ U → x ∉ U0⌝) $$ [HU HUo]
   · icases HUo with (%Hno | HUo)
     · imodintro; iexists U0; iframe HU
       isplitr
       · ileft; ipureintro; exact Hno
-      ipureintro
-      exact ⟨fun id h => absurd h (Hno id), fun _ h => h,
-        fun _ _ id h => absurd (Or.inl h) (Hno id)⟩
+      isplitr
+      · ipureintro
+        exact ⟨fun id h => absurd h (Hno id), fun _ h => h,
+          fun _ _ id h => absurd (Or.inl h) (Hno id)⟩
+      ipureintro; left
+      exact List.eq_nil_iff_forall_not_mem.2 fun id h => Hno id (Or.inl (hUn id h))
     · iunfold leaseEver at HUo
       icases HUo with ⟨%γr2, #Hp2, HUo⟩
       ihave %H2 := lessorPinR_agree γl γr γr2 $$ [$Hp $Hp2]
@@ -406,10 +485,52 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
       iexists U ++ Un; iframe HU
       isplitl
       · iright; iunfold leaseEver; iexists γr; iframe Hp HUo
-      ipureintro
-      exact ⟨fun id h => List.mem_append_right _ (hin id h), fun x hx => List.mem_append_left _ hx,
-        hfresh⟩
-  imod HUx with ⟨%U1, HU, HUo, %HUi1⟩
+      isplitr
+      · ipureintro
+        exact ⟨fun id h => List.mem_append_right _ (hin id h), fun x hx => List.mem_append_left _ hx,
+          hfresh⟩
+      ipureintro; right; exact fun _ h => h
+  imod HUx with ⟨%U1, HU, HUo, %HUi1, %HUU⟩
+  -- the requests (S2–S4 Probe): the ids of `Un` new to `U0` inserted at `rq`, the others already
+  -- requested at `rq` (the caller's `leaseReqIs`), every one's request issued (`req_issue`)
+  have hUU : ∀ x ∈ Un, x ∉ U → x ∉ U0 := by
+    rcases HUU with h | h
+    · intro x hx; rw [h] at hx; cases hx
+    · exact fun x _ => h x
+  icases HQ with ⟨%Q, HQa, %HQok⟩
+  ihave #HrqE : iprop([∗list] id ∈ Un, ⌜id ∉ U0⌝ ∨ id ↪[γr.2.2.2.2]□ rq id) $$ []
+  · iapply (BigSepL.bigSepL_impl (PROP := IProp GF)) $$ Hrq
+    iintro !> %k %x %hk Hx
+    icases Hx with (%Hn | Hx)
+    · ileft; ipureintro; exact hUU x (List.mem_of_getElem? hk) Hn
+    · iunfold leaseReqIs at Hx
+      icases Hx with ⟨%γr3, #Hp3, #He⟩
+      ihave %H3 := lessorPinR_agree γl γr γr3 $$ [$Hp $Hp3]
+      subst H3; iright; iexact He
+  ihave #Hnil : iprop([∗list] id ∈ ([] : List w64), id ↪[γr.2.2.2.2]□ rq id) $$ []
+  · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+  have hQ0 : ∀ id r, Q.lookup id = some r → id ∈ U0 := fun id r hr => by
+    obtain ⟨i, σ, hi, hl⟩ := HQok.2 id r hr
+    exact HUi.2 i σ id hi (Or.inl hl)
+  imod req_issue γr.2.2.2.2 U0 rq Q hQ0 Un [] Q (fun id r hr => Or.inl hr)
+    (fun _ h => by cases h) $$ [$HQa $Hnil $HrqE] with ⟨%Q', HQa, %HQ', #HeOut⟩
+  simp only [List.nil_append] at HQ' ⊢
+  have HQok' : reqOk (hs ++ [σ']) Q' := by
+    obtain ⟨H1, H2⟩ := HQ'
+    refine reqOk_snoc_gen HQok (fun id r hr => ?_) (fun id t r hl ht hr => ?_)
+    · rcases H1 id r hr with h | ⟨hn, hm, _⟩
+      · exact Or.inl h
+      · exact Or.inr ⟨hUn id hm, not_everIn_of_histIn HUi.2 hn⟩
+    · have hm := hin id (Or.inl hl)
+      rw [H2 id hm] at hr; cases hr
+      exact hrq id t hl ht
+  ihave #HrqOut : iprop([∗list] id ∈ Un, leaseReqIs (GF := GF) γl id (rq id)) $$ []
+  · iapply (BigSepL.bigSepL_impl (PROP := IProp GF)) $$ HeOut
+    iintro !> %k %x %_ He
+    iunfold leaseReqIs; iexists γr; iframe Hp He
+  ihave HQ : iprop(∃ Q : GMap w64 w64, ghostMapAuth (GF := GF) γr.2.2.2.2 (1 : Qp) Q ∗
+      ⌜reqOk (hs ++ [σ']) Q⌝) $$ [HQa]
+  · iexists Q'; iframe HQa; ipureintro; exact HQok'
   ihave %HSm := ghostMapAuth_agree γr.2.1 _ _ Sm Sm0 $$ HSo HS
   subst HSm
   ihave #Htie' := ties_snoc hs σ' $$ [$Htie $Hσ']
@@ -645,7 +766,14 @@ theorem closers_recover (γl : GName) (lp lp' : Loc) (L : List w64) (M C : GMap 
         · simp [recSnap, GMap.lookup_empty] at h)
       (fun id h => (recMap_isSome xs id).2 h) rq
       (fun id t h ht => by
-        sorry) -- DRAFT S2–S4 (Prove: `recTTLs_lookup`, `grantTTL_ge` and `hrq`)
+        obtain ⟨p, hp, hpid⟩ := List.mem_map.1 ((recMap_isSome xs id).1 h)
+        have hl := recTTLs_lookup mt (xs.map Prod.fst) p.1 (List.mem_map_of_mem hp)
+          (by rw [List.map_map]; exact hnd)
+        change (recTTLs mt (xs.map Prod.fst)).lookup id = some t at ht
+        rw [← hpid, hl] at ht
+        cases ht
+        rw [← hpid]
+        exact Int.le_trans (hrq p hp) (grantTTL_ge mt p.1.2.1))
     $$ [$Hrd $Hpr $Ho $Hl $HSo $Htie $HUo $Hrq] with ⟨Ho, Hl, HSo, HUo, #HrqOut⟩
   ihave HUo : iprop(⌜xs = []⌝ ∨ leaseEver (GF := GF) γl (U ++ xs.map (·.1.1))) $$ [HUo]
   · icases HUo with (%Hx | HUo)

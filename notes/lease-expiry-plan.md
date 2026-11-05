@@ -2699,7 +2699,22 @@ These five are exactly the DRAFT `sorry`s every server result reaches (review ro
 The five probes of the Probe set above, in its order (easy before hard in each package), each
 committed when proved.
 
-1. **`lease.lessor_live_perm`: proved** (22:44–22:52, about 8 minutes). It is the stated
+1. **`lease.lessor_live_perm`: proved** (22:43–22:44, about 2 minutes). It is the stated
    `lessor_live_set` plus two equalities: `leaseClosers` and `leaseRevokers` read `L` only through
    membership (`simp only` with `hp.mem_iff`), and the guard's `□ [∗list] leaseGranted` moves to
    `Lr` by `bigSepL_perm`. Spec problems found: none.
+2. **`lease.recover_hist` + `lease.closers_recover`: proved** (22:44–22:50, about 6 minutes).
+   - `recover_hist`'s requests step is a new lemma, `req_issue`: an induction over `Un` that inserts
+     each id new to the invariant's `U0` at `rq id` (`ghost_map_insert_persist`; the id is absent
+     from `Q`, since `Q`'s ids are ever-had, `reqOk`'s second half, so in `U0` by `histIn`). An
+     id the caller holds `leaseReqIs` of is read back (`ghost_map_lookup`). A duplicate of `Un` is
+     found among the ids already done.
+   - `reqOk` of the extended history then comes from `reqOk_snoc_gen`. Every live id of the new
+     snapshot is in `Un` (`hin`), at request `rq id`, which is at most its TTL (`hrq`).
+   - The ids' half step had to be reordered first. The caller's disjunct `⌜id ∉ U⌝` speaks of the
+     owner's `U`, while the insertion needs the invariant's `U0`. They agree when the owner holds
+     `leaseEver` (`dghostVar_agree`). Otherwise the snapshot has no id (`⌜∀ id, ¬ snapHas σ' id⌝`),
+     so `Un = []` by `hUn`.
+   - `closers_recover`'s `hrq` step: `recTTLs_lookup`, then `grantTTL_ge` after `hrq`.
+   - Spec problems found: none. `Recover`'s premises suffice as stated: the requests' freshness
+     needs `histIn` and `reqOk`'s ever-had half, both already in the invariant.
