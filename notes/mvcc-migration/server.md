@@ -126,8 +126,9 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   `quotaApplierV3.LeaseGrant`, `uberApplier.Alarm`, and `applierSpec`'s generic triples of
   `respMethods`, `resp0Methods` and `AuthStatus` (`Chain.lean`). Until then those specs had none,
   and `newHeader.spec` (restated at the thread's token) was not callable from them.
-- Next in step 2: the cluster methods (`ClusterVersionSet`, `ClusterMemberAttrSet`,
-  `DowngradeInfoSet`, over `mPreV`: as above with `cPre v3`), `Compaction`, `LeaseRevoke`
+- Also proved: the cluster methods `applierV3backend.{ClusterVersionSet, ClusterMemberAttrSet,
+  DowngradeInfoSet}` over `mPreV` (`WriteLemmas.mPreV_split`, `mPostV_of`).
+- Next in step 2: `Compaction`, `LeaseRevoke`
   (over `lessor.Revoke.spec`, a hypothesis, but see "Found"), the KV methods (`Put`, `Range`,
   `DeleteRange`, `Txn`, over txn's specs), the wrappers (auth, capped, corrupt, quota), `dispatch`,
   `Apply`, then `applyAll`.
