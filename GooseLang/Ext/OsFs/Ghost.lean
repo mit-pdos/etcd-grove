@@ -740,7 +740,7 @@ directory's ghost entry the read took, so that no one changes the directory whil
 def rdPart (hL : OsGS GF) (x : GoString × DirPh) : IProp GF :=
   match x.2 with
   | .reading _ g q => iprop(∃ V : NsMap × List NsOp,
-      gElem hL hL.γd () (DFrac.own q) V ∗ ⌜g = dview V.1 V.2 x.1⌝)
+      gElem hL hL.γd () (DFrac.own q) V ∗ ⌜g = dview V.1 V.2 x.1 ∧ AllDir V x.1⌝)
   | _ => iprop(emp)
 
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (GoString × DirPh)) : IProp GF :=

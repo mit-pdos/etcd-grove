@@ -14,6 +14,7 @@ Untrusted.
 module
 
 public import GooseLang.Ext.OsFs.Specs
+public import GooseLang.Ext.OsFs.NsView
 public import GooseLang.Ext.OsFs.NsLemmas
 
 @[expose] public section
@@ -171,10 +172,9 @@ def osNsAll (dq : DFrac) (V : NsMap × List NsOp) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () dq V
 
 /-- The directory `d`, as `g` says: a fraction of the history, of which `g` is `d`'s view, `d` a
-directory now. -/
+directory in every prefix of it (so in every crash outcome). -/
 def osDir (d : GoString) (dq : DFrac) (g : DirG) : IProp GF :=
-  iprop(∃ V : NsMap × List NsOp, osNsAll dq V ∗
-    ⌜g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir⌝)
+  iprop(∃ V : NsMap × List NsOp, osNsAll dq V ∗ ⌜g = dview V.1 V.2 d ∧ AllDir V d⌝)
 
 /-- The directory fd `fd`, on `x.1`, its read at `x.2`. -/
 def osDirFd (fd : w64) (dq : DFrac) (x : GoString × DirPh) : IProp GF :=
@@ -200,15 +200,16 @@ theorem osNsAll_auth (V V' : NsMap × List NsOp) (dq : DFrac) :
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq] at h
   exact h.symm
 
-/-- A directory held, with the authoritative history: its view, a directory now. -/
+/-- A directory held, with the authoritative history: its view, a directory now (and in every
+prefix of the history). -/
 theorem osDir_view (V : NsMap × List NsOp) (d : GoString) (dq : DFrac) (g : DirG) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗ osDir (L := L) d dq g -∗
-      ⌜g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir⌝ := by
+      ⌜(g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir) ∧ AllDir V d⌝ := by
   unfold osDir
   iintro HA ⟨%V', Hh, %hg⟩
   icases osNsAll_auth V V' dq $$ HA Hh with %h
   subst h
-  ipureintro; exact hg
+  ipureintro; exact ⟨⟨hg.1, AllDir.now hg.2⟩, hg.2⟩
 
 /-- The history updated, with the whole of it. -/
 theorem osNsAll_update (V V' : NsMap × List NsOp) (W : NsMap × List NsOp) :
@@ -227,7 +228,7 @@ theorem osNsAll_update (V V' : NsMap × List NsOp) (W : NsMap × List NsOp) :
 /-- A directory held whole, with the authoritative history, updated to the history `V'`, its view
 there `g'`. -/
 theorem osDir_update (V V' : NsMap × List NsOp) (d : GoString) (g g' : DirG)
-    (hg' : g' = dview V'.1 V'.2 d ∧ nsReplay V'.2 V'.1 !! d = some .dir) :
+    (hg' : g' = dview V'.1 V'.2 d ∧ AllDir V' d) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗
       osDir (L := L) d (DFrac.own 1) g ==∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V') ∗
@@ -243,7 +244,7 @@ theorem osDir_update (V V' : NsMap × List NsOp) (d : GoString) (g g' : DirG)
 
 /-- The whole history is a directory's view (of any directory now). -/
 theorem osNsAll_dir (dq : DFrac) (V : NsMap × List NsOp) (d : GoString)
-    (hd : nsReplay V.2 V.1 !! d = some .dir) :
+    (hd : AllDir V d) :
     osNsAll (L := L) dq V ⊢ osDir (L := L) d dq (dview V.1 V.2 d) := by
   unfold osDir
   iintro H; iexists V; iframe; ipureintro; exact ⟨rfl, hd⟩
@@ -284,7 +285,7 @@ theorem wp_osRegimeNs (p d : GoString) (dq : DFrac) (g : DirG)
   obtain ⟨hw, hc⟩ := Hns
   icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hdir : st.ns !! d = some .dir := by rw [ns_eq_replay hw hc]; exact Hdl.2
+  have hdir : st.ns !! d = some .dir := by rw [ns_eq_replay hw hc]; exact Hdl.1.2
   have hpf : p ∉ st.files := by
     rcases hp with rfl | ⟨b, hb, rfl⟩
     · exact hw.dir_not_files hdir

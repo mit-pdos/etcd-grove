@@ -256,6 +256,10 @@ def lopsAlong : NsMap → List NsOp → GoString → List LOp
 def dview (H0 : NsMap) (H : List NsOp) (d : GoString) : DirG := ⟨entsOf H0 d, lopsAlong H0 H d⟩
 
 
+/-- `d` is a directory in every prefix of the history `V`. -/
+def AllDir (V : NsMap × List NsOp) (d : GoString) : Prop :=
+  ∀ n, nsReplay (V.2.take n) V.1 !! d = some .dir
+
 end Perennial
 
 end

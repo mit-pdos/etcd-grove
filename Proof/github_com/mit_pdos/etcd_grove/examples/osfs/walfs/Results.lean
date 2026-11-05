@@ -153,11 +153,9 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
     intro hG _ _ _
     rw [Hpkgs]
     iintro #Hos Hfs Hds Hz Hgs
-    have hdm : dirMap (extLocal osFsExt σ.world) !! dir =
-        some ⟨entsOf (extLocal osFsExt σ.world).ns dir, []⟩ := by
-      rw [dirMap_lookup, if_pos Hdir]
-    icases (BigSepM.bigSepM_lookup
-      (Φ := fun d g => osDir (L := hG.goose_localGS) d (DFrac.own 1) g) hdm) $$ Hds with Hd
+    ihave Hd := osNsAll_dir (L := hG.goose_localGS) _ _ dir (fun n => by
+      show nsReplay (([] : List NsOp).take n) _ !! dir = _
+      simp only [List.take_nil]; exact Hdir) $$ Hds
     have hnd0 : NoDirs ⟨entsOf (extLocal osFsExt σ.world).ns dir, []⟩ := fun e he => by
       rw [crashTo_nil rfl he]
       exact ⟨by rw [entsOf_child _ _ _ segB_ok]; exact Hnd.1,
@@ -228,8 +226,8 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
       imod inv_acc (E := ⊤) (show ↑bootN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
         with ⟨Hi, Hclose⟩
       icases Hi with ⟨%g, %ko, >Hd, >Hv, >%Hp, >Hk⟩
-      icases osNsCrash_take hG.goose_localGS L' [] dir List.not_mem_nil _ g $$ Hn Hd
-        with ⟨%g', %hg', Hd', -, Hd⟩
+      icases osNsCrash_take hG.goose_localGS L' dir _ g $$ Hn Hd
+        with ⟨%g', %hg', Hd', Hd⟩
       obtain ⟨hpend, hcr⟩ := hg'
       have hnd' : NoDirs g' := fun e he => by rw [crashTo_nil hpend he]; exact Hp.1 _ hcr
       rcases Hp.2 _ hcr with hnone | ⟨k, rfl, hk⟩

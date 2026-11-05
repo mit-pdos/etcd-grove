@@ -261,16 +261,40 @@ instance bootInv_persistent (d : GoString) (γ : GName) : Persistent (bootInv (L
 theorem osDir_halves (d : GoString) (g : DirG) :
     osDir (L := L) d (DFrac.own 1) g ⊣⊢
       osDir (L := L) d (DFrac.own (1 : Qp).half) g ∗ osDir (L := L) d (DFrac.own (1 : Qp).half) g := by
-  have h := gElem_split (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd d (1 : Qp).half (1 : Qp).half g
-  rw [Qp.half_add_half] at h
-  exact h
+  have h : ∀ V : NsMap × List NsOp, osNsAll (L := L) (DFrac.own 1) V ⊣⊢
+      osNsAll (L := L) (DFrac.own (1 : Qp).half) V ∗ osNsAll (L := L) (DFrac.own (1 : Qp).half) V := by
+    intro V
+    have h := gElem_split (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () (1 : Qp).half (1 : Qp).half V
+    rw [Qp.half_add_half] at h
+    exact h
+  unfold osDir
+  constructor
+  · iintro ⟨%V, Hh, %hg⟩
+    icases (h V).1 $$ Hh with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexists V; iframe; ipureintro; exact hg
+    · iexists V; iframe; ipureintro; exact hg
+  · iintro ⟨⟨%V1, H1, %hg1⟩, ⟨%V2, H2, %hg2⟩⟩
+    have hval : ⊢ osNsAll (L := L) (DFrac.own (1 : Qp).half) V1 -∗
+        osNsAll (L := L) (DFrac.own (1 : Qp).half) V2 -∗ ⌜V1 = V2⌝ := by
+      unfold osNsAll; iintro A B
+      icases gElem_valid_2 _ _ _ _ _ _ _ $$ A B with %hv
+      ipureintro; exact hv.2
+    icases hval $$ H1 H2 with %hv
+    subst hv
+    iexists V1
+    isplitl [H1 H2]
+    · iapply (h V1).2; iframe
+    · ipureintro; exact hg1
 
 theorem osDir_agree (d : GoString) (dq1 dq2 : DFrac) (g1 g2 : DirG) :
     ⊢ osDir (L := L) d dq1 g1 -∗ osDir (L := L) d dq2 g2 -∗ ⌜g1 = g2⌝ := by
   iintro H1 H2
-  unfold osDir
+  unfold osDir osNsAll
+  icases H1 with ⟨%V1, H1, %hg1⟩
+  icases H2 with ⟨%V2, H2, %hg2⟩
   icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %h
-  ipureintro; exact h.2
+  ipureintro; rw [hg1.1, hg2.1, h.2]
 
 end res
 
@@ -332,7 +356,7 @@ theorem wp_readNames (d : GoString) (q : Qp) (g : DirG) :
     (try wp_auto)
     iapply HΦ
     simp only [rdBack, rdPart]
-    unfold osDir
+    unfold osDir osNsAll
     iframe Hd
     ileft; itrivial
 

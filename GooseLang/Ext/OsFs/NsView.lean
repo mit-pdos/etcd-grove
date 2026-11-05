@@ -201,6 +201,36 @@ theorem dview_rename (H0 : NsMap) (H : List NsOp) (d bs bt k : GoString) (hbs : 
     _root_.and_self, ↓reduceIte, ne_eq, not_false_eq_true, _root_.true_and]
   rfl
 
+theorem AllDir.now {V : NsMap × List NsOp} {d : GoString} (h : AllDir V d) :
+    nsReplay V.2 V.1 !! d = some .dir := by
+  have := h V.2.length; rwa [List.take_length] at this
+
+/-- An operation that keeps `d` a directory keeps it one in every prefix. -/
+theorem AllDir.snoc {V : NsMap × List NsOp} {d : GoString} {o : NsOp} (h : AllDir V d)
+    (ho : o.apply (nsReplay V.2 V.1) !! d = some .dir) : AllDir (V.1, V.2 ++ [o]) d := by
+  intro n
+  show nsReplay ((V.2 ++ [o]).take n) V.1 !! d = some .dir
+  by_cases hn : n ≤ V.2.length
+  · rw [List.take_append_of_le_length hn]; exact h n
+  · rw [List.take_of_length_le (by simp; omega), nsReplay_snoc]; exact ho
+
+/-- A file operation of `d`'s entries (on a child of `d`) keeps `d` a directory. -/
+theorem apply_child_dir {m : NsMap} {d : GoString} (hd : m !! d = some .dir) (o : NsOp)
+    (ho : (∃ b k, NameOk b ∧ o = .create (d ++ slashB :: b) k) ∨
+      (∃ b, NameOk b ∧ o = .remove (d ++ slashB :: b)) ∨
+      (∃ bs bt k, NameOk bs ∧ NameOk bt ∧ m !! (d ++ slashB :: bs) = some (.file k) ∧
+        o = .rename (d ++ slashB :: bs) (d ++ slashB :: bt))) :
+    o.apply m !! d = some .dir := by
+  have hne : ∀ b, d ++ slashB :: b ≠ d := by
+    intro b h
+    have := congrArg List.length h; simp at this
+  rcases ho with ⟨b, k, -, rfl⟩ | ⟨b, -, rfl⟩ | ⟨bs, bt, k, -, -, hk, rfl⟩
+  · show (<[_ := _]> m) !! d = _; rw [GMap.lookup_insert_ne _ _ (hne b)]; exact hd
+  · show (GMap.delete _ m) !! d = _; rw [GMap.lookup_delete_ne _ (hne b)]; exact hd
+  · show (NsOp.rename _ _).apply m !! d = _
+    simp only [NsOp.apply, hk]
+    rw [GMap.lookup_insert_ne _ _ (hne bt), GMap.lookup_delete_ne _ (hne bs)]; exact hd
+
 /-- No operation: the view of the empty history. -/
 theorem dview_nil (H0 : NsMap) (d : GoString) : dview H0 [] d = ⟨entsOf H0 d, []⟩ := rfl
 

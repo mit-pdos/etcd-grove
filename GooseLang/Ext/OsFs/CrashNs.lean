@@ -21,86 +21,35 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-! ## The pure relation across a crash -/
 
-/-- A file operation changes no path's being a directory. -/
-theorem fileOp_dir {m : NsMap} {o : NsOp} (h : FileOp m o) (e : GoString) :
-    (o.apply m !! e = some .dir) ↔ (m !! e = some .dir) := by
-  cases o with
-  | create p k =>
-    obtain ⟨hn, -, -⟩ := h
-    show (<[p := OsNode.file k]> m) !! e = _ ↔ _
-    by_cases he : p = e
-    · subst he; rw [GMap.lookup_insert, hn]; simp
-    · rw [GMap.lookup_insert_ne _ _ he]
-  | remove p =>
-    obtain ⟨k, hf⟩ := h
-    show (GMap.delete p m) !! e = _ ↔ _
-    by_cases he : p = e
-    · subst he; rw [GMap.lookup_delete, hf]; simp
-    · rw [GMap.lookup_delete_ne _ he]
-  | rename s t =>
-    obtain ⟨⟨k, hf⟩, ht, -⟩ := h
-    have happ : (NsOp.rename s t).apply m = <[t := .file k]> (GMap.delete s m) := by
-      simp only [NsOp.apply, hf]
-    rw [happ]
-    show (<[t := OsNode.file k]> (GMap.delete s m)) !! e = _ ↔ _
-    by_cases h1 : t = e
-    · subst h1; rw [GMap.lookup_insert]
-      constructor
-      · intro h; cases h
-      · intro h; exact absurd h ht
-    · rw [GMap.lookup_insert_ne _ _ h1]
-      by_cases h2 : s = e
-      · subst h2; rw [GMap.lookup_delete, hf]; simp
-      · rw [GMap.lookup_delete_ne _ h2]
-  | mkdir p => exact h.elim
+theorem take_min_length' (l : List NsOp) (k : Nat) :
+    l.take (min k l.length) = l.take k := by
+  rw [← List.take_take, List.take_length]
 
-/-- Every prefix of the log replayed has the directories of the durable namespace. -/
-theorem replay_dirs {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) :
-    ∀ n, n ≤ st.nsLog.length → ∀ e,
-      (nsReplay (st.nsLog.take n) st.nsDur !! e = some .dir) ↔ (st.nsDur !! e = some .dir) := by
-  intro n
-  induction n with
-  | zero => intro _ e; simp [nsReplay]
-  | succ n ih =>
-    intro hn e
-    rw [List.take_succ, List.getElem?_eq_getElem (by omega)]
-    simp only [Option.toList_some]
-    rw [nsReplay_snoc, fileOp_dir (hc.ops n (by omega)) e]
-    exact ih (by omega) e
-
-/-- After a crash, every directory the old ghost state knew has an entry that is a crash outcome
-of the old one. -/
-theorem nsCrash_dirs {st st' : OsState} {Γd Γdf} (hw : NsWf st) (hc : NsCoh st Γd Γdf)
-    (hcr : NsCrash st st') :
-    ∀ d g, Γd !! d = some g → dirMap st' !! d = some ⟨entsOf st'.ns d, []⟩ ∧
-      g.CrashTo (entsOf st'.ns d) := by
+/-- **A crash leaves a prefix of the history**: the namespace after it is some prefix of the
+operations logged since boot replayed on the namespace the generation booted with. -/
+theorem nsCrash_hist {st st' : OsState} {V : NsMap × List NsOp} {Γdf} (hc : NsCoh st V Γdf)
+    (hcr : NsCrash st st') : ∃ n, n ≤ V.2.length ∧ st'.ns = nsReplay (V.2.take n) V.1 := by
   obtain ⟨-, -, -, -, -, ⟨n, hn, hns⟩, -⟩ := hcr
-  intro d g hg
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [hg]; rfl)
-  have hdur : st.nsDur !! d = some .dir := by
-    have := (replay_dirs hc st.nsLog.length (Nat.le_refl _) d).1
-    rw [List.take_length, ← hw.replay] at this
-    exact this hdir
-  have hdir' : st'.ns !! d = some .dir := by rw [hns]; exact (replay_dirs hc n hn d).2 hdur
-  refine ⟨by rw [dirMap_lookup, if_pos hdir'], ?_⟩
-  rw [hns]; exact hc.hist d g hg n hn
+  obtain ⟨h1, h2, h3⟩ := hc.hist
+  generalize hcd : V.2.length - st.nsLog.length = c at h2 h3
+  refine ⟨c + min n st.nsLog.length, by omega, ?_⟩
+  rw [hns, h3, ← nsReplay_append, ← h2, List.take_add, take_min_length']
 
 /-! ## The crash interpretation -/
 
 section crash
 variable {GF : BundledGFunctors}
 
-/-- The namespace's part of the restart: the old generation's directories' ghost entries and the
-new generation's directories (those not yet taken), each a crash outcome of the old (`D`: the
-directories taken). -/
-def nsCrashRest (hL hL' : OsGS GF) (D : List GoString) : IProp GF :=
-  iprop(∃ (Γd Dirs : GMap GoString DirG), gAuth hL hL.γd Γd ∗
-    ([∗map] d ↦ g' ∈ Dirs, gElem hL' hL'.γd d (DFrac.own 1) g') ∗
-    ⌜∀ d g, Γd !! d = some g → d ∉ D → ∃ g', Dirs !! d = some g' ∧ g'.pend = [] ∧ g.CrashTo g'.dur⌝)
+/-- The namespace's part of the restart: the old generation's history, and the new generation's,
+whole, on the namespace the crash left, a prefix of the old history replayed. -/
+def nsCrashRest (hL hL' : OsGS GF) : IProp GF :=
+  iprop(∃ (V : NsMap × List NsOp) (ns' : NsMap), gAuth hL hL.γd (histMap V) ∗
+    gElem hL' hL'.γd () (DFrac.own 1) (ns', ([] : List NsOp)) ∗
+    ⌜∃ n, n ≤ V.2.length ∧ ns' = nsReplay (V.2.take n) V.1⌝)
 
 /-- The restart's resources: `osCrashStartT`'s, the namespace's, and the new in-flight flag. -/
 def osCrashStartN (hL hL' : OsGS GF) : IProp GF :=
-  iprop(osCrashStartT hL hL' ∗ nsCrashRest hL hL' [] ∗
+  iprop(osCrashStartT hL hL' ∗ nsCrashRest hL hL' ∗
     ([∗map] k ↦ b ∈ busyMap false, gElem hL' hL'.γz k (DFrac.own 1) b))
 
 theorem osStartF_files (hL : OsGS GF) (st : OsState) :
@@ -119,7 +68,7 @@ theorem os_local_crashN (hPre : OsGpreS GF) (hL : OsGS GF) (st st' : OsState)
   unfold osCtx osCtxF nsCtx
   iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, ⟨%Γd, %Γdf, %hns, HAd, -, -, -⟩⟩
   obtain ⟨hinit, hrel⟩ := osCrash_rel hwc.2 hns.1 hc
-  have hdirs := nsCrash_dirs hns.1 hns.2 hc.2
+  have hhist := nsCrash_hist hns.2 hc.2
   imod os_local_init hPre st' hinit with ⟨%hL', Hctx, Hst⟩
   unfold osCtx osCtxF nsCtx
   unfold osStart
@@ -139,12 +88,9 @@ theorem os_local_crashN (hPre : OsGpreS GF) (hL : OsGS GF) (st st' : OsState)
       ipureintro; exact hrel
     · iexists st, Γt
       iframe
-  · iexists Γd, (dirMap st')
+  · iexists Γd, st'.ns
     iframe HAd Hds
-    ipureintro
-    intro d g hg _
-    obtain ⟨h1, h2⟩ := hdirs d g hg
-    exact ⟨_, h1, rfl, h2⟩
+    ipureintro; exact hhist
 
 /-- The crash interpretation of the Linux file extension with the namespace. -/
 @[reducible] def os_crash_interpN : ExtCrashInterp osFsExt where
@@ -159,33 +105,48 @@ section gen
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
-/-- **A directory after a crash**: from (a fraction of) the old generation's ghost entry `g` of
-`d`, the new generation's, whole, with no change since a commit, its entries a crash outcome of
-`g`. The old fraction is given back. -/
-theorem osNsCrash_take (L L' : GooseLocalGS GF) (D : List GoString) (d : GoString) (hd : d ∉ D)
-    (dq : DFrac) (g : DirG) :
-    ⊢ nsCrashRest (gooseOsGS (L := L)) (gooseOsGS (L := L')) D -∗ osDir (L := L) d dq g -∗
-      ∃ g', ⌜g'.pend = [] ∧ g.CrashTo g'.dur⌝ ∗ osDir (L := L') d (DFrac.own 1) g' ∗
-        nsCrashRest (gooseOsGS (L := L)) (gooseOsGS (L := L')) (d :: D) ∗ osDir (L := L) d dq g := by
-  unfold nsCrashRest osDir
-  iintro ⟨%Γd, %Dirs, HAd, Hds, %hrel⟩ Hd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
-  obtain ⟨g', hg', hp, hcr⟩ := hrel d g Hdl hd
-  icases (BigSepM.bigSepM_delete (M := GMap GoString)
-    (Φ := fun (d : GoString) (g' : DirG) =>
-      gElem (gooseOsGS (L := L')) (gooseOsGS (L := L')).γd d (DFrac.own 1) g') hg').1 $$ Hds
-    with ⟨Hg', Hds⟩
-  iexists g'
-  iframe Hg' Hd
+/-- **The history after a crash**: from (a fraction of) the old generation's history `W`, the new
+generation's, whole, on a prefix of `W` replayed (nothing logged on it yet). The old fraction is
+given back. -/
+theorem osNsCrash_takeAll (L L' : GooseLocalGS GF) (dq : DFrac) (W : NsMap × List NsOp) :
+    ⊢ nsCrashRest (gooseOsGS (L := L)) (gooseOsGS (L := L')) -∗ osNsAll (L := L) dq W -∗
+      ∃ n, ⌜n ≤ W.2.length⌝ ∗
+        osNsAll (L := L') (DFrac.own 1) (nsReplay (W.2.take n) W.1, ([] : List NsOp)) ∗
+        osNsAll (L := L) dq W := by
+  unfold nsCrashRest
+  iintro ⟨%V, %ns', HA, Hn, %hrel⟩ Hh
+  icases osNsAll_auth (L := L) V W dq $$ HA Hh with %h
+  subst h
+  obtain ⟨n, hn, rfl⟩ := hrel
+  iexists n
+  iframe Hh
   isplitr
-  · ipureintro; exact ⟨hp, hcr⟩
-  iexists Γd, (GMap.delete d Dirs)
-  iframe HAd Hds
-  ipureintro
-  intro e ge hge he
-  have hed : e ≠ d := fun h => he (h ▸ List.mem_cons_self)
-  obtain ⟨g2, h1, h2⟩ := hrel e ge hge (fun h => he (List.mem_cons_of_mem _ h))
-  exact ⟨g2, by rw [GMap.lookup_delete_ne _ (Ne.symm hed)]; exact h1, h2⟩
+  · ipureintro; exact hn
+  unfold osNsAll; iexact Hn
+
+/-- **A directory after a crash**: from (a fraction of) the old generation's view `g` of `d`, the
+new generation's, whole, with nothing since a commit, its entries a crash outcome of `g`. -/
+theorem osNsCrash_take (L L' : GooseLocalGS GF) (d : GoString) (dq : DFrac) (g : DirG) :
+    ⊢ nsCrashRest (gooseOsGS (L := L)) (gooseOsGS (L := L')) -∗ osDir (L := L) d dq g -∗
+      ∃ g', ⌜g'.pend = [] ∧ g.CrashTo g'.dur⌝ ∗ osDir (L := L') d (DFrac.own 1) g' ∗
+        osDir (L := L) d dq g := by
+  iintro Hr Hd
+  unfold osDir
+  icases Hd with ⟨%W, Hh, %hg⟩
+  obtain ⟨rfl, hall⟩ := hg
+  icases osNsCrash_takeAll L L' dq W $$ Hr Hh with ⟨%n, %hn, Hn, Hh⟩
+  iexists ⟨entsOf (nsReplay (W.2.take n) W.1) d, []⟩
+  isplitr
+  · ipureintro; exact ⟨rfl, dview_crashTo W.1 W.2 d n⟩
+  isplitl [Hn]
+  · iexists (nsReplay (W.2.take n) W.1, ([] : List NsOp))
+    iframe Hn
+    ipureintro
+    refine ⟨rfl, fun m => ?_⟩
+    show nsReplay (([] : List NsOp).take m) _ !! d = _
+    simp only [List.take_nil]
+    exact hall n
+  · iexists W; iframe Hh; ipureintro; exact ⟨rfl, hall⟩
 
 /-- The in-flight flag of the new generation, from the restart's. -/
 theorem osNsBusy_start [L : GooseLocalGS GF] :
@@ -215,7 +176,7 @@ theorem osFs_startN [hG : HeapGS .hasLC GF] (σ : state) :
     ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
       osInv (L := hG.goose_localGS) ∗
       ([∗map] p ↦ fo ∈ (extLocal osFsExt σ.world).files, osFileStart (L := hG.goose_localGS) p fo) ∗
-      ([∗map] d ↦ g ∈ dirMap (extLocal osFsExt σ.world), osDir (L := hG.goose_localGS) d (DFrac.own 1) g) ∗
+      osNsAll (L := hG.goose_localGS) (DFrac.own 1) ((extLocal osFsExt σ.world).ns, ([] : List NsOp)) ∗
       osNsBusy (L := hG.goose_localGS) false := by
   have Hl : extsLocalStart (GF := GF) σ.world ⊢
       osStart (gooseOsGS (L := hG.goose_localGS)) (extLocal osFsExt σ.world) :=
@@ -233,7 +194,7 @@ theorem osFs_startN [hG : HeapGS .hasLC GF] (σ : state) :
   isplitl [Hfs]
   · iapply BigSepM.bigSepM_mono (fun {p fo} _ => (fileStart_eq (L := hG.goose_localGS) p fo).1) $$ Hfs
   isplitl [Hds]
-  · unfold osDir; iexact Hds
+  · unfold osNsAll; iexact Hds
   · iapply osNsBusy_start (L := hG.goose_localGS) $$ Hz
 
 /-- **Crash adequacy for a program with Linux files and a namespace**, as `osFs_crash_adequacyT`,
@@ -251,8 +212,7 @@ theorem osFs_crash_adequacyN [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ :
       ⊢ osInv (L := hG.goose_localGS) -∗
         ([∗map] p ↦ fo ∈ (extLocal osFsExt σ.world).files,
           osFileStart (L := hG.goose_localGS) p fo) -∗
-        ([∗map] d ↦ g ∈ dirMap (extLocal osFsExt σ.world),
-          osDir (L := hG.goose_localGS) d (DFrac.own 1) g) -∗
+        osNsAll (L := hG.goose_localGS) (DFrac.own 1) ((extLocal osFsExt σ.world).ns, ([] : List NsOp)) -∗
         osNsBusy (L := hG.goose_localGS) false -∗
         ownGoState σ.goState.packageState ={⊤}=∗ P hG.goose_localGS)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
@@ -264,7 +224,7 @@ theorem osFs_crash_adequacyN [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ :
         ∀ L' : GooseLocalGS GF, crashed (hC := hG.goose_localGS.goose_crashGS) -∗
           osInv (L := L') -∗
           crashRestT (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] -∗
-          nsCrashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] -∗
+          nsCrashRest (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) -∗
           osNsBusy (L := L') false -∗
           ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗ P L')
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)

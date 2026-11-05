@@ -5,6 +5,7 @@ WP specs of the namespace's operations that change it, and of a directory fd's `
 module
 
 public import GooseLang.Ext.OsFs.NsSpecs
+public import GooseLang.Ext.OsFs.NsView
 
 @[expose] public section
 
@@ -21,7 +22,7 @@ theorem nsWf_nsFree {st : OsState} (hw : NsWf st) : NsWf st.nsFree :=
   ⟨hw.roots, hw.replay, hw.hist, hw.legacy, hw.dfds, hw.disj⟩
 
 theorem nsCoh_nsFree {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) : NsCoh st.nsFree Γd Γdf :=
-  hc.congr rfl rfl rfl rfl
+  hc.congr rfl rfl rfl
 
 theorem busyMap_insert (b b' : Bool) : (<[() := b]> (busyMap b')) = busyMap b := by
   apply GMap.ext; intro u; cases u; simp [busyMap]
@@ -47,18 +48,9 @@ theorem nsWf_nsCommit {st : OsState} (hw : NsWf st) (n : Nat) : NsWf (st.nsCommi
     rw [← take_min_length]
     exact hw.hist _ (Nat.min_le_right _ _)
 
-/-- ... and its coherence with the ghost maps: the crash outcomes after it are some before it. -/
+/-- ... and its coherence with the history. -/
 theorem nsCoh_nsCommit {st : OsState} {Γd Γdf} (hc : NsCoh st Γd Γdf) (n : Nat) :
-    NsCoh (st.nsCommit n) Γd Γdf := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hc
-  refine ⟨h1, h2, fun d g hg m _ => ?_, fun j hj => ?_, h5, h6, h7⟩
-  · simp only [OsState.nsCommit, nsReplay_commit]
-    rw [← take_min_length]
-    exact h3 d g hg _ (Nat.min_le_right _ _)
-  · have hj' : j < (st.nsLog.drop n).length := hj
-    simp only [List.length_drop] at hj'
-    simp only [OsState.nsCommit, nsReplay_commit, List.getElem_drop]
-    exact h4 (n + j) (by omega)
+    NsCoh (st.nsCommit n) Γd Γdf := nsCoh_commit hc n
 
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
@@ -66,30 +58,34 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalCo
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-/-- The holder of a directory's whole ghost entry knows that no read of it is in progress. -/
+/-- The holder of a directory's whole ghost entry (so of the whole history) knows that no read is
+in progress. -/
 theorem rdRes_whole (d : GoString) (g : DirG) (Γdf : GMap w64 (GoString × DirPh)) :
     ⊢ osDir (L := L) d (DFrac.own 1) g -∗ rdRes (gooseOsGS (L := L)) Γdf -∗
-      ⌜∀ fd rs g' q, Γdf !! fd ≠ some (d, .reading rs g' q)⌝ ∗ osDir (L := L) d (DFrac.own 1) g ∗
+      ⌜∀ fd d' rs g' q, Γdf !! fd ≠ some (d', .reading rs g' q)⌝ ∗ osDir (L := L) d (DFrac.own 1) g ∗
         rdRes (gooseOsGS (L := L)) Γdf := by
   iintro Hd Hrd
-  by_cases hall : ∀ fd rs g' q, Γdf !! fd ≠ some (d, .reading rs g' q)
+  by_cases hall : ∀ fd d' rs g' q, Γdf !! fd ≠ some (d', .reading rs g' q)
   · iframe; ipureintro; exact hall
   · obtain ⟨fd, h1⟩ := Classical.not_forall.1 hall
+    obtain ⟨d', h1⟩ := Classical.not_forall.1 h1
     obtain ⟨rs, h2⟩ := Classical.not_forall.1 h1
     obtain ⟨g', h3⟩ := Classical.not_forall.1 h2
     obtain ⟨q, h4⟩ := Classical.not_forall.1 h3
-    have hx : Γdf !! fd = some (d, .reading rs g' q) := Classical.not_not.1 h4
+    have hx : Γdf !! fd = some (d', .reading rs g' q) := Classical.not_not.1 h4
     unfold rdRes
     icases BigSepM.bigSepM_lookup (M := GMap w64)
       (Φ := fun (_ : w64) (x : GoString × DirPh) => rdPart (gooseOsGS (L := L)) x) hx $$ Hrd with Hq
     unfold rdPart at *
-    unfold osDir
+    unfold osDir osNsAll
+    icases Hd with ⟨%W, Hd, -⟩
+    icases Hq with ⟨%W', Hq, -⟩
     icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hd Hq with %Hv
     exact absurd (DFrac.valid_own_op Hv.1) (by simp)
 
 /-- A namespace step that leaves the files alone and changes the namespace to a well-formed,
 coherent state: the worlds after it. -/
-theorem ns_step_close {st st' : OsState} {Γb Γm Γf Γt} {Γd' : GMap GoString DirG}
+theorem ns_step_close {st st' : OsState} {Γb Γm Γf Γt} {Γd' : NsMap × List NsOp}
     {Γdf : GMap w64 (GoString × DirPh)} {h h' : GMap Loc (NonAtomic val)}
     (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (hs : FilesSame st st')
     (hr : HeapRendered st st' h h') (hfr : MapsFresh st st' h)
@@ -99,7 +95,7 @@ theorem ns_step_close {st st' : OsState} {Γb Γm Γf Γt} {Γd' : GMap GoString
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf -∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt -∗
       tokRes (gooseOsGS (L := L)) st Γt -∗ cellsRes (GF := GF) (cellView st) -∗ naHeapCtx tls h -∗
-      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd Γd' -∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap Γd') -∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf -∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γz (busyMap bz) -∗
       rdRes (gooseOsGS (L := L)) Γdf ==∗
@@ -113,6 +109,22 @@ theorem ns_step_close {st st' : OsState} {Γb Γm Γf Γt} {Γd' : GMap GoString
   rw [hbz]
   iframe
   ipureintro; exact ⟨hw', hc'⟩
+
+
+theorem view_facts {st : OsState} {V : NsMap × List NsOp} {Γdf} {d : GoString} {g : DirG}
+    (hw : NsWf st) (hc : NsCoh st V Γdf)
+    (hg : (g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir) ∧ AllDir V d) :
+    st.ns !! d = some .dir ∧ entsOf st.ns d = g.now := by
+  rw [ns_eq_replay hw hc]; exact ⟨hg.1.2, by rw [hg.1.1, dview_now]⟩
+
+theorem view_log {st : OsState} {V : NsMap × List NsOp} {Γdf} {d : GoString} {g : DirG} {o : NsOp}
+    {lo : LOp} (hw : NsWf st) (hc : NsCoh st V Γdf)
+    (hg : (g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir) ∧ AllDir V d)
+    (hin : FileOpIn st.ns d o lo) (hv : dview V.1 (V.2 ++ [o]) d = (dview V.1 V.2 d).push lo) :
+    g.push lo = dview (V.1, V.2 ++ [o]).1 (V.1, V.2 ++ [o]).2 d ∧ AllDir (V.1, V.2 ++ [o]) d := by
+  refine ⟨by rw [hg.1.1]; exact hv.symm, AllDir.snoc hg.2 ?_⟩
+  rw [← ns_eq_replay hw hc]
+  exact (hin.dir d).2 (by rw [ns_eq_replay hw hc]; exact hg.1.2)
 
 /-- `unlink(2)` of the file `b` of the directory `d`, with `d`'s whole ghost entry and the
 in-flight flag set: the flag cleared; on success `b` removed; on failure removed or not. -/
@@ -132,15 +144,15 @@ theorem wp_osUnlink (d b k : GoString) (g : DirG) (hb : NameOk b)
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
   icases rdRes_whole d g Γdf $$ Hd Hrd with ⟨%Hnr, Hd, Hrd⟩
-  unfold osDir osNsBusy
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  unfold osNsBusy
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hb1 : st.nsBusy = true := by
     simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := (view_facts hw hc Hdl).1
   have hfile : st.ns !! child d b = some (.file k) := by
-    rw [← entsOf_child st.ns d b hb, hc.now d g Hdl]; exact hf
+    rw [← entsOf_child st.ns d b hb, (view_facts hw hc Hdl).2]; exact hf
   have hname := hw.nsName_child hdir hb
   have hin := fileOpIn_remove hb hfile
   have hop : FileOp st.ns (.remove (child d b)) := ⟨k, hfile⟩
@@ -154,8 +166,9 @@ theorem wp_osUnlink (d b k : GoString) (g : DirG) (hb : NameOk b)
         · subst hpe; rw [GMap.lookup_delete] at hp'; cases hp'
         · rw [GMap.lookup_delete_ne _ hpe] at hp'; exact hw.keys hp')
       hin.dir
-  have hce : NsCoh (st.nsFree.nsDo (.remove (child d b))) (<[d := g.push (.del b)]> Γd) Γdf :=
-    nsCoh_fileOp hc Hdl Hnr hop hin rfl rfl rfl rfl hw.replay
+  have hce : NsCoh (st.nsFree.nsDo (.remove (child d b))) (Γd.1, Γd.2 ++ [.remove (child d b)]) Γdf :=
+    nsCoh_log hc Hnr rfl rfl rfl
+  have hg' := view_log hw hc Hdl hin (dview_remove _ _ d b hb)
   have hs0 : FilesSame st st.nsFree := filesSame_nsFree st
   have hs1 : FilesSame st (st.nsFree.nsDo (.remove (child d b))) :=
     hs0.trans (filesSame_nsDo _ _)
@@ -182,11 +195,11 @@ theorem wp_osUnlink (d b k : GoString) (g : DirG) (hb : NameOk b)
     · exact .inl ⟨rfl, .inr ⟨e, he, rfl⟩⟩
     · exact .inr ⟨rfl, e, he, rfl⟩
   rcases hcases with ⟨rfl, he⟩ | ⟨rfl, e, he, rfl⟩
-  · imod gAuth_update _ _ _ _ _ (g.push (.del b)) $$ HAd Hd with ⟨HAd, Hd⟩
+  · imod osDir_update Γd (Γd.1, Γd.2 ++ [.remove (child d b)]) d g (g.push (.del b)) hg' $$ HAd Hd with ⟨HAd, Hd⟩
     imod ns_step_close hwf hcoh hs1 Hr Hfr hwe hce false rfl $$ HAb HAm HAf HAt Htok Hcells Hσ HAd HAdf
       HAz Hrd with ⟨Hw, Hn⟩
     imodintro
-    iexists Γb, Γm, Γf, Γt, (<[d := g.push (.del b)]> Γd), Γdf
+    iexists Γb, Γm, Γf, Γt, (Γd.1, Γd.2 ++ [.remove (child d b)]), Γdf
     unfold osWorld nsWorld
     iframe Hw Hn
     rcases he with rfl | ⟨e, he, rfl⟩
@@ -218,15 +231,15 @@ theorem wp_osRmdirNotDir (d b : GoString) (dq : DFrac) (g : DirG) (hb : NameOk b
   icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
-  unfold osDir osNsBusy
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  unfold osNsBusy
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hb1 : st.nsBusy = true := by
     simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := (view_facts hw hc Hdl).1
   have hnd' : st.ns !! child d b ≠ some .dir := by
-    rw [← entsOf_child st.ns d b hb, hc.now d g Hdl]; exact hnd
+    rw [← entsOf_child st.ns d b hb, (view_facts hw hc Hdl).2]; exact hnd
   have hname := hw.nsName_child hdir hb
   have hnofd : ∀ fd df, st.dfds !! fd = some df → df.path ≠ child d b := by
     intro fd df hdf he; apply hnd'; rw [← he]; exact hw.dfds fd df hdf
@@ -270,12 +283,11 @@ theorem wp_osNsLstatDir (d b : GoString) (dq : DFrac) (g : DirG) (hb : NameOk b)
   icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
-  unfold osDir
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := (view_facts hw hc Hdl).1
   have hnd' : st.ns !! child d b ≠ some .dir := by
-    rw [← entsOf_child st.ns d b hb, hc.now d g Hdl]; exact hnd
+    rw [← entsOf_child st.ns d b hb, (view_facts hw hc Hdl).2]; exact hnd
   have hpath : st.NsPath (child d b) := .inr (hw.nsName_child hdir hb)
   imodintro
   isplitr
@@ -323,17 +335,17 @@ theorem wp_osRename (d bs bt k : GoString) (g : DirG) (hbs : NameOk bs) (hbt : N
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
   icases rdRes_whole d g Γdf $$ Hd Hrd with ⟨%Hnr, Hd, Hrd⟩
-  unfold osDir osNsBusy
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  unfold osNsBusy
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hb1 : st.nsBusy = true := by
     simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := (view_facts hw hc Hdl).1
   have hfile : st.ns !! child d bs = some (.file k) := by
-    rw [← entsOf_child st.ns d bs hbs, hc.now d g Hdl]; exact hf
+    rw [← entsOf_child st.ns d bs hbs, (view_facts hw hc Hdl).2]; exact hf
   have ht' : st.ns !! child d bt ≠ some .dir := by
-    rw [← entsOf_child st.ns d bt hbt, hc.now d g Hdl]; exact ht
+    rw [← entsOf_child st.ns d bt hbt, (view_facts hw hc Hdl).2]; exact ht
   have hcne : child d bs ≠ child d bt := fun h => hne (List.cons.inj (List.append_cancel_left h)).2
   have hin := fileOpIn_rename hbs hbt hne hfile ht'
   have hop : FileOp st.ns (.rename (child d bs) (child d bt)) :=
@@ -364,8 +376,10 @@ theorem wp_osRename (d bs bt k : GoString) (g : DirG) (hbs : NameOk bs) (hbt : N
         · subst h2; rw [GMap.lookup_delete] at hp; cases hp
         · rw [GMap.lookup_delete_ne _ h2] at hp; exact hw.keys hp
   have hce : NsCoh (st.nsFree.nsDo (.rename (child d bs) (child d bt)))
-      (<[d := g.push (.mv bs bt)]> Γd) Γdf :=
-    nsCoh_fileOp hc Hdl Hnr hop hin rfl rfl rfl rfl hw.replay
+      (Γd.1, Γd.2 ++ [.rename (child d bs) (child d bt)]) Γdf :=
+    nsCoh_log hc Hnr rfl rfl rfl
+  have hg' := view_log hw hc Hdl hin
+    (dview_rename _ _ d bs bt k hbs hbt hne (by rw [← ns_eq_replay hw hc]; exact hfile))
   have hs0 : FilesSame st st.nsFree := filesSame_nsFree st
   have hs1 : FilesSame st (st.nsFree.nsDo (.rename (child d bs) (child d bt))) :=
     hs0.trans (filesSame_nsDo _ _)
@@ -394,11 +408,11 @@ theorem wp_osRename (d bs bt k : GoString) (g : DirG) (hbs : NameOk bs) (hbt : N
     · exact absurd heq hcne
     · exact .inr ⟨rfl, e, he, rfl⟩
   rcases hcases with ⟨rfl, he⟩ | ⟨rfl, e, he, rfl⟩
-  · imod gAuth_update _ _ _ _ _ (g.push (.mv bs bt)) $$ HAd Hd with ⟨HAd, Hd⟩
+  · imod osDir_update Γd (Γd.1, Γd.2 ++ [.rename (child d bs) (child d bt)]) d g (g.push (.mv bs bt)) hg' $$ HAd Hd with ⟨HAd, Hd⟩
     imod ns_step_close hwf hcoh hs1 Hr Hfr hwe hce false rfl $$ HAb HAm HAf HAt Htok Hcells Hσ
       HAd HAdf HAz Hrd with ⟨Hw, Hn⟩
     imodintro
-    iexists Γb, Γm, Γf, Γt, (<[d := g.push (.mv bs bt)]> Γd), Γdf
+    iexists Γb, Γm, Γf, Γt, (Γd.1, Γd.2 ++ [.rename (child d bs) (child d bt)]), Γdf
     unfold osWorld nsWorld
     iframe Hw Hn
     rcases he with rfl | ⟨e, he, rfl⟩
@@ -520,8 +534,8 @@ theorem wp_osDirClose (fd : w64) (x : GoString × DirPh) (hE : ↑osN ⊆ E) (Φ
       · exact hw.disj fd' h'
   have hc' : NsCoh st' Γd (GMap.delete fd Γdf) := by
     rw [hst]
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hc
-    refine ⟨h1, h2, h3, h4, fun fd' => ?_, fun fd' x' df' hx hd => ?_,
+    obtain ⟨h1, h5, h6, h7⟩ := hc
+    refine ⟨h1, fun fd' => ?_, fun fd' x' df' hx hd => ?_,
       fun fd' d rs g q hx => ?_⟩
     · show ((GMap.delete fd Γdf) !! fd').map (·.1) = ((GMap.delete fd st.dfds) !! fd').map (·.path)
       rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]; split
@@ -566,15 +580,15 @@ theorem wp_osUnlinkAbsent (d b : GoString) (dq : DFrac) (g : DirG) (hb : NameOk 
   icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
-  unfold osDir osNsBusy
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  unfold osNsBusy
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hb1 : st.nsBusy = true := by
     simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := (view_facts hw hc Hdl).1
   have hnone : st.ns !! child d b = none := by
-    rw [← entsOf_child st.ns d b hb, hc.now d g Hdl]; exact hn
+    rw [← entsOf_child st.ns d b hb, (view_facts hw hc Hdl).2]; exact hn
   have hs0 : FilesSame st st.nsFree := filesSame_nsFree st
   imodintro
   isplitr
@@ -619,22 +633,22 @@ theorem wp_osRenameAbsent (d bs bt : GoString) (dq : DFrac) (g : DirG) (hbs : Na
   icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
-  unfold osDir osNsBusy
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  unfold osNsBusy
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAz Hz with %Hzl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hb1 : st.nsBusy = true := by
     simp only [busyMap, GMap.lookup_singleton_eq, Option.some.injEq] at Hzl; exact Hzl
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := (view_facts hw hc Hdl).1
   have hnone : st.ns !! child d bs = none := by
-    rw [← entsOf_child st.ns d bs hbs, hc.now d g Hdl]; exact hn
+    rw [← entsOf_child st.ns d bs hbs, (view_facts hw hc Hdl).2]; exact hn
   have hcne : child d bs ≠ child d bt := fun h => hne (List.cons.inj (List.append_cancel_left h)).2
   have hnofd : ∀ fd df, st.dfds !! fd = some df →
       (st.ns !! child d bs = some .dir → ¬ IsUnder (child d bs) df.path) ∧ df.path ≠ child d bt := by
     intro fd df hdf
     refine ⟨(fun h => by rw [hnone] at h; cases h), fun he => ?_⟩
     have ht' : st.ns !! child d bt ≠ some .dir := by
-      rw [← entsOf_child st.ns d bt hbt, hc.now d g Hdl]; exact ht
+      rw [← entsOf_child st.ns d bt hbt, (view_facts hw hc Hdl).2]; exact ht
     exact ht' (he ▸ hw.dfds fd df hdf)
   have hs0 : FilesSame st st.nsFree := filesSame_nsFree st
   imodintro
