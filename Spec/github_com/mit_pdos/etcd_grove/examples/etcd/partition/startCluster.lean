@@ -1,8 +1,10 @@
 /-
-`startCluster(lg)` (`examples/etcd/partition/etcd_partition.go`; W4 of `notes/watch-cut-plan.md`, 2026-10-22):
-`Main`'s start (until W4 inline in it): the three members started and served (`startMember`), a
-bridge to each member's client address (`startBridge`), three clients each of every bridge
-(`etcdstart.NewClients`, linkv3p's `newClient` until 2026-10-23; failover, D27). Lean-first (no Rocq counterpart).
+`startCluster(lg)` (`examples/etcd/partition/linkv3p.go`; W4 of `notes/watch-cut-plan.md`, 2026-10-22):
+`Main`'s start (until W4 inline in it): the cluster's configuration (`config`), the three members
+started and served and a bridge to each member's client address (`cluster3.StartCluster`; until
+2026-11-05 this package's `startMember` and `startBridge`), three clients each of every bridge
+(`cluster3.NewClient`, over `etcdstart.NewClients`; failover, D27). Lean-first (no Rocq
+counterpart).
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the nine addresses, the
 thread token and `Main`'s named premises (`etcd_partition.premises`), `startCluster(lg)`, at a logger
@@ -12,7 +14,7 @@ cluster up (`clusterUp`: every member at its bridge with its KV and watch regist
 bridge owned and not blackholed, every client `clientv3.New`'s over the three bridges at the
 watch environment of the prefix `pfx`, the caller's choice, and etcd's KV at the start store).
 
-**The pure premises:** `startMember`'s (`Main`'s but its bounds on `clients` and `ops`).
+**The pure premises:** `cluster3.StartCluster`'s (`Main`'s but its bounds on `clients` and `ops`).
 -/
 module
 

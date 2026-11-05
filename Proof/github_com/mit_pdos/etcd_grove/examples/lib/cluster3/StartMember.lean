@@ -1,12 +1,13 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/partition/startMember.lean` (the partition
-plan's S3a, 2026-10-20; over the examples' shared start since 2026-10-22, D33). Lean-first (no Rocq
-counterpart). The member's start is putget3's, the shared `etcdstart.NewMember` (the configuration,
-`NewServer`, its raft handler served on a listener at the peer address) at linkv3p's token, its
-premises from the member's own (`etcdstart.bootPremise_of`); then `net.Listen` at the client address,
-`s.Start()` (`etcdstart.wp_Start_built`); then the serving steps of linkv3's `Main`, for this member,
-with the keepalive policy: `v3rpc.Server(s, nil, nil, opt)` (its configuration from the started
-server's, `grpcCfgOk_of_started_w`, with the watchable store's reader slots), the ghost step
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/lib/cluster3/StartMember.lean` (the partition
+plan's S3a, 2026-10-20; over the examples' shared start since 2026-10-22, D33; package `partition`'s
+`startMember` until 2026-11-05, at linkv3p's configuration). Lean-first (no Rocq counterpart). The
+member's start is the shared `etcdstart.NewMember` (the configuration, `NewServer`, its raft
+handler served on a listener at the peer address) at the cluster's token and snapshot settings, in
+the cluster's compaction mode; then `net.Listen` at the client address, `s.Start()`
+(`etcdstart.wp_Start_built`); then the serving steps of linkv3's `Main`, for this member, with the
+keepalive policy: `v3rpc.Server(s, nil, nil, opt)` (its configuration from the started server's,
+`grpcCfgOk_of_started_w`, with the watchable store's reader slots), the ghost step
 `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client address)
 with the members' axiom `etcd_noRefusal` before it (D29: the address refusal-free), (W2 of
 `notes/watch-cut-plan.md`) the `Watch` stream served there with one run slot
@@ -15,7 +16,7 @@ thread token.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.partition.startMember
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
 public import Spec.net.Listen
@@ -37,11 +38,10 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_partition
+namespace cluster3
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open etcd_putget3 (httpURL commonPremises)
-open etcdstart (memberBoot memberUp)
+open etcdstart (httpURL commonPremises memberBoot memberUp)
 
 set_option synthInstance.maxSize 4096
 set_option synthInstance.maxHeartbeats 400000
@@ -51,40 +51,33 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
 set_option maxHeartbeats 1000000 in
-theorem startMember.wp_proof
+theorem StartMember.wp_proof
     (wp_NewMember : etcdstart.NewMember.spec (GF := GF) (hG := hG))
     (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
-    startMember.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
-    Φs γn
+    StartMember.spec (GF := GF) (hG := hG) := by
+  intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
+    Φs γn Hcfg
     Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown, Hwdf⟩
-  -- the premises in the shared start's form
-  iunfold bootPremise at Hboot
-  ihave #Hb := etcdstart.bootPremise_of N ps bootLog ctxs dir go!"linkv3p" name
-      (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) id (cfgOk name)
-      (urlsOk peerAddr client) (fun _ h => h) (fun _ h => h) $$ Hboot
-  ihave #Hcm' : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iunfold etcd_putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
-  iunfold etcd_putget3.commonPremises at Hcom'
+  iunfold etcdstart.commonPremises at Hcom'
   icases Hcom' with ⟨-, -, -, -, #Hnrl⟩
-  ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂
-      (GMap.insert name₁ sl₁ ∅)), sl ↦*□ initURLs3 k $$ []
+  ihave #Hsls : [∗map] k ↦ sl ∈ GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂
+      (GMap.insert cfg.Name1' sl₁ ∅)), sl ↦*□ initURLs3 cfg k $$ []
   · iapply (BigSepM.bigSepM_insert (by
-      rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (by decide : name₂ ≠ name₃),
-        GMap.lookup_insert_ne _ _ (by decide : name₁ ≠ name₃)]; rfl)).2
+      rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ Hcfg.n23,
+        GMap.lookup_insert_ne _ _ Hcfg.n13]; rfl)).2
     isplitr; · iexact Hs3
     iapply (BigSepM.bigSepM_insert (by
-      rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ (by decide : name₁ ≠ name₂)]; rfl)).2
+      rw [gmap_get?_eq, GMap.lookup_insert_ne _ _ Hcfg.n12]; rfl)).2
     isplitr; · iexact Hs2
     iapply (BigSepM.bigSepM_insert (GMap.lookup_empty _)).2
     isplitr; · iexact Hs1
@@ -100,17 +93,17 @@ theorem startMember.wp_proof
   · iapply v3rpc.eofVar_of_init
     iPkgInit
   (try wp_auto)
-  -- `etcdstart.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", SnapCount, SnapCatchUp,
-  -- lg)`: frequent snapshots
-  wp_apply (wp_NewMember N name peerAddr client go!"linkv3p" (W64 1) (W64 1) peer cluster lg
-      (GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅))) initURLs3
-      (etcdstart.urls3 name₁ name₂ name₃ initURLs3 peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn false
+  -- `etcdstart.NewMember(name, peer, peerAddr, client, cluster, token, snapCount, catchUp, lg)`,
+  -- in the cluster's compaction mode
+  wp_apply (wp_NewMember N name peerAddr client cfg.Token' cfg.SnapCount' cfg.SnapCatchUp' peer
+      cluster lg
+      (GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂ (GMap.insert cfg.Name1' sl₁ ∅)))
+      (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn compactMode
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
-      (etcdstart.utf8Keys_insert _ _ _ (by decide) (etcdstart.utf8Keys_insert _ _ _ (by decide)
-        (etcdstart.utf8Keys_insert _ _ _ (by decide) etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %srv %err Hres
+      (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
+        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %srv %err Hres
   · iframe; iframe #
-    iExactEq Hpeer; rfl
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned
     cases err with
@@ -236,6 +229,6 @@ theorem startMember.wp_proof
 
 end proof
 
-end etcd_partition
+end cluster3
 end EtcdGrove
 end Perennial

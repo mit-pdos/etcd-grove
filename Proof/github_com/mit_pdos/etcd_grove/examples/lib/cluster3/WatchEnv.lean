@@ -1,20 +1,23 @@
 /-
 **The clients' watch environment at the cluster** (W4c of `notes/watch-cut-plan.md`,
-2026-10-22). Lean-first, no Rocq counterpart.
+2026-10-22; until 2026-11-05 the partition example's, at its configuration). Lean-first, no Rocq
+counterpart.
 
-`watchEnv R₁ R₂ R₃ γr pfx` (`Defs.lean`): the three members at their bridges, the watch contract
+`watchEnv cfg R₁ R₂ R₃ γr pfx` (`Defs.lean`): the three members at their bridges, the watch contract
 at the cluster's history, the KV state variable `γr`'s. A member's watch facts (`memberWatch`: its
-read view, its watch server, its names the history's and its KV state variable the cluster's;
+read view, its watch server, its names the history's and its KV state variable the cluster's, its
+server in the cluster's compaction mode, `compactMode`;
 until 2026-10-26 also no key written twice in a revision of its logs, from watchkv's server
 workload, which D47's watch spec no longer needs) give its `watchMemberFacts` (`memberWatch_facts`:
 the laws by `watchLaws_hist`, the KV facts `srvKVFacts` from the read view and the store's start
 log, `cert0_of_server`), and the three with their
 `Watch` streams at the bridges give the watcher's facts at every connection to the bridges
-(`watchEnv_conn`, by `watchConnFacts_of_members`), what `isNewClient_watcher_of` takes.
+(`watchEnv_conn`, by `watchConnFacts_of_members`, for a configuration meeting `cfgOk`: its bridges
+distinct), what `isNewClient_watcher_of` takes.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Defs
 public import Proof.go_etcd_io.etcd.client.v3.WatchLawsHist
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 
@@ -28,7 +31,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace etcd_partition
+namespace cluster3
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
@@ -58,11 +61,12 @@ theorem cert0_of_server (p : Loc) (R : v3rpc.WSrv GF) :
 
 /-- **A member's watch facts** (persistent): its read view at its apply environment, its watch
 server there, its names the history's (`memberOf`), its KV state variable the cluster's; and (M2,
-the storage side, review round 2's N1, the approval's item 13) its server off. -/
+the storage side, review round 2's N1, the approval's item 13) its server in the cluster's
+compaction mode (`compactMode`: off). -/
 def memberWatch (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(isServerRead s E ρ.rd ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗
-    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ kvSame ρ.rd.kv γr.kv ∧ E.γ.cm = false⌝)
+    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ kvSame ρ.rd.kv γr.kv ∧ E.γ.cm = compactMode⌝)
 
 instance memberWatch_persistent (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : Persistent (memberWatch γr s E ρ R) := by
@@ -95,18 +99,28 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
   iapply client.srvKVFacts_of_off V ρ.rd (kvSame_trans hst hK) (by rw [hm.2.2.2, hlog0]) hrb
   iframe #
 
-theorem watchEnv_addrs (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
-    (watchEnv R₁ R₂ R₃ γr pfx).addrs = [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := rfl
+theorem watchEnv_addrs (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+    (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
+    (watchEnv cfg R₁ R₂ R₃ γr pfx).addrs = bridges cfg := rfl
 
-theorem watchEnv_memOf₁ (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
-    (watchEnv R₁ R₂ R₃ γr pfx).memOf bridgeAddr₁ = R₁ := by
-  simp [client.WEnv.memOf, client.WEnv.idxOf, watchEnv, memAt3, List.range_succ, List.find?]
-theorem watchEnv_memOf₂ (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
-    (watchEnv R₁ R₂ R₃ γr pfx).memOf bridgeAddr₂ = R₂ := by
-  simp [client.WEnv.memOf, client.WEnv.idxOf, watchEnv, memAt3, List.range_succ, List.find?]
-theorem watchEnv_memOf₃ (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
-    (watchEnv R₁ R₂ R₃ γr pfx).memOf bridgeAddr₃ = R₃ := by
-  simp [client.WEnv.memOf, client.WEnv.idxOf, watchEnv, memAt3, List.range_succ, List.find?]
+theorem watchEnv_memOf₁ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+    (hcfg : cfgOk cfg) (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
+    (watchEnv cfg R₁ R₂ R₃ γr pfx).memOf cfg.Bridge1' = R₁ := by
+  have := hcfg.b12; have := hcfg.b13; have := hcfg.b23
+  simp_all [client.WEnv.memOf, client.WEnv.idxOf, watchEnv, memAt3, List.range_succ,
+    eq_comm]
+theorem watchEnv_memOf₂ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+    (hcfg : cfgOk cfg) (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
+    (watchEnv cfg R₁ R₂ R₃ γr pfx).memOf cfg.Bridge2' = R₂ := by
+  have := hcfg.b12; have := hcfg.b13; have := hcfg.b23
+  simp_all [client.WEnv.memOf, client.WEnv.idxOf, watchEnv, memAt3, List.range_succ,
+    eq_comm]
+theorem watchEnv_memOf₃ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+    (hcfg : cfgOk cfg) (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
+    (watchEnv cfg R₁ R₂ R₃ γr pfx).memOf cfg.Bridge3' = R₃ := by
+  have := hcfg.b12; have := hcfg.b13; have := hcfg.b23
+  simp_all [client.WEnv.memOf, client.WEnv.idxOf, watchEnv, memAt3, List.range_succ,
+    eq_comm]
 
 /-- **The watcher's facts at every connection to the bridges** (see the file header). -/
 theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -114,6 +128,7 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (hcfg : cfgOk cfg)
     (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) (hp : pfx ≠ [])
     (hlog0 : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) (s₁ s₂ s₃ : Loc) (E₁ E₂ E₃ : apply.AEnv GF)
     (ρ₁ ρ₂ ρ₃ : ReqNames) :
@@ -121,46 +136,44 @@ theorem watchEnv_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fm
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ client.eofOk ∗
       memberWatch γr s₁ E₁ ρ₁ R₁ ∗ memberWatch γr s₂ E₂ ρ₂ R₂ ∗ memberWatch γr s₃ E₃ ρ₃ R₃ ∗
-      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₁
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) cfg.Bridge1'
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₁)
         (fun md => v3rpc.watchSpec R₁ (auth.mdTokenOf md)) ∗
-      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₂
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) cfg.Bridge2'
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₂)
         (fun md => v3rpc.watchSpec R₂ (auth.mdTokenOf md)) ∗
-      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) bridgeAddr₃
+      isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) cfg.Bridge3'
         go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R₃)
         (fun md => v3rpc.watchSpec R₃ (auth.mdTokenOf md)) ⊢
       □ ∀ (conn : Loc) (ics : List GoFunc),
-        grpcConn (GF := GF) conn [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] ics [] -∗
-          client.watchConnFacts { watchEnv R₁ R₂ R₃ γr pfx with conn := conn, ics := ics } := by
+        grpcConn (GF := GF) conn (bridges cfg) ics [] -∗
+          client.watchConnFacts { watchEnv cfg R₁ R₂ R₃ γr pfx with conn := conn, ics := ics } := by
   iintro ⟨#P1, #P2, #P3, #Heof, #Hm₁, #Hm₂, #Hm₃, #Hs₁, #Hs₂, #Hs₃⟩
   iintro !> %conn %ics #Hc
-  iapply watchConnFacts_of_members wp_ErrAny hAs (watchEnv R₁ R₂ R₃ γr pfx) conn ics
+  iapply watchConnFacts_of_members wp_ErrAny hAs (watchEnv cfg R₁ R₂ R₃ γr pfx) conn ics
   rw [watchEnv_addrs]
-  simp only [isGrpcStreamsMd, watchEnv_memOf₁, watchEnv_memOf₂, watchEnv_memOf₃]
+  simp only [bridges, isGrpcStreamsMd, watchEnv_memOf₁ cfg hcfg, watchEnv_memOf₂ cfg hcfg,
+    watchEnv_memOf₃ cfg hcfg]
   iframe #
   isplitr
   · iintro !> %i %hi
-    have hn : (watchEnv R₁ R₂ R₃ γr pfx).nm = 3 := rfl
+    have hn : (watchEnv cfg R₁ R₂ R₃ γr pfx).nm = 3 := rfl
     rcases i with _ | _ | _ | i
-    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 0) γr s₁ E₁ ρ₁ rfl rfl (kvSame_refl _) hlog0 hrb
-      rw [show ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 0).R = R₁ from rfl]
+    · iapply memberWatch_facts ((watchEnv cfg R₁ R₂ R₃ γr pfx).atIdx 0) γr s₁ E₁ ρ₁ rfl rfl (kvSame_refl _) hlog0 hrb
+      rw [show ((watchEnv cfg R₁ R₂ R₃ γr pfx).atIdx 0).R = R₁ from rfl]
       iexact Hm₁
-    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 1) γr s₂ E₂ ρ₂ rfl rfl (kvSame_refl _) hlog0 hrb
-      rw [show ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 1).R = R₂ from rfl]
+    · iapply memberWatch_facts ((watchEnv cfg R₁ R₂ R₃ γr pfx).atIdx 1) γr s₂ E₂ ρ₂ rfl rfl (kvSame_refl _) hlog0 hrb
+      rw [show ((watchEnv cfg R₁ R₂ R₃ γr pfx).atIdx 1).R = R₂ from rfl]
       iexact Hm₂
-    · iapply memberWatch_facts ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 2) γr s₃ E₃ ρ₃ rfl rfl (kvSame_refl _) hlog0 hrb
-      rw [show ((watchEnv R₁ R₂ R₃ γr pfx).atIdx 2).R = R₃ from rfl]
+    · iapply memberWatch_facts ((watchEnv cfg R₁ R₂ R₃ γr pfx).atIdx 2) γr s₃ E₃ ρ₃ rfl rfl (kvSame_refl _) hlog0 hrb
+      rw [show ((watchEnv cfg R₁ R₂ R₃ γr pfx).atIdx 2).R = R₃ from rfl]
       iexact Hm₃
     · exfalso; omega
   ipureintro
-  refine ⟨hp, ?_, 0, (by show 0 < 3; omega), rfl⟩
-  first
-    | (rw [watchEnv_addrs]; decide)
-    | decide
+  exact ⟨hp, hcfg.bridgesNodup, 0, (by show 0 < 3; omega), rfl⟩
 
 end watch
 
-end etcd_partition
+end cluster3
 end EtcdGrove
 end Perennial
