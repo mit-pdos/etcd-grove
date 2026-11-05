@@ -1,6 +1,9 @@
 # Plan: the namespace of the Linux file extension (directories, rename, unlink) for the WAL
 
-**Date:** 2026-11-05. **Branch:** `worktree-walfs-ext`. **Status:** carried out by an agent while the
+**Date:** 2026-11-05. **Branch:** `worktree-walfs-ext`. **Status:** the semantics, its trusted Go
+models, the examples, the sanity lemmas (`TestsNs.lean`) and the repair of every existing proof
+are done; the namespace's program logic and the crash proof of `segdir.Boot` are designed, not
+done ("The program logic of the namespace"). Carried out by an agent while the
 user was away (the user's instruction: decide autonomously, report what to know before a merge).
 Every decision below is **decided by the agent, pending the user** (`questions.md` lists them).
 It extends `notes/osfs-ext-plan.md` (the extension as bbolt uses it); read that first.
@@ -103,11 +106,59 @@ no NUL) and in a root's tree, or the step is stuck (path resolution is not model
 | `DirSync(fd)` | commits the log through the last operation that changed the directory. |
 | `DirClose(fd)` | frees the directory fd. |
 | `DirRead(fd)`, `DirReadFinish(tok)` | two steps: the names the directory had throughout, and any of the names it had in between, each once (POSIX's `readdir` across concurrent changes). A second read of one fd is stuck. |
-| `Rename(src, dst)` | Go's `os.Rename`: an existing directory as `dst` fails (Go's own check); a file onto a file replaces it (the old file stays readable through its fds); a directory moves its subtree. A directory or one in its tree with an open directory fd or a read in flight is stuck. |
-| `Remove(p)` | Go's `os.Remove`: unlink a file (its fds keep it), or remove an empty directory. |
+| `NsLstatDir(p)` | `lstat`'s "is it a directory", which `os.Rename` asks of its destination: `(isDir, e)`, `e` any nonzero errno (the error `os.Rename` returns, `EEXIST` or the `lstat` of the source's). A query of the state, not a change. |
+| `Rename(src, dst)` | `rename(2)`: a file onto nothing or a file (replaced; the old file stays readable through its fds); a directory onto nothing or an empty directory (replaced), not into its own tree. Stuck while a directory fd is open in `src`'s tree or on `dst`. Go's `os.Rename` (its trusted model) first refuses an existing directory as `dst` (`NsLstatDir`), as Go does: two system calls, so a directory made at `dst` between them is replaced, as on Linux. |
+| `Unlink(p)`, `Rmdir(p)` | `unlink(2)` of a file (its fds keep it), `rmdir(2)` of an empty directory (stuck while a directory fd is open on it). Go's `os.Remove` (its trusted model) is Go's: `unlink`, then `rmdir` if that failed, the error chosen as Go chooses it. |
 | `Mkdir(p)` | a new directory. |
 | `FallocStart(fd, mode, off, len)` | mode 0: a truncate to `max size (off+len)` in flight (its finish is `FtruncateFinish`); `FALLOC_FL_KEEP_SIZE`: no change. |
 | `OfdLock(fd, cmd)` | trivial, as `Flock` (D7): any errno. |
+
+### The trusted Go models (`TrustedCode/os.lean`, `TrustedCode/golang_org/x/sys/unix.lean`)
+
+- `os.OpenFile` asks `Regime` and calls `Open` or `NsOpen`; `os.Open` is translated (Go's
+  `OpenFile(name, O_RDONLY, 0)`).
+- `File.Sync` and `File.Close` ask `FdKind` and call `Fsync`/`Close` or `DirSync`/`DirClose`.
+- `os.Rename` (Go's `rename`: `Lstat` of the destination, then `rename(2)`, `EINTR` retried),
+  `os.Remove` (`unlink`, then `rmdir`), `os.Mkdir` (`mkdir(2)`), `File.Readdirnames(n)` for `n ≤ 0`
+  (a loop of `DirReadNext`, never a nil slice; `n > 0` panics: not modelled).
+- `unix.Fallocate` (mode 0: `FallocStart` and `FtruncateFinish`; `FALLOC_FL_KEEP_SIZE`:
+  `FallocKeep`; other modes panic; a negative offset or a length not above 0 is `EINVAL`, no
+  `EINTR` retry, as x/sys/unix), `unix.FcntlFlock` (`OfdLock`; the lock queries panic).
+
+### What changed for the extension's existing clients
+
+- `OsState` has the namespace's fields (with defaults); `Open` picks an fd that is no directory
+  fd; `OsCrash` is `OsCrashFiles ∧ NsCrash` (`OsCrashFiles` is the old relation); `OsInit` is
+  `OsInitFiles ∧ NsInit` (the old one and the namespace's boot condition); the state
+  interpretation is `osCtxF ∗ nsCtx`, `nsCtx` the namespace's (for now `⌜NsWf st⌝`).
+- `wp_os_step` takes `OldOp o` (the operation leaves the namespace alone, `nsFrame_old`): every
+  existing spec passes `(by simp [OldOp])`.
+- The `os` specs of `OpenFile`, `File.Sync` and `File.Close` take one more step (`wp_osRegime`,
+  `wp_osFdKind`, and `wp_osRegime_cf`/`_cs` in the crash variants).
+- No statement of bbolt's or crashlog's proofs changed; both build.
+
+### The program logic of the namespace (next; not done)
+
+The design for the specs of the namespace's operations and the crash proof of `segdir.Boot`:
+
+- **Ghost state** (in `nsCtx`): a fractional map from each directory to `(dur, pend)`, its
+  entries (last component to node) as of a point known durable and the changes since, in order
+  (`LOp`: put, delete, rename within the directory); its entries now are `pend` replayed on `dur`.
+  Coherence: every prefix of the log, replayed, gives the directory some prefix of `pend` replayed
+  on `dur`. A commit by anyone keeps it (prefixes of the shorter log are prefixes of the longer);
+  an operation in another directory keeps it (the entries do not change); the owner's operation
+  appends to `pend`; the owner's `DirSync` makes `dur` the entries now and `pend` empty. A crash
+  gives the next generation each directory's entries as some prefix of `pend` replayed on `dur`
+  (the namespace's `CrashRel`). Directory fds: a ghost map mirroring `dfds`. Files of the
+  namespace keep the existing per-key ghost state (`osMeta k`, `osBytes k`): only `NsOpen` of a
+  new name allocates it, under the fresh key.
+- **Specs**: `NsOpen` (an existing file, a new name, a directory), `DirReadNext` (with a fraction
+  of the directory: its entries exactly), `DirSync`, `DirClose`, `Rename` of a file within a
+  directory, `Unlink` of a file, `Rmdir` of a file (fails), `NsLstatDir`, `Regime` of a name (`1`),
+  `FdKind` of a directory fd; directory renames, `Mkdir` and `Rmdir` of a directory later.
+- **The crash proof of `Boot`** needs crash-aware specs (as `CrashOps.lean`'s for files) for the
+  directory and for the segment's file under one invariant: the directory's crash outcomes and
+  the file's crash state together (`seg` names a key only after that key's data was synced).
 
 ### Not in this round
 
