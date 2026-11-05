@@ -125,11 +125,7 @@ theorem v3rpc.intervalPool_alloc (E : CoPset) :
   iintro ⟨#Hg, Hs⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γl, Ha⟩
   ihave Ht : threadToks (GF := GF) 0 $$ []
-  · unfold threadToks
-    iexists []
-    isplitr
-    · ipureintro; rfl
-    unfold threadTokList; itrivial
+  · iapply threadToks_zero
   imod (inv_alloc v3rpc.intervalN E (v3rpc.intervalPoolInv γl)) $$ [Hs Ht Ha] with #Hi
   · inext
     unfold v3rpc.intervalPoolInv
