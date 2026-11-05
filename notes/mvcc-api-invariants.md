@@ -625,3 +625,65 @@ contracts' `stateOk`; a doomed watcher's events are a sub-list of them, so the s
 `stepOk` from these facts and `chanApi_send_M1` gone. For a doomed watcher the send's fact takes
 the doom witness's bounds (the longer `nlLb`, the larger `crevAtLeast`), making its delivery and
 progress conjuncts vacuous.
+
+## Hand-off: stage 2, the sends' bounds (2026-11-05)
+
+**Done** (no new `sorry`, no axiom; the mvcc library builds: `mvcc.Link`, `Results`, `Api`,
+`Api/WatchLaws`, `Api/Instance`; no frozen statement found false):
+- **(e) Event positivity.** `WatchPos.lean` (pure): every event of a log whose revision `0` is empty,
+  with fewer than `2 ^ 63` revisions and `2 ^ 63 - 1` changes, is positive (`evPos`: revision, and a
+  put's creation revision and version; `logEvents_pos`, `watchEvents_pos`, `filtered_pos`; through
+  `stateAfter_pos`, every key-value of the log's states in `[1, R]`/`[1, V]`). `evLog` records
+  `logCh L < 2 ^ 48` (`evLog_of_sealed`/`evLog_of_cert` take the store's receipt bound,
+  `isStore_rb`, `isWatchableStore_rb`), so `evLog_pos`; `evsWf`'s doomed branch records its events
+  positive (`syncWatchers`' sub-list of a watched log's, notify's new revision's), so `evsWf_pos`
+  holds for exact and doomed watchers alike.
+- **(d) The bounds at every send.** `evLog` is a lower bound of the API's notified log
+  (`api.nlLb γ.api L`, `evLog_nlLb`; `evLog_nil` mints `[]`'s): every delivery (`evsWf`), covered
+  watcher (`covFact`) and doom witness is over the API's history. Its producers: the watchable
+  `End` (the API slot's step, still `wsSlot_step_M1`, **moved to the release point**, before the
+  revision's events go out, where §3 has the notify fire), `syncWatchers` (its committed log is the
+  lock's notified one, `HCL`, so the lock's `wsSlot_nlLb`). Every response but a compaction
+  response is sent at a revision of it: `respRev` gains `⌜x.compactRev ≠ 0⌝ ∨ revApi γ x.rev`
+  (`revApi`: an `nlLb N` with `rev < |N|`), `watcher.send` takes `revApi γ wr.Revision'` (notify:
+  the new log; `syncWatchers`: the committed log; `moveVictims`: the victim's delivery,
+  `mv_revApi`, so nothing more is carried with the batch; `progressIfSync`: the lock's slot at
+  `σ.Lmu`). A compaction response's revision is at most the API's compaction revision:
+  `cmpPerm γ c = crevPermAt γ.st c ∗ api.crevAtLeast γ.st.api c` in `cmpPermOf`, the `choose`/
+  `chooseAll` specs and `cmp_send_inner`, from `syncWatchers`' `s.revMu` slot (`slotX_crevLb`).
+- **Delivery certificates** (`WatchSendApi.lean`): `delivCert a P`, lower bounds `(L', c')` of the
+  API's notified log and compaction revision (`c' = -1`: none) with `P` at every larger pair;
+  `delivCert_join` (the longer log, the larger bound), `delivCert_mono`, `delivCert_elim`. The
+  certificates: `revApi_cert` (`rev < |L|`), `evsWf_cert`, `covFact_cert`, and the two a send
+  needs: `chanWatcher_cert` (a registered watcher's sent events, by its saved filters, are its kept
+  events of `[lo, hi)` of every larger log while `onceUpTo`, and positive) and `covFact_recv` (a
+  covered watcher's events sent before the response, up to its revision `+ 1`).
+
+**How a send's `stepOk` assembles** (at `watcher.send`, after `entries_deliver` and `sentAuth_snoc`,
+the channel invariant open; the event `.send (toW x) γw.fg r γw.lo L c0 cov dead`; `dec γw.fg` the
+saved filters `fs0`):
+- `respShape`: events at or below the revision (`respOk`); `rev < |L|` (`revApi_cert`); a `-1`
+  response's (`respCompl`); positivity (`chanWatcher_cert`: `x.evs` are among `w`'s sent events).
+- the own delivery: `chanWatcher_cert` at `sent ++ [x]`, with `chan_recvEvs` (the client's
+  `recvEvs` by id is `w`'s sent events); also for the compaction response (no events: its
+  delivery conjunct is `w`'s events so far).
+- the own progress (no events): `covFact_recv` for `w` (`w ∈ x.cov`; `rev ≥ 0` from the lent log,
+  non-empty), `recvEvs (pre ++ [x]) id = recvEvs pre id`.
+- a `-1` response's coverage: `covFact_recv` for each `w' ∈ x.cov`, `cov` its watchers' `(id, r,
+  fg, lo)`.
+- one pair: join the certificates (`delivCert_join`), `delivCert_elim`; `evTok` needs
+  `crevAtLeast c0`: mint `crevAtLeast (-1)` (a `monoNatLbOwn _ 0`) at the send's update when
+  `c0 = -1`.
+- **what needs the registration** (blocked, as the previous hand-off said): `factAgree` (a `regTok`
+  for `w` and for each covered watcher: the registration deposits it, e.g. in `chanRegFact`, which
+  every registered watcher has in the channel invariant); `stampsAt` (an invariant of `chanApi` to
+  add with the registration: each `.reg id ..` of the history, at stamp `k`, is a channel-registered
+  watcher `wl` with `RI wl = k` and `chanIdAssigned γc id wl`; then `regsOk` puts `wl` in `x.regs`,
+  `respCompl` makes it covered, its id `c.id`, or `rsnW`); `deadIn` (a `cancelTok` for each `rsnW`
+  watcher in place of `rsnFor`, deposited by `Cancel`'s update).
+
+**Left** (in order): the registration appending `.reg` at the exact sent count with `Watch`'s update
+(the store's side of `mvccState` at the registration: `σ.log` the committed log under `s.revMu`'s
+slot, `σ.pending = none` from `wsSlot` while the lock is free, `watchLo σ startRev = γw.lo`), and
+`chanApi`'s `stampsAt` invariant; `Cancel`'s update and the cancel tokens; each send's `stepOk` as
+above, then `chanApi_send_M1` deleted; the `WatchStream` contracts and `NewWatchStream`.
