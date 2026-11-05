@@ -687,3 +687,16 @@ saved filters `fs0`):
 slot, `σ.pending = none` from `wsSlot` while the lock is free, `watchLo σ startRev = γw.lo`), and
 `chanApi`'s `stampsAt` invariant; `Cancel`'s update and the cancel tokens; each send's `stepOk` as
 above, then `chanApi_send_M1` deleted; the `WatchStream` contracts and `NewWatchStream`.
+
+**Done since** (2026-11-05, no `sorry`): `WatchSendApi.holds_own`, `holds_cmp`, `holds_all` (pure): a
+send's `SentFact.holds` from its parts for each kind of response (a watcher's own, a compaction
+response, a stream-wide progress response), the parts being what the certificates above give at
+the joined pair. **The registration's design point** (found surveying it, for the next step): the
+store's registration callback is `isWatchable`'s `∀ w, ⌜w ≠ null⌝ -∗ |==> chanIdAssigned γc id w ∗
+Back w` (`InvWatchStream.lean:294`), a plain update with neither the channel invariant nor the
+store's slots; to append `.reg` at the exact sent count it must become a fancy update run with the
+channel invariant open (its `chanApiAt` and `sentAuth`) and the store's slots in hand (`revMuBody`'s
+`slotX`, the watch lock's `wsSlot`, at `watchableStore__watch.lean:787`), firing `Watch`'s atomic
+update (the client's `mvccState`/`wsState`), and deposit the watcher's `regTok` where the sends find
+it (`chanRegFact`). `isWatchable` is generic over `WatchParams` and v3rpc's proofs use it (red under
+strict M1).
