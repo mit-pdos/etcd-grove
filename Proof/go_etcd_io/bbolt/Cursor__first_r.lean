@@ -199,7 +199,7 @@ theorem Cursor.first_r.wp_proof
         iexists stk3, els3.dropLast ++ [e3], slice.nil
         iframe
         isplitl
-        · iright; ipureintro; exact ⟨Hnil.1, rfl, rfl, rfl⟩
+        · iright; ipureintro; exact ⟨Hnil.1, rfl, rfl, rfl, by rw [hsp3]; exact Hnil.2.2.2.2⟩
         · ipureintro; intro _; rfl
       · omega
   · have hne0 : W64 (uint.Z hd2.count') ≠ W64 0 := by

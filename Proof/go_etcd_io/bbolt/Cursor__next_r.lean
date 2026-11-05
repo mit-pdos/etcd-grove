@@ -265,7 +265,7 @@ theorem Cursor.next_r.wp_proof
     · unfold rCurKV
       iright
       ipureintro
-      exact ⟨rUpInv_none els1 i1 s Hp Hu.2, rfl, rfl, rfl⟩
+      exact ⟨rUpInv_none els1 i1 s Hp Hu.2, rfl, rfl, rfl, i1, Hp⟩
     · ipureintro; intro h; exact Or.inl (Hoff h)
 
 end proof

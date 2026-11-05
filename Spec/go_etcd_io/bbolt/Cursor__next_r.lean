@@ -27,13 +27,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **A reader's cursor after a move to entry `s`**: its stack at `s` with the entry's key, value
-and flags, or past the bucket's entries with nil, nil, `0`. -/
+and flags, or past the bucket's entries with nil, nil, `0` and the stack at some position from
+which `next` goes to `s` (maintainer R, U6g item 1: what a cursor's position after it is). -/
 def rCurKV (v : View) (bv : List w8) (pp : Loc) (els : List elemRef) (s : Nat) (k vl : GoSlice)
     (fl : w32) : IProp GF :=
   iprop((∃ pg idx, ⌜rPosAt v bv pp els s (s + 1) ∧ rLanded v bv pp els ∧
         (rEnts v bv)[s]? = some (pg, idx)⌝ ∗
       rKV v pg idx k vl fl) ∨
-    ⌜s = (rEnts v bv).length ∧ k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0⌝)
+    ⌜s = (rEnts v bv).length ∧ k = slice.nil ∧ vl = slice.nil ∧ fl = W32 0 ∧
+      ∃ i, rPosAt v bv pp els i s⌝)
 
 /-- `c.next()` of a reader's cursor in bucket `b` (value `bv`) whose stack is at entry `i`,
 `next` going to `s` (from a stack past its leaf's entries, it stays so if past the last entry). -/
