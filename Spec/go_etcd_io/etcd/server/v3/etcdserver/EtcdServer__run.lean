@@ -74,7 +74,7 @@ abbrev EtcdServer.run.specStop : Prop :=
       ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
       isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvBootApplied ρ)
         (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗
-      srvShutdownPre s γn dd }}
+      srvShutdownPre s γn dd E.s E.γ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

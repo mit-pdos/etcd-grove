@@ -1466,3 +1466,67 @@ readers.
   invariant gives up the whole stock, as `Restore`'s write lock does.
 - **4c′.** Where the request path's readers are at the stop, and the premise that returns them.
   To be designed after looking at how the request path borrows its readers.
+
+### R2b-3d gap 4: the store's readers at the stop, a census (2026-11-05)
+
+`backend.Close` needs every share of the open token. `NewServer`'s own error path (R-D1, the
+deferred `b.Close()` after `kv.Close()`) is the template: it collects every store reader and
+retires them at once (`storeReaders_retire`, `storeRTs_shares`), then adds `bkRPool`'s shares and
+the constructors' half (`bOpen_one_pool`). On the success path, `NewStore`'s
+`rdStockN − nJobRd` readers go:
+| readers | where | at the stop |
+|---|---|---|
+| 64 (request goroutines, `Hsrs`) | `srvServeBuilt` → `memberUp`'s serving stocks (`kvServeStocks`) | the caller: the stopped member of `restart3` never served gRPC (only member 1 serves before the restart), so they are unused |
+| 64 (watch run slots, `Hwrx`) | `srvWatchReaders` in `memberUp` | the caller, unused likewise |
+| 1 (compactor, `HwrC`) | `srvCompactR` (`NewServer.lean:1942-1974`) | with the compactor; `restart3` runs none (to check) |
+| 1 retired (storage version monitor, `HrtSV`) | `srvWTStock` (`:1809-1817`) | to trace (the server's goroutines, `s.wg.Wait`) |
+| 1 retired (apply thread, `HrtA`) | `apply.kvOwn`'s `writerOwn` | `applyResC` |
+| 2 (watchable store's loops) | the watchable store | `watchableStore.Close`'s post (`Cleanup`) |
+| the compaction job's resource | the store | `compactJobResM`, `watchableStore.Close`'s post |
+| **the rest, about 805 million (`Hwrds`)** | **dropped** (`NewServer.lean:2380`: one taken, the rest `-`) | **lost: must be kept** |
+So the stop needs no new store law: `storeReaders_retire` with every reader is it (4b′ dropped).
+4c′ is plumbing:
+1. `NewServer` keeps the remainder (`srvStopKeep` gains the readers; a stronger post).
+2. The stop's caller returns the member's unused serving stocks (`memberUp`'s request and watch
+   readers). This is the "request path stopped first" premise, met in `restart3` because the
+   member never served.
+3. The compactor's and the monitor's readers are traced.
+4. The shutdown (stage 5) assembles the token as R-D1 does.
+Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
+- **Step 1 done (2026-11-05):** `NewServer` keeps the remainder (`srvKeepRdN γst` store readers in
+  `srvStopKeep s γn wdir st γst`). `srvShutdownPre` and `run.specStop` take the store, and
+  `memberBuilt`'s `K` receives the environment.
+- **The compactor's reader (2026-11-05):** `restart3`'s members run none. With no compactor its
+  reader was dropped too. `srvStopKeep` now keeps it when the compactor field is nil (a disjunction
+  on `cp`); with a compactor, the compactor's run keeps it. Census closed for `restart3`: the stop
+  collects `srvStopKeep`'s readers, the compactor's (nil), the apply thread's (`apply.kvOwn`,
+  `writerOwn`), the monitor's retired one (`srvWTPool`), the loops' (`watchableStore.Close`) and
+  the caller's unused serving stocks (`memberUp`).
+
+### R2b-3d stage 5: the shutdown and `run.specStop` (2026-11-05, plan)
+
+`run`'s deferred function (`server.go`):
+```
+s.wgMu.Lock(); close(s.stopping); s.wgMu.Unlock(); s.cancel(); sched.Stop(); s.wg.Wait()
+s.r.stop(); s.Cleanup(); close(s.done)
+```
+Each step and its source:
+| step | spec | gives |
+|---|---|---|
+| `wgMu.Lock`, `close(stopping)` | `wgMuP`'s protocol (`GoAttach`) | no goroutine attached after |
+| `cancel()` | `context`'s | — |
+| `sched.Stop()` | `schedule.fifo.Stop.spec` | the last job's saved post: `applyResC … A ∗ nodeRunning ½` |
+| `s.wg.Wait()` | the server's wait group | the attached goroutines' tokens |
+| `s.r.stop()` | `raftNode.stop.specStop` | `nodeVacant`, `raftState S`, `StorageHolds S σ`, the WAL's closed files |
+| `Cleanup()` | `EtcdServer.Cleanup.spec` with `commitReq_freeze`'s request | `freezeY`, `bStopView` at `D`, `fileHolds path D`, `bFile` |
+| `close(done)` | `srvDoneInv` | the image escrowed |
+The image (`srvDiskImage`), clause by clause:
+- raft's part from `r.stop`;
+- the backend's from `StopImage.stop_mergedObs`, then the pure part of `merged_imageC` (`mergedObsM` → `imageAt`);
+- the configuration from `RestConf.restModel_confState` (premises from `srvRaftLogInv`, `srvBootLogOk`, `srvClusterOk`'s `bootURLsOk`, `srv_committed_ccBoot`; empty V2 entries excluded);
+- the files from `Cleanup`'s and `r.stop`'s posts (`srvFiles`, `bFile_agree`);
+- the registry's authority from `srvStopKeep`;
+- `bootLen ≤ i` from the stop request's `srvBootApplied`.
+`Cleanup`'s whole open token is gap 4's census: `srvStopKeep`'s readers, the apply thread's, the loops' and the caller's unused serving stocks. So `run.specStop` (or `HardStop`'s caller) also takes `memberUp`'s unused stocks.
+
+Steps: (5a) the image's pure assembly lemma (`imageAt`, the configuration, the index bounds), from the observations, in a module of its own; (5b) `Cleanup`'s preconditions from `applyResC`, `srvSnapRes`, `srvStopKeep` and the stocks (the open token by `bOpen_one_pool`, as R-D1); (5c) the deferred function's WP; (5d) `run.specStop` (a variant of `run.wp_proof`, the stop clause taken).
