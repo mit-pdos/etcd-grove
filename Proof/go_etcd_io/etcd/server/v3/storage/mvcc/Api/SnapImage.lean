@@ -678,6 +678,67 @@ theorem imageOk_of_cut (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hb : LogB ([[],
   exact ⟨rc, ents, hkey, hfin, hsch, hrec, hpos, hcutE, hrc, rfl,
     restoreCur_cut' R hR hb rc hrec ents (hrc ▸ hcutE), hb, hwf, R, rfl, hR⟩
 
+/-! ## The store's cut under its steps (for the store-side tracking, `snapObs_M1`'s replacement) -/
+
+/-- The physical `Key` bucket: the logical view `m` but the deleted entries `X`. -/
+def physLookup (m : Bucket) (X : backend.VData) (k : GoString) : Option GoString :=
+  if (X.lookup (keyName, k)).isSome then none else m.lookup k
+
+/-- **A raised compaction revision keeps the cut** (`Compact`'s scheduled record, a later job). -/
+theorem cutOk_mono {L : Log} (hb : LogB L) {m : Bucket} {X : backend.VData} {c0 c : Int}
+    (h0 : -1 ≤ c0) (hcc : c0 ≤ c) (hc : c < L.length) (h : cutOk L m X c0) : cutOk L m X c := by
+  obtain ⟨ents, hcut, hB⟩ := h
+  exact ⟨ents, entsCutAt_mono hb h0 hcc hc hcut, hB⟩
+
+/-- **One delete of the compaction job at `c₁ ≤ c`** (`kvstore_compaction.go`'s `UnsafeDelete` of
+an entry `e` it does not keep, the backend recording it deleted: `X'`) keeps the cut at `c`, given
+the job's loop invariant (`hpast`: every entry below `e` deletable at `c₁` already gone), and moves
+that invariant past `e` (`entsCutAt_jobStep`). -/
+theorem cutAt_del {L : Log} (hb : LogB L) (hwf : LogWf' L) {c c₁ : Int} (h0 : -1 ≤ c₁)
+    (hcc : c₁ ≤ c) (hc : c < L.length) {m : Bucket} {X X' : backend.VData} {ents : List KvEnt}
+    (hcut : entsCutAt L c ents) (hB : ∀ k, physLookup m X k = (bucketOfEnts ents).lookup k)
+    {e : KvEnt} (he : e ∈ logEnts L 0 L.length) (hdel : KeyDel L c₁ (revBytes e.rev e.tomb))
+    (hpast : ∀ e' ∈ logEnts L 0 L.length, Rev.lt e'.rev e.rev →
+      KeyDel L c₁ (revBytes e'.rev e'.tomb) → e' ∉ ents)
+    (hX' : ∀ k, (X'.lookup (keyName, k)).isSome =
+      ((X.lookup (keyName, k)).isSome || decide (k = revBytes e.rev e.tomb))) :
+    entsCutAt L c (ents.filter (fun x => decide (x.rev ≠ e.rev))) ∧
+    (∀ k, physLookup m X' k = (bucketOfEnts (ents.filter (fun x => decide (x.rev ≠ e.rev)))).lookup k) ∧
+    ∀ e' ∈ logEnts L 0 L.length, (Rev.lt e'.rev e.rev ∨ e'.rev = e.rev) →
+      KeyDel L c₁ (revBytes e'.rev e'.tomb) → e' ∉ ents.filter (fun x => decide (x.rev ≠ e.rev)) := by
+  obtain ⟨hcut', hpast'⟩ := entsCutAt_jobStep hb hwf h0 hcc hc hcut he hdel hpast
+  refine ⟨hcut', fun k => ?_, hpast'⟩
+  have hsl : (ents.filter (fun x => decide (x.rev ≠ e.rev))).Sublist (logEnts L 0 L.length) :=
+    List.filter_sublist.trans hcut.1
+  have hmemF : ∀ x, x ∈ ents.filter (fun x => decide (x.rev ≠ e.rev)) ↔ x ∈ ents ∧ x.rev ≠ e.rev := by
+    intro x; rw [List.mem_filter, decide_eq_true_eq]
+  by_cases hk : k = revBytes e.rev e.tomb
+  · have hl : physLookup m X' k = none := by
+      unfold physLookup; rw [hX', hk]; simp
+    rw [hl]; symm
+    cases h2 : (bucketOfEnts (ents.filter (fun x => decide (x.rev ≠ e.rev)))).lookup k with
+    | none => rfl
+    | some v =>
+      obtain ⟨x, hx, hpx⟩ := List.mem_map.1 ((bucketOfEnts_lookup_iff L hb hsl k v).1 h2)
+      have hxk : revBytes x.rev x.tomb = revBytes e.rev e.tomb := (congrArg Prod.fst hpx).trans hk
+      exact absurd (revBytes_inj _ _ _ _ hxk).2 ((hmemF x).1 hx).2
+  · have hl : physLookup m X' k = physLookup m X k := by
+      unfold physLookup; rw [hX']; simp [hk]
+    rw [hl, hB k]
+    apply Option.ext
+    intro v
+    rw [bucketOfEnts_lookup_iff L hb hcut.1 k v, bucketOfEnts_lookup_iff L hb hsl k v]
+    constructor
+    · intro hm
+      obtain ⟨x, hx, hpx⟩ := List.mem_map.1 hm
+      refine List.mem_map.2 ⟨x, (hmemF x).2 ⟨hx, fun hr => ?_⟩, hpx⟩
+      have hxe := logEnts_rev_inj hb (hcut.1.subset hx) he hr
+      subst hxe
+      exact hk (congrArg Prod.fst hpx).symm
+    · intro hm
+      obtain ⟨x, hx, hpx⟩ := List.mem_map.1 hm
+      exact List.mem_map.2 ⟨x, ((hmemF x).1 hx).1, hpx⟩
+
 end pure
 
 end snap
