@@ -14,6 +14,11 @@ public import Proof.go_etcd_io.bbolt.Bucket__Bucket_r
 public import Proof.go_etcd_io.bbolt.Read.Pub
 public import Proof.go_etcd_io.bbolt.Read.GetFacts
 public import Proof.go_etcd_io.bbolt.Commit.CheckSplit
+public import Spec.go_etcd_io.bbolt.Bucket__Bucket_w
+public import Proof.go_etcd_io.bbolt.Read.PubWBkt
+public import Proof.go_etcd_io.bbolt.Write.Retarget
+public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsOpen
+public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsGens
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -101,11 +106,14 @@ theorem Tx.Bucket.wp_reader [HasExt osFsExt] (hmint : RdHandleMint (GF := GF))
     iframe #
     ipureintro; exact hbe
 
-/-- **A writer's `Tx.Bucket`** (all of the transaction): OPEN. `Bucket.Bucket_w.spec` takes the
-name as `srcOwn X.v name ks nb` (persistent bytes or the view's), and the caller's name is
-`name ↦*{dq} n`; and its post gives no persistent handle fragment `c ↪[r.n.bk]□ (n, g)`, which
-`boltBktDef` needs (for a cached child, nothing in `wtxW` keeps the existing handles' fragments). -/
+/-- **A writer's `Tx.Bucket`** (all of the transaction, U6x): over `wtxW` (`boltTxDef_wtxW`),
+`tx.root.Bucket(name)` by `Bucket.Bucket_w.spec` on the root bucket (the name caller-owned, the
+cached child's handle at `T.gen n` by `gensOK`); a miss is no bucket of the data
+(`wtxData_none_of`), a cached child leaves the records as they are, and an open closes the new
+records back (`boltTxDef_wclose`: `txShape_bktOpened`, `gensOK_bktOpened`, `wrFacts_bktOpened`,
+and `flViewU_bktOpened_root`, OPEN). -/
 theorem Tx.Bucket.wp_writer [HasExt osFsExt]
+    (hBw : Bucket.Bucket_w.spec (GF := GF) (hG := hG))
     (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (name : GoSlice) (n : GoString) (dq : DFrac)
     (hrw : T.rw = true) :
   {{ boltTx (GF := GF) tx γ q T ∗ name ↦*{dq} n ∗ ⌜T.rw = true → q = 1⌝ }}
@@ -113,13 +121,137 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
   {{ (b : Loc), RET #b; boltTx tx γ q T ∗ name ↦*{dq} n ∗
       ((⌜T.cur.lookup n = none ∧ b = Loc.null⌝) ∨
        (⌜T.cur.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ boltBkt tx γ b n (T.gen n))) }} := by
-  sorry
+  wp_start as ⟨Ht, Hname, %Hq⟩
+  have hq := Hq hrw
+  subst hq
+  unfold boltTx boltBkt at *
+  ihave Ht := (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht
+  icases Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, #Hvo, Hv, Hw, Hst, %Hf⟩
+  obtain ⟨hKB, hKN, hTc⟩ := HK
+  obtain ⟨hok, hcur', hbase, hgens, hwr⟩ := Hf
+  icases wtxW_heapOK' K tx r true X $$ Hw with ⟨Hw, %Hhok⟩
+  obtain ⟨R, hR⟩ : ∃ R, X.t.bs !! X.rl = some R := Option.isSome_iff_exists.1 hok.1.2.2.2.2.1
+  have hloc := PubW.bktLocalOK_of_wOK X hok X.rl R hR
+  have hpm := PubW.pmFresh_of_wOK X hok
+  have hwrt : X.t.t.writable' = true := hok.1.1
+  have hhg : ∀ c', R.bm !! n = some c' → X.handles !! c' = some (n, T.gen n) :=
+    fun c' h => hgens.2 n c' (by unfold bktLoc; rw [hR]; exact h)
+  have hrl : X.rl = txRoot (GF := GF) tx := Hhok.1
+  wp_auto
+  rw [show tx.[Tx, go!"root"] = txRoot (GF := GF) tx from rfl, ← hrl]
+  iapply wp_fupd
+  wp_apply hBw K tx r true X X.rl R name n (KeyR.heap dq) (T.gen n) hR hloc hpm hwrt hhg $$
+    [Hw Hname] as %b ⟨%X', Hw, Hname, Hcf, %Hpost⟩
+  · unfold keyR; iframe
+  simp only [keyR]
+  have hdT : T.cur = wtxData X := hcur'
+  rcases Hpost with ⟨hb0, hXX, hnone⟩ | ⟨hbn, hcase, hok'⟩
+  · -- a miss
+    subst X'
+    imodintro
+    iapply HΦ
+    iframe Hname
+    isplitl [Hv Hw Hst]
+    · iapply (boltTxDef_wtxW _ _ tx T hrw).2
+      iexists K, r, c, X
+      iframe; iframe #
+      ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+    ileft; ipureintro
+    exact ⟨by rw [hdT]; exact PubW.wtxData_none_of X n hnone, hb0⟩
+  · icases Hcf with (%hb0 | #Hcf)
+    · exact absurd hb0 hbn
+    obtain ⟨hokX', hdX'⟩ := hok' hok
+    -- the child's record and its `tx` field
+    have hbX' : ∃ C, X'.t.bs !! b = some C := by
+      rcases hcase with ⟨hbm, hXX⟩ | hop
+      · subst X'
+        exact Option.isSome_iff_exists.1 ((hok.1.2.2.2.2.2 X.rl R hR).2 n b hbm)
+      · obtain ⟨B, C, w, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hX'⟩ := hop
+        exact ⟨C, by rw [hX']; simp⟩
+    obtain ⟨C, hC⟩ := hbX'
+    have hrl' : X'.rl = X.rl := by
+      rcases hcase with ⟨-, hXX⟩ | hop
+      · subst X'
+        rfl
+      · obtain ⟨B, C, w, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hX'⟩ := hop
+        rw [hX']
+    have hbrl : b ≠ X.rl := by
+      rcases hcase with ⟨hbm, hXX⟩ | hop
+      · subst X'
+        exact hwr.2.2 R hR n b hbm
+      · obtain ⟨B, C', w, hB, -, -, -, -, -, hcf, -, -, -, -, -, -, -, -, -⟩ := hop
+        intro e
+        rw [e] at hcf
+        have := bobjs_bkt X.t X.rl R hR
+        rw [Option.isNone_iff_eq_none] at hcf; rw [hcf] at this; cases this
+    icases wtxW_heapOK' K tx r true X' $$ Hw with ⟨Hw, %Hhok'⟩
+    ihave Hw : wtxWQ (GF := GF) K tx r true 1 X' $$ [Hw]
+    · rw [wtxWQ_one]; iexact Hw
+    icases wtxWQ_child_tx K tx r true 1 X' b C hC (hrl' ▸ hbrl) Hhok' $$ Hw with ⟨Hw, #Hbtx⟩
+    have hbl' : bktLoc X' n = some b := by
+      rcases hcase with ⟨hbm, hXX⟩ | hop
+      · subst X'
+        unfold bktLoc; rw [hR]; exact hbm
+      · obtain ⟨B, C', w, hB, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hX'⟩ := hop
+        unfold bktLoc; rw [hX']
+        simp [GMap.lookup_insert_eq_iff, hbrl]
+    have hsome : T.cur.lookup n ≠ none := by
+      rw [hdT, ← hdX']
+      exact PubW.wtxData_some_of X' hokX' n b hbl'
+    icases wtxWQ_reg_rw K tx r true 1 X' $$ Hw with ⟨Hw, #Hreg, %Hrw⟩
+    ihave Hw : wtxW (GF := GF) K tx r true X' $$ [Hw]
+    · rw [← wtxWQ_one]; iexact Hw
+    ihave #Hbkt : boltBktDef (GF := GF) (bnsOf γ.gs) tx b n (T.gen n) $$ []
+    · unfold boltBktDef
+      iexists r
+      rw [← hKB]
+      iframe #
+      unfold handleFrag
+      simp only [Hrw, ite_true]
+      iframe #
+    rcases hcase with ⟨-, hXX⟩ | hop
+    · subst X'
+      imodintro
+      iapply HΦ
+      iframe Hname
+      isplitl [Hv Hw Hst]
+      · iapply (boltTxDef_wtxW _ _ tx T hrw).2
+        iexists K, r, c, X
+        iframe; iframe #
+        ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr⟩
+      iright
+      iframe #
+      ipureintro; exact ⟨hsome, hbn⟩
+    · have hk : XclKeep X X' := by
+        obtain ⟨B, C', w, hB, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hX'⟩ := id hop
+        exact ⟨by rw [hX'], by rw [hX'],
+          fun fl h => PubW.flViewU_bktOpened_root X X' b n (T.gen n) fl hok hop h⟩
+      have hvX : X'.v = X.v := hk.v
+      have hgens' : gensOK T X' :=
+        gensOK_bktOpened T X X' X.rl b n (T.gen n) hop hok.2.2.2.2.1 (Nat.le_refl _) (fun _ => rfl)
+          hgens
+      have hwr' : wrFacts X' :=
+        PubW.wrFacts_bktOpened X X' X.rl b n (T.gen n) hop hok.2.2.2.2.2.1.1
+          (by rw [hR]; rfl) hwr
+      imod boltTxDef_wclose K tx r c c X X' T ⊤ (by simp) hTc hk
+        (fun extra => txShape_bktOpened r.n.pg X X' X.rl b n (T.gen n) extra hokX' hop)
+        ⟨hokX', hrw, by rw [hdT, hdX'], by rw [hvX]; exact hbase, hgens', hwr'⟩ $$
+        [Hv Hw Hst] with Ht
+      · rw [hKB, hvX]; iframe; iframe #
+      imodintro
+      iapply HΦ
+      rw [hKB, hKN]
+      iframe Ht Hname
+      iright
+      iframe #
+      ipureintro; exact ⟨hsome, hbn⟩
 
-theorem Tx.Bucket.wp_proof (hBr : ∀ [HasExt osFsExt], Bucket.Bucket_r.spec (GF := GF) (hG := hG)) :
+theorem Tx.Bucket.wp_proof (hBr : ∀ [HasExt osFsExt], Bucket.Bucket_r.spec (GF := GF) (hG := hG))
+    (hBw : ∀ [HasExt osFsExt], Bucket.Bucket_w.spec (GF := GF) (hG := hG)) :
     Tx.Bucket.spec (GF := GF) (hG := hG) := by
   intro _ tx γ q T name n dq
   by_cases hrw : T.rw = true
-  · exact Tx.Bucket.wp_writer tx γ q T name n dq hrw
+  · exact Tx.Bucket.wp_writer hBw tx γ q T name n dq hrw
   · exact Tx.Bucket.wp_reader rdHandleMint_holds hBr tx γ q T name n dq (Bool.eq_false_iff.2 hrw)
 
 end proof

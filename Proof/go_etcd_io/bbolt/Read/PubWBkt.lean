@@ -182,6 +182,16 @@ variable [hos : HasExt osFsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- **The writer's registration** (persistent, a writer's) out of `wtxWQ`. -/
+theorem wtxWQ_reg_rw (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) :
+    wtxWQ (GF := GF) K tx r m q X ⊢ wtxWQ K tx r m q X ∗ reg tx K.B r ∗ ⌜r.rw = true⌝ := by
+  unfold wtxWQ wtxCoreQ
+  iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
+  iframe; iframe #
+  isplitr
+  · ipureintro; exact Hr
+  ipureintro; exact Hr.2.1
+
 /-- **A child bucket's `tx` field** (persistent: it is not the root), out of `wtxWQ`. -/
 theorem wtxWQ_child_tx (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (c : Loc)
     (C : BRec) (hb : X.t.bs !! c = some C) (hc : c ≠ X.rl) (hok : heapOK (GF := GF) tx X) :
