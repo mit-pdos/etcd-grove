@@ -19,7 +19,6 @@ the store's state); `wsRecvOk_of_log`: a received prefix of its sends satisfies 
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SentInv
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 
 @[expose] public section
 

@@ -5,7 +5,7 @@ response, a watcher in the stream's state, the stream's state, the watch guarant
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchModel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 
