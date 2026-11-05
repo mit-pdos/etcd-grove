@@ -292,6 +292,18 @@ statement each one rebuilds most of the repository (`mvcc/InvStore.lean` has 172
 - **`etc/tcb-report.py --check` only when an axiom or a `sorry` changed**, and once before a merge
   into the main branch, which also takes the full build of record.
 
+**One build of a shared change, not one per worktree** (2026-11-05, the user's). On 2026-11-04 the
+load reached about 130 on 32 cores: four worktrees each recompiled raft and the server after the same
+Perennial pin bump and `lean` merge, the same `.olean`s four times, each `lake build` at 32 jobs. So:
+- **After a change to widely imported modules lands on `lean`** (a pin bump, a hub statement, a
+  shared invariant), one session builds `lean` once (a worktree at that commit) and the others,
+  after merging `lean`, seed their `.lake/build` from it (`cp -a` of that build, never `cp -al`)
+  before building; Lake then rebuilds only what their own branch changes. The session that lands
+  such a change says so in its `notes/STATUS.md` entry ("seed from a build of `<commit>`").
+- **Full builds take turns**: a full `lake build` (and `etc/gates.sh`, which runs one) goes through
+  `flock /shared/tmp/etcd-grove-full-build.lock`, so at most one full build runs on the machine;
+  targeted builds (`etc/importers.py --leaves`) and `etc/lean-check.py` do not take the lock.
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
@@ -321,6 +333,29 @@ before the freeze a reversal costs statements and glue, not proofs.
 
 **Batching.** What must go to the user goes once per round, all of the round's questions together,
 not one at a time; the stage goes on with what does not depend on them.
+
+**Proceed with a veto** (2026-11-05, the user's). Before the freeze, a question in the right column
+that is not a hard stop is not a stop: the agent takes its own recommendation, records it in the
+stage plan as "decided by the agent, pending the user" (the options, the recommendation, the
+evidence), and goes on; the user reads the pending decisions in batches and vetoes what they
+disagree with, and a veto before the freeze costs statements and glue. The evidence: phase 7b's
+first three stops (2026-11-05) asked nine questions, the user took the recommendation on all nine,
+and each stop cost a round trip with the agent idle. **Hard stops** stay stops:
+- Scope and each Freeze;
+- anything that grows the trust base: a new axiom, a trusted model or scope premise on a trusted or
+  exported statement, a wider existing axiom (7b's T1, `types.UID` added to `SprintfNamed`'s list);
+- the escalation trigger below; a change to a frozen or top-level statement;
+- anything upstream or a fork change.
+
+A scope narrowing around a recorded finding (7b's cached no-op: the traffic avoids it, the bug in
+`issues/`) proceeds: it is recorded and in the batch, not a stop.
+
+**Questions do not block** (2026-11-05, the user's). A background agent that asks by ending its turn
+idles until the answer. Instead it appends the question (and each "decided by the agent, pending
+the user" decision) to `questions.md` at its worktree's root, with the options, its recommendation
+and what depends on the answer, and goes on with what does not; the orchestrator relays the file to
+the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
+does not depend on it.
 
 **The escalation trigger**, however small the change looks: a repair or design step that would add a
 spec or predicate family beside an existing one (a second spec of a function for a mode or special
