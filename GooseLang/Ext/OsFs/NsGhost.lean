@@ -193,6 +193,69 @@ instance DirG.countable : Pos.Countable DirG :=
       cases a; cases b; simp only [Prod.mk.injEq] at h
       obtain ⟨h1, h2⟩ := h; subst h1 h2; rfl)
 
+/-! ## A directory's view from the namespace's history (`NsView.lean` has its laws) -/
+
+def NsOp.enc : NsOp → Nat × GoString × GoString
+  | .create p k => (0, p, k)
+  | .mkdir p => (1, p, [])
+  | .remove p => (2, p, [])
+  | .rename s t => (3, s, t)
+
+instance NsOp.countable : Pos.Countable NsOp :=
+  Pos.Countable.ofInjective (fun o => Pos.Countable.encode o.enc)
+    (fun a b h => by
+      have h : a.enc = b.enc := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all [NsOp.enc])
+
+
+/-- `b` set to its value in `e2`. -/
+def setTo (e2 : Ents) (b : GoString) : LOp :=
+  match e2 !! b with
+  | some n => .put b n
+  | none => .del b
+
+
+open Classical in
+/-- Changes taking `e1` to `e2`: none if they are equal, else every name of either set to its
+value in `e2`. -/
+def lopsDiff (e1 e2 : Ents) : List LOp :=
+  if e1 = e2 then [] else ((e1.toList ++ e2.toList).map Prod.fst).map (setTo e2)
+
+
+/-- Whether `s` holds a file in `m`. -/
+def isFileAt (m : NsMap) (s : GoString) : Bool :=
+  match m !! s with
+  | some (.file _) => true
+  | _ => false
+
+/-- The changes an operation on the namespace `m` makes to the entries of `d`: the one `LOp` of a
+file operation of `d`'s entries; otherwise their difference. -/
+def lopFor (m : NsMap) (d : GoString) (o : NsOp) : List LOp :=
+  match o with
+  | .create p k =>
+    if p = (d ++ slashB :: baseOf p) ∧ NameOk (baseOf p) then [.put (baseOf p) (.file k)]
+    else lopsDiff (entsOf m d) (entsOf (o.apply m) d)
+  | .mkdir p =>
+    if p = (d ++ slashB :: baseOf p) ∧ NameOk (baseOf p) then [.put (baseOf p) .dir]
+    else lopsDiff (entsOf m d) (entsOf (o.apply m) d)
+  | .remove p =>
+    if p = (d ++ slashB :: baseOf p) ∧ NameOk (baseOf p) then [.del (baseOf p)]
+    else lopsDiff (entsOf m d) (entsOf (o.apply m) d)
+  | .rename s t =>
+    if s = (d ++ slashB :: baseOf s) ∧ t = (d ++ slashB :: baseOf t) ∧ NameOk (baseOf s) ∧ NameOk (baseOf t) ∧
+        baseOf s ≠ baseOf t ∧ isFileAt m s = true then [.mv (baseOf s) (baseOf t)]
+    else lopsDiff (entsOf m d) (entsOf (o.apply m) d)
+
+
+/-- The changes of `d`'s entries along the operations `H`, from the namespace `m`. -/
+def lopsAlong : NsMap → List NsOp → GoString → List LOp
+  | _, [], _ => []
+  | m, o :: os, d => lopFor m d o ++ lopsAlong (o.apply m) os d
+
+/-- The view of the directory `d` after the operations `H` from the namespace `H0`. -/
+def dview (H0 : NsMap) (H : List NsOp) (d : GoString) : DirG := ⟨entsOf H0 d, lopsAlong H0 H d⟩
+
+
 end Perennial
 
 end

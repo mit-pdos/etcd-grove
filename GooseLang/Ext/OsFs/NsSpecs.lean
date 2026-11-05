@@ -71,10 +71,10 @@ variable {s : Stuckness} {E : CoPset}
 /-- What a namespace operation's proof works with of the namespace: the state's facts, the
 ghost maps of the directories and directory fds, the in-flight flag, and the fractions the reads
 in progress hold. -/
-def nsWorld (st : OsState) (Γd : GMap GoString DirG) (Γdf : GMap w64 (GoString × DirPh)) :
+def nsWorld (st : OsState) (Γd : NsMap × List NsOp) (Γdf : GMap w64 (GoString × DirPh)) :
     IProp GF :=
   iprop(⌜NsWf st ∧ NsCoh st Γd Γdf⌝ ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd Γd ∗
+    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap Γd) ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γz (busyMap st.nsBusy) ∗
     rdRes (gooseOsGS (L := L)) Γdf)
@@ -165,9 +165,16 @@ section resources
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
-/-- The directory `d`, as `g` says. -/
+/-- The namespace's history `V` (a fraction `dq` of it): the namespace the generation booted
+with, and the operations logged since. -/
+def osNsAll (dq : DFrac) (V : NsMap × List NsOp) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () dq V
+
+/-- The directory `d`, as `g` says: a fraction of the history, of which `g` is `d`'s view, `d` a
+directory now. -/
 def osDir (d : GoString) (dq : DFrac) (g : DirG) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd d dq g
+  iprop(∃ V : NsMap × List NsOp, osNsAll dq V ∗
+    ⌜g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir⌝)
 
 /-- The directory fd `fd`, on `x.1`, its read at `x.2`. -/
 def osDirFd (fd : w64) (dq : DFrac) (x : GoString × DirPh) : IProp GF :=
@@ -177,12 +184,69 @@ def osDirFd (fd : w64) (dq : DFrac) (x : GoString × DirPh) : IProp GF :=
 def osNsBusy (b : Bool) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γz () (DFrac.own 1) b
 
+instance osNsAll_timeless (dq : DFrac) (V : NsMap × List NsOp) :
+    Timeless (osNsAll (L := L) dq V) := by unfold osNsAll; infer_instance
 instance osDir_timeless (d : GoString) (dq : DFrac) (g : DirG) :
     Timeless (osDir (L := L) d dq g) := by unfold osDir; infer_instance
-instance osDirFd_timeless (fd : w64) (dq : DFrac) (x : GoString × DirPh) :
-    Timeless (osDirFd (L := L) fd dq x) := by unfold osDirFd; infer_instance
-instance osNsBusy_timeless (b : Bool) : Timeless (osNsBusy (L := L) b) := by
-  unfold osNsBusy; infer_instance
+
+/-- The history held, with the authoritative one: they agree. -/
+theorem osNsAll_auth (V V' : NsMap × List NsOp) (dq : DFrac) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗ osNsAll (L := L) dq V' -∗
+      ⌜V' = V⌝ := by
+  iintro HA Hh
+  unfold osNsAll
+  icases gAuth_lookup _ _ _ _ _ _ $$ HA Hh with %h
+  ipureintro
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq] at h
+  exact h.symm
+
+/-- A directory held, with the authoritative history: its view, a directory now. -/
+theorem osDir_view (V : NsMap × List NsOp) (d : GoString) (dq : DFrac) (g : DirG) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗ osDir (L := L) d dq g -∗
+      ⌜g = dview V.1 V.2 d ∧ nsReplay V.2 V.1 !! d = some .dir⌝ := by
+  unfold osDir
+  iintro HA ⟨%V', Hh, %hg⟩
+  icases osNsAll_auth V V' dq $$ HA Hh with %h
+  subst h
+  ipureintro; exact hg
+
+/-- The history updated, with the whole of it. -/
+theorem osNsAll_update (V V' : NsMap × List NsOp) (W : NsMap × List NsOp) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗
+      osNsAll (L := L) (DFrac.own 1) W ==∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V') ∗
+      osNsAll (L := L) (DFrac.own 1) V' := by
+  iintro HA Hh
+  unfold osNsAll
+  imod gAuth_update _ _ _ _ _ V' $$ HA Hh with ⟨HA, Hh⟩
+  have : (<[() := V']> (histMap V)) = histMap V' := by
+    apply GMap.ext; intro u; cases u; simp [histMap]
+  rw [this]
+  imodintro; iframe
+
+/-- A directory held whole, with the authoritative history, updated to the history `V'`, its view
+there `g'`. -/
+theorem osDir_update (V V' : NsMap × List NsOp) (d : GoString) (g g' : DirG)
+    (hg' : g' = dview V'.1 V'.2 d ∧ nsReplay V'.2 V'.1 !! d = some .dir) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V) -∗
+      osDir (L := L) d (DFrac.own 1) g ==∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap V') ∗
+      osDir (L := L) d (DFrac.own 1) g' := by
+  unfold osDir
+  iintro HA ⟨%W, Hh, -⟩
+  imod osNsAll_update V V' W $$ HA Hh with ⟨HA, Hh⟩
+  imodintro
+  iframe HA
+  iexists V'
+  iframe Hh
+  ipureintro; exact hg'
+
+/-- The whole history is a directory's view (of any directory now). -/
+theorem osNsAll_dir (dq : DFrac) (V : NsMap × List NsOp) (d : GoString)
+    (hd : nsReplay V.2 V.1 !! d = some .dir) :
+    osNsAll (L := L) dq V ⊢ osDir (L := L) d dq (dview V.1 V.2 d) := by
+  unfold osDir
+  iintro H; iexists V; iframe; ipureintro; exact ⟨rfl, hd⟩
 
 end resources
 
@@ -218,10 +282,9 @@ theorem wp_osRegimeNs (p d : GoString) (dq : DFrac) (g : DirG)
   icases Hn with ⟨%Hns, HAd, HAdf, HAz, Hrd⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   obtain ⟨hw, hc⟩ := Hns
-  unfold osDir
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAd Hd with %Hdl
+  icases osDir_view _ _ _ _ $$ HAd Hd with %Hdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
-  have hdir : st.ns !! d = some .dir := (hc.dirs d).1 (by rw [Hdl]; rfl)
+  have hdir : st.ns !! d = some .dir := by rw [ns_eq_replay hw hc]; exact Hdl.2
   have hpf : p ∉ st.files := by
     rcases hp with rfl | ⟨b, hb, rfl⟩
     · exact hw.dir_not_files hdir
@@ -355,7 +418,7 @@ theorem wp_osNsBegin (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
   isplitr
   · ipureintro
     subst hst'
-    refine ⟨?_, hc.congr rfl rfl rfl rfl⟩
+    refine ⟨?_, hc.congr rfl rfl rfl⟩
     exact ⟨hw.roots, hw.replay, hw.hist, hw.legacy, hw.dfds, hw.disj⟩
   iapply wp_value'
   iapply HΦ $$ Hz

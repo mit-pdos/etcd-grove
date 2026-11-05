@@ -253,75 +253,33 @@ theorem OsDirFd.note_path (o : NsOp) (df : OsDirFd) : (df.note o).path = df.path
 /-! ## The coherence a file operation keeps -/
 
 section coh
-variable {st st1 : OsState} {Γd : GMap GoString DirG} {Γdf : GMap w64 (GoString × DirPh)}
+variable {st st1 : OsState} {V : NsMap × List NsOp} {Γdf : GMap w64 (GoString × DirPh)}
 
-/-- **A file operation of the directory `d`, made by the holder of `d`'s whole ghost entry `g`**
-(so that no read of `d` is in progress): the state after it is coherent with `d`'s entry with the
-change pushed. `st1` is the state the operation is made from (the in-flight flag cleared, a file
-created), with `st`'s namespace. -/
-theorem nsCoh_fileOp {d : GoString} {g : DirG} {o : NsOp} {lo : LOp}
-    (hc : NsCoh st Γd Γdf) (hg : Γd !! d = some g)
-    (hnr : ∀ fd rs g' q, Γdf !! fd ≠ some (d, .reading rs g' q))
-    (hop : FileOp st.ns o) (hin : FileOpIn st.ns d o lo)
-    (h1 : st1.ns = st.ns) (h2 : st1.nsDur = st.nsDur) (h3 : st1.nsLog = st.nsLog)
-    (h4 : st1.dfds = st.dfds) (hrep : st.ns = nsReplay st.nsLog st.nsDur) :
-    NsCoh (st1.nsDo o) (<[d := g.push lo]> Γd) Γdf := by
-  have hgnow : entsOf st.ns d = g.now := hc.now d g hg
-  refine ⟨fun e => ?_, fun e g' hg' => ?_, fun e g' hg' n hn => ?_, fun j hj => ?_,
-    fun fd => ?_, fun fd x df hx hdf => ?_, fun fd e rs g' q hx => ?_⟩
-  · show ((<[d := g.push lo]> Γd) !! e).isSome ↔ (o.apply st1.ns) !! e = some .dir
-    rw [h1, hin.dir e]
-    by_cases he : d = e
-    · subst he; rw [GMap.lookup_insert]
-      have := (hc.dirs d).1 (by rw [hg]; rfl)
-      simp [this]
-    · rw [GMap.lookup_insert_ne _ _ he]; exact hc.dirs e
-  · show entsOf (o.apply st1.ns) e = g'.now
-    rw [h1]
-    by_cases he : d = e
-    · subst he; rw [GMap.lookup_insert] at hg'; cases hg'
-      rw [hin.self, hgnow, DirG.push_now]
-    · rw [GMap.lookup_insert_ne _ _ he] at hg'
-      rw [hin.other e (Ne.symm he)]; exact hc.now e g' hg'
-  · show g'.CrashTo (entsOf (nsReplay ((st1.nsLog ++ [o]).take n) st1.nsDur) e)
-    have hn0 : n ≤ st.nsLog.length + 1 := by
-      have : (st1.nsDo o).nsLog = st1.nsLog ++ [o] := rfl
-      rw [this, h3] at hn; simpa using hn
-    rw [h2, h3]
-    rcases Nat.lt_or_ge n (st.nsLog.length + 1) with hlt | hge
-    · by_cases hle : n ≤ st.nsLog.length
-      · rw [List.take_append_of_le_length hle]
-        by_cases he : d = e
-        · subst he; rw [GMap.lookup_insert] at hg'; cases hg'
-          exact DirG.crashTo_push lo (hc.hist d g hg n hle)
-        · rw [GMap.lookup_insert_ne _ _ he] at hg'; exact hc.hist e g' hg' n hle
-      · omega
-    · have hn' : n = st.nsLog.length + 1 := by omega
-      subst hn'
-      rw [List.take_of_length_le (by simp),
-        nsReplay_snoc, ← hrep]
-      by_cases he : d = e
-      · subst he; rw [GMap.lookup_insert] at hg'; cases hg'
-        rw [hin.self, hgnow]; exact DirG.crashTo_push_now g lo
-      · rw [GMap.lookup_insert_ne _ _ he] at hg'
-        rw [hin.other e (Ne.symm he), hc.now e g' hg']; exact DirG.crashTo_now g'
-  · have hj0 : j < st.nsLog.length + 1 := by
-      have : (st1.nsDo o).nsLog = st1.nsLog ++ [o] := rfl
-      rw [this, h3] at hj; simpa using hj
-    show FileOp (nsReplay ((st1.nsLog ++ [o]).take j) st1.nsDur) (st1.nsLog ++ [o])[j]
-    rw [h2]
-    simp only [h3]
-    by_cases hlt : j < st.nsLog.length
-    · rw [List.take_append_of_le_length (Nat.le_of_lt hlt), List.getElem_append_left hlt]
-      exact hc.ops j hlt
-    · have hj' : j = st.nsLog.length := by omega
-      subst hj'
-      rw [List.take_append_of_le_length (Nat.le_refl _), List.take_length,
-        List.getElem_append_right (Nat.le_refl _)]
-      simp only [Nat.sub_self, List.getElem_cons_zero]
-      rw [← hrep]; exact hop
+/-- The namespace now is the history replayed. -/
+theorem ns_eq_replay (hw : NsWf st) (hc : NsCoh st V Γdf) : st.ns = nsReplay V.2 V.1 := by
+  obtain ⟨h1, h2, h3⟩ := hc.hist
+  generalize V.2.length - st.nsLog.length = c at h2 h3
+  rw [hw.replay, h3, ← h2, ← nsReplay_append, List.take_append_drop]
+
+/-- **An operation logged by the holder of the whole history** (so that no read is in
+progress): the state after it is coherent with the history it extends. `st1` is the state the
+operation is made from (the in-flight flag cleared, a file created), with `st`'s durable part, log
+and directory fds. -/
+theorem nsCoh_log {o : NsOp} (hc : NsCoh st V Γdf)
+    (hnr : ∀ fd d rs g q, Γdf !! fd ≠ some (d, .reading rs g q))
+    (h2 : st1.nsDur = st.nsDur) (h3 : st1.nsLog = st.nsLog) (h4 : st1.dfds = st.dfds) :
+    NsCoh (st1.nsDo o) (V.1, V.2 ++ [o]) Γdf := by
+  obtain ⟨⟨k1, k2, k3⟩, hfds, hph, -⟩ := hc
+  have hl : (st1.nsDo o).nsLog = st.nsLog ++ [o] := by rw [← h3]; rfl
+  have hc' : (V.2 ++ [o]).length - (st.nsLog ++ [o]).length = V.2.length - st.nsLog.length := by
+    simp
+  refine ⟨⟨?_, ?_, ?_⟩, fun fd => ?_, fun fd x df hx hdf => ?_, fun fd e rs g' q hx => ?_⟩
+  · rw [hl]; simp; (try omega)
+  · rw [hl, hc', List.drop_append_of_le_length (by omega), k2]
+  · rw [hl, hc', List.take_append_of_le_length (by omega)]
+    show st1.nsDur = _; rw [h2]; exact k3
   · show (Γdf !! fd).map (·.1) = ((GMap.fmap (·.note o) st1.dfds) !! fd).map (·.path)
-    rw [GMap.lookup_fmap, h4, hc.fds fd]
+    rw [GMap.lookup_fmap, h4, hfds fd]
     cases st.dfds !! fd with
     | none => rfl
     | some df => show some df.path = some (df.note o).path; rw [OsDirFd.note_path]
@@ -333,20 +291,34 @@ theorem nsCoh_fileOp {d : GoString} {g : DirG} {o : NsOp} {lo : LOp}
     | some df0 =>
       rw [hd0] at hdf'; simp only [Option.map_some, Option.some.injEq] at hdf'
       subst hdf'
-      have hph := hc.ph fd x df0 hx hd0
-      have hpath : x.1 = df0.path := by
-        have := hc.fds fd; rw [hx, hd0] at this; simpa using this
+      have hph0 := hph fd x df0 hx hd0
       rcases x with ⟨xp, _ | ⟨rs, g0, q⟩ | _⟩
-      · -- idle: the note changes only a read
-        unfold OsDirFd.note; split <;> simp_all [PhOk]
-      · -- reading: of a directory other than `d`
-        have hne : xp ≠ d := fun h => hnr fd rs g0 q (by rw [hx, h])
-        have hnd : df0.path ∉ o.dirs := by rw [hin.dirs, ← hpath]; exact hne
-        rw [OsDirFd.note_of_not_dirs df0 hnd]; exact hph
       · unfold OsDirFd.note; split <;> simp_all [PhOk]
-  · have hne : e ≠ d := fun h => hnr fd rs g' q (by rw [hx, h])
-    rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]
-    exact hc.rd fd e rs g' q hx
+      · exact absurd hx (hnr fd xp rs g0 q)
+      · unfold OsDirFd.note; split <;> simp_all [PhOk]
+  · exact absurd hx (hnr fd e rs g' q)
+
+/-- A commit of the first `n` operations of the log keeps the coherence (the history is the same;
+more of it is committed). -/
+theorem nsCoh_commit (hc : NsCoh st V Γdf) (n : Nat) : NsCoh (st.nsCommit n) V Γdf := by
+  obtain ⟨⟨k1, k2, k3⟩, hfds, hph, hrd⟩ := hc
+  generalize hcd : V.2.length - st.nsLog.length = c at k2 k3
+  have hcl : c + st.nsLog.length = V.2.length := by omega
+  have hl : (st.nsCommit n).nsLog = st.nsLog.drop n := rfl
+  have hd : (st.nsCommit n).nsDur = nsReplay (st.nsLog.take n) st.nsDur := rfl
+  by_cases hn : n ≤ st.nsLog.length
+  · have hc' : V.2.length - (st.nsLog.drop n).length = c + n := by simp; omega
+    refine ⟨⟨?_, ?_, ?_⟩, hfds, hph, hrd⟩
+    · rw [hl]; simp; omega
+    · rw [hl, hc', ← List.drop_drop, k2]
+    · rw [hl, hd, hc', List.take_add, k2, k3, nsReplay_append]
+  · have hn' : st.nsLog.length ≤ n := by omega
+    have hc' : V.2.length - (st.nsLog.drop n).length = V.2.length := by simp [hn']
+    refine ⟨⟨?_, ?_, ?_⟩, hfds, hph, hrd⟩
+    · rw [hl]; simp; omega
+    · rw [hl, hc', List.drop_eq_nil_of_le (Nat.le_refl _), List.drop_eq_nil_of_le hn']
+    · rw [hl, hd, hc', List.take_of_length_le (Nat.le_refl _), List.take_of_length_le hn', k3,
+        ← nsReplay_append, ← k2, List.take_append_drop]
 
 end coh
 

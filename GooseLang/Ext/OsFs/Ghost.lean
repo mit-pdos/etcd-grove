@@ -295,34 +295,34 @@ def PhOk : DirPh → OsDirRead → Prop
     ∀ b, u b = (g.now !! b).isSome ∧ s b = (g.now !! b).isSome ∧ r b = decide (b ∈ rs)
   | _, _ => False
 
-/-- The namespace's ghost maps mirror its state: a ghost entry for every directory, whose
-entries now are the directory's, and whose crash outcomes include what every prefix of the log
-leaves of it; the log holds only `FileOp`s; a ghost entry for every directory fd, on its path, its
-read as the state's, and a directory being read unchanged since the read began. -/
-structure NsCoh (st : OsState) (Γd : GMap GoString DirG) (Γdf : GMap w64 (GoString × DirPh)) :
+/-- The namespace's history `V = (H0, H)` mirrors the state: `H0` the namespace the generation
+booted with, `H` every operation logged since, of which the first `|H| - |log|` are committed: the
+durable namespace is them replayed on `H0`, and the log is the rest. -/
+def HistOk (st : OsState) (V : NsMap × List NsOp) : Prop :=
+  st.nsLog.length ≤ V.2.length ∧ V.2.drop (V.2.length - st.nsLog.length) = st.nsLog ∧
+  st.nsDur = nsReplay (V.2.take (V.2.length - st.nsLog.length)) V.1
+
+/-- The namespace's ghost state mirrors its state: the history (`HistOk`); a ghost entry for every
+directory fd, on its path, its read as the state's, and a directory being read the view of the
+history (so unchanged since the read began: a read holds a fraction of the history). -/
+structure NsCoh (st : OsState) (V : NsMap × List NsOp) (Γdf : GMap w64 (GoString × DirPh)) :
     Prop where
-  dirs : ∀ d, (Γd !! d).isSome ↔ st.ns !! d = some .dir
-  now : ∀ d g, Γd !! d = some g → entsOf st.ns d = g.now
-  hist : ∀ d g, Γd !! d = some g → ∀ n, n ≤ st.nsLog.length →
-    g.CrashTo (entsOf (nsReplay (st.nsLog.take n) st.nsDur) d)
-  ops : ∀ j (h : j < st.nsLog.length), FileOp (nsReplay (st.nsLog.take j) st.nsDur) st.nsLog[j]
+  hist : HistOk st V
   fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.dfds !! fd).map (·.path)
   ph : ∀ fd x df, Γdf !! fd = some x → st.dfds !! fd = some df → PhOk x.2 df.rd
-  rd : ∀ fd d rs g q, Γdf !! fd = some (d, .reading rs g q) → Γd !! d = some g
+  rd : ∀ fd d rs g q, Γdf !! fd = some (d, .reading rs g q) → g = dview V.1 V.2 d
 
-/-- `NsCoh` depends on the namespace, its log and its directory fds only. -/
-theorem NsCoh.congr {st st' : OsState} {Γd Γdf} (h : NsCoh st Γd Γdf) (hns : st'.ns = st.ns)
+/-- `NsCoh` depends on the namespace's durable part, its log and its directory fds only. -/
+theorem NsCoh.congr {st st' : OsState} {V Γdf} (h : NsCoh st V Γdf)
     (hd : st'.nsDur = st.nsDur) (hl : st'.nsLog = st.nsLog) (hf : st'.dfds = st.dfds) :
-    NsCoh st' Γd Γdf := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro d; rw [hns]; exact h1 d
-  · intro d g hg; rw [hns]; exact h2 d g hg
-  · intro d g hg n hn; rw [hl, hd]; rw [hl] at hn; exact h3 d g hg n hn
-  · intro j hj; simp only [hl, hd]; rw [hl] at hj; exact h4 j hj
+    NsCoh st' V Γdf := by
+  obtain ⟨⟨h1, h2, h3⟩, h5, h6, h7⟩ := h
+  refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_, h7⟩
+  · rw [hl]; exact h1
+  · rw [hl]; exact h2
+  · rw [hl, hd]; exact h3
   · intro fd; rw [hf]; exact h5 fd
   · intro fd x df hx hdf; rw [hf] at hdf; exact h6 fd x df hx hdf
-  · exact h7
 
 /-- The directories of `st`'s namespace, each with its entries, all of them durable. -/
 def dirMap (st : OsState) : GMap GoString DirG :=
@@ -336,29 +336,18 @@ def dirMap (st : OsState) : GMap GoString DirG :=
 theorem dirMap_lookup (st : OsState) (d : GoString) :
     dirMap st !! d = if st.ns !! d = some .dir then some ⟨entsOf st.ns d, []⟩ else none := rfl
 
-/-- A state the program starts in is coherent with its directories, all durable, and no fd. -/
-theorem nsInit_coh {st : OsState} (h : NsInit st) : NsCoh st (dirMap st) ∅ := by
+/-- A state the program starts in is coherent with the history of nothing logged on it, and no
+fd. -/
+theorem nsInit_coh {st : OsState} (h : NsInit st) : NsCoh st (st.ns, []) ∅ := by
   obtain ⟨hdf, hlog, hdur, -, -⟩ := h
-  refine ⟨fun d => ?_, fun d g hg => ?_, fun d g hg n hn => ?_, fun j hj => ?_, fun fd => ?_,
-    fun fd x df hx _ => ?_, fun fd d rs g q hx => ?_⟩
-  · rw [dirMap_lookup]; split <;> simp_all
-  · rw [dirMap_lookup] at hg; split at hg
-    · cases hg; rfl
-    · cases hg
-  · rw [dirMap_lookup] at hg; split at hg
-    · cases hg
-      rw [hlog] at hn ⊢
-      have : n = 0 := by simpa using hn
-      subst this
-      refine ⟨0, Nat.zero_le _, ?_⟩
-      simp [nsReplay, lreplay, hdur]
-    · cases hg
-  · rw [hlog] at hj; simp at hj
+  refine ⟨⟨?_, ?_, ?_⟩, fun fd => ?_, fun fd x df hx _ => ?_, fun fd d rs g q hx => ?_⟩
+  · rw [hlog]; simp
+  · rw [hlog]; rfl
+  · rw [hlog, hdur]; rfl
   · rw [hdf]; rfl
   · simp at hx
   · simp at hx
 
-/-! ## The view of the mapped cells -/
 
 section cells
 attribute [local instance] Classical.propDecidable
@@ -470,7 +459,8 @@ structure OsGS (GF : BundledGFunctors) where
   γf : GName
   γt : GName
   γv : GName
-  /-- The namespace's: directories, directory fds, and whether a call is in flight. -/
+  /-- The namespace's: its history (a map of one entry), directory fds, and whether a call is in
+  flight. -/
   γd : GName
   γdf : GName
   γz : GName
@@ -749,7 +739,8 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
 directory's ghost entry the read took, so that no one changes the directory while it reads. -/
 def rdPart (hL : OsGS GF) (x : GoString × DirPh) : IProp GF :=
   match x.2 with
-  | .reading _ g q => gElem hL hL.γd x.1 (DFrac.own q) g
+  | .reading _ g q => iprop(∃ V : NsMap × List NsOp,
+      gElem hL hL.γd () (DFrac.own q) V ∗ ⌜g = dview V.1 V.2 x.1⌝)
   | _ => iprop(emp)
 
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (GoString × DirPh)) : IProp GF :=
@@ -758,27 +749,30 @@ def rdRes (hL : OsGS GF) (Γdf : GMap w64 (GoString × DirPh)) : IProp GF :=
 /-- Whether a call that changes the namespace is in flight, as a ghost map of one entry. -/
 def busyMap (b : Bool) : GMap Unit Bool := {[() := b]}
 
+/-- The namespace's history, as a ghost map of one entry. -/
+def histMap (V : NsMap × List NsOp) : GMap Unit (NsMap × List NsOp) := {[() := V]}
+
 /-- The interpretation of the namespace of `st`. -/
 def nsCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(∃ (Γd : GMap GoString DirG) (Γdf : GMap w64 (GoString × DirPh)),
-    ⌜NsWf st ∧ NsCoh st Γd Γdf⌝ ∗ gAuth hL hL.γd Γd ∗ gAuth hL hL.γdf Γdf ∗
+  iprop(∃ (V : NsMap × List NsOp) (Γdf : GMap w64 (GoString × DirPh)),
+    ⌜NsWf st ∧ NsCoh st V Γdf⌝ ∗ gAuth hL hL.γd (histMap V) ∗ gAuth hL hL.γdf Γdf ∗
     gAuth hL hL.γz (busyMap st.nsBusy) ∗ rdRes hL Γdf)
 
 /-- A step that leaves the namespace alone keeps its interpretation. -/
 theorem nsCtx_frame (hL : OsGS GF) {st st' : OsState} (h : NsFrame st st') :
     nsCtx hL st ⊢ nsCtx hL st' := by
   unfold nsCtx
-  iintro ⟨%Γd, %Γdf, %hw, Had, Haf, Haz, Hrd⟩
-  iexists Γd, Γdf
+  iintro ⟨%V, %Γdf, %hw, Had, Haf, Haz, Hrd⟩
+  iexists V, Γdf
   rw [h.busy]
   iframe
   ipureintro
-  exact ⟨h.wf hw.1, hw.2.congr h.ns h.nsDur h.nsLog h.dfds⟩
+  exact ⟨h.wf hw.1, hw.2.congr h.nsDur h.nsLog h.dfds⟩
 
-/-- The start resources of the namespace: every directory's ghost entry, whole, and the
-in-flight flag, unset. -/
+/-- The start resources of the namespace: its history, whole (nothing logged on the namespace
+it starts with), and the in-flight flag, unset. -/
 def nsStart (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(([∗map] d ↦ g ∈ dirMap st, gElem hL hL.γd d (DFrac.own 1) g) ∗
+  iprop(gElem hL hL.γd () (DFrac.own 1) (st.ns, ([] : List NsOp)) ∗
     ([∗map] k ↦ b ∈ busyMap false, gElem hL hL.γz k (DFrac.own 1) b))
 
 /-- The interpretation of the files of `st`. -/
@@ -928,7 +922,7 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat TokInfo) with ⟨%γt, Hat, -⟩
   imod ghostVar_alloc (GF := GF) ((∅ : GMap Loc (Option w8 × Bool)), 0) with ⟨%γv, Hv⟩
   icases (ghostVar_split_half γv 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
-  imod ghost_map_alloc (GF := GF) (dirMap st) with ⟨%γd, Had, Hd⟩
+  imod ghost_map_alloc (GF := GF) (histMap (st.ns, ([] : List NsOp))) with ⟨%γd, Had, Hd⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (GoString × DirPh)) with ⟨%γdf, Hadf, -⟩
   have hbusy : st.nsBusy = false := h.2.2.2.2.1
   imod ghost_map_alloc (GF := GF) (busyMap false) with ⟨%γz, Haz, Hz⟩
@@ -943,13 +937,17 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       isplitr
       · ipureintro; exact ⟨hwf, hcoh⟩
       · iapply BigSepM.bigSepM_empty.2; itrivial
-    · iexists (dirMap st), ∅
+    · iexists (st.ns, ([] : List NsOp)), ∅
       rw [hbusy]
       iframe Had Hadf Haz
       isplitr
       · ipureintro; exact ⟨nsInit_wf h.2, nsInit_coh h.2⟩
       · iapply BigSepM.bigSepM_empty.2; itrivial
-  · unfold osStart osStartF nsStart gElem gVar
+  · unfold osStart osStartF nsStart gElem gVar histMap
+    ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := (st.ns, ([] : List NsOp))]} : GMap Unit (NsMap × List NsOp)),
+        ghostMapElem (GF := GF) γd k (DFrac.own 1) v) ⊢ ghostMapElem γd () (DFrac.own 1) (st.ns, ([] : List NsOp)) from
+      (BigSepM.bigSepM_singleton (M := GMap Unit)
+        (Φ := fun (k : Unit) (v : NsMap × List NsOp) => ghostMapElem (GF := GF) γd k (DFrac.own 1) v)).1) $$ Hd
     iframe
 
 /-- The ghost state of the Linux file extension. The program gets every file and byte of the
