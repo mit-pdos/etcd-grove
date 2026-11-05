@@ -28,11 +28,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`NewAuthStore(lg, ab, tp, cost)`** over schema's auth backend `ab` wrapping the real
 backend `d` (`NewAuthBackend`'s result), its auth buckets empty in a part of any bucket set `S`
-containing them (`backend.rbPart d.γB S r`) and in the backend's table (`d.P.has` of each): an auth
+containing them (`backend.rbPart d.γB S r`) and served by the backend's parameters (`authParams
+d.P`: in its table, hook buckets, not safe-range, tracked, no hook key): an auth
 store, disabled, with its reader resource `RD`: the request path's contract (`isReqAuth`) and the
 apply contract with auth off (`isAuthStore … false`) at the backend's batch lock `Pk` and any frozen
 post-lock hook `f` (D14d), one write-back token per write, the reader's open share lent (D14f); the
 part comes back **idle** at the auth buckets' new contents (`backend.rbOwnIn d.γB S …`).
+
+(Strict M1, 2026-11-05: the backend is a `mvcc.api.BkRef`, its names, parameters and location, in
+place of mvcc's internal `KBReal`, whose parameters `KBReal.P` fixed every bucket's rows; the
+premise `authParams d.P` keeps the auth buckets' rows of them, all the code below touches, and the
+three `d.P.has` premises it replaces. Every real instance meets it, `KBReal.P` included.)
 
 Why it is true of the Go code (`NewAuthStore`, `authStore`'s methods, `schema`'s `authBackend`,
 at the etcd pin):
@@ -57,7 +63,7 @@ at the etcd pin):
   takes only at `on = true`: with `on = false` it stays disabled.
 * Each write method (the admin requests, `AuthDisable`) takes the batch lock inside the apply
   (`Lock` = `LockInsideApply`: the backend open, a share lent in `mvcc.bkRTx`, and the frozen hook
-  run under `Pk`, `csContract Pk f`), puts into the auth buckets (hook buckets for the readers'
+  run under `Pk`, `srvApi.csContractA Pk f`), puts into the auth buckets (hook buckets for the readers'
   view: unchanged), and unlocks with one write-back (its `Commit` and `AuthEnable`'s
   `ForceCommit` write none back; the backend's specs of `Commit`/`ForceCommit` charge a token, a
   coarser accounting than the code's). Its puts are into tracked buckets (D22, 2026-10-23): each
@@ -72,7 +78,7 @@ at the etcd pin):
   `rangePermCacheMu` and (the fork's d52eec43e, D22k (A)) of `beMu`, under which the permission
   checks take their read transaction (`lockedReadTx`) and `Recover` replaces `be`.
 * (D22 receiver epochs, S7c, 2026-10-23) `beMu`'s lock holds half of `as.be` (`auth.beP`), the
-  caller gets the other (`authBeOn stl d.be`: `ab` wraps `d.be`); the writes read `as.be` (through
+  caller gets the other (`authBeOn stl d.b`: `ab` wraps `d.b`); the writes read `as.be` (through
   the auth backend's batch transaction), so they write to the backend the caller's half names: the
   apply contract (`authApplyOk`) is for whichever backend that is, given a write right lending that
   half; `Recover` (names-only) needs both halves, the write lock's and the caller's. Until S7c the
@@ -100,19 +106,18 @@ at the etcd pin):
   reading the backend).
 -/
 abbrev auth.NewAuthStore.spec : Prop :=
-  ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
+  ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.api.BkRef)
     (W Pk : IProp GF) (qo : Qp) (S : GoString → Prop) (r : GMap GoString backend.BktData),
-  (∀ n, auth.authBkts n → S n) →
-  d.P.has mvcc.authBI → d.P.has mvcc.authUsersBI → d.P.has mvcc.authRolesBI →
+  (∀ n, auth.authBkts n → S n) → auth.authParams d.P →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
       ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗
       ⌜ab = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #abl⌝ ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-          #d.be : GoInterface) ∗
+          #d.b : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
-      backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
+      backend.isBackend d.γB d.P W Pk d.b ∗ backend.bOpen d.γB qo ∗
       backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbPart d.γB S r ∗
       ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
         (r.lookup go!"authRoles").getD ∅ = ∅⌝ }}
@@ -121,7 +126,7 @@ abbrev auth.NewAuthStore.spec : Prop :=
   {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
       backend.rbOwnIn d.γB S (((r.insert go!"auth" authBoot).insert
         go!"authUsers" ∅).insert go!"authRoles" ∅) ∗
-      ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
+      ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.b ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
       isReqAuth st RD ∗ authApplyOk stl RD ∗
       authRecoverOk stl }}

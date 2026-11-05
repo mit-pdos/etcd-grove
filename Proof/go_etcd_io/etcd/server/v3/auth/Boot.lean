@@ -101,7 +101,7 @@ end ghost
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **What D22 discharges at boot** (a named premise of `newAuthStore_boot`; see the file
@@ -111,7 +111,7 @@ those names: the read side for the reader resource `R`, the write side (`authWBa
 batch lock's contract `P f` with the write token `T`, and `CreateAuthBuckets` as one transaction
 keeping `T`. -/
 def authSchemaBoot (ab : GoInterface) (bi : GoInterfaceOk) (γt γf : GName) (R P : IProp GF)
-    (f : val) (T : IProp GF) : IProp GF :=
+    (f : GoFunc) (T : IProp GF) : IProp GF :=
   iprop(∀ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ -∗ authLockI (.on γa) bootState -∗
     |==> (authBackendOk ab R (.on γa) ∗ authWBackendOkR ab (.on γa) P f T ∗
       □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
@@ -137,7 +137,7 @@ end defs
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -155,10 +155,10 @@ theorem newAuthStore_boot
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γt γf : GName)
-    (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) :
+    (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authSchemaBoot ab bi γt γf R P f T ∗
-        T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderBoot tp γt γf A ∗ A }}
+        T ∗ srvApi.csContractA P f Pre Q Post ∗ tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (γa : AuthNames) (stp : Loc),

@@ -21,7 +21,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -31,10 +31,10 @@ the role deleted and revoked from every user, the revision bumped). Each user wh
 put back, so every stored user's name is within bbolt's key bound (`UserAdd` put it under that
 bound, but the read contract does not remember it: `issues/etcd-auth-useradd-long-name-fatal.md`). -/
 abbrev auth.authStore.RoleDelete.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (role : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      roleDeleteReqIs r role ∗ authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
+      roleDeleteReqIs r role ∗ authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (roleDeleteF en role))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (roleDeleteF en role))) ∗
       ⌜∀ s : AuthState, histLast M hs s → ∀ n : GoString, (s.users !! n).isSome →
