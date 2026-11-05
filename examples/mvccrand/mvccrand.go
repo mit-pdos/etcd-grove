@@ -37,6 +37,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"go.uber.org/zap"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
@@ -783,12 +784,30 @@ func itoa(n int) string {
 
 // Run runs a test of cfg: the store set up as etcd's server does, the writer, the readers and
 // the watch stream concurrently; it panics if a check fails.
+// noCluster is the lessor's cluster: no version known (the lessor reads it only when it
+// checkpoints or is promoted, which the tester never does; a stub rather than nil, so that the
+// lessor's spec, which takes a cluster whose Version returns, applies).
+type noCluster struct{}
+
+func (noCluster) Version() *semver.Version { return nil }
+
+// Run runs the tester (runChecks), then stops the lessor and closes the backend (shutdown is not
+// verified: notes/mvccrand.md).
 func Run(cfg Config) Report {
+	r, le, be := runChecks(cfg)
+	le.Stop()
+	check(be.Close() == nil, "the backend's close failed")
+	return r
+}
+
+// runChecks is Run up to the store's close: every check of mvcc, and the store closed; it returns
+// the report with the lessor and the backend, still open.
+func runChecks(cfg Config) (Report, lease.Lessor, backend.Backend) {
 	lg := zap.NewNop()
 	bcfg := backend.DefaultBackendConfig(lg)
 	bcfg.Path = cfg.Path
 	be := backend.New(bcfg)
-	le := lease.NewLessor(lg, be, nil, lease.LessorConfig{MinLeaseTTL: 1})
+	le := lease.NewLessor(lg, be, noCluster{}, lease.LessorConfig{MinLeaseTTL: 1})
 	kv := mvcc.New(lg, be, le, mvcc.StoreConfig{})
 	var applying, saved atomic.Int64
 	be.SetTxPostLockInsideApplyHook(func() {
@@ -843,9 +862,7 @@ func Run(cfg Config) Report {
 	ws.Close()
 	recvDone.Wait()
 	check(kv.Close() == nil, "the store's close failed")
-	le.Stop()
-	check(be.Close() == nil, "the backend's close failed")
-	return Report{WatchersComplete: complete, Events: c.events, ReadsAboveFloor: h.aboveFloor.Load()}
+	return Report{WatchersComplete: complete, Events: c.events, ReadsAboveFloor: h.aboveFloor.Load()}, le, be
 }
 
 // Main runs the writer's 1000 operations against 4 readers of 200 reads and 8 watchers, from seed

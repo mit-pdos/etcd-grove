@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.github_com.Masterminds.semver.v3
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
@@ -1095,6 +1096,29 @@ noncomputable instance watchCheck_access_store_events (l : Loc) (v : github_com.
 
 end def_
 end watchCheck
+
+namespace noCluster
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumptions]
+
+noncomputable instance noCluster_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.mvccrand.noCluster where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance noCluster_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.mvccrand.noCluster github_com.mit_pdos.etcd_grove.examples.mvccrand.noCluster.underlying := by
+  solve_into_val_typed_struct
+
+end def_
+end noCluster
 
 end github_com.mit_pdos.etcd_grove.examples.mvccrand
 end

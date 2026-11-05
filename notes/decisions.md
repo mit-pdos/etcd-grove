@@ -30484,3 +30484,17 @@ tracked, no hook key) (commit `cca7e9a4a9`). Attacked with the `axiom` skill, su
 the code touches only the auth buckets). Every old instance is an instance. The server's coming
 restatement of `authApplyOk`/`authRecoverOk`/`InvBoot` over `BkRef` needs its own review.
 
+## The tester's result: a stub cluster, `backend.New` may panic, `Run` split at the store's close (2026-11-06 · the user · branch `mvcc-api`)
+
+**What it was.** Three things outside mvcc's API stood between `examples/mvccrand`'s `Run` and a
+result: `lease.NewLessor`'s axiom takes a cluster whose `Version` returns (`lease.clusterOk`) and the
+tester passed `nil`; `backend.New`'s spec allows a panic (bbolt's open can fail); and `Run` ended
+with `le.Stop()` and `be.Close()`, shutdown being out of scope. **Decision (the user: "Ok, let's
+do this for now", the coordinator's recommendations):** (a1) the tester passes a stub cluster
+(`noCluster`, `Version` returning `nil`), so the lease axiom applies unchanged; (b1) the result is
+"every check passes, unless `backend.New` panics", adding nothing to the trust base; (c1) `Run` is
+`runChecks` (every check of mvcc, up to `check(kv.Close() == nil)`) followed by the unverified stop
+of the lessor and close of the backend, so the theorem is about `runChecks`. The tester's test
+passes under `-race`; the translation is regenerated (`etc/goose.py` maps semver to the empty root
+for the project).
+

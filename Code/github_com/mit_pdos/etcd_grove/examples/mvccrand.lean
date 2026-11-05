@@ -6,6 +6,7 @@ public import Perennial.Code.sort
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
 public import Perennial.Code.time
+public import Code.github_com.Masterminds.semver.v3
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
@@ -86,6 +87,11 @@ noncomputable def watchCheck.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] watchCheck.ty
 
+noncomputable def noCluster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/mvccrand.noCluster" [])
+
+attribute [irreducible] noCluster.ty
+
 noncomputable def keys [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/mvccrand.keys"
 
@@ -119,10 +125,13 @@ noncomputable def itoa [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/mvccrand.Run"
 
+noncomputable def runChecks [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/mvccrand.runChecks"
+
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/mvccrand.Main"
 
-/-- go: mvccrand.go:77:6 -/
+/-- go: mvccrand.go:78:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ok"
   (Lam "msg"
@@ -140,7 +149,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 /-- seen checks that a read at revision cur is at least at its floor and at a revision written,
     and counts it if it is above its floor.
 
-    go: mvccrand.go:115:19 -/
+    go: mvccrand.go:116:19 -/
 noncomputable def history.seen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "floor"
@@ -170,7 +179,7 @@ noncomputable def history.seen.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
   (Val #()))))))
 
-/-- go: mvccrand.go:123:6 -/
+/-- go: mvccrand.go:124:6 -/
 noncomputable def newHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType history.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType history.ty)))) (Val #())))
@@ -198,7 +207,7 @@ noncomputable def newHistory.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- snapshot returns the states so far (each state is never changed once appended).
 
-    go: mvccrand.go:130:19 -/
+    go: mvccrand.go:131:19 -/
 noncomputable def history.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam BAnon
@@ -227,7 +236,7 @@ noncomputable def history.snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef history.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.MapType go.string kvRec.ty))))) (Var "$res0"))))))
 
-/-- go: mvccrand.go:136:19 -/
+/-- go: mvccrand.go:137:19 -/
 noncomputable def history.appendRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "st"
@@ -259,7 +268,7 @@ noncomputable def history.appendRev.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- changesAt returns revision r's changes; r must be in the history.
 
-    go: mvccrand.go:144:19 -/
+    go: mvccrand.go:145:19 -/
 noncomputable def history.changesAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "r"
@@ -292,7 +301,7 @@ noncomputable def history.changesAt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef history.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h")))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType change.ty)))) (Var "$res0"))))))
 
-/-- go: mvccrand.go:154:15 -/
+/-- go: mvccrand.go:155:15 -/
 noncomputable def rng.next.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -325,7 +334,7 @@ noncomputable def rng.next.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- intn returns a number in [0, n), n > 0.
 
-    go: mvccrand.go:163:15 -/
+    go: mvccrand.go:164:15 -/
 noncomputable def rng.intn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "n"
@@ -343,7 +352,7 @@ noncomputable def rng.intn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- inRange says whether key k is in the range [key, end).
 
-    go: mvccrand.go:174:6 -/
+    go: mvccrand.go:175:6 -/
 noncomputable def inRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "end"
@@ -382,7 +391,7 @@ noncomputable def inRange.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
-/-- go: mvccrand.go:184:15 -/
+/-- go: mvccrand.go:185:15 -/
 noncomputable def rng.genKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -402,7 +411,7 @@ noncomputable def rng.genKey.impl [GooseExts] [GoGlobalContext] : val :=
 /-- genEnd returns a range end: nil (one key) half the time, else empty (from key), an extra end
     or a key.
 
-    go: mvccrand.go:188:15 -/
+    go: mvccrand.go:189:15 -/
 noncomputable def rng.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -445,7 +454,7 @@ noncomputable def rng.genEnd.impl [GooseExts] [GoGlobalContext] : val :=
 /-- genRange returns a range read's request for a transaction at revision cur: at the current
     revision (0 or negative), a past one, or cur + 1 (a future one).
 
-    go: mvccrand.go:203:15 -/
+    go: mvccrand.go:204:15 -/
 noncomputable def rng.genRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cur"
@@ -506,7 +515,7 @@ noncomputable def rng.genRange.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkRange checks a range read's result (res, err) in a transaction at revision cur against
     the states (states[r] at revision r, for r up to cur). The store is never compacted.
 
-    go: mvccrand.go:222:6 -/
+    go: mvccrand.go:223:6 -/
 noncomputable def checkRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "states"
   (Lam "cur"
@@ -671,7 +680,7 @@ noncomputable def checkRange.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))))
   (Val #())))))))
 
-/-- go: mvccrand.go:262:6 -/
+/-- go: mvccrand.go:263:6 -/
 noncomputable def checkKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kv"
   (Lam "k"
@@ -719,7 +728,7 @@ noncomputable def checkKV.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
   (Val #()))))))
 
-/-- go: mvccrand.go:275:6 -/
+/-- go: mvccrand.go:276:6 -/
 noncomputable def copyState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string kvRec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.string kvRec.ty)))) (Val #())))
@@ -755,7 +764,7 @@ noncomputable def copyState.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string kvRec.ty)))) (Pair (Var "c") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string kvRec.ty)))) (Var "$res0")))))
 
-/-- go: mvccrand.go:290:19 -/
+/-- go: mvccrand.go:291:19 -/
 noncomputable def pending.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "k"
@@ -809,7 +818,7 @@ noncomputable def pending.put.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- del deletes the range's keys, in key order, and returns how many it deleted.
 
-    go: mvccrand.go:301:19 -/
+    go: mvccrand.go:302:19 -/
 noncomputable def pending.del.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "key"
@@ -874,7 +883,7 @@ noncomputable def pending.del.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$value"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")))))))
 
-/-- go: mvccrand.go:328:18 -/
+/-- go: mvccrand.go:329:18 -/
 noncomputable def writer.cur.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -889,7 +898,7 @@ noncomputable def writer.cur.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: mvccrand.go:330:18 -/
+/-- go: mvccrand.go:331:18 -/
 noncomputable def writer.begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -926,7 +935,7 @@ noncomputable def writer.begin.impl [GooseExts] [GoGlobalContext] : val :=
 /-- end appends the pending revision to the history (if it changed anything), runs the store's
     End, checks the store's revision and publishes it.
 
-    go: mvccrand.go:339:18 -/
+    go: mvccrand.go:340:18 -/
 noncomputable def writer.«end».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "p"
@@ -973,7 +982,7 @@ noncomputable def writer.«end».impl [GooseExts] [GoGlobalContext] : val :=
 /-- view returns the states with the pending revision appended (once it has a change) and the
     revision a read in the write transaction is at.
 
-    go: mvccrand.go:354:18 -/
+    go: mvccrand.go:355:18 -/
 noncomputable def writer.view.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "p"
@@ -1019,7 +1028,7 @@ noncomputable def writer.view.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkHook checks that the post-lock hook ran with the index being applied.
 
-    go: mvccrand.go:363:18 -/
+    go: mvccrand.go:364:18 -/
 noncomputable def writer.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "i"
@@ -1032,7 +1041,7 @@ noncomputable def writer.checkHook.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (Val #()))))
 
-/-- go: mvccrand.go:367:18 -/
+/-- go: mvccrand.go:368:18 -/
 noncomputable def writer.newVal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -1053,7 +1062,7 @@ noncomputable def writer.newVal.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- genLease returns no lease half the time, else a live lease, if any.
 
-    go: mvccrand.go:373:18 -/
+    go: mvccrand.go:374:18 -/
 noncomputable def writer.genLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -1118,7 +1127,7 @@ noncomputable def writer.genLease.impl [GooseExts] [GoGlobalContext] : val :=
 /-- writeOp runs one write operation inside the write transaction tw: a put, a range delete or a
     range read, each checked.
 
-    go: mvccrand.go:387:18 -/
+    go: mvccrand.go:388:18 -/
 noncomputable def writer.writeOp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "tw"
@@ -1260,7 +1269,7 @@ noncomputable def writer.writeOp.impl [GooseExts] [GoGlobalContext] : val :=
 /-- put is the server's txn.Put: a write transaction reading the key's previous key-value, then
     putting it.
 
-    go: mvccrand.go:416:18 -/
+    go: mvccrand.go:417:18 -/
 noncomputable def writer.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "i"
@@ -1370,7 +1379,7 @@ noncomputable def writer.put.impl [GooseExts] [GoGlobalContext] : val :=
 /-- deleteRange is the server's txn.DeleteRange: a write transaction reading the range's previous
     key-values, then deleting them.
 
-    go: mvccrand.go:435:18 -/
+    go: mvccrand.go:436:18 -/
 noncomputable def writer.deleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "i"
@@ -1495,7 +1504,7 @@ noncomputable def writer.deleteRange.impl [GooseExts] [GoGlobalContext] : val :=
     ended; then, with a write in the chosen branch, a write transaction at the same revision, else
     the read transaction made a read-only write transaction; the branch's operations in it.
 
-    go: mvccrand.go:458:18 -/
+    go: mvccrand.go:459:18 -/
 noncomputable def writer.txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "i"
@@ -1711,7 +1720,7 @@ noncomputable def writer.txn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- grant grants a new lease.
 
-    go: mvccrand.go:499:18 -/
+    go: mvccrand.go:500:18 -/
 noncomputable def writer.grant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "i"
@@ -1761,7 +1770,7 @@ noncomputable def writer.grant.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- revoke revokes a live lease: its keys deleted in one revision, in key order.
 
-    go: mvccrand.go:510:18 -/
+    go: mvccrand.go:511:18 -/
 noncomputable def writer.revoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "i"
@@ -1875,7 +1884,7 @@ noncomputable def writer.revoke.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkLeases checks the lessor's record of the keys on each lease, which mvcc's puts and
     deletes keep: each key's lease is the model's, and each live lease has the model's keys.
 
-    go: mvccrand.go:536:18 -/
+    go: mvccrand.go:537:18 -/
 noncomputable def writer.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -2017,7 +2026,7 @@ noncomputable def writer.checkLeases.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- read is the writer's own read: at exactly its revision (it is the only writer).
 
-    go: mvccrand.go:565:18 -/
+    go: mvccrand.go:566:18 -/
 noncomputable def writer.read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -2083,7 +2092,7 @@ noncomputable def writer.read.impl [GooseExts] [GoGlobalContext] : val :=
 /-- run runs ops operations, the i-th applying index i + 1, sending the published revision on
     ticks every ops / cap(ticks) operations (for the watch stream's registrations).
 
-    go: mvccrand.go:578:18 -/
+    go: mvccrand.go:579:18 -/
 noncomputable def writer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ops"
@@ -2173,7 +2182,7 @@ noncomputable def writer.run.impl [GooseExts] [GoGlobalContext] : val :=
     Rev, each at least at the revision published before it started (a linearizable read), or with
     no floor (a serializable read).
 
-    go: mvccrand.go:614:6 -/
+    go: mvccrand.go:615:6 -/
 noncomputable def reader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kv"
   (Lam "h"
@@ -2366,7 +2375,7 @@ noncomputable def reader.impl [GooseExts] [GoGlobalContext] : val :=
 /-- expect returns the next change in w's range at or after its position, up to revision upto
     (false if there is none).
 
-    go: mvccrand.go:670:22 -/
+    go: mvccrand.go:671:22 -/
 noncomputable def watchCheck.expect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "w"
@@ -2457,7 +2466,7 @@ noncomputable def watchCheck.expect.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- advance moves w past the change at revision r it just received.
 
-    go: mvccrand.go:688:19 -/
+    go: mvccrand.go:689:19 -/
 noncomputable def watcher.advance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "r"
@@ -2487,7 +2496,7 @@ noncomputable def watcher.advance.impl [GooseExts] [GoGlobalContext] : val :=
     watchers registered when it was made, which the receiver cannot tell apart from later ones:
     only its revision is checked.)
 
-    go: mvccrand.go:700:22 -/
+    go: mvccrand.go:701:22 -/
 noncomputable def watchCheck.receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "resp"
@@ -2650,7 +2659,7 @@ noncomputable def watchCheck.receive.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- complete says whether every watcher has received every change up to revision upto.
 
-    go: mvccrand.go:734:22 -/
+    go: mvccrand.go:735:22 -/
 noncomputable def watchCheck.complete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "upto"
@@ -2720,7 +2729,7 @@ noncomputable def watchCheck.complete.impl [GooseExts] [GoGlobalContext] : val :
 /-- register registers a watcher on each tick (the writer's published revision), from a start
     revision up to one past it, and asks for progress now and then.
 
-    go: mvccrand.go:747:22 -/
+    go: mvccrand.go:748:22 -/
 noncomputable def watchCheck.register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ws"
@@ -2815,7 +2824,7 @@ noncomputable def watchCheck.register.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- itoa is strconv.Itoa of a non-negative number.
 
-    go: mvccrand.go:772:6 -/
+    go: mvccrand.go:773:6 -/
 noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -2854,13 +2863,74 @@ noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- Run runs a test of cfg: the store set up as etcd's server does, the writer, the readers and
-    the watch stream concurrently; it panics if a check fails.
+/-- go: mvccrand.go:792:18 -/
+noncomputable def noCluster.Version.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Var "$res0"))))))
 
-    go: mvccrand.go:786:6 -/
+/-- Run runs the tester (runChecks), then stops the lessor and closes the backend (shutdown is not
+    verified: notes/mvccrand.md).
+
+    go: mvccrand.go:796:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "cfg" (App (Val (GoInstruction (GoAlloc Config.ty))) (Var "cfg"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad Config.ty))) (Var "cfg"))
+  (App (App (Val (GoInstruction (FuncResolve runChecks []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Val #())))
+  (Let "le" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Val #())))
+  (Let "r" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Report.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Report.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (Let "$a1" (Val #(go!"the backend's close failed"))
+  (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "le"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "be") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Pair (Var "le") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Report.ty))) (Pair (Var "r") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoLoad Report.ty))) (Var "$res0")))))
+
+/-- runChecks is Run up to the store's close: every check of mvcc, and the store closed; it returns
+    the report with the lessor and the backend, still open.
+
+    go: mvccrand.go:805:6 -/
+noncomputable def runChecks.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cfg"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Report.ty))) (App (Val (GoInstruction (GoZeroVal Report.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "cfg" (App (Val (GoInstruction (GoAlloc Config.ty))) (Var "cfg"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
@@ -2878,7 +2948,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.go_etcd_io.etcd.server.v3.lease.cluster.ty))) (Val UntypedNil))
+  (Let "$a2" (App (Val (GoInstruction (Convert noCluster.ty _root_.Perennial.go_etcd_io.etcd.server.v3.lease.cluster.ty))) (App (Val (GoInstruction (CompositeLiteral noCluster.ty))) (LiteralValue [])))
   (Let "$a3" (Let "$v0" (Val #(W64 1))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LessorConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MinLeaseTTL")) (ElementExpression go.int64 (Var "$v0")))])))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.lease.NewLessor []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
@@ -2975,23 +3045,23 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "complete"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef watchCheck.ty go!"events"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchCheck.ty)))) (Var "c"))))
   (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Int64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef history.ty go!"aboveFloor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType history.ty)))) (Var "h")))) (Val #()))
   (App (Val (GoInstruction (CompositeLiteral Report.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"WatchersComplete")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"Events")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"ReadsAboveFloor")) (ElementExpression go.int64 (Var "$v2")))])))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "le"))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Report.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "$res2") (Var "$r2")))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
-  (Let "$a1" (Val #(go!"the backend's close failed"))
-  (App (App (App (Val (GoInstruction (FuncResolve check []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "le"))) (Val #()))))))
+  (App (Val (GoInstruction (GoStore Report.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (Var "kv"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
   (Let "$a1" (Val #(go!"the store's close failed"))
@@ -3114,14 +3184,14 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BackendConfig.ty))) (Pair (Var "bcfg") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
-  (App (Val (GoInstruction (GoLoad Report.ty))) (Var "$res0")))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad Report.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "$res2"))))))))
 
 /-- Main runs the writer's 1000 operations against 4 readers of 200 reads and 8 watchers, from seed
     1, over a backend in the file mvccrand.db (which must not exist: the model starts empty), and
     panics if a check fails. It does not wait for the watchers to catch up (only what they
     received is checked).
 
-    go: mvccrand.go:855:6 -/
+    go: mvccrand.go:872:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -3137,12 +3207,13 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sort, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sort, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3181,6 +3252,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3869,6 +3942,41 @@ attribute [instance] watchCheck.TypeAssumptions.type_repr
   watchCheck.TypeAssumptions.ptr_receive_unfold
   watchCheck.TypeAssumptions.ptr_register_unfold
 
+structure noCluster [GooseExts] where
+  mk ::
+
+noncomputable instance noCluster.zero_val [GooseExts] : ZeroVal noCluster :=
+  ⟨noCluster.mk⟩
+
+@[reducible] noncomputable def noCluster.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  []
+
+@[irreducible] noncomputable def noCluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  noCluster.fieldsUnsealed
+
+noncomputable instance equals_unfold_noCluster [GooseExts] [GoGlobalContext] :
+    EqualsUnfold noCluster.fields noCluster.fieldsUnsealed :=
+  ⟨by unfold noCluster.fields; rfl⟩
+
+@[reducible] noncomputable def noCluster.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType noCluster.fields)
+
+class noCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying noCluster.underlying noCluster
+  underlying : go.UnderlyingDirectedEq noCluster.ty noCluster.underlying
+  method_set : go.MethodSetIs noCluster.ty [(go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noCluster.ty) [(go!"Version", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])))]
+  Version_unfold : MethodUnfold noCluster.ty go!"Version" noCluster.Version.impl
+  ptr_Version_unfold : MethodUnfold (go.GoType.PointerType noCluster.ty) go!"Version" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noCluster.ty go!"Version"))) (App (Val (GoInstruction (GoLoad noCluster.ty))) (Var "$r"))))
+
+attribute [instance] noCluster.TypeAssumptions.type_repr
+  noCluster.TypeAssumptions.underlying
+  noCluster.TypeAssumptions.method_set
+  noCluster.TypeAssumptions.ptr_method_set
+  noCluster.TypeAssumptions.Version_unfold
+  noCluster.TypeAssumptions.ptr_Version_unfold
+
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Config_instance : Config.TypeAssumptions
   Report_instance : Report.TypeAssumptions
@@ -3881,6 +3989,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   writer_instance : writer.TypeAssumptions
   watcher_instance : watcher.TypeAssumptions
   watchCheck_instance : watchCheck.TypeAssumptions
+  noCluster_instance : noCluster.TypeAssumptions
   check_unfold : FuncUnfold check [] check.impl
   newHistory_unfold : FuncUnfold newHistory [] newHistory.impl
   inRange_unfold : FuncUnfold inRange [] inRange.impl
@@ -3890,12 +3999,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   reader_unfold : FuncUnfold reader [] reader.impl
   itoa_unfold : FuncUnfold itoa [] itoa.impl
   Run_unfold : FuncUnfold Run [] Run.impl
+  runChecks_unfold : FuncUnfold runChecks [] runChecks.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_traceutil_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Assumptions
@@ -3914,6 +4025,7 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.writer_instance
   Assumptions.watcher_instance
   Assumptions.watchCheck_instance
+  Assumptions.noCluster_instance
   Assumptions.check_unfold
   Assumptions.newHistory_unfold
   Assumptions.inRange_unfold
@@ -3923,12 +4035,14 @@ attribute [instance] Assumptions.Config_instance
   Assumptions.reader_unfold
   Assumptions.itoa_unfold
   Assumptions.Run_unfold
+  Assumptions.runChecks_unfold
   Assumptions.Main_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sort_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_time_Assumption
+  Assumptions.import_semver_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_traceutil_Assumption
