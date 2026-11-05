@@ -91,8 +91,11 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
     {{ (err : GoInterface), RET #err; ∃ (pml : Loc) (m' : OsMeta) (wb' : Nat → List w8),
         ⌜w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
-          ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
-            (wb' s).length = 4096⌝ ∗
+          (∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
+            (wb' s).length = 4096) ∧
+          m'.size ≤ max w.m.size (4096 * (l / 4096)) ∧
+          (∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * s < m'.size →
+            m'.size < 4096 * (s + 1) → m'.size - 4096 * s ≤ (wb' s).length)⌝ ∗
         wtxW K tx r false (X.clearPages pml) ∗
         ((⌜err = interface.nil⌝ ∗ ⌜(∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size) ∧
             (∀ id pg, X.t.bufs !! id = some pg →
@@ -167,7 +170,10 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
   iapply HΦ
   iexists pml, om', wb'
   isplitr
-  · ipureintro; exact ⟨Hom'.1, Hom'.2.1, Hom'.2.2.1, Hom'.2.2.2.1⟩
+  · ipureintro
+    have h5 : 4096 * (l / 4096) ≤ l := Nat.mul_div_le _ _
+    exact ⟨Hom'.1, by have := Hom'.2.1; omega, Hom'.2.2.1, Hom'.2.2.2.1, Hom'.2.1,
+      Hom'.2.2.2.2.2⟩
   iframe Hw
   icases Hres with (⟨%He, %Hch, Ho, HT⟩ | ⟨%He, #Hfe, Hs⟩)
   · ileft
