@@ -182,7 +182,6 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close Perennial.EtcdGrove.mv
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close Perennial.EtcdGrove.store.Close.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit Perennial.EtcdGrove.mvcc.store.Commit.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit Perennial.EtcdGrove.store.Commit.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.mvcc.store.Compact.wp_of_le  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.mvcc.store.Compact.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.store.Compact.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGrove.mvcc.store.HashStorage.wp_proof  # exposed by a proof file (theorem)
