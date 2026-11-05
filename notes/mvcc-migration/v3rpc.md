@@ -53,6 +53,18 @@ path. Only the watch path: the KV, lease, auth and maintenance parts of v3rpc ar
   `isWatchPermitted`, `newResponseHeader` (the new parameters). Check each with
   `etc/lean-check.py` once `InvWatch.lean` builds, and fix.
 
+## Blocker (2026-11-05, end of session)
+
+Every module from `InvWatchStream.lean` on reaches `apply.AuthClass` → `apply.Contracts` →
+`etcdserver.KVStoreCore` (the server track's), which fails to build at `KVStoreCore.lean:156`
+(`failed to synthesize GooseExts`). `txn/Writer` is fixed. Once `KVStoreCore` builds: `lk.sh lake
+build Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch`, then the spec files, then
+`etc/lean-check.py` on `serverWatchStream__close`, `watchServer__Watch`,
+`serverWatchStream__recvLoop`, `serverWatchStream__isWatchPermitted`,
+`serverWatchStream__newResponseHeader`, `serverWatchStream__sendLoop` (none checked yet; expect
+IPM-level fixes: `rcvSnap`/`rcvSnapG` and `wsInv`/`wsInvG` unfolding, the `if`-branch order of
+`wp_if_destruct` in the cancel case, the `iframe`s of the new loop resources).
+
 ## Left
 
 - **`sendLoop`: rewritten, not yet checked** (`serverWatchStream__sendLoop.lean`, over
