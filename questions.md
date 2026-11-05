@@ -113,7 +113,26 @@ before it returns. Until it is decided, `stop_monitorRT` is a `sorry` with this 
 
 ### H3. H2's plumbing: the names the monitor's key and its return travel by (2026-11-05)
 
-**Status: sent to the coordinator, 2026-11-05.** H2 option 1 is approved. Implementing it needs two
+**Status: decided by the coordinator (etcd-grove-82), 2026-11-05.**
+- Need 1: option (a), `srvWTPool E W` with a names record, in a mechanical commit of its own with no
+  other change; (b) rejected.
+- Need 2, part 1: `srvGoResAt s γg`, the names exposed.
+- Need 2, part 2: not the stop request, and no escrow in `start`. Instead, the pool's invariant rules
+  out the open session by itself. Its checked-out case holds the monitor's "still running" piece at
+  `γg`, the monitor's closure checks the key back in before `Done`, and `wg.Wait`'s persistent
+  `goWaited` contradicts any running piece. If that cannot be expressed, report why, and the stop
+  request route comes back with its list of statements.
+
+**The agent's reading (decided by the agent, pending the user).** The running piece is the
+goroutine's existing receipt `goRunning γg` (`ownToks γg.run 1`). `GoAttach` hands it to `f` (`f`'s
+triple becomes `{P ∗ goRunning γ} f {goRunning γ}`; every current caller frames it), and the monitor's
+session deposits it in the pool's checked-out case in place of a separate key. So `W = ⟨cnt, go⟩`,
+with the goroutine names `go : GoNames` as the record's second field, where H3 said `sv`. With no
+ticket, `Q` and its deposit at `Done` (H2's condition 2) are not needed: `GoAttach`'s one spec gains
+the receipt in `f`'s triple, and `Wait` gains `goWaited`. The monitor's widened contract takes
+`goRunning W.go` and gives it back.
+
+**Original request, for the record.** H2 option 1 is approved. Implementing it needs two
 things the current statements cannot express, and both change spec statements.
 
 1. **The session key's name in the pool.** The key is an exclusive `token γsv`. While the monitor is
