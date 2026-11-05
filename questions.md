@@ -184,3 +184,11 @@ review; `stop_monitorRT` stays the marked `sorry`.
   stage 5's scope premises (D1) and the H2 `sorry`. Replacing `run.spec` with it now would put a
   `sorry` and the premises under every exported result through `start`. `run.spec` stays the linked
   spec until H2 is decided and D1's premises are lifted or carried by `Start`'s stop variant (R2d).
+- **D4. Two more scope premises on `run.specStop`, from the census and the image (2026-11-05).**
+  - `E.cmp = false`: no compaction mode. In compaction mode, both `Cleanup`'s closer
+    (`wsCloserM`/`compactRightR`) and the merged observation (`cmpObs`) take the compaction right
+    `apply.cmpOwn`, which the apply thread holds. That case is left for later.
+  - `ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk vs boot`: the boot log's facts that the image's
+    configuration clause needs (`RestConf.restModel_confState`). `NewServer`'s `bootOk` has them, but
+    `run`'s context does not.
+  `restart3` meets both. `run.specStop` is a draft.
