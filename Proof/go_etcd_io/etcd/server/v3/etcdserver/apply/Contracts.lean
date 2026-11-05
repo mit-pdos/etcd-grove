@@ -317,9 +317,11 @@ abbrev revokeLog (log : mvcc.Log) (id : w64) : mvcc.Log :=
 over mvcc's API) at the store `γ`, the batch lock of the backend `B` (`Pk B`, `f`), the backend's
 tie `BT` and the rest resource `RO`: by the lease owner at the live set `L`, the range deleter held
 (`mvccDeleter`), a share of the store's backend, the thread's token, the begin state `σ₀`
-(reachable, nothing pending) and one nested update, the deleter's begin whose payload is the end of
-exactly the lease's deletions (`auBegin γ σ₀ (auEnd γ σ₀ (leaseDels …) Y)`):
-* `id` not live: an error (`ErrLeaseNotFound`), nothing changed, the update and `Pre` back;
+(reachable, nothing pending) and, for a live lease only (decided by the coordinator, 2026-11-06:
+`if decide (id ∈ L) then … else True`, as `lessor.Revoke.spec`), one nested update, the deleter's
+begin whose payload is the end of exactly the lease's deletions (`auBegin γ σ₀ (auEnd γ σ₀
+(leaseDels …) Y)`):
+* `id` not live: an error (`ErrLeaseNotFound`), nothing changed, `Pre` back;
 * `id` live: no error, `Y`, `Post`, the live set without `id`, its record deleted from the `lease`
   bucket (`restRevoke`). -/
 def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : BkRef → IProp GF) (f : GoFunc)
@@ -330,7 +332,9 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : BkRef → IProp GF) 
         mvccBackend γ q B (Pk B) ∗ hookIs B f ∗ BT B ∗ csContractA (Pk B) f Pre Q Post ∗
         ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧ MvccReachable σ₀ ∧
           σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
-        auBegin γ σ₀ (auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y) ∗
+        (if decide (id ∈ L) then
+          auBegin γ σ₀ (auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y)
+        else iprop(True)) ∗
         lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗
         lease.leaseRevokers (mvccLeases γ) L ∗ txn.leasesKnown L (mvcc.stateAfter σ₀.log) ∗ RO rs }}
       (App (Val #(methods le.ty go!"Revoke" le.v)) (Val #id))
@@ -340,7 +344,6 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : BkRef → IProp GF) 
         ((⌜id ∉ L ∧ mvcc.leaseDels (mvcc.stateAfter σ₀.log) id = []⌝ ∗
             (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ↦□
               GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) ∗ Pre ∗
-            auBegin γ σ₀ (auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y) ∗
             lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) ∗
             lease.leaseRevokers (mvccLeases γ) L ∗ txn.leasesKnown L (mvcc.stateAfter σ₀.log) ∗
             RO rs) ∨

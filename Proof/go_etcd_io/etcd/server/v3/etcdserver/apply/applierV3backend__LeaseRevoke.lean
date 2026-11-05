@@ -1,9 +1,8 @@
 /-
 Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
 the lessor's `revokeClause`, `lessor.Revoke.spec`'s shape, its one update built by the server's
-builders, `envAus`. One placeholder, `M1-REPLACE` below: the not-live arm gives the update back,
-from which the writer's half it holds cannot be recovered; `notes/mvcc-migration/server.md`,
-"Found".)
+builders, `envAus`, for a live lease only: otherwise the writer's half is kept, decided by the
+coordinator, 2026-11-06; `notes/mvcc-migration/server.md`.)
 -/
 module
 
@@ -84,15 +83,26 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   ihave Hnx := apply.certPre_backend_applied E rq log (apply.revokeLog log id) false hstep $$ Hcp
   -- the writer's facts: its state reachable
   imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, %Hreach⟩
-  -- the revocation's update: the deleter's begin, its payload the end of the lease's deletions
-  ihave Hau : srvApi.auBegin E.γ (srvApi.stAt log c)
+  -- the revocation's update, for a live lease only: the deleter's begin, its payload the end of
+  -- the lease's deletions; otherwise the writer's half kept
+  ihave Hau2 : (if decide (id ∈ L) then srvApi.auBegin E.γ (srvApi.stAt log c)
       (srvApi.auEnd E.γ (srvApi.stAt log c)
         (mvcc.leaseDels (mvcc.stateAfter (srvApi.stAt log c).log) id)
-        (srvApi.wSt E.γs (apply.revokeLog log id) c)) $$ [Hw Hnx]
-  · iapply HauB $$ %log %c %_ Hw
-    iintro Hw
-    rw [show (srvApi.stAt log c).log = log from rfl]
-    iapply HauE $$ %log %c %_ Hw Hnx
+        (srvApi.wSt E.γs (apply.revokeLog log id) c)) else iprop(True)) ∗
+      (if decide (id ∈ L) then iprop(True) else srvApi.wSt E.γs log c) $$ [Hw Hnx]
+  · by_cases hid : id ∈ L
+    · simp only [hid, decide_true, ↓reduceIte]
+      isplitl
+      · iapply HauB $$ %log %c %_ Hw
+        iintro Hw
+        rw [show (srvApi.stAt log c).log = log from rfl]
+        iapply HauE $$ %log %c %_ Hw Hnx
+      itrivial
+    · simp only [hid, decide_false, Bool.false_eq_true, ↓reduceIte]
+      isplitr
+      · itrivial
+      iexact Hw
+  icases Hau2 with ⟨Hau, Hwr⟩
   have hsl : (srvApi.stAt log c).log = log := rfl
   ihave Hown : lease.leaseOwn (mvcc.api.mvccLeases E.γ) L
       (mvcc.leaseItemsOf (mvcc.stateAfter (srvApi.stAt log c).log)) $$ [Hown]
@@ -109,16 +119,13 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   · ipureintro
     exact ⟨rfl, Hrq.2.2.2, Hreach⟩
   icases Hcase with
-    (⟨⟨%Hnf, %Hnd⟩, ⟨%e, #He, %Hee⟩, HPre, -, Hown, Hrvk, -, HRO⟩ |
+    (⟨⟨%Hnf, %Hnd⟩, ⟨%e, #He, %Hee⟩, HPre, Hown, Hrvk, -, HRO⟩ |
      ⟨%Hok, Hw, HPost, Hown, Hrvk, #Hknown', HRO⟩)
   · -- not live: the error, nothing changed
-    -- M1-REPLACE: the clause gives back the update (`auBegin … (auEnd …)`) unused, holding the
-    -- writer's half the builder put in it, which no law recovers. Minimal fix (`lessor.Revoke.spec`,
-    -- the draft's, and `revokeClause`): the update taken only for a live lease,
-    -- `if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀ dels Y) else True` (the code returns
-    -- `ErrLeaseNotFound` before `rd()`), and not given back in the not-live arm.
-    ihave Hw : srvApi.wSt E.γs log c $$ []
-    · sorry
+    -- the writer's half, kept: no update was taken for a lease not live
+    ihave Hw : srvApi.wSt E.γs log c $$ [Hwr]
+    · simp only [Hnf, decide_false, Bool.false_eq_true, ↓reduceIte]
+      iexact Hwr
     have hlog : apply.revokeLog log id = log := by
       try simp only [srvApi.stAt] at Hnd
       unfold apply.revokeLog; rw [Hnd]; rfl

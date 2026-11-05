@@ -241,13 +241,24 @@ restate in place). Not drafted, to decide before step 1 (all "by reference" in
 ## Placeholders
 
 - `apply/applierV3backend__Txn.lean`: `-- M1-REPLACE` in the write wand for a request whose paths
-  miss a previous key-value (Found, third session, (1)).
-- `apply/applierV3backend__LeaseRevoke.lean`: `-- M1-REPLACE` recovering the writer's half in the
-  not-live arm (Found, third session, (2)).
+  miss a previous key-value (Found, third session, (1); decided: discharged once txn's wand with
+  `PathsIgnOk` lands, see "Decisions (2026-11-06)").
 
 No axiom.
 
-## Found (third session, 2026-11-05; not decided)
+## Decisions (the coordinator, 2026-11-06)
+
+- **Finding (2), Revoke, applied (fourth session):** `lease.lessor.Revoke.spec` and `revokeClause`
+  take the begin update only for a live lease, `(if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀
+  dels Y) else iprop(True))`, and the not-live arm does not give it back. `applierV3backend.LeaseRevoke`
+  builds the pair `(if … then update else True) ∗ (if … then True else wSt E.γs log c)` by cases on
+  `id ∈ L`, so the not-live arm keeps the writer's half: no `sorry`. Recorded in the draft
+  (`ServerSpecs.lean` §5's docstring and header, `clients-server.md`'s "Superseded (2026-11-06)").
+- **Finding (1), txn's `specSole`:** its write wand takes `⌜txn.PathsIgnOk (stateAfter log)
+  (t.branch (txnOk (stateAfter log) t))⌝ -∗ Qr σ -∗ …` (the txn track); `applierV3backend.Txn`'s
+  wand takes the fact and builds the end update with `certPre`'s witness: no `sorry`.
+
+## Found (third session, 2026-11-05; both decided 2026-11-06, above)
 
 1. **`txn.Txn.specSole` (frozen, txn's) is too weak for the apply thread's caller.** Its write wand
    `(if txn.txnReadonly t then True else ∀ σ, Qr σ -∗ txn.txnBeginAU γ log t Qw)` is given before

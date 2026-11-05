@@ -18,6 +18,20 @@ the watch path are drafted in parallel; their needs of this draft are answered i
 
 Paths below are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless they say otherwise.
 
+## Superseded (2026-11-06, decided by the coordinator)
+
+- **`lessor.Revoke.specA`'s update only for a live lease**: the precondition takes
+  `if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀ dels Y) else True`, and the not-live arm does
+  not give the update back (it gave it back unused). The server builds the update from its writer's
+  half, which no law recovers from an unused update, so after a not-live revocation the apply
+  thread had lost its half of the store's state. The code returns `ErrLeaseNotFound` before `rd()`
+  (`lessor.go`'s `Revoke`), as txn's `Put` for a lease. `revokeClause` follows
+  (`notes/mvcc-migration/server.md`, "Found", third session, (2)). Below, "Not-found arm: the update
+  and `Pre` back" is superseded by this.
+- **txn's `Txn.specSole`'s write wand takes `⌜txn.PathsIgnOk …⌝`** (txn's decision, `clients-txn.md`
+  §8): the server's end builder needs the witness of an applied log, which `certPre` gives only once
+  the paths find their previous key-values.
+
 ## Superseded (2026-11-05, decided by the coordinator)
 
 Found unprovable over the frozen API during the M1 proofs (`notes/mvcc-migration/server.md`,
