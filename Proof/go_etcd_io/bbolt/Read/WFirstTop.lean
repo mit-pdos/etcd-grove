@@ -30,6 +30,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+omit hos package_sem in
+/-- A writer cursor move's result's flags are not a bucket's. -/
+theorem wEntKV_flag (v : View) (es : List BoltEnt) (i : Nat) (k vl : GoSlice) (fl : w32) :
+    wEntKV (GF := GF) v es i k vl fl ⊢ ⌜fl &&& W32 1 = W32 0⌝ := by
+  unfold wEntKV
+  split
+  · iintro ⟨%h, -⟩; ipureintro; unfold isBktFlag at h; exact Classical.not_not.1 h.2
+  · iintro %h; ipureintro; rw [h.2.2]; rfl
+
 /-- **The count of a writer stack's top**: its leaf's entries. -/
 theorem wp_top_count
     (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
