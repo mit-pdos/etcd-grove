@@ -12,7 +12,7 @@ public import Spec.go_etcd_io.bbolt.node__numChildren
 public import Spec.go_etcd_io.bbolt.node__childIndex
 public import Spec.go_etcd_io.bbolt.node__nextSibling
 public import Spec.go_etcd_io.bbolt.node__prevSibling
-public import Spec.go_etcd_io.bbolt.node__del
+public import Proof.go_etcd_io.bbolt.Write.NodeDelS
 public import Spec.go_etcd_io.bbolt.node__removeChild
 public import Spec.go_etcd_io.bbolt.node__free
 public import Spec.go_etcd_io.bbolt.Bucket__node
@@ -854,7 +854,7 @@ theorem rebal_loeb
       iStructNamed Hn
       wp_auto
       -- `n.parent.del(n.key)`
-      wp_apply hDel (X.setBkt bl (rblStart B n rn)).v rn.nv.parent' bl rp wq rn.nv.key'
+      wp_apply node.del.specS hDel (X.setBkt bl (rblStart B n rn)).v rn.nv.parent' bl rp wq rn.nv.key'
         rn.key rn.ksrc hncp.2.1 hncp.2.2.2.1 hncp.2.2.2.2.2.1 hks Hbase $$ [Hpo Hcells Hkey]
         as ⟨Hd, Hcells⟩
       · iframe; simp only [rblClear]; iframe #
@@ -1512,7 +1512,7 @@ theorem rebal_loeb
       · isplitl [parentL]; iexact parentL; iexact parentR
       try wp_auto
       have hbase2 : 0 < X2.v.base.addr := by rw [hR2.1]; exact Hbase
-      wp_apply hDel X2.v rn.nv.parent' bl rp2 wq rr.nv.key' rr.key rr.ksrc hcp.2.1 hcp.2.2.2.1
+      wp_apply node.del.specS hDel X2.v rn.nv.parent' bl rp2 wq rr.nv.key' rr.key rr.ksrc hcp.2.1 hcp.2.2.2.1
         hcp.2.2.2.2.2.1 hrks hbase2 $$ [Hpo Hcells Hrkey] as ⟨Hd, Hcells⟩
       · iframe; iframe #
       icases Hd with (⟨%Hnf, -⟩ | ⟨-, %sI', Hpo⟩)

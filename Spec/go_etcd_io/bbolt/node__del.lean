@@ -6,6 +6,7 @@ cross-unit contract). Proved by U7; used by U7 (`Delete`, `DeleteBucket`), U8 (`
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Read.Src
 
 @[expose] public section
 
@@ -28,19 +29,21 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `n.del(key)` on a live node of the writer's heap whose entries are sorted and not stale: the
 entry of key `key` at its search index is removed and the node marked unbalanced, if there is
 one (`wsDelAt`; its inode removed at the same index, batch 28); else nothing changes. The view's base is a mapped address (`0 < v.base.addr`, from
-`mapFields`). -/
+`mapFields`). The key is only read (`node.go:145-159`): a `keyR` key (caller-owned at a fraction,
+as `Bucket.Delete`'s, or the view's), given back (review F1, U7h; a persistent `srcOwn` key, as
+rebalance's node keys, converts with `srcOwn_keyR`, `node.del.specS`). -/
 abbrev node.del.spec : Prop :=
-  ∀ (v : View) (n bl : Loc) (r : NRec) (qv : Qp) (key : GoSlice) (kb : List w8) (ks : Src),
-  r.capOwn = true → wsSorted r.ws → wsLive r.ws → ks ≠ Src.stale → 0 < v.base.addr →
+  ∀ (v : View) (n bl : Loc) (r : NRec) (qv : Qp) (key : GoSlice) (kb : List w8) (kr : KeyR),
+  r.capOwn = true → wsSorted r.ws → wsLive r.ws → 0 < v.base.addr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
-      objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗ srcOwn v key ks kb }}
+      objOwn v n (DFrac.own 1) true (WObj.node bl r) ∗ viewCells qv v ∗ keyR v key kr kb }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"del")) (Val #key))
   {{ RET #(); (⌜¬ wsFound r.ws kb⌝ ∗ objOwn v n (DFrac.own 1) true (WObj.node bl r) ∨
         ⌜wsFound r.ws kb⌝ ∗ ∃ (s : GoSlice),
           objOwn v n (DFrac.own 1) true
             (WObj.node bl (r.withEntsU s (r.ins.eraseIdx (wsIdx r.ws kb)) (wsDelAt r.ws kb)
               true))) ∗
-      viewCells qv v }}
+      viewCells qv v ∗ keyR v key kr kb }}
 
 end spec
 

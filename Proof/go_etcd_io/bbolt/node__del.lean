@@ -12,6 +12,7 @@ public import Perennial.Spec.bytes.Equal
 public import Proof.go_etcd_io.bbolt.Rebalance.Base
 public import Proof.go_etcd_io.bbolt.Rebalance.SliceWithin
 public import Proof.go_etcd_io.bbolt.Write.NodeEnts
+public import Proof.go_etcd_io.bbolt.Read.WKey
 
 @[expose] public section
 
@@ -35,7 +36,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
     (hS : sort.Search.spec (GF := GF) (hG := hG)) (hC : bytes.Compare.spec (GF := GF) (hG := hG))
     (hE : bytes.Equal.spec (GF := GF) (hG := hG)) :
     node.del.spec (GF := GF) (hG := hG) := by
-  intro v n bl r qv key kb ks Hcapo Hsorted Hlive Hks Hbase
+  intro v n bl r qv key kb kr Hcapo Hsorted Hlive Hbase
   wp_start as ⟨Ho, Hv, Hkp⟩
   unfold objOwn
   simp only [Hcapo, ↓reduceIte]
@@ -44,7 +45,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
   ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
   ihave %Hcw := ownSliceCap_wf _ _ $$ Hcap
   icases (viewCells_halves qv v).1 $$ Hv with ⟨Hv1, Hv2⟩
-  icases srcOwn_acc qv.half v key ks kb Hks Hbase $$ [Hkp Hv1] with ⟨%dk, Hkp, Hkb⟩
+  icases keyR_cells_acc qv.half v Hbase key kr kb $$ [Hkp Hv1] with ⟨%dk, Hkp, Hkb⟩
   · iframe
   icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
   iStructNamed Hn
@@ -125,7 +126,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
     have Hnf : ¬ wsFound r.ws kb := fun h => by
       have := ((Write.wsFound_iff _ _).1 h).1; rw [Hidx] at this; word
     try wp_auto
-    icases Hkb $$ Hk with ⟨-, Hv1⟩
+    icases Hkb $$ Hk with ⟨Hkey0, Hv1⟩
     iapply HΦ
     isplitl [Hn Hs Hcap Hws Hch Hchcap Hkey]
     · ileft
@@ -134,6 +135,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
       try unfold objOwn
       try simp only [Hcapo, ↓reduceIte]
       iframe
+    iframe Hkey0
     iapply (viewCells_halves qv v).2
     iframe
   have Hlt : sint.nat idx < r.ws.length := by word
@@ -158,7 +160,7 @@ theorem node.del.wp_proof (hK : internal.common.Inode.Key.spec (GF := GF) (hG :=
   rw [list_set_lookup_self _ _ _ Hit_lookup]
   have Hek : wKey r.ws (sint.nat idx) = w.key := by
     unfold wKey; rw [Hw_lookup]; rfl
-  icases Hkb $$ Hk with ⟨-, Hv1⟩
+  icases Hkb $$ Hk with ⟨Hkey0, Hv1⟩
   ihave Hv := (viewCells_halves qv v).2 $$ [Hv1 Hv2]
   · iframe
   try wp_auto
