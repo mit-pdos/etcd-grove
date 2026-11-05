@@ -141,7 +141,7 @@ theorem brFirst_of (bnd : Loc → Option (List w8) × Option (List w8)) (hk : bk
       by_cases hpn : r.nv.parent' = null
       · rw [c2 hpn] at hx; cases hx
       obtain ⟨-, rp, i, w, hrp, hw, -, hwk, hbe⟩ := c3 hpn
-      have hrk : r.key = wKey r.ws 0 := ((hp l r hl).2 hb).1
+      have hrk : r.key = wKey r.ws 0 := ((hp l r hl).2 hb).1.1
       have hwi : (rp.ws.map WEntry.key).getD i [] = w.key := by
         simp [List.getD_eq_getElem?_getD, hw]
       rw [hbe] at hx

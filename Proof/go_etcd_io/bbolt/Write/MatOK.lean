@@ -667,7 +667,13 @@ theorem newNodePg (v : View) (root : w64) (pg : List w8) (r : NRec)
       rcases hkind with h | h
       · exact absurd h hnleaf
       · exact h
-    refine ⟨hkey, pg, hfile (hbr hb), hb, mat_len hr9, fun j x hj => ?_⟩
+    refine ⟨⟨hkey, fun pg' hpg' => ?_⟩, pg, hfile (hbr hb), hb, mat_len hr9, fun j x hj => ?_⟩
+    · -- U6y's F3: the keys are the page's
+      rw [hfile (hbr hb)] at hpg'; cases hpg'
+      have hk := congrArg (List.map fun d : w32 × w64 × List w8 × List w8 => d.2.2.1) hr9
+      simp only [List.map_map, Function.comp_def, wDat] at hk
+      rw [hk]; unfold pageWs; rw [List.map_map]
+      exact List.map_congr_left (fun j _ => mat_pageW_key pg j)
     obtain ⟨-, hd⟩ := mat_at hr9 j x hj
     rw [(mat_wDat_eq hd).2.1, (mat_pageW_branch pg j hnleaf).1]
 

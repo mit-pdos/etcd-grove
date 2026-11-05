@@ -319,7 +319,7 @@ theorem nodePg_step {v : View} {root : w64} {r r' : NRec} (hs : nodeStep r r')
   obtain ⟨-, fl, -, -, fpg, -⟩ := nodeStep_nvf hs
   obtain ⟨p1, p2⟩ := hp
   unfold nodePg
-  rw [fl, fpg, (nodeStep_nv hs).2.2.1, nodeStep_wKey hs, nodeStep_key_len hs]
+  rw [fl, fpg, (nodeStep_nv hs).2.2.1, nodeStep_wKey hs, nodeStep_key_len hs, nodeStep_keys hs]
   refine ⟨?_, ?_⟩
   · intro hl
     obtain ⟨d1, d2⟩ := p1 hl

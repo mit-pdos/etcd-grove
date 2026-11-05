@@ -448,12 +448,15 @@ def bktNested (vw : View) (T : WTx) (B : BRec) : Prop :=
 
 /-! ## Nodes' pages (old `txPg`) -/
 
-/-- Before `Commit`, a branch node's entries are its page's and a leaf's have no child page. -/
+/-- Before `Commit`, a branch node's entries are its page's (its children's page ids and, U6y's
+F3, its keys: only `spill` and `rebalance` change a branch node) and a leaf's have no child page. -/
 def nodePg (v : View) (root : w64) (r : NRec) : Prop :=
   (r.nv.isLeaf' = true → (∀ w ∈ r.ws, w.pgid = W64 0) ∧
     (root ≠ W64 0 → ∃ pg, v.pages !! r.nv.pgid'.toNat = some pg ∧
       pageFlags pg = leafPageFlag)) ∧
-  (r.nv.isLeaf' = false → r.key = wKey r.ws 0 ∧ ∃ pg, v.pages !! r.nv.pgid'.toNat = some pg ∧
+  (r.nv.isLeaf' = false → (r.key = wKey r.ws 0 ∧ ∀ pg, v.pages !! r.nv.pgid'.toNat = some pg →
+      r.ws.map WEntry.key = (List.range (pageCount pg)).map (pageKey pg)) ∧
+    ∃ pg, v.pages !! r.nv.pgid'.toNat = some pg ∧
     pageFlags pg = branchPageFlag ∧ r.ws.length = pageCount pg ∧
     ∀ i w, r.ws[i]? = some w → w.pgid = W64 (branchPgid pg i : Int))
 
