@@ -24,7 +24,26 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem cachedObj.wp_proof :
     cachedObj.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro x
+  cases hu : x.UseCached'
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    wp_start as -
+    wp_auto
+    rw [hu]
+    wp_auto
+    iapply HΦ
+    ipureintro
+    rfl
+  · simp only [↓reduceIte]
+    wp_start as -
+    wp_auto
+    rw [hu]
+    wp_auto
+    iapply HΦ
+    iexists _
+    iframe
+    ipureintro
+    rfl
 
 end proof
 

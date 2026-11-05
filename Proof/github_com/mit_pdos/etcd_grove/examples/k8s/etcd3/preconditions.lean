@@ -24,7 +24,34 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem preconditions.wp_proof :
     preconditions.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro x
+  wp_start as -
+  cases hu : x.HasPreUID' <;> cases hr : x.HasPreRV'
+  all_goals iapply wp_fupd
+  all_goals wp_auto
+  all_goals (repeat (first | (simp only [hu, hr]; wp_auto) | wp_auto))
+  · imodintro
+    iapply HΦ
+    iunfold k8s.preAt
+    ileft
+    ipureintro
+    exact ⟨rfl, by simp [kpreOf, hu, hr]⟩
+  all_goals (try ipersist «$r0»)
+  all_goals (try ipersist u)
+  all_goals (try ipersist r)
+  all_goals imodintro
+  all_goals iapply HΦ
+  all_goals iunfold k8s.preAt
+  all_goals iright
+  all_goals simp only [kpreOf, hu, hr, Bool.false_eq_true, ↓reduceIte, k8s.optStrPtr]
+  · iexists _, _
+    iframe «$r0» r
+    ipureintro; rfl
+  · iexists _, _
+    iframe «$r0» u
+    ipureintro; rfl
+  · iexists _, _
+    iframe «$r0» u r
 
 end proof
 
