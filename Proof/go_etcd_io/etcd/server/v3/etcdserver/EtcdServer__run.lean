@@ -27,6 +27,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopShutdown
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Perennial.Proof.time
@@ -1368,11 +1369,84 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     obtain ⟨hSStop, hRStop, hCl⟩ := hStop hst
     ihave HSP := (iteE_pos (R := fun X => X) hst) $$ HSP
     ihave Hsd := (iteE_pos (R := fun X => X) hst) $$ Hsd
+    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff⟩
     ihave Hdc := (iteE_pos (R := fun D => ownBroadcastChan v.done γd D .Pending) hst) $$ Hdc
-    icases Hsd with ⟨%cfg, Hsd, %Hsdp⟩
-    obtain ⟨hST, hcp, hoff⟩ := Hsdp
     (try wp_auto)
-    sorry
+    wp_for_post
+    -- the deferred shutdown: `wgMu.Lock(); close(s.stopping); wgMu.Unlock()`
+    ihave #Hgok' := Hgok
+    iunfold srvGoAttachOk at Hgok'
+    icases Hgok' with ⟨%chs, %cx, #Hchs, #Hint, #Hwg, #Hinv, #Hguard, -, -, -⟩
+    wp_apply sync.RWMutex.wp_Lock_guard (srvWgMuAddr s) (wgMuP γg) $$ [$Hsync $Hguard]
+      as ⟨Hlk, HwP⟩
+    iunfold wgMuP at HwP
+    icases HwP with ⟨%bo, Hbo, Hsp⟩
+    imod goAttach_close γg bo $$ [$Hinv $Hclose $Hbo] with ⟨%hbo, Hbo, Hwz⟩
+    subst hbo
+    iunfold stopPart at Hsp
+    simp only [↓reduceIte]
+    (try wp_auto)
+    wp_apply wp_stop_chan_close_at chs γg.ch γg.chi iprop(True) $$ [$Hint $Hsp] as #Hsd
+    · imodintro; itrivial
+    (try wp_auto)
+    wp_apply sync.RWMutex.wp_Unlock_guard (srvWgMuAddr s) (wgMuP γg) $$ [$Hsync $Hlk Hbo]
+    · iunfold wgMuP; iexists false; iframe Hbo; iunfold stopPart
+      simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hsd
+    -- `s.cancel()`
+    (try wp_auto)
+    wp_bind (App (Val #v.cancel) (Val #()))
+    ihave #Hcfs' := Hcfs
+    iunfold context.cancelSpec at Hcfs'
+    iapply Hcfs' $$ []
+    · imodintro; itrivial
+    inext
+    iintro -
+    -- `sched.Stop()`: the last job's post, `Q`, and with the loop's `R` the apply thread's resources
+    wp_auto_lc 1
+    wp_apply +noauto hSStop sci γs (Ps ++ [pl]) $$ [Hstoptok Hq] as ⟨HlastP, -⟩
+    · iframe Hstoptok Hq; iframe #; iapply schedule.schedPay_true $$ Hpay
+    rw [List.getLast?_concat]
+    icases HlastP with ⟨%P, #HP, HPl⟩
+    iunfold schedule.savedProp at HP Hpl
+    ihave #Heq := saved_prop_agree pl DFrac.discard DFrac.discard P Q $$ HP Hpl
+    ihave HQl : ▷ Q $$ [HPl]
+    · inext
+      ihave Hiff := internalEq_iff _ _ $$ Heq
+      icases Hiff with ⟨Hiff, -⟩
+      iapply Hiff $$ HPl
+    imod (lc_fupd_elim_later (E := ⊤) (P := Q)) $$ Hlc1 HQl with HQ
+    ihave ⟨Hres, Hrunh⟩ := HQR $$ [HQ HR]
+    · iframe HQ HR
+    -- `s.wg.Wait()`
+    (try wp_auto)
+    wp_apply wp_goAttach_Wait s γg $$ [$Hsync $Hwg $Hinv $Hwz]
+    -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
+    icases stop_split C _ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
+    iunfold srvShutdownPre at Hpre
+    icases Hpre with ⟨Hkeep, Hdd, Hrds⟩
+    icases (srvStop.keep_split s cfg E γn γk) $$ Hkeep with ⟨Hrp, Hclp, Hcsp, Himp⟩
+    icases srvStop.raft_stop s γn γk $$ [$Hrp $Htrs] with ⟨Hsc, HST⟩
+    rw [← hST]
+    (try wp_auto)
+    wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
+      as ⟨Hvac, Hrst⟩
+    -- `s.Cleanup()`: the backend closed, the image
+    (try wp_auto)
+    wp_apply stop_cleanup_image hCl C
+        (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
+        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk
+      $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst] as Himg
+    -- `close(s.done)`, the image escrowed (`srvDoneInv`)
+    imod inv_alloc srvStopN ⊤ iprop(srvDiskImage ρ.rd.raft.raft ρ γn.id dd ∨ token c) $$ [Himg]
+      with #Hdi
+    · inext; ileft; iexact Himg
+    (try wp_auto)
+    wp_apply +noauto wp_broadcast_chan_close _ γd (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) $$ [$Hdc]
+      as -
+    · imodintro; iunfold srvDoneInv; iexact Hdi
+    (try wp_auto)
+    iapply HΦ
+    itrivial
   iapply BigAndL.bigAndL_nil.2
   itrivial
 
