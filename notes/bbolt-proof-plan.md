@@ -1676,11 +1676,43 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
   `fileHolds` back.
 - `FileMode.String`: not landed (as briefed).
 
+- **Item 2's consumers: closed** (helper, `192f776872`, `5fb5f557e7`, `5bce40e503`, `49074fa526`):
+  new `Write/BoundNest` (`matNest`, `viewWF_matNest`: a well-formed view's bucket entries' leaves
+  are plain, from `viewWF` alone); `mat_clean`/`matR_clean` take `hnest : matNest W.pages pg`
+  (callers in MatOK pass `viewWF_matNest`); `newNodeBnd` takes `hbk`, `hkb` (from `posShape` and
+  `pageKeys_le_of_treeKeysN`); `Read/WOpenOK.leafBkt_nest_plain` takes `hbm : B.bm !! w.key = none`
+  (unused). Six `sorry`s gone (RblMat ×1, MatOK ×3, WOpenOK ×2).
+- **Queue (a) (`e1482ab309`): `Bucket.spill.spec`** takes `markCov X w.C.hwm` (after `X.t.mv.txid'.toNat
+  < 2 ^ 63`), and its success post's pure conjunction ends `… ∧ X'.t.mv = {X.t.mv with pgid' := …} ∧
+  (∀ s ∈ treeSlots (spillC X' w.C.pages), s ∉ pendSlots w'.fl) ∧ markCov X' w.C.hwm` (the last two
+  are new, after the old last conjunct). `markCov` moved to the new `Commit/MarkCov`
+  (`markCov_of_eq`: vacuous at the committed mark); `Commit/TailPub` imports it.
+  **For U9x10** (`Bucket__spill.lean:109`, `Spill/BktEnd*`): prove the two new conjuncts (the spill
+  frees only base pages it rewrites, so a kept base page's slots are not pending; `markCov`: the
+  mark moves only by `allocRes`'s mark case, which adds the run `[pgid, pgid + count)` as a buffer of
+  overflow `count - 1`, and `bufs` only grows, ids and overflows kept). **For U10m**
+  (`Tx__Commit_err`): pass `markCov_of_eq X w.C.hwm h` to `wp_spill` (the mark is `w.C.hwm` at the
+  spill's start, `cmTailOK`'s `w.C.hwm = opg.toNat`); the success pattern gains two names after the
+  `X'.t.mv` conjunct (the OPEN notes at :582, :584, :699, :702). Still to do:
+  `Tx.commitFreelist.spec`'s post carrying `markCov` (its allocation), U10m's.
+- **Queue (b): `Tx.write_ext.spec`** takes `hpart : ∀ s ∈ bufSlots bufs ++ T, 4096 * s < om.size →
+  om.size < 4096 * (s + 1) → om.size - 4096 * s ≤ (wb s).length` (after the whole-page premise;
+  `wdbOK`'s D-J clause gives it). `Tx__write_ext` keeps its `by_cases`: `Tx.write_ext_gen`'s `hstr`
+  (`4096 * s < om.size → om.size ≤ 4096 * s + |wb s|`, no upper bound) is false for a target slot
+  wholly inside the file, so `write_ext_gen` cannot be used directly; `write_ext_straddle` stays
+  until `hstr` is weakened to `hpart`'s form inside `WriteExtRun` (its use is at the straddling
+  slot). The post's new facts are **not** added: they do not follow from the post (they need
+  `WriteExtRun`'s run invariant), and `size' = size ∨ size' % 4096 = 0` is **false on the error
+  branch** (`os.File.WriteAt` may write a prefix of a chunk before failing, and a page over
+  `MaxAllocSize - 1` bytes is written in several chunks): it belongs to the success branch only.
+  Both and the weakening are one `WriteExtRun` edit (~24 min per elaboration). **For U10m**
+  (`Commit/TailWrite.cm_write_step`): pass `hpart` from `wdbOK`'s clause 16.
+
 ### Maintainer 13's hand-off (2026-11-04): what is left
 
 1. U11h's `Open.lean:723` (`Hfd.2`) and U10l's `TailAcc`/`TailPub` adaptations (item 1, above);
    until then `Commit/Tail*`, `Commit/Pub*`, `Tx__Commit_err` and `Open` do not build.
-2. Item 2's consumer `sorry`s (plan above).
+2. Item 2's consumers: done (above). `WriteExtRun`: weaken `hstr`, add the post facts (queue (b)).
 3. Item 4's threading (`markCov`, D-K).
 4. Perennial: move `struct_wp_alloc_pos` to `Golang/Theory` (`notes/perennial-changes.md`).
 5. Interfaces and the TCB baseline at integration (`DB.grow`'s three `sorry`s gone).

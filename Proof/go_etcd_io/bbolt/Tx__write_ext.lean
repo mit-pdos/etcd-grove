@@ -66,6 +66,7 @@ theorem Tx.write_ext.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) := by
   intro K tx r sm q dq pml pm bufs T wb f fd om b l dqf dqw hdom hok hsz hl hmaps hnd hT htail hwb
+    _hpart
   by_cases hin : ∀ id pg, bufs !! id = some pg →
     4096 * (id.toNat + (1 + pageOverflow pg)) ≤ om.size
   case neg =>
@@ -75,7 +76,12 @@ theorem Tx.write_ext.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       om.size ≤ 4096 * s + (wb s).length
     · exact Tx.write_ext_gen hLogger hSort hOv hId hUBS hWriteAt hSync hInc K tx r sm q dq pml pm
         bufs T wb f fd om b l dqf dqw hdom hok hsz hl hmaps hnd hT htail hwb hstr
-    · -- OPEN, `write_ext_straddle` (U10w): the spec is false here. A slot `s` of `bufSlots ++ T`
+    · -- OPEN, `write_ext_straddle` (maintainer 13): the spec now has `_hpart` (D-J: the slot
+      -- across the old end holds its part inside the file), which is `hstr` at that slot; `hstr` as
+      -- `write_ext_gen` states it also asks it of a slot wholly inside the file (false for an
+      -- interior page). Fix: weaken `write_ext_gen`'s `hstr` to `_hpart`'s form (it is needed at
+      -- the straddling slot only); then this branch is `write_ext_gen … _hpart`. Before: the spec
+      -- was false here. A slot `s` of `bufSlots ++ T`
       -- across the old end (`4096 s < om.size < 4096 (s + 1)`) with `(wb s).length < om.size -
       -- 4096 s` owns, by `wBytes`, only `(wb s).length` of its bytes inside the file; the rest of
       -- them is owned by no resource of the pre, but the post (the slot whole inside the grown

@@ -33,7 +33,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 not lie inside the file). The target slots are the pages' `bufSlots bufs` and the tail `T`: every
 slot of the mapping not wholly inside the file is one of them (a write past the end fills the gap
 before it with zeros, which needs the gap's cells: `os.File.WriteAt.spec`'s `mcellsAny`), all as
-`wrSlotsSz` (`Inv/WSlots`) at the file's size. Afterwards the file is no smaller and ends within the mapping or
+`wrSlotsSz` (`Inv/WSlots`) at the file's size, a slot across the file's end holding at least its
+part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping or
 where it ended (`om.size ≤ om'.size ≤ max om.size l`), a tail slot inside the old file keeps its
 bytes; on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
 `store_publish` takes it) and the tail is `wrSlotsSz` at the new size; on an error all the slots
@@ -47,6 +48,8 @@ abbrev Tx.write_ext.spec : Prop :=
   (bufSlots bufs ++ T).Nodup → (∀ s ∈ T, s < l / 4096) →
   (∀ s, s < l / 4096 → om.size < 4096 * (s + 1) → s ∈ bufSlots bufs ∨ s ∈ T) →
   (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om.size → (wb s).length = 4096) →
+  (∀ s ∈ bufSlots bufs ++ T, 4096 * s < om.size → om.size < 4096 * (s + 1) →
+    om.size - 4096 * s ≤ (wb s).length) →
   {{ K.core (GF := GF) ∗ reg tx K.B r ∗ statsTok r sm q ∗
       tx.[Tx, go!"db"] ↦{dq} K.db ∗ tx.[Tx, go!"pages"] ↦ pml ∗ pml ↦$ pm ∗
       ([∗map] id ↦ pl ∈ pm, ∃ bs, ⌜bufs !! id = some bs⌝ ∗ bytesPointsto pl (DFrac.own 1) bs) ∗
