@@ -10,10 +10,11 @@ U7o (`notes/bbolt-proof-plan.md`): **`DeleteBucket`'s records, pure** (the root 
    freeable;
 4. `c.node().del(newKey)` after `Cursor.node`'s materializations `matGrow X5 X6 X.rl`: the key is
    in the leaf (`dbk_found`), and the records `X7` close `deleteOK0` (`dbk_post`: the records'
-   facts by `Write/DelBktPost2.dbk_core`, the freelist's agreement by `Write/DelBktFlv.dbk_flView`;
-   open: `dbk_shape`, the page tokens; the cursor's writer facts, `wrCurFacts`, are `DelBktWp`'s).
+   facts by `Write/DelBktPost2.dbk_core`, the freelist's agreement by `Write/DelBktFlv.dbk_flView`,
+   the page tokens by `Write/DelBktShape.dbk_shape`; the cursor's writer facts, `wrCurFacts`, are
+   `DelBktWp`'s).
 The proofs are in `Write/DelBktPlain`, `DelBktOpen`, `DelBktFound`, `DelBktFree`, `DelBktWOk`,
-`DelBktPost`, `DelBktPost2` (U7p), `DelBktFlv` (U7q).
+`DelBktPost`, `DelBktPost2` (U7p), `DelBktFlv`, `DelBktShape` (U7q).
 -/
 module
 
@@ -25,6 +26,7 @@ public import Proof.go_etcd_io.bbolt.Write.DelBktFree
 public import Proof.go_etcd_io.bbolt.Write.DelBktWOk
 public import Proof.go_etcd_io.bbolt.Write.DelBktPost2
 public import Proof.go_etcd_io.bbolt.Write.DelBktFlv
+public import Proof.go_etcd_io.bbolt.Write.DelBktShape
 public import Proof.go_etcd_io.bbolt.Write.DelBktPath
 public import Proof.go_etcd_io.bbolt.Write.DelBkt
 public import Proof.go_etcd_io.bbolt.Write.WOkLeafPut
@@ -63,22 +65,6 @@ def deleteOK0 (T : TxView) (r : TxReg) (n : GoString) (X X' : WX) (w w' : WDb) :
     X'.v = X.v ∧ X'.t.mv = X.t.mv ∧ w'.C = w.C ∧ flViewU X' w'.fl ∧
     (∀ extra, txShape (GF := GF) r.n.pg X extra ⊢ txShape r.n.pg X' extra)
 
-/-- **The page tokens after `DeleteBucket`** (open, U7p): `txShape_delBkt` (the child's record
-out), `txShape_matGrow` on the records with the root's cache `R1` (a materialization does not read
-the cache: a lemma to add), `txShape_delAt` (the leaf's entry `n` out), `txShape_unopen` (no entry
-`n` left in the root, so un-caching it adds no token), then the final records (one view, one
-`bs`). -/
-theorem dbk_shape (γ : GName) (X1 X6 : WX) (c : Loc) (C R1 : BRec) (n : GoString) (D : BRec)
-    (l : Loc) (B6 : BRec) (rl : NRec) (s : GoSlice) (ins : List Inode)
-    (hok1 : wOK X1) (hR1 : X1.t.bs !! X1.rl = some R1) (hn : R1.bm !! n = some c)
-    (hC : X1.t.bs !! c = some C) (hwr1 : wrFacts X1)
-    (hmg : matGrow (delMid X1 c C R1 n D) X6 X1.rl) (hok6 : wOK X6)
-    (hB6 : X6.t.bs !! X1.rl = some B6) (hrl : B6.ns !! l = some rl) (hlf : leafFor X6 X1.rl n l)
-    (hfd : wsFound rl.ws n) (extra : GMap Nat Unit) :
-    txShape (GF := GF) γ X1 extra ⊢
-      txShape γ (X6.setNode X1.rl l (rl.withEntsU s ins (wsDelAt rl.ws n) true)) extra := by
-  sorry
-
 /-- **`DeleteBucket`'s post** (see the module doc). -/
 theorem dbk_post (T : TxView) (r : TxReg) (X X1 X6 : WX) (c : Loc) (C R1 : BRec) (n : GoString)
     (D : BRec) (w w' : WDb) (l : Loc) (B6 : BRec) (rl : NRec) (s : GoSlice) (ins : List Inode)
@@ -108,8 +94,9 @@ theorem dbk_post (T : TxView) (r : TxReg) (X X1 X6 : WX) (c : Loc) (C R1 : BRec)
     exact dbk_flView X1 X6 c C R1 n D w w' l B6 rl s ins t hok1 hR1 hn hC hwr1 hfl1 htx
       (wOK_delMid T X1 c C R1 n D hok1 hwr1 hgens1 hR1 hn hC hdo1 hfl1.2.2.1) hD hmg hok6 hB6 hrl hlf
   · rw [← hrl1] at hR1 hmg hB6 hlf ⊢
-    exact dbk_shape (GF := GF) _ X1 X6 c C R1 n D l B6 rl s ins hok1 hR1 hn hC hwr1 hmg hok6 hB6
-      hrl hlf hfd extra
+    rw [← hrl1] at c1 c4
+    exact dbk_shape (GF := GF) _ X1 X6 c C R1 n D l B6 rl s ins hok1 hR1 hn hC hwr1 hdo1 hfl1.2.2.1
+      hmg hok6 hB6 hrl hlf c1 c4 extra
 
 end heap
 
