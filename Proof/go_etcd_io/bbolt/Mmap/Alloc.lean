@@ -61,25 +61,28 @@ high-water mark's pages inside the mapping): a buffer `p` holding the fresh page
 changed (the freelist had no run; `MaxSize`; a remap that failed before unmapping), or the mapping
 lost (the records dereferenced and re-based, `wtxLost`, `wdbLost`). Batch 44.1: over the flagged
 writer side `wdbW' fr` (`wdbLost' fr`): an allocation removes free ids only, a remap keeps the
-freelist, so the synced freelist page's clause and the writer's `fbTok` carry over. -/
+freelist, so the synced freelist page's clause and the writer's `fbTok` carry over. U11i: the
+caller lends the page pool's `New` its `poolR` (`Commit`'s update) and gets it back. -/
 abbrev DB.allocate.spec : Prop :=
-  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (txid count : w64),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (txid count : w64)
+    (P : IProp GF),
   txid = w.wtxid → 0 < sint.Z count → sint.nat count * 4096 < 2 ^ 62 →
   X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → derefPre X → liveFresh X → liveReach X →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW' fr K tx X.v w ∗ poolR K.B.bq K.N P }}
     (App (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"allocate")) (Val #txid))
       (Val #count))
-  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-      (⌜err = interface.nil⌝ ∗ ∃ (Xr : WX) (w' : WDb) (id hwm : w64),
+  {{ (p : Loc) (err : GoInterface), RET (PairV #p #err); poolR K.B.bq K.N P ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ (Xr : WX) (w' : WDb) (id hwm : w64),
         wtxW K tx r m (Xr.withHwm hwm) ∗ wdbW' fr K tx Xr.v w' ∗
         bytesPointsto p (DFrac.own 1) (allocBuf id (sint.nat count)) ∗
         ⌜p ≠ null ∧ dbAllocRes X Xr w w' txid (sint.nat count) id hwm⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
         ((wtxW K tx r m X ∗ wdbW' fr K tx X.v w) ∨
          (∃ (X' : WX) (w' : WDb), wtxLost K tx r m X' ∗ wdbLost' fr K tx X'.v w' ∗
-           ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝))) }}
+           ⌜(∃ Xd b, derefRel X Xd ∧ X' = Xd.rebase b) ∧ w'.C = w.C ∧ w'.fl = w.fl⌝)))) }}
 
-instance dbFixed_persistent' (db sp : Loc) : Persistent (dbFixed (GF := GF) db sp) := by
+instance dbFixed_persistent' (γ : GName) (N : Namespace) (db sp : Loc) :
+    Persistent (dbFixed (GF := GF) γ N db sp) := by
   unfold dbFixed dbLogger; infer_instance
 
 /-- The writer's database core, kept. -/
@@ -95,7 +98,7 @@ theorem wtxW_core (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
 theorem BC.core_allocFields (K : BC) :
     K.core (GF := GF) ⊢ K.db.[DB, go!"pageSize"] ↦□ W64 4096 ∗
       K.db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗ (∃ x : w64, K.db.[DB, go!"MaxSize"] ↦□ x) ∗
-      (∃ lg, K.db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg) ∗ dbFixed K.db K.sp ∗
+      (∃ lg, K.db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg) ∗ dbFixed K.B.bq K.N K.db K.sp ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ⌜K.db ≠ null⌝ ∗
       inv (pagesN K.N) (pagesInv (GF := GF) K.B K.p) := by
   unfold BC.core isBoltCoreP
@@ -186,24 +189,27 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hErrMax : errMaxSizeOk (GF := GF) (hG := hG))
     (hPool : pagePoolNew (GF := GF) (hG := hG)) :
     DB.allocate.spec (GF := GF) (hG := hG) := by
-  intro fr K tx r m X w txid count htxid hc0 hc hhwm hdp hlf hlr
+  intro fr K tx r m X w txid count P htxid hc0 hc hhwm hdp hlf hlr
   subst htxid
   unfold errMaxSizeOk at hErrMax
-  wp_start as ⟨Hw, Hdb⟩
+  wp_start as ⟨Hw, Hdb, HR⟩
   icases wtxW_core K tx r m X $$ Hw with ⟨#Hcore, Hw⟩
   icases BC.core_allocFields K $$ Hcore with ⟨#Hps, #Has, ⟨%mx, #Hmx⟩, ⟨%lg, #Hlg, #Hlgok⟩,
     #Hfix, #Hpkg, %Hdb, #Hpinv⟩
-  icases hPool K.db K.sp $$ Hfix with ⟨%f, #Hpool, %Hf⟩
+  icases hPool K.B.bq K.N K.db K.sp $$ Hfix with ⟨%f, #Hpool, %Hf⟩
   wp_auto
   wp_bind (If _ _ _)
-  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ∃ s : GoSlice, buf_ptr ↦ s ∗
-    s ↦* List.replicate (sint.nat count * 4096) (W8 0) ∗ db_ptr ↦ K.db ∗ count_ptr ↦ count))) $$ [buf db count]
+  iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ poolR K.B.bq K.N P ∗
+    ∃ s : GoSlice, buf_ptr ↦ s ∗
+    s ↦* List.replicate (sint.nat count * 4096) (W8 0) ∗ db_ptr ↦ K.db ∗ count_ptr ↦ count))) $$ [buf db count HR]
   · by_cases hc1 : count = W64 1
     · rw [decide_eq_true hc1]
       wp_auto
-      wp_apply hGet $$ [Hpool]
+      wp_apply hGet _ f (poolR K.B.bq K.N P) pageBuf $$ [HR]
       · iframe #
-      iintro %x Hx
+        iframe HR
+        iapply Hpool
+      iintro %x ⟨Hx, HR⟩
       icases Hx with (Hx | %hx)
       rotate_left
       · exact absurd hx.1 Hf
@@ -213,6 +219,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       wp_auto
       isplitr
       · ipureintro; rfl
+      iframe HR
       iexists s
       have h1 : sint.nat count = 1 := by rw [hc1]; word
       rw [h1, Nat.one_mul]
@@ -230,11 +237,12 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · ipureintro; rw [hmul]; omega
       isplitr
       · ipureintro; rfl
+      iframe HR
       iexists val
       rw [show sint.nat (count * W64 4096) = sint.nat count * 4096 by simp only [sint.nat, hmul]; omega]
       rw [show (zero_val w8 : w8) = W8 0 from rfl]
       iframe
-  iintro %v ⟨%hv, %s, buf, Hs, db, count⟩
+  iintro %v ⟨%hv, HR, %s, buf, Hs, db, count⟩
   subst hv
   wp_auto
   have hcz : sint.nat count = (sint.Z count).toNat := rfl
@@ -403,6 +411,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       subst hv
       wp_auto
       iapply HΦ
+      iframe HR
       iright
       isplitr
       · ipureintro; exact hne
@@ -477,6 +486,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         ihave Hp := allocBuf_of_page s.ptr pg (sint.nat count) Hsp $$ [Hh Hz]
         · iframe
         iapply HΦ
+        iframe HR
         ileft
         isplitr
         · ipureintro; rfl
@@ -536,6 +546,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · rw [decide_eq_true hll]
             wp_auto
             iapply HΦ
+            iframe HR
             iright
             isplitr
             · ipureintro; exact hne
@@ -566,6 +577,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
               · itrivial
             try wp_auto
             iapply HΦ
+            iframe HR
             iright
             isplitr
             · ipureintro; exact fun h => nomatch h
@@ -597,6 +609,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             · itrivial
           try wp_auto
           iapply HΦ
+          iframe HR
           iright
           isplitr
           · ipureintro; exact fun h => nomatch h
@@ -630,6 +643,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     ihave Hp := allocBuf_of_page s.ptr pg (sint.nat count) Hsp $$ [Hh Hz]
     · iframe
     iapply HΦ
+    iframe HR
     ileft
     isplitr
     · ipureintro; rfl
@@ -677,6 +691,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   ihave Hp := allocBuf_of_page s.ptr rid (sint.nat count) Hsp $$ [Hh Hz]
   · iframe
   iapply HΦ
+  iframe HR
   ileft
   isplitr
   · ipureintro; rfl

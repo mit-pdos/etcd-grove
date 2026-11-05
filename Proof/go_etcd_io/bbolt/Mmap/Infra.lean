@@ -135,13 +135,14 @@ theorem beginErrs_fmtErrorOk (err : GoInterface) :
 
 /-- **The page pool's `New` is not nil** (U4c, see the header). -/
 def pagePoolNew : Prop :=
-  ∀ db sp : Loc, dbFixed (GF := GF) db sp ⊢
-    ∃ f : GoFunc, sync.isPool db.[go_etcd_io.bbolt.DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝
+  ∀ (γ : GName) (N : Namespace) (db sp : Loc), dbFixed (GF := GF) γ N db sp ⊢
+    ∃ f : GoFunc, (∀ P : IProp GF,
+      sync.isPool db.[go_etcd_io.bbolt.DB, go!"pagePool"] f (poolR γ N P) pageBuf) ∗ ⌜f ≠ func.nil⌝
 
 open Iris.ProofMode in
 /-- `pagePoolNew` holds (batch 29): `dbFixed` holds the pool with its `New` not nil. -/
 theorem pagePoolNew_holds : pagePoolNew (GF := GF) (hG := hG) := by
-  intro db sp
+  intro γ N db sp
   unfold dbFixed
   iintro ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, Hp, -⟩
   iexact Hp

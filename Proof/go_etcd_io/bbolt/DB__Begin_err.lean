@@ -134,7 +134,7 @@ theorem DB.Begin_err.wp_proof (wp_beginTx : DB.beginTx.spec (GF := GF) (hG := hG
   ihave #Hfix' := Hfix
   iunfold dbFixed at Hfix'
   icases Hfix' with ⟨-, -, ⟨%lg, #Hlg, #Hlgok⟩, -⟩
-  ihave %Hlgty := dbFixed_logPtrTyped db sp lg $$ Hfix Hlg
+  ihave %Hlgty := dbFixed_logPtrTyped _ _ db sp lg $$ Hfix Hlg
   wp_auto
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer

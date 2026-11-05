@@ -107,21 +107,21 @@ def spLoopPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 : WDb) (
 theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 : WDb)
     (bl n : Loc) (r0 : NRec) (O : List Nat) (lo hi : Option (List w8)) (h : Nat)
     (D0 : List Nat) (N0 : List Loc) (E0 : List El) (es0 : List UE) (n_ptr i_ptr res_ptr : Loc)
-    (e0 : GoInterface) (Φ : val → IProp GF)
+    (e0 : GoInterface) (P : IProp GF) (Φ : val → IProp GF)
     (hl0 : spLoop X0 w0 bl n r0 O lo hi h D0 N0 E0 X0 w0 r0 es0 0 [] [])
     (hfc0 : ∀ y ∈ w0.fl.free, ¬ coversSlot w0.C.pages y.toNat)
     (hts0 : ∀ s ∈ treeSlots w0.C, s < X0.t.mv.pgid'.toNat) :
-    (□ ▷ spillIH (GF := GF)) ∗ wtxW K tx r m X0 ∗ wdbW K tx X0.v w0 ∗ n_ptr ↦ n ∗
+    (□ ▷ spillIH (GF := GF)) ∗ wtxW K tx r m X0 ∗ wdbW K tx X0.v w0 ∗ poolR K.B.bq K.N P ∗ n_ptr ↦ n ∗
       i_ptr ↦ W64 0 ∗ res_ptr ↦ e0 ∗
-      (∀ v, spLoopPost K tx r m X0 w0 bl n r0 O lo hi h D0 N0 E0 n_ptr i_ptr res_ptr e0 v -∗ Φ v) ⊢
+      (∀ v, poolR K.B.bq K.N P -∗ spLoopPost K tx r m X0 w0 bl n r0 O lo hi h D0 N0 E0 n_ptr i_ptr res_ptr e0 v -∗ Φ v) ⊢
       WP (spLoopE n_ptr i_ptr res_ptr) {{ Φ }} := by
   unfold spillIH spLoopE spCondE spBodyE spPostE
-  iintro ⟨#IH, Hw, Hdb, Hn, Hi, Hres, HΦ⟩
+  iintro ⟨#IH, Hw, Hdb, HR, Hn, Hi, Hres, HΦ⟩
   ihave HI : iprop(∃ (j : w64) (X' : WX) (w' : WDb) (r' : NRec) (es : List UE)
       (st : List FLStep) (T : List Loc),
-      "Hi" ∷ i_ptr ↦ j ∗ "Hw" ∷ wtxW K tx r m X' ∗ "Hdb" ∷ wdbW K tx X'.v w' ∗
+      "Hi" ∷ i_ptr ↦ j ∗ "Hw" ∷ wtxW K tx r m X' ∗ "Hdb" ∷ wdbW K tx X'.v w' ∗ "HR" ∷ poolR K.B.bq K.N P ∗
       "%Hl" ∷ ⌜spLoop X0 w0 bl n r0 O lo hi h D0 N0 E0 X' w' r' es (sint.nat j) st T ∧
-        0 ≤ sint.Z j⌝) $$ [Hi Hw Hdb]
+        0 ≤ sint.Z j⌝) $$ [Hi Hw Hdb HR]
   · iexists W64 0, X0, w0, r0, es0, [], []
     iframe
     ipureintro; exact ⟨hl0, by word⟩
@@ -162,8 +162,8 @@ theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 :
       iframe
     ihave Hw := Hwb $$ [Hnv Hch]
     · iframe
-    wp_apply IH $$ %K %tx %r %m %X' %w' %bl %c %rc %O' %lo' %hi' %h' %F' %D' %N' %E' %cs' %hpre
-      [Hw Hdb] as %err Hpost
+    wp_apply IH $$ %K %tx %r %m %X' %w' %bl %c %rc %O' %lo' %hi' %h' %F' %D' %N' %E' %cs' %P %hpre
+      [Hw Hdb HR] as %err ⟨HR, Hpost⟩
     · iframe
     iunfold spPost at Hpost
     icases Hpost with (⟨%Herr, %X'', %w'', %st', Hw, Hdb, %Hd⟩ |
@@ -188,7 +188,7 @@ theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 :
       | ok ei =>
         wp_auto
         wp_for_post
-        iapply HΦ
+        iapply HΦ $$ HR
         unfold spLoopPost
         iright
         isplitr
@@ -205,7 +205,7 @@ theorem spill_loop_wp (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X0 : WX) (w0 :
         ipureintro; exact spLoop_err Hl He
   · simp only [decide_eq_false hlt]
     cleanup_bool_decide
-    iapply HΦ
+    iapply HΦ $$ HR
     unfold spLoopPost
     ileft
     isplitr

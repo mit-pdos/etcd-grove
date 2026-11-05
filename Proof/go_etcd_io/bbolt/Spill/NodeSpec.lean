@@ -253,11 +253,11 @@ the pieces). On an error (an
 abbrev node.spill.spec' : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
-    (E : List El) (cs : SpCase),
+    (E : List El) (cs : SpCase) (P : IProp GF),
   spPre X w bl n rn O lo hi h F D N E cs →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w ∗ poolR K.B.bq K.N P }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"spill")) (Val #()))
-  {{ (err : GoInterface), RET #err; spPost K tx r m X w bl n rn O lo hi h D N E cs err }}
+  {{ (err : GoInterface), RET #err; poolR K.B.bq K.N P ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err }}
 
 omit package_sem in
 /-- The writer's view is the committed tree's (`wdbW`'s pure fact; `spPre`'s last clause). -/

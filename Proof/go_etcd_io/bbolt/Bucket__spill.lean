@@ -89,10 +89,11 @@ theorem errFacts_of_spErr {X X' : WX} {w w' : WDb} {st : List FLStep} (h : spErr
 
 /-- **The root loop's invariant** with its resources: the post's continuation, the locals, the
 records (the map's points-to apart) and the writer side. -/
-def loopP (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (B0 : BRec)
+def loopP (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (B0 : BRec) (P : IProp GF)
     (Φ : val → IProp GF) (res bp cp np : Loc) (keys : List GoString) (i : Nat)
     (m' : GMap GoString Loc) : IProp GF :=
-  iprop(⌜m' = B0.bm⌝ ∗ (∀ err, spillPost K tx r m X w err -∗ Φ #err) ∗ res ↦ GoInterface.nil ∗
+  iprop(⌜m' = B0.bm⌝ ∗ (∀ err, poolR K.B.bq K.N P -∗ spillPost K tx r m X w err -∗ Φ #err) ∗
+    poolR K.B.bq K.N P ∗ res ↦ GoInterface.nil ∗
     bp ↦ X.rl ∗ (∃ cv : Loc, cp ↦ cv) ∗ (∃ nv : GoString, np ↦ nv) ∗
     ∃ (X' : WX) (w' : WDb) (st : List FLStep) (Lroot : List Nat) (Dc : GoString → List Nat)
       (ks : GoString → KSt),
@@ -112,8 +113,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     (hFree : Bucket.free.spec (GF := GF) (hG := hG))
     (hWrite : Bucket.write.spec (GF := GF) (hG := hG)) :
     Bucket.spill.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X w Hpre Hreach Hml Hfv HsOK Htx Hmc
-  iintro %Φ ⟨Hw, Hdb⟩ HΦ
+  intro K tx r m X w P Hpre Hreach Hml Hfv HsOK Htx Hmc
+  iintro %Φ ⟨Hw, Hdb, HR⟩ HΦ
   icases wtxW_open K tx r m X $$ Hw with ⟨#Hpk, #Hcore, #Hreg, Hh, Hv, Hst, Hclose⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
   ihave Hw := Hclose $$ %X [] Hh Hv Hst
@@ -128,9 +129,9 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
   icases wtxW_bm_acc K tx r m X X.rl B0 HB0 _ _ rfl rfl $$ Hw with ⟨Hbm, Hwb⟩
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
-  iapply wp_map_for_range_gen (loopP K tx r m X w B0 Φ «$res0_ptr» b_ptr child_ptr name_ptr) $$ Hbm
+  iapply wp_map_for_range_gen (loopP K tx r m X w B0 P Φ «$res0_ptr» b_ptr child_ptr name_ptr) $$ Hbm
   iintro %keys ⟨%Hkset, %Hklen, %Hknd⟩
-  isplitl [HΦ «$res0» b child name Hwb Hdb]
+  isplitl [HΦ HR «$res0» b child name Hwb Hdb]
   · icases keep_pure (Q := wdbW K tx X.v w)
       (P := wdbOK w ∧ w.ms = some (X.v.base, mapLen w.ms) ∧ X.v = View.ofC X.v.base w.C)
       (by unfold wdbW; iintro ⟨-, %H⟩; ipureintro; exact H) $$ Hdb with ⟨Hdb, %Hwf⟩
@@ -144,8 +145,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     isplitr
     · ipureintro; rfl
     isplitl [HΦ]
-    · unfold spillPost; iintro %err Hpost; iapply HΦ; iexact Hpost
-    iframe «$res0» b
+    · unfold spillPost; iintro %err HR Hpost; iapply HΦ; iframe HR; iexact Hpost
+    iframe HR «$res0» b
     isplitl [child]
     · iexists _; iexact child
     isplitl [name]
@@ -163,7 +164,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
   isplitr
   · iintro !> %i %key %c %m' ⟨%Hkey, %Hc⟩ HP Hbm
     unfold loopP
-    icases HP with ⟨%Hm, HΦ, Hres, Hb, ⟨%cv, Hcp⟩, ⟨%nv, Hnp⟩, %X1, %w1, %st, %Lroot, %Dc, %ks, Hwb, Hdb, %HI⟩
+    icases HP with ⟨%Hm, HΦ, HR, Hres, Hb, ⟨%cv, Hcp⟩, ⟨%nv, Hnp⟩, %X1, %w1, %st, %Lroot, %Dc, %ks, Hwb, Hdb, %HI⟩
     subst Hm
     ihave Hw := Hwb $$ Hbm
     obtain ⟨HI, Hks⟩ := HI
@@ -358,8 +359,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     · rw [decide_eq_false Hinl]
       try wp_auto
       obtain ⟨h, F, N, Hbk⟩ := rinv_bkPre HI Hknd Hkm Htodo Hc HC
-      wp_apply (Bucket.spill.wp_child hNS hRoot hPgid hSRP) K tx r m X1 w1 c C _ h F (Dc key) N Hbk
-        $$ [Hw Hdb] as %err Hpost
+      wp_apply (Bucket.spill.wp_child hNS hRoot hPgid hSRP) K tx r m X1 w1 c C _ h F (Dc key) N P Hbk
+        $$ [Hw Hdb HR] as %err ⟨HR, Hpost⟩
       · iframe
       unfold bkPost
       icases Hpost with (⟨%he, %X2, %w2, %st2, Hw, Hdb, %Hdone⟩ |
@@ -550,7 +551,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
         · ipureintro; rfl
         dsimp only
         wp_auto
-        iapply HΦ
+        iapply HΦ $$ HR
         unfold spillPost
         iright
         isplitr
@@ -571,7 +572,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     rw [Hc] at h; cases h
   iintro %m' HP Hbm
   unfold loopP
-  icases HP with ⟨%Hm, HΦ, Hres, Hb, Hc, Hn, %X1, %w1, %st, %Lroot, %Dc, %ks, Hwb, Hdb, %HI⟩
+  icases HP with ⟨%Hm, HΦ, HR, Hres, Hb, Hc, Hn, %X1, %w1, %st, %Lroot, %Dc, %ks, Hwb, Hdb, %HI⟩
   subst Hm
   ihave Hw := Hwb $$ Hbm
   obtain ⟨HI, Hks⟩ := HI
@@ -594,7 +595,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     icases wdbW_ofC K tx X1.v w1 $$ Hdb with ⟨Hdb, %HvC⟩
     obtain ⟨Hok1, Hsb1⟩ := rinv_end_nil Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull HvC Htx
     have HG := HI.G
-    iapply HΦ
+    iapply HΦ $$ HR
     unfold spillPost
     ileft
     isplitr
@@ -615,8 +616,8 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
   icases wdbW_ofC K tx X1.v w1 $$ Hdb with ⟨Hdb, %HvC⟩
   obtain ⟨rn, h, F, D, N, E, Hun, Hsp, Hfin⟩ :=
     rinv_end Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull HvC Htx
-  wp_apply hNS K tx r m X1 w1 X.rl B.bv.rootNode' rn [] none none h F D N E .top Hsp $$ [Hw Hdb]
-    as %err Hpost
+  wp_apply hNS K tx r m X1 w1 X.rl B.bv.rootNode' rn [] none none h F D N E .top P Hsp $$ [Hw Hdb HR]
+    as %err ⟨HR, Hpost⟩
   · iframe
   try wp_auto
   unfold spPost
@@ -714,7 +715,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hstep
     have HG' := spG_bkRooted (fl := w2.fl) rr.nv.pgid' s4 HB1 Hrr Hrpar Hrtl Hroot
     rw [HwX] at HG'
-    iapply HΦ
+    iapply HΦ $$ HR
     unfold spillPost
     ileft
     isplitr
@@ -740,7 +741,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     | nil => exact absurd rfl hne
     | ok ii =>
     try wp_auto
-    iapply HΦ
+    iapply HΦ $$ HR
     unfold spillPost
     iright
     isplitr

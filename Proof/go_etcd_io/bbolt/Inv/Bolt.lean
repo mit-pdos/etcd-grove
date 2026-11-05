@@ -52,6 +52,15 @@ def pageBuf (v : GoAny) : IProp GF :=
   iprop(∃ s : GoSlice, ⌜v = interface.mkOk (go.GoType.SliceType go.byte) #s⌝ ∗
     s ↦* List.replicate 4096 (W8 0))
 
+/-- **What a caller of the page pool's `Get` lends its `New`** (U11i): a resource `P` that
+excludes the whole of `boltState`'s validity token `γ` (the database's `B.bq`; `N` its namespace). Every caller of `Get` is inside a
+`Commit`, which holds the client's commit update over `boltState γ 1` (an atomic update excludes
+the whole state: opening it gives the state); `Open`, while it writes its named result `db`
+(which `New` reads), holds the whole `boltState` itself, so no `New` runs then (`Open.lean`). The
+caller gets `P` back (`Get` returns `R`). -/
+def poolR (γ : GName) (N : Namespace) (P : IProp GF) : IProp GF :=
+  iprop(P ∗ □ (P ∗ ghostVar γ 1 () ={⊤ \ ↑N}=∗ False))
+
 /-- A logger whose dynamic type is a pointer type holds a location (batch 34: Go's `lg !=
 discardLogger` compares at the dynamic type, a pointer type's `==` on locations; the model's
 interface values pair a type with any value). -/
@@ -68,7 +77,7 @@ ending in `-` stand) the logger's value a location if its type is a pointer type
 `isBolt` forbids writing `DB`'s exported fields after `Open`), for `DB.grow`'s size. (Not `freelistLoad`'s `sync.Once`:
 Perennial's `isOnce` is stated for `HasLC.hasLC` only, and the sealed predicates are over any
 `hlc`; U11 decides how `loadFreelist`'s `Once.Do` is covered, `notes/bbolt-proof-plan.md`.) -/
-def dbFixed (db sp : Loc) : IProp GF :=
+def dbFixed (γ : GName) (N : Namespace) (db sp : Loc) : IProp GF :=
   iprop(db.[DB, go!"pageSize"] ↦□ W64 4096 ∗ db.[DB, go!"stats"] ↦□ sp ∗
     (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ dbLogger lg) ∗
     db.[DB, go!"readOnly"] ↦□ false ∗ db.[DB, go!"StrictMode"] ↦□ false ∗
@@ -81,7 +90,8 @@ def dbFixed (db sp : Loc) : IProp GF :=
     (∃ x : time.Duration, db.[DB, go!"MaxBatchDelay"] ↦□ x) ∗
     db.[DB, go!"AllocSize"] ↦□ W64 0x1000000 ∗ (∃ x : w64, db.[DB, go!"MaxSize"] ↦□ x) ∗
     (∃ x : GoFunc, db.[DB, go!"openFile"] ↦□ x) ∗
-    (∃ f : GoFunc, sync.isPool db.[DB, go!"pagePool"] f pageBuf ∗ ⌜f ≠ func.nil⌝) ∗
+    (∃ f : GoFunc, (∀ P : IProp GF, sync.isPool db.[DB, go!"pagePool"] f (poolR γ N P) pageBuf) ∗
+      ⌜f ≠ func.nil⌝) ∗
     sync.isMutex db.[DB, go!"batchMu"] iprop(True) ∗ db.[DB, go!"batch"] ↦□ null ∗
     (∃ lg, db.[DB, go!"logger"] ↦□ lg ∗ ⌜logPtrTyped lg⌝))
 
@@ -94,7 +104,7 @@ def isBoltCoreP (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc) (
     IProp GF :=
   iprop(dblAt B db ∗ t0At B t0 ∗
     ⌜(t0 < 2 ^ 62 ∧ receiptBound GF ≤ 2 ^ 62) ∧ db ≠ null ∧ (↑N : CoPset) ## ↑osN⌝ ∗
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed db sp ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed B.bq N db sp ∗
     sync.isMutex db.[DB, go!"metalock"] (metaR B db p) ∗
     sync.isRWMutexGuard db.[DB, go!"mmaplock"] (Pm B db) ∗
     sync.isRWMutexGuard db.[DB, go!"statlock"] (Ps sp) ∗
@@ -181,8 +191,8 @@ theorem isBoltP_agree (B : BNs) (N : Namespace) (db : Loc) (p p' : GoString) (sp
 
 /-- **The database's logger is `logPtrTyped`** (batch 34; `dbFixed`'s last clause, read against the
 caller's copy of the logger field). -/
-theorem dbFixed_logPtrTyped (db sp : Loc) (lg : GoInterface) :
-    dbFixed (GF := GF) db sp ⊢ db.[DB, go!"logger"] ↦□ lg -∗ ⌜logPtrTyped lg⌝ := by
+theorem dbFixed_logPtrTyped (γ : GName) (N : Namespace) (db sp : Loc) (lg : GoInterface) :
+    dbFixed (GF := GF) γ N db sp ⊢ db.[DB, go!"logger"] ↦□ lg -∗ ⌜logPtrTyped lg⌝ := by
   unfold dbFixed
   iintro ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %lg', #H, %Ht⟩ #Hl
   ihave %Heq := typedPointsto_agree_wand _ _ _ _ _ $$ H Hl

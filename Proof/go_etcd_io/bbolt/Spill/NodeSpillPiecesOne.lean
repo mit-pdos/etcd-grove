@@ -159,7 +159,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     (hAssert : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hFree : internal.freelist.Interface.Free.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl l : Loc) (rl : NRec)
-    (txp resp nodep l0 : Loc) (e0 : GoInterface) (k : w64)
+    (txp resp nodep l0 : Loc) (e0 : GoInterface) (k : w64) (P : IProp GF)
     (hn : X.node bl l = some rl) (hlv : l ∈ X.live) (hbl : rl.nv.bucket' = bl)
     (hfree : rl.nv.pgid' ≠ W64 0 → X.t.pm !! rl.nv.pgid' = none ∧ X.t.mv.txid' = w.wtxid ∧
       ∃ pg, X.v.pages !! rl.nv.pgid'.toNat = some pg ∧
@@ -177,17 +177,17 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     (hpar : rl.nv.parent' ≠ null → ∃ rp, X.node bl rl.nv.parent' = some rp ∧
       rl.nv.parent' ∈ X.live ∧ rl.nv.parent' ≠ l ∧ rp.capOwn = true ∧ wsSorted rp.ws)
     (Φ : val → IProp GF) :
-    wtxW K tx r m X ∗ wdbW K tx X.v w ∗ txp ↦ tx ∗ nodep ↦ l0 ∗ resp ↦ e0 ∗
+    wtxW K tx r m X ∗ wdbW K tx X.v w ∗ poolR K.B.bq K.N P ∗ txp ↦ tx ∗ nodep ↦ l0 ∗ resp ↦ e0 ∗
       (∀ (X3 : WX) (w2 : WDb) (st : List FLStep) (id : w64),
-        ⌜pcStep X w bl l rl (pcCount (insSize rl.ins)) X3 w2 st id⌝ -∗
+        ⌜pcStep X w bl l rl (pcCount (insSize rl.ins)) X3 w2 st id⌝ -∗ poolR K.B.bq K.N P -∗
         wtxW K tx r m X3 -∗ wdbW K tx X3.v w2 -∗ txp ↦ tx -∗ nodep ↦ l -∗ resp ↦ e0 -∗
         Φ executeVal) ∗
       (∀ (err : GoInterface) (X' : WX) (w' : WDb) (st : List FLStep),
-        ⌜err ≠ interface.nil ∧ spErr X X' w w' st⌝ -∗ fmtErrorOk err -∗
+        ⌜err ≠ interface.nil ∧ spErr X X' w w' st⌝ -∗ poolR K.B.bq K.N P -∗ fmtErrorOk err -∗
         ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w')) -∗
         txp ↦ tx -∗ nodep ↦ l -∗ resp ↦ err -∗ Φ (returnVal #())) ⊢
     WP (App (App (Val (pieceFn txp resp nodep)) (Val #k)) (Val #l)) {{ Φ }} := by
-  iintro ⟨Hw, Hdb, Htxp, Hnodep, Hres, HΦ, HΦe⟩
+  iintro ⟨Hw, Hdb, HR, Htxp, Hnodep, Hres, HΦ, HΦe⟩
   icases wtxW_pers K tx r m X $$ Hw with ⟨Hw, #⟨Hpkg, Hcore, Hreg⟩⟩
   unfold pieceFn
   wp_pures
@@ -240,10 +240,10 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     rcases Hfr1 with ⟨-, -, rfl, -⟩ | ⟨pg, -, -, -, rfl, -⟩ <;> rfl
   have hc0 : 0 < pcCount (insSize rl.ins) := by
     unfold pcCount insSize; omega
-  wp_apply (hAlloc K tx r m X1 w1 (W64 (pcCount (insSize rl.ins) : Int))
+  wp_apply (hAlloc K tx r m X1 w1 (W64 (pcCount (insSize rl.ins) : Int)) P
     (by unfold pcCount at hc0 ⊢; word) (by unfold pcCount at hc0 ⊢; word)
-    (by rw [hwtx]; exact hG1) hG2 hG3 hG4 hG5) $$ [Hw Hdb]
-    as %p %err (⟨%Herr, %X2, %w2, %id, Hw, Hdb, %Hal⟩ | ⟨%Herr, #Herrok, Hres2⟩)
+    (by rw [hwtx]; exact hG1) hG2 hG3 hG4 hG5) $$ [Hw Hdb HR]
+    as %p %err ⟨HR, (⟨%Herr, %X2, %w2, %id, Hw, Hdb, %Hal⟩ | ⟨%Herr, #Herrok, Hres2⟩)⟩
   · iframe
   rotate_left
   · -- `allocate`'s error: returned
@@ -258,11 +258,11 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
     simp only
     wp_auto
     icases Hres2 with (⟨Hw, Hdb⟩ | ⟨%X', %w', Hw, Hdb, %Hl⟩)
-    · iapply HΦe $$ %(GoInterface.ok ii) %X1 %w1 %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
+    · iapply HΦe $$ %(GoInterface.ok ii) %X1 %w1 %st1 [] HR Herrok [Hw Hdb] Htxp Hnodep Hres
       · ipureintro; exact ⟨Herr, spErr_st (spErr_trans hfw (spErr_refl X1 w1)) (List.append_nil _)⟩
       · ileft; iframe
     · obtain ⟨⟨Xd, b, hd, rfl⟩, hC, hfl⟩ := Hl
-      iapply HΦe $$ %(GoInterface.ok ii) %(Xd.rebase b) %w' %st1 [] Herrok [Hw Hdb] Htxp Hnodep Hres
+      iapply HΦe $$ %(GoInterface.ok ii) %(Xd.rebase b) %w' %st1 [] HR Herrok [Hw Hdb] Htxp Hnodep Hres
       · ipureintro
         exact ⟨Herr, spErr_st (spErr_trans hfw (spErr_rebase hd b hC hfl)) (List.append_nil _)⟩
       · iright; iframe
@@ -380,7 +380,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       WX.setNode_v _ _ _ _
     iapply HΦ $$ %((X2.setNode bl l (pcRec ra id false)).setBuf id
         (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))) %w2 %(st1 ++ sta) %id
-      [] [Hw] [Hdb] Htxp Hnodep Hres
+      [] HR [Hw] [Hdb] Htxp Hnodep Hres
     · ipureintro
       refine ⟨X1, w1, X2, p, ra, ra, slice.nil, [], st1, sta, Hfr1, rfl, Hal', hsta, hsta', HC2, Hml2,
         Hw2, hna,
@@ -636,7 +636,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       rw [WX.setNode_v, WX.setNode_v]
     iapply HΦ $$ %(((X2.setNode bl l (pcRec ra id true)).setNode bl rl.nv.parent'
         (pcPar rpa ra id s ins2)).setBuf id (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins))))
-      %w2 %(st1 ++ sta) %id [] [Hw] [Hdb] Htxp Hnodep Hres
+      %w2 %(st1 ++ sta) %id [] HR [Hw] [Hdb] Htxp Hnodep Hres
     · ipureintro
       refine ⟨X1, w1, X2, p, ra, rpa, s, ins2, st1, sta, Hfr1, rfl, Hal', hsta, hsta', HC2, Hml2, Hw2,
         hna, fun _ => ⟨hrpa, by simpa only [pcPar, NRec.withEnts, hpe] using Hinsl, hk0ne⟩, ?_⟩

@@ -76,12 +76,12 @@ change only the freelist). Its start takes `spillStartOK`
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
 abbrev Bucket.spill.spec : Prop :=
-  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb),
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (P : IProp GF),
   spillPre X w.fl → liveReach X → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → flViewU X w.fl →
   spillStartOK X w → X.t.mv.txid'.toNat < 2 ^ 63 → markCov X w.C.hwm →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w ∗ poolR K.B.bq K.N P }}
     (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"spill")) (Val #()))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; poolR K.B.bq K.N P ∗ (
       (⌜err = interface.nil⌝ ∗ ∃ (X' : WX) (w' : WDb), wtxW K tx r m X' ∗ wdbW K tx X'.v w' ∗
         ⌜spillOK X X' w.C w.fl w'.fl w.wtxid ∧ w'.C = w.C ∧
           derefPre X' ∧ liveFresh X' ∧ liveReach X' ∧
@@ -97,7 +97,7 @@ abbrev Bucket.spill.spec : Prop :=
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
           X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝ ∗
-        ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w'))) }}
+        ((wtxW K tx r m X' ∗ wdbW K tx X'.v w') ∨ (wtxLost K tx r m X' ∗ wdbLost K tx X'.v w')))) }}
 
 end spec
 

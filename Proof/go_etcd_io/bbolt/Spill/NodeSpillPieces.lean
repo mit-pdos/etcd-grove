@@ -74,18 +74,18 @@ theorem spillTail_wp
     (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl n : Loc) (rn : NRec)
     (O : List Nat) (lo hi : Option (List w8)) (h : Nat) (F D : List Nat) (N : List Loc)
     (E : List El) (cs : SpCase) (X' : WX) (w' : WDb) (r' : NRec) (st : List FLStep)
-    (T : List Loc) (np txp resp : Loc) (e0 : GoInterface)
+    (T : List Loc) (np txp resp : Loc) (e0 : GoInterface) (P : IProp GF)
     (hpre : spPre X w bl n rn O lo hi h F D N E cs) (hsp : rn.nv.spilled' = false)
     (hend : spEnd X w bl n rn O lo hi h D N E X' w' r' st T) :
-    ⊢ □ ▷ spillIH (GF := GF) (hG := hG) -∗ wtxW K tx r m X' -∗ wdbW K tx X'.v w' -∗
+    ⊢ □ ▷ spillIH (GF := GF) (hG := hG) -∗ wtxW K tx r m X' -∗ wdbW K tx X'.v w' -∗ poolR K.B.bq K.N P -∗
       np ↦ n -∗ txp ↦ tx -∗ resp ↦ e0 -∗
       WP (spillTail np txp resp) {{ v, ⌜v = returnVal #()⌝ ∗ ∃ err : GoInterface,
-        resp ↦ err ∗ np ↦ n ∗ txp ↦ tx ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err }} := by
+        resp ↦ err ∗ np ↦ n ∗ txp ↦ tx ∗ poolR K.B.bq K.N P ∗ spPost K tx r m X w bl n rn O lo hi h D N E cs err }} := by
   -- U9s: `Spill/NodeSpillTailWp.spillTail_gen` (the heap steps, proved) over the pieces' loop's
   -- invariant `Spill/NodeSpillTailInv.pcInv` and its pure facts.
   obtain ⟨hn', hlv', hS⟩ := tail_pre hpre hsp hend
   exact spillTail_gen hAlloc hPage hSplit hWrite hPut hSize hInc hTxid hPgid hId hKey hAssert hFree
-    K tx r m X w bl n rn O lo hi h D N E cs X' w' r' st np txp resp e0
+    K tx r m X w bl n rn O lo hi h D N E cs X' w' r' st np txp resp e0 P
     (pcInv X w bl n rn O lo hi h D N E cs) hn' hlv' (tail_wsLive hpre hsp hend) hS
     (fun hl hd => pcInv_init' hpre hsp hend hl hd)
     (pcInv_pre' hpre hsp) (pcInv_stepX hpre hsp) pcInv_err pcInv_end (pcInv_doneX hpre hsp)

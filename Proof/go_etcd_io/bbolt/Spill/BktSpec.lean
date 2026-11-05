@@ -107,11 +107,11 @@ def bkPost (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : L
 /-- **`child.spill()` for a nested bucket** (see the module doc). -/
 abbrev Bucket.spill.specC : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb) (bl : Loc) (B : BRec)
-    (O : List Nat) (h : Nat) (F D : List Nat) (N : List Loc),
+    (O : List Nat) (h : Nat) (F D : List Nat) (N : List Loc) (P : IProp GF),
   bkPre X w bl B O h F D N →
-  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
+  {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w ∗ poolR K.B.bq K.N P }}
     (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"spill")) (Val #()))
-  {{ (err : GoInterface), RET #err; bkPost K tx r m X w bl B O D err }}
+  {{ (err : GoInterface), RET #err; poolR K.B.bq K.N P ∗ bkPost K tx r m X w bl B O D err }}
 
 end spec
 

@@ -9,6 +9,13 @@ records the change here.
 
 ## Status
 
+- **Perennial pin** (integrator 1, 2026-11-05): `c6d352196`, the earlier pin `b3e996d84` plus
+  `pool-new-later`'s two commits (`sync.Pool`'s `New` may assume a lent resource,
+  `sync.isPool_respec`), in Perennial `lean`'s history (merged there as `3dd730372`). The
+  catch-up to Perennial `lean` (`3dd730372` and later: `os`'s initializers, goose's unnamed
+  structs and inlined constants, the timers) comes with the merge of bbolt-v2 into this
+  repository's `lean`, which absorbed those bumps in `98c385e35f`, `f3f45ee706` and `4098245105`
+  (translations regenerated, proofs adapted).
 - **U0a done** (2026-11-03): the pure models (`Proof/go_etcd_io/bbolt/Model/`) and the resource
   predicates (`Proof/go_etcd_io/bbolt/Inv/`) exist as definitions; every shared lemma is a
   `sorry`'d statement (inventory below); `Spec/go_etcd_io/bbolt/Api.lean`'s nine predicates are

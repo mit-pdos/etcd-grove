@@ -191,8 +191,8 @@ theorem Tx.allocate_f.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hCount : TxStats.IncPageCount.spec (GF := GF) (hG := hG))
     (hPAlloc : TxStats.IncPageAlloc.spec (GF := GF) (hG := hG)) :
     Tx.allocate_f.spec (GF := GF) (hG := hG) := by
-  intro fr K tx r m X w count hc0 hc htx hhwm hdp hlf hlr
-  wp_start as ⟨Hw, Hdb⟩
+  intro fr K tx r m X w count P hc0 hc htx hhwm hdp hlf hlr
+  wp_start as ⟨Hw, Hdb, HR⟩
   icases wtxW_core K tx r m X $$ Hw with ⟨#Hcore, Hw⟩
   icases BC.core_allocFields K $$ Hcore with ⟨#Hps, #Has, ⟨%mx, #Hmx⟩, ⟨%lg, #Hlg, #Hlgok⟩,
     #Hfix, #Hpkg, %Hdb, #Hpinv⟩
@@ -210,7 +210,7 @@ theorem Tx.allocate_f.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iexact Hmeta
   · iexact Hmv
   rw [htx]
-  wp_apply hAlloc fr K tx r m X w w.wtxid count rfl hc0 hc hhwm hdp hlf hlr $$ [Hw Hdb] as %p %err Hres
+  wp_apply hAlloc fr K tx r m X w w.wtxid count P rfl hc0 hc hhwm hdp hlf hlr $$ [Hw Hdb HR] as %p %err ⟨HR, Hres⟩
   · iframe
   try wp_auto
   icases Hres with (⟨%he, %Xr, %w', %id, %hwm, Hw, Hdb, Hp, %hres⟩ | ⟨%hne, #HeOk, Hcase⟩)
@@ -249,6 +249,7 @@ theorem Tx.allocate_f.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       Htdb Hst Hpages Hpm [Hbufs]
     · unfold allocBuf; iexact Hbufs
     iapply HΦ
+    iframe HR
     ileft
     isplitr
     · ipureintro; rfl
@@ -297,6 +298,7 @@ theorem Tx.allocate_f.wp_proof' (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iempintro
   try wp_auto
   iapply HΦ
+  iframe HR
   iright
   isplitr
   · ipureintro; exact hne

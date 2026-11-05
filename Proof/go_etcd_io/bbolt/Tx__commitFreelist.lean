@@ -48,7 +48,7 @@ success: `allocate`'s result `X1`/`w1` (`allocRes`, the page `id` at `p`, the hi
 bumped when taken from it), with the freelist page `flPageBytes w1.fl id` in its
 buffer and `tx.meta.freelist = id`; `F` back. On an error: rolled back, done. -/
 abbrev Tx.commitFreelist.spec : Prop :=
-  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F : IProp GF),
+  ∀ (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (F P : IProp GF),
   X.t.mv.txid' = w.wtxid → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms →
   derefPre X → liveFresh X → liveReach X → w.fl.allIds.length < 2 ^ 48 →
   (F ∗ wtxW K tx r false X ∗ wdbW' fr K tx X.v w ⊢ |==> wtxEnd' fr K tx r X (wLive X.v w.C) w) →
@@ -56,15 +56,15 @@ abbrev Tx.commitFreelist.spec : Prop :=
     w'.fl = w.fl →
     F ∗ wtxLost K tx r false X' ∗ wdbLost' fr K tx X'.v w' ⊢
       |==> wtxEnd' fr K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w') →
-  {{ F ∗ wtxW (GF := GF) K tx r false X ∗ wdbW' fr K tx X.v w }}
+  {{ F ∗ wtxW (GF := GF) K tx r false X ∗ wdbW' fr K tx X.v w ∗ poolR K.B.bq K.N P }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"commitFreelist")) (Val #()))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; poolR K.B.bq K.N P ∗ (
       (⌜err = interface.nil⌝ ∗ ∃ (X1 : WX) (w1 : WDb) (id : w64) (p : Loc),
         F ∗ wtxW K tx r false (X1.setFlPage id (flPageBytes w1.fl id (flCount w.fl))) ∗
         wdbW' fr K tx X1.v w1 ∗
         ⌜allocRes X X1 w.fl w1.fl w.wtxid (flCount w.fl) p id ∧ w1.C = w.C ∧
           X1.t.mv.pgid'.toNat * 4096 ≤ mapLen w1.ms ∧ (w1 = w.withFl w1.fl ∨ wdbRemap w w1)⌝) ∨
-      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ txDoneDef tx) }}
+      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ txDoneDef tx)) }}
 
 end spec
 
@@ -103,8 +103,8 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
     (hSet : internal.common.Meta.SetFreelist.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG)) :
     Tx.commitFreelist.spec (GF := GF) (hG := hG) := by
-  intro fr K tx r X w F htx hhwm hdp hlf hlr hlen hrb1 hrb2
-  wp_start as ⟨HF, Hw, Hd⟩
+  intro fr K tx r X w F P htx hhwm hdp hlf hlr hlen hrb1 hrb2
+  wp_start as ⟨HF, Hw, Hd, HR⟩
   icases wtxW_db_acc K tx r false X $$ Hw with ⟨⟨#Hpkg, #Hcore, %Hrdb⟩, Hdb, Hwb⟩
   icases wdbW'_fl_acc fr K tx X.v w $$ Hd with ⟨%dqf, Hfl, Hflo, Hdb2⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
@@ -142,9 +142,9 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
   have hsc : sint.Z (W64 ((flCount w.fl : Nat) : Int)) = flCount w.fl := by word
   have hsn : sint.nat (W64 ((flCount w.fl : Nat) : Int)) = flCount w.fl := by word
   icases wdbW'_ok fr K tx X.v w $$ Hd with ⟨Hd, %Hwd⟩
-  wp_apply hAlloc fr K tx r false X w (W64 ((flCount w.fl : Nat) : Int)) (by rw [hsc]; omega)
-    (by rw [hsn]; omega) htx hhwm hdp hlf hlr $$ [Hw Hd]
-    as %p %err Hres
+  wp_apply hAlloc fr K tx r false X w (W64 ((flCount w.fl : Nat) : Int)) P (by rw [hsc]; omega)
+    (by rw [hsn]; omega) htx hhwm hdp hlf hlr $$ [Hw Hd HR]
+    as %p %err ⟨HR, Hres⟩
   · iframe
   icases Hres with (⟨%He, %X1, %w1, %id, Hw, Hd, %Hal⟩ | ⟨%He, #Herr, Hfail⟩)
   · subst He
@@ -191,6 +191,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
     ihave Hd := Hdb2 $$ Hfl Hflo
     try wp_auto
     try iapply HΦ
+    iframe HR
     ileft
     isplitr
     · ipureintro; rfl
@@ -213,6 +214,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
       · iexact Hend
       try wp_auto
       try iapply HΦ
+      iframe HR
       iright
       isplitr
       · ipureintro; exact fun h => nomatch h
@@ -240,6 +242,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
       · iexact Hend
       try wp_auto
       try iapply HΦ
+      iframe HR
       iright
       isplitr
       · ipureintro; exact fun h => nomatch h
