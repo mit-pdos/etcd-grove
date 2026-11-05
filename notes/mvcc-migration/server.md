@@ -128,10 +128,41 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
   and `newHeader.spec` (restated at the thread's token) was not callable from them.
 - Also proved: the cluster methods `applierV3backend.{ClusterVersionSet, ClusterMemberAttrSet,
   DowngradeInfoSet}` over `mPreV` (`WriteLemmas.mPreV_split`, `mPostV_of`).
-- Next in step 2: `Compaction`, `LeaseRevoke`
-  (over `lessor.Revoke.spec`, a hypothesis, but see "Found"), the KV methods (`Put`, `Range`,
-  `DeleteRange`, `Txn`, over txn's specs), the wrappers (auth, capped, corrupt, quota), `dispatch`,
-  `Apply`, then `applyAll`.
+- **Step 2 continued (third session, 2026-11-05)**, each building:
+  - `applierV3backend.Compaction` (no `sorry`): `KV.Compact.contract`/`KV.Range.contract` at the KV's
+    type from `shapes.law` (hypotheses `context.TODO`, `traceutil.EnsureTrace`, `shapes`), the
+    update by `envAus`'s compaction builder (`CompactArm.wSt_crOwn_agree`: the writer's half and
+    the compaction right at one revision), `commitReq_true`, `mvccInit`'s `ErrCompacted`;
+    `ErrFutureRev` excluded by `cmpAdmitRev`.
+  - `applierV3backend.newHeader` (no `sorry`): `KV.Rev.contract` at the writer's read update
+    (hypothesis `shapes`, in place of `mvcc.store.Rev`).
+  - `applierV3backend.{Put, DeleteRange, Range}` (no `sorry`), over txn's restated specs (hypotheses
+    `context.TODO` and txn's `Put`/`DeleteRange`/`Range`), their updates built from `envAus`
+    (`apply/KVBuild.lean`: `beginAU_of_auBegin`, `auEnd_wand`, `auRead_wand`, `commitAU_of_auEnd`);
+    `Put`'s update only for a live lease (txn's `if decide …`), the writer's half kept otherwise.
+  - `applierV3backend.Txn`, over `Txn.specSole`, **one `M1-REPLACE`** (see "Found", third session).
+  - `applierV3backend.LeaseRevoke`, over `revokeClause`, **one `M1-REPLACE`** (see "Found").
+  - `AuthSteps` over auth's restated specs (the auth track's `cca7e9a4a9`): `csContractA_old` and
+    `isAuthSteps_of_authInv`'s `hf` deleted (its callers `Results.lean`, `AuthSrv`, `ApplyNormalOn`
+    drop the `hf` argument when they are migrated).
+- **Choices (third session)**, minor, the draft leaving them open:
+  - `envAus` gains a last conjunct, **the writer's floor** `∀ log c F, wSt E.γs log c -∗
+    kvLogLb E.γs F ={⊤}=∗ wSt E.γs log c ∗ ⌜F <+: log⌝` (`KVStoreCore.writer_floor`, proved over the
+    store invariant): the KV methods' `kvPostF` floor `floorOkO`, which the sole writer's pin gave
+    until M1. Whoever builds `envAus` (from `kvAusG`) adds `writer_floor`.
+  - `applierV3backend.Range.spec` takes and gives `threadTok` (`KV.Range`'s; `applierTriples`' Range
+    triple already had it).
+  - `appliedHdr`'s room is `+3` (the writer's facts'; the draft's relaxation of `putOk`/`delOk`;
+    `TxnPreA` has no size clause). Breaks v3rpc's `ServerKV.lean:563` (`Hlen.2` at `+4`), outside
+    this track.
+  - `revokePre`'s pure part takes `(stateAfter log).length ≤ 2 ^ 62` (the lessor's sort premise in
+    `revokeClause`; the server derives it from `srvApplyKV_small`).
+- **Next in step 2**: the wrappers (auth, capped, corrupt, quota: mechanical, every one red on
+  `mPre`'s new shape, `kvOwn` no longer inside it, and the specs' `threadTok`; a lemma
+  `mPre ⊢ kvOwn ∗ chainRes ∗ Pre`-like for the rejecting arms would serve all), the `new*`
+  constructors (`applierTriples` from the specs), `uberApplier.{Alarm, Apply, dispatch}`, then
+  `applyAll`. The `Link.lean` hypotheses changed: `newHeader` (`shapes` for `mvcc.store.Rev`),
+  `Compaction` (`hTODO`, `hEnsure`, `shapes`), `Put`/`DeleteRange`/`Range`/`Txn` (unchanged names).
 
 **The frontier** (red, next): `InvProposer` (a floor over `idxCert`), `InvApplier` (the old
 `srvKVInvs`, `envAgree`'s mode ties, the sole writer: its restatement is the draft's
@@ -187,7 +218,36 @@ restate in place). Not drafted, to decide before step 1 (all "by reference" in
 
 ## Placeholders
 
-None (no `sorry`, no axiom).
+- `apply/applierV3backend__Txn.lean`: `-- M1-REPLACE` in the write wand for a request whose paths
+  miss a previous key-value (Found, third session, (1)).
+- `apply/applierV3backend__LeaseRevoke.lean`: `-- M1-REPLACE` recovering the writer's half in the
+  not-live arm (Found, third session, (2)).
+
+No axiom.
+
+## Found (third session, 2026-11-05; not decided)
+
+1. **`txn.Txn.specSole` (frozen, txn's) is too weak for the apply thread's caller.** Its write wand
+   `(if txn.txnReadonly t then True else ∀ σ, Qr σ -∗ txn.txnBeginAU γ log t Qw)` is given before
+   the call and not told that `checkTxn` passed. The server builds `txnBeginAU` from its end builder,
+   which needs the witness `E.Nx (commitLog log (txnChs log t))`; `certPre` gives it only for a
+   `backendStep` outcome, whose applied arm needs `txn.PathsIgnOk (stateAfter log) (t.branch
+   (txnOk (stateAfter log) t))`. When the paths miss a previous key-value the request is rejected
+   and `commitLog log (txnChs log t)` is no applied log: no witness, no wand. (Until M1 txn's spec
+   took `⌜PathsIgnOk …⌝ -∗ certOkNext …` for the same reason.) **Minimal fix** (txn's spec): the
+   wand takes the fact, `∀ σ, Qr σ -∗ ⌜txn.PathsIgnOk (stateAfter log) (t.branch (txnOk
+   (stateAfter log) t))⌝ -∗ txn.txnBeginAU γ log t Qw` (true where txn calls it: after `checkTxn`'s
+   success, whose post states `PathsIgnOk`).
+2. **`lease.lessor.Revoke.spec` (the draft's `specA`, as decided) and `revokeClause` are too weak in
+   the not-live arm.** The precondition takes `auBegin γ σ₀ (auEnd γ σ₀ dels Y)` always, the
+   not-live arm gives it back unused. The server can build that update only from its writer's half
+   (`envAus`' begin builder puts `wSt` in the update's private state), and no law recovers it from
+   an unused update (an atomic update's private state is hidden): after a not-live revocation the
+   apply thread has lost its half of the store's state. **Minimal fix** (the draft and
+   `revokeClause`, as txn's `Put` does for a lease): `(if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ
+   σ₀ dels Y) else iprop(True))` in the precondition, and the not-live arm without it (the code
+   returns `ErrLeaseNotFound` before calling `rd()`, `lessor.go`'s `Revoke`). The caller knows `L`
+   (`leasesLive`).
 
 ## For the parallel tracks (second session)
 
