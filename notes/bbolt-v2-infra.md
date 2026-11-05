@@ -200,7 +200,7 @@ Gone:
 means that the unsafememory example (Perennial's
 `Proof/github_com/mit_pdos/perennial/goose/testdata/examples/unsafememory/`, `UM/`) proves the
 same shape over a bbolt-like copy of the code: the proof against the fork is modelled on it, not
-taken from it. `MB/` is minibolt's proofs (`Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/`).
+taken from it. `MB/` is minibolt's proofs (`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/`).
 
 | Group | Files | Class | Replacement / note |
 |---|---|---|---|

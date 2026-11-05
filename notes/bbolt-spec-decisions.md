@@ -177,7 +177,7 @@ P2 must either show in every closed result, or be made unnecessary.
 - A step-restricted semantics `osFsSemStepWith P2`, whose step is `OsStep ∧ P2`, and whose
   restriction always admits the complete write.
 - A Lean FNV-64a, equal to the trust-boundary model of `hash/fnv` (minibolt's `metaValid` in
-  `examples/bboltfs/Meta.lean`).
+  `examples/osfs/bboltfs/Meta.lean`).
 - One `File.WriteAt`/`PWriteFinish` spec parametric in the restriction, giving its fact.
 - A transfer lemma `WP_{OsStep} ⊢ WP_{OsStep ∧ P}`, for restrictions that keep every reducible
   configuration reducible, so that the existing OsFs specs (WAL, snap) are reused.
@@ -699,7 +699,7 @@ exclusive `ownDB` could not serve a read transaction begun outside the batch loc
 - **Durability and crashes.**
   - Perennial's own `Fs` extension is a whole-file toy. This repository's OsFs (Linux file)
     extension models `pread`/`pwrite`/`fdatasync`/`mmap`, nondeterministic errnos and crash
-    images. `examples/bboltfs`'s minibolt is the acceptance test that it suffices for bbolt.
+    images. `examples/osfs/bboltfs`'s minibolt is the acceptance test that it suffices for bbolt.
   - The proof should go over OsFs (D8). `fileHolds` is then defined over `osMeta`/`osBytes`, and
     `Open` took `osInv` until round 9; it is now inside `fileHolds`.
   - The specs are in-process only: no crash spec. A durable layer would follow raft's durable-API
