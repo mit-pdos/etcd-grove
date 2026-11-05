@@ -44,14 +44,14 @@ abbrev Cursor.next_w.specQ : Prop :=
       ⌜wNextPost nl' X.v (wEs X n) bl rt ipg els pids (wNextTo X.v (wEs X n) pids els) els'⌝ ∗
       wEntKV X.v (wEs X n) (wNextTo X.v (wEs X n) pids els) k vl fl }}
 
-/-- `c.next()` of a writer's cursor at the end (`wEndAt`: every branch last, the leaf at its count
-or `-1`): no level moves; nil, nil, `0`, the stack unchanged. -/
+/-- `c.next()` of a writer's cursor on the empty stack (unpositioned) or at the end (`wEndAt`: every
+branch last, the leaf at its count or `-1`): no level moves; nil, nil, `0`, the stack unchanged. -/
 abbrev Cursor.next_we.specQ : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (n : GoString) (bl : Loc)
     (rt : Nat) (ipg : List w8) (nl : Loc → Option (Loc × Nat)) (c : Loc) (stk : GoSlice)
     (els : List elemRef) (pids : List Nat),
-  wCurCtx X n bl rt → sPathR nl X.v bl rt els pids → sLeafOK X.v ipg (wEs X n) pids els →
-  wEndAt X.v (wEs X n) pids els →
+  wCurCtx X n bl rt → (els = [] ∨ (sPathR nl X.v bl rt els pids ∧
+    sLeafOK X.v ipg (wEs X n) pids els ∧ wEndAt X.v (wEs X n) pids els)) →
   {{ wtxWQ (GF := GF) K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
       wStkOwn r nl X.v rt ipg els }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"next")) (Val #()))

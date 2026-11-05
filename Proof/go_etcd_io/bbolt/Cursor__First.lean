@@ -10,6 +10,8 @@ public import Spec.go_etcd_io.bbolt.Cursor__First
 public import Spec.go_etcd_io.bbolt.Cursor__first_r
 public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Proof.go_etcd_io.bbolt.Read.PubR
+public import Proof.go_etcd_io.bbolt.Read.PubWFirst
+public import Proof.go_etcd_io.bbolt.Bucket__Get
 public import Proof.go_etcd_io.bbolt.Txn.RdInit
 import all Spec.go_etcd_io.bbolt.Api
 
@@ -82,23 +84,28 @@ theorem Cursor.First.wp_reader [HasExt osFsExt]
   icases Hfin with ⟨Ht, Hc⟩
   iframe; iframe #
 
-/-- **A writer's `First`**: U6w's (`Cursor.First.wp_writer`, `Read/PubW*`). -/
+/-- **A writer's `First`** (U6z): `Read/PubWFirst`'s, over `first_w`; `gensOK`'s third clause by
+`gensOK_handle_bktLoc` and the cursor's writer facts by `wrCurFacts_of` (both OPEN). -/
 theorem Cursor.First.wp_writer [HasExt osFsExt]
+    (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hfw : Cursor.first_w.specQ (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
     (hrw : T.rw = true) :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"First")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
-      boltCur tx γ c T es (some 0) ∗ curAt tx γ es 0 k v }} := by
-  sorry
+      boltCur tx γ c T es (some 0) ∗ curAt tx γ es 0 k v }} :=
+  Cursor.First.wp_writerW hA hfw tx c γ q T es pos hrw (gensOK_handle_bktLoc T)
+    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.First.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
-    (hfirst : ∀ [HasExt osFsExt], Cursor.first_r.spec (GF := GF) (hG := hG)) :
+    (hfirst : ∀ [HasExt osFsExt], Cursor.first_r.spec (GF := GF) (hG := hG))
+    (hfw : ∀ [HasExt osFsExt], Cursor.first_w.specQ (GF := GF) (hG := hG)) :
     Cursor.First.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos
   by_cases hrw : T.rw = true
-  · exact Cursor.First.wp_writer tx c γ q T es pos hrw
+  · exact Cursor.First.wp_writer hA hfw tx c γ q T es pos hrw
   · exact Cursor.First.wp_reader hA hfirst tx c γ q T es pos (Bool.eq_false_iff.2 hrw)
 
 end proof

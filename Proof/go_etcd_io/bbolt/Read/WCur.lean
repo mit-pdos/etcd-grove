@@ -22,14 +22,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 section wcurPure
 variable [GooseExts]
 
-/-- **The node-location registry names current nodes** (U6z; not yet in the invariant, OPEN for the
-maintainer: `wrFacts`'): a registered node of a live bucket is that bucket's materialized node of
-its position. Before `Commit` a bucket's node cache only grows, and a dead bucket (`DeleteBucket`)
-is out of `liveB`. What lets a writer cursor's node reference, registered when the cursor moved,
-be read later (its object is the live node of its position). -/
+/-- **The node-location registry is the live buckets' node caches** (U6z; not yet in the invariant,
+OPEN for the maintainer: `wrFacts`'): a registered node of a live bucket is that bucket's
+materialized node of its position, and every materialized node of a live bucket is registered at
+its position (`nodeAdded` does both). Before `Commit` a bucket's node cache only grows, and a dead
+bucket (`DeleteBucket`) is out of `liveB`. What lets a writer cursor's node reference, registered
+when the cursor moved, be read later (its object is the live node of its position), and a move
+register the nodes it reaches (their fragments, `nlFrags`). -/
 def nlocCur (X : WX) : Prop :=
-  ∀ l b p, X.nloc !! l = some (b, p) → b ∈ X.liveB →
-    ∃ B, X.t.bs !! b = some B ∧ B.nm !! W64 (p : Int) = some l
+  (∀ l b p, X.nloc !! l = some (b, p) → b ∈ X.liveB →
+    ∃ B, X.t.bs !! b = some B ∧ B.nm !! W64 (p : Int) = some l) ∧
+  ∀ b B c l, X.t.bs !! b = some B → b ∈ X.liveB → B.nm !! c = some l →
+    X.nloc !! l = some (b, c.toNat)
 
 /-- **The writer's facts a cursor move of the top-level bucket `n` (handle `bl`) reads under**:
 `X` well-formed, `bl` its opened bucket, its registry current (`nlocCur`), its root position
@@ -97,6 +101,30 @@ def wLastInv (nl : Loc → Option (Loc × Nat)) (v : View) (es : List BoltEnt) (
   ∃ e, els.getLast? = some e ∧
     ((leafCnt v es pids els = 0 ∧ (e.index' = W64 0 ∨ e.index' = W64 (-1))) ∨
      (0 < leafCnt v es pids els ∧ e.index'.toNat + 1 = leafCnt v es pids els))
+
+open Classical in
+private theorem filter_disj_le (es : List BoltEnt) (f g : BoltEnt → Bool)
+    (h : ∀ e ∈ es, ¬ (f e = true ∧ g e = true)) :
+    (es.filter f).length + (es.filter g).length ≤ es.length := by
+  induction es with
+  | nil => simp
+  | cons a t ih =>
+    have ht := ih (fun e he => h e (List.mem_cons_of_mem _ he))
+    have ha := h a (List.mem_cons_self ..)
+    simp only [List.filter_cons, List.length_cons]
+    split <;> split <;> simp_all <;> omega
+
+open Classical in
+/-- **A stack on an entry of its leaf is before the end**: its position is below `es.length` (the
+entries below its leaf's lower bound and its leaf's are disjoint). -/
+theorem stackPos_lt (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef)
+    (h : leafIdx els < leafCnt v es pids els) : stackPos v es pids els < es.length := by
+  unfold stackPos
+  unfold leafCnt entsIn at h
+  have := filter_disj_le es (fun e => decide (¬ keyGe (pathBnd v pids els).1 e.1))
+    (fun e => decide (keyIn (pathBnd v pids els).1 (pathBnd v pids els).2 e.1))
+    (by intro e _ ⟨h1, h2⟩; simp only [decide_eq_true_eq] at h1 h2; exact h1 h2.1)
+  omega
 
 end wcurPure
 

@@ -11,6 +11,8 @@ public import Spec.go_etcd_io.bbolt.Cursor__Next
 public import Spec.go_etcd_io.bbolt.Cursor__next_r0
 public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Proof.go_etcd_io.bbolt.Read.PubR
+public import Proof.go_etcd_io.bbolt.Read.PubWNext
+public import Proof.go_etcd_io.bbolt.Bucket__Get
 public import Proof.go_etcd_io.bbolt.Txn.RdInit
 import all Spec.go_etcd_io.bbolt.Api
 
@@ -150,8 +152,12 @@ theorem Cursor.Next.wp_reader [HasExt osFsExt]
       rw [List.getElem?_eq_none (by omega)]
       ipureintro; exact ⟨rfl, rfl⟩
 
-/-- **A writer's `Next`**: U6w's (`Cursor.Next.wp_writer`, `Read/PubW*`). -/
+/-- **A writer's `Next`** (U6z): `Read/PubWNext`'s, over `next_w`/`next_we`; `gensOK`'s third
+clause by `gensOK_handle_bktLoc` and the cursor's writer facts by `wrCurFacts_of` (both OPEN). -/
 theorem Cursor.Next.wp_writer [HasExt osFsExt]
+    (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
+    (hnxw : Cursor.next_w.specQ (GF := GF) (hG := hG))
+    (hnxe : Cursor.next_we.specQ (GF := GF) (hG := hG))
     (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat)
     (hrw : T.rw = true) :
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
@@ -160,17 +166,20 @@ theorem Cursor.Next.wp_writer [HasExt osFsExt]
       (match pos with
        | none => iprop(boltCur tx γ c T es none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
        | some i => iprop(boltCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
-           curAt tx γ es (i + 1) k v)) }} := by
-  sorry
+           curAt tx γ es (i + 1) k v)) }} :=
+  Cursor.Next.wp_writerW hA hnxw hnxe tx c γ q T es pos hrw (gensOK_handle_bktLoc T)
+    (fun X hok hg hwr hcur hbase => wrCurFacts_of T X hok hg hwr hcur hbase)
 
 theorem Cursor.Next.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hnx : ∀ [HasExt osFsExt], Cursor.next_r.spec (GF := GF) (hG := hG))
-    (hnx0 : ∀ [HasExt osFsExt], Cursor.next_r0.spec (GF := GF) (hG := hG)) :
+    (hnx0 : ∀ [HasExt osFsExt], Cursor.next_r0.spec (GF := GF) (hG := hG))
+    (hnxw : ∀ [HasExt osFsExt], Cursor.next_w.specQ (GF := GF) (hG := hG))
+    (hnxe : ∀ [HasExt osFsExt], Cursor.next_we.specQ (GF := GF) (hG := hG)) :
     Cursor.Next.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos
   by_cases hrw : T.rw = true
-  · exact Cursor.Next.wp_writer tx c γ q T es pos hrw
+  · exact Cursor.Next.wp_writer hA hnxw hnxe tx c γ q T es pos hrw
   · exact Cursor.Next.wp_reader hA hnx hnx0 tx c γ q T es pos (Bool.eq_false_iff.2 hrw)
 
 end proof
