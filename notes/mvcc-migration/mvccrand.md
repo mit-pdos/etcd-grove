@@ -26,6 +26,8 @@ mvccrand/`, `Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/`.
   imports only mvcc's `ApiState`. And `covers_eq_inRangeM` (proved): the range `Watch`
   registers (`watchRangeOf`, its affine `covers`, through which `wsRecvOk` selects a watcher's
   events) is the tester's `inRange` for non-empty keys.
+- `rng.genRange` (the request: a key of `keyList`, `genEnd`'s end, revision in `[-1, cur + 1]`,
+  limit in `[0, 4)`): spec and proof (2026-11-06).
 - `rng.genKey` (a fresh byte slice of a key of `keyList`) and `rng.genEnd` (`nil`, `[]byte{}`, an
   extra end or a key; its contents `[]` when `nil`): specs and proofs (2026-11-06).
 - `checkRange` (2026-11-06): spec and proof, no `sorry`. **Every check of a range read is proved
@@ -185,17 +187,25 @@ stub cluster and the split `run`: `run(cfg)` does not panic but at `backend.New`
 
 ## Left
 
-- The specs and proofs of the rest: `rng.genRange`,
-  `copyState`, `pending.put`/`del`, `history.*`, `writer.*` (the write paths over `KV.Write`,
-  `Txn.*`, `Txn.End`; the hook's triple for `hookRun`), `reader`, `watchCheck.*` (`receive` over
-  `wsChan_recv.law` and `wsRecv_ok.law`), `itoa`, `Run`, `Main`.
+- The specs and proofs of the rest: `copyState`, `pending.put`/`del`, `history.*`, `writer.*`
+  (the write paths over `KV.Write`, `Txn.*`, `Txn.End`; the hook's triple for `hookRun`), `reader`,
+  `watchCheck.*` (`receive` over `wsChan_recv.law` and `wsRecv_ok.law`), `itoa`, `Run`, `Main`.
+  `rng.*` and the read side (`checkRange`, `checkKV`, `inRange`) are done: every caller of a range
+  read goes through `checkRange.spec`, whose premises a caller gets from `Txn.Range.contract`
+  (`rangeOutcomeC_neg` at `σ.crev = -1`, `txn.LogOk.of_cert` from the contract's `LogWf'` and
+  change-count facts) and its own `stMatch` of the history's maps.
 - The invariants (one design, by the table above): an invariant holding `mvccState γ σ` (with
   `σ.crev = -1`, `σ.pending` the writer's), `wsState ι S` (`S.closed = false` until `Run`'s
   `ws.Close()`), a ghost copy of the history (`states`, `changes`) with `σ.notifiedLog`'s
-  revisions a prefix of it, `published ≤ σ.rev`; the writer's half of the log; `c.mu`'s lock
-  invariant tying `c.watchers` to `S.ws`'s domain and each watcher's position to its received
-  events; the ticks channel's values `≥ 1` (`intn(pub + 1)`).
-- `Init.lean` (gen-init.py, the coordinator's), `Link.lean`, `Results.lean`, and the closed
-  theorem, which cannot be stated as "`Main` does not panic" until G1 is fixed (every write),
-  `lease.NewLessor`'s `clusterOk` admits `nil`, and with `be.Close()` out of scope.
-- No placeholder (`M1-REPLACE`) committed: nothing proved rests on a gap yet.
+  revisions a prefix of it and `stMatch` of each state, `published ≤ σ.rev`; the writer's half of
+  the log; `c.mu`'s lock invariant tying `c.watchers` to `S.ws`'s domain and each watcher's
+  position to its received events; the ticks channel's values `≥ 1` (`intn(pub + 1)`).
+- **For the coordinator, `etc/gen-init.py`'s entry for `mvccrand`**: needed only for the closed
+  theorem (`Init.lean`'s `wp_initialize'`, then `PkgTable.lean`), not before. The fact is
+  `Base.lean`'s `mvccrandInit`: `keys` and `extraEnds` each hold a read-only slice of their literal
+  (`keyList`, `extraEndList`), so the initializer's two composite-literal stores must be persisted
+  (`ownSlice_persist`) into it; imports: context, sort, sync, sync/atomic, time, zap, mvccpb,
+  traceutil, lease, backend, mvcc.
+- `Link.lean`, `Results.lean`, the closed theorem: see "What each blocker outside mvcc's API
+  costs" (no result past `NewLessor` without a Go change or the lease axiom admitting `nil`).
+- No placeholder (`M1-REPLACE`) committed: nothing proved rests on a gap.
