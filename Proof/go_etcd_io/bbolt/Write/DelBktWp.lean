@@ -14,7 +14,8 @@ public import Proof.go_etcd_io.bbolt.Write.DelBktXcl
 public import Proof.go_etcd_io.bbolt.Write.CreateBktWp
 public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_w
 public import Spec.go_etcd_io.bbolt.node__del
-public import Spec.go_etcd_io.bbolt.Bucket__free
+public import Spec.go_etcd_io.bbolt.Bucket__free_dead
+public import Proof.go_etcd_io.bbolt.Write.DelBktPure
 public import Proof.go_etcd_io.bbolt.Read.PubWCur
 
 @[expose] public section
@@ -57,7 +58,7 @@ theorem Bucket.DeleteBucket.wp_root
     (hFeb : Bucket.ForEachBucket_w.spec (GF := GF) (hG := hG))
     (hNode : Cursor.node.spec (GF := GF) (hG := hG))
     (hDel : node.del.spec (GF := GF) (hG := hG))
-    (hFree : Bucket.free.spec (GF := GF) (hG := hG))
+    (hFree : Bucket.free_dead.spec (GF := GF) (hG := hG))
     (hClone : cloneBytes.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (X : WX) (w : WDb) (T : TxView) (name : GoSlice)
@@ -332,7 +333,86 @@ theorem Bucket.DeleteBucket.wp_root
   try wp_auto
   have hsome : T.cur.lookup n ≠ none := by
     intro h; rw [show T.cur.lookup n = T.cur !! n from rfl, h] at hfound; cases hfound
-  -- the bucket's deletion: blocked on `Bucket.free.spec` (U7m's report)
+  -- `child := b.Bucket(newKey)`
+  have hhg : ∀ c', R.bm !! n = some c' → X.handles !! c' = some (n, T.gen n) :=
+    fun c' h => hgens.2.1 n c' (by unfold bktLoc; rw [hR]; exact h)
+  wp_apply hBw K tx r false X X.rl R nk n (KeyR.heap DFrac.discard) (T.gen n) hR hloc hpm hwrt hhg
+    $$ [Hw] as %cb ⟨%X1, Hw, -, -, %Hpost⟩
+  · unfold keyR; iframe; iexact Hnk
+  rcases Hpost with ⟨-, -, hnone⟩ | ⟨hbn, hcase, hok'⟩
+  · have := PubW.wtxData_none_of X n hnone
+    rw [← hcur] at this
+    rw [this] at hfound; cases hfound
+  obtain ⟨hok1, hd1⟩ := hok' hok
+  obtain ⟨R1, C, hR1, hn1, hst1, hC, hcr, hrl1, hv1, hmv1, hg1, hwr1, hfl1, hsh1⟩ :=
+    dbk_opened (GF := GF) T X X1 R cb n w.fl hok hcur hgens hwr hfl hR hbn hcase hok1
+  have hR1' : X1.t.bs !! X1.rl = some R1 := by rw [hrl1]; exact hR1
+  try wp_auto
+  -- `child.ForEachBucket(…)`: no nested bucket, the callback never runs
+  have hloc1 := PubW.bktLocalOK_of_wOK X1 hok1 cb C hC
+  have hpm1 := PubW.pmFresh_of_wOK X1 hok1
+  have hnb := allEnts_plain_nonroot X1 cb C hok1 hC (by rw [hrl1]; exact hcr)
+  wp_apply hFeb K tx r false X1 cb _ hloc1 hpm1 hnb $$ [Hw] as %ferr ⟨%hferr, Hw⟩
+  · iexact Hw
+  subst hferr
+  try wp_auto
+  icases wtxW_heapOK' K tx r false X1 $$ Hw with ⟨Hw, %Hhok1⟩
+  have hCtx : C.bv.tx' = tx := (Hhok1.2.2.1 cb C hC).1
+  -- `delete(b.buckets, string(newKey))`
+  have hl1 : X1.rl ∈ X1.liveB := hok1.2.2.2.2.2.1.1
+  icases wtxW_bm_acc K tx r false X1 X1.rl R1 hR1' hl1 $$ Hw with ⟨Hbf, Hbm, Hbb⟩
+  rw [hrl1]
+  try wp_auto
+  wp_apply wp_bytes_to_string $$ [Hnk] as -
+  · iexact Hnk
+  try wp_auto
+  wp_apply wp_mapDelete $$ [Hbm] as Hbm
+  · iexact Hbm
+  ihave Hw := Hbb $$ %(GMap.delete n R1.bm) Hbf Hbm
+  -- the child dead, `child.nodes = nil`, `child.rootNode = nil`
+  have hC2 : (X1.setBkt X.rl (bUnopen R1 n)).t.bs !! cb = some C := by
+    show (X1.t.bs.insert X.rl _) !! cb = _
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hcr)]; exact hC
+  ihave Hw := wtxW_killBkt K tx r false _ cb C hC2 $$ Hw
+  icases wtxW_dead_nil K tx r false _ cb _ (killBkt_bs_none _ cb C) (killBkt_deadB _ cb C)
+    (killBkt_liveB _ cb C) $$ Hw with ⟨Hnf, Hrnf, Hwb⟩
+  try wp_auto
+  rw [show (map.nil : Loc) = null from rfl]
+  ihave Hw := Hwb $$ Hnf Hrnf
+  -- `child.free()`
+  iunfold wdbW at Hwdb
+  icases Hwdb with ⟨Hwl, %Hwf⟩
+  ihave Hwdb : wdbW (GF := GF) K tx X.v w $$ [Hwl]
+  · unfold wdbW; iframe; ipureintro; exact Hwf
+  have htxw : X1.t.mv.txid' = w.wtxid := by
+    have h0 := hok1.1.2.2.2.1
+    have hvt : X1.v.txid = w.C.txid := by rw [hv1, Hwf.2.2]; rfl
+    apply BitVec.eq_of_toNat_eq
+    unfold WDb.wtxid
+    rw [toNat_W64_of_lt _ (by have := X1.t.mv.txid'.isLt; omega)]
+    omega
+  have hfp := dbk_freePre X1 cb C R1 n w.fl w.wtxid hok1 hwr1 hR1' hn1 hC hfl1 htxw
+  obtain ⟨t, ht⟩ : ∃ t : RTree, C.ib.root' ≠ W64 0 → ltIs (pltree X1.v) cb t ∧
+      t.pid = C.ib.root' ∧ w.fl.canFreeAll w.wtxid (t.pos.filterMap (pExt X1.v)) := by
+    by_cases h0 : C.ib.root' = W64 0
+    · exact ⟨RTree.mk 0 false [] [], fun h => absurd h0 h⟩
+    · obtain ⟨t, h1, h2, h3⟩ := (hfp h0).2
+      exact ⟨t, fun _ => ⟨h1, h2, h3⟩⟩
+  have hX4 : ((X1.setBkt X.rl (bUnopen R1 n)).killBkt cb C).setDead cb (deadRec { C with ns := ∅ }) =
+      delMid X1 cb C R1 n (deadRec { C with ns := ∅ }) := by
+    unfold delMid; rw [hrl1]
+  rw [hX4]
+  have hpm0 : X1.t.pm = ∅ := hok1.1.2.1.1
+  wp_apply hFree K tx r false (delMid X1 cb C R1 n (deadRec { C with ns := ∅ })) w cb
+    (deadRec { C with ns := ∅ }) t (by unfold delMid; exact killBkt_bs_none _ cb C) (setDead_lookup _ _ _)
+    (by unfold delMid WX.setDead; exact killBkt_liveB _ cb C) hCtx rfl
+    (fun h0 => ⟨(hfp h0).1, hok1.2.2.2.2.2.2.2, (ht h0).1, (ht h0).2.1,
+      fun pid _ => by show X1.t.pm !! pid = none; rw [hpm0]; rfl, (ht h0).2.2, htxw⟩)
+    $$ [Hw Hwdb] as ⟨%X5, %w5, Hw, Hwdb, %Hfr⟩
+  · iframe Hw
+    rw [show (delMid X1 cb C R1 n (deadRec { C with ns := ∅ })).v = X.v from hv1]
+    iexact Hwdb
+  -- remaining: `c.node().del(newKey)` and `deleteOK` (U7o, in progress)
   sorry
 
 end proof
