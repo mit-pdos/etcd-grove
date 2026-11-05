@@ -30,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HistoryLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 
 @[expose] public section
@@ -102,9 +103,9 @@ def txnShape (t : TxnModel) : Prop :=
   ∀ (s0 : List EtcdKv) (r : w64), s0.Pairwise etcdKvLess →
     OpsIG true s0 r s0 (t.branch (txnOk s0 t))
 
-theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (hm : txnSmall log t) :
-    TxnPre log t :=
-  ⟨hm.1, OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log)), hm.2⟩
+theorem TxnPre_of (log : Log) (t : TxnModel) (hs : txnShape t) (_hm : txnSmall log t) :
+    TxnPreA log t :=
+  OpsOk_of true _ _ _ _ (hs _ _ (stateAfter_sorted log))
 
 /-! ### A transaction's shape from its run's keys -/
 
@@ -233,7 +234,7 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
   | .put => apply.putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → apply.delOk log o
-  | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63 ∧ txn.sortOk o log
+  | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63
   | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
   | _ => True
 
@@ -251,7 +252,7 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
     | exact trivial
     | (unfold apply.putOk; omega)
     | (intro o _; unfold apply.delOk; omega)
-    | (intro o _; exact ⟨by omega, fun _ => hls⟩)
+    | (intro o _; omega)
     | (intro t _; exact ⟨h4, hls⟩)
 
 /-- **The shape of `rq`** (see the file header): `dispatchOk` whatever the auth mode, and its

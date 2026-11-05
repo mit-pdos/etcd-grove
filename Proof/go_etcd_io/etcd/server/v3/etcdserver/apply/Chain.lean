@@ -1057,6 +1057,14 @@ def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (Pre Post : IProp GF) : IProp GF :=
   iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post ∗ ∃ B : BkRef, bkRT B)
 
+/-- **The apply thread's resources at `log` with the contract of a write with `v3`**
+(`uberApplier.Apply`'s and `dispatch`'s, strict M1, 2026-11-05: `kvOwn` with the contract at the
+batch lock of the backend `kvBk` holds, and the backend's tokens for the components' writes). -/
+def kvOwnPre (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+      cPre v3 (E.Pk B) E.f Pre Q Post)
+
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
 it commits, and the request's class for the principal `info` (A3, `chainClass`) and its lease class
 at the owner's item map of the state before it (`chainLeaseClass`, the lease-keys plan). -/

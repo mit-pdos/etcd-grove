@@ -1367,18 +1367,19 @@ instance idxNames_countable : Pos.Countable mvcc.IdxNames :=
 
 /-- **The server's claimers' facts, by store** (the cluster's family of facts, `idClusterInv`'s
 `Φs`; R2c, 2026-11-02): a claim's ghost name records a floor certified in the store index `idx`
-its claimer's incarnation registered (`idKeyFactAt`). -/
-def srvFloorFacts (idx : mvcc.IdxNames) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
-  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert idx F)
+its claimer's incarnation registered (`idKeyFactAt`); strict M1, 2026-11-05: the floor a lower
+bound of the store's committed log `slog` (the draft's `srvFloorFactsA`). -/
+def srvFloorFacts (slog : GName) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ F : mvcc.Log, floorAt γf F ∗ monoListLbOwn slog F)
 
 /-- **The server's claimers' fact** (the id generator's `Φ`, `idGen ρ.ids g (srvFloorFact E)`):
 a claim's ghost name records a certified floor (`srvFloorFacts` at the store's index). -/
 def srvFloorFact (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
-  srvFloorFacts E.γ.idx id d γf
+  srvFloorFacts E.γs.slog id d γf
 
 instance srvFloorFact_timeless (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) :
     Timeless (srvFloorFact (GF := GF) E id d γf) := by
-  unfold srvFloorFact srvFloorFacts floorAt mvcc.idxCert; infer_instance
+  unfold srvFloorFact srvFloorFacts floorAt; infer_instance
 
 /-- **The result `ar` of applying `rq`**: a non-nil `*apply.Result` of applying `rq` (with `v3`)
 at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with mvcc's
@@ -1390,7 +1391,7 @@ def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (F : mvcc.Log) (ar : Loc)
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log)
 
 /-- **The result `ar` of applying `rq`, with its witness** (2026-10-14, unit C2a): `resultIs`
 (with its minted token, `revMinted`, unit V1, and its floor, the vertical slice's unit V2), and
@@ -1408,8 +1409,8 @@ def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : m
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
         out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
+      E.Nx y'.log)
 
 /-- **The committed entry a result is of** (persistent; 2026-10-14, unit T1): an entry `e` at
 position `m` of a committed log `L`, normal, its data claimed under the id of `rq` (with some
@@ -1620,7 +1621,7 @@ def srvAppliedBody (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
     monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
     ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
     ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
-    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOk γr M)
+    appliedLogAt γr a L ∗ srvApi.kvLogLb E.γs L ∗ kvLogsOk γr M)
 
 /-- The applied index's invariant: `srvAppliedBody` (see there). -/
 def srvAppliedInv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
@@ -1748,7 +1749,7 @@ until the next entry's `setAppliedIndex`. -/
 theorem applied_jump (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a i : w64)
     (L₀ L : mvcc.Log) (hi : uint.Z a < uint.Z i) (hp : L₀ <+: L) :
     ⊢ srvAppliedInv (GF := GF) s E γr -∗ srvAppliedOwn γr a -∗ appliedLogAt γr a L₀ -∗
-      kvLogAt γr i L -∗ mvcc.idxCert E.γ.idx L ={⊤}=∗
+      kvLogAt γr i L -∗ srvApi.kvLogLb E.γs L ={⊤}=∗
       srvAppliedOwn γr i ∗ appliedAtLeast γr i ∗ appliedLogAt γr i L := by
   iintro #Hinv Hown #HL₀ #HkA #HcL
   iunfold srvAppliedInv at Hinv
@@ -1926,7 +1927,7 @@ through the current applied index `v ≥ ci₀`, with mvcc's certificate. -/
 theorem readIndexOk_log (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
     ⊢ srvAppliedInv s E γr -∗ readIndexOk γr c ={⊤}=∗
       ∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
-        mvcc.idxCert E.γ.idx L₀ := by
+        srvApi.kvLogLb E.γs L₀ := by
   iintro #Hinv #Hok
   iunfold readIndexOk at Hok
   icases Hok with ⟨%ci, %Hci, #Hlb⟩

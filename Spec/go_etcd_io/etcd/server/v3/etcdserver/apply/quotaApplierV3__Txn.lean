@@ -32,11 +32,11 @@ abbrev apply.quotaApplierV3.Txn.spec : Prop :=
     (log F : mvcc.Log) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.quotaIs p inner ∗ apply.applierSpec E c inner ∗
-      apply.txnPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      apply.txnPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info r rq t log Pre Q Post ∗ srvApi.kvLogLb E.γs F ∗ threadTok }}
     (App (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostF E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) info rq log F (apply.txnAnswerIs log t skip resp err) Pre Post ∗
-      apply.traceRes trace }}
+      apply.traceRes trace ∗ threadTok }}
 
 end spec
 

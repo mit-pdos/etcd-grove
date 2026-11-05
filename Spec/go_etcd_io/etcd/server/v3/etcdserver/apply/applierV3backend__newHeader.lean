@@ -26,13 +26,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`a.newHeader()`**: a fresh `ResponseHeader` (the cluster's `ID`, the raft status's `MemberID`, `Term`, `Leader`, the KV's `Rev()`: `store.Rev` at the sole writer, whose reader slots and tokens it borrows). -/
+/-- **`a.newHeader()`**: a fresh `ResponseHeader` (the cluster's `ID`, the raft status's `MemberID`, `Term`, `Leader`, the KV's `Rev()`: `KV.Rev.contract` at the writer's read update, `envAus`; strict M1, 2026-11-05: the
+thread's token and the writer's half in place of mvcc's reader slots). -/
 abbrev apply.applierV3backend.newHeader.spec : Prop :=
-  ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log),
+  ∀ (E : AEnv GF) (p : Loc) (log : mvcc.Log) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log }}
+      threadTok ∗ srvApi.wSt E.γs log c }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"newHeader")) (Val #()))
-  {{ (h : Loc), RET #h; mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗ ⌜h ≠ null⌝ }}
+  {{ (h : Loc), RET #h; threadTok ∗ srvApi.wSt E.γs log c ∗ ⌜h ≠ null⌝ }}
 
 end spec
 

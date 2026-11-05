@@ -31,20 +31,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 `store.Compact.spec`: the right, the certificate of a log with `rev`, the hook, the contract, the
 reader's token, the supply), then, on success, `KV.Range(context.TODO(), "compaction", nil, {})`
 (its result not `nil`: the context is never done) for the response's header. The chain-`.backend`
-instance of the chain's `Compaction` triple. -/
+instance of the chain's `Compaction` triple. (Strict M1, 2026-11-05: the draft's
+`applierV3backend.Compaction.specA`, with `1 ≤ rev` in `cmpAdmitRev`, decided by the coordinator.) -/
 abbrev apply.applierV3backend.Compaction.spec : Prop :=
   ∀ (E : AEnv GF) (p cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.backendIs E p ∗ apply.compactionIs cr rev ∗ ⌜apply.cmpAdmitRev E.γ.kb log rev⌝ ∗
-      mvcc.crevPermAt E.γ (sint.Z rev) ∗
+      apply.backendIs E p ∗ apply.compactionIs cr rev ∗ ⌜apply.cmpAdmitRev log rev⌝ ∗
+      E.Cp (sint.Z rev) ∗ threadTok ∗
       apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log
         Pre Q Post ∗ apply.cmpOwn E crev }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Compaction")) (Val #cr))
   {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
       RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-      apply.kvOwn E log ∗ (Post ∨ Pre) ∗ apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
-      apply.cmpAnswerIs .backend crev rev resp ch trace err }}
+      threadTok ∗ apply.kvOwn E log ∗ (Post ∨ Pre) ∗ apply.cmpOwn E (apply.cmpRevAfter crev rev) ∗
+      apply.cmpAnswerIs .backend crev rev resp ch trace err ∗ apply.cmpChan crev rev ch }}
 
 end spec
 

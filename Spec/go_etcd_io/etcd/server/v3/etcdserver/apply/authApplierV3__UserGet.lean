@@ -32,10 +32,10 @@ abbrev apply.authApplierV3.UserGet.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
       (((∃ n : GoString, apply.authUserGetIs r n) ∗ E.RW) ∗ ⌜apply.adminAdmitted E.authMode⌝) ∗
-      apply.mPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.mPreW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info log Pre Q Post ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"UserGet")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPostW E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, ∃ n : GoString, apply.authUserGetIs r n ∗ apply.userGetClass E.authMode info n) }}
 
 end spec

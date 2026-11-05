@@ -21,11 +21,12 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelM
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
+public import Proof.go_etcd_io.etcd.cache.v3.EtcdModel
 
 @[expose] public section
 
@@ -385,7 +386,12 @@ abbrev restoreArgs.law : Prop :=
 
 end restore
 
-/-! ## 4. The apply chain's environment and resources -/
+/-! ## 4. The apply chain's environment and resources
+
+Restated in place in `apply/Chain.lean` (strict M1, 2026-11-05: `apply.AEnv` has the draft's
+`AEnvA` fields, `apply.kvOwn` is `kvOwnA`, ...); the draft's names are these aliases. -/
+
+abbrev AEnvA (GF : BundledGFunctors) := apply.AEnv GF
 
 section apply
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -394,93 +400,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **A chain's environment, restated** (`apply.AEnv`): the store handle `kv` (was the inner
-store's location `s`) and its name `γ : MvccName` (was `StoreNames`), the server's state names
-`γs`, the raft witness `Nx`, the compaction permit `Cp`, the backend tie `BkTie` (abstract to the
-apply package), **the batch lock's invariant per backend `Pk : BkRef → IProp`** (was the fixed
-`P`; xreview §2: `Restore` gives `mvccBackend γ 1 B' (Pk B')`, `batchLockInv γA (metaTM B'.γB B'.P)`
-depending on the backend) and the hook `f : GoFunc` (was `val`). The rest as today. -/
-structure AEnvA (GF : BundledGFunctors) where
-  kv : GoInterface
-  γ : MvccName
-  γs : KVSNames
-  Nx : mvcc.Log → IProp GF
-  Pk : BkRef → IProp GF
-  f : GoFunc
-  RD : IProp GF
-  γrev : GName
-  authMode : auth.AuthMode
-  FS : IProp GF
-  ciC : IProp GF → w64 → Prop
-  RO : apply.RestM → IProp GF
-  RW : IProp GF
-  γbe : GName
-  Cp : Int → IProp GF
-  BkTie : BkRef → IProp GF
-  cmp : Bool := false
-  cret : Nat := 0
-
-/-- **The builders the chain uses** (persistent; in `backendOptsOk`'s KV clause): `kvAus.law`'s
-apply-thread conjuncts at `E.Nx`/`E.Cp`. -/
-def envAus (E : AEnvA GF) : IProp GF :=
-  iprop(□ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
-        auBegin E.γ (stAt log c) X) ∗
-    □ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
-        auRead E.γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X))) ∗
-    □ (∀ log c pend, wSt E.γs log c -∗ E.Nx (mvcc.commitLog log pend) -∗
-        auEnd E.γ (stAt log c) pend (wSt E.γs (mvcc.commitLog log pend) c)) ∗
-    □ (∀ log c (rev : w64), ⌜sint.Z rev < log.length⌝ → wSt E.γs log c -∗ crOwn E.γs c -∗
-        E.Cp (sint.Z rev) -∗ auCompact E.γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
-          wSt E.γs log (apply.cmpRevAfter c rev) ∗ crOwn E.γs (apply.cmpRevAfter c rev)))) ∗
-    □ (∀ log c, wSt E.γs log c ={⊤}=∗ wSt E.γs log c ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
-        ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝))
-
-/-- **The store's backend, as the apply thread holds it** (xreview §2): the current backend `B`
-at its batch lock's invariant `E.Pk B`, its hook `E.f` frozen, the server's tie. The share is the
-whole one (the cross-review's form had `∃ q`): the apply thread is its only holder (it lends a share
-to txn, `Revoke` and `Commit` only within a call), and the merged snapshot's pin (§3b) and
-`Restore` need it whole. -/
-def kvBk (E : AEnvA GF) : IProp GF :=
-  iprop(∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B)
-
-/-- **The live leases of the state `s`** (`apply.leasesLive`), at the store's lessor names. -/
-def leasesLiveA (E : AEnvA GF) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗
-    lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf s))
-
-/-- **The apply thread's KV resources at the log `log`** (`apply.kvOwn`, restated): its half of the
-state, the backend's share and hook, the live leases, the auth store's reader resource. The
-thread's token is not in it (xreview §7: the apply goroutine's one token is lent separately to
-`applyConfChange`, `restoreAlarms`, `applySnapshot`); the chain's specs take `threadTok` beside it,
-as txn's entry specs do. -/
-def kvOwnA (E : AEnvA GF) (log : mvcc.Log) : IProp GF :=
-  iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗ leasesLiveA E (mvcc.stateAfter log) ∗ E.RD)
-
-/-- **The apply thread's compaction resources at `c`** (`apply.cmpOwn`, restated). -/
-def cmpOwnA (E : AEnvA GF) (c : Int) : IProp GF :=
-  iprop(mvccOpen E.γ ∗ crOwn E.γs c)
-
-/-- `apply.mPre`, restated: the apply thread's resources without the backend share, the chain's,
-and the backend share with the contract at its lock's invariant (`Pre`/`Q`/`Post` the caller's,
-at the backend `B` the tie names). -/
-def mPreA (E : AEnvA GF) (c : apply.Chain) (a : GoInterface)
+abbrev envAus (E : AEnvA GF) : IProp GF := apply.envAus E
+abbrev kvBk (E : AEnvA GF) : IProp GF := apply.kvBk E
+abbrev leasesLiveA (E : AEnvA GF) (s : List EtcdKv) : IProp GF := apply.leasesLive E.γ s
+abbrev kvOwnA (E : AEnvA GF) (log : mvcc.Log) : IProp GF := apply.kvOwn E log
+abbrev cmpOwnA (E : AEnvA GF) (c : Int) : IProp GF := apply.cmpOwn E c
+abbrev mPreA (E : AEnvA GF) (c : apply.Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    IProp GF :=
-  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLiveA E (mvcc.stateAfter log) ∗ E.RD ∗
-    apply.chainRes c a info ∗
-    ∃ B : BkRef, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
-      csContractA (E.Pk B) E.f Pre Q Post)
-
-/-- **The witnesses of the logs `rq` may commit** (`apply.certPre`, restated). The arms with no
-`chainStep` outcome but an end at `pend = []` (`DeleteRange`'s `ok = false`, `Put`'s
-`ErrKeyNotFound`) take `E.Nx log` from the writer's facts (`envAus`'s last conjunct). -/
-def certPreA (E : AEnvA GF) (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log) : IProp GF :=
-  iprop(□ ∀ oc : apply.Outcome, ⌜apply.chainStep apply.backendStep c rq log oc⌝ -∗
-    E.Nx (oc.logAfter log))
-
-/-- The success arm's channel fact for the requester's `<-physc`. -/
-def cmpChanA (crev : Int) (rev : w64) (ch : GoChan) : IProp GF :=
-  iprop(⌜crev < sint.Z rev⌝ -∗ compactChanOk ch)
+    IProp GF := apply.mPre E c a info log Pre Q Post
+abbrev certPreA (E : AEnvA GF) (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log) :
+    IProp GF := apply.certPre E c rq log
+abbrev cmpChanA (crev : Int) (rev : w64) (ch : GoChan) : IProp GF := apply.cmpChan (GF := GF) crev rev ch
 
 end apply
 
@@ -516,56 +446,6 @@ abbrev histLb_model.law : Prop :=
     ⌜mvcc.LogWf' L ∧ L.length < 2 ^ 63 ∧ txn.LogSmall L ∧ mvcc.LogPutsLe etcdKeyMax L⌝ ∗
     □ (∀ r : w64, ⌜sint.Z r < L.length⌝ -∗
         ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜sint.Z r < (kvModelM on γr.kv A).length⌝)
-
-/-- **The client model's server log** (v3rpc's `srvLog`, restated over `histLb`). -/
-def srvLogA (γr : ReadNames) (on : Bool) (γs : KVSNames) (log : mvcc.Log) : IProp GF :=
-  iprop(histLb γr on γs log ∗ ⌜txn.LogSmall log ∧ mvcc.LogPutsLe etcdKeyMax log⌝)
-
-/-- `srvAppliedBody`'s changed conjunct: the applied log a floor (was `mvcc.idxCert E.γ.idx L`). -/
-def appliedFloorA (E : AEnvA GF) (L : mvcc.Log) : IProp GF := kvLogLb E.γs L
-
-/-- **The claims' floor facts** (`srvFloorFacts`, restated). -/
-def srvFloorFactsA (slog : GName) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
-  iprop(∃ F : mvcc.Log, floorAt γf F ∗ monoListLbOwn slog F)
-
-/-- **A served read's call resources** (`srvRdCall`, restated): the thread's token in place of the
-store's reader slot. -/
-def srvRdCallA (s : Loc) (E : AEnvA GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(threadTok ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr ∗ E.RD)
-
-/-- **A successful `Range`'s outcome, restated** (`rangeReadOkM`; xreview §5): the log read is a
-floor, the model of a committed raft log, well formed, with its receipt (from `kvReadAt`), read
-after the read index unless serializable, the caller's result as today. -/
-def rangeReadOkA (on : Bool) (E : AEnvA GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
-    (o : OpFull) (resp : Loc) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ (log : mvcc.Log) (crev : Int), kvLogLb E.γs log ∗ kvNx γr on log ∗
-    ⧖ (mvcc.logCh log) ∗ ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
-    (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
-    (if o.base.serializable then iprop(True) else
-      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
-    txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) crev o true ∗
-    txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" resp))
-
-/-- `newHeader`'s post, restated (xreview §5): a floor, the model's, well formed, its receipt. -/
-def newHeaderPostA (E : AEnvA GF) (γr : ReadNames) (on : Bool) (log : mvcc.Log) (rev : w64) :
-    IProp GF :=
-  iprop(kvLogLb E.γs log ∗ kvNx γr on log ∗ ⧖ (mvcc.logCh log) ∗
-    ⌜mvcc.LogWf' log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝)
-
-/-- **client/v3's `idxCert_logOk` (`KVService.lean:1515`), restated** over what `rangeReadOkA` and
-`newHeaderPostA` give: proved (as today's, by `preceipt_lt`). -/
-theorem logOk_of_receipt (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
-    ⧖ (mvcc.logCh log) ∗ ⌜mvcc.LogWf' log ∧ log.length + 3 ≤ 2 ^ 63⌝ ⊢
-      (⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ txn.LogSmall log⌝ : IProp GF) := by
-  iintro ⟨Hr, %Hp⟩
-  ihave %Hm := preceipt_lt _ $$ Hr
-  ipureintro
-  refine ⟨Hp.1, by omega, ?_⟩
-  unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
-
-/-- **The compactor's revision lower bound** (`srvRevLb`, restated): raft-only. -/
-def srvRevLbA (γr : ReadNames) (on : Bool) (n : Int) : IProp GF :=
-  iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜n < (kvModelM on γr.kv A).length⌝)
 
 /-- **`NewServer.spec`'s mvcc-related premises, restated**: the store-state names fresh. -/
 def newServerStoreFreshA (γs : KVSNames) : IProp GF :=

@@ -29,14 +29,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`checkPutAuth(as, ai, lessor, r)`**: the auth store's `IsPutPermitted` of the key, `checkLeasePuts` of the put's lease and, with `PrevKv`, `IsRangePermitted` of the key: the first error, or `nil`; the `AuthInfo` kept, nothing written. By the lease owner (`lease.lessorUser`, lent and given back): a `nil` answer also gives the class of the put's lease's keys at the owner's item map `I` (its wire `Lease`, whatever `IgnoreLease` says: `leaseKeysClass`). -/
 abbrev apply.checkPutAuth.spec : Prop :=
-  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
+  ∀ (st le : GoInterface) (γ : mvcc.api.MvccName) (Pk : mvcc.api.BkRef → IProp GF) (f : GoFunc) (BT : mvcc.api.BkRef → IProp GF) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (r : Loc) (o : OpFull) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
-      lease.lessorUser γ.leases L I ∗ txn.putRequestIs r o }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st Pk f BT RD on RW ∗ apply.isApplyLessorAny le γ Pk f BT RW ∗ ai ↦{dq} info ∗ RD ∗
+      lease.lessorUser (mvcc.api.mvccLeases γ) L I ∗ txn.putRequestIs r o }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.lessorUser γ.leases L I ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ lease.lessorUser (mvcc.api.mvccLeases γ) L I ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.putClass on info o ∗
         apply.leaseKeysClass on info I o.leaseID) }}
