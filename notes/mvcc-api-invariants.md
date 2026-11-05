@@ -605,12 +605,23 @@ made from either) is in memory.
   removed. The definitions `watchNoDup`/`noDupKeys` stay for v3rpc's proofs (red under strict M1),
   which should drop them at the migration.
 
+**Done since** (2026-11-05, (a), no new `sorry`): one saved filter set per watcher: `WatcherNames.fg`
+(the predicates' saved name, `api.savedFilters`, allocated by `watch_register` from the filters'
+choice, `filtersOk_of`); a registered watcher holds `watcherFilters γw fcs` (its filters implement
+the saved predicates) in place of `filtersOk` (`memberRes`, `watcher.send`'s spec, `cmp_send`, the
+lock's lemmas), and every delivery in `chanWatcher`/`covFact` records the saved predicates it was
+filtered by, so all of a watcher's deliveries agree (`savedFilters_agree`) and the history's
+send can name `γw.fg`.
+
 **Left** (the previous hand-off's list, "What each remaining step needs of the internals", minus
-(f)): (a) saved filters per watcher; (b) the registration appending `.reg` (needs the client's
+(f) and (a)): (b) the registration appending `.reg` (needs the client's
 `wsState`, i.e. the `Watch` contract, item 3) at the exact sent count, `wsSlot` at `pending = none`
 while the lock is free; (d) a notified-log lower bound at every send (the lock has one now,
 `wsSlot_nlLb`; `moveVictims` must carry it with the batch) and the compaction response's
-`crevAtLeast` (§4.5); (e) event positivity; (g) `-1` responses' cancel tokens; then each send's
+`crevAtLeast` (§4.5); (e) event positivity (no lemma yet that a certified log's watch events have
+positive revisions, creation revisions and versions: needed for the sends and for the `Range`
+contracts' `stateOk`; a doomed watcher's events are a sub-list of them, so the same lemma serves);
+(g) `-1` responses' cancel tokens; then each send's
 `stepOk` from these facts and `chanApi_send_M1` gone. For a doomed watcher the send's fact takes
 the doom witness's bounds (the longer `nlLb`, the larger `crevAtLeast`), making its delivery and
 progress conjuncts vacuous.
