@@ -115,11 +115,12 @@ theorem bktNested_step {X X' : WX} (h : derefStep X X') {B B' : BRec} (hs : bktS
     (hn : bktNested X.v X.t B) : bktNested X'.v X'.t B' := by
   intro k c hk
   rw [(bktStep_fields hs).2.2.2.1] at hk
-  obtain ⟨C, v, hC, he, hl, hi, hr, hn', hp⟩ := hn k c hk
+  obtain ⟨C, v, hC, he, hl, hi, hr, hn', hp, hbo, htk⟩ := hn k c hk
   obtain ⟨C', hC', hsC⟩ := derefStep_fwd h hC
   obtain ⟨hbv, hib, -, -, hipg, -⟩ := bktStep_fields hsC
   refine ⟨C', v, hC', ?_, hl, hi, by rw [hib]; exact hr, by rw [hbv, hib]; exact hn',
-    by rw [hbv, hib, hipg]; exact hp⟩
+    by rw [hbv, hib, hipg]; exact hp, by rw [h.1, h.2.2.2.2.2.2.1]; exact hbo,
+    by rw [h.1]; exact htk⟩
   rw [h.1]; exact entryIn_step hs he
 
 theorem txPg_step {X X' : WX} (h : derefStep X X') (hp : txPg X.v X.t.bs) : txPg X'.v X'.t.bs := by

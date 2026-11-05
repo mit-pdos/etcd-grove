@@ -1821,6 +1821,18 @@ Landed (each built over the importers that name what changed, then committed and
   **DeleteBucket** (a later unit) moves the child from `X.t.bs` to `X.t.deadB` before
   `child.nodes = nil` (Go: `delete(b.buckets, key)` precedes it): a `deadB` bucket's `nodes'` may
   be nil, and its `objOwn` then holds `⌜B.nm = ∅⌝`.
+- **(B), `bktNested` per opened child entry (U7j)**: after the ipg clause, `bvalOK vw.pages
+  T.mv.pgid'.toNat v ∧ (inBucketRoot v ≠ 0 → treeKeys vw.pages (inBucketRoot v) none none)`.
+  Opening gives both (`Read/WOpenWOK.wOK_XO`'s `hbv`, `htk`); `Spill/DerefWOK.bktNested_step`
+  (`h.1`, the step's `mv`), `Write/MatOK`, `Rebalance/RblXSSim`/`RblXSKill`/`RblXSMat` carry
+  them (view and mark unchanged; no `bvalOK_hwm` was needed); `Spill/BktEndOld.cachedNil_ipg`'s
+  pattern takes a `-` more. Spill breaks them where it breaks `C.ib.root' = (ibOf v).root'`
+  (`bktNested` is not kept through spill). Users that destructure the clause name the ipg clause
+  then the two new ones (`hip0, hbo0, htk0`).
+- Not built in (B)'s window, at the coordinator's request (U10w2's `WriteExtRun` compile of
+  record): `Tx__write_ext`, `Tx__Commit_err`, `Tx__Commit`, `Commit/FreepagesLink`; they name
+  neither `bktNested` nor `heapOK`'s third clause directly, but check them at integration. The
+  open-sorry inventory below is unchanged by maintainer 15 (none added or removed).
 
 ## Writer reads at a fraction (U6w, 2026-11-05)
 

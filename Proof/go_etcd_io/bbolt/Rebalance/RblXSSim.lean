@@ -251,11 +251,12 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
       (∀ k v, entryIn X.v C0 k v → entryIn X.v C k v) → bktNested X.v (X.setBkt bl B').t C := by
     intro C0 C hn hbm he k c hk
     rw [hbm] at hk
-    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib, hipg⟩ := hn k c hk
+    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib, hipg, hbo, htk⟩ := hn k c hk
     obtain ⟨D, hD, hDib, hDbv, -, hDipg⟩ := hfwd c D0 hD0
     exact ⟨D, v, hD, he k v hev, hlen, hinl, by rw [hDib]; exact hroot,
       fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h),
-      fun h0 h => by rw [hDipg]; exact hipg (by rw [← hDib]; exact h0) (by rw [← hDbv]; exact h)⟩
+      fun h0 h => by rw [hDipg]; exact hipg (by rw [← hDib]; exact h0) (by rw [← hDbv]; exact h),
+      hbo, htk⟩
   refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, ?_, ?_, hX, hPL, ?_,
     fun c h => hRH c (by rw [← hdom]; exact h), hshape⟩, ?_⟩
   · intro c C hC

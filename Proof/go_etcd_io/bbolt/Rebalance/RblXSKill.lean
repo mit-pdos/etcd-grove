@@ -130,11 +130,12 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
       bktNested X.v (X.kill bl B' n rn).t C := by
     intro C0 C hn' hbm he k c hk
     rw [hbm] at hk
-    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib, hipg⟩ := hn' k c hk
+    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib, hipg, hbo, htk⟩ := hn' k c hk
     obtain ⟨D, hD, hDib, hDbv, -, hDipg⟩ := hfwd c D0 hD0
     exact ⟨D, v, hD, he k v hev, hlen, hinl, by rw [hDib]; exact hroot,
       fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h),
-      fun h0 h => by rw [hDipg]; exact hipg (by rw [← hDib]; exact h0) (by rw [← hDbv]; exact h)⟩
+      fun h0 h => by rw [hDipg]; exact hipg (by rw [← hDib]; exact h0) (by rw [← hDbv]; exact h),
+      hbo, htk⟩
   have hobjs : ∀ k, (X.t.objs !! k).isSome = true →
       ((X.kill bl B' n rn).t.objs !! k).isSome = true := by
     apply objs_isSome_mono X.t (X.kill bl B' n rn).t

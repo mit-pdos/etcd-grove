@@ -274,17 +274,21 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
       refine ⟨by rw [if_pos rfl, hmv]; exact hrbB1, fun nm d hd => by
           rw [hbs]; exact hbmt nm d hd, ?_, hrtx c (hBk c B hb).2.2.2.1, fun y ry hy => ?_⟩
       · intro k d hk'
-        obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot0, hib0⟩ := hnest0 k d hk'
+        obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot0, hib0, hip0, hbo0, htk0⟩ := hnest0 k d hk'
         refine ⟨if d = c then matBkt B w.pgid parent l rp' r else D0, v, by
             rw [hbsX]; split
             · rfl
-            · exact hD0, hent1 k v hev, hlen, hinl, ?_, ?_⟩
+            · exact hD0, hent1 k v hev, hlen, hinl, ?_, ?_, ?_, by rw [hvv, hmv]; exact hbo0,
+            by rw [hvv]; exact htk0⟩
         · split
           · rename_i hd; subst hd; rw [hb] at hD0; cases hD0; exact hroot0
           · exact hroot0
         · split
           · rename_i hd; subst hd; rw [hb] at hD0; cases hD0; exact hib0
           · exact hib0
+        · split
+          · rename_i hd; subst hd; rw [hb] at hD0; cases hD0; exact hip0
+          · exact hip0
       · rcases hB'cases y ry hy with ⟨rfl, -⟩ | ⟨-, ry0, h1, -⟩
         · exact (hliveX _).2 (Or.inl rfl)
         · exact (hliveX _).2 (Or.inr (hlive y ry0 h1))
@@ -293,17 +297,21 @@ theorem rblX_mat (X X' : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (l : Loc)
       refine ⟨by rw [hvv, hmv]; exact h1, fun nm d hd => by rw [hbs]; exact h2 nm d hd, ?_, hrtx c h4,
         fun y ry hy => (hliveX _).2 (Or.inr (h5 y ry hy))⟩
       intro k d hk'
-      obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot0, hib0⟩ := h3 k d hk'
+      obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot0, hib0, hip0, hbo0, htk0⟩ := h3 k d hk'
       refine ⟨if d = bl then matBkt B w.pgid parent l rp' r else D0, v, by
           rw [hbsX]; split
           · rfl
-          · exact hD0, by rw [hvv]; exact hev, hlen, hinl, ?_, ?_⟩
+          · exact hD0, by rw [hvv]; exact hev, hlen, hinl, ?_, ?_, ?_, by rw [hvv, hmv]; exact hbo0,
+          by rw [hvv]; exact htk0⟩
       · split
         · rename_i hd; subst hd; rw [hb] at hD0; cases hD0; exact hroot0
         · exact hroot0
       · split
         · rename_i hd; subst hd; rw [hb] at hD0; cases hD0; exact hib0
         · exact hib0
+      · split
+        · rename_i hd; subst hd; rw [hb] at hD0; cases hD0; exact hip0
+        · exact hip0
   · -- entries bounded
     intro c C hC y ry hy x hxw
     rw [hbsX] at hC

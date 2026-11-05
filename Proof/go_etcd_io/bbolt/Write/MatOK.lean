@@ -233,15 +233,15 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
         C.bm = C0.bm → bktNested X.v (matX X bl l pgid B').t C := by
       intro C0 hC0 he hbm0 k c' hk
       rw [hbm0] at hk
-      obtain ⟨C2, v, hC2, hin, h16, hinl, hroot, hrn2, hipg2⟩ := (hkn c C0 hC0).2 k c' hk
+      obtain ⟨C2, v, hC2, hin, h16, hinl, hroot, hrn2, hipg2, hbo2, htk2⟩ := (hkn c C0 hC0).2 k c' hk
       by_cases hcb : c' = bl
       · subst hcb
         rw [hB] at hC2; cases hC2
         exact ⟨B', v, by rw [hbs', if_pos rfl], he k v hin, h16, hinl, by rw [hib]; exact hroot,
           fun h0 => by rw [hib]; exact hrn2 (hrn h0),
-          fun h0 h1 => by rw [hipg]; exact hipg2 (by rw [← hib]; exact h0) (hrn h1)⟩
+          fun h0 h1 => by rw [hipg]; exact hipg2 (by rw [← hib]; exact h0) (hrn h1), hbo2, htk2⟩
       · exact ⟨C2, v, by rw [hbs', if_neg hcb]; exact hC2, he k v hin, h16, hinl, hroot, hrn2,
-          hipg2⟩
+          hipg2, hbo2, htk2⟩
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · exact ⟨hk', hnest B hB hent hbm⟩
     · exact ⟨(hkn c C hC0).1, hnest C hC0 (fun _ _ h => h) rfl⟩

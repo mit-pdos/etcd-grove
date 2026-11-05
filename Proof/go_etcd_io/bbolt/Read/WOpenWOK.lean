@@ -458,16 +458,17 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
       · rw [hcc, hnn]
         rw [hkb, hB] at hD0; cases hD0
         refine ⟨C, w.value, by rw [XO_bs]; simp, ?_, ?_, fun h0 => (hbv.2.1 h0).1, ?_, fun _ => hib,
-          fun h0 _ => (hil ((inBucketRoot_zero w.value).2 (by rw [← hib]; exact h0))).2.1⟩
+          fun h0 _ => (hil ((inBucketRoot_zero w.value).2 (by rw [← hib]; exact h0))).2.1, hbv, htk⟩
         · rw [hDe]; exact hent
         · cases hbv.1 <;> assumption
         · rw [hib]
-      · obtain ⟨C0, v0, hC0, hin, h16, hinl, hr0, hrn0, hip0⟩ := hnest n c' e0
+      · obtain ⟨C0, v0, hC0, hin, h16, hinl, hr0, hrn0, hip0, hbo0, htk0⟩ := hnest n c' e0
         obtain ⟨D', hD', hns', hib', hbv', hipg'⟩ := XO_bs_old X bl c B C nb h hB hc hbm c' C0 hC0
         refine ⟨D', v0, hD', by rw [hDe]; exact hin, h16, hinl, by rw [hib']; exact hr0,
           fun h' => by rw [hib']; exact hrn0 (by rw [← hbv']; exact h'),
           fun h0 h' => by
-            rw [hipg']; exact hip0 (by rw [← hib']; exact h0) (by rw [← hbv']; exact h')⟩
+            rw [hipg']; exact hip0 (by rw [← hib']; exact h0) (by rw [← hbv']; exact h'),
+          hbo0, htk0⟩
   · -- nodes' pages
     intro k D hD l r hr
     rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨hkc, D0, hD0, hDe, -, -, -⟩

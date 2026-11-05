@@ -144,7 +144,7 @@ theorem cachedNil_ipg {X : WX} (hok : wOKR X) (hreach : liveReach X) {B : BRec}
     {k : GoString} {c : Loc} (hk : B.bm !! k = some c) {Cc : BRec} (hc : X.t.bs !! c = some Cc)
     (hrn : Cc.bv.rootNode' = null) {v : List w8} (hm : (k, v) ∈ rootEnts X)
     (hib : Cc.ib = ibOf v) (hz : inBucketRoot v = 0) : Cc.ipg = inlinePage v := by
-  obtain ⟨Cc', v', hCc', hent, -, -, -, -, hipg⟩ := (hok.2.1 X.rl B hB).2 k c hk
+  obtain ⟨Cc', v', hCc', hent, -, -, -, -, hipg, -⟩ := (hok.2.1 X.rl B hB).2 k c hk
   rw [hc] at hCc'; cases hCc'
   have hcl : bktClean X.v X.t.mv.pgid'.toNat X.rl B := (hok.1.2.2.2.2.2 X.rl B hB).1
   obtain ⟨we', hwe', hk', hv', -⟩ := entryIn_rootEnts hok hreach hB h0 hrt h64 hent
