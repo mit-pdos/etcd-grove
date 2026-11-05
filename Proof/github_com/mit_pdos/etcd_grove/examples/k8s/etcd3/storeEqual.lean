@@ -20,13 +20,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem item_eq_iff (a b : item) : a = b ↔
-    a.key' = b.key' ∧ a.obj'.Name' = b.obj'.Name' ∧ a.obj'.Value' = b.obj'.Value' ∧
-    a.obj'.ResourceVersion' = b.obj'.ResourceVersion' ∧ a.canon' = b.canon' := by
-  obtain ⟨_, ⟨_, _, _⟩, _⟩ := a
-  obtain ⟨_, ⟨_, _, _⟩, _⟩ := b
+    a.key' = b.key' ∧ a.obj'.Name' = b.obj'.Name' ∧ a.obj'.UID' = b.obj'.UID' ∧
+    a.obj'.Value' = b.obj'.Value' ∧ a.obj'.ResourceVersion' = b.obj'.ResourceVersion' ∧
+    a.canon' = b.canon' := by
+  obtain ⟨_, ⟨_, _, _, _⟩, _⟩ := a
+  obtain ⟨_, ⟨_, _, _, _⟩, _⟩ := b
   simp [and_assoc]
 
 theorem storeEqual.wp_proof : storeEqual.spec (GF := GF) (hG := hG) := by

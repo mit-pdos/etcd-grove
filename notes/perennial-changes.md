@@ -344,13 +344,13 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `types.Unalias` on the type and on a pointer's element in `getStructInfo`. Tried
   in a scratch copy of the pinned translator: the three translate and their `Code` and
   `GeneratedProof` elaborate; nothing else changes.
-- **Status.** Done, waiting for the push (2026-11-04, the user's sign-off on the plan, G1 of
-  `notes/k8s-compactor-plan.md`): Perennial branch `goose-unalias` (`/shared/perennial-unalias`,
-  commits `d2aa32108`, `e028adb0d`; `etc/land.sh prepare` passed, the review recorded), the two
-  lines, tests of a value, a pointer to an alias and an alias of a pointer (gold files; the
-  semantics test `testStructFieldThroughAlias`, proved), `fix-semantics` Case 30; the standard
-  library regenerates unchanged. Then the pin bump, and `etcdstart.Collect`'s workaround
-  (`mvccpb.Event` for `clientv3.Event`) can go.
+- **Status.** Landed (2026-11-04, the user's sign-off on the plan, G1 of
+  `notes/k8s-compactor-plan.md`): Perennial `898c0ddc5` (`fix-semantics` Case 31), pinned here
+  since 2026-11-04 (branch `pin-898c0ddc5`). The two lines, with tests of a value, a pointer to an
+  alias and an alias of a pointer, and the semantics test `testStructFieldThroughAlias`, proved.
+  No translation here changed at the pin; its first user is the compactor's watch loop (Q1 (b)).
+  `etcdstart.Collect`'s workaround (`mvccpb.Event` for `clientv3.Event`) is gone (2026-11-04): it
+  ranges over `wresp.Events` directly, its proof unchanged.
 
 ### Goose: imports of packages whose types a body names, and same-named packages
 
@@ -481,6 +481,18 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Find the metavariable `wp_apply` leaves (probably the continuation `Φ` of the
   atomic spec, instantiated late, whose context then loses a local cleared by `wp_auto`), and make
   `wp_apply` support atomic specs directly.
+- **Status.** Not started.
+
+### Specs: `fmt`'s `ArgWf` for named non-integer basic types (2026-11-05, k8s etcd3 stage 7b)
+
+- **Missing.** `fmt.wp_Sprintf` admits a named type's argument only when its underlying type is an
+  integer (`IsIntArgType`, with `fmt.NoFmtMethods`); `types.UID` (`type UID string`, no methods) is
+  formatted by `storage.Preconditions.Check` with `%v`.
+- **Workaround here.** `types.UID` added to `fmt.methodlessNamedTypes`, the list of the trust-boundary
+  axiom `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), next to `LeaseID`.
+- **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
+  type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
+  `NoFmtMethods` from goose's method sets, the list and the axiom go.
 - **Status.** Not started.
 
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
@@ -667,7 +679,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`) is the call's own WP, the variable's load
   included, so no proof touches the axiomatized type's `sorry` instances.
 - **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
-- **Status.** Not started.
+- **Status.** Not started. G1's fix (`getStructInfo`, Perennial `898c0ddc5`) covers field
+  selection only: at that pin `feature.FeatureSupportChecker` is still axiomatized.
 
 ### `≤u` has no transitive instance (conversion to a defined type of a named interface)
 
@@ -1614,3 +1627,15 @@ field-load automation finding the instance at any fraction.
   (they are checked only through `prog`'s own code); generated instances that take the package's
   `Assumptions` (proofgen's struct instances) must be re-declared from the instrumented model's
   `AssumptionsP` (`Main.lean`'s shim).
+
+## A cancelable thread pool (2026-11-04, the restart plan's R2b-3d gap 4)
+
+- **Need.** The server's shutdown closes the backend, which takes every reader's open share back.
+  The server lends the shares through `threadPool.isThreadPool`, a plain invariant, which never
+  gives them back.
+- **Change.** Perennial branch `threadpool-cancel` (`c0a2fdd46`, off `origin/lean` `350766064`,
+  worktree `/shared/perennial-tpool-cancel`), in `Perennial/Proof/ThreadPool.lean`:
+  `isThreadPoolC N γ γc R` with
+  `poolOpen γc q`, `initC`, `borrowC`, `giveBackC`, `cancel` and `reclaim`. It is a proved library
+  addition (tier 3) that adds nothing to the trusted base. `land.sh prepare` passed and the trusted
+  review recorded OK. **Landed** (the user's push, 2026-11-04: Perennial `lean` `e3ceb1520`); the pin moved to it the same day (branch `r2b3`).

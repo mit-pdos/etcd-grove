@@ -33,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem StartMember.wp_proof
     (wp_NewMember : NewMember.spec (GF := GF) (hG := hG))
-    (wp_Start : EtcdServer.Start.specOff (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
     γn lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg Hck Haf
@@ -44,7 +44,7 @@ theorem StartMember.wp_proof
   (try wp_auto)
   -- `NewMember(name, peer, peerAddr, client, cluster, token, NoSnapCount, NoSnapCatchUp, lg)`
   wp_apply (wp_NewMember N name peerAddr client token (W64 10000) (W64 281474976710656) peer cluster lg M iu Uok ps bootLog ctxs dir id
-      γ ρ E₀ Φs γn lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8
+      γ ρ E₀ Φs γn false lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8
       Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)

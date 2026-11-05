@@ -45,10 +45,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-instance wsWgInv_timeless_ctor (γwg : sync.WaitGroupNames) (γd : GName) :
-    Timeless (wsWgInv (GF := GF) γwg γd) := by
-  unfold wsWgInv; infer_instance
-
 /-- Two lists of `n` resources, pointwise. -/
 theorem replicate_sep_nw (A B : IProp GF) : ∀ n : Nat,
     ([∗list] _x ∈ List.replicate n (), A) ∗ ([∗list] _x ∈ List.replicate n (), B) ⊢

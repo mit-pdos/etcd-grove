@@ -40,7 +40,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat) (sa : auth.AuthState),
+    (A : List EntryModel) (γp : WTNames) (dv : Option Loc) (w : Nat) (sa : auth.AuthState),
   E.authMode ≠ .any → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
@@ -50,7 +50,7 @@ abbrev EtcdServer.apply.spec : Prop :=
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr (f0 - 1) ∗
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
-      srvWTTaken γp w ∗ srvFS s ∗
+      srvWTTaken γp.cnt w ∗ srvFS s ∗
       kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
       kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ srvApRes s γr A ∗
@@ -66,7 +66,7 @@ abbrev EtcdServer.apply.spec : Prop :=
         ciApplying ci a' at' ∗
         epConfState ep csl ∗ epCsAt ρ.raft (A ++ ms) csl ∗ srvLgReader s ∗ srvGoRes s ∗
         srvAppliedOwn γr appliedi ∗
-        srvWTTaken γp (w + ms.length) ∗
+        srvWTTaken γp.cnt (w + ms.length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVM E.authOn s E ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗ appliedLogAt γr appliedi x'.log ∗
           kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 (A ++ ms) x' sa' ∗ srvRest E γr (A ++ ms)) ∗

@@ -230,6 +230,13 @@ instance leaseServerAt_persistent (p s : Loc) (A : KVAns GF) (cid mid : w64) :
     Persistent (leaseServerAt p s A cid mid) := by
   unfold leaseServerAt; infer_instance
 
+/-- **The `*LeaseServer` at other answers** (the auth component's stage 5): its header reads them
+only through `revR`. -/
+theorem leaseServerAt_revR (p s : Loc) (A A' : KVAns GF) (cid mid : w64) (hR : A.revR = A'.revR) :
+    leaseServerAt (GF := GF) p s A cid mid = leaseServerAt p s A' cid mid := by
+  unfold leaseServerAt hdrIs
+  rw [hR]
+
 /-- **The `*quotaLeaseServer` `q`** over the service value `ls` and the server `s` (persistent):
 its embedded `LeaseServer` `ls`, its quota alarmer (`quotaAlarmerAt`). -/
 def quotaLeaseServerAt (q : Loc) (ls : GoInterfaceOk) (s : Loc) : IProp GF :=

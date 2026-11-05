@@ -107,6 +107,8 @@ theorem checkCompactRev.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
+    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    isplitr
     · ipureintro
       refine ⟨?_, ?_, by decide, ?_⟩
       · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatch, OpFull.newOp,

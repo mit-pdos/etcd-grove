@@ -152,6 +152,120 @@ noncomputable instance mergeOptions_into_val_typed :
 end def_
 end mergeOptions
 
+namespace «struct#b984c7d3»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+
+noncomputable instance «struct#b984c7d3_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#b984c7d3» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#b984c7d3_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#b984c7d3» google_golang_org.protobuf.proto.«struct#b984c7d3».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#b984c7d3»
+
+namespace «struct#f9d6c4b8»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+
+noncomputable instance «struct#f9d6c4b8_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#f9d6c4b8» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#f9d6c4b8_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#f9d6c4b8» google_golang_org.protobuf.proto.«struct#f9d6c4b8».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#f9d6c4b8»
+
+namespace «struct#8d354e5a»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+
+noncomputable instance «struct#8d354e5a_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#8d354e5a» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#8d354e5a_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#8d354e5a» google_golang_org.protobuf.proto.«struct#8d354e5a».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#8d354e5a»
+
+namespace «struct#69fc66c6»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+
+noncomputable instance «struct#69fc66c6_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#69fc66c6» where
+  typedPointstoDef l v dq := iprop(
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "Buf" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#69fc66c6_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#69fc66c6» google_golang_org.protobuf.proto.«struct#69fc66c6».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#69fc66c6_access_load_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#69fc66c6_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := NoUnkeyedLiterals' } : google_golang_org.protobuf.proto.«struct#69fc66c6») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#69fc66c6_access_load_Buf» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#69fc66c6_access_store_Buf» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (Buf' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) Buf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Buf' := Buf' } : google_golang_org.protobuf.proto.«struct#69fc66c6») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#69fc66c6»
+
 end google_golang_org.protobuf.proto
 end
 end Perennial

@@ -20,20 +20,23 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
-  intro inp p dq name vl n
+  intro inp p dq name uid vl n
   wp_start as Hp
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   iStructNamed Hp
+  irename UID => pUID
   (try wp_auto)
   iStructNamed «in»
+  irename UID => inUID
   wp_if_destruct
   · -- `in.Reject` empty: not rejected
     have hr : rejects inp.Reject' vl = false := by
       simp [rejects, Hif]
-    ihave Hp : p ↦{dq} Obj.mk name vl n $$ [Name Value ResourceVersion]
+    ihave Hp : p ↦{dq} Obj.mk name uid vl n $$ [Name pUID Value ResourceVersion]
     · iapply typedPointsto_combine p _ dq Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -42,15 +45,29 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
     iStructNamed c
     cases hno : inp.NoOp'
     · (try wp_auto)
-      iapply HΦ
-      rw [hr]
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iframe Hp
-      isplitr
-      · ipureintro; simp [Hcn]
-      iapply typedPointsto_combine c_ptr _ _ Hcn
-      simp only [TypedPointsto.typedPointstoDef, updObj, hno, Bool.false_eq_true, ↓reduceIte]
-      iframe
+      by_cases hnm : name = []
+      · rw [decide_eq_true hnm]
+        (try wp_auto)
+        iapply HΦ
+        rw [hr]
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe Hp
+        isplitr
+        · ipureintro; simp [Hcn]
+        iapply typedPointsto_combine c_ptr _ _ Hcn
+        simp only [TypedPointsto.typedPointstoDef, hno, hnm, Bool.false_eq_true, ↓reduceIte]
+        iframe
+      · rw [decide_eq_false hnm]
+        (try wp_auto)
+        iapply HΦ
+        rw [hr]
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe Hp
+        isplitr
+        · ipureintro; simp [Hcn]
+        iapply typedPointsto_combine c_ptr _ _ Hcn
+        simp only [TypedPointsto.typedPointstoDef, hno, hnm, Bool.false_eq_true, ↓reduceIte]
+        iframe
     · (try wp_auto)
       iapply HΦ
       rw [hr]
@@ -59,7 +76,7 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
       isplitr
       · ipureintro; simp [Hcn]
       iapply typedPointsto_combine c_ptr _ _ Hcn
-      simp only [TypedPointsto.typedPointstoDef, updObj, hno, ↓reduceIte]
+      simp only [TypedPointsto.typedPointstoDef, hno, ↓reduceIte]
       iframe
   · have hne := Hif
     (try wp_auto)
@@ -67,7 +84,7 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
     · -- rejected
       have hr : rejects inp.Reject' inp.Reject' = true := by
         simp [rejects, hne]
-      ihave Hp : p ↦{dq} Obj.mk name inp.Reject' n $$ [Name Value ResourceVersion]
+      ihave Hp : p ↦{dq} Obj.mk name uid inp.Reject' n $$ [Name pUID Value ResourceVersion]
       · iapply typedPointsto_combine p _ dq Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -82,7 +99,7 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
       iexact HeU
     · have hr : rejects inp.Reject' vl = false := by
         simp [rejects, Hif]
-      ihave Hp : p ↦{dq} Obj.mk name vl n $$ [Name Value ResourceVersion]
+      ihave Hp : p ↦{dq} Obj.mk name uid vl n $$ [Name pUID Value ResourceVersion]
       · iapply typedPointsto_combine p _ dq Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -91,15 +108,29 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
       iStructNamed c
       cases hno : inp.NoOp'
       · (try wp_auto)
-        iapply HΦ
-        rw [hr]
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe Hp
-        isplitr
-        · ipureintro; simp [Hcn]
-        iapply typedPointsto_combine c_ptr _ _ Hcn
-        simp only [TypedPointsto.typedPointstoDef, updObj, hno, Bool.false_eq_true, ↓reduceIte]
-        iframe
+        by_cases hnm : name = []
+        · rw [decide_eq_true hnm]
+          (try wp_auto)
+          iapply HΦ
+          rw [hr]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iframe Hp
+          isplitr
+          · ipureintro; simp [Hcn]
+          iapply typedPointsto_combine c_ptr _ _ Hcn
+          simp only [TypedPointsto.typedPointstoDef, hno, hnm, Bool.false_eq_true, ↓reduceIte]
+          iframe
+        · rw [decide_eq_false hnm]
+          (try wp_auto)
+          iapply HΦ
+          rw [hr]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iframe Hp
+          isplitr
+          · ipureintro; simp [Hcn]
+          iapply typedPointsto_combine c_ptr _ _ Hcn
+          simp only [TypedPointsto.typedPointstoDef, hno, hnm, Bool.false_eq_true, ↓reduceIte]
+          iframe
       · (try wp_auto)
         iapply HΦ
         rw [hr]
@@ -108,7 +139,7 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
         isplitr
         · ipureintro; simp [Hcn]
         iapply typedPointsto_combine c_ptr _ _ Hcn
-        simp only [TypedPointsto.typedPointstoDef, updObj, hno, ↓reduceIte]
+        simp only [TypedPointsto.typedPointstoDef, hno, ↓reduceIte]
         iframe
 
 end proof

@@ -50,8 +50,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r ttl id0 hg hrev
-  have hRR := EtcdServer.raftRequest.spec_M hRR0 false
   obtain ⟨hlg, hoff⟩ := hg
+  have hRR := hRR0 s E ρ
+  rw [hoff] at hRR
   wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, Hreq⟩
   iunfold leaseGrantReqOwn at Hreq
   icases Hreq with ⟨%hr, #HTTL, HID⟩
@@ -194,7 +195,7 @@ theorem EtcdServer.LeaseGrant.wp_proof
     iexists _; iframe #; try (ipureintro; first | exact hr | simp)
   imod mvcc.idxCert_nil E.γ.idx with #HF
   imod Hcred with Hc
-  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
+  wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
       (apply.irrDepthOk_of_txnW_none rfl)
       $$ [Hlt Hrd Hc Header Hu] as %resp %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd Hc

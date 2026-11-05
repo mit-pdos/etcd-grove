@@ -83,6 +83,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
+         # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
+         'github_com.mit_pdos.etcd_grove.examples.k8s.compactor',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -581,10 +583,12 @@ and runs their translated initializers.''',
 )
 
 SPECIAL[_K3] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports, runs
+    doc='''Its fact (`EtcdGrove.k8s.registryFact`, `RegistryDefs.lean`): `endpointsMapMu` is a mutex over
+the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
+importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
 `defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
-`endpointsMap`, `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
+`endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
 `strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
@@ -611,6 +615,9 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.sync.atomic.Link',
              'Proof.google_golang_org.grpc.grpclog.SetLoggerV2', 'Proof.os.Getenv',
              'Proof.strconv.ParseBool'],
+    vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
+    table_vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
+    finish=FIN_PRE[:6] + ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iexact Hreg'],
     alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
                  'typeToMessage': 'Loc', 'errTooMany': 'GoInterface', 'endpointsMap': 'Loc',
                  'endpointsMapMu': '_root_.Perennial.sync.Mutex'},
@@ -623,9 +630,18 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
         'wp_alloc dd as Hdd', 'try wp_auto', 'wp_alloc tw as Htw', 'try wp_auto']},
     after={
+        # (Q1 (c), 2026-11-05) the compactor registry: the mutex over the map (`registryFact`)
         'init.«0»': ['wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string',
                      '    (go.GoType.PointerType compactor.ty)) as %em Hem',
-                     'try wp_auto'],
+                     'try wp_auto',
+                     'imod _root_.Perennial.sync.init_Mutex (EtcdGrove.k8s.registryInv (GF := GF)) ⊤ _',
+                     '    $$ HendpointsMapMu [HendpointsMap Hem] with #Hreg',
+                     '· inext',
+                     '  iunfold EtcdGrove.k8s.registryInv',
+                     '  iexists em, ∅',
+                     '  iframe HendpointsMap Hem',
+                     '  iapply BigSepM.bigSepM_empty.2',
+                     '  itrivial'],
         'init.«1»': ['wp_apply klogWrapper_toLoggerV2 as %_ -', 'try wp_auto',
                      'wp_apply EtcdGrove.grpclog.SetLoggerV2.wp_proof', 'try wp_auto'],
         'init.«2»': ['wp_apply EtcdGrove.os.Getenv.wp_proof as %_ -', 'try wp_auto',
@@ -2114,6 +2130,8 @@ def gen_ext():
 # D19r, 2026-10-18): the root package and the module of the generated table.
 PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
@@ -2167,6 +2185,17 @@ do not edit.
 -/"""
 
 
+def table_vars(cl):
+    """The section variables of a package table whose closure is `cl` (`SPECIAL`'s `table_vars`: a
+    package fact's own parameters, as the compactor registry's name)."""
+    vs = []
+    for q in sorted(cl):
+        for v in SPECIAL.get(q, {}).get('table_vars', []):
+            if v not in vs:
+                vs.append(v)
+    return vs
+
+
 def gen_table(p, path):
     cl = closure(p)
     order, seen = [], set()
@@ -2191,7 +2220,8 @@ def gen_table(p, path):
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',
-         f'variable [package_sem : _root_.Perennial.{p}.Assumptions]', '',
+         f'variable [package_sem : _root_.Perennial.{p}.Assumptions]'] + \
+        [f'variable {v}' for v in table_vars(cl)] + ['',
          '/-- Every package of the program\'s import closure, with its `isPkgInit`. -/',
          'def pkgInitTable : List (GoString × IProp GF) :=']
     rows = [f'(pkg_id.{q}, isPkgInit (PROP := IProp GF) pkg_id.{q})' for q in sorted(order)]

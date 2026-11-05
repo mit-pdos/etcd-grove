@@ -209,9 +209,9 @@ theorem RealPodControl.createPods.wp_proof
           iintro Hq HΨ'
           wp_pures
           wp_auto
-          have hA := wp_Accessor .daemonSets l
-          simp only [apimeta.apiPtrTy] at hA
-          wp_apply hA
+          have hty : go.typeSetContains (go.GoType.PointerType k8s_io.api.apps.v1.DaemonSet.ty)
+              k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty = true := by go_type_set
+          wp_apply (wp_Accessor ⟨go.GoType.PointerType k8s_io.api.apps.v1.DaemonSet.ty, #l⟩ hty)
           wp_apply (dsAt_GetName wp_GetName l _ dd) $$ [Hds] as Hds
           · iexact Hds
           ihave Hqo : objAt (interface.mkOk (go.GoType.PointerType k8s_io.api.core.v1.Pod.ty) #q)

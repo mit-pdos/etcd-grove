@@ -7,7 +7,7 @@ and is covered by `bootCfg_off`, not the `cret = 0` and `bootCfg_clientOnly` K1 
 K2's Draft 2 approved with U1-U4 (2026-11-04), its specs written
 (`Spec/k8s_io/apiserver/pkg/storage/etcd3/`, `CompactorDefs.lean`; `notes/decisions.md`,
 "Kubernetes' compactor: the specs"), and U2's `strconv` specs. U1 done (2026-11-04: `txn.Commit.spec`'s `txnRevLb`). G1 done on a Perennial branch,
-waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). Next: K4. It follows the phases of
+waiting for the user's push (`notes/perennial-changes.md`). K3 done (2026-11-04, below). K4 done (below). Next: K5. It follows the phases of
 `notes/spec-first-plan.md`: scope, a spec skeleton, testing the specs against Go, freeze, proofs.
 Its server step follows the slot convention there, "The slot convention" (the user's advice,
 2026-11-04).
@@ -211,12 +211,169 @@ server's statements, so it goes through the slot convention.
 `Main` and its adequacy theorem `k8s_compactor_safe`: no panic, and the checks hold. Add a
 collection, `etc/tcb-collections/k8s-compactor.txt`.
 
+*First part done (2026-11-04).* The six functions are proved and linked (`notes/decisions.md`,
+"Kubernetes' compactor proved"), with the collection.
+- **The context.** `runCompactLoop`'s `wait.ContextForChannel` needed `ctxOk`'s third case, the
+  user's choice.
+- **Found while proving.** `Compact.spec` and its callers take the client's KV handle (`clientKvOk`, its `isKv`);
+  `NewCompactor.spec` drops `threadTok`; `klog.Errorf` is a new logging axiom; `RealClock.After`
+  is a named hypothesis.
+- **Left:** `Main` and `k8s_compactor_safe`.
+
+*Second part done (2026-11-04).* `k8s_compactor_safe` (`Results.lean`), closed, no `sorry`
+(`notes/decisions.md`, "Kubernetes' compactor example proved"):
+- The example's invariant (`Inv.lean`) owns the clients' KV state and `compact_rev_key`'s protocol;
+  from it the compactors' contract (`casOk_of_cinv`: `Seen` a flag, `recorded := True`), the writer's
+  put and `apiserver`'s reads (`Aus.lean`, over `CasModel.lean`'s model facts).
+- The example's Go changed: `apiserver` checks the key's value against a second, later `Get`.
+- New trust: `strconv.Itoa`'s axiom (the user's approval); the closed theorem takes
+  `clock.RealClock.After`'s contract as a named hypothesis.
+- Shared: `etcdstart/OneMember.lean` (one-member `BootFacts`, `premises`, `kvModel_boot`), first user.
+
 **K5 (later).**
-- Q1 (b) after G1 (the watch loop: a watch of one key from a revision; compaction cancels its watch,
-  `notes/k8s-etcd3-plan.md` item 4).
-- Q1 (c).
-- Three members and partitions, as `etcd/partition`.
+- Q1 (b), the watch loop, *done (2026-11-04)* (the user's approval of D1 (a), the axioms' change,
+  D2, D3; `notes/decisions.md`, "The compactor's watch loop"):
+  - W1: the client's watch takes any context it can use (`watchCtx`), so a `channelContext` too.
+  - W2/W3: `getCompactRev`, `fromWatchResponse` (translated since G1), `runWatchLoop` proved; the
+    contract `keyReadOk` (the caller's read update, result `keyHistOk`: every value the key held is
+    `FormatInt c` of a recorded `c`, reached or `0`, and the state is past revision 1); the client's
+    watcher handle `clientWatchOk`; `NewCompactor` with the gate either way (`gateOff` gone); the
+    loops see the compactor as `compactorCore` (the `Once` takes the adder after the last `Add`).
+  - W4: the example in Kubernetes' default configuration (`DisableSnapshotList` gone, its axiom
+    with it); its invariant keeps the key's history (`histOk`, `KeyHist.lean`) and one change per
+    revision (the watch server's `noDupKeys`, `NoDup.lean`); `Main` serves watches as
+    `compactwatch`'s (`wk_served_nd`).
+- Q1 (c), `StartCompactorPerEndpoint`: C1, C2 and C3 *done (2026-11-05)* (the user's choices of A1 and
+  of option (i); `notes/decisions.md`, "The compactor registry's name"):
+  - C1: `etcd3`'s package fact is the registry (`registryFact`, `RegistryDefs.lean`), at the name a
+    typeclass holds (`CompactorRegistry`), which the adequacy theorem picks; endpoint claims are saved
+    predicates (`epClaim`, from `regAuth`); `onClose` generalized (`closeOk`: `NewCompactor` takes
+    it, `Stop` calls it); `isNewClient` keeps the client's endpoints (`clientEndpointsAt`).
+  - C2: `StartCompactorPerEndpoint` proved and linked (the lookup, the `onClose` closure, the
+    registration).
+  - C3: the compactor example starts compactors through the registry (in the example itself, not a
+    second one: two of its five API servers share the process's compactor, through a local
+    interface and one `check`); its adequacy theorem allocates the registry
+    (`etcd_adequate_alloc`) and gives `Main` `regAuth ∅`; the store example keeps a fixed name.
+- Three members and partitions, as `etcd/partition` (K6, below).
 - Q2 (ii) with the store's phase 5.
+
+## K6. Three members and partitions (2026-11-05, the user's "go ahead with three members")
+
+**Survey.** A three-member cluster in the client-only mode needs no Go change to the start: Go's
+`NewMember` already passes retention `0`, which is that mode (`bootCfg_off` admits any `cmp`, `cret`).
+The pins are ghost-only: `newServer.spec`/`NewMember.spec` fixed `memberBoot … false`, `alloc3`
+had no mode, and the partition example's shared cluster facts pin compaction off (`memberAt`'s
+`E.γ.cm = false`, `memberWatch`'s). No new `sorry` or axiom: the compaction-mode snapshot send
+(F2, `apply.cmpObs`) and install (M2 item 15) are proved; no three-member closed theorem has run in
+compaction mode yet, so the partition schedule's snapshots (`SnapCount = 1`) exercise them for the
+first time. The compactor's specs, `cinv` and `Aus` are already generic in the member list; the
+compactor's `Main` is one-member only (`alloc1_false`, `[clientAddr]`, the watch server's no-duplicate
+fact `noDupKeys_of_one` before `Serve`). `watchEnv_conn` (the partition example's `MainWatch`) is the
+client's watch through the three bridges, which the compactor's watch loop needs.
+
+**Steps.**
+1. *The mode* (done, branch `k8s3m`): `newServer.spec` and `NewMember.spec` take `cmp`
+   (`memberBoot … cmp`), `alloc3` takes `cmp`/`cret` (defaults off) and posts them; callers pass
+   `false`.
+2. *The Go example* (done): `MainPartition` in the compactor package (not a new package: it reuses
+   `apiserver`, `check`, `writer`, `ready` and their proofs), the compactor example's workload on three
+   members through bridges, with the partition schedule; `TestMainPartition` (compactions under
+   partitions), `TestMemberIDs`. The partition helpers moved to `examples/lib/cluster3` (D2), Go and
+   Lean (`cluster3.Config`, `cfgOk`, `StartCluster`, `NewClient`); partition's results unchanged but
+   for the step type's package.
+3. *The shared cluster start by the mode* (done): `StartMember`/`StartCluster`/`memberAt`/`clusterUp`
+   take `cmp`; `memberWatch` carries `mvcc.watchNoDup` (needed only for the clients' watch facts,
+   after the start: no provider premise on the start; compaction off gives it, `watchNoDup_of_off`).
+4. *Draft* of `MainPartition.spec` (written, `Spec/.../k8s/compactor/MainPartition.lean`) and the
+   closed theorem (as `k8s_compactor_adequate` at the program `MainPartition #sched`, for every
+   schedule, with partition's hypotheses at `clusterCfg`); **frozen by the user, 2026-11-05** (F1;
+   tag `k8s-k6-frozen` on `fb3ec74234`).
+5. *Prove* (done, 2026-11-05, by an agent of the coordinator etcd-grove-82, branch `k8s3m`):
+   `MainPartition.wp_proof` (`Proof/.../k8s/compactor/MainPartition.lean`), `clusterConfig`'s spec and
+   proof, `k8s_compactor.wp_MainPartition` (`MainLinked.lean`, by hand as `wp_Main`), and the closed
+   theorem `k8s_compactor_partition_adequate` (`Adequacy.lean`; `Results.lean`'s
+   `k8s_compactor_MainPartition`, `k8s_compactor_partition_safe`, with `#print axioms`); no `sorry`,
+   no new axiom (the partition example's bridge, HTTP and snapshot axioms join the collection
+   `k8scompactor`'s baseline, all already in the trust base). Landing waits on the coordinator
+   (H1 accepted).
+
+**The change log after the freeze** (`notes/spec-first-plan.md`'s categories). No frozen statement
+changed: `MainPartition.spec` is as frozen, and the closed theorem is the frozen description written
+out.
+- `[C, proof, public]` The closed theorem written out as frozen: `k8s_compactor_partition_adequate`
+  (`etcd_adequate_alloc`, the registry as `k8s_compactor_adequate`'s), its program
+  `k8scompactorPProgram steps`, its addresses `k8scompactorPAddrs` and WAL directories
+  `k8scompactorPWalDirs` (the nine of `clusterCfg`, the three `<name>.etcd`), the schedule's length
+  below `2^63` (partition's).
+- `[C, proof, internal]` `k8s_compactor.wp_MainPartition` takes `[go_etcd_io.etcd.cache.v3.Assumptions]`
+  as an instance, as partition's `wp_Main` (its linked `StartCluster` needs one).
+- `[A, proof, public]` `client.isKv_of_newClient` generalized in place to a member list (the plan's
+  finding): `(ms : List SrvAt) (eps) (heps : ms.map SrvAt.addr = eps) (hst : ∀ x ∈ ms, kvSame x.γr.kv
+  γk)`, premise `[∗list] x ∈ ms, kvRegsAt x`; its three one-member callers (`etcd/watch`'s and
+  `etcd/cache`'s `Main`, the compactor's `Main`) pass `[x]`. One lemma, no second family.
+- `[E, proof, internal]` `clusterConfig.spec` (`RET #clusterCfg`) and its proof, as partition's
+  `config`; `memberWatch_of_cinv` (a member's watch facts in the compacting cluster, from the
+  invariant's `oneChangeAu`).
+- `[C, check, internal]` Bounds baseline: `MainPartition.spec`'s thread and receipt bounds (as every
+  example's `Main`, frozen with it) raise the compactor package's `spec-thread` 1 → 2 and
+  `spec-receipt` 2 → 4 (`etc/bounds-baseline.txt`); the collection `k8scompactor` gains 25 axioms
+  already in the trust base (the bridge's, the peers' HTTP, `probing`, `snap.SaveDBFrom`, ...: what
+  partition's `linkv3p` rests on); the trust base is unchanged (785 axioms, 4 `sorry`s).
+- `[C, proof, internal]` `schedLit` and its size lemmas moved from partition's `Adequacy.lean` to
+  `cluster3/SchedLit.lean` (shared by the two closed theorems, not copied).
+
+**The proof plan for step 5** (as written at the freeze; carried out as planned, but the watch
+facts by `memberWatch_of_cinv` and the clients' watchers by `isNewClient_watcher_of`):
+- `clusterConfig` (Go leaf, returns the literal): spec and proof as partition's `config.lean`
+  (`RET #clusterCfg`).
+- `MainPartition.lean` (the proof), shaped as the one-member `Main.lean` for the compactor side and
+  partition's `Main.lean`/`MainWatch.lean` for the cluster side:
+  1. `cluster3.StartCluster clusterCfg … (cmp := true)`; on failure return. Unfold `clusterUp`/
+     `clusterAt`: three `memberAt … true`, `ρ₁.rd.kv.cmp = true`, `cret = 0`, `etcdKV` at the start
+     store, `kvSame`.
+  2. The example's invariant (`cinv_alloc`) from that `etcdKV`, as `Main.lean` does after the
+     member's start (nothing has written: the client view is still owned).
+  3. The registry: `epOf_alloc` three times from `regAuth ∅`, for the three bridge addresses
+     (distinct: `cfgOk`), at `recorded := True`.
+  4. Each member's store fact for watches, `mvcc.watchNoDup` (right arm): `noDupKeys_of_one` at the
+     member's `srvKVFacts` and `oneChangeAu` of `cinv` (`Main.lean` does it for one member, before
+     `wk_served_nd`); then `cluster3.memberWatch` ×3 and `cluster3.watchEnv_conn` for the clients'
+     watch facts (as partition's `MainWatch`).
+  5. Each client (`cluster3.NewClient` at `watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx`, the writer's and
+     the five API servers'): `clientWriteOnce` from the members' `noRefusalAt` through `forwards`;
+     `kvRegsAt` of the three members at the bridges (`isGrpcRpc_forwards`); `srvStart`
+     (`srvStart_alloc` of the three); **`clientKvOk` needs `client.isKv_of_newClient` for several
+     endpoints**: today it takes one (`isNewClient cl [ep]`); generalize it in place to a member list
+     `ms` (`isKv_intro` already takes one; about 20 lines, `KvOfNew.lean`, and its four callers pass
+     `[x]`); `clientWatchOk` from `isNewClient_watcher` at `V.kst = γk.st`.
+  6. `ready`, then `go cluster3.Partitioner` with the three `srvPeerCtl` and `ownBridge`s (as
+     partition's `Main`), `go writer`, then the five API servers' loop as `Main.lean`'s (bound 5),
+     `apiserver` at `ms` = the three members at the bridges, the claims `[∗list] ep ∈ bridges, epOf`.
+- `MainLinked.lean`: `wp_MainPartition` over the linked `cluster3` results (`etc/gen-link.py
+  --cluster3`'s), `clusterConfig`'s, and the existing compactor links.
+- `Adequacy.lean`: `k8s_compactor_partition_adequate` via `etcd_adequate_alloc` (the registry as in
+  `k8s_compactor_adequate`), for every `steps`, with partition's hypotheses at `clusterCfg` (the
+  ids, `BootFacts`, `HAs` the nine addresses, the three WAL directories distinct and absent, `Hprem`
+  at `cluster3.premises clusterCfg …`, `RealClock.After`); `Results.lean` restates it with
+  `#print axioms`; the `k8scompactor` TCB collection gains it (no new axiom or `sorry` expected).
+- Bounds: the new `Main` spec likely adds counts as the other examples' (record the reason).
+
+**Decided by the agent, pending the user** (scope; the user vetoes):
+- *D1. A new example, `k8s/compactorp`,* beside the one-member one (kept: it is the small case and
+  its proof is the base). Alternative: replace it.
+- *D2. The partition helpers shared, not copied:* `startMember`, `startBridge`, `peerStep`,
+  `clientStep`, `partitioner`, `startCluster` move to a library package (`examples/lib/cluster3`),
+  parameterized by the token and the addresses, and the partition example re-points to it; their
+  proofs move with them. Copying would make a second family of the same six proofs. Cost: the
+  partition example's Go translation and its proofs re-pointed.
+- *D3. Snapshots kept* (`SnapCount = 1`, as `partition`): the compaction-mode send and install
+  paths run end to end for the first time.
+- *D4. Kubernetes' deployment:* each API server's client lists all three bridges (one client
+  endpoint set, so `StartCompactorPerEndpoint`'s sharing keys on all three: claims for each); the
+  writer likewise.
+- *D5. Any schedule,* as `partition`'s theorem; no separate watch variant (the compactor's watch
+  loop already watches).
 
 ## Risks
 

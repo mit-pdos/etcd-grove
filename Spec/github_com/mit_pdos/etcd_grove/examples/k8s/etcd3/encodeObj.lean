@@ -22,16 +22,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev encodeObj.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (name val : GoString) (rv : w64),
+  ∀ (p : Loc) (dq : DFrac) (name uid val : GoString) (rv : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
-      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name val rv }}
+      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeObj)) (Val #p))
-  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV1 name val ∗
-      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name val rv }}
+  {{ (sl : GoSlice), RET #sl; sl ↦* encodeWith tagV1 name uid val ∗
+      p ↦{dq} github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk name uid val rv }}
 
 end spec
 

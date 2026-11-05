@@ -72,6 +72,7 @@ theorem auth.authStore.lockedReadTx.wp_latest :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold beRd at Hrd
+  icases Hrd with ⟨Hrd, Htk⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -98,7 +99,7 @@ theorem auth.authStore.lockedReadTx.wp_latest :
   · inext; iunfold beP; iexists _, γc; iframe Hbe Hbeok Hcu
   iapply HΦ
   iunfold beRd
-  iframe Hrd Hown Hw
+  iframe Hrd Htk Hown Hw
   iunfold authReadTxLockedL
   iexists ti
   isplitr

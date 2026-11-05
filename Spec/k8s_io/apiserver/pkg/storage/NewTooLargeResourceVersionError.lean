@@ -29,7 +29,8 @@ abbrev storage.NewTooLargeResourceVersionError.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage }}
     (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.NewTooLargeResourceVersionError))
       (Val #minRV)) (Val #curRV)) (Val #retry))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ }}
+  {{ (err : GoInterface), RET #err; ⌜∃ l : Loc, err = interface.mkOk
+      (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ }}
 
 end spec
 

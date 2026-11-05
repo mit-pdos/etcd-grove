@@ -43,7 +43,8 @@ counted stock (`backend.rdStockN`, past the backend's pool), the readers it give
 until then all `actualMaxReaders` of them.
 (F2's Freeze, stage 2, 2026-11-03) The compaction tracking's ties of the instance, whole at the
 fresh log (`kbTieInit kb`, `NewStore`'s; `kbTie_alloc` makes them); the revision tie's half comes
-back in `crevRightM` (compaction mode).
+back in `crevRightM` (compaction mode). (R-D1, 2026-11-04) The loops' count named, `wsLoopN`
+(`watchableStore.Close` returns their readers).
 (The lease-expiry plan's step 2, 2026-11-04, option (a)) The lessor's range deleter as its owner holds
 it (`lease.rdAt γl st`): the deleter's contract at every watchable store over the inner store `st`, at
 any names (until then `∃ rd, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ`, at the store's own names). -/
@@ -67,7 +68,7 @@ abbrev mvcc.New.spec : Prop :=
         γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
         mvcc.isWatchableStore s st γ ∗ lease.rdAt γl st ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
         mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb - 2) (),
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb - mvcc.wsLoopN) (),
           mvcc.watchReader s st γ) ∗
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
         mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm }}

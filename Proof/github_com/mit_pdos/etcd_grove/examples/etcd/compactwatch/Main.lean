@@ -103,13 +103,14 @@ theorem Main.wp_proof
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
+  iunfold etcdstart.premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (compactkvDir id)
       go!"compactkv" go!"compactkv"
       (etcdstart.urls1 go!"compactkv" go!"127.0.0.1:23804" go!"127.0.0.1:23794") id cfgOk urlsOk
-      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
-      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
+      (fun _ h => h)
+      (fun _ h => h) $$ Hboot
   ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
   · iunfold etcdstart.commonPremises; iframe #
   -- `io.EOF` (the server's and the watch client's)
@@ -142,7 +143,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (compactkvDir id) (dirOne_member id _)
+  imod (etcdstart.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (compactkvDir id) (dirOne_member id _)
       (by omega) (by omega) (cmp := true) (cret := 1)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, hkc, hkr⟩ := Hal
@@ -154,7 +155,7 @@ theorem Main.wp_proof
           (bootEntries (LogEntry.toEntries boot 0))).length_le
         unfold kvModel; rw [hlog] at h ⊢; simpa using h)
       (by
-        rw [kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+        rw [etcdstart.kvModel_boot _ _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
         intro cs hcs
         simp [kvStateOf] at hcs
         left; exact hcs)) $$ Hetcd with ⟨%γf, %γl, %γv, #Hinv⟩
@@ -168,7 +169,7 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (compactkvDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [compactkvDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      (by simp [compactkvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
       $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
@@ -188,15 +189,21 @@ theorem Main.wp_proof
   -- facts at the address; watches across a compaction, W4: the store's fact for watches, no
   -- revision writing a key twice, from the rounds' invariant), the member refusal-free (D29) first
   haveI := Hms
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23794"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23794", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
         watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ∗
-        mvcc.idxCert R.E.γ.idx [[], []]))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        mvcc.idxCert R.E.γ.idx [[], []])))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
       #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩
@@ -696,6 +703,8 @@ theorem Main.wp_proof
     · iframe #
       isplitr
       · ipureintro; rfl
+      isplitr
+      · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
       isplitr
       · ipureintro
         refine ⟨?_, ?_, by decide, ?_⟩

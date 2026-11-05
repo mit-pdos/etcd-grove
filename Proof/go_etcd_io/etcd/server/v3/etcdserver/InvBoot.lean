@@ -26,7 +26,8 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   - the backend of the real instance `d` with the server's hooks (`server_kv_backend_hooks`'s
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
     the write budget);
-  - `b.Close()` returns (the error paths' deferred close).
+  - (until R-D1, 2026-11-04, also `b.Close()` returning, the error paths' deferred close: now
+    `bootstrappedServer.Close.spec`, which takes the backend's whole open token).
 * **The transport** (rafthttp stage 6d, 2026-10-24): rafthttp's own predicates (`trLive`,
   `trFrozen`, `trTok`, `TransportState.lean`); the raft loop's key to its `Send` (`srvTrKey`,
   exchanged for a reader's token of the transport, `netTransport_of_key`); `isRNTransport` for
@@ -50,6 +51,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportState
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.TransportFull
 public import Perennial.Ghost.GhostMap
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
@@ -272,16 +274,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
-      ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
-      cv.Storage' = memStorIface bv.storage' ∧
-      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
-      cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
-      cv.DisableConfChangeValidation' = false ∧
-      (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
-      cv.ID' = id ∧
-      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
+    -- (2026-11-05: until then `rnStartCfg`'s conjuncts spelled out) the configuration and the
+    -- peers (`rnStartCfg`), this node's id, the peers distinct, non-zero, this node among them,
+    -- the cluster's voters, and the bootstrap log theirs
+    "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      cv.ID' = id ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
@@ -450,10 +447,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
     "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-    -- the error paths' close
-    "#Hclose" ∷ □ ({{ True }}
-      (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
-      {{ RET #(); True }}))
+    -- (2026-11-04, the restart plan's R2b-3d, the user's approval) the backend's file is the
+    -- configuration's backend path (`bootstrapBackend`'s `OpenBackend(cfg, ...)`, whose post gives it)
+    "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir'))
+    -- (R-D1, 2026-11-04) no row for the error paths' close: `bootstrappedServer.Close` is
+    -- translated and proved (`bootstrappedServer.Close.spec`, one-shot: it takes the backend's whole
+    -- open token), and `NewServer`'s proof reassembles what it takes; until then the opaque
+    -- `"#Hclose" ∷ □ {{ True }} b.Close() {{ True }}`, false (a second call panics)
 
 /-- **The configuration's URLs, as `bootstrap` reads them** (D19r (F), 2026-10-18): the peer and
 client URL slices and the initial cluster's map (member name to its peer URLs' slice), with their
@@ -615,6 +615,33 @@ and its transport exist, so its `S` is this key, of a name `NewServer` allocates
 def srvTrKey (γn : NetNames GF) (γk : GName) : IProp GF :=
   iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ trTok γn x.2.1 (SrvKey.trN x))
 
+/-- (2026-11-05, R2b-3d stage 5c) **The right to stop the keyed server's transport** (the server's
+raft environment's `ST`, as `srvTrKey` is its `S`, for the same reason: the environment is built
+before the server): the transport of the server the key `γk` names, live (`srvTrStop`). The apply
+thread hands it over at the shutdown, with the key's server (`srvTrKeyOf`, `srvTrStopK_of`). -/
+def srvTrStopK (γk : GName) : IProp GF :=
+  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ srvTrStop x.1)
+
+/-- (R2b-3d stage 5c) **The key `γk` names the server `s`** (persistent; `NewServer` posts it). -/
+def srvTrKeyOf (s : Loc) (γk : GName) : IProp GF :=
+  iprop(∃ x : SrvKey, ghostMapElem γk () DFrac.discard x ∗ ⌜x.1 = s⌝)
+
+instance srvTrKeyOf_persistent (s : Loc) (γk : GName) :
+    Persistent (srvTrKeyOf (GF := GF) s γk) := by
+  unfold srvTrKeyOf; infer_instance
+
+/-- The stop right of the keyed server's transport, from the server's (the shutdown's). -/
+theorem srvTrStopK_of (s : Loc) (γk : GName) :
+    srvTrKeyOf (GF := GF) s γk ∗ srvTrStop s ⊢ srvTrStopK γk := by
+  iintro ⟨#Hk, Hs⟩
+  iunfold srvTrKeyOf at Hk
+  icases Hk with ⟨%x, #Hx, %Hxs⟩
+  iunfold srvTrStopK
+  iexists x
+  iframe Hx
+  rw [Hxs]
+  iexact Hs
+
 /-- The key's name, allocated, the transport's names not yet fixed. -/
 theorem srvSendKey_alloc :
     ⊢ |==> ∃ γk : GName, ghostMapAuth (GF := GF) γk 1 (∅ : GMap Unit SrvKey) := by
@@ -753,6 +780,56 @@ instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (G
   unfold lessorCkptOk; infer_instance
 
 end transport
+
+section transportStop
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (2026-11-05, R2b-3d stage 5c) **The server's transport, its `Stop` taking the keyed server's
+stop right** (`srvTrStopK γk`): the key fixed to the server `s` and its transport `t` (`srvSendKey_fix`),
+`t` installed in `s`'s raft wrapper; the right names `t` (the key's and the field's agreement), and
+`Stop_live` takes its live right at any names. -/
+theorem netTransport_srvTrStop
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (γn : NetNames GF) (lid : w64) (γk : GName) (x : SrvKey) (s t : Loc) (hs : x.1 = s)
+    (ht : x.2.1 = t) (T TS : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+        ghostMapElem γk () DFrac.discard x ∗
+        srvTransportAddr s ↦□ srvTrIface t ∗ netTransport γn lid (transportIface t) T TS ⊢
+      netTransport γn lid (transportIface t) T (srvTrStopK γk) := by
+  iintro ⟨#Hpkg, #Hkx, #Ht, #Htr⟩
+  iunfold netTransport at Htr
+  icases Htr with ⟨%ti, %Hti, #Hsend, -, #Hsnap⟩
+  iunfold netTransport
+  iexists ti
+  isplitr
+  · ipureintro; exact Hti
+  iframe Hsend Hsnap
+  unfold transportIface interface.mkOk at Hti
+  cases Hti
+  iintro !> %Φ !> HS HΦ
+  iunfold srvTrStopK at HS
+  icases HS with ⟨%x', #Hx', HS⟩
+  ihave %Hxx := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hkx Hx'
+  subst Hxx
+  rw [hs]
+  iunfold srvTrStop at HS
+  icases HS with ⟨%t', %γn', %c, %rs, #Ht', Hl⟩
+  icombine Ht Ht' gives %Heq
+  have Heq' : t = t' := by
+    unfold srvTrIface interface.mkOk at Heq
+    simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at Heq
+    exact go.intoVal_inj Heq.2
+  subst Heq'
+  wp_apply (rafthttp.Transport.Stop_live hPeerStop hRemoteStop γn' t c rs) $$ [Hl]
+  · iexact Hl
+  iapply HΦ; itrivial
+
+end transportStop
 
 end EtcdGrove
 end Perennial

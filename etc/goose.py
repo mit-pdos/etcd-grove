@@ -614,6 +614,23 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "etcdstart")],
     ),
     Project(
+        name="cluster3",
+        # The examples' three-member cluster under network partitions (`examples/lib/cluster3`;
+        # until 2026-11-05 package partition's own, moved for the compactor's three-member example,
+        # notes/k8s-compactor-plan.md K6): a member started and its gRPC service served
+        # (`StartMember`), a bridge to its client address (`StartBridge`), the cluster
+        # (`StartCluster`), a client of every bridge (`NewClient`), the partitioner and its steps. A
+        # package of the examples' Go module (examples/go.mod); its imports are the etcd, common and
+        # bridge projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lib", "cluster3"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "cluster3")],
+    ),
+    Project(
         name="putget",
         # The adequacy example of etcd's server and client (open-work item 9): one member
         # started in-process, a client's Put and Get of one key. A package of the examples' Go
@@ -726,7 +743,8 @@ PROJECTS = [
         name="linkv3p",
         # linkvtxn's workload under network partitions (notes/partition-plan.md): three members
         # started in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
-        # goroutine cutting and mending links on `Main`'s schedule (etcd's `CutPeer`/`MendPeer`),
+        # goroutine cutting and mending links on `Main`'s schedule (etcd's `CutPeer`/`MendPeer`;
+        # since 2026-11-05 the cluster3 project's),
         # and linkvtxn's workload (`Gen`, `Apply`, `Model`, imported; its own `Apply` picks the
         # member; linkv's until 2026-10-20, notes/linkv3p-txn-plan.md). A package of the
         # examples' Go module (examples/go.mod); its imports are the etcd,

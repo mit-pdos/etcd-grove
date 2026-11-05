@@ -27,6 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- See the file header. -/
@@ -44,7 +45,7 @@ abbrev seedOne.spec : Prop :=
   {{ (s' : mstore) (ok : Bool), RET (PairV #s' #ok);
       ⌜ok = false⌝ ∨
       (⌜ok = true⌝ ∗ ghostVar γs (1 : Qp).half (kvOpStep (seedOp k) σ) ∗
-        storeOwn s' ⟨setItemL g.items ⟨k, ⟨k, go!"x", W64 ((σ.rev + 1 : Nat) : Int)⟩, false⟩,
+        storeOwn s' ⟨setItemL g.items ⟨k, ⟨k, go!"", go!"x", W64 ((σ.rev + 1 : Nat) : Int)⟩, false⟩,
           W64 ((σ.rev + 1 : Nat) : Int)⟩ ∗ ⌜kvRevFits (σ.rev + 1)⌝) }}
 
 end spec

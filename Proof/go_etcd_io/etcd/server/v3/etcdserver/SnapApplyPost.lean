@@ -73,7 +73,7 @@ theorem srvSnapApplied_of_walk
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     (r : mvcc.CmpRecs) (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     (hlp : mvcc.leaseParams d.P)
-    (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
@@ -111,7 +111,7 @@ theorem srvSnapApplied_of_walk
     %w0, %RD0, %up, %lg, %wsk, %stck, %ua, %Hpure, #HB, #HhkAt', #HbhF', HSC, -, -, -, #HCI', #HhkS, -, -, #Hro', #HnSup,
     #Hws, -, #HhP, #Hkva, #Hwa, #Hlga, Hwok, #HplRO, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hlrv, Hrdat, Hrt, Hrb, Hrn, Hcm, Hbo, Hpl', Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
-    Hcsa, Hcso, Hpath, Halb, HRD2, Hube, Hua, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
+    Hcsa, Hcso, Hpath, #Hbf, Halb, HRD2, Hube, Hua, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hcm', hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
   subst hγB
@@ -161,6 +161,9 @@ theorem srvSnapApplied_of_walk
   -- step 7: the rest, framed
   icases Hcso with #Hcso
   ihave Hcs := epCsOk_of_csOptA spc sv.Metadata'.ConfState' $$ Hcso
+  -- (R2b-3d stage 3) the new backend's stop channels at the server's own resources
+  ihave #HSCs : srvStopChans (GF := GF) (snapγ γ π0 d'.γB) d' $$ [HSC]
+  · iunfold srvStopChans; rw [← hP']; iframe HB; iexact HSC
   imodintro
   iunfold srvSnapAppliedG
   iexists snapγ γ π0 d'.γB, metaTM d'.γB d.P,
@@ -174,7 +177,7 @@ theorem srvSnapApplied_of_walk
       Hx'.2.2, Hx'.2.1, hcov⟩
   iunfold epConfState
   simp only [snapE_authMode]
-  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSC Hbo Hγt Hpath Htl
+  iframe Hsrv' Hai Hatt Hds Hms Hcsa Hcs Hcso Hat Hab Hlgr Hbmr HKV' HRest HKC HSCs Hbo Hγt Hpath Hbf Htl
   -- (J8a-1, item 5) the KV at the new environment: the walk's watchable store, its inner store's
   -- names at the new physical ones (`isWatchableStore_withPhys`)
   iexists _

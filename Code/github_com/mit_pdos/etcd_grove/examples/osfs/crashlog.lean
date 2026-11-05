@@ -91,7 +91,7 @@ noncomputable def Boot.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dir"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "dir")) (Val #(go!"/log"))))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val _root_.Perennial.os.O_RDWR) (Val _root_.Perennial.os.O_CREATE)))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val #(W64 2)) (Val #(W64 64))))
   (Let "$a2" (Val #(W32 438))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.OpenFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
   (Let "$ret0" (Fst (Var "__p"))

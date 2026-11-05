@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
 public import Spec.go_etcd_io.etcd.server.v3.auth.NewAuthStore
 public import Spec.go_etcd_io.etcd.server.v3.auth.NewTokenProvider
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Close
 
 @[expose] public section
 
@@ -136,6 +137,47 @@ def authCapM (M : auth.AuthMode) (stl : Loc) : IProp GF :=
 
 -- `authSnapKitM`: `AuthSnapKit.lean`'s.
 
+/-- **The realization's share of the backend's open token, in the mode `M`** (R-D1, 2026-11-04):
+`authOpenQ` in `on γa` (what `authKitIn` gave the store's construction), nothing otherwise. -/
+def authOpenM (M : auth.AuthMode) (d : mvcc.KBReal) : IProp GF :=
+  match M with
+  | .on _ => backend.bOpen d.γB authOpenQ
+  | _ => iprop(True)
+
+/-- **`NewServer`'s abandoned auth store** (R-D1, 2026-11-04; `notes/decisions.md`, "R-D1: the
+one-shot Close"): `NewServer`'s error after `NewAuthStore` (the transport's start) drops the store;
+with every reader's resource (`authRdSupply RD`) and the apply thread's resources
+(`authApplyResPre`, at any state), the realization's share of the backend's open token back
+(`authOpenM`), for the backend's `Close`. In `on γa` (R-D2, 2026-11-04; `notes/decisions.md`, "R-D2:
+the auth store's currency in an invariant") of the store's currency in its invariant
+(`auth.authRd_abandon`: every reader's ticket, so no reader in), the backend retired and released;
+trivially otherwise. -/
+def authAbandonM (M : auth.AuthMode) (stl : Loc) (d : mvcc.KBReal) (RD : IProp GF) : IProp GF :=
+  iprop(□ ∀ st : auth.AuthState, authRdSupply RD -∗ authApplyResPre M stl st d RD ={⊤}=∗
+    authOpenM M d)
+
+instance authAbandonM_persistent (M : auth.AuthMode) (stl : Loc) (d : mvcc.KBReal) (RD : IProp GF) :
+    Persistent (authAbandonM (GF := GF) M stl d RD) := by
+  unfold authAbandonM; infer_instance
+
+/-- **The apply thread's share and the realization's make the constructors' half** (R-D1): with
+`authKitIn_take`'s `srvOpenQ M`, `authOpenM M d` is the half `authKitIn_take` split. -/
+theorem authOpenM_join (M : auth.AuthMode) (d : mvcc.KBReal) :
+    backend.bOpen (GF := GF) d.γB (srvOpenQ M) ∗ authOpenM M d ⊢ backend.bOpen d.γB (1 : Qp).half := by
+  cases M with
+  | on γa =>
+    simp only [authOpenM, srvOpenQ, authOpenQ]
+    iintro ⟨Ho1, Ho2⟩
+    ihave Ho := (backend.bOpen_add (GF := GF) d.γB (1 : Qp).half.half (1 : Qp).half.half).2
+      $$ [Ho1 Ho2]
+    · iframe Ho1 Ho2
+    rw [Qp.half_add_half]
+    iexact Ho
+  | _ =>
+    simp only [authOpenM, srvOpenQ]
+    iintro ⟨Ho, -⟩
+    iexact Ho
+
 /-- **The auth store's construction in the mode `M`** with the token provider `tp` (see the file
 header): `NewAuthStore`'s axiom's triple, the apply contract in the mode `M`, at a resource `K`
 the kit holds (`True` in the mode `off`; the admin side's authority, the batch lock's half and the
@@ -168,9 +210,14 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         -- (E3zb) with auth on, the request side bound to the request context's token
         □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
         authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
+        -- (R-D1, 2026-11-04) the store abandoned on `NewServer`'s error path
+        authAbandonM M stl d RD ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
         □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
+        -- (R2b-3d stage 5b, 2026-11-05) in the mode `off`, the store's `Close` (`NewAuthStore`'s
+        -- axiom's `authCloseOk`), for `Cleanup`
+        □ (⌜M = auth.AuthMode.off⌝ → authCloseOk stl) ∗
         -- (the auth-on snapshot plan's decision 8) in the mode `on`, its snapshot clause
         authSnapKitM M stl RD ∗
         -- (authkv's Main, 2026-10-30) with auth on, the store's cost field, read-only
@@ -240,6 +287,19 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
+/-- **A closer of the store at the token provider's admin share** (R2b-3d stage 5b, 2026-11-05),
+of `authStore.Close`'s proof under the store's invariant: what `Cleanup` would take with auth on
+(the admin share the apply thread's, `authApplyRes`). -/
+theorem authCloser_of_inv (hAC : auth.authStore.Close.spec (GF := GF) (hG := hG)) (stl : Loc)
+    (R : IProp GF) (M : auth.AuthMode) :
+    auth.authInv stl R M ⊢ authCloser stl (auth.tpAdmin stl M) := by
+  iintro #Hinv
+  iunfold authCloser
+  iintro !> %Φ !> ⟨#Hpkg, Ht⟩ HΦ
+  iapply (hAC stl R M) $$ [Ht]
+  · iframe Hpkg Hinv Ht
+  iexact HΦ
+
 /-- **The kit in the mode `off`**, of `NewAuthStore`'s axiom. -/
 theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (tp : GoInterface) :
     ⊢ authStoreKit (GF := GF) .off tp := by
@@ -255,7 +315,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
     Hhas.2.2) $$ [Ho Hh Hwb Hrb]
   · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
     ipureintro; exact ⟨Hlg, Htp, Hfit, Hab, Hr⟩
-  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR⟩
+  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
   isplitl [Hr]
@@ -285,8 +345,16 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · unfold authCapM; itrivial
   isplitr
+  · iunfold authAbandonM
+    iintro !> %_st _ _
+    unfold authOpenM
+    imodintro; itrivial
+  isplitr
   · iintro !> -
     iexact HauR
+  isplitr
+  · iintro !> -
+    iexact HauC
   isplitr
   · unfold authSnapKitM; itrivial
   iintro !> %h; exact absurd h (by decide)
@@ -387,13 +455,18 @@ theorem authStoreKit_on
   imod (ghostVar_update γc γa.bk γ0) $$ Hbk with Hbk
   icases (ghostVar_split_half γa.bk 1 γc).1 $$ Hbk with ⟨Hbk, Hbk'⟩
   subst Hab
+  -- (R-D2, 2026-11-04) the store hands out `authRdN - 1` readers, each with its ticket for the
+  -- store's currency, and no more (`auth.authRdTotal`)
+  have hR : backend.authRdN - 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+    rw [sync.rwmutex.actualMaxReaders_unseal]; unfold backend.authRdN; decide
   wp_apply (auth.newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg
       (authBkIface abl) tp cost
       (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
         #abl) γa γc R P f (auth.authWTok γc) A Pre Q Post [auth.bootState] auth.bootState rfl
-      auth.bootState_permsFit ⟨auth.bootState, List.mem_singleton_self _, rfl⟩)
+      auth.bootState_permsFit ⟨auth.bootState, List.mem_singleton_self _, rfl⟩
+      (backend.authRdN - 1) hR)
     $$ [$Hpkg $Hrdok Hbk $Hcu $HwokR $HCreate $HT $Hcs $HtpA $HA $Hown $Hcur $Hcn]
-    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', #Hbc, Hslots⟩
+    as %st ⟨%stp, %hs', %Hst, #Hinv, HWR, HtpAd, HPost, Hown', %Hhs', #Hbc, #Htot, Hslots⟩
   · iframe; isplitr
     · ipureintro; exact Hlg
     isplitr
@@ -490,10 +563,7 @@ theorem authStoreKit_on
     iframe Hbe Habbe Hablg
     ipureintro; exact Hlg
   isplitl [Hslots HRs]
-  · have hR : backend.authRdN - 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
-      rw [sync.rwmutex.actualMaxReaders_unseal]; unfold backend.authRdN; decide
-    icases replicate_takeN _ (backend.authRdN - 1) _ hR $$ Hslots with ⟨Hslots, -⟩
-    icases replicate_takeN _ (backend.authRdN - 1) _ (by omega) $$ HRs with ⟨HRs, -⟩
+  · icases replicate_takeN _ (backend.authRdN - 1) _ (by omega) $$ HRs with ⟨HRs, -⟩
     ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
     · iframe Hslots HRs
     unfold authRdSupply
@@ -506,7 +576,22 @@ theorem authStoreKit_on
     isplitl [Hcap]
     · iexact Hcap
     iexists R; iexact Hinv
+  -- (R-D2, 2026-11-04) the abandoned store: every reader's ticket, the apply thread's write side and
+  -- its backend's lifecycle at the realization's share
+  isplitr
+  · iunfold authAbandonM
+    iintro !> %st HRDs HAR
+    unfold authRdSupply authOpenM
+    simp only [authApplyResPre]
+    icases HAR with ⟨%hs0, %P0, %f00, %T, %be0, -, -, -, HW, -, Hpt, -, -, -, -, HIP⟩
+    iunfold authInstallPre at HIP
+    icases HIP with ⟨#Hlife, -⟩
+    iapply (auth.authRd_abandon stp R γa (backend.authRdN - 1) T) $$ Htot HRDs HW Hpt Hlife
   -- (D22 J1a) the mode is `on`: no `Recover` clause
+  isplitr
+  · iintro !> %Hm
+    exfalso; cases Hm
+  -- nor a `Close` clause (R2b-3d stage 5b)
   isplitr
   · iintro !> %Hm
     exfalso; cases Hm

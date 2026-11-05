@@ -137,7 +137,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "HWB" ∷ srvWTBudget E ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
 /-- **`start`'s construction premise in the auth mode `on`**: `isServerBuilt` at `on = false` (by
 definition: `isServerBuiltM_false`), `isServerBuiltOn` at `on = true`. -/

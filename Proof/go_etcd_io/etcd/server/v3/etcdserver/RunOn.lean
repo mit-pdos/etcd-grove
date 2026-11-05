@@ -62,9 +62,9 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
-    (∃ w : Nat, srvWTTaken C.wt w) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
     -- (D22 J1b, 2026-10-31) `applyRes`'s snapshot resources
-    srvSnapOwn C.s C.ci B.E C.γr ai ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at'⌝)
@@ -80,7 +80,7 @@ def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunAtOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k) ∗
     -- (D22 J1b, 2026-10-31) `applyStart`'s snapshot resources
-    srvSnapOwn s ci E γr ai₀)
+    srvSnapOwn s ci E γr γ ai₀)
 
 /-- **What `run` needs in the mode `on`** (`isServerRun`'s, see the file header). -/
 def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -119,7 +119,9 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStartOn s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
+    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀ ∗
+      dghostVar γp.reg DFrac.discard (some γg.run)) ∗
     -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s; D22 J1b:
     -- the persistent bundle, the rest in `applyStartOn`)
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗

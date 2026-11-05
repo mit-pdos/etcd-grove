@@ -74,7 +74,9 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
+    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀ ∗
+      dghostVar γp.reg DFrac.discard (some γg.run)) ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗

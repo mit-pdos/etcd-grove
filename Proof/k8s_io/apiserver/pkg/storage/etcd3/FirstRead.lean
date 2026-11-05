@@ -189,6 +189,36 @@ theorem rwInv_alloc (c : StoreCfg GF Obj) (key : GoString) (hand : KVState → B
   iunfold rwInv
   iexact Hi
 
+/-- **The invariant's names, allocated before the invariant** (stage 7b: `conditionalDelete` and
+`GuaranteedUpdate` name the read's `rdQ` when they make the closure, but put the caller's token in
+the invariant only when a read is made: a cached object's state may reach the write first). -/
+theorem rwNames_alloc :
+    ⊢ |==> ∃ γc γt γp : GName, dghostVar (GF := GF) γc (DFrac.own 1) (none : Option KVState) ∗
+      dghostVar (GF := GF) γt (DFrac.own 1) () ∗
+      dghostVar (GF := GF) γp (DFrac.own 1) (none : Option (w64 × w64)) := by
+  iintro
+  imod dghostVar_alloc (GF := GF) (none : Option KVState) with ⟨%γc, Hc⟩
+  imod dghostVar_alloc (GF := GF) () with ⟨%γt, Ht⟩
+  imod dghostVar_alloc (GF := GF) (none : Option (w64 × w64)) with ⟨%γp, Hp⟩
+  imodintro
+  iexists γc, γt, γp
+  iframe Hc Ht Hp
+
+/-- **The invariant, allocated at names allocated before** (`rwNames_alloc`), with the token. -/
+theorem rwInv_alloc_at (γc γt γp : GName) (c : StoreCfg GF Obj) (key : GoString)
+    (hand : KVState → Bool) (W : IProp GF) (Φ : KVState → IProp GF) (E : CoPset) :
+    W ∗ dghostVar γc (DFrac.own 1) (none : Option KVState) ⊢
+      |={E}=> rwInv γc γt γp c key hand W Φ := by
+  iintro ⟨HW, Hc⟩
+  imod inv_alloc k8sN E (rwBody γc γt γp c key hand W Φ) $$ [HW Hc] with #Hi
+  · inext
+    iunfold rwBody
+    ileft
+    iframe
+  imodintro
+  iunfold rwInv
+  iexact Hi
+
 /-- **After the response, at a state that hands**: the caller's result at the state the token was
 handed at (`γt` taken; a later credit for the result's `▷`). -/
 theorem rwInv_fired (γc γt γp : GName) (c : StoreCfg GF Obj) (key : GoString)

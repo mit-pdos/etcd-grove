@@ -6,13 +6,14 @@ predicates are definitions over raft's own (`Proof/go_etcd_io/raft/v3/InvNode.le
 node contract is to be discharged from raft's specs.
 
 - **The environment** `E : RNEnv` is what the node contract is stated over: `C L`, "`L` is a
-  prefix of the cluster's committed log"; `M m`, "raft may send the message `m`"; `T`, a tick's
-  resource (node.go's term-budget credit); and (2026-10-13, the request path's unit 4b) the read
+  prefix of the cluster's committed log"; `M m`, "raft may send the message `m`"; `T`, once a
+  tick's resource (node.go's term-budget credit), now unused and pinned to `True`; and (2026-10-13, the request path's unit 4b) the read
   names `γr` and the read-index registrations `RQ id n` (`ReadIndex` registered the request id
   `id` at a lower bound `n` of the committed index), which the read states a `Ready` carries
   answer (`srvReadStateOk`, `read/Inv.lean`). What the discharge needs of `E` is `rnEnvOk E γ`
-  (persistent, in `isRaftNode`): `E.T` a tick's resource (raft's tick credit until D19b; `True`
-  since, which `rnEnvOk` pins), `E.M` of a message raft handed out
+  (persistent, in `isRaftNode`): `E.T` is `True` (raft's tick credit until D19b; since then
+  nothing reads it: `raftNode.tick` takes its credit from a Go step of its own, and since 2026-11-05
+  the ticker's bag carries `True` itself, `isRNTicker`), `E.M` of a message raft handed out
   (with its read credit, D21 stage M1),
   `E.C` from the committed log (and back: the log prefix and the indices), `E.RQ` raft's read
   registration (`srvRQ`), and the names tied (`E.γr.raft.raft = γ.node`, ...).
@@ -33,7 +34,7 @@ node contract is to be discharged from raft's specs.
   the node's delivered log `L`.
 - **The other components** are persistent predicates of triples (the WAL, the
   `MemoryStorage`, the transport, the timeout detector, the ready handler's closures, the
-  ticker, whose ticks carry `E.T`, `True` since D19b), and the wrapper's fields are read-only after `start` but
+  ticker, whose ticks carry nothing, `True`: until 2026-11-05 its bag was `E.T`), and the wrapper's fields are read-only after `start` but
   `latestTickTs`, under `tickMu` (`rnTickInv`).
 -/
 module
@@ -613,7 +614,7 @@ theorem rnReadySnap_bootLen (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d es A' 
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨-, #Hcl, -⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl⟩
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, %Hbl, -⟩
   rw [Hn.1] at Hbl
   iunfold rnReadySnap at H
   icases H with ⟨%ceL, %esL, %msL, %hs, ⟨%S0, %r, HrS⟩, Hrest⟩
@@ -1454,20 +1455,21 @@ instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) (γr : ReadNames) :
   unfold isReadyHandler; infer_instance
 
 /-- **The ticker `tk`** (what `newRaftNode` makes: since 2026-11-03 from Perennial's proved
-`time.NewTicker`, `isRNTicker_of_time`, at `E.T = True`): its `C`
-is a channel on which a receive yields some time **with a tick's resource `E.T`** (2026-10-16,
-stage R7b: raft's tick credit came with the tick, "fewer than `2^64 - 1` ticks in a run" the
-ticker's premise; since D19b, 2026-10-18, `E.T` is `True` for the server, `raftNode.tick` taking
-the credit, a time receipt, from a Go step of its own), or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`: dead since 2026-11-03, the
-specs requiring a positive heartbeat, a scope restriction; kept for covering it later); `Stop`
+`time.NewTicker`, `isRNTicker_of_time`): its `C` is a channel on which a receive yields some time
+and nothing else (2026-11-05, the user's S1: until then a tick's resource `E.T`, the environment's,
+from stage R7b, 2026-10-16, when raft's tick credit came with the tick; since D19b, 2026-10-18,
+`E.T` was `True` for the server, `raftNode.tick` taking the credit, a time receipt, from a Go step
+of its own, and the tick receive in `raftNode.start` drops what the bag gives), or nil
+(`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`: dead since 2026-11-03, the specs
+requiring a positive heartbeat, a scope restriction; kept for covering it later); `Stop`
 returns. -/
-def isRNTicker (E : RNEnv GF) (tk : Loc) : IProp GF :=
+def isRNTicker (tk : Loc) : IProp GF :=
   iprop(∃ c : Loc, structFieldRef time.Ticker go!"C" tk ↦□ c ∗
-    (⌜c = chan.nil⌝ ∨ ∃ γc : ChanNames, isChanBag γc c (V := time.Time) (fun _ => E.T)) ∗
+    (⌜c = chan.nil⌝ ∨ ∃ γc : ChanNames, isChanBag γc c (V := time.Time) (fun _ => iprop(True))) ∗
     □ ({{ True }} (App (Val (tk @!! go.GoType.PointerType time.Ticker.ty @!! go!"Stop")) (Val #()))
       {{ RET #(); True }}))
 
-instance isRNTicker_persistent (E : RNEnv GF) (tk : Loc) : Persistent (isRNTicker E tk) := by
+instance isRNTicker_persistent (tk : Loc) : Persistent (isRNTicker (GF := GF) tk) := by
   unfold isRNTicker; infer_instance
 
 /-- `tickMu`'s resource: `latestTickTs`, a `q`-fraction. -/
@@ -1864,7 +1866,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hapc" ∷ rnApplycAddr r ↦□ apc ∗ "#Hapci" ∷ isRNApplyc E γ apc ∗
     "#Hrsc" ∷ rnReadStateCAddr r ↦□ rsc ∗
     "#Hrsci" ∷ isRNReadStateC E rsc ∗
-    "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
+    "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
     "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E γ (storage.walOf st) stc ∗
     "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗

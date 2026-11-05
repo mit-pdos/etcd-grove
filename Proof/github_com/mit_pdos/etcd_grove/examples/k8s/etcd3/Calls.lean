@@ -16,6 +16,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InvSteps
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Cache
 
 @[expose] public section
 
@@ -37,6 +38,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
@@ -54,8 +56,9 @@ def ErrOther (eD eU err : GoInterface) : Prop :=
 
 /-- **`errOut(err)` is `y`** (see the file header). -/
 def errIs (err : GoInterface) (y : Output) : IProp GF :=
-  iprop((∃ k rv, storageErrIs err (W64 1) k rv ∗ ⌜y = ⟨W64 1, k, rv, [], [], 0⟩⌝) ∨
-    (∃ k rv, storageErrIs err (W64 2) k rv ∗ ⌜y = ⟨W64 2, k, rv, [], [], 0⟩⌝) ∨
+  iprop((∃ k rv, storageErrIs err (W64 1) k rv ∗ ⌜y = ⟨W64 1, k, rv, [], [], [], 0⟩⌝) ∨
+    (∃ k rv, storageErrIs err (W64 2) k rv ∗ ⌜y = ⟨W64 2, k, rv, [], [], [], 0⟩⌝) ∨
+    (∃ k, invalidErrIs err k ∗ ⌜y = ⟨W64 5, k, 0, [], [], [], 0⟩⌝) ∨
     ((globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ err ∨
         globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ err) ∗
       ⌜y = rejectedL⌝) ∨
@@ -103,7 +106,7 @@ theorem unkErr_errIs (hse : storageErrTyOk) (c : StoreCfg GF DObj) (hc : c.S = d
   · iapply isPkgInit_access $$ Hpkg
   icases Hi with ⟨-, -, -, -, ⟨%lD, #HD, -, #CD⟩, ⟨%lU, #HU, -, #CU⟩⟩
   iunfold errIs
-  iright; iright; iright
+  iright; iright; iright; iright
   isplitr
   · ipureintro; rfl
   iexists _, _
@@ -131,11 +134,10 @@ theorem rvStr_inj {a b : w64} (h : rvStr a = rvStr b) : a = b := by
   rw [h, parseRVD_rvStr b] at ha
   exact (Option.some.inj ha).symm
 
-/-- **Answers `call` places**: none of the errors of a resource version the driver does not ask
-for (`rvSetOnCreate`, `tooLarge`). -/
+/-- **Answers `call` places**: not the error of a resource version set on a create (the driver
+sets none). A `Get`'s too-large minimum resource version (stage 7b) is placed as `EOther`. -/
 def NoOddErr {E : Type} : KResp DObj E → Prop
   | .err .rvSetOnCreate => False
-  | .err (.tooLarge _ _) => False
   | _ => True
 
 /-- **`call`'s output of the store's answer** (see the file header): an error `errOut` places as
@@ -143,13 +145,14 @@ the answer's `outOf`, or the object `out` points to, whose `objOut` is it. -/
 theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (r : KResp DObj E) (err out eD eU : GoInterface) (hodd : NoOddErr r)
     (hu : ∀ e err', r = .err (.user e) → KUserErr.is e err' → err' = eD ∨ err' = eU) :
-    globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
+      globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ eD ∗
       globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ eU ∗
       respIs c r err out ⊢
       (⌜err ≠ GoInterface.nil⌝ ∗ errIs err (outOf r)) ∨
       (⌜err = GoInterface.nil⌝ ∗ ∃ (p : Loc) (o : Obj),
         ⌜out = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ objOutL o = outOf r⌝ ∗ p ↦ o) := by
-  iintro ⟨#HD, #HU, Hr⟩
+  iintro ⟨#Hpkg, #HD, #HU, Hr⟩
   cases r with
   | obj o rv =>
     unfold respIs
@@ -226,14 +229,66 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       isplitr
       · ipureintro; exact He.1
       iunfold errIs
-      iright; iright; ileft
+      iright; iright; iright; ileft
       isplitl
       · rcases hu e err rfl He.2 with h | h
         · rw [h]; ileft; iexact HD
         · rw [h]; iright; iexact HU
       ipureintro; rfl
     | rvSetOnCreate => exact hodd.elim
-    | tooLarge _ _ => exact hodd.elim
+    | invalidObj k =>
+      unfold respIs
+      icases Hr with ⟨#Hse, -⟩
+      ihave %Hne : ⌜err ≠ GoInterface.nil⌝ $$ [Hse]
+      · iunfold invalidErrIs at Hse
+        icases Hse with ⟨%l, %e, %He, -⟩
+        ipureintro; rw [He]; nofun
+      ileft
+      isplitr
+      · ipureintro; exact Hne
+      iunfold errIs
+      iright; iright; ileft
+      iexists k
+      iframe Hse
+      ipureintro; rfl
+    | tooLarge _ _ =>
+      -- a `*StatusError`: neither sentinel (`eD`, `eU`: `errors.New`'s, by `drvInit`)
+      unfold respIs
+      icases Hr with ⟨%He, -⟩
+      obtain ⟨l, rfl⟩ := He
+      ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hpkg
+      icases Hi with ⟨-, -, -, -, ⟨%lD, #HD', -, -⟩, ⟨%lU, #HU', -, -⟩⟩
+      icombine HD HD' gives %hD
+      icombine HU HU' gives %hU
+      subst hD hU
+      ileft
+      isplitr
+      · ipureintro; nofun
+      iunfold errIs
+      iright; iright; iright; iright
+      isplitr
+      · ipureintro; rfl
+      iexists _, _
+      iframe HD HU
+      ipureintro
+      have hse : k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠
+          _root_.Perennial.errors.errorString.ty ∧
+          k8s_io.apimachinery.pkg.api.errors.StatusError.ty ≠
+            k8s_io.apiserver.pkg.storage.StorageError.ty := by
+        unfold k8s_io.apimachinery.pkg.api.errors.StatusError.ty
+          _root_.Perennial.errors.errorString.ty k8s_io.apiserver.pkg.storage.StorageError.ty
+        refine ⟨?_, ?_⟩ <;> (intro h; injection h with h; simp at h)
+      have hne : ∀ l' : Loc, interface.mkOk
+          (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ≠
+          interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l' := by
+        intro l' h
+        simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at h
+        injection h.1 with h1
+        exact hse.1 h1
+      refine ⟨hne lD, hne lU, _, rfl, fun h => ?_, fun h => ?_⟩
+      · injection h with h1; exact hse.2 h1
+      · injection h with h1; exact absurd h1 hse.1
 
 theorem create_noOdd {E : Type} (s : KSt DObj) (k : GoString) (o : DObj) :
     NoOddErr (s.create (E := E) k o 0).2 := by
@@ -241,54 +296,50 @@ theorem create_noOdd {E : Type} (s : KSt DObj) (k : GoString) (o : DObj) :
   simp only [ne_eq, not_true_eq_false, ↓reduceIte]
   split <;> trivial
 
-theorem get_noOdd {E : Type} (s : KSt DObj) (k : GoString) (ign : Bool) :
-    NoOddErr (s.get (E := E) k 0 ign) := by
+theorem get_noOdd {E : Type} (s : KSt DObj) (k : GoString) (n : Nat) (ign : Bool) :
+    NoOddErr (s.get (E := E) k n ign) := by
   unfold KSt.get
-  simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte]
-  split
-  · trivial
-  · split <;> trivial
+  repeat' split
+  all_goals trivial
 
-theorem delete_noOdd (s : KSt DObj) (k : GoString) (eD : GoInterface) (r : GoString) :
-    NoOddErr (s.delete k (fun _ _ => none) (rejD eD r)).2 := by
+theorem delete_noOdd (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
+    (r : GoString) : NoOddErr (s.delete k pre (rejD eD r)).2 := by
   unfold KSt.delete
-  split
-  · trivial
-  · simp only
-    split <;> trivial
+  repeat' split
+  all_goals trivial
 
-theorem update_noOdd (s : KSt DObj) (k : GoString) (eU : GoInterface) (x : Input) :
-    NoOddErr (s.update k false dzero (fun _ _ => none) (updD eU x)).2 := by
+theorem update_noOdd (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → Nat → Bool)
+    (eU : GoInterface) (x : Input) : NoOddErr (s.update k ign dzero pre (updD eU x)).2 := by
   unfold KSt.update
   repeat' split
   all_goals trivial
 
 /-- A `Delete`'s callback error is `errDeleteRejected`'s value. -/
-theorem delete_user (s : KSt DObj) (k : GoString) (eD : GoInterface) (r : GoString)
-    (e : GoInterface) (h : (s.delete k (fun _ _ => none) (rejD eD r)).2 = .err (.user e)) :
+theorem delete_user (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
+    (r : GoString) (e : GoInterface) (h : (s.delete k pre (rejD eD r)).2 = .err (.user e)) :
     e = eD := by
   unfold KSt.delete at h
-  split at h
-  · cases h
-  · simp only at h
-    split at h
-    · next e' he => simp only [rejD] at he; split at he <;> cases he; cases h; rfl
-    · cases h
+  repeat' split at h
+  all_goals first | (cases h; done) | skip
+  rename_i he
+  simp only [KResp.err.injEq, KErr.user.injEq] at h
+  subst h
+  unfold rejD at he
+  split at he <;> simp_all
 
 /-- An update's callback error is `errUpdateRejected`'s value. -/
-theorem update_user (s : KSt DObj) (k : GoString) (eU : GoInterface) (x : Input)
-    (e : GoInterface)
-    (h : (s.update k false dzero (fun _ _ => none) (updD eU x)).2 = .err (.user e)) :
+theorem update_user (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → Nat → Bool)
+    (eU : GoInterface) (x : Input) (e : GoInterface)
+    (h : (s.update k ign dzero pre (updD eU x)).2 = .err (.user e)) :
     e = eU := by
   unfold KSt.update at h
-  split at h
-  · cases h
-  · simp only at h
-    split at h
-    · next e' he => simp only [updD] at he; split at he <;> cases he; cases h; rfl
-    · split at h
-      · split at h <;> cases h
-      · cases h
+  repeat' split at h
+  all_goals first | (cases h; done) | skip
+  rename_i he
+  simp only [KResp.err.injEq, KErr.user.injEq] at h
+  subst h
+  unfold updD at he
+  split at he <;> simp_all
 
 /-- The store's step for a `Create` of `x`. -/
 abbrev createStep (x : Input) : KSt DObj → KSt DObj :=
@@ -302,10 +353,11 @@ def callPre (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (W : IProp 
   if x.Kind' = W64 0 then iprop([∧list] sv ∈ c.ms, k8sAu1 sv.γr.kv c (createStep x) Φ)
   else if x.Kind' = W64 1 then
     iprop(W ∗ [∗list] sv ∈ c.ms,
-      k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (rejD eD x.Reject')) W Φ)
+      k8sAuRW sv.γr.kv c (delStep (mkeyL x.Key') (preD x) (rejD eD x.Reject')) W Φ)
   else if x.Kind' = W64 2 then
     iprop(W ∗ [∗list] sv ∈ c.ms,
-      k8sAuRW sv.γr.kv c (updStep (mkeyL x.Key') dzero (updD eU x)) W Φ)
+      k8sAuRW sv.γr.kv c
+        (updStep (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD eU x)) W Φ)
   else iprop(∀ R m, |==> □ [∧list] sv ∈ c.ms,
     ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (Q R m))
 
@@ -318,7 +370,7 @@ def callAt (x : Input) (Φ : KVState → IProp GF) (Q : w64 → w64 → KVState 
 
 /-- A driver object in the heap is the store's object at its resource version's string. -/
 theorem objAtD_pt (p : Loc) (o : DObj) (n : w64) :
-    p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.1.1 o.1.2 n ⊢
+    p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n ⊢
       objAtD (GF := GF) (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr n) := by
   iintro H
   icases (typedPointsto_not_null_dup _ _ _) $$ H with ⟨H, %Hn⟩
@@ -327,31 +379,69 @@ theorem objAtD_pt (p : Loc) (o : DObj) (n : w64) :
   iframe H
   ipureintro; exact ⟨rfl, Hn, rfl⟩
 
+/-- `uidOf(u)`: the UID a `Create` draws, `u`'s two low bytes. -/
+def uidOfL (u : w64) : GoString := [u.extractLsb' 8 8, u.extractLsb' 0 8]
+
+/-- `withPre(in, uid, rv, c, hasC)`: `in`'s preconditions from the cached object `c` (if any): its
+UID if `uid`, its resource version's string if `rv`. -/
+def withPreL (x : Input) (uid rv : Bool) (c : Obj) (hasC : Bool) : Input :=
+  if hasC then
+    { x with HasPreUID' := uid, PreUID' := if uid then c.UID' else x.PreUID',
+             HasPreRV' := rv, PreRV' := if rv then rvStr c.ResourceVersion' else x.PreRV' }
+  else x
+
+/-- `minRV(m, d, c, hasC)`: a `Get`'s minimum resource version for the draw `m` and the offset
+`d` (the comparisons unsigned, as Go's on `uint64`). -/
+def minRVL (m d : w64) (c : Obj) (hasC : Bool) : GoString :=
+  if m < 30 then []
+  else if m < 45 then rvBytes 0
+  else if m < 55 then rvBytes 1
+  else if !hasC then []
+  else if m < 84 then rvBytes c.ResourceVersion'
+  else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes 1 else rvBytes (c.ResourceVersion' - d))
+  else rvBytes (c.ResourceVersion' + d)
+
+/-- **The cached object's scope premise** (D1 of stage 7b, `notes/k8s-etcd3-plan.md`;
+`issues/k8s-etcd3-cached-noop-skips-preconditions.md`): an update with a cached object carries no
+resource version precondition. -/
+def CachedNoRV (x : Input) : Prop :=
+  x.UseCached' = true → x.Kind' = W64 2 → x.HasPreRV' = false
+
 /-- **An input `Gen` may return**, as far as `Apply` needs: its name one of the workload's keys
 (`workloadKeys`), its kind one of the four, its value at most `2 ^ 20` bytes (an object it creates
-or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4). -/
+or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4), its UID shorter than 256
+bytes (`uidOf`'s two), its minimum resource version one `parseRV` takes (`minRV`'s), and no
+resource version precondition on an update with a cached object (`CachedNoRV`). -/
 def GenIn (x : Input) : Prop :=
   (x.Key' = go!"a" ∨ x.Key' = go!"b" ∨ x.Key' = go!"c") ∧
     (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3) ∧
-    x.Val'.length ≤ 2 ^ 20
+    x.Val'.length ≤ 2 ^ 20 ∧ x.UID'.length < 256 ∧ (parseRVD x.MinRV').isSome ∧ CachedNoRV x
 
 /-- A sentinel's value (`errors.New`'s `*errorString`). -/
 abbrev sentV (l : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l
 
-/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return. -/
-abbrev kInOk (i : GoInterface) : IProp GF := iprop(⌜∃ x, i = boxIn x ∧ GenIn x⌝)
+/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, with its cached object
+one of the store `c` (`cachedIn`). -/
+def kInOk (c : StoreCfg GF DObj) (i : GoInterface) : IProp GF :=
+  iprop(∃ x, ⌜i = boxIn x ∧ GenIn x⌝ ∗ cachedIn c x)
+
+instance kInOk_persistent (c : StoreCfg GF DObj) (i : GoInterface) :
+    Persistent (kInOk (GF := GF) c i) := by
+  unfold kInOk; infer_instance
 
 /-- A workload key is one the store takes, under the driver's prefixes, and fits an object. -/
 theorem genIn_ok (x : Input) (hx : GenIn x) :
     InOk x ∧ prepareKeyM go!"/objs" (storeKeyL x.Key') false = some (storeKeyL x.Key') ∧
       go!"/registry" ++ storeKeyL x.Key' = mkeyL x.Key' := by
   refine ⟨?_, ?_, rfl⟩
-  · rcases hx.1 with h | h | h <;> (unfold InOk; rw [h]; decide)
+  · refine ⟨?_, hx.2.2.2.1, hx.2.2.2.2.1⟩
+    rcases hx.1 with h | h | h <;> (rw [h]; decide)
   · rcases hx.1 with h | h | h <;> (rw [h]; decide)
 
-/-- An answer `call` places is never `EOther`. -/
-theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r) : (outOf r).Err' ≠ W64 4 := by
+/-- An answer `call` places is never `EOther`, but a too-large minimum resource version. -/
+theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r)
+    (ht : ∀ a b, r ≠ .err (.tooLarge a b)) : (outOf r).Err' ≠ W64 4 := by
   cases r with
   | obj o rv => simp [outOf, objOutL]
   | zero => simp [outOf, zeroOutL]
@@ -359,24 +449,49 @@ theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r) : (outOf r).Err
     cases e with
     | notFound k rv => simp [outOf]
     | keyExists k => simp [outOf]
+    | invalidObj k => simp [outOf]
     | user e => simp [outOf, rejectedL]
     | rvSetOnCreate => exact h.elim
-    | tooLarge _ _ => exact h.elim
+    | tooLarge a b => exact absurd rfl (ht a b)
 
-/-- **The store's model never answers `EOther`** (at any state). -/
-theorem kStep_err (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
+/-- **The store's model never answers `EOther`** (at any state), but to a `Get` whose minimum
+resource version is above the state's (stage 7b: too large). -/
+theorem kStep_err (eD eU : GoInterface) (x : Input) (ks : KSt DObj)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ uint.nat (minOf x) ≤ ks.rv) :
     (kStep eD eU x ks).2.Err' ≠ W64 4 := by
   unfold kStep
   by_cases h0 : x.Kind' = W64 0
-  · rw [if_pos h0]; exact outOf_err _ (create_noOdd _ _ _)
-  rw [if_neg h0]
+  · rw [ite_eq_left h0]
+    refine outOf_err _ (create_noOdd _ _ _) fun a b h => ?_
+    unfold KSt.create at h
+    repeat' split at h
+    all_goals cases h
+  rw [ite_eq_right h0]
   by_cases h1 : x.Kind' = W64 1
-  · rw [if_pos h1]; exact outOf_err _ (delete_noOdd _ _ _ _)
-  rw [if_neg h1]
+  · rw [ite_eq_left h1]
+    refine outOf_err _ (delete_noOdd _ _ _ _ _) fun a b h => ?_
+    unfold KSt.delete at h
+    repeat' split at h
+    all_goals cases h
+  rw [ite_eq_right h1]
   by_cases h2 : x.Kind' = W64 2
-  · rw [if_pos h2]; exact outOf_err _ (update_noOdd _ _ _ _)
-  rw [if_neg h2]
-  exact outOf_err _ (get_noOdd _ _ _)
+  · rw [ite_eq_left h2]
+    refine outOf_err _ (update_noOdd _ _ _ _ _ _) fun a b h => ?_
+    unfold KSt.update at h
+    repeat' split at h
+    all_goals cases h
+  rw [ite_eq_right h2]
+  have hmin : uint.nat (minOf x) ≤ ks.rv := by
+    rcases hk with h | h | h | h
+    · exact absurd h h0
+    · exact absurd h h1
+    · exact absurd h h2
+    · exact h
+  refine outOf_err _ (get_noOdd _ _ _ _) fun a b h => ?_
+  unfold KSt.get at h
+  rw [if_neg (by omega)] at h
+  repeat' split at h
+  all_goals cases h
 
 end defs
 

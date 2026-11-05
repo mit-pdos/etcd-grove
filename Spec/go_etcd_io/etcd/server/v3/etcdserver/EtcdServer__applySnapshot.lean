@@ -95,7 +95,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
     (hlp : mvcc.leaseParams d.P)
-    (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
@@ -175,7 +175,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        -- (review R1's F1, decision 5) the apply thread's quarter
-       backend.isStopChansE d.γB d.P d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+       srvStopChans γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
        -- (F9) the auth store's `Recover` facts by the mode (`off`: `authRecoverOk`; `on`, Q2's
        -- candidate (ii): the store's invariant at the server's `E.RD` with the snapshot clause,
        -- and the image's committed log)

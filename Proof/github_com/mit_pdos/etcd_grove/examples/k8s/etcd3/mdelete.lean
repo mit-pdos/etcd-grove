@@ -1,5 +1,7 @@
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preOk
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.invalidObj
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mdelete
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.delItem
@@ -26,11 +28,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     (wp_delItem : delItem.spec (GF := GF) (hG := hG))
     (wp_notFound : notFound.spec (GF := GF) (hG := hG))
+    (wp_preOk : preOk.spec (GF := GF) (hG := hG))
+    (wp_invalidObj : invalidObj.spec (GF := GF) (hG := hG))
     (wp_objOut : objOut.spec (GF := GF) (hG := hG))
     (wp_validateFor : validateFor.spec (GF := GF) (hG := hG)) :
     mdelete.spec (GF := GF) (hG := hG) := by
@@ -55,13 +60,21 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
     ipureintro; exact ⟨rfl, rfl⟩
   · have hn : (lookupL g.items x.Key').2 = true := hok.symm
     (try wp_auto)
+    wp_apply wp_preOk
+    cases hp : preOkL x it.obj'
+    · (try wp_auto)
+      wp_apply wp_invalidObj
+      iapply HΦ
+      have : mdeleteL x g = (g, invalidObjL x.Key') := by simp [mdeleteL, hn, ← hit, hp]
+      rw [this]
+      iframe Hk
+      ipureintro; exact ⟨Hr, rfl⟩
+    (try wp_auto)
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply wp_validateFor as %vf #Hvf
     iunfold validateD at Hvf
     (try wp_auto)
-    ihave c : c_ptr ↦ Obj.mk it.obj'.Name' it.obj'.Value' it.obj'.ResourceVersion' $$ [c]
-    · iexact c
     cases hr : rejects x.Reject' it.obj'.Value'
     · wp_apply Hvf $$ [$c] as %err Hc Herr
       isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Herr
@@ -74,8 +87,8 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       wp_apply wp_objOut
       iapply HΦ
       have : mdeleteL x g = (⟨delItemL g.items x.Key', g.rv + W64 1⟩,
-          objOutL ⟨it.obj'.Name', it.obj'.Value', g.rv + W64 1⟩) := by
-        simp [mdeleteL, hn, ← hit, hr]
+          objOutL { it.obj' with ResourceVersion' := g.rv + W64 1 }) := by
+        simp [mdeleteL, hn, ← hit, hr, hp]
       rw [this, ← Hr]
       iframe Hout
       ipureintro; exact ⟨rfl, rfl⟩
@@ -88,7 +101,7 @@ theorem mdelete.wp_proof (wp_lookup : lookup.spec (GF := GF) (hG := hG))
       | ok ei =>
         (try wp_auto)
         iapply HΦ
-        have : mdeleteL x g = (g, rejectedL) := by simp [mdeleteL, hn, ← hit, hr]
+        have : mdeleteL x g = (g, rejectedL) := by simp [mdeleteL, hn, ← hit, hr, hp]
         rw [this]
         iframe Hk
         ipureintro; exact ⟨Hr, rfl⟩

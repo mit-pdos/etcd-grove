@@ -1782,7 +1782,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   · iexists tch, γt; iexact Htk0
   ihave #Htk' := Htk0
   iunfold time.isTicker at Htk'
-  icases Htk' with ⟨#HC, -, #Hbag⟩
+  icases Htk' with ⟨#HC, #HI, #HR, #Hbag⟩
   ipersist sws
   ipersist ids
   ipersist pending

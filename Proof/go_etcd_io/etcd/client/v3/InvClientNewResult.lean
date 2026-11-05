@@ -138,12 +138,22 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
   ipureintro
   exact ⟨H11.2, by simp, 0, by decide, by first | rfl | trivial⟩
 
+/-- **The client's endpoints** (persistent): its `endpoints` field holds, read-only, a slice of
+`eps` (what `Endpoints()` returns a copy of). -/
+def clientEndpointsAt (cl : Loc) (eps : List GoString) : IProp GF :=
+  iprop(∃ esl : GoSlice, clientF cl go!"endpoints" ↦□ esl ∗ esl ↦*□ eps)
+
+instance clientEndpointsAt_persistent (cl : Loc) (eps : List GoString) :
+    Persistent (clientEndpointsAt (GF := GF) cl eps) := by
+  unfold clientEndpointsAt; infer_instance
+
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
 connection, its interceptor and some stub and logger), the watcher without the server's facts
 (`isClientWatcherCore`; `isNewClient_watcher` adds them); and (item 1, the client lease) its `Lease`,
 a `*lessor` over the connection (`lessorAt`); and (the auth plan's E2h) its `Auth`, a
-`*authClient` over the connection (`authObjAt`). -/
+`*authClient` over the connection (`authObjAt`); and (Q1 (c)) its endpoints (`clientEndpointsAt`);
+and its `ctx` field, read-only (`c.Ctx()` returns it; `isNewClient_ctx`). -/
 def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : IProp GF :=
   iprop(clientKVAt cl eps ∗ retryClientOk cl ∗
@@ -161,11 +171,32 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
     (∃ ap : Loc, clientF cl go!"Auth" ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
           GoInterface) ∗
-      authObjAt ap eps))
+      authObjAt ap eps) ∗
+    -- (Q1 (c), 2026-11-05) its endpoints, read-only (`Endpoints()` returns them)
+    clientEndpointsAt cl eps ∗
+    -- (2026-11-05, k8s-etcd3 plan's client item 6) its `ctx`, read-only (`Ctx()` returns it)
+    (∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : Persistent (isNewClient cl eps V) := by
   unfold isNewClient; infer_instance
+
+/-- **`New`'s client keeps its endpoints** (Q1 (c), 2026-11-05): what `Endpoints()` returns. -/
+theorem isNewClient_endpoints [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ⊢ clientEndpointsAt cl eps := by
+  unfold isNewClient
+  iintro ⟨-, -, -, -, -, -, #H, -⟩
+  iexact H
+
+/-- **`New`'s client keeps its context** (2026-11-05): the `ctx` field, read-only (what `Ctx()`
+returns). -/
+theorem isNewClient_ctx [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ⊢ ∃ cx : GoInterface, clientF cl go!"ctx" ↦□ cx := by
+  unfold isNewClient
+  iintro ⟨-, -, -, -, -, -, -, #H⟩
+  iexact H
 
 /-- **The client's watcher, once the watch server's facts are supplied** (D19f): `New`'s client
 with `watchAddrFacts V` at its endpoint has a `Watcher` field that is a `*watcher` over the
@@ -188,7 +219,7 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
         isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
   subst hV
   unfold isNewClient
-  iintro ⟨#P1, #P2, #P3, ⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -⟩, #Hf⟩
+  iintro ⟨#P1, #P2, #P3, ⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -, -⟩, #Hf⟩
   iexists w, conn, wc, lg, ics
   iframe Hw
   iapply isClientWatcher_of_core
@@ -253,7 +284,7 @@ theorem isNewClient_watcher_of [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
         clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
         isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
   unfold isNewClient
-  iintro ⟨⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -⟩, #Hf⟩
+  iintro ⟨⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -, -⟩, #Hf⟩
   iexists w, conn, wc, lg, ics
   iframe Hw
   iapply isClientWatcher_of_core

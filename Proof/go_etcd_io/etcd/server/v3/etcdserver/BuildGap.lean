@@ -201,9 +201,9 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
     -- `Send`'s borrow
-    (id : w64) (S : IProp GF) (hid : γw.id = id) :
+    (id : w64) (S ST : IProp GF) (hid : γw.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
-      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S) γw := by
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S ST) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only

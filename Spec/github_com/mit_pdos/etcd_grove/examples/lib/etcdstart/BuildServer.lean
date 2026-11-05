@@ -8,7 +8,7 @@ example that keeps its listeners (`examples/etcd/restart`). Lean-first (no Rocq 
 a new cluster's first start), at any snapshot settings.
 
 **`specStop`** (DRAFT, R2b): `spec`'s, with the server's data directory recorded (`srvDataDir`,
-the name's `.etcd`) and what it keeps for the stop (`srvStopKeep`), from which `Start` gives the
+the name's `.etcd`) and what it keeps for the stop (`srvStop.keep`), from which `Start` gives the
 right to stop it (`etcdstart.Start_builtS_spec`;
 R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to give; `start`
 makes the channels it names).
@@ -116,8 +116,8 @@ abbrev BuildServer.specStop : Prop :=
       (Val #snapCount)) (Val #catchUp)) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
-          srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuiltS s ρ E₀ lg γn id N false lm ∗
+          srvDataDir s (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=
@@ -150,7 +150,10 @@ abbrev BuildServer.specRestart : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
-          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗ srvStopKeep s) }}
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗ srvDataDir s (name ++ go!".etcd") ∗
+          -- (R2d's: inside `memberBuiltR`, at its names, as `memberBuiltS`)
+          ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
+            (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) }}
 
 end spec
 

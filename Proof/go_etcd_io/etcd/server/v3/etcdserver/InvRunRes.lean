@@ -235,7 +235,7 @@ structure ApplyCtx (GF : BundledGFunctors) where
   ms : Loc
   γs : MemStorNames
   /-- (2026-10-19, D21 M3) the write budget's counter (`srvWTPool`) -/
-  wt : GName
+  wt : WTNames
   /-- (D22 receiver epochs, S7f) the request path's names (`isServer`'s) -/
   ρ : ReqNames
   /-- (2026-11-03, R2b-1 stage 5) the raft wrapper's names (its WAL's, `rnWalTokA`) -/
@@ -274,9 +274,9 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied
     -- index, which no proof read and a snapshot's jump breaks)
-    (∃ w : Nat, srvWTTaken C.wt w) ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back, at the current backend
-    srvSnapOwn C.s C.ci B.E C.γr ai ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       -- (2026-10-31, the snapshot track: #11's S1) the consistent index at least the applied one
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
@@ -409,7 +409,7 @@ def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
-    srvSnapOwn s ci E γr ai₀)
+    srvSnapOwn s ci E γr γ ai₀)
 
 /-- (J8b, 2026-11-01) **The meta reads of the backends the apply thread opens** at the apply names
 `γ`: `bootOk`'s `#HmetaSnap` (J8a-4) by name, which `NewServer` passes to `run` through `start`'s

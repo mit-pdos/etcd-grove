@@ -52,7 +52,6 @@ theorem RawNode.ReadIndex.wp_proof
   ihave #Hcinv := ownStepGhost_inv γ _ cf id s $$ Hghost
   imod read_deposit γ c Qr L0 $$ Hcinv Hfr Hau HL0 with ⟨%Lc, %HL0c, #Hrq, #Hrd⟩
   wp_auto_lc 1
-  rw [show raftpb.MsgReadIndex = #((W32 15 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 15) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

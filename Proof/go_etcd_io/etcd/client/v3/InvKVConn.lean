@@ -1478,6 +1478,11 @@ instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc 
     Persistent (ctxErrClient ci cd) := by
   unfold ctxErrClient; infer_instance
 
+/-- `ctxErrClient` is `ctxOk`'s third case, `ctxErrs` (grpc's, which this file's definition
+predates). -/
+theorem ctxErrClient_eq_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    ctxErrClient (GF := GF) ci cd = ctxErrs ci cd := rfl
+
 namespace client
 
 /-- **Every context's `Err()` returns client errors** (a premise, persistent; `InvServerKV.lean`'s

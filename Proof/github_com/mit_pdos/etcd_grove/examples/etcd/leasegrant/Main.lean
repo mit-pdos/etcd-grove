@@ -70,13 +70,14 @@ theorem Main.wp_proof
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP HnE Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
   iunfold premises at Hprem
+  iunfold etcdstart.premises at Hprem
   icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leasegrantDir id)
       go!"leasegrant" go!"leasegrant"
       (etcdstart.urls1 go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956") id cfgOk urlsOk
-      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
-      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
+      (fun _ h => h)
+      (fun _ h => h) $$ Hboot
   ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
   · iunfold etcdstart.commonPremises; iframe #
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
@@ -98,7 +99,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`), at KV names that grant leases
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (leasegrantDir id)
+  imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leasegrantDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .mono .mono (lease.runCfg_mono HnE hslg)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal
@@ -110,7 +111,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leasegrant" go!"127.0.0.1:23966" go!"127.0.0.1:23956" lg
       (LogEntry.toEntries boot 0) ctxs (leasegrantDir id) id γ ρ E₀ Φs γn .mono Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leasegrantDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
+      (by simp [leasegrantDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
@@ -138,13 +139,19 @@ theorem Main.wp_proof
   haveI := Hms
   have hlgw : ({ ρ with wait := γw } : ReqNames).rd.kv.lg = true := by
     show ρ.rd.kv.lg = true; rw [KVNames.lg_eq, hlgρ]; rfl
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23956" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23956" ∗
-        etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        etcdstart.etcdLeaseGrantAt go!"127.0.0.1:23956" E)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms HLR Htok2] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23956"
       cid mid R Hrb48 (by omega) Hrf HlP rfl .mono hlgρ
     simp only [etcdstart.etcdLeaseServedAt] at h

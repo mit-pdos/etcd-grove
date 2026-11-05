@@ -9,6 +9,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Base
 
 @[expose] public section
 
@@ -25,10 +26,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance isPkgInit_inst :
+instance isPkgInit_inst [EtcdGrove.k8s.CompactorRegistry] :
     IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
+instance get_isPkgInit_wf_inst [EtcdGrove.k8s.CompactorRegistry] :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.compactor :=
   build_get_is_pkg_init_wf
 

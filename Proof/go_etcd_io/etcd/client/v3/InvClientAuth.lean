@@ -488,6 +488,7 @@ theorem quiet_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.E
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iexact Hq
   iapply ctxErrClient_quiet hAs ci ⟨γc, γc⟩
   iframe #

@@ -42,7 +42,7 @@ theorem lessor.deadlineLoop.wp_proof (wp_close : keepAlive.close.spec (GF := GF)
   wp_apply time.wp_NewTimer as %t %tch %γt #Ht
   (try wp_auto)
   iunfold time.isTimer at Ht
-  icases Ht with ⟨#HtC, #Htbag, #Htm⟩
+  icases Ht with ⟨#HtC, #Htinit, #Htcell, #Htbag⟩
   ipersist l
   ipersist timer
   wp_for

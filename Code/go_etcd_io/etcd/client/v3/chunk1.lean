@@ -472,6 +472,8 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Put"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"KV"))) (Var "$r"))))
   Txn_unfold : MethodUnfold Client.ty go!"Txn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Txn"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"KV"))) (Var "$r"))))
+  Watch_unfold : MethodUnfold Client.ty go!"Watch" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Watcher.ty go!"Watch"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"Watcher"))) (Var "$r"))))
   ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Compact" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Compact"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" Client.Ctx.impl
@@ -485,6 +487,8 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_SetEndpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SetEndpoints" Client.SetEndpoints.impl
   ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Txn" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Txn"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
+  ptr_Watch_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Watch" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Watcher.ty go!"Watch"))) (App (Val (GoInstruction (GoLoad Watcher.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"Watcher"))) (Var "$r")))))
   ptr_autoSync_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"autoSync" Client.autoSync.impl
   ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" Client.credentialsForEndpoint.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
@@ -543,6 +547,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.Get_unfold
   Client.TypeAssumptions.Put_unfold
   Client.TypeAssumptions.Txn_unfold
+  Client.TypeAssumptions.Watch_unfold
   Client.TypeAssumptions.ptr_Compact_unfold
   Client.TypeAssumptions.ptr_Ctx_unfold
   Client.TypeAssumptions.ptr_Delete_unfold
@@ -551,6 +556,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_Put_unfold
   Client.TypeAssumptions.ptr_SetEndpoints_unfold
   Client.TypeAssumptions.ptr_Txn_unfold
+  Client.TypeAssumptions.ptr_Watch_unfold
   Client.TypeAssumptions.ptr_autoSync_unfold
   Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
   Client.TypeAssumptions.ptr_dial_unfold

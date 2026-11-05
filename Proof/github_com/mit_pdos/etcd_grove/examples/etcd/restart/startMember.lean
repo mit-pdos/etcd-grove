@@ -64,7 +64,7 @@ theorem startMember.wp_proof
       ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hwdf] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr, Hkeep⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -85,10 +85,11 @@ theorem startMember.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Hlerr
   wp_auto
+  iunfold etcdstart.memberBuiltS at Hmb
   iunfold etcdstart.memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR⟩
+    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR, Hlrd, Hkeep⟩
   -- the listener registered, closable (the draft boundary): it serves the peer address with the
   -- member's raft protocol
   imod (hReg lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with ⟨%Hli, Hlis, Hcloser⟩
@@ -110,9 +111,10 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartS s ρ E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
-  · iframe Htok Hsr Hkeep
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
+  · iframe Htok Hsr
     iframe #
+    iunfold etcdstart.memberBuiltS
     iunfold etcdstart.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
     simp only [↓reduceIte]

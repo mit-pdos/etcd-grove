@@ -39,7 +39,6 @@ theorem witness.handleAppendNoUpdate.wp_proof
   icases Hm with ⟨%s0, %s1, %Hmv, #Hs0, #Hs1, #Hvot, #Hctx⟩
   obtain ⟨Hty, Hfr, Hto, Hte, Hlt, Hls, Hli, Hrs⟩ := Hmv
   wp_auto
-  rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 4) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

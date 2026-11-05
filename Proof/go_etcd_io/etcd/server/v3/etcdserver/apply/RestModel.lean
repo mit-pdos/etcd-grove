@@ -53,8 +53,24 @@ structure RestM where
 /-- **`schema.BackendMemberKey(id)`**: a member's key in `members` (its id in hex; opaque). -/
 opaque memberKey : w64 → GoString
 
+/-- **Distinct ids, distinct keys** (2026-11-04, the restart plan's R2b-3d gap 3, the user's approval;
+a trust-boundary axiom on the opaque `memberKey`). `schema.BackendMemberKey(id)` is
+`[]byte(id.String())` (`server/storage/schema/bucket.go:106-108`), and `types.ID.String()` is
+`strconv.FormatUint(uint64(i), 16)` (`client/pkg/types/id.go:27-29`), which is injective. -/
+axiom memberKey_inj (a b : w64) (h : memberKey a = memberKey b) : a = b
+
 /-- **`json.Marshal(m)` of a member** (`MustSaveMemberToBackend`'s value; opaque). -/
 opaque memberEnc : MemberM → GoString
+
+/-- **Equal encodings, equal ids and learner flags** (2026-11-04, the restart plan's R2b-3d gap 3, the
+user's approval; a trust-boundary axiom on the opaque `memberEnc`). `json.Marshal` of a `*Member`
+(`api/membership/member.go`'s `Member`: `ID types.ID` as `"id"`, a number, `types.ID` having no
+JSON methods; `RaftAttributes`' `IsLearner` as `"isLearner"`, written iff true) writes both, and
+neither is a string, so no UTF-8 coercion applies. Two members with the same JSON have the same
+`id` and `isLearner`. A restart's `buildConfStateFromV3store` reads them back from the `members`
+bucket (`v3ConfStateIs`). -/
+axiom memberEnc_id_learner (a b : MemberM) (h : memberEnc a = memberEnc b) :
+    a.id = b.id ∧ a.isLearner = b.isLearner
 
 /-- **`semver.MustParse(v).String()`** (opaque): the cluster version `SetVersion` saves for the
 request's version `v` (its `String()` normalizes it). -/

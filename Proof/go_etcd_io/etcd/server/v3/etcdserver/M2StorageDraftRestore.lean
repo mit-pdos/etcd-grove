@@ -6,7 +6,7 @@ draft of one, for them to read.
 
 - **The write-back supply follows the backend** (task 2; `kbWTSupplyM`, Q1 (a): `store.Compact`'s
   premise; made real in stage B1, 2026-11-02, `InvApplier.lean`). The write budget's tokens move out of `srvWTPool`'s invariant into **one stock invariant
-  per backend** (`srvWTStockInv γp d`, persistent, named by the backend `d`, which never changes),
+  per backend** (`srvWTStockInv γp.cnt d`, persistent, named by the backend `d`, which never changes),
   sharing the pool's receipt counter `γp` (a lower bound in each stock): the pool keeps the receipts,
   the counter's authority, its quarter of `E.γbe` at the current backend and that backend's stock
   fact (`srvWTPool`). A taker at any backend with a stock takes a receipt into the pool and a token
@@ -64,7 +64,7 @@ and the pool over them (`srvWTPool`) are in `InvApplier.lean` (stage B1, 2026-11
 uses, `store.Compact.specD`'s `kbWTSupplyM γ.kb`): the apply thread's part of the backend's name
 (`srvBeOwn`, which it holds) agrees with the pool's, whose stock fact (under the pool's `▷`: a
 later credit) gives the current backend's supply. -/
-theorem kbWTSupplyM_of_poolR (s : Loc) (E : apply.AEnv GF) (γp : GName) :
+theorem kbWTSupplyM_of_poolR (s : Loc) (E : apply.AEnv GF) (γp : WTNames) :
     ⊢ srvWTPool (GF := GF) E γp -∗ srvBeOwn s E -∗ £ 1 ={⊤}=∗
       srvBeOwn s E ∗ mvcc.kbWTSupplyM E.γ.kb := by
   iintro #Hp Hbo Hlc
@@ -162,7 +162,7 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by
+          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) := by
   iintro ⟨Hown, Hcl⟩
   iunfold apply.kvOwn at Hown
   icases Hown with ⟨Hrd, Hkw, Hll, HRD, Hwo⟩
@@ -179,7 +179,7 @@ theorem restorePre_of_applyM (s : Loc) (E : apply.AEnv GF) (log : mvcc.Log) (c :
       ∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) $$ [Hcl]
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) $$ [Hcl]
   · rw [hγw]
     by_cases h : mvcc.kbCmpM E.γ.kb
     · icases (srvKVCloserM_on s E c h).1 $$ Hcl with ⟨%wsl, #Hkvf, Hcl⟩
@@ -227,7 +227,7 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) ⊢
+          mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) ⊢
       srvKVCloserM s E' c' ∗ ⌜mvcc.kbCmpM E'.γ.kb ↔ mvcc.kbCmpM E.γ.kb⌝ := by
   have hmode : mvcc.kbCmpM E'.γ.kb ↔ mvcc.kbCmpM E.γ.kb := by
     rw [hγ, mvcc.StoreNames.withPhys_kb, hkb', hkb, mvcc.kbCmpM_some_iff, mvcc.kbCmpM_some_iff, hcm']
@@ -243,7 +243,8 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
       iapply mvcc.wsCloserR_join wsl E.s (E.γ.withPhys p') c' h' $$ [Hr Hstcl Hwsw]
       iframe Hr
       iexists stc
-      iframe Hstc Hstcl Hwsw
+      iframe Hstc Hstcl
+      rw [mvcc.wsWaiter_withPhys]; iexact Hwsw
     · have h' : ¬ mvcc.kbCmpM (E.γ.withPhys p').kb := by rw [← hγ]; exact h
       ihave Hr := (mvcc.storeCloserM_off E.s (E.γ.withPhys p') c' h').1 $$ Hr
       -- off: `Restore`'s image premise made `c' = -1` (`restoreImageM_off`): the closer at `-1`
@@ -259,7 +260,8 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
         rw [hs, hγ]
         iunfold mvcc.wsCloser
         iexists stc
-        iframe Hstc Hstcl Hwsw Hr
+        iframe Hstc Hstcl Hr
+        rw [mvcc.wsWaiter_withPhys]; iexact Hwsw
       ipureintro; exact hc' hoff
   ipureintro; exact hmode
 
@@ -267,12 +269,12 @@ theorem snap_closer_after (s : Loc) (E E' : apply.AEnv GF) (p' : mvcc.PhysNames)
 place of handing `srv_be_swap` the new tokens after it): the new backend's stock from its fresh
 tokens, and with it the supply `watchableStore.Restore.specM` takes for the compaction `restore()`
 resumes; the stock fact is kept for `srv_be_swap`. -/
-theorem snap_supply_before (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBReal) (n : Nat)
+theorem snap_supply_before (E : apply.AEnv GF) (γp : WTNames) (d' : mvcc.KBReal) (n : Nat)
     (h : receiptBound GF ≤ n + 1) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ownToks d'.γB.wb n ={⊤}=∗
-      srvWTStockInv γp d' ∗ mvcc.kbWTSupplyM (some d') := by
+      srvWTStockInv γp.cnt d' ∗ mvcc.kbWTSupplyM (some d') := by
   iintro #Hp Hn
-  imod srvWTStock_alloc γp d' n h ⊤ $$ Hn with #Hs
+  imod srvWTStock_alloc γp.cnt d' n h ⊤ $$ Hn with #Hs
   imodintro
   iframe Hs
   iapply kbWTSupplyM_of_stock E γp d' $$ [$Hp $Hs]

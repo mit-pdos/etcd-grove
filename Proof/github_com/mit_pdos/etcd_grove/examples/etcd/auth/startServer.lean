@@ -7,7 +7,7 @@ the peer URL slice and the cluster's map `{authkv ↦ peer}` (read-only from her
 configuration's client URLs and feature gate; `NewServer` with auth on (`NewServer.specM true`: the
 simple provider, the TTL `300`), whose post gives the mode `.on γa`, the lessor finding no lease
 (`srvLessorNil`) and the built part with auth on (`isServerBuilt_of_gapM true`); on success
-`s.Start()` with auth on (`Start.specOn`). An error of `NewServer` returns it, with the thread token.
+`s.Start()` at the auth slot's `on γa` (`Start.spec`). An error of `NewServer` returns it, with the thread token.
 -/
 module
 
@@ -40,7 +40,7 @@ theorem startServer.wp_proof
     (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
     (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.specM (GF := GF) (hG := hG) true)
-    (wp_Start : EtcdServer.Start.specOn (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startServer.spec (GF := GF) (hG := hG) := by
   intro CS N lg bootLog ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2
     Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hdbo
@@ -136,7 +136,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -149,11 +149,14 @@ theorem startServer.wp_proof
   ihave #HLnil := lease.srvInv_lessorNil true srv E .none rfl $$ Hlsrv
   obtain ⟨hagree, -, hγa⟩ := HE
   obtain ⟨γa, hγa⟩ := hγa trivial
-  -- what `Start` takes: the built part with auth on, the monitors off
-  ihave Hsb : isServerBuiltOn srv γA ci TM E ρ ρ.rd
-      (srvErM true ρ E₀ (W64 0) (W64 0) (bootKVOf true) id (srvTrKey γn γk)) γrn b (W64 0) (W64 0)
-      (W64 0) (bootKVOf true) N $$ [Hbuilt Hgap]
-  · rw [← isServerBuiltM_true]
+  -- what `Start` takes: the built part with auth on (at the boot state `x₀` and the read loop's
+  -- environment `Er`, named once), the monitors off
+  obtain ⟨x₀, hx₀⟩ : ∃ x, x = bootKVOf true := ⟨_, rfl⟩
+  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) (srvTrStopK γk) := ⟨_, rfl⟩
+  ihave Hsb : isServerBuiltOn srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
+      $$ [Hbuilt Hgap]
+  · subst hEr hx₀
+    rw [← isServerBuiltM_true]
     iapply isServerBuilt_of_gapM
     iframe
   iunfold srvMonitorCfg at Hmon
@@ -167,11 +170,20 @@ theorem startServer.wp_proof
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
-  -- `s.Start()` with auth on
-  wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) (bootKVOf true) N γa
-      hγa Hrb48 HrbN rfl)
-    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩
+  -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row, the lessor's
+  have hB := isServerBuiltM_C (GF := GF) (.on γa) srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0)
+    (W64 0) x₀ N hγa
+  have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
+  dsimp only [AuthC.isOn] at hB
+  rw [isServerBuiltM_true] at hB
+  ihave Hsb := hB.1 $$ Hsb
+  ihave #HLnil := hL.2 $$ HLnil
+  have h' := wp_Start srv γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
+  simp only [AuthC.isOn] at h'
+  wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, Hsr, -⟩
   · iframe; iframe #
+    ipureintro; exact ⟨hγa, Hrb48, HrbN, by trivial⟩
+  subst hEr hx₀
   iunfold srvStartReaders at Hsr
   icases Hsr with ⟨Hrslots, -⟩
   (try wp_auto)

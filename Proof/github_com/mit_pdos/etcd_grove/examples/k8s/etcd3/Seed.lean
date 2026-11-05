@@ -30,8 +30,8 @@ open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item ms
 section pure
 variable [GooseExts]
 
-/-- A seed key's stored value: its object, value `x`, in the older encoding. -/
-def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"x"
+/-- A seed key's stored value: its object, no UID, value `x`, in the older encoding. -/
+def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"" go!"x"
 
 /-- `seedOne`'s put of the key `k`. -/
 def seedOp (k : GoString) : KVOp := .put (linkv.putOp (mkeyL k) (v0 k))
@@ -67,8 +67,8 @@ theorem absSt_σs2 : linkv.absSt σs2 = ⟨linkv.absM [kvA, kvB], 3⟩ := by
   unfold linkv.absSt; rw [σs2_kvs, σs2_rev]
 
 /-- The driver's seeded items (`seedOne`'s). -/
-def itA : item := ⟨go!"a", ⟨go!"a", go!"x", W64 2⟩, false⟩
-def itB : item := ⟨go!"b", ⟨go!"b", go!"x", W64 3⟩, false⟩
+def itA : item := ⟨go!"a", ⟨go!"a", go!"", go!"x", W64 2⟩, false⟩
+def itB : item := ⟨go!"b", ⟨go!"b", go!"", go!"x", W64 3⟩, false⟩
 
 /-- **The driver's seeded store** (`seed`'s result). -/
 def g0s : GSt := ⟨setItemL (setItemL [] itA) itB, W64 3⟩
@@ -251,42 +251,84 @@ theorem seedInv_cancel (γs : GName) (γk : KVNames) (σ : KVState) :
   · ihave %Hbad := ghostVar_valid_2 γs σ' 1 σ (1 : Qp).half $$ Hfull Hs
     exact (qp_one_add _ Hbad.1).elim
 
-/-- **The store's history at the seeded state**: its two key-values. -/
+/-- **The seeded revisions, one change at most each**: etcd's first revision (none) and the two
+seeds' puts. -/
+def seedRevs (γh : GName) : IProp GF :=
+  iprop(□ ∀ r : Nat, ⌜1 ≤ r ∧ r ≤ 3⌝ → ∃ ch : Changes,
+    ghostMapElem γh (W64 (r : Int)) DFrac.discard ch ∗ ⌜ch.length ≤ 1⌝)
+
+instance seedRevs_persistent (γh : GName) : Persistent (seedRevs (GF := GF) γh) := by
+  unfold seedRevs; infer_instance
+
+/-- **The store's history at the seeded state**: etcd's first revision, with no changes, and the
+two key-values. -/
 theorem histAuth_seed :
-    ⊢ |==> ∃ γh, histAuth (GF := GF) γh σs2 := by
-  imod ghost_map_alloc_empty (GF := GF) (K := GoString × w64) (V := GoString) with ⟨%γh, HA⟩
-  imod ghost_map_insert_persist (kvA.key, kvA.modRev) kvA.value rfl $$ HA with ⟨HA, #Ha⟩
-  imod ghost_map_insert_persist (kvB.key, kvB.modRev) kvB.value (by rfl) $$ HA with ⟨HA, #Hb⟩
+    ⊢ |==> ∃ γh, histAuth (GF := GF) γh σs2 ∗ seedRevs γh := by
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Changes) with ⟨%γh, HA⟩
+  imod ghost_map_insert_persist (W64 1) ([] : Changes) rfl $$ HA with ⟨HA, #H1⟩
+  imod ghost_map_insert_persist kvA.modRev [(kvA.key, some kvA.value)] (by rfl) $$ HA
+    with ⟨HA, #Ha⟩
+  imod ghost_map_insert_persist kvB.modRev [(kvB.key, some kvB.value)] (by rfl) $$ HA
+    with ⟨HA, #Hb⟩
   imodintro
   iexists γh
-  iunfold histAuth
-  iexists _
-  iframe HA
-  isplitr
-  · ipureintro
-    intro k r v hv
-    by_cases e2 : (kvB.key, kvB.modRev) = (k, r)
-    · simp only [Prod.mk.injEq] at e2; obtain ⟨-, rfl⟩ := e2; decide
-    rw [GMap.lookup_insert_ne _ _ e2] at hv
-    by_cases e1 : (kvA.key, kvA.modRev) = (k, r)
-    · simp only [Prod.mk.injEq] at e1; obtain ⟨-, rfl⟩ := e1; decide
-    rw [GMap.lookup_insert_ne _ _ e1] at hv
-    cases hv
-  iunfold kvSeen
+  isplitl
+  · iunfold histAuth
+    iexists _
+    iframe HA
+    isplitr
+    · ipureintro
+      intro r ch hv
+      by_cases e2 : kvB.modRev = r
+      · subst e2; decide
+      rw [GMap.lookup_insert_ne _ _ e2] at hv
+      by_cases e1 : kvA.modRev = r
+      · subst e1; decide
+      rw [GMap.lookup_insert_ne _ _ e1] at hv
+      by_cases e0 : W64 1 = r
+      · subst e0; decide
+      rw [GMap.lookup_insert_ne _ _ e0] at hv
+      cases hv
+    iunfold kvSeen
+    imodintro
+    iintro %v %hv
+    rw [σs2_kvs] at hv
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
+    rcases hv with rfl | rfl
+    · iexists _
+      iframe Ha
+      ipureintro; simp
+    · iexists _
+      iframe Hb
+      ipureintro; simp
+  iunfold seedRevs
   imodintro
-  iintro %v %hv
-  rw [σs2_kvs] at hv
-  simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
-  rcases hv with rfl | rfl
-  · iexact Ha
-  · iexact Hb
+  iintro %r %hr
+  have : r = 1 ∨ r = 2 ∨ r = 3 := by omega
+  rcases this with rfl | rfl | rfl
+  · iexists _
+    isplit
+    · iexact H1
+    · ipureintro; simp
+  · iexists [(kvA.key, some kvA.value)]
+    have e : W64 (((2 : Nat) : Int)) = kvA.modRev := rfl
+    rw [e]
+    isplit
+    · iexact Ha
+    · ipureintro; simp
+  · iexists [(kvB.key, some kvB.value)]
+    have e : W64 (((3 : Nat) : Int)) = kvB.modRev := rfl
+    rw [e]
+    isplit
+    · iexact Hb
+    · ipureintro; simp
 
 /-- **The instance's invariant at the seeded state**, and the library's initial state. -/
 theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (hp : c.pfx = go!"/registry/objs") (E : CoPset) :
-    etcdKV (GF := GF) γk σs2 ∗ histAuth c.γh σs2 ⊢
+    etcdKV (GF := GF) γk σs2 ∗ histAuth c.γh σs2 ∗ seedRevs c.γh ⊢
       |={E}=> ∃ γ : KNames, kInv γ c g0s γk ∗ kState γ g0s (linkv.pInit (kSpec g0s)) := by
-  iintro ⟨Hσ, Hhist⟩
+  iintro ⟨Hσ, Hhist, #Hsr⟩
   imod ghostVar_alloc (GF := GF) ([] : List OpV) with ⟨%γh, Hh⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Input) with ⟨%γp, Hp⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := KVState) with ⟨%γr, Hr⟩
@@ -298,13 +340,26 @@ theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     iunfold kInvBody
     iexists [], linkv.pInit (kSpec g0s), σs2, ∅, 0
     iframe
-    isplitl
+    isplitl [Hr]
     · iunfold revOwn
       iexists _
       iframe He Hr
       ipureintro
       exact ⟨GMap.lookup_insert _ _ _, fun n hn => by
         rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl⟩
+    isplitl [Hhist]
+    · iunfold histOwn
+      iframe Hhist
+      iunfold oneKeyRevs
+      iunfold seedRevs at Hsr
+      imodintro
+      iintro %r %hr
+      icases Hsr $$ %r %(by rw [σs2_rev] at hr; exact hr) with ⟨%ch, #Hch, %hl⟩
+      iexists ch
+      isplit
+      · iexact Hch
+      · ipureintro
+        exact Nat.le_trans (List.length_filter_le _ _) (by simpa using hl)
     ipureintro
     exact ⟨rfl, kOk_init σs2 (seed_wf c hc hp) (by decide) (seed_krel c hc hp)⟩
   imodintro

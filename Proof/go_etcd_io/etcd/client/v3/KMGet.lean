@@ -159,7 +159,7 @@ theorem kv_get_km (api : Loc) (γ : KMNames) (dup : Bool) (pfx : GoString) (hpfx
         rw [← hkv] at Hw
         have h1 := zip_getElem?_snd _ _ i e He
         ihave Hkw := Hall $$ %i %e.2 %w %h1 %Hw
-        unfold kvValAt; iunfold txn.kvIs at Hkw; iexact Hkw
+        iapply kvValAt_of_kvIs; iexact Hkw
       · unfold getRespKvs
         iexists ksl
         iframe Hksl

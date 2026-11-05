@@ -92,12 +92,29 @@ theorem run_snoc (g0 : GSt) (h : List OpV) (S S' : linkv.PSet GSt Input) (a : Op
 `EOther`). -/
 theorem kStep_ans {c : StoreCfg GF DObj} {g0 : GSt} {S : linkv.PSet GSt Input} {σ : KVState}
     {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (eD eU : GoInterface) (x : Input)
-    (hx : InOk x) :
+    (hx : InOk x)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ uint.nat (minOf x) ≤ σ.rev) :
     ansOf (kStep eD eU x (c.abs σ)).2 = .ok (kStep eD eU x (c.abs σ)).2 := by
   obtain ⟨cf, -, hrel, -⟩ := H.cfg
   have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; have := H.room; omega
   rw [(refine_step eD eU _ _ hrel x hx hrv).2]
-  exact ansOf_mstepL x cf.st
+  rcases hk with h | h | h | hmin
+  · exact ansOf_mstepL x cf.st (Or.inl h)
+  · exact ansOf_mstepL x cf.st (Or.inr (Or.inl h))
+  · exact ansOf_mstepL x cf.st (Or.inr (Or.inr h))
+  -- a `Get` whose minimum resource version the state has reached: not the too-large `EOther`
+  by_cases hk3 : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2
+  · exact ansOf_mstepL x cf.st hk3
+  rw [← (refine_step eD eU _ _ hrel x hx hrv).2]
+  have h0 : ¬ x.Kind' = W64 0 := fun h => hk3 (Or.inl h)
+  have h1 : ¬ x.Kind' = W64 1 := fun h => hk3 (Or.inr (Or.inl h))
+  have h2 : ¬ x.Kind' = W64 2 := fun h => hk3 (Or.inr (Or.inr h))
+  unfold ansOf
+  rw [if_neg]
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get]
+  rw [if_neg (by rw [abs_rv]; omega)]
+  repeat' split
+  all_goals simp [outOf, objOutL, zeroOutL]
 
 /-- The revisions' map, after a step: the next revision's state added, if it moved. -/
 theorem revOwn_next (γ : KNames) (σ σ' : KVState) (hn : σ' = σ ∨ σ'.rev = σ.rev + 1) :
@@ -132,12 +149,60 @@ theorem revOwn_elem (γ : KNames) (σ : KVState) :
   iframe He HA
   ipureintro; exact Hok
 
+/-- The state, seen in the history. -/
+theorem histOwn_seen (c : StoreCfg GF DObj) (σ : KVState) :
+    histOwn (GF := GF) c σ ⊢ histOwn c σ ∗ kvSeen c.γh σ := by
+  iintro H
+  iunfold histOwn at H
+  icases H with ⟨Hh, #Ho⟩
+  ihave ⟨Hh, #Hs⟩ := histAuth_seen c.γh σ $$ Hh
+  iframe Hs
+  iunfold histOwn
+  iframe Hh Ho
+
+/-- **The history follows a step of etcd's state**, a step that changes the store's items at one
+key at most: the revisions so far still change one key under the prefix each; the step's entry
+comes back (`revSeen`). -/
+theorem histOwn_next (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
+    (hw : kvWf c σ) (hw' : kvWf c σ') (hr' : σ'.rev + 2 < 2 ^ 63)
+    (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    histOwn (GF := GF) c σ ⊢ |==> (histOwn c σ' ∗ revSeen c.γh σ σ') := by
+  iintro H
+  iunfold histOwn at H
+  icases H with ⟨Hh, #Ho⟩
+  imod (histAuth_next c.γh σ σ' hn (by omega) hw.1 hw'.1) $$ Hh with ⟨Hh, #Hs⟩
+  imodintro
+  iframe Hs
+  iunfold histOwn
+  iframe Hh
+  rcases hn with he | ⟨hrv, hnew⟩
+  · subst he
+    iexact Ho
+  obtain ⟨K, hK⟩ := hK
+  have h1 := chgOf_pfx_one σ σ' (Or.inr ⟨hrv, hnew⟩) hrv hw hw' K hK
+  iunfold oneKeyRevs
+  imodintro
+  iintro %r %hr
+  by_cases hlast : r = σ'.rev
+  · subst hlast
+    iunfold revSeen at Hs
+    ihave He := Hs $$ %hrv
+    iexists (chgOf σ σ')
+    isplit
+    · iexact He
+    · ipureintro; exact h1
+  · iunfold oneKeyRevs at Ho
+    iapply Ho
+    ipureintro; omega
+
 /-- **The invariant's ghost state follows a step of etcd's state** (see the file header): the
-revisions' map, the store's history, and the room for revisions (`revRoom`). -/
+revisions' map, the store's history (at a step that changes the store's items at one key at
+most), and the room for revisions (`revRoom`); the step's entry comes back. -/
 theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
-    (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63) :
-    revOwn (GF := GF) γ σ ∗ histAuth c.γh σ ⊢
-      |==> (revOwn γ σ' ∗ histAuth c.γh σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝) := by
+    (hw : kvWf c σ) (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63)
+    (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    revOwn (GF := GF) γ σ ∗ histOwn c σ ⊢
+      |==> (revOwn γ σ' ∗ histOwn c σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝ ∗ revSeen c.γh σ σ') := by
   have hr' : σ'.rev + 2 < 2 ^ 63 := by
     rcases hn with he | ⟨hrv, -⟩
     · rw [he]; exact hr
@@ -148,12 +213,18 @@ theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : K
     · exact Or.inr hrv
   iintro ⟨Hrv, Hhist⟩
   ihave Hrv := (revOwn_next γ σ σ' hn') $$ Hrv
-  ihave Hhist := (histAuth_next c.γh σ σ' hn (by omega) hw'.1) $$ Hhist
+  ihave Hhist := (histOwn_next c σ σ' hn hw hw' hr' hK) $$ Hhist
   imod Hrv with Hrv
-  imod Hhist with Hhist
+  imod Hhist with ⟨Hhist, #Hs⟩
   imodintro
-  iframe Hrv Hhist
+  iframe Hrv Hhist Hs
   ipureintro; exact hr'
+
+/-- The model's step on `x` changes the items at its key at most. -/
+theorem kStep_oneKey (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (σ σ' : KVState)
+    (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) :
+    ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k :=
+  ⟨mkeyL x.Key', fun k hk => by rw [habs]; exact kStep_items eD eU x _ k hk⟩
 
 /-- **`lintest`'s update, committed** at the output `y` (see the file header): the history
 grows by the operation, the continuation is left. -/
@@ -199,13 +270,227 @@ theorem drvE_au : ⊤ \ drvE ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN := 
   rw [Iris.Std.LawfulSet.mem_diff] at this
   exact this.1
 
+/-! ### An answer's cached object (`ansOk`) -/
+
+/-- A list of at most one element has one. -/
+theorem eq_of_len_le_one {α : Type} {l : List α} (h : l.length ≤ 1) {a b : α} (ha : a ∈ l)
+    (hb : b ∈ l) : a = b := by
+  match l, h, ha, hb with
+  | [x], _, ha, hb =>
+    rw [List.mem_singleton] at ha hb
+    rw [ha, hb]
+  | _ :: _ :: _, h, _, _ => simp at h
+
+/-- **An item of the abstraction** is a key-value's, under the prefix. -/
+theorem abs_inv (c : StoreCfg GF DObj) (τ : KVState) (K : GoString) (it : KItem DObj)
+    (h : (c.abs τ).items K = some it) :
+    c.pfx <+: K ∧ ∃ v, mvcc.findKey K τ.kvs = some v ∧ c.S.dec v.value = some (it.obj, it.canon) ∧
+      uint.nat v.modRev = it.rv := by
+  unfold StoreCfg.abs absK at h
+  simp only at h
+  by_cases hp : c.pfx <+: K
+  · rw [if_pos hp] at h
+    refine ⟨hp, ?_⟩
+    cases hf : mvcc.findKey K τ.kvs with
+    | none => simp [linkv.absSt, linkv.absM, hf] at h
+    | some v =>
+      refine ⟨v, rfl, ?_⟩
+      simp only [linkv.absSt, linkv.absM, hf, Option.map_some, Option.bind_some, itemOf,
+        linkv.absVR] at h
+      cases hd : c.S.dec v.value with
+      | none => simp [hd] at h
+      | some ob =>
+        simp only [hd, Option.map_some, Option.some.injEq] at h
+        subst h
+        exact ⟨rfl, rfl⟩
+  · rw [if_neg hp] at h; cases h
+
+/-- **A revision changing `K`, at most one key under the prefix**: every key under the prefix held
+`o` at that revision, if it is `K`'s value there (`hx`), else none did. -/
+theorem versionAt_of_chg (c : StoreCfg GF DObj) (r : w64) (hr0 : r ≠ W64 0) (ch : Changes)
+    (K : GoString) (xv : Option GoString) (hin : (K, xv) ∈ ch)
+    (hone : ((ch.map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1)
+    (hpK : c.pfx <+: K) (o : DObj) (hx : ∀ val, xv = some val → ∃ b, c.S.dec val = some (o, b)) :
+    ghostMapElem (GF := GF) c.γh r DFrac.discard ch ⊢
+      □ ∀ k : GoString, ⌜c.pfx <+: k⌝ → versionAt c k r o := by
+  iintro #He
+  imodintro
+  iintro %k %hk
+  iunfold versionAt
+  imodintro
+  iintro %σ #Hs
+  cases hf : mvcc.findKey k σ.kvs with
+  | none =>
+    ipureintro
+    intro hm
+    simp [kubernetes.modAt, hf] at hm
+    exact absurd hm.symm hr0
+  | some v =>
+    by_cases hm : v.modRev = r
+    · subst hm
+      have hvk : v.key = k := by
+        have := List.find?_some hf
+        simpa using this
+      have hmem : v ∈ σ.kvs := List.mem_of_find?_eq_some hf
+      iunfold kvSeen at Hs
+      icases Hs $$ %v %hmem with ⟨%ch', #E', %hc'⟩
+      ihave %he := ghostMapElem_agree $$ E' He
+      subst he
+      ipureintro
+      intro _
+      rw [hvk] at hc'
+      by_cases hkK : k = K
+      · subst hkK
+        have hxv := Changes.eq_of_key hc'.2 hin hc'.1
+        obtain ⟨b, hb⟩ := hx v.value hxv
+        exact ⟨b, c.abs_some σ k hk v hf o b hb⟩
+      · exfalso
+        apply hkK
+        refine eq_of_len_le_one hone ?_ ?_
+        · simp only [List.mem_filter, List.mem_map, decide_eq_true_eq]
+          exact ⟨⟨_, hc'.1, rfl⟩, hk⟩
+        · simp only [List.mem_filter, List.mem_map, decide_eq_true_eq]
+          exact ⟨⟨_, hin, rfl⟩, hpK⟩
+    · ipureintro
+      intro h
+      simp [kubernetes.modAt, hf] at h
+      exact absurd h hm
+
+/-- The history's facts at the state `σ`: seen, its revisions changing one key each. -/
+theorem histOwn_one (c : StoreCfg GF DObj) (σ : KVState) :
+    histOwn (GF := GF) c σ ⊢ histOwn c σ ∗ oneKeyRevs c σ.rev := by
+  iintro H
+  iunfold histOwn at H
+  icases H with ⟨Hh, #Ho⟩
+  iframe Ho
+  iunfold histOwn
+  iframe Hh Ho
+
+/-- **An item of a state seen is a cached object**: its key-value's revision changed its key only,
+under the prefix. -/
+theorem cachedObj_of_item (c : StoreCfg GF DObj) (τ : KVState) (hw : kvWf c τ) (K : GoString)
+    (o : DObj) (rv : Nat) (b : Bool) (h : (c.abs τ).items K = some ⟨o, rv, b⟩) :
+    kvSeen (GF := GF) c.γh τ ∗ oneKeyRevs c τ.rev ⊢
+      cachedObjOk c ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩ := by
+  obtain ⟨hpK, v, hf, hd, hrv⟩ := abs_inv c τ K _ h
+  simp only at hd hrv
+  have hmem : v ∈ τ.kvs := List.mem_of_find?_eq_some hf
+  have hvk : v.key = K := by
+    have := List.find?_some hf
+    simpa using this
+  have hb := hw.2.2.1 K (linkv.absVR v) (by simp [linkv.absSt, linkv.absM, hf])
+  simp only [linkv.absVR, linkv.absSt] at hb
+  have hW : W64 ((rv : Nat) : Int) = v.modRev := by rw [← hrv]; exact W64_uint_nat _
+  have hr0 : v.modRev ≠ W64 0 := by
+    intro e; rw [e] at hb; simp at hb
+  iintro ⟨#Hs, #Ho⟩
+  iunfold kvSeen at Hs
+  icases Hs $$ %v %hmem with ⟨%ch, #E, %hc⟩
+  iunfold oneKeyRevs at Ho
+  icases Ho $$ %(uint.nat v.modRev) %(by omega) with ⟨%ch2, #E2, %hl⟩
+  rw [W64_uint_nat] at *
+  ihave %he := ghostMapElem_agree $$ E E2
+  subst he
+  rw [hvk] at hc
+  ihave #Hv := versionAt_of_chg c v.modRev hr0 ch K (some v.value) hc.1 hl hpK o
+    (fun val e => ⟨b, by cases e; exact hd⟩) $$ E
+  unfold cachedObjOk
+  rw [hW]
+  isplitr
+  · ipureintro
+    refine ⟨o.2.1, o.2.2, hr0⟩
+  rw [dobjOf_mk]
+  iexact Hv
+
+/-- **A deleted key's answer is a cached object**, vacuously: its revision wrote nothing under
+the prefix (it deleted the key). -/
+theorem cachedObj_of_del (c : StoreCfg GF DObj) (σ σ' : KVState) (hw' : kvWf c σ')
+    (hrv : σ'.rev = σ.rev + 1) (K : GoString) (hpK : c.pfx <+: K)
+    (hin : (K, (none : Option GoString)) ∈ chgOf σ σ') (o : DObj) :
+    revSeen (GF := GF) c.γh σ σ' ∗ oneKeyRevs c σ'.rev ⊢
+      cachedObjOk c ⟨o.name, o.uid, o.val, W64 ((σ'.rev : Nat) : Int)⟩ := by
+  have hR : uint.nat (W64 ((σ'.rev : Nat) : Int)) = σ'.rev := by
+    have := hw'.2.2.2
+    simp only [linkv.absSt] at this
+    simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+  have hr0 : W64 ((σ'.rev : Nat) : Int) ≠ W64 0 := by
+    intro e; rw [e] at hR; simp at hR; omega
+  iintro ⟨#Hs, #Ho⟩
+  iunfold revSeen at Hs
+  ihave #E := Hs $$ %hrv
+  iunfold oneKeyRevs at Ho
+  icases Ho $$ %σ'.rev %(by omega) with ⟨%ch2, #E2, %hl⟩
+  ihave %he := ghostMapElem_agree $$ E E2
+  subst he
+  ihave #Hv := versionAt_of_chg c _ hr0 _ K none hin hl hpK o (fun val e => by cases e) $$ E
+  unfold cachedObjOk
+  isplitr
+  · ipureintro
+    exact ⟨o.2.1, o.2.2, hr0⟩
+  rw [dobjOf_mk]
+  iexact Hv
+
+/-- **An answer at a step's firing is a cached object** (`ansOk`): its item is in the state
+before or after the step (`cachedObj_of_item`), or it is a deleted key's (`cachedObj_of_del`). -/
+theorem ansOk_step (c : StoreCfg GF DObj) (σ σ' : KVState) (hw : kvWf c σ) (hw' : kvWf c σ')
+    (K : GoString) (y : Output) (ha : AnsFrom (c.abs σ) (c.abs σ') K y) :
+    kvSeen (GF := GF) c.γh σ ∗ oneKeyRevs c σ.rev ∗ kvSeen c.γh σ' ∗ oneKeyRevs c σ'.rev ∗
+      revSeen c.γh σ σ' ⊢ ansOk c y := by
+  iintro ⟨#Hs, #Ho, #Hs', #Ho', #Hr⟩
+  unfold ansOk
+  by_cases he : y.Err' = W64 0 ∧ y.Name' ≠ []
+  · rw [if_pos he]
+    obtain ⟨o, rv, rfl, hr⟩ := ha he.1 he.2
+    have hco : cachedOf (objOutL ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩) =
+        ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩ := rfl
+    rw [hco]
+    rcases hr with ⟨b, hb | hb⟩ | ⟨it, hrv, hit, hnone, hrr⟩
+    · iapply cachedObj_of_item c σ hw K o rv b hb
+      iframe Hs Ho
+    · iapply cachedObj_of_item c σ' hw' K o rv b hb
+      iframe Hs' Ho'
+    · obtain ⟨hpK, v, hf, -, -⟩ := abs_inv c σ K it hit
+      have hrv' : σ'.rev = σ.rev + 1 := hrr
+      have hf' : mvcc.findKey K σ'.kvs = none := by
+        cases h' : mvcc.findKey K σ'.kvs with
+        | none => rfl
+        | some v' =>
+          obtain ⟨o', b', hd'⟩ := c.dec_of_wf σ' hw' K hpK v' h'
+          rw [c.abs_some σ' K hpK v' h' o' b' hd'] at hnone
+          cases hnone
+      have hdel : (K, (none : Option GoString)) ∈ chgOf σ σ' := by
+        refine chgOf_del σ σ' K ⟨v, List.mem_of_find?_eq_some hf, by simpa using List.find?_some hf⟩ ?_
+        intro w hw hk
+        have := List.find?_eq_none.1 hf' w hw
+        simp [hk] at this
+      have hrv2 : rv = σ'.rev := by rw [hrv, hrv']; rfl
+      subst hrv2
+      iapply cachedObj_of_del c σ σ' hw' hrv' K hpK hdel o
+      iframe Hr Ho'
+  · rw [if_neg he]
+    itrivial
+
+/-- **A read's answer is a cached object** (`ansOk`), its item in the state read. -/
+theorem ansOk_read (c : StoreCfg GF DObj) (σ : KVState) (hw : kvWf c σ) (K : GoString)
+    (y : Output) (ha : AnsFrom (c.abs σ) (c.abs σ) K y) :
+    kvSeen (GF := GF) c.γh σ ∗ oneKeyRevs c σ.rev ⊢ ansOk c y := by
+  iintro ⟨#Hs, #Ho⟩
+  ihave #Hr : revSeen (GF := GF) c.γh σ σ $$ []
+  · iunfold revSeen
+    imodintro
+    iintro %h
+    exfalso; omega
+  iapply ansOk_step c σ σ hw hw K y ha
+  iframe Hs Ho Hr
+
 /-- **A `Create` whose prophecy says it answers** (see the file header). -/
 theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
     (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 0)
     (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ linU γ g0 (boxIn x) Φ ⊢
       k8sAu1 γk c (fun s => (s.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).1)
-        (fun σ => contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ) := by
+        (fun σ => iprop(contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∗
+          ansOk c (kStep eD eU x (c.abs σ)).2)) := by
   have Hm := drvInvN_mask'
   have HE := drvE_au
   iintro ⟨#Hinv, HU⟩
@@ -217,7 +502,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -242,13 +527,20 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
     iintro %σ' ⟨Hσ, %Hpost⟩
     obtain ⟨hw', habs, hn⟩ := Hpost
     imod Hclose2 with -
-    imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-    · iframe
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
+    ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
+    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+      with ⟨Hrv, Hhist, %hr', #Hrs⟩
+    · iframe
     obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
+    ihave ⟨Hhist, #Hseen'⟩ := histOwn_seen c σ' $$ Hhist
+    ihave ⟨Hhist, #Hone'⟩ := histOwn_one c σ' $$ Hhist
+    ihave #Hans := ansOk_step c σ σ' Hok.wf hw' (mkeyL x.Key') (kStep eD eU x (c.abs σ)).2
+      (by rw [habs']; exact kStep_ansFrom eD eU x (c.abs σ)) $$ []
+    · iframe Hseen Hone Hseen' Hone' Hrs
     have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) =
         some S' := by
-      rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+      rw [step_box, kStep_ans Hok eD eU x hx (Or.inl hk)]; exact HS'
     imod (fupd_mask_subseteq HE) with Hclose3
     imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
     · iframe
@@ -260,16 +552,18 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
       iframe
       ipureintro; exact ⟨run_snoc g0 h S S' _ Hr Hst, Hok'⟩
     imodintro
-    iexact HΦ
+    iframe HΦ Hans
 
 /-- **A `Delete` or `GuaranteedUpdate` whose prophecy says it answers** (see the file header):
 the store's step is the model's on the input (`hstep`). -/
 theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
-    (eD eU : GoInterface) (x : Input) (hx : InOk x) (step : KSt DObj → KSt DObj)
+    (eD eU : GoInterface) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 1 ∨ x.Kind' = W64 2)
+    (step : KSt DObj → KSt DObj)
     (hstep : ∀ ks, step ks = (kStep eD eU x ks).1) (γt : GName) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ rwCall γ g0 γt x Φ ⊢
       k8sAuRW γk c step (dghostVar γt (DFrac.own 1) ())
-        (fun σ => contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ) := by
+        (fun σ => iprop(contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∗
+          ansOk c (kStep eD eU x (c.abs σ)).2)) := by
   have Hm := drvInvN_mask
   have Hcm := callN_mask
   have HE := drvE_mask
@@ -283,7 +577,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ rwMask \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -325,13 +619,21 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       icases Hb with ⟨Htok, %Hpost⟩
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
-      imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-      · iframe
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
+      ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
+      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+        with ⟨Hrv, Hhist, %hr', #Hrs⟩
+      · iframe
       obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
+      ihave ⟨Hhist, #Hseen'⟩ := histOwn_seen c σ' $$ Hhist
+      ihave ⟨Hhist, #Hone'⟩ := histOwn_one c σ' $$ Hhist
+      ihave #Hans := ansOk_step c σ σ' Hok.wf hw' (mkeyL x.Key') (kStep eD eU x (c.abs σ)).2
+        (by rw [habs']; exact kStep_ansFrom eD eU x (c.abs σ)) $$ []
+      · iframe Hseen Hone Hseen' Hone' Hrs
       have Hst : (k8setcd3S (GF := GF) g0).M.step S
           (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-        rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+        rw [step_box, kStep_ans Hok eD eU x hx (hk.elim (fun h => Or.inr (Or.inl h))
+          (fun h => Or.inr (Or.inr (Or.inl h))))]; exact HS'
       unfold rwCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc⟩ | >Htok')
@@ -352,7 +654,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
           ipureintro; exact ⟨run_snoc g0 h S S' _ Hr Hst, Hok'⟩
         imodintro
         simp only [↓reduceIte]
-        iexact HΦ
+        iframe HΦ Hans
       · iexfalso
         iapply tok_excl γt
         iframe Htok Htok'
@@ -374,7 +676,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -397,9 +699,10 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   · iintro %σ' ⟨Hσ, %Hpost⟩
     obtain ⟨hw', habs, hn⟩ := Hpost
     imod Hclose2 with -
-    imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-    · iframe
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
+    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+      with ⟨Hrv, Hhist, %hr', #Hrs⟩
+    · iframe
     iunfold pendTok at Htok
     ihave %Hn := ghost_map_lookup $$ HM Htok
     imod ghost_map_delete $$ HM Htok with HM
@@ -429,7 +732,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ rwMask \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -468,9 +771,10 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       icases Hb with ⟨Htok, %Hpost⟩
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
-      imod (inv_next γ c σ σ' hn hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-      · iframe
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
+      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+        with ⟨Hrv, Hhist, %hr', #Hrs⟩
+      · iframe
       iunfold pendTok at Htok
       ihave %Hn := ghost_map_lookup $$ HM Htok
       imod ghost_map_delete $$ HM Htok with HM
@@ -485,10 +789,21 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       itrivial
 
 /-- `call`'s output of an error it cannot place (`Output{Err: EOther}`). -/
-def errOutL : Output := ⟨W64 4, [], 0, [], [], 0⟩
+def errOutL : Output := ⟨W64 4, [], 0, [], [], [], 0⟩
 
 theorem ansOf_errOutL : ansOf errOutL = .err := by
   simp [ansOf, errOutL]
+
+/-- **A `Get`'s `EOther`** is the model's "too large" answer, `errOutL`. -/
+theorem kStep_err4 (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kind' = W64 3)
+    (h : (kStep eD eU x ks).2.Err' = W64 4) : (kStep eD eU x ks).2 = errOutL := by
+  have h0 : ¬ x.Kind' = W64 0 := by rw [hk]; decide
+  have h1 : ¬ x.Kind' = W64 1 := by rw [hk]; decide
+  have h2 : ¬ x.Kind' = W64 2 := by rw [hk]; decide
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get] at h ⊢
+  revert h
+  repeat' split
+  all_goals simp [outOf, objOutL, zeroOutL, otherL, errOutL]
 
 /-- **A write whose prophecy says `EOther`** (see the file header): `lintest`'s update commits
 at once, the write pending (`kOk_errW`), with the pending write's token. -/
@@ -610,7 +925,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
     (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
     (R : w64) (Φ : val → IProp GF) :
     kInv γ c g0 γk ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
-      kvReadAu γk (readQ c γc R) := by
+      kvReadAu γk (readQ c γc (uint.nat (minOf x)) R) := by
   have Hm := drvInvN_mask'
   have Hcm := callN_mask'
   have HE := drvE_mask'
@@ -625,6 +940,8 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
   ihave ⟨Hrv, #Hel⟩ := revOwn_elem γ σ $$ Hrv
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
+  ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -644,8 +961,9 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
     iempintro
   · iintro Hσ
     imod Hclose2 with -
-    by_cases Hrev : σ.rev = uint.nat R
-    · unfold getCall
+    by_cases Hrev2 : σ.rev = uint.nat R ∧ uint.nat (minOf x) ≤ σ.rev
+    · have Hrev := Hrev2.1
+      unfold getCall
       iinv Hc with Hci Hclosec
       icases Hci with (⟨HU, >Hlc, >Hγc⟩ | ⟨%σ0, %R0, >#Hv, >#Hp0, >%Hrev0, >#HL, Hrest⟩)
       · -- the first firing at revision `R`: commit
@@ -654,7 +972,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
         obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf Hok.room
         have Hst : (k8setcd3S (GF := GF) g0).M.step S
             (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-          rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+          rw [step_box, kStep_ans Hok eD eU x hx (Or.inr (Or.inr (Or.inr Hrev2.2)))]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe
@@ -669,7 +987,10 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
           isplitr
           · ipureintro; exact Hrev
           ileft
-          iexact HΦ
+          iframe HΦ
+          iapply ansOk_read c σ Hok.wf (mkeyL x.Key') _
+            (by have := kStep_ansFrom eD eU x (c.abs σ); rwa [kStep_get eD eU x hk] at this)
+          iframe Hseen Hone
         imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
         · inext
           iunfold kInvBody
@@ -721,7 +1042,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
       isplitr
       · ipureintro; exact ⟨Hok.wf, Hok.room⟩
       iintro %H
-      exact absurd H Hrev
+      exact absurd H Hrev2
 
 /-- **The maker `Get` takes** (a `Get` whose prophecy says it answers): for the pair the client
 prophesies, the revision recorded (`γp`) and each member's read update for it. -/
@@ -731,8 +1052,8 @@ theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (ms : List (cl
     □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
       dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
       (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
-        ⌜(fun σ => readQ c γc R σ) = fun _ => iprop(True)⌝ ∨
-          kvReadAu sv.γr.kv (fun σ => readQ c γc R σ)) : IProp GF) := by
+        ⌜(fun σ => readQ c γc (uint.nat (minOf x)) R σ) = fun _ => iprop(True)⌝ ∨
+          kvReadAu sv.γr.kv (fun σ => readQ c γc (uint.nat (minOf x)) R σ)) : IProp GF) := by
   iintro ⟨#Hinvs, #Hc, Hp⟩ %R %m
   imod dghostVar_update (some R) γp none $$ Hp with Hp
   imod dghostVar_persist γp 1 _ $$ Hp with #Hp
@@ -771,7 +1092,7 @@ theorem getCall_take (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : Go
     (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) (σ : KVState) :
     getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γc DFrac.discard (some σ) ∗
       dghostVar γt (DFrac.own 1) () ∗ £ 1 ⊢
-      |={⊤}=> contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ := by
+      |={⊤}=> (contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∗ ansOk c (kStep eD eU x (c.abs σ)).2) := by
   iintro ⟨#Hc, #Hv, Htok, Hlc⟩
   unfold getCall
   iinv Hc with Hci Hclosec

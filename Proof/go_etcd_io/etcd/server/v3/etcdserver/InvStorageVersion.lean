@@ -21,8 +21,11 @@ is current, which `applySnapshot` may swap between two sessions):
 * from the write budget `srvWTPool E` (shared with the apply thread; `start` allocates it and
   gives it back), which agrees on `d` with that part: the read token of `d` with an open share
   (`mvcc.bkRTx`: `ReadTx`'s reads, and the open share `LockOutsideApply` needs), checked out for
-  the session (a part of the session's share of `E.γbe` deposited in its place) and checked back
-  in before `RUnlock`, and one write-back token of `d` per `Unlock` (`backend.wbTok`), for a time
+  the session (a part of the session's share of `E.γbe` deposited in its place, with, H2,
+  2026-11-05, the monitor goroutine's running receipt `ownToks r 1` at the name the budget's
+  register `γp.reg` holds, `GoAttach`'s `γg.run`) and checked back in before `RUnlock` (the receipt
+  with it: the contract's post gives it back, so a returned monitor has no session open, which
+  the shutdown's `stop_monitorRT` uses after `Wait`), and one write-back token of `d` per `Unlock` (`backend.wbTok`), for a time
   receipt of a step of that round (`srvWTPool_take_d`, as `apply` does: the pool's count is of
   all the receipts spent on it, whoever spends them);
 * `meta` is a hook bucket and `storageVersion` not a hook's own key, so the session leaves the

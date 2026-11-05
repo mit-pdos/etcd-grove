@@ -45,6 +45,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem New.wp_proof
@@ -108,7 +109,7 @@ theorem New.wp_proof
   -- the list error aggregator: the default, or (by the feature gate) the corrupt-object one
   have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
     features.AllowUnsafeMalformedObjectDeletion_notPanic
-  wp_pure
+  try wp_pure
   (try wp_auto)
   wp_apply Hen as %b
   cases b

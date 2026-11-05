@@ -66,7 +66,7 @@ theorem deliverable.wp_proof
   wp_start as Hm
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
-  simp only [raftpb.MsgHeartbeatResp, raftpb.MsgHeartbeat, raftpb.MsgVoteResp, raftpb.MsgVote,
+  try simp only [raftpb.MsgHeartbeatResp, raftpb.MsgHeartbeat, raftpb.MsgVoteResp, raftpb.MsgVote,
     raftpb.MsgAppResp, raftpb.MsgApp, raftpb.MsgReadIndex, raftpb.MsgReadIndexResp,
     raftpb.MsgTimeoutNow, raftpb.MsgProp, raftpb.MsgSnap]
   -- (D22 S-r) a snapshot, apart

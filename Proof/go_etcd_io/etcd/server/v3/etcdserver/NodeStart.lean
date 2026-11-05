@@ -2,10 +2,9 @@
 **The server's raft wrapper from raft's `StartNode`** (stage R8b-C of the raft v3.7 retarget,
 2026-10-16; D12: `notes/decisions.md`, "The new cluster's start"): the composition that builds
 `isServerBuilt`'s raft rows -- `isRaftNode`, the loop and apply tokens at `[]`, the right to close
-`done`, `srvRaftLogInv` at `pre = []` -- from the new cluster's ghost allocation
-(`ownRaftGhost_alloc_boot`'s output for this node), the cluster's budget, a fresh registered
-`MemoryStorage`, the contracts and `bootstrappedRaft.newRaftNode`'s spec. Lean-first (no Rocq
-counterpart).
+`done` -- from the new cluster's ghost allocation for this node (its boot token, vacant id and
+durable state), a fresh registered `MemoryStorage`, the WAL's durability, the contracts and
+`bootstrappedRaft.newRaftNode`'s spec. Lean-first (no Rocq counterpart).
 
 **Where the wrapper lives.** `NewServer` copies the wrapper by value (`r: *b.raft.newRaftNode(...)`)
 into `EtcdServer.r` and sets its `transport` afterwards (`srv.r.transport = tr`), so
@@ -14,35 +13,33 @@ the struct value with its components' predicates (`rnBuilt`, `InvNodeStart.lean`
 `isRaftNode_of_rnParts` installs `isRaftNode` at the address the struct finally lives at, once the
 transport is set -- the step a `NewServer` proof takes. `raftNode_of_StartNode` composes the two:
 its post is the struct value, the loop's and the apply side's tokens (`rnLoopTok`/`rnApplyTok` at
-`[]`, from raft's `nodeDriver` at `[]` and `applyc`'s halves), `srvRaftLogInv`, and the installer.
+`[]`, from raft's `nodeDriver` at its start and `applyc`'s halves), and the installer, among
+others (the node's inbound methods, the running token's other half, the storage's invariant and
+hard state, the receiver and the peers' slice, the stop claim: see `NodeStartSpec`'s post).
 
-**The premises, classified** (the theorem's hypotheses, named as `isServerBuilt`'s rows):
-* raft's results: `bootstrappedRaft.newRaftNode.spec` (through it `StartNode.spec`,
-  `newRaftNode.spec`), `node.{Ready,Advance,Tick,ReadIndex}.spec` (for the node's contract,
-  `isRaftNodeIfc_of_isNode`), all instantiated by the linked `wp_*` in `Results.lean`;
-* the allocation's (`ownRaftGhost_alloc_boot`, `budget_alloc`, `NewMemoryStorage` registered):
-  `raftCommitInv γ`, `isCommitted γ bootLog`, `ownRaftGhost γ cv.ID' (bootPState bootLog)`, the
-  budget's invariant and `termLB bud 1` (`budget_alloc_boot`), `memStorReg`, `isStorage`/`ownStorage` of the fresh
-  storage (`memOwnStorage_empty`, `memStorage_isStorage`);
-* the server's own invariants: `rnEnvOk` (its `E.C` clauses are the KV invariant's, the
-  server-construction unit's: for the wrapper names raft hands back) and `srvCommittedInv s E.γr`,
-  premises of the installer (since unit N1 of the server-construction unit, 2026-10-17: `NewServer`
-  evaluates `newRaftNode` inside the `EtcdServer` literal, before the server `s` exists); the names
-  `E.γr.raft = ⟨γ, [], 0⟩` and the conf-change policy `srvCCPolicy` (the server's choice at the
-  allocation), premises of the call;
-* premises: `rnLogFits` (pure since D19b stage 5: the receipt bound past the bootstrap log, so
-  raft's `Ready`s fit the `MemoryStorage`; D10 until then), `rnStopOkStarted` (D19r (A): `Stop` returns, of a started node)
-  (`Stop` returns), (until 2026-11-03) `rnTickerOk` (`time.NewTicker`'s contract, at `isRNTicker`;
-  now Perennial's proved specs, callees of `newRaftNode`'s proof, at `E.T = True`), the `InitialState`
-  closure in `StartNode.spec`'s `□` shape (a `MemoryStorage`'s `InitialState` consumes
-  `memStorMeta`, which is not persistent: `MemoryStorage.InitialState.spec` cannot be the `□`
-  closure; `StartNode` calls it once -- B's spec could drop the `□`), `bootMarshal` (protobuf's
-  determinism at the peers' conf changes), the names-only contracts (`rnLoggerZapOk`,
-  `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnRaftStatusOk`, `rnNewStorageOk`, `rnClusterOk`,
-  `isRNTransport`). Since D17d (2026-10-18) the closure borrows the storage's application
-  snapshot token (`memSnapTok`, `bootOk`'s), which `StartNode` gives back (its `R`) and this
-  theorem returns: `NewServer` reads `run`'s snapshot contract `rnSnapOnce ms 0 0` off it
-  (`rnSnapOnce_of_tok`, `InvBoot.lean`; until then a residual premise of the construction).
+**The premises, classified** (`NodeStartSpec`'s; 2026-11-05, rewritten: the list it replaced named
+the allocation and contracts of before the node API):
+* the callees' specs (`raftNode_of_StartNode`'s hypotheses): `bootstrappedRaft.newRaftNode.spec`
+  (through it `StartNode.spec` and `newRaftNode.spec`), the `MemoryStorage` specs `StartNode`'s
+  boot of the storage calls (`srvMem_bootStorage`), and the node API's `node` specs (for the
+  node's contract, `isRaftNodeIfc_of_isNode`, its inbound methods and `Propose`), all instantiated
+  by the linked `wp_*` in `Results.lean`;
+* pure: the configuration and the peers (`rnStartCfg`), a positive heartbeat (`newRaftNode`'s, a
+  scope restriction), the peers distinct, non-zero, fewer than `2 ^ 62` and the cluster's voters (the
+  start's configuration view, `srvCfgOk_nil`), the WAL read (`NewStorage`'s contract), and the
+  time-receipt bound past the bootstrap log (`rnLogFits`);
+* the cluster's allocation's: this node's boot token, its id vacant and its durable state at
+  `RaftState.init`; the fresh registered `MemoryStorage` as `NewMemoryStorage` leaves it; the
+  peers and their contexts; the WAL's durability invariant, the loop's view at the start and its
+  token (`wal.bootOk_start`);
+* the contracts (`rnLoggerZapOk`, `rnSetLoggerOk`, `rnTimeoutDetectorOk`, `rnNewStorageOk`,
+  `rnClusterOk` on names-only callees; `rnRaftStatusOk` the invariant of the package globals
+  `raftStatus`/`raftStatusMu`);
+* the installer's, given when the server exists (since unit N1 of the server-construction unit,
+  2026-10-17: `NewServer` evaluates `newRaftNode` inside the `EtcdServer` literal, before the
+  server `s` exists): `rnEnvOk` (the names tied, `E.γr.raft = ⟨γr, [], 0⟩`, and the server's raft
+  invariant `srvRaftLogInv`), `srvCommittedInv s E.γr`, the read contexts' invariant, the
+  transport's contract `isRNTransport` and the struct's fields where it lands.
 -/
 module
 
@@ -132,7 +129,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
       rnDurInv γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
-      rnFixed a rv ∗ rnTransportAddr a ↦ rv.raftNodeConfig'.transport' ∗
+      rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
       rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
       ownBroadcastChan rv.done' γ.done (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage'))
         .Pending ⊢
@@ -140,7 +137,7 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
   iintro ⟨#Hpkg, #Henv, #Hfits, #Hrsb, #Hreg, #Hni, #Hidri, %Hmsγ, #Hmsi, #Hsti, #Hdur, #Htri, #Hparts,
-    #Hfix, transportC, latestTickTsR, Hmu, Hdtok⟩
+    #Hfix, #transportC, latestTickTsR, Hmu, Hdtok⟩
   iunfold rnParts at Hparts
   iNamed Hparts
   iunfold rnFixed at Hfix
@@ -150,7 +147,6 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
   imod sync.init_RWMutex (rnTickInv a) rv.tickMu' $$ [latestTickTsR] Hmu with Hslots
   · inext; iunfold rnTickInv; iexists rv.latestTickTs'; iexact latestTickTsR
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hmug⟩
-  ipersist transportC
   imodintro
   isplitr
   · iunfold isRaftNode
@@ -351,41 +347,31 @@ theorem srvMem_bootStorage
 
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
 server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
-config `cv` with `StartNode.spec`'s premises on it, the peers, the server's names
-(`E.γr.raft = ⟨γr, [], 0⟩`) and its raft invariant (`srvRaftLogInv`, the cluster's allocation's):
+config `cv` and the peers of the boot configuration (`rnStartCfg`):
 `bootstrappedRaft.newRaftNode` over the node API's `StartNode`, with what the allocation, the server
-and the trust boundary provide, yields the wrapper's struct value, the tokens and the installer of
-`isRaftNode` at the address the server copies the struct to. -/
+and the trust boundary provide, yields the wrapper's struct value, the tokens, the receiver and the
+peers' slice back, and the installer of `isRaftNode` at the address the server copies the struct
+to (which takes the server's names and raft invariant in `rnEnvOk`). -/
 abbrev NodeStartSpec : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (ν : WalNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
-    -- `NewRawNode`'s premises on `b.config`
-    ConfigValid cv → cv.Logger' = interface.ok lok →
-    cv.Storage' = memStorIface bv.storage' →
-    sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-    cv.DisableProposalForwarding' = false → cv.ReadOnlyOption' = W64 0 →
-    cv.DisableConfChangeValidation' = false →
-    (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-    cv.AsyncStorageWrites' = false → cv.Applied' = W64 0 →
-    -- the peers, the cluster's voters
-    ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
-    (ps.length : Int) < 2 ^ 62 → cv.ID' ∈ ps → γr.vs = ps →
-    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
-    storage.walReady wal →
-    -- the time-receipt bound past the bootstrap log (`rnLogFits`)
-    receiptBound GF + γr.boot.length ≤ 2 ^ 61 →
-    -- the server's names: the cluster, the start log empty
-    E.γr.raft.raft = γr → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 →
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        -- `newRaftNode`'s premises: (2026-11-03: until then the implication `bv.lg' ≠ null →`) a
-        -- logger; (the final whole-`bootOk` review's S2: until then the implication
-        -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction; (2026-11-03) ticks carrying
-        -- nothing (`newRaftNode.spec`'s)
-        "%Hlg" ∷ ⌜bv.lg' ≠ null⌝ ∗ "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗ "%HT" ∷ ⌜E.T = iprop(True)⌝ ∗
+        -- the pure premises, one conjunction (2026-11-05, the user's M1: until then implications
+        -- before the triple): the configuration and the peers (`rnStartCfg`, shared with
+        -- `bootstrappedRaft.newRaftNode.spec` and `bootOk`), a positive heartbeat
+        -- (`newRaftNode`'s, a scope restriction), the peers distinct, non-zero and fewer than
+        -- `2 ^ 62`, the cluster's voters (the start's configuration view, `srvCfgOk`), the WAL read
+        -- (`NewStorage`'s contract), and the time-receipt bound past the bootstrap log
+        -- (`rnLogFits`). (2026-11-05, the review's S: until then also `cv.ID' ∈ ps` and the
+        -- server's names `E.γr.raft = ⟨γr, [], 0⟩`, which nothing here uses: the installer's
+        -- `rnEnvOk` ties the names.)
+        "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧
+          ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧ γr.vs = ps ∧
+          storage.walReady wal ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61⌝ ∗
         -- the receiver, the config and its logger
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
         -- (2026-10-30, the repair) the fresh registered `MemoryStorage`, as `NewMemoryStorage`
@@ -401,10 +387,10 @@ abbrev NodeStartSpec : Prop :=
         "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
         -- the cluster's allocation's: this node's boot token (2026-10-30, the repair: raft's
         -- unified `cluster_alloc` with the bootstrap log), with (2026-11-01, durability layer 4)
-        -- its vacant id and its durable state at `RaftState.init`; the server's raft invariant
+        -- its vacant id and its durable state at `RaftState.init` (2026-11-05: until then also the
+        -- server's raft invariant `srvRaftLogInv E.γr.raft`, which the installer's `rnEnvOk` holds)
         "Hboot" ∷ (nodeBoot γr.cl srvClusterN ps ctxs cv.ID' ∗ raftState γr.cl cv.ID' RaftState.init ∗
           nodeVacant γr.cl cv.ID') ∗
-        "#Hlinv" ∷ srvRaftLogInv E.γr.raft ∗
         -- the names-only contracts
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
@@ -440,21 +426,25 @@ abbrev NodeStartSpec : Prop :=
           -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
           -- wrapper's names, the committed index's invariant of the server `s` and the read
-          -- contexts' invariant (2026-10-27)
+          -- contexts' invariant (2026-10-27); (2026-11-05, R2b-3d stage 5c) the `transport` field
+          -- read-only already (the caller's environment's `Stop` names it, `srvTrStop`)
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
             srvRdCtxInv E.γr.raft issued -∗
-            rnFixed a rv -∗ rnTransportAddr a ↦ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
+            rnFixed a rv -∗ rnTransportAddr a ↦□ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
-          -- (2026-10-27) the peers' slice not back (the node API's `StartNode` keeps it)
-          b ↦{dq} bv ∗
+          -- the receiver and (2026-11-05: until then kept, as the node API's `StartNode` did until
+          -- it gave it back) the peers' slice
+          b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
           -- (2026-10-30, the repair) the storage's invariant at the justifications of its key (the
           -- wrapper's, `γw.key`; `memStorInv`, allocated by `InitialState`, `restartStorage`'s
           -- frame) and its hard state
           memStorInv bv.storage' γs γr.cl γw.key ∗
-          memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) }}
+          memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
+          -- (2026-11-04, R2b-3d) the claim on the loop's stop escrow, kept for the server's stop
+          rnStopClaim γw }}
 
 set_option maxHeartbeats 0 in
 /-- **The composition** (see `NodeStartSpec` and the file header): from
@@ -489,12 +479,12 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued Hvalid Hlok Hstor Hinfl
-    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hwal Hfit HEγ HEpre HEai
+  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
+  obtain ⟨Hcfg, Hhb, Hnodup, H0, Hpslen, Hvs, Hwal, Hfit⟩ := Hraft
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
@@ -506,15 +496,14 @@ theorem raftNode_of_StartNode
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
   wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
-      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
-    Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0
-    (by omega) Hid Hvs Hwal)
+      memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))))
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
     as %r Hpost
   · iframe #; iframe Hb Hc Hbs Hpeers HrS Hvac
-    ipureintro; exact ⟨Hlg, Hhb, HT⟩
+    ipureintro
+    exact ⟨Hcfg, Hhb, Hwal⟩
   icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hsfresh, #Hnode, Hdrv, HrS, Hncfg, Hrun, #Hidri, #Hsti,
-    %Hstss, Hbuilt, Hb, ⟨#Hminv, Hmeta⟩⟩
+    %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
   obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
@@ -557,7 +546,7 @@ theorem raftNode_of_StartNode
   · ipureintro
     refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hb Hminv Hmeta
+  iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node)
@@ -575,6 +564,10 @@ theorem raftNode_of_StartNode
       (wp_Tick γw.node) (wp_Stop γw.node) (wp_ReadIndex γw.node)
       (wp_ApplyConfChange γw.node)
     iframe Hpkg Henv' Hisnode Hcommi Hreg' Hrdi
+  ihave #Hlinv : srvRaftLogInv E.γr.raft $$ []
+  · iunfold rnEnvOk at Henv'
+    icases Henv' with ⟨-, -, -, #H, -⟩
+    iexact H
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
   · iapply raftPropose_of_isNode E γw (wp_Propose γw.node)
     iframe Hpkg Henv' Hisnode Hlinv

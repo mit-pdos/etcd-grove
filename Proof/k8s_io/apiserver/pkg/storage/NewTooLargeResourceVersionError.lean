@@ -4,7 +4,7 @@ Rocq counterpart).
 
 The message (`fmt.Sprintf`), the timeout error (`apierrors.NewTimeoutError`, whose details it
 owns), the cause (the package's `tooLargeResourceVersionCauseMsg`, `storageInit`) set in its
-details; a `*StatusError` as an `error` is not `nil`.
+details; the `*StatusError`, as an `error`.
 -/
 module
 
@@ -65,7 +65,7 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
   (try wp_auto)
   iapply HΦ
   ipureintro
-  simp
+  exact ⟨_, rfl⟩
 
 end proof
 

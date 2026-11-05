@@ -45,6 +45,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInte
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
 public import Proof.net.InvNet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 
 @[expose] public section
 
@@ -66,13 +67,12 @@ variable [GooseExts]
 `peerURL`, `leaseexpiry`) with its 16 low bits not `0` (D19c), and the bootstrap log `bl` with the
 peers' contexts `ctxs` (the node API's `BootLog`: one conf change adding the member, its context
 `ctxs[0]`), each entry a conf change of id `0` that the server's `applyConfChange` takes
-(`ccBootOk`). (2026-10-27, the server port: until then `srvBootLogOk (ccOk id) [id] bootLog`, under
-the conf-change policy `ccOk id`, over raft's records.) -/
-structure BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop where
-  idLow : uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLog [id] ctxs bl
-  cc : ∀ e ∈ LogEntry.toEntries bl 0,
-    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id]) e.Data'
+(`ccBootOk`); (2026-11-05, the merge of lean's R2b-3d gap 3, approved by the user) the boot
+members' peer URLs valid UTF-8 and pairwise disjoint (`bootURLsOk`): `etcdstart.BootFacts`, as the
+other one-member examples'. (2026-10-27, the server port: until then `srvBootLogOk (ccOk id) [id]
+bootLog`, under the conf-change policy `ccOk id`, over raft's records.) -/
+abbrev BootFacts (id : w64) (ctxs : List (List w8)) (bl : List LogEntry) : Prop :=
+  etcdstart.BootFacts id ctxs bl
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23986`. -/
 def peerURL : _root_.Perennial.net.url.URL :=

@@ -189,7 +189,7 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "HWB" ∷ srvWTBudget E ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
 /-- **The apply thread's resources when `run` starts** (`applyStart` off, `applyStartOn` on). -/
 def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
@@ -200,7 +200,7 @@ def applyStartC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     -- (D22 J1b, 2026-10-31) what each snapshot install takes and gives back
-    srvSnapOwn s ci E γr ai₀)
+    srvSnapOwn s ci E γr γ ai₀)
 
 /-- **What `run` needs** (`isServerRun` off, `isServerRunOn` on; the stop requests' `SP` and the
 done channel's `DQ` as `isServerRun`'s). -/
@@ -242,7 +242,9 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     "Hstart" ∷ applyStartC C s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
+    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀ ∗
+      dghostVar γp.reg DFrac.discard (some γg.run)) ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`): its
     -- persistent bundle; (D22 J1b, 2026-10-31) the counter's authority and the stocks in `applyStart`
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
@@ -265,8 +267,8 @@ def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
-    (∃ w : Nat, srvWTTaken C.wt w) ∗ acTok K (ciEff B.γ st.k) ∗
-    srvSnapOwn C.s C.ci B.E C.γr ai ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at'⌝)

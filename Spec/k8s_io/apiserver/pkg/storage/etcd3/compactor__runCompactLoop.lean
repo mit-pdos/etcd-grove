@@ -31,6 +31,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/
@@ -42,9 +43,10 @@ abbrev compactor.runCompactLoop.spec : Prop :=
   (∀ x ∈ ms, kvSame x.γr.kv γk) → γk.cmp = true → γk.cret = 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isCompactor c cl γk recorded γc ∗ compactorStopOk c sc γs ∗
+      compactorCore c cl γk recorded γc ∗ compactorChanOk c sc γs ∗
       isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗ ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      clientKvOk cl γk ∗
       casOk ms γk Seen recorded }}
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"runCompactLoop")) (Val #sc))

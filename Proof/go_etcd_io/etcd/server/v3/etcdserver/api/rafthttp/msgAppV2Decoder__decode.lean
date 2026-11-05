@@ -132,7 +132,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     exact ⟨hF0, rfl, Heqv.1.symm, Heqv.2 rfl⟩
   · -- AppEntries
     wp_auto
-    rw [show _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp =
+    try rw [show _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp =
       #((W32 3 : _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_Enum (W32 3) as %pty Hpty

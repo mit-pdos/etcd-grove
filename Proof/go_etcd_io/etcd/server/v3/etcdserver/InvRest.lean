@@ -29,6 +29,7 @@ lends), and the workload admits none of their requests (`apply.rqOk`, `plainCove
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.unicode.utf8.Valid
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedTable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestModel
@@ -51,10 +52,6 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-! ## The membership's model -/
 
-/-- **The member a conf change's context unmarshals to** (`json.Unmarshal` into a
-`membership.ConfigChangeContext`'s embedded `Member`; opaque, as `ccContextOf`, a function of the
-bytes): what `applyConfChange`'s `AddMember` saves. -/
-opaque membership.ccMemberOf [GooseExts] : List w8 → apply.MemberM
 
 /-- A peer URL some member of `mems` (each member's peer URLs) has. -/
 def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop :=
@@ -104,6 +101,27 @@ backend's first boot `AddNode` validate (`ccValidOn_boot`). -/
 axiom membership.membersOfBk_empty [GooseExts] (bm br : Option backend.BktData)
     (hm : bm.getD ∅ = ∅) (hr : br.getD ∅ = ∅) :
     membership.membersOf bm br = (∅, ∅)
+
+/-- **Buckets the apply thread wrote decode to the members it wrote** (2026-11-04, the restart
+plan's R2b-3d gap 3, the user's approval; a trust-boundary axiom on the opaque `membersOf`).
+Suppose the `members` bucket's entries are exactly some members' records under their own ids
+(`memberKey mm.id ↦ memberEnc mm`, ids distinct), and the `members_removed` bucket's keys are exactly
+the ids `rs`'s keys. Then the members read are those members' peer URLs by id, and the removed are
+`rs`. `readMembersFromBackend` (`server/storage/schema/membership.go:91-123`) keys each member by
+`mustParseMemberIDFromBytes` of its key, which is `types.IDFromString` of `BackendMemberKey`'s hex,
+so the id back. Each value is `json.Unmarshal`led into a `Member`, which inverts `json.Marshal` of a
+non-nil `*Member`, so the member back, provided its strings are valid UTF-8 (`hu`): `json.Marshal`
+coerces invalid UTF-8 to U+FFFD, so a peer URL that is not valid reads back changed
+(`notes/axiom-review/members-decode.md`, the review's refutation of the draft without `hu`). Each
+removed key gives `removed[id] = true`. -/
+axiom membership.membersOf_decode [GooseExts] (bm br : Option backend.BktData)
+    (ms : List apply.MemberM) (rs : List w64)
+    (hm : ∀ k v, (bm.getD ∅).lookup k = some v ↔
+      ∃ mm ∈ ms, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm)
+    (hnd : (ms.map (·.id)).Nodup) (hu : ∀ mm ∈ ms, ∀ u ∈ mm.peerURLs, utf8Valid u)
+    (hr : ∀ k, ((br.getD ∅).lookup k).isSome = true ↔ ∃ id ∈ rs, k = apply.memberKey id) :
+    (∀ id, (membership.membersOf bm br).1 !! id = (ms.find? (·.id = id)).map (·.peerURLs)) ∧
+    (∀ id, (membership.membersOf bm br).2 !! id = if id ∈ rs then some true else none)
 
 /-- The membership buckets `MustReadMembersFromBackend` reads: `members`, `members_removed`. -/
 def membership.memberBkts [GooseExts] (n : GoString) : Prop :=

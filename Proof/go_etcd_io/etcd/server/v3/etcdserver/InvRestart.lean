@@ -58,26 +58,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 
-/-- **The files of a stopped member's data directory hold `σ` and `D`** (opaque, exclusive; a
-trust-boundary token, DRAFT R2c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its newest
+/-- **The files of a stopped member's data directory hold `σ` and `D`** (made of the two closes'
+trust-boundary tokens; DRAFT R2c, defined in R2b-3c): the WAL in `<dd>/member/wal` reads back (`ReadAll` from its newest
 valid snapshot record: of the highest index at or below the last hard state's commit,
 `wal.ValidSnapshotEntries`, `newestSnapshotEntry`, `bootstrap.go:437-462`; 2026-11-03, the final
 whole-`bootOk` review: until then "its last snapshot record", which Go does not read when the apply
 loop's snapshot record follows a newer received one, and which did not exclude `recoverSnapshot`'s
 panic, `bootstrap.go:482`) as the records `σ` -- the snapshot record at `σ.b`, the hard state `σ.hs`, the
 entries `σ.ents` -- and the bbolt file at `<dd>/member/snap/db` holds `D`; the WAL's metadata names the member `id`
-(R2c review, second tier 1: `bootOkR`'s `cv.ID' = id` comes from it). Exclusivity per directory
+(R2c review, second tier 1: `bootOkR`'s `cv.ID' = id` comes from it). (2026-11-04, R2b-3c part 2b:
+defined, as `WalApi.lean`'s plan (3) says: the closed WAL's files in the configuration's WAL
+directory with no dedicated one, `walFiles`, and the bbolt file, `fileHolds`, the two closes'
+outputs.) Exclusivity per directory
 (two tokens of one directory) is not stated: an open question for R2b, which makes it. Made by the stop's
 closes (R2b: `wal.Close`, `backend.Close`, axioms at the trust boundary, from what the server's
 `Save`s and the backend's commits wrote), consumed by `bootstrap`'s restart contract. A graceful
 stop in the same process: every write is visible to the next open, synced or not (the plan's
 Q4). -/
-opaque srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF
+def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
+  iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ) ∗
+    backend.fileHolds (config.backendPathOf dd) D)
 
-/-- **`buildConfStateFromV3store`** (opaque, DRAFT R2c, R2d's to define): the conf state etcd
-builds from the backend's `members` bucket of `D` (voters the non-learners, learners the learners,
-by id; R2c review F4: from the bucket, not the in-memory members). -/
-opaque v3ConfState (D : backend.Data) : ConfStateM := memSnapEmpty.Metadata'.ConfState'
+/-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
+(R2c's draft opaque `v3ConfState`, defined 2026-11-04, the restart plan's R2b-3d gap 3; R2c review
+F4: from the bucket, not the in-memory members): the bucket's entries are those of some members
+`ms` with distinct ids, each under its id's key with its JSON (`memberKey mm.id ↦ memberEnc mm`, the
+shape `membersDecode` states and the apply thread writes; `MustReadMembersFromBackend` unmarshals
+each value back to its member). `cs`'s voters are the non-learners' ids and its learners the
+learners', in any order (Go ranges over a map), with no joint state. A relation, not a
+function, because of that order. -/
+def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
+  ∃ ms : List apply.MemberM,
+    (∀ k v, ((D.lookup go!"members").getD ∅).lookup k = some v ↔
+      ∃ mm ∈ ms, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm) ∧
+    (ms.map (·.id)).Nodup ∧
+    cs.Voters' ≡ₚ (ms.filter (fun mm => !mm.isLearner)).map (·.id) ∧
+    cs.Learners' ≡ₚ (ms.filter (·.isLearner)).map (·.id) ∧
+    cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false
 
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
@@ -92,8 +109,8 @@ opaque v3ConfState (D : backend.Data) : ConfStateM := memSnapEmpty.Metadata'.Con
   after the `Save` of its commit), so that `bootstrap` keeps the file (`recoverSnapshot` opens a
   `.snap.db` only when the file's index is below the snapshot's);
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
-  by the backend's (`buildConfStateFromV3store`), so the membership at `i`, the backend's members
-  at `A`; `RestartNode` takes any point from the storage's base to its commit;
+  by the backend's (`buildConfStateFromV3store`, `v3ConfStateIs`): every conf state it can build is the
+  membership at `i`; `RestartNode` takes any point from the storage's base to its commit;
 - the bootstrap log applied (`γ.cl.bootLen ≤ i`; R2c review F4, a scope restriction: a member
   stopped before its first `Ready` was applied would restart with an empty members bucket, which
   etcd copes with and these statements do not; `restart3`'s stop must provide it);
@@ -117,7 +134,7 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
     ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ ∗
-    confAt γ.cl (uint.nat i) m ∗ ⌜confStateIs (v3ConfState D) m⌝ ∗
+    confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 
@@ -192,31 +209,28 @@ def srvStopRight (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStr
     srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
     token c)
 
-/-- (DRAFT, R2b-2/R2b-3) **What `Cleanup` closes besides the apply thread's resources** (opaque
-until R2b-3): the lessor's stop right (`lessor.Stop` is `close(le.stopC)`: a second call panics,
-so it is exclusive; `isServerRun` holds only the persistent `lessorOk`) and the auth store's
-closer (its lock and token provider). The KV store's closer and the backend's (`srvKVCloserW`,
-`bOpen ½`, `pathOwn`, in `srvSnapRes`) come back from the apply thread, through `sched.Stop`'s last
-job's post (R2b-2 review F3). -/
-opaque srvCleanupOwn (s : Loc) : IProp GF
+/-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
+thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s
+with auth off, the user's decision: `notes/axiom-review/auth-close.md`), what `Cleanup`'s closer is
+(`authCloser` at no resource). Auth off only, `restart3`'s mode: with auth on, the closer is the
+apply thread's, at the token provider's admin share (`authCloser_of_inv`). (The lessor's stop right
+is in the stop's slot, `srvStop.keep`; the KV store's closer and the backend's come back from the apply thread through
+`sched.Stop`'s last job's post, R2b-2 review F3.) -/
+def srvCleanupOwn (s : Loc) : IProp GF :=
+  iprop(∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗ authCloseOk stl)
 
-/-- **What `run`'s shutdown needs besides `isServerRun`** (DRAFT, R2b-2; `run.specStop`): the claim
-on the raft loop's stop escrow (`rnStopClaim`, which `raftNode.stop`'s stop variant takes), the
-data directory (`srvDataDir`, which the image names), the storage registry's authority (R2c
-review F3: the image hands it to the restart; `bootOk` returns it to `NewServer`, which drops it
-today and must keep it), and what `Cleanup` closes (`srvCleanupOwn`). Its sources (R2b-2 review
-F3): `NewServer` keeps all but the raft loop's claim for `Start` (`srvStopKeep`), `newRaftNode`
-allocates the claim with the loop's `done`, and `start` hands them to `run`. -/
-def srvShutdownPre (s : Loc) (γn : RNNames) (dd : GoString) : IProp GF :=
-  iprop(rnStopClaim γn ∗ srvDataDir s dd ∗
-    (letI : MemStorReg GF := ⟨γn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
-    srvCleanupOwn s)
+instance srvCleanupOwn_persistent (s : Loc) : Persistent (srvCleanupOwn (GF := GF) s) := by
+  unfold srvCleanupOwn; infer_instance
 
-/-- (DRAFT, R2b-2) **What `NewServer` keeps for the stop** (opaque until R2b-2's proof): the raft
-loop's stop claim and the storage registry's authority (at the raft names `NewServer` builds),
-and what `Cleanup` closes (`srvCleanupOwn`): `srvShutdownPre`'s parts but the data directory,
-which `Start` hands to `run` (R2b-2 review F3: until then nothing named their source). -/
-opaque srvStopKeep (s : Loc) : IProp GF
+/-- (2026-11-05, R2b-3d gap 4) **The store's readers `NewServer` keeps for the stop**: of the
+`rdStockN - nJobRd` readers `NewStore` gives, all but the watch loops' (`wsLoopN`), the request
+goroutines' and the watch service's run slots' (64 each, `memberUp`'s serving stocks), the
+compactor's, the storage version monitor's and the apply thread's retired ones, and the apply
+thread's own (`apply.kvOwn`). Until then `NewServer` dropped them. With every other reader,
+`storeReaders_retire` and `storeRTs_shares` give the backend's `Close` the stock's shares of its
+open token, as `NewServer`'s own error path does (R-D1). -/
+abbrev srvKeepRdN (γst : mvcc.StoreNames) : Nat :=
+  backend.rdStockN - mvcc.nJobRd γst.kb - mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1
 
 end defs
 
@@ -285,7 +299,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
-    -- `b.raft`: `NodeStartSpec`'s premises
+    -- `b.raft`: the raft configuration (as `bootOk`'s, but `RestartNode`'s path: no peers)
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
     -- (`bootstrap.go:574`, wrapping)
     "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
@@ -313,7 +327,7 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (`ApplySnapshot` of the WAL snapshot with the backend's `ConfState`, `SetHardState`,
     -- `Append`), in place of the fresh storage's tokens; R2d derives `RestartNode`'s
     -- `restartStorage` from it, as kvdurable's `kd_restartStorage`
-    "Hrest" ∷ memStorRestarted bv.storage' γs σ (v3ConfState D) ∗
+    "Hrest" ∷ (∃ cs : ConfStateM, ⌜v3ConfStateIs D cs⌝ ∗ memStorRestarted bv.storage' γs σ cs) ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
@@ -437,11 +451,11 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
     -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-    -- the error paths' close
-    "#Hclose" ∷ □ ({{ True }}
-      (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
-      {{ RET #(); True }}))
+    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir'))
+    -- (R-D1, 2026-11-04) no row for the error paths' close: `bootstrappedServer.Close` is
+    -- translated and proved (`bootstrappedServer.Close.spec`, one-shot: it takes the backend's whole
+    -- open token), and `NewServer`'s proof reassembles what it takes; until then the opaque
+    -- `"#Hclose" ∷ □ {{ True }} b.Close() {{ True }}`, false (a second call panics)
 
 
 /-- **`bootstrap`'s contract on a stopped member's data directory** (DRAFT, R2c; L3; a premise, as

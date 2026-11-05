@@ -8,7 +8,7 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 (`storage/etcd3`, `storage`) or names- or types-only (`Code/k8s_io/**.toml`, project
 `k8s-apiserver` of `etc/goose.py`); the standard-library `encoding/base64`, `encoding/json`,
 `iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`; `encoding/base64`'s instance is in its own `Base.lean`). Every fact is
-`True` but the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
+`True` but `etcd3`'s own (the compactor registry, `registryFact`, `RegistryDefs.lean`), the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
 `txnError` returns for a failed comparison, holds some error) and `util/feature`'s
 (`featureInit`: `DefaultFeatureGate` holds a gate whose `Enabled` answers some `bool`; the gate is
 names-only, `component-base/featuregate`, and which features are on is the deployment's) and
@@ -29,6 +29,7 @@ public import Perennial.Proof.strings.Base
 public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.encoding.base64.Base
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
 
 @[expose] public section
 
@@ -329,10 +330,12 @@ instance k8s_io_apiserver_pkg_util_flowcontrol_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.util.flowcontrol :=
   build_get_is_pkg_init_wf
 
-instance k8s_io_apiserver_pkg_storage_etcd3_is_pkg_init_inst :
+/-- `etcd3`'s fact: the compactor registry (`EtcdGrove.k8s.registryFact`, `RegistryDefs.lean`),
+at the registry's name (`CompactorRegistry`, Q1 (c), 2026-11-05). -/
+instance k8s_io_apiserver_pkg_storage_etcd3_is_pkg_init_inst [EtcdGrove.k8s.CompactorRegistry] :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apiserver_pkg_storage_etcd3_get_is_pkg_init_wf_inst :
+  define_is_pkg_init (EtcdGrove.k8s.registryFact (GF := GF))
+instance k8s_io_apiserver_pkg_storage_etcd3_get_is_pkg_init_wf_inst [EtcdGrove.k8s.CompactorRegistry] :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 :=
   build_get_is_pkg_init_wf
 

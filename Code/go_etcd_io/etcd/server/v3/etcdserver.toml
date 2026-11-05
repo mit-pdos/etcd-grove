@@ -80,6 +80,9 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "NewServer", "bootstrappedServer", "bootstrappedStorage", "bootstrappedBackend",
   "bootstrappedCluster", "bootstrappedWAL", "AccessController",
   "EtcdServer.restoreAlarms", "EtcdServer.NewUberApplier",
+  # (R-D1, 2026-11-04) the record's close on `NewServer`'s error paths (bootstrap.go): until then
+  # a trusted triple of `bootOk` (`#Hclose`), false (a second `Close` panics)
+  "bootstrappedServer.Close", "bootstrappedStorage.Close", "bootstrappedBackend.Close",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
   # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go); their

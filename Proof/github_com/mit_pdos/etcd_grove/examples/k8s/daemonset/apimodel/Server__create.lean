@@ -345,7 +345,7 @@ theorem Server.create.wp_proof
               have hCE := createErr_none hc1 hrv0 hnmo hnone
               generalize hO3 : (createApply r ns o σ0 tm).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
               (try wp_auto)
-              rw [show k8s_io.apimachinery.pkg.watch.Added = #(EvTy.added.str) from rfl]
+              rw [show (go!"ADDED" : GoString) = EvTy.str .added from rfl]
               wp_apply (wp_record s γ L cfg r (σ0.tbl r) .added (σ0.rev + 1) y o3) $$
                 [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
               · iunfold tableLocked
@@ -508,7 +508,7 @@ theorem Server.create.wp_proof
             have hCE := createErr_none hc1 hrv0 hnmo hnone
             generalize hO3 : (createApply r ns o σ0 tm).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
             (try wp_auto)
-            rw [show k8s_io.apimachinery.pkg.watch.Added = #(EvTy.added.str) from rfl]
+            rw [show (go!"ADDED" : GoString) = EvTy.str .added from rfl]
             wp_apply (wp_record s γ L cfg r (σ0.tbl r) .added (σ0.rev + 1) y o3) $$
               [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
             · iunfold tableLocked
@@ -753,7 +753,7 @@ theorem Server.create.wp_proof
                 have hCE := createErr_none hc1 hrv0 hnmo hnone
                 generalize hO3 : (createApply r ns o σ0 tm).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Added = #(EvTy.added.str) from rfl]
+                rw [show (go!"ADDED" : GoString) = EvTy.str .added from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .added (σ0.rev + 1) y o3) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked
@@ -916,7 +916,7 @@ theorem Server.create.wp_proof
               have hCE := createErr_none hc1 hrv0 hnmo hnone
               generalize hO3 : (createApply r ns o σ0 tm).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
               (try wp_auto)
-              rw [show k8s_io.apimachinery.pkg.watch.Added = #(EvTy.added.str) from rfl]
+              rw [show (go!"ADDED" : GoString) = EvTy.str .added from rfl]
               wp_apply (wp_record s γ L cfg r (σ0.tbl r) .added (σ0.rev + 1) y o3) $$
                 [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
               · iunfold tableLocked
@@ -1181,7 +1181,7 @@ theorem Server.create.wp_proof
                   have hCE := createErr_none hc1 hrv0 hnmo hnone
                   generalize hO3 : (createApply r ns o σ0 tm).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
                   (try wp_auto)
-                  rw [show k8s_io.apimachinery.pkg.watch.Added = #(EvTy.added.str) from rfl]
+                  rw [show (go!"ADDED" : GoString) = EvTy.str .added from rfl]
                   wp_apply (wp_record s γ L cfg r (σ0.tbl r) .added (σ0.rev + 1) y o3) $$
                     [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                   · iunfold tableLocked
@@ -1344,7 +1344,7 @@ theorem Server.create.wp_proof
                 have hCE := createErr_none hc1 hrv0 hnmo hnone
                 generalize hO3 : (createApply r ns o σ0 tm).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Added = #(EvTy.added.str) from rfl]
+                rw [show (go!"ADDED" : GoString) = EvTy.str .added from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .added (σ0.rev + 1) y o3) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hy] as ⟨Hy, Htb⟩
                 · iunfold tableLocked

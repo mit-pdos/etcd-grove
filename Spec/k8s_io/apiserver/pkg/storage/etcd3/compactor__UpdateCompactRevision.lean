@@ -22,13 +22,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [sync_sem : sync.Assumptions]
 
 /-- See the file header. -/
 abbrev compactor.UpdateCompactRevision.spec : Prop :=
   ∀ (c cl : Loc) (γk : KVNames) (recorded : w64 → IProp GF) (γc : CompactorNames) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
-      isCompactor c cl γk recorded γc ∗ recRevOk γk recorded rev }}
+      compactorCore c cl γk recorded γc ∗ recRevOk γk recorded rev }}
     (App (Val (c @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.compactor.ty @!!
       go!"UpdateCompactRevision")) (Val #rev))
   {{ RET #(); compactRevLb γc rev }}

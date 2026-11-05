@@ -2,10 +2,12 @@
 Package initialization of `k8s_io.apiserver.pkg.storage.etcd3`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its variables, initializes its imports, runs
+Its fact (`EtcdGrove.k8s.registryFact`, `RegistryDefs.lean`): `endpointsMapMu` is a mutex over
+the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
+importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
 `defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
-`endpointsMap`, `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
+`endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
 `strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
@@ -108,6 +110,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 
 namespace k8s_io.apiserver.pkg.storage.etcd3
 
@@ -123,6 +126,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Bool') fatalOnDecodeError _ as HfatalOnDecodeError
   wp_apply wp_GlobalAlloc (V := w64) defaultWatcherMaxLimit _ as HdefaultWatcherMaxLimit
   wp_apply wp_GlobalAlloc (V := Loc) typeToMessage _ as HtypeToMessage
@@ -206,6 +210,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string
       (go.GoType.PointerType compactor.ty)) as %em Hem
   try wp_auto
+  imod _root_.Perennial.sync.init_Mutex (EtcdGrove.k8s.registryInv (GF := GF)) ⊤ _
+      $$ HendpointsMapMu [HendpointsMap Hem] with #Hreg
+  · inext
+    iunfold EtcdGrove.k8s.registryInv
+    iexists em, ∅
+    iframe HendpointsMap Hem
+    iapply BigSepM.bigSepM_empty.2
+    itrivial
   -- the translated init.«1»
   wp_func_call
   wp_call
@@ -238,7 +250,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imodintro
   try wp_auto
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold EtcdGrove.k8s.registryFact
+  iexact Hreg
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

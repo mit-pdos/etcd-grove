@@ -128,6 +128,11 @@ structure BNames where
   /-- `dghostVar (Loc × GoString)`, discarded at allocation (2026-11-04, R2b-3c): bbolt's database
   and the file it is (`bDB`, `bFile`), so that the stop's escrow and `Close` agree on it -/
   dbf : GName
+  /-- saved proposition (2026-11-04, the restart plan's R2b-3d stage 3): the result `Y` of the
+  request `Close`'s caller makes of the stop's commit (`stopReq`): both halves in the stop
+  invariant at `True` until `Close` sets them to `Y`; one its claim, one deposited with the request,
+  which `run` carries to `donec`'s escrow with `Y` -/
+  rq : GName
   /-- The tracked buckets' names (`rbData`'s at creation and the table's tracked buckets: every
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
@@ -327,6 +332,16 @@ theorem bDBAt_agree (γ : BNames) (db db' : Loc) (p p' : GoString) :
   ipureintro
   simp only [Prod.mk.injEq] at H
   exact H
+
+/-- (R2b-3c part 2b) **The backend's file has one path**: `New`'s `bFile` and `Close`'s agree, so the
+closed file is at the configuration's path. -/
+theorem bFile_agree (γ : BNames) (p p' : GoString) :
+    bFile (GF := GF) γ p ∗ bFile γ p' ⊢ ⌜p = p'⌝ := by
+  unfold bFile
+  iintro ⟨⟨%db, H1⟩, ⟨%db', H2⟩⟩
+  ihave %H := bDBAt_agree γ db db' p p' $$ [H1 H2]
+  · iframe H1 H2
+  ipureintro; exact H.2
 
 instance bStopped_persistent (γ : BNames) : Persistent (bStopped (GF := GF) γ) := by
   unfold bStopped; infer_instance
@@ -974,7 +989,10 @@ its committed data `C`: the readers' view quarter at `C`'s physical view (over s
 `batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
 holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
 def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
-  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C)
+  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C ∗
+    -- (2026-11-04, the restart plan's R2b-3d stage 3) a reader's lower bound of the compaction
+    -- keys' flag at `C` (what the stop's commit gives its readers, `fkHalf_rd`)
+    ∃ R : RBuf, fkRd γ P (C, R))
 
 /-- (R2b-3c) **What the stopped batch transaction gives up**: bbolt's database, owned at its
 committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's

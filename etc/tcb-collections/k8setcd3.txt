@@ -279,9 +279,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
-axiom Perennial.os.Stderr_init
-axiom Perennial.os.initFuncsOk
-axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
@@ -398,6 +395,7 @@ axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
+axiom fmt.SprintfNamed.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
@@ -676,6 +674,4 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry k8s_etcd3.client_ctx_field
 sorry k8s_etcd3.revRoom
-sorry kubernetes.kvIs_ne_null

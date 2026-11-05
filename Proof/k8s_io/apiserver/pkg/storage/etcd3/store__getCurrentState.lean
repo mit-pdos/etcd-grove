@@ -35,6 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.getCurrentState.wp_proof
@@ -42,7 +43,7 @@ theorem store.getCurrentState.wp_proof
     (wp_RecordEtcdRequest : metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.getCurrentState.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd verb key v p R hk hkl hR
+  intro _ _ Obj _ sp c ci cd verb key v p ign R hk hkl hR
   wp_start as ⟨#Hst, #Hctx, #Hce, %Hv⟩
   iapply wp_fupd
   (try wp_auto)
@@ -96,7 +97,7 @@ theorem store.getCurrentState.wp_proof
       fun kv hkv => c.dec_of_wf σ Hwf key hk kv hkv
     (try wp_auto)
     wp_apply (wp_stateFrom Obj sp c (GoInterface.ok ci) resp.KV' (mvcc.findKey key σ.kvs)
-        resp.Revision' key v p hdk) $$ [] as %st %err Hres
+        resp.Revision' key v p ign hdk) $$ [] as %st %err Hres
     · iframe #
       ipureintro; exact Hv
     (try wp_auto)

@@ -41,6 +41,20 @@ Seven steps, in order (renamed 2026-10-28; the notes and commits before then num
 | **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified; every new or restated axiom attacked by the `axiom` skill |
 | **Prove** | phase 4 | the remaining proofs, in parallel |
 
+**The order is a gate, not a checklist** (2026-11-05, from the dsverify ablation runs,
+`/shared/dsverify-lab`). Given the phases as text, an agent with idle time while reviewers ran started
+proof agents on every package, wrote "deviation recorded" in its notes, and froze after the proofs:
+each phase left its record, in the wrong order, and the review's repairs and a Probe-sized gap then
+invalidated 23 finished proofs (a cascade three call levels deep). So:
+- **No proof agent before the freeze**, and no function proof beyond Draft's listed glue and Probe's
+  named proofs. The freeze is an annotated tag `stageN-frozen` on the commit with the frozen
+  statements, made when the user freezes; before each batch of proof agents,
+  `git rev-parse -q --verify refs/tags/stageN-frozen` is checked and its output goes in their brief.
+- **Writing a deviation down does not allow it**: proving during Review, or freezing after the
+  proofs, is the skipped phase, recorded.
+- **While Review runs**, the work that may go on alongside it is Test, the axiom attacks, the listed
+  glue, the Probe proofs and the next reviewer bundle; not the remaining proofs.
+
 **Freeze: the axioms attacked first** (the user's, 2026-11-02). Before the user freezes a stage, the
 `axiom` skill runs on every axiom the stage adds or restates (`etc/tcb-report.py --check` lists
 the new ones; a same-name restatement is in the diff of the stage's trust-boundary files): it tries
@@ -73,6 +87,22 @@ every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then pro
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*The glue is a list* (2026-11-05, from the dsverify ablation): the stage plan lists the glue before
+any of it is proved, each entry with its reason. A body is glue only when it decides nothing over
+shared state: it takes no lock, opens no invariant, updates no ghost state and loops over no protocol
+state; it calls its callees and passes their results on. Leaves (getters, pure helpers,
+constructors) are not glue: they wait for Probe or Prove. A Draft agent's brief names the glue it may
+prove; any other proof it finishes is a Prove proof done early. (A run with the gate above but no
+list proved 49 of its 94 functions in Draft as "glue".) The glue is usually a small part of a stage's
+functions; a long list is a sign the line was drawn to prove early.
+*Go first* (2026-11-05, the user's): a stage that changes a top-level program's traffic or its
+model writes the Go side before any Lean statement: the driver's new traffic, the Go copy of the
+model, their tests, and a statistics test that reaches every new outcome (each new error, each new
+path), run against the real code. Draft then writes Lean against Go that is known to run. The
+evidence: phase 7b's driver and stats test (2026-11-05) found the store's cached no-op bug
+(`k8s-etcd3-cached-noop-skips-preconditions`, in `issues/` with branch `k8s-etcd3-7b`) in minutes, before any statement existed;
+found in Prove, it would have been an unprovable frozen statement.
+
 *Invariants written in full* (2026-11-04, the user's): each new or changed invariant's body, not only
 its name, with its ownership (who allocates it, who opens it, which ghost state it holds and who holds
 the other halves) and the laws its clients use. Nothing before Probe checks an invariant's strength
@@ -117,6 +147,12 @@ boundary") is ranked in the same two tiers, judged by the `spec` skill's princip
 it is owned; a new mode redefining the shared predicates in place; laws, not unfolds; a hub naming it
 through a sealed slot), and against the Go code it mirrors.
 
+*Parallel reviewers* (2026-11-05, the user's): a round may review independent targets with one fresh
+reviewer each, at the same time, when the targets share no hub statement (`notes/spec-first-plan.md`,
+"Hubs") and no sealed slot; a hub statement and every slot in it always go to one reviewer, who sees
+both sides of each slot. Rounds are cheap next to the user's decisions and the builds, so this is an
+option for a large stage, not a rule.
+
 *Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
 repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
@@ -138,6 +174,12 @@ with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_m
 `lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
 transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
 skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+**When: in the round that writes it** (2026-11-05, the user's). A new, widened or restated
+trust-boundary statement gets its `axiom` attack in the Draft or repair round that introduces it, in
+parallel with the review, not batched before the freeze: proofs and glue built on it in between are
+lost if it is refuted. (lease-expiry restated `leaseTimeToLive` and widened `NewLessor`'s post, then
+built `Main`'s proof on them for a day before any attack started.) A statement changed again after
+its attack is attacked again, on what changed.
 
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
@@ -202,7 +244,9 @@ so later reviews in the repository start from it.
   same treatment: random call sequences against the real library, checked against the axiom's pure
   model. One refuting trace is what the audit had to find by reading.
 
-**Probe (was phase 3): a few proofs per package.** Prove fully the one or two riskiest bodies of each
+**Probe (was phase 3): a few proofs per package.** The Probe set is named in the stage plan before the
+probes start (2026-11-05, from the dsverify ablation): at most two proofs per package, an easy one and
+a hard one; a proof not on the list waits for the freeze. Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
 sufficiency, the ghost design, logical atomicity. *The hard proof is chosen by its invariant* (2026-11-04, the
 user's): the step that must preserve a new or changed invariant in its riskiest case (the concurrent
@@ -234,7 +278,8 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 `Value(TraceKey{})`).
 
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
-which suits agents).
+which suits agents). Each proof agent's brief names the freeze tag (with the gate's output) and the
+functions it proves; it writes no spec: a spec it finds missing or wrong goes in the change log below.
 
 **The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
 statement goes in the stage's change log (old → new, why), as raft-unified's did
@@ -292,6 +337,35 @@ statement each one rebuilds most of the repository (`mvcc/InvStore.lean` has 172
 - **`etc/tcb-report.py --check` only when an axiom or a `sorry` changed**, and once before a merge
   into the main branch, which also takes the full build of record.
 
+**One build of a shared change, not one per worktree** (2026-11-05, the user's). On 2026-11-04 the
+load reached about 130 on 32 cores: four worktrees each recompiled raft and the server after the same
+Perennial pin bump and `lean` merge, the same `.olean`s four times, each `lake build` at 32 jobs. So:
+- **After a change to widely imported modules lands on `lean`** (a pin bump, a hub statement, a
+  shared invariant), one session builds `lean` once (a worktree at that commit) and the others,
+  after merging `lean`, seed their `.lake/build` from it (`cp -a` of that build, never `cp -al`)
+  before building; Lake then rebuilds only what their own branch changes. The session that lands
+  such a change says so in its `notes/STATUS.md` entry ("seed from a build of `<commit>`").
+- **Full builds take turns**: a full `lake build` (and `etc/gates.sh`, which runs one) goes through
+  `flock /shared/tmp/etcd-grove-full-build.lock`, so at most one full build runs on the machine;
+  targeted builds (`etc/importers.py --leaves`) and `etc/lean-check.py` do not take the lock.
+
+**Landing takes a lock** (2026-11-05, the user's). The gates and the fast-forward are one step, but
+other sessions moved `lean` in between: on 2026-11-05 a notes-only commit landed while `r2b3`'s
+gates ran, and its fast-forward failed after the full gates. So every landing, notes-only included,
+goes through `etc/land.sh` from the branch's worktree: under `flock /shared/tmp/etcd-grove-land.lock`
+it checks that `lean` is merged, runs `etc/gates.sh` under the full-build lock (skipped when the
+branch changes only `notes/`), and fast-forwards `lean`. A landing that finds the lock taken waits;
+one that finds `lean` moved merges it outside the lock and reruns. No `git merge --ff-only` into
+`lean` by hand.
+
+**The session registry** (2026-11-05, the user's). Sessions under two accounts work on this
+repository and cannot all message each other, so one file says who does what:
+`/shared/etcd-grove-sessions.md`, a table with one row per active session (session name, account,
+worktree, branch, stage, state, next hard stop, updated). A session adds its row when it starts a
+stage, updates it at each hard stop and landing, and removes it when its worktree goes. The
+coordinator reads it before sequencing landings or starting agents; a session about to touch a hub
+(`etc/spec-hubs.py`) checks it for others on the same hub.
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
@@ -321,6 +395,38 @@ before the freeze a reversal costs statements and glue, not proofs.
 
 **Batching.** What must go to the user goes once per round, all of the round's questions together,
 not one at a time; the stage goes on with what does not depend on them.
+
+**Proceed with a veto** (2026-11-05, the user's). Before the freeze, a question in the right column
+that is not a hard stop is not a stop: the agent takes its own recommendation, records it in the
+stage plan as "decided by the agent, pending the user" (the options, the recommendation, the
+evidence), and goes on; the user reads the pending decisions in batches and vetoes what they
+disagree with, and a veto before the freeze costs statements and glue. The evidence: phase 7b's
+first three stops (2026-11-05) asked nine questions, the user took the recommendation on all nine,
+and each stop cost a round trip with the agent idle. **Hard stops** stay stops:
+- Scope and each Freeze;
+- anything that grows the trust base: a new axiom, a trusted model or scope premise on a trusted or
+  exported statement, a wider existing axiom (7b's T1, `types.UID` added to `SprintfNamed`'s list);
+- the escalation trigger below; a change to a frozen or top-level statement;
+- anything upstream or a fork change.
+
+A scope narrowing around a recorded finding (7b's cached no-op: the traffic avoids it, the bug in
+`issues/`) proceeds: it is recorded and in the batch, not a stop.
+
+**Questions do not block** (2026-11-05, the user's). A background agent that asks by ending its turn
+idles until the answer. Instead it appends the question (and each "decided by the agent, pending
+the user" decision) to `questions.md` at its worktree's root, with the options, its recommendation
+and what depends on the answer, and goes on with what does not; the orchestrator relays the file to
+the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
+does not depend on it.
+
+*Where, and what counts as approved* (2026-11-05, the user's). The stage's worktree and branch are
+made at Scope, not at the freeze, so that `questions.md` is always at the worktree's root (not in a
+session's scratchpad, where no one else finds it). An entry the coordinator or the user's session
+marks **"approved by the user, <date>, via <session>"** (or "vetoed") is the user's decision: every
+agent on the branch acts on it without asking again. (On 2026-11-05 a sub-agent declined approvals
+the user had given in its own session because they reached it relayed, and they were relayed twice.)
+An approval given elsewhere (a dialog, a chat) is copied into `questions.md` in that form by the
+session that received it, before any agent acts on it.
 
 **The escalation trigger**, however small the change looks: a repair or design step that would add a
 spec or predicate family beside an existing one (a second spec of a function for a mode or special
@@ -750,6 +856,25 @@ premises with slots.
    slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+   **First check (2026-11-05, `lean` 256dbfc6d9 against 3fe0d5a4ef; slots: the WAL, the raft node,
+   the transport, the compactor; the lease's on `lease-expiry`).** `etc/spec-hubs.py` change counts,
+   11-03 → 11-05: `NewServer.specG` 9 → 24, `bootOk` 58 → 66, `srvBuilt`/`srvBuiltG`/`isServerBuilt`
+   +7 each, `bootstrapContract` 7 → 12, `KVNames` 11 → 18, `AEnv` 16 → 20; `RaftNames` and
+   `StoreNames` unchanged. The hub's rate is not lower yet (about 6 changes a day to `specG`, 4.3 a day
+   to `spec` before), but the 12 commits that changed `Spec/.../NewServer.lean` since 11-03 are mostly the
+   conversion itself: the slots, the bootOk review and the twins (6); a subsystem added through its slot
+   (R2b-1's WAL, 1); comments only (auth stage 3, 1); pre-convention (lease-grant 3b, 1). The compactor's
+   and auth's later stages (Q1 (b)/(c), auth 4-5) left the hub's text alone. **The misses: the restart's
+   stop (R2b-3d, 3 commits)** added `srvStopKeep` inline, then changed its arguments twice (fields of
+   `E`, not a names record: the follow-up under the transport's slot) and put an inline mode clause
+   beside it (`⌜on = false⌝ → srvCleanupOwn`); and the example entry points (hub 4) grew mode twins
+   (`BuildServer.specRestart`/`specStop`, `newServer.specCompact`, `Start{Compacting,Periodic}Server`),
+   step 7 not yet done. Parallel branches still collide: `lease-expiry` (+149 lines in
+   `NewServer.lean`, its lease slot) and `r2b3` both edit the postcondition. `etc/spec-churn.py`'s
+   `STAGES` has no stage since 11-02, so its tables do not measure the hubs yet (add K1, R2b-1, the
+   auth stages, 7b, auth 5 when they freeze). Next: the restart's stop pieces as a slot when R2b-3d next
+   touches the hub; step 7 before the restart's `walFiles`; land `lease-expiry` and `r2b3` one after
+   the other. Re-check after both land.
 6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
    **Done** (2026-11-03, branch `hub-twins`, after auth-on's whole branch landed): `specG` written
    out once, `spec := ∀ cmp, specG false cmp` (no wrapper needed: `newServerMode` passes its mode
@@ -827,6 +952,25 @@ that subsystem converts (step 4), into `<sub>.Names`; until then they stay as th
 
 **Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
 added only when its subsystem must change the hub anyway.
+
+**Hub changes are requests** (2026-11-05, the user's; from the dsverify skill's `2f67a2c`). A
+stage edits the inside of its own subsystem's slots (their sealed bodies and laws) freely. Any other
+change to a hub, which is a statement `etc/spec-hubs.py` lists with a fan-out of 6 or more
+directories (`NewServer.specG`, `bootOk`, `srvBuilt`/`isServerBuilt`, `bootstrapContract`, the
+`etcdstart` starters, the name and environment records, the apply and snapshot aggregators), is a
+**hub request**. That covers a new slot, conjunct, binder or premise; a conversion into a slot;
+an edit of another subsystem's slot; and an inline clause. The stage does not make it
+directly. It writes the request in its `questions.md` under "Hub requests": the hub, the change
+written out, the caller that needs it, and the alternative inside its own slot. It goes on with a
+marked `sorry` at the step that needs it, and tells the coordinator, who keeps the hub plan. The
+coordinator decides each request against the slot convention and against the other sessions on
+the same hub (the session registry). It answers in that `questions.md` ("accepted / rejected by
+the coordinator, <date>"; one that changes a top-level statement or grows the trust base still goes to
+the user). It also sets the order: the requesting stage then makes the accepted change as a commit
+of its own, and the coordinator tells every other session on that hub to merge it when it lands.
+(The case: the restart's stop added `srvStopKeep` and an inline mode clause to `NewServer`'s
+postcondition over three commits while `lease-expiry` converted the lease into a slot there on
+another branch. The step-5 check counted both, and they collide at landing.)
 
 **Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
 compaction on, a restart) generalizes the one written-out statement with a parameter; it does not

@@ -44,7 +44,6 @@ theorem KV.RemoveMember.wp_proof
   · iPkgInit
   wp_auto
   wp_apply context.wp_Background
-  rw [show raftpb.ConfChangeRemoveNode = #((W32 1 : raftpb.ConfChangeType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_ConfChangeType_Enum (W32 1) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

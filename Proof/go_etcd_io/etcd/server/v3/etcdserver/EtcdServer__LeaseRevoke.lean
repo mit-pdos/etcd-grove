@@ -48,8 +48,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     (hI64 : «attribute».Int64.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r id hv
-  have hRR := EtcdServer.raftRequest.spec_M hRR0 false
   obtain ⟨hlm, hoff⟩ := hv
+  have hRR := hRR0 s E ρ
+  rw [hoff] at hRR
   wp_start as ⟨#Hsrv, #Hau, Hlt, Hrd, #Hcred, #Hctx, #Hreq⟩
   iunfold leaseRevokeReqRO at Hreq
   icases Hreq with ⟨%hr, #HID⟩
@@ -151,7 +152,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
     iexists _; iframe #; try (ipureintro; first | exact hr | simp)
   imod mvcc.idxCert_nil E.γ.idx with #HF
   imod Hcred with Hc
-  wp_apply hRR s E ρ ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
+  wp_apply hRR ctx1 _ «$a1_ptr» rq (fun _ _ => iprop(True)) [] rfl
       (apply.irrDepthOk_of_txnW_none rfl)
       $$ [Hlt Hrd Hc Header] as %resp %err ⟨Hlt, Hrd, Hres⟩
   · iframe # Hlt Hrd Hc

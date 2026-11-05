@@ -188,13 +188,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W64 5))
-  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
   (Let "$v2" (Val #(W64 4607182418800017408))
   (Let "$v3" (Val #(W64 4591870180066957722))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Steps")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Duration")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Factor")) (ElementExpression go.float64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Jitter")) (ElementExpression go.float64 (Var "$v3")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W64 4))
-  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
   (Let "$v2" (Val #(W64 4617315517961601024))
   (Let "$v3" (Val #(W64 4591870180066957722))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Steps")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Duration")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Factor")) (ElementExpression go.float64 (Var "$v2"))), (KeyedElement (some (KeyField go!"Jitter")) (ElementExpression go.float64 (Var "$v3")))]))))))

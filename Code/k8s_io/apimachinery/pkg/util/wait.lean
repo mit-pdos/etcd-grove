@@ -328,6 +328,98 @@ noncomputable def ExponentialBackoff.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
+/-- ContextForChannel provides a context that will be treated as cancelled
+    when the provided parentCh is closed. The implementation returns
+    context.Canceled for Err() if and only if the parentCh is closed.
+
+    go: wait.go:120:6 -/
+noncomputable def ContextForChannel.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "parentCh"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "parentCh" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "parentCh"))
+  (Let "$r0" (App (Val (GoInstruction (Convert channelContext.ty _root_.Perennial.context.Context.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "parentCh"))
+  (App (Val (GoInstruction (CompositeLiteral channelContext.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"stopCh")) (ElementExpression (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "$res0")))))
+
+/-- go: wait.go:132:25 -/
+noncomputable def channelContext.Done.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc channelContext.ty))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef channelContext.ty go!"stopCh"))) (Var "c")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
+
+/-- go: wait.go:133:25 -/
+noncomputable def channelContext.Err.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc channelContext.ty))) (Var "c"))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef channelContext.ty go!"stopCh"))) (Var "c")))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.context.Canceled))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))])))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- go: wait.go:141:25 -/
+noncomputable def channelContext.Deadline.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc channelContext.ty))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.time.Time.ty))) (LiteralValue []))
+  (Let "$r1" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
+
+/-- go: wait.go:142:25 -/
+noncomputable def channelContext.Value.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "key"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc channelContext.ty))) (Var "c"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.any))) (Var "key"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.any))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock]
 
@@ -917,6 +1009,18 @@ class channelContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_stopCh : ∀ (x : channelContext) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet channelContext.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : channelContext)))
   method_set : go.MethodSetIs channelContext.ty [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType channelContext.ty) [(go!"Deadline", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty, go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
+  Deadline_unfold : MethodUnfold channelContext.ty go!"Deadline" channelContext.Deadline.impl
+  Done_unfold : MethodUnfold channelContext.ty go!"Done" channelContext.Done.impl
+  Err_unfold : MethodUnfold channelContext.ty go!"Err" channelContext.Err.impl
+  Value_unfold : MethodUnfold channelContext.ty go!"Value" channelContext.Value.impl
+  ptr_Deadline_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Deadline" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve channelContext.ty go!"Deadline"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
+  ptr_Done_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Done" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve channelContext.ty go!"Done"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
+  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Err" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve channelContext.ty go!"Err"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
+  ptr_Value_unfold : MethodUnfold (go.GoType.PointerType channelContext.ty) go!"Value" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve channelContext.ty go!"Value"))) (App (Val (GoInstruction (GoLoad channelContext.ty))) (Var "$r"))))
 
 attribute [instance] channelContext.TypeAssumptions.type_repr
   channelContext.TypeAssumptions.underlying
@@ -924,6 +1028,14 @@ attribute [instance] channelContext.TypeAssumptions.type_repr
   channelContext.TypeAssumptions.set_stopCh
   channelContext.TypeAssumptions.method_set
   channelContext.TypeAssumptions.ptr_method_set
+  channelContext.TypeAssumptions.Deadline_unfold
+  channelContext.TypeAssumptions.Done_unfold
+  channelContext.TypeAssumptions.Err_unfold
+  channelContext.TypeAssumptions.Value_unfold
+  channelContext.TypeAssumptions.ptr_Deadline_unfold
+  channelContext.TypeAssumptions.ptr_Done_unfold
+  channelContext.TypeAssumptions.ptr_Err_unfold
+  channelContext.TypeAssumptions.ptr_Value_unfold
 
 abbrev waitFunc [GooseExts] : Type := GoFunc
 
@@ -972,6 +1084,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   waitFunc_instance : waitFunc.TypeAssumptions
   waitWithContextFunc_instance : waitWithContextFunc.TypeAssumptions
   ExponentialBackoff_unfold : FuncUnfold ExponentialBackoff [] ExponentialBackoff.impl
+  ContextForChannel_unfold : FuncUnfold ContextForChannel [] ContextForChannel.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -995,6 +1108,7 @@ attribute [instance] Assumptions.Backoff_instance
   Assumptions.waitFunc_instance
   Assumptions.waitWithContextFunc_instance
   Assumptions.ExponentialBackoff_unfold
+  Assumptions.ContextForChannel_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption

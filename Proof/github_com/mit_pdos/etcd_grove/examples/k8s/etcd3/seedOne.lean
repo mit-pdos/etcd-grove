@@ -26,6 +26,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
@@ -49,9 +50,9 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
   ihave #Hidx := client.srvStart_idx [x] $$ Hss
   ihave #Hnil := EtcdGrove.optsAt_nil (GF := GF)
   ihave Hau : ([∧list] y ∈ [x], kvOpAu1 y.γr.kv
-      (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x")))
+      (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x")))
       (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep
-        (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x"))) σ) ∗
+        (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x"))) σ) ∗
         ⌜σ' = σ⌝))) $$ [Hs]
   · iapply BigAndL.bigAndL_singleton.2
     iapply seed_au γs x.γr.kv _ σ
@@ -61,9 +62,9 @@ theorem seedOne.wp_proof (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     iexact Hregs
   ihave #Hput := client.kvRegs_put [x] $$ Hregs'
   wp_apply (client.client_Put_st cl [x] V context.backgroundCtxVal cd
-      (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x") slice.nil
+      (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x") slice.nil
       (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep
-        (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"x"))) σ) ∗
+        (.put (linkv.putOp (go!"/registry" ++ storeKeyL k) (encodeWith tagV0 k go!"" go!"x"))) σ) ∗
         ⌜σ' = σ⌝))
       (opSizeOk_opPutModel (K := 2 ^ 28) (E := 0) (V := 2 ^ 28) (optsKeep_nil _ _ _)
         (by simp [storeKeyL]; omega) (by simp [encodeWith]; omega) (by decide)))

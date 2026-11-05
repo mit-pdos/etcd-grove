@@ -65,11 +65,19 @@ func TestTrafficReachesCases(t *testing.T) {
 		t.Fatal(err)
 	}
 	counts := map[string]int{}
-	for i := 0; i < 400; i++ {
-		in := Gen(0).(Input)
+	tbl := newCache()
+	for i := 0; i < 1500; i++ {
+		in := Gen(tbl, i%3)
 		before := st
 		out := call(s, in)
-		if out.Err == EOther {
+		if out.Err == ENone && out.Name != "" {
+			tbl.put(in.Client, Obj{Name: out.Name, UID: out.UID, Value: out.Value, ResourceVersion: out.RV})
+		}
+		if out.Err == EOther && in.Kind == KGet {
+			if _, want := mstep(in, st); want.Err == EOther {
+				counts["get/toolarge"]++ // the store's too-large error, as the model's EOther
+			}
+		} else if out.Err == EOther {
 			t.Fatalf("op %d %+v: unexpected error", i, in)
 		}
 		next, want := mstep(in, st)
@@ -78,8 +86,16 @@ func TestTrafficReachesCases(t *testing.T) {
 		}
 		st = next
 		kinds := []string{"create", "delete", "update", "get"}
-		errs := []string{"ok", "notfound", "exists", "rejected", "other"}
+		errs := []string{"ok", "notfound", "exists", "rejected", "other", "invalid"}
 		counts[kinds[in.Kind]+"/"+errs[out.Err]]++
+		if in.UseCached {
+			counts[kinds[in.Kind]+"/cached/"+errs[out.Err]]++
+		}
+		if in.Kind == KUpdate && in.IgnoreNotFound && out.Err == ENone {
+			if _, ok := lookup(before.items, in.Key); !ok {
+				counts["update/ignorenotfound-create"]++
+			}
+		}
 		if in.Kind == KUpdate && in.NoOp && out.Err == ENone {
 			if it, ok := lookup(before.items, in.Key); ok && !it.canon {
 				counts["update/noop-rewrite"]++
@@ -92,7 +108,8 @@ func TestTrafficReachesCases(t *testing.T) {
 	_ = context.Background
 	for _, k := range []string{"create/ok", "create/exists", "delete/ok", "delete/notfound",
 		"delete/rejected", "update/ok", "update/notfound", "update/rejected", "get/ok",
-		"get/notfound", "update/noop-skip"} {
+		"get/notfound", "update/noop-skip", "delete/invalid", "update/invalid", "get/toolarge",
+		"delete/cached/ok", "update/cached/ok", "update/ignorenotfound-create"} {
 		if counts[k] == 0 {
 			t.Errorf("no %s outcome", k)
 		}

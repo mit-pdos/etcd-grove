@@ -15,6 +15,7 @@ module
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.partition
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Base
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Base
 
 @[expose] public section
 

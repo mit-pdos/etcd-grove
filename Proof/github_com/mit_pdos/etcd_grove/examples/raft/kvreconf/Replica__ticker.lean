@@ -55,7 +55,7 @@ theorem Replica.ticker.wp_proof (wp_NewTicker : time.NewTicker.spec (GF := GF) (
   · ipureintro; exact Htkpos
   ihave #Ht' := Ht
   iunfold time.isTicker at Ht'
-  icases Ht' with ⟨#HtC, #HtI, #Htbag⟩
+  icases Ht' with ⟨#HtC, #HtI, #HtR, #Htbag⟩
   try wp_auto
   wp_for
   try wp_auto

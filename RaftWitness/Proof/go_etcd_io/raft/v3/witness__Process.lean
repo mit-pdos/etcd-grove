@@ -190,7 +190,7 @@ theorem witness.Process.wp_proof
   iintro -
   wp_auto
   -- `m.Type == MsgHeartbeat && m.Term == w.state.GetState().GetTerm()`
-  try rw [Hty, show raftpb.MsgHeartbeat = #((W32 8 : raftpb.MessageType)) from rfl]
+  rw [Hty]
   wp_bind (If (Val #(decide (μ.ty = W32 8))) _ (Val #false))
   iapply (wp_wand (Φ := fun v => iprop(⌜v = #(decide (μ.ty = W32 8 ∧ μ.term = σ.term))⌝ ∗
       m_ptr ↦ mv ∗ w_ptr ↦ w ∗ w.[witness, go!"state"] ↦ p))) $$ [m w Hstate]

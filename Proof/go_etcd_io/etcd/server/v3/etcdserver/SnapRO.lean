@@ -301,6 +301,29 @@ def authRecoverOk (ast : Loc) : IProp GF :=
 instance authRecoverOk_persistent (ast : Loc) : Persistent (authRecoverOk (GF := GF) ast) := by
   unfold authRecoverOk; infer_instance
 
+/-- **A closer of the auth store `ast` at the resource `K`** (persistent; the restart plan's R2b-3d
+stage 5b, 2026-11-05): `ast.Close()` takes `K` and gives it back, returning `nil`. What
+`EtcdServer.Cleanup` takes, with `K`: with auth off, `authCloseOk`'s (`K` empty, the trust
+boundary's); with auth on it would be `authStore.Close`'s proof, at the token provider's admin share
+(`auth.tpAdmin`) under the store's invariant. -/
+def authCloser (ast : Loc) (K : IProp GF) : IProp GF :=
+  iprop(□ {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ K }}
+    (App (Val (ast @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.authStore.ty @!!
+      go!"Close")) (Val #()))
+    {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ K }})
+
+instance authCloser_persistent (ast : Loc) (K : IProp GF) :
+    Persistent (authCloser (GF := GF) ast K) := by
+  unfold authCloser; infer_instance
+
+/-- **The disabled auth store `ast`'s `Close`** (persistent; R2b-3d stage 5b, 2026-11-05, the user's
+decision; `auth.NewAuthStore.spec`'s, the trust boundary): a closer at no resource
+(`authCloser ast True`). -/
+def authCloseOk (ast : Loc) : IProp GF := authCloser ast iprop(True)
+
+instance authCloseOk_persistent (ast : Loc) : Persistent (authCloseOk (GF := GF) ast) := by
+  unfold authCloseOk; infer_instance
+
 /-- The lessor `lp`'s `Lookup` (`lease.NewLessor.spec`'s, the trust boundary; S8d's named premise,
 threaded from `NewServer`): what `isApplyLessor_of_lessorInv` takes. -/
 def lessorLookupOk (lp : Loc) : IProp GF :=
@@ -541,13 +564,27 @@ def srvKVCloserW (s : Loc) (E : apply.AEnv GF) : IProp GF :=
       srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
       ∃ stc : Loc, wsl.[go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore, go!"stopc"] ↦□ stc ∗
-        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl)
+        mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ)
   else srvKVCloser s E
 
 /-- Off, the closer. -/
 theorem srvKVCloserW_off (s : Loc) (E : apply.AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) :
     srvKVCloserW (GF := GF) s E = srvKVCloser s E := by
   unfold srvKVCloserW; simp only [h, ↓reduceIte]
+
+/-- **The server's backend's stop channels, at its own resources** (2026-11-04, the restart plan's
+R2b-3d stage 3; until then `backend.isStopChansE`, at some resources): the lock's resource
+`mvcc.lateWD d` (`bootstrap`'s `lateWB`, `lateWD_boot`; a walked backend's) and the batch lock's
+client resource at the apply thread's names `γA` (`batchLockInv γA (metaTM d.γB d.P)`), what
+`NewServer` and the snapshot walk open it with. `Cleanup`'s `backend.Close` gives the stopped lock's
+view at them (`bStopView`), which the apply thread's halves observe (the stop image). -/
+def srvStopChans (γA : ApplyNames) (d : mvcc.KBReal) : IProp GF :=
+  iprop(backend.isBackend d.γB d.P (mvcc.lateWD d) (batchLockInv γA (metaTM d.γB d.P)) d.be ∗
+    backend.isStopChans d.γB d.P (mvcc.lateWD d) (batchLockInv γA (metaTM d.γB d.P)) d.be)
+
+instance srvStopChans_persistent (γA : ApplyNames) (d : mvcc.KBReal) :
+    Persistent (srvStopChans (GF := GF) γA d) := by
+  unfold srvStopChans; infer_instance
 
 /-- **The snapshot path's own resources at the current backend** (D22 J1b, 2026-10-31; spatial):
 what `applySnapshot.specSnap` takes of the backend `E` is on (`E.γ.kb = some d`) and gives back at
@@ -557,19 +594,22 @@ token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, P5) (W7: 
 alarm from `Recover`'s `alarmEmpty`); (2026-11-01, the user's decision) the KV's closer (`srvKVCloser`, for
 `store.Restore`) and the backend file's directory entry at the configuration's data directory
 (`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install). -/
-def srvSnapRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
   iprop(∃ (d : mvcc.KBReal) (al : Loc) (dd : GoString),
     ⌜E.γ.kb = some d⌝ ∗
-    backend.isStopChansE d.γB d.P d.be ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+    -- (2026-11-04, the restart plan's R2b-3d stage 3) at the server's own resources (`srvStopChans`)
+    srvStopChans γA d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     srvKVCloserW s E ∗
-    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd))
+    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    -- (2026-11-04, the restart plan's R2b-3d) the backend's file is there (the stop image's)
+    backend.bFile d.γB (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh
 snapshot-taken counter, its authority at `0` (until J8a-6, 2026-11-01, the reader-slot stock);
 (D22 J1b) the backend's own resources (`srvSnapRes`). -/
-def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapRes s E)
+def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames) : IProp GF :=
+  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapRes s E γA)
 
 /-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
 `notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the snapshot-taken counter
@@ -577,14 +617,15 @@ def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
 (`srvSnapRes`; until J8a-6, 2026-11-01, also the reader-slot stock for the installs'
 `AddPeer`s). `run`'s loop invariant holds it (`applyRes`), at the current backend's environment
 `E`; `applyAll` passes it through a batch. The transport's live state is `srvApRes`'s (J-T). -/
-def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) : IProp GF :=
+def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames) (ai : w64) :
+    IProp GF :=
   iprop(∃ (γt : GName) (nt : Nat), srvSnapRO s ci E γr γt ∗ ⌜nt ≤ uint.nat ai⌝ ∗
-    monoNatAuthOwn γt 1 nt ∗ srvSnapRes s E)
+    monoNatAuthOwn γt 1 nt ∗ srvSnapRes s E γA)
 
 /-- The resources hold at any larger applied index. -/
-theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai ai' : w64)
-    (h : uint.Z ai ≤ uint.Z ai') :
-    srvSnapOwn (GF := GF) s ci E γr ai ⊢ srvSnapOwn s ci E γr ai' := by
+theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
+    (ai ai' : w64) (h : uint.Z ai ≤ uint.Z ai') :
+    srvSnapOwn (GF := GF) s ci E γr γA ai ⊢ srvSnapOwn s ci E γr γA ai' := by
   iintro H
   iunfold srvSnapOwn at H
   icases H with ⟨%γt, %nt, #Hro, %Hnt, Ha, Hres⟩
@@ -597,9 +638,10 @@ theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai a
 
 /-- **`run`'s start from `NewServer`'s**: the boot resources give the apply thread's at any
 applied index (the counter at `0`), and the persistent bundle. -/
-theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) :
-    srvSnapBoot (GF := GF) s ci E γr ⊢
-      srvSnapOwn s ci E γr ai ∗ ∃ γt : GName, srvSnapRO s ci E γr γt := by
+theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
+    (ai : w64) :
+    srvSnapBoot (GF := GF) s ci E γr γA ⊢
+      srvSnapOwn s ci E γr γA ai ∗ ∃ γt : GName, srvSnapRO s ci E γr γt := by
   iintro H
   iunfold srvSnapBoot at H
   icases H with ⟨%γt, #Hro, Ha, Hres⟩

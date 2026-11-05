@@ -315,7 +315,7 @@ theorem Server.update.wp_proof
             have hUE := updateErr_none hc1 hst hnc
             generalize hO3 : (updateApply r st o' σ0).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
             (try wp_auto)
-            rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+            rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
             wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) (GoInterface.ok zi) o3) $$
               [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hz] as ⟨Hz, Htb⟩
             · iunfold tableLocked
@@ -501,7 +501,7 @@ theorem Server.update.wp_proof
               have hUE := updateErr_none hc1 hst hnc
               generalize hO3 : (updateApply r st o' σ0).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
               (try wp_auto)
-              rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+              rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
               wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) (GoInterface.ok zi) o3) $$
                 [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hz] as ⟨Hz, Htb⟩
               · iunfold tableLocked
@@ -712,7 +712,7 @@ theorem Server.update.wp_proof
               have hUE := updateErr_none hc1 hst hnc
               generalize hO3 : (updateApply r st o' σ0).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
               (try wp_auto)
-              rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+              rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
               wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) (GoInterface.ok zi) o3) $$
                 [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hz] as ⟨Hz, Htb⟩
               · iunfold tableLocked
@@ -898,7 +898,7 @@ theorem Server.update.wp_proof
                 have hUE := updateErr_none hc1 hst hnc
                 generalize hO3 : (updateApply r st o' σ0).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) (GoInterface.ok zi) o3) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hz] as ⟨Hz, Htb⟩
                 · iunfold tableLocked
@@ -1132,7 +1132,7 @@ theorem Server.update.wp_proof
                 have hUE := updateErr_none hc1 hst hnc
                 generalize hO3 : (updateApply r st o' σ0).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
                 (try wp_auto)
-                rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                 wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) (GoInterface.ok zi) o3) $$
                   [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hz] as ⟨Hz, Htb⟩
                 · iunfold tableLocked
@@ -1318,7 +1318,7 @@ theorem Server.update.wp_proof
                   have hUE := updateErr_none hc1 hst hnc
                   generalize hO3 : (updateApply r st o' σ0).1 = o3 at hres3 hRV3 huid3 hsnd ⊢
                   (try wp_auto)
-                  rw [show k8s_io.apimachinery.pkg.watch.Modified = #(EvTy.modified.str) from rfl]
+                  rw [show (go!"MODIFIED" : GoString) = EvTy.str .modified from rfl]
                   wp_apply (wp_record s γ L cfg r (σ0.tbl r) .modified (σ0.rev + 1) (GoInterface.ok zi) o3) $$
                     [$Hfixed HM Hrel Hlog Hsl Hcap Hcs $Hz] as ⟨Hz, Htb⟩
                   · iunfold tableLocked

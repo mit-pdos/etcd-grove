@@ -87,7 +87,7 @@ shared row**: the store writer's fragment and its reader token of the backend (`
 and `apply.kvOwn`'s), and a write token from the budget for the commit's write-back
 (`srvWTPool_take_extra`, for a receipt and a later credit), given back after the commit. -/
 theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
-    (ua : GoInterface) (γp : GName) :
+    (ua : GoInterface) (γp : WTNames) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
       mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ ∗ mvcc.storeWT E.γ ∗
       (mvcc.writerFrag E.γ ∗ mvcc.writerOwn E.γ -∗ srvApplyKVCore s E γw x ua) := by

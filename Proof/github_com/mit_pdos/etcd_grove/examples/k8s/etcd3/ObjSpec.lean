@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # The driver's objects in the heap (stage 6c of `notes/k8s-etcd3-plan.md`)
 
 `driverSpec`: the store's `ObjSpec` of the driver: `driverCodec` and the ownership of an object,
-`objAtD x o rv`: the `runtime.Object` `x` is a non-nil `*Obj` holding `o`'s name and value and a
+`objAtD x o rv`: the `runtime.Object` `x` is a non-nil `*Obj` holding `o`'s name, UID and value and a
 resource version whose string form is `rv` (`rvStr`). `reflect.New(Obj)`'s allocation is the
 empty object (`newObj`, by `reflNew_pointsto` at `Obj`'s Lean type).
 -/
@@ -29,14 +29,17 @@ variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFu
 
 /-- **The method-set fact the store asks of the driver's objects** (`ObjSpec.tyOk`, without the
 ghost state): `*Obj` is in `runtime.Object`'s type set (its methods `GetObjectKind` and
-`DeepCopyObject`, `k8s_etcd3.go`) and not in `runtime.Unstructured`'s (it has no
-`UnstructuredContent`). `methodSet` is uninterpreted in the model, so this is a premise of the
-results (as `v3rpc.ServerMethodSets`). -/
+`DeepCopyObject`, `k8s_etcd3.go`), not in `runtime.Unstructured`'s (it has no
+`UnstructuredContent`), and in `metav1.Object`'s (its 32 metadata accessors, stage 7b).
+`methodSet` is uninterpreted in the model, so this is a premise of the results (as
+`v3rpc.ServerMethodSets`). -/
 def objTyOk : Prop :=
   go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty)
       k8s_io.apimachinery.pkg.runtime.Object.ty = true ∧
     go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty)
-      k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false
+      k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false ∧
+    go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty)
+      k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty = true
 
 /-- **The method-set fact the driver's `errOut` asks of `*storage.StorageError`**: it has
 `Unwrap() error` (`k8s.io/apiserver/pkg/storage/errors.go`: `func (e *StorageError) Unwrap()
@@ -55,8 +58,9 @@ variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [sem : go.Sema
 
 /-- `objTyOk` holds, from the method sets goose emits (`Obj`'s, and `runtime`'s interfaces). -/
 theorem objTyOk_holds [github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-    [k8s_io.apimachinery.pkg.runtime.Assumptions] : objTyOk := by
-  unfold objTyOk; constructor <;> go_type_set
+    [k8s_io.apimachinery.pkg.runtime.Assumptions]
+    [k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions] : objTyOk := by
+  unfold objTyOk; refine ⟨?_, ?_, ?_⟩ <;> go_type_set
 
 /-- `storageErrTyOk` holds, from the method set goose emits for `*storage.StorageError`. -/
 theorem storageErrTyOk_holds [k8s_io.apiserver.pkg.storage.Assumptions] : storageErrTyOk := by
@@ -81,7 +85,7 @@ abbrev objTyD : go.GoType := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.O
 def objAtD (x : GoInterface) (o : DObj) (rv : GoString) : IProp GF :=
   iprop(∃ (p : Loc) (n : w64),
     ⌜x = interface.mkOk (go.GoType.PointerType objTyD) #p ∧ p ≠ null ∧ rv = rvStr n⌝ ∗
-    p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.1.1 o.1.2 n)
+    p ↦ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk o.name o.uid o.val n)
 
 theorem objAtD_ne_nil (x : GoInterface) (o : DObj) (rv : GoString) :
     objAtD (GF := GF) x o rv ⊢ ⌜x ≠ GoInterface.nil⌝ := by
@@ -112,7 +116,7 @@ theorem objAtD_new (p : Loc) :
   isplitr
   · ipureintro; exact ⟨rfl, Hn, rfl⟩
   have hz : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) =
-      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk dzero.1.1 dzero.1.2 (W64 0) := rfl
+      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk dzero.name dzero.uid dzero.val (W64 0) := rfl
   rw [← hz]
   iexact H
 

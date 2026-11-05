@@ -20,6 +20,9 @@ theorem backend.pvPut_hook_eq (γ : backend.BNames) (P : backend.BParams) (n : G
 theorem backend.bOpen_add (γ : backend.BNames) (p q : Qp) : backend.bOpen γ (p + q) ⊣⊢ backend.bOpen
     γ p ∗ backend.bOpen γ q
 
+theorem backend.bFile_agree (γ : backend.BNames) (p p' : GoString) : backend.bFile γ p ∗
+    backend.bFile γ p' ⊢ ⌜p = p'⌝
+
 theorem backend.bDB_persistent (γ : backend.BNames) (db : Loc) : Persistent (backend.bDB γ db)
 
 def backend.cbufOf [GoSemanticsFunctions] (b : Loc) : Loc :=
@@ -641,7 +644,8 @@ def backend.trkHalf (γ : backend.BNames) (P : backend.BParams) (S : backend.Dat
         ghostVar γ.pv (Qp.half 1) (backend.sData P S) ∗ ghostVar γ.ck (Qp.half 1) (backend.fkVals S))
 
 def backend.bStopG (γ : backend.BNames) (P : backend.BParams) (C : backend.Data) : IProp GF :=
-  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗ backend.trkHalf γ P C)
+  iprop((∃ L, backend.viewQ γ (Qp.half 1).half (backend.sData P C) L) ∗
+      backend.trkHalf γ P C ∗ ∃ R, backend.fkRd γ P (C, R))
 
 theorem backend.bDBAt_persistent (γ : backend.BNames) (db : Loc) (path : GoString) : Persistent
     (backend.bDBAt γ db path)
@@ -881,6 +885,7 @@ structure backend.BNames : Type where
   pv : GName
   ck : GName
   dbf : GName
+  rq : GName
   rbD : GMap GoString Unit
 
 def backend.bView (γ : backend.BNames) (q : Qp) (vd : backend.VData) : IProp GF :=

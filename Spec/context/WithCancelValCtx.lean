@@ -4,13 +4,16 @@ boundary (the watch slice's unit W-C). Perennial specifies `WithCancel` of an `i
 only, whose `Done()` channel belongs to a `*cancelCtx` chain (`isContext`'s `HParentCC`); etcd's
 `valCtx` is none: its `Done()` is the package's never-closed `valCtxCh`, so Go's
 `propagateCancel` takes its last branch (a goroutine waiting on the parent's or the child's
-`Done()`), which Perennial's model does not cover. Lean-first (no Rocq counterpart).
+`Done()`), which Perennial's model does not cover. Its premise on `inctx` is `watchCtx` (2026-11-04,
+W1 of Q1 (b); `isContext` until then): the axiom's file says why any such context will do.
+Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context
 public import Proof.google_golang_org.grpc.metadata.Outgoing
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -48,7 +51,7 @@ abbrev context.WithCancelValCtx.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       p ↦□ (go_etcd_io.etcd.client.v3.valCtx.mk (interface.ok inctx)) ∗
-      context.isContext inctx cs }}
+      EtcdGrove.context.watchCtx inctx cs }}
     (App (Val (@! _root_.Perennial.context.WithCancel))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.valCtx.ty) #p)))
   {{ (ctx' : GoInterfaceOk) (γ' : context.ContextNames) (cancel : GoFunc),

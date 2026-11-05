@@ -193,7 +193,7 @@ theorem storeReader_snapE :
       (snapE E γ' TM' ci p' g γB al ast lp cl be).γ = mvcc.storeReader E.s E.γ := rfl
 
 /-- The write budget is of `γbe` (step 7). -/
-theorem srvWTPool_snapE (γp : GName) :
+theorem srvWTPool_snapE (γp : WTNames) :
     srvWTPool (snapE E γ' TM' ci p' g γB al ast lp cl be) γp = srvWTPool E γp := rfl
 
 end snapE

@@ -601,9 +601,9 @@ noncomputable def RandomConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (Val #(W64 100))
   (Let "$v3" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 3))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))))
-  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Millisecond)))
-  (Let "$v5" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val _root_.Perennial.time.Millisecond)))
-  (Let "$v6" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 40)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
+  (Let "$v5" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 30)) (Val #(W64 1000000))))
+  (Let "$v6" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 40)) (Val #(W64 1000000))))
   (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Options")) (ElementExpression Options.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Clients")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"Ops")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Proposers")) (ElementExpression go.int (Var "$v3"))), (KeyedElement (some (KeyField go!"ReconfPause")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"DisruptPause")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"CrashPause")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v6")))])))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -817,7 +817,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Val #())))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "res")) (Val _root_.Perennial.github_com.anishathalye.porcupine.Ok)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "res")) (Val #(go!"Ok"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"kvdurable: porcupine rejected the store's trace")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
@@ -1517,7 +1517,7 @@ noncomputable def Cluster.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 1)) (Let "$a0" (Val #(W64 4))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))) (Val _root_.Perennial.time.Millisecond)))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))) (Val #(W64 1000000))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1961,7 +1961,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (Let "$a0" (Val #(W64 20))
-  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))) (Val _root_.Perennial.time.Millisecond)))
+  (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))) (Val #(W64 1000000))))
   (Let "delay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
@@ -2043,17 +2043,17 @@ noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "typ")) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnap))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "typ")) (Val #(W32 7)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (Let "$a0" (Val #(W64 8))
   (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "to"))
-  (Let "$a1" (Val _root_.Perennial.go_etcd_io.raft.v3.SnapshotFailure)
+  (Let "$a1" (Val #(W64 2))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "src"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "to"))
-  (Let "$a1" (Val _root_.Perennial.go_etcd_io.raft.v3.SnapshotFinish)
+  (Let "$a1" (Val #(W64 1))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "src"))))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef Stats.ty go!"SnapshotsSent"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"Stats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))))
@@ -2066,10 +2066,10 @@ noncomputable def Cluster.step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "typ")) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnap))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Var "typ")) (Val #(W32 7)))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "to"))
-  (Let "$a1" (Val _root_.Perennial.go_etcd_io.raft.v3.SnapshotFailure)
+  (Let "$a1" (Val #(W64 2))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "src"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #()))))))
@@ -2108,10 +2108,10 @@ noncomputable def Cluster.dropped.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "src" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "src"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnap))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 7)))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #()))
-  (Let "$a1" (Val _root_.Perennial.go_etcd_io.raft.v3.SnapshotFailure)
+  (Let "$a1" (Val #(W64 2))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"ReportSnapshot"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "src"))))) (Var "$a0")) (Var "$a1")))))
   (App (Val doExecute)
   (Val #())))))
@@ -2345,7 +2345,7 @@ noncomputable def Cluster.Converged.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (If (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "deadline"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"After"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))) (Var "$a0"))))
@@ -4310,7 +4310,7 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "snap") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"SoftState"))) (Var "rd"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty)))) (Val UntypedNil))))))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty go!"RaftState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"SoftState"))) (Var "rd"))))) (Val _root_.Perennial.go_etcd_io.raft.v3.StateLeader)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.StateType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty go!"RaftState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.SoftState.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.Ready.ty go!"SoftState"))) (Var "rd"))))) (Val #(W64 2))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "lead") (Var "$r0")))))
   (App (Val doExecute)
@@ -4753,11 +4753,11 @@ noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
   (Let "$sw" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "e"))) (Val #()))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryNormal)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "$sw") (Val #(W32 0))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty) go!"GetData"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "e"))) (Val #()))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"applyOp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryConfChange)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "$sw") (Val #(W32 1))))
   (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -4776,7 +4776,7 @@ noncomputable def Replica.applyEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryConfChangeV2)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.EntryType.ty))) (Pair (Var "$sw") (Val #(W32 2))))
   (Let "cc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeV2.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -5231,7 +5231,7 @@ noncomputable def Replica.propose.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "op"))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #false)))) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Val _root_.Perennial.time.Millisecond)
+  (Let "$a0" (Val #(W64 1000000))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (Lam BAnon
   (Val #()))))))
@@ -5630,9 +5630,9 @@ noncomputable def Cluster.randomChange.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "changes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty)))) (Pair (Let "$v0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransitionAuto)
-  (Let "$v1" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransitionJointImplicit)
-  (Let "$v2" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransitionJointExplicit)
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty)))) (Pair (Let "$v0" (Val #(W32 0))
+  (Let "$v1" (Val #(W32 1))
+  (Let "$v2" (Val #(W32 2))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty (Var "$v2")))]))))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (Let "$a0" (Val #(W64 3))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))))))
   (Let "transition" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (Val #())))
@@ -5646,7 +5646,7 @@ noncomputable def Cluster.randomChange.impl [GooseExts] [GoGlobalContext] : val 
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (Var "transition")) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransitionAuto))) (Val #false)) (Let "$a0" (Val #(W64 2))
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeTransition.ty))) (Var "transition")) (Val #(W32 0)))) (Val #false)) (Let "$a0" (Val #(W64 2))
   (App (App (Val (GoInstruction (FuncResolve oneIn []))) (Val #())) (Var "$a0"))) (Val #false))
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty) _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeI.ty))) (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChange.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "changes")) (Val #(W64 0)))))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty go!"NodeId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "changes")) (Val #(W64 0)))))))
@@ -5668,7 +5668,7 @@ noncomputable def Cluster.randomChange.impl [GooseExts] [GoGlobalContext] : val 
   (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "cs"))
-  (Let "$a1" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Var "t")) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode))))
+  (Let "$a1" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Var "t")) (Val #(W32 1)))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cluster.ty) go!"randomID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5685,18 +5685,18 @@ noncomputable def Cluster.randomChange.impl [GooseExts] [GoGlobalContext] : val 
   (Let "$sw" (Let "$a0" (Val #(W64 16))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0")))
   (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 4)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 3)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 2)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 1)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 0))))))))
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddNode)
+  (Let "$r0" (Val #(W32 0))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "t") (Var "$r0")))))
   (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 8)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 7)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 6)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 5)))))))
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeAddLearnerNode)
+  (Let "$r0" (Val #(W32 3))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "t") (Var "$r0")))))
   (If (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 14)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 13)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 12)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 11)))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 10)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (Var "$sw") (Val #(W64 9)))))))))
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode)
+  (Let "$r0" (Val #(W32 1))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "t") (Var "$r0")))))
-  (Let "$r0" (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeUpdateNode)
+  (Let "$r0" (Val #(W32 2))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeType.ty))) (Pair (Var "t") (Var "$r0")))))))))))))
   (Lam BAnon

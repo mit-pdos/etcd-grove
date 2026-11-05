@@ -50,7 +50,7 @@ theorem backend.backend.run.wp_proof
   wp_apply (lc := 2) time.wp_NewTimer as %tm %tch %γt #Htm
   ihave #Htm' := Htm
   iunfold time.isTimer at Htm'
-  icases Htm' with ⟨#HtC, #Hbag, -⟩
+  icases Htm' with ⟨#HtC, #HtI, #HtR, #Hbag⟩
   ihave #Htch := is_bag_is_chan _ _ _ $$ Hbag
   ihave Hus : (∃ u : Nat, ghostVar γ.used (1 : Qp).half u) $$ [Hus]
   · iexists u; iexact Hus
@@ -147,16 +147,21 @@ theorem backend.backend.run.wp_proof
     iapply broadcast_chan_receive _ _ _ _ _ $$ Hscb
     iintro ⟨#Hsq, -⟩
     wp_auto
-    imod (stop_get γ sc γsc) $$ [$Hinv $Hsq $Hrt] with Hhalf
-    wp_apply (hCS γ P W Pk b t) $$ [$Hhalf $Hq] as ⟨#Hbs, Hout⟩
+    imod (stop_get γ P Pk b sc γsc) $$ [$Hinv $Hsq $Hrt $Hlc1] with ⟨Hhalf, Hrq⟩
+    -- (2026-11-04, R2b-3d stage 3) `Close`'s caller's request, served by the stop's commit
+    iunfold stopReq at Hrq
+    icases Hrq with ⟨%X, %Y, HX, #Hreq, Hrq⟩
+    wp_apply (hCS γ P W Pk b t X Y) $$ [$Hhalf $Hq $HX] as ⟨#Hbs, Hout, HY⟩
     · iframe #
     wp_for_post
     wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -
     · ileft; iexists tch, γt; iexact Htm
     -- (2026-11-04, R2b-3c) the stop's escrow, with bbolt's database, announced by `donec`
-    imod inv_alloc (bN.@"dbesc") ⊤ iprop(bDBOut γ P W Pk ∨ ghostVar γ.cls (1 : Qp).half ()) $$ [Hout]
+    imod inv_alloc (bN.@"dbesc") ⊤ iprop((bDBOut γ P W Pk ∗
+        ∃ Y : IProp GF, savedPropOwn γ.rq (DFrac.own (1 : Qp).half) Y ∗ Y) ∨
+      ghostVar γ.cls (1 : Qp).half ()) $$ [Hout Hrq HY]
       with #Hesc
-    · inext; ileft; iexact Hout
+    · inext; ileft; iframe Hout; iexists Y; iframe Hrq HY
     wp_apply (wp_broadcast_chan_close (ty := go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))
       dc γdc (bDoneEsc γ P W Pk)) $$ [$Hdcp] as -
     · imodintro

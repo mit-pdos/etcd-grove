@@ -866,7 +866,7 @@ noncomputable def IsPodAvailable.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve GetPodReadyCondition []))) (Val #())) (Var "$a0")))
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int32 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "minReadySeconds"))) (Val _root_.Perennial.time.Second)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int32 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "minReadySeconds"))) (Val #(W64 1000000000))))
   (Let "minReadySecondsDuration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -945,7 +945,7 @@ noncomputable def IsPodPhaseTerminal.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "phase" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Var "phase"))
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Var "phase")) (Val _root_.Perennial.k8s_io.api.core.v1.PodFailed))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Var "phase")) (Val _root_.Perennial.k8s_io.api.core.v1.PodSucceeded))))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Var "phase")) (Val #(go!"Failed")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Var "phase")) (Val #(go!"Succeeded")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -965,7 +965,7 @@ noncomputable def IsPodReadyConditionTrue.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (FuncResolve GetPodReadyCondition []))) (Val #())) (Var "$a0")))
   (Let "condition" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")))) (Val _root_.Perennial.k8s_io.api.core.v1.ConditionTrue))) (Val #false))
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")))) (Val #(go!"True")))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -987,7 +987,7 @@ noncomputable def IsContainersReadyConditionTrue.impl [GooseExts] [GoGlobalConte
   (App (App (Val (GoInstruction (FuncResolve GetContainersReadyCondition []))) (Val #())) (Var "$a0")))
   (Let "condition" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")))) (Val _root_.Perennial.k8s_io.api.core.v1.ConditionTrue))) (Val #false))
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Var "condition")))) (Val #(go!"True")))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1007,7 +1007,7 @@ noncomputable def GetPodReadyCondition.impl [GooseExts] [GoGlobalContext] : val 
   (Seq (App (Val exceptionDo)
   (Let "status" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty))) (Var "status"))
   (Let "__p" (Let "$a0" (Var "status")
-  (Let "$a1" (Val _root_.Perennial.k8s_io.api.core.v1.PodReady)
+  (Let "$a1" (Val #(go!"Ready"))
   (App (App (App (Val (GoInstruction (FuncResolve GetPodCondition []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1038,7 +1038,7 @@ noncomputable def GetContainersReadyCondition.impl [GooseExts] [GoGlobalContext]
   (Seq (App (Val exceptionDo)
   (Let "status" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty))) (Var "status"))
   (Let "__p" (Let "$a0" (Var "status")
-  (Let "$a1" (Val _root_.Perennial.k8s_io.api.core.v1.ContainersReady)
+  (Let "$a1" (Val #(go!"ContainersReady"))
   (App (App (App (Val (GoInstruction (FuncResolve GetPodCondition []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1247,7 +1247,7 @@ noncomputable def IsRestartableInitContainer.impl [GooseExts] [GoGlobalContext] 
   (Seq (App (Val exceptionDo)
   (Let "initContainer" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Container.ty)))) (Var "initContainer"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Container.ty)))) (Var "initContainer"))))) (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicyAlways)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Container.ty)))) (Var "initContainer"))))) (Val #(go!"Always"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1278,7 +1278,7 @@ noncomputable def IsContainerRestartable.impl [GooseExts] [GoGlobalContext] : va
   (Let "container" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.Container.ty))) (Var "container"))
   (Let "pod" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty))) (Var "pod"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"RestartPolicy"))) (Var "pod"))) (Val _root_.Perennial.k8s_io.api.core.v1.RestartPolicyNever))))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"RestartPolicy"))) (Var "pod"))) (Val #(go!"Never")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1286,7 +1286,7 @@ noncomputable def IsContainerRestartable.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "container"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "container")))) (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicyNever))))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "container")))) (Val #(go!"Never")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1299,7 +1299,7 @@ noncomputable def IsContainerRestartable.impl [GooseExts] [GoGlobalContext] : va
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule"))) (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleActionRestart))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule"))) (Val #(go!"Restart")))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1333,21 +1333,21 @@ noncomputable def ContainerShouldRestart.impl [GooseExts] [GoGlobalContext] : va
   (Let "container" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.Container.ty))) (Var "container"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"RestartPolicy"))) (Var "pod")))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.RestartPolicyAlways)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (Var "$sw") (Val #(go!"Always"))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.RestartPolicyOnFailure)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (Var "$sw") (Val #(go!"OnFailure"))))
   (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (Var "exitCode")) (Val #(W32 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.RestartPolicyNever)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (Var "$sw") (Val #(go!"Never"))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1374,21 +1374,21 @@ noncomputable def ContainerShouldRestart.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "container"))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicyAlways)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (Var "$sw") (Val #(go!"Always"))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicyOnFailure)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (Var "$sw") (Val #(go!"OnFailure"))))
   (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (Var "exitCode")) (Val #(W32 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicyNever)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (Var "$sw") (Val #(go!"Never"))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1399,15 +1399,15 @@ noncomputable def ContainerShouldRestart.impl [GooseExts] [GoGlobalContext] : va
   (Val #()))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule")))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleActionRestart)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (Var "$sw") (Val #(go!"Restart"))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleActionRestartAllContainers)))
-  (If (Let "$a0" (Val _root_.Perennial.k8s_io.kubernetes.pkg.features.RestartAllContainersOnContainerExits)
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (Var "$sw") (Val #(go!"RestartAllContainers"))))
+  (If (Let "$a0" (Val #(go!"RestartAllContainersOnContainerExits"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate))) (Val #())))) (Var "$a0")))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1468,7 +1468,7 @@ noncomputable def FindMatchingContainerRestartRule.impl [GooseExts] [GoGlobalCon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOperator.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodes.ty go!"Operator"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodes.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"ExitCodes"))) (Var "rule")))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOperator.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOpIn)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOperator.ty))) (Pair (Var "$sw") (Val #(go!"In"))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exitCodeMatched"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty))) (Var "rule"))
   (Let "$r1" (Val #true)
@@ -1482,7 +1482,7 @@ noncomputable def FindMatchingContainerRestartRule.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #())))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOperator.ty))) (Pair (Var "$sw") (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOpNotIn)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleOnExitCodesOperator.ty))) (Pair (Var "$sw") (Val #(go!"NotIn"))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "exitCodeMatched")))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty))) (Var "rule"))
   (Let "$r1" (Val #true)
@@ -1558,7 +1558,7 @@ noncomputable def AllContainersCouldRestart.impl [GooseExts] [GoGlobalContext] :
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule"))) (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleActionRestartAllContainers))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule"))) (Val #(go!"RestartAllContainers")))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1589,7 +1589,7 @@ noncomputable def AllContainersCouldRestart.impl [GooseExts] [GoGlobalContext] :
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule"))) (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleActionRestartAllContainers))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRuleAction.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.ContainerRestartRule.ty go!"Action"))) (Var "rule"))) (Val #(go!"RestartAllContainers")))))
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -1637,7 +1637,7 @@ noncomputable def CalculatePodStatusObservedGeneration.impl [GooseExts] [GoGloba
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"ObservedGeneration"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(W64 0))))) (Val #true) (Let "$a0" (Val _root_.Perennial.k8s_io.kubernetes.pkg.features.PodObservedGenerationTracking)
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"ObservedGeneration"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(W64 0))))) (Val #true) (Let "$a0" (Val #(go!"PodObservedGenerationTracking"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate))) (Val #())))) (Var "$a0"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Generation"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1694,7 +1694,7 @@ noncomputable def CalculatePodConditionObservedGeneration.impl [GooseExts] [GoGl
   (Var "$key")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty))) (Pair (Var "condition") (Var "$value")))))))))))))
-  (If (Let "$a0" (Val _root_.Perennial.k8s_io.kubernetes.pkg.features.PodObservedGenerationTracking)
+  (If (Let "$a0" (Val #(go!"PodObservedGenerationTracking"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate))) (Val #())))) (Var "$a0")))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "generation"))
   (App (App (Val exceptionSeq) (Lam BAnon

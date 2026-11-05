@@ -20,11 +20,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem encodeObj.wp_proof (wp_encodeWith : encodeWith.spec (GF := GF) (hG := hG)) :
     encodeObj.spec (GF := GF) (hG := hG) := by
-  intro p dq name val rv
+  intro p dq name uid val rv
   wp_start as Hp
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   iStructNamed Hp

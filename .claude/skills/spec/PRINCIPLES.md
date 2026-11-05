@@ -36,7 +36,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   unproved: every value the body reads from an argument (a context's `Value(key)`, a field) needs a
   premise. (The compactor's `compactableOk` passed five reviews checked against
   `EtcdServer.Compact.spec`, a `sorry`, and failed at the first glue: `Compact` reads
-  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.)
+  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.) A premise inherited from a callee
+  (a context, a client) is checked against the value the caller's Go code actually passes, not the
+  kind the callee's chain was written for: Kubernetes' `Compact.spec` took the client's `ctxOk`
+  (an `isContext` or a quiet context), approved, while its one caller passes
+  `wait.ContextForChannel(stopCh)`, which is neither (K4, `notes/decisions.md`, "A context outside
+  Perennial's model", 2026-11-04).
 - **Local**: a spec is about its function's footprint, the state that function touches, and nothing
   else, so that a change elsewhere (a new feature, a conjunct added to some other component's
   predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an
@@ -74,6 +79,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
   harmlessly. A post that says a call returns claims it returns on every input the premise admits:
   check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+- **A law over a free mode (or any index) holds at every value of it**: check it at each literal against the variance of every resource it mentions. An atomic update's grant is the committer's to supply (contravariant: `kvAu1G G ⊢ kvAu1G G'` needs `G' ⊢ G`), so a gated grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, and identified with `X` only at `true`. A law that holds at one mode only is stated at that literal, where the mode gate counts it, not over a free `on` with an `(h : on = b)` premise. (The auth component's stage 4, round 3: three "any `on`" laws false at one mode; `examples/auth-component.md`, stage 4.) The premise is not a way to lower the gate's count: the count is the gate's measure of what still depends on one mode, and the literal is that dependence (stage 5: the 5-2 laws took `(hon : on = false)`, the count fell below the plan's, and 5-4 had to restate them; `examples/auth-component.md`, stage 5).
+- **A bridge between two statements is stated from its consumer's goal**, not from the direction the author has in mind: write down the goal of the proof that applies it, and check the law it rests on for variance (`raftKV_mono s A A' : raftKV s A' ⊢ raftKV s A` is contravariant in the answers). (The auth component's stage 5, round 4: `raftKV_srvKVAnsM_false` stated old → merged where its consumer needed merged → old; `examples/auth-component.md`, stage 5.)
 
 ## Preferences: strength
 
@@ -248,6 +255,18 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
   `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
+- **A closer gives back what the goroutines it waits for held**: a `Close` that stops goroutines and
+  waits for them (`wg.Wait()`, a stop channel's last payload) returns their resources, which they
+  deposit where they finish (the wait group's invariant, at `Done`), so that the caller can
+  reassemble what the closer above it takes (a backend's whole open token). (R-D1, 2026-11-04,
+  `examples/oneshot-close.md`: `watchableStore.Close`'s post `True` hid the loops' readers that
+  `NewServer`'s error path needed.)
+- **A clause is stated over what its user holds**: before adding a clause a client applies, check at
+  the client's use site that every resource it takes is there in the stated count (the producer may
+  have dropped a copy), that the client sees every name it mentions (an opaque `RD`, a trusted
+  lifecycle without the parameter), and that the producer can give the conclusion (a share kept for
+  good is not given back). (R-D, rounds 1 and 2: the abandon clause took `authRdN - 1` copies of a
+  resource minted `authRdN` times, then concluded resources the realization keeps.)
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
 - **A pure fact over the state before new ghost state**: what a proof needs across states is

@@ -102,6 +102,7 @@ inbound path reads and its transport `τ`, frozen, every other member added as a
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStorageVersion
@@ -112,6 +113,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 
 @[expose] public section
@@ -309,12 +311,12 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       ⌜err = GoInterface.nil⌝ ∗ threadTok ∗
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface) (γk : GName) (τ : SrvTr GF),
-          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.specOn`'s)
+          -- (the auth plan's E3zb, 2026-10-28) with auth on, the mode `.on γa` (`Start.spec`'s at `.on γa`)
           ⌜envAgree E E₀ ∧ E.authOn = on ∧ (on = true → ∃ γa, E.authMode = .on γa)⌝ ∗
           srvWatchBuilt srv E ∗
           -- (D22 J1b, 2026-11-01, the user's decision) the KV's closer and the backend file's
           -- directory entry are in the built part (`srvSnapBoot`'s `srvSnapRes`)
-          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk))
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk))
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
@@ -352,7 +354,11 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
           -- auth on the auth store's cost field (`BcryptCost()`'s) and (C1's A4, 2026-10-31) its
           -- `Authenticate` side at the server's reader resource (`srvAuthStoreOn`)
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
-          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) }}
+          □ (⌜on = true⌝ → srvAuthStoreOn srv E.RD) ∗
+          -- (the restart plan's R2b-3d; 2026-11-05, the stop's slot, `StopApi.lean`: until then
+          -- inline, `srvStopKeep`, `srvTrKeyOf`, the auth-off `srvCleanupOwn`) what the server's stop
+          -- needs of the construction
+          srvStop.keep srv cfg E γrn γk }}
 
 /-- **`NewServer(cfg)` with auth off**, in either compaction mode (the caller's): `NewServer.specG`
 at `on = false` (`NewServer.wp_proof`). -/

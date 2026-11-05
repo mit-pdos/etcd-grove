@@ -45,6 +45,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
     (Hcc : bootCCOk [id] (LogEntry.toEntries boot 0))
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (cmp : Bool) (cret : Nat) (lm : lease.Mode) (m : lease.Mode)
@@ -66,7 +67,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     intro h; apply Hlow; rw [h]; decide
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (env₀ idx cok rev cmp)
   imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
-      (by simp) (by simpa using Hid0.symm) Hcc (by simp) (by simpa using Hlow) cmp cret lm (idPfxOf (W16 (uint.Z id)))) $$ Hmarsh
+      (by simp) (by simpa using Hid0.symm) Hcc Hurl (by simp) (by simpa using Hlow) cmp cret lm (idPfxOf (W16 (uint.Z id)))) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp⟩ := Hγ
@@ -115,6 +116,7 @@ clients' half of the KV state returned). -/
 theorem alloc1_false (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
     (Hcc : bootCCOk [id] (LogEntry.toEntries boot 0))
+    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (cmp : Bool := false) (cret : Nat := 0) :
@@ -126,7 +128,7 @@ theorem alloc1_false (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
         ρ.rd.kv.cret = cret⌝ ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
-  have h := alloc1 (GF := GF) id ctxs boot Hlow HB Hcc dir Hone Hrb Hrb2 cmp cret .none
+  have h := alloc1 (GF := GF) id ctxs boot Hlow HB Hcc Hurl dir Hone Hrb Hrb2 cmp cret .none
     .none lease.runCfg_none
   simp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at h
   iintro #Hmarsh

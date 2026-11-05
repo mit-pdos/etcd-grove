@@ -86,7 +86,6 @@ theorem v3rpc.togRPCError.wp_proof
     wp_auto
     subst Hei
     wp_apply HErrM as %msg _
-    simp only [google_golang_org.grpc.codes.Unknown]
     wp_bind (App (App (Val #(functions google_golang_org.grpc.status.Error [])) (Val #(W32 2))) (Val #msg))
     iapply (hErr (W32 2) msg) $$ [] 
     · iframe #

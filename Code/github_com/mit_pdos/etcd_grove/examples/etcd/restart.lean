@@ -237,7 +237,7 @@ noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"AppliedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (StructFieldRef member.ty go!"s"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType member.ty)))) (Var "m"))))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val NBoot)))))) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (Val _root_.Perennial.time.Millisecond)
+  (Let "$a0" (Val #(W64 1000000))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (Lam BAnon
   (Val #()))))))
@@ -257,7 +257,7 @@ noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.RequestTimeout)
+  (Let "$a1" (Val #(W64 5000000000))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -536,7 +536,7 @@ noncomputable def restartCheck.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "$a1" (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.RequestTimeout)
+  (Let "$a1" (Val #(W64 5000000000))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))

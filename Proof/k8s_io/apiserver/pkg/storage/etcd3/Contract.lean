@@ -38,6 +38,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Model
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.reflect.Values
+public import Proof.k8s_io.apiserver.pkg.storage.Defs
 
 @[expose] public section
 
@@ -58,6 +59,9 @@ structure ObjCodec (Obj : Type) where
   /-- the codec's decoding of data -/
   decode : GoString → Option Obj
   decode_encode : ∀ o, decode (encode o) = some o
+  /-- an object's encoding is never empty (the zero state's data is: `stateFromEtcdResponse` of an
+  absent key, compared by the store's no-op test) -/
+  encode_ne_nil : ∀ o, encode o ≠ []
   /-- the transformer's reading of a stored value: its data and whether it is stale -/
   fromS : GoString → Option (GoString × Bool)
   /-- `v` is a value the transformer may write for the data `d` -/
@@ -70,10 +74,20 @@ structure ObjCodec (Obj : Type) where
   parse_fmt : ∀ n, parseRV (fmtRV n) = some n
   /-- the empty resource version (what `PrepareObjectForStorage` leaves) parses as `0` -/
   parse_empty : parseRV [] = some (W64 0)
+  /-- `0` renders as the empty string (`APIObjectVersioner`'s `UpdateObject(obj, 0)`; the zero
+  object, whose resource version string is empty, is at resource version `0`) -/
+  fmt_zero : fmtRV (W64 0) = []
+  /-- the object's UID (`metav1.Object.GetUID`) -/
+  uid : Obj → GoString
   /-- the object `NewFunc()` and `runtime.SetZeroValue` make -/
   zero : Obj
 
 variable {Obj : Type} [DecidableEq Obj]
+
+/-- **The preconditions `p` hold of `o` at resource version `r`** (`Preconditions.Check` on an
+object with `o`'s UID and `r`'s string; `fmtRV 0` is the zero object's empty string). -/
+def ObjCodec.preOk (C : ObjCodec Obj) (p : KPre) (o : Obj) (r : Nat) : Bool :=
+  p.ok (C.uid o) (C.fmtRV (W64 (r : Int)))
 
 /-- **What the store writes for `o` fits a request** (2026-10-30, `notes/invoke-size-b.md`): every
 value the transformer may store for `o`'s encoding is at most `2 ^ 28` bytes (with a key of at most
@@ -142,13 +156,16 @@ structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj wher
   /-- the errors the codec's `Encode` may return -/
   encErr : GoInterface → Prop
 
-/-- **The objects' Go type** is a `runtime.Object` and not a `runtime.Unstructured` (the type
-assertions the store makes, `typeSetContains`). -/
+/-- **The objects' Go type** is a `runtime.Object` and a `metav1.Object`, and not a
+`runtime.Unstructured` (the type assertions the store and `meta.Accessor` make,
+`typeSetContains`). -/
 def ObjSpec.tyOk (S : ObjSpec GF Obj) : Prop :=
   go.typeSetContains (go.GoType.PointerType S.objTy)
       k8s_io.apimachinery.pkg.runtime.Object.ty = true ∧
     go.typeSetContains (go.GoType.PointerType S.objTy)
-      k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false
+      k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false ∧
+    go.typeSetContains (go.GoType.PointerType S.objTy)
+      k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty = true
 
 /-- `runtime.Encode(codec, x)`: the bytes of the object's encoding (after
 `PrepareObjectForStorage`: no resource version), or an error. -/
@@ -233,16 +250,21 @@ def zeroOk (S : ObjSpec GF Obj) : IProp GF :=
     ▷ (∀ err : GoInterface, ⌜err = GoInterface.nil⌝ ∗ S.objAt x S.zero [] -∗ Φ #err) -∗
     WP (App (Val (@! k8s_io.apimachinery.pkg.runtime.SetZeroValue)) (Val #x)) {{ Φ }})
 
+/-- **An object as a `metav1.Object`** (`Preconditions.Check`'s accessors): `GetUID` answers its
+UID, `GetResourceVersion` its resource version string. -/
+def metaOk (S : ObjSpec GF Obj) : IProp GF :=
+  iprop(□ ∀ (x : GoInterface) (o : Obj) (rv : GoString), metaAt x (S.objAt x o rv) (S.uid o) rv)
+
 /-- **The contract** (persistent; D30k): the codec, versioner, transformer and decoder the store
 was made with, and `runtime.SetZeroValue`, meet the object specification `S`. -/
 def contractOk (S : ObjSpec GF Obj) (codec : GoInterface) (vi ti di : GoInterfaceOk) :
     IProp GF :=
   iprop(⌜S.tyOk⌝ ∗ encodeOk S codec ∗ versionerOk S vi ∗ transformerOk S ti ∗ decoderOk S di ∗
-    zeroOk S)
+    zeroOk S ∗ metaOk S)
 
 instance contractOk_persistent (S : ObjSpec GF Obj) (codec : GoInterface)
     (vi ti di : GoInterfaceOk) : Persistent (contractOk S codec vi ti di) := by
-  unfold contractOk encodeOk versionerOk transformerOk decoderOk zeroOk; infer_instance
+  unfold contractOk encodeOk versionerOk transformerOk decoderOk zeroOk metaOk; infer_instance
 
 end defs
 

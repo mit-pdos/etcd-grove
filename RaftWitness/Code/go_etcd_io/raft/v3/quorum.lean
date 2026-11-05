@@ -729,7 +729,7 @@ noncomputable def MajorityConfig.CommittedIndex.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "srt") (Var "$r0")))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt Index'.ty))) (Val _root_.Perennial.math.MaxUint64))
+  (Let "$r0" (Val #(W64 18446744073709551615))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -828,7 +828,7 @@ noncomputable def MajorityConfig.OneLessThanQuorum.impl [GooseExts] [GoGlobalCon
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt Index'.ty))) (Val _root_.Perennial.math.MaxUint64))
+  (Let "$r0" (Val #(W64 18446744073709551615))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1062,7 +1062,7 @@ noncomputable def Index.String.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Index'.ty))) (Pair (App (Val (GoInstruction (GoLoad Index'.ty))) (Var "i")) (App (Val (GoInstruction (Convert go.untypedInt Index'.ty))) (Val _root_.Perennial.math.MaxUint64)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Index'.ty))) (Pair (App (Val (GoInstruction (GoLoad Index'.ty))) (Var "i")) (Val #(W64 18446744073709551615)))))
   (Let "$r0" (Val #(go!"∞"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)

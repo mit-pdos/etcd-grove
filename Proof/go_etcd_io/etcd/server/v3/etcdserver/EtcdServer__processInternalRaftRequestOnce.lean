@@ -461,7 +461,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           wp_apply hED cctx _ $$ [HCC] as %cerr ⟨%Hcerr, #Hcerrv⟩
           · iframe #
           (try wp_auto)
-          wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
+          wp_apply hPE cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
           · iframe Hrd
             isplitl
             · iapply (isServerReqM_split _ _ _ _).2; iframe HsrvB; iexists v; iexact Hv
@@ -499,7 +499,7 @@ local macro "piro_tail" : tactic => `(tactic| (
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
+theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
     (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
     (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
@@ -510,13 +510,16 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     (hM : proto.MarshalIRR.spec (GF := GF) (hG := hG))
     (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
     (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
-    (hPE : EtcdServer.parseProposeCtxErr.specM (GF := GF) (hG := hG) on)
+    (hPE : EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG))
     (hED : context.ErrDone.spec (GF := GF) (hG := hG))
     (hFB : strconv.FormatBool.spec (GF := GF) (hG := hG))
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
-    EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
+    EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
+  -- the proof is over the mode as a variable `on` (it cases on it at the handoff's receipt)
+  have hPE := hPE s E ρ
+  generalize E.authOn = on at hPE ⊢
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -671,30 +674,6 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     iexists false
     simp only [Bool.false_eq_true, ↓reduceIte]
     itrivial
-
-/-- **The spec, from the proof at the environment's auth mode** (`wp_proofM E.authOn`). -/
-theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
-    (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
-    (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
-    (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
-    (hEx : exceedsRequestLimit.spec (GF := GF) (hG := hG))
-    (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
-    (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hRT : getRequestType.spec (GF := GF) (hG := hG))
-    (hM : proto.MarshalIRR.spec (GF := GF) (hG := hG))
-    (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
-    (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
-    (hPE : EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG))
-    (hED : context.ErrDone.spec (GF := GF) (hG := hG))
-    (hFB : strconv.FormatBool.spec (GF := GF) (hG := hG))
-    (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
-    (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
-    EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
-  have h := EtcdServer.processInternalRaftRequestOnce.wp_proofM E.authOn hAI hCI hFE hEx hNext
-    hAuth hRT hM hTO hSp (EtcdServer.parseProposeCtxErr.spec_M hPE E.authOn) hED hFB hSec hWL
-    s E ρ ctx cd p rq Qh F Hid0 Hdpt
-  exact h
 
 end proof
 

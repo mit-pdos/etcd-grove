@@ -111,7 +111,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`), at KV names whose lessor is revocable
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (leaseexpiryDir id)
+  imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leaseexpiryDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .revocable .revocable
       (lease.runCfg_revocable hslg hrev)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
@@ -166,13 +166,19 @@ theorem Main.wp_proof
   -- address; the forked goroutine's token goes into the one gRPC slot
   haveI := Hms
   have hlgw : ({ ρ with wait := γw } : ReqNames).rd.kv.lm = .revocable := hlgρ
+  ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
+    $$ []
+  · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23976" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23976" ∗
-        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E))
-      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms Htok2] as %serr Hs
   · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
+    rw [HsvOff.1]
+    ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23976"
       cid mid R Hrb48 (by omega) Hrf HlP rfl .revocable hlgw
     simp only [etcdstart.etcdLeaseServedAt] at h

@@ -358,32 +358,32 @@ noncomputable def preparePod.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 1))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val _root_.Perennial.k8s_io.api.core.v1.PodPending)
+  (Let "$r0" (Let "$v0" (Val #(go!"Pending"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Phase")) (ElementExpression _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"SchedulerName"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"")))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.api.core.v1.DefaultSchedulerName))
+  (Let "$r0" (Val #(go!"default-scheduler"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"SchedulerName"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.DNSPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.DNSPolicy.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"DNSPolicy"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"")))))
-  (Let "$r0" (Val _root_.Perennial.k8s_io.api.core.v1.DNSClusterFirst)
+  (Let "$r0" (Val #(go!"ClusterFirst"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.DNSPolicy.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"DNSPolicy"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"RestartPolicy"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"")))))
-  (Let "$r0" (Val _root_.Perennial.k8s_io.api.core.v1.RestartPolicyAlways)
+  (Let "$r0" (Val #(go!"Always"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.core.v1.RestartPolicy.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"RestartPolicy"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod")))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.int64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"TerminationGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.int64)))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (Val _root_.Perennial.k8s_io.api.core.v1.DefaultTerminationGracePeriodSeconds))
+  (Let "$r0" (Val #(W64 30))
   (Let "grace" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Var "grace")
@@ -430,7 +430,7 @@ noncomputable def podGrace.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "period") (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"NodeName"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val _root_.Perennial.k8s_io.api.core.v1.PodFailed)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val _root_.Perennial.k8s_io.api.core.v1.PodSucceeded)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodSpec.ty go!"NodeName"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Spec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"Failed"))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "pod"))))) (Val #(go!"Succeeded"))))))
   (Let "$r0" (Val #(W64 0))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "period") (Var "$r0")))))
@@ -988,10 +988,10 @@ noncomputable def prepareDaemonSet.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(W64 1))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)))) (Var "ds")))))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.api.apps.v1.DeprecatedTemplateGeneration))) (Val #(go!"")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (App (Val (map.lookup1 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)))) (Var "ds")))))) (Val #(go!"deprecated.daemonset.template.generation"))) (Val #(go!"")))))
   (Let "$r0" (Val #(go!"1"))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)))) (Var "ds")))))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.api.apps.v1.DeprecatedTemplateGeneration))) (Var "$r0"))))
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)))) (Var "ds")))))) (Val #(go!"deprecated.daemonset.template.generation"))) (Var "$r0"))))
   (App (Val doExecute)
   (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSet.ty)))) (Var "ds"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.string go.string)))) (Val UntypedNil)))))
@@ -1015,7 +1015,7 @@ noncomputable def prepareDaemonSet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "limit") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty)))) (Var "strategy")))) (Val _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSetStrategyType))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty)))) (Var "strategy")))) (Val #(go!"RollingUpdate")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet.ty go!"MaxSurge"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSet.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty go!"RollingUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty)))) (Var "strategy")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.ty)))) (Val UntypedNil)))))
@@ -1051,7 +1051,7 @@ noncomputable def prepareDaemonSet.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty)))) (Var "strategy")))) (Val #(go!"")))))
-  (Let "$r0" (Val _root_.Perennial.k8s_io.api.apps.v1.RollingUpdateDaemonSetStrategyType)
+  (Let "$r0" (Val #(go!"RollingUpdate"))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategyType.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.apps.v1.DaemonSetUpdateStrategy.ty)))) (Var "strategy"))) (Var "$r0")))))
   (App (Val doExecute)
@@ -2185,7 +2185,7 @@ noncomputable def Server.record.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) go!"Broadcast"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"changed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))) (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType change.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef table.ty go!"log"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType table.ty)))) (Var "t"))) (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Var "typ")) (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Deleted))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty))) (Var "typ")) (Val #(go!"DELETED")))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty object.ty)))) (App (Val (GoInstruction (StructFieldRef table.ty go!"objs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType table.ty)))) (Var "t"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.ty))) (Var "key"))
@@ -2287,7 +2287,7 @@ noncomputable def Server.create.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore object.ty))) (Pair (Var "out") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType table.ty)))) (Var "t"))
-  (Let "$a1" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Added)
+  (Let "$a1" (Val #(go!"ADDED"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad object.ty))) (Var "obj"))
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"record"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
@@ -2730,7 +2730,7 @@ noncomputable def Server.update.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore object.ty))) (Pair (Var "out") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType table.ty)))) (Var "t"))
-  (Let "$a1" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Modified)
+  (Let "$a1" (Val #(go!"MODIFIED"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad object.ty))) (Var "obj"))
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"record"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
@@ -2956,7 +2956,7 @@ noncomputable def Server.remove.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType table.ty)))) (Var "t"))
-  (Let "$a1" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Modified)
+  (Let "$a1" (Val #(go!"MODIFIED"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad object.ty))) (Var "obj"))
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"record"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))
@@ -2970,7 +2970,7 @@ noncomputable def Server.remove.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty))) (Pair (Var "now") (Var "$r0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType table.ty)))) (Var "t"))
-  (Let "$a1" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Deleted)
+  (Let "$a1" (Val #(go!"DELETED"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad object.ty))) (Var "obj"))
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"record"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))))))))
@@ -3388,7 +3388,7 @@ noncomputable def watcher.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"rev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "s"))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Bookmark)
+  (Let "$r0" (Let "$v0" (Val #(go!"BOOKMARK"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad object.ty))) (Var "b"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Object")) (ElementExpression object.ty (Var "$v1")))]))))
   (App (Val doExecute)
@@ -3473,7 +3473,7 @@ noncomputable def watcher.run.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$v0" (Val _root_.Perennial.k8s_io.apimachinery.pkg.watch.Added)
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Let "$v0" (Val #(go!"ADDED"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad object.ty))) (Var "obj"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Object")) (ElementExpression object.ty (Var "$v1")))]))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watcher.ty) go!"send"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcher.ty)))) (Var "w"))) (Var "$a0"))))

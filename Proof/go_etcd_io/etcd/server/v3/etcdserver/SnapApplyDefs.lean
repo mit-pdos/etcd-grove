@@ -110,7 +110,8 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗
     -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
     backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-    backend.isStopChansE γB d'.P d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
+    backend.isStopChans γB d'.P (mvcc.lateWD d')
+      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
     backend.hooksOk d.P (fun γB => mvcc.lateWD { d' with γB := γB })
       (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
@@ -154,7 +155,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
-    backend.pathOwn bp ∗ alarmBeOn al d'.be ∗
+    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗ alarmBeOn al d'.be ∗
     -- (2026-11-01, J8a) the old KV's reader resource of the auth store (`NewUberApplier` takes none)
     E.RD ∗
     (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
@@ -171,7 +172,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
-    mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk)
+    mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk E.s E.γ)
 
 /-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second
 part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: the protocol's names
@@ -207,9 +208,9 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     epConfState ep cs' ∗ csOptA cs' DFrac.discard sv.Metadata'.ConfState' ∗
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloserW s E' ∗
-    backend.isStopChansE d'.γB d'.P d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    srvStopChans γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
-    backend.pathOwn bp ∗
+    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
 
@@ -236,9 +237,9 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     srvApplyKVM on s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A' ∗
     srvKVCloserW s E' ∗
-    backend.isStopChansE d'.γB d'.P d'.be ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
+    srvStopChans γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
-    backend.pathOwn bp ∗
+    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ))
 

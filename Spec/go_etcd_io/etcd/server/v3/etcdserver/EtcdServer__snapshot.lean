@@ -55,7 +55,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
-    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : GName) (ua : GoInterface) (q : Qp)
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
     (γn : RNNames),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters

@@ -20,6 +20,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
@@ -32,7 +33,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iunfold validateD
   imodintro
-  iintro %ctx %p %name %vl %n %Ψ Hp HΨ
+  iintro %ctx %p %name %uid %vl %n %Ψ Hp HΨ
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   wp_pure
   wp_pure
@@ -40,7 +41,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   (try wp_auto)
   wp_if_destruct
   · have hr : rejects [] vl = false := rfl
-    ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+    ihave Hp : p ↦ Obj.mk name uid vl n $$ [Name UID Value ResourceVersion]
     · iapply typedPointsto_combine p _ _ Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -56,7 +57,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
       ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.drvInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
       icases Hi with ⟨-, -, -, -, ⟨%eD, #HeD, -⟩, -⟩
-      ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+      ihave Hp : p ↦ Obj.mk name uid vl n $$ [Name UID Value ResourceVersion]
       · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -66,7 +67,7 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
       simp only [↓reduceIte]
       iexact HeD
     · have hr : rejects reject vl = false := by simp [rejects, Hif]
-      ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+      ihave Hp : p ↦ Obj.mk name uid vl n $$ [Name UID Value ResourceVersion]
       · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe

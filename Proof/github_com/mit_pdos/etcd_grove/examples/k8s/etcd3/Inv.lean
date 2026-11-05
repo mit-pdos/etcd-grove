@@ -9,8 +9,9 @@ store's specs (`Proof/k8s_io/apiserver/pkg/storage/etcd3/`).
 ## The pure part
 
 - `kStep eD eU x ks`: the store's model (`KSt`) on the input `x` (its kind: `create` of the
-  object `mkObj x`, `delete` with `validateFor`'s function `rejD`, `update` with `tryUpdateFor`'s
-  `updD`, or `get`), its next state and the driver's output of its answer (`outOf`). On related
+  object `mkObj x`, `delete` with the input's preconditions `preD x` and `validateFor`'s function
+  `rejD`, `update` with `ignoreNotFound`, `preD x` and `tryUpdateFor`'s `updD`, or `get` at the
+  minimum `minOf x`), its next state and the driver's output of its answer (`outOf`). On related
   states (`KRel`) it is the driver's model's step (`refine_step`, from 6b's `refine_*`).
 - `KOk c g0 S σ M nx`: the instance's relation, as linkvtxn's `LinkvOk`: `S` closed under late
   effects, etcd's state the store's (`kvWf`) with room for two revisions, the pending writes `M`
@@ -46,17 +47,22 @@ open go_etcd_io.etcd.server.v3.etcdserver
 section enc
 variable [GooseExts]
 
+/-- An object, injectively. -/
+def encObj (o : Obj) : GoString × GoString × GoString × w64 :=
+  (o.Name', o.UID', o.Value', o.ResourceVersion')
+
 /-- An input, injectively. -/
-def encIn (x : Input) : w64 × GoString × GoString × GoString × Bool × Bool :=
-  (x.Kind', x.Key', x.Val', x.Reject', x.NoOp', x.IgnoreNotFound')
+def encIn (x : Input) : w64 × GoString × GoString × GoString × Bool × Bool × GoString × Bool ×
+    GoString × Bool × GoString × Bool × (GoString × GoString × GoString × w64) × GoString × w64 :=
+  (x.Kind', x.Key', x.Val', x.Reject', x.NoOp', x.IgnoreNotFound', x.UID', x.HasPreUID',
+    x.PreUID', x.HasPreRV', x.PreRV', x.UseCached', encObj x.Cached', x.MinRV', x.Client')
 
 theorem encIn_inj : Function.Injective encIn := by
   intro a b h
-  cases a; cases b
-  simp only [encIn, Prod.mk.injEq] at h
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  subst h1 h2 h3 h4 h5 h6
-  rfl
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, _⟩, _, _⟩ := a
+  obtain ⟨_, _, _, _, _, _, _, _, _, _, _, _, ⟨_, _, _, _⟩, _, _⟩ := b
+  simp only [encIn, encObj, Prod.mk.injEq] at h
+  simp only [h]
 
 instance Input.countable : Pos.Countable Input :=
   .ofInjective (fun i => Pos.Countable.encode (encIn i))
@@ -71,12 +77,36 @@ instance KVState.inhabited : Inhabited KVState := ⟨{ compacted := 0, base := �
 section pure
 variable [GooseExts]
 
-/-- **An input `Gen` may return**, as far as the model needs: its name fits an object's. -/
-def InOk (x : Input) : Prop := x.Key'.length < 256
+/-- **An input `Gen` may return**, as far as the model needs: its name and UID fit an object's,
+and its minimum resource version parses (stage 7b). -/
+def InOk (x : Input) : Prop :=
+  x.Key'.length < 256 ∧ x.UID'.length < 256 ∧ (parseRVD x.MinRV').isSome
 
-/-- `call`'s object for a `Create` of `x` (`&Obj{Name: in.Key, Value: in.Val}`). -/
+/-- A `Get`'s minimum resource version (`0` if it does not parse: never, `InOk`). -/
+def minOf (x : Input) : w64 := (parseRVD x.MinRV').getD 0
+
+/-- `call`'s object for a `Create` of `x` (`&Obj{Name: in.Key, UID: in.UID, Value: in.Val}`). -/
 def mkObj (x : Input) : DObj :=
-  if h : x.Key'.length < 256 then ⟨(x.Key', x.Val'), h⟩ else dzero
+  if h : x.Key'.length < 256 ∧ x.UID'.length < 256 then ⟨(x.Key', x.UID', x.Val'), h⟩ else dzero
+
+/-- A Go `Obj`'s store object: its name, UID and value (the zero object if a name or a UID is
+256 bytes or longer: never for a cached object, `cachedObjOk`). -/
+def dobjOf (ob : Obj) : DObj :=
+  if h : ob.Name'.length < 256 ∧ ob.UID'.length < 256 then ⟨(ob.Name', ob.UID', ob.Value'), h⟩
+  else dzero
+
+theorem dobjOf_mk (o : DObj) (r : w64) : dobjOf ⟨o.name, o.uid, o.val, r⟩ = o := by
+  obtain ⟨⟨n, u, v⟩, hn⟩ := o
+  have e : dobjOf ⟨n, u, v, r⟩ = if h : n.length < 256 ∧ u.length < 256 then
+      (⟨(n, u, v), h⟩ : DObj) else dzero := rfl
+  exact e.trans (dif_pos hn)
+
+/-- The object `Apply` caches for an answer (`Obj{Name: out.Name, UID: out.UID, Value: out.Value,
+ResourceVersion: out.RV}`). -/
+def cachedOf (y : Output) : Obj := ⟨y.Name', y.UID', y.Value', y.RV'⟩
+
+/-- The store's preconditions of an input, as the store's model takes them. -/
+abbrev preD (x : Input) : DObj → Nat → Bool := driverCodec.preOk (kpreOf x)
 
 /-- **The store's model on the input `x`** (see the file header): its next state and the
 driver's output of its answer. -/
@@ -85,43 +115,153 @@ def kStep (eD eU : GoInterface) (x : Input) (ks : KSt DObj) : KSt DObj × Output
     ((ks.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).1,
       outOf (ks.create (E := Empty) (mkeyL x.Key') (mkObj x) 0).2)
   else if x.Kind' = W64 1 then
-    ((ks.delete (mkeyL x.Key') (fun _ _ => none) (rejD eD x.Reject')).1,
-      outOf (ks.delete (mkeyL x.Key') (fun _ _ => none) (rejD eD x.Reject')).2)
+    ((ks.delete (mkeyL x.Key') (preD x) (rejD eD x.Reject')).1,
+      outOf (ks.delete (mkeyL x.Key') (preD x) (rejD eD x.Reject')).2)
   else if x.Kind' = W64 2 then
-    ((ks.update (mkeyL x.Key') false dzero (fun _ _ => none) (updD eU x)).1,
-      outOf (ks.update (mkeyL x.Key') false dzero (fun _ _ => none) (updD eU x)).2)
-  else (ks, outOf (ks.get (E := Empty) (mkeyL x.Key') 0 x.IgnoreNotFound'))
+    ((ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD eU x)).1,
+      outOf (ks.update (mkeyL x.Key') x.IgnoreNotFound' dzero (preD x) (updD eU x)).2)
+  else (ks, outOf (ks.get (E := Empty) (mkeyL x.Key') (uint.nat (minOf x)) x.IgnoreNotFound'))
 
 /-- **The store's model refines the driver's on an input** (6b's `refine_*`). -/
 theorem refine_step (eD eU : GoInterface) (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input)
     (hx : InOk x) (hrv : ks.rv + 1 < 2 ^ 64) :
     KRel (kStep eD eU x ks).1 (mstepL x g).1 ∧ (kStep eD eU x ks).2 = (mstepL x g).2 := by
-  have hmk : mkObj x = ⟨(x.Key', x.Val'), hx⟩ := dif_pos hx
+  have hmk : mkObj x = ⟨(x.Key', x.UID', x.Val'), ⟨hx.1, hx.2.1⟩⟩ := dif_pos ⟨hx.1, hx.2.1⟩
   unfold kStep mstepL
   by_cases h0 : x.Kind' = W64 0
   · simp only [h0, ↓reduceIte, hmk]
-    exact refine_create ks g h x hx hrv
+    exact refine_create ks g h x ⟨hx.1, hx.2.1⟩ hrv
   by_cases h1 : x.Kind' = W64 1
   · simp only [h0, h1, ↓reduceIte]
     exact refine_delete ks g h x eD hrv
   by_cases h2 : x.Kind' = W64 2
   · simp only [h0, h1, h2, ↓reduceIte]
-    exact refine_update ks g h x eU hrv
+    exact refine_update ks g h x eU hx.1 hrv
   simp only [h0, h1, h2, ↓reduceIte]
-  exact ⟨h, refine_get ks g h x⟩
+  obtain ⟨n, hn⟩ := Option.isSome_iff_exists.1 hx.2.2
+  have hm : minOf x = n := by unfold minOf; rw [hn]; rfl
+  rw [hm]
+  exact ⟨h, refine_get ks g h x n hn⟩
 
-/-- **The driver's model never answers `EOther`**: its outputs are objects, "not found", "key
-exists", the zero object or a rejection. -/
-theorem mstepL_err (x : Input) (g : GSt) : (mstepL x g).2.Err' ≠ W64 4 := by
-  unfold mstepL mcreateL mdeleteL mupdateL mgetL
-  simp only [objOutL, existsL, notFoundL, rejectedL, zeroOutL]
+/-- **The model's step changes only the input's key.** -/
+theorem kStep_items (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (k : GoString)
+    (hk : k ≠ mkeyL x.Key') : (kStep eD eU x ks).1.items k = ks.items k := by
+  unfold kStep
+  by_cases h0 : x.Kind' = W64 0
+  · simp only [h0, ↓reduceIte, KSt.create]
+    repeat' split
+    all_goals simp_all [KSt.setItem]
+  by_cases h1 : x.Kind' = W64 1
+  · simp only [h0, h1, ↓reduceIte, KSt.delete]
+    repeat' split
+    all_goals simp_all [KSt.delItem]
+  by_cases h2 : x.Kind' = W64 2
+  · simp only [h0, h1, h2, ↓reduceIte, KSt.update]
+    repeat' split
+    all_goals simp_all [KSt.setItem]
+  simp only [h0, h1, h2, ↓reduceIte]
+
+/-- **Where an object answer's item is** (from `ks` to `ks'` at the key `K`): the item of `ks` or
+of `ks'` at `K`, or (a delete) the item `ks` had at `K`, gone at the next resource version. -/
+def RespFrom {E : Type} (ks ks' : KSt DObj) (K : GoString) : KResp DObj E → Prop
+  | .obj o rv => (∃ b, ks.items K = some ⟨o, rv, b⟩ ∨ ks'.items K = some ⟨o, rv, b⟩) ∨
+      (∃ it, rv = ks.rv + 1 ∧ ks.items K = some it ∧ ks'.items K = none ∧ ks'.rv = ks.rv + 1)
+  | _ => True
+
+theorem KItem.eq_cases (it : KItem DObj) :
+    it = ⟨it.obj, it.rv, false⟩ ∨ it = ⟨it.obj, it.rv, true⟩ := by
+  cases it with
+  | mk o r b => cases b <;> simp
+
+theorem respFrom_create {E : Type} (ks : KSt DObj) (k : GoString) (o : DObj) :
+    RespFrom ks (ks.create (E := E) k o 0).1 k (ks.create (E := E) k o 0).2 := by
+  unfold KSt.create
   repeat' split
-  all_goals simp
+  all_goals simp_all [RespFrom, KSt.setItem]
 
-/-- An input's model answer, as porcupine's model decodes its output. -/
-theorem ansOf_mstepL (x : Input) (g : GSt) : ansOf (mstepL x g).2 = .ok (mstepL x g).2 := by
+theorem respFrom_delete {E : Type} (ks : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool)
+    (v : DObj → Nat → Option E) :
+    RespFrom ks (ks.delete k pre v).1 k (ks.delete k pre v).2 := by
+  unfold KSt.delete
+  repeat' split
+  all_goals simp_all [RespFrom, KSt.delItem]
+
+theorem respFrom_update {E : Type} (ks : KSt DObj) (k : GoString) (ig : Bool) (z : DObj)
+    (pre : DObj → Nat → Bool) (f : DObj → Nat → Except E DObj) :
+    RespFrom ks (ks.update k ig z pre f).1 k (ks.update k ig z pre f).2 := by
+  unfold KSt.update
+  repeat' split
+  all_goals simp_all [RespFrom, KSt.setItem]
+  all_goals exact KItem.eq_cases _
+
+theorem respFrom_get {E : Type} (ks : KSt DObj) (k : GoString) (req : Nat) (ig : Bool) :
+    RespFrom ks ks k (ks.get (E := E) k req ig) := by
+  unfold KSt.get
+  repeat' split
+  all_goals simp_all [RespFrom]
+  all_goals exact KItem.eq_cases _
+
+/-- **What an answer with a name is** (`Apply` caches it): an object answer, its item where
+`RespFrom` says. -/
+def AnsFrom (ks ks' : KSt DObj) (K : GoString) (y : Output) : Prop :=
+  y.Err' = W64 0 → y.Name' ≠ [] → ∃ (o : DObj) (rv : Nat),
+    y = objOutL ⟨o.name, o.uid, o.val, W64 (rv : Int)⟩ ∧ RespFrom (E := Empty) ks ks' K (.obj o rv)
+
+theorem ansFrom_outOf {E : Type} (ks ks' : KSt DObj) (K : GoString) (r : KResp DObj E)
+    (h : RespFrom ks ks' K r) : AnsFrom ks ks' K (outOf r) := by
+  intro he hn
+  cases r with
+  | obj o rv => exact ⟨o, rv, rfl, h⟩
+  | zero => exact absurd rfl hn
+  | err e =>
+    cases e <;> simp [outOf, rejectedL, otherL] at he
+
+/-- **The model's answer, with a name, is an item's** (`AnsFrom`). -/
+theorem kStep_ansFrom (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
+    AnsFrom ks (kStep eD eU x ks).1 (mkeyL x.Key') (kStep eD eU x ks).2 := by
+  unfold kStep
+  by_cases h0 : x.Kind' = W64 0
+  · simp only [h0, ↓reduceIte]
+    exact ansFrom_outOf _ _ _ _ (respFrom_create _ _ _)
+  by_cases h1 : x.Kind' = W64 1
+  · simp only [h0, h1, ↓reduceIte]
+    exact ansFrom_outOf _ _ _ _ (respFrom_delete _ _ _ _)
+  by_cases h2 : x.Kind' = W64 2
+  · simp only [h0, h1, h2, ↓reduceIte]
+    exact ansFrom_outOf _ _ _ _ (respFrom_update _ _ _ _ _ _)
+  simp only [h0, h1, h2, ↓reduceIte]
+  exact ansFrom_outOf _ _ _ _ (respFrom_get _ _ _ _)
+
+/-- **A `Get` answers other than `EOther` only at its minimum resource version** (D5): below it,
+the model answers "too large" (`EOther`). -/
+theorem kStep_min (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (hk : x.Kind' = W64 3)
+    (h : (kStep eD eU x ks).2.Err' ≠ W64 4) : uint.nat (minOf x) ≤ ks.rv := by
+  have h0 : ¬ x.Kind' = W64 0 := by rw [hk]; decide
+  have h1 : ¬ x.Kind' = W64 1 := by rw [hk]; decide
+  have h2 : ¬ x.Kind' = W64 2 := by rw [hk]; decide
+  by_cases hm : uint.nat (minOf x) ≤ ks.rv
+  · exact hm
+  exfalso
+  apply h
+  simp only [kStep, h0, h1, h2, ↓reduceIte, KSt.get]
+  rw [if_pos (by omega)]
+  rfl
+
+/-- **The driver's model answers `EOther` only to a `Get`** (a minimum resource version above the
+store's, stage 7b): a write's outputs are objects, "not found", "key exists", "invalid object" or
+a rejection. -/
+theorem mstepL_err (x : Input) (g : GSt)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) : (mstepL x g).2.Err' ≠ W64 4 := by
+  unfold mstepL mcreateL mdeleteL mupdateL
+  rcases hk with h | h | h <;> simp only [h, objOutL, existsL, notFoundL, rejectedL, invalidObjL]
+  all_goals (repeat' split) <;> simp_all
+
+/-- A write's model answer, as porcupine's model decodes its output. -/
+theorem ansOf_mstepL (x : Input) (g : GSt)
+    (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) :
+    ansOf (mstepL x g).2 = .ok (mstepL x g).2 := by
   unfold ansOf
-  rw [if_neg (mstepL_err x g)]
+  rw [if_neg (mstepL_err x g hk)]
 
 /-- The pending writes (in some order). -/
 def pendIns (M : GMap Nat Input) : List Input := M.toList.map Prod.snd
@@ -249,6 +389,68 @@ theorem kOk_pend {S : linkv.PSet GSt Input} {σ σ' : KVState} {M : GMap Nat Inp
 theorem kOk_same {S : linkv.PSet GSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
     (H : KOk c g0 S σ M nx) : KOk c g0 S σ M nx := H
 
+open Classical in
+/-- **A step of etcd's state that changes the store's items at one key `K` at most changes one key
+under the prefix** (at the next revision): a new key-value is at the new revision, which no item
+of `σ` has, and a deleted key under the prefix had an item. -/
+theorem chgOf_pfx_one (σ σ' : KVState) (hn : KvNext σ σ') (hrv : σ'.rev = σ.rev + 1)
+    (hw : kvWf c σ) (hw' : kvWf c σ') (K : GoString)
+    (hK : ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    (((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1 := by
+  have hnew : ∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int) := by
+    rcases hn with he | ⟨-, h⟩
+    · intro v hv; left; rw [← he]; exact hv
+    · exact h
+  have hR : uint.nat (W64 ((σ'.rev : Nat) : Int)) = σ'.rev := by
+    have := hw'.2.2.2
+    simp only [linkv.absSt] at this
+    simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+  have hall : ∀ a ∈ ((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k)), a = K := by
+    intro a ha
+    simp only [List.mem_filter, List.mem_map, decide_eq_true_eq] at ha
+    obtain ⟨⟨⟨a', x⟩, hax, rfl⟩, hpa⟩ := ha
+    simp only at hpa ⊢
+    by_cases hne : a' = K
+    · exact hne
+    exfalso
+    have he := hK a' hne
+    rcases chgOf_keys σ σ' a' x hax with ⟨v, hv, hv0, rfl⟩ | ⟨⟨v, hv, rfl⟩, hd⟩
+    · have hf' := txn.findKey_of_mem_sorted hw'.1 hv
+      obtain ⟨o, b, hob⟩ := c.dec_of_wf σ' hw' v.key hpa v hf'
+      rw [c.abs_some σ' v.key hpa v hf' o b hob] at he
+      have hm : v.modRev = W64 ((σ'.rev : Nat) : Int) := (hnew v hv).resolve_left hv0
+      cases hf : mvcc.findKey v.key σ.kvs with
+      | none => rw [c.abs_none σ _ hf] at he; cases he
+      | some w =>
+        obtain ⟨o', b', hob'⟩ := c.dec_of_wf σ hw v.key hpa w hf
+        rw [c.abs_some σ v.key hpa w hf o' b' hob'] at he
+        have hrw : uint.nat v.modRev = uint.nat w.modRev := by
+          have := congrArg KItem.rv (Option.some.inj he)
+          simpa using this
+        have hle := (hw.2.2.1 v.key (linkv.absVR w)
+          (by simp [linkv.absSt, linkv.absM, hf])).2
+        simp only [linkv.absVR, linkv.absSt] at hle
+        rw [hm, hR] at hrw
+        omega
+    · have hf' : mvcc.findKey v.key σ'.kvs = none := by
+        unfold mvcc.findKey
+        exact List.find?_eq_none.2 (fun w hw => by simpa using hd w hw)
+      rw [c.abs_none σ' _ hf'] at he
+      have hf := txn.findKey_of_mem_sorted hw.1 hv
+      obtain ⟨o, b, hob⟩ := c.dec_of_wf σ hw v.key hpa v hf
+      rw [c.abs_some σ v.key hpa v hf o b hob] at he
+      cases he
+  have hnd : (((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k))).Nodup :=
+    (chgOf_nodup σ σ' hw.1 hw'.1).sublist List.filter_sublist
+  generalize ((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k)) = L at hall hnd ⊢
+  match L, hall, hnd with
+  | [], _, _ => simp
+  | [_], _, _ => simp
+  | a :: b :: _, hall, hnd =>
+    have ha := hall a (by simp)
+    have hb := hall b (by simp)
+    exact absurd (ha.trans hb.symm) ((List.pairwise_cons.1 hnd).1 b (by simp))
+
 end rel
 
 /-! ## The ghost state and the invariant -/
@@ -369,16 +571,33 @@ def revOwn (γ : KNames) (σ : KVState) : IProp GF :=
 instance revOwn_timeless (γ : KNames) (σ : KVState) : Timeless (revOwn (GF := GF) γ σ) := by
   unfold revOwn; infer_instance
 
+/-- **One key under the prefix per revision** (persistent; the cached objects' clause, `Cache.lean`):
+the history's entries at the revisions `1` to `n`, each changing at most one key under the store's
+prefix. -/
+def oneKeyRevs (c : StoreCfg GF DObj) (n : Nat) : IProp GF :=
+  iprop(□ ∀ r : Nat, ⌜1 ≤ r ∧ r ≤ n⌝ → ∃ ch : Changes,
+    ghostMapElem c.γh (W64 (r : Int)) DFrac.discard ch ∗
+      ⌜((ch.map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1⌝)
+
+instance oneKeyRevs_persistent (c : StoreCfg GF DObj) (n : Nat) :
+    Persistent (oneKeyRevs (GF := GF) c n) := by
+  unfold oneKeyRevs; infer_instance
+
+/-- **The store's history at etcd's state `σ`**: its authority (`histAuth`), every revision so
+far changing one key under the prefix at most (`oneKeyRevs`). -/
+def histOwn (c : StoreCfg GF DObj) (σ : KVState) : IProp GF :=
+  iprop(histAuth c.γh σ ∗ oneKeyRevs c σ.rev)
+
 /-- The invariant's contents (see the file header). -/
 def kInvBody (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) : IProp GF :=
   iprop(∃ (h : List OpV) (S : linkv.PSet GSt Input) (σ : KVState) (M : GMap Nat Input) (nx : Nat),
     ghostVar γ.h (1 : Qp).half h ∗ etcdKV γk σ ∗ ghostMapAuth γ.p 1 M ∗ revOwn γ σ ∗
-    histAuth c.γh σ ∗
+    histOwn c σ ∗
     ⌜run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S ∧ KOk c g0 S σ M nx⌝)
 
 instance kInvBody_timeless (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) :
     Timeless (kInvBody (GF := GF) γ c g0 γk) := by
-  unfold kInvBody; infer_instance
+  unfold kInvBody histOwn oneKeyRevs; infer_instance
 
 /-- **The instance's invariant**. -/
 def kInv (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) : IProp GF :=
@@ -409,6 +628,25 @@ instance rwCall_persistent (γ : KNames) (g0 : GSt) (γt : GName) (x : Input)
     (Φ : val → IProp GF) : Persistent (rwCall γ g0 γt x Φ) := by
   unfold rwCall; infer_instance
 
+/-- **A cached object** (`Cache.lean`): it fits a `DObj`, its resource version is not `0`,
+and every key held it at that resource version. -/
+def cachedObjOk (c : StoreCfg GF DObj) (ob : Obj) : IProp GF :=
+  iprop(⌜ob.Name'.length < 256 ∧ ob.UID'.length < 256 ∧ ob.ResourceVersion' ≠ W64 0⌝ ∗
+    □ ∀ k : GoString, ⌜c.pfx <+: k⌝ → versionAt c k ob.ResourceVersion' (dobjOf ob))
+
+instance cachedObjOk_persistent (c : StoreCfg GF DObj) (ob : Obj) :
+    Persistent (cachedObjOk (GF := GF) c ob) := by
+  unfold cachedObjOk; infer_instance
+
+/-- **An answer's cached object** (persistent): an object answer with a name (`Apply` caches it) is
+a cached object. -/
+def ansOk (c : StoreCfg GF DObj) (y : Output) : IProp GF :=
+  if y.Err' = W64 0 ∧ y.Name' ≠ [] then cachedObjOk c (cachedOf y) else iprop(True)
+
+instance ansOk_persistent (c : StoreCfg GF DObj) (y : Output) :
+    Persistent (ansOk (GF := GF) c y) := by
+  unfold ansOk; split <;> infer_instance
+
 /-- **A read's call invariant** (`Get`; see the file header): `lintest`'s update with a later
 credit and the commit bit `γc` at `none`, or, once committed at a state `σ`, `γc` read-only at
 `σ`, `σ` the state of its revision and that revision the one the client prophesied (`γp`, set
@@ -421,7 +659,8 @@ def getCall (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface
     (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
       dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
       ghostMapElem γ.r σ.rev DFrac.discard σ ∗
-      (contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∨ dghostVar γt (DFrac.own 1) ())))
+      ((contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∗ ansOk c (kStep eD eU x (c.abs σ)).2) ∨
+        dghostVar γt (DFrac.own 1) ())))
 
 instance getCall_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface)
     (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) :
@@ -429,13 +668,14 @@ instance getCall_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD 
   unfold getCall; infer_instance
 
 /-- **A read's result** at a firing at `σ`: the state is the store's, with room, and, at the
-prophesied revision `R`, the commit bit holds it. -/
-def readQ (c : StoreCfg GF DObj) (γc : GName) (R : w64) (σ : KVState) : IProp GF :=
+prophesied revision `R` and when it reaches the read's minimum resource version `n` (D5), the
+commit bit holds it. -/
+def readQ (c : StoreCfg GF DObj) (γc : GName) (n : Nat) (R : w64) (σ : KVState) : IProp GF :=
   iprop(⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗
-    (⌜σ.rev = uint.nat R⌝ → dghostVar γc DFrac.discard (some σ)))
+    (⌜σ.rev = uint.nat R ∧ n ≤ σ.rev⌝ → dghostVar γc DFrac.discard (some σ)))
 
-instance readQ_persistent (c : StoreCfg GF DObj) (γc : GName) (R : w64) (σ : KVState) :
-    Persistent (readQ c γc R σ) := by
+instance readQ_persistent (c : StoreCfg GF DObj) (γc : GName) (n : Nat) (R : w64)
+    (σ : KVState) : Persistent (readQ c γc n R σ) := by
   unfold readQ; infer_instance
 
 end defs

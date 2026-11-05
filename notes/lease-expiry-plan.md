@@ -1735,3 +1735,20 @@ How the proof goes:
   lacks the lease, so the range loop never panics.
 
 Bounds: +1 spec-thread, +2 spec-receipt (leaseexpiry's `Main`, as leasegrant's), in the baseline.
+
+## Freeze (2026-11-05) and its change log
+
+Frozen at `lease-expiry-frozen` (`ea7937b221`), approved by the user via etcd-grove-82. Changes to
+frozen or exported statements since:
+
+- **2026-11-05, merge of lean `53a8c33764` (post-merge change to an exported statement; approved by
+  the user via etcd-grove-82).** `etcd_leaseexpiry.BootFacts` is now `etcdstart.BootFacts`
+  (`OneMember.lean`), as leasegrant's and lease's are, which adds the field `urls : bootURLsOk
+  (LogEntry.toEntries bl 0)` (the boot members' peer URLs valid UTF-8 and pairwise disjoint) to the
+  hypotheses of `etcd_leaseexpiry_safe` and `leaseexpiry_Main`. Cause: lean's restart R2b-3d gap 3,
+  which made `etcdstart.alloc1` take the fact; it is not derivable from the other boot facts
+  (`BootLog` leaves the members' contexts, where the URLs are, arbitrary). No axiom or `sorry` added.
+- Not a change: the same merge's `srvRunFieldsAt` stop predicate `SP` (R2b-2). The frozen
+  `EtcdServer.revokeExpiredLeases.spec` already quantified over it; `run`'s proof now passes its own.
+- Merged beside it, not a change to a frozen statement: `NewServer.specG`'s post keeps the lease slot
+  (`lease.srvInv`, `leaseTTLRowR`) and restart's stop slot (`srvStop.keep`).
