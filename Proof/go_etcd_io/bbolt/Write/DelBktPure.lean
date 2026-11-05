@@ -9,8 +9,11 @@ U7o (`notes/bbolt-proof-plan.md`): **`DeleteBucket`'s records, pure** (the root 
 3. `child.free()`'s premises (`dbk_freePre`): the child's page tree in the view, its extents
    freeable;
 4. `c.node().del(newKey)` after `Cursor.node`'s materializations `matGrow X5 X6 X.rl`: the key is
-   in the leaf (`dbk_found`), and the records `X7` close `deleteOK0` (`dbk_post`; the cursor's
-   writer facts, `wrCurFacts`, are `DelBktWp`'s until maintainer 16's landing).
+   in the leaf (`dbk_found`), and the records `X7` close `deleteOK0` (`dbk_post`: the records'
+   facts by `Write/DelBktPost2.dbk_core`; open: `dbk_flView`, the freelist's agreement, and
+   `dbk_shape`, the page tokens; the cursor's writer facts, `wrCurFacts`, are `DelBktWp`'s).
+The proofs are in `Write/DelBktPlain`, `DelBktOpen`, `DelBktFound`, `DelBktFree`, `DelBktWOk`,
+`DelBktPost`, `DelBktPost2` (U7p).
 -/
 module
 
