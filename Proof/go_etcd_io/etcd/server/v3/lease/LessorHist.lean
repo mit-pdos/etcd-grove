@@ -304,6 +304,145 @@ theorem setsOk_delete {hs : List LSnap} {Sm : GMap Loc (GMap LeaseItem Unit)} {M
   · intro l' S0 hS0 _; left; exact hS0
   · exact hh.2.2 (M, I, T) (List.mem_of_getElem? hσ)
 
+/-! ### One lease per id, live over an interval (the lease-expiry plan's E3 (c), 2026-11-05)
+
+`histOnce` is kept by every writer's snapshot (`histOnce_snoc`): each lease of the new snapshot
+continues the last one's (same id, same `*Lease`: `Revoke`, `Attach`, `Detach`, and `Grant`'s other
+leases) or is of an id the history never had (`Grant`'s new lease, `Recover`'s). Its two laws: an id
+absent after being live stays absent (`histOnce_absent`), and it is one lease throughout
+(`histOnce_lease`). -/
+
+/-- An id of a history appended to: of the history, or of the new snapshot. -/
+theorem everIn_snoc {hs : List LSnap} {σ' : LSnap} {id : w64} :
+    everIn (hs ++ [σ']) id ↔ everIn hs id ∨ (σ'.1.lookup id).isSome := by
+  constructor
+  · rintro ⟨i, σ, hi, h⟩
+    rcases getElem?_snoc_cases hs σ' σ i hi with ⟨_, hi⟩ | ⟨_, hσ⟩
+    · exact Or.inl ⟨i, σ, hi, h⟩
+    · rw [hσ] at h; exact Or.inr h
+  · rintro (⟨i, σ, hi, h⟩ | h)
+    · exact ⟨i, σ, by rw [getElem?_snoc_lt hs σ' (List.getElem?_eq_some_iff.1 hi).1]; exact hi, h⟩
+    · exact ⟨hs.length, σ', getElem?_snoc_len hs σ', h⟩
+
+/-- A one-snapshot history. -/
+theorem histOnce_single (σ : LSnap) : histOnce [σ] := by
+  intro i j k a b c id l l' hij hjk hi hj hk hl _
+  have hk0 : k = 0 := by
+    rcases k with _ | k
+    · rfl
+    · simp at hk
+  have hi0 : i = 0 := by omega
+  have hj0 : j = 0 := by omega
+  rw [hi0] at hi; rw [hj0] at hj
+  simp only [List.getElem?_cons_zero, Option.some.injEq] at hi hj
+  rw [← hj, hi]; exact hl
+
+/-- **Appending a snapshot keeps each id one lease over an interval** when every lease of the new
+snapshot continues the last snapshot's (same id, same `*Lease`) or is of an id the history never
+had. -/
+theorem histOnce_snoc {hs : List LSnap} {τ σ' : LSnap} (hlast : hs.getLast? = some τ)
+    (hnew : ∀ (id : w64) (l : Loc), σ'.1.lookup id = some l →
+      τ.1.lookup id = some l ∨ ¬ everIn hs id)
+    (h : histOnce hs) : histOnce (hs ++ [σ']) := by
+  have ⟨hτ, hpos⟩ := getLast?_getElem? hlast
+  intro i j k σ υ ρ id l l' hij hjk hi hj hk hl hl'
+  rcases getElem?_snoc_cases hs σ' ρ k hk with ⟨hkl, hk'⟩ | ⟨hke, hρ⟩
+  · -- all three in `hs`
+    have hjl : j < hs.length := by omega
+    have hil : i < hs.length := by omega
+    rw [getElem?_snoc_lt hs σ' hil] at hi
+    rw [getElem?_snoc_lt hs σ' hjl] at hj
+    exact h i j k σ υ ρ id l l' hij hjk hi hj hk' hl hl'
+  · rw [hρ] at hl'
+    rcases getElem?_snoc_cases hs σ' σ i hi with ⟨hil, hi'⟩ | ⟨hie, hσ⟩
+    · -- `id` was live in `hs`: the new lease continues the last one, which is the one at `i`
+      have hev : everIn hs id := ⟨i, σ, hi', by rw [hl]; rfl⟩
+      have hτl' : τ.1.lookup id = some l' := by
+        rcases hnew id l' hl' with h' | h'
+        · exact h'
+        · exact absurd hev h'
+      have hτl : τ.1.lookup id = some l :=
+        h i (hs.length - 1) (hs.length - 1) σ τ τ id l l' (by omega) (Nat.le_refl _) hi' hτ hτ hl
+          hτl'
+      have heq : l = l' := by rw [hτl] at hτl'; exact Option.some.inj hτl'
+      rcases getElem?_snoc_cases hs σ' υ j hj with ⟨hjl, hj'⟩ | ⟨hje, hυ⟩
+      · exact h i j (hs.length - 1) σ υ τ id l l' hij (by omega) hi' hj' hτ hl hτl'
+      · rw [hυ, heq]; exact hl'
+    · -- `i` the new index, so is `j`
+      rw [hσ] at hl
+      rw [show j = hs.length by omega, getElem?_snoc_len] at hj
+      rw [← Option.some.inj hj]; exact hl
+
+/-- **In a monotone history an id not live at the end was never live** (the monotone mode's
+`Grant`: an id not live is new). -/
+theorem not_everIn_of_mono {hs : List LSnap} {τ : LSnap} {id : w64}
+    (hlast : hs.getLast? = some τ) (hm : histMono hs) (hn : τ.1.lookup id = none) :
+    ¬ everIn hs id := by
+  have ⟨hτ, _⟩ := getLast?_getElem? hlast
+  rintro ⟨i, σ, hi, h⟩
+  have hil : i < hs.length := (List.getElem?_eq_some_iff.1 hi).1
+  have := hm i (hs.length - 1) σ τ id (by omega) hi hτ h
+  rw [hn] at this; simp at this
+
+/-- **`Grant`'s snapshot**: a new lease of an id the history never had. -/
+theorem histOnce_grant {hs : List LSnap} {M : GMap w64 Loc} {I I' : GMap LeaseItem w64}
+    {T T' : GMap w64 w64} {id : w64} {l : Loc}
+    (hlast : hs.getLast? = some (M, I, T)) (hfresh : ¬ everIn hs id) (h : histOnce hs) :
+    histOnce (hs ++ [(M.insert id l, I', T')]) := by
+  apply histOnce_snoc hlast _ h
+  intro x l' hx
+  dsimp only at hx ⊢
+  by_cases hxi : id = x
+  · rw [← hxi]; right; exact hfresh
+  · left; rw [GMap.lookup_insert_ne _ _ hxi] at hx; exact hx
+
+/-- **`Revoke`'s snapshot**: a lease removed. -/
+theorem histOnce_delete {hs : List LSnap} {M : GMap w64 Loc} {I I' : GMap LeaseItem w64}
+    {T T' : GMap w64 w64} {id : w64}
+    (hlast : hs.getLast? = some (M, I, T)) (h : histOnce hs) :
+    histOnce (hs ++ [(M.delete id, I', T')]) := by
+  apply histOnce_snoc hlast _ h
+  intro x l' hx
+  left
+  dsimp only at hx ⊢
+  by_cases hxi : id = x
+  · rw [← hxi, GMap.lookup_delete] at hx; cases hx
+  · rw [GMap.lookup_delete_ne M hxi] at hx; exact hx
+
+/-- **`Attach`'s and `Detach`'s snapshot**: the lease map kept. -/
+theorem histOnce_items {hs : List LSnap} {M : GMap w64 Loc} {I I' : GMap LeaseItem w64}
+    {T T' : GMap w64 w64} (hlast : hs.getLast? = some (M, I, T)) (h : histOnce hs) :
+    histOnce (hs ++ [(M, I', T')]) :=
+  histOnce_snoc hlast (fun _ _ hx => Or.inl hx) h
+
+/-- **A snapshot of ids the history never had** (`Recover`'s). -/
+theorem histOnce_fresh {hs : List LSnap} {τ σ' : LSnap} (hlast : hs.getLast? = some τ)
+    (hfresh : ∀ id : w64, (σ'.1.lookup id).isSome → ¬ everIn hs id) (h : histOnce hs) :
+    histOnce (hs ++ [σ']) :=
+  histOnce_snoc hlast (fun id _ hx => Or.inr (hfresh id (by rw [hx]; rfl))) h
+
+/-- **An id absent after being live stays absent** (E3 (c)'s first law, pure). -/
+theorem histOnce_absent {hs : List LSnap} (h : histOnce hs) {i k j : Nat} {σ ρ τ : LSnap}
+    {id : w64} {l : Loc} (hik : i ≤ k) (hkj : k ≤ j) (hi : hs[i]? = some σ)
+    (hl : σ.1.lookup id = some l) (hk : hs[k]? = some ρ) (hρ : ρ.1.lookup id = none)
+    (hj : hs[j]? = some τ) : τ.1.lookup id = none := by
+  cases hτ : τ.1.lookup id with
+  | none => rfl
+  | some l' =>
+    have := h i k j σ ρ τ id l l' hik hkj hi hk hj hl hτ
+    rw [hρ] at this; cases this
+
+/-- **An id is one lease throughout the history** (E3 (c)'s second law, pure: so its TTL, its
+lease's read-only `ttl` field, is one, `ttlTie`). -/
+theorem histOnce_lease {hs : List LSnap} (h : histOnce hs) {i j : Nat} {σ τ : LSnap} {id : w64}
+    {l l' : Loc} (hi : hs[i]? = some σ) (hl : σ.1.lookup id = some l) (hj : hs[j]? = some τ)
+    (hl' : τ.1.lookup id = some l') : l = l' := by
+  rcases Nat.le_total i j with hij | hji
+  · have := h i j j σ τ τ id l l' hij (Nat.le_refl j) hi hj hj hl hl'
+    rw [hl'] at this; exact (Option.some.inj this).symm
+  · have := h j i i τ σ σ id l' l hji (Nat.le_refl i) hj hi hi hl' hl
+    rw [hl] at this; exact Option.some.inj this
+
 end hist
 
 end lease

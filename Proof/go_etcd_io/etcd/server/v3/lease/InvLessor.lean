@@ -317,6 +317,20 @@ def histMono (hs : List LSnap) : Prop :=
   ∀ (i j : Nat) (σ τ : LSnap) (id : w64), i ≤ j → hs[i]? = some σ → hs[j]? = some τ →
     (σ.1.lookup id).isSome → (τ.1.lookup id).isSome
 
+/-- **`id` is live at some index of the history** (the lease-expiry plan's E3 (c), 2026-11-05): an
+id the lessor ever had. -/
+def everIn (hs : List LSnap) (id : w64) : Prop :=
+  ∃ (i : Nat) (σ : LSnap), hs[i]? = some σ ∧ (σ.1.lookup id).isSome
+
+/-- **Each id is one lease, live over an interval of the history** (E3 (c)): an id live at `i`
+(lease `l`) and at `k ≥ i` is live at every index between, with the lease `l` (at `j = k`: the
+same `*Lease`). What `Grant` keeps by granting only an id the history never had (or, monotone, one
+not live: `histMono`), `Revoke` by removing, `Attach`/`Detach` by keeping the lease map. -/
+def histOnce (hs : List LSnap) : Prop :=
+  ∀ (i j k : Nat) (σ τ ρ : LSnap) (id : w64) (l l' : Loc), i ≤ j → j ≤ k →
+    hs[i]? = some σ → hs[j]? = some τ → hs[k]? = some ρ →
+    σ.1.lookup id = some l → ρ.1.lookup id = some l' → τ.1.lookup id = some l
+
 def lessorRdN : Namespace := nroot .@ "lessor_rd"
 
 /-- **The snapshot `σ`'s TTLs are its leases' `ttl` fields** (the lease-expiry plan's R5,
