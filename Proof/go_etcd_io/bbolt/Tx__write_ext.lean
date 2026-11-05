@@ -2,14 +2,16 @@
 The proof of `Spec/go_etcd_io/bbolt/Tx__write_ext.lean` (maintainer 12, item 3 of
 `notes/bbolt-proof-plan.md`): when every dirty page lies inside the file, `Tx.write.wp_proof` (the
 page slots carved out of `wrSlotsSz` as `wrSlots`, `wrSlotsSz_in`; the tail untouched, the file's
-size unchanged; the new bytes `wbUpd` of the page slots). **OPEN**: the case of a page past the
-file's end (`WriteAt` extending the file, the zero gap's cells from the tail `T`): a unit's work,
-the loop of `Tx__write.lean` over the current size.
+size unchanged; the new bytes `wbUpd` of the page slots). The case of a page past the file's end
+(`WriteAt` extending the file, the zero gap's cells from the waiting slots) is
+`Commit/WriteExtRun.Tx.write_ext_gen` (U10w), under a premise the spec lacks (a slot across the old
+end holds its part inside the file); without it, a named `sorry` (`write_ext_straddle`).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Tx__write_ext
 public import Proof.go_etcd_io.bbolt.Tx__write
+public import Proof.go_etcd_io.bbolt.Commit.WriteExtRun
 
 @[expose] public section
 
@@ -67,8 +69,19 @@ theorem Tx.write_ext.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   by_cases hin : ∀ id pg, bufs !! id = some pg →
     4096 * (id.toNat + (1 + pageOverflow pg)) ≤ om.size
   case neg =>
-    -- OPEN (maintainer 12, item 3): a dirty page past the file's end (`NoGrowSync`).
-    sorry
+    -- a dirty page past the file's end (`NoGrowSync`): `Commit/WriteExtRun.Tx.write_ext_gen`, under
+    -- `hstr` (a target slot across the old end holds at least its part inside the file)
+    by_cases hstr : ∀ s ∈ bufSlots bufs ++ T, 4096 * s < om.size →
+      om.size ≤ 4096 * s + (wb s).length
+    · exact Tx.write_ext_gen hLogger hSort hOv hId hUBS hWriteAt hSync hInc K tx r sm q dq pml pm
+        bufs T wb f fd om b l dqf dqw hdom hok hsz hl hmaps hnd hT htail hwb hstr
+    · -- OPEN, `write_ext_straddle` (U10w): the spec is false here. A slot `s` of `bufSlots ++ T`
+      -- across the old end (`4096 s < om.size < 4096 (s + 1)`) with `(wb s).length < om.size -
+      -- 4096 s` owns, by `wBytes`, only `(wb s).length` of its bytes inside the file; the rest of
+      -- them is owned by no resource of the pre, but the post (the slot whole inside the grown
+      -- file, or the page's own `WriteAt`) needs them. Fix (for the spec's owner): the premise
+      -- `∀ s ∈ bufSlots bufs ++ T, 4096 * s < om.size → (wb s).length = 4096` (or this `hstr`).
+      sorry
   have hok' : bufsOK bufs (min om.size l / 4096) := by
     intro id pg hb
     obtain ⟨h1, h2, h3, h4⟩ := hok id pg hb
