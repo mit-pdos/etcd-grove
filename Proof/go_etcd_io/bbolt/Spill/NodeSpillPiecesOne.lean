@@ -450,7 +450,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
         (pcPage id ra.nv.isLeaf' ra.ws (pcCount (insSize rl.ins)))).t.t = X2.t.t := by
       unfold WX.setBuf WX.setNode; split <;> rfl
     rw [hvw]
-    have hbtx : B2.bv.tx' = tx := Hok2.2.2.1 bl B2 hB2
+    have hbtx : B2.bv.tx' = tx := (Hok2.2.2.1 bl B2 hB2).1
     icases objOwn_bkt_tx_acc _ bl _ _ $$ Hbo with ⟨%dqb, Hbtx, Hbo⟩
     unfold txFields
     rw [hmv, htt]
@@ -593,7 +593,7 @@ theorem pieceOne_wp (hAlloc : Tx.allocate.spec (GF := GF) (hG := hG))
       %(fun x => if x = l then pcRec ra id true else pcPar rpa ra id s ins2) [] [Hlo Hpo] [Hbo]
       [Hf1 Hf2 Hf3 Hf4 Hf5 Hf6 Hf7 Hf8 Hbufs] [Hrf]
     · ipureintro
-      refine ⟨?_, ?_, hbtx, ?_⟩
+      refine ⟨?_, ?_, ⟨hbtx, rfl⟩, ?_⟩
       · intro x hx
         simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
         rcases hx with rfl | rfl

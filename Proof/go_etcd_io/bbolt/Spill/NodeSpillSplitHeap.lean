@@ -189,7 +189,7 @@ theorem wtxHeap_splitX (tx : Loc) (X : WX) (bl : Loc) (B : BRec) (Ls : List Loc)
     intro p hp; simp only [f']; rw [nsIns_in _ _ hndO p hp]; rfl
   ihave H1 := Hback $$ %B1 %f' [] [HO] [Hb] [Hf] [Hrf]
   · ipureintro
-    refine ⟨?_, ?_, rfl, ?_⟩
+    refine ⟨?_, ?_, ⟨rfl, rfl⟩, ?_⟩
     · intro l hl
       rw [← hL] at hl
       obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hl

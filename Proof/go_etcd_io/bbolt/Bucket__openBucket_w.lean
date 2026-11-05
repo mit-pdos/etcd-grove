@@ -54,6 +54,8 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
   wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := Loc)) as %bm Hbm
   wp_apply (wp_map_make1 (K := w64) (V := Loc)) as %nm Hnm
+  ihave %Hnmn := ownMap_not_nil _ _ _ $$ Hnm
+  have Hnmn' : nm ≠ null := Hnmn
   try wp_auto
   ihave Hw := Hwrb $$ Hwr
   rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z value.len from
@@ -118,14 +120,14 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
         iframe Hw
         isplitl [HIB tx buckets page rootNode nodes Hib Hbm Hnm]
         · simp only [objOwn, pageOwn]
-          rw [if_neg hrt, if_pos trivial]
+          rw [if_neg hrt, if_pos trivial, nodesOwn_ne _ _ _ Hnmn']
           iframe; iframe #
           ipureintro; exact Hil
         isplitl [FillPercent]
         · iexists _; iframe; ipureintro; decide
         ipureintro
         exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => ⟨hpp, rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩,
-          fun h => absurd hi h⟩
+          fun h => absurd hi h, Hnmn'⟩
       | own d =>
         ihave #Hil := src_inl_own X.v value d cv h16 $$ Hv
         imodintro
@@ -135,13 +137,13 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
         iframe Hw
         isplitl [HIB tx buckets page rootNode nodes Hib Hbm Hnm]
         · simp only [objOwn, pageOwn]
-          rw [if_neg hrt, if_pos trivial, if_neg hpp]
+          rw [if_neg hrt, if_pos trivial, if_neg hpp, nodesOwn_ne _ _ _ Hnmn']
           iframe; iframe #
         isplitl [FillPercent]
         · iexists _; iframe; ipureintro; decide
         ipureintro
         exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => ⟨hpp, rfl, Or.inr ⟨rfl, rfl⟩⟩,
-          fun h => absurd hi h⟩
+          fun h => absurd hi h, Hnmn'⟩
     · rw [decide_eq_false hr0]
       have hi : inBucketRoot cv ≠ 0 := by
         rw [hroot]; intro h; apply hr0; apply BitVec.eq_of_toNat_eq; simpa using h
@@ -154,12 +156,12 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       iframe Hw
       isplitl [HIB tx buckets page rootNode nodes Hib Hbm Hnm]
       · simp only [objOwn, pageOwn]
-        rw [if_neg hrt, if_pos trivial, if_pos trivial]
+        rw [if_neg hrt, if_pos trivial, if_pos trivial, nodesOwn_ne _ _ _ Hnmn']
         iframe; iframe #
       isplitl [FillPercent]
       · iexists _; iframe; ipureintro; decide
       ipureintro
-      exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun h => absurd h hi, fun _ => ⟨rfl, rfl⟩⟩
+      exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun h => absurd h hi, fun _ => ⟨rfl, rfl⟩, Hnmn'⟩
   · rw [decide_eq_false hal]
     wp_auto
     icases wtxW_cells_acc K tx r m X $$ Hw with ⟨-, Hc, Hwb⟩
@@ -232,7 +234,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       iframe Hw
       isplitl [InBucket tx buckets page rootNode nodes Hib Hbm Hnm]
       · simp only [objOwn, pageOwn]
-        rw [if_neg hrt, if_pos trivial, if_neg hpp]
+        rw [if_neg hrt, if_pos trivial, if_neg hpp, nodesOwn_ne _ _ _ Hnmn']
         iframe; iframe #
         unfold inlinePage bucketHeaderSize
         iexact Hil
@@ -240,7 +242,7 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       · iexists _; iframe; ipureintro; decide
       ipureintro
       exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => ⟨hpp, rfl, Or.inr ⟨rfl, rfl⟩⟩,
-        fun h => absurd hi h⟩
+        fun h => absurd hi h, Hnmn'⟩
     · rw [decide_eq_false hr0]
       have hi : inBucketRoot cv ≠ 0 := by
         rw [hroot]; intro h; apply hr0; apply BitVec.eq_of_toNat_eq; simpa using h
@@ -253,12 +255,12 @@ theorem Bucket.openBucket_w.wp_proof (hcl : cloneBytes.spec (GF := GF) (hG := hG
       iframe Hw
       isplitl [InBucket tx buckets page rootNode nodes Hib Hbm Hnm]
       · simp only [objOwn, pageOwn]
-        rw [if_neg hrt, if_pos trivial, if_pos trivial]
+        rw [if_neg hrt, if_pos trivial, if_pos trivial, nodesOwn_ne _ _ _ Hnmn']
         iframe; iframe #
       isplitl [FillPercent]
       · iexists _; iframe; ipureintro; decide
       ipureintro
-      exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun h => absurd h hi, fun _ => ⟨rfl, rfl⟩⟩
+      exact ⟨Hcn, rfl, rfl, rfl, rfl, rfl, rfl, fun h => absurd h hi, fun _ => ⟨rfl, rfl⟩, Hnmn'⟩
 
 end proof
 

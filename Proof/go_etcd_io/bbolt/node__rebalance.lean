@@ -186,7 +186,7 @@ theorem rebal_loeb
     iframe
   ihave Hh := Hback $$ Hn
   have hnc := (hI.2.1 bl B hb).1.1.2.2.2.2.2.2.2.1 n rn hrn
-  have hbtx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have hbtx : B.bv.tx' = tx := (Hok.2.2.1 bl B hb).1
   icases wtxHeap_setNode_acc tx (DFrac.own 1) X bl B n rn hb hrn $$ Hh
     with ⟨Hno, Hbo, Htf, Hrf, Hback⟩
   rw [decide_eq_true hnl, decide_eq_true hbll]
@@ -490,6 +490,7 @@ theorem rebal_loeb
         with ⟨Hl, Hlins, Hlcap, Hlws, Hlch, Hlchcap, Hlkey⟩
       icases (objOwn_bkt_unf _ _ _ _ _).1 $$ Hbo
         with ⟨Hb1, Hbtx, Hb3, Hb4, Hb5, Hbnodes, Hib, Hnm, Hbm, Hpgo⟩
+      isimp only [nodesOwn_ne _ _ _ (Hok2.2.2.1 bl B2 hb2).2] at Hnm
       ihave %Hlwf := ownSlice_wf _ _ _ $$ Hlins
       icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn4⟩
       icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hlnn⟩
@@ -632,7 +633,7 @@ theorem rebal_loeb
             pgidC parentC childrenC inodesC]
           [Hb1 Hbtx Hb3 Hb4 Hb5 Hbnodes Hib Hnm Hbm Hpgo] [Htf] [Hrf]
         · ipureintro
-          refine ⟨hcl1, hcl2, rfl, hcl3, fun k hk => hlv k (fun h => hk (by simp [h]))⟩
+          refine ⟨hcl1, hcl2, ⟨rfl, rfl⟩, hcl3, fun k hk => hlv k (fun h => hk (by simp [h]))⟩
         · iapply (BigSepL.bigSepL_append).2
           isplitr [Hks]
           · iapply BigSepL.bigSepL_cons.2
@@ -659,7 +660,8 @@ theorem rebal_loeb
               iframe
             iapply BigSepL.bigSepL_nil.2; iempintro
           · iexact Hks
-        · iapply (objOwn_bkt_unf _ _ _ _ _).2
+        · ihave Hnm := nodesOwn_of_map _ _ _ $$ Hnm
+          iapply (objOwn_bkt_unf _ _ _ _ _).2
           iframe
         · iframe
         · iframe
@@ -850,6 +852,7 @@ theorem rebal_loeb
       icases Hkey with #Hkey
       icases (objOwn_bkt_unf _ _ _ _ _).1 $$ Hbo
         with ⟨Hb1, Hbtx, Hb3, Hb4, Hb5, Hbnodes, Hib, Hnm, Hbm, Hpgo⟩
+      isimp only [nodesOwn_ne _ _ _ (Hok1.2.2.1 bl _ hb1).2] at Hnm
       icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn2⟩
       iStructNamed Hn
       wp_auto
@@ -890,7 +893,7 @@ theorem rebal_loeb
         [] [Hn Hins Hcap Hws Hch Hchcap Hp Hpins Hpcap Hpws Hpch Hpchcap Hpkey]
         [Hb1 Hbtx Hb3 Hb4 Hb5 Hbnodes Hib Hnm Hbm Hpgo] [Htf] [Hrf]
       · ipureintro
-        refine ⟨?_, ?_, rfl, ?_⟩
+        refine ⟨?_, ?_, ⟨rfl, rfl⟩, ?_⟩
         · intro l hl
           simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
           rcases hl with rfl | rfl
@@ -941,7 +944,8 @@ theorem rebal_loeb
           · iexact Hpchcap
           iexact Hpkey
         iapply BigSepL.bigSepL_nil.2; iempintro
-      · iapply (objOwn_bkt_unf _ _ _ _ _).2
+      · ihave Hnm := nodesOwn_of_map _ _ _ $$ Hnm
+        iapply (objOwn_bkt_unf _ _ _ _ _).2
         iframe
         simp only [ite_true, eq_self_iff_true, if_true]
         rw [pageOwn_congr' _ (rblStart B n rn) B2 rfl rfl rfl rfl]
@@ -1151,7 +1155,7 @@ theorem rebal_loeb
       ihave Hh := Hback $$ %(rblStart B n rn) %(fun l => if l = n then rblClear rn else rp) []
         [Hn Hins Hcap Hws Hch Hchcap Hpo] [Hbo] [Htf] [Hrf]
       · ipureintro
-        refine ⟨hfLs, fun _ _ => rfl, rfl, ?_⟩
+        refine ⟨hfLs, fun _ _ => rfl, ⟨rfl, rfl⟩, ?_⟩
         intro l hl
         simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hl
         rcases hl with rfl | rfl
@@ -1343,6 +1347,7 @@ theorem rebal_loeb
         with ⟨Hrr, Hrins, Hrcap, Hrws, Hrch, Hrchcap, Hrkey⟩
       icases (objOwn_bkt_unf _ _ _ _ _).1 $$ Hbo
         with ⟨Hb1, Hbtx, Hb3, Hb4, Hb5, Hbnodes, Hib, Hnm, Hbm, Hpgo⟩
+      isimp only [nodesOwn_ne _ _ _ (Hok2.2.2.1 bl B2 hb2).2] at Hnm
       icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hlnn⟩
       icases typedPointsto_not_null_dup _ _ _ $$ Hrr with ⟨Hrr, %Hrnn⟩
       iStructNamedSuffix Hl "L"
@@ -1565,7 +1570,7 @@ theorem rebal_loeb
             unbalancedR spilledR keyR pgidR parentR childrenR inodesR Hks]
           [Hb1 Hbtx Hb3 Hb4 Hb5 Hbnodes Hib Hnm Hbm Hpgo] [Htf] [Hrf]
       · ipureintro
-        exact ⟨hcl1, hcl2, rfl, hcl3, fun y hy => hlv y (fun h => hy (by simp [h]))⟩
+        exact ⟨hcl1, hcl2, ⟨rfl, rfl⟩, hcl3, fun y hy => hlv y (fun h => hy (by simp [h]))⟩
       · iapply (BigSepL.bigSepL_append).2
         isplitr [Hks]
         · iapply BigSepL.bigSepL_cons.2
@@ -1618,7 +1623,8 @@ theorem rebal_loeb
             iframe
           iapply BigSepL.bigSepL_nil.2; iempintro
         · iexact Hks
-      · iapply (objOwn_bkt_unf _ _ _ _ _).2
+      · ihave Hnm := nodesOwn_of_map _ _ _ $$ Hnm
+        iapply (objOwn_bkt_unf _ _ _ _ _).2
         iframe
         all_goals
           simp only [ite_true, eq_self_iff_true, if_true]

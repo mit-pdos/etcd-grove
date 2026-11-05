@@ -144,7 +144,7 @@ theorem Bucket.free.wp_proof (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG)
   icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
-  have hbtx : B.bv.tx' = tx := Hok.2.2.1 bl B hB
+  have hbtx : B.bv.tx' = tx := (Hok.2.2.1 bl B hB).1
   icases wtxW_bkt_acc K tx r m X bl B hB $$ Hw with ⟨Ho, Hwb⟩
   rw [decide_eq_true hlive]
   isimp only [objOwn] at Ho
@@ -356,7 +356,7 @@ theorem Bucket.free.wp_proof (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG)
   try wp_auto
   wp_apply hSRP $$ [Hib] as Hib
   · iframe
-  ihave Hh := Hhb $$ %({ B with ns := ns', ib := { B.ib with root' := W64 0 } } : BRec) %hbtx
+  ihave Hh := Hhb $$ %({ B with ns := ns', ib := { B.ib with root' := W64 0 } } : BRec) %(Hok.2.2.1 bl B hB)
     [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
   · simp only [objOwn]; iframe
   ihave Hw := Hwback $$ %_ [] Hh Hv Hst

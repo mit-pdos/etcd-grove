@@ -116,8 +116,8 @@ theorem wtxHeap_kill_node (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B B' : BR
       · intro c C' hc'
         rw [hT', hbs'] at hc'
         split at hc'
-        · rename_i h; subst h; cases hc'; exact ⟨B, hb, by rw [h1]⟩
-        · exact ⟨C', hc', rfl⟩
+        · rename_i h; subst h; cases hc'; exact ⟨B, hb, by rw [h1], by rw [h1]⟩
+        · exact ⟨C', hc', rfl, rfl⟩
       · intro c C' k rk hc' hk
         rw [hT', hbs'] at hc'
         split at hc'

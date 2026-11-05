@@ -197,7 +197,7 @@ theorem Bucket.Bucket_w.wp_proof
           icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hc0, Hwb⟩
           ihave Hw := Hwb $$ Hc0
           icases wtxW_heapOK' K tx r m X $$ Hw with ⟨Hw, %Hok⟩
-          have htxB : B.bv.tx' = tx := Hok.2.2.1 bl B hB
+          have htxB : B.bv.tx' = tx := (Hok.2.2.1 bl B hB).1
           wp_auto
           wp_apply hopen K tx r m X bl B vl w.vs w.value hB hwr hlv h16 hinl $$ [Hw]
             as %c ⟨%C, Hw, Hco, Hfill, %Hcr⟩
@@ -225,7 +225,7 @@ theorem Bucket.Bucket_w.wp_proof
           · iexact Hbm
           imod Hback $$ %nb %c %C %g Hbf Hcells Hbm Hco [Hfp] [] with ⟨Hw, #Hcf⟩
           · iexists f; iframe; ipureintro; exact Hnan
-          · ipureintro; exact ⟨Hbo, Hfr.1, hrec.2.1, hrec.2.2.2.2.2.1⟩
+          · ipureintro; exact ⟨Hbo, Hfr.1, hrec.2.1, hrec.2.2.2.2.2.1, hrec.2.2.2.2.2.2.2.2⟩
           wp_auto
           iapply HΦ
           iexists _
@@ -239,7 +239,7 @@ theorem Bucket.Bucket_w.wp_proof
             have := hfa w' hw' hk'
             rw [hw] at this; cases this; exact hw'
           have hrec' : openedRec B.bv.tx' w.value w.vs C := by rw [htxB]; exact hrec
-          obtain ⟨hib, htx, hrn, hnm, hbm', hns, hil, hni⟩ := hrec
+          obtain ⟨hib, htx, hrn, hnm, hbm', hns, hil, hni, -⟩ := hrec
           refine Or.inr ⟨hcn, Or.inr ⟨B, C, w, hB, hwa, hk.symm, hflag, hbmc, hcn,
             by rw [Hbo]; rfl, hib, by rw [htx, htxB], hrn, hnm, hbm', hns, ?_, hni, rfl⟩, ?_⟩
           · intro h0

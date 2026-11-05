@@ -170,7 +170,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     have Htodo := ksAt_todo Hks Hkey
     obtain ⟨C, HC, HcL, HCbm, Hcne, HcLoc, HcRt, HcEnts, HcNil, HcTree⟩ := rinv_todo HI Htodo Hc
     icases wtxW_heapOK' K tx r m X1 $$ Hw with ⟨Hw, %Hok1⟩
-    have Hctx : C.bv.tx' = tx := Hok1.2.2.1 c C HC
+    have Hctx : C.bv.tx' = tx := (Hok1.2.2.1 c C HC).1
     have Hcr : c ≠ C.bv.tx'.[Tx, go!"root"] := by
       rw [Hctx, show tx.[Tx, go!"root"] = X1.rl from Hok1.1.symm]; exact Hcne
     wp_auto
@@ -294,7 +294,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
         rinv_putPre HI2 Hmg Hp Hr HB3 Hlast Hres ⟨we, hwe, hwk⟩
       icases wtxW_open K tx r m X3 $$ Hw with ⟨-, -, -, Hh, Hv, Hst, Hclose⟩
       ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) X3 $$ Hh
-      have Htx3 : B3.bv.tx' = tx := Hok3.2.2.1 X.rl B3 HB3
+      have Htx3 : B3.bv.tx' = tx := (Hok3.2.2.1 X.rl B3 HB3).1
       have HlB3 : X.rl ∈ X3.liveB := HlocR'.1
       icases wtxHeap_setNode_acc tx (DFrac.own 1) X3 X.rl B3 l rl HB3 Hrl $$ Hh
         with ⟨Hno, Hbo, Hf, Hrf, Hback⟩
@@ -478,7 +478,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
             rinv_putPre HI2 Hmg Hp Hr HB3 Hlast Hres ⟨we, hwe, hwk⟩
           icases wtxW_open K tx r m X3 $$ Hw with ⟨-, -, -, Hh, Hv, Hst, Hclose⟩
           ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) X3 $$ Hh
-          have Htx3 : B3.bv.tx' = tx := Hok3.2.2.1 X.rl B3 HB3
+          have Htx3 : B3.bv.tx' = tx := (Hok3.2.2.1 X.rl B3 HB3).1
           have HlB3 : X.rl ∈ X3.liveB := HlocR'.1
           icases wtxHeap_setNode_acc tx (DFrac.own 1) X3 X.rl B3 l rl HB3 Hrl $$ Hh
             with ⟨Hno, Hbo, Hf, Hrf, Hback⟩
@@ -645,7 +645,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     obtain ⟨B3, HB3, Hrr⟩ := bk_node_of_bs Hrt
     rw [HB1] at HB3; cases HB3
     ihave %Hok2 := wtxHeap_heapOK tx (DFrac.own 1) X2 $$ Hh
-    have hbtx : B1.bv.tx' = tx := Hok2.2.2.1 X.rl B1 HB1
+    have hbtx : B1.bv.tx' = tx := (Hok2.2.2.1 X.rl B1 HB1).1
     icases wtxHeap_setBkt_acc tx (DFrac.own 1) X2 X.rl B1 [rt] (fun _ => rr) HB1 (nodup_one rt)
       (by intro l hl; rw [List.mem_singleton.1 hl]; exact Hrr) $$ Hh
       with ⟨⟨Hn, -⟩, Hbo, Hf, Hrf, Hback⟩

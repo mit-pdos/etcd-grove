@@ -101,6 +101,15 @@ theorem wtxW_buckets_fld (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl
   simp only [objOwn]
   iframe
 
+/-- A bucket of `bs` has a node cache that is not nil (`heapOK`'s third clause). -/
+theorem wtxW_bs_nodes_ne (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc)
+    (B : BRec) (hb : X.t.bs !! bl = some B) :
+    wtxW (GF := GF) K tx r m X ⊢ ⌜B.bv.nodes' ≠ null⌝ := by
+  unfold wtxW wtxCore
+  iintro ⟨⟨-, -, -, -, Hh, -⟩, -, -⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh
+  ipureintro; exact (Hok.2.2.1 bl B hb).2
+
 /-- A bucket's node cache, out and back. -/
 theorem wtxW_nm_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec)
     (hb : X.t.bs !! bl = some B) (p : Loc) (nm : GMap w64 Loc) (hp : B.bv.nodes' = p)
@@ -108,13 +117,16 @@ theorem wtxW_nm_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Lo
     wtxW (GF := GF) K tx r m X ⊢ p ↦$ nm ∗ (p ↦$ nm -∗ wtxW K tx r m X) := by
   subst hp hnm
   iintro Hw
+  ihave %Hnn := wtxW_bs_nodes_ne K tx r m X bl B hb $$ Hw
   icases wtxW_bkt_acc K tx r m X bl B hb $$ Hw with ⟨Ho, Hback⟩
   isimp only [objOwn] at Ho
   icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+  rw [nodesOwn_ne _ _ _ Hnn]
   iframe H8
   iintro H8
   iapply Hback
   simp only [objOwn]
+  rw [nodesOwn_ne _ _ _ Hnn]
   iframe
 
 /-- A bucket's bucket cache, out and back. -/

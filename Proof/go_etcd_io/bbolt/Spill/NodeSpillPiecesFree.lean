@@ -88,7 +88,7 @@ theorem pieceFree_wp (hTxid : internal.common.Meta.Txid.spec (GF := GF) (hG := h
   obtain ⟨hpm, htxid, pg, hpg, hlen, hid, hfl, hcan⟩ := hpre hp0
   icases wtxHeap_setNode_bkt tx (DFrac.own 1) X bl B n rn hb hr $$ Hh with ⟨Hno, Hbo, Hf, Hback⟩
   icases objOwn_node_pgid_upd X.v n (DFrac.own 1) _ bl rn $$ Hno with ⟨Hn, Hnback⟩
-  have hbtx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have hbtx : B.bv.tx' = tx := (Hok.2.2.1 bl B hb).1
   unfold objOwn
   icases Hbo with ⟨Hb1, Hbtx, Hbo⟩
   unfold txFields

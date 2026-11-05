@@ -72,7 +72,7 @@ theorem Bucket.pageNode_w.wp_proofQ (hpage : Tx.page.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · -- not materialized: the page, through `tx.page`
       have Hroot0 : ¬ B.ib.root' = W64 0 := by assumption
-      have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hB
+      have htx : B.bv.tx' = tx := (Hok.2.2.1 bl B hB).1
       have hnm : B.nm !! id = none := by
         cases hl : B.nm !! id with
         | none => rfl

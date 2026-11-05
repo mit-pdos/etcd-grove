@@ -67,7 +67,9 @@ facts on the view `v`) or dead. A bucket's `tx` field is persistent but the root
 its struct (U8 fix: `rebalance`'s root collapse gives the collapsed child's `inodes` and
 `children` to the root, so its slices are not its own; keeping its location an object keeps it
 out of the registry's fresh locations, `nlocOK`). A node owns its `inodes`' capacity unless it
-is a piece of `node.split` other than the last (`NRec.capOwn`, U9a fix). -/
+is a piece of `node.split` other than the last (`NRec.capOwn`, U9a fix). A bucket's node cache
+may be nil, with no nodes (maintainer 14, decided by the coordinator for U7j: `DeleteBucket`'s
+`child.nodes = nil`; `ownMap` is never at `nil`). -/
 def objOwn (v : View) (l : Loc) (dq : DFrac) : Bool → WObj → IProp GF
   | live, .bkt B => iprop(
       l.[Bucket, go!"InBucket"] ↦{dq} B.bv.InBucket' ∗
@@ -75,7 +77,9 @@ def objOwn (v : View) (l : Loc) (dq : DFrac) : Bool → WObj → IProp GF
        else l.[Bucket, go!"tx"] ↦□ B.bv.tx') ∗
       l.[Bucket, go!"buckets"] ↦{dq} B.bv.buckets' ∗ l.[Bucket, go!"page"] ↦{dq} B.bv.page' ∗
       l.[Bucket, go!"rootNode"] ↦{dq} B.bv.rootNode' ∗ l.[Bucket, go!"nodes"] ↦{dq} B.bv.nodes' ∗
-      B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗
+      B.bv.InBucket' ↦{dq} B.ib ∗
+      (if B.bv.nodes' = null then ⌜B.nm = ∅⌝ else B.bv.nodes' ↦${dq} B.nm) ∗
+      B.bv.buckets' ↦${dq} B.bm ∗
       (if live then pageOwn v B else emp))
   | true, .node _ r => iprop(
       l ↦{dq} r.nv ∗ r.nv.inodes' ↦*{dq} r.ins ∗
@@ -84,6 +88,11 @@ def objOwn (v : View) (l : Loc) (dq : DFrac) : Bool → WObj → IProp GF
       r.nv.children' ↦*{dq} r.cs ∗ ownSliceCap Loc r.nv.children' dq ∗
       (if true ∧ r.nv.key' ≠ slice.nil then srcOwn v r.nv.key' r.ksrc r.key else emp))
   | false, .node _ r => iprop(l ↦{dq} r.nv)
+
+/-- A bucket's node cache that is not nil is its map (`objOwn`'s nodes clause). -/
+theorem nodesOwn_ne (l : Loc) (dq : DFrac) (m : GMap w64 Loc) (h : l ≠ null) :
+    (if l = null then iprop(⌜m = ∅⌝) else l ↦${dq} m : IProp GF) = (l ↦${dq} m : IProp GF) := by
+  rw [if_neg h]
 
 /-- The transaction's fields but `db`, `stats` and `root`, its meta copy, and its page cache
 `pages` with the buffers. -/
@@ -108,10 +117,12 @@ node in at most one bucket (`objsDisj`), every bucket's `tx` field the transacti
 its own parent (`n.parent` and `n` are two objects: `nextSibling`, `prevSibling`) (U8 fixes),
 every registered node a node object (batch 8, moved from `nlocOK`: a fresh location is
 unregistered, for `Bucket.node`'s registry insert), and every bucket the root bucket or a
-handle's (batch 20 item 5: its `FillPercent` is `rootFill`'s or `fills`'). -/
+handle's (batch 20 item 5: its `FillPercent` is `rootFill`'s or `fills`'). A bucket of `bs` has a
+node cache that is not nil (maintainer 15, (A)): `objOwn` allows a nil one, for a dead bucket
+(`DeleteBucket` moves the child to `deadB` before `child.nodes = nil`). -/
 def heapOK (tx : Loc) (X : WX) : Prop :=
   X.rl = txRoot (GF := GF) tx ∧ objsDisj X.t ∧
-  (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx) ∧
+  (∀ bl B, X.t.bs !! bl = some B → B.bv.tx' = tx ∧ B.bv.nodes' ≠ null) ∧
   (∀ bl B n r, X.t.bs !! bl = some B → B.ns !! n = some r → r.nv.parent' ≠ n) ∧
   (∀ n y, X.nloc !! n = some y → (X.t.objs !! n).isSome) ∧
   (∀ bl B, X.t.bs !! bl = some B → bl = X.rl ∨ (X.handles !! bl).isSome)

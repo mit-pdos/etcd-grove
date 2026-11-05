@@ -414,7 +414,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
         unfold inlinePage bucketHeaderSize; simp
       omega
     icases wtxW_heapOK' K tx r true X $$ Hw with ⟨Hw, %Hok⟩
-    have htxB : R.bv.tx' = tx := Hok.2.2.1 X.rl R hR
+    have htxB : R.bv.tx' = tx := (Hok.2.2.1 X.rl R hR).1
     have hwrt : X.t.t.writable' = true := hok.1.1
     try wp_auto
     wp_apply hopen K tx r true X X.rl R vl w.vs w.value hR hwrt hlv h16 hinl $$ [Hw]
@@ -440,7 +440,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
     · iexact Hbm
     imod Hback $$ %n %c %C %(T.gen n) Hbf Hcells Hbm Hco [Hfp] [] with ⟨Hw, #Hcf⟩
     · iexists f; iframe; ipureintro; exact Hnan
-    · ipureintro; exact ⟨Hbo, Hfr.1, hrec.2.1, hrec.2.2.2.2.2.1⟩
+    · ipureintro; exact ⟨Hbo, Hfr.1, hrec.2.1, hrec.2.2.2.2.2.1, hrec.2.2.2.2.2.2.2.2⟩
     have hwa : w ∈ X.allEnts X.rl := by
       have hfa := WOpen.route_found_at X X.rl els pids n hloc Hp Hr
       obtain ⟨w', hw', hk'⟩ := (lRoutes_found' X X.rl els pids n hloc Hp Hr).2 (by
@@ -460,7 +460,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
       hflag hbmc Hbo hrec' hbv (hwk ▸ hent) htk hplain hcn
     have hop : bktOpened X ((X.setBkt X.rl { R with bm := R.bm.insert n c }).addBkt c C
         (n, T.gen n)) X.rl c n (T.gen n) := by
-      obtain ⟨hib, htx, hrn, hnm, hbm', hns, hil, hni⟩ := hrec
+      obtain ⟨hib, htx, hrn, hnm, hbm', hns, hil, hni, -⟩ := hrec
       refine ⟨R, C, w, hR, hwa, hwk, hflag, hbmc, hcn,
         by rw [Hbo]; rfl, hib, by rw [htx, htxB], hrn, hnm, hbm', hns, ?_, hni, rfl⟩
       intro h0
@@ -569,7 +569,7 @@ theorem Bucket.CreateBucketIfNotExists.wp_root
   ihave Hw := Hwbc $$ Hcells
   icases wtxW_open K tx r true X3 $$ Hw with ⟨-, -, -, Hh, Hcv, Hsk, Hclose⟩
   ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) X3 $$ Hh
-  have Htx3 : B3.bv.tx' = tx := Hok3.2.2.1 X.rl B3 HB3
+  have Htx3 : B3.bv.tx' = tx := (Hok3.2.2.1 X.rl B3 HB3).1
   have HlB3 : X.rl ∈ X3.liveB := hlB3
   icases wtxHeap_setNode_acc tx (DFrac.own 1) X3 X.rl B3 l rl HB3 Hrl $$ Hh
     with ⟨Hno, Hbo, Hf, Hrf, Hback⟩

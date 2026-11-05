@@ -132,7 +132,9 @@ theorem objOwn_bkt_unf (v : View) (l : Loc) (dq : DFrac) (b : Bool) (B : BRec) :
        else l.[Bucket, go!"tx"] ↦□ B.bv.tx') ∗
       l.[Bucket, go!"buckets"] ↦{dq} B.bv.buckets' ∗ l.[Bucket, go!"page"] ↦{dq} B.bv.page' ∗
       l.[Bucket, go!"rootNode"] ↦{dq} B.bv.rootNode' ∗ l.[Bucket, go!"nodes"] ↦{dq} B.bv.nodes' ∗
-      B.bv.InBucket' ↦{dq} B.ib ∗ B.bv.nodes' ↦${dq} B.nm ∗ B.bv.buckets' ↦${dq} B.bm ∗
+      B.bv.InBucket' ↦{dq} B.ib ∗
+      (if B.bv.nodes' = null then ⌜B.nm = ∅⌝ else B.bv.nodes' ↦${dq} B.nm) ∗
+      B.bv.buckets' ↦${dq} B.bm ∗
       (if b then pageOwn v B else emp)) := by
   unfold objOwn; exact .rfl
 
@@ -160,6 +162,15 @@ theorem nodes_nonnull (l : Loc) (dq : DFrac) (m : GMap w64 Loc) :
   iexists _, _
   iframe
   ipureintro; exact Hrepr
+
+open Iris.BI Iris.ProofMode in
+/-- A bucket's node cache map is `objOwn`'s nodes clause (the map is at a non-nil location). -/
+theorem nodesOwn_of_map (l : Loc) (dq : DFrac) (m : GMap w64 Loc) :
+    (l ↦${dq} m : IProp GF) ⊢ (if l = null then iprop(⌜m = ∅⌝) else l ↦${dq} m) := by
+  iintro Hm
+  ihave ⟨%Hnn, Hm⟩ := nodes_nonnull l dq m $$ Hm
+  rw [if_neg Hnn]
+  iexact Hm
 
 /-- The database's core is persistent. -/
 instance BC_core_persistent_rbl (K : BC) : Iris.BI.Persistent (K.core (GF := GF)) := by

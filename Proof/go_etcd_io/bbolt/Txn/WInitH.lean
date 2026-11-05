@@ -134,6 +134,8 @@ theorem wtxHeap_wx0 (tx bm nm ibp m pm : Loc) (ch : GoSlice) (wf : w64) (mv : go
     wtxHeap tx (DFrac.own 1)
       (wx0 (txRoot (GF := GF) tx) (tx0 tx bm nm ibp m pm ch wf) mv (initRoot tx bm nm ibp) ib v) := by
   iintro ⟨Hw, Hmg, Hme, Hpg, Hch, Hwf, Hmv, Hpm, Hib, Htx, Hbk, Hpp, Hrn, Hnd, Hfp, Hibv, Hnm, Hbm⟩
+  ihave %Hnmn := ownMap_not_nil _ _ _ $$ Hnm
+  have Hnmn' : nm ≠ null := Hnmn
   unfold wtxHeap
   rw [objs_wx0, bobjs_wx0]
   isplitr
@@ -144,7 +146,7 @@ theorem wtxHeap_wx0 (tx bm nm ibp m pm : Loc) (ch : GoSlice) (wf : w64) (mv : go
       simp [brec0] at hn
     · intro bl B hb
       obtain ⟨-, rfl⟩ := wx0_bs_some _ _ _ _ _ _ bl B hb
-      rfl
+      exact ⟨rfl, Hnmn'⟩
     · intro bl B n r hb hn
       obtain ⟨-, rfl⟩ := wx0_bs_some _ _ _ _ _ _ bl B hb
       simp [brec0] at hn
@@ -170,7 +172,7 @@ theorem wtxHeap_wx0 (tx bm nm ibp m pm : Loc) (ch : GoSlice) (wf : w64) (mv : go
   unfold objOwn pageOwn
   have hrl : txRoot (GF := GF) tx = tx.[Tx, go!"root"] := rfl
   simp only [brec0, initRoot, newBucketV, wx0]
-  simp only [← hrl, ↓reduceIte]
+  simp only [← hrl, ↓reduceIte, Hnmn', if_false]
   iframe
   split <;> iempintro
 

@@ -234,7 +234,8 @@ omit hos [GooseSemantics] in
 root or a handle's (the buckets some of `X`'s, the handles kept). -/
 theorem heapOK_of (tx : Loc) (X X' : WX) (hok : heapOK (GF := GF) tx X) (hrl : X'.rl = X.rl)
     (hd : objsDisj X'.t)
-    (htx : ∀ bl B', X'.t.bs !! bl = some B' → ∃ B, X.t.bs !! bl = some B ∧ B'.bv.tx' = B.bv.tx')
+    (htx : ∀ bl B', X'.t.bs !! bl = some B' → ∃ B, X.t.bs !! bl = some B ∧
+      B'.bv.tx' = B.bv.tx' ∧ B'.bv.nodes' = B.bv.nodes')
     (hpar : ∀ bl B n r, X'.t.bs !! bl = some B → B.ns !! n = some r → r.nv.parent' ≠ n)
     (hnl : X'.nloc = X.nloc)
     (hobj : ∀ k, (X.t.objs !! k).isSome → (X'.t.objs !! k).isSome)
@@ -243,8 +244,8 @@ theorem heapOK_of (tx : Loc) (X X' : WX) (hok : heapOK (GF := GF) tx X) (hrl : X
   obtain ⟨h1, -, h3, -, h5, h6⟩ := hok
   refine ⟨hrl.trans h1, hd, ?_, hpar, ?_, ?_⟩
   · intro bl B' hb'
-    obtain ⟨B, hb, he⟩ := htx bl B' hb'
-    rw [he]; exact h3 bl B hb
+    obtain ⟨B, hb, he, hn⟩ := htx bl B' hb'
+    rw [he, hn]; exact h3 bl B hb
   · intro k y hk
     rw [hnl] at hk
     exact hobj k (h5 k y hk)
@@ -288,7 +289,8 @@ theorem wtxHeap_setBkt_live_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B :
       ([∗list] l ∈ Ls, objOwn X.v l dq (decide (l ∈ X.live)) (.node bl (f l))) ∗
       objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) ∗ txFields tx dq X ∗ rootFill tx dq ∗
       (∀ (B' : BRec) (f' : Loc → NRec) (lv' : GMap Loc Unit), ⌜(∀ l ∈ Ls, B'.ns !! l = some (f' l)) ∧
-          (∀ l, l ∉ Ls → B'.ns !! l = B.ns !! l) ∧ B'.bv.tx' = B.bv.tx' ∧
+          (∀ l, l ∉ Ls → B'.ns !! l = B.ns !! l) ∧
+          (B'.bv.tx' = B.bv.tx' ∧ B'.bv.nodes' = B.bv.nodes') ∧
           (∀ l ∈ Ls, (f' l).nv.parent' ≠ l) ∧ (∀ k, k ∉ Ls → (k ∈ lv' ↔ k ∈ X.live))⌝ -∗
         ([∗list] l ∈ Ls, objOwn X.v l dq (decide (l ∈ lv')) (.node bl (f' l))) -∗
         objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B') -∗ txFields tx dq X -∗ rootFill tx dq -∗
@@ -359,7 +361,7 @@ theorem wtxHeap_setBkt_live_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B :
       rw [hbs'] at hc'
       split at hc'
       · rename_i h; subst h; cases hc'; exact ⟨B, hb, htx⟩
-      · exact ⟨C', hc', rfl⟩
+      · exact ⟨C', hc', rfl, rfl⟩
     · intro c C' k rk hc' hk
       change T'.bs !! c = some C' at hc'
       rw [hbs'] at hc'
@@ -389,7 +391,8 @@ theorem wtxHeap_setBkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec
       ([∗list] l ∈ Ls, objOwn X.v l dq (decide (l ∈ X.live)) (.node bl (f l))) ∗
       objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B) ∗ txFields tx dq X ∗ rootFill tx dq ∗
       (∀ (B' : BRec) (f' : Loc → NRec), ⌜(∀ l ∈ Ls, B'.ns !! l = some (f' l)) ∧
-          (∀ l, l ∉ Ls → B'.ns !! l = B.ns !! l) ∧ B'.bv.tx' = B.bv.tx' ∧
+          (∀ l, l ∉ Ls → B'.ns !! l = B.ns !! l) ∧
+          (B'.bv.tx' = B.bv.tx' ∧ B'.bv.nodes' = B.bv.nodes') ∧
           (∀ l ∈ Ls, (f' l).nv.parent' ≠ l)⌝ -∗
         ([∗list] l ∈ Ls, objOwn X.v l dq (decide (l ∈ X.live)) (.node bl (f' l))) -∗
         objOwn X.v bl dq (decide (bl ∈ X.liveB)) (.bkt B') -∗ txFields tx dq X -∗ rootFill tx dq -∗
@@ -429,7 +432,7 @@ theorem wtxHeap_setNode_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRe
   rw [e]
   iapply Hback $$ %{ B with ns := B.ns.insert n r' } %(fun _ => r') [] [Hn] [Hb] [Hf] [Hrf]
   · ipureintro
-    refine ⟨?_, ?_, rfl, ?_⟩
+    refine ⟨?_, ?_, ⟨rfl, rfl⟩, ?_⟩
     · intro l hl; rw [List.mem_singleton.1 hl]; simp
     · intro l hl
       have hne : l ≠ n := fun h => hl (by rw [h]; exact List.mem_singleton_self _)

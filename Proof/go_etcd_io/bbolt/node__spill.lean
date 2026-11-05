@@ -77,7 +77,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     icases wtxHeap_setNode_bkt tx (DFrac.own 1) X bl B n rn HB Hrn $$ Hh with ⟨Hno, Hbo, Hf, Hback⟩
     rw [decide_eq_true Hlive, decide_eq_true HliveB]
     icases objOwn_node_ptr_acc X.v n (DFrac.own 1) true bl rn $$ Hno with ⟨Hn, Hnback⟩
-    have hbtx : B.bv.tx' = tx := Hok.2.2.1 bl B HB
+    have hbtx : B.bv.tx' = tx := (Hok.2.2.1 bl B HB).1
     unfold objOwn
     icases Hbo with ⟨Hb1, Hbtx, Hbo⟩
     icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
@@ -142,7 +142,7 @@ theorem node.spill.wp_aux (hS : sort.«Sort».spec (GF := GF) (hG := hG))
     icases wtxW_pers K tx r m X $$ Hw with ⟨Hw, #⟨Hpkg, Hcore, Hreg⟩⟩
     icases wtxW_heapOK K tx r m X $$ Hw with ⟨Hw, %Hok⟩
     have HliveB : bl ∈ X.liveB := (HG.2.2.1.2.2.1 bl B HB).1
-    have hbtx : B.bv.tx' = tx := Hok.2.2.1 bl B HB
+    have hbtx : B.bv.tx' = tx := (Hok.2.2.1 bl B HB).1
     have hpar : rn.nv.parent' ≠ n := Hok.2.2.2.1 bl B n rn HB Hrn
     have hd : objsDisj X.t := Hok.2.1
     have hkids := uTree_sortKids Hut Hn hpar

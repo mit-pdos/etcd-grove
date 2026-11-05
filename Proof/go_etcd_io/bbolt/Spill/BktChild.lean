@@ -315,7 +315,7 @@ theorem Bucket.spill.wp_child (hNS : node.spill.spec' (GF := GF) (hG := hG))
     obtain ⟨B3, HB3, Hrr⟩ := bk_node_of_bs Hrt
     rw [HB1] at HB3; cases HB3
     ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X1 $$ Hh
-    have hbtx : B1.bv.tx' = tx := Hok.2.2.1 bl B1 HB1
+    have hbtx : B1.bv.tx' = tx := (Hok.2.2.1 bl B1 HB1).1
     icases wtxHeap_setBkt_acc tx (DFrac.own 1) X1 bl B1 [rt] (fun _ => rr) HB1 (nodup_one rt)
       (by intro l hl; rw [List.mem_singleton.1 hl]; exact Hrr) $$ Hh
       with ⟨⟨Hn, -⟩, Hbo, Hf, Hrf, Hback⟩

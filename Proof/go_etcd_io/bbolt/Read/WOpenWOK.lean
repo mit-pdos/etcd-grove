@@ -351,7 +351,7 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
     (hplain : ∀ pg, bktLeafPg X.v.pages w.value pg → ∀ j < pageCount pg, leafFlags pg j % 2 = 0)
     (hcn : c ≠ null) :
     wOK (XO X bl c B C nb h) := by
-  obtain ⟨hib, htx, hrn, hnm, hbmC, hns, hil, hni⟩ := hrec
+  obtain ⟨hib, htx, hrn, hnm, hbmC, hns, hil, hni, -⟩ := hrec
   obtain ⟨⟨tw, ⟨tpm, tbuf, tls, tps, trni⟩, t2, t3, trl, tall⟩, hkn, hpg, heb, hhs, hlv, hnl, hv⟩ := hok
   have hroot0 : C.ib.root' = W64 0 ↔ inBucketRoot w.value = 0 := by
     rw [hib, inBucketRoot_zero]
@@ -585,7 +585,7 @@ theorem XO_leaves_old (hok : wOK X) (k : Loc) (hk : k ≠ c) :
 theorem XO_leaves_new (w : WEntry) (hv : viewWF X.v) (hrec : openedRec B.bv.tx' w.value w.vs C)
     (hbv : bvalOK X.v.pages X.t.mv.pgid'.toNat w.value) :
     (XO X bl c B C nb h).leaves c = (bktLeaves X.v.pages w.value).map pageWs := by
-  obtain ⟨hib, -, hrn, hnm, -, -, hil, hni⟩ := hrec
+  obtain ⟨hib, -, hrn, hnm, -, -, hil, hni, -⟩ := hrec
   have hCb : (XO X bl c B C nb h).t.bs !! c = some C := by rw [XO_bs]; simp
   have hrp : (XO X bl c B C nb h).rootPid c = C.ib.root' := by unfold WX.rootPid; rw [hCb]; rfl
   have hres : ∀ p, resolve C p = none := by

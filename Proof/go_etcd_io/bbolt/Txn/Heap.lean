@@ -91,11 +91,11 @@ theorem bobjs_setBkt (X : WX) (bl : Loc) (B' : BRec) :
     simp [WX.setBkt, WTx.bobjs, GMap.lookup_insert_ne _ _ hk', hk']
 
 /-- **A bucket of the writer's heap, out and back** (`wtxHeap_bkt_acc` with its premise: the new
-record's `tx` field is the transaction's). -/
+record's `tx` field is the transaction's, its node cache not nil). -/
 theorem wtxHeap_bkt_acc (tx : Loc) (dq : DFrac) (X : WX) (bl : Loc) (B : BRec)
     (hb : X.t.bs !! bl = some B) (hl : bl ∈ X.liveB) :
     wtxHeap (GF := GF) tx dq X ⊢ objOwn X.v bl dq true (WObj.bkt B) ∗
-      (∀ B', ⌜B'.bv.tx' = tx⌝ -∗ objOwn X.v bl dq true (WObj.bkt B') -∗
+      (∀ B', ⌜B'.bv.tx' = tx ∧ B'.bv.nodes' ≠ null⌝ -∗ objOwn X.v bl dq true (WObj.bkt B') -∗
         wtxHeap tx dq (X.setBkt bl { B' with ns := B.ns })) := by
   unfold wtxHeap
   iintro ⟨%Hok, Hf, Hrf, Hm, Hbk⟩

@@ -1801,6 +1801,27 @@ Landed (each built over the importers that name what changed, then committed and
   U10n's uncommitted `Commit/TailDefs`), `Write/Retarget:219` (a unit is on it).
 - Open shared `sorry`s: none added; removed: `Bucket__Get.gensOK_handle_bktLoc` (D1).
 
+### Maintainer 15 (2026-11-05): landed
+
+- **(A), a dead bucket's nil node cache (heapOK route, decided by the coordinator for U7j).**
+  `Inv/WtxHeap.objOwn`'s bucket clause holds `(if B.bv.nodes' = null then ⌜B.nm = ∅⌝ else
+  B.bv.nodes' ↦${dq} B.nm)` (`nodesOwn_ne` rewrites it to the map when not nil;
+  `Rebalance/NodeRblBase.nodesOwn_of_map` folds a map back); `heapOK`'s third clause is
+  `B.bv.tx' = tx ∧ B.bv.nodes' ≠ null` for every bucket of `X.t.bs` (a consumer of the `tx` field
+  takes `(hok.2.2.1 bl B hb).1`). `Rebalance/BktRbl.wtxW_bs_nodes_ne`/`Read/WQ.wtxWQ_bs_nodes_ne` read
+  the fact; `wtxW_nm_acc`/`wtxWQ_nm_acc` (and so `wtxW(Q)_nodes_nonnull`) have their statements
+  unchanged. Producers: `Txn/Heap.wtxHeap_bkt_acc`'s premise is `B'.bv.tx' = tx ∧ B'.bv.nodes' ≠
+  null`; `Rebalance/HeapRbl.heapOK_of`'s `htx`, `wtxHeap_setBkt_acc`'s and `_live_acc`'s, and
+  `Write/NodeAdd.wtxHeap_nodeAdd_acc`'s field premise is `B'.bv.tx' = B.bv.tx' ∧ B'.bv.nodes' =
+  B.bv.nodes'` (callers `⟨rfl, rfl⟩`); `Read/WOpenH.wtxHeap_addBkt` takes `hnn`, `wtxW_bktOpen`'s
+  pure premise ends `∧ C.bv.nodes' ≠ null`; `Read/WOpen.openedRec` ends `∧ C.bv.nodes' ≠ null`
+  (`Bucket.openBucket_w`: `make`'s map, `ownMap_not_nil`); `Txn/WInitH.wtxHeap_wx0` (the root's
+  `make`). Code that uses the map (`Bucket.node`'s insert, `node.rebalance`'s deletes) rewrites the
+  clause with `nodesOwn_ne` and folds it back with `nodesOwn_of_map`.
+  **DeleteBucket** (a later unit) moves the child from `X.t.bs` to `X.t.deadB` before
+  `child.nodes = nil` (Go: `delete(b.buckets, key)` precedes it): a `deadB` bucket's `nodes'` may
+  be nil, and its `objOwn` then holds `⌜B.nm = ∅⌝`.
+
 ## Writer reads at a fraction (U6w, 2026-11-05)
 
 **The cause** (found by the coordinator). The public read triples (`Bucket.Get`, `Bucket.Cursor`,

@@ -401,7 +401,7 @@ theorem node.dereference.wp_aux (hK : internal.common.Inode.Key.spec (GF := GF) 
       icases wtxHeap_bkt_peek tx _ Xi bl Bi HBi HblL $$ Hh with ⟨Hb, Hbb⟩
       unfold objOwn
       icases Hb with ⟨Hb1, Hbtx, Hb3⟩
-      have Htx : Bi.bv.tx' = tx := HokI.2.2.1 bl Bi HBi
+      have Htx : Bi.bv.tx' = tx := (HokI.2.2.1 bl Bi HBi).1
       ihave Hbtx2 : (∃ dq : DFrac, bl.[Bucket, go!"tx"] ↦{dq} tx ∗
           (bl.[Bucket, go!"tx"] ↦{dq} tx -∗
             (if bl = Bi.bv.tx'.[Tx, go!"root"] then bl.[Bucket, go!"tx"] ↦ Bi.bv.tx'

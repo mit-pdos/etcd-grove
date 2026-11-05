@@ -145,7 +145,8 @@ theorem wtxHeap_nodeAdd_acc (tx : Loc) (X : WX) (bl l : Loc) (B : BRec) (Ls : Li
       objOwn X.v bl (DFrac.own 1) (decide (bl ∈ X.liveB)) (.bkt B) ∗
       txFields tx (DFrac.own 1) X ∗ rootFill tx (DFrac.own 1) ∗
       (∀ (B' : BRec) (f' : Loc → NRec) (r : NRec), ⌜(∀ k ∈ Ls, B'.ns !! k = some (f' k)) ∧
-          (∀ k, k ∉ Ls → B'.ns !! k = B.ns !! k) ∧ B'.bv.tx' = B.bv.tx' ∧
+          (∀ k, k ∉ Ls → B'.ns !! k = B.ns !! k) ∧
+          (B'.bv.tx' = B.bv.tx' ∧ B'.bv.nodes' = B.bv.nodes') ∧
           (∀ k ∈ Ls, (f' k).nv.parent' ≠ k) ∧ r.nv.parent' ≠ l⌝ -∗
         ([∗list] k ∈ Ls, objOwn X.v k (DFrac.own 1) (decide (k ∈ X.live)) (.node bl (f' k))) -∗
         objOwn X.v bl (DFrac.own 1) (decide (bl ∈ X.liveB)) (.bkt B') -∗

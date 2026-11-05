@@ -83,7 +83,7 @@ theorem split_open_top (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (bl 
   icases (wtxW_frame K tx r m X1).1 $$ Hw with ⟨Hh, Hfills, Hdb, Hst, Hfr⟩
   icases splitFr_pers K tx r X1 $$ Hfr with ⟨#Hpers, %Hrdb, Hfr⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X1 $$ Hh
-  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have htx : B.bv.tx' = tx := (Hok.2.2.1 bl B hb).1
   have hpn : rN.nv.parent' ≠ n := Hok.2.2.2.1 bl B n rN hb hrn
   icases wtxHeap_splitX tx X1 bl B [n] (fun _ => rN) hb (nodup_one n)
     (by intro l hl; rw [List.mem_singleton.1 hl]; exact hrn) $$ Hh
@@ -257,7 +257,7 @@ theorem split_open_child (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X1 : WX) (b
   icases (wtxW_frame K tx r m X1).1 $$ Hw with ⟨Hh, Hfills, Hdb, Hst, Hfr⟩
   icases splitFr_pers K tx r X1 $$ Hfr with ⟨#Hpers, %Hrdb, Hfr⟩
   ihave %Hok := wtxHeap_heapOK tx (DFrac.own 1) X1 $$ Hh
-  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have htx : B.bv.tx' = tx := (Hok.2.2.1 bl B hb).1
   have hpn : rN.nv.parent' ≠ n := Hok.2.2.2.1 bl B n rN hb hrn
   have hrpp : rp.nv.parent' ≠ rN.nv.parent' := Hok.2.2.2.1 bl B _ rp hb hrp
   have hnd2 : [n, rN.nv.parent'].Nodup := by simp [Ne.symm hpn]

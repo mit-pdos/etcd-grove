@@ -419,7 +419,7 @@ theorem Bucket.CreateBucket.wp_root
   ihave Hw := Hwbc $$ Hcells
   icases wtxW_open K tx r true X3 $$ Hw with ⟨-, -, -, Hh, Hcv, Hsk, Hclose⟩
   ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) X3 $$ Hh
-  have Htx3 : B3.bv.tx' = tx := Hok3.2.2.1 X.rl B3 HB3
+  have Htx3 : B3.bv.tx' = tx := (Hok3.2.2.1 X.rl B3 HB3).1
   have HlB3 : X.rl ∈ X3.liveB := hlB3
   icases wtxHeap_setNode_acc tx (DFrac.own 1) X3 X.rl B3 l rl HB3 Hrl $$ Hh
     with ⟨Hno, Hbo, Hf, Hrf, Hback⟩

@@ -42,6 +42,15 @@ theorem wtxWQ_bkt_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : W
   ihave Hh := Hback $$ Ho
   iframe; ipureintro; exact Hr
 
+/-- A bucket of `bs` has a node cache that is not nil (`heapOK`'s third clause). -/
+theorem wtxWQ_bs_nodes_ne (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl : Loc)
+    (B : BRec) (hb : X.t.bs !! bl = some B) :
+    wtxWQ (GF := GF) K tx r m q X ⊢ ⌜B.bv.nodes' ≠ null⌝ := by
+  unfold wtxWQ wtxCoreQ
+  iintro ⟨⟨-, -, -, -, Hh, -⟩, -, -⟩
+  ihave %Hok := wtxHeap_heapOK tx (DFrac.own q) X $$ Hh
+  ipureintro; exact (Hok.2.2.1 bl B hb).2
+
 /-- A bucket's node cache, out of `wtxWQ` and back. -/
 theorem wtxWQ_nm_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl : Loc)
     (B : BRec) (hb : X.t.bs !! bl = some B) (p : Loc) (nm : GMap w64 Loc) (hp : B.bv.nodes' = p)
@@ -50,13 +59,16 @@ theorem wtxWQ_nm_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX
       (p ↦${DFrac.own q} nm -∗ wtxWQ K tx r m q X) := by
   subst hp hnm
   iintro Hw
+  ihave %Hnn := wtxWQ_bs_nodes_ne K tx r m q X bl B hb $$ Hw
   icases wtxWQ_bkt_acc K tx r m q X bl B hb $$ Hw with ⟨Ho, Hback⟩
   isimp only [objOwn] at Ho
   icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+  rw [nodesOwn_ne _ _ _ Hnn]
   iframe H8
   iintro H8
   iapply Hback
   simp only [objOwn]
+  rw [nodesOwn_ne _ _ _ Hnn]
   iframe
 
 /-- **The view's cells, out of `wtxWQ`** at `q · wq` (the view's base positive), and back. -/

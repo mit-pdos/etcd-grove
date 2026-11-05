@@ -116,7 +116,7 @@ theorem wtxHeap_root_out (tx : Loc) (X : WX) (B : BRec) (hb : X.t.bs !! X.rl = s
   unfold wtxHeap
   iintro ⟨%Hok, Hf, Hrf, -, Hbk⟩
   have Ho := bobjs_bkt X.t X.rl B hb
-  have htx : B.bv.tx' = tx := Hok.2.2.1 X.rl B hb
+  have htx : B.bv.tx' = tx := (Hok.2.2.1 X.rl B hb).1
   icases (BigSepM.bigSepM_delete (M := GMap Loc) Ho).1 $$ Hbk with ⟨Hb, -⟩
   iframe Hf Hrf
   isplitr

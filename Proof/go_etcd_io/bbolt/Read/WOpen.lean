@@ -25,14 +25,16 @@ variable [GooseExts]
 /-- **The record `openBucket` makes** on the value `cv` (source `vsr`) of a nested bucket, in the
 transaction `tx`: its header the value's (`ibOf`), no root node, empty caches and nodes; an inline
 bucket's page right after the header, view bytes (`vsr` the view's, aligned) or persistent heap
-bytes (a clone, or a persistent value); a stored bucket's page nil. -/
+bytes (a clone, or a persistent value); a stored bucket's page nil; its node cache not nil
+(`heapOK`'s third clause). -/
 def openedRec (tx : Loc) (cv : List w8) (vsr : Src) (C : BRec) : Prop :=
   C.ib = ibOf cv ∧ C.bv.tx' = tx ∧ C.bv.rootNode' = null ∧ C.nm = ∅ ∧ C.bm = ∅ ∧ C.ns = ∅ ∧
   (inBucketRoot cv = 0 →
     C.bv.page' ≠ null ∧ C.ipg = inlinePage cv ∧
     ((vsr = Src.view ∧ C.isrc = Src.view ∧ C.pst = PageSt.view) ∨
       (C.isrc = Src.own DFrac.discard ∧ C.pst = PageSt.none))) ∧
-  (inBucketRoot cv ≠ 0 → C.bv.page' = null ∧ C.pst = PageSt.none)
+  (inBucketRoot cv ≠ 0 → C.bv.page' = null ∧ C.pst = PageSt.none) ∧
+  C.bv.nodes' ≠ null
 
 end orec
 
@@ -70,7 +72,7 @@ theorem wtxW_bkt_tx_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl 
       (bl.[Bucket, go!"tx"] ↦{dq} tx -∗ wtxW K tx r m X) := by
   iintro Hw
   icases wtxW_heapOK' K tx r m X $$ Hw with ⟨Hw, %Hok⟩
-  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have htx : B.bv.tx' = tx := (Hok.2.2.1 bl B hb).1
   icases wtxW_bkt_acc K tx r m X bl B hb $$ Hw with ⟨Ho, Hback⟩
   isimp only [objOwn] at Ho
   icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩

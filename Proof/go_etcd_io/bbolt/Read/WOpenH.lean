@@ -90,9 +90,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 omit hos in
-/-- **A fresh bucket object added to the writer's heap** (live, a handle's). -/
+/-- **A fresh bucket object added to the writer's heap** (live, a handle's, its node cache not
+nil). -/
 theorem wtxHeap_addBkt (tx : Loc) (X : WX) (c : Loc) (C : BRec) (h : GoString × Nat)
-    (hbo : X.t.bobjs !! c = none) (hns : C.ns = ∅) (htx : C.bv.tx' = tx) :
+    (hbo : X.t.bobjs !! c = none) (hns : C.ns = ∅) (htx : C.bv.tx' = tx)
+    (hnn : C.bv.nodes' ≠ null) :
     wtxHeap (GF := GF) tx (DFrac.own 1) X ∗ objOwn X.v c (DFrac.own 1) true (.bkt C) ⊢
       wtxHeap tx (DFrac.own 1) (X.addBkt c C h) := by
   unfold wtxHeap
@@ -110,7 +112,7 @@ theorem wtxHeap_addBkt (tx : Loc) (X : WX) (c : Loc) (C : BRec) (h : GoString ×
     · intro b Bb hb
       rw [addBkt_bs] at hb
       by_cases hbc : b = c
-      · simp only [hbc, ↓reduceIte, Option.some.injEq] at hb; subst hb; exact htx
+      · simp only [hbc, ↓reduceIte, Option.some.injEq] at hb; subst hb; exact ⟨htx, hnn⟩
       · simp only [hbc, ↓reduceIte] at hb; exact k3 b Bb hb
     · intro b Bb n rn hb hn
       rw [addBkt_bs] at hb
@@ -168,27 +170,28 @@ theorem wtxW_bktOpen (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
         bl.[Bucket, go!"buckets"] ↦ B.bv.buckets' -∗ viewCells wq X.v -∗
         B.bv.buckets' ↦$ (B.bm.insert name c) -∗ objOwn X.v c (DFrac.own 1) true (.bkt C) -∗
         (∃ f : w64, ⌜¬ float64IsNaN f⌝ ∗ c.[Bucket, go!"FillPercent"] ↦ f) -∗
-        ⌜X.t.bobjs !! c = none ∧ X.handles !! c = none ∧ C.bv.tx' = tx ∧ C.ns = ∅⌝ -∗
+        ⌜X.t.bobjs !! c = none ∧ X.handles !! c = none ∧ C.bv.tx' = tx ∧ C.ns = ∅ ∧
+          C.bv.nodes' ≠ null⌝ -∗
         |==> (wtxW K tx r m ((X.setBkt bl { B with bm := B.bm.insert name c }).addBkt c C (name, g)) ∗
           c ↪[r.n.bk]□ (name, g)) := by
   unfold wtxW wtxCore
   iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
   icases wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh with %Hok
-  have htxB : B.bv.tx' = tx := Hok.2.2.1 bl B hB
+  have htxB : B.bv.tx' = tx := (Hok.2.2.1 bl B hB).1
   icases wtxHeap_bkt_acc tx (DFrac.own 1) X bl B hB hlB $$ Hh with ⟨Hb, Hback⟩
   isimp only [objOwn] at Hb
   icases Hb with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
   iframe H3 H9 Hcells
   iintro %name %c %C %g H3 Hcells H9 Hc ⟨%f, %Hnan, Hfp⟩ %Hfr
-  obtain ⟨hbo, hhd, htx, hns⟩ := Hfr
-  ihave Hh := Hback $$ %({ B with bm := B.bm.insert name c }) %htxB [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
+  obtain ⟨hbo, hhd, htx, hns, hnn⟩ := Hfr
+  ihave Hh := Hback $$ %({ B with bm := B.bm.insert name c }) %(Hok.2.2.1 bl B hB) [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
   · isimp only [objOwn]; iframe
   have hbo' : (X.setBkt bl { B with bm := B.bm.insert name c }).t.bobjs !! c = none := by
     rw [bobjs_setBkt]
     have hcb : bl ≠ c := by
       intro e; subst e; rw [bobjs_bkt X.t bl B hB] at hbo; cases hbo
     rw [GMap.lookup_insert_ne _ _ hcb]; exact hbo
-  ihave Hh := wtxHeap_addBkt tx _ c C (name, g) hbo' hns htx $$ [Hh Hc]
+  ihave Hh := wtxHeap_addBkt tx _ c C (name, g) hbo' hns htx hnn $$ [Hh Hc]
   · iframe
   have hhd' : X.handles.lookup c = none := hhd
   unfold hdlAuth
@@ -231,7 +234,7 @@ theorem wtxW_cursor_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl 
   unfold wtxW wtxCore
   iintro ⟨⟨#Hpkg, #Hcore, %Hr, #Hreg, Hh, Hfills, Hbk, Hnl, Hdb, Hview, Hst⟩, Hcells, Hmap⟩
   icases wtxHeap_heapOK tx (DFrac.own 1) X $$ Hh with %Hok
-  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hb
+  have htx : B.bv.tx' = tx := (Hok.2.2.1 bl B hb).1
   icases wtxHeap_bkt_obj_acc tx (DFrac.own 1) X bl B (bobjs_bkt X.t bl B hb) $$ Hh with ⟨Ho, Hhb⟩
   isimp only [objOwn] at Ho
   icases Ho with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩

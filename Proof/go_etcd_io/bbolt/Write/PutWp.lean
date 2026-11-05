@@ -428,7 +428,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
   ihave Hw := Hwbc $$ Hcells
   icases wtxW_open K tx r true X3 $$ Hw with ⟨-, -, -, Hh, Hcv, Hsk, Hclose⟩
   ihave %Hok3 := wtxHeap_heapOK tx (DFrac.own 1) X3 $$ Hh
-  have Htx3 : B3.bv.tx' = tx := Hok3.2.2.1 b B3 HB3
+  have Htx3 : B3.bv.tx' = tx := (Hok3.2.2.1 b B3 HB3).1
   icases wtxHeap_setNode_acc tx (DFrac.own 1) X3 b B3 l rl HB3 Hrl $$ Hh
     with ⟨Hno, Hbo, Hf, Hrf, Hback⟩
   rw [decide_eq_true hlive3]

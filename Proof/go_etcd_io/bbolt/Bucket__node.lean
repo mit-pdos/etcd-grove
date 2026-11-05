@@ -126,13 +126,15 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
   rw [show decide (bl ∈ X.liveB) = true from decide_eq_true hlB]
   simp only [objOwn]
   icases Hb with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+  have hnodes' : B.bv.nodes' ≠ null := hnodes
+  isimp only [nodesOwn_ne _ _ _ hnodes'] at H8
   wp_auto
   rw [show decide (B.bv.nodes' = map.nil) = false from decide_eq_false hnodes]
   wp_apply hA
   try wp_auto
   wp_apply wp_map_lookup1 $$ [H8] as H8
   · iexact H8
-  have htx : B.bv.tx' = tx := Hok.2.2.1 bl B hB
+  have htx : B.bv.tx' = tx := (Hok.2.2.1 bl B hB).1
   cases hnm : B.nm !! pgid with
   | some l0 =>
     -- cached
@@ -142,7 +144,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
     · exact absurd rfl hl0
     try wp_auto
     ihave Hh := Hhb $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
-    · iframe
+    · (try simp only [objOwn]); rw [nodesOwn_ne _ _ _ hnodes']; iframe
     iapply HΦ
     iexists X
     iframe; iframe #
@@ -153,7 +155,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
     obtain ⟨pa, pg, hwp, hrd, hfl, hein, hid, hpm, hsrc, hpa, hpm2, hend⟩ := hmr
     simp only [Option.getD_none]
     ihave Hh := Hhb $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
-    · iframe
+    · (try simp only [objOwn]); rw [nodesOwn_ne _ _ _ hnodes']; iframe
     wp_auto
     -- the fresh node
     icases Write.wtxHeap_fresh tx X «$r0_ptr» _ $$ [Hh «$r0»] with ⟨Hh, Hn, %Hfresh⟩
@@ -193,6 +195,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
     rw [show decide (bl ∈ X.liveB) = true from decide_eq_true hlB]
     isimp only [objOwn] at Hbo
     icases Hbo with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10⟩
+    isimp only [nodesOwn_ne _ _ _ hnodes'] at H8
     wp_join iprop(∃ (rn : Loc) (f' : Loc → NRec),
         n_ptr ↦ «$r0_ptr» ∗ b_ptr ↦ bl ∗ parent_ptr ↦ parent ∗
         bl.[Bucket, go!"rootNode"] ↦ rn ∗
@@ -375,7 +378,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
     ihave H2 := H2b $$ H2
     ihave Hbo : objOwn X.v bl (DFrac.own 1) true (.bkt B') $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10]
     · simp only [objOwn, B']
-      rw [htx]
+      rw [htx, nodesOwn_ne _ _ _ hnodes']
       iframe
     have hLsB : ∀ k ∈ Ls, B'.ns !! k = some (f' k) := by
       intro k hk
@@ -405,7 +408,7 @@ theorem Bucket.node.wp_proof (hA : internal.common.Assert.spec (GF := GF) (hG :=
         have := Write.objs_isSome_node X.t bl B parent hB (by rw [(hf parent hk).1]; rfl)
         rw [e, Hfresh] at this; cases this
     ihave Hh := Hback $$ %B' %f' %r0 [] [HL] [Hbo] [Hf] [Hrf] [Ho]
-    · ipureintro; exact ⟨hLsB, hLsO, htx, hparL, hparN⟩
+    · ipureintro; exact ⟨hLsB, hLsO, ⟨rfl, rfl⟩, hparL, hparN⟩
     · iexact HL
     · iexact Hbo
     · iexact Hf
