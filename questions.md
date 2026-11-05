@@ -76,6 +76,35 @@ its lease slot's; either order merges by hand in minutes. Auth on's closer (the 
 are written without touching `NewServer`; `NewServer`'s intro of the slot waits for the go
 (`sorry -- H1: hub request pending` if anything needs it before).
 
+### H2 (hard stop: a trusted contract). The storage-version monitor's read token at the stop (2026-11-05)
+
+**Status: sent to the coordinator, 2026-11-05; the proof goes on with a marked `sorry`
+(`StopShutdown.stop_monitorRT`).**
+
+`Cleanup`'s `backend.Close` needs the whole open token, so the stop's census must collect every
+reader's share, including the storage-version monitor's (`mvcc.bkRTx` in `srvWTPool`'s invariant).
+That invariant has two cases: the token there, or (the monitor in a session) checked out, a part of
+the monitor's share of `E.γbe` deposited in its place. The plan (stage 5c) takes the first case;
+nothing excludes the second. `monitorStorageVersion` is a trusted contract (names-only, axiom
+`EtcdServer.monitorStorageVersion.wp_proof`) whose post is `True`, and `GoAttach`'s `Done` returns
+only a thread token. So after `s.wg.Wait()` the proof cannot tell that the monitor checked the token
+back in: under the contract, a monitor that exits mid-session is allowed. In Go it cannot happen
+(the session checks the token back in before `RUnlock`, and the goroutine has returned when `Wait`
+does). Excluding the second case by fractions of `E.γbe` would need `bemuP`'s half, that is,
+`s.bemu`'s write lock, which the shutdown does not take.
+
+**Options.**
+1. The monitor's contract returns its session state at exit (for example a session key `svKey γp`
+   that the invariant's checked-out case holds and the post gives back), and `GoAttach`/`Wait`
+   carry a goroutine's final resource back to the waiter (a `{P} f {Q}` form, with `Q` deposited at
+   `Done`). This widens a trusted contract's post: a hard stop.
+2. A narrower version of 1: only the `Wait` side is generic, and the monitor's post gives the key.
+3. Scope premise on `run.specStop`: no monitor started. `restart3` starts one through `Start`, so
+   this does not cover the use.
+
+**Recommendation: 1 (or 2).** The change is the honest contract: the real monitor ends its session
+before it returns. Until it is decided, `stop_monitorRT` is a `sorry` with this entry's name.
+
 ## Decided by the agent, pending the user
 
 (none yet)
