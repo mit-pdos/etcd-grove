@@ -43,6 +43,7 @@ theorem child_ref (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
     ∃ lf ws, ltree X bl (W64 (c : Int)) = some (lf, ws) ∧
       (∀ i, refAt X bl (W64 (c : Int)) ⟨p', n', i⟩) ∧
       (n' ≠ null → ∃ rn, B.ns !! n' = some rn ∧ n' ∈ X.live ∧ rn.ws = ws) ∧
+      (n' ≠ null → X.nloc !! n' = some (bl, c)) ∧
       (n' = null → p' = pageLoc X.v c ∧ X.v.pages !! c = some pgc0 ∧ ws = pageWs pgc0 ∧
         16 ≤ pgc0.length) ∧
       (lf = false → ∃ pg, X.v.pages !! c = some pg ∧ pageFlags pg = branchPageFlag ∧
@@ -70,7 +71,7 @@ theorem child_ref (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
   obtain ⟨P1, P2, P3, -, P5⟩ := pos_facts X bl B hok hB hc.2.2.1 hbase _ ⟨p', n', W64 0⟩ lf ws
     (hra _) hL (fun h => absurd h h0)
   rw [hC] at P1 P2 P3 P5
-  refine ⟨lf, ws, hL, hra, hnode, fun hnn => ?_, fun hlf => ?_⟩
+  refine ⟨lf, ws, hL, hra, hnode, P1, fun hnn => ?_, fun hlf => ?_⟩
   · obtain ⟨-, hpl⟩ := P2 hnn
     obtain ⟨pg', hlp, hws, -⟩ := P5 hnn
     unfold leafPgAt at hlp; rw [if_neg (by omega), hpgc0] at hlp
@@ -80,17 +81,32 @@ theorem child_ref (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
     obtain ⟨_, hbw⟩ := viewWF_branchWF _ hv _ _ hpg' hb'
     exact ⟨pg', hpg', hb', hwl, hbw.1⟩
 
-/-- **Pushing the last child**: from a branch top at view page `pg` on its last entry, the reference
+/-- **A branch top is at its page's last entry** (`sTopLast`). -/
+theorem top_branch_last (v : View) (hv : viewWF v) (es : List BoltEnt) (pids : List Nat)
+    (els : List elemRef) (htl : sTopLast v es pids els) (e : elemRef) (p : Nat)
+    (he : els.getLast? = some e) (hpl : pids.getLast? = some p) (pg : List w8)
+    (hpg : v.pages !! p = some pg) (hf : pageFlags pg = branchPageFlag) :
+    e.index'.toNat + 1 = pageCount pg := by
+  rcases htl e p he hpl with ⟨pg', hpg', -, h⟩ | ⟨h0 | ⟨pg', hpg', hl⟩, -⟩
+  · rw [hpg] at hpg'; cases hpg'; exact h
+  · subst h0; have := (Read.viewWF_page _ hv _ _ hpg).1; omega
+  · rw [hpg] at hpg'; cases hpg'; exact (flag_ne hf hl).elim
+
+/-- **Pushing the last child**: from a branch top at view page `pg` on an entry, the reference
 `pageNode` returns for its child `c`, at index `count - 1` (`ws` its entries), keeps `last`'s loop
-invariant. -/
+invariant: a prefix, its top at its last index, its leaf page's entries; the levels from `k` on at
+their last index if they were and the old top is (when at least `k` deep). -/
 theorem push_last (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
     (hc : wCurCtx X n bl rt) (hB : X.t.bs !! bl = some B) (hbase : 0 < X.v.base.addr)
     (ipg : List w8) (els : List elemRef) (pids : List Nat)
-    (hp : sPrefix (nlX X) X.v bl rt els pids) (hbl : sBrLast X.v pids els)
+    (hp : sPrefix (nlX X) X.v bl rt els pids) (k : Nat)
+    (hbl : ∀ j pid e0, pids[j]? = some pid → els[j]? = some e0 → k ≤ j → j + 1 < els.length →
+      e0.index'.toNat + 1 = (pidKeys X.v pid).length)
     (e : elemRef) (p : Nat)
     (he : els.getLast? = some e) (hpl : pids.getLast? = some p) (pg : List w8)
     (hpg : X.v.pages !! p = some pg) (hf : pageFlags pg = branchPageFlag)
-    (hil : e.index'.toNat + 1 = pageCount pg) (h0 : B.ib.root' ≠ W64 0) (p' n' : Loc)
+    (hi : e.index'.toNat < pageCount pg)
+    (hil : k ≤ els.length - 1 → e.index'.toNat + 1 = pageCount pg) (h0 : B.ib.root' ≠ W64 0) (p' n' : Loc)
     (lf : Bool) (ws : List WEntry)
     (hL : ltree X bl (W64 (branchPgid pg e.index'.toNat : Int)) = some (lf, ws))
     (hra : ∀ i, refAt X bl (W64 (branchPgid pg e.index'.toNat : Int)) ⟨p', n', i⟩)
@@ -100,7 +116,8 @@ theorem push_last (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
     let e' : elemRef := ⟨p', n', W64 ((ws.length : Int) - 1)⟩
     let c := branchPgid pg e.index'.toNat
     sPrefix (nlX X) X.v bl rt (els ++ [e']) (pids ++ [c]) ∧
-    sBrLast X.v (pids ++ [c]) (els ++ [e']) ∧
+    (∀ j pid e0, (pids ++ [c])[j]? = some pid → (els ++ [e'])[j]? = some e0 → k ≤ j →
+      j + 1 < (els ++ [e']).length → e0.index'.toNat + 1 = (pidKeys X.v pid).length) ∧
     sTopLast X.v (wEs X n) (pids ++ [c]) (els ++ [e']) ∧
     (sPathR (nlX X) X.v bl rt (els ++ [e']) (pids ++ [c]) →
       sLeafOK X.v ipg (wEs X n) (pids ++ [c]) (els ++ [e'])) := by
@@ -109,7 +126,6 @@ theorem push_last (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
   have hv : viewWF X.v := hok.2.2.2.2.2.2.2
   have hlen : pids.length = els.length := hp.2.1
   have hpos : 0 < els.length := List.length_pos_iff.2 hp.1
-  have hi : e.index'.toNat < pageCount pg := by omega
   obtain ⟨pgc, hpgc⟩ : ∃ pgc, X.v.pages !! c = some pgc := viewWF_child _ hv _ _ hpg hf _ hi
   have hc2 : 2 ≤ c := (Read.viewWF_page _ hv _ _ hpgc).1
   have hclt : c < 2 ^ 64 := branchPgid_lt _ _
@@ -189,15 +205,15 @@ theorem push_last (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
     refine ⟨pg', ?_, by rw [← hws]; exact hplain, ?_, fun h => by omega⟩
     · unfold leafPgAt at hlp ⊢; rw [if_neg (by omega)] at hlp ⊢; exact hlp
     · unfold pgEnts; rw [← hws]; exact hents
-  refine ⟨hpre, fun j pid0 e0 h1 h2 hj => ?_, fun e0 p0 h1 h2 => ?_, hleafOK⟩
+  refine ⟨hpre, fun j pid0 e0 h1 h2 hk hj => ?_, fun e0 p0 h1 h2 => ?_, hleafOK⟩
   · rcases hget j e0 pid0 h2 h1 with ⟨hj', h2', h1'⟩ | ⟨rfl, -, -⟩
     · by_cases hj2 : j + 1 < els.length
-      · exact hbl j pid0 e0 h1' h2' hj2
+      · exact hbl j pid0 e0 h1' h2' hk hj2
       · have hjl : j = els.length - 1 := by omega
         subst hjl
         rw [getLast_idx els e he] at h2'; cases h2'
         rw [← hlen, getLast_idx pids p hpl] at h1'; cases h1'
-        rw [pidKeys_length X.v _ pg hpg]; exact hil
+        rw [pidKeys_length X.v _ pg hpg]; exact hil (by omega)
     · simp at hj
   · rw [hlast] at h1; cases h1
     rw [hplast] at h2; cases h2
