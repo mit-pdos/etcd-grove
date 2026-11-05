@@ -869,6 +869,16 @@ theorem logEnts_events (log : Log) (hwf : LogWf' log) (hlen : log.length < 2 ^ 6
       rw [if_neg hpos]
       rfl
 
+/-- **A scan's events when it kept every entry**: the range's events of the log (`rangeEvents`'s
+exact case). -/
+theorem entsEvents_logEnts (log : Log) (hwf : LogWf' log) (hlen : log.length < 2 ^ 63)
+    (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63) (W : GMap Loc WatchRange) (lo hi : Nat)
+    (hhi : hi ≤ log.length) (P : KvEnt → Bool) (hP : ∀ e ∈ logEnts log lo hi, P e = true) :
+    entsEvents W ((logEnts log lo hi).filter P) =
+      (logEvents log lo hi).filter (fun ev => wgCovers W ev.kv.key) := by
+  rw [List.filter_eq_self.2 hP]
+  unfold entsEvents; rw [logEnts_events log hwf hlen hcs _ _ hhi]
+
 end mvcc
 end EtcdGrove
 end Perennial

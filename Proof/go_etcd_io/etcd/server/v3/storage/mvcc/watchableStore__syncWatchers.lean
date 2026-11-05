@@ -390,18 +390,21 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · rw [mvcc.idxCert_withPhys]; iexact HcertQ
   ihave #HbkS := mvcc.isKeyBackendG_wand $$ HbkS
   wp_apply (lc := 1) (hRange _ _ (γ.st.withPhys p) _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
-    $$ [$HbkS $HrtR HcrevQ $HbucketQ $HcertP $Hg] as %evs ⟨HrtR, HcrevQ, HbucketQ, Hg, %ps, Hevs,
-      Hevcap, %Hpslen, #HevIs⟩
+    $$ [$HbkS $HrtR HcrevQ $HbucketQ $HcertP $Hg] as %evs ⟨HrtR, HcrevQ, HbucketQ, Hg, %P, %ps, Hevs,
+      Hevcap, %HP, %Hpslen, #HevIs⟩
   · rw [mvcc.crevUB_withPhys]; iframe HcrevQ
     ipureintro; rw [hcur1]
-    exact ⟨hm0, by omega, by omega, HcQ.1, hmQ, HndQ⟩
+    exact ⟨hm0, by omega, by omega, HcQ.1, hmQ⟩
   -- the slot back in the readers' pool, the watchable store's deposit back (S5a)
   imod mvcc.readerPool_checkin_ws_p γ.st p _ o $$ Hlc1 HpoolS Hcur [HtiP HrtR] Htkw with ⟨HtkR, Hwsd, Hcur⟩
   · iunfold mvcc.idxSlot; iframe HtiP HrtR
   iunfold mvcc.wsDep at Hwsd
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp
-  rw [hnat1] at Hpslen ⊢
+  rw [hnat1] at Hpslen HP ⊢
+  -- revision `cQ` changes each key once (or no compaction): the scan kept every entry
+  rw [mvcc.entsEvents_logEnts C HCwf.1 HCwf.2.1 HCwf.2.2 W' _ _ (Nat.le_refl _) P (HP.2 HndQ)]
+    at Hpslen ⊢
   generalize hevm : (mvcc.logEvents C (sint.nat minRev) C.length).filter
     (fun ev => mvcc.wgCovers W' ev.kv.key) = evm at Hpslen ⊢
   (try wp_auto)
