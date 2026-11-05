@@ -1502,3 +1502,31 @@ Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
   collects `srvStopKeep`'s readers, the compactor's (nil), the apply thread's (`apply.kvOwn`,
   `writerOwn`), the monitor's retired one (`srvWTPool`), the loops' (`watchableStore.Close`) and
   the caller's unused serving stocks (`memberUp`).
+
+### R2b-3d stage 5: the shutdown and `run.specStop` (2026-11-05, plan)
+
+`run`'s deferred function (`server.go`):
+```
+s.wgMu.Lock(); close(s.stopping); s.wgMu.Unlock(); s.cancel(); sched.Stop(); s.wg.Wait()
+s.r.stop(); s.Cleanup(); close(s.done)
+```
+Each step and its source:
+| step | spec | gives |
+|---|---|---|
+| `wgMu.Lock`, `close(stopping)` | `wgMuP`'s protocol (`GoAttach`) | no goroutine attached after |
+| `cancel()` | `context`'s | — |
+| `sched.Stop()` | `schedule.fifo.Stop.spec` | the last job's saved post: `applyResC … A ∗ nodeRunning ½` |
+| `s.wg.Wait()` | the server's wait group | the attached goroutines' tokens |
+| `s.r.stop()` | `raftNode.stop.specStop` | `nodeVacant`, `raftState S`, `StorageHolds S σ`, the WAL's closed files |
+| `Cleanup()` | `EtcdServer.Cleanup.spec` with `commitReq_freeze`'s request | `freezeY`, `bStopView` at `D`, `fileHolds path D`, `bFile` |
+| `close(done)` | `srvDoneInv` | the image escrowed |
+The image (`srvDiskImage`), clause by clause:
+- raft's part from `r.stop`;
+- the backend's from `StopImage.stop_mergedObs`, then the pure part of `merged_imageC` (`mergedObsM` → `imageAt`);
+- the configuration from `RestConf.restModel_confState` (premises from `srvRaftLogInv`, `srvBootLogOk`, `srvClusterOk`'s `bootURLsOk`, `srv_committed_ccBoot`; empty V2 entries excluded);
+- the files from `Cleanup`'s and `r.stop`'s posts (`srvFiles`, `bFile_agree`);
+- the registry's authority from `srvStopKeep`;
+- `bootLen ≤ i` from the stop request's `srvBootApplied`.
+`Cleanup`'s whole open token is gap 4's census: `srvStopKeep`'s readers, the apply thread's, the loops' and the caller's unused serving stocks. So `run.specStop` (or `HardStop`'s caller) also takes `memberUp`'s unused stocks.
+
+Steps: (5a) the image's pure assembly lemma (`imageAt`, the configuration, the index bounds), from the observations, in a module of its own; (5b) `Cleanup`'s preconditions from `applyResC`, `srvSnapRes`, `srvStopKeep` and the stocks (the open token by `bOpen_one_pool`, as R-D1); (5c) the deferred function's WP; (5d) `run.specStop` (a variant of `run.wp_proof`, the stop clause taken).
