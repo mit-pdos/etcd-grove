@@ -17,6 +17,9 @@ counterpart).
   bucket is the logical one (`m`, the store's view) but the deleted entries `X` (`dlVd`), so the
   store's cut fact on `(m, X)` (`cutOk`) is the data's; with the compaction keys' values the
   records', the image.
+* **The cut under the store's steps**: a raised compaction revision (`cutOk_mono`), the job's
+  delete (`cutAt_del`), a commit's new revision (`cutOk_append`, with the running job's loop
+  invariant `jobPast`, `jobPast_append`).
 -/
 module
 
@@ -738,6 +741,168 @@ theorem cutAt_del {L : Log} (hb : LogB L) (hwf : LogWf' L) {c c₁ : Int} (h0 : 
     · intro hm
       obtain ⟨x, hx, hpx⟩ := List.mem_map.1 hm
       exact List.mem_map.2 ⟨x, ((hmemF x).1 hx).1, hpx⟩
+
+/-! ## The cut under a commit (`storeTxnWrite.End`'s new revision; the snapshot image's item 3) -/
+
+/-- A fold of inserts agrees at `k` on two maps agreeing there, or that it writes at `k`. -/
+theorem foldl_ins_lookup (k : GoString) :
+    ∀ (l : List (GoString × GoString)) (m₁ m₂ : Bucket),
+      (k ∈ l.map Prod.fst ∨ m₁.lookup k = m₂.lookup k) →
+      (l.foldl (fun m p => GMap.insert p.1 p.2 m) m₁).lookup k =
+        (l.foldl (fun m p => GMap.insert p.1 p.2 m) m₂).lookup k
+  | [], m₁, m₂, h => by
+    rcases h with h | h
+    · simp at h
+    · exact h
+  | p :: l, m₁, m₂, h => by
+    simp only [List.foldl_cons]
+    apply foldl_ins_lookup k l
+    by_cases hp : p.1 = k
+    · right; rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff, if_pos hp, if_pos hp]
+    · rcases h with h | h
+      · simp only [List.map_cons, List.mem_cons] at h
+        rcases h with h | h
+        · exact absurd h.symm hp
+        · left; exact h
+      · right; rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff, if_neg hp, if_neg hp]; exact h
+
+/-- A fold of inserts that writes nothing at `k` leaves it. -/
+theorem foldl_ins_lookup_not (k : GoString) :
+    ∀ (l : List (GoString × GoString)) (m : Bucket), k ∉ l.map Prod.fst →
+      (l.foldl (fun m p => GMap.insert p.1 p.2 m) m).lookup k = m.lookup k
+  | [], m, _ => rfl
+  | p :: l, m, h => by
+    simp only [List.map_cons, List.mem_cons, not_or] at h
+    simp only [List.foldl_cons]
+    rw [foldl_ins_lookup_not k l _ h.2, GMap.lookup_insert_eq_iff, if_neg (fun e => h.1 e.symm)]
+
+/-- The new revision's entries are its puts (`pendPuts`). -/
+theorem entsOfRev_pairs (L : Log) (pend : List Change) (hne : L ≠ []) :
+    (entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend).map KvEnt.pair =
+      pendPuts L pend := by
+  have hl : 0 < L.length := List.length_pos_iff.2 hne
+  have hs : stateAt (L ++ [pend]) (L.length - 1) = stateAfter L := by
+    rw [stateAt_append_lt L pend (by omega), stateAt_last]
+  rw [hs]
+  unfold pendPuts bucketOfRev entsOfRev
+  rw [List.map_filterMap]
+  congr 1
+  funext p
+  cases changeKv (W64 L.length) (stateAfter L) pend p.2 <;> rfl
+
+/-- **A commit keeps the cut** (`storeTxnWrite.End`'s new revision `pend` above `L`): the physical
+bucket gains the revision's entries, whose keys the backend never recorded deleted (`hX`), and the
+cut's shape holds of the old entries and the new ones (a new entry is above every old one, and
+compaction at `c < |L|` deletes no new entry: `KeyDel_prefix`). -/
+theorem cutOk_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (hne : L ≠ [])
+    {m : Bucket} {X : backend.VData} {c : Int} (h0 : -1 ≤ c) (hc : c < L.length)
+    (h : cutOk L m X c) (hX : ∀ p ∈ pendPuts L pend, X.lookup (keyName, p.1) = none) :
+    cutOk (L ++ [pend]) ((pendPuts L pend).foldl (fun m p => GMap.insert p.1 p.2 m) m) X c := by
+  obtain ⟨ents, hcut, hB⟩ := h
+  let N := entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend
+  have hlog : logEnts (L ++ [pend]) 0 (L ++ [pend]).length = logEnts L 0 L.length ++ N := by
+    rw [List.length_append, List.length_singleton]; exact logEnts_snoc L pend
+  have hL63 : L.length + 1 < 2 ^ 63 := by have := hb.1; simp at this; omega
+  -- an old entry's main is below `|L|`, a new one's is `|L|`
+  have hold : ∀ e ∈ logEnts L 0 L.length, sint.Z e.rev.main < L.length := by
+    intro e he
+    obtain ⟨j, i, cc, kv, -, -, hj, -, -, -, -, rfl⟩ := logEnts_entry L 0 L.length e he
+    simp only
+    have : sint.Z (W64 j) = j := by word
+    rw [this]; exact_mod_cast hj
+  have hnew : ∀ e ∈ N, sint.Z e.rev.main = L.length := by
+    intro e he
+    obtain ⟨i, cc, kv, -, -, rfl⟩ := (mem_entsOfRev _ _ _ e).1 he
+    simp only
+    word
+  have hpre : L <+: L ++ [pend] := List.prefix_append _ _
+  refine ⟨ents ++ N, ⟨?_, ?_, ?_⟩, ?_⟩
+  · rw [hlog]; exact hcut.1.append (List.Sublist.refl N)
+  · intro e he hn
+    rw [hlog] at he
+    rcases List.mem_append.1 he with he | he
+    · have hne' : e ∉ ents := fun h' => hn (List.mem_append_left _ h')
+      exact (KeyDel_prefix L (L ++ [pend]) hpre hb c h0 hc _).2 (hcut.2.1 e he hne')
+    · exact absurd (List.mem_append_right _ he) hn
+  · intro e₁ he₁ e₂ he₂ hk hlt hn₂
+    rw [hlog] at he₁ he₂
+    have he₂o : e₂ ∈ logEnts L 0 L.length := by
+      rcases List.mem_append.1 he₂ with h' | h'
+      · exact h'
+      · exact absurd (List.mem_append_right _ h') hn₂
+    have hn₂' : e₂ ∉ ents := fun h' => hn₂ (List.mem_append_left _ h')
+    have hm₂ := hold e₂ he₂o
+    have hle : sint.Z e₁.rev.main ≤ sint.Z e₂.rev.main := by
+      rcases hlt with h' | ⟨h', -⟩
+      · omega
+      · rw [h']; exact Int.le_refl _
+    intro hm₁
+    rcases List.mem_append.1 hm₁ with h' | h'
+    · rcases List.mem_append.1 he₁ with he₁o | he₁n
+      · exact hcut.2.2 e₁ he₁o e₂ he₂o hk hlt hn₂' h'
+      · have := hnew e₁ he₁n; omega
+    · have := hnew e₁ h'; omega
+  · intro k
+    have hpairs : N.map KvEnt.pair = pendPuts L pend := entsOfRev_pairs L pend hne
+    have hbe : bucketOfEnts (ents ++ N) =
+        (pendPuts L pend).foldl (fun m p => GMap.insert p.1 p.2 m) (bucketOfEnts ents) := by
+      unfold bucketOfEnts
+      rw [List.map_append, List.foldl_append, hpairs]
+    rw [hbe]
+    have hk := hB k
+    by_cases hx : (X.lookup (keyName, k)).isSome
+    · rw [if_pos hx]
+      rw [if_pos hx] at hk
+      have hnk : k ∉ (pendPuts L pend).map Prod.fst := by
+        intro hm
+        obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hm
+        rw [hX p hp] at hx; cases hx
+      rw [foldl_ins_lookup_not k _ _ hnk, ← hk]
+    · rw [if_neg hx]
+      rw [if_neg hx] at hk
+      exact foldl_ins_lookup k _ _ _ (Or.inr hk)
+
+/-- **The running job's loop invariant** (`entsCutAt_jobStep`'s `hpast`) at its compaction
+revision `c₁` and cursor `p`: every entry below the cursor that compaction at `c₁` deletes is gone
+from the physical bucket's entries `ents`. What the store must keep with the cut between the job's
+batches (the snapshot image's (a)). -/
+def jobPast (L : Log) (c₁ : Int) (p : Rev) (ents : List KvEnt) : Prop :=
+  ∀ e' ∈ logEnts L 0 L.length, Rev.lt e'.rev p → KeyDel L c₁ (revBytes e'.rev e'.tomb) → e' ∉ ents
+
+/-- **A commit keeps the job's loop invariant** (`cutOk_append`'s entries): the new revision's
+entries are above `c₁`, so compaction at `c₁` deletes none of them. -/
+theorem jobPast_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (hne : L ≠ [])
+    {c₁ : Int} (h0 : -1 ≤ c₁) (hc : c₁ < L.length) {p : Rev} {ents : List KvEnt}
+    (h : jobPast L c₁ p ents) :
+    jobPast (L ++ [pend]) c₁ p
+      (ents ++ entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend) := by
+  intro e' he' hlt hd hm
+  have hlog : logEnts (L ++ [pend]) 0 (L ++ [pend]).length =
+      logEnts L 0 L.length ++ entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend := by
+    rw [List.length_append, List.length_singleton]; exact logEnts_snoc L pend
+  have hL63 : L.length + 1 < 2 ^ 63 := by have := hb.1; simp at this; omega
+  have hpre : L <+: L ++ [pend] := List.prefix_append _ _
+  have hd' := (KeyDel_prefix L (L ++ [pend]) hpre hb c₁ h0 hc _).1 hd
+  rw [hlog] at he'
+  have hnewm : ∀ e ∈ entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend,
+      sint.Z e.rev.main = L.length := by
+    intro e he
+    obtain ⟨i, cc, kv, -, -, rfl⟩ := (mem_entsOfRev _ _ _ e).1 he
+    simp only
+    word
+  have hdm : ∀ e ∈ entsOfRev L.length (stateAt (L ++ [pend]) (L.length - 1)) pend,
+      ¬ KeyDel (L ++ [pend]) c₁ (revBytes e.rev e.tomb) := by
+    intro e he hk
+    obtain ⟨-, r, t, hr, -, hrc, -⟩ := hk
+    have hre := (revBytes_inj _ _ _ _ hr).2
+    rw [← hre] at hrc
+    have := hnewm e he
+    omega
+  rcases List.mem_append.1 he' with ho | hn
+  · rcases List.mem_append.1 hm with h1 | h1
+    · exact h e' ho hlt hd' h1
+    · exact hdm e' h1 hd
+  · exact hdm e' hn hd
 
 end pure
 
