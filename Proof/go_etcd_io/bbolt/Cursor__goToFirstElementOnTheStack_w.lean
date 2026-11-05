@@ -1,10 +1,12 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Cursor__goToFirstElementOnTheStack_w.lean` (U6z, `notes/bbolt-proof-plan.md`, "Writer
-reads at a fraction"). Unfinished: the loop as
-`goToFirstElementOnTheStack_r`'s, over `Bucket.pageNode_w.specQ` (each child's reference fresh:
-`refAt`; a node's registry fragment from `nlFrags`, F1), the child's page id read from the top
-reference (a node's inode, `nodePg`'s page ids; a page's branch element), and the new leaf's
-`sLeafOK` by the bridging lemma (see `Cursor__keyValue_ws`).
+The proof of `Spec/go_etcd_io/bbolt/Cursor__goToFirstElementOnTheStack_w.lean` (U6z/U6aa,
+`notes/bbolt-proof-plan.md`, "Writer reads at a fraction"): the stack's registry is first replaced by
+the writer's (`WGoFirst.nlX`, agreeing on the stack's nodes); the loop keeps a prefix (`sPrefix`)
+whose leaf page, once a path, holds its bounds' entries. Its top is a registered live node
+(`WGoFirst.top_node`: read through `objOwn`), the inline root page (its bytes from `wInlOwn`, a
+leaf by `inlineGood`) or a view page (`WGoFirst.top_page`); a leaf ends the loop (the prefix a
+path), a branch pushes the reference `pageNode_w` returns for its entry's child (`WGoFirst.push`,
+its registry fragment from `nlFrags`).
 -/
 module
 
@@ -94,7 +96,175 @@ theorem Cursor.goToFirstElementOnTheStack_w.wp_proofQ
   wp_method_call; wp_call
   wp_auto
   by_cases hn : e1.node' = null
-  · sorry
+  · -- a page reference
+    rw [hn]
+    wp_auto
+    icases wtxWQ_cells_acc K tx r m q X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
+    -- its bytes, through a source
+    obtain ⟨pg, hpg16, hsrcF⟩ : ∃ pg, 16 ≤ pg.length ∧
+        ((p1 = 0 ∧ els ++ R = [e1] ∧ sPathR (WGoFirst.nlX X) X.v bl rt (els ++ R) (pids ++ Q) ∧
+          pageFlags pg = leafPageFlag ∧ rt = 0 ∧ ipg = pg) ∨
+         (p1 ≠ 0 ∧ B.ib.root' ≠ W64 0 ∧ e1.page' = pageLoc X.v p1 ∧ X.v.pages !! p1 = some pg ∧
+          ((pageFlags pg = leafPageFlag ∧ sPathR (WGoFirst.nlX X) X.v bl rt (els ++ R) (pids ++ Q)) ∨
+           (pageFlags pg = branchPageFlag ∧ e1.index'.toNat < pageCount pg)))) := by
+      rcases WGoFirst.top_page X n bl rt B hc hB _ _ hp1 e1 p1 he1 hp1l hn with
+        ⟨hp0, hels, hrt, -, hpath⟩ | ⟨hp0, h0, hloc, pg, hpg, hk⟩
+      · obtain ⟨pg, hlp, -, -, hg⟩ := hlk1 hpath e1 p1 he1 hp1l hn
+        subst hp0
+        unfold leafPgAt at hlp; rw [if_pos rfl] at hlp; cases hlp
+        have hg := hg rfl
+        exact ⟨ipg, hg.2.2.2.1, Or.inl ⟨rfl, hels, hpath, hg.2.1, hrt, rfl⟩⟩
+      · have h4 := (Read.viewWF_page _ hc.1.2.2.2.2.2.2.2 _ _ hpg).2.2.1
+        exact ⟨pg, by omega, Or.inr ⟨hp0, h0, hloc, hpg, hk⟩⟩
+    icases Ho with #Ho
+    ihave Hsrc : (∃ s, srcLoc X.v e1.page' s pg : IProp GF) $$ []
+    · rcases hsrcF with ⟨-, hels, -, -, hrt, rfl⟩ | ⟨-, -, hloc, hpg, -⟩
+      · rw [hS] at hels
+        isimp only [hels, wStkOwn, wInlOwn, hrt, hn, and_self, ↓reduceIte] at Ho
+        icases Ho with ⟨-, Hi⟩
+        iapply WGoFirst.locOwn_srcLoc $$ Hi
+      · iclear Ho
+        iexists Src.view
+        rw [hloc]
+        iapply srcLoc_view_page X.v p1 pg hpg
+    icases Hsrc with ⟨%src, #Hsrc⟩
+    icases Write.srcLoc_acc (QpMul q wq) X.v e1.page' src pg $$ [Hcells] with ⟨%dq, Hp, Hpb⟩
+    · iframe; iframe #
+    icases Read.bytesPointsto_bounds e1.page' dq pg (by intro h; simp [h] at hpg16) $$ Hp
+      with ⟨Hp, %Hlb⟩
+    icases bytesPointsto_view_read (V := Page) e1.page' dq pg 0 e1.page' (by simp) (by omega) Hlb.1
+      $$ Hp with ⟨Hh, Hhb⟩
+    rw [show (decode (List.take 16 (List.drop 0 pg)) : Page) = pageHdr pg from rfl]
+    obtain ⟨hd, hH⟩ : ∃ hd, pageHdr pg = hd := ⟨_, rfl⟩
+    have hfz : pageFlags pg = hd.flags'.toNat := by unfold pageFlags; rw [hH]
+    rw [hH]
+    wp_apply hIL e1.page' hd dq $$ [Hh] as Hh
+    · iexact Hh
+    ihave Hp := Hhb $$ Hh
+    have hleafE : pageFlags pg = leafPageFlag →
+        sPathR (WGoFirst.nlX X) X.v bl rt (els ++ R) (pids ++ Q) := by
+      intro hl
+      rcases hsrcF with ⟨-, -, hpath, -⟩ | ⟨-, -, -, -, ⟨-, hpath⟩ | ⟨hb, -⟩⟩
+      · exact hpath
+      · exact hpath
+      · exact (WGoFirst.flag_ne hb hl).elim
+    by_cases hlf : pageFlags pg = leafPageFlag
+    · -- a leaf page: done
+      have hf2 : hd.flags' = W16 2 := by
+        apply BitVec.eq_of_toNat_eq; rw [← hfz, hlf]; rfl
+      rw [hf2]
+      wp_auto
+      wp_for_post
+      ihave Hcells := Hpb $$ Hp
+      ihave Hw := Hwb $$ Hcells
+      ihave Hs := Hsback $$ He
+      rw [show (S0 ++ [e1]).set (↑S0.length : Int).toNat e1 = S0 ++ [e1] by simp]
+      iapply HΦ
+      iexists stk1, R, Q, WGoFirst.nlX X
+      rw [hS]
+      iframe; iframe #
+      ipureintro
+      rw [← hS]
+      have hpath := hleafE hlf
+      exact ⟨hpath, hlk1 hpath, haf1⟩
+    · -- a branch page: its entry's child
+      obtain ⟨h0, hpg, hf, hi⟩ : B.ib.root' ≠ W64 0 ∧ X.v.pages !! p1 = some pg ∧
+          pageFlags pg = branchPageFlag ∧ e1.index'.toNat < pageCount pg := by
+        rcases hsrcF with ⟨-, -, -, hl, -⟩ | ⟨-, h0, -, hpg, ⟨hl, -⟩ | ⟨hb, hi⟩⟩
+        · exact absurd hl hlf
+        · exact absurd hl hlf
+        · exact ⟨h0, hpg, hb, hi⟩
+      have hf1 : hd.flags' ≠ W16 2 := by
+        intro h; apply hlf; rw [hfz, h]; rfl
+      rw [decide_eq_false hf1]
+      wp_auto
+      rw [hn]
+      wp_auto
+      obtain ⟨_, hbw⟩ := WGoFirst.viewWF_branchWF _ hc.1.2.2.2.2.2.2.2 _ _ hpg hf
+      obtain ⟨-, -, hcnt, -, -⟩ := hbw
+      have hcnt16 : pageCount pg < 2 ^ 16 := by unfold pageCount; exact BitVec.isLt _
+      have hu : uint.Z (W16 (sint.Z e1.index')) = (e1.index'.toNat : Int) := by
+        have : e1.index'.toNat < 2 ^ 16 := by omega
+        word
+      wp_apply hBE e1.page' (W16 (sint.Z e1.index')) Hlb.1
+        (by rw [hu]; unfold elemOff at hcnt; omega)
+      rw [hu]
+      have hoff : (16 + 16 * (e1.index'.toNat : Int)) = ((elemOff e1.index'.toNat : Nat) : Int) := by
+        unfold elemOff; push_cast; rfl
+      rw [hoff]
+      icases bytesPointsto_view_read (V := branchPageElement) e1.page' dq pg (elemOff e1.index'.toNat)
+        (e1.page' +ₗ ((elemOff e1.index'.toNat : Nat) : Int)) rfl
+        (by unfold elemOff at hcnt ⊢; omega) Hlb.1 $$ Hp with ⟨Hel, Helb⟩
+      rw [show (decode (List.take 16 (List.drop (elemOff e1.index'.toNat) pg)) : branchPageElement) =
+        branchElem pg e1.index'.toNat from rfl]
+      obtain ⟨be, hbe⟩ : ∃ be, branchElem pg e1.index'.toNat = be := ⟨_, rfl⟩
+      rw [hbe]
+      wp_apply hBP (e1.page' +ₗ ((elemOff e1.index'.toNat : Nat) : Int)) be dq $$ [Hel] as Hel
+      · iexact Hel
+      ihave Hp := Helb $$ Hel
+      ihave Hcells := Hpb $$ Hp
+      ihave Hw := Hwb $$ Hcells
+      have hchild : be.pgid' = W64 (branchPgid pg e1.index'.toNat : Int) := by
+        unfold branchPgid; rw [hbe]; exact (WBridge.w64_cast_toNat _).symm
+      rw [hchild]
+      try wp_auto
+      ihave Hs := Hsback $$ He
+      rw [show (S0 ++ [e1]).set (↑S0.length : Int).toNat e1 = S0 ++ [e1] by simp]
+      icases wtxWQ_nodes_nonnull K tx r m q X bl B hB $$ Hw with ⟨Hw, %Hnodes⟩
+      ihave %Hmax := wtxWQ_page_maxMap K tx r m q X $$ Hw
+      obtain ⟨pgc, hpgc⟩ : ∃ pgc, X.v.pages !! branchPgid pg e1.index'.toNat = some pgc :=
+        WBridge.viewWF_child _ hc.1.2.2.2.2.2.2.2 _ _ hpg hf _ hi
+      obtain ⟨hlive, hz, hnmnn, hpnpre⟩ := WGoFirst.pn_pre X n bl rt B hc hB Hmax h0 _ pgc hpgc
+        (WBridge.branchPgid_lt _ _)
+      wp_apply hpn K tx r m q X bl B _ hB hlive hz (fun h => absurd h Hnodes) hnmnn hpnpre $$ [Hw]
+        as %pp %nd ⟨Hw, %Hpn⟩
+      · iexact Hw
+      try wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl] as %s1 ⟨Hs, Hcap, -⟩
+      try wp_auto
+      wp_for_post
+      have hpush := WGoFirst.push X n bl rt B hc hB Hbase ipg (els ++ R) (pids ++ Q) hp1 e1 p1 he1
+        hp1l pg hpg hf hi h0 { page' := pp, node' := nd, index' := W64 0 } rfl Hpn
+      icases (show wtxWQ K tx r m q X ⊢ wtxWQ K tx r m q X ∗
+          nodeLoc r (WGoFirst.nlX X) ({ page' := pp, node' := nd, index' := W64 0 } : elemRef) by
+          unfold nodeLoc
+          by_cases hnd : nd = null
+          · simp only [hnd, ↓reduceIte]; iintro Hw; iframe
+          · simp only [hnd, ↓reduceIte]
+            have h1 : (els ++ R ++ [({ page' := pp, node' := nd, index' := W64 0 } : elemRef)])[(els ++ R).length]? =
+                some { page' := pp, node' := nd, index' := W64 0 } := by simp
+            have h2 : (pids ++ Q ++ [branchPgid pg e1.index'.toNat])[(els ++ R).length]? =
+                some (branchPgid pg e1.index'.toNat) := by rw [← hp1.2.1]; simp
+            have hx : X.nloc !! nd = some (bl, branchPgid pg e1.index'.toNat) :=
+              (hpush.1.2.2.2 _ _ _ h1 h2).1 hnd
+            iintro Hw
+            icases WGoFirst.wtxWQ_nlFrag K tx r m q X nd _ hx $$ Hw with ⟨Hw, #Hy⟩
+            iframe
+            iexists _
+            iframe #
+            ipureintro; exact hx) $$ Hw with ⟨Hw, Hne⟩
+      ihave Ho2 := WGoFirst.wStkOwn_snoc r (WGoFirst.nlX X) X.v rt ipg (S0 ++ [e1])
+        { page' := pp, node' := nd, index' := W64 0 } (by simp) $$ [Ho Hne]
+      · iframe
+        iexact Ho
+      isplitl [HΦ]
+      · iexact HΦ
+      iexists s1, R ++ [{ page' := pp, node' := nd, index' := W64 0 }],
+        Q ++ [branchPgid pg e1.index'.toNat]
+      simp only [named, ← List.append_assoc]
+      rw [hS]
+      iframe
+      ipureintro
+      rw [← hS]
+      refine ⟨hpush.1, hpush.2, fun x hx => ?_⟩
+      rcases List.mem_append.1 hx with h | h
+      · exact haf1 x h
+      · simp at h; rw [h]; rfl
+
   · -- a node reference
     obtain ⟨rn, hrn, hlv, hleafT, hbrF⟩ := WGoFirst.top_node X n bl rt B hc hB _ _ hp1 e1 p1 he1 hp1l hn
     rw [decide_eq_false hn]

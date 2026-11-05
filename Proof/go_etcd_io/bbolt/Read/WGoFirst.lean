@@ -467,6 +467,16 @@ theorem locOwn_srcLoc (v : View) (p : Loc) (bs : List w8) :
   · iexists Src.view; unfold srcLoc; ipureintro; exact H
   · iexists Src.own DFrac.discard; unfold srcLoc; iexact H
 
+/-- **A writer stack's registry agrees with the writer's** (its `wStkOwn`, persistent, kept). -/
+theorem wtxWQ_wStkOwn_agree (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX)
+    (nl : Loc → Option (Loc × Nat)) (v : View) (rt : Nat) (ipg : List w8) (els : List elemRef) :
+    wtxWQ (GF := GF) K tx r m q X ∗ wStkOwn r nl v rt ipg els ⊢
+      wtxWQ K tx r m q X ∗ ⌜∀ e ∈ els, e.node' ≠ null → nl e.node' = nlX X e.node'⌝ := by
+  unfold wStkOwn nlX
+  iintro ⟨Hw, Hn, -⟩
+  iapply wtxWQ_nodeLoc_agree K tx r m q X nl els $$ [Hw Hn]
+  iframe
+
 end iprop
 
 end WGoFirst
