@@ -77,14 +77,18 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn hnI
+    sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
+  -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise `γr.kv.lg = false`)
+  cases hlgk : γr.kv.lg
+  case true =>
+    sorry -- DRAFT S2–S4 (Prove: a granting cluster's snapshot; with auth off as `ApplyAllSnap`'s, with auth on refuted by the auth/lease coupling)
   cases hM : E.authMode with
   | any => exact absurd hM hany
   | off =>
     have hon : E.authOn = false := by simp [apply.AEnv.authOn, hM]
     rw [hon] at hch ⊢
     exact hSnapOff s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid
-      nk q γn rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn (by rw [hraft]) hnI
+      nk q γn rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn (by rw [hraft]) hnI
   | on γa =>
   have hon : E.authOn = true := by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]
   rw [hon] at hch ⊢
@@ -137,6 +141,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   · iExactEq HlpM <;> rfl
   ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A .none (by decide)
     (by rw [apply.AEnv.lg_eq, hEm]) $$ [$HlpM $Hlrev $HRS]
+  ihave #HlpE : lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)) $$ []
+  · rw [hEm]; iexact HlpM
   rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn
   subst Hidn
@@ -210,15 +216,15 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   have hS := hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok r
+      al ast lp cl x A hRO hwq R Hif.hpre Hif.hRok r
       (fun h => by rw [hcm, Hcmf] at h; cases h) Hif.hkI hbr hlp γp hrb stp γd γt
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm
       halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      (by rw [hon]; exact Hif.hA') hany
+      (by rw [hon]; exact Hif.hA') Hif.hlease hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI, Hif.pre,
         by have := Hif.len; omega⟩)
-      γnc HElg
+      γnc
   rw [hon] at hS
   simp only [srvApplyKVM_true] at hS
   wp_apply hS

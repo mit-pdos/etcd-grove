@@ -42,7 +42,7 @@ theorem stop_mergedObs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) 
     (A : List EntryModel) (x : apply.ApplyKV) (d : mvcc.KBReal) (f : w64 → w64) (st : ApplyState)
     (D : backend.Data) (hkb : E.γ.kb = some d) (hcK : ciKeys d.P)
     (hRB : ∀ n ∈ restBuckets, d.P.RB n = true) (hcm : d.cm = E.cmp) (hci : ciEff γA st.k = ai)
-    (Hwf : mvcc.IdxWf x.log []) :
+    (Hwf : mvcc.IdxWf x.log []) (hfb : E.lg = true → leaseTTLsAbove (appliedTable γr A) f) :
     freezeY γA st ∗
       backend.rbOwnIn d.γB membership.clusterBkts
         (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
@@ -88,7 +88,7 @@ theorem stop_mergedObs (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames) 
     iframe Hrc Hrn Hnone
   ipureintro
   obtain ⟨⟨hciO, hrbD, -⟩, ⟨-, hex⟩, hwo⟩ := h
-  exact mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf
+  exact mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf hfb
 
 /-- **The image clause of the stopped backend's data** (the restart plan's R2b-3d stage 5a; the
 pure part of `merged_image`): an observation `mergedObs` of `D` at the applied index `ai` of the

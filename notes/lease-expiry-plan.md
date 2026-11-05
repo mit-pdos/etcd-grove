@@ -2109,6 +2109,120 @@ approved (the lessor's `histOnce` ids-only and `histCover`, Q-S7's `Lr`, items 2
 independent of this choice. It waits only because dropping `leaseTTLAt_ttl_agree` breaks `Main`'s
 proof.
 
+### Fourth round (after Q-S8, 2026-11-05): applied, as DRAFT
+
+Applied on `lease-snap` under the batching rule (frozen or exported changes beyond the approvals
+applied as DRAFT and logged below, not stopped at). `srvGrantOpen`, `srvGrantOpen_snap`,
+`runSnapLgOkBody`, `srvGrantOpen_open`, `bootCfg_open`, `runCfg_open` are deleted; no `hslg` is
+left in the Mains or the `MainLinked` files.
+
+**The statements, before → after (the approved ones).**
+
+- `lease.histOnce hs` (Q-S4 (A)): "live at `i` with lease `l` and at `k` → live at every `j`
+  between *with `l`*" → ids only: `(σ.1.lookup id).isSome → (ρ.1.lookup id).isSome →
+  (τ.1.lookup id).isSome`. `histOnce_lease` deleted; `histOnce_snoc`'s premise "same `*Lease` or
+  never had" → "live in the last snapshot or never had"; `histOnce_fresh` → `histOnce_recover`.
+- `LessorRdNames`: `GName × GName × Bool × GName` → `… × GName × GName` (the fifth, `γr.2.2.2.2`,
+  the requested TTLs' ghost map; `U` moves to `γr.2.2.2.1`).
+- `lessorRdBody` gains a last conjunct `∃ Q, ghostMapAuth γr.2.2.2.2 1 Q ∗ ⌜reqOk hs Q⌝`, with
+  `reqOk hs Q := (∀ i σ id t r, hs[i]? = some σ → (σ.1.lookup id).isSome → σ.2.2.lookup id = some
+  t → Q.lookup id = some r → sint.Z r ≤ sint.Z t) ∧ (∀ id r, Q.lookup id = some r → everIn hs id)`.
+- New `lease.leaseReqIs γl id r := ∃ γr, lessorPinR γl γr ∗ ghostMapElem γr.2.2.2.2 id □ r`
+  (persistent).
+- `leaseTTLAt_ttl_agree` (… `leaseLiveFrom γl m id l ∗ lsF "ttl" l ↦□ t ∗ leaseTTLAt γl j id t' ⊢
+  ⌜t' = t⌝`) → `leaseTTLAt_ge_req : lessorRdInv γl ∗ leaseReqIs γl id r ∗ leaseTTLAt γl j id t ⊢
+  |={E}=> ⌜sint.Z r ≤ sint.Z t⌝` (proved).
+- `lessor.Grant.spec`, success post: `… ∗ leaseEver γl (U ++ [id])` → `… ∗ leaseEver γl (U ++ [id])
+  ∗ leaseReqIs γl id ttl` (Q-S8; proved: `grant_hist` inserts it, `grantTTL_ge`).
+- `lessor.Recover.spec` (Q-S4, Q-S7, Q-S8): binders `+ (rq : w64 → w64) (Lr : List w64)`; premise
+  `∀ id ∈ recs.map (·.1), id ∉ U` → `∀ id ∈ recs.map (·.1), id ∈ U → id ∈ L`, plus
+  `∀ x ∈ recs, sint.Z (rq x.1) ≤ sint.Z x.2.1` and `Lr.Perm (recs.map (·.1))`; pre `+ □ ([∗list] x
+  ∈ recs, ⌜x.1 ∉ U⌝ ∨ leaseReqIs γl x.1 (rq x.1))`; post `leaseOwn γl (recs.map (·.1)) ∅`,
+  `leaseRevokers γl (recs.map (·.1))` → at `Lr`, `+ □ ([∗list] x ∈ recs, leaseReqIs γl x.1 (rq
+  x.1))`.
+- `NewLessor`'s axiom: statement text unchanged; its post's `lessorInv` now contains the map (the
+  body above), and its docstring gains the bullet on the requested TTLs (ghost-only, allocated empty,
+  no claim about Go).
+- `applySnapshot.specSnapM`: `(hlease : (rbData d.P D "lease").getD ∅ = ∅)` → `(hlease :
+  imageLeasesAt γr d.P D A')` (moved after `hA'`); `E.lg = false →` dropped;
+  `lease.lessorRevocable E.γ.leases` → `lease.lessorModeIs E.γ.leases (decide (E.lm = .mono))` (Q-S5).
+- `applyAll.specSnap`, `specSnapM`: `γr.kv.lg = false →` dropped.
+- `lease.bootCfg lm m on`: the conjunct `(m ≠ .none → srvGrantOpen)` dropped (`bootCfg_mono`,
+  `bootCfg_revocable` lose `hopen`); `lease.runCfg lm m` likewise (`runCfg_mono`, `runCfg_revocable`
+  lose `hopen`); `run_job_snap`, `run_job_snapC` lose `hslg`.
+- `etcd_leasegrant.Main.wp_proof` loses `hslg : srvGrantOpen`; `etcd_leaseexpiry.Main.wp_proof`
+  loses `hslg` (keeps `hrev`). `Main:324` re-proved from `leaseTTLAt_ge_req` and the grant's
+  `leaseReqIs … 1` (a real proof).
+
+**The batch: frozen, exported or trusted changes beyond the approvals** (each old → new, cause).
+
+1. `apply.isApplyLessor`'s `Grant` clause (frozen contract), success post `… ∗ lease.leaseEver
+   γ.leases (U ++ [id]) ∗ ∃ t, …` → `… ∗ lease.leaseEver γ.leases (U ++ [id]) ∗ lease.leaseReqIs
+   γ.leases id ttl ∗ ∃ t, …`. Cause: Q-S8's "carried up the grant chain" (the lessor's post feeds it,
+   `LessorDerive`).
+2. `apply.grantAnswer`'s success fact `∃ i l t, leaseLiveFrom … ∗ lsF "ttl" l ↦□ t ∗ ⌜g.ttl ≤ t⌝`
+   → `… ∗ ⌜g.ttl ≤ t⌝ ∗ lease.leaseReqIs E.γ.leases g.id g.ttl`. Cause: the same chain.
+3. `leaseGrantedResp E resp reqTTL`'s last conjunct `… ∗ ⌜reqTTL ≤ t⌝` → `… ∗ ⌜reqTTL ≤ t⌝ ∗
+   lease.leaseReqIs E.γ.leases id reqTTL`. Cause: the same chain.
+4. `v3rpc.grantLiveG E m id`: `… ∗ ⌜m.1 ≤ t⌝` → `… ∗ ⌜m.1 ≤ t⌝ ∗ lease.leaseReqIs E.γ.leases id
+   m.1`. Cause: the same chain (`etcdLeaseGrantSpecLive` is it by definition).
+5. `etcdLeaseGrantSpecLive γl` (the client's exported contract): `… ∗ ⌜req.1 ≤ t⌝` → `… ∗ ⌜req.1 ≤
+   t⌝ ∗ lease.leaseReqIs γl id req.1`. Cause: Q-S8's endpoint; `Main` names its request through it.
+6. `SnapImageFacts.hlease`, `SnapImageFactsOn.hlease` (internal structures, exported): the empty
+   bucket → `imageLeasesAt γr d.P D A'`. Cause: `specSnapM`'s new `hlease`.
+7. `lessor_live_perm` (new law, DRAFT sorry): the lessor's authority, the lock's half, `leaseOwn`
+   and `leaseRevokers` at a permutation. Cause: Q-S7's `Lr` (`Recover`'s proof).
+8. The lessor's internal lemmas `grant_hist`, `closers_grant` (+ `r`, `hrt`, post `leaseReqIs`),
+   `recover_hist`, `closers_recover` (the new `hfresh`, `rq`, the requests in and out). Cause: the
+   approved lessor changes.
+
+No new or widened axiom besides the approved `NewLessor` post; no trusted model.
+
+**The TTL bound (Q-S6 (A-ii)), applied in a second pass at 82's instruction** (the first pass put it on
+`bkRestAtL` alone, which made the sender's `mergedObs_of_M`/`bkRestIf_of_rb` false; reverted). Its
+source is the lessor's contract (`isApplyLessor`'s `⌜ttl ≤ t⌝`, from `grantTTL_ge`), which the
+apply chain dropped: the record's TTL is carried up to `srvRestAt`, then to the sender, then to
+`bkRestAtL`. Every statement below is true, and all are proved (no sorry added).
+
+- New vocabulary: `leaseTTLsAbove T f := ∀ p ∈ T, sint.Z p.2 ≤ sint.Z (f p.1)` (`KVModelDefs`;
+  the table's TTL is the grant's request, `backendTable`'s `(g.id, g.ttl)`), `apply.grantTTLOk rq t
+  := ∀ g, rq.leaseGrant = some g → sint.Z g.ttl ≤ sint.Z t` (`Chain`).
+9. `apply.grantPost` (the applier's `LeaseGrant` triples, frozen): `∃ t, E.RO (grantRest t …)` →
+   `∃ t, ⌜sint.Z g.ttl ≤ sint.Z t⌝ ∗ E.RO (grantRest t …)`. Cause: Q-S6's bound (the backend's
+   proof has it from the lessor's contract; capped/corrupt/rejected at `t := g.ttl`).
+10. `apply.uberApplier.dispatch.spec`, `apply.uberApplier.Apply.spec` (frozen), and
+   `ApplyRec`'s internal triples: the post's `∃ t, E.RO (revokeRest… (grantRest t …))` → `∃ t,
+   ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (…)`. Cause: the same.
+11. `srvRestAt E T r` (internal): `T : List w64` → `T : LeaseTable`, its `∃ f` → `∃ f, ⌜leaseTTLsAbove T
+   f⌝ ∗ E.RO (restLeasesWith f T.ids r)`; `srvRestAt_open`, `srvRest_open`, `srvRest_close` gain
+   `⌜E.lg = true → leaseTTLsAbove (appliedTable γr A) f⌝`; `srvRest_applyG/P/P0/PG/R/PGR` take it
+   (`hfb`) and the post's `grantTTLOk`. New pure laws: `grantRestA_leasesF`, `dispatchTable_ttls`,
+   `dispatchTableA_ttls`, `chainTable_sub_nonGrant`, `dispatchTable_sub_nonGrant`.
+12. The sender: `bkRestAtM M T` (`T : List w64` → `LeaseTable`, `∃ f, leaseTTLsAbove T f ∧ …`),
+   `mergedObsM`'s table `if lg then kvLeases … else []`; `bkRestIf_of_rb`, `mergedObsM_of_obs`,
+   `stop_mergedObs`, `stop_mergedObsP` take `hfb`. `mergedObs`'s statement is unchanged (it is
+   `bkRestAtL`'s).
+13. `bkRestAtL γk bootLog L D` (lease-grant's Freeze, #7's `imageAt`): `∃ f, ∀ n ∈ restBuckets, …`
+   → `∃ f, leaseTTLsAbove (kvLeases γk L) f ∧ ∀ n ∈ restBuckets, …`; `bkRestAtL_of_rb` takes the
+   bound. `imageLeasesAt` (round 3's) gains the same; `imageLeasesAt_recs` (DRAFT sorry) gains the
+   per-record bound `∀ x ∈ recs, ∀ p ∈ appliedTable γr A', p.1 = x.1 → sint.Z p.2 ≤ sint.Z x.2.1`
+   (what `Recover`'s `rq` premise takes, with `rq` the table's requests).
+
+**Not yet applied (left for the next round; none a false statement).**
+
+- `srvEver` keeping `leaseReqIs` (Q-S8). It threads through the apply chain's grant step
+  (`applyEntryNormal`'s five `srvEver_grant`/`srvEver_same` sites): `srvEver_same`'s `everOwn E U ⊢
+  srvEver …` would be false with the requests in `srvEver`, so the laws must take them and every
+  caller carry them. Its only consumer is the granting walk's `Recover` pre (`⌜x.1 ∉ U⌝ ∨
+  leaseReqIs …`), a DRAFT branch. Proposed: `srvEver`'s `∃ U` gains `□ [∗list] u ∈ U, ∃ r,
+  lease.leaseReqIs E.γ.leases u r ∗ ⌜r = the log's request of u⌝`.
+- `histCover` (internal): only the granting walk's `Recover` premise needs it; added with that proof.
+
+**DRAFT S2–S4 sorries** (all Prove work): `LessorRecoverLemmas`: `recover_hist`'s request update,
+`closers_recover`'s `hrq` step, `lessor_live_perm`; `ImageLeases`: `imageLeasesAt_recs`,
+`appliedTable_mono_sub`, `appliedTable_granted_live`; `SnapRecvOn`: `hlease` with auth on; `EtcdServer__applySnapshot`: the granting walk (`lg = true`)
+and the empty bucket at `lg = false`; `ApplyAllSnap`, `ApplyAllSnapOn`: the `lg = true` case.
+
 ## Scope candidate: discharging `srvRevokeOpen_open` (2026-11-05; parked until S2–S4 lands)
 
 Status: a candidate, not yet brought to the user (etcd-grove-82 brings it when it is next in the queue). It is a

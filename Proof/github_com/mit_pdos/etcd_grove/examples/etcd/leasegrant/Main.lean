@@ -61,11 +61,7 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG))
-    (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG))
-    -- (2026-11-02) the open cases of a cluster that grants leases (`srvGrantOpen`,
-    -- `NewServer`'s precondition through `memberBoot`, with `Main`'s `leasesNoExpiry`: review S1):
-    -- this example's names grant leases
-    (hslg : srvGrantOpen (GF := GF)) :
+    (wp_Leases : lessor.Leases.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP HnE Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem, Hwdf⟩
@@ -100,7 +96,7 @@ theorem Main.wp_proof
   -- the ghost state `NewServer` takes (`alloc1`), at KV names that grant leases
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leasegrantDir id)
-      (dirOne_member id _) (by omega) (by omega) false 0 .mono .mono (lease.runCfg_mono HnE hslg)) $$ Hmarsh
+      (dirOne_member id _) (by omega) (by omega) false 0 .mono .mono (lease.runCfg_mono HnE)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by

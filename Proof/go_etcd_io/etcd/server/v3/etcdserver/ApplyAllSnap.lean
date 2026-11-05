@@ -67,7 +67,11 @@ theorem EtcdServer.applyAll.wp_proofSnap
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnap (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn _hpre hnI
+    hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn _hpre hnI
+  -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise `γr.kv.lg = false`)
+  cases hlgk : γr.kv.lg
+  case true =>
+    sorry -- DRAFT S2–S4 (Prove: a granting cluster's snapshot, `snapRecv_image` at the KV mode, `specSnapM` with the lessor at the environment's mode)
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
@@ -111,6 +115,8 @@ theorem EtcdServer.applyAll.wp_proofSnap
   · iExactEq HlpM <;> rfl
   ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A .none (by decide)
     (by rw [apply.AEnv.lg_eq, hEm]) $$ [$HlpM $Hlrev0 $HRS]
+  ihave #HlpE : lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)) $$ []
+  · rw [hEm]; iexact HlpM
   rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn
   subst Hidn
@@ -197,11 +203,11 @@ theorem EtcdServer.applyAll.wp_proofSnap
   have hS := (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok r (fun _ => hcc) Hif.hkI hbr hlp γp hrb stp γd γt
+      al ast lp cl x A hRO hwq R Hif.hpre Hif.hRok r (fun _ => hcc) Hif.hkI hbr hlp γp hrb stp γd γt
       (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm halbi
       Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      (by rw [Hoff]; exact Hif.hA') (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc HElg)
+      (by rw [Hoff]; exact Hif.hA') Hif.hlease (by rw [hoff]; simp) (by rw [hoff]; exact Hif.hauthb) γnc)
   rw [Hoff] at hS
   simp only [srvApplyKVM_false, isServerM_false, srvSnapAppliedM] at hS
   wp_apply hS

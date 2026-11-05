@@ -59,7 +59,8 @@ receiver (the Lease service's handler, `v3rpc.leaseHdrAns`) needs it: its lease 
 (`leaseLiveFrom`; the lease-expiry plan's X2, 2026-11-04: mode-free, until then `leaseGrantedAt`,
 which `lease.srvInv_grantedAt` gives back in the monotone mode), and the lease's read-only `ttl`
 field at least the request's TTL `reqTTL` (2026-11-05, the lease-expiry plan's E3/R5: the granted
-TTL; the lessor's `grantTTL` raises a TTL below its minimum, never lowers one).
+TTL; the lessor's `grantTTL` raises a TTL below its minimum, never lowers one), and (the
+lease-expiry plan's S2–S4, Q-S8, 2026-11-05) the lease's request `reqTTL` (`lease.leaseReqIs`).
 (The review's M3, 2026-11-02: until then the applied log itself, its certificate and witness, the
 supplier's mechanism.) -/
 def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) (reqTTL : w64) : IProp GF :=
@@ -72,7 +73,7 @@ def leaseGrantedResp (E : apply.AEnv GF) (resp : Loc) (reqTTL : w64) : IProp GF 
     structFieldRef etcdserverpb.LeaseGrantResponse go!"TTL" resp ↦□ ttl ∗
     structFieldRef etcdserverpb.LeaseGrantResponse go!"Error" resp ↦□ e ∗
     ∃ (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i id l ∗ lease.lsF go!"ttl" l ↦□ t ∗
-      ⌜sint.Z reqTTL ≤ sint.Z t⌝)
+      ⌜sint.Z reqTTL ≤ sint.Z t⌝ ∗ lease.leaseReqIs E.γ.leases id reqTTL)
 
 end defs
 

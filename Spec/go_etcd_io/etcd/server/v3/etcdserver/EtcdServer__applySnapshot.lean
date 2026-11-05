@@ -9,6 +9,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases
 
 @[expose] public section
 
@@ -85,7 +86,6 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
-    (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
     -- (since M2's item 15) the image by the store's mode at its compaction records
@@ -119,15 +119,15 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (A' : List EntryModel)
     (hA' : snapRestImgM E.authOn γr d.P D A' ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
+    -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty, at a cluster that
+    -- grants none) the image's lease bucket the records of its log's live leases
+    (hlease : imageLeasesAt γr d.P D A')
     -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`), and the image's
     -- auth facts by it (`off`: lean's `hauthb`; `on`: `snapRecv_imageOn`'s), in place of `hoff`
     (hany : E.authMode ≠ .any) (hauthI : snapAuthImgM E.authMode γr d.P D A A')
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
     (γnc : NotifyNames),
-    -- (the lease-expiry plan's X2, 2026-11-04, until S4) a cluster that grants no lease: the
-    -- revocable lessor no longer refutes the image's leased arm (`srvRest_revocable`)
-    E.lg = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -146,8 +146,10 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
-       -- (the lease-grant plan's D2, 2026-11-02) the lessor revocable (`Recover`'s premise)
-       lease.lessorRevocable E.γ.leases ∗
+       -- (the lease-grant plan's D2, 2026-11-02) the lessor's mode, `Recover`'s premise (the
+       -- lease-expiry plan's S2–S4, Q-S5, 2026-11-05: the environment's, `srvSnapRO`'s; until then
+       -- revocable, which only a cluster that grants none had)
+       lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)) ∗
        -- (M2's item 15) the server's closer by the mode (on, the watchable store's own parts: the
        -- store's right is the apply thread's, `srvApplyKV`'s compaction resources)
        srvKVCloserW s E ∗

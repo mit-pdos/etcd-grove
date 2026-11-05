@@ -121,9 +121,9 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
     iexists id
     iframe Hid'
     iunfold grantLiveG
-    icases Hgr with ⟨%l, %t', #Hgl, #Hgt, %Hge⟩
+    icases Hgr with ⟨%l, %t', #Hgl, #Hgt, %Hge, #Hgreq⟩
     iexists i, l, t'
-    iframe Hgl Hgt
+    iframe Hgl Hgt Hgreq
     ipureintro; exact Hge
   · obtain ⟨rfl, hne⟩ := He
     isplitl

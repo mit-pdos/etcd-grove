@@ -33,6 +33,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.clusterImageOk_restModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelRestore
@@ -257,7 +258,9 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   hRok : mvcc.restoreLogOk R
   /-- (D22 J7b) the image's KV model short enough (`snapRecv_kv_jump`'s `hlen`) -/
   hlen : (kvModel γr.kv A').length < 2 ^ 63
-  hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅
+  /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) the image's lease
+  bucket the records of its log's live leases -/
+  hlease : imageLeasesAt γr d.P D A'
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
     ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
@@ -518,7 +521,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
     hRok := hrok
     hlen := kvModel_len_of_rok γr.kv A' _ hsplit hrok
-    hlease := hb.1
+    hlease := imageLeasesAt_of_bkRestAtL d hrestL
     halarm := hb.2.1
     hauthb := hb.2.2
     hmemb := image_membBuckets d hrest

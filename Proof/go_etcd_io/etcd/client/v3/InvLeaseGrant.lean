@@ -92,12 +92,16 @@ the lessor's history from some index (`leaseLiveFrom`: a revocable lessor may re
 listing need list it). Until E3 it covered any request, and the old contract followed from it
 (`isGrpcRpc_leaseGrantLive_any`, unused, removed). (2026-11-05, the lease-expiry plan's E3/R5: the
 granted TTL) And the lease's read-only `ttl` field `t` is at least the requested TTL (`req.1`): the
-lessor's `grantTTL` only raises a TTL to its minimum (`lease.grantTTL_ge`), and the TTL every
-snapshot of the history gives the lease is `t` (`lease.leaseTTLAt_ttl_agree`). -/
+lessor's `grantTTL` only raises a TTL to its minimum (`lease.grantTTL_ge`). (The lease-expiry
+plan's S2–S4, Q-S8, 2026-11-05) And the lease's request is `req.1` (`lease.leaseReqIs`): every TTL
+the history gives the id is at least `req.1` (`lease.leaseTTLAt_ge_req`; until S2–S4 the history's
+TTL was `t` itself, `lease.leaseTTLAt_ttl_agree`, which `Recover` replacing a lease's `*Lease`
+breaks). -/
 def etcdLeaseGrantSpecLive (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   etcdLeaseGrantSpecGR (fun (req : w64 × w64) id => iprop(∃ (i : Nat) (l : Loc) (t : w64),
-      lease.leaseLiveFrom γl i id l ∗ lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z req.1 ≤ sint.Z t⌝))
+      lease.leaseLiveFrom γl i id l ∗ lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z req.1 ≤ sint.Z t⌝ ∗
+      lease.leaseReqIs γl id req.1))
     (fun m => m.2 = W64 0)
 
 end specs

@@ -2,7 +2,7 @@
 **What `run` needs, `isServerRun`** (`server.go`): the construction premise of `run`'s spec. Lean-first.
 The vocabulary it is written in (the log raft hands the apply side, the apply thread's resources
 `applyRes`, `applyStart`, `srvMetaSnap`, ...) is `InvRunRes.lean`'s, the lease subsystem's premise
-(`lease.runCfg`, with `srvGrantOpen`) `LeaseRun.lean`'s (2026-11-04, the lease-expiry plan's Part
+(`lease.runCfg`) `LeaseRun.lean`'s (2026-11-04, the lease-expiry plan's Part
 C, option (a): split from this file so that the sealed `lease.runCfg` sits below `isServerRun`).
 -/
 module

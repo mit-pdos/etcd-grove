@@ -97,7 +97,7 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
       |={⊤}=> kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗
         □ (srvNet (GF := GF) γr.raft.raft).img ai D := by
   iintro ⟨%hobs, #Hrc, #Hsrv, Hka⟩
-  obtain ⟨⟨⟨r, hkI, -⟩, hci, hterm, ⟨f, hrest⟩, hwf⟩, hau⟩ := hobs
+  obtain ⟨⟨⟨r, hkI, -⟩, hci, hterm, ⟨f, -, hrest⟩, hwf⟩, hau⟩ := hobs
   iunfold isServerM at Hsrv
   icases Hsrv with ⟨-, -, -, Hat, -, -⟩
   iunfold srvAtomicsM at Hat
@@ -145,7 +145,7 @@ theorem merged_imageOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → I
   rw [hxl] at hkI hwf
   obtain ⟨-, hr0⟩ := (mvcc.keyImageM_off _ _ D).1 hkI
   rw [hM] at hrest
-  have hT : (if E.lg then (kvLeases γr.kv (γr.raft.pre ++ A)).ids else []) = [] := by
+  have hT : LeaseTable.ids (if E.lg then kvLeases γr.kv (γr.raft.pre ++ A) else []) = [] := by
     split
     · unfold kvLeases; rw [hpre, List.nil_append, kvTableOf_plainOn _ _ A Hpl]; rfl
     · rfl

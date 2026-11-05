@@ -587,7 +587,7 @@ theorem EtcdServer.apply.wp_proofOff
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
-        ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
+        ihave ⟨%f, %Hfbt, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -714,6 +714,7 @@ theorem EtcdServer.apply.wp_proofOff
           iexists f
           rw [← ccRest_restLeasesWith]
           iframe HRS HLt HGI
+          ipureintro; exact Hfbt
         cc_kv_applied
         subst Hsb Hrem
         (
@@ -1476,7 +1477,7 @@ theorem EtcdServer.apply.wp_proofOn
               exact this) $$ [Hdv Hrun] with
           ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr' Hrun
-        ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
+        ihave ⟨%f, %Hfbt, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
@@ -1603,6 +1604,7 @@ theorem EtcdServer.apply.wp_proofOn
           iexists f
           rw [← ccRest_restLeasesWith]
           iframe HRS HLt HGI
+          ipureintro; exact Hfbt
         cc_kv_appliedOn
         subst Hsb Hrem
         (

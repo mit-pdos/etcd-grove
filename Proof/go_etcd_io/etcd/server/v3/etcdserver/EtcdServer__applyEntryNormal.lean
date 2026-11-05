@@ -349,7 +349,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave HSpF : iprop(if false = true then apply.ciSplit E iprop(True) else iprop(True)) $$ []
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iapply wp_fupd
-      ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
+      ihave ⟨%f, %Hfb, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
       ihave ⟨%U, HEv, #HGf, %HUok⟩ := srvEver_applyPre E γr.kv A m rq Htyp hdata hdec
         (Hpl rq hdata hdec) Hlmt.2 Hgf $$ [$HGI $HEv]
       ihave #Hgpq := srvGrantIf_permPG E rq (Hpl rq hdata hdec) $$ HGI
@@ -382,7 +382,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hrdat := Hrdb $$ Hrv
       ihave HEv := srvEver_grant E A m rq false out U Htyp hdata hdec (plainOrCmpG_lg E rq (Hpl rq hdata hdec)) HUok $$ HEv
       ihave HRS := srvRest_applyPGR E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch Hch0
-        (Hpl rq hdata hdec) Hstep $$ [HLt HRS HEv]
+        (Hpl rq hdata hdec) Hstep Hfb $$ [HLt HRS HEv]
       · iframe HGI HLt HRS HEv; ipureintro; exact Hgo
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
@@ -561,7 +561,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
             uint.Z (ciEff γ st.k) < uint.Z m.index⌝) else iprop(True)) $$ []
       · simp only [↓reduceIte]; iexact HSp
       (try wp_auto)
-      ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
+      ihave ⟨%f, %Hfb, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
       ihave ⟨%U, HEv, #HGf, %HUok⟩ := srvEver_applyPre E γr.kv A m rq Htyp hdata hdec
         (Hpl rq hdata hdec) Hlmt.2 Hgf $$ [$HGI $HEv]
       ihave #Hgpq := srvGrantIf_permPG E rq (Hpl rq hdata hdec) $$ HGI
@@ -615,7 +615,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hrdat := Hrdb $$ Hrv
       ihave HEv := srvEver_grant E A m rq true out U Htyp hdata hdec (plainOrCmpG_lg E rq (Hpl rq hdata hdec)) HUok $$ HEv
       ihave HRS := srvRest_applyPGR E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch Hch0
-        (Hpl rq hdata hdec) Hstep $$ [HLt HRS HEv]
+        (Hpl rq hdata hdec) Hstep Hfb $$ [HLt HRS HEv]
       · iframe HGI HLt HRS HEv; ipureintro; exact Hgo
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
@@ -1131,7 +1131,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, ⟨%w', %RD, #Hw', #Hwok', HRD⟩, Hrdat⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
-      ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
+      ihave ⟨%f, %Hfb, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
       · -- a plain request: `apply.Apply`
         have hrq' : apply.rqOk .none x.log rq :=
@@ -1173,7 +1173,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
         ihave HEv := srvEver_grant E A m rq false out U Htyp hdata hdec (fun hk => absurd hk (plainOrCmp_nonLease rq (Or.inl hp)).1) HUok $$ HEv
         ihave HRS := srvRest_applyP E γr A m rq false x x' out f Htyp hdata hdec HkA.2 Hxch
-          (Or.inl hp) Hstep $$ [HLt HRS HEv]
+          (Or.inl hp) Hstep Hfb $$ [HLt HRS HEv]
         · iframe HGI HLt HRS HEv; ipureintro; exact Hgo
         have hkeep := applyStep_plain_false rq x x' out hp Hstep
         tail_off
@@ -1207,7 +1207,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         have hsa' : sa' = sa := by simpa using Hsa'.2
         ihave HAR := Hcl $$ %hs' %sa Hfu Htie %(by rw [← hsa']; exact Hsa'.1) HT Htp
         ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS HLt HEv]
-        · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HEv; iexists f; iexact HRS
+        · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HEv; iexists f; iframe HRS; ipureintro; exact Hfb
         ihave HFS : E.FS $$ [HFS]
         · rw [HEo.2.1]; iexact HFS
         tail_off
@@ -1331,7 +1331,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       · iapply isPkgInit_access $$ Papp
       icases Hai with ⟨-, -, #Hev⟩
       hook_pre
-      ihave ⟨%f, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
+      ihave ⟨%f, %Hfb, HRS, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRS
       rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, hz, hsa⟩ | ⟨hadm, hns⟩
       · have hna := plainCover_needAdmin rq hp hpk
         icases HtokA with ⟨Htok, -⟩
@@ -1426,7 +1426,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           · rw [← HEo.2.1]; iexact HFS
           ihave HEv := srvEver_snoc E A m $$ HEv
           ihave HRS := srvRest_applyP0 E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
-            (Or.inl hp) Hstep0.1 $$ [HLt HRS HEv]
+            (Or.inl hp) Hstep0.1 Hfb $$ [HLt HRS HEv]
           · iframe HGI HLt HRS HEv
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
             $$ Hev HRes
@@ -1488,7 +1488,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ihave ⟨HLt, HRS⟩ := revokeA_drop E rq _ out _ _ _ (by first | exact plainOrCmpG_rev _ rq (Hpl rq hdata hdec) | exact plainOrCmpG_rev .none rq (Or.inl (Or.inl hp))) $$ [$HLt $HRS]
           ihave HEv := srvEver_grant E A m rq true out U Htyp hdata hdec (fun hk => absurd hk (plainOrCmp_nonLease rq (Or.inl hp)).1) HUok $$ HEv
           ihave HRS := srvRest_applyP E γr A m rq true x x' out f Htyp hdata hdec HkA.2 Hxch
-            (Or.inl hp) Hstep0.1 $$ [HLt HRS HEv]
+            (Or.inl hp) Hstep0.1 Hfb $$ [HLt HRS HEv]
           · iframe HGI HLt HRS HEv; ipureintro; exact Hgo
           ihave ⟨HRes, #Hnn⟩ := applyResultIs_notNoSpaceOn rq x x' ar out hp Hch Hstep0.1
             $$ Hev HRes
@@ -1575,7 +1575,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           · iapply (adminTieAr_nonAdmin ar rq sa (adminNext rq sa) out hna)
           ihave HAR := Hcl $$ %hs' %sa Hfu Htie %Hsa'.1 HT Htp
           ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS HLt HEv]
-          · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HEv; iexists f; iexact HRS
+          · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HEv; iexists f; iframe HRS; ipureintro; exact Hfb
           ihave #Hnn : iprop(⌜ar = null⌝ ∨ ∃ err : GoInterface,
               structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
               notNoSpaceErr err) $$ [HNS]
@@ -1656,7 +1656,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
         · rw [← hsa]; iexact HtA0
         ihave HAR := Hcl $$ %hs' %sa' Hfu Htie %Hsa'.1 HT Htp
         ihave HRS : srvRest E γr (A ++ [m]) $$ [HRS HLt HEv]
-        · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HEv; iexists f; iexact HRS
+        · iapply srvRest_admin E γr A m rq Htyp hdata hdec hadm; iapply srvRest_close; iframe HLt HGI HEv; iexists f; iframe HRS; ipureintro; exact Hfb
         ihave #Hnn : iprop(⌜ar = null⌝ ∨ ∃ err : GoInterface,
             structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
             notNoSpaceErr err) $$ [HNS]

@@ -457,6 +457,25 @@ def grantRest (t : w64) (rq : IRRModel) (v3 : Bool) (o : Outcome) (r : RestM) : 
     | _, _ => r
   else r
 
+/-- **The record's TTL `t` at least the grant's request** (the lease-expiry plan's S2–S4, Q-S6
+(A-ii), 2026-11-05): what `dispatch`'s and `Apply`'s posts say of the TTL `grantRest` puts
+(`lease.grantTTL_ge`); vacuous for a request with no grant field. -/
+def grantTTLOk (rq : IRRModel) (t : w64) : Prop :=
+  ∀ g : LeaseGrantModel, rq.leaseGrant = some g → sint.Z g.ttl ≤ sint.Z t
+
+/-- A TTL `grantTTLOk` holds of: the request's own (`0` with no grant field). -/
+def grantTTLW (rq : IRRModel) : w64 :=
+  match rq.leaseGrant with
+  | some g => g.ttl
+  | none => W64 0
+
+theorem grantTTLOk_w (rq : IRRModel) : grantTTLOk rq (grantTTLW rq) := by
+  intro g hg; unfold grantTTLW; rw [hg]; exact Int.le_refl _
+
+theorem grantTTLOk_of (rq : IRRModel) (g : LeaseGrantModel) (t : w64) (hg : rq.leaseGrant = some g)
+    (h : sint.Z g.ttl ≤ sint.Z t) : grantTTLOk rq t := by
+  intro g' hg'; rw [hg] at hg'; cases hg'; exact h
+
 theorem grantIds_rejected (rq : IRRModel) (v3 : Bool) (e : RejectKind) (L : List w64) :
     grantIds rq v3 (.rejected e) L = L := by
   unfold grantIds; split <;> rfl
@@ -1267,14 +1286,17 @@ def grantRespIs (E : AEnv GF) (r : Loc) (g : LeaseGrantModel) : IProp GF :=
 lease live in the lessor's history from some index (`leaseLiveFrom`; the lease-expiry plan's X2,
 2026-11-04: mode-free, until then `leaseGrantedAt`, which needs the monotone mode; `lease.srvInv`'s
 law gives it back at `mono`), and its read-only `ttl` field at least the request's TTL (2026-11-05,
-the lease-expiry plan's E3/R5: the granted TTL); `True` for a request with no grant. -/
+the lease-expiry plan's E3/R5: the granted TTL), and (the lease-expiry plan's S2–S4, Q-S8,
+2026-11-05) the lease's request, the request's TTL (`lease.leaseReqIs`); `True` for a request with
+no grant. -/
 def grantAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp GF :=
   match rq.leaseGrant with
   | some g => iprop(∃ r : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #r⌝ ∗
       ((⌜err = GoInterface.nil⌝ ∗ grantRespIs E r g ∗
           ∃ (i : Nat) (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i g.id l ∗
-            lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z g.ttl ≤ sint.Z t⌝) ∨
+            lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z g.ttl ≤ sint.Z t⌝ ∗
+            lease.leaseReqIs E.γ.leases g.id g.ttl) ∨
         ⌜err ≠ GoInterface.nil⌝))
   | none => iprop(True)
 
@@ -1809,7 +1831,8 @@ def grantPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd
 /-- **The grant triple's postcondition** (2.11) at the outcome `o`: the chain's step
 (`chainStep backendStep`), applied exactly without error, which is exactly when the chain lets the
 grant through and the lessor's condition holds at `T`; the half of the live set and the rest
-resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's), the ids the lessor
+resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's, at least the request's:
+the lease-expiry plan's S2–S4, Q-S6 (A-ii)), the ids the lessor
 ever had after it (`grantIds` of `U`: the grant's id added exactly when applied), the answer. -/
 def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : LeaseGrantModel)
     (log : mvcc.Log) (T : List w64) (rs : RestM) (U : List w64) (Pre Post : IProp GF) (resp : Loc)
@@ -1819,7 +1842,8 @@ def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : L
     (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs err) ∗
     ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧
       (err = GoInterface.nil ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)⌝ ∗
-    ltHalf E (grantIds rq true o T) ∗ (∃ t : w64, E.RO (grantRest t rq true o rs)) ∗
+    ltHalf E (grantIds rq true o T) ∗
+    (∃ t : w64, ⌜sint.Z g.ttl ≤ sint.Z t⌝ ∗ E.RO (grantRest t rq true o rs)) ∗
     lease.leaseEver E.γ.leases (grantIds rq true o U) ∗
     grantAnswer E rq (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #resp) err)
 

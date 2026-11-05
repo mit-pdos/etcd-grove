@@ -298,7 +298,7 @@ theorem isApplyLessor_of_lessorInv
       Pre Q Post U) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
     · iframe; iframe #
     iintro !> %l %err ⟨Hrt, Hbe, (⟨%Hne, #Herr, Hown, Hrvk, HPre, Hrb, HU⟩ |
-      ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb, HU⟩⟩)⟩
+      ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb, HU, #Hreq⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
       isplitr
@@ -323,7 +323,7 @@ theorem isApplyLessor_of_lessorInv
       isplitr
       · iapply applyErrIs_nil
       iright
-      iframe HPost Hown Hrvk Hlive HU
+      iframe HPost Hown Hrvk Hlive HU Hreq
       isplitr
       · ipureintro; exact ⟨rfl, Hid0, Httl, Hnin⟩
       isplitr

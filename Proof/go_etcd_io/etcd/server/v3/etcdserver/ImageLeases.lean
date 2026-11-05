@@ -40,11 +40,12 @@ open backend
 `γr.raft.pre ++ A'` (the receiver's names `γr`, tracked through the parameters `P`): one record per
 id of the log's lease table (`appliedTable γr A'`, i.e. `kvLeases γr.kv (γr.raft.pre ++ A')`), each
 the record `Grant` writes (`leaseEnc id t 0`), its TTL `f id` for some `f` (TTLs differ per
-member: `minLeaseTTL`), and no other record. Stated as `restLeasesWith`'s bucket over the rest
+member: `minLeaseTTL`; at least the table's, the grant's request: the lease-expiry plan's S2–S4,
+Q-S6 (A-ii)), and no other record. Stated as `restLeasesWith`'s bucket over the rest
 model's (empty) one, as `bkRestAtL` and `srvRest`'s leased arm state theirs. -/
 def imageLeasesAt [GooseExts] (γr : ReadNames) (P : BParams) (D : Data) (A' : List EntryModel) :
     Prop :=
-  ∃ f : w64 → w64, ((rbData P D).lookup go!"lease").getD ∅ =
+  ∃ f : w64 → w64, leaseTTLsAbove (appliedTable γr A') f ∧ ((rbData P D).lookup go!"lease").getD ∅ =
     ((apply.restLeasesWith f (appliedTable γr A').ids
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))).bk.lookup go!"lease").getD ∅
 
@@ -55,8 +56,8 @@ theorem imageLeasesAt_of_bkRestAtL [GooseExts] (d : mvcc.KBReal) {γr : ReadName
     {A' : List EntryModel} {D : Data}
     (h : bkRestAtL γr.kv γr.raft.raft.boot (γr.raft.pre ++ A') D) :
     imageLeasesAt γr d.P D A' := by
-  obtain ⟨f, hf⟩ := h
-  refine ⟨f, ?_⟩
+  obtain ⟨f, hb, hf⟩ := h
+  refine ⟨f, hb, ?_⟩
   rw [rbData_real_lookup d D go!"lease" (by decide), hf go!"lease" (by decide)]
   rfl
 
@@ -64,20 +65,22 @@ theorem imageLeasesAt_of_bkRestAtL [GooseExts] (d : mvcc.KBReal) {γr : ReadName
 theorem imageLeasesAt_nil [GooseExts] {γr : ReadNames} {P : BParams} {D : Data}
     {A' : List EntryModel} (hn : (appliedTable γr A').ids = []) (h : imageLeasesAt γr P D A') :
     ((rbData P D).lookup go!"lease").getD ∅ = ∅ := by
-  obtain ⟨f, hf⟩ := h
+  obtain ⟨f, -, hf⟩ := h
   rw [hf, hn, apply.restLeasesWith_nil]
   have := restModel_lease γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')
   exact (congrArg (fun o => Option.getD o ∅) this).trans rfl
 
 /-- **The image's lease bucket is `Recover`'s records** (`lease.lessor.Recover.spec`'s `recs`): its
 entries in key order are `leaseRecEnc` of some records whose ids are exactly the snapshot's table's
-(each with remaining TTL `0`). -/
+(each with remaining TTL `0`), each record's TTL at least its table entry's (the grant's request:
+`Recover`'s `rq` premise, Q-S6 (A-ii)). -/
 theorem imageLeasesAt_recs [GooseExts] {γr : ReadNames} {P : BParams} {D : Data}
     {A' : List EntryModel} (h : imageLeasesAt γr P D A') :
     ∃ recs : List (w64 × w64 × w64),
       bktEnts (((rbData P D).lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc ∧
       (∀ id : w64, id ∈ recs.map (·.1) ↔ id ∈ (appliedTable γr A').ids) ∧
-      ∀ x ∈ recs, x.2.2 = W64 0 := by
+      (∀ x ∈ recs, x.2.2 = W64 0) ∧
+      ∀ x ∈ recs, ∀ p ∈ appliedTable γr A', p.1 = x.1 → sint.Z p.2 ≤ sint.Z x.2.1 := by
   sorry -- DRAFT S2–S4
 
 /-- **S2, the monotone mode: every live lease of the applied log is live at the snapshot's**: along

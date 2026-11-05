@@ -65,7 +65,10 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
   rw [apply.grantIds_rejected, apply.grantIds_rejected]
   iframe HltT HU
   isplitl [HRO]
-  · iexists (W64 0); rw [apply.grantRest_rejected]; iexact HRO
+  · iexists g.ttl
+    isplitr
+    · ipureintro; exact Int.le_refl _
+    rw [apply.grantRest_rejected]; iexact HRO
   iunfold apply.grantAnswer
   rw [Hg]
   iexists _
