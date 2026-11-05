@@ -16,7 +16,11 @@ sending member's TTL, and raises each to its own minimum. For example, a member 
 `Grant(5)` and records TTL 5; after it restores a snapshot from a member at minimum 10, the same
 lease has TTL 10.
 
-**Why not an issue:** no test; found by code reading
+**Why not an issue:** not a guarantee etcd makes. Found by code reading, then reproduced by
+`TestLeaseSnapMinTTL` in [`examples/etcd/leasesnap/leasesnap_test.go`](../examples/etcd/leasesnap/leasesnap_test.go)
+(the S2–S4 Test phase, 2026-11-05: three members at minimum TTLs 1, 30 and 90; a lease requested at 20
+answers `GrantedTTL` 20 with m0 leading and 90 with m2 leading, and m0's lessor holds 90, then 30,
+across its restores, never below the request)
 ([`server.go:344`](https://github.com/upamanyus/etcd/blob/249d76bea78d0c8980251d5fa7b26c35ef21263a/server/etcdserver/server.go#L344),
 [`lessor.go:301`](https://github.com/upamanyus/etcd/blob/249d76bea78d0c8980251d5fa7b26c35ef21263a/server/lease/lessor.go#L301),
 [`lessor.go:817`](https://github.com/upamanyus/etcd/blob/249d76bea78d0c8980251d5fa7b26c35ef21263a/server/lease/lessor.go#L817)).
