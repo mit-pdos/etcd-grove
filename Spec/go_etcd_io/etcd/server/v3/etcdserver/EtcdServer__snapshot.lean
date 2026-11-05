@@ -69,7 +69,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       srvSnapStor ms γs γr nk ai at' ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
       -- (2026-10-31) `ep.confState` the voters', the entry at `ai` frozen at `at'`
       epCsCfg γr cs ∗ srvFrozenTerm γs ai at' ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvWTPool E γp ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvWTPool E γp ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
       srvApplyKVCore s E γw x ua ∗

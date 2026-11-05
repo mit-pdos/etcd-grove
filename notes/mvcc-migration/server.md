@@ -209,19 +209,68 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     `AuthApplyLatest`'s `Range.specL`/`DeleteRange.specL` take and give `threadTok`, `DeleteRange`'s
     floor `kvLogLb`, `certPreW` over `E.Nx`, `put/delete/txnPreW` without `storeWT` (`txnPreW` at
     `TxnPreA`), `auth_reject_kvPostFL` at any batch-lock invariant `P` (as `auth_reject_kvPostF`).
-- **Next**: `applyAll` (step 2's last). It sits high: its spec imports `InvApplyAll`, `InvGoAttach`,
-  `ApplyNormalOn`, `SnapTake`, `SnapRO`, `NotifyC2`, `InvRaftNode`, and its proof takes
-  `applyEntries`, `applySnapshot`, `snapshotIfNeededAndCompactRaftLog` and the merged snapshot's
-  `mvcc.store.Commit.spec` (internal: `KV.Commit.contract`) and `backend.Snapshot`. Below it,
-  red: `EtcdServer.applyEntryNormal`'s spec (`mvcc.storeWT E.γ`, the budget's `srvWT E` now),
-  `EtcdServer.apply`, `ApplyNormalOn`, `ApplyEntryOn`, the apply chain's package-level `apply.Apply`
-  (`apply/ApplyRec`, `ApplyKVL`, `ApplyFnKVL`, `ApplyFnAdminL`, `ApplyAdmin`, `DispatchKVL`,
-  `DispatchAdmin`: over `uberApplier.Apply`'s restated spec), and the auth follow-ups (step 4).
-  The users of the deleted `storeRT` lenders: `EtcdServer__apply.lean:539`, `ApplyNormalOn.lean:794`.
-- **Not started**: the auth follow-ups (`StoreLatest`, `AuthSrv`, `Results.lean`, `SnapRO`,
-  `InvBoot`); the boot (`mvccW_alloc`, `mvccImage_fresh`, `mvccBackendFor_open`,
-  `backendRest_open.law`); the snapshot.
-
+- **Fifth session (2026-11-06)**, each building, no `sorry` (commits `2af9be0883`, `539bc3eed8`,
+  `726ac24773` and later):
+  - **`ReadOn` builds** (v3rpc's path), with `EtcdServer.Range.spec` (statement only).
+  - **The coordinator's decision on `KVRead.readWit_fire`, applied**: the tie of the witness is a
+    pure conjunct of `srvKVInvs` (`⌜E.Nx = kvNxOff γr.raft γr.kv⌝`, its last; `kvNxOff` moved to
+    `InvRequest`, beside `kvModel`, so that `InvApplier` can name it) and of `srvKVInvsOn`
+    (`⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝`, `kvNxOn` new in `KVApplyOn`; `kvNx γr true` at
+    `srvAuthSt0`, by `rfl`). In `srvKVInvs`, not `srvEnvOk`: `srvKVInvs` has `γr`, and is in both
+    `isServer`'s atomics and `isServerRead`. `KVLemmas.kv_read_log` and `ReadOn.kv_read_logOn` are
+    over the witness (`kvLogAt -∗ kvNxOff/kvNxOn l`): no certificates' invariant, no short-log case.
+    `KVStoreLaws.srvKVInvs_of` is at the mode off (`hNx : E.Nx = kvNx γr false`).
+  - **`ServerOnDefs.lean` (new)**: `ServerOn`'s mode-indexed read-side vocabulary split off
+    (`kvLogAtM`, `kvLogsOkM`, `appliedPubM`, `kvLogsPubM`, `srvAppliedBodyM`, `srvAppliedInvM`,
+    `srvUberBase`, `srvLessorNil`, `srvUberOn`, `srvKVInvsM` and its lemmas, `kvCertInvM`; from
+    `AppliedOn`, `kvLogsPubM_ok`, `appliedLogAt_kvLogAtM`), unchanged but for the restatements
+    below, so that `ReadOn` and `ReqOn` import it and not the built part and the boot (`InvBuild`,
+    `BuildGap`, `BuildAlloc`, through `ServerOn`). `ReadOn` no longer imports `ServerOn`/`AppliedOn`
+    (it imports `ServerOnDefs`, `read.Inv`); `EtcdServer__Range` imports `ReqOn` itself.
+  - `ReadOn` restated as `InvRead` was: `srvReadFieldsAtM` over the store handle and `kvLogLb`;
+    `rangeReadOkM`/`txnReadOkM` with `E.Nx log`, `⧖ (logCh log)`, `LogWf'`; `srvKVCoreM true` at
+    `□ kvStoreInvG … ∗ ⌜envWitOk E⌝ ∗ ⌜E.Nx = kvNxOn …⌝`; **`srvKVCoreM_fire`,
+    `srvKVCoreM_keys`, `readM_keys`, `read_keys` take the witness `E.Nx L` alone** (no sealed logs,
+    no `certOk`, no floor `B`: the witness is a committed raft log's model); `readIndexOk_logM/RM`,
+    `readServed_logRM` over `kvLogLb`; `readWit_fireOn` over `E.Nx l`; **`srvKVCoreM_cperm`
+    deleted** (mvcc's `crevPermIs` is gone; its one user, client/v3's `InvWatch`, is outside).
+  - `ReqOn`'s results (`resultIsWOn`, `resPostM`, `appliedOkM`) over `kvLogLb E.γs` and `E.Nx`, as
+    `resultIsW`; `srvAppliedBodyM` over `kvLogLb`.
+  - `srvUberOn`/`srvUberOn_adm` and `StoreLatest.srvAuthApplyResB` at **the epoch's one batch-lock
+    invariant**: `∃ Pk, ⌜E.Pk = fun _ => Pk⌝ ∗ …` (as `srvFieldsAt`'s `E.Pk = fun _ => batchLockInv γ
+    TM`), the admin steps at `Pk`; `StoreLatest` at `f : GoFunc`, `BkRef` (the auth track's list).
+  - `KVRead` (`readServed_logR` over `kvLogLb`), `InvApplyAll` (`bemuP` over `BkRef`/`bkKey`;
+    `AEnv.onBe E BT Pk f ciC RO RW` sets the tie, the lock's invariant, the hook, keeps `kv`, `γ`, `γs`,
+    `Nx`, `Cp`: the store is restored in place), `apply.AdminChain` (`adminTriples` at `threadTok`),
+    `apply.AuthApplyLatestTxn` (`Txn.specL` at `threadTok` and `kvLogLb`), the apply package's
+    `DispatchKVL`, `ApplyKVL`, `ApplyFnKVL`, `DispatchAdmin`, `ApplyAdmin`, `ApplyFnAdmin`,
+    `ApplyAdminL`, `ApplyFnAdminL` (`kvOwnPre ∗ threadTok` in, `threadTok ∗ (∃ B, bkRT B)` out, as
+    `dispatch.spec`/`Apply.spec`; `Apply.kvSpecL`/`adminSpec` take `uberOwn ∗ kvOwnPre ∗ cmpOwn` in
+    place of the hook's triple and `applyKV`: whoever calls them builds `kvOwnPre`).
+  - **`SnapRO`**: the stores' contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
+    `clusterApplyOk`, `lessorApplyOk`) for every `d : BkRef` at `srvBkTie d` and `fun _ => Pk` (in
+    place of `∀ γ, γ.kb = some d`); `lessorApplyOk`'s reader `apply.bkRT d`; `authRecoverOk` over
+    `BkRef`; `srvRestOwnH_lens_revoke` gives `rbPart … (· = leaseName) ∗ ⌜leaseParams⌝ ∗ lessorBeOn`
+    (what `lessor.Revoke.spec` takes) in place of `storeRb`; `srvSnapRO` over `BkRef` (the tie), the
+    KV `srvKVAddr s ↦□ E.kv ∗ □ isMvcc E.kv E.γ`, the lessor at `mvccLeases E.γ`, without the
+    backend's mode and the watch flag; `srvSnapRO_succ` at the ties (`srvBkTie_inj`, new);
+    **`srvKVCloser`, `srvKVCloserW`, `srvKVCloserW_off` deleted**, `srvSnapRes` without the closer
+    (`Restore` takes `mvccOpen`, the apply thread's `cmpOwn`). The restated contracts are those of
+    trust-boundary axioms (`v3alarm.NewAlarmStore.spec`, `auth.NewAuthStore.spec`,
+    `lease.NewLessor.spec`, `EtcdServer.restoreAlarms.spec`): the same contracts at the API's
+    vocabulary, for review when those specs are restated (not yet).
+  - `InvRun`, `InvStart` (`srvFieldsBuilt`, `srvReadBuilt` as `srvFieldsAt`/`srvReadFieldsAt`),
+    `InvBuild` (**`envAgree E E' := E.γs = E'.γs ∧ E.Nx = E'.Nx ∧ E.γrev = E'.γrev ∧ E.cmp =
+    E'.cmp`**: what `srvC` reads; `envAgree_mode`/`_off`/`_on` deleted, the store having no mode;
+    the draft's "every field but `kv`, `γ`, `Nx`, `Pk`, `Cp`, `BkTie`" would not give `srvC_agree`,
+    whose results name `E.Nx`), `BuildGap`, `BuildAlloc` (`srvIndices_alloc` over `kvLogLb`),
+    `ServerOn` (`srvBuiltG`'s KV row the store handle, `#Hsmall` gone).
+  - Request-path statements restated (not yet built or proved): `EtcdServer.{Txn, Put,
+    DeleteRange}.spec` (the floor `kvLogLb E.γs F`; `Put`/`DeleteRange`'s post `kvLogLb E.γs x'.log ∗
+    … ∗ E.Nx x'.log`), `setAppliedIndex` (`kvLogLb`), `applyEntryNormal` (`srvWT E`), `applyAll`,
+    `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
+    `hookRun (E.Pk d) E.f`).
+- **Next**: see "Left (fifth session)" below.
 ## For the parallel tracks
 
 - v3rpc: `srvApi.histLb` (= `histLbG (kvNx γr on)`), `srvApi.kvPeek.law` (proved: `kvPeek_holds`),

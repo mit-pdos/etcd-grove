@@ -52,7 +52,7 @@ abbrev EtcdServer.Txn.spec : Prop :=
       srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
       ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ ∗
-      ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜txn.txnReadonly t = false → apply.txnDepthOk t⌝ ∗ srvApi.kvLogLb E.γs F ∗
       (if txn.txnReadonly t then kvDep γr.kv Qr else txnPermit ρ.kv t Q) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
@@ -88,7 +88,7 @@ abbrev EtcdServer.Txn.specOn : Prop :=
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       txn.txnRequestIs r t ∗ ⌜txn.txnReadonly t = false ∧ apply.txnDepthOk t⌝ ∗
-      mvcc.idxCert E.γ.idx F ∗ txnPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) t Q }}
+      srvApi.kvLogLb E.γs F ∗ txnPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) t Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -123,7 +123,7 @@ abbrev EtcdServer.Txn.specOnR : Prop :=
       auth.authPubLbM E.authMode n ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
       srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-      ⌜txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      ⌜txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗ srvApi.kvLogLb E.γs F ∗
       kvDep γr.kv Qr (kvStM true γr.kv) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))

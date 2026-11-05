@@ -34,7 +34,7 @@ until then `spec` off and `specM on`, E3p): the applied index's invariant over t
 abbrev EtcdServer.setAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAppliedInvM E.authOn s E γr ∗ srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L ∗
+      srvAppliedInvM E.authOn s E γr ∗ srvAppliedPre γr v v' L ∗ srvApi.kvLogLb E.γs L ∗
       appliedPubM E.authOn E γr v' }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
   {{ RET #(); srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
