@@ -2,9 +2,10 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `(*store).deleteOnce`: the caller's updates and token give the client's for the
-conditional delete (`k8sAusRW_kvAu1`, by `delStepOk`: the store's history says a key-value at
-`origState`'s mod revision is the one read); then the client's outcome: an error, success (the
-object decoded into `out` at the new revision, the model's answer by `delete_at`), or a conflict
+conditional delete (`k8sAusRW_kvAu1`, by `delStepOk_item`: by `stFrom`, every state in the store's
+history with the key at `origState`'s mod revision has `origState`'s object there, `itemAt`); then
+the client's outcome: an error, success (the object decoded into `out` at the new revision, the
+model's answer by `delete_item`), or a conflict
 (nothing changed: the store's reading of the key at that state, `stateFromEtcdResponse`).
 -/
 module

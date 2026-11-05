@@ -788,6 +788,72 @@ theorem delStepOk_item {E : Type} (c : StoreCfg GF Obj) (key : GoString) (s : OS
   obtain ⟨b, hb'⟩ := hit hwf (by simp [kubernetes.modAt, hv, hm])
   rw [delete_item c σ key s b hb' pre validate hpre hok]
 
+/-- `delete` of an item whose preconditions fail: their error, nothing changed. -/
+theorem delete_item_pre {E : Type} (st : KSt Obj) (key : GoString) (o : Obj) (r : Nat) (b : Bool)
+    (hit : st.items key = some ⟨o, r, b⟩) (pre : Obj → Nat → Bool)
+    (validate : Obj → Nat → Option E) (hpre : pre o r = false) :
+    st.delete key pre validate = (st, .err (.invalidObj key)) := by
+  unfold KSt.delete
+  rw [hit]
+  simp only [hpre]
+
+/-- `delete` of an item that `validateDeletion` rejects: its error, nothing changed. -/
+theorem delete_item_val {E : Type} (st : KSt Obj) (key : GoString) (o : Obj) (r : Nat) (b : Bool)
+    (hit : st.items key = some ⟨o, r, b⟩) (pre : Obj → Nat → Bool)
+    (validate : Obj → Nat → Option E) (hpre : pre o r = true) (e : E) (he : validate o r = some e) :
+    st.delete key pre validate = (st, .err (.user e)) := by
+  unfold KSt.delete
+  rw [hit]
+  simp only [hpre, he]
+
+/-- **A read's state is where it came from** (`stFrom`'s first case), at a mod revision (a stored
+key-value's, so not `0`). -/
+theorem stFrom_read (c : StoreCfg GF Obj) (key : GoString) (σ : KVState) (kv : EtcdKv)
+    (s : OState Obj) (hf : mvcc.findKey key σ.kvs = some kv) (hs : stOfKv c kv s) :
+    rdFacts c σ ⊢ stFrom c key s ∗ ⌜s.rev ≠ W64 0⌝ := by
+  iintro #Hfs
+  ihave #Hfs' := Hfs
+  iunfold rdFacts at Hfs'
+  icases Hfs' with ⟨%Hw, -⟩
+  isplitl
+  · unfold stFrom
+    ileft
+    iexists σ, kv
+    iframe Hfs
+    ipureintro; exact ⟨hf, hs⟩
+  · ipureintro
+    have hx : (linkv.absSt σ).kv key = some (linkv.absVR kv) := by
+      simp [linkv.absSt, linkv.absM, hf]
+    have h0 := (Hw.1.2.2.1 key _ hx).1
+    rw [hs.1]
+    intro h
+    simp only [linkv.absVR, h] at h0
+    exact absurd h0 (by decide)
+
+/-- **The item at a state read where the key is at the state's mod revision** (`stFrom_item`). -/
+theorem stFrom_rd_item (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key) (s : OState Obj)
+    (hr : s.rev ≠ W64 0) (σ : KVState) (hm : kubernetes.modAt key σ = s.rev) :
+    stFrom c key s ∗ rdFacts c σ ⊢ ⌜∃ b, (c.abs σ).items key = some ⟨s.o, uint.nat s.rev, b⟩⌝ := by
+  iintro ⟨#Hf, #Hfs⟩
+  iunfold rdFacts at Hfs
+  icases Hfs with ⟨%Hw, #Hs⟩
+  ihave %H := stFrom_item c key hpk s σ Hw.1 $$ [Hf Hs]
+  · iframe Hf Hs
+  ipureintro
+  rcases H hm with ⟨h, -⟩ | ⟨-, -, b, hb, -⟩
+  · exact absurd h hr
+  · exact ⟨b, hb⟩
+
+/-- **A read's state that `deleteOnce` will delete does not hand** (its delete writes). -/
+theorem del_read_hand {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (kv : EtcdKv) (hv : mvcc.findKey key σ.kvs = some kv) (s : OState Obj)
+    (hs : stOfKv c kv s) (pre : Obj → Nat → Bool) (validate : Obj → Nat → Option E)
+    (hpre : pre s.o (uint.nat s.rev) = true) (hok : validate s.o (uint.nat s.rev) = none) :
+    stepHand c (delStep key pre validate) σ = false := by
+  apply hand_false
+  simp only [delStep, delete_at c σ key hpk kv kv hv s hs rfl hs.1.symm pre validate hpre hok]
+  exact KSt.ne_of_rv
+
 end steps
 
 end k8s
