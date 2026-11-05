@@ -22,9 +22,13 @@ path resolution is never modelled.
 same `st_dev`), mounted without `nobarrier` and without `journal_async_commit`, with no
 case-insensitive (casefold) directory, none in another's tree, every entry in their trees a
 regular file or a directory (no symlink, mount point, device, FIFO or socket) and no file a hard
-link of another, and no other process changes their trees; the namespace of the state at boot (`ns`) is their trees' entries,
-and the paths in the domain of `files` that are not keys of the namespace's files (`IsInoKey`) lie
-outside the roots' trees. The filesystem is ext4 (`data=ordered` or `data=journal`, with the
+link of another, and no other process changes their trees or moves a directory above a root (a root names one directory
+throughout); the filesystem is never read-only and has no error or shutdown event (ext4's
+`errors=remount-ro` after a detected inconsistency, an xfs shutdown: then an `fsync` may return 0
+without committing); the namespace of the state at boot (`ns`) is their trees' entries, and the
+paths in the domain of `files` that are not keys of the namespace's files (`IsInoKey`) resolve to
+files outside the roots' trees (not only textually: through the working directory, `..` and
+symlinked ancestors too). The filesystem is ext4 (`data=ordered` or `data=journal`, with the
 journal, without `fast_commit`) or xfs: metadata operations reach the journal in the order they
 are made and the journal commits in order, and an `fsync` of a directory commits it up to the
 last change of that directory's entries (N1). Paths in the roots' trees are resolved by the
@@ -38,8 +42,8 @@ namespace; any other path, as before, is one of the domain of `files` or the ste
   have had their effect; a failed `pread` read a prefix; a failed `pwrite` wrote a prefix (as
   `generic_perform_write` does, and Go's loop reports); a failed `fsync` loses the
   writeback of the dirty bytes, which later syncs do not redo (D2).
-* *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`) is two steps
-  (`PWriteStart`/`PWriteFinish`, `FtruncateStart`/`FtruncateFinish`), and between them any
+* *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`) is two steps
+  (`PWriteStart`/`PWriteFinish`, `FtruncateStart`/`FtruncateFinish`, `FallocStart`/`FallocFinish`), and between them any
   mapped load that could see part of it is stuck (a hole), so a real overlap in time is a stuck
   model interleaving, while a racing `pread` or `fstat` returns any mix (`ReadSees`,
   `StatSees`). A write of `n` bytes at `off` *affects* `[min off size, off + n)`,
@@ -710,12 +714,11 @@ def OsCrashFiles (st st' : OsState) : Prop :=
     | some (some f) => (¬ f.named ∧ st'.files !! p = some none) ∨
         ∃ img, CrashImage st p f img ∧ st'.files !! p = some (some (OsFile.ofDisk img))
 
-/-- A root's form: canonical, absolute (`/c₁/…/cₙ`, `n ≥ 1`) or relative (`c₀/c₁/…/cₙ`), each
-component a valid name (no `.`, `..`, empty component or trailing `/`), so that textual nesting is
-nesting. -/
+/-- A root's form: canonical and absolute (`/c₁/…/cₙ`, `n ≥ 1`, each component a valid name: no
+`.`, `..`, empty component or trailing `/`), so that textual nesting is nesting and no root is
+relative to a working directory. -/
 def RootForm (r : GoString) : Prop :=
-  (∃ cs, cs ≠ [] ∧ (∀ c ∈ cs, NameOk c) ∧ r = joinPath [] cs) ∨
-  (∃ c cs, NameOk c ∧ (∀ c ∈ cs, NameOk c) ∧ r = joinPath c cs)
+  ∃ cs, cs ≠ [] ∧ (∀ c ∈ cs, NameOk c) ∧ r = joinPath [] cs
 
 /-- The roots: distinct, canonical, none in another's tree. -/
 def RootsOk (roots : List GoString) : Prop :=

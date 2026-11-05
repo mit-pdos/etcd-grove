@@ -85,9 +85,12 @@ func ZeroToEnd(f *os.File) error {
 	if err := f.Truncate(off); err != nil {
 		return err
 	}
-	// Preallocate(f, lenf, true): fallocate(0, 0, lenf) extends the file back.
-	if err := unix.Fallocate(int(f.Fd()), 0, 0, lenf); err != nil {
-		return err
+	// Preallocate(f, lenf, true): fallocate(0, 0, lenf) extends the file back
+	// (Preallocate returns at once for 0 bytes).
+	if lenf > 0 {
+		if err := unix.Fallocate(int(f.Fd()), 0, 0, lenf); err != nil {
+			return err
+		}
 	}
 	_, err = f.Seek(off, io.SeekStart)
 	return err

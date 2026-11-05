@@ -123,9 +123,12 @@ no NUL) and in a root's tree, or the step is stuck (path resolution is not model
 - `os.Rename` (Go's `rename`: `Lstat` of the destination, then `rename(2)`, `EINTR` retried),
   `os.Remove` (`unlink`, then `rmdir`), `os.Mkdir` (`mkdir(2)`), `File.Readdirnames(n)` for `n ≤ 0`
   (a loop of `DirReadNext`, never a nil slice; `n > 0` panics: not modelled).
-- `unix.Fallocate` (mode 0: `FallocStart` and `FtruncateFinish`; `FALLOC_FL_KEEP_SIZE`:
-  `FallocKeep`; other modes panic; a negative offset or a length not above 0 is `EINVAL`, no
-  `EINTR` retry, as x/sys/unix), `unix.FcntlFlock` (`OfdLock`; the lock queries panic).
+- `unix.Fallocate` (mode 0: `FallocStart` and `FallocFinish`; `FALLOC_FL_KEEP_SIZE`:
+  `FallocKeep`; other modes panic; stuck on a negative offset or a length not above 0; no `EINTR`
+  retry, as x/sys/unix), `unix.FcntlFlock` (`OfdLock` for the lock-setting commands 6, 7, 37, 38;
+  every other command panics).
+- `NsBegin` before each call that changes the namespace (`OpenFile` with `O_CREAT` of a managed
+  path, `rename(2)`, `unlink`, `rmdir`, `mkdir`), in every `EINTR` retry.
 
 ### Review round 1 (2026-11-05, a fresh reviewer, of the trusted files)
 
@@ -162,6 +165,19 @@ misuse); the roots' form is canonical (`RootForm`), so textual nesting is nestin
 spec). Noted for etcd (the reviewer's 11): `wal.Create` syncs `member/`, so a root must contain
 `member/`, which then contains `member/snap/db`: bbolt's file would be in the namespace, not the
 legacy regime, in a proof of etcd's server over this extension.
+
+### Review round 2 (2026-11-05, a fresh reviewer, of round 1's repairs)
+
+No first-tier finding: `dirCommitLen`, `NsBegin`/`nsBusy` (cleared on every branch, re-run on every
+retry, reset by a crash), `FallocFinish`, `NsLstatDir` with `os.Rename`, `DirReadNext` were checked
+sound. Repaired: roots are absolute (`RootForm`), and the environment says the legacy paths
+resolve (not only textually) outside the roots' trees, no directory above a root moves, and the
+filesystem is never read-only nor shut down (ext4's `errors=remount-ro`: an `fsync` may then return
+0 without committing); `seglog.go`'s `ZeroToEnd` skips a 0-byte fallocate, as etcd's
+`Preallocate` does. Recorded, not changed: `Rename`/`Unlink`/`Rmdir`/`Mkdir` of a root is stuck
+(Linux fails; a program relying on that error cannot be verified); an `O_TRUNC` open racing an
+in-flight `fallocate` gives an extra size (sound); `dirCommitLen` commits nothing for a directory
+just made or moved, where ext4/xfs commit its creation (sound, weaker).
 
 ### What changed for the extension's existing clients
 

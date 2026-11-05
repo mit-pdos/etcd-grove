@@ -1010,6 +1010,7 @@ noncomputable def ZeroToEnd.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "lenf")) (Val #(W64 0)))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.uintptr go.int))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Fd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "f"))) (Val #())))
   (Let "$a1" (Val #(W32 0))
   (Let "$a2" (Val #(W64 0))
@@ -1027,7 +1028,9 @@ noncomputable def ZeroToEnd.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "off"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.os.File.ty) go!"Truncate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Var "f"))) (Var "$a0")))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -1073,7 +1076,7 @@ noncomputable def ZeroToEnd.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Reread reads the segment at path sequentially from the start, n bytes.
 
-    go: seglog.go:97:6 -/
+    go: seglog.go:100:6 -/
 noncomputable def Reread.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (Lam "n"
