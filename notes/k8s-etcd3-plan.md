@@ -825,7 +825,7 @@ through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loop
   `stFrom_cached`, `stFrom_rdOf`, `preOk_rv_none` (`Steps.lean`); `stAt_cases`, `gu_answer`,
   `rd_noop`, `rd_data`, `rd_szOk` (private, in the proof file).
 
-- `[C, check (the build after merging lean), touches the new specs' parameters (internal and driver), awaits the user]` Merge of
+- `[C, check (the build after merging lean), touches the new specs' parameters (internal and driver), approved by the user, 2026-11-05]` Merge of
   `lean` (2026-11-05): lean's `2811fb73f8` (Q1 (c), the compactor registry) gave the driver's
   package init and every k8s etcd3 spec the instance parameter `[reg : EtcdGrove.k8s.CompactorRegistry]`;
   the 18 specs 7b added or restated in those directories (`rvBytes`, `rvString`, `Obj.GetUID`,
