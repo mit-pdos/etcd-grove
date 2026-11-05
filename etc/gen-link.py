@@ -59,6 +59,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
        etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Link.lean
        etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Link.lean
+       etc/gen-link.py --cluster3 > Proof/github_com/mit_pdos/etcd_grove/examples/lib/cluster3/Link.lean
        etc/gen-link.py --workqueue > Proof/k8s_io/client_go/util/workqueue/Link.lean
        etc/gen-link.py --consistency > Proof/k8s_io/client_go/util/consistency/Link.lean
        etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
@@ -409,10 +410,10 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions",
                    "The KV-workload linearizability instance's proofs (`examples/etcd/txnlin`)", [""]),
     # the three-member instance under network partitions (examples/etcd/partition, notes/partition-plan.md):
-    # its `startMember` (putget3's plus the member's gRPC server, over the server's, v3rpc's and
-    # grpc's, `@`), `newClient` (over the client's `New`, `@`), `partitioner` (over the server's
-    # `MemberID`/`CutPeer`/`MendPeer`, `@`), `Apply` (over linkvtxn's `Apply`, `@`), `Check` (over
-    # the driver's and linkvtxn's, `@`; notes/linkv3p-txn-plan.md) and `Main`
+    # its `startCluster` (over `--cluster3`'s `StartCluster` and `NewClient`, `@`; until 2026-11-05
+    # its own `startMember`, `startBridge`, `partitioner`), `Apply` (over linkvtxn's `Apply`, `@`),
+    # `Check` (over the driver's and linkvtxn's, `@`; notes/linkv3p-txn-plan.md), `Main` and
+    # `MainWatch` (over `--cluster3`'s `Partitioner`, `@`)
     "--linkv3p": ("link-lean-first-linkv3p.txt",
                   "github_com.mit_pdos.etcd_grove.examples.etcd.partition "
                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
@@ -525,19 +526,28 @@ LEAN_FIRST = {
                  "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart",
                  "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions",
                  "The examples' shared start's proofs (`examples/lib/etcdstart`)", [""]),
+    # the three-member cluster's start under partitions (examples/lib/cluster3, 2026-11-05; until
+    # then `--linkv3p`'s): `StartMember` (the shared `NewMember` plus the member's gRPC server, over
+    # the server's, v3rpc's and grpc's, `@`), `StartBridge`, `Partitioner` (over the server's
+    # `MemberID`/`CutPeer`/`MendPeer`, `@`), `StartCluster` and `NewClient` (over the shared
+    # `NewClients`, `@`)
+    "--cluster3": ("link-lean-first-cluster3.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.lib.cluster3",
+                   "github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions",
+                   "The three-member cluster's start's proofs (`examples/lib/cluster3`)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
 EXTS = {"--bboltfs": "osFsExt"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
 # model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
 # proof (the server's, and those linking over it) takes its `HasExt`.
-for _m in ["--server", "--v3rpc", "--common", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
            "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
     EXTS[_m] = "idIssueExt"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
               "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by

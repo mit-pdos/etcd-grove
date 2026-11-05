@@ -4,3 +4,6 @@
 # Python bytecode
 __pycache__/
 *.py[co]
+
+# per-worktree stage questions (notes/spec-first-plan.md, "Questions do not block"): never on lean
+/questions.md

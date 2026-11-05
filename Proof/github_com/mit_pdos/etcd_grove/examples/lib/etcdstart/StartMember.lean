@@ -44,7 +44,7 @@ theorem StartMember.wp_proof
   (try wp_auto)
   -- `NewMember(name, peer, peerAddr, client, cluster, token, NoSnapCount, NoSnapCatchUp, lg)`
   wp_apply (wp_NewMember N name peerAddr client token (W64 10000) (W64 281474976710656) peer cluster lg M iu Uok ps bootLog ctxs dir id
-      γ ρ E₀ Φs γn Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8
+      γ ρ E₀ Φs γn false Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8
       Hlg Hck Haf Hbuq Hdbo) $$ [Haddr Htok Hmb Hpown Hwdf] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
