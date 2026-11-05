@@ -570,3 +570,47 @@ problem: no frozen statement found false):
 3. **The `WatchStream` contracts** at `*watchStream` and `NewWatchStream` (allocating `WsAbs`),
    then the store's side of `mvccState` (its other halves in the internals: they exist, §1).
 
+
+## Hand-off: stage 2, exactness per watcher (2026-11-05)
+
+**Settled first, as asked: §4.4's per-watcher exactness is true of the code; no frozen statement
+found false.** The only place the code delivers a watcher's events inexactly is `syncWatchers`'
+backend read, and only at the compaction revision itself: compaction at `c` deletes only keys at
+revisions `≤ c` (a deletable key is at a certified compaction revision `c' ≤ c`), and
+`syncWatchers` holds `s.store.revMu` shared from reading `compactMainRev` to the end of the scan
+(`defer s.store.revMu.RUnlock()`), so no compaction beyond `cQ` can run during the read; a watcher
+behind `cQ` gets the compaction response instead. So a member reading above `cQ` gets its exact
+events, and one reading from `cQ` loses events only when revision `cQ` changes a key twice, i.e.
+exactly when `onceUpTo L lo cQ` fails for it (`lo ≤ minRev = cQ`), for good (both bounds grow).
+Revision `cQ`'s single change of a key, a tombstone included, is kept (`kiAvail_unique`, the fork's
+`doCompact` with #18274/#22377). Every other delivery (`notify`'s, the victims' resends of a batch
+made from either) is in memory.
+
+**Done** (no new `sorry`, no axiom; the mvcc library builds):
+- `rangeEvents`' spec without the no-duplicate premise: the scan's events are of the kept entries `P`
+  (`(logEnts ..).filter P`), every entry above `c` kept, every entry kept when revision `c` changes
+  each key once or `c = -1` (`WatchScan.snapThin_missing_le`, `snapThin_scan_full`,
+  `bucketRange_sub`).
+- The internal invariant per watcher: `evsWf` is exact or the watcher is `doomed` (a persistent
+  witness: the API's `nlLb N` and `crevAtLeast c` with `¬ onceUpTo N lo c`), its events then of
+  revisions from `lo` on; `covFact` and `watchRecvOk` carry the same disjunct. `syncWatchers`
+  per member (`SyncModel.sw_memberBatch_cases`): exact batch when revision `cQ` changes each key once
+  or the member reads above `cQ` (`memberBatch_filter_above`), else a sub-list and the member doomed
+  (`memberBatch_sublist`, `SyncWatchersLemmas.sw_evsWf_step`); the witness's bounds are the lock's
+  `nlLb` (`wsSlot` now holds the API's `nlLb` at the notified log; produced where the notified log
+  moves, today by the `wsSlot_*_M1` placeholders, by `New`/`End`'s notify contract at the
+  migration) and `s.revMu`'s `crevAtLeast` (`slotX_crevLb`).
+- `watchNoDup` is no longer needed: `storeWatchParams`' `T` is the watch token alone, `wsWatchFrozen`
+  is vestigial (`True`; its conjunct in `watchStoreBody` is left for a cleanup), `watchNoDup_crev`
+  removed. The definitions `watchNoDup`/`noDupKeys` stay for v3rpc's proofs (red under strict M1),
+  which should drop them at the migration.
+
+**Left** (the previous hand-off's list, "What each remaining step needs of the internals", minus
+(f)): (a) saved filters per watcher; (b) the registration appending `.reg` (needs the client's
+`wsState`, i.e. the `Watch` contract, item 3) at the exact sent count, `wsSlot` at `pending = none`
+while the lock is free; (d) a notified-log lower bound at every send (the lock has one now,
+`wsSlot_nlLb`; `moveVictims` must carry it with the batch) and the compaction response's
+`crevAtLeast` (§4.5); (e) event positivity; (g) `-1` responses' cancel tokens; then each send's
+`stepOk` from these facts and `chanApi_send_M1` gone. For a doomed watcher the send's fact takes
+the doom witness's bounds (the longer `nlLb`, the larger `crevAtLeast`), making its delivery and
+progress conjuncts vacuous.
