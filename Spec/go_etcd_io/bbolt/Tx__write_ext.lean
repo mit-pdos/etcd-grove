@@ -35,12 +35,13 @@ before it with zeros, which needs the gap's cells: `os.File.WriteAt.spec`'s `mce
 `wrSlotsSz` (`Inv/WSlots`) at the file's size, a slot across the file's end holding at least its
 part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping or
 where it ended (`om.size ≤ om'.size ≤ max om.size l`), a tail slot inside the old file keeps its
-bytes; on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
+bytes, and a slot across the new end holds at least its part inside the file (on an error too: the
+slots the write touched hold some whole page's bytes); on success every page slot is inside the new file, holding its chunk (`slotsOwn`, as
 `store_publish` takes it) and the tail is `wrSlotsSz` at the new size; on an error all the slots
-are, with whatever bytes the write left. On success also, a slot across the new end holds at least
-its part inside the file, and the file either kept its size or ends on a page boundary (it grew by
-whole pages: U10l's `wdbOK` clauses after the write); not on an error, where `WriteAt` may have
-written part of a chunk. -/
+are, with whatever bytes the write left. On success the success branch also restates the
+straddling-slot fact (kept there for its consumers) and says that the file either kept its size or
+ends on a page boundary (it grew by whole pages); not on an error, where `WriteAt` may have written
+part of a chunk. -/
 abbrev Tx.write_ext.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (pml : Loc)
     (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (T : List Nat) (wb : Nat → List w8)
@@ -70,7 +71,9 @@ abbrev Tx.write_ext.spec : Prop :=
       ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.p (DFrac.own 1) (some om') ∗
         ⌜om.size ≤ om'.size ∧ om'.size ≤ max om.size l ∧ om'.maps = om.maps ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
-          (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s)⌝ ∗
+          (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧
+          (∀ s ∈ bufSlots bufs ++ T, 4096 * s < om'.size → om'.size < 4096 * (s + 1) →
+            om'.size - 4096 * s ≤ (wb' s).length)⌝ ∗
         ((⌜err = interface.nil⌝ ∗ ⌜(∀ s ∈ bufSlots bufs, 4096 * (s + 1) ≤ om'.size) ∧
             (∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
               wb' (id.toNat + j) = pageChunk pg j) ∧
