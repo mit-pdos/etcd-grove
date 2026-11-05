@@ -61,10 +61,10 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunAtOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
-    rnWalTok (srvRAddr C.s) (1 : Qp).half ∗
-    (∃ w : Nat, srvWTTaken C.wt w) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
+    rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
+    (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
     -- (D22 J1b, 2026-10-31) `applyRes`'s snapshot resources
-    srvSnapOwn C.s C.ci B.E C.γr ai ∗
+    srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       uint.Z ai ≤ uint.Z (ciEff B.γ st.k) ∧
       lastTermIs A at'⌝)
@@ -80,7 +80,7 @@ def applyStartOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunAtOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k) ∗
     -- (D22 J1b, 2026-10-31) `applyStart`'s snapshot resources
-    srvSnapOwn s ci E γr ai₀)
+    srvSnapOwn s ci E γr γ ai₀)
 
 /-- **What `run` needs in the mode `on`** (`isServerRun`'s, see the file header). -/
 def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -103,8 +103,12 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
     -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
     "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
@@ -115,7 +119,9 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "Hclose" ∷ token γg.close ∗
     "Hstart" ∷ applyStartOn s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (H2, 2026-11-05) and its register at `GoAttach`'s receipts' name (`start` set it)
+    "#HWB" ∷ (∃ γp : WTNames, srvWTPool E γp ∗ srvWTAt γp.cnt ai₀ ∗
+      dghostVar γp.reg DFrac.discard (some γg.run)) ∗
     -- (2026-10-31, #11) what the snapshot path takes of the construction (`isServerRun`'s; D22 J1b:
     -- the persistent bundle, the rest in `applyStartOn`)
     "#Hsnapb" ∷ (∃ γt : GName, srvSnapRO s ci E γr γt) ∗
@@ -124,30 +130,6 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hsncfg" ∷ (∃ sc scu : w64, srvCfgFieldAddr s go!"SnapshotCount" ↦□ sc ∗
       srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu))
 
-
-/-- **What `run` needs in the mode `on`** (the auth-mode merge's step 1, 2026-10-29):
-`isServerRun` off, `isServerRunOn` on. -/
-def isServerRunM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
-  match on with
-  | false => isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
-  | true => isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
-
-theorem isServerRunM_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
-    isServerRunM (GF := GF) false s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ =
-      isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ := rfl
-
-theorem isServerRunM_true (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
-    (γg : GoNames) (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields)
-    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) :
-    isServerRunM (GF := GF) true s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ =
-      isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ := rfl
 end defs
 
 section lemmas

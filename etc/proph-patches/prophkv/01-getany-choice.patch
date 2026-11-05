@@ -1,0 +1,16 @@
+--- a/prophkv.go
++++ b/prophkv.go
+@@ -39,9 +39,13 @@
+ 
+ // GetAny reads k twice and returns either answer.
+ func GetAny(kv *KV, k string) string {
++	// Verification only: a prophecy of the random choice below (true: GetAny returns the first
++	// read's answer), which wp_GetAny's proof reads at the first read.
++	prophFirst := primitive.NewProph()
+ 	v1 := kv.Get(k)
+ 	v2 := kv.Get(k)
+ 	r := primitive.RandomUint64()
++	prophFirst.ResolveBool(r%2 == 0)
+ 	if r%2 == 0 {
+ 		return v1
+ 	}

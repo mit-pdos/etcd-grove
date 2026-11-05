@@ -164,9 +164,9 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   inext
   iintro %resp %err Hout
   iapply HΦ
-  iapply txnCallOut_st
+  iapply (txnCallOut_st γ)
   iapply (txnCallOut_mono _ _ resp err
-    (fun m => txnAns_st Hrb ms (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
+    (fun m => txnAns_st Hrb ms γ Hns (W64 0) [] (txnWireOf b.model) Q m Hz)) $$ Hout
 
 end proof
 

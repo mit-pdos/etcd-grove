@@ -56,20 +56,24 @@ local macro "rr_ok" : tactic => `(tactic| (
     · iapply (apply.dispatchAnswer_nil_tr _ _ _ _ v.Trace' _ _)
       rw [← hve]
       iexact Hans
-    iexact Hau'
+    isplitl [Hau']
+    · iexact Hau'
+    isplitl [Hga']
+    · iexact Hga'
+    iexact Hva'
   iexact HQL))
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
-    (hP : EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on)
+theorem EtcdServer.raftRequest.wp_proof
+    (hP : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG))
     (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
     (hV : context.ValueStartTime.spec (GF := GF) (hG := hG))
     (hGS : traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG))
     (hSS : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG))
     (hIS : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
     (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
-    EtcdServer.raftRequest.specM (GF := GF) (hG := hG) on := by
+    EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, Hhdr, #HF⟩
   ihave #Ptrace : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace $$ []
@@ -84,7 +88,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau, Hga, Hva⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -168,9 +172,11 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
         rw [← hve]
         iexact HerrIs
       · -- (E3x) no error: an admin request's step succeeded
-        ihave %Hadm := adminDoneM_of_tie on ρ.kv rq' L res o skip v hve $$ HtM Hv
+        ihave %Hadm := adminDoneM_of_tie E.authOn ρ.kv rq' L res o skip v hve $$ HtM Hv
         -- (C1's A3) an `Authenticate`'s response
-        ihave Hau' := authnAnsM_of_ar on E res rq' o skip v hve $$ Hau Hv
+        ihave Hau' := authnAnsM_of_ar E.authOn E res rq' o skip v hve $$ Hau Hv
+        ihave Hga' := grantAnsM_of_ar E res rq' o skip v hve $$ Hga Hv
+        ihave Hva' := revokeAnsM_of_ar E res rq' o skip v hve $$ Hva Hv
         (try wp_auto)
         wp_apply hV ctx _ cd rfl $$ [] as %val %Hval
         · iframe #
@@ -225,19 +231,6 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
       · iexact HaE
       iright; iexact Hdep
     · exact absurd rfl Hne
-
-theorem EtcdServer.raftRequest.wp_proof
-    (hP : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG))
-    (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
-    (hV : context.ValueStartTime.spec (GF := GF) (hG := hG))
-    (hGS : traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG))
-    (hSS : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG))
-    (hIS : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
-    (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
-    EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
-  intro s E ρ
-  exact EtcdServer.raftRequest.wp_proofM E.authOn
-    (EtcdServer.processInternalRaftRequestOnce.spec_M hP _) hSp hV hGS hSS hIS hLL s E ρ
 
 end proof
 

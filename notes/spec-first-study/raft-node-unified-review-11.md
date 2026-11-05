@@ -15,8 +15,8 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
 - **The plan**: `notes/raft-unified-plan.md`, unchanged since `bbc7ce9e61` (no working-tree diff).
 - **Go**:
   - raft a2 (`.lake/raft-fork`, `565c2bd`): `storage.go`, `node.go`, `confchange/restore.go`;
-  - kvreconf: `examples/kvreconf/{kv,cluster,reconf}.go`;
-  - kv: `examples/kv/kv.go`;
+  - kvreconf: `examples/raft/kvreconf/{kv,cluster,reconf}.go`;
+  - kv: `examples/raft/kv/kv.go`;
   - etcd's server: `server.go`, `raft.go` under `~/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261027220749-a20f6760ff43/etcdserver/`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (the worktree has no `spec/` skill).
 - **Not run**: lake build, lean-check, Go tests.

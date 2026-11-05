@@ -75,7 +75,7 @@ theorem apply.newAuthApplierV3.wp_proof
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster,
     #HApply, #HCmp⟩
   ihave #Hauth : apply.authIs E p (.ok bi) $$ []
   · iunfold apply.authIs
@@ -127,12 +127,55 @@ theorem apply.newAuthApplierV3.wp_proof
   isplitr
   · -- LeaseRevoke: the auth applier's
     imodintro
-    iintro %r %rq %id %log %rs %Pre %Q %Post %info
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre] HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log T rs Pre Q Post info) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
+  isplitr
+  · -- `LeaseGrant` (the lease-grant stage, 2.11): the inner applier's (promoted)
+    imodintro
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' Hpre HΦ'
+    rw [method_unfold (t := go.GoType.PointerType authApplierV3.ty) (m := go!"LeaseGrant")]
+    wp_call
+    wp_auto
+    iunfold apply.grantPre at Hpre
+    icases Hpre with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hm, #Hsp, HU, HUf⟩
+    iunfold apply.mPre at Hm
+    icases Hm with ⟨Hkv, Hres, Hcs⟩
+    ihave ⟨Hi, Hres⟩ := apply.chainRes_auth_out c p (.ok bi) info $$ applierV3 Hres
+    iunfold apply.chainResAny at Hres
+    icases Hres with ⟨%info', Hres⟩
+    iapply HGrant $$ %r %rq %g %log %T %rs %U %Pre %Q %Post %info' [HltT HRO Hwt Hkv Hres Hcs HU HUf]
+    · iunfold apply.grantPre
+      iframe HltT HRO Hwt Hr Hgr Hsp HU HUf
+      isplitr
+      · ipureintro; exact Hrq
+      iunfold apply.mPre
+      iframe
+    inext
+    iintro %resp %err ⟨%o, Hpost⟩
+    iapply HΦ'
+    iexists o
+    iunfold apply.grantPost at Hpost
+    icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, HU, Hans⟩
+    iunfold apply.mPost at Hpm
+    icases Hpm with ⟨Hkv, Hres, HPP⟩
+    iunfold apply.grantPost
+    iframe HeI HlE Hlt HRO HU Hans
+    isplitl [Hkv Hres HPP Hi]
+    · iunfold apply.mPost
+      iframe Hkv HPP
+      iapply apply.chainResAny_auth_in c p (.ok bi) info $$ applierV3 Hi Hres
+    ipureintro
+    refine ⟨?_, Hst.2.1, Hst.2.2⟩
+    simp only [apply.chainStep]
+    split
+    · exact Or.inr Hst.1
+    · exact Hst.1
   isplitr
   · -- the methods that leave the log as it is: `UserGet`, `RoleGet` the auth applier's, the
     -- others the inner applier's (promoted)
@@ -142,8 +185,8 @@ theorem apply.newAuthApplierV3.wp_proof
     iintro %Φ' Hpre HΦ'
     simp only [apply.respMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl
-    case inr.inr.inr.inr.inr.inr.inr.inr.inl =>
+      rfl | rfl | rfl
+    case inr.inr.inr.inr.inr.inr.inr.inl =>
       icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       simp [apply.reqFacts]
       iapply (hUG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Hwt]
@@ -153,7 +196,7 @@ theorem apply.newAuthApplierV3.wp_proof
       iintro %resp %err ⟨Hpost, #HeI, -⟩
       iapply HΦ'
       iframe Hpost HeI
-    case inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inl =>
+    case inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inr.inl =>
       icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       simp [apply.reqFacts]
       iapply (hRG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'

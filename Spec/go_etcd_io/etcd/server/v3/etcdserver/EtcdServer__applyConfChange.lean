@@ -72,7 +72,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (m' : Membership) (e : LogEntry)
     (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
     (cid : w64),
-  ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
+  ccApplyOkM γs m → E.RO = srvRestOwnH E.authMode γB cl (srvObjsOn al st lp cl d.be) →
   E.γ.kb = some d → d.γB = γB →
   -- (2026-10-30, the repair: raft's one mode, a conf entry's batch hands the view over; until
   -- then, without a view, a static cluster)

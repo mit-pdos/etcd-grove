@@ -7,11 +7,11 @@ theorem backend.fkCl_parts (γ : backend.BNames) (P : backend.BParams) (D : back
 
 theorem backend.newPostK_named (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames →
     IProp GF) (b : Loc) (D : backend.Data) : backend.newPostK γ P W Pk K b D ⊢ "#HnB" ∷
-    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ b ∗ "HnK" ∷ K γ ∗ "HnV" ∷
-    backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗ "HnH" ∷
-    backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷ [∗list] _x
-    ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗ "HnDl" ∷
-    backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
+    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ P (W γ) (Pk γ) b ∗ "HnK"
+    ∷ K γ ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
+    "HnH" ∷ backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷
+    [∗list] _x ∈ List.replicate sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗
+    "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
 
 theorem backend.thinV_intro (γ : backend.BNames) (vd L : backend.VData) : (⌜∀ (nk : GoString ×
     GoString) (v : GoString), vd !! nk = some v → L !! nk = some v⌝ ∗ □ ∀ nk, ⌜L !! nk ≠ none ∧ vd
@@ -54,10 +54,10 @@ theorem backend.dlReg_dlIs (γ : backend.BNames) (Φ : GoString × GoString → 
 
 theorem backend.newPost_named (γ : backend.BNames) (P : backend.BParams) (W Pk : backend.BNames →
     IProp GF) (b : Loc) (D : backend.Data) : backend.newPost γ P W Pk b D ⊢ "#HnB" ∷
-    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ b ∗ "HnOpen" ∷
-    backend.bOpen γ 1 ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 }))
-    true ∗ "HnH" ∷ backend.plHook γ func.nil ∗ "HnWb" ∷ ownToks γ.wb backend.wbInit ∗ "HnRB" ∷
-    backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate
+    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ P (W γ) (Pk γ) b ∗
+    "HnOpen" ∷ backend.bOpen γ 1 ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver
+    := W64 0 })) true ∗ "HnH" ∷ backend.plHook γ func.nil ∗ "HnWb" ∷ ownToks γ.wb backend.wbInit ∗
+    "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate
     sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗
     "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
 

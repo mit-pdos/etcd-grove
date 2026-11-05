@@ -17,7 +17,7 @@
 module
 
 public import Proof.k8s_io.kubernetes.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Defs
 
 @[expose] public section
 
@@ -39,14 +39,14 @@ variable [sem : go.Semantics]
 
 /-- **The controller's clientset** (persistent): the model API server's non-admin clientset. -/
 def clientIs (kc : k8s_io.client_go.kubernetes.Interface) (γ : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) : IProp GF :=
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) : IProp GF :=
   iprop(∃ c : Loc, ⌜kc = interface.mkOk
-      (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Clientset.ty)
+      (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Clientset.ty)
       #c⌝ ∗ clientsetAt c γ cfg false ∗
-    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel)
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel)
 
 instance clientIs_persistent (kc : k8s_io.client_go.kubernetes.Interface) (γ : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) :
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) :
     Persistent (clientIs (GF := GF) kc γ cfg) := by
   unfold clientIs clientsetAt; infer_instance
 
@@ -67,7 +67,7 @@ instance recorderOk_persistent (r : k8s_io.client_go.tools.record.EventRecorder)
 /-- **A pod create's linearization point**, the caller's: at the API state `σ`, a state `σ'` the
 model's `Create` of the pod `d` in namespace `ns` may move to (`CreateOut`, the controller's
 client not an admin's), and `Ψ` of the outcome. -/
-def createAU (γ : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+def createAU (γ : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (ns : GoString) (d : kd.core.Pod) (Ψ : Except ApiErr (Bool × Obj) → IProp GF) : IProp GF :=
   iprop(|={⊤, ∅}=> ∃ σ, apiState γ σ ∗
     ∀ σ' oc, ⌜CreateOut cfg.FailWrites' false .pods ns (.pod d) σ oc σ'⌝ -∗ apiState γ σ'
@@ -86,7 +86,7 @@ def onWriteOk (f : GoFunc) (cref : Loc) (Ψ : Except ApiErr (Bool × Obj) → IP
 
 /-- **A pod delete's linearization point**, the caller's (as `createAU`, over the model's
 `Delete`, `DeleteOut`, with the controller's default options). -/
-def deleteAU (γ : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+def deleteAU (γ : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (ns name : GoString) (Ψ : Except ApiErr Bool → IProp GF) : IProp GF :=
   iprop(|={⊤, ∅}=> ∃ σ, apiState γ σ ∗
     ∀ σ' oc, ⌜DeleteOut cfg.FailWrites' false .pods ns name kd.meta.DeleteOptions.zero σ oc σ'⌝ -∗

@@ -46,19 +46,22 @@ request with an id that `rqOk` admits at the apply thread's log or an admitted a
 (`adminKindOk`), dispatchable on the apply thread's chain. -/
 def entryOkOn (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    (apply.rqOk x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
+    (apply.rqOk .none x.log rq ∨ apply.adminKindOk rq) ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **An entry's premise in the mode `on`** (the auth-mode merge's step 1, 2026-10-29): `entryOk`
-off, `entryOkOn` on. -/
-def entryOkM (on : Bool) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+off, `entryOkOn` on; off, in a cluster that grants leases or not (`lg`, the lease-grant stage's
+§2.8; auth on is a cluster that grants none). -/
+def entryOkM (on : Bool) (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   match on with
-  | false => entryOk x m
+  | false => entryOk lm x m
   | true => entryOkOn x m
 
-theorem entryOkM_false (x : apply.ApplyKV) (m : EntryModel) : entryOkM false x m = entryOk x m :=
+theorem entryOkM_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM false lm x m = entryOk lm x m :=
   rfl
 
-theorem entryOkM_true (x : apply.ApplyKV) (m : EntryModel) : entryOkM true x m = entryOkOn x m :=
+theorem entryOkM_true (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) :
+    entryOkM true lm x m = entryOkOn x m :=
   rfl
 
 theorem latestOk_all (M : auth.AuthMode) (hs : List auth.AuthState) (P : auth.AuthState → Prop)
@@ -140,6 +143,23 @@ theorem kvEntryOn_below (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × m
     · rfl
   · rw [hk]
 
+/-- **An admitted admin request is no grant** (the lease-grant plan's 2.6: nothing to carry,
+`grantArM_not_grant`). -/
+theorem adminKindOk_nonGrant (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq ≠ .leaseGrant := by
+  intro hk
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact h
+
+/-- An admin request is not a revocation (the lease-expiry plan's X6). -/
+theorem adminKindOk_nonRevoke (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.dispatchKind rq ≠ .leaseRevoke := by
+  intro hk
+  unfold apply.adminKindOk at h
+  rw [hk] at h
+  exact h
+
 /-- An admitted admin request sets neither cluster field (`dispatchKind` tries them first). -/
 theorem adminKindOk_noCluster (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
     rq.clusterVersionSet = none ∧ rq.clusterMemberAttrSet = none := by
@@ -187,7 +207,7 @@ theorem kvEntryOn_len (c₀ : w64) (ch : apply.Chain) (st : auth.AuthState) (x :
     (kvEntryOn c₀ ch (st, x.log) m).2.length < 2 ^ 63 := by
   have hk : (kvEntry c₀ ch [] x.log m).length < 2 ^ 63 := by
     rcases hok with hd | ⟨rq, hdec, hid, hrq | hadm, hdk⟩
-    · exact kvEntry_len c₀ ch [] x m (Or.inl hd) hl
+    · exact kvEntry_len c₀ ch [] x m (lm := .none) (Or.inl hd) hl
     · exact kvEntry_len c₀ ch [] x m (Or.inr ⟨rq, hdec, hid, hrq, hdk⟩) hl
     · rw [kvEntry_nonwrite c₀ ch [] x.log m (Or.inr (Or.inr (fun rq' h => by
         rw [hdec] at h; cases h; exact adminKindOk_nonwrite rq hadm)))]
@@ -408,14 +428,22 @@ theorem appliedMono_of_invM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   ipureintro
   exact HMk.2.2 i j L1 L2 Hm1 Hm2 hij
 
+open Iris.ProofMode in
 /-- **An admin entry leaves the rest buckets** (`restAfter_other`: it sets no cluster field). -/
 theorem srvRest_admin (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (rq : apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hk : apply.adminKindOk rq) :
-    srvRest E γr (A ++ [m]) = srvRest E γr A := by
+    srvRest E γr A ⊢ srvRest E γr (A ++ [m]) := by
   obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hk
-  rw [srvRest_snoc, restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
-  rfl
+  have hg : apply.dispatchKind rq ≠ .leaseGrant := fun h => by
+    unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  have hr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
+    unfold apply.adminKindOk at hk; rw [h] at hk; exact hk
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  iapply srvRest_snoc E γr A m (appliedTable_nonLease γr A m rq ht hd hdec hg hr)
+  rw [restEntry_normal _ _ rq _ ht hd hdec, apply.restAfter_other rq _ _ h1 h2]
+  iframe H HU
 
 /-- **After the entry, in the mode `on`** (`kvApplied_next`'s counterpart): the apply thread's KV
 ghost state at the next state `x'` and auth state `st'` (the model's after `A ++ [m]`, the chain
@@ -517,37 +545,41 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The apply thread's auth row with auth on, opened** (see the file header). -/
 theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
     (st : auth.AuthState) (hM : E.authMode = .on γa) :
-    srvAuthApplyResB (GF := GF) s E st ⊢ ∃ (stl bel : Loc) (T : IProp GF) (hs : List auth.AuthState),
+    srvAuthApplyResB (GF := GF) s E st ⊢ ∃ (stl bel : Loc) (T : auth.AuthBkNames)
+      (hs : List auth.AuthState),
       srvAuthStoreAddr s ↦□ auth.authIface stl ∗ roLendsAuthBe E.RO stl bel ∗
-      authWBackendAt bel (.on γa) E.P E.f T ∗
+      authWBackendAt bel (.on γa) E.P E.f (auth.authWTok T) ∗
       apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) E.RD ∗
-      auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝ ∗ T ∗
-      auth.tpAdmin stl (.on γa) ∗
+        (adminW stl bel (.on γa) E.P E.f (auth.authWTok T)) E.RD ∗
+      auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝ ∗
+      auth.authWHeld γa T ∗ auth.tpAdmin stl (.on γa) ∗
       (∀ (hs' : List auth.AuthState) (st' : auth.AuthState), auth.authOwnFu γa hs' -∗
-        auth.tieRes stl (.on γa) hs' -∗ ⌜hs'.getLast? = some st'⌝ -∗ T -∗
+        auth.tieRes stl (.on γa) hs' -∗ ⌜hs'.getLast? = some st'⌝ -∗ auth.authWHeld γa T -∗
         auth.tpAdmin stl (.on γa) -∗ srvAuthApplyResB s E st') := by
   iintro HR
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl, %bel, #Hf, HB, #Hlens, #Hro⟩
-  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' bel E.P E.f E.RD =
-      authApplyResB (GF := GF) (.on γa) stl st' bel E.P E.f E.RD := by intro; rw [hM]
+  icases HR with ⟨%stl, %d, %hkb, #Hf, HB, #Hlens, #Hro⟩
+  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' d E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st' d E.P E.f E.RD := by intro; rw [hM]
   irevert HB
   rw [hB]
   unfold authApplyResB
-  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hwa, #Hsteps⟩
-  iexists stl, bel, T, hs
+  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, #Hlife, Hpt, Htp, %Hl, #Hwa, #Hsteps, #Hins,
+    HRD⟩
+  iexists stl, d.be, T, hs
   iframe Hf Hro Hwa Hsteps Ho HX HT Htp
   isplitr
   · ipureintro; exact Hl
   iintro %hs' %st' Ho' HX' %Hl' HT' Htp'
   iunfold srvAuthApplyResB
-  iexists stl, bel
+  iexists stl, d
+  isplitr
+  · ipureintro; exact hkb
   iframe Hf Hlens Hro
   rw [hB]
   unfold authApplyResB
   iexists hs', P0, f0, T, be
-  iframe Ho' HX' Hw HT' Htp' Hwa Hsteps
+  iframe Ho' HX' Hw HT' Hlife Hpt Htp' Hwa Hsteps Hins HRD
   ipureintro; exact Hl'
 
 /-- **Publication at the apply thread's auth row** (the auth plan's E3t): with the built part's
@@ -557,9 +589,9 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
     (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
     srvUberBase (GF := GF) s ua E ⊢ srvAuthApplyResB s E st ={⊤}=∗
       srvAuthApplyResB s E st ∗ authPubAt E.authMode st := by
-  iintro #Hb HAR
-  icases srvAuthApplyResB_open s E γa st hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hf, #Hro, #Hwa,
-    #Hsteps, Hfu, Ht, %Hl, HT, Htp, Hclose⟩
+  iintro #Hb HR
+  iunfold srvAuthApplyResB at HR
+  icases HR with ⟨%stl, %d, %hkb, #Hf, HB, #Hlens, #Hro⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, -, -, -, %stl', %Hau, #HPub, -⟩
   subst Hau
@@ -568,13 +600,39 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
   subst Hst'
   ihave #HPub' : authPublishM (GF := GF) (.on γa) stl $$ []
   · rw [← hM]; iexact HPub
-  iunfold auth.authOwnFu at Hfu
-  icases Hfu with ⟨Ho, Hfuel⟩
-  imod authPubAt_publish γa stl hs st Hl $$ HPub' Ho Ht with ⟨Ho, Ht, #Hpa⟩
-  ihave HAR := Hclose $$ %hs %st [Ho Hfuel] Ht %Hl HT Htp
-  · iunfold auth.authOwnFu; iframe Ho Hfuel
+  have hB : ∀ st', authApplyResB (GF := GF) E.authMode stl st' d E.P E.f E.RD =
+      authApplyResB (GF := GF) (.on γa) stl st' d E.P E.f E.RD := by intro; rw [hM]
+  irevert HB
+  rw [hB]
+  unfold authApplyResB
+  iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, ⟨%K, #Hlife⟩, Hpt, Htp, %Hl, #Hwa, #Hsteps,
+    #Hins, HRD⟩
+  iunfold auth.authOwnFu at Ho
+  icases Ho with ⟨Ho, Hfuel⟩
+  iunfold auth.authWHeld at HT
+  icases HT with ⟨Htok, Hbk⟩
+  -- (the auth-on snapshot plan's Prove step) publication on the current backend
+  ihave HR := (auth.authPubRes_on γa T K).2 $$ [Htok Hpt]
+  · iframe Hlife Htok Hpt
+  imod authPubAt_publish γa stl hs st Hl T K $$ HPub' HR Ho HX with ⟨HR, Ho, HX, #Hpa⟩
+  icases (auth.authPubRes_on γa T K).1 $$ HR with ⟨-, Htok, Hpt⟩
   imodintro
-  iframe HAR
+  isplitl [Ho Hfuel HX Htok Hbk Hpt Htp HRD]
+  · iunfold srvAuthApplyResB
+    iexists stl, d
+    isplitr
+    · ipureintro; exact hkb
+    iframe Hf Hlens Hro
+    rw [hB]
+    unfold authApplyResB
+    iexists hs, P0, f0, T, be
+    iunfold auth.authOwnFu
+    iframe Ho Hfuel HX Hw Hpt Htp Hwa Hsteps Hins HRD
+    isplitl [Htok Hbk]
+    · iunfold auth.authWHeld; iframe Htok Hbk
+    isplitr
+    · iexists K; iexact Hlife
+    ipureintro; exact Hl
   rw [hM]
   iexact Hpa
 
@@ -631,14 +689,14 @@ theorem srv_uberAuthStepsL_at
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames) (stl bel : Loc)
-    (T : IProp GF) (hM : E.authMode = .on γa) :
+    (T : auth.AuthBkNames) (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
       apply.isAuthStepsX (auth.authIface stl) E.P E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) E.P E.f T) E.RD ⊢
-      apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+        (adminW stl bel (.on γa) E.P E.f (auth.authWTok T)) E.RD ⊢
+      apply.uberAuthStepsL ua E (adminWC stl bel γa E.P E.f T)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
-        (auth.latestRes stl (.on γa)) := by
+        (auth.latestResC stl (.on γa) T) := by
   iintro ⟨#Hpkg, #Hb, #Hf, #Hsteps⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -, %stl', %Hau, -, #HL, -⟩
@@ -647,15 +705,21 @@ theorem srv_uberAuthStepsL_at
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
   subst Hst'
   have hL : authStoreLatestM (GF := GF) E.authMode (auth.authIface stl) E.RD stl =
-      apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode (auth.latestRes stl (.on γa)) := by
+      iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD E.authMode
+        (auth.latestResC stl (.on γa) γc)) := by
     rw [hM]; rfl
   iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
-    le (auth.tieRes stl (.on γa)) (adminW stl bel (.on γa) E.P E.f T) (auth.latestRes stl (.on γa)))
+    le (auth.tieRes stl (.on γa)) (adminWC stl bel γa E.P E.f T) (auth.latestResC stl (.on γa) T))
   iframe Hpkg Hub
   isplitr
-  · rw [← hL]; iexact HL
+  · ihave #HLc : iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD
+        E.authMode (auth.latestResC stl (.on γa) γc)) $$ []
+    · rw [← hL]; iexact HL
+    ihave #HLT := HLc $$ %T
+    iexact HLT
   rw [hM]
-  iexact Hsteps
+  unfold adminWC
+  iapply apply.isAuthStepsX_frameW $$ Hsteps
 
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -710,10 +774,10 @@ theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   iexact Hrest
 
 /-- **One write token, the count raised by one, with auth on** (`srvWTPool_take_n`'s). -/
-theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) (n : Nat) :
-    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
-      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvWTTaken γp.cnt n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTTaken γp.cnt (n + 1) ∗ srvApplyKVOn s E γw x st := by
   iintro #Hp Hr Hlc #Hv HKV
   icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
   icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
@@ -842,7 +906,7 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
         (srvApplyKVCore s E γw x ua -∗ srvApplyKVOn s E γw x st) := by
   iintro H
   iunfold srvApplyKVOn at H
-  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -876,7 +940,58 @@ theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
+
+/-- **The mode-`on` row lends its shared part and its auth row** (`srvApplyKVOn_core`'s, with the
+auth row `srvAuthApplyResB`, which lends the auth buckets to the merged snapshot's window: #7-on). -/
+theorem srvApplyKVOn_coreA (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗ srvAuthApplyResB s E st ∗
+        (srvApplyKVCore s E γw x ua -∗ srvAuthApplyResB s E st -∗ srvApplyKVOn s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
+  iexists ua
+  isplitl [Hua Hkv Hbo Hra Hw]
+  · iunfold srvApplyKVCore
+    isplitl [Hua]
+    · iexact Hua
+    isplitr
+    · iexact Hap
+    isplitl [Hkv]
+    · iexact Hkv
+    isplitl [Hbo]
+    · iexact Hbo
+    isplitl [Hra]
+    · iexact Hra
+    iexact Hw
+  isplitl [Har]
+  · iexact Har
+  iintro Hc Har
+  iunfold srvApplyKVCore at Hc
+  icases Hc with ⟨Hua, -, Hkv, Hbo, Hra, Hw⟩
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  isplitl [Hbo]
+  · iexact Hbo
+  isplitl [Hra]
+  · iexact Hra
+  isplitl [Har]
+  · iexact Har
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 /-- `srvApplyKVM`'s part shared by both modes (`srvApplyKV_core`, `srvApplyKVOn_core`). -/
 theorem srvApplyKVM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)

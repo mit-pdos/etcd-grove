@@ -83,7 +83,7 @@ theorem raw_to_state (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (γ : KVN
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (Q : KVState → IProp GF) :
     ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) -∗
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) -∗
       posQ o Q c -∗ client.rawRespOk E.γ o c c' v r ={⊤}=∗
       ∃ σ : KVState, □ Q σ ∗ watchStateRespOk o σ c c' v r := by
   have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl

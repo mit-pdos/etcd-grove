@@ -40,7 +40,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
-variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions]
+variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions]
 
 /-- **A create that reported an error**: no effect, or a write whose call returned the timeout
 (possible only with `AmbiguousWrites`). -/
@@ -52,7 +52,7 @@ def createErrOutcome (amb : Bool) : Except ApiErr (Bool × Obj) → Prop
 is a `*DaemonSet` (`l`, read-only), as the DaemonSet controller passes. -/
 abbrev RealPodControl.createPods.spec : Prop :=
   ∀ [ApiDeps] (r : RealPodControl) (γ : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (ctx : GoInterface) (ns : GoString) (p : Loc) (dq : DFrac) (d : kd.core.Pod) (l : Loc)
     (dd : kd.apps.DaemonSet) (cref : Loc) (Ψ : Except ApiErr (Bool × Obj) → IProp GF)
     (Ψ' : kd.core.Pod → IProp GF),

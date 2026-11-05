@@ -52,7 +52,7 @@ theorem apply.newApplierV3Capped.wp_proof
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster,
     #HApply, #HCmp⟩
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType applierV3Capped.ty, #p⟩
@@ -155,7 +155,7 @@ theorem apply.newApplierV3Capped.wp_proof
   isplitr
   · -- LeaseRevoke: the inner applier's (promoted)
     imodintro
-    iintro %r %rq %id %log %rs %Pre %Q %Post %info
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' Hpre HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Capped.ty) (m := go!"LeaseRevoke")]
@@ -167,16 +167,15 @@ theorem apply.newApplierV3Capped.wp_proof
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HRev $$ %r %rq %id %log %rs %Pre %Q %Post %info [Hwt Hkv Hres Hcs Hrr]
+    iapply HRev $$ %r %rq %id %log %T %rs %Pre %Q %Post %info [Hwt Hkv Hres Hcs Hrr]
     · iunfold apply.revokePre
       iunfold apply.mPre
       iframe
       iframe #
       ipureintro; exact Hk
     inext
-    iintro %resp %err ⟨Hpost, Hrr⟩
+    iintro %resp %err Hpost
     iapply HΦ'
-    iframe Hrr
     iunfold apply.kvPost at Hpost
     iunfold apply.kvPost
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, #Hcls, #Hlc⟩
@@ -190,20 +189,22 @@ theorem apply.newApplierV3Capped.wp_proof
       simpa using Hst
     iapply apply.chainRes_capped_in c p (.ok bi) info $$ applierV3 Hres
   isplitr
-  · -- the methods that leave the log as it is: `LeaseGrant` the capped applier's, the others
-    -- the inner applier's (promoted)
+  · -- `LeaseGrant` (the lease-grant stage, 2.11): the layer's own
+    imodintro
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' Hpre HΦ'
+    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre] HΦ'
+    iframe Hpre
+    iunfold apply.cappedIs
+    iframe #
+  isplitr
+  · -- the methods that leave the log as it is: the inner applier's (promoted)
     imodintro
     iintro %m %r %log %Pre %Q %Post %info %hm
     imodintro
     iintro %Φ' Hpre HΦ'
     simp only [apply.respMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
-    rcases hm with rfl | hm
-    · simp only [apply.reqFacts, ↓reduceIte]
-      icases Hpre with ⟨HR, Hm, Hwt, -⟩
-      iapply (hLG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
-      iframe HR Hm Hwt
-      iunfold apply.cappedIs
-      iframe #
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl
     all_goals

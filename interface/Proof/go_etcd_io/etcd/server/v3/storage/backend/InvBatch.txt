@@ -13,6 +13,10 @@ def backend.batchLockedW (γ : backend.BNames) (P : backend.BParams) (b : Loc) (
         sync.ownMutex (backend.muOf t) ∗
           backend.batchPhys γ b t db st ∗ backend.batchGhostW γ P st win ∗ ⌜backend.sessWf P st⌝)
 
+theorem backend.batchLocked_pv (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
+    backend.BSess) (vd : backend.VData) : backend.batchLocked γ P b st ∗ backend.pvHalf γ vd ⊢
+    backend.batchLocked γ P b st ∗ backend.pvHalf γ vd ∗ ⌜vd = backend.sData P st.S⌝
+
 theorem backend.isBackend_bt (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t :
     Loc) : backend.isBackend γ P W Pk b ∗ typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard
     ⊢ ∃ db lg h, typedPointsto (backend.beOf t) b DFrac.discard ∗ typedPointsto (backend.bF go!"lg"
@@ -44,6 +48,15 @@ theorem backend.batchLocked_rb (γ : backend.BNames) (P : backend.BParams) (b : 
     backend.rbOwn γ r ⊢ backend.batchLocked γ P b st ∗ backend.rbOwn γ r ∗ ⌜r = backend.rbData P
     st.S⌝
 
+theorem backend.batchLocked_ck (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
+    backend.BSess) (v : backend.FkVals) : backend.batchLocked γ P b st ∗ backend.ckHalf γ v ⊢
+    backend.batchLocked γ P b st ∗ backend.ckHalf γ v ∗ ⌜v = backend.fkVals st.S⌝
+
+theorem backend.isBackend_dbFile (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b :
+    Loc) : backend.isBackend γ P W Pk b ⊢ ∃ db path, (sync.isRWMutexGuard (backend.bF go!"mu" b) fun
+    q => typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗ backend.isDB db ∗ backend.bDBAt γ
+    db path ∗ backend.dbFile db path
+
 theorem backend.batchGhostAt_bound (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess)
     (free : Bool) (hP : P.Wf) (hst : backend.sessWf P st) : backend.batchGhostAt γ P st free ⊢ ⌜∀ (i
     : w64), (backend.bkOf st.R.bks i).length + (backend.bkOf st.W.bks i).length < backend.bufBound⌝
@@ -60,7 +73,8 @@ theorem backend.batchGhost_step (γ : backend.BNames) (P : backend.BParams) {st 
     (hC : st'.C = st.C) (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend =
     sint.nat st.pend + 1) (hW : ∀ (i : w64), (backend.bkOf st'.W.bks i).length ≤ (backend.bkOf
     st.W.bks i).length + 1) (hS : backend.hkData P st'.S = backend.hkData P st.S) (hB :
-    backend.rbData P st'.S = backend.rbData P st.S) (hF : ∀ (f : Nat) (g : backend.FkG),
+    backend.rbData P st'.S = backend.rbData P st.S) (hV : backend.sData P st'.S = backend.sData P
+    st.S) (hK : backend.fkVals st'.S = backend.fkVals st.S) (hF : ∀ (f : Nat) (g : backend.FkG),
     backend.fkOkG P f g st → backend.fkOkG P f g st') : backend.batchGhost γ P st ⊢
     backend.batchGhost γ P st'
 
@@ -86,12 +100,15 @@ theorem backend.batchGhost_step_put (γ : backend.BNames) (P : backend.BParams) 
     st'.pend = sint.nat st.pend + 1) (hW : ∀ (i : w64), (backend.bkOf st'.W.bks i).length ≤
     (backend.bkOf st.W.bks i).length + 1) (n k : GoString) (hS : P.hk n k = false → backend.hkData P
     st'.S = backend.hkData P st.S) (hB : P.RB n = false → backend.rbData P st'.S = backend.rbData P
-    st.S) (hF : ¬backend.fkKey n k → ∀ (f : Nat) (g : backend.FkG), backend.fkOkG P f g st →
-    backend.fkOkG P f g st') (hFk : backend.fkKey n k → ∀ (f : Nat) (g : backend.FkG), backend.fkOkG
-    P f g st → backend.fkOkG P (f + 1) g st') (hBT : P.RB n = true → ∃ i, P.BT !! n = some i) (hO :
-    ∀ (m : GoString), m ≠ n → st'.S !! m = st.S !! m) : ⊢ backend.batchGhost γ P st -∗ backend.hkPut
-    γ P n k st.S -∗ backend.rbPut γ P n st.S -∗ backend.fkPut γ n k ==∗ backend.batchGhost γ P st' ∗
-    backend.hkPut γ P n k st'.S ∗ backend.rbPut γ P n st'.S ∗ backend.fkPut γ n k
+    st.S) (hV : P.HB n = true → backend.sData P st'.S = backend.sData P st.S) (hK : ¬backend.fkKey n
+    k → backend.fkVals st'.S = backend.fkVals st.S) (hF : ¬backend.fkKey n k → ∀ (f : Nat) (g :
+    backend.FkG), backend.fkOkG P f g st → backend.fkOkG P f g st') (hFk : backend.fkKey n k → ∀ (f
+    : Nat) (g : backend.FkG), backend.fkOkG P f g st → backend.fkOkG P (f + 1) g st') (hBT : P.RB n
+    = true → ∃ i, P.BT !! n = some i) (hO : ∀ (m : GoString), m ≠ n → st'.S !! m = st.S !! m) : ⊢
+    backend.batchGhost γ P st -∗ backend.hkPut γ P n k st.S -∗ backend.rbPut γ P n st.S -∗
+    backend.fkPut γ n k -∗ backend.pvPut γ P n st.S -∗ backend.ckPut γ n k st.S ==∗
+    backend.batchGhost γ P st' ∗ backend.hkPut γ P n k st'.S ∗ backend.rbPut γ P n st'.S ∗
+    backend.fkPut γ n k ∗ backend.pvPut γ P n st'.S ∗ backend.ckPut γ n k st'.S
 
 theorem backend.fk_halves (γ : backend.BNames) (n : Nat) : monoNatAuthOwn γ.fk 1 n ⊣⊢ monoNatAuthOwn
     γ.fk (Qp.half 1) n ∗ monoNatAuthOwn γ.fk (Qp.half 1) n
@@ -101,16 +118,22 @@ theorem backend.batchGhost_step_rb (γ : backend.BNames) (P : backend.BParams) {
     st'.pend = sint.nat st.pend + 1) (hW : ∀ (i : w64), (backend.bkOf st'.W.bks i).length ≤
     (backend.bkOf st.W.bks i).length + 1) (n : GoString) (hS : backend.hkData P st'.S =
     backend.hkData P st.S) (hB : P.RB n = false → backend.rbData P st'.S = backend.rbData P st.S)
-    (hF : ∀ (f : Nat) (g : backend.FkG), backend.fkOkG P f g st → backend.fkOkG P f g st') (hBT :
-    P.RB n = true → ∃ i, P.BT !! n = some i) (hO : ∀ (m : GoString), m ≠ n → st'.S !! m = st.S !! m)
-    : ⊢ backend.batchGhost γ P st -∗ backend.rbPut γ P n st.S ==∗ backend.batchGhost γ P st' ∗
-    backend.rbPut γ P n st'.S
+    (hV : backend.sData P st'.S = backend.sData P st.S) (hK : backend.fkVals st'.S = backend.fkVals
+    st.S) (hF : ∀ (f : Nat) (g : backend.FkG), backend.fkOkG P f g st → backend.fkOkG P f g st')
+    (hBT : P.RB n = true → ∃ i, P.BT !! n = some i) (hO : ∀ (m : GoString), m ≠ n → st'.S !! m =
+    st.S !! m) : ⊢ backend.batchGhost γ P st -∗ backend.rbPut γ P n st.S ==∗ backend.batchGhost γ P
+    st' ∗ backend.rbPut γ P n st'.S
 
 theorem backend.rdB_acc (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) : backend.rdB tx s v ∗
     backend.txLive tx q ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.txLive tx q)
 
 theorem backend.BSess.put_S_other (st : backend.BSess) (bi : backend.BucketInfo) (k v : GoString)
     (seq : Bool) (m : GoString) : m ≠ bi.name → (st.put bi k v seq).S !! m = st.S !! m
+
+theorem backend.batchLocked_pvck (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
+    backend.BSess) (n k : GoString) : backend.batchLocked γ P b st ∗ backend.pvckOwn γ ⊢
+    backend.batchLocked γ P b st ∗ backend.pvPut γ P n st.S ∗ backend.ckPut γ n k st.S ∗ ∀ S',
+    backend.pvPut γ P n S' -∗ backend.ckPut γ n k S' -∗ backend.pvckOwn γ
 
 theorem backend.batchGhostAt_take (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) :
     backend.batchGhostAt γ P st true ⊢ backend.batchGhost γ P st

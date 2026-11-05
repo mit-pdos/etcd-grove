@@ -167,7 +167,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
   iintro ⟨%hw, #Hpkg, #Hmpkg, #Hinv, #Hhok, #Hlens⟩
   iunfold revokeClause
   iintro !> %id %log %L %rs %Pre %Q %Post %Φ !>
-    ⟨Hcs, Hkw, Hsr, Hwt, %Hput, Hown, Hrvk, #HK, Hrd, HRO, #Hcert⟩ HΦ
+    ⟨Hcs, Hkw, Hsr, Hwt, %Hput, Hown, Hrvk, #HK, Hrd, #Hrev, HRO, #Hcert⟩ HΦ
   icases lease.rdAt_elim _ _ $$ Hrd with ⟨%rd, Hro, #Hrdc⟩
   icases (txn.kvWriter_open s γ log hw (fun ws γw => mvcc.rdIs rd ws s γw)) $$ [Hkw] with
     ⟨%ws, %γw, %Hγ, #Hrdi, Hww, Hfrag, Hclose⟩
@@ -185,7 +185,7 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     unfold txn.logChanges at h; unfold mvcc.logCh at hch; omega
   iapply (hRv lp γw.st.leases id rd ws s γw log L d rs.bk P Pre Q Post f) $$
     [Hro Hsr Hwt Hww Hhook Hcs Hown Hrvk Hrb Hbe]
-  · iframe Hro Hsr Hwt Hww Hhook Hcs Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrdi Hcert
+  · iframe Hro Hsr Hwt Hww Hhook Hcs Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrdi Hcert Hrev
     isplitr
     · ipureintro; exact ⟨rfl, hkb⟩
     ipureintro; exact ⟨Hput, hlen⟩
@@ -241,9 +241,12 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
 /-- **The apply package's lessor contract, of the real lessor** at `lp`, for a store whose lessor
 ghost map is the lessor's: its `isTxnLessor`, `Grant` and `Checkpoint` from the proofs, its
 `Revoke` and `Lookup` clauses (not yet proved of the real lessor) given. The lessor's backend
-contract takes, per write, the write token `storeWT γ ∗ RW₀` and, for its put, the right `Rb r` to
-the tracked buckets, both of which the write right `RW` holds (leases T3, L3c, 2026-10-27); the
-contract's clauses do not state the put's effect yet (the apply layer's step, L3b). -/
+contract takes, per write, the write token `storeWT γ`, the lent part (its half of `le.b` at the
+store's real backend `d`, `lessorBeOn lp d.be`, given back: the lease-grant stage, 2.12) and, for
+its put, the `lease` bucket's part of the tracked buckets (`rbPart`). (The lease-grant stage, 2.12,
+2026-11-03: the backend premise names `d`, m2) `Grant` takes the last two from the rest resource
+`RO` through its lens (the `Revoke` clause's) and gives them back at the record put; `Checkpoint`
+from the write right `RW` (the server's is `False`). -/
 theorem isApplyLessor_of_lessorInv
     (hGL : lease.lessor.GetLease.spec (GF := GF) (hG := hG))
     (hAt : lease.lessor.Attach.spec (GF := GF) (hG := hG))
@@ -255,7 +258,7 @@ theorem isApplyLessor_of_lessorInv
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
     (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
     (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RO : RestM → IProp GF)
-    (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
+    (RW : IProp GF) :
     ⌜γ.watchQ = true⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.hookOk γ P f ∗
       □ (∀ rs : RestM, RO rs -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗
@@ -265,14 +268,17 @@ theorem isApplyLessor_of_lessorInv
             mvcc.storeRb γ bk ∗ lease.lessorBeOn lp d.be -∗ RO { rs with bk := bk })) ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
-      □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
+      □ (∀ d : mvcc.KBReal, ⌜γ.kb = some d⌝ →
+        lease.lessorBackend lp P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be) (mvcc.storeRT γ)
+          (backend.rbPart d.γB (· = mvcc.leaseName))) ∗
+      □ (RW -∗ ∃ d : mvcc.KBReal, ⌜γ.kb = some d⌝ ∗ lease.lessorBeOn lp d.be ∗
+        ∃ r, backend.rbPart d.γB (· = mvcc.leaseName) r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
           (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}) ⊢
       isApplyLessor (lease.lessorIface lp) s γ P f RO RW := by
-  iintro ⟨%Hwq, #Hmpkg, #Hhok, #Hlens, #Hpkg, #Hinv, #Hcfg, #Hbe, #HRW, #HLookup⟩
+  iintro ⟨%Hwq, #Hmpkg, #Hhok, #Hlens, #Hpkg, #Hinv, #Hcfg, #Hbe0, #HRW, #HLookup⟩
   iunfold isApplyLessor
   isplitl []
   · iapply lease.isTxnLessor_of_lessorInv hGL hAt hDt hSRD hLk lp γ.leases $$ [$Hpkg $Hinv]
@@ -280,48 +286,66 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %I %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, Hrw⟩ HΦ
-    icases HRW $$ Hrw with ⟨Hrw, %r, HRb⟩
-    iapply (hGrant lp γ.leases id ttl L I P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb r
-      Pre Q Post) $$ [Hcs Hown Hrvk Hwt Hrt Hrw HRb]
+  · iintro !> %id %ttl %L %I %rs %Pre %Q %Post %U %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, HRO, HU,
+      HUf⟩ HΦ
+    icases Hlens $$ HRO with ⟨%d, %hkb, Hrb, Hbe, Hcl⟩
+    ihave #Hbd := Hbe0 $$ %d %hkb
+    ihave ⟨Hrb, %hlp⟩ : iprop(backend.rbPart d.γB (· = mvcc.leaseName) rs.bk ∗
+        ⌜mvcc.leaseParams d.P⌝) $$ [Hrb]
+    · unfold mvcc.storeRb; rw [hkb]; simp only [mvcc.kbRb]; iexact Hrb
+    iapply (hGrant lp γ.leases id ttl L I P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be)
+      (mvcc.storeRT γ) (backend.rbPart d.γB (· = mvcc.leaseName)) rs.bk
+      Pre Q Post U) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
     · iframe; iframe #
-    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, Hrvk, HPre, -⟩ |
-      ⟨%Hok, Hown, Hrvk, HPost, #HID, ⟨%mt, -, #Ht, -⟩⟩)⟩
+    iintro !> %l %err ⟨Hrt, Hbe, (⟨%Hne, #Herr, Hown, Hrvk, HPre, Hrb, HU⟩ |
+      ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb, HU⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
-      isplitl [HPre]
-      · iright; iexact HPre
-      isplitl [Hown Hrvk]
-      · iexists L; iframe Hown Hrvk
-        isplitr
-        · ipureintro; intro x hx; exact hx
-        ileft; ipureintro; exact Hne.1
-      iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
-    · obtain ⟨Herr, Hln, -, -, Hnin⟩ := Hok
+      isplitr
+      · iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
+      ileft
+      iframe HPre Hown Hrvk Herr HU
+      isplitr
+      · ipureintro
+        refine ⟨Hne.1, ?_⟩
+        rintro ⟨h1, h2, h3⟩
+        rcases Hne.2 with h | h | h
+        · exact h1 h
+        · omega
+        · exact h3 h
+      iapply Hcl $$ %rs.bk %(fun _ _ => rfl) %(fun h => h) [Hrb Hbe]
+      unfold mvcc.storeRb; rw [hkb]; simp only [mvcc.kbRb]
+      iframe Hrb Hbe; ipureintro; exact hlp
+    · obtain ⟨Herr, Hln, Hid0, Httl, Hnin⟩ := Hok
       subst Herr
       iapply HΦ
       iframe Hrt
-      isplitl [HPost]
-      · ileft; iexact HPost
-      isplitl [Hown Hrvk]
-      · iexists (L ++ [id]); iframe Hown Hrvk
+      isplitr
+      · iapply applyErrIs_nil
+      iright
+      iframe HPost Hown Hrvk Hlive HU
+      isplitr
+      · ipureintro; exact ⟨rfl, Hid0, Httl, Hnin⟩
+      isplitr
+      · iunfold leaseTTLIs
+        iframe HID
         isplitr
-        · ipureintro; intro x hx; exact List.mem_append_left _ hx
-        iright
-        isplitr
-        · ipureintro; rfl
-        iexists id
-        isplitl
-        · iunfold leaseTTLIs
-          iframe HID
-          isplitr
-          · ipureintro; exact Hln
-          iintro !> %Φ' !> - HΦ'
-          iapply (hTTL l _ DFrac.discard) $$ [$Hpkg $Ht]
-          iintro !> -
-          iapply HΦ'; itrivial
-        ipureintro; exact List.mem_append_right _ (List.mem_singleton.mpr rfl)
-      iapply applyErrIs_nil
+        · ipureintro; exact Hln
+        iintro !> %Φ' !> - HΦ'
+        iapply (hTTL l _ DFrac.discard) $$ [$Hpkg $Ht]
+        iintro !> -
+        iapply HΦ'; itrivial
+      iexists (lease.grantTTL mt ttl)
+      iframe Ht
+      isplitr
+      · ipureintro; exact lease.grantTTL_ge mt ttl
+      rw [show restGrantT id (lease.grantTTL mt ttl) rs = { rs with bk := (mvcc.rbSet rs.bk mvcc.leaseName (u64Le id).reverse (lease.leaseEnc id (lease.grantTTL mt ttl) (W64 0))) } from rfl]
+      iapply Hcl $$ %(mvcc.rbSet rs.bk mvcc.leaseName (u64Le id).reverse
+          (lease.leaseEnc id (lease.grantTTL mt ttl) (W64 0)))
+        %(fun n hn => by unfold mvcc.rbSet; rw [GMap.lookup_insert_ne _ _ (Ne.symm hn)])
+        %(fun _ => by simp [mvcc.rbSet]) [Hrb Hbe]
+      unfold mvcc.storeRb; rw [hkb]; simp only [mvcc.kbRb]
+      iframe Hrb Hbe; ipureintro; exact hlp
   isplitr
   · -- `Revoke` (the lease-revoke plan)
     iapply revokeClause_of_lessorInv hRv lp s γ P f RO
@@ -329,11 +353,12 @@ theorem isApplyLessor_of_lessorInv
     ipureintro; exact Hwq
   isplitr
   · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt, Hrw⟩ HΦ
-    icases HRW $$ Hrw with ⟨Hrw, %r, HRb⟩
-    iapply (hCk lp γ.leases id rem P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb r
-      Pre Q Post) $$ [Hcs Hwt Hrt Hrw HRb]
+    icases HRW $$ Hrw with ⟨%d, %hkb, Hrw, %r, HRb⟩
+    ihave #Hbd := Hbe0 $$ %d %hkb
+    iapply (hCk lp γ.leases id rem P f (mvcc.storeWT γ) (lease.lessorBeOn lp d.be) (mvcc.storeRT γ)
+      (backend.rbPart d.γB (· = mvcc.leaseName)) r Pre Q Post) $$ [Hcs Hwt Hrt Hrw HRb]
     · iframe; iframe #
-    iintro !> %err ⟨Hrt, %He, HPP⟩
+    iintro !> %err ⟨Hrt, -, %He, HPP⟩
     subst He
     iapply HΦ
     iframe Hrt

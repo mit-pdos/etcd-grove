@@ -80,6 +80,56 @@ def leasesRespIs (E : apply.AEnv GF) (resp : Loc) (cid mid : w64) (ids : List w6
   iprop(∃ v : etcdserverpb.LeaseLeasesResponse, resp ↦ v ∗ srvHeaderAt E v.Header' cid mid ∗
     leasesListIs v ids)
 
+/-- **The lease-TTL row** (the lease-expiry plan's E2, the user's): this member `mid` is the
+cluster's only member, no membership change is admitted, and it is in its first start. Through
+`s`'s own node object `n`: `n` was made by `StartNode` with the voters `[mid]` (its log began as
+the bootstrap log), every committed index's configuration is `{mid}` alone, with no learner, and
+the lessor `γl`'s history begins empty (true of every lessor today, `NewLessor` taking an empty
+bucket; meaningful once a restart recovers leases). Returned by `BuildServer`'s and `StartServer`'s
+first-start postconditions, as their own conjunct; a restart gives none. (Revision 5's text, typed:
+the cluster `cl` is a server raft's `γ.cl`, whose storage model, `srvStor γ`, `nodeStartedFresh`,
+`isCommittedLogLb` and `confAt` are stated at; decided by the agent, 2026-11-05.) -/
+def leaseTTLRow (s : Loc) (γl : GName) : IProp GF :=
+  iprop(∃ (mid : w64) (n : Loc) (γ : SrvRaft) (ctxs : List (List w8)),
+    srvMemberIDAddr s ↦□ mid ∗
+    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #n ∗
+    (letI := srvStor (GF := GF) γ; nodeStartedFresh n γ.cl srvClusterN [mid] ctxs mid) ∗
+    □ (∀ (l : List LogEntry) (k : Nat), (letI := srvStor (GF := GF) γ; isCommittedLogLb γ.cl l) -∗
+        ⌜k ≤ l.length⌝ ={⊤}=∗
+        (letI := srvStor (GF := GF) γ; confAt γ.cl k (Membership.simple (GMap.listToSet [mid])))) ∗
+    lease.lessorAt γl 0 (∅, ∅, ∅))
+
+instance leaseTTLRow_persistent (s : Loc) (γl : GName) : Persistent (leaseTTLRow (GF := GF) s γl) := by
+  unfold leaseTTLRow; infer_instance
+
+/-- **The lease-TTL row's raft part, at the voters `vs`** (persistent; untrusted): `leaseTTLRow`
+without the lessor, what `NewServer`'s first start gives (its lessor's name is inside the built
+server's existentials); with `vs = [x]` and the lessor's first snapshot, the row
+(`leaseTTLRow_intro`). -/
+def leaseTTLRowR (s : Loc) (vs : List w64) : IProp GF :=
+  iprop(∃ (mid : w64) (n : Loc) (γ : SrvRaft) (ctxs : List (List w8)), ⌜mid ∈ vs⌝ ∗
+    srvMemberIDAddr s ↦□ mid ∗
+    srvNodeAddr s ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.node.ty) #n ∗
+    (letI := srvStor (GF := GF) γ; nodeStartedFresh n γ.cl srvClusterN vs ctxs mid) ∗
+    □ (∀ (l : List LogEntry) (k : Nat), (letI := srvStor (GF := GF) γ; isCommittedLogLb γ.cl l) -∗
+        ⌜k ≤ l.length⌝ ={⊤}=∗
+        (letI := srvStor (GF := GF) γ; confAt γ.cl k (Membership.simple (GMap.listToSet vs)))))
+
+instance leaseTTLRowR_persistent (s : Loc) (vs : List w64) :
+    Persistent (leaseTTLRowR (GF := GF) s vs) := by
+  unfold leaseTTLRowR; infer_instance
+
+open Iris.ProofMode in
+/-- **The row from its raft part at one voter and the lessor's first snapshot.** -/
+theorem leaseTTLRow_intro (s : Loc) (x : w64) (γl : GName) :
+    leaseTTLRowR (GF := GF) s [x] ∗ lease.lessorAt γl 0 (∅, ∅, ∅) ⊢ leaseTTLRow s γl := by
+  unfold leaseTTLRowR leaseTTLRow
+  iintro ⟨⟨%mid, %n, %γ, %ctxs, %Hm, #Hmid, #Hn, #Hf, #Hc⟩, #Hl⟩
+  rw [List.mem_singleton] at Hm
+  subst Hm
+  iexists mid, n, γ, ctxs
+  iframe Hmid Hn Hf Hc Hl
+
 end defs
 
 /-- **The deployment's peers answer the lease handler's path as etcd's lease handler does** (a named

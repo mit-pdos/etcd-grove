@@ -78,6 +78,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WorkloadDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Std.Word.LittleEndian
 public import Perennial.Ghost.SavedProp
@@ -206,6 +207,32 @@ structure KVNames where
   compaction of the cluster is at least `cret` revisions behind a revision its KV has reached
   (`reqPropOk`'s compaction form, `kvCmpPermit`); `0`, no more than the store's own check. -/
   cret : Nat := 0
+  /-- (The lease-grant plan's D1/D3, 2026-11-02) **Whether the cluster's requests may grant
+  leases**: one for every member, as `cmp`. `false` (the default): no grant is proposed, every
+  member's grant guard is `False` (`srvGrantGuard`) and its lessor revocable (`lease.NewLessor`'s
+  `mono := false`), so a snapshot can be restored (`lease.lessor.Recover`). `true`: grants are
+  proposed (with auth off and under `lease.leasesNoExpiry`), each member's lessor is monotone (its
+  live leases stay live: no revocation, no restore), which `LeaseLeases` reads rely on. (The
+  lease-expiry plan's X7 option (iii), 2026-11-04, the user's: the field is the cluster's lease mode
+  `lm`, `KVNames.lg` its grant flag; `.revocable` admits the server's revocations.) -/
+  lm : lease.Mode := .none
+
+
+/-- **Whether the cluster's requests may grant leases** (the lease-expiry plan's X7 option (iii),
+2026-11-04: until then the field `lg`): its lease mode is not `none`. -/
+@[reducible] def KVNames.lg (γk : KVNames) : Bool := decide (γk.lm ≠ .none)
+
+theorem KVNames.lg_eq (γk : KVNames) : γk.lg = decide (γk.lm ≠ .none) := rfl
+
+theorem KVNames.lg_fold (γk : KVNames) : decide (γk.lm ≠ .none) = γk.lg := rfl
+theorem KVNames.lm_of_lg_false {γk : KVNames} (h : γk.lg = false) : γk.lm = .none := by
+  simpa [KVNames.lg_eq] using h
+theorem KVNames.lm_of_lg_true {γk : KVNames} (h : γk.lg = true) : γk.lm ≠ .none := by
+  simpa [KVNames.lg_eq] using h
+theorem KVNames.lg_false_of_lm {γk : KVNames} (h : γk.lm = .none) : γk.lg = false := by
+  simp [KVNames.lg_eq, h]
+theorem KVNames.lg_true_of_lm {γk : KVNames} (h : γk.lm ≠ .none) : γk.lg = true := by
+  simpa [KVNames.lg_eq] using h
 
 /-- Some KV names (C3's watch side, 2026-11-02: the watch environment of an example that never
 watches, `client.srvWEnv … default`). -/
@@ -263,6 +290,36 @@ def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk
 lease table. -/
 def kvModelSt (γk : KVNames) (L : List EntryModel) : KVState := kvStateOf (kvModel γk L) (kvLeases γk L)
 
+/-- **The revision room of a KV state** (2026-11-05, H-rr1): its revision leaves room for a few
+more (`+ 4 ≤ 2 ^ 63`: a writer's next revision and its successor still a positive `int64`, which
+the k8s store's model, a `uint64` revision, needs). What every client update on the KV state is told
+of the state it fired at (`kvAu`, `kvAu1`, `kvAu1G`): the server owns the revision and bounds it,
+from raft's committed-log bound (`kvLogSmall`, `isCommittedLogLb_small`). -/
+def kvRoom (σ : KVState) : Prop := σ.rev + 4 ≤ 2 ^ 63
+
+/-- **The KV invariant's size facts** (2026-11-05, H-rr1): the start log and the requested log at
+most `2 ^ 61` long (a committed log is shorter than `2 ^ 61`: `isCommittedLogLb_small`, through
+`srvPropAu1`'s commit), so the model's revision has room (`kvRoom_model`). -/
+def kvLogSmall (γk : KVNames) (L : List EntryModel) : Prop :=
+  γk.log0.length ≤ 2 ^ 61 ∧ L.length ≤ 2 ^ 61
+
+/-- A log at most `2 ^ 62` long has a state with room. -/
+theorem kvRoom_stateOf (l : mvcc.Log) (lt : LeaseTable) (h : l.length ≤ 2 ^ 62) :
+    kvRoom (kvStateOf l lt) := by
+  unfold kvRoom; rw [kvStateOf_rev]; omega
+
+/-- **The KV model of a small log has room** (2026-11-05, H-rr1). -/
+theorem kvRoom_model (γk : KVNames) (L : List EntryModel) (h : kvLogSmall γk L) :
+    kvRoom (kvModelSt γk L) := by
+  apply kvRoom_stateOf
+  have := kvRaftOf_length_le γk.c0 γk.ch0 γk.log0 L
+  unfold kvModel; unfold kvLogSmall at h; omega
+
+/-- A small log stays small one entry on, when the entry's log is still below `2 ^ 61`. -/
+theorem kvLogSmall_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (h : kvLogSmall γk L) (hl : L.length + 1 < 2 ^ 61) : kvLogSmall γk (L ++ [e]) := by
+  unfold kvLogSmall at h ⊢; simp only [List.length_append, List.length_singleton]; omega
+
 /-- **`id` was registered by the incarnation of key `k`** (persistent; linkv-txn stage B1,
 2026-10-20; by key since R2c, 2026-11-02, until then by the id's prefix) in its wait registry (the
 cluster's registries' map, `idWaitIs`), with the consumer token `t`: what a proposal's entry
@@ -310,7 +367,7 @@ shape (`logShape`: a request's premise at every log but for its size clauses; a 
 audit phase B3), and every id claimed; (2026-11-02, the cluster-rows stage) every attribute
 request names a voter of `cfg` (`attrLogOk`). -/
 def kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
-  iprop(⌜logShape L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
+  iprop(⌜logShape γk.lm L ∧ ccLogOk cfg L ∧ logPutsOk L ∧ mvcc.LogPutsLe etcdKeyMax γk.log0 ∧
       attrLogOk cfg.cfg L⌝ ∗
     [∗list] m ∈ L, entryClaim γk.ids m)
 
@@ -376,6 +433,224 @@ theorem cmpLogOk_plain (γk : KVNames) (cmp : Bool) (L : List EntryModel) (h : p
   intro i m hi
   exact cmpEntryOk_plain γk cmp _ m (h m (List.mem_of_getElem? hi))
 
+/-- **The fraction of the KV state's ghost variable the KV invariant holds** (the lease-grant
+stage's §2.7, the user's (C)): the whole of it in a cluster that grants leases (`γk.lg`), so no
+client holds `etcdKV`; else the other half from the clients'. -/
+def kvStQ (γk : KVNames) : Qp := if γk.lg then 1 else (1 : Qp).half
+
+theorem kvStQ_false (γk : KVNames) (h : γk.lg = false) : kvStQ γk = (1 : Qp).half := by
+  unfold kvStQ; rw [h]; rfl
+
+theorem kvStQ_true (γk : KVNames) (h : γk.lg = true) : kvStQ γk = 1 := by
+  unfold kvStQ; rw [h]; rfl
+
+theorem kvStQ_one_add_false (q : Qp) (h : (1 : Qp) + q ≤ 1) : False := by
+  have h1 : (1 : Rat) + q.val ≤ 1 := h
+  have := q.2
+  grind
+
+/-- **A client's `etcdKV` refutes a granting cluster** (the user's (C)): beside the KV invariant's
+fraction of the state, a client's half exists only at `γk.lg = false`. -/
+theorem kvSt_client_lg (γk : KVNames) (s σ : KVState) :
+    ⊢ ghostVar (GF := GF) γk.st (kvStQ γk) s -∗ ghostVar γk.st (1 : Qp).half σ -∗
+      ⌜γk.lg = false⌝ := by
+  iintro H1 H2
+  ihave %h := ghostVar_valid_2 γk.st s (kvStQ γk) σ (1 : Qp).half $$ H1 H2
+  ipureintro
+  cases hl : γk.lg
+  · rfl
+  · rw [kvStQ_true γk hl] at h
+    exact (kvStQ_one_add_false _ h.1).elim
+
+/-! ### The revocable mode's grant ids (the lease-expiry plan's E3 (b), 2026-11-04)
+
+In the revocable lease mode a grant's lease id is the member's generator's (`LeaseGrant.spec`'s
+premise: the request's `ID` is `0`): `LeaseGrant` writes `Next() & (2^63-1)` there. The proposal
+hands the KV invariant the generated id's claim right (`idUnclaimed`, `Next`'s `idFresh`; the
+cluster's issued ids' map, so `kvInv_congr` still reads only the cluster's names), and the invariant
+keeps one per grant of its log (`kvGrantIds`): the log's grant ids are distinct generated ids masked
+(`kv_grantIds_nodup`), distinct after the mask when they share a prefix
+(`leaseIdMask_nodup_of_pfx`). -/
+
+/-- **The mask `LeaseGrant` puts on a generated id** (`v3_server.go`'s `LeaseGrant`:
+`r.ID = int64(s.reqIDGen.Next() & ((1 << 63) - 1))`). -/
+abbrev leaseIdMask : w64 := W64 (2 ^ 63 - 1)
+
+/-- **The lease id a request grants in the revocable mode** (`none` in another mode, or for another
+kind of request). -/
+def rqRevGrantId (lm : lease.Mode) (rq : apply.IRRModel) : Option w64 :=
+  if lm = .revocable ∧ apply.dispatchKind rq = .leaseGrant then rq.leaseGrant.map (·.id) else none
+
+/-- The revocable mode's grant id of a log entry (a normal entry's request's). -/
+def entryRevGrantId (lm : lease.Mode) (m : EntryModel) : Option w64 :=
+  if m.typ = W32 0 then (apply.irrDecode m.data).bind (rqRevGrantId lm) else none
+
+/-- **The revocable mode's grant ids of the log `L`**, in log order (`[]` in another mode). -/
+def logRevGrantIds (lm : lease.Mode) (L : List EntryModel) : List w64 :=
+  L.filterMap (entryRevGrantId lm)
+
+theorem logRevGrantIds_snoc (lm : lease.Mode) (L : List EntryModel) (e : EntryModel) :
+    logRevGrantIds lm (L ++ [e]) = logRevGrantIds lm L ++ (entryRevGrantId lm e).toList := by
+  unfold logRevGrantIds
+  rw [List.filterMap_append]
+  cases h : entryRevGrantId lm e <;> simp [h]
+
+/-- A log of conf changes has no grant. -/
+theorem logRevGrantIds_none (lm : lease.Mode) (L : List EntryModel) (h : ∀ m ∈ L, m.typ ≠ W32 0) :
+    logRevGrantIds lm L = [] := by
+  unfold logRevGrantIds
+  rw [List.filterMap_eq_nil_iff]
+  intro m hm
+  unfold entryRevGrantId
+  rw [if_neg (h m hm)]
+
+/-- **The prefix of the revocable-mode grant ids** (the lease-expiry plan's E3 (c), 2026-11-05):
+in the revocable mode the KV names' id prefix (the one member's generator's), `0` otherwise (no
+such id). -/
+def kvPfx (γk : KVNames) : w64 := if γk.lm = .revocable then γk.ids.pfx else 0
+
+/-- **The KV invariant's generated grant ids** (the lease-expiry plan's E3 (b)): the log's
+revocable-mode grant ids are the ids `U` masked, each `U`'s claim right owned (so `U` has no
+repeat); (E3 (c)) each of the prefix `kvPfx`, so that the masked ids have no repeat either
+(`leaseIdMask_nodup_of_pfx`). -/
+def kvGrantIds (γk : KVNames) (L : List EntryModel) : IProp GF :=
+  iprop(∃ U : List w64, ⌜logRevGrantIds γk.lm L = U.map (· &&& leaseIdMask) ∧ U.Nodup ∧
+      ∀ u ∈ U, idPfx u = kvPfx γk⌝ ∗
+    [∗list] u ∈ U, idUnclaimed γk.ids u)
+
+instance kvGrantIds_timeless (γk : KVNames) (L : List EntryModel) :
+    Timeless (kvGrantIds (GF := GF) γk L) := by
+  unfold kvGrantIds idUnclaimed; infer_instance
+
+/-- **What a proposal of `rq` hands the KV invariant for its grant id**: in the revocable mode, a
+grant's id is a generated id `u` masked, of the KV names' prefix (E3 (c)), with `u`'s claim right;
+nothing otherwise. -/
+def grantIdOwn (γk : KVNames) (rq : apply.IRRModel) : IProp GF :=
+  match rqRevGrantId γk.lm rq with
+  | none => iprop(True)
+  | some g => iprop(∃ u : w64, ⌜g = u &&& leaseIdMask ∧ idPfx u = γk.ids.pfx⌝ ∗ idUnclaimed γk.ids u)
+
+/-- A request of another kind than a grant hands nothing. -/
+theorem grantIdOwn_nonGrant (γk : KVNames) (rq : apply.IRRModel)
+    (hk : apply.dispatchKind rq ≠ .leaseGrant) : ⊢ grantIdOwn (GF := GF) γk rq := by
+  have h : rqRevGrantId γk.lm rq = none := by
+    unfold rqRevGrantId; rw [if_neg (fun h => hk h.2)]
+  unfold grantIdOwn; rw [h]
+  istart; itrivial
+
+/-- Outside the revocable mode, nothing. -/
+theorem grantIdOwn_nonRev (γk : KVNames) (rq : apply.IRRModel) (hm : γk.lm ≠ .revocable) :
+    ⊢ grantIdOwn (GF := GF) γk rq := by
+  have h : rqRevGrantId γk.lm rq = none := by
+    unfold rqRevGrantId; rw [if_neg (fun h => hm h.1)]
+  unfold grantIdOwn; rw [h]
+  istart; itrivial
+
+/-- A plain request hands nothing. -/
+theorem grantIdOwn_plain (γk : KVNames) (rq : apply.IRRModel) (h : plainReq rq) :
+    ⊢ grantIdOwn (GF := GF) γk rq := by
+  refine grantIdOwn_nonGrant γk rq fun hk => ?_
+  have := h.2
+  rw [hk] at this
+  simp [putgetKind] at this
+
+/-- A compaction hands nothing. -/
+theorem grantIdOwn_cmp (γk : KVNames) (rq : apply.IRRModel) (h : compactPropOk rq) :
+    ⊢ grantIdOwn (GF := GF) γk rq :=
+  grantIdOwn_nonGrant γk rq (by rw [h.1.1]; decide)
+
+/-- The empty log has no grant. -/
+theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds γk.lm L = []) :
+    ⊢ kvGrantIds (GF := GF) γk L := by
+  iunfold kvGrantIds
+  iexists []
+  isplitr
+  · ipureintro; exact ⟨h, List.nodup_nil, fun _ h => (List.not_mem_nil h).elim⟩
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+  itrivial
+
+/-- **One normal entry on**, its request's grant id handed over (`grantIdOwn`). -/
+theorem kvGrantIds_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel) (d : List w8)
+    (rq : apply.IRRModel) (het : e.typ = W32 0) (hed : e.data = d)
+    (hdec : apply.irrDecode d = some rq) :
+    ⊢ kvGrantIds (GF := GF) γk L -∗ grantIdOwn γk rq -∗ kvGrantIds γk (L ++ [e]) := by
+  have he : entryRevGrantId γk.lm e = rqRevGrantId γk.lm rq := by
+    unfold entryRevGrantId; rw [if_pos het, hed, hdec]; rfl
+  unfold grantIdOwn
+  cases hr : rqRevGrantId γk.lm rq with
+  | none =>
+    iintro HG -
+    iunfold kvGrantIds at HG
+    icases HG with ⟨%U, %HU, HUs⟩
+    iunfold kvGrantIds
+    iexists U
+    iframe HUs
+    ipureintro
+    rw [logRevGrantIds_snoc, he, hr]
+    simpa using HU
+  | some g =>
+    iintro HG Hg
+    iunfold kvGrantIds at HG
+    icases HG with ⟨%U, %HU, HUs⟩
+    iunfold kvGrantIds
+    icases Hg with ⟨%u, %Hgu, Hu⟩
+    -- `u ∉ U`: its claim right is exclusive
+    by_cases hin : u ∈ U
+    · iexfalso
+      icases BigSepL.bigSepL_mem_acc (Φ := fun u => idUnclaimed (GF := GF) γk.ids u) hin $$ HUs
+        with ⟨Hu', -⟩
+      iunfold idUnclaimed at Hu Hu'
+      ihave %Hne := ghostMapElem_ne γk.ids.issued u u (DFrac.own 1) _ _ $$ Hu Hu'
+      exact absurd rfl Hne
+    iexists U ++ [u]
+    isplitr
+    · ipureintro
+      have hrev : γk.lm = .revocable := by
+        unfold rqRevGrantId at hr; split at hr
+        · next h => exact h.1
+        · cases hr
+      refine ⟨?_, List.nodup_append.2 ⟨HU.2.1, List.pairwise_singleton _ u, ?_⟩, ?_⟩
+      · rw [logRevGrantIds_snoc, he, hr, HU.1, Hgu.1]; simp
+      · intro a ha b hb; rw [List.mem_singleton] at hb; subst hb; intro hab; subst hab; exact hin ha
+      · intro a ha
+        rcases List.mem_append.1 ha with ha | ha
+        · exact HU.2.2 a ha
+        · rw [List.mem_singleton] at ha; subst ha
+          unfold kvPfx; rw [if_pos hrev]; exact Hgu.2
+    iapply BigSepL.bigSepL_snoc.2
+    iframe HUs Hu
+
+/-- **Two ids of one prefix that agree after the mask are one** (the mask clears bit 63 only, which
+the prefix fixes). -/
+theorem leaseIdMask_inj_pfx (u v : w64) (hu : idPfx u = idPfx v)
+    (h : u &&& leaseIdMask = v &&& leaseIdMask) : u = v := by
+  unfold idPfx at hu
+  have e1 : leaseIdMask = 0x7fffffffffffffff#64 := by decide
+  have e2 : (W64 (2 ^ 64 - 2 ^ 48)) = 0xffff000000000000#64 := by decide
+  rw [e1] at h; rw [e2] at hu
+  -- bit by bit (not `bv_decide`, whose native evaluation would be an axiom of the trust base)
+  have e1' : (0x7fffffffffffffff#64) = BitVec.allOnes 64 >>> 1 := by decide
+  have e2' : (0xffff000000000000#64) = BitVec.allOnes 64 <<< 48 := by decide
+  rw [e1'] at h; rw [e2'] at hu
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  have h1 := congrArg (fun x => x.getLsbD i) h
+  have h2 := congrArg (fun x => x.getLsbD i) hu
+  simp only [BitVec.getLsbD_and, BitVec.getLsbD_ushiftRight, BitVec.getLsbD_allOnes,
+    BitVec.getLsbD_shiftLeft] at h1 h2
+  by_cases hlt : i < 63
+  · have : 1 + i < 64 := by omega
+    simpa [this] using h1
+  · have : 48 ≤ i := by omega
+    simpa [hi, this, show ¬ i < 48 by omega, show i - 48 < 64 by omega] using h2
+
+/-- **Distinct ids of one prefix stay distinct after the mask** (one generator's ids: `idFresh`'s
+`idPfx id = γi.pfx`). -/
+theorem leaseIdMask_nodup_of_pfx (U : List w64) (p : w64) (hU : U.Nodup)
+    (hp : ∀ u ∈ U, idPfx u = p) : (U.map (· &&& leaseIdMask)).Nodup :=
+  List.pairwise_map.2 (hU.imp_of_mem fun hx hy hne heq =>
+    hne (leaseIdMask_inj_pfx _ _ ((hp _ hx).trans (hp _ hy).symm) heq))
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
@@ -385,14 +660,23 @@ facts of `L` (`kvWork`), which every update the server hands raft checks of its 
 that every entry of a log after the start is above it, `kvModel_eqv`.) (M2's apply side, item 5,
 2026-10-31: "plain" in the cluster's compaction mode `γk.cmp`, `plainLogM`: a compaction in M2's
 scope admitted in compaction mode; and, last, each committed compaction's claims, `cmpLogOk`. At
-`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) -/
+`γk.cmp = false` it means what it meant: `kv_log_plain_off`.) (The lease-grant stage's §2.7-2.8,
+2026-11-03, the user's (C): in a cluster that grants leases, `γk.lg`, the invariant owns the KV
+state's ghost variable whole, `kvStQ`. No client's `etcdKV` can then exist, so every KV result is
+true there vacuously: a granting cluster makes no claim about etcd's KV service. At `γk.lg = false`
+it means what it meant. A grant is plain there, `plainLogM γk.cmp γk.lg`.) (2026-11-03, the auth-on
+pair's F8) And the cluster's auth mode off (`SrvRaft.authOn`, the image certificate its snapshots
+carry): the member runs in its cluster's mode (`kvInv_authOn`). (The lease-expiry plan's E3 (b),
+2026-11-04) And, last, the claim rights of the generated ids behind the log's revocable-mode grant
+ids (`kvGrantIds`; empty in another mode). (2026-11-05, H-rr1) And the start and requested logs'
+size facts (`kvLogSmall`), which give every update's firing state its room (`kvRoom_model`). -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
-    srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
-    ⌜plainLogM γk.cmp L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ [] ∧ cmpLogOk γk γk.cmp L ∧
-      γk.rlog = γ.raft.log⌝ ∗
-      kvWork γ.raft γk L)
+    srvRLog γ L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
+    ⌜plainLogM γk.cmp γk.lm L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
+      γk.ch0 = apply.alarmChain false false false ∧ (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ cmpLogOk γk γk.cmp L ∧
+      γk.rlog = γ.raft.log ∧ γ.raft.authOn = false ∧ kvLogSmall γk L⌝ ∗
+      kvWork γ.raft γk L ∗ kvGrantIds γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
@@ -400,10 +684,12 @@ instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
 
 /-- **A client's persistent atomic update of the KV by `f`** (2026-10-15, unit T2): `□ Q` of the
 state it linearized at. Persistent: a write's may be applied more than once (the client's retry
-interceptor, raft's duplicates), a read's is fired at every committed log from its deposit. -/
+interceptor, raft's duplicates), a read's is fired at every committed log from its deposit.
+(2026-11-05, H-rr1) The server tells the update the state's revision room (`kvRoom`) when it
+fires. -/
 def kvAu (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ), COMM □ Q σ }>)
+          <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>)
 
 instance kvAu_persistent (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
     Persistent (kvAu (GF := GF) γk f Q) := by
@@ -421,10 +707,10 @@ instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF
 /-- **A client's update of the KV by `f`, fired at most once** (2026-10-19, D21 M6, D20 (b)): an
 ordinary atomic update, its result `Q` of the state it linearized at not persistent. The server
 proposes the request once and raft appends and commits it at most once (`srvPropAu1`), so the
-update fires at most once. -/
+update fires at most once. (2026-11-05, H-rr1) Told the state's revision room, as `kvAu`. -/
 def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ), COMM Q σ }>)
+          <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)
 
 /-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
@@ -432,10 +718,11 @@ def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
 
 /-- **A client's update by `f`, fired at most once, told `G σ` when it fires** (the auth-mode
 merge's step 5, 2026-10-29): `kvAu1`'s, whose atomic postcondition, which the server supplies at the
-commit, carries `G σ` too (with auth on, the write's grant, `writeGrantG`). -/
+commit, carries `G σ` too (with auth on, the write's grant, `writeGrantG`); (2026-11-05, H-rr1)
+and the state's revision room, as `kvAu1`. -/
 def kvAu1G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ) ∗ G σ, COMM Q σ }>)
+          <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝ ∗ G σ, COMM Q σ }>)
 
 open Iris.ProofMode in
 /-- An atomic update whose committer supplies more (`β' ⊢ β`) (a fact of Iris's atomic updates;
@@ -468,13 +755,13 @@ theorem kvAu1G_mono (γk : KVNames) (f : KVState → KVState) (G G' Q : KVState 
     (h : ∀ σ, G' σ ⊢ G σ) :
     kvAu1G (GF := GF) γk f G Q ⊢ kvAu1G γk f G' Q := by
   unfold kvAu1G
-  exact aupd_post_mono (fun x _ => sep_mono_right (h _))
+  exact aupd_post_mono (fun x _ => sep_mono_right (sep_mono_right (h _)))
 
 /-- A client's update not told anything is one told `G` (the grant ignored). -/
 theorem kvAu1_G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) :
     kvAu1 (GF := GF) γk f Q ⊢ kvAu1G γk f G Q := by
   unfold kvAu1 kvAu1G
-  exact aupd_post_mono (fun _ _ => sep_elim_left)
+  exact aupd_post_mono (fun _ _ => sep_mono_right sep_elim_left)
 
 open Iris.ProofMode in
 /-- A persistent update fires once, its result persistent. -/
@@ -618,12 +905,30 @@ theorem crevOf_plain (γk : KVNames) (A : List EntryModel) (h : plainLog A) : cr
       exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
   exact key A h c₀
 
+/-- With the compaction mode off, a log plain in the modes has no compaction (`crevOf_plain`'s,
+at `plainLogM false lg`: a grant leaves the revision, the lease-grant stage). -/
+theorem crevOf_plainM_off (γk : KVNames) (lm : lease.Mode) (A : List EntryModel)
+    (h : plainLogM false lm A) : crevOf γk A = -1 := by
+  unfold crevOf kvCrevOf
+  generalize hc : (-1 : Int) = c₀
+  have key : ∀ (B : List EntryModel), plainLogM false lm B → ∀ c,
+      B.foldl (kvCrevEntry γk.c0 γk.ch0) c = c := by
+    intro B
+    induction B with
+    | nil => intro _ c; rfl
+    | cons m B ih =>
+      intro hB c
+      simp only [List.foldl_cons]
+      rw [kvCrevEntry_plainM_off _ _ lm _ _ (hB m (List.mem_cons_self))]
+      exact ih (fun m' hm' => hB m' (List.mem_cons_of_mem _ hm')) c
+  exact key A h c₀
+
 /-- **The compaction revision of an admitted log is `-1` or at least `1`** (Q7 (a)'s scope limit, at
 the model: with `mvcc.recsPos_crev` of the image, #8's `c ≤ c'` has no `Compact(0)` corner). -/
-theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp A) :
+theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plainLogM cmp .none A) :
     crevOf γk A = -1 ∨ 1 ≤ crevOf γk A := by
   unfold crevOf kvCrevOf
-  have key : ∀ (B : List EntryModel), plainLogM cmp B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
+  have key : ∀ (B : List EntryModel), plainLogM cmp .none B → ∀ c : Int, (c = -1 ∨ 1 ≤ c) →
       B.foldl (kvCrevEntry γk.c0 γk.ch0) c = -1 ∨ 1 ≤ B.foldl (kvCrevEntry γk.c0 γk.ch0) c := by
     intro B
     induction B with
@@ -699,15 +1004,15 @@ range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). (M2's apply 
 write forms, `reqPropOk`'s first disjunct.) -/
 def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape γk.lm rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
     (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
-        irrNoZeroEnd rq ∧ rqShape rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
+        irrNoZeroEnd rq ∧ rqShape γk.lm rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q) ∨
     -- (2026-10-19, D21 M6) its client's update fired at most once, the result left at the
     -- token `γc` (`kvRes`)
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
-        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+        reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape γk.lm rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
@@ -741,6 +1046,40 @@ theorem kvRevLbZ_mono (γk : KVNames) (n m : Int) (h : n ≤ m) :
   iexists L₀
   iframe HL
   ipureintro; omega
+
+open Iris.ProofMode in
+/-- **The law of the log's grant ids** (the lease-expiry plan's E3 (b)): with the KV invariant, the
+revocable-mode grant ids of a prefix `L₀` of the requested log (`srvReqLogLb`) are distinct
+generated ids masked: `U` has no repeat (each id's claim right is exclusive), and its ids share the
+prefix `kvPfx` (E3 (c)), so the masked ids are distinct (`leaseIdMask_nodup_of_pfx`). -/
+theorem kv_grantIds_nodup (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : ↑kvN ⊆ E)
+    (L₀ : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvReqLogLb γ L₀ ={E}=∗
+      ⌜(logRevGrantIds γk.lm L₀).Nodup⌝ := by
+  iintro #Hinv #Hlb
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  icases srvReqLogLb_prefix γ L L₀ $$ [$HL $Hlb] with ⟨HL, %Hpre⟩
+  iunfold kvGrantIds at HG
+  icases HG with ⟨%U, %HU, HUs⟩
+  imod Hclose $$ [HL Hσ HUs] with -
+  · inext; iexists L; iframe HL Hσ Hw
+    isplitr
+    · ipureintro; exact Hok
+    iunfold kvGrantIds; iexists U; iframe HUs; ipureintro; exact HU
+  imodintro
+  ipureintro
+  obtain ⟨R, rfl⟩ := Hpre
+  have hU := HU.1
+  unfold logRevGrantIds at hU ⊢
+  rw [List.filterMap_append] at hU
+  have hT : L₀.filterMap (entryRevGrantId γk.lm) =
+      (U.take (L₀.filterMap (entryRevGrantId γk.lm)).length).map (· &&& leaseIdMask) := by
+    rw [List.map_take, ← hU, List.take_left]
+  rw [hT]
+  exact leaseIdMask_nodup_of_pfx _ (kvPfx γk) (HU.2.1.sublist (List.take_sublist _ _))
+    (fun u hu => HU.2.2 u (List.mem_of_mem_take hu))
 
 omit raftAsm in
 /-- The same cluster's KV names agree on the revisions reached. -/
@@ -835,18 +1174,18 @@ theorem kv_revLbZ_le (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
   iintro #Hinv #Hlb Hc
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   iunfold etcdKV at Hc
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ Hc
   iunfold kvRevLbZ at Hlb
   icases Hlb with ⟨%L₀, #H0, %Hn⟩
-  have hrl := Hok.2.2.2.2.2.2
+  have hrl := Hok.2.2.2.2.2.2.1
   iunfold srvRLog at HL
   ihave #H0' : monoListLbOwn γ.raft.log L₀ $$ []
   · iExactEq H0; rw [hrl]
   ihave %Hp := mono_list_auth_lb_valid γ.raft.log _ L L₀ $$ HL H0'
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iunfold srvRLog; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iunfold srvRLog; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   iunfold etcdKV
   iframe Hc
@@ -868,26 +1207,40 @@ theorem kvRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (r : w64) :
 /-- **What a proposal of `rq` needs** (M2's apply side, item 6, 2026-10-31): the write forms
 (`reqPropOkW`); or, in the cluster's compaction mode, a compaction in M2's scope at a reached
 revision at least the cluster's retention behind a reached one (`kvRevLbZ`, C3's server stage),
-its result trivial. -/
+its result trivial. (The lease-grant stage's §2.7, 2026-11-03, the user's (C):) or, in a cluster
+that grants leases, a grant (`grantPropOk`), its result trivial and no client's update: the KV
+invariant owns the KV state whole there. At `γk.lg = false` the grant form is refuted
+(`grantPropOk_false`). (The lease-expiry stage's X7, 2026-11-04:) or, in the revocable mode, a
+revocation (`revokePropOk`), alike. (The lease-expiry plan's E3 (b):) The grant form hands its
+generated id's claim right in the revocable mode (`grantIdOwn`), which the commit deposits in the
+KV invariant (`kvGrantIds`). -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(reqPropOkW γk rq Qr ∨
-    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape rq ∧ irrNoZeroEnd rq ∧
+    (⌜γk.cmp = true ∧ compactPropOk rq ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧
         Qr = fun _ => iprop(True)⌝ ∗
-      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)))
+      ∃ r : w64, ⌜rq.compaction = some r⌝ ∗ kvRevLbZ γk (sint.Z r + γk.cret)) ∨
+    ⌜(grantPropOk γk.lm rq ∨ revokePropOk γk.lm rq) ∧ rqShape γk.lm rq ∧ irrNoZeroEnd rq ∧
+      Qr = fun _ => iprop(True)⌝ ∗ grantIdOwn γk rq)
 
 /-- The write forms are proposals. -/
 theorem reqPropOk_of_W (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     reqPropOkW (GF := GF) γk rq Qr ⊢ reqPropOk γk rq Qr := by
   iintro H; iunfold reqPropOk; ileft; iexact H
 
-/-- **Off, only the write forms** (the compaction form needs the mode on). -/
+/-- **Off, only the write forms** (the compaction form needs the mode on, the grant form a cluster
+that grants leases). -/
 theorem reqPropOk_off (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF)
-    (h : γk.cmp = false) : reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
+    (h : γk.cmp = false) (hl : γk.lg = false) :
+    reqPropOk (GF := GF) γk rq Qr ⊢ reqPropOkW γk rq Qr := by
   unfold reqPropOk
-  iintro (H | ⟨%hc, -⟩)
+  iintro (H | ⟨%hc, -⟩ | ⟨%hg, -⟩)
   · iexact H
   · rw [h] at hc; exact absurd hc.1 (by decide)
+  · have hn : γk.lm = .none := by simpa [KVNames.lg_eq] using hl
+    rcases hg.1 with hg | hr
+    · exact absurd hn hg.1
+    · rw [hn] at hr; exact absurd hr.1 (by decide)
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 
@@ -1392,6 +1745,153 @@ def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (F : mvcc.Log) (ar : Loc)
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
 
+/-- **A dispatched grant's answer through the result `ar`** (the lease-grant plan's 2.6, the
+`authnArM` pattern): for a request dispatched as a grant, the result's `Resp` and `Err` answer it
+(`apply.grantAnswer`: a `*pb.LeaseGrantResponse`, without error its fields and the lease granted);
+`True` otherwise. The apply thread hands it to the waiter with the result (`resultIsW`). -/
+def grantArM (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) : IProp GF :=
+  match out with
+  | .dispatched _ _ =>
+    if apply.dispatchKind rq = .leaseGrant then
+      iprop(∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
+        apply.grantAnswer E rq v.Resp' v.Err')
+    else iprop(True)
+  | _ => iprop(True)
+
+/-- **Not a grant: nothing to carry.** -/
+theorem grantArM_not_grant (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut)
+    (h : apply.dispatchKind rq ≠ .leaseGrant) : ⊢ grantArM (GF := GF) E ar rq out := by
+  unfold grantArM; split
+  · rw [if_neg h]; iintro; itrivial
+  · iintro; itrivial
+
+/-- **`Apply`'s grant answer (`grantResA`) at a result that is not `nil`** is the waiter's. -/
+theorem grantArM_of_res (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut)
+    (har : ar ≠ null) : apply.grantResA (GF := GF) E rq out ar ⊢ grantArM E ar rq out := by
+  cases out with
+  | dispatched o sk =>
+    simp only [grantArM, apply.grantResA]
+    by_cases hk : apply.dispatchKind rq = .leaseGrant
+    · unfold apply.grantRes
+      simp only [hk, har, ne_eq, not_false_eq_true, and_self, ↓reduceIte]
+      iintro ⟨%v, #Hv, Hans, -⟩
+      iexists v; iframe Hv Hans
+    · simp only [hk, ↓reduceIte]; iintro -; itrivial
+  | skipped => simp only [grantArM]; iintro -; itrivial
+  | rejected => simp only [grantArM]; iintro -; itrivial
+
+theorem grantArM_of_resW (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    apply.grantResA (GF := GF) E rq out ar ⊢ ⌜ar ≠ null⌝ -∗ grantArM E ar rq out := by
+  iintro H %har
+  iapply grantArM_of_res E ar rq out har $$ H
+
+/-- **Not a grant: nothing to carry, at any result.** -/
+theorem grantArM_not_grantW (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut)
+    (h : apply.dispatchKind rq ≠ .leaseGrant) : ⊢ (⌜ar ≠ null⌝ -∗ grantArM (GF := GF) E ar rq out) := by
+  iintro -
+  iapply grantArM_not_grant E ar rq out h
+
+/-- **A grant's answer, as `raftRequest` reports it** (the lease-grant plan's 2.6): for a request
+dispatched as a grant, the answer `resp` without error (`apply.grantAnswer` at `nil`); `True`
+otherwise. -/
+def grantAnsM (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) : IProp GF :=
+  if apply.dispatchKind rq = .leaseGrant then apply.grantAnswer E rq resp GoInterface.nil
+  else iprop(True)
+
+/-- **A grant's answer from its result** (2.6, `authnAnsM_of_ar`'s pattern): a dispatched result
+without error carries its answer. -/
+theorem grantAnsM_of_ar (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (o : apply.Outcome)
+    (skip : Bool) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
+    (hve : v.Err' = GoInterface.nil) :
+    grantArM (GF := GF) E ar rq (.dispatched o skip) ⊢ ar ↦□ v -∗ grantAnsM E rq v.Resp' := by
+  unfold grantArM grantAnsM
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · simp only [hk, ↓reduceIte]
+    iintro ⟨%v', #Hv', Hans⟩ #Hv
+    icombine Hv Hv' gives %Hvv
+    subst Hvv
+    rw [hve]
+    iexact Hans
+  · simp only [hk, ↓reduceIte]
+    iintro - -; itrivial
+
+/-! ### A revocation's answer (the lease-expiry plan's X6, 2026-11-04, the user's (a): the grant's
+2.6 mirrored) -/
+
+/-- **A dispatched revocation's answer through the result `ar`** (`grantArM`'s pattern): for a
+request dispatched as a revocation, the result's `Resp` and `Err` answer it (`apply.revokeAnswer`:
+a `*pb.LeaseRevokeResponse`, without error its header); `True` otherwise. -/
+def revokeArM (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    IProp GF :=
+  match out with
+  | .dispatched _ _ =>
+    if apply.dispatchKind rq = .leaseRevoke then
+      iprop(∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
+        apply.revokeAnswer E rq v.Resp' v.Err')
+    else iprop(True)
+  | _ => iprop(True)
+
+/-- **Not a revocation: nothing to carry.** -/
+theorem revokeArM_not_revoke (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (h : apply.dispatchKind rq ≠ .leaseRevoke) :
+    ⊢ revokeArM (GF := GF) E ar rq out := by
+  unfold revokeArM; split
+  · rw [if_neg h]; iintro; itrivial
+  · iintro; itrivial
+
+/-- **`Apply`'s revocation answer (`revokeAnsRA`) at a result that is not `nil`** is the
+waiter's. -/
+theorem revokeArM_of_res (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (har : ar ≠ null) :
+    apply.revokeAnsRA (GF := GF) E rq out ar ⊢ revokeArM E ar rq out := by
+  cases out with
+  | dispatched o sk =>
+    simp only [revokeArM, apply.revokeAnsRA]
+    by_cases hk : apply.dispatchKind rq = .leaseRevoke
+    · unfold apply.revokeAnsR
+      simp only [hk, har, ne_eq, not_false_eq_true, and_self, ↓reduceIte]
+      iintro ⟨%v, #Hv, Hans⟩
+      iexists v; iframe Hv Hans
+    · simp only [hk, ↓reduceIte]; iintro -; itrivial
+  | skipped => simp only [revokeArM]; iintro -; itrivial
+  | rejected => simp only [revokeArM]; iintro -; itrivial
+
+theorem revokeArM_of_resW (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) :
+    apply.revokeAnsRA (GF := GF) E rq out ar ⊢ ⌜ar ≠ null⌝ -∗ revokeArM E ar rq out := by
+  iintro H %har
+  iapply revokeArM_of_res E ar rq out har $$ H
+
+/-- **Not a revocation: nothing to carry, at any result.** -/
+theorem revokeArM_not_revokeW (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel)
+    (out : apply.ApplyOut) (h : apply.dispatchKind rq ≠ .leaseRevoke) :
+    ⊢ (⌜ar ≠ null⌝ -∗ revokeArM (GF := GF) E ar rq out) := by
+  iintro -
+  iapply revokeArM_not_revoke E ar rq out h
+
+/-- **A revocation's answer, as `raftRequest` reports it** (`grantAnsM`'s pattern): for a request
+dispatched as a revocation, the answer `resp` without error (`apply.revokeAnswer` at `nil`); `True`
+otherwise. -/
+def revokeAnsM (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) : IProp GF :=
+  if apply.dispatchKind rq = .leaseRevoke then apply.revokeAnswer E rq resp GoInterface.nil
+  else iprop(True)
+
+/-- **A revocation's answer from its result**: a dispatched result without error carries it. -/
+theorem revokeAnsM_of_ar (E : apply.AEnv GF) (ar : Loc) (rq : apply.IRRModel) (o : apply.Outcome)
+    (skip : Bool) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result)
+    (hve : v.Err' = GoInterface.nil) :
+    revokeArM (GF := GF) E ar rq (.dispatched o skip) ⊢ ar ↦□ v -∗ revokeAnsM E rq v.Resp' := by
+  unfold revokeArM revokeAnsM
+  by_cases hk : apply.dispatchKind rq = .leaseRevoke
+  · simp only [hk, ↓reduceIte]
+    iintro ⟨%v', #Hv', Hans⟩ #Hv
+    icombine Hv Hv' gives %Hvv
+    subst Hvv
+    rw [hve]
+    iexact Hans
+  · simp only [hk, ↓reduceIte]
+    iintro - -; itrivial
+
 /-- **The result `ar` of applying `rq`, with its witness** (2026-10-14, unit C2a): `resultIs`
 (with its minted token, `revMinted`, unit V1, and its floor, the vertical slice's unit V2), and
 the log after is applied through an index of the committed log (`appliedWit γr y'.log`: the apply
@@ -1409,7 +1909,7 @@ def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : m
         out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log)
+      mvcc.certOk E.γ y'.log ∗ grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- **The committed entry a result is of** (persistent; 2026-10-14, unit T1): an entry `e` at
 position `m` of a committed log `L`, normal, its data claimed under the id of `rq` (with some
@@ -1447,6 +1947,43 @@ def reqWaitR (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
   iprop(∃ (d : List w8) (rq : apply.IRRModel) (γf : GName) (F : mvcc.Log), idClaim ρ.ids id d γf ∗
     floorAt γf F ∗ ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E ρ rq F ∧ idPfx id = ρ.ids.pfx⌝)
 
+/-- **No registration under the id `id`** (persistent): no claim of `id` decodes to a request of
+the member's prefix, so no registration condition `reqWaitR ρ E id Ψ` holds at any `E` and `Ψ`
+(`reqWaitNone_none`). Free of the environment, so the raft contract (`srvC`) reads `E` nowhere
+(the lease-grant plan's 2.6, 2026-11-03: `resultΨ` carries the grant's answer, at the lessor's
+names, which the stand-in `E₀` does not know). -/
+def reqWaitNone (ρ : ReqNames) (id : w64) : IProp GF :=
+  iprop(□ ∀ (d : List w8) (rq : apply.IRRModel) (γf : GName) (F : mvcc.Log),
+    idClaim ρ.ids id d γf -∗ floorAt γf F -∗
+    ⌜apply.irrDecode d = some rq ∧ idPfx id = ρ.ids.pfx⌝ -∗ False)
+
+instance reqWaitNone_persistent (ρ : ReqNames) (id : w64) :
+    Persistent (reqWaitNone (GF := GF) ρ id) := by
+  unfold reqWaitNone; infer_instance
+
+theorem reqWaitNone_none (ρ : ReqNames) (E : apply.AEnv GF) (id : w64) :
+    reqWaitNone (GF := GF) ρ id ⊢ □ ∀ Ψ, reqWaitR ρ E id Ψ -∗ False := by
+  iintro #H
+  iunfold reqWaitNone at H
+  imodintro
+  iintro %Ψ HR
+  iunfold reqWaitR at HR
+  icases HR with ⟨%d, %rq, %γf, %F, Hc, Hf, %Hp⟩
+  iapply H $$ %d %rq %γf %F Hc Hf
+  ipureintro; exact ⟨Hp.1, Hp.2.2⟩
+
+theorem reqWaitNone_of (ρ : ReqNames) (E : apply.AEnv GF) (id : w64) :
+    (□ ∀ Ψ, reqWaitR (GF := GF) ρ E id Ψ -∗ False) ⊢ reqWaitNone ρ id := by
+  iintro #H
+  iunfold reqWaitNone
+  imodintro
+  iintro %d %rq %γf %F Hc Hf %Hp
+  iapply H $$ %(resultΨ E ρ rq F)
+  iunfold reqWaitR
+  iexists d, rq, γf, F
+  iframe Hc Hf
+  ipureintro; exact ⟨Hp.1, rfl, Hp.2⟩
+
 /-- **The server's wait** `s.w` (persistent): a `wait.Wait` (`wait.New`'s contract) with the
 server's registration condition, the ids `ρ.ids`, the registered ids' map `ρ.wait`, and some
 reader's resource (the apply thread's `srvApplyKV` holds `IsRegistered`'s, as the apply package's
@@ -1470,15 +2007,14 @@ claims, unit 4), and the change is one `applyConfChange` takes (`ccPolOk` at raf
 configuration; audit phase B3, 2026-10-18); (2026-11-02, the cluster-rows stage) a normal entry's
 attribute request names a voter of raft's configuration (`attrEntryOk`, the KV invariant's
 `attrLogOk`). -/
-def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF :=
+def entryWaitOk (ρ : ReqNames) (_E : apply.AEnv GF) (m : EntryModel) : IProp GF :=
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
         ∃ (γf : GName) (k : IdKey),
           id ↪[ρ.ids.issued]□ (some (m.data, γf, k) : Option IdClaimV) ∗ idRegdAt ρ.ids k id) ∗
       ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L ∧ attrEntryOk ρ.raft.raft.cfg m⌝)
-  else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
-    ⌜ccPolOk ρ.raft.raft m.data⌝)
+  else iprop(reqWaitNone ρ (ccIdOf m.data) ∗ ⌜ccPolOk ρ.raft.raft m.data⌝)
 
 instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) :
     Persistent (entryWaitOk (GF := GF) ρ E m) := by
@@ -2040,14 +2576,16 @@ the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carr
 E2c; in `on γa`, its user is one the token was issued to). Stated beside
 `isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it; with
 auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
-`isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). -/
+`isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). Its error is moreover `nil` or one of the auth
+package's error variables (`authApplyErrIs`, the real store's `auth.authErrIs`; the lease-expiry
+plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrLeaseNotFound`). -/
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
       {{ mvcc.txnCtx ctx cd ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          applyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
+          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
 
 instance isReqAuthBound_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
     Persistent (isReqAuthBound (GF := GF) st RD M) := by

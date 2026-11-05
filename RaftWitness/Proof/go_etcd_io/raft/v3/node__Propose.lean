@@ -39,7 +39,6 @@ theorem node.Propose.wp_proof
   -- the proposal's ghost work (2026-10-10): the update deposited
   imod node_propose_ghost γ id n data Q fresh once ⊤ CoPset.subseteq_top Hne $$ Hnode Harg
     with ⟨#Hent, Htk, Hres⟩
-  rw [show raftpb.MsgProp = #((W32 2 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
   wp_apply wp_slice_literal_ex (V := Loc)

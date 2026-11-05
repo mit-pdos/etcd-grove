@@ -34,7 +34,7 @@ theorem mvcc.rangeEvents.wp_proof
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
-  intro lg b γ Wr P f q log minRev maxRev g W RT WT NC Wi Dep Cmp PutOk Rb Bt MW SR SRh qc c
+  intro lg b γ Wr P f q log minRev maxRev g W RT WT NC Wi Dep Cmp PutOk Rb Bt MW SR SRh PV PVx CK qc c
   wp_start as ⟨#Hbk, Hrt, Hcu, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert

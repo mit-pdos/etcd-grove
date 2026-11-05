@@ -150,7 +150,7 @@ def mvcc.keyCleanRead_of_backendC_stmt : Prop :=
     (r : mvcc.CmpRecs), mvcc.recsSign r →
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
+      backend.isBackend d.γB d.P (mvcc.lateWD d) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ⊢
       ∀ (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
         mvcc.keyCleanReadR
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -227,7 +227,7 @@ keeps (its stop channel's close, its waiter), split. -/
 theorem mvcc.wsCloserR_split (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : mvcc.kbCmpM γs.kb) :
     mvcc.wsCloserR (GF := GF) s st γs c ⊢
       mvcc.restoreRightM st γs c ∗
-        (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s) := by
+        (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s st γs) := by
   iintro Hcl
   icases (mvcc.wsCloserR_iff s st γs c).1 $$ Hcl with ⟨%stc, #Hstc, Hsc, Hw, Hr⟩
   isplitl [Hr]
@@ -238,7 +238,7 @@ theorem mvcc.wsCloserR_split (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h :
 /-- And back, after `Restore` (at the new names). -/
 theorem mvcc.wsCloserR_join (s st : Loc) (γs : mvcc.StoreNames) (c : Int) (h : mvcc.kbCmpM γs.kb) :
     mvcc.storeCloserM (GF := GF) st γs c ∗
-        (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s) ⊢
+        (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter s st γs) ⊢
       mvcc.wsCloserR s st γs c := by
   iintro ⟨Hr, ⟨%stc, #Hstc, Hsc, Hw⟩⟩
   ihave Hr := (mvcc.storeCloserM_on st γs c h).1 $$ Hr

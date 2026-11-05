@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/Link.lean`
 # (all Lean-first), read by `etc/gen-link.py --cachekv`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `cachekv`. Not listed: the standard library's and goose's functions with Perennial specs
@@ -7,15 +7,20 @@
 #
 # the program's own functions: its `collect`; the watch workload's other functions are the
 # examples' shared ones (`common`'s, linked in its `Link.lean`)
-cachekv_collect:
+cache_collect:
 # (2026-11-02) the check of the cache's Get: `lastVal`, `hasKey`, `checkGet`
-cachekv_lastVal:
-cachekv_hasKey:
-cachekv_checkGet: cachekv_lastVal cachekv_hasKey
-common_GenAll: @
-common_Writer: @
-common_MaxRev: @
-common_Check: @
+cache_lastVal:
+cache_hasKey:
+cache_checkGet: cache_lastVal cache_hasKey
+# (2026-11-03) the check of a progress notification: `awaitProgress` (the client's
+# `WatchResponse.IsProgressNotify`, linked in the cache's `Link.lean`), `checkProgress`
+WatchResponse__IsProgressNotify: @
+cache_awaitProgress: WatchResponse__IsProgressNotify
+cache_checkProgress:
+etcdstart_GenAll: @
+etcdstart_Writer: @
+etcdstart_MaxRev: @
+etcdstart_Check: @
 # the cache watch's options (client/v3/op.go)
 getPrefix:
 WithPrefix: getPrefix
@@ -31,12 +36,13 @@ watcher__Watch: @
 watcher__RequestProgress: @
 cache_v3_New: @
 Cache__Watch: @
-common_StartPeriodicServer: @
-common_Serve: @
-common_NewClient: @
+etcdstart_StartPeriodicServer: @
+etcdstart_Serve: @
+etcdstart_NewClient: @
 zap_NewNop:
 # (2026-11-02) the cache's Get (linked in the cache's `Link.lean`) with a timeout (`context`'s,
 # `Proof/context/WithTimeoutBackground.lean`, over Perennial's spec), then `checkGet`
 Cache__Get: @
+Cache__RequestProgress: @
 context_WithTimeoutBackground:
-cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartPeriodicServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch Cache__Get context_WithTimeoutBackground cachekv_checkGet
+cache_Main: etcdstart_GenAll etcdstart_Writer etcdstart_MaxRev cache_collect etcdstart_Check zap_NewNop etcdstart_StartPeriodicServer etcdstart_Serve etcdstart_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch Cache__Get context_WithTimeoutBackground cache_checkGet Cache__RequestProgress cache_awaitProgress cache_checkProgress

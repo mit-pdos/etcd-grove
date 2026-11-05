@@ -340,9 +340,9 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
     ghostVar γ.rvs (1 : Qp).half (rv0 D, false) ∗ ownTokAuth γ.wb wbInit ∗
     monoNatAuthOwn γ.wbc 1 0 ∗ ghostVar γ.used (1 : Qp).half 0 ∗
     dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-    trkHalf γ P D ∗ fkHalf γ P (st0 D wtx) ∗ W ∗ Pk ⊢ batchFree (GF := GF) γ P W Pk b t := by
+    trkHalf γ P D ∗ fkHalf γ P (st0 D wtx) ∗ W ∗ Pk ∗ bDB γ db ⊢ batchFree (GF := GF) γ P W Pk b t := by
   iintro ⟨Htxf, Hpend, Hdel, Hwb, Hphk, Hhook, Hown, Hwtx, #Hwdb, Hmus, Hv, Hrvs, Hwba, Hwbc, Hused,
-    Hopn, Hhkd, Hfkh, HW, HPk⟩
+    Hopn, Hhkd, Hfkh, HW, HPk, #Hbdb⟩
   unfold batchFree
   ileft
   iexists st0 D wtx, db
@@ -366,21 +366,29 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
   exact st0_freeOk P D wtx hP
 
 /-- The stop protocol of a new backend. -/
-theorem stop_init (γ : BNames) (sc dc : GoChan) (γsc γdc : ChanNames) (b : Loc) :
+theorem stop_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (sc dc : GoChan) (γsc γdc : ChanNames)
+    (b : Loc) :
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
-    dghostVar γ.sdn (DFrac.own 1) false ⊢
-    |={⊤}=> isStopChansAt (GF := GF) γ b sc dc γsc γdc ∗
-      ownBroadcastChan dc γdc iprop(True) .Pending := by
-  iintro ⟨#Hsc, #Hdc, #Hscc, Hsco, #Hdcc, Hdco, Hsdn⟩
+    dghostVar γ.sdn (DFrac.own 1) false ∗ savedPropOwn γ.rq (DFrac.own 1) iprop(True) ⊢
+    |={⊤}=> isStopChansAt (GF := GF) γ P W Pk b sc dc γsc γdc ∗
+      ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Pending := by
+  iintro ⟨#Hsc, #Hdc, #Hscc, Hsco, #Hdcc, Hdco, Hsdn, Hrq⟩
+  ihave ⟨Hrq1, Hrq2⟩ : iprop(savedPropOwn (GF := GF) γ.rq (DFrac.own (1 : Qp).half) iprop(True) ∗
+      savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True)) $$ [Hrq]
+  · iapply ((saved_prop_fractional γ.rq iprop(True)).fractional (1 : Qp).half (1 : Qp).half).1
+    rw [Qp.half_add_half]; iexact Hrq
   imod alloc_broadcast_chan (E := ⊤) (stopQ γ) γsc sc $$ Hscc Hsco with Hsb
   icases bchan_dup_unknown _ _ _ _ $$ Hsb with ⟨Hsb, #Hsbu⟩
-  imod alloc_broadcast_chan (E := ⊤) iprop(True) γdc dc $$ Hdcc Hdco with Hdb
+  imod alloc_broadcast_chan (E := ⊤) (bDoneEsc γ P W Pk) γdc dc $$ Hdcc Hdco with Hdb
   icases bchan_dup_unknown _ _ _ _ $$ Hdb with ⟨Hdb, #Hdbu⟩
   imod inv_alloc (bN.@"stop") ⊤
-    iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false) ∨
-     (ghostVar γ.cls 1 () ∗ (dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∨ runTok γ)))
-    $$ [Hsb Hsdn] with #Hinv
+    iprop((ownBroadcastChan sc γsc (stopQ γ) .Pending ∗ dghostVar γ.sdn (DFrac.own 1) false ∗
+        savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True) ∗
+        savedPropOwn γ.rq (DFrac.own (1 : Qp).half) iprop(True)) ∨
+     (ghostVar γ.cls (1 : Qp).half () ∗
+       ((dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗ stopReq γ P Pk b) ∨ runTok γ)))
+    $$ [Hsb Hsdn Hrq1 Hrq2] with #Hinv
   · inext; ileft; iframe
   imodintro
   iframe Hdb
@@ -456,15 +464,16 @@ the clients' shares (`newPost`) and the `run` goroutine's (its spec's premises).
 resources are the creator's, made from the client's half of the hook's own keys (`Hmk`) and (D22
 receiver epochs, S8a, 2026-10-24) the fresh backend's payment rights (`bFresh`), traded for `K γ`. -/
 theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterface)
-    (b t rt tm wg db lg wtx rtx : Loc) (m cm : GoMap) (γd : DBNames)
+    (b t rt tm wg db lg wtx rtx : Loc) (m cm : GoMap) (γd : DBNames) (path : GoString)
     (γrw : sync.rwmutex.RWMutexNames) (D : Data) (sc dc : GoChan) (γsc γdc : ChanNames)
     (hP : P.Wf) (hlg : lg ≠ Loc.null) :
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗ rtmuOf (baseOf rt) ↦□ tm ∗
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ isDB db ∗
+    dbFile db path ∗
     muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
     ownDB db γd D ∗ ownWTx wtx γd D D ∗ txDB wtx db ∗
@@ -483,11 +492,11 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     cmuOf b ↦ (false : Bool) ∗ cbufOf b ↦ Loc.null ∗ cverOf b ↦ (W64 0) ∗
     isChan sc γsc Unit ∗ ownChan γsc Unit .Idle ∗ isChan dc γdc Unit ∗ ownChan γdc Unit .Idle ∗
     srSlot b ⊢
-    |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ newPostK γ P W Pk K b D ∗ isStopChansAt γ b sc dc γsc γdc ∗
-      ownBroadcastChan dc γdc iprop(True) .Pending ∗ runTok γ ∗
+    |={⊤}=> ∃ γ : BNames, ⌜γ.db = γd⌝ ∗ bFile γ path ∗ newPostK γ P W Pk K b D ∗
+      isStopChansAt γ P (W γ) (Pk γ) b sc dc γsc γdc ∗ ownBroadcastChan dc γdc (bDoneEsc γ P (W γ) (Pk γ)) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half 0 := by
   iintro ⟨#Hhk, Hmk, #Ht, #Hrt, #Hlim, #Hlg, #Hh, #Hbe, #Htm, #Hsc, #Hdc, #Hmi, #Hmug, Hmus,
-    #Hdb, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
+    #Hdb, #Hdbfile, Hmx, Htxf, Hpend, Hdel, Hwb, Hphk, Hown, Hwtx, #Hwdb, #Hrw, Hst, Hrtoks, Hrtx, Hlive,
     #Hsnap, Hstats, Hrwg, Hwg, Hrb1, Hrb2, Hm, Hcm, Hcmm, Htmz, Hcmu, Hcbuf, Hcver, #Hscc, Hsco,
     #Hdcc, Hdco, Hsr⟩
   -- the ghost names
@@ -529,9 +538,21 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   -- (items 27/29 of the M2 storage plan) with the flag's value and `D`'s compaction-key values
   imod dghostVar_alloc ((fkWInit P D, fkInit D, fkVals D) : FkG) with ⟨%gfkv, Hfkv⟩
   imod dghostVar_persist gfkv 1 ((fkWInit P D, fkInit D, fkVals D) : FkG) $$ Hfkv with #Hfkv
+  -- (F2's stage 1) the physical view and the compaction keys' values, at `D`'s
+  imod ghostVar_alloc (sData P D) with ⟨%gpv, Hpv⟩
+  imod ghostVar_alloc (fkVals D) with ⟨%gck, Hck⟩
+  -- (2026-11-04, R2b-3c) the database and its file
+  imod dghostVar_alloc ((db, path) : Loc × GoString) with ⟨%gdbf, Hdbf⟩
+  imod dghostVar_persist gdbf 1 ((db, path) : Loc × GoString) $$ Hdbf with #Hdbf
+  -- (2026-11-04, R2b-3d stage 3) the stop's request's result, `True` until `Close`
+  imod saved_prop_alloc (GF := GF) iprop(True) (DFrac.own 1) DFrac.valid_own_one with ⟨%grq, Hrq⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
-    rbDomOf P D⟩
+    gpv, gck, gdbf, grq, rbDomOf P D⟩
+  ihave #Hdbat : bDBAt γ db path $$ []
+  · unfold bDBAt; iexact Hdbf
+  ihave #Hbdb : bDB γ db $$ []
+  · unfold bDB; iexists path; iexact Hdbat
   icases (fk_halves γ (fkInit D)).1 $$ Hfk with ⟨Hfkb, Hfkc⟩
   have Hok0 : fkOkG P (fkInit D) (fkWInit P D, fkInit D, fkVals D) (st0 D wtx) :=
     fkOkG_init rfl rfl rfl rfl
@@ -559,6 +580,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   icases gv_halves gcvw _ $$ Hcvw with ⟨Hcvwc, Hcvwi⟩
   icases gv_halves gused _ $$ Hused with ⟨Husedb, Husedr⟩
   icases gv_halves ghkd _ $$ Hhkd with ⟨Hhkdb, Hhkdc⟩
+  icases gv_halves gpv _ $$ Hpv with ⟨Hpvb, Hpvc⟩
+  icases gv_halves gck _ $$ Hck with ⟨Hckb, Hckc⟩
   ihave Hrbk := rbEls_top_of γ 1 (fun n => ((rbData P D).lookup n, false)) $$ Hrbk
   icases (rbEls_halves γ (fun _ => True) _).2 $$ Hrbk with ⟨Hrbkb, Hrbkc⟩
   ihave Hrbkc : rbOwn γ (rbData P D) $$ [Hrbkc]
@@ -626,11 +649,13 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   · unfold hkOwn; iexact Hhkdc
   ihave Hfr : bFresh γ $$ [Hwbt Hopnc Hcls]
   · unfold bFresh bOpen; iframe Hwbt Hopnc Hcls
-  ispecialize Hmk $$ %γ [$Hko $Hfr]
+  ihave Hpk : pvckInit γ P D $$ [Hpvc Hckc]
+  · unfold pvckInit pvHalf ckHalf; iframe Hpvc Hckc
+  ispecialize Hmk $$ %γ [$Hko $Hpk $Hfr]
   imod Hmk with ⟨HW, HPk, HK⟩
   imod sync.init_Mutex (batchFree γ P (W γ) (Pk γ) b t) ⊤ (muOf t) $$ [Hmx]
     [Htxf Hpend Hdel Hwb Hphk Hhookb Hown Hwtx Hmus Hviewb Hrvsb Hwba Hwbc Husedb Hopnb Hhkdb Hrbkb
-      Hfkb HW HPk]
+      Hfkb Hpvb Hckb HW HPk]
     with #Hbl
   · iexact Hmx
   · inext
@@ -657,7 +682,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     iunfold hooksOk at Hhk
     iapply Hhk $$ Hb' Ht'
   -- the stop protocol
-  imod stop_init γ sc dc γsc γdc b $$ [Hsco Hdco Hsdn] with ⟨#Hstop, Hdcp⟩
+  imod stop_init γ P (W γ) (Pk γ) sc dc γsc γdc b $$ [Hsco Hdco Hsdn Hrq] with ⟨#Hstop, Hdcp⟩
   · iframe
     iframe #
   -- the readers' tokens
@@ -673,6 +698,9 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   iexists γ
   isplitr
   · ipureintro; rfl
+  -- (R2b-3c part 2) the backend's file is at `path`
+  isplitr
+  · iunfold bFile; iexists db; iexact Hdbat
   isplitl [HK Hviewc Hcvwc Hclnc Hhookc Hrbkc Hrds Hdlg Hdlb Hfkc Hsr]
   · unfold newPostK
     isplitr

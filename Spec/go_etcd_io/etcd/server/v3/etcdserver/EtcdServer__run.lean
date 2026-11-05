@@ -7,7 +7,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 
 @[expose] public section
 
@@ -25,43 +26,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.run()`**, the server's apply loop (a goroutine body: `start`'s `go s.run()`), with what
-`isServerRun` lists: it starts the raft wrapper's loop (with the ready handler, whose
-`updateCommittedIndex` raises the committed index's ghost lower bounds), then receives each batch
-of committed entries raft hands it (`applyc`) and schedules its `applyAll` on a FIFO scheduler,
-the apply thread's resources flowing from job to job (`applyRes`). Its two exits, `errorc` and
-`stop` (after which it would shut down: close `stopping`, cancel the server's context, stop the
-scheduler, wait for `GoAttach`'s goroutines, stop raft, `Cleanup`, close `done`), are never taken
-in the runs covered (D19m, 2026-10-18): nothing is sent on either (`srvRunFieldsAt`: bags with
-predicate `False`), so it never returns; until then the shutdown was proved, with `Cleanup` a false
-trust-boundary axiom (it closes the backend and the stores that request goroutines still use). The write
-budget is the store's write tokens (the backend's unit 6: one token per applied entry), since D19b
-(2026-10-18) in the receipt-backed budget `srvWTPool E` (`isServerRun`), from which `apply` takes
-one per entry. Until D19b `run` held `txn.storeWTs E.γ N` and handed each batch's share to its
-job, under the lifetime premise `srvLifeBound ρ.raft N` (D14g: every committed log has at most `N`
-entries; until 2026-10-17, `2 ^ 64 ≤ N`). -/
+/-- **`s.run()`**, the server's apply loop (a goroutine body: `start`'s `go s.run()`), in both auth
+modes (the auth component's stage 2, 2026-11-04; until then `spec` with auth off and `specOn` with
+auth on, now `specOff`/`specOn`, `ModeSpecs.lean`'s corollaries): with what `isServerRunC` lists in
+the component `C`, the environment's (with auth on, the receipts' bound, `acReceiptOk`), it starts
+the raft wrapper's loop, then receives each batch of committed entries raft hands it (`applyc`) and
+schedules its `applyAll` on a FIFO scheduler, the apply thread's resources flowing from job to job.
+Its two exits, `errorc` and `stop`, are never taken in the runs covered (D19m: nothing is sent on
+either, `srvRunFieldsAt`'s bags with predicate `False`), so it never returns. The write budget is
+the receipt-backed `srvWTPool E` (D19b), from which `apply` takes one token per entry. -/
 abbrev EtcdServer.run.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
     (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ }}
-    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
-
-
-/-- **`spec` in the auth mode `on`** (the auth plan's E3q, 2026-10-27): `run` from `isServerRunOn`
-(the apply thread's mode-`on` rows; the environment's mode `on γa`), its jobs `applyAll.specOn`'s
-(the receipts' bound theirs). -/
-abbrev EtcdServer.run.specOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
-    (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γa : auth.AuthNames),
-  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ }}
+      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
+      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 
@@ -70,7 +51,8 @@ may be stopped**: `spec`'s, with stop requests on `stop` (`HardStop` sends one, 
 that the bootstrap log was applied, `srvBootApplied`: R2b-2 review F2) and `done`'s close
 announcing the image of member `γn.id`'s data directory `dd` at the request names `ρ`, escrowed for
 the stop right's claim `c` (`srvDoneInv`); with what the shutdown
-needs besides (`srvShutdownPre`). On a stop request `run` returns and its deferred shutdown runs:
+needs besides (`srvShutdownPre`: the stop's slot, `srvStop.keep`, at the configuration `cfg` and
+the transport key `γk` of the raft environment's `ST`). On a stop request `run` returns and its deferred shutdown runs:
 `close(stopping)`, `cancel()`, `sched.Stop()` (the pending `applyAll` jobs run, the last one's post
 `applyRes` at the log handed to the apply thread), `s.wg.Wait()`, `s.r.stop()`
 (`raftNode.stop.specStop`), `Cleanup()` (the backend closed), and `close(done)` with the image in the
@@ -79,19 +61,34 @@ escrow (R2b-3: assembled from those posts).
 Scope (R2b-2 review): a first start only (`isServerRun`'s `HEr`: `ai₀ = 0`, `γn.pre = []`; a
 restarted member's `run` is R2d's, so `Start_builtR_spec`'s right waits for it); the `errorc` path
 stays closed (its bag's `False`): were it opened (`stopWithDelay`, the transport's errors), the
-shutdown would have to fill the escrow without a stop request's evidence. One spec per function
+shutdown would have to fill the escrow without a stop request's evidence; (2026-11-05) no compactor
+(`v.compactor` nil: the census of the store's readers counts the compactor's among the slot's,
+`srvStop.census_readers`; with one, the compactor's run holds it). One spec per function
 (R2b-2 review F4): when R2b-2's proof is done, this replaces `spec` (whose callers never stop the
 server), as `Start.spec` gives the right and `raftNode.stop.specStop` replaces `raftNode.stop.spec`;
-the draft keeps both meanwhile. -/
+the draft keeps both meanwhile. (The auth component's stage 2, 2026-11-04) Over the component `C`,
+as the merged `spec`, so that it replaces it in both auth modes. -/
 abbrev EtcdServer.run.specStop : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
     (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
-    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName),
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (dd : GoString) (c : GName)
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvBootApplied ρ)
+      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
+      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvBootApplied ρ)
         (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗
-      srvShutdownPre s γn dd }}
+      srvShutdownPre s cfg E γn γk dd ∗
+      -- (2026-11-05, R2b-3d stage 5d) the raft environment's transport stop right is the one
+      -- keyed by the slot's `γk` (`srvErM`'s, as `NewServer` builds it); and (the census's scope,
+      -- `restart3`'s) no compactor, whose run would hold one of the store's readers
+      -- (2026-11-05) auth off (`restart3`'s mode: with auth on, `Cleanup`'s auth closer is the
+      -- apply thread's, not yet threaded)
+      -- (2026-11-05, stage 5) no compaction mode (the closer and the image take the compaction
+      -- right otherwise, `apply.cmpOwn`), and the boot log's facts the image's configuration needs
+      -- (`NewServer`'s `bootOk`)
+      ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧ E.cmp = false ∧
+        (ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk ρ.rd.raft.raft.vs ρ.rd.raft.raft.boot)⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

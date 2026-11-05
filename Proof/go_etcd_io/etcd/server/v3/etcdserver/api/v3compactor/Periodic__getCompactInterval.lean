@@ -33,7 +33,7 @@ theorem v3compactor.Periodic.getCompactInterval.wp_proof :
   -- (one `word` per declaration: two in sibling branches shared a cached proof the kernel rejected)
   have hH : sint.Z (W64 3600000000000) = 3600000000000 := by rfl
   wp_if_destruct
-  · simp only [_root_.Perennial.time.Hour]
+  · try simp only [_root_.Perennial.time.Hour]
     (try wp_auto)
     iapply HΦ
     iframe

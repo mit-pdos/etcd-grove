@@ -42,8 +42,8 @@ theorem lease.lessor.Grant.wp_proof
     (hReg : lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG))
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Grant.spec (GF := GF) (hG := hG) := by
-  intro lp γl id ttl L I0 P f T R Rb rb Pre Q Post
-  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hrvk, Hcs, Hwtk, Hrtk, HRb, #Hgr⟩
+  intro lp γl id ttl L I0 P f T Ln R Rb rb Pre Q Post U
+  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hrvk, Hcs, Hwtk, Hln, Hrtk, HRb, #Hgr, HUo, Hfr⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
@@ -74,11 +74,11 @@ theorem lease.lessor.Grant.wp_proof
   · -- `id == NoLease`
     (try wp_auto)
     iapply HΦ
-    iframe Hrtk
+    iframe Hrtk Hln
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
-    iframe Hown Hrvk HPre HRb
+    iframe Hown Hrvk HPre HRb HUo
     isplitr
     · ipureintro; exact ⟨fun h => (by cases h), Or.inl trivial⟩
     iunfold lessorErrIs
@@ -90,11 +90,11 @@ theorem lease.lessor.Grant.wp_proof
   · -- `ttl > MaxLeaseTTL`
     (try wp_auto)
     iapply HΦ
-    iframe Hrtk
+    iframe Hrtk Hln
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
-    iframe Hown Hrvk HPre HRb
+    iframe Hown Hrvk HPre HRb HUo
     isplitr
     · ipureintro
       refine ⟨fun h => (by cases h), Or.inr (Or.inl ?_)⟩
@@ -148,12 +148,12 @@ theorem lease.lessor.Grant.wp_proof
       iframe Hsz Hls
       ipureintro; exact HL
     iapply HΦ
-    iframe Hrtk
+    iframe Hrtk Hln
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     iunfold leaseOwn
-    iframe Hown Hcls Hrvk HPre HRb
+    iframe Hown Hcls Hrvk HPre HRb HUo
     isplitr
     · ipureintro; exact ⟨fun h => (by cases h), Or.inr (Or.inr ((HL id).2 (by rw [hM]; rfl)))⟩
     iunfold lessorErrIs
@@ -190,16 +190,18 @@ theorem lease.lessor.Grant.wp_proof
     wp_apply (wp_mapInsert LeaseID.ty lm M id l) $$ HM as HM
     -- the live set grows; the lessor's state and its history with the new lease
     iapply fupd_wp
-    imod closers_grant γl lp L M id l rc I I0 sm ⊤ (fun _ _ => CoPset.mem_full) Hlnn hM HL
-      $$ [$Hrd $Ha $Hcls $Hrvk $Hhist $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest] with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID⟩
+    imod closers_grant γl lp L M id l rc I I0 sm (grantTTL mt ttl) ⊤ (fun _ _ => CoPset.mem_full)
+      Hlnn hM HL U
+      $$ [$Hrd $Hfr $HUo $Ha $Hcls $Hrvk $Hhist $Httl $Hrc $Hrcl $HiS $Hsm $Hmu0 $HID $HexG $HexRest]
+      with ⟨Ha, Hcls, Hrvk, Hhist, #Hlo, #HID, #Hlive, HUo⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     imodintro
     -- (S7c) `le.b`, read with the write token's fraction
-    ihave ⟨%dqb, Hb, Hwtk⟩ := Hlens $$ Hwtk
+    ihave ⟨%dqb, Hb, Hln⟩ := Hlens $$ Hln
     icombine Hb Hbl gives %Hbb
     subst Hbb
     (try wp_auto)
-    ihave Hwtk := Hwtk $$ Hb
+    ihave Hln := Hln $$ Hb
     wp_apply (hPersist l b P f T R Rb rb Pre Q Post id (grantTTL mt ttl) (W64 0) DFrac.discard
       DFrac.discard (DFrac.own 1))
       $$ [$Hpkg $Hbk $Hcs $Hwtk $Hrtk $HRb $HID $Httl $Hrem] as ⟨HPost, Hrtk, HRb, -, -, Hrem⟩
@@ -269,13 +271,13 @@ theorem lease.lessor.Grant.wp_proof
         · right; rfl
         · left; exact h
     iapply HΦ
-    iframe Hrtk
+    iframe Hrtk Hln
     iright
     iunfold leaseOwn
-    iframe Hown Hcls Hrvk HPost HID
+    iframe Hown Hcls Hrvk HPost HID Hlive
     isplitr
     · ipureintro; exact ⟨rfl, Hlnn, hid0, httl, hnot⟩
-    iexists mt; iframe Hmt Httl HRb
+    iexists mt; iframe Hmt Httl HRb HUo
 
 end proof
 

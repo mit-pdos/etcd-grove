@@ -32,7 +32,6 @@ theorem raft.sendTimeoutNow.wp_proof
   intro c r id s to Hto Hxo
   wp_start as Hphys
   wp_auto
-  rw [show raftpb.MsgTimeoutNow = #((W32 14 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 14)
   iintro %pty Hpty

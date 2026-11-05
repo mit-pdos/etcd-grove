@@ -131,7 +131,7 @@ theorem applyResultIs_notNoSpaceAdmin (Own : auth.AuthNames → List auth.AuthSt
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) := by
   iintro ⟨#Hpkg, #Hv⟩ H Hout #Hrej
-  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, #Hap⟩
+  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, #Hap, -⟩
   cases out with
   | skipped =>
     simp only [apply.applyResultIs]

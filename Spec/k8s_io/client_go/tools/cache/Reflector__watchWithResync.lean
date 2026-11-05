@@ -33,7 +33,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 abbrev Reflector.watchWithResync.spec : Prop :=
   ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (dch : GoChan) (γd : ChanNames) (γa : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (k : Nat),
   rvuTyOk → bmTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ reflFixed r f lw et dh ∗

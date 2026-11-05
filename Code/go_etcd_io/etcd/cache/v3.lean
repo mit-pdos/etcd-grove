@@ -965,7 +965,7 @@ noncomputable def Cache.WaitForRevision.impl [GooseExts] [GoGlobalContext] : val
   (App (App (App (Val doFor) (Lam BAnon
   (Val #true))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$ch0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 1000000))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.After []))) (Val #())) (Var "$a0")))
   (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
   (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
@@ -2140,14 +2140,14 @@ noncomputable def defaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "$r0" (Let "$v0" (Val #(W64 10))
   (Let "$v1" (Val #(W64 2048))
-  (Let "$v2" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 50)) (Val _root_.Perennial.time.Millisecond)))
-  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 50)) (Val _root_.Perennial.time.Millisecond)))
-  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val _root_.Perennial.time.Second)))
-  (Let "$v5" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second)))
-  (Let "$v6" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 3)) (Val _root_.Perennial.time.Second)))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 50)) (Val #(W64 1000000))))
+  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 50)) (Val #(W64 1000000))))
+  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val #(W64 1000000000))))
+  (Let "$v5" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 1000000000))))
+  (Let "$v6" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 3)) (Val #(W64 1000000000))))
   (Let "$v7" (Val #(W64 32))
-  (Let "$v8" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val _root_.Perennial.time.Millisecond)))
-  (Let "$v9" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Minute)))
+  (Let "$v8" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val #(W64 1000000))))
+  (Let "$v9" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val #(W64 60000000000))))
   (App (Val (GoInstruction (CompositeLiteral Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"PerWatcherBufferSize")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"HistoryWindowSize")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"ResyncInterval")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"InitialBackoff")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxBackoff")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"GetTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"WaitTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"BTreeDegree")) (ElementExpression go.int (Var "$v7"))), (KeyedElement (some (KeyField go!"ProgressRequestInterval")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v8"))), (KeyedElement (some (KeyField go!"ProgressNotifyInterval")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v9")))]))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -5056,7 +5056,7 @@ noncomputable def store.applyEventsLocked.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev"))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.etcd.client.v3.EventTypeDelete)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (Var "$sw") (Val #(W32 1))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoAlloc kvItem.ty))) (Let "$v0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev")))))))
   (App (Val (GoInstruction (CompositeLiteral kvItem.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v0")))]))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (_root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.BTree.ty (go.GoType.PointerType kvItem.ty))) go!"Delete"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (_root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.BTree.ty (go.GoType.PointerType kvItem.ty)))))) (App (Val (GoInstruction (StructFieldRef snapshot.ty go!"tree"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"latest"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))))) (Var "$a0")))
@@ -5083,7 +5083,7 @@ noncomputable def store.applyEventsLocked.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
   (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.etcd.client.v3.EventTypePut)))
+  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (Var "$sw") (Val #(W32 0))))
   (App (Val doExecute)
   (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "ev"))))
   (App (App (Val (GoInstruction (FuncResolve newKVItem []))) (Val #())) (Var "$a0")))

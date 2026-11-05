@@ -35,6 +35,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     (hIs : _root_.Perennial.errors.Is.spec (GF := GF) (hG := hG))
@@ -57,7 +58,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
   wp_apply HT $$ [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.ttlAns at Hans
-  icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, %hv, Hhv⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae⟩)
+  icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, ⟨%hv, Hhv⟩, #Hf⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae, #Hnf⟩)
   · subst He
     wp_auto
     -- `errors.Is(nil, ErrLeaseNotFound)`: `false` (an empty tree; `err` nil)
@@ -175,7 +176,15 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
             iexists dq', r'
             iframe Hrev
           iright
-          ipureintro; rfl
+          isplitr
+          · ipureintro; rfl
+          iintro !> #Hrow
+          ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+          · iunfold errIsTrue
+            iexists S', I', U'
+            iframe Htree
+            ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
+          iapply Hnf $$ %eNF HNF Hit Hrow
 
 end proof
 

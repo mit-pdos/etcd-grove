@@ -49,6 +49,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.Create.wp_proof
@@ -92,7 +93,7 @@ theorem store.Create.wp_proof
   ihave Hkc' := Hkc
   iStructNamed Hkc'
   iunfold contractOk at Hcon
-  icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+  icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave %Hobjn := c.S.objAt_ne_nil obj o rv $$ Hobj
   wp_auto
   wp_bind (App (Val wrapDefer) _)

@@ -45,14 +45,14 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **The reflector's environment** (persistent): the informer invariant, the FIFO with the
 informer's object contract, the list-watch over the model's resource `res`, the expected type its
 objects', every state's keys good. -/
-def reflEnv (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+def reflEnv (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (res : Res) (γf : FifoNames) (γt : TsNames) (γi : InfNames) (f : Loc) (lw : GoInterfaceOk)
     (et : reflect.Type') : IProp GF :=
   iprop(infInv γa res γf γt γi ∗ isFIFO f γf (infObj γi res) ∗ lwOk lw γa cfg res ∗
     typeOfOk et res ∗ keysOk γa)
 
 instance reflEnv_persistent (γa : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (f : Loc) (lw : GoInterfaceOk)
     (et : reflect.Type') : Persistent (reflEnv (GF := GF) γa cfg res γf γt γi f lw et) := by
   unfold reflEnv; infer_instance
@@ -61,7 +61,7 @@ instance reflEnv_persistent (γa : ApiNames)
 abbrev Reflector.watch.spec : Prop :=
   ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) (ctx : GoInterfaceOk)
     (dch : GoChan) (γd : ChanNames) (errCh : GoChan) (γa : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (k : Nat),
   rvuTyOk → bmTyOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ reflFixed r f lw et dh ∗

@@ -1,8 +1,8 @@
-# One raft mode with snapshots and reconfiguration, and `examples/kvreconf`'s adequacy
+# One raft mode with snapshots and reconfiguration, and `examples/raft/kvreconf`'s adequacy
 
 Started 2026-10-28 (branch `kv-snap-reconf`, then `raft-unified`). The user's request: specs, by the
 spec skill, that cover reconfiguration and snapshots for raft in one proof; that proof; and, at the end,
-the adequacy of `examples/kvreconf` (its `Main` never panics: porcupine answers Ok).
+the adequacy of `examples/raft/kvreconf` (its `Main` never panics: porcupine answers Ok).
 
 ## Where it starts
 
@@ -12,7 +12,7 @@ the adequacy of `examples/kvreconf` (its `Main` never panics: porcupine answers 
   changing configuration (`raft.Step`, stage B8: `GMode.SnapDyn`, `StepR.snapRestore`); what is missing
   is above it (review 1, `notes/spec-first-study/raft-node-unified-review-1.md`, and the map of the
   modes in this file's "Machinery" below).
-- `examples/kvreconf` (Go only): every choice of the application random (`notes/STATUS.md`).
+- `examples/raft/kvreconf` (Go only): every choice of the application random (`notes/STATUS.md`).
 - The raft it needs: the fork's `raft37-goose-lean-a2` (`565c2bd`, local in `.lake/raft-fork`, not
   pushed), which switches to a snapshot's configuration when it is applied
   (`issues/raft-snapshot-during-apply-stale-confchange.md`). The protocol model switches at restore
@@ -21,7 +21,7 @@ the adequacy of `examples/kvreconf` (its `Main` never panics: porcupine answers 
 ## The user's decisions (2026-10-28)
 
 - The fork branch `raft37-goose-lean-a2` pushed; the raft pin moved to `565c2bd` (`etc/goose.py`,
-  `examples/go.mod`, `examples/k8setcd3/go.mod`; `etc/goose.py --check --project raft` up to date).
+  `examples/go.mod`, `examples/k8s/etcd3/go.mod`; `etc/goose.py --check --project raft` up to date).
 - The trust-base fact `ccDecodeV2_nil` added
   (`Spec/google_golang_org/protobuf/proto/UnmarshalConfChangeV2Empty.lean`), for U5.
 - The conf-change rule fixed at allocation (`γ.rule`) is replaced by a TaDa design: clients own, for
@@ -322,7 +322,7 @@ Each: old → new, and why. Approved by the coordinator where marked (the cross-
   `prop_deposit`, `propArg` (`InvNodeChan.lean`) and `ccPropArg` (`ApiVocab.lean`) take `□?γ.dup
   propAu1`; `api_propAu1_if` (`InvApi.lean`) lifts `api_propAu1`. (d) `nodeRunning_stopped`: isCluster
   premise dropped (unused). Not repaired (raft first): etcd's server (`NewServerAlloc*`, the
-  allocation's post; `NodeBridge`, `Propose`'s `□?γ.dup`) and `examples/kv`.
+  allocation's post; `NodeBridge`, `Propose`'s `□?γ.dup`) and `examples/raft/kv`.
 - A standing rule from the user: any new ghost state (predicate, token, authority, witness) in a
   public spec is escalated before it is built on; never a minor change.
 
@@ -1624,19 +1624,19 @@ Server files are under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` unless a pa
    `InvBuild.lean` (`srvMsgNet_bundle` (done)), `EtcdServer__start.lean` (done) (both), `EtcdServer__run.lean` (done)
    (`run_job_body` (done), `run_job_bodyOn` (done), `wp_proof`, `wp_proofOn`), `NewServer.lean` (done) (`wp_proofM`,
    `wp_proof`; `wp_proofCompact` was already `sorry`).
-5. **K-b kv's run loop** (medium, ~25%): `examples/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
+5. **K-b kv's run loop** (medium, ~25%): `examples/raft/kv/KV__run.lean` (done) (`KV.run.wp_proof`), new
    `KvRun*` lemma modules, `SnapData.lean`.
 6. **S-A net, read, errors** (leaf): `InvNet.lean` (`stepIn_of_recv` (done)), `ReadRaft.lean`
    (`isReadRaft_of_raftNode` (done)), `ReadServer.lean` (`isReadServer_of_serverM` (done)), `raftNode__ReadIndex.lean` (done),
    `read/Read__requestCurrentIndex.lean` (done), `read/Read__sendReadIndex.lean` (done),
    `EtcdServer__processInternalRaftRequestOnce.lean` (done) (`wp_proofM`).
-7. **K-a kv transport** (low): `examples/kv/deliver.lean` (done) (`deliver.wp_proof`).
-8. **K-c kv start and link** (low): `examples/kv/StartCluster.lean` (done) (`StartCluster.wp_proof`), then
+7. **K-a kv transport** (low): `examples/raft/kv/deliver.lean` (done) (`deliver.wp_proof`).
+8. **K-c kv start and link** (low): `examples/raft/kv/StartCluster.lean` (done) (`StartCluster.wp_proof`), then
    kv's `Link`/`Results` only if a callee list changes.
 
 Not stage P's: `rnSnapOnce_of_tok` (proved in stage F). After stage P (or at the integrator's full
 build): `etc/tcb-report.py --check --update` for the sorries and the changed `snapshot` axiom
-statement, `etc/tcb-collections/kv.txt`; the downstream server examples (`examples/common` and the
+statement, `etc/tcb-collections/kv.txt`; the downstream server examples (`examples/lib/etcdstart` and the
 eight server-based ones) are repaired after, as planned.
 
 ## Repair: Stage F revision, snapshots allowed (2026-10-30, the user's decisions; supersedes D2 above)
@@ -1736,7 +1736,7 @@ and k8s's apiserver storage. Done items are marked in the sorry list above as th
 - S-C done (22a212d8d6; #1, #2, #3, #6 kept, #4/#5 proved). S-A done (48f1423c83). K-a done (3e5661b9d8).
   P7 made (fe1e67eef3). `run` (both) done (bd38df4399, #8 kept). Wave 3: K-c (with K-a's helper), D (the
   downstream server examples and k8s's apiserver storage) started. Left: S-D `applyAll`; S-E P6, `NewServer`.
-- K-c done (8ff30c9ee0): **examples/kv has no sorry left**; kv's `Results`/`Link`/`AdequacyLinked` built
+- K-c done (8ff30c9ee0): **examples/raft/kv has no sorry left**; kv's `Results`/`Link`/`AdequacyLinked` built
   (no `sorryAx` printed), `kv_porcupine_safe` byte-identical to origin/lean's; kv's Link unchanged.
 - S-D done (59cf04668c: `applyAll` both, #7 kept; the `ap.snapshot ≠ nil` branch dead under the frozen
   spec, no sorry). P8 (b834ac2330), P9 (6dc15e1fc6). **For the post-merge snapshot track** (besides P8's two

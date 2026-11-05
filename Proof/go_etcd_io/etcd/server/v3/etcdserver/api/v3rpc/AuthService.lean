@@ -10,7 +10,7 @@ some header, its wire form `rq'`) was applied at the committed prefix `L` before
 admin step succeeding there (`adminDoneM`), the auth state after it published (`pubAfterM`), its
 step determinate there and, if its entry is recorded in the auth history, the result `Q` of the
 client's update (`adminQh`), the header bound to the call's token `tok` (`hdrBoundT`): what
-`raftRequest.specM true` answers on success (`adminOutOn`), less the response's memory and the
+`raftRequest.spec` with auth on answers on success (`adminOutOn`), less the response's memory and the
 store's certificates. For `UserAdd`, some model of the request with the name asked for, the
 password choice `false` (the client sends no options) and a password that cannot fail
 (`userAddReplied`).

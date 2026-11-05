@@ -7,7 +7,8 @@ revision fits a `uint64` after the bump, and a next state's permissions fit the 
 (`permsFit`). Neither follows from a single state: both bound how much the admin side has written.
 As the server's other lifetime bounds (D19b, `notes/decisions.md`: ids, applied entries, the
 store's changes), the bound is a count backed by time receipts: the admin side holds, with its
-authority, `⧗ k` with the latest state's revision at most `k + 1` (`authFuel`); each admin request
+authority, `⧗ k` with the latest state's revision at most `k + b + 1` for a base `b ≤ 2 ^ 61` (`authFuel`;
+the base `0` at the store's start, the image's admin entries after a snapshot's install); each admin request
 takes one more receipt at a Go step of its own (`wp_go_step_receipt'`), so `k + 1 < receiptBound
 GF ≤ 2 ^ 48`, which gives the revision's bound (`stepOk_of_fuel`). The permissions are bounded by
 the revision through the state's size (`authSmall`): every user's roles without duplicates (so a
@@ -403,34 +404,48 @@ theorem stepSmall_roleGrantPermission (role : GoString) (w : Option PermW) :
 
 /-! ## The fuel -/
 
-/-- **The fuel's pure part**: the latest state small, its revision at most `k + 1` for `k`
-receipts held. -/
+/-- **The fuel's pure part**: the latest state small, its revision at most `k + b + 1` for `k`
+receipts held over a base `b ≤ 2 ^ 61` (the auth-on snapshot plan's P6, 2026-11-03, the user's
+choice (a): a snapshot's install catches the history up by the image's admin entries, which the
+apply thread never paid receipts for; the base counts them, `0` at the store's start). -/
 def fuelOk (hs : List AuthState) (k : Nat) : Prop :=
-  ∀ st, hs.getLast? = some st → st.revision ≤ k + 1 ∧ authSmall st
+  ∃ b : Nat, b ≤ 2 ^ 61 ∧ ∀ st, hs.getLast? = some st → st.revision ≤ k + b + 1 ∧ authSmall st
 
 theorem fuelOk_mono (hs : List AuthState) (k : Nat) (h : fuelOk hs k) : fuelOk hs (k + 1) := by
-  intro st hst
+  obtain ⟨b, hb, h⟩ := h
+  refine ⟨b, hb, fun st hst => ?_⟩
   obtain ⟨h1, h2⟩ := h st hst
   exact ⟨by omega, h2⟩
 
 theorem fuelOk_next (hs : List AuthState) (k : Nat) (R : StepRel) (st st' : AuthState)
     (hf : fuelOk hs k) (hR : StepSmall R) (hl : hs.getLast? = some st) (hst : R st (.next st')) :
     fuelOk (hs ++ [st']) (k + 1) := by
-  intro x hx
+  obtain ⟨b, hb, hf⟩ := hf
+  refine ⟨b, hb, fun x hx => ?_⟩
   rw [List.getLast?_concat] at hx
   cases hx
   obtain ⟨h1, h2⟩ := hf st hl
   obtain ⟨h3, h4⟩ := hR st st' h2 hst
   exact ⟨by omega, h4⟩
 
-/-- The latest state of a fueled history: small, its revision at most `k + 1`. -/
+/-- The latest state of a fueled history: small, its revision at most `k + 2 ^ 61 + 1`. -/
 theorem fuelOk_last (γa : AuthNames) (hs : List AuthState) (k : Nat) (st : AuthState)
-    (hf : fuelOk hs k) (hl : histLast (.on γa) hs st) : st.revision ≤ k + 1 ∧ authSmall st :=
-  hf st hl
+    (hf : fuelOk hs k) (hl : histLast (.on γa) hs st) :
+    st.revision ≤ k + 2 ^ 61 + 1 ∧ authSmall st := by
+  obtain ⟨b, hb, hf⟩ := hf
+  obtain ⟨h1, h2⟩ := hf st hl
+  exact ⟨by omega, h2⟩
+
+/-- **The fuel at a history whose latest state's revision is at most `k + b + 1`** for a base
+`b ≤ 2 ^ 61` (an install's catch-up). -/
+theorem fuelOk_of_base (hs : List AuthState) (k b : Nat) (hb : b ≤ 2 ^ 61)
+    (h : ∀ st, hs.getLast? = some st → st.revision ≤ k + b + 1 ∧ authSmall st) : fuelOk hs k :=
+  ⟨b, hb, h⟩
 
 /-- **The step's premises from the fuel** (see the file header): with `k + 1` receipts' bound. -/
 theorem stepOk_of_fuel (γa : AuthNames) (hs : List AuthState) (R : StepRel) (k : Nat)
     (hR : StepSmall R) (hf : fuelOk hs k) (hk : k + 1 < 2 ^ 48) : stepOk (.on γa) hs R := by
+  obtain ⟨b, hb, hf⟩ := hf
   intro st hst
   simp only [histLast] at hst
   obtain ⟨h1, h2⟩ := hf st hst
@@ -449,7 +464,7 @@ variable [sem : go.Semantics]
 open Iris.ProofMode
 
 /-- **The admin side's fuel** for the history `hs` (see the file header): `k` receipts, the latest
-state small with its revision at most `k + 1`. -/
+state small with its revision at most `k + b + 1` over a base `b` (`fuelOk`). -/
 def authFuel (hs : List AuthState) : IProp GF :=
   iprop(∃ k : Nat, ⧗ k ∗ ⌜fuelOk hs k⌝)
 
@@ -471,7 +486,7 @@ theorem authFuel_init (hs : List AuthState) (st : AuthState) (hl : hs.getLast? =
   iexists 0
   iframe H
   ipureintro
-  intro x hx
+  refine ⟨0, by omega, fun x hx => ?_⟩
   rw [hl] at hx; cases hx
   exact ⟨by omega, hst⟩
 

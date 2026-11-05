@@ -1,0 +1,12 @@
+# etc/mode-check.py's baseline: KIND PACKAGE COUNT (the auth component's stage 2, D2).
+# Counts may only go down; rewrite with `etc/mode-check.py --check --update`.
+match-mode go_etcd_io/etcd/server/v3/etcdserver 69
+match-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 1
+match-mode go_etcd_io/etcd/server/v3/etcdserver/apply 4
+twin go_etcd_io/etcd/client/v3 5
+twin go_etcd_io/etcd/server/v3/etcdserver 17
+lit-mode github_com/mit_pdos/etcd_grove/examples/etcd/auth 7
+lit-mode github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 5
+lit-mode go_etcd_io/etcd/client/v3 16
+lit-mode go_etcd_io/etcd/server/v3/etcdserver 147
+lit-mode go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc 21

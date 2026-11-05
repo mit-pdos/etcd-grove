@@ -281,7 +281,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m)))) $$ []
   · iunfold membership.beSaveOk
     iintro !> %Φ' !> ⟨⟨Hp, Hu, Hw, Ht, Hb⟩, Hmm⟩ HΦ'
-    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) (mvcc.lateW d.gx) Pk Hkb (Or.inl (Or.inl rfl)) Hmem)
+    wp_apply (hSave mbl lgm E.γ d E.P E.f Pre Q Post membership.clusterBkts rs.bk («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (membership.ccMemberAt m) (mvcc.lateWD d) Pk Hkb (Or.inl (Or.inl rfl)) Hmem)
       $$ [Hp Hu Hw Ht Hb Hmm] as ⟨Hpo, Ht, Hb, Hmm⟩
     · iframe #; iframe
       isplitr
@@ -376,7 +376,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         · iexact Hrb
         isplitl [Hnc]
         · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
-            (bkPut_members_off rs.bk _ _)).1 $$ Hnc
+            (fun n hn => bkPut_members_off rs.bk _ _ n (restSet_ncl _ n hn))).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
         ipureintro
@@ -452,7 +452,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         · iexact Hrb
         isplitl [Hnc]
         · iapply (backend.rbPart_congr (GF := GF) d.γB _ rs.bk _
-            (bkPut_members_off rs.bk _ _)).1 $$ Hnc
+            (fun n hn => bkPut_members_off rs.bk _ _ n (restSet_ncl _ n hn))).1 $$ Hnc
         isplitl [Hcm]
         · iexact Hcm
         ipureintro
@@ -498,7 +498,7 @@ theorem EtcdServer.applyConfChange.wp_proof
   obtain ⟨hv3, Hccp⟩ := Hdyn γn rfl
   subst hv3
   obtain ⟨hty0, hin, hctx⟩ : m.type = W32 0 ∧ m.nodeId ∈ γs.raft.cfg ∧
-      membership.ccContextOf m.context = some (m.nodeId, false) := Hok
+      membership.ccContextOf m.context = some (m.nodeId, false) := ⟨Hok.1, Hok.2.1, Hok.2.2.1⟩
   clear Hdyn Hdv Hloc
   wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
     #Htr, #Hmid, Hmr, Hrt, %HmD, Hpl, Htk, #HbeRO, Hv3, Hpre⟩
@@ -532,7 +532,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       (membership.membersOfBk rs.bk).1 (membership.membersOfBk rs.bk).2 $$ []
   · iunfold membership.beReadOk
     iintro !> %Φ' !> ⟨Hmb, Hpl, Htk⟩ HΦ'
-    wp_apply (hRead mbl lgm d (mvcc.lateW d.gx) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
+    wp_apply (hRead mbl lgm d (mvcc.lateWD d) Pk rs.bk HmD) $$ [Hmb Hpl Htk]
       as %mp %rp ⟨Hpl, Htk, Hmb, Hmr, Hrm⟩
     · iframe #; iframe; ipureintro; exact Hlgmnn
     iapply HΦ'
@@ -599,7 +599,6 @@ theorem EtcdServer.applyConfChange.wp_proof
       wp_apply hError $$ []
       · ipureintro; exact Hlgnn
       icases ownConfChange_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
-      simp only [go_etcd_io.raft.v3.None']
       wp_auto
       ipersist «$r0»
       ihave Hcc := Hcc $$ %«$r0_ptr» %(W64 0) HN []

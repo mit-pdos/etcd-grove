@@ -200,7 +200,6 @@ theorem raft.maybeSendSnapshot.wp_proof
     wp_raft_logC
     -- `&pb.Message{To: new(to), Type: pb.MsgSnap.Enum(), Snapshot: snapshot}`: the message owns
     -- the fresh clone `raftLog.snapshot` returned (stage R4)
-    rw [show raftpb.MsgSnap = #((W32 7 : raftpb.MessageType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_MessageType_Enum (W32 7)
     iintro %pty Hpty

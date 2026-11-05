@@ -60,7 +60,8 @@ axiom ExcludeAdmissionWebhookVirtualResources [GooseExts] [GoGlobalContext] : va
 
 axiom KMSv1 [GooseExts] [GoGlobalContext] : val
 
-axiom ListFromCacheSnapshot [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ListFromCacheSnapshot [GooseExts] [GoGlobalContext] : val :=
+  #(go!"ListFromCacheSnapshot")
 
 axiom ManagedFieldsOptOut [GooseExts] [GoGlobalContext] : val
 

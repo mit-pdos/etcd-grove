@@ -104,11 +104,11 @@ def node.ProposeConfChange.spec : Prop :=
 
 ## How each client uses it
 
-- **etcd's server, examples/kv** (networks that never duplicate a `MsgProp`): allocate with
+- **etcd's server, examples/raft/kv** (networks that never duplicate a `MsgProp`): allocate with
   `dup = false`, keep `⌜γ.dup = false⌝` beside `isCluster` (one pure fact), and rewrite
   `□?false U = U` at each `Propose`/`ProposeConfChange` call: their one-shot updates as on `lean`.
   Their networks step each message once, with the credits `Ready` gave.
-- **examples/kvreconf** (`deliver` steps a message twice, one time in 32): allocate with
+- **examples/raft/kvreconf** (`deliver` steps a message twice, one time in 32): allocate with
   `dup = true`. At `Cluster.do`, the request's client update goes into kvreconf's invariant under
   its encoding `op`; every `Propose(ctx, op)` call (and every retry) gives
   `□ AU(op)`: "if `op` does not occur in the committed `ops` yet, fire the client's update, else

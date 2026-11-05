@@ -1,0 +1,40 @@
+/- Lean-first (no Rocq counterpart).
+
+`vrOf(value, mod, ver)` (etcd_txnlin.go): the `VR` of a key-value's value (copied to a string), mod
+revision and version.
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace etcd_txnlin
+
+open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
+
+/-- See the file header. -/
+abbrev vrOf.spec : Prop :=
+  ∀ (sl : GoSlice) (b : GoString) (dq : DFrac) (mod ver : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin ∗
+      sl ↦*{dq} b }}
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.vrOf)) (Val #sl))
+      (Val #mod)) (Val #ver))
+  {{ RET #(⟨b, mod, ver⟩ : VR); sl ↦*{dq} b }}
+
+end spec
+
+end etcd_txnlin
+end EtcdGrove
+end Perennial

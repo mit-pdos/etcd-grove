@@ -42,7 +42,7 @@ theorem EtcdServer.AppliedIndex.wp_proofM (on : Bool)
 theorem EtcdServer.AppliedIndex.wp_proof
     (hG' : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG)) :
     EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.AppliedIndex.wp_proofM false hG'
+  fun on => EtcdServer.AppliedIndex.wp_proofM on hG'
 
 end proof
 

@@ -4,9 +4,12 @@
 their specs share. Lean-first (no Rocq counterpart).
 
 * `dbOpensOk` (opaque `Prop`, a named premise about the program's environment, D19a's first
-  kind, as `apply.backendUnderQuota`): bbolt's `Open` succeeds on the database files the server
-  opens after its start (the file system, the disk and the file lock cooperate: no other process
-  holds the file's lock, no I/O error). `OpenBackend` runs `newBackend` on a goroutine, whose
+  kind, as `apply.backendUnderQuota`): bbolt's `Open` succeeds on every database file the server
+  opens: `bootstrap`'s (2026-11-03, the final whole-`bootOk` review's M1: `newBackend`'s `lg.Panic`,
+  `backend/backend.go:235`, on `OpenBackend`'s goroutine; until then only the files opened after
+  the server's start) and the snapshot path's (the file system, the disk and the file lock
+  cooperate: no other process holds the file's lock, no I/O error; with `MemoryMlock`, the process
+  may lock the map in memory, `RLIMIT_MEMLOCK`). `OpenBackend` runs `newBackend` on a goroutine, whose
   panic on a failed `Open` (`lg.Panic`) kills the process; a goroutine's panic is a verification
   failure (`wp_fork`'s `forkPost`), so `OpenBackend`'s axiom holds only where it does not happen.
   It includes the process's address space holding the database's map (no `RLIMIT_AS` below the
@@ -96,13 +99,24 @@ def snapOpensOk : Prop :=
   (∀ ss : Loc, snap.dirReadOk ss) ∧ (∀ src dst : GoString, renameOk src dst) ∧ releaseOk ∧
     dbCloseOk
 
+/-- (2026-11-03, the final whole-`bootOk` review's M1) **The WAL is created** (opaque, a named
+premise about the program's environment, as `walSaveOk`): at a first start, `wal.Create`'s file
+operations (the temporary directory, the first segment's creation, lock, preallocation and header
+write, the rename into place, the syncs) do not fail (I/O), and no other process creates a WAL in
+the directory meanwhile (one process per data directory, as `dbOpensOk`: `wal.Create` returns
+`ErrExist` if one appears after `bootstrap`'s check, `wal.go:103-105`, `bootstrap.go:77`).
+`bootstrapNewWAL` panics otherwise (`bootstrap.go:719`; `TestSpecBootstrapDisk`), and `wal.Create`
+itself panics on a failed cleanup of a failed creation (`cleanupWAL`, `wal.go:283-287`). -/
+opaque walCreateOk : Prop
+
 /-- (2026-10-31, the user's decision: `notes/decisions.md`, "The WAL's readiness and one disk
 premise") **The disk cooperates** (a named premise about the program's environment, the one the
 exported results take): bbolt opens the database files (`dbOpensOk`), the snapshot's files and the
 storage's releases (`snapOpensOk`), and the WAL's snapshot records and close (`walSaveOk`,
-`walCloseOk`) do not fail. Until then the exported results took `dbOpensOk` alone. -/
+`walCloseOk`) do not fail, and (2026-11-03, the final whole-`bootOk` review's M1) the WAL is
+created (`walCreateOk`). Until 2026-10-31 the exported results took `dbOpensOk` alone. -/
 def diskOk : Prop :=
-  dbOpensOk ∧ snapOpensOk ∧ walSaveOk ∧ walCloseOk
+  dbOpensOk ∧ snapOpensOk ∧ walSaveOk ∧ walCloseOk ∧ walCreateOk
 
 /-- **The configuration's mmap size is one the process can map** (2026-10-29, the `axiom` skill's
 `notes/axiom-review/openbackend.md`; 2026-10-30, `notes/axiom-review/openbackend-post.md`;
@@ -143,22 +157,22 @@ def openPre (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterfa
     (D : Data) (W Pk K : BNames → IProp GF) : IProp GF :=
   iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
     (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
+    hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ))
 
 /-- A creator that keeps the fresh backend's payment rights (`K := bFresh`, `newPost_of_K`). -/
 theorem openPre_keep (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface)
     (P : BParams) (D : Data) (W Pk : BNames → IProp GF) :
     iprop(⌜dbOpensOk ∧ openMmapOk cfg ∧ cfg.Logger' ≠ Loc.null ∧ P.Wf ∧ P.limit = openLimit cfg⌝ ∗
       (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ={⊤}=∗ W γ ∗ Pk γ)) ⊢
+      hooksOk P W Pk h ∗ (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ={⊤}=∗ W γ ∗ Pk γ)) ⊢
       openPre (GF := GF) cfg h P D W Pk bFresh := by
   iintro ⟨%Hc, Hg, #Hh, Hmk⟩
   iunfold openPre
   iframe Hg Hh
   isplitr
   · ipureintro; exact Hc
-  iintro %γ ⟨Hk, Hf⟩
-  imod Hmk $$ %γ Hk with ⟨HW, HPk⟩
+  iintro %γ ⟨Hk, Hpk, Hf⟩
+  imod Hmk $$ %γ [$Hk $Hpk] with ⟨HW, HPk⟩
   imodintro
   iframe HW HPk Hf
 

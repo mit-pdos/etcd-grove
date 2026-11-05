@@ -32,12 +32,14 @@ abbrev backend.New.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
-      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
+      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
     (App (Val (@! New)) (Val #cfg))
   {{ (r : val), RET r;
       (∃ (b : Loc) (γ : BNames),
         ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPostK γ P W Pk K b D ∗
-          hooksAt b cfg.Hooks') ∨
+          hooksAt b cfg.Hooks' ∗
+          -- (2026-11-04, R2b-3c part 2) the backend's file is the configuration's path
+          bFile γ cfg.Path') ∨
       ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec

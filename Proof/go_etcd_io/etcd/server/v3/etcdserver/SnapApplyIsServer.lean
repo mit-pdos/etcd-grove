@@ -43,22 +43,22 @@ Brief for the prover. Unfold `isServer`; take the old one's parts apart (`⌜ρ.
   framing `srvEnvOk`'s `cl`.
 - `srvAtomics`, `srvGenAt`: kept (`srvAtomics_snapE`: the new backend at the old one's mode, M2's item 15;
   `srvGenAt_snapE`, `rfl`); `srvRaftNode` kept. -/
-theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (γB : backend.BNames)
     (P : backend.BParams) (d' : mvcc.KBReal) (p' : mvcc.PhysNames) (g : GoFunc)
     (al ast lp cl : Loc) (hγB : d'.γB = γB) (hkb' : p'.kb = some d')
     (d : mvcc.KBReal) (hcm' : d'.cm = d.cm) (hkb : E.γ.kb = some d) (hP : d'.P = P) (hPd : P = d.P)
     (hk : Loc) :
-    isServer s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
+    isServerM on s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
       isServerCI s (snapγ γ π0 γB) ci ∗ hookSpec (snapγ γ π0 γB) ci (metaTM γB P) #g ∗
       -- (2026-11-02, branch `snap-window`) the new backend's hooks, the server's `s.beHooks`
       backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) (batchLockInv (snapγ γ π0 γB) (metaTM γB P))
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d') (batchLockInv (snapγ γ π0 γB) (metaTM γB P))
         d'.be ⊢
-    isServer s (snapγ γ π0 γB) ci (metaTM γB P)
+    isServerM on s (snapγ γ π0 γB) ci (metaTM γB P)
       (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ γr := by
   subst hγB hP
-  unfold isServer srvFieldsAt
+  unfold isServerM srvFieldsAtM
   iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn, %Hrdb⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
   icases Hv with ⟨%v, Hf⟩
   icases Hf with ⟨#Hlg, %Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
@@ -92,8 +92,8 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
     ⟨Henv.1, Henv.2.1, rfl, d'.γB, _, rfl, rfl, d', al, ast, lp, snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb', rfl,
       rfl, hcm'.trans hE⟩
   -- (M2's apply side) the KV invariants' mode law: both backends off
-  ihave #Hat := srvAtomics_snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp v.cluster
-    d'.be s γr d d' hkb hkb' hcm' $$ Hat
+  ihave #Hat := srvAtomicsM_snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp v.cluster
+    d'.be on s γr d d' hkb hkb' hcm' $$ Hat
   rw [srvGenAt_snapE]
   isplitr
   · ipureintro; exact Hrd
@@ -102,7 +102,10 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   isplitr
   · iexists { v with hook := #g }
     simp only
-    rw [waitInv_snapE]
+    rw [show waitInvM on v.w ρ (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci p' g d'.γB al ast lp
+      v.cluster d'.be) = waitInvM on v.w ρ E from rfl]
+    -- (the lease-expiry plan's X4) `lessorOk` at the environment's flag and auth mode, unchanged
+    rw [snapE_lg, snapE_authMode]
     iframe #
     ipureintro
     exact ⟨Hlgn, ⟨rfl, rfl⟩, hok⟩

@@ -52,7 +52,7 @@ API is at `origin/raft-final:interface/Proof/go_etcd_io/raft/v3/InvNode.txt`.
 
 ## 1. The spec of `Cluster.Read` (replaces the lower-bound spec)
 
-`Spec/github_com/mit_pdos/etcd_grove/examples/kvreconf/Cluster__Read.lean`:
+`Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Cluster__Read.lean`:
 
 ```lean
 /- `c.Read(key)` (cluster.go): logically atomic over the store's map, returning `m key`: a read by
@@ -91,7 +91,7 @@ into exactly the update above, through `kvrAu_of_run` with `(fun s => s) (fun s 
 (`Run.lean:210-219`, the same as the Get branch). It then needs a triple of this exact shape for
 `c.Read`, and that is what this spec is. **It meets it**, with no change to lintest.
 
-## 2. The Go change (kvreconf, `examples/kvreconf/cluster.go` and `kv.go`)
+## 2. The Go change (kvreconf, `examples/raft/kvreconf/cluster.go` and `kv.go`)
 
 ```diff
 --- a/examples/kvreconf/cluster.go
@@ -144,13 +144,13 @@ theorem encStr_prefix_inj (a b : List w8) (P : List val) :
   encStr a <+: P → encStr b <+: P → a = b
 ```
 
-`Spec/github_com/mit_pdos/etcd_grove/examples/kvreconf/resolveStr.lean`:
+`Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/resolveStr.lean`:
 
 ```lean
 abbrev resolveStr.spec : Prop :=
   ∀ (p : ProphId) (pvs : List val) (s : List w8),
   {{ proph p pvs }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvreconf.resolveStr)) (Val #p))
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.resolveStr)) (Val #p))
       (Val #s))
   {{ RET #(); ∃ pvs', ⌜pvs = encStr s ++ pvs'⌝ ∗ proph p pvs' }}
 ```

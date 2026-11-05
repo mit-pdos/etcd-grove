@@ -101,18 +101,25 @@ instance beP_fractional (st : Loc) (R : IProp GF) (M : AuthMode) :
     Fractional (beP (GF := GF) st R M) := by
   unfold beP
   exact fractional_exists_agree
-    (fun (be : AuthBackend) q => iprop(aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M))
+    (fun (be : AuthBackend) q => iprop(∃ γc : AuthBkNames,
+      aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M γc ∗ beCurM M q γc))
     (fun b => ⟨fun q1 q2 => by
       rw [Qp.half_add]
       constructor
-      · iintro ⟨H, #Hv⟩
+      · iintro ⟨%γc, H, #Hv, Hc⟩
         icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
-        iframe H1 H2 Hv
-      · iintro ⟨⟨H1, #Hv⟩, ⟨H2, -⟩⟩
+        icases (beCurM_split M q1 q2 γc).1 $$ Hc with ⟨Hc1, Hc2⟩
+        isplitl [H1 Hc1]
+        · iexists γc; iframe H1 Hv Hc1
+        · iexists γc; iframe H2 Hv Hc2
+      · iintro ⟨⟨%γ1, H1, #Hv, Hc1⟩, ⟨%γ2, H2, -, Hc2⟩⟩
+        iexists γ1
         iframe Hv
-        iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+        isplitl [H1 H2]
+        · iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]
+        · iapply beCurM_merge M q1 q2 γ1 γ2 $$ [$Hc1 $Hc2]⟩)
     (fun x y q1 q2 => by
-      iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+      iintro ⟨⟨%γ1, H1, -⟩, ⟨%γ2, H2, -⟩⟩
       icombine H1 H2 gives %Heq
       ipureintro; exact Heq)
 
@@ -147,20 +154,46 @@ instance cacheP_fractional (st : Loc) (M : AuthMode) :
       icombine H1 H2 gives %Heq
       ipureintro; exact Heq)
 
-/-- The three locks' slot lists as one list of a slot of each (`n` abstract: the readers' bound
-`2 ^ 30 - 1` is never unfolded, which the kernel would otherwise do). -/
-theorem slots_rd (n : Nat) (st : Loc) (R : IProp GF) (M : AuthMode) :
-    ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (aF go!"enabledMu" st) (enabledP st M)) ∗
+/-- `n` of `M ≥ n` copies of `P` (R-D2: the readers the construction hands out). -/
+theorem rdSlots_take (P : IProp GF) (n M : Nat) (h : n ≤ M) :
+    ([∗list] _x ∈ List.replicate M (), P) ⊢ [∗list] _x ∈ List.replicate n (), P := by
+  obtain ⟨m, rfl⟩ : ∃ m, M = n + m := ⟨M - n, by omega⟩
+  rw [← List.replicate_append_replicate]
+  iintro H
+  icases BigSepL.bigSepL_append.1 $$ H with ⟨H1, -⟩
+  iexact H1
+
+/-- The three locks' slot lists and `2 * n` tickets' tokens as one list of a slot of each with a
+ticket (`n` abstract: the readers' bound `2 ^ 30 - 1` is never unfolded, which the kernel would
+otherwise do; R-D2, 2026-11-04: with the tickets). -/
+theorem slots_rd (n : Nat) (st : Loc) (R : IProp GF) (γa : AuthNames) :
+    ([∗list] _x ∈ List.replicate n (),
+        sync.ownRWMutex (aF go!"enabledMu" st) (enabledP st (.on γa))) ∗
       ([∗list] _x ∈ List.replicate n (),
-        sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st M)) ∗
-      ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (aF go!"beMu" st) (beP st R M)) ⊢
-    [∗list] _x ∈ List.replicate n (), enabledRd st M ∗ cacheRd st M ∗ beRd st R M := by
-  unfold enabledRd cacheRd beRd
-  iintro ⟨H1, H2, H3⟩
-  iapply BigSepL.bigSepL_sep_eqv.2
-  iframe H1
-  iapply BigSepL.bigSepL_sep_eqv.2
-  iframe H2 H3
+        sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st (.on γa))) ∗
+      ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (aF go!"beMu" st) (beP st R (.on γa))) ∗
+      ownToks γa.rdt (2 * n) ⊢
+    [∗list] _x ∈ List.replicate n (),
+      enabledRd st (.on γa) ∗ cacheRd st (.on γa) ∗ beRd st R (.on γa) := by
+  induction n with
+  | zero =>
+    iintro -
+    rw [List.replicate_zero]
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  | succ n ih =>
+    rw [List.replicate_succ, show 2 * (n + 1) = 2 * n + 2 by omega]
+    iintro ⟨H1, H2, H3, Ht⟩
+    icases BigSepL.bigSepL_cons.1 $$ H1 with ⟨E, H1⟩
+    icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨C, H2⟩
+    icases BigSepL.bigSepL_cons.1 $$ H3 with ⟨B, H3⟩
+    icases (ownToks_add 2 (2 * n) γa.rdt).1 $$ Ht with ⟨Ht, T⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [E C B T]
+    · unfold enabledRd cacheRd beRd rdTicketM
+      iframe E C B T
+    iapply ih $$ [H1 H2 H3 Ht]
+    iframe H1 H2 H3 Ht
 
 /-- **The admin side's write resource at the backend `be` the store's field holds** (the auth
 plan's E2i, 2026-10-26: `newAuthStore_on`'s post, so that the server's `authBeOn` can name the
@@ -208,11 +241,14 @@ theorem newAuthStore_on
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γa : AuthNames)
-    (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) (hs : List AuthState)
+    (γc : AuthBkNames) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) (hs : List AuthState)
     (stl : AuthState) (hlast : hs.getLast? = some stl) (hfit : permsFit stl)
-    (hempty : ∃ s ∈ hs, s.users = ∅) :
+    (hempty : ∃ s ∈ hs, s.users = ∅)
+    -- (R-D2, 2026-11-04) the readers handed out, each with its ticket for the store's currency
+    (N : Nat) (hN : N ≤ Int.toNat sync.rwmutex.actualMaxReaders) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
-        ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ authBackendOk ab R (.on γa) γc ∗
+        authBkCur γa (1 : Qp).half γc ∗ authCur γc 1 ∗
         authWBackendOkR ab (.on γa) P f T ∗
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
@@ -226,11 +262,13 @@ theorem newAuthStore_on
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
         -- (authkv's Main, 2026-10-30) the cost field, read-only (`BcryptCost()`'s)
         (∃ c : w64, aF go!"bcryptCost" stp ↦□ c) ∗
-        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        -- (R-D2, 2026-11-04) `N` readers, the tickets out of the construction all theirs
+        authRdTotal γa N ∗
+        ([∗list] _x ∈ List.replicate N (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
-  wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
+  wp_start as ⟨%Hlg, %Hab, #Hrdok, Hbk, Hcu, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur, #Hcn⟩
   iunfold authStoreInit at Hcur
-  icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, ⟨%b0, Hfe⟩, %v0, Hfc⟩
+  icases Hcur with ⟨Hcur, Hrq, #Hcl, Hpub, Hrdt, ⟨%b0, Hfe⟩, %v0, Hfc⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -345,9 +383,28 @@ theorem newAuthStore_on
   -- the three locks' guards
   ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
   ihave ⟨Hen1, Hen2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ enabled
+  -- (R-D2, 2026-11-04) the readers' tickets minted, the authority discarded at their count, and
+  -- the currency's invariant, live with no reader in, at a quarter of the backend's name (`beP` the
+  -- other quarter of the store's half)
+  imod (ownTokAuth_add (2 * N) γa.rdt 0) $$ Hrdt with ⟨Hrdt, Htks⟩
+  rw [Nat.zero_add]
+  imod (update_into_persistently (P := ownTokAuthDfrac (GF := GF) γa.rdt (DFrac.own 1) (2 * N)))
+    $$ Hrdt with #Hrdt
+  imod (ownToks_0 γa.rdt) with Htk0
+  icases (authBkCur_split_half γa (1 : Qp).half γc).1 $$ Hbk with ⟨Hbk, HbkI⟩
+  imod inv_alloc curN ⊤ (curInv (GF := GF) γa) $$ [Htk0 HbkI Hcu] with #Hci
+  · inext
+    iunfold curInv
+    iexists (2 * N), 0, γc
+    iframe Hrdt Htk0 HbkI
+    isplitr
+    · rw [List.replicate_zero]; iapply BigSepL.bigSepL_nil.2; itrivial
+    ileft; rw [curFrac_0]; iexact Hcu
+  ihave #Hci' : authCurInv (GF := GF) γa $$ []
+  · iunfold authCurInv; iexact Hci
   imod (sync.init_RWMutex (beP «$r0_ptr» R (.on γa)) (aF go!"beMu" «$r0_ptr») (E := ⊤))
-    $$ [Hbe1] beMu with HbeS
-  · inext; iunfold beP; iexists _; iframe Hbe1; iexact Hrdok
+    $$ [Hbe1 Hbk] beMu with HbeS
+  · inext; iunfold beP; iexists _, γc; iframe Hbe1 Hrdok; simp only [beCurM]; iframe Hbk Hci'
   -- (E3h) the field's ghost variable at the flag read: half the guard's, a quarter the admin
   -- side's, a quarter the store's freshness
   imod (ghostVar_update b γa.fen b0) $$ Hfe with Hfe
@@ -491,6 +548,7 @@ theorem newAuthStore_on
   imod (authSnapF_of_last (.on γa) hs' sta Hsta.1) $$ Hown with ⟨Hown, #Hsnap⟩
   wp_bind (App (Val («$r0_ptr» @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
+  icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
   iapply (h_refresh «$r0_ptr» R (.on γa) ti (fun x => Lk x Post) sta hs') $$ [HL Hca Hown]
   · iframe Hpkg Hinv Hca Hsnap Hown
     isplitr
@@ -500,6 +558,8 @@ theorem newAuthStore_on
     ipureintro; exact ⟨Hsta.2.1, fun _ _ => Hsta.1⟩
   inext
   iintro ⟨HL, Hca, Hown⟩
+  icombine Hown HshR as Hown
+  ihave Hown := (authOwnF_split _ _).2 $$ Hown
   ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   -- `tx.Unlock()`, `be.ForceCommit()`
@@ -534,7 +594,13 @@ theorem newAuthStore_on
   · ipureintro; exact Hsta.2.2
   isplitr
   · iexists _; iexact bcryptCost
-  iapply (slots_rd _ «$r0_ptr» R (.on γa)) $$ [$HenS $HcaS $HbeS]
+  isplitr
+  · iunfold authRdTotal; iframe Hrdt Hci'
+  iapply (slots_rd N «$r0_ptr» R γa) $$ [HenS HcaS HbeS Htks]
+  ihave HenS := rdSlots_take _ N _ hN $$ HenS
+  ihave HcaS := rdSlots_take _ N _ hN $$ HcaS
+  ihave HbeS := rdSlots_take _ N _ hN $$ HbeS
+  iframe HenS HcaS HbeS Htks
 
 end proof
 

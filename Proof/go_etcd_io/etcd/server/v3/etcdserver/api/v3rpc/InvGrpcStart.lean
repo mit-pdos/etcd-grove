@@ -132,7 +132,7 @@ theorem v3rpc.kvDesc_nodup (mds : List google_golang_org.grpc.MethodDesc)
   simp only [descNames, h1, h.2, v3rpc.kvDescMethods, List.map_cons, List.map_nil]
   decide
 
-/-- The Auth service's methods `v3rpc.Server` registers that `examples/authkv`'s `SetUp` calls, with
+/-- The Auth service's methods `v3rpc.Server` registers that `examples/etcd/auth`'s `SetUp` calls, with
 the `*AuthServer` `p` (the auth plan's E3zb): `UserAdd`, `UserGrantRole`, `RoleAdd`,
 `RoleGrantPermission`, `AuthEnable`, and (C1's A5, 2026-10-31) `Authenticate`, which a client's `New`
 calls. -/
@@ -347,6 +347,18 @@ def v3rpc.grpcCfgOk (s : Loc) (C : v3rpc.GrpcCfg GF) : IProp GF :=
 instance v3rpc.grpcCfgOk_persistent (s : Loc) (C : v3rpc.GrpcCfg GF) :
     Persistent (v3rpc.grpcCfgOk s C) := by
   unfold v3rpc.grpcCfgOk; infer_instance
+
+open Iris.ProofMode in
+/-- **The configuration at other KV answers** (the auth component's stage 5): `grpcCfgOk` reads the
+answers only through the server's contract (`raftKV`), which moves along `h`. -/
+theorem v3rpc.grpcCfgOk_A (s : Loc) (C : v3rpc.GrpcCfg GF) (A' : v3rpc.KVAns GF)
+    (h : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s A') :
+    v3rpc.grpcCfgOk s C ⊢ v3rpc.grpcCfgOk s { C with A := A' } := by
+  unfold v3rpc.grpcCfgOk
+  iintro ⟨Hk, Hr⟩
+  isplitl [Hk]
+  · iapply h $$ Hk
+  iexact Hr
 
 end defs
 

@@ -1,7 +1,7 @@
 # logkvsnap: logkv with an immutable snapshot, proved by adapting logkv's proof (2026-10-28)
 
 One variant of the scalable-proof experiment (`notes/logkv-eval.md` is the base). The feature
-(`diff examples/lintest/logkv/logkv.go examples/lintest/logkvsnap/logkvsnap.go`): the server's
+(`diff examples/lib/lintest/logkv/logkv.go examples/lib/lintest/logkvsnap/logkvsnap.go`): the server's
 `applied` count and `state` become one pointer `s.snap` to an immutable `snapshot{val, index}`;
 `applyLoop` allocates and publishes a new snapshot per entry (`s.snap = &snapshot{log[i], i+1}`),
 `Put` waits on `s.snap.index`, and `Get` takes `sn := s.snap` under the lock and reads `sn.val`
@@ -9,7 +9,7 @@ One variant of the scalable-proof experiment (`notes/logkv-eval.md` is the base)
 
 ## Result
 
-**`logkvsnap_adequate`** (`Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/
+**`logkvsnap_adequate`** (`Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/
 Adequacy.lean`), the same statement as `logkv_adequate`: every real execution of
 `initialize'(); Main()` of fewer than `2^63` steps never gets stuck and no thread panics. No
 `sorry`, no new axiom: the `#print axioms` of `logkvsnap.wp_Main` and `logkvsnap_adequate`
@@ -93,7 +93,7 @@ to the proof commit; this note not included):
 
 ```
  .../examples/lintest/logkvsnap/Defs.lean           | 23 +++++++++--------
- .../etcd_grove/examples/lintest/logkvsnap/New.lean | 16 ++++++++----
+ .../etcd_grove/examples/lib/lintest/logkvsnap/New.lean | 16 ++++++++----
  .../examples/lintest/logkvsnap/Server__Get.lean    | 12 ++++++---
  .../examples/lintest/logkvsnap/Server__Put.lean    | 22 +++++++++-------
  .../lintest/logkvsnap/Server__applyLoop.lean       | 29 ++++++++++++++--------

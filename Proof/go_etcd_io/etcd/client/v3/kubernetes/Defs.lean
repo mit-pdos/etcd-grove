@@ -17,7 +17,7 @@ answer as a function of the state `σ` the update fired at.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
 
 @[expose] public section
 
@@ -34,7 +34,7 @@ variable [GooseExts]
 
 /-! ### The requests' sizes (2026-10-30, `notes/invoke-size-b.md`) -/
 
-open linkvtxn in
+open etcd_txnlin in
 /-- The optimistic transactions' payload: the key three times at most (comparison, operation,
 `GetOnFailure`'s get) and the value. -/
 theorem clientTxn_size {cs : List (linkv.MCmp GoString GoString)}
@@ -172,12 +172,13 @@ def kvOut (p : Loc) (kv : Option EtcdKv) : IProp GF :=
 instance kvOut_persistent (p : Loc) (kv : Option EtcdKv) : Persistent (kvOut (GF := GF) p kv) := by
   unfold kvOut; cases kv <;> infer_instance
 
-/-- **A response's key-value pointer is not `nil`** (`sorry`). The server's response predicate
-`txn.kvIs` does not say it (its field points-tos do not imply it), and the store branches on
-`KV == nil`. `notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3: `txn.kvIs`
-carrying `⌜l ≠ null⌝` (from the struct's typed points-to, `txn.kvAt_persist'`) proves it. -/
+/-- **A response's key-value pointer is not `nil`**: the server's response predicate `txn.kvIs`
+carries it (from the struct's typed points-to, `txn.kvAt_persist'`), and the store branches on
+`KV == nil` (`notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3). -/
 theorem kvIs_ne_null (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ ⌜l ≠ null⌝ := by
-  sorry
+  unfold txn.kvIs
+  iintro ⟨%ks, %vs, -, -, -, -, -, -, -, -, %Hn⟩
+  ipureintro; exact Hn
 
 /-- A key-value as a response's `KV` (`kvIs_ne_null`). -/
 theorem kvOut_some (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ kvOut l (some v) := by

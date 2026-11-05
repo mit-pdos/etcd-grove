@@ -18,7 +18,7 @@ The selectors the package builds (`labels.Selector`s and `fields.Selector`s, fro
 module
 
 public import Proof.k8s_io.kubernetes.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Defs
 
 @[expose] public section
 

@@ -29,7 +29,8 @@ the auth-mode merge's step 5): the delete's permission `deletePermitM` (off, its
 cache's shape, the update told its grant); success, the apply package's answer to the wire request
 `rq'` (`deleteOutcomeIs`), its result `Q` at the log the entry met, with auth on the header bound
 to the context and the grant at the committed log before the entry; failure, the apply's error or
-the proposal's. Its former specs are instances (`DeleteRange.spec_off`, `DeleteRange.spec_on`). -/
+the proposal's. Its clients take it at `E.authOn` (the auth component's stage 4 deleted the two
+modes' former specs). -/
 abbrev EtcdServer.DeleteRange.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)

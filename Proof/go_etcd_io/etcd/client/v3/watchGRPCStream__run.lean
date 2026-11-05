@@ -145,8 +145,7 @@ theorem watchGRPCStream.run.wp_proof
     subst Herr
     wp_auto
     wp_apply (wp_map_make1 (K := w64) (V := Unit) go.int64 (go.GoType.StructType [])) as %csm Hcsm
-    simp only [_root_.Perennial.time.Millisecond]
-    wp_auto
+    try wp_auto
     imod monoListLbOwn_nil (GF := GF) (A := v3rpc.WatchRespM) γs.down with #Hlb0
     ihave Hepst := client.epochSt_first G γs γc0 mi (auth.mdTokenOf md0) $$ Hep
     ihave Hepst : iprop(∃ tok, client.epochSt G γs 0 mi tok ∗ ⌜∃ md, tok = auth.mdTokenOf md ∧

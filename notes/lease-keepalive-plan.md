@@ -98,8 +98,8 @@ source. `srvPeerRt`'s source is `bootstrap`'s `prt` (`srv.peerRt = b.prt`, `serv
 `srvLessorRd` from `NewLessor`'s `lessorInv` (in `NewServer`'s proof today); `srvHeaderFacts` from
 the cluster, member id and leader-invariant facts the proof builds. Restated as callers: the
 corollaries `wp_proofM`/`wp_proof`, the examples carrying `bootstrapContract` (stronger premise,
-proofs unchanged), and the callers destructuring the post (`examples/authkv/startServer.lean`,
-`examples/common/newServer.lean`, ...; counted with `etc/importers.py` at the Probe).
+proofs unchanged), and the callers destructuring the post (`examples/etcd/auth/startServer.lean`,
+`examples/lib/etcdstart/newServer.lean`, ...; counted with `etc/importers.py` at the Probe).
 
 ## Margins (stated, not closed)
 
@@ -154,7 +154,7 @@ Built (`lake build` of each module):
   follows from `isServerReqM` (`srvReqFieldsAtM`: `memberID`, `cluster`, `lead`, `srvPeersOk`'s
   `clusterCid`), which the discharge already takes: a law (`srvHeaderFacts_of_reqM`), not a
   frozen-spec change. Restated callers: `NewServer.spec{,M,G}`'s posts and `wp_proof`,
-  `examples/common/newServer.lean` (2 places), `examples/authkv/startServer.lean`; the examples'
+  `examples/lib/etcdstart/newServer.lean` (2 places), `examples/etcd/auth/startServer.lean`; the examples'
   `bootstrapContract` premises get stronger, their text unchanged.
 - **Found** (no source anywhere, for a later stage): `srvAuthLeaseLb s E` (a premise of every lease
   discharge); `NewServer` drops `NewLessor`'s remaining `lessorRdOf` slots (`NewServer.lean:621`), so

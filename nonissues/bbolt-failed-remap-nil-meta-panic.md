@@ -15,14 +15,14 @@ dereference nil.
 
 **Why not an issue:** fixed in bbolt since v1.3.7 (bbolt#362): `beginTx` and `beginRWTx` check
 `db.data == nil` under `mmaplock` and return `ErrInvalidMapping`, so v1.5.0 (etcd's) returns an
-error. The panic was only in this repository's minibolt (`examples/bboltfs/minibolt.go`), which
+error. The panic was only in this repository's minibolt (`examples/osfs/bboltfs/minibolt.go`), which
 copied the remap without that check; and etcd stops on any failed commit anyway.
 
 ## Proof
 
 no: bbolt has the check. minibolt, this repository's own example, needed it and has it now (`Get`
 and `Snapshot` refuse with `errFailed` when they find no mapping,
-`Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/DB.lean`); bbolt's old proof gave the
+`Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/DB.lean`); bbolt's old proof gave the
 database up after a failed remap (`old/bbolt/notes/STATUS-bbolt.md`, `DBLost`).
 
 ## Notes

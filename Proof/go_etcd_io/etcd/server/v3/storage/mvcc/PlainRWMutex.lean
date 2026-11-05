@@ -58,7 +58,6 @@ theorem plain.wp_RLock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG))
   wp_start as Hrw
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hrw
   iStructNamed Hrw
-  simp only [internal.race.Enabled]
   wp_auto
   wp_apply_core hAdd $$ [] [-]
   · iPkgInit
@@ -85,7 +84,6 @@ theorem plain.wp_RUnlock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG
   wp_start as Hrw
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hrw
   iStructNamed Hrw
-  simp only [internal.race.Enabled]
   wp_auto
   wp_apply_core hAdd $$ [] [-]
   · iPkgInit
@@ -142,7 +140,6 @@ theorem plain.wp_Lock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)) 
   wp_start as Hrw
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hrw
   iStructNamed Hrw
-  simp only [internal.race.Enabled]
   wp_auto
   rw [show rwZero.w' = false from rfl]
   wp_apply plain.wp_Mutex_Lock $$ [$w] as w
@@ -173,7 +170,6 @@ theorem plain.wp_Unlock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)
   wp_start as Hrw
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hrw
   iStructNamed Hrw
-  simp only [internal.race.Enabled]
   wp_auto
   wp_apply_core hAdd $$ [] [-]
   · iPkgInit

@@ -73,7 +73,7 @@ theorem isServerRead_kvInvs (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 
 /-- **`Compact`'s request is a compaction of a good shape** with no range end `[0]`. -/
 theorem irrCompaction_shape (rev : w64) :
-    rqShape (irrCompaction rev) ∧ irrNoZeroEnd (irrCompaction rev) := by
+    rqShape .none (irrCompaction rev) ∧ irrNoZeroEnd (irrCompaction rev) := by
   have hk : apply.dispatchKind (irrCompaction rev) = .compaction := by
     simp [apply.dispatchKind, irrCompaction, apply.irrEmpty]
   refine ⟨⟨fun on => ⟨by rw [hk]; decide, fun h => by rw [hk] at h; cases h⟩, fun log _ => ?_⟩,
@@ -358,9 +358,9 @@ theorem EtcdServer.Compact.wp_proof
   · iframe # Hlt Hrd
     isplitr
     · iunfold reqPropOk
-      iright
+      iright; ileft
       isplitr
-      · ipureintro; exact ⟨Hkcmp.trans Hcmp, hcp, hsh.1, hsh.2, rfl⟩
+      · ipureintro; exact ⟨Hkcmp.trans Hcmp, hcp, rqShape_mono _ _ hsh.1, hsh.2, rfl⟩
       iexists rv.Revision'
       isplitr
       · ipureintro; rfl

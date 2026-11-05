@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Proof.go_etcd_io.raft.v3.MemstorageApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 
 @[expose] public section
@@ -77,7 +78,8 @@ payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol f
 once; any other message may be duplicated, its credits made anew (`msgCredits_intro`, any but a
 `MsgProp`'s; 2026-10-30, the repair: until then `msgCredits_none`). (2026-10-19,
 D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
-the server's clusters send no snapshot). (2026-10-31, S1: moved here from `InvBuild`, for
+the server's clusters send no snapshot); (2026-11-03, the auth-on pair's F8) in the cluster's auth
+mode, `srvImageM γ.authOn` (`srvImageOn` when it runs auth on). (2026-10-31, S1: moved here from `InvBuild`, for
 `isServerApplyAll`'s transport.) -/
 def srvNet (γ : SrvRaft) : NetPayload GF :=
   letI := srvStor (GF := GF) γ
@@ -86,7 +88,7 @@ def srvNet (γ : SrvRaft) : NetPayload GF :=
     once := fun st => st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
     P_pers := fun st => by infer_instance
     dup := fun st h => msgCredits_intro γ.cl srvClusterN st (fun e => h (Or.inr e))
-    img := fun i D => srvImage γ i D
+    img := fun i D => srvImageM γ.authOn γ i D
     img_pers := fun i D => by infer_instance }
 
 /-- The namespace of `s.inflightSnapshots`'s invariant. -/
@@ -267,7 +269,7 @@ theorem batchWaitOk_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beS
 
 /-- The write budget does not depend on the environment's backend (only on `γbe`). -/
 theorem srvWTPool_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
-    (γp : GName) : srvWTPool E' γp = srvWTPool E γp := by
+    (γp : WTNames) : srvWTPool E' γp = srvWTPool E γp := by
   obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
 
 end defs

@@ -432,7 +432,8 @@ instance kvGetOk_persistent (s : Loc) (A : KVAns GF) : Persistent (kvGetOk s A) 
 the file header): the `RaftKV` methods (`Range`, `Put`, `DeleteRange`, `Txn`) on checked
 requests, and `KV().Rev()`, `Cluster().ID()`, `MemberID()`, `Term()`, `Leader()`; one conjunct
 per method (2026-10-12, unit 3a: `Put` and `DeleteRange` are proved from the server's
-`EtcdServer.Put`/`DeleteRange`; unit 3b: every conjunct, `ServerKV.lean`'s `raftKV_of_server`). -/
+`EtcdServer.Put`/`DeleteRange`; unit 3b: every conjunct; since the auth component's stage 4, 2026-11-04, `ServerKVOn.lean`'s
+`raftKV_of_serverM`, in either auth mode). -/
 def raftKV (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(kvRangeOk s A ∗ kvPutOk s A ∗ kvDeleteOk s A ∗ kvTxnOk s A ∗ kvGetOk s A)
 
@@ -502,6 +503,18 @@ def kvServerIs (p : Loc) (s : Loc) (A : KVAns GF) (cid mid n : w64) : IProp GF :
 instance kvServerIs_persistent (p s : Loc) (A : KVAns GF) (cid mid n : w64) :
     Persistent (kvServerIs p s A cid mid n) := by
   unfold kvServerIs; infer_instance
+
+open Iris.ProofMode in
+/-- **The `*kvServer` at other answers** (the auth component's stage 5): its header reads the
+answers only through `revR`, and the contract moves along `h`. -/
+theorem kvServerIs_mono (p s : Loc) (A A' : KVAns GF) (cid mid n : w64) (hR : A.revR = A'.revR)
+    (h : raftKV s A ⊢ raftKV s A') :
+    kvServerIs p s A cid mid n ⊢ kvServerIs p s A' cid mid n := by
+  unfold kvServerIs hdrIs
+  rw [hR]
+  iintro ⟨Hp, Hh, Hkv, Hn, Ho, Haa, Hr⟩
+  iframe Hp Hh Hkv Hn Ho Haa
+  iapply h $$ Hr
 
 end contract
 

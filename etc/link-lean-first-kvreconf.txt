@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Link.lean`
 # (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --kvreconf`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`; `@`: linked in its package's
 # `Link.lean` (raft's, lintest's, context's); `=term`: a term given as is (Perennial's `time`
@@ -63,9 +63,9 @@ raftpb_SnapshotMetadata__GetIndex: @
 raftpb_Snapshot__GetData: @
 raftpb_Snapshot__GetMetadata: @
 # context's trust-boundary axiom (`Proof/context/WithTimeoutBackground.lean`), linked here as in
-# examples/common's list
+# examples/lib/etcdstart's list
 context_WithTimeoutBackground:
-# the store (examples/kvreconf)
+# the store (examples/raft/kvreconf)
 kvreconf_Cluster__Disrupt: kvreconf_sleep kvreconf_Cluster__random kvreconf_below node__TransferLeadership node__Campaign node__ForgetLeader node__Status context_WithTimeoutBackground
 kvreconf_Cluster__Get: kvreconf_Cluster__do
 kvreconf_Cluster__Put: kvreconf_Cluster__do

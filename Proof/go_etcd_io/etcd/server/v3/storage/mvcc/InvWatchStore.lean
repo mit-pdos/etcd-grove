@@ -1792,6 +1792,7 @@ theorem noCompactor_of_new (s st : Loc) (γ : WsNames) (E : CoPset) :
   by_cases h : γ.st.cm = true
   · unfold crevRightM
     simp only [h, ↓reduceIte]
+    icases Hcr with ⟨Hcr, -⟩
     imod crevFrozen_alloc γ.st E $$ Hcr with #Hf
     imodintro
     iapply noCompactor_of_frozen $$ Hf
@@ -1956,6 +1957,29 @@ def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
 instance rdIs_persistent (rd : GoFunc) (s st : Loc) (γ : WsNames) :
     Persistent (rdIs (GF := GF) rd s st γ) := by
   unfold rdIs; infer_instance
+
+open Iris.ProofMode in
+/-- **Two watchable stores over one inner store are one** (persistent facts only): the inner store's
+`ReadView` field names one read view, whose `kv` names its watchable store. (2026-11-04, the lease-expiry plan's step 2: moved from
+`etcdserver/SnapApplyOpen.lean`, for `newWatchableStore`'s range deleter at any names.) -/
+theorem isWatchableStore_agree
+    (s1 s2 st : Loc) (γ1 γ2 : mvcc.WsNames) :
+    mvcc.isWatchableStore (GF := GF) s1 st γ1 ∗ mvcc.isWatchableStore s2 st γ2 ⊢ ⌜s1 = s2⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold mvcc.isWatchableStore at H1 H2
+  icases H1 with ⟨%vc1, %stc1, %rv1, %γv1, H1⟩
+  icases H2 with ⟨%vc2, %stc2, %rv2, %γv2, H2⟩
+  iNamed H1
+  icases H2 with ⟨-, -, #Hrv', #Hrvkv', -⟩
+  icombine Hrv Hrv' gives %Heq
+  have h1 : rv1 = rv2 := by
+    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
+    exact GoGlobalContext.intoVal_inj_loc Heq
+  subst h1
+  icombine Hrvkv Hrvkv' gives %Heq2
+  ipureintro
+  simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq2
+  exact GoGlobalContext.intoVal_inj_loc Heq2
 
 end reprs
 

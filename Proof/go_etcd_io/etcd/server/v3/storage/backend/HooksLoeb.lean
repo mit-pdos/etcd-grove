@@ -46,7 +46,7 @@ def isBackendNH (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (h : GoI
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
     sync.isMutex (cmuOf b) (cacheRes γ P b) ∗ cacheInv γ ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-    isDB db ∗ ⌜P.Wf⌝)
+    isDB db ∗ ⌜P.Wf⌝ ∗ (∃ path : GoString, bDBAt γ db path ∗ dbFile db path))
 
 instance isBackendNH_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
     (h : GoInterface) : Persistent (isBackendNH γ P W Pk b h) := by
@@ -63,14 +63,15 @@ theorem isBackend_of_hooks (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Lo
   iloeb as IH
   iunfold isBackendNH at Hnh
   icases Hnh with ⟨%t, %rt, %tm, %db, %lg, #Ht, #Hrt, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #Htm, #Hm,
-    #Hrm, #Htmg, #Hcm, #Hci, #Hmi, #Hmu, #Hdb, %HP⟩
+    #Hrm, #Htmg, #Hcm, #Hci, #Hmi, #Hmu, #Hdb, %HP, #Hdbf⟩
   ihave #Hs := Hhs $$ IH %t Ht
   iunfold isBackend
   iintro !>
   iexists t, rt, tm, db, lg, h
   iframe #
-  ipureintro
-  exact ⟨Hlgn, HP⟩
+  isplitr
+  · ipureintro; exact Hlgn
+  ipureintro; exact HP
 
 end defs
 

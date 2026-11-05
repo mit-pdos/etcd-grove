@@ -59,6 +59,8 @@ def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKVOn`'s)
+    lease.rdAt E.γ.leases E.s ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunOn γr ai₀ c₀ [] x₀ ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ srvTokRights E (ciEff γ st₀.k))
 
@@ -88,8 +90,12 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
     -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnap`'s member id
     -- against the snapshot payload's `nodeSnapLocal … γn.id`)
@@ -131,7 +137,7 @@ def isServerBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     "HWB" ∷ srvWTBudget E ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
 /-- **`start`'s construction premise in the auth mode `on`**: `isServerBuilt` at `on = false` (by
 definition: `isServerBuiltM_false`), `isServerBuiltOn` at `on = true`. -/
@@ -187,7 +193,7 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
       isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuiltG srvBuildGap isServerBuiltOn srvUberRowM
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #HuB, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
@@ -209,15 +215,17 @@ theorem isServerBuilt_of_gapOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   isplitr
   · ipureintro; exact Hdisk
   isplitr
+  · ipureintro; exact Hslg
+  isplitr
   · ipureintro; exact Hρrd
   isplitr
   · ipureintro; exact Hmidc
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNAM applyBuiltNAOn applyBuiltOn
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hfs⟩
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hfs
+  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hfs
   isplitr
   · ipureintro; exact Hok
   isplitl [Hua Hakv]

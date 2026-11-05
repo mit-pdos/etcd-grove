@@ -46,37 +46,45 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3lock',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
-         'github_com.mit_pdos.etcd_grove.examples.putget',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
-         'github_com.mit_pdos.etcd_grove.examples.putgetc',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
-         'github_com.mit_pdos.etcd_grove.examples.compactkv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch',
          # the closed lease example (2026-11-02, notes/lease-ex-plan.md)
-         'github_com.mit_pdos.etcd_grove.examples.leasekv',
-         'github_com.mit_pdos.etcd_grove.examples.putget3',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.lease',
+         # the closed lease-grant example (2026-11-02, notes/lease-grant-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant',
+         # the closed lease-expiry example (2026-11-04, notes/lease-expiry-plan.md, Part E)
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
-         'github_com.mit_pdos.etcd_grove.examples.restart3',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend',
-         'github_com.mit_pdos.etcd_grove.examples.kv',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
-         'github_com.mit_pdos.etcd_grove.examples.kvreconf',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
          # (2026-11-01) the durable store (its files through the durable-state extension's Go
          # package `durable`)
-         'github_com.mit_pdos.etcd_grove.examples.kvdurable',
-         'github_com.mit_pdos.etcd_grove.examples.linkv3p',
-         'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
-         'github_com.mit_pdos.etcd_grove.examples.watchkv',
-         'github_com.mit_pdos.etcd_grove.examples.cachekv',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
-         'github_com.mit_pdos.etcd_grove.examples.authkv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
+         'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
-         'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
+         'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
+         # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
+         'github_com.mit_pdos.etcd_grove.examples.k8s.compactor',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -416,11 +424,11 @@ SPECIAL['go_etcd_io.etcd.client.v3.concurrency'] = dict(
     doc='''Its fact (`concurrencyInit`, `Base.lean`): `Mutex`'s three errors and `Election`'s two each
 hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
 translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
-`errors.wp_New_errorString`).''',
+`context.wp_New_errorString`).''',
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x, _ in _CC},
     before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
-        f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩', 'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
            [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
            [f'iexists _; iexact H{_CCF[-1]}'],
@@ -430,11 +438,11 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3election'] = dict(
     doc='''Its fact (`v3electionInit`, `etcdserver/api/v3election/Base.lean`; the auth plan's A3c,
 2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
 initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
-Perennial's `errors.wp_New_errorString`).''',
+Perennial's `context.wp_New_errorString`).''',
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
     before={'$end': ['try wp_auto',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xM #MM', 'try wp_auto']},
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM ⟨-, #MM⟩', 'try wp_auto']},
     finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
            ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
 )
@@ -668,7 +676,7 @@ def _errVarOk(x, t):
             'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
             'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
 
-SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8setcd3'] = dict(
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
 `errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
@@ -685,10 +693,12 @@ and runs their translated initializers.''',
 )
 
 SPECIAL[_K3] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports, runs
+    doc='''Its fact (`EtcdGrove.k8s.registryFact`, `RegistryDefs.lean`): `endpointsMapMu` is a mutex over
+the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
+importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
 `defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
-`endpointsMap`, `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
+`endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
 `strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
@@ -715,6 +725,9 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Perennial.Proof.sync.atomic.Link',
              'Proof.google_golang_org.grpc.grpclog.SetLoggerV2', 'Proof.os.Getenv',
              'Proof.strconv.ParseBool'],
+    vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
+    table_vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
+    finish=FIN_PRE[:6] + ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iexact Hreg'],
     alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
                  'typeToMessage': 'Loc', 'errTooMany': 'GoInterface', 'endpointsMap': 'Loc',
                  'endpointsMapMu': '_root_.Perennial.sync.Mutex'},
@@ -727,9 +740,18 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
         'wp_alloc dd as Hdd', 'try wp_auto', 'wp_alloc tw as Htw', 'try wp_auto']},
     after={
+        # (Q1 (c), 2026-11-05) the compactor registry: the mutex over the map (`registryFact`)
         'init.«0»': ['wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string',
                      '    (go.GoType.PointerType compactor.ty)) as %em Hem',
-                     'try wp_auto'],
+                     'try wp_auto',
+                     'imod _root_.Perennial.sync.init_Mutex (EtcdGrove.k8s.registryInv (GF := GF)) ⊤ _',
+                     '    $$ HendpointsMapMu [HendpointsMap Hem] with #Hreg',
+                     '· inext',
+                     '  iunfold EtcdGrove.k8s.registryInv',
+                     '  iexists em, ∅',
+                     '  iframe HendpointsMap Hem',
+                     '  iapply BigSepM.bigSepM_empty.2',
+                     '  itrivial'],
         'init.«1»': ['wp_apply klogWrapper_toLoggerV2 as %_ -', 'try wp_auto',
                      'wp_apply EtcdGrove.grpclog.SetLoggerV2.wp_proof', 'try wp_auto'],
         'init.«2»': ['wp_apply EtcdGrove.os.Getenv.wp_proof as %_ -', 'try wp_auto',
@@ -925,10 +947,10 @@ other untranslated initializers run.''',
                  'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
     before={'leaseGranted': [
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #MNP',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP ⟨-, #MNP⟩',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xEx #MEx',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xTL #MTL']},
+        'wp_apply EtcdGrove.wp_New_errorString_cell as %xEx ⟨#MEx, #CEx⟩',
+        'wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩']},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
@@ -937,7 +959,12 @@ other untranslated initializers run.''',
             'ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx',
             'ihave #TTL := EtcdGrove.errorMsg_triple _ _ _ $$ MTL',
             'ihave #VNF : (EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" : IProp GF) $$ []',
-            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseNotFound CNF'] + FIN_PRE[:6] + [
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseNotFound CNF',
+            # (lease-grant amendment (E), 2026-11-03) the grant's errors' cells, for `ErrNoSpace`'s apartness
+            'ihave #VEx : (EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" : IProp GF) $$ []',
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseExists CEx',
+            'ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []',
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL'] + FIN_PRE[:6] + [
             'imodintro', 'unfold leaseInit leaseErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
 )
@@ -1100,9 +1127,9 @@ runs their translated initializers.''',
     alloc_types={'ErrUnsupportedRequest': 'GoInterface', 'ErrKeyRangeInvalid': 'GoInterface',
                  'ErrCacheTimeout': 'GoInterface', 'ErrNotReady': 'GoInterface'},
     before={'$end': [
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xUR #MUR',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xKR #MKR',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xCT #MCT',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR ⟨-, #MUR⟩',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR ⟨-, #MKR⟩',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT ⟨-, #MCT⟩',
         'wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))',
         '    $$ [] as %eNR -',
         '· isplitl',
@@ -1359,10 +1386,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                  'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
                  'ErrRevisionNotFound': 'GoInterface', 'restoreChunkKeys': 'w64'},
-    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.errors.wp_New_errorString as %xRNF #MRNF'] +
+    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$inits': [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #M{t}'
+            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
                        for t in ['WNE', 'EWR', 'WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
@@ -1453,6 +1480,9 @@ def _noSpaceApart():
             cell('ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
             apart(f'{E}.ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
             apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound', 'lease not found', 'LNF'),
+            # (lease-grant amendment (E)) the grant's backend errors
+            apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseExists', 'lease already exists', 'LEx'),
+            apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge', 'too large lease TTL', 'LTL'),
             apart('go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev',
                   'mvcc: required revision is a future revision', 'MF'),
             apart('go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted',
@@ -1471,7 +1501,7 @@ errors by `EtcdGrove.ErrorStringLeaf`.""",
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd19', 'KNF') +
             ['ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd10',
-             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, -⟩',
+             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, #CLEx, #CLTL, -⟩',
              'ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk',
              '  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
@@ -2209,46 +2239,52 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.putgetc':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.compactkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.leasekv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.putget3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.linkv3p':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.linkvtxn':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.watchkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.cachekv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.authkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kvreconf':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.lease':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.watch':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.cache':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.auth':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
@@ -2258,6 +2294,17 @@ the program's `GetIsPkgInitProp`, proved package by package in import order (eac
 uses its imports', so the import DAG is not unfolded as a tree). Generated by `etc/gen-init.py`;
 do not edit.
 -/"""
+
+
+def table_vars(cl):
+    """The section variables of a package table whose closure is `cl` (`SPECIAL`'s `table_vars`: a
+    package fact's own parameters, as the compactor registry's name)."""
+    vs = []
+    for q in sorted(cl):
+        for v in SPECIAL.get(q, {}).get('table_vars', []):
+            if v not in vs:
+                vs.append(v)
+    return vs
 
 
 def gen_table(p, path):
@@ -2284,7 +2331,8 @@ def gen_table(p, path):
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',
-         f'variable [package_sem : _root_.Perennial.{p}.Assumptions]', '',
+         f'variable [package_sem : _root_.Perennial.{p}.Assumptions]'] + \
+        [f'variable {v}' for v in table_vars(cl)] + ['',
          '/-- Every package of the program\'s import closure, with its `isPkgInit`. -/',
          'def pkgInitTable : List (GoString × IProp GF) :=']
     rows = [f'(pkg_id.{q}, isPkgInit (PROP := IProp GF) pkg_id.{q})' for q in sorted(order)]
@@ -2313,7 +2361,7 @@ def gen_table(p, path):
 # has its own copies: the same files, at `RaftWitness/<path>`, whose imports of these modules and
 # of raft's translation are the part's.
 PART_ROOT = 'RaftWitness'
-PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lintest',
+PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
               'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.internal.pragma',
               'google_golang_org.protobuf.reflect.protoreflect',
               'google_golang_org.protobuf.runtime.protoimpl',

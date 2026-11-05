@@ -31,7 +31,6 @@ theorem newStorageApplyRespMsg.wp_proof
   intro r id ents ce
   wp_start as ⟨#Hid, #Hents⟩
   wp_auto
-  rw [show raftpb.MsgStorageApplyResp = #((W32 22 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 22) as %pty Hpty
   rw [show go_etcd_io.raft.v3.LocalApplyThread = #(W64 18446744073709551614) from rfl]

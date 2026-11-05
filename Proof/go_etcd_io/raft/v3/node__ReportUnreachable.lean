@@ -79,7 +79,6 @@ private theorem node.ReportUnreachable.wp_raw
   imod rdCred_zero_upd (GF := GF) γ.raft with Hcr
   imod tickCred_zero (GF := GF) γ.bud with Htc
   wp_auto_lc 3
-  rw [show raftpb.MsgUnreachable = #((W32 10 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 10)
   iintro %pty Hpty

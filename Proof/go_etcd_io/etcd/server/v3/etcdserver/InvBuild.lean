@@ -196,18 +196,13 @@ tick's resource `True`, the read names `ρ.rd`, the server's read registrations 
 borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its `Stop` (D43 M5e,
 2026-10-26) asked of no one (`ST := False`: the static server's transport is frozen, its stop token
 the apply thread's, `srvApRes`, which M6's stopping server hands over). (2026-10-27: no budget
-names, the node API's term budget is the cluster's.) -/
+names, the node API's term budget is the cluster's.) (2026-11-05, R2b-3d stage 5c) The stop right
+`ST` a parameter (the server's: `srvTrStop s`, the live transport the apply thread hands over at the
+shutdown), until then `False`. -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (id : w64) (S : IProp GF) : RNEnv GF :=
+    (id : w64) (S ST : IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
-
-/-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
-theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvEr ρ E ai₀ c₀ x₀ id S) ⊢ rnTickerOk (srvEr ρ E ai₀ c₀ x₀ id S') := by
-  unfold rnTickerOk isRNTicker srvEr
-  exact .rfl
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, ST⟩
 
 /- (2026-10-30, the repair: snapshots allowed) `rnSnapMsg_false` is gone: `msgSnapC` delivers raft's
 `MsgSnap`s (`rnSnapMsg`). -/
@@ -237,7 +232,7 @@ it meets (`entryOk_of_shape`, `srvApplyKV_small`), so `c₀` and `x₀` are unus
 callers' statements). -/
 def clusterWorkloadOk (ρ : ReqNames) (E : apply.AEnv GF) :
     IProp GF :=
-  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShape L⌝ ∗ batchWaitOk ρ E L)
+  iprop(□ ∀ L : List EntryModel, srvRLogLb ρ.raft L ={⊤}=∗ ⌜logShape ρ.kv.lm L⌝ ∗ batchWaitOk ρ E L)
 
 instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (clusterWorkloadOk (GF := GF) ρ E) := by
@@ -252,7 +247,7 @@ def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
@@ -289,6 +284,8 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
+    -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`mvcc.New`'s)
+    lease.rdAt E.γ.leases E.s ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
@@ -323,8 +320,12 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
     -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
     -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTok (srvRAddr s) (1 : Qp).half ∗
+    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
     "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
+    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
+    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
+    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
+    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     -- (J8b, 2026-11-01) the server's member id is the raft node's (`isServerBuilt`'s)
     "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
@@ -374,7 +375,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
 
 /-- **The residual** (see the file header): the row of `isServerBuilt` no `NewServer` proof
 gives -- the raft storage's snapshot contract `rnSnapOnce` (`notes/STATUS.md`, "srvBuildGap's
@@ -401,15 +402,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`srvC` reads only the names** (D13a): two environments that agree on them give the same
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
-  obtain ⟨hi, hc, hr, -, -⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  funext L
-  unfold srvC batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
+    (_h : envAgree E E') : srvC ρ E ai₀ c₀ x₀ = srvC ρ E' ai₀ c₀ x₀ := by
+  -- (the lease-grant plan's 2.6) the contract reads no name of `E`: a conf change's waiters are
+  -- refuted by `reqWaitNone`, free of the environment
+  rfl
 
 end lemmas
 

@@ -6,9 +6,9 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size
-public import Spec.time.NewTicker
-public import Spec.time.Ticker__Stop
-public import Spec.time.Ticker__Reset
+public import Perennial.Spec.time.NewTicker
+public import Perennial.Spec.time.Ticker__Stop
+public import Perennial.Spec.time.Ticker__Reset
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay
 public import Perennial.Proof.time
 
@@ -52,11 +52,13 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hper, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hNew as %t #Ht
+  wp_apply hNew as %t %tch %γt #Ht0
   · ipureintro; decide
-  ihave #Ht' := Ht
+  ihave #Ht : iprop(∃ (ch : Loc) (γ : ChanNames), time.isTicker (GF := GF) t ch γ) $$ []
+  · iexists tch, γt; iexact Ht0
+  ihave #Ht' := Ht0
   iunfold time.isTicker at Ht'
-  icases Ht' with ⟨-, %tch, %γt, #HC, #Hbag⟩
+  icases Ht' with ⟨#HC, #HI, #HR, #Hbag⟩
   ihave #Hstop := HstopW
   iunfold mvcc.isStopChan at Hstop
   icases Hstop with ⟨%γs, #Hstop⟩
@@ -123,7 +125,8 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
     wp_auto
     wp_for_post
     wp_apply hStop $$ [$Ht]
-    wp_apply mvcc.wp_wsDone s $$ [$Hsync $Hdone]
+    ihave Hsrd := mvcc.watchReader_storeReader s st γ $$ HR
+    wp_apply mvcc.wp_wsDone s st γ.st $$ [$Hsync $Hdone $Hsrd]
     iapply HΦ
     itrivial
   iapply BigAndL.bigAndL_nil.2

@@ -36,7 +36,7 @@ abbrev EtcdServer.applySnapshot.specEmpty : Prop :=
       (Val #ap))
   {{ RET #(); True }}
 
-/-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot** (D22 receiver epochs, S8d, 2026-10-26;
+/-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot, in the server's auth mode** (D22 receiver epochs, S8d, 2026-10-26;
 `notes/snapshot-s8-plan.md`): the snapshot `sv` newer than the applied index `ai` (Go panics
 otherwise), its backend file `snapDBPath ss i` holding the image `D` (its metadata, `metaIs`, at the
 snapshot's index and the image's stored term `tI`, D22 J7b: until then the snapshot's
@@ -51,12 +51,26 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 (with its stop channels and the constructors' half of its open token, W7, and the readers' and the
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
-discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `hlp`, `halarm`, `hauthb`,
-`hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`authRecoverOk`, the auth track's E
-stage), the members' directory (`srvMembersDir`) (until J8a-6, 2026-11-01, also `8·|ps|` reader
+discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `hlp`, `halarm`,
+`hmemb`, `himg`, `hA'`, `hauthI`), the server's auth mode (`hany`), the auth store's `Recover` facts
+(`snapAuthResM`), the members' directory (`srvMembersDir`) (until J8a-6, 2026-11-01, also `8·|ps|` reader
 slots of the transport's `lgMu`), the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
-whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`, `clusterApplyOk`). -/
-abbrev EtcdServer.applySnapshot.specSnap : Prop :=
+whichever backend (`alarmApplyOk`, `authApplyOkM`, `lessorApplyOk`, `clusterApplyOk`).
+
+(F9, the user's decision of 2026-11-03: one spec over `E.authMode`; until 2026-11-03 also the
+mode-off twin `specSnap`, this statement's `off` case) The mode-dependent parts are indexed by
+`E.authMode`: the server's and the applier's rows (`isServerM E.authOn`,
+`srvApplyKVM` at the applied log's auth state), the rest model's buckets (`snapRestImgM`: on, all
+but the auth ones), the image's auth facts (`snapAuthImgM`: off, `hauthb`; on, the auth buckets at
+the state after the image's log `A'`, `A <+: A'`), `Recover`'s facts (`snapAuthResM`: off,
+`authRecoverOk`; on, the store's invariant at the server's `E.RD` with the snapshot clause
+`authSchemaSnap` and the committed `A'`), the apply contract in the mode, the open share
+(`srvOpenQ`). After: `srvSnapAppliedM` (on, the applier at the image's auth state).
+
+With auth on, `srvApplyKVOn`'s auth part `authApplyResB (.on γa)` holds the fuel at a base, the
+token's lifecycle and the hook clause (`authInstallPre`), which `Recover`'s glue needs and gives
+back (P6.2; the plan note's findings 1 and 2). -/
+abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
   ∀
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
@@ -70,28 +84,24 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
-    (hRO : E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be))
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    -- (M2's item 15, 2026-11-02; until then `d.cm = false`, no restore in compaction mode, and
-    -- `keyImage`) the image by the store's mode at its compaction records `r` (`keyImageM`: off,
-    -- the restored log's bucket and no record), on past the store's compaction revision
+    -- (since M2's item 15) the image by the store's mode at its compaction records
+    -- `r`, on past the store's compaction revision
     (r : mvcc.CmpRecs) (hcc : d.cm = true → x.crev ≤ r.crev)
     (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
     (hlp : mvcc.leaseParams d.P)
-    (γp : GName) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index')
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
-    -- (2026-11-02, the backend-auth-split stage) the alarm bucket in the table (`bootOk`'s), which
-    -- the alarm store's `Recover` takes
-    (halbi : d.P.has mvcc.alarmBI)
-    (hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
-      ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
-      ((backend.rbData d.P D).lookup go!"authRoles").getD ∅ = ∅)
+    -- (the backend-auth-split stage) the alarm bucket in the table
+    (halbi : d.P.has mvcc.alarmBI ∧
+      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
       ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
       ((backend.rbData d.P D).lookup go!"cluster").isSome)
@@ -107,23 +117,24 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     -- image's rest buckets (with the lessor's and the alarm store's emptied by their `Recover`)
     -- and the decoded members
     (A' : List EntryModel)
-    (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
-        <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
+    (hA' : snapRestImgM E.authOn γr d.P D A' ∧
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
-    -- (S8d's named premise, S-j1's: `NewServer`'s environment, kept by `beSucc`) the auth store's
-    -- contract mode is `.off`, the mode `authApplyOk` gives the store's contract in
-    (hoff : E.authMode = auth.AuthMode.off)
+    -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`), and the image's
+    -- auth facts by it (`off`: lean's `hauthb`; `on`: `snapRecv_imageOn`'s), in place of `hoff`
+    (hany : E.authMode ≠ .any) (hauthI : snapAuthImgM E.authMode γr d.P D A A')
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
     (γnc : NotifyNames),
+    -- (the lease-expiry plan's X2, 2026-11-04, until S4) a cluster that grants no lease: the
+    -- revocable lessor no longer refutes the image's leased arm (`srvRest_revocable`)
+    E.lg = false →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-       isServer s γ ci TM E ρ γr ∗
+       isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
        taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc iprop(True) iprop(True) ∗ notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
-       -- (2026-11-02, the backend-auth-split stage) the apply thread's token, given back: for the
-       -- pooled readers of the next stage
+       -- the apply thread's token, given back
        threadTok ∗
        srvCfgAddr s ↦□ cfg ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
@@ -133,8 +144,10 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        storage.isBackendHooks hk
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
-       srvApplyKV s E ρ.wait x ∗ srvRest E γr A ∗
+       srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
        lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+       -- (the lease-grant plan's D2, 2026-11-02) the lessor revocable (`Recover`'s premise)
+       lease.lessorRevocable E.γ.leases ∗
        -- (M2's item 15) the server's closer by the mode (on, the watchable store's own parts: the
        -- store's right is the apply thread's, `srvApplyKV`'s compaction resources)
        srvKVCloserW s E ∗
@@ -142,7 +155,7 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
           go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
         mvcc.isWatchableStore wsl E.s γw0) ∗
        mvcc.certOk E.γ ([[], []] ++ R) ∗
-       -- (M2's item 15) on, the restored log's receipt and the compaction permit at the records
+       -- on, the restored log's receipt and the compaction permits at the records
        mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗ mvcc.crevPermAt E.γ r.crev ∗
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
@@ -161,10 +174,14 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ fg ∗ isFeatureGate fg ∗
        srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ quota ∗
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
-       backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-       authRecoverOk ast ∗
+       -- (review R1's F1, decision 5) the apply thread's quarter
+       srvStopChans γ d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
+       -- (F9) the auth store's `Recover` facts by the mode (`off`: `authRecoverOk`; `on`, Q2's
+       -- candidate (ii): the store's invariant at the server's `E.RD` with the snapshot clause,
+       -- and the image's committed log)
+       snapAuthResM E.authMode s ast E.RD γr A' ∗
        -- (S8d's named premises, S-j1's: `NewServer`'s contracts of the stores on whichever backend)
-       alarmApplyOk al ∗ authApplyOk ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
+       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
        lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
        -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of
        -- a backend the apply thread opens at the protocol's names `π` over an image whose meta keys
@@ -181,14 +198,15 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
              (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); srvSnapApplied s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
+    {{ RET #(); srvSnapAppliedM E.authOn s ep sv γ ci E ρ γr d R r A' ss (config.backendPathOf cfg.DataDir') γt γn t c rs idm lp al ast cl ∗
       notifyRcvN γnc 1 ∗ threadTok }}
 
 /-- **`applySnapshot`'s spec** (J8b, 2026-11-01): both cases, the empty snapshot (`specEmpty`) and a
-non-empty one (`specSnap`), for the link. -/
+non-empty one in the server's auth mode (`specSnapM`; until 2026-11-03 the mode-off `specSnap`), for
+the link. -/
 abbrev EtcdServer.applySnapshot.spec : Prop :=
   EtcdServer.applySnapshot.specEmpty (GF := GF) (hG := hG) ∧
-    EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG)
+    EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG)
 
 end spec
 

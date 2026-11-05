@@ -16,8 +16,9 @@ Every Go function of the package has a `Spec`/`Proof` pair and a linked result
   prefix of the responses the caller receives on the returned channel is a `cacheWatchLog`, and
   such a log is, unless the request was rejected, exactly etcd's events under the key range from
   the start revision on, in order, with no gap and no duplicate, each batch certified by etcd's
-  step from the previous one (`EtcdStep`), possibly ended by a compaction's cancel after
-  everything below the compaction revision.
+  step from the previous one (`EtcdStep`), each progress notification quiet (nothing under the
+  prefix after the last batch at or below it, up to its revision: `watchProgressQuiet`), possibly
+  ended by a compaction's cancel after everything below the compaction revision.
 * `WaitForRevision`, `WaitForNextResync`, `Close`, `Ready`, `WaitReady`, `RequestProgress`: the
   remaining methods of `Cache`.
 * **The cache over etcd's client and server** (`cache_end_to_end_client`, unit K3): `New` for a
@@ -74,9 +75,13 @@ theorem cache_Watch : Cache.Watch.spec (GF := GF) (hG := hG) := Cache.wp_Watch
   whose keys are in the range, in order (no gap, no duplicate), the log in order (`SentOrdered`),
   the batches each of one revision, increasing, and each certified by etcd's step from at most
   the previous one (`certChain (etcdStepCert pfx) p₀ bs`), and for `sr ≠ 0` all at or above
-  `sr` with `p₀ < sr` (nothing etcd did from `sr` on is missing);
+  `sr` with `p₀ < sr` (nothing etcd did from `sr` on is missing); and each progress notification
+  quiet (`watchProgressQuiet`: at a positive revision `p`, etcd had no event under the prefix after
+  the last batch of `bs` at or below `p`, up to `p`). Margins: for `sr = 0` the first batch's
+  `p₀` is unknown to the client, so a notification before any batch says nothing; a sub-range
+  watch's `bs` includes batches with no event in its range;
 * such a delivery, complete below a compaction revision `n`, followed by the compaction's
-  cancel response;
+  cancel response (its progress notifications' quiet fact not kept: closed logs drop it);
 * the single cancel response of a rejected request. -/
 theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List RespModel) :
     cacheWatchLog (GF := GF) (etcdStepCert pfx) (some (keyPredForRange key rangeEnd)) sr L ⊢
@@ -84,7 +89,7 @@ theorem cache_Watch_delivery (pfx key rangeEnd : GoString) (sr : w64) (L : List 
         ⌜eventsOf L = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧
           SentOrdered L ∧ StreamOk bs ∧
           (sr ≠ W64 0 → p₀ < sint.Z sr ∧ ∀ b ∈ bs, sint.Z sr ≤ sint.Z (batchRev b))⌝ ∗
-        certChain (etcdStepCert pfx) p₀ bs) ∨
+        certChain (etcdStepCert pfx) p₀ bs ∗ watchProgressQuiet pfx p₀ bs L) ∨
       (∃ (L0 : List RespModel) (n : w64) (bs : List Batch) (p₀ : Int),
         ⌜L = L0 ++ [cancelModel n] ∧
           eventsOf L0 = bs.flatten.filter (fun e => keyPredForRange key rangeEnd e.key) ∧

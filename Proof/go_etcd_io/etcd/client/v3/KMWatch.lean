@@ -630,6 +630,8 @@ theorem isEtcdWatcher_of_km (w : Loc) (γ : KMNames) (pfx : GoString) (hp : pfx 
     isplitr
     · ipureintro; exact Hkst
     isplitr
+    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    isplitr
     · ipureintro
       refine ⟨?_, hnp, by omega, ?_⟩
       · unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]

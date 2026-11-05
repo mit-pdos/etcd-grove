@@ -353,7 +353,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
     inext
     iintro %resp %err Hout
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hs, -⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       iunfold kmSeenQ at HQ
       icases HQ with ⟨#Hlb, %Hpre⟩
@@ -395,7 +395,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [K
     inext
     iintro %resp %err Hout
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs, -⟩ | ⟨%Herr, #Hke⟩)
     · subst Herr
       iunfold kmWriteQ at HQ
       icases HQ with ⟨#Hlb2, #Hlb, %Hpre, Htok⟩
@@ -444,11 +444,11 @@ theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧
           txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ.kv σ, COMM □ Q σ }>) ∨
+            <{ etcdKV γ.kv σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
           txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ.kv σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ.kv (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) $$ []
+            <{ etcdKV γ.kv (kvOpStep (.txn (txnWireOf b.model)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) $$ []
   · cases hro : txn.txnReadonly (txnWireOf b.model)
     · have hf : TxnModel.kmFree b.model := by
         rcases hk with h | h

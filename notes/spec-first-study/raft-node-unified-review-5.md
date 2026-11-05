@@ -11,8 +11,8 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
     `Protocol/RefinementDyn.lean`, `InvConfchange.lean`, `InvApiDyn.lean`, `InvNode.lean`, `StepGhostMode.lean`.
 - **Go**:
   - raft a2: `.lake/raft-fork`, `565c2bd`;
-  - kvreconf at `HEAD`: `examples/kvreconf/*.go`;
-  - kv: `examples/kv/kv.go` and its proof;
+  - kvreconf at `HEAD`: `examples/raft/kvreconf/*.go`;
+  - kv: `examples/raft/kv/kv.go` and its proof;
   - etcd's server: `server.go` at `a20f6760ff43`;
   - Perennial's receipts: `Receipts.lean`, `PostLifting.lean`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md`.

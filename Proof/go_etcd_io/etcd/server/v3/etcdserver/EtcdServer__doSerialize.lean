@@ -45,11 +45,11 @@ theorem authInfoIs_ptsto (a : Loc) (user : GoString) (rev : w64) :
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
+theorem EtcdServer.doSerialize.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
-    EtcdServer.doSerialize.specM (GF := GF) (hG := hG) on := by
+    EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd chk get G Q C t e
   wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
@@ -67,7 +67,7 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
   wp_auto
   wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
   subst tr
-  wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAI s E v.auth v.cca ctx cd $$ [Hard]
+  wp_apply EtcdServer.AuthInfoFromCtx.wpM E.authOn hAI s E v.auth v.cca ctx cd $$ [Hard]
     as %a %err ⟨Hard, Ha, #HaE, #Hab⟩
   · iframe; iframe #
   cases err with
@@ -82,7 +82,7 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
   | nil =>
     wp_auto
     wp_join iprop(∃ (a' : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
-        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM on s E (GoInterface.ok ctx) info) with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib⟩
+        ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info) with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib⟩
     · iexists «$r0_ptr», _, DFrac.own 1
       iframe ai «$r0»
       iapply infoBoundM_empty; rfl
@@ -90,7 +90,7 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
       icases Ha with (%Han | ⟨%user, %rev, #Hai0⟩)
       · exact absurd Han Hif
       ihave #Hp := authInfoIs_ptsto a user rev $$ Hai0
-      ihave #Hib := infoBoundM_of_ctxBound on s E _ a user rev $$ [Hab Hai0]
+      ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev $$ [Hab Hai0]
       · iframe Hai0; iintro %h; iapply Hab $$ %h
       iexists a, _, DFrac.discard
       iframe ai Hp Hib
@@ -151,14 +151,6 @@ theorem EtcdServer.doSerialize.wp_proofM (on : Bool)
           isplitr
           · ipureintro; intro h; cases h
           iframe HaOld; iright; iexact HQ
-
-theorem EtcdServer.doSerialize.wp_proof
-    (hGet : traceutil.Get.spec (GF := GF) (hG := hG))
-    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
-    EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ
-  exact EtcdServer.doSerialize.wp_proofM E.authOn hGet hAI hStep s E ρ
 
 end proof
 

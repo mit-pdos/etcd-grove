@@ -1805,6 +1805,16 @@ noncomputable def unsafeUpdateConsistentIndex.impl [GooseExts] [GoGlobalContext]
   (Val #())))))))))
   (Val #()))))))
 
+/-- go: lease.go:27:6 -/
+noncomputable def UnsafeCreateLeaseBucket.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "tx"
+  (Seq (App (Val exceptionDo)
+  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Lease))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))
+  (Val #())))
+
 /-- NewMembershipBackend returns a new membership backend
     Refer to https://github.com/etcd-io/etcd/pull/19343#discussion_r1958056718
     revive:disable-next-line:unexported-return
@@ -2657,6 +2667,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnsafeUpdateConsistentIndexForce_unfold : FuncUnfold UnsafeUpdateConsistentIndexForce [] UnsafeUpdateConsistentIndexForce.impl
   UnsafeUpdateConsistentIndex_unfold : FuncUnfold UnsafeUpdateConsistentIndex [] UnsafeUpdateConsistentIndex.impl
   unsafeUpdateConsistentIndex_unfold : FuncUnfold unsafeUpdateConsistentIndex [] unsafeUpdateConsistentIndex.impl
+  UnsafeCreateLeaseBucket_unfold : FuncUnfold UnsafeCreateLeaseBucket [] UnsafeCreateLeaseBucket.impl
   NewMembershipBackend_unfold : FuncUnfold NewMembershipBackend [] NewMembershipBackend.impl
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
@@ -2698,6 +2709,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.UnsafeUpdateConsistentIndexForce_unfold
   Assumptions.UnsafeUpdateConsistentIndex_unfold
   Assumptions.unsafeUpdateConsistentIndex_unfold
+  Assumptions.UnsafeCreateLeaseBucket_unfold
   Assumptions.NewMembershipBackend_unfold
   Assumptions.import_zap_Assumption
   Assumptions.import_backend_Assumption

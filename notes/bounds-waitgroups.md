@@ -127,14 +127,14 @@ examples in this repository (`examples/`), k8s in the module cache
   `watcher__newWatcherGRPCStream.lean:40`, `client/v3/kubernetes/New.lean:38`, all
   `threadBound GF ≤ 2 ^ 31`, there only for this wait group. (The client's `2^30` for its
   credentials lives inside `clientAuthPre`, a Proof definition.) Downstream:
-  `examples/common/NewClient.lean:35`, `NewClients.lean:42`, and every example `Main`'s chain.
+  `examples/lib/etcdstart/NewClient.lean:35`, `NewClients.lean:42`, and every example `Main`'s chain.
 - **B3.**
   - Keep the invariant: it is already token-backed and needs no arithmetic beyond the power of two.
   - Replace the pure `threadBound GF ≤ 2^31` by `[ThreadBoundLe GF (2 ^ 31)]` in the five client
     specs, kubernetes `New`, and the four invariants.
   - **Statements that change**: those six specs (a premise becomes an instance).
-  - `examples/common`'s two specs keep their premise until B1 reaches the examples. Their proofs
-    build the instance (`examples/common` is on the snapshot branches: one line each).
+  - `examples/lib/etcdstart`'s two specs keep their premise until B1 reaches the examples. Their proofs
+    build the instance (`examples/lib/etcdstart` is on the snapshot branches: one line each).
   - **Closed results**: none weakened (all are under `2^31` or `2^29`).
   - Rebuild: `InvWatchWg.lean` reaches 468 modules, `Spec/.../client/v3/New.lean` 287.
 
@@ -167,7 +167,7 @@ examples in this repository (`examples/`), k8s in the module cache
 - **Bound.** Tokens, and `⌜threadBound GF ≤ 2^31⌝` in `srvGoAttachOk` (`:114`), from
   `goAttach_init` (`InvStart.lean:351`), from `InvBuild.lean:362`, from `NewServer.spec`.
 - **Spec premises.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean:170,337,513`
-  (`NewServer.spec`, `specCompact`, `specM`: 3 spec-thread), then every `examples/common`
+  (`NewServer.spec`, `specCompact`, `specM`: 3 spec-thread), then every `examples/lib/etcdstart`
   constructor and example `Main`.
 - **Note.** `f` runs without a thread token (`EtcdServer.GoAttach.spec`: `{{ P }} f() {{ True }}`;
   the caller's token is in the wait group). `notes/bounds-locks.md` says GoAttach'ed goroutines
@@ -264,12 +264,12 @@ All six use `sync.join` (`init`, `wp_Add_of`, `wp_Done_of`, `wp_Wait_of`), with 
 
 | # | example | Go | Adds | bound from |
 |---|---|---|---|---|
-| 11 | cachekv `Main` | `examples/cachekv/cachekv.go:123-132` | `nw` writers | spec premise `sint.Z nw < 2^31` (`Spec/.../cachekv/Main.lean`), closed result `cache_safe` `H31` (`Results.lean:71`) |
-| 12 | watchkv `Main` | `examples/watchkv/watchkv.go:83-92` | `nw` writers | `nw < 2^31`, `Results.lean:70` |
-| 13 | authkv `Main` | `examples/authkv/authkv.go:410-424` | `len(Principals()) = 4` | static |
-| 14 | linkv3p `MainWatch` | `examples/linkv3p/linkv3p.go:330-337` | `nw` writers | `nw < 2^31`, `linkv3p/Results.lean:157` |
-| 15 | kvreconf `Run` | `examples/kvreconf/check.go:138-166` | `cfg.Proposers` + 1 | `Run.spec`'s `Proposers' < 2^31 - 1`, met by `RandomConfig` (`≤ 3`): static in the closed result |
-| 16 | lintest `Run` | `examples/lintest/lintest.go:67-75` | `clients` | `0 ≤ clients < 2^31` (`Spec/.../lintest/Run.lean:54`), restated by every closed result over it: `linkv3p/Results.lean:119`, `k8setcd3/Results.lean:77`, `linkvtxn/Results.lean:71`, `lintest/counter/Results.lean:61` |
+| 11 | cachekv `Main` | `examples/etcd/cache/cachekv.go:123-132` | `nw` writers | spec premise `sint.Z nw < 2^31` (`Spec/.../cachekv/Main.lean`), closed result `cache_safe` `H31` (`Results.lean:71`) |
+| 12 | watchkv `Main` | `examples/etcd/watch/watchkv.go:83-92` | `nw` writers | `nw < 2^31`, `Results.lean:70` |
+| 13 | authkv `Main` | `examples/etcd/auth/authkv.go:410-424` | `len(Principals()) = 4` | static |
+| 14 | linkv3p `MainWatch` | `examples/etcd/partition/linkv3p.go:330-337` | `nw` writers | `nw < 2^31`, `linkv3p/Results.lean:157` |
+| 15 | kvreconf `Run` | `examples/raft/kvreconf/check.go:138-166` | `cfg.Proposers` + 1 | `Run.spec`'s `Proposers' < 2^31 - 1`, met by `RandomConfig` (`≤ 3`): static in the closed result |
+| 16 | lintest `Run` | `examples/lib/lintest/lintest.go:67-75` | `clients` | `0 ≤ clients < 2^31` (`Spec/.../lintest/Run.lean:54`), restated by every closed result over it: `linkv3p/Results.lean:119`, `k8setcd3/Results.lean:77`, `linkvtxn/Results.lean:71`, `lintest/counter/Results.lean:61` |
 
 Proof sites: `cachekv/Main.lean:477-550`, `watchkv/Main.lean:411-480`, `authkv/Main.lean:332-393`,
 `linkv3p/MainWatch.lean:489-549`, `kvreconf/Run.lean:82-247`, `lintest/Run.lean:59-156`.
@@ -356,7 +356,7 @@ them); `watch-cmp` touches mvcc (`CompactNoDup.lean`); `lease-renew` is done. No
    - `cachekv/Main.lean` changes by one line: coordinate with the snapshot branches, or land after
      them.
 2. **The client's watch stream (3, with 4).** Replace the pure `threadBound GF ≤ 2^31` by the
-   instance in the four invariants and six specs. `examples/common`'s `NewClient`/`NewClients`
+   instance in the four invariants and six specs. `examples/lib/etcdstart`'s `NewClient`/`NewClients`
    proofs build it, and their specs wait for B1. The rebuild is large (468 modules): run it after
    step 1 has fixed the pattern.
 3. **Optional, any time: leasing's internal `+ 2`** (2), from the instance B1 gives `NewKV`.

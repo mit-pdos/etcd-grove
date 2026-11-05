@@ -131,7 +131,7 @@ instance onWriteFnOk_persistent (f : GoFunc) (c : Loc) (γc : ConsNames)
 indices (the node name and the controller UID, `AddPodNodeNameIndexer`,
 `AddPodControllerIndexer`). -/
 def isDsc (dsc : Loc) (c : DscComp) (γ : S1Names)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (podFam : Nat → Fn GF) (dsFam crFam nodeFam : Nat → Fn GF) : IProp GF :=
   iprop(
     "#HkubeClient" ∷ dsc.[DaemonSetsController, go!"kubeClient"] ↦□ c.kc ∗
@@ -198,7 +198,7 @@ def isDsc (dsc : Loc) (c : DscComp) (γ : S1Names)
     "#HfailedPodsBackoff" ∷ dsc.[DaemonSetsController, go!"failedPodsBackoff"] ↦□ c.backoff)
 
 instance isDsc_persistent (dsc : Loc) (c : DscComp) (γ : S1Names)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (podFam dsFam crFam nodeFam : Nat → Fn GF) :
     Persistent (isDsc dsc c γ cfg podFam dsFam crFam nodeFam) := by
   unfold isDsc named; infer_instance

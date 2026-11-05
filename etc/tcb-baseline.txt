@@ -270,9 +270,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
-axiom Perennial.os.Stderr_init
-axiom Perennial.os.initFuncsOk
-axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
@@ -309,6 +306,8 @@ axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom backend.boltLogger
 axiom backend.boltLogger_persistent
+axiom backend.dbFile
+axiom backend.dbFile_persistent
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -566,6 +565,7 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof
+axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
@@ -575,9 +575,10 @@ axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.Renew.wp_proof
+axiom lease.lessor.Stop.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
@@ -685,6 +686,7 @@ axiom resourceversion.isWellFormed.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.GroupResource.String_ptr.wp_proof
 axiom schema.GroupVersionResource.Empty_ptr.wp_proof
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -718,7 +720,9 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom strconv.FormatInt.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
@@ -735,9 +739,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.Duration.String_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -779,6 +780,9 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
+axiom walDirFresh
+axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof
@@ -809,8 +813,5 @@ sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
 sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry k8setcd3.client_ctx_field
-sorry k8setcd3.revRoom
-sorry kubernetes.kvIs_ne_null
-sorry run_job_snap_cmp
-sorry srvBeSnapOk_cmpRecs
+sorry srvGrantOpen_open
+sorry srvRevokeOpen_open

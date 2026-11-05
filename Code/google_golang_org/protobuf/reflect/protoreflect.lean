@@ -321,6 +321,188 @@ noncomputable def value.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] value.ty
 
+@[reducible] noncomputable def «struct#39c24ac0».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Message" Message.ty),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]
+
+@[irreducible] noncomputable def «struct#39c24ac0».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#39c24ac0».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#39c24ac0» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#39c24ac0».fields «struct#39c24ac0».fieldsUnsealed :=
+  ⟨by unfold «struct#39c24ac0».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#39c24ac0».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#39c24ac0».fields)
+
+@[reducible] noncomputable def «struct#09ab9bd9».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Size" go.int)]
+
+@[irreducible] noncomputable def «struct#09ab9bd9».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#09ab9bd9».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#09ab9bd9» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#09ab9bd9».fields «struct#09ab9bd9».fieldsUnsealed :=
+  ⟨by unfold «struct#09ab9bd9».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#09ab9bd9».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#09ab9bd9».fields)
+
+@[reducible] noncomputable def «struct#85bf90eb».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Message" Message.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]
+
+@[irreducible] noncomputable def «struct#85bf90eb».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#85bf90eb».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#85bf90eb» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#85bf90eb».fields «struct#85bf90eb».fieldsUnsealed :=
+  ⟨by unfold «struct#85bf90eb».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#85bf90eb».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#85bf90eb».fields)
+
+@[reducible] noncomputable def «struct#69fc66c6».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte))]
+
+@[irreducible] noncomputable def «struct#69fc66c6».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#69fc66c6».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#69fc66c6».fields «struct#69fc66c6».fieldsUnsealed :=
+  ⟨by unfold «struct#69fc66c6».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#69fc66c6».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#69fc66c6».fields)
+
+@[reducible] noncomputable def «struct#a47ca8a7».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Message" Message.ty),
+(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Flags" go.uint8),
+(go.field_decl.FieldDecl go!"Resolver" (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"FindExtensionByName" (go.signature.Signature [FullName.ty] false [ExtensionType.ty, go.error])), (go.InterfaceElem.MethodElem go!"FindExtensionByNumber" (go.signature.Signature [FullName.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [ExtensionType.ty, go.error]))])),
+(go.field_decl.FieldDecl go!"Depth" go.int)]
+
+@[irreducible] noncomputable def «struct#a47ca8a7».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#a47ca8a7».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#a47ca8a7» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#a47ca8a7».fields «struct#a47ca8a7».fieldsUnsealed :=
+  ⟨by unfold «struct#a47ca8a7».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#a47ca8a7».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#a47ca8a7».fields)
+
+@[reducible] noncomputable def «struct#9d85598c».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Flags" go.uint8)]
+
+@[irreducible] noncomputable def «struct#9d85598c».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#9d85598c».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#9d85598c» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#9d85598c».fields «struct#9d85598c».fieldsUnsealed :=
+  ⟨by unfold «struct#9d85598c».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#9d85598c».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#9d85598c».fields)
+
+@[reducible] noncomputable def «struct#07f26e0d».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Source" Message.ty),
+(go.field_decl.FieldDecl go!"Destination" Message.ty)]
+
+@[irreducible] noncomputable def «struct#07f26e0d».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#07f26e0d».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#07f26e0d» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#07f26e0d».fields «struct#07f26e0d».fieldsUnsealed :=
+  ⟨by unfold «struct#07f26e0d».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#07f26e0d».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#07f26e0d».fields)
+
+@[reducible] noncomputable def «struct#dc47f379».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Message" Message.ty)]
+
+@[irreducible] noncomputable def «struct#dc47f379».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#dc47f379».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#dc47f379» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#dc47f379».fields «struct#dc47f379».fieldsUnsealed :=
+  ⟨by unfold «struct#dc47f379».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#dc47f379».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#dc47f379».fields)
+
+@[reducible] noncomputable def «struct#26ca81e8».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" []))]
+
+@[irreducible] noncomputable def «struct#26ca81e8».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#26ca81e8».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#26ca81e8» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#26ca81e8».fields «struct#26ca81e8».fieldsUnsealed :=
+  ⟨by unfold «struct#26ca81e8».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#26ca81e8».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#26ca81e8».fields)
+
+@[reducible] noncomputable def «struct#9d8af3ce».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"MessageA" Message.ty),
+(go.field_decl.FieldDecl go!"MessageB" Message.ty)]
+
+@[irreducible] noncomputable def «struct#9d8af3ce».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#9d8af3ce».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#9d8af3ce» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#9d8af3ce».fields «struct#9d8af3ce».fieldsUnsealed :=
+  ⟨by unfold «struct#9d8af3ce».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#9d8af3ce».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#9d8af3ce».fields)
+
+@[reducible] noncomputable def «struct#f228ed0d».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Equal" go.bool)]
+
+@[irreducible] noncomputable def «struct#f228ed0d».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#f228ed0d».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#f228ed0d» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#f228ed0d».fields «struct#f228ed0d».fieldsUnsealed :=
+  ⟨by unfold «struct#f228ed0d».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#f228ed0d».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#f228ed0d».fields)
+
+@[reducible] noncomputable def «struct#9f4eeae4».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
+(go.field_decl.FieldDecl go!"Flags" go.uint64),
+(go.field_decl.FieldDecl go!"Size" (go.GoType.FunctionType (go.signature.Signature [«struct#39c24ac0».underlying] false [«struct#09ab9bd9».underlying]))),
+(go.field_decl.FieldDecl go!"Marshal" (go.GoType.FunctionType (go.signature.Signature [«struct#85bf90eb».underlying] false [«struct#69fc66c6».underlying, go.error]))),
+(go.field_decl.FieldDecl go!"Unmarshal" (go.GoType.FunctionType (go.signature.Signature [«struct#a47ca8a7».underlying] false [«struct#9d85598c».underlying, go.error]))),
+(go.field_decl.FieldDecl go!"Merge" (go.GoType.FunctionType (go.signature.Signature [«struct#07f26e0d».underlying] false [«struct#9d85598c».underlying]))),
+(go.field_decl.FieldDecl go!"CheckInitialized" (go.GoType.FunctionType (go.signature.Signature [«struct#dc47f379».underlying] false [«struct#26ca81e8».underlying, go.error]))),
+(go.field_decl.FieldDecl go!"Equal" (go.GoType.FunctionType (go.signature.Signature [«struct#9d8af3ce».underlying] false [«struct#f228ed0d».underlying])))]
+
+@[irreducible] noncomputable def «struct#9f4eeae4».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#9f4eeae4».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#9f4eeae4» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#9f4eeae4».fields «struct#9f4eeae4».fieldsUnsealed :=
+  ⟨by unfold «struct#9f4eeae4».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#9f4eeae4».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#9f4eeae4».fields)
+
 axiom methods [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def supportFlags.ty [GooseExts] [GoGlobalContext] : go.GoType :=
@@ -1426,34 +1608,7 @@ class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
   isUnderlying : go.IsUnderlying Message.underlying Message.underlying
-  method_set : go.MethodSetIs Message.ty [(go!"Clear", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Get", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"GetUnknown", (some (go.signature.Signature [] false [RawFields.ty]))), (go!"Has", (some (go.signature.Signature [FieldDescriptor.ty] false [go.bool]))), (go!"Interface", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"New", (some (go.signature.Signature [] false [Message.ty]))), (go!"NewField", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"ProtoMethods", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Flags" supportFlags.ty),
-(go.field_decl.FieldDecl go!"Size" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Message" Message.ty),
-(go.field_decl.FieldDecl go!"Flags" go.uint8)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Size" go.int)])]))),
-(go.field_decl.FieldDecl go!"Marshal" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Message" Message.ty),
-(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
-(go.field_decl.FieldDecl go!"Flags" go.uint8)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte))]), go.error]))),
-(go.field_decl.FieldDecl go!"Unmarshal" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Message" Message.ty),
-(go.field_decl.FieldDecl go!"Buf" (go.GoType.SliceType go.byte)),
-(go.field_decl.FieldDecl go!"Flags" go.uint8),
-(go.field_decl.FieldDecl go!"Resolver" (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"FindExtensionByName" (go.signature.Signature [FullName.ty] false [ExtensionType.ty, go.error])), (go.InterfaceElem.MethodElem go!"FindExtensionByNumber" (go.signature.Signature [FullName.ty, (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [ExtensionType.ty, go.error]))])),
-(go.field_decl.FieldDecl go!"Depth" go.int)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Flags" go.uint8)]), go.error]))),
-(go.field_decl.FieldDecl go!"Merge" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Source" Message.ty),
-(go.field_decl.FieldDecl go!"Destination" Message.ty)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Flags" go.uint8)])]))),
-(go.field_decl.FieldDecl go!"CheckInitialized" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Message" Message.ty)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" []))]), go.error]))),
-(go.field_decl.FieldDecl go!"Equal" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"MessageA" Message.ty),
-(go.field_decl.FieldDecl go!"MessageB" Message.ty)])] false [(go.GoType.StructType [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])),
-(go.field_decl.FieldDecl go!"Equal" go.bool)])])))]))]))), (go!"Range", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [FieldDescriptor.ty, Value.ty] false [go.bool]))] false []))), (go!"Set", (some (go.signature.Signature [FieldDescriptor.ty, Value.ty] false []))), (go!"SetUnknown", (some (go.signature.Signature [RawFields.ty] false []))), (go!"Type", (some (go.signature.Signature [] false [MessageType.ty]))), (go!"WhichOneof", (some (go.signature.Signature [OneofDescriptor.ty] false [FieldDescriptor.ty])))]
+  method_set : go.MethodSetIs Message.ty [(go!"Clear", (some (go.signature.Signature [FieldDescriptor.ty] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [MessageDescriptor.ty]))), (go!"Get", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"GetUnknown", (some (go.signature.Signature [] false [RawFields.ty]))), (go!"Has", (some (go.signature.Signature [FieldDescriptor.ty] false [go.bool]))), (go!"Interface", (some (go.signature.Signature [] false [ProtoMessage.ty]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"Mutable", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"New", (some (go.signature.Signature [] false [Message.ty]))), (go!"NewField", (some (go.signature.Signature [FieldDescriptor.ty] false [Value.ty]))), (go!"ProtoMethods", (some (go.signature.Signature [] false [(go.GoType.PointerType «struct#9f4eeae4».underlying)]))), (go!"Range", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [FieldDescriptor.ty, Value.ty] false [go.bool]))] false []))), (go!"Set", (some (go.signature.Signature [FieldDescriptor.ty, Value.ty] false []))), (go!"SetUnknown", (some (go.signature.Signature [RawFields.ty] false []))), (go!"Type", (some (go.signature.Signature [] false [MessageType.ty]))), (go!"WhichOneof", (some (go.signature.Signature [OneofDescriptor.ty] false [FieldDescriptor.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) []
 
 attribute [instance] Message.TypeAssumptions.type_repr
@@ -1596,6 +1751,114 @@ attribute [instance] ifaceHeader.TypeAssumptions.type_repr
   ifaceHeader.TypeAssumptions.method_set
   ifaceHeader.TypeAssumptions.ptr_method_set
 
+axiom «struct#39c24ac0» : Type
+axiom «struct#39c24ac0».zero_val : ZeroVal «struct#39c24ac0»
+attribute [instance] «struct#39c24ac0».zero_val
+
+class «struct#39c24ac0».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#39c24ac0».underlying «struct#39c24ac0»
+
+attribute [instance] «struct#39c24ac0».TypeAssumptions.type_repr
+
+axiom «struct#09ab9bd9» : Type
+axiom «struct#09ab9bd9».zero_val : ZeroVal «struct#09ab9bd9»
+attribute [instance] «struct#09ab9bd9».zero_val
+
+class «struct#09ab9bd9».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#09ab9bd9».underlying «struct#09ab9bd9»
+
+attribute [instance] «struct#09ab9bd9».TypeAssumptions.type_repr
+
+axiom «struct#85bf90eb» : Type
+axiom «struct#85bf90eb».zero_val : ZeroVal «struct#85bf90eb»
+attribute [instance] «struct#85bf90eb».zero_val
+
+class «struct#85bf90eb».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#85bf90eb».underlying «struct#85bf90eb»
+
+attribute [instance] «struct#85bf90eb».TypeAssumptions.type_repr
+
+axiom «struct#69fc66c6» : Type
+axiom «struct#69fc66c6».zero_val : ZeroVal «struct#69fc66c6»
+attribute [instance] «struct#69fc66c6».zero_val
+
+class «struct#69fc66c6».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#69fc66c6».underlying «struct#69fc66c6»
+
+attribute [instance] «struct#69fc66c6».TypeAssumptions.type_repr
+
+axiom «struct#a47ca8a7» : Type
+axiom «struct#a47ca8a7».zero_val : ZeroVal «struct#a47ca8a7»
+attribute [instance] «struct#a47ca8a7».zero_val
+
+class «struct#a47ca8a7».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#a47ca8a7».underlying «struct#a47ca8a7»
+
+attribute [instance] «struct#a47ca8a7».TypeAssumptions.type_repr
+
+axiom «struct#9d85598c» : Type
+axiom «struct#9d85598c».zero_val : ZeroVal «struct#9d85598c»
+attribute [instance] «struct#9d85598c».zero_val
+
+class «struct#9d85598c».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#9d85598c».underlying «struct#9d85598c»
+
+attribute [instance] «struct#9d85598c».TypeAssumptions.type_repr
+
+axiom «struct#07f26e0d» : Type
+axiom «struct#07f26e0d».zero_val : ZeroVal «struct#07f26e0d»
+attribute [instance] «struct#07f26e0d».zero_val
+
+class «struct#07f26e0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#07f26e0d».underlying «struct#07f26e0d»
+
+attribute [instance] «struct#07f26e0d».TypeAssumptions.type_repr
+
+axiom «struct#dc47f379» : Type
+axiom «struct#dc47f379».zero_val : ZeroVal «struct#dc47f379»
+attribute [instance] «struct#dc47f379».zero_val
+
+class «struct#dc47f379».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#dc47f379».underlying «struct#dc47f379»
+
+attribute [instance] «struct#dc47f379».TypeAssumptions.type_repr
+
+axiom «struct#26ca81e8» : Type
+axiom «struct#26ca81e8».zero_val : ZeroVal «struct#26ca81e8»
+attribute [instance] «struct#26ca81e8».zero_val
+
+class «struct#26ca81e8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#26ca81e8».underlying «struct#26ca81e8»
+
+attribute [instance] «struct#26ca81e8».TypeAssumptions.type_repr
+
+axiom «struct#9d8af3ce» : Type
+axiom «struct#9d8af3ce».zero_val : ZeroVal «struct#9d8af3ce»
+attribute [instance] «struct#9d8af3ce».zero_val
+
+class «struct#9d8af3ce».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#9d8af3ce».underlying «struct#9d8af3ce»
+
+attribute [instance] «struct#9d8af3ce».TypeAssumptions.type_repr
+
+axiom «struct#f228ed0d» : Type
+axiom «struct#f228ed0d».zero_val : ZeroVal «struct#f228ed0d»
+attribute [instance] «struct#f228ed0d».zero_val
+
+class «struct#f228ed0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#f228ed0d».underlying «struct#f228ed0d»
+
+attribute [instance] «struct#f228ed0d».TypeAssumptions.type_repr
+
+axiom «struct#9f4eeae4» : Type
+axiom «struct#9f4eeae4».zero_val : ZeroVal «struct#9f4eeae4»
+attribute [instance] «struct#9f4eeae4».zero_val
+
+class «struct#9f4eeae4».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#9f4eeae4».underlying «struct#9f4eeae4»
+
+attribute [instance] «struct#9f4eeae4».TypeAssumptions.type_repr
+
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   doNotImplement_instance : doNotImplement.TypeAssumptions
   ProtoMessage_instance : ProtoMessage.TypeAssumptions
@@ -1657,6 +1920,18 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MapKey_instance : MapKey.TypeAssumptions
   ifaceHeader_instance : ifaceHeader.TypeAssumptions
   value_instance : value.TypeAssumptions
+  «struct#39c24ac0_instance» : «struct#39c24ac0».TypeAssumptions
+  «struct#09ab9bd9_instance» : «struct#09ab9bd9».TypeAssumptions
+  «struct#85bf90eb_instance» : «struct#85bf90eb».TypeAssumptions
+  «struct#69fc66c6_instance» : «struct#69fc66c6».TypeAssumptions
+  «struct#a47ca8a7_instance» : «struct#a47ca8a7».TypeAssumptions
+  «struct#9d85598c_instance» : «struct#9d85598c».TypeAssumptions
+  «struct#07f26e0d_instance» : «struct#07f26e0d».TypeAssumptions
+  «struct#dc47f379_instance» : «struct#dc47f379».TypeAssumptions
+  «struct#26ca81e8_instance» : «struct#26ca81e8».TypeAssumptions
+  «struct#9d8af3ce_instance» : «struct#9d8af3ce».TypeAssumptions
+  «struct#f228ed0d_instance» : «struct#f228ed0d».TypeAssumptions
+  «struct#9f4eeae4_instance» : «struct#9f4eeae4».TypeAssumptions
 
 attribute [instance] Assumptions.doNotImplement_instance
   Assumptions.ProtoMessage_instance
@@ -1718,6 +1993,18 @@ attribute [instance] Assumptions.doNotImplement_instance
   Assumptions.MapKey_instance
   Assumptions.ifaceHeader_instance
   Assumptions.value_instance
+  Assumptions.«struct#39c24ac0_instance»
+  Assumptions.«struct#09ab9bd9_instance»
+  Assumptions.«struct#85bf90eb_instance»
+  Assumptions.«struct#69fc66c6_instance»
+  Assumptions.«struct#a47ca8a7_instance»
+  Assumptions.«struct#9d85598c_instance»
+  Assumptions.«struct#07f26e0d_instance»
+  Assumptions.«struct#dc47f379_instance»
+  Assumptions.«struct#26ca81e8_instance»
+  Assumptions.«struct#9d8af3ce_instance»
+  Assumptions.«struct#f228ed0d_instance»
+  Assumptions.«struct#9f4eeae4_instance»
 
 end google_golang_org.protobuf.reflect.protoreflect
 

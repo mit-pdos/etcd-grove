@@ -1,17 +1,17 @@
-# putget3 (examples/putget3; D21 stage M5, 2026-10-19): putget with three members in one program,
+# putget3 (examples/etcd/putget3; D21 stage M5, 2026-10-19): putget with three members in one program,
 # each serving its raft handler on its own peer listener. The results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/putget3/Results.lean: `putget3_Main` (over
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Results.lean: `putget3_Main` (over
 # `startMember`, the server's, v3rpc's and the client's linked results and the trust-boundary
 # axioms, among them the two of D21 M5: `EtcdServer.RaftHandler` and `http.Serve`) and the closed
-# theorem `putget3_safe`/`putget3_adequate`, which also rests on the package initializers' axioms.
+# theorem `etcd_putget3_safe`/`etcd_putget3_adequate`, which also rests on the package initializers' axioms.
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/putget3.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/putget3.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/putget3.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget3.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget3.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_putget3.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/putget3/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -240,9 +240,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
-axiom Perennial.os.Stderr_init
-axiom Perennial.os.initFuncsOk
-axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
@@ -260,6 +257,7 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -407,6 +405,7 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom heap.Init_.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -451,8 +450,8 @@ axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -530,6 +529,7 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -567,9 +567,6 @@ axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -603,6 +600,9 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
+axiom walDirFresh
+axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
@@ -623,5 +623,3 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry run_job_snap_cmp
-sorry srvBeSnapOk_cmpRecs

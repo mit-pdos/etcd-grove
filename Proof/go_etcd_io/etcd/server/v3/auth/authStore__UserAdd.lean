@@ -248,6 +248,7 @@ theorem auth.authStore.UserAdd.wp_tie
       imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
+      icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
       iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
         $$ [HL Hca Hown]
       · iframe Hpkg Hinv
@@ -261,6 +262,8 @@ theorem auth.authStore.UserAdd.wp_tie
         iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
       inext
       iintro ⟨HL, Hca, Hown⟩
+      icombine Hown HshR as Hown
+      ihave Hown := (authOwnF_split _ _).2 $$ Hown
       (try wp_auto)
       wp_apply h_String _ _ as %f1 -
       (try wp_auto)
@@ -344,6 +347,7 @@ theorem auth.authStore.UserAdd.wp_tie
     imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
+    icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
     iapply (h_refresh st R M ti (fun x => Lk x Post) ({ putUser st0 urN.name urN.roles with revision := rev } : AuthState) (hs ++ [bump (putUser st0 urN.name urN.roles)]))
       $$ [HL Hca Hown]
     · iframe Hpkg Hinv
@@ -357,6 +361,8 @@ theorem auth.authStore.UserAdd.wp_tie
       iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
     inext
     iintro ⟨HL, Hca, Hown⟩
+    icombine Hown HshR as Hown
+    ihave Hown := (authOwnF_split _ _).2 $$ Hown
     (try wp_auto)
     wp_apply h_String _ _ as %f1 -
     (try wp_auto)

@@ -134,14 +134,21 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
     iunfold mvcc.bucketViewL at Hbv
     icases Hbv with ⟨%m, Hbv, #Hbl⟩
     ihave %Hmsub := mvcc.bucketLog_sub γ ilog m $$ Hbl
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m %bK %ib'
+    -- the session's physical view (F2, stage 2): the put moves it
+    icases Hcres with ⟨Hcres, Hloan, Htrk⟩
+    icases mvcc.writerTrk_put γ ilog pend (pend ++ [.put k v leaseID]) $$ Htrk with ⟨%pv, Hpv, Hpvk⟩
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %m %pv %bK %ib'
       %d %_ %_ [$(frameH `HKeyG) $(frameH `Hlocked) $(frameH `Hbv) $(frameH `Hib)
-          $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
+          $(frameH `Hd) $(frameH `Hpv)] as ⟨Hlocked, Hbv, Hpv⟩
     · ipureintro
       exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
         (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb)
     ihave Hbv : mvcc.bucketViewL γ (1 : Qp).half ilog $$ [Hbv]
     · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
+    ihave Htrk := Hpvk $$ %_ %_ Hpv []
+    · ipureintro
+      rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
+      rfl
     icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
@@ -171,14 +178,14 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hloan Htrk Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hloan Htrk Hlrd
       iframe #
       isplitl []
       · ipureintro; exact Hbudget
@@ -217,7 +224,6 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key value k v leaseID L te crev Z
   wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, Hown, %Hlease, Htrc⟩
-  simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   ihave #Hs0 : mvcc.isStore s γ $$ []
@@ -252,7 +258,8 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw (mvcc.hookFn γ) (mvcc.storeRb γ)
-      (mvcc.kbMW γ.kb γ.bucket) $$ []
+      (mvcc.kbMW γ.kb γ.bucket) (PV := mvcc.storePV γ) (PVx := mvcc.storePVx γ)
+      (CK := mvcc.storeCK γ) $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩

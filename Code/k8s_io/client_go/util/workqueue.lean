@@ -416,8 +416,8 @@ noncomputable def DefaultTypedControllerRateLimiter.impl [GooseExts] [GoGlobalCo
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$a0" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Millisecond)))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000)) (Val _root_.Perennial.time.Second)))
+  (Let "$r0" (Let "$a0" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val #(W64 1000000))))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000)) (Val #(W64 1000000000))))
   (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.PointerType (TypedBucketRateLimiter.ty T)) (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoAlloc (TypedBucketRateLimiter.ty T)))) (Let "$v0" (Let "$a0" (Val #(W64 4621819117588971520))
   (Let "$a1" (Val #(W64 100))
@@ -534,8 +534,8 @@ noncomputable def DefaultTypedItemBasedRateLimiter.impl [GooseExts] [GoGlobalCon
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (TypedRateLimiter.ty T)))) (App (Val (GoInstruction (GoZeroVal (TypedRateLimiter.ty T)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$a0" (Val _root_.Perennial.time.Millisecond)
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000)) (Val _root_.Perennial.time.Second)))
+  (Let "$r0" (Let "$a0" (Val #(W64 1000000))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000)) (Val #(W64 1000000000))))
   (App (App (App (Val (GoInstruction (FuncResolve NewTypedItemExponentialFailureRateLimiter [T]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -587,7 +587,7 @@ noncomputable def TypedItemExponentialFailureRateLimiter.When.impl [GooseExts] [
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "calculated") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "backoff")) (App (Val (GoInstruction (Convert go.untypedInt go.float64))) (Val _root_.Perennial.math.MaxInt64)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "backoff")) (Val #(W64 4890909195324358656)))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef (TypedItemExponentialFailureRateLimiter.ty T) go!"maxDelay"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (TypedItemExponentialFailureRateLimiter.ty T))))) (Var "r"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)

@@ -197,7 +197,6 @@ theorem RawNode.Bootstrap.wp_proof
     try wp_auto
     -- the boot entry: `&pb.Entry{Type: EntryConfChange.Enum(), Term: new(1), Index: new(i + 1),
     -- Data: data}`, read-only (`entRO`)
-    rw [show raftpb.EntryConfChange = #((W32 1 : raftpb.EntryType)) from rfl]
     wp_apply wp_EntryType_Enum (W32 1) as %pety Hpety
     imod cellRO_alloc $$ Hpety with #cY
     imod cellRO_alloc $$ «$v1» with #cT

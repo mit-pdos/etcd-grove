@@ -13,6 +13,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelRestore
 
 @[expose] public section
 
@@ -59,7 +60,7 @@ theorem kvEntry_of_chainLog (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (l
 /-- **An entry's model log is within the revision budget** when its request's premises hold
 (`entryOk`: a put's or a delete's room for one more revision). -/
 theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply.ApplyKV)
-    (m : EntryModel) (hok : entryOk x m) (hl : x.log.length < 2 ^ 63) :
+    (m : EntryModel) {lm : lease.Mode} (hok : entryOk lm x m) (hl : x.log.length < 2 ^ 63) :
     (kvEntry c₀ ch lt x.log m).length < 2 ^ 63 := by
   rcases kvEntry_grow c₀ ch lt x.log m with h | ⟨cs, h⟩
   · rw [h]; exact hl
@@ -90,8 +91,15 @@ theorem kvEntry_len (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (x : apply
             rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
               (chainLog_of_backendLog lt rq x.log hb)] at h
             simp at h
-        · have := hrq; simp only [apply.rqOk, hk] at this
-        · have := hrq; simp only [apply.rqOk, hk] at this
+        · -- (the lease-grant stage) a grant writes no revision
+          have hb : backendLog lt rq x.log = x.log := by
+            unfold backendLog; rw [hk]
+          rw [kvEntry_of_chainLog c₀ ch lt x.log m rq hdec
+            (chainLog_of_backendLog lt rq x.log hb)] at h
+          simp at h
+        · -- (the lease-expiry plan's X7) a revocation: room for one revision (`putOk`)
+          have hp := ((apply.rqOk_leaseRevoke _ _ _ hk).1 hrq).2.2
+          unfold apply.putOk at hp; omega
       · have hnw : ∀ rq', apply.irrDecode m.data = some rq' →
             ¬ writeKind (apply.dispatchKind rq') := by
           intro rq' h'; rw [hdec] at h'; cases h'
@@ -137,19 +145,19 @@ M2's apply side, a compaction admitted in compaction mode), and the start's chai
 with auth disabled. -/
 theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
-      ⌜plainLogM γk.cmp B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
+      ⌜plainLogM γk.cmp γk.lm B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
-  refine ⟨srv_entry_transfer γ.ai0 B L (plainEntryM γk.cmp) ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L (plainEntryM γk.cmp γk.lm) ?_ ?_ ?_ HBi Hp.2.2 Hok.1, Hok.2.2.2.1⟩
   · intro m m' he h ht hd rq hdec
     have h1 := congrArg LogEntry.type he
     have h2 := congrArg LogEntry.data he
@@ -158,15 +166,28 @@ theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel
   · intro m _ hd _ h; exact absurd hd h
   · intro m ht _ h0; rw [ht] at h0; exact absurd h0 (by decide)
 
+/-- **The start log is lease-free** (the lease-expiry plan's X7, the user's (a): `kvInv`'s). -/
+theorem kv_log0_noLease (γ : ServerRaftNames) (γk : KVNames) :
+    ⊢ kvInv (GF := GF) γ γk ={⊤}=∗ ⌜mvcc.LogNoLease γk.log0⌝ := by
+  iintro #Hinv
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
+  imodintro
+  ipureintro
+  exact Hok.2.2.2.2.1.2
+
 /-- **Off, the committed log is plain** (M2's apply side, item 5: the law in place of `kvInvD_off`
 for the callers whose mode is off). -/
 theorem kv_log_plain_off (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
-    (h : γk.cmp = false) :
+    (h : γk.cmp = false) (hl : γk.lg = false) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
       ⌜plainLog B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
   iintro #Hinv #Hr #HB
   imod kv_log_plain γ γk B $$ Hinv Hr HB with %Hp
-  rw [h, plainLogM_false] at Hp
+  rw [h, KVNames.lm_of_lg_false hl, plainLogM_false] at Hp
   imodintro; ipureintro; exact Hp
 
 /-- A KV certificate is the store's (at the server's names). -/
@@ -202,8 +223,8 @@ theorem kv_certPre (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok
 /-- **The apply thread's compaction revision follows the model's** (`kvCrevEntry`) on an entry
 plain in the cluster's mode: a compaction in M2's scope is neither skipped nor rejected
 (`compactPropOk`), so `Apply` dispatches it; any other request leaves the revision. -/
-theorem batchStep_crev (c₀ : w64) (cmp : Bool) (m : EntryModel) (x x' : apply.ApplyKV)
-    (hm : plainEntryM cmp m) (h : batchStep c₀ m x x') :
+theorem batchStep_crev (c₀ : w64) (cmp : Bool) (lm : lease.Mode) (m : EntryModel) (x x' : apply.ApplyKV)
+    (hm : plainEntryM cmp lm m) (h : batchStep c₀ m x x') :
     x'.crev = kvCrevEntry c₀ x.chain x.crev m := by
   unfold batchStep at h
   unfold kvCrevEntry
@@ -218,9 +239,11 @@ theorem batchStep_crev (c₀ : w64) (cmp : Bool) (m : EntryModel) (x x' : apply.
       rw [hdec]
       have hok : apply.dispatchKind rq = .compaction → compactPropOk rq := by
         intro hk
-        rcases hm ht hd rq hdec with hp | ⟨-, hc⟩
+        rcases hm ht hd rq hdec with hp | ⟨-, hc⟩ | hg | hr
         · exact absurd hk (plainReq_nonCmp rq hp)
         · exact hc
+        · rw [hg.2.1] at hk; cases hk
+        · rw [hr.2.1] at hk; cases hk
       cases out with
       | dispatched o skip => exact hst.2.2.2.2
       | skipped =>
@@ -236,9 +259,9 @@ theorem batchStep_crev (c₀ : w64) (cmp : Bool) (m : EntryModel) (x x' : apply.
 /-- The next state's compaction revision is the model's after the entry (`kvApplied_next`'s
 `hcr`). -/
 theorem crevOf_batchStep (γk : KVNames) (A : List EntryModel) (m : EntryModel)
-    (x x' : apply.ApplyKV) (hm : plainEntryM γk.cmp m) (h : batchStep γk.c0 m x x')
+    (x x' : apply.ApplyKV) {lm : lease.Mode} (hm : plainEntryM γk.cmp lm m) (h : batchStep γk.c0 m x x')
     (hch : x.chain = γk.ch0) (hcr : x.crev = crevOf γk A) : x'.crev = crevOf γk (A ++ [m]) := by
-  rw [batchStep_crev γk.c0 γk.cmp m x x' hm h, crevOf_snoc, hch, hcr]
+  rw [batchStep_crev γk.c0 γk.cmp lm m x x' hm h, crevOf_snoc, hch, hcr]
 
 /-- **The apply thread's step on the next committed entry `m`**: `m` plain in the cluster's mode
 (M2's apply side: a compaction in M2's scope, in compaction mode), the chain the start's (auth
@@ -247,17 +270,18 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntryM γr.kv.cmp m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true ∧
-        x.crev = crevOf γr.kv A⌝ ∗
+      ⌜plainEntryM γr.kv.cmp E.lm m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true ∧
+        x.crev = crevOf γr.kv A ∧ mvcc.LogNoLease x.log⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -, %Hlg, -⟩
   iunfold kvApplied at Ha
   icases Ha with ⟨Ha, %Hch'⟩
   obtain ⟨Hch, Hcr⟩ := Hch'
   imod kv_log_plain γr.raft γr.kv (A ++ [m]) $$ HkI HrI Hlb with %Hpc
   obtain ⟨Hpl, Hch0⟩ := Hpc
+  imod kv_log0_noLease γr.raft γr.kv $$ HkI with %Hl0
   ihave %Hl : iprop(⌜x.log = kvModel γr.kv A⌝) $$ [Ha]
   · iunfold kvAppliedL at Ha; icases Ha with ⟨-, -, -, %h⟩; ipureintro; exact h
   have hl' : kvEntry γr.kv.c0 x.chain (kvLeases γr.kv A) x.log m = kvModel γr.kv (A ++ [m]) := by
@@ -267,8 +291,11 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
   imodintro
   iframe Ha
   ipureintro
-  refine ⟨Hpl m (by simp), Hch, ?_, Hcr⟩
-  rw [Hch, Hch0]; rfl
+  refine ⟨Hlg.2 ▸ Hpl m (by simp), Hch, ?_, Hcr, ?_⟩
+  · rw [Hch, Hch0]; rfl
+  · rw [Hl]
+    exact (kvRaftOf_restorable γr.kv.c0 γr.kv.ch0 γr.kv.log0 A
+      (fun m' hm' => Hpl m' (List.mem_append_left _ hm')) Hl0).1
 
 /-- The apply thread's KV log is the model of its applied raft log (unit W-M3: for the result's
 tie, `entryWit`). -/
@@ -320,7 +347,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
   ihave #HkI' := HkI
   iunfold kvInv at HkI'
   iinv HkI' with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ', %Hok', #Hw, HG⟩
   iunfold etcdKV at Hσ
   ihave %Hag := ghostVar_agree γk.st _ _ _ _ $$ Hσ' Hσ
   have hlen := (kvRaftOf_extends γk.c0 γk.ch0 γk.log0 L).length_le
@@ -336,8 +363,8 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
       have he := (kvModel_eqv γ γk A A' HAA' Hok'.2.2.1).1
       unfold kvModel at hA he ⊢; rw [← hA, he]; exact this
   imod Hp with ⟨HL, %Hle⟩
-  imod Hclose $$ [HL Hσ'] with -
-  · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'
+  imod Hclose $$ [HL Hσ' HG] with -
+  · inext; iexists L; iframe HL Hσ' Hw HG; ipureintro; exact Hok'
   imodintro
   iunfold etcdKV
   iframe Hσ

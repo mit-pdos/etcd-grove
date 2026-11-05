@@ -57,9 +57,13 @@ axiom backend.rBkt_timeless (tx b : Loc) (es : List backend.Ent) : Timeless (bac
 
 axiom backend.txDone_persistent (tx : Loc) : Persistent (backend.txDone tx)
 
+axiom backend.dbFile (db : Loc) (path : GoString) : IProp GF
+
 axiom backend.rtxSnap (tx : Loc) (D : backend.Data) : IProp GF
 
 axiom backend.fileHolds (path : GoString) (D : backend.Data) : IProp GF
+
+axiom backend.dbFile_persistent (db : Loc) (path : GoString) : Persistent (backend.dbFile db path)
 
 axiom backend.txLive_fractional (tx : Loc) : Fractional (backend.txLive tx)
 
@@ -98,6 +102,8 @@ theorem backend.ownWTx_live (tx : Loc) (γ : backend.DBNames) (D S : backend.Dat
 
 def backend.seekIdx (es : List backend.Ent) (k : GoString) : Nat :=
   (List.takeWhile (fun e => decide (backend.strLt e.fst k)) es).length
+
+axiom backend.dbFile_timeless (db : Loc) (path : GoString) : Timeless (backend.dbFile db path)
 
 axiom backend.txDB (tx db : Loc) : IProp GF
 

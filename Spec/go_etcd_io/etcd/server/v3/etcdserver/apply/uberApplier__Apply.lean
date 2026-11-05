@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.GrantRest
 
 @[expose] public section
 
@@ -33,26 +34,38 @@ One write token of the store spent (`mvcc.storeWT E.γ`; 2026-10-13, unit 6). Th
 of the logs the request may commit (`certPre`; 2026-10-14, unit T1). A compaction admitted with
 its facts (`cmpAdmit`), the apply thread's compaction resources at `x.crev` before and at `x'.crev`
 after (`applyStep`'s clause; M2's apply side, 2026-10-31: items 4, 11). The rest state's premise
-`restReqOk`, `dispatch`'s (the cluster-rows stage, 2026-11-02). -/
+`restReqOk`, `dispatch`'s (the cluster-rows stage, 2026-11-02). A grant (the lease-grant stage,
+2026-11-03) as `dispatch`'s: admitted at `rqOk E.lg`, with its permits, the half of the live set
+`T` and the rest buckets after it (`grantIdsA`, `grantRestA`), its answer (`grantResA`; a revocation's, `revokeAnsRA`, the lease-expiry plan's X6), its
+outcome the lessor's verdict at `T` (`grantOutOkA`; amendment (C), 2026-11-03), the ids the lessor
+ever had `U` with an applied grant's id added (`everOwn`, `grantFresh`: the lease-expiry plan's E3
+(c), 2026-11-05). -/
 abbrev apply.uberApplier.Apply.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (x : apply.ApplyKV) (r : Loc)
-    (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM),
+    (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM)
+    (T U : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.certPreV v3 E x.chain rq x.log ∗
       mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
-      apply.cmpPermRq E rq ∗
+      ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq⌝ ∗
+      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.grantFresh E rq U ∗
+      apply.revokeOwn E rq ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ mvcc.idxCert E.γ.idx F ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ ⌜apply.restReqOk rq rs⌝ ∗ E.RO rs ∗
       apply.cmpOwn E x.crev }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
-      E.RO (apply.restOut rq v3 out rs) ∗ apply.cmpOwn E x'.crev ∗
+      apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
+      apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
+      (∃ t : w64, E.RO (apply.revokeRestA T rq v3 out
+        (apply.grantRestA t rq v3 out (apply.restOut rq v3 out rs)))) ∗
+      ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.cmpOwn E x'.crev ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip) ∧
         apply.applyFloorOk rq v3 F x.log out⌝ ∗
-      apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
+      apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.revokeAnsRA E rq out ar ∗
+      apply.applyResultIs rq v3 x.log ar out ∗
       apply.applyAuthRes E.authMode x.chain rq v3 out }}
 
 end spec

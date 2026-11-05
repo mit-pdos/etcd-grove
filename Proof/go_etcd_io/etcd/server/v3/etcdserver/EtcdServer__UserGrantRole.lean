@@ -99,9 +99,9 @@ theorem EtcdServer.UserGrantRole.wp_proof : EtcdServer.UserGrantRole.spec (GF :=
       ipureintro; exact ⟨rfl, He⟩
     · exact absurd rfl He
 
-/-- `spec`'s instance at `raftRequest.specM true` (`authRaftOk_on`). -/
+/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`). -/
 theorem EtcdServer.UserGrantRole.wp_proofOn
-    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd Qa r user role F
   let Hh := adminHistAu (GF := GF) s E ρ ctx (irrUserGrantRole user role) Qa

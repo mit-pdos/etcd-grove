@@ -70,7 +70,7 @@ private theorem renewErrs [_root_.Perennial.errors.Assumptions] :
   iintro #Hpkg
   ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨#Hnf, -, -, -, -, -, -, -, #Hnp⟩
+  icases Hli with ⟨#Hnf, -, -, -, -, -, -, -, -, -, #Hnp⟩
   iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at Hnf Hnp
   icases Hnp with ⟨%e1, #He1, %Hl1, #Hm1⟩
   icases Hnf with ⟨%e2, #He2, %Hl2, #Hm2⟩

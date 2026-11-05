@@ -82,7 +82,6 @@ theorem confchange.toConfChangeSingle.wp_proof
       | rw [decide_eq_false (show ¬ (x = W64 0) from Hx0)]
       | rw [decide_eq_false (show ¬ (W64 0 = x) from fun h => Hx0 h.symm)]
     wp_auto
-    rw [show raftpb.ConfChangeAddNode = #(W32 0) from rfl]
     wp_apply wp_ConfChangeType_Enum (W32 0)
     iintro %pty Hpt
     wp_auto
@@ -147,7 +146,6 @@ theorem confchange.toConfChangeSingle.wp_proof
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index so (sint.Z n) _ _ x Hn.1 $$ [Ho] with Ho
     · iframe Ho; ipureintro; exact Hx
-    rw [show raftpb.ConfChangeRemoveNode = #(W32 1) from rfl]
     wp_apply wp_ConfChangeType_Enum (W32 1)
     iintro %pty Hpt
     wp_auto
@@ -210,7 +208,6 @@ theorem confchange.toConfChangeSingle.wp_proof
     by_cases hxw : x = c.Witness'
     · rw [decide_eq_true hxw]
       wp_auto
-      rw [show raftpb.ConfChangeAddWitness = #(W32 4) from rfl]
       wp_apply wp_ConfChangeType_Enum (W32 4)
       iintro %pty Hpt
       wp_auto
@@ -249,7 +246,6 @@ theorem confchange.toConfChangeSingle.wp_proof
       ipureintro; constructor <;> word
     · rw [decide_eq_false hxw]
       wp_auto
-      rw [show raftpb.ConfChangeAddNode = #(W32 0) from rfl]
       wp_apply wp_ConfChangeType_Enum (W32 0)
       iintro %pty Hpt
       wp_auto
@@ -308,7 +304,6 @@ theorem confchange.toConfChangeSingle.wp_proof
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index sl (sint.Z n) _ _ x Hn.1 $$ [Hl] with Hl
     · iframe Hl; ipureintro; exact Hx
-    rw [show raftpb.ConfChangeAddLearnerNode = #(W32 3) from rfl]
     wp_apply wp_ConfChangeType_Enum (W32 3)
     iintro %pty Hpt
     wp_auto
@@ -366,7 +361,7 @@ theorem confchange.toConfChangeSingle.wp_proof
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index sn (sint.Z n) _ _ x Hn.1 $$ [Hn] with Hn
     · iframe Hn; ipureintro; exact Hx
-    rw [show raftpb.ConfChangeAddLearnerNode = #(W32 3) from rfl]
+    try rw [show raftpb.ConfChangeAddLearnerNode = #(W32 3) from rfl]
     wp_apply wp_ConfChangeType_Enum (W32 3)
     iintro %pty Hpt
     wp_auto

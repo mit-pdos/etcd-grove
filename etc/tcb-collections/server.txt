@@ -54,6 +54,7 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -139,6 +140,7 @@ axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom heap.Init_.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -177,9 +179,10 @@ axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.Renew.wp_proof
+axiom lease.lessor.Stop.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
@@ -239,6 +242,7 @@ axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom reflect.ValueOf.wp_proof
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -273,9 +277,6 @@ axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -304,6 +305,8 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
+axiom walDirFresh
+axiom walFiles
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof
 axiom zap.Duration.wp_proof
@@ -325,7 +328,3 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.applyAll.wp_proofOn
-sorry EtcdServer.run.wp_proofOn
-sorry run_job_snap_cmp
-sorry srvBeSnapOk_cmpRecs

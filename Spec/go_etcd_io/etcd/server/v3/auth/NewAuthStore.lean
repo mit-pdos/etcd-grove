@@ -88,8 +88,10 @@ at the etcd pin):
   is `authBoot`: false) and the revision (`setRevision` under its lock), and
   `refreshRangePermCache` over the image's users (none: `authUsers` empty, no decoding, no panic),
   then `enabledMu`'s write lock to set `enabled = false` (the token provider's `enable` not
-  called). The read transaction sees the image: the pre holds **the idle part of the new backend's
-  auth buckets** at `authBoot`/empty (`rbOwnIn dn.γB auth.authBkts r`: no write to them pending
+  called). (The auth-on snapshot plan's P2, 2026-11-03, review R1's F5: the pre takes the auth
+  buckets in the new backend's table, `dn.P.has authBI ∧ …`, as this triple's own pre does; without
+  it the claim was false at other parameters.) The read transaction sees the image: the pre holds
+  **the idle part of the new backend's auth buckets** at `authBoot`/empty (`rbOwnIn dn.γB auth.authBkts r`: no write to them pending
   since the last `Unlock` handed it, so a read transaction sees `r` there, the file header's Go
   basis; `authRoles` is read only per user, and there is none). Until 2026-11-01 the pre held the
   writer's half `rbOwn`, false: a batch deleting `authEnabled` and the users, held across
@@ -98,6 +100,13 @@ at the etcd pin):
   (`TestBksRecoverIdleAuthOtherPending`). The store stays disabled, so its contracts above (stated
   for auth off) hold after it, and `RD` names no backend's read right (the checks return before
   reading the backend).
+* (R2b-3d stage 5b, 2026-11-05, the user's decision) **`Close`** (`authCloseOk stl`, persistent):
+  `Close()` (`store.go:327-335`) takes `enabledMu`'s write lock (made by `NewAuthStore`; the lock is
+  only ever held for the length of a method, so no `Close` finds it held for good, and a WP is
+  partial anyway), reads `enabled`, false (the store stays disabled: above), so it does not call the
+  token provider's `disable()`, unlocks and returns `nil`. It reads nothing else and writes nothing,
+  so any number of `Close`s, before or after the other methods, is fine (`TestBksCloseAfterNew`,
+  `notes/axiom-review/auth-close.md`).
 -/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
@@ -124,7 +133,7 @@ abbrev auth.NewAuthStore.spec : Prop :=
       ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
       isReqAuth st RD ∗ authApplyOk stl RD ∗
-      authRecoverOk stl }}
+      authRecoverOk stl ∗ authCloseOk stl }}
 
 end spec
 

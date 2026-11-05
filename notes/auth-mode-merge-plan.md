@@ -34,7 +34,7 @@ Similarity: of the two proofs' tactic lines, whitespace-normalized (`difflib` ra
 | different structure | `applyEntryNormal` (483/529, 0.49), `Txn` (408 / `On` 290 + `OnR` 290, 0.67) | | last; needs the apply layer's families first |
 
 The callers outside the server (`api/v3rpc/ServerKVOn.lean`'s `*_of_serverOn`, `run_job_bodyOn`,
-`Results.lean`'s `server_*_on`, `examples/authkv/startServer.lean`) follow their callee.
+`Results.lean`'s `server_*_on`, `examples/etcd/auth/startServer.lean`) follow their callee.
 
 ## How much duplication there is, by track (measured 2026-10-29)
 
@@ -112,7 +112,7 @@ unconstrained (or fixed to `srvAuthSt0`) off.
    **The bridge**, so a caller need not wait for a hard callee: `X.specM m := match m with | false
    => X.spec | true => X.specOn`. `apply` takes `applyEntryNormal.specM m` this way until step 6
    merges it; the bridge is then deleted.
-4. **Start**: `start`, `Start` (and `examples/authkv/startServer.lean`).
+4. **Start**: `start`, `Start` (and `examples/etcd/auth/startServer.lean`).
 5. **The request path**: `Put`, `DeleteRange`, `Range`. One spec decision: `putPermitOn` requires a
    non-empty key. Either `⌜on → key ≠ []⌝`, or the off spec requires it too (the gRPC layer refuses
    an empty key, `ErrGRPCEmptyKey`, so every gRPC caller has it; check the non-gRPC callers:

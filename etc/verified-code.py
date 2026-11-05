@@ -174,6 +174,11 @@ def go_sources(base):
             if not ok:
                 sys.exit(f"verified-code: could not check out {p.repo} at {p.rev}")
         dirs[name] = d
+    # the code translated is the code with the prophecy patches applied (etc/proph_patch.py)
+    import proph_patch
+    for name in dirs:
+        dirs[name] = proph_patch.patched_copy(name, dirs[name],
+                                              os.path.join(base, name + ".proph"), quiet=True)
     return dirs
 
 
@@ -337,6 +342,32 @@ def qualifier(pkg):
     return pkg.rsplit("/", 1)[-1].replace("-", "_").replace(".", "_")
 
 
+_SPEC_NS = {}
+
+
+def spec_namespaces(pkg):
+    """The namespaces below `EtcdGrove` a Go package's spec files are declared in (`raft_kv` for
+    `examples/raft/kv`), in the main tree and the parts."""
+    if pkg not in _SPEC_NS:
+        root, _, path = pkg.rpartition(":")  # a part's package: `RaftWitness:<path>`
+        rel = os.path.join(*[re.sub(r"[.-]", "_", s) for s in path.split("/")])
+        nss = set()
+        for top in ([root] if root else [""] + list(proof_roots.PART_ROOTS)):
+            d = os.path.join(ROOT, top, "Spec", rel)
+            if not os.path.isdir(d):
+                continue
+            for f in os.listdir(d):
+                if f.endswith(".lean"):
+                    src = open(os.path.join(d, f), encoding="utf-8").read()
+                    found = re.findall(r"^namespace (\S+)", src, re.M)
+                    if "EtcdGrove" in found:
+                        inner = found[found.index("EtcdGrove") + 1:]
+                        if inner:
+                            nss.add(inner[0].split(".")[0])
+        _SPEC_NS[pkg] = nss
+    return _SPEC_NS[pkg]
+
+
 def resolve_local(fn, pkgs, part_pkgs, by_key, known):
     """The Go function a spec of this repository is about, and whether it is of a
     package of the project's `parts` (not the Go code of the sources, though its path
@@ -364,8 +395,10 @@ def resolve_local(fn, pkgs, part_pkgs, by_key, known):
         key = (pkg, parts[0], parts[1]) if len(parts) == 2 else (pkg, "", parts[0])
         if key in by_key or key in known:
             return key, False
-    # qualified by the main package's own qualifier (the register's `register.Register.Put`)
-    if len(parts) in (2, 3) and parts[0] == qualifier(pkgs[0]):
+    # qualified by the main package's own qualifier (the register's `register.Register.Put`), or
+    # by the namespace its specs are declared in (`raft_kv`, the kv example's)
+    if len(parts) in (2, 3) and (parts[0] == qualifier(pkgs[0])
+                                 or parts[0] in spec_namespaces(pkgs[0])):
         rest = parts[1:]
         key = (pkgs[0], rest[0], rest[1]) if len(rest) == 2 else (pkgs[0], "", rest[0])
         if key in by_key or key in known:

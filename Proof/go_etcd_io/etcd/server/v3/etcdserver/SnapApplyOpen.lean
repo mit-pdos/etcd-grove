@@ -52,12 +52,20 @@ def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : 
 
 /-- **The creation step of the backend `applySnapshot` opens** (`openPre`'s wand): the fresh
 backend's own keys (at the image `D`, whose meta keys are `π0.m0`) and payment rights give the
-store's late registration slot `lateW gx`, the batch lock's resource at the announced names
+store's late registration slot (the creator's other half of `d.gx`, unset) with the client halves of
+the backend's exact ghosts (from `pvckInit`: F2's stage 1) and, in compaction mode, the ties whole
+(`tieAll`, from `kbTie_alloc`) at the restored log `[[], []] ++ R` and its records `r`, of which the
+opened data `D` is the image (`keyImageM`, `restoreLogOk`: the supplier's terms, as `store.Restore`
+takes them; `tracked_of_keyImageM` and `restoreLogOk_wf` give the cut), the late-bound lock resource of the walked instance `{ d with γB := γB }`
+unset (`lateWD`, through `lateWU_of_open`; F2, stage 2: a walked backend's is `d.snap`'s arm) and
+what `store.Restore` keeps of the ties (`restoreTie`), the batch lock's resource at the announced names
 (`ci_announce`: the payment rights deposited in the futures) and the announcement; (J8a-4,
 2026-11-01) with `applySnapshot.specSnap`'s meta premise `HmS`, applied to the fresh keys and
 payment rights before they go, the new backend's meta reads. -/
-theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (D : backend.Data)
-    (gx : GName) (hm : metaIs D π0.m0) (hP : ciKeys P) :
+theorem snap_create [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (D : backend.Data)
+    (d : mvcc.KBReal) (hs : d.snap = true) (hdP : d.P = P) (R : mvcc.Log) (r : mvcc.CmpRecs)
+    (hI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hR : mvcc.restoreLogOk R)
+    (hm : metaIs D π0.m0) (hP : ciKeys P) :
     □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
       ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
       backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
@@ -68,11 +76,28 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
           go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
           (readView (γA.withPh π))) ⊢
     inv applyN (consInv (GF := GF) γA) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
-      mvcc.lateW gx -∗
-      ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ={⊤}=∗
-        mvcc.lateW gx ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
-        snapOpenK γA π0 P γB := by
-  iintro #HmS #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
+      dghostVar d.gx (DFrac.own (1 : Qp).half) (none : Option (Loc × mvcc.StoreNames)) -∗
+      mvcc.tieAll d ([[], []] ++ R) r.crev -∗
+      ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.pvckInit γB P D ∗
+          backend.bFresh γB ={⊤}=∗
+        mvcc.lateWD { d with γB := γB } ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
+        (snapOpenK γA π0 P γB ∗ mvcc.restoreTie d ([[], []] ++ R) r) := by
+  iintro #HmS #Hinv Hpend Hmt HW Htie %γB ⟨Hk, Hpv, Hfr⟩
+  iunfold backend.pvckInit at Hpv
+  icases Hpv with ⟨Hpv, Hck⟩
+  have h : d.cm = true → mvcc.physCut ([[], []] ++ R) r (backend.sData P D) ∧
+      backend.fkVals D = (mvcc.recBytes r.fin, mvcc.recBytes r.sched) ∧
+      mvcc.LogB ([[], []] ++ R) ∧ mvcc.LogWf' ([[], []] ++ R) := by
+    intro hc
+    rw [hc] at hI
+    obtain ⟨hcut, hv⟩ := mvcc.tracked_of_keyImageM d _ r D hI
+    rw [hdP] at hcut
+    exact ⟨hcut, hv, mvcc.restoreLogOk_wf R hR⟩
+  ihave Htie' : mvcc.tieAll (GF := GF) { d with γB := γB } ([[], []] ++ R) r.crev $$ [Htie]
+  · rw [mvcc.tieAll_congr d { d with γB := γB } ⟨rfl, rfl⟩]; iexact Htie
+  ihave ⟨HU, HR⟩ := mvcc.lateWU_of_open (GF := GF) { d with γB := γB } hs ([[], []] ++ R) r
+    (backend.sData P D) (backend.fkVals D) h $$ [HW Hpv Hck Htie']
+  · iframe HW Hpv Hck Htie'
   have hc : ciKeys P ∧ metaIs D (futPhys π0 γB).m0 ∧ (futPhys π0 γB).bwb = γB.wb ∧
       (futPhys π0 γB).bopn = γB.opn := ⟨hP, hm, rfl, rfl⟩
   icases HmS $$ %(futPhys π0 γB) %γB %P %D %hc Hk Hfr with ⟨Hk, Hfr, #HmB⟩
@@ -81,7 +106,12 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
   imod ci_announce γA (futPhys π0 γB) γB (metaTM γB P) π0.m0 rfl rfl rfl $$ Hinv Hfr Hpend Hmt HTM
     with ⟨Hbl, Hcls, %j, %γc, Htc, #Hidx⟩
   imodintro
-  iframe HW Hbl
+  iframe Hbl
+  isplitl [HU]
+  · iunfold mvcc.lateWD; ileft; iexact HU
+  ihave HR : mvcc.restoreTie (GF := GF) d ([[], []] ++ R) r $$ [HR]
+  · rw [← mvcc.restoreTie_congr d { d with γB := γB } ⟨rfl, rfl⟩]; iexact HR
+  iframe HR
   iunfold snapOpenK
   iframe Hcls HmB
   iexists j, γc
@@ -128,27 +158,6 @@ theorem boot_create (γA : ApplyNames) (γB : backend.BNames) (P : backend.BPara
   isplitr
   · iunfold applyRegdF; ileft; iexact Hreg
   ileft; ipureintro; rfl
-
-/-- **Two watchable stores over one inner store are one** (persistent facts only): the inner store's
-`ReadView` field names one read view, whose `kv` names its watchable store. -/
-theorem isWatchableStore_agree [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-    (s1 s2 st : Loc) (γ1 γ2 : mvcc.WsNames) :
-    mvcc.isWatchableStore (GF := GF) s1 st γ1 ∗ mvcc.isWatchableStore s2 st γ2 ⊢ ⌜s1 = s2⌝ := by
-  iintro ⟨H1, H2⟩
-  iunfold mvcc.isWatchableStore at H1 H2
-  icases H1 with ⟨%vc1, %stc1, %rv1, %γv1, H1⟩
-  icases H2 with ⟨%vc2, %stc2, %rv2, %γv2, H2⟩
-  iNamed H1
-  icases H2 with ⟨-, -, #Hrv', #Hrvkv', -⟩
-  icombine Hrv Hrv' gives %Heq
-  have h1 : rv1 = rv2 := by
-    simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
-    exact GoGlobalContext.intoVal_inj_loc Heq
-  subst h1
-  icombine Hrvkv Hrvkv' gives %Heq2
-  ipureintro
-  simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq2
-  exact GoGlobalContext.intoVal_inj_loc Heq2
 
 /-- **The readers' tokens' open shares** (W7): each reader token of the backend carries the share
 `rdOpen` of its open token. -/

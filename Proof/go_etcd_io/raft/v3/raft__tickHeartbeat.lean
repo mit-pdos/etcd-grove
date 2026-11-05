@@ -98,7 +98,6 @@ theorem raft.tickHeartbeat.wp_proof
       try wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       try wp_auto
-      rw [show raftpb.MsgCheckQuorum = #((W32 12 : raftpb.MessageType)) from rfl]
       haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
       wp_apply wp_MessageType_Enum (W32 12)
       iintro %pty Hpty
@@ -242,7 +241,6 @@ theorem raft.tickHeartbeat.wp_proof
     try wp_auto
     -- (raft v3.7, stage R4) `&pb.Message{From: new(r.id), Type: pb.MsgBeat.Enum()}`, built into
     -- `msgIn` (`msgPtsC_of_struct`), its two cells frozen
-    rw [show raftpb.MsgBeat = #((W32 1 : raftpb.MessageType)) from rfl]
     -- (as `confchange/toConfChangeSingle.lean`) Perennial gives `NotInterface` per type
     -- constructor, and `go.int32` (`MessageType`'s underlying type) is a non-reducible definition
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩

@@ -44,6 +44,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.client.v3.WatchCheck
+public import Proof.context.WatchCtx
 
 @[expose] public section
 
@@ -67,7 +68,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header.
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
 abbrev watcher.Watch.spec : Prop :=
   ∀ (w : Loc) (V : WEnv GF) (γ : KVNames) (ctx : GoInterfaceOk)
     (ctx_desc : context.ContextDesc (IProp GF)) (key : GoString) (opts_sl : GoSlice)
@@ -75,12 +77,12 @@ abbrev watcher.Watch.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ∗ ⌜V.kst = γ.st⌝ ∗
-      context.isContext ctx ctx_desc ∗ optsAt opts_sl opts ∗
+      EtcdGrove.context.watchCtx ctx ctx_desc ∗ optsAt opts_sl opts ∗
       ⌜(opWatchModel key opts).isRangeWatch rev = true ∧ ¬ opWatchPanics key opts ∧
         1 ≤ sint.Z rev ∧ watchSizeOk (opWatchModel key opts)⌝ ∗
       □ (⌜V.nm = 1 ∧ 0 < n⌝ → auth.authPubLbM (V.mem 0).2.E.authMode n) ∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) }}
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) }}
     (App (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watcher.ty @!!
         go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #opts_sl))
   {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;

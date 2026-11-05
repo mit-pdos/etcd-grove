@@ -70,7 +70,7 @@ def snapE (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci
     (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (al ast lp cl be : Loc) :
     apply.AEnv GF :=
   E.onBe p' (batchLockInv γ' TM') #g (srvCiC γ' ci)
-    (srvRestOwnH γB cl (srvObjsOn al ast lp cl be)) (srvRestRWH γB (srvObjsOn al ast lp cl be))
+    (srvRestOwnH E.authMode γB cl (srvObjsOn al ast lp cl be)) (srvRestRWH γB (srvObjsOn al ast lp cl be))
 
 section snapE
 variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci : Loc)
@@ -90,9 +90,11 @@ variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci 
 @[simp] theorem snapE_FS : (snapE E γ' TM' ci p' g γB al ast lp cl be).FS = E.FS := rfl
 @[simp] theorem snapE_ciC : (snapE E γ' TM' ci p' g γB al ast lp cl be).ciC = srvCiC γ' ci := rfl
 @[simp] theorem snapE_RO : (snapE E γ' TM' ci p' g γB al ast lp cl be).RO =
-    srvRestOwnH γB cl (srvObjsOn al ast lp cl be) := rfl
+    srvRestOwnH E.authMode γB cl (srvObjsOn al ast lp cl be) := rfl
 @[simp] theorem snapE_RW : (snapE E γ' TM' ci p' g γB al ast lp cl be).RW =
     srvRestRWH γB (srvObjsOn al ast lp cl be) := rfl
+@[simp] theorem snapE_lg : (snapE E γ' TM' ci p' g γB al ast lp cl be).lg = E.lg := rfl
+@[simp] theorem snapE_lm : (snapE E γ' TM' ci p' g γB al ast lp cl be).lm = E.lm := rfl
 @[simp] theorem snapE_γbe : (snapE E γ' TM' ci p' g γB al ast lp cl be).γbe = E.γbe := rfl
 
 /-- The store's names on the new backend are its real backend's (`p'.kb`, `snapWalkPost`'s). -/
@@ -146,6 +148,38 @@ theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal) (hkb :
     (kvCmpPermit γr.kv))
   iexact Hcp
 
+/-- **The server's atomics in the mode, at the snapshot's environment** (P6.2, 2026-11-03): off,
+`srvAtomics_snapE`; on, the KV invariants' tie to the store's history reads only the mode. -/
+theorem srvAtomicsM_snapE (on : Bool) (s : Loc) (γr : ReadNames) (d d' : mvcc.KBReal)
+    (hkb : E.γ.kb = some d) (hkb' : p'.kb = some d') (hcm' : d'.cm = d.cm) :
+    srvAtomicsM (GF := GF) on s E γr ⊢
+      srvAtomicsM on s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr := by
+  cases on with
+  | false => exact srvAtomics_snapE E γ' TM' ci p' g γB al ast lp cl be s γr d d' hkb hkb' hcm'
+  | true =>
+    have e1 : srvAppliedInvM (GF := GF) true s (snapE E γ' TM' ci p' g γB al ast lp cl be) γr =
+        srvAppliedInvM true s E γr := rfl
+    have e2 : authHistTie (GF := GF) (snapE E γ' TM' ci p' g γB al ast lp cl be) γr srvAuthSt0 =
+        authHistTie E γr srvAuthSt0 := rfl
+    simp only [srvAtomicsM, srvKVInvsM, srvKVInvsOn]
+    rw [e1, e2]
+    iintro ⟨#Ha, #Ht, ⟨#Hk, #Hc, #Hr, #Hti, %Hcok, #Hcp, %Hcm⟩, #Hu⟩
+    isplitr; · iexact Ha
+    isplitr; · iexact Ht
+    isplitr
+    · isplitr; · iexact Hk
+      isplitr; · iexact Hc
+      isplitr; · iexact Hr
+      isplitr; · iexact Hti
+      isplitr
+      · ipureintro; exact Hcok
+      isplitr
+      · iapply (mvcc.crevPermIs_cperm E.γ (snapE E γ' TM' ci p' g γB al ast lp cl be).γ rfl
+          (kvCmpPermit γr.kv))
+        iexact Hcp
+      ipureintro; exact Hcm
+    iexact Hu
+
 theorem srvGenAt_snapE (s : Loc) (ρ : ReqNames) :
     srvGenAt s (snapE E γ' TM' ci p' g γB al ast lp cl be) ρ = srvGenAt s E ρ := rfl
 
@@ -159,7 +193,7 @@ theorem storeReader_snapE :
       (snapE E γ' TM' ci p' g γB al ast lp cl be).γ = mvcc.storeReader E.s E.γ := rfl
 
 /-- The write budget is of `γbe` (step 7). -/
-theorem srvWTPool_snapE (γp : GName) :
+theorem srvWTPool_snapE (γp : WTNames) :
     srvWTPool (snapE E γ' TM' ci p' g γB al ast lp cl be) γp = srvWTPool E γp := rfl
 
 end snapE

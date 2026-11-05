@@ -28,7 +28,7 @@ canonical (rechecked at master `765dd1d`, 2026-10-26).
 no: the store's rule is what the proof states; the Lean model's item carries whether its stored
 value is canonical and coincides with `correctness.Model` when every item is
 (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Model.lean`, `KSt.update_eq_updateM`), and the driver
-checks against a fixed copy of the Model (`examples/k8setcd3/`; `notes/decisions.md`, D30g).
+checks against a fixed copy of the Model (`examples/k8s/etcd3/`; `notes/decisions.md`, D30g).
 
 ## Notes
 

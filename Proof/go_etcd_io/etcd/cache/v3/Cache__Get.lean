@@ -286,11 +286,7 @@ theorem Cache.Get.wp_proof
             have hle := snapModel_ok_le st of.base.rev r m Hm
             generalize hv : (if of.base.rev = W64 0 then st.latestRev else of.base.rev) = v at hle Hb ⊢
             rcases Int.lt_or_eq_of_le hle with hlt | heq
-            · iunfold cacheGap at Hgap
-              iunfold etcdQuiet at Hgap
-              icases Hgap $$ %v %(⟨hlt, Hb⟩ : sint.Z r < sint.Z v ∧ sint.Z v ≤ b)
-                with ⟨%q, %hq, #Hs0⟩
-              ihave #Hs := (etcdStep_restrict q r v v cf.pfx [] hq hlt (Or.inr ⟨rfl, rfl⟩)) $$ Hs0
+            · ihave #Hs := cacheGap_at cf.pfx r b v ⟨hlt, Hb⟩ $$ Hgap
               iapply isEtcdKvs_quiet r v cf.pfx m hlt $$ [$Hs $HE]
             · have : r = v := by word
               subst this; iexact HE

@@ -43,7 +43,7 @@ log: `kvRaftOf_prefix`) with `restoreLogOk R` (the KV model's revisions are non-
 lease-free under the workload); its certificate `certOk E.γ ([[], []] ++ R)` (the server's `cok`
 map element of the image's log); and the new backend's: `storeBackendT b' E.s (E.γ.withPhys p) P'`
 for every physical names of its bucket and instance (`storeBackendT_of_backend` of
-`OpenSnapshotBackend`'s `isBackend` with the late-bound `lateW gx'`), its full view of the `Key`
+`OpenSnapshotBackend`'s `isBackend` with the walked instance's late-bound `lateWD d'`, unset), its full view of the `Key`
 bucket at the image's log (`keyImage`), `kbNoCmp` (`OpenBackend`'s post with `keyImage_noCmp`),
 `kbRegRight` (the creator's half of `gx'`), `nReaders` reader tokens (`newPost`'s `rdTok`s with
 `bOpen` shares). And back from it: the new closer (`srvKVCloser` re-made with the watchable store's
@@ -57,10 +57,10 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
       ∃ (ws : Loc) (γw : mvcc.WsNames), ⌜γw.st = E.γ⌝ ∗ mvcc.isWatchableStore ws E.s γw ∗
         mvcc.storeCloser E.s γw.st ∗ mvcc.writerFrag γw.st ∗ mvcc.writerOwn γw.st ∗
         mvcc.crevFrozen γw.st ∗ mvcc.watchWriter γw log ∗
-        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD) ∗
+        (mvcc.storeReader E.s E.γ ∗ apply.leasesLive E (mvcc.stateAfter log) ∗ E.RD) ∗
         (∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-          structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) := by
+          structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗ mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) := by
   iintro ⟨Hown, Hcl⟩
   iunfold apply.kvOwn at Hown
   icases Hown with ⟨Hrd, Hkw, Hll, HRD, Hwo⟩
@@ -87,7 +87,7 @@ theorem etcdserver.restorePre_of_apply (s : Loc) (E : apply.AEnv GF) (log : mvcc
   ihave Hcp : iprop(∃ (wsl stc : Loc), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsl ↦□ stc ∗
-      mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl) $$ [Hstcl Hwsw]
+      mvcc.stopCloser stc ∗ mvcc.wsWaiter wsl E.s E.γ) $$ [Hstcl Hwsw]
   · iexists wsl, stc
     iframe Hkvf Hstc Hstcl Hwsw
   iframe Hws Hcl Hfrag Hwo Hfrz Hrd Hll HRD Hcp

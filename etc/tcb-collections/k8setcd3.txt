@@ -1,18 +1,18 @@
-# The Kubernetes etcd3 store's linearizability instance (examples/k8setcd3;
+# The Kubernetes etcd3 store's linearizability instance (examples/k8s/etcd3;
 # notes/k8s-etcd3-plan.md, phase 6): the results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Results.lean: `k8setcd3_Main` (over the
+# Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results.lean: `k8setcd3_Main` (over the
 # server's, v3rpc's, the clients', the store's and the porcupine driver's linked results) and the
-# closed theorem `k8setcd3_safe`/`k8setcd3_adequate` (linkvtxn's hypotheses at k8setcd3's
+# closed theorem `k8s_etcd3_safe`/`k8s_etcd3_adequate` (linkvtxn's hypotheses at k8setcd3's
 # configuration, the Kubernetes packages' semantics assumptions and `objTyOk`), which also rest
 # on the package initializers' axioms.
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/k8setcd3.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/k8setcd3.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/k8setcd3.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s_etcd3.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s_etcd3.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s_etcd3.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -279,9 +279,6 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
-axiom Perennial.os.Stderr_init
-axiom Perennial.os.initFuncsOk
-axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
@@ -300,6 +297,7 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -397,6 +395,7 @@ axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
+axiom fmt.SprintfNamed.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
@@ -451,6 +450,7 @@ axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom heap.Init_.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Flush_ok
 axiom http.HeaderGetOwnPtr_ok
@@ -484,8 +484,8 @@ axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -577,6 +577,7 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -615,9 +616,6 @@ axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -653,6 +651,9 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
+axiom walDirFresh
+axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
@@ -673,8 +674,3 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry k8setcd3.client_ctx_field
-sorry k8setcd3.revRoom
-sorry kubernetes.kvIs_ne_null
-sorry run_job_snap_cmp
-sorry srvBeSnapOk_cmpRecs

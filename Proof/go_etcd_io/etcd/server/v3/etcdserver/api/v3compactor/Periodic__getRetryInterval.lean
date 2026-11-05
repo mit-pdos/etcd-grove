@@ -34,7 +34,7 @@ theorem v3compactor.Periodic.getRetryInterval.wp_proof :
   -- rejected)
   have hH : sint.Z (W64 3600000000000) = 3600000000000 := by rfl
   wp_if_destruct
-  · simp only [_root_.Perennial.time.Hour, go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.retryDivisor]
+  · try simp only [_root_.Perennial.time.Hour, go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.retryDivisor]
     (try wp_auto)
     iapply HΦ
     iframe

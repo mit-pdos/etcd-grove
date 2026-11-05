@@ -78,7 +78,6 @@ private theorem node.ForgetLeader.wp_raw
   imod termLB_zero (GF := GF) γ.bud with #Hlb
   imod rdCred_zero_upd (GF := GF) γ.raft with Hcr
   imod tickCred_zero (GF := GF) γ.bud with Htc
-  rw [show raftpb.MsgForgetLeader = #((W32 23 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 23)
   iintro %pty Hpty

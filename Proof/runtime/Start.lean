@@ -25,6 +25,11 @@ of `Ns` is registered twice and no address of `As` bound twice, which is what `M
 right, the only source of an address's HTTP protocol (`http.reserve`), so each address's protocol
 is fixed once in a run (the model of `http.register`'s D38c: a global ghost map from addresses to
 saved protocols, now set by `reserve`). No Go operation is involved: nothing to check of `e`.
+(2026-11-03, the WAL's API) It also receives `walDirFresh d` for each directory of `Ds`
+(distinct), for a program of which `walDirsAbsent e Ds` holds: no WAL in `d` at start, and none
+created there but by the verified code, whose first `bootstrap` of `d` consumes the right; so each
+directory of `Ds` is bootstrapped fresh at most once in a run, which `bootstrap`'s contract needs
+(`wal.Exist(dir)` false: `bootstrapNewWAL`).
 Why it is once only: nothing else produces `nameFree`, `netAddrFree` or `httpProtoFree` (axiomatized
 predicates, `Registry.lean`, `InvNet.lean`; no axiom or definition gives one), so the rights exist
 only where this axiom's premise hands them out: once, to the one WP proof of one execution, under
@@ -49,6 +54,7 @@ module
 public import Perennial.GooseLang.Adequacy
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.net.InvNet
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalDir
 
 @[expose] public section
 
@@ -72,12 +78,20 @@ of `e`'s unverified code): while `e` runs, no other process binds an address of 
 of `e` whose behaviour this repository does not verify binds one. -/
 axiom addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop
 
+/-- **The WAL directories `Ds` hold no WAL when `e` starts** (a fact of the environment a run of
+`e` is in, and of `e`'s unverified code): no WAL exists in a directory of `Ds` when the program
+starts (`wal.Exist` false), and no code of `e` whose behaviour this repository does not verify, nor
+another process, creates one there. (2026-11-03, the WAL's API, change 6: the user's choice of an
+axiomatized token, `walDirFresh`.) -/
+axiom walDirsAbsent [GooseExts] (e : Expr) (Ds : List GoString) : Prop
+
 /-- The rights program start gives: the right to register each name of `Ns` and to listen on
 each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
-(`httpProtoFree`). -/
-def startRights {GF : BundledGFunctors} [GooseExts] (Ns As : List GoString) : IProp GF :=
+(`httpProtoFree`); and (2026-11-03) each WAL directory of `Ds` fresh (`walDirFresh`), which a
+member's first start consumes. -/
+def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) : IProp GF :=
   iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗
-    ([∗list] a ∈ As, httpProtoFree a))
+    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, walDirFresh d))
 
 section adequacy
 variable [GooseExts] [GooseInterp]
@@ -89,15 +103,16 @@ header). `goose_adequacy`, with the WP proof also given `startRights Ns As`. -/
 axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (Ns As : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup)
+    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
     (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
+    (hDsFree : walDirsAbsent e Ds)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
       threadBound GF = T →
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))

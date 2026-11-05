@@ -118,6 +118,21 @@ structure BNames where
   and (M2 storage plan, items 27/29, 2026-10-30) the flag's value and the keys' values at the open
   (`fkInit`, `fkVals`) -/
   fkv : GName
+  /-- `ghostVar VData`: **the physical view of the non-hook buckets** (`sData` of the writer's
+  contents: the buckets with `P.HB n = false`; F2's stage 1, `notes/image-cmp-f2-plan.md`), half the
+  batch lock's (`trkHalf`), half the client's (`pvHalf`) -/
+  pv : GName
+  /-- `ghostVar FkVals`: **the compaction keys' values** (`fkVals` of the writer's contents; F2's
+  stage 1), half the batch lock's (`trkHalf`), half the client's (`ckHalf`) -/
+  ck : GName
+  /-- `dghostVar (Loc × GoString)`, discarded at allocation (2026-11-04, R2b-3c): bbolt's database
+  and the file it is (`bDB`, `bFile`), so that the stop's escrow and `Close` agree on it -/
+  dbf : GName
+  /-- saved proposition (2026-11-04, the restart plan's R2b-3d stage 3): the result `Y` of the
+  request `Close`'s caller makes of the stop's commit (`stopReq`): both halves in the stop
+  invariant at `True` until `Close` sets them to `Y`; one its claim, one deposited with the request,
+  which `run` carries to `donec`'s escrow with `Y` -/
+  rq : GName
   /-- The tracked buckets' names (`rbData`'s at creation and the table's tracked buckets: every
   bucket a session can write), the keys of the ghost map `γ.rbk` (decision 3 of
   `notes/backend-auth-split-plan.md`): pure, fixed by the constructor -/
@@ -288,6 +303,46 @@ def bOpen (γ : BNames) (q : Qp) : IProp GF :=
 /-- The backend stopped (persistent). -/
 def bStopped (γ : BNames) : IProp GF := dghostVar γ.opn DFrac.discard true
 
+/-- (2026-11-04, R2b-3c) **The backend's bbolt database is `db`, the file at `path`** (persistent). -/
+def bDBAt (γ : BNames) (db : Loc) (path : GoString) : IProp GF :=
+  dghostVar γ.dbf DFrac.discard ((db, path) : Loc × GoString)
+
+instance bDBAt_persistent (γ : BNames) (db : Loc) (path : GoString) :
+    Persistent (bDBAt (GF := GF) γ db path) := by
+  unfold bDBAt; infer_instance
+
+/-- (R2b-3c) The backend's bbolt database is `db` (persistent). -/
+def bDB (γ : BNames) (db : Loc) : IProp GF := iprop(∃ path : GoString, bDBAt γ db path)
+
+instance bDB_persistent (γ : BNames) (db : Loc) : Persistent (bDB (GF := GF) γ db) := by
+  unfold bDB; infer_instance
+
+/-- (R2b-3c) **The backend's file is at `path`** (persistent; `New` gives it, `Close` gives the file
+back there). -/
+def bFile (γ : BNames) (path : GoString) : IProp GF := iprop(∃ db : Loc, bDBAt γ db path)
+
+instance bFile_persistent (γ : BNames) (path : GoString) : Persistent (bFile (GF := GF) γ path) := by
+  unfold bFile; infer_instance
+
+theorem bDBAt_agree (γ : BNames) (db db' : Loc) (p p' : GoString) :
+    bDBAt (GF := GF) γ db p ∗ bDBAt γ db' p' ⊢ ⌜db = db' ∧ p = p'⌝ := by
+  unfold bDBAt
+  iintro ⟨H1, H2⟩
+  ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
+  ipureintro
+  simp only [Prod.mk.injEq] at H
+  exact H
+
+/-- (R2b-3c part 2b) **The backend's file has one path**: `New`'s `bFile` and `Close`'s agree, so the
+closed file is at the configuration's path. -/
+theorem bFile_agree (γ : BNames) (p p' : GoString) :
+    bFile (GF := GF) γ p ∗ bFile γ p' ⊢ ⌜p = p'⌝ := by
+  unfold bFile
+  iintro ⟨⟨%db, H1⟩, ⟨%db', H2⟩⟩
+  ihave %H := bDBAt_agree γ db db' p p' $$ [H1 H2]
+  · iframe H1 H2
+  ipureintro; exact H.2
+
 instance bStopped_persistent (γ : BNames) : Persistent (bStopped (GF := GF) γ) := by
   unfold bStopped; infer_instance
 
@@ -323,6 +378,11 @@ def hkOwn (γ : BNames) (d : GMap (GoString × GoString) GoString) : IProp GF :=
 contents being `S`: the client's half if `k` is a hook's own key, else nothing. -/
 def hkPut (γ : BNames) (P : BParams) (n k : GoString) (S : Data) : IProp GF :=
   if P.hk n k then hkOwn γ (hkData P S) else iprop(True)
+
+/-- A put of a key that is not a hook's own key needs nothing of them. -/
+theorem hkPut_other (γ : BNames) (P : BParams) (n k : GoString) (S : Data) (h : P.hk n k = false) :
+    ⊢ hkPut (GF := GF) γ P n k S := by
+  unfold hkPut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]; iintro; itrivial
 
 /-- One tracked bucket's ghost element (`γ.rbk`, a ghost map over the tracked buckets' names
 `γ.rbD`), at fraction `q`: the bucket's contents in the writer's contents (absent if absent) and
@@ -495,6 +555,96 @@ theorem fkPut_eq (γ : BNames) (n k : GoString) (h : ¬ fkKey n k) :
     fkPut (GF := GF) γ n k = iprop(True) := by
   unfold fkPut; exact if_neg h
 
+/-! ### The physical view and the compaction keys' values, exact (F2's stage 1, 2026-11-02)
+
+`notes/image-cmp-f2-plan.md`: two backend ghosts whose halves the batch lock holds at the writer's
+contents (`trkHalf`), so that a holder of the client's halves knows the writer's contents there; a
+write that can change them takes and gives back the client's half (`pvPut`, `ckPut`). -/
+
+/-- **The client's half of the physical view** of the non-hook buckets (exclusive): the writer's
+contents' `sData` (the buckets with `P.HB n = false`, `Model2.lean`'s `vData`), the batch lock
+holding the other half. For the server's backend, the `Key` bucket alone. Every write to a non-hook
+bucket (`UnsafePut`, `UnsafeSeqPut`, `UnsafeDelete`, `UnsafeDeleteBucket`) takes and updates it
+(`pvPut`). -/
+def pvHalf (γ : BNames) (vd : VData) : IProp GF :=
+  ghostVar γ.pv (1 : Qp).half vd
+
+/-- **The client's half of the compaction keys' values** (exclusive): `fkVals` of the writer's
+contents, the batch lock holding the other half; a put of a compaction key moves both (`ckPut`). -/
+def ckHalf (γ : BNames) (v : FkVals) : IProp GF :=
+  ghostVar γ.ck (1 : Qp).half v
+
+instance pvHalf_timeless (γ : BNames) (vd : VData) : Timeless (pvHalf (GF := GF) γ vd) := by
+  unfold pvHalf; infer_instance
+
+instance ckHalf_timeless (γ : BNames) (v : FkVals) : Timeless (ckHalf (GF := GF) γ v) := by
+  unfold ckHalf; infer_instance
+
+/-- **The client's halves at the open** of bbolt's data `D` (what the constructor gives the creator,
+beside `hkOwn`): the physical view at `sData P D` and the compaction keys' values at `fkVals D`. -/
+def pvckInit (γ : BNames) (P : BParams) (D : Data) : IProp GF :=
+  iprop(pvHalf γ (sData P D) ∗ ckHalf γ (fkVals D))
+
+/-- **The client's two halves, at some values** (F2's stage 1: what a client threads through the
+batch lock's resource without tracking the values; agreement with a held lock gives them,
+`batchLocked_pv`, `batchLocked_ck`). -/
+def pvckOwn (γ : BNames) : IProp GF :=
+  iprop(∃ (vd : VData) (v : FkVals), pvHalf γ vd ∗ ckHalf γ v)
+
+instance pvckInit_timeless (γ : BNames) (P : BParams) (D : Data) :
+    Timeless (pvckInit (GF := GF) γ P D) := by
+  unfold pvckInit; infer_instance
+
+instance pvckOwn_timeless (γ : BNames) : Timeless (pvckOwn (GF := GF) γ) := by
+  unfold pvckOwn; infer_instance
+
+theorem pvckOwn_of_init (γ : BNames) (P : BParams) (D : Data) :
+    pvckInit (GF := GF) γ P D ⊢ pvckOwn γ := by
+  unfold pvckInit pvckOwn
+  iintro ⟨Hp, Hc⟩
+  iexists sData P D, fkVals D
+  iframe Hp Hc
+
+/-- What a write to bucket `n` needs and gives of the physical view, the writer's contents being
+`S`: the client's half if `n` is not a hook's bucket, else nothing. -/
+def pvPut (γ : BNames) (P : BParams) (n : GoString) (S : Data) : IProp GF :=
+  if P.HB n then iprop(True) else pvHalf γ (sData P S)
+
+/-- What a put of key `k` in bucket `n` needs and gives of the compaction keys' values, the writer's
+contents being `S`: the client's half if `k` is a compaction key, else nothing. -/
+def ckPut (γ : BNames) (n k : GoString) (S : Data) : IProp GF :=
+  if fkKey n k then ckHalf γ (fkVals S) else iprop(True)
+
+/-- A write to a hook's bucket needs nothing of the physical view. -/
+theorem pvPut_hook (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
+    ⊢ pvPut (GF := GF) γ P n S := by
+  unfold pvPut; rw [h]; simp only [↓reduceIte]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem pvPut_hook_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = true) :
+    pvPut (GF := GF) γ P n S = iprop(True) := by
+  unfold pvPut; rw [h]; rfl
+
+/-- A write to a non-hook bucket needs the client's half of the physical view. -/
+theorem pvPut_other_eq (γ : BNames) (P : BParams) (n : GoString) (S : Data) (h : P.HB n = false) :
+    pvPut (GF := GF) γ P n S = pvHalf γ (sData P S) := by
+  unfold pvPut; rw [h]; rfl
+
+/-- A put of a key that is not a compaction key needs nothing of their values. -/
+theorem ckPut_other (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
+    ⊢ ckPut (GF := GF) γ n k S := by
+  unfold ckPut; rw [if_neg h]; iintro; itrivial
+
+/-- The same, as an equation. -/
+theorem ckPut_other_eq (γ : BNames) (n k : GoString) (S : Data) (h : ¬ fkKey n k) :
+    ckPut (GF := GF) γ n k S = iprop(True) := by
+  unfold ckPut; exact if_neg h
+
+/-- A put of a compaction key needs the client's half of their values. -/
+theorem ckPut_fk_eq (γ : BNames) (n k : GoString) (S : Data) (h : fkKey n k) :
+    ckPut (GF := GF) γ n k S = ckHalf γ (fkVals S) := by
+  unfold ckPut; exact if_pos h
+
 /-- **The batch lock's side of the tracked buckets** at contents `r`: the ghost map's authority,
 the other halves of its elements (the shape of the client's `rbOwn`, so that a snapshot's
 observation is handed one), and every tracked bucket of the table among its names (a session's
@@ -507,14 +657,18 @@ only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`, wh
     ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
 
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
-(`γ.hkd`) and the tracked buckets (`rbSide`). -/
+(`γ.hkd`), the tracked buckets (`rbSide`), and (F2's stage 1, 2026-11-02) the physical view of the
+non-hook buckets (`γ.pv` at `sData P S`) and the compaction keys' values (`γ.ck` at `fkVals S`),
+whose other halves are the client's `pvHalf`/`ckHalf`. -/
 def trkHalf (γ : BNames) (P : BParams) (S : Data) : IProp GF :=
-  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S))
+  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S) ∗
+    ghostVar γ.pv (1 : Qp).half (sData P S) ∗ ghostVar γ.ck (1 : Qp).half (fkVals S))
 
 /-- Two contents with the same tracked data have the same halves. -/
 theorem trkHalf_eq (γ : BNames) (P : BParams) {S S' : Data} (h1 : hkData P S' = hkData P S)
-    (h2 : rbData P S' = rbData P S) : trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
-  unfold trkHalf; rw [h1, h2]
+    (h2 : rbData P S' = rbData P S) (h3 : sData P S' = sData P S) (h4 : fkVals S' = fkVals S) :
+    trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
+  unfold trkHalf; rw [h1, h2, h3, h4]
 
 /-! ## The history of the read side, and the cache's marks -/
 
@@ -828,6 +982,30 @@ def cacheRes (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
   iprop(∃ (bp : Loc) (ver : w64), cbufOf b ↦ bp ∗ cverOf b ↦ ver ∗
     (⌜bp = Loc.null⌝ ∨ cacheEnt γ P bp ver))
 
+/-! ## The stopped batch transaction -/
+
+/-- (2026-11-04, R2b-3c part 2) **What the stop's commit leaves of the batch lock's ghost shares**, at
+its committed data `C`: the readers' view quarter at `C`'s physical view (over some logical view, as
+`batchViewQ` after a commit) and the lock's halves of what it tracks (`trkHalf`). The stopped lock
+holds none of it (`batchFree`'s `bStopped` case): `Close` hands it to its caller (`bStopView`). -/
+def bStopG (γ : BNames) (P : BParams) (C : Data) : IProp GF :=
+  iprop((∃ L : VData, viewQ γ (1 : Qp).half.half (sData P C) L) ∗ trkHalf γ P C ∗
+    -- (2026-11-04, the restart plan's R2b-3d stage 3) a reader's lower bound of the compaction
+    -- keys' flag at `C` (what the stop's commit gives its readers, `fkHalf_rd`)
+    ∃ R : RBuf, fkRd γ P (C, R))
+
+/-- (R2b-3c) **What the stopped batch transaction gives up**: bbolt's database, owned at its
+committed data `C`, with the lock's ghost shares at `C` (`bStopG`, R2b-3c part 2) (the stop's
+commit's; `CommitAndStop` adds the lock's client resources, `bDBOut`). -/
+def bDBOutG (γ : BNames) (P : BParams) : IProp GF :=
+  iprop(∃ (db : Loc) (C : Data), bDB γ db ∗ ownDB db γ.db C ∗ bStopG γ P C)
+
+/-- (R2b-3c) **What `CommitAndStop` gives up**: the stopped batch transaction's (`bDBOutG`) and the
+batch lock's client resources `W ∗ Pk`, which the stopped lock no longer holds (the stop's escrow,
+`bDoneEsc`, keeps them for `Close`). -/
+def bDBOut (γ : BNames) (P : BParams) (W Pk : IProp GF) : IProp GF :=
+  iprop(bDBOutG γ P ∗ W ∗ Pk)
+
 /-! ## The batch transaction -/
 
 /-- The batch transaction's physical state for `st`: its fields, the write buffer, the
@@ -838,7 +1016,9 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
     txFOf t ↦ st.tx ∗ pendOf t ↦ st.pend ∗ delOf t ↦ st.ndel ∗ ownWB (wbOf t) st.W ∗
     bF go!"txPostLockInsideApplyHook" b ↦ hk ∗ dghostVar γ.hook (DFrac.own (1 : Qp).half) hk ∗
     ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx db ∗
-    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
+    sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+    -- (2026-11-04, R2b-3c) the database the backend's (its stop gives it to `Close`)
+    bDB γ db)
 
 /-- **The batch lock's quarter of the readers' view, over the logical view** (question 2, option (a),
 2026-10-29; until then the quarter at the physical view `vData P (st.C, st.R)` itself): some logical
@@ -1081,7 +1261,9 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
     sync.isMutex (cmuOf b) (cacheRes γ P b) ∗ cacheInv γ ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-    isDB db ∗ ⌜P.Wf⌝)
+    isDB db ∗ ⌜P.Wf⌝ ∗
+    -- (2026-11-04, R2b-3c) the database and its file
+    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path))
 
 instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     Persistent (isBackend γ P W Pk b) := by

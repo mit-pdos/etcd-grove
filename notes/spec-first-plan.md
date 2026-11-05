@@ -41,6 +41,20 @@ Seven steps, in order (renamed 2026-10-28; the notes and commits before then num
 | **Freeze** | -- | the specs fixed: every caller's glue written, the unfold list empty or justified; every new or restated axiom attacked by the `axiom` skill |
 | **Prove** | phase 4 | the remaining proofs, in parallel |
 
+**The order is a gate, not a checklist** (2026-11-05, from the dsverify ablation runs,
+`/shared/dsverify-lab`). Given the phases as text, an agent with idle time while reviewers ran started
+proof agents on every package, wrote "deviation recorded" in its notes, and froze after the proofs:
+each phase left its record, in the wrong order, and the review's repairs and a Probe-sized gap then
+invalidated 23 finished proofs (a cascade three call levels deep). So:
+- **No proof agent before the freeze**, and no function proof beyond Draft's listed glue and Probe's
+  named proofs. The freeze is an annotated tag `stageN-frozen` on the commit with the frozen
+  statements, made when the user freezes; before each batch of proof agents,
+  `git rev-parse -q --verify refs/tags/stageN-frozen` is checked and its output goes in their brief.
+- **Writing a deviation down does not allow it**: proving during Review, or freezing after the
+  proofs, is the skipped phase, recorded.
+- **While Review runs**, the work that may go on alongside it is Test, the axiom attacks, the listed
+  glue, the Probe proofs and the next reviewer bundle; not the remaining proofs.
+
 **Freeze: the axioms attacked first** (the user's, 2026-11-02). Before the user freezes a stage, the
 `axiom` skill runs on every axiom the stage adds or restates (`etc/tcb-report.py --check` lists
 the new ones; a same-name restatement is in the diff of the stage's trust-boundary files): it tries
@@ -60,12 +74,49 @@ adequacy). Widening later is a new, deliberate stage, not a series of spec edits
 and the statements of the layers it changes, not a survey of the files: M2's Scope, decided from
 a survey, was revised four times in Draft by drafting alone (C3, the watch store, Restore, and
 delete-then-put twice).
+*For a stage that admits a new case into shared invariants* (lease-grant, 2026-11-02, the user's):
+Scope lists not only what is missing but what admitting the case breaks: every invariant and result
+that rules the case out today (by a `False` arm, a "plain" predicate, an exact image), and for each
+whether it stays true once the case happens. lease-grant's Scope listed the five places a grant was
+closed and chose "narrow" from that list; then Draft found, one at a time, that the rest model's
+exact image forces the lessor tied to the model's table, and that the server's KV results become
+false once a grant is applied. Each needed the user's decision in the middle of plumbing.
 
 **Draft (was phase 1): the spec skeleton, top-down.** Every function's spec written, internal and external,
 every proof `sorry` (or a trust-boundary axiom), `Link.lean` generated. Then prove the *glue*:
 the callers whose bodies only thread state between callees, from the callees' specs. Glue proofs
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
+*The glue is a list* (2026-11-05, from the dsverify ablation): the stage plan lists the glue before
+any of it is proved, each entry with its reason. A body is glue only when it decides nothing over
+shared state: it takes no lock, opens no invariant, updates no ghost state and loops over no protocol
+state; it calls its callees and passes their results on. Leaves (getters, pure helpers,
+constructors) are not glue: they wait for Probe or Prove. A Draft agent's brief names the glue it may
+prove; any other proof it finishes is a Prove proof done early. (A run with the gate above but no
+list proved 49 of its 94 functions in Draft as "glue".) The glue is usually a small part of a stage's
+functions; a long list is a sign the line was drawn to prove early.
+*Go first* (2026-11-05, the user's): a stage that changes a top-level program's traffic or its
+model writes the Go side before any Lean statement: the driver's new traffic, the Go copy of the
+model, their tests, and a statistics test that reaches every new outcome (each new error, each new
+path), run against the real code. Draft then writes Lean against Go that is known to run. The
+evidence: phase 7b's driver and stats test (2026-11-05) found the store's cached no-op bug
+(`k8s-etcd3-cached-noop-skips-preconditions`, in `issues/` with branch `k8s-etcd3-7b`) in minutes, before any statement existed;
+found in Prove, it would have been an unprovable frozen statement.
+
+*Invariants written in full* (2026-11-04, the user's): each new or changed invariant's body, not only
+its name, with its ownership (who allocates it, who opens it, which ghost state it holds and who holds
+the other halves) and the laws its clients use. Nothing before Probe checks an invariant's strength
+(Test does not see resources, glue only threads invariants), so a name with a `sorry` body defers the
+costliest kind of miss to Prove: raft-unified's redesigns after its freeze clustered in its newest
+contract, and lease-grant's exact-image problem surfaced one site at a time in Draft's plumbing.
+*Design before plumbing* (lease-grant, 2026-11-02, the user's): when a change runs through shared
+definitions with many sites (a new parameter threaded through `rqOk`, `dispatchAnswer`: hundreds of
+sites, each a full server rebuild), Draft first writes the design as text in the plan -- each changed
+statement old → new, and for each the callee specs it is proved from -- and Review checks that whole
+chain (is each statement provable from what it cites?) before any site is threaded. lease-grant
+threaded `lg` through about 400 sites before the chain was reviewed; its first review found two specs
+not provable from the callees they cited, and the next two design problems surfaced during the
+plumbing.
 
 **Review (was phase 1b): review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
 Draft step). Writing a spec and proving its callers' glue alternate per package boundary: write the
@@ -89,6 +140,19 @@ mirror the code) in two tiers:
   depends on: each is a place where a change elsewhere forces this spec to change, step 1's main
   cause of churn).
 
+*Invariants are reviewed too* (2026-11-04, the user's): each new or changed invariant (an `Inv*`
+definition, often behind a predicate or a sealed slot, so not itself a "spec that crosses a package
+boundary") is ranked in the same two tiers, judged by the `spec` skill's principles on invariants
+(`PRINCIPLES.md`: TaDa, not HoCAP, the client keeping its own invariant; a bound reasoned about where
+it is owned; a new mode redefining the shared predicates in place; laws, not unfolds; a hub naming it
+through a sealed slot), and against the Go code it mirrors.
+
+*Parallel reviewers* (2026-11-05, the user's): a round may review independent targets with one fresh
+reviewer each, at the same time, when the targets share no hub statement (`notes/spec-first-plan.md`,
+"Hubs") and no sealed slot; a hub statement and every slot in it always go to one reviewer, who sees
+both sides of each slot. Rounds are cheap next to the user's decisions and the builds, so this is an
+option for a large stage, not a rule.
+
 *Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
 repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
@@ -110,6 +174,12 @@ with a concrete Go program, which the spec review does not make. `mvcc.kbNoCmp_m
 `lean`, past its review, until `backend-cmp`'s round 6 saw that its antecedent holds for any read
 transaction (take `L := False`); the restatement proposed in its place was refuted by the `axiom`
 skill (direct `Meta` puts; branch `axiom/kbnocmp-metanone`), not by a review.
+**When: in the round that writes it** (2026-11-05, the user's). A new, widened or restated
+trust-boundary statement gets its `axiom` attack in the Draft or repair round that introduces it, in
+parallel with the review, not batched before the freeze: proofs and glue built on it in between are
+lost if it is refuted. (lease-expiry restated `leaseTimeToLive` and widened `NewLessor`'s post, then
+built `Main`'s proof on them for a day before any attack started.) A statement changed again after
+its attack is attacked again, on what changed.
 
 *Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
 the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
@@ -168,15 +238,20 @@ so later reviews in the repository start from it.
 - Readings: `Post` violated: the spec is false. `Pre` violated on a trace of a normal workload:
   the spec is stronger than its real callers allow. `Pre` never satisfied: vacuous.
 - Lock invariants (`Inv*`) asserted at each `Unlock`; concurrent objects checked by porcupine
-  against the spec's pure model (`examples/lintest` exists); protocol-level properties keep their
+  against the spec's pure model (`examples/lib/lintest` exists); protocol-level properties keep their
   model checkers (`notes/reconfiguration-model-check.md`).
 - The trust-boundary specs of other packages (bbolt, grpc, zap, the standard library) get the
   same treatment: random call sequences against the real library, checked against the axiom's pure
   model. One refuting trace is what the audit had to find by reading.
 
-**Probe (was phase 3): a few proofs per package.** Prove fully the one or two riskiest bodies of each
+**Probe (was phase 3): a few proofs per package.** The Probe set is named in the stage plan before the
+probes start (2026-11-05, from the dsverify ablation): at most two proofs per package, an easy one and
+a hard one; a proof not on the list waits for the freeze. Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
-sufficiency, the ghost design, logical atomicity. Then freeze the specs: a change after the
+sufficiency, the ghost design, logical atomicity. *The hard proof is chosen by its invariant* (2026-11-04, the
+user's): the step that must preserve a new or changed invariant in its riskiest case (the concurrent
+update, the reconfiguration, the restore, the crash), not merely the body with the most branches; it
+is the only check of the invariant's strength before the freeze. Then freeze the specs: a change after the
 freeze needs a `notes/decisions.md` entry with its cause. Do an easy proof too, not only the riskiest one (the user, 2026-10-27): an easy
 proof is cheap and may already find problems the review missed (a resource it cannot build, a premise
 it cannot meet); measured against the hard one, it says whether the hard proof found anything more,
@@ -203,7 +278,8 @@ an unproved `sorry`, not against `Compact`'s Go body (which reads the context's
 `Value(TraceKey{})`).
 
 **Prove (was phase 4): the remaining proofs**, against frozen specs, in parallel (independent per function,
-which suits agents).
+which suits agents). Each proof agent's brief names the freeze tag (with the gate's output) and the
+functions it proves; it writes no spec: a spec it finds missing or wrong goes in the change log below.
 
 **The change log after the freeze, classified** (2026-10-30, the user's). Every change to a frozen
 statement goes in the stage's change log (old → new, why), as raft-unified's did
@@ -261,6 +337,35 @@ statement each one rebuilds most of the repository (`mvcc/InvStore.lean` has 172
 - **`etc/tcb-report.py --check` only when an axiom or a `sorry` changed**, and once before a merge
   into the main branch, which also takes the full build of record.
 
+**One build of a shared change, not one per worktree** (2026-11-05, the user's). On 2026-11-04 the
+load reached about 130 on 32 cores: four worktrees each recompiled raft and the server after the same
+Perennial pin bump and `lean` merge, the same `.olean`s four times, each `lake build` at 32 jobs. So:
+- **After a change to widely imported modules lands on `lean`** (a pin bump, a hub statement, a
+  shared invariant), one session builds `lean` once (a worktree at that commit) and the others,
+  after merging `lean`, seed their `.lake/build` from it (`cp -a` of that build, never `cp -al`)
+  before building; Lake then rebuilds only what their own branch changes. The session that lands
+  such a change says so in its `notes/STATUS.md` entry ("seed from a build of `<commit>`").
+- **Full builds take turns**: a full `lake build` (and `etc/gates.sh`, which runs one) goes through
+  `flock /shared/tmp/etcd-grove-full-build.lock`, so at most one full build runs on the machine;
+  targeted builds (`etc/importers.py --leaves`) and `etc/lean-check.py` do not take the lock.
+
+**Landing takes a lock** (2026-11-05, the user's). The gates and the fast-forward are one step, but
+other sessions moved `lean` in between: on 2026-11-05 a notes-only commit landed while `r2b3`'s
+gates ran, and its fast-forward failed after the full gates. So every landing, notes-only included,
+goes through `etc/land.sh` from the branch's worktree: under `flock /shared/tmp/etcd-grove-land.lock`
+it checks that `lean` is merged, runs `etc/gates.sh` under the full-build lock (skipped when the
+branch changes only `notes/`), and fast-forwards `lean`. A landing that finds the lock taken waits;
+one that finds `lean` moved merges it outside the lock and reruns. No `git merge --ff-only` into
+`lean` by hand.
+
+**The session registry** (2026-11-05, the user's). Sessions under two accounts work on this
+repository and cannot all message each other, so one file says who does what:
+`/shared/etcd-grove-sessions.md`, a table with one row per active session (session name, account,
+worktree, branch, stage, state, next hard stop, updated). A session adds its row when it starts a
+stage, updates it at each hard stop and landing, and removes it when its worktree goes. The
+coordinator reads it before sequencing landings or starting agents; a session about to touch a hub
+(`etc/spec-hubs.py`) checks it for others on the same hub.
+
 **Not covered by testing:** the resource part of a spec (ownership, fractions, invariants,
 atomicity). Only Draft's glue proofs and Probe's sampled proofs check it before Prove.
 
@@ -290,6 +395,38 @@ before the freeze a reversal costs statements and glue, not proofs.
 
 **Batching.** What must go to the user goes once per round, all of the round's questions together,
 not one at a time; the stage goes on with what does not depend on them.
+
+**Proceed with a veto** (2026-11-05, the user's). Before the freeze, a question in the right column
+that is not a hard stop is not a stop: the agent takes its own recommendation, records it in the
+stage plan as "decided by the agent, pending the user" (the options, the recommendation, the
+evidence), and goes on; the user reads the pending decisions in batches and vetoes what they
+disagree with, and a veto before the freeze costs statements and glue. The evidence: phase 7b's
+first three stops (2026-11-05) asked nine questions, the user took the recommendation on all nine,
+and each stop cost a round trip with the agent idle. **Hard stops** stay stops:
+- Scope and each Freeze;
+- anything that grows the trust base: a new axiom, a trusted model or scope premise on a trusted or
+  exported statement, a wider existing axiom (7b's T1, `types.UID` added to `SprintfNamed`'s list);
+- the escalation trigger below; a change to a frozen or top-level statement;
+- anything upstream or a fork change.
+
+A scope narrowing around a recorded finding (7b's cached no-op: the traffic avoids it, the bug in
+`issues/`) proceeds: it is recorded and in the batch, not a stop.
+
+**Questions do not block** (2026-11-05, the user's). A background agent that asks by ending its turn
+idles until the answer. Instead it appends the question (and each "decided by the agent, pending
+the user" decision) to `questions.md` at its worktree's root, with the options, its recommendation
+and what depends on the answer, and goes on with what does not; the orchestrator relays the file to
+the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
+does not depend on it.
+
+*Where, and what counts as approved* (2026-11-05, the user's). The stage's worktree and branch are
+made at Scope, not at the freeze, so that `questions.md` is always at the worktree's root (not in a
+session's scratchpad, where no one else finds it). An entry the coordinator or the user's session
+marks **"approved by the user, <date>, via <session>"** (or "vetoed") is the user's decision: every
+agent on the branch acts on it without asking again. (On 2026-11-05 a sub-agent declined approvals
+the user had given in its own session because they reached it relayed, and they were relayed twice.)
+An approval given elsewhere (a dialog, a chat) is copied into `questions.md` in that form by the
+session that received it, before any agent acts on it.
 
 **The escalation trigger**, however small the change looks: a repair or design step that would add a
 spec or predicate family beside an existing one (a second spec of a function for a mode or special
@@ -578,3 +715,311 @@ The cross-stage churn suggests ordering stages that share specs instead of runni
 parallel, as M2 and backend-cmp did. **Revisit** when the lease stages' windows are complete
 (after 2026-11-04): rerun the script and compare the own-stage counts with the stages' "Change
 log after the freeze".
+
+## Hubs: the statements that churn (2026-11-03)
+
+`etc/spec-hubs.py` (`python3 -I etc/spec-hubs.py`, about a minute) ranks the declarations of the
+statement surface (the unit of `etc/spec-churn.py`) by **fan-out**, the other directories whose
+declarations a statement mentions; **fan-in**, the other directories whose statements mention it;
+and **changes**, the commits in the whole history that changed it. Mentions are matched by name,
+not resolved by Lean, so the counts are approximate.
+
+First run (2026-11-03, `lean` at 3fe0d5a4ef; 34,634 declarations, 17,346 changes):
+
+| fan-out (dirs) | decls | changed | changes/decl |
+|---|---|---|---|
+| 0 | 14,593 | 9% | 0.17 |
+| 1-2 | 15,313 | 21% | 0.47 |
+| 3-5 | 4,421 | 41% | 1.4 |
+| 6-10 | 276 | 63% | 3.9 |
+| >10 | 31 | 100% | 11.9 |
+
+By fan-in the rate only goes from 17% to 34%. **Churn follows fan-out, not fan-in.** Widely used
+vocabulary settles: the models of Go types (`EntryM`, `LogEntry`, `EtcdKv`, `OpFull`, `Perm`, used by
+25-41 other directories) changed 0-2 times. The 307 declarations reaching 6 or more directories
+(0.9%) carry 8% of all changes. The hubs, by kind:
+
+1. **The boot hub.** `NewServer.spec` (78 changes, the most of any declaration; 14 directories;
+   about 25 workstreams changed it, 17 times on 10-18 alone), `bootOk` (58), `NewServer.specM` (35),
+   `srvBuilt` (35), `isServerBuilt` (32), `bootstrapContract`. Every subsystem that adds state edits it.
+2. **Ghost-name and environment records**, hubs both ways: a subsystem adds a field, every user
+   rebuilds. `RaftNames` (29 changes, 16 directories), `StoreNames` (23), `NodeNames` (18), `AEnv`
+   (16, 22 directories), `NState`, `RNEnv`, `KVNames`, `BNames`, `KVState`, `SrvRaft`: 48 such
+   records, 234 changes. They top the cost ranking (changes x fan-in).
+3. **The apply and snapshot aggregators.** `EtcdServer.applySnapshot.specSnap` (the widest fan-out,
+   17 directories; 22 changes), `snapWalkPost` (15; 19), `srvSnapRO`, `applyAll.spec` (35),
+   `applyEntries.spec` (31).
+4. **The example entry points** (`startMember`, `Main`, `newServer`, `StartServer` in
+   `examples/lib/etcdstart`, `linkv3p`, `putget3`: 11-15 directories, 6-13 changes each), downstream of 1.
+5. **The raft core** (`raft.Step.spec` 47, `ownRawNode` 39, `ownRawNodeReady` 33, `RNState` 31,
+   `NodeStartSpec` 34): high churn, but fan-out 3-5, mostly inside raft.
+
+**Proposal: map the hubs before the per-module plans.** A stage's Scope step names the hubs it
+will touch (the script's aggregator and cost tables); the shape of hubs 1-3 is designed once, so
+that a new subsystem adds a clause instead of editing existing ones:
+- `NewServer`'s postcondition and `bootOk` as a conjunction of one sealed predicate per subsystem,
+  each owned by that subsystem's API (as `Spec/go_etcd_io/raft/v3/Api.lean` is for raft): a change
+  inside a subsystem stays behind its API;
+- the name and environment records split into one sub-record per subsystem, allocated by the
+  subsystem's own initialization;
+- the apply and snapshot aggregators over the same per-subsystem predicates.
+
+**What a sealed slot is.** Today `NewServer.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`)
+carries each subsystem's details in its own text; every dated comment in it marks an edit:
+
+```lean
+∀ cfg U γ id ctxs ρ E₀ N Φs
+  (γn : NetNames GF) (dir : …)   -- D21 M2, 10-19
+  (γd : GName),                  -- D22 J2, 10-26
+  …
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' →                    -- N1, 10-17
+  v3rpc.etcdMaxRequestBytesOk (uint.nat cfg.MaxRequestBytes') →    -- keylen, 10-30
+  v3rpc.maxTxnOpsOk (sint.Z cfg.MaxTxnOps') →                      -- txn-nested, 10-31
+  (cfg.AutoCompactionRetention' = 0 ∨
+    (cfg.AutoCompactionMode' = go!"revision" ∧ …) ∨                 -- M2 item 14, 10-31
+    (cfg.AutoCompactionMode' = go!"periodic" ∧ …)) →                -- periodic, 11-02
+  E₀.cmp = decide (…) → ρ.rd.kv.cmp = E₀.cmp → …
+```
+
+The compactor's periodic mode changed `NewServer.spec`, its proof, `bootOk` and every caller
+(`startMember`, `newServer`, `StartServer` in each example): one subsystem's change surfaced in
+all of them. A slot: each subsystem's API module exports one sealed predicate for its
+configuration and names, with laws,
+
+```lean
+-- the compactor's API module, sealed (@[no_expose])
+def compactor.bootCfg (cfg : ServerConfig) (γ : compactor.Names) : Prop := …  -- modes, retention, …
+theorem compactor.bootCfg_off : cfg.AutoCompactionRetention' = 0 → compactor.bootCfg cfg γ
+```
+
+and the hub names each subsystem once, by its predicates:
+
+```lean
+∀ cfg (γr : raft.Names) (γk : mvcc.Names) (γc : compactor.Names) (γn : net.Names) …,
+  raft.bootCfg cfg γr → mvcc.bootCfg cfg γk → compactor.bootCfg cfg γc → net.bootCfg cfg γn →
+  ⦃…⦄ NewServer cfg ⦃s, raft.srvInv s γr ∗ mvcc.srvInv s γk ∗ compactor.srvInv s γc ∗ …⦄
+```
+
+Periodic mode then changes only `compactor.bootCfg`'s sealed body: not `NewServer.spec`, not its
+callers. A caller that relies on a mode proves the premise through a law (`bootCfg_off`, a new
+`bootCfg_periodic`), as raft's `Api.lean` does for the node. The name records the same way:
+`RaftNames`, `AEnv`, `KVNames` become a tuple of per-subsystem records, so a field added to the
+compactor's names leaves the others' structures alone.
+
+What it does not fix:
+- A new subsystem still adds a slot (a parameter and a conjunct): an addition, which callers
+  that pass slots through generically survive.
+- Coupling between subsystems is real design work: `ρ.rd.kv.cret ≤ retention` ties the KV
+  invariant to the compactor's configuration. Some slot must own the relation (one exports a fact
+  the other consumes) or a small explicit cross-slot predicate states it. Finding these couplings
+  up front is what mapping the hubs is for.
+- Sealing moves the review, it does not remove it: a reviewer of `NewServer.spec` no longer sees
+  the compactor's premises inline; they are in the compactor's generated interface, as
+  `bootCfg`'s laws, and must be reviewed there.
+
+So the hub's text changes only when a subsystem is added or two become newly coupled, not when one
+changes inside.
+
+Caveats: fan-out is partly a proxy for statement size; the history includes the proof-first era;
+many of `NewServer`'s changes added subsystems not planned at the time, which no hub map would have
+foreseen; the claim is that they would have been additions, not rewrites. **Test** it as
+`etc/spec-churn.py` tests the stages: after the hubs are reshaped, rerun both scripts and compare
+the hubs' changes per new subsystem, and how many existing clauses each one edits, before and after.
+
+### Incremental adoption (2026-11-03, the user's)
+
+No big rewrite: a subsystem moves into a slot the next time it must change the hub anyway, and a
+subsystem that never changes again is never converted. In the meantime the hub mixes inline
+premises with slots.
+
+1. **The convention first, once.** A short note, reviewed once (a Draft and Review of the hub
+   alone): the names (`<sub>.Names`, `<sub>.bootCfg cfg γ`, `<sub>.srvInv s γ`, the laws callers
+   use); where a slot lives (the subsystem's API module, sealed, on the generated interface);
+   how a coupling is stated (one slot exports a fact the other consumes, or a named cross-slot
+   predicate); and the name records' split (one field group per subsystem). Without it each
+   subsystem invents its own shape.
+2. **No retrofit under an approved Freeze.** Stages already proving against a frozen `NewServer`
+   (on 2026-11-03: `snap-auth-on-apply`'s P5, `lease-grant`) land as frozen; reshaping under them
+   reopens their review and delays their sorries.
+3. **The first slot: the WAL**, in restart R2b-1 (`notes/restart-plan.md`). Its API is already a
+   slot's shape (`etcdserver/WalApi.lean`: the sealed `isWalStorage`, one law per operation,
+   approved 2026-11-03, not yet in use), and R2b-1's stage 3 brings it into `NewServer` and the
+   restart contracts: `wal.bootCfg`, `wal.Names`, `wal.srvInv` over that API, a conjunct of the hub
+   rather than its facts inline. It tests "an addition, not a rewrite" on a new subsystem. The
+   R2b-1 session must know before its stage 3 touches `NewServer` (the user's call).
+4. **Then each subsystem when it next touches the hub**: auth at its first stage after auth-on,
+   lease at lease expiry (after `lease-grant`), the compactor and mvcc when next changed; the name
+   records (`RaftNames`, `AEnv`, `KVNames`, ...) a field group at a time with their subsystem.
+   A stage's Scope step says whether it converts its subsystem, from `etc/spec-hubs.py`'s
+   aggregator and cost tables.
+5. **Check after two or three slots**: rerun `etc/spec-hubs.py` and `etc/spec-churn.py`; did a
+   slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
+   stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
+   2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+   **First check (2026-11-05, `lean` 256dbfc6d9 against 3fe0d5a4ef; slots: the WAL, the raft node,
+   the transport, the compactor; the lease's on `lease-expiry`).** `etc/spec-hubs.py` change counts,
+   11-03 → 11-05: `NewServer.specG` 9 → 24, `bootOk` 58 → 66, `srvBuilt`/`srvBuiltG`/`isServerBuilt`
+   +7 each, `bootstrapContract` 7 → 12, `KVNames` 11 → 18, `AEnv` 16 → 20; `RaftNames` and
+   `StoreNames` unchanged. The hub's rate is not lower yet (about 6 changes a day to `specG`, 4.3 a day
+   to `spec` before), but the 12 commits that changed `Spec/.../NewServer.lean` since 11-03 are mostly the
+   conversion itself: the slots, the bootOk review and the twins (6); a subsystem added through its slot
+   (R2b-1's WAL, 1); comments only (auth stage 3, 1); pre-convention (lease-grant 3b, 1). The compactor's
+   and auth's later stages (Q1 (b)/(c), auth 4-5) left the hub's text alone. **The misses: the restart's
+   stop (R2b-3d, 3 commits)** added `srvStopKeep` inline, then changed its arguments twice (fields of
+   `E`, not a names record: the follow-up under the transport's slot) and put an inline mode clause
+   beside it (`⌜on = false⌝ → srvCleanupOwn`); and the example entry points (hub 4) grew mode twins
+   (`BuildServer.specRestart`/`specStop`, `newServer.specCompact`, `Start{Compacting,Periodic}Server`),
+   step 7 not yet done. Parallel branches still collide: `lease-expiry` (+149 lines in
+   `NewServer.lean`, its lease slot) and `r2b3` both edit the postcondition. `etc/spec-churn.py`'s
+   `STAGES` has no stage since 11-02, so its tables do not measure the hubs yet (add K1, R2b-1, the
+   auth stages, 7b, auth 5 when they freeze). Next: the restart's stop pieces as a slot when R2b-3d next
+   touches the hub; step 7 before the restart's `walFiles`; land `lease-expiry` and `r2b3` one after
+   the other. Re-check after both land.
+6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
+   **Done** (2026-11-03, branch `hub-twins`, after auth-on's whole branch landed): `specG` written
+   out once, `spec := ∀ cmp, specG false cmp` (no wrapper needed: `newServerMode` passes its mode
+   on), `specM on := specG on false`; the code callers were four (`newServerMode`, authkv's
+   `startServer`, the server's `Results` and `Link`; v3rpc's are gRPC's `NewServer`, another
+   function). The text below is the step as planned.
+   `NewServer` has three hand-written triples: `spec` (N0, 10-16: auth off, compaction off or on),
+   `specM on` (E2i, 10-26: auth on or off, compaction off) and `specG on cmp` (M2, 10-31: both).
+   Each mode was added as a more general twin so that the older callers kept their names, and the
+   older triple became its corollary. Only `specG` is proved (`NewServer.wp_proofG`); `wp_proofM`
+   and `wp_proof` are derived from it, the latter by naming and passing on 35 hypotheses. The three
+   are about 80 lines each (190 with comments), equal but for the mode's points (the alarm chain,
+   the compaction premise, the token TTL, `kvInv`/`kvInvM on`, `srvEr`/`srvErM on`,
+   `srvBuilt`/`srvBuiltG on`, a few auth and lessor post clauses). So every edit to a shared clause
+   is made three times (the WAL's slot was), and a missed copy breaks the derivations. The step:
+   - `specG` is the one statement written out; `specM on := specG on false`, and `spec := ∀ cmp,
+     specG false cmp`, or a thin wrapper if the callers need `spec`'s three-way compaction
+     disjunction as it reads today;
+   - `wp_proofM` and `wp_proof` become one-line instances;
+   - the callers that use the triples in code, not in comments, migrate: `examples/lib/etcdstart/
+     newServerMode`, `examples/etcd/auth/startServer`, the server's `Results` and `Link`, v3rpc's
+     `Server` and `Link`. They get `specG`'s postcondition, which is at least as strong.
+   **When:** the hub quiet, after auth-on's P5 lands (it edits `NewServer`), between two stages that
+   edit it. The same applies to the other twin families (`applySnapshot.specSnap`/`specSnapM`,
+   `applyAll.specSnapOn`, ...), each when next touched.
+7. **The program-start boundary** (R2b-1's review, suggestion 2). The examples' statements name the
+   program-start resources of each member themselves: `walDirFresh (config.walDirOf (name ++
+   go!".etcd") go!"")` in `putget3`'s `Main`, `common`'s `StartMember`, `linkv3p`'s `startMember`
+   and 22 more spec files (25 in all), next to `netAddrFree` and `httpProtoFree` (61 lines in 24 spec
+   files), which came the same way. Each new start resource has been threaded through every example (hub 4), and a
+   restart's `walFiles` would be another round. The step: **the starter owns the boundary.**
+   `examples/lib/etcdstart`'s API exports a sealed per-member bundle, `common.memberStartRes name addrs`,
+   with its intro from the adequacy theorem's items (`startRights`'s `walDirFresh d`,
+   `netAddrFree a`, `httpProtoFree a` of the member's directory and addresses) and its narrow
+   elimination into what the starter hands `NewServer` (`wal.bootRes_intro`'s premise, the
+   network's tokens). An example's `Main` takes one bundle per member; a new start resource changes
+   the bundle and its laws, not the examples. A restart's resources are a different bundle
+   (`common.memberRestartRes`, with the WAL's files), since a restart is a different precondition,
+   not an extension of a fresh start. **When:** with the restart contracts' stage 2 (`walFiles`),
+   the next change that would thread a start resource through the examples.
+
+### The slot convention (approved 2026-11-03, step 1)
+
+Approved by the user as drafted (draft 1), with the WAL as its first slot.
+
+**Names**, per subsystem `<sub>`, in `<sub>`'s API module:
+
+| name | kind | in the hub | what it holds |
+|---|---|---|---|
+| `<sub>.Names` | structure | `NewServer.spec`'s binders, one per subsystem | the subsystem's ghost names, allocated by its own initialization (never a field of `RaftNames`/`AEnv`/`KVNames`) |
+| `<sub>.bootCfg …` | `Prop`, sealed | a premise of `NewServer.spec` (and of `bootstrapContract` when `bootstrap` needs it) | the subsystem's pure boot premise; its arguments are what it reads (amended 2026-11-03, below) |
+| `<sub>.bootRes cfg` | `IProp`, sealed | a conjunct of `NewServer.spec`'s and `bootstrapContract`'s precondition | the resources the caller hands in (program-start tokens, ...) |
+| `<sub>.bootOk cfg … b` | `IProp`, sealed | a conjunct of `bootOk` | what `bootstrap` gives the subsystem |
+| `<sub>.srvInv s γ` | `IProp`, sealed | a conjunct of `NewServer`'s postcondition (`srvBuilt`) | the subsystem's part of the running server |
+
+A slot a subsystem does not need is omitted, not defined as `True`.
+
+**Where a slot lives:** the subsystem's API module (its importable list, or sealed by
+`etc/import-all.txt`; `@[no_expose]` bodies; on its generated interface). Callers use its laws only
+(`<sub>.bootCfg_of …`, `<sub>.bootRes_intro …`, the elimination laws the server's proof needs). A law
+states a client's fact in the client's terms: no body leaks.
+
+**Elimination laws are narrow** (2026-11-03, the review of the WAL's slots, suggestion 1, which the
+user took): a law out of a slot gives what its consumer takes (`wal.bootOk_storage`: the open token
+and `walReady`, what `NewStorage` takes), or turns the slot into the consumer's slot (`wal.bootOk ⊢
+|==> wal.srvInv …`), never the slot's body restated: a body-restating law keeps the hub's text stable
+but makes the hub's proof change with the body.
+
+**Couplings:** one slot exports a fact the other consumes (a law of the owner's API, taken as a
+premise by the other's slot or proof); only when neither subsystem owns the relation, a named
+cross-slot predicate in the hub's module (`<a>_<b>.couple …`), reviewed with the hub.
+
+**Name records:** `RaftNames`, `AEnv`, `KVNames`, ... are split one field group per subsystem when
+that subsystem converts (step 4), into `<sub>.Names`; until then they stay as they are.
+
+**Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
+added only when its subsystem must change the hub anyway.
+
+**Hub changes are requests** (2026-11-05, the user's; from the dsverify skill's `2f67a2c`). A
+stage edits the inside of its own subsystem's slots (their sealed bodies and laws) freely. Any other
+change to a hub, which is a statement `etc/spec-hubs.py` lists with a fan-out of 6 or more
+directories (`NewServer.specG`, `bootOk`, `srvBuilt`/`isServerBuilt`, `bootstrapContract`, the
+`etcdstart` starters, the name and environment records, the apply and snapshot aggregators), is a
+**hub request**. That covers a new slot, conjunct, binder or premise; a conversion into a slot;
+an edit of another subsystem's slot; and an inline clause. The stage does not make it
+directly. It writes the request in its `questions.md` under "Hub requests": the hub, the change
+written out, the caller that needs it, and the alternative inside its own slot. It goes on with a
+marked `sorry` at the step that needs it, and tells the coordinator, who keeps the hub plan. The
+coordinator decides each request against the slot convention and against the other sessions on
+the same hub (the session registry). It answers in that `questions.md` ("accepted / rejected by
+the coordinator, <date>"; one that changes a top-level statement or grows the trust base still goes to
+the user). It also sets the order: the requesting stage then makes the accepted change as a commit
+of its own, and the coordinator tells every other session on that hub to merge it when it lands.
+(The case: the restart's stop added `srvStopKeep` and an inline mode clause to `NewServer`'s
+postcondition over three commits while `lease-expiry` converted the lease into a slot there on
+another branch. The step-5 check counted both, and they collide at landing.)
+
+**Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
+compaction on, a restart) generalizes the one written-out statement with a parameter; it does not
+add a twin statement with the older one as its corollary (step 6). A caller that needs the old form
+gets an abbreviation at the old mode, not a copy.
+
+**The WAL's slots** (R2b-1 stage 3a-3b, `etcdserver/WalApi.lean`): `wal.bootRes cfg` (the
+configuration's WAL directory fresh; intro `wal.bootRes_intro`, from `walDirFresh (config.walDirOf d
+w)`), `wal.bootOk cfg id cid w` (the WAL opened with no records, `walOpened … walFresh`, and the
+purge's right; `wal.bootOk_storage`, the narrow law `NewServer` used, replaced at R2b-1 stage 3c by
+`wal.bootOk_start`, into what the server's consumers take: the durability's ghost state and invariant,
+`NewStorage`'s open token, `Close`'s metadata and purge right). No `wal.bootCfg` (no condition on the configuration);
+`wal.Names` and `wal.srvInv` come at stages 3c/4. `NewServer.spec`'s three triples take
+`wal.bootRes cfg`, `bootstrapContract` likewise, and `bootOk` has `wal.bootOk` in place of its two
+WAL conjuncts. The examples still thread one token per member from program start (a new resource
+is an addition either way), converted by `wal.bootRes_intro` where the starter calls `NewServer`.
+
+**The raft node's and the transport's slots** (2026-11-03, branch `boot-premises`, the final
+whole-`bootOk` review's S2 and M2; `notes/decisions.md`, "The boot premises"): `raftNode.bootCfg
+cfg` (`etcdserver/RaftNodeApi.lean`: the heartbeat positive; `raftNode.bootCfg_of` at `TickMs =
+100`, `raftNode.bootCfg_heartbeat`), and `rafthttp.bootCfg dir ps` (`api/rafthttp/Net.lean`: the
+directory names exactly raft's peers `ps`, at most `peersMax`; `_dirOne`, `_of`, the eliminations
+`_mem`, `_len`), a coupling the transport owns with raft's peers as its parameter, and no `cfg`
+(the directory is a name, not configuration). Both `→` premises of `NewServer.spec`'s three
+triples, not of `bootstrapContract` (bootstrap starts neither the ticker nor the transport).
+
+**The compactor's slot** (2026-11-04, K1 of `notes/k8s-compactor-plan.md`, the user's approval;
+`notes/decisions.md`, "The compactor's slot"): `v3compactor.bootCfg mode ret cmp cret`
+(`etcdserver/api/v3compactor/BootCfg.lean`). It reads the configuration's two compactor fields and
+the KV names' compaction mode and retention (a coupling the compactor owns, as parameters until the
+KV's names split). Its introduction laws are `_off`, `_revision` and `_periodic`, and its one narrow
+elimination is `_build`. It is a `→` premise of `NewServer.specG` and `newServerMode.spec`, beside
+the inline auth coupling `cmp = true → on = false`. Its body admits compaction with the compactor
+off (Kubernetes' deployment) without a change to the hub's text beyond the conversion itself.
+
+**`bootCfg`'s arguments** (amended 2026-11-03, the user's approval; prompted by `rafthttp.bootCfg`).
+The table first read `<sub>.bootCfg cfg`, "the subsystem's conditions on the configuration". That
+mixed up what the slot is with what it reads. `<sub>.bootCfg` is the subsystem's pure boot premise,
+a sealed `Prop`. Its arguments are what it reads: `cfg` if it reads the configuration, the
+subsystem's `<sub>.Names` (or a field of it, until the subsystem has a `Names`), and a coupled
+subsystem's parameter (raft's peers for the transport). An argument it does not read is left out.
+`raftNode.bootCfg cfg` and `rafthttp.bootCfg dir ps` both fit.
+
+**Follow-up: the transport's names.** `rafthttp.bootCfg` takes the bare directory `dir`, a field of
+the network's names (`NetNames.dir`). When the transport converts its names (step 4: `NetNames`
+becomes `rafthttp.Names`), the slot takes the record, `rafthttp.bootCfg γn ps`, not the field. A
+later condition on another field then changes only the sealed body, not every caller's arguments.
+The same applies to any slot that takes a field of a names record before its subsystem has a
+`Names`.
+
+From the same review: suggestion 1 taken (narrow elimination laws, above); (2), the program-start
+boundary, is step 7 of "Incremental adoption"; (3), the three twin triples, is its step 6.

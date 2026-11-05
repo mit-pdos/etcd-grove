@@ -1,6 +1,6 @@
 /-
 The proof prelude for proofs about code that uses the durable-state extension
-(`github.com/mit-pdos/etcd-grove/examples/durable`): its definition and specs. The proofs
+(`github.com/mit-pdos/etcd-grove/examples/lib/durable`): its definition and specs. The proofs
 assume `[HasExt durableExt]`.
 -/
 module

@@ -137,6 +137,7 @@ theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Et
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iapply ctxQuiet_todo
   iapply ctxErrClient_todo hAs ⟨γc, γc⟩
   iexact Hc
@@ -192,6 +193,7 @@ theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpcty
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iapply ctxQuiet_background
   iapply ctxErrClient_background hAs ⟨γc, γc⟩
   iexact Hc
@@ -338,7 +340,7 @@ theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
     · inext; iexists σ; iframe Hσ Hmn
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod (mono_nat_own_update (GF := GF) (γ := γm) (kvOpStep (.range o) σ).rev
       (kvOpStep_rev (.range o) σ)) $$ Hmn with ⟨Hmn, -⟩

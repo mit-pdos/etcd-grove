@@ -163,32 +163,62 @@ theorem plainReq_nonCmp (rq : apply.IRRModel) (h : plainReq rq) :
   rw [hk] at this
   simp [putgetKind] at this
 
+/-- **A lease grant admitted in a cluster that grants leases** (the lease-grant stage, B1/B2 commit 3,
+2026-11-02): the mode `lm` (`KVNames.lm`, X7 option (iii)) not `none` and the request a grant the apply thread admits
+(`apply.grantKindOk`). In a cluster that grants none, `False`. -/
+def grantPropOk (lm : lease.Mode) (rq : apply.IRRModel) : Prop := lm ≠ .none ∧ apply.grantKindOk rq
+
+theorem grantPropOk_false (rq : apply.IRRModel) : ¬ grantPropOk .none rq := fun h => h.1 rfl
+
+/-- **A revocation admitted in a cluster that revokes leases** (the lease-expiry plan's X7,
+2026-11-04): the mode `revocable` and the request a revocation the apply thread admits
+(`apply.revokeKindOk`). In any other mode, `False`. -/
+def revokePropOk (lm : lease.Mode) (rq : apply.IRRModel) : Prop :=
+  lm = .revocable ∧ apply.revokeKindOk rq
+
+theorem revokePropOk_none (rq : apply.IRRModel) : ¬ revokePropOk .none rq := fun h => by
+  cases h.1
+
 /-- **A plain entry in the cluster's compaction mode `cmp`** (M2's apply side, item 5): a plain
-request, or, in compaction mode, a compaction in M2's scope. -/
-def plainEntryM (cmp : Bool) (m : EntryModel) : Prop :=
+request, or, in compaction mode, a compaction in M2's scope; (the lease-grant stage, B1/B2 commit 3,
+2026-11-02) or, in a cluster that grants leases (`lg`), a grant (`grantPropOk`); (the lease-expiry
+plan's X7) or, in the revocable mode, a revocation (`revokePropOk`). At `lg = false` it means what it
+meant (`plainEntryM_lg_false`). -/
+def plainEntryM (cmp : Bool) (lm : lease.Mode) (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    plainReq rq ∨ (cmp = true ∧ compactPropOk rq)
+    plainReq rq ∨ (cmp = true ∧ compactPropOk rq) ∨ grantPropOk lm rq ∨ revokePropOk lm rq
 
-/-- **A plain log in the mode `cmp`**: every entry plain in the mode. -/
-def plainLogM (cmp : Bool) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp m
+/-- **A plain log in the modes `cmp`, `lg`**: every entry plain in the modes. -/
+def plainLogM (cmp : Bool) (lm : lease.Mode) (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryM cmp lm m
 
-theorem plainEntryM_false (m : EntryModel) : plainEntryM false m ↔ plainEntry m := by
-  unfold plainEntryM plainEntry
+/-- **In a cluster that grants none, the old reading** (no grant disjunct). -/
+theorem plainEntryM_lg_false (cmp : Bool) (m : EntryModel) (h : plainEntryM cmp .none m) :
+    m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
+      plainReq rq ∨ (cmp = true ∧ compactPropOk rq) := by
+  intro ht hd rq hrq
+  rcases h ht hd rq hrq with h | h | h | h
+  · exact Or.inl h
+  · exact Or.inr h
+  · exact absurd h (grantPropOk_false rq)
+  · exact absurd h (revokePropOk_none rq)
+
+theorem plainEntryM_false (m : EntryModel) : plainEntryM false .none m ↔ plainEntry m := by
+  unfold plainEntryM plainEntry grantPropOk revokePropOk
   simp
 
 /-- **Off, a plain log** (the law callers with the mode off need, `kv_log_plain_off`). -/
-theorem plainLogM_false (A : List EntryModel) : plainLogM false A ↔ plainLog A := by
+theorem plainLogM_false (A : List EntryModel) : plainLogM false .none A ↔ plainLog A := by
   unfold plainLogM plainLog
   simp only [plainEntryM_false]
 
-theorem plainEntryM_of (cmp : Bool) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp m :=
+theorem plainEntryM_of (cmp : Bool) (lm : lease.Mode) (m : EntryModel) (h : plainEntry m) : plainEntryM cmp lm m :=
   fun ht hd rq hrq => Or.inl (h ht hd rq hrq)
 
-theorem plainLogM_of (cmp : Bool) (A : List EntryModel) (h : plainLog A) : plainLogM cmp A :=
-  fun m hm => plainEntryM_of cmp m (h m hm)
+theorem plainLogM_of (cmp : Bool) (lm : lease.Mode) (A : List EntryModel) (h : plainLog A) : plainLogM cmp lm A :=
+  fun m hm => plainEntryM_of cmp lm m (h m hm)
 
-theorem plainLogM_append (cmp : Bool) (A B : List EntryModel) :
-    plainLogM cmp (A ++ B) ↔ plainLogM cmp A ∧ plainLogM cmp B := by
+theorem plainLogM_append (cmp : Bool) (lm : lease.Mode) (A B : List EntryModel) :
+    plainLogM cmp lm (A ++ B) ↔ plainLogM cmp lm A ∧ plainLogM cmp lm B := by
   unfold plainLogM
   simp only [List.mem_append]
   exact ⟨fun h => ⟨fun m hm => h m (Or.inl hm), fun m hm => h m (Or.inr hm)⟩,
@@ -558,6 +588,28 @@ theorem kvRaftOf_prefix (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A B
   rw [kvRaftSt_append]
   exact kvRaftSt_extends _ _ _ _
 
+/-- (2026-11-05, H-rr1) **The model grows by at most one revision per entry.** -/
+theorem kvRaftSt_length_le (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ s₀ : mvcc.Log × LeaseTable, (kvRaftSt c₀ ch s₀ A).1.length ≤ s₀.1.length + A.length := by
+  induction A with
+  | nil => intro s₀; simp [kvRaftSt_nil]
+  | cons m A ih =>
+    intro s₀
+    have h := ih (kvEntrySt c₀ ch s₀ m)
+    have hk : kvRaftSt c₀ ch s₀ (m :: A) = kvRaftSt c₀ ch (kvEntrySt c₀ ch s₀ m) A := rfl
+    have hfst : (kvEntrySt c₀ ch s₀ m).1 = kvEntry c₀ ch s₀.2 s₀.1 m := rfl
+    rw [hk]
+    rcases kvEntry_grow c₀ ch s₀.2 s₀.1 m with he | ⟨cs, he⟩
+    · rw [hfst, he] at h; simp only [List.length_cons]; omega
+    · rw [hfst, he] at h; simp only [List.length_append, List.length_singleton] at h
+      simp only [List.length_cons]; omega
+
+/-- (2026-11-05, H-rr1) **The KV model of a raft log** is at most one revision per entry past the
+start log. -/
+theorem kvRaftOf_length_le (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel) :
+    (kvRaftOf c₀ ch log₀ A).length ≤ log₀.length + A.length :=
+  kvRaftSt_length_le c₀ ch A (log₀, [])
+
 
 /-! ## A plain put's and a write-free request's effect on the values -/
 
@@ -750,7 +802,7 @@ theorem compactPropOk_nonwrite (rq : apply.IRRModel) (h : compactPropOk rq) :
 
 /-- **An entry plain in the mode changes no table** (a compaction is no write). -/
 theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : Bool)
-    (m : EntryModel) (hp : plainEntryM cmp m) : kvTable c₀ ch lt m = lt := by
+    (m : EntryModel) (hp : plainEntryM cmp .none m) : kvTable c₀ ch lt m = lt := by
   unfold kvTable
   split
   · rename_i ht
@@ -762,7 +814,7 @@ theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : 
         unfold dispatchTable
         split
         · rfl
-        · rcases hp ht hd rq hdec with h | ⟨-, h⟩
+        · rcases plainEntryM_lg_false cmp m hp ht hd rq hdec with h | ⟨-, h⟩
           · exact chainTable_plain rq lt h.1 ch
           · exact chainTable_nonwrite rq lt (compactPropOk_nonwrite rq h) ch
       · rfl
@@ -770,7 +822,7 @@ theorem kvTable_plainM (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (cmp : 
 
 /-- A log plain in the mode changes no table. -/
 theorem kvTableOf_plainM (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (A : List EntryModel)
-    (hp : plainLogM cmp A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
+    (hp : plainLogM cmp .none A) : ∀ lt, kvTableOf c₀ ch lt A = lt := by
   induction A with
   | nil => intro lt; rfl
   | cons m A ih =>
@@ -1196,10 +1248,30 @@ theorem kvCrevEntry_plain (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : Entr
       · rfl
   · rfl
 
+/-- With the compaction mode off, an entry plain in the modes (a grant included, the lease-grant
+stage) leaves the compaction revision as it is (`kvCrevEntry_plain`'s, at `plainEntryM false lg`). -/
+theorem kvCrevEntry_plainM_off (c₀ : w64) (ch : apply.Chain) (lm : lease.Mode) (crev : Int)
+    (m : EntryModel) (h : plainEntryM false lm m) : kvCrevEntry c₀ ch crev m = crev := by
+  unfold kvCrevEntry
+  split
+  · split
+    · rfl
+    · rename_i ht hd
+      split
+      · rename_i rq hrq
+        apply apply.dispatchCrev_nonCmp
+        rcases h ht hd rq hrq with hp | ⟨hc, -⟩ | hg | hr
+        · exact plainReq_nonCmp rq hp
+        · cases hc
+        · rw [hg.2.1]; intro hk; cases hk
+        · rw [hr.2.1]; intro hk; cases hk
+      · rfl
+  · rfl
+
 /-- An admitted entry leaves the compaction revision at `-1` or at least `1` (a compaction in M2's
 scope is at a revision `≥ 1`). -/
 theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int) (m : EntryModel)
-    (hm : plainEntryM cmp m) (hc : crev = -1 ∨ 1 ≤ crev) :
+    (hm : plainEntryM cmp .none m) (hc : crev = -1 ∨ 1 ≤ crev) :
     kvCrevEntry c₀ ch crev m = -1 ∨ 1 ≤ kvCrevEntry c₀ ch crev m := by
   unfold kvCrevEntry
   split
@@ -1208,7 +1280,7 @@ theorem kvCrevEntry_pos (c₀ : w64) (ch : apply.Chain) (cmp : Bool) (crev : Int
     · rename_i ht hd
       split
       · rename_i rq hrq
-        rcases hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
+        rcases plainEntryM_lg_false cmp m hm ht hd rq hrq with hp | ⟨-, ⟨⟨-, r, hr, h1⟩, -, -⟩⟩
         · rw [apply.dispatchCrev_nonCmp _ _ _ _ (plainReq_nonCmp rq hp)]; exact hc
         · unfold apply.dispatchCrev
           split
@@ -1252,6 +1324,67 @@ theorem kvCrevEntry_cases (c₀ : w64) (ch : apply.Chain) (crev : Int) (m : Entr
   · rw [if_neg ht]; left; rfl
 
 end crev
+
+/-! ### No table holds the id `0` (the lease-expiry plan's X7: a revocation's KV identity) -/
+
+section ne0
+
+theorem backendTable_ne0 (rq : apply.IRRModel) (lt : LeaseTable) (h : W64 0 ∉ lt.ids) :
+    W64 0 ∉ (backendTable rq lt).ids := by
+  unfold backendTable
+  split
+  · split
+    · split
+      · rename_i hok
+        simp only [LeaseTable.ids, List.map_append, List.mem_append, List.map_cons, List.map_nil,
+          List.mem_singleton, not_or]
+        exact ⟨h, fun e => hok.1 e.symm⟩
+      · exact h
+    · exact h
+  · split
+    · split
+      · intro hm; apply h
+        unfold LeaseTable.ids at hm ⊢
+        obtain ⟨p, hp, he⟩ := List.mem_map.1 hm
+        exact List.mem_map.2 ⟨p, (List.mem_filter.1 hp).1, he⟩
+      · exact h
+    · exact h
+  · exact h
+
+theorem chainTable_ne0 (rq : apply.IRRModel) (lt : LeaseTable) (h : W64 0 ∉ lt.ids) :
+    ∀ c : apply.Chain, W64 0 ∉ (chainTable c rq lt).ids
+  | .backend => backendTable_ne0 rq lt h
+  | .corrupt c => by
+    simp only [chainTable]; split
+    · exact h
+    · exact chainTable_ne0 rq lt h c
+  | .capped c => by
+    simp only [chainTable]; split
+    · exact h
+    · exact chainTable_ne0 rq lt h c
+  | .auth _ c => by simp only [chainTable]; exact chainTable_ne0 rq lt h c
+  | .quota c => by simp only [chainTable]; exact chainTable_ne0 rq lt h c
+
+theorem kvTable_ne0 (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable) (m : EntryModel)
+    (h : W64 0 ∉ lt.ids) : W64 0 ∉ (kvTable c₀ ch lt m).ids := by
+  unfold kvTable dispatchTable
+  split
+  · split
+    · exact h
+    · split
+      · split
+        · exact h
+        · exact chainTable_ne0 _ lt h ch
+      · exact h
+  · exact h
+
+/-- **No table of the model holds `0`** (a grant needs `id ≠ 0`, `leaseGrantOk`). -/
+theorem kvTableOf_ne0 (c₀ : w64) (ch : apply.Chain) :
+    ∀ (lt : LeaseTable) (A : List EntryModel), W64 0 ∉ lt.ids → W64 0 ∉ (kvTableOf c₀ ch lt A).ids
+  | lt, [], h => h
+  | lt, m :: A, h => kvTableOf_ne0 c₀ ch (kvTable c₀ ch lt m) A (kvTable_ne0 c₀ ch lt m h)
+
+end ne0
 
 end EtcdGrove
 end Perennial

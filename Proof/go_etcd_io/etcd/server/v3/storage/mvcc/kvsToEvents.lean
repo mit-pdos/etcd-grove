@@ -112,7 +112,6 @@ theorem mvcc.kvsToEvents.wp_proof
       ipureintro; exact ⟨by word, by omega, Hn.2.2⟩
     · simp only [Bool.not_true]
       (try wp_auto)
-      simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_PUT]
       (try wp_auto)
       have Hbr : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z revs.len := by
         refine ⟨Hn.1, ?_⟩; have := Hkl.1; rw [hlen1] at this; word
@@ -171,7 +170,7 @@ theorem mvcc.kvsToEvents.wp_proof
           iapply (BigSepL.bigSepL_snoc (PROP := IProp GF)).2
           iframe Hdone Hev
         ipureintro; exact ⟨by word, by omega, by simp [Hn.2.2]⟩
-      · simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE]
+      · try simp only [go_etcd_io.etcd.api.v3.mvccpb.Event_DELETE]
         (try wp_auto)
         simp only [Hbr, and_self, ↓reduceIte]
         wp_apply wp_load_slice_index revs (sint.Z n) kss DFrac.discard ksl Hn.1 $$ [$Hks] as -

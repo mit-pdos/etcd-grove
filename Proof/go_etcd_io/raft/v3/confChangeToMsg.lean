@@ -40,7 +40,6 @@ theorem confChangeToMsg.wp_proof
   wp_start as Hc
   wp_auto
   wp_apply wp_raftpb_MarshalConfChange $$ [$Hc] as %data %bs ⟨Hc, Hdata, %Hbs⟩
-  rw [show raftpb.MsgProp = #((W32 2 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
   wp_method_call

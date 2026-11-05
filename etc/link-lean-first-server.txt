@@ -100,6 +100,10 @@ lease_LeaseQueue__Less:
 lease_LeaseQueue__Swap:
 lease_LeaseQueue__Push:
 lease_LeaseExpiredNotifier__RegisterOrUpdate: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Fix heap_Push
+# (the lease-expiry plan's S1, 2026-11-04) the notifier's `Init` (`Recover`'s), over container/heap's
+# `Init` (an axiom of this repository, Proof/container/heap/Init_.lean).
+heap_Init_:
+lease_LeaseExpiredNotifier__Init: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_
 lease_NewLease:
 lease_Lease__getRemainingTTL:
 lease_Lease__TTL:
@@ -338,7 +342,7 @@ EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
 # (`reqPropOk` has no auth request), so they have no callee. Authenticate (C1's A4, 2026-10-31)
-# is proved in the mode `on` only, over `raftRequest.specM true`: it is linked in `Results.lean`
+# is proved in the mode `on` only, over `raftRequest.spec`: it is linked in `Results.lean`
 # (`server_authenticate_on`), as the admin entries' mode-`on` proofs are. UserAdd (the auth
 # plan's E2x, 2026-10-26) hashes the password, bcrypt's `GenerateFromPassword` the trust boundary
 # (D-AU6), and base64-encodes the hash (`StdEncoding`'s `EncodeToString`: base64's package fact,
@@ -378,6 +382,7 @@ backend__Snapshot: @
 # (J8b) the snapshot walk's backend close and watchable store restore, from backend's and mvcc's Links
 backend__Close: @
 watchableStore__Restore: @
+watchableStore__Write: @
 traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
 traceutil_Get: traceutil_TODO
 traceutil_Trace__Step:
@@ -413,7 +418,7 @@ firstOpLease: RequestOp__GetRequest PutRequest__GetLease
 # doSerialize, Range and Txn (both branches), unit 3b.
 EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
 EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly RangeRequest__GetKeysOnly EtcdServer__Logger traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues traceutil_Trace__Step EtcdServer__KV txn_Range EtcdServer__doSerialize etcdserverpb_RangeRequest__String proto_Size
-EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest proto_Size
+EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest proto_Size =apply.CheckTxnAuth.wp_lb_linked
 # The read loop's `server` interface on *EtcdServer (interface.go, server.go; the request path's
 # unit 4b): see ReadServer.lean (`isReadServer_of_server`).
 EtcdServer__ApplyWait:
@@ -424,6 +429,7 @@ EtcdServer__StoppingNotify:
 # The stop (the restart plan's R2b-2, 2026-11-02): `HardStop` over the stop right
 # (`srvStopRight`, `InvRestart.lean`).
 EtcdServer__HardStop:
+EtcdServer__Cleanup: lease_lessor__Stop watchableStore__Close backend__Close
 EtcdServer__LeaderChanged: Notifier__Receive
 EtcdServer__FirstCommitInTermNotify: Notifier__Receive
 EtcdServer__NextRequestID: idutil_Generator__Next
@@ -447,9 +453,9 @@ EtcdServer__snapshot: EtcdServer__Logger EtcdServer__MemberID types_ID__String E
 # in raft's Link)
 MemoryStorage__Compact: @
 EtcdServer__compactRaftLog: EtcdServer__Logger MemoryStorage__Compact errors_Is zap_Logger__Info zap_Uint64 zap_Logger__Debug
-# (J8b, 2026-11-01) `applySnapshot`'s spec is both cases (`specEmpty ∧ specSnap`), proved from
-# `wp_proof_snap`'s callees (the snapshot walk's), which the empty case's `IsEmptySnap` leads
-EtcdServer__applySnapshot: IsEmptySnap EtcdServer__Logger zap_Logger__Info zap_Uint64 SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm storage_OpenSnapshotBackend storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket consistentIndex__SetBackend lease_lessor__Recover watchableStore__Restore backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeCreateBucket batchTxBuffered__UnsafeDelete EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook consistentIndex__ConsistentIndex storage_storage__Release schema_NewAlarmBackend AlarmStore__Recover schema_NewAuthBackend schema_NewMembershipBackend membership_RaftCluster__SetBackend backend__Close membership_RaftCluster__Recover rafthttp_Transport__RemoveAllPeers rafthttp_Transport__AddPeer EtcdServer__MemberID EtcdServer__NewUberApplier lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Revoke EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot AlarmStore__Get backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete
+# (J8b, 2026-11-01) `applySnapshot`'s spec is both cases (`specEmpty ∧ specSnapM`, since 2026-11-03), proved from
+# `wp_proof_snapM`'s callees (the snapshot walk's and the auth store's `Recover`), which the empty case's `IsEmptySnap` leads
+EtcdServer__applySnapshot: IsEmptySnap EtcdServer__Logger zap_Logger__Info zap_Uint64 SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm storage_OpenSnapshotBackend storage_BackendHooks__OnPreCommitUnsafe consistentIndex__UnsafeSave batchTxBuffered__UnsafePut batchTxBuffered__UnsafeRange schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket consistentIndex__SetBackend lease_lessor__Recover watchableStore__Restore backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeCreateBucket batchTxBuffered__UnsafeDelete EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook consistentIndex__ConsistentIndex storage_storage__Release schema_NewAlarmBackend AlarmStore__Recover schema_NewAuthBackend schema_NewMembershipBackend membership_RaftCluster__SetBackend backend__Close membership_RaftCluster__Recover rafthttp_Transport__RemoveAllPeers rafthttp_Transport__AddPeer EtcdServer__MemberID EtcdServer__NewUberApplier lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Revoke EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot AlarmStore__Get backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete auth_authStore__Recover watchableStore__Write traceutil_TODO
 EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
@@ -573,6 +579,7 @@ bcrypt_CompareHashAndPassword:
 auth_authStore__CheckPassword: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx bcrypt_CompareHashAndPassword zap_String zap_Logger__Info
 auth_authStore__UserChangePassword: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Strings zap_Logger__Info
 auth_authStore__AuthDisable: auth_authStore__commitRevision zap_Logger__Info
+auth_authStore__Close:
 auth_authStore__AuthEnable: auth_authStore__refreshRangePermCache auth_authStore__setRevision auth_hasRootRole zap_Logger__Info
 auth_authStore__Recover: auth_authStore__refreshRangePermCache auth_authStore__setRevision
 auth_authStore__lockedReadTx:
@@ -596,14 +603,15 @@ auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revi
 auth_tokenSimple__genTokenPrefix:
 auth_authStore__GenTokenPrefix:
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
-# 2026-10-16): `newRaftNode` (its callees are contracts in its spec and Perennial's `time.Now`),
+# 2026-10-16): `newRaftNode` (its callees are contracts in its spec, Perennial's `time.Now`, and since
+# 2026-11-03 Perennial's proved `time.NewTicker` and `Ticker.Stop`, `=` terms),
 # and the new cluster's `bootstrappedRaft.newRaftNode` over the node API's `StartNode` (2026-10-27:
 # its linked results at the server's storage model, `NodeApiLink.lean`, `=` terms) and Perennial's
 # mutex.
 # (D17d, 2026-10-18) `NewServer` reads `run`'s snapshot contract off the storage's application
 # token through `MemoryStorage.Snapshot`'s application triple (`rnSnapOnce_of_tok`).
 MemoryStorage__Snapshot: @
-newRaftNode:
+newRaftNode: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop
 bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode newRaftNode
 # The server's construction (server.go's `NewServer`; the server-construction unit, stage N0,
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).
@@ -655,6 +663,13 @@ clockwork_NewRealClock:
 # `reqPropOk`'s compaction form)
 CompactionRequest__GetPhysical:
 CompactionRequest__GetRevision:
+# the lease-grant stage (2026-11-03, notes/lease-grant-plan.md): EtcdServer.LeaseGrant (2.5) and the
+# trace attribute it reads
+LeaseGrantRequest__GetTTL:
+EtcdServer__LeaseGrant: idutil_Generator__Next EtcdServer__requireAuthInfo EtcdServer__raftRequest LeaseGrantRequest__GetTTL traceutil_Tracer__Start trace_WithAttributes attribute_Int64
+# the lease-expiry plan's X6 (2026-11-04): EtcdServer.LeaseRevoke and the trace attribute it reads
+LeaseRevokeRequest__GetID:
+EtcdServer__LeaseRevoke: EtcdServer__requireAuthInfo EtcdServer__raftRequest LeaseRevokeRequest__GetID traceutil_Tracer__Start trace_WithAttributes attribute_Int64
 EtcdServer__Compact: traceutil_Tracer__Start trace_WithAttributes attribute_Bool attribute_Int64 CompactionRequest__GetPhysical CompactionRequest__GetRevision EtcdServer__Logger traceutil_EnsureTrace EtcdServer__processInternalRaftRequestOnce traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong mvcc_store__Rev traceutil_Trace__AddField
 v3compactor_New: zap_NewNop clockwork_NewRealClock v3compactor_newPeriodic v3compactor_newRevision fmt_Errorf v3compactor_Periodic__Run v3compactor_Periodic__Stop v3compactor_Periodic__Pause v3compactor_Periodic__Resume v3compactor_Revision__Run v3compactor_Revision__Stop v3compactor_Revision__Pause v3compactor_Revision__Resume
 v3compactor_newPeriodic: v3compactor_Periodic__getRetentions
@@ -671,9 +686,18 @@ v3compactor_Revision__Stop:
 v3compactor_Revision__Pause:
 v3compactor_Revision__Resume:
 v3alarm_NewAlarmStore:
-# (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s lessor `Recover` and the cluster's
-# `SetBackend`, axioms true of the Go code (their specs' docstrings).
-lease_lessor__Recover:
+# (D22 receiver epochs, S8c, 2026-10-24) the cluster's `SetBackend`, an axiom true of the Go code
+# (its spec's docstring). (The lease-expiry plan's S1, 2026-11-04) `applySnapshot`'s lessor
+# `Recover`, an axiom until then, proved from its body over `initAndRecover`; the trust boundary:
+# schema's `MustUnsafeGetAllLeases` (`UnsafeForEach` over the batch transaction and
+# `proto.Unmarshal`, a contract over the locked transaction's state); `UnsafeCreateLeaseBucket`
+# proved from its body (premise-style, over the caller's `UnsafeCreateBucket`).
+schema_MustUnsafeGetAllLeases:
+schema_UnsafeCreateLeaseBucket:
+lease_lessor__initAndRecover: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket schema_UnsafeCreateLeaseBucket schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket schema_MustUnsafeGetAllLeases batchTxBuffered__Unlock lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_ lease_LeaseExpiredNotifier__Init backend__ForceCommit
+lease_lessor__Recover: lease_lessor__initAndRecover
+# (R2b-3c part 2a) the lessor's `Stop`, an axiom true of the Go code (its spec's docstring).
+lease_lessor__Stop:
 membership_RaftCluster__SetBackend:
 # (D22 receiver epochs, S8d, W6, 2026-10-25) `applySnapshot`'s cluster `Recover`, an axiom true of
 # the Go code over an image good for the cluster (its spec's docstring).
@@ -727,7 +751,12 @@ watchableStore__Close: @
 backend__SetTxPostLockInsideApplyHook: @
 EtcdServer__restoreAlarms: schema_NewAlarmBackend v3alarm_NewAlarmStore
 EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
-etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete batchTxBuffered__UnsafePut mvcc_store__Rev EtcdServer__Compact lease_lessor__Revoke AlarmStore__Get
+# (R-D1, 2026-11-04) the bootstrapped record's close on `NewServer`'s error paths, with its body
+# (until then `bootOk`'s trusted `#Hclose`), over the backend's proved `Close`
+bootstrappedBackend__Close: backend__Close
+bootstrappedStorage__Close: bootstrappedBackend__Close
+bootstrappedServer__Close: bootstrappedStorage__Close
+etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Stop =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer rafthttp_peer__stop rafthttp_remote__stop watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_MemInitialState =srvApi_wp_MemLastIndex =srvApi_wp_MemFirstIndex =srvApi_wp_MemTerm =srvApi_wp_MemEntries =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete backend__LockForSafeRangeDelete backend__UnlockForSafeRangeDelete batchTxBuffered__UnsafePut mvcc_store__Rev EtcdServer__Compact lease_lessor__Revoke AlarmStore__Get bootstrappedServer__Close
 # (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
 # storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
 # (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the
@@ -862,7 +891,7 @@ rafthttp_streamType__endpoint: path_Join
 rafthttp_streamWriter__attach:
 rafthttp_streamWriter__close: rafthttp_streamWriter__closeUnlocked
 rafthttp_streamWriter__closeUnlocked: zap_Logger__Warn zap_String zap_Error types_ID__String_ptr
-rafthttp_streamWriter__run: rafthttp_streamWriter__close rafthttp_streamWriter__closeUnlocked rafthttp_newMsgAppV2Encoder rafthttp_messageEncoder__encode rafthttp_msgAppV2Encoder__encode =http.respWrite_ok =http.Flush_ok rafthttp_streamType__String_ptr rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate proto_SizePb proto_ClonePb raftpb_Message__GetTo types_ID__String_ptr prometheus_CounterVec__WithLabelValues zap_Logger__Info zap_Logger__Warn zap_String time_NewTicker time_Ticker__Stop
+rafthttp_streamWriter__run: rafthttp_streamWriter__close rafthttp_streamWriter__closeUnlocked rafthttp_newMsgAppV2Encoder rafthttp_messageEncoder__encode rafthttp_msgAppV2Encoder__encode =http.respWrite_ok =http.Flush_ok rafthttp_streamType__String_ptr rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate proto_SizePb proto_ClonePb raftpb_Message__GetTo types_ID__String_ptr prometheus_CounterVec__WithLabelValues zap_Logger__Info zap_Logger__Warn zap_String =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop
 rafthttp_streamWriter__stop:
 rafthttp_streamWriter__writec:
 rafthttp_urlPicker__pick:
@@ -917,8 +946,6 @@ path_Join: path_Clean
 httputil_GracefulClose:
 transport_IsClosedConnError:
 rate_Limiter__Wait:
-time_NewTicker:
-time_Ticker__Stop:
 proto_MarshalPb:
 path_Split: bytealg_LastIndexByteString
 path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string

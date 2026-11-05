@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
+public import Proof.go_etcd_io.etcd.server.v3.lease.RangeDeleter
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -39,17 +40,24 @@ write-back supply. (C3's store law, 2026-11-02) The store's compaction permit is
 `Perm` (`crevPermIs`).
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
 counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
-until then all `actualMaxReaders` of them. -/
+until then all `actualMaxReaders` of them.
+(F2's Freeze, stage 2, 2026-11-03) The compaction tracking's ties of the instance, whole at the
+fresh log (`kbTieInit kb`, `NewStore`'s; `kbTie_alloc` makes them); the revision tie's half comes
+back in `crevRightM` (compaction mode). (R-D1, 2026-11-04) The loops' count named, `wsLoopN`
+(`watchableStore.Close` returns their readers).
+(The lease-expiry plan's step 2, 2026-11-04, option (a)) The lessor's range deleter as its owner holds
+it (`lease.rdAt γl st`): the deleter's contract at every watchable store over the inner store `st`, at
+any names (until then `∃ rd, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ`, at the store's own names). -/
 abbrev mvcc.New.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (γi : mvcc.IdxNames) (γok γtag : GName)
     (Perm : Int → IProp GF),
-  mvcc.batchLimitOk cfg.CompactionBatchLimit' →
+  mvcc.batchLimitOk cfg.CompactionBatchLimit' → mvcc.kbBoot kb →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗
+      mvcc.kbSRM kb ∗ mvcc.kbTieInit kb ∗
       ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -58,9 +66,9 @@ abbrev mvcc.New.spec : Prop :=
   {{ (s : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStore.ty) #s);
       ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl ∧ γ.st.kb = kb ∧
         γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
-        mvcc.isWatchableStore s st γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+        mvcc.isWatchableStore s st γ ∗ lease.rdAt γl st ∗ mvcc.hookInit γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
         mvcc.watchToks γ (2 ^ 63 - 3) ∗ ghostMapAuth γ.st.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-        ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb - 2) (),
+        ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb - mvcc.wsLoopN) (),
           mvcc.watchReader s st γ) ∗
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
         mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm }}

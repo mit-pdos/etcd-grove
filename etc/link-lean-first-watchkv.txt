@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Link.lean`
 # (all Lean-first; D23), read by `etc/gen-link.py --watchkv`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `watchkv`. Not listed: the standard library's and goose's functions with Perennial specs
@@ -6,11 +6,11 @@
 # `sync.WaitGroup`), which the proofs use directly.
 #
 # the watch workload's functions: the examples' shared ones (`common`'s, linked in its `Link.lean`)
-common_GenAll: @
-common_Writer: @
-common_MaxRev: @
-common_Collect: @
-common_Check: @
+etcdstart_GenAll: @
+etcdstart_Writer: @
+etcdstart_MaxRev: @
+etcdstart_Collect: @
+etcdstart_Check: @
 # the watch's options (client/v3/op.go, as the cache's `watchEvents` builds them)
 getPrefix:
 WithPrefix: getPrefix
@@ -23,8 +23,8 @@ WithCreatedNotify:
 # then the writers, `Collect` and `Check`
 context_ErrAny: @
 watcher__Watch: @
-common_StartServer: @
-common_Serve: @
-common_NewClient: @
+etcdstart_StartServer: @
+etcdstart_Serve: @
+etcdstart_NewClient: @
 zap_NewNop:
-watchkv_Main: common_GenAll common_Writer common_MaxRev common_Collect common_Check zap_NewNop common_StartServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
+watch_Main: etcdstart_GenAll etcdstart_Writer etcdstart_MaxRev etcdstart_Collect etcdstart_Check zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

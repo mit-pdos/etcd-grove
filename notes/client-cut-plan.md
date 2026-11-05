@@ -7,7 +7,7 @@ client-member cuts, recovery at the same member, and clients of every member (fa
 
 ## Goal
 
-`linkv3p_safe` (`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Results.lean`) covers a
+`linkv3p_safe` (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Results.lean`) covers a
 three-member cluster whose **peer** links a schedule cuts and mends (`EtcdServer.CutPeer`/
 `MendPeer`), with a one-attempt client at every member and linkvtxn's KV workload. Extend the
 program and the theorem so that the schedule also cuts and mends the link between a **client

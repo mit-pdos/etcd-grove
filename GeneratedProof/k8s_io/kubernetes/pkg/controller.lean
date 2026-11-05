@@ -1313,6 +1313,80 @@ noncomputable instance ActivePodsWithRanks_access_store_Now (l : Loc) (v : k8s_i
 end def_
 end ActivePodsWithRanks
 
+namespace «struct#90a2bc34»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : k8s_io.kubernetes.pkg.controller.Assumptions]
+
+noncomputable instance «struct#90a2bc34_typed_pointsto» :
+    TypedPointsto (GF := GF) k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» where
+  typedPointstoDef l v dq := iprop(
+    "add" ∷ typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) v.add' dq ∗
+    "del" ∷ typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) v.del' dq ∗
+    "key" ∷ typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) v.key' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#90a2bc34_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» k8s_io.kubernetes.pkg.controller.«struct#90a2bc34».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#90a2bc34_access_load_add» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) v.add' dq)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) v.add' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#90a2bc34_access_store_add» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (add' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) v.add' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"add" l) add' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with add' := add' } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#90a2bc34_access_load_del» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) v.del' dq)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) v.del' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#90a2bc34_access_store_del» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (del' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) v.del' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"del" l) del' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with del' := del' } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#90a2bc34_access_load_key» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) v.key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#90a2bc34_access_store_key» (l : Loc) (v : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (key' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.«struct#90a2bc34» go!"key" l) key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := key' } : k8s_io.kubernetes.pkg.controller.«struct#90a2bc34») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#90a2bc34»
+
 end k8s_io.kubernetes.pkg.controller
 end
 end Perennial

@@ -52,9 +52,6 @@ theorem mvcc.restoreRightM_on (s : Loc) (γ : mvcc.StoreNames) (c : Int)
     mvcc.restoreRightM (GF := GF) s γ c ⊣⊢ mvcc.compactRightR s γ c := by
   unfold mvcc.restoreRightM; simp only [h, ↓reduceIte]; exact .rfl
 
-/-- The bytes stored at a record (`RevToBytes(Revision{Main: x})`). -/
-def mvcc.recBytes (x : Option w64) : Option GoString := x.map (fun x => mvcc.revBytes ⟨x, W64 0⟩ false)
-
 /-- **The backend's compaction-key ghost, merged** (review round 4's S4: one name `γ.fkv`
 at one type, in place of today's `fkV γ w` and round 3's `fkOpenD` beside it at another type): the
 well-formedness bit `w` and the client's flag `n` at the open over data whose compaction keys hold
@@ -126,6 +123,7 @@ def mvcc.storeBackendTR (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : 
     (mvcc.kbRecs γ.kb γ.bucket r) r (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ)
     (mvcc.kbWi γ.kb) iprop(True) (mvcc.storeCmp γ) P (mvcc.hookFn γ) (mvcc.storeReq γ) (mvcc.storeRb γ)
     (mvcc.storeBt γ) (mvcc.kbSR γ.kb) (mvcc.kbSRh γ.kb) (mvcc.kbMW γ.kb γ.bucket) (mvcc.kbHookNil γ.kb)
+    (mvcc.storePV γ) (mvcc.storePVx γ) (mvcc.storeCK γ)
 
 theorem mvcc.storeBackendTR_empty (b : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) :
     mvcc.storeBackendTR (GF := GF) b s γ P mvcc.CmpRecs.empty = mvcc.storeBackendT b s γ P := by

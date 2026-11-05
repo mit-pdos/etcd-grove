@@ -80,9 +80,11 @@ theorem raftNode.start.wp_proof
   have wp_GetCommit := wp_hardStateAt_GetCommit wp_GetCommit
   have wp_GetTerm := wp_hardStateAt_GetTerm wp_GetTerm
   have wp_GetType := wp_entryAt_GetType wp_GetType
-  intro E γ r rh L R Hwco
+  intro E γ r rh L R Hwso Hwco
   letI := srvStor (GF := GF) γ.node
   wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, HS, Hwt, #Hmsinv, #Hslb0⟩
+  iunfold rnWalTokL at Hwt
+  icases Hwt with ⟨Hwt, Hwl⟩
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
   iNamed Hr'
@@ -91,7 +93,6 @@ theorem raftNode.start.wp_proof
   icases Henv0 with ⟨-, %HEn, -⟩
   have HEai : uint.Z E.γr.raft.ai0 = γ.pre.length := HEn.2.2
   wp_auto
-  simp only [time.Second]
   iunfold isRNTicker at Htki
   icases Htki with ⟨%tc, #Htc, #Htcb, #HtkStop⟩
   iunfold isRaftNodeIfc at Hni
@@ -100,9 +101,10 @@ theorem raftNode.start.wp_proof
   iunfold isRNTransport at Htri
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
-  iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, #HSaveSnap, #HSync⟩
+  ihave %Hsok := isWalStorage_ok st $$ Hsti
+  obtain ⟨si, Hsieq⟩ := Hsok
   subst Hsieq
+  ihave #HSync := walSync_spec _ si rfl (1 : Qp).half $$ Hsti
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -124,9 +126,9 @@ theorem raftNode.start.wp_proof
   iunfold gaugeSetSpec at Hghls Hgils Hgpcs
   iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hclcs
   icases Hclcs with ⟨#HlcInc, -⟩
-  wp_auto
+  try wp_auto
   ipersist internalTimeout
-  wp_apply wp_fork $$ [Htok Hdone r rh HR HS Hwt]
+  wp_apply wp_fork $$ [Htok Hdone r rh HR HS Hwt Hwl]
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
     -- (D22a) `raftTerm`, the latest non-empty `HardState`'s term, carried to the batches; (D22 S-b)
@@ -137,9 +139,13 @@ theorem raftNode.start.wp_proof
     ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool) (rt : w64) (p : HardStateM),
         "islead" ∷ islead_ptr ↦ b ∗ "raftTerm" ∷ raftTerm_ptr ↦ rt ∗
         "%Hrt" ∷ ⌜uint.Z rt = 0 ∨ rt = p.Term'⌝ ∗
-        "Htok" ∷ rnLoopTokP γ L' p ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
-        -- (2026-10-31) the loop's half of the WAL's open token
-        "Hwt" ∷ rnWalTok r (1 : Qp).half) $$ [islead raftTerm Htok HR HS Hwt]
+        "Htok" ∷ rnLoopTokP γ L' p b ∗ "HR" ∷ R ∗ "HS" ∷ E.S ∗
+        -- (2026-10-31) the loop's half of the WAL's open token; (2026-11-03, R2b-1 stage 6) the
+        -- stop's claim, the metadata and the purge's right, for `onStop`'s `Close`
+        "Hwt" ∷ rnWalTok r (1 : Qp).half ∗
+        "Hwl" ∷ (token γ.wal.stop ∗ ∃ (st : GoInterface) (cid : w64), rnStorageAddr r ↦□ st ∗
+          walMetaIs (storage.walOf st) γ.id cid ∗ walPurgeRight (walDirOf (storage.walOf st))))
+        $$ [islead raftTerm Htok HR HS Hwt Hwl]
     · iexists L, false, _, p0
       iframe
       ipureintro; left; rfl
@@ -179,9 +185,9 @@ theorem raftNode.start.wp_proof
     · ileft
       simp only [chan.blockingClausePre]
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, Hdrv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt⟩
+      icases Htok with ⟨%sent, %cums, %S, %ro, Hdrv, %Hld, Hwv, Hrun, Hprod, Hauth, %Hcums, %Hix, #Hfzt⟩
       iunfold rnDrv at Hdrv
-      icases Hdrv with ⟨%S, %ro, Hdrv, HrS, Hcfg⟩
+      icases Hdrv with ⟨Hdrv, HrS, Hcfg⟩
       icases isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p S ro) _ rfl
         $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
       iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
@@ -198,8 +204,8 @@ theorem raftNode.start.wp_proof
         have h2 : uint.Z ai = uint.Z E.γr.raft.ai0 := by rw [hai, HEai]
         have hae : ai = E.γr.raft.ai0 := by word
         rw [← hae]; exact hidx
-      imod rn_ready_recv E γ L' p S ro rd HLi $$ Henv Hrsb Hcfg HrS Hrun Hgot
-        with ⟨Hrun, (⟨%ce, %es, %p', Hdata, Hbusy, #Hdlb, %HidxN⟩ | Hsnap)⟩
+      imod rn_ready_recv E γ L' p S ro rd HLi $$ Henv Hrsb Hcfg HrS Hgot
+        with (⟨%ce, %es, %p', %S', %r', %qms, Hdata, Hbusy, #Hdlb, #Hhsc, %HidxN⟩ | Hsnap)
       rotate_left
       · -- (2026-10-31, #3) **The `Ready`-snapshot branch** (raft.go:256-342): the snapshot cloned
         -- twice (`raftSnap`, the apply thread's), the batch on `applyc` (`rnApSnap`), `SaveSnap`,
@@ -209,14 +215,15 @@ theorem raftNode.start.wp_proof
         -- `Append`, notifyc's second send, `Advance`'s snapshot clause over `snapReceipt`, and
         -- `raftAdvancedC` closed with the frozen dummy entry
         letI : MemStorReg GF := ⟨γ.reg⟩
-        icases Hsnap with ⟨%es, %A', %p', %l, Hdata, Hbusy, %HidxN⟩
-        iunfold rnBusyS at Hbusy
-        icases Hbusy with ⟨Hbdrv, Hbcv, %Hbs⟩
+        icases Hsnap with ⟨%es, %A', %p', %l, %S', %r', %qms, Hdata, Hbusy, #Hhsc, %HidxN⟩
+        iunfold rnBusySP at Hbusy
+        icases Hbusy with ⟨Hpend, Hbcv, %Hbs⟩
         obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
-        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
-          #Hmsl, Hmsok, #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
+        icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
+          #Hmsl, %HmsL, Hraw, ⟨%ss, #Hss, %Hr'⟩, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩⟩
+        subst HmsL
         obtain ⟨-, HLA, Hfit, Hlast⟩ := HA'
         iunfold readySnap at HrSn
         icases HrSn with ⟨%Hl, Hsn, #HcL, #Hcert, ⟨%k, %old, %Hk, Hlog, Hend⟩, #Hgiven, #HcLbS,
@@ -229,18 +236,31 @@ theorem raftNode.start.wp_proof
           rw [← HbD]; exact h
         wp_auto
         -- the `SoftState`: the leader, the gauges, the ready handler
-        wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r)
-          at next with [islead rd rh r] as ⟨%b', islead, rd, rh, r⟩
+        -- (2026-11-03, R2b-3) `islead` true only at the role after the `Ready` leader
+        ihave %Hssc : ⌜ss = none ↔ rd.SoftState' = null⌝ $$ []
+        · cases ss with
+          | none => iunfold softStateIs at Hss; icases Hss with %H; ipureintro; simp [H]
+          | some x =>
+            iunfold softStateIs at Hss; icases Hss with ⟨%H, -⟩; ipureintro; simp [H]
+        wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r ∗
+            ⌜b' = true → r' = StateLeader⌝)
+          at next with [islead rd rh r] as ⟨%b', islead, rd, rh, r, %Hb'⟩
         · wp_if_destruct
           · -- nil
             isplitr
             · itrivial
             iexists _; iframe islead rd rh r
-          · iunfold softStateAt at Hss
-            iunfold softStateRO at Hss
-            icases Hss with (%Hssn | ⟨%lead, %rs, #Hlead, #Hrs⟩)
-            · exact absurd Hssn Hif
-            simp only [None']
+            ipureintro
+            have hs0 : ss = none := Hssc.2 (by first | exact Hif | simpa using Hif)
+            subst hs0
+            simp only [roleAfter, Option.map_none, Option.getD_none] at Hr'
+            rw [Hr']; exact Hld
+          · obtain ⟨⟨lead, rs⟩, hss⟩ : ∃ x, ss = some x :=
+              Option.ne_none_iff_exists'.1 (fun h => Hif (Hssc.1 h))
+            subst hss
+            iunfold softStateIs at Hss
+            icases Hss with ⟨-, #Hlead, #Hrs⟩
+            try simp only [None']
             wp_auto
             -- `newLeader`
             wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))
@@ -278,6 +298,11 @@ theorem raftNode.start.wp_proof
             · itrivial
             iexists _
             iframe islead rd rh r
+            ipureintro
+            intro hb
+            simp only [roleAfter, Option.map_some, Option.getD_some] at Hr'
+            rw [Hr']
+            first | (simp at hb; exact hb) | simpa [StateLeader] using hb
         irename Hlc3 => HlcA
         irename Hlc4 => HlcB
         -- the read states: the last one to `readStateC` (or a timeout, or `<-r.stopped`: return)
@@ -288,7 +313,7 @@ theorem raftNode.start.wp_proof
         icases Hrsci' with ⟨%γrs, #Hrsb⟩
         wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r) ∨
             (⌜v = returnVal #()⌝ ∗ E.ST ∗ nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half ∗
-              storage.walOpen (storage.walOf (GoInterface.ok si)) (1 : Qp).half)))
+              storage.walOpen (storage.walOf (GoInterface.ok si)) (1 : Qp).half ∗ token γ.wal.app)))
           with [rd r]
         · -- no read states
           ileft
@@ -377,14 +402,14 @@ theorem raftNode.start.wp_proof
             · iapply is_bag_is_chan $$ Hstb
             iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
             inext
-            iintro %u ⟨HST, Hrun2, Hwo2⟩
+            iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
             try wp_auto
             iright
-            iframe HST Hrun2 Hwo2
+            iframe HST Hrun2 Hwo2 Hwap
             ipureintro; rfl
           iapply BigAndL.bigAndL_nil.2
           itrivial
-        iintro (⟨%Hv, rd, r⟩ | ⟨%Hv, HST, Hrun2, Hwo2⟩)
+        iintro (⟨%Hv, rd, r⟩ | ⟨%Hv, HST, Hrun2, Hwo2, Hwap⟩)
         rotate_left
         · -- returned (`<-r.stopped`): the deferred `onStop`, with the running token's two halves
           subst Hv
@@ -392,7 +417,14 @@ theorem raftNode.start.wp_proof
           wp_for_post
           ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
           ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod Hauth]
+          · icases Hwl with ⟨Hws, Hwm⟩
+            iframe Hws Hwap Hwm
+            iunfold rnPendEnter at Hpend
+            icases Hpend with ⟨HrS, -⟩
+            ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
+            iexists S, p, L', sent
+            iframe HrS Hwv Hprod Hidx
           itrivial
         subst Hv
         wp_auto_lc 3
@@ -423,7 +455,7 @@ theorem raftNode.start.wp_proof
             rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
         -- the batch's raft term, with the witness bounding the batch (`nodeDriver_hardStateCommitted`,
         -- on the busy driver at `p'`)
-        ihave ⟨Hbdrv, #Hrtok⟩ := rn_rtOk_busyS γ rt' A' _ p' _ Hrt' $$ Hbdrv
+        ihave #Hrtok := rnRtOk_of_hsC γ rt' A' p' Hrt' $$ Hhsc
         -- `notifyc` (2026-10-31, #3: two sends, after `Sync` and after the messages, the
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -435,7 +467,8 @@ theorem raftNode.start.wp_proof
         -- its close carries the node's applied index at the snapshot's and the frozen dummy entry
         imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗
             nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
-            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length) γac ac
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length ∗
+            rnWalHanded γ (γ.pre ++ A').length) γac ac
           $$ Hacch Hacown with Hacp
         icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
         -- `proto.Clone(rd.Snapshot)`, twice (`raftSnap`, the apply thread's): both frozen
@@ -496,11 +529,11 @@ theorem raftNode.start.wp_proof
           ihave #Hsp := Hapci
           iunfold isRNApplyc at Hsp
           ihave #Hapci' := Hsp
-          iunfold isSpsc at Hapci'
+          iunfold isSspsc at Hapci'
           icases Hapci' with ⟨#Hapch, -⟩
           isplitr
           · iexact Hapch
-          iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
+          iapply sspsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
             [$Hprod Hnrcv]
           · iunfold rnApP
             iright
@@ -530,12 +563,15 @@ theorem raftNode.start.wp_proof
           -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
           -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
           wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
-              (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ m))
-            with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
+              (⌜b' = true⌝ ∨ rnRawMsgs γ qms r'))
+            with [rh rd r islead HS Hraw] as ⟨rh, rd, r, islead, HS, Hraw⟩
           -- the cases that reach the join with nothing sent close by framing (`ileft` once the
           -- bundles went to the transport)
           all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
-          · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hmsl $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
+          · imod rnRawMsgs_leader E γ qms r' (Hb' (by first | assumption | simpa using Hif)) $$ Henv Hraw
+              with Hmsok
+            wp_apply wp_processMessages E γ r _ (qms.map QMsg.loc) $$ [$Hpkg $Hr $Hmsl $Hmsok]
+              as %out ⟨%outL, Hout, Houtok⟩
             -- (`wp_apply HSend` here trips over an unknown free variable inside the join's case)
             wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
             iapply HSend $$ [Hout Houtok HS]
@@ -558,45 +594,39 @@ theorem raftNode.start.wp_proof
           -- error
           ihave ⟨%pm1, #HM1, #Hm1⟩ := srv_ownSnapS_meta _ _ _ $$ Hc1
           ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
-          wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1] as %err ⟨Hwo, -, -, -⟩
+          iunfold rnWalView at Hwv
+          icases Hwv with ⟨Hwv, Hwok⟩
+          ihave HAU := rnDur_saveSnap_au γ.wal _ _ _ HwSteps.1 $$ Hdur Hwv Hwok
+          -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)
+          ihave #HSaveSnap := walSaveSnap_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+          wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1 $HAU] as %err ⟨Hwo, -, -, Hres⟩
+          icases Hres with (⟨%Herr, Hwv, Hwok⟩ | %Hbad)
+          rotate_left
+          · exact absurd Hwso Hbad
+          subst Herr
+          ihave Hwv : rnWalView γ _ $$ [Hwv Hwok]
+          · iunfold rnWalView; iframe Hwv Hwok
           ihave Hwt : rnWalTok r (1 : Qp).half $$ [Hwo]
           · iunfold rnWalTok; iexists _; iframe Hst Hwo
-          rcases err with ei | _
-          · wp_auto
-            wp_apply wp_Error $$ [$Hzap] as %f -
-            wp_apply wp_slice_literal
-            try (isplitr; (ipureintro; rfl))
-            try iintro %_ ⟨_, -⟩
-            try wp_auto
-            -- (focused: `wp_apply` overflows the stack on the long continuation)
-            wp_bind (App (App (Val _) (Val _)) (Val _))
-            iapply wp_Fatal lg $$ [$Hzap]
-            · ipureintro; exact Hlgnn
-            inext
-            iintro %v Hf
-            iexfalso
-            iexact Hf
           wp_auto
           -- `r.storage.Save(rd.HardState, rd.Entries)`, `lg.Fatal` on an error
           ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
-          wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa] as %err Hwo
+          iunfold rnWalView at Hwv
+          icases Hwv with ⟨Hwv, Hwok⟩
+          ihave HAU := rnDur_save_au γ.wal _ _ _ _ _ HwSteps.2 $$ Hdur Hwv Hwok
+          -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
+          ihave #HSave := walSave_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+          wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa $HAU] as %err ⟨Hwo, Hres⟩
+          icases Hres with (⟨%Herr, Hwv, Hwok, #Hwlb⟩ | %Hbad)
+          rotate_left
+          · exact absurd Hwso Hbad
+          subst Herr
+          ihave Hwv : rnWalView γ _ $$ [Hwv Hwok]
+          · iunfold rnWalView; iframe Hwv Hwok
           ihave Hwt : rnWalTok r (1 : Qp).half $$ [Hwo]
           · iunfold rnWalTok; iexists _; iframe Hst Hwo
-          rcases err with ei | _
-          · wp_auto
-            wp_apply wp_Error $$ [$Hzap] as %f -
-            wp_apply wp_slice_literal
-            try (isplitr; (ipureintro; rfl))
-            try iintro %_ ⟨_, -⟩
-            try wp_auto
-            -- (focused: `wp_apply` overflows the stack on the long continuation)
-            wp_bind (App (App (Val _) (Val _)) (Val _))
-            iapply wp_Fatal lg $$ [$Hzap]
-            · ipureintro; exact Hlgnn
-            inext
-            iintro %v Hf
-            iexfalso
-            iexact Hf
+          -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends
+          imod rn_enterS γ L' A' es p p' l S S' ro r' qms $$ Hpend Hrun with ⟨Hbdrv, Hrun, #Hsent⟩
           wp_auto
           -- `if !raft.IsEmptyHardState(rd.HardState) { proposalsCommitted.Set(..) }`
           wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs -
@@ -714,7 +744,7 @@ theorem raftNode.start.wp_proof
           · iapply srvFrozenTerms_snap γ.γs (γ.pre.length + 1) A' l.snap
               (by simp only [List.length_append] at hlenA; omega) Hlast
             iframe HcpS Hdum
-          ihave Hbusy : rnBusyS γ L' A' es p' l $$ [Hbdrv Hbcv]
+          ihave Hbusy : rnBusyS γ L' A' es p' l S' r' $$ [Hbdrv Hbcv]
           · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61⟩
           -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
           ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
@@ -802,9 +832,10 @@ theorem raftNode.start.wp_proof
           · -- a follower: `msgs := r.processMessages(rd.Messages)`, `notifyc <- `,
             -- `r.transport.Send(msgs)`
             wp_auto
-            icases Hmsok with (%Hlead | Hmsok)
+            icases Hraw with (%Hlead | Hraw)
             · cases Hlead
-            wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hmsl $Hmsok] as %out
+            imod rnRawMsgs_sent E γ qms r' $$ Henv Hraw Hsent with Hmsok
+            wp_apply wp_processMessages E γ r _ (qms.map QMsg.loc) $$ [$Hpkg $Hr $Hmsl $Hmsok] as %out
               ⟨%outL, Hout, Houtok⟩
             wp_apply wp_notify2_send2 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
             cases cc
@@ -822,13 +853,16 @@ theorem raftNode.start.wp_proof
               -- `r.Advance()`: the snapshot clause, the driver at `A'`
               ihave HAdvS' := HAdvS $$ %L' %A' %es %p' %l
               wp_apply HAdvS' $$ [$Hbusy $Hrcpt $Hcert $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
-              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ A' p' $$ Hdrv
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ A' p' _ _ $$ Hdrv
               -- `close(raftAdvancedC)`, with the applied index and the frozen dummy entry
+              -- (R2b-1 stage 5) the snapshot's log handed at the `Save`
+              ihave #Hwh : rnWalHanded γ (γ.pre ++ A').length $$ []
+              · iapply rnWalHanded_intro γ A' $$ Hwlb; rw [HbA]; iexact HcL
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
               · -- (persistent: `nodeCommitLb` from `rn_storDL`, the frozen dummy from
                 -- `ApplySnapshot`'s)
                 imodintro
-                iframe Hfl
+                iframe Hfl Hwh
                 isplitr
                 · iexact HcA
                 rw [hlenA]; iapply srv_snap_frozen γ.γs _ l.snap; iframe HcpS Hdum
@@ -840,8 +874,10 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [A']
+              iexists _, cums ++ [A'], _, _
               iframe
+              isplitr
+              · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
               isplitr
               · ipureintro
                 simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
@@ -864,13 +900,16 @@ theorem raftNode.start.wp_proof
               -- `r.Advance()`: the snapshot clause, the driver at `A'`
               ihave HAdvS' := HAdvS $$ %L' %A' %es %p' %l
               wp_apply HAdvS' $$ [$Hbusy $Hrcpt $Hcert $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
-              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ A' p' $$ Hdrv
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ A' p' _ _ $$ Hdrv
               -- `close(raftAdvancedC)`, with the applied index and the frozen dummy entry
+              -- (R2b-1 stage 5) the snapshot's log handed at the `Save`
+              ihave #Hwh : rnWalHanded γ (γ.pre ++ A').length $$ []
+              · iapply rnWalHanded_intro γ A' $$ Hwlb; rw [HbA]; iexact HcL
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
               · -- (persistent: `nodeCommitLb` from `rn_storDL`, the frozen dummy from
                 -- `ApplySnapshot`'s)
                 imodintro
-                iframe Hfl
+                iframe Hfl Hwh
                 isplitr
                 · iexact HcA
                 rw [hlenA]; iapply srv_snap_frozen γ.γs _ l.snap; iframe HcpS Hdum
@@ -882,8 +921,10 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [A']
+              iexists _, cums ++ [A'], _, _
               iframe
+              isplitr
+              · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
               isplitr
               · ipureintro
                 simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
@@ -905,35 +946,55 @@ theorem raftNode.start.wp_proof
           · iapply is_bag_is_chan $$ Hstb
           iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
           inext
-          iintro %u ⟨HST, Hrun2, Hwo2⟩
+          iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
           wp_auto
           wp_for_post
           ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
           ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+          wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod]
+          · icases Hwl with ⟨Hws, Hwm⟩
+            iframe Hws Hwap Hwm
+            iunfold rnPendEnter at Hpend
+            icases Hpend with ⟨HrS, -⟩
+            iexists S, p, L', sent
+            iframe HrS Hwv Hprod Hcn
           itrivial
         iapply BigAndL.bigAndL_nil.2
         itrivial
       -- (D43 M3) the driver's view after `L'`, apart
-      iunfold rnBusy at Hbusy
-      icases Hbusy with ⟨Hbusy, Hcv⟩
+      iunfold rnBusyP at Hbusy
+      icases Hbusy with ⟨Hpend, Hcv⟩
       iunfold rnReadyData at Hdata
-      icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, Hmsok,
-        #Hss, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil, #Hcfz⟩
+      icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, %HmsL, Hraw,
+        ⟨%ss, #Hss, %Hr'⟩, #Hhs, %Hp', ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil, #Hcfz, %HwStep⟩
+      subst HmsL
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
-      wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r)
-        at next with [islead rd rh r] as ⟨%b', islead, rd, rh, r⟩
+      -- (2026-11-03, R2b-3) `islead` true only at the role after the `Ready` leader
+      ihave %Hssc : ⌜ss = none ↔ rd.SoftState' = null⌝ $$ []
+      · cases ss with
+        | none => iunfold softStateIs at Hss; icases Hss with %H; ipureintro; simp [H]
+        | some x =>
+          iunfold softStateIs at Hss; icases Hss with ⟨%H, -⟩; ipureintro; simp [H]
+      wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r ∗
+          ⌜b' = true → r' = StateLeader⌝)
+        at next with [islead rd rh r] as ⟨%b', islead, rd, rh, r, %Hb'⟩
       · wp_if_destruct
         · -- nil
           isplitr
           · itrivial
           iexists _; iframe islead rd rh r
-        · iunfold softStateAt at Hss
-          iunfold softStateRO at Hss
-          icases Hss with (%Hssn | ⟨%lead, %rs, #Hlead, #Hrs⟩)
-          · exact absurd Hssn Hif
-          simp only [None']
+          ipureintro
+          have hs0 : ss = none := Hssc.2 (by first | exact Hif | simpa using Hif)
+          subst hs0
+          simp only [roleAfter, Option.map_none, Option.getD_none] at Hr'
+          rw [Hr']; exact Hld
+        · obtain ⟨⟨lead, rs⟩, hss⟩ : ∃ x, ss = some x :=
+            Option.ne_none_iff_exists'.1 (fun h => Hif (Hssc.1 h))
+          subst hss
+          iunfold softStateIs at Hss
+          icases Hss with ⟨-, #Hlead, #Hrs⟩
+          try simp only [None']
           wp_auto
           -- `newLeader`
           wp_join (Q := fun v => iprop(∃ nl : Bool, ⌜v = #nl⌝ ∗ rh_ptr ↦ rh ∗ rd_ptr ↦ rd))
@@ -971,6 +1032,11 @@ theorem raftNode.start.wp_proof
           · itrivial
           iexists _
           iframe islead rd rh r
+          ipureintro
+          intro hb
+          simp only [roleAfter, Option.map_some, Option.getD_some] at Hr'
+          rw [Hr']
+          first | (simp at hb; exact hb) | simpa [StateLeader] using hb
       irename Hlc3 => HlcA
       irename Hlc4 => HlcB
       -- the read states: the last one to `readStateC` (or a timeout, or `<-r.stopped`: return)
@@ -981,7 +1047,7 @@ theorem raftNode.start.wp_proof
       icases Hrsci' with ⟨%γrs, #Hrsb⟩
       wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r) ∨
           (⌜v = returnVal #()⌝ ∗ E.ST ∗ nodeRunning γ.nl γ.node.cl srvClusterN (1 : Qp).half ∗
-            storage.walOpen (storage.walOf (GoInterface.ok si)) (1 : Qp).half)))
+            storage.walOpen (storage.walOf (GoInterface.ok si)) (1 : Qp).half ∗ token γ.wal.app)))
         with [rd r]
       · -- no read states
         ileft
@@ -1070,14 +1136,14 @@ theorem raftNode.start.wp_proof
           · iapply is_bag_is_chan $$ Hstb
           iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
           inext
-          iintro %u ⟨HST, Hrun2, Hwo2⟩
+          iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
           try wp_auto
           iright
-          iframe HST Hrun2 Hwo2
+          iframe HST Hrun2 Hwo2 Hwap
           ipureintro; rfl
         iapply BigAndL.bigAndL_nil.2
         itrivial
-      iintro (⟨%Hv, rd, r⟩ | ⟨%Hv, HST, Hrun2, Hwo2⟩)
+      iintro (⟨%Hv, rd, r⟩ | ⟨%Hv, HST, Hrun2, Hwo2, Hwap⟩)
       rotate_left
       · -- returned (`<-r.stopped`): the deferred `onStop`, with the running token's two halves
         subst Hv
@@ -1085,7 +1151,14 @@ theorem raftNode.start.wp_proof
         wp_for_post
         ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
         ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod Hauth]
+        · icases Hwl with ⟨Hws, Hwm⟩
+          iframe Hws Hwap Hwm
+          iunfold rnPendEnter at Hpend
+          icases Hpend with ⟨HrS, -⟩
+          ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
+          iexists S, p, L', sent
+          iframe HrS Hwv Hprod Hidx
         itrivial
       subst Hv
       wp_auto_lc 3
@@ -1116,7 +1189,7 @@ theorem raftNode.start.wp_proof
           rw [Hp', phsNext_toM_empty p hs (Hehs0.1 rfl)]; exact Hrt
       -- (D22 S-b, D22l) the batch's raft term, with the witness bounding the batch
       -- (`nodeDriver_hardStateCommitted`, on the busy driver at `p'`)
-      ihave ⟨Hbusy, #Hrtok⟩ := rn_rtOk_busyN γ rt' L' ce es p' Hrt' $$ Hbusy
+      ihave #Hrtok := rnRtOk_of_hsC γ rt' (L' ++ ce) p' Hrt' $$ Hhsc
       -- `notifyc` (D43 M3: the two-send idiom, depositing the view after the batch if it goes
       -- along, `rnApR`), `raftAdvancedC`
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
@@ -1138,7 +1211,8 @@ theorem raftNode.start.wp_proof
       -- its close carries the storage's floor past the batch (`node.Advance`'s)
       imod alloc_stop_chan (E := ⊤) iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ L' ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ L' ++ ce).length ∗
           srvFrozenRange γ.γs ((γ.pre ++ L').length + 1) ((γ.pre ++ L' ++ ce).length + 1) ∗
-          srvFrozenTerms γ.γs (γ.pre.length + 1) (L' ++ ce)) γac ac
+          srvFrozenTerms γ.γs (γ.pre.length + 1) (L' ++ ce) ∗
+          rnWalHanded γ (γ.pre ++ L' ++ ce).length) γac ac
         $$ Hacch Hacown with Hacp
       icases ownStopChan_pending_unknown _ _ _ $$ Hacp with ⟨Hacp, #HacU⟩
       -- `proto.Clone(rd.Snapshot)` of the nil snapshot, twice
@@ -1186,11 +1260,11 @@ theorem raftNode.start.wp_proof
         ihave #Hsp := Hapci
         iunfold isRNApplyc at Hsp
         ihave #Hapci' := Hsp
-        iunfold isSpsc at Hapci'
+        iunfold isSspsc at Hapci'
         icases Hapci' with ⟨#Hapch, -⟩
         isplitr
         · iexact Hapch
-        iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
+        iapply sspsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
           [$Hprod Hnrcv Hgive]
         · iunfold rnApP
           ileft
@@ -1218,12 +1292,15 @@ theorem raftNode.start.wp_proof
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
         -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
         wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
-            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ m))
-          with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
+            (⌜b' = true⌝ ∨ rnRawMsgs γ qms r'))
+          with [rh rd r islead HS Hraw] as ⟨rh, rd, r, islead, HS, Hraw⟩
         -- the cases that reach the join with nothing sent close by framing (`ileft` once the
         -- bundles went to the transport)
         all_goals first | (iframe; done) | (iframe; ileft; itrivial) | skip
-        · wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
+        · imod rnRawMsgs_leader E γ qms r' (Hb' (by first | assumption | simpa using Hif)) $$ Henv Hraw
+            with Hmsok
+          wp_apply wp_processMessages E γ r _ (qms.map QMsg.loc) $$ [$Hpkg $Hr $Hms $Hmsok]
+            as %out ⟨%outL, Hout, Houtok⟩
           -- (`wp_apply HSend` here trips over an unknown free variable inside the join's case)
           wp_bind (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #out))
           iapply HSend $$ [Hout Houtok HS]
@@ -1237,20 +1314,22 @@ theorem raftNode.start.wp_proof
         wp_apply wp_IsEmptySnap $$ [$Hrpkg]
         -- `r.storage.Save(rd.HardState, rd.Entries)`, `lg.Fatal` on an error
         ihave Hwo := rnWalTok_open r _ (1 : Qp).half $$ [$Hst $Hwt]
-        wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa] as %err Hwo
+        iunfold rnWalView at Hwv
+        icases Hwv with ⟨Hwv, Hwok⟩
+        ihave HAU := rnDur_save_au γ.wal _ _ _ _ _ HwStep $$ Hdur Hwv Hwok
+        -- (R2b-1 stage 4) the `Save` as the WAL contract's atomic update (`rnDur_save_au`)
+        ihave #HSave := walSave_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
+        wp_apply HSave $$ [$Hwo $Hhs $Hes $Hesa $HAU] as %err ⟨Hwo, Hres⟩
+        icases Hres with (⟨%Herr, Hwv, Hwok, #Hwlb⟩ | %Hbad)
+        rotate_left
+        · exact absurd Hwso Hbad
+        subst Herr
+        ihave Hwv : rnWalView γ _ $$ [Hwv Hwok]
+        · iunfold rnWalView; iframe Hwv Hwok
         ihave Hwt : rnWalTok r (1 : Qp).half $$ [Hwo]
         · iunfold rnWalTok; iexists _; iframe Hst Hwo
-        rcases err with ei | _
-        · wp_auto
-          wp_apply wp_Error $$ [$Hzap] as %f -
-          wp_apply wp_slice_literal
-          try (isplitr; (ipureintro; rfl))
-          try iintro %_ ⟨_, -⟩
-          try wp_auto
-          wp_apply wp_Fatal lg $$ [$Hzap] as %v Hf
-          · ipureintro; exact Hlgnn
-          iexfalso
-          iexact Hf
+        -- (2026-11-03, R2b-3) *enter*, after the `Save`: the busy driver, the messages' sends
+        imod rn_enter γ L' ce es p p' S S' ro r' qms $$ Hpend Hrun with ⟨Hbusy, Hrun, #Hsent⟩
         wp_auto
         -- `if !raft.IsEmptyHardState(rd.HardState) { proposalsCommitted.Set(..) }`
         wp_apply wp_IsEmptyHardState rd.HardState' hs $$ [$Hrpkg $Hhs] as %ehs -
@@ -1382,9 +1461,11 @@ theorem raftNode.start.wp_proof
         · -- a follower: `msgs := r.processMessages(rd.Messages)`, `notifyc <- `, then (on a conf
           -- change) a second `notifyc` send or `<-r.stopped`, `r.transport.Send(msgs)`
           wp_auto
-          icases Hmsok with (%Hlead | Hmsok)
+          icases Hraw with (%Hlead | Hraw)
           · cases Hlead
-          wp_apply wp_processMessages E γ r _ msL $$ [$Hpkg $Hr $Hms $Hmsok] as %out ⟨%outL, Hout, Houtok⟩
+          imod rnRawMsgs_sent E γ qms r' $$ Henv Hraw Hsent with Hmsok
+          wp_apply wp_processMessages E γ r _ (qms.map QMsg.loc) $$ [$Hpkg $Hr $Hms $Hmsok] as %out
+            ⟨%outL, Hout, Houtok⟩
           wp_apply wp_notify_send1 γnc nc _ $$ [$Hncb $Hnsnd] as Hnsnd
           cases cc
           · wp_auto
@@ -1403,10 +1484,14 @@ theorem raftNode.start.wp_proof
             ihave Hcv' := rnCfgAt_back_false γ _ L' ce HidxOk.2 Hcc.symm $$ Hkeep
             ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
-            ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
+            ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
             -- `close(raftAdvancedC)`, with the floor's witness
+            -- (R2b-1 stage 5) the batch's log handed at the `Save`
+            ihave #Hwh : rnWalHanded γ (γ.pre ++ L' ++ ce).length $$ []
+            · rw [List.append_assoc]; iapply rnWalHanded_intro γ (L' ++ ce) $$ Hwlb
+              iapply deliveredLogLb_committed $$ Hdlb
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-            · imodintro; iframe Hfl Hfr Hft
+            · imodintro; iframe Hfl Hfr Hft Hwh
               rw [List.append_assoc]; iexact HcA
             (try wp_auto)
             wp_for_post
@@ -1416,8 +1501,10 @@ theorem raftNode.start.wp_proof
             isplitr
             · ipureintro; exact Hrt'
             iunfold rnLoopTokP
-            iexists _, cums ++ [L' ++ ce]
+            iexists _, cums ++ [L' ++ ce], _, _
             iframe
+            isplitr
+            · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
             isplitr
             · ipureintro
               simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
@@ -1457,10 +1544,14 @@ theorem raftNode.start.wp_proof
               ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hkeep $HRr]
               ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
-              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
               -- `close(raftAdvancedC)`, with the floor's witness
+              -- (R2b-1 stage 5) the batch's log handed at the `Save`
+              ihave #Hwh : rnWalHanded γ (γ.pre ++ L' ++ ce).length $$ []
+              · rw [List.append_assoc]; iapply rnWalHanded_intro γ (L' ++ ce) $$ Hwlb
+                iapply deliveredLogLb_committed $$ Hdlb
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-              · imodintro; iframe Hfl Hfr Hft
+              · imodintro; iframe Hfl Hfr Hft Hwh
                 rw [List.append_assoc]; iexact HcA
               (try wp_auto)
               wp_for_post
@@ -1470,8 +1561,10 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [L' ++ ce]
+              iexists _, cums ++ [L' ++ ce], _, _
               iframe
+              isplitr
+              · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
               isplitr
               · ipureintro
                 simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
@@ -1492,12 +1585,20 @@ theorem raftNode.start.wp_proof
               · iapply is_bag_is_chan $$ Hstb
               iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
               inext
-              iintro %u ⟨HST, Hrun2, Hwo2⟩
+              iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
               wp_auto
               wp_for_post
               ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
               ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hbusy Hprod]
+              · icases Hwl with ⟨Hws, Hwm⟩
+                iframe Hws Hwap Hwm
+                iunfold rnBusyN at Hbusy
+                icases Hbusy with ⟨-, HrS⟩
+                iexists S', p', L' ++ ce, _
+                iframe HrS Hwv Hprod
+                simp only [List.length_append, List.length_singleton]
+                iexact Hcn1
               itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
@@ -1516,10 +1617,14 @@ theorem raftNode.start.wp_proof
             ihave Hcv' := rnCfgAt_back_false γ _ L' ce HidxOk.2 Hcc.symm $$ Hkeep
             ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
-            ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
+            ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
             -- `close(raftAdvancedC)`, with the floor's witness
+            -- (R2b-1 stage 5) the batch's log handed at the `Save`
+            ihave #Hwh : rnWalHanded γ (γ.pre ++ L' ++ ce).length $$ []
+            · rw [List.append_assoc]; iapply rnWalHanded_intro γ (L' ++ ce) $$ Hwlb
+              iapply deliveredLogLb_committed $$ Hdlb
             wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-            · imodintro; iframe Hfl Hfr Hft
+            · imodintro; iframe Hfl Hfr Hft Hwh
               rw [List.append_assoc]; iexact HcA
             (try wp_auto)
             wp_for_post
@@ -1529,8 +1634,10 @@ theorem raftNode.start.wp_proof
             isplitr
             · ipureintro; exact Hrt'
             iunfold rnLoopTokP
-            iexists _, cums ++ [L' ++ ce]
+            iexists _, cums ++ [L' ++ ce], _, _
             iframe
+            isplitr
+            · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
             isplitr
             · ipureintro
               simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
@@ -1564,10 +1671,14 @@ theorem raftNode.start.wp_proof
               ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hkeep $HRr]
               ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
-              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' $$ Hdrv
+              ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
               -- `close(raftAdvancedC)`, with the floor's witness
+              -- (R2b-1 stage 5) the batch's log handed at the `Save`
+              ihave #Hwh : rnWalHanded γ (γ.pre ++ L' ++ ce).length $$ []
+              · rw [List.append_assoc]; iapply rnWalHanded_intro γ (L' ++ ce) $$ Hwlb
+                iapply deliveredLogLb_committed $$ Hdlb
               wp_apply wp_stop_chan_close ac γac _ $$ [$Hacp] as -
-              · imodintro; iframe Hfl Hfr Hft
+              · imodintro; iframe Hfl Hfr Hft Hwh
                 rw [List.append_assoc]; iexact HcA
               (try wp_auto)
               wp_for_post
@@ -1577,8 +1688,10 @@ theorem raftNode.start.wp_proof
               isplitr
               · ipureintro; exact Hrt'
               iunfold rnLoopTokP
-              iexists _, cums ++ [L' ++ ce]
+              iexists _, cums ++ [L' ++ ce], _, _
               iframe
+              isplitr
+              · ipureintro; first | exact Hb' | exact Hb' rfl | (intro h; cases h)
               isplitr
               · ipureintro
                 simp only [List.length_append, List.length_singleton, List.getLast?_append, List.getLast?_singleton]
@@ -1599,12 +1712,20 @@ theorem raftNode.start.wp_proof
               · iapply is_bag_is_chan $$ Hstb
               iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
               inext
-              iintro %u ⟨HST, Hrun2, Hwo2⟩
+              iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
               wp_auto
               wp_for_post
               ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
               ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+              wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hbusy Hprod]
+              · icases Hwl with ⟨Hws, Hwm⟩
+                iframe Hws Hwap Hwm
+                iunfold rnBusyN at Hbusy
+                icases Hbusy with ⟨-, HrS⟩
+                iexists S', p', L' ++ ce, _
+                iframe HrS Hwv Hprod
+                simp only [List.length_append, List.length_singleton]
+                iexact Hcn1
               itrivial
             iapply BigAndL.bigAndL_nil.2
             itrivial
@@ -1619,12 +1740,18 @@ theorem raftNode.start.wp_proof
         · iapply is_bag_is_chan $$ Hstb
         iapply bag_recv_au γst stc _ _ $$ [$HlcA $HlcB] Hstb
         inext
-        iintro %u ⟨HST, Hrun2, Hwo2⟩
+        iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
         wp_auto
         wp_for_post
         ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
         ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+        wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hpend Hprod]
+        · icases Hwl with ⟨Hws, Hwm⟩
+          iframe Hws Hwap Hwm
+          iunfold rnPendEnter at Hpend
+          icases Hpend with ⟨HrS, -⟩
+          iexists S, p, L', sent
+          iframe HrS Hwv Hprod Hcn
         itrivial
       iapply BigAndL.bigAndL_nil.2
       itrivial
@@ -1640,14 +1767,21 @@ theorem raftNode.start.wp_proof
       · iapply is_bag_is_chan $$ Hstb
       iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
       inext
-      iintro %u ⟨HST, Hrun2, Hwo2⟩
+      iintro %u ⟨HST, Hrun2, Hwo2, Hwap⟩
       wp_auto
       wp_for_post
       iunfold rnLoopTokP at Htok
-      icases Htok with ⟨%sent, %cums, -, Hrun, -⟩
+      icases Htok with ⟨%sent, %cums, %S, %ro, Hdrv, -, Hwv, Hrun, Hprod, Hauth, %Hcums, -, -⟩
       ihave Hrun := rnRun_join γ.nl γ.node.cl srvClusterN $$ [$Hrun $Hrun2]
       ihave Hwt := rnWalTok_join r _ $$ [$Hst $Hwt $Hwo2]
-      wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt]
+      wp_apply wp_onStop E γ r Hwco $$ [$Hpkg $Hr $Hdone $HST $Hrun $Hwt Hwl Hwap Hwv Hdrv Hprod Hauth]
+      · icases Hwl with ⟨Hws, Hwm⟩
+        iframe Hws Hwap Hwm
+        iunfold rnDrv at Hdrv
+        icases Hdrv with ⟨-, HrS, -⟩
+        ihave #Hidx := cum_idx_last γ.cum cums L' sent.length Hcums.1 Hcums.2 $$ Hauth
+        iexists S, p, L', sent
+        iframe HrS Hwv Hprod Hidx
       itrivial
     iapply BigAndL.bigAndL_nil.2
     itrivial

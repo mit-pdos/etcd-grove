@@ -129,7 +129,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_gets
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   try wp_auto
-  rw [show raftpb.MsgPreVoteResp = #MsgPreVoteResp from rfl]
+  rw [show (W32 18 : w32) = MsgPreVoteResp from rfl]
   wp_apply PB.Enum MsgPreVoteResp
   iintro %pty Hpty
   wp_auto

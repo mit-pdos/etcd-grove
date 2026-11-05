@@ -55,10 +55,10 @@ theorem TypedItemExponentialFailureRateLimiter.When.wp_proof [EtcdGrove.Float64T
   wp_apply wp_Nanoseconds $$ [$Hbase] as -
   wp_apply wp_Pow as %p -
   generalize (float64Mul (int64ToFloat64 base) p) = bf
-  generalize (untypedIntToFloat64 9223372036854775807) = mf
+  generalize (W64 4890909195324358656) = mf
   cases hb : (float64Leb mf bf && !float64Eq bf mf)
   · -- not above `MaxInt64`: the conversion
-    wp_auto
+    try wp_auto
     wp_if_destruct
     · wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hm]
       · inext; iunfold failuresInv; iexists _; iframe
@@ -67,7 +67,7 @@ theorem TypedItemExponentialFailureRateLimiter.When.wp_proof [EtcdGrove.Float64T
       · inext; iunfold failuresInv; iexists _; iframe
       iapply HΦ; ipureintro; omega
   · -- above: `maxDelay`
-    wp_auto
+    try wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hm]
     · inext; iunfold failuresInv; iexists _; iframe
     iapply HΦ; ipureintro; exact Int.le_refl _

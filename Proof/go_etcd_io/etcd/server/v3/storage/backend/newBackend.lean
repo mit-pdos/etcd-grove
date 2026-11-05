@@ -141,7 +141,7 @@ theorem backend.newBackend.wp_proof
     ipureintro
     obtain ⟨lc, rfl⟩ := Hlty
     exact OptsM.ok_withLogger o _ Hok ⟨_, lc, rfl, rfl⟩
-  icases Hres with (%Herr | ⟨%Herr, %γd, Hown, Hwr, #Hdb⟩)
+  icases Hres with (%Herr | ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile⟩)
   · -- `Open` failed: `lg.Panic`
     rcases err with ei | _
     · wp_auto
@@ -222,10 +222,11 @@ theorem backend.newBackend.wp_proof
   ipersist hooks
   -- the backend's invariants
   imod backend_init P W Pk K cfg.Hooks' «$r0_ptr» t «$v5_ptr» «$v3_ptr» «$v2_ptr» db lg wtx rtx m cm γd
+    cfg.Path'
     γrw D sc dc γsc γdc HP.1 Hlg $$ [Hmk Hmu1 Hmx Htxf Hpend Hdel Hwb txPostLockInsideApplyHook Hown
       Hwtx Hst Hrtoks rtx Hlive Hstats rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
-    with ⟨%γ, %Hγd, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
+    with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
   · rw [HP.2]
     iframe
     iframe #
@@ -247,6 +248,7 @@ theorem backend.newBackend.wp_proof
   · unfold newPostK
     iframe Hb
     iexact Hpost
+  iframe Hbfile
   unfold hooksAt
   iexact hooks
 

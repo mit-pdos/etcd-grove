@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft L)
+    {lm : lease.Mode} (hs : logShape lm L) (hcl : ccLogOk ρ.raft.raft L)
     (ha : attrLogOk ρ.raft.raft.cfg L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
@@ -78,9 +78,8 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
     isplitr
     rotate_left
     · ipureintro; exact hcl m hm ht
-    iintro !> %Ψ HR
-    iunfold reqWaitR at HR
-    icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
+    iunfold reqWaitNone
+    iintro !> %d %rq %γf %F #Hc0 - -
     ihave #Hc0a := idClaimAny_of ρ.ids (W64 0) d γf $$ Hc0
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0a
 
@@ -136,17 +135,17 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
     exact ⟨hd, ht⟩
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
   ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
-  imod Hclose $$ [HL' Hσ] with -
-  · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL' Hσ HG] with -
+  · inext; iexists L'; iframe HL' Hσ Hw HG; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl, -, -, Hatt⟩ := Hsh
   -- (2026-10-27) the committed log's entries are the server's log's or fillers
-  have hshL : logShape L := by
+  have hshL : logShape ρ.kv.lm L := by
     intro m hm
     rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨ht, hd⟩ | ⟨m', hm', he⟩
     · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
@@ -202,9 +201,9 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
     -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
     -- `Send`'s borrow
-    (id : w64) (S : IProp GF) (hid : γw.id = id) :
+    (id : w64) (S ST : IProp GF) (hid : γw.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
-      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S) γw := by
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S ST) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only
@@ -261,7 +260,7 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
   unfold srvBuilt srvBuildGap isServerBuilt
   iintro ⟨⟨#Hci, ⟨%v, #Hfb⟩, #Hreqb, ⟨%vr, #Hrdb⟩, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci',
-      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
+      #Hrn, %HEr, Hrunh, Hwth, Hwtl, %Hdisk, %Hslg, %Hρrd, #Hmid, %Hmidc, #HmetaSnap, Hloop, Hsend, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
       ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok, Hsnapb⟩, Hsnap⟩
@@ -283,15 +282,17 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   isplitr
   · ipureintro; exact Hdisk
   isplitr
+  · ipureintro; exact Hslg
+  isplitr
   · ipureintro; exact Hρrd
   isplitr
   · ipureintro; exact Hmidc
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNA applyBuilt
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hfs⟩
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hrdat, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hkr Hfs
+  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hrdat Hao Hal Hkr Hfs
   isplitr
   · ipureintro; exact Hok
   iexists ua

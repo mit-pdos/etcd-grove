@@ -28,15 +28,15 @@ checkpoints (`Post`, the record, `leaseEnc` of the id, the lease's TTL and `rema
 the tracked buckets `Rb` holds under the id's 8 big-endian bytes: leases T3, L3c, 2026-10-27;
 otherwise `Pre` back, the buckets left), schedules the next checkpoint if primary; `nil`. -/
 abbrev lease.lessor.Checkpoint.spec : Prop :=
-  ∀ (lp : Loc) (γl : GName) (id rem : w64) (P : IProp GF) (f : val) (T R : IProp GF)
+  ∀ (lp : Loc) (γl : GName) (id rem : w64) (P : IProp GF) (f : val) (T Ln R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (rb : GMap GoString backend.BktData)
     (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorInv lp γl ∗
-      lessorCfg lp ∗ lessorBackend lp P f T R Rb ∗ mvcc.csContract P f Pre Q Post ∗ T ∗ R ∗
+      lessorCfg lp ∗ lessorBackend lp P f T Ln R Rb ∗ mvcc.csContract P f Pre Q Post ∗ T ∗ Ln ∗ R ∗
       Rb rb }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Checkpoint")) (Val #id))
       (Val #rem))
-  {{ (err : GoInterface), RET #err; R ∗ ⌜err = GoInterface.nil⌝ ∗
+  {{ (err : GoInterface), RET #err; R ∗ Ln ∗ ⌜err = GoInterface.nil⌝ ∗
       ((Post ∗ ∃ t : w64,
           Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id t rem))) ∨
         (Pre ∗ Rb rb)) }}

@@ -160,14 +160,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   addresses) also gives `metaToken l ⊤`, as HeapLang's does; a general change, not shaped by
   bbolt. With it the extra `γ` could be dropped again (an API change then).
 - **Status.** Not started.
+### Thread tokens by level: a goroutine of a counted wait group has no token (2026-11-04, lease-expiry P1)
+
+etcd's `EtcdServer.GoAttach` counts its goroutines in a wait group whose counter bound is the
+thread bound: `Add` deposits the caller's `threadTok` in the group's invariant
+(`Proof/.../etcdserver/InvGoAttach.lean:171-192`), and `fork` makes exactly one token for the new
+thread (`wp_fork_tok`, `GooseLang/Lifting.lean:1806`). So a goroutine started by `GoAttach` holds no
+token, and cannot itself `GoAttach` or call anything that takes `threadTok`, though Go does both:
+`revokeExpiredLeases` (`server.go:860`) calls `ensureLeadership` and `GoAttach`es one goroutine per
+expired lease, round after round. No pool inside this repository fixes it (three tokens for two
+threads; `notes/lease-expiry-plan.md`, review round 2). Proposed general change
+(`notes/bounds-plan.md` D2(b)): split a thread token by level, `threadTok ⊣⊢ [∗ l < L] levelTok l`,
+`fork` giving the new thread all levels; a counted wait group then takes `levelTok 0` (bound `k + p <
+2·threadBound`), and the goroutine keeps levels `≥ 1` to borrow from pools (lock order gives the
+levels). Local workaround: `EtcdServer.revokeExpiredLeases.wp_proof` a marked `sorry` (the user's
+approval, 2026-11-04). Not yet proposed on a Perennial branch.
 
 ### Adequacy that hands the program its extensions' start resources (2026-10-31, kvdurable)
 
 - **Limitation.** None in Perennial: `goose_adequacy` already gives the WP proof
   `extsGlobalStart`/`extsLocalStart`; this repository's `init_adequate`
-  (`examples/common/Adequacy.lean`), the proposed generic closed theorem, dropped them.
-- **Here.** `init_adequate_start` (`examples/common/AdequacyStart.lean`), any extension list, the
-  body's WP taking both start resources; `durable_init_adequate` (`examples/common/DurableExt.lean`)
+  (`examples/lib/etcdstart/Adequacy.lean`), the proposed generic closed theorem, dropped them.
+- **Here.** `init_adequate_start` (`examples/lib/etcdstart/AdequacyStart.lean`), any extension list, the
+  body's WP taking both start resources; `durable_init_adequate` (`examples/lib/etcdstart/DurableExt.lean`)
   for `[durableExt]`.
 - **Proposal.** Land it in Perennial with `init_adequate` (one theorem, `init_adequate` its
   corollary for resources dropped).
@@ -231,7 +246,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 a mutex and locks it before the invariant holds cannot use it: kvreconf's `StartCluster` locks
 `c.mu` and then inserts the founders, and `clusterLockInv` holds only at the `Unlock`. The lock is
 needed because the replicas' `run` goroutines, started inside the loop, call `c.replica`. The
-workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/MutexFresh.lean`.
+workaround here is `wp_Mutex_Lock_fresh` in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/MutexFresh.lean`.
 It is proved, with no axiom, from Perennial's exported unsealing equations and `lock.lock`'s code:
 `Lock` of a wholly owned mutex at `false` gives `isMutex m R ∗ ownMutex m` for any `R`, and the
 first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in Perennial's
@@ -246,7 +261,7 @@ first `Unlock` establishes `R`. Proposed: the same lemma next to `init_Mutex` in
   same to it, although it unfolds another hypothesis. A `curRep` hypothesis (`ghostMapElem`) in
   `Cluster.restart`'s proof went through `wp_auto` unchanged. Unconfirmed guess: something reduces
   the hypotheses' types to weak head normal form, and `token`/`own` unfold all the way there.
-- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Cluster__Crash.lean`.
+- **Needed by.** `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Cluster__Crash.lean`.
 - **Workaround here.** `attribute [local irreducible] crasher in` on the theorem. The package
   init comes from `isClusterC` in a subgoal with only that hypothesis.
 - **Proposed.** First a minimal reproduction (a `token` hypothesis through `wp_auto`), then keep
@@ -450,7 +465,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Needed by.** The examples' closed theorems (2026-10-22, D36): kv's, the counter's and
   kvwitness's over `goose_adequacy`; the etcd examples' over this repository's
   `goose_adequacy_start` (`Proof/runtime/Start.lean`), which stays here.
-- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/common/Adequacy.lean`:
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Adequacy.lean`:
   `init_adequate` (over `goose_adequacy`, its WP obligation `progOk0`: the initializer's triple
   and the body's WP from the package's predicate and the main thread's token, at every ghost-state
   instance at the state's local context), `adequate_of_unrecovered`, `ownInitializing_of_empty`;
@@ -472,7 +487,13 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** `types.Unalias` on the type and on a pointer's element in `getStructInfo`. Tried
   in a scratch copy of the pinned translator: the three translate and their `Code` and
   `GeneratedProof` elaborate; nothing else changes.
-- **Status.** Not started; small. Needed before the watcher.
+- **Status.** Landed (2026-11-04, the user's sign-off on the plan, G1 of
+  `notes/k8s-compactor-plan.md`): Perennial `898c0ddc5` (`fix-semantics` Case 31), pinned here
+  since 2026-11-04 (branch `pin-898c0ddc5`). The two lines, with tests of a value, a pointer to an
+  alias and an alias of a pointer, and the semantics test `testStructFieldThroughAlias`, proved.
+  No translation here changed at the pin; its first user is the compactor's watch loop (Q1 (b)).
+  `etcdstart.Collect`'s workaround (`mvccpb.Event` for `clientv3.Event`) is gone (2026-11-04): it
+  ranges over `wresp.Events` directly, its proof unchanged.
 
 ### Goose: imports of packages whose types a body names, and same-named packages
 
@@ -603,6 +624,18 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Proposed.** Find the metavariable `wp_apply` leaves (probably the continuation `Φ` of the
   atomic spec, instantiated late, whose context then loses a local cleared by `wp_auto`), and make
   `wp_apply` support atomic specs directly.
+- **Status.** Not started.
+
+### Specs: `fmt`'s `ArgWf` for named non-integer basic types (2026-11-05, k8s etcd3 stage 7b)
+
+- **Missing.** `fmt.wp_Sprintf` admits a named type's argument only when its underlying type is an
+  integer (`IsIntArgType`, with `fmt.NoFmtMethods`); `types.UID` (`type UID string`, no methods) is
+  formatted by `storage.Preconditions.Check` with `%v`.
+- **Workaround here.** `types.UID` added to `fmt.methodlessNamedTypes`, the list of the trust-boundary
+  axiom `fmt.SprintfNamed.wp_proof` (`Spec/fmt/SprintfNamed.lean`), next to `LeaseID`.
+- **Proposed.** `ArgWf` admits a named type with `fmt.NoFmtMethods` whatever its basic underlying
+  type (the output of a non-integer one arbitrary from its directive on, as `SprintfOut.other`); with
+  `NoFmtMethods` from goose's method sets, the list and the axiom go.
 - **Status.** Not started.
 
 ### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
@@ -789,7 +822,8 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`) is the call's own WP, the variable's load
   included, so no proof touches the axiomatized type's `sorry` instances.
 - **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
-- **Status.** Not started.
+- **Status.** Not started. G1's fix (`getStructInfo`, Perennial `898c0ddc5`) covers field
+  selection only: at that pin `feature.FeatureSupportChecker` is still axiomatized.
 
 ### `≤u` has no transitive instance (conversion to a defined type of a named interface)
 
@@ -801,7 +835,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   has no conversion step.
 - **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
 - **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
-  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom. Also met by
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Main.lean`); no axiom. Also met by
   client-go's pager (2026-10-28, `k8s-daemonset-proof`): `meta.List` (`type List
   metav1.ListInterface`), two named types deep; a local instance `metaList_underlying`
   (`Proof/k8s_io/client_go/tools/pager/Defs.lean`), no axiom.
@@ -1005,6 +1039,30 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### `time.isTicker` is forgeable by a struct copy (2026-11-03, branch `ticker-followups`)
+
+- **Limitation.** Perennial's `isTicker t ch γ` (`Perennial/Proof/time/Base.lean`) is `C ↦□ ch ∗
+  initTicker ↦□ true ∗ bag`, with no unforgeability token like `isTimer`'s `newTimerMade`. A copy
+  `u := new(time.Ticker); *u = *t` meets it (both fields are read through `t`'s persistent
+  points-tos and written into `u`), and the proved `Ticker.Reset` spec says `u.Reset(d)` returns,
+  while Go fails: measured with go1.27.3, "fatal error: unlock of unlocked lock" (the runtime's timer
+  state after the `Ticker` header is not copied). `u.Stop()` returned in the same experiment, but
+  also runs the runtime's `stopTimer` on memory that is not a timer.
+- **Needed by.** Nothing here copies a ticker; every client gets its ticker from `NewTicker`
+  (`serverWatchStream.sendLoop`, `streamWriter.run`, `syncWatchersLoop`, `newRaftNode`, the auth
+  token keeper, kvdurable's and kvreconf's replicas). The concern is the spec's soundness as a
+  library spec.
+- **Here.** Nothing: since 2026-11-03 this repository's own ticker axioms are gone (their `Reset`
+  admitted a forged `v.C = t.C`, false of Go, `notes/decisions.md`, "The ticker where it is made")
+  and the clients use Perennial's specs (proved from its trusted models until `432c32f28`, its
+  axioms since).
+- **Proposal.** An opaque `newTickerMade t` in `isTicker`, given only by `NewTicker`'s spec, as
+  `newTimerMade` for timers.
+- **Status.** Landed on Perennial's `lean` as `432c32f28`, design A: the trusted models of
+  `NewTicker`, `Ticker.Stop` and `Ticker.Reset` removed, the three made axioms, and `isTicker`
+  holding the runtime timer's `newTimerMade` (a copy has none). In the pin since 2026-11-04 (the bump
+  to `4c8617a9e`, branch `pin-4c8617a9e`); nothing here needed a change for it.
+
 ### The thread and receipt bounds as instances (2026-11-01, bounds plan B1; landed `6e3ca6ca3`)
 
 - **Limitation.** A proof needing `threadBound GF` or `receiptBound GF` small took the bound as a
@@ -1142,8 +1200,8 @@ elaborate:
   (`extMapping`), with prelude imports under `Perennial.`: a project could not define an
   extension of its own.
 - **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
-  package `examples/durable`) and `examples/durablekv`.
-- **Workaround here.** None (goose treats `examples/durable` as any package); until the pin
+  package `examples/lib/durable`) and `examples/raft/kvfile`.
+- **Workaround here.** None (goose treats `examples/lib/durable` as any package); until the pin
   reached the change, the extension's Lean modules built only against it, so the branch waited.
 - **The change.** Perennial branch `ext-names` (`6fa3a85cc`..`25bd32450`, off `lean` `edcadb1e5`; every
   module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
@@ -1156,7 +1214,7 @@ elaborate:
   review (verdict OK; its adversarial pass found that Grove's stutter made an unknown operation
   name safe instead of stuck, fixed in `25bd32450`: only Grove's operations, `groveOps`,
   stutter). In the pin since 2026-10-28 (the bump from `edcadb1e5`; no translation but
-  `examples/durablekv`'s changed).
+  `examples/raft/kvfile`'s changed).
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
@@ -1172,8 +1230,8 @@ elaborate:
   `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
   called after it returned `false` (Go panics).
 - **Landed.** Perennial `caa9d07ee` (2026-10-26), after uniform function results (`2b17d5f09`);
-  reached by the pin `edcadb1e5` (2026-10-27). Nothing here uses it yet: `store.GetList` is still
-  names-only.
+  reached by the pin `edcadb1e5` (2026-10-27). (2026-10-31) `store.GetList` translated with it
+  (`notes/k8s-etcd3-plan.md`, stage 7a).
 
 ### The type set of an interface with an embedded interface
 
@@ -1544,7 +1602,7 @@ Perennial's bag idiom (`Chan/Idioms/Bag.lean`) has the blocking send's atomic up
 (`bag_send_au`) but not the non-blocking one a `select` with a `default` needs. kvreconf's `request`
 sends on a capacity-1 bag channel without waiting; the lemma `bag_nb_send_au : £ 1 -∗ isChanBag γ ch
 P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ` is proved locally
-(`Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/BagSend.lean`, generic). Proposed change:
+(`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/BagSend.lean`, generic). Proposed change:
 the lemma in `Bag.lean`, next to `bag_send_au`.
 
 
@@ -1640,6 +1698,16 @@ carry it. Done here: `applyErrIs` with an exact tree (its three leaf constructor
 (small, open): `errorIsTree_of_walk` (and the other `Base.lean` lemmas) take the section's
 `errors.Assumptions` though their proofs do not use it; an `omit package_sem in` would drop it.
 
+## `isChanBag` has no law for changing its payload (2026-11-02, the lease-grant review's M1)
+
+`Perennial/Golang/Theory/Chan/Idioms/Bag.lean`'s `isChanBag γ ch P` (irreducible, over an `inv` of
+`chanBagInv γ P`) has no law replacing `P` by an equivalent payload, though `inv_iff` makes it
+immediate. **Workaround here**: `chanBagInv_mono` and `isChanBag_iff` (`P v ⊢ Q v` and `Q v ⊢ P v`
+for every `v`), in `Proof/go_etcd_io/etcd/server/v3/etcdserver/LessorOk.lean`, used to restate the
+lessor's `expiredC` as a bag of `False`. **The change** (proposed, not started): the two lemmas in
+`Bag.lean` (and the same for the other channel idioms' payloads).
+
+
 ## A cell owned whole is no cell's read-only points-to (2026-11-02, restart plan R2c stage 2)
 
 `typedPointsto l v (own 1) ∗ typedPointsto l w discard ⊢ False`: Perennial has the fractions'
@@ -1717,3 +1785,59 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed change.** Move `struct_wp_alloc_pos` to `Perennial/Golang/Theory/Auto.lean` (beside
   `struct_alloc_fields'`); ideally have the generated proofs give `T.wp_alloc_pos` per struct. Not
   started.
+### Prophecies in Lean only: `withProph` and `goose_adequacy_withProph` (2026-11-02)
+
+- **Missing.** A proof that needs a prophecy variable the Go code does not have (the etcd3 store's
+  `Get`, whose read update fires at several states; `notes/k8s-etcd3-plan.md`, phase 7) had to
+  instrument the Go code (the etcd fork's `goose-lean-getproph`, `Apply`'s `ResolveU64`s), with
+  an informal argument that `primitive.NewProph`/`ResolveU64` are no-ops.
+- **Done (Perennial branch `proph-erasure`, pushed, not landed).** `withProph e`
+  (`Perennial/GooseLang/ProphInstrument.lean`) runs the program `e` unchanged under a prophecy of
+  its result; `goose_adequacy_withProph` gives `goose_adequacy`'s conclusions about the real
+  executions of `e` from a WP of `withProph e`, same bounds, proved (standard axioms only), no
+  change to the semantics (`etc/trusted-delta.py`: the new modules are tier 2). `wp_withProph`
+  (`Golang/Theory/WithProph.lean`) hands the proof of `e` the prophesied list. End-to-end example
+  `goose/testdata/examples/prophkv` (`GetAny` reads twice and returns one answer chosen afterwards;
+  its logically atomic spec takes a prediction; `prog_safe` is about the program without the
+  prophecy).
+- **Per-call instrumentation, done (same branch, 2026-11-03).** `goose_adequacy_funcProph`
+  (`Perennial/GooseLang/FuncInstrument.lean`, proved, standard axioms only): a WP in a Go model
+  patched so that one function `f` (two arguments, no type arguments) resolves to its body under a
+  prophecy of its result (`prophFnV impl`) gives `goose_adequacy`'s conclusions about the real
+  executions in the real model. Proof: a simulation in the bounded language whose instrumented
+  threads are the real ones with the wrapper's frames inserted around running calls of `f`. It
+  needs `f`'s resolution `GoInstruction (FuncResolve f [])` to be only applied to its arguments
+  (`ok`), so that the two models' different closures never reach a Go instruction: `ok` is checked
+  on the program and is an invariant given the same of the model's instruction results
+  (`GoodModel`), the extensions (`GoodExts`), prophecy-id values (`IntoValOk.proph`) and the
+  initial heap; these are premises of the closed theorem (true of any model of Go, which has no
+  instruction producing a reference to `f` and no prophecies, but not derivable from
+  `go.Semantics`). `patchSem` (`Perennial/Golang/Theory/FuncProph.lean`) proves the patched model
+  satisfies `go.Semantics`: a `transfer` tactic carries the ~480 fields over definitionally; only
+  `go_func_resolve_step` and a few `FuncUnfold` facts of named functions (`reservedFuncs`) need
+  proofs. In `prophkv`, `wp_GetAny` is now a plain logically atomic spec (no prediction), and
+  `prog_safe` takes `ModelOk` and `heapOk` premises.
+- **Dropped (2026-11-03, the user's choice).** This approach (prophecies added in Lean, with an
+  instrumentation theorem) is no longer followed: proofs that need a prophecy get it from a
+  prophecy patch of the Go code (`etc/proph-patches/`, `notes/decisions.md`, "Prophecies as patches
+  of the Go code"). The Perennial branch `proph-erasure` is kept, not landed, for reference only;
+  do not build on it. (A WP-free erasure theorem would need either the premises below or a new
+  `go.Semantics` fact, Go instructions commute with erasure; not pursued.)
+- **Remaining limitations.** `f` must take exactly two arguments (the wrapper's shape and the
+  call-position count are fixed); one instrumented function per model (patching composes, not
+  done); `ModelOk` assumes the program's own function bodies are `ok` rather than checking them
+  (they are checked only through `prog`'s own code); generated instances that take the package's
+  `Assumptions` (proofgen's struct instances) must be re-declared from the instrumented model's
+  `AssumptionsP` (`Main.lean`'s shim).
+
+## A cancelable thread pool (2026-11-04, the restart plan's R2b-3d gap 4)
+
+- **Need.** The server's shutdown closes the backend, which takes every reader's open share back.
+  The server lends the shares through `threadPool.isThreadPool`, a plain invariant, which never
+  gives them back.
+- **Change.** Perennial branch `threadpool-cancel` (`c0a2fdd46`, off `origin/lean` `350766064`,
+  worktree `/shared/perennial-tpool-cancel`), in `Perennial/Proof/ThreadPool.lean`:
+  `isThreadPoolC N γ γc R` with
+  `poolOpen γc q`, `initC`, `borrowC`, `giveBackC`, `cancel` and `reclaim`. It is a proved library
+  addition (tier 3) that adds nothing to the trusted base. `land.sh prepare` passed and the trusted
+  review recorded OK. **Landed** (the user's push, 2026-11-04: Perennial `lean` `e3ceb1520`); the pin moved to it the same day (branch `r2b3`).

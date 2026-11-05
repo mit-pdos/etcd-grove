@@ -69,7 +69,7 @@ theorem EtcdServer.RemoveMember.wp_proof
     · (try wp_auto)
       ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
       · iPkgInit
-      rw [show go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode =
+      try rw [show go_etcd_io.raft.v3.raftpb.ConfChangeRemoveNode =
         #((W32 1 : go_etcd_io.raft.v3.raftpb.ConfChangeType)) from rfl]
       haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
       wp_apply (hEnum (W32 1)) as %tp Htp

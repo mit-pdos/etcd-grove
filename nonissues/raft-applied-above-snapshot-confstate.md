@@ -37,7 +37,7 @@ FAIL
 
 no: `RestartNode.spec` takes `Applied` either `0` or within the stored log, and the storage's
 `ConfState` the configuration at a point at or above `Applied`
-(`Spec/go_etcd_io/raft/v3/RestartNode.lean`), which etcd (`Applied = 0`) and `examples/kvdurable`
+(`Spec/go_etcd_io/raft/v3/RestartNode.lean`), which etcd (`Applied = 0`) and `examples/raft/kvdurable`
 meet.
 
 ## Notes
@@ -46,5 +46,5 @@ Found 2026-10-31 by a spec review of the durable node API (its `Applied` premise
 `Applied ≤ Commit`). The test shows the stale configuration, not two different entries committed
 at one index (that needs three or more voters, with node 1 committing alone while the others,
 which applied the changes, elect among themselves). The same test asserting the bug is
-`examples/kvdurable/applied_test.go`. Upstream searched 2026-11-02 (`Applied ConfState restart`,
+`examples/raft/kvdurable/applied_test.go`. Upstream searched 2026-11-02 (`Applied ConfState restart`,
 `Config.Applied`): nothing.

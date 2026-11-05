@@ -25,6 +25,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (2026-11-03, R2b-3b) **`cum` at the loop's count** (the stop's escrow, `rnStopImage`): the
+authority at `n + 1` elements ending in `L` gives `cum[n] = L` (it is given up: the loop stops). -/
+theorem cum_idx_last (γc : GName) (cums : List (List EntryModel)) (L : List EntryModel)
+    (n : Nat) (hlen : cums.length = n + 1) (hlast : cums.getLast? = some L) :
+    monoListAuthOwn (GF := GF) γc 1 cums ⊢ monoListIdxOwn γc n L := by
+  iintro Hauth
+  ihave #Hlb := monoListLbOwn_get γc 1 cums $$ Hauth
+  have hn : cums[n]? = some L := by
+    rw [List.getLast?_eq_getElem?, hlen] at hlast
+    simpa using hlast
+  iapply monoListIdxOwn_get n L hn $$ Hlb
+
 /-- The loop, at the delivered log `L` after `n` payloads, appends the batch `ce` to `cum`: the
 `n`th payload's two elements. -/
 theorem cum_extend (γc : GName) (cums : List (List EntryModel)) (L ce : List EntryModel)
@@ -74,7 +86,7 @@ log `A` it got so far, and its token moves to `A ++ ce`; its term is good for th
 member's `nodeSnapLocal` of the snapshot's index). -/
 theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : List EntryModel)
     (ap : toApply) :
-    ⊢ spscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
+    ⊢ sspscConsumer γ.ap (rcv ++ [ap]) -∗ monoListIdxOwn γ.cum rcv.length A -∗
       rnApP E γ (rcv.length : Int) ap -∗
       (∃ (ce : List EntryModel) (ceL : List Loc),
         rnApplyTok γ (A ++ ce) ∗ ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (A ++ ce) ∗
@@ -85,7 +97,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
           (letI := srvStor (GF := GF) γ.node
            iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A ++ ce).length ∗
             srvFrozenRange γ.γs ((γ.pre ++ A).length + 1) ((γ.pre ++ A ++ ce).length + 1) ∗
-            srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce))) ∗
+            srvFrozenTerms γ.γs (γ.pre.length + 1) (A ++ ce) ∗
+            rnWalHanded γ (γ.pre ++ A ++ ce).length)) ∗
         committedLast E.γr ce ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (A ++ ce)).length) ∨
       -- (2026-10-30, the repair: snapshots allowed) a snapshot payload: the log jumps to `A'`
       (∃ (A' : List EntryModel) (sv : SnapshotM),
@@ -101,7 +114,8 @@ theorem rnApplyTok_recv (E : RNEnv GF) (γ : RNNames) (rcv : List toApply) (A : 
         rnAdvChan ap.raftAdvancedC'
           (letI := srvStor (GF := GF) γ.node
            iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
-            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length)) ∗
+            srvFrozenAt γ.γs (γ.pre ++ A').length ∗ srvFrozenBelow γ.γs (γ.pre ++ A').length ∗
+            rnWalHanded γ (γ.pre ++ A').length)) ∗
         committedAtLeast E.γr sv.Metadata'.Index' ∗
         -- (2026-11-01, J8a) its term good for the jumped log (`applyAll`'s merge after the jump)
         rnRtOk γ ap.raftTerm' (rnLogOf γ A').length) := by

@@ -324,7 +324,7 @@ abbrev watcher.Watch.spec : Prop :=
   - The existing callers (watchkv, linkv3p `MainWatch`, cachekv, k8s `KMWatch`, the cache)
     destructure `isKvWatcher` (one line) and pass `n = 0`, so the bound's premise is vacuous.
   - `isSpsc` fixes the element predicate inside an invariant, so the callers' lemmas that abstract
-    it are restated: `isRespChan_of_state` (`examples/common/RespChan.lean:144-160`),
+    it are restated: `isRespChan_of_state` (`examples/lib/etcdstart/RespChan.lean:144-160`),
     `KMWatch.lean:637`, and `WatchApiLemmas.lean:174` (the second cursor).
   - `isKvWatcher` stays, as the existing callers' form.
 

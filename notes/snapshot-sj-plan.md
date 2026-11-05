@@ -4,7 +4,7 @@ Drafted by a read-only planning agent for the orchestrator (the user away, decis
 `notes/decisions.md` entries marked "decided by the orchestrator while the user was away"). Goal:
 the etcd KV adequacy examples (`putget_safe`, `putget3_safe`, `linkvtxn_safe`, `linkv3p_safe`,
 `linkv3p_watch_safe`, `watch_safe`, `cache_safe`; `k8setcd3_safe` follows through
-`examples/common`) proved with snapshots on at etcd's defaults. (`linkv`, `linkv3` were retired by
+`examples/lib/etcdstart`) proved with snapshots on at etcd's defaults. (`linkv`, `linkv3` were retired by
 D34 for `linkvtxn`, `linkv3p`.)
 
 ## Seven gaps the notes did not record
@@ -59,7 +59,7 @@ theorem.
   triple). A Go `-race` run with snapshot-heavy settings. Collection `etc/tcb-collections/snapshot.txt`.
 - **J1a. Persistent threading and the bootstrap contract** (`InvBoot`, `NewServer`, `InvStart`,
   `InvRun`'s `isServerRun`, `InvNodeStart`, `NodeStart`, `InvRaftNode`'s `isRNWal`, the
-  `start`/`run`/`Start` specs, `examples/common/{newServer,StartServer}`): a persistent bundle
+  `start`/`run`/`Start` specs, `examples/lib/etcdstart/{newServer,StartServer}`): a persistent bundle
   `srvSnapRO` (snapshotter, hooks, config, feature gate, `storageSnap`, `inv snapDirInv` with the new
   `Rm` and `γt`, the store contracts, `srvMembersDir` from `Hmembers`, `keySized`). `bootOk`'s
   `NewStorage` contract gains `SaveSnap`/`Sync` (contract clauses at the names-only WAL boundary).
@@ -72,7 +72,7 @@ theorem.
   `run`/`applyAll`): `srvSnapOwn` = W7's `isStopChans d ∗ bOpen d ½`, `pathOwn`, `srvKVCloser`,
   `monoNatAuthOwn γt 1 0`, the second `E.RD`, the slots, `trLive`, `alarmGetIs`/`Tal`. After J1a, J-T.
 - **J2. Raft: R-loc** (`raft/v3/Protocol/Ghost`, `Model`, `InvRawnode`, `InvNode`, `InvNodeRun`,
-  `raft__Step`, the restore chain, the `Step` specs, `examples/kv` and `examples/common/Alloc*`,
+  `raft__Step`, the restore chain, the `Step` specs, `examples/raft/kv` and `examples/lib/etcdstart/Alloc*`,
   `EtcdServer__Process` passes `snapSaved`). No axioms.
 - **J3. Raft: R-tok** (`raft/v3/InvMemstorage`, `MemoryStorage__{ApplySnapshot,CreateSnapshot,
   Compact}`): atomic variants, the existing specs kept as corollaries.
@@ -117,7 +117,7 @@ theorem.
   `NewServer.spec` without `receiptBound ≤ SnapshotCatchUpEntries + 1`, `isServerApplyAll` without
   `scu`; `srvMsgSnapC_false`, `rnSnapMsg_false`, `certLink_noSnap` gone; the `msgSnapC` branch wired;
   `"%Hsop" ∷ ⌜storage.snapOpensOk⌝` in `NewServer.spec`.
-- **L4a.** `examples/common/common.go` drops `SnapshotCatchUpEntries: 1 << 48`; re-translate; common,
+- **L4a.** `examples/lib/etcdstart/common.go` drops `SnapshotCatchUpEntries: 1 << 48`; re-translate; common,
   putget, putget3; closed theorems gain `(Hsop : storage.snapOpensOk)`.
 - **L4b/L4c** (parallel after L4a): linkvtxn, linkv3p; watchkv, cachekv, k8setcd3.
 
@@ -161,7 +161,7 @@ Read-only design pass: what each later stage implements, true of the Go code at 
   `def snapLocal (γ : RaftNames) (id i : w64) : IProp GF := match γ.reSnapLoc id with | none => True
   | some γd => ghostMapElem γd i DFrac.discard ()` (persistent, timeless): the body of rafthttp's
   `snapSaved γd i`, so `snapLocal γ id i = snapSaved γd i` once `γ.reSnapLoc id = some γd` (lemma
-  `snapLocal_of_saved`). `none` for raft's own results, `examples/kv` (its `snapIn` is on; its fact
+  `snapLocal_of_saved`). `none` for raft's own results, `examples/raft/kv` (its `snapIn` is on; its fact
   is `True`), putget, putget3.
 - **Why not a `NodeNames` field.** The fact must survive from `node.Step`'s `MsgSnap` to the `Ready`
   that hands the snapshot out, and in between the pending snapshot lives inside
@@ -181,7 +181,7 @@ Read-only design pass: what each later stage implements, true of the Go code at 
   - `readySnapData` (`InvNode.lean:632`) gains `snapLocal γ.raft γ.id l.snap.Metadata'.Index'`;
   - `NewRawNode`/`newRaft` (no pending snapshot: vacuous); `StartNode`/`RestartNode` unchanged.
 - **Allocation.** The receivers' directory names must exist when `RaftNames` is fixed:
-  `examples/common/Alloc*.lean` allocate one empty ghost map per member (`ghost_map_alloc_empty`,
+  `examples/lib/etcdstart/Alloc*.lean` allocate one empty ghost map per member (`ghost_map_alloc_empty`,
   `K := w64`, `V := Unit`) before raft's names, set `reSnapLoc := fun id => some (γd id)` for the
   members (`none` elsewhere), and give each member's start bundle `ghostMapAuth (γd id) 1 ∅`.
   `NewServer` takes it with `⌜γ.raft.reSnapLoc id = some γd⌝` instead of calling `snapDir_alloc`,
@@ -232,7 +232,7 @@ Read-only design pass: what each later stage implements, true of the Go code at 
   These replace the current `.spec`s (the link generator takes one spec per function); the current
   triples become corollaries `MemoryStorage.<M>.spec_tok` (the AU fired at once from the token in
   hand) in a new lemma module `Proof/go_etcd_io/raft/v3/MemstorageAU.lean`, which today's callers
-  (`examples/kv`'s `KV__run`, the boot) use. No axiom.
+  (`examples/raft/kv`'s `KV__run`, the boot) use. No axiom.
 - **The invariant** (J4, `InvApplyAll.lean`; namespace `srvStorTokN`, disjoint from `memSnapN`):
   ```
   srvStorTokInv ms γs γsc γss := ∃ σt, memSnapTokG γs σt ∗
@@ -458,7 +458,7 @@ so the baseline is S8d's. The first Lean stage to merge runs `--check --update` 
 - **J1a** also: `NewAuthStore.spec` restated (item 8); `srvSnapRO` with `authRecoverOk` and the
   `isMetaBackend` family; `bootOk`'s `SaveSnap` clause; the storage token into item 2's invariant at
   the end of `NewServer`; the stocks of `E.RD` and `lgMu` slots kept (not dropped) for J1b.
-- **J2** also: `examples/common/Alloc*` allocate the receivers' directory maps; `NewServer`'s
+- **J2** also: `examples/lib/etcdstart/Alloc*` allocate the receivers' directory maps; `NewServer`'s
   `snapDir_alloc` → `snapDir_init` (one binder: merge J2's `NewServer` edit before J1a's, or J1a
   rebases on it).
 - **J3**: the specs become the AU forms (item 2), the old triples corollaries. *Done 2026-10-26,

@@ -77,7 +77,7 @@ theorem mvcc.store.compact.wp_proof
   ipersist ch
   ihave #Hjob' := Hjob
   iunfold mvcc.compactJobPre at Hjob'
-  icases Hjob' with ⟨#Hs, ⟨%oj, #Hstop⟩, %Hcmp, #Hlb, -, #Hcert⟩
+  icases Hjob' with ⟨#Hs, ⟨%oj, #Hstop⟩, %Hcmp, #Hlb, -⟩
   ihave #Hjsc := mvcc.storeStopR_stopChan s γ oj $$ Hstop
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'

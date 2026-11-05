@@ -1,4 +1,4 @@
-# Plan: the partitioned three-member cluster over the KV workload (`examples/linkv3p` × linkvtxn)
+# Plan: the partitioned three-member cluster over the KV workload (`examples/etcd/partition` × linkvtxn)
 
 Status: done (2026-10-20, branch `linkv3p-txn`, worktree `/shared/etcd-grove-lt`):
 `linkv3p_safe` is closed over linkvtxn's workload, its trust base exactly
@@ -6,10 +6,10 @@ Status: done (2026-10-20, branch `linkv3p-txn`, worktree `/shared/etcd-grove-lt`
 
 ## Goal
 
-`linkv3p_safe` (`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Results.lean`, the partition
+`linkv3p_safe` (`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Results.lean`, the partition
 plan's S3b) says porcupine never answers `Illegal` for a history of **Puts and Gets** issued at all
 three members of a cluster whose links a schedule cuts and mends. Re-close it over **linkvtxn's
-workload** (`examples/linkvtxn`, the linkv-txn plan): gets, lists, puts, deletes, multi-operation
+workload** (`examples/etcd/txnlin`, the linkv-txn plan): gets, lists, puts, deletes, multi-operation
 transactions and compare-and-sets, robustness's `EtcdPutDeleteLease` traffic without leases and
 stale reads, checked against the model of etcd's KV (`linkv/TxnModel.lean`, since 2026-10-22 `linkvtxn/TxnModel.lean`: D34):
 
@@ -70,7 +70,7 @@ not proposed.
 
 ### P0. The Go program
 
-`examples/linkv3p/linkv3p.go`: import `examples/linkvtxn` instead of `examples/linkv`; `Apply` is
+`examples/etcd/partition/linkv3p.go`: import `examples/etcd/txnlin` instead of `examples/linkv`; `Apply` is
 `linkvtxn.Apply(clis[i], input)`, `Check` runs `lintest.Run(linkvtxn.Model(), apply, linkvtxn.Gen,
 ...)`; the panic message and the package header updated. `go.mod`: the `linkvtxn` replace and
 require in place of linkv's (linkvtxn's own `go.mod` requires `go.etcd.io/etcd/tests/v3` for its

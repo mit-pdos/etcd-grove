@@ -1,4 +1,4 @@
-# Plan: restarting a member (`examples/restart3`)
+# Plan: restarting a member (`examples/etcd/restart`)
 
 **Date:** 2026-11-02. **Status:** Scope decided: Q1-Q6 take the recommended options (the user,
 2026-11-02). **R1 done** (2026-11-02): the Go program, its test and translation (below, "R1").
@@ -26,7 +26,7 @@ step can move into linkv3p's schedules.
 
 ## The example
 
-`examples/restart3` is putget3 with a restart:
+`examples/etcd/restart` is putget3 with a restart:
 
 1. Start members 1, 2 and 3 of a new cluster, with linkv3p's snapshot settings (`SnapCount =
    SnapCatchUp = 1`, `common.NewMember`'s parameters).
@@ -159,8 +159,8 @@ theorem restart3_safe ... :
     goose_adequacy ... restart3.Main ... (fun v => v = #())
 ```
 
-What stays out: crashes (Q4), membership changes (the membership track), restarting the leader
-mid-request (Q6), and a member whose data directory was lost.
+What stays out: crashes (Q4; a later stage, R6 under "Stages"), membership changes (the membership
+track), restarting the leader mid-request (Q6), and a member whose data directory was lost.
 
 ## Questions for the user (decided 2026-11-02: each the recommended option)
 
@@ -219,6 +219,45 @@ shutdown with `Cleanup` in it.
 - **R5. Probe:** one easy proof (the example's `Main` over the frozen specs) and one hard one (`run`'s
   deferred shutdown, or the apply thread's start at the consistent index).
 - **Freeze, then Prove:** M6's request-path tokens, L5's widening, the example.
+- **R6, later: crash durability** (added 2026-11-03, the user's request). R2-R5 cover a graceful
+  stop in one process, where every write is visible to the next incarnation, fsynced or not (Q4
+  (a)). R6 replaces the stop by a crash: the process is gone, and only what was fsynced survives.
+  The goal is the server-level counterpart of `kvdurable_porcupine_safe`: acknowledged writes
+  survive a member's crash and restart, and the history stays linearizable across it.
+  - **What it builds on.** Raft's durability, proved with no sorry (durability stage II:
+    `StartNode`, `RestartNode`, `node.run`'s persist-before-send, `examples/raft/kvdurable`). R2b-1's WAL
+    model, contract and durability invariant (`storage/WalRecs.lean`, `etcdserver/WalApi.lean`,
+    `etcdserver/InvWal.lean`, a failed `Save` leaving `walFailed`). R2-R5's restart boot and
+    catch-up.
+  - **What is new.**
+    - File semantics with crashes under the WAL and bbolt (Q4 (b)): the Linux file extension of
+      `notes/osfs-ext-plan.md` (files, fsync, bytes lost on a failed fsync) or `durableExt`. The
+      image L2 hands to the next incarnation becomes the durable part of the files, not the ghost
+      image.
+    - The WAL over those files: `Save`'s and `SaveSnapshot`'s fsyncs, the segment cut and rename,
+      preallocation. Either proved (Q3 (b), the trust boundary down to the WAL), or a crash-aware
+      contract reviewed with the `axiom` skill.
+    - bbolt's commit (data pages before the meta page) over the same files, which the osfs plan
+      targets. The backend's consistent index is committed with batches, not per apply, so after a
+      crash the backend may be behind the WAL; the restart replays the WAL above it. The image
+      invariant must say so.
+    - The snapshot files (`.snap`, the `.snap.db` backend) against the WAL's snapshot records: their
+      order of writes and fsyncs. The two WAL non-issues of R2b-1
+      (`etcd-wal-stale-entries-above-snapshot`, `etcd-wal-snapshot-record-order`) are where it
+      already showed.
+    - The server's persist-before-send. A follower saves before it sends. The leader sends its
+      messages before its own `Save` (`raft.go`, "the leader can write to its disk in parallel with
+      replicating", raft thesis §10.2.1), so the leader's acknowledged writes rest on a quorum of
+      followers' fsyncs, not its own. The invariant must state which, as raft's stage II does for
+      raft.
+  - **The example**: `restart3` with a crash of the follower in place of `HardStop`, or a crash
+    step in its schedule; a closed theorem that the client's history is linearizable, as
+    kvdurable's.
+  - **Questions for its Scope**: osfs or `durableExt`; bbolt and the WAL proved over the files or
+    behind crash-aware contracts; one member's crash or the whole cluster's (power loss); a failed
+    fsync handled (`walFailed`, osfs's lost bytes) or excluded by a premise.
+  - **Order and size**: after R2-R5 have landed and the osfs extension exists. The largest stage of
+    this plan.
 
 ## Size and order
 
@@ -233,7 +272,7 @@ durability work comes first.
 
 ## R1 (2026-11-02)
 
-- `examples/restart3` (`restart3.go`): `Run(lg)` is the program at a logger, `Main` is `Run` at
+- `examples/etcd/restart` (`restart3.go`): `Run(lg)` is the program at a logger, `Main` is `Run` at
   `zap.NewNop()`, so the test counts through `Run` what the proof is about. Two changes to the
   draft above, both from the test:
   - **The stop is `HardStop` alone.** `run`'s deferred shutdown calls `Cleanup`, and a second
@@ -461,6 +500,20 @@ usable as written) and the image's incarnation number (G2). The reviewer's answe
 incarnation's replayed entry can take the empty floor: yes, without the assumption -- a waiter here
 holds an own-key claim of its id, and two claims of one id agree.
 
+### R2c requirement from revroom-b (2026-11-05)
+
+The KV invariants now carry size facts (`kvLogSmall γk L := γk.log0.length ≤ 2 ^ 61 ∧ L.length ≤
+2 ^ 61`, `InvRequest.lean`; H-rr1, `notes/decisions.md`, "The KV updates hand back the revision
+room"), so `kvInv_alloc_boot` (`BuildAlloc.lean`) and `kvInvOn_alloc_boot` (`ServerOn.lean`), and
+`kvInvOn_alloc` (`KVAuthModel.lean`), take a premise bounding the start log:
+`hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61` for the two boot allocations (the
+bootstrap log is the invariant's first requested log), `hl0 : γk.log0.length ≤ 2 ^ 61` for
+`kvInvOn_alloc` (empty requested log). Any restart-time `kvInv`/`kvInvOn` allocation needs the same:
+with the backend's log as `γk.log0`, it discharges `γk.log0.length ≤ 2 ^ 61` from the sole writer's
+receipts, `txn.soleWriter_small'` (`log.length ≤ logCh log + 2`, `logCh log < 2 ^ 48`); the
+requested log's bound from the cluster's (`readyFits`, `isCommittedLogLb_small`), or as the boot
+allocations do, from `receiptBound GF + boot.length ≤ 2 ^ 61`.
+
 ### R2c stage 1: the id state keyed by incarnation (2026-11-02, landed)
 
 The refactor's logic, in place (the drafts of `idutil/Incarnations.lean` folded into
@@ -520,7 +573,7 @@ not a named `sorry`:
   Its post gives the `Ready` loop's token at the committed log from `max σ.b Applied`. It also gives
   the configuration view at `(a, m)` and the storage's key.
 - **`node.Stop`** gives the id's vacancy back (`nodeStopped`, `nodeVacant`).
-- **`examples/kvdurable`** is the pattern for a stop and a restart:
+- **`examples/raft/kvdurable`** is the pattern for a stop and a restart:
   - `Replica.stop` returns `nodeVacant` and the replica's durable-state ghost variable (`raftState`).
   - `Cluster.restart` restarts from them, with the crash token held by the cluster.
 
@@ -927,5 +980,663 @@ case of the durability invariant), not a premise that `Save` fails only on I/O: 
 `lg.Fatal`, never returns, and never stops, so no image is made of such a WAL.
 
 **The pin moved** (2026-11-03): the etcd project at the fork's `ce3dbc097` (`etc/goose.py`,
-`examples/go.mod`, `examples/k8setcd3/go.mod`); the translation changed by the new names-only
+`examples/go.mod`, `examples/k8s/etcd3/go.mod`); the translation changed by the new names-only
 `newestSnapshotEntry`.
+
+### R2b-1 draft, round 2 (2026-11-03)
+
+In `etcdserver/InvWal.lean`, after review round 1:
+- **Raft's receive** (`readyGotFacts_stmt`, a raft API change): `readyGot` also gives
+  `deliveredLogLb` of the delivered log after the `Ready` and its hard state's committed fact
+  (`committedAtTerm`), without *enter*. Raft's proof has both, persistent, where it builds
+  *enter* (`isCommittedLogLb`, `hsCommitted`, the busy driver's `dlvLb`).
+- **The durability invariant** (`rnDurInv`, over the ghost names `WalNames`): until the stop takes
+  the contents (its claim), the durable state and either the records holding it (`walHolds`: the
+  committed log they are within, with which the durable log agrees, `DurAgrees`; the hard state's
+  half; the commit counter) with the pending token, or a received snapshot's records with its
+  `Save` pending, or a failed `Save`'s records with the "not failed" token. `walCommitLb` is the
+  counter's lower bound. `rnDurTake_stmt`: the stop takes the contents out with its claim and the
+  loop's two tokens.
+
+### R2b-1 review, round 2, and the draft's round 3 (2026-11-03)
+
+The model half holds: the pure laws are true as stated (checked by hand against `StorageHolds`,
+`RaftState.next`, `appendEnts`), `walSaveSnap`/`WalSaveOk` match the fork's `ReadAll`, and raft's
+receive can give the facts the server needs before *enter* (in `readyRecv_open` they are
+persistent before `api_enter`), which are enough for the hand-off on `applyc`. The invariant half
+was not keepable; round 3:
+- **F1, F2:** the pending token excluded the wrong case, and nothing tied the invariant's durable
+  state to the loop's. Now a ghost variable, half the loop's, holds the loop's view (`WalView`:
+  the durable state, the records' hard state, the pending received snapshot, the handed log), as
+  kvdurable's writer variable; the records are as the view says (`walAsViewed`).
+- **F3:** `σ.commit ≤ |committed log|` was not keepable (raft pages committed entries). Now the
+  handed log `l`: `σ.b ≤ |l| ≤ σ.commit`, `DurAgrees S l`; `walCommitLb` bounds `|l|`.
+- **F4:** a failed `Save` now leaves some records (`∃ σ'`), not `walFailed`, so that the apply
+  thread's `SaveSnap` can still update them; the taken state holds the apply thread's token.
+- **F5:** `walRecs` is a ghost variable at an opaque per-WAL name (timeless, exclusive by proof),
+  and the invariant holds `raftState` without an extra later.
+- **F6:** the receive statement became `readyGotR`, the receive's new postcondition (a law over
+  today's `readyGot` could not be proved).
+- **F7–F10:** the consecutive entries come from raft's `readyRest_indices` and `readySnap`;
+  `DurAgrees` includes the base; the records' docstring says the restart opens at the highest
+  record; `isRNWalR` stands alone (it replaces `isRNWal`'s `Save`/`SaveSnap`).
+
+### R2b-1 review, round 3, and the draft's round 4 (2026-11-03)
+
+The reviewer walked every step (a `Ready` with and without a snapshot, commit-only, empty hard
+state, paged entries, a failed `Save`, the apply thread's own snapshot at every point, the stop):
+most keep `rnDurInv`, and `DurAgrees` survives each loop step. Taken:
+- **H1:** the loop could not rule out the taken case: it now holds the loop's "not failed" token.
+- **H2:** the apply thread could not get its snapshot's term: `walCommitLb` is now a prefix of the
+  handed log (a monotone list), not a length.
+- **M1:** firing *enter* inside the `Save`'s update would need a later credit: `raftState` is the
+  loop's own again (beside its view half), not the invariant's.
+- **L1–L3:** `SaveSnap` keeps its I/O premise (the apply thread panics on its error), said so;
+  the records' ghost name is the storage's WAL identity (`MinimalEtcdVersion` reopens the WAL
+  behind it); `readyGotR` drops the conjunct `deliveredLogLb` implies.
+Recorded for R2b-1's proof (docstring of `rnDurTake_stmt`): **M2**, the order is at the view's
+handed log, the stop's post at the apply side's `pre ++ A`; equating them needs every sent batch
+received (`applyc` is unbuffered; the spsc idiom's spec admits a buffer). **M3**, the apply
+thread's token travels with its half of `rnWalTok`. **L4**, `Close` and `rnWalClosed` are R2b-3's.
+
+The draft is ready for R2b-1's proof. Its stages: (1) raft's receive gives `readyGotR`
+(`readyRecv_open`, `node.readyRecv.spec`, `readyGot`'s users); (2) the pure laws; (3) the WAL
+contract `isRNWalR` in `isRNWal`'s place, `bootstrap`'s contract giving `walRecs` (fresh:
+`walFresh`) and the ghost names; (4) the raft loop entering at the `Save`
+(`raftNode.start`, `rn_ready_recv`), `notifyc` handing `walCommitLb`; (5) the apply thread's
+snapshot; (6) the stop (`raftNode.stop.specStop`, `onStop`).
+
+### The WAL's API, spec-first (2026-11-03, the user's request; approved)
+
+Before R2b-1's proof, the user asked for the WAL's whole API through the spec-first approach
+(`notes/decisions.md`, "The WAL's API"). Three review rounds; the axiom review found a third WAL bug
+(a restart at a received snapshot names the next file below it; `nonissues/
+etcd-wal-restart-file-below-snapshot.md`), fixed on the fork in `323320bb8` (with
+`LatestSnapshotEntry` at the highest record); **the pin moves to it once the user pushes
+`goose-lean-walsnap`**. The API landed as modules no proof uses yet (`storage/WalRecs.lean`,
+`etcdserver/WalApi.lean`, sealed); `InvWal.lean` keeps the durability invariant over it. R2b-1's
+stage 3 puts it in place, with the six approved changes to trusted statements.
+
+### R2b-1 stage 2: the pure laws, proved (2026-11-03)
+
+`walFresh_holds`, `walSave_holds`, `walSnapSave_holds`, `walOwnSnap_holds` (`InvWal.lean`), over
+three list lemmas (`appendEnts_cons`, `plogTermAt_take_append`, `drop_take_append`) and
+`plogTermAt_some_le`: the WAL's records keep holding the durable state across a saved batch with or
+without a received snapshot and across the member's own snapshot. The etcd pin moved to the fork's
+`323320bb8` (the axiom review's fix; translation unchanged; `restart3` and `putget3` pass).
+Next: stage 1 (raft's receive gives `readyGotR`), then stage 3 (the API in place, the six approved
+changes).
+
+### R2b-1 stage 1: raft's receive gives its facts before *enter* (2026-11-03)
+
+`readyGot` gains `deliveredLogLb` of the delivered log after the `Ready` and its hard state's
+committed fact (`notes/decisions.md`, "Raft's receive gives the delivered log and the committed
+hard state before *enter*"). Next: stage 3 (the WAL API in place of `isRNWal`, the six approved
+changes) and stage 4 (the raft loop entering at the `Save`), which go together.
+
+### R2b-1 stage 3a-3b: a member's WAL directory fresh at start, `bootstrap` gives the opened WAL (2026-11-03)
+
+The user's choice for change 6: an axiomatized token. `walDirFresh dir` (`storage/WalDir.lean`) and
+`walFiles` (`storage/WalRecs.lean`) are axiomatized, timeless only (no exclusivity: read as `True`
+every axiom holds, the start axiom's satisfiability argument). Program start gives `walDirFresh`
+for the directories `Ds` (`startRights`, `goose_adequacy_start`) under a new environment premise,
+`walDirsAbsent e Ds`; `etcd_adequate` and `k8setcd3`'s adequacy pass the members' directories.
+`bootstrap`'s contract takes it and gives `walOpened … walFresh` and `walPurgeRight` (in place of
+`walOpen` and `walReady`); `NewServer`, `common`'s starters, every example's `Main` and adequacy
+theorem and results thread it. The three-member examples (`putget3`, `linkv3p`) take the members'
+directories' distinctness as a premise (`config.walDirOf` is opaque: `filepath.Join`). The hub names the WAL through its slots (`wal.bootRes cfg`, `wal.bootOk cfg id cid w`, `WalApi.lean`; the slot convention, `notes/spec-first-plan.md`), not its facts. The trust
+base gains `walDirFresh` and `walDirsAbsent` (13 collections). Next: stage 3c with 4.
+
+### R2b-1 stages 3c-6: one landing (2026-11-03, plan)
+
+**Why together.** Putting `isWalStorage` in `isRNWal`'s place (`rnNewStorageOk`, approved change 1)
+changes every WAL operation's contract at once: `Save`'s success update needs `WalSaveOk` (the
+records tracking raft's log: the durability invariant), the apply thread's `SaveSnap` needs the
+records' base term, and `Close` needs the records, the metadata and the purge's right. None of
+them can be met from a weaker invariant (`∃ σ, walRecs w σ` does not give `WalSaveOk`). Giving both
+contracts during a transition would be unsound (an old `Save` moves the records behind
+`walRecs`' back, and `Close` would then give `walFiles` of the wrong records). So stages 3c
+(the contract), 4 (the loop's `SaveSnap`/`Save`), 5 (the apply thread's `SaveSnap`) and 6
+(`onStop`'s `Close`) land as one, on one branch, built in that order.
+
+**Where the WAL's ghost state lives.**
+- `wal.Names` (the draft's `WalNames`) is a field group of the wrapper's names (`RNNames.wal`; the
+  slot convention's name-record split), allocated in `NewServer`'s proof from `wal.bootOk` by the
+  narrow law `wal.bootOk ⊢ |==> ∃ ν, wal.srvInv … ∗ (the loop's part) ∗ (the stop's part)`, which
+  replaces `wal.bootOk_storage`.
+- `wal.srvInv` = `rnDurInv ν w` (persistent), in the wrapper's components beside `isWalStorage`.
+- The loop's part: its view half and "not failed" token, with the driver's state (`rnDrv`: the
+  view's durable state is the driver's `S`), and the metadata and purge right until `onStop`.
+- The apply thread's: `walCommitLb` of the log it applied (from `notifyc`'s deposit) and its token
+  `ν.app` with its half of the open token (`rnWalTok`, review M3).
+- The stop's claim `ν.stop` goes with `srvStopRight` (R2b-2).
+
+**Firing *enter*: at the receive** (the user's choice, 2026-11-03, over the draft's "at the
+`Save`", round 3 M1): today's `rn_ready_recv` keeps firing it; the loop's `Save` then moves the
+records and the invariant's view from the durable state before the batch to the entered one
+(`walSave_holds`, `walSnapSave_holds`, stage 2). Enough for a graceful stop and restart: at every
+idle point, where the stop happens, the records hold the node's durable state. Not for a crash
+between the receive and the `Save`, which nothing models yet: entering at the `Save` is recorded as
+open for crash recovery (it would rewrite `rn_ready_recv` and the middle of both branches of
+`raftNode.start`, where the loop would hold no driver).
+
+**The view's half** lives in the loop's token (`rnLoopTokP`), at the durable state of its driver,
+which the driver's predicates now name (`rnDrv γ L p S`, `rnBusyN … S`, `rnBusyS … S`: `Advance`
+keeps it), with the "not failed" token. Between the receive and the `Save` the view is at the
+state before the batch and the busy driver at the entered one; `rn_ready_recv` says how they relate
+(`readyDurable`).
+
+**Order of work:** (a) the vocabulary: `RNNames.wal`, the view in the driver's predicates, the
+contract in `isRaftNode`, `rnNewStorageOk`; (b) the start: `NewServer` allocates from `wal.bootOk`,
+`NodeStart`'s first driver holds the initial view (`RaftState.init`, `walFresh`; `γ.pre = []`);
+(c) the loop: receive without *enter*, `SaveSnap`/`Save` with the invariant, both branches of
+`raftNode.start`; (d) the apply thread's `SaveSnap`; (e) `onStop`'s `Close`.
+
+**Where it stands (2026-11-03, branch `r2b1-s3c`, built, not landed):** the vocabulary and the
+pure halves are done: `RNNames.wal`; the driver predicates name their durable state; `rnDur_alloc`
+and `wal.bootOk_start` (NewServer allocates; the names reach `newRaftNode`); the loop's `Save` and
+`SaveSnap` as the contract's atomic updates (`rnDur_save_au`, `rnDur_saveSnap_au`, over the pure
+`WalSaveStep`/`WalSnapStep`); a received batch is such a step, proved from raft's `ReadyRestFacts`
+(`walSaveStep_ready`, `walSnapSteps_ready`), and `rn_ready_recv` hands the steps to the loop
+(`rnReadyData`, `rnReadySnap`). Left, as one change: the view's half and "not failed" token in the
+loop's token (`rnLoopTokP`, from `NodeStartSpec`); `isWalStorage` in place of `isRNWal`
+(`rnNewStorageOk`, `isRaftNode` with `rnDurInv`); the loop's `SaveSnap`/`Save` over the lemmas; the
+apply thread's `SaveSnap` (its token `ν.app` with its half of the open token, review M3: `rnWalTok`
+takes the wrapper's names, or the apply side's half becomes its own predicate); `onStop`'s `Close`
+(the records from `rnDurTake`, with the metadata and purge right the loop keeps from the start).
+
+### R2b-1 stages 3c-6, done (2026-11-03)
+
+The WAL contract is in use: `NewStorage` gives `isWalStorage` (`isRNWal` is gone), the wrapper holds
+the durability invariant (`isRaftNode`'s `rnDurInv γ.wal`), allocated in `NewServer` from
+`wal.bootOk_start`. Every WAL operation is proved over the contract:
+- the loop's `SaveSnap` and `Save` (`rnDur_saveSnap_au`, `rnDur_save_au`; the steps from the
+  receive, `rnReadyData`/`rnReadySnap`), its view's half in the loop's token (`rnLoopTokP`'s
+  `rnWalView`, the initial view from `NodeStartSpec`);
+- the apply thread's own `SaveSnap` (`rnDur_ownSnap_au`), with its token `ν.app` in its WAL share
+  (`rnWalTokA`, review M3) and the handed log's bound (`rnWalHanded`, carried by `raftAdvancedC`,
+  closed after the loop's `Save`); its chain (`applyAll`, `snapshotIfNeeded`, `snapshot`) takes a
+  fresh start's premise `γr.raft.pre = []` (the snapshot's index is the applied log's length),
+  which `run` has;
+- `onStop`'s `Close` (`rnDur_take`: the records out of the invariant, with the stop's claim, the
+  apply token from `stopped`, the loop's view; the metadata and purge right in the loop's share
+  `rnWalTokL`).
+A failed `Save` is I/O (`¬ storage.walSaveOk`, the user's choice): the invariant has no failed
+state. Close's result (`walFiles`) is dropped for now: R2b-3 makes the image from it (`rnWalClosed`,
+`srvFiles`). Open: M2 (the order at the view's handed log vs the stop's `pre ++ A`), enter at the
+`Save` (crash recovery).
+
+### R2b-3: the image, its plan (2026-11-03)
+
+**A correction first (the user's choice: *enter* at the `Save`).** R2b-1 kept *enter* at the receive
+on my claim that the loop stops only at idle points. It also returns on `r.stopped` between the
+receive and the `Save` (`raft.go:218`, the read state's send; `raft.go:241`, the hand-off), where the
+node had entered the batch and the records did not hold it, so the stop's image was false there
+(`notes/decisions.md`, "*Enter* at the WAL `Save`").
+
+The stages:
+- **R2b-3a, *enter* after the `Save`** (done, below): the receive keeps raft's wand
+  (`rnPendEnter`); the loop fires it once the `Save` returned (`rn_enter`, `rn_enterS`). Before it,
+  the loop uses only what the receive gives without *enter*: the committed log, `deliveredLogLb`,
+  the hard state's committed fact (`rnHsC`, for `rnRtOk`), and the messages raw (`rnRawMsgs`), sent
+  by a leader through raft's `readyLeaderMsgs` (the loop's token keeps `islead` true only at role
+  leader: the driver predicates name the role, `rnDrv γ L p S r`).
+- **R2b-3b, the raft loop's stop escrow:** `applyc` synchronous (Perennial's `isSspsc`, M2: with
+  the producer's token, which the escrow returns, and the apply side's consumer, `sspsc_sync` gives
+  sent = received, so the handed log is the apply side's `A`); `done`'s escrow (`rnStopClaim`, an
+  invariant: the stop's image or the claim); `node.Stop`'s `nodeVacant` through the wrapper's
+  `Stop` clause; `onStop` takes the durable state (`raftState`, the busy driver's or the pending
+  *enter*'s) and puts `Close`'s files (`rnWalClosed r id σ := walFiles …`) in the escrow;
+  `raftNode.stop.specStop` proved.
+- **R2b-3c, the backend's part:** `Cleanup`'s spec (`be.Close` gives the bbolt file's data `D`),
+  `srvFiles` defined (the WAL's files and the backend file in `dd`), the image's order at the
+  consistent index.
+- **R2b-3d, `run`'s shutdown** (R2b-2's `run.specStop`): the image assembled and escrowed in `done`.
+
+### R2b-3a: *enter* after the `Save` (2026-11-03, done)
+
+`InvRaftNode`: `rnPendEnter`, `rnBusyP`/`rnBusySP` (the busy driver before *enter*), `rn_enter`,
+`rn_enterS`, `rnRawMsgs` with `rnRawMsgs_sent`/`rnRawMsgs_leader`, `rnHsC` with `rnRtOk_of_hsC`
+(replacing `rn_rtOk_busyN`/`busyS`); `rnReadyData`/`rnReadySnap` carry the messages raw and the soft
+state's role; `rn_ready_recv` no longer fires *enter* and no longer takes the running token. The
+driver predicates name the role; `Advance` keeps it; the loop's token (`rnLoopTokP γ L p b`) ties
+`islead` to it. `raftNode.start`'s two branches fire *enter* after the `Save`; at the stop exits
+before it the loop holds `raftState` at the state the records hold. No spec outside the wrapper
+moved.
+
+### R2b-3b: the raft loop's stop escrow (2026-11-03, done)
+
+- `applyc` is synchronous (Perennial's `isSspsc`, a drop-in for `isSpsc`): the producer's and the
+  consumer's tokens together give sent = received (`sspsc_sync`), which settles review M2.
+- `RNNames.sc`, the claim (`rnStopClaim γ := token γ.sc`), allocated by `newRaftNode` (in
+  `rnBuilt`; `NewServer` drops it until R2b-3d threads it to `run`'s shutdown, `srvStopKeep`).
+- `done` announces the escrow `rnDoneEsc γ w := inv rnStopN (rnStopImage γ w ∨ token γ.sc)` at the
+  WAL `w` (until then `True`). `onStop` (its spec now takes the durable state, the loop's view at it,
+  `applyc`'s producer token and `cum` at its count) allocates it with the image: `nodeVacant` (the
+  wrapper's `Stop` clause now gives it, raft's `node.Stop`), `raftState S`, `Close`'s files
+  (`rnWalClosedW`: `walFiles` at the member `γ.id`, which `rnWalTokL`'s metadata now names), the
+  order of the records' base and commit around the handed log.
+- `raftNode.stop.specStop` proved (`wp_proofStop`, over `rn_esc_take`: the claim takes the image,
+  the apply side's token at `A` makes the handed log `A`). `spec` stays (its callers don't stop).
+
+### R2b-3c, part 1: the backend's file at its `Close` (2026-11-04)
+
+The user approved the trusted change (scratch candidate 1): bbolt's `Open_kv` records the file
+(`dbFile db path`), `DB.Close_kv` takes `ownDB db γ D` and gives `fileHolds path D`. Proved over it:
+the backend's names gain `dbf` (the database and its file, `bDBAt`, discarded: `isBackend`,
+`batchPhys` name it, so the stop and `Close` agree); `unsafeCommit`/`commit`/`CommitAndStop` give the
+stopped batch transaction's database out (`bDBOut`); `run` escrows it on `donec` (`bDoneEsc`, until
+then `True`); `Close` keeps half of the close right as its claim (`stop_take`), takes the database
+out (`bDoneEsc_take`) and closes it: its post gives the file (`bFile γ path ∗ fileHolds path D`).
+`applySnapshot` drops the old backend's file. Trust base: +2 (`dbFile`, `dbFile_persistent`).
+Next (part 2): `D` observed (the store's view at the consistent index, as `backend.Snapshot`'s
+observation), `New` giving `bFile γ cfg.Path`, `Cleanup`'s spec, `srvFiles` defined.
+
+### R2b-3c, part 2a: what the backend's file holds, its path, the closers' specs (2026-11-04)
+
+Done (`notes/decisions.md`, "The backend's `Close` gives back what its stopped lock held"):
+`backend.Close` returns, at the file's data `D`, the stopped batch lock's client resources and ghost
+shares (`bStopView`), the material of `backend.Snapshot`'s observation, so `imageAt` of `D` follows
+as on the snapshot path; `New`, `OpenBackend` (trusted, approved), `OpenSnapshotBackend` give the
+file's path (`bFile`); the lessor's stop right and `lessor.Stop` (trusted, approved);
+`authStore.Close` proved. The server keeps `isStopChansE` (the backend's `W`, `Pk` hidden) and drops
+the lessor's stop right and the new backend's `bFile`. Trust base: +2 (`lessorStopTok`,
+`lessor.Stop.wp_proof`; the `Timeless` instance is not reached).
+
+Left for part 2b: `Cleanup`'s spec (the lessor's stop right and the auth store's `tpAdmin` in
+`srvCleanupOwn`; the KV's closer and the backend's `bOpen 1`, `isStopChans` at the server's own `W`,
+`Pk` from the apply thread's final state), `srvFiles` defined; then R2b-3d.
+
+### R2b-3c, part 2b: `Cleanup`'s spec, `srvFiles` defined (2026-11-04, done)
+
+`EtcdServer.Cleanup.spec` (proved, linked): from the right to close each thing it closes -- the
+lessor's stop right (`lessorStopTok`), the watchable store's closer by the mode (`wsCloserM`), the
+auth store's `tpAdmin` (given back), a reader slot of `bemu` with the apply side's half of `s.be` and
+quarter of `bemu`'s ghost variable, the backend's stop channels at `W`, `Pk` and the whole open token
+`bOpen 1`, the compactor's contract -- it returns what `backend.Close` gives (`bStopView` at the data
+`D` the stop's commit left, the file holding `D` or bbolt's close error). No new trust.
+`srvFiles dd id σ D` defined (`WalApi.lean`'s plan (3)): `∃ cid, walFiles (walDirOf dd "") id cid σ`
+and `fileHolds (backendPathOf dd) D`. `backend.bFile_agree`: `New`'s and `Close`'s paths agree.
+`srvCleanupOwn` stays opaque: its sources (the lessor's stop right `NewServer` drops; `tpAdmin`,
+the apply thread's in mode `on`, `NewAuthStore`'s otherwise) are R2b-3d's to thread.
+
+**R2b-3d, what is left** (`run.specStop` proved, the image escrowed in `done`):
+1. `run`'s loop exits on `s.stop` (its bag at `srvBootApplied`), holding its invariant's resources.
+2. The deferred shutdown: `wgMu`/`close(stopping)` (`InvGoAttach`), `cancel`, `sched.Stop` (its
+   last job's post: `applyRes` at the log `A` handed to the apply thread), `s.wg.Wait` (the
+   goroutines' thread tokens back), `raftNode.stop.specStop` (the raft image at `A`), `Cleanup`
+   (the pieces above from the apply thread's resources: `bOpen 1` reassembled from the reader pools
+   as `applySnapshot` does, `bOpen_one_pool`; the server's own `W`, `Pk` in place of `isStopChansE`).
+3. The image (`srvDiskImage`): the backend's `D` at the consistent index (`imageAt`, from
+   `bStopView` by the snapshot path's observation lemmas, `snapObs_window`/`mergedObs`, at the
+   apply thread's final state), `σ.b ≤ i ≤ σ.commit` (the raft image's order), `bootLen ≤ i`
+   (the stop request's `srvBootApplied`), `confAt`, `v3ConfState D`, the registry's authority,
+   `srvFiles` (`walFiles` from the raft image; `fileHolds` at `backendPathOf dd` by `bFile_agree`
+   with the backend's `bFile`, which `NewServer` must keep), `pathOwn`.
+
+### R2b-3d: the plan (2026-11-04)
+
+`run.specStop`'s proof: the loop's stop case returns; the deferred shutdown runs; `done` closes with
+`srvDiskImage` escrowed. At the loop's exit the invariant holds `rnApplyTok γn A`, the scheduler's
+queue and the last job's saved `Post` `Q` with `□ (Q ∗ R -∗ applyResC … A ∗ nodeRunning ½)`:
+`sched.Stop` gives `▷ Q`, so the apply thread's resources at `A` come back whole.
+
+The image's clauses against their sources (gaps marked):
+- `nodeVacant`, `raftState S`, `StorageHolds S σ`, `σ.b ≤ |pre ++ A| ≤ σ.commit`:
+  `raftNode.stop.specStop`'s post (with `rnStopClaim`, `rnApplyTok γn A`, the WAL's apply half).
+- `bootLen ≤ i`: the stop request's `srvBootApplied` (the bag's predicate).
+- `srvRLogLb ρ.rd.raft A`, `uint.Z i = ai0 + |A|`: `applyResC … A`.
+- **Gap 1, the WAL's directory.** `rnWalClosed` gives `walFiles (walDirOf w)`; `srvFiles` wants
+  `config.walDirOf dd ""`. `bootstrap`'s `walOpened` knows `walDirOf w = config.walDirOf cfg.DataDir'
+  cfg.DedicatedWALDir'` (`WalApi.lean`); to thread, persistent, to `isRaftNode` (the WAL's
+  directory) and the scope's `DedicatedWALDir = ""` to the stop right.
+- **Gap 2, `imageAt` of `D`.** From `Cleanup`'s `bStopView` (the stopped lock's `W ∗ Pk` and
+  halves at `D`) and the apply thread's final state, as the snapshot path's observation does
+  (`snapObs_window`, `mergedObs`): the server's own `W`, `Pk` in place of `isStopChansE`.
+- **Gap 3, the configuration.** `confStateIs (v3ConfState D) m` with `v3ConfState` opaque
+  (R2c's draft, "R2d's to define") is unprovable: define it (`buildConfStateFromV3store`, the
+  members bucket's voters and learners) and prove the members bucket of an image at `i` gives the
+  membership at `i` (the cluster's apply writes the bucket from the conf changes the log commits).
+- Registry authority, `pathOwn (backendPathOf dd)`, `fileHolds (backendPathOf dd) D` (by
+  `bFile_agree`): `srvShutdownPre`, `srvSnapRes`, the backend's `bFile` (`NewServer` and the
+  snapshot path must keep it).
+
+Stages: (1) gap 1; (2) `Cleanup`'s preconditions from `applyResC` and `NewServer`'s kept pieces
+(`srvCleanupOwn` defined, `srvStopKeep`); (3) gap 2, the image's backend part; (4) gap 3; (5) the
+shutdown's WP and `run.specStop` (then `spec` replaced, R2b-2 review F4).
+
+### R2b-3d: stage 1 done; gap 4, the readers' open shares (2026-11-04)
+
+Stage 1 landed (`e072cd1e4c`): `srvStopKeep` (the raft loop's stop claim, the registry's
+authority, the lessor's stop right, the WAL's directory) from `NewServer`; `bootOk` and
+`srvSnapRes` keep the backend's `bFile`.
+
+**Gap 4 (blocks stage 2).** `backend.Close` takes the clients' whole open token `bOpen γ 1`, and
+must: a reader's share (`rdOpen`) is its proof the backend is not stopped, so the close collects all
+of them. At the server's stop they are not collectable:
+- the constructors' half: the apply thread's `srvOpenQ` (`srvSnapRes`), the auth realization's
+  quarter on;
+- the pool's `rdPoolN + authRdN` shares: in the readers' thread pool (`bkRPool`,
+  `threadPool.isThreadPool rdPoolNs`, a plain `inv` of Perennial's `ThreadPool`), copies lent to
+  the request path's goroutines against their thread tokens; an `inv` never gives them back;
+- the stock's `rdStockN`: the store's readers (`mvcc.storeReader`, `bkRTx`), of which
+  `watchableStore.Close` returns only its loops' `wsLoopN`.
+
+The Go code agrees that this is a real condition: `Cleanup` closes the backend whatever the request
+path is doing (etcd's `embed.Close` stops the gRPC servers before `Server.Stop`, `stopServers` under a
+`ReqTimeout` deadline, `server/embed/etcd.go`; `EtcdServer.Stop` alone does not), and a read on a closed bbolt transaction fails. Options:
+1. **A cancelable reader pool and a quiescent request path** (recommended): a general Perennial
+   change, `ThreadPool` with a cancelable invariant whose cancel, with every loan back
+   (`ownTokAuth γ 0`), returns the copies; the stop's caller gives back the request path's loans
+   (its goroutines joined, as `embed` does), and the stores' readers come back from their closes.
+   The exported restart result gains the premise that the members' request paths stopped first.
+2. **Readers that tolerate a stopped backend**: drop the reader's open share; a read gets either
+   its view or a failure after `stopQ`. This needs a trust-boundary spec of bbolt's reads on a
+   closed database, and the request path's specs gain a failure case.
+3. **Restrict the restart scope**: no request in flight is modeled at the stop, so the pool is
+   built cancelable from the start and never lent past the stop. This is option 1 without the
+   join, and it is valid only for the examples whose clients finish first.
+
+Stages 3 (gap 2) and 4 (gap 3) do not depend on it and go first.
+
+**Gap 4, decided (the user, 2026-11-04): option 1**, a cancelable reader pool and a quiescent
+request path. Steps:
+- (4a) Perennial, a general change on a branch off its `lean`: `ThreadPool`'s cancelable form
+  (`isThreadPoolC N γ c R`, a `cinv`), with `cancel` giving back the `m` copies left and the count
+  of loans out (`ownTokAuth γ b`), and a law that the auth at `b` with `b` loans `ownThreadLoan γ`
+  gives `b` more copies. Record it in `notes/perennial-changes.md`; land it by Perennial's workflow
+  and bump the pin.
+- (4b) `bkRPool` over it, its cancel token kept with the constructors' half (`srvSnapRes`).
+- (4c) The stop's caller returns the request path's loans, and the stores' readers come back from
+  their closes. The exported restart result gains the premise that the members' request paths
+  stopped first.
+
+### R2b-3d gap 3: the configuration a restart reads (2026-11-04, design)
+
+`bootstrap` builds raft's `ConfState` from the `members` bucket (`buildConfStateFromV3store`):
+voters are the members whose JSON says `IsLearner` false, learners the rest, in Go's map order
+(random). The image claims `confStateIs (v3ConfState D) m` with `confAt γ.cl i m`, and the server's
+cluster is static: `srv_confAt_simple` gives `m = Membership.simple γ.raft.cfg`.
+
+**Definition, no new trust.** `v3ConfState` (opaque) becomes the relation `v3ConfStateIs D cs`: some
+members `ms` whose entries are exactly the `members` bucket's (`memberKey mm.id ↦ memberEnc mm`,
+the shape `membersDecode` already states), `cs.Voters'` a permutation of the non-learners' ids,
+`cs.Learners'` of the learners', no joint or auto-leave state. `bootOkR` gives `∃ cs, ⌜v3ConfStateIs
+D cs⌝ ∗ memStorRestarted … cs`; the image gives `⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝`.
+The relation, unlike the function, admits Go's random order.
+
+**The proof.** By induction on the log, as `membersDecode_restModel`, the `members` bucket of
+`restModel 0 boot L` is `{memberKey id ↦ memberEnc (ccMemberAt cc)}` over the boot log's applied
+`AddNode`s: later ones re-add a member, which `ccValidOn` refuses, and a static cluster has no
+other changes (`ccBootOk`). With `bootLen ≤ i`, that is all of `cfg` (`srvBootLogOk`).
+
+**The hole: learners.** Nothing says a boot member is a voter: `ccMemberOf ctx` is opaque, and
+`ccContextOf`'s Bool is `IsPromote`, not `IsLearner`. A boot context whose JSON says `IsLearner:
+true` would restart raft with a learner where `confAt` says voter, so the image needs the fact.
+etcd's `--initial-cluster` members are voters (`NewClusterFromURLsMap`). The fact goes in as a
+premise on the boot log's contexts: `∀ cc of the boot log, (ccMemberAt cc).isLearner = false`, in
+`srvBootLogOk` (or the examples' `BootLog`), which the examples' configurations meet. This changes a
+premise of exported results, so it is the user's to approve.
+
+**Gap 3, done (2026-11-04).** The pure part is `RestConf.lean`'s `restModel_confState`: given the
+image's `members` bucket equal to the rest model's at `boot ++ R`, every `cs` with `v3ConfStateIs
+D cs` gives `confStateIs cs (Membership.simple cfg)`. Stage 5 discharges its premises:
+`srvBootLogOk`, distinct peers, `bootURLsOk` (`srvClusterOk`), the boot entries' and the log's conf
+changes `ccApplyOk` (`srv_committed_ccBoot`; empty V2 entries excluded by
+`committed_emptyV2_joint`), and the bucket from `imageAt`'s `bkRestAtL`. Trust added: three
+reviewed axioms (`notes/axiom-review/members-decode.md`).
+
+### R2b-3d stage 3: the image's backend part (2026-11-04, plan)
+
+`Cleanup` returns `bStopView γ P W Pk D` at the stop channels' `W`/`Pk`, but the server keeps the
+channels as `isStopChansE` (some `W`, `Pk`), so nothing is known of `D`. Steps:
+1. **Sharpen.** The server's channels are at its own resources, the same at construction and at
+   every install: `W = mvcc.lateWD d` and `Pk = batchLockInv γA (metaTM d.γB d.P)`, at the apply
+   thread's current names `γA` (`γ.withPh (futPhys π0 γB)` after an install). `srvSnapRes s E`
+   becomes `srvSnapRes s E γA`, with `isStopChans` there; `srvSnapOwn` and `applyResC` pass `B.γ`;
+   the snapshot path's posts give it at the new names.
+2. **Observe.** Factor out the core of the snapshot window
+   (`SnapSendBranch.lean`, the proof that feeds `backend.Snapshot`'s `Q`): from the apply thread's
+   resources at `A` and the lock's pieces (`W`, `Pk`, `viewAt`, `pvHalf`, `hkOwn`, `rbOwn`,
+   `ckHalf` at `D`) to `⌜mergedObsM … D⌝`. The stop applies it to `bStopView`'s pieces, the window
+   to the snapshot's.
+3. **Image.** `merged_imageC`'s pure part, from `mergedObsM` to `imageAt` (stage 5 assembles the
+   rest).
+
+**Stage 3, progress (2026-11-04).** Step 1 landed (`6fbf7eed05`): `srvStopChans`. Step 2a: the
+stop's commit leaves a reader's bound of the compaction keys' flag at its data (`bStopG`'s and
+`bStopView`'s `∃ R, fkRd γ P (C, R)`, from `unsafeCommit`'s stop branch, `fkHalf_rd`), what
+`txn.kvWriter_noCmp` needs for `fkAbsD D` in a store that does not compact.
+
+**Open: the stored consistent index at the stop.** `imageAt` needs `D`'s `consistent_index` key to
+be the applied index `i`. The snapshot window gets it by freezing the protocol at a commit it
+requests (`storeReq_freeze` through `kv.Commit`, `commit_freeze_au`, `freezeY`: the stored index is
+`ciEff γ s.k`). The stop has no such request: `backend.Close`'s stop commit runs the server's hook
+on its own, and outside the window the protocol knows only `mi ≤ s.k` (`consInvAt`). In Go the
+stop commit's hook stores the current index, since the apply thread is idle. So the stop needs a
+way to record that its commit came after the last apply. Candidates:
+- (a) A freeze request for the backend's stop commit: `Close`'s caller deposits the apply thread's
+  state; the stop commit's hook runs `commit_freeze_au`; afterwards the frozen protocol
+  (`consFrozen`) gives `mi = ciEff γ s.k`. This threads a request through `CommitAndStop` to
+  `OnPreCommitUnsafe`.
+- (b) The protocol remembers the last commit's index: a commit's hook leaves a persistent
+  lower bound of what it stored (`mi ≥ ` the index at the commit), and `Close`'s post says a commit
+  ran after `Close` was called; the apply thread, idle at `s`, then knows `mi = s.k`.
+To be designed next.
+- **Chosen: (a), over the backend's own commit requests.** `commitReq γ P Pk b X Y` (`InvBackend`)
+  already lets a commit take `X` and give `Y` through the hooks (the snapshot window's
+  `commitReq_freeze`). `backend.Close` gains a request: its caller gives `commitReq … X Y ∗ X` (the
+  stop's: `X = applyThread γ s`, `Y = freezeY γ s`, `commitReq_freeze`). The stop invariant passes
+  it to `run`, whose `CommitAndStop` commits with it, and the done escrow (`bDoneEsc`) returns `Y`
+  with `bStopView`. `Close`'s callers without a request pass `commitReq_true`. Step 2b.
+- **Refinement (same day).** Step 2a landed (`a2887278cb`). The request can't simply be fixed in
+  the stop channels: `New` allocates `stopInv`/`bDoneEsc`, but `X = applyThread γ s` is known only at
+  `Close`. Two ways for step 2b:
+  - **(a1) per call.** `stopInv`'s second state holds `∃ X Y, commitReq … X Y ∗ X ∗ savedProp γY Y`;
+    `run` commits with the request and escrows `Y` in `bDoneEsc` under the same saved name; `Close`
+    reads it back. This needs a saved-proposition ghost.
+  - **(a2) armed in the apply protocol.** The idle apply thread arms a freeze in `consInv`
+    (depositing its state), and every hook commit (`commit_save_au`) that finds it armed freezes,
+    while `Pk`'s `metaTM` records that it did. After `Close` the apply thread finds the protocol
+    frozen at `ciEff γ s.k`. This changes the hook's commit AU and touches every commit.
+  Leaning to (a1), local to the backend's stop protocol.
+
+**Step 2b done (2026-11-04), option (a1).** `BNames.rq` (a saved proposition); `stopReq`;
+`stopInv γ P Pk b sc γsc` (both halves at `True` before `Close`, the request deposited after);
+`CommitAndStop`, `Close` and `Cleanup` take `X ∗ commitReq … X Y` and give `Y`; `run` carries
+the request to the stop's commit and its result to `donec`'s escrow. Callers with no request
+(the snapshot walk's old backend, `bootstrappedBackend.Close`) pass `commitReq_true`. The server's
+shutdown passes `commitReq_freeze`'s `applyThread γ s ⇒ freezeY γ s` (stage 5), so after
+`Cleanup` the frozen protocol pins the stored index (`snapObs_window`'s `ciObs`).
+
+**Stage 3 done (2026-11-04).** `SnapSendBranch.mergedObsM_of_obs` (the window's pure block,
+shared) and `StopImage.stop_mergedObs`. The latter turns the frozen protocol, the apply thread's
+halves of the tracked buckets, the KV's writer and compaction right, and `Close`'s `bStopView` at
+the server's resources into `⌜mergedObsM … D⌝`. Stage 5 turns that into the image (as
+`merged_imageC` does for the snapshot: `kvAppliedM`, `isServerM`, the KV log's receipt).
+
+### R2b-3d gap 4, corrected (2026-11-04)
+
+The first analysis was wrong about where the open token's shares are. A reader slot of the
+backend's thread pool (`rdTok`: `readTx.mu`'s slot, `txMu`'s, a budget token) carries **no** open
+share. The pool's shares (`bOpen rdOpen`, `rdPoolN + authRdN` of them) sit beside the pool in
+`bkRPool`, which the apply thread holds, so nothing locks them in an invariant. The snapshot path
+already closes an old backend with the whole token (`SnapApplyWalk`, the old backend's
+`Close`). It collects:
+- the constructors' half;
+- `bkRPool`'s shares;
+- the old store's reader stock (`nReaders - 1` `storeRT`s, which `store.Restore` returns:
+  `snap_oldReaders`), and a monitor's reader.
+
+So the cancelable thread pool (Perennial `c0a2fdd46`, landed) is not what the stop needs, and step
+4b as planned is dropped. (The change is general and stays.) What the stop needs is the **store's
+reader stock**. `store.Restore` returns it because it takes the store's write lock, so no
+transaction holds a reader. Go's `store.Close` (through `watchableStore.Close` in `Cleanup`) takes
+no lock, and its spec returns only the watch loops' readers. A request-path transaction still
+running holds a reader, and with it a share of the backend's open token. So the user's choice
+stands, reinterpreted: the request path stops before the server, and the stop collects the store's
+readers.
+- **4b′.** A store-level law: with every reader ticket back (none in flight), the store's
+  invariant gives up the whole stock, as `Restore`'s write lock does.
+- **4c′.** Where the request path's readers are at the stop, and the premise that returns them.
+  To be designed after looking at how the request path borrows its readers.
+
+### R2b-3d gap 4: the store's readers at the stop, a census (2026-11-05)
+
+`backend.Close` needs every share of the open token. `NewServer`'s own error path (R-D1, the
+deferred `b.Close()` after `kv.Close()`) is the template: it collects every store reader and
+retires them at once (`storeReaders_retire`, `storeRTs_shares`), then adds `bkRPool`'s shares and
+the constructors' half (`bOpen_one_pool`). On the success path, `NewStore`'s
+`rdStockN − nJobRd` readers go:
+| readers | where | at the stop |
+|---|---|---|
+| 64 (request goroutines, `Hsrs`) | `srvServeBuilt` → `memberUp`'s serving stocks (`kvServeStocks`) | the caller: the stopped member of `restart3` never served gRPC (only member 1 serves before the restart), so they are unused |
+| 64 (watch run slots, `Hwrx`) | `srvWatchReaders` in `memberUp` | the caller, unused likewise |
+| 1 (compactor, `HwrC`) | `srvCompactR` (`NewServer.lean:1942-1974`) | with the compactor; `restart3` runs none (to check) |
+| 1 retired (storage version monitor, `HrtSV`) | `srvWTStock` (`:1809-1817`) | to trace (the server's goroutines, `s.wg.Wait`) |
+| 1 retired (apply thread, `HrtA`) | `apply.kvOwn`'s `writerOwn` | `applyResC` |
+| 2 (watchable store's loops) | the watchable store | `watchableStore.Close`'s post (`Cleanup`) |
+| the compaction job's resource | the store | `compactJobResM`, `watchableStore.Close`'s post |
+| **the rest, about 805 million (`Hwrds`)** | **dropped** (`NewServer.lean:2380`: one taken, the rest `-`) | **lost: must be kept** |
+So the stop needs no new store law: `storeReaders_retire` with every reader is it (4b′ dropped).
+4c′ is plumbing:
+1. `NewServer` keeps the remainder (`srvStopKeep` gains the readers; a stronger post).
+2. The stop's caller returns the member's unused serving stocks (`memberUp`'s request and watch
+   readers). This is the "request path stopped first" premise, met in `restart3` because the
+   member never served.
+3. The compactor's and the monitor's readers are traced.
+4. The shutdown (stage 5) assembles the token as R-D1 does.
+Auth off only: `restart3`'s mode. Auth on adds `authAbandonM`, as R-D1 does.
+- **Step 1 done (2026-11-05):** `NewServer` keeps the remainder (`srvKeepRdN γst` store readers in
+  `srvStopKeep s γn wdir st γst`). `srvShutdownPre` and `run.specStop` take the store, and
+  `memberBuilt`'s `K` receives the environment.
+- **The compactor's reader (2026-11-05):** `restart3`'s members run none. With no compactor its
+  reader was dropped too. `srvStopKeep` now keeps it when the compactor field is nil (a disjunction
+  on `cp`); with a compactor, the compactor's run keeps it. Census closed for `restart3`: the stop
+  collects `srvStopKeep`'s readers, the compactor's (nil), the apply thread's (`apply.kvOwn`,
+  `writerOwn`), the monitor's retired one (`srvWTPool`), the loops' (`watchableStore.Close`) and
+  the caller's unused serving stocks (`memberUp`).
+
+### R2b-3d stage 5: the shutdown and `run.specStop` (2026-11-05, plan)
+
+`run`'s deferred function (`server.go`):
+```
+s.wgMu.Lock(); close(s.stopping); s.wgMu.Unlock(); s.cancel(); sched.Stop(); s.wg.Wait()
+s.r.stop(); s.Cleanup(); close(s.done)
+```
+Each step and its source:
+| step | spec | gives |
+|---|---|---|
+| `wgMu.Lock`, `close(stopping)` | `wgMuP`'s protocol (`GoAttach`) | no goroutine attached after |
+| `cancel()` | `context`'s | — |
+| `sched.Stop()` | `schedule.fifo.Stop.spec` | the last job's saved post: `applyResC … A ∗ nodeRunning ½` |
+| `s.wg.Wait()` | the server's wait group | the attached goroutines' tokens |
+| `s.r.stop()` | `raftNode.stop.specStop` | `nodeVacant`, `raftState S`, `StorageHolds S σ`, the WAL's closed files |
+| `Cleanup()` | `EtcdServer.Cleanup.spec` with `commitReq_freeze`'s request | `freezeY`, `bStopView` at `D`, `fileHolds path D`, `bFile` |
+| `close(done)` | `srvDoneInv` | the image escrowed |
+The image (`srvDiskImage`), clause by clause:
+- raft's part from `r.stop`;
+- the backend's from `StopImage.stop_mergedObs`, then the pure part of `merged_imageC` (`mergedObsM` → `imageAt`);
+- the configuration from `RestConf.restModel_confState` (premises from `srvRaftLogInv`, `srvBootLogOk`, `srvClusterOk`'s `bootURLsOk`, `srv_committed_ccBoot`; empty V2 entries excluded);
+- the files from `Cleanup`'s and `r.stop`'s posts (`srvFiles`, `bFile_agree`);
+- the registry's authority from `srvStopKeep`;
+- `bootLen ≤ i` from the stop request's `srvBootApplied`.
+`Cleanup`'s whole open token is gap 4's census: `srvStopKeep`'s readers, the apply thread's, the loops' and the caller's unused serving stocks. So `run.specStop` (or `HardStop`'s caller) also takes `memberUp`'s unused stocks.
+
+Steps: (5a) the image's pure assembly lemma (`imageAt`, the configuration, the index bounds), from the observations, in a module of its own; (5b) `Cleanup`'s preconditions from `applyResC`, `srvSnapRes`, `srvStopKeep` and the stocks (the open token by `bOpen_one_pool`, as R-D1); (5c) the deferred function's WP; (5d) `run.specStop` (a variant of `run.wp_proof`, the stop clause taken).
+
+**Stage 5a done (2026-11-05, `3e8f0abc0c`):** `StopImage.merged_imageAt`, `imageAt` from
+`mergedObs` (the pure part of `merged_image`).
+
+**Stage 5b, the design.** `Cleanup`'s preconditions at the stop:
+- from `srvStopKeep`: the lessor's stop right, and the compactor field (nil in `restart3`;
+  `compactorOk nil` is its left case);
+- from `applyResC`: the KV's closer (`srvSnapRes`'s `srvKVCloserW`; off, `wsCloser`, which is
+  `wsCloserM`'s off case), `bemu`'s reader slot, the apply side's half of `s.be` and quarter of
+  `γbe` (`srvApplyKVCore`'s `srvBeOwn`), and the stop channels at the server's resources
+  (`srvStopChans`);
+- the request: `commitReq_freeze` over the idle apply thread (`applyThread γ st`, from
+  `applyResC`; its premises are `isServer`'s);
+- `bOpen 1`, by gap 4's census;
+- two pieces to add:
+  1. `srvShutdownPre` takes the caller's unused serving stocks: `memberUp`'s 64 request and 64 watch
+     store readers, routed through the drafts.
+  2. `srvCleanupOwn` is defined: the auth store's `tpAdmin`, which `NewServer` keeps (off mode,
+     `restart3`).
+
+**Stage 5b, the two pieces done (2026-11-05):** (1) `srvShutdownPre` takes 128 store readers (the
+unused request and watch stocks; the watch readers through `watchReader_storeReader`). (2) With
+auth off nothing held `tpAdmin` or the store's invariant (the off store is `NewAuthStore`'s axiom's),
+so the user approved a persistent `Close` contract in the axiom's post (`authCloseOk`, reviewed:
+`notes/axiom-review/auth-close.md`). `Cleanup` takes a closer `authCloser stl K ∗ K`;
+`srvCleanupOwn s` is the `authStore` field with `authCloseOk`, which `NewServer` posts with auth off.
+`notes/decisions.md`, "The auth store's `Close` at the stop". Left of 5b: assembling `Cleanup`'s
+whole precondition at the stop (with `bOpen 1` from the census), done inside 5c's proof.
+
+**Stage 5c, first part (2026-11-05): two gaps closed.** (1) `raftNode.stop` takes the environment's
+`ST`, which was `False` for the server: now `srvTrStopK γk`, rebuilt at the stop from `srvApRes`'s
+live transport and `NewServer`'s `srvTrKeyOf` (`srvApRes_trStop`, `srvTrStopK_of`). `run.specStop`
+must add `⌜Er.ST = srvTrStopK γk⌝ ∗ srvTrKeyOf s γk` (5d). (2) `Cleanup` takes, in place of `bOpen 1`,
+an update from `kv.Close`'s returns (the loops' `wsLoopN` readers, `compactJobResM`) to `bOpen 1`.
+`GoAttach`'s side: `goAttach_close` (the writer under `wgMu`: flag open, closed, "no waiters" out),
+`wp_goAttach_Wait`. Left of 5c:
+- the census update for `Cleanup` (off mode): `bOpen ½` (`srvSnapRes`), the pool's shares
+  (`srvBeOwn`'s `bkRPool`), and `rdStockN` shares from `storeRTs_shares`: retire (one `£`,
+  `writerFrag` from `kvOwn`'s `kvWriter`, `retiredAt (2 + nJobRd)` from `writerOwn`) the readers:
+  `srvKeepRdN` and the compactor's (`srvStopKeep`), 128 (`srvShutdownPre`), the apply thread's own
+  (`kvOwn`), the loops' 2 (`kv.Close`); with the retired ones: `writerOwn`'s `storeRT` and the
+  monitor's, in `srvWTPool`'s invariant (`bkRTx`, swapped out for a fraction of `dghostVar E.γbe`:
+  `Cleanup` passes its quarter through untouched, so a smaller fraction will do there);
+- the stop commit's request (`commitReq_freeze`) and the image (`srvDiskImage`) for `close(done)`
+  (allocating `srvDoneInv`'s invariant with the image in it);
+- the deferred function's WP in `run.specStop`'s proof (5d).
+
+**Stage 5, the stop slot (2026-11-05, hub request H1, accepted).** The stop's pieces that were inline
+in `NewServer.specG`'s post (`srvTrKeyOf`, `srvStopKeep`, `srvCleanupOwn`'s mode clause) are one
+sealed slot, `srvStop.keep s cfg E γrn γk` (`StopApi.lean`, modelled on `WalApi.lean`). Its narrow
+eliminations each give one consumer what it takes:
+- `raft_stop`: `raftNode.stop`'s `ST`;
+- `cleanup_pieces`: `Cleanup`'s lessor and auth closer;
+- `census_readers`: the census's readers;
+- `image_inputs`: the image's registry and WAL directory.
+
+`memberBuilt`'s `K` gains the key's name. `srvShutdownPre` moved to `StopApi`.
+
+**Stage 5c/5d done (2026-11-05; `notes/decisions.md`, "The stop's slot, the shutdown, and the monitor's read token").** `run`'s proof is one proof over a stop flag,
+`run.wp_proofG stp`, with `run.spec` at `false` and `run.specStop` at `true`.
+The deferred shutdown is proved step by step:
+- `wgMu.Lock`, `goAttach_close`, `close(stopping)` (`wp_stop_chan_close_at`, the closer's flag at
+  `wgMuP`'s names), `Unlock`;
+- `cancel()`;
+- `sched.Stop()`, then saved-proposition agreement for the last job's `Q`, which gives `applyResC … A`
+  and `nodeRunning ½`;
+- `wg.Wait()`;
+- `r.stop()`, with `srvApRes`'s transport and the slot's key giving `Er.ST`, and `stop_split`;
+- `Cleanup()` (`StopShutdown.stopCleanupImage.spec`; see the list below);
+- `inv_alloc` of `srvDoneInv` with the image, then `close(done)`.
+
+What `Cleanup()` does, with its stop commit's request and the image:
+- the census, as `NewServer`'s R-D1 path: the slot's readers and the nil compactor's, the 128 unused
+  serving readers, the apply thread's, and the loops' from `wsCloseRes`, retired; then the retired
+  `writerOwn` reader and the monitor's; the stock, the pool and the constructors' half give `bOpen 1`;
+- `commitReq_freeze`;
+- `stop_mergedObsP` (`stop_mergedObs` at the writer's pin, since the census consumed `writerFrag`);
+- `merged_imageAt`, `restModel_confState`, `srvFiles`.
+
+New scope premises on `run.specStop` (a draft): no compactor, auth off , no compaction mode and
+the boot log's `Nodup`/`srvBootLogOk`.
+
+**The storage-version monitor's read token.** The census needs the monitor's read token, which
+sits in `srvWTPool`'s invariant. Its checked-out case (a monitor session) could not be ruled out:
+the monitor's trusted contract posted `True`, and `GoAttach`'s `Done` returned nothing. The user
+approved widening the monitor's contract, with the smaller design that followed:
+- the pool's names become a record `W = ⟨cnt, reg⟩`, where `reg` is a set-once register of `γg.run`
+  that `start` records;
+- `GoAttach` hands the goroutine's receipt `goRunning γ` to `f`;
+- the monitor's session deposits that receipt in the pool's checked-out case and takes it back before
+  it returns;
+- `wg.Wait()` gives the persistent `goWaited γ`, which contradicts any receipt.
+
+This is done (`stop_monitorRT` proved; `goWaited` is an exclusive half, and `Cleanup` takes any
+fraction of `γbe`). The widened contract survives the `axiom` skill's attack. F4 (`run.spec`
+replaced by `run.specStop`) is deferred until the scope premises are lifted or carried (R2d).

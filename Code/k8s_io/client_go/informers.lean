@@ -370,7 +370,7 @@ noncomputable def NewSharedInformerFactoryWithOptions.impl [GooseExts] [GoGlobal
   (Let "defaultResync" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "defaultResync"))
   (Let "client" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (Var "client"))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc sharedInformerFactory.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.client_go.kubernetes.Interface.ty))) (Var "client"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.NamespaceAll))
+  (Let "$v1" (Val #(go!""))
   (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "defaultResync"))
   (Let "$v3" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.Type'.ty _root_.Perennial.k8s_io.client_go.tools.cache.SharedIndexInformer.ty)]))) (Val #())) (Val #()))
   (Let "$v4" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.reflect.Type'.ty go.bool)]))) (Val #())) (Val #()))

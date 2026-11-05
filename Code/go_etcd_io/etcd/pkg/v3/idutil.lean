@@ -55,7 +55,7 @@ noncomputable def NewGenerator.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.uint16 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint16))) (Var "memberID"))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val suffixLen))))
   (Let "prefix" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"UnixNano"))) (Var "now")) (Val #()))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Val _root_.Perennial.time.Millisecond) (Val _root_.Perennial.time.Nanosecond))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"UnixNano"))) (Var "now")) (Val #()))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 1000000)) (Val #(W64 1)))))))
   (Let "unixMilli" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "unixMilli"))
@@ -87,7 +87,7 @@ noncomputable def lowbit.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "n"))
   (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "x"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.math.MaxUint64)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (Val #(W64 18446744073709551615)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))

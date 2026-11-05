@@ -53,7 +53,8 @@ Brief for the prover. Unfold `srvApplyKV` with `ua := mkOk up'`:
 - `revAuth E' ([[], []] ++ R)` from `revAuth E x.log` (`revAuth_snapE`): the bound
   `uint.nat k < x.log.length ≤ ([[], []] ++ R).length` (`hpre.length_le`).
 - `srvAuthApplyRes s E'`: the hypothesis (`snapE_authMode`; integration with the auth track's E2k).
-- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses.
+- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses; (2026-11-04) the range
+  deleter (`lease.rdAt`, of the logical names and the inner store, which `snapE` keeps) the hypothesis.
 - (M2's item 15, stage B) the compaction resources at the restored revision `c'`, the caller's
   (until then at `-1`, free with the new backend not compacting, `apply.cmpOwn_of_off`).
 - (2026-11-02, the backend-auth-split stage) `srvBeOwn`'s `srvBeRO d'` and the new backend's
@@ -66,43 +67,49 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ)
     (hwq : E.γ.watchQ = true)
     (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (c' : Int) :
-    apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
-        opts' ∗
+    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (hlg : E.lg = false) (c' : Int) (on : Bool)
+    (st : auth.AuthState) :
+    -- (P6.2, 2026-11-03) the new applier at `E'` (until then the wand `NewUberApplier` gives, with
+    -- `E'`'s options), the auth part by the mode at `E'` (`kvAuthM`; until then `srvAuthApplyRes`
+    -- at `E`)
+    apply.uberIs (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) up' opts' ∗
       mvcc.isWatchableStore ws E.s γw ∗
-      (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
-        apply.uberIs E1 up' opts' ∗ apply.uberOwn E1 up' (apply.alarmChain E1.authOn false false)) ∗
+      apply.uberOwn (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) up'
+        (apply.alarmChain (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be).authOn
+          false false) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
       mvcc.storeReader E.s E.γ ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
       mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ∗
+      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
+      lease.rdAt E.γ.leases E.s ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
       srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗
-      revAuth E x.log ∗ srvAuthApplyRes s E ∗
+      revAuth E x.log ∗
+      kvAuthM on s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
+        (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) st ∗
       srvWAddr s ↦□ w0 ∗
       waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
       RD0 ∗ apply.cmpOwn (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) c' ⊢
     |={⊤}=> ∃ x' : apply.ApplyKV,
       ⌜x'.log = [[], []] ++ R ∧ x'.chain = apply.alarmChain E.authOn false false ∧ x'.crev = c'⌝ ∗
-      srvApplyKV s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ.wait x' := by
+      srvApplyKVM on s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ.wait x'
+        st := by
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
-  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
+  iintro ⟨#Hub, #Hws, Huo, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, Hrdat, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
     #Hwok, HRD0, Hcmp⟩
-  ihave ⟨#Hub, Huo⟩ :=
-    Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) Hopts
   ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
-    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
+    hγw hwq hRok hrb hlg $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
   · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
   imodintro
   iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn false false, c'⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
-  iunfold srvApplyKV
+  iapply (srvApplyKVM_open _ _ _ _ _ _).2
   iexists _
   iframe Hua
   isplitr
@@ -137,12 +144,76 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     simp only at h2 ⊢
     omega
   isplitl [Hauar]
-  · iunfold srvAuthApplyRes at Hauar
+  · iexact Hauar
+  isplitr [Hrdat]
+  · iexists w0, RD0
+    iframe Hw Hwok HRD0
+  iExactEq Hrdat; simp
+
+/-- **The auth part of the applier row at the snapshot's environment** (P6.2, 2026-11-03, F9):
+from the walk's auth row (`snapAuthRowM`): off, the auth resource (it does not name the backend);
+on, the base applier's auth layer at the new applier (`NewUberApplier`'s `uberIs`, its options'
+auth store and lessor the server's) and the auth resource on the new backend at the image's state,
+with the new environment's lenses of the store's half (`rwLens_authBeOn`, `roLends_authBeOn`). -/
+theorem kvAuthM_snap (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (π0 : ApplyPhys)
+    (γB : backend.BNames) (P : backend.BParams) (d' : mvcc.KBReal) (p' : mvcc.PhysNames)
+    (g : GoFunc) (up' : Loc) (opts' : apply.ApplierOptions) (al ast lp cl : Loc)
+    (ua : GoInterface) (γr : ReadNames) (A' : List EntryModel) (hany : E.authMode ≠ .any)
+    (hγB : d'.γB = γB) (hkb' : p'.kb = some d')
+    (hopts : opts'.AuthStore' = auth.authIface ast ∧ opts'.Lessor' = lease.lessorIface lp) :
+    apply.uberIs (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) up' opts' ∗
+      srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+      snapAuthRowM E.authMode s E ua ast γr A' d' (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) g ⊢
+    kvAuthM E.authOn s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
+      (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface)
+      (srvAuthAtLog γr.kv srvAuthSt0 A') := by
+  subst hγB
+  iintro ⟨#Hub, #Hauf, #Hlef, Hrow⟩
+  cases hM : E.authMode with
+  | any => exact absurd hM hany
+  | off =>
+    have hon : E.authOn = false := by simp [apply.AEnv.authOn, hM]
+    rw [hon]
+    simp only [snapAuthRowM, kvAuthM]
     unfold srvAuthApplyRes
     simp only [snapE_authMode]
-    iexact Hauar
-  iexists w0, RD0
-  iframe Hw Hwok HRD0
+    try rw [hM]
+    iexact Hrow
+  | on γa =>
+    have hon : E.authOn = true := by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]
+    rw [hon]
+    simp only [snapAuthRowM, kvAuthM]
+    icases Hrow with ⟨#Hub0, Hrow⟩
+    iunfold srvUberBase at Hub0
+    icases Hub0 with ⟨%au, %le, #Hauf0, #Hlef0, -, #Hlb, %stl, %Hau, #Hpub, #Hlat, #Hbd⟩
+    icombine Hauf Hauf0 gives %e1
+    icombine Hlef Hlef0 gives %e2
+    subst e1 e2
+    isplitr
+    · iunfold srvUberBase
+      iexists auth.authIface ast, lease.lessorIface lp
+      iframe Hauf Hlef
+      isplitr
+      · iunfold apply.uberBaseAuth
+        iexists up', opts'
+        iframe Hub
+        ipureintro; exact ⟨rfl, hopts.1, hopts.2⟩
+      simp only [snapE_authMode, snapE_RD]
+      try rw [hM]
+      iframe Hlb
+      iexists stl
+      iframe Hpub Hlat Hbd
+      ipureintro; exact Hau
+    iunfold srvAuthApplyResB
+    iexists ast, d'
+    isplitr
+    · ipureintro; exact snapE_kb _ _ _ _ _ _ _ _ _ _ _ _ d' hkb'
+    simp only [snapE_authMode, snapE_P, snapE_f, snapE_RD, snapE_RW, snapE_RO]
+    try rw [hM]
+    iframe Hauf Hrow
+    isplitr
+    · iapply rwLens_authBeOn
+    iapply roLends_authBeOn
 
 end proof
 end EtcdGrove
