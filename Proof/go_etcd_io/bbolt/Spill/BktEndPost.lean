@@ -86,7 +86,7 @@ theorem end_bufs {X X1 : WX} {w w1 : WDb} {O : List Nat} {st1 : List FLStep} {C 
   refine ⟨fun id => ?_, ?_⟩
   · show (X1.t.pm !! id).isSome = (X1.t.bufs !! id).isSome
     exact Bool.eq_iff_iff.2 (hG.2.2.2.2.2.1 id)
-  · have := hstep.2.2.2.2.2.2.2.2 hb
+  · have := hstep.2.2.2.2.2.2.2.2.1 hb
     rw [hC] at this
     exact this
 

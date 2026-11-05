@@ -12,6 +12,7 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopStep
 public import Proof.go_etcd_io.bbolt.Spill.BktEnd
+public import Proof.go_etcd_io.bbolt.Spill.BktEndPend
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailWp
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopHeap
 public import Proof.go_etcd_io.bbolt.Spill.BktPm
@@ -601,9 +602,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     ipureintro
     exact ⟨Hok1, HI.C, HG.2.2.1, HG.2.2.2.1, HG.2.2.2.2.1, HG.2.1, Hsb1, HI.tt, Hrl,
       by rw [Hrl, HB]; rfl, HI.mvEq,
-      -- OPEN (U9x10): the base tree's slots not pending at the end, `markCov` kept by the loop
-      -- (no `RInv` field; `spStep` does not say a new mark's slots are buffers). Reported.
-      sorry, sorry⟩
+      end_nil_notPend Hpre Hreach Hfv HB0 Hkset HI Hks HB Hnull HvC, markCov_grow Hmc HI.grow⟩
   rw [decide_eq_false Hnull]
   try wp_auto
   ihave Hh := Hhb $$ [Hib Htx Hbk Hpg Hrn Hnd Hibv Hnm Hbm Hpo]
@@ -721,13 +720,13 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
     iframe
     ipureintro
     have Hrl2 : X2.rl = X.rl := Hfr.1.trans Hrl
+    have Hcp2 : w.C.pages = X2.v.pages := by
+      rw [s3, ← HI.C]
+      have := congrArg View.pages HvC; simpa [View.ofC] using this.symm
     refine ⟨Hok', s1.trans HI.C, HG'.2.2.1, HG'.2.2.2.1, HG'.2.2.2.2.1, s5, Hsb',
       Hfr.2.2.2.2.2.2.1.trans HI.tt, Hrl2, ?_,
       mv_trans HI.mvEq (Hfr.2.2.2.2.2.2.2.1 : X2.t.mv = { X1.t.mv with pgid' := X2.t.mv.pgid' }),
-      -- OPEN (U9x10): the new tree's slots not pending (`spDone`/`spStep` do not say which slots
-      -- the steps free), `markCov` (`spStep` does not say the new mark's slots are buffers).
-      -- Reported: `Spill/NodeSpec.spStep` needs the clauses.
-      sorry, sorry⟩
+      root_notPend Hrl2 Hcp2 HsT HD' Hsi', markCov_grow Hmc (markGrow_trans HI.grow s8.2.2)⟩
     show ((X2.t.bs.insert X.rl (bkRooted B1 rt rr.nv.pgid')) !! X2.rl).isSome
     rw [Hrl2, GMap.lookup_insert]; rfl
   · cases err with

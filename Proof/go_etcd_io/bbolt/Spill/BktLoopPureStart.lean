@@ -297,6 +297,7 @@ theorem rinv_start' {X : WX} {w : WDb} {B0 : BRec} (hpre : spillPre X w.fl)
     rootPg := htc.2.1.2.2.2.2 B0 hB0
     entKeys := hS.rootKeys
     rootBkt := rootBkt_wOKR hpre.1
+    grow := ⟨fun _ _ h => h, fun _ h1 h2 => absurd h2 (Nat.not_lt.2 h1)⟩
     inj := hS.inj
     cok := hS.cok
     bufs := fun id pg h => by rw [htc.2.1.2.1, GMap.lookup_empty] at h; cases h
