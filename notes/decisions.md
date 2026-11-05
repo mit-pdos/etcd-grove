@@ -30473,3 +30473,14 @@ bucket derived. **Rejected:** tracking the exact physical safe-range bucket with
 every put (the writer's puts would need it); a second, stronger `Snapshot` spec (one spec per
 function).
 
+## `auth.NewAuthStore`'s axiom over a backend reference (2026-11-06 · the user · branch `mvcc-api`)
+
+**What it was.** The axiom took mvcc's internal real backend (`KBReal`, its parameters `KBReal.P`).
+Under strict M1 the auth package sees mvcc only through the API, whose backend is a `BkRef`.
+**Decision (the user: "I accept").** The axiom is stated over a `BkRef` whose parameters satisfy
+`auth.authParams` (the auth buckets' rows of `KBReal.P`: in the table, hook buckets, not safe-range,
+tracked, no hook key) (commit `cca7e9a4a9`). Attacked with the `axiom` skill, survives
+(`notes/axiom-review/auth-newauthstore-bkref.md`: the parameters appear only in the precondition;
+the code touches only the auth buckets). Every old instance is an instance. The server's coming
+restatement of `authApplyOk`/`authRecoverOk`/`InvBoot` over `BkRef` needs its own review.
+
