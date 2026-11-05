@@ -1243,3 +1243,87 @@ and the server has it (`InvBoot`'s and `SnapRO`'s `p.kb = some d ∧ bridgeParam
   `ents`). Its docstring in `M1Placeholders.lean` still names `NewStore` (not edited: 314 importers).
 - `KV.Restore.contract`/`KV.Close.contract` (unchanged since the last hand-off).
 - The TCB baseline: no axiom or `sorry` added or removed (`cmpTrack_new_M1` still used).
+
+## Design: mvcc's API over its storage abstraction (2026-11-06; for the user's review, nothing restated yet)
+
+The decision (`notes/decisions.md`, "mvcc's API over its storage abstraction, not etcd's backend"):
+`Api.lean`/`ApiState.lean` stop naming etcd's backend; mvcc's storage contract is the API's
+abstraction of storage, and etcd's backend is one implementation of it, adapted by the bridge.
+
+**Survey: what the API names of the concrete backend** (`Api.lean`, `ApiState.lean`):
+1. `BkRef` (`ApiState`): `backend.BNames`, `backend.BParams`, the location; every contract's `B`.
+2. The Go value passed to `New`, `NewStore`, `Restore`: `interface.mkOk (*backend.backend) #B.b`.
+3. `mvccBackend`'s body (sealed, fine) and `mvccBackend_isBackend.law` (`backend.isBackend … (mvccW gx)`).
+4. `mvccW`, `mvccWReg`, `mvccW_alloc.law`: the `W` of etcd's backend constructor.
+5. `mvccBackendFor` (sealed) and `mvccBackendFor_open.law` (`backend.newPostKP`, `wbTok`, `bOpen`,
+   `rdOpen`, `rdStockN`, `keySized`).
+6. `backendRest`, `backendRest_open.law` (`isStopChans`, `plHook`, `rbOwn`, `rdPool`).
+7. `hookIs B f := backend.plHookRO B.γB f`; `KV.Restore.contract`'s `backend.plHookAt B'.γB dq f`.
+8. `backend.commitReq B.γB B.P Pk B.b X Y` in `KV.Compact`, `KV.Commit`, `KV.Restore`.
+9. `KV.Restore.contract`'s give-back `[∗list] rdStockN, backend.bOpen B.γB rdOpen`.
+10. `threadBound GF ≤ backend.rdStockN` (`New.spec`, `NewStore.spec`).
+11. `mvccImage (D : backend.Data)`, `mvccImage_fresh.law` (`backend.dget`), `mvccImage_snapshot.law`
+    (`backend.backend.Snapshot.spec`, `snapOpen`, `hkOwn`, `rbOwn`, `hkData`, `rbData`, `wbTok`).
+12. `mvccTxn_leaseDelete.law` (`backend.bF "batchTx"`, `rbPart`, `batchTxBuffered.UnsafeDelete`).
+13. Imports: `backend.RdPool`, `backend__Snapshot`.
+
+**The restated API** (`Api.lean`, no `backend.` name left):
+- `MvccStorage : Type` (opaque, replaces `BkRef`): a storage implementation; `storageVal S :
+  GoInterface` the Go value the constructors and `Restore` take (item 2).
+- `mvccBackend γ q S Pk` (as today, over `S`); `mvccBackend_agree.law` over `S`.
+- `storageHook S dq f` (fractional in `dq`, sealed): the storage's post-lock hook; `hookIs S f :=
+  storageHook S DFrac.discard f` (item 7). `storageReq S Pk X Y` (sealed): a commit request on it,
+  `X` to `Y` (item 8, the contract's `Req`). `storageRest S` (sealed): what `Restore` gives back of
+  the old storage (item 9).
+- `mvccReaderN : Nat` (an API constant, today's value of `rdStockN`): `threadBound GF ≤ mvccReaderN`
+  (item 10).
+- `mvccStorageFor S Pk L c u` (sealed, replaces `mvccBackendFor`): `S` meets mvcc's storage contract
+  at batch-lock invariant `Pk` (what `storeBackendT_of_backendC` and `keyCleanRead_of_backend` give:
+  `isKeyBackendG` with the compaction's clauses and the clean read, at every store's names over `S`)
+  and holds the history `L` compacted at `c` (unfinished iff `u`), with the receipt `⧖ (logCh L)`,
+  the store's write tokens and supply, `mvccReaderN` reader tokens, the registration of the store's
+  write resource. `New`/`NewStore` take it at `mvccStart`, `Restore` at `σ'`.
+- Gone from `Api.lean`: items 3 (`isBackend` half), 4, 5, 6, 11, 12, the two imports. The
+  open law has no counterpart in the API: making a storage is the implementation's business.
+
+**The bridge module** (new, importable, inside mvcc's tree because it unfolds the sealed
+predicates: `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/EtcdBackend.lean`, over `BackendBridge`;
+"mvcc over etcd's backend", what the server imports, never `Api.lean`'s clients that do not choose
+etcd's backend):
+- `etcdStorage (d : KBReal) : MvccStorage` with `storageVal (etcdStorage d) = interface.mkOk
+  (*backend.backend) #d.be`, and laws: `storageHook (etcdStorage d) dq f ⊣⊢ plHookAt d.γB dq f`,
+  `storageReq … ⊣⊢ backend.commitReq …`, `storageRest (etcdStorage d) ⊣⊢ [∗list] rdStockN, bOpen d.γB
+  rdOpen`, `mvccReaderN = backend.rdStockN`, `mvccBackend γ q (etcdStorage d) Pk ⊢ □ isBackend …` (item 3).
+- `mvccW`/`mvccWReg`/`mvccW_alloc.law` (item 4), `backendRest`/`backendRest_open.law` (item 6),
+  `mvccImage`/`mvccImage_fresh.law` (item 11), `mvccTxn_leaseDelete.law` (item 12) move here
+  unchanged but for `B := etcdStorage d`.
+- **The open law** (item 5), with the premise the store needs: `⌜bridgeParams P⌝` and `P = d.P` for a
+  real instance `d` in compaction mode (`d.cm`), at `W := mvccW d.gx`: `mvccImage D L c u ∗ newPostKP …
+  ∗ … ={⊤}=∗ mvccStorageFor (etcdStorage d) (Pk d.γB) L c u ∗ backendRest …`. Proved by the bridge
+  (`storeBackendT_of_backendC`, `keyCleanRead_of_backend`, `fkCl`'s exact values for the tracked
+  compaction). The server discharges `bridgeParams d.P` from what it holds (`InvBoot`, `SnapRO`).
+
+**The snapshot** (`mvccImage_snapshot.law`): it stays a fact of etcd's backend, in the bridge
+module, not an operation of the storage contract. Why: mvcc's code never takes a snapshot (the
+server calls `s.be.Snapshot()` on its concrete backend, `createMergedSnapshotMessage`); a contract
+operation would make every storage provide one that mvcc does not use and put the backend's data
+type (`backend.Data`, the image's carrier) into mvcc's API. The law needs mvcc's internals (the
+frozen store, the tracked compaction), which the bridge module may unfold, being in mvcc's package;
+its statement is over `mvccState`, `mvccBackend γ 1 (etcdStorage d) Pk` and `backend.Snapshot`, the
+server's terms. Likewise the image `mvccImage` is a relation between bbolt's data and a history: a
+fact of etcd's storage format, so the bridge's.
+
+**The internals** (two phases): (A) `MvccStorage := KBReal` (sealed; `etcdStorage := id`), the
+store's names keeping `kb : Option KBReal`: the API is stated over the abstraction now, and the
+bridge's premise `bridgeParams` is where it belongs; mvcc works over etcd's backend only, but no
+statement changes when (B) the store's instance becomes a record of the contract's predicates
+(`View`, `RT`, `WT`, `Del`, `Req`, `HF`, the compaction's, today `storeBackend`'s arguments through
+`kb`), `MvccStorage` that record with its Go value, and `mvccStorageFor` gets an introduction law
+in the contract's own terms (for an implementation other than etcd's). (B) touches every module
+reading `γ.kb` (`InvStore`'s 3986 importers): later, not on the M3 path.
+
+**Clients affected** (statements, when the API is restated): every client naming `BkRef`'s fields
+or the moved laws: the server (`KVStoreApi`'s `dbImageA_open.law`, `bootBackend.law`, the
+snapshot's send and receive, `lessor.Revoke`'s lease delete, the boot) imports the bridge module;
+`examples/mvccrand` (its backend boot: `backendRest_open`, `mvccW_alloc`). `B.γB`/`B.b` uses become
+`d.γB`/`d.be` at `B := etcdStorage d`.
