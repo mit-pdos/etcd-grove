@@ -1,9 +1,8 @@
 /-
 Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 
-Strict M1 (2026-11-05): restated over mvcc's API; the proof is a placeholder until the statement
-gap it rests on is closed (gap A). The proof over mvcc's internals is in the history (before
-`645402be7a`).
+Strict M1 (2026-11-05): over mvcc's API (`Txn.Range` at the transaction's dynamic type; gap A's
+fix gives the read log's `KindOk`).
 -/
 module
 
@@ -40,7 +39,169 @@ theorem txn.applyCompare.wp_proof
     (hGte : txn.mkGteRange.spec (GF := GF) (hG := hG))
     (hKV : txn.compareKV.spec (GF := GF) (hG := hG))
     : txn.applyCompare.spec (GF := GF) (hG := hG) := by
-  sorry -- M1-REPLACE: gap A: `Txn.Range`'s outcome is over the index's answers and nothing gives `LogOk` of the read log (the per-revision change bound), notes/mvcc-migration/txn.md
+  intro t γ trace te σ c cm
+  wp_start as ⟨Htx, Htrc, %Hreach, #Hc⟩
+  icases txn.mvccTxn_shape hsh t γ trace (.read σ) $$ Htx with ⟨%Hsh, Htx⟩
+  obtain ⟨tyX, vX, rfl, -, -, hRangeC, -⟩ := Hsh
+  ihave #Hc2 := Hc
+  iunfold txn.compareIs at Hc2
+  icases Hc2 with ⟨%Hcn, %ksl, %esl, %e, %u, #Hres, #Htgt, #Hk, #Hks, #He, #Hes, %Hre, #Hu, #Hun⟩
+  ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+  · iPkgInit
+  ihave %Hesl := ownSlice_len _ _ _ $$ Hes
+  have hnil : esl = slice.nil → e = [] := by
+    intro h; subst h
+    have h1 := Hesl.1
+    rw [show sint.nat (slice.nil : GoSlice).len = 0 from rfl] at h1
+    exact List.length_eq_zero_iff.1 h1
+  wp_auto
+  wp_apply hTODO
+  wp_apply (hGte esl e) $$ [$Hes] as %esl' ⟨#Hes', %Hgte⟩
+  have Hend := (txn.srvEnd_mkGte esl esl' e hnil Hgte)
+  rw [← Hre] at Hend
+  generalize (if e = [W8 0] then [] else e) = e' at Hend ⊢
+  ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
+  · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
+  wp_apply (hRangeC γ trace te (.read σ) todoCtxVal txn.todoCd true ksl esl' cm.key e'
+      (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)) $$ [$Htx $Htrc $Hctx $Hks $Hes']
+    as %rr %err ⟨%Hrn, Htx, Htrc, Hout, -, %Hlwf⟩
+  have Hok := txn.kindOk_of (.read σ) Hreach Hlwf.1 Hlwf.2
+  -- (M2, S1) a read at the transaction's revision is never compacted
+  have Hcr := txn.crev_le_readRev (.read σ) Hreach
+  ihave Hout := mvcc.rangeOutcomeC_latest _ _ _ _ _ _ _ _
+    (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
+    (by rw [show (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions).Rev' = W64 0 from rfl]
+        decide) Hcr $$ Hout
+  clear Hcr
+  imod txn.rangeOutcome_sel rr err _ _ cm.key _ _ Hok ⟨rfl, rfl, rfl, rfl⟩ $$ Hout with Hout
+  icases Hout with (⟨%Hrnull, %Hne⟩ | ⟨%Herr, %kvs, %rv', %cnt, %ps, Hrr, Hkvs, #Hsel⟩)
+  · exact absurd Hrnull (Hrn rfl)
+  subst Herr
+  have hst : txn.kindState (.read σ) = mvcc.stateAfter σ.log := txn.kindState_read σ Hreach
+  have hsel : txn.srvSel (txn.kindState (.read σ)) (decide (esl' = slice.nil)) cm.key e' =
+      (mvcc.stateAfter σ.log).filter (fun v => inRange cm.key cm.rangeEnd v.key) := by
+    rw [hst]
+    have h1 : decide (esl' = slice.nil) = (txn.srvEnd cm.rangeEnd).1 := congrArg Prod.fst Hend
+    have h2 : e' = (txn.srvEnd cm.rangeEnd).2 := congrArg Prod.snd Hend
+    rw [h1, h2]
+    unfold txn.srvSel
+    apply List.filter_congr
+    intro v _
+    exact txn.srvInRange_srvEnd _ _ _
+  rw [hsel]
+  have hH : cmpHolds (mvcc.stateAfter σ.log) cm =
+      let sel := (mvcc.stateAfter σ.log).filter (fun v => inRange cm.key cm.rangeEnd v.key)
+      if sel = [] then (cm.target != .value) && cmpKv cm (zeroKv cm.key) else sel.all (cmpKv cm) := by
+    rfl
+  rw [hH]
+  simp only
+  generalize (mvcc.stateAfter σ.log).filter (fun v => inRange cm.key cm.rangeEnd v.key) = sel
+  iStructNamedPrefix Hrr "Q"
+  ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  ihave %Hkl := ownSlice_len _ _ _ $$ Hkvs
+  iunfold txn.kvsIs at Hsel
+  icases Hsel with ⟨%Hpl, #Hsel⟩
+  wp_auto
+  wp_if_destruct
+  · -- no key-value in the range
+    have hsel0 : sel = [] := by
+      have : ps.length = 0 := by rw [Hkl.1, Hif]; rfl
+      exact List.length_eq_zero_iff.1 (by omega)
+    simp only [hsel0, ↓reduceIte]
+    cases ht : cm.target
+    all_goals simp only [ht, CmpTarget.code] at *
+    all_goals wp_auto
+    all_goals first
+      | (simp only [bne_self_eq_false, Bool.false_and]; iapply HΦ; iframe Htx Htrc; done)
+      | (ihave Hz := «$a1»
+         iStructNamedPrefix Hz "Z"
+         ipersist ZKey
+         ipersist ZCreateRevision
+         ipersist ZModRevision
+         ipersist ZVersion
+         ipersist ZValue
+         ipersist ZLease
+         ihave #Hz : txn.kvIs «$a1_ptr» (zeroKv []) $$ []
+         · iunfold txn.kvIs
+           iexists slice.nil, slice.nil
+           simp only [zeroKv]
+           isplitr; · iexact ZKey
+           isplitr; · iexact Hnil
+           isplitr; · iExactEq ZCreateRevision; rfl
+           isplitr; · iExactEq ZModRevision; rfl
+           isplitr; · iExactEq ZVersion; rfl
+           isplitr; · iexact ZValue
+           isplitr; · iexact Hnil
+           iExactEq ZLease; rfl
+         wp_apply (hKV c «$a1_ptr» cm (zeroKv [])) $$ [$Hc $Hz]
+         have hz : cmpKv cm (zeroKv []) = cmpKv cm (zeroKv cm.key) := by
+           unfold cmpKv zeroKv; rfl
+         ihave H := HΦ $$ [$Htx $Htrc]
+         iExactEq H
+         rw [hz]
+         congr 2
+         try simp (config := {decide := true}))
+  · have hne : sel ≠ [] := by
+      intro h
+      apply Hif
+      have h0 : ps.length = 0 := by rw [Hpl, h]; rfl
+      have h1 := Hkl.1; have h2 := Hkl.2
+      rw [h0] at h1
+      word
+    simp only [hne, ↓reduceIte]
+    ihave IH : (∃ (n : w64) (kvv : Loc), "i" ∷ i_ptr ↦ n ∗ "kv" ∷ kv_ptr ↦ kvv ∗
+        "Hkvs" ∷ kvs ↦* ps ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z kvs.len ∧
+          ∀ j < sint.nat n, ∀ v, sel[j]? = some v → cmpKv cm v = true⌝ : IProp GF) $$ [i kv Hkvs]
+    · iexists W64 0, _
+      iframe
+      ipureintro; refine ⟨by decide, Hkl.2, fun j hj => by simp at hj; omega⟩
+    wp_for IH
+    wp_if_destruct
+    · obtain ⟨hn0, hnl, hall⟩ := Hn
+      have hlt : sint.nat n < ps.length := by have := Hkl.1; word
+      list_elem ps (sint.nat n) as p
+      list_elem sel (sint.nat n) as v
+      simp only [show (0 ≤ sint.Z n ∧ sint.Z n < sint.Z kvs.len) from ⟨hn0, Hif⟩, _root_.and_self, ite_true]
+      wp_apply wp_load_slice_index kvs (sint.Z n) ps (DFrac.own 1) p hn0 $$ [Hkvs] as Hkvs
+      · iframe; ipureintro; exact Hp_lookup
+      ihave #Hpv := Hsel $$ %(sint.nat n) %p %v %Hp_lookup %Hv_lookup
+      wp_apply (hKV c p cm v) $$ [$Hc $Hpv]
+      cases hb : cmpKv cm v
+      · wp_auto
+        wp_for_post
+        have : sel.all (cmpKv cm) = false := by
+          rw [Bool.eq_false_iff]
+          intro h
+          rw [List.all_eq_true] at h
+          rw [h v (List.mem_of_getElem? Hv_lookup)] at hb
+          cases hb
+        rw [this]
+        iapply HΦ
+        iframe Htx Htrc
+      · wp_auto
+        wp_for_post
+        iframe
+        iexists n + W64 1, p
+        iframe
+        ipureintro
+        refine ⟨by word, by word, ?_⟩
+        intro j hj w hw
+        have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+        rw [hsn] at hj
+        by_cases hjn : j = sint.nat n
+        · subst hjn; rw [Hv_lookup] at hw; cases hw; exact hb
+        · exact hall j (by omega) w hw
+    · obtain ⟨hn0, hnl, hall⟩ := Hn
+      have : sel.all (cmpKv cm) = true := by
+        rw [List.all_eq_true]
+        intro w hw
+        obtain ⟨j, hj, hjw⟩ := List.getElem_of_mem hw
+        exact hall j (by have := Hkl.1; word) w (by rw [List.getElem?_eq_getElem hj, hjw])
+      rw [this]
+      iapply HΦ
+      iframe Htx Htrc
 
 end proof
 

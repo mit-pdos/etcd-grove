@@ -2,7 +2,7 @@
 Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 
 Strict M1 (2026-11-05): restated over mvcc's API; the proof is a placeholder until the statement
-gap it rests on is closed (gap A). The proof over mvcc's internals is in the history (before
+gap it rests on is closed (gap E). The proof over mvcc's internals is in the history (before
 `645402be7a`).
 -/
 module
@@ -38,7 +38,7 @@ theorem txn.getPrevKV.wp_proof
     (hStep : traceutil.Trace.StepWithFunction.spec (GF := GF) (hG := hG))
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     : txn.getPrevKV.spec (GF := GF) (hG := hG) := by
-  sorry -- M1-REPLACE: gap A: `Txn.Range`'s outcome is over the index's answers and nothing gives `LogOk` of the read log (the per-revision change bound), notes/mvcc-migration/txn.md
+  sorry -- M1-REPLACE: gap E: the spec returns the caller's `te`, `Trace.StepWithFunction` gives back `∃ e'`, notes/mvcc-migration/txn.md
 
 end proof
 

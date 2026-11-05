@@ -89,6 +89,26 @@ none`, or dropped. `Txn.lean`'s proof is complete but for these two obligations,
 `M1-REPLACE: gap D` (the coordinator's go-ahead for placeholders, 2026-11-05); with the fix each is
 dropped.
 
+**Gap E (the draft; blocks `getPrevKV`, found 2026-11-05 after A's fix).** `getPrevKV.spec`'s post
+returns `ownTrace trace te` with the caller's `te`, but `getPrevKV` reads inside
+`trace.StepWithFunction`, whose spec gives back only `∃ e', ownTrace t e'` (the Go code's
+`disableStep`/`enableStep` leave the step flag at its default, not the caller's). Until M1 the trace
+was inside `isTxn`, existentially.
+*Minimal fix* (the draft): `getPrevKV.spec`'s post `∃ te', ownTrace trace te'`; then
+`checkAndGetPrevKV`, `checkPut` and `checkTxn` the same (their proofs pass it on; `Txn` already
+works at the `te` `checkTxn` returns, `executeTxn` too). (Or a stronger
+`Trace.StepWithFunction.spec`, `traceutil`'s: `ownTrace t false` when given `ownTrace t false`, if
+true of the code; every caller of txn starts at `EnsureTrace`'s `false`.)
+
+**Gap F (the API; blocks `deleteRange`, found 2026-11-05 after A's fix).** `deleteRange` without
+`PrevKv` calls only `Txn.DeleteRange`, whose post's deleted keys are mvcc's index answers
+(`delKeys σ.log pend ..`); the spec states them over the state (`delChanges (pendState σ.log pend)
+o`), which needs `LogOk (σ.log ++ [pend])` (`delKeys_client`), the same fact as gap A, and no
+`Txn.Range` call gives it on this path.
+*Minimal fix* (the API): `Txn.DeleteRange.contract`'s post (and `KV.DeleteRange`'s at `σ.log ++ [[]]`
+or `σ.log`) also `⌜LogWf' (σ.log ++ [pend]) ∧ ∀ cs ∈ σ.log ++ [pend], cs.length < 2 ^ 63⌝`, as A
+gave `Txn.Range`'s.
+
 ## Left
 
 - **`Link.lean`, `Results.lean` do not build** (the only txn modules that do not). `Link.lean` is
@@ -103,12 +123,12 @@ dropped.
 
 ## Status per proof (every module of the package builds but `Link`, `Results`)
 
-Proved over the API (no sorry): `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
+Proved over the API (no sorry): `executeRange`, `applyCompare` (after A's fix), `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
 `compareToPath`, `checkTxn`, `txn`, `Range`, `Count`, `Put`, `DeleteRange`, and every proof with no
 mvcc callee (the list in "Done"), and since B and D were decided, `checkRange` and `Txn`.
 
-`M1-REPLACE` placeholders (whole proofs, `sorry`): `executeRange`, `getPrevKV`, `applyCompare`,
-`deleteRange` (gap A), `executeTxn` (gap C), waiting for the API's fixes; the old proofs over the internals
+`M1-REPLACE` placeholders (whole proofs, `sorry`): `getPrevKV` (gap E), `deleteRange` (gap F), `executeTxn`
+(gap C fixed: in progress); the old proofs over the internals
 are in the history (`645402be7a~1`), most of each reusable once the gap closes (`executeRange_core`
 was already parametric in the transaction; `KindOk`/`prevKvIs_of_outcome`/`rangeOutcome_sel` are
 over `MTxn` in `Write.lean`).

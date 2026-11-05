@@ -2,7 +2,7 @@
 Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 
 Strict M1 (2026-11-05): restated over mvcc's API; the proof is a placeholder until the statement
-gap it rests on is closed (gap A). The proof over mvcc's internals is in the history (before
+gap it rests on is closed (gap F). The proof over mvcc's internals is in the history (before
 `645402be7a`).
 -/
 module
@@ -36,7 +36,7 @@ theorem txn.deleteRange.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hGte : txn.mkGteRange.spec (GF := GF) (hG := hG))
     : txn.deleteRange.spec (GF := GF) (hG := hG) := by
-  sorry -- M1-REPLACE: gap A: `Txn.Range`'s outcome is over the index's answers and nothing gives `LogOk` of the read log (the per-revision change bound), notes/mvcc-migration/txn.md (and `delKeys_client` for the deletes)
+  sorry -- M1-REPLACE: gap F: `Txn.DeleteRange`'s deleted keys are the index's, and without `PrevKv` nothing gives `LogOk (σ.log ++ [pend])` for `delKeys_client`, notes/mvcc-migration/txn.md
 
 end proof
 

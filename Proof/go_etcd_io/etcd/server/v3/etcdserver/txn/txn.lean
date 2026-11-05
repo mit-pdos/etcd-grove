@@ -129,7 +129,8 @@ theorem txn.txn.wp_proof
   have hchs : chs = chl := by
     simp only [chs, txn.txnChs, srvRunTxn]; exact hchl
   wp_apply (hRevC γ trace (txn.MTxn.append k chl)) $$ [$Htw] as Htw
-  wp_apply (hChC γ trace (txn.MTxn.append k chl)) $$ [$Htw] as %chsl ⟨Htw, %Hchs⟩
+  wp_apply (hChC γ trace (txn.MTxn.append k chl)) $$ [$Htw] as %chsl ⟨Htw, %Hchs2⟩
+  have Hchs := Hchs2.1
   have hpendc : (txn.MTxn.append k chl).pend = chl := by
     cases ro
     · rfl

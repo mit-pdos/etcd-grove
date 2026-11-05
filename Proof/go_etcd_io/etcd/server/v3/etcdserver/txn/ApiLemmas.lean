@@ -47,6 +47,38 @@ theorem txn.reach_crev (σ : MvccState) (h : mvcc.api.MvccReachable σ) :
     exact ⟨by simp [mvcc.api.MvccState.compactTo]; omega, by
       simpa [mvcc.api.MvccState.compactTo, mvcc.api.MvccState.rev] using h3⟩
 
+/-- A transaction's compaction revision is at most the revision it reads at. -/
+theorem txn.crev_le_readRev (k : MTxn) (h : txn.Reach k.state) :
+    k.state.crev ≤ sint.Z k.readRev := by
+  have hc := txn.reach_crev _ h.1
+  have h3 := h.2
+  cases k with
+  | read σ =>
+    simp only [mvcc.api.MTxn.state, mvcc.api.MTxn.readRev] at hc h3 ⊢
+    have : sint.Z (W64 (σ.rev : Int)) = (σ.rev : Int) := by unfold mvcc.api.MvccState.rev; word
+    omega
+  | write σ pend =>
+    simp only [mvcc.api.MTxn.state, mvcc.api.MTxn.readRev] at hc h3 ⊢
+    have h4 : σ.rev ≤ mvcc.writeRev σ.log pend := by
+      unfold mvcc.writeRev mvcc.api.MvccState.rev; split <;> omega
+    have : sint.Z (W64 ((mvcc.writeRev σ.log pend : Nat) : Int)) = (mvcc.writeRev σ.log pend : Int) := by
+      have : mvcc.writeRev σ.log pend ≤ σ.log.length := by unfold mvcc.writeRev; split <;> omega
+      word
+    omega
+
+/-- A read transaction reads the state after its log. -/
+theorem txn.kindState_read (σ : MvccState) (h : txn.Reach σ) :
+    txn.kindState (.read σ) = mvcc.stateAfter σ.log := by
+  have h2 := txn.reach_len _ h.1
+  have h3 := h.2
+  have hne : σ.log ≠ [] := by intro h0; rw [h0] at h2; simp at h2
+  unfold txn.kindState
+  simp only [mvcc.api.MTxn.readLog, mvcc.api.MTxn.readRev]
+  have : ((σ.rev : Nat) : Int) = (σ.log.length : Int) - 1 := by
+    unfold mvcc.api.MvccState.rev; omega
+  rw [this]
+  exact txn.stateAt_lastRev σ.log hne (by omega)
+
 /-- A transaction's begin state after changes. -/
 theorem txn.MTxn.append_state (k : MTxn) (chs : List mvcc.Change) :
     (txn.MTxn.append k chs).state = k.state := by cases k <;> rfl
