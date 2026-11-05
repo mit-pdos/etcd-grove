@@ -42,31 +42,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 /-! ## The bucket's entries as events (pure) -/
 
-/-- A bucket entry as `kvsToEvents` reads it: its revision, whether it is a tombstone, and the
-key-value it encodes. -/
-structure KvEnt where
-  rev : Rev
-  tomb : Bool
-  kv : EtcdKv
-
-/-- The entry's key and value in the bucket. -/
-def KvEnt.pair (e : KvEnt) : GoString × GoString := (revBytes e.rev e.tomb, kvEncode e.kv)
-
 /-- The event `kvsToEvents` makes of the entry: a tombstone is a `DELETE` with the revision as
 `ModRevision`, else a `PUT`; no previous key-value. -/
 def KvEnt.ev (e : KvEnt) : EvM :=
   if e.tomb then ⟨true, { e.kv with modRev := e.rev.main }, none⟩ else ⟨false, e.kv, none⟩
-
-/-- The bucket's entries of revision `r` (changes `cs`, the state `before` before them), in
-sub-revision order (`bucketOfRev`'s, as entries). -/
-def entsOfRev (r : Nat) (before : List EtcdKv) (cs : List Change) : List KvEnt :=
-  cs.zipIdx.filterMap fun p =>
-    (changeKv (W64 r) before cs p.2).map fun kv => ⟨⟨W64 r, W64 p.2⟩, p.1.isDel, kv⟩
-
-/-- The bucket's entries of the revisions `[lo, hi)` of `log`, in revision order. -/
-def logEnts (log : Log) (lo hi : Nat) : List KvEnt :=
-  ((List.range' lo (hi - lo)).map fun m =>
-    entsOfRev m (stateAt log (m - 1)) (log.getD m [])).flatten
 
 open Classical in
 /-- Some member of `W` covers the key `k` (`watcherGroup.contains`, whose spec decides it

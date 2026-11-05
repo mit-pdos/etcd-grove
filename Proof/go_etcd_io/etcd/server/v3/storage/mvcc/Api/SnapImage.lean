@@ -614,13 +614,6 @@ theorem imageOk_fresh (D : backend.Data) (hk : ∀ k, backend.dget D keyName k =
 
 /-! ## The image from a snapshot's observation -/
 
-/-- **The store's cut fact** at its log `L`, its view `m` of the `Key` bucket (the backend's
-logical view) and the entries `X` the backend records as deleted (`dlsOwn`'s value): the physical
-bucket (`m` but `X`) is the entries `ents` cut at `c`. -/
-def cutOk (L : Log) (m : Bucket) (X : backend.VData) (c : Int) : Prop :=
-  ∃ ents : List KvEnt, entsCutAt L c ents ∧
-    ∀ k, (if (X.lookup (keyName, k)).isSome then none else m.lookup k) = (bucketOfEnts ents).lookup k
-
 /-- **The data's `Key` bucket from the observation and the store's cut** (`key_of_obs_exact`,
 generalized: the logical view is the store's `m`, of any shape): the physical view `vd` is the
 logical view `Lv` (`m` on the `Key` bucket) but the deleted entries `X` (`dlVd`), so the data's
@@ -682,10 +675,6 @@ theorem imageOk_of_cut (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hb : LogB ([[],
     restoreCur_cut' R hR hb rc hrec ents (hrc ▸ hcutE), hb, hwf, R, rfl, hR⟩
 
 /-! ## The store's cut under its steps (for the store-side tracking, `snapObs_M1`'s replacement) -/
-
-/-- The physical `Key` bucket: the logical view `m` but the deleted entries `X`. -/
-def physLookup (m : Bucket) (X : backend.VData) (k : GoString) : Option GoString :=
-  if (X.lookup (keyName, k)).isSome then none else m.lookup k
 
 /-- **A raised compaction revision keeps the cut** (`Compact`'s scheduled record, a later job). -/
 theorem cutOk_mono {L : Log} (hb : LogB L) {m : Bucket} {X : backend.VData} {c0 c : Int}
@@ -861,13 +850,6 @@ theorem cutOk_append {L : Log} {pend : List Change} (hb : LogB (L ++ [pend])) (h
     · rw [if_neg hx]
       rw [if_neg hx] at hk
       exact foldl_ins_lookup k _ _ _ (Or.inr hk)
-
-/-- **The running job's loop invariant** (`entsCutAt_jobStep`'s `hpast`) at its compaction
-revision `c₁` and cursor `p`: every entry below the cursor that compaction at `c₁` deletes is gone
-from the physical bucket's entries `ents`. What the store must keep with the cut between the job's
-batches (the snapshot image's (a)). -/
-def jobPast (L : Log) (c₁ : Int) (p : Rev) (ents : List KvEnt) : Prop :=
-  ∀ e' ∈ logEnts L 0 L.length, Rev.lt e'.rev p → KeyDel L c₁ (revBytes e'.rev e'.tomb) → e' ∉ ents
 
 /-- **A commit keeps the job's loop invariant** (`cutOk_append`'s entries): the new revision's
 entries are above `c₁`, so compaction at `c₁` deletes none of them. -/

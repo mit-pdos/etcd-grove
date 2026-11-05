@@ -32,6 +32,7 @@ which a commit takes from its caller (`logQPre`/`logQPost`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CutDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
@@ -66,12 +67,6 @@ namespace EtcdGrove
 namespace mvcc
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
-
-/-- The `Key` bucket's written-back contents: a revision's bytes to the encoded key-value. -/
-abbrev Bucket := GMap GoString GoString
-
-/-- The `Key` bucket's name. -/
-abbrev keyName : GoString := go_etcd_io.etcd.server.v3.storage.schema.keyName
 
 /-- **The real backend's instance** (2026-10-13, unit 5): the store over etcd's backend
 (`storage/backend`, proved over bbolt's key-value contract; `BackendBridge.lean`), named by data:

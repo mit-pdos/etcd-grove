@@ -918,3 +918,71 @@ frozen statement found false; one frozen statement found insufficient for the cl
 the contract's values (b) first, then `compactRes`'s halves (a) through the job (`cutAt_del`),
 `updateCompactRev` (`cutOk_mono`, (c)), `End`'s commit (a cut lemma for a new revision, not written),
 `NewStore`/`Restore`; then M3 (`mvccBackendFor`, `_open`, finding 5).
+
+## Hand-off: stage 2, the snapshot image's store-side tracking begun (2026-11-05)
+
+**Done** (the mvcc modules build but `store__scheduleCompaction`, `Results`, `Link`, whose imports
+reach etcdserver/txn through `Spec/github_com/dustin/go_humanize/Bytes.lean` (`import
+...etcdserver.InvApplier`), red mid-migration by its own agent; `store__scheduleCompaction` was
+checked with `lake env lean` on a copy whose humanize spec is a verbatim stub over
+`GeneratedProof...etcdserver` (`/tmp/mkscratch.py`'s approach); no axiom, no new `sorry`; no frozen
+statement found false):
+- **(b) the contract's values** (`2545f1ca52`): `batchTxSpecG`'s write right is indexed, `MW w X`,
+  by the compaction keys' values and the deleted entries; the real backend's is `bkMW γB w X`
+  (`InvStore`: the client's half of the flag at some value, `fkdOwn γB w`, `dlsOwn γB X`: `fkOwn` with
+  its halves exposed; `kbMWv`, and `kbMW := ∃ w X, kbMWv …`, what `mwInv` still holds). The
+  compacting range's delete of a key it read (`⌜(m'.lookup k).isSome⌝`) gives `∃ X', MW w X' ∗
+  ⌜dlStep X X' k⌝` (exactly `cutAt_del`'s `hX'`); a `Meta` put gives `MW (fkPutV w k v) X`
+  (`metaPutCap bt X Y`'s `Y` is now `GoString → GoString → IProp`, applied at the key and value put;
+  `UnsafeSetScheduledCompact`/`UnsafeSetFinishedCompact`'s posts at `schedKeyBytes`/`finKeyBytes`
+  and `revBytes ⟨value, 0⟩ false`). Proved in `BackendBridge` from the batch lock's exact state
+  (`batchLocked_dls`, `batchLocked_bkMW`, `fkVals_putMeta`, `fkVals_delKey`, `dlR_key`; the range's
+  token `bkLockedC … m'` keeps every key of the range's bucket present or recorded deleted,
+  `keysKept`, `keysKept_del`, `keysKept_putMeta`, `dlStep_del`). The backend's specs are unchanged.
+- **M3's first two items** (`f8e4c72fed`): `mvccW gx := lateW gx`, `mvccWReg gx := lateReg gx`
+  (sealed), `mvccW_alloc.law_holds` (finding 5's fixed statement).
+- **Item 3, pure** (the cut under `End`'s new revision): `Api/SnapImage.lean`'s `cutOk_append` (the
+  physical bucket gains the revision's entries, whose keys `X` never recorded), `entsOfRev_pairs`,
+  the running job's loop invariant `snap.jobPast` and `jobPast_append`.
+- **`CutDefs.lean`** (importable, imported by `InvStore`): the cut's pure vocabulary moved upstream of
+  the invariants, unchanged (`Bucket`, `keyName`, `KvEnt`, `entsOfRev`, `logEnts`, `bucketOfEnts`,
+  `entsCutAt`, `CmpRecs` and its revisions, `recsOk`, `recsPos`, `recBytes`, `snap.cutOk`,
+  `snap.physLookup`, `snap.jobPast`): `compactRes` can now state the cut.
+
+**Findings** (for (a), in addition to the snapshot image's hand-off):
+1. **The cut is not inductive without the job's cursor** (`entsCutAt`'s third conjunct needs
+   `jobPast` for the running job's delete), and the cursor must survive between the job's batches,
+   during which commits append (`jobPast_append`). Design: a ghost variable `γ.jc : Option (Int ×
+   Rev)` (a new `StoreNames` field), half in `compactRes` with the pure fact, half in the compactor's
+   token `compactTok` (which the schedule queue hands from job to job, so one job runs at a time) at
+   `none` between jobs; the job sets it to `some (rev, ⟨0, 0⟩)` in its first session and back to
+   `none` in its last.
+2. **The pinned `compactRes`** (proposed):
+   `compactRes γ L m := ∃ sched fin n, metaCompact … ∗ fin's counter ∗ mwSlot γ ∗ cmpTrack γ L m ⟨fin, sched⟩`,
+   `cmpTrack` (real compacting backend) `:= fkdOwn d.γB (recBytes fin, recBytes sched) ∗ ∃ X jc,
+   dlsOwn d.γB X ∗ ghostVar γ.jc ½ jc ∗ ⌜∃ ents, entsCutAt L rc.crev ents ∧ (∀ k, physLookup m X k =
+   (bucketOfEnts ents).lookup k) ∧ recsOk L rc ∧ recsPos rc ∧ ∀ c₁ p, jc = some (c₁, p) → jobPast L c₁
+   p ents ∧ -1 ≤ c₁ ∧ c₁ ≤ rc.crev⌝`; `writerRes` names its bucket (`∃ L m, … bucketView ¼ m ∗
+   bucketLog γ L m ∗ compactRes γ L m`). `mwInv` keeps the flag's half only (`kbMW := ∃ f,
+   monoNatAuthOwn d.γB.fk ½ f`); a session holder assembles `bkMW` from the swap and `cmpTrack`.
+3. **The generic `SetScheduledCompact`/`SetFinishedCompact` specs' swap** (`mwSwap W (∃ w X, MW w
+   X)`) hands the whole lock resource `W` and takes it back right after the put, before the caller's
+   record update: with the pinned `compactRes` the swap back cannot be proved (the new value is not the
+   old record's). Their specs must lend only the values: e.g. `W ∗ £ 1 ={⊤}=∗ ∃ w X, MW w X ∗ (∀ w',
+   MW w' X ={⊤}=∗ Wv w')` with the caller's update `Q ∗ Wv (fkPutV w schedKeyBytes (revBytes ⟨value,
+   0⟩ false)) ={⊤}=∗ P ∗ W ∗ Post`. These are internal specs (not frozen).
+4. **mvcc's build reaches etcdserver/txn** through `go_humanize.Bytes`'s spec importing
+   `etcdserver.InvApplier`: while a client package is mid-migration the job's proof cannot be built.
+   Its spec needs only `GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver` (the `Assumptions`
+   class) and `GeneratedProof.github_com.dustin.go_humanize`; the import is not mvcc's to change.
+5. Interfaces not regenerated (`etc/gen-interface.py` builds `Link`, red for the reason above):
+   regenerate once the build is green.
+
+**Left** (in order): (a) with findings 1-3 (`compactRes`/`writerRes`/`StoreNames.jc`; `NewStore`,
+`restore`/`Restore` establishing the cut from `imageOk`'s `ents` with `X = ∅` (needs M3's exact
+`fkCl`, below); the job re-establishing it per delete with `cutAt_del` and `jobPast`; `End` with
+`cutOk_append`/`jobPast_append`; `updateCompactRev` with `cutOk_mono`), then (c), (d), (e) as in the
+snapshot image's hand-off, then `snapObs_M1` replaced. M3: `mvccBackendFor` (keeping the image's
+receipt), `mvccBackendFor_open.law`, and the backend's open giving the exact `fkdOwn γ (fkVals D) ∗
+dlsOwn γ ∅` (`fkCl` redefined with exact values; `NewAlloc` already allocates them so: `fkVals D`,
+`dlR P ∅`).

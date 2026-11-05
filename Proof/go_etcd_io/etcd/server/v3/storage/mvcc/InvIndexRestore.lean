@@ -705,18 +705,6 @@ theorem IdxCRepN_of_cutInv (L : Log) (K : Rev → Bool) {idx : IndexM} (h : CutI
 
 /-! ## The bucket a compaction job thinned -/
 
-/-- **The job's shape** (in place of round 3's `bucketThinnedAt`; review round 4, A1 (b)): the image's
-`Key` entries `ents` are the log's (in order) but for, per key, a prefix of its entries, each
-deletable by the compaction at `c` (`KeyDel`). A finished compaction at `c` (every deletable entry
-gone), a leader's bucket mid-job (the job deletes from revision `0` up, in batches, which may stop
-between two sub-revisions of one revision), and either after an earlier finished compaction
-(`KeyDel` grows with `c`) all have it. -/
-def entsCutAt (L : Log) (c : Int) (ents : List KvEnt) : Prop :=
-  ents.Sublist (logEnts L 0 L.length) ∧
-    (∀ e ∈ logEnts L 0 L.length, e ∉ ents → KeyDel L c (revBytes e.rev e.tomb)) ∧
-    ∀ e₁ ∈ logEnts L 0 L.length, ∀ e₂ ∈ logEnts L 0 L.length,
-      e₁.kv.key = e₂.kv.key → Rev.lt e₁.rev e₂.rev → e₂ ∉ ents → e₁ ∉ ents
-
 /-- The whole bucket has the shape at any revision. -/
 theorem entsCutAt_full (L : Log) (c : Int) : entsCutAt L c (logEnts L 0 L.length) :=
   ⟨List.Sublist.refl _, fun _ h h' => absurd h h', fun _ _ _ h₂ _ _ h => absurd h₂ h⟩

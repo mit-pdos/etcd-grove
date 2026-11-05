@@ -44,6 +44,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecsSnap
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CmpRecs
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CutDefs
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactNoDup

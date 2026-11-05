@@ -31,10 +31,6 @@ namespace mvcc
 section pure
 variable [GooseExts]
 
-/-- The `Key` bucket of the entries `ents` (`bucketMap`'s fold over them). -/
-def bucketOfEnts (ents : List KvEnt) : Bucket :=
-  (ents.map KvEnt.pair).foldl (fun m p => GMap.insert p.1 p.2 m) GMap.empty
-
 /-- The whole bucket's entries make the log's bucket. -/
 theorem bucketOfEnts_logEnts (L : Log) :
     bucketOfEnts (logEnts L 0 L.length) = bucketMap L := by
