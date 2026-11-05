@@ -824,6 +824,25 @@ premises with slots.
    slotted subsystem's later changes leave `NewServer.spec`'s text alone, and did parallel branches
    stop conflicting there (three branches edited `NewServer.lean`/`InvBoot.lean` at once on
    2026-11-03: `lease-grant`, `r2b1-s3`, `snap-auth-on-apply`)?
+   **First check (2026-11-05, `lean` 256dbfc6d9 against 3fe0d5a4ef; slots: the WAL, the raft node,
+   the transport, the compactor; the lease's on `lease-expiry`).** `etc/spec-hubs.py` change counts,
+   11-03 → 11-05: `NewServer.specG` 9 → 24, `bootOk` 58 → 66, `srvBuilt`/`srvBuiltG`/`isServerBuilt`
+   +7 each, `bootstrapContract` 7 → 12, `KVNames` 11 → 18, `AEnv` 16 → 20; `RaftNames` and
+   `StoreNames` unchanged. The hub's rate is not lower yet (about 6 changes a day to `specG`, 4.3 a day
+   to `spec` before), but the 12 commits that changed `Spec/.../NewServer.lean` since 11-03 are mostly the
+   conversion itself: the slots, the bootOk review and the twins (6); a subsystem added through its slot
+   (R2b-1's WAL, 1); comments only (auth stage 3, 1); pre-convention (lease-grant 3b, 1). The compactor's
+   and auth's later stages (Q1 (b)/(c), auth 4-5) left the hub's text alone. **The misses: the restart's
+   stop (R2b-3d, 3 commits)** added `srvStopKeep` inline, then changed its arguments twice (fields of
+   `E`, not a names record: the follow-up under the transport's slot) and put an inline mode clause
+   beside it (`⌜on = false⌝ → srvCleanupOwn`); and the example entry points (hub 4) grew mode twins
+   (`BuildServer.specRestart`/`specStop`, `newServer.specCompact`, `Start{Compacting,Periodic}Server`),
+   step 7 not yet done. Parallel branches still collide: `lease-expiry` (+149 lines in
+   `NewServer.lean`, its lease slot) and `r2b3` both edit the postcondition. `etc/spec-churn.py`'s
+   `STAGES` has no stage since 11-02, so its tables do not measure the hubs yet (add K1, R2b-1, the
+   auth stages, 7b, auth 5 when they freeze). Next: the restart's stop pieces as a slot when R2b-3d next
+   touches the hub; step 7 before the restart's `walFiles`; land `lease-expiry` and `r2b3` one after
+   the other. Re-check after both land.
 6. **Collapse the twins** (2026-11-03, the hub plan's owner; R2b-1's review, suggestion 3).
    **Done** (2026-11-03, branch `hub-twins`, after auth-on's whole branch landed): `specG` written
    out once, `spec := ∀ cmp, specG false cmp` (no wrapper needed: `newServerMode` passes its mode
