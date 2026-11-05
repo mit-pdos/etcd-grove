@@ -64,6 +64,8 @@ theorem history.snapshot.wp_proof : history.snapshot.spec (GF := GF) (hG := hG) 
   iframe
   isplitr
   · ipureintro; exact ⟨Hpre.2, H2⟩
+  isplitr
+  · ipureintro; simp [slice.fullSlice]
   have hne : x.2.2.1 ≠ [] := by
     intro he; rw [he] at Hmlen; simp at Hmlen; omega
   iapply ownSlice_same_ptr_len' x.1 _ DFrac.discard x.2.2.1 hne _ _ _ $$ Hms

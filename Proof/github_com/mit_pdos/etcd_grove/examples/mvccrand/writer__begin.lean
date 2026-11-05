@@ -46,7 +46,7 @@ theorem writer.begin.wp_proof (wp_check : check.spec (GF := GF) (hG := hG))
   iunfold writerRO at Hw2
   icases Hw2 with ⟨#kvW, #leW, #hW, #rW, #leasesW, #applyingW, #savedW, #ticksW⟩
   wp_auto
-  wp_apply wp_snapshot wv.h' γ.h Hs $$ [$Hrd $Hlb] as %s ⟨Hrd, %ms, %Hs', %Hpre, #Hlb', #Hms, #Hst⟩
+  wp_apply wp_snapshot wv.h' γ.h Hs $$ [$Hrd $Hlb] as %s ⟨Hrd, %ms, %Hs', %Hpre, %Hcap, #Hlb', #Hms, #Hst⟩
   -- the snapshot is the writer's revisions
   ihave %Hle : ⌜Hs' <+: Hs⌝ $$ [HW]
   · iunfold histW at HW

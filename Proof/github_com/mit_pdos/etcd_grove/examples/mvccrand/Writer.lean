@@ -103,6 +103,7 @@ the history's invariants, the store's handle, the backend's hook (frozen at `f`)
 def writerCtx (w : Loc) (wv : writer) (γ : RandNames) (B : BkRef) (f : GoFunc) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccrand ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
     writerRO w wv ∗ inv worldN (worldInv wv.h' γ) ∗ isHistory wv.h' γ.h ∗ isMvcc wv.kv' γ.kv ∗
     hookIs B f ∗ hookOk wv f)
 

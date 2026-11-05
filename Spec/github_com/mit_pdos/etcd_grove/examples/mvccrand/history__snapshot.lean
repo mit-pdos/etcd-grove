@@ -34,7 +34,7 @@ abbrev history.snapshot.spec : Prop :=
       histRd h γ ∗ monoListLbOwn γ.l Hlb }}
     (App (Val (h @!! go.GoType.PointerType history.ty @!! go!"snapshot")) (Val #()))
   {{ (s : GoSlice), RET #s; histRd h γ ∗
-      ∃ (ms : List GoMap) (Hs : List HRev), ⌜Hlb <+: Hs ∧ 2 ≤ Hs.length⌝ ∗
+      ∃ (ms : List GoMap) (Hs : List HRev), ⌜Hlb <+: Hs ∧ 2 ≤ Hs.length⌝ ∗ ⌜s.cap = s.len⌝ ∗
         monoListLbOwn γ.l Hs ∗ s ↦*□ ms ∗ statesP ms Hs }}
 
 end spec

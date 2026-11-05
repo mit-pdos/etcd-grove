@@ -35,7 +35,7 @@ theorem history.seen.wp_proof (wp_check : check.spec (GF := GF) (hG := hG))
   wp_apply wp_check
   · ipureintro; simp only [decide_eq_true_eq]; exact hfc
   (try wp_auto)
-  wp_apply wp_snapshot h γ Hlb $$ [$Hrd $Hlb] as %s ⟨Hrd, %ms, %Hs, %Hpre, -, #Hms, #Hst⟩
+  wp_apply wp_snapshot h γ Hlb $$ [$Hrd $Hlb] as %s ⟨Hrd, %ms, %Hs, %Hpre, %Hcap, -, #Hms, #Hst⟩
   ihave %Hmsl := ownSlice_len $$ Hms
   ihave %Hmlen : ⌜ms.length = Hs.length⌝ $$ [Hst]
   · iunfold statesP at Hst; icases Hst with ⟨%H, -⟩; ipureintro; exact H
