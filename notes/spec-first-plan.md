@@ -1297,11 +1297,11 @@ bundles. `run.specStop` and its scope premises are untouched (R2c lifts them); s
   program's address list, `hD` by `List.Perm.refl _`, then unfold `runRes` (it is not sealed) and
   frame the three bundles.
 
-##### Where the Draft stands (2026-11-05, Order steps 1-8 done, proved)
+##### Where the Draft stands (2026-11-05, Draft complete, Order steps 1-9, proved; ready for Freeze)
 
 Session etcd-grove-83's Draft runs, branch `hub-step7` (lean `080f18c48f` + the Scope notes). Steps
-1-8 are proved, with no new `sorry` or axiom (step 8 after merging `lean` at `1622b02d13`, the
-Perennial pin `84d538063`); step 9 is next.
+1-9 are done and proved, with no new `sorry` or axiom (steps 8-9 after merging `lean` at
+`1622b02d13`, the Perennial pin `84d538063`). The Draft is complete and ready for the Freeze.
 
 - **Done, steps 1-6.** `etcdstart/StartRes.lean` (the three bundles, sealed, `etc/import-all.txt`:
   only `Alloc3` imports it whole), L1-L3; L4 as `etcd_adequate_members` and
@@ -1318,7 +1318,14 @@ Perennial pin `84d538063`); step 9 is next.
   `etcd_adequate_members`/`_alloc_members` at `members clusterCfg` and `Bs := bridges clusterCfg`,
   `hA` by `decide`, D13). The pass-through `memberFreshRes_intro_peer` is gone.
 - **Done, step 8.** S7, E3-E6 as in "Step 8 glue list" above (D14-D16); `alloc3Http` private.
-- **Left:** step 9 (the `etcdstart` importable list and its interfaces, Q4).
+- **Done, step 9.** `etc/api/etcdstart.txt` (Q4): the API group (`StartRes`, `Alloc`, `Alloc3`,
+  `Adequacy`, `AdequacyMembers`, `Init`, the starters' specs, the client helpers' specs) and a debt
+  group (13 proof internals the examples import today: `Base`, `Defs`, `OneMember`, `Served`, ...);
+  its interfaces under `interface/` (55 modules; the bundles show as `def (sealed)`, with their laws);
+  `etc/api/etcdstart-layout.txt`, 115 known layout violations (the specs and proofs are in the
+  package's namespace `etcdstart`, as backend's, plus `congr_simp` lemmas and `BuildServer`'s two
+  draft specs); D18-D20. `gates.sh` and CI read every `etc/api/*.txt`.
+- **Left:** the Freeze (the user, via etcd-grove-82), then landing.
 - **What the probes showed** (none of "What would make us revise the design" happened):
   - the sealed `Option` matches reduce in the laws only: the callers use `rfl` for the premise
     (`a.client = some c`, `a.peer = none`), and the bundle given back at `{a with client := none}` is
