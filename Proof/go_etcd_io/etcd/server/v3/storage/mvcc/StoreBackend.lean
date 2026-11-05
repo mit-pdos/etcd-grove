@@ -104,6 +104,9 @@ theorem mvcc.NewStore_backend
         □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
+        -- (M3, 2026-11-06) the open's halves of the compaction keys' values and of the deleted
+        -- entries, at none (`fkCl` over fresh data)
+        backend.fkdOwn d.γB (none, none) ∗ backend.dlsOwn d.γB ∅ ∗
         ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -127,7 +130,7 @@ theorem mvcc.NewStore_backend
         mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
         mvcc.retiredAt γ (mvcc.nJobRd (some d)) ∗ mvcc.crevPermIs γ Perm ∗
         mvcc.writerPin γ [[], []] }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hrts, Hlrd, #Hle, Hro⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfv, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm, Hfd, Hds, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   -- the index's names and the certificate map, fresh (D13a: `NewStore` takes them)
   imod mvcc.idxFresh_alloc (GF := GF) with ⟨%γi, Hifresh⟩
   -- the deletable keys fixed by the mode (question 5's core stage, part (4)): a compacting store's
@@ -166,7 +169,7 @@ theorem mvcc.NewStore_backend
   imod ghost_map_alloc_empty (K := w64) (V := mvcc.Log) (GF := GF) with ⟨%γok, Hok0⟩
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f rd0 false γi γok Perm hcfg)
-    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro Hifresh Hok0]
+    $$ %Φ [Hv Hncmp Hrg Hw1 Hw2 Hsrm Hfd Hds Hrts Hlrd Hro Hifresh Hok0]
   · iframe Hpkg Hle Hro Hifresh Hok0 Hsrm Hnd
     isplitr
     · iexact Hbk
@@ -176,6 +179,9 @@ theorem mvcc.NewStore_backend
       show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
+    rw [show mvcc.kbVals (GF := GF) (some d) (none, none) ∅ =
+      iprop(backend.fkdOwn d.γB (none, none) ∗ backend.dlsOwn d.γB ∅) from rfl]
+    iframe Hfd Hds
   inext
   iintro %s ⟨%γ, %Hγ, Hs, Hro, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hpin, Hcr, Hret,
     #HcpIs⟩

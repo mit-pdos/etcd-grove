@@ -49,7 +49,7 @@ abbrev mvcc.New.spec : Prop :=
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb ∧ γ.idx = γi⌝ →
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
-      mvcc.kbSRM kb ∗
+      mvcc.kbSRM kb ∗ mvcc.kbVals kb (none, none) (∅ : backend.VData) ∗
       ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}

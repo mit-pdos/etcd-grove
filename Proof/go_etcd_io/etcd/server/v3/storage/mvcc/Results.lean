@@ -275,6 +275,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
+        backend.fkdOwn d.γB (none, none) ∗ backend.dlsOwn d.γB ∅ ∗
         ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -350,6 +351,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         mvcc.keySized d.γB d.P d.be ∗ backend.dlInit d.γB ∗ backend.fkV d.γB true ∗
         mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
+        backend.fkdOwn d.γB (none, none) ∗ backend.dlsOwn d.γB ∅ ∗
         ([∗list] _x ∈ List.replicate backend.rdStockN (),
           mvcc.bkRTx d.γB d.P d.be) ∗
         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
@@ -375,7 +377,7 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         mvcc.compactRightR s γ (-1) ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
         mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm ∗ mvcc.writerPin γ [[], []] }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
-    Hrts, Hlrd, #Hle, Hro⟩ HΦ
+    Hfd, Hds, Hrts, Hlrd, #Hle, Hro⟩ HΦ
   iapply wp_fupd
   wp_apply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
         backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
@@ -390,10 +392,10 @@ theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
         schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
         backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
         lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm)
-      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
+      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hfd Hds Hrts Hlrd Hro]
     as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, Htoks, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs,
       Hpin⟩
-  · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro
+  · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hfd Hds Hrts Hlrd Hro
     iintro !> %_; itrivial
   have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
   rw [hj]

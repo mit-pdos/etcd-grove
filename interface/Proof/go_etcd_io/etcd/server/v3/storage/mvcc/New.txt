@@ -24,9 +24,10 @@ theorem mvcc.New.wp_proof (hNew : mvcc.newWatchableStore.spec) (hSWL :
                         mvcc.kbWT kb ∗
                           mvcc.kbWT kb ∗
                             mvcc.kbSRM kb ∗
-                              ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
-                                lease.lessorRdOf γl ∗
-                                  mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ mvcc.idxFresh γi ∗ ghostMapAuth γok 1 ∅ -∗
+                              mvcc.kbVals kb (none, none) ∅ ∗
+                                ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
+                                  lease.lessorRdOf γl ∗
+                                    mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ mvcc.idxFresh γi ∗ ghostMapAuth γok 1 ∅ -∗
             (▷
                 ∀ s,
                   (∃ st γ,
