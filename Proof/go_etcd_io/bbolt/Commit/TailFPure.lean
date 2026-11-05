@@ -86,7 +86,7 @@ theorem tf_flatMap_congr {α β : Type} : ∀ {l : List α} {f g : α → List �
 
 /-- **`flClause` keeps through a change of the slots' bytes off the pending slots**, given that
 the freed page's slots are pending. -/
-theorem flClause_wb (fr : Bool) (w w' : WDb) (hC : w'.C = w.C) (hfl : w'.fl = w.fl)
+private theorem flClause_wb (fr : Bool) (w w' : WDb) (hC : w'.C = w.C) (hfl : w'.fl = w.fl)
     (hep : flExtPend w) (hwb : ∀ s, s ∈ pendSlots w.fl → w'.wb s = w.wb s) (h : flClause fr w) :
     flClause fr w' := by
   have hf0 : ∀ f, w.C.flpg = some f → w'.wb f = w.wb f := fun f hf =>

@@ -28,7 +28,7 @@ namespace Spill
 section lemmas
 variable [GooseExts] [GoGlobalContext]
 
-theorem node_ns {X : WX} {bl : Loc} {B : BRec} (hB : X.t.bs !! bl = some B) (l : Loc) :
+private theorem node_ns {X : WX} {bl : Loc} {B : BRec} (hB : X.t.bs !! bl = some B) (l : Loc) :
     X.node bl l = B.ns !! l := by
   unfold WX.node; rw [hB]; rfl
 

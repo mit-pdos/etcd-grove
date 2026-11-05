@@ -233,7 +233,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
       · exact Nat.le_refl _
       · exact hl.frame.2.2.2.2.2.2.2.2.1
     have h2 : X2.t.mv = X'.t.mv := by
-      rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_mv _ _ _ _
+      rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_t_mv _ _ _ _
     have h3 := hL.frame.2.2.2.2.2.2.2.2.1
     rw [h2] at h3; omega
   have hvi : Xi.v.pages = wi.C.pages := by rw [hdb.2.2, hdb.1]; exact hwf.1
@@ -341,7 +341,7 @@ theorem pcInv_stepX {X : WX} {w : WDb} {bl n : Loc} {rn : NRec} {O : List Nat}
         have hlws : rl.ws.length = ws.length := length_of_dat hrlws
         have hXm : X'.t.mv.pgid'.toNat ≤ X3.t.mv.pgid'.toNat := by
           have h2 : X2.t.mv = X'.t.mv := by
-            rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_mv _ _ _ _
+            rw [hsr.same.1]; unfold WX.nilCh WX.killL; exact setNode_t_mv _ _ _ _
           have h3 := hL.frame.2.2.2.2.2.2.2.2.1
           rw [h2] at h3; omega
         have hDnd : (Ds.getD k []).Nodup := (List.nodup_append.1 (List.nodup_append.1

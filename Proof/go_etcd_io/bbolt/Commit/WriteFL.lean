@@ -3,7 +3,7 @@
 allocates (`flCount`), the page `freelist.Write` leaves (`flPageBytes`, its length:
 `flPageBytes_length`; `flPage_eq`), room for the post-allocation freelist (`flCount_room`,
 `alloc_allIds_le`), the allocated buffer's lookups (`addPage_lookups`) and `tx.db` out of `wtxW`
-(`wtxW_db_acc`).
+(`wtxW_db_core_acc`).
 -/
 module
 
@@ -51,7 +51,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- The writer's `tx.db` field out of `wtxW` and back, with its persistent facts. -/
-theorem wtxW_db_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+theorem wtxW_db_core_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢
       (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗ ⌜r.db = K.db⌝) ∗
       tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ 1)} K.db ∗

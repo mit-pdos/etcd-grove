@@ -105,7 +105,7 @@ theorem rdTxK_boltTx (K : BC) (tx : Loc) (T : TxView) (v : View) (hro : T.rw = f
 
 omit hos package_sem in
 /-- A `bool` is an argument `fmt` formats with no method. -/
-theorem logArgOk_bool [go.bool ↓u go.bool] (R : IProp GF) (v : w8) (b : Bool) :
+private theorem logArgOk_bool [go.bool ↓u go.bool] (R : IProp GF) (v : w8) (b : Bool) :
     ⊢ logArgOk (GF := GF) R v (interface.mkOk go.bool #b) := by
   unfold interface.mkOk
   apply logArgOk_of_argWf

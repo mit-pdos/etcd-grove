@@ -364,7 +364,7 @@ theorem DB.loadFreelist.wp_proof_open
       · unfold spareTok; iexact Hspt
       have hnd : (freeIdsOf C).Nodup := hidsF.1.imp (fun {x y} h e => by subst e; omega)
       have hld := ofInit_loadOK C (freeIdsOf C) hnd hidsF.2.1
-        (fun x hx => (freeIdsOf_facts C (by omega) x hx).1) (freeIdsOf_cov C (by omega))
+        (fun x hx => (freeIdsOf_bounds C (by omega) x hx).1) (freeIdsOf_cov C (by omega))
         (by omega) htx2
       imod store_setFl B N p ⊤ CoPset.subseteq_top C _ hld $$ [Hcur Hgfl Hwv Hsp Hopn] with
         ⟨Hcur, Hgfl, Hwv, Hsp, Hopn⟩
@@ -387,7 +387,7 @@ theorem DB.loadFreelist.wp_proof_open
         unfold lfW openWb
         refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
           (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
-        · intro x hx; exact freeIdsOf_facts C (by omega) x ((mem_sortPgids_lf _ x).1 hx)
+        · intro x hx; exact freeIdsOf_bounds C (by omega) x ((mem_sortPgids_lf _ x).1 hx)
         · intro g' hg'; rw [hfp] at hg'; cases hg'
       ihave Hw : wdbCore B db p (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) $$ [Hw]
       · unfold lfW openWb; simp only [openW]; iexact Hw
@@ -464,7 +464,7 @@ theorem DB.loadFreelist.wp_proof_open
     ihave Hb' := Hmcw $$ Hmc
     have hpgo : pageOverflow pg = pageOverflow (bytesAt (xs.map Prod.fst) (4096 * g) 4096) := by
       rw [hpg, filePage_overflow]
-    icases bytes_cut b _ (xs.map Prod.fst) (4096 * g)
+    icases bytes_cut_at b _ (xs.map Prod.fst) (4096 * g)
       ((1 + pageOverflow (bytesAt (xs.map Prod.fst) (4096 * g) 4096)) * 4096)
       (by rw [← hpgo, hysl]; have := Nat.mul_le_mul_right 4096 hext; rw [Nat.add_mul] at this; omega)
       $$ Hb' with ⟨Hpg, Hpgw⟩

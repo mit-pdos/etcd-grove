@@ -49,7 +49,7 @@ theorem hashMap.mergeSpans.wp_proof
     (hIF : hashMap.idsFromFreemaps.spec (GF := GF) (hG := hG))
     (hIFw : hashMap.idsFromForwardMap.spec (GF := GF) (hG := hG))
     (hIBw : hashMap.idsFromBackwardMap.spec (GF := GF) (hG := hG))
-    (hDE : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG))
+    (hDE : _root_.Perennial.EtcdGrove.reflect.DeepEqual.spec_pgidSet (GF := GF) (hG := hG))
     (hMerge : hashMap.mergeWithExistingSpan.spec (GF := GF) (hG := hG)) :
     hashMap.mergeSpans.spec (GF := GF) (hG := hG) := by
   intro h s free idsl ys Hnd Hfge Hge2 Hlen

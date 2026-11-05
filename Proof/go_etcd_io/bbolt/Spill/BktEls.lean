@@ -27,7 +27,7 @@ namespace Spill
 section els
 variable [GooseExts]
 
-theorem flatMap_congr' {α β : Type} {l : List α} {f g : α → List β}
+theorem flatMap_congr_els {α β : Type} {l : List α} {f g : α → List β}
     (h : ∀ x ∈ l, f x = g x) : l.flatMap f = l.flatMap g := by
   induction l with
   | nil => rfl
@@ -60,7 +60,7 @@ theorem lleaves_pages (L : LTree) (bl : Loc) (P : Pages) (hwm : Nat) :
       rw [List.map_flatMap]
       unfold pageWs
       rw [List.flatMap_map]
-      apply flatMap_congr'
+      apply flatMap_congr_els
       intro i hi
       have hi' := List.mem_range.1 hi
       have hpw : (pageW pg i).pgid = W64 (branchPgid pg i : Int) := by simp [pageW, hl]
@@ -117,7 +117,7 @@ theorem leavesF_els (P : Pages) (n id : Nat) :
       (leavesF n P id).flatMap fun pg =>
         (List.range (pageCount pg)).map fun i => (leafFlags pg i, leafKey pg i, leafValue pg i) := by
   rw [List.flatMap_map]
-  apply flatMap_congr'
+  apply flatMap_congr_els
   intro pg hpg
   exact pageWs_els pg (leavesF_leaf' P n id pg hpg)
 

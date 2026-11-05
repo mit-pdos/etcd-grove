@@ -216,7 +216,7 @@ theorem rPreF_fuel : ∀ (A : List elemRef) (n pid m pid' o : Nat), rPreF v bv p
 
 /-! ### Entries at a position -/
 
-theorem flatMap_range_split {α β : Type} (g : Nat → List α) (f : α → List β) (c j : Nat)
+theorem flatMap_range_split_bind {α β : Type} (g : Nat → List α) (f : α → List β) (c j : Nat)
     (hj : j < c) : ∃ D, ((List.range c).flatMap g).flatMap f =
       ((List.range j).flatMap g).flatMap f ++ ((g j).flatMap f ++ D) := by
   obtain ⟨d, rfl⟩ : ∃ d, c = (j + 1) + d := ⟨c - (j + 1), by omega⟩
@@ -244,7 +244,7 @@ theorem rPosF_ent : ∀ (n pid : Nat) (B : List elemRef) (i s : Nat), rPosF v bv
     refine ⟨e2, pidL, pgL, idx, by rw [List.getLast?_cons_cons]; exact hlast, hlf, hidx, ?_⟩
     rw [rLeaves_branch v bv pp n pid _ pg hbr.1 hbr.2.1 hbr.2.2.2.1]
     rw [rLeaves_tree v bv n _ hbr.1] at hget
-    obtain ⟨D, hD⟩ := flatMap_range_split (fun c => leavesF n v.pages (branchPgid pg c)) lEnts
+    obtain ⟨D, hD⟩ := flatMap_range_split_bind (fun c => leavesF n v.pages (branchPgid pg c)) lEnts
       _ j hbr.2.2.2.2.1
     rw [hD, hi, List.getElem?_append_right (by unfold entsBefore entCount; omega)]
     have : entsBefore v.pages n pg j + i' -

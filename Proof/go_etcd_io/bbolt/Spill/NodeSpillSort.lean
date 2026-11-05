@@ -163,7 +163,7 @@ theorem wtxW_sort_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : 
   ihave Hh := Hback $$ %r' %Hpar Hno Hbo Hm
   iapply Hclose $$ %(X.setNode bl n r') [] Hh Hv Hst
   ipureintro
-  refine ⟨WX.setNode_v X bl n r', WX.setNode_handles X bl n r', ?_⟩
+  refine ⟨WX.v_setNode X bl n r', WX.setNode_handles X bl n r', ?_⟩
   rw [WX.setNode_nloc]
   unfold WX.setNode; split <;> rfl
 

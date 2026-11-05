@@ -43,7 +43,7 @@ theorem insSize_snoc' (ins : List Inode) (it : Inode) :
   simp only [insSize, List.map_append, List.sum_append, List.map_cons, List.map_nil,
     List.sum_cons, List.sum_nil]; omega
 
-theorem insSize_take_le (ins : List Inode) (k : Nat) : insSize (ins.take k) ≤ insSize ins := by
+private theorem insSize_take_le (ins : List Inode) (k : Nat) : insSize (ins.take k) ≤ insSize ins := by
   conv => rhs; rw [← List.take_append_drop k ins]
   simp only [insSize, List.map_append, List.sum_append]; omega
 

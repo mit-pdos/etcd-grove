@@ -119,7 +119,7 @@ theorem init_hashOK_empty : hashOK (W64 0) ∅ ∅ ∅ [] := by
     ⟨List.Pairwise.nil, fun x => by simp⟩,
     ⟨fun k v => by simp, fun z s => by simp, fun z set h => by simp at h⟩, by simp, by simp⟩
 
-theorem hashMap.Init.wp_proof (hSIS : bbolt.sort.SliceIsSorted.spec (GF := GF) (hG := hG))
+theorem hashMap.Init.wp_proof (hSIS : _root_.Perennial.EtcdGrove.sort.SliceIsSorted.spec (GF := GF) (hG := hG))
     (hAdd : hashMap.addSpan.spec (GF := GF) (hG := hG))
     (hFPI : hashMap.freePageIds.spec (GF := GF) (hG := hG)) :
     hashMap.Init.spec (GF := GF) (hG := hG) := by

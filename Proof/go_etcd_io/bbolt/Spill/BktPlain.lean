@@ -173,7 +173,7 @@ theorem bk_plain {X : WX} {c : Loc} {C : BRec} (hC : X.t.bs !! c = some C)
     exact hall ws hws w hw
   · have hrp : X.rootPid c = C.ib.root' := by unfold WX.rootPid; rw [hC]; rfl
     unfold lbktEnts WX.leaves; rw [hrp, List.map_flatMap]
-    apply flatMap_congr'
+    apply flatMap_congr_els
     intro ws hws
     rw [List.map_map]
     have : ∀ w ∈ ws, ¬ isBktFlag w.flags := fun w hw => (notBkt_iff _).2 (hall ws hws w hw).1

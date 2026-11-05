@@ -103,7 +103,7 @@ theorem lEnts_split (pg : List w8) (kb : List w8)
       have : f (pageSeekIdx pg kb) = true := decide_eq_true h1
       rw [this] at hstop; cases hstop
 
-/-- `flatMap_range_split` with the rest's members: from the children after `j`. -/
+/-- `flatMap_range_split_bind` with the rest's members: from the children after `j`. -/
 theorem flatMap_range_split' {α β : Type} (g : Nat → List α) (f : α → List β) (c j : Nat)
     (hj : j < c) : ∃ D, ((List.range c).flatMap g).flatMap f =
       ((List.range j).flatMap g).flatMap f ++ ((g j).flatMap f ++ D) ∧

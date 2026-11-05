@@ -236,7 +236,7 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
       · iframe
       · try simp only [List.zip_cons_cons, List.zip_nil_left]
         isplitl
-        · iapply logArgOk_bytes _ _ key kb hR1
+        · iapply logArgOk_bytesR _ _ key kb hR1
         · iempintro
       · iframe
       try wp_auto
@@ -259,7 +259,7 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
           · iframe
           · try simp only [List.zip_cons_cons, List.zip_nil_left]
             isplitl
-            · iapply logArgOk_bytes _ _ key kb hRl
+            · iapply logArgOk_bytesR _ _ key kb hRl
             · iempintro
           · iexact HR
           try wp_auto
@@ -280,7 +280,7 @@ theorem Bucket.Delete.wp_writer [HasExt osFsExt]
             iexact Hsl2
           · try simp only [List.zip_cons_cons, List.zip_nil_left]
             isplitl
-            · iapply logArgOk_bytes _ _ key kb hRl
+            · iapply logArgOk_bytesR _ _ key kb hRl
             isplitl
             · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe
             · iempintro

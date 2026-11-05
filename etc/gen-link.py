@@ -64,6 +64,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/Link.lean
+       etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
+       etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -158,6 +160,10 @@ which raft's results over `[StorageModel GF]` are instantiated.
 etc/link-lean-first-kvdurable.txt, as `--kvreconf` (its registry `[KdStor GF]`, its storage model
 `kdStorageModel` a local instance), with the durable extension's section variables (`[HasExt
 durableExt] [go.IntoValInj GoString]`, which its specs take).
+`--bbolt` links bbolt's proofs (`Proof/go_etcd_io/bbolt/`), with no list file: the callees are
+read off each proof's binders, the specs with no proof are hypotheses of `links_pending`, and the
+non-spec premises are given by a table (`etc/link_bbolt.py`, whose docstring has the rules);
+`--bbolt --results` writes the `Results.lean` of its public results.
 
 A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
 second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
@@ -582,6 +588,15 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
+if sys.argv[1:2] == ["--bbolt"]:
+    # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_bbolt  # noqa: E402
+    import proof_roots  # noqa: E402  (Perennial's checkout as Lake resolves it)
+    link_bbolt.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], results_file="--results" in sys.argv[2:])
+    sys.exit(0)
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")

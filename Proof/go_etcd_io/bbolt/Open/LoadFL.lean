@@ -89,7 +89,7 @@ theorem flCurOK_ofInit (ys : List w8) (C : CommitSt) (g : Nat) (hg : C.flpg = so
     simp at ha
 
 /-- `freepages`' ids: below the mark, no tree slot. -/
-theorem freeIdsOf_facts (C : CommitSt) (hhwm : C.hwm < 2 ^ 64) (x : w64)
+theorem freeIdsOf_bounds (C : CommitSt) (hhwm : C.hwm < 2 ^ 64) (x : w64)
     (hx : x ∈ freeIdsOf C) : x.toNat < C.hwm ∧ x.toNat ∉ treeSlots C := by
   unfold freeIdsOf at hx
   obtain ⟨s, hs, rfl⟩ := List.mem_map.1 hx
@@ -156,7 +156,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- A run of bytes, cut around `[a, a + n)`, with the wand putting it back. -/
-theorem bytes_cut (l : Loc) (dq : DFrac) (ys : List w8) (a n : Nat) (h : a + n ≤ ys.length) :
+theorem bytes_cut_at (l : Loc) (dq : DFrac) (ys : List w8) (a n : Nat) (h : a + n ≤ ys.length) :
     bytesPointsto (GF := GF) l dq ys ⊢
       bytesPointsto (l +ₗ ((a : Nat) : Int)) dq (bytesAt ys a n) ∗
       (bytesPointsto (l +ₗ ((a : Nat) : Int)) dq (bytesAt ys a n) -∗ bytesPointsto l dq ys) := by

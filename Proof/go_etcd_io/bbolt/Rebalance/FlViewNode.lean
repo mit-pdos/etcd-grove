@@ -86,7 +86,7 @@ theorem flView_canFree_pos (X : WX) (fl : FLPg) (txid : w64) (hv : flView X fl)
       omega
     | some a =>
       simp only [Option.getD_some]
-      have := hmv.1 _ pg hpg a (by rw [W64_toNat_self]; exact ha)
+      have := hmv.1 _ pg hpg a (by rw [W64_ofInt_toNat]; exact ha)
       intro he; rw [he] at this; omega
   · have := nodup_len_le _ hnd hlt62
     omega

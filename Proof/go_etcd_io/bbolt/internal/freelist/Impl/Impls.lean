@@ -40,8 +40,8 @@ U1's `internal/common` specs and the trust-boundary specs of `Lemmas/Callees.lea
 structure FLCallees : Prop where
   verify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG)
   merge : _root_.Perennial.EtcdGrove.bbolt.internal.common.Pgids.Merge.spec (GF := GF) (hG := hG)
-  sliceIsSorted : bbolt.sort.SliceIsSorted.spec (GF := GF) (hG := hG)
-  deepEqual : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG)
+  sliceIsSorted : _root_.Perennial.EtcdGrove.sort.SliceIsSorted.spec (GF := GF) (hG := hG)
+  deepEqual : _root_.Perennial.EtcdGrove.reflect.DeepEqual.spec_pgidSet (GF := GF) (hG := hG)
   delUnfold : PidSetDeleteUnfold (GF := GF)
 
 theorem impl_contract (h : FLCallees (GF := GF) (hG := hG)) :

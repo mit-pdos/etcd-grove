@@ -37,7 +37,7 @@ theorem splitRec_ws (rN : NRec) (x : Loc × node × List Inode) (ws : List WEntr
 theorem splitRec_ins (rN : NRec) (x : Loc × node × List Inode) (ws : List WEntry) (f o : Bool) :
     (splitRec rN x ws f o).ins = x.2.2 := by unfold splitRec; split <;> rfl
 
-theorem setNode_mv (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).t.mv = X.t.mv := by
+private theorem setNode_mv (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).t.mv = X.t.mv := by
   unfold WX.setNode; split <;> rfl
 
 theorem nilCh_pm' (X : WX) (bl n : Loc) (r : NRec) : (X.nilCh bl n r).t.pm = X.t.pm := by

@@ -116,7 +116,7 @@ theorem forEachPageNode_tree (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG)
   simp only [List.nil_append]
   iexact HI
 
-theorem wtxW_heapOK' (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+private theorem wtxW_heapOK' (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
     wtxW (GF := GF) K tx r m X ⊢ ⌜heapOK (GF := GF) tx X⌝ ∗ wtxW K tx r m X := by
   unfold wtxW wtxCore
   iintro ⟨⟨Hpkg, Hcore, %Hr, Hreg, Hh, Hrest⟩, Hcells, Hmap⟩

@@ -69,7 +69,7 @@ theorem putW_db_acc [HasExt osFsExt] (K : BC) (tx : Loc) (r : TxReg) (m : Bool) 
 
 omit package_sem in
 /-- A `[]byte` key whose bytes `R` lends is a good log argument (`%q`). -/
-theorem logArgOk_bytes (R : IProp GF) (v : w8) (key : GoSlice) (kb : GoString)
+theorem logArgOk_bytesR (R : IProp GF) (v : w8) (key : GoSlice) (kb : GoString)
     (h : R ⊢ ∃ dq : DFrac, key ↦*{dq} kb ∗ (key ↦*{dq} kb -∗ R)) :
     ⊢ logArgOk (GF := GF) R v (interface.mkOk (go.GoType.SliceType go.byte) #key) := by
   unfold interface.mkOk logArgOk
@@ -184,7 +184,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
       · iframe
       · try simp only [List.zip_cons_cons, List.zip_nil_left]
         isplitl
-        · iapply logArgOk_bytes _ _ key kb hR
+        · iapply logArgOk_bytesR _ _ key kb hR
         · iempintro
       · iexact Hkey
       try wp_auto
@@ -207,7 +207,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
         · iframe
         · try simp only [List.zip_cons_cons, List.zip_nil_left]
           isplitl
-          · iapply logArgOk_bytes _ _ key kb hR
+          · iapply logArgOk_bytesR _ _ key kb hR
           · iempintro
         · iexact Hk
         try wp_auto
@@ -225,7 +225,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
           · iframe
           · try simp only [List.zip_cons_cons, List.zip_nil_left]
             isplitl
-            · iapply logArgOk_bytes _ _ key kb hR
+            · iapply logArgOk_bytesR _ _ key kb hR
             · iempintro
           · iexact Hk
           try wp_auto
@@ -244,7 +244,7 @@ theorem Bucket.Put.wp_writer [HasExt osFsExt]
             iexact Hsl2
           · try simp only [List.zip_cons_cons, List.zip_nil_left]
             isplitl
-            · iapply logArgOk_bytes _ _ key kb hR
+            · iapply logArgOk_bytesR _ _ key kb hR
             isplitl
             · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe
             · iempintro

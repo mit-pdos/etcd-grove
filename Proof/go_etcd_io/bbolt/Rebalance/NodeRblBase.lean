@@ -32,7 +32,7 @@ theorem WX.kill_handles (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
 theorem WX.kill_nloc (X : WX) (bl : Loc) (B : BRec) (n : Loc) (r : NRec) :
     (X.kill bl B n r).nloc = X.nloc := rfl
 
-theorem WX.setNode_v (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).v = X.v := by
+theorem WX.v_setNode (X : WX) (bl l : Loc) (r : NRec) : (X.setNode bl l r).v = X.v := by
   unfold WX.setNode; split <;> rfl
 theorem WX.setNode_handles (X : WX) (bl l : Loc) (r : NRec) :
     (X.setNode bl l r).handles = X.handles := by

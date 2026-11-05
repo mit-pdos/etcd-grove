@@ -29,7 +29,7 @@ def WDb.publish (w : WDb) (C' : CommitSt) (S : List Nat) : WDb :=
 
 proj_simps WDb.publish
 
-theorem mem_slotsOf (C : CommitSt) (fl : FLPg) (s : Nat) :
+private theorem mem_slotsOf (C : CommitSt) (fl : FLPg) (s : Nat) :
     s ∈ slotsOf C fl ↔ s ∈ treeSlots C ∨ s ∈ pendSlots fl := by
   simp only [slotsOf, mem_list_dedup, List.mem_append]
 

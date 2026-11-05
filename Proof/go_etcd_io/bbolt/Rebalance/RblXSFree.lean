@@ -34,7 +34,7 @@ theorem nodup_len_le (l : List w64) (hnd : l.Nodup) (hb : ∀ x ∈ l, x.toNat <
   simpa using this
 
 omit [GooseExts] in
-theorem W64_toNat_self (x : w64) : W64 (x.toNat : Int) = x := by simp [W64]
+theorem W64_ofInt_toNat (x : w64) : W64 (x.toNat : Int) = x := by simp [W64]
 
 /-- **A node's page and `node.free`'s premises.** -/
 theorem rblX_canFree' (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BRec) (n : Loc)
@@ -93,7 +93,7 @@ theorem rblX_canFree' (X : WX) (fl : FLPg) (bl : Loc) (dfc : Option Loc) (B : BR
       omega
     | some a =>
       simp only [Option.getD_some]
-      have := hmv.1 _ pg hpg a (by rw [W64_toNat_self]; exact ha)
+      have := hmv.1 _ pg hpg a (by rw [W64_ofInt_toNat]; exact ha)
       intro he; rw [he] at this; omega
   · have := nodup_len_le _ hnd hlt62
     omega

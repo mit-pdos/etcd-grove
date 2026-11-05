@@ -49,7 +49,7 @@ theorem initImg_length : initImg.length = 16384 := by
   simp only [initImg, List.length_append, metaBuf_length, emptyPg_length]
 
 /-- The header of a page laid out as a header's encoding and bytes after it. -/
-theorem pageHdr_encode (h : Page) (r : List w8) : pageHdr (encode h ++ r) = h := by
+private theorem pageHdr_encode (h : Page) (r : List w8) : pageHdr (encode h ++ r) = h := by
   unfold pageHdr bytesAt
   rw [List.drop_zero, List.take_left' (ByteEncoding.encode_length _), ByteEncoding.decode_encode]
 

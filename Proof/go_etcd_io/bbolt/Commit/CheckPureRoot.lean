@@ -178,7 +178,7 @@ theorem root_lt (v : View) (h : viewWF v) : v.root < 2 ^ 64 ∧ v.root ≠ 0 := 
     rw [← hid]; unfold pageId; exact BitVec.isLt _
 
 /-- The root bucket's leaves are its tree's. -/
-theorem bktLeaves_rootVal (v : View) (h : viewWF v) :
+private theorem bktLeaves_rootVal (v : View) (h : viewWF v) :
     bktLeaves v.pages (rootVal v) = treeLeaves v.pages v.root := by
   obtain ⟨hl, h0⟩ := root_lt v h
   have hr : inBucketRoot (rootVal v) = v.root := (rootVal_root v hl).1

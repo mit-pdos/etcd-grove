@@ -83,7 +83,7 @@ theorem leavesF_pht (P : Pages) (hwm : Nat) (pht : Nat → Nat) (hht : pageHts P
       | leaf _ _ hfl => exact absurd hfl hl
       | branch _ _ hfl _ hch =>
         have hh := (hht id pg hpg).2 hfl
-        apply flatMap_congr'
+        apply flatMap_congr_els
         intro i hi
         have hi' := List.mem_range.1 hi
         have := hh i hi'

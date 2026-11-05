@@ -73,7 +73,7 @@ theorem length_le_of_nodup_two (l : List w64) (n : Nat) (h2 : 2 ≤ n) (hnd : l.
 
 /-- **The writer side's facts about the synced freelist page's ids** (`flCurOK` and `wdbOK`): each
 is at least 2, below the high-water mark, and no store slot unless pending. -/
-theorem flIds_facts (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f) :
+private theorem flIds_facts (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f) :
     ∀ x ∈ flIds (extentBytes w.wb f), 2 ≤ x.toNat ∧ x.toNat < w.C.hwm ∧
       (x ∈ w.fl.pendingIds ∨ (x ∉ w.fl.pendingIds ∧ ¬ coversSlot w.C.pages x.toNat)) := by
   intro x hx

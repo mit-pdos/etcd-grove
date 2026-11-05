@@ -293,7 +293,7 @@ theorem rebal_loeb
   ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
     [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
   · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-    simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+    simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
     iframe; iframe #; ipureintro; exact Hr
   have hlen : rn.ws.length = sint.nat rn.nv.inodes'.len := by rw [← hnc.2.2.1, Hsl.1]
   have hb1 : (X.setBkt bl (rblStart B n rn)).t.bs !! bl = some (rblStart B n rn) :=
@@ -351,7 +351,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       iapply HΦ
       iexists X.setBkt bl (rblStart B n rn), w.fl
@@ -745,14 +745,14 @@ theorem rebal_loeb
           [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
         · iapply (wtxW_split K tx r m _).2; unfold wtxCore
           simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles,
-            WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+            WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
           iframe; iframe #; ipureintro; exact Hr2
         iapply HΦ
         iexists _, w.fl.freePages w.wtxid rc.nv.pgid' (1 + pageOverflow pgc)
         isplitl [Hw]
         · iexact Hw
         isplitl [Hdb]
-        · isimp only [WX.setNode_v, WX.setBkt_v] at Hdb
+        · isimp only [WX.v_setNode, WX.setBkt_v] at Hdb
           rw [← hX2v]
           iexact Hdb
         ipureintro
@@ -773,7 +773,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       iapply HΦ
       iexists X.setBkt bl (rblStart B n rn), w.fl
@@ -799,7 +799,7 @@ theorem rebal_loeb
     ihave Hw : wtxW K tx r m (X.setBkt bl (rblStart B n rn)) $$
       [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
     · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-      simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+      simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
       iframe; iframe #; ipureintro; exact Hr
     wp_if_destruct
     · -- an empty node: removed
@@ -957,7 +957,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).setBkt bl B2) $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       -- `n.free()`
       icases wdbW_view_rbl K tx X.v w $$ Hdb with ⟨%Hwv, Hdb⟩
@@ -1046,7 +1046,7 @@ theorem rebal_loeb
       ihave Hw : wtxW K tx r m ((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1') $$
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
-        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+        simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles, WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr
       -- `n.parent.rebalance()`
       wp_apply IH $$ %K %tx %r %m %((X.setBkt bl (rblStart B n rn)).kill bl B4 n r1')
@@ -1729,7 +1729,7 @@ theorem rebal_loeb
         [Hh Hfills Hbk Hnl Hdbf Hview Hst Hcells Hmap]
       · iapply (wtxW_split K tx r m _).2; unfold wtxCore
         simp only [WX.setBkt_v, WX.setBkt_handles, WX.setBkt_nloc, WX.kill_v, WX.kill_handles,
-          WX.kill_nloc, WX.setNode_v, WX.setNode_handles, WX.setNode_nloc]
+          WX.kill_nloc, WX.v_setNode, WX.setNode_handles, WX.setNode_nloc]
         iframe; iframe #; ipureintro; exact Hr2
       -- `n.parent.rebalance()`
       have hpX : BX.ns !! rn.nv.parent' = some (mgParent rp2 (k + 1) lr sI' sC') := by
@@ -1747,7 +1747,7 @@ theorem rebal_loeb
         exact ⟨hI4, GMap.lookup_insert _ _ _, hpX, Or.inr ⟨rfl, rfl⟩, hfp'⟩
       · isplitl [Hw]
         · iexact Hw
-        simp only [WX.kill_v, WX.setNode_v, WX.setBkt_v]
+        simp only [WX.kill_v, WX.v_setNode, WX.setBkt_v]
         iexact Hdb
       try wp_auto
       obtain ⟨h5I, h5R, h5S⟩ := Hp5

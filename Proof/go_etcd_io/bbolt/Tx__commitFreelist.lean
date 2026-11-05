@@ -105,7 +105,7 @@ theorem Tx.commitFreelist.wp_proof (hAlloc : Tx.allocate_f.spec (GF := GF) (hG :
     Tx.commitFreelist.spec (GF := GF) (hG := hG) := by
   intro fr K tx r X w F P htx hhwm hdp hlf hlr hlen hrb1 hrb2
   wp_start as ⟨HF, Hw, Hd, HR⟩
-  icases wtxW_db_acc K tx r false X $$ Hw with ⟨⟨#Hpkg, #Hcore, %Hrdb⟩, Hdb, Hwb⟩
+  icases wtxW_db_core_acc K tx r false X $$ Hw with ⟨⟨#Hpkg, #Hcore, %Hrdb⟩, Hdb, Hwb⟩
   icases wdbW'_fl_acc fr K tx X.v w $$ Hd with ⟨%dqf, Hfl, Hflo, Hdb2⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore

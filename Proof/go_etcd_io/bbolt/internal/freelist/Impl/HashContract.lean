@@ -46,7 +46,7 @@ theorem hashImpl_freeCount (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.
 /-- The hash map's `mergeSpans` meets the contract's spec. -/
 theorem hashImpl_mergeSpans (hdel : PidSetDeleteUnfold (GF := GF))
     (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
-    (hDeep : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG)) (h : Loc) :
+    (hDeep : _root_.Perennial.EtcdGrove.reflect.DeepEqual.spec_pgidSet (GF := GF) (hG := hG)) (h : Loc) :
     (hashImpl (GF := GF) h).MergeSpansSpec := by
   unfold FLImpl.MergeSpansSpec
   rw [hashImpl_ity, hashImpl_iv]
@@ -66,8 +66,8 @@ theorem hashImpl_mergeSpans (hdel : PidSetDeleteUnfold (GF := GF))
 `Lemmas/HashDelete.lean`, a Perennial gap). -/
 theorem hashImpl_contract (hdel : PidSetDeleteUnfold (GF := GF))
     (hVerify : _root_.Perennial.EtcdGrove.bbolt.internal.common.Verify.spec (GF := GF) (hG := hG))
-    (hSorted : bbolt.sort.SliceIsSorted.spec (GF := GF) (hG := hG))
-    (hDeep : bbolt.reflect.DeepEqual_pgidSet.spec (GF := GF) (hG := hG))
+    (hSorted : _root_.Perennial.EtcdGrove.sort.SliceIsSorted.spec (GF := GF) (hG := hG))
+    (hDeep : _root_.Perennial.EtcdGrove.reflect.DeepEqual.spec_pgidSet (GF := GF) (hG := hG))
     (a : Loc) : (hashImpl (GF := GF) a).Contract where
   freeCount := hashImpl_freeCount hVerify a
   freePageIds := hashImpl_freePageIds

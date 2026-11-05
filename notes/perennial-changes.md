@@ -99,6 +99,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   drop the local axiom.
 - **Status.** Not started in Perennial; local axiom in place.
 
+### `sort.SliceIsSorted` and `reflect.DeepEqual` have no spec (2026-11-05, bbolt's `internal/freelist`)
+
+- **Limitation.** Both are names-only in Perennial (they work through reflection: `SliceIsSorted`
+  takes the slice's length with `reflectlite.ValueOf(x).Len()`, `DeepEqual` walks its arguments'
+  dynamic types).
+- **Needed by.** bbolt's hashmap freelist: `hashMap.Init` panics unless its page ids are
+  `sort.SliceIsSorted`; `hashMap.mergeSpans`' `Verify` check panics unless `reflect.DeepEqual`
+  finds its free maps equal (two `map[Pgid]struct{}`).
+- **Here.** (2026-11-05, the user approved the new trust; until then hypotheses of bbolt's
+  `links_pending`) local trust-boundary axioms: `Spec/sort/SliceIsSorted.lean` /
+  `Proof/sort/SliceIsSorted.lean` (on a slice, with a `less` that answers `lt` on indices of the
+  slice and keeps a resource: returns whether no `less(i, i-1)`, calling `less` only on such
+  indices), and `Spec/reflect/DeepEqual.lean` / `Proof/reflect/DeepEqual.lean`
+  (`spec_pgidSet`: on two `map[Pgid]struct{}` held by map points-tos, which are non-nil, returns
+  whether they have the same keys; stated at that one type, as the map points-to is not indexed by
+  the Go type). Each file header says why it is true of Go.
+- **Proposal.** Perennial proves `sort.SliceIsSorted` over a model of `reflectlite.Value.Len` on
+  slices (its loop is plain Go), and gives `reflect.DeepEqual` a spec for maps of comparable
+  scalar keys and `struct{}` values; then drop the local axioms.
+- **Status.** Not started in Perennial; local axioms in place.
+
 ### `wp_load`/`wp_store` through a whole-struct points-to (2026-11-04, bbolt's `internal/common`, U1)
 
 - **Limitation.** With `l ↦ v` for a whole struct `v`, `wp_load`/`wp_store` of one field
