@@ -317,11 +317,11 @@ theorem stop_mergedObsP (γA : ApplyNames) (E : apply.AEnv GF) (γr : ReadNames)
 the server's log `A` (a first start: `pre = []`, `ai0 = 0`), past the bootstrap log, raft's
 membership is the voters' simple one (`srv_confAt_simple`), and every conf state a restart can
 build from the image's `members` bucket is it (`RestConf.restModel_confState`, its premises from
-`srvRaftLogInv` and the committed log's conf changes, `srv_committed_ccBoot`), given that the
-voters are the bootstrap log's members, distinct (`bootOk`'s, `hvs`). -/
+`srvRaftLogInv` and the committed log's conf changes, `srv_committed_ccBoot`), the
+voters the bootstrap log's members, distinct (`srvRaftLogInv`'s; R2c-1, until then a premise). -/
 theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel)
     (D : backend.Data) (i : w64) (hpre : γ.pre = []) (hi : uint.nat i = A.length)
-    (hvs : γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot) (hc0 : γk.c0 = W64 0)
+    (hc0 : γk.c0 = W64 0)
     (hboot : γ.raft.boot.length ≤ A.length)
     (himg : imageAt γk γ.raft.boot i (γ.pre ++ A) A D) :
     srvRaftLogInv (GF := GF) γ ∗ srvRLogLb γ A ⊢
@@ -330,7 +330,8 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   iintro ⟨#Hinv, #HA⟩
   ihave #Hinv' := Hinv
   iunfold srvRaftLogInv at Hinv'
-  icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, -⟩
+  icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
+  have hvs := Hvs0.2
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
@@ -395,9 +396,8 @@ directory and the caller's unused serving readers (`srvShutdownPre`'s), the stop
 member's image at the stopped incarnation's names. Scope (`run.specStop`'s): a first start
 (`ai₀ = 0`, `pre = []`), auth off, no compactor; and (2026-11-05) a store that does not compact
 (`E.cmp = false`: in compaction mode the apply thread's compaction right, `apply.cmpOwn`, is both
-what `kv.Close` takes, `wsCloserR`, and what the image's observation reads, `apply.cmpObs`), the
-voters the bootstrap log's members, distinct (`bootOk`'s `γ.vs = ps ∧ ps.Nodup ∧ srvBootLogOk ps
-γ.boot`: what the image's configuration point needs). Besides: the write budget's invariant (the
+what `kv.Close` takes, `wsCloserR`, and what the image's observation reads, `apply.cmpObs`).
+(R2c-1) The voters the bootstrap log's members, distinct, are `srvRaftLogInv`'s. Besides: the write budget's invariant (the
 storage-version monitor's read token, `stop_monitorRT`), `isServerApplyAll` (the KV names' start
 log), two later credits, and (H2, 2026-11-05) the budget's register at `GoAttach`'s receipts' name
 and `Wait`'s `goWaited` (which rule the monitor's open session out). A `Prop`, so that `run`'s proof takes it as a hypothesis. -/
@@ -411,7 +411,6 @@ abbrev stopCleanupImage.spec : Prop :=
       (uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.rn.pre = [] ∧ C.ai₀ = W64 0)) →
     storage.diskOk →
     C.E.cmp = false →
-    (C.ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk C.ρ.rd.raft.raft.vs C.ρ.rd.raft.raft.boot) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerC K C.s C.γ C.ci TM C.E C.ρ C.γr ∗
         isRaftNode Er C.rn (srvRAddr C.s) ∗
@@ -442,7 +441,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
-  intro K C A Er γg γcx v SP TM cfg dd hM hoff hcp hEr hdisk hcmp hvs
+  intro K C A Er γg γcx v SP TM cfg dd hM hoff hcp hEr hdisk hcmp
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
     ⟨%S, %σ, Hrst, Hwc, %hσ⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
@@ -669,7 +668,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hcl with ⟨-, -, -, -, -, -, -, -, %HbL, -⟩
   iunfold srvBootApplied at Hba
   icases Hba with ⟨%vb, #Hvb, %hvb⟩
-  rw [hρ] at hvb hvs
+  rw [hρ] at hvb
   iunfold appliedAtLeast at Hvb
   iunfold srvAppliedOwn at Hao
   icases Hao with ⟨Hao, -⟩
@@ -677,7 +676,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave %hle := monoNatLbOwn_valid C.γr.applied _ _ _ $$ Hao Hvb
   have hboot : C.γr.raft.raft.boot.length ≤ A.length := by rw [← hai]; omega
   -- the configuration point
-  imod stop_imageConf C.γr.raft C.γr.kv A D ai hpre' hai hvs hc0' hboot himg $$ [Hrl HA]
+  imod stop_imageConf C.γr.raft C.γr.kv A D ai hpre' hai hc0' hboot himg $$ [Hrl HA]
     with ⟨#Hconf, %hconf⟩
   · iframe Hrl HA
   -- the registry's authority and the WAL's files

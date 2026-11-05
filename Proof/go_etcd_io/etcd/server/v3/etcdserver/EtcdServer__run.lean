@@ -795,8 +795,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
         (if stp then iprop(∃ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
           srvShutdownPre s cfg E γn γk dd ∗
           ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧
-            E.cmp = false ∧
-            (ρ.rd.raft.raft.vs.Nodup ∧ srvBootLogOk ρ.rd.raft.raft.vs ρ.rd.raft.raft.boot)⌝)
+            E.cmp = false⌝)
           else iprop(True)) }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
     {{ RET #(); True }} := by
@@ -1420,7 +1419,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     obtain ⟨hSStop, hRStop, hCl⟩ := hStop hst
     ihave HSP := (iteE_pos (R := fun X => X) hst) $$ HSP
     ihave Hsd := (iteE_pos (R := fun X => X) hst) $$ Hsd
-    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff, %hcmp, %hvs⟩
+    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff, %hcmp⟩
     ihave Hdc := (iteE_pos (R := fun D => ownBroadcastChan v.done γd D .Pending) hst) $$ Hdc
     (try wp_auto)
     wp_for_post
@@ -1485,7 +1484,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     (try wp_auto)
     wp_apply hCl C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
-        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp hvs
+        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
       $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
         Hlc2 Hlc3 $HWreg $Hgw] as Himg
     · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
