@@ -166,6 +166,42 @@ theorem cmPubPre_of (D : Data) (Xt : WX) (w : WDb) (Pg : Pages)
     · left; simp only [uint.Z]; omega
     · right; exact h
 
+/-- `spill`'s tree's root page lies below its mark (`treeOK`). -/
+theorem spillC_root_lt (X2 : WX) (base : Pages) (h : treeOK (spillC X2 base)) :
+    X2.rootPage < X2.t.mv.pgid'.toNat := by
+  obtain ⟨⟨hwf, -⟩, -⟩ := h
+  cases hwf with
+  | page _ _ h2 hlt _ _ _ _ => exact hlt
+
+/-- **`cmPubPre` at the `NoFreelistSync` join** (`Tx__Commit_err`): the records `Xt` the spilled
+`X2` with the root page and `PgidNoFreelist` in the meta copy. `hnp` and `hmc` are not in
+`spill`'s post (reported). -/
+theorem cmPubPre_noSync (D : Data) (X1 X2 Xt : WX) (w2 : WDb) (fl1 : FLPg) (txid : w64)
+    (hsp : spillOK X1 X2 w2.C fl1 w2.fl txid) (hD : D = wtxData X1)
+    (hbufs : spillBufs X2 w2.C w2.fl)
+    (hpm : Xt.t.pm = X2.t.pm) (hbf : Xt.t.bufs = X2.t.bufs) (hpg : Xt.t.mv.pgid' = X2.t.mv.pgid')
+    (hroot : Xt.t.mv.root'.root'.toNat = X2.rootPage) (htxid : Xt.t.mv.txid' = X2.t.mv.txid')
+    (htxC : Xt.t.mv.txid'.toNat = w2.C.txid + 1)
+    (hfl : Xt.t.mv.freelist'.toNat = pgidNoFreelist)
+    (hmg : Xt.t.mv.magic'.toNat = boltMagic) (hvr : Xt.t.mv.version'.toNat = boltVersion)
+    (hps : Xt.t.mv.pageSize'.toNat = 4096) (hCh : w2.C.hwm ≤ X2.t.mv.pgid'.toNat)
+    (hml : Xt.t.mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF) (htC : treeOK w2.C) (hok : wdbOK w2)
+    (hfb : flBelow w2.fl w2.C (some (w2.C.txid + 1))) (htx2 : w2.C.txid + 2 < 2 ^ 64)
+    (hnp : ∀ s ∈ treeSlots (spillC X2 w2.C.pages), s ∉ pendSlots w2.fl)
+    (hmc : markCov X2 w2.C.hwm) :
+    cmPubPre D Xt w2 := by
+  have hb : spillBufs Xt w2.C w2.fl := by
+    unfold spillBufs at *; rw [hpm, hbf, hpg]; exact hbufs
+  have hr2 := spillC_root_lt X2 w2.C.pages hsp.1
+  apply cmPubPre_of D Xt w2 _ hb htC (by rw [hroot, hpg]; exact hr2) (Or.inr hfl) hmg hvr hps
+  refine cmPubPg_of_spill D X1 X2 Xt w2 fl1 w2.fl txid hsp hD (fun s h => h)
+    (fun id pg h => by rw [hbf]; exact h) hroot (by rw [hpg]; exact Nat.le_refl _) hCh htxid htxC
+    (by omega) hok hfb htx2 hnp (fun f hf => ?_) (by unfold markCov at *; rw [hbf, hpg]; exact hmc)
+  rw [pubC_flpg] at hf
+  unfold metaFlpg at hf
+  rw [if_pos hfl] at hf
+  cases hf
+
 end pure
 
 end bbolt

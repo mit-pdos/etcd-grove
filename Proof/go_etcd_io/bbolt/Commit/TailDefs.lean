@@ -31,7 +31,8 @@ freelist page (the branches handled so far) and holding the transaction's base d
 def cmTailOK (D Db : Data) (X : WX) (w : WDb) (opg : w64) : Prop :=
   X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome ∧ X.t.mv.txid' = w.wtxid ∧
   X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms ∧ w.C.hwm = opg.toNat ∧
-  X.t.t.commitHandlers' = slice.nil ∧ X.t.t.meta' ≠ null ∧ w.C.flpg = none ∧
+  X.t.t.commitHandlers' = slice.nil ∧ (X.t.t.meta' ≠ null ∧ 0 < X.t.t.meta'.addr) ∧
+  w.C.flpg = none ∧
   wdbOK w ∧ Db = treeData w.C ∧ cmPubPre D X w
 
 end pure

@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.bbolt.Commit.AssembleEnd
 public import Proof.go_etcd_io.bbolt.Commit.PubOk
 public import Proof.go_etcd_io.bbolt.Commit.PubPre
 public import Proof.go_etcd_io.bbolt.Commit.PubFlBuf
+public import Proof.go_etcd_io.bbolt.Commit.PubFacts
 public import Proof.go_etcd_io.bbolt.Rebalance.RTreeX
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
 import all Spec.go_etcd_io.bbolt.Api
@@ -543,7 +544,7 @@ theorem Tx.Commit_err.wp_proof'
               rw [htx4, htx3]; unfold WDb.wtxid; rw [Hal.2.1]
             · rw [Hal.2.1, hC2]; exact hopg.symm
             · show X4.t.t.commitHandlers' = slice.nil; rw [htt5]; exact Hf.2.2.2.2.2.1
-            · show X4.t.t.meta' ≠ null; rw [htt5]; exact Hmvn
+            · show X4.t.t.meta' ≠ null ∧ 0 < X4.t.t.meta'.addr; rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
             · rw [Hal.2.1]; exact hC2fl
             · rw [Hal.2.1, hC2]; exact hbase
             · -- OPEN (U10k): the publish's facts from spill's, rebalance's and commitFreelist's posts
@@ -575,6 +576,9 @@ theorem Tx.Commit_err.wp_proof'
             ipureintro; exact He2
         · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
           ihave Hw := Hwb $$ Hdbp
+          imod cm_wdbW_cfacts (GF := GF) K tx X2.v w2 $$ [Hwdb] with ⟨Hwdb, %Hcf2⟩
+          · iframe; iframe #
+          icases (cm_keep_pure (cm_wdbW_mapLen K tx X2.v w2)) $$ Hwdb with ⟨Hwdb, %Hml2⟩
           try wp_auto
           simp only [WX.withMv_withMv]
           imod cm_excl_update K r X1 (X2.withMv ({ X2.t.mv with
@@ -622,10 +626,47 @@ theorem Tx.Commit_err.wp_proof'
           · rw [← hX3]; exact hmap2
           · rw [hC2]; exact hopg.symm
           · rw [htt5]; exact Hf.2.2.2.2.2.1
-          · rw [htt5]; exact Hmvn
+          · rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
           · rw [hC2]; exact hbase
-          · -- OPEN (U10k): the publish's facts from spill's and rebalance's posts
-            sorry
+          · -- the publish's facts (`cmPubPre_noSync`), from spill's and rebalance's posts
+            have htx3' : X3.t.mv.txid' = w2.wtxid := by
+              have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
+                rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
+              have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
+              have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
+              rw [h1]
+              unfold WDb.wtxid
+              rw [hC2]
+              apply BitVec.eq_of_toNat_eq
+              rw [← h2, h3]
+              have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
+              word
+            have htxl2 : w2.C.txid + 1 < 2 ^ 63 := by rw [hC2]; exact Htxl
+            have htxC : X3.t.mv.txid'.toNat = w2.C.txid + 1 := by
+              rw [htx3']; unfold WDb.wtxid
+              simp only [W64, BitVec.toNat_ofInt]; omega
+            have hCh : w2.C.hwm ≤ X2.t.mv.pgid'.toNat := by
+              rw [hC2]; show w.C.hwm ≤ _; rw [← hopg]; exact BitVec.le_def.1 hspOK.2.2.2.1
+            have hml3 : X3.t.mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF := by
+              have : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w2.ms := by rw [← hX3]; exact hmap2
+              exact Nat.le_trans this Hml2
+            refine cmPubPre_noSync T.cur X1 X2 X3 w2 fl1 _ (by rw [hC2]; exact hspOK)
+              (Hf.2.1.trans hrbOK.2.1.symm) (by rw [hC2]; exact hbufs2) (by rw [← hX3]; rfl)
+              (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
+              (by rw [← hX3]; unfold WX.rootPage; rw [hB2]; rfl)
+              (by rw [← hX3]; rfl) htxC (by rw [← hX3]; rfl)
+              (by rw [← hX3]; show X2.t.mv.magic'.toNat = _; rw [hmv2]; show X1.t.mv.magic'.toNat = _
+                  rw [hmv1]; exact Hmeta.1)
+              (by rw [← hX3]; show X2.t.mv.version'.toNat = _; rw [hmv2]; show X1.t.mv.version'.toNat = _
+                  rw [hmv1]; exact Hmeta.2.1)
+              (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]; show X1.t.mv.pageSize'.toNat = _
+                  rw [hmv1]; exact Hmeta.2.2.1)
+              hCh hml3 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hcf2.2.2.2.2.1 (by omega) ?_ ?_
+            · -- OPEN (U10l): the new tree's slots are not pending: not in `Bucket.spill.spec`'s
+              -- post (reported)
+              sorry
+            · -- OPEN (U10l): `markCov` (D-K): not yet in `Bucket.spill.spec`'s post
+              sorry
       iintro %v Hv
       icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
         ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
@@ -841,9 +882,7 @@ theorem Tx.Commit_err.wp_proof'
             · rw [WDb.reslot.proj_C, WDb.reslot.proj_C, WDb.reslot.proj_fl, WDb.reslot.proj_fl]
               iapply (fbTok_of_wdbOK (GF := GF) K.B wg Hwgok.1 _ ∅)
             have haddr : 0 < (Xt.clearPages pml).t.t.meta'.addr := by
-              -- OPEN (U10k): `tx.meta`'s pointer positive (`writeMeta`'s premise); not derivable
-              -- from `≠ null` (`Loc.addr` is an `Int`)
-              sorry
+              rw [WX.clearPages_meta]; exact hmpt.2
             have h3 := Hwgok.1.2.2.1
             have h9 := Hwgok.1.2.2.2.2.2.2.2.2.1 _ _ hms
             wp_apply cm_meta_step wp_writeMeta K tx r (Xt.clearPages pml) Xt.v ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)) Xt.v.base
@@ -900,8 +939,10 @@ theorem Tx.Commit_err.wp_proof'
                 wp_if_destruct
                 · exfalso
                   rw [hcht] at Hif
-                  simp [slice.nil] at Hif
-                · wp_bind (App (Val #_) (Val #()))
+                  simp [slice.nil] at Hif <;>
+                    exact Bool.false_ne_true (GoGlobalContext.intoVal_inj_bool Hif)
+                · try (rw [hcht, if_pos (by simp [slice.nil])])
+                  wp_bind (App (Val #_) (Val #()))
                   iapply (wp_wand (Φ := fun v => iprop(⌜v = #()⌝ ∗ err_ptr ↦ GoInterface.nil)))
                     $$ [err HtxId Hlgp]
                   · iapply Hdf $$ [] err HtxId Hlgp
