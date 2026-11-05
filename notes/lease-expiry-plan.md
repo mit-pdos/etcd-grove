@@ -2223,6 +2223,44 @@ apply chain dropped: the record's TTL is carried up to `srvRestAt`, then to the 
 `appliedTable_mono_sub`, `appliedTable_granted_live`; `SnapRecvOn`: `hlease` with auth on; `EtcdServer__applySnapshot`: the granting walk (`lg = true`)
 and the empty bucket at `lg = false`; `ApplyAllSnap`, `ApplyAllSnapOn`: the `lg = true` case.
 
+## S2–S4 Test (2026-11-05)
+
+`examples/etcd/leasesnap/leasesnap_test.go` (build tag `leasesnap`; the examples module lacks the
+integration framework's dependencies, so it runs as a package of etcd's `tests` module in a scratch
+checkout of the fork at `673da07c8fab`, the file's header says how). Two tests, no proof; 3 of 3 runs
+pass, nothing contradicts a spec.
+
+- `TestLeaseSnapshotRestore`, etcd's integration framework: three members, `SnapshotCount` 10,
+  `SnapshotCatchUpEntries` 5, members restarted with different `ElectionTicks` (the framework takes
+  per-member config by editing `Member.ElectionTicks` before `Restart`): `minLeaseTTL` 1, 30, 90
+  (m0, m1, m2). Grants of 20 and 200 through each member; then three restores, each a member
+  stopped, the leader writing past two snapshots, the member restarted and logging `restored lease
+  store` (`applySnapshot` → `lessor.Recover`): m0 (min 1) from m2 (min 90), with a lease granted and
+  one revoked while it was down; m2 from m0 (records 30 < m2's 90); m0 again from m1 (min 30). The
+  lessor is read through `EtcdServer`'s unexported field, the bucket with `MustUnsafeGetAllLeases`.
+- `TestLessorRecoverMinTTL`: lessor B (min 2, then 10) with its own leases `Recover`s A's backend
+  (min 10, then 2).
+
+Claims: (1) `Recover.spec`: after each restore the lessor's ids are exactly the bucket's records
+(the revoked lease gone, the one granted while down present, a lease live before and recorded still
+live; in the unit test B's own unrecorded lease gone), each TTL `max(record, own min)` (m2: records
+30 → TTL 90). PASS. (2) `leaseTTLAt_ge_req`: every lessor TTL, record and `TimeToLive`'s
+`GrantedTTL`, on every member at every check, ≥ the request. PASS. `GrantedTTL` differs across
+members (lease requested 20: 20 with m0 leading, 90 with m2 leading) and across one member's restores
+in both directions (m0 leading: 20, then 90 after restoring m2's image, then **30** after restoring
+m1's: the TTL is not monotone, only bounded below by the request). (3) `Grant.spec`: each answer's
+TTL `max(request, the proposing member's min)` (20→20, 30, 90; 200→200), each member's lessor and
+record `max(request, its own min)`. PASS. (4) The lease bucket: at every check, on every member, one
+record per lessor lease, no duplicate, TTL ≥ request. PASS (checked on the live backend at quiescent
+points, the leader's after its snapshots and the restored member's, which is the image received;
+not on the snapshot file itself).
+
+Seen on the way (no spec claims otherwise): after a restore a member's bucket and lessor disagree
+on TTLs (m2: record 30, lessor 90), since `initAndRecover` does not rewrite records; and right
+after a leadership change `TimeToLive`'s remaining `TTL` exceeds `GrantedTTL` (149 against 90:
+`Promote` extends by the election timeout). `nonissues/etcd-lease-ttl-differs-across-members.md`
+("no test") is now reproduced by this test.
+
 ## Scope candidate: discharging `srvRevokeOpen_open` (2026-11-05; parked until S2–S4 lands)
 
 Status: a candidate, not yet brought to the user (etcd-grove-82 brings it when it is next in the queue). It is a
