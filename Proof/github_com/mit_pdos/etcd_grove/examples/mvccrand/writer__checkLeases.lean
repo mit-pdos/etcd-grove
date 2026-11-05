@@ -238,11 +238,154 @@ theorem writer.checkLeases.wp_proof
         · intro k; rw [← Hperm.mem_iff]; exact Hkm k
         · exact Hsorted
       (try wp_auto)
-      sorry
+      -- `want`: the tester's keys on the lease, in its order
+      ihave HI : (∃ (j : w64) (wsl : GoSlice) (kv0 : GoString),
+          "i" ∷ i_ptr ↦ j ∗ "want" ∷ want_ptr ↦ wsl ∗
+          "Hwl" ∷ wsl ↦* ((keyList.take (sint.nat j)).filter (onLease M id0)) ∗
+          "Hwc" ∷ ownSliceCap GoString wsl (DFrac.own 1) ∗ "k" ∷ k_ptr ↦ kv0 ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ 6⌝ : IProp GF) $$ [i want k]
+      · iexists W64 0, slice.nil, _
+        simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil]
+        iframe
+        isplitl
+        · iapply ownSlice_nil
+        isplitl
+        · iapply ownSliceCap_nil
+        ipureintro; constructor <;> word
+      wp_for HI
+      have hmatch_succ : ∀ (n : Nat) (x : GoString) (pr : GoString → Bool), keyList[n]? = some x →
+          (keyList.take (n + 1)).filter pr =
+            (keyList.take n).filter pr ++ (if pr x then [x] else []) := by
+        intro n x pr hx
+        rw [List.take_add_one, hx, List.filter_append]
+        cases h : pr x <;> simp [List.filter, h]
+      by_cases Hlt : sint.Z j < sint.Z ks.len
+      · rw [decide_eq_true Hlt]; simp only [↓reduceIte]
+        have hj6 : sint.Z j < 6 := by rw [← hks6]; exact Hlt
+        list_elem keyList (sint.nat j) as x
+        have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z ks.len := ⟨Hj.1, Hlt⟩
+        (try wp_auto)
+        (try simp only [hb, _root_.and_self, ↓reduceIte])
+        wp_apply wp_load_slice_index ks (sint.Z j) keyList DFrac.discard x Hj.1 $$ [Hksl] as -
+        · iframe #; ipureintro; exact Hx_lookup
+        (try wp_auto)
+        have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        wp_apply (wp_map_lookup2 go.string kvRec.ty mp M x DFrac.discard) $$ [$Hm] as -
+        (try wp_auto)
+        cases hx : M !! x with
+        | none =>
+          simp only [Option.isSome_none, Bool.false_eq_true, decide_false]
+          (try wp_auto)
+          wp_for_post
+          iframe
+          iexists j + W64 1, wsl, x
+          rw [hj1, hmatch_succ (sint.nat j) x _ Hx_lookup]
+          simp only [onLease, hx, Bool.false_eq_true, ↓reduceIte, List.append_nil]
+          iframe
+          ipureintro; constructor <;> word
+        | some ev =>
+          simp only [Option.isSome_some, decide_true, Option.getD_some]
+          (try wp_auto)
+          by_cases hev : ev.lease' = id0
+          · simp only [hev, decide_true]
+            (try wp_auto)
+            wp_apply wp_slice_literal
+            isplitr
+            · ipureintro; rfl
+            iintro %osl ⟨Hosl, -⟩
+            (try wp_auto)
+            wp_apply wp_slice_append $$ [$Hwl $Hwc $Hosl] as %wsl' ⟨Hwl, Hwc, -⟩
+            wp_for_post
+            iframe
+            iexists j + W64 1, wsl', x
+            rw [hj1, hmatch_succ (sint.nat j) x _ Hx_lookup]
+            simp only [onLease, hx, hev, decide_true, ↓reduceIte]
+            iframe
+            ipureintro; constructor <;> word
+          · simp only [hev, decide_false]
+            (try wp_auto)
+            wp_for_post
+            iframe
+            iexists j + W64 1, wsl, x
+            rw [hj1, hmatch_succ (sint.nat j) x _ Hx_lookup]
+            simp only [onLease, hx, hev, decide_false, Bool.false_eq_true, ↓reduceIte, List.append_nil]
+            iframe
+            ipureintro; constructor <;> word
+      · rw [decide_eq_false Hlt]; simp only [Bool.false_eq_true, ↓reduceIte]
+        have hj6 : sint.nat j = 6 := by
+          have : ¬ sint.Z j < 6 := by rw [← hks6]; exact Hlt
+          have h0 := Hj.2; have h4 : sint.nat j = (sint.Z j).toNat := rfl; rw [h4]; omega
+        have htk : keyList.take 6 = keyList := rfl
+        simp only [hj6, htk]
+        ihave Hwl : wsl ↦* kl' $$ [Hwl]
+        · rw [hkl', ← htk, ← hj6]; iexact Hwl
+        (try wp_auto)
+        ihave %Hgl := ownSlice_len $$ Hkl
+        ihave %Hwll := ownSlice_len $$ Hwl
+        have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl
+        have hlen : sint.Z ksl.len = sint.Z wsl.len := by
+          have h1 := Hgl.1; have h2 := Hwll.1; rw [hn] at h1 h2; omega
+        wp_apply wp_check
+        · ipureintro; simp only [decide_eq_true_eq]; word
+        (try wp_auto)
+        -- `got` and `want` are both `kl'`: every element's check passes
+        ihave HV : (∃ (i0 jv : w64), "i" ∷ i_ptr ↦ i0 ∗ "j" ∷ j_ptr ↦ jv ∗
+            "%Hi" ∷ ⌜0 ≤ sint.Z i0 ∧ sint.Z i0 ≤ sint.Z ksl.len⌝ : IProp GF) $$ [i j]
+        · iexists W64 0, _
+          simp only [named]
+          iframe
+          ipureintro; constructor <;> word
+        wp_for HV
+        wp_if_destruct
+        · have hlt : sint.Z i0 < sint.Z ksl.len := by
+            exact Hif
+          have hb : 0 ≤ sint.Z i0 ∧ sint.Z i0 < sint.Z ksl.len := ⟨Hi.1, hlt⟩
+          have hb2 : 0 ≤ sint.Z i0 ∧ sint.Z i0 < sint.Z wsl.len := ⟨Hi.1, by omega⟩
+          simp only [hb, _root_.and_self, ↓reduceIte]
+          list_elem kl' (sint.nat i0) as v
+          wp_apply wp_load_slice_index ksl (sint.Z i0) kl' _ v hb.1 $$ [Hkl] as Hkl
+          · iframe; ipureintro; exact Hv_lookup
+          (try wp_auto)
+          (try simp only [hb, _root_.and_self, ↓reduceIte])
+          wp_apply wp_load_slice_index ksl (sint.Z i0) kl' _ v hb.1 $$ [Hkl] as Hkl
+          · iframe; ipureintro; exact Hv_lookup
+          (try wp_auto)
+          (try simp only [hb, hb2, _root_.and_self, ↓reduceIte])
+          wp_apply wp_load_slice_index wsl (sint.Z i0) kl' _ v hb.1 $$ [Hwl] as Hwl
+          · iframe; ipureintro; exact Hv_lookup
+          (try wp_auto)
+          wp_apply wp_check
+          · ipureintro; simp
+          (try wp_auto)
+          wp_for_post
+          iframe
+          iexists i0 + W64 1, _
+          iframe
+          ipureintro; constructor <;> word
+        (try wp_auto)
+        unfold forMapPostcondition
+        iright; ileft
+        isplitr
+        · ipureintro; rfl
+        iexists _
+        simp only [named]
+        iframe
     iintro HP Hlm
     iNamed HP
     wp_auto
-    sorry
+    iapply HΦ
+    isplitl [Htok Hbk Hrd Hgσ HW Hpv Hg Hlm Hlo]
+    · iunfold writerOwn
+      iframe
+      isplitl [Hgσ HW Hpv]
+      · iunfold writerIdle; iframe; ipureintro; exact ⟨Hpend, Hlen, Hbound, Hmatch⟩
+      ipureintro; exact HLm
+    · iunfold writerLe
+      iexists lp, rd, r
+      iframe
+      isplitl []
+      · iexact Hro
+      ipureintro; exact ⟨HlP, Hn⟩
 
 end proof
 
