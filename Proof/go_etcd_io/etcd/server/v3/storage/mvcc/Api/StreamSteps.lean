@@ -15,7 +15,7 @@ The steps, each what a frozen contract's post needs of the stream's ghost state:
 - `chanApiAt_reg` (`Watch`'s update): the registration at the exact sent count, the client's
   `wsState` moved to `S.register id ⟨rg, fs, lo, k, true⟩` with `wsSentLb ι k`;
 - `chanApiAt_cancel` (`Cancel`'s update): `wsState ι (S.cancel id)`;
-- `chanApiAt_recv` (a receive): `wsRecv ι (recv ++ [r])`, the receiver's lower bound minted;
+- a receive: `WatchRecv.chanApi_recv` (the channel's received prefix moves with it);
 - `chanApiAt_sentLb` (the non-blocking receive's empty case): `wsSentLb ι n` is at most the sends.
 -/
 module
@@ -102,18 +102,20 @@ theorem chanApiAt_tok (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM →
 
 /-- **A new stream** (`NewWatchStream`): its names, the channel invariant's part at the empty
 history, the client's state at `wsStart` and its consumer's view at `[]`. -/
-theorem chanApi_alloc (st : AbsNames) (ch : GoChan) (chn : ChanNames) :
-    ⊢ |==> ∃ ι : WsAbs, ⌜ι.st = st ∧ ι.ch = ch ∧ ι.chn = chn⌝ ∗
+theorem chanApi_alloc (st : AbsNames) (ch : GoChan) (chn : ChanNames) (gcr : GName) :
+    ghostVar (GF := GF) gcr (1 : Qp).half ([] : List RespM) ⊢ |==> ∃ ι : WsAbs,
+      ⌜ι.st = st ∧ ι.ch = ch ∧ ι.chn = chn ∧ ι.crecv = gcr⌝ ∗
       chanApiAt (GF := GF) ι [] (fun _ => []) [] ∗ wsStateI ι wsStart ∗ wsRecvI ι [] := by
+  iintro Hcr
   imod mono_list_own_alloc (GF := GF) ([] : List SEv) with ⟨%gev, Hev, #Hevlb⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%gns, Hns, #Hnslb⟩
   imod ghostVar_alloc (GF := GF) ([] : List WResp) with ⟨%grcv, Hrcv⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%grx, Hrx, -⟩
   icases (ghostVar_split_half grcv (1 : Qp) ([] : List WResp)).1 $$ Hrcv with ⟨Hr1, Hr2⟩
   imodintro
-  iexists ⟨st, gev, gns, grcv, grx, ch, chn⟩
+  iexists ⟨st, gev, gns, grcv, grx, ch, chn, gcr⟩
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   have hwf : LogWF (fun _ => []) ([] : List SEv) := fun p e hp => by simp at hp
   unfold chanApiAt wsStateI wsRecvI logTok
   isplitl [Hev Hr1]
@@ -139,7 +141,9 @@ theorem chanApi_alloc (st : AbsNames) (ch : GoChan) (chn : ChanNames) :
     · isplitr
       · ipureintro; exact hwf
       isplitl <;> (iapply BigSepL.bigSepL_nil.2; itrivial)
+    isplitr
     · ipureintro; exact List.nil_prefix
+    iexists []; iframe Hcr; ipureintro; rfl
 
 /-- **A send** (the channel invariant's step at every send): its event appended, the sender
 having proved its premises and holding its filters' saved names and its bounds' tokens. -/
@@ -314,29 +318,6 @@ theorem chanApiAt_cancel (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM 
   iframe Hns Htok
   ipureintro
   rw [replay_snoc, step_cancel, HS]
-
-/-- **A receive**: the next response sent received, the receiver's lower bound minted. -/
-theorem chanApiAt_recv (ι : WsAbs) (l : List SEv) (dec : GName → List (EvM → Bool))
-    (recv : List WResp) (r : WResp) (hnext : recv ++ [r] <+: sendsOf l) :
-    chanApiAt (GF := GF) ι l dec recv ∗ wsRecvI ι recv ==∗
-      chanApiAt ι l dec (recv ++ [r]) ∗ wsRecvI ι (recv ++ [r]) := by
-  iintro ⟨Hc, Hw⟩
-  icases chanApiAt_tok ι l dec recv $$ Hc with ⟨Hc, #Htok⟩
-  iunfold chanApiAt at Hc
-  icases Hc with ⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩
-  iunfold wsRecvI at Hw
-  icases Hw with ⟨%l', %d', Hr', Hrx, -, -, -⟩
-  imod ghostVar_update_2 (recv ++ [r]) ι.rcv recv (1 : Qp).half recv (1 : Qp).half
-    (Qp.half_add_half 1) $$ Hr Hr' with ⟨Hr, Hr'⟩
-  imod mono_nat_own_update (γ := ι.rx) (recv ++ [r]).length (by simp) $$ Hrx with ⟨Hrx, -⟩
-  imodintro
-  unfold chanApiAt wsRecvI
-  iframe Ha Hr
-  isplitr
-  · iframe #; ipureintro; exact ⟨hw.1, hnext⟩
-  · iexists l, dec
-    iframe Hr' Hrx Htok Hn
-    ipureintro; exact hnext
 
 /-- **The non-blocking receive's empty case**: a lower bound of the sent count is at most the
 sends of the history. -/

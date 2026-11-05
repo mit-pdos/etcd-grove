@@ -481,7 +481,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               imod mvcc.sentAuth_snoc γ γw.wc sent L (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ :
                 mvcc.RespM) (fun _ w' hw' => hw') rfl $$ Hsentl Hrc
                 with Hsentl
-              imod mvcc.chanApi_send_M1 γ ch γw.wc sent
+              imod mvcc.chanApi_send_M1 γ ch γw.wc sent recv
                 ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩
                 $$ Hapi with Hapi
               imod Hmask with -

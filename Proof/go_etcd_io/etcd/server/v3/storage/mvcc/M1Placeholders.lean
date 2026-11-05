@@ -78,8 +78,8 @@ sites (`watcher.send`, `WatchCmpSend`'s `cmp_send_inner`), each of which is to p
 today's per-send facts (`respCov`, `covFact`, `respRev`, `respCompl`), the watcher's saved filters
 and the senders' lower bounds (the watch chain's item 1, `notes/mvcc-api-invariants.md`).
 M1-REPLACE: `wsRecv_ok.law`/`wsChan_recv.law` (the stream's history well formed at every send). -/
-theorem chanApi_send_M1 (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List RespM)
-    (x : RespM) : chanApi (GF := GF) γ ch γc sent ⊢ |==> chanApi γ ch γc (sent ++ [x]) := by
+theorem chanApi_send_M1 (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM)
+    (x : RespM) : chanApi (GF := GF) γ ch γc sent recv ⊢ |==> chanApi γ ch γc (sent ++ [x]) recv := by
   sorry -- M1-REPLACE: wsChan_recv.law, wsRecv_ok.law (a send's stepOk)
 
 end placeholdersW

@@ -167,10 +167,15 @@ opaque mvccBackend (γ : MvccName) (q : Qp) (B : BkRef) (Pk : IProp GF) : IProp 
 thread token until its `End`, not the trace). -/
 opaque mvccTxn (t : GoInterface) (γ : MvccName) (trace : Loc) (k : MTxn) : IProp GF := iprop(True)
 
-/-- The rest of a stream's handle (its channel's invariant, the stream's and the store's): opaque
-until the stream's contracts are proved over it (stage 2, the watch chain; M1-REPLACE). -/
-private opaque isMvccWatchStreamRest (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF :=
-  iprop(True)
+/-- The rest of a stream's handle: its channel (buffered) and the channel's invariant, at a
+watchable store of `γ` (stage 2, the watch chain, 2026-11-05: what `wsChan_recv.law` needs; the
+stream's contracts add the stream's own invariant, `isWatchStream`). -/
+private def isMvccWatchStreamRest (ws : GoInterface) (γ : MvccName) (ι : WsName) : IProp GF :=
+  iprop(∃ (γw : WsNames) (γc : WatchChanNames),
+    ⌜(ι : api.WsAbs) = wsAbsOf γw (ι : api.WsAbs).ch γc ∧ γw.st = (γ : StoreNames) ∧
+      0 < sint.Z γc.ch.chanCap⌝ ∗
+    isChan (ι : api.WsAbs).ch γc.ch WatchResponse ∗
+    inv watchN (watchChanInv γw (ι : api.WsAbs).ch γc))
 
 /-- **`ws` (the `WatchStream` `NewWatchStream` returned) is a stream of `γ`, named `ι`**
 (persistent). -/

@@ -115,12 +115,12 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Nat) with ⟨%γri, Hri⟩
   imod (saved_pred_alloc (GF := GF) Ψ DFrac.discard DFrac.valid_discard) with ⟨%γrs, #Hrs⟩
   -- the stream's API names (stage 2 of the mvcc API): its history, the client's state, its view
-  imod api.chanApi_alloc (GF := GF) γ.st.api ch γch with ⟨%ι, %Hι, Hapi, Hwst, Hwrc⟩
+  imod api.chanApi_alloc (GF := GF) γ.st.api ch γch γrecv $$ Hrecv2 with ⟨%ι, %Hι, Hapi, Hwst, Hwrc⟩
   let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl, γri, γrs, ι.ev, ι.ns, ι.rcv,
     ι.rx⟩
   have hι : mvcc.wsAbsOf γ ch γc = ι := by
-    obtain ⟨h1, h2, h3⟩ := Hι
-    cases ι; simp only at h1 h2 h3; subst h1 h2 h3; rfl
+    obtain ⟨h1, h2, h3, h4⟩ := Hι
+    cases ι; simp only at h1 h2 h3 h4; subst h1 h2 h3 h4; rfl
   rw [← hι]
   imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl Hri Hapi] with #Hinv
   · inext
@@ -165,7 +165,8 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     isplitr
     · iapply BigSepL.bigSepL_nil.2; itrivial
     iunfold mvcc.chanApi
-    iexists [], (fun _ => []), []
+    iexists [], (fun _ => [])
+    simp only [List.map_nil]
     iframe Hapi
     ipureintro; rfl
   -- the stream's lock
@@ -213,8 +214,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iapply HΦ
   iexists γo, ch, γc
   iunfold mvcc.watchStreamOpen
-  iunfold mvcc.watchConsumer
-  iframe Htok Hrecv2 Hch Hinv ch Hsp Hrs Hwst Hwrc
+  iframe Htok Hch Hinv ch Hsp Hrs Hwst Hwrc
   isplitr
   rotate_left
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, by rw [Hcap]; decide⟩

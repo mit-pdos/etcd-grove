@@ -125,6 +125,30 @@ instance WatchRange.countable : Pos.Countable WatchRange :=
   .ofInjective (fun r => Pos.Countable.encode (r.key, r.end?, r.startRev, r.id))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
+
+/-- A response the store sent on a stream's channel: the watcher it was sent for (ghost), its
+`WatchID`, events and `Revision`; and (ghost, unit W-K) the watchers a progress response covers
+(`cov`: `respCov`; empty for any other response) and, for one of id `-1`, the watchers registered
+on the channel when it was sent (`regs`); and its position in the sent list (`idx`). -/
+structure RespM where
+  w : Loc
+  id : w64
+  evs : List EvM
+  rev : w64
+  cov : List Loc
+  regs : List Loc
+  /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
+  idx : Nat
+  /-- (watches across a compaction, 2026-11-01) its `CompactRevision`: `0`, or the store's
+  compaction revision when the watcher's next revision was compacted (`chooseAll`'s response) -/
+  compactRev : w64 := W64 0
+
+instance RespM.countable : Pos.Countable RespM :=
+  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx,
+      r.compactRev))
+    (by rintro ⟨a, b, c, d, e, f, g, i⟩ ⟨a', b', c', d', e', f', g', i'⟩ h; have h := Pos.encode_inj h;
+        simp_all)
+
 end mvcc
 end EtcdGrove
 end Perennial

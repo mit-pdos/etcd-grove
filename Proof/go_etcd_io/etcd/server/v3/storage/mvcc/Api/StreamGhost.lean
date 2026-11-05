@@ -8,7 +8,9 @@ A stream's API ghost names (`WsAbs`): its store's (`st`), its history (`ev`, a m
 events (`ns`, a monotone count: the authority whole in `wsState`, so that a receiver's lower bound
 of the history, minted with a lower bound of the count, carries no client event the client has not
 made), the consumer's view (`rcv`, half the client's `wsRecv`, half the channel invariant's; `rx`,
-the client's exclusive count of it), and its channel.
+the client's exclusive token, a count's whole authority fixed at `0`: a receive needs no update
+outside the channel invariant), its channel, and the channel invariant's received prefix (`crecv`,
+the store's responses, half the client's).
 
 - `logTok ι l dec`: a lower bound `l` of the history, well formed with the filters decoded by
   `dec` (each name's saved filters), and each send's lower bounds (`evTok`: the notified log, the
@@ -55,6 +57,14 @@ structure WsAbs where
   rx : GName
   ch : GoChan
   chn : ChanNames
+  /-- the channel invariant's received prefix (`γc.recv`, its responses as the store sent them):
+  half the consumer's, in `wsRecv` (2026-11-05, the receive law) -/
+  crecv : GName
+
+/-- A response as the API's client sees it (`WResp`): its id, events, revision and compaction
+revision. -/
+def _root_.Perennial.EtcdGrove.mvcc.RespM.toW (x : RespM) : WResp :=
+  ⟨x.id, x.evs, x.rev, x.compactRev⟩
 
 /-- A reachable state's compaction revision is at least `-1`. -/
 theorem reach_crev : ∀ σ : MvccState, MvccReachable σ → -1 ≤ σ.crev := by
@@ -132,8 +142,9 @@ def wsStateI (ι : WsAbs) (S : StreamState) : IProp GF :=
 /-- **The consumer has received `rs`.** -/
 def wsRecvI (ι : WsAbs) (rs : List WResp) : IProp GF :=
   iprop(∃ (l : List SEv) (dec : GName → List (EvM → Bool)),
-    ghostVar ι.rcv (1 : Qp).half rs ∗ monoNatAuthOwn ι.rx 1 rs.length ∗ logTok ι l dec ∗
-    monoNatLbOwn ι.ns (nsCount l) ∗ ⌜rs <+: sendsOf l⌝)
+    ghostVar ι.rcv (1 : Qp).half rs ∗ monoNatAuthOwn ι.rx 1 0 ∗ logTok ι l dec ∗
+    monoNatLbOwn ι.ns (nsCount l) ∗ ⌜rs <+: sendsOf l⌝ ∗
+    ∃ ms : List RespM, ghostVar ι.crecv (1 : Qp).half ms ∗ ⌜ms.map RespM.toW = rs⌝)
 
 /-- **The stream has sent at least `n` responses** (`0` from nothing). -/
 def wsSentLbI (ι : WsAbs) (n : Nat) : IProp GF :=
@@ -252,7 +263,7 @@ opened. -/
 theorem wsRecv_okI (ι : WsAbs) (rs : List WResp) (S : StreamState) (σ : MvccState) :
     wsRecvI (GF := GF) ι rs ∗ wsStateI ι S ∗ mvccStateI ι.st σ ⊢ ⌜wsRecvOk σ S rs⌝ := by
   unfold wsRecvI wsStateI mvccStateI logTok
-  iintro ⟨⟨%lr, %dr, -, -, ⟨#Hlbr, %Hwfr, #Hfr, #Her⟩, #Hnsr, %Hrs⟩,
+  iintro ⟨⟨%lr, %dr, -, -, ⟨#Hlbr, %Hwfr, #Hfr, #Her⟩, #Hnsr, %Hrs, -⟩,
           ⟨%lc, %dc, Hns, ⟨#Hlbc, %Hwfc, #Hfc, #Hec⟩, %HS⟩,
           ⟨-, -, Hc, Hn, %Hreach⟩⟩
   ihave %hcmp := mono_list_lb_valid ι.ev lr lc $$ Hlbr Hlbc

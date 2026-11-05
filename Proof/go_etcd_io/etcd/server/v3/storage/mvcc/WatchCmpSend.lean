@@ -138,7 +138,7 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     ihave #Hvs' := respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
     imod sentAuth_snoc γ γw.wc sent L (cmpResp w r.id sent.length c)
       (fun h => absurd h Hrid) rfl $$ Hsentl Hrc with Hsentl
-    imod chanApi_send_M1 γ ch γw.wc sent (cmpResp w r.id sent.length c) $$ Hapi with Hapi
+    imod chanApi_send_M1 γ ch γw.wc sent recv (cmpResp w r.id sent.length c) $$ Hapi with Hapi
     imod Hmask with -
     imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
     · inext

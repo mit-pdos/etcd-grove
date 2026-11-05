@@ -69,29 +69,6 @@ namespace mvcc
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
-/-- A response the store sent on a stream's channel: the watcher it was sent for (ghost), its
-`WatchID`, events and `Revision`; and (ghost, unit W-K) the watchers a progress response covers
-(`cov`: `respCov`; empty for any other response) and, for one of id `-1`, the watchers registered
-on the channel when it was sent (`regs`); and its position in the sent list (`idx`). -/
-structure RespM where
-  w : Loc
-  id : w64
-  evs : List EvM
-  rev : w64
-  cov : List Loc
-  regs : List Loc
-  /-- its position in the channel's sent list (ghost, K1b): so the responses sent are distinct -/
-  idx : Nat
-  /-- (watches across a compaction, 2026-11-01) its `CompactRevision`: `0`, or the store's
-  compaction revision when the watcher's next revision was compacted (`chooseAll`'s response) -/
-  compactRev : w64 := W64 0
-
-instance RespM.countable : Pos.Countable RespM :=
-  .ofInjective (fun r => Pos.Countable.encode (r.w, r.id, r.evs, r.rev, r.cov, r.regs, r.idx,
-      r.compactRev))
-    (by rintro ⟨a, b, c, d, e, f, g, i⟩ ⟨a', b', c', d', e', f', g', i'⟩ h; have h := Pos.encode_inj h;
-        simp_all)
-
 instance watchResponseCountable [GooseExts] : Pos.Countable WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (r.WatchID', r.Events', r.Revision', r.CompactRevision'))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
@@ -718,10 +695,6 @@ def sentAuth (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List
       regsOk RI sent ∧ idxOk sent⌝ ∗
     □ ([∗list] k ↦ x ∈ sent, respCov γ γc (sent.take k) x))
 
-/-- A response as the API's client sees it (`api.WResp`): its id, events, revision and compaction
-revision. -/
-def RespM.toW (x : RespM) : api.WResp := ⟨x.id, x.evs, x.rev, x.compactRev⟩
-
 /-- **The events the client received for an id are those sent for its watcher** (pure): when every
 response of the id is the watcher's, and every response of the watcher carries the id or no event
 (a `-1` progress response), `recvEvs` by id is the watcher's sent events. (The channel invariant
@@ -748,16 +721,70 @@ theorem recvEvs_toW (sent : List RespM) (id : w64) (w : Loc)
 /-- **The stream's API names** (`api.WsAbs`) of the channel `ch` (names `γc`) of a stream of the
 watchable store `γ`. -/
 def wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
-  ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch⟩
+  ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch, γc.recv⟩
 
 /-- **The channel invariant's API part** (stage 2 of the mvcc API, the watch chain, 2026-11-05):
 the stream's history (`api.chanApiAt`, `Api/StreamSteps.lean`), its sends the responses sent on
-the channel (`sent`, as the client sees them). The consumer's view `rw` (the invariant's half of
-`γc.arcv`) is not yet tied to the channel's received prefix: the receives move it with the
-client's `wsRecv` (`wsChan_recv.law`, the hand-off's item 2). -/
-def chanApi (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List RespM) : IProp GF :=
-  iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)) (rw : List api.WResp),
-    api.chanApiAt (wsAbsOf γ ch γc) l dec rw ∗ ⌜api.sent.sendsOf l = sent.map RespM.toW⌝)
+the channel (`sent`, as the client sees them), the consumer's view (the invariant's half of
+`γc.arcv`) the channel's received prefix (`recv`, as the client sees it). -/
+def chanApi (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM) : IProp GF :=
+  iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)),
+    api.chanApiAt (wsAbsOf γ ch γc) l dec (recv.map RespM.toW) ∗
+    ⌜api.sent.sendsOf l = sent.map RespM.toW⌝)
+
+/-- **What a receiver knows of the stream's history** (persistent): a well-formed lower bound of
+it, with a lower bound of the client's count at it, whose sends extend the responses received
+(as the client sees them): what `wsRecv` keeps. -/
+def apiRecvLb (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rs : List RespM) : IProp GF :=
+  iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)),
+    api.logTok (wsAbsOf γ ch γc) l dec ∗ monoNatLbOwn (wsAbsOf γ ch γc).ns (api.sent.nsCount l) ∗
+    ⌜rs.map RespM.toW <+: api.sent.sendsOf l⌝)
+
+instance apiRecvLb_persistent (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rs : List RespM) :
+    Persistent (apiRecvLb (GF := GF) γ ch γc rs) := by
+  unfold apiRecvLb; infer_instance
+
+/-- **A receive's API step**: the next response sent received, the consumer's view (its half of
+`γc.arcv`) and the invariant's moved together, the receiver's lower bound minted. -/
+theorem chanApi_recv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM)
+    (r : RespM) (hp : recv ++ [r] <+: sent) :
+    chanApi (GF := GF) γ ch γc sent recv ∗ ghostVar γc.arcv (1 : Qp).half (recv.map RespM.toW) ==∗
+      chanApi γ ch γc sent (recv ++ [r]) ∗
+      ghostVar γc.arcv (1 : Qp).half ((recv ++ [r]).map RespM.toW) ∗ apiRecvLb γ ch γc (recv ++ [r]) := by
+  unfold chanApi api.chanApiAt apiRecvLb
+  rw [show (wsAbsOf γ ch γc).rcv = γc.arcv from rfl]
+  iintro ⟨⟨%l, %dec, ⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩, %hs⟩, Hc⟩
+  have hp' : (recv ++ [r]).map RespM.toW <+: api.sent.sendsOf l := by
+    rw [hs]; exact hp.map _
+  imod ghostVar_update_2 ((recv ++ [r]).map RespM.toW) γc.arcv _ (1 : Qp).half _ (1 : Qp).half
+    (Qp.half_add_half 1) $$ Hr Hc with ⟨Hr, Hc⟩
+  ihave #Hlb := monoListLbOwn_get _ 1 l $$ Ha
+  imodintro
+  isplitl [Ha Hr]
+  · iexists l, dec
+    iframe Ha Hr Hf He Hn
+    ipureintro; exact ⟨⟨hw.1, hp'⟩, hs⟩
+  isplitl [Hc]
+  · iexact Hc
+  iexists l, dec
+  iframe Hn
+  isplitr
+  · unfold api.logTok; iframe Hlb Hf He; ipureintro; exact hw.1
+  ipureintro; exact hp'
+
+/-- **The channel's sends bound a lower bound's** (the non-blocking receive's empty case): a
+`wsSentLb` of the stream is at most the responses sent. -/
+theorem chanApi_sentLb (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM)
+    (n : Nat) :
+    chanApi (GF := GF) γ ch γc sent recv ∗ api.wsSentLbI (wsAbsOf γ ch γc) n ⊢
+      chanApi γ ch γc sent recv ∗ ⌜n ≤ sent.length⌝ := by
+  unfold chanApi
+  iintro ⟨⟨%l, %dec, Ha, %hs⟩, #Hlb⟩
+  icases api.chanApiAt_sentLb _ l dec _ n $$ [$Ha $Hlb] with ⟨Ha, %hn⟩
+  rw [hs, List.length_map] at hn
+  isplitl
+  · iexists l, dec; iframe Ha; ipureintro; exact hs
+  ipureintro; exact hn
 
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
 registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
@@ -779,7 +806,7 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
     "Hsentl" ∷ sentAuth γ γc sent L ∗
     "Hws" ∷ ([∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w) ∗
-    "Hapi" ∷ chanApi γ ch γc sent)
+    "Hapi" ∷ chanApi γ ch γc sent recv)
 
 /-- **What the client received for a watcher's id is what was sent for the watcher** (from the
 channel invariant's persistent facts: every response's `respOk`, every registered watcher's
@@ -1297,9 +1324,11 @@ theorem chanSentLb_stream (γo : WsStreamNames) (γc : WatchChanNames) (l : List
     (h : γo.sentl = γc.sentl) : chanSentLb (GF := GF) γc l ⊣⊢ streamSentLb γo l := by
   unfold chanSentLb streamSentLb; rw [h]; exact .rfl
 
-/-- The consumer's view: it has received `received`. -/
+/-- The consumer's view: it has received `received` (and, the stream's API view, the same as the
+client sees them). -/
 def watchConsumer (γc : WatchChanNames) (received : List RespM) : IProp GF :=
-  ghostVar γc.recv (1 : Qp).half received
+  iprop(ghostVar γc.recv (1 : Qp).half received ∗
+    ghostVar γc.arcv (1 : Qp).half (received.map RespM.toW))
 
 /-- The watcher `w` (names `γw`) is registered on the channel `ch` (persistent): the channel, its
 invariant, and `w` in its set of registered watchers. -/
