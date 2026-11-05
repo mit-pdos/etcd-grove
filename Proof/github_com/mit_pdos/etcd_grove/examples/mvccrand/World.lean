@@ -81,6 +81,19 @@ def histOkM (σ : MvccState) (Hl : List HRev) : Prop :=
   σ.notifiedLog.length ≤ Hl.length ∧
   ∀ r < σ.notifiedLog.length, ∃ e, Hl[r]? = some e ∧ revOk σ.notifiedLog Hl r e
 
+/-- **A watcher's registration** (what `register` passed to `Watch`): its range's key and end, whether
+the end is `nil`, its start revision. -/
+abbrev RegInfo := GoString × GoString × Bool × w64
+
+/-- **The stream's watchers are the registry's** (id to the `*watcher` and its registration): the
+same ids, each a live watcher of its registration's range, from its start revision, unfiltered. -/
+def regOk (S : StreamState) (W : GMap w64 (Loc × RegInfo)) : Prop :=
+  ∀ id, match W !! id with
+    | none => S.ws !! id = none
+    | some (_, (kk, e, en, st)) => ∃ wi, S.ws !! id = some wi ∧
+        wi.rg = ⟨kk, if en then none else some e, st, id⟩ ∧ wi.fs = [] ∧ wi.lo = sint.nat st ∧
+        wi.live = true
+
 end model
 
 /-- The tester's ghost names. -/
@@ -94,8 +107,11 @@ structure RandNames where
   pub : GName
   /-- the published revision's value (the invariant's half, the writer's half) -/
   pv : GName
-  /-- the stream's watchers: id to the tester's `*watcher` (the invariant's half, `c.mu`'s) -/
+  /-- the stream's watchers: id to the tester's `*watcher` and its registration (`RegInfo`; the
+  invariant's half, `c.mu`'s) -/
   reg : GName
+  /-- the responses the receiver has checked (`c.mu`'s half, the receiver's half) -/
+  rcv : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -110,13 +126,13 @@ def worldN : Namespace := (nroot .@ "mvccrand") .@ "world"
 
 /-- **The tester's invariant** (see the file header). -/
 def worldInv (h : Loc) (γ : RandNames) : IProp GF :=
-  iprop(∃ (σ : MvccState) (S : StreamState) (p : w64) (Hl : List HRev) (W : GMap w64 Loc),
+  iprop(∃ (σ : MvccState) (S : StreamState) (p : w64) (Hl : List HRev) (W : GMap w64 (Loc × RegInfo)),
     mvccState γ.kv σ ∗ ghostVar γ.σ (1 : Qp).half σ ∗
     wsState γ.ws S ∗ ghostMapAuth γ.reg (1 : Qp).half W ∗
     sync.atomic.ownInt64 (hPub h) (DFrac.own 1) p ∗ ghostVar γ.pv (1 : Qp).half p ∗
     monoNatAuthOwn γ.pub 1 (sint.nat p) ∗ monoListLbOwn γ.h.l Hl ∗
     ⌜σ.crev = -1 ∧ 1 ≤ sint.Z p ∧ sint.nat p ≤ σ.rev ∧ histOkM σ Hl ∧
-      (∀ id, (S.ws !! id).isSome = (W !! id).isSome)⌝)
+      regOk S W⌝)
 
 /-- **The writer between transactions** (exclusive): the store at `σ` (nothing pending), the
 history's revisions `Hs` exactly its log's (`revOk`), `σ.rev` published. -/
