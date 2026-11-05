@@ -210,6 +210,19 @@ instance chanCancelTok_persistent (γc : WatchChanNames) (id : w64) :
     Persistent (chanCancelTok (GF := GF) γc id) := by
   unfold chanCancelTok; infer_instance
 
+/-- **The watcher of id `id` was registered in the stream's history with this info** (persistent;
+2026-11-05, the sends' premises): a lower bound of the history (`γc.aev`) holding its
+registration; `api.regTok` at the stream's names. Every watcher registered on the channel has it
+(`chanRegW`, minted at the registration), so a sender knows its registry info is the stream's
+(`factAgree`). -/
+def chanRegTok (γc : WatchChanNames) (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat) :
+    IProp GF :=
+  iprop(∃ l : List api.sent.SEv, monoListLbOwn γc.aev l ∗ ⌜api.sent.SEv.reg id rg fg lo ∈ l⌝)
+
+instance chanRegTok_persistent (γc : WatchChanNames) (id : w64) (rg : WatchRange) (fg : GName)
+    (lo : Nat) : Persistent (chanRegTok (GF := GF) γc id rg fg lo) := by
+  unfold chanRegTok; infer_instance
+
 /-- What the watchable store chooses for the stream's contract (see the module doc). -/
 structure WatchParams (GF : BundledGFunctors) where
   /-- `w` is a watcher of the store (persistent). -/

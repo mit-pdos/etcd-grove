@@ -653,6 +653,18 @@ instance chanRegFact_persistent (γc : WatchChanNames) (w : Loc) :
     Persistent (chanRegFact (GF := GF) γc w) := by
   unfold chanRegFact; infer_instance
 
+/-- **A watcher registered on the channel is in the stream's history** (persistent; 2026-11-05,
+the sends' premises): its names, its fixed range, and the registration of its range's id with its
+range, filters' name and first revision (`chanRegTok`, minted by `watch_register` right after the
+registration callback appended it). What a sender of its responses needs for `factAgree`. -/
+def chanRegW (γ : WsNames) (γc : WatchChanNames) (w : Loc) : IProp GF :=
+  iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice), watcherMeta γ w γw ∗
+    watcherFixed w r fcs ∗ chanRegTok γc r.id r γw.fg γw.lo)
+
+instance chanRegW_persistent (γ : WsNames) (γc : WatchChanNames) (w : Loc) :
+    Persistent (chanRegW (GF := GF) γ γc w) := by
+  unfold chanRegW; infer_instance
+
 /-- **What a response covers** (persistent; unit W-K, K1b): for every watcher `w'` it covers
 (`x.cov`), on this channel, the responses sent for `w'` before it (`pre`, the sent list before
 `x`) are its deliveries `D`'s sent ones, and `D`'s events are the range's of the revisions
@@ -881,14 +893,62 @@ watchable store `γ`. -/
 abbrev wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
   ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch, γc.recv, γc.acl⟩
 
+/-- **Every registration of the stream's history is a watcher registered on the channel**
+(persistent; 2026-11-05, the sends' premises): for each `.reg id rg _ _` of the history `l`, a
+watcher of the channel's registered set (`γc.reg`) with the fixed range `rg`, whose id is `id`.
+What a `-1` response's sender needs for `stampsAt`: every watcher of the stream's state is one of
+the channel's, so covered by the response or cancelled (`respCompl`). Only a registration adds to
+it (`regWit_app`). -/
+def regWit (γc : WatchChanNames) (l : List api.sent.SEv) : IProp GF :=
+  iprop(□ ∀ (id : w64) (rg : WatchRange) (fg : GName) (lo : Nat),
+    ⌜api.sent.SEv.reg id rg fg lo ∈ l⌝ -∗
+    ∃ (w : Loc) (fcs : GoSlice), ghostMapElem γc.reg w DFrac.discard () ∗ watcherFixed w rg fcs ∗
+      ⌜id = rg.id⌝)
+
+instance regWit_persistent (γc : WatchChanNames) (l : List api.sent.SEv) :
+    Persistent (regWit (GF := GF) γc l) := by
+  unfold regWit; infer_instance
+
+theorem regWit_nil (γc : WatchChanNames) : ⊢ regWit (GF := GF) γc [] := by
+  unfold regWit
+  iintro !> %id %rg %fg %lo %h
+  simp at h
+
+/-- An event other than a registration appended: the witnesses stay. -/
+theorem regWit_app (γc : WatchChanNames) (l : List api.sent.SEv) (e : api.sent.SEv)
+    (he : ∀ id rg fg lo, e ≠ .reg id rg fg lo) : regWit (GF := GF) γc l ⊢ regWit γc (l ++ [e]) := by
+  unfold regWit
+  iintro #H
+  iintro !> %id %rg %fg %lo %h
+  rcases List.mem_append.1 h with h | h
+  · iapply H $$ %id %rg %fg %lo %h
+  · rw [List.mem_singleton] at h; exact absurd h.symm (he id rg fg lo)
+
+/-- A registration appended, with its watcher's witness. -/
+theorem regWit_reg (γc : WatchChanNames) (l : List api.sent.SEv) (w : Loc) (rg : WatchRange)
+    (fcs : GoSlice) (fg : GName) (lo : Nat) :
+    regWit (GF := GF) γc l ∗ ghostMapElem γc.reg w DFrac.discard () ∗ watcherFixed w rg fcs ⊢
+      regWit γc (l ++ [.reg rg.id rg fg lo]) := by
+  unfold regWit
+  iintro ⟨#H, #Hr, #Hf⟩
+  iintro !> %id %rg' %fg' %lo' %h
+  rcases List.mem_append.1 h with h | h
+  · iapply H $$ %id %rg' %fg' %lo' %h
+  · rw [List.mem_singleton] at h
+    cases h
+    iexists w, fcs
+    iframe Hr Hf
+    ipureintro; rfl
+
 /-- **The channel invariant's API part** (stage 2 of the mvcc API, the watch chain, 2026-11-05):
 the stream's history (`api.chanApiAt`, `Api/StreamSteps.lean`), its sends the responses sent on
 the channel (`sent`, as the client sees them), the consumer's view (the invariant's half of
-`γc.arcv`) the channel's received prefix (`recv`, as the client sees it). -/
+`γc.arcv`) the channel's received prefix (`recv`, as the client sees it); every registration of
+the history a watcher registered on the channel (`regWit`, for the `-1` sends' `stampsAt`). -/
 def chanApi (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv : List RespM) : IProp GF :=
   iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)),
     api.chanApiAt (wsAbsOf γ ch γc) l dec (recv.map RespM.toW) ∗
-    ⌜api.sent.sendsOf l = sent.map RespM.toW⌝)
+    ⌜api.sent.sendsOf l = sent.map RespM.toW⌝ ∗ regWit γc l)
 
 /-- **What a receiver knows of the stream's history** (persistent): a well-formed lower bound of
 it, with a lower bound of the client's count at it, whose sends extend the responses received
@@ -911,7 +971,7 @@ theorem chanApi_recv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv
       ghostVar γc.arcv (1 : Qp).half ((recv ++ [r]).map RespM.toW) ∗ apiRecvLb γ ch γc (recv ++ [r]) := by
   unfold chanApi api.chanApiAt apiRecvLb
   rw [show (wsAbsOf γ ch γc).rcv = γc.arcv from rfl]
-  iintro ⟨⟨%l, %dec, ⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩, %hs⟩, Hc⟩
+  iintro ⟨⟨%l, %dec, ⟨Ha, %hw, #Hf, #He, Hr, #Hn⟩, %hs, #Hwit⟩, Hc⟩
   have hp' : (recv ++ [r]).map RespM.toW <+: api.sent.sendsOf l := by
     rw [hs]; exact hp.map _
   imod ghostVar_update_2 ((recv ++ [r]).map RespM.toW) γc.arcv _ (1 : Qp).half _ (1 : Qp).half
@@ -920,7 +980,7 @@ theorem chanApi_recv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent recv
   imodintro
   isplitl [Ha Hr]
   · iexists l, dec
-    iframe Ha Hr Hf He Hn
+    iframe Ha Hr Hf He Hn Hwit
     ipureintro; exact ⟨⟨hw.1, hp'⟩, hs⟩
   isplitl [Hc]
   · iexact Hc
@@ -937,16 +997,17 @@ theorem chanApi_sentLb (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent re
     chanApi (GF := GF) γ ch γc sent recv ∗ api.wsSentLbI (wsAbsOf γ ch γc) n ⊢
       chanApi γ ch γc sent recv ∗ ⌜n ≤ sent.length⌝ := by
   unfold chanApi
-  iintro ⟨⟨%l, %dec, Ha, %hs⟩, #Hlb⟩
+  iintro ⟨⟨%l, %dec, Ha, %hs, #Hwit⟩, #Hlb⟩
   icases api.chanApiAt_sentLb _ l dec _ n $$ [$Ha $Hlb] with ⟨Ha, %hn⟩
   rw [hs, List.length_map] at hn
   isplitl
-  · iexists l, dec; iframe Ha; ipureintro; exact hs
+  · iexists l, dec; iframe Ha Hwit; ipureintro; exact hs
   ipureintro; exact hn
 
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
 registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
-progress fact; stage 2 of the mvcc API: its API part (`chanApi`). -/
+progress fact; stage 2 of the mvcc API: its API part (`chanApi`), and every registered watcher's
+registration in the stream's history (`chanRegW`, for the sends' `factAgree`). -/
 def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
   iprop(∃ (s : ChanState WatchResponse) (sent recv : List RespM) (vs : List WatchResponse)
       (L : List Loc),
@@ -961,6 +1022,7 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "Hreg" ∷ ghostMapAuth γc.reg 1 (regMap L) ∗
     "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
     "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
+    "#Hrt" ∷ □ ([∗list] w ∈ L, chanRegW γ γc w) ∗
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
     "Hsentl" ∷ sentAuth γ γc sent L ∗
     "Hws" ∷ ([∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w) ∗

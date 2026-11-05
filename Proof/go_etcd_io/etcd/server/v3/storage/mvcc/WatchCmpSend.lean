@@ -15,7 +15,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendApi
 
 @[expose] public section
 
@@ -140,7 +140,19 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     ihave #Hvs' := respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
     imod sentAuth_snoc γ γw.wc sent L (cmpResp w r.id sent.length c)
       (fun h => absurd h Hrid) rfl $$ Hsentl Hrc with Hsentl
-    imod chanApi_send_M1 γ ch γw.wc sent recv (cmpResp w r.id sent.length c) $$ Hapi with Hapi
+    -- the send's premises on the stream's history (`stepOk`, stage 2)
+    ihave #Hok' : □ ([∗list] y ∈ sent ++ [cmpResp w r.id sent.length c], respOk y) $$ []
+    · iintro !>; iapply BigSepL.bigSepL_snoc.2; iframe Hok Hrok
+    ihave #Hcv : api.crevAtLeast γ.st.api (sint.Z c) $$ []
+    · iunfold cmpPerm at Hperm; icases Hperm with ⟨-, H⟩; iexact H
+    imod chanApi_send_cmp γ ch γw.wc _ sent recv L (cmpResp w r.id sent.length c) w c γw r fcs fs
+      rfl rfl Hwl
+      (fun y hy => by
+        rcases List.mem_append.1 hy with h | h
+        · exact Hnd.2 y h
+        · rw [List.mem_singleton] at h; subst h; exact Hwl)
+      rfl rfl rfl hcp
+      $$ [$Hapi $Hws $Hok' $Hrf $Hrt $Hmeta $Hfix $Hsf $Hcv] with ⟨Hapi, Hws⟩
     imod Hmask with -
     imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
     · inext
@@ -175,6 +187,8 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
         · simp only [List.mem_singleton] at h; subst h; exact Hwl
       isplitr
       · iexact Hrf
+      isplitr
+      · iexact Hrt
       isplitr
       · iintro !>
         iapply BigSepL.bigSepL_snoc.2

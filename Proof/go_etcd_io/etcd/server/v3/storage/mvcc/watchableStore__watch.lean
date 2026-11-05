@@ -576,16 +576,41 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   ihave #Hfixed := Hfix $$ Hkey
   -- the registration callback: the id's element of the channel's id map
   iunfold mvcc.chanApi at Hapi
-  icases Hapi with ⟨%l, %dec, Hapi, %Hsl⟩
+  icases Hapi with ⟨%l, %dec, Hapi, %Hsl, #Hwit⟩
   iunfold mvcc.regCb at Hcb
   imod Hcb $$ %w %γf %lo %l %dec %(recv.map mvcc.RespM.toW) %C %c %q %q2 %(And.intro hwnn hloC)
     Hsf0 Hapi HX Hpnd with ⟨%dec', #Hida, HBack, Hapi, HX, Hpnd⟩
+  -- (stage 2, the sends' premises) the registration's token, for the watcher's senders
+  icases api.chanApiAt_regTok _ _ dec' _ r.id r γf lo (List.mem_append_right _ (List.mem_singleton_self _))
+    $$ Hapi with ⟨Hapi, #Hrtok⟩
+  imod ghost_map_insert_persist w γw hM $$ Hmeta with ⟨Hmeta, #Hmw⟩
+  have hreg : (mvcc.regMap L).lookup w = none := by
+    have := mt (mvcc.regMap_lookup L w).1 HwL
+    cases h : (mvcc.regMap L).lookup w with
+    | none => rfl
+    | some _ => exact absurd (by rw [show (mvcc.regMap L !! w) = (mvcc.regMap L).lookup w from rfl, h]; rfl) this
+  imod ghost_map_insert_persist w () hreg $$ Hreg with ⟨Hreg, #Hrw⟩
   ihave Hapi : mvcc.chanApi γ ch γc sent recv $$ [Hapi]
   · iunfold mvcc.chanApi
     iexists l ++ [.reg r.id r γf lo], dec'
     iframe Hapi
-    ipureintro
-    rw [api.sent.sendsOf_append, Hsl]; simp [api.sent.sendsOf]
+    isplitr
+    · ipureintro
+      rw [api.sent.sendsOf_append, Hsl]; simp [api.sent.sendsOf]
+    iapply mvcc.regWit_reg γc l w r fcs γf lo $$ [$Hwit $Hrw $Hfixed]
+  ihave #Hrt' : □ ([∗list] w' ∈ w :: L, mvcc.chanRegW γ γc w') $$ []
+  · iintro !>
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold mvcc.chanRegW
+      iexists γw, r, fcs
+      iframe Hfixed
+      isplitr
+      · iunfold mvcc.watcherMeta; iexact Hmw
+      iunfold api.regTok at Hrtok
+      iunfold mvcc.chanRegTok
+      iexact Hrtok
+    iexact Hrt
   ihave #Hrf' : □ ([∗list] w' ∈ w :: L, mvcc.chanRegFact γc w') $$ []
   · iintro !>
     iapply BigSepL.bigSepL_cons.2
@@ -595,13 +620,6 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       iframe Hfixed Hida
       ipureintro; exact hid
     iexact Hrf
-  imod ghost_map_insert_persist w γw hM $$ Hmeta with ⟨Hmeta, #Hmw⟩
-  have hreg : (mvcc.regMap L).lookup w = none := by
-    have := mt (mvcc.regMap_lookup L w).1 HwL
-    cases h : (mvcc.regMap L).lookup w with
-    | none => rfl
-    | some _ => exact absurd (by rw [show (mvcc.regMap L !! w) = (mvcc.regMap L).lookup w from rfl, h]; rfl) this
-  imod ghost_map_insert_persist w () hreg $$ Hreg with ⟨Hreg, #Hrw⟩
   imod ghostVar_update_halves (w :: L) γc.regl _ _ $$ Hregl0 Hregl with ⟨Hregl0, Hregl⟩
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
@@ -617,7 +635,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     simp only [named]
     rw [Hopen]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe Hch Hrecv Hregl Hrf' Hpf Hsentl Hapi
+    iframe Hch Hrecv Hregl Hrf' Hrt' Hpf Hsentl Hapi
     iframe #
     isplitr
     · ipureintro; exact Hpre

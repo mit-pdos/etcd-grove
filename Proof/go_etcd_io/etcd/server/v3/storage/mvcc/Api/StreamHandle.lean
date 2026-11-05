@@ -261,7 +261,7 @@ theorem cancel_fire (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (γo : WsS
   iintro ⟨Hi, Hm, Hcs, Hau⟩
   icases watchChanInv_api γw ch γc $$ Hi with ⟨%sent, %recv, Hapi, Hback⟩
   iunfold chanApi at Hapi
-  icases Hapi with ⟨%l, %dec, Hapi, %Hsl⟩
+  icases Hapi with ⟨%l, %dec, Hapi, %Hsl, #Hwit⟩
   ihave Hau := atomic_update_mask_weaken mvccN_watchN $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -291,7 +291,9 @@ theorem cancel_fire (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (γo : WsS
     · iunfold chanApi
       iexists l ++ [.cancel id], dec
       iframe Hapi
-      ipureintro; rw [sendsOf_append, Hsl]; simp [sendsOf]
+      isplitr
+      · ipureintro; rw [sendsOf_append, Hsl]; simp [sendsOf]
+      iapply regWit_app γc l _ (fun _ _ _ _ h => by cases h) $$ Hwit
     imodintro
     iframe Hi
     iexists l ++ [.cancel id], CS, S
@@ -310,7 +312,9 @@ theorem cancel_fire (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (γo : WsS
     · iunfold chanApi
       iexists l ++ [.cancel id], dec
       iframe Hapi
-      ipureintro; rw [sendsOf_append, Hsl]; simp [sendsOf]
+      isplitr
+      · ipureintro; rw [sendsOf_append, Hsl]; simp [sendsOf]
+      iapply regWit_app γc l _ (fun _ _ _ _ h => by cases h) $$ Hwit
     imod monoListAuthOwn_update_app [id] $$ Hcs with ⟨Hcs, #Hlb⟩
     imodintro
     iframe Hi
@@ -347,7 +351,7 @@ theorem close_fire (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (Q : Stream
   iintro ⟨Hi, Hm, Hau⟩
   icases watchChanInv_api γw ch γc $$ Hi with ⟨%sent, %recv, Hapi, Hback⟩
   iunfold chanApi at Hapi
-  icases Hapi with ⟨%l, %dec, Hapi, %Hsl⟩
+  icases Hapi with ⟨%l, %dec, Hapi, %Hsl, #Hwit⟩
   ihave Hau := atomic_update_mask_weaken mvccN_watchN $$ Hau
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
@@ -370,7 +374,9 @@ theorem close_fire (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (Q : Stream
   · iunfold chanApi
     iexists l ++ [.close], dec
     iframe Hapi
-    ipureintro; rw [sendsOf_append, Hsl]; simp [sendsOf]
+    isplitr
+    · ipureintro; rw [sendsOf_append, Hsl]; simp [sendsOf]
+    iapply regWit_app γc l _ (fun _ _ _ _ h => by cases h) $$ Hwit
   imodintro
   iframe Hi
   iexists l ++ [.close], S

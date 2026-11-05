@@ -153,6 +153,8 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     isplitr
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     isplitl [Hsl Hri]
     · iunfold mvcc.sentAuth
       iframe Hsl
@@ -169,7 +171,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     iexists [], (fun _ => [])
     simp only [List.map_nil]
     iframe Hapi
-    ipureintro; rfl
+    isplitr
+    · ipureintro; rfl
+    iapply mvcc.regWit_nil
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
