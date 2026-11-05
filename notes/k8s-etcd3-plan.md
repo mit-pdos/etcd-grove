@@ -788,7 +788,16 @@ for the user. Prove order: `oneKeyRevs` into the driver's invariant first; the h
 through `create_au`, `rw_au`, `getCall`; D5's read update; then the store's loops, `call`/`Apply`,
 `refine_*`, the model functions and the rest.
 
-**Post-freeze changes** (statement, class, why): none yet.
+**Post-freeze changes** (statement, class, why):
+
+- Prove (a), `oneKeyRevs` in the invariant (2026-11-05): `kInvBody` holds `histOwn c σ`
+  (`histAuth c.γh σ ∗ oneKeyRevs c σ.rev`; `oneKeyRevs` moved from `Cache.lean` to `Inv.lean`);
+  `inv_next` takes the step's one key (`∃ K, ...`, from `kStep_items`) and returns `revSeen`;
+  `histAuth_seed` records etcd's first revision (`W64 1 ↦ []`) and returns `seedRevs`, which
+  `kInv_seed` takes. Class: internal (the invariant and its lemmas; no exported statement, no
+  premise of one). It held as planned: a step that changes the store's items at one key changes at
+  most one key under the prefix (`chgOf_pfx_one`: a new key-value is at the new revision, which no
+  item of the old state has; a deleted key had an item).
 
 ## What blocks where
 

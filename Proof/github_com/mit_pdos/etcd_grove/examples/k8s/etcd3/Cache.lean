@@ -12,11 +12,11 @@ Lean-first (no Rocq counterpart).
   **every key under the store's prefix** held it at that resource version (`versionAt`): `Gen`
   hands a client's cached object to an operation on any key, not only on the one it came from (the
   store takes it at `pathPrefix ++ k`, under `c.pfx`). For another key it holds as no other key
-  under the prefix changes at that revision (`oneKeyRevs`, which the Prove phase adds to the
+  under the prefix changes at that revision (`oneKeyRevs`, in the
   instance's invariant); for its own key, the answer's object is the one written at its resource
   version (or, for a `Delete`'s answer, none is: the key was deleted there). Review round 2 (F1):
   not every key, as the store's contract says nothing of keys outside its prefix.
-- `oneKeyRevs c n` (the invariant's clause, written out for the Prove phase, review round 2 F1/F2):
+- `oneKeyRevs c n` (the invariant's clause, review round 2 F1/F2; in `Inv.lean`, `histOwn`):
   each revision from `1` to `n` has its changes recorded in the history, with at most one key under
   the prefix (etcd's first revision: none; the seed's puts, `Apply`'s writes: one each).
 - `cacheInv c tbl`: the table's map, owned, every entry `cachedObjOk` (persistent facts: `Apply`
@@ -73,13 +73,6 @@ def cachedObjOk (c : StoreCfg GF DObj) (ob : Obj) : IProp GF :=
 instance cachedObjOk_persistent (c : StoreCfg GF DObj) (ob : Obj) :
     Persistent (cachedObjOk (GF := GF) c ob) := by
   unfold cachedObjOk; infer_instance
-
-/-- **One key under the prefix per revision** (see the file header; persistent): the history's
-entries at the revisions `1` to `n`, each changing at most one key under the store's prefix. -/
-def oneKeyRevs (c : StoreCfg GF DObj) (n : Nat) : IProp GF :=
-  iprop(□ ∀ r : Nat, ⌜1 ≤ r ∧ r ≤ n⌝ → ∃ ch : Changes,
-    ghostMapElem c.γh (W64 (r : Int)) DFrac.discard ch ∗
-      ⌜((ch.map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1⌝)
 
 /-- **The table's state** (`cache`'s lock invariant; see the file header): its map, owned, every
 entry a cached object. -/

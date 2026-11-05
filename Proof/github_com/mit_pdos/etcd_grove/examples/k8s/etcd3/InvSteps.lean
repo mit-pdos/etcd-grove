@@ -138,12 +138,60 @@ theorem revOwn_elem (γ : KNames) (σ : KVState) :
   iframe He HA
   ipureintro; exact Hok
 
+/-- The state, seen in the history. -/
+theorem histOwn_seen (c : StoreCfg GF DObj) (σ : KVState) :
+    histOwn (GF := GF) c σ ⊢ histOwn c σ ∗ kvSeen c.γh σ := by
+  iintro H
+  iunfold histOwn at H
+  icases H with ⟨Hh, #Ho⟩
+  ihave ⟨Hh, #Hs⟩ := histAuth_seen c.γh σ $$ Hh
+  iframe Hs
+  iunfold histOwn
+  iframe Hh Ho
+
+/-- **The history follows a step of etcd's state**, a step that changes the store's items at one
+key at most: the revisions so far still change one key under the prefix each; the step's entry
+comes back (`revSeen`). -/
+theorem histOwn_next (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
+    (hw : kvWf c σ) (hw' : kvWf c σ') (hr' : σ'.rev + 2 < 2 ^ 63)
+    (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    histOwn (GF := GF) c σ ⊢ |==> (histOwn c σ' ∗ revSeen c.γh σ σ') := by
+  iintro H
+  iunfold histOwn at H
+  icases H with ⟨Hh, #Ho⟩
+  imod (histAuth_next c.γh σ σ' hn (by omega) hw.1 hw'.1) $$ Hh with ⟨Hh, #Hs⟩
+  imodintro
+  iframe Hs
+  iunfold histOwn
+  iframe Hh
+  rcases hn with he | ⟨hrv, hnew⟩
+  · subst he
+    iexact Ho
+  obtain ⟨K, hK⟩ := hK
+  have h1 := chgOf_pfx_one σ σ' (Or.inr ⟨hrv, hnew⟩) hrv hw hw' K hK
+  iunfold oneKeyRevs
+  imodintro
+  iintro %r %hr
+  by_cases hlast : r = σ'.rev
+  · subst hlast
+    iunfold revSeen at Hs
+    ihave He := Hs $$ %hrv
+    iexists (chgOf σ σ')
+    isplit
+    · iexact He
+    · ipureintro; exact h1
+  · iunfold oneKeyRevs at Ho
+    iapply Ho
+    ipureintro; omega
+
 /-- **The invariant's ghost state follows a step of etcd's state** (see the file header): the
-revisions' map, the store's history, and the room for revisions (`revRoom`). -/
+revisions' map, the store's history (at a step that changes the store's items at one key at
+most), and the room for revisions (`revRoom`); the step's entry comes back. -/
 theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
-    (hw : kvWf c σ) (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63) :
-    revOwn (GF := GF) γ σ ∗ histAuth c.γh σ ⊢
-      |==> (revOwn γ σ' ∗ histAuth c.γh σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝) := by
+    (hw : kvWf c σ) (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63)
+    (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    revOwn (GF := GF) γ σ ∗ histOwn c σ ⊢
+      |==> (revOwn γ σ' ∗ histOwn c σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝ ∗ revSeen c.γh σ σ') := by
   have hr' : σ'.rev + 2 < 2 ^ 63 := by
     rcases hn with he | ⟨hrv, -⟩
     · rw [he]; exact hr
@@ -154,12 +202,18 @@ theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : K
     · exact Or.inr hrv
   iintro ⟨Hrv, Hhist⟩
   ihave Hrv := (revOwn_next γ σ σ' hn') $$ Hrv
-  ihave Hhist := (histAuth_next c.γh σ σ' hn (by omega) hw.1 hw'.1) $$ Hhist
+  ihave Hhist := (histOwn_next c σ σ' hn hw hw' hr' hK) $$ Hhist
   imod Hrv with Hrv
-  imod Hhist with ⟨Hhist, -⟩
+  imod Hhist with ⟨Hhist, #Hs⟩
   imodintro
-  iframe Hrv Hhist
+  iframe Hrv Hhist Hs
   ipureintro; exact hr'
+
+/-- The model's step on `x` changes the items at its key at most. -/
+theorem kStep_oneKey (c : StoreCfg GF DObj) (eD eU : GoInterface) (x : Input) (σ σ' : KVState)
+    (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) :
+    ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k :=
+  ⟨mkeyL x.Key', fun k hk => by rw [habs]; exact kStep_items eD eU x _ k hk⟩
 
 /-- **`lintest`'s update, committed** at the output `y` (see the file header): the history
 grows by the operation, the continuation is left. -/
@@ -223,7 +277,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -248,9 +302,10 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
     iintro %σ' ⟨Hσ, %Hpost⟩
     obtain ⟨hw', habs, hn⟩ := Hpost
     imod Hclose2 with -
-    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-    · iframe
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
+    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+      with ⟨Hrv, Hhist, %hr', #Hrs⟩
+    · iframe
     obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
     have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) =
         some S' := by
@@ -290,7 +345,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ rwMask \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -332,9 +387,10 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       icases Hb with ⟨Htok, %Hpost⟩
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
-      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-      · iframe
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
+      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+        with ⟨Hrv, Hhist, %hr', #Hrs⟩
+      · iframe
       obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
       have Hst : (k8setcd3S (GF := GF) g0).M.step S
           (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
@@ -382,7 +438,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -405,9 +461,10 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   · iintro %σ' ⟨Hσ, %Hpost⟩
     obtain ⟨hw', habs, hn⟩ := Hpost
     imod Hclose2 with -
-    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-    · iframe
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
+    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+      with ⟨Hrv, Hhist, %hr', #Hrs⟩
+    · iframe
     iunfold pendTok at Htok
     ihave %Hn := ghost_map_lookup $$ HM Htok
     imod ghost_map_delete $$ HM Htok with HM
@@ -437,7 +494,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iunfold kInvBody at Hi
   icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
   obtain ⟨Hr, Hok⟩ := Hok
-  ihave ⟨Hhist, #Hseen⟩ := histAuth_seen c.γh σ $$ Hhist
+  ihave ⟨Hhist, #Hseen⟩ := histOwn_seen c σ $$ Hhist
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ rwMask \ ↑drvInvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -476,9 +533,10 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       icases Hb with ⟨Htok, %Hpost⟩
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
-      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room) $$ [Hrv Hhist] with ⟨Hrv, Hhist, %hr'⟩
-      · iframe
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
+      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+        with ⟨Hrv, Hhist, %hr', #Hrs⟩
+      · iframe
       iunfold pendTok at Htok
       ihave %Hn := ghost_map_lookup $$ HM Htok
       imod ghost_map_delete $$ HM Htok with HM

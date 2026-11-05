@@ -241,7 +241,7 @@ theorem Main.wp_proof
   imod (seedInv_cancel γs ρ.rd.kv σs2) $$ [Hs] with Hetcd
   · iframe #
     iframe Hs
-  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist⟩
+  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
   -- `etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix, ...)`; the
   -- conversion to `runtime.Codec` (`type Codec Serializer`) unfolds two named types
   haveI : go.UnderlyingEq k8s_io.apimachinery.pkg.runtime.Codec.ty
@@ -292,6 +292,7 @@ theorem Main.wp_proof
       cl := cl, ms := [x], V := V, mt := mt, lt := lt, γh := γh }
   imod (kInv_seed ρ.rd.kv c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
   · iframe
+    iexact Hsr
   wp_apply (wp_Check γ sp c g0s st0 clients ops (W64 0) rfl rfl rfl hAs hse (by simp [c])
       (by omega) H0 H31 Hops Hmul (by rw [g0s_items]; simp)) $$ [Hks] as %r %hr
   · iframe #

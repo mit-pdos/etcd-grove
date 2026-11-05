@@ -127,6 +127,24 @@ theorem refine_step (eD eU : GoInterface) (ks : KSt DObj) (g : GSt) (h : KRel ks
   rw [hm]
   exact ⟨h, refine_get ks g h x n hn⟩
 
+/-- **The model's step changes only the input's key.** -/
+theorem kStep_items (eD eU : GoInterface) (x : Input) (ks : KSt DObj) (k : GoString)
+    (hk : k ≠ mkeyL x.Key') : (kStep eD eU x ks).1.items k = ks.items k := by
+  unfold kStep
+  by_cases h0 : x.Kind' = W64 0
+  · simp only [h0, ↓reduceIte, KSt.create]
+    repeat' split
+    all_goals simp_all [KSt.setItem]
+  by_cases h1 : x.Kind' = W64 1
+  · simp only [h0, h1, ↓reduceIte, KSt.delete]
+    repeat' split
+    all_goals simp_all [KSt.delItem]
+  by_cases h2 : x.Kind' = W64 2
+  · simp only [h0, h1, h2, ↓reduceIte, KSt.update]
+    repeat' split
+    all_goals simp_all [KSt.setItem]
+  simp only [h0, h1, h2, ↓reduceIte]
+
 /-- **The driver's model answers `EOther` only to a `Get`** (a minimum resource version above the
 store's, stage 7b): a write's outputs are objects, "not found", "key exists", "invalid object" or
 a rejection. -/
@@ -269,6 +287,68 @@ theorem kOk_pend {S : linkv.PSet GSt Input} {σ σ' : KVState} {M : GMap Nat Inp
 theorem kOk_same {S : linkv.PSet GSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
     (H : KOk c g0 S σ M nx) : KOk c g0 S σ M nx := H
 
+open Classical in
+/-- **A step of etcd's state that changes the store's items at one key `K` at most changes one key
+under the prefix** (at the next revision): a new key-value is at the new revision, which no item
+of `σ` has, and a deleted key under the prefix had an item. -/
+theorem chgOf_pfx_one (σ σ' : KVState) (hn : KvNext σ σ') (hrv : σ'.rev = σ.rev + 1)
+    (hw : kvWf c σ) (hw' : kvWf c σ') (K : GoString)
+    (hK : ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
+    (((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1 := by
+  have hnew : ∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int) := by
+    rcases hn with he | ⟨-, h⟩
+    · intro v hv; left; rw [← he]; exact hv
+    · exact h
+  have hR : uint.nat (W64 ((σ'.rev : Nat) : Int)) = σ'.rev := by
+    have := hw'.2.2.2
+    simp only [linkv.absSt] at this
+    simp only [W64, uint.nat, BitVec.toNat_ofInt]; omega
+  have hall : ∀ a ∈ ((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k)), a = K := by
+    intro a ha
+    simp only [List.mem_filter, List.mem_map, decide_eq_true_eq] at ha
+    obtain ⟨⟨⟨a', x⟩, hax, rfl⟩, hpa⟩ := ha
+    simp only at hpa ⊢
+    by_cases hne : a' = K
+    · exact hne
+    exfalso
+    have he := hK a' hne
+    rcases chgOf_keys σ σ' a' x hax with ⟨v, hv, hv0, rfl⟩ | ⟨⟨v, hv, rfl⟩, hd⟩
+    · have hf' := txn.findKey_of_mem_sorted hw'.1 hv
+      obtain ⟨o, b, hob⟩ := c.dec_of_wf σ' hw' v.key hpa v hf'
+      rw [c.abs_some σ' v.key hpa v hf' o b hob] at he
+      have hm : v.modRev = W64 ((σ'.rev : Nat) : Int) := (hnew v hv).resolve_left hv0
+      cases hf : mvcc.findKey v.key σ.kvs with
+      | none => rw [c.abs_none σ _ hf] at he; cases he
+      | some w =>
+        obtain ⟨o', b', hob'⟩ := c.dec_of_wf σ hw v.key hpa w hf
+        rw [c.abs_some σ v.key hpa w hf o' b' hob'] at he
+        have hrw : uint.nat v.modRev = uint.nat w.modRev := by
+          have := congrArg KItem.rv (Option.some.inj he)
+          simpa using this
+        have hle := (hw.2.2.1 v.key (linkv.absVR w)
+          (by simp [linkv.absSt, linkv.absM, hf])).2
+        simp only [linkv.absVR, linkv.absSt] at hle
+        rw [hm, hR] at hrw
+        omega
+    · have hf' : mvcc.findKey v.key σ'.kvs = none := by
+        unfold mvcc.findKey
+        exact List.find?_eq_none.2 (fun w hw => by simpa using hd w hw)
+      rw [c.abs_none σ' _ hf'] at he
+      have hf := txn.findKey_of_mem_sorted hw.1 hv
+      obtain ⟨o, b, hob⟩ := c.dec_of_wf σ hw v.key hpa v hf
+      rw [c.abs_some σ v.key hpa v hf o b hob] at he
+      cases he
+  have hnd : (((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k))).Nodup :=
+    (chgOf_nodup σ σ' hw.1 hw'.1).sublist List.filter_sublist
+  generalize ((chgOf σ σ').map Prod.fst).filter (fun k => decide (c.pfx <+: k)) = L at hall hnd ⊢
+  match L, hall, hnd with
+  | [], _, _ => simp
+  | [_], _, _ => simp
+  | a :: b :: _, hall, hnd =>
+    have ha := hall a (by simp)
+    have hb := hall b (by simp)
+    exact absurd (ha.trans hb.symm) ((List.pairwise_cons.1 hnd).1 b (by simp))
+
 end rel
 
 /-! ## The ghost state and the invariant -/
@@ -389,16 +469,33 @@ def revOwn (γ : KNames) (σ : KVState) : IProp GF :=
 instance revOwn_timeless (γ : KNames) (σ : KVState) : Timeless (revOwn (GF := GF) γ σ) := by
   unfold revOwn; infer_instance
 
+/-- **One key under the prefix per revision** (persistent; the cached objects' clause, `Cache.lean`):
+the history's entries at the revisions `1` to `n`, each changing at most one key under the store's
+prefix. -/
+def oneKeyRevs (c : StoreCfg GF DObj) (n : Nat) : IProp GF :=
+  iprop(□ ∀ r : Nat, ⌜1 ≤ r ∧ r ≤ n⌝ → ∃ ch : Changes,
+    ghostMapElem c.γh (W64 (r : Int)) DFrac.discard ch ∗
+      ⌜((ch.map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1⌝)
+
+instance oneKeyRevs_persistent (c : StoreCfg GF DObj) (n : Nat) :
+    Persistent (oneKeyRevs (GF := GF) c n) := by
+  unfold oneKeyRevs; infer_instance
+
+/-- **The store's history at etcd's state `σ`**: its authority (`histAuth`), every revision so
+far changing one key under the prefix at most (`oneKeyRevs`). -/
+def histOwn (c : StoreCfg GF DObj) (σ : KVState) : IProp GF :=
+  iprop(histAuth c.γh σ ∗ oneKeyRevs c σ.rev)
+
 /-- The invariant's contents (see the file header). -/
 def kInvBody (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) : IProp GF :=
   iprop(∃ (h : List OpV) (S : linkv.PSet GSt Input) (σ : KVState) (M : GMap Nat Input) (nx : Nat),
     ghostVar γ.h (1 : Qp).half h ∗ etcdKV γk σ ∗ ghostMapAuth γ.p 1 M ∗ revOwn γ σ ∗
-    histAuth c.γh σ ∗
+    histOwn c σ ∗
     ⌜run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S ∧ KOk c g0 S σ M nx⌝)
 
 instance kInvBody_timeless (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) :
     Timeless (kInvBody (GF := GF) γ c g0 γk) := by
-  unfold kInvBody; infer_instance
+  unfold kInvBody histOwn oneKeyRevs; infer_instance
 
 /-- **The instance's invariant**. -/
 def kInv (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) : IProp GF :=
