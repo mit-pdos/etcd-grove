@@ -15,6 +15,8 @@ import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
 
+set_option linter.unusedSectionVars false
+
 noncomputable section
 
 namespace Perennial
@@ -154,6 +156,51 @@ theorem rKV_curAt (γ : BoltName) (tx : Loc) (r : TxReg) (v : View) (bv : List w
         icases Hvs with %Hin
         iright; iexists r, v; iframe #; ipureintro; exact Hin
   · ipureintro; exact hfl
+
+/-- An entry of `rEnts` is an entry of one of the bucket's leaves. -/
+theorem rEnts_mem (v : View) (bv : List w8) (i : Nat) (pg : List w8) (idx : Nat)
+    (hget : (rEnts v bv)[i]? = some (pg, idx)) :
+    pg ∈ bktLeaves v.pages bv ∧ idx < pageCount pg := by
+  unfold rEnts at hget
+  obtain ⟨hlt, heq⟩ := List.getElem?_eq_some_iff.mp hget
+  have hm : (pg, idx) ∈ (bktLeaves v.pages bv).flatMap lEnts := heq ▸ List.getElem_mem hlt
+  obtain ⟨pg', hpg', hm'⟩ := List.mem_flatMap.mp hm
+  unfold lEnts at hm'
+  obtain ⟨j, hj, hje⟩ := List.mem_map.mp hm'
+  simp only [Prod.mk.injEq] at hje
+  obtain ⟨rfl, rfl⟩ := hje
+  exact ⟨hpg', List.mem_range.mp hj⟩
+
+/-- `fl &&& 1 = 0` is the flags' low bit clear. -/
+theorem w32_and_one (f : w32) : f &&& W32 1 = W32 0 ↔ f.toNat % 2 = 0 := by
+  rw [BitVec.toNat_eq]; simp [BitVec.toNat_and, Nat.and_one_is_mod]
+
+/-- **A reader cursor's move result as the public `curAt`** (`rCurKV` at `s`): the entry `s` of
+the cursor's `es` (nil, nil past the end), plain flags, and where the stack is. -/
+theorem rCurKV_pub (γ : BoltName) (tx : Loc) (r : TxReg) (v : View) (bv : List w8) (pp : Loc)
+    (els : List elemRef) (s : Nat) (k vl : GoSlice) (fl : w32) (es : List BoltEnt)
+    (hf : rdCurFacts v bv es) :
+    reg tx (bnsOf γ.gs) r ∗ viewOf r v ∗ rCurKV (GF := GF) v bv pp els s k vl fl ⊢
+      curAt tx γ es s k vl ∗ ⌜fl &&& W32 1 = W32 0 ∧ (rPosAt v bv pp els s (s + 1) ∨
+        (s = (rEnts v bv).length ∧ ∃ i, rPosAt v bv pp els i s))⌝ := by
+  obtain ⟨-, -, hes, hplain⟩ := hf
+  unfold rCurKV
+  iintro ⟨#Hreg, #Hvo, (⟨%pg, %idx, ⟨%Hp, -, %Hget⟩, Hkv⟩ | %H)⟩
+  · icases rKV_curAt γ tx r v bv es s pg idx k vl fl hes Hget $$ [Hkv] with ⟨Hc, %Hfl⟩
+    · iframe #; iexact Hkv
+    iframe
+    ipureintro
+    obtain ⟨hpg, hidx⟩ := rEnts_mem v bv s pg idx Hget
+    refine ⟨(w32_and_one fl).2 ?_, Or.inl Hp⟩
+    have := hplain pg hpg idx hidx
+    unfold leafFlags at this; rw [Hfl]; exact this
+  · obtain ⟨hs, rfl, rfl, rfl, i, hi⟩ := H
+    have hnone : es[s]? = none := by
+      rw [hes, List.getElem?_eq_none_iff, rEnts_length, hs]; exact Nat.le_refl _
+    unfold curAt
+    rw [hnone]
+    ipureintro
+    exact ⟨⟨rfl, rfl⟩, by decide, Or.inr ⟨hs, i, hi⟩⟩
 
 end pubR
 
