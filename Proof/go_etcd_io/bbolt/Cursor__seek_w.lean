@@ -24,6 +24,7 @@ public import Spec.go_etcd_io.bbolt.Cursor__keyValue_w
 public import Spec.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Proof.go_etcd_io.bbolt.Write.CurNodeH
 public import Proof.go_etcd_io.bbolt.Rebalance.BktRbl
+public import Proof.go_etcd_io.bbolt.Read.WQ
 
 @[expose] public section
 
@@ -69,16 +70,42 @@ theorem wtxW_ltree_len (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl :
       obtain ⟨-, rfl⟩ := hl
       exact Write.wtxW_node_len K tx r m X bl B l rn hB hn (hnsl l rn hn)
 
-theorem Cursor.seek_w.wp_proof
-    (hsw : Cursor.search_w.spec (GF := GF) (hG := hG))
-    (hkv : Cursor.keyValue_w.spec (GF := GF) (hG := hG))
+/-- The entries at a searchable position are fewer than `2^63`. -/
+theorem wtxWQ_ltree_len (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl : Loc) (B : BRec)
+    (p : w64) (lf : Bool) (ws : List WEntry) (hB : X.t.bs !! bl = some B) (hloc : bktLocalOK X bl)
+    (hl : ltree X bl p = some (lf, ws)) :
+    wtxWQ (GF := GF) K tx r m q X ⊢ wtxWQ K tx r m q X ∗ ⌜ws.length < 2 ^ 63⌝ := by
+  obtain ⟨-, B0, hB0, -, -, -, hnsl, -⟩ := hloc
+  rw [hB] at hB0; cases hB0
+  cases hr : resolve B p with
+  | none =>
+    cases hw : wpageAt X.v B p with
+    | none => simp [ltree, hB, hr, hw] at hl
+    | some lp =>
+      simp only [ltree, hB, hr, hw, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hl
+      obtain ⟨-, rfl⟩ := hl
+      iintro H; iframe; ipureintro
+      rw [pageWs_length]
+      have : pageCount lp.2 < 2 ^ 16 := by unfold pageCount; exact BitVec.isLt _
+      omega
+  | some l =>
+    cases hn : B.ns !! l with
+    | none => simp [ltree, hB, hr, hn] at hl
+    | some rn =>
+      simp only [ltree, hB, hr, hn, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hl
+      obtain ⟨-, rfl⟩ := hl
+      exact wtxWQ_node_len K tx r m q X bl B l rn hB hn (hnsl l rn hn)
+
+theorem Cursor.seek_w.wp_proofQ
+    (hsw : Cursor.search_w.specQ (GF := GF) (hG := hG))
+    (hkv : Cursor.keyValue_w.specQ (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
-    Cursor.seek_w.spec (GF := GF) (hG := hG) := by
-  intro K tx r m X bl c stk els0 key kb kr hloc hpm
+    Cursor.seek_w.specQ (GF := GF) (hG := hG) := by
+  intro K tx r m q X bl c stk els0 key kb kr hloc hpm
   have hinl := inlSrcOK_of_bktLocalOK X bl hloc
   wp_start as ⟨Hw, Hc, Hs, Hcap, Hkey⟩
   obtain ⟨hlive, B, hB, -⟩ := id hloc
-  icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
+  icases wtxWQ_pkgInit K tx r m q X $$ Hw with ⟨Hw, #Hpkg⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   ihave %Hsl := ownSlice_len _ _ _ $$ Hs
@@ -93,7 +120,7 @@ theorem Cursor.seek_w.wp_proof
   rw [hsub]
   wp_auto
   wp_method_call; wp_call
-  icases wtxW_bkt_acc K tx r m X bl B hB $$ Hw with ⟨Ho, Hback⟩
+  icases wtxWQ_bkt_acc K tx r m q X bl B hB $$ Hw with ⟨Ho, Hback⟩
   isimp only [objOwn] at Ho
   icases Ho with ⟨HIB, Htx, Hbks, Hpage, Hroot, Hnodes, Hib, Hnm, Hbm, Hpo⟩
   wp_auto
@@ -101,7 +128,7 @@ theorem Cursor.seek_w.wp_proof
   · iexact Hib
   ihave Hw := Hback $$ [HIB Htx Hbks Hpage Hroot Hnodes Hib Hnm Hbm Hpo]
   · isimp only [objOwn]; iframe
-  wp_apply hsw K tx r m X bl B c _ [] B.ib.root' key kr kb hB hloc hpm hinl
+  wp_apply hsw K tx r m q X bl B c _ [] B.ib.root' key kr kb hB hloc hpm hinl
     (posOK_root X bl B hloc hB) (fun h => h) $$ [Hw Hc Hs Hcap Hkey]
     as ⟨%stk', %path, %pids, Hw, Hc, Hs, Hcap, Hkey, %Hrt⟩
   · iframe
@@ -125,11 +152,11 @@ theorem Cursor.seek_w.wp_proof
   have hleaf : lLeaf X bl pids = ws := by unfold lLeaf; rw [hlast]; simp only [hlt]
   have hidx := (Hr els'.length e p true ws he hp hlt).2 rfl
   have hpp : posOK X bl B p := Hpos p (List.mem_of_getElem? hp)
-  icases wtxW_ltree_len K tx r m X bl B p true ws hB hloc hlt $$ Hw with ⟨Hw, %Hwl⟩
+  icases wtxWQ_ltree_len K tx r m q X bl B p true ws hB hloc hlt $$ Hw with ⟨Hw, %Hwl⟩
   have hix : wsIdx ws kb ≤ ws.length := by unfold wsIdx; exact (List.takeWhile_sublist _).length_le
   have hsi : sint.Z e.index' = (wsIdx ws kb : Int) := by
     have := hidx; rw [← this]; word
-  wp_apply hkv K tx r m X bl B c stk' els' e p ws hB hloc hpm hinl hpp hra hlt (by omega)
+  wp_apply hkv K tx r m q X bl B c stk' els' e p ws hB hloc hpm hinl hpp hra hlt (by omega)
     $$ [Hw Hc Hs] as %k %vl %fl ⟨Hw, Hc, Hs, Hkv⟩
   · iframe
   try wp_auto
@@ -142,6 +169,17 @@ theorem Cursor.seek_w.wp_proof
   rw [hleaf, show (sint.Z e.index').toNat = wsIdx ws kb by omega]
   unfold wKV
   iexact Hkv
+
+/-- `seek` over the whole writer (`q = 1`). -/
+theorem Cursor.seek_w.wp_proof
+    (hsw : Cursor.search_w.specQ (GF := GF) (hG := hG))
+    (hkv : Cursor.keyValue_w.specQ (GF := GF) (hG := hG))
+    (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG)) :
+    Cursor.seek_w.spec (GF := GF) (hG := hG) := by
+  intro K tx r m X bl c stk els0 key kb kr hloc hpm
+  have h := Cursor.seek_w.wp_proofQ hsw hkv hRP K tx r m 1 X bl c stk els0 key kb kr hloc hpm
+  simp only [wtxWQ_one] at h
+  exact h
 
 end proof
 

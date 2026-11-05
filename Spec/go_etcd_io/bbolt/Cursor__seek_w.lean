@@ -47,6 +47,24 @@ abbrev Cursor.seek_w.spec : Prop :=
            srcOwn X.v k (leafSrc X bl w.ks) w.key ∗ srcOwn X.v v (leafSrc X bl w.vs) w.value)
        | none => iprop(⌜k = slice.nil ∧ v = slice.nil ∧ fl = W32 0⌝)) }}
 
+/-- **`seek` at a fraction** (U6w): `spec` over `wtxWQ` at any `q`, given back unchanged (the
+public reads' writer cases). `spec` is its case `q = 1`. -/
+abbrev Cursor.seek_w.specQ : Prop :=
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl c : Loc) (stk : GoSlice)
+    (els0 : List elemRef) (key : GoSlice) (kb : List w8) (kr : KeyR),
+  bktLocalOK X bl → pmFresh X →
+  {{ wtxWQ (GF := GF) K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els0 ∗
+      ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR X.v key kr kb }}
+    (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
+  {{ (k v : GoSlice) (fl : w32), RET (PairV (PairV #k #v) #fl);
+      ∃ (stk' : GoSlice) (els : List elemRef) (pids : List w64),
+      wtxWQ K tx r m q X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* els ∗
+      ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR X.v key kr kb ∗ ⌜lPath X bl els pids ∧ lRoutes X bl els pids kb⌝ ∗
+      (match (lLeaf X bl pids)[wsIdx (lLeaf X bl pids) kb]? with
+       | some w => iprop(⌜k ≠ slice.nil ∧ fl = w.flags⌝ ∗
+           srcOwn X.v k (leafSrc X bl w.ks) w.key ∗ srcOwn X.v v (leafSrc X bl w.vs) w.value)
+       | none => iprop(⌜k = slice.nil ∧ v = slice.nil ∧ fl = W32 0⌝)) }}
+
 end spec
 
 end bbolt

@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.bbolt.Bucket__openBucket_w
 public import Perennial.Spec.bytes.Equal
 public import Proof.go_etcd_io.bbolt.Read.WOpenH
 public import Proof.go_etcd_io.bbolt.Read.WOpenWOK
+public import Proof.go_etcd_io.bbolt.Read.WQ
 public import Proof.go_etcd_io.bbolt.Read.WKey
 
 @[expose] public section
@@ -59,7 +60,8 @@ theorem Bucket.Bucket_w.wp_proof
     obtain ⟨-, B', hB', hc, -⟩ := hloc
     rw [hB] at hB'; cases hB'
     exact fun c h => hc.2.2.2.2.2.2.2.2.2.2 nb c h
-  wp_start as ⟨Hw, Hn, #Hhf⟩
+  wp_start as ⟨Hw, Hn⟩
+  icases wtxW_hdlFrags K tx r m X $$ Hw with ⟨Hw, #Hhf⟩
   icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
   icases wtxW_buckets_fld K tx r m X bl B hB $$ Hw with ⟨Hbf, Hwb⟩
   wp_auto
@@ -94,7 +96,7 @@ theorem Bucket.Bucket_w.wp_proof
     ihave #Hcf := hdlFrags_lookup r X.handles c (nb, g) (hhg c hbmc) $$ Hhf
     iapply HΦ
     iexists X
-    iframe Hw Hn Hhf
+    iframe Hw Hn
     isplitr
     · iright; iexact Hcf
     ipureintro
@@ -135,7 +137,7 @@ theorem Bucket.Bucket_w.wp_proof
         simp only [Bool.not_true]
         wp_auto
         iapply HΦ
-        iexists X; iframe Hw Hn Hhf
+        iexists X; iframe Hw Hn
         isplitr
         · ileft; ipureintro; rfl
         ipureintro; exact Or.inl ⟨rfl, rfl, hnone⟩
@@ -143,7 +145,7 @@ theorem Bucket.Bucket_w.wp_proof
         simp only [Bool.not_false]
         wp_auto
         iapply HΦ
-        iexists X; iframe Hw Hn Hhf
+        iexists X; iframe Hw Hn
         isplitr
         · ileft; ipureintro; rfl
         ipureintro; exact Or.inl ⟨rfl, rfl, hnone⟩
@@ -167,7 +169,7 @@ theorem Bucket.Bucket_w.wp_proof
         · rw [decide_eq_true hbf]
           wp_auto
           iapply HΦ
-          iexists X; iframe Hw Hn Hhf
+          iexists X; iframe Hw Hn
           isplitr
           · ileft; ipureintro; rfl
           ipureintro
@@ -229,11 +231,6 @@ theorem Bucket.Bucket_w.wp_proof
           iexists _
           iframe Hw Hn
           isplitr
-          · rw [show ((X.setBkt bl { B with bm := B.bm.insert nb c }).addBkt c C (nb, g)).handles =
-                X.handles.insert c (nb, g) from rfl]
-            iapply hdlFrags_insert r X.handles c (nb, g) Hfr.1
-            iframe #
-          isplitr
           · iright; iexact Hcf
           ipureintro
           have hwa : w ∈ X.allEnts bl := by
@@ -266,7 +263,7 @@ theorem Bucket.Bucket_w.wp_proof
         simp only [Bool.not_false]
         wp_auto
         iapply HΦ
-        iexists X; iframe Hw Hn Hhf
+        iexists X; iframe Hw Hn
         isplitr
         · ileft; ipureintro; rfl
         ipureintro

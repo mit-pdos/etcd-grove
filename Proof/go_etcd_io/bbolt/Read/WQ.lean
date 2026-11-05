@@ -186,6 +186,20 @@ theorem wtxWQ_pkgInit (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : W
   iintro ⟨⟨#Hpkg, Hrest⟩, Hc, Hm⟩
   iframe; iframe #
 
+/-- **The handles' fragments, out of `wtxW`** (persistent; `hdlAuth`'s). -/
+theorem wtxW_hdlFrags (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
+    wtxW (GF := GF) K tx r m X ⊢ wtxW K tx r m X ∗ hdlFrags r X.handles := by
+  unfold wtxW wtxCore hdlAuth
+  iintro ⟨⟨Hpkg, Hcore, Hr, Hreg, Hh, Hfills, ⟨Hbk, #Hf⟩, Hrest⟩, Hcells, Hmap⟩
+  iframe; iframe #
+
+/-- The handles' fragments, out of `wtxWQ`. -/
+theorem wtxWQ_hdlFrags (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) :
+    wtxWQ (GF := GF) K tx r m q X ⊢ wtxWQ K tx r m q X ∗ hdlFrags r X.handles := by
+  unfold wtxWQ wtxCoreQ hdlAuth
+  iintro ⟨⟨Hpkg, Hcore, Hr, Hreg, Hh, Hfills, ⟨Hbk, #Hf⟩, Hrest⟩, Hcells, Hmap⟩
+  iframe; iframe #
+
 end wq
 
 end bbolt

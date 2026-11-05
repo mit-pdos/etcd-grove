@@ -41,6 +41,21 @@ abbrev Cursor.search_w.spec : Prop :=
       ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR X.v key kr kb ∗
       ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb ∧ ∀ p ∈ pids, posOK X bl B p⌝ }}
 
+/-- **`search` at a fraction** (U6w): `spec` over `wtxWQ` at any `q`, given back unchanged.
+`spec` is its case `q = 1`. -/
+abbrev Cursor.search_w.specQ : Prop :=
+  ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
+    (stk : GoSlice) (els : List elemRef) (pid : w64) (key : GoSlice) (kr : KeyR) (kb : List w8),
+  X.t.bs !! bl = some B → bktLocalOK X bl → pmFresh X → inlSrcOK X bl →
+  posOK X bl B pid → (B.ib.root' = W64 0 → pid = W64 0) →
+  {{ wtxWQ (GF := GF) K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
+      ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR X.v key kr kb }}
+    (App (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key)) (Val #pid))
+  {{ RET #(); ∃ (stk' : GoSlice) (path : List elemRef) (pids : List w64),
+      wtxWQ K tx r m q X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ path) ∗
+      ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR X.v key kr kb ∗
+      ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb ∧ ∀ p ∈ pids, posOK X bl B p⌝ }}
+
 end spec
 
 end bbolt

@@ -30,18 +30,18 @@ else, if the searchable bucket `bl` has a nested bucket entry `name`, the child 
 value (`bktOpened`: cached in `b.buckets`, its handle registered at generation `g`), else nil. A
 well-formed `X` stays so, with the same data. The name is a key (`keyR`: caller-owned at a
 fraction, or bytes of the base view), given back; a child is returned with its handle's
-persistent fragment `(name, g)` (a cached child's from the handles' fragments `hdlFrags`, whose
-entry is `(name, g)` by the premise: for the root bucket, `gensOK` at `g = T.gen name`), and the
-fragments are kept (maintainer R's U6g item 4). -/
+persistent fragment `(name, g)` (a cached child's from the handles' fragments `hdlFrags`, which
+`wtxW` holds in its `hdlAuth` (U6w), whose entry is `(name, g)` by the premise: for the root
+bucket, `gensOK` at `g = T.gen name`; maintainer R's U6g item 4). -/
 abbrev Bucket.Bucket_w.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (name : GoSlice)
     (nb : List w8) (kr : KeyR) (g : Nat),
   X.t.bs !! bl = some B → bktLocalOK X bl → pmFresh X →
   X.t.t.writable' = true → (∀ c, B.bm !! nb = some c → X.handles !! c = some (nb, g)) →
-  {{ wtxW (GF := GF) K tx r m X ∗ keyR X.v name kr nb ∗ hdlFrags r X.handles }}
+  {{ wtxW (GF := GF) K tx r m X ∗ keyR X.v name kr nb }}
     (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"Bucket")) (Val #name))
   {{ (c : Loc), RET #c; ∃ X' : WX, wtxW K tx r m X' ∗ keyR X.v name kr nb ∗
-      hdlFrags r X'.handles ∗ (⌜c = null⌝ ∨ c ↪[r.n.bk]□ (nb, g)) ∗
+      (⌜c = null⌝ ∨ c ↪[r.n.bk]□ (nb, g)) ∗
       ⌜(c = null ∧ X' = X ∧ ¬ ∃ w ∈ X.allEnts bl, w.key = nb ∧ isBktFlag w.flags) ∨
        (c ≠ null ∧ ((B.bm !! nb = some c ∧ X' = X) ∨ bktOpened X X' bl c nb g) ∧
          (wOK X → wOK X' ∧ wtxData X' = wtxData X))⌝ }}

@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.bbolt.Read.Bytes
 public import Proof.go_etcd_io.bbolt.Cursor__search_r
 public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
 public import Proof.go_etcd_io.bbolt.Read.WKey
+public import Proof.go_etcd_io.bbolt.Read.WQ
 
 @[expose] public section
 
@@ -44,9 +45,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Cursor.search_w.wp_aux
-    (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG))
+    (hpn : Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
     (hnp : Cursor.nsearch_p.spec (GF := GF) (hG := hG))
-    (hnn : Cursor.nsearch_n.spec (GF := GF) (hG := hG))
+    (hnn : Cursor.nsearch_n.specQ (GF := GF) (hG := hG))
     (hIL : internal.common.Page.IsLeafPage.spec (GF := GF) (hG := hG))
     (hIB : internal.common.Page.IsBranchPage.spec (GF := GF) (hG := hG))
     (hBE : internal.common.Page.BranchPageElements.spec (GF := GF) (hG := hG))
@@ -57,14 +58,14 @@ theorem Cursor.search_w.wp_aux
     (hIP : internal.common.Inode.Pgid.spec (GF := GF) (hG := hG))
     (hS : Read.sort.SearchEv.spec (GF := GF) (hG := hG))
     (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
-    ⊢ (∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
+    ⊢ (∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (bl : Loc) (B : BRec) (c : Loc)
         (stk : GoSlice) (els : List elemRef) (pid : w64) (key : GoSlice) (kr : KeyR) (kb : List w8),
       ⌜X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
         posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0)⌝ →
-      ∀ Φ, (wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
+      ∀ Φ, (wtxWQ K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
           ownSliceCap elemRef stk (DFrac.own 1) ∗ keyR X.v key kr kb) -∗
         ▷ (∀ (stk' : GoSlice) (path : List elemRef) (pids : List w64),
-          (wtxW K tx r m X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ path) ∗
+          (wtxWQ K tx r m q X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ path) ∗
             ownSliceCap elemRef stk' (DFrac.own 1) ∗ keyR X.v key kr kb ∗
             ⌜lPathFrom X bl pid path pids ∧ lRoutes X bl path pids kb ∧
               ∀ p ∈ pids, posOK X bl B p⌝) -∗ Φ #()) -∗
@@ -72,24 +73,24 @@ theorem Cursor.search_w.wp_aux
           (Val #pid)) {{ Φ }}
       : IProp GF) := by
   iloeb as IH
-  iintro %K %tx %r %m %X %bl %B %c %stk %els %pid %key %kr %kb %Hh %Φ ⟨Hw, Hc, Hs, Hcap, Hkey⟩ HΦ
+  iintro %K %tx %r %m %q %X %bl %B %c %stk %els %pid %key %kr %kb %Hh %Φ ⟨Hw, Hc, Hs, Hcap, Hkey⟩ HΦ
   obtain ⟨hB, hloc, hpm, hinl, hpos, hpid0⟩ := Hh
   have hlive : bl ∈ X.liveB := hloc.1
   have hnmnn := bktLocalOK_nm_nonnull X bl B hloc hB
   obtain ⟨-, B0, hB0, hclean, hkeys, hpgl, hnsl, hvw⟩ := id hloc
   rw [hB] at hB0; cases hB0
-  icases wtxW_pkgInit K tx r m X $$ Hw with ⟨Hw, #Hpkg⟩
+  icases wtxWQ_pkgInit K tx r m q X $$ Hw with ⟨Hw, #Hpkg⟩
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
-  icases wtxW_nodes_nonnull K tx r m X bl B hB $$ Hw with ⟨Hw, %Hnodes⟩
-  ihave %Hmax := wtxW_page_maxMap K tx r m X $$ Hw
+  icases wtxWQ_nodes_nonnull K tx r m q X bl B hB $$ Hw with ⟨Hw, %Hnodes⟩
+  ihave %Hmax := wtxWQ_page_maxMap K tx r m q X $$ Hw
   wp_method_call; wp_call
   wp_auto
   have hpos0 := hpos
   rcases hpos with ⟨l, rn, hres, hrn⟩ | hpage
   · -- a materialized node
     have hlv : l ∈ X.live := hnsl l rn hrn
-    wp_apply hpn K tx r m X bl B pid hB hlive hpid0 (fun h => absurd h Hnodes) hnmnn
+    wp_apply hpn K tx r m q X bl B pid hB hlive hpid0 (fun h => absurd h Hnodes) hnmnn
       (fun h => by rw [hres] at h; cases h) $$ [Hw] as %p %n ⟨Hw, %Hpn⟩
     · iexact Hw
     rw [hres] at Hpn
@@ -112,13 +113,13 @@ theorem Cursor.search_w.wp_aux
     wp_auto
     rw [decide_eq_false hnn0]
     wp_auto
-    icases wtxW_node_cells_acc K tx r m X bl B n rn hB hrn hlv $$ Hw with ⟨%Hbase, Ho, Hcells, Hwb⟩
+    icases wtxWQ_node_cells_acc K tx r m q X bl B n rn hB hrn hlv $$ Hw with ⟨%Hbase, Ho, Hcells, Hwb⟩
     isimp only [objOwn] at Ho
     icases Ho with ⟨Hn, Hins, Hcapn, Hws, Hch, Hchcap, Hnk⟩
     icases typedPointsto_not_null_dup _ _ _ $$ Hn with ⟨Hn, %Hnn⟩
     iStructNamed Hn
     wp_auto
-    ihave Hn : (n ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+    ihave Hn : (n ↦{DFrac.own q} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
     · iapply typedPointsto_combine _ _ _ Hnn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -126,7 +127,7 @@ theorem Cursor.search_w.wp_aux
     ihave %Hwl := BigSepL2.bigSepL2_length $$ Hws
     have hnc := hclean.2.2.2.2.2.2.2.1 n rn hrn
     have hlen63 : rn.ws.length < 2 ^ 63 := by have := Hinl.2; rw [← Hwl, Hinl.1]; word
-    ihave Ho : objOwn X.v n (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
+    ihave Ho : objOwn X.v n (DFrac.own q) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
     · simp only [objOwn]; iframe
     have hlt : ltree X bl pid = some (rn.nv.isLeaf', rn.ws) := ltree_node X bl B pid n rn hB hres hrn
     have hra : refAt X bl pid ⟨null, n, W64 0⟩ := refAt_node X bl B pid n _ hB hres rfl
@@ -141,19 +142,19 @@ theorem Cursor.search_w.wp_aux
       icases Ho with ⟨Hn, Hins, Hcapn, Hws, Hch, Hchcap, Hnk⟩
       iStructNamed Hn
       wp_auto
-      ihave Hn : (n ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      ihave Hn : (n ↦{DFrac.own q} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
       · iapply typedPointsto_combine _ _ _ Hnn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
-      icases (viewCells_halves wq X.v).1 $$ Hcells with ⟨Hv1, Hv2⟩
-      icases keyR_cells_acc wq.half X.v Hbase key kr kb $$ [Hkey Hv1] with ⟨%dk, Hk, Hkb⟩
+      icases (viewCells_halves (QpMul q wq) X.v).1 $$ Hcells with ⟨Hv1, Hv2⟩
+      icases keyR_cells_acc (QpMul q wq).half X.v Hbase key kr kb $$ [Hkey Hv1] with ⟨%dk, Hk, Hkb⟩
       · iframe
       have Hlen : sint.Z rn.nv.inodes'.len = (rn.ws.length : Int) := by word
       have hsorted := hnc.2.2.2.1
       have hwsl := hnc.2.2.2.2.2.1
       wp_apply hS rn.nv.inodes'.len _ (Write.gePred rn.ws kb)
-        (fun L => iprop(n_ptr ↦ n ∗ key_ptr ↦ key ∗ n ↦ rn.nv ∗ rn.nv.inodes' ↦* rn.ins ∗
-          ([∗list] it;w ∈ rn.ins;rn.ws, wOwn X.v true it w) ∗ viewCells wq.half X.v ∗
+        (fun L => iprop(n_ptr ↦ n ∗ key_ptr ↦ key ∗ n ↦{DFrac.own q} rn.nv ∗ rn.nv.inodes' ↦*{DFrac.own q} rn.ins ∗
+          ([∗list] it;w ∈ rn.ins;rn.ws, wOwn X.v true it w) ∗ viewCells (QpMul q wq).half X.v ∗
           key ↦*{dk} kb ∗ exact_ptr ↦ snExact rn.ws kb L ∗
           ⌜∀ j ∈ L, 0 ≤ j ∧ j < (rn.ws.length : Int)⌝))
         $$ [n key Hn Hins Hws Hv2 Hk exact]
@@ -167,7 +168,7 @@ theorem Cursor.search_w.wp_aux
           rw [Hlen] at Hbi
           iStructNamed Hn
           wp_auto
-          ihave Hn : (n ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+          ihave Hn : (n ↦{DFrac.own q} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
           · iapply typedPointsto_combine _ _ _ Hnn
             simp only [TypedPointsto.typedPointstoDef]
             iframe
@@ -182,7 +183,7 @@ theorem Cursor.search_w.wp_aux
           simp only [↓reduceIte]
           icases Hw1 with ⟨%Hfp, Hik, Hiv⟩
           have Hwks : w.ks ≠ Src.stale := (hwsl w (List.mem_of_getElem? Hw_lookup)).1
-          icases srcOwn_acc wq.half X.v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
+          icases srcOwn_acc (QpMul q wq).half X.v it.key' w.ks w.key Hwks Hbase $$ [Hik Hv2] with ⟨%dik, Hik, Hikb⟩
           · iframe
           wp_apply hC $$ [Hik Hk] as ⟨Hik, Hk⟩
           · iframe
@@ -292,7 +293,7 @@ theorem Cursor.search_w.wp_aux
         from fun a x => by simp]
       iStructNamed Hn
       try wp_auto
-      ihave Hn : (n ↦ rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
+      ihave Hn : (n ↦{DFrac.own q} rn.nv : IProp GF) $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
       · iapply typedPointsto_combine _ _ _ Hnn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -311,9 +312,9 @@ theorem Cursor.search_w.wp_aux
       ihave Hins := Hsb $$ Hit
       rw [list_set_lookup_self _ _ _ Hit_lookup]
       icases Hkb $$ Hk with ⟨Hkey, Hv1⟩
-      ihave Hcells : viewCells wq X.v $$ [Hv1 Hv2]
-      · iapply (viewCells_halves wq X.v).2; iframe
-      ihave Ho : objOwn X.v n (DFrac.own 1) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
+      ihave Hcells : viewCells (QpMul q wq) X.v $$ [Hv1 Hv2]
+      · iapply (viewCells_halves (QpMul q wq) X.v).2; iframe
+      ihave Ho : objOwn X.v n (DFrac.own q) true (.node bl rn) $$ [Hn Hins Hcapn Hws Hch Hchcap Hnk]
       · simp only [objOwn]; iframe
       ihave Hw := Hwb $$ Ho Hcells
       rw [Hfp.2]
@@ -328,7 +329,7 @@ theorem Cursor.search_w.wp_aux
           posOK X bl B w.pgid ∧ (B.ib.root' = W64 0 → w.pgid = W64 0) :=
         ⟨hB, hloc, hpm, hinl, posOK_node_child X bl B n rn k w hloc hB hrn hleaf Hw_lookup,
           fun h => absurd h hroot⟩
-      wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨null, n, ri⟩]) %w.pgid %key %kr %kb
+      wp_apply IH $$ %K %tx %r %m %q %X %bl %B %c %s1 %(els ++ [⟨null, n, ri⟩]) %w.pgid %key %kr %kb
         %Hch' [Hw Hc Hs Hcap Hkey] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, Hkey, %Hrt⟩
       · iframe
       iapply HΦ $$ %stk'' %((⟨null, n, ri⟩ : elemRef) :: path') %(pid :: pids')
@@ -348,7 +349,7 @@ theorem Cursor.search_w.wp_aux
       rw [hri]; exact nRoute_lroute rn.ws kb k hR1
     · -- a leaf node
       wp_auto
-      wp_apply hnn c bl s1 els ⟨null, n, W64 0⟩ X.v bl rn wq key kr kb hnn0 hnc.2.2.2.1
+      wp_apply hnn c bl s1 els ⟨null, n, W64 0⟩ X.v bl rn q (QpMul q wq) key kr kb hnn0 hnc.2.2.2.1
         hnc.2.2.2.2.2.1 Hbase $$ [Hc Hs Ho Hcells Hkey] as ⟨Hc, Hs, Ho, Hcells, Hkey⟩
       · iframe
       ihave Hw := Hwb $$ Ho Hcells
@@ -367,8 +368,8 @@ theorem Cursor.search_w.wp_aux
   · -- a page: the inline page, or a view page
     obtain ⟨hres, pa, pg, hw, h16, hsrc, hpa, hpre, hkind⟩ :=
       posOK_page_facts X bl B pid hB hloc hpm hinl Hmax hpage
-    icases wtxW_page_srcLoc K tx r m X bl B pid pa pg hB hlive hw hsrc hpa $$ Hw with ⟨Hw, #Hsrc⟩
-    wp_apply hpn K tx r m X bl B pid hB hlive hpid0 (fun h => absurd h Hnodes) hnmnn
+    icases wtxWQ_page_srcLoc K tx r m q X bl B pid pa pg hB hlive hw hsrc hpa $$ Hw with ⟨Hw, #Hsrc⟩
+    wp_apply hpn K tx r m q X bl B pid hB hlive hpid0 (fun h => absurd h Hnodes) hnmnn
       (fun _ => ⟨pa, pg, hw, hsrc, hpre⟩) $$ [Hw] as %p %n ⟨Hw, %Hpn⟩
     · iexact Hw
     rw [hres] at Hpn
@@ -376,8 +377,8 @@ theorem Cursor.search_w.wp_aux
     rw [hw] at hw'
     simp only [Option.some.injEq, Prod.mk.injEq] at hw'
     obtain ⟨rfl, rfl⟩ := hw'
-    icases wtxW_cells_acc K tx r m X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
-    icases cells_page_keyR_acc wq X.v Hbase pa (pgSrc B) pg key kr kb $$ [Hcells Hkey]
+    icases wtxWQ_cells_acc K tx r m q X $$ Hw with ⟨%Hbase, Hcells, Hwb⟩
+    icases cells_page_keyR_acc (QpMul q wq) X.v Hbase pa (pgSrc B) pg key kr kb $$ [Hcells Hkey]
       with ⟨%dq, %dk, Hp, Hk, Hpb⟩
     · iframe; iframe #
     icases Read.bytesPointsto_bounds pa dq pg (by intro e; simp [e] at h16) $$ Hp with ⟨Hp, %Hlb⟩
@@ -664,7 +665,7 @@ theorem Cursor.search_w.wp_aux
           rw [(pageW_branch pg k hbr).2]
           exact posOK_page_child X bl B pid pg k hroot htw hnmf hpgv hbr hkc,
           fun h => absurd h hroot⟩
-      wp_apply IH $$ %K %tx %r %m %X %bl %B %c %s1 %(els ++ [⟨pa, null, ri⟩]) %(pageW pg k).pgid
+      wp_apply IH $$ %K %tx %r %m %q %X %bl %B %c %s1 %(els ++ [⟨pa, null, ri⟩]) %(pageW pg k).pgid
         %key %kr %kb %Hch' [Hw Hc Hs Hcap Hkey] as %stk'' %path' %pids' ⟨Hw, Hc, Hs, Hcap, Hkey, %Hrt⟩
       · iframe
       iapply HΦ $$ %stk'' %((⟨pa, null, ri⟩ : elemRef) :: path') %(pid :: pids')
@@ -697,10 +698,39 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Cursor.search_w.wp_proof
-    (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG))
+theorem Cursor.search_w.wp_proofQ
+    (hpn : Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
     (hnp : Cursor.nsearch_p.spec (GF := GF) (hG := hG))
-    (hnn : Cursor.nsearch_n.spec (GF := GF) (hG := hG))
+    (hnn : Cursor.nsearch_n.specQ (GF := GF) (hG := hG))
+    (hIL : internal.common.Page.IsLeafPage.spec (GF := GF) (hG := hG))
+    (hIB : internal.common.Page.IsBranchPage.spec (GF := GF) (hG := hG))
+    (hBE : internal.common.Page.BranchPageElements.spec (GF := GF) (hG := hG))
+    (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
+    (hBK : internal.common.branchPageElement.Key.spec (GF := GF) (hG := hG))
+    (hBP : internal.common.branchPageElement.Pgid.spec (GF := GF) (hG := hG))
+    (hIK : internal.common.Inode.Key.spec (GF := GF) (hG := hG))
+    (hIP : internal.common.Inode.Pgid.spec (GF := GF) (hG := hG))
+    (hS : Read.sort.SearchEv.spec (GF := GF) (hG := hG))
+    (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
+    Cursor.search_w.specQ (GF := GF) (hG := hG) := by
+  intro K tx r m q X bl B c stk els pid key kr kb hB hloc hpm hinl hpos hpid0
+  iintro %Φ Hpre HΦ
+  have hP : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
+      posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0) :=
+    ⟨hB, hloc, hpm, hinl, hpos, hpid0⟩
+  iapply (Cursor.search_w.wp_aux hpn hnp hnn hIL hIB hBE hCnt hBK hBP hIK hIP hS hC) $$ %K %tx %r %m %q
+    %X %bl %B %c %stk %els %pid %key %kr %kb %hP Hpre
+  inext
+  iintro %stk' %path %pids H
+  iapply HΦ
+  iexists stk', path, pids
+  iexact H
+
+/-- `search` over the whole writer (`q = 1`). -/
+theorem Cursor.search_w.wp_proof
+    (hpn : Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
+    (hnp : Cursor.nsearch_p.spec (GF := GF) (hG := hG))
+    (hnn : Cursor.nsearch_n.specQ (GF := GF) (hG := hG))
     (hIL : internal.common.Page.IsLeafPage.spec (GF := GF) (hG := hG))
     (hIB : internal.common.Page.IsBranchPage.spec (GF := GF) (hG := hG))
     (hBE : internal.common.Page.BranchPageElements.spec (GF := GF) (hG := hG))
@@ -713,17 +743,10 @@ theorem Cursor.search_w.wp_proof
     (hC : bytes.Compare.spec (GF := GF) (hG := hG)) :
     Cursor.search_w.spec (GF := GF) (hG := hG) := by
   intro K tx r m X bl B c stk els pid key kr kb hB hloc hpm hinl hpos hpid0
-  iintro %Φ Hpre HΦ
-  have hP : X.t.bs !! bl = some B ∧ bktLocalOK X bl ∧ pmFresh X ∧ inlSrcOK X bl ∧
-      posOK X bl B pid ∧ (B.ib.root' = W64 0 → pid = W64 0) :=
-    ⟨hB, hloc, hpm, hinl, hpos, hpid0⟩
-  iapply (Cursor.search_w.wp_aux hpn hnp hnn hIL hIB hBE hCnt hBK hBP hIK hIP hS hC) $$ %K %tx %r %m
-    %X %bl %B %c %stk %els %pid %key %kr %kb %hP Hpre
-  inext
-  iintro %stk' %path %pids H
-  iapply HΦ
-  iexists stk', path, pids
-  iexact H
+  have h := Cursor.search_w.wp_proofQ hpn hnp hnn hIL hIB hBE hCnt hBK hBP hIK hIP hS hC
+    K tx r m 1 X bl B c stk els pid key kr kb hB hloc hpm hinl hpos hpid0
+  simp only [wtxWQ_one] at h
+  exact h
 
 end proof'
 
