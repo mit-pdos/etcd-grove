@@ -336,6 +336,7 @@ abbrev EtcdServer.apply.specOff : Prop :=
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
     (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat),
+  receiptBound GF ≤ 2 ^ 48 →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
@@ -442,6 +443,7 @@ abbrev EtcdServer.applyEntries.specOff : Prop :=
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat),
+  receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
@@ -533,7 +535,7 @@ theorem EtcdServer.apply.spec_off
     EtcdServer.apply.specOff (GF := GF) (hG := hG) := by
   unfold EtcdServer.apply.spec at h
   simp only [srvRunH_apply_spec] at h
-  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok hdv
+  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hRB hne hfrom hok hEok hdv
   iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hents, Hst, Hbe, Happ, Hcs, Hcv, Hlr, Hgr, HKV, Hao, Hlog0, Hbc,
     HWP, HWA0, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
@@ -543,7 +545,7 @@ theorem EtcdServer.apply.spec_off
   have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
     intro k; unfold srvTokRights; rw [hm]
   have h' := h s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w srvAuthSt0
-    (by rw [hm]; simp) (fun h1 => absurd (hoff ▸ h1) (by simp)) hne hfrom hok
+    (by rw [hm]; simp) hRB hne hfrom hok
     (by rw [hoff]; exact hEok) hdv
   rw [hoff] at h'
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT] at h'
@@ -571,7 +573,7 @@ theorem EtcdServer.apply.spec_on
     hEok hdv
   have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
   have h' := h s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa
-    (by rw [hM]; simp) (fun _ => hRB) hne hfrom hok (by rw [hon]; exact hEok) hdv
+    (by rw [hM]; simp) hRB hne hfrom hok (by rw [hon]; exact hEok) hdv
   rw [hon] at h'
   simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true] at h'
   exact h'
@@ -583,7 +585,7 @@ theorem EtcdServer.applyEntries.spec_off
     EtcdServer.applyEntries.specOff (GF := GF) (hG := hG) := by
   unfold EtcdServer.applyEntries.specBatch at h
   simp only [srvRunH_applyEntries_spec] at h
-  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok hEok hdv
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w hRB Hms Hai1 Hok hEok hdv
   iintro %Φ ⟨#Hpkg, #Hsrv, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hcv, Hst, Hbe, Happ, Hlr, Hgr,
     HKV, Hao, Hlog, Hbc, HW, HWA, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
@@ -593,7 +595,7 @@ theorem EtcdServer.applyEntries.spec_off
   have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
     intro k; unfold srvTokRights; rw [hm]
   have h' := h s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w srvAuthSt0
-    (by rw [hm]; simp) (fun h1 => absurd (hoff ▸ h1) (by simp)) Hms Hai1 Hok
+    (by rw [hm]; simp) hRB Hms Hai1 Hok
     (by rw [hoff]; exact hEok) hdv
   rw [hoff] at h'
   simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false, hT] at h'
@@ -621,7 +623,7 @@ theorem EtcdServer.applyEntries.spec_on
     Hok hEok hdv
   have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
   have h' := h s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa
-    (by rw [hM]; simp) (fun _ => hRB) Hms Hai1 Hok (by rw [hon]; exact hEok) hdv
+    (by rw [hM]; simp) hRB Hms Hai1 Hok (by rw [hon]; exact hEok) hdv
   rw [hon] at h'
   simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true] at h'
   exact h'

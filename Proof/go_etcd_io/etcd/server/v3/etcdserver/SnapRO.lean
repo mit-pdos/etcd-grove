@@ -446,14 +446,6 @@ theorem authMode_off_of (E : apply.AEnv GF) (h : E.authOn = false) : E.authMode 
   unfold apply.AEnv.authOn at h
   cases hm : E.authMode <;> simp_all [auth.AuthMode.isOn]
 
-/-- **The server's backend tie names one backend** (strict M1, 2026-11-06): two ties agree only at
-the same backend. -/
-theorem srvBkTie_inj (d0 d : BkRef) (h : srvBkTie (GF := GF) d0 = srvBkTie d) : d0 = d := by
-  have h1 := congrFun h d0
-  unfold srvBkTie at h1
-  have h2 : (emp : IProp GF) ⊢ iprop(⌜d0 = d⌝) := h1 ▸ BI.pure_intro rfl
-  exact Iris.pure_soundness h2
-
 /-- (2026-11-01, J8a-1, item 5) **The bundle at the next backend**: `srvSnapRO` at the environment
 `E'` a snapshot install moves to (`beSucc`: the store's handle and names, the auth store's reader
 resource and mode kept), from the new backend's facts `srvSnapApplied` gives (`E'` on `d'`, at the

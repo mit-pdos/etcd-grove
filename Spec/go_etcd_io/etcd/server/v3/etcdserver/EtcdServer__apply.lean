@@ -41,7 +41,7 @@ abbrev EtcdServer.apply.spec : Prop :=
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
     (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat) (sa : auth.AuthState),
-  E.authMode ≠ .any → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
+  E.authMode ≠ .any → receiptBound GF ≤ 2 ^ 48 →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

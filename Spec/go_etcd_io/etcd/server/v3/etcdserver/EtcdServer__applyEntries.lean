@@ -41,7 +41,7 @@ abbrev EtcdServer.applyEntries.specBatch : Prop :=
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat) (sa : auth.AuthState),
-  E.authMode ≠ .any → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
+  E.authMode ≠ .any → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShapeM E.authOn (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s

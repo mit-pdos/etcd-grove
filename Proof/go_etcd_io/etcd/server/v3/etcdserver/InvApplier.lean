@@ -588,7 +588,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
-      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
+      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -1174,6 +1174,16 @@ theorem srvBeOwn_pool (s : Loc) (E : apply.AEnv GF) :
   iframe Hbe Hg Hro Hpl Hrt
   ipureintro; exact Hd
 
+omit package_sem in
+/-- **The server's backend tie names one backend** (strict M1, 2026-11-06): two ties agree only at
+the same backend. -/
+theorem srvBkTie_inj (d0 d : BkRef) (h : srvBkTie (GF := GF) d0 = srvBkTie d) : d0 = d := by
+  have h1 := congrFun h d0
+  unfold srvBkTie at h1
+  have h2 : (emp : IProp GF) ⊢ iprop(⌜d0 = d⌝) := h1 ▸ BI.pure_intro rfl
+  exact Iris.pure_soundness h2
+
+omit package_sem in
 /-- **The server's tie pins the backend** (2026-11-06): a backend `B` its tie `srvBkTie d` does not
 refute (`apply.tieOk`) is `d`. -/
 theorem tieOk_srv (E : apply.AEnv GF) (d B : BkRef) (hd : E.BkTie = srvBkTie d)
@@ -1186,6 +1196,18 @@ theorem tieOk_srv (E : apply.AEnv GF) (d B : BkRef) (hd : E.BkTie = srvBkTie d)
   iintro %h'
   exact absurd h' hne
 
+omit package_sem in
+/-- **A write-back token of the server's current backend, at the tie's backend** (2026-11-06). -/
+theorem srvWT_at (E : apply.AEnv GF) (d : BkRef) (hd : E.BkTie = srvBkTie d) :
+    srvWT (GF := GF) E ⊢ apply.bkWT d := by
+  iintro H
+  iunfold srvWT at H
+  icases H with ⟨%d', %hd', Ht⟩
+  have := srvBkTie_inj d' d (hd'.symm.trans hd)
+  subst this
+  iexact Ht
+
+omit package_sem in
 /-- **The reader token given back, at the server's tie** (2026-11-06): `dispatch`'s and `Apply`'s
 `apply.bkRTOf E` is the token of the tie's backend `d`. -/
 theorem bkRTOf_srv (E : apply.AEnv GF) (d : BkRef) (hd : E.BkTie = srvBkTie d) :

@@ -519,7 +519,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave #Hcp := kv_certPre_M E γr.kv Hcok γr.kv.c0 (kvLeases γr.kv A) x m rq true
         (Hpl rq hdata hdec) Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
-      obtain ⟨HEP, HEf⟩ := HE
+      obtain ⟨HEP, HEf, HEnn⟩ := HE
       -- the floor its proposer recorded with the entry's claim (the vertical slice's unit V2)
       -- (and, unit T1, the committed log it is in)
       have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
@@ -1280,7 +1280,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
-      obtain ⟨HEP, HEf⟩ := HE
+      obtain ⟨HEP, HEf, HEnn⟩ := HE
       -- the floor its proposer recorded with the entry's claim (and the committed log it is in)
       have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
