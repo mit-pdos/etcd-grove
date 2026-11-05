@@ -49,3 +49,26 @@ the extension to be built autonomously; nothing is on `lean`.
 9. **Not in this round**: `Seek`/`Write`/`Read` at the file offset (the plan: an offset field in the
    trusted `os.file` model over `pread`/`pwrite`), `RemoveAll` (translatable Go), `MkdirAll`, the
    namespace's program logic (ghost state, specs), the crash proof of `segdir.Boot`.
+
+10. **No two metadata calls at once** (round 1 of the review, finding 4; `NsBegin`): two calls that
+    change the namespace and overlap in time are a stuck run, since the journal may order them
+    against what the program saw. So no verified program may make metadata calls from two
+    goroutines at once. **The WAL does**: `filePipeline`'s goroutine creates the next `N.tmp`
+    (`LockFile`, `O_CREATE`) right after handing one over, while `cut` renames the previous one
+    (and etcd's purge goroutines remove old files beside both). So with this repair the WAL's
+    `cut` is not verifiable; `segdir.Boot` (one goroutine) is. The fix to make before the WAL:
+    start/finish steps for the namespace's calls, each logged with the calls that had finished
+    when it began, and a crash that keeps a set of logged calls closed under "finished before the
+    other began" (with calls on one directory serialized, as the directory's lock serializes
+    them). Recommended next; it changes `NsCrash` and the steps again.
+
+11. **An fsync of a directory whose path was rebound commits nothing** (finding 1;
+    `dirCommitLen`): sound, and the WAL's `Create`/`cut` are unaffected, but a program that renames
+    a directory and then relies on an fsync of it by its new path, before the parent's fsync, cannot
+    be proved crash-safe. Directory identities would lift it.
+
+12. **etcd's data directory as a root** (the reviewer's note 11): `wal.Create` syncs `member/`, so the
+    root must contain `member/`, which then contains `member/snap/db`. bbolt's file would be in the
+    namespace, not the legacy regime: bbolt's proof (legacy paths) and the WAL's (the namespace)
+    meet there; the per-key ghost state is the same for both, so the gap is `Open`'s regime, not
+    the file specs.

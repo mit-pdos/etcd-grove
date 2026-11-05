@@ -127,6 +127,21 @@ def commitLen (d : GoString) : List NsOp → Nat
     let n := commitLen d os
     if 0 < n then n + 1 else if d ∈ o.dirs then 1 else 0
 
+/-- The operation made, removed or moved the path `d` or one above it: before it, `d` may have
+named another directory, or none. -/
+def NsOp.rebinds (d : GoString) : NsOp → Bool
+  | .create p _ => decide (IsUnder p d)
+  | .mkdir p => decide (IsUnder p d)
+  | .remove p => decide (IsUnder p d)
+  | .rename s t => decide (IsUnder s d) || decide (IsUnder t d)
+
+/-- How much of the log an fsync of the directory at `d` is known to commit: `commitLen`, unless
+an operation of the log rebinds `d` (then the operations recorded with the path `d` may be of
+another directory, and nothing is known to be committed: the journal commits up to the last
+change of the directory the fd is on, which the path does not identify). -/
+def dirCommitLen (d : GoString) (ops : List NsOp) : Nat :=
+  if ops.any (·.rebinds d) then 0 else commitLen d ops
+
 /-- The names (last components) an operation adds to the directory `d`, and those it removes or
 changes there. -/
 def NsOp.adds (d : GoString) : NsOp → List GoString

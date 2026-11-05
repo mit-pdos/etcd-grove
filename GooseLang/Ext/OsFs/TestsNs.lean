@@ -66,6 +66,16 @@ example : commitLen go!"/r" [.create go!"/r/w.tmp/seg" [0], .rename go!"/r/w.tmp
 example : commitLen go!"/r/w" [.create go!"/r/w.tmp/seg" [0], .rename go!"/r/w.tmp" go!"/r/w"] = 0 := by
   decide
 
+/-- The review's case (2026-11-05): a create in `/r/a/b`, then `/r/a` moved away and `/r/z` moved
+to `/r/a`: an fsync of the directory now at `/r/a/b` is not known to commit the create, which was
+of another directory. -/
+example : dirCommitLen go!"/r/a/b" [.create go!"/r/a/b/f" [0], .rename go!"/r/a" go!"/r/q",
+    .rename go!"/r/z" go!"/r/a"] = 0 := by decide
+
+/-- ... while the WAL's `Create` (no path above `/r` moved) is: the fsync of `/r` commits both. -/
+example : dirCommitLen go!"/r" [.create go!"/r/w.tmp/seg" [0], .rename go!"/r/w.tmp" go!"/r/w"] = 2 := by
+  decide
+
 /-- An fsync of `/r` does not commit a later operation in another directory. -/
 example : commitLen go!"/r" [.create go!"/r/a" [0], .create go!"/r/w/b" [1]] = 1 := by decide
 
@@ -84,7 +94,7 @@ theorem commitLen_le (d : GoString) (ops : List NsOp) : commitLen d ops ≤ ops.
 /-- With nothing logged, a crash leaves the durable namespace. -/
 theorem crash_empty_log {st st' : OsState} (hl : st.nsLog = []) (h : NsCrash st st') :
     st'.ns = st.nsDur := by
-  obtain ⟨-, -, -, -, ⟨n, -, hn⟩, -⟩ := h
+  obtain ⟨-, -, -, -, -, ⟨n, -, hn⟩, -⟩ := h
   rw [hn, hl]; simp [nsReplay]
 
 /-- A successful fsync of a directory leaves nothing of what it committed to a crash: a crash
@@ -92,7 +102,7 @@ after it keeps at least the operations up to the last one that changed the direc
 theorem crash_after_dirSync {st st' : OsState} {fd : w64} {df : OsDirFd} {e' : Expr}
     (hd : st.dfds !! fd = some df)
     (h : IsOsStep "DirSync" (#fd) st e' st') (he : e' = Val (#(0 : w64))) :
-    st'.nsDur = nsReplay (st.nsLog.take (commitLen df.path st.nsLog)) st.nsDur := by
+    st'.nsDur = nsReplay (st.nsLog.take (dirCommitLen df.path st.nsLog)) st.nsDur := by
   simp only [IsOsStep] at h
   obtain ⟨fd', df', n, hv, hd', -, rfl, hres⟩ := h
   cases go.intoVal_inj hv
@@ -105,7 +115,7 @@ theorem crash_after_dirSync {st st' : OsState} {fd : w64} {df : OsDirFd} {e' : E
 /-- A crash never loses a file the namespace it leaves names. -/
 theorem crash_keeps_named {st st' : OsState} (h : OsCrash st st') {p k : GoString}
     (hp : st'.ns !! p = some (.file k)) : ∃ f, st'.files !! k = some (some f) :=
-  h.2.2.2.2.2.2 p k hp
+  h.2.2.2.2.2.2.2 p k hp
 
 /-! ## Reads -/
 

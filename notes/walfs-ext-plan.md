@@ -103,14 +103,16 @@ no NUL) and in a root's tree, or the step is stuck (path resolution is not model
 | `Regime(p)` | `0` if `p` is a key of `files` (legacy), else `1`. No system call. |
 | `NsOpen(p, fl)` | a file name: as `Open` on its key; a new name with `O_CREAT` in a directory of `ns`: a fresh key, a new empty file, a `create` logged; a directory with `O_RDONLY`: a directory fd. |
 | `FdKind(fd)` | `0` for a file fd, `1` for a directory fd, stuck otherwise. No system call. |
-| `DirSync(fd)` | commits the log through the last operation that changed the directory. |
+| `NsBegin()` | the start of a call that changes the namespace (`open` with `O_CREAT` of a managed path, `rename`, `unlink`, `rmdir`, `mkdir`): stuck while another one is between its start and its step; the trusted models make it just before the call. Two such calls that overlap in time are a stuck run of the model (round 1, finding 4). |
+| `DirSync(fd)` | commits the log through the last operation that changed the directory (`dirCommitLen`: nothing while the log holds an operation that made, removed or moved the directory's path or one above it, round 1, finding 1). |
 | `DirClose(fd)` | frees the directory fd. |
-| `DirRead(fd)`, `DirReadFinish(tok)` | two steps: the names the directory had throughout, and any of the names it had in between, each once (POSIX's `readdir` across concurrent changes). A second read of one fd is stuck. |
-| `NsLstatDir(p)` | `lstat`'s "is it a directory", which `os.Rename` asks of its destination: `(isDir, e)`, `e` any nonzero errno (the error `os.Rename` returns, `EEXIST` or the `lstat` of the source's). A query of the state, not a change. |
+| `DirReadNext(fd)` | one name at a time (the read's state is the fd's): the names the directory had throughout, each once, and any of the names it had in between, again if touched since returned (POSIX's `readdir` across concurrent changes; round 1, finding 5); then the end. A second read of one fd is stuck. |
+| `NsLstatDir(p)` | `lstat`'s "is it a directory", which `os.Rename` asks of its destination: `(1, e)` for a directory, `e` a nonzero errno (the error `os.Rename` returns, `EEXIST` or the `lstat` of the source's); `(0, _)` for anything, a directory too (the `lstat` failed; round 1, finding 2). A query of the state, not a change. |
 | `Rename(src, dst)` | `rename(2)`: a file onto nothing or a file (replaced; the old file stays readable through its fds); a directory onto nothing or an empty directory (replaced), not into its own tree. Stuck while a directory fd is open in `src`'s tree or on `dst`. Go's `os.Rename` (its trusted model) first refuses an existing directory as `dst` (`NsLstatDir`), as Go does: two system calls, so a directory made at `dst` between them is replaced, as on Linux. |
 | `Unlink(p)`, `Rmdir(p)` | `unlink(2)` of a file (its fds keep it), `rmdir(2)` of an empty directory (stuck while a directory fd is open on it). Go's `os.Remove` (its trusted model) is Go's: `unlink`, then `rmdir` if that failed, the error chosen as Go chooses it. |
 | `Mkdir(p)` | a new directory. |
-| `FallocStart(fd, mode, off, len)` | mode 0: a truncate to `max size (off+len)` in flight (its finish is `FtruncateFinish`); `FALLOC_FL_KEEP_SIZE`: no change. |
+| `FallocStart(fd, off, len)`, `FallocFinish(tok)` | mode 0: a truncate to `max size (off+len)` in flight; on failure the file may have any size between (ext4 grows it chunk by chunk; round 1, finding 3). Stuck on a negative offset or a length not above 0. |
+| `FallocKeep(fd, off, len)` | `FALLOC_FL_KEEP_SIZE`: no visible change, any errno. |
 | `OfdLock(fd, cmd)` | trivial, as `Flock` (D7): any errno. |
 
 ### The trusted Go models (`TrustedCode/os.lean`, `TrustedCode/golang_org/x/sys/unix.lean`)
@@ -124,6 +126,42 @@ no NUL) and in a root's tree, or the step is stuck (path resolution is not model
 - `unix.Fallocate` (mode 0: `FallocStart` and `FtruncateFinish`; `FALLOC_FL_KEEP_SIZE`:
   `FallocKeep`; other modes panic; a negative offset or a length not above 0 is `EINVAL`, no
   `EINTR` retry, as x/sys/unix), `unix.FcntlFlock` (`OfdLock`; the lock queries panic).
+
+### Review round 1 (2026-11-05, a fresh reviewer, of the trusted files)
+
+First tier, all repaired the same day:
+1. `commitLen` matched directories by path text: after `/r/a` was moved away and another directory
+   moved to `/r/a`, an fsync of `/r/a/b` committed a create made in the old `/r/a/b` (on xfs the
+   fsync forces only the new directory's own changes). Now `dirCommitLen`: nothing is known
+   committed while the log holds an operation that rebinds the path (made, removed or moved it or
+   one above it). Sound (commits less); the WAL's `Create` and `cut` are unaffected.
+2. `NsLstatDir` could not fail on a directory: Go then goes on to `rename(2)`, which may replace an
+   empty directory. Now `(0, _)` is always possible.
+3. A failed `fallocate` could leave only no change or the full size; ext4 grows the file chunk by
+   chunk. Now `FallocFinish`, any size between on failure.
+4. The log's order is not the journal's when calls in different directories overlap in time (the
+   journal handle ends inside the inode operation, the dentry update after it, so an observer can
+   order the model's steps against the journal). Now `NsBegin`: such calls never overlap in the
+   model (an overlap is stuck). Consequence: the model cannot run two goroutines making metadata
+   calls at once, and **the WAL does** (`filePipeline`'s goroutine creates the next `N.tmp` while
+   `cut` renames the previous one; etcd's purge beside both): the WAL is not verifiable over this
+   repair, `segdir.Boot` is. Lifting it, before the WAL: start/finish steps for the namespace's
+   calls, each logged with the calls that had finished when it began, and a crash that keeps a set
+   closed under "finished before the other began", calls on one directory serialized (as its lock
+   serializes them).
+5. `readdir` may return a name twice (xfs block directories, ext4 linear ones) when its entry moved
+   meanwhile. Now a touched name may be returned again.
+6. The environment assumptions did not say one filesystem (one journal), the mount options, no
+   casefold, only regular files and directories. Now they do.
+
+Second tier: `FcntlFlock` now models only the lock-setting commands (6, 7, 37, 38), panics on the
+rest; `Fallocate` no longer answers `EINVAL` before the fd's checks (stuck on bad arguments,
+misuse); the roots' form is canonical (`RootForm`), so textual nesting is nesting. Kept as is:
+`Regime` answers `0` for a NUL key, so a legacy `Open` of a key may succeed where Go returns
+`EINVAL` (an extra behaviour, sound; excluding it would put a premise on the existing `OpenFile`
+spec). Noted for etcd (the reviewer's 11): `wal.Create` syncs `member/`, so a root must contain
+`member/`, which then contains `member/snap/db`: bbolt's file would be in the namespace, not the
+legacy regime, in a proof of etcd's server over this extension.
 
 ### What changed for the extension's existing clients
 

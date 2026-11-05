@@ -73,23 +73,26 @@ theorem osStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : O
   · obtain ⟨_, -, -, rfl⟩ := hs; rfl
   · obtain ⟨_, -, -, hs⟩ := hs
     rcases hs with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ <;> rfl
-  · obtain ⟨_, _, -, -, -, hs⟩ := hs
+  · obtain ⟨-, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, -, -, -, -, hs⟩ := hs
     rcases hs with ⟨_, _, _, -, -, -, rfl⟩ | ⟨_, -, rfl, -⟩ <;> rfl
   · obtain ⟨_, _, _, -, -, -, -, hs⟩ := hs
     rcases hs with ⟨-, rfl⟩ | ⟨_, -, rfl⟩ <;> rfl
   · obtain ⟨_, _, _, -, -, -, rfl⟩ := hs; rfl
   · obtain ⟨_, _, _, _, _, -, -, -, hs⟩ := hs
     rcases hs with ⟨_, -, -, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨_, -, -, rfl⟩ <;> rfl
-  · obtain ⟨_, _, -, -, -, rfl⟩ := hs; rfl
-  · obtain ⟨_, _, -, -, -, -, hs⟩ := hs
+  · obtain ⟨_, _, _, -, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, -, -, -, -, -, hs⟩ := hs
     rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨-, -, -, rfl⟩ | ⟨_, -, rfl, -⟩ <;> rfl
-  · obtain ⟨_, -, -, hs⟩ := hs
-    rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
   · obtain ⟨_, -, -, -, hs⟩ := hs
     rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
-  · obtain ⟨_, -, -, hs⟩ := hs
+  · obtain ⟨_, -, -, -, -, hs⟩ := hs
+    rcases hs with ⟨-, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
+  · obtain ⟨_, -, -, -, hs⟩ := hs
     rcases hs with ⟨-, -, ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩⟩ | ⟨_, -, rfl, -⟩ <;> rfl
   · obtain ⟨_, _, _, _, _, -, -, -, -, -, -, -, -, rfl⟩ := hs; rfl
+  · obtain ⟨_, _, _, _, -, -, -, hs⟩ := hs
+    rcases hs with ⟨-, rfl⟩ | ⟨_, -, rfl, -⟩ <;> rfl
   · obtain ⟨_, _, _, _, _, -, -, -, -, -, -, rfl⟩ := hs; rfl
   · obtain ⟨_, _, _, _, -, -, -, rfl⟩ := hs; rfl
   · exact hs.elim

@@ -100,7 +100,7 @@ func TestRenameDirWithLockedFile(t *testing.T) {
 }
 
 // Go's os.Rename refuses an existing directory as the destination, even an
-// empty one (rename_unix.go: EEXIST, before the system call; the WAL removes
+// empty one (file_unix.go's rename: EEXIST, before the system call; the WAL removes
 // the destination first); rename of a file onto a directory fails; a directory
 // into its own subtree fails.
 func TestRenameDirRules(t *testing.T) {

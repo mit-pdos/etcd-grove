@@ -746,7 +746,7 @@ theorem osInit_wf_coh {st : OsState} (h : OsInit st) :
 
 /-- An initial namespace is well formed. -/
 theorem nsInit_wf {st : OsState} (h : NsInit st) : NsWf st := by
-  obtain ⟨hdf, hlog, hdur, hroots, hshape, hkeys, hleg⟩ := h
+  obtain ⟨hdf, hlog, hdur, -, hroots, hshape, hkeys, hleg⟩ := h
   refine ⟨hroots, by rw [hlog, hdur]; rfl, fun n _ => ?_, hleg, ?_, ?_⟩
   · rw [hlog]; simp only [List.take_nil, nsReplay, List.foldl_nil]
     rw [hdur]; exact ⟨hshape, hkeys⟩
@@ -767,9 +767,10 @@ theorem crashFiles_dom {st st' : OsState} (h : OsCrashFiles st st') (k : GoStrin
 /-- The namespace a crash leaves is an initial one. -/
 theorem nsCrash_init {st st' : OsState} (hw : NsWf st) (hf : OsCrashFiles st st')
     (hn : NsCrash st st') : NsInit st' := by
-  obtain ⟨hroots, hdf, hlog, hdur, ⟨n, hn, hns⟩, hkeys⟩ := hn
+  obtain ⟨hroots, hdf, hlog, hdur, hbusy, ⟨n, hn, hns⟩, hkeys⟩ := hn
   obtain ⟨hshape, hino⟩ := hw.hist n hn
-  refine ⟨hdf, hlog, hdur, hroots ▸ hw.roots, ?_, fun p k hp => ?_, fun k hk hni r hr => ?_⟩
+  refine ⟨hdf, hlog, hdur, hbusy, hroots ▸ hw.roots, ?_, fun p k hp => ?_,
+    fun k hk hni r hr => ?_⟩
   · rw [hns, hroots]; exact hshape
   · exact ⟨(hino p k (hns ▸ hp)).1, hkeys p k hp⟩
   · rw [hroots] at hr

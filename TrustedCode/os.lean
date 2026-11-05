@@ -147,7 +147,8 @@ amd64: the extension's `Open` (`(name, flags) ↦ (fd, errno)`, stuck on a path 
 or on a flag it does not support, among them `O_APPEND`, `O_EXCL`, `O_SYNC` and `O_NONBLOCK`) for a
 path of the domain of its files, `NsOpen` for a path of the namespace (of a file or a directory,
 `notes/walfs-ext-plan.md`): the model asks which (`Regime`, a query of the model's state, not a
-system call; a path's regime never changes).
+system call; a path's regime never changes). An open of the namespace with `O_CREAT` may create, so
+it starts with `NsBegin` (the extension's start of a call that changes the namespace).
 `newFile` makes the `File{&file{...}}` with the fd and the name; its other work (an `fstat` to
 decide that a regular file is not pollable, the finalizer) is invisible to Go code. `perm` matters
 only to the mode of a created file, which the extension does not model. A name with a NUL byte,
@@ -158,7 +159,10 @@ noncomputable def OpenFile.impl : val :=
     (rec: "open" <> :=
       let: "r" := if: ExternalOp osFsExt.name "Regime" "name" =⟨go.uintptr⟩ #(W64 0) then
           ExternalOp osFsExt.name "Open" ("name", "flag" |⟨go.int⟩ #(W64 0x80000))
-        else ExternalOp osFsExt.name "NsOpen" ("name", "flag" |⟨go.int⟩ #(W64 0x80000)) in
+        else
+          (if: ("flag" &⟨go.int⟩ #(W64 0x40)) ≠⟨go.int⟩ #(W64 0) then
+            ExternalOp osFsExt.name "NsBegin" #() else #()) ;;
+          ExternalOp osFsExt.name "NsOpen" ("name", "flag" |⟨go.int⟩ #(W64 0x80000)) in
       if: Snd "r" =⟨go.uintptr⟩ #(W64 0) then
         let: "inner" := GoAlloc model.file (GoZeroVal model.file #()) in
         StructFieldRef model.file go!"fd" "inner" <-[go.int] Fst "r" ;;
@@ -416,12 +420,12 @@ noncomputable def model.linkError : val :=
 	return nil
 ```
 
-The `lstat` of `newname` is the extension's `NsLstatDir` (`newname ↦ (isDir, e)`, `e` nonzero):
-for a directory, Go returns a `LinkError` whose error is `EEXIST`, or the error of the `lstat` of
-`oldname` (two distinct names of the namespace are never the same file: no hard links, and the
-filesystem is case-sensitive), so the model returns one with an arbitrary nonzero `Errno` (`e`).
-A failed `lstat` of `newname` is not a directory, as in Go. Then `rename(2)` is the extension's
-`Rename`, `EINTR` retried. -/
+The `lstat` of `newname` is the extension's `NsLstatDir` (`newname ↦ (isDir, e)`): `isDir` is 1
+only for a directory, with a nonzero `e`; for a directory Go returns a `LinkError` whose error is
+`EEXIST`, or the error of the `lstat` of `oldname` (two distinct names of the namespace are never
+the same file: no hard links, and the filesystem is case-sensitive), so the model returns one with
+`Errno(e)`. `isDir` is 0 for anything else, and for a directory whose `lstat` failed, as in Go.
+Then `rename(2)` is the extension's `Rename`, after `NsBegin`, `EINTR` retried. -/
 noncomputable def Rename.impl : val :=
   λ: "oldname" "newname",
     let: "l" := ExternalOp osFsExt.name "NsLstatDir" "newname" in
@@ -429,6 +433,7 @@ noncomputable def Rename.impl : val :=
       model.linkError #"rename" "oldname" "newname" (syscall.model.errno (Snd "l"))
     else
       (rec: "rename" <> :=
+        ExternalOp osFsExt.name "NsBegin" #() ;;
         let: "e" := ExternalOp osFsExt.name "Rename" ("oldname", "newname") in
         if: "e" =⟨go.uintptr⟩ #(W64 4) then "rename" #() -- EINTR
         else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
@@ -456,15 +461,17 @@ noncomputable def Rename.impl : val :=
 	return &PathError{Op: "remove", Path: name, Err: e}
 ```
 
-`unlink(2)` and `rmdir(2)` are the extension's `Unlink` and `Rmdir`. -/
+`unlink(2)` and `rmdir(2)` are the extension's `Unlink` and `Rmdir`, each after `NsBegin`. -/
 noncomputable def Remove.impl : val :=
   λ: "name",
     let: "e" := (rec: "unlink" <> :=
+      ExternalOp osFsExt.name "NsBegin" #() ;;
       let: "e" := ExternalOp osFsExt.name "Unlink" "name" in
       if: "e" =⟨go.uintptr⟩ #(W64 4) then "unlink" #() else "e") #() in
     if: "e" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
     else
       let: "e1" := (rec: "rmdir" <> :=
+        ExternalOp osFsExt.name "NsBegin" #() ;;
         let: "e1" := ExternalOp osFsExt.name "Rmdir" "name" in
         if: "e1" =⟨go.uintptr⟩ #(W64 4) then "rmdir" #() else "e1") #() in
       if: "e1" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
@@ -472,12 +479,14 @@ noncomputable def Remove.impl : val :=
         (syscall.model.errno (if: "e1" ≠⟨go.uintptr⟩ #(W64 20) then "e1" else "e")) -- ENOTDIR
 
 /-- `Mkdir(name string, perm FileMode) error` (`file.go`): `mkdir(2)` (`EINTR` retried), an error
-being `&PathError{"mkdir", name, Errno(e)}`; on Linux nothing follows it
+being `&PathError{"mkdir", name, Errno(e)}` (the extension's `Mkdir`, after `NsBegin`); on Linux
+nothing follows it
 (`supportsCreateWithStickyBit`). `fixLongPath` is the identity off Windows; `perm` matters only to
 the mode, which the extension does not model. -/
 noncomputable def Mkdir.impl : val :=
   λ: "name" "perm",
     (rec: "mkdir" <> :=
+      ExternalOp osFsExt.name "NsBegin" #() ;;
       let: "e" := ExternalOp osFsExt.name "Mkdir" "name" in
       if: "e" =⟨go.uintptr⟩ #(W64 4) then "mkdir" #() -- EINTR
       else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
