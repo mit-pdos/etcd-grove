@@ -114,10 +114,11 @@ instance WatcherNames.countable : Pos.Countable WatcherNames :=
   .ofInjective (fun g => Pos.Countable.encode (g.evs, g.live, g.wc.ch.stateName, g.wc.ch.offerLockName,
       g.wc.ch.offerParkedPropName, g.wc.ch.offerParkedPredName, g.wc.ch.offerContinuationName,
       g.wc.ch.chanCap, g.wc.recv, g.wc.regl, g.wc.reg, g.wc.ids, g.wc.prog, g.wc.sentl, g.wc.regi,
-      g.wc.rsn, g.lo, g.now))
+      g.wc.rsn, g.wc.aev, g.wc.ans, g.wc.arcv, g.wc.arx, g.lo, g.now))
     (by
-      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3⟩, g, g2⟩
-        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3'⟩, g', g2'⟩ h
+      rintro ⟨a, b, ⟨⟨c1, c2, c3, c4, c5, c6⟩, d, e, f, i, j, k, k2, k3, a1, a2, a3, a4⟩, g, g2⟩
+        ⟨a', b', ⟨⟨c1', c2', c3', c4', c5', c6'⟩, d', e', f', i', j', k', k2', k3', a1', a2', a3',
+          a4'⟩, g', g2'⟩ h
       have h := Pos.encode_inj h
       simp_all)
 
@@ -717,9 +718,27 @@ def sentAuth (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (L : List
       regsOk RI sent ∧ idxOk sent⌝ ∗
     □ ([∗list] k ↦ x ∈ sent, respCov γ γc (sent.take k) x))
 
+/-- A response as the API's client sees it (`api.WResp`): its id, events, revision and compaction
+revision. -/
+def RespM.toW (x : RespM) : api.WResp := ⟨x.id, x.evs, x.rev, x.compactRev⟩
+
+/-- **The stream's API names** (`api.WsAbs`) of the channel `ch` (names `γc`) of a stream of the
+watchable store `γ`. -/
+def wsAbsOf (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : api.WsAbs :=
+  ⟨γ.st.api, γc.aev, γc.ans, γc.arcv, γc.arx, ch, γc.ch⟩
+
+/-- **The channel invariant's API part** (stage 2 of the mvcc API, the watch chain, 2026-11-05):
+the stream's history (`api.chanApiAt`, `Api/StreamSteps.lean`), its sends the responses sent on
+the channel (`sent`, as the client sees them). The consumer's view `rw` (the invariant's half of
+`γc.arcv`) is not yet tied to the channel's received prefix: the receives move it with the
+client's `wsRecv` (`wsChan_recv.law`, the hand-off's item 2). -/
+def chanApi (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List RespM) : IProp GF :=
+  iprop(∃ (l : List api.sent.SEv) (dec : GName → List (EvM → Bool)) (rw : List api.WResp),
+    api.chanApiAt (wsAbsOf γ ch γc) l dec rw ∗ ⌜api.sent.sendsOf l = sent.map RespM.toW⌝)
+
 /-- **The stream channel `ch`'s invariant** (see the module docstring); unit W-M2: every
 registered watcher's `chanRegFact`, and every response of id `-1` sent carries the channel's
-progress fact. -/
+progress fact; stage 2 of the mvcc API: its API part (`chanApi`). -/
 def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
   iprop(∃ (s : ChanState WatchResponse) (sent recv : List RespM) (vs : List WatchResponse)
       (L : List Loc),
@@ -736,7 +755,8 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "#Hrf" ∷ □ ([∗list] w ∈ L, chanRegFact γc w) ∗
     "#Hpf" ∷ □ ([∗list] r ∈ sent, ⌜r.id = W64 (-1)⌝ → progFact γc.prog) ∗
     "Hsentl" ∷ sentAuth γ γc sent L ∗
-    "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
+    "Hws" ∷ ([∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w) ∗
+    "Hapi" ∷ chanApi γ ch γc sent)
 
 /-- **The channel had sent `l` (at least)** (persistent; unit W-K): a snapshot of the channel's
 sent list (`sentl`). -/

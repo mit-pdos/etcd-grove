@@ -28,7 +28,9 @@ map and progress fact are the channel's (`γo.ids = γc.ids`, `γo.prog = γc.pr
 progress fact is the caller's `Q` (saved at `γo.prog`: a response of id `-1` on the channel
 carries `progFact γc.prog`, so `Q`). Unit W-K: the channel is buffered (`0 < γc.ch.chanCap`), and
 its sent list is named through the stream (`γo.sentl = γc.sentl`). K1b: the cancellation reason
-is the caller's `Ψ` (saved at `γo.rsn = γc.rsn`: `Cancel id` takes `rsnFor γo.rsn id`). -/
+is the caller's `Ψ` (saved at `γo.rsn = γc.rsn`: `Cancel id` takes `rsnFor γo.rsn id`). Stage 2 of
+the mvcc API (the watch chain): the stream's API names (`wsAbsOf γ ch γc`), the client's state at
+`wsStart` and its consumer's view at nothing received. -/
 abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (Q : IProp GF) (Ψ : w64 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -43,7 +45,8 @@ abbrev mvcc.watchableStore.NewWatchStream.spec : Prop :=
         mvcc.watchStreamOpen γo ∗ mvcc.watchConsumer γc [] ∗
         ⌜γo.ids = γc.ids ∧ γo.prog = γc.prog ∧ γo.sentl = γc.sentl ∧ γo.rsn = γc.rsn ∧
           γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗ savedPropOwn γo.prog DFrac.discard Q ∗
-        savedPredOwn γo.rsn DFrac.discard Ψ }}
+        savedPredOwn γo.rsn DFrac.discard Ψ ∗
+        api.wsStateI (mvcc.wsAbsOf γ ch γc) api.wsStart ∗ api.wsRecvI (mvcc.wsAbsOf γ ch γc) [] }}
 
 end spec
 

@@ -154,6 +154,14 @@ structure WatchChanNames where
   /-- the reason a watcher of the channel's stream was cancelled (unit W-K, K1b): a saved
   predicate on its id, the stream's creator's (`rsnFor`) -/
   rsn : GName
+  /-- (stage 2 of the mvcc API, the watch chain, 2026-11-05) the stream's API names
+  (`api.WsAbs`, `wsAbsOf`): its history (a monotone list of `api.sent.SEv`, the authority the
+  channel invariant's, `chanApi`), the count of its client's events, the consumer's view and its
+  count -/
+  aev : GName
+  ans : GName
+  arcv : GName
+  arx : GName
 
 /-- **The progress fact of the saved proposition `g`** (persistent; unit W-M2): some `Q` saved at
 `g`, and `Q`. A stream's creator fixes `Q` (`NewWatchStream`); a response of id `-1` on the

@@ -70,6 +70,18 @@ theorem wsSlot_step_M1 {γ : WsNames} {q : Qp} {L : Log} (L' : Log) :
     wsSlot (GF := GF) γ q L ⊢ wsSlot γ q L' := by
   sorry -- M1-REPLACE: Txn.End.contract (notify), KV.Restore.contract
 
+/-- **(Placeholder, false in general.)** A response sent on a stream's channel appended to the
+stream's history without its send's premises (`api.sent.stepOk`: the response's shape against a
+notified-log and a compaction lower bound, its watcher's delivery and registry info by its saved
+filters, a `-1` response's coverage and cancelled ids; `api.chanApiAt_send`). Used at the two send
+sites (`watcher.send`, `WatchCmpSend`'s `cmp_send_inner`), each of which is to prove them from
+today's per-send facts (`respCov`, `covFact`, `respRev`, `respCompl`), the watcher's saved filters
+and the senders' lower bounds (the watch chain's item 1, `notes/mvcc-api-invariants.md`).
+M1-REPLACE: `wsRecv_ok.law`/`wsChan_recv.law` (the stream's history well formed at every send). -/
+theorem chanApi_send_M1 (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (sent : List RespM)
+    (x : RespM) : chanApi (GF := GF) γ ch γc sent ⊢ |==> chanApi γ ch γc (sent ++ [x]) := by
+  sorry -- M1-REPLACE: wsChan_recv.law, wsRecv_ok.law (a send's stepOk)
+
 end placeholdersW
 
 end mvcc

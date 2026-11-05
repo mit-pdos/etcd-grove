@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send
 public import Spec.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 
 @[expose] public section
 
@@ -346,7 +347,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
         [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ : mvcc.RespM)] else []) = sent := by
       rw [hds]; simp
     irevert Hws; rw [hsent]; iintro Hws
-    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
     · inext
       iunfold mvcc.watchChanInv
       iexists s, sent, recv, vs, L
@@ -480,8 +481,11 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
               imod mvcc.sentAuth_snoc γ γw.wc sent L (⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩ :
                 mvcc.RespM) (fun _ w' hw' => hw') rfl $$ Hsentl Hrc
                 with Hsentl
+              imod mvcc.chanApi_send_M1 γ ch γw.wc sent
+                ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩
+                $$ Hapi with Hapi
               imod Hmask with -
-              imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+              imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
               · inext
                 iunfold mvcc.watchChanInv
                 iexists _, sent ++ [⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision', cs.map mvcc.CovArg.w, L, sent.length, W64 0⟩], recv,
@@ -521,7 +525,9 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                   iframe Hpf Hpnew
                 isplitl [Hsentl]
                 · iexact Hsentl
-                iapply mvcc.chanWatchers_congr γ γw.wc (by simp [EtcdGrove.chanIsClosed]) $$ Hws
+                isplitl [Hws]
+                · iapply mvcc.chanWatchers_congr γ γw.wc (by simp [EtcdGrove.chanIsClosed]) $$ Hws
+                iexact Hapi
               imodintro
               wp_auto
               iapply HΦ

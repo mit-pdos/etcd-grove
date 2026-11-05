@@ -114,13 +114,21 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   imod mono_list_own_alloc (GF := GF) ([] : List mvcc.RespM) with ⟨%γsl, Hsl, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Nat) with ⟨%γri, Hri⟩
   imod (saved_pred_alloc (GF := GF) Ψ DFrac.discard DFrac.valid_discard) with ⟨%γrs, #Hrs⟩
-  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl, γri, γrs⟩
-  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl Hri] with #Hinv
+  -- the stream's API names (stage 2 of the mvcc API): its history, the client's state, its view
+  imod api.chanApi_alloc (GF := GF) γ.st.api ch γch with ⟨%ι, %Hι, Hapi, Hwst, Hwrc⟩
+  let γc : mvcc.WatchChanNames := ⟨γch, γrecv, γregl, γreg, γi, γp, γsl, γri, γrs, ι.ev, ι.ns, ι.rcv,
+    ι.rx⟩
+  have hι : mvcc.wsAbsOf γ ch γc = ι := by
+    obtain ⟨h1, h2, h3⟩ := Hι
+    cases ι; simp only at h1 h2 h3; subst h1 h2 h3; rfl
+  rw [← hι]
+  imod inv_alloc mvcc.watchN ⊤ (mvcc.watchChanInv γ ch γc) $$ [Hown Hrecv1 Hregl1 Hreg Hsl Hri Hapi] with #Hinv
   · inext
     iunfold mvcc.watchChanInv
     iexists ChanState.Buffered [], [], [], [], []
     simp only [named, EtcdGrove.chanIsClosed, Bool.false_eq_true, ↓reduceIte]
     iframe Hown Hrecv1 Hregl1
+
     isplitr
     · ipureintro; exact List.prefix_refl _
     isplitr
@@ -154,7 +162,12 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
         exact ⟨fun w h => by simp [GMap.lookup_empty] at h, fun w n h => by simp [GMap.lookup_empty] at h,
           fun w n k x h => by simp [GMap.lookup_empty] at h, fun k x h => by simp at h⟩
       iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
-    iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitr
+    · iapply BigSepL.bigSepL_nil.2; itrivial
+    iunfold mvcc.chanApi
+    iexists [], (fun _ => []), []
+    iframe Hapi
+    ipureintro; rfl
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc) with ⟨%γf, Hidf⟩
@@ -201,7 +214,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   iexists γo, ch, γc
   iunfold mvcc.watchStreamOpen
   iunfold mvcc.watchConsumer
-  iframe Htok Hrecv2 Hch Hinv ch Hsp Hrs
+  iframe Htok Hrecv2 Hch Hinv ch Hsp Hrs Hwst Hwrc
   isplitr
   rotate_left
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, by rw [Hcap]; decide⟩

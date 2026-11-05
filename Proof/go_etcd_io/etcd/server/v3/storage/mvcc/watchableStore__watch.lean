@@ -595,14 +595,14 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   · iunfold mvcc.relLb; iexact Hrl0
   -- the registration index (unit W-K)
   imod mvcc.sentAuth_register _ γc sent L w HwL $$ Hsentl with ⟨Hsentl, #Hrega⟩
-  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2 Hsentl] with -
+  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2 Hsentl Hapi] with -
   · inext
     iunfold mvcc.watchChanInv
     iexists s0, sent, recv, vs, (w :: L)
     simp only [named]
     rw [Hopen]
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe Hch Hrecv Hregl Hrf' Hpf Hsentl
+    iframe Hch Hrecv Hregl Hrf' Hpf Hsentl Hapi
     iframe #
     isplitr
     · ipureintro; exact Hpre
