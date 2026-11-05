@@ -5,7 +5,7 @@
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec) : mvcc.store.Read.spec
   -- `Perennial.EtcdGrove.mvcc.store.Read.spec`, unfolded:
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool) (c : Int)
-    (Z : IProp GF) (oa : Option (Qp × mvcc.Log)),
+    (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -14,7 +14,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec) : mvcc.sto
                 □ Z ∗
                   ownToks γ.revs m ∗
                     mvcc.idxCert γ.idx log₀ ∗
-                      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa -∗
+                      mvcc.crevLb γ.idx c ∗
+                        ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa ∗ mvcc.readCb γ F -∗
           (▷
               ∀ mw,
                 (∃ log rev crev,
@@ -24,7 +25,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec) : mvcc.sto
                           mvcc.crevPermAt γ crev ∗
                             mvcc.certOk γ log ∗
                               ⌜log₀ <+: log ∧ List.length log + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗
-                                mvcc.logLent γ.idx oa ∗ ⌜∀ (q : Qp) (L : mvcc.Log), oa = some (q, L) → log = L⌝) -∗
+                                mvcc.logLent γ.idx oa ∗
+                                  ⌜∀ (q : Qp) (L : mvcc.Log), oa = some (q, L) → log = L⌝ ∗ F log) -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType

@@ -6,39 +6,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof (hWatch : mvcc.watchableStor
     : mvcc.watchableStore.progress.spec) (hProgAll : mvcc.watchableStore.progressAll.spec) (hRev :
     mvcc.watchableStore.rev.spec) : mvcc.watchableStore.NewWatchStream.spec
   -- `Perennial.EtcdGrove.mvcc.watchableStore.NewWatchStream.spec`, unfolded:
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (Q : IProp GF) (Ψ : w64 → IProp GF),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchableStore s st γ -∗
-          (▷
-              ∀ ws,
-                (∃ γo ch γc,
-                    mvcc.isWatchStream ws
-                        (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType (intoVal s))
-                        (mvcc.storeWatchParams s st γ) γo ∗
-                      typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" ws)
-                          ch DFrac.discard ∗
-                        isChan ch γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗
-                          inv mvcc.watchN (mvcc.watchChanInv γ ch γc) ∗
-                            mvcc.watchStreamOpen γo ∗
-                              ⌜γo.ids = γc.ids ∧
-                                    γo.prog = γc.prog ∧
-                                      γo.sentl = γc.sentl ∧
-                                        γo.rsn = γc.rsn ∧ γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗
-                                savedPropOwn γo.prog DFrac.discard Q ∗
-                                  savedPredOwn γo.rsn DFrac.discard Ψ ∗
-                                    mvcc.api.wsStateI (mvcc.wsAbsOf γ ch γc) mvcc.api.wsStart ∗
-                                      mvcc.api.wsRecvI (mvcc.wsAbsOf γ ch γc) []) -∗
-                  Φ
-                    (intoVal
-                      (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal ws)))) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType
-                    go!"NewWatchStream"
-                    (intoVal s)))
-                (intoVal ()))
-              {{ Φ }}
+  ∀ (s : Loc),
+    mvcc.api.WatchableKV.NewWatchStream.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType
+      (intoVal s)
 
 theorem mvcc.isWatchable_store (hWatch : mvcc.watchableStore.watch.spec) (hProg :
     mvcc.watchableStore.progress.spec) (hProgAll : mvcc.watchableStore.progressAll.spec) (hRev :

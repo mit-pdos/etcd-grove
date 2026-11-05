@@ -239,6 +239,9 @@ structure WatchParams (GF : BundledGFunctors) where
   choice, a fancy update run at the registration with the channel's invariant open and the store's
   state in hand, `regCb`). -/
   RegCb : GoChan → WatchChanNames → WatchRange → List (EvM → Bool) → (Loc → IProp GF) → IProp GF
+  /-- **The read callback** of `rev()` (2026-11-05: the store's choice, a fancy update run at the
+  store's read with its view of the committed log `L` in hand, giving `F L`, `readCb`). -/
+  RevCb : (Log → IProp GF) → IProp GF
   /-- The right to close the channel (names `γc`), with the watchers registered on it. -/
   CR : GoChan → WatchChanNames → List Loc → IProp GF
   /-- What the caller owns to call the store (lent to each call: the store's reader slots). -/
@@ -321,7 +324,9 @@ caller's `Back w`, returned; so the channel's invariant knows the id of every wa
 on it before any response for it is sent. `progress(w)` takes a watcher's persistent fact only;
 `progressAll(m)` reads the map of the stream's watchers, all on the channel `γc`, with the
 channel's progress fact (`progFact γc.prog`: the response of id `-1` it may send carries it);
-`rev()` returns a revision. Every call is lent the caller's `P.R` (the store's reader slots:
+`rev()` returns the last revision of a non-empty log `L` read, running the caller's read callback
+`P.RevCb F` at the read (2026-11-05: `WatchStream.Rev`'s update fires there) and returning its
+`F L`. Every call is lent the caller's `P.R` (the store's reader slots:
 `rev` opens a read transaction, the others take the store's locks). -/
 def isWatchable (wa : GoInterface) (P : WatchParams GF) : IProp GF :=
   iprop(∃ wi : GoInterfaceOk, ⌜wa = GoInterface.ok wi⌝ ∗
@@ -345,8 +350,9 @@ def isWatchable (wa : GoInterface) (P : WatchParams GF) : IProp GF :=
           progFact γc.prog ∗ progCompl P γc M o ch L ∗ P.R }}
         (App (Val #(methods wi.ty go!"progressAll" wi.v)) (Val #m))
       {{ (b : Bool), RET #b; m ↦${dq} M ∗ progCompl P γc M o ch L ∗ P.R }}) ∗
-    □ ({{ P.R }} (App (Val #(methods wi.ty go!"rev" wi.v)) (Val #()))
-      {{ (r : w64), RET #r; P.R }}))
+    □ (∀ F : Log → IProp GF,
+      {{ P.R ∗ P.RevCb F }} (App (Val #(methods wi.ty go!"rev" wi.v)) (Val #()))
+      {{ (r : w64), RET #r; P.R ∗ ∃ L : Log, F L ∗ ⌜L ≠ [] ∧ r = W64 ((L.length : Int) - 1)⌝ }}))
 
 instance isWatchable_persistent (wa : GoInterface) (P : WatchParams GF) :
     Persistent (isWatchable wa P) := by

@@ -117,6 +117,7 @@ structure mvcc.WatchParams.{u_1} (GF : BundledGFunctors) : Type u_1 where
   C : IProp GF
   FI : IProp GF
   RegCb : IProp GF
+  RevCb : IProp GF
   CR : IProp GF
   R : IProp GF
   T : IProp GF
@@ -214,11 +215,12 @@ def mvcc.isWatchable (wa : GoInterface) (P : mvcc.WatchParams GF) : IProp GF :=
                               (intoVal m))
                             {{ Φ }}) ∗
               □
-                □
-                  ∀ Φ,
-                    P.R -∗
-                      (▷ ∀ r, P.R -∗ Φ (intoVal r)) -∗
-                        WP ((intoVal (methods wi.ty go!"rev" wi.v)) (intoVal ())) {{ Φ }})
+                ∀ F,
+                  □
+                    ∀ Φ,
+                      P.R ∗ P.RevCb F -∗
+                        (▷ ∀ r, (P.R ∗ ∃ L, F L ∗ ⌜L ≠ [] ∧ r = W64 (↑(List.length L) - 1)⌝) -∗ Φ (intoVal r)) -∗
+                          WP ((intoVal (methods wi.ty go!"rev" wi.v)) (intoVal ())) {{ Φ }})
 
 theorem mvcc.aboveCnt_skip (n : w64) (w : Loc) (WM : GMap w64 Loc) (hn : WM !! n = some w) (hb :
     sint.Z n < 2 ^ 63 - 1) : mvcc.aboveCnt n WM = mvcc.aboveCnt (n + W64 1) WM + 1

@@ -460,6 +460,18 @@ state (`Api/Ghost.lean`) is tied to the committed log inside them: `s.revMu`'s b
 /-- **`s.revMu`'s slot**: the API's quarter of `q` of the view and of the compaction authority. -/
 def slotX (γ : StoreNames) (q : Qp) (L : Log) (c : Int) : IProp GF := api.revMuAbs γ.api q L c
 
+/-- **A read's callback** (stage 2 of the mvcc API, 2026-11-05: where a read's update fires, §3):
+run once by `store.Read` under `s.revMu` (shared), with that lock's slot at the committed log `L`
+it reads (and the compaction revision `c`), giving `F L` and the slot back. A caller with no update
+to fire passes `readCb_true`. -/
+def readCb (γ : StoreNames) (F : Log → IProp GF) : IProp GF :=
+  iprop(∀ (q : Qp) (L : Log) (c : Int), slotX γ q L c ={⊤}=∗ slotX γ q L c ∗ F L)
+
+theorem readCb_true (γ : StoreNames) : ⊢ readCb (GF := GF) γ (fun _ => iprop(True)) := by
+  unfold readCb
+  iintro %q %L %c H
+  imodintro; iframe H
+
 /-- The writer's part of the pending revision (§1): a quarter for a watchable store (another
 quarter is `watchStoreBody`'s), half for a plain one. -/
 def pndW (γ : StoreNames) : Qp := if γ.watchQ then (1 : Qp).half.half else (1 : Qp).half

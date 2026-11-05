@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀ te clb Z oa
-  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA⟩
+  intro s γ mode trace m log₀ te clb Z oa F
+  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA, Hcb⟩
   ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
   · iexists te; iexact Htrc
   iunfold mvcc.idxCert at Hc0
@@ -76,6 +76,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   iunfold mvcc.revMuBody at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
+  -- the caller's read callback, with `s.revMu`'s slot at the log read
+  iunfold mvcc.readCb at Hcb
+  imod Hcb $$ %_ %log %c HX with ⟨HX, HF⟩
   icases mvcc.logLent_agree γ.idx _ log oa $$ [$Hlog $HoA] with ⟨Hlog, HoA, %HoaL⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ cm c HcM Hc.1 $$ HcrevM Hcrev
   subst Hcc
@@ -172,9 +175,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iStructNamedPrefix Htrw "W"
     iapply HΦ
     iexists log, (W64 ((log.length : Int) - 1)), cm
-    isplitr [Hmine HoA]
+    isplitr [Hmine HoA HF]
     rotate_left
-    · iframe Hmine Hlbc Hok HoA
+    · iframe Hmine Hlbc Hok HoA HF
       isplitr
       · iexact HpM
       ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩

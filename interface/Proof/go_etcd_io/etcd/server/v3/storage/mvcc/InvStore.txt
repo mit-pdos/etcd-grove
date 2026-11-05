@@ -2102,6 +2102,11 @@ def mvcc.isLessor (le : GoInterface) (γl : GName) : IProp GF :=
                                 (intoVal f))
                               {{ Φ }})
 
+theorem mvcc.readCb_true (γ : mvcc.StoreNames) : ⊢ mvcc.readCb γ fun x => iprop(True)
+
+def mvcc.readCb (γ : mvcc.StoreNames) (F : mvcc.Log → IProp GF) : IProp GF :=
+  iprop(∀ q L c, mvcc.slotX γ q L c ={⊤}=∗ mvcc.slotX γ q L c ∗ F L)
+
 theorem mvcc.storeTxnWriteCore_wf {trace : Loc} (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log)
     (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc) (b : Bool) (crev : Int) (Z : IProp GF
     := iprop(True)) (ld : Bool := false) : mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps b

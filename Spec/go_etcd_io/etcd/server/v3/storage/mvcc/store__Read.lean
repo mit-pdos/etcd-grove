@@ -38,19 +38,23 @@ revision `crev` (`s.compactMainRev`, read under both locks, `firstRev`; fixed un
 `-1`); the reader's tag `Z` (persistent) is carried to `End`. The readers' statement (a store
 never compacted, `storeReader`: `crev = -1`) is `specR`, a corollary (`spec_R`, `ReaderSpecs.lean`). A caller lending a fraction of the committed log's authority
 (`logLent`, unit W-K) learns the log read is the one it names. 
-The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02). -/
+The transaction's compaction revision is permitted (`crevPermAt`, C3's store law, 2026-11-02).
+(Stage 2 of the mvcc API, 2026-11-05) the caller's read callback (`readCb`) runs at the read, under
+`s.revMu`, with its slot of the API's view at the log read: a read's update fires there (§3); its
+result `F log` is returned. -/
 abbrev mvcc.store.Read.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool)
-    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)),
+    (c : Int) (Z : IProp GF) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa }}
+      mvcc.crevLb γ.idx c ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te ∗ mvcc.logLent γ.idx oa ∗
+      mvcc.readCb γ F }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rev crev Z ∗
         ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ mvcc.certOk γ log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ c ≤ crev⌝ ∗ mvcc.logLent γ.idx oa ∗
-        ⌜∀ q L, oa = some (q, L) → log = L⌝ }}
+        ⌜∀ q L, oa = some (q, L) → log = L⌝ ∗ F log }}
 
 end spec
 

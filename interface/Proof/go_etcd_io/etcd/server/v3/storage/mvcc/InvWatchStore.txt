@@ -201,7 +201,7 @@ def mvcc.storeWatchParams (s st : Loc) (γ : mvcc.WsNames) : mvcc.WatchParams GF
             mvcc.watcherFixed w r fcs ∗
               ⌜0 ≤ sint.Z r.startRev ∧ r.id ≠ W64 (-1)⌝ ∗ ⌜γw.now = false → ↑γw.lo ≤ sint.Z r.startRev⌝),
     WC := fun w => iprop(∃ γw, mvcc.watcherMeta γ w γw ∗ mvcc.cancelled γw), C := fun x => iprop(True),
-    FI := mvcc.filtersImpl, RegCb := mvcc.regCb γ,
+    FI := mvcc.filtersImpl, RegCb := mvcc.regCb γ, RevCb := mvcc.readCb γ.st,
     CR := fun ch γc L =>
       iprop(isChan ch γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗
           inv mvcc.watchN (mvcc.watchChanInv γ ch γc) ∗ ghostVar γc.regl (Qp.half 1) L),

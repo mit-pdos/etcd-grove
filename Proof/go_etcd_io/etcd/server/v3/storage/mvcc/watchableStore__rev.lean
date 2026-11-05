@@ -33,8 +33,8 @@ theorem mvcc.watchableStore.rev.wp_proof
     (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.rev.spec (GF := GF) (hG := hG) := by
-  intro s st γ oa
-  wp_start as ⟨#Hws, Hrd, HoA⟩
+  intro s st γ oa F
+  wp_start as ⟨#Hws, Hrd, HoA, Hcb⟩
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -56,8 +56,8 @@ theorem mvcc.watchableStore.rev.wp_proof
   iunfold mvcc.isStore at Hs'
   iNamedSuffix Hs' "S"
   imod mvcc.crevLb_neg γ.st.idx with #Hlbn
-  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa) $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA]
-    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, %Hpre0, HoA, %HoaL⟩
+  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa F) $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA $Hcb]
+    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, %Hpre0, HoA, %HoaL, HF⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht
@@ -90,6 +90,7 @@ theorem mvcc.watchableStore.rev.wp_proof
   iapply HΦ
   iframe Hrd HoA
   iexists log
+  iframe HF
   withPhys_simp
   iframe HcertT
   ipureintro

@@ -3,14 +3,5 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def mvcc.watchStream.Rev.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchStream ws wa P γ ∗ P.R -∗
-          (▷ ∀ r, P.R -∗ Φ (intoVal r)) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType go!"Rev"
-                    (intoVal ws)))
-                (intoVal ()))
-              {{ Φ }}
+  ∀ (w : Loc),
+    mvcc.api.WatchStream.Rev.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal w)

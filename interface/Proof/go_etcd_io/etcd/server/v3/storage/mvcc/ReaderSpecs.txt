@@ -84,11 +84,11 @@ theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec) : mvcc.store.Write.s
               {{ Φ }}
 
 def mvcc.watchableStore.rev.specR : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa -∗
+            mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗ mvcc.readCb γ.st F -∗
           (▷
               ∀ r,
                 (mvcc.storeReader st γ.st ∗
@@ -96,9 +96,10 @@ def mvcc.watchableStore.rev.specR : Prop :=
                       ∃ log,
                         mvcc.idxCert γ.st.idx log ∗
                           ⌜log ≠ [] ∧
-                              r = W64 (↑(List.length log) - 1) ∧
-                                2 ≤ List.length log ∧
-                                  List.length log < 2 ^ 63 ∧ ∀ (q : Qp) (L : mvcc.Log), oa = some (q, L) → log = L⌝) -∗
+                                r = W64 (↑(List.length log) - 1) ∧
+                                  2 ≤ List.length log ∧
+                                    List.length log < 2 ^ 63 ∧ ∀ (q : Qp) (L : mvcc.Log), oa = some (q, L) → log = L⌝ ∗
+                            F log) -∗
                   Φ (intoVal r)) -∗
             WP
               ((intoVal
@@ -310,11 +311,11 @@ theorem mvcc.metricsTxnWrite.Range.spec_R (h : mvcc.metricsTxnWrite.Range.spec) 
 theorem mvcc.watchableStore.rev.spec_R (h : mvcc.watchableStore.rev.spec) :
     mvcc.watchableStore.rev.specR
   -- `Perennial.EtcdGrove.mvcc.watchableStore.rev.specR`, unfolded:
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa -∗
+            mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗ mvcc.readCb γ.st F -∗
           (▷
               ∀ r,
                 (mvcc.storeReader st γ.st ∗
@@ -322,9 +323,10 @@ theorem mvcc.watchableStore.rev.spec_R (h : mvcc.watchableStore.rev.spec) :
                       ∃ log,
                         mvcc.idxCert γ.st.idx log ∗
                           ⌜log ≠ [] ∧
-                              r = W64 (↑(List.length log) - 1) ∧
-                                2 ≤ List.length log ∧
-                                  List.length log < 2 ^ 63 ∧ ∀ (q : Qp) (L : mvcc.Log), oa = some (q, L) → log = L⌝) -∗
+                                r = W64 (↑(List.length log) - 1) ∧
+                                  2 ≤ List.length log ∧
+                                    List.length log < 2 ^ 63 ∧ ∀ (q : Qp) (L : mvcc.Log), oa = some (q, L) → log = L⌝ ∗
+                            F log) -∗
                   Φ (intoVal r)) -∗
             WP
               ((intoVal

@@ -149,8 +149,26 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 @[no_expose] def mvccState (γ : MvccName) (σ : MvccState) : IProp GF :=
   api.mvccStateI (γ : StoreNames).api σ
 
+/-- A plain store's handle (stage 2, 2026-11-05; partial: `notes/mvcc-api-invariants.md` §2 adds
+its readers' pool and the write-back supply). -/
+private def isMvccPlain (kv : GoInterface) (γ : MvccName) : IProp GF :=
+  iprop(∃ s : Loc, ⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗
+    isStore s (γ : StoreNames))
+
+/-- A watchable store's handle (stage 2, 2026-11-05: what `NewWatchStream` needs, §2): the
+watchable store `s` over its inner store `st`, at names `γw` whose store is `γ`, the watch tokens'
+pool (a registration's cost) and a thread pool of its readers' slots (`watchReader`), which every
+stream of it draws on. Still to add (§2): the write-back supply, the store's own goroutines'
+readers from the same pool. -/
+private def isMvccWatchable (kv : GoInterface) (γ : MvccName) : IProp GF :=
+  iprop(∃ (s st : Loc) (γw : WsNames) (γp : GName),
+    ⌜kv = interface.mkOk (go.GoType.PointerType watchableStore.ty) #s ∧ γw.st = (γ : StoreNames)⌝ ∗
+    isWatchableStore s st γw ∗ watchTokPool γw ∗
+    threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw))
+
 /-- **`kv` (the `KV` `New` or `NewStore` returned) serves the store `γ`** (persistent). -/
-opaque isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF := iprop(True)
+@[no_expose] def isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF :=
+  iprop(□ (isMvccPlain kv γ ∨ isMvccWatchable kv γ))
 
 /-- **The store's open token** (exclusive): `Compact`, `Restore` and `Close` take it, the first two
 give it back. A compaction schedules its job after releasing `s.mu`, on a scheduler `Close` stops and

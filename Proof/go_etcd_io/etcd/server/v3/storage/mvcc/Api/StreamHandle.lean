@@ -386,6 +386,43 @@ theorem close_fire (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (Q : Stream
   rw [hrep d]
   exact wsRel_close (hrel d)
 
+/-- **`Rev`'s update at the store's read** (`readCb`, run by `store.Read` under `s.revMu`): the
+client's state agrees with the slot's committed log `L` (unchanged), the update's commit `Q σ`
+returned with `σ.log = L`. -/
+theorem rev_readCb (γ : MvccName) (Q : MvccState → IProp GF) :
+    iprop(AU <{ ∃∃ (σ : MvccState), mvccState γ σ }> @ ⊤ \ ↑mvccN, ∅ <{ mvccState γ σ, COMM Q σ }>) ⊢
+      readCb (γ : StoreNames) (fun L => iprop(∃ σ : MvccState, Q σ ∗ ⌜σ.log = L⌝)) := by
+  iintro Hau
+  iunfold readCb
+  iintro %q %L %c HX
+  ihave Hau := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
+    (fun _ _ => CoPset.mem_full) $$ Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, Hσ, Hucl⟩
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  iunfold mvccState at Hσ
+  iunfold mvccStateI at Hσ
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+  iunfold slotX at HX
+  iunfold revMuAbs at HX
+  icases HX with ⟨HXa, HXc⟩
+  iunfold absPart at Ha HXa
+  icombine Ha HXa gives %Hag
+  have hlog : σ.log = L := (Prod.mk.inj Hag.2).1
+  imod Hcommit $$ [Ha Hp Hcr Hnl] with HQ
+  · iunfold mvccState
+    iunfold mvccStateI
+    iunfold absPart
+    iframe Ha Hp Hcr Hnl; ipureintro; exact Hreach
+  imodintro
+  isplitl [HXa HXc]
+  · iunfold slotX; iunfold revMuAbs; iunfold absPart; iframe HXa HXc
+  iexists σ; iframe HQ; ipureintro; exact hlog
+
 end handle
 
 end api

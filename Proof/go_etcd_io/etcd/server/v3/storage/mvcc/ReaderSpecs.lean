@@ -65,13 +65,14 @@ theorem mvcc.store.Read.spec_R (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) 
   iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hm, #Hc0, %Ht, Htrc⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC s γ $$ Hrd
   imod mvcc.crevLb_neg γ.idx with #Hlb
-  iapply (h s γ mode trace m log₀ te (-1) iprop(True) none) $$ %Φ [Hrd Hm Htrc]
-  · iframe Hrd Hm Htrc; iframe #
+  ihave Hcb := mvcc.readCb_true (GF := GF) γ
+  iapply (h s γ mode trace m log₀ te (-1) iprop(True) none) $$ %Φ [Hrd Hm Htrc Hcb]
+  · iframe Hrd Hm Htrc Hcb; iframe #
     isplitr; · imodintro; itrivial
     isplitr; · ipureintro; exact Ht
     unfold mvcc.logLent; itrivial
   inext
-  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -⟩
+  iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', -, #Hrok, %Hp, -, -, -⟩
   iapply HΦ
   iexists log, rev, crev
   iframe Htx Hm Hrok Hlb'
@@ -446,23 +447,24 @@ theorem mvcc.readView.FirstRev.spec_R (h : mvcc.readView.FirstRev.spec (GF := GF
 
 /-- The readers' statement (the frozen one: it does not mention the compaction revision). -/
 abbrev mvcc.watchableStore.rev.specR : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (oa : Option (Qp × mvcc.Log)) (F : mvcc.Log → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
+      mvcc.readCb γ.st F }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
   {{ (r : w64), RET #r; mvcc.storeReader st γ.st ∗ mvcc.logLent γ.st.idx oa ∗
       ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1) ∧
-        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ }}
+        2 ≤ log.length ∧ log.length < 2 ^ 63 ∧ ∀ q L, oa = some (q, L) → log = L⌝ ∗ F log }}
 
 open Iris.ProofMode in
 /-- **The readers' statement is a corollary.** -/
 theorem mvcc.watchableStore.rev.spec_R (h : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.rev.specR (GF := GF) (hG := hG) := by
-  intro s st γ oa
-  iintro %Φ ⟨#Hpkg, #Hws, Hrd, HoA⟩ HΦ
+  intro s st γ oa F
+  iintro %Φ ⟨#Hpkg, #Hws, Hrd, HoA, Hcb⟩ HΦ
   ihave Hrd := mvcc.storeReader_toC st γ.st $$ Hrd
-  iapply (h s st γ oa) $$ %Φ [Hrd HoA]
-  · iframe Hrd HoA; iframe #
+  iapply (h s st γ oa F) $$ %Φ [Hrd HoA Hcb]
+  · iframe Hrd HoA Hcb; iframe #
   inext
   iintro %v ⟨Hrd, Hpost⟩
   iapply HΦ

@@ -301,8 +301,9 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   iNamed HP
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨Hwl, Hla⟩
-  wp_apply (hrev s st γ (some (sync.rfrac.half.half, σ.Lmu))) $$ [$Hws $Hrd Hla]
-    as %r ⟨Hrd, Hla, %Clog, #HcertR, %HCr⟩
+  ihave Hcb := mvcc.readCb_true (GF := GF) γ.st
+  wp_apply (hrev s st γ (some (sync.rfrac.half.half, σ.Lmu)) _) $$ [$Hws $Hrd Hla $Hcb]
+    as %r ⟨Hrd, Hla, %Clog, #HcertR, %HCr, -⟩
   · unfold mvcc.logLent; iexact Hla
   have hClm : Clog = σ.Lmu := HCr.2.2.2.2 _ _ rfl
   ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$

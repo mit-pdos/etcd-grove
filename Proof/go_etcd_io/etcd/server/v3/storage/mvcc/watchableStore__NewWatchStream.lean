@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchClose
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -67,18 +68,21 @@ theorem mvcc.isWatchable_store
     iapply (hProgAll s st γ m dq M γc o ch L) $$ [Hm HPC HR] [HΦ]
     · iframe Hpkg Hws HIW Hpf Hm HPC HR
     inext; iintro %b ⟨Hm, HPC, HR⟩; iapply HΦ; iframe Hm HPC; iexact HR
-  · iintro !> !> %Φ HR HΦ
+  · iintro !> %F !> %Φ ⟨HR, Hcb⟩ HΦ
     simp only [mvcc.storeWatchParams]
     iunfold mvcc.watchReader at HR
     icases HR with ⟨Hsr, Hmur⟩
-    iapply (hRev s st γ none) $$ [Hsr] [Hmur HΦ]
-    · iframe Hpkg Hws Hsr
+    iapply (hRev s st γ none F) $$ [Hsr Hcb] [Hmur HΦ]
+    · iframe Hpkg Hws Hsr Hcb
       unfold mvcc.logLent; itrivial
     inext
-    iintro %r ⟨Hsr, -, -⟩
+    iintro %r ⟨Hsr, -, %L, -, %HL, HF⟩
     iapply HΦ
     iunfold mvcc.watchReader
     iframe Hsr Hmur
+    iexists L
+    iframe HF
+    ipureintro; exact ⟨HL.1, HL.2.1⟩
 
 theorem mvcc.watchableStore.NewWatchStream.wp_proof
     (hWatch : mvcc.watchableStore.watch.spec (GF := GF) (hG := hG))
@@ -86,8 +90,24 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     (hProgAll : mvcc.watchableStore.progressAll.spec (GF := GF) (hG := hG))
     (hRev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) := by
-  intro s st γ Q Ψ
-  wp_start as #Hws
+  intro s γm
+  wp_start as Hmv
+  -- the store's handle (`isMvcc`): a watchable store's, with its pools
+  iunfold mvcc.api.isMvcc at Hmv
+  icases Hmv with #(Hmv | Hmv)
+  · iunfold mvcc.api.isMvccPlain at Hmv
+    icases Hmv with ⟨%s', %Hk, -⟩
+    exfalso
+    rw [interface_mkOk_inj] at Hk
+    exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
+  iunfold mvcc.api.isMvccWatchable at Hmv
+  icases Hmv with ⟨%s', %st, %γ, %γrp, %Hk, #Hws, #Htp, #Hrp⟩
+  obtain ⟨Hk, hγ⟩ := Hk
+  rw [interface_mkOk_inj] at Hk
+  have hs : s = s' := go.intoVal_inj Hk.2
+  subst hs
+  obtain ⟨Q, hQ⟩ : ∃ Q : IProp GF, Q = iprop(True) := ⟨_, rfl⟩
+  obtain ⟨Ψ, -⟩ : ∃ Ψ : w64 → IProp GF, Ψ = fun _ => iprop(True) := ⟨_, rfl⟩
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%g, #Hg, #HgS⟩, -, -, -, -, #Hcbl, -⟩
@@ -227,14 +247,27 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   ipersist ch
   (try wp_auto)
   iapply HΦ
-  iexists γo, ch, γc
-  iunfold mvcc.watchStreamOpen
-  iframe Htok Hch Hinv ch Hsp Hrs Hwst Hwrc
+  iexists (mvcc.wsAbsOf γ ch γc)
+  isplitl []
+  rotate_left
+  · isplitl [Hwst]
+    · iunfold mvcc.api.wsState; iexact Hwst
+    · iunfold mvcc.api.wsRecv; iexact Hwrc
+  iunfold mvcc.api.isMvccWatchStream
+  isplitr
+  · ipureintro; rw [← hγ]
+  iintro !>
+  iunfold mvcc.api.isMvccWatchStreamRest
+  iexists γ, γc, wsl, s, st, γo, γrp
+  iframe Hch Hinv Htp Hrp
+  isplitr
+  · ipureintro; exact ⟨rfl, hγ, by rw [Hcap]; decide, rfl⟩
   isplitr
   rotate_left
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, by rw [Hcap]; decide⟩
-  iunfold mvcc.isWatchStream
-  iexists ch, γc
+  · iunfold mvcc.progFact
+    iexists Q
+    iframe Hsp
+    rw [hQ]; iintro !>; itrivial
   iunfold mvcc.isWatchStreamAt
   simp only [named]
   iframe watchable ch Hwable Hmu

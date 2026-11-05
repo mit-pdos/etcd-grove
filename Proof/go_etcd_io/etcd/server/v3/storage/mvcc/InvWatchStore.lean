@@ -2124,6 +2124,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   C _ := iprop(True)
   FI := filtersImpl
   RegCb := regCb γ
+  RevCb := readCb γ.st
   CR ch γc L := iprop(isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
