@@ -446,6 +446,25 @@ theorem wrCurFacts_wx0 (T : TxView) (C : CommitSt) (b rl : Loc) (t : Tx) (mv : M
     rfl
   · simp [wx0] at hl
 
+/-! ## For the closers -/
+
+/-- `wrCurFacts` reads only the view's generations (`Put`'s `T.setBkt`, ...). -/
+theorem wrCurFacts_gen (T T' : TxView) (X : WX) (hg : T'.gen = T.gen) (h : wrCurFacts T X) :
+    wrCurFacts T' X := by
+  have e : ∀ n, wRoot X.v T' n = wRoot X.v T n := fun n => by unfold wRoot; rw [hg]
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  exact ⟨h1, fun n b hn => (e n).symm ▸ h2 n b hn, fun n => (e n).symm ▸ h3 n, h4⟩
+
+/-- **`Put`'s and `Delete`'s records** (materializations in the handle's bucket `b`, not the root,
+then its leaf's record replaced) keep `wrCurFacts`. -/
+theorem wrCurFacts_leafStep (T T' : TxView) (X X3 : WX) (b l : Loc) (B3 : BRec) (r' : NRec)
+    (hok : wOK X) (hmg : matGrow X X3 b) (hB3 : X3.t.bs !! b = some B3) (hb : b ≠ X.rl)
+    (hg : T'.gen = T.gen) (hw : wrCurFacts T X) : wrCurFacts T' (X3.setNode b l r') := by
+  have hw3 := wrCurFacts_matGrow T X X3 b hok hmg hw
+  have hb3 : b ≠ X3.rl := by rw [(matGrow_keepW hmg).2.1]; exact hb
+  refine wrCurFacts_setNode T T' X3 b l B3 r' hB3 (fun n => by unfold wRoot; rw [hg])
+    (fun n => rootEntRef_of_rootEnts _ _ (rootEnts_setNode_ne X3 b l B3 r' hB3 hb3) n) hw3
+
 end wrcur
 
 end Write
