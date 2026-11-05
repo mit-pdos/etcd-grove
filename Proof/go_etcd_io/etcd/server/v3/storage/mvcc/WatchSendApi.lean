@@ -18,6 +18,8 @@ the larger compaction bound is kept), so a send gathers all of its facts at one 
   while `onceUpTo` holds (exact: transfer; doomed: the witness makes it vacuous).
 - `covFact_cert`: a covered watcher's events up to the response's revision, likewise.
 - `revApi_cert`: the response's revision is below every larger log's length.
+- `chanWatcher_cert`, `covFact_recv`: a registered watcher's sent events (all, or those before a
+  response covering it), by its saved filters, over every larger log.
 -/
 module
 
@@ -275,6 +277,36 @@ theorem chanWatcher_cert (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (
   isplitl
   · rw [hsent]; iexact Hc
   · ipureintro; rw [hsent]; exact filtered_pos fs0 evsw Hpos
+
+/-- **A covered watcher's sent events up to the response's revision, over the API's history**
+(`covFact`, with its saved filters `fs0`): the events sent for `w'` before the response are its
+filters' kept events of the range's of `[lo, rev + 1)` of every larger log while the revisions
+`[lo, c0]` change each key once. -/
+theorem covFact_recv (γ : WsNames) (γc : WatchChanNames) (pre : List RespM) (w' : Loc) (rev : w64)
+    (hrev : 0 ≤ sint.Z rev) (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
+    (fs0 : List (EvM → Bool)) :
+    covFact (GF := GF) γ γc pre w' rev ∗ watcherMeta γ w' γw ∗ watcherFixed w' r fcs ∗
+      api.savedFilters γw.fg fs0 ⊢
+      delivCert γ.st.api (fun L c0 => api.onceUpTo L γw.lo c0 →
+        ((pre.filter (fun y => decide (y.w = w'))).map RespM.evs).flatten =
+          filtered fs0 (watchEvents L r γw.lo (sint.nat rev + 1))) := by
+  iintro ⟨#Hcf, #Hm, #Hf, #Hsf⟩
+  icases covFact_cert γ γc pre w' rev hrev $$ Hcf with
+    ⟨%γw', %r', %fcs', %D, #Hm', -, #Hf', #HD, %Hp, #Hc⟩
+  ihave %Hγ := watcherMeta_agree _ _ _ _ $$ Hm Hm'
+  subst Hγ
+  ihave %Hfx := watcherFixed_agree w' r r' fcs fcs' $$ [$Hf $Hf']
+  obtain ⟨rfl, rfl⟩ := Hfx
+  ihave %HDfs : ⌜∀ dl ∈ D, dl.2 = filtered fs0 dl.1⌝ $$ []
+  · iapply pure_forall.2; iintro %dl
+    iapply pure_forall.2; iintro %hdl
+    icases HD $$ %dl %hdl with ⟨%fs, -, #Hsf', %hfs⟩
+    ihave %hag := api.savedFilters_agree γw.fg fs fs0 $$ [$Hsf' $Hsf]
+    ipureintro; rw [hfs, hag]
+  have hsent : ((pre.filter (fun y => decide (y.w = w'))).map RespM.evs).flatten =
+      filtered fs0 (D.map Prod.fst).flatten := by
+    rw [Hp.1, deliv_sent_flatten fs0 D HDfs]
+  iapply delivCert_mono γ.st.api (fun L c0 h hon => by rw [hsent, h hon]) $$ Hc
 
 end cert
 
