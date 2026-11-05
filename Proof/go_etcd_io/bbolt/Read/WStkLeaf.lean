@@ -38,13 +38,63 @@ def curRef (X : WX) (B : BRec) (pid : w64) (e : elemRef) : elemRef :=
 def curRefs (X : WX) (B : BRec) (pids : List Nat) (els : List elemRef) : List elemRef :=
   List.zipWith (fun (p : Nat) e => curRef X B (W64 (p : Int)) e) pids els
 
+theorem curRef_index (X : WX) (B : BRec) (p : w64) (e : elemRef) :
+    (curRef X B p e).index' = e.index' := by
+  unfold curRef; split <;> rfl
+
+theorem curRefs_map_index (X : WX) (B : BRec) :
+    ∀ (pids : List Nat) (els : List elemRef), pids.length = els.length →
+    (curRefs X B pids els).map (·.index') = els.map (·.index')
+  | [], [], _ => rfl
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | p :: ps, e :: es, h => by
+    simp only [List.length_cons, Nat.add_right_cancel_iff] at h
+    have ih := curRefs_map_index X B ps es h
+    simp only [curRefs, List.zipWith_cons_cons, List.map_cons] at ih ⊢
+    rw [ih, curRef_index]
+
+theorem pathBndFrom_index (v : View) :
+    ∀ (els els' : List elemRef) (pids : List Nat) (b : Option (List w8) × Option (List w8)),
+    els.map (·.index') = els'.map (·.index') → pathBndFrom v b pids els = pathBndFrom v b pids els'
+  | [], [], _, _, _ => rfl
+  | [], _ :: _, _, _, h => by simp at h
+  | _ :: _, [], _, _, h => by simp at h
+  | e :: es, e' :: es', pids, b, h => by
+    simp only [List.map_cons, List.cons.injEq] at h
+    match pids with
+    | [] => simp [pathBndFrom]
+    | [_] => simp [pathBndFrom]
+    | p :: p' :: ps =>
+      simp only [pathBndFrom]
+      rw [h.1]
+      exact pathBndFrom_index v es es' (p' :: ps) _ h.2
+
 /-- **A node reference the registry names is current**: a registered node of the opened bucket at
 `(bl, pid)` is what the bucket resolves `pid` to. -/
 theorem nodeRef_current (X : WX) (n : GoString) (bl : Loc) (rt : Nat) (B : BRec)
     (hc : wCurCtx X n bl rt) (hB : X.t.bs !! bl = some B) (l : Loc) (pid : Nat)
     (hl : l ≠ null) (hnl : X.nloc !! l = some (bl, pid)) :
     resolve B (W64 (pid : Int)) = some l := by
-  sorry
+  obtain ⟨hok, -, hnc, -, -⟩ := hc
+  have hlive : bl ∈ X.liveB := hok.2.2.2.2.2.1.2.2.1 bl B hB
+  obtain ⟨B', hB', hnm⟩ := hnc.1 l bl pid hnl hlive
+  rw [hB] at hB'; cases hB'
+  have hcl := wOK_bktClean X hok bl B hB
+  by_cases hin : B.ib.root' = W64 0
+  · unfold resolve; rw [if_pos hin]
+    have hrn : B.bv.rootNode' ≠ null := by
+      intro h0
+      have := (hcl.2.2.1 h0).2
+      rw [this] at hnm; simp at hnm
+    rw [if_neg hrn]
+    obtain ⟨-, r, hr, hpg⟩ := hcl.2.2.2.2.1 _ l hnm
+    have hncl := hcl.2.2.2.2.2.2.2.1 l r hr
+    have h0 : r.nv.pgid' = W64 0 := hncl.2.2.2.2.2.2.2.2.1 hin
+    have h4 := hcl.2.2.2.1 hrn
+    rw [hin, ← h0, hpg, hnm] at h4
+    cases h4; rfl
+  · rw [resolve_tree B _ hin]; exact hnm
 
 /-- **A cursor stack's positions are a logical stack**: over the current references, a writer
 stack (`sPathR` from the bucket's root `rt`) is an `lPath` at the same positions (each below
@@ -64,7 +114,16 @@ theorem curRefs_index (X : WX) (B : BRec) (pids : List Nat) (els : List elemRef)
     (curRefs X B pids els).length = els.length ∧
     pathBnd X.v pids (curRefs X B pids els) = pathBnd X.v pids els ∧
     leafIdx (curRefs X B pids els) = leafIdx els := by
-  sorry
+  have hm := curRefs_map_index X B pids els hl
+  have hlen : (curRefs X B pids els).length = els.length := by
+    simp [curRefs, List.length_zipWith, hl]
+  refine ⟨hm, hlen, pathBndFrom_index _ _ _ _ _ hm, ?_⟩
+  have h2 := congrArg List.getLast? hm
+  rw [List.getLast?_map, List.getLast?_map] at h2
+  unfold leafIdx
+  have h3 := congrArg (Option.map fun i : w64 => i.toNat) h2
+  simp only [Option.map_map] at h3
+  exact congrArg (fun o => Option.getD o 0) h3
 
 end stkLeaf
 
