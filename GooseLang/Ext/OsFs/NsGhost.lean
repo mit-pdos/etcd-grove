@@ -53,6 +53,13 @@ theorem nsReplay_snoc (a : List NsOp) (o : NsOp) (m : NsMap) :
     nsReplay (a ++ [o]) m = o.apply (nsReplay a m) := by
   rw [nsReplay_append]; rfl
 
+/-- A prefix of the log after a commit of its first `k` operations is a longer prefix of the log
+before it: a commit keeps every crash outcome a crash had before it (the program logic's
+coherence of a directory's entries survives anyone's commit). -/
+theorem nsReplay_commit (log : List NsOp) (dur : NsMap) (k n : Nat) :
+    nsReplay ((log.drop k).take n) (nsReplay (log.take k) dur) = nsReplay (log.take (k + n)) dur := by
+  rw [← nsReplay_append, List.take_add]
+
 /-! ## The entries of a directory of a namespace -/
 
 /-- The entries of the directory `d` of the namespace `m`: the nodes of `d/b`, `b` a valid name. -/
