@@ -46,7 +46,8 @@ private theorem pagesInv_timeless_c (B : BNs) (p : GoString) : Timeless (pagesIn
 /-- `storeOK`'s facts of the committed state, the freelist and the writer. -/
 def cFacts (C : CommitSt) (fl : FLPg) (ws : WSt) : Prop :=
   C.metaOk ∧ treeOK C ∧ C.hwm ≤ 2 ^ 62 ∧ fl.WF ∧ flBelow fl C ws.2.1 ∧
-  (∀ w, ws.2.1 = some w → w = C.txid + (if ws.2.2.1 then 0 else 1))
+  (∀ w, ws.2.1 = some w → w = C.txid + (if ws.2.2.1 then 0 else 1)) ∧
+  (∀ x a, fl.allocs !! x = some a → a.toNat ≤ C.txid + 1)
 
 section store
 variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
@@ -74,8 +75,8 @@ theorem store_cfacts (C : CommitSt) (fl : FLPg) (ms : MapSt) (ws : WSt) :
   iframe
   ipureintro
   subst hC hfl hms hws
-  obtain ⟨h1, h2, h3, h4, h5, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, h21⟩ := Hok
-  exact ⟨h1, h2, h21, h4, h3, h5⟩
+  obtain ⟨h1, h2, h3, h4, h5, _, _, _, _, _, _, _, _, _, _, _, _, _, h19, _, h21⟩ := Hok
+  exact ⟨h1, h2, h21, h4, h3, h5, h19⟩
 
 end store
 
@@ -141,7 +142,10 @@ theorem wdbOK_rolledBack' (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Li
     have hT : (W64 ((w.C.txid + 1 : Nat) : Int)).toNat = w.C.txid + 1 :=
       toNat_W64_of_lt _ c7
     refine flCurOK_mono w.fl fl' w.C _ (fun x hx => ?_) (fun x hx => ?_)
-      (fun x hx => ?_) (fun x hx => ?_) hcur
+      (fun x hx => ?_) (fun x hx => ?_)
+      (fun f' _ a ha => (rollback_allocs_lookup w.fl (W64 ((w.C.txid + 1 : Nat) : Int)) _ a
+        (by rw [hfl'] at ha; exact ha)).imp id
+        (fun ⟨pd, hpd, hk, _⟩ => (pendingIds_mem_iff _ _).2 ⟨_, pd, hpd, hk⟩)) hcur
     · rcases List.mem_append.1 hx with h | h
       · rw [hfree] at h; exact List.mem_append_left _ h
       · obtain ⟨t, pd, hp, hx'⟩ := (pendingIds_mem_iff _ _).1 h

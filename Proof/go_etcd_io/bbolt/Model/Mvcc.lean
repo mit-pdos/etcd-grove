@@ -112,7 +112,9 @@ def committedPending (fl : FLPg) (C : CommitSt) (x : w64) : Prop :=
 page's bytes, which are a W slot's, so it is stated in `wdbOK`): when `C` names a freelist page,
 `pg` is a freelist page whose ids lie within it, are distinct, at least 2, not in its own
 extent; they include every free id and every committed transaction's pending id, and each is
-committed-pending or could be free (below the high-water mark, not a tree page). -/
+committed-pending or could be free (below the high-water mark, not a tree page); and the page
+was allocated by a committed transaction (its `allocs` entry, if any, at most `C.txid`;
+maintainer 13, for `Free`'s `canFree` at `Commit`'s free of the page). -/
 def flCurOK (fl : FLPg) (C : CommitSt) (pg : List w8) : Prop :=
   ∀ f, C.flpg = some f →
     2 ≤ f ∧ f + (1 + pageOverflow pg) ≤ C.hwm ∧ pg.length = (1 + pageOverflow pg) * 4096 ∧
@@ -124,7 +126,8 @@ def flCurOK (fl : FLPg) (C : CommitSt) (pg : List w8) : Prop :=
       W64 (s : Int) ∉ fl.allIds) ∧
     (∀ x ∈ fl.free, x ∈ flIds pg) ∧ (∀ x, committedPending fl C x → x ∈ flIds pg) ∧
     (∀ x ∈ flIds pg, committedPending fl C x ∨
-      (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat))
+      (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat)) ∧
+    (∀ a, fl.allocs !! W64 (f : Int) = some a → a.toNat ≤ C.txid)
 
 /-! ## Lemma statements (U3) -/
 

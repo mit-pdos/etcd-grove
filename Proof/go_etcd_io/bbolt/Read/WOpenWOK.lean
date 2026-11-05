@@ -333,13 +333,14 @@ theorem XO_back (k : Loc) (D : BRec) (hD : (XO X bl c B C nb h).t.bs !! k = some
       exact ⟨D, hD, rfl, fun _ _ e => e, fun _ => rfl, fun _ _ e => Or.inr e⟩
 
 theorem XO_bs_old (k : Loc) (D0 : BRec) (hk : X.t.bs !! k = some D0) :
-    ∃ D, (XO X bl c B C nb h).t.bs !! k = some D ∧ D.ns = D0.ns ∧ D.ib = D0.ib ∧ D.bv = D0.bv := by
+    ∃ D, (XO X bl c B C nb h).t.bs !! k = some D ∧ D.ns = D0.ns ∧ D.ib = D0.ib ∧ D.bv = D0.bv ∧
+      D.ipg = D0.ipg := by
   rw [XO_bs]
   have hkc : k ≠ c := by intro e; subst e; rw [hc] at hk; cases hk
   simp only [hkc, ↓reduceIte]
   by_cases hkb : k = bl
   · subst hkb; rw [hB] at hk; cases hk; simp
-  · simp only [hkb, ↓reduceIte]; exact ⟨D0, hk, rfl, rfl, rfl⟩
+  · simp only [hkb, ↓reduceIte]; exact ⟨D0, hk, rfl, rfl, rfl, rfl⟩
 
 /-- **The opened state is well-formed.** -/
 theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
@@ -456,14 +457,17 @@ theorem wOK_XO (w : WEntry) (hok : wOK X) (hd : objsDisj X.t) (hk : w.key = nb)
       rcases hbmD n c' e with ⟨hkb, hnn, hcc⟩ | e0
       · rw [hcc, hnn]
         rw [hkb, hB] at hD0; cases hD0
-        refine ⟨C, w.value, by rw [XO_bs]; simp, ?_, ?_, fun h0 => (hbv.2.1 h0).1, ?_, fun _ => hib⟩
+        refine ⟨C, w.value, by rw [XO_bs]; simp, ?_, ?_, fun h0 => (hbv.2.1 h0).1, ?_, fun _ => hib,
+          fun h0 _ => (hil ((inBucketRoot_zero w.value).2 (by rw [← hib]; exact h0))).2.1⟩
         · rw [hDe]; exact hent
         · cases hbv.1 <;> assumption
         · rw [hib]
-      · obtain ⟨C0, v0, hC0, hin, h16, hinl, hr0, hrn0⟩ := hnest n c' e0
-        obtain ⟨D', hD', hns', hib', hbv'⟩ := XO_bs_old X bl c B C nb h hB hc hbm c' C0 hC0
+      · obtain ⟨C0, v0, hC0, hin, h16, hinl, hr0, hrn0, hip0⟩ := hnest n c' e0
+        obtain ⟨D', hD', hns', hib', hbv', hipg'⟩ := XO_bs_old X bl c B C nb h hB hc hbm c' C0 hC0
         refine ⟨D', v0, hD', by rw [hDe]; exact hin, h16, hinl, by rw [hib']; exact hr0,
-          fun h' => by rw [hib']; exact hrn0 (by rw [← hbv']; exact h')⟩
+          fun h' => by rw [hib']; exact hrn0 (by rw [← hbv']; exact h'),
+          fun h0 h' => by
+            rw [hipg']; exact hip0 (by rw [← hib']; exact h0) (by rw [← hbv']; exact h')⟩
   · -- nodes' pages
     intro k D hD l r hr
     rcases XO_back X bl c B C nb h hB hc hbm k D hD with ⟨-, hDC⟩ | ⟨hkc, D0, hD0, hDe, -, -, -⟩

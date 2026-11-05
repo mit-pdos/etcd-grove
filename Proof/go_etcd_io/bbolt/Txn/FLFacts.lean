@@ -77,6 +77,68 @@ theorem rollback_pending_sub (fl : FLPg) (T t : w64) (pd : Pending)
   · exact h
   · exact (rollback_pending fl T t pd h).2
 
+/-- `release` keeps `allocs`. -/
+theorem release_allocs (fl : FLPg) (t : w64) : (fl.release t).allocs = fl.allocs := rfl
+
+/-- `releaseRange` keeps `allocs`. -/
+theorem releaseRange_allocs (fl : FLPg) (b e : w64) : (fl.releaseRange b e).allocs = fl.allocs := by
+  unfold FLPg.releaseRange; split
+  · rfl
+  · rfl
+
+/-- **`ReleasePendingPages` keeps `allocs`.** -/
+theorem releasePending_allocs (fl : FLPg) (ro : List w64) :
+    (fl.releasePending ro).allocs = fl.allocs := by
+  have key : ∀ (l : List w64) (acc : FLPg × w64),
+      (l.foldl (fun (acc : FLPg × w64) t => (acc.1.releaseRange acc.2 (t - 1), t + 1)) acc).1.allocs =
+        acc.1.allocs := by
+    intro l
+    induction l with
+    | nil => intro acc; rfl
+    | cons a l ih => intro acc; rw [List.foldl_cons, ih, releaseRange_allocs]
+  unfold FLPg.releasePending
+  dsimp only
+  rw [releaseRange_allocs, key]
+  split
+  · rfl
+  · rfl
+
+omit [GooseExts] in
+theorem foldl_insert_lookup (k v : w64) : ∀ (l : List (w64 × w64)) (m : GMap w64 w64),
+    (l.foldl (fun m x => m.insert x.1 x.2) m) !! k = some v →
+      m !! k = some v ∨ ∃ x ∈ l, x.1 = k ∧ x.2 = v := by
+  intro l
+  induction l with
+  | nil => intro m h; exact .inl h
+  | cons x l ih =>
+    intro m h
+    rw [List.foldl_cons] at h
+    rcases ih _ h with h' | ⟨y, hy, e⟩
+    · by_cases hk : x.1 = k
+      · subst hk
+        rw [GMap.lookup_insert] at h'
+        exact .inr ⟨x, List.mem_cons_self, rfl, (Option.some.inj h').symm ▸ rfl⟩
+      · rw [GMap.lookup_insert_ne _ _ hk] at h'
+        exact .inl h'
+    · exact .inr ⟨y, List.mem_cons_of_mem _ hy, e⟩
+
+/-- **`allocs` after `Rollback(T)`**: an entry was there before, or comes back from `T`'s pending
+entry (an id of it, with its recorded allocating transaction). -/
+theorem rollback_allocs_lookup (fl : FLPg) (T k v : w64) (h : (fl.rollback T).allocs !! k = some v) :
+    fl.allocs !! k = some v ∨ ∃ pd, fl.pending !! T = some pd ∧ k ∈ pd.ids ∧ v ∈ pd.alloctx := by
+  unfold FLPg.rollback at h
+  split at h
+  · exact .inl h
+  rename_i hne
+  obtain ⟨pd, hpd⟩ := Option.ne_none_iff_exists'.1 hne
+  simp only [FLPg.rollbackEntry, GMap.lookup_filter, Option.filter_eq_some_iff, hpd,
+    Option.getD_some] at h
+  rcases foldl_insert_lookup k v _ _ h.1 with h' | ⟨x, hx, e1, e2⟩
+  · exact .inl h'
+  · right
+    have hz := (List.mem_filter.1 hx).1
+    refine ⟨pd, hpd, e1 ▸ (List.of_mem_zip hz).1, e2 ▸ (List.of_mem_zip hz).2⟩
+
 /-- The pending slots after `Rollback` were pending slots before. -/
 theorem pendSlots_rollback_sub (fl : FLPg) (T : w64) (s : Nat)
     (h : s ∈ pendSlots (fl.rollback T)) : s ∈ pendSlots fl := by
@@ -96,12 +158,18 @@ theorem flCurOK_mono (fl fl' : FLPg) (C : CommitSt) (pg : List w8)
     (hcp : ∀ x, committedPending fl' C x → committedPending fl C x)
     (hback : ∀ x, committedPending fl C x → committedPending fl' C x ∨
       (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat))
+    (hal : ∀ f, C.flpg = some f → ∀ a, fl'.allocs !! W64 (f : Int) = some a →
+      fl.allocs !! W64 (f : Int) = some a ∨ W64 (f : Int) ∈ fl.pendingIds)
     (h : flCurOK fl C pg) : flCurOK fl' C pg := by
   intro f hf
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12⟩ := h f hf
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩ := h f hf
   refine ⟨a1, a2, a3, a4, a5, a6, a7, a8,
     fun s h1 h2 => ⟨(a9 s h1 h2).1, fun hm => (a9 s h1 h2).2 (hall _ hm)⟩, fun x hx => ?_,
-    fun x hx => a11 x (hcp x hx), fun x hx => ?_⟩
+    fun x hx => a11 x (hcp x hx), fun x hx => ?_, fun a ha => ?_⟩
+  rotate_right
+  · rcases hal f hf a ha with h | h
+    · exact a13 a h
+    · exact absurd (List.mem_append_right _ h) (a9 f (Nat.le_refl _) (by omega)).2
   · rcases hfree x hx with h | h
     · exact a10 x h
     · exact a11 x h

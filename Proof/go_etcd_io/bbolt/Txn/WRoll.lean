@@ -169,7 +169,10 @@ theorem wdbOK_rolledBack (w : WDb) (fl' : FLPg) (S : List Nat) (bs : Nat → Lis
     have hT : (W64 ((w.C.txid + 1 : Nat) : Int)).toNat = w.C.txid + 1 :=
       toNat_W64_of_lt _ c7
     refine flCurOK_mono w.fl fl' w.C _ (fun x hx => ?_) (fun x hx => ?_)
-      (fun x hx => ?_) (fun x hx => ?_) hcur
+      (fun x hx => ?_) (fun x hx => ?_)
+      (fun f' _ a ha => (rollback_allocs_lookup w.fl (W64 ((w.C.txid + 1 : Nat) : Int)) _ a
+        (by rw [hfl'] at ha; exact ha)).imp id
+        (fun ⟨pd, hpd, hk, _⟩ => (pendingIds_mem_iff _ _).2 ⟨_, pd, hpd, hk⟩)) hcur
     · rcases List.mem_append.1 hx with h | h
       · rw [hfree] at h; exact List.mem_append_left _ h
       · obtain ⟨t, pd, hp, hx'⟩ := (pendingIds_mem_iff _ _).1 h

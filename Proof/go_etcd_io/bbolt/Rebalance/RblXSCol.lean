@@ -192,7 +192,7 @@ theorem rblX_col' (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (rn : NRe
           exact descIn.child rt c' l _ hBn hc''
             (descIn_mono B B' (fun x => x ≠ rt ∧ x ≠ c) hQ hkQ c' l hd'' hq')
   obtain ⟨h1, h2'⟩ := rblX_kill X fl bl (some n) none B B' lc rn' rc.nv.pgid'
-    (1 + pageOverflow pg) X.t.mv.txid' hI hb (by rw [hrc]; rfl) ⟨rfl, rfl, rfl⟩
+    (1 + pageOverflow pg) X.t.mv.txid' hI hb (by rw [hrc]; rfl) ⟨rfl, rfl, rfl, rfl⟩
     (fun y ry' hy => by
       obtain ⟨hyl, ry, hry, hpg2, -⟩ := hlook y ry' hy
       exact ⟨hyl, ry, hry, hpg2⟩)

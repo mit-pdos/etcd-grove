@@ -53,7 +53,7 @@ theorem pendSlots_alloc (fl : FLPg) (txid r : w64) (n : Nat) :
 
 /-- **`wdbOK` after a freelist allocation** (`FLPg.alloc`: free ids removed, `allocs` grown; the
 pending ids and so the `W` slots unchanged). -/
-theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK w) :
+theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hr : r ∈ w.fl.free) (hok : wdbOK w) :
     wdbOK (w.withFl (w.fl.alloc txid r n)) := by
   obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm, hmap, hsmall, hslots, hfree, h13, h14, h15⟩ := hok
   refine ⟨h1, h2, h3, fun s => ?_, fun x hx => ?_, fun f hf => ?_, htx, hhwm, hmap, hsmall, hslots,
@@ -62,9 +62,17 @@ theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK w) :
   · exact h5 x ((List.mem_filter.1 hx).1)
   · have h := h6 f hf
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := h f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := h f' hf'
     refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ?_, fun x hx => c10 x
-      ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
+      ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx, fun a ha => ?_⟩
+    rotate_left
+    · have hff : f' = f := Option.some.inj (hf'.symm.trans hf)
+      subst hff
+      have hne : r ≠ W64 (f' : Int) := fun e =>
+        (c9 f' (Nat.le_refl _) (by omega)).2 (List.mem_append_left _ (e ▸ hr))
+      simp only [WDb.withFl, FLPg.alloc] at ha
+      rw [GMap.lookup_insert_ne _ _ hne] at ha
+      exact c13 a ha
     obtain ⟨d1, d2⟩ := c9 s a b
     refine ⟨d1, fun hm => d2 ?_⟩
     simp only [FLPg.allIds, List.mem_append] at hm ⊢
@@ -74,10 +82,11 @@ theorem wdbOK_alloc (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK w) :
 
 /-- **`wdbOK' fr` after a freelist allocation** (batch 44.1: `wdbOK_alloc` through `WDb.noFl`, the
 freelist page's clause by `flClause_alloc`). -/
-theorem wdbOK'_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (hok : wdbOK' fr w) :
+theorem wdbOK'_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (hr : r ∈ w.fl.free)
+    (hok : wdbOK' fr w) :
     wdbOK' fr (w.withFl (w.fl.alloc txid r n)) :=
-  wdbOK'_of_noFl fr _ (wdbOK_alloc w.noFl txid r n (wdbOK'_noFl fr w hok))
-    (flClause_alloc fr w txid r n (wdbOK'_flClause fr w hok))
+  wdbOK'_of_noFl fr _ (wdbOK_alloc w.noFl txid r n hr (wdbOK'_noFl fr w hok))
+    (flClause_alloc fr w txid r n hr (wdbOK'_flClause fr w hok))
 
 end pure
 

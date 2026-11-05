@@ -12,6 +12,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.WdbFlag
 public import Proof.go_etcd_io.bbolt.Inv.WSlots
 public import Proof.go_etcd_io.bbolt.Inv.Store
+public import Proof.go_etcd_io.bbolt.Commit.FreeFlOK
 import Proof.go_etcd_io.bbolt.Txn.WJoin
 
 @[expose] public section
@@ -48,19 +49,6 @@ theorem ff_W64_toNat (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s :=
   toNat_W64_of_lt s h
 
 omit [GooseExts] in
-/-- `fbRec_lookup` (`Inv/Store`'s, stated in a section with the semantics' instances). -/
-theorem ff_fbRec_lookup (id : w64) (n : Nat) (pg : Nat → List w8) (s : Nat) :
-    fbRec id n pg !! s = if s ∈ List.range' id.toNat n then some (pg s) else none := by
-  unfold fbRec
-  induction List.range' id.toNat n with
-  | nil => simp
-  | cons a S ih =>
-    simp only [List.foldr_cons, GMap.lookup_insert_eq_iff] at ih ⊢
-    by_cases h : a = s
-    · subst h; simp
-    · rw [if_neg h, ih]; simp [Ne.symm h]
-
-omit [GooseExts] in
 /-- The pending ids name pending slots. -/
 theorem ff_pendSlots_of_mem (fl : FLPg) (x : w64) (hx : x ∈ fl.pendingIds) :
     x.toNat ∈ pendSlots fl := List.mem_map.2 ⟨x, hx, rfl⟩
@@ -80,6 +68,7 @@ theorem freeFl_ok (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f)
     wdbOK' true (w.freeFl f n) ∧ fbRel (w.freeFl f n) (fbRec (W64 (f : Int)) n w.wb) ∧
     (∀ s, f ≤ s → s < f + n → s ∈ pendSlots (w.freeFl f n).fl) := by
   intro n
+  have hok0 := hok
   have h16 := wb_header w hok f hf
   have hov := extentBytes_overflow w.wb f h16
   obtain ⟨h1, h2, h3, h4, h5, h6, htx, hhwm, hmap, hsmall, hslots, hfree⟩ := hok
@@ -126,58 +115,7 @@ theorem freeFl_ok (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f)
       exact hnotAll x.toNat hx.1 hx.2 (by rw [e]; exact hm)
     · omega
   · -- the flagged writer side
-    have hpend : ∀ s, s ∈ pendSlots (w.freeFl f n).fl ↔ s ∈ pendSlots w.fl ∨ (f ≤ s ∧ s < f + n) := by
-      intro s
-      show s ∈ pendSlots (w.fl.freePages w.wtxid (W64 (f : Int)) n) ↔ _
-      rw [pendSlots_freePages _ _ _ _ hn64, hfW]
-    refine ⟨h1, h2, h3, fun s => ?_, h5, fun f' hf' => ?_, htx, hhwm, hmap, hsmall,
-      fun s hs => ?_, hfree.1, hfree.2.1, hfree.2.2.1,
-      fun s hs => hfree.2.2.2.1 s (List.mem_filter.1 hs).1, hfree.2.2.2.2⟩
-    · show s ∈ wMinus w.W (List.range' f n) ↔ _
-      simp only [wMinus, List.mem_filter, decide_eq_true_eq]
-      rw [h4 s, hpend s]
-      simp only [List.mem_range'_1]
-      constructor
-      · rintro ⟨⟨a, b, c, d⟩, e⟩
-        exact ⟨a, b, c, fun h => h.elim d (fun h' => e ⟨h'.1, by omega⟩)⟩
-      · rintro ⟨a, b, c, d⟩
-        exact ⟨⟨a, b, c, fun h => d (.inl h)⟩, fun h => d (.inr ⟨h.1, by omega⟩)⟩
-    · have hff : f' = f := by
-        have : some f' = some f := hf'.symm.trans hf
-        exact Option.some.inj this
-      subst hff
-      refine ⟨h16, fun f'' hf'' => ?_⟩
-      have hff : f'' = f' := by
-        have : some f'' = some f' := hf''.symm.trans hf
-        exact Option.some.inj this
-      subst hff
-      have hcp : ∀ x, committedPending (w.fl.freePages w.wtxid (W64 (f'' : Int)) n) w.C x →
-          committedPending w.fl w.C x := by
-        rintro x ⟨t, pd, hp, hx, ht⟩
-        rcases freePages_pending_lookup _ _ _ _ _ _ hp with ⟨-, hp'⟩ | ⟨rfl, -⟩
-        · exact ⟨t, pd, hp', hx, ht⟩
-        · omega
-      have hcp' : ∀ x, committedPending w.fl w.C x →
-          committedPending (w.fl.freePages w.wtxid (W64 (f'' : Int)) n) w.C x := by
-        rintro x ⟨t, pd, hp, hx, ht⟩
-        obtain ⟨pd', hp', hsub⟩ := freePages_pending_mono _ w.wtxid (W64 (f'' : Int)) n t pd hp
-        exact ⟨t, pd', hp', hsub x hx, ht⟩
-      simp only [WDb.freeFl.proj_wb, WDb.freeFl.proj_C, WDb.freeFl.proj_fl]
-      rw [show (w.freeFl f'' n).wtxid = w.wtxid from rfl, hov]
-      refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ⟨(c9 s a b).1, .inr ⟨?_, ?_⟩⟩, c10,
-        fun x hx => c11 x (hcp x hx), fun x hx => (c12 x hx).imp_left (hcp' x)⟩
-      · exact fun hm => hnotAll s a b (List.mem_append_left _ hm)
-      · intro t pd hp hm
-        rcases freePages_pending_lookup _ _ _ _ _ _ hp with ⟨-, hp'⟩ | ⟨rfl, -⟩
-        · exact absurd (List.mem_append_right _ (List.mem_flatMap.2
-            ⟨(t, pd), (GMap.mem_toList _ _ _).2 hp', hm⟩)) (hnotAll s a b)
-        · rfl
-    · show s < w.C.hwm
-      rcases hs with ht | hp
-      · exact hslots s (.inl ht)
-      · rcases (hpend s).1 hp with hp | ⟨_, b⟩
-        · exact hslots s (.inr hp)
-        · omega
+    exact wdbOK'_free_fl w f hok0 hf
   · -- the recorded bytes
     intro f' hf' s a b _
     have hff : f' = f := by
@@ -187,7 +125,7 @@ theorem freeFl_ok (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f)
     refine ⟨⟨_, GMap.lookup_insert_eq _ _ _, W64 (f' : Int), ?_, hfW⟩, ?_⟩
     · refine List.mem_append_right _ (List.mem_map.2 ⟨0, by simp; omega, ?_⟩)
       simp
-    · rw [ff_fbRec_lookup, if_pos (by rw [hfW]; simp only [List.mem_range'_1]; exact ⟨a, b⟩)]
+    · rw [fbRec_lookup, if_pos (by rw [hfW]; simp only [List.mem_range'_1]; exact ⟨a, b⟩)]
       rfl
   · intro s a b
     show s ∈ pendSlots (w.fl.freePages w.wtxid (W64 (f : Int)) n)

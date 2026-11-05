@@ -241,20 +241,21 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     · subst c; cases hC; exact ⟨B, hb, Or.inl ⟨rfl, rfl, rfl⟩⟩
     · exact ⟨C, hC, Or.inr ⟨‹_›, rfl⟩⟩
   have hfwd : ∀ c C0, X.t.bs !! c = some C0 → ∃ C, (X.setBkt bl B').t.bs !! c = some C ∧
-      C.ib = C0.ib ∧ C.bv = C0.bv ∧ C.bm = C0.bm := by
+      C.ib = C0.ib ∧ C.bv = C0.bv ∧ C.bm = C0.bm ∧ C.ipg = C0.ipg := by
     intro c C0 hC0
     by_cases hc : c = bl
     · subst hc; rw [hb] at hC0; cases hC0
-      exact ⟨B', by rw [setBkt_look, if_pos rfl], hs.2.1, hs.1, hs.2.2.2.1⟩
-    · exact ⟨C0, by rw [setBkt_look, if_neg hc]; exact hC0, rfl, rfl, rfl⟩
+      exact ⟨B', by rw [setBkt_look, if_pos rfl], hs.2.1, hs.1, hs.2.2.2.1, hs.2.2.2.2.1⟩
+    · exact ⟨C0, by rw [setBkt_look, if_neg hc]; exact hC0, rfl, rfl, rfl, rfl⟩
   have hnest : ∀ C0 C, bktNested X.v X.t C0 → C.bm = C0.bm →
       (∀ k v, entryIn X.v C0 k v → entryIn X.v C k v) → bktNested X.v (X.setBkt bl B').t C := by
     intro C0 C hn hbm he k c hk
     rw [hbm] at hk
-    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib⟩ := hn k c hk
-    obtain ⟨D, hD, hDib, hDbv, -⟩ := hfwd c D0 hD0
+    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib, hipg⟩ := hn k c hk
+    obtain ⟨D, hD, hDib, hDbv, -, hDipg⟩ := hfwd c D0 hD0
     exact ⟨D, v, hD, he k v hev, hlen, hinl, by rw [hDib]; exact hroot,
-      fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h)⟩
+      fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h),
+      fun h0 h => by rw [hDipg]; exact hipg (by rw [← hDib]; exact h0) (by rw [← hDbv]; exact h)⟩
   refine ⟨⟨⟨htw, hpm, hhwm, htx, by rw [hdom]; exact hrl⟩, ?_, ?_, ?_, ?_, ?_, hV, ?_, ?_, ?_, hX, hPL, ?_,
     fun c h => hRH c (by rw [← hdom]; exact h), hshape⟩, ?_⟩
   · intro c C hC
@@ -329,7 +330,7 @@ theorem rblX_sim (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' :
     · exact hk
   · refine ⟨rfl, rfl, rfl, fun _ _ h => h, rfl, rfl, rfl, rfl, hdom, fun c C0 C hC0 hC => ?_,
       fun c => by rw [sim_leaves X bl B B' hb hs], [], trivial, rfl, fun _ h => by cases h⟩
-    obtain ⟨C', hC', h1, h2, h3⟩ := hfwd c C0 hC0
+    obtain ⟨C', hC', h1, h2, h3, -⟩ := hfwd c C0 hC0
     rw [hC'] at hC; cases hC
     exact ⟨h2, h1, h3⟩
 

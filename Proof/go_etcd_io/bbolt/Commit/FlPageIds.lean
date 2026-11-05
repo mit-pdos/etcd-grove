@@ -160,7 +160,8 @@ theorem flCurOK_flPgB (fl : FLPg) (C : CommitSt) (id : w64) (cnt : Nat)
     (hrun : ∀ s, id.toNat ≤ s → s < id.toNat + cnt →
       ¬ coversSlot C.pages s ∧ ∀ x ∈ fl.allIds, x.toNat ≠ s)
     (hpend : ∀ t pd, fl.pending !! t = some pd → t.toNat ≤ C.txid)
-    (hfree : ∀ x ∈ fl.free, x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat) :
+    (hfree : ∀ x ∈ fl.free, x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat)
+    (hal : ∀ a, fl.allocs !! id = some a → a.toNat ≤ C.txid) :
     flCurOK fl C (flPgB fl id cnt) := by
   intro f hf'
   rw [hf] at hf'
@@ -173,7 +174,7 @@ theorem flCurOK_flPgB (fl : FLPg) (C : CommitSt) (id : w64) (cnt : Nat)
     rw [hids]; exact (sortPgids_perm _).mem_iff
   have h1 : 1 + pageOverflow (flPgB fl id cnt) = cnt := by omega
   rw [h1]
-  refine ⟨h2, hend, hlen, flPgB_flags fl id cnt, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨h2, hend, hlen, flPgB_flags fl id cnt, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [flPgB_countIdx fl id cnt hn, hlen]
     split <;> omega
   · rw [hids]; exact (sortPgids_perm _).nodup_iff.2 hwf.1
@@ -193,6 +194,9 @@ theorem flCurOK_flPgB (fl : FLPg) (C : CommitSt) (id : w64) (cnt : Nat)
     · exact Or.inr (hfree x h)
     · obtain ⟨t, pd, hp, hx'⟩ := (fp_mem_pendingIds fl x).1 h
       exact Or.inl ⟨t, pd, hp, hx', hpend t pd hp⟩
+  · intro a ha
+    rw [show W64 ((id.toNat : Nat) : Int) = id by simp [W64]] at ha
+    exact hal a ha
 
 end pure
 

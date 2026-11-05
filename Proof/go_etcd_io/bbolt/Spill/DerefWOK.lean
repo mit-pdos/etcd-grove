@@ -80,7 +80,7 @@ theorem posShape_step {X X' : WX} (h : derefStep X X') (hs : posShape X) : posSh
   intro bl B' hB' c p pg hc hp hpg hl i hi
   obtain ⟨B, hB, hst⟩ := derefStep_bwd h hB'
   rw [h.1] at hp hpg
-  rw [h.2.2.2.2.1]
+  rw [h.2.2.2.2.1, h.1]
   exact hs bl B hB c p pg (posRoot_bktStep hst hc) hp hpg hl i hi
 
 /-- Dereferencing keeps the root bucket not inline (batch 37: its header is kept). -/
@@ -115,10 +115,11 @@ theorem bktNested_step {X X' : WX} (h : derefStep X X') {B B' : BRec} (hs : bktS
     (hn : bktNested X.v X.t B) : bktNested X'.v X'.t B' := by
   intro k c hk
   rw [(bktStep_fields hs).2.2.2.1] at hk
-  obtain ⟨C, v, hC, he, hl, hi, hr, hn'⟩ := hn k c hk
+  obtain ⟨C, v, hC, he, hl, hi, hr, hn', hp⟩ := hn k c hk
   obtain ⟨C', hC', hsC⟩ := derefStep_fwd h hC
-  obtain ⟨hbv, hib, -⟩ := bktStep_fields hsC
-  refine ⟨C', v, hC', ?_, hl, hi, by rw [hib]; exact hr, by rw [hbv, hib]; exact hn'⟩
+  obtain ⟨hbv, hib, -, -, hipg, -⟩ := bktStep_fields hsC
+  refine ⟨C', v, hC', ?_, hl, hi, by rw [hib]; exact hr, by rw [hbv, hib]; exact hn',
+    by rw [hbv, hib, hipg]; exact hp⟩
   rw [h.1]; exact entryIn_step hs he
 
 theorem txPg_step {X X' : WX} (h : derefStep X X') (hp : txPg X.v X.t.bs) : txPg X'.v X'.t.bs := by

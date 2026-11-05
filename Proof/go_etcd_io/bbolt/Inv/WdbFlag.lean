@@ -6,7 +6,7 @@ slot clause forbids. `wdbOK' true` relaxes that clause only (`flCurOKr`: a slot 
 page's extent may be pending, for the writer's txid only); `wdbOK' false` is `wdbOK`
 (`wdbOK'_false`, by definition). `wdbW' fr` is `wdbW` with `wdbOK' fr` and the writer's
 `fbTok` (the freed page's recorded bytes' half, which `store_publish` and `store_rollback` take):
-`wdbW_wdbW'` (any flag, the token empty), `wdbW'_wdbW` (flag `false`, the token dropped).
+`wdbW_wdbW'` (flag `false`, the token empty), `wdbW'_wdbW` (flag `false`, the token dropped).
 Existing statements keep `wdbOK`/`wdbW`; the steps of `Commit` from the free on take the flagged
 form.
 -/
@@ -28,9 +28,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 section pure
 variable [GooseExts]
 
-/-- **`flCurOK` with its slot clause relaxed** for the writer `wtx`: a slot of the synced page's
-extent is not covered, and is not free and is pending only for `wtx` (in place of "in no list").
-Every other clause is `flCurOK`'s. -/
+/-- **`flCurOK` with its slot clause relaxed** for the writer `wtx` (maintainer 13: the clause
+of the page freed by `Commit`): a slot of the synced page's extent is not covered, is pending, and
+not free and pending only for `wtx` (in place of "in no list"). Every other clause is
+`flCurOK`'s. -/
 def flCurOKr (fl : FLPg) (C : CommitSt) (wtx : w64) (pg : List w8) : Prop :=
   ∀ f, C.flpg = some f →
     2 ≤ f ∧ f + (1 + pageOverflow pg) ≤ C.hwm ∧ pg.length = (1 + pageOverflow pg) * 4096 ∧
@@ -39,18 +40,12 @@ def flCurOKr (fl : FLPg) (C : CommitSt) (wtx : w64) (pg : List w8) : Prop :=
     (flIds pg).Nodup ∧ (∀ x ∈ flIds pg, 2 ≤ x.toNat) ∧
     (∀ x ∈ flIds pg, ¬ (f ≤ x.toNat ∧ x.toNat < f + (1 + pageOverflow pg))) ∧
     (∀ s, f ≤ s → s < f + (1 + pageOverflow pg) → ¬ coversSlot C.pages s ∧
-      (W64 (s : Int) ∉ fl.allIds ∨ (W64 (s : Int) ∉ fl.free ∧
-        ∀ t pd, fl.pending !! t = some pd → W64 (s : Int) ∈ pd.ids → t = wtx))) ∧
+      s ∈ pendSlots fl ∧ W64 (s : Int) ∉ fl.free ∧
+        ∀ t pd, fl.pending !! t = some pd → W64 (s : Int) ∈ pd.ids → t = wtx) ∧
     (∀ x ∈ fl.free, x ∈ flIds pg) ∧ (∀ x, committedPending fl C x → x ∈ flIds pg) ∧
     (∀ x ∈ flIds pg, committedPending fl C x ∨
-      (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat))
-
-theorem flCurOK_flCurOKr (fl : FLPg) (C : CommitSt) (wtx : w64) (pg : List w8)
-    (h : flCurOK fl C pg) : flCurOKr fl C wtx pg := by
-  intro f hf
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h f hf
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, fun s a b => ⟨(h9 s a b).1, .inl (h9 s a b).2⟩, h10, h11,
-    h12⟩
+      (x.toNat < C.hwm ∧ x.toNat < 2 ^ 62 ∧ ¬ coversSlot C.pages x.toNat)) ∧
+    (∀ a, fl.allocs !! W64 (f : Int) = some a → a.toNat ≤ C.txid)
 
 /-- The synced freelist page's clause of `wdbOK'`: `flCurOK`, or with the flag `flCurOKr` for the
 writer's txid. -/
@@ -84,14 +79,9 @@ def wdbOK' (fr : Bool) (w : WDb) : Prop :=
 /-- `wdbOK' false` is `wdbOK` (by definition). -/
 theorem wdbOK'_false (w : WDb) : wdbOK' false w ↔ wdbOK w := Iff.rfl
 
-/-- `wdbOK` gives `wdbOK'` at either flag. -/
-theorem wdbOK_wdbOK' (fr : Bool) (w : WDb) (h : wdbOK w) : wdbOK' fr w := by
-  cases fr
-  · exact h
-  · have h16 := wb_header w h
-    obtain ⟨a1, a2, a3, a4, a5, a6, a7⟩ := h
-    exact ⟨a1, a2, a3, a4, a5,
-      fun f hf => ⟨h16 f hf, flCurOK_flCurOKr _ _ _ _ (a6 f hf)⟩, a7⟩
+/-- `wdbOK` gives `wdbOK' false` (by definition; not `wdbOK' true`, whose synced page's slots
+are pending). -/
+theorem wdbOK_wdbOK' (w : WDb) (h : wdbOK w) : wdbOK' false w := h
 
 /-- **The writer side with no synced freelist page** (a device: every clause of `wdbOK'` but
 `flClause` holds of `w.noFl` as of `w`, and `flClause false` holds of it vacuously, so a lemma
@@ -123,8 +113,9 @@ theorem flClause_congr (fr : Bool) (w w' : WDb) (hC : w'.C = w.C) (hfl : w'.fl =
   · simp only [flClause, WDb.wtxid] at h ⊢; rw [hC, hfl, hwb]; exact h
 
 /-- **`flClause` after a freelist allocation** (`FLPg.alloc`: free ids removed, the pending ids
-kept). -/
-theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (h : flClause fr w) :
+kept, `allocs` given the run's first id `r`, which is free, so not the synced page's). -/
+theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (hr : r ∈ w.fl.free)
+    (h : flClause fr w) :
     flClause fr { w with fl := w.fl.alloc txid r n } := by
   have hsub : ∀ x, x ∈ (w.fl.alloc txid r n).allIds → x ∈ w.fl.allIds := by
     intro x hm
@@ -132,22 +123,36 @@ theorem flClause_alloc (fr : Bool) (w : WDb) (txid r : w64) (n : Nat) (h : flCla
     rcases hm with hm | hm
     · exact .inl ((List.mem_filter.1 hm).1)
     · exact .inr hm
+  have hal : ∀ f : Nat, W64 (f : Int) ∉ w.fl.free → ∀ a,
+      (w.fl.alloc txid r n).allocs !! W64 (f : Int) = some a → w.fl.allocs !! W64 (f : Int) = some a := by
+    intro f hf a ha
+    have hne : r ≠ W64 (f : Int) := fun e => hf (e ▸ hr)
+    simp only [FLPg.alloc] at ha
+    rwa [GMap.lookup_insert_ne _ _ hne] at ha
   cases fr
   · intro f hf
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := h f hf f' hf'
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := h f hf f' hf'
+    have hff : f' = f := Option.some.inj (hf'.symm.trans hf)
+    subst hff
+    have hnf : W64 (f' : Int) ∉ w.fl.free := fun hm =>
+      (c9 f' (Nat.le_refl _) (by omega)).2 (List.mem_append_left _ hm)
     exact ⟨c1, c2, c3, c4, c5, c6, c7, c8,
       fun s a b => ⟨(c9 s a b).1, fun hm => (c9 s a b).2 (hsub _ hm)⟩,
-      fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
+      fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx,
+      fun a ha => c13 a (hal f' hnf a ha)⟩
   · intro f hf
     refine ⟨(h f hf).1, ?_⟩
     intro f' hf'
-    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12⟩ := (h f hf).2 f' hf'
-    refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ⟨(c9 s a b).1, ?_⟩,
-      fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx⟩
-    rcases (c9 s a b).2 with hn | ⟨hnf, hp⟩
-    · exact .inl fun hm => hn (hsub _ hm)
-    · exact .inr ⟨fun hm => hnf ((List.mem_filter.1 hm).1), hp⟩
+    obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13⟩ := (h f hf).2 f' hf'
+    have hff : f' = f := Option.some.inj (hf'.symm.trans hf)
+    subst hff
+    have hnf : W64 (f' : Int) ∉ w.fl.free := (c9 f' (Nat.le_refl _) (by omega)).2.2.1
+    refine ⟨c1, c2, c3, c4, c5, c6, c7, c8, fun s a b => ?_,
+      fun x hx => c10 x ((List.mem_filter.1 hx).1), fun x hx => c11 x hx, fun x hx => c12 x hx,
+      fun a ha => c13 a (hal f' hnf a ha)⟩
+    obtain ⟨d1, d2, d3, d4⟩ := c9 s a b
+    exact ⟨d1, d2, fun hm => d3 ((List.mem_filter.1 hm).1), d4⟩
 
 /-- **The freed freelist page's recorded bytes are the writer side's** (maintainer 11, for the
 flagged rollback): a slot of the synced page's extent that is pending is pending because the
@@ -217,14 +222,14 @@ def wdbW' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=
     ⌜wdbOK' fr w ∧ w.ms = some (v.base, mapLen w.ms) ∧ v = View.ofC v.base w.C⌝ ∗
     ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (wLive v w.C) F ∗ ⌜fbRel w F⌝)
 
-/-- `wdbW` is `wdbW'` at either flag, with no recorded bytes (`fbTok_of_wdbOK`). -/
-theorem wdbW_wdbW' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbW (GF := GF) K tx v w ⊢ wdbW' fr K tx v w := by
+/-- `wdbW` is `wdbW' false`, with no recorded bytes (`fbTok_of_wdbOK`). -/
+theorem wdbW_wdbW' (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbW (GF := GF) K tx v w ⊢ wdbW' false K tx v w := by
   unfold wdbW wdbW'
   iintro ⟨H, %h⟩
   iframe H
   isplitr
-  · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
+  · ipureintro; exact ⟨wdbOK_wdbOK' w h.1, h.2⟩
   iexists ∅
   isplitl
   · iapply (fbTok_of_wdbOK K.B w h.1 (wLive v w.C) ∅)
@@ -279,14 +284,14 @@ def wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) : IProp GF :=
     ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl (some v, some (w.C.txid + 1), false, false) F ∗
       ⌜fbRel w F⌝)
 
-/-- `wdbLost` is `wdbLost'` at either flag, with no recorded bytes. -/
-theorem wdbLost_wdbLost' (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbLost (GF := GF) K tx v w ⊢ wdbLost' fr K tx v w := by
+/-- `wdbLost` is `wdbLost' false`, with no recorded bytes. -/
+theorem wdbLost_wdbLost' (K : BC) (tx : Loc) (v : View) (w : WDb) :
+    wdbLost (GF := GF) K tx v w ⊢ wdbLost' false K tx v w := by
   unfold wdbLost wdbLost'
   iintro ⟨H, %h⟩
   iframe H
   isplitr
-  · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
+  · ipureintro; exact ⟨wdbOK_wdbOK' w h.1, h.2⟩
   iexists ∅
   isplitl
   · iapply (fbTok_of_wdbOK K.B w h.1 _ ∅)
@@ -303,7 +308,7 @@ theorem wdbLost'_wdbLost (K : BC) (tx : Loc) (v : View) (w : WDb) :
 /-- **A write transaction ready to close, flagged** (maintainer 11): `wtxEnd` with `wdbOK' fr` in
 place of `wdbOK`, and the writer's `fbTok` for the store's writer state `ws` (with `fbRel`: after
 `Commit`'s free of the synced freelist page, `store_rollback` returns the page's bytes through it).
-`wtxEnd_wtxEnd'` (any flag), `wtxEnd'_wtxEnd` (flag `false`). -/
+`wtxEnd_wtxEnd'`, `wtxEnd'_wtxEnd` (flag `false`). -/
 def wtxEnd' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) :
     IProp GF :=
   iprop(K.full ∗ (wtxW K tx r false X ∨ wtxLost K tx r false X) ∗
@@ -314,14 +319,14 @@ def wtxEnd' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w :
     ⌜wdbOK' fr w ∧ X.t.t.writable' = true ∧ (X.t.bs !! X.rl).isSome⌝ ∗
     ∃ F : GMap Nat (List w8), fbTok K.B w.C w.fl ws F ∗ ⌜fbRel w F⌝)
 
-/-- `wtxEnd` is `wtxEnd'` at either flag, with no recorded bytes. -/
-theorem wtxEnd_wtxEnd' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) :
-    wtxEnd (GF := GF) K tx r X ws w ⊢ wtxEnd' fr K tx r X ws w := by
+/-- `wtxEnd` is `wtxEnd' false`, with no recorded bytes. -/
+theorem wtxEnd_wtxEnd' (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb) :
+    wtxEnd (GF := GF) K tx r X ws w ⊢ wtxEnd' false K tx r X ws w := by
   unfold wtxEnd wtxEnd'
   iintro ⟨H1, H2, H3, H4, H5, H6, H7, %h⟩
   iframe H1 H2 H3 H4 H5 H6 H7
   isplitr
-  · ipureintro; exact ⟨wdbOK_wdbOK' fr w h.1, h.2⟩
+  · ipureintro; exact ⟨wdbOK_wdbOK' w h.1, h.2⟩
   iexists ∅
   isplitl
   · iapply (fbTok_of_wdbOK K.B w h.1 ws ∅)

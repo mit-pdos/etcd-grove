@@ -80,7 +80,7 @@ theorem freePages_len (fl : FLPg) (txid E : w64) (N : Nat)
 theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' : BRec)
     (n : Loc) (rn : NRec) (E : w64) (N : Nat) (txid : w64)
     (hI : rblX X fl bl dfc) (hb : X.t.bs !! bl = some B) (hn : (B.ns !! n).isSome = true)
-    (k1 : B'.bv = B.bv ∧ B'.ib = B.ib ∧ B'.bm = B.bm)
+    (k1 : B'.bv = B.bv ∧ B'.ib = B.ib ∧ B'.bm = B.bm ∧ B'.ipg = B.ipg)
     (k2 : ∀ y ry', B'.ns !! y = some ry' → y ≠ n ∧ ∃ ry, B.ns !! y = some ry ∧
       ry'.nv.pgid' = ry.nv.pgid')
     (k2b : ∀ y ry', B'.ns !! y = some ry' → ∀ w ∈ ry'.ws, ∃ y2 ry2, B.ns !! y2 = some ry2 ∧
@@ -119,21 +119,22 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     · subst c; cases hC; exact ⟨B, hb, Or.inl ⟨rfl, rfl, rfl⟩⟩
     · exact ⟨C, hC, Or.inr ⟨‹_›, rfl⟩⟩
   have hfwd : ∀ c C0, X.t.bs !! c = some C0 → ∃ C, (X.kill bl B' n rn).t.bs !! c = some C ∧
-      C.ib = C0.ib ∧ C.bv = C0.bv ∧ C.bm = C0.bm := by
+      C.ib = C0.ib ∧ C.bv = C0.bv ∧ C.bm = C0.bm ∧ C.ipg = C0.ipg := by
     intro c C0 hC0
     by_cases hc : c = bl
     · subst hc; rw [hb] at hC0; cases hC0
-      exact ⟨B', by rw [kill_look, if_pos rfl], k1.2.1, k1.1, k1.2.2⟩
-    · exact ⟨C0, by rw [kill_look, if_neg hc]; exact hC0, rfl, rfl, rfl⟩
+      exact ⟨B', by rw [kill_look, if_pos rfl], k1.2.1, k1.1, k1.2.2.1, k1.2.2.2⟩
+    · exact ⟨C0, by rw [kill_look, if_neg hc]; exact hC0, rfl, rfl, rfl, rfl⟩
   have hnest : ∀ C0 C, bktNested X.v X.t C0 → C.bm = C0.bm →
       (∀ k v, entryIn X.v C0 k v → entryIn X.v C k v) →
       bktNested X.v (X.kill bl B' n rn).t C := by
     intro C0 C hn' hbm he k c hk
     rw [hbm] at hk
-    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib⟩ := hn' k c hk
-    obtain ⟨D, hD, hDib, hDbv, -⟩ := hfwd c D0 hD0
+    obtain ⟨D0, v, hD0, hev, hlen, hinl, hroot, hib, hipg⟩ := hn' k c hk
+    obtain ⟨D, hD, hDib, hDbv, -, hDipg⟩ := hfwd c D0 hD0
     exact ⟨D, v, hD, he k v hev, hlen, hinl, by rw [hDib]; exact hroot,
-      fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h)⟩
+      fun h => by rw [hDib]; exact hib (by rw [← hDbv]; exact h),
+      fun h0 h => by rw [hDipg]; exact hipg (by rw [← hDib]; exact h0) (by rw [← hDbv]; exact h)⟩
   have hobjs : ∀ k, (X.t.objs !! k).isSome = true →
       ((X.kill bl B' n rn).t.objs !! k).isSome = true := by
     apply objs_isSome_mono X.t (X.kill bl B' n rn).t
@@ -165,9 +166,9 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     obtain ⟨h1, h2, h3, h4, h5⟩ := hBk c C0 hC0
     rcases hcase with ⟨hc, hC0e, hCe⟩ | ⟨hc, rfl⟩
     · subst C; subst C0; subst c
-      refine ⟨by rw [if_pos rfl]; exact hB', fun nm d hd => ?_, hnest B B' h3 k1.2.2 hent,
+      refine ⟨by rw [if_pos rfl]; exact hB', fun nm d hd => ?_, hnest B B' h3 k1.2.2.1 hent,
         hrt, fun l r hr => ?_⟩
-      · rw [k1.2.2] at hd; rw [hdom]; exact h2 nm d hd
+      · rw [k1.2.2.1] at hd; rw [hdom]; exact h2 nm d hd
       · obtain ⟨hln, ry, hry, -⟩ := k2 l r hr
         exact (kill_live X bl B' n rn l).2 ⟨hln, h5 l ry hry⟩
     · refine ⟨by rw [if_neg hc]; rw [if_neg hc] at h1; exact h1, fun nm d hd => by
@@ -219,7 +220,7 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
     refine ⟨fun c C hC hl => ?_, fun c C l r hC hr hl => ?_⟩
     · obtain ⟨C0, hC0, -⟩ := hback c C hC
       refine bktReach_mono X (X.kill bl B' n rn) rfl (fun d D hD => ?_) c (r1 c C0 hC0 hl)
-      obtain ⟨D', hD', -, -, hbm⟩ := hfwd d D hD
+      obtain ⟨D', hD', -, -, hbm, -⟩ := hfwd d D hD
       exact ⟨D', hD', hbm⟩
     · obtain ⟨C0, hC0, hcase⟩ := hback c C hC
       rcases hcase with ⟨hc, hC0e, hCe⟩ | ⟨hc, rfl⟩
@@ -240,7 +241,7 @@ theorem rblX_kill (X : WX) (fl : FLPg) (bl : Loc) (dfc dfc' : Option Loc) (B B' 
   · -- the relation
     refine ⟨rfl, rfl, rfl, fun _ _ h => h, rfl, rfl, rfl, rfl, hdom, fun c C0 C hC0 hC => ?_,
       fun c => ?_, [(E, N)], ⟨hcan, trivial⟩, rfl, fun e he => ?_⟩
-    · obtain ⟨C', hC', h1, h2, h3⟩ := hfwd c C0 hC0
+    · obtain ⟨C', hC', h1, h2, h3, -⟩ := hfwd c C0 hC0
       rw [hC'] at hC; cases hC
       exact ⟨h2, h1, h3⟩
     · by_cases hc : c = bl

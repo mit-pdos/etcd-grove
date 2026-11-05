@@ -94,7 +94,8 @@ theorem cmPubPre_commitFl (D : Data) (X1 X2 X3 X4 : WX) (w2 w4 : WDb) (fl1 : FLP
     (hwf4 : w4.fl.WF) (hfb4 : flBelow w4.fl w4.C (some (w4.C.txid + 1)))
     (htx2 : w2.C.txid + 2 < 2 ^ 64)
     (hnp : ∀ s ∈ treeSlots (spillC X2 w2.C.pages), s ∉ pendSlots w2.fl)
-    (hmc : markCov X2 w2.C.hwm) :
+    (hmc : markCov X2 w2.C.hwm)
+    (hal4 : ∀ x a, w4.fl.allocs !! x = some a → a.toNat ≤ w4.C.txid + 1) :
     cmPubPre D (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w2.fl))) w4 := by
   -- the run's facts
   have hft2 : ∀ x ∈ w2.fl.free, x.toNat ∉ treeSlots w2.C := hok2.2.2.2.2.1
@@ -209,6 +210,10 @@ theorem cmPubPre_commitFl (D : Data) (X1 X2 X3 X4 : WX) (w2 w4 : WDb) (fl1 : FLP
           (by rw [hhwm5]; exact hrend) (by rw [hhwm5]; have := X4.t.mv.pgid'.isLt; omega)
           hcnt32 hroom hwf4
           (fun s a b => ⟨fun hcs => ?_, fun x hx => ?_⟩) (fun t pd hp => ?_) (fun x hx => ?_)
+          (fun a ha => by
+            rw [pubC_txid]
+            show a.toNat ≤ (X4.setFlPage id4 _).t.mv.txid'.toNat
+            rw [htxC5]; exact hal4 id4 a ha)
         · obtain ⟨c1, -, -, c4⟩ := hrs (s - id4.toNat) (by omega)
           rw [show id4.toNat + (s - id4.toNat) = s by omega] at c1 c4
           rcases hcovC s hcs with h | ⟨id, pg, j, h, hj, he⟩

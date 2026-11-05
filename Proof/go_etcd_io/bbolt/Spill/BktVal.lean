@@ -124,7 +124,7 @@ theorem bvalS_cachedNil {X : WX} {C : CommitSt} (hok : wOKR X) (hcok : treeOK C)
     (hrn : Cc.bv.rootNode' = null) :
     ∃ v S, entryIn X.v B k v ∧ Cc.ib = ibOf v ∧ bvalS P hwm v S ∧
       ∀ s, s ∈ pgSlots P S ↔ bucketCovers X.v.pages v s := by
-  obtain ⟨Cc', v, hCc', hent, hlen, hinl, hroot, hib⟩ := (hok.2.1 bl B hB).2 k c hk
+  obtain ⟨Cc', v, hCc', hent, hlen, hinl, hroot, hib, -⟩ := (hok.2.1 bl B hB).2 k c hk
   rw [hc] at hCc'; cases hCc'
   have hibv := hib hrn
   have hcl := (hok.1.2.2.2.2.2 c Cc hc).1

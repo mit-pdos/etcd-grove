@@ -154,7 +154,7 @@ theorem Tx.Commit_err.wp_proof'
   intro tx γ T Q
   wp_start as ⟨Ht, %hrw, Hau⟩
   unfold boltTx
-  icases (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, Hv, Hw, Hst, %Hf⟩
+  icases (boltTxDef_wtxW _ _ tx T hrw).1 $$ Ht with ⟨%K, %r, %c, %X, %HK, #Hfull, -, Hv, Hw, Hst, %Hf⟩
   obtain ⟨hB, hN, hT⟩ := HK
   rw [← hB]
   iunfold wtxW at Hw
@@ -489,7 +489,7 @@ theorem Tx.Commit_err.wp_proof'
             iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
             ihave Hd := wdbW'_wdbW K tx X3.v w2 $$ Hd
             imodintro
-            iapply wtxEnd_wtxEnd' false
+            iapply wtxEnd_wtxEnd'
             iapply cm_wtxEnd_live K tx r X3 w2 hwr3 hrl3
             iframe; iframe #
           have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
@@ -503,7 +503,7 @@ theorem Tx.Commit_err.wp_proof'
             ihave Hd := wdbLost'_wdbLost K tx _ w' $$ Hd
             imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
             imodintro
-            iapply wtxEnd_wtxEnd' false
+            iapply wtxEnd_wtxEnd'
             iapply cm_wtxEnd_lost K tx r (Xd.rebase b) w' hw' hr'
             rw [hC]; iframe; iframe #
           rw [show X2.v = X3.v from hv3.symm]
@@ -512,7 +512,7 @@ theorem Tx.Commit_err.wp_proof'
           · rw [hC2]; iexact Hex
           icases (cm_keep_pure (cm_wdbW_bounds K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
           icases (cm_keep_pure (cm_wdbW_ok K tx X3.v w2)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
-          ihave Hwdb := wdbW_wdbW' false K tx X3.v w2 $$ Hwdb
+          ihave Hwdb := wdbW_wdbW' K tx X3.v w2 $$ Hwdb
           wp_apply wp_commitFreelist false K tx r X3 w2 iprop(K.full ∗ cmExcl K r X3 (treeData w2.C))
             htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
             (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
@@ -580,7 +580,7 @@ theorem Tx.Commit_err.wp_proof'
                 (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]
                     show X1.t.mv.pageSize'.toNat = _; rw [hmv1]; exact Hmeta.2.2.1)
                 Hal.1 Hal.2.1 htxC hCh hml4 hh48 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hbd2.1
-                Hw4ok.1 Hbd4.1 Hcf4.2.2.2.2.1 (by omega) ?_ ?_
+                Hw4ok.1 Hbd4.1 Hcf4.2.2.2.2.1 (by omega) ?_ ?_ Hcf4.2.2.2.2.2.2
               · rw [hC2]; exact hnp2
               · rw [hC2]; exact hmc2
           · -- `commitFreelist` failed (rolled back): log, return the error
@@ -739,7 +739,7 @@ theorem Tx.Commit_err.wp_proof'
             icases cm_db_acc K tx r false Xt $$ Hw with ⟨-, Hdbp, Hwb⟩
             try wp_auto
             icases (cm_keep_pure (wdbW_mapLen_le K tx Xt.v wt)) $$ Hwdb with ⟨Hwdb, %Hml⟩
-            ihave Hwdb := wdbW_wdbW' false K tx Xt.v wt $$ Hwdb
+            ihave Hwdb := wdbW_wdbW' K tx Xt.v wt $$ Hwdb
             have hn : Xt.t.mv.pgid'.toNat < 2 ^ 36 := by omega
             have hz1 : 0 ≤ sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) := by word
             have hz2 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) + 0x1000000 < 2 ^ 63 := by word

@@ -125,7 +125,8 @@ theorem wdbOK_released (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
     simp only [WDb.released] at hext ⊢
     rw [hext]
     refine flCurOK_mono w.fl fl' w.C _ (fun x hx => (r3 x).1 hx) (fun x hx => ?_)
-      (fun x hx => ?_) (fun x hx => ?_) hcur
+      (fun x hx => ?_) (fun x hx => ?_)
+      (fun f' _ a ha => .inl (by rw [← hfl', releasePending_allocs] at ha; exact ha)) hcur
     · rcases r1 x hx with h | ⟨t, pd, hp, hx'⟩
       · exact .inl h
       · exact .inr (hcpOf t pd x hp hx')

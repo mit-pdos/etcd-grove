@@ -23,12 +23,16 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 section pure
 variable [GooseExts]
 
-/-- **The relaxed freelist-page clause after the writer's rollback** is `flCurOK`'s. -/
+/-- **The relaxed freelist-page clause after the writer's rollback** is `flCurOK`'s (the page's
+`allocs` entry comes back from the writer's pending entry, whose allocating transactions are
+committed: `hpa`, `flBelow`'s writer clause). -/
 theorem flCurOKr_rollback (fl : FLPg) (C : CommitSt) (pg : List w8) (wtx : w64)
-    (hwtx : C.txid < wtx.toNat) (h : flCurOKr fl C wtx pg) :
+    (hwtx : C.txid < wtx.toNat)
+    (hpa : ∀ pd, fl.pending !! wtx = some pd → ∀ a ∈ pd.alloctx, a.toNat ≤ C.txid)
+    (h : flCurOKr fl C wtx pg) :
     flCurOK (fl.rollback wtx) C pg := by
   intro f hf
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12⟩ := h f hf
+  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13⟩ := h f hf
   have hfree : (fl.rollback wtx).free = fl.free := rollback_free _ _
   have hsub : ∀ t pd, (fl.rollback wtx).pending !! t = some pd → fl.pending !! t = some pd :=
     fun t pd hp => rollback_pending_sub _ _ t pd hp
@@ -36,32 +40,43 @@ theorem flCurOKr_rollback (fl : FLPg) (C : CommitSt) (pg : List w8) (wtx : w64)
     rintro x ⟨t, pd, hp, hx, ht⟩
     exact ⟨t, pd, hsub t pd hp, hx, ht⟩
   refine ⟨a1, a2, a3, a4, a5, a6, a7, a8, fun s h1 h2 => ⟨(a9 s h1 h2).1, ?_⟩,
-    fun x hx => ?_, fun x hx => a11 x (hcp x hx), fun x hx => ?_⟩
+    fun x hx => ?_, fun x hx => a11 x (hcp x hx), fun x hx => ?_, fun a ha => ?_⟩
   · intro hm
+    obtain ⟨-, -, hnf, hpt⟩ := a9 s h1 h2
     rcases List.mem_append.1 hm with hm | hm
     · rw [hfree] at hm
-      rcases (a9 s h1 h2).2 with hn | ⟨hnf, -⟩
-      · exact hn (List.mem_append_left _ hm)
-      · exact hnf hm
+      exact hnf hm
     · obtain ⟨t, pd, hp, hx⟩ := (pendingIds_mem_iff _ _).1 hm
       have hp' := hsub t pd hp
-      rcases (a9 s h1 h2).2 with hn | ⟨-, hpt⟩
-      · exact hn (List.mem_append_right _ ((pendingIds_mem_iff _ _).2 ⟨t, pd, hp', hx⟩))
-      · have ht := hpt t pd hp' hx
-        subst ht
-        have hnone : (fl.rollback t).pending !! t = none := by
-          unfold FLPg.rollback
-          split
-          · assumption
-          · unfold FLPg.rollbackEntry; simp
-        rw [hnone] at hp
-        cases hp
+      have ht := hpt t pd hp' hx
+      subst ht
+      have hnone : (fl.rollback t).pending !! t = none := by
+        unfold FLPg.rollback
+        split
+        · assumption
+        · unfold FLPg.rollbackEntry; simp
+      rw [hnone] at hp
+      cases hp
   · rw [hfree] at hx; exact a10 x hx
   · rcases a12 x hx with ⟨t, pd, hp, hx', ht⟩ | h
     · left
       have hne : t ≠ wtx := by intro e; subst e; omega
       exact ⟨t, pd, by rw [rollback_pending_ne _ _ _ hne]; exact hp, hx', ht⟩
     · exact .inr h
+  · rcases rollback_allocs_lookup fl wtx _ a ha with h | ⟨pd, hpd, -, hin⟩
+    · exact a13 a h
+    · exact hpa pd hpd a hin
+
+/-- `flBelow`'s writer clause: the live writer's (`C.txid + 1`) pending entry records committed
+allocating transactions. -/
+theorem flBelow_wtx_alloctx (fl : FLPg) (C : CommitSt) (wo : Option Nat) (hbl : flBelow fl C wo) :
+    ∀ pd, fl.pending !! W64 ((C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,
+      a.toNat ≤ C.txid := by
+  intro pd hp a ha
+  have hT : (W64 ((C.txid + 1 : Nat) : Int)).toNat = C.txid + 1 := toNat_W64_of_lt _ hbl.2.2.2.1
+  rcases hbl.2.2.1 _ pd hp with h | ⟨-, h⟩
+  · rw [hT] at h; omega
+  · have := h a ha; rw [hT] at this; omega
 
 /-- `extentBytes` reads only the extent's slots. -/
 theorem extentBytes_congr' (wb wb' : Nat → List w8) (f : Nat)
@@ -98,6 +113,8 @@ the returned slots of the synced page's extent hold the bytes the writer recorde
 theorem wdbOK_rolledBack_f (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
     (bs : Nat → List w8) (F : GMap Nat (List w8))
     (hok : wdbOK' fr w) (hF : fbRel w F) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
+    (hpa : ∀ pd, w.fl.pending !! W64 ((w.C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,
+      a.toNat ≤ w.C.txid)
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s) (hbs : ∀ s ∈ S, (bs s).length = 4096)
     (hrec : fbCond w.C w.fl (some (w.C.txid + 1)) false →
@@ -130,13 +147,15 @@ theorem wdbOK_rolledBack_f (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
     · rfl
   simp only
   rw [hext, hfl']
-  exact flCurOKr_rollback w.fl w.C _ _ (by rw [hT]; omega) hr
+  exact flCurOKr_rollback w.fl w.C _ _ (by rw [hT]; omega) hpa hr
 
 omit sem in
 /-- **`wdb_rollback'`, flagged.** -/
 theorem wdb_rollback_f (p : GoString) (fr : Bool) (w : WDb) (fl' : FLPg) (S : List Nat)
     (bs : Nat → List w8) (F : GMap Nat (List w8))
     (hok : wdbOK' fr w) (hF : fbRel w F) (hfl' : fl' = w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int)))
+    (hpa : ∀ pd, w.fl.pending !! W64 ((w.C.txid + 1 : Nat) : Int) = some pd → ∀ a ∈ pd.alloctx,
+      a.toNat ≤ w.C.txid)
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C fl')
     (h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s) (hbs : ∀ s ∈ S, (bs s).length = 4096)
     (hrec : fbCond w.C w.fl (some (w.C.txid + 1)) false →
@@ -145,7 +164,7 @@ theorem wdb_rollback_f (p : GoString) (fr : Bool) (w : WDb) (fl' : FLPg) (S : Li
       ∃ w' : WDb, ⌜w'.C = w.C ∧ w'.fl = fl' ∧ w'.ms = w.ms ∧ w'.m = w.m ∧ w'.fli = w.fli ∧
           w'.junk = w.junk ∧ w'.f = w.f ∧ w'.fd = w.fd ∧ wdbOK w'⌝ ∗
         wCells w'.ms w'.W ∗ wBytes p w'.W w'.wb w'.m.size := by
-  have hok' := wdbOK_rolledBack_f fr w fl' S bs F hok hF hfl' hS h2s hbs hrec
+  have hok' := wdbOK_rolledBack_f fr w fl' S bs F hok hF hfl' hpa hS h2s hbs hrec
   obtain ⟨-, -, c3, c4, -, -, -, -, c9, -, c11, -⟩ := hok
   have hpS : ∀ s ∈ S, s ∈ pendSlots w.fl := by
     intro s hs

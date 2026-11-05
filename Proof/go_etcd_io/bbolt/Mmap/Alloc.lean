@@ -692,7 +692,7 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · iframe
     isplitr
     · ipureintro
-      exact ⟨wdbOK'_alloc fr w _ rid _ Hwok.1, Hwok.2⟩
+      exact ⟨wdbOK'_alloc fr w _ rid _ (hcan.2.2 rid ⟨Nat.le_refl _, by omega⟩) Hwok.1, Hwok.2⟩
     iexists F
     isplitl [Htok]
     · iapply fbTok_alloc

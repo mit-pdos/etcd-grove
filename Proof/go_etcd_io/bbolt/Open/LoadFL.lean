@@ -65,7 +65,7 @@ theorem flCurOK_ofInit (ys : List w8) (C : CommitSt) (g : Nat) (hg : C.flpg = so
       Nat.mul_le_mul_right _ hext
     rw [Nat.add_mul] at this; omega)
   refine ⟨h2, hext, hlen, hflag, hbnd, hnd, fun x hx => (hids x hx).1,
-    fun x hx => (hown x hx).1, ?_, ?_, ?_, ?_⟩
+    fun x hx => (hown x hx).1, ?_, ?_, ?_, ?_, fun a ha => ?_⟩
   · intro s h1 h2'
     refine ⟨hcov s h1 h2', ?_⟩
     unfold FLPg.allIds
@@ -85,6 +85,8 @@ theorem flCurOK_ofInit (ys : List w8) (C : CommitSt) (g : Nat) (hg : C.flpg = so
     right
     have := hids x hx
     refine ⟨this.2, by omega, (hown x hx).2⟩
+  · rw [show (FLPg.ofInit (flIds (filePage ys g))).allocs = ∅ from rfl] at ha
+    simp at ha
 
 /-- `freepages`' ids: below the mark, no tree slot. -/
 theorem freeIdsOf_facts (C : CommitSt) (hhwm : C.hwm < 2 ^ 64) (x : w64)

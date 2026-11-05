@@ -277,7 +277,7 @@ theorem rblX_mg (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (pl : Loc) 
     · have := hdesc rt l hd hln
       rw [if_neg hrtr] at this; exact this
   obtain ⟨h1, h2'⟩ := rblX_kill X fl bl (some n) (some pl) B B' lr rn' rr.nv.pgid'
-    (1 + pageOverflow pg) X.t.mv.txid' hI hb (by rw [hrr]; rfl) ⟨rfl, rfl, rfl⟩
+    (1 + pageOverflow pg) X.t.mv.txid' hI hb (by rw [hrr]; rfl) ⟨rfl, rfl, rfl, rfl⟩
     (fun y ry' hy => by
       obtain ⟨hyr, ry, hry, hpg2, -⟩ := hlook y ry' hy
       exact ⟨hyr, ry, hry, hpg2⟩)

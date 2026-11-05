@@ -184,7 +184,7 @@ theorem Tx.rollback_f.wp_proof
   imod store_cfacts K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms _
     $$ [Hpi Hcur Hgfl Hgmap Hgwv] with ⟨Hcur, Hgfl, Hgmap, Hgwv, %Hcf⟩
   · iframe; iframe #
-  obtain ⟨hmok, htok, hhwm, hwf, hbl, hwt⟩ := Hcf
+  obtain ⟨hmok, htok, hhwm, hwf, hbl, hwt, -⟩ := Hcf
   have hwt' := hwt wt rfl
   simp only at hwt'
   wp_auto
@@ -224,7 +224,7 @@ theorem Tx.rollback_f.wp_proof
       $$ [Hpi Hcur Hgfl Hgmap Hgwv Htok]
       with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, %Hrec⟩
     · iframe; iframe #
-    icases wdb_rollback_f K.p fr w _ S bs F hwok hF rfl HS (pendSlots_two _ hwf) Hbs Hrec
+    icases wdb_rollback_f K.p fr w _ S bs F hwok hF rfl (flBelow_wtx_alloctx w.fl w.C _ hbl) HS (pendSlots_two _ hwf) Hbs Hrec
       $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
     · iframe
     obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
@@ -292,7 +292,7 @@ theorem Tx.rollback_f.wp_proof
         $$ [Hpi Hcur Hgfl Hgmap Hgwv Htok]
         with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, %Hrec⟩
       · iframe; iframe #
-      icases wdb_rollback_f K.p fr w _ S bs F hwok hF rfl HS (pendSlots_two _ hwf) Hbs Hrec
+      icases wdb_rollback_f K.p fr w _ S bs F hwok hF rfl (flBelow_wtx_alloctx w.fl w.C _ hbl) HS (pendSlots_two _ hwf) Hbs Hrec
         $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
       · iframe
       obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
@@ -492,7 +492,7 @@ theorem Tx.rollback.spec_of_f (h : Tx.rollback_f.spec (GF := GF) (hG := hG)) :
     Tx.rollback.spec (GF := GF) (hG := hG) := by
   intro _ K tx r X ws w hrb
   iintro %Φ Hend HΦ
-  ihave Hend := wtxEnd_wtxEnd' false K tx r X ws w $$ Hend
+  ihave Hend := wtxEnd_wtxEnd' K tx r X ws w $$ Hend
   wp_apply h false K tx r X ws w hrb (fun h => absurd h (by simp)) $$ [Hend] as Hdone
   · iexact Hend
   iapply HΦ; iexact Hdone

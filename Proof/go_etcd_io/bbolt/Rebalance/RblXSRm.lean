@@ -169,7 +169,7 @@ theorem rblX_rm' (X : WX) (fl : FLPg) (bl : Loc) (B : BRec) (n : Loc) (r : NRec)
             show (rmBkt B n pl r.nv.pgid' (rmParent rp i n sI sC)).ns !! a = _
             rw [rm_ns, if_neg hap, if_neg han]; exact ha, fun c hc' _ => hc'⟩
   obtain ⟨h1, h2'⟩ := rblX_kill X fl bl (some n) (some pl) B B' n rn r.nv.pgid'
-    (1 + pageOverflow pg) X.t.mv.txid' hI hb (by rw [hr]; rfl) ⟨rfl, rfl, rfl⟩ hk2
+    (1 + pageOverflow pg) X.t.mv.txid' hI hb (by rw [hr]; rfl) ⟨rfl, rfl, rfl, rfl⟩ hk2
     (fun y ry' hy x hx => by
       rcases hlook y ry' hy with rfl | ⟨-, hy'⟩
       · rw [hpl'] at hy; cases hy

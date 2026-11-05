@@ -137,7 +137,7 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
     (hc' : bktClean X.v X.t.mv.pgid'.toNat bl B') (hk' : bktKeys X.v B')
     (hent : ∀ k v, entryIn X.v B k v → entryIn X.v B' k v)
     (hib : B'.ib = B.ib) (hbm : B'.bm = B.bm)
-    (hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null)
+    (hrn : B'.bv.rootNode' = null → B.bv.rootNode' = null) (hipg : B'.ipg = B.ipg)
     (hnew : B'.ns !! l = some r)
     (hnsN : ∀ y ry', B'.ns !! y = some ry' → y = l ∨ ∃ ry, B.ns !! y = some ry ∧
       ry'.nv.isLeaf' = ry.nv.isLeaf' ∧ ry'.ws = ry.ws ∧ ry'.nv.pgid' = ry.nv.pgid' ∧
@@ -233,13 +233,15 @@ theorem wOK_matX (X : WX) (bl l : Loc) (pgid : w64) (B B' : BRec) (r : NRec)
         C.bm = C0.bm → bktNested X.v (matX X bl l pgid B').t C := by
       intro C0 hC0 he hbm0 k c' hk
       rw [hbm0] at hk
-      obtain ⟨C2, v, hC2, hin, h16, hinl, hroot, hrn2⟩ := (hkn c C0 hC0).2 k c' hk
+      obtain ⟨C2, v, hC2, hin, h16, hinl, hroot, hrn2, hipg2⟩ := (hkn c C0 hC0).2 k c' hk
       by_cases hcb : c' = bl
       · subst hcb
         rw [hB] at hC2; cases hC2
         exact ⟨B', v, by rw [hbs', if_pos rfl], he k v hin, h16, hinl, by rw [hib]; exact hroot,
-          fun h0 => by rw [hib]; exact hrn2 (hrn h0)⟩
-      · exact ⟨C2, v, by rw [hbs', if_neg hcb]; exact hC2, he k v hin, h16, hinl, hroot, hrn2⟩
+          fun h0 => by rw [hib]; exact hrn2 (hrn h0),
+          fun h0 h1 => by rw [hipg]; exact hipg2 (by rw [← hib]; exact h0) (hrn h1)⟩
+      · exact ⟨C2, v, by rw [hbs', if_neg hcb]; exact hC2, he k v hin, h16, hinl, hroot, hrn2,
+          hipg2⟩
     rcases hcase c C hC with ⟨rfl, rfl⟩ | ⟨-, hC0⟩
     · exact ⟨hk', hnest B hB hent hbm⟩
     · exact ⟨(hkn c C hC0).1, hnest C hC0 (fun _ _ h => h) rfl⟩
@@ -975,7 +977,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
           · exact viewWF_matNest X.v hv _ pg (hfile hin)))
       (matR_keys X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl' htk)
       (matR_entryIn X.v _ bl B hstrict hc hrn0 l hl0 pg r hr hpt hgood hcid hfile hinl')
-      rfl rfl (fun h => absurd h hl0) (by rw [hns', if_pos rfl]) ?_ ?_ ?_
+      rfl rfl (fun h => absurd h hl0) rfl (by rw [hns', if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt hgood) hlb
         (fun hfl j hj hbk => by
           by_cases hin : B.ib.root' = W64 0
@@ -1071,7 +1073,7 @@ theorem wOK_nodeAdded' (X X' : WX) (bl l : Loc) (pgid : w64) (parent : Loc)
           r rp' hr hp' ha))
       (entryIn_addChild X.v _ bl B hstrict hc parent rp i w hrp hbr hw hnone l hfresh hl0 pg hpg r
         rp' hr hp')
-      rfl rfl (fun h => h) (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
+      rfl rfl (fun h => h) rfl (by rw [mat_ns, if_pos rfl]) ?_ ?_ ?_
       (newNodeBnd pg r hr9 hrleaf (pageKeys_pos _ _ pg hpt (hstrict.1 _ pg hpg))
         (viewWF_leafBnd X.v hv _ pg hpg)
         (fun hfl j hj _ => (hok.1.2.1.2.2.2.1 bl B hB _ _ pg hposw (ownHas.root _ pg hpg) hpg hfl j

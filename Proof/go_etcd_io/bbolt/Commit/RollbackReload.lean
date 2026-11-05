@@ -78,7 +78,7 @@ theorem flIds_facts (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f)
       (x ∈ w.fl.pendingIds ∨ (x ∉ w.fl.pendingIds ∧ ¬ coversSlot w.C.pages x.toNat)) := by
   intro x hx
   obtain ⟨-, -, -, -, -, a6, -, -, -, -, a11, -⟩ := hok
-  obtain ⟨-, -, -, -, -, -, b7, -, -, -, -, b12⟩ := a6 f hf f hf
+  obtain ⟨-, -, -, -, -, -, b7, -, -, -, -, b12, -⟩ := a6 f hf f hf
   refine ⟨b7 x hx, ?_, ?_⟩
   · rcases b12 x hx with h | h
     · exact a11 _ (.inr (toNat_mem_pendSlots _ _ (committedPending_mem _ _ _ h)))

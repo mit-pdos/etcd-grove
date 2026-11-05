@@ -31,7 +31,7 @@ theorem Tx.allocate.spec_of_f (h : Tx.allocate_f.spec (GF := GF) (hG := hG)) :
     Tx.allocate.spec (GF := GF) (hG := hG) := by
   intro K tx r m X w count hc0 hc htx hhwm hdp hlf hlr
   iintro %Φ ⟨Hw, Hdb⟩ HΦ
-  ihave Hdb := wdbW_wdbW' false K tx X.v w $$ Hdb
+  ihave Hdb := wdbW_wdbW' K tx X.v w $$ Hdb
   wp_apply h false K tx r m X w count hc0 hc htx hhwm hdp hlf hlr $$ [Hw Hdb] as %p %err Hres
   · iframe
   iapply HΦ

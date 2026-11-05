@@ -440,11 +440,13 @@ def entryIn (vw : View) (B : BRec) (k v : List w8) : Prop :=
     pageFlags pg = leafPageFlag ∧ i < pageCount pg ∧ leafKey pg i = k ∧
     leafFlags pg i % 2 = bucketLeafFlag ∧ leafValue pg i = v)
 
-/-- The buckets `B` opened are its entries'. -/
+/-- The buckets `B` opened are its entries'; an inline child with no root node reads its value's
+inline page (`openBucket` points `child.page` into the value; maintainer 13, item 5). -/
 def bktNested (vw : View) (T : WTx) (B : BRec) : Prop :=
   ∀ k c, B.bm !! k = some c → ∃ C v, T.bs !! c = some C ∧ entryIn vw B k v ∧ 16 ≤ v.length ∧
     (inBucketRoot v = 0 → inlineGood (inlinePage v)) ∧
-    C.ib.root' = (ibOf v).root' ∧ (C.bv.rootNode' = null → C.ib = ibOf v)
+    C.ib.root' = (ibOf v).root' ∧ (C.bv.rootNode' = null → C.ib = ibOf v) ∧
+    (C.ib.root' = W64 0 → C.bv.rootNode' = null → C.ipg = inlinePage v)
 
 /-! ## Nodes' pages (old `txPg`) -/
 
