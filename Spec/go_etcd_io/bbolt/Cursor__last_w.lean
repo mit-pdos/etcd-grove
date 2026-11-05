@@ -1,7 +1,9 @@
 /-
 `Cursor.last` of a writer's cursor (U6z, `notes/bbolt-proof-plan.md`, "Writer reads at a
-fraction"): from a stack prefix at its top's last index (`Last` pushes the root reference at
-`count() - 1`), down the last children to a leaf, at its last index (`-1` in an empty leaf). Proof:
+fraction"): from a stack prefix (its top's index any: `prev` calls it after a decrement), down
+the last children to a leaf, at its last index (`-1` in an empty leaf): the new levels at their
+last index, and (`Last`'s case) the whole stack if the prefix was (U6aa: the pre no longer asks
+`sBrLast`/`sTopLast`, false at `prev`'s call). Proof:
 `Proof/go_etcd_io/bbolt/Cursor__last_w.lean`.
 -/
 module
@@ -32,8 +34,7 @@ abbrev Cursor.last_w.specQ : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (q : Qp) (X : WX) (n : GoString) (bl : Loc)
     (rt : Nat) (ipg : List w8) (nl : Loc → Option (Loc × Nat)) (c : Loc) (stk : GoSlice)
     (els : List elemRef) (pids : List Nat),
-  wCurCtx X n bl rt → sPrefix nl X.v bl rt els pids → sBrLast X.v pids els →
-  sTopLast X.v (wEs X n) pids els →
+  wCurCtx X n bl rt → sPrefix nl X.v bl rt els pids →
   (sPathR nl X.v bl rt els pids → sLeafOK X.v ipg (wEs X n) pids els) →
   {{ wtxWQ (GF := GF) K tx r m q X ∗ c ↦ Cursor.mk bl stk ∗ stk ↦* els ∗
       ownSliceCap elemRef stk (DFrac.own 1) ∗ wStkOwn r nl X.v rt ipg els }}
@@ -42,8 +43,12 @@ abbrev Cursor.last_w.specQ : Prop :=
       wtxWQ K tx r m q X ∗ c ↦ Cursor.mk bl stk' ∗ stk' ↦* (els ++ R) ∗
       ownSliceCap elemRef stk' (DFrac.own 1) ∗ wStkOwn r nl' X.v rt ipg (els ++ R) ∗
       ⌜sPathR nl' X.v bl rt (els ++ R) (pids ++ Q) ∧
-        sLeafOK X.v ipg (wEs X n) (pids ++ Q) (els ++ R) ∧ sBrLast X.v (pids ++ Q) (els ++ R) ∧
-        sTopLast X.v (wEs X n) (pids ++ Q) (els ++ R)⌝ }}
+        sLeafOK X.v ipg (wEs X n) (pids ++ Q) (els ++ R) ∧
+        (∀ j pid e, (pids ++ Q)[j]? = some pid → (els ++ R)[j]? = some e → els.length ≤ j →
+          j + 1 < (els ++ R).length → e.index'.toNat + 1 = (pidKeys X.v pid).length) ∧
+        (R ≠ [] → sTopLast X.v (wEs X n) (pids ++ Q) (els ++ R)) ∧
+        (sBrLast X.v pids els → sTopLast X.v (wEs X n) pids els →
+          sBrLast X.v (pids ++ Q) (els ++ R) ∧ sTopLast X.v (wEs X n) (pids ++ Q) (els ++ R))⌝ }}
 
 end spec
 
