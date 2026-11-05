@@ -136,7 +136,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact hslg
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
+    Hbuilt, -, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #HLnil, #Hcca, #HBF, -, -⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -152,7 +152,7 @@ theorem startServer.wp_proof
   -- what `Start` takes: the built part with auth on (at the boot state `x₀` and the read loop's
   -- environment `Er`, named once), the monitors off
   obtain ⟨x₀, hx₀⟩ : ∃ x, x = bootKVOf true := ⟨_, rfl⟩
-  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) := ⟨_, rfl⟩
+  obtain ⟨Er, hEr⟩ : ∃ Er, Er = srvErM true ρ E₀ (W64 0) (W64 0) x₀ id (srvTrKey γn γk) (srvTrStopK γk) := ⟨_, rfl⟩
   ihave Hsb : isServerBuiltOn srv γA ci TM E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
       $$ [Hbuilt Hgap]
   · subst hEr hx₀

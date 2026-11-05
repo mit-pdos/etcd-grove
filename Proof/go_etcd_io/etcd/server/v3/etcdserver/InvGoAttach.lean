@@ -268,6 +268,72 @@ theorem wp_goAttach_Done (s : Loc) (γ : GoNames) :
   iapply HΦ
   iexact Htok
 
+/-- (2026-11-05, R2b-3d stage 5c) **The shutdown's close of the protocol** (`run`'s deferred
+`wgMu.Lock(); close(s.stopping); wgMu.Unlock()`, the ghost side): the writer holding the closer's
+token and the lock's half of the flag learns the flag was open (the token would be in the invariant
+otherwise), sets it closed, deposits the token and takes the wait group's "no waiters" out, for its
+`Wait`. -/
+theorem goAttach_close (γ : GoNames) (b : Bool) :
+    inv goAttachN (goAttachInv (GF := GF) γ) ∗ token γ.close ∗ ghostVar γ.b (1 : Qp).half b ⊢
+      |={⊤}=> ⌜b = true⌝ ∗ ghostVar γ.b (1 : Qp).half false ∗ sync.ownWaitGroupWaiters γ.wg 0 := by
+  iintro ⟨#Hinv, Htok, Hb⟩
+  iinv Hinv with Hi Hclose
+  iunfold goAttachInv at Hi
+  icases Hi with ⟨%b', %ctr, %k, >Hbi, Hwgo, Hk, Hrun, Hc, Hw⟩
+  ihave %Hag := ghostVar_agree γ.b _ _ _ _ $$ Hb Hbi
+  subst Hag
+  icases Hw with (⟨>%Hf, >Htok'⟩ | ⟨>%Ht, >Hw⟩)
+  · iexfalso; iapply token_exclusive γ.close $$ Htok Htok'
+  subst Ht
+  imod ghostVar_update_halves false γ.b _ _ $$ Hb Hbi with ⟨Hb, Hbi⟩
+  imod Hclose $$ [Hbi Hwgo Hk Hrun Hc Htok] with -
+  · inext
+    iunfold goAttachInv
+    iexists false, ctr, k
+    iframe Hbi Hwgo Hk Hrun Hc
+    ileft
+    iframe Htok
+    ipureintro; rfl
+  imodintro
+  iframe Hb Hw
+  ipureintro; rfl
+
+/-- (R2b-3d stage 5c) **`s.wg.Wait()` at the shutdown**, with the wait group's "no waiters"
+(`goAttach_close`'s): it returns once every goroutine `GoAttach` started has called `Done`. -/
+theorem wp_goAttach_Wait (s : Loc) (γ : GoNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (srvWgAddr s) γ.wg goAttachWGN ∗
+        inv goAttachN (goAttachInv γ) ∗ sync.ownWaitGroupWaiters γ.wg 0 }}
+      (App (Val (srvWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Wait")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hw⟩ HΦ
+  iapply fupd_wp
+  imod fupd_mask_subseteq (E1 := ⊤) (E2 := ↑goAttachWGN) (fun _ _ => CoPset.mem_full) with Hmask
+  imod sync.alloc_wait_token (srvWgAddr s) γ.wg goAttachWGN 0 (by decide) $$ Hwg Hw with ⟨-, Htok⟩
+  imod Hmask with -
+  imodintro
+  iapply sync.WaitGroup.wp_Wait (srvWgAddr s) γ.wg goAttachWGN $$ [Htok] [HΦ]
+  · iframe #; iframe
+  have hmask : (↑goAttachN : CoPset) ⊆ ⊤ \ ↑goAttachWGN :=
+    sync.wg_mask_ndot_ne nroot "srvGoAttach" "srvWaitGroup" (by decide)
+  imod inv_acc (E := ⊤ \ ↑goAttachWGN) (N := goAttachN) hmask $$ Hinv with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold goAttachInv at Hi
+  icases Hi with ⟨%b, %ctr, %k, Hbi, Hwgo, Hk, Hrun, Hc, Hw⟩
+  iexists ctr
+  iframe Hwgo
+  iintro %Hz Hwgo
+  imod Hmask with -
+  imod Hclose $$ [Hbi Hwgo Hk Hrun Hc Hw] with -
+  · inext
+    iunfold goAttachInv
+    iexists b, ctr, k
+    iframe
+  imodintro
+  iintro -
+  iapply HΦ; itrivial
+
 end lemmas
 
 end EtcdGrove

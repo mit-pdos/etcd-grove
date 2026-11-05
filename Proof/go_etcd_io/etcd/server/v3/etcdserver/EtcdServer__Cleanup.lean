@@ -44,9 +44,12 @@ theorem EtcdServer.Cleanup.wp_proof
   -- `s.kv.Close()`
   ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  -- (R-D1: `Close` gives back the loops' readers and the compaction job's resource; dropped here)
-  wp_apply (hKC wsl st γw c) $$ [$Hwcl] as ⟨-, -⟩
+  -- `Close` gives back the loops' readers and the compaction job's resource: with the caller's
+  -- census, the backend's whole open token (R2b-3d stage 5c; until then dropped here)
+  wp_apply (hKC wsl st γw c) $$ [$Hwcl] as ⟨Hlrs, Hjob⟩
   · iframe #
+  imod Hopen $$ [Hlrs Hjob] with Hopen
+  · iunfold mvcc.wsCloseRes; iframe Hlrs Hjob
   (try wp_auto)
   -- `s.authStore.Close()`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []

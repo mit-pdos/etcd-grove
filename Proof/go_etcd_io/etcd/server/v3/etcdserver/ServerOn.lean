@@ -263,13 +263,13 @@ theorem srvCM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀
 
 /-- **The server's raft environment in the auth mode `on`** (`srvEr` with `srvCM`). -/
 def srvErM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (id : w64) (S : IProp GF) : RNEnv GF :=
+    (id : w64) (S ST : IProp GF) : RNEnv GF :=
   ⟨srvCM on ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, ST⟩
 
 theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (id : w64) (S : IProp GF) :
-    srvErM (GF := GF) false ρ E ai₀ c₀ x₀ id S = srvEr ρ E ai₀ c₀ x₀ id S := rfl
+    (id : w64) (S ST : IProp GF) :
+    srvErM (GF := GF) false ρ E ai₀ c₀ x₀ id S ST = srvEr ρ E ai₀ c₀ x₀ id S ST := rfl
 
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
@@ -798,9 +798,9 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
     -- cluster, its decoder; and the storage's cap)
     (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
-    (id : w64) (S : IProp GF) (hid : γw.id = id) :
+    (id : w64) (S ST : IProp GF) (hid : γw.id = id) :
     kvInvOn (GF := GF) ρ.raft ρ.kv st₀ ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOkM true ρ E ⊢
-      rnEnvOk (srvErM true ρ E ai₀ c₀ x₀ id S) γw := by
+      rnEnvOk (srvErM true ρ E ai₀ c₀ x₀ id S ST) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvErM
   simp only
@@ -853,13 +853,13 @@ theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
     -- (2026-10-30, the repair) the cluster at the server's rule (until then, in a dynamic
     -- cluster, its decoder; and the storage's cap)
     (hdec : γw.node.rule = srvRule ρ.rd.kv.c0 γw.node.boot)
-    (id : w64) (S : IProp GF) (hid : γw.id = id) :
+    (id : w64) (S ST : IProp GF) (hid : γw.id = id) :
     kvInvM (GF := GF) on ρ.raft ρ.kv srvAuthSt0 ∗ srvRaftLogInv ρ.raft ∗
         clusterWorkloadOkM on ρ E ⊢
-      rnEnvOk (srvErM on ρ E ai₀ c₀ x₀ id S) γw := by
+      rnEnvOk (srvErM on ρ E ai₀ c₀ x₀ id S ST) γw := by
   cases on
-  · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ γw hraft hpre hai hai0 hdec id S hid
-  · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ γw srvAuthSt0 hraft hpre hai hai0 hdec id S hid
+  · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ γw hraft hpre hai hai0 hdec id S ST hid
+  · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ γw srvAuthSt0 hraft hpre hai hai0 hdec id S ST hid
 
 /-- **The certificates' invariant in the mode `on`** (`kvCertInv_alloc`'s). -/
 theorem kvCertInvOn_alloc (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
