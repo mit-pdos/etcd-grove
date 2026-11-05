@@ -32,58 +32,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-omit package_sem in
-/-- **The fresh store's cut** (M3, 2026-11-06): at the initial log, nothing in the bucket, nothing
-deleted, no record and no job, the tracked compaction's pure fact holds (no entry at all). -/
-theorem mvcc.cmpOk_fresh :
-    mvcc.snap.cmpOk [[], []] (∅ : mvcc.Bucket) (∅ : backend.VData) ⟨none, none⟩
-      ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev)) := by
-  have hle : mvcc.logEnts [[], []] 0 2 = [] := by
-    simp [mvcc.logEnts, mvcc.entsOfRev, List.range']
-  have hc : (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 := mvcc.CmpRecs.crev_empty
-  have hf : (⟨none, none⟩ : mvcc.CmpRecs).finRev = -1 := mvcc.CmpRecs.finRev_empty
-  refine ⟨[], ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · refine ⟨?_, ?_, ?_⟩
-    · exact List.nil_sublist _
-    · intro e he; simp [hle] at he
-    · intro e₁ he₁; simp [hle] at he₁
-  · intro k
-    simp [mvcc.snap.physLookup, mvcc.bucketOfEnts]
-    rfl
-  · simp [mvcc.recsOk]
-  · simp [mvcc.recsPos]
-  · intro k h; simp at h
-  · intro e he; simp [hle] at he
-  · exact Int.le_refl _
-  · simp [hc]
-  · simp [hf]
-
-/-- **The fresh store's tracked compaction** (M3, 2026-11-06; in place of `cmpTrack_new_M1` at
-`NewStore`): the backend's open gives the client's halves of the compaction keys' values and of the
-deleted entries at none (`fkCl`, `kbVals`), and the store's fresh ghost state the records'
-compaction revision's half, the job cursor's half and the lower bounds' authority, all at `-1`. -/
-theorem mvcc.cmpTrack_fresh (γ : mvcc.StoreNames) :
-    mvcc.kbVals (GF := GF) γ.kb (none, none) ∅ ∗ ghostVar γ.rcv (1 : Qp).half (-1 : Int) ∗
-      ghostVar γ.jc (1 : Qp).half ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev)) ∗
-      monoNatAuthOwn γ.rcl 1 (mvcc.crevN (-1)) ⊢
-      mvcc.cmpTrack γ [[], []] ∅ ⟨none, none⟩ := by
-  have hc : (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 := mvcc.CmpRecs.crev_empty
-  unfold mvcc.cmpTrack mvcc.kbVals
-  cases γ.kb with
-  | none => iintro -; itrivial
-  | some d =>
-    simp only
-    split
-    · iintro ⟨⟨Hf, Hd⟩, Hr, Hj, Hl⟩
-      rw [hc]
-      iframe Hr Hl
-      isplitl [Hf]
-      · simp only [mvcc.recBytes, Option.map_none]; iexact Hf
-      iexists ∅, ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev))
-      iframe Hd Hj
-      ipureintro; exact mvcc.cmpOk_fresh
-    · iintro -; itrivial
-
 /-- One of the backend's reader tokens the store takes (`nReaders`, the backend's stock), and the
 rest back from it. -/
 theorem mvcc.slot_take (Q : IProp GF) :
@@ -146,7 +94,7 @@ theorem mvcc.NewStore.wp_proof
   have hRestore := mvcc.store.restore.specNC_of_spec hRestore
   intro _ lg b le cfg kb γb γl P f rd0 wq γi γok Perm Hcfg0
   have Hrb0 : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (GF := GF) _
-  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hvals, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
+  wp_start as ⟨Hbk, Hbv, Hncmp, #Hnd, Hrg, Hwt1, Hwt2, Hsrm, Hrts, Hlrd, #Hlessor, Hro, Hifresh, Hok⟩
   have hnr : 1 ≤ mvcc.nReaders := by rw [mvcc.nReaders_val]; decide
   have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := Nat.le_trans (mvcc.nJobRd_le kb) hnr
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
@@ -351,12 +299,12 @@ theorem mvcc.NewStore.wp_proof
   icases (mvcc.bucketView_quarters γ _).1 $$ Hbv1 with ⟨Hbv1, HbvP⟩
   -- (the snapshot image's (a)) `writerRes`'s quarter: its eighth and the compaction's part's
   icases (mvcc.bucketView_halves γ (1 : Qp).half.half _).1 $$ Hbv1 with ⟨Hbv1, HbvC⟩
-  -- the compaction's part: nothing written, and the tracked compaction of the fresh backend (the
-  -- open's values' halves at none, `kbVals`)
-  ihave HtrC : mvcc.cmpTrack γ [[], []] ∅ ⟨none, none⟩ $$ [Hvals Hrcv2 Hjc2 Hrcl]
-  · iapply mvcc.cmpTrack_fresh
-    rw [hγk]
-    iframe Hvals Hrcv2 Hjc2 Hrcl
+  -- the compaction's part: nothing written, and (a placeholder until M3's exact open) the tracked
+  -- compaction of the fresh backend
+  ihave HtrC : mvcc.cmpTrack γ [[], []] ∅ ⟨none, none⟩ $$ [Hrcv2 Hjc2 Hrcl]
+  · iapply mvcc.cmpTrack_new_M1 _ _ _ _ ((-1 : Int), (⟨W64 0, W64 0⟩ : mvcc.Rev))
+    rw [show (⟨none, none⟩ : mvcc.CmpRecs).crev = -1 from mvcc.CmpRecs.crev_empty]
+    iframe Hrcv2 Hjc2 Hrcl
   ihave Hcres : mvcc.compactRes γ [[], []] $$ [Hmeta Hfin Hslot HbvC HtrC]
   · iunfold mvcc.compactRes
     iexists none, none, 0, ∅
