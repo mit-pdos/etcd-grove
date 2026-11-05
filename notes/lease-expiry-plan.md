@@ -1617,3 +1617,13 @@ spec".
 
 Not part of the trusted text, needed by `Main`: a law `lessorAt γl i σ ⊢ lessorLb γl i`; E3 (c)'s
 "TTL is the grant's, `≥ 1`"; the wrapper's distinct-error-cell refutations.
+
+**Decided (the user, 2026-11-05; the user's own answers to the coordinator, through
+AskUserQuestion).**
+1. E2 revision 5's exact text (above), including `nodeStartedFresh` in raft's API (interfaces
+   regenerated, diff reported).
+2. E3 (c) route (A): `lease.NewLessor.wp_proof`'s postcondition gains `lease.leaseEver γl ∅`
+   (chosen over (B)). A trusted-statement change: through the `axiom` skill before Freeze.
+3. `Main.spec` as proposed; the sorry `srvRevokeOpen_open`; `etc/bounds-baseline.txt` +1
+   `spec-thread` / +2 `spec-receipt` (`etc/bounds-check.py --check --update` for exactly that); the
+   collection `etc/tcb-collections/leaseexpiry.txt`.
