@@ -1244,7 +1244,7 @@ and the server has it (`InvBoot`'s and `SnapRO`'s `p.kb = some d ∧ bridgeParam
 - `KV.Restore.contract`/`KV.Close.contract` (unchanged since the last hand-off).
 - The TCB baseline: no axiom or `sorry` added or removed (`cmpTrack_new_M1` still used).
 
-## Design: mvcc's API over its storage abstraction (2026-11-06; for the user's review, nothing restated yet)
+## Design: mvcc's API over its storage abstraction (2026-11-06; approved by the user, 2026-11-06)
 
 The decision (`notes/decisions.md`, "mvcc's API over its storage abstraction, not etcd's backend"):
 `Api.lean`/`ApiState.lean` stop naming etcd's backend; mvcc's storage contract is the API's

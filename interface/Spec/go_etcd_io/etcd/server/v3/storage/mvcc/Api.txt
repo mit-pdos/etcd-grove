@@ -3,12 +3,12 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def mvcc.api.KV.Commit.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.BkRef) (Pk X Y : IProp GF),
+  ∀ (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.MvccStorage) (Pk X Y : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.api.isMvcc (interface.mkOk ty v) γ ∗
-              threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗ backend.commitReq B.γB B.P Pk B.b X Y -∗
+              threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ X ∗ mvcc.api.storageReq B Pk X Y -∗
           ▷ (threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ Y -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods ty go!"Commit" v)) (intoVal ())) {{ Φ }}
 
@@ -71,8 +71,8 @@ def mvcc.api.WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
 
 def mvcc.api.KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (key endk : GoSlice) (k e : GoString) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : mvcc.api.BkRef) (P Pre Q' Post : IProp GF)
-    (f : GoFunc) (Q : mvcc.api.MvccState → IProp GF),
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : mvcc.api.MvccStorage)
+    (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : mvcc.api.MvccState → IProp GF),
     have ds := fun σ => List.map mvcc.Change.del (mvcc.delKeys σ.log [] (decide (endk = slice.nil)) k e);
     ⊢
       ∀ Φ,
@@ -113,48 +113,8 @@ def mvcc.api.KV.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
 def mvcc.api.store.Rev.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Rev.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
-def mvcc.api.mvccTxn_leaseDelete.law : Prop :=
-  ∀ (tw : GoInterfaceOk) (γ : mvcc.api.MvccName) (trace : Loc) (σ : mvcc.api.MvccState) (pend : List mvcc.Change) (q : Qp)
-    (B : mvcc.api.BkRef) (Pk : IProp GF) (t : Loc) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac)
-    (S : GoString → Prop) (r : GMap GoString backend.BktData) (Φ : val → IProp GF),
-    S mvcc.leaseName →
-      mvcc.api.mvccTxn (GoInterface.ok tw) γ trace (mvcc.api.MTxn.write σ pend) ∗
-          mvcc.api.mvccBackend γ q B Pk ∗
-            typedPointsto (backend.bF go!"batchTx" B.b) t DFrac.discard ∗
-              typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease) b DFrac.discard ∗
-                ownSlice key k dq ∗
-                  backend.rbPart B.γB S r ∗
-                    ▷
-                      (mvcc.api.mvccBackend γ q B Pk -∗
-                        ownSlice key k dq -∗
-                          backend.rbPart B.γB S (mvcc.rbDel r mvcc.leaseName k) -∗
-                            (∀ Q,
-                                □
-                                  ∀ Φ,
-                                    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-                                        mvcc.api.mvccBackend γ q B Pk ∗
-                                          Pk ∗
-                                            AU <{ ∃∃ σ1, mvcc.api.mvccState γ σ1 }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                                ⌜σ1 = σ⌝ ∗
-                                                  mvcc.api.mvccState γ (σ1.notify pend) ∗
-                                                    ⧖(mvcc.logCh (σ1.log ++ [pend])),
-                                                COMM
-                                                AU <{ ∃∃ σ2, mvcc.api.mvccState γ σ2 }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                                    ⌜σ2 = σ.notify pend⌝ ∗ mvcc.api.mvccState γ σ2.commitPending, COMM
-                                                    Q }> }> -∗
-                                      ▷ (threadTok ∗ mvcc.api.mvccBackend γ q B Pk ∗ Q -∗ Φ (intoVal ())) -∗
-                                        WP ((intoVal (methods tw.ty go!"End" tw.v)) (intoVal ())) {{ Φ }}) -∗
-                              Φ (intoVal ())) ⊢
-        WP
-          (((intoVal
-                (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-                  go!"UnsafeDelete" (intoVal t)))
-              (intoVal b))
-            (intoVal key))
-          {{ Φ }}
-
-def (sealed) mvcc.api.mvccBackend (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.BkRef) (Pk : IProp
-    GF) : IProp GF
+def (sealed) mvcc.api.mvccBackend (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.MvccStorage) (Pk :
+    IProp GF) : IProp GF
 
 def mvcc.api.excl.law : Prop :=
   (∀ (γ : mvcc.api.MvccName) (σ σ' : mvcc.api.MvccState), mvcc.api.mvccState γ σ ∗ mvcc.api.mvccState γ σ' ⊢ False) ∧
@@ -178,7 +138,7 @@ def mvcc.api.Txn.Rev.contract (ty : go.GoType) (v : val) : Prop :=
             WP ((intoVal (methods ty go!"Rev" v)) (intoVal ())) {{ Φ }}
 
 def mvcc.api.mvccBackend_agree.law : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (q q' : Qp) (B B' : mvcc.api.BkRef) (Pk Pk' : IProp GF),
+  ∀ (γ : mvcc.api.MvccName) (q q' : Qp) (B B' : mvcc.api.MvccStorage) (Pk Pk' : IProp GF),
     mvcc.api.mvccBackend γ q B Pk ∗ mvcc.api.mvccBackend γ q' B' Pk' ⊢ ⌜B = B'⌝
 
 def mvcc.api.isWatchableKV (ty : go.GoType) (v : val) : Prop :=
@@ -209,8 +169,8 @@ def mvcc.api.shapes.law : Prop :=
           mvcc.api.isMvccWatchStream w γ ι ⊢ ⌜∃ ty v, w = interface.mkOk ty v ∧ mvcc.api.isWatchStream ty v⌝
 
 def mvcc.api.KV.Write.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (q : Qp) (B : mvcc.api.BkRef) (P Pre Q : IProp GF) (f : GoFunc)
-    (R : mvcc.api.MvccState → IProp GF),
+  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (q : Qp) (B : mvcc.api.MvccStorage) (P Pre Q : IProp GF)
+    (f : GoFunc) (R : mvcc.api.MvccState → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -243,43 +203,11 @@ def mvcc.api.KV.Rev.contract (ty : go.GoType) (v : val) : Prop :=
           (▷ ∀ r, (threadTok ∗ ∃ σ, Q σ ∗ ⌜r = W64 ↑σ.rev⌝) -∗ Φ (intoVal r)) -∗
             WP ((intoVal (methods ty go!"Rev" v)) (intoVal ())) {{ Φ }}
 
-def mvcc.api.mvccImage_snapshot.law : Prop :=
-  backend.backend.Snapshot.spec →
-    ∀ (kv : GoInterface) (γ : mvcc.api.MvccName) (B : mvcc.api.BkRef) (Pk : IProp GF) (qo : Qp) (R : IProp GF)
-      (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop)
-      (Φ : mvcc.api.MvccState → IProp GF),
-      ⊢
-        ∀ Φ_1,
-          isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-              mvcc.api.isMvcc kv γ ∗
-                mvcc.api.mvccBackend γ 1 B Pk ∗
-                  backend.bOpen B.γB qo ∗
-                    backend.wbTok B.γB ∗
-                      R ∗
-                        (□ ∀ d r, R -∗ Pk -∗ backend.hkOwn B.γB d -∗ backend.rbOwn B.γB r -∗ ⌜Q d r⌝) ∗
-                          AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.pending = none⌝ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                              mvcc.api.mvccState γ σ, COMM Φ σ }> -∗
-            (▷
-                ∀ sp D,
-                  (backend.snapOpen sp D ∗
-                      backend.bOpen B.γB qo ∗
-                        R ∗
-                          mvcc.api.mvccBackend γ 1 B Pk ∗
-                            ⌜Q (backend.hkData B.P D) (backend.rbData B.P D)⌝ ∗
-                              ∃ σ u, Φ σ ∗ mvcc.api.mvccImage D σ.log σ.crev u) -∗
-                    Φ_1
-                      (intoVal
-                        (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty.PointerType
-                          (intoVal sp)))) -∗
-              WP
-                ((intoVal
-                    (methods go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType
-                      go!"Snapshot" (intoVal B.b)))
-                  (intoVal ()))
-                {{ Φ_1 }}
-
 def mvcc.api.watchableStore.Write.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Write.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType (intoVal s)
+
+theorem mvcc.api.storageReq_persistent (B : mvcc.api.MvccStorage) (Pk X Y : IProp GF) : Persistent
+    (mvcc.api.storageReq B Pk X Y)
 
 def mvcc.api.watchableStore.Commit.spec : Prop :=
   ∀ (s : Loc),
@@ -292,7 +220,7 @@ def mvcc.api.store.Write.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Write.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
 def mvcc.api.Txn.End.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (k : mvcc.api.MTxn) (q : Qp) (B : mvcc.api.BkRef) (P Q : IProp GF),
+  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (k : mvcc.api.MTxn) (q : Qp) (B : mvcc.api.MvccStorage) (P Q : IProp GF),
     ⊢
       ∀ Φ,
         (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -330,7 +258,7 @@ def mvcc.api.NewReadOnlyTxnWrite.spec : Prop :=
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite [])) (intoVal t)) {{ Φ }}
 
 def mvcc.api.KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (B B' : mvcc.api.BkRef) (Pk Pk' : IProp GF) (σ' : mvcc.api.MvccState) (u : Bool)
+  ∀ (γ : mvcc.api.MvccName) (B B' : mvcc.api.MvccStorage) (Pk Pk' : IProp GF) (σ' : mvcc.api.MvccState) (u : Bool)
     (L : List w64) (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : mvcc.api.MvccState → IProp GF),
     ⊢
       ∀ Φ,
@@ -339,14 +267,14 @@ def mvcc.api.KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
               threadTok ∗
                 mvcc.api.mvccOpen γ ∗
                   mvcc.api.mvccBackend γ 1 B Pk ∗
-                    mvcc.api.mvccBackendFor B' Pk' σ'.log σ'.crev u ∗
+                    mvcc.api.mvccStorageFor B' Pk' σ'.log σ'.crev u ∗
                       ⌜mvcc.api.MvccReachable σ' ∧ σ'.pending = none⌝ ∗
-                        backend.plHookAt B'.γB dq f ∗
+                        mvcc.api.storageHook B' dq f ∗
                           Pre ∗
                             mvcc.api.hookRun Pk' f Pre Q' ∗
                               (Q' ={⊤}=∗ Pk' ∗ Post) ∗
                                 X ∗
-                                  backend.commitReq B'.γB B'.P Pk' B'.b X Y ∗
+                                  mvcc.api.storageReq B' Pk' X Y ∗
                                     lease.leaseOwn (mvcc.api.mvccLeases γ) L ∅ ∗
                                       ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
                                             mvcc.pendItems σ'.log [] !! it = some lid →
@@ -358,20 +286,15 @@ def mvcc.api.KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
               ((threadTok ∗
                   mvcc.api.mvccOpen γ ∗
                     mvcc.api.mvccBackend γ 1 B' Pk' ∗
-                      ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen B.γB backend.rdOpen) ∗
-                        backend.plHookAt B'.γB dq f ∗
+                      mvcc.api.storageRest B ∗
+                        mvcc.api.storageHook B' dq f ∗
                           (if u = true then Post ∗ Y else Pre ∗ X) ∗
                             lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ'.log []) ∗ ∃ σ, Q σ) -∗
                 Φ (intoVal GoInterface.nil)) -∗
             WP
               ((intoVal (methods ty go!"Restore" v))
-                (intoVal
-                  (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType (intoVal B'.b))))
+                (intoVal (mvcc.api.storageVal B')))
               {{ Φ }}
-
-def mvcc.api.mvccBackend_isBackend.law : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (q : Qp) (B : mvcc.api.BkRef) (Pk : IProp GF),
-    mvcc.api.mvccBackend γ q B Pk ⊢ ∃ gx, □ backend.isBackend B.γB B.P (mvcc.api.mvccW gx) Pk B.b
 
 def mvcc.api.KV.Read.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (mode : w32) (trace : Loc) (te : Bool) (Q : mvcc.api.MvccState → IProp GF),
@@ -389,6 +312,9 @@ def mvcc.api.KV.Read.contract (ty : go.GoType) (v : val) : Prop :=
                 (traceutil.ownTrace trace te ∗ ∃ σ, mvcc.api.mvccTxn t γ trace (mvcc.api.MTxn.read σ) ∗ Q σ) -∗
                   Φ (intoVal t)) -∗
             WP (((intoVal (methods ty go!"Read" v)) (intoVal mode)) (intoVal trace)) {{ Φ }}
+
+theorem mvcc.api.hookIs_persistent (B : mvcc.api.MvccStorage) (f : GoFunc) : Persistent
+    (mvcc.api.hookIs B f)
 
 def (sealed) mvcc.api.isMvcc (kv : GoInterface) (γ : mvcc.api.MvccName) : IProp GF
 
@@ -430,17 +356,17 @@ def mvcc.api.KV.Range.contract (ty : go.GoType) (v : val) : Prop :=
               {{ Φ }}
 
 def mvcc.api.NewStore.spec : Prop :=
-  ∀ (lg : Loc) (le : GoInterface) (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (B : mvcc.api.BkRef)
+  ∀ (lg : Loc) (le : GoInterface) (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (B : mvcc.api.MvccStorage)
     (Pk : IProp GF) (γl : GName) (rd0 : GoFunc),
     mvcc.batchLimitOk cfg.CompactionBatchLimit' →
       receiptBound GF ≤ 2 ^ 48 →
-        threadBound GF ≤ backend.rdStockN →
+        threadBound GF ≤ mvcc.api.mvccReaderN →
           ⊢
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
                   isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
                     isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-                      mvcc.api.mvccBackendFor B Pk mvcc.api.mvccStart.log mvcc.api.mvccStart.crev false ∗
+                      mvcc.api.mvccStorageFor B Pk mvcc.api.mvccStart.log mvcc.api.mvccStart.crev false ∗
                         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 -∗
                 (▷
                     ∀ s,
@@ -455,18 +381,13 @@ def mvcc.api.NewStore.spec : Prop :=
                         Φ (intoVal s)) -∗
                   WP
                     (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.NewStore [])) (intoVal lg))
-                          (intoVal
-                            (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType
-                              (intoVal B.b))))
+                          (intoVal (mvcc.api.storageVal B)))
                         (intoVal le))
                       (intoVal cfg))
                     {{ Φ }}
 
 def mvcc.api.store.Close.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Close.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
-
-def (sealed) mvcc.api.mvccBackendFor (B : mvcc.api.BkRef) (Pk : IProp GF) (L : mvcc.Log) (c : Int)
-    (u : Bool) : IProp GF
 
 def (sealed) mvcc.api.mvccTxn (t : GoInterface) (γ : mvcc.api.MvccName) (trace : Loc) (k :
     mvcc.api.MTxn) : IProp GF
@@ -483,17 +404,13 @@ def mvcc.api.WatchStream.Close.contract (ty : go.GoType) (v : val) : Prop :=
           ▷ ((threadTok ∗ ∃ S, Q S) -∗ Φ (intoVal ())) -∗
             WP ((intoVal (methods ty go!"Close" v)) (intoVal ())) {{ Φ }}
 
-def mvcc.api.backendRest_open.law : Prop :=
-  ∀ (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF) (b : Loc) (D : backend.Data),
-    mvcc.api.backendRest γB P K b D ⊢
-      backend.isStopChans γB b ∗
-        K γB ∗ backend.plHook γB func.nil ∗ backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b
-
 def mvcc.api.store.FirstRev.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.FirstRev.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
-def mvcc.api.hookIs (B : mvcc.api.BkRef) (f : GoFunc) : IProp GF :=
-  backend.plHookRO B.γB f
+def mvcc.api.hookIs (B : mvcc.api.MvccStorage) (f : GoFunc) : IProp GF :=
+  mvcc.api.storageHook B DFrac.discard f
+
+def (sealed) mvcc.api.storageVal (B : mvcc.api.MvccStorage) : GoInterface
 
 def mvcc.api.WatchableKV.NewWatchStream.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName),
@@ -563,13 +480,6 @@ def mvcc.api.WatchStream.Cancel.contract (ty : go.GoType) (v : val) : Prop :=
                   Φ (intoVal err)) -∗
             WP ((intoVal (methods ty go!"Cancel" v)) (intoVal id)) {{ Φ }}
 
-def mvcc.api.mvccImage_fresh.law : Prop :=
-  ∀ (D : backend.Data),
-    (∀ (k : GoString), backend.dget D mvcc.keyName k = none) →
-      backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none →
-        backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none →
-          ⊢ |==> mvcc.api.mvccImage D mvcc.api.mvccStart.log mvcc.api.mvccStart.crev false
-
 def (sealed) mvcc.api.mvccLeases (γ : mvcc.api.MvccName) : GName
 
 def mvcc.api.errVars.law : Prop :=
@@ -595,12 +505,13 @@ def mvcc.api.persistent.law : Prop :=
   (∀ (kv : GoInterface) (γ : mvcc.api.MvccName), Persistent (mvcc.api.isMvcc kv γ)) ∧
     (∀ (ws : GoInterface) (γ : mvcc.api.MvccName) (ι : mvcc.api.WsName), Persistent (mvcc.api.isMvccWatchStream ws γ ι)) ∧
       (∀ (ι : mvcc.api.WsName) (n : Nat), Persistent (mvcc.api.wsSentLb ι n)) ∧
-        (∀ (D : backend.Data) (L : mvcc.Log) (c : Int) (u : Bool), Persistent (mvcc.api.mvccImage D L c u)) ∧
-          (∀ (γ : mvcc.api.MvccName) (σ : mvcc.api.MvccState), Timeless (mvcc.api.mvccState γ σ)) ∧
-            (∀ (ι : mvcc.api.WsName) (S : mvcc.api.StreamState), Timeless (mvcc.api.wsState ι S)) ∧
-              (∀ (ι : mvcc.api.WsName) (rs : List mvcc.api.WResp), Timeless (mvcc.api.wsRecv ι rs)) ∧
-                ∀ (γ : mvcc.api.MvccName) (B : mvcc.api.BkRef) (Pk : IProp GF),
-                  Fractional fun q => mvcc.api.mvccBackend γ q B Pk
+        (∀ (B : mvcc.api.MvccStorage) (f : GoFunc), Persistent (mvcc.api.hookIs B f)) ∧
+          (∀ (B : mvcc.api.MvccStorage) (Pk X Y : IProp GF), Persistent (mvcc.api.storageReq B Pk X Y)) ∧
+            (∀ (γ : mvcc.api.MvccName) (σ : mvcc.api.MvccState), Timeless (mvcc.api.mvccState γ σ)) ∧
+              (∀ (ι : mvcc.api.WsName) (S : mvcc.api.StreamState), Timeless (mvcc.api.wsState ι S)) ∧
+                (∀ (ι : mvcc.api.WsName) (rs : List mvcc.api.WResp), Timeless (mvcc.api.wsRecv ι rs)) ∧
+                  ∀ (γ : mvcc.api.MvccName) (B : mvcc.api.MvccStorage) (Pk : IProp GF),
+                    Fractional fun q => mvcc.api.mvccBackend γ q B Pk
 
 def mvcc.api.watchableStore.NewWatchStream.spec : Prop :=
   ∀ (s : Loc),
@@ -620,9 +531,6 @@ def mvcc.api.WatchStream.Chan.contract (ty : go.GoType) (v : val) : Prop :=
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.api.isMvccWatchStream (interface.mkOk ty v) γ ι -∗
           (▷ ∀ ch, ⌜ch = mvcc.api.wsChanOf ι⌝ -∗ Φ (intoVal ch)) -∗
             WP ((intoVal (methods ty go!"Chan" v)) (intoVal ())) {{ Φ }}
-
-def (sealed) mvcc.api.backendRest (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames →
-    IProp GF) (b : Loc) (D : backend.Data) : IProp GF
 
 def mvcc.api.WatchStream.RequestProgressAll.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (ι : mvcc.api.WsName),
@@ -661,8 +569,6 @@ def mvcc.api.WatchStream.Rev.contract (ty : go.GoType) (v : val) : Prop :=
 def mvcc.api.store.Read.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Read.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
-def (sealed) mvcc.api.mvccImage (D : backend.Data) (L : mvcc.Log) (c : Int) (u : Bool) : IProp GF
-
 def (sealed) mvcc.api.MvccName : Type
 
 def mvcc.api.metricsTxnWrite.End.spec : Prop :=
@@ -685,7 +591,7 @@ def mvcc.api.txnReadWrite.Put.spec : Prop :=
   ∀ (t : Loc), mvcc.api.Txn.Put.contract go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite.ty.PointerType (intoVal t)
 
 def mvcc.api.KV.Compact.contract (ty : go.GoType) (v : val) : Prop :=
-  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (rev : w64) (q : Qp) (B : mvcc.api.BkRef) (P : IProp GF)
+  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (rev : w64) (q : Qp) (B : mvcc.api.MvccStorage) (P : IProp GF)
     (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : mvcc.api.MvccState → IProp GF),
     ⊢
       ∀ Φ,
@@ -699,7 +605,7 @@ def mvcc.api.KV.Compact.contract (ty : go.GoType) (v : val) : Prop :=
                         mvcc.api.mvccBackend γ q B P ∗
                           mvcc.api.hookIs B f ∗
                             X ∗
-                              backend.commitReq B.γB B.P P B.b X Y ∗
+                              mvcc.api.storageReq B P X Y ∗
                                 Pre ∗
                                   mvcc.api.hookRun P f Pre Q' ∗
                                     (Q' ={⊤}=∗ P ∗ Post) ∗
@@ -827,6 +733,9 @@ def mvcc.api.KV.HashStorage.contract (ty : go.GoType) (v : val) : Prop :=
 
 theorem mvcc.api.reach_logWf.law_holds : mvcc.api.reach_logWf.law
 
+def (sealed) mvcc.api.mvccStorageFor (B : mvcc.api.MvccStorage) (Pk : IProp GF) (L : mvcc.Log) (c :
+    Int) (u : Bool) : IProp GF
+
 def mvcc.api.watchableStore.FirstRev.spec : Prop :=
   ∀ (s : Loc),
     mvcc.api.KV.FirstRev.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType (intoVal s)
@@ -847,12 +756,9 @@ def mvcc.api.isKV (ty : go.GoType) (v : val) : Prop :=
                     mvcc.api.KV.Restore.contract ty v ∧
                       mvcc.api.KV.HashStorage.contract ty v ∧ mvcc.api.KV.Close.contract ty v
 
-def (sealed) mvcc.api.mvccW (gx : GName) : IProp GF
+def (sealed) mvcc.api.mvccReaderN : Nat
 
 def (sealed) mvcc.api.mvccState (γ : mvcc.api.MvccName) (σ : mvcc.api.MvccState) : IProp GF
-
-def mvcc.api.mvccW_alloc.law : Prop :=
-  ⊢ |==> ∃ gx, mvcc.api.mvccWReg gx ∗ mvcc.api.mvccW gx
 
 def mvcc.api.Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (σ : mvcc.api.MvccState) (pend : List mvcc.Change)
@@ -928,6 +834,8 @@ def mvcc.api.isTxn (ty : go.GoType) (v : val) : Prop :=
         mvcc.api.Txn.Put.contract ty v ∧
           mvcc.api.Txn.DeleteRange.contract ty v ∧ mvcc.api.Txn.Changes.contract ty v ∧ mvcc.api.Txn.End.contract ty v
 
+def (sealed) mvcc.api.storageHook (B : mvcc.api.MvccStorage) (dq : DFrac) (f : GoFunc) : IProp GF
+
 def mvcc.api.isWatchStream (ty : go.GoType) (v : val) : Prop :=
   mvcc.api.WatchStream.Watch.contract ty v ∧
     mvcc.api.WatchStream.Chan.contract ty v ∧
@@ -943,17 +851,17 @@ def mvcc.api.store.Commit.spec : Prop :=
   ∀ (s : Loc), mvcc.api.KV.Commit.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
 
 def mvcc.api.New.spec : Prop :=
-  ∀ (lg : Loc) (le : GoInterface) (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (B : mvcc.api.BkRef)
+  ∀ (lg : Loc) (le : GoInterface) (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (B : mvcc.api.MvccStorage)
     (Pk : IProp GF) (γl : GName) (rd0 : GoFunc),
     mvcc.batchLimitOk cfg.CompactionBatchLimit' →
       receiptBound GF ≤ 2 ^ 48 →
-        threadBound GF ≤ backend.rdStockN →
+        threadBound GF ≤ mvcc.api.mvccReaderN →
           ⊢
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
                   isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
                     isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-                      mvcc.api.mvccBackendFor B Pk mvcc.api.mvccStart.log mvcc.api.mvccStart.crev false ∗
+                      mvcc.api.mvccStorageFor B Pk mvcc.api.mvccStart.log mvcc.api.mvccStart.crev false ∗
                         lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 -∗
                 (▷
                     ∀ ws,
@@ -972,9 +880,7 @@ def mvcc.api.New.spec : Prop :=
                               (intoVal ws)))) -∗
                   WP
                     (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.New [])) (intoVal lg))
-                          (intoVal
-                            (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType
-                              (intoVal B.b))))
+                          (intoVal (mvcc.api.storageVal B)))
                         (intoVal le))
                       (intoVal cfg))
                     {{ Φ }}
@@ -985,24 +891,10 @@ def mvcc.api.wsRecv_ok.law : Prop :=
     mvcc.api.isMvccWatchStream ws γ ι ∗ mvcc.api.wsRecv ι rs ∗ mvcc.api.wsState ι S ∗ mvcc.api.mvccState γ σ ⊢
       ⌜mvcc.api.wsRecvOk σ S rs⌝
 
-def mvcc.api.mvccBackendFor_open.law : Prop :=
-  ∀ (γB : backend.BNames) (P : backend.BParams) (Pk K : backend.BNames → IProp GF) (b : Loc) (D : backend.Data)
-    (gx : GName) (L : mvcc.Log) (c : Int) (u : Bool),
-    ⊢
-      ((□ ∀ γ b', mvcc.keySized γ P b') ∗
-          mvcc.api.mvccImage D L c u ∗
-            backend.newPostKP γB P (fun x => mvcc.api.mvccW gx) Pk K b D ∗
-              mvcc.api.mvccWReg gx ∗
-                backend.wbTok γB ∗
-                  backend.wbTok γB ∗
-                    □ (⧗1 ={⊤}=∗ backend.wbTok γB) ∗
-                      [∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γB backend.rdOpen) ={⊤}=∗
-        mvcc.api.mvccBackendFor { γB := γB, P := P, b := b } (Pk γB) L c u ∗ mvcc.api.backendRest γB P K b D
-
 def mvcc.api.KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : mvcc.api.BkRef) (P Pre Q' Post : IProp GF)
-    (f : GoFunc) (Q : mvcc.api.MvccState → IProp GF),
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (q : Qp) (B : mvcc.api.MvccStorage)
+    (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : mvcc.api.MvccState → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -1041,6 +933,8 @@ def mvcc.api.KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
                   Φ (intoVal rev)) -∗
             WP ((((intoVal (methods ty go!"Put" v)) (intoVal key)) (intoVal value)) (intoVal leaseID)) {{ Φ }}
 
+def (sealed) mvcc.api.storageRest (B : mvcc.api.MvccStorage) : IProp GF
+
 def (sealed) mvcc.api.wsRecv (ι : mvcc.api.WsName) (rs : List mvcc.api.WResp) : IProp GF
 
 def mvcc.api.mvccDeleter (rd : GoFunc) (γ : mvcc.api.MvccName) : IProp GF :=
@@ -1066,6 +960,8 @@ def mvcc.api.mvccDeleter (rd : GoFunc) (γ : mvcc.api.MvccName) : IProp GF :=
 def mvcc.api.metricsTxnWrite.Put.spec : Prop :=
   ∀ (t : Loc), mvcc.api.Txn.Put.contract go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType (intoVal t)
 
+def (sealed) mvcc.api.MvccStorage : Type
+
 def (sealed) mvcc.api.wsSentLb (ι : mvcc.api.WsName) (n : Nat) : IProp GF
 
-def (sealed) mvcc.api.mvccWReg (gx : GName) : IProp GF
+def (sealed) mvcc.api.storageReq (B : mvcc.api.MvccStorage) (Pk X Y : IProp GF) : IProp GF

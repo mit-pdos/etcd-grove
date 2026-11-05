@@ -333,6 +333,8 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
   iunfold mvcc.api.mvccBackend at HB
   icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp⟩
   obtain ⟨hpk, hcm, rfl⟩ := Hd
+  rw [show (mvcc.api.storageReq d P X Y : IProp GF) = backend.commitReq d.γB d.P P d.be X Y from rfl,
+    show (mvcc.api.hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl]
   icases (mvcc.compactRightR_iff s ((γ : mvcc.StoreNames).withPhys p) c).1 $$ Hright with
     ⟨Hcr, Hq, %o, ⟨Hfs, #Hsc, Hstc, Htok⟩, #Hstop⟩
   icases mvcc.fieldShareAt_cur s ((γ : mvcc.StoreNames).withPhys p) _ o $$ Hfs with ⟨Hcur, Hfsb⟩
@@ -368,7 +370,7 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
     iunfold mvcc.kbReq
     iunfold mvcc.bkReq
     iright
-    iexists (mvcc.api.mvccW d.gx), P
+    iexists (mvcc.lateW d.gx), P
     iframe Hbk Hreq
   ihave #Hsup' : mvcc.kbWTSupplyM (GF := GF) ((γ : mvcc.StoreNames).withPhys p).kb $$ []
   · rw [mvcc.StoreNames.withPhys_kb]; iexact Hsup
@@ -426,7 +428,7 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
     iframe Hright Hctx Htrc HRT HF Hcb HX
   inext
   iintro %ch %err ⟨Htrc, HRT, -, HF, Hres⟩
-  ihave HB : mvcc.api.mvccBackend (GF := GF) γ q ⟨d.γB, d.P, d.be⟩ P $$ [HF Hcur']
+  ihave HB : mvcc.api.mvccBackend (GF := GF) γ q d P $$ [HF Hcur']
   · iunfold mvcc.api.mvccBackend
     iframe HF
     iexists p, o', d

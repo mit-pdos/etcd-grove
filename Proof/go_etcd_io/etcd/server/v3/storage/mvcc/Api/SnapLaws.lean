@@ -2,7 +2,6 @@
 **The snapshot image's laws of mvcc's API** (stage 2, M2, 2026-11-05: `notes/mvcc-api-risk.md`,
 M2), over the sealed definitions (`Api.lean`: `mvccImage`, its pure part `snap.imageOk`,
 `Api/SnapImage.lean`). Lean-first (no Rocq counterpart).
-- `mvccImage_persistent` (the image's conjunct of `persistent.law`);
 - `mvccImage_fresh.law_holds`: a fresh backend's data is the empty history's image, its receipt
   `⧖ 0` allocated (`preceipt_zero`);
 - `mvccW_alloc.law_holds` (M3): the registration slot, unset, in two halves.
@@ -11,6 +10,8 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
+import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapFreeze
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
@@ -34,10 +35,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-instance mvccImage_persistent (D : backend.Data) (L : Log) (c : Int) (u : Bool) :
-    Persistent (mvccImage (GF := GF) D L c u) := by
-  unfold mvccImage; infer_instance
 
 /-- **`mvccImage_fresh.law`**: no change, so the receipt `⧖ 0`; the facts `snap.imageOk_fresh`. -/
 theorem mvccImage_fresh.law_holds : mvccImage_fresh.law (GF := GF) := by
@@ -74,7 +71,7 @@ private theorem isMvcc_store (kv : GoInterface) (γ : MvccName) :
 
 /-- **The backend share is fractional** (`persistent.law`'s last conjunct): the token's and the
 writer's fragment's parts split and join, the two parts' physical names agreeing. -/
-instance mvccBackend_fractional (γ : MvccName) (B : BkRef) (Pk : IProp GF) :
+instance mvccBackend_fractional (γ : MvccName) (B : MvccStorage) (Pk : IProp GF) :
     Fractional (fun q => mvccBackend (GF := GF) γ q B Pk) where
   fractional q1 q2 := by
     unfold mvccBackend
@@ -135,11 +132,12 @@ theorem mvccBackend_agree.law_holds : mvccBackend_agree.law (GF := GF) := by
 /-- **`mvccBackend_isBackend.law`** (the server's migration, 2026-11-05): the share's body records
 `isBackend` at `mvccW d.gx`. -/
 theorem mvccBackend_isBackend.law_holds : mvccBackend_isBackend.law (GF := GF) := by
-  intro γ q B Pk
+  intro γ q bk Pk
   unfold mvccBackend
   iintro ⟨-, %p, %o, %d, -, %Hd, #Hb, -, -⟩
-  obtain ⟨-, -, rfl⟩ := Hd
-  iexists d.gx
+  have hd : d = bk := Hd.2.2
+  subst hd
+  unfold mvccW
   iexact Hb
 
 /-- **`mvccW_alloc.law`** (M3, 2026-11-05): the registration slot allocated unset, its halves the
@@ -191,12 +189,14 @@ frozen writer's certificate (the receipt). -/
 theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   intro hSnap kv
   intro (γ : StoreNames)
-  intro B Pk qo R Q Φ
+  intro bk Pk qo R Q Φ
   iintro %Ψ ⟨#Hpkg, Hmv, HB, Ho, Hwb, HR, #HQ, HAU⟩ HΨ
   ihave ⟨%s, #Hs⟩ := isMvcc_store kv γ $$ Hmv
   iunfold mvccBackend at HB
   icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩, #Hhp⟩
-  obtain ⟨hpk, hcm, rfl⟩ := Hd
+  obtain ⟨hpk, hcm, hd⟩ := Hd
+  have hd' : d = bk := hd
+  subst hd'
   simp only []
   have hk : ((γ : StoreNames).withPhys p).kb = some d := hpk
   ihave #Hs0 := Hs
@@ -265,7 +265,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   imod Hst with ⟨%σ, %bb, HΦσ, HFR, %Hreach⟩
   -- the snapshot, the frozen writer's state lent to the observation
   iapply wp_fupd
-  iapply (hSnap d.γB d.P (mvccW d.gx) Pk d.be qo
+  iapply (hSnap d.γB d.P (lateW d.gx) Pk d.be qo
     iprop(R ∗ snapFrozen s s' ((γ : StoreNames).withPhys p) σ bb)
     (fun vd dd r v => Q dd r ∧ bb = true ∧ snapObsOk σ.log σ.crev vd v)) $$ [Ho Hwb HR HFR]
   · iframe Hpkg Hbk Ho Hwb HR HFR

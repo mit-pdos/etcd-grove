@@ -201,12 +201,6 @@ a law of the store's state that every client would thread (the user, 2026-11-03)
 comparators, which subtract, a strict weak order. -/
 def stateOk (s : List EtcdKv) : Prop := s.length ≤ 2 ^ 62 ∧ ∀ e ∈ s, kvSortOk e
 
-/-- **A backend, as the store sees it**: its ghost names, parameters and location. -/
-structure BkRef where
-  γB : backend.BNames
-  P : backend.BParams
-  b : Loc
-
 /-- The namespace an implementation reserves (a stated departure from "no internal namespaces in
 masks": a library with invariants must reserve one). -/
 def mvccN : Namespace := nroot .@ "mvcc"

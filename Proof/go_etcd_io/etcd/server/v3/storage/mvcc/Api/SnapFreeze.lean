@@ -25,6 +25,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Instance
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 
@@ -477,7 +478,7 @@ theorem snapObs_writerRes (s' : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb 
 
 /-- **The frozen store's part of a snapshot's observation** (the snapshot image's (a)-(e),
 2026-11-05; in place of the placeholder `snapObs_M1`): at a commit of the batch lock (its client
-resource `mvccW d.gx`, the batch lock's quarter of the readers' view `viewAtD`, its halves of the
+resource `lateW d.gx`, the batch lock's quarter of the readers' view `viewAtD`, its halves of the
 deleted entries and of the compaction keys' values), the physical `Key` bucket and the compaction
 keys are the image of the client's state `σ`. The lock's resource is the store's writer's resource
 (registered, `storeRegd`), or unregistered while the freezer holds the pending registration's; an
@@ -485,10 +486,10 @@ open write transaction (`¬ b`) cannot be at a commit (its key, the freezer's, i
 resource's). -/
 theorem snapObs (s s' : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d) (hc : d.cm = true)
     (σ : api.MvccState) (b : Bool) (vd X : backend.VData) (v : backend.FkVals) :
-    snapFrozen (GF := GF) s s' γ σ b ∗ api.mvccW d.gx ∗ backend.viewAtD d.γB d.P vd X ∗
+    snapFrozen (GF := GF) s s' γ σ b ∗ lateW d.gx ∗ backend.viewAtD d.γB d.P vd X ∗
       backend.dlsOwn d.γB X ∗ backend.fkdOwn d.γB v ⊢ ⌜b = true ∧ snapObsOk σ.log σ.crev vd v⌝ := by
   iintro ⟨HFR, HW, Hva, Hdl, Hfk⟩
-  unfold api.mvccW lateW
+  unfold lateW
   iunfold snapFrozen at HFR
   cases b with
   | false =>

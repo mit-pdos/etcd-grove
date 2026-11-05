@@ -90,11 +90,6 @@ inductive mvcc.api.MvccReachable : mvcc.api.MvccState → Prop
   | mvcc.api.MvccReachable.compact (σ : mvcc.api.MvccState) (r : Int) : mvcc.api.MvccReachable σ →
       σ.pending = none → 1 ≤ r → σ.crev < r → r ≤ ↑σ.rev → mvcc.api.MvccReachable (σ.compactTo r)
 
-structure mvcc.api.BkRef : Type where
-  γB : backend.BNames
-  P : backend.BParams
-  b : Loc
-
 theorem mvcc.api.reach_logWf (σ : mvcc.api.MvccState) (h : mvcc.api.MvccReachable σ) : mvcc.LogWf'
     σ.log ∧ mvcc.LogWf' σ.notifiedLog
 
