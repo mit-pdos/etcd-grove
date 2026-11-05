@@ -953,6 +953,25 @@ that subsystem converts (step 4), into `<sub>.Names`; until then they stay as th
 **Mixing:** a hub mixes inline premises with slots until every subsystem has converted; a slot is
 added only when its subsystem must change the hub anyway.
 
+**Hub changes are requests** (2026-11-05, the user's; from the dsverify skill's `2f67a2c`). A
+stage edits the inside of its own subsystem's slots (their sealed bodies and laws) freely. Any other
+change to a hub, which is a statement `etc/spec-hubs.py` lists with a fan-out of 6 or more
+directories (`NewServer.specG`, `bootOk`, `srvBuilt`/`isServerBuilt`, `bootstrapContract`, the
+`etcdstart` starters, the name and environment records, the apply and snapshot aggregators), is a
+**hub request**. That covers a new slot, conjunct, binder or premise; a conversion into a slot;
+an edit of another subsystem's slot; and an inline clause. The stage does not make it
+directly. It writes the request in its `questions.md` under "Hub requests": the hub, the change
+written out, the caller that needs it, and the alternative inside its own slot. It goes on with a
+marked `sorry` at the step that needs it, and tells the coordinator, who keeps the hub plan. The
+coordinator decides each request against the slot convention and against the other sessions on
+the same hub (the session registry). It answers in that `questions.md` ("accepted / rejected by
+the coordinator, <date>"; one that changes a top-level statement or grows the trust base still goes to
+the user). It also sets the order: the requesting stage then makes the accepted change as a commit
+of its own, and the coordinator tells every other session on that hub to merge it when it lands.
+(The case: the restart's stop added `srvStopKeep` and an inline mode clause to `NewServer`'s
+postcondition over three commits while `lease-expiry` converted the lease into a slot there on
+another branch. The step-5 check counted both, and they collide at landing.)
+
 **Modes generalize, no twins** (2026-11-03, the hub plan's owner): a new mode of a hub (auth on,
 compaction on, a restart) generalizes the one written-out statement with a parameter; it does not
 add a twin statement with the older one as its corollary (step 6). A caller that needs the old form
