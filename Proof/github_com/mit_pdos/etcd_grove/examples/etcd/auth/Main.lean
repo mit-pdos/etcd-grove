@@ -3,7 +3,7 @@
 callees' specs. Lean-first (no Rocq counterpart).
 
 The steps: the logger; the member's ghost state with auth on (`ak_alloc`) and the history invariant
-(`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.spec` at `E.authOn`, `grpcUpM_on`) with the
+(`akHist_alloc`); `startServer` (`memberUpOn`); `Serve` with auth on (`Serve.spec` at `E.authOn`, `grpcUpM_true`) with the
 ghost steps `ak_served_kv` and `ak_served_watch` (`MainServe.lean`: the KV methods with auth on,
 the Auth service's admin methods and `Authenticate`; the watch server's facts at the clients'
 watcher environment `akV R`); `NewClient` (no user name, no token); `SetUp` (its puts under the
@@ -181,7 +181,8 @@ theorem Main.wp_proof
     isplitr
     · rw [hon]; iexact Hrd
     iintro %gs %lis %cid %mid %R Hg
-    ihave Hg := etcdstart.grpcUpM_on _ _ _ _ _ _ _ _ _ _ hon $$ Hg
+    rw [hon]
+    ihave Hg := etcdstart.grpcUpM_true _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUpOn at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs,
       %HC, #Hgc, Hgsn, #Hq, #Hkvs, #Hpa, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs,

@@ -111,7 +111,7 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapApplyNames\.lea
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/StartOn\.lean::  # 5
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/UberKit\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/AuthService\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 8
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results\.lean::  # 6
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKV\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/ServerKVOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/client/v3/AuthnServedOn\.lean::  # 2

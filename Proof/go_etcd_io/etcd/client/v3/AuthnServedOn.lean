@@ -349,10 +349,11 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
     iframe #
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  ihave #H1' := isGrpcRpcMd_mono _ _ _ _ (etcdPutSpecM_true _ hon s E ρ cid mid) $$ H1
-  ihave #H2' := isGrpcRpcMd_mono _ _ _ _ (etcdRangeSpecM_true _ hon s E γr cid mid) $$ H2
-  ihave #H3' := isGrpcRpcMd_mono _ _ _ _ (etcdDeleteSpecM_true _ hon s E ρ cid mid) $$ H3
-  ihave #H4' := isGrpcRpcMd_mono _ _ _ _ (etcdTxnSpecM_true _ hon s E ρ γr cid mid) $$ H4
+  rw [hon]
+  ihave #H1' := isGrpcRpcMd_mono _ _ _ _ (etcdPutSpecM_true s E ρ cid mid) $$ H1
+  ihave #H2' := isGrpcRpcMd_mono _ _ _ _ (etcdRangeSpecM_true s E γr cid mid) $$ H2
+  ihave #H3' := isGrpcRpcMd_mono _ _ _ _ (etcdDeleteSpecM_true s E ρ cid mid) $$ H3
+  ihave #H4' := isGrpcRpcMd_mono _ _ _ _ (etcdTxnSpecM_true s E ρ γr cid mid) $$ H4
   simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append]
   icases Hms with ⟨#H5, #H6, #H7, #H8, #H9, #H10, -⟩
   imodintro

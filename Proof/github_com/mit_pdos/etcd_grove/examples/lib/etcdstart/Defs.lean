@@ -560,23 +560,6 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
 
 
 open Iris.ProofMode in
-/-- **`grpcUpM` in an auth-off server's mode** (`grpcUpM_false` at `E.authOn`): what the auth-off
-clients of `Serve.spec` compose their ghost step with. -/
-theorem grpcUpM_off (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
-    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
-    (hon : E.authOn = false) :
-    grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ⊢ grpcUp s E ρ γr gs lis addr cid mid R := by
-  rw [hon]; exact grpcUpM_false s E ρ γr gs lis addr cid mid R
-
-open Iris.ProofMode in
-/-- **`grpcUpM` in an auth-on server's mode** (`grpcUpM_true` at `E.authOn`). -/
-theorem grpcUpM_on (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)
-    (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
-    (hon : E.authOn = true) :
-    grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ⊢ grpcUpOn s E ρ γr gs lis addr cid mid R := by
-  rw [hon]; exact grpcUpM_true s E ρ γr gs lis addr cid mid R
-
-open Iris.ProofMode in
 /-- **An auth-off server's views in its mode** (what `Serve.spec` takes of an auth-off member,
 `memberUp`'s): auth off, the mode not `.any`, the views at `E.authOn` and the store's range check
 (`srvAuthLb_off`). -/

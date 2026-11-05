@@ -7,19 +7,24 @@ addr)`, `go gs.Serve(l)`; what the examples' `Main`s did after `Start`. Lean-fir
 counterpart). The policy is a neutral server option (D28's trust-boundary axiom
 `grpc.KeepaliveEnforcementPolicy`): the triple does not mention it.
 
-**The triple:** from a started member's views and serving resources (`memberUp`'s, at its apply
-environment `E`, request names `ρ`, read names `γr` and configuration `cfg`), the right to listen
-on `addr` (`netAddrFree`), and the **caller's ghost step** `G` from what `v3rpc.Server` and
-`Listen` return (`grpcUp`) to the right to serve (`grpcServeTok`) and the caller's `Q`: an error,
-or `Q` at the KV server's cluster and member ids and the watch server's state. The ghost step is the
+**The triple:** from a started member's views in its auth mode and serving resources (`memberUp`'s
+or `memberUpOn`'s, at its apply environment `E`, request names `ρ`, read names `γr` and
+configuration `cfg`: `isServerReqM E.authOn`, `isServerReadM E.authOn`, `srvAuthLb`), the right to
+listen on `addr` (`netAddrFree`), and the **caller's ghost step** `G` from what `v3rpc.Server` and
+`Listen` return (`grpcUpM E.authOn`: the KV answers in the mode, the Auth and Lease services'
+registrations) to the right to serve (`grpcServeTok`) and the caller's `Q`: an error, or `Q` at the
+KV server's cluster and member ids and the watch server's state. One spec for both modes (the auth
+component's stage 5, 2026-11-05; until then `Serve.specOn` with auth on): an auth-off caller reads
+its `grpcUp` off the step's input by `grpcUpM_false` at its mode `false` (its views by
+`serveViews_off`), an auth-on one its `grpcUpOn` by `grpcUpM_true`. The ghost step is the
 caller's because what it registers at the address differs among the examples (etcd's KV calls,
 `client.etcd_kv_started`; with the watch server's facts, watchkv's `wk_served`; with the member's
 refusal-freedom first, `etcd_noRefusal`); it is a wand, which may hold the caller's own resources
 (the request slots `memberUp` left) in its closure.
 
-**The pure premises:** the configuration's logger not `nil`, no tracer options, no progress-notify
-interval (`memberUp`'s); `v3rpc.Server`'s (the gRPC service values' method sets, the backend under
-its quota).
+**The pure premises** (in the precondition): the configuration's logger not `nil`, no tracer
+options, no progress-notify interval (`memberUp`'s); `v3rpc.Server`'s (the gRPC service values'
+method sets, the backend under its quota); the auth mode not `.any` (`raftKV_serverM`'s).
 -/
 module
 

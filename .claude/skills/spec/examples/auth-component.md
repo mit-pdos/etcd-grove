@@ -211,3 +211,65 @@ Principles exercised: before stating a law over a free mode, check it at both li
 variance of every resource it mentions (an atomic update's grant is contravariant); state a law that
 holds at one mode only at that mode, where the gate sees it; write a merged row without a match on
 the mode (gate the mode's part); recount a gate from its findings, not by estimate.
+
+# Stage 5: the served KV side and `Serve` (2026-11-05)
+
+**Kind:** a plan of restatements over the last two layers of the request side: the client's KV
+registrations (one `GrpcSpecMd` per KV method over the mode, the handlers and the served result
+merged at `E.authOn`) and `etcdstart.Serve` (one spec, the caller's ghost step from `grpcUpM
+E.authOn`), the exported off and on texts kept as views. Frozen by the user, candidate 6 ("yes,
+freeze c6"), after spec-reviewer rounds 1 to 5.
+
+## First version (candidate 1)
+
+The merged gRPC specs `etcdXSpecM on` with the on facts at the mode; the merged handlers and served
+result with `hρ : ρ.rd = γr`; `grpcUp`/`grpcUpOn` made abbreviations of a `grpcUpM`; the off and on
+registrations as views of the merged one "as `raftKV_server(On)` do"; `LinkOn.lean` and the on
+handlers deleted; a gate estimate.
+
+## Critiques and what they changed
+
+1. (Round 1) **An off-only fact ungated.** The off handlers' revision bound `kvRevLb` is a fact about
+   the off model, produced only from the off invariants; the merged handler cannot supply it at `on`.
+   → Gated, `(⌜on = false⌝ → kvRevLb …) -∗`, and read off the read view at off only.
+2. (Round 1) **The on view is not today's on text**: at `true` the merged spec has
+   `⌜true = true⌝ → …` where the on spec has the fact. → A named view per row and mode, checked
+   against each on client's statement; the on clients' texts kept.
+3. (Round 1) **Consumers missed** (the deleted handlers', methods' and lists' users; `Serve.spec`'s 12
+   clients; `grpcCfgOk_of_started`'s watch consumer; the files the link generator reads). → A
+   consumer table by grep, per declaration.
+4. (Round 1) **Nothing excludes `.any`**, which the merged proofs need. → `⌜E.authMode ≠ .any⌝` in
+   the handlers', the served result's and `Serve.spec`'s preconditions.
+5. (Round 1) **Abbreviations break positional unfolds** (`grpcUp := grpcUpM false` changes every
+   `iunfold … icases ⟨…⟩` of it). → `grpcUpM` its own definition, `grpcUp`/`grpcUpOn` kept, related
+   by named laws.
+6. (Round 2) **An ungated premise contradicted a kept text**: `hρ : ρ.rd = γr` cannot be passed by
+   `etcd_kv_auth_served_on`, which takes them independently. → Gated, `hρ : E.authOn = false →
+   ρ.rd = γr`.
+7. (Round 2) **A commit that could not pass the gate** and **a module that made an import cycle**.
+   → The gate counted per commit; the merged proofs placed after their imports.
+8. (Round 3) **A placement not checked against what the moved code uses**: a new module below
+   `Results.lean` could not see the declarations its proofs call. → The merged proofs stay in
+   `Results.lean`, in place of the off ones; checked by listing the identifiers each moved block uses.
+9. (Round 4) **Bridges stated in the direction the author assumed, not the consumer's**:
+   `raftKV_srvKVAnsM_false` went from the old answers to the merged ones, where `raftKV_mono`'s
+   contravariance and the consumer (`raftKV_server`) need the converse. → Restated from the consumer's
+   goal, `raftKV s (srvKVAnsM false …) ⊢ raftKV s (srvKVAns …)`.
+10. (Round 5, non-blocking) `rw` after `cases hon : E.authOn` fails (use the case's literal); bridge
+    proofs as terms, not `iapply`; 5-3's size recounted.
+
+## The approved spec
+
+Candidate 6, D1–D7, as built (5-1 to 5-4): one registration per KV method and mode-free laws
+`isGrpcRpcMd_mono(_upd)`; one handler per method and one served proof at `E.authOn`; one
+`Serve.spec`; the on handlers, `ServedOn.lean`, `Serve.specOn`, `LinkOn` and their dead helpers gone;
+the mode gate 300 → 277, then 288 once the bridges were restated at their literal (lean's 300 → 288). Departures in `notes/decisions.md`, "The auth component, stage 5":
+`grpcCfgOk_of_startedM` takes `srvAuthLb`; a client helper `serveViews_off`. And one self-caught: the
+5-2 author stated the per-row bridges over a free `on` with an `(hon : on = b)` premise, which hides
+their literals from the gate; 5-4 restated them at the literal, as frozen (stage 4's critique 7).
+
+Principles exercised: a view of a merged spec is checked at each literal against each resource's
+variance (here the off view needs `|==>`, so the registration laws are stated under an update);
+before placing a new module, list what the moved code uses; state a bridge from its consumer's goal;
+a one-mode law at its literal, never with an `(h : on = b)` premise, even when the premise makes the
+gate's count look better.

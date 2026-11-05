@@ -3,9 +3,9 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Serve.lean`
 Lean-first (no Rocq counterpart).
 
 The steps (the examples' `Main`s' after `Start`): `v3rpc.Server(s, nil, nil, opt)` (its `grpcCfgOk`
-from the started server's views, `grpcCfgOk_of_started_w`, which also gives 64 of the watchable
-store's readers; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
-`net.Listen("tcp", addr)`, whose error is returned; the caller's ghost step (`grpcUp` from
+from the started server's views in its mode, `grpcCfgOk_of_startedM` at the mode's KV answers
+`raftKV_serverM` gives, which also gives 64 of the watchable store's readers; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
+`net.Listen("tcp", addr)`, whose error is returned; the caller's ghost step (`grpcUpM` from
 `Server`'s and `Listen`'s results); `go gs.Serve(l)` with the right to serve it gave.
 -/
 module
