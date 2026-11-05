@@ -8,7 +8,8 @@
 # Under `flock $ETCD_GROVE_LAND_LOCK` (default /shared/tmp/etcd-grove-land.lock), held from the check
 # through the fast-forward:
 # 1. `lean` must be an ancestor of HEAD (else: merge `lean` first, outside the lock, and rerun);
-# 2. if the branch changes only files under notes/ (against `lean`), the gates are skipped;
+# 2. if the branch changes only files under notes/ and top-level *.md files (against `lean`; none
+#    of them is read by a gate), the gates are skipped;
 #    otherwise etc/gates.sh runs under the full-build lock (`flock $ETCD_GROVE_BUILD_LOCK`, default
 #    /shared/tmp/etcd-grove-full-build.lock);
 # 3. `git merge --ff-only` of the branch in the checkout that has `lean` checked out.
@@ -30,8 +31,8 @@ if ! flock -n 9; then echo "land: another landing holds $land_lock; waiting"; fl
 if ! git merge-base --is-ancestor lean HEAD; then
   echo "land: lean ($(git rev-parse --short lean)) is not in $branch: merge lean, then rerun"; exit 1
 fi
-if [ -z "$(git diff --name-only lean HEAD -- . ':!notes')" ]; then
-  echo "land: notes only, gates skipped"
+if [ -z "$(git diff --name-only lean HEAD -- . ':!notes' ':(exclude,top,glob)*.md')" ]; then
+  echo "land: notes and top-level docs only, gates skipped"
 else
   exec 8>>"$build_lock"
   if ! flock -n 8; then echo "land: a full build holds $build_lock; waiting"; flock 8; fi
