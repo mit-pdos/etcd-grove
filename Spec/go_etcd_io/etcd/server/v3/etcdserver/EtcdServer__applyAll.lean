@@ -135,7 +135,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTok (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end
         srvSnapOwn s ci E' γr ai' ∗
         ⌜loopOk γ' st' ai' ∧
@@ -236,7 +236,7 @@ abbrev EtcdServer.applyAll.specOn : Prop :=
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗
           srvRest E' γr (A ++ unapplied ai ms)) ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTok (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end
         srvSnapOwn s ci E' γr ai' ∗
         ⌜loopOk γ' st' ai' ∧
@@ -333,7 +333,7 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
         (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
           appliedLogAt γr sv.Metadata'.Index' x'.log ∗
           kvApplied γr.raft γr.kv A' x' ∗ srvRest E' γr A') ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTok (srvRAddr s) q ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTok (srvRAddr s) q ∗
         srvSnapOwn s ci E' γr sv.Metadata'.Index' ∗
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧

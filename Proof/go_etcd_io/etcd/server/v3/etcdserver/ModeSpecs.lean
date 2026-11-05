@@ -63,7 +63,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOff : Prop :=
   storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM false s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvSnapStor ms γs γr nk ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
@@ -101,7 +101,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specOn : Prop :=
   storage.walSaveOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
-      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗ srvSnapStor ms γs γr nk ai at' ∗
+      (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗ srvSnapStor ms γs γr nk ai at' ∗
       isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       srvSnapFrozen γs (uint.nat ai) ∗
       -- (2026-10-31) `ep.confState` the voters' (or nothing applied: no snapshot is due at `0`), the
@@ -156,7 +156,7 @@ id, neither a compaction nor empty, satisfying the txn package's premises at `x.
 names `ρ`); the entry is normal (`m.typ = 0`) and its id was claimed for its data
 (`entryWaitOk`), so the result handed to `Trigger(id, ar)` is the registered proposer's
 expectation (`resultΨ`: this request's `applyStep`, `applyResultIs`, and the certificate of the
-log after). It spends one write token of the store (`mvcc.storeWT E.γ`, `apply.Apply`'s;
+log after). It spends one write token of the store (`srvWT E`, `apply.Apply`'s;
 2026-10-13, unit 6). **The delivery** (the request path's unit 4d): to a caller that knows the
 entry's id was registered (`entryRegd ρ.wait m (some t)`), the entry is applied in full (its
 outcome not waived for want of a waiter) unless that registration is gone (`entryDelivered`:
@@ -175,7 +175,7 @@ abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel),
   E.authOn = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvWT E ∗ srvFS s ∗
       srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
       ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
@@ -216,7 +216,7 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
       entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ srvWT E ∗ srvFS s ∗
       ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
       kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
       ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
@@ -674,7 +674,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
       isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -721,7 +721,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specOff : Prop :=
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -748,7 +748,7 @@ abbrev EtcdServer.raftRequest.specM (on : Bool) : Prop :=
       isServerReqM on s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
       context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM on ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -785,7 +785,7 @@ abbrev EtcdServer.raftRequest.specOff : Prop :=
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
       irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-      mvcc.idxCert E.γ.idx F }}
+      srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -872,7 +872,7 @@ abbrev EtcdServer.Put.specOff : Prop :=
     (Q : KVState → IProp GF) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.putRequestIs r op ∗ putPermit ρ.kv op Q ∗ mvcc.idxCert E.γ.idx F }}
+      txn.putRequestIs r op ∗ putPermit ρ.kv op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -882,8 +882,8 @@ abbrev EtcdServer.Put.specOff : Prop :=
             (∃ log', o = .applied log' false) ∧ F <+: x.log⌝ ∗
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log)) ∨
+          srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          E.Nx x'.log ∗ Q (kvStateOf x.log)) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}
@@ -902,7 +902,7 @@ abbrev EtcdServer.Put.specOn : Prop :=
     (Q : KVState → IProp GF) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.putRequestIs r op ∗ putPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ mvcc.idxCert E.γ.idx F }}
+      txn.putRequestIs r op ∗ putPermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -912,8 +912,8 @@ abbrev EtcdServer.Put.specOn : Prop :=
             (∃ log', o = .applied log' false) ∧ F <+: x.log⌝ ∗
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log) ∗
+          srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          E.Nx x'.log ∗ Q (kvStateOf x.log) ∗
           hdrBoundM true s E (GoInterface.ok ctx) hm ∗
           ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrPut op) hm) L⌝ ∗
             pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L) ∨
@@ -939,7 +939,7 @@ abbrev EtcdServer.DeleteRange.specOff : Prop :=
     (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.deleteRangeRequestIs r op ∗ deletePermit ρ.kv op Q ∗ mvcc.idxCert E.γ.idx F }}
+      txn.deleteRangeRequestIs r op ∗ deletePermit ρ.kv op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -951,8 +951,8 @@ abbrev EtcdServer.DeleteRange.specOff : Prop :=
             F <+: x.log⌝ ∗
           apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log)) ∨
+          srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          E.Nx x'.log ∗ Q (kvStateOf x.log)) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨
@@ -966,7 +966,7 @@ abbrev EtcdServer.DeleteRange.specOn : Prop :=
     (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.deleteRangeRequestIs r op ∗ deletePermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ mvcc.idxCert E.γ.idx F }}
+      txn.deleteRangeRequestIs r op ∗ deletePermitOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -978,8 +978,8 @@ abbrev EtcdServer.DeleteRange.specOn : Prop :=
             F <+: x.log⌝ ∗
           apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log) ∗ hdrBoundM true s E (GoInterface.ok ctx) hm ∗
+          srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          E.Nx x'.log ∗ Q (kvStateOf x.log) ∗ hdrBoundM true s E (GoInterface.ok ctx) hm ∗
           ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 rq' L⌝ ∗ pubAfterM true E ρ rq' L) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
@@ -1009,7 +1009,7 @@ abbrev EtcdServer.Range.specOff : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-      kvDep γr.kv Q ∗ mvcc.idxCert E.γ.idx F }}
+      kvDep γr.kv Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
@@ -1041,7 +1041,7 @@ abbrev EtcdServer.Range.specOn : Prop :=
       isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
       auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
-      kvDep γr.kv Q (kvStM true γr.kv) ∗ mvcc.idxCert E.γ.idx F }}
+      kvDep γr.kv Q (kvStM true γr.kv) ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
