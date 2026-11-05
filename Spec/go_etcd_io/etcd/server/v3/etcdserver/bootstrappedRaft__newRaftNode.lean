@@ -61,32 +61,31 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (pre : List EntryModel) (ν : WalNames)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (Q : GName → IProp GF),
   letI := srvStor (GF := GF) γr
-  -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
-  -- `MemoryStorage`); `CheckQuorum` and `PreVote` either way since 2026-10-17
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = memStorIface bv.storage' →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster's voters
-  ps = pv.map Peer.ID' →
-  ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
-  (ps.length : Int) ≤ 2 ^ 62 →
-  cv.ID' ∈ ps →
-  γr.vs = ps →
-  -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
-  storage.walReady wal →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      -- `newRaftNode`'s premises: (2026-11-03: until then the implication `bv.lg' ≠ null →`) a
-      -- logger; (the final whole-`bootOk` review's S2: until then the implication
-      -- `heartbeat ≠ 0`) a positive heartbeat, a scope restriction; (2026-11-03) ticks carrying
-      -- nothing (`newRaftNode.spec`'s)
-      "%Hlg" ∷ ⌜bv.lg' ≠ null⌝ ∗ "%Hhb" ∷ ⌜0 < sint.Z bv.heartbeat'⌝ ∗ "%HT" ∷ ⌜E.T = iprop(True)⌝ ∗
+      -- the pure premises, one conjunction (2026-11-05, the user's M1: until then the
+      -- configuration's, the peers' and the WAL's were implications before the triple; the
+      -- conjuncts in the order of `InvBoot`'s `Hraft`)
+      "%Hraft" ∷ ⌜
+        -- `newRaftNode`'s premises: (2026-11-03) a logger; (the final whole-`bootOk` review's
+        -- S2: until then the implication `heartbeat ≠ 0`) a positive heartbeat, a scope
+        -- restriction (2026-11-03 to 2026-11-05, the user's S1: also `E.T = iprop(True)`, ticks
+        -- carrying nothing, which `isRNTicker` now says)
+        bv.lg' ≠ null ∧ 0 < sint.Z bv.heartbeat' ∧
+        -- `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s; the storage `b.storage`, a
+        -- `MemoryStorage`); `CheckQuorum` and `PreVote` either way since 2026-10-17
+        ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
+        cv.Storage' = memStorIface bv.storage' ∧
+        sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
+        cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
+        cv.DisableConfChangeValidation' = false ∧
+        (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
+        cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
+        -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster's
+        -- voters
+        ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
+        (ps.length : Int) ≤ 2 ^ 62 ∧ cv.ID' ∈ ps ∧ γr.vs = ps ∧
+        -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract)
+        storage.walReady wal⌝ ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- (2026-10-30, the repair: raft's unified `StartNode.spec`) the storage `b.storage` as
       -- `StartNode` boots it (`restartStorage` at the empty contents: the zero hard state and the

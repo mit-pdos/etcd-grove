@@ -30959,7 +30959,7 @@ statements (`NewServer.spec`'s post, `EtcdServer.Start`'s), a definition body ch
 round's approval (equivalent wherever `E.T = True`). (M1) `bootstrappedRaft.newRaftNode.spec` and
 `NodeStartSpec` still take about 18 configuration and peer premises as implications beside the
 three pure conjuncts; converting them all (one `⌜…⌝` conjunction, close to `InvBoot`'s `Hraft`) is
-its own step.
+its own step. *Superseded* (both): "The raft wrapper's ticker bag and pure boot premises" (2026-11-05).
 
 Supersedes in part "The boot premises" (its Q2, `rnTickerOk_of_time` in `NewServer`'s proofs, and
 the open T2/T3 points).
@@ -31823,3 +31823,34 @@ the example runs Kubernetes' default configuration.
 - *A kernel rejection* of auto-abstracted inline `omega`/`word` proofs in two proofs
   (`getCompactRev`, `fromWatchResponse`): moved to standalone lemmas (an "application type mismatch"
   in an auxiliary `_proof_…` term after elaboration succeeded).
+
+## The raft wrapper's ticker bag and pure boot premises (2026-11-05 · the user's approval, "do the two items" · branch `rn-cleanups`)
+
+Supersedes the open items (S1) and (M1) of "The ticker where it is made" (2026-11-03).
+
+**S1: `isRNTicker`'s bag carries `True`.** `isRNTicker`'s channel bag was `fun _ => E.T`; nothing
+read it (the tick receive in `raftNode.start` drops what the bag gives; `raftNode.tick` takes its
+credit from a Go step of its own since D19b), and `rnEnvOk` pins `E.T = True`. The bag is now
+`fun _ => iprop(True)`, Perennial's `isTicker`'s own bag, and `isRNTicker` lost its `E` argument
+(`isRNTicker tk`, as `isRNTimeoutDetector td`). The premise `⌜E.T = iprop(True)⌝` it forced is gone
+from `newRaftNode.spec`, `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec`, and
+`isRNTicker_of_time` lost its `E.T = True` hypothesis (and `E`). `NewServer`'s discharge no longer
+closes it. `isRNTicker` is inside `isRaftNode`, which is in the vocabulary of exported statements
+(`NewServer.spec`'s post, `EtcdServer.Start`'s spec): **the user approved this definition-body
+change** (2026-11-05, "do the two items"); it is equivalent wherever `E.T = True`, which `rnEnvOk`
+(also inside `isRaftNode`) requires. The text of no exported statement, trusted statement or
+example theorem changed. `RNEnv.T` itself stays (out of scope; its removal would change the record
+`EtcdServer.Start`'s and `start`'s exported specs bind).
+
+**M1: the configuration premises pure preconditions.** `bootstrappedRaft.newRaftNode.spec` took 18
+premises as implications before the triple (`NewRawNode`'s on the config, the peers', the WAL
+read), `NodeStartSpec` 22 (those, the receipt bound and the three names of `E.γr.raft`), beside
+the pure conjuncts `bv.lg' ≠ null`, the positive heartbeat (and `E.T`'s). Each spec now has one
+conjunct `"%Hraft" ∷ ⌜…⌝` in the precondition, the conjuncts in the order of `InvBoot`'s `Hraft`
+(logger, heartbeat, config, peers), then the WAL read, then (`NodeStartSpec` only) the receipt
+bound and the names (PRINCIPLES, "Pure premises go in the precondition"). The proofs `obtain` the
+conjunction after `iNamed`, with the old hypothesis names; the composition passes it on, and
+`NewServer` builds it from `bootOk`'s `Hraft` with the facts it proved before (`Hrpslen`, the
+names by `simp [srvErM, HρRaft]`). `newRaftNode.spec`'s precondition was already two pure
+conjuncts and stays so.
+

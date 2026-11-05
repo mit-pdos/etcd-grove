@@ -47,7 +47,7 @@ theorem newRaftNode.wp_proof
     (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E node id nl pre ms γs key wal cv
-  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, %Hlg, %Hhb, %HT⟩
+  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, %Hlg, %Hhb⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
   iunfold rnTimeoutDetectorOk at Htdok
@@ -123,7 +123,7 @@ theorem newRaftNode.wp_proof
   (try wp_auto)
   wp_apply (wp_NewTicker cv.heartbeat') as %tk %tch %γt #Htk
   · ipureintro; exact Hhb
-  ihave #Htki := isRNTicker_of_time wp_TStop E HT tk tch γt $$ Htk
+  ihave #Htki := isRNTicker_of_time wp_TStop tk tch γt $$ Htk
   (try wp_auto)
   ihave Hsc : rnStopClaim (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ $$ [Hsc]
   · iunfold rnStopClaim; iexact Hsc
