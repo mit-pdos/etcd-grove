@@ -9,11 +9,16 @@ Lean-first (no Rocq counterpart).
 `cachedOk`). The table `cache` holds them, under its `sync.Mutex`:
 
 - `cachedObjOk c ob`: the object fits a `DObj` (`dobjOf`), its resource version is not `0`, and
-  **every** key held it at that resource version (`versionAt`, at every key): `Gen` hands a client's
-  cached object to an operation on any key, not only on the one it came from. For another key it
-  holds as no key but one changes at a revision (one write per revision: `Apply`'s, the seed's),
-  so no other key has that mod revision; for its own key, the answer's object is the one written
-  at its resource version (or, for a `Delete`'s answer, none is: the key was deleted there).
+  **every key under the store's prefix** held it at that resource version (`versionAt`): `Gen`
+  hands a client's cached object to an operation on any key, not only on the one it came from (the
+  store takes it at `pathPrefix ++ k`, under `c.pfx`). For another key it holds as no other key
+  under the prefix changes at that revision (`oneKeyRevs`, which the Prove phase adds to the
+  instance's invariant); for its own key, the answer's object is the one written at its resource
+  version (or, for a `Delete`'s answer, none is: the key was deleted there). Review round 2 (F1):
+  not every key, as the store's contract says nothing of keys outside its prefix.
+- `oneKeyRevs c n` (the invariant's clause, written out for the Prove phase, review round 2 F1/F2):
+  each revision from `1` to `n` has its changes recorded in the history, with at most one key under
+  the prefix (etcd's first revision: none; the seed's puts, `Apply`'s writes: one each).
 - `cacheInv c tbl`: the table's map, owned, every entry `cachedObjOk` (persistent facts: `Apply`
   adds an entry from an answer it has the facts of, `Gen` reads one).
 - `isCache c tbl`: the mutex, with `cacheInv` as its lock invariant (persistent).
@@ -63,11 +68,18 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 and every key held it at that resource version. -/
 def cachedObjOk (c : StoreCfg GF DObj) (ob : Obj) : IProp GF :=
   iprop(⌜ob.Name'.length < 256 ∧ ob.UID'.length < 256 ∧ ob.ResourceVersion' ≠ W64 0⌝ ∗
-    □ ∀ k : GoString, versionAt c k ob.ResourceVersion' (dobjOf ob))
+    □ ∀ k : GoString, ⌜c.pfx <+: k⌝ → versionAt c k ob.ResourceVersion' (dobjOf ob))
 
 instance cachedObjOk_persistent (c : StoreCfg GF DObj) (ob : Obj) :
     Persistent (cachedObjOk (GF := GF) c ob) := by
   unfold cachedObjOk; infer_instance
+
+/-- **One key under the prefix per revision** (see the file header; persistent): the history's
+entries at the revisions `1` to `n`, each changing at most one key under the store's prefix. -/
+def oneKeyRevs (c : StoreCfg GF DObj) (n : Nat) : IProp GF :=
+  iprop(□ ∀ r : Nat, ⌜1 ≤ r ∧ r ≤ n⌝ → ∃ ch : Changes,
+    ghostMapElem c.γh (W64 (r : Int)) DFrac.discard ch ∗
+      ⌜((ch.map Prod.fst).filter (fun k => decide (c.pfx <+: k))).length ≤ 1⌝)
 
 /-- **The table's state** (`cache`'s lock invariant; see the file header): its map, owned, every
 entry a cached object. -/

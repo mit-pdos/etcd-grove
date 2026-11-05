@@ -753,6 +753,31 @@ The design's driver paragraph above, as the statements came out (commits `5468af
   `refine_*`, the store's loops (`deleteOnce`, `updateOnce`, `conditionalDelete`,
   `GuaranteedUpdate`) and `stFrom_item`.
 
+### 7b: Draft, review round 2 (2026-11-05; a fresh spec-reviewer on the driver's statements)
+
+No statement found false of the Go code; the helper specs (`withPre`, `minRV`, `uidOf`, `preconditions`,
+`cachedObj`, `cache.get`/`put`, `newCache`, `genFrom`, `Gen`), the Lean model against `mget`/`mdelete`/
+`mupdate`/`preOk` and the store's answers (too-large minimum as `EOther`, `InvalidObj` at the prepared
+key), and `call.spec`'s premises (dischargeable by `Apply`; D1 the only one the cached no-op needs)
+checked sound. Findings and what was done:
+
+- **F1 (high), done:** `cachedObjOk` at every key could not be proved: outside the store's prefix
+  `versionAt` says no seen state has the key at that revision, and the store's contract says nothing
+  of keys outside its prefix. Restated at the keys under `c.pfx` (all the store takes: `pathPrefix ++
+  k`). The clause it needs, `oneKeyRevs c σ.rev` (each revision `1..σ.rev` recorded, at most one key
+  under the prefix), is written out in `Cache.lean`; the Prove phase adds it to `kInvBody`, records
+  revision `1 ↦ []` at the seed, and keeps it with `revSeen` (`inv_next` returns it again), by a pure
+  lemma (a `KvNext` step whose `abs` changes one key changes one key under the prefix).
+- **F2 (medium), for the Prove phase:** the continuations `Apply` hands the store (`create_au`,
+  `rw_au`'s `contAt`, `getCall`'s committed state) carry no history fact out; each must also carry the
+  answer's `cachedObjOk` (a write's from its `revSeen`, a no-op's and a `Get`'s from `kvSeen σ` and
+  `oneKeyRevs`). Internal statements (`InvSteps`), not exported.
+- **F3 (low), for the Prove phase:** `respIs_call`'s `tooLarge` branch follows from types once `eD`,
+  `eU` are `sentV`s: state it at `sentV lD`, `sentV lU` (`Apply`'s).
+- **F4/F5/F6 (low), notes:** `errIs`'s `EOther` arm excludes every `*StorageError` (the store returns
+  none with another code); `InOk`'s parse conjunct is the store's `Get.spec` premise; `cacheInv`'s body
+  is exported (an example, no API list).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

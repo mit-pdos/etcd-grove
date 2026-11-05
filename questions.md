@@ -58,8 +58,10 @@ o.RV (dobjOf o)`. For the answer's own key it comes from the state the answer is
 no-op update's read: `kvSeen`; a write's: the revision's changes, `revSeen`); for any other key from
 the revision's changes holding one key. A `Delete`'s answer (the object at the deletion's revision)
 holds vacuously: the key has no value there.
-- **Decided by the agent:** the definition above; the Prove phase needs the driver's invariant to
-  keep "every revision since the seed changes one key" (each `KvNext` of the store's updates is a
+- **Decided by the agent (revised after review round 2, F1):** `versionAt` at every key *under the
+  store's prefix* (outside it the store's contract says nothing); the Prove phase needs the driver's
+  invariant to keep `oneKeyRevs` ("every revision since the start changes at most one key under the
+  prefix" (each `KvNext` of the store's updates is a
   one-key transaction; the seed's two puts likewise) and `inv_next` to return `revSeen` (the Draft
   drops it).
 - Alternative: cache an object only for operations on its own key (`genFrom` checks the name):
