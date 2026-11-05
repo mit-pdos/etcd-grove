@@ -3,12 +3,13 @@
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvWarn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Writer
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -17,6 +18,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName BkRef mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,126 +27,102 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- **`Txn(ctx, lg, rt, sharedBuf, kv, lessor, skip)` at the sole writer** of the committed log
-`log` (the apply thread; `soleWriter`), at a context never canceled, the request `rt` denoting
-`t`: either one of `checkTxn`'s errors (no response, no trace, nothing written, the sole writer
-unchanged), or the server's transaction (`srvRunTxn`: the comparisons' verdict and the chosen
-branch's run, nested branches by their verdicts at the state after `log`) at the next revision
-on the state after `log`, committed (`soleWriter` of `commitLog log chs`; nothing for a
-read-only request, which runs on the read transaction), its response with header revision
-`writeRev log chs` (`skip`: ranges header-only), the state's leases still known. Premises
-(`TxnPre`): room for a revision, the run's premises (`OpsOk`, weak: an `IgnoreValue`/`IgnoreLease`
-put whose key is missing at `log` fails the check instead), room for the run's changes; and every
-lease of the state after `log` known (`leasesKnown`). A write request's transaction runs under the
-store's batch lock by the critical-section contract (`csContract P f Pre Q Post`, the store's hook
-`hookOk γ P f`, with the writer's fragment of `kvWriter`: D22 receiver epochs, S5b): `Post`; a failed check or a read-only request takes no lock: `Pre`. A success's
-response header has its id fields owned (`respHdrOwn`: `newTxnResp` allocates it, the gRPC
-layer's `header.fill` writes them; 2026-10-12, the request path's unit 3b). It spends a write
-token (`mvcc.storeWT γ`, whether or not it writes; 2026-10-13, unit 6).
-2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
-2026-10-14 (unit T1): the caller certifies the log a write commits (`certOkNext`).
-2026-10-15 (unit T2): a success's path finds every previous key-value it needs (`PathsIgnOk`), and
-a plain transaction's check fails only without it (`checkTxn`'s); the caller certifies the log of
-a write whose path finds them. 2026-10-17 (unit N4, D14a): the sole writer is the KV's writer (`kvWriter`: for a watchable
-store, also the writer's half of its notified log), `kv` either store (`isKV`). -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- **`Txn(...)` at the sole writer of `log`** (the apply thread), at a context never canceled:
+the read transaction at the caller's read update, whose commit the caller gives with the pin
+(`σ.log = log`) and `Qr σ`; for a request that writes, once the checks passed, txn turns `Qr σ`
+into the write updates by the caller's wand (`txnBeginAU`: the begin, with the pin again, then the
+commit of the run's changes). Either one of `checkTxn`'s errors (no response, no trace, nothing
+written, `Pre`, `Qr σ` back), or the
+server's transaction at `log` (`srvRunTxn`), its response with header revision `writeRev log chs`,
+the leases still known; a write request's under the batch lock (`Post`) and committed by the
+caller's updates (`Qw σ`), a read-only one on the read transaction (`Pre`). No size premise: every
+sort's from `Txn.Range`'s `stateOk`, at the read transaction or at the write transaction's pending
+state.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
-    (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log)
-    (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
-    (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ txn.kvWriter s γ log ∗
-      mvcc.idxCert γ.idx F ∗
-      mvcc.storeWT γ ∗ txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
+    (kv le : GoInterface) (skip : Bool) (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (q : Qp)
+    (B : BkRef) (P Pre Q Post : IProp GF) (f : GoFunc) (L : List w64) (ot : Option Loc) (te : Bool)
+    (Qr Qw : MvccState → IProp GF),
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.kvBackend γ q B P f ∗
+      txn.isTxnLessor le (mvccLeases γ) ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
-      lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      ⌜txn.TxnPre log t⌝ ∗
-      (if txn.txnReadonly t then iprop(True) else
-        ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
-        mvcc.certOkNext γ log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
-      mvcc.csContract P f Pre Q Post ∗ mvcc.hookOk γ P f }}
+      lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+      ⌜txn.TxnPreA log t⌝ ∗
+      txn.csA P f Pre Q Post ∗
+      txn.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
+      (if txn.txnReadonly t then iprop(True)
+       else iprop(∀ σ : MvccState, Qr σ -∗ txn.txnBeginAU γ log t Qw)) }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗
+      threadTok ∗ txn.kvBackend γ q B P f ∗
+      ∃ σr : MvccState, ⌜σr.log = log ∧ txn.Reach σr⌝ ∗
       ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil ∧
             (txn.txnLeased t → ¬ (txn.PathsIgnOk (mvcc.stateAfter log)
               (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter log)
               L (t.branch (txn.txnOk (mvcc.stateAfter log) t))))⌝ ∗ txn.checkErrIs err ∗
-          txn.kvWriter s γ log ∗ Pre ∗
-          lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+          Pre ∗ Qr σr ∗
+          lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨
-       (⌜err = GoInterface.nil ∧ trace ≠ null ∧ F <+: log ∧
-          (txn.txnReadonly t = true →
-            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []) ∧
+       (⌜err = GoInterface.nil ∧ trace ≠ null ∧
+          (txn.txnReadonly t = true → txn.txnChs log t = []) ∧
           txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
           txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
         txn.txnResponseIs skip resp
-          (W64 (mvcc.writeRev log (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
-            : Int)) t
+          (W64 (mvcc.writeRev log (txn.txnChs log t) : Int)) t
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
-        txn.kvWriter s γ (mvcc.commitLog log
-          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
-        txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log
-          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) ∗
-        lease.lessorUser γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log
-          (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1))) ∗
-        (if txn.txnReadonly t then Pre else Post))) }}
+        txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t))) ∗
+        lease.lessorUser (mvccLeases γ) L
+          (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t)))) ∗
+        (if txn.txnReadonly t then iprop(Pre ∗ Qr σr)
+         else iprop(Post ∗ ∃ σw : MvccState, ⌜σw.log = log⌝ ∗ Qw σw)))) }}
 
-/-- **`Txn(ctx, lg, rt, sharedBuf, kv, lessor, skip)` at a reader** (2026-10-12, the request
-path's unit 3b: the server's read-only transaction, `EtcdServer.Txn` through `doSerialize`): a
-read-only request `rt` denoting `t` (`txnReadonly`), on the store `kv` with a reader's slots
-(`storeReader`), `m` revision tokens and a certificate of `log₀`, at any context (`txnCtx`: it
-may be done). The read transaction reads a committed log `log` pinned between `log₀` and the
-tokens (`store.Read`; unit W-M3: with the caller's certificate of it, `certOk`), and the answer is one of `checkTxn`'s errors (no response, no trace); or
-the server's run of `t` on the state after `log` (`srvRunTxn`: no change, a read-only request),
-its response with header revision `log`'s last (`log.length - 1`), its header's id fields owned
-(`respHdrOwn`); or, the context done during a range, `executeTxn`'s `fmt.Errorf` error
-(`mvcc.errorfIs`), the response partly filled (read-only, `roTxnRespRd`, its header's id fields
-owned, `respHdrOwn`: unit P4, 2026-10-14, what the server's warning of a slow transaction reads;
-it was unspecified). Premises: the
-gets within the model (`txnGetsOk`: revision `0`, a sort not cut early, a valid sort target),
-and the sort's premise (`LogSmall`) of the certified logs the read may see.
-2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
+/-- **`Txn(...)` at a reader** (the server's read-only transactions): a read-only request, the
+read transaction at the state `σ` of the caller's update (`Q σ`), any context. One of `checkTxn`'s
+errors; or the server's run at `σ.log`, header revision `σ.rev`; or the context done during a
+range: `fmt.Errorf`'s error, the response partly filled.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.Txn.specRead : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
-    (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames) (m : Nat)
-    (log₀ : mvcc.Log) (t : TxnModel) (ot : Option Loc) (te : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
-      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-      ⌜lg ≠ null ∧ txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗
-      (□ ∀ log : mvcc.Log, ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ -∗
-        mvcc.idxCert γ.idx log -∗ ⌜txn.LogSmall log⌝) }}
+    (kv le : GoInterface) (skip : Bool) (γ : MvccName) (t : TxnModel) (ot : Option Loc) (te : Bool)
+    (Q : MvccState → IProp GF),
+  {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ threadTok ∗ txn.isTxnLessor le (mvccLeases γ) ∗
+      txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+      traceutil.ownTraceOpt ot te ∗ ⌜lg ≠ null ∧ txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗
+      txn.readAU γ Q }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗ ownToks γ.revs m ∗
-      ∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ mvcc.certOk γ log ∗
-        ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      threadTok ∗ ∃ σ : MvccState, Q σ ∗ ⌜txn.Reach σ⌝ ∗
         ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ txn.checkErrIs err ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨
          (⌜err = GoInterface.nil ∧ trace ≠ null⌝ ∗
            (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-           txn.txnResponseIs skip resp (W64 ((log.length : Int) - 1)) t
-             (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
-             (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
+           txn.txnResponseIs skip resp (W64 (σ.rev : Int)) t
+             (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).1
+             (txn.srvRunTxn (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) t).2.2 ∗
            txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
-         (⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
+         (⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+           ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
            mvcc.errorfIs err ∗ txn.roTxnRespRd resp ∗
            txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))) }}
 
 /-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader
-(`specRead`, the server's read-only transactions); one function's two triples, by caller
-(2026-10-12, the request path's unit 3b). -/
+(`specRead`, the server's read-only transactions); one function's two triples, by caller. -/
+
 abbrev txn.Txn.spec : Prop := txn.Txn.specSole (GF := GF) ∧ txn.Txn.specRead (GF := GF)
 
 end spec

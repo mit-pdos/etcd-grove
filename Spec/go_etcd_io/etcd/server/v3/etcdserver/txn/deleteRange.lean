@@ -3,18 +3,21 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.storage.mvcc
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName BkRef mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -23,35 +26,35 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- (The write transaction `interface.mkOk tyX vX` over `mw`, `twWrap`: unit N4.) `deleteRange(ctx, txnWrite, dr)` at a write transaction (committed log `ilog`, pending
-changes `pend`): the keys of the request's range at the state read deleted (`delChanges`: the
-client's filter), the response with their number, the transaction's revision after the deletes
-and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range read's context error
-(`ctx` done; not at a context never canceled, `nd`), nothing deleted. -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `deleteRange(ctx, txnWrite, dr)` at a write transaction begun at `σ` with `pend` pending.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.deleteRange.spec : Prop :=
-  ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
-    (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (dr : Loc) (o : OpFull) (L : List w64) (tyX : go.GoType) (vX : val) (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
-      (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev ∗ mvcc.twWrap tyX vX mw ∗
-      txn.deleteRangeRequestIs dr o ∗ lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
-    (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk tyX vX : GoInterface))) (Val #dr))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜err = GoInterface.nil⌝ ∗
-        (∃ deletes' : w64, mvcc.isTxnWrite mw s γ trace ilog
-          (pend ++ txn.delChanges (txn.pendState ilog pend) o) puts deletes' putSize crev) ∗
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (tw : GoInterface)
+    (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (pend : List mvcc.Change) (dr : Loc)
+    (o : OpFull) (L : List w64),
+  {{ pkgInit ∗ mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+      mvcc.api.mvccTxn tw γ trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
+      ⌜txn.Reach σ⌝ ∗ txn.deleteRangeRequestIs dr o ∗
+      lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems σ.log pend) }}
+    (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #tw)) (Val #dr))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); traceutil.ownTrace trace te ∗
+      ((⌜err = GoInterface.nil⌝ ∗
+        mvcc.api.mvccTxn tw γ trace (.write σ (pend ++ txn.delChanges (txn.pendState σ.log pend) o)) ∗
         txn.deleteRangeResponseIs resp
-          (W64 ((mvcc.writeRev ilog (pend ++ txn.delChanges (txn.pendState ilog pend) o) : Nat) :
+          (W64 ((mvcc.writeRev σ.log (pend ++ txn.delChanges (txn.pendState σ.log pend) o) : Nat) :
             Int))
-          (rangeIn (txn.pendState ilog pend) o).length
-          (if o.base.prevKV then rangeIn (txn.pendState ilog pend) o else []) ∗
+          (rangeIn (txn.pendState σ.log pend) o).length
+          (if o.base.prevKV then rangeIn (txn.pendState σ.log pend) o else []) ∗
         txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-        lease.leaseOwn γ.leases L
-          (mvcc.pendItems ilog (pend ++ txn.delChanges (txn.pendState ilog pend) o))) ∨
+        lease.leaseOwn (mvccLeases γ) L
+          (mvcc.pendItems σ.log (pend ++ txn.delChanges (txn.pendState σ.log pend) o))) ∨
       (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
-        mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev ∗
-        lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend)) }}
+        mvcc.api.mvccTxn tw γ trace (.write σ pend) ∗
+        lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems σ.log pend))) }}
 
 end spec
 

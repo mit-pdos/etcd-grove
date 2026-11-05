@@ -54,35 +54,6 @@ theorem answers_length_stateAt (log : Log) (hok : LogOk log) (endNil : Bool) (k 
       (srvSel (stateAt log (sint.nat atRev)) endNil k e).length :=
   forall2_length (rangeAnswers_stateAt_w log hok endNil k e atRev h0)
 
-theorem kvOk_kvRead (f : Bool) (v : EtcdKv) (h : kvOk v) : kvOk (kvRead f v) := by
-  unfold kvRead; cases f <;> exact h
-
-/-- **The sort's premise** from a small state: the key-values sorted are at most `2 ^ 62`, with
-non-negative revisions and versions. -/
-theorem srvPre_small (o : OpFull) (st : List EtcdKv)
-    (h : st.length ≤ 2 ^ 62 ∧ ∀ v ∈ st, kvOk v) :
-    (srvPre o st).length ≤ 2 ^ 62 ∧ ∀ v ∈ srvPre o st, kvOk v := by
-  unfold srvPre
-  split
-  · simp
-  · have hin : (rangeIn st o).length ≤ st.length := List.length_filter_le _ _
-    have htk : ∀ (lim : Option Nat) (l : List EtcdKv), (takeLimit lim l).length ≤ l.length := by
-      intro lim l; cases lim <;> simp [takeLimit]; omega
-    have hmem : ∀ (lim : Option Nat) (l : List EtcdKv) (x : EtcdKv), x ∈ takeLimit lim l → x ∈ l := by
-      intro lim l x hx; cases lim with
-      | none => exact hx
-      | some n => exact List.mem_of_mem_take hx
-    refine ⟨?_, ?_⟩
-    · have := List.length_filter_le (kvFilterOk o)
-        ((takeLimit (limitOf (rangeLimitOf o)) (rangeIn st o)).map (kvRead (fastKeysOnly o)))
-      have := htk (limitOf (rangeLimitOf o)) (rangeIn st o)
-      simp only [List.length_map] at *
-      omega
-    · intro v hv
-      obtain ⟨hv, _⟩ := List.mem_filter.1 hv
-      obtain ⟨w, hw, rfl⟩ := List.mem_map.1 hv
-      exact kvOk_kvRead _ _ (h.2 w (List.mem_filter.1 (hmem _ _ _ hw)).1)
-
 /-! ## The key-values read -/
 
 section iris
@@ -142,49 +113,6 @@ theorem zip_map_snd {α β : Type} :
     simp only [List.zip_cons_cons, List.map_cons, List.cons.injEq, true_and]
     exact zip_map_snd ps xs (by simpa using h)
 
-section txn_read
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- A read transaction's log is well formed (its certificate), not empty, and its revision is
-the log's last. -/
-theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) :
-    mvcc.isTxnRead (GF := GF) mw s γ trace log rev crev ⊢
-      mvcc.isTxnRead mw s γ trace log rev crev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
-  iintro H
-  iunfold mvcc.isTxnRead at H
-  iNamed H
-  ihave #HtrT := Htr
-  iunfold mvcc.storeTxnReadIs at HtrT
-  iNamedSuffix HtrT "T"
-  ihave #HcT := HcertT
-  iunfold mvcc.idxCert at HcT
-  icases HcT with ⟨-, %Hp, -⟩
-  isplitl
-  · iunfold mvcc.isTxnRead
-    iexists p, trw, tr, ti, rt, ranges
-    iframe
-    iframe #
-  · ipureintro
-    exact ⟨LogOk.of_cert Hp HneT, HneT, HrevT⟩
-
-/-- A read transaction's certificate. -/
-theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) :
-    mvcc.isTxnRead (GF := GF) mw s γ trace log rev crev ⊢
-      mvcc.isTxnRead mw s γ trace log rev crev ∗ mvcc.idxCert γ.idx log := by
-  iintro H
-  iunfold mvcc.isTxnRead at H
-  iNamed H
-  ihave #HtrT := Htr
-  iunfold mvcc.storeTxnReadIs at HtrT
-  iNamedSuffix HtrT "T"
-  isplitl
-  · iunfold mvcc.isTxnRead
-    iexists p, trw, tr, ti, rt, ranges
-    iframe
-    iframe #
-  · rw [← mvcc.idxCert_withPhys γ p]; iexact HcertT
-
-end txn_read
 
 end iris
 
