@@ -62,19 +62,90 @@ range, which nothing gives (`mvccTxn` is opaque; no law gives its state reachabl
 internal spec has; its one caller, `checkTxn`, holds it. (Or an API law
 `mvccTxn t γ trace k ⊢ ⌜MvccReachable k.state⌝`.)
 
+**Gap C (the API too weak; blocks `executeTxn`).** `executeTxn` computes a range's header revision
+as `txnWrite.Rev()` plus one when `len(txnWrite.Changes()) > 0` (`txn.go`, a signed `GoGt go.int`
+on the slice's length). `Txn.Changes.contract` gives only `uint.nat chs.len = k.pend.length`, no
+ownership of the slice: a length `≥ 2 ^ 63` (negative as an `int`) is not excluded, and nothing
+bounds a write transaction's pending changes (deletes are of the index's keys, unbounded without
+the receipts). Until M1 the internals' `Changes` spec returned the slice's points-to, so
+`ownSlice_len` gave `0 ≤ sint.Z chs.len`. (`txn` itself tests `len(..) == 0`, which `uint.nat`
+decides: proved.)
+*Minimal fix* (the API): `Txn.Changes.contract`'s post `⌜uint.nat chs.len = k.pend.length ∧
+0 ≤ sint.Z chs.len⌝` (true of every Go slice; the implementation has the slice's points-to).
+
+**Gap D (the draft too strong a premise; blocks `Txn`'s read-only paths).** `txn.txn.spec` requires
+`σ.pending = none` for either kind (`ro = true` too), but `Txn` calls `txn` on the read-only
+wrapper of a read transaction whose state comes from `KV.Read`'s update, which says nothing of
+`pending` (a read may see a pending revision: it is not visible to reads). Neither `specSole`
+(its read-only branch) nor `specRead` can supply it. `txn`'s own proof never uses the premise.
+*Minimal fix* (the draft): `txn.spec`'s `σ.pending = none` conjunct as `ro = false → σ.pending =
+none`, or dropped. `Txn.lean`'s proof is complete but for these two obligations, each a `sorry` marked
+`M1-REPLACE: gap D` (the coordinator's go-ahead for placeholders, 2026-11-05); with the fix each is
+dropped.
+
 ## Left
 
-- The proofs over the API (each `wp_proof` taking the API's laws/contracts as hypotheses):
-  see "Status per proof" below.
-- `Link.lean` is generated (`etc/gen-link.py --txn` from `etc/link-lean-first-txn.txt`, outside
-  this package's paths): regenerate once the `wp_proof` hypotheses settle.
-- `Results.lean`, `SoleWriterKV.lean`, `KVWrite.lean`, `KeyObs.lean`, `Writer.lean`: over the old
-  internals (the sole writer's tokens, `kvWriter`); obsolete over the API (the pin is the
-  caller's), to delete or restate with the server track.
+- **`Link.lean`, `Results.lean` do not build** (the only txn modules that do not). `Link.lean` is
+  generated (`etc/gen-link.py --txn` from `etc/link-lean-first-txn.txt`, outside this package's
+  paths): the txt must list the new hypotheses, in order, per proof (below); the API's laws
+  (`mvcc.api.shapes.law`, `persistent.law`, `mvccState_reachable.law`) and `mvcc.api.
+  NewReadOnlyTxnWrite.spec` are not functions of the txt's form: the script needs a way to pass
+  mvcc's law proofs (mvcc's Link). `Results.lean` restated the sole writer's results over
+  `soleWriter`/`kvWriter`: to redo over the new specs (or drop: the server's `KVStoreCore` holds
+  the pin now).
+- The placeholders: below; each closes when its gap's fix lands.
 
-## Status per proof
+## Status per proof (every module of the package builds but `Link`, `Results`)
 
-(updated below as the work goes)
+Proved over the API (no sorry): `put`, `checkAndGetPrevKV`, `checkPut`, `applyCompares`,
+`compareToPath`, `checkTxn`, `txn`, `Range`, `Count`, `Put`, `DeleteRange`, and every proof with no
+mvcc callee (the list in "Done"). `Txn` proved but for gap D's two `M1-REPLACE`s.
+
+`M1-REPLACE` placeholders (whole proofs, `sorry`): `executeRange`, `getPrevKV`, `applyCompare`,
+`deleteRange` (gap A), `checkRange` (gap B), `executeTxn` (gap C); the old proofs over the internals
+are in the history (`645402be7a~1`), most of each reusable once the gap closes (`executeRange_core`
+was already parametric in the transaction; `KindOk`/`prevKvIs_of_outcome`/`rangeOutcome_sel` are
+over `MTxn` in `Write.lean`).
+
+New `wp_proof` hypotheses (for `etc/link-lean-first-txn.txt`), in order:
+- `put`: `shapes`, `traceutil.Get`, `Trace.AddField`;
+- `checkAndGetPrevKV`: `getPrevKV`; `checkPut`: `checkLease`, `checkAndGetPrevKV`;
+- `applyCompares`: `applyCompare`; `compareToPath`: `applyCompares`; `checkTxn`: `checkRange`, `checkPut`;
+- `txn`: `shapes`, `newTxnResp`, `executeTxn`, `zap.Error`, `zap.Logger.Error`;
+- `Range`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `RangeSecObserve`, `executeRange`;
+- `Count`: `Range`;
+- `Put`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `proto.Size`, `checkLease`,
+  `checkAndGetPrevKV`, `put`;
+- `DeleteRange`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `deleteRange`;
+- `Txn`: `shapes`, `persistent`, `mvccState_reachable`, `EnsureTrace`, `IsTxnReadonly`,
+  `Trace.StepWithFunction`, `compareToPath`, `Trace.AddField`, `checkTxn`, `Trace.Step`,
+  `mvcc.api.NewReadOnlyTxnWrite`, `txn`;
+- placeholders: `executeRange`: `shapes`, `Get`, `rangeLimit`, `mkGteRange`, `filterRangeResults`,
+  `sortRangeResults`, `Trace.Step`, `asembleRangeResponse`; `getPrevKV`: `shapes`,
+  `StepWithFunction`, `context.TODO`; `applyCompare`: `shapes`, `context.TODO`, `mkGteRange`,
+  `compareKV`; `deleteRange`: `shapes`, `mkGteRange`; `checkRange`: `shapes`; `executeTxn`:
+  `shapes`, `Get`, `StartSubTrace`, `executeRange`, `StopSubTrace`, `proto.Size`, `getPrevKV`,
+  `put`, `deleteRange`.
+
+## Renamed and replaced (for the server track)
+
+| Old (over mvcc's internals) | New |
+|---|---|
+| `txn.isKV kv s γ` | `mvcc.api.isMvcc kv γ` (`txn.isMvcc_shape`: its `isKV` contracts) |
+| `txn.kvWriter s γ log`, `txn.soleWriter`, `soleWriterOpen`, `soleBudget`, `mvcc.storeWT`, `storeWTs`, `idxCert`/`certOkNext` premises | none in txn: the caller's `mvcc.api.mvccState γ σ` in its invariant, given to txn as updates `txn.readAU γ (fun σ => ⌜σ.log = log⌝ ∗ Qr σ)` and `∀ σ, Qr σ -∗ txn.txnBeginAU γ log t Qw` (`Txn.specSole`), `txn.putAU`, `txn.delAU` |
+| `txn.wlogOwn`, `wlogOwnW` | none (the watchable store's notified log is mvcc's, inside `mvccState`) |
+| `mvcc.csContract P f Pre Q Post` + `mvcc.hookOk γ P f` | `txn.csA P f Pre Q Post` + `txn.kvBackend γ q B P f` (`mvccBackend γ q B P ∗ hookIs B f`) |
+| `txn.TxnPre log t` | `txn.TxnPreA log t` (`OpsOk` alone) |
+| `txn.Pinned`, `pinned_sole` | none (the pin `σ.log = log` is in the caller's updates) |
+| `txn.txnViewIs`, `txnWriteIs`, `KindIs`, `mvcc.TxnKind` in txn | `mvcc.api.mvccTxn t γ trace k`, `k : mvcc.api.MTxn`; `txn.mstate k`, `txn.MTxn.isRead`, `txn.MTxn.append` |
+| `txn.kvOk` | `mvcc.api.kvSortOk` (`txn.kvSortOk_nonneg`) |
+| `txn.sortOk`, `stateAt_small`, `sortSmall_of_sortOk`, `srvPre_small` | `txn.srvPre_stateOk` (from `Txn.Range`'s `stateOk`); `txn.sortSmall` now over `kvSortOk` |
+| `txn.Txn.specSole`'s `F`/`idxCert`, `specRead`'s `m`/`log₀`/`LogSmall` premise | the read update's `Q σ`; post `∃ σ, Q σ ∗ ⌜txn.Reach σ⌝ ∗ ..` |
+| `txn.Range.spec`, `Count.spec` (`storeReader`, tokens, `idxCert log₀`, `sortOk`) | over `readAU γ Q`; post `∃ σ, Q σ ∗ ⌜Reach σ⌝ ∗ rangeResult .. σ.log (W64 σ.rev) σ.crev ..` |
+| `txn.Put.spec`, `DeleteRange.spec` (`m`, `log₀`, `Lw`, the `Hsole`/`HIp`/`Hcok` premises) | `putAU γ o L I R` (only for a live lease) / `delAU γ o I R`; post at `∃ σ₀, ⌜Reach σ₀ ∧ σ₀.pending = none⌝ ∗ R σ₀ ..` |
+| `KindOk`, `kindState` over `TxnKind` | the same names over `MTxn` (`Write.lean`) |
+| `Writer`, `KVWrite`, `KeyObs`, `SoleWriterKV` modules | empty modules importing `ApiLemmas` (their content obsolete) |
+| (new) | `txn.readAU_reach`, `beginAU_reach`, `end_read`, `end_write`, `mvccTxn_shape`, `isMvcc_shape`, `reach_len` (`ApiLemmas.lean`) |
 
 ## What txn needs re-exported through the API's vocabulary (draft §11)
 

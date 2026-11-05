@@ -1,23 +1,29 @@
 /-
 Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+
+Strict M1 (2026-11-05): restated over mvcc's API; the proof is a placeholder until the statement
+gap it rests on is closed (gap B). The proof over mvcc's internals is in the history (before
+`645402be7a`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.checkRange
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev
+
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc
-  go_etcd_io.etcd.api.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
+  go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccName)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,72 +33,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.checkRange.wp_proof
-    (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
-    (hFirst : mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG)) :
-    txn.checkRange.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ log rev req o crev
-  wp_start as ⟨Htx, #Hr⟩
-  ihave #Hmp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
-  · iPkgInit
-  ihave Hinit : (mvccInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hmp
-  icases Hinit with ⟨-, ⟨%ec, #Hcomp⟩, ⟨%ef, #Hfut⟩, -⟩
-  iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
-  have hrv : o.base.rev = rv := by subst Ho; rfl
-  wp_auto
-  wp_if_destruct
-  · iapply HΦ
-    iframe Htx
-    iunfold txn.checkRangeErr
-    ileft; ipureintro
-    exact ⟨rfl, Or.inl (by simp_all)⟩
-  · skip
-    have hne : ¬ rv = W64 0 := by simpa using Hif
-    ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) crev $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply +noauto (hRev trace mw s γ (.read log rev) crev iprop(True)) $$ [$Htx] as Htx
-    rw [show (mvcc.TxnKind.read log rev).beginRev = rev from rfl]
-    ihave Htx : mvcc.isTxnRead mw s γ trace log rev crev $$ [Htx]
-    · simp only [mvcc.isTxn]; iexact Htx
-    wp_auto
-    wp_if_destruct
-    · skip
-      have hlt : sint.Z rev < sint.Z rv := by simpa using Hif
-      iapply HΦ
-      iframe Htx
-      iunfold txn.checkRangeErr
-      iright; ileft
-      isplitr
-      · ipureintro; rw [hrv]; exact ⟨hne, hlt⟩
-      iexists ef; iframe Hfut; ipureintro; rfl
-    · skip
-      have hle : ¬ sint.Z rev < sint.Z rv := by simpa using Hif
-      ihave %Hcr := mvcc.isTxnRead_crev mw s γ trace log rev crev iprop(True) $$ Htx
-      have hm1 : sint.Z (W64 crev) = crev := by
-        have : sint.Z rev < 2 ^ 63 := by word
-        unfold sint.Z W64
-        rw [BitVec.toInt_ofInt_eq_self (by decide) (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)
-          (by rw [show (64 - 1 : Nat) = 63 from rfl]; omega)]
-      wp_apply (hFirst trace mw s γ log rev crev iprop(True)) $$ [$Htx] as Htx
-      wp_if_destruct
-      · skip
-        have hc : sint.Z rv < sint.Z (W64 crev) := by simpa using Hif
-        iapply HΦ
-        iframe Htx
-        iunfold txn.checkRangeErr
-        iright; iright
-        isplitr
-        · ipureintro; rw [hrv]
-          exact ⟨hne, by omega, by omega⟩
-        iexists ec; iframe Hcomp; ipureintro; rfl
-      · skip
-        have hge : ¬ sint.Z rv < sint.Z (W64 crev) := by simpa using Hif
-        iapply HΦ
-        iframe Htx
-        iunfold txn.checkRangeErr
-        ileft; ipureintro
-        refine ⟨rfl, Or.inr ⟨by rw [hrv]; omega, by rw [hrv]; omega⟩⟩
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    : txn.checkRange.spec (GF := GF) (hG := hG) := by
+  sorry -- M1-REPLACE: gap B: the draft's `checkRange.spec` lacks `Reach σ`, needed for `FirstRev`'s `W64 σ.crev = σ.crev`, notes/mvcc-migration/txn.md
 
 end proof
 

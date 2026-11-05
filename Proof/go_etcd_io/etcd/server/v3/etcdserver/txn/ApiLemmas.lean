@@ -58,6 +58,118 @@ theorem txn.isMvcc_shape (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
       ⌜∃ ty v, kv = interface.mkOk ty v ∧ mvcc.api.isKV (GF := GF) ty v⌝ ∗ mvcc.api.isMvcc kv γ :=
   persistent_entails_right (hsh.1 kv γ)
 
+/-- **The caller's read update, with what txn records of its state** (`clients-txn.md` §3, the
+wrapper): given the store's handle, the caller's update at a read becomes one whose commit also
+gives `Reach σ` (`mvccState_reachable.law` at the state in hand). -/
+theorem txn.readAU_reach (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (kv : GoInterface) (γ : MvccName) (Q : MvccState → IProp GF) :
+    mvcc.api.isMvcc kv γ ⊢
+      txn.readAU γ Q -∗ txn.readAU γ (fun σ => iprop(Q σ ∗ ⌜txn.Reach σ⌝)) := by
+  haveI := hpers.1 kv γ
+  iintro #Hkv Hau
+  unfold txn.readAU
+  iauintro
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%x, Hx, Hcl⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists x
+  iframe Hx
+  isplit
+  · iintro Hx
+    icases Hcl with ⟨Hab, -⟩
+    iapply Hab $$ Hx
+  · iintro Hx
+    icases (persistent_entails_right (hreach kv γ x)) $$ [$Hkv $Hx] with ⟨%Hr, -, Hx⟩
+    icases Hcl with ⟨-, Hco⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hco
+    imod Hco $$ Hx with HQ
+    imodintro
+    iframe HQ
+    ipureintro; exact Hr
+
+/-- **The caller's begin update, with what txn records of its state**: the commit also gives
+`Reach σ` and the promised `σ.pending = none`. -/
+theorem txn.beginAU_reach (hpers : mvcc.api.persistent.law (GF := GF) (hG := hG))
+    (hreach : mvcc.api.mvccState_reachable.law (GF := GF) (hG := hG))
+    (kv : GoInterface) (γ : MvccName) (R : MvccState → IProp GF) :
+    mvcc.api.isMvcc kv γ ⊢
+      txn.beginAU γ R -∗
+        txn.beginAU γ (fun σ => iprop(⌜txn.Reach σ ∧ σ.pending = none⌝ ∗ R σ)) := by
+  haveI := hpers.1 kv γ
+  iintro #Hkv Hau
+  unfold txn.beginAU
+  iauintro
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%x, Hx, Hcl⟩
+  imodintro
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists x
+  iframe Hx
+  isplit
+  · iintro Hx
+    icases Hcl with ⟨Hab, -⟩
+    iapply Hab $$ Hx
+  · iintro ⟨%Hpn, Hx⟩
+    icases (persistent_entails_right (hreach kv γ x)) $$ [$Hkv $Hx] with ⟨%Hr, -, Hx⟩
+    icases Hcl with ⟨-, Hco⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hco
+    imod Hco $$ [Hx] with HR
+    · iframe Hx; ipureintro; exact Hpn
+    imodintro
+    iframe HR
+    ipureintro; exact ⟨Hr, Hpn⟩
+
+/-- **A read transaction's `End`**: the thread token back (`Txn.End.contract` at a read
+transaction, whose backend arguments do not matter). -/
+theorem txn.end_read {ty : go.GoType} {v : val}
+    (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
+    (γ : MvccName) (trace : Loc) (σ : MvccState) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (.read σ) }}
+      (App (Val #(methods ty go!"End" v)) (Val #()))
+    {{ RET #(); threadTok }} := by
+  have hB : Nonempty mvcc.api.BkRef := by
+    refine ⟨⟨?_, ?_, null⟩⟩
+    · constructor <;> first | exact default | (constructor <;> exact default)
+    · constructor <;> exact default
+  obtain ⟨B⟩ := hB
+  iintro %Φ ⟨#Hpkg, Htx⟩ HΦ
+  iapply (hEnd γ trace (.read σ) 1 B iprop(True) iprop(True)) $$ [Htx]
+  · iframe Hpkg Htx
+  inext
+  iintro ⟨Htt, -⟩
+  iapply HΦ $$ Htt
+
+/-- **A write transaction's `End`**: the caller's two commit updates (`commitAU`, `Txn.End`'s
+shape), the batch lock's invariant `P` given, the backend share and the thread token back. -/
+theorem txn.end_write {ty : go.GoType} {v : val}
+    (hEnd : mvcc.api.Txn.End.contract (GF := GF) (hG := hG) ty v)
+    (γ : MvccName) (trace : Loc) (σ₀ : MvccState) (pend : List mvcc.Change) (q : Qp)
+    (B : mvcc.api.BkRef) (P Q : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (.write σ₀ pend) ∗
+        mvcc.api.mvccBackend γ q B P ∗ P ∗ txn.commitAU γ σ₀ pend Q }}
+      (App (Val #(methods ty go!"End" v)) (Val #()))
+    {{ RET #(); threadTok ∗ mvcc.api.mvccBackend γ q B P ∗ Q }} := by
+  have h := hEnd γ trace (.write σ₀ pend) q B P Q
+  dsimp only at h
+  iintro %Φ ⟨#Hpkg, Htx, Hbk, HP, Hau⟩ HΦ
+  iapply h $$ [Htx Hbk HP Hau]
+  · iframe Hpkg Htx Hbk HP
+    iexact Hau
+  inext
+  iintro ⟨Htt, Hbk, HQ⟩
+  iapply HΦ
+  iframe Htt Hbk HQ
+
 end lemmas
 
 end EtcdGrove
