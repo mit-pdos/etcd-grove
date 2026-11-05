@@ -74,13 +74,15 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
       srvApplyKVCore s E γw x ua ∗
       -- (2026-10-31) the WAL open (the apply thread's share of it)
-      rnWalTok (srvRAddr s) q }}
+      rnWalTok (srvRAddr s) q ∗
+      -- (strict M1, 2026-11-06) the thread's token, `KV.Commit.contract`'s
+      threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
-      rnWalTok (srvRAddr s) q ∗
+      rnWalTok (srvRAddr s) q ∗ threadTok ∗
       ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 end spec

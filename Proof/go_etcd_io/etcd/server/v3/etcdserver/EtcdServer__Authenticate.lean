@@ -56,7 +56,7 @@ theorem EtcdServer.Authenticate.wp_proof
   iunfold isServerReadM at Hrd'
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAtM at Hw
-  icases Hw with ⟨#Hread, #HisRead, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -⟩
+  icases Hw with ⟨#Hread, #HisRead, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -⟩
   ihave #Hauthn' := Hauthn
   iunfold authnStoreOk at Hauthn'
   icases Hauthn' with ⟨%ai, %Hai, #HCP, #HGT, #HRev⟩

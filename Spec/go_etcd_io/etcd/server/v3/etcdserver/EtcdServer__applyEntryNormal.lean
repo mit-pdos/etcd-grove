@@ -37,7 +37,7 @@ model's auth state `sa`), with the entry's premise in the mode (`entryOkM`: with
 admitted admin request too), goes to `x'` by `entryStep m v3 x x' out`. **The wait**: the
 server's wait is the registry, in the mode (`isServerM E.authOn`: with auth on the results carry
 the auth layer's verdict, `resultΨOn`), the entry normal (`m.typ = 0`) and its id claimed for its
-data (`entryWaitOk`). It spends one write token of the store (`mvcc.storeWT E.γ`). **The
+data (`entryWaitOk`). It spends one write-back token of the backend (`srvWT E`; strict M1: until then mvcc's `storeWT`). **The
 delivery**: to a caller that knows the entry's id registered (`entryRegd ρ.wait m (some t)`), the
 entry is applied in full unless that registration is gone (`entryDelivered`). **The applied log**:
 at the applied index `v = m.index - 1` with its log the KV's and the entry committed, the KV log

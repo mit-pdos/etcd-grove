@@ -108,7 +108,7 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) t
         isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
         context.isContext ctx cd ∗ irrNoHdrIs p (irrAuthenticate ⟨name, [], pre⟩) ∗
         (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
-        mvcc.idxCert E.γ.idx F }}
+        srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
         (Val #(GoInterface.ok ctx))) (Val #p))
     {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
