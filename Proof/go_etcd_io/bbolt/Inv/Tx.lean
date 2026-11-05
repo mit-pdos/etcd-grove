@@ -317,17 +317,27 @@ theorem pageIdx_lt_maxMap (id l : Nat) (h : (id + 1) * 4096 ≤ l) (hl : l ≤ 0
   omega
 
 /-- The writer's handles' generations (the `buckets` caches): every handle's generation is at
-most its name's, and the opened bucket of a name is its current handle. -/
+most its name's, the opened bucket of a name is its current handle, and (D1, maintainer 14,
+decided by the coordinator) a handle of its name's current generation is the bucket the root
+bucket's cache holds for the name (without it `Put`/`Delete`/`Get` through the handle cannot be
+tied to `T.cur`: `X.handles = {b ↦ (n, 0)}` with `bktLoc X n = none` satisfies the first two). -/
 def gensOK (T : TxView) (X : WX) : Prop :=
   (∀ b n g, X.handles !! b = some (n, g) → g ≤ T.gen n) ∧
-  ∀ n b, bktLoc X n = some b → X.handles !! b = some (n, T.gen n)
+  (∀ n b, bktLoc X n = some b → X.handles !! b = some (n, T.gen n)) ∧
+  ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b
+
+/-- `gensOK`'s third clause (D1): a handle of the current generation of `n` is the bucket `n`
+opened in the root bucket. -/
+theorem gensOK_handle_bktLoc (T : TxView) (X : WX) (h : gensOK T X) :
+    ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b :=
+  h.2.2
 
 /-- **The root bucket's cache is injective** (`gensOK`'s second clause: the handle registry
 records each opened bucket's name). -/
 theorem gensOK_bktLoc_inj (T : TxView) (X : WX) (h : gensOK T X) (n n' : GoString) (b : Loc)
     (hn : bktLoc X n = some b) (hn' : bktLoc X n' = some b) : n' = n := by
-  have h1 := h.2 n b hn
-  have h2 := h.2 n' b hn'
+  have h1 := h.2.1 n b hn
+  have h2 := h.2.1 n' b hn'
   rw [h1] at h2
   simp only [Option.some.injEq, Prod.mk.injEq] at h2
   exact h2.1.symm

@@ -1,14 +1,14 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/Bucket__Delete.lean` (U7k, `notes/bbolt-proof-plan.md`): a
 write transaction's `Delete`, `Write/DelWp`'s `wp_writer`. Its premise `hD1` (`gensOK`'s third
-clause, maintainer 14) is discharged by `Bucket__Get`'s `gensOK_handle_bktLoc` (OPEN until `gensOK`
-holds it; then it is `h.2.2`).
+clause, maintainer 14) is discharged by `Inv/Tx`'s
+`gensOK_handle_bktLoc` (`gensOK`'s third clause).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__Delete
 public import Proof.go_etcd_io.bbolt.Write.DelWp
-public import Proof.go_etcd_io.bbolt.Bucket__Get
+public import Proof.go_etcd_io.bbolt.Inv.Tx
 
 @[expose] public section
 

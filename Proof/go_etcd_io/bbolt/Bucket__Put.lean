@@ -1,14 +1,13 @@
 /-
 The proof of `Spec/go_etcd_io/bbolt/Bucket__Put.lean` (U7k, `notes/bbolt-proof-plan.md`): a write
 transaction's `Put`, `Write/PutWp`'s `wp_writer`. Its premise `hD1` (`gensOK`'s third clause,
-maintainer 14) is discharged by `Bucket__Get`'s `gensOK_handle_bktLoc` (OPEN until `gensOK` holds
-it; then it is `h.2.2`).
+maintainer 14) is discharged by `Inv/Tx`'s `gensOK_handle_bktLoc` (`gensOK`'s third clause).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__Put
 public import Proof.go_etcd_io.bbolt.Write.PutWp
-public import Proof.go_etcd_io.bbolt.Bucket__Get
+public import Proof.go_etcd_io.bbolt.Inv.Tx
 
 @[expose] public section
 

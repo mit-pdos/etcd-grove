@@ -140,7 +140,7 @@ theorem wOK_wx0 (C : CommitSt) (b rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_i
 /-- **The initial records' generations**: no handle, no opened bucket. -/
 theorem gensOK_wx0 (T : TxView) (rl : Loc) (t : Tx) (mv : Meta) (bv : go_etcd_io.bbolt.Bucket)
     (ib : InBucket) (v : View) : gensOK T (wx0 rl t mv bv ib v) := by
-  refine ⟨fun b n g h => by simp [wx0] at h, fun n b' h => ?_⟩
+  refine ⟨fun b n g h => by simp [wx0] at h, fun n b' h => ?_, fun b n h => by simp [wx0] at h⟩
   simp [bktLoc, wx0, brec0] at h
 
 /-- The initial records' logical tree: the root bucket's is the view's pages. -/

@@ -398,8 +398,8 @@ theorem data_pre (T : TxView) (X X3 : WX) (n : GoString) (b l : Loc) (B3 : BRec)
   have hroot3 : b ≠ X3.rl := by rw [k2]; exact hroot
   refine ⟨by rw [bktLoc_matGrow hmg]; exact hbl, fun n' h => ?_, fun w hw hf => ?_, ?_, hroot3⟩
   · rw [bktLoc_matGrow hmg] at h
-    have h1 := hgens.2 n b hbl
-    have h2 := hgens.2 n' b h
+    have h1 := hgens.2.1 n b hbl
+    have h2 := hgens.2.1 n' b h
     rw [h1] at h2
     simp only [Option.some.injEq, Prod.mk.injEq] at h2
     exact h2.1.symm

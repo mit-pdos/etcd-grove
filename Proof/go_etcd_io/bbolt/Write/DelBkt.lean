@@ -32,23 +32,6 @@ name's opened bucket. -/
 def gensD1 (T : TxView) (X : WX) : Prop :=
   ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b
 
-/-- **`DeleteBucket`'s generations** (`gensOK`'s two clauses): the root's cache loses `n` and keeps
-the others, the handles kept. -/
-theorem gensOK_dropBkt (T : TxView) (X X' : WX) (n : GoString) (hh : X'.handles = X.handles)
-    (hloc : ∀ m, m ≠ n → bktLoc X' m = bktLoc X m) (hn : bktLoc X' n = none)
-    (h : gensOK T X) : gensOK (T.dropBkt n) X' := by
-  refine ⟨fun b m g hb => ?_, fun m b hb => ?_⟩
-  · rw [hh] at hb
-    have := h.1 b m g hb
-    simp only [TxView.dropBkt]
-    split
-    · rename_i e; subst e; omega
-    · exact this
-  · have hm : m ≠ n := by intro e; subst e; rw [hn] at hb; cases hb
-    rw [hloc m hm] at hb
-    rw [hh, h.2 m b hb]
-    simp [TxView.dropBkt, hm]
-
 /-- **`DeleteBucket`'s generations** (the third clause, D1): a handle of `n` is stale after the
 bump, the others' names keep their buckets. -/
 theorem gensD1_dropBkt (T : TxView) (X X' : WX) (n : GoString) (hh : X'.handles = X.handles)
@@ -64,6 +47,23 @@ theorem gensD1_dropBkt (T : TxView) (X X' : WX) (n : GoString) (hh : X'.handles 
   · rw [hloc m hm]
     apply hd b m
     rw [hb]; simp [TxView.dropBkt, hm]
+
+/-- **`DeleteBucket`'s generations** (`gensOK`'s clauses; the third by `gensD1_dropBkt`): the root's cache loses `n` and keeps
+the others, the handles kept. -/
+theorem gensOK_dropBkt (T : TxView) (X X' : WX) (n : GoString) (hh : X'.handles = X.handles)
+    (hloc : ∀ m, m ≠ n → bktLoc X' m = bktLoc X m) (hn : bktLoc X' n = none)
+    (h : gensOK T X) : gensOK (T.dropBkt n) X' := by
+  refine ⟨fun b m g hb => ?_, fun m b hb => ?_, gensD1_dropBkt T X X' n hh hloc h h.2.2⟩
+  · rw [hh] at hb
+    have := h.1 b m g hb
+    simp only [TxView.dropBkt]
+    split
+    · rename_i e; subst e; omega
+    · exact this
+  · have hm : m ≠ n := by intro e; subst e; rw [hn] at hb; cases hb
+    rw [hloc m hm] at hb
+    rw [hh, h.2.1 m b hb]
+    simp [TxView.dropBkt, hm]
 
 end delbkt
 

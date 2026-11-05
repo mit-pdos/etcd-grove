@@ -497,7 +497,7 @@ theorem Bucket.CreateBucket.wp_root
   have hpm4 := PubW.pmFresh_of_wOK X4 hok4
   have hwrt4 : X4.t.t.writable' = true := hok4.1.1
   have hhg4 : ∀ c', R4.bm !! n = some c' → X4.handles !! c' = some (n, T.gen n) :=
-    fun c' h => hgens4.2 n c' (by unfold bktLoc; rw [hrl4, hR4]; exact h)
+    fun c' h => hgens4.2.1 n c' (by unfold bktLoc; rw [hrl4, hR4]; exact h)
   wp_apply hBw K tx r true X4 X.rl R4 nk n (KeyR.heap DFrac.discard) (T.gen n) hR4 hloc4 hpm4 hwrt4
     hhg4 $$ [Hw] as %b ⟨%X', Hw, -, Hcf, %Hpost⟩
   · unfold keyR; iframe; iexact Hnk
@@ -558,7 +558,7 @@ theorem Bucket.CreateBucket.wp_root
       refine ⟨hokX', by rw [hdX', hd4], ?_, ?_, xclKeep_trans hk4 hk', fun extra =>
         (hsh4 extra).trans (txShape_bktOpened r.n.pg X4 X' X.rl b n (T.gen n) extra hokX' hop)⟩
       · exact gensOK_bktOpened T X4 X' X.rl b n (T.gen n) hop hok4.2.2.2.2.1 (Nat.le_refl _)
-          (fun _ => rfl) hgens4
+          (fun _ => rfl) (fun h => absurd hrl4.symm h) hgens4
       · exact PubW.wrFacts_bktOpened X4 X' X.rl b n (T.gen n) hop (hrl4 ▸ hok4.2.2.2.2.2.1.1)
           (by rw [hrl4, hR4]; rfl) hwr4
   wp_bind (App (Val #_) (Val #()))

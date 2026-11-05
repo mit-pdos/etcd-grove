@@ -336,12 +336,6 @@ theorem Bucket.Get.wp_writer [HasExt osFsExt]
       rw [hnone]
       ipureintro; rfl
 
-/-- `gensOK`'s third clause (D1, maintainer 14): a handle of the current generation of `n` is
-the bucket `n` opened in the root bucket. OPEN until `gensOK` holds it; then it is `h.2.2`. -/
-theorem gensOK_handle_bktLoc (T : TxView) (X : WX) (h : gensOK T X) :
-    ∀ b n, X.handles !! b = some (n, T.gen n) → bktLoc X n = some b := by
-  sorry
-
 theorem Bucket.Get.wp_proof (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
     (hseek : ∀ [HasExt osFsExt], Cursor.seek_r.spec (GF := GF) (hG := hG))
     (hseekw : ∀ [HasExt osFsExt], Cursor.seek_w.specQ (GF := GF) (hG := hG))

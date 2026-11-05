@@ -135,7 +135,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
   have hpm := PubW.pmFresh_of_wOK X hok
   have hwrt : X.t.t.writable' = true := hok.1.1
   have hhg : ∀ c', R.bm !! n = some c' → X.handles !! c' = some (n, T.gen n) :=
-    fun c' h => hgens.2 n c' (by unfold bktLoc; rw [hR]; exact h)
+    fun c' h => hgens.2.1 n c' (by unfold bktLoc; rw [hR]; exact h)
   have hrl : X.rl = txRoot (GF := GF) tx := Hhok.1
   wp_auto
   rw [show tx.[Tx, go!"root"] = txRoot (GF := GF) tx from rfl, ← hrl]
@@ -228,7 +228,7 @@ theorem Tx.Bucket.wp_writer [HasExt osFsExt]
           fun fl h => PubW.flViewU_bktOpened_root' X X' b n (T.gen n) fl hok hokX' hop h⟩
       have hvX : X'.v = X.v := hk.v
       have hgens' : gensOK T X' :=
-        gensOK_bktOpened T X X' X.rl b n (T.gen n) hop hok.2.2.2.2.1 (Nat.le_refl _) (fun _ => rfl)
+        gensOK_bktOpened T X X' X.rl b n (T.gen n) hop hok.2.2.2.2.1 (Nat.le_refl _) (fun _ => rfl) (fun h => absurd rfl h)
           hgens
       have hwr' : wrFacts X' :=
         PubW.wrFacts_bktOpened X X' X.rl b n (T.gen n) hop hok.2.2.2.2.2.1.1
