@@ -23,7 +23,7 @@ import (
 // precondition and an update that changes nothing succeeds at the key's current resource version
 // when the key was rewritten with the same data since the cached object's (here: the no-op update
 // of a non-canonical seed), though the precondition fails on the current object; the Model
-// answers "invalid object" (nonissues/k8s-etcd3-cached-noop-skips-preconditions.md). The test
+// answers "invalid object" (issues/k8s-etcd3-cached-noop-skips-preconditions.md). The test
 // passes while the store behaves so.
 func TestCachedNoopPrecondition(t *testing.T) {
 	os.RemoveAll("k8setcd3n.etcd")

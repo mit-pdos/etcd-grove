@@ -897,8 +897,12 @@ func genFrom(n uint64, id int, c Obj, hasC bool) Input {
 	ri, _ := pick(n, uint64(len(vals)))
 	in.Kind = KUpdate
 	in.Val = vals[vi]
-	in = withPre(in, pu == 0, pr == 0, c, hasC)
-	if uc < 15 && hasC {
+	// No RV precondition with a cached object (the scope premise of notes/k8s-etcd3-plan.md, 7b):
+	// the store's cached no-op skips the preconditions on a key rewritten with equal bytes
+	// (issues/k8s-etcd3-cached-noop-skips-preconditions.md).
+	cached := uc < 15 && hasC
+	in = withPre(in, pu == 0, pr == 0 && !cached, c, hasC)
+	if cached {
 		in.UseCached = true
 		in.Cached = c
 	}

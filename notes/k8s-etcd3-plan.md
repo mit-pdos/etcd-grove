@@ -535,10 +535,16 @@ nor `statusErrOk`/`errCellOk` say it.
   compactor's `k8s_compactor_safe` rests on the same specs).
 - Recommended: (b) now, (c) as a later client change that restores the check.
 
-### 7b: Draft, the cached no-op (2026-11-05; a user point)
+### 7b: Draft, the cached no-op (2026-11-05; the user chose (a), 2026-11-05)
+
+**Decided (the user, 2026-11-05): (a), a scope premise.** The driver's traffic never pairs a cached
+object with a resource-version precondition on an update (`genFrom`); UID preconditions with a
+cached object stay, RV preconditions stay on uncached updates and on every `Delete`. Cause: the
+finding below (`issues/k8s-etcd3-cached-noop-skips-preconditions.md`), on which the store's answer is
+not the model's. The theorem does not cover that combination; the issue holds the bug report.
 
 Drafting `GuaranteedUpdate`'s spec with a cached object found that the store's answer is not the
-model's on a path the approved traffic reaches (`nonissues/k8s-etcd3-cached-noop-skips-preconditions.md`;
+model's on a path the approved traffic reaches (`issues/k8s-etcd3-cached-noop-skips-preconditions.md`;
 `examples/k8s/etcd3/cachednoop_test.go` reproduces it against an etcd member). When `tryUpdate`
 leaves the cached object unchanged, the store re-reads the key (`store.go:556`) and, if the bytes
 are equal, returns the current object (or, if stale, writes) without re-running the preconditions
