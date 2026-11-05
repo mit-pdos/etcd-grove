@@ -135,11 +135,14 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64)
 the right to close `pl`, served at `peerAddr` with member `id`'s raft protocol in the network `γn`;
 (R2b-2, 2026-11-02) the raft names `ρ` records the cluster's `γ`, and the applied index's
 invariant (`srvAppliedInv`, `AppliedIndex()`'s premise: `stop` waits on it until the bootstrap log
-is applied). -/
+is applied); (R2c-2, 2026-11-05) with the right, what the stop request carries besides
+(`srvStopReq`): the server's apply environment in the stop's scope (`srvStop.scope`: auth off, no
+compaction mode; the member was built so) and the data directory `dd` (`srvDataDir`). -/
 def memberStop (m s : Loc) (pl : GoInterface) (γ : SrvRaft) (id : w64) (peerAddr : GoString)
     (γn : NetNames GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
   iprop(m ↦ (github_com.mit_pdos.etcd_grove.examples.etcd.restart.member.mk s pl) ∗
-    srvStopRight s γ ρ id dd ∗ ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
+    (∃ E : apply.AEnv GF, srvStopRight s E γ ρ id dd ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd) ∗
+    ⌜∃ li : GoInterfaceOk, pl = GoInterface.ok li⌝ ∗
     http.httpListenerCloser pl peerAddr (raftProto (netRh γn)) ∗
     ⌜ρ.rd.raft.raft = γ⌝ ∗ (∃ E : apply.AEnv GF, srvAppliedInv s E ρ.rd))
 

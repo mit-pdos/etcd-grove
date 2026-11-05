@@ -390,11 +390,13 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   exact h
 
 /-- **`s.Cleanup()` at the stop, and the image** (see the file header): from the apply thread's
-resources at the handed log `A` (`applyResStop`), the stop's slot but its raft part, the data
-directory and the caller's unused serving readers (`srvShutdownPre`'s), the stop request's evidence
-(`srvBootApplied`), and what `raftNode.stop` returned (`raftNode.stop.specStop`'s post), the
-member's image at the stopped incarnation's names. Scope (`run.specStop`'s): a first start
-(`ai₀ = 0`, `pre = []`), auth off, no compactor; and (2026-11-05) a store that does not compact
+resources at the handed log `A` (`applyResStop`), the stop's slot but its raft part, the caller's
+unused serving readers (`srvShutdownPre`'s), the stop request's evidence and data directory
+(`srvBootApplied`, `srvDataDir`: `srvStopReq`'s), and what `raftNode.stop` returned
+(`raftNode.stop.specStop`'s post), the member's image at the stopped incarnation's names. Scope (the
+stop request's, `srvStop.scope`): a first start (`ai₀ = 0`, `pre = []`), auth off, no compactor
+(R2c-2: from no compaction mode, `srvStop.census_readers`; until then a premise); and (2026-11-05) a
+store that does not compact
 (`E.cmp = false`: in compaction mode the apply thread's compaction right, `apply.cmpOwn`, is both
 what `kv.Close` takes, `wsCloserR`, and what the image's observation reads, `apply.cmpObs`).
 (R2c-1) The voters the bootstrap log's members, distinct, are `srvRaftLogInv`'s. Besides: the write budget's invariant (the
@@ -406,7 +408,7 @@ abbrev stopCleanupImage.spec : Prop :=
     (γg : GoNames) (γcx : context.ContextNames) (v : RunFields) (SP : IProp GF)
     (TM : MetaCI → IProp GF)
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (dd : GoString),
-    C.E.authMode = K.mode → C.E.authOn = false → v.compactor = GoInterface.nil →
+    C.E.authMode = K.mode → C.E.authOn = false →
     (Er.C = srvCM K.isOn C.ρ C.E C.ai₀ C.c₀ C.x₀ ∧ Er.γr = C.γr ∧
       (uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.rn.pre = [] ∧ C.ai₀ = W64 0)) →
     storage.diskOk →
@@ -441,7 +443,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
-  intro K C A Er γg γcx v SP TM cfg dd hM hoff hcp hEr hdisk hcmp
+  intro K C A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
   iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
     ⟨%S, %σ, Hrst, Hwc, %hσ⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
@@ -568,8 +570,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- thread's own, at the current names
   iunfold srvRunFieldsAt at Hrf
   icases Hrf with ⟨-, -, -, -, -, -, -, #Hcpa, #Hcpok, -⟩
-  rw [hcp]
-  ihave Hcr := srvStop.census_readers C.s C.E $$ [Hcsp Hcpa]
+  icases srvStop.census_readers C.s C.E v.compactor hcmp $$ [Hcsp Hcpa] with ⟨%hcp, Hcr⟩
   · iframe Hcsp Hcpa
   ihave Hrs := stop_rep_join _ _ _ $$ Hcr Hrds
   rw [hrdr]

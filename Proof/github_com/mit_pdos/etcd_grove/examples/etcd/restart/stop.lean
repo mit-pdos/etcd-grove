@@ -37,7 +37,7 @@ theorem stop.wp_proof
   intro m s pl γ id peerAddr γn ρ name
   wp_start as ⟨Hm, %Hb3⟩
   iunfold memberStop at Hm
-  icases Hm with ⟨Hrec, Hsr, %Hli, Hcl, %Hγρ, #Hai⟩
+  icases Hm with ⟨Hrec, ⟨%Es, Hsr, %Hsc, #Hdd⟩, %Hli, Hcl, %Hγρ, #Hai⟩
   icases Hai with ⟨%E, #Hai⟩
   obtain ⟨li, rfl⟩ := Hli
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -62,12 +62,18 @@ theorem stop.wp_proof
   have Hba : ρ.rd.raft.raft.boot.length ≤ uint.nat v := by
     rw [Hγρ]; word
   -- `m.s.HardStop()`
-  wp_apply (wp_HardStop s γ ρ id (name ++ go!".etcd")) $$ [Hsr] as Himg
-  · iframe
-    iunfold srvBootApplied
-    iexists v
+  wp_apply (wp_HardStop s Es γ ρ id (name ++ go!".etcd")) $$ [Hsr] as Himg
+  · iframe Hsr
     iframe #
-    ipureintro; exact Hba
+    iunfold srvStopReq
+    isplitr
+    · iunfold srvBootApplied
+      iexists v
+      iframe Hv
+      ipureintro; exact Hba
+    isplitr
+    · ipureintro; exact Hsc
+    iexact Hdd
   -- `m.pl.Close()`
   wp_apply (hClose _ li peerAddr (raftProto (netRh γn)) rfl) $$ [Hcl] as %err ⟨Haddr, Hown⟩
   · iexact Hcl

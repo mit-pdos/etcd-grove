@@ -47,8 +47,9 @@ abbrev EtcdServer.run.spec : Prop :=
   {{ RET #(); True }}
 
 /-- (DRAFT, R2b-2, 2026-11-02; `notes/restart-plan.md`, "R2b: the stop") **`run` of a server that
-may be stopped**: `spec`'s, with stop requests on `stop` (`HardStop` sends one, with the evidence
-that the bootstrap log was applied, `srvBootApplied`: R2b-2 review F2) and `done`'s close
+may be stopped**: `spec`'s, with stop requests on `stop` (`HardStop` sends one, `srvStopReq`: the
+evidence that the bootstrap log was applied, `srvBootApplied`, R2b-2 review F2; and, R2c-2, the
+stop's scope, `srvStop.scope`, and the data directory `dd`, `srvDataDir`) and `done`'s close
 announcing the image of member `γn.id`'s data directory `dd` at the request names `ρ`, escrowed for
 the stop right's claim `c` (`srvDoneInv`); with what the shutdown
 needs besides (`srvShutdownPre`: the stop's slot, `srvStop.keep`, at the configuration `cfg` and
@@ -76,18 +77,14 @@ abbrev EtcdServer.run.specStop : Prop :=
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
-      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvBootApplied ρ)
+      isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ (srvStopReq s E ρ dd)
         (srvDoneInv ρ.rd.raft.raft ρ γn.id dd c) ∗
-      srvShutdownPre s cfg E γn γk dd ∗
+      srvShutdownPre s cfg E γn γk ∗
       -- (2026-11-05, R2b-3d stage 5d) the raft environment's transport stop right is the one
-      -- keyed by the slot's `γk` (`srvErM`'s, as `NewServer` builds it); and (the census's scope,
-      -- `restart3`'s) no compactor, whose run would hold one of the store's readers
-      -- (2026-11-05) auth off (`restart3`'s mode: with auth on, `Cleanup`'s auth closer is the
-      -- apply thread's, not yet threaded)
-      -- (2026-11-05, stage 5) no compaction mode (the closer and the image take the compaction
-      -- right otherwise, `apply.cmpOwn`). (R2c-1) The boot log's facts the image's configuration
-      -- needs are `srvRaftLogInv`'s.
-      ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧ E.cmp = false⌝ }}
+      -- keyed by the slot's `γk` (`srvErM`'s, as `NewServer` builds it). (R2c-2) The scope (auth
+      -- off, no compaction mode, hence no compactor) is the stop request's (`srvStop.scope`); (R2c-1)
+      -- the boot log's facts the image's configuration needs are `srvRaftLogInv`'s.
+      ⌜Er.ST = srvTrStopK γk⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

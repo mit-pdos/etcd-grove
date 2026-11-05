@@ -39,10 +39,10 @@ theorem srvDoneInv_take (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString
     iapply token_exclusive c $$ Hc Hc'
 
 theorem EtcdServer.HardStop.wp_proof : EtcdServer.HardStop.spec (GF := GF) (hG := hG) := by
-  intro s γ ρ id dd
+  intro s E γ ρ id dd
   wp_start as ⟨Hr, #Hba⟩
   iunfold srvStopRight at Hr
-  icases Hr with ⟨%stc, %dnc, %γst, %γd, %c, #Hstc, #Hbag, #Hdnc, #Hdn, Hc⟩
+  icases Hr with ⟨%stc, %dnc, %γst, %γd, %c, #Hstc, #Hbag, #Hdnc, #Hdn, Hc, -⟩
   ihave #Hdch := ownBroadcastChan_is_chan _ _ _ _ $$ Hdn
   wp_auto_lc 4
   wp_apply_core chan.wp_select_blocking_nil

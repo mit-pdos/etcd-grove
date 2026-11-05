@@ -59,13 +59,15 @@ theorem startMember.wp_proof
   · iunfold etcdstart.memberBoot at Hmb
     icases Hmb with ⟨%Hb, -⟩
     ipureintro; rw [Hb.1]
+  -- (R2c-2) the member's compaction mode off (its boot bundle's): the stop's scope
+  icases etcdstart.memberBoot_cmp γ ctxs ρ E₀ Φs id false $$ Hmb with ⟨%Hcmp0, Hmb⟩
   (try wp_auto)
   -- `etcdstart.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, #Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -112,8 +114,8 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartS s ρ E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
-  · iframe Htok Hsr
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hkeep] as ⟨Hup, %Es, Hright, %HEs⟩
+  · iframe Htok
     iframe #
     iunfold etcdstart.memberBuiltS
     iunfold etcdstart.memberBuilt
@@ -129,6 +131,11 @@ theorem startMember.wp_proof
   isplitr; · ipureintro; rfl
   iexists s, lis
   iframe
+  ihave Hstp : iprop(∃ E : apply.AEnv GF, srvStopRight s E ρ.rd.raft.raft ρ id (name ++ go!".etcd") ∗
+      ⌜srvStop.scope E⌝ ∗ srvDataDir s (name ++ go!".etcd")) $$ [Hright]
+  · iexists Es
+    iframe Hright Hsr
+    ipureintro; exact ⟨HEs.2, by rw [HEs.1.2.2.2.1, Hcmp0]⟩
   iunfold memberStop
   rw [← Hγρ]
   iframe
@@ -159,7 +166,7 @@ theorem startMember.wp_proofRestart
       ps bootLog ctxs dir id γ ρ γn HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr, Hkeep⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, #Hsr, Hkeep⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -207,7 +214,7 @@ theorem startMember.wp_proofRestart
   (try wp_auto)
   -- `s.Start()`
   wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hkeep] as ⟨Hup, %Es, Hright, %HEs⟩
   · iframe Htok Hsr Hkeep
     iframe #
     iunfold etcdstart.memberBuiltR
@@ -228,6 +235,11 @@ theorem startMember.wp_proofRestart
   isplitr; · ipureintro; exact Hρ'
   iunfold memberStop
   have Hγρ' : ρ'.rd.raft.raft = γ := by rw [Hρ'.1, Hγρ]
+  ihave Hstp : iprop(∃ E : apply.AEnv GF, srvStopRight s E ρ'.rd.raft.raft ρ' id (name ++ go!".etcd") ∗
+      ⌜srvStop.scope E⌝ ∗ srvDataDir s (name ++ go!".etcd")) $$ [Hright]
+  · iexists Es
+    iframe Hright Hsr
+    ipureintro; exact HEs
   rw [← Hγρ']
   iframe
   iframe #

@@ -5,7 +5,8 @@ R2b-2, 2026-11-02; DRAFT). Lean-first (no Rocq counterpart).
 `Start_builtR_spec`: `wp_Start_built`'s triple (`Start.lean`) from a restarted member's built state
 (`memberBuiltR`: the apply thread starting at its image's index, not `0`). A statement the restart's
 proofs take as a hypothesis: `Start.spec` takes `ai₀ = 0`, and its generalization is R2d's.
-(R2b-2) It also gives the right to stop the server (`srvStopRight`), as does `Start_builtS_spec`,
+(R2b-2) It also gives the right to stop the server (`srvStopRight`), as does `Start_builtS_spec`
+(R2c-2: at the server's apply environment, in the stop's scope, `srvStop.scope`, R2d's to show),
 a first start's, from what `NewServer` kept for the stop (`srvStop.keep`). A restarted member's
 right needs its `run` (R2d: `run.specStop` covers first starts only). When R2b-2's proof is done,
 `Start.spec` gives the right and these collapse into it (one spec per function).
@@ -42,12 +43,14 @@ def Start_builtR_spec : Prop :=
           (∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (E : apply.AEnv GF)
             (γrn : RNNames) (γk : GName), srvStop.keep s cfg E γrn γk) ∗ threadTok }}
         (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
-      {{ RET #(); memberUp s ρ E₀ lg γn id ∗ srvStopRight s ρ.rd.raft.raft ρ id dd }}
+      {{ RET #(); memberUp s ρ E₀ lg γn id ∗
+          ∃ E : apply.AEnv GF, srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ ⌜srvStop.scope E⌝ }}
 
 /-- (DRAFT, R2b-2, 2026-11-02) **`Start` of a first start, with the right to stop**:
 `wp_Start_built`'s triple, with the server's data directory `dd` recorded (`srvDataDir`,
 `BuildServer.specStop`'s), giving also the right to stop the server (`srvStopRight`, at its raft
-names `ρ.rd.raft.raft` and request names `ρ`): `start` makes `stop` and `done`, the latter
+names `ρ.rd.raft.raft` and request names `ρ`, and (R2c-2) its apply environment `E`, which the stop
+request's scope names: `E` agrees with `E₀` and has auth off, `memberBuilt`'s): `start` makes `stop` and `done`, the latter
 announcing the image escrowed for the right's claim. A statement `restart3`'s proofs take as a
 hypothesis until R2b-2's proof (`start` allocating the escrow, `run`'s shutdown filling it). -/
 def Start_builtS_spec : Prop :=
@@ -56,7 +59,9 @@ def Start_builtS_spec : Prop :=
     ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
           memberBuiltS s ρ E₀ lg γn id N sv ∗ srvDataDir s dd ∗ threadTok }}
         (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
-      {{ RET #(); memberUp s ρ E₀ lg γn id ∗ srvStopRight s ρ.rd.raft.raft ρ id dd }}
+      {{ RET #(); memberUp s ρ E₀ lg γn id ∗
+          ∃ E : apply.AEnv GF, srvStopRight s E ρ.rd.raft.raft ρ id dd ∗
+            ⌜envAgree E E₀ ∧ E.authOn = false⌝ }}
 
 end defs
 

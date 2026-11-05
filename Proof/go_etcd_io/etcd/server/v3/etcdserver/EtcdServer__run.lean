@@ -758,7 +758,7 @@ theorem iteE_neg {b : Bool} {P Q : IProp GF} {R : IProp GF → IProp GF} (h : ¬
 set_option maxHeartbeats 0 in
 /-- **`run`, stoppable or not** (2026-11-05, the restart plan's R2b-3d stage 5d): `run.spec`'s proof
 (`stp = false`: no stop request, `done` announcing `True`) and `run.specStop`'s (`stp = true`: stop
-requests carrying `srvBootApplied`, `done` announcing the escrowed image, with the shutdown's
+requests carrying `srvStopReq`, `done` announcing the escrowed image, with the shutdown's
 resources), one proof: the two differ only in the loop's stop branch, where `run` returns and its
 deferred shutdown runs. The shutdown's callees are needed only when `stp = true`. In both auth
 modes (the auth component's stage 2c, 2026-11-04: one proof over the component `C`, the
@@ -790,12 +790,10 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C⌝ ∗
         isServerRunC C s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀
-          (if stp then srvBootApplied ρ else iprop(False))
+          (if stp then srvStopReq s E ρ dd else iprop(False))
           (if stp then srvDoneInv ρ.rd.raft.raft ρ γn.id dd c else iprop(True)) ∗
         (if stp then iprop(∃ cfg : go_etcd_io.etcd.server.v3.config.ServerConfig,
-          srvShutdownPre s cfg E γn γk dd ∗
-          ⌜Er.ST = srvTrStopK γk ∧ v.compactor = GoInterface.nil ∧ E.authOn = false ∧
-            E.cmp = false⌝)
+          srvShutdownPre s cfg E γn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
           else iprop(True)) }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
     {{ RET #(); True }} := by
@@ -1419,7 +1417,10 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     obtain ⟨hSStop, hRStop, hCl⟩ := hStop hst
     ihave HSP := (iteE_pos (R := fun X => X) hst) $$ HSP
     ihave Hsd := (iteE_pos (R := fun X => X) hst) $$ Hsd
-    icases Hsd with ⟨%cfg, Hpre, %hST, %hcp, %hoff, %hcmp⟩
+    icases Hsd with ⟨%cfg, Hpre, %hST⟩
+    iunfold srvStopReq at HSP
+    icases HSP with ⟨#HSP, %hsc, #Hdd⟩
+    obtain ⟨hoff, hcmp⟩ := hsc
     ihave Hdc := (iteE_pos (R := fun D => ownBroadcastChan v.done γd D .Pending) hst) $$ Hdc
     (try wp_auto)
     wp_for_post
@@ -1473,7 +1474,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     -- `s.r.stop()`: the WAL's apply half, the transport's stop right (`Er.ST`), the stop claim
     icases stop_split C _ A $$ Hres with ⟨Hwta, Htrs, Hres⟩
     iunfold srvShutdownPre at Hpre
-    icases Hpre with ⟨Hkeep, Hdd, Hrds⟩
+    icases Hpre with ⟨Hkeep, Hrds⟩
     icases (srvStop.keep_split s cfg E γn γk) $$ Hkeep with ⟨Hrp, Hclp, Hcsp, Himp⟩
     icases srvStop.raft_stop s γn γk $$ [$Hrp $Htrs] with ⟨Hsc, HST⟩
     rw [← hST]
@@ -1484,7 +1485,7 @@ theorem EtcdServer.run.wp_proofG (stp : Bool)
     (try wp_auto)
     wp_apply hCl C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
-        A Er γg γcx v _ TM cfg dd hM hoff hcp ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
+        A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
       $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
         Hlc2 Hlc3 $HWreg $Hgw] as Himg
     · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
