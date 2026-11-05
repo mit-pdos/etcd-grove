@@ -178,6 +178,19 @@ private def isMvccWatchable (kv : GoInterface) (γ : MvccName) : IProp GF :=
 @[no_expose] def isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF :=
   iprop(□ (isMvccPlain kv γ ∨ isMvccWatchable kv γ))
 
+/-- The open token's closer pieces (track A, `New.spec`, 2026-11-06): the store's current backend
+(at physical names `p`) compacting, and, of a watchable store, its own closer: the watchable store
+`w` the inner store `s`'s read view points at, its stop channel's close and the loops' waiter
+(`watchableStore.Close`'s, beside the inner store's right). -/
+private def openRest (γ : MvccName) (p : PhysNames) (s : Loc) : IProp GF :=
+  iprop(⌜kbCmpM p.kb⌝ ∗ if (γ : StoreNames).watchQ then iprop(∃ (w rv stc : Loc),
+      s.[store, go!"ReadView"] ↦□
+        (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+      rv.[readView, go!"kv"] ↦□
+        (interface.mkOk (go.GoType.PointerType watchableStore.ty) #w : GoInterface) ∗
+      w.[watchableStore, go!"stopc"] ↦□ stc ∗ stopCloser stc ∗ wsWaiter w)
+    else iprop(True))
+
 /-- **The store's open token** (exclusive): `Compact`, `Restore` and `Close` take it, the first two
 give it back. A compaction schedules its job after releasing `s.mu`, on a scheduler `Close` stops and
 `Restore` replaces; and two concurrent compactions could schedule their jobs out of the order of
@@ -187,13 +200,15 @@ Defined (`KV.Compact.contract`, 2026-11-06; `notes/mvcc-api-invariants.md` §2):
 location (`locIs`, the handle's) and current physical names `p`, the restorable compaction right at
 the compaction revision `c` (`compactRightR`: its queue, the closer's share, the jobs' lease), the
 right's quarter of the API's compaction authority, the compactor's reader token
-(`checkPrevCompactionCompleted`'s) and its write-back supply. Still to add (§2): the closer's and
-the restore's pieces (`Close`, `Restore`). -/
+(`checkPrevCompactionCompleted`'s) and its write-back supply. (Track A, `New.spec`, 2026-11-06) The
+closer's pieces (`openRest`): the current backend compacting, and a watchable store's own closer (its
+stop channel's close and the loops' waiter), found from the inner store's location through its read
+view. Still to add (§2): the restore's pieces (`Restore`). -/
 @[no_expose] def mvccOpen (γ : MvccName) : IProp GF :=
   iprop(∃ (s : Loc) (p : PhysNames) (c : Int), api.locIs (γ : StoreNames).api s ∗
     compactRightR s ((γ : StoreNames).withPhys p) c ∗
     api.crevAuth (γ : StoreNames).api (1 : Qp).half.half c ∗
-    storeRT ((γ : StoreNames).withPhys p) ∗ kbWTSupplyM p.kb ∗ ⌜-1 ≤ c⌝)
+    storeRT ((γ : StoreNames).withPhys p) ∗ kbWTSupplyM p.kb ∗ ⌜-1 ≤ c⌝ ∗ openRest γ p s)
 
 /-- **`t` is a transaction of `γ`, begun with `trace`, at `k`** (exclusive; it holds the caller's
 thread token until its `End`, not the trace). -/
@@ -259,8 +274,11 @@ the old storage). -/
 @[no_expose] def storageRest (B : MvccStorage) : IProp GF :=
   iprop([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen (B : KBReal).γB backend.rdOpen)
 
-/-- **The number of the store's readers** (sealed): a store admits at most this many threads. -/
-@[no_expose] def mvccReaderN : Nat := backend.rdStockN
+/-- **The number of the store's readers** (sealed): a store admits at most this many threads. (Track
+A, `New.spec`, 2026-11-06: the backend's counted stock less three, the watchable store's two loops'
+and the compactor's reader slots, held for good, so that the readers' pool a watchable store's
+handle holds, `isMvccWatchable`, has a slot for every thread but one.) -/
+@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 3
 
 /-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
 (fractional; `New`'s or `NewStore`'s, then `Restore`'s). Defined at stage 2 (M2, 2026-11-05;

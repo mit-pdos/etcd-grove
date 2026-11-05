@@ -36,7 +36,8 @@ revision's authority beside the closer in compaction mode (`crevRightM γ.st`: t
 the compaction right of it only after its last error return, Go's deferred `kv.Close()`, or
 freezes the store and watches, `noCompactor_of_new`), the logical mode the instance's, and no
 write-back supply. (C3's store law, 2026-11-02) The store's compaction permit is the caller's
-`Perm` (`crevPermIs`).
+`Perm` (`crevPermIs`). (Track A, `New.spec`, 2026-11-06) As `newWatchableStore`: the write
+resource's registration, the API's client parts (`newClient` at half) and a later credit.
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
 counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
 until then all `actualMaxReaders` of them. -/
@@ -63,7 +64,8 @@ abbrev mvcc.New.spec : Prop :=
         ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb - 2) (),
           mvcc.watchReader s st γ) ∗
         mvcc.wsCloser s st γ.st ∗ mvcc.crevRightM γ.st ∗
-        mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm }}
+        mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm ∗
+        mvcc.writerReg st γ.st ∗ mvcc.api.newClient γ.st.api [[], []] (-1) (1 : Qp).half st ∗ £ 1 }}
 
 end spec
 

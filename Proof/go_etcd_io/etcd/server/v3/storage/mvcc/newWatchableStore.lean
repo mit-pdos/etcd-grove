@@ -10,7 +10,6 @@ public import Spec.go_uber_org.zap.NewNop
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchFrac
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
 
 @[expose] public section
@@ -52,7 +51,7 @@ theorem mvcc.newWatchableStore.wp_proof
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f _ true γi γok Perm Hcfg0)
     $$ [$Hbk $Hbv $Hncmp $Hnd $Hrg $Hwt1 $Hwt2 $Hsrm $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok, %hγcm⟩, #Hst, ⟨%rd1, Hro⟩, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hfrag, Hpin, Hright, Hret, #HcpIs, -⟩
+      Hwsd, Hfrag, Hpin, Hright, Hret, #HcpIs, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc⟩
   -- (M2, the storage side, P3) the right's half of the revision's authority by the mode: frozen
   -- when the store does not compact, handed to the caller when it does (`crevRight_split`); the
   -- closer, with the scheduler's stop token, goes to the caller (D19m (C))
@@ -109,10 +108,27 @@ theorem mvcc.newWatchableStore.wp_proof
   -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
   ihave Hwsf : mvcc.wsFields «$r0_ptr» γ 1 $$ [Hfw Hwsd]
   · iunfold mvcc.wsFields; iexists st; iframe store Hfw; iunfold mvcc.wsDep at Hwsd; iexact Hwsd
-  -- the API's slot (strict M1): the lock's quarter of the pending revision, which today's
-  -- `NewStore` does not return (a placeholder until `New.spec`)
-  ihave Hrel : mvcc.relAuth γ 1 mvcc.wsInit.Lmu $$ [Hrel]
-  · iunfold mvcc.relAuth; iframe Hrel; iapply mvcc.wsSlot_make_M1
+  -- the API's slot: the lock's quarter of the pending revision, out of the client's parts
+  -- `NewStore` returns (three quarters, a watchable store's), and a lower bound of the notified log
+  have hpr' : pr = (1 : Qp).half.half + (1 : Qp).half := by
+    unfold mvcc.pndW at hpr
+    rw [hγw] at hpr
+    simp only [↓reduceIte] at hpr
+    rw [Qp.ext_iff] at hpr ⊢
+    simp only [Qp.val_add, Qp.val_half, Qp.val_one] at hpr ⊢
+    grind
+  subst hpr'
+  iunfold mvcc.api.newClient at Hnc
+  icases Hnc with ⟨Hab, Hpn, Hcr2, Hcr4, #Hclb, Htok, Hnl, #Hloc⟩
+  icases ((mvcc.api.pndPart_fractional (GF := GF) γs.api none).fractional (1 : Qp).half.half
+    (1 : Qp).half).1 $$ Hpn with ⟨Hpq, Hpn⟩
+  ihave #Hnlb : mvcc.api.nlLb (GF := GF) γs.api ([[], []] : mvcc.Log) $$ [Hnl]
+  · iunfold mvcc.api.nlAuth at Hnl; iunfold mvcc.api.nlLb
+    iapply monoListLbOwn_get _ 1 _ $$ Hnl
+  ihave Hrel : mvcc.relAuth γ 1 mvcc.wsInit.Lmu $$ [Hrel Hpq]
+  · iunfold mvcc.relAuth; iframe Hrel; iunfold mvcc.wsSlot; isplitl [Hpq]
+    · iexact Hpq
+    · simp only [mvcc.wsInit]; iexact Hnlb
   ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel Hwsf]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
@@ -197,7 +213,7 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists crev
     iexact Htw
   iframe HhookP Hsclose Hcr wg Hfrag Hret
-  isplitr [Hmus Hreaders Hstop Htw Hok]
+  isplitr [Hmus Hreaders Hstop Htw Hok Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc]
   · iunfold mvcc.watchWriter
     iframe Hcert Hwl2 Hpin
     have hb : mvcc.wBudget [[], []] = 2 ^ 63 - 5 := by unfold mvcc.wBudget; rfl
@@ -206,18 +222,21 @@ theorem mvcc.newWatchableStore.wp_proof
   · iunfold mvcc.watchToks; iexact Htw
   isplitl [Hok]
   · iexact Hok
-  isplitr [Hstop]
+  isplitr [Hstop Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc]
   · have hjr : mvcc.nJobRd kb ≤ backend.rdStockN := by
       have := backend.rdStockN_val; have := mvcc.nJobRd_le kb; omega
     ihave Hmus := mvcc.rep_nReaders _ $$ Hmus
     icases mvcc.rep_sub _ (mvcc.nJobRd kb) _ hjr $$ Hmus with ⟨Hmus, -⟩
     iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus
-  iframe HcpIs
-  iexists stc
-  iframe stopc
-  iunfold mvcc.stopCloser
-  iexists γstc; iexact Hstop
+  iframe HcpIs Hwreg Hlc
+  isplitl [Hstop]
+  · iexists stc
+    iframe stopc
+    iunfold mvcc.stopCloser
+    iexists γstc; iexact Hstop
+  iunfold mvcc.api.newClient
+  iframe Hab Hpn Hcr2 Hcr4 Hclb Htok Hnl Hloc
 
 end proof
 

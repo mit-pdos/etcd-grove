@@ -40,7 +40,9 @@ compaction mode the caller gets the compaction right's half of the revision's au
 (`crevRightM γ.st`, `True` otherwise) beside the closer; the store's logical mode is the
 instance's (`γ.st.cm`); and the write-back supply is no longer taken here (Q1 (a): `store.Compact`
 takes it). (C3's store law, 2026-11-02) The store's compaction permit is the caller's `Perm`
-(`crevPermIs`).
+(`crevPermIs`). (Track A, `New.spec`, 2026-11-06) `NewStore`'s write resource's registration, the
+API's client parts but the lock's quarter of the pending revision (`newClient` at half: the client's
+`mvccState` takes it) and a later credit.
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
 counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
 until then all `actualMaxReaders` of them. -/
@@ -68,7 +70,8 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc) ∗
       mvcc.storeCloser st γ.st ∗ mvcc.crevRightM γ.st ∗
       mvcc.writerFrag γ.st ∗ mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm ∗
-      typedPointsto (mvcc.wsWgAddr s) (zero_val sync.WaitGroup) (DFrac.own 1) }}
+      typedPointsto (mvcc.wsWgAddr s) (zero_val sync.WaitGroup) (DFrac.own 1) ∗
+      mvcc.writerReg st γ.st ∗ mvcc.api.newClient γ.st.api [[], []] (-1) (1 : Qp).half st ∗ £ 1 }}
 
 end spec
 

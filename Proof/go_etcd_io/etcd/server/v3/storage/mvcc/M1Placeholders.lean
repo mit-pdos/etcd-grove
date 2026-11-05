@@ -19,7 +19,8 @@ job's, `cmpTrack_job_M1`, is gone: the job's cursor and its per-entry cut, `Api/
 step, `cmpCb`, inside `SetScheduledCompact`'s loan, with the writer's state found checked in, the
 frozen and restoring states excluded by the caller's share, `KV.Compact.contract`, 2026-11-06).
 `snapObs_M1` (the frozen store's part of a snapshot's observation) is gone:
-`mvccImage_snapshot.law_holds` is proved. `hookNilRO_M1` (2026-11-06) is gone: §4.8, a store without
+`mvccImage_snapshot.law_holds` is proved. `wsSlot_make_M1` (the watchable store's lock's slot) is
+gone: `newWatchableStore` makes it from the client's parts `NewStore` returns (track A, 2026-11-06). `hookNilRO_M1` (2026-11-06) is gone: §4.8, a store without
 a hook (`batchTxSpecG`'s nil-hook clause at any share of the hook at `nil`, `kbHookNilAt`).
 -/
 module
@@ -82,12 +83,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- **(Placeholder, false in general.)** The watchable store's lock's slot made from nothing (today's
-`NewStore` returns none of the pending revision's parts). M1-REPLACE: `New.spec` (the watchable
-store's constructor gives its lock the quarter). -/
-theorem wsSlot_make_M1 (γ : WsNames) (L : Log) : ⊢ wsSlot (GF := GF) γ 1 L := by
-  sorry -- M1-REPLACE: New.spec
 
 /-- **(Placeholder, false in general.)** The watchable store's lock's slot moved to a new notified
 log without the client's update. M1-REPLACE: `Txn.End.contract`'s notify step, `KV.Restore.contract`. -/

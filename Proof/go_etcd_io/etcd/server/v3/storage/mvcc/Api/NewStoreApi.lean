@@ -231,7 +231,14 @@ theorem NewStore.wp_proof
     · rw [show γ.phys.kb = some bk from hγk]
       simp only [kbWTSupplyM, kbCmpM, hcm, kbWTSupply, ↓reduceIte]
       iexact Hsup
-    ipureintro; exact Int.le_refl _
+    isplitr
+    · ipureintro; exact Int.le_refl _
+    iunfold openRest
+    rw [hγw]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    isplitr
+    · ipureintro; show kbCmpM γ.phys.kb; rw [show γ.phys.kb = some bk from hγk]; exact hcm
+    itrivial
   isplitl [Htok Hcur]
   · iunfold mvccBackend
     iframe Htok
