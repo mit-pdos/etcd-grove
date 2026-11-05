@@ -448,8 +448,28 @@ beyond it the build is red, as strict M1 allows: e.g. `etcdserver/RestorePre.lea
   `persistent.law` (instances) and `excl.law`. **No frozen statement found false**: the riskiest
   one (`wsRecv_ok.law`'s plain `⊢`, risk M1) holds over these definitions.
 
+**Done since** (2026-11-05, `Api/StreamSteps.lean`, no `sorry`): the API part of the channel
+invariant as a predicate, `chanApiAt ι l dec recv` (the history's authority at `l`, `LogWF dec l`,
+the filters' saved names, the sends' bounds, the invariant's half of the consumer's view, a lower
+bound of the client's count), and its steps, each what a frozen post needs: `chanApi_alloc`
+(`NewWatchStream`: `wsState ι wsStart`, `wsRecv ι []`), `chanApiAt_send` (a send's event, its
+`stepOk` the sender's obligation), `chanApiAt_reg` (`Watch`'s update: `wsState` at
+`S.register id ⟨rg, fs, lo, k, true⟩` with `k` the exact sent count, and `wsSentLb ι k`),
+`chanApiAt_cancel` (`wsState ι (S.cancel id)`), `chanApiAt_recv` (`wsRecv ι (rs ++ [r])`, the
+receiver's lower bound minted), `chanApiAt_sentLb` (the empty receive's `n ≤ |sends|`). So every
+frozen post of the stream's contracts is producible at the ghost level.
+
 **Left** (in order):
-1. **The channel invariant's API part** (`watchChanInv`, `InvWatchStore.lean:820`): the history's
+1. **The channel invariant's API part, wired in** (`watchChanInv`, `InvWatchStore.lean:820`):
+   `WatchChanNames` gains the stream's API names (countable: `st : AbsNames`, `ev`, `ns`, `rcv`,
+   `rx`), and `watchChanInv` the conjunct `∃ l dec, chanApiAt ι l dec (recv.map toW) ∗
+   ⌜sendsOf l = sent.map toW⌝` (`toW : RespM → WResp`: id, events, revision, compaction
+   revision). The sites: `watcher__send` and `WatchCmpSend` (the sends: `chanApiAt_send`),
+   `WatchRecv` (the receives: `chanApiAt_recv`, `chanApiAt_sentLb`; 17 unfolds),
+   `watchableStore__watch` (the registration: `chanApiAt_reg`), `watchableStore__cancelWatcher` and
+   the stream's `Cancel` (`chanApiAt_cancel`), `WatchClose`, `watchableStore__NewWatchStream`
+   (`chanApi_alloc`), and outside mvcc v3rpc's `InvWatch` (red under strict M1). The rest of this
+   item as specified below:
    authority `monoListAuthOwn ι.ev 1 ℓ` with `LogWF dec ℓ` (the senders' facts' filters by their
    saved names: a registry element names its watcher's `savedFilters`), the sent list (`RespM`)
    projecting to `sendsOf ℓ`, the consumer's other half of `ι.rcv`, a lower bound of `ι.ns` at
