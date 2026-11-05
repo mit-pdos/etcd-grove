@@ -1334,3 +1334,36 @@ member applies replayed grants before its election and forwards).
 
 and **False of** gains: "or a program serving a member's peer URL other than that member's
 handler".
+
+**E3 (b), done (`6bf78a792f`, 2026-11-04).** `LeaseGrant` keeps `Next()`'s claim right of the
+generated id in the revocable mode and hands it to the proposal (`reqPropOk`'s grant/revoke form
+carries `grantIdOwn γk rq`); the commit step (`kvGrantIds_snoc` in `kv_prop_au_*`) deposits it in a
+new last conjunct of `kvInv`, `kvGrantIds γk L`: the log's revocable-mode grant ids are `U` masked,
+`U` without repeat, each `u`'s claim right owned. **`kvInv` holds `idUnclaimed`, not `idFresh`**:
+`idFresh`'s slot and prefix fact are member names, which `kvInv_congr` forbids, so only the issued
+map's element is kept (the coordinator: fine). Laws: `kv_grantIds_nodup` (any prefix of the
+requested log: its grant ids are `U.map mask`, `U.Nodup`) and `leaseIdMask_nodup_of_pfx` (distinct
+ids of one prefix stay distinct after the mask).
+- **Open item:** every grant id in the log has one prefix (`idPfx u = p` for all `u ∈ U`), from
+  `idClusterOk` and the single-member row (one member, one generator). Not yet a law of `kvInv`:
+  `kvGrantIds` would carry the prefix, or the masked distinctness is derived where the row is known.
+
+**E3 (c), the design refined (2026-11-05, before building).** Instead of an index of each snapshot
+into the applied log, the lessor's history carries **the ids it ever had** (`U`), a ghost set whose
+authority is split between the lessor's reader invariant and the apply thread (the one caller of
+`Grant` and `Revoke`):
+- history invariant `histOnce hs` (both modes): an id's lease is one `*Lease` and its live indices
+  are an interval (live at `i` and `k`, `i ≤ j ≤ k`: live at `j` with the same `l`); with `U` the
+  union of the snapshots' ids;
+- `lessor.Grant`'s spec takes the caller's half of `U` and, in the revocable mode, `id ∉ U`; it
+  returns `U ∪ {id}` on success (and no `ErrLeaseExists`: not live);
+- the apply thread keeps `U` = the ids of the applied log's successful grants; `id ∉ U` at a grant
+  from (b) (distinct grant ids in the log, after the mask: the open item above);
+- consequences, the laws `Main` uses: *absent stays absent* (`leaseAbsentFrom γl m id` with `id`
+  live at some index `≤ m` gives absent at every index `≥` the absence) and *the TTL of `id` is its
+  grant's* (one `*Lease` per id, its `ttl` field persistent: `leaseTTLAt γl i id t` gives `t =
+  grantTTL mt ttl` of the grant, `≥ 1` for `Grant(1)`, `grantTTL_pos`);
+- `Recover`: the first start's lessor is empty (`NewLessor`'s empty bucket), so `U = ∅`; a restart
+  in the revocable mode needs S3/S4 (not reached).
+Same content as the reviewed design ("the lessor's history tied to the applied log"), carried by a
+set instead of per-snapshot indices.
