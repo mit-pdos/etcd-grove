@@ -322,6 +322,155 @@ Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c
 version, `nonissues/k8s-etcd3-cached-object-trusted-at-current-rv.md`; preconditions answer the model's
 own error).
 
+### 7b: Scope (proposed 2026-11-05, branch `k8s-etcd3-7b`; waiting on the user)
+
+**Where the 2026-11-01 review ended.** Three candidates and two `spec-reviewer` rounds, in scratch
+files that were not committed and are gone; what survives is `notes/STATUS.md`'s summary (one KV in
+place of the member lists; the updates in the triples; the general methods: preconditions as data
+answering the model's own error, a cached object held by the key at its revision, `Get`'s minimum;
+errors through laws), the non-issue it found, and "waiting on the user's decisions". None of it was
+decided, so this Scope starts from the specs on `lean` and re-proposes the third group (the one 7b
+needs); the other three are Q0 below.
+
+**The paths** (store.go at the pin; all reached by `TestCorrectness`'s unary traffic):
+
+| Path | Code | What is new for the proof |
+| --- | --- | --- |
+| P1. `Get` with a minimum resource version | `validateMinimumResourceVersion` (`store.go:1286`): parse (the versioner's `ParseResourceVersion`, in the contract), `NewTooLargeResourceVersionError` if above the read's revision | the model's `get` already takes the minimum (`KSt.get req`); `respIs`'s `tooLarge` answer gets a shape (`tooLargeErrIs`: a `*apierrors.StatusError`, reason `Timeout`, the `ResourceVersionTooLarge` cause), proved from `NewTimeoutError`'s translated body (no axiom) |
+| P2. `IgnoreNotFound` on `Get` | `store.go:311` | nothing: already in `store.Get.spec` and in the driver (half its `Get`s) |
+| P3. `Preconditions.Check` non-nil (UID, RV) on `Delete` and `GuaranteedUpdate` | `interfaces.go:145`: `meta.Accessor`, `GetUID`/`GetResourceVersion`, `NewInvalidObjError` with a `fmt.Sprintf` message | preconditions as data (`KPre`: optional UID, optional RV string) in the model, a failure answering the model's own `InvalidObj` error (code 4, the prepared key; message unspecified); `meta.Accessor` and the two accessors on the object (below) |
+| P4. `cachedExistingObject` on `Delete`/`GuaranteedUpdate` | `getStateFromObject` (`store.go:1239`), `refreshOnError`'s stale branch (`store.go:128`: re-read, the cached error kept when the revision did not move), `GuaranteedUpdate`'s `!origState.current` re-read before a no-op (`store.go:556`), the conflict retry from a stale state | the witness (below); `refreshOnError.spec` and the loops' invariants over a non-current state |
+| P5. `ignoreNotFound` on `GuaranteedUpdate` | `getCurrentState`/`stateFromEtcdResponse` with `ignoreNotFound` (`runtime.SetZeroValue`, in the contract's `zeroOk`); a conflict's re-read of an absent key | the model's `update` already takes it (`KSt.current`); the specs' `false` generalized |
+
+**What admitting the cases breaks** (where the statements rule them out today, and whether each stays
+true): `store.Delete.spec`/`GuaranteedUpdate.spec` (and `conditionalDelete`, `deleteOnce`,
+`updateOnce`) pass `#null` preconditions and a `nil` cached object, and `GuaranteedUpdate`'s
+`ignoreNotFound` is `false`: generalized, callers re-proved (the driver's `call` only). `Get.spec`'s
+premise `opts.ResourceVersion' = []`: replaced by "the minimum parses" (below). `refreshOnError.spec`
+requires `s.current = true`: generalized. `Preconditions.Check.spec` and
+`validateMinimumResourceVersion.spec` cover only `nil`/`""`: generalized. The model's
+`KSt.delete`/`update` take preconditions as a caller's error function `pre : Obj → Nat → Option E`:
+replaced by data (`KPre`) with `.err (.invalidObj key)` (`KErr` gains it); `update_eq_updateM`,
+`delete_local`, `update_local`, `refine_*` restated. `respIs` answers `tooLarge` and `invalidObj` as
+"some error": given shapes. The driver's `Gen` is a pure function of a random number (no cached
+object to pick from), its `Model` has no preconditions, minimum or `ignoreNotFound` update, its
+`errOut` no `InvalidObj`/`TooLarge` class, and its `Obj` no UID and no `metav1.Object` methods. The
+store's history `kvSeen` records the key-values of the states seen, not deletions: what a deleted
+object's witness needs (Q2). Not touched: the client's specs (`kubernetes.Client.*`, so the compactor's
+`k8s_compactor_safe` is unaffected), `k8sAuRW`/`k8sAu1`, `Create`, `GetCurrentResourceVersion`,
+`etcd3.New`, the five `sorry`s outside 7b.
+
+**The top-level statements, sketched** (to be written in full in Draft):
+
+```lean
+-- the model (Model.lean)
+structure KPre where uid : Option GoString; rv : Option GoString
+def KPre.ok (p : KPre) (uidOf : Obj → GoString) (fmtRV : Nat → GoString) (o : Obj) (r : Nat) : Bool
+inductive KErr E | notFound k rv | keyExists k | rvSetOnCreate | tooLarge req cur
+                 | invalidObj (key : GoString) | user (e : E)
+KSt.delete s k (p : KPre) validate   -- not found; invalidObj k if ¬ p.ok; validate's error; the delete
+KSt.update s k ign z (p : KPre) f    -- as now, `pre` replaced by `p`
+
+-- the cached object (Steps.lean): r is its resource version, never 0, and any state the caller's
+-- history has seen with the key at mod revision r holds o there
+def heldAt (c) (key) (o : Obj) (r : w64) (σ : KVState) : Prop :=
+  modAt key σ = r → ∃ it, (c.abs σ).items key = some it ∧ it.obj = o
+def cachedOk (c) (key) : Option (GoInterface × Obj × w64) → GoInterface → IProp GF
+  | none, x => ⌜x = GoInterface.nil⌝
+  | some (x', o, r), x => ⌜x = x' ∧ r ≠ 0⌝ ∗ c.S.objAt x o (c.S.fmtRV r) ∗
+      □ ∀ σ, kvSeen c.γh σ -∗ ⌜heldAt c key o r σ⌝
+
+-- store.Delete.spec: the preconditions `pp` (null or a `*Preconditions` holding `p`) and the
+-- cached object are arguments; the step and the answer are the model's with `p`
+{{ … ∗ preAt pp p ∗ cachedOk c (pathPrefix ++ k) ca x ∗ W ∗
+     [∗list] m ∈ c.ms, k8sAuRW m.γr.kv c (delStep (pathPrefix ++ k) p validate) W Φ ∗ validateOk … }}
+  s.Delete(ctx, key, out, pp, vf, x, opts)
+{{ err, RET err; delOut c (pathPrefix ++ k) p validate Φ err out }}
+-- store.GuaranteedUpdate.spec: likewise, with `ign : Bool` for ignoreNotFound and
+-- `updStep (pathPrefix ++ k) ign c.S.zero p f`
+-- store.Get.spec: `c.S.parseRV opts.ResourceVersion' = some n` in place of `= []`; the answer
+-- `(c.abs σ).get key (uint.nat n) opts.IgnoreNotFound'`
+```
+
+The witness is abstract on purpose (a persistent implication over the states the history has seen,
+the shape `k8sAuRW_kvAu1`'s `A` already has): the store needs only that a compare on `r` that succeeds
+is at a state whose item is `o`, and a caller produces it however it can (a `kvSeen` entry for an
+object it was answered, a deletion record for a deleted one).
+
+**The driver's traffic** (`TestCorrectness`'s `requestDistribution` without `List`, renormalized:
+Create 15, Delete 20, Get 10, Update 30 of 75):
+
+| Op | Choices (as the test's weights) |
+| --- | --- |
+| Create (20%) | a new UID drawn at random (the test's `uuid.NewUUID()`; a range of 2^16, so a recreated object's UID differs from the old one's almost always) |
+| Delete (27%) | UID precondition 25%, RV precondition 25% (from the client's cached object; none cached: none), cached object 25%, `validateDeletion` 25% |
+| Update (40%) | UID 20%, RV 20%, no-op 15%, cached 15%, `ignoreNotFound` 15% (not with a no-op, as the test), `tryUpdate` rejecting 25%; on the zero object `tryUpdate` makes the key's object (the test's `validPod`, UID empty) |
+| Get (13%) | `IgnoreNotFound` 50%; RV empty 30, `0` 15, `1` 10, cached 15, current 14, past 14, future 2, where current/past/future are relative to the client's cached object's RV (the test asks the store's `GetCurrentResourceVersion`; Q3) |
+
+The cached object is, as in the test, the client's last answer with a non-empty name (Create, Update,
+Delete and Get answers; Q2 for Delete's): the driver keeps one per client in a table under a
+`sync.Mutex`, `Gen(id)` reads it (and copies it into the input, which also carries the client's id
+and the preconditions' values), `Apply` writes it after a call; the table's lock invariant holds each
+entry's witness. Keys `a`, `b`, `c`, values `x`, `y`, `z`, two keys seeded non-canonical, as now.
+The Go model gains UIDs, preconditions, the minimum and the update's `ignoreNotFound`; its Go tests
+are extended (the new outcomes reached sequentially; agreement with the real `correctness.Model` on
+random traffic from canonical states, with preconditions and `ignoreNotFound`).
+
+**What stays a premise or outside.** The minimum parses (the driver sends only its versioner's
+strings; a malformed one would answer the versioner's error, not specified). The rest of phase 0's
+configuration (D30d: `ExpectTransformOrDecodeError` false, `ttl = 0`, no `tryUpdate` TTL). Lists,
+watches, the replay (7c-7f). The failed-write rule (pending writes) and the five `sorry`s, unchanged.
+
+**The trust base, expected.** New trusted statements, each drafted and attacked (`axiom` skill)
+before the Freeze:
+- `fmt.Sprintf` with `types.UID` arguments (`Preconditions.Check`'s UID message): Perennial's spec
+  formats only basic types and named integer types (`ArgWf`); a local spec "returns some string",
+  with the general fix (named string types without formatting methods, as named integers) in
+  `notes/perennial-changes.md`.
+- `meta.Accessor` (names-only, apimachinery): either translate its body (a type switch;
+  `meta.toml` gains `Accessor`; its initializer `errNotObject` goes through `gen-init`), so no axiom,
+  and the DaemonSet's pending `Accessor.spec` hypothesis becomes provable (recommended), or a local
+  spec for the driver's `*Obj`.
+- None for the driver's `*Obj` implementing `metav1.Object` (31 methods, hand-written, two of them
+  meaningful): the method-set facts come from goose's method sets, as `objTyOk_holds`.
+- The client errors are not `*apierrors.StatusError`s (what `errOut`'s new `TooLarge` test needs, as
+  `storageErrTyOk` for `StorageError`): from `statusErrOk`/`clientErr` if they say enough, otherwise
+  a method-set premise or a Draft question.
+
+**Sub-stages** (each builds; one full build per round): 7b-1 the model and contract (`KPre`,
+`invalidObj`, `uidOf` and the accessors in `ObjSpec`), Draft of every changed statement with glue
+(`Delete`, `conditionalDelete`, `GuaranteedUpdate`, `refreshOnError`, `getStateFromObject`,
+`Preconditions.Check`, `validateMinimumResourceVersion`, the driver's `call`/`Apply`/`Gen`/invariant
+written out), review rounds, then the Freeze (the user); 7b-2 the store's proofs (P1, P5, P3, P4 in
+that order); 7b-3 the driver's Go (`Obj`, `Input`, `Gen` with the table, `Model`, `errOut`) and Go
+tests; 7b-4 the driver's model proofs (`KModel`, `Refine`, the per-function proofs); 7b-5 the
+invariant (witnesses, the table), `Apply`, `Check`, `Main`, `k8setcd3_safe` closed, the collection's
+baseline.
+
+**Questions for the user.**
+- **Q0. The rest of the 2026-11-01 redesign** (one KV in place of the member lists, the updates in the
+  triples, errors through laws). (a) Not in 7b: 7b generalizes the current statements as sketched, the
+  redesign is its own later stage (it touches every store spec and the client's, for no new
+  behaviour). (b) Do it first, in 7b. Recommended: (a).
+- **Q1. The paths and traffic above.** Recommended: all of P1-P5, the traffic as in the table.
+- **Q2. Deleted objects as cached objects.** The test caches a `Delete`'s answer (the object at the
+  deletion's revision; #89828's class: a deleted object as the suggestion). Its witness is that no
+  state has the key at the deletion's revision, which the history `kvSeen` cannot say today. (a)
+  Cache them, as the test: the driver's history records deletions (`γh`'s values become
+  `Option GoString`, `none` for a key deleted at that revision; `History.lean`, the driver's
+  invariant), the store's specs unchanged (the witness is abstract). (b) Cache only Create, Update
+  and Get answers (a deviation from the test). Recommended: (a); (b) if (a)'s cost is out of
+  proportion (to be reported, not done silently).
+- **Q3. Get's current/past/future resource versions.** (a) Relative to the client's cached object's
+  RV (no store call in `Gen`; `Gen` stays a function of randomness and the client's table). (b) As the
+  test, `Gen` asks the store's `GetCurrentResourceVersion` (proved) first: `Gen` needs the store and
+  read updates, outside the history. Recommended: (a).
+- **Q4. How the driver's model checks a `Get` with a resource version.** `correctness.Model.validateGet`
+  checks only the answer's resource version for a non-empty one ("contents are validated later during
+  replay"), because the cacher may serve stale data; the etcd3 store always reads the latest state.
+  (a) The driver's model checks every `Get` exactly (the model's `get` at the linearization point):
+  a stronger theorem, true of the store. (b) Copy `validateGet`'s weaker check. Recommended: (a).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
