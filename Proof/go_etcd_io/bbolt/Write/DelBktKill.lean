@@ -2,7 +2,7 @@
 U7n (`notes/bbolt-proof-plan.md`): **`DeleteBucket`'s child made dead** (`WX.killBkt`), the ghost
 step before `child.nodes = nil`: the child `bl` (record `C`) leaves `X.t.bs` and `X.liveB` for
 `X.t.deadB` (its record without nodes), its nodes move to the dead nodes `X.t.dead` (their
-objects and registrations kept: `objs_killBkt`), and its live page ownership is dropped.
+objects and registrations kept: `objs_killBkt`; out of `live`), and its live page ownership is dropped.
 -/
 module
 
@@ -32,7 +32,13 @@ def _root_.Perennial.EtcdGrove.bbolt.WX.killBkt (X : WX) (bl : Loc) (C : BRec) :
     t := { X.t with bs := GMap.delete bl X.t.bs,
                     dead := (C.ns.fmap fun r => (bl, r)) ∪ X.t.dead,
                     deadB := X.t.deadB.insert bl { C with ns := ∅ } },
+    live := GMap.filter (fun l _ => (C.ns !! l).isNone) X.live,
     liveB := GMap.delete bl X.liveB }
+
+theorem killBkt_live (X : WX) (bl : Loc) (C : BRec) (l : Loc) :
+    l ∈ (X.killBkt bl C).live ↔ l ∈ X.live ∧ C.ns !! l = none := by
+  simp only [WX.killBkt, GMap.mem_iff, GMap.lookup_filter]
+  cases h : X.live !! l <;> cases h' : C.ns !! l <;> simp [Option.filter]
 
 theorem killBkt_bs (X : WX) (bl : Loc) (C : BRec) (k : Loc) :
     (X.killBkt bl C).t.bs !! k = if bl = k then none else X.t.bs !! k := by
@@ -156,10 +162,14 @@ theorem wtxW_killBkt (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (bl : L
   · iexact Hrf
   rw [bobjs_killBkt X bl C, objs_killBkt X bl C Hok.2.1 hC]
   have hv : (X.killBkt bl C).v = X.v := rfl
-  have hlv : (X.killBkt bl C).live = X.live := rfl
-  simp only [hv, hlv]
+  simp only [hv]
   isplitl [Hm]
-  · iexact Hm
+  · iapply (BigSepM.bigSepM_mono_of_forall ?_) $$ Hm
+    intro k o
+    apply objOwn_weaken
+    intro h
+    simp only [decide_eq_true_eq] at h ⊢
+    exact ((killBkt_live X bl C k).1 h).1
   iapply (BigSepM.bigSepM_insert_delete (M := GMap Loc)).2
   isplitl [Hb]
   · rw [decide_eq_false (killBkt_liveB X bl C)]
