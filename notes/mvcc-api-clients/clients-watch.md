@@ -340,3 +340,14 @@ None of them needs an API change:
 - **W5**, no stated source for `-1` responses: nothing needs it.
 
 **W1 is unchanged and outside the API:** the gRPC handler's `threadTok`.
+
+## Superseded (2026-11-05, decided by the coordinator): `WRunA.wsp : Loc` becomes `ws : GoInterface`
+
+*Supersedes §6's `swsIs2` where it reads `swsF sws "watchStream" ↦□ wspIface r.wsp` and
+`isMvccWatchStream (wspIface r.wsp) ..`.* That pins the mvcc stream's dynamic type to
+`*watchStream`, which `WatchableKV.NewWatchStream.contract` does not give (it returns an arbitrary
+interface value; `shapes.law` gives only `ws = mkOk ty v ∧ isWatchStream ty v`), so
+`watchServer.Watch` could not establish it. The run's field is the value `NewWatchStream` returned,
+`ws : GoInterface`, and `swsIs` is at `r.ws`; the stream's methods are called through `shapes.law`'s
+contracts. No client sees the field (`auxOf` publishes ghost names only); the API is unchanged.
+`notes/mvcc-migration/v3rpc.md`, F1.

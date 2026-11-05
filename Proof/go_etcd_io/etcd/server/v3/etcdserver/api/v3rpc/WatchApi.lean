@@ -746,6 +746,22 @@ theorem drain_poll (hR : mvcc.api.wsChan_recv.law (GF := GF)) (ws : GoInterface)
     ipureintro
     exact Hle
 
+/-- **A blocking receive on the stream's channel** (`wsChan_recv.law`'s receive, as a `WP`: the
+deferred drain's `range`). -/
+theorem wp_ws_receive (hR : mvcc.api.wsChan_recv.law (GF := GF)) (ws : GoInterface)
+    (γ : mvcc.api.MvccName) (ι : mvcc.api.WsName) (rs : List mvcc.api.WResp) :
+    ⊢ ∀ Φ : val → IProp GF, mvcc.api.isMvccWatchStream ws γ ι -∗ mvcc.api.wsRecv ι rs -∗
+      (∀ (v : WatchResponse) (ok : Bool),
+        (if ok then ∃ r : mvcc.api.WResp, mvcc.api.wsRecv ι (rs ++ [r]) ∗ mvcc.api.wrespIs v r
+         else mvcc.api.wsRecv ι rs) -∗ Φ (PairV #v #ok)) -∗
+      WP (App (Val (chan.receive WatchResponse.ty)) (Val #(mvcc.api.wsChanOf ι))) {{ Φ }} := by
+  iintro %Φ Hws Hr HΦ
+  icases hR ws γ ι $$ Hws with ⟨#Hch, #Hb, -⟩
+  iapply chan.wp_receive (mvcc.api.wsChanOf ι) (mvcc.api.wsChanNames ι) $$ Hch
+  iintro -
+  iapply Hb $$ Hr
+  iexact HΦ
+
 end defs
 
 end v3rpc

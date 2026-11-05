@@ -36,6 +36,9 @@ path. Only the watch path: the KV, lease, auth and maintenance parts of v3rpc ar
   `rcvSnapG_dup`, `wsInvG_alloc` (the run's invariant from `NewWatchStream`'s `wsState ι wsStart`),
   `regFacts_of`, `rel_register`.
 
+- **`WatchSendPure.lean`** (checks): the send loop's pure bookkeeping, re-keyed (`idsLive_*`,
+  `pend_id`, `src_fresh`, `neg1_sent` in `createdAfter`'s form, `srcOf_send`, `srcOf_ctrl`);
+  `WatchApi.wp_ws_receive` (the blocking receive as a `WP`).
 - **The pure models, checked** (`lake env lean`, they import the API only): `WatchMsgModel.lean`
   (the message models, split out of `InvWatchStream.lean`), `WatchSendModel.lean` (re-keyed by id:
   `SendInv`, `send_claim*` over `WResp`), `WatchSendHist.lean` (re-keyed: a source's index in place
@@ -52,24 +55,19 @@ path. Only the watch path: the KV, lease, auth and maintenance parts of v3rpc ar
 
 ## Left
 
-- **`sendLoop`** (`serverWatchStream__sendLoop.lean`, 2100 lines, not migrated): the plan.
-  - `sendSt r idsL pendL rcv D`: `rcv : List WResp` with `wsRecv r.ι rcv ∗ monoListAuthOwn r.γr 1
-    rcv` in the loop's resources (in place of `watchConsumer`); `D.filterMap src = srcOf rcv S`
-    (`WatchSendHist.srcOf`); the registry entries of the announced ids, `□ [∗map] X ↦ i ∈ M, regIs
-    r.γreg X i` with `IM`'s ids in `M` (from each created response's `ctrlWatcher`, kept when it is
-    sent), for `snap_after_recv`'s `M`; `rcvOk` replaced by `□ ∀ n x, rcv[n]? = some x → ∃ σ S,
-    rcvSnap r (rcv.take (n+1)) σ S` (the snapshot right after each receipt).
-  - A receipt (`Chan()`'s case: `wsChan_recv.law`'s blocking `recvAu`; the drain: its
-    non-blocking arm, `drain_poll`): `monoListAuthOwn_update_app` for `γr`, then
-    `snap_after_recv` (a ghost step at `⊤`, no credit) with `M`.
-  - A response sent: `mvccOk r j m` from the snapshot at its index, `send_claim_*` (id-keyed),
-    `fwdEvs_*`, `fwdIdx_*`; for a `-1` (sent at once), the clause "every id live after `L` is in
-    `S`" from `snap_after_recv`'s second conclusion and `M ⊇` the live ids.
-  - The drain before a created response (`createdAfter`): the poll at the watcher's stamp
-    (`ctrlWatcher`'s `wsSentLb ι i.k`; `wsSentLb_zero.law` for a refused create), the empty arm's
-    `k ≤ |rcv|` and `rcvLb r.γr rcv` (from the authority), every `-1` among `rcv` sent (today's
-    `sendSt_neg1`).
-  - `RequestProgress` (the ticker): its contract takes a thread token, the loop's own.
+- **`sendLoop`: rewritten, not yet checked** (`serverWatchStream__sendLoop.lean`, over
+  `InvWatch.lean`, so blocked like the other proofs). As planned: the loop holds `wsRecv r.ι rcv ∗
+  monoListAuthOwn r.γr 1 rcv ∗ threadTok` (the thread token now in the loop's invariant and in
+  `retSt`, since `RequestProgress` takes one); `sendSt` keeps the announced ids' registry entries `M`
+  (`□ [∗map] regIs`, every announced id but `-1` in it: `regMap_created` from the created response's
+  `createdAfter`) and `rcvOk` the lower bound and the snapshot at each receipt (`rcvOk_snoc`, from
+  `snap_after_recv` with `M`, made `□` by `rcvSnapG_dup`); `D.filterMap src = srcOf rcv S`; the
+  receipts through `wsChan_recv.law` (the loop's blocking receive, the drain's `drain_poll` at the
+  watcher's stamp `k0` from `ctrlWatcher_reg`, `wsSentLb_zero.law` for a refused create, the
+  deferred drain's `wp_ws_receive`); `mvccOk` for a direct send (the `-1` clause from the
+  snapshot's `M` facts) and for a flushed one (its index's snapshot from `rcvOk`); buffered
+  messages at the source index `0` (`watchRespMsg_mvccResp`). The pure bookkeeping moved to
+  `WatchSendPure.lean` (checks).
 - `Results.lean`, `Link.lean`: the linked results (`etc/gen-link.py --v3rpc`), once the proofs
   check; the watch callees are now the API's laws (`shapes`, `persistent`, ...), taken by the link as
   mvcc's results.
@@ -97,7 +95,8 @@ which the server must give for the `W` it builds:
 
 ## Findings
 
-**F1 (the draft unprovable as written; minimal fix applied, local to v3rpc).** The draft's
+**F1 (the draft unprovable as written; minimal fix applied, local to v3rpc; accepted, decided by the
+coordinator, 2026-11-05).** The draft's
 `swsIs2` holds `swsF sws "watchStream" ↦□ wspIface r.wsp ∗ isMvccWatchStream (wspIface r.wsp) ..`
 with `WRunA.wsp : Loc`: it fixes the mvcc stream's dynamic type to `*watchStream`. The API's
 `WatchableKV.NewWatchStream.contract` returns `∀ ws, (∃ ι, isMvccWatchStream ws γ ι ∗ ..)` for an
