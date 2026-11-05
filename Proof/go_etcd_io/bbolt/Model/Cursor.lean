@@ -745,12 +745,13 @@ def pgEnts (pg : List w8) : List BoltEnt := (pageWs pg).map fun w => (w.key, w.v
 /-- **A stack's leaf page holds its bounds' entries** (U6y's F2, the stale-tolerant part): if the
 stack's leaf is a page reference, its page's entries are plain and are those of `es` within the
 path's bounds. A same-value `Put` materializes the leaf without changing `T`, which leaves the
-cursor's page stale; its entries are still these. -/
+cursor's page stale; its entries are still these. The inline root page is well-formed (U6aa:
+`inlineGood`, what `keyValue` reads it by; a view page's is the view's). -/
 def sLeafOK (v : View) (ipg : List w8) (es : List BoltEnt) (pids : List Nat)
     (els : List elemRef) : Prop :=
   ∀ e pid, els.getLast? = some e → pids.getLast? = some pid → e.node' = null →
     ∃ pg, leafPgAt v ipg pid = some pg ∧ (∀ w ∈ pageWs pg, ¬ isBktFlag w.flags) ∧
-      pgEnts pg = entsIn es (pathBnd v pids els)
+      pgEnts pg = entsIn es (pathBnd v pids els) ∧ (pid = 0 → inlineGood pg)
 
 /-- The number of entries of a stack's leaf (over `es`). -/
 def leafCnt (v : View) (es : List BoltEnt) (pids : List Nat) (els : List elemRef) : Nat :=

@@ -427,7 +427,8 @@ theorem pos_facts (X : WX) (bl : Loc) (B : BRec) (hok : wOK X) (hB : X.t.bs !! b
       ws.length = pageCount pg ∧ ∀ i w, ws[i]? = some w → w.pgid = W64 (branchPgid pg i : Int)) ∧
     (lf = true → p.toNat = 0 ∨ ∃ pg, X.v.pages !! p.toNat = some pg ∧
       pageFlags pg = leafPageFlag) ∧
-    (e.node' = null → ∃ pg, leafPgAt X.v B.ipg p.toNat = some pg ∧ ws = pageWs pg) := by
+    (e.node' = null → ∃ pg, leafPgAt X.v B.ipg p.toNat = some pg ∧ ws = pageWs pg ∧
+      (p.toNat = 0 → inlineGood pg)) := by
   have hc := wOK_bktClean X hok bl B hB
   have hlive : bl ∈ X.liveB := hok.2.2.2.2.2.1.2.2.1 bl B hB
   obtain ⟨B', hB', hm⟩ := hr
@@ -479,7 +480,7 @@ theorem pos_facts (X : WX) (bl : Loc) (B : BRec) (hok : wOK X) (hB : X.t.bs !! b
       obtain ⟨hpnn, -, hg, -⟩ := hc.1 hin hrn
       have h0 : (W64 0).toNat = 0 := rfl
       refine ⟨fun h => absurd hnn h, fun _ => ⟨by rw [← he]; exact hpnn, fun h => absurd h0 h⟩,
-        fun hf => ?_, fun _ => Or.inl h0, fun _ => ⟨B.ipg, by rw [h0]; rfl, rfl⟩⟩
+        fun hf => ?_, fun _ => Or.inl h0, fun _ => ⟨B.ipg, by rw [h0]; rfl, rfl, fun _ => hg⟩⟩
       simp only [decide_eq_false_iff_not] at hf
       exact absurd hg.2.1 hf
     · have hpg : ∃ pg', X.v.pages !! p.toNat = some pg' ∧ e.page' = pageLoc X.v p.toNat ∧
@@ -496,7 +497,7 @@ theorem pos_facts (X : WX) (bl : Loc) (B : BRec) (hok : wOK X) (hB : X.t.bs !! b
       obtain ⟨h2, -, -, hfl⟩ := Read.viewWF_page X.v hok.2.2.2.2.2.2.2 _ _ hpg
       have hne0 : p.toNat ≠ 0 := by omega
       refine ⟨fun h => absurd hnn h, fun _ => ⟨?_, fun _ => hpl⟩, fun hf => ?_, fun hf => ?_,
-        fun _ => ⟨pg, by unfold leafPgAt; rw [if_neg hne0]; exact hpg, rfl⟩⟩
+        fun _ => ⟨pg, by unfold leafPgAt; rw [if_neg hne0]; exact hpg, rfl, fun h => absurd h hne0⟩⟩
       · rw [hpl]; unfold pageLoc; intro h
         have := congrArg Loc.addr h
         simp [Loc.add, null] at this; omega
@@ -645,8 +646,8 @@ theorem lPath_wStk (X : WX) (n : GoString) (bl : Loc) (B : BRec) (hok : wOK X)
     rw [hL] at hL'; cases hL'
     obtain ⟨-, -, -, -, f5⟩ := pos_facts X bl B hok hB hnl hbase pl e true ws hr hL
       (hin0 _ pl hlj)
-    obtain ⟨pg, hpg, rfl⟩ := f5 hnull
-    refine ⟨pg, hpg, hplain, ?_⟩
+    obtain ⟨pg, hpg, rfl, hig⟩ := f5 hnull
+    refine ⟨pg, hpg, hplain, ?_, hig⟩
     unfold pgEnts; exact hents
 
 /-! ## A routing stack's position (`Model/Cursor`'s private `stackPos_seek`, copied) -/
