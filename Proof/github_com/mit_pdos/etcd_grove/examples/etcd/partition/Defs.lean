@@ -149,7 +149,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
   iprop(∃ (γ : SrvRaft) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
       (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ cl₁ cl₂ cl₃ : Loc)
       (br₁ br₂ br₃ : GoInterface),
-    cluster3.clusterAt clusterCfg id₁ id₂ id₃ bootLog srvs brs γ γn ρ₁ ρ₂ ρ₃ E₁ E₂ E₃
+    cluster3.clusterAt clusterCfg false id₁ id₂ id₃ bootLog srvs brs γ γn ρ₁ ρ₂ ρ₃ E₁ E₂ E₃
       cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ R₁ R₂ R₃ s₁ s₂ s₃ br₁ br₂ br₃ ∗
     clis ↦*□ [cl₁, cl₂, cl₃] ∗
     isNewClient cl₁ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx) ∗

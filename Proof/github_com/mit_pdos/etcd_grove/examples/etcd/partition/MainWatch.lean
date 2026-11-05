@@ -185,7 +185,7 @@ theorem MainWatch.wp_proof
   iunfold cluster3.clusterAt at Hcl
   icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, Hetcd,
     %Hal⟩
-  obtain ⟨hst₂, hst₃⟩ := Hal
+  obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   iunfold cluster3.memberAt at Hm₁ Hm₂ Hm₃
   icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, ⟨%pw₁, #Hws₁⟩,
     %HR₁, #Hstr₁, %Hp₁⟩
@@ -226,21 +226,27 @@ theorem MainWatch.wp_proof
     · iexact Hrd₁
     isplitr
     · iexists pw₁; iexact Hws₁
-    ipureintro; exact ⟨HR₁.2, hm₁, kvSame_refl _, hoff₁⟩
+    isplitr
+    · ipureintro; exact ⟨HR₁.2, hm₁, kvSame_refl _⟩
+    iapply cluster3.watchNoDup_of_off pw₁ R₁ E₁ HR₁.2 hoff₁ $$ Hws₁
   ihave #Hmw₂ : cluster3.memberWatch ρ₁.rd s₂ E₂ ρ₂ R₂ $$ []
   · iunfold cluster3.memberWatch
     isplitr
     · iexact Hrd₂
     isplitr
     · iexists pw₂; iexact Hws₂
-    ipureintro; exact ⟨HR₂.2, hm₂, hst₂, hoff₂⟩
+    isplitr
+    · ipureintro; exact ⟨HR₂.2, hm₂, hst₂⟩
+    iapply cluster3.watchNoDup_of_off pw₂ R₂ E₂ HR₂.2 hoff₂ $$ Hws₂
   ihave #Hmw₃ : cluster3.memberWatch ρ₁.rd s₃ E₃ ρ₃ R₃ $$ []
   · iunfold cluster3.memberWatch
     isplitr
     · iexact Hrd₃
     isplitr
     · iexists pw₃; iexact Hws₃
-    ipureintro; exact ⟨HR₃.2, hm₃, hst₃, hoff₃⟩
+    isplitr
+    · ipureintro; exact ⟨HR₃.2, hm₃, hst₃⟩
+    iapply cluster3.watchNoDup_of_off pw₃ R₃ E₃ HR₃.2 hoff₃ $$ Hws₃
   -- each member's `Watch` stream at its bridge
   ihave #Hb₁ := cluster3.isGrpcStream_forwards bridgeAddr₁ clientAddr₁ _ _ _ $$ [Hfw₁ Hstr₁]
   · iframe #

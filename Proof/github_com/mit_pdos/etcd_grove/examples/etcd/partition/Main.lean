@@ -84,7 +84,7 @@ theorem Main.wp_proof
   iunfold cluster3.clusterAt at Hcl
   icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, Hetcd,
     %Hal⟩
-  obtain ⟨hst₂, hst₃⟩ := Hal
+  obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   iunfold cluster3.memberAt at Hm₁ Hm₂ Hm₃
   icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, -, -, -, %Hp₁⟩
   icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, -, -, -, -⟩

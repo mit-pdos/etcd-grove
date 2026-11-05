@@ -5,7 +5,7 @@ linkv3p's token and snapshot settings; the partition plan's S3a, 2026-10-20): on
 cluster of configuration `cfg` started and served -- the examples' shared `etcdstart.NewMember`
 (`Spec/.../etcdstart/NewMember.lean`, whose header explains the triple) with the cluster's token,
 snapshot settings, member names and URLs (`cluster3.bootPremise`, `cluster3.initURLs3`), in the
-cluster's compaction mode (`compactMode`), plus a listener at the member's client address (before
+cluster's compaction mode (`cmp`), plus a listener at the member's client address (before
 `Start`) and, after `Start`, etcd's gRPC server (`v3rpc.Server(s, nil, nil, opt)`) served on it. Its
 success is `memberServed` (`Defs.lean`): the member's views, its thread token (`srvGoRes`), its
 place in the network and etcd's KV and watch services at its client address. The premises are
@@ -42,7 +42,7 @@ abbrev StartMember.spec : Prop :=
     (peer : GoSlice) (cluster lg : Loc) (sl₁ sl₂ sl₃ : GoSlice)
     (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
     (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool),
   cfgOk cfg →
   -- (W4 of `notes/watch-cut-plan.md`) the members' workload, granting no lease
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
@@ -64,7 +64,7 @@ abbrev StartMember.spec : Prop :=
       sl₃ ↦*□ initURLs3 cfg cfg.Name3' ∗
       bootPremise cfg N ps bootLog ctxs dir name peerAddr client id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id compactMode ∗
+      memberBoot γ ctxs ρ E₀ Φs id cmp ∗
       -- (2026-10-24, rafthttp stage 6d; until then the member's network slot) the network's HTTP
       -- side for it and the right to serve its peer address with the raft protocol
       netHttpOk γn id ∗ http.httpProtoOwn peerAddr (raftProto (netRh γn)) ∗

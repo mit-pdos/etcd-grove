@@ -48,7 +48,7 @@ theorem StartCluster.wp_proof
     (wp_StartMember : StartMember.spec (GF := GF) (hG := hG))
     (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg Hcfg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
+  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp Hcfg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem, Hw₁, Hw₂, Hw₃⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
@@ -111,23 +111,23 @@ theorem StartCluster.wp_proof
     dir3_ok cfg Hcfg id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
-      cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega) compactMode)
+      cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega) cmp)
       $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
     ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, -, -, -, -, -, -, hst₂, hst₃, -, -⟩ := Hal
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, -, -, -, -, -, -, hst₂, hst₃, hcmp₁, hcret₁⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
     simp [LogEntry.toEntries, hblen0]
   -- the three members, each served
   iunfold memberBoot at Hmb₁
   icases Hmb₁ with ⟨%Hp₁, Hmb₁⟩
-  ihave Hmb₁ : memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ compactMode $$ [Hmb₁]
+  ihave Hmb₁ : memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp $$ [Hmb₁]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₁
   wp_apply (wp_StartMember cfg N cfg.Name1' cfg.Peer1' cfg.Client1' (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) ps
-      (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
+      (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn cmp
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
       (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁ Hw₁] as %s₁ %err₁ Hr₁
@@ -147,12 +147,12 @@ theorem StartCluster.wp_proof
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
   icases Hmb₂ with ⟨%Hp₂, Hmb₂⟩
-  ihave Hmb₂ : memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ compactMode $$ [Hmb₂]
+  ihave Hmb₂ : memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp $$ [Hmb₂]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₂
   wp_apply (wp_StartMember cfg N cfg.Name2' cfg.Peer2' cfg.Client2' (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) ps
-      (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
+      (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn cmp
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
       (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
@@ -173,12 +173,12 @@ theorem StartCluster.wp_proof
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
   icases Hmb₃ with ⟨%Hp₃, Hmb₃⟩
-  ihave Hmb₃ : memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ compactMode $$ [Hmb₃]
+  ihave Hmb₃ : memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp $$ [Hmb₃]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₃
   wp_apply (wp_StartMember cfg N cfg.Name3' cfg.Peer3' cfg.Client3' (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) ps
-      (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
+      (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn cmp
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
       (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
@@ -258,9 +258,9 @@ theorem StartCluster.wp_proof
   iframe Hetcd Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
   -- (M2, the storage side, N1) each member's server in the cluster's mode: its stand-in's,
   -- through `envAgree`
-  have off₁ : E₁'.γ.cm = compactMode := envAgree_off E₁' E₁ HE₁.1 Hp₁.2.2.2.2.2.2.2.1
-  have off₂ : E₂'.γ.cm = compactMode := envAgree_off E₂' E₂ HE₂.1 Hp₂.2.2.2.2.2.2.2.1
-  have off₃ : E₃'.γ.cm = compactMode := envAgree_off E₃' E₃ HE₃.1 Hp₃.2.2.2.2.2.2.2.1
+  have off₁ : E₁'.γ.cm = cmp := (envAgree_mode E₁' E₁ HE₁.1).trans Hp₁.2.2.2.2.2.2.2.1
+  have off₂ : E₂'.γ.cm = cmp := (envAgree_mode E₂' E₂ HE₂.1).trans Hp₂.2.2.2.2.2.2.2.1
+  have off₃ : E₃'.γ.cm = cmp := (envAgree_mode E₃' E₃ HE₃.1).trans Hp₃.2.2.2.2.2.2.2.1
   obtain ⟨hr₁, hc₁, hch₁, hl₁, -⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hl₂, -⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hl₃, -⟩ := Hp₃
@@ -283,7 +283,7 @@ theorem StartCluster.wp_proof
     isplitr
     · ipureintro; exact HR₃
     ipureintro; exact ⟨⟨reg₃, hr₃⟩, hc₃, hch₃, hl₃, off₃⟩
-  ipureintro; exact ⟨hst₂, hst₃⟩
+  ipureintro; exact ⟨hst₂, hst₃, hcmp₁, hcret₁⟩
 
 end proof
 

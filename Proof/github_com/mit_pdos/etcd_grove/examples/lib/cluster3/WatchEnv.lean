@@ -6,7 +6,7 @@ counterpart.
 `watchEnv cfg R₁ R₂ R₃ γr pfx` (`Defs.lean`): the three members at their bridges, the watch contract
 at the cluster's history, the KV state variable `γr`'s. A member's watch facts (`memberWatch`: its
 read view, its watch server, its names the history's and its KV state variable the cluster's, its
-server in the cluster's compaction mode, `compactMode`;
+store's fact for watches (`mvcc.watchNoDup`);
 until 2026-10-26 also no key written twice in a revision of its logs, from watchkv's server
 workload, which D47's watch spec no longer needs) give its `watchMemberFacts` (`memberWatch_facts`:
 the laws by `watchLaws_hist`, the KV facts `srvKVFacts` from the read view and the store's start
@@ -60,17 +60,28 @@ theorem cert0_of_server (p : Loc) (R : v3rpc.WSrv GF) :
   iexact Hc0
 
 /-- **A member's watch facts** (persistent): its read view at its apply environment, its watch
-server there, its names the history's (`memberOf`), its KV state variable the cluster's; and (M2,
-the storage side, review round 2's N1, the approval's item 13) its server in the cluster's
-compaction mode (`compactMode`: off). -/
+server there, its names the history's (`memberOf`), its KV state variable the cluster's; and
+(2026-11-05, K6; until then its server's compaction off, M2's N1) the store's fact for watches
+(`mvcc.watchNoDup`: the store does not compact, `watchNoDup_of_off`, or no revision writes a key
+twice, a compacting cluster's workload's). -/
 def memberWatch (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(isServerRead s E ρ.rd ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗
-    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ kvSame ρ.rd.kv γr.kv ∧ E.γ.cm = compactMode⌝)
+    ⌜R.E = E ∧ v3rpc.memberOf γr.raft γr.kv ρ.rd ∧ kvSame ρ.rd.kv γr.kv⌝ ∗ mvcc.watchNoDup E.γ)
 
 instance memberWatch_persistent (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (R : v3rpc.WSrv GF) : Persistent (memberWatch γr s E ρ R) := by
   unfold memberWatch; infer_instance
+
+/-- **The store's fact for watches, compaction off** (`memberWatch`'s, for a cluster that does not
+compact). -/
+theorem watchNoDup_of_off (pw : Loc) (R : v3rpc.WSrv GF) (E : apply.AEnv GF) (hE : R.E = E)
+    (h : E.γ.cm = false) : v3rpc.isWatchServer pw R ⊢ mvcc.watchNoDup E.γ := by
+  iintro #Hws
+  ihave %Hlink := client.watchSrvLink_of_server pw R $$ Hws
+  subst hE
+  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw R h $$ Hws
+  rw [← Hlink]; iexact Hnc
 
 /-- **A member's watch facts are its `watchMemberFacts`** at the history's model. -/
 theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : apply.AEnv GF)
@@ -80,12 +91,13 @@ theorem memberWatch_facts (V : client.WEnv GF) (γr : ReadNames) (s : Loc) (E : 
     memberWatch γr s E ρ V.R ⊢ client.watchMemberFacts V := by
   iintro #H
   iunfold memberWatch at H
-  icases H with ⟨#Hrd, ⟨%pw, #Hws⟩, %h⟩
-  obtain ⟨hE, hm, hst, hoff⟩ := h
+  icases H with ⟨#Hrd, ⟨%pw, #Hws⟩, %h, #HwnD⟩
+  obtain ⟨hE, hm, hst⟩ := h
   subst hE
   ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
   ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hnc := v3rpc.isWatchServer_watchNoDup_env pw V.R hoff $$ Hws
+  ihave #Hnc : mvcc.watchNoDup V.R.γ.st $$ []
+  · rw [Hlink]; iexact HwnD
   ihave #Hsm := client.srvLogsSmall_of_read V.R s ρ.rd Hlink $$ Hrd
   ihave #Hinvs := srvKVInvs_of_read s V.R.E ρ.rd $$ Hrd
   ihave #Hlaws := client.watchLaws_hist V γr.raft γr.kv ρ.rd pw hWM hWL hm hlog0 $$ [Hinvs Hws]

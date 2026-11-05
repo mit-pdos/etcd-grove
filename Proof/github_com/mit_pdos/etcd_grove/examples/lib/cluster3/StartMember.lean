@@ -63,7 +63,7 @@ theorem StartMember.wp_proof
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
-    Φs γn Hcfg
+    Φs γn cmp Hcfg
     Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     #Hnet, Hpown, Hwdf⟩
@@ -98,7 +98,7 @@ theorem StartMember.wp_proof
   wp_apply (wp_NewMember N name peerAddr client cfg.Token' cfg.SnapCount' cfg.SnapCatchUp' peer
       cluster lg
       (GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂ (GMap.insert cfg.Name1' sl₁ ∅)))
-      (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn compactMode
+      (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2

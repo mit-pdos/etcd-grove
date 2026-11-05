@@ -10,9 +10,13 @@ each `http://<addr>` a plain peer URL (the directory well formed, `NewServer`'s 
 addresses distinct and each a plain `host:port` (`clientv3.New`'s premise). The bootstrap facts
 (`BootFacts`) are putget3's, which name no configuration.
 
-**The compaction mode** (`compactMode`): off. The members are started with it (`StartMember`'s
-`memberBoot`, `StartCluster`'s allocation), and `memberAt` and `memberWatch` (`WatchEnv.lean`) record
-it; a later step generalizes them by the mode.
+**The compaction mode** (`cmp`, the caller's; 2026-11-05, K6 of `notes/k8s-compactor-plan.md`): the
+members' auto-compactor is off (retention `0`), and the cluster's KV names are in compaction mode
+`cmp` (every compaction a client's) at retention `0`. The members are started in it (`StartMember`'s
+`memberBoot`, `StartCluster`'s allocation), `memberAt` records it of each member's server and
+`clusterAt` of the cluster's names; a member's watch facts (`memberWatch`, `WatchEnv.lean`) carry
+the store's fact for watches (`mvcc.watchNoDup`), which compaction off gives
+(`watchNoDup_of_off`) and a compacting cluster's caller proves of its workload.
 
 **What a started member gives** (`memberServed`), **what a bridge's start gives** (`forwards`: the
 bridge's address serves what the member's does, from the bridge's trust-boundary spec of `New`,
@@ -46,9 +50,6 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
 variable [GooseExts]
-
-/-- **The compaction mode of the cluster's members**: off (see the file header). -/
-abbrev compactMode : Bool := false
 
 /-- **`bootstrap`'s results, as Go computes them**: putget3's, the peers `ps` in `bootstrap`'s
 order. -/
@@ -262,9 +263,9 @@ def watchEnv (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
 its read view, etcd's KV specs registered at its client address and the address refusal-free, its
 watch server and `Watch` stream there, its names agreeing with the cluster's (the raft names but
 for the member's storage registry, `SrvRaft.reg`; what the KV model reads), and its server in the
-cluster's compaction mode (`compactMode`). -/
+cluster's compaction mode `cmp`. -/
 def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
-    (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) : IProp GF :=
+    (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) (cmp : Bool) : IProp GF :=
   iprop(forwards b c ∗ isServerRead s E ρ.rd ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
     isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
@@ -280,40 +281,42 @@ def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply
       ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []] ∧
       -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server in
       -- the cluster's mode
-      E.γ.cm = compactMode⌝)
+      E.γ.cm = cmp⌝)
 
 instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
-    (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft) :
-    Persistent (memberAt γn s id ρ E cid mid R b c γ) := by
+    (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft)
+    (cmp : Bool) : Persistent (memberAt γn s id ρ E cid mid R b c γ cmp) := by
   unfold memberAt; infer_instance
 
 /-- **The cluster started, at given names** (`clusterUp`'s body, its names as parameters, so that a
 caller can state what it builds on them: the partition example's clients, at `watchEnv` of the
 members' watch servers): the members' slice and the bridges'; each member (`memberAt`) with its
 place in the network (a reader's token of its transport), each bridge owned and not blackholed;
-the client's view of etcd's KV at the start store; the members' KV state variables agreeing. -/
-def clusterAt (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+the client's view of etcd's KV at the start store; the members' KV state variables agreeing, the
+first's in the compaction mode `cmp` at retention `0`. -/
+def clusterAt (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (cmp : Bool)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (srvs brs : GoSlice)
     (γ : SrvRaft) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
     (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ : Loc)
     (br₁ br₂ br₃ : GoInterface) : IProp GF :=
   iprop(srvs ↦*□ [s₁, s₂, s₃] ∗ brs ↦*□ [br₁, br₂, br₃] ∗
-    memberAt γn s₁ id₁ ρ₁ E₁ cid₁ mid₁ R₁ cfg.Bridge1' cfg.Client1' γ ∗
-    memberAt γn s₂ id₂ ρ₂ E₂ cid₂ mid₂ R₂ cfg.Bridge2' cfg.Client2' γ ∗
-    memberAt γn s₃ id₃ ρ₃ E₃ cid₃ mid₃ R₃ cfg.Bridge3' cfg.Client3' γ ∗
+    memberAt γn s₁ id₁ ρ₁ E₁ cid₁ mid₁ R₁ cfg.Bridge1' cfg.Client1' γ cmp ∗
+    memberAt γn s₂ id₂ ρ₂ E₂ cid₂ mid₂ R₂ cfg.Bridge2' cfg.Client2' γ cmp ∗
+    memberAt γn s₃ id₃ ρ₃ E₃ cid₃ mid₃ R₃ cfg.Bridge3' cfg.Client3' γ cmp ∗
     etcdstart.srvPeerCtl γn s₁ id₁ ∗ etcdstart.srvPeerCtl γn s₂ id₂ ∗ etcdstart.srvPeerCtl γn s₃ id₃ ∗
     bridge.ownBridge br₁ cfg.Client1' false ∗ bridge.ownBridge br₂ cfg.Client2' false ∗
     bridge.ownBridge br₃ cfg.Client3' false ∗
     etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) ∗
-    ⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv⌝)
+    ⌜kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧
+      ρ₁.rd.kv.cret = 0⌝)
 
 /-- **The cluster started** (`StartCluster`'s success): `clusterAt` at some names. -/
-def clusterUp (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
+def clusterUp (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (cmp : Bool)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (srvs brs : GoSlice) : IProp GF :=
   iprop(∃ (γ : SrvRaft) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
       (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ : Loc)
       (br₁ br₂ br₃ : GoInterface),
-    clusterAt cfg id₁ id₂ id₃ bootLog srvs brs γ γn ρ₁ ρ₂ ρ₃ E₁ E₂ E₃ cid₁ cid₂ cid₃ mid₁ mid₂ mid₃
+    clusterAt cfg cmp id₁ id₂ id₃ bootLog srvs brs γ γn ρ₁ ρ₂ ρ₃ E₁ E₂ E₃ cid₁ cid₂ cid₃ mid₁ mid₂ mid₃
       R₁ R₂ R₃ s₁ s₂ s₃ br₁ br₂ br₃)
 
 end cluster
