@@ -90,17 +90,17 @@ instance Qp.countable : Pos.Countable Qp :=
       exact Subtype.ext (Rat.ext h.1 h.2))
 
 /-- Where a directory fd's read is, as the ghost state knows it: not begun; begun, with the
-directory's entries `E` (which cannot change while it reads: the read holds a fraction `q` of the
-directory's ghost state, in the state interpretation) and the names returned `rs`; done. -/
+directory's ghost entry `g` (which cannot change while it reads: the read holds a fraction `q` of
+it, in the state interpretation, `rdRes`) and the names returned `rs`; done. -/
 inductive DirPh where
   | idle
-  | reading (rs : List GoString) (E : Ents) (q : Qp)
+  | reading (rs : List GoString) (g : DirG) (q : Qp)
   | done
 
-def DirPh.enc : DirPh → Nat × List GoString × Ents × Option Qp
-  | .idle => (0, [], ∅, none)
-  | .reading rs E q => (1, rs, E, some q)
-  | .done => (2, [], ∅, none)
+def DirPh.enc : DirPh → Nat × List GoString × Option DirG × Option Qp
+  | .idle => (0, [], none, none)
+  | .reading rs g q => (1, rs, some g, some q)
+  | .done => (2, [], none, none)
 
 instance DirPh.countable : Pos.Countable DirPh :=
   Pos.Countable.ofInjective (fun x => Pos.Countable.encode x.enc)
@@ -291,8 +291,8 @@ which every name of the read's state stands for, with the names returned `rs`. -
 def PhOk : DirPh → OsDirRead → Prop
   | .idle, .idle => True
   | .done, .done => True
-  | .reading rs E _, .reading u s r =>
-    ∀ b, u b = (E !! b).isSome ∧ s b = (E !! b).isSome ∧ r b = decide (b ∈ rs)
+  | .reading rs g _, .reading u s r =>
+    ∀ b, u b = (g.now !! b).isSome ∧ s b = (g.now !! b).isSome ∧ r b = decide (b ∈ rs)
   | _, _ => False
 
 /-- The namespace's ghost maps mirror its state: a ghost entry for every directory, whose
@@ -308,7 +308,7 @@ structure NsCoh (st : OsState) (Γd : GMap GoString DirG) (Γdf : GMap w64 (GoSt
   ops : ∀ j (h : j < st.nsLog.length), FileOp (nsReplay (st.nsLog.take j) st.nsDur) st.nsLog[j]
   fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.dfds !! fd).map (·.path)
   ph : ∀ fd x df, Γdf !! fd = some x → st.dfds !! fd = some df → PhOk x.2 df.rd
-  rd : ∀ fd d rs E q, Γdf !! fd = some (d, .reading rs E q) → entsOf st.ns d = E
+  rd : ∀ fd d rs g q, Γdf !! fd = some (d, .reading rs g q) → Γd !! d = some g
 
 /-- `NsCoh` depends on the namespace, its log and its directory fds only. -/
 theorem NsCoh.congr {st st' : OsState} {Γd Γdf} (h : NsCoh st Γd Γdf) (hns : st'.ns = st.ns)
@@ -322,7 +322,7 @@ theorem NsCoh.congr {st st' : OsState} {Γd Γdf} (h : NsCoh st Γd Γdf) (hns :
   · intro j hj; simp only [hl, hd]; rw [hl] at hj; exact h4 j hj
   · intro fd; rw [hf]; exact h5 fd
   · intro fd x df hx hdf; rw [hf] at hdf; exact h6 fd x df hx hdf
-  · intro fd d rs E q hx; rw [hns]; exact h7 fd d rs E q hx
+  · exact h7
 
 /-- The directories of `st`'s namespace, each with its entries, all of them durable. -/
 def dirMap (st : OsState) : GMap GoString DirG :=
@@ -340,7 +340,7 @@ theorem dirMap_lookup (st : OsState) (d : GoString) :
 theorem nsInit_coh {st : OsState} (h : NsInit st) : NsCoh st (dirMap st) ∅ := by
   obtain ⟨hdf, hlog, hdur, -, -⟩ := h
   refine ⟨fun d => ?_, fun d g hg => ?_, fun d g hg n hn => ?_, fun j hj => ?_, fun fd => ?_,
-    fun fd x df hx _ => ?_, fun fd d rs E q hx => ?_⟩
+    fun fd x df hx _ => ?_, fun fd d rs g q hx => ?_⟩
   · rw [dirMap_lookup]; split <;> simp_all
   · rw [dirMap_lookup] at hg; split at hg
     · cases hg; rfl
@@ -749,7 +749,7 @@ def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
 directory's ghost entry the read took, so that no one changes the directory while it reads. -/
 def rdRes (hL : OsGS GF) (Γdf : GMap w64 (GoString × DirPh)) : IProp GF :=
   iprop([∗map] _fd ↦ x ∈ Γdf, match x.2 with
-    | .reading _ _ q => ∃ g : DirG, gElem hL hL.γd x.1 (DFrac.own q) g
+    | .reading _ g q => gElem hL hL.γd x.1 (DFrac.own q) g
     | _ => emp)
 
 /-- Whether a call that changes the namespace is in flight, as a ghost map of one entry. -/

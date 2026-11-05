@@ -1,0 +1,355 @@
+/-
+Pure laws of the namespace's ghost state (`Ghost.lean`'s `NsWf`, `NsCoh`) for the specs of
+`NsSpecs.lean`: paths of a directory's entries, a directory's changes (`DirG.push`), and the
+coherence kept by a file operation of a directory its holder holds whole. Untrusted.
+-/
+module
+
+public import GooseLang.Ext.OsFs.Ghost
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+/-! ## Paths -/
+
+/-- The entry `b` of the directory `d`. -/
+abbrev child (d b : GoString) : GoString := d ++ slashB :: b
+
+theorem joinPath_snoc (r : GoString) (cs : List GoString) (b : GoString) :
+    joinPath r (cs ++ [b]) = child (joinPath r cs) b := by
+  simp [joinPath, List.flatMap_append]
+
+theorem nul_not_mem_joinPath {r : GoString} {cs : List GoString} (hr : nulB ∉ r)
+    (hcs : ∀ c ∈ cs, NameOk c) : nulB ∉ joinPath r cs := by
+  unfold joinPath
+  simp only [List.mem_append, List.mem_flatMap, List.mem_cons, not_or, not_exists, not_and]
+  refine ⟨hr, fun c hc => ⟨by decide, (hcs c hc).2.2.2.2⟩⟩
+
+theorem nul_not_mem_root {r : GoString} (h : RootForm r) : nulB ∉ r := by
+  obtain ⟨cs, -, hcs, rfl⟩ := h
+  exact nul_not_mem_joinPath (by simp) hcs
+
+theorem canonBelow_child {r d b : GoString} (hd : d = r ∨ CanonBelow r d) (hb : NameOk b) :
+    CanonBelow r (child d b) := by
+  rcases hd with rfl | ⟨cs, _, hcs, rfl⟩
+  · exact ⟨[b], by simp, by simpa using hb, by simp [joinPath]⟩
+  · refine ⟨cs ++ [b], by simp, ?_, (joinPath_snoc r cs b).symm⟩
+    intro c hc; simp only [List.mem_append, List.mem_singleton] at hc
+    rcases hc with hc | rfl
+    · exact hcs c hc
+    · exact hb
+
+theorem isUnder_of_canonBelow {r p : GoString} (h : CanonBelow r p) : IsUnder r p := by
+  obtain ⟨cs, hne, -, rfl⟩ := h
+  right
+  cases cs with
+  | nil => exact absurd rfl hne
+  | cons c cs => exact ⟨c ++ cs.flatMap (fun c => slashB :: c), by simp [joinPath]⟩
+
+theorem nul_not_mem_canonBelow {r p : GoString} (hr : RootForm r) (h : CanonBelow r p) :
+    nulB ∉ p := by
+  obtain ⟨cs, -, hcs, rfl⟩ := h
+  exact nul_not_mem_joinPath (nul_not_mem_root hr) hcs
+
+theorem entsOf_child (m : NsMap) (d b : GoString) (hb : NameOk b) :
+    entsOf m d !! b = m !! child d b := by
+  rw [entsOf_lookup, if_pos hb]
+
+theorem parentOf_child' (d b : GoString) (hb : NameOk b) : parentOf (child d b) = some d :=
+  parentOf_child d b hb.2.2.2.1
+
+theorem baseOf_child' (d b : GoString) (hb : NameOk b) : baseOf (child d b) = b :=
+  baseOf_child d b hb.2.2.2.1
+
+/-! ## The current namespace -/
+
+section current
+variable {st : OsState}
+
+theorem NsWf.shape (hw : NsWf st) : NsShape st.roots st.ns := by
+  have h := (hw.hist st.nsLog.length (Nat.le_refl _)).1
+  rwa [List.take_length, ← hw.replay] at h
+
+theorem NsWf.keys (hw : NsWf st) {p k : GoString} (h : st.ns !! p = some (.file k)) :
+    IsInoKey k ∧ ∃ f, st.files !! k = some (some f) := by
+  have h' := (hw.hist st.nsLog.length (Nat.le_refl _)).2
+  rw [List.take_length, ← hw.replay] at h'
+  exact h' p k h
+
+/-- A directory of the namespace is a root or canonical below one. -/
+theorem NsWf.dir_form (hw : NsWf st) {d : GoString} (hd : st.ns !! d = some .dir) :
+    ∃ r ∈ st.roots, d = r ∨ CanonBelow r d := by
+  rcases hw.shape.2.1 d .dir hd with h | ⟨⟨r, hr, hc⟩, -⟩
+  · exact ⟨d, h, .inl rfl⟩
+  · exact ⟨r, hr, .inr hc⟩
+
+theorem NsWf.nsName_child (hw : NsWf st) {d b : GoString} (hd : st.ns !! d = some .dir)
+    (hb : NameOk b) : st.NsName (child d b) := by
+  obtain ⟨r, hr, hdr⟩ := hw.dir_form hd
+  exact ⟨r, hr, canonBelow_child hdr hb⟩
+
+theorem NsWf.nsPath_dir (hw : NsWf st) {d : GoString} (hd : st.ns !! d = some .dir) :
+    st.NsPath d := by
+  obtain ⟨r, hr, rfl | hc⟩ := hw.dir_form hd
+  · exact .inl hr
+  · exact .inr ⟨r, hr, hc⟩
+
+/-- A path of the namespace is no key of `files`: no legacy path is in a root's tree, and no
+key of a file of the namespace is a path (it has a NUL byte). -/
+theorem NsWf.not_files (hw : NsWf st) {r p : GoString} (hr : r ∈ st.roots)
+    (hp : p = r ∨ CanonBelow r p) : p ∉ st.files := by
+  intro hk
+  have hrf : RootForm r := (hw.roots.2 r hr).1
+  by_cases hino : IsInoKey p
+  · rcases hp with rfl | hc
+    · exact nul_not_mem_root hrf hino
+    · exact nul_not_mem_canonBelow hrf hc hino
+  · apply hw.legacy p hk hino r hr
+    rcases hp with rfl | hc
+    · exact .inl rfl
+    · exact isUnder_of_canonBelow hc
+
+theorem NsWf.child_not_files (hw : NsWf st) {d b : GoString} (hd : st.ns !! d = some .dir)
+    (hb : NameOk b) : child d b ∉ st.files := by
+  obtain ⟨r, hr, hdr⟩ := hw.dir_form hd
+  exact hw.not_files hr (.inr (canonBelow_child hdr hb))
+
+theorem NsWf.dir_not_files (hw : NsWf st) {d : GoString} (hd : st.ns !! d = some .dir) :
+    d ∉ st.files := by
+  obtain ⟨r, hr, hdr⟩ := hw.dir_form hd
+  exact hw.not_files hr hdr
+
+theorem parentDir_child {d b : GoString} (hd : st.ns !! d = some .dir) (hb : NameOk b) :
+    st.ParentDir (child d b) := ⟨d, parentOf_child' d b hb, hd⟩
+
+end current
+
+/-! ## A directory's changes -/
+
+/-- `g` with the change `o` made. -/
+def DirG.push (g : DirG) (o : LOp) : DirG := ⟨g.dur, g.pend ++ [o]⟩
+
+theorem DirG.push_now (g : DirG) (o : LOp) : (g.push o).now = o.apply g.now :=
+  lreplay_snoc _ _ _
+
+theorem DirG.crashTo_now (g : DirG) : g.CrashTo g.now :=
+  ⟨g.pend.length, Nat.le_refl _, by rw [List.take_length]; rfl⟩
+
+theorem DirG.crashTo_push {g : DirG} {e : Ents} (o : LOp) (h : g.CrashTo e) :
+    (g.push o).CrashTo e := by
+  obtain ⟨i, hi, rfl⟩ := h
+  refine ⟨i, by simp [DirG.push]; omega, ?_⟩
+  simp only [DirG.push]
+  rw [List.take_append_of_le_length hi]
+
+theorem DirG.crashTo_push_now (g : DirG) (o : LOp) : (g.push o).CrashTo (o.apply g.now) := by
+  refine ⟨(g.pend ++ [o]).length, by simp [DirG.push], ?_⟩
+  simp only [DirG.push, List.take_length]
+  exact (lreplay_snoc _ _ _).symm
+
+/-! ## The directories an operation changes -/
+
+theorem mem_toList_parentOf {p e : GoString} : e ∈ (parentOf p).toList ↔ parentOf p = some e := by
+  cases parentOf p <;> simp [Option.toList, eq_comm]
+
+theorem NsOp.touched_nil {o : NsOp} {e : GoString} (h : e ∉ o.dirs) : o.touched e = [] := by
+  cases o with
+  | create p k => simp only [NsOp.dirs, mem_toList_parentOf] at h; simp [NsOp.touched, h]
+  | mkdir p => simp only [NsOp.dirs, mem_toList_parentOf] at h; simp [NsOp.touched, h]
+  | remove p => simp only [NsOp.dirs, mem_toList_parentOf] at h; simp [NsOp.touched, h]
+  | rename s t =>
+    simp only [NsOp.dirs, List.mem_append, mem_toList_parentOf, not_or] at h
+    simp [NsOp.touched, h.1, h.2]
+
+theorem NsOp.adds_nil {o : NsOp} {e : GoString} (h : e ∉ o.dirs) : o.adds e = [] := by
+  cases o with
+  | create p k => simp only [NsOp.dirs, mem_toList_parentOf] at h; simp [NsOp.adds, h]
+  | mkdir p => simp only [NsOp.dirs, mem_toList_parentOf] at h; simp [NsOp.adds, h]
+  | remove p => simp [NsOp.adds]
+  | rename s t =>
+    simp only [NsOp.dirs, List.mem_append, mem_toList_parentOf, not_or] at h
+    simp [NsOp.adds, h.2]
+
+theorem OsDirFd.note_of_not_dirs {o : NsOp} (df : OsDirFd) (h : df.path ∉ o.dirs) :
+    df.note o = df := by
+  unfold OsDirFd.note
+  split
+  · rename_i u s r hrd
+    rw [NsOp.touched_nil h, NsOp.adds_nil h]
+    cases df; simp only at hrd; subst hrd
+    simp
+  · rfl
+
+/-! ## What a file operation of a directory does to it -/
+
+/-- The effect of a file operation `o` of the directory `d` on the namespace `m`: the change
+`lo` of `d`'s entries, no other directory's entries changed, and the directories the same. -/
+structure FileOpIn (m : NsMap) (d : GoString) (o : NsOp) (lo : LOp) : Prop where
+  dirs : ∀ e, e ∈ o.dirs ↔ e = d
+  self : entsOf (o.apply m) d = lo.apply (entsOf m d)
+  other : ∀ e, e ≠ d → entsOf (o.apply m) e = entsOf m e
+  dir : ∀ e, (o.apply m !! e = some .dir) ↔ (m !! e = some .dir)
+
+theorem fileOpIn_create {m : NsMap} {d b k : GoString} (hb : NameOk b)
+    (hn : m !! child d b = none) :
+    FileOpIn m d (.create (child d b) k) (.put b (.file k)) := by
+  refine ⟨?_, ?_, fun e he => ?_, fun e => ?_⟩
+  · intro e; simp [NsOp.dirs, parentOf_child' d b hb, Option.toList, eq_comm]
+  · exact entsOf_insert_child m d b _ hb
+  · exact entsOf_insert_other m e _ _ (by rw [parentOf_child' d b hb]; simpa using he.symm)
+  · show (<[child d b := OsNode.file k]> m) !! e = _ ↔ _
+    by_cases he : child d b = e
+    · subst he; rw [GMap.lookup_insert, hn]; simp
+    · rw [GMap.lookup_insert_ne _ _ he]
+
+theorem fileOpIn_remove {m : NsMap} {d b k : GoString} (hb : NameOk b)
+    (hf : m !! child d b = some (.file k)) :
+    FileOpIn m d (.remove (child d b)) (.del b) := by
+  refine ⟨?_, ?_, fun e he => ?_, fun e => ?_⟩
+  · intro e; simp [NsOp.dirs, parentOf_child' d b hb, Option.toList, eq_comm]
+  · exact entsOf_delete_child m d b
+  · exact entsOf_delete_other m e _ (by rw [parentOf_child' d b hb]; simpa using he.symm)
+  · show (GMap.delete (child d b) m) !! e = _ ↔ _
+    by_cases he : child d b = e
+    · subst he; rw [GMap.lookup_delete, hf]; simp
+    · rw [GMap.lookup_delete_ne _ he]
+
+theorem fileOpIn_rename {m : NsMap} {d bs bt k : GoString} (hbs : NameOk bs) (hbt : NameOk bt)
+    (hne : bs ≠ bt) (hf : m !! child d bs = some (.file k))
+    (ht : m !! child d bt ≠ some .dir) :
+    FileOpIn m d (.rename (child d bs) (child d bt)) (.mv bs bt) := by
+  have happ : (NsOp.rename (child d bs) (child d bt)).apply m =
+      <[child d bt := .file k]> (GMap.delete (child d bs) m) := by
+    simp only [NsOp.apply, hf]
+  refine ⟨?_, ?_, fun e he => ?_, fun e => ?_⟩
+  · intro e; simp [NsOp.dirs, parentOf_child' d bs hbs, parentOf_child' d bt hbt, Option.toList, eq_comm]
+  · rw [happ, entsOf_insert_child _ d bt _ hbt, entsOf_delete_child]
+    have : entsOf m d !! bs = some (.file k) := by rw [entsOf_child m d bs hbs]; exact hf
+    show _ = (match entsOf m d !! bs with
+      | some n => <[bt := n]> (GMap.delete bs (entsOf m d))
+      | none => entsOf m d)
+    rw [this]
+  · have hpe : ∀ b, NameOk b → parentOf (child d b) ≠ some e := fun b hb => by
+      rw [parentOf_child' d b hb]; simpa using he.symm
+    rw [happ, entsOf_insert_other _ e _ _ (hpe bt hbt), entsOf_delete_other _ e _ (hpe bs hbs)]
+  · rw [happ]
+    show (<[child d bt := OsNode.file k]> (GMap.delete (child d bs) m)) !! e = _ ↔ _
+    by_cases h1 : child d bt = e
+    · subst h1; rw [GMap.lookup_insert]
+      constructor
+      · intro h; cases h
+      · intro h; exact absurd h ht
+    · rw [GMap.lookup_insert_ne _ _ h1]
+      by_cases h2 : child d bs = e
+      · subst h2; rw [GMap.lookup_delete, hf]; simp
+      · rw [GMap.lookup_delete_ne _ h2]
+
+theorem OsDirFd.note_path (o : NsOp) (df : OsDirFd) : (df.note o).path = df.path := by
+  unfold OsDirFd.note; split <;> rfl
+
+/-! ## The coherence a file operation keeps -/
+
+section coh
+variable {st st1 : OsState} {Γd : GMap GoString DirG} {Γdf : GMap w64 (GoString × DirPh)}
+
+/-- **A file operation of the directory `d`, made by the holder of `d`'s whole ghost entry `g`**
+(so that no read of `d` is in progress): the state after it is coherent with `d`'s entry with the
+change pushed. `st1` is the state the operation is made from (the in-flight flag cleared, a file
+created), with `st`'s namespace. -/
+theorem nsCoh_fileOp {d : GoString} {g : DirG} {o : NsOp} {lo : LOp}
+    (hc : NsCoh st Γd Γdf) (hg : Γd !! d = some g)
+    (hnr : ∀ fd rs g' q, Γdf !! fd ≠ some (d, .reading rs g' q))
+    (hop : FileOp st.ns o) (hin : FileOpIn st.ns d o lo)
+    (h1 : st1.ns = st.ns) (h2 : st1.nsDur = st.nsDur) (h3 : st1.nsLog = st.nsLog)
+    (h4 : st1.dfds = st.dfds) (hrep : st.ns = nsReplay st.nsLog st.nsDur) :
+    NsCoh (st1.nsDo o) (<[d := g.push lo]> Γd) Γdf := by
+  have hgnow : entsOf st.ns d = g.now := hc.now d g hg
+  refine ⟨fun e => ?_, fun e g' hg' => ?_, fun e g' hg' n hn => ?_, fun j hj => ?_,
+    fun fd => ?_, fun fd x df hx hdf => ?_, fun fd e rs g' q hx => ?_⟩
+  · show ((<[d := g.push lo]> Γd) !! e).isSome ↔ (o.apply st1.ns) !! e = some .dir
+    rw [h1, hin.dir e]
+    by_cases he : d = e
+    · subst he; rw [GMap.lookup_insert]
+      have := (hc.dirs d).1 (by rw [hg]; rfl)
+      simp [this]
+    · rw [GMap.lookup_insert_ne _ _ he]; exact hc.dirs e
+  · show entsOf (o.apply st1.ns) e = g'.now
+    rw [h1]
+    by_cases he : d = e
+    · subst he; rw [GMap.lookup_insert] at hg'; cases hg'
+      rw [hin.self, hgnow, DirG.push_now]
+    · rw [GMap.lookup_insert_ne _ _ he] at hg'
+      rw [hin.other e (Ne.symm he)]; exact hc.now e g' hg'
+  · show g'.CrashTo (entsOf (nsReplay ((st1.nsLog ++ [o]).take n) st1.nsDur) e)
+    have hn0 : n ≤ st.nsLog.length + 1 := by
+      have : (st1.nsDo o).nsLog = st1.nsLog ++ [o] := rfl
+      rw [this, h3] at hn; simpa using hn
+    rw [h2, h3]
+    rcases Nat.lt_or_ge n (st.nsLog.length + 1) with hlt | hge
+    · by_cases hle : n ≤ st.nsLog.length
+      · rw [List.take_append_of_le_length hle]
+        by_cases he : d = e
+        · subst he; rw [GMap.lookup_insert] at hg'; cases hg'
+          exact DirG.crashTo_push lo (hc.hist d g hg n hle)
+        · rw [GMap.lookup_insert_ne _ _ he] at hg'; exact hc.hist e g' hg' n hle
+      · omega
+    · have hn' : n = st.nsLog.length + 1 := by omega
+      subst hn'
+      rw [List.take_of_length_le (by simp),
+        nsReplay_snoc, ← hrep]
+      by_cases he : d = e
+      · subst he; rw [GMap.lookup_insert] at hg'; cases hg'
+        rw [hin.self, hgnow]; exact DirG.crashTo_push_now g lo
+      · rw [GMap.lookup_insert_ne _ _ he] at hg'
+        rw [hin.other e (Ne.symm he), hc.now e g' hg']; exact DirG.crashTo_now g'
+  · have hj0 : j < st.nsLog.length + 1 := by
+      have : (st1.nsDo o).nsLog = st1.nsLog ++ [o] := rfl
+      rw [this, h3] at hj; simpa using hj
+    show FileOp (nsReplay ((st1.nsLog ++ [o]).take j) st1.nsDur) (st1.nsLog ++ [o])[j]
+    rw [h2]
+    simp only [h3]
+    by_cases hlt : j < st.nsLog.length
+    · rw [List.take_append_of_le_length (Nat.le_of_lt hlt), List.getElem_append_left hlt]
+      exact hc.ops j hlt
+    · have hj' : j = st.nsLog.length := by omega
+      subst hj'
+      rw [List.take_append_of_le_length (Nat.le_refl _), List.take_length,
+        List.getElem_append_right (Nat.le_refl _)]
+      simp only [Nat.sub_self, List.getElem_cons_zero]
+      rw [← hrep]; exact hop
+  · show (Γdf !! fd).map (·.1) = ((GMap.fmap (·.note o) st1.dfds) !! fd).map (·.path)
+    rw [GMap.lookup_fmap, h4, hc.fds fd]
+    cases st.dfds !! fd with
+    | none => rfl
+    | some df => show some df.path = some (df.note o).path; rw [OsDirFd.note_path]
+  · show PhOk x.2 df.rd
+    have hdf' : (GMap.fmap (·.note o) st1.dfds) !! fd = some df := hdf
+    rw [GMap.lookup_fmap, h4] at hdf'
+    cases hd0 : st.dfds !! fd with
+    | none => rw [hd0] at hdf'; cases hdf'
+    | some df0 =>
+      rw [hd0] at hdf'; simp only [Option.map_some, Option.some.injEq] at hdf'
+      subst hdf'
+      have hph := hc.ph fd x df0 hx hd0
+      have hpath : x.1 = df0.path := by
+        have := hc.fds fd; rw [hx, hd0] at this; simpa using this
+      rcases x with ⟨xp, _ | ⟨rs, g0, q⟩ | _⟩
+      · -- idle: the note changes only a read
+        unfold OsDirFd.note; split <;> simp_all [PhOk]
+      · -- reading: of a directory other than `d`
+        have hne : xp ≠ d := fun h => hnr fd rs g0 q (by rw [hx, h])
+        have hnd : df0.path ∉ o.dirs := by rw [hin.dirs, ← hpath]; exact hne
+        rw [OsDirFd.note_of_not_dirs df0 hnd]; exact hph
+      · unfold OsDirFd.note; split <;> simp_all [PhOk]
+  · have hne : e ≠ d := fun h => hnr fd rs g' q (by rw [hx, h])
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]
+    exact hc.rd fd e rs g' q hx
+
+end coh
+
+end Perennial
+
+end
