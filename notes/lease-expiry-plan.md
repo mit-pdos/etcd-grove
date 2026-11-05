@@ -2685,3 +2685,11 @@ The facts:
 A thread token holds only levels `l < threadBound GF` (`Threads.lean:124`, `:362-366`), and Perennial guarantees only `1 < threadBound` (`:83`). The design uses levels up to 7, so it needs `8 ≤ threadBound GF` somewhere. I found no lower bound in the etcdserver proofs; `isServer` has only `threadBound ≤ 2^28` (`NewServer.lean:377`). Route (i)'s level needs the same.
 
 Whether the closed theorems' choice of `threadBound` makes such a premise harmless is something I have not checked.
+
+## S2–S4 Probe set (2026-11-05, named before the probes)
+
+At most an easy and a hard proof per package, the hard one chosen by its invariant:
+- **lease (the lessor).** Easy: `lease.lessor_live_perm`, the reordering of the live list, which is ghost-only. Hard: `lease.recover_hist` together with `lease.closers_recover`, the restore step that must keep the reader invariant's new clauses (`reqOk`, the ids-only `histOnce`) when a recovered id is already live. It is the riskiest case of the changed invariant.
+- **etcdserver.** Easy: `EtcdServer.applyAll.wp_proofSnap`'s `lg = true` case. Hard: `EtcdServer.applySnapshot.wp_proof_snapM`'s granting walk in the monotone mode, the restore of a leased image through `Recover`. It needs `histCover`, `appliedTable_mono_sub` and the per-mode request of F7, and it is the only check, before the Freeze, of the strength of `srvRestAt`'s and `srvEver`'s new clauses.
+
+These five are exactly the DRAFT `sorry`s every server result reaches (review round 1's F2/F16). None may land unproved: S2–S4 lands only when the server-wide reach is back to lean's (no new `sorry` outside the lease examples).
