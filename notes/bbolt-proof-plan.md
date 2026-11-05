@@ -1744,6 +1744,59 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
 5. Interfaces and the TCB baseline at integration (`DB.grow`'s three `sorry`s gone).
 - Open `sorry`s: none added; removed: `Mmap/GrowPure` ×3.
 
+### Maintainer 14 (2026-11-05): landed, and the hand-off
+
+Landed (each built over the importers that name what changed, then committed and pushed):
+- **`efa69ca1ae`, maintainer 13's synced-freelist patch** (its items 2, 3, 5, above), with the
+  `bktNested` ipg clause's producers: `Write/MatOK` (`wOK_matX` takes `hipg : B'.ipg = B.ipg` after
+  `hrn`), `Spill/DerefWOK.bktNested_step` (`bktStep_fields`), `Read/WOpenWOK` (`openedRec`'s ipg,
+  `inBucketRoot_zero`; `XO_bs_old` also gives `D.ipg = D0.ipg`). Consumers adapted: `Spill/BktVal`,
+  `RblXSSim`/`RblXSKill` (`hfwd` patterns), `RollbackReload:81`, `Mmap/Alloc:695` (`hcan.2.2`).
+  U10n's call sites in `Tx__Commit_err` (the `false` arguments dropped, `hal4`), `FreeFlPure`
+  (`wdbOK'_free_fl`, Inv/Store's `fbRec_lookup`). Also fixed `DerefWOK.posShape_step`, broken
+  before (`rw [.., h.1]` for the view in `posShape`'s `bktLeafPg` clause).
+- **`513b552934`, D1**: `gensOK`'s third clause `∀ b n, X.handles !! b = some (n, T.gen n) →
+  bktLoc X n = some b`; `gensOK_handle_bktLoc` (`h.2.2`) in `Inv/Tx` (Bucket__Get's `sorry` gone:
+  `Bucket.Get/Put/Delete` close); `gensOK_bktOpened` takes `hnr : bl ≠ X.rl → g < T.gen name`
+  (callers open from the root); `gensOK_dropBkt` by `gensD1_dropBkt`. The second clause is `.2.1`.
+- **`daa0817af4`, item 2 (D-L, `notes/bbolt-spec-decisions.md`, for the user's review)**:
+  `flFileOK` (behind `fileHolds`; `Api.lean`'s docstring) gains `pageId (filePage xs f) = f`;
+  `flCurOK`/`flCurOKr` end `… ∧ pageId pg = f`; `Commit/FreeFlOK.wb_pageId` gives `pageId (w.wb f)
+  = f` (`cm_free_fl`'s `hid`, U10n's to use).
+- **`a8c4c7689b`**: `Inv/ShapeOps.toList_insert_perm` → `toList_insert_perm_gm` (it clashed with
+  `freelist/Lemmas/Model`'s); `Write/CreateBktWp` uses `Mmap/TxAlloc.wtxW_db_acc` (U7l's copy gone).
+
+**Not started, the next maintainer's (both decided by the coordinator; both block DeleteBucket):**
+1. **(A) a dead bucket's nil node cache** (U7j: after `child.nodes = nil` the bucket's `↦$` is
+   unprovable, `ownMap_not_nil`). The coordinator's form `(if B.bv.nodes' = null then ⌜B.nm = ∅⌝
+   else B.bv.nodes' ↦${dq} B.nm)` for every bucket would break `Read/WCtx.wtxW_nodes_nonnull` and
+   `wtxW_nm_acc` (their only source of `nodes' ≠ null`, used by PutWp:408, DelWp:415,
+   CreateBktWp:414, CreateBktIfWp:549, Bucket__spill:285/469, Walk:312). `objOwn` cannot tell a
+   `deadB` entry from a `bs` one (`wtxHeap` maps `bobjs = bs ∪ deadB` with the `liveB` flag only),
+   so per the coordinator's decision take the **heapOK route**: `heapOK` gains `∀ bl B, X.t.bs !!
+   bl = some B → B.bv.nodes' ≠ null`, `objOwn`'s nodes clause takes the if-form, and
+   `wtxW_nodes_nonnull`/`wtxW_nm_acc` (`Rebalance/BktRbl`; copy of the bucket case in
+   `Rebalance/NodeRblBase.objOwn_bkt_unf`) read the fact from `heapOK` (callers unchanged).
+   DeleteBucket moves the child from `bs` to `deadB` before `child.nodes = nil` (Go:
+   `delete(b.buckets, key)` precedes it). Every `heapOK` producer (about 51 files mention `heapOK`;
+   `heapOK_step`, `heapOK_setNode`, `heapOK_of`, `heapOK_rebase`, AllocBase:118, …) adds the clause
+   (a bucket's `bv` kept, or a fresh writable `openBucket`, whose `nodes` is `make`'s). Scratch for
+   the objOwn half: `/home/ubuntu/.claude-E/jobs/e232d4e0/tmp/m14/objown_scratch.patch`
+   (`nodesOwn_ne`, `NodeRblBase.nodesOwn_of_map`). Build the leaves of
+   `etc/importers.py --leaves Proof/go_etcd_io/bbolt/Inv/WtxHeap.lean` (40) in one window.
+2. **(B) `bktNested` gains, per opened child entry, `bvalOK vw.pages T.mv.pgid'.toNat v` and
+   `inBucketRoot v ≠ 0 → treeKeys vw.pages (inBucketRoot v) none none`** (U7j). Producers: opening
+   (`Read/WOpenWOK`: `hbv`, `htk` are already in `wOK_XO`'s premises), `Write/MatOK` (the mark may
+   grow: needs `bvalOK` monotone in the mark), `Spill/DerefWOK`, `RblXSSim/Kill/Mg/Col/Rm`; spill
+   breaks them where it breaks `C.ib.root' = (ibOf v).root'`. Append after the ipg clause and fix
+   the users that name the ipg clause (`MatOK` `hipg2`, `DerefWOK` `hp`, `WOpenWOK` `hip0`,
+   `RblXSSim`/`RblXSKill` `hipg`), as in `efa69ca1ae`.
+3. Maintainer 13's items 2–5 (above) stand: `WriteExtRun`'s `hstr`, `markCov`'s threading, the
+   Perennial move, interfaces and the TCB baseline at integration.
+- Known breakages not mine at hand-off: `Tx__Commit_err:455` (`cmTailOK`'s new Bool argument,
+  U10n's uncommitted `Commit/TailDefs`), `Write/Retarget:219` (a unit is on it).
+- Open shared `sorry`s: none added; removed: `Bucket__Get.gensOK_handle_bktLoc` (D1).
+
 ## Writer reads at a fraction (U6w, 2026-11-05)
 
 **The cause** (found by the coordinator). The public read triples (`Bucket.Get`, `Bucket.Cursor`,
@@ -1786,7 +1839,7 @@ deferred it to U6f, and it was never followed up.
   `txBytesDef_acc` (was `sorry` in `Inv/Tx`) is proved in `Read/TxBytes` (imported by
   `Inv/FileHolds` for `Api.txBytes_acc`), for both kinds.
 
-## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 13)
+## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainers 13, 14)
 
 In `Model/`, `Inv/` (the internal specs' proof stubs `Proof/go_etcd_io/bbolt/<T>__<M>.lean` are the
 units', per the U0b table):
@@ -1803,6 +1856,10 @@ units', per the U0b table):
 | `treeData_spill` | `Model/LTree` | U9c |
 | `metaOk_parity_write` | `Model/Meta` | U10 |
 | `Tx.write_ext.wp_proof`'s past-the-end case (maintainer 12, item 3) | `Tx__write_ext` | a Commit/Write unit |
+
+(Maintainer 14, 2026-11-05: rechecked, the `Model/`/`Inv/` `sorry`s are `Inv/Tx.boltTxDef_fill`,
+`Model/LTree.treeData_spill`, `Model/WOps.flView_canFree`/`flView_nodeFree`; `Bucket__Get`'s
+`gensOK_handle_bktLoc` is gone with D1.)
 
 Maintainer 3's queue (C(1), C(4), E) is done in batch 30 above.
 
