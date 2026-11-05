@@ -112,7 +112,7 @@ theorem txn.checkTxn_strong
       (Val #tw))
       (Val #rt)) (Val #le)) (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.api.mvccTxn tw γ trace (.read σ) ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      traceutil.ownTrace trace te ∗
       (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter σ.log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter σ.log)
@@ -124,7 +124,7 @@ theorem txn.checkTxn_strong
             (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧ txn.PathsLeaseOk (mvcc.stateAfter σ.log) Lv
             (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))))⌝ ∗ txn.checkErrIs err)) }} := by
   intro tw γ trace te σ rt t le γl pl rest Lv I lu
-  iloeb as IH generalizing %te %rt %t %pl %rest
+  iloeb as IH generalizing %rt %t %pl %rest
   wp_start as ⟨%Htr, Htx, Htrc, %Hreach, #Hrt, #Hle, Hu, #Hpl, %Hlu⟩
   iunfold txn.txnRequestIs at Hrt
   icases Hrt with ⟨%Hrtn, Hrt⟩
@@ -165,16 +165,13 @@ theorem txn.checkTxn_strong
   rw [hops] at Hro Hpl0
   ihave %Hrl := txn.requestOpsIs_length _ _ $$ Hrps
   ihave %Hrsll := ownSlice_len _ _ _ $$ Hrsl
-  ihave Htrc : (∃ te0 : Bool, traceutil.ownTrace trace te0) $$ [Htrc]
-  · iexists te; iexact Htrc
   ihave HI : (∃ (i : Nat) (pv : GoSlice) (x : Bool) (q : Loc),
-      "Htrc" ∷ (∃ te0 : Bool, traceutil.ownTrace trace te0) ∗
       "i" ∷ i_ptr ↦ W64 (i : Int) ∗ "req" ∷ req_ptr ↦ q ∗
       "txnPath" ∷ txnPath_ptr ↦ pv ∗ "#Hpv" ∷ pv ↦*□ (x :: (txn.opsPath s0 (ops.drop i) ++ rest)) ∗
       "txnCount" ∷ txnCount_ptr ↦ W64 ((txn.opsPath s0 (ops.take i)).length : Int) ∗
       "%Hi" ∷ ⌜i ≤ ops.length ∧ txn.PathsIgnOk s0 (ops.take i)⌝ ∗
       "#Hls" ∷ txn.leasesOk Lv (txn.opsLeases s0 (ops.take i)) ∗
-      "Hu" ∷ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I)) $$ [i req txnPath txnCount Hu Htrc]
+      "Hu" ∷ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv I)) $$ [i req txnPath txnCount Hu]
   · iexists 0, pl, txn.txnOk s0 t, zero_val Loc
     simp only [named, List.drop_zero, List.take_zero]
     iframe
@@ -264,8 +261,7 @@ theorem txn.checkTxn_strong
       icases Hu with (%Hlu' | Hu)
       · cases Hlu'
       wp_auto
-      icases Htrc with ⟨%te1, Htrc⟩
-      wp_apply (hPut tw γ trace te1 (.read σ) le γl r o Lv I) $$ [$Htx $Htrc $Hr $Hle $Hu]
+      wp_apply (hPut tw γ trace te (.read σ) le γl r o Lv I) $$ [$Htx $Htrc $Hr $Hle $Hu]
         as %err ⟨Htx, Htrc, Hu, Herr⟩
       · ipureintro; exact ⟨Htr, Hreach⟩
       rw [hks]
@@ -366,8 +362,7 @@ theorem txn.checkTxn_strong
         rw [show sint.nat (W64 1) = 1 from rfl]; rfl
       rw [hd1]
       rw [← hL]
-      icases Htrc with ⟨%te1, Htrc⟩
-      wp_apply IH $$ %te1 %r %tn %(slice.slice pv Bool (W64 1) pv.len) %R [Htx Htrc Hu]
+      wp_apply IH $$ %r %tn %(slice.slice pv Bool (W64 1) pv.len) %R [Htx Htrc Hu]
         as %n %err ⟨Htx, Htrc, Hu, Hres⟩
       · iframe Htx Htrc Hle Hpv1
         isplitl []; · ipureintro; exact Htr

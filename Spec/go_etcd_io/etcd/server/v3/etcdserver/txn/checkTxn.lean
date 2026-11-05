@@ -33,8 +33,8 @@ path's ranges and puts (`checkRange`, `checkPut`), the number of nested transact
 error.
 
 (Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
-(The trace given back as `∃ te', ownTrace trace te'`, decided by the coordinator, 2026-11-05:
-`getPrevKV` reads in `Trace.StepWithFunction`, which gives back `∃ e'`.) -/
+(The trace kept at `te`: `Trace.StepWithFunction` keeps the flag, decided by the coordinator,
+2026-11-05, superseding gap E.) -/
 
 abbrev txn.checkTxn.spec : Prop :=
   ∀ (tw : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (rt : Loc)
@@ -48,7 +48,7 @@ abbrev txn.checkTxn.spec : Prop :=
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace)) (Val #tw)) (Val #rt)) (Val #le))
       (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.api.mvccTxn tw γ trace (.read σ) ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
+      traceutil.ownTrace trace te ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter σ.log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter σ.log)
             (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))⌝ ∗

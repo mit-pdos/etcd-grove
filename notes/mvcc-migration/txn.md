@@ -35,9 +35,11 @@ them (frozen), its proofs over the API's contracts and laws, no mvcc internal im
 
 ## Found: statements that cannot be proved over the frozen API/draft
 
-**Decided by the coordinator, 2026-11-05:** E as its minimal fix below (`getPrevKV`,
-`checkAndGetPrevKV`, `checkPut`, `checkTxn` give the trace back `∃ te'`), applied in the spec files
-and `TxnSpecs.lean` (`clients-txn.md` §8); F as an API change by the mvcc track. And earlier: B and D in txn's draft as their minimal fixes below
+**Decided by the coordinator, 2026-11-05:** E (and E′) by the stronger `Trace.StepWithFunction.spec`
+(traceutil's `StepWithFunction` keeps the flag: `f` and the post give back `ownTrace t e`), which
+supersedes E's first decision (`getPrevKV`, `checkAndGetPrevKV`, `checkPut`, `checkTxn` giving the
+trace back `∃ te'`, reverted: their posts give `ownTrace trace te` again, in the spec files and
+`TxnSpecs.lean`, `clients-txn.md` §8); F as an API change by the mvcc track. And earlier: B and D in txn's draft as their minimal fixes below
 (`checkRange.spec` takes `⌜txn.Reach σ⌝`; `txn.spec` takes `ro = false → σ.pending = none`), applied in
 the spec files and `notes/mvcc-api-clients/TxnSpecs.lean` (`clients-txn.md` §8); A and C as API
 changes by the mvcc track (`Txn.Range`/`KV.Range`: `⌜LogWf' log ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝`;
@@ -104,6 +106,10 @@ was inside `isTxn`, existentially.
 works at the `te` `checkTxn` returns, `executeTxn` too). (Or a stronger
 `Trace.StepWithFunction.spec`, `traceutil`'s: `ownTrace t false` when given `ownTrace t false`, if
 true of the code; every caller of txn starts at `EnsureTrace`'s `false`.)
+*Superseded* (decided by the coordinator, 2026-11-05: traceutil's StepWithFunction keeps the flag):
+`Trace.StepWithFunction.spec`'s `f` and post give back `ownTrace t e`, the same `e` (`isEmpty` is
+written only at a trace's creation); the four posts give `ownTrace trace te` again (spec files,
+`TxnSpecs.lean`), and E′ (below) is gone with E.
 
 **Gap F (the API; blocks `deleteRange`, found 2026-11-05 after A's fix).** `deleteRange` without
 `PrevKv` calls only `Txn.DeleteRange`, whose post's deleted keys are mvcc's index answers
@@ -124,21 +130,20 @@ gave `Txn.Range`'s.
   mvcc's law proofs (mvcc's Link). `Results.lean` restated the sole writer's results over
   `soleWriter`/`kvWriter`: to redo over the new specs (or drop: the server's `KVStoreCore` holds
   the pin now).
-- The placeholders: below; each closes when its gap's fix lands.
+- No placeholder left (E′'s, the last, closed by E's superseding decision, 2026-11-05).
 
 ## Status per proof (every module of the package builds but `Link`, `Results`)
 
 Proved over the API (no sorry): `Range`, `Count`, `Put`, `DeleteRange`, `Txn`, `txn`, `executeRange`,
 `applyCompare`, `applyCompares`, `compareToPath`, `getPrevKV`, `checkAndGetPrevKV`, `checkPut`,
-`checkRange`, `checkTxn`, `put`, `deleteRange` (after F's fix, `ff4c068084`), and every proof with
-no mvcc callee (the list in "Done").
-
-`M1-REPLACE` placeholder (the package's only `sorry`): `executeTxn`, proved but for one obligation in
-its put branch, gap E′ (below): the trace's flag back after `getPrevKV`.
+`checkRange`, `checkTxn`, `put`, `deleteRange` (after F's fix, `ff4c068084`), `executeTxn` (after
+E's superseding fix), and every proof with no mvcc callee (the list in "Done"). The package has no
+`sorry` (`#print axioms` of `executeTxn`'s and `txn`'s `wp_proof`: no `sorryAx`).
 
 The old proofs over the internals are in the history (`645402be7a~1`).
 
-**Gap E′ (found 2026-11-05, applying E's decision).** With E, `getPrevKV` gives back
+**Gap E′ (found 2026-11-05, applying E's decision; closed the same day, fix (a), decided by the
+coordinator: traceutil's StepWithFunction keeps the flag).** With E, `getPrevKV` gives back
 `∃ te', ownTrace trace te'`; `executeTxn` calls it in its put branch, but `executeTxn.spec`'s post
 (and `txn.spec`'s, which passes it on) gives back the caller's `ownTrace trace te`. My report of E
 said `executeTxn` "works at the `te` returned": wrong for its post. `te` is the trace's `isEmpty`

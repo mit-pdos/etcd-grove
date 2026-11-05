@@ -126,7 +126,7 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   -- `checkAndGetPrevKV(trace, txnWrite, p)`
   wp_apply (hCheck _ γ trace false (.write σ₀ []) p o) $$ [$Htx $Htrc $Hp]
-    as %prev %err ⟨Htx, ⟨%te1, Htrc⟩, Hout⟩
+    as %prev %err ⟨Htx, Htrc, Hout⟩
   · ipureintro; exact ⟨Ht, Hreach0.1⟩
   have hms : txn.mstate (.write σ₀ []) = mvcc.stateAfter σ₀.log := rfl
   rw [hms]
@@ -151,7 +151,7 @@ theorem txn.Put.wp_proof
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]
-    · iexists te1; iexact Htrc
+    · iexists false; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
     iright
@@ -175,7 +175,7 @@ theorem txn.Put.wp_proof
           txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) := by
         simp only [↓reduceIte]; (try (iintro H; iexact H))
       iapply h $$ Hilok
-  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace te1 σ₀ [] p o prev L
+  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L
   simp only [txn.pendState_nil, List.nil_append] at hp
   iunfold EtcdGrove.lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
@@ -205,7 +205,7 @@ theorem txn.Put.wp_proof
   isplitl []
   · ipureintro; exact Ht
   isplitl [Htrc]
-  · iexists te1; iexact Htrc
+  · iexists false; iexact Htrc
   isplitr
   · ipureintro; exact Hteq
   iright

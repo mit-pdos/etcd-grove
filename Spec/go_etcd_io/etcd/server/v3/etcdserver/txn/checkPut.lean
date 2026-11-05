@@ -32,8 +32,8 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 (`ErrLeaseNotFound`), then `checkAndGetPrevKV`'s (`ErrKeyNotFound`).
 
 (Strict M1, 2026-11-05: over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean` drafts it.)
-(The trace given back as `∃ te', ownTrace trace te'`, decided by the coordinator, 2026-11-05:
-`getPrevKV` reads in `Trace.StepWithFunction`, which gives back `∃ e'`.) -/
+(The trace kept at `te`: `Trace.StepWithFunction` keeps the flag, decided by the coordinator,
+2026-11-05, superseding gap E.) -/
 
 abbrev txn.checkPut.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (le : GoInterface)
@@ -44,7 +44,7 @@ abbrev txn.checkPut.spec : Prop :=
       lease.lessorUser γl L I }}
     (App (App (App (App (Val (@! txn.checkPut)) (Val #trace)) (Val #t)) (Val #le)) (Val #p))
   {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace k ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      traceutil.ownTrace trace te ∗
       lease.lessorUser γl L I ∗
       ((⌜err = GoInterface.nil ∧
           (txn.needsPrev o = true → (mvcc.findKey o.key (txn.mstate k)).isSome)⌝ ∗

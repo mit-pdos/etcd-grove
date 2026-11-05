@@ -175,7 +175,10 @@ Decided by the coordinator, 2026-11-05:
   state needs it); `Txn.Changes` gives `⌜0 ≤ sint.Z chs.len⌝` (`executeTxn`'s signed `len(..) > 0`).
 - **E** (this draft): `getPrevKV`, `checkAndGetPrevKV`, `checkPut` and `checkTxn` give the trace back
   as `∃ te', ownTrace trace te'` (`getPrevKV` reads inside `Trace.StepWithFunction`, which gives back
-  `∃ e'`);
+  `∃ e'`). *Superseded*, decided by the coordinator, 2026-11-05: traceutil's StepWithFunction keeps
+  the flag (`f` and its post give back `ownTrace t e`; `isEmpty` is written only at a trace's
+  creation), so the four posts give `ownTrace trace te` again, as this draft had them; with it
+  `executeTxn`'s gap E′ placeholder is gone;
 - **F** (the API, the mvcc track): `Txn.DeleteRange`'s post gives `⌜LogWf' (σ.log ++ [pend]) ∧ ∀ cs ∈
   σ.log ++ [pend], cs.length < 2 ^ 63⌝` (`deleteRange` without `PrevKv` reads no range).
 `TxnSpecs.lean` is updated for B, D and E.

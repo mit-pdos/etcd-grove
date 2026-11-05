@@ -68,7 +68,7 @@ theorem txn.getPrevKV.wp_proof
     iapply HΦ
     iframe Htx
     isplitl [Htrc]
-    · iexists te; iexact Htrc
+    · iexact Htrc
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro; rfl
   · -- the range read of the key, in the trace's step
@@ -108,7 +108,7 @@ theorem txn.getPrevKV.wp_proof
         · ipureintro; rfl
         isplitr [Htrc]
         · iexists r; iframe
-        iexists te; iexact Htrc
+        iexact Htrc
       (try wp_auto)
       iapply HΦ
       iframe Htx Htrc

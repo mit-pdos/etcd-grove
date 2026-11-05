@@ -40,18 +40,17 @@ theorem traceutil.Trace.StepWithFunction.wp_proof
   wp_bind (App (Val #f) (Val #()))
   iapply wp_wand $$ [Hwp Ht]
   · iapply Hwp $$ Ht
-  iintro %v ⟨%Hv, HQ, %e', Ht⟩
+  iintro %v ⟨%Hv, HQ, Ht⟩
   subst Hv
   (try wp_auto)
-  wp_apply hEn t e' $$ [Ht] as Ht
+  wp_apply hEn t e $$ [Ht] as Ht
   · iframe #; iframe Ht
   (try wp_auto)
-  wp_apply hStep t e' msg fields $$ [Ht Hf] as Ht
+  wp_apply hStep t e msg fields $$ [Ht Hf] as Ht
   · iframe #; iframe
   (try wp_auto)
   iapply HΦ
   iframe HQ
-  iexists e'
   iexact Ht
 
 end proof

@@ -403,15 +403,16 @@ abbrev txn.api.compareToPath.spec : Prop :=
       sl ↦* txn.txnPath (mvcc.stateAfter σ.log) tm ∗ ownSliceCap Bool sl (DFrac.own 1) }}
 
 /-- `getPrevKV(trace, txnWrite, p)` at a transaction of either kind (its state `mstate k`).
-(Superseded 2026-11-05, decided by the coordinator: the trace given back `∃ te'`, here and in
-`checkAndGetPrevKV`, `checkPut`, `checkTxn`; `notes/mvcc-migration/txn.md` gap E.) -/
+(The trace kept at `te`, here and in `checkAndGetPrevKV`, `checkPut`, `checkTxn`: gap E's `∃ te'`
+superseded, decided by the coordinator, 2026-11-05: traceutil's `StepWithFunction` keeps the flag;
+`notes/mvcc-migration/txn.md` gap E.) -/
 abbrev txn.api.getPrevKV.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (p : Loc) (o : OpFull),
   {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
       ⌜txn.api.Reach k.state⌝ ∗ txn.putRequestIs p o }}
     (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #t)) (Val #p))
   {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.api.mvccTxn t γ trace k ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      traceutil.ownTrace trace te ∗
       if txn.readsPrev o then txn.prevKvIs r (txn.api.mstate k) o.key else ⌜r = null⌝ }}
 
 abbrev txn.api.checkAndGetPrevKV.spec : Prop :=
@@ -420,7 +421,7 @@ abbrev txn.api.checkAndGetPrevKV.spec : Prop :=
       ⌜txn.api.Reach k.state⌝ ∗ txn.putRequestIs p o }}
     (App (App (App (Val (@! txn.checkAndGetPrevKV)) (Val #trace)) (Val #t)) (Val #p))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err); mvcc.api.mvccTxn t γ trace k ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      traceutil.ownTrace trace te ∗
       ((⌜err = GoInterface.nil⌝ ∗
           ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.api.mstate k)).isSome⌝ ∗
           if txn.readsPrev o then txn.prevKvIs r (txn.api.mstate k) o.key else ⌜r = null⌝) ∨
@@ -436,7 +437,7 @@ abbrev txn.api.checkPut.spec : Prop :=
       lease.lessorUser γl L I }}
     (App (App (App (App (Val (@! txn.checkPut)) (Val #trace)) (Val #t)) (Val #le)) (Val #p))
   {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace k ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      traceutil.ownTrace trace te ∗
       lease.lessorUser γl L I ∗
       ((⌜err = GoInterface.nil ∧
           (txn.needsPrev o = true → (mvcc.findKey o.key (txn.api.mstate k)).isSome)⌝ ∗
@@ -458,7 +459,7 @@ abbrev txn.api.checkTxn.spec : Prop :=
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace)) (Val #tw)) (Val #rt)) (Val #le))
       (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.api.mvccTxn tw γ trace (.read σ) ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
+      traceutil.ownTrace trace te ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L I) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter σ.log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter σ.log)
             (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t))⌝ ∗

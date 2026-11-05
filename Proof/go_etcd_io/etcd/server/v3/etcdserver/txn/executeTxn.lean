@@ -743,9 +743,6 @@ theorem txn.executeTxn.wp_proof
       wp_apply (hPrev (interface.mkOk tyX vX) γ trace te (.write σ _) pr o) $$ [$Htw $Htrc $Hpr]
         as %pv ⟨Htw, Htrc, Hpv⟩
       · ipureintro; exact ⟨Htrace, hreach⟩
-      ihave Htrc : traceutil.ownTrace trace te $$ [Htrc]
-      · -- the trace's emptiness flag back (getPrevKV's post gives `∃ te'`, gap E)
-        sorry -- M1-REPLACE: gap E′: executeTxn's post keeps the caller's `te` but getPrevKV's gives back `∃ te'` (fix: `Trace.StepWithFunction.spec` keeping `e`, true of the code, or executeTxn/txn posts `∃ te'`), notes/mvcc-migration/txn.md
       simp only [txn.mstate]
       rw [hps]
       have hput1 := srvOp_putTxnOp s0 r stn o

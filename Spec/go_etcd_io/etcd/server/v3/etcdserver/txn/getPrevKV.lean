@@ -33,15 +33,15 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.)
 
-(Strict M1: the trace given back as `∃ te', ownTrace trace te'`, decided by the coordinator,
-2026-11-05: `getPrevKV` reads in `Trace.StepWithFunction`, which gives back `∃ e'`.) -/
+(The trace kept at `te`: `Trace.StepWithFunction` keeps the flag, decided by the coordinator,
+2026-11-05, superseding gap E.) -/
 abbrev txn.getPrevKV.spec : Prop :=
   ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (te : Bool) (k : MTxn) (p : Loc) (o : OpFull),
   {{ pkgInit ∗ ⌜trace ≠ null⌝ ∗ mvcc.api.mvccTxn t γ trace k ∗ traceutil.ownTrace trace te ∗
       ⌜txn.Reach k.state⌝ ∗ txn.putRequestIs p o }}
     (App (App (App (Val (@! txn.getPrevKV)) (Val #trace)) (Val #t)) (Val #p))
   {{ (r : Loc), RET (PairV #r #(GoInterface.nil)); mvcc.api.mvccTxn t γ trace k ∗
-      (∃ te' : Bool, traceutil.ownTrace trace te') ∗
+      traceutil.ownTrace trace te ∗
       if txn.readsPrev o then txn.prevKvIs r (txn.mstate k) o.key else ⌜r = null⌝ }}
 
 end spec
