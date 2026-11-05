@@ -418,4 +418,5 @@ full. An edit to a proof in an imported module (its `Inv*` or lemma files) does 
 modules importing it stale: Lake rebuilds an importer only when the imported module's public
 `.olean` changes, and a proof's body is not part of it (measured: a proof edited, and lines
 inserted above it, in `InvReadylog`, left its 60 importers up to date). Changing a statement or
-a definition does rebuild the importers.
+a definition does rebuild the importers, and so does replacing a `sorry` by a proof: the public
+`.olean` changes (the theorem no longer mentions `sorryAx`), unlike an edit to a finished proof.
