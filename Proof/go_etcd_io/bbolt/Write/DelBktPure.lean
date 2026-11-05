@@ -13,13 +13,12 @@ U7o (`notes/bbolt-proof-plan.md`): **`DeleteBucket`'s records, pure** (the root 
    facts by `Write/DelBktPost2.dbk_core`, the freelist's agreement by `Write/DelBktFlv.dbk_flView`,
    the page tokens by `Write/DelBktShape.dbk_shape`; the cursor's writer facts, `wrCurFacts`, are
    `DelBktWp`'s).
-The proofs are in `Write/DelBktPlain`, `DelBktOpen`, `DelBktFound`, `DelBktFree`, `DelBktWOk`,
+The proofs are in `Write/DelBktOpen`, `DelBktFound`, `DelBktFree`, `DelBktWOk`,
 `DelBktPost`, `DelBktPost2` (U7p), `DelBktFlv`, `DelBktShape` (U7q).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Write.DelBktHeap
-public import Proof.go_etcd_io.bbolt.Write.DelBktPlain
 public import Proof.go_etcd_io.bbolt.Write.DelBktOpen
 public import Proof.go_etcd_io.bbolt.Write.DelBktFound
 public import Proof.go_etcd_io.bbolt.Write.DelBktFree

@@ -17,6 +17,7 @@ module
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSFree
 public import Proof.go_etcd_io.bbolt.Rebalance.RblXSRmT
 public import Proof.go_etcd_io.bbolt.Write.DelBktFlvFl
+public import Proof.go_etcd_io.bbolt.Rebalance.RblXSFl
 
 @[expose] public section
 
@@ -32,23 +33,6 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section flvn
 variable [GooseExts]
-
-/-- `lCovers` by its witnesses (`Rebalance/RblXSFl`'s `lCovers_iff`, which cannot be imported
-beside `Write/DelBktFlvFl`: both bring a `runIds_nodup`). -/
-theorem lCovers_iffW (X : WX) (s : Nat) : lCovers X s ↔ ∃ c, coverW X s c := by
-  constructor
-  · rintro (⟨bl, e, hne, he, h1, h2⟩ | ⟨n, v, h1, h2, h3⟩)
-    · obtain ⟨pid, hp, hx⟩ := List.mem_filterMap.1 he
-      exact ⟨.pos bl pid, hne, hp, e, hx, h1, h2⟩
-    · exact ⟨.bkt n, v, h1, h2, h3⟩
-  · rintro ⟨c, hc⟩
-    cases c with
-    | pos bl pid =>
-      obtain ⟨hne, hp, e, hx, h1, h2⟩ := hc
-      exact Or.inl ⟨bl, e, hne, List.mem_filterMap.2 ⟨pid, hp, hx⟩, h1, h2⟩
-    | bkt n =>
-      obtain ⟨v, h1, h2, h3⟩ := hc
-      exact Or.inr ⟨n, v, h1, h2, h3⟩
 
 /-- The extent of a position resolved to a node read from a page: the node's page's. -/
 theorem posExtent_resolved (X : WX) (bl n : Loc) (B : BRec) (r : NRec) (pg : List w8) (pid : w64)
@@ -234,7 +218,7 @@ theorem flView_nodeFree_pos (X : WX) (fl : FLPg) (txid : w64) (bl n : Loc) (B : 
   have hN64 : E.toNat + N < 2 ^ 64 := hcan.2.1
   have hcov : ∀ s, lCovers X' s ↔ lCovers X s ∧ ¬ (E.toNat ≤ s ∧ s < E.toNat + N) := by
     intro s
-    rw [lCovers_iffW, lCovers_iffW]
+    rw [lCovers_iff, lCovers_iff]
     constructor
     · rintro ⟨c, hc⟩
       obtain ⟨hc0, hcE⟩ := (hback s c).1 hc

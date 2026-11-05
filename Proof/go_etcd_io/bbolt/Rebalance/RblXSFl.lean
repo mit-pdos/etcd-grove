@@ -7,6 +7,7 @@ before but `E`'s, which only `E` covered (`covU`) and which are now pending (`fl
 module
 
 public import Proof.go_etcd_io.bbolt.Rebalance.RblX
+public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.Model
 
 @[expose] public section
 
@@ -45,21 +46,6 @@ theorem runIds_toNat (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (x : w64)
   rw [BitVec.toNat_add]
   have : (W64 (j : Int)).toNat = j := by simp only [W64, BitVec.toNat_ofInt]; omega
   rw [this]; omega
-
-theorem runIds_nodup (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) : (runIds id n).Nodup := by
-  unfold runIds
-  apply List.pairwise_map.2
-  apply (List.nodup_range).imp_of_mem
-  intro a b ha hb hab he
-  have ha' := List.mem_range.1 ha
-  have hb' := List.mem_range.1 hb
-  have := congrArg BitVec.toNat he
-  rw [BitVec.toNat_add, BitVec.toNat_add] at this
-  have e1 : (W64 (a : Int)).toNat = a := by simp only [W64, BitVec.toNat_ofInt]; omega
-  have e2 : (W64 (b : Int)).toNat = b := by simp only [W64, BitVec.toNat_ofInt]; omega
-  rw [e1, e2] at this
-  apply hab
-  omega
 
 /-- **`flView` and `covU` after the position `E` of `bl` is freed** (see the module doc). -/
 theorem flView_free (X X' : WX) (fl : FLPg) (bl : Loc) (E : w64) (N : Nat) (txid : w64)
@@ -184,7 +170,7 @@ theorem flView_free (X X' : WX) (fl : FLPg) (bl : Loc) (E : w64) (N : Nat) (txid
       rw [List.append_assoc]; exact List.Perm.append_left _ hperm
     apply hp'.nodup_iff.2
     apply List.nodup_append.2
-    refine ⟨hnd, runIds_nodup E N hN64, fun a ha b hb hab => ?_⟩
+    refine ⟨hnd, runIds_nodup (Nat.le_of_lt hN64), fun a ha b hb hab => ?_⟩
     subst hab
     exact hcan.2.2.1 a hb ha
   · intro x hx
