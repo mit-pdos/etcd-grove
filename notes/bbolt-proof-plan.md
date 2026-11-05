@@ -1708,8 +1708,34 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
   Both and the weakening are one `WriteExtRun` edit (~24 min per elaboration). **For U10m**
   (`Commit/TailWrite.cm_write_step`): pass `hpart` from `wdbOK`'s clause 16.
 
+- **Synced-freelist queue (U10m/U10n) and `bktNested`'s ipg clause: checkpoint, not landed.**
+  Item 4 landed (`4824c8a91b`: `fbRec`/`fbRec_lookup` in a pure section of `Inv/Store`; U10m:
+  replace `Commit/FreeFlPure.ff_fbRec_lookup`'s use at :190, delete the copy). **Item 1 blocked**:
+  no public clause gives the freelist page's header id at `Open` (`Inv/FileHolds.flFileOK` says
+  nothing of `pageId (filePage xs f)`; Go's `freelist.Read` does not check it): `flFileOK` must
+  gain it first (behind `fileHolds`: the coordinator's decision; producers `fileHoldsDef_new`,
+  `Open/InitImage`). **Items 2, 3 and 5 written, reverted to scratch** (they broke other units
+  while uncommitted): the patch `/home/ubuntu/.claude-E/jobs/e232d4e0/tmp/m13/m13_items.patch`
+  (`git apply` from the worktree root; 21 files), the new module `…/m13/FreeFlOK.lean` (→
+  `Commit/FreeFlOK.lean`), the leaf targets `…/m13/m13_targets.txt`. Contents: `flCurOK`'s and
+  `flCurOKr`'s 13th clause `∀ a, fl.allocs !! W64 f = some a → a.toNat ≤ C.txid`; `flCurOKr`'s slot
+  clause `¬ coversSlot … ∧ s ∈ pendSlots fl ∧ W64 s ∉ fl.free ∧ ∀ t pd, … → t = wtx`;
+  `flCurOK_flCurOKr` deleted; `wdbOK_wdbOK'`, `wdbW_wdbW'`, `wdbLost_wdbLost'`, `wtxEnd_wtxEnd'` at
+  flag `false` only (callers `Tx__Commit_err:492,506,515,742` drop the argument); `flClause_alloc`,
+  `wdbOK_alloc`, `wdbOK'_alloc` take `hr : r ∈ w.fl.free`; new `Commit/FreeFlOK.wdbOK'_free_fl`
+  (Tx__Commit_err:1092), `flAlloc_ne_wtxid` (`cm_free_fl`'s `hal`), `wdbOK'_true_extPend`
+  (`TailFPure.flExtPend_of_true`); `cmPubPre_commitFl` takes `hal4` (Tx__Commit_err:583 passes
+  `Hcf4.2.2.2.2.2.2`); `FreeFlPure.freeFl_ok:167`'s flagged part becomes `wdbOK'_free_fl w f hok
+  hf`. `bktNested`'s last clause `(C.ib.root' = W64 0 → C.bv.rootNode' = null → C.ipg = inlinePage
+  v)`: RblXSSim/RblXSKill/RblXMg/RblXSCol/RblXSRm fixed in the patch; open: `Write/MatOK:241`,
+  `Spill/DerefWOK.bktNested_step` (`(bktStep_fields hsC).2.2.2.2.1`), `Read/WOpenWOK:459`
+  (`bktOpened`: `inBucketRoot_zero`). **To land**: apply, finish item 5's producers, build the
+  targets in one go, land U10m's three call-site edits with it (a quiet window or a coordinated
+  hand-over of `Tx__Commit_err`, `FreeFlPure`).
+
 ### Maintainer 13's hand-off (2026-11-04): what is left
 
+0. Land the scratch patch (synced-freelist items 2, 3, 5; above), after the coordinator decides item 1 (`flFileOK`'s header id).
 1. U11h's `Open.lean:723` (`Hfd.2`) and U10l's `TailAcc`/`TailPub` adaptations (item 1, above);
    until then `Commit/Tail*`, `Commit/Pub*`, `Tx__Commit_err` and `Open` do not build.
 2. Item 2's consumers: done (above). `WriteExtRun`: weaken `hstr`, add the post facts (queue (b)).
@@ -1717,6 +1743,36 @@ allocate them (`Open/Core`'s two `⟨…⟩` constructors and its `pagesInv`/`me
 4. Perennial: move `struct_wp_alloc_pos` to `Golang/Theory` (`notes/perennial-changes.md`).
 5. Interfaces and the TCB baseline at integration (`DB.grow`'s three `sorry`s gone).
 - Open `sorry`s: none added; removed: `Mmap/GrowPure` ×3.
+
+## Writer reads at a fraction (U6w, 2026-11-05)
+
+**The cause** (found by the coordinator). The public read triples (`Bucket.Get`, `Bucket.Cursor`,
+`Cursor.First/Next/Last/Seek`) hold at any fraction `q` of either kind of transaction. The
+invariant design had this right: `boltTxDef`'s writer branch holds `wtxFrac B tx r q T X` (the
+heap, fills and registries' auths at `q`, the view cells at `q · wq`, the mapping fields at
+`q · ¼`), and design review 1 checked the writer's `Get`/`Cursor` at a fraction (`pageNode`,
+`b.nodes` and `tx.pages` are only read). U0b's contracts then stated *every* internal writer spec
+over `wtxW` (`wtxCore` at `1`), the read-only ones included, so `boltTxDef_wtxW` (at `q = 1`) was
+the only way in and the writer case of the public reads was unprovable. Batch 37 flagged it,
+deferred it to U6f, and it was never followed up.
+
+**The fix** (U6w):
+- `Inv/Ctx`: `wtxCoreQ K tx r m q X` and `wtxWQ K tx r m q X` (every `1` of `wtxCore`/`wtxW` at
+  `q`, the view cells at `QpMul q wq`, the mapping quarter at `QpMul q ¼`); `wtxCoreQ_one`
+  (`rfl`) and `wtxWQ_one : wtxWQ … 1 X = wtxW … X`; `boltTxDef_wtxWQ` (a writer's `boltTxDef` at
+  `q` is `wtxWQ` at `q` with `wtxFrac`'s facts, its agreed state's `q.half` and the data's
+  `QpMul q ¼`). `wtxCore`/`wtxW` are unchanged definitions (their users unchanged). No splitting
+  is needed inside the reads (each takes `wtxWQ` at `q` and gives it back whole); the split is
+  `boltTx_fractional`'s (`boltTxDef_fractional`, proved), so no `ownMap` fraction lemma was needed.
+- The read-only writer specs gain a `specQ` (over `wtxWQ` at any `q`, given back unchanged) in
+  the same spec file; `spec` (over `wtxW`) stays, proved as `specQ`'s case `q = 1` (`wp_proof`
+  from `wp_proofQ` by `wtxWQ_one`), so the write path's callers are unchanged.
+  `Read/WQ` holds `wtxWQ`'s accessors (the `wtxW_*` accessors at `q`).
+- Also (the coordinator's decision on maintainer R's proposal): `hdlAuth r q H` (the handle
+  registry's auth at `q` with every handle's persistent fragment, `hdlFrags`, moved from
+  `Read/WKey` to `Inv/Tx`) replaces the bare auth in `wtxCore`, `wtxCoreQ` and `wtxFrac`
+  (fractional: `hdlAuth_fractional`); `wtxW_bktOpen` adds the new fragment, `beginRWTx` starts
+  from `hdlAuth_of_empty`.
 
 ## Open shared `sorry`s (inventory, 2026-11-04, maintainer 3; updated by maintainer 13)
 
