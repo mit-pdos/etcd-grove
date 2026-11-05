@@ -6,17 +6,13 @@ public import Perennial.GeneratedProof.context
 public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.third_party.bridge
-public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
-public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_uber_org.zap
-public import GeneratedProof.google_golang_org.grpc
-public import GeneratedProof.google_golang_org.grpc.keepalive
-public import GeneratedProof.net
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -32,97 +28,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.mit_pdos.etcd_grove.examples.etcd.partition
-
-namespace Step
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
-
-noncomputable instance Step_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step where
-  typedPointstoDef l v dq := iprop(
-    "Delay" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Delay" l) v.Delay' dq ∗
-    "Kind" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Kind" l) v.Kind' dq ∗
-    "A" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"A" l) v.A' dq ∗
-    "B" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"B" l) v.B' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance Step_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance Step_access_load_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Delay" l) v.Delay' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Delay" l) v.Delay' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (Delay' : time.Duration) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Delay" l) v.Delay' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Delay" l) Delay' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delay' := Delay' } : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Kind" l) v.Kind' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Kind" l) v.Kind' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (Kind' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Kind" l) v.Kind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"Kind" l) Kind' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := Kind' } : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_load_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"A" l) v.A' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"A" l) v.A' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_store_A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (A' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"A" l) v.A' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"A" l) A' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with A' := A' } : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_load_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"B" l) v.B' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"B" l) v.B' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Step_access_store_B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (B' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"B" l) v.B' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step go!"B" l) B' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with B' := B' } : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Step) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end Step
 
 end github_com.mit_pdos.etcd_grove.examples.etcd.partition
 end

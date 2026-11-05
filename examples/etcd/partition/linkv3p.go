@@ -28,23 +28,19 @@ package partition
 
 import (
 	"context"
-	"net"
 	"sync"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 
-	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/etcdserver"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 
-	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/etcd/txnlin"
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
+	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
@@ -66,32 +62,6 @@ const (
 	bridgeAddr3 = "127.0.0.1:23853"
 )
 
-// The kinds of a schedule's step.
-const (
-	// cut the link between members A and B, both directions (CutPeer)
-	PeerCut = 0
-	// mend it (MendPeer)
-	PeerMend = 1
-	// cut member A's client off it: every byte between them dropped (the bridge's Blackhole)
-	ClientBlackhole = 2
-	// end that: the bridge's connections closed, new ones forwarded (Unblackhole)
-	ClientUnblackhole = 3
-	// close the connections between member A and its client (the bridge's DropConnections)
-	ClientDrop = 4
-)
-
-// A Step of a partition schedule: after Delay, its Kind's action on members A and B (indices into
-// Main's members, 0 to 2): a peer step cuts or mends the link between A and B in both directions;
-// a client step acts on the link between member A and its client (B unused). A step whose
-// indices are out of range (or equal, for a peer step), or whose kind is none of the above, does
-// nothing.
-type Step struct {
-	Delay time.Duration
-	Kind  int
-	A     int
-	B     int
-}
-
 // The members' snapshot settings (etcdstart.NewMember): a disk snapshot every SnapCount applied
 // entries, raft's log then compacted to SnapCatchUp entries below it, so that a member a cut kept
 // behind is caught up, once mended, by a snapshot (MsgSnap) rather than by entries; TestMainRun
@@ -100,98 +70,6 @@ const (
 	SnapCount   uint64 = 1
 	SnapCatchUp uint64 = 1
 )
-
-// startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
-// URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
-// examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
-// server served on a listener at client.
-func startMember(name string, peer types.URLs, peerAddr string, client string,
-	cluster types.URLsMap, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	// the server (configured as putget3's, with linkv3p's cluster token and snapshot settings) and
-	// its raft handler
-	s, err := etcdstart.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", SnapCount,
-		SnapCatchUp, lg)
-	if err != nil {
-		return nil, err
-	}
-	// the member's client address, before the server starts (an error leaves nothing running)
-	cl, err := net.Listen("tcp", client)
-	if err != nil {
-		return nil, err
-	}
-	s.Start()
-	// the clients' keepalive pings allowed every 5s, as etcd's embed does with its default
-	// GRPCKeepAliveMinTime (grpc's own default refuses a ping more often than every 5 minutes)
-	gs := v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
-		MinTime: 5 * time.Second,
-	}))
-	go gs.Serve(cl)
-	return s, nil
-}
-
-// startBridge starts a bridge at addr to the member's client address client: the listener, then
-// the bridge's accept loop (bridge.New).
-func startBridge(addr string, client string) (bridge.Bridge, error) {
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	return bridge.New(client, l), nil
-}
-
-// peerStep applies a peer step to the members srvs: cuts or mends the link between members a and
-// b in both directions (etcd's CutPeer/MendPeer, as its integration tests'
-// InjectPartition/RecoverPartition).
-func peerStep(srvs []*etcdserver.EtcdServer, kind int, a int, b int) {
-	if a < 0 || a >= len(srvs) || b < 0 || b >= len(srvs) || a == b {
-		return
-	}
-	sa := srvs[a]
-	sb := srvs[b]
-	if kind == PeerCut {
-		sa.CutPeer(sb.MemberID())
-		sb.CutPeer(sa.MemberID())
-	} else {
-		sa.MendPeer(sb.MemberID())
-		sb.MendPeer(sa.MemberID())
-	}
-}
-
-// clientStep applies a client step to member a's bridge (brs[a]), as etcd's integration tests
-// do (Member.Bridge().Blackhole(), ...); holed[a] says whether that bridge is blackholed. A
-// blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
-// unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
-func clientStep(brs []bridge.Bridge, holed []bool, kind int, a int) {
-	if a < 0 || a >= len(brs) {
-		return
-	}
-	br := brs[a]
-	if kind == ClientBlackhole {
-		if !holed[a] {
-			br.Blackhole()
-			holed[a] = true
-		}
-	} else if kind == ClientUnblackhole {
-		br.Unblackhole()
-		holed[a] = false
-	} else {
-		br.DropConnections()
-	}
-}
-
-// partitioner applies the schedule sched to the members srvs and their bridges brs: each step,
-// after its delay.
-func partitioner(srvs []*etcdserver.EtcdServer, brs []bridge.Bridge, sched []Step) {
-	holed := make([]bool, len(brs))
-	for _, st := range sched {
-		time.Sleep(st.Delay)
-		if st.Kind == PeerCut || st.Kind == PeerMend {
-			peerStep(srvs, st.Kind, st.A, st.B)
-		} else if st.Kind == ClientBlackhole || st.Kind == ClientUnblackhole || st.Kind == ClientDrop {
-			clientStep(brs, holed, st.Kind, st.A)
-		}
-	}
-}
 
 // Apply runs one operation through a client of clis picked at random (txnlin.Apply).
 func Apply(clis []*clientv3.Client, input any) any {
@@ -208,59 +86,38 @@ func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration)
 		timeout)
 }
 
-// startCluster starts the three members of a new cluster, a bridge to each member's client
-// address, and three clients, each of every bridge (failover). It returns the members, the
-// bridges and the clients, and false if a step failed (the specs allow every step to fail).
+// config is the cluster's (cluster3.Config): linkv3p's token, member names and addresses, and
+// snapshot settings.
+func config() cluster3.Config {
+	return cluster3.Config{
+		Token: "linkv3p", Name1: "linkv3p-1", Name2: "linkv3p-2", Name3: "linkv3p-3",
+		Peer1: peerAddr1, Peer2: peerAddr2, Peer3: peerAddr3,
+		Client1: clientAddr1, Client2: clientAddr2, Client3: clientAddr3,
+		Bridge1: bridgeAddr1, Bridge2: bridgeAddr2, Bridge3: bridgeAddr3,
+		SnapCount: SnapCount, SnapCatchUp: SnapCatchUp,
+	}
+}
+
+// startCluster starts the three members of a new cluster and a bridge to each member's client
+// address (cluster3.StartCluster), and three clients, each of every bridge (cluster3.NewClient:
+// failover). It returns the members, the bridges and the clients, and false if a step failed (the
+// specs allow every step to fail).
 func startCluster(lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge, []*clientv3.Client,
 	bool) {
-	peer1 := types.URLs{{Scheme: "http", Host: peerAddr1}}
-	peer2 := types.URLs{{Scheme: "http", Host: peerAddr2}}
-	peer3 := types.URLs{{Scheme: "http", Host: peerAddr3}}
-	cluster := types.URLsMap{"linkv3p-1": peer1, "linkv3p-2": peer2, "linkv3p-3": peer3}
-
-	s1, err := startMember("linkv3p-1", peer1, peerAddr1, clientAddr1, cluster, lg)
+	cfg := config()
+	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+	if !ok {
+		return nil, nil, nil, false
+	}
+	cli1, err := cluster3.NewClient(cfg, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
-	s2, err := startMember("linkv3p-2", peer2, peerAddr2, clientAddr2, cluster, lg)
+	cli2, err := cluster3.NewClient(cfg, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
-	s3, err := startMember("linkv3p-3", peer3, peerAddr3, clientAddr3, cluster, lg)
-	if err != nil {
-		return nil, nil, nil, false
-	}
-	srvs := []*etcdserver.EtcdServer{s1, s2, s3}
-
-	br1, err := startBridge(bridgeAddr1, clientAddr1)
-	if err != nil {
-		return nil, nil, nil, false
-	}
-	br2, err := startBridge(bridgeAddr2, clientAddr2)
-	if err != nil {
-		return nil, nil, nil, false
-	}
-	br3, err := startBridge(bridgeAddr3, clientAddr3)
-	if err != nil {
-		return nil, nil, nil, false
-	}
-	brs := []bridge.Bridge{br1, br2, br3}
-
-	// every client has every member's bridge: an attempt goes to one of them (failover); the
-	// examples' client configuration (etcdstart.NewClients: etcdctl's timeouts and keepalive, the
-	// default retries -- a write is sent at most once, these members sending no refusal,
-	// notes/read-retry-plan.md; keepalive closes a connection that stops answering,
-	// notes/keepalive-plan.md)
-	eps := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}
-	cli1, err := etcdstart.NewClients(eps, lg)
-	if err != nil {
-		return nil, nil, nil, false
-	}
-	cli2, err := etcdstart.NewClients(eps, lg)
-	if err != nil {
-		return nil, nil, nil, false
-	}
-	cli3, err := etcdstart.NewClients(eps, lg)
+	cli3, err := cluster3.NewClient(cfg, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
@@ -271,12 +128,12 @@ func startCluster(lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge, []
 // Main starts the cluster (startCluster: three members, a bridge to each, three clients each of
 // every bridge), starts the partitioner on sched and runs Check; it panics if porcupine finds the
 // history illegal. A failed start ends Main without a check.
-func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
+func Main(clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
 	srvs, brs, clis, ok := startCluster(zap.NewNop())
 	if !ok {
 		return porcupine.Unknown
 	}
-	go partitioner(srvs, brs, sched)
+	go cluster3.Partitioner(srvs, brs, sched)
 	r := Check(clis, clients, ops, 0)
 	if r == porcupine.Illegal {
 		panic("linkv3p: porcupine found the history not linearizable")
@@ -322,7 +179,7 @@ func writer(clis []*clientv3.Client, w *etcdstart.Writes, tried []etcdstart.KV, 
 // MainWatch picks the writers' puts, starts the cluster (startCluster), opens a watch of the
 // prefix from revision 1 through the first client, starts the partitioner on sched, runs nw
 // writers of nops puts each, then reads the watch and checks it against the writes.
-func MainWatch(nw int, nops int, sched []Step) int {
+func MainWatch(nw int, nops int, sched []cluster3.Step) int {
 	// The writers' puts, picked before the members start (the puts attempted).
 	tried := etcdstart.GenAll(nw*nops, []string{"wk/k0", "wk/k1", "wk/k2"})
 
@@ -336,7 +193,7 @@ func MainWatch(nw int, nops int, sched []Step) int {
 	wch := clis[0].Watcher.Watch(wctx, wprefix, clientv3.WithPrefix(), clientv3.WithRev(1),
 		clientv3.WithProgressNotify(), clientv3.WithCreatedNotify())
 
-	go partitioner(srvs, brs, sched)
+	go cluster3.Partitioner(srvs, brs, sched)
 	w := &etcdstart.Writes{}
 	var wg sync.WaitGroup
 	for i := 0; i < nw; i++ {

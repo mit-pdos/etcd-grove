@@ -15,6 +15,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/utils/clock"
 
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 )
 
@@ -289,4 +290,67 @@ func TestShared(t *testing.T) {
 	if c3 == c1 {
 		t.Fatalf("a stopped compactor still registered")
 	}
+}
+
+// TestMainPartition runs MainPartition once, in a fresh data directory, with a schedule that,
+// after a few rounds, isolates each member in turn while the API servers run (a peer cut both ways to the two others,
+// then mended), blackholes one member's bridge during the first isolation and drops another's
+// connections as it ends; then it asks the cluster MainPartition left running whether the
+// compactors ran: compact_rev_key holds a positive revision.
+func TestMainPartition(t *testing.T) {
+	t.Chdir(t.TempDir())
+	cfg := clusterConfig()
+	var sched []cluster3.Step
+	for m := 0; m < 3; m++ {
+		for o := 0; o < 3; o++ {
+			if o != m {
+				sched = append(sched, cluster3.Step{Delay: 0, Kind: cluster3.PeerCut, A: m, B: o})
+			}
+		}
+		if m == 0 {
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientBlackhole, A: 2})
+		}
+		first := true
+		for o := 0; o < 3; o++ {
+			if o != m {
+				d := time.Duration(0)
+				if first {
+					d = 60 * time.Millisecond
+					first = false
+				}
+				sched = append(sched, cluster3.Step{Delay: d, Kind: cluster3.PeerMend, A: m, B: o})
+			}
+		}
+		if m == 0 {
+			sched = append(sched, cluster3.Step{Kind: cluster3.ClientUnblackhole, A: 2},
+				cluster3.Step{Kind: cluster3.ClientDrop, A: 1})
+		}
+		sched = append(sched, cluster3.Step{Delay: 20 * time.Millisecond})
+	}
+	// a few rounds before the first cut (a round records the revision the next one compacts at)
+	sched[0].Delay = 150 * time.Millisecond
+	start := time.Now()
+	MainPartition(sched)
+	t.Logf("MainPartition took %v", time.Since(start))
+
+	cli, err := cluster3.NewClient(cfg, zap.NewNop())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cli.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	resp, err := cli.Get(ctx, compactRevKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Kvs) != 1 {
+		t.Fatalf("MainPartition's compactors did not write %s", compactRevKey)
+	}
+	v, err := strconv.ParseInt(string(resp.Kvs[0].Value), 10, 64)
+	if err != nil || v <= 0 {
+		t.Fatalf("%s holds %q, want a positive revision", compactRevKey, resp.Kvs[0].Value)
+	}
+	t.Logf("%s = %d (version %d), store at %d", compactRevKey, v, resp.Kvs[0].Version,
+		resp.Header.Revision)
 }
