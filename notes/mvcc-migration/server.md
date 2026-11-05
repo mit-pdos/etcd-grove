@@ -270,7 +270,58 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     … ∗ E.Nx x'.log`), `setAppliedIndex` (`kvLogLb`), `applyEntryNormal` (`srvWT E`), `applyAll`,
     `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
     `hookRun (E.Pk d) E.f`).
-- **Next**: see "Left (sixth session)" below.
+- **Next**: see "Left (seventh session)" below.
+## Left (seventh session, 2026-11-06: the API over its storage abstraction; in order)
+
+**Done** (mvcc's phase A, `07c91fd2e3`..`8c5fe85d68`):
+- **The server's backend vocabulary at a real instance of etcd's backend.** `BkRef` is gone from the
+  server and the lessor: what was `B : BkRef` is `B : mvcc.KBReal` (the server chose etcd's backend),
+  `.b` → `.be`; mvcc's storage at it is `etcdStorage B`, written as a coercion `KBReal →
+  MvccStorage` (declared in `lease/MvccShapes.lean`, shown `↑B`), so `mvccBackend γ q B Pk`,
+  `hookIs B f` read as before. `apply.AEnv`'s `Pk`/`BkTie : KBReal → IProp`; `apply.bkWT`/`bkRT`,
+  `srvBkTie`, `srvBeOwn`, `srvWTStockInv`, `bkRTOf`, `bkToks` over `KBReal`. txn's vocabulary and specs
+  name no backend: `B : MvccStorage` (`txn.end_read`'s witness `etcdStorage ⟨…⟩`).
+- **Restated (the server's laws, `KVStoreApi.lean`):** `dbImageA_open.law` and `bootBackend.law` over
+  `etcdStorage_open.law`: at a real instance `bk` with `bridgeParams bk.P` and `bk.cm = true`,
+  `mvccStorageFor bk …` (was `mvccBackendFor ⟨γB, P, b⟩` with a separate `gx`; now `bk.gx`);
+  `restorePreA`/`restoreArgs.law` at `mvccStorageFor`. `KVStoreCore` at `persistent.law`'s new
+  order (its `mvccState` timelessness is the sixth conjunct).
+- **Changed (the server's own invariant):** `srvKVInvs` and `srvKVInvsOn` record the chain's
+  compaction permit, `E.Cp = kvCpOk γr.kv` (`kvCpOk`, new in `InvRequest`: never compacted or a
+  cluster permit, `-1` without compaction; `KVStoreApi`'s `crevOk γr` is it by `rfl`), in their pure
+  conjunct (`… ∧ envWitOk E ∧ E.Cp = kvCpOk γr.kv`, On: `envWitOk E ∧ E.Cp = …`): the apply thread
+  needs it for `cmpPermRq` (`E.Cp r`), which mvcc's `crevPermIs` gave until M1. `NewServer` must
+  supply it (`srvKVInvs_of` does, from `hCp`).
+- Building at the restated API: txn's specs and proofs (not `txn.Link`/`txn.Results`, below),
+  `lease.MvccShapes`, `lessor.Revoke` (spec and proof), `apply.*` (all but `Link`/`Results`, including
+  `ApplyRec`, now checked), `StoreLatest`, `InvApplier`, `InvApplyAll`, `KVStoreApi`, `KVStoreLaws`,
+  `SnapRO`, `ReadOn`, `applyConfChange`'s spec, and everything built last session (`ApplyEntryOn`,
+  `ApplyKVCore`, `StartOn`, `UberOn`, `ApplyNormalOn`, `UberKit`, `ModeSpecs`, `EtcdServer__apply`,
+  `KVOutcomeOn`); and, new, `ApplyCmpArm` (`kv_certPre_M` over `kvNxOff`, `cmpAdmit_of_entry` at the
+  log, `cmpPermRq_of_entry` from `E.Cp`) and `AdminEntryOn` (`adminEntryOn.spec` over `bkToks`,
+  `threadTok`/`bkRTOf`, the epoch's `Pk` with `E.Pk = fun _ => Pk`).
+
+**Left, in order:**
+1. `EtcdServer__applyEntryNormal` (both modes; ~40 places): `srvApplyKV(On)_writer` (with mvcc's
+   `persistent`/`reachable` laws as hypotheses, as `EtcdServer.apply`'s) for the floor and the room in
+   place of `idxCert`; `kv_certPre_M`/`kv_certPreVW_on`/`kv_certPre_keep` at their new arguments
+   (`kvNxOff`/`kvNxOn`, the ties `HNx`); `cmpAdmit_of_entry` without `kb`; `cmpPermRq_of_entry` from
+   `srvKVInvs`'s `E.Cp`; `specRec` over `bkToks` (built from `srvApplyKV_ua_rt`, `srvWT_at`, and
+   `hookSpec` with `E.f ≠ func.nil`), giving back `bkRTOf_srv`'s token; the hook's triple as
+   `mvcc.api.hookRun` (`if_neg HEnn`); `kvCert_certOk` → the raft witness `E.Nx`. Not started: the
+   build was blocked by the mvcc track's uncommitted `InvStore.lean` edit (`BackendBridge` red at the
+   time; `etc/lean-check.py` reported 0 errors on stale imports: trust only `lake build`).
+2. `ApplyAllSnap`, `applyAll` (`applyAll.specBatch` needs `receiptBound GF ≤ 2 ^ 48` off too).
+3. `txn.Link` is stale (generated before txn's M1 law hypotheses: `deleteRange.wp_proof` takes
+   `mvcc.api.shapes.law`, which `etc/gen-link.py --txn` does not supply), so `txn.Results` does not
+   build; the generator needs to pass the laws (the txn track's or the coordinator's call).
+4. Items 2-5 of "Left (fifth session)".
+
+**For the parallel tracks:** `api/v3rpc/InvWatch.lean` names `mvcc.api.BkRef` (two binders of
+`Pk`/`BT`): `mvcc.KBReal` there (v3rpc's file; left unchanged).
+
+**Placeholders:** none. No axiom.
+
 ## Left (sixth session, 2026-11-06; in order)
 
 **Stopped by the API's restatement.** Mid-session the mvcc track began restating mvcc's API over its
