@@ -6,6 +6,7 @@ cross-unit contract). Proved by U9b; used by U10 (`Commit`). Proof:
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Commit.MarkCov
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -62,14 +63,18 @@ the high-water mark's pages inside the mapping, batch 29); the records agree wit
 false there, the logical tree no longer reaches the base pages the new tree keeps);
 the dirty pages `tx.write` takes (`spillBufs`, batch 39); (batch 44.7) the transaction's fields,
 its root bucket (present) and its meta copy but the high-water mark kept, on success and on an
-error (U10g's gap 7: the rollback after a failed spill needs `writable`, the root bucket, the txid). Its start takes `spillStartOK`
+error (U10g's gap 7: the rollback after a failed spill needs `writable`, the root bucket, the txid);
+(maintainer 13, for `Commit`'s publish: U10l's defect 1 and D-K) the new tree's slots not pending
+(the spill frees only the base pages it rewrites) and every slot from the committed mark to the
+new one a dirty page's (`markCov`: `tx.pages` only grows; the start takes it, vacuous at
+`beginRWTx`'s mark). Its start takes `spillStartOK`
 (batch 43) and the writer's txid below `2 ^ 63` (U9x5: the new tree's `treeOK`; from the receipts). On an
 error (from `allocate`), a `fmtErrorOk` error, the freelist changed by free and allocation steps
 only, and either the mapping intact (`wtxW`, `wdbW`) or lost (`wtxLost`, `wdbLost`). -/
 abbrev Bucket.spill.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (w : WDb),
   spillPre X w.fl → liveReach X → X.t.mv.pgid'.toNat * 4096 ≤ mapLen w.ms → flViewU X w.fl →
-  spillStartOK X w → X.t.mv.txid'.toNat < 2 ^ 63 →
+  spillStartOK X w → X.t.mv.txid'.toNat < 2 ^ 63 → markCov X w.C.hwm →
   {{ wtxW (GF := GF) K tx r m X ∗ wdbW K tx X.v w }}
     (App (Val (tx.[Tx, go!"root"] @!! go.GoType.PointerType Bucket.ty @!! go!"spill")) (Val #()))
   {{ (err : GoInterface), RET #err;
@@ -79,7 +84,9 @@ abbrev Bucket.spill.spec : Prop :=
           X'.t.mv.pgid'.toNat * 4096 ≤ mapLen w'.ms ∧
           spillBufs X' w.C w'.fl ∧
           X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧
-          X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' }⌝) ∨
+          X'.t.mv = { X.t.mv with pgid' := X'.t.mv.pgid' } ∧
+          (∀ s ∈ treeSlots (spillC X' w.C.pages), s ∉ pendSlots w'.fl) ∧
+          markCov X' w.C.hwm⌝) ∨
       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ (X' : WX) (w' : WDb) (st : List FLStep),
         ⌜w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
           X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome ∧

@@ -9,6 +9,7 @@ module
 public import Proof.go_etcd_io.bbolt.Commit.TailMeta
 public import Proof.go_etcd_io.bbolt.Commit.TailWrite
 public import Proof.go_etcd_io.bbolt.Inv.Publish
+public import Proof.go_etcd_io.bbolt.Commit.MarkCov
 
 @[expose] public section
 
@@ -41,13 +42,6 @@ theorem pubC_flpg (C : CommitSt) (mv : Meta) (P : Pages) :
   show metaFlpg (metaSummed mv) = _; unfold metaSummed metaFlpg; rfl
 
 theorem pubC_pages (C : CommitSt) (mv : Meta) (P : Pages) : (pubC C mv P).pages = P := rfl
-
-/-- **Every slot from `hwm` to the records' mark is a dirty page's** (D-K, maintainer 13: the mark
-moves only by `allocate`'s runs, which stay in `tx.pages` until `tx.write`; so after the write the
-file reaches the new mark). Defined here (U10l) for `cmPubPg`; `Bucket.spill.spec`'s and
-`Tx.commitFreelist.spec`'s posts are to carry it. -/
-def markCov (X : WX) (hwm : Nat) : Prop :=
-  ∀ s, hwm ≤ s → s < X.t.mv.pgid'.toNat → s ∈ bufSlots X.t.bufs
 
 /-- **The new tree's facts** (`cmPubPre`'s last part): its pages `Pg`, its committed state
 `pubC w.C X.t.mv Pg` well-formed, holding the data `D`, its dropped slots pending, its pages the
