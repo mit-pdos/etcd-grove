@@ -62,21 +62,24 @@ def etcdLeaseGrantSpec (γl : GName) :
 
 /-- **etcd's spec of `LeaseGrant` at a success fact `G`** (the lease-expiry plan's X2, 2026-11-04):
 `etcdLeaseGrantSpec` with the fact the reply carries of its lease a parameter
-(`etcdLeaseGrantSpec_eq`: the grant at the history; `etcdLeaseGrantSpecLive`: the lease live in it). -/
-def etcdLeaseGrantSpecG (G : w64 → IProp GF) :
+(`etcdLeaseGrantSpec_eq`: the grant at the history; `etcdLeaseGrantSpecLive`: the lease live in it).
+(2026-11-05, the lease-expiry plan's E3/R5: the granted TTL) `G` takes the request (`(TTL, ID)`)
+before the lease id, so that the fact can bound the lease's TTL by the requested one. -/
+def etcdLeaseGrantSpecG (G : w64 × w64 → w64 → IProp GF) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
-  fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
-    iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ G m.id -∗ Φ m)
+  fun (req : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
+    iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ G req m.id -∗
+      Φ m)
 
 /-- `etcdLeaseGrantSpec` is `etcdLeaseGrantSpecG` at the grant at the history. -/
 theorem etcdLeaseGrantSpec_eq (γl : GName) :
     etcdLeaseGrantSpec (GF := GF) γl =
-      etcdLeaseGrantSpecG (fun id => iprop(∃ i : Nat, lease.leaseGrantedAt γl i id)) := rfl
+      etcdLeaseGrantSpecG (fun _ id => iprop(∃ i : Nat, lease.leaseGrantedAt γl i id)) := rfl
 
 /-- **etcd's spec of `LeaseGrant` at a success fact `G`, for the requests of a filter `R`** (the
 lease-expiry plan's E3, 2026-11-04): `etcdLeaseGrantSpecG`, the caller also showing that its request
 (`(TTL, ID)`) is one `R` covers. -/
-def etcdLeaseGrantSpecGR (G : w64 → IProp GF) (R : w64 × w64 → Prop) :
+def etcdLeaseGrantSpecGR (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
   fun (m : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(⌜R m⌝ ∗ etcdLeaseGrantSpecG G m Φ)
@@ -87,10 +90,14 @@ clientv3's `Grant` sends; in the revocable mode `EtcdServer.LeaseGrant` takes no
 whose lease ID is not `NoLease`, whose header revision etcd has reached, and whose lease is live in
 the lessor's history from some index (`leaseLiveFrom`: a revocable lessor may revoke it later, so no
 listing need list it). Until E3 it covered any request, and the old contract followed from it
-(`isGrpcRpc_leaseGrantLive_any`, unused, removed). -/
+(`isGrpcRpc_leaseGrantLive_any`, unused, removed). (2026-11-05, the lease-expiry plan's E3/R5: the
+granted TTL) And the lease's read-only `ttl` field `t` is at least the requested TTL (`req.1`): the
+lessor's `grantTTL` only raises a TTL to its minimum (`lease.grantTTL_ge`), and the TTL every
+snapshot of the history gives the lease is `t` (`lease.leaseTTLAt_ttl_agree`). -/
 def etcdLeaseGrantSpecLive (γl : GName) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
-  etcdLeaseGrantSpecGR (fun id => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i id l))
+  etcdLeaseGrantSpecGR (fun (req : w64 × w64) id => iprop(∃ (i : Nat) (l : Loc) (t : w64),
+      lease.leaseLiveFrom γl i id l ∗ lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z req.1 ≤ sint.Z t⌝))
     (fun m => m.2 = W64 0)
 
 end specs

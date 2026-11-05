@@ -260,8 +260,9 @@ theorem EtcdServer.LeaseGrant.wp_proof
       refine ⟨rfl, ?_⟩
       exact Hrn
     iunfold leaseGrantedResp
+    icases Hgr with ⟨%gl, %gt, #Hgl, #Hgt, %Hgtge⟩
     iexists i, t, e, gi, hh, rv
-    iframe Hh Hrv Hown Hid' Ht He Hgr
+    iframe Hh Hrv Hown Hid' Ht He
     isplitr
     · ipureintro; intro h; subst h; simp at Hrvl; omega
     isplitr
@@ -269,7 +270,11 @@ theorem EtcdServer.LeaseGrant.wp_proof
       iexists log
       iframe Hic Hcok
       ipureintro; omega
-    ipureintro; exact hid
+    isplitr
+    · ipureintro; exact hid
+    iexists gl, gt
+    iframe Hgl Hgt
+    ipureintro; exact Hgtge
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _

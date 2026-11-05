@@ -122,8 +122,8 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `etcd_leaseGrantHandlerOkL`): the reply's lease has `G`; (E3, 2026-11-04) for the requests of the
 contract's filter `R`, which the caller shows (`etcdLeaseGrantSpecGR`). -/
 theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
-    (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF) [∀ id, Persistent (G id)]
-    (R : w64 × w64 → Prop) :
+    (E : apply.AEnv GF) (S : IProp GF) (G : w64 × w64 → w64 → IProp GF)
+    [∀ m id, Persistent (G m id)] (R : w64 × w64 → Prop) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.lessorGrantOkG s E S G R ⊢
       grpcHandlerOwnOk (lp @!! go.GoType.PointerType
@@ -144,7 +144,7 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   iintro %resp %err ⟨HS, Hout, Hg⟩
   iunfold v3rpc.leaseGrantOut at Hout
   icases Hout with (⟨%Hok, Hh, #Hf⟩ | %Herr)
-  · icases Hg with (%Hne | ⟨%id', #Hid', #Hgr⟩)
+  · icases Hg with (%Hne | ⟨%id', #Hid', Hgr⟩)
     · exact absurd Hok.1 Hne
     iunfold v3rpc.leaseHdrOut at Hh
     icases Hh with ⟨%h, %rv, #Hhf, Hfd, -, #Hrev, #Hreach⟩
@@ -185,7 +185,8 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
 /-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at a success fact `G`**
 (`etcd_leaseGrantHandlerOkGR` at the filter that covers every request). -/
 theorem etcd_leaseGrantHandlerOkG (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
-    (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF) [∀ id, Persistent (G id)] :
+    (E : apply.AEnv GF) (S : IProp GF) (G : w64 × w64 → w64 → IProp GF)
+    [∀ m id, Persistent (G m id)] :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.leaseServerAt lp s A cid mid ∗ v3rpc.lessorGrantOkG s E S G ⊢
       grpcHandlerOwnOk (lp @!! go.GoType.PointerType

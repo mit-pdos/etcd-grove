@@ -65,7 +65,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ⟨Hrt, #HeI, Hres'⟩
   ihave Hwo := Hrdb $$ Hrt
   icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO, HU⟩ |
-    ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, ⟨%t, HRO⟩⟩)
+    ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, ⟨%t, #Hlt, %Htge, HRO⟩⟩)
   · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
     · iright; iexact HPre
     ihave Hlive : apply.leasesLive E (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk HltL]
@@ -191,7 +191,9 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word
-    iexists 0, l; iexact Hlf
+    iexists 0, l, t
+    iframe Hlf Hlt
+    ipureintro; exact Htge
 
 end proof
 

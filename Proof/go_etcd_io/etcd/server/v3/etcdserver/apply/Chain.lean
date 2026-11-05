@@ -1266,13 +1266,15 @@ def grantRespIs (E : AEnv GF) (r : Loc) (g : LeaseGrantModel) : IProp GF :=
 `g`, the response a `*pb.LeaseGrantResponse`; without error, its fields (`grantRespIs`) and the
 lease live in the lessor's history from some index (`leaseLiveFrom`; the lease-expiry plan's X2,
 2026-11-04: mode-free, until then `leaseGrantedAt`, which needs the monotone mode; `lease.srvInv`'s
-law gives it back at `mono`); `True` for a request with no grant. -/
+law gives it back at `mono`), and its read-only `ttl` field at least the request's TTL (2026-11-05,
+the lease-expiry plan's E3/R5: the granted TTL); `True` for a request with no grant. -/
 def grantAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp GF :=
   match rq.leaseGrant with
   | some g => iprop(∃ r : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #r⌝ ∗
       ((⌜err = GoInterface.nil⌝ ∗ grantRespIs E r g ∗
-          ∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i g.id l) ∨
+          ∃ (i : Nat) (l : Loc) (t : w64), lease.leaseLiveFrom E.γ.leases i g.id l ∗
+            lease.lsF go!"ttl" l ↦□ t ∗ ⌜sint.Z g.ttl ≤ sint.Z t⌝) ∨
         ⌜err ≠ GoInterface.nil⌝))
   | none => iprop(True)
 

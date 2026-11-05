@@ -34,11 +34,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **The grant contract is monotone in its success fact** (the lease-expiry plan's X2,
-2026-11-04): a contract at `G` is one at any `G'` that `G` entails; (E3, 2026-11-04) and at any
+2026-11-04): a contract at `G` is one at any `G'` that `G` entails (at every request); (E3, 2026-11-04) and at any
 request filter `R'` narrower than its `R`. -/
-theorem lessorGrantOkG_mono (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G G' : w64 → IProp GF)
-    (R R' : w64 × w64 → Prop) (hR : ∀ m, R' m → R m) :
-    □ (∀ id : w64, G id -∗ G' id) ∗ lessorGrantOkG s E S G R ⊢ lessorGrantOkG s E S G' R' := by
+theorem lessorGrantOkG_mono (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
+    (G G' : w64 × w64 → w64 → IProp GF) (R R' : w64 × w64 → Prop) (hR : ∀ m, R' m → R m) :
+    □ (∀ (m : w64 × w64) (id : w64), G m id -∗ G' m id) ∗ lessorGrantOkG s E S G R ⊢
+      lessorGrantOkG s E S G' R' := by
   iintro ⟨#HGG, #HL⟩
   unfold lessorGrantOkG
   iintro %ci %cd %r %m !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, %HR'⟩ HΦ
@@ -51,7 +52,7 @@ theorem lessorGrantOkG_mono (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G G' :
   iright
   iexists id
   iframe Hid
-  iapply HGG $$ Hg
+  iapply HGG $$ %m %id Hg
 
 /-- **The server's `LeaseGrant` meets the grant contract at the mode-free fact** (`grantLiveG`; the
 lease-expiry plan's X2, 2026-11-04) in a cluster that grants leases, given the
@@ -120,7 +121,10 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
     iexists id
     iframe Hid'
     iunfold grantLiveG
-    iexists i; iexact Hgr
+    icases Hgr with ⟨%l, %t', #Hgl, #Hgt, %Hge⟩
+    iexists i, l, t'
+    iframe Hgl Hgt
+    ipureintro; exact Hge
   · obtain ⟨rfl, hne⟩ := He
     isplitl
     · iunfold leaseGrantAns
@@ -148,9 +152,9 @@ theorem lessorGrantOkL_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (h
   unfold lessorGrantOkL
   iapply lessorGrantOkG_mono s E S (grantLiveG E) _ (fun _ => True) (fun _ => True) (fun _ h => h)
   iframe HL
-  iintro !> %id Hg
+  iintro !> %m %id Hg
   iunfold grantLiveG at Hg
-  icases Hg with ⟨%i, %l, #Hgr⟩
+  icases Hg with ⟨%i, %l, %t, #Hgr, -⟩
   ihave ⟨%j, -, #Hgj⟩ := lease.srvInv_grantedAt on s E i id l $$ [$Hli $Hgr]
   iexists j; iexact Hgj
 

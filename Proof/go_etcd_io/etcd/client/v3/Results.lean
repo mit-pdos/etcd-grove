@@ -3205,7 +3205,8 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
   iapply wp_fupd
   ihave #HLG := v3rpc.raftLessor_grantG s E S $$ HL
-  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S (fun _ => iprop(True)) (fun _ => True)
+  iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid E S (fun _ _ => iprop(True))
+      (fun _ => True)
       ci cd r m) $$ [HS Hid]
   · iframe; iframe #; try (ipureintro; trivial)
   inext

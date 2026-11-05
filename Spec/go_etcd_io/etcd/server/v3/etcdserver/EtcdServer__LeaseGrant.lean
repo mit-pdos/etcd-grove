@@ -33,7 +33,9 @@ request-side facts, the auth store's contract (`srvAuthAt`, for `requireAuthInfo
 amendment (G), 2026-11-03), the leader-timeout reader, the backend reader `E.RD`, the id generator's
 credits, freely minted) and the decoded request (its `ID` owned): on `nil`, the server's response
 (`leaseGrantedResp`: a lease id not `0`, its header with a revision the store has reached, and the
-lease granted at an index of the lessor's history); on an error, no response and an error the gRPC layer can take.
+lease granted at an index of the lessor's history, its TTL at least the request's `ttl`: 2026-11-05,
+the lease-expiry plan's E3/R5, the granted TTL); on an error, no response and an error the gRPC
+layer can take.
 
 Why it is true of the Go code: while `r.ID` is `0` it writes `s.reqIDGen.Next() & (2^63-1)` there
 (the owned field); `requireAuthInfo` returns `nil` with auth off; `raftRequest` proposes
@@ -64,7 +66,7 @@ abbrev EtcdServer.LeaseGrant.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

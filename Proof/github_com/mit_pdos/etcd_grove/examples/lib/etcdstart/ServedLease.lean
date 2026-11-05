@@ -69,7 +69,9 @@ instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) :
 
 /-- **`LeaseGrant`, `LeaseTimeToLive` and `LeaseLeases` registered at the revocable mode's specs**
 (persistent; the lease-expiry plan's X2, 2026-11-04, the reads since E3, 2026-11-05): a grant's reply
-carries its lease live in the lessor `E.γ.leases`'s history (`etcdLeaseGrantSpecLive`); a TTL
+carries its lease live in the lessor `E.γ.leases`'s history, its read-only `ttl` field at least the
+requested TTL (`etcdLeaseGrantSpecLive`; 2026-11-05, the lease-expiry plan's E3/R5: the granted
+TTL); a TTL
 reply, at the caller's lower bound of the history, the lease's TTL there or its absence, under the
 lease-TTL row of the server `s` (`etcdLeaseTTLSpecLive`); a listing, the lease ids of a snapshot no
 older than the caller's lower bound (`etcdLeaseLeasesSpecLive`: no grant listed, the lessor may have

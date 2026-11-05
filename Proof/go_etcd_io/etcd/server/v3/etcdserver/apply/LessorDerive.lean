@@ -336,6 +336,9 @@ theorem isApplyLessor_of_lessorInv
         iintro !> -
         iapply HΦ'; itrivial
       iexists (lease.grantTTL mt ttl)
+      iframe Ht
+      isplitr
+      · ipureintro; exact lease.grantTTL_ge mt ttl
       rw [show restGrantT id (lease.grantTTL mt ttl) rs = { rs with bk := (mvcc.rbSet rs.bk mvcc.leaseName (u64Le id).reverse (lease.leaseEnc id (lease.grantTTL mt ttl) (W64 0))) } from rfl]
       iapply Hcl $$ %(mvcc.rbSet rs.bk mvcc.leaseName (u64Le id).reverse
           (lease.leaseEnc id (lease.grantTTL mt ttl) (W64 0)))

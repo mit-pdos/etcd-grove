@@ -141,8 +141,10 @@ def lessorGrantOk (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
 history is it at `G id := ∃ i, leaseGrantedAt E.γ.leases i id` (`lessorGrantOkL`). The request
 filter `R` (the lease-expiry plan's E3, 2026-11-04; `True` by default): the requests the contract
 covers, by their `(TTL, ID)`; in the revocable lease mode those with `ID = 0` only
-(`EtcdServer.LeaseGrant.spec`'s premise there). -/
-def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IProp GF)
+(`EtcdServer.LeaseGrant.spec`'s premise there). (2026-11-05, the lease-expiry plan's E3/R5: the
+granted TTL) `G` takes the request `m` before the id: the live fact `grantLiveG` bounds the lease's
+TTL by the request's. -/
+def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 × w64 → w64 → IProp GF)
     (R : w64 × w64 → Prop := fun _ => True) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ leaseGrantReqIs r m ∗
@@ -150,10 +152,11 @@ def lessorGrantOkG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) (G : w64 → IPr
       (App (App (Val (srvM s go!"LeaseGrant")) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ leaseGrantAns E resp err ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
-          structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G id) }})
+          structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id) }})
 
 instance lessorGrantOkG_persistent (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
-    (G : w64 → IProp GF) (R : w64 × w64 → Prop) : Persistent (lessorGrantOkG s E S G R) := by
+    (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
+    Persistent (lessorGrantOkG s E S G R) := by
   unfold lessorGrantOkG; infer_instance
 
 /-- **The server's `LeaseRevoke`** (one conjunct of `raftLessor`). Discharged only mode-gated, in
@@ -254,7 +257,7 @@ open Iris.ProofMode
 /-- **`raftLessor`'s grant contract is `lessorGrantOkG` at `True`** (the lease-grant plan's (F2)):
 a success's response has its `ID` (`leaseGrantFields`). -/
 theorem lessorGrantOkG_true (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
-    lessorGrantOk s E S ⊢ lessorGrantOkG s E S (fun _ => iprop(True)) := by
+    lessorGrantOk s E S ⊢ lessorGrantOkG s E S (fun _ _ => iprop(True)) := by
   iintro #H
   iunfold lessorGrantOk at H
   iunfold lessorGrantOkG
@@ -289,7 +292,7 @@ theorem lessorGrantOkG_true (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
 
 /-- **`raftLessor`'s grant conjunct as `lessorGrantOkG` at `True`** (the lease-grant plan's (F2)). -/
 theorem raftLessor_grantG (s : Loc) (E : apply.AEnv GF) (S : IProp GF) :
-    raftLessor s E S ⊢ lessorGrantOkG s E S (fun _ => iprop(True)) := by
+    raftLessor s E S ⊢ lessorGrantOkG s E S (fun _ _ => iprop(True)) := by
   iintro #HL
   iunfold raftLessor at HL
   icases HL with ⟨#HG, -⟩
