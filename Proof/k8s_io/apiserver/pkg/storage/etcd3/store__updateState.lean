@@ -39,7 +39,7 @@ theorem store.updateState.wp_proof : store.updateState.spec (GF := GF) (hG := hG
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
     #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
   iunfold contractOk at Hcon
-  icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+  icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   iunfold versionerOk at Hver
   icases Hver with ⟨-, #HvPrep, -, -⟩
   iunfold ownState at Hos
