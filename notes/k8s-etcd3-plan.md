@@ -322,7 +322,13 @@ Order: 7b first (the most bugs per unit of work, nothing new from etcd), then 7c
 version, `nonissues/k8s-etcd3-cached-object-trusted-at-current-rv.md`; preconditions answer the model's
 own error).
 
-### 7b: Scope (proposed 2026-11-05, branch `k8s-etcd3-7b`; waiting on the user)
+### 7b: Scope (2026-11-05, branch `k8s-etcd3-7b`; approved by the user 2026-11-05)
+
+**Approved (the user, 2026-11-05), with the recommendations:** Q0 (a), the rest of the 11-01 redesign
+is a later stage of its own; Q1, P1-P5 and the traffic table as written; Q2 (a), the driver's history
+records deletions (if its cost gets out of proportion: report back, do not switch to (b)); Q3 (a),
+`Get`'s current/past/future resource versions relative to the client's cached object's; Q4 (a), the
+model checks a `Get` with a resource version exactly. Next: Draft.
 
 **Where the 2026-11-01 review ended.** Three candidates and two `spec-reviewer` rounds, in scratch
 files that were not committed and are gone; what survives is `notes/STATUS.md`'s summary (one KV in
