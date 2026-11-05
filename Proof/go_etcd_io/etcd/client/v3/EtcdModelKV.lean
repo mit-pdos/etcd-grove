@@ -596,7 +596,7 @@ theorem km_read_au (γ : KMNames) (l0 : List (List Change)) :
     · inext; iexists σ, m; iframe; ipureintro; exact Hm
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     imod Hclose $$ [Hσ Hc Ht] with -
     · inext; iexists σ, m; iframe; ipureintro; exact Hm
@@ -632,7 +632,7 @@ theorem kmWAu (γ : client.KMNames) :
     · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hch Htok] with -
     · inext; iexists σ, m; iframe Hσ Hch Htok; ipureintro; exact Hok
@@ -694,7 +694,7 @@ theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
     · inext; iexists σ, m; iframe; ipureintro; exact Hm
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     obtain ⟨cs, hc1, hc2⟩ := kvOpStep_commit op σ
     obtain ⟨hpre, hrev⟩ := commit_changes σ cs

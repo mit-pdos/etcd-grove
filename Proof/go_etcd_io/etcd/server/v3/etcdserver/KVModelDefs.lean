@@ -588,6 +588,28 @@ theorem kvRaftOf_prefix (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A B
   rw [kvRaftSt_append]
   exact kvRaftSt_extends _ _ _ _
 
+/-- (2026-11-05, H-rr1) **The model grows by at most one revision per entry.** -/
+theorem kvRaftSt_length_le (c₀ : w64) (ch : apply.Chain) (A : List EntryModel) :
+    ∀ s₀ : mvcc.Log × LeaseTable, (kvRaftSt c₀ ch s₀ A).1.length ≤ s₀.1.length + A.length := by
+  induction A with
+  | nil => intro s₀; simp [kvRaftSt_nil]
+  | cons m A ih =>
+    intro s₀
+    have h := ih (kvEntrySt c₀ ch s₀ m)
+    have hk : kvRaftSt c₀ ch s₀ (m :: A) = kvRaftSt c₀ ch (kvEntrySt c₀ ch s₀ m) A := rfl
+    have hfst : (kvEntrySt c₀ ch s₀ m).1 = kvEntry c₀ ch s₀.2 s₀.1 m := rfl
+    rw [hk]
+    rcases kvEntry_grow c₀ ch s₀.2 s₀.1 m with he | ⟨cs, he⟩
+    · rw [hfst, he] at h; simp only [List.length_cons]; omega
+    · rw [hfst, he] at h; simp only [List.length_append, List.length_singleton] at h
+      simp only [List.length_cons]; omega
+
+/-- (2026-11-05, H-rr1) **The KV model of a raft log** is at most one revision per entry past the
+start log. -/
+theorem kvRaftOf_length_le (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A : List EntryModel) :
+    (kvRaftOf c₀ ch log₀ A).length ≤ log₀.length + A.length :=
+  kvRaftSt_length_le c₀ ch A (log₀, [])
+
 
 /-! ## A plain put's and a write-free request's effect on the values -/
 

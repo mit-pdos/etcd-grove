@@ -349,7 +349,7 @@ theorem akHist_writeAu (γk : KVNames) (op : KVOp) (G Q : KVState → IProp GF) 
     · inext; iexists σ; iframe; ipureintro; exact HS
     imodintro
     iempintro
-  · iintro ⟨Hσ, HGσ⟩
+  · iintro ⟨Hσ, -, HGσ⟩
     imod Hclose2 with -
     imod HG $$ HGσ with ⟨%Hop, HQ⟩
     imod Hclose $$ [Hσ] with -
@@ -384,7 +384,7 @@ theorem akHist_readAu (γk : KVNames) :
     · inext; iexists σ; iframe; ipureintro; exact HS
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hclose2 with -
     imod Hclose $$ [Hσ] with -
     · inext; iexists σ; iframe; ipureintro; exact HS
@@ -396,7 +396,7 @@ theorem akHist_readAu (γk : KVNames) :
 theorem kvAu1G_true (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
     kvAu1G (GF := GF) γk f (fun _ => iprop(True)) Q ⊢ kvAu1 γk f Q := by
   unfold kvAu1 kvAu1G
-  exact aupd_post_mono (fun _ _ => sep_true_mpr)
+  exact aupd_post_mono (fun _ _ => sep_mono_right sep_true_mpr)
 
 /-- **`SetUp`'s puts under the invariant** (F-S1, round 3): a put of a set-up key with the value
 `setup` keeps it from any state (`opHistOk_setupPut`), told nothing (`akHist_writeAu` at

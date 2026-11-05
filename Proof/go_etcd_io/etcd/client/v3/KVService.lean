@@ -1360,7 +1360,8 @@ theorem writeUpd_of_if (dup : Bool) (P P' : IProp GF) (h : P ⊢ P') :
 /-- A write's atomic update, as the specs state it, is `kvOpAu1`'s. -/
 theorem writeAu_upd (dup : Bool) (γ : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     iprop(□?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)) ⊢ writeUpd (!dup) (kvOpAu1 γ op Q) :=
+        <{ etcdKV γ (kvOpStep op σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ⊢
+      writeUpd (!dup) (kvOpAu1 γ op Q) :=
   writeUpd_of_if dup _ _ (by
     unfold kvOpAu1 kvAu1
     iintro H
@@ -1370,7 +1371,7 @@ theorem writeAu_upd (dup : Bool) (γ : KVNames) (op : KVOp) (Q : KVState → IPr
 theorem readAu_upd (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
     iprop(□ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗
       AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>))) ⊢ □ rangeUpdK γ o Q := by
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>))) ⊢ □ rangeUpdK γ o Q := by
   unfold rangeUpdK kvReadAu kvAu
   iintro #H
   imodintro
@@ -1387,10 +1388,10 @@ theorem txnAu_upd (dup : Bool) (γ : KVNames) (t : TxnModel) (Q : KVState → IP
     iprop(□?dup (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
       (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗
         □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ σ, COMM □ Q σ }>) ∨
+          <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
       (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ (kvOpStep (.txn t) σ), COMM Q σ }>))) ⊢
+          <{ etcdKV γ (kvOpStep (.txn t) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>))) ⊢
       writeUpd (!dup) (txnUpdK γ t Q) :=
   writeUpd_of_if dup _ _ (by
     unfold txnUpdK kvReadAu kvAu kvOpAu1 kvAu1

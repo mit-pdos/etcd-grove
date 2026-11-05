@@ -74,13 +74,20 @@ theorem kvNext_step (op : KVOp) (σ : KVState) (hop : op.isKV) : KvNext σ (kvOp
   | leaseGrant _ _ => exact hop.elim
   | leaseRevoke _ => exact hop.elim
 
-/-- **The caller's update for a write** (see the file header). -/
+/-- **The caller's update for a write** (see the file header). (2026-11-05, H-rr1) The caller no
+longer vouches for the revision's room: the commit tells it (`kvRoom σ`, the server's, through the
+client's update `kvAu1`). -/
 def k8sAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
     (Φ : KVState → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ }>
+  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ⌝ ∗ kvSeen c.γh σ }>
       @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-    <{ ∀∀ (σ' : KVState), etcdKV γk σ' ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ'⌝,
+    <{ ∀∀ (σ' : KVState), etcdKV γk σ' ∗
+        ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ' ∧ kvRoom σ⌝,
       COMM Φ σ }>)
+
+/-- (2026-11-05, H-rr1) A state with room has room for two revisions. -/
+theorem kvRoom_two {σ : KVState} (h : kvRoom σ) : σ.rev + 2 < 2 ^ 63 := by
+  unfold kvRoom at h; omega
 
 /-- **A transaction's step is the model's** at the store's states (with room for a revision). -/
 def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop :=
@@ -113,16 +120,17 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     iapply Habort
     iframe Hkv Hseen
     ipureintro; exact Hwf
-  · iintro Hkv
+  · iintro ⟨Hkv, %Hroom⟩
     icases Hcl with ⟨-, Hcommit⟩
-    obtain ⟨hwf', habs⟩ := h σ Hwf.1 Hwf.2
+    have hr : σ.rev + 2 < 2 ^ 63 := by unfold kvRoom at Hroom; omega
+    obtain ⟨hwf', habs⟩ := h σ Hwf hr
     ispecialize Hcommit $$ %(kvOpStep op σ)
     imod Hcommit $$ [Hkv] with HΦ
     · iframe Hkv
-      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop⟩
+      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop, Hroom⟩
     imodintro
     iframe HΦ Hseen
-    ipureintro; exact Hwf
+    ipureintro; exact ⟨Hwf, hr⟩
 
 
 /-! ## Operations that may write: `Delete`, `GuaranteedUpdate` (D30n) -/
@@ -150,12 +158,13 @@ any number of times as a plain read (`b = false`: the state unchanged, nothing c
 once as the operation's linearization point (`b = true`), handing the caller's token `W` back:
 the next state's model is the model's `step` (the write; or, at a state where the step is the
 identity, a read-like answer, the state unchanged), and the caller learns `Φ σ`. Once `W` is
-handed, the store fires it as a plain read only. -/
+handed, the store fires it as a plain read only. (2026-11-05, H-rr1) The caller no longer
+vouches for the revision's room: every firing tells it (`kvRoom σ`, the server's). -/
 def k8sAuRW (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (W : IProp GF)
     (Φ : KVState → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ }>
+  iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ⌝ ∗ kvSeen c.γh σ }>
       @ rwMask, ∅
-    <{ ∀∀ (b : Bool) (σ' : KVState), etcdKV γk σ' ∗
+    <{ ∀∀ (b : Bool) (σ' : KVState), etcdKV γk σ' ∗ ⌜kvRoom σ⌝ ∗
         (if b then W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ'⌝ else ⌜σ' = σ⌝),
       COMM if b then Φ σ else iprop(True) }>)
 
@@ -201,7 +210,6 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   icases HAC with ⟨%σ, ⟨Hkv, %Hwf, #Hseen⟩, Hcl⟩
   ihave %HAσ := HA $$ %σ Hseen
-  have hst := h σ Hwf.1 Hwf.2 HAσ
   imodintro
   iexists σ
   iframe Hkv
@@ -214,45 +222,47 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
     imodintro
     iframe HAU0 HW HA
   · icases Hcl with ⟨-, Hcommit⟩
+    iintro ⟨Hkv, %Hroom⟩
+    have hr : σ.rev + 2 < 2 ^ 63 := by unfold kvRoom at Hroom; omega
+    have hst := h σ Hwf hr HAσ
     cases hok : ok σ
     · obtain ⟨hid, hhand⟩ := hst.2 hok
       rw [hid]
-      iintro Hkv
       cases hh : hand σ
       · ispecialize Hcommit $$ %false %σ
         isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
         imod Hcommit $$ [Hkv] with -
         · iframe Hkv
+          ipureintro; exact ⟨Hroom, trivial⟩
         imodintro
         simp only [Bool.false_or, Bool.false_eq_true, ↓reduceIte]
         iframe HW
         unfold rdFacts
         iframe Hseen
-        ipureintro; exact ⟨Hwf, HAσ⟩
+        ipureintro; exact ⟨⟨Hwf, hr⟩, HAσ⟩
       · ispecialize Hcommit $$ %true %σ
         isimp only [↓reduceIte] at Hcommit
         imod Hcommit $$ [Hkv HW] with HΦ
         · iframe Hkv HW
-          ipureintro; exact ⟨Hwf.1, (hhand hh).symm, Or.inl rfl⟩
+          ipureintro; exact ⟨Hroom, Hwf, (hhand hh).symm, Or.inl rfl⟩
         imodintro
         simp only [Bool.false_or, ↓reduceIte]
         iframe HΦ
         unfold rdFacts
         iframe Hseen
-        ipureintro; exact ⟨Hwf, HAσ⟩
+        ipureintro; exact ⟨⟨Hwf, hr⟩, HAσ⟩
     · obtain ⟨hwf', habs⟩ := hst.1 hok
-      iintro Hkv
       ispecialize Hcommit $$ %true %(kvOpStep op σ)
       isimp only [↓reduceIte] at Hcommit
       imod Hcommit $$ [Hkv HW] with HΦ
       · iframe Hkv HW
-        ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop⟩
+        ipureintro; exact ⟨Hroom, hwf', habs, kvNext_step op σ hop⟩
       imodintro
       simp only [Bool.true_or, ↓reduceIte]
       iframe HΦ
       unfold rdFacts
       iframe Hseen
-      ipureintro; exact ⟨Hwf, HAσ⟩
+      ipureintro; exact ⟨⟨Hwf, hr⟩, HAσ⟩
 
 /-- **The caller's updates at the members and its token give the client's updates** for a
 conditional transaction (`k8sAuRW_kvAu1` at each member). -/

@@ -290,6 +290,36 @@ def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk
 lease table. -/
 def kvModelSt (γk : KVNames) (L : List EntryModel) : KVState := kvStateOf (kvModel γk L) (kvLeases γk L)
 
+/-- **The revision room of a KV state** (2026-11-05, H-rr1): its revision leaves room for a few
+more (`+ 4 ≤ 2 ^ 63`: a writer's next revision and its successor still a positive `int64`, which
+the k8s store's model, a `uint64` revision, needs). What every client update on the KV state is told
+of the state it fired at (`kvAu`, `kvAu1`, `kvAu1G`): the server owns the revision and bounds it,
+from raft's committed-log bound (`kvLogSmall`, `isCommittedLogLb_small`). -/
+def kvRoom (σ : KVState) : Prop := σ.rev + 4 ≤ 2 ^ 63
+
+/-- **The KV invariant's size facts** (2026-11-05, H-rr1): the start log and the requested log at
+most `2 ^ 61` long (a committed log is shorter than `2 ^ 61`: `isCommittedLogLb_small`, through
+`srvPropAu1`'s commit), so the model's revision has room (`kvRoom_model`). -/
+def kvLogSmall (γk : KVNames) (L : List EntryModel) : Prop :=
+  γk.log0.length ≤ 2 ^ 61 ∧ L.length ≤ 2 ^ 61
+
+/-- A log at most `2 ^ 62` long has a state with room. -/
+theorem kvRoom_stateOf (l : mvcc.Log) (lt : LeaseTable) (h : l.length ≤ 2 ^ 62) :
+    kvRoom (kvStateOf l lt) := by
+  unfold kvRoom; rw [kvStateOf_rev]; omega
+
+/-- **The KV model of a small log has room** (2026-11-05, H-rr1). -/
+theorem kvRoom_model (γk : KVNames) (L : List EntryModel) (h : kvLogSmall γk L) :
+    kvRoom (kvModelSt γk L) := by
+  apply kvRoom_stateOf
+  have := kvRaftOf_length_le γk.c0 γk.ch0 γk.log0 L
+  unfold kvModel; unfold kvLogSmall at h; omega
+
+/-- A small log stays small one entry on, when the entry's log is still below `2 ^ 61`. -/
+theorem kvLogSmall_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (h : kvLogSmall γk L) (hl : L.length + 1 < 2 ^ 61) : kvLogSmall γk (L ++ [e]) := by
+  unfold kvLogSmall at h ⊢; simp only [List.length_append, List.length_singleton]; omega
+
 /-- **`id` was registered by the incarnation of key `k`** (persistent; linkv-txn stage B1,
 2026-10-20; by key since R2c, 2026-11-02, until then by the id's prefix) in its wait registry (the
 cluster's registries' map, `idWaitIs`), with the consumer token `t`: what a proposal's entry
@@ -638,13 +668,14 @@ it means what it meant. A grant is plain there, `plainLogM γk.cmp γk.lg`.) (20
 pair's F8) And the cluster's auth mode off (`SrvRaft.authOn`, the image certificate its snapshots
 carry): the member runs in its cluster's mode (`kvInv_authOn`). (The lease-expiry plan's E3 (b),
 2026-11-04) And, last, the claim rights of the generated ids behind the log's revocable-mode grant
-ids (`kvGrantIds`; empty in another mode). -/
+ids (`kvGrantIds`; empty in another mode). (2026-11-05, H-rr1) And the start and requested logs'
+size facts (`kvLogSmall`), which give every update's firing state its room (`kvRoom_model`). -/
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (kvStQ γk) (kvModelSt γk L) ∗
     ⌜plainLogM γk.cmp γk.lm L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain false false false ∧ (γk.log0 ≠ [] ∧ mvcc.LogNoLease γk.log0) ∧ cmpLogOk γk γk.cmp L ∧
-      γk.rlog = γ.raft.log ∧ γ.raft.authOn = false⌝ ∗
+      γk.rlog = γ.raft.log ∧ γ.raft.authOn = false ∧ kvLogSmall γk L⌝ ∗
       kvWork γ.raft γk L ∗ kvGrantIds γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
@@ -653,10 +684,12 @@ instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
 
 /-- **A client's persistent atomic update of the KV by `f`** (2026-10-15, unit T2): `□ Q` of the
 state it linearized at. Persistent: a write's may be applied more than once (the client's retry
-interceptor, raft's duplicates), a read's is fired at every committed log from its deposit. -/
+interceptor, raft's duplicates), a read's is fired at every committed log from its deposit.
+(2026-11-05, H-rr1) The server tells the update the state's revision room (`kvRoom`) when it
+fires. -/
 def kvAu (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ), COMM □ Q σ }>)
+          <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>)
 
 instance kvAu_persistent (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
     Persistent (kvAu (GF := GF) γk f Q) := by
@@ -674,10 +707,10 @@ instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF
 /-- **A client's update of the KV by `f`, fired at most once** (2026-10-19, D21 M6, D20 (b)): an
 ordinary atomic update, its result `Q` of the state it linearized at not persistent. The server
 proposes the request once and raft appends and commits it at most once (`srvPropAu1`), so the
-update fires at most once. -/
+update fires at most once. (2026-11-05, H-rr1) Told the state's revision room, as `kvAu`. -/
 def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ), COMM Q σ }>)
+          <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)
 
 /-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
@@ -685,10 +718,11 @@ def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
 
 /-- **A client's update by `f`, fired at most once, told `G σ` when it fires** (the auth-mode
 merge's step 5, 2026-10-29): `kvAu1`'s, whose atomic postcondition, which the server supplies at the
-commit, carries `G σ` too (with auth on, the write's grant, `writeGrantG`). -/
+commit, carries `G σ` too (with auth on, the write's grant, `writeGrantG`); (2026-11-05, H-rr1)
+and the state's revision room, as `kvAu1`. -/
 def kvAu1G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (f σ) ∗ G σ, COMM Q σ }>)
+          <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝ ∗ G σ, COMM Q σ }>)
 
 open Iris.ProofMode in
 /-- An atomic update whose committer supplies more (`β' ⊢ β`) (a fact of Iris's atomic updates;
@@ -721,13 +755,13 @@ theorem kvAu1G_mono (γk : KVNames) (f : KVState → KVState) (G G' Q : KVState 
     (h : ∀ σ, G' σ ⊢ G σ) :
     kvAu1G (GF := GF) γk f G Q ⊢ kvAu1G γk f G' Q := by
   unfold kvAu1G
-  exact aupd_post_mono (fun x _ => sep_mono_right (h _))
+  exact aupd_post_mono (fun x _ => sep_mono_right (sep_mono_right (h _)))
 
 /-- A client's update not told anything is one told `G` (the grant ignored). -/
 theorem kvAu1_G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) :
     kvAu1 (GF := GF) γk f Q ⊢ kvAu1G γk f G Q := by
   unfold kvAu1 kvAu1G
-  exact aupd_post_mono (fun _ _ => sep_elim_left)
+  exact aupd_post_mono (fun _ _ => sep_mono_right sep_elim_left)
 
 open Iris.ProofMode in
 /-- A persistent update fires once, its result persistent. -/

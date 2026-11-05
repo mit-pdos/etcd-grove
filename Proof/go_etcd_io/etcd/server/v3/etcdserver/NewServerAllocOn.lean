@@ -192,7 +192,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         unfold SrvRaft.cfg
         rw [hvs]
         exact hcc e (by rw [← hbt]; exact he))
-      rfl rfl (by simp [γk, γk0]) (mvcc.LogPutsLe.empties _) hao)
+      rfl rfl (by simp [γk, γk0]) (mvcc.LogPutsLe.empties _) hao
+      ⟨by simp [γk, γk0], by rw [hbt]; unfold LogEntry.toEntries; simp; omega⟩)
     $$ [HL] [Hstv] Hh with ⟨#Hkv, Hetcd, Hhv⟩
   · simp only [hbt]; iexact HL
   · rw [hm]; iexact Hstv
@@ -243,7 +244,7 @@ theorem kvInvOn_congr (γs : ServerRaftNames) (γk γk' : KVNames) (st₀ : auth
       γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.hist = γk'.hist) :
     kvInvOn (GF := GF) γs γk st₀ = kvInvOn γs γk' st₀ := by
   obtain ⟨h1, h2, h3, h4, h6, h7, h8⟩ := h
-  unfold kvInvOn kvWorkOn entryClaim kvModelOn idRegdAt idWaitIs admStates
+  unfold kvInvOn kvWorkOn entryClaim kvModelOn idRegdAt idWaitIs admStates kvLogSmall
   rw [h1, h2, h3, h4, h6, h7, h8]
 
 /-- **A member's names and share in the mode `on`** (`srvMemberBoot_alloc`'s): the mode-`on` KV

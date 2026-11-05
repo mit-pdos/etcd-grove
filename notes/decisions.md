@@ -16633,7 +16633,10 @@ over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backe
   (`Proof/.../k8setcd3/InvSteps.lean`) and `clientErr_other` (`Calls.lean`); `Apply` is proved
   against `k8setcd3S g0` with them (`Apply.lean`).
 - **D30o: etcd's revision overflow stays an assumption, for now** (2026-11-01, the user's
-  decision, during the redesign of the store's specs with the `spec` skill). The store's write
+  decision, during the redesign of the store's specs with the `spec` skill). *Superseded
+  2026-11-05* by "The KV updates hand back the revision room" (H-rr1, below): the server tells
+  every update the room of the state it fires at; the store's updates and the driver no longer
+  assume it, and `revRoom` is gone. The store's write
   updates keep `σ.rev + 2 < 2 ^ 63` in their precondition: etcd's revisions are `int64`s and its
   model keeps a key's mod revision as a `w64` (`EtcdKv.modRev`), so a write past `2 ^ 63` would
   reuse an old revision; the store's model step (`KWf_put`/`KWf_del`) needs the new one to fit.
@@ -32171,3 +32174,59 @@ guard) and the store's verdict for it.
 `Authenticate` half; `memberUpOn`/`memberBootOn`; the printed non-`w` `grpcCfgOk_of_started`; the
 request path's `specOff`s and the admin entries' `specOn`s (stage 4's D5, D7); layer A,
 `applyEntryNormal`'s twins, `NewServer`.
+
+## The KV updates hand back the revision room (2026-11-05 · H-rr1, Q1 option B, the user's approval · branch `revroom-b`)
+
+**What it was.** The server's client-facing updates on the KV state (`kvAu`, `kvAu1`, `kvAu1G`,
+and `kvOpAu`/`kvOpAu1`/`kvReadAu` through them, `InvRequest.lean`) handed back only the caller's
+half, `etcdKV γk (f σ)`: nothing about the state `σ` they fired at. The k8s store's updates
+(`k8sAu1`, `k8sAuRW`, `Updates.lean`) needed `σ.rev + 2 < 2 ^ 63` for the model's step
+(`StepOk`: the store's `uint64` resource version of etcd's `int64` revision), so took it in their
+`∃∃` precondition (D30o), and the etcd3 driver kept it in its invariant (`KOk.room`) across writes
+by the marked `sorry` `revRoom` (D30n), false as stated.
+
+**What it is.** The bound comes from where the revision is owned, the server (CLAUDE.md,
+"Bounds"):
+- `kvRoom σ := σ.rev + 4 ≤ 2 ^ 63` (`InvRequest.lean`); the three updates' atomic postconditions
+  are `etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝` (`kvAu1G`: `… ∗ ⌜kvRoom σ⌝ ∗ G σ`). `kvAu1_G`, `kvOpAu_one`,
+  `kvAu1G_mono` keep their statements. `+ 4` leaves the store's `+ 2` and one revision more (the
+  driver's post-state, `inv_next`).
+- Raft API law `isCommittedLogLb_small : readyFits γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝`
+  (`InvNode.lean`, next to `isCommittedLogLb_length`; raft's interface regenerated).
+- `srvPropAu1`'s commit also tells `γ.pre.length + L.length + 1 < 2 ^ 61` (proved in
+  `srvPropAu_api` from the law and `srv_next_bound`).
+- `kvInv`/`kvInvOn` gain, last in their pure conjunction, `kvLogSmall γk L := γk.log0.length ≤ 2 ^ 61
+  ∧ L.length ≤ 2 ^ 61` (decided by the agent: the design's single `γk.log0.length + L.length <
+  2 ^ 62` cannot be kept at an append, which bounds `L` but not `log0`; the two halves can).
+  Kept at appends from `srvPropAu1`'s commit (`kvLogSmall_snoc`, `kvInv_facts_snoc`,
+  `kvInvOn_facts_snoc`, `kv_prop_au_cmp`, `kv_prop_au_grant`); at allocation from a new premise:
+  `kvInv_alloc_boot`/`kvInvOn_alloc_boot` take `γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤
+  2 ^ 61` (the invariant's first requested log is the bootstrap log, not `[]`; its callers have
+  `log0 = [[], []]` and `receiptBound GF + boot.length ≤ 2 ^ 61`), `kvInvOn_alloc`
+  `γk.log0.length ≤ 2 ^ 61` (`notes/restart-plan.md`, "R2c requirement from revroom-b").
+- Every firing site opens the invariant and proves `kvRoom` of the model's state from it
+  (`kvRoom_model`, `kvRoom_modelOn`; `kvRaftOf_length_le`, `kvRaftOfOn_length_le`: one revision per
+  entry at most): `kv_prop_auW`'s two firing arms, `kv_fire_reads` (from `kv_read_compose`),
+  `kv_prop_au_on`'s granted arm (`ProposeOn`), `kv_fire_reads_on` (`ReadOn`). The room comes from
+  the invariant at the firing state, not from the commit (the route differs from Q1's text, which
+  named the sole writer's receipts: those are the apply side's; the updates fire at raft's commit).
+- The k8s store: `k8sAu1`'s and `k8sAuRW`'s preconditions drop the room; `k8sAu1`'s commit tells
+  `kvRoom σ` (with `KvNext`), `k8sAuRW`'s every firing (`⌜kvRoom σ⌝`, read or write);
+  `k8sAu1_kvAu1`/`k8sAuRW_kvAu1` take it from `kvAu1`'s commit; `rdFacts` keeps its room, now the
+  server's. The driver: `KOk.room` and `revRoom` deleted; `kOk_ok`/`kOk_pend`/`kStep_ans` take the
+  firing's room of the pre-state, `inv_next` takes `kvRoom σ` (decided by the agent: it still needs
+  the post-state's room for `histOwn_next`, which `kvRoom σ` gives, so its premise changed instead of
+  going).
+- The client library (H-rr1's extension, decided by etcd-grove-82, 2026-11-05: the first
+  version kept the client's specs and stopped, `client_Get_kv` and the kubernetes client's
+  `Client.Optimistic*`, over `kvReadAu`/`kvOpAu1`, having to pass a room-told update into a spec
+  whose update was not told it): the updates of `kv.Get`, `kv.Put`, `kv.Delete`, `kv.Do`,
+  `txn.Commit` and `watcher.Watch` (`Spec/go_etcd_io/etcd/client/v3/`) are told `⌜kvRoom σ⌝` at
+  their commit, as the server's. `KVService`'s `writeAu_upd`/`readAu_upd`/`txnAu_upd` are the
+  identity again; the watch's read update (`wsAu`, `InvWatch`; `raw_to_state`, `WatchFire`) is
+  told the room, fired by `srvKVCoreM_fire`, which proves it from the KV invariant as the other
+  firing sites. A caller holding an update not told the room passes it on through `au_room`
+  (`KVService`: an update not told the room is one told it, `aupd_post_mono`).
+**Unchanged.** `Main.spec`, `k8setcd3_safe`, `NewServer`/`bootOk`, the etcdstart starters, every
+exported result. No axiom; the trust base loses the `sorry` `k8s_etcd3.revRoom`.
+

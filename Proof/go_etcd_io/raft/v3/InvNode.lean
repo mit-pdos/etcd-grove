@@ -1059,6 +1059,17 @@ theorem isCommittedLogLb_length (γ : Cluster) (N : Namespace) (l : List LogEntr
   · ipureintro; subst Hnil; simp
   · ipureintro; omega
 
+/-- (2026-11-05, H-rr1) **A committed log is shorter than `2 ^ 61`** in a cluster that `readyFits`:
+the same receipts as `isCommittedLogLb_length`, the bound `readyFits` states itself. What the
+server's proposals hand back to the key-value layer, which turns it into the revision room of the
+states its updates fire at (`InvRequest.lean`, `kvRoom`). -/
+theorem isCommittedLogLb_small (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    readyFits (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝ := by
+  unfold readyFits Cluster.bootLen isCommittedLogLb ApiImpl.isCommittedLogLb
+  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb, -⟩)⟩
+  · ipureintro; subst Hnil; simp
+  · ipureintro; omega
+
 /-- (2026-10-27, the server port's addition) **The read context `c` was committed after the log
 `l0` was** (persistent): what `readCtx_commit_after` gives with the context. Raft's read index is
 the leader's commit index once it has committed in its term, after the request: at least every

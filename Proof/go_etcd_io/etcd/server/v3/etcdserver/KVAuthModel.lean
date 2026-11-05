@@ -858,14 +858,16 @@ log and determinate at the state it is applied at, every entry above the start's
 and the other half of the state's ghost variable at the state of `L`'s mode-`on` model; the start's
 chain the base chain with auth **enabled** and no alarm, the start log not empty; the workload
 facts (`kvWorkOn`); (5b) the other half of the auth history along `L` (`authHistView`); (the
-auth-on pair's F8) the cluster's auth mode on (`SrvRaft.authOn`, `kvInvOn_authOn`). -/
+auth-on pair's F8) the cluster's auth mode on (`SrvRaft.authOn`, `kvInvOn_authOn`); (2026-11-05,
+H-rr1) the start and requested logs' size facts (`kvLogSmall`, as `kvInv`'s). -/
 def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
     monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true⌝ ∗
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γ.raft.authOn = true ∧
+      kvLogSmall γk L⌝ ∗
     kvWorkOn γ.raft γk L)
 
 instance kvInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
@@ -947,7 +949,7 @@ theorem kvInvOn_authOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Auth
   · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact Hok.2.2.2.2.2.2
+  exact Hok.2.2.2.2.2.2.1
 
 /-- **The KV invariant's cluster runs auth off** (the auth-on pair's F8; `kvInvOn_authOn`'s). -/
 theorem kvInv_authOn (γ : ServerRaftNames) (γk : KVNames) :
@@ -960,7 +962,7 @@ theorem kvInv_authOn (γ : ServerRaftNames) (γk : KVNames) :
   · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact Hok.2.2.2.2.2.2.2
+  exact Hok.2.2.2.2.2.2.2.1
 
 /-- **The member's KV invariant in the mode `on` ties the cluster's mode to it**. -/
 theorem kvInvM_authOn (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
@@ -977,7 +979,8 @@ the history's half at the start's state. So
 theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (E : CoPset)
     (hch : γk.ch0 = apply.alarmChain true false false) (hlog : γk.log0 ≠ [])
     (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
-    (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) (hao : γ.raft.authOn = true) :
+    (hc : uint.Z γk.c0 ≤ uint.Z γ.ai0) (hao : γ.raft.authOn = true)
+    (hl0 : γk.log0.length ≤ 2 ^ 61) :
     ⊢ srvRLog (GF := GF) γ [] -∗ ghostVar γk.st (1 : Qp).half (kvStateOf γk.log0) -∗
       monoListAuthOwn γk.hist (1 : Qp).half [st₀] ={E}=∗ kvInvOn γ γk st₀ := by
   iintro HL Hσ Hh
@@ -994,7 +997,7 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · rw [show admStates γk st₀ [] = [st₀] from rfl]; iexact Hh
   isplitr
   · ipureintro
-    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog, hao⟩
+    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog, hao, hl0, by simp⟩
     intro n m hm; simp at hm
   · iunfold kvWorkOn
     isplitr

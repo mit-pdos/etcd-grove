@@ -24,9 +24,9 @@ the instance's invariant (`Inv.lean`), and the commits it makes itself, as linkv
   the continuation after the reply.
 
 At a write's firing the invariant's state moves along `KvNext` (`Updates.lean`): the revisions'
-map and the store's history follow (`revOwn_next`, `histAuth_next`). That etcd's revision still
-has room for two more after a write (`revRoom`) is a marked `sorry` (D30n): the driver cannot
-count the writes to come.
+map and the store's history follow (`revOwn_next`, `histAuth_next`). The room of etcd's revision
+at a firing comes with the firing, from the server (`kvRoom`, H-rr1, 2026-11-05; until then the
+marked `sorry` `revRoom`, D30n, kept it in the invariant across writes).
 -/
 module
 
@@ -57,11 +57,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **etcd's revisions do not run out** (D30n; see the file header): a marked `sorry` until the
-driver bounds its writes. -/
-theorem revRoom (σ σ' : KVState) (_h : σ'.rev = σ.rev + 1) : σ'.rev + 2 < 2 ^ 63 := by
-  sorry
-
 /-- The model's step of a boxed input and output is the pending model's of the input and the
 output's answer. -/
 theorem step_box (g0 : GSt) (S : linkv.PSet GSt Input) (x : Input) (y : Output) :
@@ -91,12 +86,12 @@ theorem run_snoc (g0 : GSt) (h : List OpV) (S S' : linkv.PSet GSt Input) (a : Op
 /-- The store's model's answer on an input, at the instance's state: an answer (never
 `EOther`). -/
 theorem kStep_ans {c : StoreCfg GF DObj} {g0 : GSt} {S : linkv.PSet GSt Input} {σ : KVState}
-    {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (eD eU : GoInterface) (x : Input)
-    (hx : InOk x)
+    {M : GMap Nat Input} {nx : Nat} (H : KOk c g0 S σ M nx) (hr : σ.rev + 2 < 2 ^ 63)
+    (eD eU : GoInterface) (x : Input) (hx : InOk x)
     (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ uint.nat (minOf x) ≤ σ.rev) :
     ansOf (kStep eD eU x (c.abs σ)).2 = .ok (kStep eD eU x (c.abs σ)).2 := by
   obtain ⟨cf, -, hrel, -⟩ := H.cfg
-  have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; have := H.room; omega
+  have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; omega
   rw [(refine_step eD eU _ _ hrel x hx hrv).2]
   rcases hk with h | h | h | hmin
   · exact ansOf_mstepL x cf.st (Or.inl h)
@@ -197,16 +192,18 @@ theorem histOwn_next (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ �
 
 /-- **The invariant's ghost state follows a step of etcd's state** (see the file header): the
 revisions' map, the store's history (at a step that changes the store's items at one key at
-most), and the room for revisions (`revRoom`); the step's entry comes back. -/
+most), and the room for revisions after it (from the room at the firing, `kvRoom σ`, the
+server's; H-rr1); the step's entry comes back. -/
 theorem inv_next (γ : KNames) (c : StoreCfg GF DObj) (σ σ' : KVState) (hn : KvNext σ σ')
-    (hw : kvWf c σ) (hw' : kvWf c σ') (hr : σ.rev + 2 < 2 ^ 63)
+    (hw : kvWf c σ) (hw' : kvWf c σ') (hr : kvRoom σ)
     (hK : ∃ K, ∀ k, k ≠ K → (c.abs σ').items k = (c.abs σ).items k) :
     revOwn (GF := GF) γ σ ∗ histOwn c σ ⊢
       |==> (revOwn γ σ' ∗ histOwn c σ' ∗ ⌜σ'.rev + 2 < 2 ^ 63⌝ ∗ revSeen c.γh σ σ') := by
   have hr' : σ'.rev + 2 < 2 ^ 63 := by
+    unfold kvRoom at hr
     rcases hn with he | ⟨hrv, -⟩
-    · rw [he]; exact hr
-    · exact revRoom σ σ' hrv
+    · rw [he]; omega
+    · omega
   have hn' : σ' = σ ∨ σ'.rev = σ.rev + 1 := by
     rcases hn with he | ⟨hrv, -⟩
     · exact Or.inl he
@@ -510,7 +507,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
   iexists σ
   isplitl [Hσ]
   · iframe Hσ Hseen
-    ipureintro; exact ⟨Hok.wf, Hok.room⟩
+    ipureintro; exact Hok.wf
   isplit
   · -- abort: nothing moved
     iintro ⟨Hσ, -, -⟩
@@ -525,14 +522,14 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
     iexact HU
   · -- the write's firing: `lintest`'s update commits with the model's output
     iintro %σ' ⟨Hσ, %Hpost⟩
-    obtain ⟨hw', habs, hn⟩ := Hpost
+    obtain ⟨hw', habs, hn, hroom⟩ := Hpost
     imod Hclose2 with -
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
     ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
-    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+    imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
       with ⟨Hrv, Hhist, %hr', #Hrs⟩
     · iframe
-    obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
+    obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' (kvRoom_two hroom)
     ihave ⟨Hhist, #Hseen'⟩ := histOwn_seen c σ' $$ Hhist
     ihave ⟨Hhist, #Hone'⟩ := histOwn_one c σ' $$ Hhist
     ihave #Hans := ansOk_step c σ σ' Hok.wf hw' (mkeyL x.Key') (kStep eD eU x (c.abs σ)).2
@@ -540,7 +537,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames
     · iframe Hseen Hone Hseen' Hone' Hrs
     have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) =
         some S' := by
-      rw [step_box, kStep_ans Hok eD eU x hx (Or.inl hk)]; exact HS'
+      rw [step_box, kStep_ans Hok (kvRoom_two hroom) eD eU x hx (Or.inl hk)]; exact HS'
     imod (fupd_mask_subseteq HE) with Hclose3
     imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
     · iframe
@@ -585,7 +582,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iexists σ
   isplitl [Hσ]
   · iframe Hσ Hseen
-    ipureintro; exact ⟨Hok.wf, Hok.room⟩
+    ipureintro; exact Hok.wf
   isplit
   · -- abort: nothing moved
     iintro ⟨Hσ, -, -⟩
@@ -598,7 +595,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     iempintro
-  · iintro %b %σ' ⟨Hσ, Hb⟩
+  · iintro %b %σ' ⟨Hσ, %hroom, Hb⟩
     cases b
     · -- a plain read: nothing moved
       isimp only [Bool.false_eq_true, ↓reduceIte] at Hb
@@ -621,10 +618,10 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       imod Hclose2 with -
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
       ihave ⟨Hhist, #Hone⟩ := histOwn_one c σ $$ Hhist
-      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+      imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
         with ⟨Hrv, Hhist, %hr', #Hrs⟩
       · iframe
-      obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' hr'
+      obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' hw' (kvRoom_two hroom)
       ihave ⟨Hhist, #Hseen'⟩ := histOwn_seen c σ' $$ Hhist
       ihave ⟨Hhist, #Hone'⟩ := histOwn_one c σ' $$ Hhist
       ihave #Hans := ansOk_step c σ σ' Hok.wf hw' (mkeyL x.Key') (kStep eD eU x (c.abs σ)).2
@@ -632,7 +629,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       · iframe Hseen Hone Hseen' Hone' Hrs
       have Hst : (k8setcd3S (GF := GF) g0).M.step S
           (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-        rw [step_box, kStep_ans Hok eD eU x hx (hk.elim (fun h => Or.inr (Or.inl h))
+        rw [step_box, kStep_ans Hok (kvRoom_two hroom) eD eU x hx (hk.elim (fun h => Or.inr (Or.inl h))
           (fun h => Or.inr (Or.inr (Or.inl h))))]; exact HS'
       unfold rwCall
       iinv Hc with Hci Hclosec
@@ -684,7 +681,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iexists σ
   isplitl [Hσ]
   · iframe Hσ Hseen
-    ipureintro; exact ⟨Hok.wf, Hok.room⟩
+    ipureintro; exact Hok.wf
   isplit
   · iintro ⟨Hσ, -, -⟩
     imod Hclose2 with -
@@ -697,10 +694,10 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
     imodintro
     iexact Htok
   · iintro %σ' ⟨Hσ, %Hpost⟩
-    obtain ⟨hw', habs, hn⟩ := Hpost
+    obtain ⟨hw', habs, hn, hroom⟩ := Hpost
     imod Hclose2 with -
     have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs]; simp [kStep, hk]
-    imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+    imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
       with ⟨Hrv, Hhist, %hr', #Hrs⟩
     · iframe
     iunfold pendTok at Htok
@@ -711,7 +708,7 @@ theorem pend_au1 (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       iunfold kInvBody
       iexists h, S, σ', _, nx
       iframe
-      ipureintro; exact ⟨Hr, kOk_pend Hok eD eU n x Hn habs' hw' hr'⟩
+      ipureintro; exact ⟨Hr, kOk_pend Hok eD eU n x Hn habs' hw' (kvRoom_two hroom)⟩
     imodintro
     itrivial
 
@@ -740,7 +737,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
   iexists σ
   isplitl [Hσ]
   · iframe Hσ Hseen
-    ipureintro; exact ⟨Hok.wf, Hok.room⟩
+    ipureintro; exact Hok.wf
   isplit
   · iintro ⟨Hσ, -, -⟩
     imod Hclose2 with -
@@ -752,7 +749,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     iempintro
-  · iintro %b %σ' ⟨Hσ, Hb⟩
+  · iintro %b %σ' ⟨Hσ, %hroom, Hb⟩
     cases b
     · isimp only [Bool.false_eq_true, ↓reduceIte] at Hb
       icases Hb with %Hb
@@ -772,7 +769,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
       obtain ⟨hw', habs, hn⟩ := Hpost
       imod Hclose2 with -
       have habs' : c.abs σ' = (kStep eD eU x (c.abs σ)).1 := by rw [habs, hstep]
-      imod (inv_next γ c σ σ' hn Hok.wf hw' Hok.room (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
+      imod (inv_next γ c σ σ' hn Hok.wf hw' hroom (kStep_oneKey c eD eU x σ σ' habs')) $$ [Hrv Hhist]
         with ⟨Hrv, Hhist, %hr', #Hrs⟩
       · iframe
       iunfold pendTok at Htok
@@ -783,7 +780,7 @@ theorem pend_rw (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
         iunfold kInvBody
         iexists h, S, σ', _, nx
         iframe
-        ipureintro; exact ⟨Hr, kOk_pend Hok eD eU n x Hn habs' hw' hr'⟩
+        ipureintro; exact ⟨Hr, kOk_pend Hok eD eU n x Hn habs' hw' (kvRoom_two hroom)⟩
       imodintro
       simp only [↓reduceIte]
       itrivial
@@ -905,7 +902,7 @@ theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVN
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, %hroom⟩
     imod Hclose2 with -
     imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
     · inext
@@ -915,7 +912,7 @@ theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVN
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     imodintro
-    ipureintro; exact ⟨Hok.wf, Hok.room⟩
+    ipureintro; exact ⟨Hok.wf, kvRoom_two hroom⟩
 
 /-- **A `Get`'s read update for the prophesied revision `R`** (see the file header): at its
 first firing at a state of revision `R`, `lintest`'s update commits with the model's output
@@ -959,7 +956,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
       ipureintro; exact ⟨Hr, Hok⟩
     imodintro
     iempintro
-  · iintro Hσ
+  · iintro ⟨Hσ, %hroom⟩
     imod Hclose2 with -
     by_cases Hrev2 : σ.rev = uint.nat R ∧ uint.nat (minOf x) ≤ σ.rev
     · have Hrev := Hrev2.1
@@ -969,10 +966,10 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
       · -- the first firing at revision `R`: commit
         imod lc_fupd_elim_later $$ Hlc HU with HU
         have habs' : c.abs σ = (kStep eD eU x (c.abs σ)).1 := (kStep_get eD eU x hk _).symm
-        obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf Hok.room
+        obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf (kvRoom_two hroom)
         have Hst : (k8setcd3S (GF := GF) g0).M.step S
             (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-          rw [step_box, kStep_ans Hok eD eU x hx (Or.inr (Or.inr (Or.inr Hrev2.2)))]; exact HS'
+          rw [step_box, kStep_ans Hok (kvRoom_two hroom) eD eU x hx (Or.inr (Or.inr (Or.inr Hrev2.2)))]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe
@@ -1001,7 +998,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
         imodintro
         unfold readQ
         isplitr
-        · ipureintro; exact ⟨Hok.wf, Hok.room⟩
+        · ipureintro; exact ⟨Hok.wf, kvRoom_two hroom⟩
         iintro %_
         iexact Hγc
       · -- a later firing at revision `R`: the same state, nothing to do
@@ -1027,7 +1024,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
         imodintro
         unfold readQ
         isplitr
-        · ipureintro; exact ⟨Hok.wf, Hok.room⟩
+        · ipureintro; exact ⟨Hok.wf, kvRoom_two hroom⟩
         iintro %_
         iexact Hv
     · imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
@@ -1040,7 +1037,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNam
       imodintro
       unfold readQ
       isplitr
-      · ipureintro; exact ⟨Hok.wf, Hok.room⟩
+      · ipureintro; exact ⟨Hok.wf, kvRoom_two hroom⟩
       iintro %H
       exact absurd H Hrev2
 

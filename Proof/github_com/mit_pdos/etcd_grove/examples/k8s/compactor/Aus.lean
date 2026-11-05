@@ -101,7 +101,7 @@ theorem readAu_check (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (
     · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe; iexact Hh
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     ihave ⟨Hk, #HQ⟩ := keyOk_check γk γ σ r Hv.2 $$ Hk
     imod Hclose $$ [Hσ Hrv Hk] with -
@@ -150,7 +150,7 @@ theorem histOk_cas (γk : KVNames) (σ : KVState) (ev rev : w64) :
 theorem putAu_other (γk : KVNames) (γ : CNames) (k v : GoString) (hk : k ≠ compactRevKey) :
     cinv (GF := GF) γk γ ⊢
       □ AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γk (kvOpStep (.put (putWireOf (opPutModel k v []))) σ),
+        <{ etcdKV γk (kvOpStep (.put (putWireOf (opPutModel k v []))) σ) ∗ ⌜kvRoom σ⌝,
           COMM iprop(True) }> := by
   have Hm := cinvN_mask
   iintro #Hinv
@@ -172,7 +172,7 @@ theorem putAu_other (γk : KVNames) (γ : CNames) (k v : GoString) (hk : k ≠ c
     · inext; iexists σ; iframe; iexact Hh
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod (cinv_step γk γ σ (kvOpStep (.put (putWireOf (opPutModel k v []))) σ)
       (client.kvOpStep_rev _ σ)) $$ Hrv with Hrv
@@ -216,7 +216,7 @@ theorem casAu (γk γk' : KVNames) (hs : kvSame γk' γk) (γ : CNames) (ev rev 
     · inext; iexists σ; rw [etcdKV_same γk γk' hs]; iframe; iexact Hh
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod (cinv_step γk γ σ (kvOpStep (.txn (casTxn ev rev)) σ) (client.kvOpStep_rev _ σ)) $$ Hrv with Hrv
     cases hw : casWins ev rev σ
@@ -323,7 +323,7 @@ theorem readAu_of_cinv (γk : KVNames) (γ : CNames) (Q : KVState → IProp GF)
     · inext; iexists σ; iframe; iexact Hh
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod Hclose $$ [Hσ Hrv Hk] with -
     · inext; iexists σ; iframe; iexact Hh

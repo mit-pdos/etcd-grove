@@ -904,21 +904,23 @@ on, a non-empty start log): from the client's half of raft's committed log at `b
 KV state's variable at the bootstrap log's mode-`on` model, the invariant and the client's
 `etcdKV`. The bootstrap log's entries are conf changes: of the mode-`on` log and determinate
 vacuously (both ask of normal entries only). So `NewServer.specM true`'s KV invariant is
-satisfiable. -/
+satisfiable. (2026-11-05, H-rr1) The start log and the bootstrap log at most `2 ^ 61` long (`hsm`,
+as `kvInv_alloc_boot`'s). -/
 theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (ps : List w64) (E : CoPset)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
     (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
     (hlog : γk.log0 ≠ []) (hlk : mvcc.LogPutsLe etcdKeyMax γk.log0)
-    (hao : γs.raft.authOn = true) :
+    (hao : γs.raft.authOn = true)
+    (hsm : γk.log0.length ≤ 2 ^ 61 ∧ γs.raft.boot.length ≤ 2 ^ 61) :
     ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
       ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) -∗
       monoListAuthOwn γk.hist 1 [st₀] ={E}=∗
       kvInvOn γs γk st₀ ∗
         etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ∗
         authHistView γk [st₀] := by
-  generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
+  generalize hbl : γs.raft.boot = bootLog at hboot hcc hsm ⊢
   iintro HL Hv Hh
   icases onGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
   icases authHist_split γk [st₀] $$ Hh with ⟨Hhv, Hh⟩
@@ -948,8 +950,9 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
       uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true := by
-    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao⟩
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
+      kvLogSmall γk (bootEntries bootLog) := by
+    refine ⟨?_, ?_, ?_, ?_, hch, hlog, hao, hsm.1, by unfold bootEntries; simpa using hsm.2⟩
     · intro m hm h0
       rw [hty m hm] at h0
       exact absurd h0 (by decide)
@@ -988,7 +991,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       monoListAuthOwn γk.hist (1 : Qp).half (admStates γk st₀ L) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true⌝ ∗
+        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] ∧ γs.raft.authOn = true ∧
+        kvLogSmall γk L⌝ ∗
         kvWorkOn γs.raft γk L))
     $$ [HL Hv1 Hh] with #Hinv
   · inext

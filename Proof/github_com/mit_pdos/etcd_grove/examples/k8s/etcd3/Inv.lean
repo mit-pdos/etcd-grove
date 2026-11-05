@@ -14,9 +14,11 @@ store's specs (`Proof/k8s_io/apiserver/pkg/storage/etcd3/`).
   minimum `minOf x`), its next state and the driver's output of its answer (`outOf`). On related
   states (`KRel`) it is the driver's model's step (`refine_step`, from 6b's `refine_*`).
 - `KOk c g0 S σ M nx`: the instance's relation, as linkvtxn's `LinkvOk`: `S` closed under late
-  effects, etcd's state the store's (`kvWf`) with room for two revisions, the pending writes `M`
+  effects, etcd's state the store's (`kvWf`), the pending writes `M`
   (inputs `Gen` may return, `InOk`) keyed below `nx`, and some configuration of `S` whose store
-  the store's model of `σ` refines (`KRel (c.abs σ)`) with exactly `M`'s writes pending.
+  the store's model of `σ` refines (`KRel (c.abs σ)`) with exactly `M`'s writes pending. (Until
+  2026-11-05 also etcd's revision's room, kept across a write by the `sorry` `revRoom`, D30n; since
+  H-rr1 the room of a state comes with each firing at it, from the server: `kvRoom`.)
 -/
 module
 
@@ -293,7 +295,6 @@ structure KOk (c : StoreCfg GF DObj) (g0 : GSt) (S : linkv.PSet GSt Input) (σ :
     (M : GMap Nat Input) (nx : Nat) : Prop where
   closed : linkv.PSet.Closed (kSpec g0) S
   wf : kvWf c σ
-  room : σ.rev + 2 < 2 ^ 63
   fresh : ∀ n, nx ≤ n → M !! n = none
   ins : ∀ n i, M !! n = some i → InOk i
   cfg : ∃ cf, S cf ∧ KRel (c.abs σ) cf.st ∧ (pendIns M).Perm cf.pend
@@ -301,25 +302,25 @@ structure KOk (c : StoreCfg GF DObj) (g0 : GSt) (S : linkv.PSet GSt Input) (σ :
 variable {c : StoreCfg GF DObj} {g0 : GSt}
 
 /-- The relation at the start: the model's initial state, nothing pending. -/
-theorem kOk_init (σ : KVState) (hw : kvWf c σ) (hr : σ.rev + 2 < 2 ^ 63)
+theorem kOk_init (σ : KVState) (hw : kvWf c σ)
     (he : KRel (c.abs σ) g0) : KOk c g0 (linkv.pInit (kSpec g0)) σ (∅ : GMap Nat Input) 0 := by
-  refine ⟨linkv.pInit_closed, hw, hr, fun _ _ => rfl, (fun _ _ h => by cases h),
+  refine ⟨linkv.pInit_closed, hw, fun _ _ => rfl, (fun _ _ h => by cases h),
     ⟨⟨g0, []⟩, rfl, he, ?_⟩⟩
   simp [pendIns]
 
-/-- **An operation answered at the real configuration**: the store's model of `σ` stepped by
-the input to the store's model of `σ'`, which has room. -/
+/-- **An operation answered at the real configuration**: the store's model of `σ`, which has room
+(`hr`, the firing's), stepped by the input to the store's model of `σ'`. -/
 theorem kOk_ok {S : linkv.PSet GSt Input} {σ σ' : KVState} {M : GMap Nat Input} {nx : Nat}
     (H : KOk c g0 S σ M nx) (eD eU : GoInterface) (x : Input) (hx : InOk x)
     (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) (hw' : kvWf c σ')
-    (hr' : σ'.rev + 2 < 2 ^ 63) :
+    (hr : σ.rev + 2 < 2 ^ 63) :
     ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .ok (kStep eD eU x (c.abs σ)).2) = some S' ∧
       KOk c g0 S' σ' M nx := by
   obtain ⟨cf, hc, hrel, hp⟩ := H.cfg
-  have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; have := H.room; omega
+  have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; omega
   obtain ⟨hrel', hout⟩ := refine_step eD eU _ _ hrel x hx hrv
   obtain ⟨S', hS', hc'⟩ := linkv.pSeq_ok (P := kSpec g0) hc x
-  refine ⟨S', ?_, linkv.pSeq_step_closed hS', hw', hr', H.fresh, H.ins, ⟨_, hc', ?_, hp⟩⟩
+  refine ⟨S', ?_, linkv.pSeq_step_closed hS', hw', H.fresh, H.ins, ⟨_, hc', ?_, hp⟩⟩
   · rw [hout]; exact hS'
   · rw [habs]; exact hrel'
 
@@ -330,7 +331,7 @@ theorem kOk_errW {S : linkv.PSet GSt Input} {σ : KVState} {M : GMap Nat Input} 
       KOk c g0 S' σ (GMap.insert nx x M) (nx + 1) := by
   obtain ⟨cf, hc, hst, hp⟩ := H.cfg
   obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errW_pending (P := kSpec g0) hc x hw
-  refine ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, H.room, ?_, ?_, ⟨_, hc', hst, ?_⟩⟩
+  refine ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, ?_, ?_, ⟨_, hc', hst, ?_⟩⟩
   · intro n hn
     show (GMap.insert nx x M) !! n = none
     rw [GMap.lookup_insert_ne _ _ (by omega)]
@@ -353,20 +354,20 @@ theorem kOk_errR {S : linkv.PSet GSt Input} {σ : KVState} {M : GMap Nat Input} 
     ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .err) = some S' ∧ KOk c g0 S' σ M nx := by
   obtain ⟨cf, hc, hst, hp⟩ := H.cfg
   obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errR (P := kSpec g0) hc x hw
-  exact ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, H.room, H.fresh, H.ins, ⟨cf, hc', hst, hp⟩⟩
+  exact ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, H.fresh, H.ins, ⟨cf, hc', hst, hp⟩⟩
 
 /-- **A late effect**: the pending write `n ↦ x` takes effect, the model state unchanged. -/
 theorem kOk_pend {S : linkv.PSet GSt Input} {σ σ' : KVState} {M : GMap Nat Input} {nx : Nat}
     (H : KOk c g0 S σ M nx) (eD eU : GoInterface) (n : Nat) (x : Input) (hn : M !! n = some x)
     (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) (hw' : kvWf c σ')
-    (hr' : σ'.rev + 2 < 2 ^ 63) :
+    (hr : σ.rev + 2 < 2 ^ 63) :
     KOk c g0 S σ' (GMap.delete n M) nx := by
   obtain ⟨cf, hc, hst, hp⟩ := H.cfg
   have hd := pendIns_delete M n x hn
   have hmem : x ∈ cf.pend := hp.subset (hd.symm.subset List.mem_cons_self)
-  have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; have := H.room; omega
+  have hrv : (c.abs σ).rv + 1 < 2 ^ 64 := by rw [abs_rv]; omega
   obtain ⟨hrel', -⟩ := refine_step eD eU _ _ hst x (H.ins n x hn) hrv
-  refine ⟨H.closed, hw', hr', ?_, ?_, ⟨_, H.closed.apply hc hmem, ?_, ?_⟩⟩
+  refine ⟨H.closed, hw', ?_, ?_, ⟨_, H.closed.apply hc hmem, ?_, ?_⟩⟩
   · intro m hm
     show (GMap.delete n M) !! m = none
     by_cases e : n = m

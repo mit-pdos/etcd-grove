@@ -312,7 +312,7 @@ theorem rwInv_readAu (γk : KVNames) (γc γt γp : GName) (c : StoreCfg GF Obj)
   have h : rwInv γc γt γp c key hand W Φ ∗ dghostVar γp DFrac.discard (some (R, m)) ∗
       k8sAuRW γk c step W Φ ⊢
       AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γk ((fun σ => σ) σ), COMM □ rdQ γc γp c key hand R m σ }> := by
+        <{ etcdKV γk ((fun σ => σ) σ) ∗ ⌜kvRoom σ⌝, COMM □ rdQ γc γp c key hand R m σ }> := by
     have Hm := k8sN_mask
     refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
     iintro ⟨-, #Hc, #Hp, #HAU⟩
@@ -341,10 +341,10 @@ theorem rwInv_readAu (γk : KVNames) (γc γt γp : GName) (c : StoreCfg GF Obj)
       imod Hclose $$ Hi with -
       imodintro
       iframe Hc Hp HAU
-    · iintro Hkv
+    · iintro ⟨Hkv, %Hroom⟩
       icases Hcl with ⟨-, Hcommit⟩
       ihave #Hfs : rdFacts c σ $$ []
-      · unfold rdFacts; iframe Hseen; ipureintro; exact Hwf
+      · unfold rdFacts; iframe Hseen; ipureintro; exact ⟨Hwf, kvRoom_two Hroom⟩
       by_cases hm : rdPair key σ = (R, m) ∧ hand σ = true
       · iunfold rwBody at Hi
         icases Hi with (⟨>HW, >Hγc⟩ | ⟨%σ1, %R', %m', >#Hv1, >#Hp', >%Hf, >#Hf1, Hrest⟩ |
@@ -354,7 +354,7 @@ theorem rwInv_readAu (γk : KVNames) (γc γt γp : GName) (c : StoreCfg GF Obj)
           isimp only [↓reduceIte] at Hcommit
           imod Hcommit $$ [Hkv HW] with HΦ
           · iframe Hkv HW
-            ipureintro; exact ⟨Hwf.1, (hok.id σ Hwf.1 hm.2).symm, Or.inl rfl⟩
+            ipureintro; exact ⟨Hroom, Hwf, (hok.id σ Hwf hm.2).symm, Or.inl rfl⟩
           imod dghostVar_update (some σ) γc none $$ Hγc with Hγc
           imod dghostVar_persist γc 1 _ $$ Hγc with #Hγc
           imod Hclose $$ [HΦ] with -
@@ -380,7 +380,7 @@ theorem rwInv_readAu (γk : KVNames) (γc γt γp : GName) (c : StoreCfg GF Obj)
           ispecialize Hcommit $$ %false %σ
           isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
           imod Hcommit $$ [Hkv] with -
-          · iframe Hkv
+          · iframe Hkv; ipureintro; exact ⟨Hroom, trivial⟩
           ihave %Hpe := dghostVar_agree γp _ _ _ _ $$ Hp' Hp
           simp only [Option.some.injEq] at Hpe
           obtain ⟨rfl, rfl⟩ := Prod.mk.inj Hpe
@@ -413,7 +413,7 @@ theorem rwInv_readAu (γk : KVNames) (γc γt γp : GName) (c : StoreCfg GF Obj)
         ispecialize Hcommit $$ %false %σ
         isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
         imod Hcommit $$ [Hkv] with -
-        · iframe Hkv
+        · iframe Hkv; ipureintro; exact ⟨Hroom, trivial⟩
         imod Hclose $$ Hi with -
         imodintro
         imodintro

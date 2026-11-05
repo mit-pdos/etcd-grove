@@ -1156,8 +1156,8 @@ theorem txnPermit_of_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.He
       ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantG γk srvAuthSt0 Gb (irrTxn tw) L₀ σ)) Q ⊢
       kvAu1 γk (kvOpStep (.txn t)) Q := by
     unfold kvAu1G kvAu1
-    exact aupd_post_mono (fun _ _ => sep_emp.2.trans (sep_mono_right (by
-      iintro - %h; cases h)))
+    exact aupd_post_mono (fun _ _ => sep_mono_right (sep_emp.2.trans (sep_mono_right (by
+      iintro - %h; cases h))))
   iapply hG $$ Hau
 
 /-- On, `txnPermitM` is `txnPermitOn`. -/

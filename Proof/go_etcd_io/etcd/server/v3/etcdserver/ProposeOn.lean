@@ -452,7 +452,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       itrivial
     · iintro %e ⟨%He, HL⟩
       imod Hmask with -
-      obtain ⟨het, hed, hidx⟩ := He
+      obtain ⟨het, hed, hidx, hsz⟩ := He
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
         kvModelOn_snoc_nonwrite γk st₀ L e (apply.withHeader rq₀ hm) (by rw [hed]; exact hdec)
@@ -468,7 +468,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         iframe HL Hσ Hh Hw'
         ipureintro
         exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-          (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa)
+          (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa) (by omega)
       imodintro
       iintro !>
       itrivial
@@ -509,13 +509,13 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       imodintro
       iexact Hau
     · iintro %e ⟨%He, HL⟩
-      obtain ⟨het, hed, hidx⟩ := He
+      obtain ⟨het, hed, hidx, hsz⟩ := He
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hdata : e.data ≠ [] := by rw [hed]; exact hd
       ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) (entryPutsOk_of_data e d _ hed hdec hk) (attrEntryOk_of _ e d _ hed hdec ha) $$ Hw (Hecl $$ %e %hed)
       have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-        (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa)
+        (commitOkOn_plain _ _ _ L e d (apply.withHeader rq₀ hm) hed hdec hplain hz hsa) (by omega)
       by_cases hg : grantedAt γk st₀ (apply.withHeader rq₀ hm) L
       · -- granted: the client's update fires at the commit
         icases Hucl with ⟨-, Hcommit⟩
@@ -525,6 +525,8 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         imod Hcommit $$ [Hc] with HQ
         · iunfold etcdKV
           iframe Hc
+          isplitr
+          · ipureintro; rw [← Hag]; exact kvRoom_modelOn γk st₀ L Hok.2.2.2.2.2.2.2
           -- (step 5) the update told its grant, and (5b) the history along `L`
           iunfold writeGrantG
           iexists hm, L
@@ -602,7 +604,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         itrivial
       · iintro %e ⟨%He, HL⟩
         imod Hmask with -
-        obtain ⟨het, hed, hidx⟩ := He
+        obtain ⟨het, hed, hidx, hsz⟩ := He
         have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
         have hdata : e.data ≠ [] := by rw [hed]; exact hd
         have hidxe : uint.Z γk.c0 < uint.Z e.index := by
@@ -630,7 +632,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
             (by rw [hed]; exact hdec) hna0]
           iframe HL Hσ Hh Hw'
           ipureintro
-          exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc
+          exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc (by omega)
         imodintro
         iintro !>
         iunfold adminPropRes
@@ -661,7 +663,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         itrivial
       · iintro %e ⟨%He, HL⟩
         imod Hmask with -
-        obtain ⟨het, hed, hidx⟩ := He
+        obtain ⟨het, hed, hidx, hsz⟩ := He
         have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
         have hdata : e.data ≠ [] := by rw [hed]; exact hd
         have hidxe : uint.Z γk.c0 < uint.Z e.index := by
@@ -686,7 +688,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
           rw [hed]; exact hdec
         have hsrt := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2
         have hdet := authDet_of_sorted (apply.withHeader rq₀ hm) _ hsrt hadm.2.2.1
-        have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc
+        have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc (by omega)
         by_cases hr : admRec γk st₀ (apply.withHeader rq₀ hm) L
         · -- recorded: the history grows by the state after the entry
           have hae := (admEntry_iff_admRec γk st₀ L e _ het hdata hdec' hidxe hna0).2 hr

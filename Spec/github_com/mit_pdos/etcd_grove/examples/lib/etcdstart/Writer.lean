@@ -12,7 +12,8 @@ and `ContextErrsClient` on Go's context errors), logging each that returned no e
 reply's facts: its revision is `σ`'s next, `σ` a well-formed log's state, `kvLogOk`). The caller's facts are its own
 (watchkv's of its invariant over the KV state, cachekv's of the clients' model of etcd); until
 2026-10-26 the adapter's (`kmInv`, `okFactKM`), before D48 the server's sealed logs. Each Put must fit a gRPC
-message: the pairs tried are small (`wkvSizeOk`; 2026-10-31, `notes/invoke-size.md`, pass 4).
+message: the pairs tried are small (`wkvSizeOk`; 2026-10-31, `notes/invoke-size.md`, pass 4). The
+write updates' commits are told the revision's room (`kvRoom σ`, as `kv.Put.spec`'s; 2026-11-05, H-rr1).
 -/
 module
 
@@ -53,7 +54,7 @@ abbrev Writer.spec : Prop :=
       client.isKv api γk false ∗ tsl ↦*□ tried ∗
       (□ ∀ (k v : GoString), ⌜(k, v) ∈ tried.map pairOf⌝ -∗
         AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γk (kvOpStep (.put (putWireOf (opPutModel k v []))) σ),
+          <{ etcdKV γk (kvOpStep (.put (putWireOf (opPutModel k v []))) σ) ∗ ⌜kvRoom σ⌝,
             COMM QW k v σ }>) ∗
       (□ ∀ (k v : GoString) (σ : KVState), QW k v σ -∗ ⌜σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝ -∗
         OkF ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩) ∗
