@@ -21,7 +21,7 @@ def mvcc.memberFacts (γ : mvcc.WsNames) (σ : mvcc.WsState) (w : Loc) (st : mvc
             (⌜¬σ.live w⌝ ∨
               ⌜σ.live w⌝ ∗
                 mvcc.watcherChan γ w γw st.ch ∗
-                  mvcc.filtersOk fcs ∗
+                  mvcc.watcherFilters γw fcs ∗
                     ∃ evsw d,
                       ⌜σ.E !! w = some (evsw, d)⌝ ∗ monoListLbOwn γw.evs evsw ∗ mvcc.popFacts γ σ w r γw.lo st evsw d))
 
@@ -91,20 +91,23 @@ def mvcc.covLent (q : Qp) (c : mvcc.CovArg) : IProp GF :=
   iprop(monoListAuthOwn c.γw.evs q c.evsw ∗ dghostVar c.γw.live (DFrac.own q) true)
 
 theorem mvcc.WatchParams.mk.congr_simp.{u_1} (IW IW✝ : Loc → IProp GF) (e_IW : IW = IW✝) (WC WC✝ :
-    Loc → IProp GF) (e_WC : WC = WC✝) (C C✝ : GoChan → IProp GF) (e_C : C = C✝) (F F✝ : GoFunc →
-    IProp GF) (e_F : F = F✝) (CR CR✝ : GoChan → mvcc.WatchChanNames → List Loc → IProp GF) (e_CR :
+    Loc → IProp GF) (e_WC : WC = WC✝) (C C✝ : GoChan → IProp GF) (e_C : C = C✝) (FI FI✝ : GoSlice →
+    List (mvcc.EvM → Bool) → IProp GF) (e_FI : FI = FI✝) (RegCb RegCb✝ : GoChan →
+    mvcc.WatchChanNames → mvcc.WatchRange → List (mvcc.EvM → Bool) → (Loc → IProp GF) → IProp GF)
+    (e_RegCb : RegCb = RegCb✝) (CR CR✝ : GoChan → mvcc.WatchChanNames → List Loc → IProp GF) (e_CR :
     CR = CR✝) (R R✝ : IProp GF) (e_R : R = R✝) (T T✝ : IProp GF) (e_T : T = T✝) (IWF IWF✝ : Loc →
     mvcc.WatchRange → GoSlice → Nat → IProp GF) (e_IWF : IWF = IWF✝) (OC OC✝ : Loc →
     mvcc.WatchChanNames → IProp GF) (e_OC : OC = OC✝) (WS WS✝ : Loc → IProp GF) (e_WS : WS = WS✝)
     (IW_pers : ∀ (w : Loc), Persistent (IW w)) (WC_pers : ∀ (w : Loc), Persistent (WC w)) (C_pers :
-    ∀ (ch : GoChan), Persistent (C ch)) (F_pers : ∀ (f : GoFunc), Persistent (F f)) (IWF_pers : ∀ (w
-    : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat), Persistent (IWF w r fcs lo)) (OC_pers :
-    ∀ (w : Loc) (γc : mvcc.WatchChanNames), Persistent (OC w γc)) (WS_pers : ∀ (w : Loc), Persistent
-    (WS w)) : { IW := IW, WC := WC, C := C, F := F, CR := CR, R := R, T := T, IWF := IWF, OC := OC,
-    WS := WS, IW_pers := IW_pers, WC_pers := WC_pers, C_pers := C_pers, F_pers := F_pers, IWF_pers
-    := IWF_pers, OC_pers := OC_pers, WS_pers := WS_pers } = { IW := IW✝, WC := WC✝, C := C✝, F :=
-    F✝, CR := CR✝, R := R✝, T := T✝, IWF := IWF✝, OC := OC✝, WS := WS✝, IW_pers := ⋯, WC_pers := ⋯,
-    C_pers := ⋯, F_pers := ⋯, IWF_pers := ⋯, OC_pers := ⋯, WS_pers := ⋯ }
+    ∀ (ch : GoChan), Persistent (C ch)) (FI_pers : ∀ (fcs : GoSlice) (fs : List (mvcc.EvM → Bool)),
+    Persistent (FI fcs fs)) (IWF_pers : ∀ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo :
+    Nat), Persistent (IWF w r fcs lo)) (OC_pers : ∀ (w : Loc) (γc : mvcc.WatchChanNames), Persistent
+    (OC w γc)) (WS_pers : ∀ (w : Loc), Persistent (WS w)) : { IW := IW, WC := WC, C := C, FI := FI,
+    RegCb := RegCb, CR := CR, R := R, T := T, IWF := IWF, OC := OC, WS := WS, IW_pers := IW_pers,
+    WC_pers := WC_pers, C_pers := C_pers, FI_pers := FI_pers, IWF_pers := IWF_pers, OC_pers :=
+    OC_pers, WS_pers := WS_pers } = { IW := IW✝, WC := WC✝, C := C✝, FI := FI✝, RegCb := RegCb✝, CR
+    := CR✝, R := R✝, T := T✝, IWF := IWF✝, OC := OC✝, WS := WS✝, IW_pers := ⋯, WC_pers := ⋯, C_pers
+    := ⋯, FI_pers := ⋯, IWF_pers := ⋯, OC_pers := ⋯, WS_pers := ⋯ }
 
 theorem mvcc.members_lend (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) (cs : List mvcc.CovArg) (ST
     : GMap Loc mvcc.WatcherSt) : (List.map mvcc.CovArg.w cs).Nodup → (∀ (c : mvcc.CovArg), c ∈ cs →

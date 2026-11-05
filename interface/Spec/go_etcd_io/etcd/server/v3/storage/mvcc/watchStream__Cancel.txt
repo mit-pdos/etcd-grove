@@ -3,19 +3,5 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def mvcc.watchStream.Cancel.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames) (id : w64),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchStream ws wa P γ ∗ mvcc.rsnFor γ.rsn id -∗
-          (▷
-              ∀ err,
-                ⌜err = GoInterface.nil⌝ ∨
-                    typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherNotExist) err
-                      DFrac.discard -∗
-                  Φ (intoVal err)) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType
-                    go!"Cancel" (intoVal ws)))
-                (intoVal id))
-              {{ Φ }}
+  ∀ (w : Loc),
+    mvcc.api.WatchStream.Cancel.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal w)

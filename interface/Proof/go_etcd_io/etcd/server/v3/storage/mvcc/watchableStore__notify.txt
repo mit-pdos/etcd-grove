@@ -121,9 +121,9 @@ theorem mvcc.std_delete_eq {V : Type} (m : GMap Loc V) (k : Loc) : Std.delete m 
 theorem mvcc.memberRes_synced (γ : mvcc.WsNames) (q : Qp) (σ : mvcc.WsState) (w : Loc) (st :
     mvcc.WatcherSt) (hW : (σ.Ws !! w).isSome = true) : mvcc.memberRes γ q σ w st ⊢ ∃ γw r fcs evsw
     d, ⌜σ.M !! w = some γw⌝ ∗ mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.watcherChan
-    γ w γw st.ch ∗ mvcc.filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ ↑γw.lo⌝ ∗ ⌜σ.E !! w = some (evsw, d)⌝ ∗
-    monoListAuthOwn γw.evs q.half evsw ∗ dghostVar γw.live (DFrac.own q.half) true ∗ ⌜↑γw.lo ≤
-    sint.Z st.minRev ∧ sint.Z st.minRev ≤ ↑d⌝ ∗ mvcc.evsWf γ r γw.lo evsw d
+    γ w γw st.ch ∗ mvcc.watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ ↑γw.lo⌝ ∗ ⌜σ.E !! w = some
+    (evsw, d)⌝ ∗ monoListAuthOwn γw.evs q.half evsw ∗ dghostVar γw.live (DFrac.own q.half) true ∗
+    ⌜↑γw.lo ≤ sint.Z st.minRev ∧ sint.Z st.minRev ≤ ↑d⌝ ∗ mvcc.evsWf γ r γw.lo evsw d
 
 def mvcc.memberDone (γ : mvcc.WsNames) (σ : mvcc.WsState) (N : Nat) (w : Loc) (st : mvcc.WatcherSt)
     (evsw ext : List mvcc.EvM) : IProp GF :=
@@ -132,7 +132,7 @@ def mvcc.memberDone (γ : mvcc.WsNames) (σ : mvcc.WsState) (N : Nat) (w : Loc) 
         mvcc.watcherMeta γ w γw ∗
           mvcc.watcherFixed w r fcs ∗
             mvcc.watcherChan γ w γw st.ch ∗
-              mvcc.filtersOk fcs ∗
+              mvcc.watcherFilters γw fcs ∗
                 ⌜sint.Z r.startRev ≤ ↑γw.lo⌝ ∗
                   monoListAuthOwn γw.evs (Qp.half 1) evsw ∗
                     dghostVar γw.live (DFrac.own (Qp.half 1)) true ∗

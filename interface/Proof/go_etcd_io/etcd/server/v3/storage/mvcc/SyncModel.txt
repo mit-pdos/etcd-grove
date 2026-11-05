@@ -40,6 +40,14 @@ theorem mvcc.logEnts_bounds (log : mvcc.Log) (hlen : List.length log < 2 ^ 63) (
     mvcc.Change), cs ∈ log → cs.length < 2 ^ 63) (lo hi : Nat) (hhi : hi ≤ List.length log) (e :
     mvcc.KvEnt) : e ∈ mvcc.logEnts log lo hi → 0 ≤ sint.Z e.rev.main ∧ 0 ≤ sint.Z e.rev.sub
 
+theorem mvcc.memberBatch_sublist (C : mvcc.Log) (hlen : List.length C < 2 ^ 63) (r :
+    mvcc.WatchRange) (st : mvcc.WatcherSt) (evs : List mvcc.EvM) (hi : Nat) (hhi : hi ≤ List.length
+    C) (hF : (List.filter (fun ev => r.covers ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z
+    ev.kv.modRev)) evs).Sublist (mvcc.watchEvents C r (sint.nat st.minRev) hi)) : mvcc.memberBatch r
+    st evs = none ∨ ∃ B, mvcc.memberBatch r st evs = some B ∧ B.evs ≠ [] ∧ (B.moreRev = W64 0 ∧
+    B.evs.Sublist (mvcc.watchEvents C r (sint.nat st.minRev) hi) ∨ ∃ M, B.moreRev = W64 ↑M ∧
+    sint.nat st.minRev < M ∧ M < hi ∧ B.evs.Sublist (mvcc.watchEvents C r (sint.nat st.minRev) M))
+
 theorem mvcc.evsOfRevM_modRev_sm (m : Nat) (b : List EtcdKv) (hb : List.Pairwise etcdKvLess b) (cs :
     List mvcc.Change) (ev : mvcc.EvM) : ev ∈ mvcc.evsOfRevM m b cs → ev.kv.modRev = W64 ↑m
 
@@ -104,9 +112,22 @@ theorem mvcc.changeKv_cases (r : w64) (b : List EtcdKv) (hb : List.Pairwise etcd
 theorem mvcc.combine_append_single (l : List w8) (b : w8) : LittleEndian.combine (l ++ [b]) =
     LittleEndian.combine l + BitVec.toNat b * 256 ^ l.length
 
+theorem mvcc.logEvents_member_filter (C : mvcc.Log) (hlen : List.length C < 2 ^ 63) (r :
+    mvcc.WatchRange) (st : mvcc.WatcherSt) (p : mvcc.EvM → Bool) (lo hi : Nat) (hp : ∀ (ev :
+    mvcc.EvM), r.covers ev.kv.key = true → p ev = true) (hlo : ↑lo ≤ sint.Z st.minRev) : List.filter
+    (fun ev => r.covers ev.kv.key && decide (sint.Z st.minRev ≤ sint.Z ev.kv.modRev)) (List.filter p
+    (mvcc.logEvents C lo hi)) = mvcc.watchEvents C r (sint.nat st.minRev) hi
+
 theorem mvcc.revKey_lt (r i hi : Nat) (t : Bool) (hhi : hi < 2 ^ 64) (hr : r < 2 ^ 64) (hi' : i < 2
     ^ 64) : go.GoStringLt (mvcc.revBytes { main := W64 ↑r, sub := W64 ↑i } t) (mvcc.revBytes { main
     := W64 ↑hi, sub := W64 0 } false) ↔ r < hi
+
+theorem mvcc.entsEvents_logEnts (log : mvcc.Log) (hwf : mvcc.LogWf' log) (hlen : List.length log < 2
+    ^ 63) (hcs : ∀ (cs : List mvcc.Change), cs ∈ log → cs.length < 2 ^ 63) (W : GMap Loc
+    mvcc.WatchRange) (lo hi : Nat) (hhi : hi ≤ List.length log) (P : mvcc.KvEnt → Bool) (hP : ∀ (e :
+    mvcc.KvEnt), e ∈ mvcc.logEnts log lo hi → P e = true) : mvcc.entsEvents W (List.filter P
+    (mvcc.logEnts log lo hi)) = List.filter (fun ev => mvcc.wgCovers W ev.kv.key) (mvcc.logEvents
+    log lo hi)
 
 theorem mvcc.ebInv_single (x : mvcc.EvM) : mvcc.ebInv [x] (mvcc.ebAdd mvcc.EventBatch.empty x)
 
@@ -114,6 +135,23 @@ theorem mvcc.findKey_mem {k : GoString} {s : List EtcdKv} {kv : EtcdKv} (h : mvc
     kv) : kv ∈ s
 
 theorem mvcc.w64_toNat_of_lt (n : Nat) (h : n < 2 ^ 64) : BitVec.toNat (W64 ↑n) = n
+
+theorem mvcc.sw_memberBatch_cases (C : mvcc.Log) (hwf : mvcc.LogWf' C) (hlen : List.length C < 2 ^
+    63) (hcs : ∀ (cs : List mvcc.Change), cs ∈ C → cs.length < 2 ^ 63) (W : GMap Loc
+    mvcc.WatchRange) (P : mvcc.KvEnt → Bool) (c : Int) (minRev : Nat) (hP1 : ∀ (e : mvcc.KvEnt), e ∈
+    mvcc.logEnts C minRev (List.length C) → c < sint.Z e.rev.main → P e = true) (hP2 : c = -1 ∨
+    mvcc.oneChangePerKeyAt C c → ∀ (e : mvcc.KvEnt), e ∈ mvcc.logEnts C minRev (List.length C) → P e
+    = true) (r : mvcc.WatchRange) (st : mvcc.WatcherSt) (lo : Nat) (hcov : ∀ (ev : mvcc.EvM),
+    r.covers ev.kv.key = true → mvcc.wgCovers W ev.kv.key = true) (hmin : ↑minRev ≤ sint.Z
+    st.minRev) (hc : c ≤ sint.Z st.minRev) (hlo : ↑lo ≤ sint.Z st.minRev) : mvcc.memberBatch r st
+    (mvcc.entsEvents W (List.filter P (mvcc.logEnts C minRev (List.length C)))) = none ∧
+    (mvcc.watchEvents C r (sint.nat st.minRev) (List.length C) = [] ∨ ¬mvcc.api.onceUpTo C lo c) ∨ ∃
+    B, mvcc.memberBatch r st (mvcc.entsEvents W (List.filter P (mvcc.logEnts C minRev (List.length
+    C)))) = some B ∧ B.evs ≠ [] ∧ (B.moreRev = W64 0 ∧ (B.evs = mvcc.watchEvents C r (sint.nat
+    st.minRev) (List.length C) ∨ ¬mvcc.api.onceUpTo C lo c ∧ B.evs.Sublist (mvcc.watchEvents C r
+    (sint.nat st.minRev) (List.length C))) ∨ ∃ M, B.moreRev = W64 ↑M ∧ sint.nat st.minRev < M ∧ M <
+    List.length C ∧ (B.evs = mvcc.watchEvents C r (sint.nat st.minRev) M ∨ ¬mvcc.api.onceUpTo C lo c
+    ∧ B.evs.Sublist (mvcc.watchEvents C r (sint.nat st.minRev) M)))
 
 theorem mvcc.u64Be_lt {a b : w64} (h : uint.Z a < uint.Z b) : go.GoStringLt (u64Be a) (u64Be b)
 
@@ -126,6 +164,10 @@ theorem mvcc.mem_logEnts (log : mvcc.Log) (a b : Nat) (e : mvcc.KvEnt) : e ∈ m
 theorem mvcc.CrPos.stateAfter (L : mvcc.Log) (hL : L ≠ [] → L[0]? = some []) (hlen : List.length L <
     2 ^ 63) : mvcc.CrPos (mvcc.stateAfter L)
 
+theorem mvcc.logEnts_ev_modRev (log : mvcc.Log) (hwf : mvcc.LogWf' log) (hlen : List.length log < 2
+    ^ 63) (hcs : ∀ (cs : List mvcc.Change), cs ∈ log → cs.length < 2 ^ 63) (lo hi : Nat) (hhi : hi ≤
+    List.length log) (e : mvcc.KvEnt) : e ∈ mvcc.logEnts log lo hi → e.ev.kv.modRev = e.rev.main
+
 theorem mvcc.foldl_ite_filter {α β : Type} (q : α → Bool) (g : β → α → β) (l : List α) (init : β) :
     List.foldl (fun ob a => if q a = true then g ob a else ob) init l = List.foldl g init
     (List.filter q l)
@@ -134,6 +176,14 @@ theorem mvcc.zipIdx_filterMap_range {α β : Type} (l : List α) (d : α) (g : �
     List.filterMap g l.zipIdx = List.filterMap (fun i => g (l.getD i d, i)) (List.range l.length)
 
 theorem mvcc.beVal_lt (l : List w8) : mvcc.beVal l < 256 ^ l.length
+
+theorem mvcc.memberBatch_filter_above (log : mvcc.Log) (hwf : mvcc.LogWf' log) (hlen : List.length
+    log < 2 ^ 63) (hcs : ∀ (cs : List mvcc.Change), cs ∈ log → cs.length < 2 ^ 63) (lo hi : Nat)
+    (hhi : hi ≤ List.length log) (W : GMap Loc mvcc.WatchRange) (P : mvcc.KvEnt → Bool) (c : Int)
+    (hP : ∀ (e : mvcc.KvEnt), e ∈ mvcc.logEnts log lo hi → c < sint.Z e.rev.main → P e = true) (r :
+    mvcc.WatchRange) (st : mvcc.WatcherSt) (hc : c < sint.Z st.minRev) : mvcc.memberBatch r st
+    (mvcc.entsEvents W (List.filter P (mvcc.logEnts log lo hi))) = mvcc.memberBatch r st
+    (mvcc.entsEvents W (mvcc.logEnts log lo hi))
 
 theorem mvcc.logEvents_rev (log : mvcc.Log) (a b : Nat) (ev : mvcc.EvM) : ev ∈ mvcc.logEvents log a
     b → ∃ j, a ≤ j ∧ j < b ∧ j < List.length log ∧ ev.kv.modRev = W64 ↑j

@@ -4,19 +4,5 @@
 
 theorem mvcc.watchStream.Chan.wp_proof : mvcc.watchStream.Chan.spec
   -- `Perennial.EtcdGrove.mvcc.watchStream.Chan.spec`, unfolded:
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
-    ⊢
-      ∀ Φ,
-        mvcc.isWatchStream ws wa P γ -∗
-          (▷
-              ∀ ch,
-                P.C ch ∗
-                    typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" ws) ch
-                      DFrac.discard -∗
-                  Φ (intoVal ch)) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType go!"Chan"
-                    (intoVal ws)))
-                (intoVal ()))
-              {{ Φ }}
+  ∀ (w : Loc),
+    mvcc.api.WatchStream.Chan.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal w)

@@ -12,7 +12,7 @@ theorem mvcc.watcherGroup.chooseAll.wp_proof (hDel : mvcc.watcherGroup.delete.sp
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.ownWatcherGroup wg W ∗
               mvcc.ownStates ST ∗
-                mvcc.crevPermAt γ.st (sint.Z compactRev) ∗
+                mvcc.cmpPerm γ (sint.Z compactRev) ∗
                   ([∗map] w ↦ st ∈ ST,
                       if decide (sint.Z st.minRev < sint.Z compactRev) = true then mvcc.cmpSendPre γ w st.ch ql
                       else iprop(True)) ∗

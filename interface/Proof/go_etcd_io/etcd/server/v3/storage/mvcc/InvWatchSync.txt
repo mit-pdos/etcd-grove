@@ -31,7 +31,7 @@ def mvcc.moverRes (γ : mvcc.WsNames) (w : Loc) (st : mvcc.WatcherSt) (B : mvcc.
       mvcc.watcherMeta γ w γw ∗
         mvcc.watcherFixed w r fcs ∗
           mvcc.watcherChan γ w γw st.ch ∗
-            mvcc.filtersOk fcs ∗
+            mvcc.watcherFilters γw fcs ∗
               ⌜sint.Z r.startRev ≤ ↑γw.lo ∧ ↑γw.lo ≤ sint.Z st.minRev ∧ mvcc.victimBatchOk γw.lo st B⌝ ∗
                 mvcc.watcherOwn w st (Qp.half 1) ∗
                   monoListAuthOwn γw.evs (Qp.half 1) evsw ∗

@@ -96,6 +96,9 @@ def mvcc.api.nlAuth (γ : mvcc.api.AbsNames) (q : Qp) (N : mvcc.Log) : IProp GF 
 theorem mvcc.api.absPart_agree (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (L1 L2 : mvcc.Log) (c1 c2 : Int)
     : mvcc.api.absPart γ q1 L1 c1 ∗ mvcc.api.absPart γ q2 L2 c2 ⊢ ⌜L1 = L2 ∧ c1 = c2⌝
 
+theorem mvcc.api.revMuAbs_crevLb (a : mvcc.api.AbsNames) (q : Qp) (L : mvcc.Log) (c : Int) :
+    mvcc.api.revMuAbs a q L c ⊢ mvcc.api.revMuAbs a q L c ∗ mvcc.api.crevAtLeast a c
+
 theorem mvcc.api.nlLb_persistent (γ : mvcc.api.AbsNames) (N : mvcc.Log) : Persistent (mvcc.api.nlLb
     γ N)
 

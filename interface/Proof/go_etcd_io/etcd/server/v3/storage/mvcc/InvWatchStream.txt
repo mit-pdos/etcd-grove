@@ -10,6 +10,10 @@ theorem mvcc.WatchParams.C_persistent (P : mvcc.WatchParams GF) (ch : GoChan) : 
 theorem mvcc.idAssigned_agree (γ : mvcc.WsStreamNames) (id : w64) (w w' : Loc) : mvcc.idAssigned γ
     id w ∗ mvcc.idAssigned γ id w' ⊢ ⌜w = w'⌝
 
+theorem mvcc.wsRel_delete {n : w64} {closed : Bool} {CM : GMap w64 GoFunc} {CS : List w64} {S :
+    mvcc.api.StreamState} (h : mvcc.wsRel n closed CM CS S) (id : w64) (hid : id ∈ CS) : mvcc.wsRel
+    n closed (GMap.delete id CM) CS S
+
 theorem mvcc.idsInv_assign (γ : mvcc.WsStreamNames) (γc : mvcc.WatchChanNames) (hγ : γ.ids = γc.ids)
     (IDS : GMap w64 Loc) (NX aid : w64) (w : Loc) (h : 0 ≤ sint.Z aid ∧ sint.Z aid < sint.Z NX ∧ ∀
     (i : w64), (IDS !! i).isSome = true → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z aid) : ghostMapAuth γ.ids
@@ -23,6 +27,17 @@ theorem mvcc.aboveCnt_assign (n : w64) (w : Loc) (WM : GMap w64 Loc) (hb : sint.
     mvcc.aboveCnt (n + W64 1) <[n := w]>WM ≤ mvcc.aboveCnt n WM
 
 theorem mvcc.WatchParams.WC_persistent (P : mvcc.WatchParams GF) (w : Loc) : Persistent (P.WC w)
+
+theorem mvcc.idCancelled_persistent (γ : mvcc.WsStreamNames) (id : w64) : Persistent
+    (mvcc.idCancelled γ id)
+
+theorem mvcc.wsRel_register {n : w64} {CM : GMap w64 GoFunc} {CS : List w64} {S :
+    mvcc.api.StreamState} (h : mvcc.wsRel n false CM CS S) (id : w64) (c : GoFunc) (wi :
+    mvcc.api.WInfo) (hl : wi.live = true) (hz : 0 ≤ sint.Z id) (h0 : sint.Z n ≤ sint.Z id) (h1 :
+    sint.Z id < 2 ^ 63 - 1) : mvcc.wsRel (id + W64 1) false (<[id := c]>CM) CS (S.register id wi)
+
+theorem mvcc.chanCancelTok_persistent (γc : mvcc.WatchChanNames) (id : w64) : Persistent
+    (mvcc.chanCancelTok γc id)
 
 theorem mvcc.idAssigned_persistent (γ : mvcc.WsStreamNames) (id : w64) (w : Loc) : Persistent
     (mvcc.idAssigned γ id w)
@@ -60,13 +75,19 @@ def mvcc.watchStreamInv (ws : Loc) (P : mvcc.WatchParams GF) (ch : GoChan) (γc 
                               ⌜WM !! id = some w⌝ -∗ P.IW w ∗ P.OC w γc ∗ ∃ r fcs lo, P.IWF w r fcs lo ∗ ⌜r.id = id⌝) ∗
                         ("#Hcs" ∷ □ ∀ id c w, ⌜CM !! id = some c⌝ -∗ ⌜WM !! id = some w⌝ -∗ mvcc.cancelSpec P c w) ∗
                           "Hids" ∷ mvcc.idsInv γ nextID ∗
-                            "Hcl" ∷
-                              if closed = true then mvcc.watchStreamOpen γ ∗ □ ∀ id w, ⌜WM !! id = some w⌝ -∗ P.WC w
-                              else
-                                ∃ L,
-                                  P.CR ch γc L ∗
-                                    (□ ∀ w, ⌜w ∈ L⌝ -∗ (∃ id, ⌜WM !! id = some w⌝) ∨ mvcc.cancelledFor P γc w) ∗
-                                      ⌜sint.Z nextID + ↑(mvcc.aboveCnt nextID WM) ≤ ↑L.length ∧ L.length + 3 ≤ 2 ^ 63⌝)
+                            ("Hacl" ∷
+                                ∃ lm CS,
+                                  ghostVar γc.acl (Qp.half 1) lm ∗
+                                    monoListAuthOwn γ.cs 1 CS ∗
+                                      ⌜∀ (dec : GName → List (mvcc.EvM → Bool)),
+                                          mvcc.wsRel nextID closed CM CS (mvcc.api.sent.replay dec lm).S⌝) ∗
+                              "Hcl" ∷
+                                if closed = true then □ ∀ id w, ⌜WM !! id = some w⌝ -∗ P.WC w
+                                else
+                                  ∃ L,
+                                    P.CR ch γc L ∗
+                                      (□ ∀ w, ⌜w ∈ L⌝ -∗ (∃ id, ⌜WM !! id = some w⌝) ∨ mvcc.cancelledFor P γc w) ∗
+                                        ⌜sint.Z nextID + ↑(mvcc.aboveCnt nextID WM) ≤ ↑L.length ∧ L.length + 3 ≤ 2 ^ 63⌝)
 
 theorem mvcc.chanIdAssigned_persistent (γc : mvcc.WatchChanNames) (id : w64) (w : Loc) : Persistent
     (mvcc.chanIdAssigned γc id w)
@@ -81,17 +102,21 @@ structure mvcc.WatchChanNames : Type where
   sentl : GName
   regi : GName
   rsn : GName
+  aev : GName
+  ans : GName
+  arcv : GName
+  arx : GName
+  acl : GName
 
 def mvcc.cancelSpec (P : mvcc.WatchParams GF) (c : GoFunc) (w : Loc) : IProp GF :=
   iprop(□ □ ∀ Φ, True -∗ ▷ (P.WC w -∗ Φ (intoVal ())) -∗ WP ((intoVal c) (intoVal ())) {{ Φ }})
-
-theorem mvcc.WatchParams.F_persistent (P : mvcc.WatchParams GF) (f : GoFunc) : Persistent (P.F f)
 
 structure mvcc.WatchParams.{u_1} (GF : BundledGFunctors) : Type u_1 where
   IW : IProp GF
   WC : IProp GF
   C : IProp GF
-  F : IProp GF
+  FI : IProp GF
+  RegCb : IProp GF
   CR : IProp GF
   R : IProp GF
   T : IProp GF
@@ -101,7 +126,7 @@ structure mvcc.WatchParams.{u_1} (GF : BundledGFunctors) : Type u_1 where
   IW_pers : Persistent (self.IW w)
   WC_pers : Persistent (self.WC w)
   C_pers : Persistent (self.C ch)
-  F_pers : Persistent (self.F f)
+  FI_pers : Persistent (self.FI fcs fs)
   IWF_pers : Persistent (self.IWF w r fcs lo)
   OC_pers : Persistent (self.OC w γc)
   WS_pers : Persistent (self.WS w)
@@ -113,12 +138,18 @@ theorem mvcc.progFact_persistent (g : GName) : Persistent (mvcc.progFact g)
 
 theorem mvcc.WatchParams.WS_persistent (P : mvcc.WatchParams GF) (w : Loc) : Persistent (P.WS w)
 
+theorem mvcc.chanRegTok_persistent (γc : mvcc.WatchChanNames) (id : w64) (rg : mvcc.WatchRange) (fg
+    : GName) (lo : Nat) : Persistent (mvcc.chanRegTok γc id rg fg lo)
+
 def mvcc.watchStreamOpen (γ : mvcc.WsStreamNames) : IProp GF :=
   token γ.tok
 
 theorem mvcc.WatchParams.IW_persistent (P : mvcc.WatchParams GF) (w : Loc) : Persistent (P.IW w)
 
 theorem mvcc.rsnFor_persistent (g : GName) (id : w64) : Persistent (mvcc.rsnFor g id)
+
+def mvcc.idCancelled (γ : mvcc.WsStreamNames) (id : w64) : IProp GF :=
+  iprop(∃ l, monoListLbOwn γ.cs l ∗ ⌜id ∈ l⌝)
 
 theorem mvcc.idTok_excl (γ : mvcc.WsStreamNames) (id : w64) : mvcc.idTok γ id ∗ mvcc.idTok γ id ⊢
     False
@@ -130,16 +161,15 @@ def mvcc.isWatchable (wa : GoInterface) (P : mvcc.WatchParams GF) : IProp GF :=
             ∀ key endk fcs k e fs startRev id ch γc L Back,
               □
                 ∀ Φ,
-                  (ownSlice key k DFrac.discard ∗
+                  ownSlice key k DFrac.discard ∗
                       ownSlice endk e DFrac.discard ∗
-                        ownSlice fcs fs DFrac.discard ∗
-                          ([∗list] f ∈ fs, P.F f) ∗
-                            P.C ch ∗
-                              P.CR ch γc L ∗
-                                P.R ∗
-                                  P.T ∗
-                                    ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
-                                      ∀ w, ⌜w ≠ null⌝ ==∗ mvcc.chanIdAssigned γc id w ∗ Back w) -∗
+                        P.FI fcs fs ∗
+                          P.C ch ∗
+                            P.CR ch γc L ∗
+                              P.R ∗
+                                P.T ∗
+                                  ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
+                                    P.RegCb ch γc (mvcc.watchRangeOf k e endk startRev id) fs Back -∗
                     (▷
                         ∀ w c,
                           ⌜w ≠ null⌝ ∗
@@ -193,6 +223,12 @@ def mvcc.isWatchable (wa : GoInterface) (P : mvcc.WatchParams GF) : IProp GF :=
 theorem mvcc.aboveCnt_skip (n : w64) (w : Loc) (WM : GMap w64 Loc) (hn : WM !! n = some w) (hb :
     sint.Z n < 2 ^ 63 - 1) : mvcc.aboveCnt n WM = mvcc.aboveCnt (n + W64 1) WM + 1
 
+theorem mvcc.WatchParams.FI_persistent (P : mvcc.WatchParams GF) (fcs : GoSlice) (fs : List
+    (mvcc.EvM → Bool)) : Persistent (P.FI fcs fs)
+
+theorem mvcc.wsRel_close {n : w64} {CM : GMap w64 GoFunc} {CS : List w64} {S : mvcc.api.StreamState}
+    (h : mvcc.wsRel n false CM CS S) : mvcc.wsRel n true CM CS S.close
+
 theorem mvcc.WatchParams.IWF_persistent (P : mvcc.WatchParams GF) (w : Loc) (r : mvcc.WatchRange)
     (fcs : GoSlice) (lo : Nat) : Persistent (P.IWF w r fcs lo)
 
@@ -214,7 +250,10 @@ def mvcc.idsInv (γ : mvcc.WsStreamNames) (nextID : w64) : IProp GF :=
           ⌜0 ≤ sint.Z nextID ∧ ∀ (i : w64), (IDS !! i).isSome = true → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z nextID⌝)
 
 def mvcc.cancelledFor (P : mvcc.WatchParams GF) (γc : mvcc.WatchChanNames) (w : Loc) : IProp GF :=
-  iprop(P.WC w ∗ ∃ r fcs lo, P.IWF w r fcs lo ∗ mvcc.rsnFor γc.rsn r.id)
+  iprop(P.WC w ∗ ∃ r fcs lo, P.IWF w r fcs lo ∗ mvcc.chanCancelTok γc r.id)
+
+def mvcc.chanCancelTok (γc : mvcc.WatchChanNames) (id : w64) : IProp GF :=
+  iprop(∃ l rg fg lo, monoListLbOwn γc.aev (l ++ [mvcc.api.sent.SEv.cancel id]) ∗ ⌜mvcc.api.sent.SEv.reg id rg fg lo ∈ l⌝)
 
 theorem mvcc.idsInv_next (γ : mvcc.WsStreamNames) (IDS : GMap w64 Loc) (NX idp aid : w64) (w : Loc)
     (h : (idp ≠ W64 0 ∧ 0 ≤ sint.Z NX ∧ ∀ (i : w64), (IDS !! i).isSome = true → 0 ≤ sint.Z i ∧
@@ -228,6 +267,10 @@ def mvcc.idTok (γ : mvcc.WsStreamNames) (id : w64) : IProp GF :=
 theorem mvcc.WatchParams.OC_persistent (P : mvcc.WatchParams GF) (w : Loc) (γc :
     mvcc.WatchChanNames) : Persistent (P.OC w γc)
 
+theorem mvcc.isWatchStreamAt_persistent (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ :
+    mvcc.WsStreamNames) (ch : GoChan) (γc : mvcc.WatchChanNames) : Persistent (mvcc.isWatchStreamAt
+    ws wa P γ ch γc)
+
 structure mvcc.WsStreamNames : Type where
   tok : GName
   ids : GName
@@ -236,47 +279,72 @@ structure mvcc.WsStreamNames : Type where
   sentl : GName
   rsn : GName
   regi : GName
+  cs : GName
 
 theorem mvcc.aboveCnt_delete (n id : w64) (WM : GMap w64 Loc) : mvcc.aboveCnt n (GMap.delete id WM)
     ≤ mvcc.aboveCnt n WM
 
+def mvcc.chanRegTok (γc : mvcc.WatchChanNames) (id : w64) (rg : mvcc.WatchRange) (fg : GName) (lo :
+    Nat) : IProp GF :=
+  iprop(∃ l, monoListLbOwn γc.aev l ∗ ⌜mvcc.api.sent.SEv.reg id rg fg lo ∈ l⌝)
+
+theorem mvcc.wsRel_next {n n' : w64} {closed : Bool} {CM : GMap w64 GoFunc} {CS : List w64} {S :
+    mvcc.api.StreamState} (h : mvcc.wsRel n closed CM CS S) (hn : sint.Z n ≤ sint.Z n') : mvcc.wsRel
+    n' closed CM CS S
+
 def mvcc.isWatchStream (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ :
     mvcc.WsStreamNames) : IProp GF :=
-  iprop(∃ ch γc,
-      "%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl ∧ γ.rsn = γc.rsn ∧ γ.regi = γc.regi⌝ ∗
-        "#Hwa" ∷
-            typedPointsto
-              (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream
-                go!"watchable" ws)
-              wa DFrac.discard ∗
-          "#Hch" ∷
-              typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" ws) ch
-                DFrac.discard ∗
-            "#HC" ∷ P.C ch ∗
-              "#Hwable" ∷ mvcc.isWatchable wa P ∗
-                ("#Hclose" ∷
-                    □
-                      ∀ L,
-                        □
-                          ∀ Φ,
-                            (P.CR ch γc L ∗ □ ∀ w, ⌜w ∈ L⌝ -∗ P.WC w) -∗
-                              ▷ (True -∗ Φ (intoVal ())) -∗
-                                WP
-                                  ((intoVal
-                                      (functions go.close
-                                        [go.ChannelType go.sendrecv
-                                            go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse.ty]))
-                                    (intoVal ch))
-                                  {{ Φ }}) ∗
-                  "#Hmu" ∷
-                    sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"mu" ws)
-                      (mvcc.watchStreamInv ws P ch γc γ))
+  iprop(∃ ch γc, mvcc.isWatchStreamAt ws wa P γ ch γc)
 
 def mvcc.watchRangeOf (k e : List w8) (endk : GoSlice) (startRev id : w64) : mvcc.WatchRange :=
   { key := k, end? := if endk = slice.nil then none else some e, startRev := startRev, id := id }
 
+def mvcc.isWatchStreamAt (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ :
+    mvcc.WsStreamNames) (ch : GoChan) (γc : mvcc.WatchChanNames) : IProp GF :=
+  iprop("%Hγc" ∷ ⌜γ.ids = γc.ids ∧ γ.prog = γc.prog ∧ γ.sentl = γc.sentl ∧ γ.rsn = γc.rsn ∧ γ.regi = γc.regi⌝ ∗
+      "#Hwa" ∷
+          typedPointsto
+            (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream
+              go!"watchable" ws)
+            wa DFrac.discard ∗
+        "#Hch" ∷
+            typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"ch" ws) ch
+              DFrac.discard ∗
+          "#HC" ∷ P.C ch ∗
+            "#Hwable" ∷ mvcc.isWatchable wa P ∗
+              ("#Hclose" ∷
+                  □
+                    ∀ L,
+                      □
+                        ∀ Φ,
+                          (P.CR ch γc L ∗ □ ∀ w, ⌜w ∈ L⌝ -∗ P.WC w) -∗
+                            ▷ (True -∗ Φ (intoVal ())) -∗
+                              WP
+                                ((intoVal
+                                    (functions go.close
+                                      [go.ChannelType go.sendrecv
+                                          go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse.ty]))
+                                  (intoVal ch))
+                                {{ Φ }}) ∗
+                "#Hmu" ∷
+                  sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"mu" ws)
+                    (mvcc.watchStreamInv ws P ch γc γ))
+
 theorem mvcc.cancelSpec_persistent (P : mvcc.WatchParams GF) (c : GoFunc) (w : Loc) : Persistent
     (mvcc.cancelSpec P c w)
+
+def mvcc.wsRel (nextID : w64) (closed : Bool) (CM : GMap w64 GoFunc) (CS : List w64) (S :
+    mvcc.api.StreamState) : Prop :=
+  S.closed = closed ∧
+    (∀ (i : w64), (S.ws !! i).isSome = true → 0 ≤ sint.Z i ∧ sint.Z i < sint.Z nextID) ∧
+      (∀ (i : w64), (CM !! i).isSome = true → (S.ws !! i).isSome = true) ∧
+        (∀ (i : w64) (w : mvcc.api.WInfo),
+            S.ws !! i = some w → w.live = true → closed = false → (CM !! i).isSome = true) ∧
+          ∀ (i : w64), i ∈ CS → ∃ w, S.ws !! i = some w ∧ w.live = false
+
+theorem mvcc.wsRel_cancel {n : w64} {closed : Bool} {CM : GMap w64 GoFunc} {CS : List w64} {S :
+    mvcc.api.StreamState} (h : mvcc.wsRel n closed CM CS S) (j : w64) : mvcc.wsRel n closed CM (if
+    (S.ws !! j).isSome = true then CS ++ [j] else CS) (S.cancel j)
 
 theorem mvcc.isWatchable_persistent (wa : GoInterface) (P : mvcc.WatchParams GF) : Persistent
     (mvcc.isWatchable wa P)

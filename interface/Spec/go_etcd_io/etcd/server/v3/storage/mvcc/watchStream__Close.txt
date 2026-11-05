@@ -3,14 +3,5 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def mvcc.watchStream.Close.spec : Prop :=
-  ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : mvcc.WsStreamNames),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isWatchStream ws wa P γ ∗ mvcc.watchStreamOpen γ -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType
-                    go!"Close" (intoVal ws)))
-                (intoVal ()))
-              {{ Φ }}
+  ∀ (w : Loc),
+    mvcc.api.WatchStream.Close.contract go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal w)

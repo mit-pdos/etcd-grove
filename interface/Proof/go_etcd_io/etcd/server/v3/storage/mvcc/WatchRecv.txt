@@ -16,16 +16,16 @@ def mvcc.watchRecvOk (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) : IPro
           ⌜mvcc.startLo r γw.lo⌝ ∗
             mvcc.evLog γ.st L ∗
               mvcc.relLb γ (List.length L) ∗
-                ⌜List.map mvcc.RespM.evs rs = List.map Prod.snd (List.filter mvcc.Deliv.sent D) ∧
-                      (List.map Prod.fst D).flatten = mvcc.watchEvents L r γw.lo d ∧
+                (⌜(List.map Prod.fst D).flatten = mvcc.watchEvents L r γw.lo d⌝ ∨ mvcc.doomed γ γw.lo) ∗
+                  ⌜List.map mvcc.RespM.evs rs = List.map Prod.snd (List.filter mvcc.Deliv.sent D) ∧
                         (d ≤ List.length L ∨ d ≤ γw.lo) ∧ ∀ (x : mvcc.RespM), x ∈ rs → x.w = w⌝ ∗
-                  (□ ∀ dl, ⌜dl ∈ D⌝ -∗ ∃ fs, mvcc.filtersImpl fcs fs ∗ ⌜dl.snd = mvcc.filtered fs dl.fst⌝) ∗
-                    □ ∀ x, ⌜x ∈ rs⌝ -∗ mvcc.respOk x)
+                    (□ ∀ dl, ⌜dl ∈ D⌝ -∗ ∃ fs, mvcc.filtersImpl fcs fs ∗ ⌜dl.snd = mvcc.filtered fs dl.fst⌝) ∗
+                      □ ∀ x, ⌜x ∈ rs⌝ -∗ mvcc.respOk x)
 
 theorem mvcc.watch_recv_au (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNames) (received : List
     mvcc.RespM) (Φ : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse → Bool → IProp GF) : ⊢ inv
     mvcc.watchN (mvcc.watchChanInv γ ch γc) -∗ mvcc.watchConsumer γc received -∗ (∀ v ok,
-    mvcc.watchRecvResult γ γc received v ok -∗ Φ v ok) -∗ recvAu γc.ch
+    mvcc.watchRecvResult γ ch γc received v ok -∗ Φ v ok) -∗ recvAu γc.ch
     go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse Φ
 
 theorem mvcc.prefix_drop_cons' {α : Type} {sent recv rs : List α} {r : α} (hp : recv <+: sent) (hd :
@@ -35,7 +35,7 @@ theorem mvcc.prefix_drop_cons' {α : Type} {sent recv rs : List α} {r : α} (hp
 theorem mvcc.wp_watch_receive (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNames) (received :
     List mvcc.RespM) : ⊢ ∀ Φ, isChan ch γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse
     -∗ inv mvcc.watchN (mvcc.watchChanInv γ ch γc) -∗ mvcc.watchConsumer γc received -∗ (∀ v ok,
-    mvcc.watchRecvResult γ γc received v ok -∗ Φ (intoVal v, intoVal ok)) -∗ WP ((chan.receive
+    mvcc.watchRecvResult γ ch γc received v ok -∗ Φ (intoVal v, intoVal ok)) -∗ WP ((chan.receive
     go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse.ty) (intoVal ch)) {{ Φ }}
 
 theorem mvcc.chanWatcher_recvOk (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (closed : Bool) (sent
@@ -64,10 +64,11 @@ theorem mvcc.regsAt_persistent (γc : mvcc.WatchChanNames) (k : Nat) (x : mvcc.R
     (mvcc.regsAt γc k x)
 
 theorem mvcc.watch_tryrecv_au_alt (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNames) (received
-    l0 : List mvcc.RespM) (Φ : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse → Bool → IProp
-    GF) (Ψ : IProp GF) (hcap : 0 < sint.Z γc.ch.chanCap) : ⊢ inv mvcc.watchN (mvcc.watchChanInv γ ch
-    γc) -∗ mvcc.watchConsumer γc received -∗ mvcc.chanSentLb γc l0 -∗ (∀ v ok, mvcc.watchRecvResult
-    γ γc received v ok -∗ Φ v ok) ∧ (mvcc.watchConsumer γc received -∗ ⌜l0 <+: received⌝ -∗
+    l0 : List mvcc.RespM) (n : Nat) (Φ : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse → Bool
+    → IProp GF) (Ψ : IProp GF) (hcap : 0 < sint.Z γc.ch.chanCap) : ⊢ inv mvcc.watchN
+    (mvcc.watchChanInv γ ch γc) -∗ mvcc.watchConsumer γc received -∗ mvcc.chanSentLb γc l0 -∗
+    mvcc.api.wsSentLbI (mvcc.wsAbsOf γ ch γc) n -∗ (∀ v ok, mvcc.watchRecvResult γ ch γc received v
+    ok -∗ Φ v ok) ∧ (mvcc.watchConsumer γc received -∗ ⌜l0 <+: received ∧ n ≤ received.length⌝ -∗
     mvcc.chanSentLb γc received -∗ Ψ) -∗ nonblockingRecvAuAlt γc.ch
     go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse Φ Ψ
 
@@ -75,18 +76,20 @@ theorem mvcc.delivs_prefix_cut (D : List mvcc.Deliv) (rs : List (List mvcc.EvM))
     Prod.snd (List.filter mvcc.Deliv.sent D) → ∃ k, k ≤ D.length ∧ rs = List.map Prod.snd
     (List.filter mvcc.Deliv.sent (List.take k D))
 
-def mvcc.watchRecvResult (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (received : List mvcc.RespM)
-    (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (ok : Bool) : IProp GF :=
+def mvcc.watchRecvResult (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNames) (received : List
+    mvcc.RespM) (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (ok : Bool) : IProp GF :=
   if ok = true then
     iprop(∃ r,
         mvcc.watchConsumer γc (received ++ [r]) ∗
           mvcc.respIs v r ∗
             mvcc.respOk r ∗
-              mvcc.watchRecvOk γ r.w (List.filter (fun x => decide (x.w = r.w)) (received ++ [r])) ∗
-                mvcc.chanRegFact γc r.w ∗
-                  (⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ∗
-                    mvcc.respCov γ γc received r ∗
-                      mvcc.regsAt γc received.length r ∗ mvcc.chanSentLb γc (received ++ [r]) ∗ ⌜r.idx = received.length⌝)
+              mvcc.apiRecvLb γ ch γc (received ++ [r]) ∗
+                mvcc.watchRecvOk γ r.w (List.filter (fun x => decide (x.w = r.w)) (received ++ [r])) ∗
+                  mvcc.chanRegFact γc r.w ∗
+                    (⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ∗
+                      mvcc.respCov γ γc received r ∗
+                        mvcc.regsAt γc received.length r ∗
+                          mvcc.chanSentLb γc (received ++ [r]) ∗ ⌜r.idx = received.length⌝)
   else mvcc.watchConsumer γc received
 
 theorem mvcc.watch_take (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (closed : Bool) (received sent

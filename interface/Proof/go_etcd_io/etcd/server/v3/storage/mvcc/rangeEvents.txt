@@ -20,26 +20,31 @@ theorem mvcc.rangeEvents.wp_proof (hNew : mvcc.NewRevBytes.spec) (hRevTo : mvcc.
                     mvcc.idxCert γ.idx log ∗
                       mvcc.ownWatcherGroup g W ∗
                         ⌜0 ≤ sint.Z minRev ∧
-                            0 ≤ sint.Z maxRev ∧
-                              sint.Z maxRev ≤ ↑(List.length log) ∧
-                                -1 ≤ c ∧ c ≤ sint.Z minRev ∧ (c = -1 ∨ mvcc.oneChangePerKeyAt log c)⌝ -∗
+                            0 ≤ sint.Z maxRev ∧ sint.Z maxRev ≤ ↑(List.length log) ∧ -1 ≤ c ∧ c ≤ sint.Z minRev⌝ -∗
           (▷
               ∀ evs,
                 (RT ∗
                     mvcc.crevUB γ.idx qc c ∗
                       mvcc.bucketViewL γ q log ∗
                         mvcc.ownWatcherGroup g W ∗
-                          ∃ ps,
+                          ∃ P ps,
                             ownSlice evs ps (DFrac.own 1) ∗
                               ownSliceCap Loc evs (DFrac.own 1) ∗
-                                ⌜ps.length =
-                                      (List.filter (fun ev => mvcc.wgCovers W ev.kv.key)
-                                          (mvcc.logEvents log (sint.nat minRev) (sint.nat maxRev))).length⌝ ∗
-                                  [∗list] x ∈
-                                    ps.zip
-                                      (List.filter (fun ev => mvcc.wgCovers W ev.kv.key)
-                                        (mvcc.logEvents log (sint.nat minRev) (sint.nat maxRev))),
-                                    mvcc.evIs x.fst x.snd) -∗
+                                ⌜(∀ (e : mvcc.KvEnt),
+                                        e ∈ mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev) →
+                                          c < sint.Z e.rev.main → P e = true) ∧
+                                      (c = -1 ∨ mvcc.oneChangePerKeyAt log c →
+                                        ∀ (e : mvcc.KvEnt),
+                                          e ∈ mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev) → P e = true)⌝ ∗
+                                  ⌜ps.length =
+                                        (mvcc.entsEvents W
+                                            (List.filter P
+                                              (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)))).length⌝ ∗
+                                    [∗list] x ∈
+                                      ps.zip
+                                        (mvcc.entsEvents W
+                                          (List.filter P (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)))),
+                                      mvcc.evIs x.fst x.snd) -∗
                   Φ (intoVal evs)) -∗
             WP
               ((((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents [])) (intoVal lg)) (intoVal b))

@@ -21,12 +21,14 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof (hWatch : mvcc.watchableStor
                         isChan ch γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗
                           inv mvcc.watchN (mvcc.watchChanInv γ ch γc) ∗
                             mvcc.watchStreamOpen γo ∗
-                              mvcc.watchConsumer γc [] ∗
-                                ⌜γo.ids = γc.ids ∧
-                                      γo.prog = γc.prog ∧
-                                        γo.sentl = γc.sentl ∧
-                                          γo.rsn = γc.rsn ∧ γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗
-                                  savedPropOwn γo.prog DFrac.discard Q ∗ savedPredOwn γo.rsn DFrac.discard Ψ) -∗
+                              ⌜γo.ids = γc.ids ∧
+                                    γo.prog = γc.prog ∧
+                                      γo.sentl = γc.sentl ∧
+                                        γo.rsn = γc.rsn ∧ γo.regi = γc.regi ∧ 0 < sint.Z γc.ch.chanCap⌝ ∗
+                                savedPropOwn γo.prog DFrac.discard Q ∗
+                                  savedPredOwn γo.rsn DFrac.discard Ψ ∗
+                                    mvcc.api.wsStateI (mvcc.wsAbsOf γ ch γc) mvcc.api.wsStart ∗
+                                      mvcc.api.wsRecvI (mvcc.wsAbsOf γ ch γc) []) -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchStream.ty.PointerType (intoVal ws)))) -∗

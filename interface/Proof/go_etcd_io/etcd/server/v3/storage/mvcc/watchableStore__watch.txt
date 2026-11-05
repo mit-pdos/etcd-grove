@@ -5,18 +5,21 @@
 theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames) (w ch : Loc) (ks :
     GoSlice) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (C : mvcc.Log) (L : List Loc) (γc :
     mvcc.WatchChanNames) (Back : Loc → IProp GF) (hwnn : w ≠ null) (hid : r.id ≠ W64 (-1)) (hlo :
-    mvcc.startLo r lo) (now : Bool) : (£ 1 ∗ ghostMapAuth γ.wmeta 1 M ∗ (□ [∗map] w' ↦ _γw ∈ M,
-    iprop(∃ r' fcs', mvcc.watcherFixed w' r' fcs')) ∗ (isChan ch γc.ch
-    go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗ inv mvcc.watchN (mvcc.watchChanInv γ ch
-    γc) ∗ ghostVar γc.regl (Qp.half 1) L) ∗ mvcc.idxCert γ.st.idx C ∗ typedPointsto (structFieldRef
+    mvcc.startLo r lo) (now : Bool) (fsp : List (mvcc.EvM → Bool)) (q q2 : Qp) (c : Int) (hloC : lo
+    = if r.startRev = W64 0 then List.length C else (sint.Z r.startRev).toNat) : £ 1 ∗ ghostMapAuth
+    γ.wmeta 1 M ∗ (□ [∗map] w' ↦ _γw ∈ M, iprop(∃ r' fcs', mvcc.watcherFixed w' r' fcs')) ∗ (isChan
+    ch γc.ch go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse ∗ inv mvcc.watchN
+    (mvcc.watchChanInv γ ch γc) ∗ ghostVar γc.regl (Qp.half 1) L) ∗ mvcc.idxCert γ.st.idx C ∗
+    mvcc.filtersImpl fcs fsp ∗ typedPointsto (structFieldRef
     go_etcd_io.etcd.server.v3.storage.mvcc.watcher go!"key" w) ks (DFrac.own 1) ∗ □ (typedPointsto
     (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcher go!"key" w) ks DFrac.discard -∗
-    mvcc.watcherFixed w r fcs) ∗ ∀ w', ⌜w' ≠ null⌝ ==∗ mvcc.chanIdAssigned γc r.id w' ∗ Back w') ⊢
-    |={⊤}=> ∃ γw, ⌜M !! w = none ∧ γw.lo = lo ∧ γw.wc = γc ∧ γw.now = now⌝ ∗ Back w ∗ ⌜(w ::
-    L).Nodup ∧ ∀ (x : Loc), x ∈ L → (M !! x).isSome = true⌝ ∗ ghostMapAuth γ.wmeta 1 <[w := γw]>M ∗
-    mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.watcherChan γ w γw ch ∗ ghostVar
-    γw.wc.regl (Qp.half 1) (w :: L) ∗ monoListAuthOwn γw.evs (Qp.half 1) [] ∗ dghostVar γw.live
-    (DFrac.own (Qp.half 1)) true ∗ ∃ n, mvcc.chanRegAt γc w n
+    mvcc.watcherFixed w r fcs) ∗ mvcc.regCb γ ch γc r fsp Back ∗ mvcc.api.revMuAbs γ.st.api q C c ∗
+    mvcc.api.pndPart γ.st.api q2 none ⊢ |={⊤}=> ∃ γw, ⌜M !! w = none ∧ γw.lo = lo ∧ γw.wc = γc ∧
+    γw.now = now⌝ ∗ Back w ∗ mvcc.api.revMuAbs γ.st.api q C c ∗ mvcc.api.pndPart γ.st.api q2 none ∗
+    ⌜(w :: L).Nodup ∧ ∀ (x : Loc), x ∈ L → (M !! x).isSome = true⌝ ∗ ghostMapAuth γ.wmeta 1 <[w :=
+    γw]>M ∗ mvcc.watcherMeta γ w γw ∗ mvcc.watcherFixed w r fcs ∗ mvcc.watcherChan γ w γw ch ∗
+    ghostVar γw.wc.regl (Qp.half 1) (w :: L) ∗ monoListAuthOwn γw.evs (Qp.half 1) [] ∗ dghostVar
+    γw.live (DFrac.own (Qp.half 1)) true ∗ (∃ n, mvcc.chanRegAt γc w n) ∗ mvcc.watcherFilters γw fcs
 
 theorem mvcc.list_length_le_size {V : Type} (M : GMap Loc V) (L : List Loc) (hnd : L.Nodup) (h : ∀
     (x : Loc), x ∈ L → (M !! x).isSome = true) : L.length ≤ M.size
@@ -82,9 +85,9 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
     ghostMapAuth γ.wmeta 1 <[w := γw]>σ.M ∗ mvcc.watchBudget γ 1 <[w := γw]>σ.M ∗ (□ [∗map] w' ↦ _γw
     ∈ σ.M, iprop(∃ r' fcs', mvcc.watcherFixed w' r' fcs')) ∗ mvcc.watcherFixed w r fcs ∗ ([∗map] w'
     ↦ st ∈ σ.ST, mvcc.memberRes γ 1 σ w' st) ∗ (□ [∗map] w' ↦ st ∈ σ.Wo, mvcc.outRes γ σ w' st) ∗
-    mvcc.watcherMeta γ w γw ∗ mvcc.watcherChan γ w γw st0.ch ∗ mvcc.filtersOk fcs ∗ monoListAuthOwn
-    γw.evs (Qp.half 1) [] ∗ dghostVar γw.live (DFrac.own (Qp.half 1)) true ∗ mvcc.idxCert γ.st.idx C
-    ∗ mvcc.watchNoDup γ.st ⊢ |==> mvcc.watchStoreBody s γ 1 (σ.addW b w r st0 γw)
+    mvcc.watcherMeta γ w γw ∗ mvcc.watcherChan γ w γw st0.ch ∗ mvcc.watcherFilters γw fcs ∗
+    monoListAuthOwn γw.evs (Qp.half 1) [] ∗ dghostVar γw.live (DFrac.own (Qp.half 1)) true ∗
+    mvcc.idxCert γ.st.idx C ⊢ |==> mvcc.watchStoreBody s γ 1 (σ.addW b w r st0 γw)
 
 theorem mvcc.WsState.addW_VB (σ : mvcc.WsState) (b : Bool) (w : Loc) (r : mvcc.WatchRange) (st0 :
     mvcc.WatcherSt) (γw : mvcc.WatcherNames) : (σ.addW b w r st0 γw).VB = σ.VB
@@ -117,23 +120,22 @@ theorem mvcc.WsState.addW_ST (σ : mvcc.WsState) (b : Bool) (w : Loc) (r : mvcc.
 theorem mvcc.watchableStore.watch.wp_proof (hAdd : mvcc.watcherGroup.add.spec) (hCancel :
     mvcc.watchableStore.cancelWatcher.spec) : mvcc.watchableStore.watch.spec
   -- `Perennial.EtcdGrove.mvcc.watchableStore.watch.spec`, unfolded:
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (key endk fcs : GoSlice) (k e : List w8) (fs : List GoFunc) (startRev id : w64)
-    (ch : GoChan) (γc : mvcc.WatchChanNames) (L : List Loc) (Back : Loc → IProp GF),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (key endk fcs : GoSlice) (k e : List w8) (fs : List (mvcc.EvM → Bool))
+    (startRev id : w64) (ch : GoChan) (γc : mvcc.WatchChanNames) (L : List Loc) (Back : Loc → IProp GF),
     have P := mvcc.storeWatchParams s st γ;
     ⊢
       ∀ Φ,
-        (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.isWatchableStore s st γ ∗
               ownSlice key k DFrac.discard ∗
                 ownSlice endk e DFrac.discard ∗
-                  ownSlice fcs fs DFrac.discard ∗
-                    ([∗list] f ∈ fs, P.F f) ∗
-                      P.C ch ∗
-                        P.CR ch γc L ∗
-                          P.R ∗
-                            P.T ∗
-                              ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
-                                ∀ w, ⌜w ≠ null⌝ ==∗ mvcc.chanIdAssigned γc id w ∗ Back w) -∗
+                  P.FI fcs fs ∗
+                    P.C ch ∗
+                      P.CR ch γc L ∗
+                        P.R ∗
+                          P.T ∗
+                            ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
+                              P.RegCb ch γc (mvcc.watchRangeOf k e endk startRev id) fs Back -∗
           (▷
               ∀ w c,
                 ⌜w ≠ null⌝ ∗
@@ -163,20 +165,23 @@ theorem mvcc.outRes_addW_ne (γ : mvcc.WsNames) (σ : mvcc.WsState) (b : Bool) (
     st
 
 theorem mvcc.WatchParams.mk.congr_simp.{u_1} (IW IW✝ : Loc → IProp GF) (e_IW : IW = IW✝) (WC WC✝ :
-    Loc → IProp GF) (e_WC : WC = WC✝) (C C✝ : GoChan → IProp GF) (e_C : C = C✝) (F F✝ : GoFunc →
-    IProp GF) (e_F : F = F✝) (CR CR✝ : GoChan → mvcc.WatchChanNames → List Loc → IProp GF) (e_CR :
+    Loc → IProp GF) (e_WC : WC = WC✝) (C C✝ : GoChan → IProp GF) (e_C : C = C✝) (FI FI✝ : GoSlice →
+    List (mvcc.EvM → Bool) → IProp GF) (e_FI : FI = FI✝) (RegCb RegCb✝ : GoChan →
+    mvcc.WatchChanNames → mvcc.WatchRange → List (mvcc.EvM → Bool) → (Loc → IProp GF) → IProp GF)
+    (e_RegCb : RegCb = RegCb✝) (CR CR✝ : GoChan → mvcc.WatchChanNames → List Loc → IProp GF) (e_CR :
     CR = CR✝) (R R✝ : IProp GF) (e_R : R = R✝) (T T✝ : IProp GF) (e_T : T = T✝) (IWF IWF✝ : Loc →
     mvcc.WatchRange → GoSlice → Nat → IProp GF) (e_IWF : IWF = IWF✝) (OC OC✝ : Loc →
     mvcc.WatchChanNames → IProp GF) (e_OC : OC = OC✝) (WS WS✝ : Loc → IProp GF) (e_WS : WS = WS✝)
     (IW_pers : ∀ (w : Loc), Persistent (IW w)) (WC_pers : ∀ (w : Loc), Persistent (WC w)) (C_pers :
-    ∀ (ch : GoChan), Persistent (C ch)) (F_pers : ∀ (f : GoFunc), Persistent (F f)) (IWF_pers : ∀ (w
-    : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat), Persistent (IWF w r fcs lo)) (OC_pers :
-    ∀ (w : Loc) (γc : mvcc.WatchChanNames), Persistent (OC w γc)) (WS_pers : ∀ (w : Loc), Persistent
-    (WS w)) : { IW := IW, WC := WC, C := C, F := F, CR := CR, R := R, T := T, IWF := IWF, OC := OC,
-    WS := WS, IW_pers := IW_pers, WC_pers := WC_pers, C_pers := C_pers, F_pers := F_pers, IWF_pers
-    := IWF_pers, OC_pers := OC_pers, WS_pers := WS_pers } = { IW := IW✝, WC := WC✝, C := C✝, F :=
-    F✝, CR := CR✝, R := R✝, T := T✝, IWF := IWF✝, OC := OC✝, WS := WS✝, IW_pers := ⋯, WC_pers := ⋯,
-    C_pers := ⋯, F_pers := ⋯, IWF_pers := ⋯, OC_pers := ⋯, WS_pers := ⋯ }
+    ∀ (ch : GoChan), Persistent (C ch)) (FI_pers : ∀ (fcs : GoSlice) (fs : List (mvcc.EvM → Bool)),
+    Persistent (FI fcs fs)) (IWF_pers : ∀ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo :
+    Nat), Persistent (IWF w r fcs lo)) (OC_pers : ∀ (w : Loc) (γc : mvcc.WatchChanNames), Persistent
+    (OC w γc)) (WS_pers : ∀ (w : Loc), Persistent (WS w)) : { IW := IW, WC := WC, C := C, FI := FI,
+    RegCb := RegCb, CR := CR, R := R, T := T, IWF := IWF, OC := OC, WS := WS, IW_pers := IW_pers,
+    WC_pers := WC_pers, C_pers := C_pers, FI_pers := FI_pers, IWF_pers := IWF_pers, OC_pers :=
+    OC_pers, WS_pers := WS_pers } = { IW := IW✝, WC := WC✝, C := C✝, FI := FI✝, RegCb := RegCb✝, CR
+    := CR✝, R := R✝, T := T✝, IWF := IWF✝, OC := OC✝, WS := WS✝, IW_pers := ⋯, WC_pers := ⋯, C_pers
+    := ⋯, FI_pers := ⋯, IWF_pers := ⋯, OC_pers := ⋯, WS_pers := ⋯ }
 
 theorem mvcc.WsState.addW_Wu (σ : mvcc.WsState) (b : Bool) (w : Loc) (r : mvcc.WatchRange) (st0 :
     mvcc.WatcherSt) (γw : mvcc.WatcherNames) : (σ.addW b w r st0 γw).Wu = if b = true then σ.Wu else
