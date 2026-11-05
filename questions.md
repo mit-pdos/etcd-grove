@@ -123,7 +123,7 @@ before it returns. Until it is decided, `stop_monitorRT` is a `sorry` with this 
   `goWaited` contradicts any running piece. If that cannot be expressed, report why, and the stop
   request route comes back with its list of statements.
 
-**The agent's reading (decided by the agent, pending the user).** The running piece is the
+**The design (approved by the user, 2026-11-05, via etcd-grove-82; H2's conditions 3 and 4 still hold).** The running piece is the
 goroutine's existing receipt `goRunning γg` (`ownToks γg.run 1`). `GoAttach` hands it to `f` (`f`'s
 triple becomes `{P ∗ goRunning γ} f {goRunning γ}`; every current caller frames it), and the monitor's
 session deposits it in the pool's checked-out case in place of a separate key. So `W = ⟨cnt, go⟩`,
