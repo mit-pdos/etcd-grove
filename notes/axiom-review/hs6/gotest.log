@@ -1,0 +1,23 @@
+=== RUN   TestWireCode
+    code_test.go:36: server returns rpctypes.EtcdError "etcdserver: too many requests" (Code() Unknown): client sees code Unknown desc "etcdserver: too many requests"
+    code_test.go:36: server returns rpctypes.EtcdError "etcdserver: re-configuration failed due to not enough started members" (Code() Unknown): client sees code Unknown desc "etcdserver: re-configuration failed due to not enough started members"
+    code_test.go:36: server returns *status.Error "rpc error: code = ResourceExhausted desc = etcdserver: too many requests" (Code() ResourceExhausted): client sees code ResourceExhausted desc "etcdserver: too many requests"
+--- PASS: TestWireCode (0.00s)
+=== RUN   TestDecErrors
+    probe_test.go:83: one message: dec returned <nil> "" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: no message: dec returned *status.Error "rpc error: code = Internal desc = cardinality violation: received no request message from non-client-streaming RPC" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: partial first header: dec returned *status.Error "rpc error: code = Internal desc = unexpected EOF" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: partial first body: dec returned *status.Error "rpc error: code = Internal desc = unexpected EOF" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: message + partial second header: dec returned *errors.errorString "unexpected EOF" (Unwrap method: false, == io.ErrUnexpectedEOF: true)
+    probe_test.go:83: message + partial second body: dec returned *errors.errorString "unexpected EOF" (Unwrap method: false, == io.ErrUnexpectedEOF: true)
+    probe_test.go:83: message + oversized second: dec returned *status.Error "rpc error: code = ResourceExhausted desc = grpc: received message larger than max (2147483647 vs. 4194304)" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: message + bad payload format: dec returned *status.Error "rpc error: code = Internal desc = grpc: received unexpected payload format 7" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: two messages: dec returned *status.Error "rpc error: code = Internal desc = cardinality violation: received multiple request messages for non-client-streaming RPC" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+    probe_test.go:83: bad proto: dec returned *status.Error "rpc error: code = Internal desc = grpc: failed to unmarshal the received message: proto: cannot parse invalid wire-format data" (Unwrap method: false, == io.ErrUnexpectedEOF: false)
+--- PASS: TestDecErrors (0.00s)
+=== RUN   TestServeHTTPConnErr
+    servehttp_test.go:84: content-length 5: 200/200: dec returned *status.Error unwrap=false "rpc error: code = Canceled desc = context canceled"
+    servehttp_test.go:84: content-length 100: 200/200: dec returned transport.ConnectionError unwrap=true "connection error: desc = \"request declared a Content-Length of 100 but only wrote 5 bytes\""
+--- PASS: TestServeHTTPConnErr (1.19s)
+PASS
+ok  	hs6probe	1.203s
