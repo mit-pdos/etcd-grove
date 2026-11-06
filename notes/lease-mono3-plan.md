@@ -255,3 +255,54 @@ StartMember's `.none` cases are the old proofs, checked). Reach: below.
   need, if (a) needs one; the decision on finding 1 (with the user if (ii) or (iii)), and, for (i),
   the Go change to `examples/lib/cluster3/cluster3.go` with its re-translation (`etc/goose.py
   --project` of the examples) before (a) proves `StartMember`.
+
+## Draft pass 2(c) (2026-11-06)
+
+The serving lemma findings 1–2 need, an addition to etcdstart's API (accepted by etcd-grove-82,
+2026-11-06), in `etcdstart/ServedLease.lean` (already importable; `etc/api/etcdstart.txt` unchanged):
+
+```lean
+theorem kv_lease_served_watch (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
+    (Hrf : grpcRepliesFit) (hP : leasePeersOk) (hρ : ρ.rd = γr) (m : lease.Mode)
+    (hm : ρ.rd.kv.lm = m)
+    (hset : go.typeSetContains
+      (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true) :
+    isPkgInit v3rpc ∗ isPkgInit etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗ threadTok ∗
+        kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
+      |={⊤}=> grpcServeTok gs lis ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
+        etcdLeaseServedAt m addr s E ρ γr cid mid ∗
+        (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+        isGrpcStreamMd addr "/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
+          (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗
+        ⌜noRefusalAt addr⌝
+```
+
+Why this shape:
+- **`kv_lease_served`'s premises, unchanged, plus `hset`** (the caller's `Hms.watch_impl`): the
+  `threadTok` for the one gRPC slot stays a premise (finding 1; the caller's `go holdToken()`, not
+  this pass's). The watch run slot needs no new premise: it is made of two of `grpcUp`'s 64
+  watchable-store readers and one of `kvServeStocks`' `E.RD` (one of the two `kv_lease_served`
+  dropped), under `HT` (`threadBound ≤ actualMaxReaders`).
+- **The post is what `cluster3.memberServed` needs at a lease mode from the serving step**:
+  `servedRegs m`'s lease registrations, the watch stream with its server (`∃ pw` and
+  `R`'s facts, which the caller packs under `memberServed`'s `∃ pw R`), `noRefusalAt` (from
+  `grpcUp_noRefusal`, before `grpc.start`: authentication off from `isServerReq_authOff`), and
+  `srvGoRes s` back to the caller, which `grpcUp` holds and `memberServed` keeps (`kv_lease_served`
+  dropped it: its callers had theirs elsewhere).
+- **Over `grpcUp`, as `kv_lease_served`**, not over `Server`'s raw post as `etcd_kv_started_with`:
+  `grpcUp` holds the Lease service (`grpcLeaseUp`) the lease registrations need; `StartMember`
+  packs `wp_Server`'s post into `grpcUpM E.authOn` and `grpcUpM_false` as `etcdstart.Serve` does.
+- **One proof**: `kv_lease_served`'s body became the private `kv_lease_served_core`, whose post also
+  returns `srvGoRes`, the stream registrations (`etcd_kv_started_with`'s `grpcStreamServerAt`), the
+  watch server and stream interceptors and the one watch run slot; `kv_lease_served` (statement
+  unchanged) drops them, `kv_lease_served_watch` runs `v3rpc.etcd_watch_served_chain` on them.
+
+Proved, no `sorry`, no new axiom (it uses `etcd_noRefusal`, which `StartMember`'s `.none` case and
+linkv3p's trust base already rest on); `kv_lease_served`'s statement and its interface are unchanged. Left to (a): in `StartMember`
+at a lease mode, pack `wp_Server`'s post into `grpcUp` (as `etcdstart.Serve` does), take the
+`threadTok` from the new `go holdToken()` (finding 1, option (i)), and apply `kv_lease_served_watch`
+with `Hms.watch_impl`.
