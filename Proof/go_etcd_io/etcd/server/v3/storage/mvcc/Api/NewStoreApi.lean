@@ -162,7 +162,7 @@ theorem NewStore.wp_proof
   wp_apply +noauto (hNewStore lg _ le cfg (some bk) γl γl Pk #func.nil rd0 false γi γok
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, Hcok, #Hhk, -, Hrds, -, -, -, Hcl, -, -, Hfrag, -, Hcu, Hret,
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, Hcok, #Hhk, ⟨%rv, %wv, HrvF, #HrvI, HwvF, #HwvI⟩, Hrds, -, -, -, Hcl, -, -, Hfrag, -, Hcu, Hret,
       #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
@@ -179,6 +179,9 @@ theorem NewStore.wp_proof
       exact keyView_of_dget hP (fun k => by rw [hk0]; rfl)
     iframe Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd
   obtain ⟨-, hγl, hγk, hγw, -, -, -⟩ := Hγ
+  -- the views, for good (a store without watchers: no watchable store rewrites them)
+  ipersist HrvF
+  ipersist HwvF
   -- the pending revision's client part: half (a plain store)
   have hpr' : pr = (1 : Qp).half := by
     unfold pndW at hpr
@@ -231,7 +234,10 @@ theorem NewStore.wp_proof
     · iunfold isMvccPlain
       iexists s
       iframe Hs Hloc Hcp Hsupp Hfree'
-      ipureintro; rfl
+      isplitr
+      · ipureintro; rfl
+      iexists rv, wv
+      iframe HrvF HrvI HwvF HwvI
     ipureintro; exact hγw
   isplitl [Hab Hpn Hcr2 Hnl]
   · iunfold mvccState

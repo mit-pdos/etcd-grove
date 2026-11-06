@@ -160,12 +160,20 @@ its readers' pool and the write-back supply). (`KV.Compact.contract`, 2026-11-06
 location recorded (`locIs`, which the open token's agrees with) and its compaction permit `True`
 (the API's compactions are permitted at any revision). (Track A, request 3, 2026-11-06) The
 readers' supply (`rdSupply`) and the certificate map's free entry (`certFree`); that the store has
-no watchers is `isMvcc`'s (this handle is also built of a watchable store's inner store). -/
+no watchers is `isMvcc`'s. (2026-11-06) The store's read and write views (`KV.Rev`, `FirstRev`,
+`Range`, `Put`, `DeleteRange` are theirs, promoted): `NewStore`'s, whose `kv` is the store itself.
+(The watchable store's `Compact` no longer builds this handle of its inner store, whose views are
+the watchable store's: it calls the plain `Compact`'s body over the store, location and permit.) -/
 private def isMvccPlain (kv : GoInterface) (γ : MvccName) : IProp GF :=
   iprop(∃ s : Loc, ⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗
     isStore s (γ : StoreNames) ∗ api.locIs (γ : StoreNames).api s ∗
     crevPermIs (γ : StoreNames) (fun _ => iprop(True)) ∗
-    rdSupply s (γ : StoreNames) ∗ certFree (γ : StoreNames))
+    rdSupply s (γ : StoreNames) ∗ certFree (γ : StoreNames) ∗
+    (∃ rv wv : Loc,
+      s.[store, go!"ReadView"] ↦□ (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+      isReadView rv s (γ : StoreNames) ∗
+      s.[store, go!"WriteView"] ↦□ (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+      isWriteView wv s (γ : StoreNames)))
 
 /-- A watchable store's handle (stage 2, 2026-11-05: what `NewWatchStream` needs, §2): the
 watchable store `s` over its inner store `st`, at names `γw` whose store is `γ`, the watch tokens'

@@ -391,6 +391,61 @@ theorem watchableStore.DeleteRange.wp_api (hTODO : traceutil.TODO.spec (GF := GF
   · iframe Hwvkv Hmv Htok Hkey Hend Hown HB Hhk Hpre Hrun Hupd Hau
   iapply HΦ; iexact Hr
 
+/-- **The plain handle's write view** (track A, request 3: the write view in `isMvccPlain`): its
+`kv` the store itself. -/
+private theorem isMvcc_plainW (s : Loc) (γ : MvccName) :
+    isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #s) γ ⊢
+      ∃ wv : Loc, s.[store, go!"WriteView"] ↦□
+          (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
+        wv.[writeView, go!"kv"] ↦□
+          (interface.mkOk (go.GoType.PointerType store.ty) #s : GoInterface) := by
+  iintro Hmv
+  iunfold isMvcc at Hmv
+  icases Hmv with #(⟨Hmv, -⟩ | Hmv)
+  · iunfold isMvccPlain at Hmv
+    icases Hmv with ⟨%s', %Hk, -, -, -, -, -, ⟨%rv, %wv, -, -, #Hwv, #HwvI⟩⟩
+    have hs : s = s' := mkOk_loc_inj _ Hk
+    subst hs
+    iunfold isWriteView at HwvI
+    iNamed HwvI
+    iexists wv
+    iframe Hwv Hkv
+  iunfold isMvccWatchable at Hmv
+  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+  exfalso
+  obtain ⟨Hk, -⟩ := Hk
+  rw [interface_mkOk_inj] at Hk
+  exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
+
+/-- **`KV.Put.contract` at `*store`**, over its `KV.Write` (`store.Write.wp_api`, no hypothesis). -/
+theorem store.Put.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hW : store.Write.spec (GF := GF))
+    (hTx : wtxnHyp (GF := GF)) :
+    store.Put.spec (GF := GF) := by
+  intro s γ key value k vv leaseID L I q B P Pre Q' Post f Q
+  wp_start as ⟨#Hmv, Htok, #Hkey, #Hval, %Hklen, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd, Hau⟩
+  icases isMvcc_plainW s γ $$ Hmv with ⟨%wv, #HWV, #Hwvkv⟩
+  (try wp_auto)
+  wp_apply (writeView_Put_api hTODO _ _ (hW s) hTx wv γ key value k vv leaseID L I q B P Pre Q' Post
+      f Q) $$ [Htok Hown HB Hpre Hrun Hupd Hau] as %rev Hr
+  · iframe Hwvkv Hmv Htok Hkey Hval Hown HB Hhk Hpre Hrun Hupd Hau
+    ipureintro; exact ⟨Hklen, Hlease⟩
+  iapply HΦ; iexact Hr
+
+/-- **`KV.DeleteRange.contract` at `*store`** (as `Put`). -/
+theorem store.DeleteRange.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hW : store.Write.spec (GF := GF))
+    (hTx : wtxnHyp (GF := GF)) :
+    store.DeleteRange.spec (GF := GF) := by
+  intro s γ key endk k e L I q B P Pre Q' Post f Q
+  wp_start as ⟨#Hmv, Htok, #Hkey, #Hend, Hown, HB, #Hhk, Hpre, Hrun, Hupd, Hau⟩
+  icases isMvcc_plainW s γ $$ Hmv with ⟨%wv, #HWV, #Hwvkv⟩
+  (try wp_auto)
+  wp_apply (writeView_DeleteRange_api hTODO _ _ (hW s) hTx wv γ key endk k e L I q B P Pre Q' Post
+      f Q) $$ [Htok Hown HB Hpre Hrun Hupd Hau] as %n %rev Hr
+  · iframe Hwvkv Hmv Htok Hkey Hend Hown HB Hhk Hpre Hrun Hupd Hau
+  iapply HΦ; iexact Hr
+
 end proof
 
 end api

@@ -98,7 +98,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold isMvccPlain at Hmv
-  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, #Hfree⟩
+  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, -, #Hsup, #Hfree, -⟩
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
   -- the backend share at the store's current names

@@ -413,6 +413,85 @@ theorem watchableStore.Range.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG 
     as %r %err Hr
   iapply HΦ; iexact Hr
 
+/-- **The plain handle's store, its read view and its readers' supply** (track A, request 3: the
+read view in `isMvccPlain`). -/
+private theorem isMvcc_plain (s : Loc) (γ : MvccName) :
+    isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #s) γ ⊢
+      ∃ rv : Loc, s.[store, go!"ReadView"] ↦□
+          (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
+        isReadView rv s (γ : StoreNames) ∗ rdSupply s (γ : StoreNames) := by
+  iintro Hmv
+  iunfold isMvcc at Hmv
+  icases Hmv with #(⟨Hmv, -⟩ | Hmv)
+  · iunfold isMvccPlain at Hmv
+    icases Hmv with ⟨%s', %Hk, -, -, -, #Hsup, -, ⟨%rv, %wv, #Hrv, #HrvI, -⟩⟩
+    have hs : s = s' := mkOk_loc_inj _ Hk
+    subst hs
+    iexists rv
+    iframe Hrv HrvI Hsup
+  iunfold isMvccWatchable at Hmv
+  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+  exfalso
+  obtain ⟨Hk, -⟩ := Hk
+  rw [interface_mkOk_inj] at Hk
+  exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
+
+/-- **`KV.Rev.contract` at `*store`**: the promoted method, the store's read view's; the reader
+from the handle's supply. -/
+theorem store.Rev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG))
+    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
+    store.Rev.spec (GF := GF) := by
+  intro s (γ : mvcc.StoreNames) Q
+  wp_start as ⟨Hmv, Htok, Hau⟩
+  icases isMvcc_plain s γ $$ Hmv with ⟨%rv, #Hrv, #HrvI, #Hsup⟩
+  wp_auto_lc 1
+  iapply fupd_wp
+  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Htok] with ⟨Hrd, Hback⟩
+  imodintro
+  iunfold mvccState at Hau
+  wp_apply (readView_Rev_cb hTODO hRead hRev hEnd s rv γ Q) $$ [$HrvI $Hrd $Hback $Hau] as %r Hr
+  iapply HΦ; iexact Hr
+
+/-- **`KV.FirstRev.contract` at `*store`** (as `Rev`). -/
+theorem store.FirstRev.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (hFR : mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG))
+    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
+    store.FirstRev.spec (GF := GF) := by
+  intro s (γ : mvcc.StoreNames) Q
+  wp_start as ⟨Hmv, Htok, Hau⟩
+  icases isMvcc_plain s γ $$ Hmv with ⟨%rv, #Hrv, #HrvI, #Hsup⟩
+  wp_auto_lc 1
+  iapply fupd_wp
+  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Htok] with ⟨Hrd, Hback⟩
+  imodintro
+  iunfold mvccState at Hau
+  wp_apply (readView_FirstRev_cb hTODO hRead hFR hEnd s rv γ Q) $$ [$HrvI $Hrd $Hback $Hau]
+    as %r Hr
+  iapply HΦ; iexact Hr
+
+/-- **`KV.Range.contract` at `*store`** (as `Rev`). -/
+theorem store.Range.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
+    (hRange : mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG))
+    (hRangeW : mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG))
+    (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
+    store.Range.spec (GF := GF) := by
+  intro s (γ : mvcc.StoreNames) ctx cd todo key endk kk e ro Q
+  wp_start as ⟨Hmv, Htok, #Hctx, #Hkey, #Hend, Hau⟩
+  icases isMvcc_plain s γ $$ Hmv with ⟨%rv, #Hrv, #HrvI, #Hsup⟩
+  wp_auto_lc 1
+  iapply fupd_wp
+  imod mvcc.rdSupply_lend s γ $$ [$Hsup $Hlc1 $Htok] with ⟨Hrd, Hback⟩
+  imodintro
+  iunfold mvccState at Hau
+  wp_apply (readView_Range_cb hTODO hRead hRange hRangeW hEnd s rv γ ctx cd todo key endk kk e ro
+      Q) $$ [$HrvI $Hrd $Hback $Hau $Hctx $Hkey $Hend]
+    as %r %err Hr
+  iapply HΦ; iexact Hr
+
 end proof
 
 end api
