@@ -1419,7 +1419,10 @@ entry met is `lb` (`y.log`: the proposer ties it to the raft prefix its update f
 `entryWit`) and the log after is certified (`certOk`: the KV model of a committed raft prefix,
 what makes its revisions reached in the clients' model). Since linkv-txn stage B1 (2026-10-20)
 the outcome is not waived (`out.waived = false`: the apply thread found the id registered, so a
-transaction's ranges were run): a result reaches the registered proposer only then. -/
+transaction's ranges were run): a result reaches the registered proposer only then. (Strict M1,
+2026-11-06, the client/v3 track's request, decided by the coordinator) The log after's receipt
+`⧖ (logCh y'.log)`, well formed and short (the writer's facts, `srvApi.writer_facts`): what the
+clients' `kvLogOk` of the state after a write takes. -/
 def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -1428,7 +1431,8 @@ def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : m
         out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      E.Nx y'.log)
+      E.Nx y'.log ∗
+      ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The committed entry a result is of** (persistent; 2026-10-14, unit T1): an entry `e` at
 position `m` of a committed log `L`, normal, its data claimed under the id of `rq` (with some

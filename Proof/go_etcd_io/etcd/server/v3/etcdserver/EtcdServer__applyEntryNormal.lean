@@ -253,13 +253,15 @@ local macro "trig'" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert HMint Hcx'
+  iframe HRes Hcert HMint Hcx' Hrcx'
   isplitr
   · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx⟩
-  iunfold appliedWit
-  iexists m.index
-  rw [Hrd]
-  iframe Hcm HLpre Hmono))
+  isplitl [Hcm HLpre Hmono]
+  · iunfold appliedWit
+    iexists m.index
+    rw [Hrd]
+    iframe Hcm HLpre Hmono
+  ipureintro; exact Hwfl))
 
 set_option hygiene false in
 /-- `Trigger(id, ar)`'s premise: every expectation registered under the entry's id is the
@@ -296,13 +298,15 @@ local macro "trig" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert HMint Hcx'
+  iframe HRes Hcert HMint Hcx' Hrcx'
   isplitr
   · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx⟩
-  iunfold appliedWit
-  iexists m.index
-  rw [Hrd]
-  iframe Hcm HLpre Hmono))
+  isplitl [Hcm HLpre Hmono]
+  · iunfold appliedWit
+    iexists m.index
+    rw [Hrd]
+    iframe Hcm HLpre Hmono
+  ipureintro; exact Hwfl))
 
 set_option hygiene false in
 /-- The deferred update in either state. -/
@@ -516,8 +520,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hbo := Hbo $$ Hpl Hrt
       ihave Hgr : srvGoRes s $$ [Hwg Htt]
       · iunfold srvGoRes; iframe Hwg Htt
-      imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', -, %Hwf'⟩
+      imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
       have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
+      have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
+        obtain ⟨_, hr, h⟩ := Hwf'; exact ⟨(mvcc.api.reach_logWf _ hr).1, h⟩
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
       (try wp_auto)
       have hes : entryStep m false x x' out := by
@@ -767,8 +773,10 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
       ihave Hbo := Hbo $$ Hpl Hrt
       ihave Hgr : srvGoRes s $$ [Hwg Htt]
       · iunfold srvGoRes; iframe Hwg Htt
-      imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', -, %Hwf'⟩
+      imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
       have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
+      have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
+        obtain ⟨_, hr, h⟩ := Hwf'; exact ⟨(mvcc.api.reach_logWf _ hr).1, h⟩
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       have hes : entryStep m true x x' out := by
         unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
@@ -940,8 +948,10 @@ local macro "tail_off" : tactic => `(tactic| (
   ihave Hbo := Hbo $$ Hpl Hrt
   ihave Hgr : srvGoRes s $$ [Hwg Htt]
   · iunfold srvGoRes; iframe Hwg Htt
-  imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', -, %Hwf'⟩
+  imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
   have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
+  have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
+    obtain ⟨_, hr, h⟩ := Hwf'; exact ⟨(mvcc.api.reach_logWf _ hr).1, h⟩
   imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
   (try wp_auto)
   ihave Hka : kvAppliedLOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) (sa, x'.log) $$ [Hka]
@@ -999,13 +1009,14 @@ local macro "trig_on" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert HMint Hcx'
+  iframe HRes Hcert HMint Hcx' Hrcx'
   isplitr
   · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx, Htie⟩
   isplitr [HAu]; rotate_left
   · isplitr
     · iexact HtA
-    iexact HAu
+    iframe HAu
+    ipureintro; exact Hwfl
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -1029,8 +1040,10 @@ local macro "tail_on" sa':term : tactic => `(tactic| (
   ihave Hbo := Hbo $$ Hpl Hrt
   ihave Hgr : srvGoRes s $$ [Hwg Htt]
   · iunfold srvGoRes; iframe Hwg Htt
-  imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', -, %Hwf'⟩
+  imod applyKV_writer hPers hReach E HwOk ua x' $$ HsI HKV with ⟨HKV, #Hcert, #Hcx', #Hrcx', %Hwf'⟩
   have Hlen : x'.log.length < 2 ^ 63 := by obtain ⟨_, -, h⟩ := Hwf'; omega
+  have Hwfl : mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63 := by
+    obtain ⟨_, hr, h⟩ := Hwf'; exact ⟨(mvcc.api.reach_logWf _ hr).1, h⟩
   imod revAuth_step E x.log x'.log (applyStep_grow Hstep0.1) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
   ihave Hka : kvAppliedLOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) ($sa', x'.log) $$ [Hka]
   · rw [hmod]; iexact Hka

@@ -115,47 +115,42 @@ theorem snap_lg_nn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp
 
 /-! ## The stores' contracts at the new backend -/
 
-theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (γs : mvcc.StoreNames)
-    (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) :
-    alarmApplyOk al ∗ backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗
-      backend.plHookRO d'.γB g ⊢
-    apply.isAlarmStore al γs Pk #g (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
+/-- (Strict M1, 2026-11-06) the restated contracts at the new backend `d'`, its write invariant
+`W` (the store's `mvccW d'.gx`) and batch lock's `Pk`, its frozen hook `g`: the epoch's
+`fun _ => Pk`, `g`, `srvBkTie d'` (`snapE`'s). -/
+theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (W Pk : IProp GF) (g : GoFunc)
+    (hgnn : g ≠ func.nil) :
+    alarmApplyOk al ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
+    apply.isAlarmStore al (fun _ => Pk) g (srvBkTie d')
+      (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#HalA, #HB, #Hhook⟩
   iunfold alarmApplyOk at HalA
-  iapply HalA $$ %d' %(mvcc.lateW d'.gx) %Pk %γs %g
-    %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] []
-  · ipureintro; exact hk
+  iapply HalA $$ %d' %W %Pk %g %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) HB Hhook [] []
   · ipureintro; exact hgnn
   · iapply srvRestRWH_lens_alarm
 
-theorem snap_isAuthStore (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal)
-    (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
-    (hgnn : g ≠ func.nil) :
-    authApplyOk ast RD ∗ backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗
-      backend.plHookRO d'.γB g ⊢
-    apply.isAuthStore (auth.authIface ast) γs Pk #g RD .off
+theorem snap_isAuthStore (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal) (W Pk : IProp GF)
+    (g : GoFunc) (hgnn : g ≠ func.nil) :
+    authApplyOk ast RD ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
+    apply.isAuthStore (auth.authIface ast) (fun _ => Pk) g (srvBkTie d') RD .off
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#HisAuth, #HB, #Hhook⟩
   iunfold authApplyOk at HisAuth
-  iapply HisAuth $$ %d' %(mvcc.lateW d'.gx) %Pk %γs %g
-    %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] []
-  · ipureintro; exact hk
+  iapply HisAuth $$ %d' %W %Pk %g %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) HB Hhook [] []
   · ipureintro; exact hgnn
   · iapply srvRestRWH_lens_auth
 
-theorem snap_isCluster (al ast lp cl : Loc) (d' : mvcc.KBReal)
-    (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
+theorem snap_isCluster (al ast lp cl : Loc) (d' : mvcc.KBReal) (W Pk : IProp GF) (g : GoFunc)
     (hgnn : g ≠ func.nil) :
-    clusterApplyOk cl ∗ backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗
+    clusterApplyOk cl ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗
       backend.plHookRO d'.γB g ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ⊢
-    apply.isCluster cl γs Pk #g (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
+    apply.isCluster cl (fun _ => Pk) g (srvBkTie d')
+      (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#Hisc, #HB, #Hhook, #Hvcn⟩
   iunfold clusterApplyOk at Hisc
-  iapply Hisc $$ %d' %(mvcc.lateW d'.gx) %Pk %γs %g
-    %(srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
-    %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) [] HB Hhook [] [] [] []
-  · ipureintro; exact hk
+  iapply Hisc $$ %d' %W %Pk %g %(srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
+    %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) HB Hhook [] [] [] []
   · ipureintro; exact hgnn
   · iexact Hvcn
   · iapply srvRestOwnH_lens_cluster

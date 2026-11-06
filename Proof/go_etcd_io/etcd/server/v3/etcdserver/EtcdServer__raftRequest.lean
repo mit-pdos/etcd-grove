@@ -56,7 +56,8 @@ local macro "rr_ok" : tactic => `(tactic| (
     · iapply (apply.dispatchAnswer_nil_tr _ _ _ _ v.Trace' _ _)
       rw [← hve]
       iexact Hans
-    iexact Hau'
+    iframe Hau' Hrcp
+    ipureintro; exact Hlwf
   iexact HQL))
 
 set_option maxRecDepth 20000 in
@@ -84,7 +85,7 @@ theorem EtcdServer.raftRequest.wp_proofM (on : Bool)
   · subst Herr
     (try wp_auto)
     iunfold resPostM at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, #Hok, #HtM, Hau⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint, #Hwit, Hok, #HtM, Hau, #Hrcp, %Hlwf⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn

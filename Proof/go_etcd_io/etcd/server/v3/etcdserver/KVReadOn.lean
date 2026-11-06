@@ -26,18 +26,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
-section pure
-variable [GooseExts]
-
-/-- **The mode-`on` model is monotone in the raft log** (`kvRaftOf_prefix`'s counterpart). -/
-theorem kvRaftOfOn_prefix (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
-    (A B : List EntryModel) (h : A <+: B) :
-    (kvRaftOfOn c₀ ch s₀ A).2 <+: (kvRaftOfOn c₀ ch s₀ B).2 := by
-  obtain ⟨D, rfl⟩ := h
-  rw [kvRaftOfOn_append]
-  exact kvRaftOfOn_extends _ _ _ _
-
-end pure
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]

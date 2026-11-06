@@ -58,7 +58,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 (with its stop channels and the constructors' half of its open token, W7, and the readers' and the
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
-discharge): the image's facts (`hmeta`, `hAA`, `hxA`, `hst`, `hlease`, `hlp`, `halarm`, `hauthb`,
+discharge): the image's facts (`hmeta`, `hAA`, `hxA`, `hst`, `hnl`, `hlease`, `hlp`, `halarm`, `hauthb`,
 `hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`authRecoverOk`, the auth track's E
 stage), the members' directory (`srvMembersDir`) (until J8a-6, 2026-11-01, also `8·|ps|` reader
 slots of the transport's `lgMu`), `NewUberApplier`'s fields and feature gate, the stores' contracts on
@@ -84,7 +84,11 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     -- recording an unfinished compaction iff `u`
     (A' : List EntryModel) (u : Bool) (hAA : A <+: A')
     (hxA : x.log = kvModel γr.kv A ∧ x.crev = crevOf γr.kv A)
-    (hst : imageStOk (kvModel γr.kv A') (crevOf γr.kv A')) (hbr : mvcc.bridgeParams d.P)
+    (hst : imageStOk (kvModel γr.kv A') (crevOf γr.kv A'))
+    -- (strict M1, 2026-11-06) the image's history puts no lease (the KV model of a plain log from
+    -- the boot's two empty revisions, `SnapImageFacts.nolease`): `KV.Restore.contract`'s leased
+    -- items, none
+    (hnl : mvcc.LogNoLease (kvModel γr.kv A')) (hbr : mvcc.bridgeParams d.P)
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
     (hlp : mvcc.leaseParams d.P)

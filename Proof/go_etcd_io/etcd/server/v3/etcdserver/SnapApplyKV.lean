@@ -27,79 +27,50 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **Step 4: the applier state at the snapshot's environment** `E'` and the restored log
-`[[], []] ++ R`, with the new applier's chain (`alarmChain`, `NewUberApplier`'s: the open point of
-the plan, `x'.chain`, is left to S-j1: the chain is stated as the walk gives it, which is all
-`srvSnapApplied` needs, its `x'` being existential with only `x'.log` fixed).
-
-Brief for the prover. Unfold `srvApplyKV` with `ua := mkOk up'`:
-- `srvUberApplyAddr s ↦ ua` the hypothesis; `applierFor ua E'` and the chain: apply `Hube` at
-  `E'` (`snapE_RD`: `⌜E'.RD = E.RD⌝` by `rfl`) and the step-3 `backendOptsOk E' opts'`; its
-  `uberIs` gives `applierFor` (`iexists up', opts'`), its `uberOwn E' up' (alarmChain …)` the
-  `applyKV`'s `uberOwn` (`x'.chain`).
-- `kvOwn E' ([[], []] ++ R)`: `storeReader` (`storeReader_snapE`, `rfl`); `txn.kvWriter E.s E'.γ`
-  as `BuildLemmas.lean:140` does at boot: `soleWriter` from `watchWriter`'s `idxCert` (of the
-  logical names: equal at `E'.γ`) and tokens (`soleBudget = wBudget`: unfold both; `soleLog` of
-  `[[], []] ++ R` from `hRok`'s non-empty revisions, see `txn.soleLog_boot` and `SoleWriter.lean`),
-  `receiptBound GF ≤ 2 ^ 48` from `hrbw` and `backend.wbInit = 2 ^ 40 - 1`; `wlogOwn` by
-  `txn.wlogOwn_watch` (`hwq`) at `{ γw with st := γw.st.withPhys p' }`
-  (`mvcc.isWatchableStore_withPhys`, `hγw`) with `watchWriter`'s `wlog` half; `writerFrag` the
-  hypothesis (`hγw`); `leasesLive`: `L := []`, `lessorUser = leaseOwn ∗ lessorRdOf` the hypotheses
-  (leases of the logical names), `txn.leasesKnown [] (mvcc.stateAfter ([[], []] ++ R))` from `hRok`'s
-  third conjunct (every restored put has lease `0`); `E'.RD = E.RD` the hypothesis; `writerOwn` from
-  the wand applied to `mvcc.storeRT (γw.st.withPhys p')`, which is `bkRTx d'.γB d'.P d'.be`
-  (`storeRT`/`kbRT` at `p'.kb = some d'`, `kbRT_some`).
-- `srvBeOwn s E'`: `d'` (`snapE_kb hkb'`), the two hypotheses (`snapE_γbe`).
-- `revAuth E' ([[], []] ++ R)` from `revAuth E x.log` (`revAuth_snapE`): the bound
-  `uint.nat k < x.log.length ≤ ([[], []] ++ R).length` (`hpre.length_le`).
-- `srvAuthApplyRes s E'`: the hypothesis (`snapE_authMode`; integration with the auth track's E2k).
-- `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses.
-- (M2's item 15, stage B) the compaction resources at the restored revision `c'`, the caller's
-  (until then at `-1`, free with the new backend not compacting, `apply.cmpOwn_of_off`).
-- (2026-11-02, the backend-auth-split stage) `srvBeOwn`'s `srvBeRO d'` and the new backend's
-  pool of readers (`backend.bkRPool`), from the walk. -/
+/-- **Step 4: the applier state at the snapshot's environment** `E'` and the image's committed log
+`A'` (strict M1, 2026-11-06: the store restored in place by `KV.Restore.contract`): the apply
+thread's halves at the model's `(kvModel A', crevOf A')`, the store's open token and its backend's
+whole share at the new backend `d'` (with its hook frozen at `g`, `hookIs`), no lease live (the
+image's history puts none, `hnl`), the new backend's facts, pool and reader token (`srvBeOwn`), the
+revisions' authority at a log no shorter (`hxl`); with the new applier's chain (`NewUberApplier`'s).
+Until then the watchable store's sole writer at the restored physical names. -/
 theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
-    (π0 : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (d' : mvcc.KBReal)
-    (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
-    (opts' : apply.ApplierOptions) (w0 : GoInterface) (RD0 : IProp GF) (al ast lp cl : Loc)
-    (x : apply.ApplyKV) (R : mvcc.Log)
-    (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ)
-    (hwq : E.γ.watchQ = true)
-    (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    (hrbw : receiptBound GF ≤ backend.wbInit - 6) (c' : Int) :
-    apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
+    (γr : ReadNames) (π0 : ApplyPhys) (P : backend.BParams) (d' : mvcc.KBReal) (g : GoFunc)
+    (up' : Loc) (opts' : apply.ApplierOptions) (w0 : GoInterface) (RD0 : IProp GF)
+    (al ast lp cl : Loc) (x : apply.ApplyKV) (A' : List EntryModel)
+    (hnl : mvcc.LogNoLease (kvModel γr.kv A')) (hxl : x.log.length ≤ (kvModel γr.kv A').length) :
+    apply.backendOptsOk (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be)
         opts' ∗
-      mvcc.isWatchableStore ws E.s γw ∗
       (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
         apply.uberIs E1 up' opts' ∗ apply.uberOwn E1 up' (apply.alarmChain E1.authOn false false)) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
-      mvcc.storeReader E.s E.γ ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
-      mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
-      (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
-      mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ∗
+      srvApi.wSt E.γs (kvModel γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+      mvcc.api.mvccOpen E.γ ∗
+      mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) ∗
+      backend.plHookRO d'.γB g ∗
+      lease.leaseOwn (mvcc.api.mvccLeases E.γ) [] ∅ ∗ lease.lessorRdOf (mvcc.api.mvccLeases E.γ) ∗
+      lease.leaseRevokers (mvcc.api.mvccLeases E.γ) [] ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
-      dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
-      srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗
+      dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d') ∗
+      srvBeRO d' ∗ backend.bkRPool d'.γB d'.P d'.be ∗ apply.bkRT d' ∗
       revAuth E x.log ∗ srvAuthApplyRes s E ∗
       srvWAddr s ↦□ w0 ∗
       waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
-      RD0 ∗ apply.cmpOwn (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) c' ⊢
+      RD0 ⊢
     |={⊤}=> ∃ x' : apply.ApplyKV,
-      ⌜x'.log = [[], []] ++ R ∧ x'.chain = apply.alarmChain E.authOn false false ∧ x'.crev = c'⌝ ∗
-      srvApplyKV s (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) ρ.wait x' := by
-  have hrb : receiptBound GF ≤ 2 ^ 48 := by
-    have : backend.wbInit = 2 ^ 40 - 1 := rfl
-    omega
-  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, #Hro, Hpl, Hra, Hauar, #Hw,
-    #Hwok, HRD0, Hcmp⟩
+      ⌜x'.log = kvModel γr.kv A' ∧ x'.chain = apply.alarmChain E.authOn false false ∧
+        x'.crev = crevOf γr.kv A'⌝ ∗
+      srvApplyKV s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be)
+        ρ.wait x' := by
+  iintro ⟨#Hopts, Hube, Hua, HwSt, HcrO, HmO, HmB, #Hhk, Hlo, Hlr, Hrv, HRD, Hbe, Hγbe, #Hro, Hpl,
+    Hrt, Hra, Hauar, #Hw, #Hwok, HRD0⟩
   ihave ⟨#Hub, Huo⟩ :=
-    Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) Hopts
-  ihave Hkv := kvOwn_snap E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d' γw ws R hkb'
-    hγw hwq hRok hrb $$ [Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD]
-  · iframe Hws Hrd Hfrag Hww Hwo Hrt Hlo Hlr Hrv HRD
+    Hube $$ %(snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) Hopts
+  ihave #Hlk := leasesKnown_noLease (GF := GF) _ hnl
+  have hli : mvcc.leaseItemsOf (mvcc.stateAfter (kvModel γr.kv A')) = ∅ :=
+    mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero _ hnl)
   imodintro
-  iexists ⟨[[], []] ++ R, apply.alarmChain E.authOn false false, c'⟩
+  iexists ⟨kvModel γr.kv A', apply.alarmChain E.authOn false false, crevOf γr.kv A'⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
   iunfold srvApplyKV
@@ -110,19 +81,42 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     iexists up', opts'
     iframe Hub
     ipureintro; rfl
-  isplitl [Huo Hkv Hcmp]
+  isplitl [Huo HwSt HcrO HmO HmB Hlo Hlr Hrv HRD]
   · iunfold apply.applyKV
     iexists up'
     isplitr
     · ipureintro; rfl
     simp only [snapE_authOn]
-    iframe Huo Hkv Hcmp
-  isplitl [Hbe Hγbe Hpl]
+    iframe Huo
+    isplitl [HwSt HmB Hlo Hlr Hrv HRD]
+    · iunfold apply.kvOwn
+      simp only [snapE_γs, snapE_γ, snapE_RD]
+      isplitl [HwSt]
+      · iexists crevOf γr.kv A'; iexact HwSt
+      isplitl [HmB]
+      · iunfold apply.kvBk
+        iexists d'
+        dsimp only [snapE_γ, snapE_Pk, snapE_f, snapE_BkTie]
+        iframe HmB
+        rw [mvcc.api.etcdStorage_hookIs]
+        iframe Hhk
+        iunfold srvBkTie
+        ipureintro; rfl
+      iframe HRD
+      iunfold apply.leasesLive
+      iexists []
+      iframe Hlk
+      iunfold lease.lessorUser
+      rw [hli]
+      iframe Hlo Hlr Hrv
+    iunfold apply.cmpOwn
+    simp only [snapE_γs, snapE_γ]
+    iframe HmO HcrO
+  isplitl [Hbe Hγbe Hpl Hrt]
   · iunfold srvBeOwn
     iexists d'
-    simp only [snapE_γbe]
-    iframe Hbe Hγbe Hro Hpl
-    ipureintro; exact hkb'
+    simp only [snapE_γbe, snapE_BkTie]
+    iframe Hbe Hγbe Hro Hpl Hrt
   isplitl [Hra]
   · rw [revAuth_snapE]
     iunfold revAuth at Hra
@@ -133,8 +127,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     ipureintro
     intro k hk
     have h1 := hm k hk
-    have h2 := hpre.length_le
-    simp only at h2 ⊢
+    simp only at hxl ⊢
     omega
   isplitl [Hauar]
   · iunfold srvAuthApplyRes at Hauar

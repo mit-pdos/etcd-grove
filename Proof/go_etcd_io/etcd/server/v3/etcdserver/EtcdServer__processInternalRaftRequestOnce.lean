@@ -363,19 +363,23 @@ local macro "piro_tail" : tactic => `(tactic| (
             rotate_left
             · unfold pubAfterM; itrivial
             iunfold resultIsW at Hri
-            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5⟩
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr8, %Hr9⟩
             iunfold resPostM
             isplitr
             · ipureintro; exact Hnn
             iexists y, y', out
-            iframe Hr1 Hr2 Hr3 Hr4 Hr5
+            iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr8
             isplitr
             · ipureintro
               refine ⟨Hst.1, Hst.2.1, Hst.2.2.2, ?_⟩
               show kvModel ρ.kv _ = _
               rw [Hst.2.2.1]; exact hlbw
             simp only [adminTieM, authnArM]
-            isplit <;> itrivial
+            isplitr
+            · itrivial
+            isplitr
+            · itrivial
+            ipureintro; exact Hr9
           · -- the mode on: `resultΨOn`, the mode-`on` model and the auth layer's verdict
             rw [resultΨM_true]
             iunfold resultΨOn at Hres
@@ -425,7 +429,7 @@ local macro "piro_tail" : tactic => `(tactic| (
               · ipureintro; exact ⟨het, by rw [Hdd]; exact Hbsne (by simp [apply.withHeader]), hdecw⟩
               rw [htk]; iexact HpA
             iunfold resultIsWOn at Hri
-            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7⟩
+            icases Hri with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, #Hr6, Hr7, #Hr8, %Hr9⟩
             iunfold resPostM
             isplitr
             · ipureintro; exact Hnn
@@ -440,7 +444,8 @@ local macro "piro_tail" : tactic => `(tactic| (
             · simp only [adminTieM, hlbw]
               iexact Hr6
             -- (C1's A3) an `Authenticate`'s response
-            iexact Hr7
+            iframe Hr7 Hr8
+            ipureintro; exact Hr9
         iapply BigAndL.bigAndL_cons.2
         isplit
         · -- the context done: give up

@@ -52,12 +52,12 @@ def snapOpenK (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (γB : 
 
 /-- **The creation step of the backend `applySnapshot` opens** (`openPre`'s wand): the fresh
 backend's own keys (at the image `D`, whose meta keys are `π0.m0`) and payment rights give the
-store's late registration slot `lateW gx`, the batch lock's resource at the announced names
+open's write invariant `W` back (strict M1: the store's `mvccW gx`; until then `lateW gx`), the batch lock's resource at the announced names
 (`ci_announce`: the payment rights deposited in the futures) and the announcement; (J8a-4,
 2026-11-01) with `applySnapshot.specSnap`'s meta premise `HmS`, applied to the fresh keys and
 payment rights before they go, the new backend's meta reads. -/
 theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (D : backend.Data)
-    (gx : GName) (hm : metaIs D π0.m0) (hP : ciKeys P) :
+    (W : IProp GF) (hm : metaIs D π0.m0) (hP : ciKeys P) :
     □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),
       ⌜ciKeys P ∧ metaIs D π.m0 ∧ π.bwb = γB.wb ∧ π.bopn = γB.opn⌝ -∗
       backend.hkOwn γB (backend.hkData P D) -∗ backend.bFresh γB -∗
@@ -68,9 +68,9 @@ theorem snap_create (γA : ApplyNames) (π0 : ApplyPhys) (P : backend.BParams) (
           go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
           (readView (γA.withPh π))) ⊢
     inv applyN (consInv (GF := GF) γA) -∗ token π0.pend -∗ ghostVar π0.mt (1 : Qp).half π0.m0.1 -∗
-      mvcc.lateW gx -∗
+      W -∗
       ∀ γB : backend.BNames, backend.hkOwn γB (backend.hkData P D) ∗ backend.bFresh γB ={⊤}=∗
-        mvcc.lateW gx ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
+        W ∗ batchLockInv (γA.withPh (futPhys π0 γB)) (metaTM γB P) ∗
         snapOpenK γA π0 P γB := by
   iintro #HmS #Hinv Hpend Hmt HW %γB ⟨Hk, Hfr⟩
   have hc : ciKeys P ∧ metaIs D (futPhys π0 γB).m0 ∧ (futPhys π0 γB).bwb = γB.wb ∧

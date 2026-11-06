@@ -27,6 +27,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelRestore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.clusterImageOk_restModel
@@ -222,6 +223,9 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   len : uint.Z i = A'.length
   /-- the image's state reachable, its history short (the sender's writer's facts) -/
   hst : imageStOk (kvModel γr.kv A') (crevOf γr.kv A')
+  /-- (strict M1, 2026-11-06) the image's history puts no lease (`KV.Restore.contract`'s leased
+  items: none), the KV model of a plain log from a lease-free start -/
+  nolease : mvcc.LogNoLease (kvModel γr.kv A')
   /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` at
   `tI := t`, D22 J7b) -/
   hmetaI : ∃ t : w64, metaIs D (i, t)
@@ -338,6 +342,14 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
+  -- (strict M1) the image's history puts no lease: the model of a plain log from the boot's two
+  -- empty revisions
+  imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl
+  have hnl : mvcc.LogNoLease (kvModel γr.kv A') := by
+    have hl0 : mvcc.LogNoLease γr.kv.log0 := by
+      rw [hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
+      rcases hcs with rfl | rfl <;> simp at hc
+    exact (kvRaftOf_restorable γr.kv.c0 γr.kv.ch0 γr.kv.log0 A' Hpl.1 hl0).1
   -- the compaction revision's permit
   imod crevOf_permit γr.raft γr.kv A' $$ HkI HrI HA' with Hp
   imod crevOf_offM γr.raft γr.kv A' $$ HkI HrI HA' with %Hoff
@@ -383,6 +395,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
       pre := hAA'
       len := by omega
       hst := hst
+      nolease := hnl
       hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
       hlease := hb.1
       halarm := hb.2.1

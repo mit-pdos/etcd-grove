@@ -210,6 +210,48 @@ theorem senderImage_holds (Hp : persistent.law (GF := GF))
   iapply (dbImageA_of_send γr.raft γr.kv i D A u hi (hQ D HQD) Hre)
   iframe Hlb Him
 
+/-! ## The Restore builder (§3d) -/
+
+/-- **The KV model is monotone in the raft log, in either mode** (off: `kvRaftOf_prefix`; on:
+`kvRaftOfOn_prefix`, `KVAuthModel`). -/
+theorem kvModelM_prefix (on : Bool) (γk : KVNames) (A A' : List EntryModel) (h : A <+: A') :
+    kvModelM on γk A <+: kvModelM on γk A' := by
+  cases on
+  · exact kvRaftOf_prefix _ _ _ _ _ h
+  · exact kvRaftOfOn_prefix _ _ _ _ _ h
+
+/-- **The Restore builder, proved** (`restoreArgs.law`): `au_restore` at the raft witness
+`kvNx γr on` of the snapshot's log `A'` and the permit `crevOk γr` of its compaction revision, the
+restored state extending the apply thread's (`kvModelM_prefix`, `crevOf_mono`); the store's handle
+from the store invariant, the commit request `True ⇒ True` (`backend.commitReq_true`). -/
+theorem restoreArgs_holds (Hp : persistent.law (GF := GF)) : restoreArgs.law (GF := GF) := by
+  intro kv γ γr on γs log c A A' B B' Pk Pk' u Ls dq f Pre Q' Post
+  dsimp only
+  intro hlog hc hAA hre hit
+  rw [kvStoreInv_eq]
+  haveI := kvStoreInvG_persistent Hp kv γ (kvNx γr on) (crevOk γr) γs
+  simp only [stAt_log, stAt_crev] at hit ⊢
+  iintro ⟨#Hk, Hw, Hc, #Hlb, #Hcp, Ht, Ho, HB, HB', Hh, HPre, Hrun, HQ', Hl⟩
+  have hl : log <+: kvModelM on γr.kv A' := by
+    rw [hlog]; exact kvModelM_prefix on γr.kv A A' hAA
+  have hcc : c ≤ crevOf γr.kv A' := by
+    rw [hc]; exact crevOf_mono γr.kv A A' hAA
+  ihave #Hnx : kvNx (GF := GF) γr on (kvModelM on γr.kv A') $$ []
+  · iunfold kvNx; iexists A'; iframe Hlb; ipureintro; rfl
+  ihave HAU := au_restore (kvNx γr on) (crevOk γr) Hp kv γ γs log (kvModelM on γr.kv A') c
+    (crevOf γr.kv A') hl hcc $$ Hk Hw Hc Hnx Hcp
+  ihave #Hk' := Hk
+  iunfold kvStoreInvG at Hk'
+  icases Hk' with ⟨#Hm, -⟩
+  iunfold restorePreA
+  simp only [stAt_log, stAt_crev, stAt_pending]
+  iframe Hm Ht Ho HB HB' Hh HPre Hrun HQ' Hl HAU
+  isplitr
+  · ipureintro; exact ⟨hre, trivial⟩
+  isplitr
+  · iapply (backend.commitReq_true (GF := GF) B'.γB B'.P Pk' B'.be)
+  ipureintro; exact hit
+
 end snap
 
 end srvApi

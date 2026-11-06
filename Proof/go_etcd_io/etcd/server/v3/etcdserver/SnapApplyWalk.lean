@@ -8,9 +8,6 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmGet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyDefs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InstanceLaws
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRestoreM
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestorePreM
 
 @[expose] public section
 
@@ -35,8 +32,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
-/-- **`applySnapshot`'s code, past the empty case** (S8d): from its premises to `snapWalkPost`. -/
-theorem applySnapshot_walk
+/-- **`applySnapshot`'s code, past the empty case** (S8d): from its premises to `snapWalkPost`.
+(Strict M1, 2026-11-06: the store restored by `KV.Restore.contract` at its dynamic type
+(`shapes.law`), its precondition `restoreArgs_holds`'s; the new backend opened for it by
+`etcdStorage_open.law` at the registration `mvccW_alloc.law` gives; until then mvcc's internal
+`watchableStore.Restore` over the backend's own specs.) -/
+theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (hIES : IsEmptySnap.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
@@ -51,11 +52,15 @@ theorem applySnapshot_walk
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    -- (strict M1) mvcc's laws
+    (Hp : mvcc.api.persistent.law (GF := GF)) (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
+    (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
+    (hRest : mvcc.api.backendRest_open.law (GF := GF))
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ai at0 dsi : w64) (nc : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk : Loc)
     (hi : uint.Z ai < uint.Z sv.Metadata'.Index')
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
-    (hkb : E.γ.kb = some d)
+    (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null) (hmmap : storage.openMmapOk cfg)
@@ -67,30 +72,10 @@ theorem applySnapshot_walk
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     (hRO : E.RO = srvRestOwnH d.γB cl (srvObjsOn al ast lp cl d.be))
     (hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅)
-    (hwq : E.γ.watchQ = true)
-    (hRst : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG))
-    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
-    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
-    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
-    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
-    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
-    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
-    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
-    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
-    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
-    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
-    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
-    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
-    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
-    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
-    (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
-    -- (M2's item 15, stage B2) the image by the mode, at the records `r`, past the store's revision
-    (r : mvcc.CmpRecs) (hcc : d.cm = true → x.crev ≤ r.crev)
-    (hkI : mvcc.keyImageM d.cm ([[], []] ++ R) r D) (hbr : mvcc.bridgeParams d.P)
+    (A' : List EntryModel) (u : Bool) (hAA : A <+: A')
+    (hxA : x.log = kvModel γr.kv A ∧ x.crev = crevOf γr.kv A)
+    (hst : imageStOk (kvModel γr.kv A') (crevOf γr.kv A'))
+    (hnl : mvcc.LogNoLease (kvModel γr.kv A')) (hbr : mvcc.bridgeParams d.P)
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -126,10 +111,7 @@ theorem applySnapshot_walk
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
     (hbuq : apply.backendUnderQuota) (γnc : NotifyNames)
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, after its `Recover`
-    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
-    -- (M2's item 15, stage B2) the contract of a compacting backend
-    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
-    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG)) :
+    (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServer s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
@@ -145,13 +127,10 @@ theorem applySnapshot_walk
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
        srvApplyKV s E ρ.wait x ∗ srvRest E γr A ∗
-       lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
-       srvKVCloserW s E ∗
-       (∃ (wsl : Loc) (γw0 : mvcc.WsNames), srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
-        mvcc.isWatchableStore wsl E.s γw0) ∗
-       mvcc.certOk E.γ ([[], []] ++ R) ∗
-       mvcc.restoreRcptM d ([[], []] ++ R) ∗ mvcc.crevPermAt E.γ r.finRev ∗ mvcc.crevPermAt E.γ r.crev ∗
+       lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+       srvKVAddr s ↦□ E.kv ∗
+       srvRLogLb γr.raft A' ∗ mvcc.api.mvccImage D (kvModel γr.kv A') (crevOf γr.kv A') u ∗
+       E.Cp (crevOf γr.kv A') ∗
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
@@ -170,7 +149,7 @@ theorem applySnapshot_walk
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
        -- (2026-11-02, the backend-auth-split stage) the apply thread's token, for the pooled
        -- readers of the new backend (the alarm store's, the auth store's and the cluster's
-       -- `Recover`), given back
+       -- `Recover`) and (strict M1) the store's `Restore`, given back
        threadTok ∗
        authRecoverOk ast ∗
        -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of
@@ -188,9 +167,9 @@ theorem applySnapshot_walk
              (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
-    {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
+    {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, #HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, #Hkvf, #HA', #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, #HauR, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, -, -⟩
@@ -265,18 +244,14 @@ theorem applySnapshot_walk
   icases HsrvCI with ⟨-, #HCI, -⟩
   iunfold isServerCI at HCI
   icases HCI with ⟨#Hcif, #Hisci, #Hinv⟩
-  imod (dghostVar_alloc (GF := GF) (none : Option (Loc × mvcc.StoreNames))) with ⟨%gx', Hgx⟩
-  icases (dghostVar_split (GF := GF) gx' (none : Option (Loc × mvcc.StoreNames))
-      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)) $$ [Hgx] with ⟨HlateW, HlateR⟩
-  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hgx
-  ihave HlateW : mvcc.lateW (GF := GF) gx' $$ [HlateW]
-  · iunfold mvcc.lateW; ileft; iexact HlateW
+  -- (strict M1) the store's registration and the write invariant the backend is opened at
+  imod hWA with ⟨%gx', HwReg, HlateW⟩
   imod (ghostVar_alloc (GF := GF) sv.Metadata'.Index') with ⟨%γmt0, Hmt0⟩
   icases ghostVar_halves γmt0 _ $$ Hmt0 with ⟨Hmt0a, Hmt0b⟩
   imod (dghostVar_alloc (GF := GF) false) with ⟨%γwr0, Hwr0⟩
   imod (token_alloc (GF := GF)) with ⟨%γpd0, Hpd0⟩
   let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (sv.Metadata'.Index', tI), γmt0, γmt0⟩
-  ihave Hcreate := snap_create γ π0 d.P D gx' hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
+  ihave Hcreate := snap_create γ π0 d.P D (mvcc.api.mvccW gx') hmeta hP.2.2.1 $$ HmetaB Hinv Hpd0 Hmt0a HlateW
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
   ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
@@ -286,9 +261,9 @@ theorem applySnapshot_walk
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
   ihave #Hhooks := hooksOk_server_fut hOn hSave hPut hBUR hID hName hSafe γ π0 ci d.P
-    (fun _ => mvcc.lateW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $Hinv]
+    (fun _ => mvcc.api.mvccW gx') hk lgh hP.2.2.1 hP.2.2.2 $$ [$Hspkg $Hbpkg $Hschpkg $Hcipkg $Hbh $Hisci $Hinv]
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
-      (fun _ => mvcc.lateW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
+      (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
       (snapOpenK γ π0 d.P) $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
@@ -306,16 +281,24 @@ theorem applySnapshot_walk
   -- counted stock (`backend.newPostK_pool`), within the server's thread bound (`isServer`'s)
   ihave %Hrdb := isServer_rdPoolN s γ ci TM E ρ γr $$ Hsrv
   imod backend.newPostK_pool Hrdb ⊤ _ _ _ _ _ _ _ $$ Hnew with Hnew
-  ihave Hnew := backend.newPostKP_named _ _ _ _ _ _ _ $$ Hnew
-  simp only
-  iNamed Hnew
-  -- (M2's item 15) the new backend's instance at the old one's mode
+  -- (strict M1) the new backend's instance, compacting (the API's storage), at the old one's
+  -- parameters
   obtain ⟨d', hγ', hbe', hgx', hP', hcm'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧
-      d'.gx = gx' ∧ d'.P = d.P ∧ d'.cm = d.cm :=
-    ⟨{ d with γB := γB, be := nb, gx := gx' }, rfl, rfl, rfl, rfl, rfl⟩
-  rw [← hbe']
+      d'.gx = gx' ∧ d'.P = d.P ∧ d'.cm = true :=
+    ⟨{ d with γB := γB, be := nb, gx := gx', cm := true }, rfl, rfl, rfl, rfl, rfl⟩
+  subst hγ' hbe' hgx'
+  have hbr' : mvcc.bridgeParams d'.P := by rw [hP']; exact hbr
+  -- the opener's `K` (the announcement's pieces) out of the post; the rest is the store's, at
+  -- `K := True` (`etcdStorage_open.law`'s `newPostKP`)
+  iunfold backend.newPostKP at Hnew
+  icases Hnew with ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, #HnPool, HnRT, HnDl, HnFk, HnSr⟩
+  ihave Hnew : backend.newPostKP (GF := GF) d'.γB d.P (fun _ => mvcc.api.mvccW d'.gx)
+      (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (fun _ => iprop(True))
+      d'.be D $$ [HnV HnH HnRB HnRT HnDl HnFk HnSr]
+  · iunfold backend.newPostKP
+    iframe HnB HnSC HnV HnH HnRB HnPool HnRT HnDl HnFk HnSr
   ihave #HhkAtN : backend.hooksAt d'.be (storage.hooksIface hk) $$ []
-  · rw [hbe']; iexact HhkAt
+  · iexact HhkAt
   iunfold snapOpenK at HnK
   icases HnK with ⟨HnCls, #HmetaN, %jf, %γcf, Htcf, #Hidxf⟩
   (try wp_auto)
@@ -327,21 +310,55 @@ theorem applySnapshot_walk
   icases Hab with ⟨Hown, #Hmb⟩
   ihave #Hcipkg' : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
   · iPkgInit
-  let π' := futPhys π0 γB
+  let π' := futPhys π0 d'.γB
   let s' : ApplyState := ⟨W64 0, sv.Metadata'.Index', sv.Metadata'.Index', false⟩
   wp_apply (wp_ci_swap hSB γ ci st s' π' jf γcf b _ rfl rfl
       ⟨by simp [s', ciEff, π', π0], by simp [s', ciEff, π', π0]⟩ (by simpa [π', π0] using hle))
     $$ [Hst Hown Hmt0b Hwr0 Htcf] as ⟨Hst, #Hreg', Hfs, Hown⟩
   · iframe #; iframe Hst Hown Hmt0b Hwr0 Htcf
   -- the new backend's payment rights, back from the futures: its write-back tokens, its open
-  -- token (the constructors' half and the readers' shares)
+  -- token (the constructors' half, the pool's shares, the counted stock's shares)
   iunfold futStash at Hfs
   icases Hfs with ⟨Hnwb, Hnop⟩
-  ihave Hnop1 : backend.bOpen (GF := GF) γB 1 $$ [Hnop HnCls]
+  ihave Hnop1 : backend.bOpen (GF := GF) d'.γB 1 $$ [Hnop HnCls]
   · iunfold backend.bOpen; iframe Hnop HnCls
-  icases (backend.bOpen_one_pool γB).1 $$ Hnop1 with ⟨HnOh, HnOp, HnOs⟩
-  ihave HnPl := backend.bkRPool_intro γB d.P d'.be $$ [$HnPool $HnOp]
-  ihave HnRTx := bkRTx_of_rdToks γB d.P d'.be _ $$ [$HnRT $HnOs]
+  icases (backend.bOpen_one_pool d'.γB).1 $$ Hnop1 with ⟨HnOh, HnOp, HnOs⟩
+  ihave HnPl := backend.bkRPool_intro d'.γB d.P d'.be $$ [$HnPool $HnOp]
+  -- (strict M1) the counted stock's open shares: the store's `rdStockN - 2`, and two for the
+  -- server's long-lived readers (the apply thread's, the storage-version monitor's)
+  icases (rdStock_split2 (backend.bOpen (GF := GF) d'.γB backend.rdOpen)).1 $$ HnOs
+    with ⟨HnOs, HnOa, HnOm⟩
+  -- the write-back tokens: two for the lessor's `Recover`, one for the hook's install, two for the
+  -- alarm store's and the cluster's `Recover`, two for the store; the rest the new backend's stock
+  ihave Hnwb : ownToks d'.γB.wb ((backend.wbInit - 2) + 2) $$ [Hnwb]
+  · rw [show (backend.wbInit - 2) + 2 = backend.wbInit by unfold backend.wbInit; omega]
+    iexact Hnwb
+  icases ownToks_add_1 2 _ d'.γB.wb $$ Hnwb with ⟨Hnwb, Hwb2⟩
+  icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb1⟩
+  icases toks_take d'.γB.wb _ 2 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb2'⟩
+  icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws1⟩
+  icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws2⟩
+  imod srvWTStock_alloc γp d' (backend.wbInit - 2 - 1 - 2 - 1 - 1) (by unfold backend.wbInit at hrbw ⊢; omega) ⊤ $$ [Hnwb] with #HnS
+  · iexact Hnwb
+  ihave #HnSup := wbSupply_of_stock E γp d' $$ [$HWP $HnS]
+  -- (strict M1) the store's resources over the new backend (`etcdStorage_open.law`), at the
+  -- image's committed log `A'`, and the client's rest (`backendRest_open.law`), with two counted
+  -- slots for the server's readers
+  ihave #HkSz' : □ (∀ (γ' : backend.BNames) (b' : Loc), mvcc.keySized (GF := GF) γ' d'.P b') $$ []
+  · rw [hP']; iexact HkSz
+  imod (hOpen d' (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
+      (fun _ => iprop(True)) D (kvModel γr.kv A') (crevOf γr.kv A') u hbr' hcm')
+    $$ [Hnew Hws1 Hws2 HwReg HnOs] with ⟨HsF, Hrest, Hrt1, Hrt2⟩
+  · rw [hP']
+    iframe HkSz Him Hnew HwReg HnOs HnSup
+    iunfold backend.wbTok
+    iframe Hws1 Hws2
+  dsimp only at *
+  ihave ⟨#HnSC', -, HnH, HnRB, #HnPool'⟩ := hRest d'.γB d'.P (fun _ => iprop(True)) d'.be D $$ Hrest
+  ihave HrtA : apply.bkRT (GF := GF) d' $$ [Hrt1 HnOa]
+  · iunfold apply.bkRT; iframe Hrt1 HnOa
+  ihave HrtM : apply.bkRT (GF := GF) d' $$ [Hrt2 HnOm]
+  · iunfold apply.bkRT; iframe Hrt2 HnOm
   -- the old backend's objects, from the rest resource
   iunfold srvRest at HRS
   rw [hRO]
@@ -356,61 +373,71 @@ theorem applySnapshot_walk
     iexact HoRN
   iunfold srvObjsOn at HoObj
   icases HoObj with ⟨HoAl, HoAu, HoLe, HoCl⟩
-  -- the apply thread's KV resources
+  -- the apply thread's KV resources: its halves, the old backend's whole share, its open token
   iunfold srvApplyKV at HKV
   icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, %w0, %RD0, #Hwf, #Hwok, HRD0⟩
   iunfold apply.applyKV at HaKV
-  -- (M2's item 15) the old store's compaction right, by the mode, for `Restore`
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn, HcO⟩
   iunfold apply.cmpOwn at HcO
-  icases HcO with ⟨HcR, -⟩
-  have hkbm : mvcc.kbCmpM E.γ.kb ↔ d.cm = true := by rw [hkb]; rfl
-  icases snap_cmpRight_le E x.crev r (fun h => hcc (hkbm.1 h))
-    (fun h => ((mvcc.keyImageM_off _ r D).1 (by
-      have : d.cm = false := Bool.eq_false_iff.mpr (fun h' => h (hkbm.2 h'))
-      rw [this] at hkI; exact hkI)).2) $$ HcR with ⟨HcR, %hcc'⟩
-  -- the store's mode (`srvEnvOk`)
-  ihave #Hsrv2 := Hsrv
-  iunfold isServer at Hsrv2
-  icases Hsrv2 with ⟨-, -, ⟨%sfv2, #Hfl2⟩, -, -⟩
-  iunfold srvFieldsAt at Hfl2
-  icases Hfl2 with ⟨-, -, -, -, -, %Henv0, -⟩
-  have htie : mvcc.kbCmpM E.γ.kb ↔ E.γ.cm = true := by
-    rw [srvEnvOk_cm s γ ci E sfv2.cluster Henv0]; exact srvEnvOk_kbCmp s γ ci E sfv2.cluster Henv0
-  ihave Hrp := etcdserver.restorePre_of_applyW s E x.log x.crev hwq htie $$ [$HkvOwn $HcR $Hkvc]
-  icases Hrp with ⟨%ws, %γw, %Hγw, #Hws, Hscl, Hfrag, HwOwn, HwW, ⟨HsRd, HlLive, HERD⟩, ⟨%wsk, %stck, #Hkvfk, #Hstck, Hstclk, Hwswk⟩⟩
-  icombine Hkvf Hkvfk gives %Hwk
-  have Hwkl : wsk = wsl := by simp at Hwk; exact GoGlobalContext.intoVal_inj_loc Hwk.symm
-  subst wsk
+  icases HcO with ⟨HmO, HcrO⟩
+  iunfold apply.kvOwn at HkvOwn
+  icases HkvOwn with ⟨⟨%c0, HwSt⟩, HkBk, HlLive, HERD⟩
+  iunfold apply.kvBk at HkBk
+  icases HkBk with ⟨%B0, HmB, -, HB0⟩
+  rw [hkb]
+  iunfold srvBkTie at HB0
+  icases HB0 with %HB0
+  subst B0
+  ihave HwSt' := HwSt
+  iunfold srvApi.wSt at HwSt'
+  icases HwSt' with ⟨HwSt1, HwSt2⟩
+  iunfold srvApi.crOwn at HcrO
+  icombine HwSt2 HcrO gives %Hc0
+  obtain ⟨-, Hc0⟩ := Hc0
+  subst Hc0
+  ihave HwSt : srvApi.wSt (GF := GF) E.γs x.log x.crev $$ [HwSt1 HwSt2]
+  · iunfold srvApi.wSt; iframe HwSt1 HwSt2
+  ihave HcrO : srvApi.crOwn (GF := GF) E.γs x.crev $$ [HcrO]
+  · iunfold srvApi.crOwn; iexact HcrO
   iunfold apply.leasesLive at HlLive
   icases HlLive with ⟨%Ll, #HlK, HlUser⟩
   iunfold lease.lessorUser at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
-  ihave %Hwseq := isWatchableStore_agree ws wsl E.s γw γw0 $$ [$Hws $Hwsl]
-  subst Hwseq
+  -- the store invariant and the store's handle (`isServer`'s `srvKVInvs`)
+  ihave #Hsrv3 := Hsrv
+  iunfold isServer at Hsrv3
+  icases Hsrv3 with ⟨-, -, -, #Hat3, -⟩
+  iunfold srvAtomics at Hat3
+  icases Hat3 with ⟨-, -, #Hkvi⟩
+  iunfold srvKVInvs at Hkvi
+  icases Hkvi with ⟨-, -, -, #HkS, %Hkm, %HNx⟩
+  have hCp : E.Cp = srvApi.crevOk γr := Hkm.2.2.2
+  have hNx : E.Nx = srvApi.kvNx γr false := HNx
+  rw [hCp, hNx]
+  ihave #HkS' := HkS
+  iunfold srvApi.kvStoreInvG at HkS'
+  icases HkS' with ⟨#HisM, -⟩
   (try wp_auto)
   -- `s.lessor.Recover(newbe, …)`: the lessor on the new backend, no lease live
   wp_apply hInfo $$ []
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  ihave Hnwb : ownToks γB.wb ((backend.wbInit - 2) + 2) $$ [Hnwb]
-  · rw [show (backend.wbInit - 2) + 2 = backend.wbInit by unfold backend.wbInit; omega]
-    iexact Hnwb
-  icases ownToks_add_1 2 _ γB.wb $$ Hnwb with ⟨Hnwb, Hwb2⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  wp_apply hLR lp E.γ.leases d.be d' (mvcc.lateW gx')
-      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
+  wp_apply hLR lp (mvcc.api.mvccLeases E.γ) d.be d' (mvcc.api.mvccW d'.gx)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) (1 : Qp).half
       (fun _ => True) (backend.rbData d.P D) _ Ll _ trivial (by rw [hP']; exact hlpw)
     $$ [HoLe HlOwn HlRv HnOh Hwb2 HnRB]
     as ⟨HnLe, HlOwn, HlRv, HnOh, HnRB⟩
   · -- (2026-11-02, the backend-auth-split stage) at every bucket (`rbOwn` is `rbPart ⊤`): the
     -- lessor, first on the new backend, gives its tracked buckets idle (`rbOwnIn ⊤`)
     iunfold backend.rbOwn at HnRB
-    rw [hγ', hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB
+    rw [hP']; iframe #; iframe HoLe HlOwn HlRv HnOh Hwb2 HnRB
     ipureintro; exact hlease
   (try wp_auto)
-  -- `s.kv.Restore(newbe)`: the store over the image's log at the new backend
+  -- `s.kv.Restore(newbe)`: the store over the image's history at the new backend
+  -- (`KV.Restore.contract` at the store handle's dynamic type, at `restoreArgs_holds`'s
+  -- precondition: no hook yet, no lease live)
   wp_apply hInfo $$ []
   · ipureintro; exact Hlgnn
   wp_apply hInfo $$ []
@@ -418,73 +445,89 @@ theorem applySnapshot_walk
   (try wp_auto)
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  ihave #HnB' : backend.isBackend (GF := GF) d'.γB
-      d'.P
-      (mvcc.lateW d'.gx)
-      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      d'.be $$ []
-  · rw [hγ', hP', hgx']; iexact HnB
-  ihave #HnSz : mvcc.keySized (GF := GF) d'.γB
-      d'.P
-      d'.be $$ []
-  · rw [hP']; iapply HkSz $$ %d'.γB %d'.be
-  have hbr' : mvcc.bridgeParams d'.P := by rw [hP']; exact hbr
-  -- (M2's item 15) the write-back tokens the walk spends, then the new backend's stock (before
-  -- `Restore`: its supply is what a resumed compaction pays with)
-  icases toks_take γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb1⟩
-  icases toks_take γB.wb _ 2 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb2'⟩
-  imod srvWTStock_alloc γp d' (backend.wbInit - 2 - 1 - 2) (by omega) ⊤ $$ [Hnwb] with #HnS
-  · rw [hγ']; iexact Hnwb
-  ihave #HnSup := kbWTSupplyM_of_stock E γp d' $$ [$HWP $HnS]
-  -- the received backend's parts of `Restore`'s precondition, by the mode
-  ihave Hbk := snap_restoreBackendM hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO
-      hSP hUL hBUR hCB hDel hID hName hSafe hLSR hUSR hPut d' hbr'
-      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) E.γ.bucket γw.st E.s
-      ([[], []] ++ R) r D (by rw [hcm']; exact hkI) $$ [HnDl HnV HnFk]
+  have hpi : mvcc.pendItems (kvModel γr.kv A') [] = ∅ := by
+    rw [mvcc.api.pendItems_nil]
+    exact mvcc.leaseItemsOf_zero _ (mvcc.stateAfter_leaseZero _ hnl)
+  have hit : ∀ it lid, (mvcc.pendItems (srvApi.stAt (kvModelM false γr.kv A')
+      (crevOf γr.kv A')).log []).lookup it = some lid →
+      lid ∈ ([] : List w64) ∧ (it.Key'.length : Int) < 2 ^ 63 - 1 := by
+    intro it lid h
+    rw [srvApi.stAt_log, kvModelM_false, hpi] at h
+    simp at h
+  ihave Hrun : mvcc.api.hookRun (GF := GF)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) func.nil iprop(True)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) $$ []
+  · unfold mvcc.api.hookRun
+    rw [if_pos rfl]
+    iintro ⟨H, -⟩; imodintro; iexact H
+  ihave Hpost : iprop(batchLockInv (GF := GF) (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ={⊤}=∗
+      batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ∗ True) $$ []
+  · iintro H; imodintro; iframe H
+  ihave Hrp : srvApi.restorePreA (GF := GF) E.kv E.γ d d' (E.Pk d)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
+      (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')) u [] (DFrac.own (1 : Qp).half)
+      func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
+      iprop(True) iprop(True) iprop(True)
+      (fun σ => iprop(⌜σ = srvApi.stAt x.log x.crev⌝ ∗
+        srvApi.wSt E.γs (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')).log
+          (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')).crev ∗
+        srvApi.crOwn E.γs (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')).crev))
+      $$ [HwSt HcrO HCp HthT HmO HmB HsF HnH Hrun Hpost HlOwn]
+  · iapply (srvApi.restoreArgs_holds Hp E.kv E.γ γr false E.γs x.log x.crev A A' d d' (E.Pk d)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) u [] (DFrac.own (1 : Qp).half)
+      func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
+      iprop(True) hxA.1 hxA.2 hAA hst.1 hit)
+    simp only [srvApi.stAt_log, srvApi.stAt_crev, kvModelM_false, srvApi.kvStoreInv_eq]
+    iframe HkS HwSt HcrO HA' HCp HthT HmO HmB HsF HnH Hrun Hpost HlOwn
+  iunfold srvApi.restorePreA at Hrp
+  icases Hrp with ⟨-, HthT, HmO, HmB, HsF, %Hσ', HnH, HPre, Hrun, Hpost, HX, #Hreq, HlOwn, -, HAU⟩
+  haveI := Hp.1
+  ihave %Hsh := hsh.1 E.kv E.γ $$ HisM
+  obtain ⟨kty, kvv, Hkveq, -, -, -, -, -, -, -, -, -, hRestC, -⟩ := Hsh
+  ihave #HisM' : mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq]; iexact HisM
+  rw [Hkveq]
+  simp only [interface.mkOk]
+  (try wp_auto)
+  have hR := (hRestC E.γ d d' (E.Pk d) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
+      (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')) u [] (DFrac.own (1 : Qp).half)
+      func.nil iprop(True) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
+      iprop(True) iprop(True) iprop(True)
+      (fun σ => iprop(⌜σ = srvApi.stAt x.log x.crev⌝ ∗
+        srvApi.wSt E.γs (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')).log
+          (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')).crev ∗
+        srvApi.crOwn E.γs (srvApi.stAt (kvModelM false γr.kv A') (crevOf γr.kv A')).crev)))
+  rw [mvcc.api.etcdStorage_val] at hR
+  simp only [interface.mkOk] at hR
+  wp_apply hR
+    $$ [HthT HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn HAU]
+    as ⟨HthT, HmO, HmB, HoRest, HnH, -, HlOwn, %σ0, %Hσ0, HwSt, HcrO⟩
   · iframe #
-    rw [hγ', hP']
-    iframe HnDl HnV HnFk
-  imod Hbk with ⟨HsbT, HkcR, Him, #HnDO, HrReg⟩
-  ihave HnSRM := snap_kbSRM (GF := GF) d' $$ [HnSr]
-  · rw [hbe']; iexact HnSr
-  ihave HrH := snap_resumeHook (GF := GF) d' r $$ [HnH]
-  · rw [hγ']; iexact HnH
-  icases HrH with ⟨HrH, HrHb⟩
-  have hrc : mvcc.restoreRcptM (GF := GF) d' ([[], []] ++ R) = mvcc.restoreRcptM d ([[], []] ++ R) := by
-    unfold mvcc.restoreRcptM; rw [hcm']
-  ihave #Hrcpt' : mvcc.restoreRcptM (GF := GF) d' ([[], []] ++ R) $$ []
-  · rw [hrc]; iexact Hrcpt
-  ihave #Hpf' : mvcc.crevPermAt (GF := GF) γw.st r.finRev $$ []
-  · rw [Hγw]; iexact Hpf
-  ihave #Hpc' : mvcc.crevPermAt (GF := GF) γw.st r.crev $$ []
-  · rw [Hγw]; iexact Hpc
-  ihave #Hcok' : mvcc.certOk (GF := GF) γw.st ([[], []] ++ R) $$ []
-  · rw [Hγw]; iexact Hcok
-  wp_apply hRst ws E.s γw _ d' E.γ.bucket
-      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) x.log R x.crev r hpre hRok hcc'
-    $$ [Hscl Hfrag HwOwn HwW HsbT HkcR Him HrReg HnSRM HrH HlateR HnRTx]
-    as ⟨%p', %Hp', Hscl', Hfrag', HwOwn', #HhkP', HwW', HrH, HjR, Hold, Hnew⟩
-  · iframe #; iframe Hscl Hfrag HwOwn HwW HsbT HkcR Him HrReg HnSRM HrH
+    rw [mvcc.api.etcdStorage_hook, mvcc.api.etcdStorage_req]
+    iframe HthT HmO HmB HsF HnH HPre Hrun Hpost HX HlOwn
     isplitr
-    · ipureintro; exact ⟨d, by rw [Hγw]; exact hkb, hcm'⟩
-    isplitl [HlateR]
-    · simp only [mvcc.kbRegRight, mvcc.lateReg, hgx']; iexact HlateR
-    rw [kbRT_some, hγ', hP']; iexact HnRTx
+    · ipureintro; exact Hσ'
+    isplitr
+    · iexact Hreq
+    isplitr
+    · ipureintro; exact hit
+    iunfold srvApi.auRestore at HAU
+    iexact HAU
+  simp only [mvcc.api.etcdStorage_hook, srvApi.stAt_log, srvApi.stAt_crev, kvModelM_false, hpi]
   (try wp_auto)
   -- the post-lock hook of the new names, installed on the new backend
   ihave #HCI' : isServerCI (GF := GF) s (γ.withPh π') ci $$ []
   · iunfold isServerCI; iframe Hcif Hisci
     rw [show consInv (GF := GF) (γ.withPh π') = consInv γ from rfl]
     iexact Hinv
-  wp_apply hGTP s (γ.withPh π') ci (metaTM γB d.P) $$ [$HCI'] as %g ⟨%Hgnn, #HhkS⟩
-  ihave HnH := HrHb $$ HrH
-  wp_apply hSTP γB d.P (mvcc.lateW gx') (batchLockInv (γ.withPh π') (metaTM γB d.P)) d'.be
+  wp_apply hGTP s (γ.withPh π') ci (metaTM d'.γB d.P) $$ [$HCI'] as %g ⟨%Hgnn, #HhkS⟩
+  wp_apply hSTP d'.γB d.P (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh π') (metaTM d'.γB d.P)) d'.be
       (1 : Qp).half func.nil g $$ [HnOh HnH Hwb1] as ⟨HnOh, HnH⟩
-  · rw [hγ']; iframe #; iframe HnOh HnH
+  · iframe #; iframe HnOh HnH
     iunfold backend.wbTok; iexact Hwb1
   (try wp_auto)
   -- `s.consistIndex.ConsistentIndex()` (logged): read through the new backend's meta reads
-  ihave #HmB' := HmetaN $$ %(mvcc.lateW gx') %d'.be HnB
+  ihave #HmB' := HmetaN $$ %(mvcc.api.mvccW d'.gx) %d'.be HnB
   ihave Hab' : applyBackend (GF := GF) (γ.withPh π') ci
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
         #d'.be) $$ [Hown]
@@ -504,14 +547,9 @@ theorem applySnapshot_walk
   -- `oldbe := s.be; s.be = newbe` under `bemu`'s write side (`srv_be_swap`)
   imod (lc_fupd_elim_later (E := ⊤) (P := bemuP s E.γbe 1)) $$ Hlc1 Hbm with Hbm
   ihave #HnRO : srvBeRO (GF := GF) d' $$ []
-  · iunfold srvBeRO; iexists _; rw [hγ', hP', hgx']; iexact HnB
-  ihave HnMon : mvcc.bkRTx (GF := GF) d'.γB d'.P d'.be $$ [Hnew]
-  · rw [show mvcc.storeRT (GF := GF) (γw.st.withPhys p') = mvcc.kbRT (some d') by
-      simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, Hp'.2]]
-    rw [kbRT_some]
-    iexact Hnew
-  imod srv_be_swap s E γp d' $$ HWP Hbm Hbo HnRO HnS HnMon Hlc2
-    with ⟨%dold, %Hdold, Hbefull, HoMon, #HoRO, HoPl, Hbeback⟩
+  · iunfold srvBeRO; iexists d'.gx, _; rw [hP']; iexact HnB
+  imod srv_be_swap s E γp d' $$ HWP Hbm Hbo HnRO HnS HrtM Hlc2
+    with ⟨%dold, %Hdold, Hbefull, ⟨%d2, %Hd2, HoMon⟩, HoAT, #HoRO, HoPl, Hbeback⟩
   (try wp_auto)
   icases Hbeback $$ Hbefull with ⟨Hbm, HbeA, HγbeA⟩
   wp_apply sync.RWMutex.wp_Unlock $$ [$Hbl Hbm] as Hbr
@@ -541,15 +579,15 @@ theorem applySnapshot_walk
   subst Habl
   ihave #Halpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm $$ []
   · iPkgInit
-  icases toks_take γB.wb 2 1 (by omega) $$ Hwb2' with ⟨Hwb2', Hwba⟩
+  icases toks_take d'.γB.wb 2 1 (by omega) $$ Hwb2' with ⟨Hwb2', Hwba⟩
   ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (fun _ => True) _ $$ HnRB
-  wp_apply hAR al d.be abl sfv.lg d'.be γB d.P (mvcc.lateW gx')
-      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
+  wp_apply hAR al d.be abl sfv.lg d'.be d'.γB d.P (mvcc.api.mvccW d'.gx)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) (1 : Qp).half
       (fun _ => True) ((backend.rbData d.P D).insert go!"lease" ∅) trivial
       (by simp [mvcc.KBReal.P, mvcc.restBuckets]) halbi
     $$ [HoAl HnOh Hwba HnRB HnPl HthT]
     as %aerr ⟨%Haerr, HnAl, HnOh, HnPl, HthT, HnRB⟩
-  · rw [hγ']; iframe #; iframe HoAl HnOh HnRB HnPl HthT
+  · iframe #; iframe HoAl HnOh HnRB HnPl HthT
     isplitr
     · ipureintro; exact Hlgnn
     isplitl [Hwba]
@@ -568,20 +606,15 @@ theorem applySnapshot_walk
   (try wp_auto)
   wp_apply hNAuB as %aub ⟨%aubl, %Haubl, #Haublg, #Haublb⟩
   subst Haubl
-  icases mvcc.writerOwn_rt (γw.st.withPhys p') $$ HwOwn' with ⟨HwRT, HwOwnK⟩
-  ihave HwRT : mvcc.bkRTx (GF := GF) d'.γB d'.P d'.be $$ [HwRT]
-  · rw [show mvcc.storeRT (GF := GF) (γw.st.withPhys p') = mvcc.kbRT (some d') by
-      simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, Hp'.2]]
-    rw [kbRT_some]; iexact HwRT
   iunfold authRecoverOk at HauR
-  ihave #HauR' := HauR $$ %d.be %aubl %sfv.lg %d' %(mvcc.lateW gx')
-    %(batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) %((1 : Qp).half)
+  ihave #HauR' := HauR $$ %d.be %aubl %sfv.lg %d' %(mvcc.api.mvccW d'.gx)
+    %(batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) %((1 : Qp).half)
     %(((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅)
   -- (2026-11-02, the backend-auth-split stage) the idle part of the auth buckets, with the new
   -- backend's pool and the apply thread's token
-  icases (backend.rbOwnIn_split_compl (GF := GF) γB auth.authBkts _).1 $$ HnRB with ⟨HnRA, HnRB⟩
+  icases (backend.rbOwnIn_split_compl (GF := GF) d'.γB auth.authBkts _).1 $$ HnRB with ⟨HnRA, HnRB⟩
   wp_apply HauR' $$ [HoAu HnOh HnPl HthT HnRA] as ⟨HnAu, HnOh, HnPl, HthT, HnRA⟩
-  · rw [hγ', hP', hgx']; iframe #; iframe HoAu HnOh HnPl HthT HnRA
+  · rw [hP']; iframe #; iframe HoAu HnOh HnPl HthT HnRA
     isplitr
     · ipureintro; exact Hlgnn
     ipureintro
@@ -589,11 +622,11 @@ theorem applySnapshot_walk
       rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide)]
     · exact hauthb.1
     · exact hauthb.2.1
-  ihave HnRA : backend.rbOwnIn (GF := GF) γB auth.authBkts _ $$ [HnRA]
-  · rw [← hγ']; iexact HnRA
-  ihave HnPl : backend.bkRPool (GF := GF) γB d.P d'.be $$ [HnPl]
-  · rw [← hγ', ← hP']; iexact HnPl
-  ihave HnRB := (backend.rbOwnIn_split_compl (GF := GF) γB auth.authBkts _).2 $$ [HnRA HnRB]
+  ihave HnRA : backend.rbOwnIn (GF := GF) d'.γB auth.authBkts _ $$ [HnRA]
+  · iexact HnRA
+  ihave HnPl : backend.bkRPool (GF := GF) d'.γB d.P d'.be $$ [HnPl]
+  · rw [← hP']; iexact HnPl
+  ihave HnRB := (backend.rbOwnIn_split_compl (GF := GF) d'.γB auth.authBkts _).2 $$ [HnRA HnRB]
   · iframe HnRA HnRB
   (try wp_auto)
   -- `s.cluster.SetBackend(schema.NewMembershipBackend(lg, newbe))`
@@ -601,16 +634,16 @@ theorem applySnapshot_walk
   · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply hNMB as %mbl ⟨#Hmblg, #Hmblb⟩
-  icases toks_take γB.wb 1 1 (by omega) $$ Hwb2' with ⟨-, Hwbm⟩
+  icases toks_take d'.γB.wb 1 1 (by omega) $$ Hwb2' with ⟨-, Hwbm⟩
   ihave #Hmempkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
-  wp_apply hCSB cl d.be mbl sfv.lg d' (mvcc.lateW gx') (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
+  wp_apply hCSB cl d.be mbl sfv.lg d' (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (1 : Qp).half (fun _ => True) ((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅))
       (fun _ _ => trivial)
     $$ [HoCl HnOh Hwbm HnRB] as ⟨HnCl, HnOh, HnRB⟩
   · -- (2026-11-02, the backend-auth-split stage) at every bucket, given back idle
     ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (fun _ => True) _ $$ HnRB
-    rw [hγ', hP', hgx']; iframe #; iframe HoCl HnOh HnRB
+    rw [hP']; iframe #; iframe HoCl HnOh HnRB
     isplitr
     · ipureintro; exact Hlgnn
     isplitl [Hwbm]
@@ -625,33 +658,33 @@ theorem applySnapshot_walk
   -- `go func() { … oldbe.Close() … }()`: the old backend closed, every share of its open token back
   imod ((typedPointsto_dfractional (GF := GF) lg_ptr sfv.lg).dfractional_persist (DFrac.own 1))
     $$ lg with #Hlgp
-  have hdd : dold = d := by rw [hkb] at Hdold; exact (Option.some.inj Hdold).symm
+  have hdd : dold = d := (srvBkTie_inj d dold (hkb.symm.trans Hdold)).symm
   subst dold
-  -- (M2's item 15) with the old job's reader, by the mode
-  ihave Hold := snap_oldReaders γw.st d (by rw [Hγw]; exact hkb) $$ [$Hold $HjR]
-  ihave Hshares := bkRTx_shares d.γB d.P d.be _ $$ Hold
-  ihave Hmsh := bkRTx_shares d.γB d.P d.be 1 $$ [HoMon]
-  · simp only [List.replicate]; iapply BigSepL.bigSepL_cons.2; iframe HoMon
-    iapply BigSepL.bigSepL_nil.2; itrivial
+  -- (strict M1) the old backend's open token, whole: the constructors' half, the pool's shares,
+  -- the store's (`storageRest`, `Restore`'s) and the server's two readers'
+  iunfold apply.bkRT at HoAT
+  icases HoAT with ⟨-, HoS1⟩
+  iunfold apply.bkRT at HoMon
+  icases HoMon with ⟨-, HoS2⟩
+  have hd2 : d2.γB = d.γB := congrArg Prod.fst Hd2
+  rw [hd2, mvcc.api.etcdStorage_rest]
   -- (the backend-auth-split stage) with the old backend's pool's shares
   iunfold backend.bkRPool at HoPl
   icases HoPl with ⟨-, HoPs⟩
-  ihave HoO1 : backend.bOpen (GF := GF) d.γB 1 $$ [HoOh HoPs Hshares Hmsh]
+  ihave HoO1 : backend.bOpen (GF := GF) d.γB 1 $$ [HoOh HoPs HoRest HoS1 HoS2]
   · iapply (backend.bOpen_one_pool d.γB).2
     iframe HoOh HoPs
-    rw [show backend.rdStockN = (mvcc.nReaders - 1) + 1 by
-      rw [mvcc.nReaders_val, backend.rdStockN_val]]
-    iapply (mvcc.rep_split _ (mvcc.nReaders - 1) 1).2
+    iapply (rdStock_split2 _).2
     iframe
   iunfold srvBeRO at HoRO
-  icases HoRO with ⟨%Pko, #HoB⟩
+  icases HoRO with ⟨%gxo, %Pko, #HoB⟩
   wp_apply wp_fork $$ [oldbe HoO1]
   · wp_apply wp_with_defer as %defer2 defer2
     (try wp_auto)
     wp_apply hInfo $$ []
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_apply hClose d.γB d.P (mvcc.lateW d.gx) Pko d.be $$ [HoO1] as %cerr %Hcerr
+    wp_apply hClose d.γB d.P (mvcc.api.mvccW gxo) Pko d.be $$ [HoO1] as %cerr %Hcerr
     · iframe #; iframe HoO1
     have hcerr : cerr = GoInterface.nil := by
       rcases Hcerr with h | h
@@ -681,10 +714,10 @@ theorem applySnapshot_walk
   icases (backend.rbOwnIn_split_compl (GF := GF) d'.γB membership.clusterBkts _).1 $$ HnRB
     with ⟨HnRC, HnRB⟩
   ihave HnRB := backend.rbOwnIn_part (GF := GF) _ _ _ $$ HnRB
-  wp_apply hCRec cl d' (mvcc.lateW gx') (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
+  wp_apply hCRec cl d' (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       ((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅)) _ memI himg'
     $$ [HnCl HnPl HthT HnRC HoMem] as ⟨HnCl, HnPl, HthT, HnRC, HnMem⟩
-  · rw [hγ', hP', hgx']; iframe #; iframe HnCl HnPl HthT HnRC HoMem
+  · rw [hP']; iframe #; iframe HnCl HnPl HthT HnRC HoMem
   (try wp_auto)
   wp_apply hInfo $$ []
   · ipureintro; exact Hlgnn
@@ -867,12 +900,18 @@ theorem applySnapshot_walk
   iapply HΦ
   iframe Hrcv HthT
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d'.P d'.be $$ [HnPl]
-  · rw [hγ', hP']; iexact HnPl
+  · rw [hP']; iexact HnPl
+  ihave #HnB2 : backend.isBackend (GF := GF) d'.γB d'.P (mvcc.api.mvccW d'.gx)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) d'.be $$ []
+  · rw [hP']; iexact HnB
+  ihave #HnSz2 : mvcc.keySized (GF := GF) d'.γB d'.P d'.be $$ []
+  · iapply HkSz'
   iunfold snapWalkPost
-  iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck
+  iexists d', π0, g, up', opts', L, spc, jf, γcf, w0, RD0, up, sfv.lg
   isplitr
   · ipureintro
-    exact ⟨hγ', hP', hgx', hcm', rfl, Hp'.1, Hp'.2, Hγw, hbr', Hcov, Hgnn, Hopts'⟩
+    obtain ⟨h1, h2, h3⟩ := Hopts'
+    exact ⟨hP', hcm', rfl, hbr', Hcov, Hgnn, h1, h2.trans Hkveq.symm, h3⟩
   iunfold srvBemuReaderAt
   iframe
   iframe #

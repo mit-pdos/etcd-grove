@@ -1130,15 +1130,17 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
       isplitr
       · ipureintro; exact Hw
       iunfold resPostM at Hp
-      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -⟩
+      icases Hp with ⟨%Hnn, %y, %y', %out, %Hst, Hr1, Hr2, Hr3, Hr4, Hr5, -, -, #Hr8, %Hr9⟩
       iexists y.log
       iunfold resultIsW
       isplitl [Hr1 Hr2 Hr3 Hr4 Hr5]
       · isplitr
         · ipureintro; exact Hnn
         iexists y, y', out
-        iframe Hr1 Hr2 Hr3 Hr4 Hr5
-        ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+        iframe Hr1 Hr2 Hr3 Hr4 Hr5 Hr8
+        isplitr
+        · ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+        ipureintro; exact Hr9
       iexists L
       iframe HL HQ
       ipureintro; exact Hst.2.2.2
@@ -1164,15 +1166,17 @@ theorem EtcdServer.raftRequest.spec_off
     isplitr
     · ipureintro; exact He
     iunfold appliedOkM at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5, -⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hst, Ha1, Ha2, Ha3, Ha4, Ha5, -, #Ha7, %Ha8⟩
     iexists hm, rq', x.log
     isplitr
     · ipureintro; exact Hw
     isplitl [Ha1 Ha2 Ha3 Ha4 Ha5]
     · iunfold appliedOk
       iexists x, x', o, skip
-      iframe Ha1 Ha2 Ha3 Ha4 Ha5
-      ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+      iframe Ha1 Ha2 Ha3 Ha4 Ha5 Ha7
+      isplitr
+      · ipureintro; exact ⟨Hst.1, Hst.2.1, rfl, Hst.2.2.1⟩
+      ipureintro; exact Ha8
     iexists L
     iframe HL HQ
     ipureintro; exact Hst.2.2.2.1

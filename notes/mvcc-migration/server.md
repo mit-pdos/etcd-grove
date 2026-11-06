@@ -271,6 +271,108 @@ Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. 
     `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
     `hookRun (E.Pk d) E.f`).
 - **Next**: see "Left (eighth session)" below.
+## Tenth session (2026-11-06): `restoreArgs.law`, the writes' receipts, `NewServer.spec`'s store premises, the reader slots, `applySnapshot`'s walk
+
+**Found and fixed (decided by the coordinator, 2026-11-06; mvcc's track A applies it).** The frozen
+`etcdStorage_open.law` consumed every counted reader slot of the new backend (`newPostKP`'s whole
+`rdStock` and `rdStockN × bOpen rdOpen`) and the API gave none back, while the server holds two
+long-lived reader tokens per backend, `apply.bkRT d = rdTok ∗ bOpen rdOpen`: the apply thread's
+(`srvBeOwn`; the components' writes under the batch lock take it) and the storage-version monitor's
+(`srvWTPool`), which before M1 came from the store's readers (`storeReader_retire`, `writerOwn_rt`).
+Fix: the store keeps two counted slots fewer: `etcdStorage_open.law` takes `rdStockN - 2` open shares
+and gives back two `rdTok γB P b`; `mvccStorageFor`/`storageRest` at `rdStockN - 2`; `mvccReaderN :=
+rdStockN - 5`. The server's `dbImageA_open.law`, `bootBackend.law` follow (`KVStoreApi`).
+
+**Done** (builds):
+- **`restoreArgs.law` proved** (`KVStoreLaws.restoreArgs_holds`, over `persistent.law`): `au_restore`
+  at `kvNx γr on` of `A'` and `crevOk γr` of its compaction revision; `kvModelM_prefix` (new, either
+  mode) and `crevOf_mono`; `isMvcc` from the store invariant; the commit request `commitReq_true`.
+  **`kvEntryOn_grow`, `kvRaftOfOn_extends`, `kvRaftOfOn_prefix` moved to `KVAuthModel`** (from
+  `KVApplyOn`/`KVReadOn`; statements unchanged).
+- **The writes' receipts (the client/v3 track's request, decided by the coordinator)**: `resultIsW`,
+  `resultIsWOn`, `resPostM` (the server's own predicates), and the proposer's answers `appliedOkM`
+  and `appliedOk` (what v3rpc's `putApplied`/`deleteApplied`/`txnAppliedAns` build on) give, for the
+  log after the write, `⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝`
+  (last conjunct). Made in `applyEntryNormal` from `applyKV_writer`'s receipt and reachability
+  (`mvcc.api.reach_logWf`); carried by `processInternalRaftRequestOnce`, `raftRequest`
+  (`rr_ok`), `ModeSpecs` (the off spec's `appliedOk`), `resultIsW_of_on`, `AuthnOn`.
+  `raftRequest`'s pattern `#Hok` (`E.Nx y'.log`, not persistent: red at HEAD) made spatial.
+- **`NewServer.spec`'s store premises restated** (the draft's §6; the three variants): `"Hkvs" ∷
+  srvApi.newServerStoreFreshA E₀.γs` in place of `mvcc.idxFresh E₀.γ.idx`; the KV certificates' map
+  `ghostMapAuth ρ.rd.kv.cok 1 ∅` (was `E₀.γ.cok`, with the premise `ρ.rd.kv.cok = E₀.γ.cok`, dropped);
+  the claims' key fact at `E₀.γs.slog` (was `E₀.γ.idx`). Its post is unchanged. `examples/common`'s
+  boot premises follow it: allocate `E₀.γs` (`newServerStoreFreshA`) and `ρ.rd.kv.cok`.
+
+- **`applySnapshot`'s walk migrated** (`SnapApplyWalk.applySnapshot_walk`, no `sorry`): the
+  registration from `mvccW_alloc.law` (`snap_create` at any write invariant `W`); `newPostKP`
+  taken apart for the opener's `K` (the announcement) and put back at `K := True`; after
+  `SetBackend`, the futures' payment rights split (`rdStock_split2`: `rdStockN - 2` shares to the
+  open, two for the server's readers; seven write-back tokens out, the rest the new backend's
+  stock, `wbSupply_of_stock`); `etcdStorage_open.law` (the new backend `d'`, compacting, at the
+  old one's parameters) and `backendRest_open.law`; the two returned slots the apply thread's and
+  the monitor's `apply.bkRT d'` (the latter into the write budget at the swap); the lessor's
+  `Recover` at `mvccLeases E.γ`; `kv.Restore` by `KV.Restore.contract` at the handle's dynamic
+  type (`shapes.law`) over `restoreArgs_holds`'s precondition (`f = nil`, `Pre = True`,
+  `Q' = Pk'`, `Ls = []`, the leased items none by the new premise below); the old backend closed
+  with `storageRest` (`rdStockN - 2` shares) and the server's two old readers' shares. Takes
+  `[mvcc.Assumptions]`, `persistent.law`, `shapes.law`, `mvccW_alloc.law`, `etcdStorage_open.law`,
+  `backendRest_open.law`; drops mvcc's `watchableStore.Restore.spec` and the backend's specs it
+  needed (`ConcurrentReadTx`, `ReadTx`, `BatchTx`, `ForceCommit`, `Size`, `SizeInUse`, the read
+  txs', `LockInsideApply`, `LockOutsideApply`, `UnsafeSeqPut`, `Unlock`, `UnsafeCreateBucket`,
+  `UnsafeDelete`, `LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`).
+- **`snapWalkPost` restated** (`SnapApplyDefs`): the store's `mvccOpen E.γ`, `mvccBackend E.γ 1 d'
+  Pk'`, `wSt`/`crOwn` at `(kvModel A', crevOf A')`, the lessor's empty live set, the apply thread's
+  `apply.bkRT d'`; no `storeCloserM`, `writerFrag`, `watchWriter`, `writerOwn`, watchable store,
+  `kbWTSupplyM`. **`snapE` over `AEnv.onBe`** (`SnapApplyNames`: `E'.γ = E.γ`, `E'.BkTie =
+  srvBkTie d'`, `E'.Pk = fun _ => batchLockInv γ' TM'`, `E'.f = g`; `srvAtomics_snapE` by `rfl`).
+  Restated over it: `snap_isServer` (`SnapApplyIsServer`; takes `g ≠ nil`, `ciKeys d'.P`,
+  `hooksParams d'.P`), `snap_applyKV` (`SnapApplyKV`), `leasesKnown_noLease`
+  (`SnapApplyKVLemmas`), `snap_srvRest`, the store lemmas `snap_isAlarmStore`/`snap_isAuthStore`/
+  `snap_isCluster` (`SnapApplyOptsLemmas`, over `SnapRO`'s restated contracts).
+- **`applySnapshot.specSnap`'s new premise `hnl : mvcc.LogNoLease (kvModel γr.kv A')`** (the
+  server's own spec, minor): `KV.Restore.contract` asks every leased item of the restored history
+  a live lease; the image's history is the model of a plain log from the boot's two empty
+  revisions, so it puts none (`SnapImageFacts.nolease`, from `kv_log_plain` and
+  `kvRaftOf_restorable`, in `snapRecv_image`); `ApplyAllSnap` passes it.
+- **Deleted** (obsolete under `KV.Restore.contract`): `RestorePre`, `RestorePreM`, `SnapRestoreM`,
+  `SnapApplyCloser` (the KV's closer, gone with `srvKVCloserW`), the `M2*Draft*`/`M2ApplyProbe`
+  modules.
+
+**Built** (at the worktree's state, mvcc track A's `4bcd8499ea` included): `KVAuthModel`, `KVReadOn`,
+`KVStoreApi`, `KVStoreLaws`, `InvRequest`, `ReqOn`, `InvProposer`, `ModeSpecs`, `AuthnOn`, `AdminOn`,
+`EtcdServer__applyEntryNormal`, `SnapApplyOpen`, `SnapApplyDefs`, `SnapApplyNames`, **`SnapApplyWalk`**,
+`SnapApplyIsServer`, `SnapApplyKV`, `SnapApplyKVLemmas`, `SnapApplyRest`, `SnapRecvFacts`,
+`ApplyAllSnap`, `EtcdServer__applyAll` (its one `sorry` SNAPSHOT-SORRY #7-on, unchanged), the spec
+`EtcdServer__applySnapshot`. Red, in scope: `SnapApplyOptsLemmas` (from `snap_isApplyLessor` on),
+`SnapApplyOpts`, `SnapApplyPost`, `EtcdServer__applySnapshot` (proof), `apply.LessorDerive`, `NewServer`
+(spec: `NewAuthStore`'s module), `EtcdServer__raftRequest` (line 213: `trace.SpanFromContext`'s new
+premise `⌜ctx = trace.todoCtx⌝ ∨ trace.spanCtxOk ctx`, not this track's change; the receipts' part
+adapted).
+
+**Callers outside this track broken:** v3rpc (`api/**`): consumers of `appliedOkM`/`appliedOk`
+whose patterns stop at the last conjunct (`putApplied`'s builders in `EtcdServer.Put`/`DeleteRange`/
+`Txn` drop the rest with `-`, unchanged); `examples/common` (`NewServer.spec`'s premises);
+`Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean` (red: `mvcc.api.BkRef`, gone from the API,
+so `NewServer.spec`'s module does not build yet); `etcdserver/Link.lean` (generated):
+`applySnapshot.wp_proof`'s hypotheses change once `EtcdServer__applySnapshot` is migrated (below).
+Not rebuilt here (their imports red before this session: `ProposerLemmas`): the proofs of
+`processInternalRaftRequestOnce`, `Put`, `DeleteRange`, `Txn`, `Compact`, whose patterns were
+adjusted by hand. **Placeholders:** none. **Axioms:** none changed.
+
+**Left, in order:**
+1. `applySnapshot`'s post assembly: `apply.LessorDerive.isApplyLessor_of_lessorInv` (red: over the
+   restated `isApplyLessor`/`revokeClause`, `γ : MvccName` in place of `s : Loc`, the lessor's
+   restated `Revoke`/`Grant`/`Checkpoint` specs), then `SnapApplyOpts.snap_backendOptsOk` (the KV
+   and hook clauses are the old environment's, `E'.γ = E.γ`, `E'.kv = E.kv`: take them from the old
+   applier's `backendOptsOk E opts`; the stores' from the restated lemmas; delete `snap_isApplyKV`,
+   `snap_hookOk`), `SnapApplyPost.srvSnapApplied_of_walk` over the restated `snapWalkPost` (no
+   closer step; `hookIs d' g` from `plHook_persist`; `snap_applyKV` with `hxl` from
+   `kvModelM_prefix`), and `EtcdServer__applySnapshot` (the walk's new hypotheses; then `#print
+   axioms`).
+2. The boot (`NewServer`, `InvBoot`, `SnapApplyOptsLemmas`): `NewAuthStore.spec` over a `KBReal`
+   first (auth's file), then `mvcc.api.New.spec` with `bootBackend.law` (stated; to prove from
+   `mvccImage_fresh.law` and `etcdStorage_open.law`).
+
 ## Ninth session (2026-11-06): the snapshot send and receive over mvcc's API (C3)
 
 **The send, proved** (no `sorry`; `SnapSendBranch`'s `M1-REPLACE` removed):

@@ -110,6 +110,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 
 @[expose] public section
 
@@ -150,7 +151,7 @@ abbrev NewServer.spec : Prop :=
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
-  ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  ρ.rd.kv.log0 = [[], []] →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `nonissues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → mvcc.batchLimitOk cfg.CompactionBatchLimit' →
@@ -229,15 +230,18 @@ abbrev NewServer.spec : Prop :=
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
-      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
-      "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      -- (strict M1, 2026-11-06, the draft's `newServerStoreFreshA`) the server's names of the
+      -- store's state fresh (until then mvcc's `idxFresh E₀.γ.idx`), and the KV certificates' map
+      -- the read names' (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
@@ -340,7 +344,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
-  ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  ρ.rd.kv.log0 = [[], []] →
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = false →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -415,15 +419,18 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
-      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
-      "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      -- (strict M1, 2026-11-06, the draft's `newServerStoreFreshA`) the server's names of the
+      -- store's state fresh (until then mvcc's `idxFresh E₀.γ.idx`), and the KV certificates' map
+      -- the read names' (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,
@@ -533,7 +540,7 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
   -- (`srvClusterBoot_alloc`'s; what `rnEnvOk` asks of the raft node's environment)
   γ.rule = srvRule (W64 0) γ.boot →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
-  ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
+  ρ.rd.kv.log0 = [[], []] →
   -- (M2's apply side, item 14') the KV names' compaction mode the stand-in's
   ρ.rd.kv.cmp = cmp →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -618,15 +625,18 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       -- (R2c, 2026-11-02) by incarnation key: the cluster's claims at the server's facts' family,
       -- the member's key registering its store's index (the claim facts' parameter)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γ.idx ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
+      "#Hidk" ∷ idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       -- (2026-10-30, the repair: no read credits, raft's `ReadIndex` takes none)
       "Hids" ∷ idShare ρ.ids ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
-      "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
-      "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+      -- (strict M1, 2026-11-06, the draft's `newServerStoreFreshA`) the server's names of the
+      -- store's state fresh (until then mvcc's `idxFresh E₀.γ.idx`), and the KV certificates' map
+      -- the read names' (until then the store's, `ρ.rd.kv.cok = E₀.γ.cok`)
+      "Hkvs" ∷ srvApi.newServerStoreFreshA E₀.γs ∗
+      "Hcok" ∷ ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       "Hrev" ∷ ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
       "Hrd" ∷ srvReadNamesFreshNK ρ.rd ∗
       -- the KV invariant at the bootstrap log (D19g (a): allocated with raft's ghost state,

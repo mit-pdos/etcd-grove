@@ -154,6 +154,10 @@ These follow the cross-review (`xreview-clients.md`) and API rounds 15-16.
 - **`EtcdServer.Compact`**: `threadTok`.
 - **`newHeader`**: `threadTok`; post `newHeaderPostA`.
 - **The compactor**: `srvRevLbA`, with `R := threadTok ∗ …`.
+- (2026-11-06, the server track's tenth session; client/v3's request, decided by the coordinator)
+  **A write's post** (`resultIsW`, `resultIsWOn`, `resPostM`, `appliedOkM`, `appliedOk`) gives, for
+  the log after, `⧖ (logCh y'.log) ∗ ⌜LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝` (the writer's
+  facts), so the clients' `kvLogOk` of the state after a write has a proof.
 - **`NewServer.spec`**:
   - drops `idxFresh`, the `cok` authority and `ρ.rd.kv.cok = E₀.γ.cok`;
   - adds `newServerStoreFreshA γs`;

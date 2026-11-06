@@ -1,4 +1,9 @@
 /-
+(2026-11-06, the server track's tenth session: the writes' posts `resultIsW`/`resultIsWOn`/`resPostM`
+and the proposer's answers `appliedOkM`/`appliedOk` give the log after's receipt `⧖ (logCh y'.log)`,
+`LogWf'` and the length bound (client/v3's request, decided by the coordinator); `restoreArgs.law`
+proved with two batch-lock invariants `Pk`, `Pk'` (§3d), and `dbImageA_open.law`/`bootBackend.law` at
+`rdStockN - 2` open shares with two reader slots back (the coordinator's reader-slot decision).)
 (2026-11-06, the server track's ninth session: `dbImageA` (§3c) landed in place as `InvImage.lean`'s
 `dbImage` with one more pure conjunct, `imageStOk (kvModel γk A) (crevOf γk A)` (reachable, history
 short: the sender's `writer_facts`), so `kvModel_reachable.law` is not needed; `senderImage.law` is

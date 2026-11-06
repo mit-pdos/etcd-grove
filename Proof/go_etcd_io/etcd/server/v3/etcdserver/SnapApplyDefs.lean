@@ -20,11 +20,6 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Spec.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Recover
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestorePre
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreMoves
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
@@ -39,9 +34,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftClust
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__RemoveAllPeers
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBoot
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 
 @[expose] public section
 
@@ -63,43 +57,52 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem kbP_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
-      mvcc.KBReal).P = d.P := rfl
-theorem kbgx_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
-    ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g, cm := false } :
-      mvcc.KBReal).gx = g := rfl
-
 theorem toks_take (γ : GName) (n k : Nat) (h : k ≤ n) :
     ownToks (GF := GF) γ n ⊢ ownToks γ (n - k) ∗ ownToks γ k := by
   have := (ownToks_add (GF := GF) k (n - k) γ).1
   rwa [Nat.sub_add_cancel h] at this
 
-theorem kbRT_some (d : mvcc.KBReal) : mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be := rfl
+/-- Two copies of `R` (the backend's two counted slots the open law gives back). -/
+theorem rep_two (R : IProp GF) : ([∗list] _x ∈ List.replicate 2 (), R) ⊣⊢ R ∗ R := by
+  simp only [List.replicate]
+  refine BigSepL.bigSepL_cons.trans ?_
+  refine sep_congr .rfl ?_
+  refine BigSepL.bigSepL_cons.trans ?_
+  refine (sep_congr .rfl BigSepL.bigSepL_nil).trans ?_
+  exact sep_emp
+
+/-- The counted stock's open shares: the store's `rdStockN - 2` and two more. -/
+theorem rdStock_split2 (R : IProp GF) :
+    ([∗list] _x ∈ List.replicate backend.rdStockN (), R) ⊣⊢
+      ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), R) ∗ R ∗ R := by
+  have h : backend.rdStockN = (backend.rdStockN - 2) + 2 := by rw [backend.rdStockN_val]
+  conv => lhs; rw [h]
+  refine (backend.bigSepL_replicate_add R _ 2).trans ?_
+  exact sep_congr .rfl (rep_two R)
 
 -- (D22 J1a, 2026-10-26) `srvAuthRecoverOk` (now `authRecoverOk`), `srvMembersDir` and
 -- `lessorLookupOk` moved to `SnapRO.lean`.
 
 /-- **What `applySnapshot`'s code leaves** (S8d's walk, `applySnapshot_walk`): the server's
-resources at the snapshot's backend (`d'`, opened at the snapshot's index `sv.Metadata'.Index'`),
-from which `applySnapshot.spec`'s postcondition is assembled. (Question 5's core stage, part (1),
-review round 16's M1, until M2's item 15) The new backend's instance at the old one's mode
-(`d'.cm = d.cm`), the store's right at the image's records `r` (`storeCloserM`), the new backend's
-write-back supply (`kbWTSupplyM`, from its stock). -/
+resources at the snapshot's backend `d'` (opened at the snapshot's index `sv.Metadata'.Index'`),
+from which `applySnapshot.spec`'s postcondition is assembled. (Strict M1, 2026-11-06: over mvcc's
+API, the store restored in place by `KV.Restore.contract`: its open token, its backend's whole
+share at `d'` under the new names' batch lock, the apply thread's halves at the image's committed
+log `A'`, the lessor's live set empty; the new backend's two reader tokens the open law gives back,
+the apply thread's (`apply.bkRT d'`) and the storage-version monitor's, the latter in the write
+budget's invariant since the swap. Until then the store's internals: `storeCloserM`, `writerFrag`,
+`watchWriter`, `writerOwn`, the watchable store, `kbWTSupplyM`.) -/
 def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A : List EntryModel)
-    (x : apply.ApplyKV) (R : mvcc.Log) (r : mvcc.CmpRecs) (ss : Loc) (bp : GoString) (hk : Loc) (γt : GName) (γn : NetNames GF) (t : Loc)
-    (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc) (memI : GMap w64 apply.MemberM)
-    (quota : w64) (wad : time.Duration) : IProp GF :=
-  iprop(∃ (γB : backend.BNames) (d' : mvcc.KBReal) (gx : GName) (π0 : ApplyPhys)
-      (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
-      (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
-      (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
-    ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ d'.cm = d.cm ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧
-      p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
+    (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (A A' : List EntryModel)
+    (x : apply.ApplyKV) (ss : Loc) (bp : GoString) (hk : Loc) (γt : GName) (γn : NetNames GF)
+    (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64) (lp al ast cl : Loc)
+    (memI : GMap w64 apply.MemberM) (quota : w64) (wad : time.Duration) : IProp GF :=
+  iprop(∃ (d' : mvcc.KBReal) (π0 : ApplyPhys) (g : GoFunc) (up' : Loc)
+      (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (jf : Nat)
+      (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc),
+    ⌜d'.P = d.P ∧ d'.cm = true ∧ π0.m0 = (sv.Metadata'.Index', π0.m0.2) ∧ mvcc.bridgeParams d'.P ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧ g ≠ func.nil ∧
-      opts'.Logger' = lg ∧
-      opts'.KV' = interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws ∧
+      opts'.Logger' = lg ∧ opts'.KV' = E.kv ∧
       opts'.AlarmStore' = al ∧ opts'.AuthStore' = auth.authIface ast ∧
       opts'.Lessor' = lease.lessorIface lp ∧ opts'.Cluster' = cl ∧
       opts'.ConsistentIndex' = ciIface ci ∧ opts'.Backend' = srvBeIface d'.be ∧
@@ -107,36 +110,32 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
       opts'.RaftStatus' = interface.mkOk EtcdServer.ty.PointerType #s ∧
       opts'.SnapshotServer' = interface.mkOk EtcdServer.ty.PointerType #s⌝ ∗
     -- the snapshot's backend and what reads and writes it (persistent)
-    backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx)
-      (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) d'.be ∗
+    backend.isBackend d'.γB d'.P (mvcc.api.mvccW d'.gx)
+      (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) d'.be ∗
     -- (2026-11-02, branch `snap-window`) its hooks the server's `s.beHooks` (`OpenSnapshotBackend`'s)
     backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-    backend.isStopChans γB d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
-    backend.hooksOk d.P (fun _ => mvcc.lateW gx)
-      (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (storage.hooksIface hk) ∗
+    backend.isStopChans d'.γB d'.be ∗ mvcc.keySized d'.γB d'.P d'.be ∗
     isMetaBackend (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be)
-      (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 γB))) ∗
-    isServerCI s (γ.withPh (futPhys π0 γB)) ci ∗
-    hookSpec (γ.withPh (futPhys π0 γB)) ci (metaTM γB d.P) #g ∗
-    monoListIdxOwn γ.fut jf (futPhys π0 γB, γcf) ∗ applyRegd (γ.withPh (futPhys π0 γB)) ∗
-    srvBeRO d' ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.isWatchableStore ws E.s γw ∗
-    txn.leasesKnown Ll (mvcc.stateAfter x.log) ∗
-    mvcc.hookP (γw.st.withPhys p') (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) ∗
-    srvKVAddr s ↦□ (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws : GoInterface) ∗
+      (⊤ \ ↑applyN) (readView (γ.withPh (futPhys π0 d'.γB))) ∗
+    isServerCI s (γ.withPh (futPhys π0 d'.γB)) ci ∗
+    hookSpec (γ.withPh (futPhys π0 d'.γB)) ci (metaTM d'.γB d.P) #g ∗
+    monoListIdxOwn γ.fut jf (futPhys π0 d'.γB, γcf) ∗ applyRegd (γ.withPh (futPhys π0 d'.γB)) ∗
+    srvBeRO d' ∗
     srvWAddr s ↦□ w0 ∗ srvLgAddr s ↦□ lg ∗
     waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
     -- the apply thread's own (spatial)
-    backend.plHook γB g ∗
-    applyThread (γ.withPh (futPhys π0 γB)) (stLoaded (γ.withPh (futPhys π0 γB))
+    backend.plHook d'.γB g ∗
+    applyThread (γ.withPh (futPhys π0 d'.γB)) (stLoaded (γ.withPh (futPhys π0 d'.γB))
       { k := W64 0, p := sv.Metadata'.Index', eff := sv.Metadata'.Index', pending := false }) ∗
-    applyBackend (γ.withPh (futPhys π0 γB)) ci
+    applyBackend (γ.withPh (futPhys π0 d'.γB)) ci
       (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType #d'.be) ∗
-    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗ srvBemuReaderAt s E.γbe ∗
+    dghostVar E.γbe (DFrac.own (1 : Qp).half.half) (bkKey d') ∗ srvBemuReaderAt s E.γbe ∗
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-    lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
-    mvcc.bkRTx d'.γB d'.P d'.be ∗
+    lease.leaseOwn (mvcc.api.mvccLeases E.γ) [] ∅ ∗ lease.lessorRdOf (mvcc.api.mvccLeases E.γ) ∗
+    lease.leaseRevokers (mvcc.api.mvccLeases E.γ) [] ∗
+    apply.bkRT d' ∗
     -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
     backend.rbOwnIn d'.γB membership.clusterBkts
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
@@ -145,10 +144,12 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     -- (2026-11-02, the backend-auth-split stage) the new backend's pool of readers
     backend.bkRPool d'.γB d'.P d'.be ∗
-    mvcc.storeCloserM E.s (γw.st.withPhys p') r.crev ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
-    mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
-    (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
-    mvcc.storeReader E.s E.γ ∗ trLive γn t c L ∗ srvLgReader s ∗
+    -- (strict M1) the store, restored: its open token, its backend's whole share, the apply thread's
+    -- halves at the image's committed log
+    mvcc.api.mvccOpen E.γ ∗
+    mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) ∗
+    srvApi.wSt E.γs (kvModel γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+    trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
@@ -160,14 +161,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
     -- what is left of the old backend's and the old applier's
     backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk ∗
-    revAuth E x.log ∗ srvAuthApplyRes s E ∗ RD0 ∗ apply.uberOwn E up x.chain ∗
-    -- the watchable store's own closer's parts (`restorePre_of_apply`'s)
-    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
-      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
-    mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk)
-
-
+    revAuth E x.log ∗ srvAuthApplyRes s E ∗ RD0 ∗ apply.uberOwn E up x.chain)
 
 end proof
 end EtcdGrove

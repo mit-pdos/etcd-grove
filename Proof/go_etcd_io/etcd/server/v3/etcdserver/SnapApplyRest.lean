@@ -35,7 +35,7 @@ Brief for the prover: `unfold srvRest`, `simp only [snapE_RO]` (or `rfl`-`show`)
 `.mem`; `simp only at` first if a projection of a literal record shows up), `hγB` for the tracked
 buckets' names, and frame the hypotheses. -/
 theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci : Loc)
-    (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
+    (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
     (al ast lp cl : Loc) (bk : GMap GoString backend.BktData) (memI : GMap w64 apply.MemberM)
     (A' : List EntryModel) (hγB : d'.γB = γB)
     (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk = bk ∧
@@ -43,7 +43,7 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
     backend.rbOwnIn d'.γB membership.clusterBkts bk ∗
       backend.rbPart d'.γB (fun n => ¬ membership.clusterBkts n) bk ∗ membership.clusterMem cl memI ∗
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ⊢
-    srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
+    srvRest (snapE E γ' TM' ci d' g γB al ast lp cl d'.be) γr A' := by
   subst hγB
   unfold srvRest
   rw [snapE_RO]

@@ -36,21 +36,6 @@ open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [GooseExts]
 
-/-- **A mode-`on` entry grows the log by at most one revision** (`kvEntry_grow`'s counterpart). -/
-theorem kvEntryOn_grow (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
-    (m : EntryModel) :
-    (kvEntryOn c₀ ch s m).2 = s.2 ∨ ∃ cs, (kvEntryOn c₀ ch s m).2 = s.2 ++ [cs] := by
-  unfold kvEntryOn
-  split
-  · split
-    · split
-      · left; rfl
-      · split
-        · left; rfl
-        · exact kvEntry_grow c₀ ch [] s.2 m
-    · left; rfl
-  · exact kvEntry_grow c₀ ch [] s.2 m
-
 open Classical in
 /-- **What the apply thread may make of entry `m` at the state `s`, in the mode `on`** (the
 relation the auth applier's triples give, the auth plan's E2s): a normal entry with data that
@@ -163,18 +148,6 @@ theorem kvEntry_alarmChain_on (c₀ : w64) (lt : LeaseTable) (log : mvcc.Log) (e
       · rename_i rq _; rw [hc rq]
       · rfl
   · rfl
-
-/-- **The mode-`on` model's log extends the start's** (`kvRaftOf_extends`'s counterpart). -/
-theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
-    (A : List EntryModel) : s₀.2 <+: (kvRaftOfOn c₀ ch s₀ A).2 := by
-  induction A generalizing s₀ with
-  | nil => exact List.prefix_refl _
-  | cons m A ih =>
-    show s₀.2 <+: (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2
-    refine List.IsPrefix.trans ?_ (ih _)
-    rcases kvEntryOn_grow c₀ ch s₀ m with h | ⟨cs, h⟩
-    · rw [h]; exact List.prefix_refl _
-    · rw [h]; exact List.prefix_append _ _
 
 end pure
 

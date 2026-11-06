@@ -151,7 +151,8 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
       apply.applyResultIs rq true y.log ar out ∗
       srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       E.Nx y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
-      authnArM true E ar rq out)
+      authnArM true E ar rq out ∗
+      ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
 theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
@@ -159,12 +160,14 @@ theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRMod
     resultIsWOn (GF := GF) E γr rq F ar lb st ⊢ resultIsW E γr rq F ar lb := by
   iunfold resultIsWOn
   iunfold resultIsW
-  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -⟩
+  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, #Hrc, %Hwf⟩
   isplitr
   · ipureintro; exact Hnn
   iexists y, y', out
-  iframe Hr Hc Hm Hw Hk
-  ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
+  iframe Hr Hc Hm Hw Hk Hrc
+  isplitr
+  · ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
+  ipureintro; exact Hwf
 
 /-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
 the mode-`on` model of the raft prefix before it is `(st, lb)`, the auth state and the log the
@@ -244,7 +247,8 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
 `processInternalRaftRequestOnce.specM`): `resultIsW`'s, at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`modelOutM`); (C1's A3) an
-`Authenticate`'s response, `authnArM`. -/
+`Authenticate`'s response, `authnArM`; (strict M1, 2026-11-06) the log after's receipt, well formed
+and short (`resultIsW`'s). -/
 def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (L : List EntryModel) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -253,7 +257,8 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
         out.waived = false ∧ modelOutM on ρ.kv rq L y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
-      E.Nx y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out)
+      E.Nx y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out ∗
+      ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
@@ -326,7 +331,7 @@ theorem authnAnsM_of_ar (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.I
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`; and (E3x) an admin request's step
 succeeded, `adminDoneM`; (C1's A3) an `Authenticate`'s response and its token's issue,
-`authnAnsM`). -/
+`authnAnsM`); (strict M1, 2026-11-06) the log after's receipt, well formed and short (`resPostM`'s). -/
 def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (L : List EntryModel) : IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
@@ -334,7 +339,8 @@ def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRM
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ srvApi.kvLogLb E.γs x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ E.Nx x'.log ∗
-    authnAnsM on E rq' resp)
+    authnAnsM on E rq' resp ∗
+    ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
