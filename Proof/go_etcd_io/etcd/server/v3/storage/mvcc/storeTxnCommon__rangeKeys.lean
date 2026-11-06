@@ -691,7 +691,23 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   isplitl
                   · iunfold mvcc.ctxErrorf
                     iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap $$ Hw Hce
-                  ipureintro; exact Hpre
+                  isplitr
+                  · ipureintro; exact Hpre
+                  iexists e0
+                  iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+                  icases Hw with (#HM | #HW)
+                  · iunfold EtcdGrove.fmt.modelErrIs at HM
+                    icases HM with ⟨-, %s, #HE⟩
+                    iexists s
+                    isplitr
+                    · ipureintro; rfl
+                    iexact HE
+                  · iunfold EtcdGrove.fmt.wrapErrIs at HW
+                    icases HW with ⟨-, ⟨%s, #HE⟩, -⟩
+                    iexists s
+                    isplitr
+                    · ipureintro; rfl
+                    iexact HE
                 (try wp_auto)
                 wp_for_post
                 (try wp_auto)

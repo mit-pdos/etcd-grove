@@ -336,9 +336,13 @@ def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
   err q e := iprop(srvRdCall s E γr c ∗ match q with
     | .put o => putErrOk s E ρ F o e
     | .deleteRange o => deleteErrOk s E ρ F o e
-    | .range _ => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s)
+    | .range o => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
+        rangeErrOut on E γr c F o (rangeDepQM on γr.kv d) e)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
+  errP q m := match q with
+    | .range _ => rangeErrMsgOk m
+    | _ => True
   revR := mvcc.storeReader E.s E.γ
 
 /-- A deposit is a read deposit at the mode's model state (`kvDep`'s form). -/
@@ -522,6 +526,9 @@ theorem kvPutOk_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     iright
     isplitr
     · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
+    isplitr
+    · iapply errMsgP_of_srvErrIs_of _ _ (fun _ => trivial)
+      iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
     simp only
     iframe Hrc
     iunfold putErrOk
@@ -610,6 +617,9 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     iright
     isplitr
     · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
+    isplitr
+    · iapply errMsgP_of_srvErrIs_of _ _ (fun _ => trivial)
+      iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
     simp only
     iframe Hrc
     iunfold deleteErrOk
@@ -618,6 +628,422 @@ theorem kvDeleteOk_of_serverM (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG
     icases Hfail with (⟨%hm, %rq', %Hw, Herr, -⟩ | Hdep)
     · ileft; iexists hm, rq'; iframe Herr; ipureintro; exact Hw
     · iright; iexact Hdep
+
+/-- A message none of `etcdserver/errors`' variables has. -/
+theorem errorsMsgs_ne_of (m : GoString)
+    (h : m ∉ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs.map Prod.snd) :
+    ∀ p ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs, p.2 ≠ m := by
+  intro p hp heq
+  apply h
+  rw [← heq]
+  exact List.mem_map_of_mem hp
+
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
+open Iris.ProofMode in
+/-- An `errors.New` variable's error: its `Error()` returns its message. -/
+theorem errMsgP_of_newVar (X msg : GoString) (P : GoString → Prop) (hP : P msg) (err : GoInterface) :
+    EtcdGrove.errorsNewVar (GF := GF) X msg ⊢ globalAddr X ↦□ err -∗ errMsgP err P := by
+  iintro #Hv #He
+  iunfold EtcdGrove.errorsNewVar at Hv
+  icases Hv with ⟨%x, #Hx, #HE⟩
+  icombine He Hx gives %Heq
+  subst Heq
+  iunfold errMsgP
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; rfl
+  iintro %Φ !> - HΦ
+  iapply HE
+  inext
+  iapply HΦ
+  ipureintro; exact hP
+
+open Iris.ProofMode in
+/-- An `errors.New` variable with its message cell (`errVarCell`) holds an `errors.New` error
+(`*errorString`'s `Error()` returns its `s` field). -/
+theorem errorsNewVar_of_errVarCell [_root_.Perennial.errors.Assumptions] (X msg : GoString) :
+    EtcdGrove.errVarCell (GF := GF) X msg ⊢ EtcdGrove.errorsNewVar X msg := by
+  iintro #H
+  iunfold EtcdGrove.errVarCell at H
+  icases H with ⟨%x, #Hx, #Hs⟩
+  iunfold EtcdGrove.errStrCell at Hs
+  iunfold EtcdGrove.errorsNewVar
+  iexists x
+  iframe Hx
+  iintro !> %Φ HΦ
+  rw [method_unfold]
+  wp_auto
+  iexact HΦ
+
+open Iris.ProofMode in
+/-- A context's error (`isCtxErr`): its `Error()` returns `"context canceled"` or
+`"context deadline exceeded"`. -/
+theorem errMsgP_of_isCtxErr (P : GoString → Prop)
+    (hP : P go!"context canceled" ∧ P go!"context deadline exceeded") (err : GoInterface) :
+    context.isCtxErr (GF := GF) err ⊢ errMsgP err P := by
+  iintro #He
+  iunfold context.isCtxErr at He
+  iunfold errMsgP
+  icases He with (⟨-, %x, %hx, #Hs⟩ | ⟨-, %hv⟩)
+  · subst hx
+    iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+    isplitr
+    · ipureintro; rfl
+    iintro %Φ !> - HΦ
+    rw [method_unfold]
+    wp_auto
+    iapply HΦ
+    ipureintro; exact hP.1
+  · subst hv
+    iexists ⟨context.deadlineExceededError.ty, #(zero_val context.deadlineExceededError)⟩
+    isplitr
+    · ipureintro; rfl
+    iintro %Φ !> - HΦ
+    wp_method_call
+    unfold context.deadlineExceededError.Error.impl
+    wp_auto
+    iapply HΦ
+    ipureintro; exact hP.2
+
+theorem rangeErrMsgOk_of_prefix (pre s : GoString)
+    (h1 : ¬ pre <+: go_etcd_io.etcd.cache.v3.futureRevDesc)
+    (h2 : ¬ pre <+: go_etcd_io.etcd.cache.v3.compactedDesc) : rangeErrMsgOk (pre ++ s) :=
+  ⟨fun h => h1 ⟨s, h⟩, fun h => h2 ⟨s, h⟩⟩
+
+open Iris.ProofMode in
+/-- **The `Error()` of each of `Range`'s errors** (`rangeErrOut`; k8s etcd3 7c-2 part 2, S5) returns
+neither read error's gRPC description (`rangeErrMsgOk`): mvcc's two (`mvcc: …`), the auth package's
+variables (`auth: …`), the read index's (`context …`, `etcdserver: …`), the `rangeKeys` wrap
+(`rangeKeys: …`). -/
+theorem errMsgP_of_rangeErrOut (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface)
+    (hne : err ≠ GoInterface.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors -∗
+      rangeErrOut on E γr c F o Q err -∗ errMsgP err rangeErrMsgOk := by
+  iintro #Pm #Pa #Pe #H
+  ihave #Hm : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pm
+  ihave #Ha : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pa
+  ihave #Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pe
+  icases Hei with ⟨-, #Hev, -⟩
+  iunfold rangeErrOut at H
+  icases H with (⟨%ef, #Hf, %He, -⟩ | ⟨%ec, #Hc, %He, -⟩ | #Hau | #Hrd | #Hk)
+  · subst He
+    icases Hm with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HNF, -⟩
+    iapply errMsgP_of_newVar _ _ _ (by unfold rangeErrMsgOk; decide) $$ HNF Hf
+  · subst He
+    icases Hm with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HNC, -⟩
+    iapply errMsgP_of_newVar _ _ _ (by unfold rangeErrMsgOk; decide) $$ HNC Hc
+  · iunfold authErrVarIs at Hau
+    icases Hau with (%Hn | ⟨%g, %e, %Hg, #Hge, %He⟩)
+    · exact absurd Hn hne
+    subst He
+    obtain ⟨⟨g', m⟩, hmem, rfl⟩ := List.mem_map.1 Hg.1
+    icases Ha with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HAC⟩
+    ihave #Hcell := EtcdGrove.errVarCells_mem hmem $$ HAC
+    ihave #Hnv := errorsNewVar_of_errVarCell _ _ $$ Hcell
+    have hm1 : rangeErrMsgOk m := by
+      constructor
+      · intro h
+        exact go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _
+          (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide) _ hmem h
+      · intro h
+        exact go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _
+          (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide) _ hmem h
+    iapply errMsgP_of_newVar _ _ _ hm1 $$ Hnv Hge
+  · iunfold readErrIs at Hrd
+    icases Hrd with (%Hn | #Hc | #Hs | #Hl | #Ht)
+    · exact absurd Hn hne
+    · iapply errMsgP_of_isCtxErr _ (by unfold rangeErrMsgOk; decide) $$ Hc
+    · ihave #Hnv := EtcdGrove.errorsNewVars_mem
+        (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped) (m := go!"etcdserver: server stopped")
+        (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ Hev
+      iapply errMsgP_of_newVar _ _ _ (by unfold rangeErrMsgOk; decide) $$ Hnv Hs
+    · ihave #Hnv := EtcdGrove.errorsNewVars_mem
+        (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged) (m := go!"etcdserver: leader changed")
+        (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ Hev
+      iapply errMsgP_of_newVar _ _ _ (by unfold rangeErrMsgOk; decide) $$ Hnv Hl
+    · ihave #Hnv := EtcdGrove.errorsNewVars_mem
+        (X := go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout) (m := go!"etcdserver: request timed out")
+        (by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) $$ Hev
+      iapply errMsgP_of_newVar _ _ _ (by unfold rangeErrMsgOk; decide) $$ Hnv Ht
+  · iunfold mvcc.rangeKeysErr at Hk
+    icases Hk with ⟨-, -, %ii, %s, %He, #HE⟩
+    iunfold errMsgP
+    iexists ii
+    isplitr
+    · ipureintro; exact He
+    iintro %Φ !> - HΦ
+    iapply HE
+    inext
+    iapply HΦ
+    ipureintro
+    exact rangeErrMsgOk_of_prefix _ _
+      (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide)
+      (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)
+
+open Iris.ProofMode in
+/-- **An error `Range` returns other than mvcc's two** (`rangeErrOut`'s last three cases; k8s etcd3
+7c-2 part 2, S5): neither of mvcc's read errors (the variables' message cells differ, or, for the
+`rangeKeys` wrap, its description), and, passed through by `togRPCError` (`ctxPassed`), of a
+description that is neither read error's gRPC one (a context error's, `ctxErrDescs`; the
+`rangeKeys` wrap's prefix). -/
+theorem rangeErrOther_facts (e kf kc : GoInterface) (hne : e ≠ GoInterface.nil)
+    (hkf : go_etcd_io.etcd.cache.v3.errDesc kf = go!"mvcc: required revision is a future revision")
+    (hkc : go_etcd_io.etcd.cache.v3.errDesc kc = go!"mvcc: required revision has been compacted") :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors -∗
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxErrDescs -∗
+      (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf : IProp GF) -∗
+      (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc : IProp GF) -∗
+      (authErrVarIs e ∨ readErrIs e ∨ mvcc.rangeKeysErr e) -∗
+      ⌜e ≠ kf ∧ e ≠ kc⌝ ∗ (ctxPassed e -∗ ⌜rangeErrMsgOk (go_etcd_io.etcd.cache.v3.errDesc e)⌝) := by
+  iintro #Pm #Pa #Pe #Hcd #Hkf #Hkc #H
+  ihave #Hm : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pm
+  icases Hm with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, -, -, #CC, #CF, -⟩
+  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxErrDescs at Hcd
+  icases Hcd with ⟨⟨%ecn, #Hcn, %Hdcn⟩, ⟨%ede, #Hde, %Hdde⟩⟩
+  have hctx : rangeErrMsgOk go!"context canceled" ∧ rangeErrMsgOk go!"context deadline exceeded" := by
+    unfold rangeErrMsgOk go_etcd_io.etcd.cache.v3.futureRevDesc go_etcd_io.etcd.cache.v3.compactedDesc
+    decide
+  -- a context value passed through has a context error's description
+  ihave #Hcx : iprop(□ ∀ x : GoInterface, ((globalAddr _root_.Perennial.context.Canceled ↦□ x : IProp GF) ∨
+      (globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ x : IProp GF)) -∗
+      ⌜rangeErrMsgOk (go_etcd_io.etcd.cache.v3.errDesc x)⌝) $$ []
+  · iintro !> %x (#Hx | #Hx)
+    · icombine Hx Hcn gives %h; subst h; ipureintro; rw [Hdcn]; exact hctx.1
+    · icombine Hx Hde gives %h; subst h; ipureintro; rw [Hdde]; exact hctx.2
+  icases H with (#Hau | #Hrd | #Hk)
+  · -- an auth package variable
+    iunfold authErrVarIs at Hau
+    icases Hau with (%Hn | ⟨%g, %ea, %Hg, #Hge, %He⟩)
+    · exact absurd Hn hne
+    subst He
+    ihave #Ha : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Pa
+    icases Ha with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HAC⟩
+    ihave #HapF := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev
+      go!"mvcc: required revision is a future revision" go_etcd_io.etcd.server.v3.auth.authErrMsgs
+      (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CF HAC
+    ihave #HapC := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted
+      go!"mvcc: required revision has been compacted" go_etcd_io.etcd.server.v3.auth.authErrMsgs
+      (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CC HAC
+    ihave #AF := HapF $$ %g %Hg.1
+    ihave #AC := HapC $$ %g %Hg.1
+    iunfold EtcdGrove.errVarApart at AF AC
+    icases AF with ⟨%f1, %f2, #F1, #F2, %Hf⟩
+    icases AC with ⟨%c1, %c2, #C1, #C2, %Hc⟩
+    icombine Hkf F1 gives %h1
+    icombine Hge F2 gives %h2
+    icombine Hkc C1 gives %h3
+    icombine Hge C2 gives %h4
+    isplitr
+    · ipureintro
+      constructor
+      · intro h; apply Hf; rw [h] at h2; rw [h1] at h2; cases h2; rfl
+      · intro h; apply Hc; rw [h] at h4; rw [h3] at h4; cases h4; rfl
+    iintro #Hp
+    iunfold ctxPassed at Hp
+    ihave #Hx := Hp $$ %ea %(And.intro rfl ⟨Hg.2.2.1, Hg.2.2.2.1⟩)
+    iapply Hcx $$ Hx
+  · -- the read index's
+    iunfold readErrIs at Hrd
+    ihave #Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Pe
+    icases Hei with ⟨-, #Hev, #Hcells⟩
+    -- an `etcdserver` error variable: apart from mvcc's, an `errors.New` leaf
+    ihave #Hvar : iprop(□ ∀ (X m : GoString), ⌜(X, m) ∈ go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs⌝ -∗
+        (globalAddr X ↦□ e : IProp GF) -∗
+        ⌜e ≠ kf ∧ e ≠ kc⌝ ∗ (ctxPassed e -∗ ⌜rangeErrMsgOk (go_etcd_io.etcd.cache.v3.errDesc e)⌝)) $$ []
+    · iintro !> %X %m %hm #HX
+      ihave #HapF := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev
+        go!"mvcc: required revision is a future revision" go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs
+        (errorsMsgs_ne_of _ (by simp only [go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs,
+          List.map_cons, List.map_nil]; decide)) $$ CF Hcells
+      ihave #HapC := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted
+        go!"mvcc: required revision has been compacted" go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs
+        (errorsMsgs_ne_of _ (by simp only [go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs,
+          List.map_cons, List.map_nil]; decide)) $$ CC Hcells
+      ihave #AF := HapF $$ %X %(List.mem_map_of_mem (f := Prod.fst) hm)
+      ihave #AC := HapC $$ %X %(List.mem_map_of_mem (f := Prod.fst) hm)
+      iunfold EtcdGrove.errVarApart at AF AC
+      icases AF with ⟨%f1, %f2, #F1, #F2, %Hf⟩
+      icases AC with ⟨%c1, %c2, #C1, #C2, %Hc⟩
+      icombine Hkf F1 gives %h1
+      icombine HX F2 gives %h2
+      icombine Hkc C1 gives %h3
+      icombine HX C2 gives %h4
+      ihave #Hnv := EtcdGrove.errorsNewVars_mem hm $$ Hev
+      iunfold EtcdGrove.errorsNewVar at Hnv
+      icases Hnv with ⟨%x, #Hx, -⟩
+      icombine HX Hx gives %h5
+      isplitr
+      · ipureintro
+        constructor
+        · intro h; apply Hf; rw [h] at h2; rw [h1] at h2; cases h2; rfl
+        · intro h; apply Hc; rw [h] at h4; rw [h3] at h4; cases h4; rfl
+      iintro #Hp
+      iunfold ctxPassed at Hp
+      have hl := EtcdGrove.errorString_errLeaf x
+      ihave #Hx' := Hp $$ %(⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ : GoInterfaceOk)
+        %(And.intro h5 ⟨hl.2.1, hl.2.2.1⟩)
+      iapply Hcx $$ Hx'
+    icases Hrd with (%Hn | #Hc | #Hs | #Hl | #Ht)
+    · exact absurd Hn hne
+    · -- a context's value: apart from mvcc's (`Canceled`: its message cell; `DeadlineExceeded`: its
+      -- type)
+      ihave #Hc' := Hc
+      iunfold context.isCtxErr at Hc'
+      icases Hc' with (⟨#HcV, %x, %hx, #Hs⟩ | ⟨#HdV, %hv⟩)
+      · ihave #Ccn : (EtcdGrove.errVarCell _root_.Perennial.context.Canceled go!"context canceled" : IProp GF) $$ []
+        · iunfold EtcdGrove.errVarCell
+          iexists x
+          rw [← hx]
+          iframe HcV
+          iunfold EtcdGrove.errStrCell
+          iexact Hs
+        ihave #AF := EtcdGrove.errVarApart_of _ _ _ _ (by decide) $$ Ccn CF
+        ihave #AC := EtcdGrove.errVarApart_of _ _ _ _ (by decide) $$ Ccn CC
+        iunfold EtcdGrove.errVarApart at AF AC
+        icases AF with ⟨%f1, %f2, #F1, #F2, %Hf⟩
+        icases AC with ⟨%c1, %c2, #C1, #C2, %Hc2⟩
+        icombine HcV F1 gives %h1
+        icombine Hkf F2 gives %h2
+        icombine HcV C1 gives %h3
+        icombine Hkc C2 gives %h4
+        isplitr
+        · ipureintro
+          constructor
+          · intro h; apply Hf; rw [← h] at h2; rw [h1] at h2; cases h2; rfl
+          · intro h; apply Hc2; rw [← h] at h4; rw [h3] at h4; cases h4; rfl
+        iintro -
+        iapply Hcx $$ [HcV]
+        ileft; iexact HcV
+      · ihave #Hnf := errorsNewVar_of_errVarCell _ _ $$ CF
+        ihave #Hnc := errorsNewVar_of_errVarCell _ _ $$ CC
+        iunfold EtcdGrove.errorsNewVar at Hnf Hnc
+        icases Hnf with ⟨%y, #Hy, -⟩
+        icases Hnc with ⟨%z, #Hz, -⟩
+        icombine Hkf Hy gives %h1
+        icombine Hkc Hz gives %h2
+        isplitr
+        · ipureintro
+          constructor
+          · intro h; rw [h, h1] at hv
+            injection hv with hv'; injection hv' with ht _
+            exact _root_.Perennial.context.deadlineExceededError_ne_ptr _ ht.symm
+          · intro h; rw [h, h2] at hv
+            injection hv with hv'; injection hv' with ht _
+            exact _root_.Perennial.context.deadlineExceededError_ne_ptr _ ht.symm
+        iintro -
+        iapply Hcx $$ [HdV]
+        iright; iexact HdV
+    · iapply Hvar $$ %go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped %go!"etcdserver: server stopped"
+        %(by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) Hs
+    · iapply Hvar $$ %go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged %go!"etcdserver: leader changed"
+        %(by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) Hl
+    · iapply Hvar $$ %go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout %go!"etcdserver: request timed out"
+        %(by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) Ht
+  · -- the `rangeKeys` wrap: its description's prefix
+    iunfold mvcc.rangeKeysErr at Hk
+    icases Hk with ⟨-, %Hpre, -⟩
+    obtain ⟨t, ht⟩ := Hpre
+    isplitr
+    · ipureintro
+      constructor
+      · intro h; subst h; rw [hkf] at ht
+        have hp : (go!"rangeKeys: context cancelled: " : GoString) <+:
+            go!"mvcc: required revision is a future revision" := ⟨t, ht⟩
+        exact absurd hp (by decide)
+      · intro h; subst h; rw [hkc] at ht
+        have hp : (go!"rangeKeys: context cancelled: " : GoString) <+:
+            go!"mvcc: required revision has been compacted" := ⟨t, ht⟩
+        exact absurd hp (by decide)
+    iintro -
+    ipureintro
+    rw [← ht]
+    exact rangeErrMsgOk_of_prefix _ _
+      (by unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide)
+      (by unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide)
+
+open Iris.ProofMode in
+/-- **S4: what `togRPCError` made of a `Range` error** (k8s etcd3 7c-2 part 2): the gRPC error has
+the future revision's description only if `Range`'s was mvcc's `ErrFutureRev`, with the read's facts
+(`rangeErrAt`), likewise the compacted one's (`rangeErrDesc`). By `togRPCError`'s branch
+(`grpcErrOut`): passed through, an error of its own description (mvcc's own two: `grpcErrMapOk`'s
+`mvcc: …` descriptions, G2-a; the others: `rangeErrOther_facts`); mapped, the map's value, of a read
+error's description only at mvcc's matching error (`grpcErrMapOk`); the fallback, of a description
+that is neither (`rangeErrMsgOk`, the `Error()` of `Range`'s errors, `errMsgP_of_rangeErrOut`). -/
+theorem rangeErrDesc_of_grpcErrOut (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (e err : GoInterface)
+    (hne : e ≠ GoInterface.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ⊢
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors -∗
+      rangeErrOut on E γr c F o Q e -∗ grpcErrOut rangeErrMsgOk e err -∗
+      rangeErrDesc on E γr c F o Q err := by
+  iintro #Pv #Pm #Pa #Pe #H #G
+  ihave #Hv : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pv
+  icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcd⟩
+  iunfold grpcErrOut at G
+  icases G with ⟨%mp, %M, %kf, %kc, -, -, #Hkf, #Hkc, %HM, #Hbr⟩
+  obtain ⟨HM0, -, -, hkf, hkc⟩ := HM
+  have hdF : go_etcd_io.etcd.cache.v3.errDesc kf ≠ go_etcd_io.etcd.cache.v3.compactedDesc := by
+    rw [hkf]; unfold go_etcd_io.etcd.cache.v3.compactedDesc; decide
+  have hdC : go_etcd_io.etcd.cache.v3.errDesc kc ≠ go_etcd_io.etcd.cache.v3.futureRevDesc := by
+    rw [hkc]; unfold go_etcd_io.etcd.cache.v3.futureRevDesc; decide
+  have hkfc : kf ≠ kc := by
+    intro h; rw [h, hkc] at hkf; exact absurd hkf (by decide)
+  iunfold rangeErrDesc
+  iunfold rangeErrOut at H
+  icases H with (⟨%ef, #Hf, %He, #Hat⟩ | ⟨%ec, #Hc, %He, #Hat⟩ | #Hoth)
+  · -- mvcc's `ErrFutureRev`
+    icombine Hkf Hf gives %h
+    subst He
+    isplitl []
+    · iright; iexact Hat
+    ileft
+    icases Hbr with (⟨%Hee, -⟩ | %Hmap | %Hfb)
+    · ipureintro; rw [Hee, ← h]; exact hdF
+    · ipureintro; intro hd
+      exact hkfc (h.trans ((HM0 _ _ Hmap).2.2.1 hd))
+    · ipureintro; exact Hfb.2.2
+  · -- mvcc's `ErrCompacted`
+    icombine Hkc Hc gives %h
+    subst He
+    isplitl []
+    · ileft
+      icases Hbr with (⟨%Hee, -⟩ | %Hmap | %Hfb)
+      · ipureintro; rw [Hee, ← h]; exact hdC
+      · ipureintro; intro hd
+        exact hkfc (((HM0 _ _ Hmap).2.1 hd).symm.trans h.symm)
+      · ipureintro; exact Hfb.2.1
+    iright; iexact Hat
+  · -- the others
+    ihave ⟨%Hap, #Hpt⟩ := rangeErrOther_facts e kf kc hne hkf hkc $$ Pm Pa Pe Hcd Hkf Hkc Hoth
+    icases Hbr with (⟨%Hee, #Hcp⟩ | %Hmap | %Hfb)
+    · ihave %Hd := Hpt $$ Hcp
+      rw [Hee]
+      isplitl []
+      · ileft; ipureintro; exact Hd.1
+      · ileft; ipureintro; exact Hd.2
+    · isplitl []
+      · ileft; ipureintro; intro hd; exact Hap.1 ((HM0 _ _ Hmap).2.1 hd)
+      · ileft; ipureintro; intro hd; exact Hap.2 ((HM0 _ _ Hmap).2.2.1 hd)
+    · isplitl []
+      · ileft; ipureintro; exact Hfb.2.1
+      · ileft; ipureintro; exact Hfb.2.2
 
 /-- **`raftKV`'s `Range` conjunct in the server's auth mode, from `EtcdServer.Range.spec`** (in a
 mode other than `.any`, with the store's range check as the server keeps it, `srvAuthLb`). -/
@@ -644,7 +1070,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, -⟩)
+  icases Hres with (⟨%Herr, #Hcls, Hok'⟩ | ⟨%Hre, #HaE, #HrO⟩)
   · obtain ⟨rfl, Hrn⟩ := Herr
     iunfold rangeReadOkM at Hok'
     icases Hok' with ⟨%log, #Hcert, #Hcok, %Hlen, Hlin, HQl, #Hres, Hown⟩
@@ -653,7 +1079,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     iunfold txn.rangeResult at Hres'
     icases Hres' with (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hresp, -⟩ | ⟨-, %ec, -, %He⟩)
     · cases He
-    · ihave %Hne := mvcc.ctxErrorf_ne_nil _ $$ He
+    · ihave %Hne := mvcc.rangeKeysErr_ne_nil _ $$ He
       exact absurd rfl Hne
     rotate_left
     · cases He
@@ -687,8 +1113,17 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     iright
     isplitr
     · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
+    isplitr
+    · -- (k8s etcd3 7c-2 part 2, S5) the error's `Error()` has neither read error's description
+      ihave #Pm : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
+      · iPkgInit
+      ihave #Pa : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
+      · iPkgInit
+      ihave #Pe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
+      · iPkgInit
+      iapply errMsgP_of_rangeErrOut _ _ _ _ _ _ _ _ Hne $$ Pm Pa Pe HrO
     simp only
-    iframe Hrc Hcred Hlt
+    iframe Hrc Hcred Hlt HrO
 
 /-- **`raftKV`'s `Txn` conjunct in the server's auth mode, from `EtcdServer.Txn.spec`** (as the
 other conjuncts; a writing transaction, with auth on, of the permission cache's shape). -/
@@ -791,6 +1226,9 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
+      isplitr
+      · iapply errMsgP_of_srvErrIs_of _ _ (fun _ => trivial)
+        iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
       simp only
       iframe Hrc Hlt
       iexists t
@@ -852,6 +1290,9 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     · iright
       isplitr
       · iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
+      isplitr
+      · iapply errMsgP_of_srvErrIs_of _ _ (fun _ => trivial)
+        iapply srvErrIs_of_applyErrIs _ Hne $$ HaE
       simp only
       iframe Hrc Hlt
       iexists t
@@ -983,11 +1424,12 @@ theorem raftKV_of_serverM (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
 /-- A handler's answer under parameters `A'` is one under `A` when `A'`'s answers give `A`'s. -/
 theorem kvAnswer_mono (A A' : KVAns GF) (hR : A.revR = A'.revR)
     (hok : ∀ q resp h r, A'.ok q resp h r ⊢ A.ok q resp h r)
-    (herr : ∀ q e, A'.err q e ⊢ A.err q e) (q : KVReq) (hf resp : Loc) (err : GoInterface) :
+    (herr : ∀ q e, A'.err q e ⊢ A.err q e) (hP : ∀ q m, A'.errP q m → A.errP q m)
+    (q : KVReq) (hf resp : Loc) (err : GoInterface) :
     kvAnswer A' q hf resp err ⊢ kvAnswer A q hf resp err := by
   unfold kvAnswer
   rw [hR]
-  iintro (⟨%Hok, %h, %r, Hh, Hw, Hrv, Ha⟩ | ⟨He, Ha⟩)
+  iintro (⟨%Hok, %h, %r, Hh, Hw, Hrv, Ha⟩ | ⟨He, #Hm, Ha⟩)
   · ileft
     isplitr
     · ipureintro; exact Hok
@@ -996,6 +1438,8 @@ theorem kvAnswer_mono (A A' : KVAns GF) (hR : A.revR = A'.revR)
     iapply hok $$ Ha
   · iright
     iframe He
+    isplitr
+    · iapply errMsgP_mono err _ _ (hP q) $$ Hm
     iapply herr $$ Ha
 
 /-- **The server's contract is monotone in its parameters** (the auth component's stage 4): `raftKV`
@@ -1004,7 +1448,7 @@ answers give `A`'s, and the revision readers agree. -/
 theorem raftKV_mono (s : Loc) (A A' : KVAns GF) (hR : A.revR = A'.revR)
     (hcall : ∀ ctx, A.call ctx ⊢ |==> A'.call ctx) (hpre : ∀ q, A.pre q → A'.pre q)
     (hok : ∀ q resp h r, A'.ok q resp h r ⊢ A.ok q resp h r)
-    (herr : ∀ q e, A'.err q e ⊢ A.err q e) :
+    (herr : ∀ q e, A'.err q e ⊢ A.err q e) (hP : ∀ q m, A'.errP q m → A.errP q m) :
     raftKV s A' ⊢ raftKV s A := by
   unfold raftKV
   iintro #⟨Hrg, Hput, Hdel, Htxn, Hget⟩
@@ -1018,7 +1462,7 @@ theorem raftKV_mono (s : Loc) (A A' : KVAns GF) (hR : A.revR = A'.revR)
     inext
     iintro %resp %err Hans
     iapply HΦ
-    iapply kvAnswer_mono A A' hR hok herr $$ Hans
+    iapply kvAnswer_mono A A' hR hok herr hP $$ Hans
   isplitr
   · iunfold kvPutOk
     iunfold kvPutOk at Hput
@@ -1029,7 +1473,7 @@ theorem raftKV_mono (s : Loc) (A A' : KVAns GF) (hR : A.revR = A'.revR)
     inext
     iintro %resp %err Hans
     iapply HΦ
-    iapply kvAnswer_mono A A' hR hok herr $$ Hans
+    iapply kvAnswer_mono A A' hR hok herr hP $$ Hans
   isplitr
   · iunfold kvDeleteOk
     iunfold kvDeleteOk at Hdel
@@ -1040,7 +1484,7 @@ theorem raftKV_mono (s : Loc) (A A' : KVAns GF) (hR : A.revR = A'.revR)
     inext
     iintro %resp %err Hans
     iapply HΦ
-    iapply kvAnswer_mono A A' hR hok herr $$ Hans
+    iapply kvAnswer_mono A A' hR hok herr hP $$ Hans
   isplitr
   · iunfold kvTxnOk
     iunfold kvTxnOk at Htxn
@@ -1052,7 +1496,7 @@ theorem raftKV_mono (s : Loc) (A A' : KVAns GF) (hR : A.revR = A'.revR)
     inext
     iintro %resp %err Hans
     iapply HΦ
-    iapply kvAnswer_mono A A' hR hok herr $$ Hans
+    iapply kvAnswer_mono A A' hR hok herr hP $$ Hans
   iunfold kvGetOk
   iunfold kvGetOk at Hget
   rw [hR]
@@ -1091,7 +1535,10 @@ theorem raftKV_srvKVAnsM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         cases hr : txn.txnReadonly t <;> simp only [Bool.false_eq_true, ↓reduceIte]
         · icases H with ⟨H, -⟩; iexact H
         · icases H with ⟨Hc, Ha, -⟩; iframe)
-    (fun q e => by simp only [srvKVAns, srvKVAnsM]; exact .rfl)
+    (fun q e => by
+      cases q <;> simp only [srvKVAns, srvKVAnsM] <;>
+        first | exact .rfl | (iintro ⟨Hrc, Hc, Hl, -⟩; iframe))
+    (fun _ _ _ => trivial)
 
 /-- **The on answers from the mode's at auth on** (a bridge; the auth component's stage 5): the
 server's contract at `srvKVAnsM true` gives it at `srvKVAnsOn` (through `raftKV_mono`: the gates
@@ -1130,7 +1577,10 @@ theorem raftKV_srvKVAnsM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
         cases hr : txn.txnReadonly t <;> simp only [Bool.false_eq_true, ↓reduceIte]
         · icases H with ⟨Ha, Hg⟩; iframe Ha; iapply Hg; ipureintro; first | rfl | trivial
         · icases H with ⟨Hc, Ha, Hg⟩; iframe Hc Ha; iapply Hg; ipureintro; first | rfl | trivial)
-    (fun q e => by simp only [srvKVAnsOn, srvKVAnsM]; exact .rfl)
+    (fun q e => by
+      cases q <;> simp only [srvKVAnsOn, srvKVAnsM] <;>
+        first | exact .rfl | (iintro ⟨Hrc, Hc, Hl, -⟩; iframe))
+    (fun _ _ _ => trivial)
 
 end proofs
 

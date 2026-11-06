@@ -225,6 +225,27 @@ instance rangeErrOut_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames
     Persistent (rangeErrOut on E γr c F o Q err) := by
   unfold rangeErrOut; infer_instance
 
+/-- **A message that is neither read error's gRPC description** (k8s etcd3 7c-2 part 2, S5): what
+the `Error()` of each of `Range`'s errors (`rangeErrOut`) returns, so that `togRPCError`'s fallback,
+`status.Error(codes.Unknown, err.Error())`, has neither description. -/
+def rangeErrMsgOk (m : GoString) : Prop :=
+  m ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧ m ≠ go_etcd_io.etcd.cache.v3.compactedDesc
+
+/-- **What a failed `Range`'s gRPC error says** (persistent; k8s etcd3 7c-2 part 2, S4/S5): with the
+future revision's gRPC description, `Range`'s error was mvcc's `ErrFutureRev`, with the read's facts
+at it (`rangeErrAt`); with the compacted one's, mvcc's `ErrCompacted`, likewise. -/
+def rangeErrDesc (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) : IProp GF :=
+  iprop((⌜go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.futureRevDesc⌝ ∨
+      rangeErrAt on E γr c F o Q (rangeFutureAt o)) ∗
+    (⌜go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝ ∨
+      rangeErrAt on E γr c F o Q (rangeCompactedAt o)))
+
+instance rangeErrDesc_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (err : GoInterface) :
+    Persistent (rangeErrDesc on E γr c F o Q err) := by
+  unfold rangeErrDesc; infer_instance
+
 /-- **A successful read-only `Txn` in the auth mode `on`** (`txnReadOk` with the deposit's committed
 log `L` at the mode's model, `kvModelM on`; `txnReadOk` at `on = false`, by definition; E3v). -/
 def txnReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)

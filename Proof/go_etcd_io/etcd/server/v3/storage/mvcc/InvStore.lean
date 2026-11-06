@@ -5946,10 +5946,15 @@ theorem ctxErrorf_ok (err : GoInterface) :
 /-- **`rangeKeys`' error for a done context** (persistent; k8s etcd3 7c-2 part 2, G2-a,
 2026-11-06): `ctxErrorf`, with the description `fmt.ErrorfWrap`'s post gives it (N1b): it starts
 with the format's text before `%w`, `"rangeKeys: context cancelled: "` (`kvstore_txn.go:121`), so
-that it is not one of the descriptions the gRPC layer gives mvcc's read errors. -/
+that it is not one of the descriptions the gRPC layer gives mvcc's read errors; and its `Error()`
+returns a message with that text first (the model's error or Go's `*fmt.wrapError`,
+`fmt.errorfWrapIs`; S5: what `togRPCError`'s fallback makes a description of). -/
 def rangeKeysErr (err : GoInterface) : IProp GF :=
   iprop(ctxErrorf err ∗
-    ⌜go!"rangeKeys: context cancelled: " <+: go_etcd_io.etcd.cache.v3.errDesc err⌝)
+    ⌜go!"rangeKeys: context cancelled: " <+: go_etcd_io.etcd.cache.v3.errDesc err⌝ ∗
+    ∃ (ii : GoInterfaceOk) (s : GoString), ⌜err = GoInterface.ok ii⌝ ∗
+      □ ∀ Φ : val → IProp GF, ▷ Φ #(go!"rangeKeys: context cancelled: " ++ s) -∗
+        WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }})
 
 omit package_sem in
 instance rangeKeysErr_persistent (err : GoInterface) : Persistent (rangeKeysErr (GF := GF) err) := by
