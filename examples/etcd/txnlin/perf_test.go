@@ -217,7 +217,14 @@ func TestPerfHistory(t *testing.T) {
 			name, r, d.Round(time.Millisecond), ps.steps, float64(ps.steps)/d.Seconds(), ps.peakState, ps.peakK)
 		return r
 	}
-	rNew := run("new", Model(), newSize, 0)
+	models := os.Getenv("TXNLIN_MODELS")
+	rNew := porcupine.Unknown
+	if models != "old" {
+		rNew = run("new", Model(), newSize, 0)
+	}
+	if models == "new" {
+		return
+	}
 	oldTimeout := 20 * time.Minute
 	if s := os.Getenv("TXNLIN_OLD_TIMEOUT"); s != "" {
 		d, err := time.ParseDuration(s)
@@ -230,7 +237,7 @@ func TestPerfHistory(t *testing.T) {
 		return
 	}
 	rOld := run("old", oldModel(), oldSize, oldTimeout)
-	if rOld != porcupine.Unknown && rOld != rNew {
+	if rOld != porcupine.Unknown && rNew != porcupine.Unknown && rOld != rNew {
 		t.Fatalf("verdicts differ: new %v, old %v", rNew, rOld)
 	}
 }
