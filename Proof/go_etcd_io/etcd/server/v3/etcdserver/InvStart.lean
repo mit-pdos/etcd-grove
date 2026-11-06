@@ -391,14 +391,15 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   imod token_alloc with ⟨%γclose, Hclose⟩
   imod token_alloc with ⟨%γwt, Hwt⟩
   imod ownTokAuth_alloc with ⟨%γrun, Hrun⟩
+  imod ownTokAuth_alloc with ⟨%γpend, Hpend⟩
   ihave H0 := levelToks_zero (GF := GF) 0
   ihave H1 := levelToks_zero (GF := GF) 1
-  let γ : GoNames := ⟨γb, γclose, γwg, γrun, γch, γchi, γwt⟩
-  imod inv_alloc goAttachN ⊤ (goAttachInv γ) $$ [Hb2 Hctr Hrun H0 H1 Hwait Hwt] with #Hinv
+  let γ : GoNames := ⟨γb, γclose, γwg, γrun, γch, γchi, γwt, γpend⟩
+  imod inv_alloc goAttachN ⊤ (goAttachInv γ) $$ [Hb2 Hctr Hrun Hpend H0 H1 Hwait Hwt] with #Hinv
   · inext
     iunfold goAttachInv
     iexists true, (W32 0), 0, 0, DFrac.own 1
-    iframe Hb2 Hctr Hrun H0 H1
+    iframe Hb2 Hctr Hrun Hpend H0 H1
     isplitr
     · ipureintro; constructor <;> simp
     isplitr

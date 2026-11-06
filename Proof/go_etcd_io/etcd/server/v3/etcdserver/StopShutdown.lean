@@ -204,7 +204,7 @@ theorem stop_monitorRT (E : apply.AEnv GF) (γp : WTNames) (γg : GoNames) (d : 
         sync.wg_mask_ndot_ne nroot "srvGoAttach" "srvWT" (by decide)
       imod inv_acc (E := ⊤ \ ↑srvWTN) (N := goAttachN) hmask $$ Hgi with ⟨Hi, -⟩
       iunfold goAttachInv at Hi
-      icases Hi with ⟨%b, %ctr, %k, %pq, %dq, -, -, -, -, >Hra, -, >%Hdq, -⟩
+      icases Hi with ⟨%b, %ctr, %k, %pq, %dq, -, -, -, -, >Hra, -, -, >%Hdq, -⟩
       iunfold goWaited at Hw
       icombine Hw Hra gives %Hv0
       obtain ⟨Hv0, Hk⟩ := Hv0

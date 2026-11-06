@@ -39,7 +39,31 @@ theorem wp_GoAttach_tok (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
         {{ P ∗ goRunning γ }} (App (Val #f) (Val #())) {{ RET #(); goRunning γ }} }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
     {{ RET #(); srvGoResAt s γ ∗ srvLgReader s }} := by
-  sorry -- DRAFT revoke-open
+  iintro %Φ ⟨#Hinit, Hgr, Hlr, HP, #Hf⟩ HΦ
+  iunfold srvGoResAt at Hgr
+  icases Hgr with ⟨Hwr, Htok⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨H0, Ht1⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Ht1 with ⟨H1, H2⟩
+  iapply hGA s γ f P $$ [Hwr H1 HP] [HΦ Hlr H0 H2]
+  · iframe Hinit Hwr H1 HP
+    imodintro
+    iintro %Ψ ⟨HP, Hrun, Hfr⟩ HΨ
+    iapply Hf $$ [HP Hrun] [HΨ Hfr]
+    · iframe
+    inext
+    iintro Hrun
+    iapply HΨ
+    iframe
+  inext
+  iintro ⟨Hwr, H1⟩
+  iapply HΦ
+  iframe Hlr
+  iunfold srvGoResAt
+  iframe Hwr
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe H0
+  iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+  iframe
 
 end lemmas
 
