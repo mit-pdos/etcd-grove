@@ -32328,7 +32328,17 @@ cluster3.go`). `holdToken` sleeps forever and touches no lock. The proof keeps t
 `leasegrant`'s `Main` fork the same `holdToken` for the same slot. It changes no statement and no
 trusted model. Each member has one more idle goroutine, also in the clusters that grant no lease
 (the partition example and the k8s compactor). Their Go tests, and putget3's (which uses `alloc3`,
-not `cluster3`), pass unchanged (R1's condition, 82's).
+not `cluster3`), pass as on `lean` (R1's condition, 82's), except partition's `TestFailover`, which
+hangs to the test's timeout on `lean` `6691b46860` too (rerun after R2c: `notes/lease-mono3-plan.md`).
+
+**The callers at `none` rest on the lease branch's axioms.** `StartMember.spec` is one triple for
+every mode, and its one linked proof (`Link.lean`) takes the callees' specs of every branch, so the
+closed results whose clusters grant no lease (linkv3p's `etcd_partition_safe`, the k8s compactor's)
+now rest on `EtcdServer.leaseTimeToLive.wp_proof` and `sort.Sort.wp_anyLess` too: axioms already
+in the trust base (leasegrant), audited `ok`. Pass 1's DRAFT `sorry`s had hidden it. Splitting the
+spec per mode would be a frozen change and break the one-spec-per-function layout: the two
+collections' baselines take the axioms instead (H1 (A), decided by etcd-grove-82 under the user's
+delegation, 2026-11-06).
 
 **Rejected.**
 - A `threadTok` premise in `StartMember.spec`/`StartCluster.spec`, gated on `lm ≠ .none`, with the
