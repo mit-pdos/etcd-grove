@@ -33,7 +33,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [bbolt: `Put` accepts a value of `MaxValueSize` bytes that `Commit` or `Get` then panics on](bbolt-max-value-size-unusable.md) | no | etcd-io/bbolt#931 issue closed; etcd-io/bbolt#968 pr merged; etcd-io/bbolt#1044 issue closed |
 | [bbolt: on 32-bit platforms every transaction panics with "unaligned 64-bit atomic operation"](bbolt-txstats-unaligned-32bit.md) | no | etcd-io/bbolt#1300 pr merged; etcd-io/bbolt#577 issue closed |
 | [server: the alarms gauge counts an alarm activated twice twice, and stays at 1 after it is disarmed](etcd-apply-alarm-gauge-reactivate.md) | no |  |
-| [etcdserver: LeaseGrant without an ID fails with "lease already exists" when two members' IDs agree in the low 15 bits](etcd-lease-id-mask-member-prefix.md) | no | etcd-io/etcd#20729 pr merged |
+| [etcdserver: Grant without an ID fails with "lease already exists" when two members' IDs agree in their low 15 bits](etcd-lease-id-mask-member-prefix.md) | no | etcd-io/etcd#20729 pr merged |
 | [etcdserver: `LeaseTimeToLive` with `Keys` returns key names the caller may not read](etcd-lease-timetolive-keys-toctou.md) | no | etcd-io/etcd#15656 pr merged |
 | [v3rpc: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL replies without a response header](etcd-leasehttp-timetolive-nil-header-panic.md) | no |  |
 | [leasehttp: a follower's `LeaseTimeToLive` crashes the member when the leader's peer URL answers 200 with an empty body](etcd-leasehttp-timetolive-nil-response-panic.md) | no |  |

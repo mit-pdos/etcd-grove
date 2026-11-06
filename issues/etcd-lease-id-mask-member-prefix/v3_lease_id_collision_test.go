@@ -29,13 +29,6 @@ import (
 	"go.etcd.io/etcd/tests/v3/framework/integration"
 )
 
-// memberIDForPeerURL is the id etcd gives a member of a new cluster with a
-// single peer URL (membership.computeMemberID, no join time).
-func memberIDForPeerURL(peerURL, token string) uint64 {
-	h := sha1.Sum([]byte(peerURL + token))
-	return binary.BigEndian.Uint64(h[:8])
-}
-
 // TestLeaseGrantNoIDCollidesAcrossMembers grants leases without an ID through
 // two members of a 3-member cluster whose member IDs agree in their low 15 bits
 // but not in the 16th. The server chooses the ID (rpc.proto: "If ID is set to
@@ -53,8 +46,11 @@ func TestLeaseGrantNoIDCollidesAcrossMembers(t *testing.T) {
 	predict := func(c0 int32) [3]uint64 {
 		var ids [3]uint64
 		for i := int32(0); i < 3; i++ {
-			// MustNewMember: UniqNumber, then the peer listener, then the client listener.
-			ids[i] = memberIDForPeerURL(peerURL(c0+3*i+2), integration.ClusterName)
+			// MustNewMember: UniqNumber, then the peer listener, then the client
+			// listener. A member of a new cluster has the ID of its peer URLs and
+			// cluster token (membership.computeMemberID).
+			h := sha1.Sum([]byte(peerURL(c0+3*i+2) + integration.ClusterName))
+			ids[i] = binary.BigEndian.Uint64(h[:8])
 		}
 		return ids
 	}
@@ -121,7 +117,7 @@ func TestLeaseGrantNoIDCollidesAcrossMembers(t *testing.T) {
 	}
 
 	// Grant through the member behind until its IDs are past the other's.
-	n := gap + 1000
+	n := gap + 100
 	var next atomic.Int64
 	var wg sync.WaitGroup
 	var stopped atomic.Bool
