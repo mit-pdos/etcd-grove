@@ -192,13 +192,13 @@ instance srvAuthAt_persistent (s : Loc) (E : apply.AEnv GF) : Persistent (srvAut
 `authStore` field's value and `apply.isAuthStore` of it, the part of `srvAuthAt` a client that calls
 the store directly takes (the revocation's `WithRoot`), so that it does not open `srvAuthAt`. -/
 theorem srvAuthAt_isAuthStore (s : Loc) (E : apply.AEnv GF) :
-    srvAuthAt s E ⊢ ∃ (st : GoInterface) (P : IProp GF) (f : val),
+    srvAuthAt s E ⊢ ∃ st : GoInterface,
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗
-        apply.isAuthStore st E.γ P f E.RD E.authMode E.RW := by
+        apply.isAuthStore st E.Pk E.f E.BkTie E.RD E.authMode E.RW := by
   iintro #H
   iunfold srvAuthAt at H
-  icases H with ⟨%st, %cca, %P, %f, #Hst, -, -, -, #HAS⟩
-  iexists st, P, f
+  icases H with ⟨%st, %cca, #Hst, -, -, -, #HAS⟩
+  iexists st
   iframe Hst; iexact HAS
 
 /-- **`IsAdminPermitted(nil)` on the server `s`'s store** (persistent; the premise). -/

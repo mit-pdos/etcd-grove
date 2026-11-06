@@ -318,7 +318,7 @@ theorem srvRevokeCtx_withRoot (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   icases H with ⟨#Hb, -, -, -, -⟩
   iunfold srvRevokeBuilt at Hb
   icases Hb with ⟨-, -, ⟨%stl, #Hauf⟩, -⟩
-  ihave ⟨%st, %P, %f, #Hst, #HAS⟩ := srvAuthAt_isAuthStore s E $$ Hauth
+  ihave ⟨%st, #Hst, #HAS⟩ := srvAuthAt_isAuthStore s E $$ Hauth
   icombine Hauf Hst gives %e0
   subst e0
   iexists stl

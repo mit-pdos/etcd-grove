@@ -710,8 +710,8 @@ theorem isServer_lg (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hk⟩
   iunfold srvKVInvs at Hk
-  icases Hk with ⟨-, -, -, -, -, %hl, -⟩
-  ipureintro; exact ⟨hr, by rw [KVNames.lg_eq, apply.AEnv.lg_eq, hl.2]⟩
+  icases Hk with ⟨-, -, -, -, -, -, %hl⟩
+  ipureintro; exact ⟨hr, by rw [KVNames.lg_eq, apply.AEnv.lg_eq, hl]⟩
 
 /-- **The request path's lease mode is the environment's** (X7 option (iii), 2026-11-04). -/
 theorem isServer_lm (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -723,8 +723,8 @@ theorem isServer_lm (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hk⟩
   iunfold srvKVInvs at Hk
-  icases Hk with ⟨-, -, -, -, -, %hl, -⟩
-  ipureintro; exact ⟨hr, hl.2⟩
+  icases Hk with ⟨-, -, -, -, -, -, %hl⟩
+  ipureintro; exact ⟨hr, hl⟩
 
 /-- The real backend `be` as the server's `s.be` holds it. -/
 abbrev srvBeIface (be : Loc) : GoInterface :=

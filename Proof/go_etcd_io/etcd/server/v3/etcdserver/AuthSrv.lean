@@ -91,7 +91,7 @@ def authSchemaSrv : IProp GF :=
     backend.plHook d.γB func.nil -∗ ownToks d.γB.wb 2 -∗ backend.rbOwnIn d.γB authBkts r -∗
     auth.authSucc γa -∗
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
-    |={⊤}=> ∃ (R P : IProp GF) (f : val) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
+    |={⊤}=> ∃ (R P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) ∗
       authWAtHook γa d γc ∗ authBkLend γa γc d ∗
@@ -100,7 +100,7 @@ def authSchemaSrv : IProp GF :=
           go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
       auth.authWTok γc ∗ auth.authPubTok γa ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
-      mvcc.csContract P f Pre Q Post ∗
+      srvApi.csContractA P f Pre Q Post ∗
       ([∗list] _x ∈ List.replicate backend.authRdN (), R) ∗
       (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
       authSchemaSnap γa R)
@@ -536,7 +536,7 @@ theorem authStoreKit_on
         ipureintro; exact Hf'
       iunfold adminW
       iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-        hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' #f' (auth.authWTok γc) (beOn d.be)
+        hRoleGrantPermissionB hAuthnB stp R (.on γa) Pk' f' (auth.authWTok γc) (beOn d.be)
         $$ [$Hpkg $Hinv]
     -- (P6.2) what an install needs: the lifecycle at the backend's open share, the hook clause,
     -- the admin steps at any backend

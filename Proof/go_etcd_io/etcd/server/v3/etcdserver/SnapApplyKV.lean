@@ -37,7 +37,7 @@ wand with `E'`'s options) and the auth part by the mode at `E'` (`kvAuthM`; unti
 `srvAuthApplyRes` at `E`); (the lease-expiry plan's S2–S4) the lessor's live set `L` with the apply
 thread's half (`ltHalf`), and (step 2) the lessor's range deleter. Until strict M1 the watchable
 store's sole writer at the restored physical names. (The mvcc merge, 2026-11-06: `lean`'s mode
-and live set over strict M1's store; the deleter `lease.rdAt E.γ.leases E.s` restated at the API's
+and live set over strict M1's store; the deleter `lease.rdAt (mvcc.api.mvccLeases E.γ) E.s` restated at the API's
 `mvccDeleter`.)
 MERGE-TODO(snap-leases): strict M1 took `hnl : LogNoLease` (no live lease, `leasesKnown []`); with
 `lean`'s live set `L` the KV's `leasesLive` needs `leasesKnown L` of the image's model (the image's

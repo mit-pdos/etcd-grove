@@ -145,7 +145,7 @@ theorem kv_entry_pre_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Auth
   iintro #Hinvs Ha #Hlb
   ihave #Hinvs' := Hinvs
   iunfold srvKVInvsOn at Hinvs'
-  icases Hinvs' with ⟨-, -, -, -, -, -, %HNx⟩
+  icases Hinvs' with ⟨-, -, -, -, -, -, %HNx, -⟩
   imod kv_applied_step_on E γr st₀ A m x st hlen $$ Hinvs Ha Hlb with ⟨%Hp, Ha⟩
   obtain ⟨Hpl, hdet, -, hch⟩ := Hp
   have hpz : plainCover rq ∧ noZeroEnds rq ∧ kvShapeAll rq := by

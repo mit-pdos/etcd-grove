@@ -113,7 +113,7 @@ KV certificates' (`kvCertInv`, the server's own), at the server's witness and pe
 off: `srvKVInvs` ties `E.Nx` to `kvNxOff`, 2026-11-06). -/
 theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (E : apply.AEnv GF)
     (γr : ReadNames) (hNx : E.Nx = kvNx γr false) (hCp : E.Cp = crevOk γr)
-    (hm : γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret) :
+    (hm : γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret) (hlm : γr.kv.lm = E.lm) :
     kvInv (GF := GF) γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
       kvStoreInv E.kv E.γ γr false E.γs ⊢ srvKVInvs E γr := by
   haveI : Persistent (kvStoreInv (GF := GF) E.kv E.γ γr false E.γs) := by
@@ -125,7 +125,7 @@ theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (E : apply.AEnv GF)
   · rw [hNx, hCp, ← kvStoreInv_eq]; iexact Hs
   isplitl
   · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr false hNx hCp, hCp⟩
-  · ipureintro; exact hNx
+  · ipureintro; exact ⟨hNx, hlm⟩
 
 end laws
 

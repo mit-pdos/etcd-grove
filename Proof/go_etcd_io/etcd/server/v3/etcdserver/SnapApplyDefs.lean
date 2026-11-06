@@ -204,7 +204,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     □ ([∗list] x ∈ recs, lease.leaseReqIs (mvccLeases E.γ) x.1 (reqOf x.1)) ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s): its
     -- owner's half at the store's `Write` (the mvcc merge, 2026-11-06: `lean`'s `lease.rdAt
-    -- E.γ.leases E.s`, the deleter at every watchable store over the inner store, restated at the
+    -- (mvcc.api.mvccLeases E.γ) E.s`, the deleter at every watchable store over the inner store, restated at the
     -- API's `mvccDeleter`)
     -- MERGE-TODO(deleter-after-recover): the walk rebuilds `mvccDeleter rd E.γ` for the new closure
     -- after `lessor.Recover` (from `KV.Write.contract`: an additive law `mvccDeleter_of_write`, or

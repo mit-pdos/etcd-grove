@@ -269,7 +269,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
     -- (2026-10-31, #11) what the snapshot takes: the KV at the backend, the WAL's apply-side half
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
     -- 2026-10-26) a count `w` of the tokens taken (until J8b, 2026-11-01, at least the applied

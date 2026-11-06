@@ -191,7 +191,7 @@ theorem srvSnapApplied_of_walk
       isServerM E.authOn s γ ci TM E ρ γr ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
       lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
-      lease.lessorInv lp E.γ.leases ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
+      lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ∗ srvLessorAddr s ↦□ lease.lessorIface lp ∗
       srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
       srvClusterAddr s ↦□ cl ∗ membership.isRaftCluster cl ∗ mvcc.certOk E.γ ([[], []] ++ R) ∗
       srvWTPool E γp ∗ srvGrantIf E ∗
@@ -259,7 +259,7 @@ theorem srvSnapApplied_of_walk
       iintro !> %p %hp
       obtain ⟨x, hx, h1, h2⟩ := hreqT hl p hp
       ihave #Hx := BigSepL.bigSepL_mem
-        (Φ := fun x : w64 × w64 × w64 => lease.leaseReqIs E.γ.leases x.1 (reqOf x.1)) hx $$ HRqs
+        (Φ := fun x : w64 × w64 × w64 => lease.leaseReqIs (mvcc.api.mvccLeases E.γ) x.1 (reqOf x.1)) hx $$ HRqs
       rw [← h1, ← h2]
       iexact Hx
   ihave HEv : srvEver E A' $$ [HEv]

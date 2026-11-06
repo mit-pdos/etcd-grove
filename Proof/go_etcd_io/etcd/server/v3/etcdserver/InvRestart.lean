@@ -196,7 +196,7 @@ theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iunfold isServerRead at H
   icases H with ⟨%v, H⟩
   iunfold srvReadFieldsAt at H
-  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
+  icases H with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hai, -⟩
   iexact Hai
 
 /-- The namespace of the stopped server's escrowed image (R2b-2). -/
@@ -223,12 +223,13 @@ RESTART-RCPT). No compactor follows from the latter (`NewServer` makes one only 
 that every started server's `run` has one spec. -/
 def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = false
 
-/-- **The stop's serving readers** (R2c-4): the store readers a member's serving stocks hold (the
-API's and the watch server's, `64 + 64`), which the stop request returns for the backend's `Close`
-(`storeReaders_retire`); named here, by the stop's owner, so that a client of the stop request names
-no count (`etc/bounds-check.py`). -/
+/-- **The stop's serving readers** (R2c-4): the store's reader tokens a member's serving stocks
+hold (the API's and the watch server's, `64 + 64`), which the stop request returns for the backend's
+`Close` (`mvccClosed_rest.law`); named here, by the stop's owner, so that a client of the stop
+request names no count (`etc/bounds-check.py`). (The `lean` merge, 2026-11-06, the reader tokens:
+until then `64 + 64` of mvcc's `storeReader`s, retired by `storeReaders_retire`.) -/
 abbrev srvStopReaders (E : apply.AEnv GF) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ)
+  mvcc.api.mvccReaders E.γ (64 + 64)
 
 /-- **A stop request** (2026-11-05, R2c-2; what `HardStop` sends on `s.stop` and `run` receives):
 evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
@@ -307,15 +308,15 @@ def srvCleanupOwn (s : Loc) : IProp GF :=
 instance srvCleanupOwn_persistent (s : Loc) : Persistent (srvCleanupOwn (GF := GF) s) := by
   unfold srvCleanupOwn; infer_instance
 
-/-- (2026-11-05, R2b-3d gap 4) **The store's readers `NewServer` keeps for the stop**: of the
-`rdStockN - nJobRd` readers `NewStore` gives, all but the watch loops' (`wsLoopN`), the request
-goroutines' and the watch service's run slots' (64 each, `memberUp`'s serving stocks), the
-compactor's, the storage version monitor's and the apply thread's retired ones, and the apply
-thread's own (`apply.kvOwn`). Until then `NewServer` dropped them. With every other reader,
-`storeReaders_retire` and `storeRTs_shares` give the backend's `Close` the stock's shares of its
-open token, as `NewServer`'s own error path does (R-D1). -/
-abbrev srvKeepRdN (γst : mvcc.StoreNames) : Nat :=
-  backend.rdStockN - mvcc.nJobRd γst.kb - mvcc.wsLoopN - 64 - 64 - 1 - 1 - 1 - 1
+/-- (2026-11-05, R2b-3d gap 4) **The store's reader tokens `NewServer` keeps for the stop**: of
+the `mvccReaderN` tokens `mvcc.New` gives, all but the request goroutines' and the watch service's
+run slots' (64 each, `memberUp`'s serving stocks), the compactor's and the apply thread's
+(`apply.applyTok`). With every other token, `mvccClosed_rest.law` gives the backend's `Close` the
+storage's shares of its open token, as `NewServer`'s own error path does (R-D1). (The `lean` merge,
+2026-11-06, the reader tokens: until then of mvcc's `storeReader`s, `rdStockN - nJobRd -
+wsLoopN - 64 - 64 - 1 - 1 - 1 - 1`, the monitor's and the apply thread's backend readers retired
+among them; those are now the two counted slots `etcdStorage_open.law` hands the server.) -/
+abbrev srvKeepRdN : Nat := mvcc.api.mvccReaderN - 64 - 64 - 1 - 1
 
 end defs
 
@@ -336,17 +337,12 @@ opaque memStorRestarted (ms : Loc) (γs : MemStorNames) (σ : StorContents) (cs 
     IProp GF
 
 /-- **The real backend's batch-lock resource, as a restart's `bootstrap` leaves it** (2026-11-03,
-the whole-`bootOk` review, T1-B, option B3): `mvcc.lateWB`'s arms, the unregistered one with the
-client's halves of the backend's exact ghosts at some values (`backend.pvckOwn`), not the empty ones
-of a first start (`pvckEmpty`, false here: the `Key` bucket holds the stopped member's revisions,
-and after a compaction its compaction keys are set; measured, `etc/spec-test/bootstrap/`). A
-restart's `NewStore` (R2d) learns the values under the lock. Nothing on the restart path uses it
-yet: `lateWD`, `KBReal.snap`, `kbBoot` take a backend `bootstrap` opened to carry `lateWB`, so R2d
-merges the two (B1: `lateWB`'s arm at `pvckOwn`, `NewStore` deriving `pvckEmpty` by agreement) when
-the two contracts merge. -/
-def lateWBR (gx : GName) (γB : backend.BNames) : IProp GF :=
-  iprop((dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × mvcc.StoreNames)) ∗
-      backend.pvckOwn γB) ∨ mvcc.lateWR gx)
+the whole-`bootOk` review, T1-B, option B3; DRAFT, R2d's). (The `lean` merge, 2026-11-06: the
+store's write invariant of mvcc's API, `mvcc.api.mvccW gx`, as a first start's; until then `lean`'s
+F2 arms, `mvcc.lateWB`'s unregistered arm at the backend's exact compaction ghosts `pvckOwn` or
+`mvcc.lateWR`, gone with F2. A restart's store over a non-empty history needs the API's `New` over
+`mvccStorageFor B Pk L c u` at any `(L, c, u)`: `notes/mvcc-client-merge-plan.md`, risk 5.) -/
+def lateWBR (gx : GName) (_γB : backend.BNames) : IProp GF := mvcc.api.mvccW gx
 
 /-- **The bootstrapped record of a restart** (DRAFT, R2c; `bootOk`'s restart case, L3): `bootOk`
 with the changes marked `[R2c]`: no peers (so `RestartNode`), the storage rebuilt from the WAL's

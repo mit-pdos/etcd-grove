@@ -611,9 +611,9 @@ theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState
   unfold bkLendW
   iintro %d0 %hd0
   iunfold srvAuthApplyResB at H
-  icases H with ⟨%stl, %d, %hd, #Hsf, Har, Hrw, Hro⟩
-  rw [hd0] at hd
-  obtain rfl := Option.some.inj hd
+  icases H with ⟨%stl, %d, %Pk, %hd, #Hsf, Har, Hrw, Hro⟩
+  have hdd : d0 = d := srvBkTie_inj d0 d (hd0.symm.trans hd.1)
+  subst hdd
   rw [hM]
   simp only [authApplyResB]
   icases Har with ⟨%hs, %P, %f0, %T, %be, Hfu, Htie, Hwok, Hwh, Hlife, Hpub, Htp, %Hl, Hwat,
@@ -638,10 +638,10 @@ theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState
   imod Hback $$ Hp with ⟨Hwt, Hhh⟩
   imodintro
   iunfold srvAuthApplyResB
-  iexists stl, d0
+  iexists stl, d0, Pk
   iframe Hsf Hrw Hro
   isplitr
-  · ipureintro; exact hd0
+  · ipureintro; exact hd
   rw [hM]
   simp only [authApplyResB]
   iexists hs, P, f0, T, be

@@ -473,7 +473,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     -- (the lease-grant plan's D2, 2026-11-02) its mode: (the lease-expiry plan's X2, 2026-11-04)
     -- monotone exactly in the lease mode `mono` of a mode `m` whose grant flag is the KV names'
     -- (`KVNames.lg`); so revocable (what `Recover` takes) in a cluster that grants none. (Until
-    -- then `lessorModeIs E.γ.leases γr.kv.lg`: false of the revocable mode.) (X7 option (iii),
+    -- then `lessorModeIs (mvcc.api.mvccLeases E.γ) γr.kv.lg`: false of the revocable mode.) (X7 option (iii),
     -- 2026-11-04: the mode is the environment's `E.lm`, the KV names' `γr.kv.lm`.)
     (⌜E.lm = γr.kv.lm⌝ ∗ lease.lessorModeIs (mvccLeases E.γ) (decide (E.lm = .mono))) ∗
     (srvKVAddr s ↦□ E.kv ∗ □ isMvcc E.kv E.γ) ∗

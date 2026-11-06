@@ -407,7 +407,7 @@ abbrev AEnvA (G : BundledGFunctors) := apply.AEnv G
 
 abbrev envAus (E : AEnvA GF) : IProp GF := apply.envAus E
 abbrev kvBk (E : AEnvA GF) : IProp GF := apply.kvBk E
-abbrev leasesLiveA (E : AEnvA GF) (s : List EtcdKv) : IProp GF := apply.leasesLive E.γ s
+abbrev leasesLiveA (E : AEnvA GF) (s : List EtcdKv) : IProp GF := apply.leasesLive E s
 abbrev kvOwnA (E : AEnvA GF) (log : mvcc.Log) : IProp GF := apply.kvOwn E log
 abbrev cmpOwnA (E : AEnvA GF) (c : Int) : IProp GF := apply.cmpOwn E c
 abbrev mPreA (E : AEnvA GF) (c : apply.Chain) (a : GoInterface)

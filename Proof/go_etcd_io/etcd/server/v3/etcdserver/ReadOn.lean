@@ -376,7 +376,7 @@ theorem srvKVCoreM_fire (on : Bool)
   · rw [srvKVCoreM_false]
     iintro #Hinvs Hc #Hau
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
+    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx, -⟩
     rw [HNx]
     iunfold kvNxOff at Hc
     icases Hc with ⟨%A, #HA, %hA⟩
@@ -499,7 +499,7 @@ theorem srvKVCoreM_keys (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (l : m
   · rw [srvKVCoreM_false]
     iintro #Hinvs Hc
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
+    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx, -⟩
     rw [HNx]
     iunfold kvNxOff at Hc
     icases Hc with ⟨%A, #HA, %hA⟩
@@ -925,7 +925,7 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   iintro #Hainv #Hkvi Hw Hc Hlc
   ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
   iunfold srvKVInvsOn at Hkvi
-  icases Hkvi with ⟨-, -, -, -, -, -, %HNx⟩
+  icases Hkvi with ⟨-, -, -, -, -, -, %HNx, -⟩
   rw [HNx]
   ihave #Hc := Hc
   ihave #Hw := Hw

@@ -225,12 +225,12 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       -- the walk's lessor premises
       ihave #HRqs : □ (⌜decide (E.lm = .mono) = true → ∀ u ∈ U, u ∈ srvIds E (appliedTable γr A).ids⌝ -∗
           [∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨
-            lease.leaseReqIs E.γ.leases x.1 (tableReq (appliedTable γr A') x.1)) $$ []
+            lease.leaseReqIs (mvcc.api.mvccLeases E.γ) x.1 (tableReq (appliedTable γr A') x.1)) $$ []
       · iintro !> %hmU
         have key : □ (∀ p : w64 × w64, ⌜p ∈ appliedTable γr A⌝ -∗
-            lease.leaseReqIs E.γ.leases p.1 p.2) ⊢
+            lease.leaseReqIs (mvcc.api.mvccLeases E.γ) p.1 p.2) ⊢
             [∗list] x ∈ recs, (⌜x.1 ∉ U⌝ ∨
-              lease.leaseReqIs (GF := GF) E.γ.leases x.1 (tableReq (appliedTable γr A') x.1)) := by
+              lease.leaseReqIs (GF := GF) (mvcc.api.mvccLeases E.γ) x.1 (tableReq (appliedTable γr A') x.1)) := by
           apply BigSepL.bigSepL_intro
           intro k x hk
           refine intuitionistically_elim.trans ?_
@@ -243,10 +243,10 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
           · ileft; ipureintro; exact hxU
         iapply key
         iexact HRq2
-      ihave #HGrs : □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted E.γ.leases id) $$ []
+      ihave #HGrs : □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted (mvcc.api.mvccLeases E.γ) id) $$ []
       · iintro !>
-        have key : □ (∀ id : w64, lease.leaseGranted (GF := GF) E.γ.leases id) ⊢
-            [∗list] id ∈ recs.map (·.1), lease.leaseGranted E.γ.leases id := by
+        have key : □ (∀ id : w64, lease.leaseGranted (GF := GF) (mvcc.api.mvccLeases E.γ) id) ⊢
+            [∗list] id ∈ recs.map (·.1), lease.leaseGranted (mvcc.api.mvccLeases E.γ) id := by
           apply BigSepL.bigSepL_intro
           intro k x hk
           refine intuitionistically_elim.trans ?_
@@ -321,9 +321,9 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     imod Hnil with %hTnil
     have hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ :=
       imageLeasesAt_nil hTnil hleaseI
-    ihave #Hlrev2 : lease.lessorRevocable E.γ.leases $$ []
-    · have heq : lease.lessorModeIs (GF := GF) E.γ.leases (decide (E.lm = .mono)) =
-          lease.lessorRevocable E.γ.leases := by
+    ihave #Hlrev2 : lease.lessorRevocable (mvcc.api.mvccLeases E.γ) $$ []
+    · have heq : lease.lessorModeIs (GF := GF) (mvcc.api.mvccLeases E.γ) (decide (E.lm = .mono)) =
+          lease.lessorRevocable (mvcc.api.mvccLeases E.γ) := by
         rw [apply.AEnv.lm_of_lg_false hlgE]; rfl
       rw [← heq]; iexact Hlrev
     ihave HRS : E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) $$ [HRS]

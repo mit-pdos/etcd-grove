@@ -135,7 +135,7 @@ theorem srvApplyKVM_open (on : Bool) (s : Loc) (E : apply.AEnv GF) (γw : GName)
         apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ kvAuthM on s E ua st ∗
         (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
           waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
-        lease.rdAt E.γ.leases E.s) := by
+        (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ)) := by
   cases on with
   | false => exact .rfl
   | true =>

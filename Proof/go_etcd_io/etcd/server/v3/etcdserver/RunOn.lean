@@ -60,7 +60,7 @@ def applyResOn (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVOn C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunAtOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ srvTokRights B.E (ciEff B.γ st.k) ∗
     -- (D22 J1b, 2026-10-31) `applyRes`'s snapshot resources
@@ -110,7 +110,7 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
     "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
-    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v ∗
     -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
     "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗

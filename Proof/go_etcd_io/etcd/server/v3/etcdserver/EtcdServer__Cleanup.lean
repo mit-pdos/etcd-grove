@@ -6,7 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Stop
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 
 @[expose] public section
@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.Cleanup.wp_proof
     (hLS : lease.lessor.Stop.spec (GF := GF) (hG := hG))
-    (hKC : mvcc.watchableStore.Close.spec (GF := GF) (hG := hG))
+    (Hp : mvcc.api.persistent.law (GF := GF)) (hsh : mvcc.api.shapes.law (GF := GF))
     (hBC : backend.backend.Close.spec (GF := GF) (hG := hG)) :
     EtcdServer.Cleanup.spec (GF := GF) (hG := hG) := by
-  intro s lp wsl st γw c stl K γbe d dq W Pk cp X Y
-  wp_start as ⟨#Hlf, Hstop, #Hkvf, #Hws, Hwcl, #Hauf, #HaC, Htpa, Hbr, Hbe, Hγbe, #Hb, #Hsc, Hopen,
-    HX, #Hreq, #Hcpf, #Hcpok⟩
+  intro s lp kv γ q Pkm stl K γbe d dq W Pk cp X Y
+  haveI := Hp.1
+  wp_start as ⟨#Hlf, Hstop, #Hkvf, #Hws, Hmo, Hrds, Hmb, #Hauf, #HaC, Htpa, Hbr, Hbe, Hγbe, #Hb,
+    #Hsc, Hopen, HX, #Hreq, #Hcpf, #Hcpok⟩
   (try wp_auto)
   -- `s.lessor.Stop()`
   ihave #Hlpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
@@ -44,12 +45,18 @@ theorem EtcdServer.Cleanup.wp_proof
   -- `s.kv.Close()`
   ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  -- `Close` gives back the loops' readers and the compaction job's resource: with the caller's
-  -- census, the backend's whole open token (R2b-3d stage 5c; until then dropped here)
-  wp_apply (hKC wsl st γw c) $$ [$Hwcl] as ⟨Hlrs, Hjob⟩
+  -- `KV.Close.contract` at the handle's dynamic type (`shapes.law`); with every reader token and
+  -- the backend's share, the caller's census gives the backend's whole open token (R2b-3d stage 5c;
+  -- the reader tokens, 2026-11-06)
+  ihave %Hsh := hsh.1 kv γ $$ Hws
+  obtain ⟨kty, kvv, Hkveq, -, -, -, -, -, -, -, -, -, -, -, hClose⟩ := Hsh
+  subst Hkveq
+  simp only [interface.mkOk]
+  (try wp_auto)
+  wp_apply (hClose γ) $$ [$Hmo] as Hcl
   · iframe #
-  imod Hopen $$ [Hlrs Hjob] with Hopen
-  · iunfold mvcc.wsCloseRes; iframe Hlrs Hjob
+  imod Hopen $$ [Hcl Hrds Hmb] with Hopen
+  · iframe Hcl Hrds Hmb
   (try wp_auto)
   -- `s.authStore.Close()`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []

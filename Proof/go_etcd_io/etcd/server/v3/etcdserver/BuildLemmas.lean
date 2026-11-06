@@ -54,16 +54,13 @@ theorem isBackend_withCm (d : mvcc.KBReal) (c : Bool) (Pk : IProp GF) :
         (mvcc.lateW ({ d with cm := c } : mvcc.KBReal).gx) Pk ({ d with cm := c } : mvcc.KBReal).be := by
   exact .rfl
 
--- MERGE-TODO(close): `lean`'s `srvStopChans_boot` (R2b-3c, the backend's stop channels for
--- `backend.Close`), restated at this branch's instance (no F2 ties, the boot's write invariant
--- `mvcc.lateW d.gx` in place of `lateWB`/`lateWD_boot`); its body waits on `srvStopChans`' restatement
--- (`SnapRO.lean`, over `mvcc.lateWD`) and on the user's decision about the API's `Close`.
 /-- **`NewServer`'s backend's stop channels are the server's** (`bootstrap`'s lock resource),
-at the instance in either compaction mode. -/
+at the instance in either compaction mode. (The `lean` merge, 2026-11-06: at the store's write
+invariant of mvcc's API, `mvcc.api.mvccW d.gx`, in place of `lean`'s `lateWB`/`lateWD_boot`.) -/
 theorem srvStopChans_boot (γA : ApplyNames) (d : mvcc.KBReal) (c : Bool) :
-    backend.isBackend (GF := GF) d.γB d.P (mvcc.lateW d.gx)
+    backend.isBackend (GF := GF) d.γB d.P (mvcc.api.mvccW d.gx)
         (batchLockInv γA (metaTM d.γB d.P)) d.be ∗
-      backend.isStopChans d.γB d.P (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be ⊢
+      backend.isStopChans d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) d.be ⊢
       srvStopChans γA ({ d with cm := c } : mvcc.KBReal) := by
   unfold srvStopChans
   exact .rfl

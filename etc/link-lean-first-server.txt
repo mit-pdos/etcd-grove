@@ -429,7 +429,7 @@ EtcdServer__StoppingNotify:
 # The stop (the restart plan's R2b-2, 2026-11-02): `HardStop` over the stop right
 # (`srvStopRight`, `InvRestart.lean`).
 EtcdServer__HardStop:
-EtcdServer__Cleanup: lease_lessor__Stop watchableStore__Close backend__Close
+EtcdServer__Cleanup: lease_lessor__Stop =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_shapes_law backend__Close
 EtcdServer__LeaderChanged: Notifier__Receive
 EtcdServer__FirstCommitInTermNotify: Notifier__Receive
 EtcdServer__NextRequestID: idutil_Generator__Next

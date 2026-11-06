@@ -651,20 +651,19 @@ theorem revokeA_drop (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (out 
   simp only [apply.revokeRestA_nonRevoke _ _ _ _ _ hk]
   iintro H; iexact H
 
--- MERGE-TODO(lease): `lean`'s `kv_certPre_G` (the lease-expiry plan's grants and revocations,
--- `plainOrCmpG lm`) is over mvcc's certificates (`E.γ.cok`, `kvCert`); restate it as
--- `kv_certPre_M`'s generalization over the raft witness (`E.Nx = kvNxOff`, `kvNxOff … l`), which
--- `applyEntryNormal` now calls with `E.lm`, `Hnl` and `kvTableOf_ne0`.
 /-- **`kv_certPre_M` at `lm`**: a grant's outcomes keep the log (`chainStep_grant_logAfter`),
-certified as the entry's model log (`kvEntry_grant`). -/
-theorem kv_certPre_G (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.cok) (c₀ : w64)
+certified as the entry's model log (`kvEntry_grant`); a revocation's commit only its deletions
+(`kvEntry_revoke`). (The `lean` merge, 2026-11-06: over the raft witness `E.Nx = kvNxOff γ γk`, as
+`kv_certPre_M`, in place of `lean`'s mvcc certificates `E.γ.cok`/`kvCert`.) -/
+theorem kv_certPre_G (E : apply.AEnv GF) (γ : ServerRaftNames) (γk : KVNames)
+    (hNx : E.Nx = kvNxOff γ γk) (c₀ : w64)
     (lt : LeaseTable) (x : apply.ApplyKV) (m : EntryModel) (rq : apply.IRRModel) (v3 : Bool) (lm : lease.Mode)
     (hp : plainOrCmpG lm rq) (hoff : x.chain.kvExact = true) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : apply.irrDecode m.data = some rq) (hv : v3 = decide (uint.Z c₀ < uint.Z m.index))
     (hz : mvcc.LogNoLease x.log) (h0 : W64 0 ∉ lt.ids) :
-    kvCert (GF := GF) γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
+    kvNxOff (GF := GF) γ γk (kvEntry c₀ x.chain lt x.log m) ⊢ apply.certPreV v3 E x.chain rq x.log := by
   rcases hp with hp | hg | hr
-  · exact kv_certPre_M E γk hγ c₀ lt x m rq v3 hp hoff ht hd hdec hv
+  · exact kv_certPre_M E γ γk hNx c₀ lt x m rq v3 hp hoff ht hd hdec hv
   rotate_left
   · rw [kvEntry_revoke c₀ x.chain lt x.log m rq hdec hr.2 hz h0]
     iintro #Hc
@@ -674,8 +673,8 @@ theorem kv_certPre_G (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.c
       unfold apply.certPre
       imodintro
       iintro %oc %hs
-      rw [chainStep_revoke_logAfter rq hr.2.1 x.log (mvcc.stateAfter_leaseZero _ hz) x.chain oc hs]
-      iapply kvCert_certOk γk E.γ hγ $$ Hc
+      rw [chainStep_revoke_logAfter rq hr.2.1 x.log (mvcc.stateAfter_leaseZero _ hz) x.chain oc hs, hNx]
+      iexact Hc
   rw [kvEntry_grant c₀ x.chain lt x.log m rq hdec hg.2]
   iintro #Hc
   cases v3
@@ -684,8 +683,8 @@ theorem kv_certPre_G (E : apply.AEnv GF) (γk : KVNames) (hγ : E.γ.cok = γk.c
     unfold apply.certPre
     imodintro
     iintro %oc %hs
-    rw [apply.chainStep_grant_logAfter rq hg.2.1 x.log x.chain oc hs]
-    iapply kvCert_certOk γk E.γ hγ $$ Hc
+    rw [apply.chainStep_grant_logAfter rq hg.2.1 x.log x.chain oc hs, hNx]
+    iexact Hc
 
 open Iris.ProofMode in
 /-- **`srvRest_applyP` at `lm`**: a covered request, a compaction, or a grant the cluster admits. -/
@@ -890,7 +889,7 @@ theorem revokeOwn_take [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] 
       · rw [hg.2.1] at hk; cases hk
       · exact hr
     have hlg : E.lg = true := apply.AEnv.lg_true_of_lm (by rw [hr.1]; decide)
-    unfold apply.revokeOwn srvGrantIf srvGrantable
+    unfold apply.revokeOwn apply.rdHeld srvGrantIf srvGrantable
     rw [if_pos hk, hlg]
     simp only [↓reduceIte, hr.1]
     iintro ⟨Hrd, #⟨-, Hm⟩⟩

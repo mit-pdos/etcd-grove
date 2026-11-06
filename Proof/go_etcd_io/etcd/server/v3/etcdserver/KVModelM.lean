@@ -26,25 +26,27 @@ def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
 section pure
 variable [GooseExts]
 
-/-- **The committed log's shapes in the auth mode `on`**: `logShape` off, `logShapeOn` on. -/
-def logShapeM (on : Bool) (L : List EntryModel) : Prop :=
+/-- **The committed log's shapes in the auth mode `on`**: `logShape` off (in a cluster that grants
+leases or not, `lg`: the lease-grant stage's §2.8), `logShapeOn` on. -/
+def logShapeM (on : Bool) (lm : lease.Mode) (L : List EntryModel) : Prop :=
   match on with
-  | false => logShape L
+  | false => logShape lm L
   | true => logShapeOn L
 
 /-- The shapes of either mode give a conf change's id `0`. -/
-theorem logShapeM_cc (on : Bool) (L : List EntryModel) (h : logShapeM on L) :
+theorem logShapeM_cc (on : Bool) (lm : lease.Mode) (L : List EntryModel) (h : logShapeM on lm L) :
     ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0 := by
   cases on
   · exact fun m hm => (h m hm).2
   · exact fun m hm => (h m hm).2
 
-theorem logShapeM_false (L : List EntryModel) : logShapeM false L = logShape L := rfl
+theorem logShapeM_false (lm : lease.Mode) (L : List EntryModel) : logShapeM false lm L = logShape lm L :=
+  rfl
 
-theorem logShapeM_true (L : List EntryModel) : logShapeM true L = logShapeOn L := rfl
+theorem logShapeM_true (lm : lease.Mode) (L : List EntryModel) : logShapeM true lm L = logShapeOn L := rfl
 
-theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (A ++ B)) :
-    logShapeM on A := by
+theorem logShapeM_append (on : Bool) (lm : lease.Mode) (A B : List EntryModel) (h : logShapeM on lm (A ++ B)) :
+    logShapeM on lm A := by
   cases on
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)

@@ -101,7 +101,7 @@ theorem snap_backendOptsOk
       mvcc.isWatchableStore ws E.s γw ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
       lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
-      lease.lessorInv lp E.γ.leases ⊢
+      lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ⊢
     apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
       opts' := by
   subst hγB

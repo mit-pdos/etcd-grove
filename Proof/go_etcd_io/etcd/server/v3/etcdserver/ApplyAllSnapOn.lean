@@ -134,13 +134,13 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   icases HlpM with ⟨%Hmo, #HlpM⟩
   have hEm : E.lm = .none := by
     have h := hlgk; rw [KVNames.lg_eq, ← Hmo] at h; simpa using h
-  ihave #HlpM : lease.lessorModeIs E.γ.leases (decide (lease.Mode.none = .mono)) $$ []
+  ihave #HlpM : lease.lessorModeIs (mvcc.api.mvccLeases E.γ) (decide (lease.Mode.none = .mono)) $$ []
   · iExactEq HlpM <;> rw [hEm]
-  ihave #Hlrev : lease.lessorModeIs E.γ.leases false $$ []
+  ihave #Hlrev : lease.lessorModeIs (mvcc.api.mvccLeases E.γ) false $$ []
   · iExactEq HlpM <;> rfl
   ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A .none (by decide)
     (by rw [apply.AEnv.lg_eq, hEm]) $$ [$HlpM $Hlrev $HRS]
-  ihave #HlpE : lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)) $$ []
+  ihave #HlpE : lease.lessorModeIs (mvcc.api.mvccLeases E.γ) (decide (E.lm = .mono)) $$ []
   · rw [hEm]; iexact HlpM
   rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn

@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelM
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvAuthBackend
 
@@ -24,10 +25,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3
 
-/-- **The auth state the mode-`on` KV model starts from**: the store's latest at the server's
-start (`newAuthStore_boot`: the history `[bootState, bump bootState]`, the revision committed
-once). -/
-def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
+-- `srvAuthSt0` is `KVModelM.lean`'s (the KV model in either mode, below the server's store invariant).
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

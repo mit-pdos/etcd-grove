@@ -24,7 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestConf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cleanup
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderRetire
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
 
 @[expose] public section
 
@@ -102,7 +102,7 @@ def applyResStop (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF 
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
@@ -226,38 +226,7 @@ theorem stop_monitorRT (E : apply.AEnv GF) (γp : WTNames) (γg : GoNames) (d : 
         rw [DFrac.op_own] at Hv
         exact Qp_one_add_not_le _ (DFrac.valid_own.1 Hv)
 
-/-- **The census** (gap 4, as `NewServer`'s error path R-D1): `m` idle readers of the store, the
-writer's fragment (the pin `storeReaders_retire` needs), the writer's retired count with its own
-retired token, the monitor's retired token, the constructors' half and the pool's shares of the
-backend's open token make, with what `kv.Close` gives back (the loops' readers, the compaction
-job's resource: `wsCloseRes`), the whole open token, when `m` with the loops' and the two retired
-ones is the whole stock. -/
-theorem stop_census (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d)
-    (m : Nat) (hm : m + mvcc.wsLoopN + 2 = backend.rdStockN - mvcc.nJobRd γ.kb) :
-    £ 1 ∗ mvcc.isStore (GF := GF) s γ ∗ mvcc.writerFrag γ ∗
-      ([∗list] _x ∈ List.replicate m (), mvcc.storeReader s γ) ∗
-      mvcc.retiredAt γ (2 + mvcc.nJobRd γ.kb) ∗ mvcc.storeRT γ ∗ mvcc.bkRTx d.γB d.P d.be ∗
-      backend.bOpen d.γB (1 : Qp).half ∗
-      ([∗list] _x ∈ List.replicate (backend.rdPoolN + backend.authRdN) (),
-        backend.bOpen d.γB backend.rdOpen) ⊢
-    (mvcc.wsCloseRes s γ ={⊤}=∗ backend.bOpen d.γB 1) := by
-  iintro ⟨Hlc, #Hs, Hfrag, Hrs, Hret, HrtA, HrtM, Hhalf, Hpool⟩ Hcr
-  iunfold mvcc.wsCloseRes at Hcr
-  icases Hcr with ⟨Hlrs, Hjob⟩
-  ihave Hrs := stop_rep_join _ _ _ $$ Hrs Hlrs
-  imod mvcc.storeReaders_retire s γ _ _ $$ Hlc Hs Hfrag Hrs Hret with ⟨Hrts, -, -⟩
-  have hRT : mvcc.storeRT (GF := GF) γ = mvcc.bkRTx d.γB d.P d.be := by
-    show mvcc.kbRT γ.kb = _
-    rw [hk]; rfl
-  rw [hRT]
-  ihave Hrts := stop_rep_cons1 _ _ $$ Hrts HrtA
-  ihave Hrts := stop_rep_cons1 _ _ $$ Hrts HrtM
-  ihave Hrts := stop_rep_cast _ _ (backend.rdStockN - mvcc.nJobRd γ.kb) (by omega) $$ Hrts
-  rw [← hRT]
-  ihave Hstock := mvcc.storeRTs_shares γ d hk $$ [$Hrts $Hjob]
-  imodintro
-  iapply (backend.bOpen_one_pool d.γB).2
-  iframe Hhalf Hpool Hstock
+-- `stop_census` (the reader tokens, 2026-11-06) is `StopCensus.lean`'s.
 
 /-! ## The stopped backend's data, observed (`StopImage.stop_mergedObs` at the writer's pin) -/
 

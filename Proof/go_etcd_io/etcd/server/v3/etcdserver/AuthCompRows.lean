@@ -65,7 +65,7 @@ def srvApplyKVC (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : app
     (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
     -- (the lease-expiry merge) the lessor's range deleter (`srvApplyKV`'s, `srvApplyKVOn`'s)
-    lease.rdAt E.γ.leases E.s)
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ))
 
 /-- **The apply thread's KV invariants** (`srvKVInvsM`'s): the mode's KV and certificates'
 invariants from `srvAuthSt0`, the raft log's, the KV names' ties (off's, `kvNameTiesM`), the modes
@@ -113,7 +113,7 @@ def applyBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
       apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗
     -- (the lease-expiry merge) the lessor's range deleter (`applyBuilt`'s, `applyBuiltOn`'s)
-    lease.rdAt E.γ.leases E.s ∗
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ [] x₀ srvAuthSt0 ∗
     srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k))
 
@@ -239,7 +239,7 @@ def isServerRunC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
     "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
     -- (2026-10-31, #11) the KV the snapshot commits (`start`'s `srvReadBuilt`)
-    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+    "#Hkvf" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
     "#Hrf" ∷ srvRunFieldsAt s γr γg γcx v SP ∗
     -- (revoke-open, 2026-11-06) the revocation's bundle (`run`'s expiry arm, revocable mode)
     "#Hrvk" ∷ srvRevokeCtx s E ρ γr γg ∗
@@ -277,7 +277,7 @@ def applyResC (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKVC K C.s B.E C.γw x sa ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRunM K.isOn C.γr C.ai₀ C.c₀ A x sa ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ txn.isKV kv B.E.s B.E.γ) ∗
+    (∃ kv : GoInterface, srvKVAddr C.s ↦□ kv ∗ □ mvcc.api.isMvcc kv B.E.γ ∗ ⌜kv = B.E.kv⌝) ∗
     rnWalTokA C.rn (srvRAddr C.s) (1 : Qp).half ∗
     (∃ w : Nat, srvWTTaken C.wt.cnt w) ∗ acTok K (ciEff B.γ st.k) ∗
     srvSnapOwn C.s C.ci B.E C.γr B.γ ai ∗
