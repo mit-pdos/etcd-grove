@@ -47,7 +47,7 @@ theorem v3rpc.authMaintenanceServer.Downgrade.wp_proof
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
-    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e %He
+    wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, -⟩
     · iframe #
       iapply (v3rpc.srvErrIs_applyErrIs (GoInterface.ok ei) (by intro h; cases h)) $$ Herr
     (try wp_auto)

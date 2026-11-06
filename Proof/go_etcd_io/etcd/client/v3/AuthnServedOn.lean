@@ -160,7 +160,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   iapply HΨ
   iframe Hed
   iunfold v3rpc.authWrapOut at Hout
-  icases Hout with (⟨%He, Ha⟩ | ⟨%Hre, %e0, %He0, Ha⟩)
+  icases Hout with (⟨%He, Ha⟩ | ⟨%Hre, -, %e0, %He0, Ha⟩)
   · iunfold authnAns at Ha
     icases Ha with ⟨Hs, -, Hok⟩
     iframe Hs

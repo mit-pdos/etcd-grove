@@ -301,7 +301,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
       (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b ⟨-, %Hb2, -⟩
     · iframe #
       isplitl
-      · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2
+      · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2.1
       · ipureintro; rfl
     have hb : b = true := Hb2 _ rfl HeofL.1.1 rfl
     subst hb

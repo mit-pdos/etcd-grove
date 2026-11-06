@@ -829,7 +829,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       (_root_.Perennial.errors.treeTyped_pointer eofE _ HeofL.1.1) $$ [] as %b -
     · iframe #
       isplitl
-      · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2
+      · iapply _root_.Perennial.errors.errorIsTree_leaf eofE _ _ HeofL.1.2.1 HeofL.1.2.2.1
       · ipureintro; rfl
     wp_if_destruct
     rotate_left

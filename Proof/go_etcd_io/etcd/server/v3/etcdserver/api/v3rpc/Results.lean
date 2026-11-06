@@ -792,7 +792,7 @@ theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
         (⌜err = GoInterface.nil⌝ -∗ userAddReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) name Qa) := by
   iintro H
   iunfold v3rpc.authWrapOut at H
-  icases H with (⟨%He, H⟩ | ⟨%Hr, %e0, %He0, H⟩)
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
   · subst He
     iunfold userAddAnsOn at H
     icases H with (⟨%Hc, -⟩ | H)

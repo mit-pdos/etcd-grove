@@ -183,7 +183,7 @@ theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : G
         (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) rq Q) := by
   iintro H
   iunfold authWrapOut at H
-  icases H with (⟨%He, H⟩ | ⟨%Hr, %e0, %He0, H⟩)
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
   · subst He
     iapply (adminOutOn_reply s E ρ ctx rq Q F T resp GoInterface.nil) $$ H
   · ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ ctx rq Q F T null e0 $$ H

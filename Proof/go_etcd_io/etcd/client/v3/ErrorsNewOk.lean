@@ -221,7 +221,7 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
   icombine Hec Hec' gives %Heqc
   icombine Hed Hed' gives %Heqd
   cases Heqc; cases Heqd
-  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2 Htc.1 Htc.2 hAs $$ Hmc
+  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs $$ Hmc
   ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs $$ Hmd
   unfold ctxErrClientAllW
   iintro !> %ctx %cs #Hctx
