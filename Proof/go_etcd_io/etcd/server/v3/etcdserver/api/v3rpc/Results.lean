@@ -918,7 +918,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iunfold etcdUserAddSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hu, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hu, Hk⟩
   ihave #Hu' : iprop(□ userAddHistAu s E ρ ci m.name false Qa) $$ []
   · unfold userAddHistAu
     iintro !> %um %Hum
@@ -937,7 +937,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -966,7 +966,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iunfold etcdRoleAddSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -980,7 +980,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -1009,7 +1009,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iunfold etcdUserGrantRoleSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -1023,7 +1023,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -1052,7 +1052,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iunfold etcdRoleGrantPermissionSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -1066,7 +1066,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs
@@ -1096,7 +1096,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iunfold etcdAuthEnableSpec at Hk
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hk with ⟨-, %Qa, #Hha, Hk⟩
+  icases Hk with ⟨#HΨe, %Qa, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -1108,7 +1108,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
   iframe Hs

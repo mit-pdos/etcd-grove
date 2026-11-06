@@ -221,6 +221,11 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
   icombine Hec Hec' gives %Heqc
   icombine Hed Hed' gives %Heqd
   cases Heqc; cases Heqd
+  -- (k8s etcd3 7c-2 part 2, S7) their descriptions, neither read error's
+  ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, ⟨%ed3, #Hed3, %Hdd⟩⟩ := EtcdGrove.ContextReadErrs.descs $$ Hp
+  icombine Hec Hec3 gives %Heqc3
+  icombine Hed Hed3 gives %Heqd3
+  subst Heqc3; subst Heqd3
   ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs $$ Hmc
   ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs $$ Hmd
   unfold ctxErrClientAllW
@@ -247,7 +252,8 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
       rw [Hx]
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_cell x _
         (by simp [go_etcd_io.etcd.cache.v3.clientErrMsgs]) $$ Hcell
-    · ipureintro; right; simp [handlerDescs]
+    · ipureintro; right; simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+        or_false, not_or, Hdc, Hdd]; decide
   · icombine Hv Hed gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -255,7 +261,8 @@ theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := h
     · iexact Hsd
     · -- (D37) `DeadlineExceeded` is of no `*errorString` type
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty ed (Hnd ed rfl)
-    · ipureintro; right; simp [handlerDescs]
+    · ipureintro; right; simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+        or_false, not_or, Hdc, Hdd]; decide
 
 end proofs
 

@@ -289,6 +289,41 @@ instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
   build_get_is_pkg_init_wf
 
+/-- **A description that is neither read error's** (k8s etcd3 7c-2 part 2, S7): neither
+`togRPCError`'s future-revision nor its compacted one, the handlers' descriptions
+(`handlerDescs`). -/
+def notReadDesc (err : GoInterface) : Prop :=
+  go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
+    go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.compactedDesc
+
+/-- **The interceptor's errors are neither read error** (k8s etcd3 7c-2 part 2, S7):
+`ErrGRPCNotCapable`, `ErrGRPCNotSupportedForLearner`, `ErrGRPCInvalidClientAPIVersion` and
+`ErrGRPCNoLeader`, by their descriptions (`rpctypes`' package facts). -/
+theorem interceptorErrsNotRead :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ⊢
+      (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□
+          GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) ∗
+        (∃ e : GoInterfaceOk,
+          globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ↦□
+            GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) ∗
+        (∃ e : GoInterfaceOk,
+          globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□
+            GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) ∗
+        (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□
+          GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) := by
+  iintro #Hp
+  ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%e8, #H8, -, %D8, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    ⟨%e40, #H40, %D40⟩, -, -, ⟨%e43, #H43, %D43⟩, ⟨%e44, #H44, %D44⟩⟩
+  isplitl []
+  · iexists e44; iframe H44; ipureintro; simp only [notReadDesc, D44]; decide
+  isplitl []
+  · iexists e8; iframe H8; ipureintro; simp only [notReadDesc, D8]; decide
+  isplitl []
+  · iexists e40; iframe H40; ipureintro; simp only [notReadDesc, D40]; decide
+  · iexists e43; iframe H43; ipureintro; simp only [notReadDesc, D43]; decide
+
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
 end init
