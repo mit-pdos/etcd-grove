@@ -328,6 +328,18 @@ network (`srvNetMember`, with its transport `τ`) and one of its transport's rea
 def srvPeerCtl (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ τ : SrvTr GF, srvNetMember γn s id τ ∗ srvTrTok γn τ)
 
+/-- **The read loop's reader slots a started member keeps** (revoke-open F.1, 2026-11-06): `read.mux`'s
+`actualMaxReaders` less the revocation's outer pool's `srvRevokePoolN`, which `start` takes
+(`srvStarted`'s count, `start_gives_views`'s). Named, with its law `one_le_memberReadN`, so that the
+consumers of `memberUp`'s and `kvServeStocks`'s stocks do not restate the count. -/
+def memberReadN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN
+
+/-- What the consumers take of the read loop's slots: at least one (each splits off one gRPC slot,
+`client.etcdGrpcSlots_of_started`'s `N ≤ M`). -/
+theorem one_le_memberReadN : 1 ≤ memberReadN := by
+  unfold memberReadN
+  rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN]; omega
+
 /-- **A member started** (`Start`'s success from `memberBuilt`): the server `s` started with its
 request names `ρ` (the wait registry's `γw`) at an apply environment `E` agreeing with the stand-in
 `E₀`, auth off, built from a configuration `cfg` with the logger `lg`, no tracer options and no
@@ -345,8 +357,7 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ⌜envAgree E E₀ ∧ E.authOn = false ∧ cfg.Logger' = lg ∧ cfg.TracerOptions' = slice.nil ∧
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗ srvLgReader s ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
-      srvReadReader s ρ.rd) ∗
+    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
@@ -479,8 +490,7 @@ def memberUpOn (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn 
       cfg.WatchProgressNotifyInterval' = 0⌝ ∗
     isServerReqM true s E { ρ with wait := γw } ∗ isServerReadM true s E ρ.rd ∗ srvAuthLb s E ∗
     srvGoRes s ∗ srvLgReader s ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
-      srvReadReader s ρ.rd) ∗
+    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s ρ.rd) ∗
     srvWatchBuilt s E ∗ srvServeFacts s E cfg ∗
     srvBemuReader s ∗
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗

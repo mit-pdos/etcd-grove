@@ -1145,3 +1145,48 @@ Interfaces regenerated: `etcdstart` (`Adequacy`, `AdequacyMembers`, `Defs`, `Ser
   `revokeExpiredLeases`' proof takes the counter from `isPkgInit` (`icases Hinit with ⟨-, -, -, -, -,
   ⟨%c, #Hc, #Hcs⟩⟩`). The only pattern it broke: `SnapApplyWalk.lean`'s `⟨-, -, -, -, ⟨%gg, #Hgg,
   #Hggs⟩⟩` → `⟨…, ⟨%gg, #Hgg, #Hggs⟩, -⟩`.
+
+## After merging N6 (2026-11-06)
+
+`lean` (with N6, "`memberUp` through laws", `572b213a8d`) merged into `revoke-open` at `87eed67c20`:
+no textual conflict, and the merge built green as it stood. What §L's first item ("to redo over
+N6's laws at the merge") became:
+
+- **The count is named** (DRAFT, an etcdstart addition): `etcdstart.memberReadN : Nat :=
+  Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN` (`Defs.lean`), with the law
+  `one_le_memberReadN : 1 ≤ memberReadN`. `memberUp`, `memberUpOn` and `kvServeStocks` write the
+  read loop's stock at `memberReadN`; the eight consumers of §L (`kv_served`, `ServedLease`,
+  `cluster3/StartMember`, the `watch`, `auth`, `cache`, `compactwatch`, `k8s/compactor` `Main`s)
+  pass `memberReadN` as `etcdGrpcSlots_of_started`'s `M` and `one_le_memberReadN` as its `1 ≤ M`,
+  instead of the literal count and its `actualMaxReaders_unseal` arithmetic. A later change of the
+  count changes `memberReadN` and its law's proof only. The server side (`srvStartReaders`,
+  `srvStarted`, `start_gives_views`) keeps F.1's literal text; `etcdstart.Start` and authkv's
+  `startServer` pass `start`'s stock on by unfolding (`memberReadN` is a plain `def`, defeq).
+- **The laws' statements, old → new (DRAFT):** `memberUp_served`, `memberUpOn_served` and
+  `memberUpOn_intro` are unchanged in text (they name `kvServeStocks`). Their content changes by
+  F.1's count only, through `kvServeStocks`:
+
+  ```lean
+  -- lean (N6)
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        srvReadReader s γr) ∗
+  -- revoke-open
+      ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s γr) ∗
+  ```
+
+  and the same in `memberUp` and `memberUpOn` (`srvReadReader s ρ.rd`). Nothing else in the laws.
+- **No consumer unfolds `memberUp`/`memberUpOn`** outside etcdstart: `grep -rn "unfold.*memberUp\b\|
+  memberUp at\|memberUpOn at" Proof | grep -v /etcdstart/` is empty.
+- **Closed theorems**: against `lean`, every `Results.lean` and `Adequacy*` differs only by the
+  approved changes (`start_gives_views`, F.1; the four etcd adequacy lemmas' `Hprog` at
+  `max (n + 2) 4`, A); leaseexpiry's `Adequacy.lean` differs in a proof only.
+- **The partition's docstrings** (`backend/RdPool.lean`: the header, `rdPoolN_add_rdStockN`) now say
+  what the `actualMaxReaders` slots count: the `readTx.mu` read locks taken with an `rdTok`, not
+  `monitorStorageVersion`'s, which takes one without (`notes/axiom-review/authrdn-count.md`,
+  attack 6; harmless: Go's readers are live goroutines, at most the thread bound).
+- **Checks** (after the merge, green build): `etc/tcb-report.py --check` reports exactly the five
+  DRAFT sorries of §M as new and nothing else (no axiom added or removed). `leaseExpired.init`'s
+  axiom is gone from `Code/.../etcdserver.lean` (pass 2's translation), but `etc/tcb-baseline.txt`
+  never listed it, so the check shows no removal. Interfaces: etcdstart's `Defs`/`Served` (the
+  count's name, `memberReadN` and its law added), backend's unchanged; `etc/api-check.py` and the
+  layout checks pass for both; `etc/bounds-check.py --check`: ok (389).

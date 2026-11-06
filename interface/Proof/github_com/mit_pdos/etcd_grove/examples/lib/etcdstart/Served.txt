@@ -77,7 +77,7 @@ def etcdstart.kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IP
       ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
         ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
           ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
-            ([∗list] _x ∈ List.replicate (sync.rwmutex.actualMaxReaders.toNat - srvRevokePoolN) (), srvReadReader s γr) ∗
+            ([∗list] _x ∈ List.replicate etcdstart.memberReadN (), srvReadReader s γr) ∗
               [∗list] _x ∈ List.replicate 64 (), srvBemuReader s)
 
 theorem etcdstart.grpcUp_noRefusal [HasExt idIssueExt] [v3rpc_sem :

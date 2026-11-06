@@ -175,8 +175,8 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     rw [sync.rwmutex.actualMaxReaders_unseal]
     omega
   ihave Hslots := client.etcdGrpcSlots_of_started s E γr 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) 64 (by omega) (by omega)
-      (by rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN] <;> omega)
+      memberReadN 64 (by omega) (by omega)
+      one_le_memberReadN
       (by omega)
       $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe

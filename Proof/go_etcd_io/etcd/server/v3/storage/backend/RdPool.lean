@@ -14,6 +14,15 @@ stage's Draft, `AuthSplitDraft.lean`, decision 2: readers backed by thread token
   auth share.
 - `newPost_pool`/`newPostK_pool`: the constructor's post with its slots split into the pool and
   the stock (`newPostP`, `newPostKP`), for a thread bound within the pool.
+
+What the partition counts (2026-11-06, `notes/axiom-review/authrdn-count.md`, attack 6): the
+`actualMaxReaders` slots are the `readTx.mu` read locks taken with an `rdTok` (every one the verified
+backend code takes, and those of the auth store's tickets), not every Go reader of `readTx.mu`.
+`EtcdServer.monitorStorageVersion`'s goroutine read-locks it (`StorageVersion` →
+`schema.DetectSchemaVersion`, `schema.go:85-88`) without one: its spec (`srvSVRes`) holds no
+`rdTok`, so Go's `readTx.mu` can have one reader more than the slots count. Go's limit
+(`2 ^ 30 - 1` readers) is still not reached: each reader is a live goroutine, at most the thread
+bound (`≤ 2 ^ 28` in every closed theorem through `NewServer`).
 -/
 module
 
@@ -52,7 +61,9 @@ share's `authRdN`. (Irreducible, 2026-11-02: a unifier unfolding it would evalua
 @[irreducible] def rdStockN : Nat := Int.toNat sync.rwmutex.actualMaxReaders - rdPoolN - authRdN
 
 /-- The pool, the auth share and the stock are the constructor's `actualMaxReaders` slots
-(2026-11-02, the backend-auth-split stage; the auth share 2026-11-03). -/
+(2026-11-02, the backend-auth-split stage; the auth share 2026-11-03): every `rdTok`, so every
+`readTx.mu` reader that holds one; not `monitorStorageVersion`'s, which holds none (the file
+header). -/
 theorem rdPoolN_add_rdStockN :
     rdPoolN + authRdN + rdStockN = Int.toNat sync.rwmutex.actualMaxReaders := by
   unfold rdStockN rdPoolN authRdN

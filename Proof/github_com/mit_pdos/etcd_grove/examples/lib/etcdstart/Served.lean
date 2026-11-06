@@ -112,8 +112,7 @@ abbrev kvServeStocks (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF 
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
-    ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) (),
-      srvReadReader s γr) ∗
+    ([∗list] _x ∈ List.replicate memberReadN (), srvReadReader s γr) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s))
 
 /-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
@@ -134,8 +133,8 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started s E γr 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders - srvRevokePoolN) 64 (by omega) (by omega)
-      (by rw [sync.rwmutex.actualMaxReaders_unseal]; simp only [srvRevokePoolN, backend.rdPoolN] <;> omega)
+      memberReadN 64 (by omega) (by omega)
+      one_le_memberReadN
       (by omega)
       $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
