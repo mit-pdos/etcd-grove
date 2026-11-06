@@ -113,15 +113,25 @@ def mvcc.api.wsRecvOk (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState) (rs :
             ∃ hi,
               hi ≤ List.length σ.notifiedLog ∧
                 mvcc.api.recvEvs rs id = mvcc.filtered w.fs (mvcc.watchEvents σ.notifiedLog w.rg w.lo hi)) ∧
-      ∀ (j : Nat) (r : mvcc.api.WResp) (id : w64) (w : mvcc.api.WInfo),
-        rs[j]? = some r →
-          r.evs = [] →
-            r.compactRev = W64 0 →
-              S.ws !! id = some w →
-                mvcc.api.onceUpTo σ.notifiedLog w.lo σ.crev →
-                  r.id = id ∨ r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j →
-                    mvcc.api.recvEvs (List.take (j + 1) rs) id =
-                      mvcc.filtered w.fs (mvcc.watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1))
+      (∀ (j : Nat) (r : mvcc.api.WResp) (id : w64) (w : mvcc.api.WInfo),
+          rs[j]? = some r →
+            r.evs = [] →
+              r.compactRev = W64 0 →
+                S.ws !! id = some w →
+                  mvcc.api.onceUpTo σ.notifiedLog w.lo σ.crev →
+                    r.id = id ∨ r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j →
+                      mvcc.api.recvEvs (List.take (j + 1) rs) id =
+                        mvcc.filtered w.fs (mvcc.watchEvents σ.notifiedLog w.rg w.lo (sint.nat r.rev + 1))) ∧
+        (∀ (j : Nat) (r : mvcc.api.WResp) (id : w64) (w : mvcc.api.WInfo),
+            rs[j]? = some r →
+              r.evs = [] →
+                r.compactRev = W64 0 →
+                  S.ws !! id = some w →
+                    r.id = id ∨ r.id = W64 (-1) ∧ w.live = true ∧ w.k ≤ j → ↑w.lo ≤ sint.Z r.rev + 1) ∧
+          ∀ (i j : Nat) (y x : mvcc.api.WResp),
+            i < j →
+              rs[i]? = some y →
+                rs[j]? = some x → y.evs = [] → x.evs = [] → x.compactRev = W64 0 → sint.Z y.rev ≤ sint.Z x.rev
 
 def mvcc.api.MvccState.compactTo (σ : mvcc.api.MvccState) (r : Int) : mvcc.api.MvccState :=
   { log := σ.log, crev := r, pending := σ.pending }

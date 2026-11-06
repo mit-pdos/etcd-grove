@@ -24,7 +24,7 @@ theorem mvcc.New.wp_proof (hNew : mvcc.newWatchableStore.spec) (hSWL :
                         mvcc.kbWT kb ∗
                           mvcc.kbWT kb ∗
                             mvcc.kbSRM kb ∗
-                              ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
+                              ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT kb) ∗
                                 lease.lessorRdOf γl ∗
                                   mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ mvcc.idxFresh γi ∗ ghostMapAuth γok 1 ∅ -∗
             (▷
@@ -35,17 +35,23 @@ theorem mvcc.New.wp_proof (hNew : mvcc.newWatchableStore.spec) (hSWL :
                               γ.st.kb = kb ∧
                                 γ.st.idx = γi ∧ γ.st.cok = γok ∧ γ.tag = γtag ∧ γ.st.cm = decide (mvcc.kbCmpM kb)⌝ ∗
                         mvcc.isWatchableStore s st γ ∗
-                          (∃ rd, lease.rdOwn γl rd ∗ mvcc.rdIs rd s st γ) ∗
+                          (∃ rd,
+                              lease.rdOwn γl rd ∗
+                                mvcc.rdIs rd s st γ ∗
+                                  mvcc.rdCalls rd go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType
+                                    (intoVal s)) ∗
                             mvcc.hookInit γ.st P f ∗
-                              mvcc.watchWriter γ [[], []] ∗
-                                mvcc.watchToks γ (2 ^ 63 - 3) ∗
-                                  ghostMapAuth γ.st.cok 1 ∅ ∗
-                                    ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb - 2) (),
-                                        mvcc.watchReader s st γ) ∗
-                                      mvcc.wsCloser s st γ.st ∗
-                                        mvcc.crevRightM γ.st ∗
-                                          mvcc.writerFrag γ.st ∗
-                                            mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗ mvcc.crevPermIs γ.st Perm) -∗
+                              mvcc.watchToks γ (2 ^ 63 - 3) ∗
+                                ghostMapAuth γ.st.cok 1 ∅ ∗
+                                  ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb - 2) (),
+                                      mvcc.watchReader s st γ) ∗
+                                    mvcc.wsCloser s st γ.st ∗
+                                      mvcc.crevRightM γ.st ∗
+                                        mvcc.writerFrag γ.st ∗
+                                          mvcc.retiredAt γ.st (mvcc.nJobRd kb) ∗
+                                            mvcc.crevPermIs γ.st Perm ∗
+                                              mvcc.writerReg st γ.st ∗
+                                                mvcc.api.newClient γ.st.api [[], []] (-1) (Qp.half 1) st ∗ £ 1) -∗
                     Φ
                       (intoVal
                         (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType

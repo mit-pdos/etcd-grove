@@ -39,6 +39,21 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchGroup
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
+# (2026-11-06, M4) the internal specs' vocabulary their importable specs publicly import: the
+# transactions' and the stream's ghost steps, the read and write callbacks, the deleter's calls, the
+# watch model
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchModel
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchPos
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RdCalls
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamSteps
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamLog
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadCbC
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteCtx
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WsTxnSteps
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SentInv
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
+importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiGhost
 
 ## Debt: what today's clients import (gone at migration M1)
 importable Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge

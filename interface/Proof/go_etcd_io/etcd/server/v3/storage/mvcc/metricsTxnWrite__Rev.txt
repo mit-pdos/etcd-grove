@@ -5,11 +5,11 @@
 theorem mvcc.metricsTxnWrite.Rev.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec) (hRevW :
     mvcc.storeTxnWrite.Rev.spec) : mvcc.metricsTxnWrite.Rev.spec
   -- `Perennial.EtcdGrove.mvcc.metricsTxnWrite.Rev.spec`, unfolded:
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Z : IProp GF),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Z Tr : IProp GF),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxn mw s γ trace kind crev Z -∗
-          ▷ (mvcc.isTxn mw s γ trace kind crev Z -∗ Φ (intoVal kind.beginRev)) -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnT mw s γ trace kind crev Z Tr -∗
+          ▷ (mvcc.isTxnT mw s γ trace kind crev Z Tr -∗ Φ (intoVal kind.beginRev)) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType go!"Rev"

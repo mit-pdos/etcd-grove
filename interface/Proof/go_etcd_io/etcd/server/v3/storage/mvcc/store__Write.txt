@@ -4,29 +4,26 @@
 
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec) : mvcc.store.Write.spec
   -- `Perennial.EtcdGrove.mvcc.store.Write.spec`, unfolded:
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (c : Int) (Z : IProp GF)
-    (log : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (hk : Option val) (dq : DFrac) (te : Bool)
+    (c : Int) (Z : IProp GF) (qf : Qp) (o : mvcc.StoreObjs) (G : IProp GF) (F : mvcc.Log → Int → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.isStore s γ ∗
-              mvcc.storeReaderC s γ ∗
+              ▷ mvcc.storeReaderC s γ ∗
                 □ Z ∗
                   mvcc.crevLb γ.idx c ∗
-                    mvcc.revToken γ ∗
-                      mvcc.storeWT γ ∗
-                        ⌜trace ≠ null⌝ ∗
-                          mvcc.hookIs γ P f ∗
-                            mvcc.writerPin γ log ∗
-                              Pre ∗
-                                (□ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) ∗
-                                  traceutil.ownTrace trace te -∗
+                    (mvcc.storeWT γ ∨ □ (⧗1 ={⊤}=∗ mvcc.storeWT γ)) ∗
+                      ⌜trace ≠ null⌝ ∗
+                        mvcc.writeCtxM γ P hk Pre Q dq ∗
+                          mvcc.curAt γ (DFrac.own qf) o ∗
+                            G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.writeCb γ F ∗ traceutil.ownTrace trace te -∗
           (▷
               ∀ mw,
                 (∃ ilog crev,
-                      mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗
-                        mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ ⌜c ≤ crev⌝) ∗
-                    Q ∗ mvcc.hookIs γ P f -∗
+                      mvcc.isTxnWriteT mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z false iprop(True) ∗
+                        mvcc.crevLb γ.idx crev ∗ mvcc.crevPermAt γ crev ∗ ⌜c ≤ crev⌝ ∗ F ilog crev) ∗
+                    traceutil.ownTrace trace te ∗ Q ∗ mvcc.lockBackM γ P hk dq ∗ mvcc.curAt γ (DFrac.own qf) o ∗ G -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType

@@ -8,7 +8,7 @@ def mvcc.store.restore.spec : Prop :=
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
     (MW : backend.FkVals → backend.VData → IProp GF) (SR SRh : IProp GF) (dqb dqi : DFrac) (R : mvcc.Log)
     (RevP0 RevP RevK RevQ : IProp GF) (dqc dql : DFrac) (q1 q2 : Qp) (r : mvcc.CmpRecs) (ents : List mvcc.KvEnt)
-    (Fin : IProp GF) (ns : Bool),
+    (Fin : IProp GF) (ns : Bool) (γl : GName) (Ls : List w64),
     mvcc.restoreLogOk R →
       q1 + q2 = 1 →
         mvcc.recsOk ([[], []] ++ R) r →
@@ -17,7 +17,7 @@ def mvcc.store.restore.spec : Prop :=
               mvcc.entsCutAt ([[], []] ++ R) r.crev ents →
                 ⊢
                   ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+                    (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
                         typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"b" s) b dqb ∗
                           (if ns = true then
                               mvcc.isKeyBackendGR b (mvcc.bucketView γ) RT WT NC r PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF
@@ -72,10 +72,22 @@ def mvcc.store.restore.spec : Prop :=
                                                                   ents r RT NC RevQ)
                                                                 Fin ∗
                                                               (⌜ents =
-                                                                    mvcc.logEnts ([[], []] ++ R) 0
-                                                                      ([[], []] ++ R).length⌝ ∨
-                                                                ⧖(mvcc.logCh ([[], []] ++ R))) -∗
-                      ▷ (Fin -∗ Φ (intoVal GoInterface.nil)) -∗
+                                                                      mvcc.logEnts ([[], []] ++ R) 0
+                                                                        ([[], []] ++ R).length⌝ ∨
+                                                                  ⧖(mvcc.logCh ([[], []] ++ R))) ∗
+                                                                if ns = true then True
+                                                                else
+                                                                  mvcc.isLessor le γl ∗
+                                                                    lease.leaseOwn γl Ls ∅ ∗
+                                                                      ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem)
+                                                                          (lid : w64),
+                                                                          mvcc.pendItems ([[], []] ++ R) [] !! it =
+                                                                              some lid →
+                                                                            lid ∈ Ls ∧
+                                                                              ↑(List.length it.Key') < 2 ^ 63 - 1⌝) -∗
+                      ▷
+                          ((Fin ∗ if ns = true then True else lease.leaseOwn γl Ls (mvcc.pendItems ([[], []] ++ R) [])) -∗
+                            Φ (intoVal GoInterface.nil)) -∗
                         WP
                           ((intoVal
                               (methods go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType

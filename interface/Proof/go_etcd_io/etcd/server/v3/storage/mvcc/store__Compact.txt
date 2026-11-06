@@ -7,3 +7,7 @@ theorem mvcc.store.Compact.wp_proof (h0 : mvcc.store.checkPrevCompactionComplete
     mvcc.store.compact.spec) : mvcc.store.Compact.spec
   -- `Perennial.EtcdGrove.mvcc.store.Compact.spec`, unfolded:
   ∀ (s : Loc), mvcc.api.KV.Compact.contract go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)
+
+theorem mvcc.store.Compact.core_proof (h0 : mvcc.store.checkPrevCompactionCompleted.spec) (h1 :
+    mvcc.store.updateCompactRev.spec) (h2 : traceutil.Trace.Step.spec) (h3 :
+    mvcc.store.compact.spec) : mvcc.store.Compact.core

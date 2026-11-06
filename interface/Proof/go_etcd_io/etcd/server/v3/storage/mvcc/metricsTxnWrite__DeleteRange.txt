@@ -6,18 +6,18 @@ theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof (hDel : mvcc.storeTxnWrite.Del
     mvcc.metricsTxnWrite.DeleteRange.spec
   -- `Perennial.EtcdGrove.mvcc.metricsTxnWrite.DeleteRange.spec`, unfolded:
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z : IProp GF),
+    (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z Tr : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗
+            mvcc.isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev Z false Tr ∗
               ownSlice key k DFrac.discard ∗
                 ownSlice endk e DFrac.discard ∗ lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) -∗
           (▷
               ∀ n rev,
-                mvcc.isTxnWrite mw s γ trace ilog
+                mvcc.isTxnWriteT mw s γ trace ilog
                       (pend ++ List.map mvcc.Change.del (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e)) puts
-                      (deletes + W64 1) putSize crev Z ∗
+                      (deletes + W64 1) putSize crev Z false Tr ∗
                     lease.leaseOwn γ.leases L
                         (mvcc.pendItems ilog
                           (pend ++ List.map mvcc.Change.del (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e))) ∗

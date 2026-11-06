@@ -6,17 +6,18 @@ theorem mvcc.metricsTxnWrite.Changes.wp_proof (hCh : mvcc.storeTxnWrite.Changes.
     mvcc.metricsTxnWrite.Changes.spec
   -- `Perennial.EtcdGrove.mvcc.metricsTxnWrite.Changes.spec`, unfolded:
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (crev : Int) (Z : IProp GF) (ld : Bool),
+    (crev : Int) (Z : IProp GF) (ld : Bool) (Tr : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ld -∗
+            mvcc.isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev Z ld Tr -∗
           (▷
               ∀ chs ps,
                 ownSlice chs ps (DFrac.own 1) ∗
                     mvcc.changesAre ps ilog pend ∗
                       ⌜ps.length = pend.length⌝ ∗
-                        mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld -∗
+                        mvcc.isTxnWriteCoreY mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ld
+                          (mvcc.slotY γ ilog) Tr -∗
                   Φ (intoVal chs)) -∗
             WP
               ((intoVal

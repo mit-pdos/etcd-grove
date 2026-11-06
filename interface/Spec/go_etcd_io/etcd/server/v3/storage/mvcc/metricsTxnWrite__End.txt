@@ -3,14 +3,12 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def mvcc.metricsTxnWrite.End.spec : Prop :=
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Z : IProp GF),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Z Y G R Tr : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isTxnEnd mw s γ trace kind crev Z ∗ mvcc.txnEndPre γ kind -∗
-          ▷
-              ((mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPost γ kind ∗ ∃ te, traceutil.ownTrace trace te) -∗
-                Φ (intoVal ())) -∗
+            mvcc.isTxnEndY mw s γ trace kind crev Z Y Tr ∗ mvcc.txnEndPreH γ kind ∗ mvcc.txnEndX γ kind crev Y G R -∗
+          ▷ (mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPostH γ kind ∗ Tr ∗ mvcc.txnEndXPost kind G R -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType go!"End"

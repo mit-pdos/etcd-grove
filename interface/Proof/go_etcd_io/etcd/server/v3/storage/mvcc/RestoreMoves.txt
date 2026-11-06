@@ -32,12 +32,13 @@ theorem mvcc.restore_switch (s : Loc) (γ : mvcc.StoreNames) (o o' : mvcc.StoreO
     mvcc.bucketViewL (γ.withPhys p') (Qp.half 1) ([[], []] ++ R)) -∗ ([∗list] _x ∈ List.replicate
     mvcc.nReaders (), mvcc.idxReader o'.ti (γ.withPhys p').idx) -∗ ⧖(mvcc.logCh ([[], []] ++ R)) -∗
     ⌜receiptBound GF ≤ 2 ^ 48⌝ -∗ ([∗list] _x ∈ List.replicate (mvcc.nReaders - rt) (), mvcc.storeRT
-    (γ.withPhys p')) ={⊤}=∗ mvcc.revMuInv s γ 1 ∗ dghostVar γ.rst (DFrac.own (Qp.half 1)) false ∗
-    mvcc.curAt (γ.withPhys p') (DFrac.own (Qp.half 1)) o' ∗ mvcc.writerFrag (γ.withPhys p') ∗
-    mvcc.curAt (γ.withPhys p') (DFrac.own (Qp.half 1).half.half) o' ∗ mvcc.retiredAt γ rt ∗ ghostVar
-    γ.wsd qw () ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗ ownToks γ.revs (2 ^ 63 - 3 - ([[], []] ++
-    R).length) ∗ (if γ.watchQ = true then mvcc.logQ γ ([[], []] ++ R) else True) ∗ ([∗list] _x ∈
-    List.replicate (mvcc.nReaders - rt) (), mvcc.storeRT γ) ∗ mvcc.idxCert γ.idx ([[], []] ++ R)
+    (γ.withPhys p')) -∗ mvcc.slotX γ 1 ([[], []] ++ R) c ={⊤}=∗ mvcc.revMuInv s γ 1 ∗ dghostVar
+    γ.rst (DFrac.own (Qp.half 1)) false ∗ mvcc.curAt (γ.withPhys p') (DFrac.own (Qp.half 1)) o' ∗
+    mvcc.writerFrag (γ.withPhys p') ∗ mvcc.curAt (γ.withPhys p') (DFrac.own (Qp.half 1).half.half)
+    o' ∗ mvcc.retiredAt γ rt ∗ ghostVar γ.wsd qw () ∗ mvcc.restoreWriter γ ([[], []] ++ R) ∗ ownToks
+    γ.revs (2 ^ 63 - 3 - ([[], []] ++ R).length) ∗ (if γ.watchQ = true then mvcc.logQ γ ([[], []] ++
+    R) else True) ∗ ([∗list] _x ∈ List.replicate (mvcc.nReaders - rt) (), mvcc.storeRT γ) ∗
+    mvcc.idxCert γ.idx ([[], []] ++ R)
 
 theorem mvcc.kbViewC_halves (kb : Option mvcc.KBReal) (γb : GName) (m : mvcc.Bucket) : mvcc.kbViewC
     kb γb 1 m ⊢ mvcc.kbViewC kb γb (Qp.half 1) m ∗ mvcc.kbViewC kb γb (Qp.half 1) m
@@ -59,18 +60,24 @@ theorem mvcc.rep_take1 (P : IProp GF) : ([∗list] _x ∈ List.replicate mvcc.nR
     [∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), P
 
 theorem mvcc.restore_finish (s : Loc) (γ : mvcc.StoreNames) (o' : mvcc.StoreObjs) (p' :
-    mvcc.PhysNames) (L' : mvcc.Log) (hwf : mvcc.IdxWf L' []) (hne : L' ≠ []) : ⊢ £ 1 -∗
-    mvcc.writerInv s γ -∗ mvcc.curAt (γ.withPhys p') (DFrac.own (Qp.half 1).half.half) o' -∗
-    mvcc.restoreWriter γ L' -∗ typedPointsto (structFieldRef
+    mvcc.PhysNames) (L' : mvcc.Log) (hwf : mvcc.IdxWf L' []) (hne : L' ≠ []) (hch : List.length L' ≤
+    mvcc.logCh L' + 2) : ⊢ £ 1 -∗ mvcc.writerInv s γ -∗ mvcc.curAt (γ.withPhys p') (DFrac.own
+    (Qp.half 1).half.half) o' -∗ mvcc.restoreWriter γ L' -∗ typedPointsto (structFieldRef
     go_etcd_io.etcd.server.v3.storage.mvcc.store go!"currentRev" s) (W64 (↑(List.length L') - 1))
     (DFrac.own (Qp.half 1)) -∗ ⧖(mvcc.logCh L') -∗ monoNatLbOwn p'.nev (mvcc.evsOf (L' ++
     [[]])).length -∗ ghostVar p'.wk 1 () -∗ ghostVar p'.wv 1 L' -∗ mvcc.bucketViewL (γ.withPhys p')
-    (Qp.half 1).half.half L' -∗ mvcc.compactRes (γ.withPhys p') L' -∗ mvcc.kbRegRight p'.kb ={⊤}=∗
-    ghostVar γ.wr 1 () ∗ mvcc.idxCert γ.idx L' ∗ mvcc.writerReg s (γ.withPhys p')
+    (Qp.half 1).half.half L' -∗ mvcc.compactRes (γ.withPhys p') L' -∗ mvcc.kbRegRight p'.kb -∗
+    mvcc.slotFl γ (Qp.half 1) false -∗ ownToks γ.revs (2 ^ 63 - 3 - List.length L') -∗
+    mvcc.writerLoan (γ.withPhys p') -∗ mvcc.bucketViewL (γ.withPhys p') (Qp.half 1).half L' -∗
+    mvcc.slotY (γ.withPhys p') L' ={⊤}=∗ ghostVar γ.wr 1 () ∗ mvcc.idxCert γ.idx L' ∗ mvcc.writerReg
+    s (γ.withPhys p') ∗ mvcc.slotFr γ
 
 theorem mvcc.restoreView_of (b : GoInterface) (γ : mvcc.StoreNames) (RT : IProp GF) (q : Qp) (R :
     mvcc.Log) : mvcc.bucketViewC γ q (mvcc.bucketMap ([[], []] ++ R)) ∗ mvcc.keyCleanRead b
     (mvcc.bucketViewC γ) RT (mvcc.kbNoCmpF γ.kb γ.bucket) ⊢ mvcc.restoreView b γ RT q R
+
+theorem mvcc.restoreLog_ch (R : mvcc.Log) (h : ∀ (cs : List mvcc.Change), cs ∈ R → cs ≠ []) : ([[],
+    []] ++ R).length ≤ mvcc.logCh ([[], []] ++ R) + 2
 
 theorem mvcc.histShape_nil (L : mvcc.Log) : mvcc.histShape L [] = mvcc.histOf L
 
@@ -88,18 +95,21 @@ theorem mvcc.typedPointsto_halves {V : Type} [TypedPointsto V] (l : Loc) (v : V)
     (DFrac.own q.half)
 
 theorem mvcc.restore_takeover (s : Loc) (γ : mvcc.StoreNames) (o : mvcc.StoreObjs) (L L' : mvcc.Log)
-    (c : Int) (hLL : L <+: L') (hc : -1 ≤ c) : ⊢ £ 1 -∗ mvcc.writerInv s γ -∗ mvcc.revMuInv s γ 1 -∗
-    dghostVar γ.rst (DFrac.own (Qp.half 1)) false -∗ mvcc.curAt γ (DFrac.own (Qp.half 1)) o -∗
-    ghostVar γ.wr 1 () -∗ mvcc.idxCert γ.idx L -∗ ownToks γ.revs (2 ^ 63 - 3 - List.length L) -∗ (if
-    γ.watchQ = true then mvcc.logQ γ L else True) -∗ mvcc.crevUB γ.idx (Qp.half 1).half c -∗
-    typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"compactMainRev"
-    s) (W64 c) (DFrac.own (Qp.half 1)) ={⊤}=∗ (∃ v, typedPointsto (structFieldRef
-    go_etcd_io.etcd.server.v3.storage.mvcc.store go!"currentRev" s) v (DFrac.own 1)) ∗ typedPointsto
-    (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"compactMainRev" s) (W64 c)
-    (DFrac.own 1) ∗ dghostVar γ.rst (DFrac.own 1) false ∗ mvcc.curAt γ (DFrac.own (Qp.half 1)) o ∗
-    mvcc.curAt γ (DFrac.own (Qp.half 1).half.half) o ∗ mvcc.curAt γ (DFrac.own (Qp.half
-    1).half.half) o ∗ mvcc.crevUB γ.idx (Qp.half 1).half c ∗ mvcc.restoreHeld γ L' c ∗ monoListLbOwn
-    γ.idx.hist (mvcc.histShape L' [])
+    (c c' : Int) (Rr : IProp GF) (hc : -1 ≤ c) : ⊢ £ 1 -∗ mvcc.writerInv s γ -∗ mvcc.revMuInv s γ 1
+    -∗ dghostVar γ.rst (DFrac.own (Qp.half 1)) false -∗ mvcc.curAt γ (DFrac.own (Qp.half 1)) o -∗
+    ghostVar γ.wr 1 () -∗ (if γ.watchQ = true then mvcc.logQ γ L else True) -∗ mvcc.crevUB γ.idx
+    (Qp.half 1).half c -∗ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
+    go!"compactMainRev" s) (W64 c) (DFrac.own (Qp.half 1)) -∗ mvcc.slotFr γ -∗ mvcc.restoreCb γ L'
+    c' Rr ={⊤}=∗ (∃ v, typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
+    go!"currentRev" s) v (DFrac.own 1)) ∗ typedPointsto (structFieldRef
+    go_etcd_io.etcd.server.v3.storage.mvcc.store go!"compactMainRev" s) (W64 c) (DFrac.own 1) ∗
+    dghostVar γ.rst (DFrac.own 1) false ∗ mvcc.curAt γ (DFrac.own (Qp.half 1)) o ∗ mvcc.curAt γ
+    (DFrac.own (Qp.half 1).half.half) o ∗ mvcc.curAt γ (DFrac.own (Qp.half 1).half.half) o ∗
+    mvcc.crevUB γ.idx (Qp.half 1).half c ∗ mvcc.restoreHeld γ L' c ∗ monoListLbOwn γ.idx.hist
+    (mvcc.histShape L' []) ∗ mvcc.slotFl γ (Qp.half 1) false ∗ (∃ cw, mvcc.api.wcrPart γ.api
+    (Qp.half 1) cw) ∗ ⌜(γ.watchQ = true → L <+: L') ∧ c ≤ c'⌝ ∗ mvcc.slotX γ 1 L' c' ∗
+    mvcc.api.absPart γ.api (Qp.half 1).half L' c' ∗ mvcc.api.pndPart γ.api (mvcc.pndW γ) none ∗
+    mvcc.api.nlLb γ.api L' ∗ Rr
 
 theorem mvcc.rep_split (P : IProp GF) (a b : Nat) : ([∗list] _x ∈ List.replicate (a + b) (), P) ⊣⊢
     ([∗list] _x ∈ List.replicate a (), P) ∗ [∗list] _x ∈ List.replicate b (), P

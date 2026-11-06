@@ -21,25 +21,23 @@ def mvcc.storeTxnRead.End.specR : Prop :=
               {{ Φ }}
 
 def mvcc.store.Write.specR : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (log : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (G : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.isStore s γ ∗
               mvcc.storeReader s γ ∗
-                mvcc.revToken γ ∗
-                  mvcc.storeWT γ ∗
-                    ⌜trace ≠ null⌝ ∗
-                      mvcc.hookIs γ P f ∗
-                        mvcc.writerPin γ log ∗
-                          Pre ∗
-                            (□ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) ∗
-                              traceutil.ownTrace trace te -∗
+                mvcc.storeWT γ ∗
+                  ⌜trace ≠ null⌝ ∗
+                    mvcc.hookIs γ P f ∗
+                      Pre ∗
+                        (□ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) ∗
+                          traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) -∗
           (▷
               ∀ mw,
                 (∃ ilog crev,
                       mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ mvcc.crevLb γ.idx crev) ∗
-                    Q ∗ mvcc.hookIs γ P f -∗
+                    Q ∗ mvcc.hookIs γ P f ∗ G -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType
@@ -53,25 +51,23 @@ def mvcc.store.Write.specR : Prop :=
 
 theorem mvcc.store.Write.spec_R (h : mvcc.store.Write.spec) : mvcc.store.Write.specR
   -- `Perennial.EtcdGrove.mvcc.store.Write.specR`, unfolded:
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (log : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (G : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.isStore s γ ∗
               mvcc.storeReader s γ ∗
-                mvcc.revToken γ ∗
-                  mvcc.storeWT γ ∗
-                    ⌜trace ≠ null⌝ ∗
-                      mvcc.hookIs γ P f ∗
-                        mvcc.writerPin γ log ∗
-                          Pre ∗
-                            (□ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) ∗
-                              traceutil.ownTrace trace te -∗
+                mvcc.storeWT γ ∗
+                  ⌜trace ≠ null⌝ ∗
+                    mvcc.hookIs γ P f ∗
+                      Pre ∗
+                        (□ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) ∗
+                          traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) -∗
           (▷
               ∀ mw,
                 (∃ ilog crev,
                       mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ mvcc.crevLb γ.idx crev) ∗
-                    Q ∗ mvcc.hookIs γ P f -∗
+                    Q ∗ mvcc.hookIs γ P f ∗ G -∗
                   Φ
                     (intoVal
                       (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType
@@ -145,12 +141,16 @@ theorem mvcc.readView.FirstRev.spec_R (h : mvcc.readView.FirstRev.spec) :
 theorem mvcc.metricsTxnWrite.End.spec_R (h : mvcc.metricsTxnWrite.End.spec) :
     mvcc.metricsTxnWrite.End.specR
   -- `Perennial.EtcdGrove.mvcc.metricsTxnWrite.End.specR`, unfolded:
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Y G R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isTxnEnd mw s γ trace kind crev ∗ mvcc.txnEndPre γ kind -∗
-          ▷ ((mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ ∃ te, traceutil.ownTrace trace te) -∗ Φ (intoVal ())) -∗
+            mvcc.isTxnEndY mw s γ trace kind crev iprop(True) Y ∗
+              mvcc.txnEndPre γ kind ∗ mvcc.txnEndX γ kind crev Y G R -∗
+          ▷
+              (mvcc.storeReader s γ ∗
+                  mvcc.txnEndPost γ kind ∗ (∃ te, traceutil.ownTrace trace te) ∗ mvcc.txnEndXPost kind G R -∗
+                Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType go!"End"
@@ -568,17 +568,18 @@ theorem mvcc.storeTxnRead.End.spec_R (h : mvcc.storeTxnRead.End.spec) : mvcc.sto
 
 def mvcc.storeTxnWrite.End.specR : Prop :=
   ∀ (trace tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc)
-    (sealed : Bool) (P : IProp GF) (f : val) (crev : Int),
+    (sealed : Bool) (P : IProp GF) (f : val) (crev : Int) (Y G R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev ∗
-              mvcc.hookIs γ P f ∗ P ∗ mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend -∗
+            mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev iprop(True) false Y ∗
+              mvcc.hookIs γ P f ∗
+                P ∗
+                  mvcc.certOkNext γ ilog pend ∗
+                    mvcc.logQPre γ ilog pend ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R -∗
           ▷
               (mvcc.storeReader s γ ∗
-                  mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-                    (if pend = [] then mvcc.revToken γ else True) ∗
-                      mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) -∗
+                  mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗ mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ G ∗ R -∗
                 Φ (intoVal ())) -∗
             WP
               ((intoVal
@@ -652,17 +653,18 @@ theorem mvcc.storeTxnWrite.End.spec_R (h : mvcc.storeTxnWrite.End.spec) :
     mvcc.storeTxnWrite.End.specR
   -- `Perennial.EtcdGrove.mvcc.storeTxnWrite.End.specR`, unfolded:
   ∀ (trace tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc)
-    (sealed : Bool) (P : IProp GF) (f : val) (crev : Int),
+    (sealed : Bool) (P : IProp GF) (f : val) (crev : Int) (Y G R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev ∗
-              mvcc.hookIs γ P f ∗ P ∗ mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend -∗
+            mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev iprop(True) false Y ∗
+              mvcc.hookIs γ P f ∗
+                P ∗
+                  mvcc.certOkNext γ ilog pend ∗
+                    mvcc.logQPre γ ilog pend ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R -∗
           ▷
               (mvcc.storeReader s γ ∗
-                  mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-                    (if pend = [] then mvcc.revToken γ else True) ∗
-                      mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) -∗
+                  mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗ mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ G ∗ R -∗
                 Φ (intoVal ())) -∗
             WP
               ((intoVal
@@ -672,12 +674,16 @@ theorem mvcc.storeTxnWrite.End.spec_R (h : mvcc.storeTxnWrite.End.spec) :
               {{ Φ }}
 
 def mvcc.metricsTxnWrite.End.specR : Prop :=
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Y G R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isTxnEnd mw s γ trace kind crev ∗ mvcc.txnEndPre γ kind -∗
-          ▷ ((mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ ∃ te, traceutil.ownTrace trace te) -∗ Φ (intoVal ())) -∗
+            mvcc.isTxnEndY mw s γ trace kind crev iprop(True) Y ∗
+              mvcc.txnEndPre γ kind ∗ mvcc.txnEndX γ kind crev Y G R -∗
+          ▷
+              (mvcc.storeReader s γ ∗
+                  mvcc.txnEndPost γ kind ∗ (∃ te, traceutil.ownTrace trace te) ∗ mvcc.txnEndXPost kind G R -∗
+                Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType go!"End"

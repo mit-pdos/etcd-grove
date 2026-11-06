@@ -21,24 +21,21 @@ def mvcc.api.mvccTxn_leaseDelete.law : Prop :=
                       (mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk -∗
                         ownSlice key k dq -∗
                           backend.rbPart bk.γB S (mvcc.rbDel r mvcc.leaseName k) -∗
-                            (∀ Q,
-                                □
-                                  ∀ Φ,
-                                    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-                                        mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗
-                                          Pk ∗
-                                            AU <{ ∃∃ σ1, mvcc.api.mvccState γ σ1 }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                                ⌜σ1 = σ⌝ ∗
-                                                  mvcc.api.mvccState γ (σ1.notify pend) ∗
-                                                    ⧖(mvcc.logCh (σ1.log ++ [pend])),
-                                                COMM
-                                                AU <{ ∃∃ σ2, mvcc.api.mvccState γ σ2 }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                                    ⌜σ2 = σ.notify pend⌝ ∗ mvcc.api.mvccState γ σ2.commitPending, COMM
-                                                    Q }> }> -∗
-                                      ▷
-                                          (threadTok ∗ mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗ Q -∗
-                                            Φ (intoVal ())) -∗
-                                        WP ((intoVal (methods tw.ty go!"End" tw.v)) (intoVal ())) {{ Φ }}) -∗
+                            (∀ Q Ψ,
+                                isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+                                    mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗
+                                      Pk ∗
+                                        AU <{ ∃∃ σ1, mvcc.api.mvccState γ σ1 }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                            ⌜σ1 = σ⌝ ∗
+                                              mvcc.api.mvccState γ (σ1.notify pend) ∗ ⧖(mvcc.logCh (σ1.log ++ [pend])),
+                                            COMM
+                                            AU <{ ∃∃ σ2, mvcc.api.mvccState γ σ2 }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                                ⌜σ2 = σ.notify pend⌝ ∗ mvcc.api.mvccState γ σ2.commitPending, COMM
+                                                Q }> }> -∗
+                                  ▷
+                                      (threadTok ∗ mvcc.api.mvccBackend γ q (mvcc.api.etcdStorage bk) Pk ∗ Q -∗
+                                        Ψ (intoVal ())) -∗
+                                    WP ((intoVal (methods tw.ty go!"End" tw.v)) (intoVal ())) {{ Ψ }}) -∗
                               Φ (intoVal ())) ⊢
         WP
           (((intoVal
@@ -48,25 +45,29 @@ def mvcc.api.mvccTxn_leaseDelete.law : Prop :=
             (intoVal key))
           {{ Φ }}
 
-theorem mvcc.api.mvccReaderN_eq : mvcc.api.mvccReaderN = backend.rdStockN
+theorem mvcc.api.mvccReaderN_eq : mvcc.api.mvccReaderN = backend.rdStockN - 6
 
 def mvcc.api.etcdStorage_open.law : Prop :=
   ∀ (bk : mvcc.KBReal) (Pk K : backend.BNames → IProp GF) (D : backend.Data) (L : mvcc.Log) (c : Int) (u : Bool),
     mvcc.bridgeParams bk.P →
-      bk.cm = true →
-        ⊢
-          ((□ ∀ γ b', mvcc.keySized γ bk.P b') ∗
-              mvcc.api.mvccImage D L c u ∗
-                backend.newPostKP bk.γB bk.P (fun x => mvcc.api.mvccW bk.gx) Pk K bk.be D ∗
-                  mvcc.api.mvccWReg bk.gx ∗
-                    backend.wbTok bk.γB ∗
+      mvcc.leaseParams bk.P →
+        bk.cm = true →
+          ⊢
+            ((□ ∀ γ b', mvcc.keySized γ bk.P b') ∗
+                mvcc.api.mvccImage D L c u ∗
+                  backend.newPostKP bk.γB bk.P (fun x => mvcc.api.mvccW bk.gx) Pk K bk.be D ∗
+                    mvcc.api.mvccWReg bk.gx ∗
                       backend.wbTok bk.γB ∗
-                        □ (⧗1 ={⊤}=∗ backend.wbTok bk.γB) ∗
-                          [∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen) ={⊤}=∗
-            mvcc.api.mvccStorageFor (mvcc.api.etcdStorage bk) (Pk bk.γB) L c u ∗ mvcc.api.backendRest bk.γB bk.P K bk.be D
+                        backend.wbTok bk.γB ∗
+                          □ (⧗1 ={⊤}=∗ backend.wbTok bk.γB) ∗
+                            [∗list] _x ∈ List.replicate (backend.rdStockN - 2) (),
+                              backend.bOpen bk.γB backend.rdOpen) ={⊤}=∗
+              mvcc.api.mvccStorageFor (mvcc.api.etcdStorage bk) (Pk bk.γB) L c u ∗
+                mvcc.api.backendRest bk.γB bk.P K bk.be D ∗
+                  backend.rdTok bk.γB bk.P bk.be ∗ backend.rdTok bk.γB bk.P bk.be
 
 theorem mvcc.api.etcdStorage_rest (bk : mvcc.KBReal) : mvcc.api.storageRest (mvcc.api.etcdStorage
-    bk) = [∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen
+    bk) = [∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen bk.γB backend.rdOpen
 
 theorem mvcc.api.etcdStorage_inj {bk bk' : mvcc.KBReal} (h : mvcc.api.etcdStorage bk =
     mvcc.api.etcdStorage bk') : bk = bk'

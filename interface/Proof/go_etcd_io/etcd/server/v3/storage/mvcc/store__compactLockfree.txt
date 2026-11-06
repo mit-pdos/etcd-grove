@@ -6,7 +6,8 @@ theorem mvcc.store.compactLockfree.wp_proof (h0 : mvcc.store.checkPrevCompaction
     : mvcc.store.updateCompactRev.spec) (h2 : traceutil.TODO.spec) (h3 : mvcc.store.compact.spec) :
     mvcc.store.compactLockfree.spec
   -- `Perennial.EtcdGrove.mvcc.store.compactLockfree.spec`, unfolded:
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (cp : Int) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (cp : Int) (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF)
+    (dq : DFrac) (X Y : IProp GF),
     mvcc.storeCmp γ →
       cp < sint.Z rev →
         1 ≤ sint.Z rev →
@@ -17,19 +18,22 @@ theorem mvcc.store.compactLockfree.wp_proof (h0 : mvcc.store.checkPrevCompaction
                     mvcc.muInvLag s γ (sint.Z rev) cp ∗
                       mvcc.compactRightR s γ (sint.Z rev) ∗
                         mvcc.crevPermAt γ (sint.Z rev) ∗
-                          mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () -∗
+                          mvcc.lockCtxM γ P hk Pre Q Post dq ∗
+                            mvcc.storeRT γ ∗
+                              mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ X ∗ mvcc.storeReq γ X Y -∗
                 (▷
                     ∀ ch err,
                       mvcc.storeRT γ ∗
-                          mvcc.lockBackM γ P hk ∗
+                          mvcc.lockBackM γ P hk dq ∗
                             ghostVar γ.wr 1 () ∗
-                              ⌜err = GoInterface.nil⌝ ∗
-                                mvcc.muInvAt s γ 1 (sint.Z rev) ∗
-                                  mvcc.compactRightR s γ (sint.Z rev) ∗
-                                    mvcc.crevLb γ.idx (sint.Z rev) ∗
-                                      Post ∗
-                                        mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗
-                                          mvcc.lagTok γ (sint.Z rev) cp -∗
+                              mvcc.slotFr γ ∗
+                                ⌜err = GoInterface.nil⌝ ∗
+                                  mvcc.muInvAt s γ 1 (sint.Z rev) ∗
+                                    mvcc.compactRightR s γ (sint.Z rev) ∗
+                                      mvcc.crevLb γ.idx (sint.Z rev) ∗
+                                        Post ∗
+                                          mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗
+                                            mvcc.lagTok γ (sint.Z rev) cp ∗ Y -∗
                         Φ (intoVal ch, intoVal err)) -∗
                   WP
                     ((intoVal

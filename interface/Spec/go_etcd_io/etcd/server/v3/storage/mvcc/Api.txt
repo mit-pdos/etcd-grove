@@ -42,7 +42,8 @@ def mvcc.api.WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.api.isMvccWatchStream (interface.mkOk ty v) γ ι ∗
               threadTok ∗
-                context.isContext ctx cd ∗
+                (⌜ctx = interface.mk context.todoCtx.ty (intoVal (zero_val context.todoCtx))⌝ ∨
+                    context.isContext ctx cd ∗ trace.spanCtxOk ctx) ∗
                   ownSlice key kk DFrac.discard ∗
                     ownSlice endk e DFrac.discard ∗ mvcc.filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ au -∗
           (▷
@@ -270,18 +271,19 @@ def mvcc.api.KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
                     mvcc.api.mvccStorageFor B' Pk' σ'.log σ'.crev u ∗
                       ⌜mvcc.api.MvccReachable σ' ∧ σ'.pending = none⌝ ∗
                         mvcc.api.storageHook B' dq f ∗
-                          Pre ∗
-                            mvcc.api.hookRun Pk' f Pre Q' ∗
-                              (Q' ={⊤}=∗ Pk' ∗ Post) ∗
-                                X ∗
-                                  mvcc.api.storageReq B' Pk' X Y ∗
-                                    lease.leaseOwn (mvcc.api.mvccLeases γ) L ∅ ∗
-                                      ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
-                                            mvcc.pendItems σ'.log [] !! it = some lid →
-                                              lid ∈ L ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
-                                        AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev⌝ }> @
-                                            ⊤ \ ↑mvcc.api.mvccN, ∅ <{ mvcc.api.mvccState γ σ' ∗ ⧖(mvcc.logCh σ'.log), COMM
-                                            Q σ }> -∗
+                          ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+                            Pre ∗
+                              mvcc.api.hookRun Pk' f Pre Q' ∗
+                                (Q' ={⊤}=∗ Pk' ∗ Post) ∗
+                                  X ∗
+                                    mvcc.api.storageReq B' Pk' X Y ∗
+                                      lease.leaseOwn (mvcc.api.mvccLeases γ) L ∅ ∗
+                                        ⌜∀ (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) (lid : w64),
+                                              mvcc.pendItems σ'.log [] !! it = some lid →
+                                                lid ∈ L ∧ ↑(List.length it.Key') < 2 ^ 63 - 1⌝ ∗
+                                          AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜σ.log <+: σ'.log ∧ σ.crev ≤ σ'.crev⌝ }> @
+                                              ⊤ \ ↑mvcc.api.mvccN, ∅ <{ mvcc.api.mvccState γ σ' ∗ ⧖(mvcc.logCh σ'.log),
+                                              COMM Q σ }> -∗
           ▷
               ((threadTok ∗
                   mvcc.api.mvccOpen γ ∗

@@ -4,17 +4,17 @@
 
 def mvcc.watchableStoreTxnWrite.End.spec : Prop :=
   ∀ (trace tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (P : IProp GF) (f : val) (crev : Int) (ld : Bool),
+    (P : IProp GF) (crev : Int) (ld : Bool) (G R Tr : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize crev ld ∗
-              mvcc.hookIs γ.st P f ∗ P ∗ mvcc.certOkNext γ.st ilog pend -∗
+            mvcc.isWatchTxnWriteT tw s st γ trace ilog pend puts deletes putSize crev ld Tr ∗
+              mvcc.hookP γ.st P ∗
+                P ∗
+                  mvcc.certOkNext γ.st ilog pend ∗
+                    G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) ∗ mvcc.wsEndCbY γ ilog pend crev R -∗
           ▷
-              (mvcc.storeReader st γ.st ∗
-                  mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
-                    mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗
-                      (∃ te, traceutil.ownTrace trace te) ∗ mvcc.writerFrag γ.st -∗
+              (mvcc.storeReaderC st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗ Tr ∗ G ∗ R -∗
                 Φ (intoVal ())) -∗
             WP
               ((intoVal

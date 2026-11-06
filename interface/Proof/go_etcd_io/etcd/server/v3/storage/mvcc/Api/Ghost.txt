@@ -24,6 +24,7 @@ structure mvcc.api.AbsNames : Type where
   frz : GName
   nl : GName
   loc : GName
+  wcr : GName
 
 theorem mvcc.api.nlAuth_timeless (γ : mvcc.api.AbsNames) (q : Qp) (N : mvcc.Log) : Timeless
     (mvcc.api.nlAuth γ q N)
@@ -41,6 +42,13 @@ theorem mvcc.api.absPart_update (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (h : q1 + 
     mvcc.Log) (c1 c2 c' : Int) : mvcc.api.absPart γ q1 L1 c1 ∗ mvcc.api.absPart γ q2 L2 c2 ⊢ |==>
     (mvcc.api.absPart γ q1 L' c' ∗ mvcc.api.absPart γ q2 L' c')
 
+theorem mvcc.api.wcrPart_update (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (h : q1 + q2 = 1) (c1 c2 c' :
+    Int) : mvcc.api.wcrPart γ q1 c1 ∗ mvcc.api.wcrPart γ q2 c2 ⊢ |==> (mvcc.api.wcrPart γ q1 c' ∗
+    mvcc.api.wcrPart γ q2 c')
+
+def mvcc.api.wcrPart (γ : mvcc.api.AbsNames) (q : Qp) (c : Int) : IProp GF :=
+  ghostVar γ.wcr q c
+
 def mvcc.api.locIs (γ : mvcc.api.AbsNames) (l : Loc) : IProp GF :=
   dghostVar γ.loc DFrac.discard l
 
@@ -48,10 +56,10 @@ theorem mvcc.api.crevAtLeast_valid (γ : mvcc.api.AbsNames) (q : Qp) (c c0 : Int
     mvcc.api.crevAuth γ q c ∗ mvcc.api.crevAtLeast γ c0 ⊢ ⌜c0 ≤ c⌝
 
 def mvcc.api.absNames_countable : Pos.Countable mvcc.api.AbsNames :=
-  countableOfLeftInverse (fun x => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc))
+  countableOfLeftInverse (fun x => (x.abs, x.pnd, x.crevLb, x.tok, x.frz, x.nl, x.loc, x.wcr))
     (fun p =>
       { abs := p.fst, pnd := p.snd.fst, crevLb := p.snd.snd.fst, tok := p.snd.snd.snd.fst, frz := p.snd.snd.snd.snd.fst,
-        nl := p.snd.snd.snd.snd.snd.fst, loc := p.snd.snd.snd.snd.snd.snd })
+        nl := p.snd.snd.snd.snd.snd.fst, loc := p.snd.snd.snd.snd.snd.snd.fst, wcr := p.snd.snd.snd.snd.snd.snd.snd })
     mvcc.api.absNames_countable._proof_1
 
 def mvcc.api.nlLb (γ : mvcc.api.AbsNames) (N : mvcc.Log) : IProp GF :=
@@ -65,7 +73,7 @@ theorem mvcc.api.absNames_alloc_store (L : mvcc.Log) (c : Int) (pw pr : Qp) (hp 
     mvcc.api.pndPart a pw none) ∗ ghostVar a.frz 1 false ∗ mvcc.api.absPart a (Qp.half 1) L c ∗
     mvcc.api.pndPart a pr none ∗ mvcc.api.crevAuth a (Qp.half 1) c ∗ mvcc.api.crevAuth a (Qp.half
     1).half c ∗ mvcc.api.crevAtLeast a c ∗ mvcc.api.shareTok a 1 ∗ mvcc.api.nlAuth a 1 L ∗
-    mvcc.api.locIs a l
+    mvcc.api.locIs a l ∗ mvcc.api.wcrPart a (Qp.half 1) c ∗ mvcc.api.wcrPart a (Qp.half 1) c
 
 theorem mvcc.api.pndPart_update (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (h : q1 + q2 = 1) (p1 p2 p' :
     Option (List mvcc.Change)) : mvcc.api.pndPart γ q1 p1 ∗ mvcc.api.pndPart γ q2 p2 ⊢ |==>
@@ -74,7 +82,7 @@ theorem mvcc.api.pndPart_update (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (h : q1 + 
 theorem mvcc.api.absNames_alloc (L : mvcc.Log) (c : Int) (p : Option (List mvcc.Change)) (N :
     mvcc.Log) (l : Loc) : ⊢ |==> ∃ γ, mvcc.api.absPart γ 1 L c ∗ mvcc.api.pndPart γ 1 p ∗
     mvcc.api.crevAuth γ 1 c ∗ mvcc.api.crevAtLeast γ c ∗ mvcc.api.shareTok γ 1 ∗ ghostVar γ.frz 1
-    false ∗ mvcc.api.nlAuth γ 1 N ∗ mvcc.api.locIs γ l
+    false ∗ mvcc.api.nlAuth γ 1 N ∗ mvcc.api.locIs γ l ∗ mvcc.api.wcrPart γ 1 c
 
 def mvcc.api.writerAbs (a : mvcc.api.AbsNames) (pw : Qp) (L : mvcc.Log) : IProp GF :=
   iprop(∃ c, mvcc.api.absPart a (Qp.half 1).half L c ∗ mvcc.api.pndPart a pw none)
@@ -124,13 +132,22 @@ theorem mvcc.api.crevAuth_fractional (γ : mvcc.api.AbsNames) (c : Int) : Fracti
 theorem mvcc.api.locIs_agree (γ : mvcc.api.AbsNames) (l l' : Loc) : mvcc.api.locIs γ l ∗
     mvcc.api.locIs γ l' ⊢ ⌜l = l'⌝
 
+theorem mvcc.api.wcrPart_agree (γ : mvcc.api.AbsNames) (q1 q2 : Qp) (c1 c2 : Int) : mvcc.api.wcrPart
+    γ q1 c1 ∗ mvcc.api.wcrPart γ q2 c2 ⊢ ⌜c1 = c2⌝
+
 def mvcc.api.pndPart (γ : mvcc.api.AbsNames) (q : Qp) (p : Option (List mvcc.Change)) : IProp GF :=
   ghostVar γ.pnd q p
+
+theorem mvcc.api.wcrPart_fractional (γ : mvcc.api.AbsNames) (c : Int) : Fractional fun q =>
+    mvcc.api.wcrPart γ q c
 
 theorem mvcc.api.pndPart_fractional (γ : mvcc.api.AbsNames) (p : Option (List mvcc.Change)) :
     Fractional fun q => mvcc.api.pndPart γ q p
 
 theorem mvcc.api.nlLb_timeless (γ : mvcc.api.AbsNames) (N : mvcc.Log) : Timeless (mvcc.api.nlLb γ N)
+
+theorem mvcc.api.wcrPart_timeless (γ : mvcc.api.AbsNames) (q : Qp) (c : Int) : Timeless
+    (mvcc.api.wcrPart γ q c)
 
 theorem mvcc.api.revMuAbs_fractional (a : mvcc.api.AbsNames) (L : mvcc.Log) (c : Int) : Fractional
     fun q => mvcc.api.revMuAbs a q L c

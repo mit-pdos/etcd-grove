@@ -4,18 +4,18 @@
 
 def mvcc.storeTxnWrite.End.spec : Prop :=
   ∀ (trace tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc)
-    (sealed : Bool) (P : IProp GF) (f : val) (crev : Int) (Z : IProp GF) (ld : Bool),
+    (sealed : Bool) (P : IProp GF) (crev : Int) (Z : IProp GF) (ld : Bool) (Y G R : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ld ∗
-              mvcc.hookIs γ P f ∗ P ∗ mvcc.certOkNext γ ilog pend ∗ mvcc.logQPre γ ilog pend -∗
+            mvcc.storeTxnWriteCoreY tw s γ trace ilog pend chs ps sealed crev Z ld Y ∗
+              mvcc.hookP γ P ∗
+                P ∗
+                  mvcc.certOkNext γ ilog pend ∗
+                    mvcc.logQPre γ ilog pend ∗ G ∗ □ (mvcc.slotF γ ∗ G -∗ False) ∗ mvcc.endCb γ ilog pend crev Y R -∗
           ▷
               (mvcc.storeReaderC s γ ∗
-                  □ Z ∗
-                    mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
-                      (if pend = [] then mvcc.revToken γ else True) ∗
-                        mvcc.logQPost γ ilog pend ∗ mvcc.writerFrag γ ∗ mvcc.writerPin γ (mvcc.commitLog ilog pend) -∗
+                  □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗ mvcc.logQPost γ ilog pend ∗ G ∗ R -∗
                 Φ (intoVal ())) -∗
             WP
               ((intoVal

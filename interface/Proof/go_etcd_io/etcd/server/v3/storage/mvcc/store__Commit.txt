@@ -4,12 +4,14 @@
 
 theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec
   -- `Perennial.EtcdGrove.mvcc.store.Commit.spec`, unfolded:
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (X Y : IProp GF),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (qf : Qp) (o : mvcc.StoreObjs) (X Y : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isStore s γ ∗ mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.storeWT γ ∗ X ∗ mvcc.storeReq γ X Y -∗
-          ▷ (mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ Y -∗ Φ (intoVal ())) -∗
+            mvcc.isStore s γ ∗
+              mvcc.curAt γ (DFrac.own qf) o ∗
+                ▷ mvcc.storeReaderC s γ ∗ (mvcc.storeWT γ ∨ □ (⧗1 ={⊤}=∗ mvcc.storeWT γ)) ∗ X ∗ mvcc.storeReq γ X Y -∗
+          ▷ (mvcc.curAt γ (DFrac.own qf) o ∗ mvcc.storeReaderC s γ ∗ Y -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType

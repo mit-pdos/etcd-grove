@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def mvcc.metricsTxnWrite.FirstRev.spec : Prop :=
-  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) (Z : IProp GF),
+  ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) (Z Tr : IProp GF),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnRead mw s γ trace log rev crev Z -∗
-          ▷ (mvcc.isTxnRead mw s γ trace log rev crev Z -∗ Φ (intoVal (W64 crev))) -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnReadT mw s γ trace log rev crev Z Tr -∗
+          ▷ (mvcc.isTxnReadT mw s γ trace log rev crev Z Tr -∗ Φ (intoVal (W64 crev))) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty.PointerType

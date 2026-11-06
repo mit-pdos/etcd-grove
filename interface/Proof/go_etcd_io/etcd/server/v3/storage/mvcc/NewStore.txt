@@ -31,7 +31,7 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
                         mvcc.kbWT kb ∗
                           mvcc.kbWT kb ∗
                             mvcc.kbSRM kb ∗
-                              ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
+                              ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT kb) ∗
                                 lease.lessorRdOf γl ∗
                                   mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗ mvcc.idxFresh γi ∗ ghostMapAuth γok 1 ∅ -∗
             (▷
@@ -41,7 +41,9 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
                             γ.leases = γl ∧
                               γ.kb = kb ∧ γ.watchQ = wq ∧ γ.idx = γi ∧ γ.cok = γok ∧ γ.cm = decide (mvcc.kbCmpM kb)⌝ ∗
                         mvcc.isStore s γ ∗
-                          (∃ rd, lease.rdOwn γl rd) ∗
+                          (∃ rd,
+                              lease.rdOwn γl rd ∗
+                                mvcc.rdCalls rd go_etcd_io.etcd.server.v3.storage.mvcc.store.ty.PointerType (intoVal s)) ∗
                             ghostMapAuth γ.cok 1 ∅ ∗
                               mvcc.hookInit γ P f ∗
                                 (∃ rv wv,
@@ -60,24 +62,22 @@ theorem mvcc.NewStore.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions] (hNop : za
                                               (intoVal wv))
                                             (DFrac.own 1) ∗
                                           mvcc.isWriteView wv s γ) ∗
-                                  ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb) (),
+                                  ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
                                       mvcc.storeReaderC s γ) ∗
-                                    ownToks γ.revs (2 ^ 63 - 5) ∗
-                                      mvcc.idxCert γ.idx [[], []] ∗
-                                        (if wq = true then mvcc.logQ γ [[], []] else True) ∗
-                                          mvcc.storeCloser s γ ∗
-                                            mvcc.fieldShare s γ (Qp.half 1).half ∗
-                                              mvcc.wsDep γ ∗
-                                                mvcc.writerFrag γ ∗
-                                                  mvcc.writerPin γ [[], []] ∗
-                                                    mvcc.crevUB γ.idx (Qp.half 1) (-1) ∗
-                                                      mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
-                                                        mvcc.crevPermIs γ Perm ∗
-                                                          mvcc.writerReg s γ ∗
-                                                            (∃ pr,
-                                                                ⌜mvcc.pndW γ + pr = 1⌝ ∗
-                                                                  mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗
-                                                              £ 1) -∗
+                                    mvcc.idxCert γ.idx [[], []] ∗
+                                      (if wq = true then mvcc.logQ γ [[], []] else True) ∗
+                                        mvcc.storeCloser s γ ∗
+                                          mvcc.fieldShare s γ (Qp.half 1).half ∗
+                                            mvcc.wsDep γ ∗
+                                              mvcc.writerFrag γ ∗
+                                                mvcc.crevUB γ.idx (Qp.half 1) (-1) ∗
+                                                  mvcc.retiredAt γ (mvcc.nJobRd kb) ∗
+                                                    mvcc.crevPermIs γ Perm ∗
+                                                      mvcc.writerReg s γ ∗
+                                                        (∃ pr,
+                                                            ⌜mvcc.pndW γ + pr = 1⌝ ∗
+                                                              mvcc.api.newClient γ.api [[], []] (-1) pr s) ∗
+                                                          £ 1) -∗
                     Φ (intoVal s)) -∗
               WP
                 (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.mvcc.NewStore [])) (intoVal lg)) (intoVal b))

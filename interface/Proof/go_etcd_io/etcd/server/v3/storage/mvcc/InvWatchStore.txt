@@ -115,19 +115,29 @@ def mvcc.isWatchableStore (s st : Loc) (γ : mvcc.WsNames) : IProp GF :=
                 typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.readView go!"kv" rv)
                   (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType (intoVal s))
                   DFrac.discard ∗
-              "#Hmu" ∷ sync.isRWMutexGuard (mvcc.wsMuAddr s) (mvcc.watchStoreInv s γ) ∗
-                "#Hvc" ∷
+              ("#HwvW" ∷
+                  ∃ wv,
                     typedPointsto
-                      (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore
-                        go!"victimc" s)
-                      vc DFrac.discard ∗
-                  ("#Hvcb" ∷ isChanBag γv vc fun x => iprop(True)) ∗
-                    "#Hstopc" ∷
-                        typedPointsto
-                          (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore
-                            go!"stopc" s)
-                          stc DFrac.discard ∗
-                      "#Hstop" ∷ mvcc.isStopChan stc ∗ "#Hfrz" ∷ mvcc.wsFrozenM γ.st ∗ "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
+                        (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store
+                          go!"WriteView" st)
+                        (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty.PointerType (intoVal wv))
+                        DFrac.discard ∗
+                      typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.writeView go!"kv" wv)
+                        (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType (intoVal s))
+                        DFrac.discard) ∗
+                "#Hmu" ∷ sync.isRWMutexGuard (mvcc.wsMuAddr s) (mvcc.watchStoreInv s γ) ∗
+                  "#Hvc" ∷
+                      typedPointsto
+                        (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore
+                          go!"victimc" s)
+                        vc DFrac.discard ∗
+                    ("#Hvcb" ∷ isChanBag γv vc fun x => iprop(True)) ∗
+                      "#Hstopc" ∷
+                          typedPointsto
+                            (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore
+                              go!"stopc" s)
+                            stc DFrac.discard ∗
+                        "#Hstop" ∷ mvcc.isStopChan stc ∗ "#Hfrz" ∷ mvcc.wsFrozenM γ.st ∗ "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
 
 def mvcc.covFact (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (w' : Loc)
     (rev : w64) : IProp GF :=
@@ -151,10 +161,6 @@ def mvcc.covFact (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (pre : List mvc
 theorem mvcc.wsSlot_nlLb (γ : mvcc.WsNames) (q : Qp) (Lmu : mvcc.Log) : mvcc.wsSlot γ q Lmu ⊢
     mvcc.wsSlot γ q Lmu ∗ mvcc.api.nlLb γ.st.api Lmu
 
-def mvcc.watchWriter (γ : mvcc.WsNames) (L : mvcc.Log) : IProp GF :=
-  iprop(mvcc.idxCert γ.st.idx L ∗
-      ownToks γ.st.revs (mvcc.wBudget L) ∗ monoListAuthOwn γ.wlog (Qp.half 1) L ∗ mvcc.writerPin γ.st L)
-
 def mvcc.WsState.settled (σ : mvcc.WsState) : Prop :=
   σ.syncedBelow (List.length σ.Lmu) ∧ σ.vicBelow (List.length σ.Lmu)
 
@@ -171,19 +177,19 @@ def mvcc.streamSentLb (γo : mvcc.WsStreamNames) (l : List mvcc.RespM) : IProp G
 def mvcc.rdIs (rd : GoFunc) (s st : Loc) (γ : mvcc.WsNames) : IProp GF :=
   iprop(⌜rd ≠ func.nil⌝ ∗
       □
-        ∀ L P Pre Q f,
+        ∀ P Pre Q f G,
           □
             ∀ Φ,
-              (mvcc.storeReader st γ.st ∗
+              mvcc.storeReader st γ.st ∗
                   mvcc.storeWT γ.st ∗
-                    mvcc.watchWriter γ L ∗
-                      ⌜List.length L + 4 ≤ 2 ^ 63⌝ ∗
-                        mvcc.hookIs γ.st P f ∗
-                          Pre ∗ □ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) -∗
+                    mvcc.hookIs γ.st P f ∗
+                      Pre ∗
+                        (□ □ ∀ Φ, P ∗ Pre -∗ ▷ (Q -∗ Φ (intoVal ())) -∗ WP (f (intoVal ())) {{ Φ }}) ∗
+                          G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) -∗
                 (▷
                     ∀ tw trace,
-                      (∃ crev, mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗
-                          Q ∗ mvcc.hookIs γ.st P f -∗
+                      (∃ L crev, mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev) ∗
+                          Q ∗ mvcc.hookIs γ.st P f ∗ G -∗
                         Φ
                           (intoVal
                             (interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite.ty.PointerType
@@ -372,7 +378,7 @@ theorem mvcc.chanApi_recv (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNa
     γ ch γc (recv ++ [r])
 
 def mvcc.wlogQ (γ : mvcc.WsNames) (q : Qp) (L : mvcc.Log) : IProp GF :=
-  iprop(monoListAuthOwn γ.wlog q.half L ∗ mvcc.idxLogAuth γ.st.idx q.half.half L)
+  iprop(monoListAuthOwn γ.wlog q L ∗ mvcc.idxLogAuth γ.st.idx q.half.half L)
 
 theorem mvcc.monoList_halves (g : GName) (L : mvcc.Log) : monoListAuthOwn g 1 L ⊣⊢ monoListAuthOwn g
     (Qp.half 1) L ∗ monoListAuthOwn g (Qp.half 1) L
@@ -743,10 +749,6 @@ theorem mvcc.isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : mvcc.WsNames) (trace
 def mvcc.chanRegFact (γc : mvcc.WatchChanNames) (w : Loc) : IProp GF :=
   iprop(∃ rr fcs, mvcc.watcherFixed w rr fcs ∗ mvcc.chanIdAssigned γc rr.id w ∗ ⌜rr.id ≠ W64 (-1)⌝)
 
-theorem mvcc.wlog_update_halves (γ : mvcc.WsNames) (L L' : mvcc.Log) (h : L <+: L') : ⊢
-    monoListAuthOwn γ.wlog (Qp.half 1) L -∗ monoListAuthOwn γ.wlog (Qp.half 1) L ==∗ monoListAuthOwn
-    γ.wlog (Qp.half 1) L' ∗ monoListAuthOwn γ.wlog (Qp.half 1) L'
-
 def mvcc.watchReader (s st : Loc) (γ : mvcc.WsNames) : IProp GF :=
   iprop(mvcc.storeReader st γ.st ∗ sync.ownRWMutex (mvcc.wsMuAddr s) (mvcc.watchStoreInv s γ))
 
@@ -874,6 +876,9 @@ def mvcc.WsState.live (σ : mvcc.WsState) (w : Loc) : Prop :=
 def mvcc.idxOk (sent : List mvcc.RespM) : Prop :=
   ∀ (k : Nat) (x : mvcc.RespM), sent[k]? = some x → x.idx = k
 
+theorem mvcc.wlog_update (γ : mvcc.WsNames) (L L' : mvcc.Log) (h : L <+: L') : ⊢ monoListAuthOwn
+    γ.wlog 1 L ==∗ monoListAuthOwn γ.wlog 1 L'
+
 theorem mvcc.filterSpec_persistent (f : GoFunc) (p : mvcc.EvM → Bool) : Persistent (mvcc.filterSpec
     f p)
 
@@ -945,8 +950,7 @@ def mvcc.isWatchTxnWrite (tw s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (ilog
             DFrac.discard ∗
         "#Hws" ∷ mvcc.isWatchableStore s st γ ∗
           "Htx" ∷ mvcc.isTxnWrite mw st γ.st trace ilog pend puts deletes putSize crev iprop(True) ld ∗
-            "#Hcert" ∷ mvcc.idxCert γ.st.idx ilog ∗
-              "Htoks" ∷ ownToks γ.st.revs (mvcc.wBudget ilog - 1) ∗ "Hwlog" ∷ monoListAuthOwn γ.wlog (Qp.half 1) ilog)
+            "#Hcert" ∷ mvcc.idxCert γ.st.idx ilog)
 
 def mvcc.chanWatcher (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (closed : Bool) (sent : List
     mvcc.RespM) (w : Loc) : IProp GF :=

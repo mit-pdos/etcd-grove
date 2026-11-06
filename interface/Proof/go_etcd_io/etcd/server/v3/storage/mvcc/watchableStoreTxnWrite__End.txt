@@ -4,9 +4,8 @@
 
 theorem mvcc.body_pin {trace : Loc} (s stw st : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) (ilog :
     mvcc.Log) (pend : List mvcc.Change) (chs : GoSlice) (ps : List Loc) (crev : Int) (ld : Bool) :
-    mvcc.watchStoreBody s γ 1 σ ∗ monoListAuthOwn γ.wlog (Qp.half 1) ilog ∗ mvcc.storeTxnWriteCore
-    stw st γ.st trace ilog pend chs ps false crev iprop(True) ld ⊢ ⌜σ.Lmu = ilog ∧ σ.syncedBelow
-    (List.length ilog)⌝
+    mvcc.watchStoreBody s γ 1 σ ∗ mvcc.storeTxnWriteCore stw st γ.st trace ilog pend chs ps false
+    crev iprop(True) ld ⊢ ⌜σ.Lmu = ilog ∧ σ.syncedBelow (List.length ilog)⌝
 
 theorem mvcc.set_replicate_step {α : Type} (done : List α) (z e : α) (m : Nat) (hm : done.length <
     m) : (done ++ List.replicate (m - done.length) z).set done.length e = done ++ [e] ++
@@ -17,17 +16,17 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof (hCh : mvcc.metricsTxnWrite.Cha
     mvcc.watchableStore.notify.spec) : mvcc.watchableStoreTxnWrite.End.spec
   -- `Perennial.EtcdGrove.mvcc.watchableStoreTxnWrite.End.spec`, unfolded:
   ∀ (trace tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
-    (P : IProp GF) (f : val) (crev : Int) (ld : Bool),
+    (P : IProp GF) (crev : Int) (ld : Bool) (G R Tr : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize crev ld ∗
-              mvcc.hookIs γ.st P f ∗ P ∗ mvcc.certOkNext γ.st ilog pend -∗
+            mvcc.isWatchTxnWriteT tw s st γ trace ilog pend puts deletes putSize crev ld Tr ∗
+              mvcc.hookP γ.st P ∗
+                P ∗
+                  mvcc.certOkNext γ.st ilog pend ∗
+                    G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) ∗ mvcc.wsEndCbY γ ilog pend crev R -∗
           ▷
-              (mvcc.storeReader st γ.st ∗
-                  mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
-                    mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗
-                      (∃ te, traceutil.ownTrace trace te) ∗ mvcc.writerFrag γ.st -∗
+              (mvcc.storeReaderC st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗ Tr ∗ G ∗ R -∗
                 Φ (intoVal ())) -∗
             WP
               ((intoVal
@@ -39,12 +38,6 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof (hCh : mvcc.metricsTxnWrite.Cha
 theorem mvcc.rest_shift (n : Nat) (L : List Loc) (Φ : Nat → Loc → IProp GF) : ([∗list] k ↦ y ∈ L, Φ
     (n + (k + 1)) y) ⊢ [∗list] k ↦ y ∈ L, Φ (n + 1 + k) y
 
-theorem mvcc.isTxnWriteCore_room {trace : Loc} (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log)
-    (pend : List mvcc.Change) (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (b :
-    Bool) (crev : Int) (ld : Bool) : mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize
-    chs ps b crev iprop(True) ld ⊢ mvcc.isTxnWriteCore mw s γ trace ilog pend puts deletes putSize
-    chs ps b crev iprop(True) ld ∗ ⌜List.length ilog + 4 ≤ 2 ^ 63⌝
-
 theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.WsOk σ) (ilog :
     mvcc.Log) (pend : List mvcc.Change) : ([∗map] w ↦ st ∈ σ.ST, mvcc.memberRes γ 1 σ w st) ∗
     monoListAuthOwn γ.st.idx.hist 1 (mvcc.histShape ilog pend) ⊢ ⌜σ.syncedBelow (List.length ilog)⌝
@@ -53,7 +46,6 @@ theorem mvcc.ownToks_join_pred (γr : GName) (b : Nat) (h : 1 ≤ b) : ownToks �
     1 ⊢ ownToks γr b
 
 theorem mvcc.body_commit (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) : mvcc.watchStoreBody s γ 1
-    σ ⊢ mvcc.logQ γ.st σ.Lmu ∗ ∀ L, ⌜σ.syncedAbove (List.length L) ∧ σ.Lmu <+: L⌝ -∗ monoListAuthOwn
-    γ.wlog (Qp.half 1) σ.Lmu -∗ mvcc.idxCert γ.st.idx L -∗ mvcc.logQ γ.st L ==∗ mvcc.watchStoreBody
-    s γ 1 { Lmu := L, Ws := σ.Ws, Wu := σ.Wu, ST := σ.ST, Wo := σ.Wo, M := σ.M, E := σ.E, vs :=
-    σ.vs, vbs := σ.vbs, VB := σ.VB } ∗ monoListAuthOwn γ.wlog (Qp.half 1) L
+    σ ⊢ mvcc.logQ γ.st σ.Lmu ∗ ∀ L, ⌜σ.syncedAbove (List.length L) ∧ σ.Lmu <+: L⌝ -∗ mvcc.idxCert
+    γ.st.idx L -∗ mvcc.logQ γ.st L ==∗ mvcc.watchStoreBody s γ 1 { Lmu := L, Ws := σ.Ws, Wu := σ.Wu,
+    ST := σ.ST, Wo := σ.Wo, M := σ.M, E := σ.E, vs := σ.vs, vbs := σ.vbs, VB := σ.VB }
