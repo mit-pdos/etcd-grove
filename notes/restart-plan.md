@@ -3779,3 +3779,21 @@ first-start disjunct. Not started: the restart conjunct ("this incarnation's `Ms
   persistent over a borrowed resource `T` (`□ (⌜t0 < rt⌝ -∗ T -∗ ∀ id m st, … -∗ ⌜…⌝ ∗ msgOwn … ∗ T)`);
   `applyAll.specBatchR` and `run_job_bodyR` take `T` and give it back (`T := token γwp` in `run`).
   DRAFT files only (`RunR.lean`, `ApplyAllR.lean`).
+
+### R2d'a restart-only premises (2026-11-06; 82's condition)
+
+Every restart-only premise R2d'a carries, in one place. None is reached by a closed theorem; R2e's
+closed theorem carries none. At a first start each is proved or vacuous.
+
+| Premise | Text | Go evidence | At a first start | Discharge (est.) |
+|---|---|---|---|---|
+| `Hwpend` (A7) | `srvWinPend s γr γn` (`InvRun.lean:48`): a `token γwp` and `□ ∀ rt n, token -∗ ⌜n < \|a0\| ∧ uint.Z γn.t0 < uint.Z rt⌝ -∗ rnRtOk γn rt n -∗ ∀ id m st, … -∗ ⌜MsgSnap → Term ≠ rt⌝ ∗ …`, in `isServerRunC`/`isServerBuiltC` and the hubs | `/shared/tmp/winpend-probe`: 0 of ~4250 former-leader restarts fail it with etcd's drained handout; 2-3% with a slow handout (one entry per `Ready`), ~3% without PreVote; the failing runs are elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'` | `srvWinPend_first` (`InvRun.lean:60`): at `a0 = []` the guard `n < 0` is false, a token gives it | **R2s** (the elected-at-`T' > T₀` case; R2s's Scope, no estimate yet); `axiom`-skill attack before R2d'b's Freeze |
+| `rnWinInstallAbove` (A8, strict) | `InvRaftNode.lean:399`: `□ ∀ st es l, ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl … st -∗ nodeDriver … st ∗ ⌜\|γ.a0\| < snapIdx⌝` | probe follow-up (ii): of ~400 in-window installs per run, 0 at or below the commit at restart (23-35 below / 0-4 equal to the restored log's last index, all from its uncommitted tail, seed 356); `raft.go:1876-1880` (`restore` refuses `index ≤ committed`), `raft.go:1912-1918` | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) is taken; `NodeBridge` reads `a0 = []` there | **R2s or raft's API** (H5 (b), the raft fact "a snapshot's index is above the receiver's commit"), with R2d'b's `RestartNode` supplying the own-WAL condition (row 5); no estimate yet (R2s's Scope) |
+| `rnWalCommitAbove` (Q27 (i)) | `InvRaftNode.lean:418`: `□ ∀ S σ, raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜\|γ.a0\| ≤ σ.commit⌝` | not probed; Go: the restored WAL's commit is at least the backend's consistent index (`bootstrapRestartContract`), `σ.commit ≥ S.wcommit`, and the commit raft writes only grows | trivial: `rnRestartOk_commit`'s first case (`a0 = []`) | **R2d'b** (`RestartNode` supplies it from the restored records; within B1, 1 wk (est.)) |
+| snap-term bound (Q29 (d)) | `rnSnapTermAbove γ` (`InvRaftNode.lean:446`): `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ q ∈ ms, MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝` (anchored at the driver state, not `nodeDriver`: see part 2 above) | probe follow-up (i): 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term | not used: the first disjunct has `t0 = 0`, and `rnMsgOk_of_api` bounds the `MsgSnap` by its nonzero term (`sentMsg_shape`) | **R2d'b**: every `MsgSnap` an instance puts in a `Ready` has `Term >` its start term; needs a raft-struct invariant (`reset(term)` does not clear `r.msgs`) and a `StartNode`/`RestartNode` post change, 5-8 d (est.) |
+| own-WAL committed prefix | no Lean conjunct of its own: cited by `rnWinInstallAbove`'s docstring (`InvRaftNode.lean:385-397`) as why its `<` is true; `rnRestartOk`'s `srvRLogLb γ.srv γ.a0` (cluster-committed) is the nearest text | probe follow-up (ii) above: measured against the commit at restart, 0 installs at or below; the equal/below cases against the restored log's last index come only from its uncommitted tail | vacuous (`a0 = []`) | **R2d'b**'s `RestartNode` (`a0` a committed prefix of the restored WAL log), within B1, 1 wk (est.) |
+
+*Note (the snap-term row).* A `MsgSnap` queued at `T` by a leader that then steps down still has
+`T > t0`: it led at `T`, and leading needs `becomeCandidate` at a term above `t0` (`raft.go:902-911`,
+`r.reset(r.Term + 1)` from at least `T₀`), so `T ≥ t0 + 1`. The step-down (`becomeFollower`'s
+`reset`) does not clear `r.msgs`, which is why the bound is per message, not per role.
