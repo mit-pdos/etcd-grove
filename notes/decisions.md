@@ -32270,3 +32270,54 @@ over `alloc3`; one new law, `memberRestartRes_raft` (D14-D17). The pass-throughs
 (`memberFreshRes_intro_peer` deleted, `alloc3Http` private). `run.specStop` and its scope premises are
 unchanged, left for R2c. Statements naming a start resource: the five consumers only. Trust base
 unchanged (`notes/spec-first-plan.md`, "Step 8 glue list", "Where the Draft stands").
+
+
+
+## The stop chain for a first start: the scope in the request, the slot in the built part, one `run.spec` (2026-11-06 · R2c, the restart plan's Scope (A) and Q2 (b) approved by the user, Q3-Q7 (a) decided, Q5 (a) accepted as a hub request · branch `r2c`; DRAFT until R2c's Freeze)
+
+**What changed.**
+- *R2c-1.* The boot log's facts are the cluster's: `srvRaftLogInv`'s last conjunct is
+  `γ.raft.vs ≠ [] ∧ γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot` (was `∃ ps, ps ≠ [] ∧
+  srvBootLogOk ps γ.raft.boot`); `stop_imageConf`, `stopCleanupImage.spec` and `run`'s stop take them
+  from `isServer`, not as premises.
+- *R2c-2.* The stop's scope is the request's: `srvStop.scope E := E.authOn = false ∧ E.cmp = false`
+  and `srvStopReq s E ρ dd := srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗ 128 store
+  readers` (the readers R2c-4). "No compactor" is not carried: `NewServer` makes one only in
+  compaction mode, so the slot's census records `cp ≠ nil → E.cmp = true` and
+  `srvStop.census_readers` takes `E.cmp = false` (D-a). `srvStopRight s E γ ρ id dd` names `E` (the
+  request's) and records the `DataDir` field (`srvStopRight_dd`).
+- *R2c-3.* The slot (`srvStop.slot s E γrn Er := ∃ cfg γk, srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST =
+  srvTrStopK γk⌝`, D1's fact inside) is a conjunct of `isServerBuiltC` and `isServerRunC`, not of
+  `isServerBuilt`/`isServerRun`/`srvBuiltG`: the import graph (`StopApi → InvRestart → InvStart →
+  InvRun`) forbids those, so `NewServer.specG`'s post is unchanged and Q5's hub request is not
+  needed (D-d). `memberBuilt`'s `K` is gone (its last conjunct the slot's `srvStop.keep`);
+  `memberBuiltS` is deleted.
+- *R2c-4 (F4).* `start` makes `stop` with the requests (`srvStopReq`) and `done` announcing the
+  escrowed image (`srvDoneInv`, at the slot's `DataDir` and a fresh claim); `start.spec`/`Start.spec`
+  post `∃ dd, srvStopRight s E ρ.rd.raft.raft ρ γn.id dd`; one `run.spec` (the stop's shape, no
+  scope premise and no `srvShutdownPre`; `wp_proofG`'s flag gone, its shutdown callees linked);
+  `etcdstart.memberUp` holds the right (its last conjunct), so that the right's `E` is the serving
+  stocks' (D-c); `Start_builtS_spec` deleted (D3). The done channel's content is no longer `True`:
+  `srvDoneChan` and `srvChanOk`'s post quantify it (D-f).
+- *R2c-5.* `srvStop.dataDir`: with no dedicated WAL directory the slot's fields are `srvDataDir`
+  (D2); `newServer.spec`/`newServerMode.spec` post `srvDataDir s (name ++ ".etcd")`;
+  `BuildServer.spec` is the one spec (its post with `srvDataDir`; `specStop` deleted); restart's
+  `startMember` is over it.
+
+**Why.** One spec per function (the R2b-2 review's F4): `run` with a stop request is the only `run`;
+a client that never stops drops the right (affine). The scope is the request's so that `run`'s
+precondition has no scope premise (Q2 (b)); the serving readers are the request's because a
+serving member cannot give them at its start (F-e).
+
+**The restart example** (`examples/etcd/restart`, no closed theorem): `memberStop` keeps the data
+directory; what the stop takes of the started member is `memberStopRes s ρ id` (the right, the
+scope, the 128 readers), split off `memberUp` by `memberUp_stopRes` out of compaction mode;
+`stop.spec`/`restartCheck.spec` take it.
+
+**Trust base (open, the user's).** With one `run.spec`, the image's configuration axioms
+(`apply.memberKey_inj`, `apply.memberEnc_id_learner`, `membership.membersOf_decode`, reviewed
+2026-11-04) reach every result through `run`: 785 → 788 axioms. This is a hard stop; the baselines
+are not updated.
+
+**Left.** R2d (a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`);
+`raftNode.stop` still has two specs (`spec`, now unused by `run`, and `specStop`).

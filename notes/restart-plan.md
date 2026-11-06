@@ -1896,3 +1896,36 @@ land together). Glue (Draft's list, the "decides nothing" rule): R2c-5's `BuildS
   size, not R2c.
 - Lifting the compactor premise later by a share-free reader changes the compactor's slot (the
   k8s compactor's specs): K-track coordination.
+
+### R2c Draft (2026-11-06, branch `r2c`, DRAFT until R2c's Freeze)
+
+Sub-steps R2c-1 to R2c-5 as in the Scope (A), proved, no `sorry`, no axiom: `e086ccfcc9` (R2c-1),
+`4623b75b93` (R2c-2), `84792dae13` (R2c-3), `53b9d60e74` (R2c-4), `5fd553525e` (R2c-5). What changed
+and why: `notes/decisions.md`, "The stop chain for a first start". The agent's decisions D-a to D-f
+(pending the user) and every frozen or exported statement touched, old → new, are in the
+worktree's `questions.md` (the Freeze batch). Departures from the Scope:
+- **D-d (Q5 adapted, no hub request):** the slot (`srvStop.slot`) is a conjunct of `isServerBuiltC`
+  and `isServerRunC`, not of `srvBuiltG`/`isServerBuilt`/`isServerRun`: the import graph
+  (`StopApi → InvRestart → InvStart → InvRun`) forbids those. `NewServer.specG` is unchanged.
+- **D-c:** the 128 serving readers are the stop request's (`srvStopReq`), so the right's `E` must be
+  the serving stocks': `etcdstart.memberUp` holds the right (its last conjunct), and the restart
+  example splits what the stop needs (`memberStopRes`: the right, the scope, the readers) off
+  `memberUp` by `memberUp_stopRes` (out of compaction mode). `restart`'s `memberStop` keeps only the
+  data directory record.
+- **D-f:** `done`'s content is the escrowed image, not `True`: `srvDoneChan` and the read loop's
+  `srvChanOk` quantify the channel's predicate.
+- `Start_builtR_spec`'s post is `memberUp` (the right inside it); `restart.startMember.spec` gains
+  `BuildServer.spec`'s UTF-8 premise on the initial cluster's names (the draft `specStop` lacked it).
+
+**Hard stop at the gates (2026-11-06):** the one `run.spec` contains the stop branch, so every
+result through `run` reaches the three axioms of the image's configuration (`apply.memberKey_inj`,
+`apply.memberEnc_id_learner`, `membership.membersOf_decode`). The user reviewed and approved them on
+2026-11-04 (R2b-3d gap 3), but until now only the draft `run.specStop` used them. The trust base goes
+from 785 to 788 axioms, and 14 collections also gain `lease.lessor.Stop.wp_proof`, which is already
+in the global base. The baselines were not updated. The options are in `questions.md`, "HARD STOP":
+accept them, or weaken the image's configuration until R2d, or keep two `run` specs. The bounds gate
+holds (`srvStopReaders`, the stop's owner's name for the readers' count).
+
+**Left (R2d):** a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`,
+`startMember.specRestart`, Q8, Q9. `raftNode.stop` keeps two specs (`spec`, which `run` no longer
+uses, and `specStop`). Next: a fresh `spec-reviewer` on the stop chain, then the Freeze.
