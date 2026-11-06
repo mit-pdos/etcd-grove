@@ -197,8 +197,7 @@ theorem srvErrIs_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.nil) 
   iexists ei
   isplitr
   · ipureintro; exact Hei
-  iunfold errMsgOk at Hm
-  iexact Hm
+  iapply errMsgOk_triple $$ Hm
 
 end defs
 
