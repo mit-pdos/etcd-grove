@@ -366,7 +366,7 @@ theorem restore_switch (s : Loc) (γ : StoreNames) (o o' : StoreObjs) (p' : Phys
     Hrds #Hrc %Hrb Hrts
   ihave %Hrclt := preceipt_lt _ $$ Hrc
   have hlen := restoreLogOk_len hR
-  obtain ⟨-, hwf, -⟩ := hR
+  obtain ⟨-, hwf⟩ := hR
   have hwfL : LogWf' ([[], []] ++ R) := hwf.1.prefix
   iunfold restoreHeld at Hheld
   iNamed Hheld

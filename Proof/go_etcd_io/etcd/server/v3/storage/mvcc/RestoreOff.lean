@@ -48,7 +48,7 @@ back the new closer, fragment, token, the old backend's tokens and the new one's
 restore in compaction mode (`store.Restore`'s two `cm = false` premises, Q5-3/Q5-4). -/
 abbrev mvcc.watchableStore.Restore.specOff : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (R : mvcc.Log),
+    (P' : IProp GF) (R : mvcc.Log) (Ls : List w64),
   mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ ⌜∃ d, γ.st.kb = some d ∧ d.cm = false⌝ ∗ ⌜d'.cm = false⌝ ∗
@@ -62,7 +62,10 @@ abbrev mvcc.watchableStore.Restore.specOff : Prop :=
           (mvcc.kbNoCmpF (γ.st.withPhys p).kb (γ.st.withPhys p).bucket)) ∗
       mvcc.kbViewC (some d') γb' 1 (mvcc.bucketMap ([[], []] ++ R)) ∗
       mvcc.kbNoCmp (some d') γb' ∗ mvcc.kbNoDel (some d') ∗ mvcc.kbRegRight (some d') ∗
-      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
+      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) ∗
+      lease.leaseOwn γ.st.leases Ls ∅ ∗
+      ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
+        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
       ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
@@ -70,23 +73,24 @@ abbrev mvcc.watchableStore.Restore.specOff : Prop :=
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
       mvcc.hookP (γ.st.withPhys p') P' ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (), mvcc.storeRT γ.st) ∗
-      mvcc.storeRT (γ.st.withPhys p') }}
+      mvcc.storeRT (γ.st.withPhys p') ∗
+      lease.leaseOwn γ.st.leases Ls (mvcc.pendItems ([[], []] ++ R) []) }}
 
 /-- **Off, the spec reads as before compaction mode**: at no record and the revision `-1`. -/
 theorem mvcc.watchableStore.Restore.specOff_of_spec
     (h : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.specOff (GF := GF) (hG := hG) := by
-  intro s st γ b' d' γb' P' R hR
+  intro s st γ b' d' γb' P' R Ls hR
   iintro %Φ ⟨#Hpkg, #Hws, %Hd, %Hd', Hcl, Hwf, Hwo, #Hfrz, #Hpre, #Hok, Hbk, Hkc, Hv, Hnc, #Hnd, Hrr,
-    Hrts⟩ HΦ
+    Hrts, HLo, %Hlok⟩ HΦ
   obtain ⟨d, hγd, hdcm⟩ := Hd
   obtain ⟨hoff, -, hsr, hws, -⟩ := mvcc.cmOff_true (GF := GF) d' Hd'
   obtain ⟨hoffd, hj0d, -, -, -⟩ := mvcc.cmOff_true (GF := GF) d hdcm
   have hoffγ : ¬ mvcc.kbCmpM γ.st.kb := by rw [hγd]; exact hoffd
   have hc : (-1 : Int) ≤ mvcc.CmpRecs.empty.crev := by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _
-  iapply (h s st γ b' d' γb' P' R (-1) mvcc.CmpRecs.empty hR hc) $$
-    [Hcl Hwf Hwo Hbk Hkc Hv Hnc Hrr Hrts]
-  · iframe Hpkg Hws Hwf Hwo Hpre Hok Hrr Hrts
+  iapply (h s st γ b' d' γb' P' R (-1) mvcc.CmpRecs.empty Ls hR hc) $$
+    [Hcl Hwf Hwo Hbk Hkc Hv Hnc Hrr Hrts HLo]
+  · iframe Hpkg Hws Hwf Hwo Hpre Hok Hrr Hrts HLo
     simp only [mvcc.kbNoDelOff, hoff, ↓reduceIte]
     iframe Hnd
     rw [mvcc.restoreRcptM_off d' _ Hd', mvcc.CmpRecs.finRev_empty, mvcc.CmpRecs.crev_empty]
@@ -118,16 +122,16 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
       iframe Hv Hnc; ipureintro; rfl
     rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty, mvcc.restoreRegM_off d' Hd']
     isplitr <;> try isplitr
-    all_goals itrivial
+    all_goals first | itrivial | (ipureintro; exact Hlok) | (ipureintro; exact ⟨trivial, trivial, Hlok⟩)
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl
   rw [hr]
-  iintro !> ⟨%p', %hp', Hcl', Hwf, Hwo, #Hhook, -, -, Hrd, Hrt⟩
+  iintro !> ⟨%p', %hp', Hcl', Hwf, Hwo, #Hhook, -, -, Hrd, Hrt, HLo⟩
   iapply HΦ
   iexists p'
   have hoffp : ¬ mvcc.kbCmpM (γ.st.withPhys p').kb := by
     rw [StoreNames.withPhys_kb, hp'.2]; exact hoff
   ihave Hcl' := (mvcc.storeCloserM_off st (γ.st.withPhys p') _ hoffp).1 $$ Hcl'
-  iframe Hcl' Hwf Hwo Hhook Hrd Hrt
+  iframe Hcl' Hwf Hwo Hhook Hrd Hrt HLo
   ipureintro; exact hp'
 
 end off

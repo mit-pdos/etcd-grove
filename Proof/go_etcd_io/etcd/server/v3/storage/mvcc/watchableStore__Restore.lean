@@ -244,9 +244,9 @@ theorem mvcc.watchableStore.Restore.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
-  intro s st γ b' d' γb' P' R c r hR hcr
+  intro s st γ b' d' γb' P' R c r Ls hR hcr
   wp_start as ⟨Hrc, HpF, HpC, #Hws, %Hkb, Hright, Hfrag, Hown, #Hpre, #Hok', HbkT, #HcrT, Himg, Hnd, Hrr,
-    Hreg, Hsr, Hwts, Hres, Hrts⟩
+    Hreg, Hsr, Hwts, Hres, Hrts, HLo, %Hlok⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -279,19 +279,20 @@ theorem mvcc.watchableStore.Restore.wp_proof
   subst Hsteq
   -- `s.store.Restore(b)`
   (try wp_auto)
-  wp_apply (hRestore st γ.st b' d' γb' P' σ.Lmu R c r hLR hR hcr Hwq) $$ [Hrc HpF HpC Hright Hfs Hwsd
-      Hfrag Hown HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts]
+  wp_apply (hRestore st γ.st b' d' γb' P' σ.Lmu R c r Ls hLR hR hcr Hwq) $$ [Hrc HpF HpC Hright Hfs Hwsd
+      Hfrag Hown HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts HLo]
     as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #HcL', HlogQ, Hres, Hjob, Hold,
-      Hnew'⟩
+      Hnew', HLo⟩
   · simp only [Hwq, ↓reduceIte]
-    iframe Hrc HpF HpC Hright Hfs Hfrag Hown HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts
+    iframe Hrc HpF HpC Hright Hfs Hfrag Hown HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts HLo
     iframe #
     isplitr
     · ipureintro; exact Hkb
     isplitl [Hwsd]
     · iunfold mvcc.wsDep; iexact Hwsd
     iunfold mvcc.logQ
-    iexact HlogQ
+    iframe HlogQ
+    ipureintro; exact Hlok
   simp only [Hwq, ↓reduceIte]
   obtain ⟨hbk', hkb'⟩ := Hp'
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
@@ -481,7 +482,7 @@ theorem mvcc.watchableStore.Restore.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists p'
-  iframe Hcl Hfrag Hown HhP Hold Hnew' Hres Hjob
+  iframe Hcl Hfrag Hown HhP Hold Hnew' Hres Hjob HLo
   ipureintro; exact ⟨hbk', hkb'⟩
 
 end proof

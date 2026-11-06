@@ -6387,12 +6387,10 @@ instance isWriteView_persistent (wv s : Loc) (γ : StoreNames) :
 the log `[[], []] ++ R` (revision 0 and the store's first `currentRev`, both empty) whose further
 revisions each have a change (an empty revision writes nothing to the `Key` bucket, so `restore`
 could not see it: the restored `currentRev` is the last revision with an entry, the log's last),
-well formed and bounded as the index writer's log (`IdxWf`), and with no put attached to a lease
-(`restore` attaches the leases of the keys it finds through the lessor, `s.le.Attach`: not
-modelled, and the server's workload grants none). -/
+well formed and bounded as the index writer's log (`IdxWf`). (Until 2026-11-06 also with no put
+attached to a lease; `restore` now attaches the leases of the keys it finds, `s.le.Attach`.) -/
 def restoreLogOk (R : Log) : Prop :=
-  (∀ cs ∈ R, cs ≠ []) ∧ IdxWf ([[], []] ++ R) [] ∧
-    ∀ cs ∈ R, ∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0
+  (∀ cs ∈ R, cs ≠ []) ∧ IdxWf ([[], []] ++ R) []
 
 /-- **The view `store.restore` reads** of the restored log `[[], []] ++ R`: the empty bucket
 (`NewStore`'s), or the log's bucket over a clean read buffer (the restore plan's R5a, R5c). -/
@@ -6436,7 +6434,7 @@ def revUnlockW (s : Loc) (q : Qp) (L' : Log) (RevK V RevQ : IProp GF) : IProp GF
 
 /-- `NewStore`'s log: no revision after its two. -/
 theorem restoreLogOk_nil : restoreLogOk [] := by
-  refine ⟨by simp, ⟨⟨fun _ => rfl, ?_⟩, by decide, by decide, by simp⟩, by simp⟩
+  refine ⟨by simp, ⟨⟨fun _ => rfl, ?_⟩, by decide, by decide, by simp⟩⟩
   intro r cs i k hr hi
   have hcs : cs = [] := by
     rcases r with _ | _ | _ | r <;> simp_all

@@ -54,7 +54,7 @@ is exactly `L`; 2026-11-06: until then the caller's revision tokens pinned it, n
 state's, which the takeover collects). Only a watchable store's inner store is restored
 (`γ.watchQ = true`). The restored log `L' = [[], []] ++ R` extends `L` (`applySnapshot`
 panics on a snapshot not newer, and the image is of a longer committed prefix of the same raft
-log), each of its revisions has a change, it is well formed and puts no lease (`restoreLogOk`), the
+log), each of its revisions has a change and it is well formed (`restoreLogOk`), the
 caller certifies it (`certOk`), and, on, its receipt is persistent (`restoreRcptM`: `⧖ (logCh L')`,
 some member's sealed log's). The received image is at compaction records `r` (`restoreImageM d' γb'
 L' r`): off, a clean view (a fresh backend's read buffer is empty: `kbViewC`, R5a) of the `Key`
@@ -104,6 +104,9 @@ steps, `store__Restore.lean` off, `RestoreOn.lean` on):
 * After `restore` (`restore_finish`): the writer's state at `L'` (its persistent receipt, the
   revision tokens not spent, and its pin: 2026-11-06, until then the caller's) checked in at `γ'`, with the new backend's registration pending (`writerReg`); the fields' shares at the new
   objects with what they are (`physOk` at `γ'`).
+* The leases (2026-11-06): `restore` attaches each restored key with a lease through the store's
+  lessor (`isStore`'s `isLessor le γ.leases`), from the caller's owner part `leaseOwn γ.leases Ls ∅`,
+  each restored item's lease live and its key short; the owner's map becomes `pendItems L' []`.
 * `defer s.mu.Unlock()` with `muInv s γ' 1` at the new objects, at `r.crev`.
 
 **Postcondition**: `nil`; at some physical names `p'` of the new backend's bucket and instance,
@@ -121,7 +124,7 @@ they are current, and no fact names a field `Restore` writes (`b`, `kvindex`, `f
 `currentRev`, `compactMainRev`: their points-to are in the shares and the locks). -/
 abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs),
+    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64),
   L <+: [[], []] ++ R → mvcc.restoreLogOk R → c ≤ r.crev → γ.watchQ = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
@@ -140,7 +143,10 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
       mvcc.kbRegRight (some d') ∗
       mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
-      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) }}
+      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) ∗
+      lease.leaseOwn γ.leases Ls ∅ ∗
+      ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
+        lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1⌝ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Restore")) (Val #b'))
   {{ RET #GoInterface.nil; ∃ p' : mvcc.PhysNames,
       ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
@@ -153,7 +159,8 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.resumeHookM d' r ∗
       mvcc.compactJobResM γ.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.kb) (), mvcc.storeRT γ) ∗
-      mvcc.storeRT (γ.withPhys p') }}
+      mvcc.storeRT (γ.withPhys p') ∗
+      lease.leaseOwn γ.leases Ls (mvcc.pendItems ([[], []] ++ R) []) }}
 
 end spec
 

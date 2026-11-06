@@ -513,8 +513,8 @@ theorem mvcc.NewStore.wp_proof
         iprop(mvcc.restoreViewOut γ (1 : Qp).half [] ∗ mvcc.isTreeIndex ti γ.idx ∗
           ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
             mvcc.idxReader ti γ.idx) ∗ ⧖ (mvcc.logCh ([[], []] : mvcc.Log))))
-      (DFrac.own 1) (1 : Qp).half (1 : Qp).half mvcc.restoreLogOk_nil (Qp.half_add_half 1)
-  simp only [List.append_nil] at hR
+      (DFrac.own 1) (1 : Qp).half (1 : Qp).half γ.leases [] mvcc.restoreLogOk_nil (Qp.half_add_half 1)
+  simp only [List.append_nil, ↓reduceIte] at hR
   icases mvcc.idxWriter_lb γ.idx [[], []] $$ Hiw with ⟨Hiw, #Hiwlb⟩
   rw [show (mvcc.evsOf ([[], []] ++ [[]])).length = 0 from rfl,
     show (W64 ((([[], []] : mvcc.Log).length : Int) - 1) : w64) = W64 1 from rfl] at hR
@@ -547,7 +547,7 @@ theorem mvcc.NewStore.wp_proof
     iframe HrevMu Hc Hv
   wp_apply hR
       $$ [$Hbv2 $Hrt1 $HcurA $compactMainRev $revMu $HcurB $HLk $HUl $Hncmp $b $kvindex $Hix $Hig $Hiwlb]
-      as ⟨Hrt1, Hmw, -, ⟨revMu, HcurB, Hbv2, #Hti, Hird, -⟩, HcurA, compactMainRev, b, kvindex⟩
+      as ⟨⟨Hrt1, Hmw, -, ⟨revMu, HcurB, Hbv2, #Hti, Hird, -⟩, HcurA, compactMainRev, b, kvindex⟩, -⟩
   · iframe #; ipureintro; exact Hlgnn
   ihave Hbv2 : mvcc.bucketView (GF := GF) γ (1 : Qp).half ∅ $$ [Hbv2]
   · unfold mvcc.restoreViewOut; simp only [↓reduceIte]; iexact Hbv2

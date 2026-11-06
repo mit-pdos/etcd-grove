@@ -87,11 +87,11 @@ theorem mvcc.store.Restore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG))
     (hCLF : mvcc.store.compactLockfree.spec (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b' d' γb' P' L R c r hLR hR hcr hwq
+  intro s γ b' d' γb' P' L R c r Ls hLR hR hcr hwq
   by_cases hon : mvcc.kbCmpM γ.kb
   · -- (M2's item 15) on: both backends compact
     wp_start as ⟨#Hrc0, #HpF, #HpC, #Hs, %Hkb, Hright, Hfs, Hwsd, Hfrag, Hown, #HcL,
-      HlogQ, #Hok', HbkT, #HcrT, Himg, -, Hrr, Hreg, Hsr, #Hwts, HrH, Hrts⟩
+      HlogQ, #Hok', HbkT, #HcrT, Himg, -, Hrr, Hreg, Hsr, #Hwts, HrH, Hrts, HLo, %Hlok⟩
     -- the mode: both backends compact
     obtain ⟨d, hd, hcm⟩ := Hkb
     have hdon : d.cm = true := by rw [hd] at hon; exact hon
@@ -105,7 +105,7 @@ theorem mvcc.store.Restore.wp_proof
     icases (mvcc.writerOwn_on γ hj1).1 $$ Hown with ⟨HrtOld, Htkr⟩
     have hlen := mvcc.restoreLogOk_len hR
     have hlb : mvcc.LogB ([[], []] ++ R) := by
-      obtain ⟨-, ⟨-, hlen1, -, hcs⟩, -⟩ := hR
+      obtain ⟨-, ⟨-, hlen1, -, hcs⟩⟩ := hR
       exact ⟨by omega, hcs⟩
     have hcl : r.crev < (([[], []] ++ R).length : Int) := mvcc.recsOk_crev_lt _ r hrec hlen.1
     have hcge : -1 ≤ r.crev := mvcc.CmpRecs.crev_ge _ r hrec
@@ -321,7 +321,7 @@ theorem mvcc.store.Restore.wp_proof
     · iunfold mvcc.idxWriterLb
       simp only [mvcc.StoreNames.withPhys_idx_hist, mvcc.StoreNames.withPhys_idx_nev]
       iframe Hhlb Hnlb
-      ipureintro; exact hR.2.1
+      ipureintro; exact hR.2
     -- the compaction's fresh record and the write right's key
     icases mvcc.mwSlot_alloc (γ.withPhys p') $$ [Hmk'] with ⟨Hslot, Hmwr⟩
     · simp only [mvcc.StoreNames.withPhys_mwk]; iexact Hmk'
@@ -365,7 +365,7 @@ theorem mvcc.store.Restore.wp_proof
         (mvcc.restoreOnQ s γ p' ⟨b', ti, sc, stopc⟩ R r ti)
         (DFrac.own (1 : Qp).half.half) (DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half.half)
         (1 : Qp).half (1 : Qp).half r ents (mvcc.restoreOnFin s γ p' ⟨b', ti, sc, stopc⟩ d' R r)
-        false hR (Qp.half_add_half 1) hrec (fun h => absurd h Bool.false_ne_true) hdq hcut
+        false γ.leases Ls hR (Qp.half_add_half 1) hrec (fun h => absurd h Bool.false_ne_true) hdq hcut
     -- `restore()`'s first round, for the finished record: `compactMainRev` written under the lock
     ihave HFw : mvcc.revFinW (GF := GF) s (DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half.half)
         r.fin (mvcc.restoreOnP0 s γ) (mvcc.restoreOnP s γ (r.fin.getD (W64 (-1)))) $$ []
@@ -518,7 +518,7 @@ theorem mvcc.store.Restore.wp_proof
         ipureintro; exact hon'
       ihave Hloan : mvcc.writerLoan (GF := GF) (γ.withPhys p') $$ []
       · iunfold mvcc.writerLoan; simp only [hon', ↓reduceIte]; itrivial
-      imod (mvcc.restore_finish s γ ⟨b', ti, sc, stopc⟩ p' ([[], []] ++ R) hR.2.1 (by simp)
+      imod (mvcc.restore_finish s γ ⟨b', ti, sc, stopc⟩ p' ([[], []] ++ R) hR.2 (by simp)
           (mvcc.restoreLog_ch R hR.1)) $$
           Hlc5 Hwi Hn3 Hw Hcr Hrc Hnlb Hwk' Hwv' HviewWL Hcres Hrr HfzK HtoksN Hloan HviewPL
         with ⟨Hwr, -, #Hreg'⟩
@@ -711,17 +711,21 @@ theorem mvcc.store.Restore.wp_proof
         simp only [mvcc.StoreNames.withPhys_kb, hk]; iexact Hhn
     -- `s.restore()`
     wp_apply +noauto hR' $$ [$Hfb $Hfidx $Hix $Hig $Hcr $HcmR Hrt1 Hreg Hnc HviewR Hrst Hlc1 Hlc2 Hlc3
-        HcmK HFw HLk HUl HK] as HFin
+        HcmK HFw HLk HUl HK HLo] as ⟨HFin, HLo⟩
     · iframe #
       simp only [Bool.false_eq_true, ↓reduceIte]
-      iframe Hrt1 Hreg Hnc HFw HLk HUl HK
+      iframe Hrt1 Hreg Hnc HFw HLk HUl HK HLo
       isplitl [HviewR]
       · iunfold mvcc.restoreViewR
         simp only [Bool.false_eq_true, ↓reduceIte]
         iframe HviewR HcrT'
       iunfold mvcc.restoreOnP0
       iframe Hrst Hlc1 Hlc2 Hlc3 HcmK
-      ipureintro; exact Hlgnn
+      isplitr
+      · ipureintro; exact Hlgnn
+      isplitr
+      · iexact Hlessor
+      ipureintro; exact Hlok
     iunfold mvcc.restoreOnFin at HFin
     imod HFin with ⟨Hmu, Hwr, HfsM, Hright, HfsW, HrtA, Hfrag', HrH, HwsdL, Htkr, Hwsd, Hrest,
       #HcertL⟩
@@ -773,13 +777,13 @@ theorem mvcc.store.Restore.wp_proof
     · iexact Hjob
     isplitl [HrtOld Hold]
     · rw [hj1]; iapply mvcc.rep_back3; iframe HrtOld Hold
-    iexact Hnew
+    iframe Hnew HLo
   -- off: neither backend compacts; `store.restore` at no record and the whole bucket, over the
   -- clean read
   have hRestore := mvcc.store.restore.specNCc_of_spec hRestore
   rw [mvcc.nJobRd_off _ hon, Nat.sub_zero, mvcc.compactJobResM_off _ hon]
   wp_start as ⟨-, -, -, #Hs, %Hkbm, Hright, Hfs, Hwsd, Hfrag, Hown, #HcL, HlogQ, #Hok',
-    HbkT, #HcrT, Himg, #HndO, Hrr, Hreg, -, -, Hres, Hrts⟩
+    HbkT, #HcrT, Himg, #HndO, Hrr, Hreg, -, -, Hres, Hrts, HLo, %Hlok⟩
   obtain ⟨d0, hd0, hcm0⟩ := Hkbm
   have hd0off : d0.cm = false := by
     rw [hd0] at hon; simp only [mvcc.kbCmpM] at hon; simpa using hon
@@ -984,7 +988,7 @@ theorem mvcc.store.Restore.wp_proof
   · iunfold mvcc.idxWriterLb
     simp only [mvcc.StoreNames.withPhys_idx_hist, mvcc.StoreNames.withPhys_idx_nev]
     iframe Hhlb Hnlb
-    ipureintro; exact hR.2.1
+    ipureintro; exact hR.2
   -- `s.restore()`: its lock of `s.revMu` finds the restoring mode (`RevP`: the flag's half and two
   -- later credits), its unlock switches the store to the new objects and names (`restore_switch`)
   have hR' := hRestore s (γ.withPhys p') b' le ti lg (1 : Qp).half
@@ -1006,7 +1010,7 @@ theorem mvcc.store.Restore.wp_proof
         mvcc.storeRT (γ.withPhys p') ∗
         (s.[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half.half} (W64 (-1) : w64) : IProp GF) ∗
         mvcc.isTreeIndex ti (γ.withPhys p').idx)
-      (DFrac.own (1 : Qp).half.half) (1 : Qp).half (1 : Qp).half hR (Qp.half_add_half 1)
+      (DFrac.own (1 : Qp).half.half) (1 : Qp).half (1 : Qp).half γ.leases Ls hR (Qp.half_add_half 1)
   -- `restore`'s lock: the restoring mode's halves of the counters (`compactMainRev`'s at `-1`: the
   -- kept quarter agrees)
   ihave HLk : mvcc.revLockW (GF := GF) s (1 : Qp).half
@@ -1079,9 +1083,13 @@ theorem mvcc.store.Restore.wp_proof
     iapply HΨ
     iunfold mvcc.wsDep
     iframe Hrst' Hn1 Hfrag' Hn3 Htkr Hwsd Hw Hrv' HlogQ Hold Hnew HcmK Hti'
-  wp_apply +noauto hR' $$ [$Hfb $Hrt1 $Hnc $HviewR $Hfidx $Hix $Hig $Hcr $HcmR $HLk $HUl Hrst Hlc1 Hlc2]
-    as ⟨⟨Hrt1, -⟩, Hnc, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩
-  · iframe #; iframe Hrst Hlc1 Hlc2; ipureintro; exact Hlgnn
+  wp_apply +noauto hR' $$ [$Hfb $Hrt1 $Hnc $HviewR $Hfidx $Hix $Hig $Hcr $HcmR $HLk $HUl Hrst Hlc1 Hlc2
+      HLo]
+    as ⟨⟨⟨Hrt1, -⟩, Hnc, Hrc, HRevQ, Hcr, HcmR, Hfb, Hfidx⟩, HLo⟩
+  · iframe #; iframe Hrst Hlc1 Hlc2 HLo
+    isplitr
+    · ipureintro; exact Hlgnn
+    ipureintro; exact Hlok
   wp_auto_lc 1
   icases HRevQ with ⟨Hrst', Hn1, Hfrag', Hn3, Htkr, Hwsd, Hw, Hrv, HlogQ, Hold, Hnew, HcmK,
     #Hti'⟩
@@ -1115,7 +1123,7 @@ theorem mvcc.store.Restore.wp_proof
       iapply (mvcc.kbNoCmp_split _ _).2
       iframe Hnc HncV
     simp only [mvcc.kbNoDel, mvcc.StoreNames.withPhys_kb, hk]; iexact Hnd
-  imod (mvcc.restore_finish s γ ⟨b', ti, sc, stopc⟩ p' ([[], []] ++ R) hR.2.1 (by simp)
+  imod (mvcc.restore_finish s γ ⟨b', ti, sc, stopc⟩ p' ([[], []] ++ R) hR.2 (by simp)
       (mvcc.restoreLog_ch R hR.1)) $$
       Hlc1 Hwi Hn3 Hw Hcr Hrc Hnlb Hwk' Hwv' HviewW Hcres Hrr HfzK Hrv Hloan HviewP
     with ⟨Hwr, #HcertL, -⟩
@@ -1235,7 +1243,7 @@ theorem mvcc.store.Restore.wp_proof
     rw [show mvcc.nReaders - 2 + (2 - 1) = (mvcc.nReaders - 2) + 1 from rfl, List.replicate_succ]
     iapply BigSepL.bigSepL_cons.2
     iframe HrtOld Hold
-  iexact Hnew
+  iframe Hnew HLo
 
 end proof
 
