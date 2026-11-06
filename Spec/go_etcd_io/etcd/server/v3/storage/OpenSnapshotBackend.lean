@@ -19,6 +19,7 @@ for the backend, the file and the path back.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Perennial.ProgramLogic.Bounds
 public import Proof.go_etcd_io.raft.v3.InvPb
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
@@ -42,9 +43,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 backend's path and opened (2026-10-31: the program keeping its right to the backend's path,
 `os.Rename`'s restated post; until then the snapshot file's), or an error with nothing moved, the environment having failed the
 snapshot directory's read or the rename (D22 receiver epochs, S8d, 2026-10-24). (D22 receiver epochs, S8a, 2026-10-24:
-the creator's `K` for the fresh backend's payment rights, `OpenBackend`'s.) -/
+the creator's `K` for the fresh backend's payment rights, `OpenBackend`'s.) (2026-11-06,
+`notes/begin-tok-plan.md`) Under `[ThreadBoundLe GF (2 ^ 29)]`, `OpenBackend`'s. -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
+  ∀ [ThreadBoundLe GF (2 ^ 29)]
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
     (md : SnapshotMetadataM) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ snap.isSnapshotter ss ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗

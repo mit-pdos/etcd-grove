@@ -20,7 +20,7 @@ theorem backend.backend.run.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_org
                   ownBroadcastChan dc γdc (backend.bDoneEsc γ P W Pk) Broadcast.Pending ∗
                     backend.runTok γ ∗
                       dghostVar γ.opn (DFrac.own (Qp.half 1).half) false ∗ ghostVar γ.used (Qp.half 1) u -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
+          ▷ (threadTok -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal
                   (methods go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType go!"run"

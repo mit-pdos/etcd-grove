@@ -31,7 +31,9 @@ abbrev backend.backend.run.spec : Prop :=
       ownBroadcastChan dc γdc (bDoneEsc γ P W Pk) .Pending ∗ runTok γ ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ghostVar γ.used (1 : Qp).half u }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"run")) (Val #()))
-  {{ RET #(); True }}
+  -- (2026-11-06, `notes/begin-tok-plan.md`) it exits with a thread token: `CommitAndStop`'s, the
+  -- last rollback goroutine's fork token (the goroutine is forked with `wp_fork_tok_self`)
+  {{ RET #(); threadTok }}
 
 end spec
 

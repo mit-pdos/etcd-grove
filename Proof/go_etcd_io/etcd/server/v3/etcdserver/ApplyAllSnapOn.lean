@@ -511,11 +511,17 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               $$ [Hst Hbe Happ HKVc HRS Hr1 Hl1 Hr2 Hl2 HL]
               with ⟨%be, %dq, %RC, %RC', %RS, %RS', Hkc, HRC, Hbeo, Hbs, HRCS, Hback⟩
             · iframe Hpkg Hsrv1 Hkvf' Hkvi' HW' Hlog1 HA' Hr1 Hl1 Hr2 Hl2 Hst Hbe Happ HKVc HRS HL
+            -- (2026-11-06, `notes/begin-tok-plan.md`) the apply thread's token (`srvGoRes`'s) pays for
+            -- the snapshot's reader slot; the reader goroutine's fork token comes back
+            iunfold srvGoRes at Hgr
+            icases Hgr with ⟨HgrW, HthT⟩
             wp_apply (hCM s m sm sv.Metadata'.Term' sv.Metadata'.Index' cs' fv.lg kv' be dq RC RC'
                 RS RS' _)
-              $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm]
-              as %mg ⟨Hlr, HRS', Hbeo, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, %HQd⟩
-            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm; ipureintro; exact Hlgnn
+              $$ [Hlr Hkc HRC Hbeo Hbs HRCS Hm HthT]
+              as %mg ⟨Hlr, HRS', Hbeo, HthT, %rc, %Dm, %cm, #Hmg, #Hml, #Hcsom, Hrs, %HQd⟩
+            · iframe #; iframe Hlr Hkc HRC Hbeo Hbs HRCS Hm HthT; ipureintro; exact Hlgnn
+            ihave Hgr : srvGoRes s $$ [HgrW HthT]
+            · iunfold srvGoRes; iframe HgrW HthT
             imod Hback $$ HRS' Hbeo with ⟨%st3, Hst, Hbe, Happ, HKVc, HRS, HAr, %Hst3⟩
             ihave HKV := HKVk $$ HKVc HAr
             icases srvApplyKVOn_idxCert s E' ρ.wait x' _ $$ HKV with ⟨HKV, #Hicx, -⟩

@@ -34,7 +34,9 @@ abbrev backend.batchTxBuffered.CommitAndStop.spec : Prop :=
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"CommitAndStop")) (Val #()))
   -- (2026-11-04, R2b-3c) and bbolt's database, owned at its committed data, with the lock's ghost
   -- shares there and its client resources `W ∗ Pk` (part 2), for `Close`
-  {{ RET #(); bStopped γ ∗ bDBOut γ P W Pk ∗ Y }}
+  -- (2026-11-06, `notes/begin-tok-plan.md`) and the last rollback goroutine's fork token (no new
+  -- read transaction takes it)
+  {{ RET #(); bStopped γ ∗ bDBOut γ P W Pk ∗ Y ∗ threadTok }}
 
 end spec
 

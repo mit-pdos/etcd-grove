@@ -17,6 +17,7 @@ is).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvNew
+public import Perennial.ProgramLogic.Bounds
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 
 @[expose] public section
@@ -37,16 +38,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `newBackend(bcfg)`: a backend over the database file's data `D`, or a panic. (D22 receiver
 epochs, S8a, 2026-10-24) The creator's batch-lock step takes the fresh backend's payment rights
-(`bFresh`) and gives `K` in their place (`newPostK`). -/
+(`bFresh`) and gives `K` in their place (`newPostK`). (2026-11-06, `notes/begin-tok-plan.md`) Under
+`[ThreadBoundLe GF (2 ^ 29)]` (`bbolt.Open_kv`'s); the caller's `threadTok` pays for the first read
+transaction, and the `run` goroutine's fork token comes back to it on success. -/
 abbrev backend.newBackend.spec : Prop :=
-  ∀ (cfg : BackendConfig) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : BackendConfig) (P : BParams) (D : Data)
+    (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
-      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) }}
+      (∀ γ : BNames, hkOwn γ (hkData P D) ∗ pvckInit γ P D ∗ bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+      threadTok }}
     (App (Val (@! newBackend)) (Val #cfg))
   {{ (r : val), RET r; (∃ (b : Loc) (γ : BNames), ⌜r = #b⌝ ∗ newPostK γ P W Pk K b D ∗
-        hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path') ∨
+        hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path' ∗ threadTok) ∨
       ⌜∃ p : val, r = PanicV p⌝ }}
 
 end spec

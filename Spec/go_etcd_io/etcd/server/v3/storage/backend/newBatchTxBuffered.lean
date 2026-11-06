@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `newBatchTxBuffered(b)` on a backend being constructed: the batch transaction `t` (its lock
 free, its buffers empty, nothing pending) after its first commit, which began bbolt's write
-transaction `wtx` and the read side's read transaction `rtx` over the database's data `D`. -/
+transaction `wtx` and the read side's read transaction `rtx` over the database's data `D` (holding
+the caller's `threadTok`, bbolt's reader slot: 2026-11-06, `notes/begin-tok-plan.md`). -/
 abbrev backend.newBatchTxBuffered.spec : Prop :=
   ∀ (b rt db : Loc) (lim : w64) (γrw : sync.rwmutex.RWMutexNames) (γd : DBNames) (D : Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
@@ -38,7 +39,7 @@ abbrev backend.newBatchTxBuffered.spec : Prop :=
       sync.rwmutex.isRWMutex (rmuOf (baseOf rt)) γrw (nroot.@"rw") ∗
       sync.rwmutex.ownRWMutex γrw (rwmutex.RLocked 0) ∗
       sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-      ownDB db γd D ∗ wrTok γd }}
+      ownDB db γd D ∗ wrTok γd ∗ threadTok }}
     (App (Val (@! newBatchTxBuffered)) (Val #b))
   {{ (t : Loc), RET #t; ∃ (wtx rtx : Loc),
       muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗

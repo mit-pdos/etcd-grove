@@ -4,7 +4,8 @@
 
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
   -- `Perennial.EtcdGrove.backend.backend.Snapshot.spec`, unfolded:
-  ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) (R : IProp GF)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
+    (R : IProp GF)
     (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData → backend.FkVals → Prop),
     ⊢
       ∀ Φ,
@@ -12,15 +13,16 @@ axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec
             backend.isBackend γ P W Pk b ∗
               backend.bOpen γ qo ∗
                 backend.wbTok γ ∗
-                  R ∗
-                    □
-                      ∀ vd d r v,
-                        R -∗
-                          W -∗
-                            Pk -∗
-                              backend.viewAt γ vd -∗
-                                backend.pvHalf γ vd -∗
-                                  backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.ckHalf γ v -∗ ⌜Q vd d r v⌝) -∗
+                  threadTok ∗
+                    R ∗
+                      □
+                        ∀ vd d r v,
+                          R -∗
+                            W -∗
+                              Pk -∗
+                                backend.viewAt γ vd -∗
+                                  backend.pvHalf γ vd -∗
+                                    backend.hkOwn γ d -∗ backend.rbOwn γ r -∗ backend.ckHalf γ v -∗ ⌜Q vd d r v⌝) -∗
           (▷
               ∀ sp D,
                 backend.snapOpen sp D ∗

@@ -12,7 +12,7 @@ theorem backend.backend.unsafeBegin.wp_proof [go_etcd_io.bbolt.Assumptions]
         (isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
             backend.beginCtx b ∗
               typedPointsto (backend.bF go!"db" b) db (DFrac.own q) ∗
-                backend.ownDB db γd D ∗ if w = true then backend.wrTok γd else True) -∗
+                backend.ownDB db γd D ∗ if w = true then backend.wrTok γd else threadTok) -∗
           (▷
               ∀ tx,
                 (typedPointsto (backend.bF go!"db" b) db (DFrac.own q) ∗
