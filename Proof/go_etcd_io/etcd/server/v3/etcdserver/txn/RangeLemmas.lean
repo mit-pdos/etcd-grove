@@ -244,7 +244,11 @@ theorem rangeResult_client (resp : Loc) (err : GoInterface) (log : mvcc.Log) (re
   unfold rangeResult rangeResultClient
   iintro (H | H | ⟨%H, %kvs, %more, Hresp, %Hok⟩ | H)
   · ileft; iexact H
-  · iright; ileft; iexact H
+  · iright; ileft
+    icases H with ⟨%Hp, #He⟩
+    ihave #He' := mvcc.rangeKeysErr_ctxErrorf _ $$ He
+    iframe He'
+    ipureintro; exact Hp
   · iright; iright; ileft
     obtain ⟨kvs', h1, h2, h3⟩ := srvRangeOk_rangeKvsOk o _ kvs more hset Hok hcut
     isplitr

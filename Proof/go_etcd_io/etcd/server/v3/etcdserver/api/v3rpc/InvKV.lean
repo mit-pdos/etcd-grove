@@ -281,18 +281,32 @@ theorem errMsgP_of_srvErrIs (err : GoInterface) :
   iapply HΦ
   ipureintro; trivial
 
+/-- **Why `togRPCError` passed `err` through** (persistent; k8s etcd3 7c-2 part 2, G1-a′): its
+`errors.Is` checks said `err` is (wraps) `context.Canceled` or `DeadlineExceeded`; for a leaf
+without an `Is` method (an error tree of itself alone) that is: `err` is one of the two values. -/
+def ctxPassed (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ ei : GoInterfaceOk,
+    ⌜err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧
+      methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝ -∗
+    ((globalAddr _root_.Perennial.context.Canceled ↦□ err : IProp GF) ∨
+      (globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ err : IProp GF)))
+
+instance ctxPassed_persistent (err : GoInterface) : Persistent (ctxPassed (GF := GF) err) := by
+  unfold ctxPassed; infer_instance
+
 /-- **What `togRPCError` made of `err`** (persistent; k8s etcd3 7c-2): at the error map `M`
 (`grpcErrMap`'s pieces, with mvcc's two read errors `kf` and `kc`), `err` itself (a context error,
-which grpc's server converts), the map's value at `err`, or, for an error the map does not have,
-an error whose description has `P` (`status.Error(codes.Unknown, err.Error())`, of description
-`err.Error()`: `errMsgP err P`). -/
+which grpc's server converts; why, `ctxPassed`: k8s etcd3 7c-2 part 2, G1-a′), the map's value at
+`err`, or, for an error the map does not have, an error whose description has `P`
+(`status.Error(codes.Unknown, err.Error())`, of description `err.Error()`: `errMsgP err P`). -/
 def grpcErrOut (P : GoString → Prop) (err e : GoInterface) : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
     globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
-    ⌜go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk M kf kc ∧
-      (e = err ∨ M !! err = some e ∨ (M !! err = none ∧ P (go_etcd_io.etcd.cache.v3.errDesc e)))⌝)
+    ⌜go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.grpcErrMapOk M kf kc⌝ ∗
+    ((⌜e = err⌝ ∗ ctxPassed err) ∨ ⌜M !! err = some e⌝ ∨
+      ⌜M !! err = none ∧ P (go_etcd_io.etcd.cache.v3.errDesc e)⌝))
 
 instance grpcErrOut_persistent (P : GoString → Prop) (err e : GoInterface) :
     Persistent (grpcErrOut (GF := GF) P err e) := by

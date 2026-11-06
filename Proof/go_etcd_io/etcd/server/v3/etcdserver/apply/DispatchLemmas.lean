@@ -306,7 +306,7 @@ theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : G
     · icases Hv with ⟨-, -, -, -, #HF, -⟩
       iapply errVar_applyErrIs _ _ $$ HF
       iexists ef; iframe Hef; ipureintro; exact Herr
-    · ihave %Hen := mvcc.ctxErrorf_ne_nil err $$ Hef
+    · ihave %Hen := mvcc.rangeKeysErr_ne_nil err $$ Hef
       exfalso
       rcases Hne with h | h | h
       · exact Hen h

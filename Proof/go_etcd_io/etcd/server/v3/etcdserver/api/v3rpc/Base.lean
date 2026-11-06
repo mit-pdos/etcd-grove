@@ -124,7 +124,9 @@ descriptions (`rpctypes.ErrGRPCFutureRev`, `ErrGRPCCompacted`), and no other key
 with one of them (`util.go`: each other value is another `rpctypes` error, with its own
 description); no key has one of the two descriptions itself (the keys are the server's own
 errors, `mvcc: …`, `etcdserver: …`, `lease: …`, `auth: …`: `togRPCError` may return a key unchanged
-when its context-error checks say yes, `grpcErrOut`). -/
+when its context-error checks say yes, `grpcErrOut`); and `kf`, `kc` have their own descriptions
+(`kvstore.go:38-39`, `errors.New`; k8s etcd3 7c-2 part 2, G2-a: what tells them from the store's
+other errors). -/
 def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop :=
   (∀ k v, M !! k = some v → v ≠ GoInterface.nil ∧
     (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc → k = kf) ∧
@@ -132,7 +134,9 @@ def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop
     go_etcd_io.etcd.cache.v3.errDesc k ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
     go_etcd_io.etcd.cache.v3.errDesc k ≠ go_etcd_io.etcd.cache.v3.compactedDesc) ∧
   (∃ v, M !! kf = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc) ∧
-  (∃ v, M !! kc = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc)
+  (∃ v, M !! kc = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc) ∧
+  go_etcd_io.etcd.cache.v3.errDesc kf = go!"mvcc: required revision is a future revision" ∧
+  go_etcd_io.etcd.cache.v3.errDesc kc = go!"mvcc: required revision has been compacted"
 
 /-- **The gRPC error map** (`toGRPCErrorMap`, `util.go`): a fixed map from the server's errors to
 gRPC errors (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/`ErrMemberNotEnoughStarted`, all
