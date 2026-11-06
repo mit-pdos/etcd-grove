@@ -2353,3 +2353,21 @@ backend's consistent index `j` above its metadata index: the network's image cer
 window covers restart and install (design: `/shared/tmp/r2d-merged-design.md`, to be moved into this
 plan when drafted). This is R2d's last widening: another Scope-level gap stops with a proposal to move
 it to R2d' or a new stage. **Estimate: R2d now about 5-7 weeks.**
+
+**The review round's edits (2026-11-06; F1-F8 and Q16 (1) decided by etcd-grove-82 under the user's
+delegation, pending the user's review; `questions.md` Q17).** Done on `r2d`: Q16 (1) and F2
+(`cfdb33f8f1`); F6 raft's client laws `snapshotValid_timeless`, `ownSnapsMade_snapshotValid_data`
+(the server no longer unfolds `snapshotValid`); F7 the WAL's slot `wal.stopImage` in `srvDiskImage`
+(the static-cluster margin in its docstring); F8 docstrings; F1 `winNoConf` (above, the R2d' list);
+F4 `applyAll.specBatch`'s frozen terms over Go's applied log (`take ai A ++ unapplied ai ms`): raft
+freezes entries only through Go's end, a restarted `MemoryStorage` only up to its snapshot.
+- **Post-Freeze sub-step: the receive proofs from `i` to `j`** (Q16 (3)): `ApplyAllSnap.lean` (250
+  lines), `ApplyAllSnapOn.lean` (550), `SnapRecvFacts` generalized to the image at the consistent
+  index `j ≥ i` (the install at `j`: `image_restoreRes`, `dbImage_of_srvImage`, `applied_jump` to `j`;
+  Go's rows at `i`), about 800 lines, its own sub-step after the Freeze.
+- **Q16 (3) stopped before its Lean edits (Q18, open).** `srvSnapRO` keys the snapshot directory by
+  `srvImageM` itself (`SnapRO.lean:452`), so the network certificate's change reaches every receive
+  proof at once, and `run`'s three snapshot-job lemmas (`EtcdServer__run.lean:299, 506, 683`) would
+  receive a window post that `run`'s invariant (R2d-5's window) cannot take yet: a 5th DRAFT sorry, or
+  R2d-5 brought forward. Proposed cut: a sub-step R2d-3m after R2d-5 doing the certificate, the
+  receive window and `run`'s snapshot job together.
