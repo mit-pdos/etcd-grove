@@ -516,7 +516,7 @@ theorem txn.Txn_read
           (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
           (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
         respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
-       (mvcc.errorfIs err ∗ roTxnRespRd resp ∗
+       (mvcc.ctxErrorf err ∗ roTxnRespRd resp ∗
         respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)))) $$ [Hres]
   · icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨-, #He, ⟨%pend', Htw⟩, #Hshell, #Hrd, Hhdr⟩)
     · iexists _

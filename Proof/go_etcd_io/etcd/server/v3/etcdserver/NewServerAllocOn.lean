@@ -141,8 +141,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   icases Hboots with ⟨#Hbl0c, Hboots⟩
   imod confPolicy_alloc cl srvConfN (srvRule (W64 0) (LogEntry.toEntries boot 0)) ⊤ $$ Hdec
     with #Hpol
-  imod (inv_alloc srvSnapsN ⊤ iprop(∃ S, ownSnapsMade (GF := GF) cl S)) $$ [Hsm] with #Hsinv
-  · inext; iexists []; iexact Hsm
+  imod (inv_alloc srvSnapsN ⊤ (srvSnapsReg (GF := GF) cl)) $$ [Hsm] with #Hsinv
+  · inext; iapply srvSnapsReg_nil; iexact Hsm
   -- the server's raft names over it, its log of requested entries at the bootstrap log
   imod (srvLogInv_alloc (GF := GF) cl ps (srvRule (W64 0) (LogEntry.toEntries boot 0))
       (LogEntry.toEntries boot 0) reg sl true (bootEntries (LogEntry.toEntries boot 0)) ⊤

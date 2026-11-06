@@ -100,15 +100,16 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
 - raft's part (the WAL): the id vacant (`node.Stop`'s `nodeVacant`), the node's durable state
-  `S` (`raftState`, which the stopped raft loop held), and the WAL's records `σ` holding it
-  (`StorageHolds`, what `RestartNode`'s update checks);
+  `S` (`raftState`, which the stopped raft loop held), and the WAL's records `σ` holding it, in the
+  WAL's slot (`wal.stopImage`, in `WalApi.lean` since the Freeze 1 review's F5; R2d review F7:
+  with the order below and the snapshot certificate);
 - the backend's part (the bbolt file): `D` is the image of a committed prefix `A` of the server's
   log through the consistent index `i` (`imageAt`, the snapshot path's certificate, `dbImage`'s
   content at the stopped incarnation's names), its stored term `t` (`metaIs`);
-- between them: the WAL's snapshot at or below the backend's index, the backend's index at or
-  below the WAL's commit (etcd's order: a snapshot is of the applied state, an entry is applied
-  after the `Save` of its commit), so that `bootstrap` keeps the file (`recoverSnapshot` opens a
-  `.snap.db` only when the file's index is below the snapshot's);
+- between them (in the WAL's slot): the WAL's snapshot at or below the backend's index, so that
+  `bootstrap` keeps the file (`recoverSnapshot` opens a `.snap.db` only when the file's index is
+  below the snapshot's), and the backend's index at or below the WAL's commit (the raft loop saves
+  every batch it handed to apply before it stops; `wal.stopImage`);
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
   by the backend's (`buildConfStateFromV3store`, `v3ConfStateIs`): every conf state it can build is the
   membership at `i`; `RestartNode` takes any point from the storage's base to its commit;
@@ -130,12 +131,15 @@ carries and this predicate does not yet.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
-    nodeVacant γ.cl id ∗ raftState γ.cl id S ∗ ⌜StorageHolds S σ⌝ ∗
+    nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
-    ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i⌝ ∗
+    ⌜γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
+    -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i ≤ σ.commit`
+    -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
+    wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 
@@ -144,7 +148,7 @@ theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStri
     srvDiskImage (GF := GF) γ ρ id dd ⊢ ⌜ρ.rd.raft.raft = γ⌝ ∗ srvDiskImage γ ρ id dd := by
   refine (persistent_entails_left ?_).trans sep_comm.1
   unfold srvDiskImage
-  iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, -, %Hρ, -⟩
+  iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, %Hρ, -⟩
   ipureintro; exact Hρ.1
 
 /-- **The server `s`'s data directory is `dd`, its WAL in it** (persistent; R2b-2): the
@@ -578,11 +582,38 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
 end boot
 
 /-- **A restarted incarnation's names agree with the stopped one's where the cluster sees them**
-(see the file header). -/
+(see the file header): raft's names, the KV names wherever the KV invariant reads them
+(`kvCongr`, R2d-1, Q8 (a), 2026-11-06: so the restarted member reuses the cluster's `kvInv`,
+`kvInv_restartNames`; until then the state's variable, the model and `c0` only), and the claims'
+map and prefix of the request ids. -/
 def restartNames [GooseExts] (ρ ρ' : ReqNames) : Prop :=
-  ρ'.rd.raft = ρ.rd.raft ∧ ρ'.rd.kv.st = ρ.rd.kv.st ∧ kvModel ρ'.rd.kv = kvModel ρ.rd.kv ∧
-    ρ'.rd.kv.c0 = ρ.rd.kv.c0 ∧
+  ρ'.rd.raft = ρ.rd.raft ∧ kvCongr ρ.rd.kv ρ'.rd.kv ∧
     ρ'.ids.issued = ρ.ids.issued ∧ ρ'.ids.pfx = ρ.ids.pfx
+
+/-- The restarted names' state variable is the stopped one's. -/
+theorem restartNames_st [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    ρ'.rd.kv.st = ρ.rd.kv.st := h.2.1.1.symm
+
+/-- The restarted names' KV model is the stopped one's. -/
+theorem restartNames_kvModel [GooseExts] {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    kvModel ρ'.rd.kv = kvModel ρ.rd.kv := by
+  obtain ⟨-, h2, h3, h4, -⟩ := h.2.1
+  funext L; unfold kvModel; rw [h2, h3, h4]
+
+section restartKV
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A restarted member reuses the cluster's KV invariant** (R2d-1, Q8 (a), the Scope's easy
+probe): `kvInv` reads only the fields `restartNames` keeps (`kvCongr`, `kvInv_congr`). -/
+theorem kvInv_restartNames (γs : ServerRaftNames) {ρ ρ' : ReqNames} (h : restartNames ρ ρ') :
+    kvInv (GF := GF) γs ρ'.rd.kv = kvInv γs ρ.rd.kv :=
+  (kvInv_congr γs _ _ h.2.1).symm
+
+end restartKV
 
 end EtcdGrove
 end Perennial

@@ -46,7 +46,7 @@ pending revision, its changes pending, the response with header revision the tra
 id fields owned (`respHdrOwn`); `nil` (the panicking branch is not reached). Premises:
 `executeTxn`'s. At a context that may be done (`nd = false`, only for the read-only wrapper, with
 a logger; 2026-10-12, the request path's unit 3b): or `executeTxn`'s context error
-(`mvcc.errorfIs`), logged (`lg.Error`), and the partly filled response (`txnRespShell`; read-only,
+(`mvcc.ctxErrorf`), logged (`lg.Error`), and the partly filled response (`txnRespShell`; read-only,
 `roTxnRespRd`, its header's id fields owned, `respHdrOwn`: unit P4, 2026-10-14).
 2026-10-14 (unit P1b): the context carries the transaction's trace (`ctxTraceIs`). -/
 abbrev txn.txn.spec : Prop :=
@@ -82,7 +82,7 @@ abbrev txn.txn.spec : Prop :=
         (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.applyChanges
           (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
           (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1)))) ∨
-      (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
+      (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗
         (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend' crev) ∗
         txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) }}

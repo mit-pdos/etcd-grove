@@ -139,6 +139,12 @@ instance snapMade_persistent (γ : Cluster) (s : SnapRec) :
     Persistent (snapMade (GF := GF) γ s) := by
   unfold snapMade; exact ApiImpl.snapMadeU_persistent γ s
 
+/-- (R2d, Q14, 2026-11-06) No later credit to open an invariant holding it (a WAL record's
+certificate in the server's durability invariant, `walSnapCert`). -/
+instance snapMade_timeless (γ : Cluster) (s : SnapRec) :
+    Timeless (snapMade (GF := GF) γ s) := by
+  unfold snapMade; exact ApiImpl.snapMadeU_timeless γ s
+
 -- (2026-11-01, durability stage I-7) `nodeFounder` and `nodeJoin` deleted: allocation and
 -- `joinAuth_join` give the id's durable state at `RaftState.init` and its vacant slot
 -- (`raftState`, `nodeVacant`, `InvNode.lean`) in their place.
@@ -572,6 +578,22 @@ def snapshotValid (γ : Cluster) (sv : SnapshotM) : IProp GF :=
 instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
     Persistent (snapshotValid (GF := GF) γ sv) := by
   unfold snapshotValid; infer_instance
+
+/-- (R2d, Q17 F6, 2026-11-06) No later credit to open an invariant holding it (the server's WAL
+durability invariant holds a record's certificate, `walSnapCert`). -/
+instance snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) :
+    Timeless (snapshotValid (GF := GF) γ sv) := by
+  unfold snapshotValid; infer_instance
+
+/-- (R2d, Q17 F6) **A valid snapshot's data is one the client made** (its registry `S`). -/
+theorem ownSnapsMade_snapshotValid_data (γ : Cluster) (S : List SnapRec) (sv : SnapshotM) :
+    ownSnapsMade (GF := GF) γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r ∈ S, r.data = sv.Data'⌝ := by
+  iintro ⟨Hown, #Hsv⟩
+  unfold snapshotValid
+  icases Hsv with ⟨%l, %m, -, -, #Hmade, -⟩
+  ihave %Hin := snapMade_elem γ S _ $$ [$Hown $Hmade]
+  ipureintro
+  exact ⟨_, Hin, rfl⟩
 
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
 

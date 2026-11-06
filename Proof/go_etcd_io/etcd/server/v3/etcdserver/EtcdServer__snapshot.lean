@@ -164,7 +164,7 @@ theorem EtcdServer.snapshot.wp_proof
     wp_apply (wp_srv_createSnapshot hCS ms γs γr nk ai at' cs _ Hpos Hsz) $$ [Hstor]
       as %snap' %err ⟨#Hlbi, Hres⟩
     · iframe #; iframe Hstor
-    icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap⟩ | %Herr)
+    icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap, #HsvS⟩ | %Herr)
     rotate_left
     · -- `ErrSnapOutOfDate`: `errors.Is` is `true`, return
       obtain ⟨-, Herr⟩ := Herr
@@ -295,7 +295,7 @@ theorem EtcdServer.snapshot.wp_proof
     wp_apply (wp_srv_createSnapshot hCS ms γs γr nk ai at' cs _ Hpos Hsz) $$ [Hstor]
       as %snap' %err ⟨#Hlbi, Hres⟩
     · iframe #; iframe Hstor
-    icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap⟩ | %Herr)
+    icases Hres with (⟨%Herr, %c, %Hcsc, Hsnap, #HsvS⟩ | %Herr)
     rotate_left
     · -- `ErrSnapOutOfDate`: `errors.Is` is `true`, return
       obtain ⟨-, Herr⟩ := Herr
@@ -386,9 +386,12 @@ theorem EtcdServer.snapshot.wp_proof
         · simp only [srvLE, Hpre, List.nil_append, List.getLast?_map, Option.map_map]
           simpa [EntryModel.toLE, Function.comp_def] using h0
       obtain ⟨e, He, Het⟩ := snap_handed_entry _ lw _ at' hLlen hpos' hLlast hLpfx
-      ihave HAU := rnDur_ownSnap_au γn.wal _ (memSnapMade ai at' c []).Metadata' lw e
+      -- (R2d, Q14 (a)) the snapshot's certificate, for the WAL record's
+      ihave #HsvW : snapshotValid γn.node.cl (SnapshotM.mk [] (memSnapMade ai at' c []).Metadata') $$ []
+      · rw [Hγn]; iExactEq HsvS; rfl
+      ihave HAU := rnDur_ownSnap_au γn.node.cl γn.wal _ (memSnapMade ai at' c []).Metadata' lw e
         (by simpa [memSnapMade] using hpos') (by simpa [memSnapMade] using He)
-        (by simpa [memSnapMade] using Het) $$ Hdur Hwap Hwlb
+        (by simpa [memSnapMade] using Het) $$ Hdur Hwap Hwlb HsvW
       wp_bind (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty)
         go!"SaveSnap" #stp)) (Val #snap'))
       iapply HSaveSnap $$ [Hwo HAU]

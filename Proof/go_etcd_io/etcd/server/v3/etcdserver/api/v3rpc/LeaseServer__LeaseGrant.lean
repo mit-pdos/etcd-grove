@@ -58,7 +58,7 @@ theorem v3rpc.LeaseServer.LeaseGrant.wp_proof
     wp_apply hFill $$ [Hw Hin] as ⟨Hfd, %rv', -⟩
     · iframe; iframe #
     wp_auto
-    ihave #HSn := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
+    ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
     iapply HΦ
     iframe HSn
     iframe HS Hg

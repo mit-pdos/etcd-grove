@@ -189,7 +189,7 @@ theorem restartCheck.wp_proof
     as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
   (try wp_auto)
   -- `cliR.Get(gctx, "k")`, under the client's invariant at the restarted member's names
-  obtain ⟨-, Hst', -⟩ := Hρ'
+  have Hst' := restartNames_st Hρ'
   ihave #HinvR : client.putGetInv ρ'.rd γf go!"k" go!"v2" $$ []
   · rw [putGetInv_st ρ'.rd γr (by rw [Hst', Hst]) γf]
     iexact Hinv

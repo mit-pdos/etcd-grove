@@ -357,22 +357,41 @@ theorem readIndexOk_logR [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     iframe HL
     ipureintro; exact ⟨Hci, h⟩
 
-/-- **A `fmt.Errorf` error is one the gRPC layer can take** (`applyErrIs`), given the method-set
-fact that `*errors.errorString` is a leaf error type (the server's package facts, `srvErrVars`). -/
-theorem applyErrIs_errorf (err : GoInterface)
+/-- **A context error is one the gRPC layer can take** (`applyErrIs`): `context.Canceled`'s value
+(`errVarLeaf`) or `context.DeadlineExceeded`'s (`ctxDeadlineLeaf`), the read package's facts, as
+`applyErrIs_of_ctxErr`'s. -/
+theorem applyErrIs_of_isCtxErr :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ⊢
+      □ ∀ c : GoInterface, context.isCtxErr c -∗ applyErrIs c := by
+  iintro #Hpkg !> %c #Hc
+  ihave #Hprd : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
+  · iPkgInit
+  ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.read.readInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hprd
+  icases Hinit with ⟨-, -, -, -, -, -, -, #HCan, #HDE⟩
+  iunfold context.isCtxErr at Hc
+  icases Hc with (⟨#Hcv, %x, %Hx, -⟩ | ⟨#Hcv, %Hx⟩)
+  · obtain ⟨ce, rfl⟩ : ∃ ce, c = GoInterface.ok ce := by subst Hx; exact ⟨_, rfl⟩
+    iapply errVar_applyErrIs _ (GoInterface.ok ce) $$ HCan
+    iexists ce
+    iframe Hcv
+    ipureintro; rfl
+  · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
+    icombine Hcv HeD gives %Hce
+    subst Hce
+    obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
+    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
+
+/-- **`rangeKeys`' context error (and its `%w` wrappings) is one the gRPC layer can take**
+(`applyErrIs`; errorf-wrap, 2026-11-06, in place of `applyErrIs_errorf`, which learnt from
+Perennial's model that it was a leaf), given the method-set fact of `*errors.errorString` (the
+model's side of `fmt.ErrorfWrap`) and the context errors' (`applyErrIs_of_isCtxErr`). -/
+theorem applyErrIs_ctxErrorf (err : GoInterface)
     (hleaf : ∀ x : Loc, errLeaf ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) :
-    mvcc.errorfIs (GF := GF) err ⊢ applyErrIs err := by
-  iunfold mvcc.errorfIs
-  iintro ⟨%x, %h, #He⟩
-  subst h
-  iapply applyErrIs_leaf _ (hleaf x)
-  iunfold errMsgOk
-  iintro !> %Φ - HΦ
-  iapply He
-  inext
-  iintro %str
-  iapply HΦ
-  itrivial
+    mvcc.ctxErrorf (GF := GF) err ⊢
+      (□ ∀ c : GoInterface, context.isCtxErr c -∗ applyErrIs c) -∗ applyErrIs err := by
+  iunfold mvcc.ctxErrorf
+  iapply applyErrIs_ctxWrap err hleaf
 
 end lemmas
 

@@ -682,6 +682,34 @@ instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
   unfold kvInv; infer_instance
 
+/-- **Two KV names the KV invariant cannot tell apart** (R2d-1, Q8 (a), 2026-11-06): they agree on
+every field `kvInv` reads (the state's variable `st`, the start values `c0`, `ch0`, `log0`, the
+claims' map `ids.issued` and its wait names `ids.wn`, the cluster's compaction mode `cmp`, its
+requested log `rlog`, retention `cret` and lease mode `lm`, the generated ids' prefix `kvPfx`),
+and may differ on a member's own (`cok`, `hi`, `hist`, the slots). `kvInv_congr`'s hypothesis, and
+what `restartNames` keeps of the KV names: a restarted member reuses the cluster's invariant. -/
+abbrev kvCongr (γk γk' : KVNames) : Prop :=
+  γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
+    γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn ∧ γk.cmp = γk'.cmp ∧
+    γk.rlog = γk'.rlog ∧ γk.cret = γk'.cret ∧ γk.lm = γk'.lm ∧ kvPfx γk = kvPfx γk'
+
+/-- `kvCongr` is symmetric. -/
+theorem kvCongr.symm {γk γk' : KVNames} (h : kvCongr γk γk') : kvCongr γk' γk := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+  exact ⟨h1.symm, h2.symm, h3.symm, h4.symm, h5.symm, h6.symm, h7.symm, h8.symm, h9.symm,
+    h10.symm, h11.symm⟩
+
+/-- **The KV invariant reads only the cluster's KV names** (stage M4; R2d-1: from `NewServerAlloc`, over `kvCongr`): the state's variable, the
+start values and the claims' map; not a member's certificate map, its applied
+height or its slots and prefix. -/
+theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
+    (h : kvCongr γk γk') :
+    kvInv (GF := GF) γs γk = kvInv γs γk' := by
+  obtain ⟨h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12⟩ := h
+  unfold kvInv kvWork kvGrantIds idUnclaimed entryClaim kvModelSt kvLeases kvModel idRegdAt idWaitIs cmpLogOk
+    cmpEntryOk kvModel kvStQ KVNames.lg kvLogSmall
+  rw [h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
+
 /-- **A client's persistent atomic update of the KV by `f`** (2026-10-15, unit T2): `□ Q` of the
 state it linearized at. Persistent: a write's may be applied more than once (the client's retry
 interceptor, raft's duplicates), a read's is fired at every committed log from its deposit.

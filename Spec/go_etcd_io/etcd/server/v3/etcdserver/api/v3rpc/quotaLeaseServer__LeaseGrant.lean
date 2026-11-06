@@ -45,7 +45,7 @@ abbrev v3rpc.quotaLeaseServer.LeaseGrant.spec : Prop :=
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
-      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
+      (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

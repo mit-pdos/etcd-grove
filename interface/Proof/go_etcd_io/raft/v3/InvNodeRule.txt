@@ -108,6 +108,8 @@ theorem ownConfDecisions_excl [package_sem : Assumptions] (γ : Cluster) (D1 D2 
 theorem skippedIn_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) :
     NoConfChangeIn l a b → ⊢ skippedIn γ l a b
 
+theorem snapMade_timeless (γ : Cluster) (s : SnapRec) : Timeless (snapMade γ s)
+
 theorem snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) : Persistent (snapshotValid γ sv)
 
 theorem confAt_agree [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m1 m2 : Membership) :
@@ -119,6 +121,8 @@ theorem confDecided_timeless (γ : Cluster) (k : Nat) (d : ConfDecision) : Timel
 theorem joinAuth_join [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (U : GSet w64) (id :
     w64) : ¬id ∈ U → id ≠ W64 0 → ⊢ isCluster γ N ∗ joinAuth γ U ==∗ joinAuth γ ({id} ∪ U) ∗
     raftState γ id RaftState.init ∗ nodeVacant γ id
+
+theorem snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) : Timeless (snapshotValid γ sv)
 
 theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (sv :
     SnapshotM) : 0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 → isCluster γ
@@ -187,6 +191,9 @@ theorem confDecide [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (D
 
 theorem ownConfDecisions_timeless (γ : Cluster) (D : GMap Nat ConfDecision) : Timeless
     (ownConfDecisions γ D)
+
+theorem ownSnapsMade_snapshotValid_data [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec)
+    (sv : SnapshotM) : ownSnapsMade γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r, r ∈ S ∧ r.data = sv.Data'⌝
 
 theorem ownSnapsMade_timeless (γ : Cluster) (S : List SnapRec) : Timeless (ownSnapsMade γ S)
 

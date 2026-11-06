@@ -47,6 +47,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof

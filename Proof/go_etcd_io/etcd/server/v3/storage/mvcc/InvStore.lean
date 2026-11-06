@@ -5890,18 +5890,11 @@ def rangeKvs (full : Bool) (kvs : GoSlice) (st : List EtcdKv)
 is not positive. -/
 def rangeRev (rev optRev : w64) : w64 := if sint.Z optRev ≤ 0 then rev else optRev
 
-/-- **An error `fmt.Errorf` returned** (persistent), as Perennial's model of `fmt.Errorf` makes
-it: `errors.New` of the format (`Perennial/TrustedCode/fmt.lean`: the arguments, `%w` included,
-are ignored), an `*errors.errorString` whose `Error()` returns. Go's `fmt.Errorf` with `%w`
-returns a `*fmt.wrapError` instead, which `errors.Is` sees through to the wrapped error: the
-model does not (2026-10-12, the request path's unit 3b: `rangeKeys`' context error, and the txn
-package's `executeTxn` wrapping it, reach the gRPC layer; `notes/STATUS.md`, "Unit 3b").
-Not from the trust-boundary axiom `fmt.Errorf.wp_proof` (`Spec/fmt/Errorf.lean`, which gives
-only that `Error()` returns): what the gRPC layer needs of the error (`applyErrIs`: a leaf
-pointer error) is true of the model's `*errors.errorString` but not of Go's `*fmt.wrapError`,
-whose `Unwrap` `errors.Is` follows, so an axiom stating it would be false of Go (2026-10-13, the
-merge of `origin/lean`; `notes/decisions.md`, "`fmt.Errorf`'s `%w` errors: the model's body, not
-the axiom"). -/
+/-- **An error `fmt.Errorf` returned for a format without verbs and no arguments** (persistent):
+`errors.New(format)` in Go and in Perennial's model alike (`fmt/errors.go:23-31`'s fast path), an
+`*errors.errorString` whose `Error()` returns (`wp_Errorf_errorfIs`, whose premise is that path).
+Since 2026-11-06 (errorf-wrap) only the compaction's `"interrupted due to stop signal"`: a `%w`
+error is `ctxErrorf` (`notes/decisions.md`, "`fmt.Errorf` with `%w`: no fact from the model"). -/
 def errorfIs (err : GoInterface) : IProp GF :=
   iprop(∃ x : Loc,
     ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
@@ -5919,10 +5912,42 @@ theorem errorfIs_ne_nil (err : GoInterface) : errorfIs (GF := GF) err ⊢ ⌜err
   iintro ⟨%x, %h, -⟩
   ipureintro; subst h; intro h; cases h
 
+/-- **`rangeKeys`' error for a done context, and its wrappings** (persistent; errorf-wrap,
+2026-11-06): `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`),
+possibly wrapped again (`executeTxn`'s `"applyTxn: failed Range: %w"`): a context error wrapped by
+`%w` (`ctxWrapErr`, from `fmt.ErrorfWrap`), not Perennial's model's leaf. -/
+def ctxErrorf (err : GoInterface) : IProp GF :=
+  go_etcd_io.etcd.cache.v3.ctxWrapErr err
+
+omit package_sem in
+instance ctxErrorf_persistent (err : GoInterface) : Persistent (ctxErrorf (GF := GF) err) := by
+  unfold ctxErrorf; infer_instance
+
+omit package_sem in
+theorem ctxErrorf_ne_nil (err : GoInterface) : ctxErrorf (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝ := by
+  unfold ctxErrorf go_etcd_io.etcd.cache.v3.ctxWrapErr
+  iintro ⟨%pres, %c, %Hp, Hch, -⟩
+  cases pres with
+  | nil => exact absurd rfl Hp
+  | cons pre ps =>
+    rw [EtcdGrove.fmt.wrapChain_cons]
+    icases Hch with ⟨%ii, %Hii, -⟩
+    ipureintro; subst Hii; intro h; cases h
+
+omit package_sem in
+theorem ctxErrorf_ok (err : GoInterface) :
+    ctxErrorf (GF := GF) err ⊢ ∃ ii : GoInterfaceOk, ⌜err = GoInterface.ok ii⌝ := by
+  iintro #H
+  ihave %Hn := ctxErrorf_ne_nil err $$ H
+  cases err with
+  | nil => exact absurd rfl Hn
+  | ok ii => iexists ii; ipureintro; rfl
+
 /-- What `rangeKeys(ctx, key, end, rev, ro)` returns (`r`, `err`) of the committed log `log`
 at the transaction's revision `rev`, for `[k, e)` (`endNil`: no end key):
 * a future revision (`ro.Rev > rev`): `ErrFutureRev` and a count of `-1`;
-* the context done (a full read only): no result and `fmt.Errorf`'s error (`errorfIs`);
+* the context done (a full read only): no result and `fmt.Errorf`'s `%w` of the context's error
+  (`ctxErrorf`);
 * else the answer at `rangeRev rev ro.Rev`: the count alone (`CountOnly`), or the key-values
   of the index's answers (at most the limit), keys and revisions only (`FastKeysOnly`) or the
   state's key-values from the bucket, with the index's count. -/
@@ -5933,7 +5958,7 @@ def rangeOutcome (r : Loc) (err : GoInterface) (log : Log) (rev : w64) (endNil :
       (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
       r ↦ ({ KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } : RangeResult)) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗
-      ⌜r = null⌝ ∗ errorfIs err) ∨
+      ⌜r = null⌝ ∗ ctxErrorf err) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜err = GoInterface.nil⌝ ∗
       if ro.CountOnly' then
         r ↦ ({

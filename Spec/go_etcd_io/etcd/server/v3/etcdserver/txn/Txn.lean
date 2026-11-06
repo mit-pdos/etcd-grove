@@ -105,7 +105,7 @@ tokens (`store.Read`; unit W-M3: with the caller's certificate of it, `certOk`),
 the server's run of `t` on the state after `log` (`srvRunTxn`: no change, a read-only request),
 its response with header revision `log`'s last (`log.length - 1`), its header's id fields owned
 (`respHdrOwn`); or, the context done during a range, `executeTxn`'s `fmt.Errorf` error
-(`mvcc.errorfIs`), the response partly filled (read-only, `roTxnRespRd`, its header's id fields
+(`mvcc.ctxErrorf`), the response partly filled (read-only, `roTxnRespRd`, its header's id fields
 owned, `respHdrOwn`: unit P4, 2026-10-14, what the server's warning of a slow transaction reads;
 it was unspecified). Premises: the
 gets within the model (`txnGetsOk`: revision `0`, a sort not cut early, a valid sort target),
@@ -139,7 +139,7 @@ abbrev txn.Txn.specRead : Prop :=
              (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
            txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
          (⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-           mvcc.errorfIs err ∗ txn.roTxnRespRd resp ∗
+           mvcc.ctxErrorf err ∗ txn.roTxnRespRd resp ∗
            txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))) }}
 
 /-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader

@@ -380,7 +380,7 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
               (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrPut o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ putErrOk s E ρ F o e)) ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+        go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -424,7 +424,7 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
               (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrDeleteRange o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e)) ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+        go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -469,7 +469,7 @@ theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
               (⌜E.authOn = true⌝ → rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o)) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
             srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)) ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+        go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -524,7 +524,7 @@ theorem txn_end_to_endM
             srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
             ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
               if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e)) ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
+        go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
   iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre⟩ HΦ
   ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
   · iframe #; ipureintro; exact Hany
@@ -879,7 +879,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
     try (ipureintro; exact ⟨Hrn, Hn⟩)
   inext
   iintro %resp %err Hout
-  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
@@ -922,7 +922,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
-  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleAdd m) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
@@ -965,7 +965,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
-  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrUserGrantRole m.1 m.2) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
@@ -1008,7 +1008,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
     ipureintro; exact Hn
   inext
   iintro %resp %err Hout
-  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci (irrRoleGrantPermission m.1 (some m.2)) Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ
@@ -1050,7 +1050,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     iframe; iframe #
   inext
   iintro %resp %err Hout
-  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_statusErrOk _ resp err $$ Hout
+  ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
   ihave ⟨Hs, Hrep⟩ := authWrapOut_admin s E ρ ci irrAuthEnable Qa [] _ resp err $$ Hout
   ihave Hed := handlerErr_none (GF := GF) Ψe err
   iapply HΨ

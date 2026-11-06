@@ -475,7 +475,7 @@ theorem rangeOutcome_sel (r : Loc) (err : GoInterface) (kind : TxnKind) (endNil 
   unfold rangeOutcome
   iintro (⟨%Hlt, -, -⟩ | ⟨-, -, %Hn, #He⟩ | ⟨-, %Herr, H⟩)
   · rw [hrev, h00] at Hlt; omega
-  · ihave %He' := mvcc.errorfIs_ne_nil err $$ He
+  · ihave %He' := mvcc.ctxErrorf_ne_nil err $$ He
     imodintro; ileft; ipureintro; exact ⟨Hn, He'⟩
   rw [hco, hfk, hRR, hlim, rangeTaken_nonpos _ _ _ _ _ _ (by rw [h00]; omega)]
   simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]

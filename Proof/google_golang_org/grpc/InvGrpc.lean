@@ -165,7 +165,9 @@ instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF
 header; unit P3b: the registered service's method, which the generated handler calls below the
 interceptors, `grpcMethodOk`; until P3b it was what grpc ran): a call, given `S`, the context the
 runtime made for the run (`isContext`, `grpcRunCtx`), the decoded request `r` at `m` and
-`Spec m Φ`, returns `S` and, on success, a response at some `m'` with `Φ m'`. -/
+`Spec m Φ`, returns `S` and, on success, a response at some `m'` with `Φ m'`; on failure, an
+error grpc's server handles (`srvErrOk`: a `status` error, or a `fmt.Errorf` `%w` chain to a
+context error, which the server maps to `Canceled`/`DeadlineExceeded`). -/
 def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
     IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -174,7 +176,7 @@ def grpcHandlerOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcS
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }})
+        go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOk h S Spec) := by
@@ -193,7 +195,7 @@ def grpcHandlerOkMd {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : Grp
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
         (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }})
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOkMd_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpecMd Req Rep) : Persistent (grpcHandlerOkMd h S Spec) := by
@@ -243,7 +245,7 @@ def grpcHandlerOwnOk {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : Gr
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }})
+        go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOwnOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpec Req Rep) : Persistent (grpcHandlerOwnOk h S Spec) := by
@@ -261,7 +263,7 @@ def grpcHandlerOwnOkMd {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
         (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }})
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcHandlerOwnOkMd_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     (Spec : GrpcSpecMd Req Rep) : Persistent (grpcHandlerOwnOkMd h S Spec) := by
@@ -471,7 +473,7 @@ def grpcMethodOk {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : L
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
           ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err }})
+        go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcMethodOk_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
@@ -493,7 +495,7 @@ def grpcMethodOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics :
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
           ⌜resp = interface.mkOk (go.GoType.PointerType Rep.ty) #l⌝ ∗ Rep.send l m' ∗ Φ m') ∗
         (⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
-          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }})
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }})
 
 instance grpcMethodOkMd_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
     (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
@@ -547,10 +549,10 @@ def srvInterceptorOk (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF)
       (info : Loc) (h : GoFunc) (Ψ : val → IProp GF),
     R -∗ context.isContext ci cd -∗ grpcRunCtx ci -∗ srvInfoIs info -∗ □ Q req -∗
     (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗ (R -∗ Ψ v) }} ∧
+        {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v) }} ∧
       (R -∗ ∀ err : GoInterface,
         ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) -∗
+        go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) -∗
     WP (srvInterceptorCall ic #(GoInterface.ok ci) #req #info h) {{ Ψ }})
 
 instance srvInterceptorOk_persistent (ic : GoFunc) (R : IProp GF) (Q : GoInterface → IProp GF) :
@@ -583,11 +585,11 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
     srvInterceptorsOk Q ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
       srvInfoIs info ∗ □ Q req ∗
       (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
-          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+          {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
             (([∗list] R ∈ Rs, R) -∗ Ψ v) }} ∧
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface,
           ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
-          go_etcd_io.etcd.cache.v3.statusErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) ⊢
+          go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) ⊢
     srvChainWP #info ics h #(GoInterface.ok ci) #req Ψ := by
   induction ics generalizing Rs Ψ with
   | nil =>
@@ -600,7 +602,7 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       unfold srvChainWP
       icases H with ⟨H, -⟩
       iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-        go_etcd_io.etcd.cache.v3.statusErrOk err ∗ (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
+        go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
       iintro %v ⟨%resp, %err, -, -, HΨ⟩
       iapply HΨ
       iapply BigSepL.bigSepL_nil.2
@@ -623,13 +625,13 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
       isplit
       · iapply Hh'
         iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-          go_etcd_io.etcd.cache.v3.statusErrOk err ∗ (R -∗ Ψ v))))
+          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v))))
         iframe #
         iframe
         isplit
         · icases H with ⟨H, -⟩
           iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.statusErrOk err ∗ (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
           iintro %v ⟨%resp, %err, %Hv, #Hse, HΨ⟩
           iexists resp, err
           isplitr

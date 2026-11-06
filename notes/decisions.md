@@ -32503,6 +32503,41 @@ passes. What breaks is then fixed:
 The general fix is Perennial's: `perennial-changes.md`, "`fmt.Errorf`'s model can be unfolded to
 learn facts false of Go".
 
+
+## `fmt.Errorf` with `%w`, built: a disjunctive `ErrorfWrap`, `srvErrOk` in the handler contracts (2026-11-06 · errorf-wrap's N1-N5, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `errorf-wrap`; frozen by etcd-grove-82 2026-11-06, tag `errorf-wrap-frozen`)
+
+The fix the entry above calls for. What was built, and why each shape:
+
+- **N1, the spec of a `%w` call** (`Spec/fmt/ErrorfWrap.lean`, axiom `fmt.ErrorfWrap.wp_proof`):
+  `Errorf(pre ++ "%w", [inner])`, `%` not in `pre`, returns `fmt.errorfWrapIs err inner pre`,
+  **either** Perennial's model (`fmt.modelErrIs`: an `*errors.errorString` whose `Error()` returns)
+  **or** Go's `*fmt.wrapError` (`fmt.wrapErrIs`: a pointer whose only methods are `Error`, returning
+  `pre ++ s`, and `Unwrap`, returning `inner`). The first draft stated Go's side only, which the
+  model refutes on the same call; a trusted statement that contradicts the trusted model is a trap
+  for later proofs, so the post is the disjunction (82's decision). A proof can then use nothing
+  that holds of one side only: what it needs is proved of both (`fmt.wrapChain`, whose model case
+  ends the chain). Attacked: `notes/axiom-review/errorf-wrap.md`, survives.
+- **N2, `mvcc.wp_Errorf_errorfIs` restricted** to formats without `%` (premise `(W8 37) ∉
+  format`, no arguments), the fast path where Go's `Errorf` is `errors.New(format)`; the one caller
+  left is `scheduleCompaction`'s.
+- **N3, the `%w` errors' vocabulary**: `ctxWrapErr` (a non-empty `wrapChain` ending at a
+  `context.isCtxErr` value), `mvcc.ctxErrorf := ctxWrapErr` (`rangeKeys`' and `executeTxn`'s
+  errors, in place of `errorfIs`), and `applyErrIs` of such a chain (`applyErrIs_ctxWrap`, by
+  `errorWalkNode` over the chain: each node is a model leaf or a wrap node whose `Unwrap` is the
+  next).
+- **N4, the handler contracts** (`grpcHandlerOk*`, `grpcMethodOk*`, `srvInterceptorOk`) and
+  `applyErrIs`: `srvErrOk := statusErrOk ∨ ctxWrapErr` in place of `statusErrOk`. This widens
+  what `Serve`, `RegisterService` and prometheus's interceptor are trusted to handle; the attack
+  (`wrapctx_test.go`, `n1_test.go`) runs Go's server with handlers returning each `ctxWrapErr`
+  shape, one level and the Txn's two: no panic, the client sees `Canceled`/`DeadlineExceeded`.
+- **N5, the callers restated**: `togRPCError`'s post `srvErrOk`, `EtcdServer.Range`/`Txn`'s
+  error facts through `applyErrIs_ctxErrorf`, and every v3rpc and handler spec at `srvErrOk`.
+
+No closed theorem changed (`examples/`' results, text-identical). The trust base grows by the one
+axiom (N1). A cheap gate, `etc/errorf-wrap-check.py` (in `etc/gates.sh`), refuses a new proof that
+steps into Perennial's `Errorf` model outside the reviewed files (post `True`, or a format without
+`%`).
+
 ## `memberUp` through laws (2026-11-06 · N6, lease-mono3 r3's N3; an etcdstart API addition accepted by etcd-grove-82 · branch `n6`)
 
 **Why.** The examples took `etcdstart.memberUp` (and `memberUpOn`) apart by position (`iunfold
@@ -32535,6 +32570,257 @@ so is every statement. A new conjunct of `memberUp` now changes only these laws'
 `memberUpOn_intro`'s premise, whose producer must supply it anyway); a change to a conjunct a
 consumer uses still reaches that consumer, through the law's statement. No consumer outside
 etcdstart unfolds `memberUp` or `memberUpOn` (`grep -rn "unfold.*memberUp" Proof`).
+
+---
+
+## R2d: the server's restart chain, first round (2026-11-06 · the R2d Scope's S1 (B), Q8 (a), Q9 (d), Q10-Q12, HS1 (a), decided by etcd-grove-82 under the user's delegation · branch `r2d`; DRAFT)
+
+**Q9: (d), the restart is a jump; supersedes R2c's leaning (a)** ("R2c: what a restart needs of
+the cluster's id state", `notes/restart-plan.md`). R2c leaned to generalizing `%HEr` to `ai₀ = σ.b`,
+`c₀ = i`. That does not typecheck against the names a restart keeps: `kvRun γr ai₀ c₀ A x` forces
+`γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀` (`InvRunRes.lean:256`), and the names are the cluster's
+(`NewServer` fixes `ai0 = 0`, `c0 = 0`; `restartNames` keeps them), so (a) holds only at
+`σ.b = i = 0`. (d) keeps `ai₀ = c₀ = 0` and starts the ghost applied log at the backend's index;
+Go's `ep.appliedi` lags.
+
+**Done in this round** (proved, no `sorry`, no new axiom):
+- *R2d-1 (Q8 (a)).* `kvCongr γk γk'` (`InvRequest.lean`), the 11 fields `kvInv` reads, is
+  `kvInv_congr`'s hypothesis (the theorem moved next to it from `NewServerAlloc`, so that it and
+  `restartNames` see one definition); `restartNames ρ ρ'` keeps `ρ'.rd.raft = ρ.rd.raft`,
+  `kvCongr ρ.rd.kv ρ'.rd.kv` and the ids' `issued`/`pfx` (until then 6 of the 11 fields, so a
+  restarted member could not reuse the cluster's `kvInv`). The probe: `kvInv_restartNames`
+  (`InvRestart.lean`). `restartNames_st`, `restartNames_kvModel` give the old conjuncts.
+- *R2d-4.* `setAppliedIndex.spec` gains `rep : Bool`: at `rep = true` (a replay below the ghost
+  applied index, `uint.Z v' ≤ uint.Z v`) the store keeps the apply thread's half at `v` and the
+  invariant (`srvAppliedBody`'s `v ≤ a` lets the atomic lag); at `false` the spec as before. One
+  spec with a case, not a second family. `apply`'s proofs take the `false` case.
+- *HS1 (trust: one widened axiom).* `auth.NewAuthStore.spec`'s pure premise
+  `(r.lookup "auth").getD ∅ = ∅` becomes `… = ∅ ∨ … = authBoot`; `authUsers`/`authRoles` stay `∅`
+  (etcd-grove-82's ruling: only the auth bucket widens). The attack, at the pins: (i) on `authBoot`
+  `UnsafeReadAuthEnabled` finds no `authEnabled` key (false), `UnsafeReadAuthRevision` one value,
+  big-endian `1` (`schema/auth.go:123-144`), so `Revision() = 1 ≠ 0` and `commitRevision` is
+  skipped; a first start's `commitRevision` (`store.go:1012-1015`) takes the in-memory revision
+  `0 → 1` and puts `authRevision = 1`: both end at revision `1`, the bucket at `authBoot`.
+  (ii) `refreshRangePermCache` (`range_perm_cache.go:131`) reads `authUsers` (and `authRoles` only per
+  user), not `auth`; the premise on them is unchanged, and a restarted member in scope meets it: the
+  image's rest buckets are `bkRestAt`'s, `bkRestAt_boot` (`InvImage.lean:249`) gives `authUsers`
+  and `authRoles` `some ∅`. (iii) `CreateAuthBuckets` (`schema/auth.go:50-57`) calls
+  `UnsafeCreateBucket`, which is bbolt's `CreateBucketIfNotExists` (`backend/batch_tx.go:136-145`);
+  at bbolt v1.5.0 (`bucket.go:230-250`) an existing bucket is returned and nothing written; the
+  `pending++` only schedules a commit, which the two write-back tokens already cover. (iv) Excluded
+  by the premise: an `authEnabled` key (`authBoot` has none; enabling would call the provider's
+  `enable`), any revision but `0`/`1`, any user or role; the in-memory revision is `1` in both
+  cases. No panic and no different post found. Trust baseline: the axiom's line changes, the
+  count does not.
+
+**Stopped (Q13 in the worktree's `questions.md`, pending the user).** The hard probe (run's first
+replay-window batch) fails at the Scope's statement list: every spec of the apply chain ties Go's
+applied index to the ghost log's length (`applyAll.specBatch`'s `uint.Z ai = A.length` and
+`ciEff ≤ ai`; `kvBatch`'s `ai = ai0 + |A|`, which `applyEntries.specBatch` and `apply.spec` take;
+their posts append the batch to the ghost log). A window batch has Go's `ai = σ.b < |A₀|`, and its
+entries are already in `A₀`. So (d) needs a window form of `applyAll`, `applyEntries`, `apply` and
+`kvBatch` too, which the Scope's item 11 does not list. R2d-2, -3, -5, -7 and -8 depend on the
+window's vocabulary (`applyRes`'s `aiGo`, `applyStart` at `A₀`: what `NewServer`'s restart case
+must establish) and were not started; R2d-6's constructors (`mvcc.New`/`NewStore`'s restoring
+case, `newRaftNode`'s `RestartNode` path, `memStorRestarted` defined) are independent of it and
+left for the next round.
+
+## R2d: the split R2d / R2d' / R2e; the window form; the WAL snapshot's certificate (2026-11-06 · Q13 (a), Q14 (a), Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window form (Q13 (a)) is not in R2d; it moved to R2d' (branch `r2d-prime`, tag `r2d-freeze1`). Q14's certificate and the split stay.*
+
+**The split supersedes the R2d Scope's S1 (B)** (`notes/restart-plan.md`, "R2d Scope", S1: R2d to
+carry `run` at a restart *and* the constructors `NewStore`/`NewServer` over both boots). S1's (B) is
+now three stages: R2d (`run` at a restart, the window form, Q14's certificate), R2d' (`NewStore`'s
+restoring case with B1's `lateWBR`/`lateWB` merge, R2d-7's `NewServer.specG` restart branch, R2d-8's
+etcdstart) and R2e (the closed result). Why: (1) Q15 found `NewStore`'s restoring case needs B1, a
+third widening of R2d after the window form (Q13) and the certificate (Q14); (2) R2d-7 changes
+`NewServer.specG`/`isServerBuilt*`, which revoke-open (landing before R2d) also changes; (3) a smaller
+R2d lands sooner. R2d has no closed result, and R2e needs R2d' anyway, so the split delays nothing.
+The `Hnew` row's change to trusted text becomes a hard stop at R2d''s Scope.
+
+**The window form (Q13 (a)).** The restart is a jump (Q9 (d)): the ghost applied log starts at the
+backend's consistent index `i`, Go's `ep.appliedi` at `σ.b ≤ i`, and the entries of `(σ.b, i]` come
+again, v2-only. Every spec of the apply chain tied Go's index to the ghost log's length, so each gets
+a window form over the pending replays `W` and the done ones `D` (`ApplyWindow.lean`). Choices:
+- *Definitional reduction.* Each window definition (`winGhost ai [] = ai`, `winNew [] ms = ms`,
+  `winRest [] _ = []`, `winDone _ [] _ = []`, `kvBatchW … [] … = kvBatch …`, `srvRestW … [] =
+  srvRest …`) is the no-window one by definition, so the laws `…_noWin` are instantiations and a
+  first start's callers change by one line (condition 2). A pair of indices (Go's, ghost's) with an
+  equation would have made every caller prove the equation.
+- *`winOk` a Lean premise of `applyAll.specBatch`* (not in its precondition's pure conjunct): then
+  the no-window instance is today's triple, with no Iris reasoning in the law.
+- *Today's texts kept* as `…NoWin` in `ApplyWindowLaws.lean`, the old proofs proving them: the
+  window forms' proofs are `run`'s round, after the Freeze, and the old proofs stay checked meanwhile.
+- *Matchers.* The no-window texts' `match dv with …` elaborate to matchers that `SDRun`'s
+  `srvRunH_*` lemmas (stated over named matchers) do not rewrite; `srvRunH_noWin` states the match
+  itself, so it is about whichever matcher the texts reuse.
+
+**The certificate (Q14 (a)).** A restart's `MemoryStorage` attaches at the WAL records' base with
+their snapshot (`bootstrap.go:443-460`: the last WAL snapshot record's index and term, no data), so
+it needs that snapshot's `snapshotValid`. Carried in the WAL durability invariant as
+`walSnapCert cl σ` over the records themselves (`recsOf v σ`, what `walRecs` holds), so that `Save`
+keeps it by definition and each `SaveSnap` supplies it. The invariant now names the cluster
+(`rnDurInv cl ν w`), not a new field of `WalNames`: the cluster is the raft wrapper's `γ.node.cl`
+at every use. Caveat (i), a received snapshot's data nil, is settled by the cluster's registry
+(`srvSnapsReg`: every registered snapshot of nil data), which is what the code does (the server's
+snapshots `CreateSnapshot(…, nil)`, the merged message's `Data` unset), not by a premise. Caveat
+(ii) (the restarted conf state is the backend's at `i`, `confStateIs` of the membership at `σ.b` only
+in a static cluster) is HS2's static-cluster premise, for R2e's Scope. `snapMade` gains a `Timeless`
+instance in raft's API (the invariant holds `snapshotValid`).
+
+## R2s: snapshots across windows; no merged send in a window; the stop's WAL slot without `i ≤ σ.commit` (2026-11-06 · the Q16-3 review's items 1-4 decided by etcd-grove-82 under the user's delegation, pending the user's review; findings 2 and 6 decided by the agent, pending the user's review, under etcd-grove-82's delegation · branch `r2d`; DRAFT)
+
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): `winNoMergedSend`, F2, F4 and finding 6 left R2d with the window form, to R2d'; R2s's own items are unchanged.*
+
+**Supersedes Q16 (3) and Q18's R2d-3m** (`notes/restart-plan.md`, "Scope amendment 2" item (3) and
+the R2d-3m row of the R2d sub-steps; `questions.md` Q16 (3), Q18). Q16 (3) planned to follow a
+merged snapshot sent in a window as an image at some `j ≥ i` and to give the receiver's install the
+restart's replay window, as one notion of window; Q18 moved that after R2d-5 as R2d-3m. The review
+of that design (`/shared/tmp/r2d-review-q16-3.md`, F1) found it wrong, not unfinished: after an
+install from a window sender, a second snapshot from a member without a window can move the
+receiver's backend *backward* (L1 in its window sends F an image at 100 for index 60; L2, applied to
+70, then sends F a snapshot at 70, which raft accepts above its commit 60, `raft.go:1877`, and Go
+above its applied index 60, `server.go:1051` at the pin `673da07c8`). Go is correct (it re-applies 71..100 v3), but the
+ghost cannot follow: `applied_jump` moves a monotone counter forward only (`InvRequest.lean:2312`),
+and the snapshot directory's removal fact is keyed by the ghost index (`SnapRO.lean:345,358`). A
+restart's window and an install's differ in exactly the invariant the receive path relies on (the
+ghost at most raft's commit, which the stop's `i ≤ σ.commit` gave), so they are not one notion.
+
+**New stage R2s, "snapshots across windows"**, ordered R2d, R2d', R2s, R2e. It carries the KV ghost
+reset at an install (the review's (a): the monotone applied index at Go's index, the KV ghost the
+backend's, `srvSnapRm` keyed by Go's index), the raft fact "a snapshot's index is above the
+receiver's commit" (a raft API change, decided at R2s's Scope), the `applySnapshot.specSnapM` and
+`srvSnapApplied*` restatements, Q16 (3)'s certificate and `srvSnapRO`, and the discharge of
+`winNoMergedSend`. The review's (b), a scope restriction "no snapshot below the receiver's
+consistent index", was rejected: no caller can establish it and it is false of Go.
+
+**R2d instead assumes no merged send in a window** (`winNoMergedSend γ W`, `ApplyWindow.lean`: at a
+pending window no member sends a `MsgSnap`), beside `winNoConf` in the restart's starting point and as
+`applyAll.specBatch`'s premise; `applyAll.wp_proofBatch`'s merged-send branch at a pending window is
+refuted by it (the proof is sorry-free). It is an assumption carried for R2s, not a fact: a leader in
+its window does send. Why an iProp disjunction (`⌜W = []⌝ ∨ □ ∀ id st, sentMsg … id st -∗ ⌜not a
+MsgSnap⌝`) and not a Lean premise: what it excludes is a ghost fact (`sentMsg`), and the no-window
+law supplies its left case, so the first start's text is unchanged. Its cost is stated where it is
+listed (`questions.md`, "Assumptions R2d carries for R2d'/R2s"). R2e's closed theorem carries neither
+`winNoConf` nor `winNoMergedSend`: it waits for R2d' and R2s.
+
+**The stop's WAL slot (finding 2).** `wal.stopImage` said `i ≤ σ.commit`, justified by "an entry is
+applied after the `Save` of its commit"; an install from a window sender gives the backend entries
+above the receiver's commit, so a graceful stop there breaks it (etcd itself expects
+`consistent_index > Commit`, `bootstrap.go:613-621`). Its two uses need less: `bootstrap` keeping the
+backend file needs `σ.b ≤ i` (`storage/backend.go:111-113`), and `RestartNode`'s configuration point
+needs a point in `[σ.b, σ.commit]` with the image's membership. So the slot keeps `σ.b ≤ i` and
+states the configuration point `∃ p ∈ [σ.b, σ.commit], confAt cl p m` (the slot gains the membership
+`m`). `bootstrapRestartContract` (trusted, HS2) still takes `i ≤ σ.commit`; R2e's Scope revisits it.
+
+**`applyAll.specBatch`'s bound over Go's log (finding 6).** `(A ++ winNew W …).length ≤ n` was over
+the ghost log, but `run`'s `n` is raft's delivered log, Go's; now `(A.take ai ++ unapplied ai
+ms).length ≤ n`, the same at no window, as F4 did for `srvFrozenTerms`. Its one use is the merged
+send's length argument, where the window is over (Go's log is the ghost log).
+
+## R2d restaged: the restart's prerequisites; `run` and `NewServer` at a restart move to R2d' (2026-11-06 · Q20, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window-form apply chain (Q13, Q19, F2, F4, finding 6) and the assumptions `winNoConf`/`winNoMergedSend` moved from R2d to R2d'.*
+
+**Supersedes in part "R2d: the split R2d / R2d' / R2e"** (above: R2d carried `run` at a restart) and
+Q18's Freeze split. R2d-2's probe extension stopped at `isServerRunC`'s `Hsnap`, a first start's
+(`rnSnapOnce … ai₀ at₀`: the storage's snapshot at `ai₀ = 0`, `memSnapNone`), whose restart form
+needs R2d-6's `memStorRestarted`; and once the hub takes the restart form, `run.wp_proof` needs its
+restart branch (R2d-5), or every first-start closed theorem reaches a DRAFT `sorry`. So the hub edit,
+`run`'s restart proof and the restart's construction belong together: they move to R2d' (R2d-2, -5,
+-6, -7, B1, the `winNoConf` discharge). R2d keeps what they rest on and what is proved or nearly so
+(the window-form apply chain, the stop's certificate and WAL slot, `setAppliedIndex`'s replay case,
+`kvCongr`, HS1, raft's additive laws, the two assumptions with their laws), one Freeze, landing once
+the two remaining window proofs are done. Order: R2d, R2d', R2s, R2e.
+
+**`winNoMergedSend` stays wide (decision 2's check).** It excludes a `MsgSnap` sent by any member, not
+only this one's. Narrowing to the member's own sends needs the id of the `msgSnapC` bag's raft names
+(`isServerApplyAll`'s existential `γm`, whose `γm.id` the bag's `rnSnapMsg` sends from) tied to a name
+the spec has (`γn.id`, or `srvMemberIDAddr s`'s value): `applyAll`'s proof has no such fact, and
+providing it changes `isServerApplyAll` (the persistent bundle `NewServer` builds, read by every apply
+proof), a statement change beyond Freeze 1's set for an assumption R2s removes anyway. The wide form's
+extra strength is stated with its cost (`questions.md`, the assumptions list).
+
+## R2d Freeze 1 review: the repairs; HS1 and the stop slot's weakening moved out of R2d (2026-11-06 · the Freeze 1 review's F1, F4-F7 decided by the agent, pending the user's review, under etcd-grove-82's delegation; the held items (finding 2's revert, HS1 to R2d', narrowing `winNoMergedSend`) decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+*Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): F1 (`winNoConf`), the window list laws of F7, the narrowed `winNoMergedSend` and its hub conjunct (`srvMemberIDAddr s ↦□ γm.id` in `isServerApplyAll`/`srvApplyAllBuilt`) moved to R2d' with the window form; F5's `wal.stopImage`, F7's `srvSnapsReg` laws and F4's `restartNames` stay.*
+
+**Supersedes in part** "R2s: snapshots across windows; …" (above: its finding 2, the stop's WAL slot
+without `i ≤ σ.commit`, is reverted: `wal.stopImage` keeps `σ.b ≤ i ≤ σ.commit`, which
+`bootstrapRestartContract` takes; R2s weakens both together, with the evidence of `bootstrap.go:613-621`,
+`notes/restart-plan.md`, "The held items"), "R2d restaged" (above: HS1 no longer in R2d; it lands in
+R2d' with its consumer, the restart's `NewAuthStore` call; the patch and the attack are kept in
+`notes/restart-plan.md`), and that entry's "`winNoMergedSend` stays wide" (82 decided to narrow it: to
+this member's sends, keyed on the window left after the batch and on the batch's raft term, through an
+id exposed by `isServerApplyAll`; approved by 82 as designed and applied, below).
+
+The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
+- *F1.* `winNoConf W` is a premise of the three window specs (`apply.spec`, `applyEntries.specBatch`,
+  `applyAll.specBatch`); the `…_noWin` laws pass `winNoConf_nil`. Without it R2d states nothing about a
+  replayed conf change, which Go replays v2-only.
+- *F6, the Go fact.* A replayed conf change is applied neither to raft (`server.go:2053-2059` at the pin `673da07c8`) nor to the
+  membership (`membership/cluster.go:402-424`) and is not validated (`:306-308`); `SetConfState`, the
+  transport's peer calls and the wait's trigger do happen. The earlier text (applied to raft and the v2
+  membership) was wrong; R2d''s discharge of `winNoConf` needs a `v3 = false` case of
+  `applyConfChange.spec`.
+- *F7.* The window's list laws (`winGhost_len`, `winAgree_prefix`, `winNew_rest_len`, `idxOk_len_lt`,
+  `winGhost_Z`, `winRest_nil_len`, `win_goLog_prefix`, `win_idx_le`) are public in `ApplyWindow.lean`
+  (`run`'s R2d' proof re-establishes the next batch's premises with them), with `winDone_of_rest_nil`,
+  `kvBatchW_elim` and `winNoMergedSend_elim`; `srvSnapsReg_nil`/`_elim`/`_insert` next to it in
+  `SrvRaftLog.lean`. No module unfolds them outside their own.
+- *F5.* `wal.stopImage` (sealed) moved to `WalApi.lean`, the WAL's API module (the slot convention: a
+  subsystem's slot comes from its API module, as `wal.bootOk`), with `wal.stopImage_elim`.
+- *F2, the narrowed `winNoMergedSend`* (decided by etcd-grove-82 under the user's delegation (user
+  offline), 2026-11-06, pending the user's review): while a window remains after this batch, this
+  member does not merge a MsgSnap of the batch's raft term (Go merges one only at the batch's term and
+  at or below `ep.appliedi`, `server.go:1018` at the pin `673da07c8`; the proof's second
+  `wp_if_destruct`). `winNoMergedSend γ s R rt` (not
+  persistent) over the message the batch takes from `msgSnapC` (`msgOwn m 1`), sent from this member's
+  id (`srvMemberIDAddr s ↦□ id`), at the batch's term `rt`, with `R := winRest W (unapplied ai ms)`.
+  (Corrected 2026-11-06, the Freeze 1b review's N1: neither the wand's non-persistence nor `msgOwn`'s
+  exclusivity makes its content one batch's. `sentMsg` is persistent and keyed by the member id, not
+  the incarnation, and `msgOwn m 1` is any wholly owned message, so in practice it says member `id`
+  never sent a `MsgSnap` at term `rt`, before or after a restart. A leader at term `T` that sends a
+  snapshot, stops without a leadership transfer and restarts at term `T` with a window: Go merges
+  nothing in the window, yet the premise is unprovable. R2d' supplies it per batch by assuming no
+  `MsgSnap` from this member from its restart term on (nor at that term before the stop); R2s removes
+  it.) The wide form (`□ ∀ sentMsg`, persistent) said no `MsgSnap` was ever
+  sent in the cluster, false of every run with a snapshot transfer. The id costs one conjunct in the hub
+  bundles `isServerApplyAll` and `srvApplyAllBuilt` (`srvMemberIDAddr s ↦□ γm.id`), which `NewServer`'s
+  proof supplies; nothing at a first start.
+- *`RunWindow.lean`* moved to branch `r2d-prime` (R2d''s starting point), deleted on `r2d`.
+
+## R2d cut: the window-form apply chain moves to R2d' (2026-11-06 · Q21 (b), decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review · branch `r2d`)
+
+**What.** The post-Freeze proof round found the two window-form proofs unprovable as frozen (Q21,
+`notes/restart-plan.md`, "R2d cut (Q21)"): a replayed normal entry has no triple
+(`applyEntryNormal.spec` grows the ghost log at the ghost index), and closing the window needs
+`restReplay γr A D = restModel … (pre ++ A)`, false for a conf change in `D`. Rather than widen R2d
+again (option (a), a Freeze 1b with `applyEntryNormal.specRep` and stronger `winOk`/`winNoConf`), R2d
+lands without the window form. **R2d keeps:** Q14's WAL certificate chain (`walSnapCert`,
+`rnDurInv`/`walAsViewed` over `cl`, the `rnDur_*` laws, `wal.stopImage` with `_intro`/`_elim`,
+`srvDiskImage`'s slot, `raftNode.stop.spec`/`rnStopImage`/`rn_esc_take`/`stopCleanupImage.spec`'s
+`walSnapCert`, `isRaftNode`/`rnWalTokA`'s `rnDurInv γ.node.cl …`), `srvSnapsReg` (with
+`srv_snapshotValid_dataNil`/`_record` and `wp_srv_createSnapshot`'s post), `setAppliedIndex.spec`'s
+replay case (`rep : Bool`), `kvCongr`/`restartNames`, raft's three additive laws and
+`rnEnvOk_logInv`. **Back to lean's text:** the specs and proofs of `EtcdServer.apply`,
+`applyEntries.specBatch` and `applyAll.specBatch` (no `…NoWin`, no `_noWin` glue), `ApplyWindow.lean`
+and `ApplyWindowLaws.lean` (deleted), `winNoConf`, `winNoMergedSend`, the `isServerApplyAll`/
+`srvApplyAllBuilt` member-id conjunct (and `NewServer`'s proof of it), Q19's `dvOk` index, F2, F4,
+finding 6, Q16 (1)'s `lastTermIs`, the `_noWin` callers (`run_job_body`, `ModeSpecs`, `applyAll`'s
+use of `applyEntries`) and `SDRun`'s `srvRunH_apply_spec`/`_applyEntries_spec` (lean has them, and
+`ModeSpecs` uses them again). The one remaining line of the cut in `apply`'s proof file: `wp_proofOff`
+and `wp_proofOn` specialise `hSet1` to `rep = false` (three lines each), because `setAppliedIndex.spec`
+is kept. R2d then has no DRAFT `sorry`, no trust change and no hub change.
+
+**Where the window work is.** Tags `r2d-freeze1` (`aadfa610b7`) and `r2d-window-full`
+(`54869e2e28`), and branch `r2d-prime` (R2d''s starting point, with `RunWindow.lean`).
+
+**Why.** The last-widening rule (R2d's round 2), and the window's `srvRestW`/`winDone` part needed
+rework anyway; R2d' must design `run`'s window over the same definitions. **The lesson:** the window
+failed three probes when designed from the apply chain upward; R2d' designs it from `run`'s window
+downward, with a probe through `run`'s restart batch before any spec is frozen.
 
 ## The revocation's thread levels: a confined level bound, two bundled pools, `GoAttach` by levels (2026-11-06 · revoke-open, the Scope approved as recommended (Q1 (a2), Q2 K = 4, Q3–Q8, Q10, Q11) by etcd-grove-82 under the user's delegation · branch `revoke-open`; DRAFT until revoke-open's Freeze)
 

@@ -653,7 +653,7 @@ theorem kvRangeOk_of_serverM (hRange : EtcdServer.Range.spec (GF := GF) (hG := h
     iunfold txn.rangeResult at Hres'
     icases Hres' with (⟨-, %ef, -, %He⟩ | ⟨-, #He⟩ | ⟨-, %kvs, %more, #Hresp, -⟩ | ⟨-, %ec, -, %He⟩)
     · cases He
-    · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
+    · ihave %Hne := mvcc.ctxErrorf_ne_nil _ $$ He
       exact absurd rfl Hne
     rotate_left
     · cases He
