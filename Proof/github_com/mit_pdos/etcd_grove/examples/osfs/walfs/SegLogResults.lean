@@ -1,15 +1,17 @@
 /-
 The end-to-end result of `examples/osfs/walfs`'s `seglog.go`: the crash adequacy of its boot
 program, which initializes the package and runs `Run(dir)`, at the start and after every crash,
-over the Linux file extension with the namespace (`osFs_crash_adequacyN`).
+over the Linux file extension v2 (`fs_crash_adequacy`).
 
 `seglog.go` claims no property of the segment's contents: the theorem is that every call the
 segment's life makes (an OFD lock, `Seek` from the start, the offset and the end, `Write` at the
 offset, `fallocate` growing the file and keeping its size, `fdatasync`, a shrinking `Truncate`,
-`Read` at the offset) is one the extension's trusted models cover, so that their "not modelled"
-panics never fire and no run is stuck, however often the node crashes. The crash invariant is
-`SegLogOps.lean`'s `logInv`: no crash outcome of `dir` has a directory at `seg.log` (the boot
-program removes a leftover segment and makes a new one, so it needs nothing of its contents).
+`Read` at the offset, `unlink` and `rmdir`) is one the extension's trusted models cover, so that
+their "not modelled" panics never fire and no run is stuck, however often the node crashes
+(each crash keeping any prefix of the logged metadata operations, or all of them when only the
+process restarts). The crash invariant is `SegLogOps.lean`'s `logInv`, half of the tree's
+history: the boot program removes whatever is at `seg.log` and makes a new segment, so it needs
+nothing of what a crash left.
 
 **What is assumed**, as for `segdir` (`Results.lean`): the package initializer (`Hinit_wp`) and
 the hand-written `os.file` field facts.
@@ -17,11 +19,11 @@ the hand-written `os.file` field facts.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLog
-public import Proof.os.File__ReadAt
 public import Proof.os.File__WriteAt
 public import Proof.os.File__Fd
 public import Proof.os.File__Close
 public import Proof.syscall.Fdatasync
+public import GooseLang.Ext.Fs.Adequacy
 
 @[expose] public section
 
@@ -34,10 +36,10 @@ namespace EtcdGrove
 namespace osfs_walfs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs DSBase
   github_com.mit_pdos.etcd_grove.examples.osfs.walfs
 
-attribute [local instance] osFsExts osFsExtsSemantics osFsExtsInterp osFsExts_hasOsFs
-  osFsExtsCrashInterpN
+attribute [local instance] fsExts fsExtsSemantics fsExtsInterp fsExts_hasFs fsExtsCrashInterp
 
 /-- `seglog`'s boot program: initialize the package, then call `Run(dir)`. -/
 def bootLog [GoGlobalContext] (dir : GoString) : Expr :=
@@ -47,10 +49,11 @@ def bootLog [GoGlobalContext] (dir : GoString) : Expr :=
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
-/-- The precondition of `seglog`'s boot program in the generation `L`. -/
-def bootPreLog [G : GooseGlobalGS .hasLC GF] (dir : GoString) (L : GooseLocalGS GF) : IProp GF :=
-  iprop(osInv (L := L) ∗ osNsBusy (L := L) false ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
-    ∃ g : DirG, osDir (L := L) dir (DFrac.own 1) g ∗ ⌜g.pend = [] ∧ NoDirL g⌝)
+/-- The precondition of `seglog`'s boot program in the generation `L`, the roots `R`: the whole
+of the tree's history. -/
+def bootPreLog [G : GooseGlobalGS .hasLC GF] (R : Roots) (L : GooseLocalGS GF) : IProp GF :=
+  iprop(osInv (L := L) ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
+    ∃ V : Hist, osTree (L := L) (DFrac.own 1) R V)
 
 /-- `seglog_crash_safety` for executions of fewer than `N` steps along which fewer than `T`
 threads are live. -/
@@ -63,9 +66,8 @@ theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       {{ RET #(); True }})
     (N T : Nat) (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
-    (Hinit : OsInit (extLocal osFsExt σ.world))
-    (Hdir : (extLocal osFsExt σ.world).ns !! dir = some .dir)
-    (Hnd : (extLocal osFsExt σ.world).ns !! child dir logB ≠ some .dir)
+    (Hinit : FsInit (extLocal fsExt σ.world))
+    (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : RealCrashNsteps (bootLog dir) n ([bootLog dir], ((σ, g) : CfgState)) κs (t2, σ2) b)
     (Hbound : n < N) (Hthreads : σ.threads = 1)
@@ -73,26 +75,23 @@ theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine osFs_crash_adequacyN (GF := GF) N T (bootLog dir) σ g (fun v => v = #())
-    (fun p h => intoVal_ne_PanicV () p h.symm) Hinit (fun L => bootPreLog dir L) ?_ ?_
+  obtain ⟨j, hrj⟩ := Hdir
+  have hR : RootsOk (extLocal fsExt σ.world).fs.roots := Hinit.2.2.2.1
+  obtain ⟨R, hRdef⟩ : ∃ R, (extLocal fsExt σ.world).fs.roots = R := ⟨_, rfl⟩
+  rw [hRdef] at hR hrj
+  refine fs_crash_adequacy (GF := GF) N T (bootLog dir) σ g (fun v => v = #())
+    (fun p h => intoVal_ne_PanicV () p h.symm) Hinit (fun L => bootPreLog R L) ?_ ?_
     n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
-  · -- the first generation: the directory as on disk
+  · -- the first generation: the tree as on disk
     intro hG _ _ _
     rw [Hpkgs]
-    iintro #Hos - Hds Hz Hgs
-    ihave Hd := osNsAll_dir (L := hG.goose_localGS) _ _ dir (fun n => by
-      show nsReplay (([] : List NsOp).take n) _ !! dir = _
-      simp only [List.take_nil]; exact Hdir) $$ Hds
+    iintro #Hos - Hh Hgs
+    rw [hRdef]
     unfold bootPreLog
     imodintro
-    iframe Hos Hz Hgs
+    iframe Hos Hgs
     iexists _
-    iframe Hd
-    ipureintro
-    refine ⟨rfl, fun e he => ?_⟩
-    rw [crashTo_nil rfl he]
-    show entsOf _ dir !! logB ≠ _
-    rw [entsOf_child _ _ _ logB_ok]; exact Hnd
+    iexact Hh
   · -- every generation: the invariant, the boot program, and the next generation's
     intro hG _ _ Hlctx'
     rw [Hlctx] at Hlctx'
@@ -100,70 +99,67 @@ theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     subst Hlctx'
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold bootPreLog
-    iintro ⟨#Hos, Hz, Hgs, %g0, Hd, %hp⟩ _
-    icases (osDir_halves (L := hG.goose_localGS) dir g0).1 $$ Hd with ⟨Hd1, Hd2⟩
-    imod inv_alloc logN ⊤ (iprop(∃ g : DirG,
-        osDir (L := hG.goose_localGS) dir (DFrac.own (1 : Qp).half) g ∗ ⌜NoDirL g⌝)) $$ [Hd2]
+    iintro ⟨#Hos, Hgs, %V0, Hh⟩ _
+    icases (tree_halves (L := hG.goose_localGS) 1 R V0).1 $$ Hh with ⟨Hh1, Hh2⟩
+    imod inv_alloc logN ⊤ (iprop(∃ V : Hist,
+        osTree (L := hG.goose_localGS) (DFrac.own (1 : Qp).half) R V)) $$ [Hh2]
       with #Hinv
-    · inext; iexists g0; iframe; ipureintro; exact hp.2
+    · inext; iexists V0; iexact Hh2
     imodintro
-    isplitl [Hgs Hd1 Hz]
+    isplitl [Hgs Hh1]
     · -- the boot program
       unfold bootLog
       wp_apply Hinit_wp $$ Hgs
       wp_pures
-      wp_apply wp_Run os.File.ReadAt.wp_proof os.File.Close.wp_proof os.File.WriteAt.wp_proof
-          os.File.Fd.wp_proof syscall.Fdatasync.wp_proof dir g0 hp.1 hp.2 $$ [Hd1 Hz]
+      wp_apply wp_Run os.File.Close.wp_proof os.File.WriteAt.wp_proof os.File.Fd.wp_proof
+          syscall.Fdatasync.wp_proof R hR dir j hrj V0 $$ [Hh1]
       · iframe; iframe #; unfold logInv; iexact Hinv
       ipureintro; rfl
-    · -- after a crash: the directory from the old generation's invariant
-      iintro %L' _ #Hos' - Hn Hz' Hgs'
+    · -- after a crash: the tree from the old generation's invariant
+      iintro %L' %V' _ #Hos' Hr Hgs'
       imod inv_acc (E := ⊤) (show ↑logN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
         with ⟨Hi, Hclose⟩
-      icases Hi with ⟨%g, >Hd, >%Hp⟩
-      icases osNsCrash_take hG.goose_localGS L' dir _ g $$ Hn Hd
-        with ⟨%g', %hg', Hd', Hd⟩
-      obtain ⟨hpend, hcr⟩ := hg'
-      imod Hclose $$ [Hd] with -
-      · inext; iexists g; iframe; ipureintro; exact Hp
+      icases Hi with ⟨%V, >Hh⟩
+      icases osTreeCrash_take (fun _ _ => True) hG.goose_localGS L' [] V' _ R V $$ Hr Hh
+        with ⟨-, Hh', -, Hh⟩
+      imod Hclose $$ [Hh] with -
+      · inext; iexists V; iexact Hh
       imodintro
-      try unfold bootPreLog
-      iframe Hos' Hz' Hgs'
-      iexists g'
-      iframe Hd'
-      ipureintro
-      exact ⟨hpend, fun e he => by rw [crashTo_nil hpend he]; exact Hp _ hcr⟩
+      iframe Hos' Hgs'
+      iexists V'
+      iexact Hh'
 
 /-- **Crash safety of `examples/osfs/walfs`'s `seglog.Run`.** In every execution with crashes of
 the boot program (`RealCrashNsteps`, the real semantics), from a state whose Go context satisfies
 the Go semantics and the packages' assumptions, with no package initialized, the main thread
-only, the Linux file extension's state as on disk (`OsInit`), `dir` a directory of the
-namespace with no directory at `seg.log`: the boot program's result is `#()`, no thread is stuck
-and no thread has an unrecovered panic, so every call of the segment's life is one the trusted
-models cover, however many times the node crashes. It assumes that the package's initializer
-runs (`Hinit_wp`). (`seglog_crash_safety_bounded` with the ghost state `osFsGF`.) -/
+only, the Linux file extension's state as on disk (`FsInit`), `dir` one of its roots: the boot
+program's result is `#()`, no thread is stuck and no thread has an unrecovered panic, so every
+call of the segment's life is one the trusted models cover, however many times the node crashes.
+It assumes that the package's initializer runs (`Hinit_wp`). (`seglog_crash_safety_bounded` with
+the ghost state `fsGF`.) -/
 theorem seglog_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
     [os.Assumptions] [os.file.FieldAssumptions] [golang_org.x.sys.unix.Assumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC osFsGF],
+    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))
       {{ RET #(); True }})
     (σ : state) (g : GlobalState) (dir : GoString)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
-    (Hinit : OsInit (extLocal osFsExt σ.world))
-    (Hdir : (extLocal osFsExt σ.world).ns !! dir = some .dir)
-    (Hnd : (extLocal osFsExt σ.world).ns !! child dir logB ≠ some .dir)
+    (Hinit : FsInit (extLocal fsExt σ.world))
+    (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : RealCrashNsteps (bootLog dir) n ([bootLog dir], ((σ, g) : CfgState)) κs (t2, σ2) b) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  seglog_crash_safety_bounded (GF := osFsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir
-    Hnd n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
+  seglog_crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir
+    n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
 
 end adequacy
 
 end osfs_walfs
 end EtcdGrove
 end Perennial
+
+end
