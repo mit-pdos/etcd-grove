@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyWindow
 
 @[expose] public section
 
@@ -36,14 +37,25 @@ with auth off, now `specBatchOff`, and `specOn` with auth on, both `ModeSpecs.le
 `specBatchOff`'s contract (see there) with the server's view, the applier row and the model in the
 component (`isServerC`, `srvApplyKVC` at the model's auth state `sa`, `kvAppliedM C.isOn`), the
 entries' shapes in the mode (`logShapeM`), the lessor finding no lease with auth on (`acLessor`), the
-rights to issue tokens at the consistent index (`acTok`) and the receipts' bound (`acReceiptOk`). -/
+rights to issue tokens at the consistent index (`acTok`) and the receipts' bound (`acReceiptOk`).
+
+(R2d, Q13 (a), 2026-11-06; DRAFT, the window form, `ApplyWindow.lean`) **In a restarted member's
+replay window**, as `apply.spec`'s: the replays `W` pending and `D` done (`winOk`; no window
+`W = D = []`, every row the one before, `applyAll.specBatch_noWin`); the ghost rows (the applied
+index, the ghost log's length, the consistent index's upper pin) at the ghost index `winGhost ai W`,
+the ghost log grown by `winNew W (unapplied ai ms)`; Go's rows (`loopOk`, the snapshot's state and
+resources, the driver's view `dvOk`) at Go's index. -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
     (ents : List Loc) (ms : List EntryModel) (f0 : w64) (rac nc : GoChan) (st : ApplyState)
     (ai at0 a t : w64) (cs : Loc) (x : apply.ApplyKV) (sa : auth.AuthState) (A : List EntryModel)
     (mst : Loc) (γs : MemStorNames) (γp : WTNames) (dv : Option Loc) (γnc : NotifyNames)
-    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat),
+    (w : Nat) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat)
+    (W D : List EntryModel),
+  -- (R2d, DRAFT) the replay window (a premise of its own, so that the no-window instance is
+  -- today's triple: `applyAll.specBatch_noWin`)
+  winOk A D W (unapplied ai ms) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)
@@ -51,10 +63,10 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
         loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
         dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (ai + 1) (unapplied ai ms) ∧
-        uint.Z ai = A.length ∧ lastTermIs A at0 ∧
+        uint.Z (winGhost ai W) = A.length ∧ lastTermIs A at0 ∧
         storage.diskOk ∧ uint.Z ai ≤ uint.Z (ciEff γ st.k) ∧
-        uint.Z (ciEff γ st.k) ≤ uint.Z ai ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ unapplied ai ms).length ≤ n⌝ ∗
+        uint.Z (ciEff γ st.k) ≤ uint.Z (winGhost ai W) ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
+        (A ++ winNew W (unapplied ai ms)).length ≤ n⌝ ∗
       isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
@@ -68,19 +80,19 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
           srvFrozenRange γs (uint.nat ai + 1)
             ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
           -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs 1 (A ++ unapplied ai ms) ∗
+          srvFrozenTerms γs 1 (A ++ winNew W (unapplied ai ms)) ∗
           -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save`
           rnWalHanded γn (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat)) ∗
           taSnapshotAddr ap ↦□ (null : Loc) ∗
       -- (D43 M3) `notifyc`: the receive deposits the view after the batch (`NotifyC.lean`)
-      taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ unapplied ai ms)) ∗
+      taNotifycAddr ap ↦□ nc ∗ isNotify γnc nc (dvView ρ.raft dv (A ++ winNew W (unapplied ai ms))) ∗
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
-      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr (winGhost ai W) ∗
+      appliedLogAt γr (winGhost ai W) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
+      kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestW E γr A D ∗ kvBatchW γr (ciEff γ st.k) ai W A (unapplied ai ms) ∗
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ winNew W (unapplied ai ms)) ∗ srvApRes s γr A ∗
       -- (2026-10-30, the repair) with a view, the apply side's half of the running token
       (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
@@ -105,15 +117,16 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- `γ`, `TM`, `E`, `b`)
       ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
         (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
-        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (A ++ unapplied ai ms) ∗
+        ⌜beSucc γ E γ' E'⌝ ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗ isServerC C s γ' ci TM' E' ρ γr ∗ acLessor C s ∗ srvApRes s γr (A ++ winNew W (unapplied ai ms)) ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
-        epCsAt ρ.raft (A ++ unapplied ai ms) cs' ∗
+        epCsAt ρ.raft (A ++ winNew W (unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
+        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr (winGhost ai' (winRest W (unapplied ai ms))) ∗
+        appliedAtLeast γr (winGhost ai' (winRest W (unapplied ai ms))) ∗
         srvWTTaken γp.cnt (w + (unapplied ai ms).length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVC C s E' ρ.wait x' sa' ∗
-          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
-          kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ unapplied ai ms) x' sa' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
+          ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr (winGhost ai' (winRest W (unapplied ai ms))) x'.log ∗
+          kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (A ++ winNew W (unapplied ai ms)) x' sa' ∗ srvRestW E' γr (A ++ winNew W (unapplied ai ms)) (winDone D W (unapplied ai ms))) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end
         srvSnapOwn s ci E' γr γ' ai' ∗

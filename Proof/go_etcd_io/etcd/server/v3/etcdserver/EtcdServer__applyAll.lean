@@ -45,12 +45,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
-/-- **The merged `applyAll.specBatch`** (the auth component's stage 2c, 2026-11-04; until then
+/-- **The merged `applyAll.specBatch` at no window** (R2d: until then `wp_proofBatch`; the auth component's stage 2c, 2026-11-04; until then
 `wp_proofBatch` off and `wp_proofOn` on): one proof over the slot `C`, its rows at the mode's
 (`AuthCompRows`' bridges), the callees' specs over the environment's mode (`E.authOn = C.isOn`),
 the merged snapshot's window lent the component's buckets (`acRes_lend`; none off) and its image
 certified by `merged_imageC`. -/
-theorem EtcdServer.applyAll.wp_proofBatch
+theorem EtcdServer.applyAll.wp_proofBatchNoWin
     (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
     (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
     (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
@@ -74,10 +74,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
-    EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
+    EtcdServer.applyAll.specBatchNoWin (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
     q γn rt n
-  simp only [srvRunH_applyAll_specBatch]
+  simp only [srvRunH_noWin]
   wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hγn, hpre, hnA⟩ := hP
@@ -115,11 +115,11 @@ theorem EtcdServer.applyAll.wp_proofBatch
   icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, #Hslb0⟩
   ihave Hfs : srvFS s $$ [Hsf0]
   · iunfold srvFS; iexists _; iexact Hsf0
-  have hAE1 := hAE.1 s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa
+  have hAE1 := EtcdServer.applyEntries.specBatch_noWin hAE.1 s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa
     (by rw [hM]; cases C <;> simp [AuthC.mode])
     (fun h => by rw [hon] at h; cases C <;> simp_all [AuthC.isOn, acReceiptOk]) Hms Hai1 Hok
     (by rw [hon]; exact hEok) hdv
-  try simp only [srvRunH_applyEntries_spec] at hAE1
+  try simp only [srvRunH_noWin] at hAE1
   rw [hon] at hAE1
   wp_apply hAE1
     $$ [Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv Hrun HAR HtokR]
@@ -466,6 +466,35 @@ theorem EtcdServer.applyAll.wp_proofBatch
   · -- `default`
     (try wp_auto)
     iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
+
+/-- **`applyAll.specBatch` in the replay window** (R2d, Q13 (a); DRAFT: the window form's proof,
+after the Freeze; the no-window proof is `wp_proofBatchNoWin`). -/
+theorem EtcdServer.applyAll.wp_proofBatch
+    (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
+    (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
+    (hBk : EtcdServer.Backend.spec (GF := GF) (hG := hG))
+    (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
+    (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
+    (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG))
+    -- (2026-10-31, S1) the merge branch: the message's getters, the merge, the send, and what
+    -- the snapshot window takes (`mergedCreate_window`)
+    (hGT : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
+    (hGS : raftpb.Message.GetSnapshot.spec (GF := GF) (hG := hG))
+    (hGM : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
+    (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
+    (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
+    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG))
+    (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
+  sorry -- DRAFT (R2d window form; proof after the Freeze)
 
 set_option maxRecDepth 100000 in
 /-- **`applyAll.spec`** (the auth component's stage 2, 2026-11-04: in both auth modes): the batch

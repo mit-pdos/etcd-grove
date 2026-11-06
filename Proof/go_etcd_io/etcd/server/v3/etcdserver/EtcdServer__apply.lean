@@ -1832,9 +1832,9 @@ theorem EtcdServer.apply.wp_proofOn
     · rw [hp', hc', ← hmi, hidx, hjZ]; omega
     · rw [hc', ← hmi, hidx, hjZ]; omega
 
-/-- **`apply.spec`**, the loop in the environment's auth mode (step 3 of the auth-mode merge,
+/-- **`apply.spec` at no window** (R2d: until then `wp_proof`), the loop in the environment's auth mode (step 3 of the auth-mode merge,
 2026-10-30): `wp_proofOff` with auth off, `wp_proofOn` with auth on. -/
-theorem EtcdServer.apply.wp_proof
+theorem EtcdServer.apply.wp_proofNoWin
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
@@ -1852,12 +1852,12 @@ theorem EtcdServer.apply.wp_proof
     (hACC : EtcdServer.applyConfChange.spec (GF := GF) (hG := hG))
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
-    EtcdServer.apply.spec (GF := GF) (hG := hG) := by
+    EtcdServer.apply.specNoWin (GF := GF) (hG := hG) := by
   have hOff := EtcdServer.apply.wp_proofOff hDebug hInt hU64 hStr hCI hSAI hSCI hGI hGT hGTy hAEN hSet1 hSet2 hMU hACC hId hMem
   have hOn := EtcdServer.apply.wp_proofOn hDebug hInt hU64 hStr hCI hSAI hSCI hGI hGT hGTy hAEN hSet1 hSet2 hMU hACC hId hMem
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa hany hRB hne hfrom hok
     hEok hdv
-  simp only [srvRunH_apply_spec]
+  simp only [srvRunH_noWin]
   cases hm : E.authMode with
   | any => exact absurd hm hany
   | off =>
@@ -1888,6 +1888,30 @@ theorem EtcdServer.apply.wp_proof
     simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true]
     exact hOn s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w γa sa hm (hRB hon) hne
       hfrom hok hEok hdv
+
+
+/-- **`apply.spec` in the replay window** (R2d, Q13 (a); DRAFT: the window form's proof, after the
+Freeze; the no-window proof is `wp_proofNoWin`). -/
+theorem EtcdServer.apply.wp_proof
+    (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
+    (hInt : zap.Int'.spec (GF := GF) (hG := hG))
+    (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
+    (hStr : zap.Stringer.spec (GF := GF) (hG := hG))
+    (hCI : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    (hSAI : consistentIndex.SetConsistentApplyingIndex.spec (GF := GF) (hG := hG))
+    (hSCI : consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG))
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (hGT : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
+    (hGTy : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
+    (hAEN : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG))
+    (hSet1 : EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG))
+    (hSet2 : EtcdServer.setTerm.spec (GF := GF) (hG := hG))
+    (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
+    (hACC : EtcdServer.applyConfChange.spec (GF := GF) (hG := hG))
+    (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
+    (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
+    EtcdServer.apply.spec (GF := GF) (hG := hG) := by
+  sorry -- DRAFT (R2d window form; proof after the Freeze)
 
 end proof
 

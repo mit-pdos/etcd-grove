@@ -106,7 +106,9 @@ theorem run_job_body (hAA : EtcdServer.applyAll.specBatch (GF := GF) (hG := hG))
     {{ RET #(); schedule.schedRunning γs ∗ applyResC K C (A ++ ce) ∗ (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) }} := by
   have hR : ∀ dv : Option Loc, (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) C.ρ.raft.raft; nodeRunning n C.ρ.raft.raft.cl srvClusterN (1 : Qp).half)) =
       srvRunH (GF := GF) C.ρ.raft dv := fun dv => by cases dv <;> rfl
-  simp only [EtcdServer.applyAll.specBatch, srvRunH_applyAll_specBatch] at hAA
+  -- (R2d, DRAFT) a first start: the window form at no window
+  replace hAA := EtcdServer.applyAll.specBatch_noWin hAA
+  simp only [EtcdServer.applyAll.specBatchNoWin, srvRunH_noWin] at hAA
   rw [hR]
   iintro %Φ ⟨#Hpkg, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, Hrh, #Hesl,
     #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr, #Hsd, #Hmsinv, #Hrtf, #Hrtok⟩ HΦ
