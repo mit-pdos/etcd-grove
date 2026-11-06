@@ -2066,3 +2066,32 @@ placeholders removed and `M1Placeholders.lean` deleted):
 7. **`store.Restore.wp_api`** (a plain store): the internal `store.Restore` takes `γ.watchQ = true`
    (the takeover pins the committed log by the watchable lock's `logQ`); generalize it to a store
    without watchers (the log from the writer's state alone).
+
+## Hand-off: M4, the mvcc API proved (2026-11-06)
+
+**Done** (no axiom added; no `sorry` in mvcc; `ApiResults.lean`'s 66 linked API results and
+`Results.lean`'s 127 linked internal results print no `sorryAx`):
+- **`KV.Restore.contract` at both types** (`Api/RestoreApi.lean`): `restore_of_storage` (the new
+  storage as `store.Restore` takes it, at the image's records), `restoreCb_of_au` (the client's
+  update as the takeover's ghost step, `Api/RestoreCbAu.lean`), the resumed compaction's context
+  (`resumeCtxM`/`resumeBackM`: the hook unset at any share or frozen, and the commit request), the
+  open token's and the backend share's rebuild at the new names, the old storage's open shares from
+  the old reader tokens. `store.Restore` works for any store (the takeover pins the caller's `L` only
+  at a watchable store); the plain handle keeps the store's first log's certificate, the plain open
+  token the fields' quarter and the deposit (`openRest`); the open token keeps the writer's retired
+  reader (`writerOwn`; `storeReader_retire2`, `mvccReaderN = rdStockN - 6`).
+- The contract gains `⌜f = func.nil ∨ dq = DFrac.discard⌝` beside the hook's share (its text said
+  so; `notes/decisions.md`, "`KV.Restore.contract`: the hook at a resumed compaction ...").
+- **Linking**: `ApiResults.lean` instantiates every API contract and law whose proof takes internal
+  specs with `Link.lean`'s results, and by hand the rest (`Compact` at both types, the core as
+  `store.Compact.core_proof`; `wtxnHyp`; `Put`/`DeleteRange` over it; `shapes.law`). `Link.lean`
+  is what `etc/gen-link.py --mvcc` generates (unchanged). `Results.lean`'s stale restatements of
+  `NewStore_backend`/`store_Write_backend` are removed.
+- **Interfaces** regenerated (`etc/gen-interface.py etc/api/mvcc.txt`); the internal specs'
+  vocabulary modules (`Api.TxnSteps`, `Api.StreamSteps`, `RdCalls`, ...) added to the importable list
+  (`etc/api-check.py --check` passes); the layout baseline updated.
+
+**Left**: the TCB baseline (`etc/tcb-report.py --check --update`, and the collections') needs a full
+build, which the server's migration (red: `SnapApplyDefs`, `EtcdServer.*`, the old `watchWriter`
+and `rdIs` users) blocks; the mvcc collection's report then. The server's and the tester's
+migration onto the API (other tracks).
