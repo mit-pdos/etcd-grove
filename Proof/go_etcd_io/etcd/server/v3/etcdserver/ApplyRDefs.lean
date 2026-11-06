@@ -74,11 +74,13 @@ def srvRestR (E : apply.AEnv GF) (γr : ReadNames) (rp : RestartPt) (G : List En
 and the backend's log committed, Go's start index at most `|G|` and Go's index `ai` at `G`; the
 batch's `v3` (`c`, the effective consistent index) the model's (`c0`) past the window, the window's
 entries at or below `c` (`bootstrap.go:255-273` restores `ci` to the backend's, at least its applied
-index), and the start's `c0` at most raft's first index (a fresh backend's `0`). -/
+index), the start's `c0` at most raft's first index (a fresh backend's `0`), and the backend's log's
+entries normal or v1 conf changes (the shapes of the batches that applied them, `logShape`). -/
 def kvBatchR (γr : ReadNames) (c ai : w64) (rp : RestartPt) (G ms : List EntryModel) : IProp GF :=
   iprop(srvRLogLb γr.raft (G ++ ms) ∗ srvRLogLb γr.raft rp.A₀ ∗
     ⌜uint.Z ai = uint.Z γr.raft.ai0 + G.length ∧ rp.b ≤ G.length ∧
       uint.Z γr.raft.ai0 + rp.A₀.length ≤ uint.Z c ∧ uint.Z γr.kv.c0 ≤ uint.Z γr.raft.ai0 ∧
+      (∀ m ∈ rp.A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
       ∀ m ∈ ms, uint.Z γr.raft.ai0 + rp.A₀.length < uint.Z m.index →
         (uint.Z c < uint.Z m.index ↔ uint.Z γr.kv.c0 < uint.Z m.index)⌝)
 
@@ -140,6 +142,73 @@ theorem restReplay_memKeys (γr : ReadNames) (rp : RestartPt) (G : List EntryMod
   show ((foldMem _ _).lookup k).isSome = (GMap.lookup _ k).isSome
   rw [foldMem_lookup]
   cases (GMap.lookup _ k) <;> rfl
+
+/-- **The window closes on the model** (R2d' A2, DRAFT; `restReplay_close` over the server's facts):
+once Go's log reaches the backend's (`G = A₀`), the replayed image is the rest model of `A₀`. The
+facts: the server's log invariant (the bootstrap log, its peers distinct, the start at index `0`),
+the boot members' URLs (`srvClusterOk`), the committed conf entries the server's
+(`srv_committed_ccBoot`), the start's `c0` at most raft's first index, and the backend's log's
+entries normal or v1 conf changes (`apply`'s `logShape` of the batches that applied them). -/
+theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL : ↑srvLogN ⊆ Em)
+    (hc0 : uint.Z γr.kv.c0 ≤ uint.Z γr.raft.ai0)
+    (hty : ∀ m ∈ rp.A₀, m.typ = W32 0 ∨ m.typ = W32 1) :
+    srvRaftLogInv (GF := GF) γr.raft ∗ srvRLogLb γr.raft rp.A₀ ⊢ |={Em}=>
+      ⌜restReplay γr rp rp.A₀ = restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ rp.A₀)⌝ := by
+  iintro ⟨#Hinv, #HA⟩
+  ihave #Hinv2 := Hinv
+  iunfold srvRaftLogInv at Hinv2
+  icases Hinv2 with ⟨-, #Hcl, -, %Hai, %Hpre, #Hb, %Hok⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl⟩
+  ihave %Hp := srvRLogLb_prefix γr.raft (γr.raft.raft.boot.map EntryModel.ofM) rp.A₀ $$ [Hb HA]
+  · iframe Hb HA
+  ihave #HA2 := HA
+  iunfold srvRLogLb at HA2
+  icases HA2 with ⟨#Hcl2, -⟩
+  imod srv_committed_ccBoot γr.raft _ Em hL $$ [$Hinv $Hcl2] with %Hcc
+  imodintro
+  ipureintro
+  have hai0 : uint.Z γr.raft.ai0 = 0 := by rw [Hai, Hpre]; rfl
+  have hc00 : γr.kv.c0 = W64 0 := by word
+  -- each entry of `A₀`'s conf changes the server's
+  have hccA : ∀ m ∈ rp.A₀, m.typ ≠ W32 0 → ∀ cc, ccDecodeV1 m.data = some cc →
+      ccApplyOk (GMap.listToSet γr.raft.raft.vs) cc := by
+    intro m hm ht cc hd
+    have h1 : m.typ = W32 1 := (hty m hm).resolve_left ht
+    have hin : m.toLE ∈ srvLE γr.raft rp.A₀ := by
+      unfold srvLE; rw [Hpre, List.nil_append]; exact List.mem_map_of_mem hm
+    exact Hcc _ hin h1 cc hd
+  unfold restReplay
+  rw [Hpre, List.nil_append, hc00]
+  rcases Hp with ⟨R, hR⟩ | hpb
+  · -- past the bootstrap log
+    rw [← hR]
+    obtain ⟨hne, hnd, hbo⟩ := Hok
+    refine restReplay_close γr.raft.raft.vs γr.raft.raft.boot R rp.b hbo hnd Hurl ?_ ?_
+    · intro e he cc hd
+      have hm : EntryModel.ofM e ∈ rp.A₀ := by
+        rw [← hR]; exact List.mem_append_left _ (List.mem_map_of_mem he)
+      obtain ⟨k, hk⟩ := List.getElem?_of_mem he
+      have hty1 := (hbo.2.2 k e hk).2.2.1
+      exact hccA _ hm (by simp only [EntryModel.ofM, hty1]; decide) cc hd
+    · intro m hm ht cc hd
+      exact hccA m (by rw [← hR]; exact List.mem_append_right _ hm) ht cc hd
+  · -- inside the bootstrap log: every entry a conf change, whose replay is the identity
+    obtain ⟨-, -, hbo⟩ := Hok
+    have hall : ∀ m ∈ rp.A₀.drop rp.b, m.typ ≠ W32 0 := by
+      intro m hm
+      have hm' : m ∈ γr.raft.raft.boot.map EntryModel.ofM :=
+        hpb.subset (List.mem_of_mem_drop hm)
+      obtain ⟨e, he, rfl⟩ := List.mem_map.1 hm'
+      obtain ⟨k, hk⟩ := List.getElem?_of_mem he
+      have hty1 := (hbo.2.2 k e hk).2.2.1
+      simp only [EntryModel.ofM, hty1]; decide
+    generalize rp.A₀.drop rp.b = S at hall
+    induction S with
+    | nil => rfl
+    | cons m S ih =>
+      rw [List.foldl_cons, restEntryV2_conf m _ (hall m (List.mem_cons_self ..))]
+      exact ih (fun m' hm' => hall m' (List.mem_cons_of_mem _ hm'))
 
 /-- **The apply thread's membership resource at a replayed `AddNode`** (R2d' A4, DRAFT): the fields
 `applyConfChange(cc, ep, false)` reads (`server.go:2037-2083` at the pin `673da07c8`: `beHooks`,
