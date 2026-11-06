@@ -80,7 +80,6 @@ Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Attempted Perennial.E
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.BuildServer.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.etcdstart.BuildServer.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.etcdstart.BuildServer.specRestart  # exposed by a spec file (def)
-Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.etcdstart.BuildServer.specStop  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check Perennial.EtcdGrove.Check.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check Perennial.EtcdGrove.etcdstart.Check.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect Perennial.EtcdGrove.Collect.spec  # missing: a spec file declares its spec

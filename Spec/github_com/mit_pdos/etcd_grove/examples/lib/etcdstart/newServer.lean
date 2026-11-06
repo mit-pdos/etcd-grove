@@ -85,7 +85,10 @@ abbrev newServer.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
-          leaseTTLRowR s ps) }}
+          leaseTTLRowR s ps ∗
+          -- (R2c-5) the data directory, the name's `.etcd`, with no dedicated WAL directory
+          -- (`srvDataDir`, the slot's: `srvStop.dataDir`), which a stop request carries
+          srvDataDir s (name ++ go!".etcd")) }}
 
 end spec
 

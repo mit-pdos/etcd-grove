@@ -4,8 +4,8 @@ restart plan's R2a, 2026-11-02; DRAFT): member `name` of `restart3`'s cluster bu
 (`etcdstart.BuildServer` at the snapshot settings), its raft handler served on a listener at
 `peerAddr`, and the server started. Lean-first (no Rocq counterpart).
 
-**`spec`, a first start:** `etcdstart.StartMember`'s, but the server built by `BuildServer.specStop`
-and the peer listener registered closable: an error (with the thread token), or the started member
+**`spec`, a first start:** `etcdstart.StartMember`'s, but the server built by `BuildServer.spec` (R2c-5;
+until then a draft `specStop`), its cluster's names valid UTF-8, and the peer listener registered closable: an error (with the thread token), or the started member
 (`etcdstart.memberUp`) and a stoppable member's record (`memberStop`).
 
 **`specRestart`, a start after a stop** (R2c, R2d): the same, from the data directory the stop left
@@ -52,6 +52,8 @@ abbrev startMember.spec : Prop :=
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
+  -- (R2c-5) the initial cluster's names valid UTF-8 (`BuildServer.spec`'s, `bootPremise`'s condition)
+  (∀ k, (M.lookup k).isSome → utf8Valid k) →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗

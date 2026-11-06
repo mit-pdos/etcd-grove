@@ -7,11 +7,9 @@ example that keeps its listeners (`examples/etcd/restart`). Lean-first (no Rocq 
 **The triple:** `newServer.spec`'s at retention `0` (a first start: `bootstrap`'s contract describes
 a new cluster's first start), at any snapshot settings.
 
-**`specStop`** (DRAFT, R2b): `spec`'s, with the server's data directory recorded (`srvDataDir`,
-the name's `.etcd`) and what it keeps for the stop (`srvStop.keep`), from which `Start` gives the
-right to stop it (`etcdstart.Start_builtS_spec`;
-R2b-2, 2026-11-02: until then the right itself, `srvStopRight`, `NewServer`'s to give; `start`
-makes the channels it names).
+With the server's data directory recorded (`srvDataDir`, the name's `.etcd`: R2c-5, until then
+a second spec's, `specStop`, a draft hypothesis); what `NewServer` kept for the stop is in the
+built member (`memberBuilt`'s `srvStop.keep`), from which `Start` gives the right to stop it.
 
 **`specRestart`** (DRAFT, R2c and R2d): member `id` started again on the data directory its last
 stop left (`srvDiskImage`, at the stopped incarnation's names `ρ`, in the member's restart bundle
@@ -83,44 +81,7 @@ abbrev BuildServer.spec : Prop :=
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
         (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
-          leaseTTLRowR s ps) }}
-
-/-- See the file header (`specStop`). -/
-abbrev BuildServer.specStop : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token : GoString)
-    (snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
-    (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
-    (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
-    (id : w64) (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (lm : lease.Mode)
-    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
-  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
-  N + 7 + bootWB ≤ backend.wbInit →
-  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
-  -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
-  rafthttp.bootCfg dir ps →
-  Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
-  lg ≠ null →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
-      -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
-      threadTok ∗
-      peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
-      bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
-      context.isClosedchanInit ∗
-      memberBoot γ ctxs ρ E₀ Φs id (m := lm) ∗
-      netHttpOk γn id ∗
-      -- (hub step 8, S7) the member's fresh bundle without addresses: a first start
-      memberFreshRes name {} γn }}
-    (App (App (App (App (App (App (App (App
-      (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
-      (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))
-      (Val #snapCount)) (Val #catchUp)) (Val #lg))
-  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ memberBuilt s ρ E₀ lg γn id N false (m := lm) ∗
-          srvDataDir s (name ++ go!".etcd")) }}
+          leaseTTLRowR s ps ∗ srvDataDir s (name ++ go!".etcd")) }}
 
 /-- See the file header (`specRestart`). -/
 abbrev BuildServer.specRestart : Prop :=

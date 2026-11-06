@@ -202,6 +202,26 @@ theorem srvStop.dataDirField (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
   iframe
   iexact Hwd
 
+/-- **The server's data directory** (persistent; R2c-5, `questions.md` D2): with no dedicated WAL
+directory, the slot's configuration fields are the data directory's record (`srvDataDir`), which
+the stop request carries and the image names. -/
+theorem srvStop.dataDir (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) (dd : GoString) (hdd : cfg.DataDir' = dd)
+    (hw : cfg.DedicatedWALDir' = (go!"" : GoString)) :
+    srvStop.keep (GF := GF) s cfg E γrn γk ⊢ srvDataDir s dd ∗ srvStop.keep s cfg E γrn γk := by
+  subst hdd
+  have heq : (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' : IProp GF) =
+      (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ (go!"" : GoString) : IProp GF) := by rw [hw]
+  unfold srvStop.keep srvStop.imagePart
+  iintro ⟨Hr, Hc, Hcs, Hreg, #Hdd, #Hwd, Hst⟩
+  isplitr
+  · iunfold srvDataDir
+    iframe Hdd
+    rw [← heq]
+    iexact Hwd
+  iframe
+  iframe #
+
 end slot
 
 end EtcdGrove

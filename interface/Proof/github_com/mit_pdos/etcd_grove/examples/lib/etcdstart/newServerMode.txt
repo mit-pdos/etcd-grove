@@ -55,7 +55,9 @@ theorem etcdstart.newServerMode.wp_proof (wp_FG : features.NewDefaultServerFeatu
                                                                 threadTok ∗
                                                                   etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0)
                                                                       (W64 0) (W64 0) bootKV lm ∗
-                                                                    leaseTTLRowR s ps -∗
+                                                                    leaseTTLRowR s ps ∗
+                                                                      srvDataDir s
+                                                                        (name ++ go!".etcd") -∗
                                                             Φ (intoVal s, intoVal err)) -∗
                                                       WP
                                                         (((((((((((intoVal
