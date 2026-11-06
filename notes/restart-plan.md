@@ -3624,3 +3624,65 @@ Not started in this session (context). Items 2 and 3 are held for decisions. The
 - Item 4: planned above.
 - Item 5: after 2-4, with the approved hub texts (`t0`, `rnSnapMsg`, narrowed `Hwpend`,
   `rnWinInstallAbove` `<`).
+
+#### R2d'a A10 item 5, part 1: the approved texts without the `MsgSnap` bound; item 2 of it stopped at a frozen post (2026-11-06; DRAFT)
+
+**In** (one commit on `r2dp`, sorry-free, no new axiom):
+- `RNNames.t0 : w64` (the restored `HardState` term), `W64 0` in `newRaftNode`'s literals (the
+  only anonymous constructors).
+- `rnWinInstallAbove` strict (`γ.a0.length < snapIdx`), with the docstring of why `<` is true of
+  Go (the main session's probe: `a0` a committed prefix of the node's own WAL log; at `snapIdx ≤
+  |a0|` raft fast-forwards its commit and installs nothing, `raft.go:1912-1918`) and R2d'b's
+  obligation (`RestartNode` supplies that `a0` is a committed prefix of the restored WAL log).
+  `NodeBridge`'s one reader weakens it back to `≤` (`Nat.le_of_lt`), as before.
+- `Hwpend` (A7), the narrowed approved text, as `srvWinPend s γr γn` (`InvRun.lean`, the lowest
+  hub module), in `isServerRunC`/`isServerBuiltC` and passed through `isServerRun` (`InvRun`),
+  `isServerRunOn` (`RunOn`), `isServerBuilt` (`InvStart`), `isServerBuiltOn` (`StartOn`),
+  `srvBuilt` (`InvBuild`), `srvBuiltG` (`ServerOn`). One spelling fix: the approved text's
+  `sentMsg γr.raft.cl` is `sentMsg γr.raft.raft.cl` under `letI := srvStor γr.raft.raft` (the
+  `SrvRaft` `winNoMergedSendR` is applied at; `ServerRaftNames` has no `cl`). Docstring: the
+  excluded runs (elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'`), R2s discharges it,
+  R2e must not carry it, the `axiom` attack target. `srvWinPend_first` (proved): at `a0 = []` a
+  token gives it. `NewServer` allocates `γwp`; `start` passes it to `run`; `run.wp_proofG` drops it.
+
+**Stopped: item 2, `rnSnapMsg`'s `t0 < Term'`, needs `t0 = 0` at a first start through a frozen
+post.** The producer (`rnMsgOk_of_api`, called from `raftNode.start`) can only learn `γ.t0 = 0`
+from `rnRestartOk`'s first-start disjunct, which would become `⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝`. That
+disjunct is built in `rnToks_of_start`, called by `raftNode_of_StartNode` (`NodeStart.lean:530`) on
+the `γw` of the frozen `bootstrappedRaft.newRaftNode.spec`'s post, whose only facts about `γw` are
+the pure conjunct (`… ∧ γw.a0 = []`) and `rnBuilt E γw r …` (`InvNodeStart.lean`). So `t0 = 0`
+cannot reach it without one of:
+- **(i) recommended**: `bootstrappedRaft.newRaftNode.spec`'s and `newRaftNode.spec`'s posts gain
+  `∧ γw.t0 = W64 0` / `∧ γ.t0 = W64 0` (frozen texts; A6's `a0 = []` precedent, approved via 82),
+  proved from `newRaftNode`'s literal; `rnToks_of_start` takes it; `NodeStartSpec` (exported) does
+  not change. `rnView_first`'s part 1 (`rnCfgAt ⊣⊢ srvCfgView`) also takes `t0 = 0`; its parts 2-3
+  (used by `rnApR_dv`/`rnApGive_dv`) do not. Est. 0.5 d with item 5's rest.
+- (ii) `rnBuilt` carries `⌜γ.t0 = W64 0⌝` (no frozen text changes, but the frozen post's meaning
+  does, and `InvNodeStart.lean` is outside A6's list). Not recommended: a hidden strengthening.
+- A pin `a0 = [] → t0 = 0` as an `RNNames` field was considered and rejected: a restart whose
+  backend applied nothing (`a0 = []`, `T₀ > 0`) could not be named.
+
+Waiting with it: the rest of item 2 (the restart conjunct of `rnRestartOk`, "this incarnation's
+`MsgSnap`s are above `t0`", R2d'b's discharge target), item 5's `winNoMergedSendR` narrowing (its
+`rt ≤ t0` case reads `rnSnapMsg`'s bound), and Task B (`run.wp_proofR`, whose batch arm needs the
+narrowed `winNoMergedSendR`).
+
+**Probe follow-ups** (the main session, 2026-11-06):
+- (i) 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term.
+- (ii) Of ~400 in-window installs per run, measured against the restored log's last index: 23-35
+  below, 0-4 equal, 360-402 above. Measured against the commit at restart: 0 at or below.
+- The equal and below cases come only from the uncommitted WAL tail (trace: seed 356). Rerun in
+  `/shared/tmp/winpend-probe` with `go test -count=1 -v -run 'Scenario|Randomized|ZZZ' .`
+
+**R2d'b discharge targets (restart-only premises)** (the main session, 2026-11-06):
+- `Hwpend` (`srvWinPend`, A7): R2s, the elected-at-`T' > T₀` case;
+- `rnWinInstallAbove` (`<`, A8);
+- the `MsgSnap` term bound `t0 < Term'` (`rnSnapMsg`; not in yet, item 2 of item 5 above);
+- the WAL's stored commit `≥ |a0|` (Q27 (i), for `raftNode.stop.spec`'s new post; not in yet);
+- `a0`, a committed prefix of the restarted node's own WAL log (`RestartNode`).
+
+**Decisions relayed after this pass (2026-11-06), queued behind the `t0` stop above:** Q27 (i)
+approved (`raftNode.stop.spec`'s post gains `⌜γ.a0.length ≤ σ.commit⌝`, with the restart conjunct
+"the WAL's stored commit ≥ |a0|", then item 3); Q26 (a) approved and cleared by the axiom attack
+(`/shared/tmp/axiom-review-clusterimage-ids.md`, survives), then item 2 with the axiom's ids form.
+Order: Task A's rest, Task B (`run.wp_proofR`), item 3, item 2.

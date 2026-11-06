@@ -108,6 +108,10 @@ structure RNNames [GooseExts] where
   -- log through its consistent index, `bootstrap.go:255-273` at the etcd pin `673da07c8`), over
   -- which the driver's view is stated (`rnCfgAt`); `[]` at a first start (`newRaftNode`'s)
   a0 : List EntryModel
+  -- (R2d'a A10 item 5, 2026-11-06; DRAFT, approved by 82) the restart point's restored `HardState`
+  -- term `T₀` (`RestartNode`'s, R2d'b), which bounds this incarnation's `MsgSnap`s from below
+  -- (`rnSnapMsg`) and `Hwpend`'s guard; `W64 0` at a first start (`newRaftNode`'s)
+  t0 : w64
 
 /-- The `MemoryStorage` registry's name: the cluster's (2026-10-27; until then a field). -/
 abbrev RNNames.reg [GooseExts] (γ : RNNames) : GName := γ.node.reg
@@ -362,18 +366,26 @@ while the replay window is open; at a first start it is the view after `pre ++ L
 def rnView (γ : RNNames) (L : List EntryModel) : IProp GF :=
   srvCfgView γ.srv γ.nl [] (rnGhost γ L)
 
-/-- (R2d'a A6, 2026-11-06; DRAFT; R2d'a's A8, a restart-only assumption) **No snapshot below the
-restart point**: every snapshot `Ready` the node hands this incarnation's driver is at or above the
-backend's log `a0`. True of every Go execution (raft's `restore` refuses an index at or below its
-committed one, `raft.go:1876-1880` at `565c2bd`, and the backend's consistent index is at most the
-WAL's commit), but raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (a));
-R2s discharges it. -/
+/-- (R2d'a A6, 2026-11-06; DRAFT; R2d'a's A8, a restart-only assumption; A10 item 5, approved by 82:
+strict, until then `≤`) **No snapshot at or below the restart point**: every snapshot `Ready` the node
+hands this incarnation's driver is strictly above the backend's log `a0` (`|a0| < snapIdx`). Why `<`
+is true of Go (raft v3.7.0 at `565c2bd`, etcd at `673da07c8`):
+- `a0` is a committed prefix of the restarted node's *own* WAL log (`rnRestartOk`'s `srvRLogLb` is
+  `isCommittedLogLb`), so a real install inside the replay window has `snapIdx > |a0|`;
+- for `snapIdx ≤ |a0|` the local entry at `snapIdx` is the committed one, so its term matches the
+  snapshot's: raft fast-forwards its commit and installs nothing (`raft.go:1912-1918`); above the
+  local commit, `raft.go:1861` is not the binding check (`restore` refuses an index at or below its
+  committed one, `raft.go:1876-1880`).
+
+Raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (a)). R2s (or raft's API)
+discharges it; R2d'b's obligation for it: `RestartNode` supplies that `a0` is a committed prefix of
+the restored WAL log. R2e's closed theorem must not carry it. -/
 def rnWinInstallAbove (γ : RNNames) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(□ ∀ (st : NodeDriverState) (es : List EntryM) (l : SnapLoan),
     ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl γ.node.cl srvClusterN st -∗
       nodeDriver γ.nl γ.node.cl srvClusterN st ∗
-      ⌜γ.a0.length ≤ uint.nat l.snap.Metadata'.Index'⌝)
+      ⌜γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝)
 
 instance rnWinInstallAbove_persistent (γ : RNNames) :
     Persistent (rnWinInstallAbove (GF := GF) γ) := by

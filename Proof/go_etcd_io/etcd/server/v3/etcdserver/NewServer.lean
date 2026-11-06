@@ -1989,6 +1989,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   imod threadPool.initL srvRevokeInnerN 1
       iprop(sync.ownRWMutex (srvLeadTimeMuAddr s) (leadTimeP s) ∗ RD) _ srvRevokePoolN
       (by unfold srvRevokePoolN backend.rdPoolN; omega) $$ HIp with ⟨%γI, #HIp⟩
+  -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
+  imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
   imodintro
   wp_auto
   iapply HΦ
@@ -2175,6 +2177,10 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     unfold srvErM
     simp only
     exact (srvCM_agree on ρ _ E₀ (W64 0) (W64 0) (bootKVOf on) hγs).symm
+  isplitl [Hwpt]
+  · -- (R2d'a A10 item 5) at a first start `Hwpend` is free (`srvWinPend_first`)
+    iapply srvWinPend_first _ _ _ Hrna0 γwp
+    iexact Hwpt
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
   isplitl [Hwth]

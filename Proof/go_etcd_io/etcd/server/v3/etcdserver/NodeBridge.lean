@@ -576,7 +576,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       · iframe Hdrv; ipureintro; left; exact Ha
       · iunfold rnWinInstallAbove at Hwia
         ihave ⟨Hdrv, %h⟩ := Hwia $$ %_ %(es.map EntryModel.toM) %l %rfl Hdrv
-        iframe Hdrv; ipureintro; right; exact h
+        iframe Hdrv; ipureintro; right; exact Nat.le_of_lt h
     iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
