@@ -271,6 +271,12 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
   (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`); the command refuses a function whose
   body branches.
 
+**Large contexts.** Never use a bare `iframe` (or any search over the whole context) when a
+goal or hypothesis holds a `[∗list]` over `List.replicate n` with a large `n`: the unifier
+materializes the list (revoke-open, 2026-11-06: 80 GB). Don't `unfold` a definition across a
+goal or context that size either; convert locally through a lemma. Frame explicitly
+(`isplitl [H]` / `iexact`).
+
 ## The Goose translations
 
 `Code/` and `GeneratedProof/` hold Goose translations by the pinned Perennial's
