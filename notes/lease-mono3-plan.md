@@ -1,6 +1,6 @@
 # lease-mono3: a multi-member lease example, step 1 (monotone mode on `cluster3`)
 
-Requested by the user 2026-11-06 (via etcd-grove-82), after S2–S4. Phase: **Scope** (drafted read-only; S2–S4 has since landed at lean `49b1b890c1`; line numbers are at that commit unless marked r2c). The cross-member lease-id finding of §7 is recorded as `nonissues/etcd-lease-id-mask-member-prefix.md`.
+Requested by the user 2026-11-06 (via etcd-grove-82), after S2–S4. Phase: **Scope** (drafted read-only; S2–S4 has since landed at lean `49b1b890c1`; line numbers are at that commit unless marked r2c). The cross-member lease-id finding of §7 is recorded as `issues/etcd-lease-id-mask-member-prefix.md`.
 
 ## Scope, a multi-member lease example, step 1 (monotone mode on `cluster3`)
 
