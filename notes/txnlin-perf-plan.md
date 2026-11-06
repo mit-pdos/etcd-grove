@@ -236,3 +236,86 @@ One run of the package's other tests, under the same cap:
 **The bar is met.** TestFailover passed 5 of 5 runs under the 32G cap, peaking under 0.5 GiB, in
 about 90 s each. Porcupine's check is still over the whole history, and no check of a history
 window was needed.
+
+## (b): the model change
+
+The user's decision (b), at `1f67de4b37` (Go) and the commit after it (Lean).
+
+### Go
+
+`examples/etcd/txnlin/linkvtxn.go` is `lean`'s but for:
+
+- the state is sorted by `cmpConfig` without duplicates;
+- `addConfig` is a binary search for `c`'s place, then an insertion there unless `c` is already in
+  `s`;
+- the total order it needs: `cmpInt` (signed), `cmpStr` (Go's `<`), `cmpTOp`, `cmpCmp`, `cmpInput`,
+  `cmpVR`, `cmpStore`, `cmpConfig` (field by field; a store's and a configuration's lists by length,
+  then element by element).
+
+(a) (sorted `pend`, `insertInput`, `closure`'s skip of equal pending writes) and (c) (`Model.Hash`,
+`hashState` and its helpers) are reverted; `configEqual` and `Model.Equal` are `lean`'s.
+`perf_test.go`'s `oldModel` is `lean`'s model. Tests: `TestModel`, `TestDifferential`,
+`TestOldNewDifferential` and `TestMainRun` pass.
+
+### Lean
+
+- **The order** (`txnlin/Order.lean`, new): `cmpZ`, `cmpW`, `cmpS`, `cmpTOpO`, `cmpCmpO`, `cmpInO`,
+  `cmpVRO`, `cmpEntO`, `cmpLenLex`, `cmpStO` as `Ordering`s built with Lean core's `compareLex` and
+  `List.compareLex`, each a `Std.TransCmp` and a `Std.LawfulEqCmp`; `ordW`, the `int` a Go
+  comparison returns; `then_of_ne`/`then_of_eq` (a Go `if c != 0 { return c }`),
+  `compareLex_at`. `GCfg`'s order `cmpCfgO` is in `Steps.lean`.
+- **New specs and proofs**, one per new Go function: `cmpInt.spec`, `cmpStr.spec` (`RET
+  #(ordW (cmpW a b))`, `#(ordW (cmpS a b))`), `cmpTOp`/`cmpCmp`/`cmpInput`/`cmpVR` (`RET #(ordW
+  (cmp…O a b))`), `cmpStore.spec` (`storeOwn a ga ∗ storeOwn b gb`, `RET #(ordW (cmpStO ga gb))`),
+  `cmpConfig.spec` (`cfgOwn`, `RET #(ordW (cmpCfgO ga gb))`); linked in `txnlin/Link.lean`
+  (`etc/link-lean-first-linkvtxn.txt`).
+- **`entry_fields_disc`** moved from `storeEqual.lean` to `Defs.lean` (`cmpStore` uses it too;
+  statement unchanged). `Defs.lean` also gains `cfgOwn_insert`.
+
+### Statements changed (all internal)
+
+| declaration | old | new |
+|---|---|---|
+| `addConfigL` (`Steps.lean`) | `if g ∈ gs then gs else gs ++ [g]` | `if g ∈ gs then gs else insCfgL gs g` (`insCfgL`: `g` before the first configuration not below it in `cmpCfgO`) |
+| `addConfig.spec` | pre `… ∗ cfgOwn c g` | pre `… ∗ cfgOwn c g ∗ ⌜CfgSorted gs⌝` (post unchanged: `addConfigL gs g`) |
+| `addConfig.wp_proof` | `(wp_configEqual : configEqual.spec)` | `(wp_cmpConfig : cmpConfig.spec)` |
+| `linkvtxn.wp_addConfig` (Link) | `addConfig.spec` (old body) | `addConfig.spec` (new body) |
+
+New internal declarations: `CfgSorted`, `insCfgL`, `cmpCfgO` and its instances, `mem_insCfgL`,
+`length_insCfgL`, `sorted_insCfgL`, `sorted_addConfigL`, `sorted_foldl_addConfigL`,
+`sorted_foldl_stepOneL`, `CfgSorted.lt`, `insCfgL_eq_split`, `set_at_take_drop`,
+`take_drop_shift`, `getElem?_take_drop_pred`, `cloInv_congr` (all `Steps.lean`), the eight cmp
+specs, proofs and `linkvtxn.wp_cmp*`. `mem_addConfigL` and `length_addConfigL` keep their
+statements (new proofs). `closure.spec`, `step.spec`, `Model.spec`, `stRepB`, `GOk`, `setOf`,
+`ClosureOk`, `CloInv`, `linkvtxnS` and every exported statement are unchanged.
+
+### Why the model is equivalent to `lean`'s
+
+The abstract state of a Go state is a set: `stRepB` says the configurations `gs` represent `S` by
+`GOk gs S` (`S = setOf gs`, closed), which depends on `gs`'s members only. Everything `Model`'s proof
+uses of `addConfigL` is about members and the length: `mem_addConfigL` (members: `gs`'s and `g`)
+and `length_addConfigL` (unchanged iff `g ∈ gs`), both with their old statements. So `step_result`,
+`step_closure_ok` and `Model.spec` go through unchanged; the order of the list changes, not its
+members. Two places needed more:
+
+- `closure`'s invariant `CloInv` is about `out`'s members only (`cloInv_congr`), so `cloInv_add`'s
+  `out ++ [h]` is carried to `addConfigL out h`;
+- `addConfig`'s new precondition, `CfgSorted`: `Step` and `closure` build their lists from `[]`
+  with `addConfig` only (`sorted_foldl_stepOneL`, `sorted_foldl_addConfigL`, and `closure`'s
+  invariant now also says `CfgSorted out`). The state passed in to `Step` need not be sorted.
+
+`Equal` is list equality, as on `lean` (it is sound: equal lists represent one set; with sorted
+lists it is now also complete, which no statement says).
+
+### Checks
+
+- the full build: ok (13384 jobs), k8s/etcd3 included (its own copy of the model, untouched);
+- `etc/goose.py --check` (after `--project linkvtxn`), every generated `Link.lean`, `gen-init`,
+  issues, `errorf-wrap-check`, `bounds-check` (389, baseline 389), `mode-check`, `api-check` (every
+  `etc/api/*.txt`; no API package touched, so no interface to regenerate), `import-all-check`: ok;
+- `etc/tcb-report.py --check`: 817 axioms, 4 sorries, unchanged; all 53 collections' `--check`: ok;
+- closed theorems against `lean` (`.lake/tcb.json` at `lean` `3f9a18065c` and at this branch): the
+  same 833 exported results, each with the same definitions in its statement, the same module, the
+  same axioms and `sorry`s; the only new roots are the eight `linkvtxn.wp_cmp*` (used by
+  `wp_addConfig`); no exported result's statement reaches `addConfigL`, `insCfgL`, `CfgSorted`,
+  `cmpCfgO` or `addConfig.spec`. No exported or frozen statement changed.

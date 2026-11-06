@@ -22,6 +22,7 @@ each a store and the failed writes that may still take effect (`pend`, a list of
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Abs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Order
 
 @[expose] public section
 
@@ -60,8 +61,32 @@ structure GCfg where
 instance GCfg_decEq : DecidableEq GCfg := fun a b =>
   decidable_of_iff (a.st = b.st ∧ a.pend = b.pend) (by cases a; cases b; simp)
 
-/-- `addConfig(s, c)`: `s`, or `s` with `c` appended if no configuration of `s` equals it. -/
-def addConfigL (gs : List GCfg) (g : GCfg) : List GCfg := if g ∈ gs then gs else gs ++ [g]
+/-- `cmpConfig`'s order: the store, then the pending inputs (by length, then one by one). -/
+def cmpCfgO : GCfg → GCfg → Ordering :=
+  compareLex (cmpOn GCfg.st cmpStO) (cmpOn GCfg.pend (cmpLenLex cmpInO))
+
+instance : Std.TransCmp cmpCfgO := by unfold cmpCfgO; infer_instance
+
+instance : Std.LawfulEqCmp cmpCfgO where
+  compare_self {a} := Std.ReflCmp.compare_self (cmp := cmpCfgO)
+  eq_of_compare {a b} h := by
+    simp only [cmpCfgO, compareLex_eq_eq] at h
+    obtain ⟨h1, h2⟩ := h
+    cases a; cases b
+    simp only [GCfg.mk.injEq]
+    exact ⟨cmpOn_eq h1, cmpOn_eq h2⟩
+
+/-- A state's configurations sorted by `cmpCfgO`, without duplicates (what `addConfig` keeps). -/
+def CfgSorted (gs : List GCfg) : Prop := gs.Pairwise (fun a b => cmpCfgO a b = .lt)
+
+/-- `g` inserted into `gs` before the first configuration not below it. -/
+def insCfgL : List GCfg → GCfg → List GCfg
+  | [], g => [g]
+  | h :: t, g => if cmpCfgO h g = .lt then h :: insCfgL t g else g :: h :: t
+
+/-- `addConfig(s, c)` on a sorted `s`: `s`, or `s` with `c` inserted in order if no configuration
+of `s` equals it. -/
+def addConfigL (gs : List GCfg) (g : GCfg) : List GCfg := if g ∈ gs then gs else insCfgL gs g
 
 /-- `step(c, in, out)`. -/
 def stepL (g : GCfg) (x : Input) (y : Output) : List GCfg :=
@@ -329,6 +354,15 @@ theorem cloInv_add (gs : List GCfg) (n : Nat) (hn : n < 2 ^ 63) (out work : List
       · exact Or.inl (Or.inr rfl)
     · exact Or.inr (Or.inr ((mem_succsUpTo _ _ _).2 ⟨i, hi, rfl⟩))
 
+/-- `closure`'s loop invariant is about `out`'s members only (`addConfig` inserts in order). -/
+theorem cloInv_congr (gs : List GCfg) (n : Nat) (out out' work : List GCfg)
+    (he : ∀ g, g ∈ out' ↔ g ∈ out) (hI : CloInv gs n out work) : CloInv gs n out' work := by
+  obtain ⟨h1, h2, h3⟩ := hI
+  have sub : ∀ g, g ∈ out ++ work ↔ g ∈ out' ++ work := by
+    intro g; simp only [List.mem_append, he]
+  refine ⟨fun g hg => h1 g ((sub g).2 hg), fun g₀ hg₀ => (sub g₀).1 (h2 g₀ hg₀),
+    fun g hg i hi => (sub _).1 (h3 g ((he g).1 hg) i hi)⟩
+
 /-- At the end of `closure`'s loop (`work` empty): `ClosureOk`, closed, bounded. -/
 theorem cloInv_done (gs : List GCfg) (n : Nat) (hn : n < 2 ^ 63) (out : List GCfg)
     (hI : CloInv gs n out []) :
@@ -447,6 +481,29 @@ theorem stepL_complete (n : Nat) (hn : n < 2 ^ 63) (g : GCfg) (hb : Bounded n g)
 
 /-! ## `addConfig` and `Step`'s loops -/
 
+theorem mem_insCfgL (gs : List GCfg) (g h : GCfg) : h ∈ insCfgL gs g ↔ h ∈ gs ∨ h = g := by
+  induction gs with
+  | nil => simp [insCfgL]
+  | cons a t ih =>
+    unfold insCfgL
+    split
+    · simp only [List.mem_cons, ih]; exact or_assoc.symm
+    · simp only [List.mem_cons]
+      constructor
+      · rintro (rfl | h1 | h1)
+        · exact Or.inr rfl
+        · exact Or.inl (Or.inl h1)
+        · exact Or.inl (Or.inr h1)
+      · rintro ((h1 | h1) | rfl)
+        · exact Or.inr (Or.inl h1)
+        · exact Or.inr (Or.inr h1)
+        · exact Or.inl rfl
+
+theorem length_insCfgL (gs : List GCfg) (g : GCfg) : (insCfgL gs g).length = gs.length + 1 := by
+  induction gs with
+  | nil => rfl
+  | cons a t ih => unfold insCfgL; split <;> simp [ih]
+
 theorem mem_addConfigL (gs : List GCfg) (g h : GCfg) :
     h ∈ addConfigL gs g ↔ h ∈ gs ∨ h = g := by
   unfold addConfigL
@@ -454,11 +511,110 @@ theorem mem_addConfigL (gs : List GCfg) (g h : GCfg) :
   · next hg => constructor
                · exact Or.inl
                · rintro (h1 | rfl) <;> assumption
-  · simp
+  · exact mem_insCfgL gs g h
 
 theorem length_addConfigL (gs : List GCfg) (g : GCfg) :
     (addConfigL gs g).length = if g ∈ gs then gs.length else gs.length + 1 := by
-  unfold addConfigL; split <;> simp
+  unfold addConfigL; split
+  · rfl
+  · exact length_insCfgL gs g
+
+/-- Inserting a configuration not in a sorted list keeps it sorted. -/
+theorem sorted_insCfgL (gs : List GCfg) (g : GCfg) (hs : CfgSorted gs) (hg : g ∉ gs) :
+    CfgSorted (insCfgL gs g) := by
+  induction gs with
+  | nil => simp [insCfgL, CfgSorted]
+  | cons a t ih =>
+    unfold CfgSorted at hs ⊢
+    rw [List.pairwise_cons] at hs
+    have hga : g ≠ a := fun e => hg (e ▸ List.mem_cons_self)
+    have hgt : g ∉ t := fun e => hg (List.mem_cons_of_mem a e)
+    unfold insCfgL
+    split
+    · next hlt =>
+      rw [List.pairwise_cons]
+      refine ⟨?_, ih hs.2 hgt⟩
+      intro b hb
+      rcases (mem_insCfgL t g b).1 hb with hb | rfl
+      · exact hs.1 b hb
+      · exact hlt
+    · next hlt =>
+      have hag : cmpCfgO g a = .lt := by
+        cases hc : cmpCfgO a g with
+        | lt => exact absurd hc hlt
+        | eq => exact absurd (Std.LawfulEqCmp.eq_of_compare hc).symm hga
+        | gt => exact Std.OrientedCmp.gt_iff_lt.1 hc
+      rw [List.pairwise_cons, List.pairwise_cons]
+      refine ⟨?_, hs.1, hs.2⟩
+      intro b hb
+      rcases List.mem_cons.1 hb with rfl | hb
+      · exact hag
+      · exact Std.TransCmp.lt_trans hag (hs.1 b hb)
+
+theorem sorted_addConfigL (gs : List GCfg) (g : GCfg) (hs : CfgSorted gs) :
+    CfgSorted (addConfigL gs g) := by
+  unfold addConfigL; split
+  · exact hs
+  · next hg => exact sorted_insCfgL gs g hs hg
+
+theorem sorted_foldl_addConfigL (l acc : List GCfg) (hs : CfgSorted acc) :
+    CfgSorted (l.foldl addConfigL acc) := by
+  induction l generalizing acc with
+  | nil => exact hs
+  | cons g l ih => exact ih _ (sorted_addConfigL acc g hs)
+
+theorem sorted_foldl_stepOneL (x : Input) (y : Output) (l acc : List GCfg) (hs : CfgSorted acc) :
+    CfgSorted (l.foldl (stepOneL x y) acc) := by
+  induction l generalizing acc with
+  | nil => exact hs
+  | cons g l ih => exact ih _ (sorted_foldl_addConfigL _ acc hs)
+
+/-- In a sorted state, an earlier configuration is below a later one. -/
+theorem CfgSorted.lt {gs : List GCfg} (hs : CfgSorted gs) {i j : Nat} {x y : GCfg} (hij : i < j)
+    (hx : gs[i]? = some x) (hy : gs[j]? = some y) : cmpCfgO x y = .lt := by
+  obtain ⟨hi, rfl⟩ := List.getElem?_eq_some_iff.1 hx
+  obtain ⟨hj, rfl⟩ := List.getElem?_eq_some_iff.1 hy
+  exact List.pairwise_iff_getElem.1 hs i j hi hj hij
+
+/-- `addConfig`'s shifting loop: the list with `x` at `j`. -/
+theorem set_at_take_drop {α : Type} (l : List α) (j : Nat) (x v : α) (h : j ≤ l.length) :
+    (l.take j ++ x :: l.drop j).set j v = l.take j ++ v :: l.drop j := by
+  rw [List.set_append_right _ _ (by simp [h])]
+  simp [Nat.min_eq_left h]
+
+/-- `addConfig`'s shifting loop: the element at `j - 1` moved up one place. -/
+theorem take_drop_shift {α : Type} (l : List α) (j : Nat) (h1 : 0 < j) (h2 : j ≤ l.length) :
+    l.take j ++ l[j - 1] :: l.drop j = l.take (j - 1) ++ l[j - 1] :: l.drop (j - 1) := by
+  obtain ⟨k, rfl⟩ : ∃ k, j = k + 1 := ⟨j - 1, by omega⟩
+  simp only [Nat.add_sub_cancel]
+  rw [List.take_succ_eq_append_getElem (by omega), List.drop_eq_getElem_cons (i := k) (by omega)]
+  simp only [List.append_assoc, List.singleton_append]
+
+theorem getElem?_take_drop_pred {α : Type} (l : List α) (j : Nat) (x : α) (h1 : 0 < j)
+    (h2 : j ≤ l.length) : (l.take j ++ x :: l.drop j)[j - 1]? = some l[j - 1] := by
+  rw [List.getElem?_append_left (by simp; omega)]
+  simp [show j - 1 < j by omega, List.getElem?_eq_getElem (show j - 1 < l.length by omega)]
+
+/-- Where `addConfig`'s binary search ends: `g` goes at `lo`, every configuration before it below
+`g`, the one at it above. -/
+theorem insCfgL_eq_split (gs : List GCfg) (g : GCfg) (lo : Nat) (hlo : lo ≤ gs.length)
+    (hbelow : ∀ i < lo, ∀ x, gs[i]? = some x → cmpCfgO x g = .lt)
+    (habove : ∀ x, gs[lo]? = some x → cmpCfgO x g = .gt) :
+    insCfgL gs g = gs.take lo ++ g :: gs.drop lo := by
+  induction gs generalizing lo with
+  | nil => simp [insCfgL]
+  | cons a t ih =>
+    cases lo with
+    | zero =>
+      have h := habove a rfl
+      simp [insCfgL, h]
+    | succ k =>
+      have h := hbelow 0 (by omega) a rfl
+      simp only [insCfgL, h, ↓reduceIte, List.take_succ_cons, List.drop_succ_cons,
+        List.cons_append]
+      rw [ih k (by simp at hlo; omega)
+        (fun i hi x hx => hbelow (i + 1) (by omega) x (by simpa using hx))
+        (fun x hx => habove x (by simpa using hx))]
 
 theorem mem_foldl_addConfigL (l acc : List GCfg) (h : GCfg) :
     h ∈ l.foldl addConfigL acc ↔ h ∈ acc ∨ h ∈ l := by
