@@ -255,158 +255,6 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **`NewStore` over the real backend, linked** (`mvcc.NewStore_backend` with `NewStore`'s
-proof and the backend's results). -/
-theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
-    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
-    (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc) (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) (Perm : Int → IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
-        mvcc.keySized d.γB d.P d.be ∗
-        -- (the backend-compaction stage) the deletable-keys registration, unfixed: the store fixes it
-        -- by its compaction mode (`dlNoDel`, or the store's deletable keys, `storeDlReg`)
-        backend.dlInit d.γB ∗
-        -- (question 5's core stage, part (4)) in compaction mode, the compaction keys' values tracked
-        -- (the backend's constructor's `fkCl`)
-        □ (⌜d.cm = true⌝ -∗ backend.fkV d.γB true) ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
-        ([∗list] _x ∈ List.replicate mvcc.nReaders (),
-          mvcc.bkRTx d.γB d.P d.be) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
-      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
-        (Val #(interface.mkOk
-          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
-        (Val #le)) (Val #cfg))
-    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = false⌝ ∗
-        mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
-        (∃ rv wv : Loc,
-          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦
-            (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty) #rv : GoInterface) ∗
-          mvcc.isReadView rv s γ ∗
-          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"WriteView"] ↦
-            (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty) #wv : GoInterface) ∗
-          mvcc.isWriteView wv s γ) ∗
-        ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd (some d)) (),
-          mvcc.storeReaderC s γ) ∗
-        mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗
-        mvcc.crevPermIs γ Perm }} := by
-  iintro %Φ H HΦ
-  iapply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
-      backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
-      backend.backend.wp_Size backend.backend.wp_SizeInUse
-      backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
-      backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
-      backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
-      backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
-      backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-      backend.batchTxBuffered.wp_UnsafeCreateBucket
-      backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-      schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
-      backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
-      lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm) $$ %Φ [H]
-  · iexact H
-  inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hrd, Hcok, Hh, Hv, Hr, Ht, Hc, Hcl, Hfs, Hcr, -, #HcpIs, Hpin⟩
-  iapply HΦ
-  iexists γ
-  iframe Hs Hrd Hcok Hh Hv Hr Ht Hc Hcl Hfs Hcr HcpIs Hpin
-  ipureintro; exact Hγ
-
-/-- **`NewStore` over a compacting real backend, linked** (question 5's stage 6, the close):
-`mvcc_NewStore_backend` at a backend record in compaction mode (`hcm : d.cm = true`; the
-compaction keys' values tracked, `fkV d.γB true`), its store ready for the compaction's results.
-The store supports the compaction (`storeCmp γ`, `mvcc_store_Compact`'s premise), and the right to
-close it becomes the restorable compaction right at `-1` (`compactRightR_of_closer`: the closer
-split, not discarded; M2, the storage side, the approval's item 24). So `store.Compact.spec`'s
-premises on the store (`storeCmp γ`, `-1 ≤ c` at `c = -1`, `isStore`, `compactRightR s γ (-1)`,
-`idxCert γ.idx [[], []]`, `hookIs`, and the permit of its revisions `crevPermIs γ Perm`, at the
-caller's `Perm`: C3's store law, 2026-11-02) are this post's; the caller
-brings the rest (the critical-section contract, the trace, the reader's token `storeRT γ`, and,
-M2's Q1 (a), the compaction's write-back supply `kbWTSupplyM γ.kb`, no longer `NewStore`'s). One
-reader of the pool is kept back for the compaction job (`nJobRd`), and the pool's retired count is
-at `1` (`retiredAt γ 1`, the creator's half, Probe P2, 2026-10-30): the caller makes its reader's
-token by retiring one of the post's readers (`storeReader_retire`, with £1, `isStore`, a part
-`curAt γ dq o` of the post's share of the fields, the reader through `storeReader_of`, and
-`retiredAt γ 1`, giving `storeRT γ` and `retiredAt γ 2`). -/
-theorem mvcc_NewStore_backend_cmp (lg : Loc) (le : GoInterface)
-    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
-    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (hcm : d.cm = true) (γb γl : GName)
-    (Pk : IProp GF) (f : GoFunc) (hf : f ≠ func.nil) (rd0 : GoFunc)
-    (hcfg : mvcc.batchLimitOk cfg.CompactionBatchLimit') (hrb : receiptBound GF ≤ 2 ^ 48)
-    (Perm : Int → IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
-        mvcc.keySized d.γB d.P d.be ∗ backend.dlInit d.γB ∗ backend.fkV d.γB true ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
-        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗ mvcc.kbSRM (some d) ∗
-        ([∗list] _x ∈ List.replicate mvcc.nReaders (),
-          mvcc.bkRTx d.γB d.P d.be) ∗
-        lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 }}
-      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
-        (Val #(interface.mkOk
-          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
-        (Val #le)) (Val #cfg))
-    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
-        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d ∧ γ.watchQ = false ∧ mvcc.storeCmp γ⌝ ∗
-        mvcc.isStore s γ ∗ (∃ rd : GoFunc, lease.rdOwn γl rd) ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
-        (∃ rv wv : Loc,
-          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦
-            (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty) #rv : GoInterface) ∗
-          mvcc.isReadView rv s γ ∗
-          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"WriteView"] ↦
-            (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty) #wv : GoInterface) ∗
-          mvcc.isWriteView wv s γ) ∗
-        ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1) (),
-          mvcc.storeReaderC s γ) ∗
-        mvcc.idxCert γ.idx [[], []] ∗
-        mvcc.compactRightR s γ (-1) ∗ mvcc.fieldShare s γ (1 : Qp).half.half ∗
-        mvcc.retiredAt γ 1 ∗ mvcc.crevPermIs γ Perm }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hdl, #Hfk, Hv, Hncmp, Hrg, Hw1, Hw2, Hsrm,
-    Hrts, Hlrd, #Hle, Hro⟩ HΦ
-  iapply wp_fupd
-  wp_apply (mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
-        backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
-        backend.backend.wp_Size backend.backend.wp_SizeInUse
-        backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
-        backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
-        backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
-        backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
-        backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
-        backend.batchTxBuffered.wp_UnsafeCreateBucket
-        backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
-        schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_LockForSafeRangeDelete
-        backend.backend.wp_UnlockForSafeRangeDelete backend.batchTxBuffered.wp_UnsafePut
-        lg le cfg d hP γb γl Pk f hf rd0 hcfg hrb Perm)
-      $$ [Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro]
-    as %s ⟨%γ, %Hγ, #Hst, Hrd, Hcok, Hhk', Hviews, Hrds, #Hc, Hcl, Hfs, Hright, Hret, #HcpIs⟩
-  · iframe #; iframe Hdl Hv Hncmp Hrg Hw1 Hw2 Hsrm Hrts Hlrd Hro
-    iintro !> %_; itrivial
-  have hj : mvcc.nJobRd (some d) = 1 := by unfold mvcc.nJobRd; simp [hcm]
-  rw [hj]
-  imod mvcc.compactRightR_of_closer s γ ⊤ $$ Hcl Hright with Hcr
-  imodintro
-  iapply HΦ
-  iexists γ
-  isplitr
-  · ipureintro
-    refine ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2, ?_⟩
-    show mvcc.kbCmpM γ.kb
-    rw [Hγ.2.2.1]; exact hcm
-  iframe Hrd Hcok Hhk' Hviews Hrds Hcr Hfs Hret
-  iframe #
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
 the backend's results): every store of the instance `d` (unit N4, D14b: before the post-lock hook
@@ -435,20 +283,6 @@ theorem mvcc_storeBackend_of_backend (d : mvcc.KBReal) (hP : mvcc.bridgeParams d
     backend.batchTxBuffered.wp_UnsafeDelete schema.bucket.wp_ID schema.bucket.wp_Name
     schema.bucket.wp_IsSafeRangeBucket d hP hcm Pk γb
 
-/-- **`store.Write` over the real backend, linked**. -/
-theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
-    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) (log : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
-        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ mvcc.writerPin γ log ∗ Pre ∗
-        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
-      (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
-        go!"Write")) (Val #trace))
-    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
-          go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
-        (∃ (ilog : mvcc.Log) (crev : Int),
-          mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev) ∗ Q }} :=
-  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te log
 
 end store
 
@@ -456,10 +290,7 @@ end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.mvcc_backend_bridge
-#print axioms Perennial.EtcdGrove.mvcc_NewStore_backend
-#print axioms Perennial.EtcdGrove.mvcc_NewStore_backend_cmp
 #print axioms Perennial.EtcdGrove.mvcc_storeBackend_of_backend
-#print axioms Perennial.EtcdGrove.mvcc_store_Write_backend
 #print axioms Perennial.EtcdGrove.schema.bucket.wp_ID
 #print axioms Perennial.EtcdGrove.schema.bucket.wp_Name
 #print axioms Perennial.EtcdGrove.schema.bucket.wp_IsSafeRangeBucket
