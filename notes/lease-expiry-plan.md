@@ -2831,6 +2831,8 @@ committed when proved.
 
 ## S2–S4 Freeze package (2026-11-06; for etcd-grove-82, then the user)
 
+**Frozen by the user, 2026-11-06 (via etcd-grove-82), with the batch 1–32: tag `lease-snap-frozen`.**
+
 Branch `lease-snap`, HEAD after `a49ec29bd9`, on lean `5a00eca26c`. A full build and `etc/gates.sh` pass:
 785 axioms, **3 `sorry`s** (`srvGrantOpen_open` gone, none added), all 51 collections match,
 bounds 383, mode 292, api ok; the backend, etcdstart and raft interfaces are as committed.
