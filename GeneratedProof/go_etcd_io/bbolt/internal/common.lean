@@ -3,7 +3,15 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.go_etcd_io.bbolt.errors
+public import GeneratedProof.hash.fnv
+public import Perennial.GeneratedProof.io
+public import GeneratedProof.os
+public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.strings
+public import Perennial.GeneratedProof.time
+public import Perennial.GeneratedProof.«unsafe»
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.bbolt.internal.common
 

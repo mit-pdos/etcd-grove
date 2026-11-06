@@ -35,7 +35,7 @@ macro "tnn_err" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
-  wp_apply wp_Errorf $$ [Hsl] as %e ⟨-, #HeS⟩
+  wp_apply wp_Errorf $$ [Hsl] as %e ⟨-, #HeS, %_⟩
   · iframe; fmt_args_ok
   iapply HΦ
   rw [htn]
@@ -304,7 +304,7 @@ theorem GetTargetNodeName.wp_proof
             isplitr
             · ipureintro; rfl
             iintro %sl ⟨Hsl, -⟩
-            wp_apply wp_Errorf $$ [Hsl] as %e ⟨-, #HeS⟩
+            wp_apply wp_Errorf $$ [Hsl] as %e ⟨-, #HeS, %_⟩
             · iframe
               try simp only [k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectNameField]
               rw [show sint.nat (W64 (0 + 1 + 1)) = 2 by rfl, show sint.nat (W64 (0 + 1)) = 1 by rfl]

@@ -252,7 +252,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
       (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ m (bs.take 8) rfl (by decide)
       (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; simp; omega)
       (by rw [List.length_replicate, h8, List.length_take]; omega) $$ [Hos Hf Hbuf Hfd Hm Hb8]
-    as %n %err ⟨Hf, Hfd, Hm, Hb8, %vs', Hbuf, %Hres⟩
+    as %n %err ⟨Hf, Hfd, Hm, Hb8, %vs', Hbuf, %Hres, #_⟩
   · iframe; iframe #
   ihave Hb := (osBytes_take_drop p 0 8 _ bs (by omega)).2 $$ [Hb8 Hbr]
   · iframe
@@ -417,7 +417,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
       (by rw [List.length_replicate, h9]; decide)
       (by rw [List.length_replicate, h9]; show 0 + 9 ≤ m3.size; omega)
       (by rw [List.length_replicate, h9, List.length_take]; omega) $$ [Hos Hf Hbuf Hfd Hm Hb9]
-    as %n %err ⟨Hf, Hfd, Hm, Hb9, %vs', Hbuf, %Hres⟩
+    as %n %err ⟨Hf, Hfd, Hm, Hb9, %vs', Hbuf, %Hres, #_⟩
   · iframe; iframe #
   ihave Hb := (osBytes_take_drop p 0 9 _ (syncedBytes m3 bs3) (by omega)).2 $$ [Hb9 Hbr]
   · iframe
@@ -475,7 +475,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   have hlen : bs.length = m.size := Hwf.1
   wp_auto
   wp_apply wp_Stat f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ m
-      $$ [Hos Hf Hfd Hm] as %fi %err ⟨Hf, Hfd, Hm, Hfi⟩
+      $$ [Hos Hf Hfd Hm] as %fi %err ⟨Hf, Hfd, Hm, Hfi, #_, -⟩
   · iframe; iframe #
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left
@@ -512,7 +512,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
         (by rw [List.length_replicate, h1]; show 8 + 1 ≤ m.size; omega)
         (by rw [List.length_replicate, h1, List.length_take, List.length_drop]; omega)
         $$ [Hos Hf Hbuf Hfd Hm Hb1]
-      as %n %err ⟨Hf, Hfd, Hm, Hb1, %vs', Hbuf, %Hres⟩
+      as %n %err ⟨Hf, Hfd, Hm, Hb1, %vs', Hbuf, %Hres, #_⟩
     · iframe; iframe #
     ihave Hb8 := (osBytes_take_drop p (0 + 8) 1 _ (bs.drop 8) (by simp; omega)).2 $$ [Hb1 Hb9]
     · iframe

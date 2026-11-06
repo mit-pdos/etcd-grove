@@ -31,7 +31,7 @@ public import Code.k8s_io.client_go.util.watchlist
 public import Perennial.Code.strconv
 public import Code.k8s_io.apimachinery.pkg.types
 public import Code.k8s_io.apimachinery.pkg.util.cache
-public import Perennial.Code.os
+public import Code.os
 public import Code.k8s_io.apimachinery.pkg.util.diff
 public import Perennial.Code.io
 public import Perennial.Code.math

@@ -1,0 +1,98 @@
+# bbolt's importable modules (the API spec's landing, 2026-11-03): what proofs outside bbolt's tree
+# may import (`etc/api-check.py etc/api/bbolt.txt --check`). Every other module of the tree is
+# internal. What each importable module exposes, as a client sees it, is `etc/gen-interface.py`'s
+# output under `interface/`. Adding a module here is an API change: review its interface.
+
+inside Proof/go_etcd_io/bbolt/
+inside Spec/go_etcd_io/bbolt/
+exempt (^|/)(Link|Results|Init|PkgInit)\.lean$
+# The root below which a spec's name is the file's path (`__` as `.`), for the layout check: the
+# specs are named `bbolt.<T>.<M>.spec` (namespace `EtcdGrove.bbolt`, beside the old
+# `bbolt.<T>.<M>_kv.spec`), so the root is the package's parent.
+root go_etcd_io
+# The API modules of vocabulary (not one function's spec; `etc/gen-interface.py --layout` skips
+# them, and the proof file of the same name, which holds `Options`' trust-boundary axioms).
+vocab Spec.go_etcd_io.bbolt.Data
+vocab Spec.go_etcd_io.bbolt.Api
+vocab Spec.go_etcd_io.bbolt.Logger
+vocab Spec.go_etcd_io.bbolt.Options
+
+## The API: the vocabulary (pure data, the sealed predicates and their laws), the logger contract,
+## the options and their trust-boundary axioms
+importable Spec.go_etcd_io.bbolt.Data
+importable Spec.go_etcd_io.bbolt.Api
+importable Spec.go_etcd_io.bbolt.Logger
+importable Spec.go_etcd_io.bbolt.Options
+importable Proof.go_etcd_io.bbolt.Options
+
+## The specs (one per function)
+importable Spec.go_etcd_io.bbolt.Open
+importable Spec.go_etcd_io.bbolt.DB__Close
+importable Spec.go_etcd_io.bbolt.DB__Begin
+importable Spec.go_etcd_io.bbolt.DB__Info
+importable Spec.go_etcd_io.bbolt.DB__Stats
+importable Spec.go_etcd_io.bbolt.Tx__Commit
+importable Spec.go_etcd_io.bbolt.Tx__Rollback
+importable Spec.go_etcd_io.bbolt.Tx__Bucket
+importable Spec.go_etcd_io.bbolt.Tx__CreateBucket
+importable Spec.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists
+importable Spec.go_etcd_io.bbolt.Tx__DeleteBucket
+importable Spec.go_etcd_io.bbolt.Tx__Size
+importable Spec.go_etcd_io.bbolt.Tx__DB
+importable Spec.go_etcd_io.bbolt.Tx__Stats
+importable Spec.go_etcd_io.bbolt.Bucket__Get
+importable Spec.go_etcd_io.bbolt.Bucket__Put
+importable Spec.go_etcd_io.bbolt.Bucket__Delete
+importable Spec.go_etcd_io.bbolt.Bucket__Cursor
+importable Spec.go_etcd_io.bbolt.Cursor__Seek
+importable Spec.go_etcd_io.bbolt.Cursor__First
+importable Spec.go_etcd_io.bbolt.Cursor__Last
+importable Spec.go_etcd_io.bbolt.Cursor__Next
+importable Spec.go_etcd_io.bbolt.Cursor__Prev
+importable Spec.go_etcd_io.bbolt.Options__String
+
+## The packages' initialization facts (`PkgInit`: `isPkgInit`'s instances, `bboltErrorsInit`) and
+## the generated `Init.lean`s are exempt above.
+
+## Debt: the old trust boundary the backend rests on, until the backend switch (the `_kv` axioms
+## become corollaries of the specs above, then are deleted with this group)
+importable Spec.go_etcd_io.bbolt.Bucket__Cursor_kvr
+importable Spec.go_etcd_io.bbolt.Bucket__Cursor_kvw
+importable Spec.go_etcd_io.bbolt.Bucket__Delete_kv
+importable Spec.go_etcd_io.bbolt.Bucket__Put_kv
+importable Spec.go_etcd_io.bbolt.Cursor__Next_kv
+importable Spec.go_etcd_io.bbolt.Cursor__Seek_kv
+importable Spec.go_etcd_io.bbolt.DB__Begin_kv
+importable Spec.go_etcd_io.bbolt.DB__Close_kv
+importable Spec.go_etcd_io.bbolt.DB__Info_kv
+importable Spec.go_etcd_io.bbolt.DB__Stats_kv
+importable Spec.go_etcd_io.bbolt.Open_kv
+importable Spec.go_etcd_io.bbolt.Tx__Bucket_kvr
+importable Spec.go_etcd_io.bbolt.Tx__Bucket_kvw
+importable Spec.go_etcd_io.bbolt.Tx__Commit_kv
+importable Spec.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists_kv
+importable Spec.go_etcd_io.bbolt.Tx__DB_kv
+importable Spec.go_etcd_io.bbolt.Tx__DeleteBucket_kv
+importable Spec.go_etcd_io.bbolt.Tx__Rollback_kv
+importable Spec.go_etcd_io.bbolt.Tx__Size_kv
+importable Spec.go_etcd_io.bbolt.Tx__Stats_kv
+importable Proof.go_etcd_io.bbolt.Bucket__Cursor_kvr
+importable Proof.go_etcd_io.bbolt.Bucket__Cursor_kvw
+importable Proof.go_etcd_io.bbolt.Bucket__Delete_kv
+importable Proof.go_etcd_io.bbolt.Bucket__Put_kv
+importable Proof.go_etcd_io.bbolt.Cursor__Next_kv
+importable Proof.go_etcd_io.bbolt.Cursor__Seek_kv
+importable Proof.go_etcd_io.bbolt.DB__Begin_kv
+importable Proof.go_etcd_io.bbolt.DB__Close_kv
+importable Proof.go_etcd_io.bbolt.DB__Info_kv
+importable Proof.go_etcd_io.bbolt.DB__Stats_kv
+importable Proof.go_etcd_io.bbolt.Open_kv
+importable Proof.go_etcd_io.bbolt.Tx__Bucket_kvr
+importable Proof.go_etcd_io.bbolt.Tx__Bucket_kvw
+importable Proof.go_etcd_io.bbolt.Tx__Commit_kv
+importable Proof.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists_kv
+importable Proof.go_etcd_io.bbolt.Tx__DB_kv
+importable Proof.go_etcd_io.bbolt.Tx__DeleteBucket_kv
+importable Proof.go_etcd_io.bbolt.Tx__Rollback_kv
+importable Proof.go_etcd_io.bbolt.Tx__Size_kv
+importable Proof.go_etcd_io.bbolt.Tx__Stats_kv

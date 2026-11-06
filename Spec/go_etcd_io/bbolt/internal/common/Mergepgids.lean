@@ -1,5 +1,5 @@
 module
-public import Proof.go_etcd_io.bbolt.internal.common.Init
+public import Proof.go_etcd_io.bbolt.PkgInit
 public import Proof.go_etcd_io.bbolt.internal.common.Model
 
 @[expose] public section

@@ -17,7 +17,7 @@ public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.math.big
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync

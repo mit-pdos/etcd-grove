@@ -17,6 +17,149 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Struct field locations of different struct types at one base address (2026-11-04, bbolt, batch 14)
+
+- **Limitation.** `structFieldRef` is an abstract function of `go.Semantics`
+  (`GoSemanticsFunctions`); only `structFieldRef_plain` ties a field of a *plain* struct to
+  `base + offset`. For a non-plain struct (any with pointer, slice, map or interface fields) nothing
+  relates `l.[T, f]` to `l` or to `l.[T', g]` of another struct type `T'`. So holding `l ↦ v` for a
+  fresh `&node{…}` does not show that `l` is not the location of an object of another struct type
+  whose fields one owns separately (`l.[Bucket, "InBucket"] ↦ …`).
+- **Needed by.** bbolt's writer heap (`Inv/WtxHeap`): one map of objects keyed by location, nodes
+  (owned as whole struct points-tos) and buckets (owned field by field, the root bucket being
+  `tx.root`, a field of `Tx`); a fresh node's location could not be shown to be no bucket's.
+- **Here.** Planned (batch 14 of `notes/bbolt-proof-plan.md`, not yet applied): the heap's objects per kind, nodes
+  and buckets in separate maps, liveness per kind, so a fresh node needs only "no node object at
+  `l`", which the points-to conflict gives.
+- **Proposal.** A law of `go.Semantics` that field locations are tied to their base for every
+  struct type (each field of `T` at `l` is `l + off_T(f)` for some layout offset, offsets of
+  distinct fields distinct, and the first field at `l` itself), or at least that
+  `structFieldRef T f l ≠ structFieldRef T' g l'` unless `l = l'` and the offsets agree; then a
+  whole points-to at `l` excludes every field points-to at `l` of another type with a field at
+  offset 0. Needs a semantics review (trusted base): it constrains every model of `go.Semantics`.
+- **Status.** Not started (proposal only).
+
+### `|==>` binds tighter than `∗` in iris-lean's notation (2026-11-04, bbolt, U5)
+
+- **Limitation.** In Lean's Iris notation `|==> A ∗ B` parses as `(|==> A) ∗ B`, unlike Rocq Iris
+  (where the update extends to the right); `|={E}=>` is not affected. A statement written the
+  Rocq way silently means something weaker.
+- **Needed by.** Every Iris statement here; U5 found one (`Inv/State`'s `st_update`, fixed by
+  parentheses). A grep of bbolt's `Inv/`, `Model/` and `Spec/` finds no other.
+- **Here.** Parenthesize `|==> (A ∗ B)`.
+- **Proposal.** iris-lean: give `|==>` the precedence of Rocq's (or of `|={E}=>`), or a linter
+  warning on `|==> A ∗ B`; a note in Perennial's `IRIS_PROOF_MODE.md` meanwhile.
+- **Status.** Not started.
+
+### `sort.Search`'s spec does not name the evaluated indices (2026-11-04, bbolt's read path, U6)
+
+- **Limitation.** Perennial's `sort.Search` spec gives the result's position (the first index
+  where the predicate holds) but not that a result `< n` was one of the indices the closure was
+  evaluated at, so a closure with a side effect on the evaluated indices (bbolt's `searchPage`
+  sets a captured `exact` flag when the key at the evaluated index equals the sought one) cannot be
+  reasoned about.
+- **Needed by.** bbolt's `Cursor.searchPage`/`search_r` (U6).
+- **Here.** U6 proved a stronger spec from Perennial's translated `sort.Search`
+  (`Proof/go_etcd_io/bbolt/Read/SearchEv.lean`: an invariant indexed by the evaluated indices).
+- **Proposal.** Perennial's `sort.Search` spec with the closure's invariant indexed by the
+  evaluated indices (the result `< n` among them), as U6's.
+- **Status.** Not started.
+
+### `delete` on a named map type has no semantics (2026-11-04, bbolt's freelist, U2)
+
+- **Limitation.** `MapSemantics.delete_map` unfolds `go.delete` only at a literal map type
+  (`[go.MapType key_type elem_type]`), while `len_map` takes any type whose underlying type is a
+  map (`[t ↓u go.MapType ..]`). Goose emits `delete [pidSet.ty]` for `delete(f.freemaps[size],
+  start)` (`pidSet` is `map[common.Pgid]struct{}`), which therefore has no WP.
+- **Needed by.** bbolt's hashmap freelist (`hashMap.delSpan`; `shared.Allocate`, `mergeSpans`).
+- **Here.** `PidSetDeleteUnfold` (`Proof/go_etcd_io/bbolt/internal/freelist/Lemmas/HashDelete.lean`):
+  the literal map type's rule at `pidSet`, taken as a hypothesis by the proofs that need it (an
+  assumption on the semantics, to be discharged by the Perennial change).
+- **Proposal.** Generalize `delete_map` as `len_map` was: any type whose underlying type is a map.
+- **Status.** (2026-11-04) Branch `delete-map-named` of Perennial (`6e6b05af3`, off `lean`
+  `4c8617a9e`, pushed): `delete_map {t ..} [t ↓u go.MapType ..]`, `wp_mapDelete_underlying` (the
+  literal-type `wp_mapDelete` unchanged, derived), test `MapWrapper_delete` in unittest's
+  `NamedMapAssignment.lean`; the touched modules build. Not landed: it changes the trusted
+  semantics (`Perennial/Golang/Defn`), which Perennial's workflow (`AGENTS.md` item 4,
+  `fix-semantics` skill) lands only with the user's sign-off and the trusted-base review. Once it
+  lands: bump the pin and drop `PidSetDeleteUnfold`.
+
+### `strings.ToLower` has no spec (2026-11-04, bbolt's `internal/common`)
+
+- **Limitation.** `strings.ToLower` is names-only in Perennial, with no spec.
+- **Needed by.** bbolt's `common.Verify` (`getEnvVerify` is `strings.ToLower(os.Getenv(...))`,
+  `IsVerificationEnabled` compares with `strings.ToLower(verification)`).
+- **Here.** (2026-11-05, bbolt final wave D, the user approved the new trust) a local
+  trust-boundary axiom, `Spec/strings/ToLower.lean` / `Proof/strings/ToLower.lean`:
+  `{{ True }} strings.ToLower s {{ (r : GoString), RET #r; True }}` (any `hlc`, like
+  `os.Getenv`'s): it returns, without panicking, some string. `Verify` is proved over it and
+  `os.Getenv`'s (`Proof/go_etcd_io/bbolt/internal/common/Lemmas/VerifyNP.lean`).
+- **Proposal.** Perennial provides a translated or specified `strings.ToLower` (pure Go; its ASCII
+  fast path and its `strings.Map(unicode.ToLower, s)` path), at least "returns some string"; then
+  drop the local axiom.
+- **Status.** Not started in Perennial; local axiom in place.
+
+### `sort.SliceIsSorted` and `reflect.DeepEqual` have no spec (2026-11-05, bbolt's `internal/freelist`)
+
+- **Limitation.** Both are names-only in Perennial (they work through reflection: `SliceIsSorted`
+  takes the slice's length with `reflectlite.ValueOf(x).Len()`, `DeepEqual` walks its arguments'
+  dynamic types).
+- **Needed by.** bbolt's hashmap freelist: `hashMap.Init` panics unless its page ids are
+  `sort.SliceIsSorted`; `hashMap.mergeSpans`' `Verify` check panics unless `reflect.DeepEqual`
+  finds its free maps equal (two `map[Pgid]struct{}`).
+- **Here.** (2026-11-05, the user approved the new trust; until then hypotheses of bbolt's
+  `links_pending`) local trust-boundary axioms: `Spec/sort/SliceIsSorted.lean` /
+  `Proof/sort/SliceIsSorted.lean` (on a slice, with a `less` that answers `lt` on indices of the
+  slice and keeps a resource: returns whether no `less(i, i-1)`, calling `less` only on such
+  indices), and `Spec/reflect/DeepEqual.lean` / `Proof/reflect/DeepEqual.lean`
+  (`spec_pgidSet`: on two `map[Pgid]struct{}` held by map points-tos, which are non-nil, returns
+  whether they have the same keys; stated at that one type, as the map points-to is not indexed by
+  the Go type). Each file header says why it is true of Go.
+- **Proposal.** Perennial proves `sort.SliceIsSorted` over a model of `reflectlite.Value.Len` on
+  slices (its loop is plain Go), and gives `reflect.DeepEqual` a spec for maps of comparable
+  scalar keys and `struct{}` values; then drop the local axioms.
+- **Status.** Not started in Perennial; local axioms in place.
+
+### `wp_load`/`wp_store` through a whole-struct points-to (2026-11-04, bbolt's `internal/common`, U1)
+
+- **Limitation.** With `l ↦ v` for a whole struct `v`, `wp_load`/`wp_store` of one field
+  (`l.[S, "f"]`) do not find the field's points-to: the struct points-to must be split by hand
+  (`iStructNamed`) first and recombined after (`typedPointsto_combine`).
+- **Needed by.** U1's accessor proofs (`Proof/go_etcd_io/bbolt/internal/common/`), and every
+  proof that loads one field of a struct it owns whole (U8's `node.childAt`).
+- **Here.** Split and recombine by hand.
+- **Proposal.** An `IntoField`-style search in `wp_load`/`wp_store` that opens a whole-struct
+  points-to at the field and closes it again.
+- **Status.** Not started.
+
+### General lemmas to move to Perennial (2026-11-04, bbolt)
+
+- **U1's `Proof/go_etcd_io/bbolt/internal/common/Lemmas/Bytes.lean`**: byte points-to bounds,
+  byte slices over a byte points-to, persistence; copied from Perennial's
+  `unsafememory/Pages.lean`, an example's module that cannot be imported.
+- **U2's `Proof/go_etcd_io/bbolt/internal/freelist/Lemmas/SliceLen.lean`**: an owned slice of
+  `w64`s has fewer than `2^44` elements (its bytes lie below `maxAddr`).
+- **Proposal.** Move both into Perennial's `Golang/Theory` (with the `Pages.lean` copies'
+  origin), then drop the local copies. **Status.** Not started.
+
+### Heap: allocation returns a meta token (2026-11-03, bbolt's invariant design)
+
+- **Limitation.** GooseLang's allocation specs give the points-to of a fresh location but no
+  `metaToken l ⊤` (iris-lean's `GenHeap` has `metaToken`/`metaInfo`; Iris HeapLang's `wp_alloc`
+  hands out the token). Without it a library cannot attach ghost data to an object it allocates
+  (`metaInfo l N x`: timeless, persistent, agreeing), so a predicate keyed by the object alone
+  (`txBytes tx s b`, `boltBkt tx b n g`) cannot be tied to the ghost names of the object's owner
+  in a pure law; a package fact cannot carry such a registry either (a fixed proposition: a ghost
+  name inside it does not agree between two copies).
+- **Needed by.** bbolt's API (`Spec/go_etcd_io/bbolt/Api.lean`): `txBytes_acc`, `boltTx_fill`,
+  `boltCur_timeless` (the design `bbolt-inv/design.md`, D-C).
+- **Here.** The γ-free predicates take the database's ghost name instead (`txBytes tx γ s b`,
+  `boltBkt tx γ b n g`, `boltCur tx γ c …`, `curAt tx γ …`; decided by the coordinator, 2026-11-03;
+  `notes/decisions.md`, "bbolt's API spec"). The backend carries `γ.db` already.
+- **Proposal.** Every GooseLang allocation spec (`wp_alloc`, `GoAlloc`, composite literals'
+  addresses) also gives `metaToken l ⊤`, as HeapLang's does; a general change, not shaped by
+  bbolt. With it the extra `γ` could be dropped again (an API change then).
+- **Status.** Not started.
 ### Thread tokens by level: a goroutine of a counted wait group has no token (2026-11-04, lease-expiry P1)
 
 etcd's `EtcdServer.GoAttach` counts its goroutines in a wait group whose counter bound is the
@@ -804,6 +947,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   as `errors.New.spec` says), so a caller cannot show it differs from a package's error variable.
 - **Needed by.** rafthttp's `checkPostResponse`, whose `fmt.Errorf` errors must not be
   `errMemberRemoved` (`postErr`: `pipeline.post`'s caller reports only that one on `errorc`).
+  (2026-11-04, bbolt U4c) bbolt's `DB.allocate` compares `DB.mmap`'s error (an `fmt.Errorf`
+  error on its error paths) with `ErrMaxSizeReached` (`err == ErrMaxSizeReached`, stuck unless a
+  side's dynamic type is known comparable): `Mmap/Remap`'s `DB.mmap.spec` states its error
+  `errPtrTyped` instead, which `fmt.Errorf.spec`'s post would give with `IsPointerError`.
 - **Workaround here.** None yet: `checkPostResponse` is a spec only. (Stage 5e-3) The stream
   reader's `dial` uses a local trust-boundary spec, `Spec/fmt/ErrorfPlain.lean`: with no `%w` the
   error is an `*errors.errorString` (Go's `Errorf` returns `errors.New(s)`), whose `Error()`
@@ -1583,6 +1730,61 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
 
+## `ownMap` is not `DFractional` (2026-11-04, bbolt batch 34)
+
+Perennial has `ownMap_fractional` (the `Fractional` form at `DFrac.own q`) but no `DFractional`
+instance for `ownMap mref dq m`, so a predicate mixing map points-tos with other `DFractional`
+parts (bbolt's writer heap, `wtxHeap`) cannot get `Fractional` by instance search. Local: the
+private `ownMap_dfractional'` in `Proof/go_etcd_io/bbolt/Inv/WtxHeap.lean` (U5c's proof: through
+`ownMap_unseal` and `heapPointsto_dfractional`, persistence by `ownMap_discarded_persist` /
+`ownMap_persist`), which is general. The general change: that instance next to `ownMap_fractional`.
+
+## `sync.Once`'s spec is fixed to `HasLC.hasLC` (2026-11-04, bbolt batch 38)
+
+Perennial's `sync.Once` spec (`isOnce`, `Once.Do`) is stated at `HasLC.hasLC` only, so a proof
+generic in `hlc` (bbolt's, every internal spec) cannot use it. bbolt's `Open` steps `Do` on an owned
+zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_Do_own`, any
+`hlc`). The general change: an `hlc`-generic `Once` spec in Perennial.
+
+## `sync.Pool`'s `New` may assume a caller-lent resource (2026-11-04, bbolt U11h)
+
+- **Limitation.** `isPool p f P` required a persistent `{{ True }} New() {{ P x }}` at the pool's
+  creation. A `New` closure reading a variable its creator writes again later has no such spec:
+  bbolt's `Open` sets `pagePool.New = func() any { return make([]byte, db.pageSize) }` over its named
+  result `db`, which every `return` writes. The Go code is safe (`New` runs only in `Get`, reached
+  only while the database is open); the spec is too strict.
+- **Needed by.** bbolt's `Open` (`Proof/go_etcd_io/bbolt/Open.lean`, the page pool's `New`).
+- **Workaround here.** None (merged from the local branch `bbolt-pool-new-later`, 2026-11-05: no
+  `sorry` in `Open`): a `Get` caller lends `New` a
+  lease `poolR γbq N P` (U11i), and `New` borrows a fraction of `db`'s cell from `Open`'s protocol
+  `Open/PoolNew.dpProt` for its whole read, depositing `P` (saved under a name, the borrow in a
+  ghost map) as collateral; `Open`'s last write collects every fraction around one of its own
+  steps (`wp_step_fupd`), refuting a borrow still out by its lease and the whole token (U11j).
+- **Proposed change.** Perennial branch `pool-new-later` (`/home/ubuntu/perennial`, commit
+  `3b91c3ee1`, off the pin `b3e996d84`): `isPool p f R P` with
+  `newSpec f R P := ⌜f = nil⌝ ∨ {{ R }} f() {{ x, P x ∗ R }}`; `Get` takes and returns `R`; `Put`
+  and `init_Pool` take the parameter; `R := True` is the old spec (`newSpec_of_true`);
+  `init_Pool` consumes the pool's points-to, so the spec can be chosen after `Pool{New: f}` is
+  stored. No model or trusted change. With `sync.isPool_respec` (`c6d352196`: an `isPool` with
+  another `New` spec `R'` for which `newSpec f R' P` holds), so that a pool can serve a family of
+  lenders (`∀ Q, isPool p f (R Q) P`; `Open/PoolNew.init_Pool_all`).
+- **Status.** Landed (3dd730372, Perennial `lean`'s merge of `pool-new-later`). bbolt-v2 pins
+  `c6d352196` (its pin `b3e996d84` plus the two pool commits, in `lean`'s history); the catch-up
+  to `lean` (3dd730372 and later) comes with the merge of bbolt-v2 into this repository's `lean`.
+
+## `struct_wp_alloc_pos` in `Golang/Theory` (bbolt maintainer 13, 2026-11-04)
+
+- **Need.** A struct allocated by Go is at a positive address (`GoPrealloc` gives it:
+  `wp_GoPrealloc_pos`), which a byte view (`BytesView`) needs; `struct_wp_alloc` keeps only
+  `l ≠ null`. bbolt's `Tx.init` allocates the transaction's meta copy, which `writeMeta` views as
+  bytes.
+- **Where it is now.** `struct_wp_alloc_pos` exists only in Perennial's test example
+  (`Proof/github_com/mit_pdos/perennial/goose/testdata/examples/unsafememory/Meta.lean`).
+- **Workaround.** A copy in `Proof/go_etcd_io/bbolt/Txn/MetaAlloc.lean` (`bbolt.struct_wp_alloc_pos`,
+  `Meta.wp_alloc_pos` for `common.Meta`).
+- **Proposed change.** Move `struct_wp_alloc_pos` to `Perennial/Golang/Theory/Auto.lean` (beside
+  `struct_alloc_fields'`); ideally have the generated proofs give `T.wp_alloc_pos` per struct. Not
+  started.
 ### Prophecies in Lean only: `withProph` and `goose_adequacy_withProph` (2026-11-02)
 
 - **Missing.** A proof that needs a prophecy variable the Go code does not have (the etcd3 store's

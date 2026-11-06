@@ -26,6 +26,9 @@ The configuration, one directive per line, `#` comments:
     exempt REGEX          a regex on a file path for the linking files
     root MODULE           the Go package's module path below `Spec.`/`Proof.` (for
                           `etc/gen-interface.py --layout`: a spec's name is the file's path below it)
+    vocab MODULE          an API module of vocabulary under `Spec/`, not one function's spec (for
+                          `etc/gen-interface.py --layout`: not checked as a spec file, nor the
+                          `Proof/` module of the same path as its proof)
 
 usage: etc/api-check.py etc/api/raft.txt [--check] [--strict] [--list]
   --list prints the importable modules (expanded) and exits.
@@ -55,7 +58,7 @@ def load_config(path):
             importable.append(val)
         elif key == "exempt":
             exempt.append(re.compile(val))
-        elif key == "root":
+        elif key in ("root", "vocab"):
             pass  # etc/gen-interface.py's (the layout checks)
         else:
             sys.exit(f"{path}: unknown directive {key!r}")

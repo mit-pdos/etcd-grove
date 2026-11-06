@@ -1,12 +1,14 @@
 /-
 `os.Getenv(key)` (names-only in Perennial): the value of the environment variable `key`, or
-`""`; the spec says it returns some string (the environment is the deployment's). The trust boundary: an axiom, `Proof/os/Getenv.lean`. Lean-first (no Rocq
-counterpart).
+`""`; the spec says it returns some string (the environment is the deployment's). The trust boundary: an axiom, `Proof/os/Getenv.lean`. (2026-11-04) Stated for any `hlc`
+(it was for `HasLC.hasLC` only), so that bbolt's specs, which are, can call it (`internal/common`'s
+`getEnvVerify`). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Perennial.Code.os
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Code.os
+public import Perennial.Proof.ProofPrelude
+public import Perennial.Golang.Theory
 
 @[expose] public section
 
@@ -20,7 +22,7 @@ open Iris Iris.BI
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- See the file header. -/
