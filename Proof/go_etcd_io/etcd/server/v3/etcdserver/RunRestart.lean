@@ -7,7 +7,10 @@ counterpart).
 loop resources in restart form (`applyResR` at the restart point `⟨0, A₀⟩`, from `applyResR_start`),
 the batch jobs over `applyAll.specBatchR` (`run_job_bodyR`, with `Hwpend`'s window token borrowed by
 `winNoMergedSendR`), the stop inside the window over `StopR.lean`'s pieces and past it the frozen path.
-The snapshot arm is a `sorry` until item 2 (`applyAll.specSnapMR`).
+The snapshot jobs over `applyAll.specSnapMR` (`run_job_snapCR`, `RunSnapR.lean`), inside the window
+or past it. One `sorry` left, a pure fact: inside the window, the snapshot above the backend's log
+(`|A₀| < |A'|`, A8's `rnWinInstallAbove`), which the raft loop holds at the snapshot's `Ready` but
+the payload `rnApSnap` does not carry to the apply thread (task 4's report).
 * `isServerRunCR`: `isServerRunC` with `%HEr`, `Hsnap` and `Hstart` replaced by `srvRunRestartR`
   (A9's texts; the hub edit waits for the go, Q20);
 * `run.specR`: `run.spec` over `isServerRunCR`;
@@ -20,6 +23,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunR
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StartR
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopR
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ViewR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunSnapR
 
 @[expose] public section
 
@@ -168,13 +172,14 @@ local macro "ul_tail" : tactic => `(tactic| (
 
 set_option maxHeartbeats 0 in
 /-- **`run` at a restart** (R2d'a A10 item 4, DRAFT): `run.wp_proofG` over `isServerRunCR`. Its one
-`sorry` is the snapshot arm (item 2). -/
+`sorry`: the snapshot arm's in-window bound `|A₀| < |A'|` (`hwin`; see the header). -/
 theorem EtcdServer.run.wp_proofR
     (hSStop : schedule.Scheduler.Stop.spec (GF := GF) (hG := hG))
     (hRStop : raftNode.stop.spec (GF := GF) (hG := hG))
     (hCl : stopCleanupImage.spec (GF := GF) (hG := hG))
     (hClR : stopCleanupImageR.spec (GF := GF) (hG := hG))
     (hAB : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG))
+    (hAS : EtcdServer.applyAll.specSnapMR (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
@@ -570,9 +575,81 @@ theorem EtcdServer.run.wp_proofR
     icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
       (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok⟩ | Hsnp)
     rotate_left
-    · -- (R2d'a A10 item 4, DRAFT) the snapshot arm: past the window `applyResR_past` and the frozen
-      -- `run_job_snapC`; inside it `applyAll.specSnapMR` (item 2, task 4)
-      sorry
+    · -- (R2d'a task 4, DRAFT) the snapshot arm: `run_job_snapCR` over `applyAll.specSnapMR`, inside
+      -- the window or past it, `Hwpend`'s token framed; scheduled as the frozen arm's
+      icases Hsnp with ⟨%A', %sv, Happly, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hnc, #Hrac, #Hcl,
+        #Hrtok⟩
+      obtain ⟨hlt, hlenA, h61, hboot⟩ := Hlen
+      icases Hnc with ⟨%γnc, #Hncb, Hnrc⟩
+      have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]
+      have hρC : ρ.raft = γr.raft := by rw [hρ, HEγr]
+      have hnd0 : ρ.raft.raft = γn.node := by rw [hρ, Hnm.1]
+      have hgn : γn.node = γr.raft.raft := by rw [← hnd0, hρC]
+      have hp0 : γn.pre = [] := Hc0a.2.1
+      have ha0 : uint.nat ai₀ = 0 := by rw [Hc0a.2.2]; rfl
+      -- the snapshot above the ghost log: past the window Go's `|A| < |A'|`; inside it A8's bound
+      -- (`rnWinInstallAbove`), which the raft loop holds at the snapshot's `Ready` but which the
+      -- payload (`rnApSnap`) does not carry to the apply thread: the one gap left (task 4's report)
+      have hwin : (ghostOf ⟨0, A₀⟩ A).length < A'.length := by
+        by_cases hw : A₀.length ≤ A.length
+        · rw [ghostOf_past ⟨0, A₀⟩ A hw]; exact hlt
+        · have hab : A₀.length < A'.length := sorry
+          have := ghostOf_length ⟨0, A₀⟩ A
+          simp only at this
+          omega
+      ihave #HC' : iprop(srvCM C.isOn ρ E ai₀ c₀ x₀ A') $$ []
+      · rw [← HEC]; iexact HC
+      (try wp_auto)
+      wp_func_lits
+      (try wp_auto)
+      ipersist ap
+      ihave #Hapf := ap
+      iStructNamedSuffix Hapf "A"
+      ihave #HC'' := HC'
+      iunfold srvCM at HC''
+      icases HC'' with ⟨-, -, #Hlbr⟩
+      imod (schedule.savedProp_alloc iprop(applyResR C ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ ⟨0, A₀⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗ token γwp))
+        with ⟨%post, #Hpost⟩
+      wp_apply hNJ γs _ _ iprop(R ∗ notifyRcvN γnc 0) Q
+          iprop(applyResR C ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ ⟨0, A₀⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗ token γwp) $$ [] as %j #Hj
+      · iframe #
+        iunfold schedule.jobFnSpec
+        iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc⟩, HQ, -, -⟩ HΦj
+        ihave ⟨Hres, Hhalf, Hwp⟩ := HQR $$ [HQ HR']
+        · iframe
+        wp_auto
+        wp_bind (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll"))
+          (Val #ep_ptr)) (Val #ap_ptr))
+        iapply (run_job_snapCR hAS ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ ⟨0, A₀⟩ A A' ap_ptr apv.entries' apv.snapshot' sv
+          apv.raftAdvancedC' apv.notifyc' γs γnc γn apv.raftTerm' C hM ha0 Hc0a.1 hp0 hgn hρC
+          (by rw [← hρC, hρ]; exact Hnm.2.1) rfl rfl hwin hlenA h61 hboot rfl) $$ [Hrun Hres Hnrc]
+        · iframe #
+          iframe Hrun Hres Hnrc
+        inext
+        iintro ⟨Hrun, Hres⟩
+        wp_auto
+        iapply HΦj
+        iframe
+      wp_apply hSch sci γs j iprop(R ∗ notifyRcvN γnc 0) Q
+          iprop(applyResR C ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ ⟨0, A₀⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗ token γwp) (some (Ps, pl, post))
+        $$ [HR Hnrc Hq] as Hq
+      · iframe #
+        iframe
+        simp only [schedule.schedPre]
+        iframe #
+        iunfold named at Hq
+        iexact Hq
+      simp only [schedule.schedPost]
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists A', Ps ++ [pl], post, iprop(applyResR C ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ ⟨0, A₀⟩ A' ∗ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗ token γwp), iprop(True)
+      simp only [List.append_assoc, List.cons_append, List.nil_append]
+      iframe
+      iframe #
+      iunfold named
+      iintro !> ⟨H, -⟩
+      iexact H
     -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
     icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩
     have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]

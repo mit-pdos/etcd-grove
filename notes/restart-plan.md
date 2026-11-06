@@ -3868,3 +3868,66 @@ The text can be generated from the frozen ones as `ApplySnapshotR`'s was. Est. 1
 - The `rnWinInstallAbove` bound reaches the arm through `#Hrok` (`rnRestartOk`'s restart disjunct;
   at the first start `a0 = []`, so there is no window).
 - Est. 1-1.5 d.
+
+#### R2d'a task 4, steps 1-3: the snapshot arm in; one pure `sorry` left, a gap in the payload (2026-11-06; DRAFT)
+
+**In** (branch `r2dp`, three commits, no frozen file touched, no new axiom):
+- `ApplyAllSnapR.lean` (new): `applyAll.specSnapMR` and `wp_proofSnapMR`, sorry-free. The frozen
+  `specSnapM` with the applied index split: binders `g` (ghost) and `r0` (the rest's image); `ai ≤ g`,
+  `g < snapIdx`, `uint.Z g = |A|`, `ciEff ≤ g`, `hids` (the image's members have the model's ids);
+  `srvAppliedOwn γr g ∗ appliedLogAt γr g x.log`, `srvRestRp E γr A r0`. Go's `ai` stays in
+  `epAppliedI`, `srvSnapState`, `srvSnapOwn`. The post is `specSnapM`'s. The proof is generated from
+  `ApplyAllSnap.wp_proofSnap` (off) and `ApplyAllSnapOn.wp_proofSnapM` (on) by text replacements
+  (`snapDir_take` at `g`, `snapRecv_imageR`/`snapRecv_imageOnR` at `g`/`r0`/`hids`,
+  `applySnapshot.specSnapMR` at Go's `ai` and `r0`, `applied_jump(M)` from `g`; on, the cluster's
+  `E.lg = false` read off the lease mode instead of `srvRest_revocable`). After c9's threadTok fix
+  lands, regenerate it the same way from the new frozen text (the replacements are listed in the file's
+  header; the generator was a throwaway script).
+- `RunSnapR.lean` (new): `run_job_snapCR`, sorry-free, one proof over the component `K` (rows through
+  `isServerM_C`/`srvApplyKVM_C`/`kvRunM_split`, token rights `acTok_mono`, the start chain
+  `isServerC_ch0`), inside the window and past it: `srvRestR_img` puts the rest at an image of the ghost
+  log with the model's ids (inside, `restReplay` of `A₀`; past, the model). Pre: `applyResR K C rp A`,
+  Go's handed log committed (`srvRLogLb ρ.raft A`, the loop's `#HlbA`), and `hwin : |ghostOf rp A| <
+  |A'|`. Post: `applyResR K C rp A'` (Go past the window).
+- `RunRestart.lean`: the snapshot arm (the frozen arm's text over `run_job_snapCR`, `Hwpend`'s token
+  in the saved prop), `run.wp_proofR` takes `hAS : applyAll.specSnapMR`.
+
+**The one `sorry` left: `hwin`'s in-window case, the pure fact `|A₀| < |A'|`** (`RunRestart.lean`,
+the snapshot arm, `have hab : A₀.length < A'.length := sorry`). **A gap, not closable in the R-files.**
+A8's bound (`rnWinInstallAbove`) needs `nodeDriver γ.nl … st` at a snapshot `Ready`; the raft loop
+holds that (`NodeBridge`'s `Advance`, and `raftNode__start.lean`'s `Ready`-snapshot branch, where
+`rnBusySP`'s `Hpend`/`Hbcv` give the driver and `#Hrok`), but the payload it sends on `applyc`,
+`rnApSnap` (`InvRaftNode.lean:1903`), carries no fact about `γ.a0`, so the apply thread
+(`rnApplyTok_recv`'s snapshot disjunct) cannot learn it; the checkpoint's "through `#Hrok`" does not
+work (the apply thread has no `nodeDriver`). Not a new premise: A8 is true at the producer. Fix
+(recommended): `rnApSnap`'s pure gains `⌜γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length⌝`, proved in
+`raftNode__start.lean` at the `rnApSnap` send from `rnRestartOk` (`rnCfgAt`'s `#Hrok`, first case
+`a0 = []`) and `rnWinInstallAbove` on the busy driver (as `NodeBridge.lean:570-578` does, with
+`hlenA`); `rnApplyTok_recv` passes it through; `newRaftNode.lean`'s unfold and `rnApP_rtOk` unchanged
+in substance. Files: `InvRaftNode.lean`, `raftNode__start.lean`, `InvRaftLoop.lean` (frozen raft-node
+texts, beyond the R-files: stopped here, for 82/the user). Est. 0.5 d. Then the arm's `sorry` is
+`Hab'.resolve_left` with `Ha0`.
+
+**Checks:** targeted builds of the three files; `#print axioms`: `run_job_snapCR` and
+`wp_proofSnapMR` have no `sorryAx`; `run.wp_proofR` has the one above. Full build: clean (13400
+jobs). `etc/tcb-report.py --check`: matches the baseline (817 axioms, 4 sorries).
+
+**c9's threadTok fix (begin-tok), after its merge:** the call sites to thread, kept at the frozen
+proofs' structure: `ApplyAllSnapR.lean` `wp_apply (hCM …)` (off, ~l. 594; on, ~l. 1076) and
+`mergedCreate_window … hSnap …` (l. 587, 1069; unchanged signature, but `backend.Snapshot.spec`'s);
+`ApplySnapshotR.lean`'s `applySnapshot_walk … hOSB …` (l. 424, 515: OpenSnapshotBackend's
+`ThreadBoundLe` instance, inside the walk). `RunSnapR.lean` calls none. Simplest: regenerate
+`ApplyAllSnapR.lean` from the merged frozen files with the header's replacements.
+
+**The final hub edit, as seen from the finished `run.wp_proofR`** (not applied; after c9's merge):
+- `isServerRunC`'s `%HEr`, `Hsnap`, `Hstart` → `"HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀
+  at₀ c₀ x₀ ρ.wait` (A9's `∃ A₀`, `StartR.lean:127`); its producers (`isServerRunC`'s builders in
+  `AuthCompRows.lean`/`RunOn`/`StartOn`/`start`) give it at a first start by `srvRunRestartR_first`.
+- `srvSnapBagN`: **no hub supply needed**: `run.wp_proofR` builds it from `isServerRunC`'s `#Hmid`
+  and `#Hrn` (`isRaftNode`'s `#Hmsc`/`#Hmsci`).
+- `Hwpend`: already in `isServerRunC`/`isServerBuiltC` and passed through (item 5); `run.wp_proofR`
+  opens it (`token γwp` and its wand). Nothing more.
+- `run.wp_proof` := `run.wp_proofR`, its new hypotheses linked: `applyAll.specBatchR`
+  (`wp_proofBatchR`), `applyAll.specSnapMR` (`wp_proofSnapMR`, whose callees are `wp_proofSnapM`'s
+  minus `hSnapOff`, with `applySnapshot.specSnapMR` from `wp_proof_snapMR`), `stopCleanupImageR.spec`
+  (`stop_cleanup_imageR`); `etc/gen-link.py --server`'s config gains them.
