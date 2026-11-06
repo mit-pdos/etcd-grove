@@ -3199,3 +3199,61 @@ A10's estimate (1.5-2.5 wk (est.)) stands. With (a): **R2d'a's remainder is abou
 **Step 0** (before any edit): the full build of the merged tree (`c30b39864d`, which merged lean's
 `3f9a18065c` revoke-open) passed: 13378 jobs, no error, and no merge fallout to fix. `etc/tcb-report.py
 --check` matches `etc/tcb-baseline.txt` (817 axioms, 4 sorries).
+
+##### A6 (approved by 82): stopped before any edit; the first start's `A₀ = []` has no source in the six files (2026-11-06)
+
+82 approved option (a) above: A6's raft-side view at `σ.b = 0`, with the edit kept to `InvRaftNode`,
+`InvRaftLoop`, `raftNode__start`, `NodeBridge`, `NodeStart` and `newRaftNode` "plus following uses",
+and A6 committed separately from A9 + A10. Nothing was edited, because of what A6 then forces
+elsewhere:
+
+- **The design inside the six files works.**
+  - `RNNames` gains a field `a0`, which only `newRaftNode.lean:131` constructs.
+  - `rnCfgAt γ L` becomes the view over `(γ.pre ++ L) ++ γ.a0.drop |γ.pre ++ L|` (ViewR's
+    `rnCfgAtR`), plus the restart data, which is persistent: `⌜γ.a0 = []⌝ ∨ (⌜γ.pre = []⌝ ∗
+    srvRLogLb γ.srv γ.a0)`.
+  - `rnApGive`/`rnApR` use the bare view (`rnApGiveR`/`rnApRR`).
+  - `rnCfgAt_back_false` takes the batch's `srvRLogLb E.γr.raft (L ++ ce)`, the loop's `HLb`
+    (`raftNode__start.lean:1242`), with `rnEnvOk`'s name equations, so that `srvRLogLb_prefix`
+    gives prefix-comparability.
+  - `rnCfgAt_back_true` takes the restart data, copied out of `Hcv` at `raftNode__start.lean:1207`.
+  - `NodeBridge`'s `Advance` (`:510-545`) needs no comparability: Go's log is a prefix of the ghost
+    one, so `NoConfChangeIn` restricts to it.
+  - `NodeStart` builds the view at `a0 = []` (`srvCfgOk_nil`).
+- **But `run` loses its first start.** The apply side's bridges become `rnApR γ A ce = dvView γs
+  dv (ghost …)` (`rnApR_dv`, and likewise `rnApGive_dv`). Today's `run.wp_proof`
+  (`EtcdServer__run.lean:610-612`) then needs `γn.a0 = []` to turn that into the first start's
+  `dvView … (A ++ ce)`. Nothing states it:
+  - `newRaftNode`'s value of the field is hidden behind `bootstrappedRaft.newRaftNode.spec`'s `∃ γw`,
+    whose post fixes `γw.pre = pre` but cannot mention a field that does not exist today
+    (`Spec/…/bootstrappedRaft__newRaftNode.lean:99-101`);
+  - `NewServer`/`InvBuild` would carry it to `isServerBuiltC`'s `%HEr`, `start`
+    (`StartOn`/`ServerOn`) to `isServerRunC`'s `%HEr`, and `run` would read it.
+  - No representation avoids this. `rnCfgAt` sees only `γ` and `L`, so `A₀` must live in `RNNames`,
+    and only `newRaftNode` knows its value. An existential `A₀` inside `rnCfgAt` would not be pinned
+    to the apply side's.
+- **So A6 cannot be committed alone.** Even in the final A9 + A10 form, `start` needs `γn.a0 = []` to
+  use the first-start laws (`rnSnapOnceR_first`, `srvRestartAtR_first`) at `A₀ = γn.a0`.
+
+**What is needed beyond the six files** (one pure conjunct, threaded):
+- `bootstrappedRaft.newRaftNode.spec` (frozen) gets `γw.a0 = []` beside `γw.pre = pre`, and its
+  proof is one line;
+- `NewServer`/`InvBuild` thread it;
+- `isServerBuiltC`'s and `isServerRunC`'s `%HEr` get `γn.a0 = []` (hub; in A9, `isServerRunC`'s
+  becomes `∃ A₀, γn.a0 = A₀ ∧ …`); so do the old `isServerBuilt`/`isServerRun`/`isServerRunOn` if they
+  are still built;
+- `StartOn`/`ServerOn`/`start` pass it, and `run` uses it in `rnApR_dv`/`rnApGive_dv`'s first-start
+  forms.
+
+That is about 12 files: `Spec/…/bootstrappedRaft__newRaftNode.lean`, `bootstrappedRaft__newRaftNode.lean`,
+`InvBuild`, `NewServer`, `AuthCompRows`, `InvStart`, `InvRun`, `RunOn`, `StartOn`, `ServerOn`, `start`'s
+proof and `EtcdServer__run`.
+
+**Options.**
+- **(a) Approve those edits as A6's following uses.** One frozen spec gains a pure conjunct, and the
+  two hubs' `%HEr` gain `γn.a0 = []`. A6 lands as one commit with them, and A9 later turns
+  `isServerRunC`'s into `∃ A₀`. Est. +1 d (est.) over A6's 3-5 d.
+- **(b) Do A6 + A9 + A10 as one commit** (the same edits, with `isServerRunC` at `∃ A₀` directly).
+  This drops the "A6 separately" condition.
+
+**Recommendation: (a).**
