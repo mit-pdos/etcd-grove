@@ -84,10 +84,6 @@ theorem etcdstart.memberBuilt.congr_simp (s s✝ : Loc) (e_s : s = s✝) (ρ ρ�
     : x₀ = x₀✝) (m m✝ : lease.Mode) (e_m : m = m✝) : etcdstart.memberBuilt s ρ E₀ lg γn id N served
     ai₀ at₀ c₀ x₀ m = etcdstart.memberBuilt s✝ ρ✝ E₀✝ lg✝ γn✝ id✝ N✝ served✝ ai₀✝ at₀✝ c₀✝ x₀✝ m✝
 
-theorem lease.bootCfg.congr_simp [raftAsm : Assumptions] (lm lm✝ : lease.Mode) (e_lm : lm = lm✝) (m
-    m✝ : lease.Mode) (e_m : m = m✝) (on on✝ : Bool) (e_on : on = on✝) : lease.bootCfg lm m on =
-    lease.bootCfg lm✝ m✝ on✝
-
 theorem srvBuilt.congr_simp (s s✝ : Loc) (e_s : s = s✝) (γ γ✝ : ApplyNames) (e_γ : γ = γ✝) (ci ci✝ :
     Loc) (e_ci : ci = ci✝) (TM TM✝ : MetaCI → IProp GF) (e_TM : TM = TM✝) (E E✝ : apply.AEnv GF)
     (e_E : E = E✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ = ρ✝) (γr γr✝ : ReadNames) (e_γr : γr = γr✝) (Er Er✝ :

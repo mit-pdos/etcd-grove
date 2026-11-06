@@ -117,8 +117,17 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   mode (`lessorRevocable`), are not called. Ghost state only.
 * (The lease-expiry plan's E3 (c), route A, the user's approval 2026-11-05) **The ids the lessor
   ever had** (`leaseEver γl []`), ghost state only: a ghost variable at `[]`, allocated with the
-  readers' names (their fourth, `γr.2.2.2`), halved between the readers' invariant (which also
-  keeps `histOnce` and `histIn` of the single empty snapshot, trivially) and the caller.
+  readers' names (their fourth, `γr.2.2.2.1`), halved between the readers' invariant (which also
+  keeps `histOnce` and `histIn` of the single empty snapshot, and (the S2–S4 Probe, 2026-11-05)
+  `histCover` of `[]`, trivially) and the caller.
+* (The lease-expiry plan's S2–S4, Q-S6 (A-ii), the user's approval 2026-11-05) **The leases'
+  requested TTLs** (`leaseReqIs`), ghost state only: a ghost map, allocated empty with the readers'
+  names (their fifth, `γr.2.2.2.2`), its whole authority in the readers' invariant, which keeps
+  `reqOk` of the single empty snapshot and the empty map trivially (no lease, no TTL, no request).
+  Allocatable because a fresh ghost map at `∅` is (`ghost_map_alloc`), before `γl`'s element pins
+  the names. It makes no claim about Go: no Go state is read or written for it, and nothing about
+  `NewLessor`'s code depends on it; `Grant` and `Recover` (proved) are what insert requests and keep
+  every TTL above them.
 * (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
   for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
 abbrev lease.NewLessor.spec : Prop :=

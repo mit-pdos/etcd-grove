@@ -600,9 +600,10 @@ instance srvAuthSnapOk_persistent (s : Loc) (γa : auth.AuthNames) (RD : IProp G
 
 /-- **The image's auth facts by the auth mode** (F9, the user's decision of 2026-11-03: one
 `specSnap` over `E.authMode`): `off`, lean's `hauthb` (the auth buckets at `authBoot`/empty); `on`,
-the auth buckets in the table, the image's auth buckets holding the state after its log `A'`, which
-extends the applied log `A`, below raft's bound (`snapRecv_imageOn`'s); `any`, nothing (excluded by
-the specs' `E.authMode ≠ .any`). -/
+the auth buckets in the table, the image's auth buckets holding the state after its log `A'`, below
+raft's bound (`snapRecv_imageOn`'s); `any`, nothing (excluded by the specs' `E.authMode ≠ .any`).
+(The lease-expiry plan's S2–S4, review r2 S2, DRAFT 2026-11-06: the `on` arm no longer repeats
+`A <+: A'`, a premise of `specSnapM` in every mode.) -/
 def snapAuthImgM (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
     (A A' : List EntryModel) : Prop :=
   match M with
@@ -611,12 +612,12 @@ def snapAuthImgM (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams) (D 
       ((backend.rbData P D).lookup go!"authRoles").getD ∅ = ∅
   | .on _ => (P.has mvcc.authBI ∧ P.has mvcc.authUsersBI ∧ P.has mvcc.authRolesBI) ∧
       authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData P D) ∧
-      A <+: A' ∧ A'.length < 2 ^ 61
+      A'.length < 2 ^ 61
   | .any => True
 
 /-- **The rest model's buckets after the snapshot's entries `A'`, by the mode** (F9; S8d's named
-premise): the image's rest buckets (with the lessor's and the alarm store's emptied by their
-`Recover`); with auth on, all but the auth ones (the rest model does not model the admin writes:
+premise): the image's rest buckets, the lessor's and the alarm store's aside (the lease bucket
+the records', `imageLeasesAt`; the alarm bucket empty); with auth on, all but the auth ones (the rest model does not model the admin writes:
 its auth buckets stay `authBoot`). -/
 def snapRestImgM (on : Bool) (γr : ReadNames) (P : backend.BParams) (D : backend.Data)
     (A' : List EntryModel) : Prop :=
@@ -628,13 +629,14 @@ def snapRestImgM (on : Bool) (γr : ReadNames) (P : backend.BParams) (D : backen
       (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData P D))).lookup n
 
 /-- **The auth store's `Recover` facts, by the mode** (F9): `off`, lean's `authRecoverOk`; `on`,
-the store's invariant at the server's read resource with the snapshot clause (`srvAuthSnapOk`) and
-the image's committed log (`srvRLogLb … A'`); `any`, nothing (excluded by the specs). -/
+the store's invariant at the server's read resource with the snapshot clause (`srvAuthSnapOk`);
+`any`, nothing (excluded by the specs). (Review r2 S2, DRAFT 2026-11-06: the `on` arm no longer
+repeats the image's committed log `srvRLogLb … A'`, a pre of `specSnapM` in every mode.) -/
 def snapAuthResM (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF) (γr : ReadNames)
     (A' : List EntryModel) : IProp GF :=
   match M with
   | .off => authRecoverOk ast
-  | .on γa => iprop(srvAuthSnapOk s γa RD ∗ srvRLogLb γr.raft A')
+  | .on γa => srvAuthSnapOk s γa RD
   | .any => iprop(True)
 
 instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp GF)
@@ -643,15 +645,14 @@ instance snapAuthResM_persistent (M : auth.AuthMode) (s ast : Loc) (RD : IProp G
   cases M <;> unfold snapAuthResM <;> infer_instance
 
 /-- **`applySnapshot.specSnapM`'s auth facts in the mode `on`**, from `srvSnapRO`'s row
-(`authSnapKitM`) and the image's committed log. -/
+(`authSnapKitM`). -/
 theorem snapAuthResM_on (s ast : Loc) (E : apply.AEnv GF) (γr : ReadNames) (A' : List EntryModel)
     (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
-    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ∗
-      srvRLogLb γr.raft A' ⊢ snapAuthResM E.authMode s ast E.RD γr A' := by
+    srvAuthStoreAddr s ↦□ auth.authIface ast ∗ authSnapKitM E.authMode ast E.RD ⊢
+      snapAuthResM E.authMode s ast E.RD γr A' := by
   rw [hM]
   simp only [authSnapKitM, snapAuthResM]
-  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩, #Hl⟩
-  iframe Hl
+  iintro ⟨#Ha, ⟨%R, #Hi, #Hs, %Hrd⟩⟩
   iunfold srvAuthSnapOk
   iexists ast, R
   iframe Ha Hi Hs

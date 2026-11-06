@@ -425,7 +425,7 @@ theorem acSnapOk_intro (C : AuthC) (s ast : Loc) (E : apply.AEnv GF) (γr : Read
     have h := snapAuthResM_on s ast E γr A' γa hC
     rw [hC] at h
     iapply h
-    iframe Ha Hk Hl
+    iframe Ha Hk
 
 /-! ### Backend change -/
 

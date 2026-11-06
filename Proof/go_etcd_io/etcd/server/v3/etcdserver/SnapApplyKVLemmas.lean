@@ -60,8 +60,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **No lease is needed of the restored state** (`leasesKnown []`). -/
-theorem leasesKnown_restore (R : mvcc.Log) (h : mvcc.restoreLogOk R) :
-    ⊢ txn.leasesKnown (GF := GF) [] (mvcc.stateAfter ([[], []] ++ R)) := by
+theorem leasesKnown_restore (L : List w64) (R : mvcc.Log) (h : mvcc.restoreLogOk R) :
+    ⊢ txn.leasesKnown (GF := GF) L (mvcc.stateAfter ([[], []] ++ R)) := by
   have hz := mvcc.stateAfter_leaseZero _ (logNoLease_restore R h)
   unfold txn.leasesKnown txn.leasesOk
   iintro !> %l %hl
@@ -78,14 +78,15 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
     (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (al ast lp cl : Loc)
     (d' : mvcc.KBReal) (γw : mvcc.WsNames) (ws : Loc) (R : mvcc.Log)
     (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
-    (hRok : mvcc.restoreLogOk R) (hrb : receiptBound GF ≤ 2 ^ 48) (hlg : E.lg = false) :
+    (hRok : mvcc.restoreLogOk R) (hrb : receiptBound GF ≤ 2 ^ 48) (L : List w64) :
     mvcc.isWatchableStore ws E.s γw ∗ mvcc.storeReader E.s E.γ ∗
       mvcc.writerFrag (γw.st.withPhys p') ∗ mvcc.watchWriter { γw with st := γw.st.withPhys p' } ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ⊢
+      lease.leaseOwn E.γ.leases L ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases L ∗
+      apply.ltHalf E L ∗ E.RD ⊢
     apply.kvOwn (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) ([[], []] ++ R) := by
-  iintro ⟨#Hws, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD⟩
+  iintro ⟨#Hws, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HLt, HRD⟩
   iunfold apply.kvOwn
   rw [storeReader_snapE, snapE_γ, snapE_s, snapE_RD]
   rw [← hγw]
@@ -117,11 +118,12 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
       ipureintro; rfl
     · iexact Hfrag
   · unfold apply.leasesLive lease.lessorUser
-    iexists []
-    ihave #Hlk := leasesKnown_restore (GF := GF) R hRok
+    iexists L
+    ihave #Hlk := leasesKnown_restore (GF := GF) L R hRok
     iframe Hlk
     rw [snapE_γ, ← hγw, show (γw.st.withPhys p').leases = γw.st.leases from rfl]
-    rw [apply.ltHalf_false _ _ (by rw [snapE_lg]; exact hlg)]
+    rw [show apply.ltHalf (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) L = apply.ltHalf E L from rfl]
+    iframe HLt
     ihave Hlo := lease.leaseOwn_eq (mvcc.leaseItemsOf_zero _
       (mvcc.stateAfter_leaseZero _ (logNoLease_restore R hRok))).symm $$ Hlo
     iframe Hlo Hlr Hrv

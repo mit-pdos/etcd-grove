@@ -37,7 +37,9 @@ on an error they are left. (The lease-grant plan's D2, 2026-11-02) The new lease
 history (`leaseLiveFrom γl 0 id l`: the snapshot `Grant` appends under `le.mu`, with `l` at `id`),
 which a monotone lessor keeps (`leaseGrantedAt_of_live`). (The lease-expiry plan's E3 (c),
 2026-11-05) The ids the lessor ever had, `U` (`leaseEver`): `id` must be new to them unless the
-lessor is monotone (so that an id is one lease over an interval of the history), and is added. -/
+lessor is monotone (so that an id is live over an interval of the history), and is added. (The
+lease-expiry plan's S2–S4, Q-S8, 2026-11-05) The new lease's request is `ttl` (`leaseReqIs`): every
+TTL the history gives `id` is at least `ttl` (`leaseTTLAt_ge_req`). -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (I : GMap LeaseItem w64) (P : IProp GF)
     (f : val) (T Ln R : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF)
@@ -53,7 +55,7 @@ abbrev lease.lessor.Grant.spec : Prop :=
         lsF go!"ID" l ↦□ id ∗ leaseLiveFrom γl 0 id l ∗ ∃ mt : w64, lF go!"minLeaseTTL" lp ↦□ mt ∗
         lsF go!"ttl" l ↦□ grantTTL mt ttl ∗
         Rb (mvcc.rbSet rb mvcc.leaseName (u64Le id).reverse (leaseEnc id (grantTTL mt ttl) (W64 0))) ∗
-        leaseEver γl (U ++ [id]))) }}
+        leaseEver γl (U ++ [id]) ∗ leaseReqIs γl id ttl)) }}
 
 end spec
 

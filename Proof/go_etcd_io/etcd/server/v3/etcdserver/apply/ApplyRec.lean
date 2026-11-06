@@ -88,7 +88,7 @@ abbrev apply.Apply.specRec : Prop :=
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
         apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
-        (∃ t : w64, E.RO (apply.revokeRestA T rq v3 out
+        (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
           (apply.grantRestA t rq v3 out (apply.restOut rq v3 out rs)))) ∗
         ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.grantResA E rq out ar ∗
         apply.revokeAnsRA E rq out ar ∗
@@ -141,7 +141,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
         apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
         apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
-        (∃ t : w64, E.RO (apply.revokeRestA T rq v3 out
+        (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
           (apply.grantRestA t rq v3 out (apply.restOut rq v3 out rs)))) ∗
         ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.cmpOwn E x'.crev ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o sk) ∧
@@ -209,7 +209,10 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
     isplitl [HRO]
-    · iexists (W64 0); iexact HRO
+    · iexists (apply.grantTTLW rq)
+      isplitr
+      · ipureintro; exact apply.grantTTLOk_w rq
+      iexact HRO
     isplitr
     · ipureintro; trivial
     isplitr

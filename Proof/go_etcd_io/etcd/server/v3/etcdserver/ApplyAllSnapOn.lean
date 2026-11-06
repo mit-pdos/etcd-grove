@@ -77,14 +77,14 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk q γn rt n
-    sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn hnI
+    sa hany hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn hnI
   cases hM : E.authMode with
   | any => exact absurd hM hany
   | off =>
     have hon : E.authOn = false := by simp [apply.AEnv.authOn, hM]
     rw [hon] at hch ⊢
     exact hSnapOff s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid
-      nk q γn rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hlgk hγn (by rw [hraft]) hnI
+      nk q γn rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn (by rw [hraft]) hnI
   | on γa =>
   have hon : E.authOn = true := by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]
   rw [hon] at hch ⊢
@@ -110,6 +110,9 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   iunfold srvKVInvsOn at Hkvi2
   icases Hkvi2 with ⟨#HkI0, -, #Hrli, -, -, -, %Hcmlg⟩
   have Hcmf := Hcmlg.1
+  -- (the lease-expiry plan's S2–S4, 2026-11-05: until then the spec's premise) auth on, the
+  -- cluster grants none (`srvKVInvsOn`'s)
+  have hlgk : γr.kv.lg = false := Hcmlg.2
   -- the cluster runs auth on, the member's KV invariant says
   imod (kvInvOn_authOn γr.raft γr.kv srvAuthSt0) $$ HkI0 with %hao
   -- the applied auth state is the applied log's
@@ -137,6 +140,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   · iExactEq HlpM <;> rfl
   ihave ⟨%HElg, HRS⟩ := srvRest_revocable E γr A .none (by decide)
     (by rw [apply.AEnv.lg_eq, hEm]) $$ [$HlpM $Hlrev $HRS]
+  ihave #HlpE : lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)) $$ []
+  · rw [hEm]; iexact HlpM
   rw [← srvRest_false E γr A HElg]
   icombine Hnid Hidm gives %Hidn
   subst Hidn
@@ -174,7 +179,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   obtain ⟨tI, hmeta⟩ := Hif.hmetaI
   -- the auth store's `Recover` facts at the image's log
   ihave #HauS : snapAuthResM E.authMode s ast E.RD γr A' $$ []
-  · iapply snapAuthResM_on s ast E γr A' γa hM; iframe Hauf HauSK HA'
+  · iapply snapAuthResM_on s ast E γr A' γa hM; iframe Hauf HauSK
   -- the backend's own resources
   iunfold srvSnapRes at Hsres
   icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, HKC, #Hdd, Hpath, -⟩
@@ -210,15 +215,15 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   have hS := hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hlg hmm tI hmeta st b (by omega)
-      al ast lp cl x A hRO Hif.hlease hwq R Hif.hpre Hif.hRok r
+      al ast lp cl x A hRO hwq R Hif.hpre Hif.hRok r
       (fun h => by rw [hcm, Hcmf] at h; cases h) Hif.hkI hbr hlp γp hrb stp γd γt
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm
       halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      (by rw [hon]; exact Hif.hA') hany
-      (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI, Hif.pre,
+      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (by rw [hraft]) Hmo hany
+      (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI,
         by have := Hif.len; omega⟩)
-      γnc HElg
+      γnc
   rw [hon] at hS
   simp only [srvApplyKVM_true] at hS
   wp_apply hS

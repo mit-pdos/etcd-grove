@@ -636,7 +636,8 @@ image, either arm). -/
 theorem bkRestIf_of_rb {P : backend.BParams} (hRB : ∀ n ∈ restBuckets, P.RB n = true)
     (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (f : w64 → w64) (D : backend.Data)
     (hrb : backend.rbData P D = (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
-      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk) :
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     if E.lg then bkRestAtL γr.kv γr.raft.raft.boot (γr.raft.pre ++ A) D
     else bkRestAt γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
   unfold srvIds at hrb
@@ -644,17 +645,18 @@ theorem bkRestIf_of_rb {P : backend.BParams} (hRB : ∀ n ∈ restBuckets, P.RB 
   · simp only [h, Bool.false_eq_true, ↓reduceIte, apply.restLeasesWith_nil] at hrb ⊢
     exact bkRestAt_of_rb hRB hrb
   · simp only [h, ↓reduceIte] at hrb ⊢
-    exact bkRestAtL_of_rb hRB f hrb
+    exact bkRestAtL_of_rb hRB f (hfb h) hrb
 
 /-- **The rest buckets of `D` the committed log's, of the buckets the rest resource holds in the
 mode `M`** (the auth-on snapshot plan's P5, 2026-11-03): `bkRestAt` at the cluster's buckets and
 `restSet M`'s, which in `on` leaves out the auth store's (whose contents are the auth realization's,
 not the rest model's); with the records of the leases `T` at some TTLs (the lease-grant stage's
-`bkRestAtL`; `T` empty in a cluster that grants none). -/
-def bkRestAtM (M : auth.AuthMode) (T : List w64) (c0 : w64) (bootLog : List EntryM)
+`bkRestAtL`; `T` empty in a cluster that grants none), (the lease-expiry plan's S2–S4, Q-S6 (A-ii),
+2026-11-05) the TTLs at least the table's requests (`leaseTTLsGeReq`). -/
+def bkRestAtM (M : auth.AuthMode) (T : LeaseTable) (c0 : w64) (bootLog : List EntryM)
     (L : List EntryModel) (D : backend.Data) : Prop :=
-  ∃ f : w64 → w64, ∀ n ∈ restBuckets, (membership.clusterBkts n ∨ restSet M n) →
-    D.lookup n = (apply.restLeasesWith f T (restModel c0 bootLog L)).bk.lookup n
+  ∃ f : w64 → w64, leaseTTLsGeReq T f ∧ ∀ n ∈ restBuckets, (membership.clusterBkts n ∨ restSet M n) →
+    D.lookup n = (apply.restLeasesWith f T.ids (restModel c0 bootLog L)).bk.lookup n
 
 /-- **`mergedObs` in the mode `M`** (P5): its rest buckets `bkRestAtM M`, the auth ones left out in
 `on`, with the records of the applied log's leases in a cluster that grants them (`lg`); in `off`,
@@ -666,24 +668,25 @@ def mergedObsM (M : auth.AuthMode) (γr : ReadNames) (cmp lg : Bool) (ai : w64) 
       go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes = encMeta ai ∧
     (∃ t : w64, backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName
       go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes = encMeta t) ∧
-    bkRestAtM M (if lg then (kvLeases γr.kv (γr.raft.pre ++ A)).ids else []) γr.kv.c0
+    bkRestAtM M (if lg then kvLeases γr.kv (γr.raft.pre ++ A) else []) γr.kv.c0
       γr.raft.raft.boot (γr.raft.pre ++ A) D ∧ mvcc.IdxWf log []
 
 theorem mergedObs_of_M {M : auth.AuthMode} (hM : M = .off) {γr : ReadNames} {cmp lg : Bool}
     {ai : w64} {A : List EntryModel} {log : mvcc.Log} {crev : Int} {D : backend.Data}
     (h : mergedObsM M γr cmp lg ai A log crev D) : mergedObs γr cmp lg ai A log crev D := by
   subst hM
-  obtain ⟨h1, h2, h3, ⟨f, h4⟩, h5⟩ := h
+  obtain ⟨h1, h2, h3, ⟨f, hb, h4⟩, h5⟩ := h
   have h4' : ∀ n ∈ restBuckets, D.lookup n = (apply.restLeasesWith f
-      (if lg then (kvLeases γr.kv (γr.raft.pre ++ A)).ids else [])
+      (LeaseTable.ids (if lg then kvLeases γr.kv (γr.raft.pre ++ A) else []))
       (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk.lookup n :=
     fun n hn => h4 n hn (Classical.em _ |>.elim Or.inl Or.inr)
   refine ⟨h1, h2, h3, ?_, h5⟩
   cases lg
-  · simp only [Bool.false_eq_true, ↓reduceIte, apply.restLeasesWith_nil] at h4' ⊢
+  · have he : LeaseTable.ids ([] : LeaseTable) = [] := rfl
+    simp only [Bool.false_eq_true, ↓reduceIte, he, apply.restLeasesWith_nil] at h4' ⊢
     exact h4'
-  · simp only [↓reduceIte] at h4' ⊢
-    exact ⟨f, h4'⟩
+  · simp only [↓reduceIte] at h4' hb ⊢
+    exact ⟨f, hb, h4'⟩
 
 /-- **What an observation of a backend's data `D` gives** (2026-11-04, the restart plan's R2b-3d stage
 3; factored out of the merged snapshot's window, which the stop image shares): with the hook's own
@@ -700,7 +703,8 @@ theorem mergedObsM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) (A : 
     (hex : d.cm = false → ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
       (mvcc.bucketMap x.log).lookup k)
     (hwo : apply.windowObs d x.log x.crev (backend.sData d.P D) (backend.fkVals D))
-    (hnc : d.cm = false → backend.fkAbsD D) (Hwf : mvcc.IdxWf x.log []) :
+    (hnc : d.cm = false → backend.fkAbsD D) (Hwf : mvcc.IdxWf x.log [])
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
     mergedObsM E.authMode γr E.cmp E.lg ai A x.log x.crev D := by
   have hrec := apply.windowObs_image d x.log x.crev D hwo
   have hsd : ∀ k, (backend.sData d.P D).lookup (mvcc.keyName, k) =
@@ -709,13 +713,16 @@ theorem mergedObsM_of_obs (E : apply.AEnv GF) (γr : ReadNames) (ai : w64) (A : 
   obtain ⟨hci1, t1, ht1⟩ := hciO
   rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inl rfl)] at hci1
   rw [backend.hkData_lookup, ciKeys_hk hcK (Or.inr rfl)] at ht1
-  have hrest : bkRestAtM E.authMode (if E.lg then (kvLeases γr.kv (γr.raft.pre ++ A)).ids else [])
+  have hrest : bkRestAtM E.authMode (if E.lg then kvLeases γr.kv (γr.raft.pre ++ A) else [])
       γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A) D := by
-    refine ⟨f, fun n hn hs => ?_⟩
-    have := hrbD n hs
-    simp only [backend.rbData_lookup, hRB n hn, ↓reduceIte] at this
-    unfold srvIds appliedTable at this
-    exact this
+    refine ⟨f, ?_, fun n hn hs => ?_⟩
+    · cases hlg : E.lg
+      · exact leaseTTLsGeReq_nil f
+      · exact hfb hlg
+    · have := hrbD n hs
+      simp only [backend.rbData_lookup, hRB n hn, ↓reduceIte] at this
+      unfold srvIds appliedTable at this
+      cases hlg : E.lg <;> simp only [hlg, Bool.false_eq_true, ↓reduceIte] at this ⊢ <;> exact this
   refine ⟨?_, by simpa using hci1, ⟨t1, by simpa using ht1⟩, hrest, Hwf⟩
   cases hc : E.cmp
   · -- off: the whole bucket and no compaction key, no record
@@ -837,7 +844,7 @@ theorem mergedCreate_window
   imod srvWTPool_take_extra_d E γp d _ $$ Hpool Hr2 Hl2 Hg with ⟨Ht2, Hg⟩
   ihave Hwt := storeWT_of_wbTok E.γ d hkb $$ Ht1
   -- the rest buckets
-  ihave ⟨%f, HRs, HLt, #HGI, HEv⟩ := srvRest_open E γr A $$ HRs
+  ihave ⟨%f, %Hfb, HRs, HLt, #HGI, #HRq, HEv⟩ := srvRest_open E γr A $$ HRs
   rw [hRO]
   iunfold srvRestOwnH at HRs
   icases HRs with ⟨Hro, HH⟩
@@ -923,7 +930,7 @@ theorem mergedCreate_window
         iframe Hkw Hrt Hret Hcmo
         ipureintro; exact fun hc => (h hc).1
     · intro D ⟨⟨⟨hciO, hrbD, hraD⟩, ⟨_, hex⟩, hwo⟩, hnc⟩
-      refine ⟨mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf,
+      refine ⟨mergedObsM_of_obs E γr ai A x d f D hcK hRB hcm (hci ▸ hciO) hrbD hex hwo hnc Hwf Hfb,
         ra, hQA, fun n h => ?_⟩
       have := hraD n h
       simp only [backend.rbData_lookup, hRB n (hSA n h), ↓reduceIte] at this
@@ -972,8 +979,10 @@ theorem mergedCreate_window
       iexact Hw
     isplitl [Hrc Hrn Hcl HH HLt HEv]
     · iapply srvRest_close
-      iframe HLt HGI HEv
+      iframe HLt HGI HRq HEv
       iexists f
+      isplitr
+      · ipureintro; exact Hfb
       rw [hRO]
       iunfold srvRestOwnH
       iframe HH

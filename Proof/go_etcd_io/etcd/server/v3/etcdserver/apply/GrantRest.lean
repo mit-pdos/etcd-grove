@@ -128,6 +128,48 @@ theorem grantRestA_leases (c : Chain) (t : w64) (rq : IRRModel) (v3 : Bool) (out
       unfold grantRest grantIds
       rw [if_neg hc, if_neg hc]
 
+/-- **`grantRestA_leases` with what `f'` is** (the lease-expiry plan's S2–S4, Q-S6 (A-ii)): `f` on
+`T`, and the record's TTL `t` at an id the grant added. -/
+theorem grantRestA_leasesF (c : Chain) (t : w64) (rq : IRRModel) (v3 : Bool) (out : ApplyOut)
+    (f : w64 → w64) (T : List w64) (R : RestM) (hgo : grantOutOkA c rq v3 T out) :
+    ∃ f' : w64 → w64, grantRestA t rq v3 out (restLeasesWith f T R) =
+      restLeasesWith f' (grantIdsA rq v3 out T) R ∧ (∀ id ∈ T, f' id = f id) ∧
+      ∀ id ∈ grantIdsA rq v3 out T, id ∉ T → f' id = t := by
+  cases out with
+  | skipped => exact ⟨f, rfl, fun _ _ => rfl, fun id h hn => absurd h hn⟩
+  | rejected => exact ⟨f, rfl, fun _ _ => rfl, fun id h hn => absurd h hn⟩
+  | dispatched o sk =>
+    simp only [grantRestA, grantIdsA, grantOutOkA] at hgo ⊢
+    by_cases hc : dispatchKind rq = .leaseGrant ∧ v3 = true
+    · cases hgl : rq.leaseGrant with
+      | none =>
+        refine ⟨f, by rw [grantRest_none _ _ _ _ _ hgl, grantIds_none _ _ _ _ hgl], fun _ _ => rfl, ?_⟩
+        intro id h hn; rw [grantIds_none _ _ _ _ hgl] at h; exact absurd h hn
+      | some g =>
+        obtain ⟨hk, hv⟩ := hc
+        subst hv
+        cases o with
+        | rejected e =>
+          refine ⟨f, by rw [grantRest_rejected, grantIds_rejected], fun _ _ => rfl, ?_⟩
+          intro id h hn; rw [grantIds_rejected] at h; exact absurd h hn
+        | applied l ns =>
+          have hok := (hgo hk rfl g hgl).1 ⟨l, ns, rfl⟩
+          refine ⟨updFn f g.id t, ?_, ?_, ?_⟩
+          · rw [grantRest_applied _ _ g _ _ _ hk hgl, grantIds_applied _ g _ _ _ hk hgl]
+            exact restLeasesWith_snoc f T g.id t R hok.2.2.2
+          · intro id hid
+            have : id ≠ g.id := fun h => hok.2.2.2 (h ▸ hid)
+            simp [updFn, this]
+          · intro id h hn
+            rw [grantIds_applied _ g _ _ _ hk hgl] at h
+            rcases List.mem_append.1 h with h | h
+            · exact absurd h hn
+            · simp at h; subst h; simp [updFn]
+    · refine ⟨f, ?_, fun _ _ => rfl, ?_⟩
+      · unfold grantRest grantIds
+        rw [if_neg hc, if_neg hc]
+      · intro id h hn; unfold grantIds at h; rw [if_neg hc] at h; exact absurd h hn
+
 theorem grantIdsA_none (rq : IRRModel) (v3 : Bool) (out : ApplyOut) (L : List w64)
     (h : rq.leaseGrant = none) : grantIdsA rq v3 out L = L := by
   unfold grantIdsA; split

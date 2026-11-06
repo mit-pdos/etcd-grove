@@ -278,7 +278,8 @@ theorem kvRaftOf_restorable (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) 
 plain log from `NewStore`'s two empty revisions, well formed as a store's committed log
 (`IdxWf`, the image's certificate's, from the sender's store). -/
 theorem restoreLogOk_kvRaftOf (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)
-    {cmp : Bool} (hA : plainLogM cmp .none A) (hwf : mvcc.IdxWf (kvRaftOf c₀ ch [[], []] A) []) :
+    {cmp : Bool} {lm : lease.Mode} (hA : plainLogM cmp lm A)
+    (hwf : mvcc.IdxWf (kvRaftOf c₀ ch [[], []] A) []) :
     mvcc.restoreLogOk ((kvRaftOf c₀ ch [[], []] A).drop 2) := by
   have hl0 : mvcc.LogNoLease ([[], []] : mvcc.Log) := by
     intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs

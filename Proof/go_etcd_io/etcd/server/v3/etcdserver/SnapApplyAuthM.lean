@@ -55,13 +55,14 @@ theorem snapKeepS_cluster (M : auth.AuthMode) (n : GoString) (hc : membership.cl
 
 /-- **The image's auth facts at the buckets `Recover` reads** (`snapAuthImgM`'s, at the image's
 buckets with the lessor's and the alarm store's emptied): off, the boot's auth buckets; on, the
-state after the image's log `A'`, which extends the applied `A`, below raft's bound. -/
+state after the image's log `A'`, below raft's bound (that it extends the applied `A` is
+`specSnapM`'s `hAA'`: review r2 S2). -/
 def snapAuthImgR (M : auth.AuthMode) (γr : ReadNames) (r : GMap GoString backend.BktData)
     (A A' : List EntryModel) : Prop :=
   match M with
   | .off => (r.lookup go!"auth").getD ∅ = authBoot ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
       (r.lookup go!"authRoles").getD ∅ = ∅
-  | .on _ => authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r ∧ A <+: A' ∧ A'.length < 2 ^ 61
+  | .on _ => authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') r ∧ A'.length < 2 ^ 61
   | .any => True
 
 theorem snapAuthImgR_of (M : auth.AuthMode) (γr : ReadNames) (P : backend.BParams)
@@ -209,14 +210,14 @@ theorem wp_authRecoverM
     (s ast abl lg : Loc) (E : apply.AEnv GF) (γr : ReadNames) (ua : GoInterface)
     (A A' : List EntryModel) (d dn : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
     (r : GMap GoString backend.BktData)
-    (hkb : E.γ.kb = some d) (hany : E.authMode ≠ .any) (hr : snapAuthImgR E.authMode γr r A A')
+    (hkb : E.γ.kb = some d) (hany : E.authMode ≠ .any) (hr : snapAuthImgR E.authMode γr r A A') (hAA' : A <+: A')
     (hhas : dn.P.has mvcc.authBI ∧ dn.P.has mvcc.authUsersBI ∧ dn.P.has mvcc.authRolesBI)
     (hlg : lg ≠ null) (hf : f ≠ func.nil)
     -- (2026-11-03) the store's `Recover` with auth on only (the mode off's path rests on no glue)
     (hRecOn : E.authOn = true → authRecoverOn.spec (GF := GF) (hG := hG)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
         srvAtomicsM E.authOn s E γr ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
-        snapAuthResM E.authMode s ast E.RD γr A' ∗
+        snapAuthResM E.authMode s ast E.RD γr A' ∗ srvRLogLb γr.raft A' ∗
         authBeOn ast d.be ∗ kvAuthM E.authOn s E ua (srvAuthAtLog γr.kv srvAuthSt0 A) ∗
         ablOn abl dn.be lg ∗ backend.isBackend dn.γB dn.P W Pk dn.be ∗
         backend.plHookRO dn.γB f ∗
@@ -229,7 +230,7 @@ theorem wp_authRecoverM
         backend.bkRPool dn.γB dn.P dn.be ∗ threadTok ∗
         backend.rbOwnIn dn.γB (snapKeepS E.authMode) r ∗ backend.bOpen d.γB (1 : Qp).half ∗
         snapAuthRowM E.authMode s E ua ast γr A' dn Pk f }} := by
-  iintro %Φ ⟨#Hpkg, #Hat, #Hauf, HauR, Hbe, Hkv, #Habl, #HB, #Hhk, HnO, HnPl, HthT, HnRB, Hsl,
+  iintro %Φ ⟨#Hpkg, #Hat, #Hauf, HauR, #HA', Hbe, Hkv, #Habl, #HB, #Hhk, HnO, HnPl, HthT, HnRB, Hsl,
     HoO⟩ HΦ
   icases (backend.rbOwnIn_split_compl (GF := GF) dn.γB auth.authBkts r).1 $$ HnRB
     with ⟨HnRA, HnRB⟩
@@ -263,11 +264,12 @@ theorem wp_authRecoverM
     have hon : E.authOn = true := by simp [apply.AEnv.authOn, hM, auth.AuthMode.isOn]
     rw [hM] at hr
     simp only [snapAuthImgR] at hr
-    obtain ⟨hbk, hpre, hlen⟩ := hr
+    obtain ⟨hbk, hlen⟩ := hr
+    have hpre := hAA'
     try rw [hM]
     try rw [hon]
     simp only [snapAuthResM]
-    icases HauR with ⟨#Hsok, #HA'⟩
+    icases HauR with #Hsok
     iunfold srvAuthSnapOk at Hsok
     icases Hsok with ⟨%ast0, %R, #Hauf0, #Hinv, #Hsnap, %HRD⟩
     icombine Hauf Hauf0 gives %e0

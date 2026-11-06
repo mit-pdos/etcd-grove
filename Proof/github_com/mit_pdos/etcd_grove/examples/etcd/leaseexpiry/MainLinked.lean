@@ -42,15 +42,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/Main.lean`), under the semantic premises of
 its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
-and the client's `dialWithBalancer` body (`DialWithBalancerBody`); the open snapshot case of `run`
-in a cluster that grants leases (`srvGrantOpen_open`) and the expiry arm of `run` in a cluster whose
-leases expire (`srvRevokeOpen_open`), `sorry`s only the lease examples' results reach. -/
+and the client's `dialWithBalancer` body (`DialWithBalancerBody`); the expiry arm of `run` in a
+cluster whose leases expire (`srvRevokeOpen_open`), a `sorry` only the lease examples' results
+reach (until the lease-expiry plan's S2–S4, 2026-11-05, also the open snapshot case of `run` in a
+cluster that grants leases, `srvGrantOpen_open`). -/
 theorem etcd_leaseexpiry.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leaseexpiry.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiry.Main.wp_proof zap.NewNop.wp_proof etcd_leaseexpiry.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny time.wp_Sleep client.v3.lessor.wp_Grant client.v3.lessor.wp_TimeToLive
-    client.v3.lessor.wp_Leases srvGrantOpen_open srvRevokeOpen_open
+    client.v3.lessor.wp_Leases srvRevokeOpen_open
 
 end results
 

@@ -149,6 +149,158 @@ theorem dispatchTableA_ids (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.Apply
     rw [dispatchTable_ids x.chain rq v3 lt (.rejected .backend) hr
       (apply.grantOutOk_nonGrant _ _ _ _ _ hk), apply.grantIds_rejected]
 
+/-- **The TTL bound one request later** (the lease-expiry plan's S2–S4, Q-S6 (A-ii)): the table
+`dispatch` leaves, of a request that revokes nothing, keeps `leaseTTLsGeReq` at TTLs `f'` that are
+the old ones' on the table and the record's `t` (at least the request's, `grantTTLOk`) at an id the
+grant added. -/
+theorem dispatchTable_ttls (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
+    (o : apply.Outcome) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hgo : apply.grantOutOk c rq v3 lt.ids o) (f' : w64 → w64) (t : w64)
+    (hlt : leaseTTLsGeReq lt f') (htt : apply.grantTTLOk rq t)
+    (hnew : ∀ id ∈ apply.grantIds rq v3 o lt.ids, id ∉ lt.ids → f' id = t) :
+    leaseTTLsGeReq (dispatchTable c rq v3 lt) f' := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · have hpre : apply.preV3Kind (apply.dispatchKind rq) = false := by rw [hk]; rfl
+    cases v3
+    · simpa [dispatchTable] using hlt
+    · cases hgl : rq.leaseGrant with
+      | none =>
+        simp only [dispatchTable, hpre, Bool.false_eq_true, false_or, ↓reduceIte]
+        rw [chainTable_grantNone c rq lt hk hgl]
+        exact hlt
+      | some g =>
+        have h := hgo hk rfl g hgl
+        simp only [dispatchTable, hpre, Bool.false_eq_true, false_or, ↓reduceIte]
+        rw [chainTable_grant c rq g lt hk hgl]
+        cases o with
+        | applied l ns =>
+          have hc : apply.grantGoes c rq = true ∧ leaseGrantOk lt g.id g.ttl := h.1 ⟨l, ns, rfl⟩
+          rw [if_pos hc]
+          have hf : f' g.id = t := hnew g.id
+            (by rw [apply.grantIds_applied rq g l ns _ hk hgl]; simp) hc.2.2.2
+          intro p hp
+          rcases List.mem_append.1 hp with hp | hp
+          · exact hlt p hp
+          · simp at hp; subst hp; simp only; rw [hf]; exact htt g hgl
+        | rejected e =>
+          have hc : ¬ (apply.grantGoes c rq = true ∧ leaseGrantOk lt g.id g.ttl) :=
+            fun hc => by obtain ⟨l, ns, he⟩ := h.2 hc; cases he
+          rw [if_neg hc]; exact hlt
+  · unfold dispatchTable
+    split
+    · exact hlt
+    · rw [chainTable_nonLease c rq lt hk hr]; exact hlt
+
+/-- **The TTL bound over `Apply`'s outcome** (as `dispatchTableA_ids`). -/
+theorem dispatchTableA_ttls (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
+    (out : apply.ApplyOut) (lt : LeaseTable) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hg : apply.dispatchKind rq = .leaseGrant → apply.grantKindOk rq)
+    (hs : apply.applyStep rq v3 x x' out) (hgo : apply.grantOutOkA x.chain rq v3 lt.ids out)
+    (f' : w64 → w64) (t : w64) (hlt : leaseTTLsGeReq lt f') (htt : apply.grantTTLOk rq t)
+    (hnew : ∀ id ∈ apply.grantIdsA rq v3 out lt.ids, id ∉ lt.ids → f' id = t) :
+    leaseTTLsGeReq (dispatchTable x.chain rq v3 lt) f' := by
+  cases out with
+  | dispatched o sk => exact dispatchTable_ttls x.chain rq v3 lt o hr hgo f' t hlt htt hnew
+  | skipped =>
+    have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      have := (hg hk).2.2.1; rw [hs.1] at this; cases this
+    exact dispatchTable_ttls x.chain rq v3 lt (.rejected .backend) hr
+      (apply.grantOutOk_nonGrant _ _ _ _ _ hk) f' t hlt htt
+      (fun id h hn => by rw [apply.grantIds_rejected] at h; exact absurd h hn)
+  | rejected =>
+    have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      have := (hg hk).2.1; rw [hs.1] at this; cases this
+    exact dispatchTable_ttls x.chain rq v3 lt (.rejected .backend) hr
+      (apply.grantOutOk_nonGrant _ _ _ _ _ hk) f' t hlt htt
+      (fun id h hn => by rw [apply.grantIds_rejected] at h; exact absurd h hn)
+
+/-- **A request that grants nothing adds no entry** (a revocation removes one, anything else none). -/
+theorem chainTable_sub_nonGrant (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable)
+    (hk : apply.dispatchKind rq ≠ .leaseGrant) : ∀ p ∈ chainTable c rq lt, p ∈ lt := by
+  induction c with
+  | backend =>
+    intro p hp
+    unfold chainTable backendTable at hp
+    split at hp
+    · rename_i h; exact absurd h hk
+    · split at hp
+      · split at hp
+        · exact (List.mem_filter.1 hp).1
+        · exact hp
+      · exact hp
+    · exact hp
+  | auth _ c ih => exact ih
+  | quota c ih => exact ih
+  | capped c ih =>
+    intro p hp; unfold chainTable at hp; split at hp
+    · exact hp
+    · exact ih p hp
+  | corrupt c ih =>
+    intro p hp; unfold chainTable at hp; split at hp
+    · exact hp
+    · exact ih p hp
+
+theorem dispatchTable_sub_nonGrant (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool)
+    (lt : LeaseTable) (hk : apply.dispatchKind rq ≠ .leaseGrant) :
+    ∀ p ∈ dispatchTable c rq v3 lt, p ∈ lt := by
+  intro p hp
+  unfold dispatchTable at hp
+  split at hp
+  · exact hp
+  · exact chainTable_sub_nonGrant c rq lt hk p hp
+
+/-- **The table's entries one request later** (the lease-expiry plan's S2–S4, F7, DRAFT
+2026-11-05): of a request that revokes nothing, the old table's and an applied grant's. -/
+theorem dispatchTable_mem (c : apply.Chain) (rq : apply.IRRModel) (v3 : Bool) (lt : LeaseTable)
+    (o : apply.Outcome) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hgo : apply.grantOutOk c rq v3 lt.ids o) (p : w64 × w64) (hp : p ∈ dispatchTable c rq v3 lt) :
+    p ∈ lt ∨ (apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧ ∃ g : apply.LeaseGrantModel,
+      rq.leaseGrant = some g ∧ p = (g.id, g.ttl) ∧ ∃ l ns, o = .applied l ns) := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · have hpre : apply.preV3Kind (apply.dispatchKind rq) = false := by rw [hk]; rfl
+    cases v3
+    · left; simpa [dispatchTable] using hp
+    · cases hgl : rq.leaseGrant with
+      | none =>
+        left
+        simp only [dispatchTable, hpre, Bool.false_eq_true, false_or, ↓reduceIte] at hp
+        rwa [chainTable_grantNone c rq lt hk hgl] at hp
+      | some g =>
+        have h := hgo hk rfl g hgl
+        simp only [dispatchTable, hpre, Bool.false_eq_true, false_or, ↓reduceIte] at hp
+        rw [chainTable_grant c rq g lt hk hgl] at hp
+        by_cases hc : apply.grantGoes c rq = true ∧ leaseGrantOk lt g.id g.ttl
+        · rw [if_pos hc] at hp
+          rcases List.mem_append.1 hp with hp | hp
+          · exact .inl hp
+          · simp at hp
+            exact .inr ⟨hk, rfl, g, rfl, hp, h.2 hc⟩
+        · rw [if_neg hc] at hp; exact .inl hp
+  · exact .inl (dispatchTable_sub_nonGrant c rq v3 lt hk p hp)
+
+/-- **`dispatchTable_mem` over `Apply`'s outcome** (as `dispatchTableA_ids`). -/
+theorem dispatchTableA_mem (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
+    (out : apply.ApplyOut) (lt : LeaseTable) (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hg : apply.dispatchKind rq = .leaseGrant → apply.grantKindOk rq)
+    (hs : apply.applyStep rq v3 x x' out) (hgo : apply.grantOutOkA x.chain rq v3 lt.ids out)
+    (p : w64 × w64) (hp : p ∈ dispatchTable x.chain rq v3 lt) :
+    p ∈ lt ∨ (apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧ ∃ g : apply.LeaseGrantModel,
+      rq.leaseGrant = some g ∧ p = (g.id, g.ttl) ∧
+      ∃ o sk l ns, out = .dispatched o sk ∧ o = .applied l ns) := by
+  cases out with
+  | dispatched o sk =>
+    rcases dispatchTable_mem x.chain rq v3 lt o hr hgo p hp with h | ⟨hk, hv, g, hgl, hpg, l, ns, ho⟩
+    · exact .inl h
+    · exact .inr ⟨hk, hv, g, hgl, hpg, o, sk, l, ns, rfl, ho⟩
+  | skipped =>
+    have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      have := (hg hk).2.2.1; rw [hs.1] at this; cases this
+    exact .inl (dispatchTable_sub_nonGrant _ rq v3 lt hk p hp)
+  | rejected =>
+    have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      have := (hg hk).2.1; rw [hs.1] at this; cases this
+    exact .inl (dispatchTable_sub_nonGrant _ rq v3 lt hk p hp)
+
 /-- The table after a normal entry with no data, or a conf change: unchanged. -/
 theorem appliedTable_nodata [GooseExts] (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
     (ht : m.typ = W32 0) (hd : m.data = []) : appliedTable γr (A ++ [m]) = appliedTable γr A := by

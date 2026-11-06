@@ -111,7 +111,9 @@ local macro "grant_same" : tactic => `(tactic| (
   isplitl [Hrv]
   · iexact Hrv
   isplitl [HRO]
-  · iexists (W64 0)
+  · iexists (apply.grantTTLW rq)
+    isplitr
+    · ipureintro; exact apply.grantTTLOk_w rq
     first
       | rw [apply.grantRest_noV3, apply.revokeRest_noV3]
       | rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk]),
@@ -431,7 +433,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           apply.kvOwn E (o.logAfter log) ∗
           apply.ltHalf E (apply.revokeIds rq true o (apply.grantIds rq true o T)) ∗
           apply.everOwn E (apply.grantIds rq true o U) ∗ apply.revokeOwn E rq ∗
-          (∃ t : w64, E.RO (apply.revokeRest T rq true o
+          (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq true o
             (apply.grantRest t rq true o (apply.restAfter rq true rs)))) ∗
           ⌜apply.grantOutOk c rq true T o⌝ ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c' ∧
@@ -632,9 +634,12 @@ theorem apply.uberApplier.dispatch.wp_proof
     iexists (GoInterface.ok ai), c, o
     rw [hlog, apply.revokeIds_nonRevoke _ _ _ _ (by simp [hk])]
     iframe Ha Hs Hkv HLt HEv Hrv
-    icases HRO with ⟨%t, HRO⟩
+    icases HRO with ⟨%t, %Htt, HRO⟩
     isplitl [HRO]
-    · iexists t; rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
+    · iexists t
+      isplitr
+      · ipureintro; exact Htt
+      rw [apply.revokeRest_nonRevoke _ _ _ _ _ (by simp [hk])]; iexact HRO
     isplitr
     · ipureintro
       intro _ _ g hg
@@ -717,7 +722,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     isplitl [Hrdat]
     · iunfold apply.revokeOwn; rw [if_pos hk]; iframe Hrdat Hrev
     isplitl [HRO]
-    · iexists (W64 0); rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk])]; iexact HRO
+    · iexists (apply.grantTTLW rq)
+      isplitr
+      · ipureintro; exact apply.grantTTLOk_w rq
+      rw [apply.grantRest_nonGrant _ _ _ _ _ (by simp [hk])]; iexact HRO
     isplitr
     · ipureintro; exact apply.grantOutOk_nonGrant _ _ _ _ _ (by simp [hk])
     isplitl [HPP]

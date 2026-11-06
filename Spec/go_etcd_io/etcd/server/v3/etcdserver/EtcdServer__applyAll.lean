@@ -158,9 +158,8 @@ abbrev EtcdServer.applyAll.specSnap : Prop :=
   -- until then `E.cmp = false`)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
   γr.kv.ch0 = apply.alarmChain false false false → γr.kv.log0 = [[], []] →
-  -- (the lease-grant plan's D2, 2026-11-02) a cluster that grants no lease (its lessor revocable:
-  -- `Recover`'s premise; an interim restriction, as the compaction mode's)
-  γr.kv.lg = false →
+  -- (until the lease-expiry plan's S2–S4, 2026-11-05, also `γr.kv.lg = false`: a cluster that
+  -- grants no lease, the lease-grant plan's D2 interim restriction)
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → γr.raft.pre = [] → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -253,9 +252,8 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   -- mode-on committed log has no compaction, `plainLogOn`, so its records are at `-1` in both)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
   γr.kv.ch0 = apply.alarmChain E.authOn false false → γr.kv.log0 = [[], []] →
-  -- (the lease-grant plan's D2, 2026-11-02) a cluster that grants no lease (its lessor revocable:
-  -- `Recover`'s premise; an interim restriction, as the compaction mode's)
-  γr.kv.lg = false →
+  -- (until the lease-expiry plan's S2–S4, 2026-11-05, also `γr.kv.lg = false`: a cluster that
+  -- grants no lease, the lease-grant plan's D2 interim restriction)
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

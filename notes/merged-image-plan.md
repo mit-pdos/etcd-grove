@@ -122,6 +122,10 @@ callers; `srvRaftLogInv_fresh` correct).
 3. `h0.1` stays; a later cleanup.
 4. In place, as below.
 
+**Change, 2026-11-05 (the user's, via etcd-grove-82; lease-expiry's S2–S4, Q-S6 (A-ii)):** `imageAt`'s
+`bkRestAtL` (lease-grant's amendment (D)) gains a lower bound on its records' TTLs: each is at
+least the TTL the lease's grant requested (`notes/lease-grant-plan.md`, amendment (I)).
+
 ## Plan item: #7-cmp's repair (a stage of its own, with #7-on's)
 
 The merged image in the cluster's compaction mode, in place: `imageAt`'s `mvcc.keyImage` becomes

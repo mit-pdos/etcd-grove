@@ -369,7 +369,9 @@ record put at some TTL (`restGrantT`) on success; its condition `grantIdsOk`. (T
 plan's E3 (c), 2026-11-05) The ids the lessor ever had, `U` (`lease.leaseEver`), as
 `lease.lessor.Grant.spec`: `id` new to them unless the lessor is monotone, added on success.
 (2026-11-05, the lease-expiry plan's E3/R5: the granted TTL) On success the new lease's read-only
-`ttl` field `t`, the TTL of its record, at least the requested `ttl` (`lease.grantTTL_ge`). -/
+`ttl` field `t`, the TTL of its record, at least the requested `ttl` (`lease.grantTTL_ge`). (The
+lease-expiry plan's S2–S4, Q-S8, 2026-11-05) And the lease's request `ttl` (`lease.leaseReqIs`), as
+`lease.lessor.Grant.spec`. -/
 def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
@@ -387,7 +389,8 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
             (⌜err = GoInterface.nil ∧ grantIdsOk L id ttl⌝ ∗ Post ∗
               lease.leaseOwn γ.leases (L ++ [id]) I ∗ lease.leaseRevokers γ.leases (L ++ [id]) ∗
               leaseTTLIs l id ∗ lease.leaseLiveFrom γ.leases 0 id l ∗
-              lease.leaseEver γ.leases (U ++ [id]) ∗ ∃ t : w64, lease.lsF go!"ttl" l ↦□ t ∗
+              lease.leaseEver γ.leases (U ++ [id]) ∗ lease.leaseReqIs γ.leases id ttl ∗
+              ∃ t : w64, lease.lsF go!"ttl" l ↦□ t ∗
               ⌜sint.Z ttl ≤ sint.Z t⌝ ∗ RO (restGrantT id t rs))) }}) ∗
     -- `Revoke` (the lease-revoke plan, 2026-10-31; until then vacuous, D14h)
     revokeClause li s γ P f RO ∗

@@ -54,7 +54,7 @@ theorem apply.uberApplier.Apply.wp_proof
         apply.kvOwn E (o.logAfter x.log) ∗
         apply.ltHalf E (apply.revokeIds rq v3 o (apply.grantIds rq v3 o T)) ∗
         apply.everOwn E (apply.grantIds rq v3 o U) ∗ apply.revokeOwn E rq ∗
-        (∃ t : w64, E.RO (apply.revokeRest T rq v3 o
+        (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRest T rq v3 o
           (apply.grantRest t rq v3 o (apply.restAfter rq v3 rs)))) ∗
         ⌜apply.grantOutOk x.chain rq v3 T o⌝ ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
@@ -110,7 +110,10 @@ theorem apply.uberApplier.Apply.wp_proof
       iapply apply.cPre_pre
       iexact Hcs
     isplitl [HRO]
-    · iexists (W64 0); iexact HRO
+    · iexists (apply.grantTTLW rq)
+      isplitr
+      · ipureintro; exact apply.grantTTLOk_w rq
+      iexact HRO
     isplitr
     · ipureintro; simp [apply.grantOutOkA]
     isplitr
