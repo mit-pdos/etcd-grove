@@ -431,6 +431,16 @@ and what depends on the answer, and goes on with what does not; the orchestrator
 the user and the answers back by message. It ends its turn only at a hard stop with nothing left that
 does not depend on it.
 
+**A large Draft: pass 1 small, pass 2 wide** (2026-11-06, the user's; from the dsverify skill,
+`5409306`). Pass 1 writes only what more than one package names: the hub statements and slots,
+the invariant bodies, the specs of cross-package functions; no package-internal spec, no glue, no
+proof (a law as a statement, `sorry`). Pass 2's agents are fresh, one per package, never the pass-1
+agent continued, each started as soon as the pass-1 statements its package names build. If one
+agent is drafting most packages, stop it at the interfaces and start the package agents. (The
+dsverify lab: `ablate-craq-spec-3`'s pass 1 drafted nearly everything, Draft 125 min;
+`dryrun-craq-spec-4`, this rule, Draft 39 min with four package agents at once. Its effect on rework
+is not yet measured: revisit when the lab's full run reports.)
+
 **Wait on notifications, not on sleeps** (2026-11-06, the user's; from the dsverify skill,
 `5409306`). A session or agent that waits for another agent, a build or a landing runs it in the
 background and acts when its completion notification arrives; it never waits with `sleep`, an
