@@ -21,8 +21,12 @@ before it began, and two calls that lock a common directory (`i_rwsem`), or two 
 directories (the filesystem's rename lock), join transactions in the order they took effect; an
 `fsync` of a directory commits every transaction holding a change of that directory's inode (ext4
 commits the whole journal; xfs forces its log through the inode's last change). Linux 6.x.
-**Restart**: a restarted process begins only after every thread of the previous one has returned
-from the kernel (the process has exited). The device honours cache flushes, has no media errors, and writes each 512-byte sector
+**Restarts**: the program restarts only after a machine restart, or after the previous process
+has exited (every thread of it returned from the kernel) and a `sync(2)` has made everything it
+left durable (a supervisor runs `sync` before restarting the program, e.g. systemd's
+`ExecStartPre=/bin/sync`): with no failed writeback, the disk then holds the page cache and the
+journal is committed, so a process's restart is the machine crash that keeps everything, and the
+model has machine crashes only (`notes/fs-semantics-v2.md`). The device honours cache flushes, has no media errors, and writes each 512-byte sector
 atomically: a crash leaves each sector of a write entirely as it was or entirely as sent (sound for
 512n and 4Kn devices alike; it excludes a device whose write damages sectors it was not writing).
 **No mixed writeback**: the data a writeback sends never mixes a page's contents before and after
@@ -65,16 +69,15 @@ roots' trees are given a meaning: a step on any other path is stuck.
 cells of every mapping show the file; a removed mapping's cells are gone; every other cell is
 unchanged.
 
-**Crash** (`OsCrash`): a machine crash, or a restart of the process alone. A machine crash keeps the
+**Crash** (`OsCrash`): a machine crash (a restart of the process is one, by the environment's
+assumption on restarts). It keeps the
 durable tree with a set of the metadata operations since replayed (the committed ones, closed under
 the journal's order, `Follows`); every file that tree names
 becomes a crash image (a size it had since its last successful sync, or one an in-flight change
 gives it; each sector one of the versions it had since its last successful sync, or the current one
 with part of an in-flight change; the bytes of a sector past the size are those of the chosen version,
 not zeros: on ext4 a block's tail past a recovered size may hold data whose size change was lost, and
-a later extension shows it, F3); every other file, and the process's state, is gone. A process
-restart keeps the machine's state, with each in-flight change landed as some prefix: the page cache
-and its dirty sectors survive the process, so a later machine crash may still lose them.
+a later extension shows it, F3); every other file, and the process's state, is gone.
 -/
 module
 
@@ -829,19 +832,8 @@ def MachineCrash (st st' : OsState) : Prop :=
       ∃ f f', st.fs.files !! i = some f ∧ CrashFile st i f f' ∧ st'.fs.files !! i = some f') ∧
     (¬ Named st'.fs.treeDur i → st'.fs.files !! i = none)
 
-/-- A restart of the process alone: the machine's state stays, each change in flight landed as some
-prefix (a killed process's system call has done part of its work); a metadata call that had not
-taken its step did nothing; the process has nothing open or in flight. Dirty sectors stay dirty: the page cache outlives the process. -/
-def ProcRestart (st st' : OsState) : Prop :=
-  st'.proc = ProcState.empty ∧ st'.fs.roots = st.fs.roots ∧
-  st'.fs.treeDur = st.fs.treeDur ∧ st'.fs.metaLog = st.fs.metaLog ∧
-  st'.fs.committed = st.fs.committed ∧ st'.fs.nextIno = st.fs.nextIno ∧
-  ∀ i, match st.fs.files !! i with
-    | none => st'.fs.files !! i = none
-    | some f => ∃ ks f', ks.Perm (changesOn st i) ∧ Landed ks f f' ∧ st'.fs.files !! i = some f'
-
-/-- A crash: of the machine, or of the process alone. -/
-def OsCrash (st st' : OsState) : Prop := MachineCrash st st' ∨ ProcRestart st st'
+/-- A crash: of the machine (a process's restart is one, by the environment's assumption). -/
+def OsCrash (st st' : OsState) : Prop := MachineCrash st st'
 
 /-- A state a program may start in: the process has nothing open; nothing logged or committed; the
 roots and the tree well formed; every inode the tree names is a file, every file named (no orphan

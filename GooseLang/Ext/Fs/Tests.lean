@@ -6,8 +6,7 @@ executions: each test exhibits the model's outcome. Untrusted (a check of the tr
   rename commits: `t` may hold `Y` (the file's writeback does not wait for the journal).
 * `crash_lost_after_sync`: a failed sync, then a successful one, then a crash: the sector may hold
   its version from before the failed sync (Linux marked it clean; the later sync did not write it).
-* `restart_keeps_dirty`: a process restart keeps the page cache's contents and their dirty sectors,
-  so a later machine crash may still lose them.
+* `crash_loses_unsynced`: a machine crash may lose a write that was never synced.
 * `crash_overlap`: two overlapping calls in disjoint directories (a rename of the file `a` to `d`,
   and a create in `c/x` begun before the rename took effect): a crash may keep the create without
   the rename.
@@ -91,7 +90,6 @@ theorem closed_first : Closed stOld.fs.metaLog (fun x => x = 0) := by
 
 /-- **A crash may keep the old name with the new bytes.** -/
 theorem crash_old_name_new_bytes : OsCrash stOld stNew := by
-  left
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
     ⟨fun x => x = 0, fun x hx => by simp [hx, stOld], fun _ h => h.elim, closed_first,
       by rw [keptOps_first]; rfl⟩, fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
@@ -139,7 +137,6 @@ theorem named_one (f : OsFile) (i : Ino) : Named (oneFile f).fs.treeDur i ↔ i 
 theorem crash_one (f : OsFile) (b : w8) (hlo : f.sizeLo ≤ 1) (hhi : 1 ≤ f.sizeHi)
     (hv : secOf [b] 0 ∈ (f.secs 0).vers) (hz : ∀ n, 1 ≤ n → secOf [] n ∈ (f.secs n).vers) :
     OsCrash (oneFile f) (oneFile (OsFile.ofBytes [b])) := by
-  left
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
     ⟨fun _ => False, fun _ h => h.elim, fun _ h => h, fun _ _ h => h.elim, rfl⟩,
     fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩
@@ -162,21 +159,13 @@ theorem crash_lost_after_sync : OsCrash (oneFile fLost) (oneFile (OsFile.ofBytes
       have h0 : 512 * n ≠ 0 := by omega
       rw [secOf_far _ (by simp) n hn]; simp [h0])
 
-/-! ## A process restart keeps the dirty sectors -/
+/-! ## Unsynced bytes may be lost -/
 
-theorem changesOn_empty (i : Ino) : changesOn (oneFile f1) i = [] := by
-  simp [changesOn, oneFile, ProcState.empty]
-
-/-- **A process restart, then a machine crash**: the restart keeps `Y` unsynced, and the crash may
-leave `X`. -/
-theorem restart_keeps_dirty :
-    OsCrash (oneFile f1) (oneFile f1) ∧ OsCrash (oneFile f1) (oneFile (OsFile.ofBytes [bx])) := by
-  refine ⟨.inr ⟨rfl, rfl, rfl, rfl, rfl, rfl, fun i => ?_⟩, crash_one f1 bx ?_ ?_ ?_ ?_⟩
-  · by_cases h : i = 0
-    · subst h
-      simp only [oneFile, GMap.lookup_singleton_eq]
-      exact ⟨[], f1, by simp [changesOn, ProcState.empty], .nil _, rfl⟩
-    · simp [oneFile, Ne.symm h]
+/-- **A machine crash may lose a write that was never synced**: `Y` written over `X`, no sync;
+the crash may leave `X`. (A process's restart is a machine crash, by the environment's assumption
+on restarts.) -/
+theorem crash_loses_unsynced : OsCrash (oneFile f1) (oneFile (OsFile.ofBytes [bx])) := by
+  refine crash_one f1 bx ?_ ?_ ?_ ?_
   · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
   · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk]
   · simp [f1, OsFile.change, OsFile.ofBytes, OsFile.ofDisk, secHits]
@@ -238,7 +227,6 @@ theorem named_ov (i : Ino) : Named stOv'.fs.treeDur i ↔ i = 6 ∨ i = 7 := by
 the rename of `/r/a` that took effect before it (they lock no common directory; the create's call
 began before the rename took effect, so the journal may have either first). -/
 theorem crash_overlap : OsCrash stOv stOv' := by
-  left
   refine ⟨rfl, rfl, rfl, fun _ h => h, rfl,
     ⟨fun x => x = 1, fun x hx => by simp [hx, stOv], fun _ h => h.elim, ?_, ?_⟩,
     fun i => ⟨fun hi => ?_, fun hi => ?_⟩⟩

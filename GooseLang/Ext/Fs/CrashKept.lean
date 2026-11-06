@@ -1,6 +1,8 @@
 /-
 What a crash keeps of a file besides its clean bytes (`CrashFiles.lean`'s `FileCrashedR`), from the
-facts a take lemma returns (`CrashSeenR`, `CrashTok.lean`). Untrusted.
+facts a take lemma returns (`CrashSeenR`, `CrashTok.lean`). Untrusted. A crash is a machine crash
+(`Impl.lean`); the first case of each disjunction below (a restart) was an earlier version's and is
+not produced, but kept so that the statements need not change.
 
 * `RunsKept`: every byte of the runs the taker held, below the new size, is either the byte it was
   (a restart: the page cache outlives the process, and no change in flight takes a held byte) or
@@ -194,7 +196,7 @@ theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
   have hraw : f.rawAt (r.1 + k) = x.1 := by
     rw [contents_getElem?, if_pos hbf] at hcur; exact Option.some.inj hcur
   rw [← hfo] at hf'
-  rcases hcr with hc | hc
+  have hc := hcr
   · -- a machine crash: the file is on disk
     right
     obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
@@ -203,29 +205,6 @@ theorem crashSeen_runsKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
       rw [h''] at hf'; cases hf'
       exact ofDisk_clean vs sz _ hbs
     · rw [(hfiles i).2 hn] at hf'; cases hf'
-  · -- a restart: no change in flight takes the byte
-    left
-    obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
-    have h := hfiles i
-    rw [hf] at h
-    obtain ⟨ks, g, hperm, hl, hg⟩ := h
-    rw [hg] at hf'; cases hf'
-    have hs : st.size i = f.size := by simp [OsState.size, OsState.file, hf]
-    have hn : ¬ InflightAt st i (r.1 + k) := by
-      rintro ⟨t, c, ht, hci, ha⟩
-      obtain ⟨ti, hti, rfl⟩ := inflight_tok hcoh ht
-      rcases hall t ti hti hci with hmem | ⟨-, hd⟩
-      · obtain ⟨off, data, hkind, hdisj⟩ := hts _ hmem
-        have hf0' : f0 = f := by rw [hf] at hf0; exact (Option.some.inj hf0).symm
-        have hd' := hdisj r hr k hkl (by rw [hok0.size, hf0']; exact hbf)
-        unfold Affects at ha; rw [hkind] at ha
-        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at ha
-        rw [hci, hs] at ha
-        omega
-      · exact hd r hr k hkl (affects_affRange ha (by rw [hci, hs]; exact hbf))
-    have hk := holds_landed (s := f.size) hl ⟨hbf, hraw⟩
-      (fun k' hk' => changesOn_noaff hf hn k' (hperm.mem_iff.1 hk')) hbf
-    rw [contents_getElem?, if_pos hk.1, hk.2]
 
 /-- **A crash grows the file only with a taken write's data**, or makes the new bytes clean, when
 the taken writes start inside the file. -/
@@ -237,7 +216,7 @@ theorem crashSeen_tailKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
   intro f' hf' b hb1 hb2
   rw [← hfo] at hf'
   obtain ⟨f, hf, hok⟩ := hcoh.meta_some i m hm
-  rcases hcr with hc | hc
+  have hc := hcr
   · left
     obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
@@ -245,48 +224,6 @@ theorem crashSeen_tailKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Li
       rw [h''] at hf'; cases hf'
       exact ofDisk_clean vs sz _ hb2
     · rw [(hfiles i).2 hn] at hf'; cases hf'
-  · right
-    obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
-    have h := hfiles i
-    rw [hf] at h
-    obtain ⟨ks, g, hperm, hl, hg⟩ := h
-    rw [hg] at hf'; cases hf'
-    have hs : st.size i = f.size := by simp [OsState.size, OsState.file, hf]
-    have hms : m.size = f.size := hok.size
-    -- the kinds landed are those of the changes in flight on the file
-    have hks : ∀ k ∈ ks, ∃ t ti, Γt !! t = some ti ∧ ti.c.ino = i ∧ ti.c.kind = k := by
-      intro k hk
-      have hk' := hperm.mem_iff.1 hk
-      simp only [changesOn, List.mem_map, List.mem_filter, decide_eq_true_eq] at hk'
-      obtain ⟨c, ⟨⟨⟨t, c'⟩, hmem, rfl⟩, hci⟩, rfl⟩ := hk'
-      obtain ⟨ti, hti, rfl⟩ := inflight_tok hcoh ((GMap.mem_toList _ _ _).1 hmem)
-      exact ⟨t, ti, hti, hci, rfl⟩
-    by_cases hr : ∃ k ∈ ks, KReach f.size k
-    · -- the change that reaches past the size is alone, and is one of the taken writes
-      obtain ⟨k0, hk0, hreach⟩ := hr
-      obtain ⟨t0, ti0, hti0, hci0, hkind0⟩ := hks k0 hk0
-      have hR : Reaches st ti0.c := by rw [reaches_kreach, hci0, hs, hkind0]; exact hreach
-      have hq := hcoh.tok_q t0 ti0 hti0 hR
-      have hmem : (t0, ti0) ∈ ts := by
-        rcases hall t0 ti0 hti0 hci0 with h' | ⟨hq', -⟩
-        · exact h'
-        · exact absurd hq hq'
-      obtain ⟨off, data, hkind, hoff⟩ := hts _ hmem
-      have hall' : ∀ k ∈ ks, k = .write off data := by
-        intro k hk
-        obtain ⟨t, ti, hti, hci, rfl⟩ := hks k hk
-        by_cases he : t = t0
-        · subst he; rw [hti0] at hti; cases hti; exact hkind
-        · have hin : st.proc.inflight !! t = some ti.c := by
-            have := hcoh.toks t; rw [hti] at this; exact this.symm
-          exact absurd (hci.trans hci0.symm) (hcoh.tok_alone t0 ti0 hti0 hq t ti.c he hin)
-      obtain ⟨hraw, hlt⟩ := tail_landed (s0 := f.size) (by omega) hl hall' (Nat.le_refl _)
-        (fun b h1 h2 => absurd h2 (by omega)) b (by omega) hb2
-      refine ⟨_, hmem, off, data, hkind, by omega, hlt, ?_⟩
-      rw [contents_getElem?, if_pos hb2, hraw, List.getElem?_eq_getElem (by omega)]
-      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show b - off < data.length by omega)]
-    · have := size_landed_noreach hl (fun k hk h' => hr ⟨k, hk, h'⟩)
-      omega
 
 end seen
 
@@ -414,7 +351,7 @@ theorem crashSeen_tokKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Lis
   have hjl : j < data.length := by omega
   have hraw : f.rawAt (off + j) = y := by
     rw [← hy, List.getD_eq_getElem?_getD, contents_getElem?, if_pos hbf]; rfl
-  rcases hcr with hc | hc
+  have hc := hcr
   · right; right
     obtain ⟨_hp, _hr, _hl, _hc, _hi, _hS, hfiles⟩ := hc
     by_cases hn : Named st'.fs.treeDur i
@@ -422,41 +359,6 @@ theorem crashSeen_tokKept {i : Ino} {m : OsMeta} {rs : List (Nat × DFrac × Lis
       rw [h''] at hf'; cases hf'
       exact ofDisk_clean vs sz _ hjs
     · rw [(hfiles i).2 hn] at hf'; cases hf'
-  · obtain ⟨_hp, _hr, _ht, _hl, _hc, _hi, hfiles⟩ := hc
-    have h := hfiles i
-    rw [hf] at h
-    obtain ⟨ks, g, hperm, hl, hg⟩ := h
-    rw [hg] at hf'; cases hf'
-    have htin : st.proc.inflight !! t = some ti.c := by
-      have := hcoh.toks t; rw [hti] at this; exact this.symm
-    have haff : Affects st ti.c (off + j) := by
-      unfold Affects; rw [hkind]; dsimp only
-      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; rw [hci, hs]; omega
-    have hall' : ∀ k ∈ ks, k = .write off data ∨ ¬ KAff f.size k (off + j) := by
-      intro k hk
-      have hk' := hperm.mem_iff.1 hk
-      simp only [changesOn, List.mem_map, List.mem_filter, decide_eq_true_eq] at hk'
-      obtain ⟨c, ⟨⟨⟨t', c'⟩, hmem, rfl⟩, hci'⟩, rfl⟩ := hk'
-      have hin' := (GMap.mem_toList _ _ _).1 hmem
-      by_cases he : t' = t
-      · subst he; rw [htin] at hin'; cases hin'; exact .inl hkind
-      · right
-        have hna := hwfs.infl_disj t ti.c t' c' (off + j) htin hin' (Ne.symm he)
-          (by rw [hci, hci']) haff
-        rw [affects_kaff, hci', hs] at hna
-        exact hna
-    have hcl : ti.cl[j]? = some true → CleanPhys f (off + j) := by
-      intro hc
-      obtain ⟨-, f1, hf1, hc1⟩ := hcoh.tok_clean t ti hti j hc
-      rw [hci, OsState.file, hf] at hf1; cases hf1
-      rw [hlo] at hc1; exact hc1
-    obtain ⟨hbg, hv⟩ := landed_tok (s := f.size) (by omega) hl hall' hbf hbf
-      (ti.cl[j]? = some true) y (.inl ⟨hraw, hcl⟩)
-    rw [contents_getElem?, if_pos hbg]
-    rcases hv with ⟨hv, hc⟩ | hv
-    · right; left; rw [hv]; exact ⟨rfl, hc⟩
-    · left; rw [hv, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
-      simp [List.getElem?_eq_getElem hjl, show off + j - off = j by omega]
 
 end seen2
 

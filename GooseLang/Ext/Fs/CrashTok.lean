@@ -1,6 +1,8 @@
 /-
 The crash interpretation of the Linux file extension (`ExtCrashInterp fsExt`): what the restarted
-boot program gets after a machine crash or a restart of the process. Untrusted.
+boot program gets after a machine crash (a process's restart is one, by the environment's
+assumption on restarts). Untrusted. (`TreeCrashed`'s first case, the history kept whole, is an
+earlier version's restart outcome, which no crash produces now.)
 
 * The new generation's ghost state is allocated from the state the crash left (`os_local_initG`,
   `CrashFiles.lean`): every file with its `OsMeta` and bytes from the state (`osFileStartG`; after a

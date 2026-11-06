@@ -211,6 +211,20 @@ The three stuck cases above are lifted by one change (`Tree.lean`, `Impl.lean`):
   fd on it keeps working). It weakens a premise of `FsInit` only (the adequacy statement assumes
   less).
 
+## Restarts are machine crashes (2026-11-06, the user's decision)
+
+`ProcRestart` is gone: `OsCrash` is `MachineCrash`, under an environment assumption (`Impl.lean`'s
+header, "Restarts"): the program restarts only after a machine restart, or after the old process has
+exited and a `sync(2)` has made what it left durable (a supervisor runs `sync` before restarting it).
+The state right after a process's restart is always a machine-crash outcome (every sector's current
+version is a candidate, and the whole log a prefix), but the next generation would then treat dirty
+data as durable: without the `sync`, a later power loss could lose data that generation relied on
+(e.g. it writes and syncs only another file pointing at it), an outcome the model excludes. With the
+`sync` and no failed writeback, the disk is the page cache and the journal is committed, so the
+restart is the machine crash that keeps everything. The per-sector lost tracking a restart needed
+(`ee10d8f05f`) is reverted (`6040582275`); the crash relations of the program logic keep a restart
+case no crash produces now (weaker than needed; the clients' proofs are unchanged).
+
 ## Environment assumptions (hypotheses of the adequacy statement)
 
 As now for the roots (one local ext4 or xfs filesystem, one journal; regular files and directories

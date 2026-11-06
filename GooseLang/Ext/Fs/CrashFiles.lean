@@ -1,6 +1,9 @@
 /-
 What the ghost state of the files and of the tree (`Ghost.lean`) says across a crash (`OsCrash`,
-`Impl.lean`): a machine crash or a restart of the process alone. Untrusted.
+`Impl.lean`): a machine crash (a process's restart is one, by the environment's assumption on
+restarts). Untrusted. The relations below also allow the restart outcome of an earlier version of
+the semantics (the history kept whole, `TreeCrashed`'s first case; `restartFile_rel`), which no crash
+produces now: they are weaker than needed, and the clients' proofs are unchanged.
 
 * **The pure relation** (`FileCrashedG`, `crash_rel`): a file the old generation knew, if the new
   state has it, has a size within the old crash bounds `[m.lo, m.hi]`, and every byte the old
@@ -482,71 +485,6 @@ theorem machineCrash_init (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
     exact htw.files_lt i (by rw [GMap.mem_iff, hf]; rfl)
   · intro j hj; rw [hino]; rw [htr] at hj; exact hlt j hj
 
-/-- After a restart, the state's files and tree are as well formed as before, and coherent with
-the same history. -/
-theorem restart_wf (hwf : OsWf st) (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
-    (hc : ProcRestart st st') :
-    OsWf st' ∧ FsTreeWf st' ∧ TreeCoh st' V ∅ ∅ := by
-  obtain ⟨hp, hr, htd, hlog, hcom, hino, hfiles⟩ := hc
-  have hdom : ∀ i, i ∈ st'.fs.files ↔ i ∈ st.fs.files := by
-    intro i
-    have h := hfiles i
-    rw [GMap.mem_iff, GMap.mem_iff]
-    revert h
-    cases st.fs.files !! i with
-    | none => intro h; rw [h]
-    | some f => rintro ⟨ks, f', -, -, h⟩; rw [h]; simp
-  have hnone : ∀ x, st'.proc = x → x = ProcState.empty := fun x h => h ▸ hp
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨by rw [hr]; exact htw.roots, ?_, ?_, ?_, ?_⟩,
-    ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
-  · intro fd d h; simp [hp, ProcState.empty] at h
-  · intro b m h; simp [hp, ProcState.empty] at h
-  · intro b1 m1 _ _ h; simp [hp, ProcState.empty] at h
-  · intro t c h; simp [hp, ProcState.empty] at h
-  · intro t1 c1 _ _ _ h; simp [hp, ProcState.empty] at h
-  · intro i f' hf'
-    have h := hfiles i
-    simp only [OsState.file] at hf'
-    revert h
-    cases hf : st.fs.files !! i with
-    | none => intro h; rw [h] at hf'; cases hf'
-    | some f =>
-      rintro ⟨ks, g, -, hl, hg⟩
-      rw [hg] at hf'; cases hf'
-      have := hwf.sizes i f (by simp [OsState.file, hf])
-      exact (wf_landed hl (fun n => hwf.vers i f n (by simp [OsState.file, hf])) this.1 this.2).2
-  · intro i f' n hf'
-    have h := hfiles i
-    simp only [OsState.file] at hf'
-    revert h
-    cases hf : st.fs.files !! i with
-    | none => intro h; rw [h] at hf'; cases hf'
-    | some f =>
-      rintro ⟨ks, g, -, hl, hg⟩
-      rw [hg] at hf'; cases hf'
-      have := hwf.sizes i f (by simp [OsState.file, hf])
-      exact (wf_landed hl (fun n => hwf.vers i f n (by simp [OsState.file, hf])) this.1 this.2).1 n
-  · intro n hn
-    rw [hlog] at hn ⊢; rw [htd, hr, hino]
-    obtain ⟨h1, h2, h3⟩ := htw.hist n hn
-    refine ⟨h1, fun i hi => ?_, h3⟩
-    obtain ⟨f, hf⟩ := h2 i hi
-    have hm := (hdom i).2 (by rw [GMap.mem_iff, hf]; rfl)
-    rw [GMap.mem_iff] at hm
-    cases hf' : st'.fs.files !! i with
-    | none => rw [hf'] at hm; cases hm
-    | some f' => exact ⟨f', rfl⟩
-  · intro fd df h; simp [hp, ProcState.empty] at h
-  · intro fd _; simp [hp, ProcState.empty]
-  · intro i hi; rw [hino]; exact htw.files_lt i ((hdom i).1 hi)
-  · rw [htd, hlog]; exact htc.hist
-  · rw [hlog]; exact htc.seq
-  · intro fd; simp [hp, ProcState.empty]
-  · intro fd x df hx; simp at hx
-  · intro fd x hx; simp at hx
-  · intro t; simp [hp, ProcState.empty]
-  · intro t x hx; simp at hx
-
 /-- **What a crash keeps**: the new state's files and tree are well formed, coherent with a history
 `V'` that is a crash of the old one, every file it names is a file of the new state, and every file
 the old ghost state knew is, if the new state has it, as `FileCrashedG` says. -/
@@ -556,43 +494,25 @@ theorem osCrash_rel (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) (htw : FsT
     ∃ V', TreeCoh st' V' ∅ ∅ ∧ TreeCrashed V V' ∧
       (∀ i, Named V'.now i → (st'.fs.files !! i).isSome) ∧
       ∀ i m, Γm !! i = some m → FileCrashedG Γb i m (st'.fs.files !! i) := by
-  rcases hc with hc | hc
-  · obtain ⟨hinit, n, hn, htr⟩ := machineCrash_init htw htc hc
-    obtain ⟨hwf', -⟩ := osInit_wf_coh hinit
-    obtain ⟨htw', htc'⟩ := fsInit_tree hinit
-    have hfiles := hc.2.2.2.2.2.2
-    refine ⟨hinit.1, hc.2.1, hwf', htw', _, htc', .inr ⟨n, ?_, ?_⟩, ?_, ?_⟩
-    · rw [htc.hist]; exact hn
-    · rw [htc.hist, htr]
-    · intro i hi
-      have hi' : Named st'.fs.treeDur i := by
-        simpa [Hist.now, Hist.ops, replay] using hi
-      obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi'
-      rw [hf']; rfl
-    · intro i m hm
-      intro f' hf'
-      by_cases hi : Named st'.fs.treeDur i
-      · obtain ⟨f, f'', hf, hcf, hf''⟩ := (hfiles i).1 hi
-        rw [hf''] at hf'; cases hf'
-        exact crashFile_rel hwf hcoh hm hf hcf _ rfl
-      · rw [(hfiles i).2 hi] at hf'; cases hf'
-  · obtain ⟨hwf', htw', htc'⟩ := restart_wf hwf htw htc hc
-    obtain ⟨hp, hr, htd, hlog, -, -, hfiles⟩ := hc
-    refine ⟨hp, hr, hwf', htw', V, htc', .inl rfl, ?_, ?_⟩
-    · intro i hi
-      have hV : V = (st'.fs.treeDur, st'.fs.metaLog) := htc'.hist
-      have hn := (htw'.hist st'.fs.metaLog.length (Nat.le_refl _)).2.1 i (by
-        rw [List.take_length]; rw [hV] at hi; exact hi)
-      obtain ⟨f, hf⟩ := hn; rw [hf]; rfl
-    · intro i m hm
-      have h := hfiles i
-      revert h
-      cases hf : st.fs.files !! i with
-      | none => intro h f' hf'; rw [h] at hf'; cases hf'
-      | some f =>
-        rintro ⟨ks, g, hperm, hl, hg⟩
-        rw [hg]
-        exact restartFile_rel hwf hcoh hm hf hperm hl
+  obtain ⟨hinit, n, hn, htr⟩ := machineCrash_init htw htc hc
+  obtain ⟨hwf', -⟩ := osInit_wf_coh hinit
+  obtain ⟨htw', htc'⟩ := fsInit_tree hinit
+  have hfiles := hc.2.2.2.2.2.2
+  refine ⟨hinit.1, hc.2.1, hwf', htw', _, htc', .inr ⟨n, ?_, ?_⟩, ?_, ?_⟩
+  · rw [htc.hist]; exact hn
+  · rw [htc.hist, htr]
+  · intro i hi
+    have hi' : Named st'.fs.treeDur i := by
+      simpa [Hist.now, Hist.ops, replay] using hi
+    obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi'
+    rw [hf']; rfl
+  · intro i m hm
+    intro f' hf'
+    by_cases hi : Named st'.fs.treeDur i
+    · obtain ⟨f, f'', hf, hcf, hf''⟩ := (hfiles i).1 hi
+      rw [hf''] at hf'; cases hf'
+      exact crashFile_rel hwf hcoh hm hf hcf _ rfl
+    · rw [(hfiles i).2 hi] at hf'; cases hf'
 
 end after
 end Fs
