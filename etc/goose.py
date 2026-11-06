@@ -721,6 +721,21 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseexpiry")],
     ),
     Project(
+        name="leasecatchup",
+        # the multi-member lease example (2026-11-06, notes/lease-mono3-plan.md, lease-mono3 step 1):
+        # three members started in-process (cluster3) in the monotone lease mode, a lease granted
+        # through member 3, member 3 cut off while fillers are granted through member 1 (the log
+        # compacted), the links mended, and member 3's listing (`Leases`) checked to hold the
+        # lease once it has caught up by a snapshot. A package of the examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "leasecatchup"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leasecatchup")],
+    ),
+    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
         # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,

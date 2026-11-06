@@ -306,3 +306,75 @@ linkv3p's trust base already rest on); `kv_lease_served`'s statement and its int
 at a lease mode, pack `wp_Server`'s post into `grpcUp` (as `etcdstart.Serve` does), take the
 `threadTok` from the new `go holdToken()` (finding 1, option (i)), and apply `kv_lease_served_watch`
 with `Hms.watch_impl`.
+
+## Draft pass 2(b) (2026-11-06)
+
+Pass 2(b) of the Draft: the example `examples/etcd/leasecatchup` (branch `lease-mm`), over pass 1's
+statements as they stand.
+
+**What was added.**
+
+- `etc/goose.py`: project `leasecatchup` (leasegrant's lean roots); the translation
+  `Code/`/`GeneratedProof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup.lean`
+  (`etc/goose.py --check --project leasecatchup` passes).
+- `etc/gen-init.py`: the package in `ROOTS` and `PROGRAMS`; its generated `Init.lean` (fact `True`,
+  no new init axiom) and `PkgTable.lean`. `Base.lean` (the package fact) imports cluster3's `Base`
+  as well as etcdstart's.
+- One spec and one proof per Go function (the layout), `Spec/…/leasecatchup/` and
+  `Proof/…/leasecatchup/`:
+  - `config` (returns `clusterCfg`, `Defs.lean`, with `clusterCfg_ok : cluster3.cfgOk clusterCfg`);
+  - `grant`/`leases` (`lessor.Grant`/`lessor.Leases` through the client's `Lease` field, in a
+    request-timeout context: for an `isNewClient cl eps V`, a `Spec` registered at every endpoint and
+    the caller's `Q`, the reply's id field (`ID`, read-only) or listing slice (`Leases`, read-only)
+    with `Q`, or an error);
+  - `listed` (returns `decide (id ∈ ids)` over a read-only listing);
+  - `run` (Scope §2's six steps) and `Main` (`run(zap.NewNop())`); both specs below.
+- `MainLinked.lean` (by hand, as leasegrant's: `etc/gen-link.py` has no mode combining several
+  packages' Links), `Adequacy.lean`, `Results.lean` (`leasecatchup_Main`, `etcd_leasecatchup_safe`,
+  `#print axioms` of each), and the collection `etc/tcb-collections/leasecatchup.txt`.
+
+**`run.spec`** (and `Main.spec`, the same without `lg`): `StartCluster.spec`'s premises at
+`clusterCfg` (`cluster3.BootFacts`, the thread and receipt bounds, the write budget, `ckptEffectsOk`,
+`authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`, `storage.diskOk`,
+`v3rpc.ServerMethodSets`), leasegrant's `leasePeersOk` and `lease.leasesNoExpiry`, the client's
+context premises (`ContextReadErrs`, `ContextErrsClient`, `errors.AsTarget` of `rpctypes.EtcdError`);
+pre `isPkgInit leasecatchup ∗ cluster3.startRes clusterCfg ∗ threadTok ∗ cluster3.premises
+clusterCfg N id₁ id₂ id₃ ps ctxs boot`; post `∃ r : w64, RET #r; True` (`Main`: `RET #(); True`).
+
+**`run`'s proof** (complete, no `sorry` of its own): `StartCluster` at `cmp = false`, `.mono`,
+`lease.runCfg_mono Hlne`, `(by decide)`, `fun _ => Hlp`; from `clusterUp … .mono`, members 1 and 3's
+`servedRegs .mono` unfolded to `etcdLeaseGrantAt` (the grant at `etcdLeaseGrantSpec E.γ.leases`, the
+listing at `etcdLeaseLeasesSpec E.γ.leases`), forwarded to the bridges (`isGrpcRpc_forwards`); two
+`NewClients` of one bridge each (`plainEndpoints_singleton`); `grant(c3)` keeping
+`∃ i, leaseGrantedAt E₃.γ.leases i g1`; `PeerStep` four times over the members' `srvPeerCtl`s; the
+fillers at member 1's grant spec with `Q = True`; each poll's `leases(c3)` handing in `[g1]`, so the
+listing has `g1` and the panic branch is dead. As the Scope said, the proof does not reason about
+the catch-up: member 3's listing lists `g1` because its lessor's history is monotone, which S2–S4
+proved inside `run` of the server (the `Recover` premise).
+
+**Frozen and exported statements.** None changed: the batching rule had nothing to apply. No
+statement of another package was needed beyond those pass 1 built (`StartCluster.spec` at `.mono`,
+`clusterUp`/`clusterAt`/`memberAt`/`servedRegs`, `NewClients.spec`, `PeerStep.spec`,
+`lessor.Grant.spec`/`lessor.Leases.spec`, `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec`,
+`etcdstart.etcdLeaseServedAt`/`etcdLeaseGrantAt`, `isGrpcRpc_forwards`, `isGrpcRpcs`).
+
+**DRAFT sorries.** None in this example's files. Its results reach pass 1's
+`-- DRAFT lease-mono3` sorries in cluster3 (`StartMember.wp_proof`'s `.mono` case,
+`StartCluster.wp_proof`'s `.mono` case), which pass 2(a) proves; the collection's baseline records
+them (below).
+
+**Trust base.** No new axiom, trusted model or non-DRAFT `sorry`: the package initializer is
+generated with no init axiom, and the example's own files have no `sorry`. `Results.lean` built
+(lean `19669977e6` plus this pass, with pass 2(a)'s cluster3 edits as they stood then): `#print
+axioms etcd_leasecatchup_safe` lists `sorryAx` (pass 1's DRAFT sorries) and the axioms of linkv3p
+and leasegrant's lease reads, as Scope §5 expected. The collection
+`etc/tcb-collections/leasecatchup.txt` has its `roots` line but no baseline yet:
+`etc/tcb-report.py` needs every root module up to date, and cluster3's `StartCluster.lean`, which
+pass 2(a) is editing in the worktree, did not build when this pass ended. Run
+`LAKE_OPTS=--packages=… etc/tcb-report.py --collection etc/tcb-collections/leasecatchup.txt --check
+--update` once it does (after pass 2(a), whose sorries it would record otherwise).
+
+**Gates to note.** `etc/bounds-check.py --check` counts the new package's specs (`spec-receipt` 4,
+`spec-thread` 2, as leasegrant's `spec-receipt 2`/`spec-thread 1`, which the baseline lists): the
+baseline needs the package's lines at landing (`etc/bounds-baseline.txt`, not changed here).
+`etc/goose.py --check --project leasecatchup` and `etc/gen-init.py --check` pass.

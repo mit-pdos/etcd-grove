@@ -57,6 +57,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant',
          # the closed lease-expiry example (2026-11-04, notes/lease-expiry-plan.md, Part E)
          'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry',
+         # the multi-member lease example (2026-11-06, notes/lease-mono3-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
          'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
@@ -2142,6 +2144,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
