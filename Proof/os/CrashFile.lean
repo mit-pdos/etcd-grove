@@ -149,11 +149,18 @@ def FileOk (Good : Option OsFile → Prop) (x : OsMeta × List (w8 × Bool) × O
     Prop :=
   ∀ f, FileCrashedR (fMeta x) (fRuns x) (some f) → Good (some f)
 
+/-- Every crash of the history `V` leaves `p` naming nothing (and then `Good none`) or the file
+`io`, if any. -/
+def TreeOkI (Good : Option OsFile → Prop) (p : GoString) (R : Roots) (io : Option Ino) (V : Hist) :
+    Prop :=
+  ∀ V', TreeCrashed V V' →
+    (lookupH R V' p = none ∧ Good none) ∨ ∃ i, io = some i ∧ lookupH R V' p = some (.file i)
+
 /-- Every crash of the history `V` leaves `p` naming nothing (and then `Good none`) or the state's
 file. -/
-def TreeOk (Good : Option OsFile → Prop) (p : GoString) (R : Roots) (s : CFile) (V : Hist) : Prop :=
-  ∀ V', TreeCrashed V V' →
-    (lookupH R V' p = none ∧ Good none) ∨ ∃ i, cIno s = some i ∧ lookupH R V' p = some (.file i)
+abbrev TreeOk (Good : Option OsFile → Prop) (p : GoString) (R : Roots) (s : CFile) (V : Hist) :
+    Prop :=
+  TreeOkI Good p R (cIno s) V
 
 /-- What a crash may leave of the state `s` and the history `V` is `Good` at `p`. -/
 def CrashOk (Good : Option OsFile → Prop) (p : GoString) (R : Roots) (s : CFile) (V : Hist) :
