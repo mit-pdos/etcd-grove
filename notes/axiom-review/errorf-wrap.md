@@ -77,3 +77,21 @@ neither). This is recorded for 7c-2 part 2, whose `handlerDescs` will make descr
 
 - `ServeHTTP` (etcd's TLS path), which is unmodelled: the 7c plan's "7c: left".
 - `wrapErrors` (two or more `%w`), which no caller uses and N1 does not cover.
+
+## N1a (2026-11-06, k8s etcd3 7c-2 part 2): both sides give the prefix
+
+`fmt.modelErrIs` takes `pre`. Its `Error()` now returns `pre ++ s` for some `s`, the same as
+`wrapErrIs`'s. Both sides were checked against N1's premises (`(W8 37) ∉ pre`, `inner :
+GoInterfaceOk`, `stringMethodSpec inner`).
+
+- **The model's side.** Perennial's `fmt.Errorf.impl` is `λ format a, errors.New(format)`
+  (`Perennial/TrustedCode/fmt.lean:27`). `errors.New` is translated Go. Its proved spec
+  `errors.New.spec` (`Perennial/Spec/errors/New.lean`) gives an `Error()` that returns `msg`, which
+  is `format = pre ++ "%w"`. So the model holds with `s = "%w"`, whatever the premises are.
+- **Go's side.** `s = inner.Error()`: `doPrintf` copies `pre` byte for byte (it has no `%`) and
+  formats `%w` as `%v` of `inner`. TestN1Claims checks the prefix one level and two levels deep.
+  At the premises' edges the prefix still holds or the case is excluded (above, "The premises'
+  edges"): an `Error()` that panics still gives `pre ++ "%!v(PANIC=…)"`. A `%` in `pre` is the one
+  case that breaks the prefix, and the premise excludes it.
+
+**Verdict: survives.** The disjunction's two sides now say only what they share about `Error()`.
