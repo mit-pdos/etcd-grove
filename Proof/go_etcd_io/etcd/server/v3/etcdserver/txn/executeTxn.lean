@@ -383,7 +383,7 @@ theorem txn.executeTxn.wp_proof
           ihave #Hxs := go_etcd_io.etcd.cache.v3.ctxWrapErr_stringMethodSpec x $$ He2
           rw [show (go!"applyTxn: failed Range: %w" : GoString) = go!"applyTxn: failed Range: " ++ go!"%w" from rfl]
           wp_apply (hWrap go!"applyTxn: failed Range: " _ x (DFrac.own 1) (by decide))
-            $$ [$Hfmt $Hasl $Hxs] as %e0 ⟨-, #Hw⟩
+            $$ [$Hfmt $Hasl $Hxs] as %e0 ⟨-, #Hw, -⟩
           ihave #He' : mvcc.ctxErrorf (GoInterface.ok e0) $$ []
           · iunfold mvcc.ctxErrorf
             iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap2 $$ Hw He2

@@ -10,6 +10,7 @@ and contradicts neither. Attacked: `notes/axiom-review/errorf-wrap.md`. Lean-fir
 module
 
 public import Spec.fmt.Errorf
+public import Proof.google_golang_org.grpc.status.ErrDesc
 
 @[expose] public section
 
@@ -96,8 +97,12 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
 /-- **`fmt.Errorf(pre ++ "%w", inner)`**, where `pre` has no `%` and `inner` is a non-nil error whose
-`Error()` returns: the model's error or Go's `*fmt.wrapError` (`fmt.errorfWrapIs`); the arguments'
-slice comes back. -/
+`Error()` returns: the model's error or Go's `*fmt.wrapError` (`fmt.errorfWrapIs`), whose gRPC
+description (`errDesc`) begins with `pre` (N1b, 2026-11-06: in Go the error has no `GRPCStatus`, so
+`status.FromError` and the server's `FromContextError` take its `Error()`, `pre ++ inner.Error()`;
+stated of the returned error only: as a law of every `errorfWrapIs` error it would be
+inconsistent, an error whose `Error()` loops meeting it at every `pre`); the arguments' slice comes
+back. -/
 abbrev fmt.ErrorfWrap.spec : Prop :=
   ∀ (pre : GoString) (args_sl : GoSlice) (inner : GoInterfaceOk) (dq : DFrac),
   (W8 37 : w8) ∉ pre →
@@ -105,7 +110,8 @@ abbrev fmt.ErrorfWrap.spec : Prop :=
       fmt.stringMethodSpec inner go!"Error" }}
     (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #(pre ++ go!"%w"))) (Val #args_sl))
   {{ (err : GoInterfaceOk), RET #(GoInterface.ok err);
-      args_sl ↦*{dq} [GoInterface.ok inner] ∗ fmt.errorfWrapIs err (GoInterface.ok inner) pre }}
+      args_sl ↦*{dq} [GoInterface.ok inner] ∗ fmt.errorfWrapIs err (GoInterface.ok inner) pre ∗
+      ⌜pre <+: go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok err)⌝ }}
 
 end spec
 

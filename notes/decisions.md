@@ -32820,3 +32820,22 @@ is kept. R2d then has no DRAFT `sorry`, no trust change and no hub change.
 rework anyway; R2d' must design `run`'s window over the same definitions. **The lesson:** the window
 failed three probes when designed from the apply chain upward; R2d' designs it from `run`'s window
 downward, with a probe through `run`'s restart batch before any spec is frozen.
+
+## `errDesc` in a module of its own (2026-11-06 · k8s etcd3 7c-2 part 2, N1b; approved by etcd-grove-82 under the user's delegation, pending the user's review · branch `k8s-etcd3-7c`; DRAFT until 7c-2 part 2's Freeze)
+
+`fmt.ErrorfWrap`'s post now states the returned error's gRPC description, `⌜pre <+: errDesc (ok
+err)⌝` (N1b). It is stated of the error the call returns. As a law of every `errorfWrapIs` error it
+would be inconsistent, because an `Error()` that loops meets `wrapErrIs` at every `pre`. N1a gives
+the `Error()` string; N1b gives what a client sees. The two cannot be equated after the fact,
+because two WP facts about one call do not combine into an equality.
+
+**Layering.** A spec of `fmt` now names gRPC's `errDesc`. `errDesc` was declared in
+`Proof/go_etcd_io/etcd/cache/v3/Base.lean`, which imports `Spec.fmt.ErrorfWrap`. It therefore
+moved, with the same name, namespace and docstring, to
+`Proof/google_golang_org/grpc/status/ErrDesc.lean`. That module imports only
+`Perennial.GooseLang.Lang`, and `fmt`'s spec imports it.
+
+The dependency is deliberate. Do not move `errDesc` back into the cache's `Base`, and do not make
+`ErrDesc.lean` import gRPC's facts: either one would put a cycle under `Spec/fmt`. The description
+is an opaque function of the error value (D29), so a declaration with no facts is all a spec in
+another package needs.
