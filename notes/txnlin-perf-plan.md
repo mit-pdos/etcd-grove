@@ -150,3 +150,89 @@ Options (2) and (b) of "Go first":
   equivalent to `lean`'s, so that `etcd_txnlin_safe` and the closed theorems through `linkvtxnS`
   keep their statements; no new axiom or `sorry`; an exported statement that must change is a stop.
 - k8s/etcd3's copy (`examples/k8s/etcd3/k8setcd3.go`) stays a follow-up after stage 7c.
+
+## (2): TestFailover's workload
+
+The test-only fix of the decision above, in `examples/etcd/partition/linkv3p_test.go`, against
+the model at `1f67de4b37` (the binary-search `addConfig`).
+
+### The change
+
+The user's first choice: no writes are routed to the blackholed member.
+
+- **Routing.** A fourth client, `cli23`, connects to members 2 and 3's bridges only. While member
+  1 is blackholed (from the run's start until 1s after the unblackhole), every operation but a Get
+  or a List goes through `cli23`. That is a put, a delete or a transaction. The reads go through the
+  three clients of all three bridges, as before. After that second, writes go through the three
+  clients again.
+- **`cutRun`.** It takes a `pick func(read bool) int` (nil: random, as before; `TestClientCuts`
+  passes nil). It sizes its per-client counts by `len(clis)` and logs the number of failed writes.
+- **TestFailover's checks.** Its per-client checks skip `cli23`'s operations (`op.cli == 3`), both
+  in the control loop's "every client served" and in the checks after the run.
+- **Also.** The warm-up loop is factored out of `cutSetup` (`warmUp`). The import order is now
+  gofmt's: it was not gofmt-clean before.
+
+### Why it keeps the test's purpose
+
+Every assertion is unchanged, and each still tests what it did:
+
+- **Phase 1, the failover through the blackholed member, is now shown by reads only.** A read on
+  member 1's dead connection is held until its request timeout and fails, as a write was. The
+  timeout is the caller's context, and the balancer's pick and the keepalive close are the same for
+  every call. So the checks hold as before:
+  - stalls only at a request timeout or later;
+  - some request timeouts;
+  - the last stall after keepalive's first ping (about 15.2 s in every run);
+  - every client served after the last stall.
+- **What is weakened:** in phase 1, no write goes through the dead connection. A write failing at a
+  blackhole and staying pending is still tested:
+  - by `TestClientCuts`, through the same `cutRun` and porcupine check;
+  - by `TestWriteOnce`, with no double apply;
+  - and here, by the cut of members 2 and 3, which fails the writes in flight on their connections.
+- **Phase 2, the return to member 1, is shown by reads and writes**, as before.
+- **`okAfter[i] > 0` holds by construction.** The control goroutine unblackholes only after every
+  client has served an operation started after the last stall, and the check after the run counts a
+  superset of those operations. That is why its counts can be low (4-9 per client in runs 2 and 4)
+  without risk.
+
+Porcupine's check is still over the whole history. The failed writes are now at most the writes in
+flight at the cut of members 2 and 3: 0-1 per run, against 7-10 before.
+
+### TestFailover, 5 runs
+
+The runs were sequential, each with `go test -v -count=1 -run '^TestFailover$'` under
+`systemd-run --scope -p MemoryMax=32G --quiet`.
+- `/usr/bin/time` is not installed. "Max RSS" is `getrusage(RUSAGE_CHILDREN).ru_maxrss`, which is
+  what GNU time's "Maximum resident set size" reports, taken by a wrapper inside the scope.
+- "cgroup peak" is the scope's `memory.peak`.
+
+| run | load at start (1 min) | wall | result | failures (reads / writes) | max RSS | cgroup peak |
+|---|---|---|---|---|---|---|
+| 1 | 25.4 | 87 s | PASS | 9 / 1 | 408 MiB | 488 MiB |
+| 2 | 14.5 | 89 s | PASS | 9 / 0 | 429 MiB | 502 MiB |
+| 3 | 8.1 | 89 s | PASS | 9 / 1 | 416 MiB | 492 MiB |
+| 4 | 8.8 | 92 s | PASS | 9 / 0 | 429 MiB | 501 MiB |
+| 5 | 12.0 | 86 s | PASS | 9 / 0 | 411 MiB | 477 MiB |
+
+- **The stalls are the same in every run.** There are 9, all reads that failed at the request
+  timeout, three rounds of one per worker: about 0-5 s, 5-10 s and 10-15 s.
+- **The phases' times are the same in every run:**
+  - member 1 unblackholed at about 20.1 s;
+  - members 2 and 3 cut at about 23.1 s.
+- **Before this change** the runs passed 3 of 5 under the cap, at 9.4-32 GiB with 7-10 failed writes
+  ("TestFailover, 5 runs (the new model)" above).
+
+### The rest of the package
+
+One run of the package's other tests, under the same cap:
+- the tests: `TestMemberIDs`, `TestMainRun`, `TestClientCuts`, `TestWriteOnce`, `TestWatchFailover`
+  and `TestMainWatch`;
+- **all pass**, in 114 s, at load 8.4 at start;
+- max RSS 332 MiB, cgroup peak 146 MiB;
+- `TestClientCuts` had 3 failed writes.
+
+### Verdict
+
+**The bar is met.** TestFailover passed 5 of 5 runs under the 32G cap, peaking under 0.5 GiB, in
+about 90 s each. Porcupine's check is still over the whole history, and no check of a history
+window was needed.
