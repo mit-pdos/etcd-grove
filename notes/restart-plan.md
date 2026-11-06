@@ -3931,3 +3931,27 @@ proofs' structure: `ApplyAllSnapR.lean` `wp_apply (hCM …)` (off, ~l. 594; on, 
   (`wp_proofBatchR`), `applyAll.specSnapMR` (`wp_proofSnapMR`, whose callees are `wp_proofSnapM`'s
   minus `hSnapOff`, with `applySnapshot.specSnapMR` from `wp_proof_snapMR`), `stopCleanupImageR.spec`
   (`stop_cleanup_imageR`); `etc/gen-link.py --server`'s config gains them.
+
+#### R2d'a task 4, the `hab` fix (82's go): stopped before any edit, the producer has no busy driver at the send (2026-11-06)
+
+The approved fix proves `⌜γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length⌝` at the `rnApSnap` send in
+`raftNode__start.lean` from `#Hrok` and `rnWinInstallAbove` on the busy driver. **At the send there is
+no busy driver.** Go sends the payload on `applyc` before `SaveSnap`/`Save` (`raft.go:256-342`), and
+the proof follows: the send is at `raftNode__start.lean:~541`, while the driver is still
+`rnBusySP`'s pending `rnPendEnter … (rnBusyStS γ A' es p' l S' r')` (`readyEnter`: a wand that yields
+`nodeDriver … st'` only when fired, `InvNode.lean:664`); *enter* fires at `rn_enterS` (`:635`), after
+the `Save` (it moves `raftState` to the saved `S'`), so it cannot be fired earlier. `NodeBridge`'s use
+is at `Advance`, long after. So `rnWinInstallAbove` (stated on `nodeDriver`) cannot be applied where
+the payload is built, within the three files.
+
+**Option (recommended, needs a go):** restate A8 the way Q29 (d)'s `rnSnapTermAbove` is (82 confirmed
+that deviation): anchored at the receive's `readyRest` at the idle driver state `rnDrvSt γ L p S r`,
+`□ ∀ rd L p S r ce es h Lo ms ss, readyRest … (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗
+⌜∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝`. `rn_ready_recv`
+(`InvRaftNode.lean:~1160`, beside `rnRestartOk_snapTerm`) applies it and records the pure in its
+snapshot disjunct (`rnBusySP`'s pure, or a new conjunct), from which `raftNode__start.lean` proves
+`rnApSnap`'s new pure; `NodeBridge.lean:~570-578` reads the bound from `rnBusyS`'s pure instead of
+`nodeDriver`. Same Go fact (the snapshot a `Ready` carries is the one the driver installs). Files:
+`InvRaftNode.lean` (A8's text, `rnBusySP`/`rnBusyS` pure, `rn_ready_recv`, `rnApSnap`),
+`raftNode__start.lean`, `InvRaftLoop.lean`, `NodeBridge.lean`, `RunRestart.lean`. Est. 0.5-1 d.
+Nothing edited; `run.wp_proofR` keeps its one `sorry` (`hab`).
