@@ -32629,7 +32629,7 @@ without `i ≤ σ.commit`, is reverted: `wal.stopImage` keeps `σ.b ≤ i ≤ σ
 R2d' with its consumer, the restart's `NewAuthStore` call; the patch and the attack are kept in
 `notes/restart-plan.md`), and that entry's "`winNoMergedSend` stays wide" (82 decided to narrow it: to
 this member's sends, keyed on the window left after the batch and on the batch's raft term, through an
-id exposed by `isServerApplyAll`; designed, not yet applied, pending 82's review of the exact text).
+id exposed by `isServerApplyAll`; approved by 82 as designed and applied, below).
 
 The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
 - *F1.* `winNoConf W` is a premise of the three window specs (`apply.spec`, `applyEntries.specBatch`,
@@ -32647,3 +32647,13 @@ The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
   `SrvRaftLog.lean`. No module unfolds them outside their own.
 - *F5.* `wal.stopImage` (sealed) moved to `WalApi.lean`, the WAL's API module (the slot convention: a
   subsystem's slot comes from its API module, as `wal.bootOk`), with `wal.stopImage_elim`.
+- *F2, the narrowed `winNoMergedSend`* (decided by etcd-grove-82 under the user's delegation (user
+  offline), 2026-11-06, pending the user's review): while a window remains after this batch, this
+  member does not merge a MsgSnap of the batch's raft term. `winNoMergedSend γ s R rt` (not
+  persistent) over the message the batch takes from `msgSnapC` (`msgOwn m 1`, exclusive, so one batch's
+  premise), sent from this member's id (`srvMemberIDAddr s ↦□ id`), at the batch's term `rt`, with `R :=
+  winRest W (unapplied ai ms)`. The wide form (`□ ∀ sentMsg`, persistent) said no `MsgSnap` was ever
+  sent in the cluster, false of every run with a snapshot transfer. The id costs one conjunct in the hub
+  bundles `isServerApplyAll` and `srvApplyAllBuilt` (`srvMemberIDAddr s ↦□ γm.id`), which `NewServer`'s
+  proof supplies; nothing at a first start.
+- *`RunWindow.lean`* moved to branch `r2d-prime` (R2d''s starting point), deleted on `r2d`.

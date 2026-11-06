@@ -2471,15 +2471,20 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
   restart form is decided (the glue lemma `applyResCW_start` takes exactly what that form must give),
   and nothing in R2d uses them or `run_firstBatch_window`; landing them would freeze-review dead
   DRAFT vocabulary. Recommendation: drop the file from R2d's landing commit range (or move it to an
-  `r2d-prime` branch) and carry it into R2d'.
+  `r2d-prime` branch) and carry it into R2d'. **Moved (2026-11-06):** branch `r2d-prime` (made at
+  `r2d`'s head before the deletion, so it has `RunWindow.lean`, using the public window list laws of
+  `ApplyWindow.lean`) is R2d''s starting point; `r2d` deletes the file in its own commit.
 
 **The held items (2026-11-06, decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review).**
 - **`winNoMergedSend` narrowed** (the Freeze 1 review's F2; 82 approves, as hub-plan owner, exposing the
-  member's id in `isServerApplyAll`): design in `/shared/tmp/r2d-wnms-design.md`, not yet applied: a
+  member's id in `isServerApplyAll`): design in `/shared/tmp/r2d-wnms-design.md`, **approved by 82 as
+  designed and applied**: while a window remains after this batch, this member does not merge a
+  MsgSnap of the batch's raft term. A
   one-shot premise of `applyAll.specBatch` over the window left after the batch
   (`winRest W (unapplied ai ms)`): the batch takes from `msgSnapC` no `MsgSnap` of this member at the
   batch's raft term; `isServerApplyAll`/`srvApplyAllBuilt` gain `srvMemberIDAddr s ↦□ γm.id`,
-  `NewServer`'s proof supplying it.
+  `NewServer`'s proof supplying it. R2d' supplies the premise per batch from the restart's starting
+  point (`run`'s loop over batches, each of its own term).
 - **The stop's `i ≤ σ.commit` stays in R2d** (the Q16-3 review's finding 2 reverted; `wal.stopImage`'s
   slot form and its elimination law kept). **R2s** carries its weakening, together with the trusted
   `bootstrapRestartContract`'s premise `uint.nat i ≤ σ.commit` (a trust change, with its `axiom`-skill
