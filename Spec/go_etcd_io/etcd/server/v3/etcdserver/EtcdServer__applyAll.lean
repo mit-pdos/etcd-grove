@@ -82,8 +82,10 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
           -- (2026-10-30, the repair) the batch's entries frozen (`CreateSnapshot`'s)
           srvFrozenRange γs (uint.nat ai + 1)
             ((max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat + 1) ∗
-          -- (2026-10-31, the snapshot track: #11's S3) with their terms
-          srvFrozenTerms γs 1 (A ++ winNew W (unapplied ai ms)) ∗
+          -- (2026-10-31, the snapshot track: #11's S3) with their terms; (R2d review F4) over Go's
+          -- applied log (`take ai A ++ unapplied ai ms`, Go-indexed as `srvFrozenRange`): raft hands,
+          -- and freezes, only through Go's end, not through the window's end
+          srvFrozenTerms γs 1 (A.take (uint.nat ai) ++ unapplied ai ms) ∗
           -- (2026-11-03, R2b-1 stage 5) the batch's log handed at its WAL `Save`
           rnWalHanded γn (max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0)).toNat)) ∗
           taSnapshotAddr ap ↦□ (null : Loc) ∗
