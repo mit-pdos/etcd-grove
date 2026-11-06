@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.BasicLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CloseApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpCb
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CommitApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.EndApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.LeaseDelApi
@@ -22,6 +23,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadOpsApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RestoreApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RoTxnApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ShapesLaw
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StorageOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnOpsApi
@@ -29,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WatchLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WatchTxnApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteOpsApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteViewApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WsOpsApi
 
 @[expose] public section
@@ -269,6 +272,62 @@ theorem mvccApi_watchableStoreTxnWrite_DeleteRange_wp_api : ∀ t : Loc,
   watchableStoreTxnWrite.DeleteRange.wp_api
     mvcc.metricsTxnWrite.wp_DeleteRange
 
+
+/-! ### The results whose proofs take more than internal specs -/
+
+theorem mvccApi_store_Compact : store.Compact.spec (GF := GF) := mvcc.store.wp_Compact
+
+theorem mvccApi_watchableStore_Compact : watchableStore.Compact.spec (GF := GF) :=
+  mvcc.watchableStore.Compact.wp_proof (mvcc.store.Compact.core_proof
+    mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step
+    mvcc.store.wp_compact)
+
+theorem mvccApi_wtxnHyp : wtxnHyp (GF := GF) :=
+  wtxnHyp_holds mvccApi_metricsTxnWrite_Put_wp_api mvccApi_metricsTxnWrite_DeleteRange_wp_api
+    mvccApi_metricsTxnWrite_End_wp_api mvccApi_watchableStoreTxnWrite_Put_wp_api
+    mvccApi_watchableStoreTxnWrite_DeleteRange_wp_api mvccApi_watchableStoreTxnWrite_End_wp_api
+
+theorem mvccApi_store_Put : store.Put.spec (GF := GF) :=
+  store.Put.wp_api traceutil.wp_TODO mvccApi_store_Write_wp_api mvccApi_wtxnHyp
+
+theorem mvccApi_store_DeleteRange : store.DeleteRange.spec (GF := GF) :=
+  store.DeleteRange.wp_api traceutil.wp_TODO mvccApi_store_Write_wp_api mvccApi_wtxnHyp
+
+theorem mvccApi_watchableStore_Put : watchableStore.Put.spec (GF := GF) :=
+  watchableStore.Put.wp_api traceutil.wp_TODO mvccApi_watchableStore_Write_wp_api mvccApi_wtxnHyp
+
+theorem mvccApi_watchableStore_DeleteRange : watchableStore.DeleteRange.spec (GF := GF) :=
+  watchableStore.DeleteRange.wp_api traceutil.wp_TODO mvccApi_watchableStore_Write_wp_api mvccApi_wtxnHyp
+
+theorem mvccApi_shapes_law : shapes.law (GF := GF) :=
+  shapes.law_holds
+    (fun s => ⟨mvccApi_store_Read_wp_api s, mvccApi_store_Write_wp_api s, mvccApi_store_Rev_wp_api s,
+      mvccApi_store_FirstRev_wp_api s, mvccApi_store_Range_wp_api s, mvccApi_store_Put s,
+      mvccApi_store_DeleteRange s, mvccApi_store_Compact s, mvccApi_store_Commit_wp_api s,
+      mvccApi_store_Restore_wp_api s, mvccApi_store_HashStorage_wp_api s, mvccApi_store_Close_wp_api s⟩)
+    (fun s => ⟨⟨mvccApi_watchableStore_Read_wp_api s, mvccApi_watchableStore_Write_wp_api s,
+      mvccApi_watchableStore_Rev_wp_api s, mvccApi_watchableStore_FirstRev_wp_api s,
+      mvccApi_watchableStore_Range_wp_api s, mvccApi_watchableStore_Put s,
+      mvccApi_watchableStore_DeleteRange s, mvccApi_watchableStore_Compact s,
+      mvccApi_watchableStore_Commit_wp_api s, mvccApi_watchableStore_Restore_wp_api s,
+      mvccApi_watchableStore_HashStorage_wp_api s, mvccApi_watchableStore_Close_wp_api s⟩,
+      mvcc.watchableStore.wp_NewWatchStream s⟩)
+    (fun t => ⟨mvccApi_metricsTxnWrite_Rev_wp_api t, mvccApi_metricsTxnWrite_FirstRev_wp_api t,
+      mvccApi_metricsTxnWrite_Range_wp_api t, mvccApi_metricsTxnWrite_Put_wp_api t,
+      mvccApi_metricsTxnWrite_DeleteRange_wp_api t, mvccApi_metricsTxnWrite_Changes_wp_api t,
+      mvccApi_metricsTxnWrite_End_wp_api t⟩)
+    (fun t => ⟨mvccApi_watchableStoreTxnWrite_Rev_wp_api t,
+      mvccApi_watchableStoreTxnWrite_FirstRev_wp_api t, mvccApi_watchableStoreTxnWrite_Range_wp_api t,
+      mvccApi_watchableStoreTxnWrite_Put_wp_api t, mvccApi_watchableStoreTxnWrite_DeleteRange_wp_api t,
+      mvccApi_watchableStoreTxnWrite_Changes_wp_api t, mvccApi_watchableStoreTxnWrite_End_wp_api t⟩)
+    (fun t => ⟨mvccApi_txnReadWrite_Rev_wp_api t, mvccApi_txnReadWrite_FirstRev_wp_api t,
+      mvccApi_txnReadWrite_Range_wp_api t, mvccApi_txnReadWrite_Put_wp_api t,
+      mvccApi_txnReadWrite_DeleteRange_wp_api t, mvccApi_txnReadWrite_Changes_wp_api t,
+      mvccApi_txnReadWrite_End_wp_api t⟩)
+    (fun w => ⟨mvcc.watchStream.wp_Watch w, mvcc.watchStream.wp_Chan w,
+      mvcc.watchStream.wp_RequestProgress w, mvcc.watchStream.wp_RequestProgressAll w,
+      mvcc.watchStream.wp_Cancel w, mvcc.watchStream.wp_Close w, mvcc.watchStream.wp_Rev w⟩)
+
 end results
 
 end api
@@ -334,6 +393,14 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStoreTxnWrite_Range_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStoreTxnWrite_Put_wp_api
 #print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStoreTxnWrite_DeleteRange_wp_api
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_store_Compact
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_Compact
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_wtxnHyp
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_store_Put
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_store_DeleteRange
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_Put
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_watchableStore_DeleteRange
+#print axioms Perennial.EtcdGrove.mvcc.api.mvccApi_shapes_law
 
 end EtcdGrove
 end Perennial
