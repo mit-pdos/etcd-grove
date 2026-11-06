@@ -3024,3 +3024,28 @@ the same edit. Then A3 was unblocked (Q22 (1) (a), user-approved) and took prior
   `applyAll.wp_proofBatch`'s, except `apply.wp_proofROff`'s three (`apply.memberKey_inj`,
   `membership.membersOfBk_empty`, `membership.membersOf_decode`), which are in
   `etc/tcb-baseline.txt`.
+
+##### Step 3 done: the on copies (2026-11-06, branch `r2dp`; DRAFT)
+
+- **`apply.specROn`/`wp_proofROn`** (`ApplyROn.lean`, new): `specROff` in mode `on`, as lean's
+  `apply.specOn` is `specOff`'s (binders `γa sa`; premises `E.authMode = .on γa`, the receipts'
+  bound, `logShapeOn`; `isServerM true`, `srvLessorNil`, `srvApplyKVOn`, `kvAppliedOn`, the token
+  rights in and out, the auth state `sa'` in the post). The proof is the merge planned above (its 14
+  hunks resolved by hand) plus what the merge does not give:
+  - the replay's normal branch calls `specRepOn` (the `⧗ 1` from the loop's receipt, the chain
+    from unfolding `kvAppliedOn`); both replay branches carry the token rights over `stLoaded`;
+  - `setAppliedIndex`'s replay case gets `srvAppliedInvM` from `srvAtomicsM` at `authOn = true`;
+  - the conf-change macros' `On` forms (`cc_kv_appliedOn`, `cc_respondOn`) are copied, local to
+    the file, from `EtcdServer__apply.lean`.
+- **`applyEntries.specBatchROnC`/`wp_proofBatchROnC`** (`ApplyEntriesROn.lean`, new):
+  `specBatchROff` in mode `on`. Its proof is `ApplyEntriesR`'s merged with lean's
+  `applyEntries.wp_proofOff` → `wp_proofOn` diff (3 hunks: the intro and `wp_start`, the call to
+  `apply.specROn`, the closing).
+- **`applyEntries.wp_proofBatchR`** (`ApplyAllR.lean`) no longer has a hypothesized spec. Its
+  `on` case is `specBatchROnC`, rewritten as lean's `wp_proofBatch` does. `specBatchROn` (the
+  mode-indexed form) stays as an abbreviation; nothing uses it.
+- The replays still use the two Q23 specs (`specRepOff`, `specRepOn`). If 82 folds them, the
+  callers in `ApplyR`/`ApplyROn` change; nothing else does.
+- `#print axioms` of `apply.wp_proofROn`, `applyEntries.wp_proofBatchROnC`,
+  `applyEntries.wp_proofBatchR`, `applyAll.wp_proofBatchR` and `applyEntryNormal.wp_proofRepOn`:
+  no `sorryAx`. Their repository axioms are all in `etc/tcb-baseline.txt`; no axiom was added.

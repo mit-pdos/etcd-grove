@@ -5,8 +5,8 @@ counterpart).
 
 * `applyEntries.specBatchR`: `applyEntries.specBatch` over the restart point `rp` and Go's log `A`
   (the ghost rows at `ghostOf rp A`), in the environment's auth mode; `wp_proofBatchR` from the
-  auth-off form `specBatchROff` (`ApplyEntriesR.lean`) and the auth-on form `specBatchROn` (a
-  hypothesis: its proof is the auth-on copy of the probe's, which waits for A3).
+  auth-off form `specBatchROff` (`ApplyEntriesR.lean`) and the auth-on form `specBatchROnC`
+  (`ApplyEntriesROn.lean`, over `apply.specROn`).
 * `applyAll.wp_proofBatchR`: `RunR.lean`'s `applyAll.specBatchR`, lean's `wp_proofBatch` over
   `applyEntries.specBatchR`. Go's rows (`ep.appliedi`, the snapshot state, the trigger, the disk
   snapshot) are lean's; the ghost rows go through. The merged-send branch (`server.go:1018-1023` at
@@ -18,6 +18,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntriesR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntriesROn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunR
 
 @[expose] public section
@@ -93,9 +94,8 @@ abbrev EtcdServer.applyEntries.specBatchRAt (P : auth.AuthMode → Prop) : Prop 
 abbrev EtcdServer.applyEntries.specBatchR : Prop :=
   EtcdServer.applyEntries.specBatchRAt (GF := GF) (hG := hG) (· ≠ .any)
 
-/-- **`applyEntries.specBatchROn`** (R2d'a A5, DRAFT, HYPOTHESIZED): with auth on. Its proof is the
-auth-on copy of `wp_proofBatchROff` over an auth-on `apply.specROn`, whose replay case waits for A3
-(`notes/restart-plan.md`, "R2d'a Draft"). -/
+/-- **`applyEntries.specBatchROn`** (R2d'a A5, DRAFT): with auth on; `specBatchROnC`
+(`ApplyEntriesROn.lean`) in the mode-indexed form. -/
 abbrev EtcdServer.applyEntries.specBatchROn : Prop :=
   EtcdServer.applyEntries.specBatchRAt (GF := GF) (hG := hG) (fun m => ∃ γa, m = .on γa)
 
@@ -116,19 +116,37 @@ theorem srvRunH_applyAll_specBatchR (γs : ServerRaftNames) (dv : Option Loc) :
       srvRunH γs dv := by
   cases dv <;> rfl
 
-/-- **`applyEntries.specBatchR`** (R2d'a A5, DRAFT): `wp_proofBatchROff` with auth off, the
-hypothesis `specBatchROn` with auth on (`applyEntries.wp_proofBatch`'s split). -/
+/-- **`applyEntries.specBatchR`** (R2d'a A5, DRAFT): `wp_proofBatchROff` with auth off,
+`wp_proofBatchROnC` with auth on (`applyEntries.wp_proofBatch`'s split). -/
 theorem EtcdServer.applyEntries.wp_proofBatchR
     (hOff : EtcdServer.applyEntries.specBatchROff (GF := GF) (hG := hG))
-    (hOn : EtcdServer.applyEntries.specBatchROn (GF := GF) (hG := hG)) :
+    (hOn : EtcdServer.applyEntries.specBatchROnC (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.specBatchR (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa hany hRB Hms
     Hai1 Hok hEok hdv hg0
   cases hm : E.authMode with
   | any => exact absurd hm hany
   | on γa =>
-    exact hOn s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa
-      ⟨γa, hm⟩ hRB Hms Hai1 Hok hEok hdv hg0
+    have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hm]; rfl
+    rw [hon] at hEok ⊢
+    simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true]
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hlnil, Hbw, Hes, Hrac, Hesl, Hentsat, Hai, Hat, Hcs, Hcv, Hst, Hbe, Happ,
+      Hlr, Hgr, HKV, Hao, Hlog, Hbc, HW, HWA, Hfs, Hka, HRS, Hkb, Hdv, Hdvr, Hrun, HAR, HtokR⟩ HΦ
+    iapply (hOn s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g γa sa hm
+      (hRB hon) Hms Hai1 Hok hEok hdv) $$ [Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr
+      HKV Hao Hlog Hbc HW HWA Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR HtokR] [HΦ]
+    · iframe Hpkg Hsrv Hlnil Hbw Hes Hrac Hesl Hentsat Hai Hat Hcs Hcv Hst Hbe Happ Hlr Hgr HKV Hao Hlog
+        Hbc HW HWA Hfs Hka HRS Hkb Hdv Hdvr Hrun HAR HtokR
+      ipureintro; exact hg0
+    iintro !> ⟨Hfs, Hdv, Hrun, HAR, %st', %ai', %at', %a', %t', %cs', %g', Hai, Hat, Hcs, Hcv, Hst,
+      HtokR, Hbe, Hci, Hlr, Hgr, Hao, HWT, ⟨%x', %sa', HKV, %Hstep, Hlog, Hka, HRS⟩, %Hp⟩
+    iapply HΦ
+    iframe Hfs Hdv Hrun HAR
+    iexists st', ai', at', a', t', cs', g'
+    iframe Hai Hat Hcs Hcv Hst HtokR Hbe Hci Hlr Hgr Hao HWT
+    isplitl [HKV Hlog Hka HRS]
+    · iexists x', sa'; iframe HKV Hlog Hka HRS; ipureintro; exact Hstep
+    ipureintro; exact Hp
   | off =>
     have hoff : E.authOn = false := by rw [apply.AEnv.authOn_eq, hm]; rfl
     have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
