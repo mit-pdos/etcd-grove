@@ -855,9 +855,9 @@ theorem meta_failC (γ : DBNames) (db : Loc) (p : GoString) (base : Loc) (len : 
   iintro ⟨#Hinv, Htok, Hcur, Hcm, Ho1, Ho2, Hc0, Hc1, Hfl, Hfail, Hauth, Hown, Howner, Hcls⟩
   iunfold dbOwner at Howner
   imod ghostVar_update_halves (t, 0) γ.own _ _ $$ Howner Hown with ⟨Howner, Hown⟩
-  imod fail_cur_inv γ p base len γm mp hwm $$ [Htok Hcur Hcm] with ⟨Htok, Hcur, Hcm⟩
+  imod fail_cur_inv γ γ.ino base len γm mp hwm $$ [Htok Hcur Hcm] with ⟨Htok, Hcur, Hcm⟩
   · iframe; iframe #
-  imod metas_in γ p base len γm mp true hwm mc hmc (fun h => by cases h)
+  imod metas_in γ γ.ino base len γm mp true hwm mc hmc (fun h => by cases h)
     $$ [Htok Hcur Ho1 Ho2 Hc0 Hc1] with ⟨Htok, Hcur, Ho1, Ho2⟩
   · iframe; iframe #
   imod mono_nat_own_update 1 (by omega) $$ Hfail with ⟨Hfail, Hlb⟩
@@ -888,7 +888,7 @@ theorem dataErrTC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoSt
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
       csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ⊢
       commitErrC (GF := GF) γ γc db f fd p t := by
   iintro ⟨Hown, #Hfailed, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, T0, T1, Hpc, Htop, Hfsz, Hdsz, Hf,
@@ -927,7 +927,7 @@ theorem writerStC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : G
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
       csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ∗
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ⊢
@@ -955,7 +955,7 @@ theorem commitErrC_mk (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : 
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
       csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ∗
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ⊢
@@ -990,7 +990,7 @@ theorem dataErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStr
       mapFields (GF := GF) db (DFrac.own (1 : Qp).half) (some (base, len, γm)) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
       csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ∗
       ghostVar γ.cls (1 : Qp).half false ∗ ghostVar γm (1 : Qp).half () ∗
       mapInv (GF := GF) γ γ.ino base len γm ∗

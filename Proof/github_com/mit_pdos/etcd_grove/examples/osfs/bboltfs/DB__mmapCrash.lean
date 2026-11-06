@@ -60,7 +60,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
     |={⊤}=> ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ writerExtra (GF := GF) γ f fd p mp fl hwm ∗
       ghostVar γ.out (1 : Qp).half false ∗
-      ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) p r B) ∗
+      ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) γ.ino r B) ∗
       mappingResC (GF := GF) p γc m bs fa fb (mapSlice st) ∗
       unmapRestC (GF := GF) p γc m bs fa fb st ∗
       ⌜∀ base len γm, st = some (base, len, γm) → 0 < base.addr⌝ := by
@@ -79,7 +79,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
     iintro ⟨#Hos, #Hci, Hcur, Hout, Hm, ⟨%Hf, Htok, Hwc⟩, ⟨-, Htok2, #Hinv, Hf2, Hfd2⟩⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hf
     icombine Htok Htok2 as Htok
-    ihave Hc := mapInv_close γ p base len γm $$ [Htok]
+    ihave Hc := mapInv_close γ γ.ino base len γm $$ [Htok]
     · iframe; iframe #
     imod Hc
     icases Hc with >Hc
@@ -91,7 +91,7 @@ theorem mmap_prepC (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List
     icases Hmc with (Hout2 | ⟨Hout2, %mc, Hm0, Hm1, %Hmc⟩)
     · icombine Hout Hout2 gives % ⟨_, Heq⟩
       cases Heq
-    icases pagesCells_split p base (hwm - 2) 2 $$ Hpc with ⟨Hps, Hpc⟩
+    icases pagesCells_split γ.ino base (hwm - 2) 2 $$ Hpc with ⟨Hps, Hpc⟩
     rw [show 4096 * 2 = 8192 by rfl]
     ihave Hall := mapCells_gather base hwm len h2 Hl mc Hmc.1 $$ [Hwc Hm0 Hm1 Hpc]
     · iframe

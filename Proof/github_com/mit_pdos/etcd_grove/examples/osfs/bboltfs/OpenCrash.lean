@@ -253,8 +253,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 theorem csOwn_idle00 (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × Bool)) :
     csOwn (GF := GF) p γ (some ⟨m, bs, 0, 0, .idle⟩) ⊣⊢
       ghostVar γ (1 : Qp).half (some ⟨m, bs, 0, 0, .idle⟩ : CState) ∗
-      osMeta (GF := GF) p (DFrac.own (1 : Qp).half) m ∗
-      osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜bs.length = m.size⌝ := by
+      osMeta (GF := GF) γ.ino (DFrac.own (1 : Qp).half) m ∗
+      osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜bs.length = m.size⌝ := by
   have h := idle_thrBytes (GF := GF) p m [] [] bs 0 0 rfl rfl
   rw [List.nil_append, List.nil_append] at h
   constructor
@@ -288,7 +288,7 @@ theorem ready_pages (p : Ino) (bs : List (w8 × Bool)) (n : Nat)
 theorem open_ghostC (db : Loc) (p : GoString) (mp : List w8) (B : List w8)
     (t : Nat) (vo : Option w64) (vp : Nat → Option w64 → Prop) (hvp : vp t vo)
     (hmp : metaPagesOk mp) (ht : (curMeta mp).txid'.toNat = t) (hvo : pageVal B = vo) :
-    db.[DB, go!"failed"] ↦ false ∗ pageIs (GF := GF) p (curRoot mp) B ⊢
+    db.[DB, go!"failed"] ↦ false ∗ pageIs (GF := GF) γ.ino (curRoot mp) B ⊢
       |==> ∃ γ : DBNames, ⌜γ.vp = vp⌝ ∗ metaRC (GF := GF) γ db p ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗
         ghostVar γ.cur (1 : Qp).half.half (mp, false, curPgid mp) ∗

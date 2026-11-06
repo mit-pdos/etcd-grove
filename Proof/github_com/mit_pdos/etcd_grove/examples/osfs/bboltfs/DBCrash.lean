@@ -133,7 +133,7 @@ def writerFileC (γc : GName) (db f : Loc) (fd : w64) (p : GoString) (mp : List 
   iprop(∃ fsz : Nat,
     db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen st) ∗
     os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
+    osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
     csOwn (GF := GF) p γc (some ⟨m, bs, 8192, 4096 * hwm, .idle⟩) ∗
     ⌜2 ≤ hwm ∧ 4096 * hwm ≤ m.size ∧
       (∀ M : GMap Loc Nat, dbOk p (some ⟨{ m with maps := M }, bs, 8192, 4096 * hwm, .idle⟩)) ∧
@@ -153,7 +153,7 @@ def metaRC (γ : DBNames) (db : Loc) (p : GoString) : IProp GF :=
         ∀ k, (curMeta mp).txid'.toNat < k → T !! k = none⌝ ∗
       monoNatAuthOwn γ.last 1 (curMeta mp).txid'.toNat ∗
       ghostVar γ.own (1 : Qp).half ((curMeta mp).txid'.toNat, hwm) ∗
-      ∃ B, pageIs (GF := GF) p (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
+      ∃ B, pageIs (GF := GF) γ.ino (curRoot mp) B ∗ dbTx γ (curMeta mp).txid'.toNat (pageVal B) ∗
         ⌜T !! (curMeta mp).txid'.toNat = some (pageVal B)⌝)
 
 /-- `rwlock`'s resource over the crash invariant `γc`: `rwR`'s, with `writerFileC`. -/

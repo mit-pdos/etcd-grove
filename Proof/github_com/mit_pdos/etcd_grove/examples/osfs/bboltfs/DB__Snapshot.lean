@@ -142,10 +142,10 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       rw [show sync.rfrac.half = sync.rfrac.half.half + (metaDep + metaDep) by unfold metaDep; qp_eq] at *
       icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hq, Htok⟩
       icases ((ghostVar_fractional γm ()).fractional _ _).1 $$ Htok with ⟨Hmd, Hpd⟩
-      imod meta_borrow γ p base len γm γl mp (curPgid mp) T sync.rfrac.half.half $$ [HinvL Hq Hcur Hout Hauth Hmd]
+      imod meta_borrow γ γ.ino base len γm γl mp (curPgid mp) T sync.rfrac.half.half $$ [HinvL Hq Hcur Hout Hauth Hmd]
         with ⟨Hq, Hcur, Hauth, Hk0, Hmc⟩
       · iframe; iframe #
-      imod page_pageIs γ p base len γm γl mp (curPgid mp) (curPgid mp - 1) sync.rfrac.half.half
+      imod page_pageIs γ γ.ino base len γm γl mp (curPgid mp) (curPgid mp - 1) sync.rfrac.half.half
         (by omega) (by omega) $$ [HinvL Hq Hcur] with ⟨Hq, Hcur, %B2, #HB2⟩
       · iframe; iframe #
       obtain ⟨Hm0, Hm1⟩ := metasOf_take mp Hmpl
@@ -199,7 +199,7 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       icases Hcb $$ Hc with ⟨Hc0, Hc1⟩
       icases Hb0 $$ Hc0 with Hc0
       icases Hb1 $$ Hc1 with Hc1
-      imod meta_return γ p base len γm γl T sync.rfrac.half.half (metasOf mp)
+      imod meta_return γ γ.ino base len γm γl T sync.rfrac.half.half (metasOf mp)
         $$ [HinvL Hq Hauth Hk0 Hc0 Hc1] with ⟨Hq, Hout, Hauth, Hmd⟩
       · iframe #; iunfold metaBytes; iframe
       wp_apply sync.Mutex.wp_Unlock db.[DB, go!"metalock"] (metaR (GF := GF) γ db p)
@@ -234,12 +234,12 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
       icases HB2c with ⟨%HB2l, #HB2b⟩
       ihave Hrs : ([∗list] r ∈ [(4096 * curRoot mp, DFrac.discard, B.map (·, true)),
           (4096 * (curPgid mp - 1), DFrac.discard, B2.map (·, true))],
-          osBytes (GF := GF) p r.1 r.2.1 r.2.2) $$ []
+          osBytes (GF := GF) γ.ino r.1 r.2.1 r.2.2) $$ []
       · iapply BigSepL.bigSepL_cons.2; isplitl; · iexact HBb
         iapply BigSepL.bigSepL_singleton.2; iexact HB2b
       wp_apply wp_ReadAt f' fd' p (DFrac.own sync.rfrac.half) buf
           (List.replicate ((curPgid mp + 1) * 4096) (zero_val w8)) (W64 0) (DFrac.own sync.rfrac.half)
-          ⟨p, true, true⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
+          ⟨γ.ino, true, true⟩ _ eof rfl (by decide) (by simp; omega) (by simp; omega)
         $$ [Hf Hbuf Hfd Hrs] as %n %err ⟨Hf, Hfd, Hrs, %vs', Hbuf, %Hres⟩
       · iframe; iframe #
       obtain ⟨-, Heofpe, T, l, rfl⟩ := Heof

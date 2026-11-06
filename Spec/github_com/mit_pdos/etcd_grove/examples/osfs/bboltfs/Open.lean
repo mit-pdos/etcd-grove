@@ -88,11 +88,17 @@ def dbFile (R : Roots) (V : Hist) (p : GoString) (t : Nat) (vo : Option w64) (n 
   iprop(dbFresh (GF := GF) R V p t vo n ∨
     ∃ i : Ino, ⌜lookupH R V p = some (.file i)⌝ ∗ dbStored (GF := GF) i t vo n)
 
+/-- What a failed `Open` leaves at the path `p` of the tree `(R, V)`: the file of inode `i` there
+(it may have been created), with its `OsMeta`, or nothing. -/
+def openFail (R : Roots) (V : Hist) (p : GoString) : IProp GF :=
+  iprop((∃ (i : Ino) (m : OsMeta), ⌜lookupH R V p = some (.file i)⌝ ∗
+    osMeta (GF := GF) i (DFrac.own 1) m) ∨ ⌜lookupH R V p = none⌝)
+
 /-- See the file header. -/
 abbrev Open.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 30)] (d b : GoString) (R : Roots) (V : Hist) (j : Ino) (t : Nat)
     (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
-  NameOk b → lookupH R V d = some (.dir j) → vp t vo →
+  RootsOk R → NameOk b → lookupH R V d = some (.dir j) → vp t vo →
   {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own 1) R V ∗
       dbFile (GF := GF) R V (child d b) t vo n }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open)) (Val #(child d b)))
@@ -101,9 +107,7 @@ abbrev Open.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp ∧ lookupH R V' (child d b) = some (.file γ.ino)⌝ ∗
           isDB (GF := GF) γ db ∗ db.[DB, go!"path"] ↦□ (child d b) ∗ dbOwner (GF := GF) γ t n ∗
           dbLast (GF := GF) γ t ∗ dbTx (GF := GF) γ t vo) ∨
-      (⌜err ≠ interface.nil ∧ db = null⌝ ∗ ∃ (i : Ino) (m' : OsMeta),
-          ⌜lookupH R V' (child d b) = some (.file i)⌝ ∗ osMeta (GF := GF) i (DFrac.own 1) m' ∨
-        ⌜lookupH R V' (child d b) = none⌝)) }}
+      (⌜err ≠ interface.nil ∧ db = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }}
 
 end spec
 

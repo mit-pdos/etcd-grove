@@ -59,9 +59,9 @@ theorem commitErr_of (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp :
       mapInv (GF := GF) γ γ.ino base len γm ∗ writerCells (GF := GF) base hwm len ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-      osMeta (GF := GF) p (DFrac.own 1) m2 ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
-      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ⊢
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osMeta (GF := GF) γ.ino (DFrac.own 1) m2 ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) tail ⊢
       commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc, Hfsz, Hdsz, Hf, Hfd, Hm, Hmx, Htail⟩
   ihave Hown : ∃ n', dbOwner (GF := GF) γ t n' $$ [Hown]
@@ -228,15 +228,15 @@ theorem dataErr (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : List
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-      osMeta (GF := GF) p (DFrac.own 1) m3 ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
-      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
-      osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osMeta (GF := GF) γ.ino (DFrac.own 1) m3 ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) ys ∗
+      osBytes (GF := GF) γ.ino (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
       commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, Hwc4, Hpc, Htop, Hfsz, Hdsz, Hf, Hfd, Hm,
     Hmx, Hpg, Hrest⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
-  icases page_rejoin p base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
+  icases page_rejoin γ.ino base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
   · iframe Hpg Hrest Hpc Htop
   ihave Hwc := (writerCells_top base hwm len).2 $$ [Hwc4 Htop]
   · iframe Hwc4 Htop
@@ -313,17 +313,17 @@ theorem dataErrT (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (mp : Lis
       cellsAny (GF := GF) base (4096 * hwm + 4096) (len - 4096 * hwm - 4096) ∗
       db.[DB, go!"filesz"] ↦ W64 fsz ∗ db.[DB, go!"datasz"] ↦ W64 len ∗
       os.ownFile (GF := GF) f fd p (DFrac.own (1 : Qp).half) ∗
-      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨p, true, true⟩ ∗
-      osMeta (GF := GF) p (DFrac.own 1) m3 ∗ osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) mxc ∗
-      osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
-      osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
+      osFd (GF := GF) fd (DFrac.own (1 : Qp).half) ⟨γ.ino, true, true⟩ ∗
+      osMeta (GF := GF) γ.ino (DFrac.own 1) m3 ∗ osBytes (GF := GF) γ.ino 0 (DFrac.own (1 : Qp).half) mxc ∗
+      osBytes (GF := GF) γ.ino (4096 * hwm) (DFrac.own 1) ys ∗
+      osBytes (GF := GF) γ.ino (4096 * hwm + 4096) (DFrac.own 1) rest ⊢
       commitErr (GF := GF) γ db f fd p t := by
   iintro ⟨Hown, #Hfailed, Hcur, Hmap, Hout, Hflds, Hcls, Htok, #Hinv, T0, T1, Hpc, Htop, Hfsz, Hdsz, Hf,
     Hfd, Hm, Hmx, Hpg, Hrest⟩
   ihave Hown : ∃ n', dbOwner (GF := GF) γ t n' $$ [Hown]
   · iexists n; iexact Hown
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
-  icases page_rejoin p base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
+  icases page_rejoin γ.ino base hwm len ys rest h8 (by omega) $$ [Hpg Hrest Hpc Htop] with ⟨Htail, Htop⟩
   · iframe Hpg Hrest Hpc Htop
   ihave Hwc4 := (hdrTails base).2 $$ [T0 T1]
   · iframe T0 T1

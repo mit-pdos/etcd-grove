@@ -55,17 +55,12 @@ theorem valueOkP_next (x : w64) (h2 : 2 ≤ x.toNat) : valueOkP (x.toNat - 1 + 1
   rw [← w64_of_toNat x _ rfl]
 
 /-- No file: `Open` lays one out, at transaction 1 with no value, high water mark 4. -/
-theorem dbFile_absent (p : GoString) :
-    osMeta (GF := GF) p (DFrac.own 1) none ⊢ dbFile (GF := GF) p 1 none 4 := by
-  iintro Hm
+theorem dbFile_absent (R : Roots) (V : Hist) (p : GoString) (h : lookupH R V p = none) :
+    ⊢ dbFile (GF := GF) R V p 1 none 4 := by
   unfold dbFile dbFresh
-  ileft
-  iexists none, []
-  iframe Hm
-  isplitr
-  · dsimp only; iempintro
+  ileft; ileft
   ipureintro
-  refine ⟨fun _ => rfl, fun m h => absurd h (by simp), ?_⟩
+  refine ⟨h, ?_⟩
   simp only [freshTx, List.length_nil]
   rw [if_neg (by omega)]
 

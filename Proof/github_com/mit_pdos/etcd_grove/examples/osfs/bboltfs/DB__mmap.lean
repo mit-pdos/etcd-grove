@@ -43,13 +43,13 @@ invariant's half of `out`, and the committed pages. -/
 theorem mmap_prep (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List w8) (fl : Bool)
     (hwm : Nat) (m : OsMeta) (st : MapSt) (h2 : 2 ≤ hwm) (hsz : 4096 * hwm ≤ m.size) :
     osInv (GF := GF) ∗ ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
-      ghostVar γ.out (1 : Qp).half.half false ∗ osMeta (GF := GF) p (DFrac.own 1) m ∗
+      ghostVar γ.out (1 : Qp).half.half false ∗ osMeta (GF := GF) γ.ino (DFrac.own 1) m ∗
       mmapPre (GF := GF) γ f fd p mp fl hwm m st ∗ mapRest (GF := GF) γ f fd p 1 st ⊢
     |={⊤}=> ghostVar γ.cur (1 : Qp).half.half (mp, fl, hwm) ∗
       ghostVar γ.out (1 : Qp).half.half false ∗ writerExtra (GF := GF) γ f fd p mp fl hwm ∗
       ghostVar γ.out (1 : Qp).half false ∗
-      ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) p r B) ∗
-      mappingRes (GF := GF) p m (mapSlice st) ∗ unmapRest (GF := GF) p m st ∗
+      ([∗list] r ∈ List.range' 2 (hwm - 2), ∃ B, pageIs (GF := GF) γ.ino r B) ∗
+      mappingRes (GF := GF) γ.ino m (mapSlice st) ∗ unmapRest (GF := GF) p m st ∗
       ⌜∀ base len γm, st = some (base, len, γm) → 0 < base.addr⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [mmapPre, mapRest, mapSlice, unmapRest]
@@ -66,7 +66,7 @@ theorem mmap_prep (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List 
     iintro ⟨#Hos, Hcur, Hout, Hm, ⟨%Hf, Htok, Hwc⟩, ⟨-, Htok2, #Hinv, Hf2, Hfd2⟩⟩
     obtain ⟨Hmaps, Hlen, Hbase, Hlen41⟩ := Hf
     icombine Htok Htok2 as Htok
-    ihave Hc := mapInv_close γ p base len γm $$ [Htok]
+    ihave Hc := mapInv_close γ γ.ino base len γm $$ [Htok]
     · iframe; iframe #
     imod Hc
     icases Hc with >Hc
@@ -78,7 +78,7 @@ theorem mmap_prep (γ : DBNames) (f : Loc) (fd : w64) (p : GoString) (mp : List 
     icases Hmc with (Hout2 | ⟨Hout2, %mc, Hm0, Hm1, %Hmc⟩)
     · icombine Hout Hout2 gives % ⟨_, Heq⟩
       cases Heq
-    icases pagesCells_split p base (hwm - 2) 2 $$ Hpc with ⟨Hps, Hpc⟩
+    icases pagesCells_split γ.ino base (hwm - 2) 2 $$ Hpc with ⟨Hps, Hpc⟩
     rw [show 4096 * 2 = 8192 by rfl]
     ihave Hall := mapCells_gather base hwm len h2 Hl mc Hmc.1 $$ [Hwc Hm0 Hm1 Hpc]
     · iframe
@@ -108,8 +108,8 @@ theorem errnoErr_ne_nil (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil :
 
 /-- After `munmap`: the file's `OsMeta`, of the same size, with no mapping if it succeeded. -/
 theorem mmap_unmapped (p : GoString) (m : OsMeta) (st : MapSt) (err : GoInterface) :
-    unmappedRes (GF := GF) p m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
-      ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗
+    unmappedRes (GF := GF) γ.ino m (mapSlice st) err ∗ unmapRest (GF := GF) p m st ⊢
+      ∃ m', osMeta (GF := GF) γ.ino (DFrac.own 1) m' ∗
         ⌜m'.size = m.size ∧ m'.ok = m.ok ∧ (err = interface.nil → m'.maps = ∅)⌝ := by
   rcases st with _ | ⟨base, len, γm⟩
   · dsimp only [unmapRest]

@@ -51,11 +51,11 @@ abbrev DB.init.specCrash : Prop :=
   ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N p γ (CrashOkS (P1 p) p Good) ∗
       db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"filesz"] ↦ W64 m.size ∗
-      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨p, true, true⟩ ∗
+      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨γ.ino, true, true⟩ ∗
       csOwn (GF := GF) p γ (some ⟨m, xs, 0, 0, .idle⟩) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨p, true, true⟩ ∗
+      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨γ.ino, true, true⟩ ∗
       ((⌜err = interface.nil⌝ ∗
           db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗
           csOwn (GF := GF) p γ (some ⟨initDoneMeta m xs, initFile xs, 0, 0, .idle⟩)) ∨
