@@ -1,0 +1,410 @@
+# revoke-open: discharging `srvRevokeOpen_open`, the gated `sorry` of lease expiry
+
+Phase: **Scope** (drafted read-only on branch `revoke-open` = lean `aa4449beb6`; nothing edited or
+built). It replaces the parked candidate in `notes/lease-expiry-plan.md`, "Scope candidate:
+discharging `srvRevokeOpen_open`" (2026-11-05), which this Scope re-checks against today's lean
+(after S2–S4, lease-mono3 and R2c) in §9. A hard stop: the user's Scope.
+
+What it does: proves `EtcdServer.revokeExpiredLeases` (`server.go:860-905`, run's expiry arm) and
+passes the proof in place of `srvRevokeOpen_open` (`EtcdServer__run.lean:283`) in
+`leaseexpiry/MainLinked.lean:54`. The trust base goes from 3 `sorry`s to 2. Perennial: P1 (thread
+tokens by level, `84d538063`) is already lean's pin; no Perennial change is needed.
+
+## Scope (2026-11-06)
+
+### 0. The Go code (unchanged from the parked design's reading)
+
+`revokeExpiredLeases` `GoAttach`es an *outer* goroutine: `lg := s.Logger()` (`lgMu` read lock),
+`s.ensureLeadership()` (an axiom: `lgMu`, `read.mux`, a thread token), then per lease a send on the
+semaphore `c` (capacity `maxPendingRevokes = 16`, or `<-s.stopping`: return) and a `GoAttach` of an
+*inner* goroutine: `s.authStore.WithRoot(s.ctx)` (`enabledMu` read lock: `E.RD`), `s.LeaseRevoke`
+(`leadTimeMu`, `E.RD`, no thread token), `leaseExpired.Inc()` or `lg.Warn(...)`, `<-c`. `GoAttach`
+holds `wgMu`'s read lock across `wg.Add(1)` and the `go` statement, and calls `s.Logger()` in its
+stopped branch. No bug: nothing panics for non-nil leases; a skipped inner `GoAttach` leaves `c`
+full but the outer's `select` exits on `stopping`. Nothing for `issues/`.
+
+Rounds overlap without bound (each tick starts one; an inner goroutine may block as far as the
+proof sees), so every reader slot the expiry goroutines use must come from a pool backed by thread
+tokens (`threadPool.isThreadPoolL`, at least `threadBound GF − 1` copies), borrowed with a level
+token: the goroutines of `s.wg` hold their token's levels from 1 only (level 0 is in the wait group).
+
+### 1. Where `threadBound` is fixed (the open point)
+
+- **Perennial** guarantees only `1 < threadBound GF` (`Threads.lean:83`, `ThreadGS.threadBound_gt`).
+  A thread token is one token per level `l < threadBound GF`; `threadToksFrom l = emp` for
+  `l ≥ threadBound` (`threadToksFrom_of_le`, `Threads.lean:362`), so a design using level `l` needs
+  `l < threadBound GF` wherever it splits `levelTok l` off.
+- **The trust boundary** `goose_adequacy_start` (`Proof/runtime/Start.lean:103`) takes `T` as a
+  parameter: the WP proof gets `threadBound GF = T`, and the execution must satisfy
+  `RealThreadsBelow T n` (`Perennial/GooseLang/BoundedLang.lean:246`: every prefix of the `n`-step
+  run has fewer than `T` threads), which is monotone in `T`.
+- **The choice `T = n + 2`** is made once per adequacy lemma, from `realThreadsBelow_of_one`
+  (`Proof/runtime/Threads.lean:60`): `etcd_adequate` (`etcdstart/Adequacy.lean:201,208`),
+  `etcd_adequate_alloc` (`:154,163`), `etcd_adequate_members`/`etcd_adequate_alloc_members`
+  (`AdequacyMembers.lean:60,87`, through the former), `k8s_etcd3_adequate` (direct,
+  `k8s/etcd3/Adequacy.lean:146`), and the non-server `init_adequate` (`Adequacy.lean:115`),
+  `init_adequate_start` (`AdequacyStart.lean:52`), `durable_init_adequate` (`DurableExt.lean:98`).
+  Their `Hprog` premise is stated at `threadBound GF = n + 2`.
+- **The closed theorems' premise on it** is the execution length, `Hn : n + 2 ≤ 2 ^ 28`, and each
+  proof derives its `Main.spec`'s `threadBound GF ≤ 2 ^ 28` by `(by rw [HT]; omega)` (23 sites). No
+  closed theorem mentions `threadBound`. The server specs below the `Main`s take only upper bounds
+  (`≤ 2 ^ 28` in `isServer`, `≤ 2 ^ 30 − 1`, `≤ 2 ^ 31`, `≤ backend.rdPoolN`, pool sizes
+  `threadBound ≤ n + 1`); no proof relates `threadBound` to `receiptBound` or to `n`.
+- **The closed theorems through the etcd lemmas** (statement `Hn : n + 2 ≤ 2 ^ 28`):
+  `etcd_cache_adequate`, `etcd_compacted_adequate`, `etcd_compactwatch_adequate`,
+  `etcd_lease_adequate`, `etcd_leasecatchup_adequate`, `etcd_leaseexpiry_adequate`,
+  `etcd_leasegrant_adequate`, `etcd_partition_adequate`, `etcd_partition_watch_adequate`,
+  `etcd_putget_adequate`, `etcd_putget3_adequate`, `etcd_txnlin_adequate`, `etcd_watch_adequate`,
+  `k8s_compactor_adequate`, `k8s_compactor_partition_adequate` (15), and `k8s_etcd3_adequate`
+  (direct); with their `Results.lean` restatements (`*_safe`).
+- **The over-count lemma** (`ThreadTokensTest.lean:64`: `threadToks n ∗ threadFuel t ∗
+  levelToks 0 m ⊢ ⌜n + t + m < threadBound GF⌝`) and `threadToks_lt`/`levelToks_lt` are used only
+  toward upper bounds (`k < T ≤ 2 ^ 31`); a larger `T` weakens what they give, never falsifies a
+  proof's use. No bounds premise (`receiptBound ≤ 2 ^ 48`, `receiptBound ≤ N + 1`,
+  `threadBound ≤ actualMaxReaders`, `≤ rdPoolN`, the pools' `threadBound ≤ n + 1`) breaks for a `T`
+  that is still `≤ 2 ^ 28`.
+
+### Q1. Where the lower bound on `threadBound` comes from
+
+The design (Q2) needs `K ≤ threadBound GF` with `K = 4` inside `revokeExpiredLeases`'s proof only.
+
+- **(a1) `T = n + K` in the etcd adequacy lemmas.** Every one of the 16 closed theorems' `Hn`
+  becomes `n + K ≤ 2 ^ 28` (a weakening, however small, of every top-level result and of its
+  `Results` restatement), and their docstrings. Hard stop on 16 top-level statements for nothing the
+  others use. Rejected.
+- **(a2) `T = max (n + 2) K` in the four etcd adequacy lemmas** (`etcd_adequate`,
+  `etcd_adequate_alloc`, `etcd_adequate_members`, `etcd_adequate_alloc_members`): `Hprog`'s
+  `threadBound GF = n + 2` becomes `threadBound GF = max (n + 2) K`; the proofs pass
+  `RealThreadsBelow (max (n + 2) K) n` from a new pure lemma beside `realThreadsBelow_of_one`
+  (`Proof/runtime/Threads.lean`, monotonicity in `T`; optionally offered to Perennial as
+  `RealThreadsBelow.mono`, not needed). **No closed theorem's statement changes**: `max (n + 2) 4 ≤
+  2 ^ 28` follows from `n + 2 ≤ 2 ^ 28`, and the 23 `(by rw [HT]; omega)` go through unchanged
+  (`omega` rewrites `max`, `Lean/Elab/Tactic/Omega/Frontend.lean:216,288`). What changes: the four
+  lemmas' statements (etcdstart's API: `interface/.../etcdstart/Adequacy.txt`,
+  `AdequacyMembers.txt`; a request to etcd-grove-82, whose hub step 7 made them), their
+  docstrings and the closed theorems' docstrings ("the thread bound `n + 2`"). The non-server lemmas
+  (`init_adequate`, `init_adequate_start`, `durable_init_adequate`) and `k8s_etcd3_adequate` stay at
+  `n + 2` (or move for uniformity: free, not needed). It is bounds-plan rule 1 (the adequacy theorem
+  fixes the constants once). Trust: none. Build: `etcdstart/Adequacy.lean` has 54 importers (7.3k
+  lines), `AdequacyMembers.lean` 28, `Proof/runtime/Threads.lean` 57.
+  - **Confined, not global**: the bound must reach only the expiry proof. It rides on the revocable
+    run configuration, which only leaseexpiry builds: `lease.runCfg`'s revocable arm
+    (`LeaseRun.lean:78`) becomes `m = .revocable → srvRevokeLevels ∧ srvRevokeOpen`, where
+    `srvRevokeLevels : Prop := 4 ≤ threadBound GF` is named in the owner (`LeaseRun`, beside the
+    level layout's docstring; a named Prop, so no spec between the adequacy and the owner spells
+    `threadBound`); `lease.runCfg_revocable` takes it; `run` hands it to `revokeExpiredLeases.spec`
+    (a premise, Q8). leaseexpiry's `Main.spec` takes `srvRevokeLevels` (or `4 ≤ threadBound GF`) and
+    its closed theorem's proof gives it from `HT`. cluster3 excludes the revocable mode
+    (`lm ≠ .revocable`), so lease-mono3 is untouched.
+  - **Global** (rejected): the bound in `isServer`/`NewServer.spec*` would reach every hub start
+    spec (`StartServer`, `StartMember`, `newServerMode`, cluster3's), every example `Main.spec`
+    (15) and their callers: `Spec/.../NewServer.lean` alone has 478 importers. It is forced only if
+    a shared pool sits at a level `≥ 2` (Q3).
+- **(b) Fewer levels, so that no bound is needed.** Not possible: the outer goroutine holds levels
+  `≥ 1` only, and at `GoAttach` it holds a `wgMu` slot while giving a level to `wg.Add`'s pending
+  token, so it needs two levels `≥ 1`; at `ensureLeadership` it holds `lgMu`, `read.mux` and the
+  axiom's token: three (level 3, so `K = 4`; `K = 3` if the axiom took no token, Q5). Even a pending
+  backed by a pool loan instead of a level token leaves `GoAttach`'s stopped branch holding `wgMu`
+  and `lgMu` at once. So (b) lowers `K` (from the parked 8 to 4) but cannot remove the bound; it is
+  Q2, and it is what makes the confined form possible.
+- **(c1) `T` as a parameter of the etcd lemmas** (`(T) (hT : n + 2 ≤ T)`, `Hprog` at `threadBound
+  GF = T`): closed statements unchanged, but each of the 19 closed proofs passes its `T`, and the
+  constant is chosen per example instead of once. More churn than (a2) for no gain.
+- **(c2) Raise Perennial's `threadBound_gt`**: a Perennial change shaped by one proof, which breaks
+  every Perennial user's `T = n + 2` (CLAUDE.md, "Changes to Perennial"). Rejected.
+- **(c3) A class `ThreadBoundGe GF k`** (the twin of `ThreadBoundLe`, `ProgramLogic/Bounds.lean:40`):
+  cosmetic; a general Perennial addition if wanted later, not needed here.
+- **(c4) Derive `K ≤ threadBound` from held tokens** (`threadToks n ⊢ n < T`) inside `Main`'s
+  proof: no point of the proof holds 3 whole tokens at once. Rejected.
+
+**Recommendation: (a2), confined, `K = 4`.** Statements touched: the four etcd adequacy lemmas
+(exported, etcdstart), `lease.runCfg`'s revocable arm and `lease.runCfg_revocable`, leaseexpiry's
+`Main.spec` (+1 premise, frozen at `lease-expiry-frozen`), `revokeExpiredLeases.spec` (+1 premise).
+No closed theorem's statement.
+
+### Q2. The level layout
+
+- **(i) The parked layout**: one pool per lock, one level each, levels 0–7 (`wgMu` 3, `lgMu` 2,
+  `read.mux` 4, `leadTimeMu` 5, `E.RD` 6, `ensureLeadership` 7). It needs `K = 8`, and its `lgMu`
+  pool at level 2 is the transport's shared `raftPool`, which forces the bound global (Q3).
+- **(ii) Compressed and confined (recommended):**
+
+  | level | what | who |
+  |---|---|---|
+  | 0 | a started goroutine's slot in `s.wg` | every `GoAttach` goroutine |
+  | 1 | `wg.Add`'s pending token; the `lgMu` pool (the transport's `raftPool`, shared); the inner pool `I` = `leadTimeMu` ∗ `E.RD` | every `GoAttach` caller; rafthttp's peers; `GoAttach`'s stopped branch; the outer's `Logger()`/`ensureLeadership`; the inner goroutine |
+  | 2 | the outer pool `B` = `wgMu` ∗ `read.mux` | `run`'s call (the outer `GoAttach`), the outer goroutine |
+  | 3 | `ensureLeadership`'s token | the outer goroutine |
+
+  Levels 0 and 1 exist at every `threadBound > 1`, so every shared protocol (`s.wg`, `raftPool`,
+  `GoAttach`) needs no new premise; levels 2–3 are split off only inside `revokeExpiredLeases`'s
+  proof (`threadTokFrom_succ`, `2, 3 < threadBound` from `srvRevokeLevels`). Pools are built at any
+  level without a premise (`initL`: `threadBound ≤ n + 1` only).
+- **(iii) `K = 3`**: as (ii), `ensureLeadership` taking no token (Q5 (b)). No closed-theorem
+  difference; it changes the axiom's faithfulness argument for nothing.
+
+**Recommendation: (ii).** Two new pools instead of five (bundled by role: what a goroutine holds
+together is one pool item), `K = 4`.
+
+### Q3. `lgMu`: the shared pool's level, and `GoAttach`'s logger slot
+
+The `lgMu` stock left after `httpProcSlots` (2^29) and `raftPool` (2^28) is about 2^28 − 70
+(`NewServer.lean:572-589`), short of a pool's 2^28 − 1: the expiry goroutines must share
+`raftPool` (`rafthttp/Net.lean:262`, `R = srvLgReader s`, built at `NewServer.lean:589`; consumers
+`startPeer` and `Transport.Start.spec`, all proved; rafthttp has no `etc/api` list).
+
+- **(i) `raftPool` leveled at 1, and `GoAttach.spec` drops `srvLgReader s` (recommended).**
+  `raftPool R := ∃ γ, isThreadPoolL raftPoolN 1 γ R`; `raftPool_borrow`/`raftLoan_giveBack` keep
+  their statements (`threadTok` in and out, `raftLoan` keeping the levels not lent); new
+  `raftPool_borrowL`/`giveBackL` for a holder of `levelTok 1`. `GoAttach`'s stopped branch borrows
+  `lgMu` with the caller's `levelTok 1`, which is idle there (no `Add`); its handle comes in
+  `srvGoAttachOk` (body + `raftPool (srvLgReader s)`, from `NewServer`'s `#HrPool` through
+  `srvRevokeBuilt`, Q7). Callers holding a counted `srvLgReader` frame it (the derived
+  `wp_GoAttach_tok`, Q4). No frozen, exported or trusted text; about 70–90 lines; `Net.lean` has
+  1222 importers.
+- **(ii) `raftPool` at level 2, `GoAttach` keeping `srvLgReader`** (the parked design): the
+  outer goroutine cannot hold `lgMu` at level 1 while `Add` takes level 1, so the pool must be at a
+  level `≥ 2`; then rafthttp's borrowers need `2 < threadBound`, from `NewServer`: the global form
+  of Q1. Rejected.
+- **(iii) Shrink `httpProcSlots`**: strengthens the trusted `Serve_spec` (`Boundary.lean:571`).
+  Rejected (as the probe did).
+
+**Recommendation: (i).** A correction of the parked design, whose probe noted the gap ("route
+(i)'s level needs the same") without resolving it.
+
+### Q4. `GoAttach.spec` and the leveled `s.wg` (after H2)
+
+Today (`Spec/.../EtcdServer__GoAttach.lean`, H2 2026-11-05): pre `srvGoResAt s γ ∗ srvLgReader s ∗
+P ∗ {{P ∗ goRunning γ}} f() {{goRunning γ}}`, post `srvGoResAt s γ ∗ srvLgReader s`; `f` runs with
+no thread token (the caller's is in `goAttachInv`, `InvGoAttach.lean:104`).
+
+```lean
+abbrev EtcdServer.GoAttach.spec : Prop :=
+  ∀ (s : Loc) (γ : GoNames) (f : GoFunc) (P : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvWgReaderAt s γ ∗ levelTok 1 ∗ P ∗
+      {{ P ∗ goRunning γ ∗ threadTokFrom 1 }} (App (Val #f) (Val #()))
+        {{ RET #(); goRunning γ ∗ threadTokFrom 1 }} }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"GoAttach")) (Val #f))
+  {{ RET #(); srvWgReaderAt s γ ∗ levelTok 1 }}
+```
+
+- `goAttachInv`: `threadToks k` becomes `levelToks 0 d ∗ levelToks 1 q` with the counter
+  `sint.nat ctr = d + q` (started + pending), H2's receipts' authority over the `d` started
+  (`ownTokAuthDfrac γ.run dq d`, `goWaited` as today). `Add` deposits `levelTok 1` as pending; the
+  `go` statement (`wp_fork_tok_upd`) puts the fresh token's level 0 in a slot, returns the pending
+  `levelTok 1` to the caller and gives `f` the fresh `threadTokFrom 1`; `Done` hands back a level 0.
+  `sync.tokJoinL` cannot be reused (its `ownAdder` is exclusive; `GoAttach`'s adders are concurrent
+  `wgMu` readers): the same argument, re-proved in `goAttachInv`.
+- `srvGoAttachOk` (`InvGoAttach.lean:116`): `⌜threadBound GF ≤ 2 ^ 31⌝` → `⌜2 * threadBound GF ≤
+  2 ^ 31⌝` (from `isServer`'s `≤ 2 ^ 28`), + `raftPool (srvLgReader s)` (Q3).
+- **(i) One spec, a derived lemma (recommended).** `wp_GoAttach_tok` (`InvGoAttach.lean`), stated
+  as today's triple text, from the new spec: split `threadTok = levelTok 0 ∗ levelTok 1 ∗
+  threadTokFrom 2` (`threadTokFrom_succ`, only `1 < threadBound`), frame `srvLgReader s`, frame
+  `threadTokFrom 1` through `f`. The six callers (`Start`, `applyEntryNormal` ×3, `sendMergedSnap`,
+  v3rpc's `monitorLeader`) apply it; their proofs and statements are unchanged. Not a second spec:
+  one `GoAttach.spec`, one lemma about it.
+- **(ii) Keep today's spec and add a leveled one**: a second spec of one function, the escalation
+  trigger. Rejected.
+
+API change: `GoAttach.spec` (no `interface/` for etcdserver; a diff to review). About 300–350
+lines with `goAttachInv`; `InvGoAttach.lean` has 961 importers (188k lines), the spec 405.
+
+### Q5. `ensureLeadership`'s axiom
+
+Today (`Spec/.../EtcdServer__ensureLeadership.lean:44-49`): `srvLgReader s ∗ srvReadReader s γr ∗
+threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 − 1⌝`, all but the bound returned. The outer goroutine has no
+whole token.
+
+- **(a) `threadTok` → `levelTok l`, `l` caller-chosen (recommended, as parked).** The faithfulness
+  argument (tickMu's readers are at most the live goroutines, fewer than 2^30 − 1) never used the
+  token's identity. `LeaseRenew` passes `l = 0` from its whole token (no premise); the outer passes
+  `l = 3`. A restated axiom: the `axiom` skill before the Freeze.
+- **(b) No token at all** (`K = 3`): also faithful, but its review must argue from adequacy's
+  thread bound alone; no gain at the closed level.
+- **(c) Keep `threadTok`**: the outer cannot meet it. Not an option.
+
+### Q6. `E.RD`'s supply (re-checked: unchanged)
+
+`backend.authRdN` is still `2 ^ 7` (`RdPool.lean:45`); `authRdSupply` hands the server
+`authRdN − 1 = 127`, of which `NewServer` takes 67 (`NewServer.lean:930-941`); `rdStockN_val =
+805306239`. The pool `I` needs `2 ^ 28 − 1` copies.
+
+- **(a) `authRdN = 2 ^ 28 + 2 ^ 7` (recommended, as the probe).** True of Go (the backend's
+  `readTx` reader partition stays `2 ^ 30 − 1`). Changes: the body of `backend.authRdN` and the
+  statement of `rdStockN_val` (→ `536870783`), both backend API (`interface/.../backend/RdPool.txt:50`,
+  regenerate), `mvcc.nReaders_val` (`InvStore.lean:5040`), `hAN` (`NewServer.lean:931`); the
+  `decide`s at `AuthSrv.lean:324,461` still pass. The trusted premise `authSchemaSrv` keeps its
+  text but trades a larger count (`authRdN` slots for `authRdN` tickets): the `axiom` skill. About
+  40–60 lines; `RdPool.lean` has 2109 importers (398k lines, the whole server and every example): the
+  most expensive rebuild of the stage, to batch with the others (§7).
+- **(b) A mode split in `authStoreKit`** (auth off posts the copies `authStoreKit_off` discards):
+  reverses the user's N2. Rejected.
+
+### Q7. The pools and where they are built
+
+- `B` = `srvWgReaderAt s γg ∗ srvReadReader s γr`, level 2, `2 ^ 28 − 1` items: carved in `start`
+  from the stocks `srvStartReaders` posts (`InvStart.lean:323-330`: `actualMaxReaders` of `read.mux`,
+  `actualMaxReaders − 2` of `wgMu`); `Start.spec`'s text is unchanged, the counts in
+  `srvStartReaders`'s body shrink (an exported definition; its consumers, `etcdstart/Start.lean:74`
+  and `auth/startServer.lean:189`, take far fewer).
+- `I` = `srvLeadTimeReader s ∗ E.RD`, level 1, `2 ^ 28 − 1` items: in `NewServer`, from
+  `leadTimeMu`'s rest (discarded today, `NewServer.lean:1418`) and `E.RD`'s raised supply (Q6).
+- `raftPool (srvLgReader s)`: today's, leveled (Q3).
+- They reach `start` and `run` in one sealed conjunct `srvRevokeBuilt s E` of the construction
+  premise (`isServerBuilt*`/`srvBuiltG` bodies; `NewServer.specG`'s text unchanged), and the
+  revocation's persistent bundle `srvRevokeCtx s E ρq γr γg` (sealed, `LeaseRun.lean`): the three
+  pools, `isServerReq s E ρq`, `isServerRead s E γr`, `□ (|==> idCred ρq.ids 1)`, the server
+  context's `context.isContext`, `srvWithRootOk s E` (Q10).
+- Alternative: five single-lock pools (the parked design): more pools, more levels, nothing gained.
+
+**Recommendation: the two bundles.**
+
+### Q8. `run`'s thread token and the restated spec
+
+`start` forks `run` with plain `wp_fork` (`EtcdServer__start.lean:560`); `run` holds no token.
+
+- **(a) Fork `run` with `wp_fork_tok_body` (recommended, as parked)**: `run.spec` (R2c's one spec,
+  frozen at `r2c-frozen`) takes `threadTok` and returns it (post `True` → `threadTok`); `run` keeps it
+  across rounds. No sound alternative: the outer `GoAttach` deposits a level-1 token and borrows
+  `B` at level 2, both from `run`.
+- The restated `revokeExpiredLeases.spec` (frozen at `lease-expiry-frozen`):
+
+```lean
+abbrev EtcdServer.revokeExpiredLeases.spec : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (v : SrvFields) (γr : ReadNames) (γg : GoNames)
+    (γcx : context.ContextNames) (rv : RunFields) (SP : IProp GF) (ls : GoSlice) (ρq : ReqNames),
+  srvRevokesLeases E ρq → srvRevokeLevels →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvFieldsAt s γ ci TM E ρ v ∗ srvRunFieldsAt s γr γg γcx rv SP ∗
+      lease.expiredLeases (srvGrantGuard E.lg E.authMode.isOn) ls ∗
+      srvRevokeCtx s E ρq γr γg ∗ threadTok }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"revokeExpiredLeases")) (Val #ls))
+  {{ RET #(); threadTok }}
+```
+
+  Unlike the parked text: no `srvLgReader` (the logger comes from `raftPool`), and the level premise
+  from `lease.runCfg`'s revocable arm (Q1). `ρq` is the request side's names `Start` hands out
+  (`{ρ with wait := γw}`); whether `ρq` must be exactly that is a Draft check. Its proof is an
+  ordinary `wp_proof` over callee specs (no pure hypothesis outside the spec), linked only in
+  leaseexpiry's `MainLinked` (as the P1 decision kept it out of the server's `Link.lean`), through
+  `srvRevokeOpen_proved : srvRevokeOpen`.
+- At `run`'s call site (`EtcdServer__run.lean:1330-1336`): `srvRevokesLeases` from `runCfg_lm` and
+  `hCoff`; `srvRevokeLevels` and the spec from `lease.runCfg_revoke`; `threadTok` and `#Hrvk` new
+  conjuncts of `isServerRun`/`isServerRunC` (exported).
+
+### Q9. The goroutines' accounting (for the Draft's invariant text)
+
+- `run` (whole token): gives `levelTok 1` to the outer `GoAttach` (back at the fork), borrows `B`
+  with `levelTok 2` for the `wgMu` slot, gives it back.
+- outer (`threadTokFrom 1`, receipt `goRunning`): `Logger()` with `raftPool` at 1; `ensureLeadership`
+  with `raftPool` at 1, `B` at 2 (`read.mux`), `levelTok 3`; returns `raftPool`; keeps `B` for the
+  loop (`wgMu`) and gives `levelTok 1` to each inner `GoAttach`; returns `B` before exiting, so it
+  exits with `threadTokFrom 1` and its receipt.
+- inner (`threadTokFrom 1`): borrows `I` at 1 for `WithRoot` and `LeaseRevoke`, returns it, `<-c`,
+  `Done`.
+- `c`: a bag of `True` (sends and receives carry nothing; the bound is the tokens').
+- Bound: every live goroutine is one fuel token; each pool has fewer than `T` loans; `s.wg`'s
+  counter is below `2T`.
+
+### Q10. Callees (re-checked: unchanged from the parked design)
+
+- `authStore.WithRoot` is still names-only (`Code/go_etcd_io/etcd/server/v3/auth.toml`'s
+  `translate` does not list it): add it, prove `WithRoot.specOff` over `IsAuthEnabled.spec`, add
+  `isAuthRoot st RD M` to the auth store construction's post beside `isReqAuth` (an auth API
+  change), `srvWithRootOk` wraps it. Fallback, if goose's reach (`metadata`, `tokenSimple`) cannot be
+  translated: a contract axiom (trust growth, hard stop).
+- `leaseExpired.Inc()`: its initializer is still opaque (`Init.lean:105,356`). Preferred: translate
+  it and prove it from `prometheus.NewCounter.wp_proof` (`etcdserver.toml`, `etc/gen-init.py`
+  `SPECIAL`); fallback a `leaseExpired_init` axiom (+1 axiom, hard stop).
+- `zap.Logger.Warn`, `zap.Uint64/String/Error`, `MemberID`, `Logger`, `fmt.Sprintf` exist.
+
+### Q11. Go first
+
+The stage changes no top-level program's traffic and no model (leaseexpiry's `Main`, its driver and
+its claim are unchanged), so the spec-first plan's Go-first rule does not require a Go side. One test
+is still worth having for Test (described, **not run now**: the machine stays quiet):
+`examples/etcd/leaseexpiry/revoke_stats_test.go`, one in-process member, 40 leases of TTL 1 granted
+together (more than `maxPendingRevokes = 16`, so a round blocks on `c`), checking that every lease is
+revoked (`Leases()` empty), that `etcd_server_lease_expired_total` grows by 40 (the success arm),
+that a lease re-delivered after `expiredLeaseRetryInterval` while its revoke is in flight reaches the
+warn arm (`failed to revoke lease`, `ErrLeaseNotFound`), and that `Stop()` during a round returns
+without panic (the skipped inner `GoAttach`, the outer's `stopping` exit). It reaches each new
+outcome the proof covers.
+
+### Frozen and top-level statements touched
+
+- `EtcdServer.revokeExpiredLeases.spec` (`lease-expiry-frozen`): restated (Q8).
+- leaseexpiry's `Main.spec` (`lease-expiry-frozen`): + `srvRevokeLevels`; `Main.wp_proof`'s `hrev`
+  and `MainLinked` follow. `etcd_leaseexpiry_adequate`/`_safe`: statements unchanged.
+- `run.spec` (`r2c-frozen`): `threadTok` in pre and post.
+- The etcd adequacy lemmas `etcd_adequate`, `etcd_adequate_alloc`, `etcd_adequate_members`,
+  `etcd_adequate_alloc_members` (etcdstart API, interfaces committed; hub step 7's: a request to
+  etcd-grove-82): `Hprog` at `max (n + 2) 4`. No closed theorem's statement changes.
+- Exported definitions and specs: `GoAttach.spec`, `srvGoAttachOk` (bound, `raftPool`),
+  `isServerRun`/`isServerRunC` (+ `threadTok`, `srvRevokeCtx`), `isServerBuilt*`/`srvBuiltG`
+  (+ `srvRevokeBuilt`), `srvStartReaders`'s counts, `lease.runCfg` and `lease.runCfg_revocable`, the
+  auth store's post (+ `isAuthRoot`), backend's `authRdN`/`rdStockN_val`, `mvcc.nReaders_val`.
+- Unchanged: `srvRevokeOpen`'s text, `NewServer.specG`'s and `Start.spec`'s text, `isServerReq`,
+  `LeaseRevoke.spec`, every closed theorem.
+
+### Trust items
+
+- Restated axiom: `EtcdServer.ensureLeadership.wp_proof`, `threadTok` → `levelTok l` (Q5): the
+  `axiom` skill.
+- A trusted premise's count: `authSchemaSrv` trades `2 ^ 28 + 2 ^ 7` slots for as many tickets
+  (Q6): the `axiom` skill.
+- Possible growth (only if the preferred routes fail): `leaseExpired_init`, a `WithRoot` contract
+  axiom.
+- Goose configuration: `auth.toml` (`WithRoot`), `etcdserver.toml` and `gen-init.py` (`leaseExpired`).
+- No new model assumption, no Perennial change (P1 is lean's pin, `84d538063`). Removed: the
+  `sorry` `srvRevokeOpen_open` (3 → 2; `etc/tcb-report.py --check --update`, collection
+  `leaseexpiry`).
+- Bounds: `spec-thread` +0 to +1 (leaseexpiry's `Main.spec` if it spells `4 ≤ threadBound GF`
+  rather than `srvRevokeLevels`); `bounds-allow.txt` entries for the pool sites.
+
+### §7. Work, order and build cost
+
+1. Adequacy (a2): the four lemmas, the `RealThreadsBelow` lemma, docstrings. ~30 lines, 54 modules.
+2. Leveled `s.wg`, `GoAttach.spec`, `wp_GoAttach_tok`, `srvGoAttachOk`. ~300–350 lines; 961 modules.
+3. `raftPool` at level 1, `borrowL`/`giveBackL`. ~70–90 lines; 1222 modules.
+4. `ensureLeadership` → `levelTok l` (axiom skill first), `LeaseRenew`. ~30 lines; 402 modules.
+5. `authRdN` raise. ~40–60 lines; 2109 modules.
+6. Callees: `WithRoot` (config, regeneration, proof, `isAuthRoot`), `leaseExpired`. ~250 lines.
+7. Pools and plumbing: `B`, `I`, `srvRevokeBuilt`, `srvRevokeCtx`, `srvRevokeLevels` in
+   `lease.runCfg`, `run`'s fork and spec, `isServerRun*`. ~400 lines; `InvStart` 946, `LeaseRun` 950.
+8. The spec, its proof (~400 lines), `run`'s call site, `srvRevokeOpen_proved`, leaseexpiry's
+   `Main.spec`/`MainLinked`; delete the `sorry`.
+
+About 1,500–1,900 lines. The statement changes of 2–5 and 7 all rebuild most of the server; the
+Draft lands them as one batch (statements first, proofs `sorry`), so that the 2109-module rebuild is
+paid once, then proves 2–8 against built statements.
+
+### §9. The parked design against today's lean
+
+- **Still right:** no Go bug; pools are unavoidable; `c` as a bag of `True`; `s.wg` leveled with
+  `p = 1` and the `2T` bound (`⌜2 * threadBound GF ≤ 2 ^ 31⌝`); `ensureLeadership` → `levelTok l`
+  (its other caller `LeaseRenew`, `l = 0`); `E.RD` via `authRdN = 2 ^ 28 + 2 ^ 7` (numbers unchanged:
+  `2 ^ 7`, 67 taken, `rdStockN_val = 805306239`); `run` forked with a token, `run.spec`'s post
+  `threadTok`; `srvRevokeCtx`/`srvRevokeBuilt`; `WithRoot` and `leaseExpired` as proposed.
+- **Moved:**
+  - `GoAttach.spec` now carries H2's receipt (`goRunning γ`, `srvGoResAt`): the generalized spec
+    keeps it, and `goAttachInv`'s receipts count the started goroutines only (Q4).
+  - `GoAttach.spec` drops `srvLgReader` (the stopped branch borrows from `raftPool`), and `raftPool`
+    is at level 1, not 2: otherwise the bound goes global (Q3).
+  - Levels 0–3, two bundled pools, `K = 4`, instead of 0–7 and five pools (Q2).
+  - The level bound is a premise on the revocable run configuration and on leaseexpiry's
+    `Main.spec`, so `Main.spec` is no longer "unchanged" (Q1); the four etcd adequacy lemmas take
+    `T = max (n + 2) 4`.
+  - The restated spec drops `srvLgReader` and gains `srvRevokeLevels` (Q8).
+  - `run.spec` is now R2c's one spec (`r2c-frozen`); the parked `run.specStop` is gone.
+  - The trust base is 3 `sorry`s today, so the stage takes it to 2 (the parked text said 4 → 3).
+
+### Recommendations, in one list
+
+Q1 (a2) confined, `K = 4`; Q2 (ii); Q3 (i); Q4 (i); Q5 (a); Q6 (a); Q7 the two bundles; Q8 (a)
+with the text above; Q10 the preferred routes; Q11 no Go-first requirement, the stats test in Test.
+Hard stops for the user: this Scope; the frozen statements and the adequacy lemmas above; the
+restated `ensureLeadership` axiom and `authSchemaSrv`'s count (each after the `axiom` skill); the
+Goose configuration changes.
