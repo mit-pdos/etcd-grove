@@ -108,6 +108,29 @@ theorem finBytes_data (hlen : bs.length = m.size) (hn : 0 < data.length) (i : Na
   rw [h2, if_neg (by omega), if_pos (by omega)]
   simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi]
 
+/-- The first `k` bytes of the data, written by a write that starts inside the file. -/
+theorem finBytes_written (hlen : bs.length = m.size) (hoff : off ≤ m.size) (hk : k ≤ data.length)
+    (i : Nat) (hi : i < k) :
+    ((finBytes m bs off data k)[off + i]?).map Prod.fst = data[i]? := by
+  have hP : off + k ≤ pwSize m.size off k := by unfold pwSize; split <;> omega
+  have hpl := pwBytes_len' (m := m) (bs := bs) (off := off) (data := data) (k := k) hlen
+  have hlo : cfLo m off = off := by unfold cfLo; omega
+  have hil : i < data.length := by omega
+  unfold finBytes
+  rw [List.append_assoc, List.getElem?_append_right (by simp only [List.length_take]; omega),
+    List.getElem?_append_left (by simp only [List.length_take, hpl]; omega)]
+  simp only [List.length_take]
+  have hmin : min (cfLo m off) bs.length = off := by omega
+  rw [hmin]
+  have hlt : off + i - off < (pwBytes m.size off data k
+      (cfRange m bs off data.length)).length := by rw [hpl]; omega
+  rw [List.getElem?_eq_getElem hlt, Option.map_some, pwBytes_getElem _ _ _ _ _ _ hlt,
+    List.getElem?_eq_getElem hil]
+  unfold pwByte
+  have h2 : min off m.size + (off + i - off) = off + i := by omega
+  rw [h2, if_neg (by omega), if_pos (by omega)]
+  simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hil]
+
 /-- **An attempt keeps the narrowing**: after `nn` of the bytes were written, the rest of the data
 at `off + nn` (the write starts inside the file). -/
 theorem narrow_fin {m' : OsMeta} {bs' : List (w8 × Bool)} (hN : Narrow m bs off data m' bs')

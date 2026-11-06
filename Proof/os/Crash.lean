@@ -1,8 +1,10 @@
 /-
 The proofs of `Spec/os/Crash.lean`: the models' loops as in `Proof/os/OpenFile.lean`,
 `Proof/os/File__WriteAt.lean` and `Proof/syscall/Fdatasync.lean`, over the crash-aware steps of
-`Proof/os/CrashOps.lean`. A write's loop keeps a narrowing of the file it started from
-(`narrow_fin`), whose crashes the first attempt's cover (`crashOk_narrow`).
+`Proof/os/CrashOps.lean`. The open's loop keeps what its attempts may have made of the state
+(`OpenInv`: a failed attempt may have created the file); a write's loop keeps a narrowing of the
+file it started from (`narrow_fin`), whose crashes the first attempt's cover (`fileOk_narrow`),
+and the bytes written so far (`wa_step`).
 -/
 module
 
@@ -16,18 +18,19 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open Fs
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 theorem syscall.Fdatasync.wp_proof_crash [syscall.Assumptions] :
     syscall.Fdatasync.specCrash (GF := GF) (hG := hG) := by
-  intro fd dq d N γ Good m bs hN hok
+  intro fd dq d N p R γ Good m bs V hN hok
   wp_start as ⟨#Hos, #Hinv, Hfd, Hown⟩
-  wp_apply wp_osFsync_cf fd dq d N γ Good m bs hN hok $$ Hos Hinv Hfd Hown as %e Hr Hfd
+  wp_apply wp_osFsync_cf fd dq d N p R γ Good m bs V hN hok $$ Hos Hinv Hfd Hown as %e Hr Hfd
   iapply wp_errno
   iapply HΦ
   iframe Hfd
@@ -39,95 +42,140 @@ variable [os.Assumptions]
 
 theorem os.OpenFile.wp_proof_crash [os.file.FieldAssumptions] :
     os.OpenFile.specCrash (GF := GF) (hG := hG) := by
-  intro path perm N γ Good s hs hN hok
+  intro d b perm N R V j γ Good s hb hd hs hN hok
   wp_start as ⟨#Hos, #Hinv, Hown⟩
   obtain ⟨s', hs'⟩ : ∃ s', s' = s := ⟨_, rfl⟩
-  ihave Hown := (show cfOwn path γ s ⊢ cfOwn path γ s' by rw [hs']) $$ Hown
-  have hm2 : s' = s ∨ s' = openState s := .inl hs'
-  clear hs'
-  iloeb as IH generalizing %s' %hm2 Hown HΦ
-  have hs2 : s' = none ∨ ∃ m bs, s' = some (m, bs, none) := by
-    rcases hm2 with rfl | rfl
-    · exact hs
-    · rcases hs with rfl | ⟨m, bs, rfl⟩
-      · exact .inr ⟨_, _, rfl⟩
-      · exact .inr ⟨_, _, rfl⟩
-  wp_apply wp_osRegime_cf path γ s' hs2 $$ Hos Hown as Hown
-  rw [os.file_ty_eq, os.File_ty_eq,
-    show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
-  have hos : openState s' = openState s := by
-    rcases hm2 with rfl | rfl
-    · rfl
-    · rcases hs with rfl | ⟨m, bs, rfl⟩ <;> rfl
-  wp_apply wp_osOpen_cf path (W64 0x80042) N γ Good s' hs2 hN
-    (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) (by decide)
-    (by rw [hos]; exact hok) $$ Hos Hinv Hown as %fd %e %s2 %hres Hown Hfd
-  have hfd : openFd path (W64 0x80042) = ⟨path, true, true⟩ := by
-    simp [openFd, O_WRONLY, O_RDONLY]
-  by_cases he0 : e = W64 0
-  · subst he0
-    rw [decide_eq_true rfl]
-    ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-        (openFd path (W64 524354)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨path, true, true⟩
-      by rw [hfd]; split
-         · iintro H; iexact H
-         · exact absurd rfl ‹_›) $$ Hfd
-    wp_auto
-    iStructNamed inner
-    iapply wp_fupd
-    wp_auto
-    ipersist name
-    ipersist f
-    imodintro
-    obtain ⟨-, hfd0, hs2e⟩ := hres.resolve_right (fun h => h.1 rfl)
-    rw [hos] at hs2e
-    subst hs2e
-    iapply HΦ
-    ileft
-    iexists fd
-    iframe
-    isplitr
-    · ipureintro; exact ⟨rfl, hfd0⟩
-    unfold os.ownFile
-    iexists inner_ptr
-    iframe
-    isplitl [] <;> iassumption
-  · rw [decide_eq_false he0]
-    iclear Hfd
-    have hm3 : s2 = s ∨ s2 = openState s := by
-      rcases hres with ⟨h, -⟩ | ⟨-, -, h | h⟩
-      · exact absurd h he0
-      · rw [h]; exact hm2
-      · rw [h, hos]; exact .inr rfl
-    wp_auto
-    by_cases he4 : e = W64 4
-    · rw [decide_eq_true he4]
+  obtain ⟨V', hV'⟩ : ∃ V', V' = V := ⟨_, rfl⟩
+  ihave Hown := (show cfOwn (GF := GF) (child d b) R γ s V ⊢ cfOwn (child d b) R γ s' V' by
+    rw [hs', hV']) $$ Hown
+  have hm : OpenInv j b V s s' V' := .inl ⟨hs', hV'⟩
+  clear hs' hV'
+  iloeb as IH generalizing %s' %V' %hm Hown HΦ
+  rcases s' with _ | ⟨i, y⟩
+  · -- nothing at the path: an attempt to create it
+    obtain ⟨rfl, hVV⟩ : s = none ∧ V' = V := by
+      rcases hm with ⟨h1, h2⟩ | ⟨i, h⟩
+      · exact ⟨h1.symm, h2⟩
+      · cases s <;> simp [openSt] at h
+    subst V'
+    icases cfOwn_none _ _ _ _ $$ Hown with ⟨Hv, Ht, %hn⟩
+    ihave Ht := (osTree_halves (1 : Qp).half R V).1 $$ Ht
+    wp_apply wp_osCallBegin R V (1 : Qp).half.half (1 : Qp).half.half CoPset.subseteq_top
+      $$ Hos Ht as %t Ht Hk
+    rw [os.file_ty_eq, os.File_ty_eq,
+      show (W64 66 ||| W64 524288) = flCreat from by decide]
+    (try wp_auto)
+    wp_apply wp_osOpenCreate_cf d b N R γ Good V j t V.2.length hN hb hd hn (hok rfl)
+      $$ Hos Hinv Hv Ht Hk as %fd %e Hres
+    icases Hres with (⟨%i, %he, Hown, Hfd⟩ | ⟨%he, Hst⟩)
+    · obtain ⟨rfl, hfd0⟩ := he
+      rw [decide_eq_true (show (0 : w64) = W64 0 from rfl)]
       wp_auto
-      try rw [os.file_ty_eq]
-      try rw [os.File_ty_eq]
-      try rw [show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
-      iapply IH $$ %_ %hm3 Hown HΦ
-    · rw [decide_eq_false he4]
+      iStructNamed inner
+      iapply wp_fupd
       wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      ipersist name
+      ipersist f
+      imodintro
       iapply HΦ
-      iright
-      isplitr
-      · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-      iexists s2
+      ileft
+      iexists fd, i
+      simp only [openSt]
       iframe
-      ipureintro; exact hm3
-
-theorem cfOwn_wf' (p : GoString) (γ : GName) (s : CFile) :
-    cfOwn (GF := GF) p γ s ⊢ ⌜CfWf s⌝ := by
-  unfold cfOwn; iintro ⟨-, -, %h⟩; ipureintro; exact h
+      isplitr
+      · ipureintro; exact ⟨trivial, hfd0, .inl trivial⟩
+      unfold os.ownFile
+      iexists inner_ptr
+      iframe
+      isplitl [] <;> iassumption
+    · obtain ⟨he0, rfl⟩ := he
+      rw [decide_eq_false (show e ≠ W64 0 from he0)]
+      wp_auto
+      by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        try rw [os.file_ty_eq]
+        try rw [os.File_ty_eq]
+        icases Hst with (Hown | ⟨%i, Hown⟩)
+        · iapply IH $$ %none %V %(.inl ⟨rfl, rfl⟩) Hown HΦ
+        · iapply IH $$ %_ %_ %(.inr ⟨i, rfl⟩) Hown HΦ
+      · rw [decide_eq_false he4]
+        wp_auto
+        unfold os.model.pathError
+        wp_apply wp_errno
+        iapply HΦ
+        iright
+        simp only [openSt]
+        iframe Hst
+        ipureintro; exact ⟨(fun h => by cases h), trivial⟩
+  · -- the file `i` at the path: an attempt to open it
+    obtain ⟨hsi, heq, m, bs, rfl⟩ := openInv_some hs hm
+    icases cfOwn_tree _ _ _ _ _ _ $$ Hown with ⟨Ht, %hl, Hback⟩
+    ihave Ht := (osTree_halves (1 : Qp).half R V').1 $$ Ht
+    wp_apply wp_osCallBegin R V' (1 : Qp).half.half (1 : Qp).half.half CoPset.subseteq_top
+      $$ Hos Ht as %t Ht Hk
+    rw [os.file_ty_eq, os.File_ty_eq,
+      show (W64 66 ||| W64 524288) = W64 0x80042 from by decide]
+    (try wp_auto)
+    wp_apply wp_osOpenFile (child d b) (W64 0x80042) R V' (1 : Qp).half.half (1 : Qp).half.half t _ i
+      (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hl
+      CoPset.subseteq_top $$ Hos Ht Hk as %fd %e %hres Ht Hfd
+    ihave Ht := (osTree_halves (1 : Qp).half R V').2 $$ Ht
+    ihave Hown := Hback $$ Ht
+    by_cases he0 : e = W64 0
+    · subst he0
+      rw [decide_eq_true rfl]
+      ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
+          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+        by rw [openFd_rw]; split
+           · iintro H; iexact H
+           · exact absurd rfl ‹_›) $$ Hfd
+      wp_auto
+      iStructNamed inner
+      iapply wp_fupd
+      wp_auto
+      ipersist name
+      ipersist f
+      imodintro
+      have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
+      iapply HΦ
+      ileft
+      iexists fd, i
+      simp only [← heq]
+      iframe
+      isplitr
+      · ipureintro; exact ⟨by simp, hfd0, hsi⟩
+      unfold os.ownFile
+      iexists inner_ptr
+      iframe
+      isplitl [] <;> iassumption
+    · rw [decide_eq_false he0]
+      iclear Hfd
+      wp_auto
+      by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        try rw [os.file_ty_eq]
+        try rw [os.File_ty_eq]
+        iapply IH $$ %_ %_ %hm Hown HΦ
+      · rw [decide_eq_false he4]
+        wp_auto
+        unfold os.model.pathError
+        wp_apply wp_errno
+        iapply HΦ
+        iright
+        isplitr
+        · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+        iright
+        iexists i
+        simp only [← heq]
+        iexact Hown
 
 theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d N γ Good m bs hwr hoff hn hn2 hN hW
+  intro f fd name dqf sl data dqs off dq d N p R γ Good m bs V hwr hoff hgap hbig hn hn2 hN hW
   unfold os.ownFile
   wp_start as ⟨#Hos, #Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hown⟩
-  icases cfOwn_wf' _ _ _ $$ Hown with %Hwf
+  icases cfOwn_wf _ _ _ _ _ $$ Hown with %Hwf
   have hlen : bs.length = m.size := Hwf.1
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
@@ -145,64 +193,98 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
   rw [decide_eq_false hl0]
   wp_pure
   wp_pure
-  -- the invariant: a narrowing of the file
+  have hslz : sint.Z sl.len = data.length := by
+    have h1 := Hlen.1; have h2 := Hlen.2
+    simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
+  -- the invariant: a narrowing of the file, `nn` of the bytes written
+  obtain ⟨nnv, hnnv⟩ : ∃ nnv : w64, nnv = W64 0 := ⟨_, rfl⟩
+  conv in (occs := 4) (#(W64 0) : val) => rw [← hnnv]
   obtain ⟨m', hm'⟩ : ∃ m', m' = m := ⟨_, rfl⟩
   obtain ⟨bs', hbs'⟩ : ∃ bs', bs' = bs := ⟨_, rfl⟩
   have hNar : Narrow m bs off.toNat data m' bs' := by
     subst hm' hbs'; exact narrow_refl _ _ hlen
-  ihave Hown := (show cfOwn (GF := GF) d.path γ (some (m, bs, none)) ⊢
-    cfOwn d.path γ (some (m', bs', none)) by rw [hm', hbs']) $$ Hown
-  clear hm' hbs'
-  iloeb as IH generalizing %m' %bs' %hNar Hown Hosfd Hsl Hfd HΦ
-  -- one attempt
+  have hnn : nnv.toNat < data.length := by subst hnnv; exact hn
+  have hS : off.toNat + nnv.toNat ≤ m'.size := by subst hnnv hm'; exact hgap
+  have hpre : ∀ i < nnv.toNat, (bs'[off.toNat + i]?).map Prod.fst = data[i]? := by
+    subst hnnv; intro i hi; exact absurd hi (Nat.not_lt_zero _)
+  ihave Hown := (show cfOwn (GF := GF) p R γ (some (d.ino, m, bs, none)) V ⊢
+    cfOwn p R γ (some (d.ino, m', bs', none)) V by rw [hm', hbs']) $$ Hown
+  clear hm' hbs' hnnv
+  iloeb as IH generalizing %m' %bs' %nnv %hNar %hnn %hS %hpre Hown Hosfd Hsl Hfd HΦ
+  -- one attempt, from `nn`
+  have hnnz : sint.Z nnv = nnv.toNat := by
+    simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
+  have hnnn : sint.nat nnv = nnv.toNat := by simp [sint.nat, hnnz]
   wp_auto
-  have hslz : sint.Z sl.len = data.length := by
-    have h1 := Hlen.1; have h2 := Hlen.2
-    simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
-  have hz : sl.len - W64 0 = sl.len := BitVec.sub_zero sl.len
-  have hmax : ¬ (sint.Z (W64 1073741824) < sint.Z (sl.len - W64 0)) := by
-    rw [hz, hslz, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
+  have hmax : ¬ (sint.Z (W64 1073741824) < sint.Z (sl.len - nnv)) := by
+    have hsub : sint.Z (sl.len - nnv) = sint.Z sl.len - sint.Z nnv := by
+      have : sint.Z nnv ≤ sint.Z sl.len := by rw [hnnz, hslz]; omega
+      have : 0 ≤ sint.Z nnv := by rw [hnnz]; omega
+      word
+    rw [hsub, hslz, hnnz, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
   rw [decide_eq_false hmax]
   wp_auto
-  have hsb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap := by
-    rw [show sint.Z (W64 0) = 0 from rfl]; omega
-  rw [if_pos hsb, ← slice_slice_trivial, show off + W64 0 = off from BitVec.add_zero off]
-  wp_apply wp_bytes_to_string sl data dqs $$ Hsl as Hsl
-  wp_apply wp_osPWriteStart_cf fd off data dq d N γ Good m' bs' hN hwr hoff
-    ((crashOk_narrow hW hlen hNar).2 0) $$ Hos Hinv Hosfd Hown as %t Hosfd Hown
-  wp_apply wp_osPWriteFinish_cf t d.path off.toNat data N γ Good m' bs' hN
-    (fun k hk => (crashOk_narrow hW hlen (narrow_fin hNar hk)).1) $$ Hos Hinv Hown
-    as %k %e %hke Hown
-  obtain ⟨hk, hke⟩ := hke
-  have hNar' := narrow_fin (k := k) hNar hk
+  have hsb : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap := by
+    rw [hnnz, hslz]; omega
+  rw [if_pos hsb]
+  ihave ⟨Hsl1, Hsl2⟩ := (ownSlice_split_all nnv sl dqs data ⟨by omega, by omega⟩).1 $$ Hsl
+  rw [hnnn]
+  wp_apply wp_bytes_to_string _ (data.drop nnv.toNat) dqs $$ Hsl2 as Hsl2
+  ihave Hsl := (ownSlice_split_all nnv sl dqs data ⟨by omega, by omega⟩).2 $$ [Hsl1 Hsl2]
+  · rw [hnnn]; iframe
+  have hoffv : (off + nnv).toNat = off.toNat + nnv.toNat := by
+    rw [BitVec.toNat_add]; apply Nat.mod_eq_of_lt; omega
+  have hoffv' : 0 ≤ (off + nnv).toInt := by
+    rw [BitVec.toInt_eq_toNat_of_lt (by rw [hoffv]; omega)]; omega
+  have hdl : (data.drop nnv.toNat).length = data.length - nnv.toNat := List.length_drop
+  have hgap' : (off + nnv).toNat ≤ m'.size := by rw [hoffv]; exact hS
+  have hW1 : FileOk Good (cfWriting m' bs' (off + nnv).toNat (data.drop nnv.toNat)) := by
+    rw [hoffv]; exact (fileOk_narrow hW hlen hgap hNar).2 0 nnv.toNat (by omega)
+  wp_apply wp_osPWriteStart_cf fd (off + nnv) (data.drop nnv.toNat) dq d N p R γ Good m' bs' V
+    hN hwr hoffv' hgap' hW1 $$ Hos Hinv Hosfd Hown as %t Hosfd Hown
+  have hW2 : ∀ k ≤ (data.drop nnv.toNat).length,
+      FileOk Good (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k,
+        finBytes m' bs' (off + nnv).toNat (data.drop nnv.toNat) k, none) := by
+    intro k hk; rw [hoffv]
+    exact (fileOk_narrow hW hlen hgap (narrow_fin hNar hgap nnv.toNat (by omega) hk)).1
+  wp_apply wp_osPWriteFinish_cf t d.ino (off + nnv).toNat (data.drop nnv.toNat) N p R γ Good m' bs'
+    V hN hW2 $$ Hos Hinv Hown as %k %e %hke Hown
+  obtain ⟨hk, hke, -⟩ := hke
+  obtain ⟨hNar', hS', hpre'⟩ := wa_step hgap hNar hS hpre hoffv (by omega) hk
+  rw [hdl] at hk
+  have hsln : sl.len = W64 data.length := by
+    apply BitVec.eq_of_toInt_eq
+    simp only [sint.Z] at hslz
+    rw [hslz, W64, BitVec.toInt_ofInt, Int.bmod]; split <;> omega
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
     wp_pure
-    iapply IH $$ %_ %_ %hNar' Hown Hosfd Hsl Hfd HΦ
+    iapply IH $$ %_ %_ %nnv %hNar' %hnn %(by omega) %(fun i hi => hpre' i (by omega))
+      Hown Hosfd Hsl Hfd HΦ
   · rw [decide_eq_false he4]
     wp_auto
-    have hsln : sl.len = W64 data.length := by
-      apply BitVec.eq_of_toInt_eq
-      simp only [sint.Z] at hslz
-      rw [hslz, W64, BitVec.toInt_ofInt, Int.bmod]; split <;> omega
-    rcases hke with ⟨rfl, rfl⟩ | he0
-    · rw [decide_eq_true (by rw [hsln]; exact BitVec.zero_add _)]
+    have hWk : (W64 k).toNat = k := by
+      simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+    have hnk : (nnv + W64 k).toNat = nnv.toNat + k := by
+      rw [BitVec.toNat_add, hWk]; exact Nat.mod_eq_of_lt (by omega)
+    by_cases hfull : nnv + W64 k = sl.len
+    · rw [decide_eq_true hfull]
       wp_auto
-      iapply HΦ
-      iframe
-      isplitl []
-      · isplitl [] <;> iassumption
-      · ipureintro
-        refine ⟨hNar', .inl ⟨hsln, rfl, ?_, fun i hi => finBytes_data hNar.len hn i hi⟩⟩
-        show off.toNat + data.length ≤ pwSize m'.size off.toNat data.length
-        unfold pwSize; split <;> omega
-    · have he0' : ¬ e = W64 0 := he0
-      by_cases hkl : W64 0 + W64 ↑k = sl.len
-      · rw [decide_eq_true hkl]
+      have hfk : nnv.toNat + k = data.length := by
+        have := congrArg BitVec.toNat hfull; rw [hnk, hsln] at this
+        simp only [W64] at this; rw [BitVec.toNat_ofInt] at this; omega
+      by_cases he0 : e = W64 0
+      · rw [decide_eq_true he0]
         wp_auto
-        rw [decide_eq_false he0']
+        iapply HΦ
+        iframe
+        isplitl []
+        · isplitl [] <;> iassumption
+        · ipureintro
+          refine ⟨hNar', .inl ⟨hsln, rfl, by omega, fun i hi => hpre' i (by omega)⟩⟩
+      · rw [decide_eq_false he0]
         wp_auto
-        simp only [decide_eq_false he0', Bool.not_false]
+        simp only [decide_eq_false he0, Bool.not_false]
         wp_auto
         wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
         iapply HΦ
@@ -211,9 +293,20 @@ theorem os.File.WriteAt.wp_proof_crash : os.File.WriteAt.specCrash (GF := GF) (h
         · isplitl [] <;> iassumption
         · ipureintro
           exact ⟨hNar', .inr ⟨rfl, by intro h; cases h⟩⟩
-      · rw [decide_eq_false hkl]
-        wp_auto
-        simp only [decide_eq_false he0', Bool.not_false]
+    · rw [decide_eq_false hfull]
+      wp_auto
+      by_cases he0 : e = W64 0
+      · -- a short write: the next attempt from `nn + k`
+        rw [decide_eq_true he0]
+        simp only [Bool.not_true]
+        wp_pure
+        have hne : nnv.toNat + k ≠ data.length := by
+          intro hc; apply hfull; apply BitVec.eq_of_toNat_eq
+          rw [hnk, hsln]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+        iapply IH $$ %_ %_ %(nnv + W64 k) %hNar' %(by rw [hnk]; omega) %(by rw [hnk]; omega)
+          %(fun i hi => hpre' i (by rw [hnk] at hi; omega)) Hown Hosfd Hsl Hfd HΦ
+      · rw [decide_eq_false he0]
+        simp only [Bool.not_false]
         wp_auto
         wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
         iapply HΦ
