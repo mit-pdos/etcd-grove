@@ -2163,6 +2163,16 @@ At `r2c-frozen`, `hub-step7-frozen` or exported. **[HUB]** marks a request to et
     `RestartNode` path; 788 importers).
 12. **Trust** `auth.NewAuthStore.spec` (axiom): hard stop HS1 below.
 
+**Scope amendment (2026-11-06).** Item 11 gains `applyAll.specBatch`, `kvBatch`,
+`applyEntries.specBatch` and `apply.spec` (a window form of each, one spec per function), because
+the hard probe failed (Q13, answer (a), decided by etcd-grove-82 under the user's delegation, pending
+the user's review): every spec of the apply chain tied Go's applied index to the ghost log's
+length. Conditions (etcd-grove-82): each window form reduces to today's text when there is no
+window (`aiGo = ai0 + |A|`), by a law first-start callers rewrite with; the snapshot install's
+`applied_jump` vocabulary is reused, with no second notion of replay; the four statements and the
+reduction laws are their own Draft round, reviewed before `run`'s proof is touched; a change they
+force on a frozen or exported statement is a stop.
+
 #### 5. Trust-base impact
 
 R2d adds no axiom and widens one. R2e's three are listed so the user sees the whole count.
