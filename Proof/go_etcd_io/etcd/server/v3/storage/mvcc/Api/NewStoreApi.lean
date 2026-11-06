@@ -136,7 +136,7 @@ theorem NewStore.wp_proof
   iunfold mvccStorageFor at Hfor
   icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
     Hopen⟩
-  obtain ⟨hB, hP, hcm, himg⟩ := Hf
+  obtain ⟨hB, hP, hcm, himg, hlp⟩ := Hf
   subst hB
   obtain ⟨hk0, hnc⟩ := imageOk_start himg
   -- the internal premises: the bridge's contract at fresh index names, the view, the token
@@ -282,7 +282,9 @@ theorem NewStore.wp_proof
     icases Hhk with ⟨#HhP, -⟩
     isplitr
     · iintro !>; iexact HhP
-    iexact Hwts
+    isplitr
+    · iexact Hwts
+    ipureintro; exact hlp
   iexists rd
   iframe Hro
   iapply (mvccDeleter_of hTODO _ _ (store.Write.wp_api hWr s) rd γ) $$ [$Hpkg $Hmv $Hrc]

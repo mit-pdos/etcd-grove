@@ -30623,3 +30623,19 @@ a restored log has a change in each revision past the first two); `watchableStor
 persistent over every certified log (`□ ∀ C, idxCert C -∗ ⌜C <+: [[], []] ++ R⌝`), what
 `KV.Restore.contract`'s update gives (`σ.log <+: σ'.log`). Statements outside mvcc that used
 `watchWriter` (the server's `SnapApplyDefs`, red under the migration) follow the API instead.
+
+## `mvccTxn_leaseDelete.law` was false: `End` one-shot; the lease bucket's parameters in the share (2026-11-06 · branch `mvcc-api`)
+
+Proving the law found two flaws. (1) Its continuation received `End` as a Hoare triple, which in
+this development is persistent (`iprop({{P}} e {{Q}})` is `□ ∀ Φ, …`), while its precondition does
+not hold the transaction: it would let a client call `End` twice on one transaction, whose second
+`Unlock` of the batch lock panics. **Fix**: a one-shot wand, `∀ Q Ψ, pre -∗ ▷ (post -∗ Ψ #()) -∗
+WP (tw.End()) {{ Ψ }}`; `lessor.Revoke`, its only user, calls it once (`wp_apply HEnd $$ %Y …`
+unchanged). (2) The delete needs the backend's parameters to let the lessor delete from `Lease`
+(`leaseParams`: the bucket in the table, tracked, none of its keys a hook's: the backend's
+`UnsafeDelete` panics on a bucket not in the table), which nothing in the law gave. **Fix**: the
+sealed `mvccStorageFor` and `mvccBackend` record `leaseParams` of the storage's parameters, and
+`etcdStorage_open.law` (the bridge's law that builds `mvccStorageFor`) takes `leaseParams bk.P`
+beside `bridgeParams bk.P`; its users hold it (the server's snapshot apply `hlpw`, the tester's
+`rcP_lease`, the server's `bootBackend.law` statement given the premise). Proved:
+`Api/LeaseDelApi.lean` (`txnW_end`: `Txn.End`'s write arm at any lock token `ld`).

@@ -347,7 +347,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave #HkSz' : □ (∀ (γ' : backend.BNames) (b' : Loc), mvcc.keySized (GF := GF) γ' d'.P b') $$ []
   · rw [hP']; iexact HkSz
   imod (hOpen d' (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      (fun _ => iprop(True)) D (kvModel γr.kv A') (crevOf γr.kv A') u hbr' hcm')
+      (fun _ => iprop(True)) D (kvModel γr.kv A') (crevOf γr.kv A') u hbr' (by rw [hP']; exact hlpw) hcm')
     $$ [Hnew Hws1 Hws2 HwReg HnOs] with ⟨HsF, Hrest, Hrt1, Hrt2⟩
   · rw [hP']
     iframe HkSz Him Hnew HwReg HnOs HnSup

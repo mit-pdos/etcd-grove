@@ -314,7 +314,7 @@ empty bucket), with the store's part of the payment rights, gives `New`'s `mvccS
 abbrev bootBackend.law : Prop :=
   mvccImage_fresh.law (GF := GF) → etcdStorage_open.law (GF := GF) →
   ∀ (bk : mvcc.KBReal) (Pk K : backend.BNames → IProp GF) (D : backend.Data),
-  mvcc.bridgeParams bk.P → bk.cm = true →
+  mvcc.bridgeParams bk.P → mvcc.leaseParams bk.P → bk.cm = true →
   (∀ k, backend.dget D mvcc.keyName k = none) →
   backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.schedKeyBytes = none →
   backend.dget D go_etcd_io.etcd.server.v3.storage.schema.metaName mvcc.finKeyBytes = none →

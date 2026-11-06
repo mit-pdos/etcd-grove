@@ -210,7 +210,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   iNamed Hws
   -- the backend share at the store's current names
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   rw [show (hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl] at *
@@ -285,7 +285,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
     iframe HF
     iexists p, o, d
     iframe Hcur Hbk Hrg Hhp Hwts
-    ipureintro; exact ⟨hpk, hcm, rfl⟩
+    ipureintro; exact ⟨⟨hpk, hcm, rfl⟩, Hlp⟩
   iexists σ
   iframe HR
   iunfold mvccTxn
@@ -328,7 +328,7 @@ theorem watchableStoreTxnWrite.End.wp_api
     icases Hk with ⟨HB, HP, Hau⟩
     -- the backend share, at the transaction's names
     iunfold mvccBackend at HB
-    icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
+    icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
     icases isTxnWriteT_names mw s γ p p' trace σ₀.log pend puts deletes putSize σ₀.crev iprop(True)
         false iprop(True) _ o' $$ [$Htx $Hcur'] with ⟨Htx, Hcur', %hpp⟩
     subst hpp
@@ -372,7 +372,7 @@ theorem watchableStoreTxnWrite.End.wp_api
     iframe HF
     iexists p, o', d
     iframe Hcur' Hbk Hrg Hhp Hwts
-    ipureintro; exact Hd
+    ipureintro; exact ⟨Hd, Hlp⟩
 
 end proof
 

@@ -382,17 +382,17 @@ theorem lease.lessor.Revoke.wp_proof
             mvccBackend γ q B P ∗ backend.rbPart B.γB (· = mvcc.leaseName) r)
           iprop(mvccBackend γ q B P ∗
             backend.rbPart B.γB (· = mvcc.leaseName) (mvcc.rbDel r mvcc.leaseName (u64Le id).reverse) ∗
-            (∀ (Q' : IProp GF),
-              {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+            (∀ (Q' : IProp GF) (Ψ : val → IProp GF),
+              isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
                   mvccBackend γ q B P ∗ P ∗
                   AU <{ ∃∃ (σ1 : MvccState), mvccState γ σ1 }> @ ⊤ \ ↑mvccN, ∅
                     <{ ⌜σ1 = σ₀⌝ ∗ mvccState γ (σ1.notify (ks'.map mvcc.Change.del)) ∗
                         ⧖ (mvcc.logCh (σ1.log ++ [ks'.map mvcc.Change.del])), COMM
                         AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
                           <{ ⌜σ2 = σ₀.notify (ks'.map mvcc.Change.del)⌝ ∗
-                              mvccState γ σ2.commitPending, COMM Q' }> }> }}
-                (App (Val #(methods tyX go!"End" vX)) (Val #()))
-              {{ RET #(); threadTok ∗ mvccBackend γ q B P ∗ Q' }})))
+                              mvccState γ σ2.commitPending, COMM Q' }> }> -∗
+                ▷ (threadTok ∗ mvccBackend γ q B P ∗ Q' -∗ Ψ #()) -∗
+                WP (App (Val #(methods tyX go!"End" vX)) (Val #())) {{ Ψ }})))
         $$ [$«$a1» $Htx $Hbk $Hrb] as ⟨-, Hbk, Hrb, HEnd⟩
       · iframe HLeaseG
         iintro !> %key %Φ' !> ⟨#Hkey, Htx, Hbk, Hrb⟩ HΦ'

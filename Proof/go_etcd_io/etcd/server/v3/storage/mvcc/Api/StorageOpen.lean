@@ -35,7 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 keys' parts, the safe-range slot, the counted readers), the registration and the payment rights
 make `mvccStorageFor`; the rest is `backendRest`. -/
 theorem etcdStorage_open.law_holds : etcdStorage_open.law (GF := GF) := by
-  intro bk Pk K D L c u hP hcm
+  intro bk Pk K D L c u hP hlp hcm
   iintro ⟨#Hsz, Himg, Hpost, Hreg, Hw1, Hw2, #Hsup, Hops⟩
   iunfold mvccImage at Himg
   icases Himg with ⟨#Hrc, %Himg⟩
@@ -53,7 +53,7 @@ theorem etcdStorage_open.law_holds : etcdStorage_open.law (GF := GF) := by
   · iunfold mvccStorageFor
     iexists bk, D
     isplitr
-    · ipureintro; exact ⟨rfl, hP, hcm, Himg⟩
+    · ipureintro; exact ⟨rfl, hP, hcm, Himg, hlp⟩
     iunfold mvccW at HnB
     iunfold mvccWReg at Hreg
     iframe Hrc HnB Hsz HnV HnDl HnFk HnSr HnRT Hreg Hw1 Hw2 Hsup Hops

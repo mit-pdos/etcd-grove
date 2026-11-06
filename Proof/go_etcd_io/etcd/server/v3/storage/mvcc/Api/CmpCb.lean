@@ -349,7 +349,7 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
   cases Hss
   -- the backend share: its names are the right's
   iunfold mvcc.api.mvccBackend at HB
-  icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
+  icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
   obtain ⟨hpk, hcm, rfl⟩ := Hd
   rw [show (mvcc.api.storageReq d P X Y : IProp GF) = backend.commitReq d.γB d.P P d.be X Y from rfl,
     show (mvcc.api.hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl]
@@ -451,7 +451,7 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
     iframe HF
     iexists p, o', d
     iframe Hcur' Hbk Hrg Hhp Hwts
-    ipureintro; exact ⟨hpk, hcm, rfl⟩
+    ipureintro; exact ⟨⟨hpk, hcm, rfl⟩, Hlp⟩
   icases Hres with (⟨⟨%Herr, %Hlt⟩, Hright, #Hlb, HPost, #Hch, ⟨Hcra, %σ, HQ, %Hσ⟩, HYB⟩ |
     ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hright, HPre, #Hch, ⟨Hcra, %σ, HQ, %Hσ⟩, HXB⟩ |
     ⟨%Hch, ⟨%ef, #Hef, %Herr⟩, Hright, HPre, ⟨Hcra, %σ, HQ, %Hσ⟩, HXB⟩)

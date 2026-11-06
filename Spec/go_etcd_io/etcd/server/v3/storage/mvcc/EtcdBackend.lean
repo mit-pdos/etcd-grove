@@ -162,7 +162,7 @@ compaction mode whose configuration has mvcc's layout, `bridgeParams bk.P`, whic
 holds.) -/
 abbrev etcdStorage_open.law : Prop :=
   ∀ (bk : KBReal) (Pk K : backend.BNames → IProp GF) (D : backend.Data) (L : Log) (c : Int) (u : Bool),
-  bridgeParams bk.P → bk.cm = true →
+  bridgeParams bk.P → leaseParams bk.P → bk.cm = true →
   □ (∀ γ b', keySized (GF := GF) γ bk.P b') ∗ mvccImage D L c u ∗
     backend.newPostKP bk.γB bk.P (fun _ => mvccW bk.gx) Pk K bk.be D ∗ mvccWReg bk.gx ∗
     backend.wbTok bk.γB ∗ backend.wbTok bk.γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok bk.γB) ∗
@@ -187,8 +187,10 @@ transaction is open (it holds the batch lock), an `UnsafeDelete` of the Lease bu
 backend's batch transaction, over the bucket rights the client owns (`backend.rbPart`, the
 lessor's), leaves the store's backend as it was and the transaction able only to end (the
 backend's batch session admits only `Unlock` after an `UnsafeDelete`, and the delete forces a commit
-at `End`: the review of round 14): what comes back is `End`'s triple for the transaction, as
-`Txn.End.contract` states it at a write view. -/
+at `End`: the review of round 14): what comes back is `End` for the transaction, as
+`Txn.End.contract` states it at a write view, **once** (2026-11-06: a one-shot wand, until then a
+Hoare triple, which is persistent: it would let `End` run twice on one transaction, whose second
+`Unlock` of the batch lock panics, so the law was false; `lessor.Revoke` calls it once). -/
 abbrev mvccTxn_leaseDelete.law : Prop :=
   ∀ (tw : GoInterfaceOk) γ trace σ pend (q : Qp) (bk : KBReal) (Pk : IProp GF) (t : Loc)
     (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac) (S : GoString → Prop)
@@ -199,15 +201,15 @@ abbrev mvccTxn_leaseDelete.law : Prop :=
     globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ b ∗ key ↦*{dq} k ∗
     backend.rbPart bk.γB S r ∗
     ▷ (mvccBackend γ q (etcdStorage bk) Pk -∗ key ↦*{dq} k -∗ backend.rbPart bk.γB S (rbDel r leaseName k) -∗
-        (∀ (Q : IProp GF),
-          {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        (∀ (Q : IProp GF) (Ψ : val → IProp GF),
+          isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
               mvccBackend γ q (etcdStorage bk) Pk ∗ Pk ∗
               AU <{ ∃∃ (σ1 : MvccState), mvccState γ σ1 }> @ ⊤ \ ↑mvccN, ∅
                 <{ ⌜σ1 = σ⌝ ∗ mvccState γ (σ1.notify pend) ∗ ⧖ (logCh (σ1.log ++ [pend])), COMM
                     AU <{ ∃∃ (σ2 : MvccState), mvccState γ σ2 }> @ ⊤ \ ↑mvccN, ∅
-                      <{ ⌜σ2 = σ.notify pend⌝ ∗ mvccState γ σ2.commitPending, COMM Q }> }> }}
-            (App (Val #(methods tw.ty go!"End" tw.v)) (Val #()))
-          {{ RET #(); threadTok ∗ mvccBackend γ q (etcdStorage bk) Pk ∗ Q }}) -∗ Φ #()) ⊢
+                      <{ ⌜σ2 = σ.notify pend⌝ ∗ mvccState γ σ2.commitPending, COMM Q }> }> -∗
+            ▷ (threadTok ∗ mvccBackend γ q (etcdStorage bk) Pk ∗ Q -∗ Ψ #()) -∗
+            WP (App (Val #(methods tw.ty go!"End" tw.v)) (Val #())) {{ Ψ }}) -∗ Φ #()) ⊢
   WP (App (App (Val #(methods (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeDelete" #t))
       (Val #b)) (Val #key)) {{ Φ }}

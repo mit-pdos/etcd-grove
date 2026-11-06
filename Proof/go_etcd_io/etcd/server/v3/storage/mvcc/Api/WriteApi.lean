@@ -103,7 +103,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
   subst hs
   -- the backend share at the store's current names
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   rw [show (hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl] at *
@@ -170,7 +170,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     iframe HF
     iexists p, o, d
     iframe Hcur Hbk Hrg Hhp Hwts
-    ipureintro; exact ⟨hpk, hcm, rfl⟩
+    ipureintro; exact ⟨⟨hpk, hcm, rfl⟩, Hlp⟩
   iexists σ
   iframe HR
   iunfold mvccTxn

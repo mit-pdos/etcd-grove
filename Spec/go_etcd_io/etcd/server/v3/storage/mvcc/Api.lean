@@ -320,7 +320,7 @@ the store's name of its batch lock's invariant at `Pk` (`hookP`: a compactor's h
       □ backend.isBackend d.γB d.P (lateW d.gx) Pk d.be ∗
       □ (∃ s : Loc, writerReg s ((γ : StoreNames).withPhys p)) ∗
       □ hookP ((γ : StoreNames).withPhys p) Pk ∗
-      □ (⧗ 1 ={⊤}=∗ storeWT ((γ : StoreNames).withPhys p)))
+      □ (⧗ 1 ={⊤}=∗ storeWT ((γ : StoreNames).withPhys p)) ∗ ⌜leaseParams d.P⌝)
 
 /-- **The storage `B`, with batch-lock invariant `Pk`, holds the history `L` compacted at `c`, ready
 for a store over it**, recording an unfinished compaction iff `u` (which `Restore` resumes)
@@ -336,7 +336,8 @@ compaction mode, `keySized`), and the payment rights. -/
 @[no_expose] def mvccStorageFor (B : MvccStorage) (Pk : IProp GF) (L : Log) (c : Int) (u : Bool) :
     IProp GF :=
   iprop(∃ (bk : KBReal) (D : backend.Data),
-    ⌜(bk : MvccStorage) = B ∧ bridgeParams bk.P ∧ bk.cm = true ∧ snap.imageOk D L c u⌝ ∗
+    ⌜(bk : MvccStorage) = B ∧ bridgeParams bk.P ∧ bk.cm = true ∧ snap.imageOk D L c u ∧
+      leaseParams bk.P⌝ ∗
     ⧖ (logCh L) ∗
     □ backend.isBackend bk.γB bk.P (lateW bk.gx) Pk bk.be ∗ □ (∀ γ b', keySized γ bk.P b') ∗
     backend.bViewC bk.γB 1 (backend.vData bk.P (D, ⟨∅, W64 0⟩)) true ∗

@@ -75,7 +75,7 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
   have hs : s = s' := mkOk_loc_inj _ Hk
   subst hs
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   iapply wp_fupd
@@ -100,7 +100,7 @@ theorem store.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) 
   iframe HF
   iexists p, o, d
   iframe Hcur Hbk Hrg Hhp Hwts
-  ipureintro; exact ⟨hpk, hcm, rfl⟩
+  ipureintro; exact ⟨⟨hpk, hcm, rfl⟩, Hlp⟩
 
 /-- **`KV.Commit.contract` at `*watchableStore`**: its inner store's (promoted). -/
 theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG)) :
@@ -125,7 +125,7 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
   icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
   iNamed Hws'
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   wp_auto_lc 1
@@ -151,7 +151,7 @@ theorem watchableStore.Commit.wp_api (hC : mvcc.store.Commit.spec (GF := GF) (hG
   iframe HF
   iexists p, o, d
   iframe Hcur Hbk Hrg Hhp Hwts
-  ipureintro; exact ⟨hpk, hcm, rfl⟩
+  ipureintro; exact ⟨⟨hpk, hcm, rfl⟩, Hlp⟩
 
 /-- The store's `hashes` meets `hashStoreOk`. -/
 theorem hashStoreOk_of (hHS : mvcc.hashStorage.Store.spec (GF := GF) (hG := hG)) (shs : Loc) :

@@ -80,7 +80,7 @@ theorem New.wp_proof
   iunfold mvccStorageFor at Hfor
   icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
     Hopen⟩
-  obtain ⟨hB, hP, hcm, himg⟩ := Hf
+  obtain ⟨hB, hP, hcm, himg, hlp⟩ := Hf
   subst hB
   obtain ⟨hk0, hnc⟩ := imageOk_start himg
   -- the internal premises, as `NewStore.wp_proof`'s
@@ -222,7 +222,9 @@ theorem New.wp_proof
     icases Hhk with ⟨#HhP, -⟩
     isplitr
     · iintro !>; iexact HhP
-    iexact Hwts
+    isplitr
+    · iexact Hwts
+    ipureintro; exact hlp
   iexists rd
   iframe Hro
   iapply (mvccDeleter_of hTODO _ _ (watchableStore.Write.wp_api hWr ws) rd γw.st) $$ [$Hpkg $Hmv $Hrc]
