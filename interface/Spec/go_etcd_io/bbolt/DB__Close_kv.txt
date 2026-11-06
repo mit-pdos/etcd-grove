@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.DB.Close_kv.spec : Prop :=
-  ∀ (db : Loc),
+  ∀ (db : Loc) (γ : backend.DBNames) (D : backend.Data) (path : GoString),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.isDB db -∗
-          (▷ ∀ err, ⌜err = GoInterface.nil ∨ ¬backend.dbCloseOk⌝ -∗ Φ (intoVal err)) -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.isDB db ∗ backend.dbFile db path ∗ backend.ownDB db γ D -∗
+          (▷ ∀ err, ⌜err = GoInterface.nil⌝ ∗ backend.fileHolds path D ∨ ⌜¬backend.dbCloseOk⌝ -∗ Φ (intoVal err)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Close" (intoVal db)))
                 (intoVal ()))

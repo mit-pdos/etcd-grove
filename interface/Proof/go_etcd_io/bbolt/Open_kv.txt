@@ -14,6 +14,7 @@ axiom bbolt.Open_kv.wp_proof : bbolt.Open_kv.spec
               ∀ db err,
                 backend.optsAt opts dq o ∗
                     (⌜err ≠ GoInterface.nil⌝ ∨
-                      ⌜err = GoInterface.nil⌝ ∗ ∃ γ, backend.ownDB db γ D ∗ backend.wrTok γ ∗ backend.isDB db) -∗
+                      ⌜err = GoInterface.nil⌝ ∗
+                        ∃ γ, backend.ownDB db γ D ∗ backend.wrTok γ ∗ backend.isDB db ∗ backend.dbFile db path) -∗
                   Φ (intoVal db, intoVal err)) -∗
             WP ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal path)) (intoVal mode)) (intoVal opts)) {{ Φ }}
