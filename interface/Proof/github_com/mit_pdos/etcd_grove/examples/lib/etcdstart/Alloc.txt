@@ -26,11 +26,3 @@ theorem etcdstart.alloc1_false [v3rpc_sem :
     γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cmp = cmp ∧ ρ.rd.kv.cret =
     cret⌝ ∗ etcdstart.memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗ etcdKV ρ.rd.kv (kvModelSt
     ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
-
-theorem etcdstart.memberBoot.congr_simp [v3rpc_sem :
-    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ γ✝ : SrvRaft) (e_γ : γ = γ✝)
-    (ctxs ctxs✝ : List (List w8)) (e_ctxs : ctxs = ctxs✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ = ρ✝) (E₀ E₀✝ :
-    apply.AEnv GF) (e_E₀ : E₀ = E₀✝) (Φs Φs✝ : w64 → w64 → List w8 → GName → IProp GF) (e_Φs : Φs =
-    Φs✝) (id id✝ : w64) (e_id : id = id✝) (cmp cmp✝ : Bool) (e_cmp : cmp = cmp✝) (m m✝ : lease.Mode)
-    (e_m : m = m✝) : etcdstart.memberBoot γ ctxs ρ E₀ Φs id cmp m = etcdstart.memberBoot γ✝ ctxs✝ ρ✝
-    E₀✝ Φs✝ id✝ cmp✝ m✝

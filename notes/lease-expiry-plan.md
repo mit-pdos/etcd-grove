@@ -2686,6 +2686,16 @@ A thread token holds only levels `l < threadBound GF` (`Threads.lean:124`, `:362
 
 Whether the closed theorems' choice of `threadBound` makes such a premise harmless is something I have not checked.
 
+### Batch items 27–28 (2026-11-06)
+- **27.** `lease.lessor.Recover.spec`'s post when there are no records: it may fail to hand back the caller's
+  `leaseEver γl U` (the post is `⌜recs = []⌝ ∨ leaseEver γl (U ++ ids)`). It is to be strengthened,
+  with the exact text from review round 2.
+- **28.** etcdstart's generated interface (after the merge of lean `5a00eca26c`, which gave etcdstart an
+  importable list): `etcdstart.memberBoot` and `memberBootOn` lose their instance binder
+  `[v3rpc_sem : v3rpc.Assumptions]`, and their `congr_simp` lemmas go. Cause: item 4, the deletion of
+  `srvGrantOpen`, the only part of `lease.bootCfg` that reached v3rpc's assumptions. The bodies are unchanged
+  otherwise. The interface was regenerated.
+
 ## S2–S4 Probe set (2026-11-05, named before the probes)
 
 At most an easy and a hard proof per package, the hard one chosen by its invariant:

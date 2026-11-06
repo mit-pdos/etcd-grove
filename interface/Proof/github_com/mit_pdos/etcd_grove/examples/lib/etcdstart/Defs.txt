@@ -62,10 +62,9 @@ def etcdstart.srvLeaseRd (s : Loc) (E : apply.AEnv GF) (m : lease.Mode) : IProp 
 
 theorem etcdstart.commonPremises_persistent : Persistent etcdstart.commonPremises
 
-def etcdstart.memberBoot [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ
-    : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8
-    → GName → IProp GF) (id : w64) (cmp : Bool := false) (m : lease.Mode := lease.Mode.none) : IProp
-    GF :=
+def etcdstart.memberBoot (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool := false) (m : lease.Mode
+    := lease.Mode.none) : IProp GF :=
   iprop(⌜ρ.rd.raft = { raft := γ, pre := [], ai0 := W64 0 } ∧
           ρ.rd.kv.c0 = W64 0 ∧
             ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
@@ -269,9 +268,8 @@ def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
                                   ([∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ) ∗
                                     netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
-def etcdstart.memberBootOn [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List
-    w8 → GName → IProp GF) (id : w64) (cmp : Bool := false) : IProp GF :=
+def etcdstart.memberBootOn (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) (cmp : Bool := false) : IProp GF :=
   iprop(⌜ρ.rd.raft = { raft := γ, pre := [], ai0 := W64 0 } ∧
           ρ.rd.kv.c0 = W64 0 ∧
             ρ.rd.kv.ch0 = apply.alarmChain true false false ∧
