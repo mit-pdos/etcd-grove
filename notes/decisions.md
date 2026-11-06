@@ -32503,7 +32503,7 @@ The general fix is Perennial's: `perennial-changes.md`, "`fmt.Errorf`'s model ca
 learn facts false of Go".
 
 
-## `fmt.Errorf` with `%w`, built: a disjunctive `ErrorfWrap`, `srvErrOk` in the handler contracts (2026-11-06 · errorf-wrap's N1-N5, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `errorf-wrap`; DRAFT until its Freeze)
+## `fmt.Errorf` with `%w`, built: a disjunctive `ErrorfWrap`, `srvErrOk` in the handler contracts (2026-11-06 · errorf-wrap's N1-N5, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `errorf-wrap`; frozen by etcd-grove-82 2026-11-06, tag `errorf-wrap-frozen`)
 
 The fix the entry above calls for. What was built, and why each shape:
 
