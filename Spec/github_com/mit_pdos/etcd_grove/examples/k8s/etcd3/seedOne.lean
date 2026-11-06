@@ -1,8 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `seedOne(cli, st, k)` (k8s_etcd3.go): the put of the key `k`'s object of value `x` in the older
-encoding through the client `cli` (`New`'s, of the one member `x`, one attempt), during the seeding
-(`seedInv`, `Main`'s half of the state at `σ`): its update fires at `σ` (`seed_au`), and the result
+encoding through the client `cli` (`New`'s, of the members `ms`: `Main`'s one member, `MainCluster`'s
+three; a write sent at most once), during the seeding (`seedInv` at every member's KV names,
+`Main`'s half of the state at `σ`): its update fires at `σ` (`seed_au`), and the result
 is the store `st` with the item at the put's revision (`σ.rev + 1`), `Main`'s half at the put's
 next state; or `false`.
 -/
