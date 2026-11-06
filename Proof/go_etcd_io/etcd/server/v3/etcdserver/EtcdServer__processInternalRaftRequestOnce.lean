@@ -522,7 +522,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
   intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hspc, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv

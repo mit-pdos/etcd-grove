@@ -5,6 +5,7 @@ and wait for the apply thread's result. Lean-first (no Rocq counterpart); see `I
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
@@ -70,7 +71,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   apply.irrDepthOk rq →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
+      context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ irrNoHdrIs p rq ∗ reqPropOkM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq Qh ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
       srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))

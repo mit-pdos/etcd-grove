@@ -13,6 +13,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminOn
 
 @[expose] public section
@@ -106,7 +107,7 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) t
     (hpre : auth.tokPrefixOk pre) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-        context.isContext ctx cd ∗ irrNoHdrIs p (irrAuthenticate ⟨name, [], pre⟩) ∗
+        context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ irrNoHdrIs p (irrAuthenticate ⟨name, [], pre⟩) ∗
         (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) ∗
         srvApi.kvLogLb E.γs F }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
@@ -117,7 +118,7 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) t
             ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthenticateResponse.ty) #rp⌝ ∗
             rp ↦ v ∗ auth.tokIssued γa v.Token' name) ∨
          ⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsrv, Hlt, Hrd, Hid, #Hctx, #Hirr, Hhdr, #HF⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hsrv, Hlt, Hrd, Hid, #Hctx, #Hspc, #Hirr, Hhdr, #HF⟩ HΦ
   ihave #Hperm := reqPropOkM_true_authn (GF := GF) ρ.raft ρ.kv
     (hdrBoundM true s E (GoInterface.ok ctx)) name pre hpre
   wp_apply hRR s E ρ ctx cd p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt Hrd Hid Hhdr]

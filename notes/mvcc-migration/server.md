@@ -359,6 +359,16 @@ Not rebuilt here (their imports red before this session: `ProposerLemmas`): the 
 `processInternalRaftRequestOnce`, `Put`, `DeleteRange`, `Txn`, `Compact`, whose patterns were
 adjusted by hand. **Placeholders:** none. **Axioms:** none changed.
 
+**`trace.SpanFromContext`'s fixed axiom followed** (the coordinator's message, `2f3adab337`,
+`85b7e736d0`): `trace.spanCtxOk ctx` after `context.isContext ctx cd` in `raftRequest.spec`,
+`processInternalRaftRequestOnce.spec`, `ModeSpecs`' `specM`/`specOff` of both, `AuthnOn`'s
+`Authenticate` triple and `AdminOn.adminPreOn` (so the auth methods' `specOn`s take it through
+`adminPreOn`); the proofs' patterns `#Hspc` (`raftRequest` checks; `processInternalRaftRequestOnce`
+not rebuilt, `ProposerLemmas` red). **For v3rpc** (its files): the KV and auth handlers supply
+`spanCtxOk` from `grpcRunCtx` (`spanCtxOk_of_runCtx`); and `EtcdServer.Put`/`DeleteRange`/`Txn` (the
+request track's, edited by others now) take the traced context's fact from `Tracer.Start`'s new post
+(`ihave #Hspc1 := Hspw $$ Hspc`; `Put`'s `WithValue` by `trace.spanCtxOk_valueCtx`).
+
 **Left, in order:**
 1. `applySnapshot`'s post assembly: `apply.LessorDerive.isApplyLessor_of_lessorInv` (red: over the
    restated `isApplyLessor`/`revokeClause`, `γ : MvccName` in place of `s : Loc`, the lessor's

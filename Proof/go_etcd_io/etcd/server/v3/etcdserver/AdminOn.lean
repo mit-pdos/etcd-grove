@@ -136,7 +136,7 @@ def adminPreOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceO
     (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (Hh : IProp GF) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
     isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗
-    context.isContext ctx cd ∗ srvApi.kvLogLb E.γs F ∗ □ Hh)
+    context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗ srvApi.kvLogLb E.γs F ∗ □ Hh)
 
 /-- **An admin request's client update of the auth history, at the server's header bound for
 `ctx`** (persistent; 5b): `histAu` with `Gb` the bound the server stamps a header under
@@ -243,7 +243,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) 
   iunfold authRaftOk
   iintro %p !> %Φ ⟨HP, Hirr, Hh⟩ HΦ
   iunfold adminPreOn at HP
-  icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #HF, #Hhh⟩
+  icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #Hspc, #HF, #Hhh⟩
   ihave Hperm : reqPropOkM true ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) rq
       (adminQh ρ.kv rq Qa) $$ []
   · iapply reqPropOkM_true_admin (GF := GF) ρ.raft ρ.kv _ rq Qa ha hz hna
