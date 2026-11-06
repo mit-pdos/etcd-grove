@@ -11,7 +11,9 @@ success is `memberServed` (`Defs.lean`): the member's views, its thread token (`
 place in the network and, at its client address, etcd's watch service and, by the lease mode (below),
 etcd's KV calls or the lease services. The premises are
 `NewMember`'s plus the configuration's (`cfgOk`), the right to listen at the client address and
-v3rpc's method sets (`v3rpc.Server`'s). Lean-first (no Rocq counterpart).
+v3rpc's method sets (`v3rpc.Server`'s). `Start`'s stop right (`memberUp`'s `∃ dd, srvStopRight …`,
+the restart plan's R2c) is dropped: a served member is never stopped (its gRPC server keeps the
+readers `HardStop` needs). Lean-first (no Rocq counterpart).
 
 **The lease mode** (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §4 and Q2; hub step
 7's E1): the member boots in the lease mode `lm` (`memberBoot`'s), and its success is

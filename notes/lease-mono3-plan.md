@@ -621,7 +621,8 @@ ungrouped. `Main.spec`, `Adequacy` and the closed theorems are unchanged.
   is the shared cluster3 pattern (partition's `startCluster.lean` and `Main.lean` do the same), so
   the law belongs to a change of cluster3's clients together, for later.
 - P1 and P2 of round 2 (the user's acknowledgement of the two lease axioms at Freeze; leasecatchup's
-  baseline after merging `lean`) are process items, not spec fixes: still open.
+  baseline after merging `lean`) are process items, not spec fixes. P2 is closed by the merge below;
+  P1 goes to the Freeze.
 
 ### Checks
 
@@ -635,3 +636,74 @@ etc/api/etcdstart.txt`: `Served.txt` (`etcdKVAt_eq`) and `ServedLease.txt` (the 
 nothing else; `--check` passes; `etc/api-check.py` passes. `etc/tcb-report.py --check`: 785 axioms,
 3 `sorry`s, as the baseline; collections leasecatchup (624, 0), linkv3p (635, 0), k8scompactor
 (684, 0), putget3 (611, 0) match. `etc/bounds-check.py --check`: 390, baseline 390. No Go changed.
+
+## Merge with `lean` after R2c (2026-11-06)
+
+`lean` `6b49f77e01` (R2c, the restart stop chain, and 7c-1b) merged into `lease-mm` (`b1d0f637f7`);
+only notes conflicted. R2c gives `etcdstart.memberUp` a last conjunct `∃ dd, srvStopRight …`:
+`cluster3.StartMember`'s proof drops it (`68e4e8e89d`, `StartMember.lean:164`), as `lean`'s own
+cluster3 already did, and its spec header now says so (review r3 N1). leasecatchup's collection
+takes the six axioms `lean` added to every server collection (`933df7bb1c`: 7c-1b's
+`rpctypes.ErrGRPC{Compacted,FutureRev}_init`, R2c's `lease.lessor.Stop.wp_proof`,
+`apply.memberEnc_id_learner`, `apply.memberKey_inj`, `membership.membersOf_decode`): 630 axioms,
+no `sorry`. No Go under `examples/` changed on `lean`, so the Go-first and Test results stand.
+Review round 3 (`notes/spec-review/lease-mono3-r3.md`): no blocker; dropping the stop right is
+right (a served member cannot be stopped: `HardStop` needs the readers `Serve` keeps); the merge
+keeps both parents; the collection change is linkv3p's. Its N3 (an elimination law for `memberUp`'s
+serving side, so a new conjunct does not break its callers) is etcdstart's, for later.
+
+`etc/gates.sh` at `933df7bb1c`: all pass (build 12363 jobs; tcb 790 axioms, 3 `sorry`s; 52
+collections match; goose, gen-init, issues, bounds 389, mode, api, import-all).
+
+## Freeze package (2026-11-06)
+
+**What freezes.** The statements of this stage, as on `lease-mm`:
+- hub (etcdstart, accepted by etcd-grove-82): `alloc3Http`, `alloc3`, `memberBoot_of` at a lease
+  mode `(lm) (hrun : lease.runCfg lm lm) (hrev : lm ≠ .revocable)`, before the defaulted
+  `cmp`/`cret`, `etcdKV` gated on `lm = .none`; the new `kv_lease_served_watch` (R2) and the laws
+  `etcdKVAt_eq`, `etcdLeaseServedAt_none`/`_mono`, `etcdLeaseGrantAt_elim`,
+  `etcdLeaseServedAt_persistent` (additions only);
+- frozen (hub step 7 E1/E2, the change approved with the Scope): `cluster3.StartMember.spec`
+  (`(lm ≠ .none → leasePeersOk)`; post `memberServed … lm`) and `cluster3.StartCluster.spec`
+  (`lm`; `lease.runCfg lm lm`; the scope premise `lm ≠ .revocable`; `(lm ≠ .none → leasePeersOk)`;
+  post `clusterUp … lm`);
+- cluster3's vocabulary: `memberServed`, `memberAt`, `clusterAt`, `clusterUp` with `(m := .none)`,
+  `servedRegs` from etcdstart's definitions, the laws `*_none` (text at `.none` unchanged) and
+  `memberAt_mono`;
+- new: the example `examples/etcd/leasecatchup` (`run.spec`, `Main.spec`, `grant`, `leases`,
+  `listed`, `config`) and `etcd_leasecatchup_safe` (Scope §3's statement).
+The callers' statements (putget3, partition, restart, k8s compactor and their closed theorems)
+are unchanged against `lean`.
+
+**Go.** `examples/lib/cluster3`: `StartMember` runs `go holdToken()` (R1, accepted by
+etcd-grove-82; `notes/decisions.md`, "A thread token for a cluster member's lease reads").
+
+**Proved.** Everything: no `sorry` of this stage, no new axiom, no trusted model. **Probe: none
+needed**, every proof is done (etcd-grove-82, 2026-11-06).
+
+**For the user's acknowledgement (H1, decided by etcd-grove-82 under the user's delegation).**
+linkv3p's `etcd_partition_safe` and the k8s compactor's results now also rest on
+`EtcdServer.leaseTimeToLive.wp_proof` and `sort.Sort.wp_anyLess`, axioms already in the trust base
+(leasegrant; the former audited `ok`, `notes/axiom-review/lease-ttl-row.md`): `StartMember.spec`
+is one triple for every mode and its one linked proof takes the lease branch's callees. The
+alternative, a per-mode split of the frozen specs, breaks the one-spec-per-function layout.
+
+**Bounds (B1).** leasecatchup's `spec-thread` 2 and `spec-receipt` 4 (the bound premises of
+`Main.spec` and `run.spec`, as leasegrant's `Main`); etcdstart's `stock` +1 (the watch run slot in
+`kv_lease_served_watch`'s private core).
+
+**Test.** `leasecatchup_premises_test.go`, 3 of 3 runs: `leasePeersOk` (404 at every peer
+address), `leasesNoExpiry` (21 leases at TTL 3600 on all members, no revoke), the claim non-vacuous
+(member 3's grant before its snapshot restore at index 29, then listed), a mutant lessor that drops
+leases on `Recover` makes `Main`'s panic condition true, and `holdToken` adds one goroutine per
+member.
+
+**Inherited, unchanged:** the reading of `lease.leasesNoExpiry` over executions after `Main`
+returns (leasegrant's; reviews r1, r2). **Open, not blocking:** partition's `TestFailover` hangs to
+its timeout on `lean` `6691b46860` as on `lease-mm` (T1): rerun on a quiet machine, a STATUS
+finding if `lean` still hangs.
+
+**Not done here, for later:** a `clusterUp` elimination law (r2 N3), a `memberUp` serving-side law
+(r3 N3), the duplicate `LeaseLeases` registration and the unused TTL read in `memberServed` (kept
+for step 2, the revocable mode).
+
