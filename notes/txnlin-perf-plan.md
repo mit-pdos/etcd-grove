@@ -135,3 +135,18 @@ What would fix them (not tried; each needs approval):
   This cuts the per-configuration footprint from about 2 KB to tens of bytes.
 - **Fewer failed writes in the test.** Fewer writes timing out during the blackhole, or a check of
   a history window, is a test design change.
+
+## Decision (2026-11-06, the user, via etcd-grove-82)
+
+Options (2) and (b) of "Go first":
+
+- **(2), a test-only fix to partition's `TestFailover`.** The linearizability check stays over the
+  whole history; the workload changes so that fewer writes time out during the blackhole (no writes
+  to the cut member during the cut, or shorter timeouts). A check of a history window only if
+  neither works, and then only after asking. Bar: 5/5 sequential runs under a 32G memory cap
+  (`systemd-run --scope -p MemoryMax=32G`), peak memory recorded.
+- **(b), the binary-search `addConfig` only.** (a) (sorted `pend`) and (c) (`Model.Hash`) bought
+  nothing on the measured history and are reverted. The model is retranslated and proved
+  equivalent to `lean`'s, so that `etcd_txnlin_safe` and the closed theorems through `linkvtxnS`
+  keep their statements; no new axiom or `sorry`; an exported statement that must change is a stop.
+- k8s/etcd3's copy (`examples/k8s/etcd3/k8setcd3.go`) stays a follow-up after stage 7c.
