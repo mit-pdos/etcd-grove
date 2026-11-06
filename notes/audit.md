@@ -463,3 +463,11 @@ the client lease, raft's initialization) are audited; the rest are not yet, row 
 each `opaqueInitsOk` says the package's untranslated initializers run without panicking, each
 `<X>_init` what one variable's initializer stores). D19r restated no axiom (its (A), (B), (F) are
 premises: `rnStopOkStarted`, `bootstrapContract`).
+
+### Added by k8s etcd3 7c-1b (2026-11-06; Go: `api/v3rpc/rpctypes/error.go`, `server/etcdserver/api/v3rpc/util.go`; review `notes/axiom-review/7c1b-init.md`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `rpctypes.{ErrFutureRev,ErrCompacted,ErrGRPCFutureRev,ErrGRPCCompacted}_init` (descriptions) | ok | `error.go:32-33,177-178`: the status errors' messages; the client errors are `Error(ErrGRPCx)`, `EtcdError`s with that `desc` (Go test, `axiom-review/7c1b-init.md`) |
+| `rpctypes.ErrGRPC{EmptyKey,KeyNotFound,ValueProvided,LeaseProvided,TooManyOps,DuplicateKey,InvalidClientAPIVersion,InvalidSortOption,NoSpace,NoLeader,NotCapable}_init` (11) | ok | `error.go:24-34,77,80`: `status.Error` with those messages (Go test) |
+| `v3rpc.toGRPCErrorMap_init` (`grpcErrMapOk`) | ok | `util.go:35-97`: 53 distinct keys (no aliasing), non-nil values, only `mvcc.ErrFutureRev`/`ErrCompacted` map to the two read descriptions (Go test) |
