@@ -3376,3 +3376,144 @@ estimate counted.
   - `ciEff ≤ snapIdx` and `g ≤ snapIdx` from A8 (`rnWinInstallAbove`);
   - the post as the frozen one's, with `ghostOf rp A <+: A'`.
 - **Est. +1.5-2.5 d (est.)** over A10's 1.5-2.5 wk.
+
+### R2d'a A10, items 1-2: item 1 done; item 2 stopped at a trust-base gap (2026-11-06; DRAFT)
+
+**Item 1, done** (`ApplySnapshotR.lean`, new, DRAFT, sorry-free, no new axiom). `applySnapshot.specSnapMR`
+is the frozen `specSnapM` with one more binder `r0 : apply.RestM` and `srvRestRp E γr A r0` in place of
+`srvRest E γr A`; every other row and the post are `specSnapM`'s (the text is generated from the frozen
+one). `wp_proof_snapMR` is `wp_proof_snapM`'s proof with the rest opened by the new law
+`srvRestRp_open` (and `srvRestRp_false`), and the image `r0` passed to `applySnapshot_walk`, which was
+already generic in it. At `r0 =` the model of `A` it is the frozen spec (`srvRestRp_model`). Builds in
+6 s; no frozen file touched; nothing imports it yet.
+
+**Item 2 (`applyAll.specSnapMR`): stopped before any edit, two findings.** The frozen proofs
+(`ApplyAllSnap.wp_proofSnap`, `ApplyAllSnapOn.wp_proofSnapM`) do not carry over as planned: their
+receive steps take ghost-side resources that a window does not have.
+
+1. **The members premise of a trust-boundary axiom (the stop).** Both arms get the image's facts from
+   `snapRecv_image`/`snapRecv_imageOn` (`SnapRecvFacts.lean:505`, `SnapRecvOn.lean:424`). These take
+   `srvRest E γr A` and open it to read the cluster's in-memory members `clusterMem cl (restModel …
+   (pre ++ A)).mem`, which they pass to the axiom `membership.clusterImageOk_restModel`
+   (`Spec/…/api/membership/clusterImageOk_restModel.lean:75`): `clusterMem c (restModel c0 boot L).mem
+   -∗ clusterMem c … ∗ ⌜clusterImageOk c (restModel L').bk (restModel L').mem⌝` for a committed
+   `L' ⊇ L`. Inside the window the rest is `srvRestRp E γr A₀ (restReplay γr rp G)`, whose members are
+   the replay's: `restEntryV2` replays a `ClusterMemberAttrSet` in memory (`UpdateAttributes(…, false)`,
+   `membership/cluster.go:467-496` at `673da07c8`), so mid-window a member holds an older entry's
+   attributes than `restModel A₀`'s. Those members are not the model of any log, so the axiom cannot
+   be instantiated. (Item 1 is unaffected: `applySnapshot` itself reads the old image only through
+   `E.RO r0`.) The axiom's justification uses only the members' **ids** ("`c`'s local member … is
+   one": `c.localID ∈ c.members`, whose keys are the boot members), and the replay keeps the ids
+   (`restReplay_memKeys`), so the fact is true of Go. But using it needs a changed axiom.
+2. **A8 is stated `≤`; the receive needs `<`.** `snapDir_take` (`SnapRO.lean:360`), `snapRecv_image(On)`
+   (`hi`) and `applied_jump(M)` (`AppliedOn.lean:157`) all take the ghost applied index strictly below
+   the snapshot's index. A6's `rnWinInstallAbove` (`InvRaftNode.lean:371-376`, DRAFT) gives
+   `|a0| ≤ snapIdx`, so at `σ.b = 0` only `g ≤ snapIdx`. The Scope's A8 says "above `i`" (strict), and
+   raft gives strict (`restore` refuses `index <= committed`, `raft.go:1876-1880`, and `i ≤ σ.commit`),
+   so A6's text is weaker than the Scope's. At `g = snapIdx` the ghost does not jump, and the
+   directory's file at `g` is not guaranteed (`srvSnapRm`): no lemma covers it.
+
+**Options for finding 1.**
+- **(a) Recommended: weaken `clusterImageOk_restModel`'s members premise to the ids.** Replace
+  `membership.clusterMem c (restModel c0 γ.raft.boot L).mem` (in and out) by `membership.clusterMem c m`
+  with `⌜∀ k, (m.lookup k).isSome = ((restModel c0 γ.raft.boot L).mem.lookup k).isSome⌝`. Today's
+  callers instantiate `m :=` the model (`rfl`). The docstring's argument already uses only the ids.
+  It is a trust-base change: an axiom whose premise is weaker, so it says more. It needs the user's go
+  (through 82) and an `axiom`-skill attack before the Freeze (target: a replayed `ClusterMemberAttrSet`
+  whose older attributes reach a `memberEnc` comparison; the axiom's conclusion is about `L'`'s model
+  only, so the members' values are not read). Then:
+  - window copies of `snapRecv_image`/`snapRecv_imageOn` over `srvRestRp E γr Γ r` with the members'
+    ids (`restReplay_memKeys`), 1 d (est.);
+  - `applyAll.specSnapMR` (both arms, ~1000 lines copied, the ghost rows at `g`/`Γ`), 2-3 d (est.).
+  - Est. 0.5 d for the axiom edit plus its review, then 3-4 d (est.).
+- **(b) A DRAFT restart-only copy of the axiom** (ids form), beside the frozen one, used only by the
+  window lemmas. No frozen change, but it is a new axiom, which this stage's rules exclude, and two
+  axioms state one fact. Not recommended.
+- **(c) Cut: no snapshot install while the window is pending** (a third restart-only premise: the
+  raft loop hands no snapshot while Go's log is below `|A₀|`). False of Go runs: a restarted follower
+  still replaying can be sent a `MsgSnap` (the Scope's finding 2 says so), and A8 exists for that case.
+  It would add carried trust and make the restart branch vacuous for those runs. Rejected.
+
+**For finding 2:** correct `rnWinInstallAbove` to `γ.a0.length < uint.nat l.snap.Metadata'.Index'`, the
+Scope's "above `i`". It is a DRAFT text (A6, approved by 82 with `≤`), not frozen or exported; its
+only producer is the first start's disjunct (`a0 = []`), where it is vacuous, and no proof reads its
+bound yet. The premise gets stronger, matching the Go fact the Scope cites. It needs 82's sign-off
+since 82 approved the `≤` text. Est. 0.5 h, rebuilding A6's six files.
+
+**Not affected:** item 3 (the stop arm over `applyResR`) and item 4's batch arm do not touch the
+snapshot receive. Item 4's snapshot arm and item 5 wait for item 2.
+
+**Revised A10 (est.):** with (a) and the A8 fix, items 2-5 take 2-2.5 wk (est.), as before plus
+0.5-1 d for the axiom edit and the receive copies.
+
+#### Hwpend: the Go probe and the narrowing (2026-11-06)
+
+82 approved narrowing `Hwpend` to `rt = 0 ∨ rt >` the restart's restored HardState term (via the main
+session). Nothing goes into a hub until 82 approves the narrowed text below.
+
+- **The probe.** `/shared/tmp/winpend-probe` (`sim.go`, `probe_test.go`). Rerun: `cd /shared/tmp/winpend-probe
+  && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go1.27.3 TMPDIR=/shared/tmp GOFLAGS=-mod=mod go test -count=1
+  -v -run 'Scenario|Randomized' .`
+- **The harness.** It has 3 members on `RawNode` + `MemoryStorage`, driven like etcd's raft loop, with:
+  - per-incarnation `raftTerm` and persist-before-`Advance`;
+  - snapshots at scaled-down counts (`SnapshotCount` 20, catch-up 5);
+  - `MsgSnap` only to followers lagging past the compaction;
+  - kill/restart with `Applied = 0`;
+  - PreVote and CheckQuorum on.
+
+  It does not model wall-clock time, conf changes, the merge itself, real entry sizes or fsync.
+- **Numbers.**
+  - Etcd-like (drained) handout: 0 of about 4250 former-leader restarts fail the operational premise.
+  - Slow handout (one entry per `Ready`): 2-3%, and about 3% without PreVote.
+  - The old text's proxy fails about 99% (drained), and 49-77% (slow).
+  - No etcd/raft bug was found.
+- **Why `rt = T` can't happen** (the main session's reading). `rt` is `toApply.raftTerm`: etcd
+  `raft.go:79-81`, `:183` (`raftTerm := 0` per loop), `:222-224`, `:234`. The merge check is at
+  `server.go:1009-1021`. raft v3.7.0's `rawnode.go:59` means the first `Ready` after `RestartNode` carries
+  an empty HardState. So the replay's `rt` is 0, and a new `rt` is above the restored term.
+  - **Correction (this session, from `raft.go:222-224`).** `raftTerm` is set by *any* non-empty
+    HardState, and a commit-only change at the restored term `T₀` is non-empty.
+    - When another member leads `T₀`, a restarted follower's `MsgApp` at `T₀` with a higher commit gives
+      `rt = T₀`. With a split handout, that can happen while the replay is still pending.
+    - When this member led `T₀`, nobody else leads `T₀`, it restarts as a follower, and its vote is
+      already itself, so its HardState cannot change at `T₀`.
+    - So Go's fact is `rt = 0 ∨ T₀ ≤ rt`, with `rt = T₀` only when this member did not lead `T₀`.
+    - The narrowed text below therefore bounds this incarnation's `MsgSnap`s (`> T₀`), and its wand
+      covers only `rt > T₀`.
+- **Point 1: an earlier incarnation's `MsgSnap` at `t` implies a persisted HardState term `≥ t`.**
+  Checked by the main session at etcd `673da07c8` and raft v3.7.0:
+  - Only a leader sends `MsgSnap`, and leadership at `t` requires `becomeCandidate` at `t`
+    (`raft.go:902-911`, `r.reset(r.Term + 1)`).
+  - A candidate is not a leader, so etcd's loop sends its messages, including `MsgVote` at `t`, only after
+    `r.storage.Save(rd.HardState, …)` (etcd `raft.go:264`, the save; `:302-329`, the `!islead` send after
+    it). So term `t` is in the WAL before any vote leaves.
+  - PreVote: `becomePreCandidate` (`raft.go:917-927`) changes neither `r.Term` nor `r.Vote`, so it does
+    not matter.
+  - The leader's early send (etcd `raft.go:248-250`, `islead`, before the save) covers only `Ready`s after
+    leadership. One exception: a single-voter campaign becomes leader at `t` within one step, so its first
+    leader `Ready` can carry the unsaved HardState `t`.
+    - But that `Ready`'s messages are `MsgApp`, not `MsgSnap`: `becomeLeader` resets every progress to
+      `Next = lastIndex+1`, whose term is in storage.
+    - A `MsgSnap` needs a later reject, which arrives in a later `Ready`, after this `Ready`'s `Save` (the
+      loop is sequential).
+  - So every `MsgSnap` at `t` follows a durable HardState term `≥ t`.
+- **R2s's target.** The remaining case: the restarted member is elected at `T' > T₀` while raft is still
+  handing out the replay, then sends a `MsgSnap` at `T'`. That is 2-3% of runs with a slow handout and 0
+  with a drained one, and it is what R2s must discharge. R2e's closed theorem must not carry `Hwpend`.
+- **(A) Where the loop gets the fact about `rt`: nowhere today.**
+  - `rnRtOk` (`InvRaftNode.lean:1576`) is `rt = 0 ∨ ∃ c, committedAtTerm rt c ∗ n ≤ c`.
+  - `RNNames` has no restored HardState term, and `RestartNode` is R2d'b's B1.
+  - The driver's `phs`/`hlb` record the last hard state, not the start's.
+- **The narrowed text, as sent to the main session for 82** (all DRAFT, nothing frozen):
+  1. `RNNames` gains `t0 : w64`, the restored HardState term (`W64 0` at a first start, `newRaftNode`'s
+     literal).
+  2. `rnSnapMsg` (`InvRaftNode.lean:189-192`): `⌜st.msg.Type' = MsgSnap⌝` →
+     `⌜st.msg.Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z st.msg.Term'⌝`.
+     - Go reason: a restarted node leads only after `becomeCandidate` at `T₀+1` or later.
+     - At `t0 = 0` it follows from the message's nonzero term (`sentMsg_shape`).
+     - At a restart it is new raft-side text: `RestartNode`'s, in R2d'b, or a restart-only premise
+       carried in `rnRestartOk`'s restart disjunct until then.
+  3. `Hwpend`'s guard: `⌜n < γn.a0.length⌝` → `⌜n < γn.a0.length ∧ uint.Z γn.t0 < uint.Z rt⌝` (the rest
+     of the approved text unchanged). The use site:
+     - `rt ≤ t0`: by (2), the bag's message has `Term > t0 ≥ rt`;
+     - `rt > t0`: the wand.
