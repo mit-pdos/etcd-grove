@@ -235,6 +235,37 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
   iframe Hinv Hv Hok Hst Hap Hlb Ho Hm Hp
   ipureintro; exact ⟨Hrd.1, rfl⟩
 
+/-- **The WAL's slot in the stopped member's image** (R2d review F7, 2026-11-06; DRAFT; the slot
+convention, `notes/spec-first-plan.md`, "The slot convention": the WAL's facts move into their slot
+as the WAL next changes the hub, which the certificate does). Sealed; `wal.stopImage_intro` builds
+it. The WAL's records `σ` hold the node's durable state `S` (`StorageHolds`, what `RestartNode`'s
+update checks); their snapshot is at or below the backend's consistent index `i` and `i` at or below
+their commit (etcd's order: a snapshot is of the applied state, an entry is applied after the `Save`
+of its commit), so that `bootstrap` keeps the backend file; and their snapshot certificate
+(`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid.
+
+**Margin.** The certificate is of the records' snapshot. `bootstrap` replaces that snapshot's
+`ConfState` by the backend's at `i` (`bootstrap.go:107-115`, `buildConfStateFromV3store`) before
+the restarted storage applies it, so it certifies the restarted storage's snapshot only when the
+two conf states agree: in a static cluster (HS2's caveat (ii), `notes/restart-plan.md`). -/
+@[no_expose] def wal.stopImage (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
+    IProp GF :=
+  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ)
+
+/-- `wal.stopImage`'s intro, from the stop's facts. -/
+theorem wal.stopImage_intro (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64)
+    (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i) (hc : uint.nat i ≤ σ.commit) :
+    walSnapCert (GF := GF) cl σ ⊢ wal.stopImage cl S σ i := by
+  unfold wal.stopImage; iintro H; iframe H; ipureintro; exact ⟨hS, hb, hc⟩
+
+/-- `wal.stopImage`'s elimination: the stop's facts and the snapshot certificate (the Freeze 1
+review's F5, for its R2d' consumer, the restart's `bootstrap`). -/
+theorem wal.stopImage_elim (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
+    wal.stopImage (GF := GF) cl S σ i ⊢
+      ⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ := by
+  unfold wal.stopImage; iintro H; iexact H
+
+
 end defs
 
 end EtcdGrove

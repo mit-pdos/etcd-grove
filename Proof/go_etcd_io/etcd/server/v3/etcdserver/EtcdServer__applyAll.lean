@@ -467,94 +467,6 @@ theorem EtcdServer.applyAll.wp_proofBatchNoWin
     (try wp_auto)
     iapply Hfin $$ %st'' %Hst'' Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hka HRS
 
-/-! ### The window's list facts (R2d probe) -/
-
-/-- The pending replays of a window over the ghost log `A` at Go's index `ai`: `A` is Go's log
-and them. -/
-private theorem winGhost_len (ai : w64) (A W : List EntryModel)
-    (h : uint.Z (winGhost ai W) = A.length) (hs : W <:+ A) : A.length = uint.nat ai + W.length := by
-  have hle := hs.length_le
-  have hn := uint_nat_eq ai
-  cases W with
-  | nil => simp only [winGhost] at h; simp only [List.length_nil]; omega
-  | cons w W' =>
-    simp only [winGhost] at h
-    have hb : uint.Z ai < 2 ^ 64 := by word
-    have : uint.Z (W64 (uint.Z ai + ((w :: W').length : Int))) =
-        (uint.Z ai + ((w :: W').length : Int)) % 2 ^ 64 := by word
-    rw [this] at h
-    have hz : 0 ≤ uint.Z ai := by word
-    omega
-
-/-- A batch starting with the pending replays is a prefix of them and its new entries. -/
-private theorem winAgree_prefix : ∀ (W ms : List EntryModel), winAgree W ms → ms <+: W ++ winNew W ms
-  | [], ms, _ => by simp only [winNew, List.nil_append]; exact List.prefix_refl ms
-  | _ :: _, [], _ => List.nil_prefix
-  | w :: W, m :: ms, h => by
-      obtain ⟨rfl, h⟩ := h
-      show w :: ms <+: w :: (W ++ winNew W ms)
-      exact List.cons_prefix_cons.2 ⟨rfl, winAgree_prefix W ms h⟩
-
-/-- A batch's new entries and the replays left: the batch and the pending replays. -/
-private theorem winNew_rest_len {α : Type} : ∀ (W ms : List α),
-    (winNew W ms).length + W.length = ms.length + (winRest W ms).length
-  | [], ms => by simp [winNew, winRest]
-  | _ :: _, [] => by simp [winNew, winRest]
-  | _ :: W, _ :: ms => by
-      have := winNew_rest_len W ms
-      show (winNew W ms).length + (W.length + 1) = ms.length + 1 + (winRest W ms).length
-      omega
-
-/-- A log consecutive from `a0` (w64 indices) is shorter than `2 ^ 64`. -/
-private theorem idxOk_len_lt (a0 : w64) (G : List EntryModel) (h : srvIdxOkW a0 G) :
-    (G.length : Int) < 2 ^ 64 := by
-  cases hG : G.length with
-  | zero => simp
-  | succ k =>
-    have hk : k < G.length := by omega
-    have h1 := (h k (G[k]'hk) (List.getElem?_eq_getElem hk)).1
-    have hb : uint.Z (G[k]'hk).index < 2 ^ 64 := by word
-    have hz : 0 ≤ uint.Z a0 := by word
-    omega
-
-/-- The ghost index without overflow. -/
-private theorem winGhost_Z {α : Type} (ai : w64) (R : List α) (h : uint.Z ai + R.length < 2 ^ 64) :
-    uint.Z (winGhost ai R) = uint.Z ai + R.length := by
-  cases R with
-  | nil => simp [winGhost]
-  | cons r R' => simp only [winGhost]; word
-
-/-- A batch past every pending replay: its new entries are the rest of it. -/
-private theorem winRest_nil_len {α : Type} : ∀ (W ms : List α), winRest W ms = [] →
-    (winNew W ms).length + W.length = ms.length
-  | [], ms, _ => by simp [winNew]
-  | _ :: _, [], h => by simp [winRest] at h
-  | _ :: W, _ :: ms, h => by
-      have := winRest_nil_len W ms h
-      show (winNew W ms).length + (W.length + 1) = ms.length + 1
-      omega
-
-/-- (Q16 (2)) **Go's applied log** after a batch (the ghost log's first `ai` entries and the batch)
-is a prefix of the ghost log after it. -/
-private theorem win_goLog_prefix (ai : w64) (A W ms : List EntryModel)
-    (hlen : A.length = uint.nat ai + W.length) (hs : W <:+ A) (hag : winAgree W ms) :
-    A.take (uint.nat ai) ++ ms <+: A ++ winNew W ms := by
-  obtain ⟨t, rfl⟩ := hs
-  have ht : t.length = uint.nat ai := by rw [List.length_append] at hlen; omega
-  rw [List.take_left' ht, List.append_assoc]
-  exact (List.prefix_append_right_inj t).2 (winAgree_prefix W ms hag)
-
-/-- (Q17 F2) The pending replays, entries of the ghost log consecutive from `a0`, are at or below
-its end `c`. -/
-private theorem win_idx_le (a0 c : w64) (A X W : List EntryModel) (h : srvIdxOkW a0 (A ++ X))
-    (hc : uint.Z c = uint.Z a0 + A.length) (hs : W <:+ A) :
-    ∀ m ∈ W, uint.Z m.index ≤ uint.Z c := by
-  intro m hm
-  obtain ⟨n, hn⟩ := List.getElem?_of_mem (hs.subset hm)
-  have hlt : n < A.length := (List.getElem?_eq_some_iff.1 hn).1
-  have := (h n m (by rw [List.getElem?_append_left hlt]; exact hn)).1
-  omega
-
 section matcher
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- `applyEntries.specBatch`'s (window form's) running-token match is `srvRunH`. -/
@@ -599,7 +511,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.specBatch (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
-    q γn rt n W D hwin
+    q γn rt n W D hwin hwnc
   simp only [srvRunH_applyAll_spec]
   wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hnms, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
@@ -614,7 +526,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   -- the batch's committed log (`kvBatchW`'s), and (F2) the pending replays at or below the
   -- consistent index: entries of the ghost log, consecutive from the start
   ihave #Hkb' := Hkb
-  iunfold kvBatchW at Hkb'
+  ihave Hkb' := kvBatchW_elim _ _ _ _ _ _ $$ Hkb'
   icases Hkb' with ⟨#HlbB, %hkbW⟩
   ihave %hidxG := srvRLogLb_idx _ _ $$ HlbB
   have hF2 : ∀ m ∈ W, uint.Z m.index ≤ uint.Z (ciEff γ st.k) :=
@@ -656,7 +568,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   have hAE1 := hAE.1 s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa W D
     (by rw [hM]; cases C <;> simp [AuthC.mode])
     (fun h => by rw [hon] at h; cases C <;> simp_all [AuthC.isOn, acReceiptOk]) Hms Hai1 Hok
-    (by rw [hon]; exact hEok) hdv hwin hF2
+    (by rw [hon]; exact hEok) hdv hwin hF2 hwnc
   try simp only [srvRunH_applyEntries_specW] at hAE1
   rw [hon] at hAE1
   wp_apply hAE1
@@ -941,11 +853,10 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- (`winNoMergedSend`, an assumption R2s discharges)
             by_cases hR : winRest W (unapplied ai ms) = []
             rotate_left
-            · iunfold winNoMergedSend at Hnms
-              icases Hnms with (%hW0 | #Hnms)
-              · exfalso; apply hR; rw [hW0]; rfl
-              · ihave %hns := Hnms $$ Hsm
-                exact absurd Hty hns
+            · have hW : W ≠ [] := fun hW0 => hR (by rw [hW0]; rfl)
+              ihave %hns := winNoMergedSend_elim _ W hW _ _ $$ [Hnms Hsm]
+              · isplitl []; iexact Hnms; iexact Hsm
+              exact absurd Hty hns
             -- the window over: the ghost log is Go's applied log
             have hnl := winRest_nil_len W (unapplied ai ms) hR
             have hGlen : (A ++ winNew W (unapplied ai ms)).length = uint.nat ai' := by
@@ -954,7 +865,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
             have hGgo : A.take (uint.nat ai) ++ unapplied ai ms = A ++ winNew W (unapplied ai ms) :=
               hGoPre.eq_of_length (by rw [← hlenA, hGlen])
             have hltG : lastTermIs (A ++ winNew W (unapplied ai ms)) at' := hGgo ▸ hltA
-            have hdn : winDone D W (unapplied ai ms) = [] := by unfold winDone; rw [hR]
+            have hdn : winDone D W (unapplied ai ms) = [] := winDone_of_rest_nil D W _ hR
             have hRSeq : srvRestW E γr (A ++ winNew W (unapplied ai ms)) (winDone D W (unapplied ai ms)) =
                 srvRest E γr (A ++ winNew W (unapplied ai ms)) := by rw [hdn, srvRestW_nil]
             have hGh : winGhost ai' (winRest W (unapplied ai ms)) = ai' := by rw [hR]; rfl

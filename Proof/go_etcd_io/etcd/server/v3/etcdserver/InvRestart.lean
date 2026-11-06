@@ -97,34 +97,12 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
     cs.Learners' ≡ₚ (ms.filter (·.isLearner)).map (·.id) ∧
     cs.VotersOutgoing' = [] ∧ cs.LearnersNext' = [] ∧ cs.AutoLeave' = false
 
-/-- **The WAL's slot in the stopped member's image** (R2d review F7, 2026-11-06; DRAFT; the slot
-convention, `notes/spec-first-plan.md`, "The slot convention": the WAL's facts move into their slot
-as the WAL next changes the hub, which the certificate does). Sealed; `wal.stopImage_intro` builds
-it. The WAL's records `σ` hold the node's durable state `S` (`StorageHolds`, what `RestartNode`'s
-update checks); their snapshot is at or below the backend's consistent index `i` and `i` at or below
-their commit (etcd's order: a snapshot is of the applied state, an entry is applied after the `Save`
-of its commit), so that `bootstrap` keeps the backend file; and their snapshot certificate
-(`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid.
-
-**Margin.** The certificate is of the records' snapshot. `bootstrap` replaces that snapshot's
-`ConfState` by the backend's at `i` (`bootstrap.go:107-115`, `buildConfStateFromV3store`) before
-the restarted storage applies it, so it certifies the restarted storage's snapshot only when the
-two conf states agree: in a static cluster (HS2's caveat (ii), `notes/restart-plan.md`). -/
-@[no_expose] def wal.stopImage (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
-    IProp GF :=
-  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ)
-
-/-- `wal.stopImage`'s intro, from the stop's facts. -/
-theorem wal.stopImage_intro (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64)
-    (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i) (hc : uint.nat i ≤ σ.commit) :
-    walSnapCert (GF := GF) cl σ ⊢ wal.stopImage cl S σ i := by
-  unfold wal.stopImage; iintro H; iframe H; ipureintro; exact ⟨hS, hb, hc⟩
-
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
 - raft's part (the WAL): the id vacant (`node.Stop`'s `nodeVacant`), the node's durable state
   `S` (`raftState`, which the stopped raft loop held), and the WAL's records `σ` holding it, in the
-  WAL's slot (`wal.stopImage`, R2d review F7: with the order below and the snapshot certificate);
+  WAL's slot (`wal.stopImage`, in `WalApi.lean` since the Freeze 1 review's F5; R2d review F7:
+  with the order below and the snapshot certificate);
 - the backend's part (the bbolt file): `D` is the image of a committed prefix `A` of the server's
   log through the consistent index `i` (`imageAt`, the snapshot path's certificate, `dbImage`'s
   content at the stopped incarnation's names), its stored term `t` (`metaIs`);

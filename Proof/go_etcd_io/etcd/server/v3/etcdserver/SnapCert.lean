@@ -93,21 +93,16 @@ theorem srv_snap_cert (γr : ReadNames) (A : List EntryModel) (ai at' : w64) (c 
   -- registered in the cluster's registry
   iinv Hreg with >Hb Hclose
   all_goals first | exact (fun _ _ => CoPset.mem_full) | skip
-  iunfold srvSnapsReg at Hb
+  ihave Hb := srvSnapsReg_elim _ $$ Hb
   icases Hb with ⟨%S, Hown, %HSd⟩
   imod snapshotCert_make γr.raft.raft.cl srvClusterN (⊤ \ ↑srvSnapsN) (srvLE γr.raft A) ai at' []
       (Membership.simple γr.raft.raft.cfg) c S srvClusterN_snapsN hl hlt Hok hcs
     $$ Hc Hl Ha Hown with ⟨Hown, #Hcert⟩
   imod Hclose $$ [Hown] with -
   · inext
-    iunfold srvSnapsReg
-    iexists S ++ [⟨(srvLE γr.raft A).length, Membership.simple γr.raft.raft.cfg, []⟩]
-    iframe Hown
-    ipureintro
-    intro r hr
-    rcases List.mem_append.1 hr with hr | hr
-    · exact HSd r hr
-    · simp only [List.mem_singleton] at hr; subst hr; rfl
+    iapply srvSnapsReg_insert _ S ⟨(srvLE γr.raft A).length, Membership.simple γr.raft.raft.cfg, []⟩
+      HSd rfl
+    iexact Hown
   imodintro
   iframe Hl
   isplitl

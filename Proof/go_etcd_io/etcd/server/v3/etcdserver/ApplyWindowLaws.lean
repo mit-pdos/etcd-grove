@@ -34,7 +34,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `apply.spec` before the window (its text at lean `6b49f77e01`, unchanged through `aa4449beb6`). -/
+/-- `apply.spec` before the window (its text at lean `6b49f77e01`, verbatim through `cd767f5336`, the branch's base). -/
 abbrev EtcdServer.apply.specNoWin : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -80,9 +80,9 @@ theorem EtcdServer.apply.spec_noWin (h : EtcdServer.apply.spec (GF := GF) (hG :=
     EtcdServer.apply.specNoWin (GF := GF) (hG := hG) :=
   fun s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa h1 h2 h3 h4 h5 h6 h7 =>
     h s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w sa [] [] h1 h2 h3 h4 h5 h6 h7
-      (winOk_nil _ _) (fun _ hm => nomatch hm)
+      (winOk_nil _ _) (fun _ hm => nomatch hm) winNoConf_nil
 
-/-- `applyEntries.specBatch` before the window (its text at lean `6b49f77e01`, unchanged through `aa4449beb6`). -/
+/-- `applyEntries.specBatch` before the window (its text at lean `6b49f77e01`, verbatim through `cd767f5336`, the branch's base). -/
 abbrev EtcdServer.applyEntries.specBatchNoWin : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
@@ -132,9 +132,9 @@ theorem EtcdServer.applyEntries.specBatch_noWin
     EtcdServer.applyEntries.specBatchNoWin (GF := GF) (hG := hG) :=
   fun s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa h1 h2 h3 h4 h5 h6 h7 =>
     h s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w sa [] [] h1 h2 h3 h4 h5
-      h6 h7 (winOk_nil _ _) (fun _ hm => nomatch hm)
+      h6 h7 (winOk_nil _ _) (fun _ hm => nomatch hm) winNoConf_nil
 
-/-- `applyAll.specBatch` before the window (its text at lean `6b49f77e01`, unchanged through `aa4449beb6`). -/
+/-- `applyAll.specBatch` before the window (its text at lean `6b49f77e01`, verbatim through `cd767f5336`, the branch's base). -/
 abbrev EtcdServer.applyAll.specBatchNoWin : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -231,7 +231,7 @@ theorem EtcdServer.applyAll.specBatch_noWin
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
     q γn rt n
   have h' := h s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv
-    γnc w nk q γn rt n [] [] (winOk_nil _ _)
+    γnc w nk q γn rt n [] [] (winOk_nil _ _) winNoConf_nil
   -- the term row at Go's index: the whole ghost log at no window (`uint.Z ai = A.length`)
   by_cases hlen : uint.Z ai = A.length
   · have htake : A.take (uint.nat ai) = A := List.take_of_length_le (by

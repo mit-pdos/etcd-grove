@@ -44,7 +44,11 @@ replay window**, as `apply.spec`'s: the replays `W` pending and `D` done (`winOk
 `W = D = []`, every row the one before, `applyAll.specBatch_noWin`); the ghost rows (the applied
 index, the ghost log's length, the consistent index's upper pin) at the ghost index `winGhost ai W`,
 the ghost log grown by `winNew W (unapplied ai ms)`; Go's rows (`loopOk`, the snapshot's state and
-resources, the driver's view `dvOk`) at Go's index. -/
+resources) at Go's index, the driver's view `dvOk` at the ghost index `winGhost (ai + 1) W` (Q19).
+Over Go's log `A.take ai`: its last term (`lastTermIs`, Go's `ep.appliedt`) and the frozen terms
+(`srvFrozenTerms`); the length bound `(A.take ai ++ unapplied ai ms).length ≤ n`. No conf change in
+the window (`winNoConf`, the Freeze 1 review's F1), and no merged-snapshot send while it is pending
+(`winNoMergedSend`; trivial at no window). -/
 abbrev EtcdServer.applyAll.specBatch : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -56,6 +60,9 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
   -- (R2d, DRAFT) the replay window (a premise of its own, so that the no-window instance is
   -- today's triple: `applyAll.specBatch_noWin`)
   winOk A D W (unapplied ai ms) →
+  -- (R2d, the Freeze 1 review's F1) no conf change in the window (`winNoConf`; a replayed one is
+  -- applied v2-only, which `applyConfChange.spec` has no case for: R2d''s)
+  winNoConf W →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)

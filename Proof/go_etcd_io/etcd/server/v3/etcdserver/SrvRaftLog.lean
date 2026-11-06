@@ -716,6 +716,28 @@ def srvSnapsReg (cl : Cluster) : IProp GF :=
 instance srvSnapsReg_timeless (cl : Cluster) : Timeless (srvSnapsReg (GF := GF) cl) := by
   unfold srvSnapsReg; infer_instance
 
+/-- The registry at its allocation: no snapshot made. -/
+theorem srvSnapsReg_nil (cl : Cluster) : ownSnapsMade cl [] ⊢ srvSnapsReg (GF := GF) cl := by
+  unfold srvSnapsReg
+  iintro H; iexists []; iframe H; ipureintro; simp
+
+/-- The registry opened: the snapshots made, every one of `nil` data. -/
+theorem srvSnapsReg_elim (cl : Cluster) :
+    srvSnapsReg (GF := GF) cl ⊢ ∃ S : List SnapRec, ownSnapsMade cl S ∗ ⌜∀ r ∈ S, r.data = []⌝ := by
+  unfold srvSnapsReg
+  iintro H; iexact H
+
+/-- A snapshot of `nil` data registered: the registry again. -/
+theorem srvSnapsReg_insert (cl : Cluster) (S : List SnapRec) (r : SnapRec)
+    (hS : ∀ r ∈ S, r.data = []) (hr : r.data = []) :
+    ownSnapsMade cl (S ++ [r]) ⊢ srvSnapsReg (GF := GF) cl := by
+  unfold srvSnapsReg
+  iintro H; iexists S ++ [r]; iframe H; ipureintro
+  intro r' hr'
+  rcases List.mem_append.1 hr' with h | h
+  · exact hS r' h
+  · simp only [List.mem_singleton] at h; subst h; exact hr
+
 /-- **The cluster** (persistent; 2026-10-30, the repair: one kind of cluster, raft's unified API):
 the node API's cluster at the server's storage model (`srvStor`); its conf entries decided by the
 server's rule (`confPolicy` at `γ.raft.rule`; `rnEnvOk` ties it to `srvRule`); the voters it started

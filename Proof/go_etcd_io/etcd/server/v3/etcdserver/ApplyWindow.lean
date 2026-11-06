@@ -14,9 +14,14 @@ effects happen again (R2d review F8):
 * the cluster version (`SetVersion`, `membership/cluster.go:589-623`) and the downgrade info: not
   modeled (`RestM` has neither; `restSetVersion` at `v3 = false` is the identity, and the
   downgrade's writers take `AEnv.RW`);
-* a replayed conf change's transport calls (`AddPeer`/`RemovePeer`): modeled by `ccPeersAfter`'s
-  `v3 = false` case. In R2d the window has no conf change (the restart's named conjunct
-  `winNoConf`, `notes/restart-plan.md`'s R2d' list), so none happens there.
+* a replayed conf change (`applyConfChange` at `shouldApplyV3` false): it is not validated
+  (`ValidateConfigurationChange` returns `nil`, `membership/cluster.go:306-308`), not applied to
+  raft (`ApplyConfChange` only `if shouldApplyV3`, `server.go:2050-2056`) nor to the membership
+  (`AddMember`/`RemoveMember` only log, `membership/cluster.go:402-424`); what happens is
+  `beHooks.SetConfState` with the unchanged conf state, the transport's `AddPeer`/`RemovePeer`/
+  `UpdatePeer` and the wait's trigger. Not stated in R2d: the apply chain's specs take
+  `winNoConf` (no conf change in the window), which R2d' discharges at the restart (with a
+  `v3 = false` case of `applyConfChange.spec`; `notes/restart-plan.md`, the R2d' list).
 The apply chain's specs (`apply.spec`, `applyEntries.specBatch`, `applyAll.specBatch`) are stated
 over the window's state:
 * `W`, the window's entries still to be replayed (a suffix of the ghost log `A`), and `D`, those
@@ -84,6 +89,11 @@ def winDone {α : Type} (D W ms : List α) : List α :=
   | [] => []
   | _ => D ++ ms
 
+/-- The window over after the batch: nothing done is carried. -/
+theorem winDone_of_rest_nil {α : Type} (D W ms : List α) (h : winRest W ms = []) :
+    winDone D W ms = [] := by
+  unfold winDone; rw [h]
+
 /-- **The window's premise of a call on the batch `ms`**: the done and pending replays a suffix of
 the ghost log `A`, the batch starting with the pending ones. -/
 def winOk [GooseExts] (A D W ms : List EntryModel) : Prop :=
@@ -95,11 +105,13 @@ theorem winOk_nil [GooseExts] (A ms : List EntryModel) : winOk A [] [] ms :=
 
 /-- **No conf change in the window** (R2d review F1, decided by etcd-grove-82 under the user's
 delegation, 2026-11-06, pending the user's review; DRAFT): no entry the restart replays is a conf
-change. A named conjunct of the restart's `%HEr` (R2d-2), an assumption R2d carries for R2d'
-(`notes/restart-plan.md`, "R2d Draft, round 2", the R2d' list): Go replays a conf change in the
-window v2-only (`server.go:1949`, `applyConfChange` at `shouldApplyV3` false, `:2031-2101`;
-`ValidateConfigurationChange` accepts it, `membership/cluster.go:307-309`), which R2d does not
-state. -/
+change. A premise of the apply chain's window specs (`apply.spec`, `applyEntries.specBatch`,
+`applyAll.specBatch`; the Freeze 1 review's F1), to be a named conjunct of the restart's starting
+point in R2d', an assumption R2d carries for R2d' (`notes/restart-plan.md`, the R2d' list). Go
+replays a conf change in the window v2-only (`server.go:1949`, `applyConfChange` at
+`shouldApplyV3` false, `:2031-2101`): unvalidated (`membership/cluster.go:306-308`), applied
+neither to raft (`server.go:2050-2056`) nor to the membership (`membership/cluster.go:402-424`),
+only its transport calls and `SetConfState` happen; `applyConfChange.spec` has no case for it. -/
 def winNoConf [GooseExts] (W : List EntryModel) : Prop := ∀ m ∈ W, m.typ ≠ W32 1
 
 /-- A first start's window is empty: trivially no conf change. -/
@@ -114,6 +126,95 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+/-! ## The window's list laws (R2d probe; public since the Freeze 1 review's F7: `run`, R2d', re-establishes
+the next batch's premises with them) -/
+
+/-- The pending replays of a window over the ghost log `A` at Go's index `ai`: `A` is Go's log
+and them. -/
+theorem winGhost_len (ai : w64) (A W : List EntryModel)
+    (h : uint.Z (winGhost ai W) = A.length) (hs : W <:+ A) : A.length = uint.nat ai + W.length := by
+  have hle := hs.length_le
+  have hn := uint_nat_eq ai
+  cases W with
+  | nil => simp only [winGhost] at h; simp only [List.length_nil]; omega
+  | cons w W' =>
+    simp only [winGhost] at h
+    have hb : uint.Z ai < 2 ^ 64 := by word
+    have : uint.Z (W64 (uint.Z ai + ((w :: W').length : Int))) =
+        (uint.Z ai + ((w :: W').length : Int)) % 2 ^ 64 := by word
+    rw [this] at h
+    have hz : 0 ≤ uint.Z ai := by word
+    omega
+
+/-- A batch starting with the pending replays is a prefix of them and its new entries. -/
+theorem winAgree_prefix : ∀ (W ms : List EntryModel), winAgree W ms → ms <+: W ++ winNew W ms
+  | [], ms, _ => by simp only [winNew, List.nil_append]; exact List.prefix_refl ms
+  | _ :: _, [], _ => List.nil_prefix
+  | w :: W, m :: ms, h => by
+      obtain ⟨rfl, h⟩ := h
+      show w :: ms <+: w :: (W ++ winNew W ms)
+      exact List.cons_prefix_cons.2 ⟨rfl, winAgree_prefix W ms h⟩
+
+/-- A batch's new entries and the replays left: the batch and the pending replays. -/
+theorem winNew_rest_len {α : Type} : ∀ (W ms : List α),
+    (winNew W ms).length + W.length = ms.length + (winRest W ms).length
+  | [], ms => by simp [winNew, winRest]
+  | _ :: _, [] => by simp [winNew, winRest]
+  | _ :: W, _ :: ms => by
+      have := winNew_rest_len W ms
+      show (winNew W ms).length + (W.length + 1) = ms.length + 1 + (winRest W ms).length
+      omega
+
+/-- A log consecutive from `a0` (w64 indices) is shorter than `2 ^ 64`. -/
+theorem idxOk_len_lt (a0 : w64) (G : List EntryModel) (h : srvIdxOkW a0 G) :
+    (G.length : Int) < 2 ^ 64 := by
+  cases hG : G.length with
+  | zero => simp
+  | succ k =>
+    have hk : k < G.length := by omega
+    have h1 := (h k (G[k]'hk) (List.getElem?_eq_getElem hk)).1
+    have hb : uint.Z (G[k]'hk).index < 2 ^ 64 := by word
+    have hz : 0 ≤ uint.Z a0 := by word
+    omega
+
+/-- The ghost index without overflow. -/
+theorem winGhost_Z {α : Type} (ai : w64) (R : List α) (h : uint.Z ai + R.length < 2 ^ 64) :
+    uint.Z (winGhost ai R) = uint.Z ai + R.length := by
+  cases R with
+  | nil => simp [winGhost]
+  | cons r R' => simp only [winGhost]; word
+
+/-- A batch past every pending replay: its new entries are the rest of it. -/
+theorem winRest_nil_len {α : Type} : ∀ (W ms : List α), winRest W ms = [] →
+    (winNew W ms).length + W.length = ms.length
+  | [], ms, _ => by simp [winNew]
+  | _ :: _, [], h => by simp [winRest] at h
+  | _ :: W, _ :: ms, h => by
+      have := winRest_nil_len W ms h
+      show (winNew W ms).length + (W.length + 1) = ms.length + 1
+      omega
+
+/-- (Q16 (2)) **Go's applied log** after a batch (the ghost log's first `ai` entries and the batch)
+is a prefix of the ghost log after it. -/
+theorem win_goLog_prefix (ai : w64) (A W ms : List EntryModel)
+    (hlen : A.length = uint.nat ai + W.length) (hs : W <:+ A) (hag : winAgree W ms) :
+    A.take (uint.nat ai) ++ ms <+: A ++ winNew W ms := by
+  obtain ⟨t, rfl⟩ := hs
+  have ht : t.length = uint.nat ai := by rw [List.length_append] at hlen; omega
+  rw [List.take_left' ht, List.append_assoc]
+  exact (List.prefix_append_right_inj t).2 (winAgree_prefix W ms hag)
+
+/-- (Q17 F2) The pending replays, entries of the ghost log consecutive from `a0`, are at or below
+its end `c`. -/
+theorem win_idx_le (a0 c : w64) (A X W : List EntryModel) (h : srvIdxOkW a0 (A ++ X))
+    (hc : uint.Z c = uint.Z a0 + A.length) (hs : W <:+ A) :
+    ∀ m ∈ W, uint.Z m.index ≤ uint.Z c := by
+  intro m hm
+  obtain ⟨n, hn⟩ := List.getElem?_of_mem (hs.subset hm)
+  have hlt : n < A.length := (List.getElem?_eq_some_iff.1 hn).1
+  have := (h n m (by rw [List.getElem?_append_left hlt]; exact hn)).1
+  omega
+
 /-- **`kvBatch` in the window** (Q13 (a)): the batch `ms` at Go's index `ai` with the replays `W`
 pending: `kvBatch`'s facts over its new entries (`winNew W ms`) at the ghost index
 (`winGhost ai W`, the ghost log's end). `kvBatch` at `W = []` (`kvBatchW_nil`, by definition). -/
@@ -125,6 +226,14 @@ def kvBatchW (γr : ReadNames) (c ai : w64) (W A ms : List EntryModel) : IProp G
 instance kvBatchW_persistent (γr : ReadNames) (c ai : w64) (W A ms : List EntryModel) :
     Persistent (kvBatchW (GF := GF) γr c ai W A ms) := by
   unfold kvBatchW; infer_instance
+
+/-- `kvBatchW` opened: the committed log and its pure facts. -/
+theorem kvBatchW_elim (γr : ReadNames) (c ai : w64) (W A ms : List EntryModel) :
+    kvBatchW (GF := GF) γr c ai W A ms ⊢ srvRLogLb γr.raft (A ++ winNew W ms) ∗
+      ⌜uint.Z (winGhost ai W) = uint.Z γr.raft.ai0 + A.length ∧
+        ∀ m ∈ winNew W ms, (uint.Z c < uint.Z m.index ↔ uint.Z γr.kv.c0 < uint.Z m.index)⌝ := by
+  unfold kvBatchW
+  iintro H; iexact H
 
 /-- No window: `kvBatch`. -/
 theorem kvBatchW_nil (γr : ReadNames) (c ai : w64) (A ms : List EntryModel) :
@@ -152,8 +261,9 @@ theorem srvRestW_nil (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel)
 etcd-grove-82 under the user's delegation, 2026-11-06, pending the user's review; DRAFT): with the
 replays `W` pending, no member of the cluster `γ` sends a `MsgSnap` (`sentMsg` of that type), so
 none reaches `msgSnapC` and `applyAll`'s merge (`createMergedSnapshotMessage`, `server.go:1045`)
-does not run in a window. A named conjunct of the restart's starting point beside `winNoConf`
-(R2d-2), and `applyAll.specBatch`'s premise; an assumption R2d carries for R2s
+does not run in a window. `applyAll.specBatch`'s premise, to be a named conjunct of the
+restart's starting point beside `winNoConf` in R2d' (the wide form here; its narrowing to this
+member's own batch is pending etcd-grove-82's review, `/shared/tmp/r2d-wnms-design.md`); an assumption R2d carries for R2s
 (`notes/restart-plan.md`, "Assumptions R2d carries for R2d'/R2s"). Its cost: it does not hold of
 every Go execution: a leader in its window does send (raft sends a snapshot to a follower behind its
 log's first index, `raft.go:1877`, whatever the application's applied index), and its merge then
@@ -172,6 +282,15 @@ instance winNoMergedSend_persistent (γ : SrvRaft) (W : List EntryModel) :
 theorem winNoMergedSend_nil (γ : SrvRaft) : ⊢ winNoMergedSend (GF := GF) γ [] := by
   unfold winNoMergedSend
   ileft; ipureintro; rfl
+
+/-- With the replays `W` pending, a sent message is not a `MsgSnap`. -/
+theorem winNoMergedSend_elim (γ : SrvRaft) (W : List EntryModel) (hW : W ≠ []) (id : w64) (st : MsgSt) :
+    letI := srvStor (GF := GF) γ
+    winNoMergedSend (GF := GF) γ W ∗ sentMsg γ.cl srvClusterN id st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+  unfold winNoMergedSend
+  iintro ⟨(%hW0 | #H), #Hs⟩
+  · exact absurd hW0 hW
+  · iapply H; iexact Hs
 
 end defs
 

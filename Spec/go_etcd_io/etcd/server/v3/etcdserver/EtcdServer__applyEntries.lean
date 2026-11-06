@@ -59,6 +59,9 @@ abbrev EtcdServer.applyEntries.specBatch : Prop :=
   winOk A D W (unapplied ai ms) →
   -- (R2d, Q17 F2) the pending replays at or below the consistent index (Go's `shouldApplyV3`)
   (∀ m ∈ W, uint.Z m.index ≤ uint.Z (ciEff γ st.k)) →
+  -- (R2d, the Freeze 1 review's F1) no conf change in the window (`winNoConf`; a replayed one is
+  -- applied v2-only, which `applyConfChange.spec` has no case for: R2d''s)
+  winNoConf W →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerM E.authOn s γ ci TM E ρ γr ∗ srvLessorNilM E.authOn s ∗ batchWaitOk ρ E ms ∗ taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft A cs ∗

@@ -258,33 +258,15 @@ theorem applyResCW_nil (K : AuthC) (C : ApplyCtx GF) (A : List EntryModel) (hP :
 
 /-! ### The probe's glue: from the restart's conjunct to `run`'s loop and its first batch -/
 
-private theorem winGhost_Z' {α : Type} (ai : w64) (R : List α) (h : uint.Z ai + R.length < 2 ^ 64) :
-    uint.Z (winGhost ai R) = uint.Z ai + R.length := by
-  cases R with
-  | nil => simp [winGhost]
-  | cons r R' => simp only [winGhost]; word
-
-/-- A log consecutive from `a0` (w64 indices) is shorter than `2 ^ 64`. -/
-private theorem idxOk_len_lt' (a0 : w64) (G : List EntryModel) (h : srvIdxOkW a0 G) :
-    (G.length : Int) < 2 ^ 64 := by
-  cases hG : G.length with
-  | zero => simp
-  | succ k =>
-    have hk : k < G.length := by omega
-    have h1 := (h k (G[k]'hk) (List.getElem?_eq_getElem hk)).1
-    have hb : uint.Z (G[k]'hk).index < 2 ^ 64 := by word
-    have hz : 0 ≤ uint.Z a0 := by word
-    omega
-
 /-- The ghost index past the handed log and its window is the ghost log's. -/
 theorem winGhost_split (ai₀ : w64) (P A₀ : List EntryModel) (hP : P <+: A₀)
     (hov : uint.Z ai₀ + A₀.length < 2 ^ 64) :
     winGhost (winGhost ai₀ P) (A₀.drop P.length) = winGhost ai₀ A₀ := by
   have hl := hP.length_le
-  have h1 := winGhost_Z' ai₀ P (by omega)
+  have h1 := winGhost_Z ai₀ P (by omega)
   have hd := List.length_drop (i := P.length) (l := A₀)
-  have h2 := winGhost_Z' (winGhost ai₀ P) (A₀.drop P.length) (by rw [h1, hd]; omega)
-  have h3 := winGhost_Z' ai₀ A₀ hov
+  have h2 := winGhost_Z (winGhost ai₀ P) (A₀.drop P.length) (by rw [h1, hd]; omega)
+  have h3 := winGhost_Z ai₀ A₀ hov
   rw [h1, hd] at h2
   apply uint_Z_inj.1
   rw [h2, h3]; omega
@@ -372,16 +354,16 @@ theorem applyResCW_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF
   · rw [kvRunM_split]; iframe Hka; ipureintro; exact Hkc
   icases kvRunM_lb _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA, Hkr⟩
   ihave %hidx := srvRLogLb_idx _ A₀ $$ HlbA
-  have hlen := idxOk_len_lt' _ _ hidx
+  have hlen := idxOk_len_lt _ _ hidx
   have h0 : uint.Z C.ai₀ = 0 := by rw [hai₀]; rfl
   have hc0 : uint.Z C.c₀ = 0 := by have : 0 ≤ uint.Z C.c₀ := by word
                                    omega
   have hPl := Hpt.1.length_le
   have hov : uint.Z C.ai₀ + A₀.length < 2 ^ 64 := by omega
   have hsplit := winGhost_split C.ai₀ C.rn.pre A₀ Hpt.1 hov
-  have hgP := winGhost_Z' C.ai₀ C.rn.pre (by omega)
-  have hgA := winGhost_Z' C.ai₀ A₀ hov
-  have hgC := winGhost_Z' C.c₀ A₀ (by omega)
+  have hgP := winGhost_Z C.ai₀ C.rn.pre (by omega)
+  have hgA := winGhost_Z C.ai₀ A₀ hov
+  have hgC := winGhost_Z C.c₀ A₀ (by omega)
   ihave Hss := Hss $$ Hfs
   ihave #Hca' := Hcsat $$ %A₀ %Hpt
   iexists A₀
