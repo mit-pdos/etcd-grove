@@ -3573,3 +3573,54 @@ session). Nothing goes into a hub until 82 approves the narrowed text below.
   - **(ii) Cut: no stop while the window is pending.** False of Go (a member can be stopped
     mid-replay). Rejected.
 - Sent to the main session for 82.
+
+#### Item 4 (`run`'s restart branch, DRAFT `run.wp_proofR`): next steps (2026-11-06, not started)
+
+Not started in this session (context). Items 2 and 3 are held for decisions. The plan, against
+`EtcdServer__run.lean` at `f643b739ee`:
+
+1. **The DRAFT statement** (new file, for instance `RunRestart.lean`, imported by no closed theorem):
+   - `isServerRunCR`: a copy of `isServerRunC` (`AuthCompRows.lean:216-260`) with `%HEr`, `Hsnap` and
+     `Hstart` replaced by `srvRunRestartR` (`StartR.lean:127`), plus the approved narrowed `Hwpend`;
+   - `run.specR`: `run.spec` over `isServerRunCR`.
+2. **A dependency found while planning: `winNoMergedSendR` must be narrowed first.**
+   `run_job_bodyR`/`applyAll.specBatchR` take `winNoMergedSendR … rt` for every `rt`, but the
+   approved `Hwpend` covers only `t0 < rt`.
+   - Change `winNoMergedSendR` (`RunR.lean:43`, DRAFT) to take `⌜uint.Z γn.t0 < uint.Z rt⌝` as a
+     disjunct (or its guard).
+   - `applyAll.wp_proofBatchR`'s merged branch (`ApplyAllR.lean`) then closes the case `rt ≤ t0` with
+     `rnSnapMsg`'s bound (`t0 < Term'`).
+
+   This needs item 5's `RNNames.t0` and `rnSnapMsg` edit, so it lands with them. In the DRAFT, take
+   that bound as a hypothesis of `run.wp_proofR`.
+3. **The proof.** Copy `run.wp_proofG` (`:727-1450`) and change:
+   - **The start** (`:1003-1060`). `Hsnap` → `rnSnapOnceR`: its continuation gives
+     `epCsAt γ A₀ cs` and `memSnapLb γs 0` in place of `memSnapNone`. `Hstart` → `srvRestartAtR`. The
+     hand-built `HR0 : applyResC … []` becomes `applyResR_start` at `P = []`, `rp = ⟨0, γn.a0⟩`.
+   - **The loop invariant `HI`** (`:1063`): `applyResC C … A` → `applyResR C … ⟨0, γn.a0⟩ A`, in
+     `HQR` and in every `savedProp_alloc`/`Schedule` text (`:1130-1165`, `:1217-1283`).
+   - **The batch arm** (`:1166-1283`):
+     - `rnApR_dv`/`rnApGive_dv` (`:1178-1181`) → `rnApR_dvG`/`rnApGive_dvG` (`ViewR.lean:243-252`),
+       with no `Ha0n`;
+     - `hdvs` unchanged (`pre = []`, `ai0 = 0` still hold at `σ.b = 0`);
+     - `run_job_body hAA.1` (`:1244`) → `run_job_bodyR (applyAll.wp_proofBatchR …)`, with
+       `winNoMergedSendR` from `Hwpend`'s wand for `t0 < rt`;
+     - the window's token: `Hwpend`'s `token γwp` is held while `|A| < |a0|`, and given up through
+       `winNoMergedSendR_nil` once past the window;
+     - the job's post: `applyResR … (A ++ ce)`.
+   - **The snapshot arm** (`:1107-1165`): `sorry` (item 2, held). Past the window it is
+     `applyResR_past` and the frozen `run_job_snapC`. Only the in-window case waits for item 2.
+   - **The stop arm** (`:1351-1450`): `sorry` (item 3, held).
+   - **The lease-expiry arm** (`:1285-1335`) and `errorc`: check whether they read the loop's `R`. They
+     should carry `applyResR` unchanged.
+   - Memory: no bare `iframe` there (the reader pools' `List.replicate 2^28`); frame explicitly.
+4. **Check:** `etc/tcb-report.py --check` (still 817/4: the new sorries are in a file no root imports),
+   and `#print axioms run.wp_proofR` shows only those `sorryAx`s.
+
+**Where R2d'a stands (2026-11-06).**
+- Item 1: done (`de71f8502b`).
+- Item 2: held (axiom ids form, with the user).
+- Item 3: held (`raftNode.stop`'s commit bound, frozen).
+- Item 4: planned above.
+- Item 5: after 2-4, with the approved hub texts (`t0`, `rnSnapMsg`, narrowed `Hwpend`,
+  `rnWinInstallAbove` `<`).
