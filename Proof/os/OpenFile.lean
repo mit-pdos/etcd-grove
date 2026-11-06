@@ -144,11 +144,12 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
 caller holds). -/
 def crSt (R : Roots) (V : Hist) (j : Ino) (b : GoString) : Option Ino → IProp GF
   | none => osTree (GF := GF) (DFrac.own 1) R V
-  | some i => iprop(osTree (GF := GF) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
+  | some i => iprop(⌜RootsOk R⌝ ∗
+      osTree (GF := GF) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
       osMeta (GF := GF) i (DFrac.own 1) newMeta)
 
 theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG) := by
-  intro d b perm R V j hb hr hd hn
+  intro d b perm R V j hb hd hn
   wp_start as ⟨#Hinv, Hh⟩
   obtain ⟨o, ho⟩ : ∃ o : Option Ino, o = none := ⟨none, rfl⟩
   ihave Hh := (show osTree (GF := GF) (DFrac.own 1) R V ⊢ crSt R V j b o by
@@ -164,7 +165,7 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
       show (W64 66 ||| W64 524288) = flCreat from by decide]
     (try wp_auto)
     wp_apply wp_osOpenCreate d b R V (1 : Qp).half (1 : Qp).half t _ j hb hd hn
-      (Qp.half_add_half 1) CoPset.subseteq_top $$ Hinv Hh Hk as %fd %e Hres
+      (Qp.half_add_half 1) CoPset.subseteq_top $$ Hinv Hh Hk as %fd %e %hr Hres
     icases Hres with (⟨%he, %i, Hh, Hm, Hfd⟩ | ⟨%he, Hst⟩)
     · obtain ⟨rfl, hfd0⟩ := he
       rw [decide_eq_true (show (0 : w64) = W64 0 from rfl)]
@@ -196,7 +197,9 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
         icases Hst with (Hh | ⟨%i, Hh, Hm⟩)
         · iapply IH $$ %none Hh HΦ
         · iapply IH $$ %(some i) [Hh Hm] HΦ
-          simp only; isplitl [Hh] <;> iassumption
+          simp only; isplitr
+          · ipureintro; exact hr
+          isplitl [Hh] <;> iassumption
       · rw [decide_eq_false he4]
         wp_auto
         unfold os.model.pathError
@@ -207,7 +210,7 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
         ipureintro; exact ⟨(fun h => by cases h), rfl⟩
   | some i =>
     unfold crSt
-    icases Hh with ⟨Hh, Hm⟩
+    icases Hh with ⟨%hr, Hh, Hm⟩
     have hl := lookupH_create (i := i) V.2.length hr hd hb hn
     ihave Hh := (osTree_halves 1 R _).1 $$ Hh
     wp_apply wp_osCallBegin R _ (1 : Qp).half (1 : Qp).half CoPset.subseteq_top $$ Hinv Hh
@@ -254,7 +257,9 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ %(some i) [Hh Hm] HΦ
-        simp only; isplitl [Hh] <;> iassumption
+        simp only; isplitr
+        · ipureintro; exact hr
+        isplitl [Hh] <;> iassumption
       · rw [decide_eq_false he4]
         wp_auto
         unfold os.model.pathError

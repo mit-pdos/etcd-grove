@@ -8,9 +8,7 @@ roots `R`).
 * `os.OpenFile.spec`: the path names a file, of inode `i`; with a fraction of the history, which
   comes back unchanged. On success a fresh `*os.File` on a fresh fd (non-negative, which `Truncate`
   needs), readable and writable, on `i`; on failure `nil` and a non-nil error.
-* `os.OpenFile.specCreate`: the path is `d/b`, nothing there, `d` a directory `j`, the roots
-  well-formed (`RootsOk`: a retry after a create that failed with its effect must find the file at
-  `d/b`, and `osTree` does not give it); with the whole
+* `os.OpenFile.specCreate`: the path is `d/b`, nothing there, `d` a directory `j`; with the whole
   history (the open may create). On success a new file of a fresh inode `i`, named `b` in `j` (its
   `create` logged), with its `OsMeta` (`newMeta`: empty, zeros past its size) and the fd; on failure
   `nil` and a non-nil error, and the file may have been created.
@@ -52,7 +50,7 @@ abbrev os.OpenFile.spec : Prop :=
 /-- See the file header. -/
 abbrev os.OpenFile.specCreate : Prop :=
   ∀ (d b : GoString) (perm : w32) (R : Roots) (V : Hist) (j : Ino),
-  NameOk b → RootsOk R → lookupH R V d = some (.dir j) → lookupH R V (child d b) = none →
+  NameOk b → lookupH R V d = some (.dir j) → lookupH R V (child d b) = none →
   {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own 1) R V }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);

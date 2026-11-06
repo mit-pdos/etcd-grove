@@ -599,12 +599,12 @@ theorem create_facts {st : OsState} {Γb Γm Γf Γt} {V : Hist} {Γc : GMap Nat
 /-- **`open(2)` with `O_RDWR | O_CREAT` of a new name `b` of the directory `d`** (of inode `j`), a call
 `k` whose fraction with the caller's is the whole history: on success a new file of a fresh inode
 `i`, its `create` logged, its `OsMeta` whole and an fd on it; on failure the file may have been
-created. -/
+created. Either way the roots are well formed (`RootsOk`, which a retry needs to find the file). -/
 theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : Nat) (j : Ino)
     (hb : NameOk b) (hd : lookupH R V d = some (.dir j)) (hn : lookupH R V (child d b) = none)
     (hq : q1 + q = 1) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 q -∗
-      (∀ fd : w64, ∀ e : w64,
+      (∀ fd : w64, ∀ e : w64, ⌜RootsOk R⌝ -∗
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i, osTree (L := L) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
             osMeta (L := L) i (DFrac.own 1) newMeta ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osTree (L := L) (DFrac.own 1) R V ∨ ∃ i,
@@ -735,7 +735,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     isplitl [Hn]
     · iexact Hn
     iapply wp_value'
-    iapply HΦ $$ %fd %0
+    iapply HΦ $$ %fd %0 %hw.roots
     ileft
     isplitr
     · ipureintro; exact ⟨rfl, hfd0⟩
@@ -760,7 +760,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     isplitl [Hn]
     · iexact Hn
     iapply wp_value'
-    iapply HΦ $$ %(-1) %e
+    iapply HΦ $$ %(-1) %e %hw.roots
     iright
     isplitr
     · ipureintro; exact ⟨he, rfl⟩
@@ -785,7 +785,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     isplitl [Hn]
     · iexact Hn
     iapply wp_value'
-    iapply HΦ $$ %(-1) %e
+    iapply HΦ $$ %(-1) %e %hw.roots
     iright
     isplitr
     · ipureintro; exact ⟨he, rfl⟩
