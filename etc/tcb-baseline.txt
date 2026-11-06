@@ -278,6 +278,8 @@ axiom addrsUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
+axiom apply.memberEnc_id_learner
+axiom apply.memberKey_inj
 axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
@@ -570,6 +572,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
+axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
