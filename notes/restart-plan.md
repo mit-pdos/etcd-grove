@@ -2917,3 +2917,33 @@ statement. Lean was frozen, so nothing landed.
   conjunct plus 3-4 d for the proof (lean's 420 lines and the merged `applyEntries.specBatchR`);
   the rest as in "Revised R2d'a" above. **R2d'a in all: 4.5-6.5 weeks (est.), unchanged.** The
   stops add no new work item; they move A7's conjunct earlier.
+
+##### R2d'a Draft, pass 2 (2026-11-06, after 82's decisions: A7's conjunct now, A3 with the user)
+
+- **A7's conjunct, in (DRAFT hub edit, 82's go).** `isServerApplyAll` (`InvApplyAll.lean`) and
+  `srvApplyAllBuilt` (`InvStart.lean`): `(∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗
+  isRNMsgSnapC γm msc) ∗` → `(∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□
+  γm.id ∗ isRNMsgSnapC γm msc) ∗` (`r2d-window-full`'s text). `NewServer` produces it from its
+  `memberID` field (`γrn.id = id`). `start` copies the conjunct whole. `ApplyAllSnap`,
+  `ApplyAllSnapOn` and `EtcdServer__applyAll` destructure one more item. No first-start statement,
+  closed theorem or caller premise changed. The 23 modules that mention the two predicates were
+  rebuilt; the full build is the check of the closed theorems.
+- **A5, proved** (`ApplyAllR.lean`). `applyEntries.specBatchRAt P` is the mode-generic window form
+  of `specBatch`. `specBatchR` is the form at `· ≠ .any`, and `applyEntries.wp_proofBatchR` proves
+  it from `specBatchROff` (proved, `ApplyEntriesR.lean`) and **`specBatchROn` (HYPOTHESIZED; it
+  waits for A3's on copy)**. `applyAll.wp_proofBatchR : applyAll.specBatchR` takes lean's
+  hypotheses, but `applyEntries.specBatchR` in place of `specBatch`. The proof is lean's
+  `wp_proofBatch` with these changes: the ghost index `g'` comes from the batch's post;
+  `Trigger(ai')` gets `appliedAtLeast ai'` from `g' ≥ ai'` (`monoNatLbOwn_le`); and the merged
+  send uses `winNoMergedSendR` with the new conjunct. Either the window has closed after the
+  batch, or the message (this member's `MsgSnap`) is not at the batch's term `rt`. In the branch
+  where `Term = rt`, the window is closed: `ghostOf_past`/`srvRestR_past` turn every row into
+  lean's, and `g' = ai'`. No other DRAFT statement change.
+- **A6's normal-batch law, restart form** (`ViewR.lean`). `rnCfgAtR_normal`: a batch of normal
+  entries keeps `rnCfgAtR γ rp L` → `rnCfgAtR γ rp (L ++ ce)`, given that Go's log through the
+  batch and `A₀` are prefix-comparable (`ghostOf_batch`: the ghost log grows by a suffix of the
+  batch). `rnCfgAtR_back_false` is `rnCfgAt_back_false`'s analog (`ccIn ce = false`).
+- `#print axioms` (`applyAll.wp_proofBatchR`, `applyEntries.wp_proofBatchR`, `rnCfgAtR_normal`,
+  `rnCfgAtR_back_false`, `ghostOf_batch`): no `sorryAx`, and no axiom outside lean's
+  `applyAll.wp_proofBatch`'s.
+- Left: A3 (with the user), then `specBatchROn`'s and `apply.specROn`'s proofs (2-3 d after A3).
