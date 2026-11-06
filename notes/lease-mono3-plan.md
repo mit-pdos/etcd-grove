@@ -378,3 +378,75 @@ pass 2(a) is editing in the worktree, did not build when this pass ended. Run
 `spec-thread` 2, as leasegrant's `spec-receipt 2`/`spec-thread 1`, which the baseline lists): the
 baseline needs the package's lines at landing (`etc/bounds-baseline.txt`, not changed here).
 `etc/goose.py --check --project leasecatchup` and `etc/gen-init.py --check` pass.
+
+## Draft pass 2(a) (2026-11-06)
+
+`cluster3`'s two proofs at the lease mode. No `sorry` is left in them, and no statement changed.
+
+- **The Go change (R1, accepted by etcd-grove-82 on 2026-11-06).** `cluster3.StartMember` runs
+  `go holdToken()` just before `go gs.Serve(cl)`. `holdToken` sleeps forever and touches no lock;
+  it and its doc comment are leasegrant's and leasekv's. The translation was regenerated
+  (`etc/goose.py --project cluster3`: `Code/` only, `GeneratedProof/` unchanged), `etc/goose.py
+  --check` passes, and `etc/gen-init.py --check` reports nothing to regenerate. The reasoning is in
+  `notes/decisions.md`, "A thread token for a cluster member's lease reads".
+- **`holdToken`**: `Spec/.../cluster3/holdToken.lean` and `Proof/.../cluster3/holdToken.lean`
+  (leasegrant's spec and proof). It is linked in `etc/link-lean-first-cluster3.txt` as a callee of
+  `StartMember`, and `Link.lean` is regenerated. `StartMember.wp_proof` takes `wp_holdToken` as a
+  last hypothesis. Its spec is unchanged.
+- **`StartMember.wp_proof`** is one proof for every mode. The mode's KV names come from
+  `memberBoot`'s `lease.runCfg` (`lease.runCfg_lm`). The proof runs `NewMember` and `Start` at
+  `lm`, names `memberUp`'s `srvLeaseRd` (`#HLR`, previously `-`), and forks `holdToken` with
+  `wp_fork_tok_self`. It then splits on `lm`:
+  - **`none`**: the token is dropped. The rest is the old ghost step (`memberServed_none`).
+  - **`mono` and `revocable`**: `v3rpc.Server`'s and `Listen`'s results are packed straight into
+    `etcdstart.grpcUp`, with `grpcLeaseUp` from `Server`'s lease registrations. Then comes
+    `etcdstart.kv_lease_served_watch` (`Hms.watch_impl`, `HlP`, the token in the gRPC slot). Its
+    post gives `memberServed … lm` with `srvGoRes` included, through the private
+    `servedRegs_of_lease`.
+  - **Two differences from the plan.** The plan said to pack the results into `grpcUpM E.authOn`
+    and then apply `grpcUpM_false`, as `etcdstart.Serve` does. The direct `grpcUp` is shorter:
+    `StartMember`'s configuration is already `grpcCfgOk_of_started_w`'s, at `srvKVAns`.
+    `.revocable` needs no `hrev`: `kv_lease_served_watch` covers every mode, and the scope premise
+    is only `StartCluster`'s.
+- **`StartCluster.wp_proof`** is one proof for `none` and `mono`; `revocable` is excluded by `Hrev`.
+  It calls `alloc3 … lm Hrun Hrev`, then `StartMember` at `lm` with `HlP`. Each member's
+  registrations are split off `memberServed` (`servedRegs_sep`) and put back under `memberAt`
+  (`servedRegs_join`), both private lemmas proved by cases on the mode. `clusterAt`'s `match` is
+  resolved at the end by `cases lm`:
+  - `none` keeps `alloc3`'s `etcdKV`;
+  - `mono` drops `alloc3`'s `if` (`True`).
+- **R2c's merge.** In `StartMember`, `memberUp`'s `icases` now ends `…, HWR, #HLR⟩`. R2c's
+  `srvStopRight` follows `srvLeaseRd`, so merging R2c must change it to `…, HWR, #HLR, -⟩`. Until
+  then, `#HLR` fails to build: it would bind a non-persistent `srvLeaseRd ∗ ∃ dd, srvStopRight …`.
+  `StartCluster` does not destructure `memberUp`.
+- **Frozen or exported statements changed:** none. `StartMember.spec` and `StartCluster.spec` keep
+  pass 1's text. The new `holdToken.spec` is `cluster3`'s, which has no API list. The closed
+  theorems are unchanged: `git diff lean` of partition's, k8s compactor's and putget3's
+  `Results.lean` is empty, and no `interface/` file of theirs exists.
+- **Trust base.** `etc/tcb-report.py --check` matches `etc/tcb-baseline.txt` (785 axioms, 3
+  `sorry`s): no new axiom, trusted model or `sorry`. putget3's collection matches its baseline (611
+  axioms, no `sorry`). No root reaches a `sorry -- DRAFT lease-mono3` any more.
+- **Collection growth, for etcd-grove-82 (baselines not updated).** linkv3p's and k8scompactor's
+  collections each gain two axioms that are already in the repository's trust base:
+  `EtcdServer.leaseTimeToLive.wp_proof` and `sort.Sort.wp_anyLess`. Both are leasegrant's lease-read
+  axioms, reached through `kv_lease_served_watch`.
+  - **Cause.** `StartMember.spec` quantifies over `lm`. Its one linked proof therefore rests on the
+    lease branch's axioms, even for callers that use only `.none`. Pass 1's DRAFT `sorry`s hid this.
+  - **Options.**
+    - Accept the growth (`--check --update`).
+    - Split the frozen `StartMember.spec`/`StartCluster.spec` per mode, a frozen change. The
+      `.none` instance would then link without the lease axioms.
+  - **Left open:** the choice. leasecatchup's collection still has no baseline (pass 2(b)'s);
+    `--check --update` it now that cluster3 builds.
+- **Go checks (82's condition on R1; go1.27.3, `TMPDIR=/shared/tmp`, `-count=1`).** `go vet` is clean
+  for cluster3, partition, putget3 and `k8s/compactor` (its own module, which replaces the examples
+  by `../..`).
+  - **Pass**: k8s compactor (`TestCompactor`, `TestHistory`, `TestMissingKey`, `TestShared`,
+    `TestMainPartition`, `TestMemberIDs`); putget3 (`TestPutGet3`, `TestMemberIDs`); partition's
+    `TestMemberIDs`, `TestMainRun`, `TestClientCuts`, `TestWriteOnce`, `TestWatchFailover` and
+    `TestMainWatch`.
+  - **Fails, and not because of R1**: partition's `TestFailover`. It hangs in its control loop,
+    which waits for all three clients to be served after the last stall, until the test times out
+    (554 s, then 571 s alone). It fails the same way at `lean` `6691b46860`, which has no
+    `holdToken` (575 s), so R1 did not cause it. Its cause is not investigated: it may be machine
+    load or a regression on `lean`. It needs a look before landing, under the gates.

@@ -56,6 +56,9 @@ attribute [irreducible] Step.ty
 @[reducible] noncomputable def ClientDrop [GooseExts] [GoGlobalContext] : val :=
   #(4 : Int)
 
+noncomputable def holdToken [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/cluster3.holdToken"
+
 noncomputable def StartMember [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/cluster3.StartMember"
 
@@ -77,12 +80,31 @@ noncomputable def StartCluster [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/cluster3.NewClient"
 
+/-- holdToken sleeps forever. StartMember runs it on a goroutine of its own, which touches no lock:
+    the proof hands that goroutine's thread token to the gRPC server's one slot, for the goroutine
+    grpc runs a call on, whose lease reads take the lessor's and the leases' reader slots through it
+    (notes/lease-ex-plan.md, "The run's thread token"; examples/etcd/leasegrant's, for a cluster
+    that grants leases, notes/lease-mono3-plan.md). In a cluster that grants none it is idle.
+
+    go: cluster3.go:92:6 -/
+noncomputable def holdToken.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (Val #(W64 3600000000000))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
+  (Lam BAnon
+  (Val #()))))
+  (Val #())))
+
 /-- StartMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
     URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
     examples' shared NewMember, with the cluster's token and snapshot settings), the server started,
-    and its gRPC server served on a listener at client.
+    and its gRPC server served on a listener at client, with a holdToken goroutine beside it.
 
-    go: cluster3.go:91:6 -/
+    go: cluster3.go:102:6 -/
 noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -146,6 +168,8 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (App (Val (GoInstruction (FuncResolve holdToken []))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "cl"))
   (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -162,6 +186,9 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Fork
   (App (Var "$go") (Var "$a0")))))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #()))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -205,7 +232,7 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
 /-- StartBridge starts a bridge at addr to the member's client address client: the listener, then
     the bridge's accept loop (bridge.New).
 
-    go: cluster3.go:117:6 -/
+    go: cluster3.go:129:6 -/
 noncomputable def StartBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "client"
@@ -261,7 +288,7 @@ noncomputable def StartBridge.impl [GooseExts] [GoGlobalContext] : val :=
     b in both directions (etcd's CutPeer/MendPeer, as its integration tests'
     InjectPartition/RecoverPartition).
 
-    go: cluster3.go:128:6 -/
+    go: cluster3.go:140:6 -/
 noncomputable def PeerStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "kind"
@@ -312,7 +339,7 @@ noncomputable def PeerStep.impl [GooseExts] [GoGlobalContext] : val :=
     blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
     unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
 
-    go: cluster3.go:147:6 -/
+    go: cluster3.go:159:6 -/
 noncomputable def ClientStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "brs"
   (Lam "holed"
@@ -359,7 +386,7 @@ noncomputable def ClientStep.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Partitioner applies the schedule sched to the members srvs and their bridges brs: each step,
     after its delay.
 
-    go: cluster3.go:167:6 -/
+    go: cluster3.go:179:6 -/
 noncomputable def Partitioner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "brs"
@@ -411,7 +438,7 @@ noncomputable def Partitioner.impl [GooseExts] [GoGlobalContext] : val :=
     each member's client address. It returns the members and the bridges, and false if a step
     failed (the specs allow every step to fail).
 
-    go: cluster3.go:182:6 -/
+    go: cluster3.go:194:6 -/
 noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "lg"
@@ -705,7 +732,7 @@ noncomputable def StartCluster.impl [GooseExts] [GoGlobalContext] : val :=
     at most once, these members sending no refusal, notes/read-retry-plan.md; keepalive closes a
     connection that stops answering, notes/keepalive-plan.md).
 
-    go: cluster3.go:226:6 -/
+    go: cluster3.go:238:6 -/
 noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "lg"
@@ -949,6 +976,7 @@ attribute [instance] Step.TypeAssumptions.type_repr
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Config_instance : Config.TypeAssumptions
   Step_instance : Step.TypeAssumptions
+  holdToken_unfold : FuncUnfold holdToken [] holdToken.impl
   StartMember_unfold : FuncUnfold StartMember [] StartMember.impl
   StartBridge_unfold : FuncUnfold StartBridge [] StartBridge.impl
   PeerStep_unfold : FuncUnfold PeerStep [] PeerStep.impl
@@ -970,6 +998,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 
 attribute [instance] Assumptions.Config_instance
   Assumptions.Step_instance
+  Assumptions.holdToken_unfold
   Assumptions.StartMember_unfold
   Assumptions.StartBridge_unfold
   Assumptions.PeerStep_unfold

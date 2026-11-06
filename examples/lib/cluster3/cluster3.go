@@ -84,10 +84,21 @@ type Step struct {
 	B     int
 }
 
+// holdToken sleeps forever. StartMember runs it on a goroutine of its own, which touches no lock:
+// the proof hands that goroutine's thread token to the gRPC server's one slot, for the goroutine
+// grpc runs a call on, whose lease reads take the lessor's and the leases' reader slots through it
+// (notes/lease-ex-plan.md, "The run's thread token"; examples/etcd/leasegrant's, for a cluster
+// that grants leases, notes/lease-mono3-plan.md). In a cluster that grants none it is idle.
+func holdToken() {
+	for {
+		time.Sleep(time.Hour)
+	}
+}
+
 // StartMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
 // URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
 // examples' shared NewMember, with the cluster's token and snapshot settings), the server started,
-// and its gRPC server served on a listener at client.
+// and its gRPC server served on a listener at client, with a holdToken goroutine beside it.
 func StartMember(name string, peer types.URLs, peerAddr string, client string,
 	cluster types.URLsMap, token string, snapCount uint64, catchUp uint64,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
@@ -108,6 +119,7 @@ func StartMember(name string, peer types.URLs, peerAddr string, client string,
 	gs := v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 		MinTime: 5 * time.Second,
 	}))
+	go holdToken()
 	go gs.Serve(cl)
 	return s, nil
 }

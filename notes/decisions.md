@@ -32309,3 +32309,31 @@ with the axiom skill (Q7c-2).
 description satisfies the conjunct that mentions it, so each statement means what it meant
 before. The user's Q7c-2 condition, every restated statement attacked before 7c's Freeze, applies
 to 7c-1b, where the descriptions first make the statements say something new. See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
+
+## A thread token for a cluster member's lease reads: `go holdToken()` in `cluster3.StartMember` (2026-11-06 · lease-mono3's pass 2(a), R1, accepted by etcd-grove-82 · branch `lease-mm`)
+
+**The need.** In a mode that grants leases, `cluster3.StartMember` serves the lease reads
+(`etcdstart.kv_lease_served_watch`). Their one gRPC slot takes a `threadTok`
+(`raftLeaseRead_server`'s `E.RD ∗ threadTok`; `notes/lease-mono3-plan.md`, Draft pass 1, finding 1).
+`StartMember`'s Go forked only `go gs.Serve(cl)`, whose spec returns `True`. Its one token goes back
+to `StartCluster` through `srvGoRes`, for the next member. So the frozen `StartMember.spec` had no
+token for the slot.
+
+**Decision.** `StartMember` runs `go holdToken()` before `go gs.Serve(cl)` (`examples/lib/cluster3/
+cluster3.go`). `holdToken` sleeps forever and touches no lock. The proof keeps the token
+`wp_fork_tok_self` gives and puts it in the gRPC slot. In the mode `none` it is dropped.
+`holdToken.spec`/`wp_proof` are leasegrant's (`Spec`/`Proof/.../cluster3/holdToken.lean`).
+
+**The precedent** is "The run's thread token" (the closed lease example, above): `leasekv`'s and
+`leasegrant`'s `Main` fork the same `holdToken` for the same slot. It changes no statement and no
+trusted model. Each member has one more idle goroutine, also in the clusters that grant no lease
+(the partition example and the k8s compactor). Their Go tests, and putget3's (which uses `alloc3`,
+not `cluster3`), pass unchanged (R1's condition, 82's).
+
+**Rejected.**
+- A `threadTok` premise in `StartMember.spec`/`StartCluster.spec`, gated on `lm ≠ .none`, with the
+  `holdToken`s forked by the example's `Main`. This is a frozen change (hub step 7's E1, E2) and
+  adds a Go change to the example anyway.
+- Dropping `client.etcdLeaseReadAt` from `memberServed` (leasecatchup does not read TTLs), with a
+  serving lemma whose slot needs no token when the TTL read is not registered. This is an exported
+  change to `cluster3`'s and etcdstart's API, and the TTL read would come back with step 2.
