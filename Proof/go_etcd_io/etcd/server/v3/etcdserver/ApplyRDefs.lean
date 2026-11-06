@@ -118,6 +118,35 @@ theorem srvRestRp_model (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     srvRestRp E γr A (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) = srvRest E γr A := by
   unfold srvRestRp srvRest; rfl
 
+open Iris.ProofMode in
+/-- **The replay arm's `E.RO`** (R2d'a A4, DRAFT): the rest resource at an image whose members are
+the arm's image's, given back unchanged (what a replayed `AddNode` takes, `applyConfChange.specRep`). -/
+theorem srvRestRp_ro (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    srvRestRp (GF := GF) E γr A r ⊢ ∃ rs : apply.RestM, E.RO rs ∗ ⌜rs.mem = r.mem⌝ ∗
+      (E.RO rs -∗ srvRestRp E γr A r) := by
+  unfold srvRestRp
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro H
+    iexists r
+    iframe H
+    isplitr
+    · ipureintro; rfl
+    iintro H; iexact H
+  · simp only [↓reduceIte]
+    iintro ⟨H, HU⟩
+    ihave ⟨%f, %Hf, H1, H2, H3, H4⟩ := (srvRestAt_open E _ _).1 $$ H
+    iexists apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) r
+    iframe H1
+    isplitr
+    · ipureintro; exact apply.restLeasesWith_mem _ _ _
+    iintro H1
+    iframe HU
+    iapply (srvRestAt_open E _ _).2
+    iexists f
+    iframe H1 H2 H3 H4
+    ipureintro; exact Hf
+
 /-- One more replayed entry (Go's log one longer, past the start index). -/
 theorem restReplay_snoc (γr : ReadNames) (rp : RestartPt) (G : List EntryModel) (m : EntryModel)
     (hb : rp.b ≤ G.length) :
@@ -224,7 +253,10 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
         srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
         srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
         membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γr.raft cl tl lid prs ∗
-        ⌜cm.nodeId ≠ lid → cm.nodeId ∈ prs⌝ ∗
+        ⌜(cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
+          ∀ mem : GMap w64 apply.MemberM, (∀ k, (mem !! k).isSome =
+              ((restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem !! k).isSome) →
+            GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm) mem) ≤ 2 ^ 62⌝ ∗
         (ccMembRes γr.raft cl tl lid prs -∗ srvApRes s γr A) := by
   unfold srvApRes
   iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
@@ -235,8 +267,14 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
   · ipureintro; exact H7
   isplitr
   · ipureintro
-    intro hne
-    exact Hp.1 _ hok.2.1 hne
+    refine ⟨fun hne => Hp.1 _ hok.2.1 hne, fun mem hkeys => ?_⟩
+    calc GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm) mem)
+        ≤ GMap.size γr.raft.raft.cfg := size_le_of_keys _ _ (by
+          intro k hk
+          by_cases hkk : cm.nodeId = k
+          · subst hkk; exact hok.2.1
+          · rw [GMap.lookup_insert_ne _ _ hkk, hkeys k] at hk; exact Hp.2.1 k hk)
+      _ ≤ 2 ^ 62 := by have := Hp.2.2.1; omega
   iintro Hmr
   iexists bh, ix, lgh, tl, lid, cl, lgc, cid, prs
   iframe H1 H2 H3 H4 H5 H6 H8 Hmr Hd
@@ -280,18 +318,26 @@ abbrev EtcdServer.applyEntryNormal.specRepOff : Prop :=
         ⌜entryStep m false x x' out⌝) ∗
       srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st }}
 
-/-- **`s.applyConfChange(cc, ep, false)`, a replayed `AddNode`** (R2d' A5, DRAFT, HYPOTHESIZED: the
-probe takes it as an argument). At the pin `673da07c8` (`server.go:2037-2083`): the validation passes
+/-- **`s.applyConfChange(cc, ep, false)`, a replayed `AddNode`** (R2d' A4, DRAFT; proved,
+`ApplyConfChangeR.lean`). At the pin `673da07c8` (`server.go:2037-2083`): the validation passes
 without reading (`membership/cluster.go:306-309`), raft is not called and `ep.confState` is kept
 (`server.go:2053-2059`), `beHooks.SetConfState(ep.confState)`, the context unmarshalled and checked
 against the node (`ccApplyOkM`: it unmarshals to the node's member), `AddMember(…, false)` only logs
-(`membership/cluster.go:416-424`), and `AddPeer` of the node unless it is the local member (a known
-peer: `AddPeer_known`). It returns `removed = false`; it writes no backend bucket and no member in
-memory (`ccRest false` is the identity). -/
+(`membership/cluster.go:402-424`: under the cluster's lock, so it takes the in-memory members
+`clusterMem`, as the frozen spec's `E.RO rs` holds them, with their size bound), and `AddPeer` of the
+node unless it is the local member (a known peer: `AddPeer_known`). It returns `removed = false`;
+it writes no backend bucket and no member in memory (`ccRest false` is the identity: `E.RO rs` back).
+(DRAFT fix, 2026-11-06: the rest resource `E.RO rs` at the frozen spec's shape `HRO`, and the size
+bound, added: `ValidateConfigurationChange` and `AddMember` read the cluster's `be` field and take
+its members, which only `E.RO` holds.) -/
 abbrev EtcdServer.applyConfChange.specRep : Prop :=
-  ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (γs : ServerRaftNames) (cl lg bh : Loc)
-    (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc) (cid : w64),
-  ccApplyOkM γs m → (m.nodeId ≠ lid → m.nodeId ∈ prs) →
+  ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (E : apply.AEnv GF) (γs : ServerRaftNames)
+    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (be al st lp : Loc)
+    (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
+    (cid : w64),
+  ccApplyOkM γs m → E.RO = srvRestOwnH E.authMode γB cl (srvObjsOn al st lp cl be) →
+  (m.nodeId ≠ lid → m.nodeId ∈ prs) →
+  GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
@@ -299,13 +345,13 @@ abbrev EtcdServer.applyConfChange.specRep : Prop :=
       ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
       srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-      ccMembRes γs cl tl lid prs }}
+      ccMembRes γs cl tl lid prs ∗ E.RO rs }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyConfChange"))
       (Val #cc)) (Val #ep)) (Val #false))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
       ⌜removed = false⌝ ∗ srvLgReader s ∗
       (∃ m' : ConfChangeM, ownConfChange cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝) ∗
-      epConfState ep cs ∗ ccMembRes γs cl tl lid prs }}
+      epConfState ep cs ∗ ccMembRes γs cl tl lid prs ∗ E.RO rs }}
 
 end spec
 

@@ -977,15 +977,22 @@ theorem EtcdServer.apply.wp_proofROff
           icases srvApRes_ccRep s γr rp.A₀ cm hokc $$ HAR with
             ⟨%bh, %ix, %lgh, %tl, %lid, %cl', %lgc, %cid, %prs, #Hbh, #Hbhi, #Htr, #Hmid, #Hcl', #Hclg,
               %Hlgcnn, #Hcid, Hmr, %Hpeer, HARk⟩
+          obtain ⟨Hpeer, Hszk⟩ := Hpeer
           ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
           subst Hcleq
-          wp_apply (hACCR s cc_ptr ep cm csl γr.raft sv.cluster sv.lg bh ix lgh tl lid prs lgc cid
-              hokc Hpeer) $$ [Hcc Hcs Hlr Hmr]
-            as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr⟩
-          · iframe Hlg Hlr Hcl Hclg Hcid Hcc Hcs Hbh Hbhi Htr Hmid Hmr
+          -- (A4's DRAFT fix) the rest resource, at the replayed image's members
+          icases srvRestRp_ro E γr rp.A₀ (restReplay γr rp (A ++ ms.take (sint.nat j))) $$ HRS with
+            ⟨%rsR, HRO, %HrsR, HRSk⟩
+          wp_apply (hACCR s cc_ptr ep cm csl E γr.raft γB sv.cluster rsR dB.be alB stB lpB
+              sv.lg bh ix lgh tl lid prs lgc cid hokc HROeq Hpeer
+              (Hszk rsR.mem (fun k => by rw [HrsR]; exact restReplay_memKeys γr rp _ k)))
+              $$ [Hcc Hcs Hlr Hmr HRO]
+            as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr, HRO⟩
+          · iframe Hlg Hlr Hcl Hclg Hcid Hcc Hcs Hbh Hbhi Htr Hmid Hmr HRO
             isplitr
             · ipureintro; exact Hlgnn
             ipureintro; exact Hlgcnn
+          ihave HRS := HRSk $$ HRO
           ihave HAR := HARk $$ Hmr
           (try wp_auto)
           wp_apply hGI $$ [He] as -
