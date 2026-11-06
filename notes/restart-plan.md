@@ -2767,3 +2767,53 @@ axiom; steps 3-5 not reached in the session (no gap found; what is left is liste
   (`applyResR_start` over a drafted `Hsnap` restart form), step 5 (the view's round trip over a
   ghost-indexed `rnCfgAt`, finding 1); and the auth-on copy of `apply`'s proof (the same edit).
   **Est.: 4-6 d (est.)** for steps 3-5.
+- **Steps 3-5 (done the same day, the second session; sorry-free, no new axiom, `applyAll.specBatchR`
+  the only hypothesis).** This supersedes "Not reached" above, except for the auth-on copy of
+  `apply`'s proof, which is still not done.
+  - **Step 3** (`RunR.lean`). `applyResR K C rp A` is `applyResC` with these changes: the ghost rows
+    at `ghostOf rp A` (`g`, `kvRunM`, `epCsAt`, `srvApRes`); `srvRestR`; `srvRLogLb A₀`; and the
+    pure rows `uint.Z g = ai₀ + |ghostOf rp A|`, `ciJ`/`≤` at `g`, `rp.b ≤ |A|`, `A₀`'s types,
+    `ai₀ + |A₀| ≤ ciEff` and `ai₀ + |A₀| + 1 < 2^64`. `applyAll.specBatchR` is the hypothesis:
+    `specBatch` over the ghost, plus `winNoMergedSendR` (a DRAFT copy of `r2d-prime`'s
+    `winNoMergedSend`, which is not on `lean`). `run_job_bodyR` is proved for any batch: inside,
+    straddling or past the window. `applyResR_past` turns `applyResR` back into `applyResC` once
+    `|A₀| ≤ |A|`, and `applyResR_first` turns `applyResC` into `applyResR` at `⟨0, []⟩`.
+    Findings:
+    - (a) The row `ai₀ + |A₀| + 1 < 2^64` is new. `dvOk` at `g + 1` needs it inside the window,
+      where `srvIdxOk` bounds only Go's log. It is a restart-point fact: raft's next index after
+      `A₀` fits.
+    - (b) `applyAll`'s post keeps Go's `max ciEff ai'` form. `ciJ` steps at the ghost because
+      `ai₀ + |A₀| ≤ ciEff` gives `max ciEff ai' = max ciEff g'`.
+    - (c) `run_job_bodyR` keeps `run_job_body`'s `ai₀ = 0` and `γr.raft.pre = []`. Go's log `A`
+      includes the handed prefix `P`, so the ghost log counts from index 1.
+    - (d) A `match dv` written in a new declaration gets its own matcher, which `iframe` does not
+      unify with the spec's. It is converted with `iExactEq H; cases dv <;> rfl`.
+  - **Step 4** (`StartR.lean`). `rnSnapOnceR` is `Hsnap`'s restart form. It is `rnSnapOnce` at a
+    given index and term, and its continuation gets `epCsAt γ A₀ cs` and `|==> memSnapLb γs 0` in
+    place of `memSnapNone`. `rnSnapOnceR_first` shows today's `Hsnap` gives it at `A₀ = []`.
+    `srvRestartAtR` is `applyStartC`'s restart form: the ghost index `g₀ = ciEff = ai₀ + |A₀|`, the
+    rest buckets `srvRest A₀`, and Go's rows at `ai`. `srvRestartAtR_first` derives it from
+    `applyStartC` given `c₀ = ai₀`. `applyResR_start` is proved: from these and `ep`'s fields it
+    gives `applyResR` at `P`, with `rp = ⟨|P|, A₀⟩` and `P <+: A₀`. Findings:
+    - (e) The start needs only `memSnapLb γs 0` of the storage. The restarted storage's token
+      (B1's `memStorRestarted`) is a matter for the snapshot jobs, not for the start.
+    - (f) `srvRestR` at `P` is `srvRest A₀` (`srvRestR_start`). `restReplay` replays nothing at
+      `G = P`.
+    - (g) The conf state's voters at `A₀` are the one new thing `Hsnap` must give.
+  - **Step 5** (`ViewR.lean`). `rnCfgAtR γ rp L := srvCfgView γ.srv γ.nl [] (ghostOf rp (γ.pre ++
+    L))`, which is `rnCfgAt` at a first start for any `pre`. `rnApGiveR`/`rnApRR` are the
+    restart forms of `rnApGive`/`rnApR`. The bridges `rnApGiveR_dv`/`rnApRR_dv` replace
+    `γ.pre = γs.pre` with the apply side's `pre = []`. `rnCfgR_replay` is the round trip: a batch
+    inside the window leaves the ghost log unchanged (`ghostOf_replay`), so the view the apply
+    thread got is the view it hands back. `rnCfgAtR_back_true` follows. Finding (h): A6's hub edit
+    still needs the raft loop's names to carry `rp`. It also needs `rnCfgAt_normal`'s restart form
+    (normal batches across the window), which needs the handed log to agree with `A₀` on the
+    overlap, as `srvRLogLb` gives.
+  - Builds: `RunR` about 7 s, `StartR` and `ViewR` about 2 s each. No gap was found and nothing
+    was frozen.
+  - **Revised R2d'a (est.):**
+    - A6: 2-4 d. Its laws are drafted; the hub edit and the normal-batch law remain.
+    - A9: 2-3 d. `Hsnap`'s form is drafted.
+    - A10: 1.5-2.5 wk. The job body and the start's glue are done; still to do are the run loop's
+      wiring, the snapshot jobs in a window, and the stop.
+    - R2d'a in all: **4.5-6.5 weeks (est.)**.
