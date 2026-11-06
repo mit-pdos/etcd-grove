@@ -17,8 +17,8 @@ the ghost log `ghostOf rp G` (`RestReplay.lean`) while Go's rows walk `G`.
   `srvRest` (a first start's: `srvRestR_first`).
 * `kvBatchR`: `kvBatch` over Go's log, with the backend's log `A₀` committed and the batch's `v3`
   the model's past the window.
-* the hypothesized per-entry specs (theorem arguments of the probe, not proved):
-  `applyEntryNormal.specRepOff` and `applyConfChange.specRep`.
+* the replayed conf change's spec, `applyConfChange.specRep` (proved, `ApplyConfChangeR.lean`); a
+  replayed normal entry is `applyEntryNormal.spec`'s `v3 = false` case (Q23 (a), 2026-11-06).
 -/
 module
 
@@ -305,66 +305,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **`s.applyEntryNormal(e, false)`, a replay** (R2d' A5, DRAFT, HYPOTHESIZED: the probe takes it
-as an argument; with auth off). At the pin `673da07c8` (`server.go:1975-2005`): no deferred
-`SetConsistentIndex` (`shouldApplyV3` false); an empty entry notifies `firstCommitInTerm` and may
-promote the lessor; otherwise `apply.Apply(…, false)` dispatches v2-only (`apply/uber_applier.go:93-
-127`) and the function returns before `Trigger`. So the KV and the applied index are untouched
-(`entryStep m false`, which keeps the state, `apply.apply_no_v3_no_write`), and the rest buckets'
-image goes to `restEntryV2 m r` (the attribute write in memory); the attribute's member is a voter
-(`entryWaitOk`'s `attrEntryOk`), which the image's members include (Go's `UpdateAttributes` panics on
-an unknown, unremoved member, `membership/cluster.go:467-496`). The entry at or below the effective
-consistent index; the store's write token spent (`apply.Apply`'s). (R2d'a A3, 2026-11-06, DRAFT
-fix: the backend's log committed, `srvRLogLb γr.raft A₀`, with the entry in it, a premise the caller
-has (`kvBatchR`'s): the KV invariant's shape of a committed entry, `kv_log_plain`, is what makes a
-skipped or rejected request leave the members, as `restEntryV2` says.) -/
-abbrev EtcdServer.applyEntryNormal.specRepOff : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
-    (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (x : apply.ApplyKV)
-    (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM),
-  E.authOn = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
-      applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗
-      mvcc.storeWT E.γ ∗ srvFS s ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
-      srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
-      ⌜st.pending = false ∧ entryOk E.lm x m ∧ m.typ = W32 0 ∧
-        uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
-        ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝ }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
-      (Val #e)) (Val #false))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
-      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
-        ⌜entryStep m false x x' out⌝) ∗
-      srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st }}
-
-/-- **`s.applyEntryNormal(e, false)`, a replay, with auth on** (R2d'a A3, 2026-11-06, DRAFT;
-proved, `ApplyEntryNormalR.lean`): `specRepOff` in the mode `on` (`applyEntryNormal.specOn`'s rows:
-`isServerM true`, `srvApplyKVOn` at the auth state `sa`, kept, the later credit `⧗ 1` the admin
-steps take, the receipts' bound). An admin request runs the auth row's admin steps at `v3 = false`
-(`adminEntryOn.spec`: nothing applied, the auth state kept), which take the chain the start's
-(`x.chain = γr.kv.ch0`, the caller's `kvAppliedM`). -/
-abbrev EtcdServer.applyEntryNormal.specRepOn : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
-    (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (x : apply.ApplyKV)
-    (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM) (γa : auth.AuthNames)
-    (sa : auth.AuthState),
-  E.authMode = .on γa →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
-      applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗
-      mvcc.storeWT E.γ ∗ srvFS s ∗ ⧗ 1 ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
-      srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
-      ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧
-        uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
-        ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝ }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
-      (Val #e)) (Val #false))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
-      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKVOn s E ρ.wait x' sa ∗
-        ⌜entryStep m false x x' out⌝) ∗
-      srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st }}
 
 /-- **`s.applyConfChange(cc, ep, false)`, a replayed `AddNode`** (R2d' A4, DRAFT; proved,
 `ApplyConfChangeR.lean`). At the pin `673da07c8` (`server.go:2037-2083`): the validation passes

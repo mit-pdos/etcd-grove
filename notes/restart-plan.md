@@ -3096,3 +3096,32 @@ though a replayed conf entry does not update `ep.confState` (`server.go:2051-205
 
   A10 is then `run.wp_proof` over `applyResR` with no raft-side change. `σ.b > 0` goes to a later
   item, (a), with R2d'b's `RestartNode`. Est.: A10 as estimated (1.5-2.5 wk (est.)).
+
+##### Q23 (a): one replay spec (2026-11-06, branch `r2dp`; DRAFT, for the Freeze package)
+
+- **`applyEntryNormal.spec`** (`Spec/…/EtcdServer__applyEntryNormal.lean`) is now `isPkgInit ∗ (if v3
+  then … else …)` in and `… ∗ srvFS s ∗ (if v3 then … else …)` out, with two new binders `A₀ r`.
+  The `v3` case is the old text at `v3 = true`, row for row: `v3 = decide (c0 < m.index)` becomes
+  `uint.Z γr.kv.c0 < uint.Z m.index`, `(if v3 then iprop(ciApplying … ∗ ⌜…⌝) else True)` becomes
+  `(ciApplying … ∗ ⌜…⌝)`, `entryStep m v3` becomes `entryStep m true`, and the posts' `if v3` rows
+  their `then` sides. The `else` case is the replay, the old `specRepOff`/`specRepOn` in one
+  mode-generic text: `isServerM E.authOn`, `srvApplyKVM E.authOn … x sa` (kept at `sa` in the
+  post), `entryOkM`, `(if E.authOn then ⧗ 1 else True)`, and the pure `(E.authOn = true →
+  receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0)`. The old `v3 = false` case (the first start's,
+  ghost rows stepped) is gone: it was never reachable, since `kvInv`/`kvInvOn` hold `c0 ≤ ai0`, so
+  an entry after the applied index (`m.index = ai0 + |A| + 1`) is above `c0`.
+- **`apply.spec` is unchanged.** The brief's premise `c0 ≤ ai0` is not needed: `isServerM`'s KV
+  invariant gives it, as the new law `isServerM_c0_le` (`ModeSpecs.lean`, both modes). `apply`'s
+  proofs (`wp_proofOff`/`wp_proofOn`) take it once and close the `ApplyV2storeOnly` branch by
+  contradiction (the old replay arms, about 240 lines, deleted); `applyEntryNormal` is called only
+  in its `v3` case. No caller of `apply.spec` changes.
+- **Proofs.** `ApplyEntryNormalR.lean` is deleted. Its two proofs are the `v3 = false` branches of
+  `applyEntryNormal.wp_proofOff`/`wp_proofOn`, and its four lemmas and two macros moved with them.
+  The old ghost-advancing `v3 = false` branches are deleted. `ModeSpecs`' `specOff`/`specOn` follow
+  the new text, and so do their corollaries `spec_off`/`spec_on`. `ApplyR`/`ApplyROn` take both
+  cases from `spec_off`/`spec_on`, and no longer take the `hAENR` hypothesis. Their past-window
+  `v3 = false` arms are closed by `kvBatchR`'s `c0 ≤ ai0`. `request_delivered` (`Results.lean`)
+  keeps its statement: its `v3 = false` case is vacuous by `isServerM_c0_le`.
+- `Link.lean` is unchanged (`gen-link.py --server`). The axioms of `wp_applyEntryNormal`, `wp_apply`
+  and `request_delivered` are unchanged; there is no `sorry`. Targeted builds pass: `Results`
+  (6227 jobs) and `ApplyAllR`.

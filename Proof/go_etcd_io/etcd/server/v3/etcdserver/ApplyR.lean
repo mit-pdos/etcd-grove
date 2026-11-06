@@ -3,7 +3,7 @@
 `notes/restart-plan.md`, "R2d' Scope (approved 2026-11-06)", its probe). Lean-first (no Rocq
 counterpart). `apply.specROff`: `apply.specOff` over the restart point `rp` and Go's log `A`, the
 ghost rows at `ghostOf rp A`; its proof `wp_proofROff`, `wp_proofOff`'s with the window's replays
-(over the replays' hypothesized specs, `ApplyRDefs.lean`).
+(`applyEntryNormal.spec`'s `v3 = false` case, Q23 (a); `applyConfChange.specRep`, `ApplyRDefs.lean`).
 -/
 module
 
@@ -183,7 +183,7 @@ local macro "cc_respond" : tactic => `(tactic| (
 
 
 set_option maxHeartbeats 1600000 in
-/-- **`apply.specROff`** (R2d' probe, DRAFT): over the replays' hypothesized specs. -/
+/-- **`apply.specROff`** (R2d' probe, DRAFT): over the replays' specs. -/
 theorem EtcdServer.apply.wp_proofROff
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
@@ -202,8 +202,7 @@ theorem EtcdServer.apply.wp_proofROff
     (hACC : EtcdServer.applyConfChange.spec (GF := GF) (hG := hG))
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
-    -- (R2d' probe) the replays' specs, HYPOTHESIZED (`ApplyRDefs.lean`)
-    (hAENR : EtcdServer.applyEntryNormal.specRepOff (GF := GF) (hG := hG))
+    -- (R2d' probe) the replayed conf change's spec (`ApplyRDefs.lean`; proved, `ApplyConfChangeR.lean`)
     (hACCR : EtcdServer.applyConfChange.specRep (GF := GF) (hG := hG)) :
     EtcdServer.apply.specROff (GF := GF) (hG := hG) := by
   -- (R2d') `setAppliedIndex`'s replay case, for the window's replays
@@ -213,6 +212,14 @@ theorem EtcdServer.apply.wp_proofROff
   have hSet1 := fun s E γr v v' L => hSet1 s E γr v v' L false
   simp only [Bool.false_eq_true, ↓reduceIte] at hSet1
   have hAEN := EtcdServer.applyEntryNormal.spec_off hAEN
+  -- (R2d'a, Q23 (a)) `applyEntryNormal.spec`'s two cases: the replay (`v3 = false`) inside the
+  -- window, the application (`v3`) past it
+  have hAENR := fun s γ ci TM E ρ b e m st x γr A₀ r h =>
+    hAEN s γ ci TM E ρ b e m st false x γr none (W64 0) [] A₀ r h
+  simp only [Bool.false_eq_true, ↓reduceIte] at hAENR
+  have hAEN := fun s γ ci TM E ρ b e m st x γr ot v A A₀ r h =>
+    hAEN s γ ci TM E ρ b e m st true x γr ot v A A₀ r h
+  simp only [↓reduceIte] at hAEN
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
@@ -511,16 +518,17 @@ theorem EtcdServer.apply.wp_proofROff
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
         icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
-            (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') xj γr ot aw
+            (A ++ ms.take (sint.nat j)) [] (restModel γr.kv.c0 γr.raft.raft.boot []) hAuthOff)
+            $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost⟩
-        · rw [ite_eq_left rfl]
+        · (try rw [ite_eq_left rfl])
           iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS %Hmc HlbJ
           isplitr
           · iexact Hreg
           isplitr
           · ipureintro
-            exact ⟨hawA, (decide_eq_true (hkbm.1 (by omega))).symm⟩
+            exact ⟨hawA, hkbm.1 (by omega)⟩
           isplitr
           · ipureintro; omega
           ipureintro
@@ -1029,106 +1037,11 @@ theorem EtcdServer.apply.wp_proofROff
       have hawA : uint.Z aw = uint.Z γr.raft.ai0 + (A ++ ms.take (sint.nat j)).length := Haw
       have hkbm : (uint.Z (ciEff γ st.k) < uint.Z m.index ↔ uint.Z γr.kv.c0 < uint.Z m.index) :=
         HkB.2.2.2.2.2 m hmem (by omega)
-      rcases hmtyp with h0 | ⟨h1, hcc⟩
-      · -- a normal entry
-        (try simp only [h0, _root_.decide_true])
-        (try wp_auto)
-        -- (linkv-txn stage B1) the entry's registration, for the member's own ids
-        ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
-        · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
-        icases srvApRes_cover s γr (A ++ ms.take (sint.nat j)) $$ HAR with ⟨HAR, %Hmc⟩
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
-            (A ++ ms.take (sint.nat j)) hAuthOff) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
-          as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst⟩
-        · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS %Hmc HlbJ
-          isplitr
-          · iexact Hreg
-          isplitr
-          · ipureintro
-            exact ⟨hawA, (decide_eq_false (fun h =>
-              (show ¬ uint.Z (ciEff γ st.k) < uint.Z m.index by omega) (hkbm.2 h))).symm⟩
-          isplitr
-          · ipureintro; omega
-          ipureintro; exact ⟨⟨hpend'', hOk1 h0, h0⟩, trivial⟩
-        have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
-          unfold batchStep; rw [ite_eq_left h0]
-          refine ⟨out1, ?_⟩
-          rw [decide_eq_false (show ¬ uint.Z (ciEff γ st.k) < uint.Z m.index by omega)]
-          exact Hstep1
-        (try simp only [Bool.false_eq_true, ↓reduceIte])
-        (try wp_auto)
-        wp_apply hGI $$ [He] as -
-        · iframe He
-        icases srvApplyKV_idxCert s E ρ.wait x1 $$ HKV with ⟨HKV, #Hcert⟩
-        wp_apply (hSet1 s E γr aw m.index x1.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
-        · iframe HainvM Hpre Hcert; rw [hAuthOff]; unfold appliedPubM; itrivial
-        (try wp_auto)
-        wp_apply hGT $$ [He] as -
-        · iframe He
-        wp_apply hSet2 $$ [$HatM]
-        (try wp_auto)
-        wp_apply hGI $$ [He] as -
-        · iframe He
-        wp_apply hGT $$ [He] as -
-        · iframe He
-        (try wp_auto)
-        ihave Hdv := dvView_normal ρ.raft dv _ m h0 $$ Hdv
-        ihave HAR := srvApRes_normal s γr _ m h0 $$ HAR
-        ihave #Hcv1 : epCsAt ρ.raft (A ++ ms.take (sint.nat j) ++ [m]) csl $$ []
-        · iapply epCsAt_voters
-          iapply epCsAt_ne ρ.raft (A ++ ms.take (sint.nat j)) csl
-            (fun hA0 => absurd (Hfb hA0).2.1 (by rw [h0]; decide))
-          iexact Hcv
-        ihave HRS : srvRestR E γr rp (A ++ ms.take (sint.nat j) ++ [m]) $$ [HRS]
-        · rw [srvRestR_past E γr rp _ (by have := hpast; simp only [List.length_append, List.length_singleton] at this ⊢; omega)]
-          iexact HRS
-        wp_for_post
-        iframe
-        iexists j + W64 1, stLoaded γ st', a', t', csl, sb, m.index, m.term, j, x1, m.index, A ++ ms.take (sint.nat j) ++ [m]
-        simp only [named]
-        rw [htk2]
-        iframe
-        iframe Hcv1
-        isplitr
-        · iexact Hlog'
-        isplitr
-        · iexact HWA2
-        ipureintro
-        exact ⟨by rw [hjs]; exact entriesStep_take_succ _ ms _ m x xj x1 Hm_lookup Hxs hb1,
-          by omega, ⟨hpend'', hstj'.1, hstj'.2⟩, hlast', by have := hiA; simp only [List.length_append, List.length_singleton] at this ⊢; omega,
-          (ghostOf_past _ _ (by have := hpast; simp only [List.length_append, List.length_singleton] at this ⊢; omega)).symm,
-          by first | exact Hsb | simp⟩
-      · -- a conf change
-        (try simp only [h1])
-        ihave ⟨%Hnn, %d, #Hd, #Hds⟩ := entryAt_fields _ _ $$ He
-        (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%cm, Hcc, %Hdec⟩, -⟩
-        · iframe cc Hds
-        ihave #Hccw : iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
-            ⌜ccPolOk ρ.raft.raft m.data⌝) $$ []
-        · have he : entryWaitOk ρ E m =
-              iprop(reqWaitNone ρ (ccIdOf m.data) ∗
-                ⌜ccPolOk ρ.raft.raft m.data⌝) := by
-            unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
-          rw [he]
-          icases Hewo with ⟨#Hn, %Hp⟩
-          iframe %Hp
-          iapply reqWaitNone_none $$ Hn
-        icases Hccw with ⟨#Hccf, %Hcb⟩
-        (try wp_auto)
-        -- (2026-10-30, the repair: one mode) a replayed conf entry has no view (the view excludes
-        -- entries at or below `ci`), and without a view the batch has no conf entry
-        exfalso
-        rcases hdv' : dv with _ | γn
-        · exact hdv.1 hdv' m hmem h1
-        · have h1' := (hdv.2 γn hdv').1
-          have hgl : (ghostOf rp A).length = A.length + (rp.A₀.length - A.length) := by
-            simp only [ghostOf, List.length_append, List.length_drop]
-          have hgb : uint.Z g < uint.Z m.index := by
-            rw [Hg0, hgl]; rw [hlenA] at hpast hiA; omega
-          have hg1 : uint.Z (g + 1) = uint.Z g + 1 := by word
-          omega
+      -- (R2d'a, Q23 (a)) dead: past the window the entry is above `ai0 ≥ c0` (`kvBatchR`), so
+      -- above the consistent index
+      exfalso
+      have hlt := hkbm.2 (by have := HkB.2.2.2.1; omega)
+      omega
   · -- the loop is done
     have hjn : sint.nat j = ms.length := by rw [Hlen]; word
     have hjZ : sint.Z j = (ms.length : Int) := by

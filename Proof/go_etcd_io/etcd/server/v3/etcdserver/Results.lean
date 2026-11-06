@@ -489,11 +489,23 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
+  cases v3
+  · -- (R2d'a, Q23 (a)) vacuous: the KV invariant's `c0 ≤ ai0` puts the entry, after the applied
+    -- index, above `c0`
+    iintro %Φ ⟨#Hpkg, #Hsrv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %HkA, %Hvi, -, -⟩ -
+    imod isServerM_c0_le false s γ ci TM E ρ γr $$ [] with %Hc0
+    · rw [isServerM_false]; iexact Hsrv
+    exfalso
+    have h1 := HkA.2
+    rw [decide_eq_true (show uint.Z γr.kv.c0 < uint.Z m.index by omega)] at h1
+    cases h1
+  have hAEN := EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
+      s γ ci TM E ρ b e m st true x γr (some t) v A [] (restModel γr.kv.c0 γr.raft.raft.boot [])
+  simp only [↓reduceIte] at hAEN ⊢
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, #HLv, #Hcm, Hka,
     HRS, %Hmc, #HAm, %HkA, %Hvi, %Hpo, Hv3⟩ HΦ
   imod authOn_false_of_off s γ ci TM E ρ γr ρ.wait x A $$ [$Hsrv $HKV $Hka] with ⟨%hoff, HKV, Hka⟩
-  iapply (EtcdServer.applyEntryNormal.spec_off EtcdServer.wp_applyEntryNormal
-      s γ ci TM E ρ b e m st v3 x γr (some t) v A hoff)
+  iapply (hAEN hoff)
     $$ [Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS]
   · iframe Hst Hbe Hlr Hgr HKV Hwt Hfs Hv3 Hao Hka HRS
     iframe #
@@ -508,7 +520,9 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       iunfold waitRegdOpt
       iframe Hreg
       iintro %h; cases h
-    ipureintro; exact ⟨Hmc, HkA, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1, Hpo.2.2⟩
+    ipureintro
+    exact ⟨Hmc, ⟨HkA.1, of_decide_eq_true HkA.2.symm⟩, Hvi, Hpo.1, entryOk_of_false _ _ _ Hpo.2.1,
+      Hpo.2.2⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka, HRS⟩, Hpost⟩
   iapply HΦ

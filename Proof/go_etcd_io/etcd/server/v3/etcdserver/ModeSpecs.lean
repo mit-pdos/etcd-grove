@@ -58,9 +58,10 @@ With `v3` (`ApplyBoth`: the entry `i = p + 1`, above `ci`, whose index and term 
 applying index; the state loaded, `stLoaded γ st = st`, as `apply`'s `ConsistentIndex` left it,
 which the applier's `ConsistentIndex` lends, `srvCiC`; S8d, 2026-10-26): the entry is applied (through `apply.Apply`, or not at all if it has no data)
 and, after it, `ci` and the processed-through index are both `i` (the post-lock hook set `ci`
-if the entry had writes; else the deferred update does, outside the lock). Without `v3` (an
-entry at or below `ci`, replayed): nothing is written to the backend and the state is
-unchanged. **The KV** (the apply package's unit 3): the apply thread's applier state
+if the entry had writes; else the deferred update does, outside the lock). Without `v3`, a
+replay (R2d'a, Q23 (a), 2026-11-06: `spec`'s second case; the first start's ghost-advancing case it
+replaced was never reached): nothing is written to the backend, the KV and the state are
+unchanged, and the rest buckets at the backend's log go to `restEntryV2 m r`. **The KV** (the apply package's unit 3): the apply thread's applier state
 `srvApplyKV s E ρ.wait x`, with the entry's premise `entryOk x m` (its data decode to a request with an
 id, neither a compaction nor empty, satisfying the txn package's premises at `x.log`), goes to
 `x'` by `entryStep m v3 x x' out` (no data: nothing; else `apply.Apply`'s `applyStep`). **The wait** (the request path's unit 2,
@@ -84,29 +85,45 @@ index): the apply thread at `A ++ [m]` after, its log deposited as the model's (
 abbrev EtcdServer.applyEntryNormal.specOff : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
-    (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel),
+    (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel) (A₀ : List EntryModel)
+    (r : apply.RestM),
   E.authOn = false →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
-      srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-      kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
-      ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
-      ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
-      ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-      ⌜st.pending = false ∧ entryOk E.lm x m ∧ m.typ = W32 0⌝ ∗
-      (if v3 then iprop(ciApplying ci m.index m.term ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      (if v3 then iprop(
+        isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗
+        applyThread γ st ∗ applyBackend γ ci b ∗
+        srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+        srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+        kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
+        ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+        ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
+        ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
+        ⌜st.pending = false ∧ entryOk E.lm x m ∧ m.typ = W32 0⌝ ∗
+        (ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
-            uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
-       else iprop(True)) }}
+            uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝))
+      else iprop(
+        isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
+        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗
+        mvcc.storeWT E.γ ∗ srvFS s ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+        srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
+        ⌜st.pending = false ∧ entryOk E.lm x m ∧ m.typ = W32 0 ∧
+          uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧
+          ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
   {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
-      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
-        ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
-        srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x' ∗ srvRest E γr (A ++ [m])) ∗
-      (if v3 then iprop(ciApplying ci m.index m.term ∗
-          ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
-       else applyThread γ st) }}
+      (if v3 then iprop(
+        (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
+          ⌜entryStep m true x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
+          srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x' ∗
+          srvRest E γr (A ++ [m])) ∗
+        (ciApplying ci m.index m.term ∗
+          ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩))
+      else iprop(
+        (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
+          ⌜entryStep m false x x' out⌝) ∗
+        srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st)) }}
 
 /-- **`spec` in the auth mode `on`** (a corollary, `spec_on`) (the auth plan's E3o, 2026-10-27; `notes/decisions.md`, "E3o of
 the auth plan"): the server as the apply thread sees it with auth on (`isServerM true`: the wait's
@@ -123,76 +140,106 @@ abbrev EtcdServer.applyEntryNormal.specOn : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames) (ot : Option GName) (v : w64) (A : List EntryModel) (γa : auth.AuthNames)
-    (sa : auth.AuthState),
+    (sa : auth.AuthState) (A₀ : List EntryModel) (r : apply.RestM),
   E.authMode = .on γa →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
-      entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
-      ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
-      kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
-      ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
-      ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)⌝ ∗
-      ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
-      ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
-      (if v3 then iprop(ciApplying ci m.index m.term ∗
+      (if v3 then iprop(
+        isServerM true s γ ci TM E ρ γr ∗ srvLessorNil s ∗ entryWaitOk ρ E m ∗
+        entryRegd ρ.wait ρ.ids m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+        srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗ mvcc.storeWT E.γ ∗ srvFS s ∗
+        ⧗ 1 ∗ srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+        kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+        ⌜srvMemCover γr.raft γr.kv.c0 A⌝ ∗ srvRLogLb γr.raft (A ++ [m]) ∗
+        ⌜uint.Z v = uint.Z γr.raft.ai0 + A.length ∧ uint.Z γr.kv.c0 < uint.Z m.index⌝ ∗
+        ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
+        ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
+        (ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
-            uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝)
-       else iprop(True)) ∗
-      -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
-      srvTokRights E (ciEff γ st.k) }}
+            uint.Z (ciEff γ st.k) < uint.Z m.index ∧ stLoaded γ st = st⌝) ∗
+        -- (C1's A1, 2026-10-28) the rights to issue tokens at the consistent index
+        srvTokRights E (ciEff γ st.k))
+      else iprop(
+        isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
+        applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗
+        mvcc.storeWT E.γ ∗ srvFS s ∗ ⧗ 1 ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+        srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
+        ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧
+          uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
+          ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
   {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
-      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
-        srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
-        srvAppliedPre γr v m.index x'.log ∗
-        kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗ srvRest E γr (A ++ [m])) ∗
-      (if v3 then iprop(ciApplying ci m.index m.term ∗
-          ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
-       else applyThread γ st) ∗
-      (if v3 then srvTokRights E m.index else srvTokRights E (ciEff γ st.k)) }}
+      (if v3 then iprop(
+        (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut) (sa' : auth.AuthState),
+          srvApplyKVOn s E ρ.wait x' sa' ∗ ⌜entryStep m true x x' out⌝ ∗
+          entryDelivered ρ.wait m ot out ∗ srvAppliedPre γr v m.index x'.log ∗
+          kvAppliedOn γr.raft γr.kv srvAuthSt0 (A ++ [m]) x' sa' ∗ srvRest E γr (A ++ [m])) ∗
+        (ciApplying ci m.index m.term ∗
+          ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩) ∗
+        srvTokRights E m.index)
+      else iprop(
+        (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKVOn s E ρ.wait x' sa ∗
+          ⌜entryStep m false x x' out⌝) ∗
+        srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st)) }}
 
 /-- **`specOff`**, `spec` with auth off (the auth-mode merge's corollary). -/
 theorem EtcdServer.applyEntryNormal.spec_off
     (h : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.specOff (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ b e m st v3 x γr ot v A hoff
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A A₀ r hoff
   have hm : E.authMode = .off := by
     rw [apply.AEnv.authOn_eq] at hoff
     cases h' : E.authMode <;> simp_all [auth.AuthMode.isOn]
   have hT : ∀ k, srvTokRights (GF := GF) E k = iprop(True) := by
     intro k; unfold srvTokRights; rw [hm]
-  have := h s γ ci TM E ρ b e m st v3 x γr ot v A srvAuthSt0 (by rw [hm]; simp)
+  have := h s γ ci TM E ρ b e m st v3 x γr ot v A srvAuthSt0 A₀ r (by rw [hm]; simp)
   rw [hoff] at this
-  simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
-    entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at this
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, Hlog,
-    #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
-  iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
-  · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
-    ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, fun h => absurd h (by simp)⟩
-  inext
-  iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
-  iapply HΦ
-  iframe Hbe Hlr Hgr Hfs Hst
-  iexists x', out; iframe HKV Hdel Hap Hka HRS; ipureintro; exact Hstep
+  cases v3
+  · simp only [isServerM_false, srvApplyKVM_false, entryOkM_false, Bool.false_eq_true,
+      ↓reduceIte] at this ⊢
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, #Hcm, HRS, #HA0, %HmA,
+      %Hpo⟩ HΦ
+    iapply this $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs HRS] HΦ
+    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hcm HRS HA0
+    ipureintro
+    exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1, fun h => absurd h (by simp), Hpo.2.2.2.2⟩
+  · simp only [isServerM_false, srvLessorNilM_false, srvApplyKVM_false, kvAppliedM_false,
+      entryOkM_false, hT, Bool.false_eq_true, ↓reduceIte] at this ⊢
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hao, Hlog,
+      #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3⟩ HΦ
+    iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hka HRS Hv3]
+    · iframe Hpkg Hsrv Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hao Hlog Hcm Hka HRS Hrl Hv3
+      ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2, fun h => absurd h (by simp)⟩
+    inext
+    iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, %sa', HKV, %Hstep, Hdel, Hap, Hka, HRS⟩, Hst, -⟩
+    iapply HΦ
+    iframe Hbe Hlr Hgr Hfs Hst
+    iexists x', out; iframe HKV Hdel Hap Hka HRS; ipureintro; exact Hstep
 
 /-- **`specOn`**, `spec` in the mode `on` (the auth-mode merge's corollary). -/
 theorem EtcdServer.applyEntryNormal.spec_on
     (h : EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa hM
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A γa sa A₀ r hM
   have hon : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
-  have := h s γ ci TM E ρ b e m st v3 x γr ot v A sa (by rw [hM]; simp)
+  have := h s γ ci TM E ρ b e m st v3 x γr ot v A sa A₀ r (by rw [hM]; simp)
   rw [hon] at this
-  simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
-    ↓reduceIte] at this
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
-    #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
-  iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
-  iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
-  ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, fun _ => Hpre.2.2.2⟩
+  cases v3
+  · simp only [srvApplyKVM_true, entryOkM_true, Bool.false_eq_true, ↓reduceIte] at this ⊢
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hew, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, #Hcm, HRS, #HA0,
+      %HmA, %Hpo⟩ HΦ
+    iapply this $$ [He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr HRS] HΦ
+    iframe Hpkg Hsrv Hew He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hcm HRS HA0
+    ipureintro
+    exact ⟨HmA, Hpo.1, Hpo.2.1, Hpo.2.2.1, Hpo.2.2.2.1,
+      fun _ => ⟨Hpo.2.2.2.2.1, Hpo.2.2.2.2.2.1⟩, Hpo.2.2.2.2.2.2⟩
+  · simp only [srvLessorNilM_true, srvApplyKVM_true, kvAppliedM_true, entryOkM_true,
+      ↓reduceIte] at this ⊢
+    iintro %Φ ⟨#Hpkg, #Hsrv, #Hln, #Hew, Hrg, He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hfs, Hr, Hao, Hlog,
+      #Hcm, Hka, HRS, %Hmc, #Hrl, %Hv, %Hidx, %Hpre, Hv3, Htok⟩ HΦ
+    iapply this $$ [Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hka HRS Hv3 Htok] HΦ
+    iframe Hpkg Hsrv Hln Hew Hrg He Hst Hbe Hlr Hgr HKV Hwt Hfs Hr Hao Hlog Hcm Hka HRS Hrl Hv3 Htok
+    ipureintro; exact ⟨Hmc, Hv, Hidx, Hpre.1, Hpre.2.1, Hpre.2.2.1, fun _ => Hpre.2.2.2⟩
 
 end variants
 
@@ -207,6 +254,38 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 open Iris.ProofMode
+
+/-- **The start's consistent index at most raft's first index** (R2d'a, Q23 (a), 2026-11-06): the
+KV invariant's `c0 ≤ ai0`, in either mode (`kvInv`, `kvInvOn`). So every entry after the applied
+index is above `c0`: `applyEntryNormal.spec`'s `v3` case is the only one `apply` reaches. -/
+theorem isServerM_c0_le (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    ⊢ isServerM on s γ ci TM E ρ γr ={⊤}=∗ ⌜uint.Z γr.kv.c0 ≤ uint.Z γr.raft.ai0⌝ := by
+  iintro #Hsrv
+  iunfold isServerM at Hsrv
+  icases Hsrv with ⟨-, -, -, #Hat, -⟩
+  iunfold srvAtomicsM at Hat
+  icases Hat with ⟨-, -, #Hkvi⟩
+  cases on
+  · rw [srvKVInvsM_false] at *
+    iunfold srvKVInvs at Hkvi
+    icases Hkvi with ⟨#HkI, -⟩
+    iunfold kvInv at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+    imod Hclose $$ [HL Hσ HG] with -
+    · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
+    imodintro; ipureintro; exact Hok.2.2.1
+  · ihave #Hkvi : srvKVInvsOn E γr srvAuthSt0 $$ []
+    · iapply srvKVInvsM_true; iexact Hkvi
+    iunfold srvKVInvsOn at Hkvi
+    icases Hkvi with ⟨#HkI, -⟩
+    iunfold kvInvOn at HkI
+    iinv HkI with >Hi Hclose
+    icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
+    imod Hclose $$ [HL Hσ Hh] with -
+    · inext; iexists L; iframe HL Hσ Hh Hw; ipureintro; exact Hok
+    imodintro; ipureintro; exact Hok.2.2.2.1
 
 /-- **`spec` with auth off** (a corollary, `spec_off`; until step 3 of the auth-mode merge,
 2026-10-30, `spec` itself). `s.apply(es, ep, rac)`, by the apply thread, on a non-empty batch of consecutive
