@@ -2302,23 +2302,29 @@ R2d / R2d' / R2e").
   delegation, 2026-11-06, pending the user's review; `questions.md`, "Assumptions R2d carries for
   R2d'"). R2d's restart `%HEr` carries the named conjunct `winNoConf W` (`ApplyWindow.lean`: no conf
   entry in the window; `winNoConf_nil` at a first start, `W = []`). R2d' removes it by proving the
-  window's conf changes: through `applyConfChange`'s v2-only case (`v3 = false`: `server.go:1949`
-  calls it with `shouldApplyV3`, `:2031-2101`; `ValidateConfigurationChange` returns `nil` at once,
-  `membership/cluster.go:307-309`; the transport's peers by `ccPeersAfter`'s `v3 = false` case) and
-  `dvOk`'s window form, **not** through `bootLen ≤ σ.b` (which would rule out only the bootstrap
-  log's conf entries, not a later one in `(σ.b, i]`).
+  window's conf changes (`server.go:1948-1950` calls `applyConfChange` with `shouldApplyV3` false)
+  over what Go does with one (corrected 2026-11-06: an earlier brief said such a replay is applied to
+  raft and the v2 membership, which is false): at the pin a replayed conf change (`shouldApplyV3` false) is applied neither to raft nor to the
+  membership: `ValidateConfigurationChange` returns `nil` at once (`membership/cluster.go:306-308`),
+  `ApplyConfChange` runs only `if shouldApplyV3` (`server.go:2050-2056`, so raft is not told and
+  `ep.confState` is unchanged), `AddMember`/`RemoveMember` only log (`membership/cluster.go:402-424`);
+  what does run is `beHooks.SetConfState` (of the unchanged `ep.confState`), the transport's
+  `AddPeer`/`RemovePeer`/`UpdatePeer` and `w.Trigger` (the Freeze 1 review's F6; not a Go bug).
+  **Re-check of the discharge plan (2026-11-06): it still holds, at a cost not listed before.**
+  Nothing changes raft's or the membership's state, so `run`'s and `srvRest`'s rows are kept by such a
+  replay; but `applyConfChange.spec` has no `v3 = false` case (it requires `dv = some n → v3 = true`,
+  `EtcdServer__applyConfChange.lean:78-81`): R2d' adds one (the conf state and members unchanged, the
+  transport's peers by `ccPeersAfter`'s `v3 = false` case, `SetConfState` of the old conf state), a
+  statement change for R2d''s Scope, with `dvOk`'s window form; **not** through `bootLen ≤ σ.b` (which
+  would rule out only the bootstrap log's conf entries, not a later one in `(σ.b, i]`). Until then
+  the three window specs take `winNoConf W` as a premise (the Freeze 1 review's F1).
 - **R2e**: the restart's closed result. HS2's static-cluster premise goes in R2e's Scope (Q14 caveat
   (ii)): the restarted storage's conf state is the backend's at `i` (`bootstrap.go:107-115`), which
   `confStateIs` the membership at the WAL snapshot's index only in a static cluster.
-  (2026-11-06, Q20's decision 3, decided by etcd-grove-82 under the user's delegation, pending the
-  user's review) **R2e's Scope also revisits HS2's `i ≤ σ.commit`**: `bootstrapRestartContract`
-  (trusted) takes it in its premise, but the stop's image no longer gives it (the Q16-3 review's
-  finding 2: `wal.stopImage` keeps only `σ.b ≤ i`). Evidence it is false of Go: a member that stops
-  inside an install window (it installed a merged snapshot whose image is at the sender's consistent
-  index above the snapshot's index, R2s's motivating case) leaves its backend's consistent index above
-  its WAL's HardState commit, and etcd itself expects that case (`bootstrap.go:613-621` handles
-  `consistent_index > Commit`). Left as is in R2d; R2e decides (weaken the contract's premise, an
-  `axiom`-skill review, or a scope premise).
+  (2026-11-06, Q20's decision 3, then superseded the same day by the held items' decision 2,
+  decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review) HS2's `i ≤ σ.commit` is no longer R2e's: R2d keeps `i ≤ σ.commit` in the stop's image
+  (the Q16-3 review's finding 2 reverted), and its weakening moves to **R2s** with the trusted
+  contract's (below, "R2d Draft, round 3").
   (2026-11-06, the Q16-3 review's item 2, decided by etcd-grove-82 under the user's delegation,
   pending the user's review) **R2e's closed theorem carries neither `winNoConf` nor
   `winNoMergedSend`**: it waits for R2d' (which discharges the first) and R2s (the second). The order
@@ -2419,8 +2425,8 @@ window form's proof is sorry-free.
 
 **The review's other items, done on `r2d`** (`questions.md`, the Freeze list): item 4, Q16 (3)'s
 sender-side statements are not in R2d (none is in the Lean; the receive specs as on lean); finding 2,
-`wal.stopImage` keeps only `σ.b ≤ i` and states the configuration point at some `p ∈ [σ.b, σ.commit]`
-(`bootstrapRestartContract`, trusted, still takes `i ≤ σ.commit`: R2e's Scope); finding 6,
+`wal.stopImage` kept only `σ.b ≤ i` (ae43b933dd; **reverted** the same day, the held items' decision
+2: R2d keeps `i ≤ σ.commit`; the weakening is R2s's, below); finding 6,
 `applyAll.specBatch`'s `≤ n` over Go's applied log.
 
 **R2d-2's statements: drafted, not in the hub predicates; the probe extension stops at `Hsnap`
@@ -2446,8 +2452,9 @@ forms. `applyAll.wp_proofBatch` and `RunWindow.lean` have none.
 pending the user's review; supersedes the R2d / R2d' contents of "R2d Draft, round 2" and the Freeze
 split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites").**
 - **R2d = the restart's prerequisites.** The window-form apply chain (Q13, Q19, Q17 F2/F4, the Q16-3
-  review's finding 6); Q14's stop certificate with `srvDiskImage`/`wal.stopImage` (finding 2);
-  `setAppliedIndex.spec`'s replay case; `kvCongr`/`restartNames` (Q8 (a)); HS1; raft's additive laws
+  review's finding 6); Q14's stop certificate with `srvDiskImage`/`wal.stopImage` (its slot form, F7, with
+  `i ≤ σ.commit`); `setAppliedIndex.spec`'s replay case; `kvCongr`/`restartNames` (Q8 (a)); raft's
+  additive laws
   (`snapMade_timeless`, `snapshotValid_timeless`, `ownSnapsMade_snapshotValid_data`); the two
   assumptions `winNoConf` and `winNoMergedSend` with their laws. One Freeze (no Freeze 2). R2d lands
   once `apply.wp_proof`'s and `applyEntries.wp_proofBatch`'s window forms are proved. **Estimate:
@@ -2455,7 +2462,8 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
 - **R2d' = `run` and `NewServer` at a restart**: R2d-2's hub edit (`%HEr`, `Hstart`/`Happ`, and
   `Hsnap`'s restart form, Q20), R2d-5 (`run`'s proof over the window), R2d-6 (`memStorRestarted`,
   `newRaftNode`'s `RestartNode` path), R2d-7 (`NewServer.specG`'s boot argument), B1 (`NewStore`'s
-  restoring case), the `winNoConf` discharge. **Estimate: 5-7 weeks (est.)**.
+  restoring case), the `winNoConf` discharge, and **HS1** (moved from R2d, below). **Estimate: 5-7
+  weeks (est.)**.
 - Then **R2s** (snapshots across windows, discharging `winNoMergedSend`), then **R2e** (the closed
   result).
 - **`RunWindow.lean`** (R2d''s starting point, imported by nothing, sorry-free): not worth landing
@@ -2464,3 +2472,53 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
   and nothing in R2d uses them or `run_firstBatch_window`; landing them would freeze-review dead
   DRAFT vocabulary. Recommendation: drop the file from R2d's landing commit range (or move it to an
   `r2d-prime` branch) and carry it into R2d'.
+
+**The held items (2026-11-06, decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review).**
+- **`winNoMergedSend` narrowed** (the Freeze 1 review's F2; 82 approves, as hub-plan owner, exposing the
+  member's id in `isServerApplyAll`): design in `/shared/tmp/r2d-wnms-design.md`, not yet applied: a
+  one-shot premise of `applyAll.specBatch` over the window left after the batch
+  (`winRest W (unapplied ai ms)`): the batch takes from `msgSnapC` no `MsgSnap` of this member at the
+  batch's raft term; `isServerApplyAll`/`srvApplyAllBuilt` gain `srvMemberIDAddr s ↦□ γm.id`,
+  `NewServer`'s proof supplying it.
+- **The stop's `i ≤ σ.commit` stays in R2d** (the Q16-3 review's finding 2 reverted; `wal.stopImage`'s
+  slot form and its elimination law kept). **R2s** carries its weakening, together with the trusted
+  `bootstrapRestartContract`'s premise `uint.nat i ≤ σ.commit` (a trust change, with its `axiom`-skill
+  attack): a member that stops inside an install window (it installed a merged snapshot whose image is
+  at the sender's consistent index above the snapshot's index, R2s's motivating case) leaves its
+  backend's consistent index above its WAL's HardState commit, and etcd itself handles that case
+  (`bootstrap.go:613-621`, `consistent_index > Commit`). R2d excludes it: no install from a window
+  sender (`winNoMergedSend`). The stop's configuration point then over `[σ.b, σ.commit]` (`∃ p,
+  confAt cl p m`, the form drafted in ae43b933dd).
+- **HS1 moves to R2d'** (with its consumer, `NewServer`'s restart branch through `authStoreKit`). The
+  widening is reverted on `r2d` so R2d lands with no trust change; the approval (HS1 (a)) and the
+  attack carry over. To re-apply in R2d': in `auth.NewAuthStore.spec`'s precondition
+  `(r.lookup go!"auth").getD ∅ = ∅` → `((r.lookup go!"auth").getD ∅ = ∅ ∨ (r.lookup go!"auth").getD ∅ =
+  authBoot)`, users'/roles' unchanged, and `authStoreKit_off`'s `Hr` → `Or.inl Hr.1, Hr.2`
+  (`AuthSrv.lean:317`); the patch is `/shared/tmp/r2d-hs1.patch` (from bba7cb04e4). The docstring's
+  attack, verbatim: "**Two cases, one end state.** (1) A first start: the auth bucket empty (`∅`), as
+  above: `enabled` false (no `authEnabled` key), the revision `0`, so `commitRevision` runs (in memory
+  `0 → 1`, the bucket's `authRevision` put to `1`): the bucket ends at `authBoot`. (2) A restart: the
+  auth bucket at `authBoot` (what case (1) left; the image's, `bkRestAt_boot`): `CreateAuthBuckets` is
+  a no-op on the existing buckets (schema's `UnsafeCreateBucket` is bbolt's `CreateBucketIfNotExists`,
+  `backend/batch_tx.go:136-145`, which returns an existing bucket and writes nothing,
+  `bbolt@v1.5.0/bucket.go:230-250`; its `pending++` only schedules a commit), the write-backs are the
+  same two; `UnsafeReadAuthEnabled` reads no `authEnabled` key in `authBoot`: false;
+  `UnsafeReadAuthRevision` reads `authRevision`, one value, big-endian `1` (`schema/auth.go:137-144`):
+  the in-memory revision `1`, as case (1)'s after its commit; `Revision() ≠ 0`, so `commitRevision` is
+  skipped and the bucket stays `authBoot`; `refreshRangePermCache` reads `authUsers` (empty in both
+  cases: no user, so `authRoles`, read only per user, is not read; `range_perm_cache.go:131-150`). So
+  both cases end with the store disabled at revision `1` and the auth buckets at `authBoot`/`∅`/`∅`:
+  the post is the same. Not covered (excluded by the premise): an `authEnabled` key, a revision other
+  than `0` or `1`, any user or role." The collections resting on `NewAuthStore` (they will rest on the
+  stronger claim when it is re-applied): `putget`, `putget3`, `cachekv`, `compactkv`, `leasekv`,
+  `leasecatchup`, `leaseexpiry`, `linkv3p`, `k8setcd3`, `k8scompactor` (`etc/tcb-collections/`).
+  Nothing on `r2d` uses the widening (only `authStoreKit_off`'s `Or.inl`); `RunWindow.lean` goes to
+  `r2d-prime`.
+- **`winNoConf`'s R2d' discharge, re-checked** against `server.go:2050-2056` and
+  `membership/cluster.go:306-308`: a replayed conf change is neither validated nor applied to raft, and
+  the membership only logs (`cluster.go:402-424`). What changes: the discharge is not "applyConfChange's
+  v2-only case" of today's spec (it has none: `dv = some n → v3 = true`); R2d' adds a `v3 = false` case
+  to `applyConfChange.spec` (raft, `ep.confState` and the members unchanged; `SetConfState` of the old
+  conf state; the transport's peers by `ccPeersAfter`'s `v3 = false` case; `w.Trigger`), a statement
+  change for R2d''s Scope. Until then the three window specs take `winNoConf W` (the Freeze 1 review's
+  F1).

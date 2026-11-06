@@ -32619,3 +32619,31 @@ the spec has (`γn.id`, or `srvMemberIDAddr s`'s value): `applyAll`'s proof has 
 providing it changes `isServerApplyAll` (the persistent bundle `NewServer` builds, read by every apply
 proof), a statement change beyond Freeze 1's set for an assumption R2s removes anyway. The wide form's
 extra strength is stated with its cost (`questions.md`, the assumptions list).
+
+## R2d Freeze 1 review: the repairs; HS1 and the stop slot's weakening moved out of R2d (2026-11-06 · the Freeze 1 review's F1, F4-F7 decided by the agent, pending the user's review, under etcd-grove-82's delegation; the held items (finding 2's revert, HS1 to R2d', narrowing `winNoMergedSend`) decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
+
+**Supersedes in part** "R2s: snapshots across windows; …" (above: its finding 2, the stop's WAL slot
+without `i ≤ σ.commit`, is reverted: `wal.stopImage` keeps `σ.b ≤ i ≤ σ.commit`, which
+`bootstrapRestartContract` takes; R2s weakens both together, with the evidence of `bootstrap.go:613-621`,
+`notes/restart-plan.md`, "The held items"), "R2d restaged" (above: HS1 no longer in R2d; it lands in
+R2d' with its consumer, the restart's `NewAuthStore` call; the patch and the attack are kept in
+`notes/restart-plan.md`), and that entry's "`winNoMergedSend` stays wide" (82 decided to narrow it: to
+this member's sends, keyed on the window left after the batch and on the batch's raft term, through an
+id exposed by `isServerApplyAll`; designed, not yet applied, pending 82's review of the exact text).
+
+The repairs (review `/shared/tmp/r2d-review-freeze1.md`):
+- *F1.* `winNoConf W` is a premise of the three window specs (`apply.spec`, `applyEntries.specBatch`,
+  `applyAll.specBatch`); the `…_noWin` laws pass `winNoConf_nil`. Without it R2d states nothing about a
+  replayed conf change, which Go replays v2-only.
+- *F6, the Go fact.* A replayed conf change is applied neither to raft (`server.go:2050-2056`) nor to the
+  membership (`membership/cluster.go:402-424`) and is not validated (`:306-308`); `SetConfState`, the
+  transport's peer calls and the wait's trigger do happen. The earlier text (applied to raft and the v2
+  membership) was wrong; R2d''s discharge of `winNoConf` needs a `v3 = false` case of
+  `applyConfChange.spec`.
+- *F7.* The window's list laws (`winGhost_len`, `winAgree_prefix`, `winNew_rest_len`, `idxOk_len_lt`,
+  `winGhost_Z`, `winRest_nil_len`, `win_goLog_prefix`, `win_idx_le`) are public in `ApplyWindow.lean`
+  (`run`'s R2d' proof re-establishes the next batch's premises with them), with `winDone_of_rest_nil`,
+  `kvBatchW_elim` and `winNoMergedSend_elim`; `srvSnapsReg_nil`/`_elim`/`_insert` next to it in
+  `SrvRaftLog.lean`. No module unfolds them outside their own.
+- *F5.* `wal.stopImage` (sealed) moved to `WalApi.lean`, the WAL's API module (the slot convention: a
+  subsystem's slot comes from its API module, as `wal.bootOk`), with `wal.stopImage_elim`.
