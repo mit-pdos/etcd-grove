@@ -32302,4 +32302,10 @@ sketched (a continuation over `Rep.M ⊕ GoString`) would have changed every spe
   `grpc.Server.Serve`/`RegisterService` through `GrpcMethod.spec`) change only by the quantifier.
 
 7c-1b fills `handlerDescs` with the two mvcc descriptions, and attacks each restated statement
-with the axiom skill (Q7c-2). See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
+with the axiom skill (Q7c-2).
+
+**Why the axiom attacks wait for 7c-1b** (etcd-grove-82's ruling, 2026-11-06, at the landing of
+7c-1a). With `handlerDescs = []`, the trusted statements' new quantifier `Ψe` is vacuous: no
+description satisfies the conjunct that mentions it, so each statement means what it meant
+before. The user's Q7c-2 condition, every restated statement attacked before 7c's Freeze, applies
+to 7c-1b, where the descriptions first make the statements say something new. See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
