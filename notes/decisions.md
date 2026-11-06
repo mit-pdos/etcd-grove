@@ -32627,6 +32627,7 @@ left for the next round.
 ## R2d: the split R2d / R2d' / R2e; the window form; the WAL snapshot's certificate (2026-11-06 · Q13 (a), Q14 (a), Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
 *Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window form (Q13 (a)) is not in R2d; it moved to R2d' (branch `r2d-prime`, tag `r2d-freeze1`). Q14's certificate and the split stay.*
+*Superseded in part (2026-11-06, "R2d': the restart window as a restart point over Go's log"): the window form over the lists `W`/`D` is replaced by the restart point `rp = ⟨b, A₀⟩` over Go's log (H1 (a)); the definitional-reduction and first-start-law choices carry over to it.*
 
 **The split supersedes the R2d Scope's S1 (B)** (`notes/restart-plan.md`, "R2d Scope", S1: R2d to
 carry `run` at a restart *and* the constructors `NewStore`/`NewServer` over both boots). S1's (B) is
@@ -32721,6 +32722,7 @@ send's length argument, where the window is over (Go's log is the ghost log).
 ## R2d restaged: the restart's prerequisites; `run` and `NewServer` at a restart move to R2d' (2026-11-06 · Q20, decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
 *Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): the window-form apply chain (Q13, Q19, F2, F4, finding 6) and the assumptions `winNoConf`/`winNoMergedSend` moved from R2d to R2d'.*
+*Superseded in part (2026-11-06, "R2d': the restart window as a restart point over Go's log"): its R2d' list is reorganized as R2d'a (`run` at a restart, the hub edit) and R2d'b (`NewServer` at a restart), each with its own Freeze.*
 
 **Supersedes in part "R2d: the split R2d / R2d' / R2e"** (above: R2d carried `run` at a restart) and
 Q18's Freeze split. R2d-2's probe extension stopped at `isServerRunC`'s `Hsnap`, a first start's
@@ -32744,6 +32746,7 @@ extra strength is stated with its cost (`questions.md`, the assumptions list).
 ## R2d Freeze 1 review: the repairs; HS1 and the stop slot's weakening moved out of R2d (2026-11-06 · the Freeze 1 review's F1, F4-F7 decided by the agent, pending the user's review, under etcd-grove-82's delegation; the held items (finding 2's revert, HS1 to R2d', narrowing `winNoMergedSend`) decided by etcd-grove-82 under the user's delegation, pending the user's review · branch `r2d`; DRAFT)
 
 *Superseded in part (2026-11-06, "R2d cut: the window-form apply chain moves to R2d'"): F1 (`winNoConf`), the window list laws of F7, the narrowed `winNoMergedSend` and its hub conjunct (`srvMemberIDAddr s ↦□ γm.id` in `isServerApplyAll`/`srvApplyAllBuilt`) moved to R2d' with the window form; F5's `wal.stopImage`, F7's `srvSnapsReg` laws and F4's `restartNames` stay.*
+*Superseded in part (2026-11-06, "R2d': the restart window as a restart point over Go's log"): F1's `winNoConf` premise is discharged, not carried (H3 (a)); F2's supply of `winNoMergedSend` ("no `MsgSnap` from this member from its restart term on") is a wand under a "window pending" token instead (H6 (a)), no wider than the frozen premise.*
 
 **Supersedes in part** "R2s: snapshots across windows; …" (above: its finding 2, the stop's WAL slot
 without `i ≤ σ.commit`, is reverted: `wal.stopImage` keeps `σ.b ≤ i ≤ σ.commit`, which
@@ -32820,3 +32823,48 @@ is kept. R2d then has no DRAFT `sorry`, no trust change and no hub change.
 rework anyway; R2d' must design `run`'s window over the same definitions. **The lesson:** the window
 failed three probes when designed from the apply chain upward; R2d' designs it from `run`'s window
 downward, with a probe through `run`'s restart batch before any spec is frozen.
+
+## R2d': the restart window as a restart point over Go's log (2026-11-06 · the R2d' Scope's design and H1 (a), H2 (a), H3 (a), H4 V1, H5 (a), H6 (a), H7 (a), H8 (a), H9, H10, decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's review · branch `r2dp`)
+
+**Supersedes in part** "R2d: the split R2d / R2d' / R2e; the window form; …" (its window form over
+the lists `W`/`D`, Q13 (a)), "R2d restaged" (its R2d' list, now R2d'a/R2d'b) and "R2d Freeze 1
+review" (F1's `winNoConf` premise, discharged here; F2's supply of `winNoMergedSend`, now a wand under
+a window token, H6 (a)). The plan: `notes/restart-plan.md`, "R2d' Scope (approved 2026-11-06)"
+(in full, `/shared/tmp/r2d-prime-scope.md`).
+
+**Decision (H1 (a)).** The window is represented by the **restart point** `rp = ⟨b, A₀⟩` (Go's start
+index `σ.b` and the backend's ghost log through the consistent index `i`) and **Go's log** `G` as the
+specs' log. The ghost log is derived, `ghostOf rp G = G ++ A₀.drop |G|`, and so are the pending and
+done replays; Go's rows keep lean's text, only the ghost rows move to `ghostOf`, and the rest row is
+`srvRestR`. This replaces `r2d-window-full`'s `W`/`D` lists and their premises (`winOk`, `winAgree`,
+`winDone`, F2), which follow from the committed log's uniqueness and `ciJ`. With it: the replay is
+per entry, a `v3 = false` case of `applyEntryNormal.spec` and of `applyConfChange.spec` (H2 (a), one
+spec with a case, as `setAppliedIndex`'s `rep`); `winNoConf` is discharged by that case and the pure
+`restReplay_close` over the static-membership facts every closed theorem already rests on (H3 (a));
+the driver's view is over the ghost log on the raft loop's side too (H4 V1, finding 1); an install in
+a window rests on a carried `winInstallAbove` (H5 (a), finding 2) and the merged-send exclusion on a
+wand under a "window pending" token (H6 (a)); both are restart-only, and R2s discharges them.
+
+**Why.**
+- *Three probes failed when the window was designed upward*, from the apply chain (Q13, Q16/Q18,
+  Q21): each callee's window form fixed a bookkeeping the next caller up could not supply. Designing
+  from `run`'s loop, which is indexed by Go's log (as `RunWindow.lean` on `r2d-prime` already is),
+  makes every callee take Go's log as its log.
+- *Q21's two findings cannot arise.* (1) A replayed normal entry had no triple, because the spec
+  stepped the ghost at the ghost index; here the replay is a step at Go's index with the ghost
+  unchanged. (2) The closing identity `restReplay γr A D = restModel …` was false for a conf change
+  in `D`, and `winOk` allowed `W = []` with `D ≠ []`; here `D` is `G.drop b`, a function of Go's index,
+  so that case cannot be stated, and the identity is over a suffix of the committed log, where it
+  holds for conf changes too.
+- *Batches straddle `i`.* Raft's `MaxCommittedSizePerReady` splits the first committed entries, so a
+  batch can hold replays and new entries; a separate replay spec family for `apply`/`applyEntries`/
+  `applyAll` (H1 (c)) cannot be used, and `W`/`D` with Q21's repairs (H1 (b)) keeps the bookkeeping
+  that broke.
+- Go's rows at lean's text make Q16 (1), F4 and finding 6 disappear as changes.
+
+**Staging (H8 (a), H9).** R2d'a (`run` at a restart, the hub edit) then R2d'b (`NewServer` at a
+restart), each with its own Freeze; only the probe and R2d'a are committed now. The probe (a first
+batch straddling `i`, with a replayed conf entry, through `run`'s job and the view's round trip) runs
+before any statement is frozen; on a gap it stops with a proposal and nothing is frozen. R2d'b starts
+after the user's review, or after R2d'a's Freeze if the user is still away (82 decides then): the
+estimate went from 5-7 weeks to 10-14 (est.).
