@@ -25,6 +25,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restar
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restart.Base
 public import Proof.net.http.ListenerClose
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
 

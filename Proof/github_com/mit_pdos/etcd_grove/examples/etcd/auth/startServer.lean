@@ -14,6 +14,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 
 @[expose] public section
 
@@ -193,7 +194,14 @@ theorem startServer.wp_proof
   iright
   isplitr; · ipureintro; rfl
   iexists γa
+  have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
+  ihave #Hreq' : isServerReqM E.authOn srv E { ρ with wait := γw } $$ []
+  · rw [hon]; iexact Hreq
+  ihave #Hrd' : isServerReadM E.authOn srv E ρ.rd $$ []
+  · rw [hon]; iexact Hrd
+  iclear Hreq Hrd
   iapply etcdstart.memberUpOn_intro _ _ _ _ _ _ _ E _ γw
+  unfold etcdstart.kvServeStocks
   iframe
   iframe #
   isplitr
