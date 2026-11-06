@@ -270,13 +270,9 @@ theorem mvcc.store.restore.wp_proof
         exact hsub.subset (List.mem_of_mem_drop (List.mem_of_mem_take he))
       wp_apply (hRC lg rkvc ktl ks vs C Rd TokA γk (mvcc.rkvProt Rd ents)
           (fun sent => iprop(⌜sent.length = ents.length⌝))
-          sent (fun _ _ => iprop(emp))) $$ [$HtA $Hktl $Hprod]
+          sent (fun _ _ => iprop(emp)) ∅) $$ [$HtA $Hktl $Hprod]
         as ⟨HtA, Hktl, %new, %Hnew, Hprod⟩
       · iframe #
-        isplitr
-        · ipureintro
-          intro e he
-          exact mvcc.logEnts_lease _ hlz _ _ e (hCsub e he)
         isplitl []
         · iapply BigSepL.bigSepL_emp.2; itrivial
         iintro !> %j %e %rkv %hj - Hrkv
@@ -292,6 +288,7 @@ theorem mvcc.store.restore.wp_proof
             exact hj
           · cases hj
         · omega
+      rw [mvcc.ktlApply_noLease C (fun e he => mvcc.logEnts_lease _ hlz _ _ e (hCsub e he))]
       (try wp_auto)
       have hClen : C.length ≤ 10000 := by rw [hC]; exact List.length_take_le _ _
       by_cases hCs : C.length < 10000
