@@ -3,14 +3,15 @@
 2026-11-02, `notes/restart-plan.md`). Lean-first (no Rocq counterpart).
 
 R2a states what the example (`examples/etcd/restart`) needs of the server at a stop and a restart, over
-the predicates named here. Their content is the later sub-steps': each is an `opaque` placeholder
-until then, so that no statement over them can be proved by unfolding them.
+the predicates named here. Their content is the later sub-steps' (R2a: `opaque` placeholders; since
+defined: the stop's in R2b-2 and R2c, the image in R2c).
 
 * `srvStopRight s E γ ρ id dd` (exclusive): the right to stop the server `s` (apply environment
   `E`) of member `id` of the cluster `γ`, started at the request names `ρ` (`HardStop`). R2b-2 (2026-11-02): defined, the
-  stop channel, `done` with the image escrowed (`srvDoneInv`) and the escrow's claim; `Start`
-  gives it (`start` makes the channels), from `srvDataDir s dd`, which `NewServer` gives.
-  (Until then opaque and `NewServer`'s, without `ρ`.)
+  stop channel (at the stop request, `srvStopReq`, R2c-2), `done` with the image escrowed
+  (`srvDoneInv`) and the escrow's claim; `Start` gives it (`start` makes the channels, at the
+  slot's `DataDir` field, `srvStop.dataDirField`). Sealed (R2c review F5): its law for clients is
+  `srvStopRight_dd`. (Until R2b-2 opaque and `NewServer`'s, without `ρ`.)
 * `srvDiskImage γ ρ id dd` (exclusive): member `id`'s data directory, as its last incarnation's stop
   left it, that incarnation's request names `ρ` recorded: raft's hard state, log and last snapshot
   record (the WAL), the backend's buckets at its consistent index, the member and cluster ids. R2c
@@ -259,15 +260,16 @@ theorem srvDoneInv_wait (γ : SrvRaft) (ρ : ReqNames) (w : GName) (id : w64) (d
     (c : GName) : srvDoneInv (GF := GF) γ { ρ with wait := w } id dd c = srvDoneInv γ ρ id dd c :=
   rfl
 
-/-- **The right to stop the started server `s`** (DRAFT, R2b-2; see the file header): `s.stop` (a
+/-- **The right to stop the started server `s`** (R2b-2; defined in R2c-2; see the file header): `s.stop` (a
 channel a stop request is sent on, `srvStopReq` at the server's apply environment `E`: R2c-2; until
 then the request carried `srvBootApplied ρ` only; `run` receives it), and
 `s.done`, whose close announces the image escrowed for the claim `c` (`srvDoneInv`), with the claim.
 `start` makes both channels, so `Start` gives the right (R2b-2: until then `NewServer`, in the
 draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2; R2c-2: the right
 records the field, so that a holder who knows the directory, `srvDataDir`, learns `dd`). Sealed (R2c
-review F5, 2026-11-06): a client sees the name and its laws (`srvStopRight_dd`); `start` makes it
-(`srvStopRight_intro`) and `HardStop` opens it (`srvStopRight_open`). -/
+review F5, 2026-11-06; round 2's N2): a client sees the name and its law `srvStopRight_dd`; the
+package's two proofs that make and open it, `start`'s and `HardStop`'s, `import all` this module
+(`etc/import-all.txt`). -/
 @[no_expose] def srvStopRight (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
     (dd : GoString) : IProp GF :=
   iprop(∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
@@ -287,33 +289,6 @@ theorem srvStopRight_dd (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNa
   · ipureintro; exact Heq
   iexists stc, dnc, γst, γd, c
   iframe Hs Hb Hd Hdn Hc Hdd
-
-/-- **The stop right made** (`start`'s proof; R2c review F5): the two channels at the stop request
-and the escrow, the claim and the configuration's data directory field. -/
-theorem srvStopRight_intro (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
-    (dd : GoString) (stc dnc : Loc) (γst γd : ChanNames) (c : GName) :
-    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
-      srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
-      token c ∗ srvCfgFieldAddr s go!"DataDir" ↦□ dd ⊢
-    srvStopRight (GF := GF) s E γ ρ id dd := by
-  unfold srvStopRight
-  iintro ⟨#Hs, #Hb, #Hd, Hdn, Hc, #Hdd⟩
-  iexists stc, dnc, γst, γd, c
-  iframe Hs Hb Hd Hdn Hc Hdd
-
-/-- **The stop right opened** (`HardStop`'s proof; R2c review F5): the stop channel to send the
-request on, the `done` channel and the claim on its escrow. -/
-theorem srvStopRight_open (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
-    (dd : GoString) :
-    srvStopRight (GF := GF) s E γ ρ id dd ⊢
-      ∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
-        srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
-        srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
-        token c := by
-  unfold srvStopRight
-  iintro ⟨%stc, %dnc, %γst, %γd, %c, #Hs, #Hb, #Hd, Hdn, Hc, -⟩
-  iexists stc, dnc, γst, γd, c
-  iframe Hs Hb Hd Hdn Hc
 
 /-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
 thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s

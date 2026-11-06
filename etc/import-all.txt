@@ -46,3 +46,9 @@ allow Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes Proof
 # (2026-11-05, hub plan step 7's E2, D1) the cluster's start bundle (`cluster3.startRes`), sealed;
 # its laws are in its own module, so no module imports it whole.
 sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
+# (2026-11-06, R2c review round 2's N2) the right to stop a server (`srvStopRight`), sealed: only
+# the package's proofs that make it (`start`) and open it (`HardStop`) see its body; clients use
+# `srvStopRight_dd`.
+sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
+allow Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__HardStop

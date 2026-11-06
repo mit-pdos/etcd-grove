@@ -37,7 +37,7 @@ record and its stored commit the log handed to the apply thread (R2b-1: every sn
 of an index the apply thread was handed, and the loop saves a `Ready`'s hard state after handing
 its committed entries, with no stop between).
 
-(2026-11-03, R2b-3b: proved, `wp_proofStop`.) The loop's `done` announces the escrow
+(2026-11-03, R2b-3b: proved, `wp_proof`; until R2c's review F2, `wp_proofStop`.) The loop's `done` announces the escrow
 (`rnDoneEsc`), which `onStop` fills; the server enters a batch after its WAL `Save` (R2b-3a), so
 the records hold the durable state at every stop exit; `applyc` is synchronous, so the log the
 loop handed is the apply side's `A` (review M2). The image's order is at the backend's consistent

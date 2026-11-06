@@ -1939,3 +1939,23 @@ Details are in `notes/decisions.md`, "The stop chain for a first start".
 
 **Left (R2d):** a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`,
 `startMember.specRestart`, Q8, Q9.
+
+**Review round 2 (2026-11-06, `/shared/tmp/r2c-review2.md`):** all of round 1's fixes were found in
+place. Six low findings:
+- N1: the dead `srvDataDir` premise is dropped from `Start_builtR_spec`.
+- N2: `InvRestart` is sealed in `etc/import-all.txt`; only `start`'s and `HardStop`'s proofs
+  `import all` it.
+- N3: new law `srvWatchReaders_storeReaders`, and `srvStopReaders_intro` moves to its own module
+  `StopReaders`, so `StopApi` does not import the watch vocabulary.
+- N4: stale text, including `HardStop`'s scope now matched against etcd's `embed`.
+- N5: `srvStop.slot_intro` takes its fact as a Lean premise.
+
+**Left for etcdstart's owner (N6):** 16 example proofs take `etcdstart.memberUp` apart by position:
+- `txnlin`, `leasegrant`, `leaseexpiry`, `watch`, `putget3` (×3), `cache`, `compacted`,
+  `compactwatch`, `lease` and `putget` (their `Main`);
+- `restart/Run` and `restartCheck`;
+- `k8s/compactor` and `k8s/etcd3`;
+- `cluster3/StartMember`.
+
+Laws such as `memberUp_serve` or `memberUp_kvStocks` would make the next conjunct added to
+`memberUp` a local change (R2c-4 had to touch three of them).

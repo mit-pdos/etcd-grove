@@ -8,9 +8,11 @@ backend and the compactor closed), `done` closed. Lean-first (no Rocq counterpar
 **Scope (R2c review F3, 2026-11-06):** besides `srvStop.scope`, the request takes the serving
 stocks' readers back, which only a member that never served gRPC can give: once a member serves, its
 stocks go to `Serve` and no spec gives them back (there is no `grpc.Server.Stop` spec). So a member
-can be stopped only if it never served (`restart3`'s stopped member), until a gRPC `Stop` spec returns
-the stocks (whether etcd's `embed` stops its gRPC servers before the server's `Stop`, which
-would match that reading, is not checked here).
+can be stopped only if it never served (`restart3`'s stopped member). This matches etcd's own use:
+`embed.Etcd.Close` stops its gRPC servers (`stopServers`, `server/embed/etcd.go:441-446`, which
+waits on `GracefulStop` for the pending RPCs and falls back to `Stop` after the request timeout,
+`:503-521`) before `e.Server.Stop()` (`:469-471`). A `GracefulStop` spec that returns the stocks
+would lift the restriction (round 2's N4).
 
 **The triple:** from the right to stop the server (`srvStopRight`, which `Start` gives: `start`
 makes the channels `stop` and `done`) and the stop request it sends (`srvStopReq`, R2c-2): evidence

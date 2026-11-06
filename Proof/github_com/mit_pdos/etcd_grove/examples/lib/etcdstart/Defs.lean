@@ -40,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopReaders
 
 @[expose] public section
 

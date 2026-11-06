@@ -1,5 +1,5 @@
 /-
-`put(cli, k, v)` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2, 2026-11-02): `cli.Put` of
+`put(cli, k, v)` (`examples/etcd/restart/restart3.go`; the restart plan's R2, 2026-11-02): `cli.Put` of
 `k ↦ v` in a context with the request timeout, cancelled after the call. Lean-first (no Rocq
 counterpart).
 

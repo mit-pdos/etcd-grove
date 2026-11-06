@@ -466,7 +466,7 @@ EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdSer
 # metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
 # trust boundary (`axiom … .wp_proof`): v2stats' `BecomeLeader`. (`revokeExpiredLeases`, the expired
 # leases' receive, is unreachable since D19n, 2026-10-18.) Its shutdown (R2c-4, one spec: a stop
-# request on `stop`): the scheduler's `Stop`, `raftNode.stop` (`specStop`), `Cleanup` and the
+# request on `stop`): the scheduler's `Stop`, `raftNode.stop` (its one spec), `Cleanup` and the
 # image's reads and write (`stop_cleanup_image`).
 SnapshotMetadata__GetTerm: @
 EtcdServer__setCommittedIndex:

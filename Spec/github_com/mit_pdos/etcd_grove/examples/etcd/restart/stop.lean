@@ -1,5 +1,5 @@
 /-
-`stop(m)` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2a, 2026-11-02; DRAFT): the
+`stop(m)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): the
 member's server stopped (`HardStop`), then its peer listener closed. Lean-first (no Rocq
 counterpart).
 

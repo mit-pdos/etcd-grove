@@ -205,9 +205,9 @@ theorem startMember.wp_proofRestart
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
+  wp_apply (wp_StartR s ρ' E₀ lg γn id N true)
     $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
-  · iframe Htok Hsr
+  · iframe Htok
     iframe #
     iunfold etcdstart.memberBuiltR
     iexists ai₀, at₀, c₀, x₀

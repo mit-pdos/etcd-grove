@@ -32363,8 +32363,13 @@ collections also gain `lease.lessor.Stop.wp_proof`, which the shutdown uses).
 **A scope restriction (the review's F3).** The stop request takes back the store readers of the
 serving stocks (`srvStopReaders`). Only a member that never served gRPC can give them: once a
 member serves, its stocks go to `Serve`, and no spec gives them back (there is no `grpc.Server.Stop`
-spec). So until a gRPC `Stop` spec exists, only such a member can be stopped. That is `restart3`'s
-case: its stopped member never serves. `HardStop.spec`'s header states this.
+spec). So until such a spec exists, only a member that never served can be stopped. That is
+`restart3`'s case: its stopped member never serves. It also matches etcd's own order:
+`embed.Etcd.Close` stops its gRPC servers before `e.Server.Stop()` (`server/embed/etcd.go:441-446`
+and `:469-471`). Its `stopServers` waits on `GracefulStop` for the pending RPCs and falls back to
+`Stop` after the request timeout (`:503-521`). So the spec that would lift the restriction is a
+`GracefulStop` spec that returns the stocks. `HardStop.spec`'s header states this (review round 2,
+N4).
 
 **Review round 1 (2026-11-06, a fresh `spec-reviewer`).**
 - F1: `BuildServer.specRestart`'s post and `Start_builtR_spec`'s pre lose their second copy of the

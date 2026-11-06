@@ -1,5 +1,5 @@
 /-
-`serveClient(m, client)` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2a, 2026-11-02):
+`serveClient(m, client)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02):
 the started member's gRPC API served at `client` (`etcdstart.Serve` of the member's server). Lean-first
 (no Rocq counterpart).
 

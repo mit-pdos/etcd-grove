@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Perennial.Proof.context
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
+import all Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 
 @[expose] public section
 
@@ -212,7 +213,8 @@ theorem EtcdServer.start.wp_proof
   ihave Hright : iprop(∃ dd : GoString, srvStopRight (GF := GF) s E ρ.rd.raft.raft ρ γn.id dd)
       $$ [Hcs]
   · iexists cfgk.DataDir'
-    iapply srvStopRight_intro s E ρ.rd.raft.raft ρ γn.id cfgk.DataDir' stc dch γst γd cs
+    iunfold srvStopRight
+    iexists stc, dch, γst, γd, cs
     iframe Hcs
     iframe #
   -- the stop's slot, for `run`'s shutdown

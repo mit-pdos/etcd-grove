@@ -1,7 +1,7 @@
 /-
 **restart3's `Run` and its functions: their named premises and vocabulary** (the restart plan's
 R2a, 2026-11-02, `notes/restart-plan.md`; DRAFT). Lean-first (no Rocq counterpart). putget3's
-(`putget3/Defs.lean`) for the members of `examples/etcd/restart/etcd_restart.go`, with a member's stop and
+(`putget3/Defs.lean`) for the members of `examples/etcd/restart/restart3.go`, with a member's stop and
 restart.
 
 **The pure facts** (`BootFacts`): putget3's, for `restart3`'s three configurations (the cluster

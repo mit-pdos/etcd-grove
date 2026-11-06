@@ -53,10 +53,8 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   imod isServerBuilt_offC s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) (W64 0) (W64 0) bootKV N $$ [Hsb Hkeep] with ⟨%hm, Hsb, Hl⟩
   · iframe Hsb
-    iapply srvStop.slot_intro s cfg
-    isplitl [Hkeep]
-    · iexact Hkeep
-    ipureintro; rfl
+    iapply (srvStop.slot_intro s cfg E γrn γk
+      (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk)) rfl) $$ Hkeep
   have h' := wp_Start s γA ci TM .off E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk) (srvTrStopK γk))
     γrn b (W64 0) (W64 0) (W64 0) bootKV N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false] at h'

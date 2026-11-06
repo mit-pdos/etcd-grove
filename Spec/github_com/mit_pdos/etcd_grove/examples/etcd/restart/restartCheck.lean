@@ -1,5 +1,5 @@
 /-
-`restartCheck(cli, m, name, peer, peerAddr, client, cluster, lg)` (`examples/etcd/restart/etcd_restart.go`;
+`restartCheck(cli, m, name, peer, peerAddr, client, cluster, lg)` (`examples/etcd/restart/restart3.go`;
 the restart plan's R2, 2026-11-02; DRAFT): the member `m` stopped, `NPuts` puts of `k ↦ v2` through
 `cli`, the member started again on its data directory and its gRPC API served at `client`, a client
 of it, a `Get` of `k` through it, and a panic unless the `Get` returned `v2`. Lean-first (no Rocq

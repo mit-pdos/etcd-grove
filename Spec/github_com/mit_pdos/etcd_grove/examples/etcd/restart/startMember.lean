@@ -1,5 +1,5 @@
 /-
-`startMember(name, peer, peerAddr, client, cluster, lg)` (`examples/etcd/restart/etcd_restart.go`; the
+`startMember(name, peer, peerAddr, client, cluster, lg)` (`examples/etcd/restart/restart3.go`; the
 restart plan's R2a, 2026-11-02; DRAFT): member `name` of `restart3`'s cluster built
 (`etcdstart.BuildServer` at the snapshot settings), its raft handler served on a listener at
 `peerAddr`, and the server started. Lean-first (no Rocq counterpart).
