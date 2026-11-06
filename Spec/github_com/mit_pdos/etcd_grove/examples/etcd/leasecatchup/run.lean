@@ -60,7 +60,7 @@ abbrev run.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup ∗
       cluster3.startRes (GF := GF) clusterCfg ∗
       threadTok ∗ cluster3.premises clusterCfg N id₁ id₂ id₃ ps ctxs boot ∗
-      ⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot ∧ lg ≠ null⌝ ∗
+      ⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot⌝ ∗ ⌜lg ≠ null⌝ ∗
       ⌜threadBound GF ≤ 2 ^ 28 ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧
         N + 7 + bootWB ≤ backend.wbInit⌝ ∗
       ⌜ckptEffectsOk ∧ authRecordsFit ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ storage.diskOk⌝ ∗

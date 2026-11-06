@@ -584,3 +584,54 @@ separate processes; `go vet` and `gofmt` clean). **Nothing contradicts a spec or
   The process's raw goroutine count rises by about 50–70 per member (etcd's own), so this test
   counts by stack frame and creator instead. 3/3.
 
+## Review round 2 fixes (2026-11-06)
+
+The NITs N1, N2 and N4 of `notes/spec-review/lease-mono3-r2.md` (round 2, on `00edf6d0f3`), fixed on
+branch `lease-mm` as DRAFT under the batching rule: each frozen, exported or new statement that
+changed is listed old → new with its cause. No axiom, trusted model or `sorry` was added.
+
+### Exported statements (etcdstart's API, `cluster3`'s vocabulary)
+
+| statement | old | new | cause |
+|---|---|---|---|
+| `etcdstart.etcdKVAt_eq` (new, `Served.lean`) | — | `etcdKVAt addr E ρ γr cid mid = iprop(<its five registrations>)`, `rfl` | N1: `memberServed_none`/`memberAt_none` rewrite with it instead of unfolding `etcdKVAt` |
+| `etcdstart.etcdLeaseServedAt_none` (new, `ServedLease.lean`) | — | `etcdLeaseServedAt .none addr s E ρ γr cid mid = etcdKVAt addr E ρ γr cid mid`, `rfl` | N1 (the reviewer's restatement); no client uses it yet (`servedRegs`'s `.none` arm is `etcdKVAt` itself) |
+| `etcdstart.etcdLeaseServedAt_mono` (new, `ServedLease.lean`) | — | `etcdLeaseServedAt .mono addr s E ρ γr cid mid = etcdLeaseGrantAt addr E`, `rfl` | N1: `memberAt_mono` uses it |
+| `etcdstart.etcdLeaseGrantAt_elim` (new, `ServedLease.lean`) | — | `etcdLeaseGrantAt addr E ⊢ isGrpcRpc addr "/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗ isGrpcRpc addr "/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases)` | N1: `memberAt_mono` uses it |
+| `cluster3.memberServed_none`, `memberAt_none`, `memberAt_mono` (`Defs.lean`) | proofs unfold `etcdstart.etcdKVAt` (`_none`), `etcdstart.etcdLeaseServedAt` and `etcdLeaseGrantAt` (`_mono`) | statements unchanged; the proofs rewrite with `etcdKVAt_eq`, `etcdLeaseServedAt_mono` and eliminate with `etcdLeaseGrantAt_elim` | N1 |
+| `cluster3.clusterAt` (docstring) | "…; the client's view of etcd's KV at the start store; …" | "…; in the mode `none`, the client's view of etcd's KV at the start store; …" | N2; the definition is unchanged |
+
+The other clients that unfold these definitions (leasegrant's `Main.lean`, leaseexpiry's
+`Main.lean`, txnlin's and k8s etcd3's `etcdKVAt`) are pre-existing debt, not changed in this round
+(r2 N1 names them); the laws are there for them.
+
+### New statements (leasecatchup)
+
+| statement | old | new | cause |
+|---|---|---|---|
+| `etcd_leasecatchup.run.spec` | `⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot ∧ lg ≠ null⌝ ∗ …` | `⌜cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot⌝ ∗ ⌜lg ≠ null⌝ ∗ …` (the rest unchanged) | N4: unrelated facts in separate conjuncts, in `StartCluster`'s premise order |
+
+`run`'s proof introduces the two conjuncts with `%Hbf, %Hlg`, and `Main`'s proof passes them
+ungrouped. `Main.spec`, `Adequacy` and the closed theorems are unchanged.
+
+### Left, with the reason
+
+- **N3, an elimination law for `clusterUp`** (the three `memberAt`s, the `srvPeerCtl`s and the
+  bridges): `run` still unfolds `clusterUp` and `clusterAt` and destructures them positionally. It
+  is the shared cluster3 pattern (partition's `startCluster.lean` and `Main.lean` do the same), so
+  the law belongs to a change of cluster3's clients together, for later.
+- P1 and P2 of round 2 (the user's acknowledgement of the two lease axioms at Freeze; leasecatchup's
+  baseline after merging `lean`) are process items, not spec fixes: still open.
+
+### Checks
+
+`lake build` of the sixteen importer leaves of the changed files (`etc/importers.py --leaves`, `old.*`
+filtered out: the `Results` of cache, compacted, compactwatch, lease, leasecatchup, leaseexpiry,
+leasegrant, partition, putget, putget3, txnlin, watch, k8s compactor and k8s etcd3, and restart's
+`Run` and `restartCheck`) passes. The new laws omit the section's `[HasExt idIssueExt]` and
+`cache_sem` (`omit … in`), which their statements do not need and cluster3's `Defs` does not have:
+with them, `simp` could not instantiate `etcdKVAt_eq` there. `etc/gen-interface.py
+etc/api/etcdstart.txt`: `Served.txt` (`etcdKVAt_eq`) and `ServedLease.txt` (the three laws) moved,
+nothing else; `--check` passes; `etc/api-check.py` passes. `etc/tcb-report.py --check`: 785 axioms,
+3 `sorry`s, as the baseline; collections leasecatchup (624, 0), linkv3p (635, 0), k8scompactor
+(684, 0), putget3 (611, 0) match. `etc/bounds-check.py --check`: 390, baseline 390. No Go changed.

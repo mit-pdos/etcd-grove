@@ -69,6 +69,18 @@ instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) :
     Persistent (etcdLeaseGrantAt addr E) := by
   unfold etcdLeaseGrantAt; infer_instance
 
+omit [HasExt idIssueExt] cache_sem in
+/-- **`etcdLeaseGrantAt` gives its two registrations** (lease-mono3's review r2, N1: the
+elimination a client uses in place of unfolding the definition). -/
+theorem etcdLeaseGrantAt_elim (addr : GoString) (E : apply.AEnv GF) :
+    etcdLeaseGrantAt addr E ⊢
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
+          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases) := by
+  iintro #H
+  iunfold etcdLeaseGrantAt at H
+  iexact H
+
 /-- **`LeaseGrant`, `LeaseTimeToLive` and `LeaseLeases` registered at the revocable mode's specs**
 (persistent; the lease-expiry plan's X2, 2026-11-04, the reads since E3, 2026-11-05): a grant's reply
 carries its lease live in the lessor `E.γ.leases`'s history and its request, the requested TTL
@@ -103,6 +115,20 @@ instance etcdLeaseServedAt_persistent (m : lease.Mode) (addr : GoString) (s : Lo
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) :
     Persistent (etcdLeaseServedAt m addr s E ρ γr cid mid) := by
   cases m <;> unfold etcdLeaseServedAt <;> infer_instance
+
+omit [HasExt idIssueExt] cache_sem in
+/-- **`etcdLeaseServedAt` in the mode `none` is the KV calls** (`rfl`; lease-mono3's review r2,
+N1). -/
+theorem etcdLeaseServedAt_none (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (cid mid : w64) :
+    etcdLeaseServedAt .none addr s E ρ γr cid mid = etcdKVAt addr E ρ γr cid mid := rfl
+
+omit [HasExt idIssueExt] cache_sem in
+/-- **`etcdLeaseServedAt` in the monotone mode is the grant and the listing at the lessor's
+history** (`rfl`; lease-mono3's review r2, N1). -/
+theorem etcdLeaseServedAt_mono (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (cid mid : w64) :
+    etcdLeaseServedAt .mono addr s E ρ γr cid mid = etcdLeaseGrantAt addr E := rfl
 
 /-- **`kv_lease_served`, with what the watch service needs** (lease-mono3's pass 2(c),
 2026-11-06): its post, and the `GoAttach` resources `grpcUp` holds (`srvGoRes`), the stream

@@ -62,8 +62,7 @@ theorem run.wp_proof
     (wp_PeerStep : cluster3.PeerStep.spec (GF := GF) (hG := hG)) :
     run.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id₁ id₂ id₃ ps ctxs boot lg
-  wp_start as ⟨Hstart, Htok, #Hprem, %Hp₁, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
-  obtain ⟨Hbf, Hlg⟩ := Hp₁
+  wp_start as ⟨Hstart, Htok, #Hprem, %Hbf, %Hlg, %Hp₂, %Hp₃, %Hp₄, %Hp₅⟩
   obtain ⟨Htb, Hrb48, HrbN, HwbN⟩ := Hp₂
   obtain ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩ := Hp₃
   obtain ⟨HlP, HnE⟩ := Hp₄

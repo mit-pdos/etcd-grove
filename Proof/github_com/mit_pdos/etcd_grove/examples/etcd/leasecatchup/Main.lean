@@ -46,7 +46,7 @@ theorem Main.wp_proof
   (try wp_auto)
   wp_apply (wp_run N id₁ id₂ id₃ ps ctxs boot lg) $$ [Hstart Htok] as %r -
   · iframe; iframe #
-    ipureintro; exact ⟨⟨Hbf, Hlg⟩, Hp₂, Hp₃, Hp₄, Hp₅⟩
+    ipureintro; exact ⟨Hbf, Hlg, Hp₂, Hp₃, Hp₄, Hp₅⟩
   (try wp_auto)
   iapply HΦ; itrivial
 

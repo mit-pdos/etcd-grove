@@ -26,7 +26,7 @@ gives the client's `etcdKV`; in a mode that grants leases it registers instead t
 lease-grant's `kv_lease_served` does: the KV calls make no claim in a cluster that grants leases, and
 no client's `etcdKV` exists there, `srvClusterBoot_alloc`). At `.none` every definition below is
 its text before lease-mono3 (the `_none` laws after each: `clusterAt_none` and `clusterUp_none` by
-`rfl`, `memberServed_none` and `memberAt_none` by `etcdKVAt`'s unfolding and the `∗`s'
+`rfl`, `memberServed_none` and `memberAt_none` by `etcdKVAt`'s law `etcdKVAt_eq` and the `∗`s'
 associativity); in the monotone mode a member of the started cluster gives its bridge's grant and
 listing registrations (`memberAt_mono`).
 
@@ -231,7 +231,7 @@ theorem memberServed_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqName
         (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝) := by
-  simp only [memberServed, servedRegs, etcdstart.etcdKVAt, sep_assoc_eq]
+  simp only [memberServed, servedRegs, etcdstart.etcdKVAt_eq, sep_assoc_eq]
 
 end defs
 
@@ -352,7 +352,7 @@ theorem memberAt_none (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
       -- (M2, the storage side, review round 2's N1, the approval's item 13) the member's server in
       -- the cluster's mode
       E.γ.cm = cmp⌝) := by
-  simp only [memberAt, servedRegs, etcdstart.etcdKVAt, sep_assoc_eq]
+  simp only [memberAt, servedRegs, etcdstart.etcdKVAt_eq, sep_assoc_eq]
 
 instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
     (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : SrvRaft)
@@ -372,8 +372,9 @@ theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
   iintro #Hm
   iunfold memberAt at Hm
   icases Hm with ⟨#Hfw, -, Hs, -⟩
-  isimp only [servedRegs, etcdstart.etcdLeaseServedAt, etcdstart.etcdLeaseGrantAt] at Hs
-  icases Hs with ⟨-, #HG, #HL⟩
+  isimp only [servedRegs, etcdstart.etcdLeaseServedAt_mono] at Hs
+  icases Hs with ⟨-, #Hg⟩
+  icases etcdstart.etcdLeaseGrantAt_elim c E $$ Hg with ⟨#HG, #HL⟩
   isplitl
   · iapply isGrpcRpc_forwards b c; iframe #
   · iapply isGrpcRpc_forwards b c; iframe #
@@ -382,7 +383,8 @@ theorem memberAt_mono (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (
 caller can state what it builds on them: the partition example's clients, at `watchEnv` of the
 members' watch servers): the members' slice and the bridges'; each member (`memberAt`) with its
 place in the network (a reader's token of its transport), each bridge owned and not blackholed;
-the client's view of etcd's KV at the start store; the members' KV state variables agreeing, the
+in the mode `none`, the client's view of etcd's KV at the start store; the members' KV state
+variables agreeing, the
 first's in the compaction mode `cmp` at retention `0`. -/
 def clusterAt (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (cmp : Bool)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (srvs brs : GoSlice)
