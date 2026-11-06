@@ -58,6 +58,47 @@ client/v3, the watch path included, red), so `ServerKVGet` and `ServerKVPut` wer
   These are client/v3-internal (no exported result names them; `InvLease`/recipes mention them in
   docstrings only).
 
+### The watch path's foundation (built of record: `InvWatch`, `WatchLawsHist`, `InvClientNewResult`, `WatchCheck`, `ServerWatcher`, `Spec/…/watcher__Watch`)
+
+Over v3rpc's landed watch path (`WatchApi`, `InvWatch`: `WSrv` without `γ`, `watchSpec R W tok`,
+`watchDn γs R W tok`, `watchAuthed tag`, `watchUp` without token or store fact) and the draft's §8:
+- `WEnv` gains `W : v3rpc.SrvW GF` (the current member's) and `memW : Nat → v3rpc.SrvW GF`
+  (`atIdx` sets `W := memW i`; `memWOf`, `atIdx_W`, `atIdx_memWOf`); `WEnv.EM` deleted (unused).
+- `srvWL W L := □ W.histLb L` (the draft's `srvWL2`, boxed: `histLb` is persistent only by
+  `srvWOk`'s law); `srvWEnv R W γr addr ics conn wc pfx lg kv` (new `W γr`: the model
+  `etcdModelOfServer R.E γr false`; `memW := fun _ => W`).
+- `watchLaws`' fourth law: `□ ∀ L, V.W.histLb L ={⊤}=∗ □ V.WL L` (was mvcc's `evLog` with
+  `LogSmall`).
+- **`srvWLaws W`** (new, persistent): `srvWOk`'s laws but the handle and peek (histLb persistent,
+  prefix-comparable, prefix-closed, its model facts; crevOk persistent); `srvWLaws_of_ok`,
+  `srvWLaws_model`; `srvOnce_persistent` (an instance for v3rpc's `srvOnce`).
+- `watchLaws_srv V on γr (hWM : V.WM = etcdModelOfServer V.R.E γr on) (hWL : V.WL = srvWL V.W)
+  (hH : V.W.histLb = srvApi.histLb γr on V.R.E.γs) : srvWLaws V.W ⊢ watchLaws V` (over
+  `srvLog_of_histLb`, `etcdReached_of_nx`; no `srvKVFacts`, no `R.γ.st` link).
+- `watchLaws_hist V γ γk γr hWM hWL hm (hH : V.W.histLb = srvApi.histLb γr false V.R.E.γs) :
+  srvWLaws V.W ⊢ watchLaws V` (over `histWL_of_srv`; was `srvKVInvs ∗ isWatchServer` with
+  `hlog0`); `isWatchServer_start` deleted.
+- `watchMemberFacts V := srvWLaws V.W ∗ v3rpc.srvOnce V.W ∗ watchLaws V ∗ srvKVFacts V`
+  (`watchTokPool`, `srvLogsSmall`, `R.γ.st = R.E.γ`, `mvcc.watchNoDup` gone);
+  `watchMemberFacts_once`, `_laws`, `_kv` (`_noDup`, `_st` deleted).
+- `srvKVFacts` without `mvcc.idxSealed … [[], []]` (`srvKVFacts_intro`, `srvKVFacts_of_off` without
+  it); `srvKVFacts_cperm` deleted (compaction permits: `W.crevOk`, the draft's `compactResp`).
+- `watchUp_create V i c h : □ authPubLbM V.R.E.authMode c.bound ⊢ watchUp V.R i (.create c)`.
+- `watchConnFacts`: `watchSpec (V.memOf a) (V.memWOf a) tok`; its pure part
+  `∃ i, i < V.nm ∧ V.mem i = (V.addr, V.R) ∧ V.memW i = V.W`; `watchConnFacts_cur` gives
+  `watchMemberFacts V ∗ ⌜V.pfx ≠ []⌝` (no `R.γ.st` link).
+- S2 `srvProgressAllAnswers` deleted (the draft); **S3 `srvEventIdsAssigned R W`** restated as the
+  draft's `srvEventIdsAssigned2` (a statement; `srvEventIdsAssigned_holds` not yet proved, so
+  deleted: next step); `srvLogsSmall`, `srvNoDupKeys` deleted.
+- `wsRow`, `respcE`, `watchCheckOk (tag : GName)` at the server's auth tag (`R.tag`); the spec
+  `watcher.Watch.spec`'s post names `watchCheckOk (V.mem 0).2.tag …` (was `.γ`: the field v3rpc's
+  `WSrv` lost; no other change to the spec).
+- `watchAddrFacts V` (`InvClientNewResult`): `watchSpec V.R V.W`, `eofOk`, `⌜V.pfx ≠ []⌝`,
+  `srvWLaws V.W`, `srvOnce V.W`, `watchLaws V`, `srvKVFacts V`; `watchConnFacts_of_addr`,
+  `isNewClient_watcher`, `watcher_of_clientTokAt` take `(hw : V.memW = fun _ => V.W)` after `hm`.
+- `ServerWatcher`: `srvLogsSmall_of_read`, `srvLogsSmall_of_receipts`, `watchTokPool_of_server`,
+  `watchSrvLink_of_server` deleted.
+
 ## Requests
 
 1. **Server (the write path's posts): the log after a write carries its receipt and well-formedness.**
@@ -95,15 +136,17 @@ client/v3, the watch path included, red), so `ServerKVGet` and `ServerKVPut` wer
 
 1. Check `InvServerKV`, `ServerKV{Get,Put,Txn}` once `ClientModel` (v3rpc) and the server build
    (`lake env lean` needs `LinkMembers`' olean, i.e. `Link`: the watch path first).
-2. The watch path (`InvWatch`, `ServerWatcher`, `WatchFire`, `WatchCompl`, `WatchLawsHist`,
-   `WatchContent`, `WatchRun`, `watchGRPCStream__run`, `watcher__Watch`, `WatchResumeSrv`,
-   `WatchStateDefs`), over v3rpc's landed `WatchApi`/`InvWatch` (`WSrv` has no `γ`; `watchSpec R W
-   tok` takes the server's `SrvW`; `WRun`, `mvccOk`, `rcvSnap`) and the draft's §8 bridges
-   (`notes/mvcc-api-clients/WatchSpecs.lean`: `srvEventIdsAssigned2`, `recvEvents`, `progressCov`,
-   `compactResp`, `srvWL2 W L := W.histLb L`): `WEnv` gains the member's `SrvW`; `srvWL`,
-   `srvLogsSmall`, `srvNoDupKeys`, `watchMemberFacts` (no `watchTokPool`, `watchNoDup` →
-   `srvOnce W`), `srvKVFacts` (no `idxSealed`, `srvKVCoreM` → the restated read facts),
-   `watchLaws_srv` over `histLb_model.law`. Not started.
+2. The watch path above the foundation (red): `WatchStateDefs`/`WatchContent` (`rawRespOk γst …`
+   over mvcc's `evLog`/`StoreNames`: restate over `W.histLb`; `recv_unfiltered`/`dispatch_content`
+   over the draft's `recvEvents`), `WatchFire` (`raw_to_state`: fire `srvKVCoreM_fire` at a
+   witnessed extension `L'` of the `histLb` log, `srvApi.histLb`'s `kvNx γr on L'`, at the tie
+   `E.Nx = kvNx γr on`; `sealed_logOk` → `srvWLaws_model`), `WatchCompl`, `WatchRun`
+   (`respCov`/`covFact`/… → the draft's `progressCov`; `mvccOk_cmpPerm` → `compactResp` over
+   `W.crevOk`), `watchGRPCStream__run` (no `watchTokPool_take`: `watchUp_create` takes no token;
+   `srvEventIdsAssigned V.R V.W`, whose proof `srvEventIdsAssigned_holds` is to write from v3rpc's
+   `mvccOk`/`rcvSnap`), `watcher__Watch`, `WatchResumeSrv`, `WatchEpoch`. The bridges
+   (`recvEvents`, `progressCov`, `compactResp`, S3) are statements in the draft §8, proofs to write
+   over v3rpc's `rcvSnapG`/`mvccOk` and the API's `wsRecvOk`.
 3. `ServedOn`, `ServeFromStart(On)` (import `Results`: after the coordinator's restatement);
    `ServeFromStart` uses `srvServeBuilt` without `mvcc.storeReader` slots.
 4. `examples/common`: `Defs.lean` drops `srvWatchReaders s E 64` and the `mvcc.storeReader E.s E.γ`
