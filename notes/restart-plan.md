@@ -1963,3 +1963,288 @@ place. Six low findings:
 
 Laws such as `memberUp_serve` or `memberUp_kvStocks` would make the next conjunct added to
 `memberUp` a local change (R2c-4 had to touch three of them).
+
+### R2d Scope (2026-11-06, for the user)
+
+Session etcd-grove-83, branch `r2d` (off `lean` `6b49f77e01`, after R2c's Freeze, tag `r2c-frozen`).
+Design only: no Lean edited, nothing built. **A hard stop: the user's Scope.** The questions are in
+the worktree's `questions.md` (untracked); the coordinator's package is
+`/shared/tmp/r2d-scope-package.md`. Line numbers are at `6b49f77e01` (Go: the etcd pin, `249d76bea7`).
+Sizes are estimates (marked "est.").
+
+**The brief** (the coordinator's): a restarted member's `run`; `Start_builtR_spec`;
+`BuildServer.specRestart`, `startMember.specRestart` and `NewServer` over both boots; A4 (the restart
+example's closed theorem, `examples/etcd/restart/restart3.go`); Q8 (the KV invariant at a restart);
+Q9 (a restarted `run`'s starting point); and a check of R2c's finding that A4 needs three new
+trusted assumptions.
+
+**The recommendation, in one paragraph.** Split. **R2d** is the server's restart chain, proved over
+the existing trust base plus **one** widened axiom (`NewAuthStore` over the auth bucket a first start
+leaves, a hard stop): Q8 (a), Q9 (d) (below; R2c's leaning (a) does not typecheck as written), one
+`NewServer` spec over both boots, `BuildServer` with one spec, `startMember` with one spec, and
+`Start_builtR_spec` deleted (the ordinary `Start.spec` covers a restarted member). **R2e** is A4: the
+closed theorem `restart3_safe`, which brings the remaining trust items (the restart contract as a
+premise, `ListenerClose` and the widened `register`, the data directories' exclusivity), the
+restarted member's catch-up, and its `Link`/`Results`. gRPC `GracefulStop` is neither: its own stage,
+after R2e. The old label "R2e raft's restart" is retired (`RestartNode` is proved). Estimate: R2d
+3-4 weeks (est.; about 45 files, 2500-3500 changed lines, two full builds per round at most), R2e
+1-2 weeks (est.) plus its trust Freeze.
+
+#### What reading the code found
+
+- **G-a. Q9's leaning (a) is inconsistent with the names a restart keeps.** A member's names are the
+  cluster's: `isServer` has `⌜ρ.rd = γr⌝` (`InvApplier.lean:664`), `NewServer` fixes
+  `ρ.rd.raft = ⟨γ, [], W64 0⟩` (`NewServer.lean:162`) and `ρ.rd.kv.c0 = 0` (`:166`), and
+  `restartNames` keeps both (`InvRestart.lean:582-585`). `kvRun γr ai₀ c₀ A x` forces
+  `γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀` (`InvRunRes.lean:256`), and `srvRaftLogInv` fixes
+  `γ.pre = []`, `ai0 = pre.length` (`SrvRaftLog.lean:742`). So (a)'s `ai₀ = σ.b`, `c₀ = i` holds only
+  at `σ.b = i = 0`. Making it hold needs new raft and KV names per incarnation, which Q8 rules out
+  (G-b).
+- **G-b. A second `kvInv` cannot be allocated.** `kvInv` (`InvRequest.lean:673`) holds the only
+  invariant half of the ghost variable `γk.st` and `srvRLog γ L` (the cluster's mono-list half,
+  `SrvRaftLog.lean:386`), and `uint.Z γk.c0 ≤ uint.Z γ.ai0` (`InvRequest.lean:676`): a member's
+  `kvInv` at `c0 = i` over the cluster's `ai0 = 0` is false. Q8 (b) is out.
+- **G-c. A restarted `run` lags its own KV.** `run` sets `ep.appliedi` from raft storage's snapshot
+  (`server.go:760`, `:808-814`): the WAL snapshot's `σ.b`. The backend holds the KV through its
+  consistent index `i ≥ σ.b` (`srvDiskImage`, `InvRestart.lean:130`). `applyEntries` skips only
+  entries `≤ ep.appliedi` (`:1209-1233`), so `(σ.b, i]` is applied again, each with
+  `shouldApplyV3 = ApplyV2storeOnly` (`:1933-1937`, `e.Index <= ConsistentIndex`), which writes no
+  KV. The model already has this shape: `batchStep`'s `v3 = decide (c < m.index)`
+  (`InvApplier.lean:221`), `loopOk`'s `p = max ciEff a` (`:105`), `ciJ`'s second disjunct
+  (`InvRunRes.lean:56`), and the snapshot install's jump (`applied_jump`, `InvRequest.lean:2284`;
+  `kvApplied_of_jump`, `snapRecv_kv_jump`), where the ghost applied index runs ahead of Go's.
+- **G-d. The replay window is not invisible to the rest buckets' in-memory model.** With `v3 = false`:
+  `apply` still calls `Apply` (`server.go:1969-2000`); the uber applier dispatches
+  `ClusterVersionSet`, `ClusterMemberAttrSet` and `DowngradeInfoSet` before its `!v3` return
+  (`apply/uber_applier.go:82-127`); `UpdateAttributes` and `SetVersion` set the in-memory
+  attributes and version even when v2-only (`membership/cluster.go:467-477`, `:589-623`);
+  `applyConfChange` still calls `SetConfState` and `transport.AddPeer` (`server.go:2031-2101`) while
+  `AddMember` v2-only is a no-op (`cluster.go:394-425`). So during the window the in-memory version
+  and attributes go back to older values and forward again; at the window's end they are the
+  image's again (last writer wins over the same entries). `restAfter`/`restUpdateAttrs`
+  (`apply/RestModel.lean:118-128`) already model the v3-false writes. A documented behavior
+  (`shouldApplyV3`'s comment), not a bug: nothing filed.
+- **G-e. `s.appliedIndex` starts at 0 at a restart.** `setAppliedIndex` (`server.go:1713`) is the only
+  writer; nothing sets it from `ep.appliedi` before the first batch. Readers of `AppliedIndex()`
+  (the read-index loop's wait, `linearizableReadLoop`) see 0 until the first applied entry.
+  `srvAppliedBody` already lets the atomic lag the ghost (J5, `InvRequest.lean:2141`); the restart
+  is that case from the start. Not a bug (a reader waits longer).
+- **G-f. Three constructor axioms are stated on empty buckets.** `NewAuthStore.spec` takes the auth
+  bucket `∅` (`Spec/.../auth/NewAuthStore.lean:125-126`); a first start leaves `authBoot`
+  (`authRevision = 1`, `InvRest.lean:280`), which is what a restart reads. `NewLessor` (`lease`
+  bucket `∅`, `NewLessor.lean:141`) and `NewAlarmStore` (`alarm` bucket `∅`,
+  `NewAlarmStore.lean:86`) are met by the image as it is: the server's workload (`plainCover`)
+  leaves them empty (`InvImage.lean:249-254`). So R2c's count of three new trusted items is short
+  by one, `NewAuthStore`'s widening, and it falls in R2d, not A4.
+- **G-g. `mvcc.NewStore` and `mvcc.New` are specified on a fresh backend only**
+  (`Spec/.../mvcc/NewStore.lean:2`, `:27`). A restart needs the restoring case; `store.restore` is
+  proved (the snapshot path), so this is proof work, no trust.
+- **G-h. Under (d) the hub's `start`/`Start` statements keep `ai₀ = W64 0`**
+  (`EtcdServer__start.lean:55`, `EtcdServer__Start.lean:47`): the applier's context indices are the
+  names' (0), and Go's lagging `appliedi` lives inside `applyRes`. What changes is the meaning of
+  `isServerBuiltC`/`isServerRunC` (and `start`'s docstring, "from index `0`").
+
+#### 1. What R2d verifies
+
+| Option | Content | Trust | Size (est.) |
+|---|---|---|---|
+| (A) one stage | the restart chain and A4 | 4 hard stops in one Freeze | 5-6 weeks |
+| **(B) split, recommended** | R2d: the chain over both boots; R2e: A4 | R2d: 1 (`NewAuthStore`); R2e: 3 | R2d 3-4 weeks, R2e 1-2 |
+| (C) three-way | R2d: `run` at restart only (Q9); R2d': `NewServer`/`BuildServer`; R2e: A4 | as (B) | as (B), one more Freeze |
+
+(B) keeps each Freeze's trust items to those its own statements need, and R2d's result
+(`BuildServer.spec` over both boots, `Start.spec` unchanged in text) is usable by any example, not
+only `restart3`. (C) puts `run`'s and `NewServer`'s halves of one interface (`isServerBuiltC`'s
+meaning) in different Freezes, so a change found in the second reopens the first.
+
+**R2d's results:**
+- `run.spec` (one, frozen in R2c) proved at a restarted member's starting point (Q9 (d)).
+- `NewServer.specG` over both boots: a `boot` argument, first start (as now) or restart from
+  `srvDiskImage` with `bootstrapRestartContract`'s `bootOkR`; the restart case reuses the cluster's
+  `kvInv` (Q8 (a)).
+- `newServer`/`newServerMode`/`BuildServer.spec` over both boots; `BuildServer.specRestart` merged
+  into it; `memberBuiltR` merged into `memberBuilt`.
+- `start.spec`, `Start.spec` unchanged in text; `Start_builtR_spec` deleted (the restarted member
+  is an ordinary built member).
+- `examples/etcd/restart`'s `startMember` with one spec (the restarted call uses the restart boot).
+
+**Not R2d (R2e):** `restart3_safe`, its `Link`/`Results`; the catch-up check; the trust items
+`bootstrapRestartContract` as an exported premise, `ListenerClose_spec` with the widened `register`,
+and the data directories' exclusivity.
+
+#### 2. Q8 and Q9
+
+**Q8, the KV invariant at a restart.**
+- (a) **Recommended.** Reuse the cluster's `kvInv` through `kvInv_congr` (`NewServerAlloc.lean:70`):
+  widen `restartNames` to `ρ'.rd.raft = ρ.rd.raft ∧ kvCongr ρ.rd.kv ρ'.rd.kv ∧ …ids`, with
+  `kvCongr` a new definition that is exactly `kvInv_congr`'s 11-field hypothesis (`st`, `c0`, `ch0`,
+  `log0`, `ids.issued`, `ids.wn`, `cmp`, `rlog`, `cret`, `lm`, `kvPfx`), so the two cannot drift.
+  The member's own names (`cok`, `hi`, the wait and the slots) are new. The revroom-b requirement
+  (`kvInv`'s `log0` bound at a restart allocation) does not arise; the restored store's own bound
+  comes from `soleWriter_small'`, as on the snapshot path (`SnapSendBranch.lean:357`). R2c's leaning
+  (a) re-checked: right, but `restartNames` as written covers 6 of the 11 fields.
+- (b) Allocate a member `kvInv` with `log0` the backend's log: impossible (G-b).
+
+**Q9, a restarted `run`'s starting point.**
+- (a) R2c's leaning: `%HEr` (`InvRun.lean:53-54`) generalized to `ai₀ = σ.b`, `c₀ = i`,
+  `γn.pre` the first `σ.b` entries, the server names kept. **Inconsistent** (G-a).
+- (b) Require `σ.b = i`: false of Go (`restart3` snapshots every other entry, `restart3.go:7-8`; the
+  backend commits past the snapshot).
+- (c) A window in the KV relation: `kvApplied`'s `A` the Go-applied entries and `x` ahead by
+  `(ai, c]`. Changes `kvRun`, `kvApplied` (21 files), `kvBatch`, `appliedLogAt` (24) and `kvLogsOk`
+  on the read path, and the stop's image. Large, and the read path would see the window.
+- (d) **Recommended. The restart is a jump.** The ghost applied log starts at the backend's
+  consistent index: `A₀` the committed entries through `i` (`imageAt` gives them,
+  `InvRestart.lean:563`), `kvApplied γr.raft γr.kv A₀ x₀` as after a snapshot install
+  (`kvApplied_of_jump`). The applier context's `ai₀ = c₀ = 0` stay (the names'), so `ciJ`, `loopOk`
+  and `run_snap_job`'s `ha00`/`hc0` hypotheses (`EtcdServer__run.lean:297`, `:504`, `:681`) hold
+  unchanged. Go's `ep.appliedi = σ.b` lags: `applyRes` gains `aiGo ≤ ai` with
+  `epAppliedIAddr C.ep ↦ aiGo`, equal to `ai` past the window; the window's entries are replays of
+  entries of `A₀` (`entryStep … v3 = false`, KV unchanged). `%HEr`'s `γn.pre = []` becomes a prefix
+  relation (the node hands from `σ.b`, `RestartNode.spec`), `srvC`'s `srvRLogLb ρ.raft L` becomes
+  `srvRLogLb ρ.raft (P ++ L)` with `P = γn.pre`, and `srvRest` gets a window form (G-d). The same
+  form covers a merged snapshot labeled below its backend's index (a restarted leader in its window).
+- What depends on it: `applyStart`, `applyRes`, `srvC`, `srvRest` (`InvRunRes`, 936 importers;
+  `InvRest`, 1288, only by new lemmas in a new module); `setAppliedIndex.spec` (386) gains a
+  below-ghost case (the atomic stores `aiGo`); `run`'s proof (48 `pre` and 74 `ai₀` mentions).
+
+#### 3. gRPC `GracefulStop`
+
+**Later, its own stage after R2e; not needed by `restart3`** (only member 1 serves before the
+restart, `restart3.go:85-86`; S1 of R2c).
+- No spec of `Server.Stop`/`GracefulStop` exists; grpc is names-only (`Code/google_golang_org/grpc.toml`).
+  The serve axioms (`grpc.serve`, `InvGrpc.lean:928`; `serveStream`, `InvGrpcStream.lean:1043`)
+  consume the serving stocks for good (post `True`).
+- What it waits for (grpc-go v1.84.0 `server.go:1687-1729`): `GracefulStop` closes the listeners,
+  drains the transports and waits for `handlersWG`; `Stop` does not wait for handlers unless
+  `WaitForHandlers`. etcd calls `GracefulStop` under a `ReqTimeout` context and falls back to `Stop`
+  (`embed/etcd.go:436-446`, `:490-521`).
+- Watch streams do not end at `GracefulStop` (`v3rpc/watch.go:220-233` returns only on the stream's
+  context), and `recvLoop` outlives `Watch` (`:194-198`, the code's own comment), so the watch
+  slots cannot be returned at a handler's end: a fork change or a weaker claim.
+- Unary methods return their slots (`grpcMethodOkMd`); Watch keeps them (`grpcStreamMethodOk`; the
+  returning variant `grpcStreamMethodOkR`/`grpcSlotPool` is unused). 9 `v3rpc` spec files name the
+  serving readers.
+- Estimate: 1-2 weeks (est.), two hard stops (a new axiom family for `Stop`/`GracefulStop`; the watch
+  path's claim).
+
+#### 4. Frozen statements R2d changes (old → new)
+
+At `r2c-frozen`, `hub-step7-frozen` or exported. **[HUB]** marks a request to etcd-grove-82.
+
+1. **[HUB]** `NewServer.specG` (`NewServer.lean:147`): the first start's names hard-coded
+   (`:162-167`) → a `boot : SrvBoot` argument: `.first` as now (premises `bootstrapContract`,
+   `wal.bootRes`, `nodeBoot`, `srvReadNamesFreshNK`), `.restart ρ σ i L D` with
+   `bootstrapRestartContract`, `srvDiskImage` and `restartNames`; one post. A closed theorem at a first
+   start instantiates `.first` and gains no premise.
+2. **[HUB]** `bootOk`/`bootOkR` (`InvRestart.lean:357`): unchanged as two contracts (the
+   trust-boundary exception: a fact only the trusted contract gives is taken only by the case that
+   needs it); `memStorRestarted` (`:331`, opaque) becomes a definition, restating what
+   `bootOkR` gives of raft's memory storage (`bootstrap.go:725-734`). The merge of `lateWB`/`lateWBR`
+   (B1) is restated, not merged.
+3. **[HUB]** `isServerBuiltC`, `isServerRunC` (`InvBuild.lean:316`, `InvRun.lean:53-54`, and the
+   `%HEr` copies in `InvStart.lean:240`, `StartOn.lean:87`, `StopShutdown.lean:414`): text of
+   `%HEr` `c₀ ≤ ai₀ ∧ γn.pre = [] ∧ ai₀ = 0` → `c₀ ≤ ai₀ ∧ ai₀ = 0 ∧ γn.pre <+: …` (the prefix
+   relation), and `applyStart` at an initial `A₀`.
+4. `start.spec`, `Start.spec` (hub / exported): text unchanged (G-h); meaning through item 3. The
+   docstring's "from index `0`" changes.
+5. `run.spec` (`r2c-frozen` 12): text unchanged; meaning through item 3; docstring scope "a first
+   start" → "a first start or a restart".
+6. `newServer.spec`, `newServerMode.spec`, `BuildServer.spec` (`hub-step7-frozen`, R2c 1-2): gain the
+   boot argument; `BuildServer.specRestart` merged in and deleted.
+7. `etcdstart.memberBuilt` (`Defs.lean:308`): over both boots; `memberBuiltR`, `bootPremiseR`
+   (`Restart.lean`) merged; `memberRestartRes` (`StartRes.lean:94`) kept as the restart boot's
+   premise.
+8. `restartNames` (`InvRestart.lean:582`): widened (Q8 (a)). `srvDiskImage` (`:130`): unchanged.
+9. `Start_builtR_spec` (`StartStop.lean`, draft): deleted.
+10. restart's `startMember.spec`/`specRestart` (R2c 7): one spec with the boot argument.
+11. Internal: `applyStart`, `applyRes`, `srvC`, `srvRest` (window form), `setAppliedIndex.spec`
+    (below-ghost case), `mvcc.New.spec`/`NewStore.spec` (a restoring case), `newRaftNode`'s spec (the
+    `RestartNode` path; 788 importers).
+12. **Trust** `auth.NewAuthStore.spec` (axiom): hard stop HS1 below.
+
+#### 5. Trust-base impact
+
+R2d adds no axiom and widens one. R2e's three are listed so the user sees the whole count.
+
+- **HS1 (R2d). `NewAuthStore` over a first start's auth bucket.** In `auth.NewAuthStore.spec`
+  (`Spec/.../auth/NewAuthStore.lean:111-137`) replace
+  `(r.lookup go!"auth").getD ∅ = ∅` by
+  `((r.lookup go!"auth").getD ∅ = ∅ ∨ (r.lookup go!"auth").getD ∅ = authBoot)`, all else unchanged
+  (post: the bucket at `authBoot`, auth disabled). Why true: `NewAuthStore` (`server/auth/store.go:977-993`) reads
+  `authEnabled` (absent in `authBoot`: disabled) and the revision (1), skips `commitRevision` (it
+  runs only at revision 0), and `refreshRangePermCache` reads no user (`authUsers = ∅`): the store
+  and bucket end exactly as after a first start, where `commitRevision` set revision 1. Attacks
+  tried: an enabled bucket (excluded: the premise is equality to `authBoot`, which has no
+  `authEnabled`); a non-empty users or roles bucket (excluded by the kept premises); a revision other
+  than 1 (excluded); the store's in-memory revision differing between the two cases (no: 1 in both).
+  None found a panic or a different post.
+- **HS2 (R2e). `bootstrapRestartContract` as a premise of `restart3_safe`** (`InvRestart.lean:559-576`,
+  as it stands, a persistent premise as `bootstrapContract` is for every closed theorem). Why true
+  and its attack: the R2b whole-`bootOk` review's (M1 and the rest); to be re-attacked with the
+  `axiom` skill before R2e's Freeze, on `memStorRestarted`'s definition (HS1's sibling: it must say
+  only what `bootstrap.go:554-581` and `:725-734` do).
+- **HS3 (R2e). `http.ListenerClose_spec` and the widened `register`** (`Proof/net/http/ListenerClose.lean`,
+  drafts): `registerClosable_spec : netListenerAt l a -∗ httpProtoOwn a P ==∗ ⌜∃ li, l = ok li⌝ ∗
+  httpListenerAt l a P ∗ httpListenerCloser l a P` (widens the axiom `register`, `Axioms.lean:45`)
+  and `ListenerClose_spec : {{ httpListenerCloser l a P }} l.Close() {{ err; netAddrFree a ∗
+  httpProtoOwn a P }}`. So R2c's "one" item is two statements. Why true: `FD.Close` waits until the
+  descriptor is closed (`internal/poll/fd_unix.go:91-118`), and the listener sets `SO_REUSEADDR`
+  (`net/sockopt_linux.go:28`), so the address can be bound again at once. Attacks tried: binding the
+  address after `Close` (succeeds in Go, as claimed); a second `Close` (blocked: the closer is
+  exclusive and consumed); making `netAddrFree` from nothing (no: it comes back only for the address
+  `Listen` consumed, via the closer `register` produced).
+- **HS4 (R2e). The data directories' exclusivity.** `walFiles` (`WalRecs.lean:178`), `fileHolds`
+  (`InvBbolt.lean:102`) and `walDirFresh` (`WalDir.lean:27`) are axioms read as `True` in the start
+  axiom's satisfiability argument (R2b-1 stage 3a). Options: (i) a durable-directory GooseLang
+  extension (the whole-`bootOk` review's E); (ii) exclusivity axioms, e.g.
+  `walFiles_excl : walFiles d id cid σ ∗ walFiles d id' cid' σ' ⊢ False` and
+  `walFiles_fresh_excl : walFiles d id cid σ ∗ walDirFresh d ⊢ False`; (iii) the three defined over a
+  per-directory ghost name that `goose_adequacy_start` allocates (`startRights`), restating that
+  axiom; (iv) the members' directories distinct as a premise of `restart3_safe`, as `putget3`
+  takes them. Attack on (ii): it breaks the `True` reading (`True ∗ True ⊢ False` is false), so (ii)
+  is sound only with (iii)'s model: (ii) alone is rejected. Recommendation: (iv) if R2e's proof needs
+  only distinctness (it reuses one member's `srvDataDir` and `srvFiles`, both exclusive resources
+  already), else (iii). Decided in R2e's Scope.
+
+Verified R2c's "three new trusted assumptions": the three are real (HS2-HS4), HS3 is two
+statements, and HS1 is a fourth, needed already by R2d.
+
+#### 6. Sub-steps
+
+| Step | What | Files (lines) | Risk | Full build (`--count`) |
+|---|---|---|---|---|
+| R2d-1 | Q8 (a): `kvCongr`, `restartNames` widened, `HardStop` gives it | `InvRestart.lean:580-585`, `NewServerAlloc.lean:70`, `HardStop` proof | low | yes (732) |
+| R2d-2 | Q9 (d) vocabulary: `applyStart` at `A₀`, `applyRes`'s `aiGo`, `srvC`'s prefix; `%HEr` | `InvRunRes.lean:184,256,404`, `InvRun.lean:53`, `InvBuild:316`, `InvStart:240`, `StartOn:87`, `StopShutdown:414` | high | yes (936) |
+| R2d-3 | `srvRest`'s window form; last-writer-wins lemma | new `apply/RestReplay.lean` (no statement of `InvRest` changes) | high | no (new module) |
+| R2d-4 | `setAppliedIndex.spec` below-ghost case | its spec and proof | medium | 386, with R2d-2 |
+| R2d-5 | `run`'s proof over the generalized start (window batches, `run_snap_job` at `aiGo < ai`) | `EtcdServer__run.lean` proof and its lemma files | high | no (proofs) |
+| R2d-6 | Constructors over data: `mvcc.New`/`NewStore` restoring case; `NewAuthStore` widened (HS1); `newRaftNode`'s `RestartNode` path; `memStorRestarted` defined | specs `NewStore` (393), `New` (414), `NewAuthStore` (465), `newRaftNode` (788) | medium-high | yes |
+| R2d-7 | `NewServer.specG` with the boot argument; proof's restart branch (`bootstrap.go:77` `haveWAL`, `:112`, `:437`) | `NewServer.lean` spec (462), proof (2865 lines) | high | 462 |
+| R2d-8 | etcdstart: `memberBuilt` over both boots, `BuildServer` one spec, `Start_builtR_spec` deleted; restart's `startMember` | `Defs.lean:308` (188), `Restart.lean` (63), `BuildServer` (47), `StartStop.lean`, restart `startMember.lean` | low | no (188) |
+
+Rounds: R2d-1, -2, -4, -6's statements in one batch (one full build), then R2d-3, -5, -7, -8 (proofs,
+targeted builds), then the gates' full build.
+
+**Review** (spec-reviewer, fresh, given the Go code and the callers, not this Scope's conclusions):
+`applyRes`/`applyStart` at `A₀`/`aiGo`, `srvRest`'s window, `NewServer.specG`'s boot argument,
+`restartNames`. **Test**: `restart3_test.go` passes at the pin; a Go test of the window (restart with
+`σ.b < i`, the in-memory version read during the window) to confirm G-d. **Probe** (both proved in
+the Draft): hard, `run`'s first window batch (`applyRes` with `aiGo < ai` and `srvRest`'s window
+across one `ClusterVersionSet`); easy, R2d-1 (`restartNames` to `kvInv_congr`). **Freeze**: items
+1-12 of section 4 in one batch, HS1 with the `axiom` skill's report.
+
+#### 7. Risks, and what would make us revise
+
+- `run`'s proof uses `ai₀` both for Go's fields (`ep.appliedi`, `ep.snapi`, `Hsnap` at `ai₀ at₀`) and
+  for the ghost; separating them (74 mentions) is the bulk of R2d-5. If they cannot be separated
+  locally, revise toward (c) for the applied index only.
+- G-d's window: if the last-writer-wins argument fails for an interleaving of `UpdateAttributes` and
+  a conf change in the window, `srvRest` needs a weaker form during the window, visible to readers of
+  the members (a spec change on the read path).
+- `NewServer`'s proof (2865 lines) may need restructuring for a second boot; if the restart branch
+  shares little, give `NewServer` two specs under the trust-boundary exception instead of one.
+- If `bootstrapRestartContract` must change to supply what R2d-7 needs (beyond defining
+  `memStorRestarted`), that is a trust change in R2d: stop and ask.
+- If the reviewer finds `imageAt`'s `A` insufficient to give `kvApplied … A₀ x₀` (the backend's log
+  at `i`), the image's statement changes (`InvImage.lean`, a frozen predicate).
