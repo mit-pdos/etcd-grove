@@ -43,12 +43,14 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     (wp_Close : DB.Close.spec (GF := GF) (hG := hG))
     (wp_envFailure : envFailure.spec (GF := GF) (hG := hG)) :
     testMinibolt.spec (GF := GF) (hG := hG) := by
-  intro _ dir
-  wp_start as ⟨#Hpkg, #Henv, #Hos, Hm, Htok⟩
-  ihave Hf := dbFile_absent (dir ++ go!"/db") $$ Hm
+  intro _ dir R V j hr hd hn
+  wp_start as ⟨#Hpkg, #Henv, #Hos, Ht, Htok⟩
+  ihave Hf := dbFile_absent (GF := GF) R V (child dir go!"db") hn
   wp_auto
-  wp_apply wp_Open (dir ++ go!"/db") 1 none 4 valueOkP (by simp [valueOkP]) $$ [Hf]
-    as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, #Hpath, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)
+  rw [show dir ++ go!"/db" = child dir go!"db" from rfl]
+  wp_apply wp_Open dir go!"db" R V j 1 none 4 valueOkP hr (by decide) hd (by simp [valueOkP])
+      $$ [Ht Hf]
+    as %db %err ⟨%V', Ht, (⟨%Herr, %γ, %Hvl, #Hdb, #Hpath, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)⟩
   · iframe #; iframe
   rotate_left
   · obtain ⟨Herr, rfl⟩ := Herr
@@ -62,6 +64,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     iapply HΦ
     itrivial
   subst Herr
+  obtain ⟨Hvp, hl, hdl⟩ := Hvl
   (try wp_auto)
   ihave Hown' : dbOwnerOpt (GF := GF) γ (some (1, 4)) $$ [Hown]
   · rw [dbOwnerOpt_some]; iexact Hown
@@ -217,10 +220,12 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
     rw [Hvp] at Hv40
     have hvo : vo = some (W64 40) := by simpa [valueOkP] using Hv40
     subst hvo
-    ihave Hf : dbFile (GF := GF) (dir ++ go!"/db") 40 (some (W64 40)) 43 $$ [Hst]
-    · unfold dbFile; iright; iexact Hst
-    wp_apply wp_Open (dir ++ go!"/db") 40 (some (W64 40)) 43 valueOkP (by simp [valueOkP]) $$ [Hf]
-      as %db2 %err2 (⟨%Herr2, %γ2, %Hvp2, #Hdb2, -, Hown2, #Hlast2, -⟩ | ⟨%Herr2, -⟩)
+    ihave Hf : dbFile (GF := GF) R V' (child dir go!"db") 40 (some (W64 40)) 43 $$ [Hst]
+    · unfold dbFile; iright; iexists γ.ino; iframe Hst; ipureintro; exact hl
+    rw [show dir ++ go!"/db" = child dir go!"db" from rfl]
+    wp_apply wp_Open dir go!"db" R V' j 40 (some (W64 40)) 43 valueOkP hr (by decide) hdl
+        (by simp [valueOkP]) $$ [Ht Hf]
+      as %db2 %err2 ⟨%V'', -, (⟨%Herr2, %γ2, %Hvl2, #Hdb2, -, Hown2, #Hlast2, -⟩ | ⟨%Herr2, -⟩)⟩
     · iframe #; iframe
     rotate_left
     · obtain ⟨Herr2, rfl⟩ := Herr2
@@ -234,6 +239,7 @@ theorem testMinibolt.wp_proof (wp_Open : Open.spec (GF := GF) (hG := hG))
       iapply HΦ
       itrivial
     subst Herr2
+    obtain ⟨Hvp2, -, -⟩ := Hvl2
     (try wp_auto)
     ihave Hown2' : dbOwnerOpt (GF := GF) γ2 (some (40, 43)) $$ [Hown2]
     · rw [dbOwnerOpt_some]; iexact Hown2

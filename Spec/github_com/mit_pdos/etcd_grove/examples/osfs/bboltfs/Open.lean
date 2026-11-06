@@ -104,7 +104,8 @@ abbrev Open.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open)) (Val #(child d b)))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); ∃ V' : Hist,
       osTree (DFrac.own 1) R V' ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp ∧ lookupH R V' (child d b) = some (.file γ.ino)⌝ ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp ∧ lookupH R V' (child d b) = some (.file γ.ino) ∧
+          lookupH R V' d = some (.dir j)⌝ ∗
           isDB (GF := GF) γ db ∗ db.[DB, go!"path"] ↦□ (child d b) ∗ dbOwner (GF := GF) γ t n ∗
           dbLast (GF := GF) γ t ∗ dbTx (GF := GF) γ t vo) ∨
       (⌜err ≠ interface.nil ∧ db = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }}

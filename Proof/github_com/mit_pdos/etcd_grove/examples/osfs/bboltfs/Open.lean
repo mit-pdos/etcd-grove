@@ -40,6 +40,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
+/-- After a create of `b` in the directory `j` that `d` names, `d` still names `j` (the part of
+`Proof/os/OpenFile.lean`'s `lookupH_create` that is not exported, `hd'`). -/
+theorem lookupH_create_dir {R : Roots} {V : Hist} {d b : GoString} {j i : Ino} (s : Nat)
+    (hr : RootsOk R) (hd : lookupH R V d = some (.dir j)) (hb : NameOk b)
+    (hn : lookupH R V (child d b) = none) :
+    lookupH R (V.push ⟨.create j b i, s⟩) d = some (.dir j) := by
+  have ht : (Hist.st R (V.push ⟨.create j b i, s⟩)).tree =
+      (Hist.st R V).tree.upd j (fun dd => <[b := Node.file i]> dd) := by
+    show (V.push _).now = _
+    rw [Hist.push_now]; rfl
+  have hen : (Hist.st R V).tree.entry j b = none := by
+    rw [← lookup_child (st := Hist.st R V) hr hd hb]; exact hn
+  obtain ⟨r, j0, cs, hrj, hcs, hp, hw⟩ := lookup_some (st := Hist.st R V) hd
+  unfold lookupH
+  rw [hp, lookup_joinPath (st := Hist.st R (V.push _)) hr hrj hcs, ht]
+  exact walk_upd_insert hen cs _ _ hw
+
 /-- `os.OpenFile(path, O_RDWR|O_CREATE, 0666)` of the database file: creating it if there is none
 (`specCreate`, with the whole history), or opening the file there (`spec`). -/
 theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
@@ -54,7 +71,8 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ∃ V' : Hist,
         osTree (DFrac.own 1) R V' ∗
         ((∃ (fd : w64) (i : Ino) (m : OsMeta),
-            ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ lookupH R V' (child d b) = some (.file i)⌝ ∗
+            ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ lookupH R V' (child d b) = some (.file i) ∧
+              lookupH R V' d = some (.dir j)⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
             osMeta i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) ∨
          (⌜err ≠ interface.nil ∧ f = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }} := by
@@ -70,7 +88,7 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       iexists fd, i, newMeta
       iframe Hf Hfd Hm
       isplitr
-      · ipureintro; exact ⟨h.1, h.2, lookupH_create _ hr hd hb hn⟩
+      · ipureintro; exact ⟨h.1, h.2, lookupH_create _ hr hd hb hn, lookupH_create_dir _ hr hd hb hn⟩
       iapply openSt_new
     · iapply HΦ
       iexists V; iframe Ht
@@ -92,7 +110,7 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       ileft
       iexists fd, i, m
       iframe
-      ipureintro; exact ⟨h.1, h.2, hl⟩
+      ipureintro; exact ⟨h.1, h.2, hl, hd⟩
     · iapply HΦ
       iexists V; iframe Ht
       iright
@@ -137,7 +155,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact ⟨by simp, rfl⟩
     · iexact Hfail
-  obtain ⟨rfl, Hfd, hl⟩ := Hfd
+  obtain ⟨rfl, Hfd, hl, hdl⟩ := Hfd
   (try wp_auto)
   wp_apply wp_Name f fd (child d nm) (DFrac.own 1) $$ [Hf] as Hf
   · iexact Hf
@@ -422,7 +440,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     iexists γ
     isplitr
-    · ipureintro; exact ⟨Hγvp, hl⟩
+    · ipureintro; exact ⟨Hγvp, hl, hdl⟩
     iframe Hown Hlast Htx
     isplitr
     · unfold isDB; isplitr
