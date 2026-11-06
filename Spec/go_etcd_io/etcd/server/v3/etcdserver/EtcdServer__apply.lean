@@ -56,7 +56,9 @@ abbrev EtcdServer.apply.spec : Prop :=
     (W D : List EntryModel),
   E.authMode ≠ .any → (E.authOn = true → receiptBound GF ≤ 2 ^ 48) →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
-  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
+  -- (R2d, Q19) at the ghost index's next (`winGhost f0 W`: `f0` with no window, the ghost index
+  -- `+ 1` in one)
+  dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (winGhost f0 W) ms →
   -- (R2d, DRAFT) the replay window
   winOk A D W ms →
   -- (R2d, Q17 F2) the pending replays at or below the consistent index (Go's `shouldApplyV3`,
