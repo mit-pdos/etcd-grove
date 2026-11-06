@@ -220,7 +220,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     iunfold mvccState at Hσ
     iunfold mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach, #Hrcm⟩
     icases HT with (⟨⟨HwL, HwR⟩, Hfz, HRg⟩ | ⟨Hfz, HK⟩)
     rotate_left 1
     · icases HK with ⟨>HK, >Hd, >Hreg⟩
@@ -228,7 +228,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
       · iunfold mvccState
         iunfold mvccStateI
         iframe
-        ipureintro; exact Hreach
+        iframe Hrcm; ipureintro; exact Hreach
       imodintro
       iexists σ, false
       iframe HΦσ
@@ -252,7 +252,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
         iunfold mvccStateI
         iunfold absPart
         iframe
-        ipureintro; exact Hreach
+        iframe Hrcm; ipureintro; exact Hreach
       imodintro
       iexists σ, true
       iframe HΦσ

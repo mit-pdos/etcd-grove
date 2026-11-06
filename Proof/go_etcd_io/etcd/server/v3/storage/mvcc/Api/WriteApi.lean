@@ -65,7 +65,7 @@ theorem writeCb_of_au (γ : StoreNames) (p : PhysNames) (R : MvccState → IProp
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha', Hp', Hcr, Hnl, %Hreach⟩
+  icases Hσ with ⟨Ha', Hp', Hcr, Hnl, %Hreach, #Hrcm⟩
   ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha' Ha]
   · iframe Ha' Ha
   ihave %Hpg := pndPart_agree _ _ _ _ _ $$ [Hp' Hp]
@@ -75,7 +75,7 @@ theorem writeCb_of_au (γ : StoreNames) (p : PhysNames) (R : MvccState → IProp
     · ipureintro; exact Hpg
     iunfold mvccStateI
     iframe Ha' Hp' Hcr Hnl
-    ipureintro; exact Hreach
+    iframe Hrcm; ipureintro; exact Hreach
   imodintro
   iframe Ha Hp
   iexists σ

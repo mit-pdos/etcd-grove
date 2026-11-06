@@ -89,7 +89,7 @@ theorem wsEndCbY_of_au (γw : WsNames) (σ₀ : MvccState) (pend : List Change) 
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach, #Hrcm⟩
   ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
   · iframe Ha HYa
   ihave %Hpg := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
@@ -124,7 +124,7 @@ theorem wsEndCbY_of_au (γw : WsNames) (σ₀ : MvccState) (pend : List Change) 
     iframe Ha Hp Hcr
     isplitl [Hnl]
     · iunfold nlAuth; iexact Hnl
-    ipureintro; exact hreach1
+    iframe Hrcm; ipureintro; exact hreach1
   imodintro
   isplitr
   · iunfold nlLb; iexact Hnlb
@@ -148,7 +148,7 @@ theorem wsEndCbY_of_au (γw : WsNames) (σ₀ : MvccState) (pend : List Change) 
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach'⟩
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach', #Hrcm'⟩
   ihave %Hag' := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
   · iframe Ha HYa
   ihave %Hpg' := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
@@ -190,7 +190,7 @@ theorem wsEndCbY_of_au (γw : WsNames) (σ₀ : MvccState) (pend : List Change) 
     iunfold mvccStateI
     simp only [MvccState.notifiedLog]
     iframe Ha Hp Hcr Hnl
-    ipureintro; exact hreach2
+    iframe Hr; ipureintro; exact hreach2
   imodintro
   iframe HQ
   isplitl [HXa HXc]

@@ -59,13 +59,13 @@ theorem readCbC_of_au (γ : StoreNames) (Q : MvccState → IProp GF) :
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha', Hp', Hcr, Hnl, %Hreach⟩
+  icases Hσ with ⟨Ha', Hp', Hcr, Hnl, %Hreach, #Hrcm⟩
   ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha' Ha]
   · iframe Ha' Ha
   imod Hcommit $$ [Ha' Hp' Hcr Hnl] with HQ
   · iunfold mvccStateI
     iframe Ha' Hp' Hcr Hnl
-    ipureintro; exact Hreach
+    iframe Hrcm; ipureintro; exact Hreach
   imodintro
   isplitl [Ha Hc]
   · iunfold slotX; iunfold revMuAbs; iframe Ha Hc

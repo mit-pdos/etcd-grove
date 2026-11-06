@@ -161,6 +161,10 @@ theorem New.wp_proof
   rw [show crevRightM (GF := GF) γw.st = crevUB γw.st.idx (1 : Qp).half (-1) from by
     unfold crevRightM; simp [hcm']]
   imod compactRightR_of_closer st γw.st ⊤ $$ Hscl Hcr with Hright
+  -- the initial log's receipt (`mvccState`'s: nothing changed yet)
+  imod (preceipt_zero (GF := GF)) with #Hr0
+  ihave #Hr0' : ⧖ (logCh ([[], []] : Log)) $$ []
+  · rw [show logCh ([[], []] : Log) = 0 from rfl]; iexact Hr0
   -- the handle
   ihave #Hmv : □ isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType watchableStore.ty) #ws)
       γw.st $$ []
@@ -185,7 +189,7 @@ theorem New.wp_proof
     rw [show (mvccStart : MvccState) = ⟨[[], []], -1, none⟩ from rfl]
     simp only [MvccState.notifiedLog]
     iframe Hab Hpn Hcr2 Hnl
-    ipureintro; exact MvccReachable.start
+    iframe Hr0'; ipureintro; exact MvccReachable.start
   isplitl [Hright Hcr4 HRT Hsc Hwait]
   · iunfold mvccOpen
     iexists st, γw.st.phys, (-1)

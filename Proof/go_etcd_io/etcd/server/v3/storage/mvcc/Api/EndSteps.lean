@@ -130,7 +130,7 @@ theorem endCb_nil_of_au (γ : StoreNames) (σ₀ : MvccState) (crev : Int) (Q : 
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach, #Hrcm⟩
   ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
   · iframe Ha HYa
   ihave %Hpg := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
@@ -147,7 +147,7 @@ theorem endCb_nil_of_au (γ : StoreNames) (σ₀ : MvccState) (crev : Int) (Q : 
     iframe Hr'
     iunfold mvccStateI
     iframe Ha Hp Hcr Hnl
-    ipureintro; exact Hreach
+    iframe Hrcm; ipureintro; exact Hreach
   ihave Hau2 := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
     (fun _ _ => CoPset.mem_full) $$ Hau2
   ihave Hacc := aupd_aacc $$ Hau2
@@ -158,7 +158,7 @@ theorem endCb_nil_of_au (γ : StoreNames) (σ₀ : MvccState) (crev : Int) (Q : 
   icases Hucl with ⟨-, Hcommit⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach'⟩
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach', #Hrcm'⟩
   ihave %Hag' := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
   · iframe Ha HYa
   ihave %Hpg' := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
@@ -171,7 +171,7 @@ theorem endCb_nil_of_au (γ : StoreNames) (σ₀ : MvccState) (crev : Int) (Q : 
     rw [commitPending_of_none hp]
     iunfold mvccStateI
     iframe Ha Hp Hcr Hnl
-    ipureintro; exact Hreach'
+    iframe Hrcm'; ipureintro; exact Hreach'
   imodintro
   iframe HQ
   iapply Yat_slotY
@@ -210,7 +210,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     iunfold mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach, #Hrcm⟩
     ihave %Hag := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
     · iframe Ha HYa
     ihave %Hpg := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
@@ -243,7 +243,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
       iframe Ha Hp Hcr
       isplitl [Hnl]
       · iunfold nlAuth; iexact Hnl
-      ipureintro; exact hreach1
+      iframe Hrcm; ipureintro; exact hreach1
     -- the commit: the view (the client's half, `s.revMu`'s quarter and the writer's), the pending
     -- revision back
     ihave Hau2 := atomic_update_mask_weaken (Eo1 := ⊤ \ ↑mvccN) (Eo2 := ⊤)
@@ -256,7 +256,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     iunfold mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach'⟩
+    icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach', #Hrcm'⟩
     ihave %Hag' := absPart_agree _ _ _ _ _ _ _ $$ [Ha HYa]
     · iframe Ha HYa
     ihave %Hpg' := pndPart_agree _ _ _ _ _ $$ [Hp HYp]
@@ -293,7 +293,7 @@ theorem endCb_of_au (γ : StoreNames) (σ₀ : MvccState) (ilog : Log) (pend : L
       iunfold mvccStateI
       simp only [MvccState.notifiedLog]
       iframe Ha Hp Hcr Hnl
-      ipureintro; exact hreach2
+      iframe Hr; ipureintro; exact hreach2
     imodintro
     iframe HQ
     isplitl [HXa HXc]

@@ -149,7 +149,7 @@ theorem mvcc.compact_cmpCb (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (c rev :
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     iunfold mvcc.api.mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcc, Hnl, %Hreach⟩
+    icases Hσ with ⟨Ha, Hp, Hcc, Hnl, %Hreach, #Hrcm⟩
     iunfold mvcc.slotX at HX
     iunfold mvcc.api.revMuAbs at HX
     icases HX with ⟨HXa, HXc⟩
@@ -203,7 +203,7 @@ theorem mvcc.compact_cmpCb (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (c rev :
       simp only [mvcc.api.MvccState.compactTo]
       rw [hlog]
       iframe Ha Hp Hcc Hnl
-      ipureintro
+      iframe Hrcm; ipureintro
       rw [← hlog]
       exact mvcc.api.MvccReachable.compact σ rev Hreach Hpn h1 hcond.1 hcond.2
     imodintro
@@ -224,7 +224,7 @@ theorem mvcc.compact_cmpCb (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (c rev :
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     iunfold mvcc.api.mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcc, Hnl, %Hreach⟩
+    icases Hσ with ⟨Ha, Hp, Hcc, Hnl, %Hreach, #Hrcm⟩
     iunfold mvcc.slotX at HX
     iunfold mvcc.api.revMuAbs at HX
     icases HX with ⟨HXa, HXc⟩
@@ -236,7 +236,7 @@ theorem mvcc.compact_cmpCb (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (c rev :
     · simp only [hn, ↓reduceIte]
       iunfold mvcc.api.mvccStateI
       iframe Ha Hp Hcc Hnl
-      ipureintro; exact Hreach
+      iframe Hrcm; ipureintro; exact Hreach
     imodintro
     iframe Hcr
     isplitl [HXa HXc]
@@ -254,7 +254,7 @@ theorem mvcc.compact_cmpCb (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (c rev :
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     iunfold mvcc.api.mvccStateI at Hσ
-    icases Hσ with ⟨Ha, Hp, Hcc, Hnl, %Hreach⟩
+    icases Hσ with ⟨Ha, Hp, Hcc, Hnl, %Hreach, #Hrcm⟩
     iunfold mvcc.slotX at HX
     iunfold mvcc.api.revMuAbs at HX
     icases HX with ⟨HXa, HXc⟩
@@ -268,7 +268,7 @@ theorem mvcc.compact_cmpCb (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (c rev :
     · simp only [hn, ↓reduceIte]
       iunfold mvcc.api.mvccStateI
       iframe Ha Hp Hcc Hnl
-      ipureintro; exact Hreach
+      iframe Hrcm; ipureintro; exact Hreach
     imodintro
     iframe Hcr
     isplitl [HXa HXc]

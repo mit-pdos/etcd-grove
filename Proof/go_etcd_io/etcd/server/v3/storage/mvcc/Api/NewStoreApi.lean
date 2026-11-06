@@ -218,6 +218,10 @@ theorem NewStore.wp_proof
   · unfold storeWT kbWT; rw [show γ.kb = some bk from hγk]; iexact Hsup
   -- the compaction right from the closer
   imod compactRightR_of_closer s γ ⊤ $$ Hcl Hcu with Hright
+  -- the initial log's receipt (`mvccState`'s: nothing changed yet)
+  imod (preceipt_zero (GF := GF)) with #Hr0
+  ihave #Hr0' : ⧖ (logCh ([[], []] : Log)) $$ []
+  · rw [show logCh ([[], []] : Log) = 0 from rfl]; iexact Hr0
   -- the handle
   ihave #Hmv : □ isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #s) γ $$ []
   · iintro !>
@@ -246,7 +250,7 @@ theorem NewStore.wp_proof
     rw [show (mvccStart : MvccState) = ⟨[[], []], -1, none⟩ from rfl]
     simp only [MvccState.notifiedLog]
     iframe Hab Hpn Hcr2 Hnl
-    ipureintro; exact MvccReachable.start
+    iframe Hr0'; ipureintro; exact MvccReachable.start
   isplitl [Hright Hcr4 HRT]
   · iunfold mvccOpen
     iexists s, γ.phys, (-1)

@@ -133,10 +133,12 @@ instance logTok_persistent (ι : WsAbs) (l : List SEv) (dec : GName → List (Ev
     Persistent (logTok (GF := GF) ι l dec) := by
   unfold logTok; infer_instance
 
+variable [ReceiptGS GF] in
 /-- **The store's state is `σ`**: the client's part of the store's API ghost state. -/
 def mvccStateI (a : AbsNames) (σ : MvccState) : IProp GF :=
   iprop(absPart a (1 : Qp).half σ.log σ.crev ∗ pndPart a (1 : Qp).half σ.pending ∗
-    crevAuth a (1 : Qp).half σ.crev ∗ nlAuth a 1 σ.notifiedLog ∗ ⌜MvccReachable σ⌝)
+    crevAuth a (1 : Qp).half σ.crev ∗ nlAuth a 1 σ.notifiedLog ∗ ⌜MvccReachable σ⌝ ∗
+    ⧖ (logCh σ.log))
 
 /-- **The stream's state is `S`.** -/
 def wsStateI (ι : WsAbs) (S : StreamState) : IProp GF :=
@@ -157,6 +159,7 @@ def wsSentLbI (ι : WsAbs) (n : Nat) : IProp GF :=
 instance wsSentLbI_persistent (ι : WsAbs) (n : Nat) : Persistent (wsSentLbI (GF := GF) ι n) := by
   unfold wsSentLbI; infer_instance
 
+variable [ReceiptGS GF] in
 instance mvccStateI_timeless (a : AbsNames) (σ : MvccState) : Timeless (mvccStateI (GF := GF) a σ) := by
   unfold mvccStateI; infer_instance
 
@@ -176,6 +179,7 @@ instance wsRecvI_timeless (ι : WsAbs) (rs : List WResp) : Timeless (wsRecvI (GF
 
 /-! ## Exclusivity -/
 
+variable [ReceiptGS GF] in
 theorem mvccStateI_excl (a : AbsNames) (σ σ' : MvccState) :
     mvccStateI (GF := GF) a σ ∗ mvccStateI a σ' ⊢ False := by
   unfold mvccStateI nlAuth
@@ -262,6 +266,7 @@ theorem savedFilters_agreeL (A B : List GName) (d d' : GName → List (EvM → B
   ihave #S2 := GB $$ %fg %hB
   iapply savedFilters_agree fg (d fg) (d' fg) $$ [$S1 $S2]
 
+variable [ReceiptGS GF] in
 /-- **`wsRecv_ok.law`'s entailment** (see the file header): a plain entailment, no invariant
 opened. -/
 theorem wsRecv_okI (ι : WsAbs) (rs : List WResp) (S : StreamState) (σ : MvccState) :
@@ -269,7 +274,7 @@ theorem wsRecv_okI (ι : WsAbs) (rs : List WResp) (S : StreamState) (σ : MvccSt
   unfold wsRecvI wsStateI mvccStateI logTok
   iintro ⟨⟨%lr, %dr, -, -, ⟨#Hlbr, %Hwfr, #Hfr, #Her⟩, #Hnsr, %Hrs, -⟩,
           ⟨%lc, %dc, -, Hns, ⟨#Hlbc, %Hwfc, #Hfc, #Hec⟩, %HS⟩,
-          ⟨-, -, Hc, Hn, %Hreach⟩⟩
+          ⟨-, -, Hc, Hn, %Hreach, -⟩⟩
   ihave %hcmp := mono_list_lb_valid ι.ev lr lc $$ Hlbr Hlbc
   ihave %hns := monoNatLbOwn_valid ι.ns 1 (nsCount lc) (nsCount lr) $$ Hns Hnsr
   ihave %hag := savedFilters_agreeL (fgsOf lc) (fgsOf lr) dc dr $$ [$Hfc $Hfr]

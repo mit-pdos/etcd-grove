@@ -123,7 +123,7 @@ theorem watch_regCb (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (γo : WsS
   -- the store's state agrees with the client's
   iunfold mvccState at Hσ
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach, #Hrcm⟩
   iunfold revMuAbs at HX
   icases HX with ⟨HXa, HXc⟩
   iunfold absPart at Ha HXa
@@ -157,7 +157,7 @@ theorem watch_regCb (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (γo : WsS
     iunfold absPart
     iunfold pndPart
     isplitl [Ha Hp Hcr Hnl]
-    · iframe Ha Hp Hcr Hnl; ipureintro; exact Hreach
+    · iframe Hrcm; iframe Ha Hp Hcr Hnl; ipureintro; exact Hreach
     rw [if_neg (by rw [hcl]; decide)]
     isplitr
     · ipureintro; exact ⟨hnone, hneg, hpend⟩
@@ -406,7 +406,7 @@ theorem rev_readCb (γ : MvccName) (Q : MvccState → IProp GF) :
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
   iunfold mvccState at Hσ
   iunfold mvccStateI at Hσ
-  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach⟩
+  icases Hσ with ⟨Ha, Hp, Hcr, Hnl, %Hreach, #Hrcm⟩
   iunfold slotX at HX
   iunfold revMuAbs at HX
   icases HX with ⟨HXa, HXc⟩
@@ -417,7 +417,7 @@ theorem rev_readCb (γ : MvccName) (Q : MvccState → IProp GF) :
   · iunfold mvccState
     iunfold mvccStateI
     iunfold absPart
-    iframe Ha Hp Hcr Hnl; ipureintro; exact Hreach
+    iframe Hrcm; iframe Ha Hp Hcr Hnl; ipureintro; exact Hreach
   imodintro
   isplitl [HXa HXc]
   · iunfold slotX; iunfold revMuAbs; iunfold absPart; iframe HXa HXc
