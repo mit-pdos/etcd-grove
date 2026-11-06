@@ -35,7 +35,7 @@ theorem backend.newBatchTxBuffered.wp_proof
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.newBatchTxBuffered.spec (GF := GF) (hG := hG) := by
   intro b rt db lim γrw γd D
-  wp_start as ⟨#Hbc, #Hrt, #Hlim, %Hlimp, Hhk, Hrtx, #Hrw, Hst, Hmu, Hown, Hwr⟩
+  wp_start as ⟨#Hbc, #Hrt, #Hlim, %Hlimp, Hhk, Hrtx, #Hrw, Hst, Hmu, Hown, Hwr, Htok⟩
   wp_auto
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %m0 Hm0
   wp_apply wp_map_make1 (K := w64) (V := Bool) as %s0 Hs0
@@ -87,10 +87,10 @@ theorem backend.newBatchTxBuffered.wp_proof
     iexact Hwr
   try wp_auto
   -- `b.readTx.tx = b.begin(false)`
-  wp_apply (hBegin γd b db D false) $$ [$Hmu $Hown] as %rtx ⟨Hmu, Hown, #Hrdb, Hrd⟩
+  wp_apply (hBegin γd b db D false) $$ [$Hmu $Hown Htok] as %rtx ⟨Hmu, Hown, #Hrdb, Hrd⟩
   · iframe #
     simp only [Bool.false_eq_true, ↓reduceIte]
-    itrivial
+    iexact Htok
   try wp_auto
   -- `readTx.Unlock()`
   wp_method_call

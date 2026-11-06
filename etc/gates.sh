@@ -95,6 +95,8 @@ fi
 python3 etc/errorf-wrap-check.py || fail=1
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
+# every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources)
+python3 etc/reader-slot-check.py || fail=1
 
 # 7. the bound reasoning stays with its owners (notes/bounds-plan.md, B0; reads the sources only)
 if python3 etc/bounds-check.py --check > "$tmp/bounds.log" 2>&1; then

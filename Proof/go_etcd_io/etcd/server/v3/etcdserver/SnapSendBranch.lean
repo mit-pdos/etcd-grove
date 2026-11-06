@@ -56,15 +56,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`backend.Snapshot`'s statement before F2's stage 3** (its approved restatement, 2026-11-03:
 the observation also handed the batch lock's halves `pvHalf`/`ckHalf`, and `Q` the compaction
 keys' values): an instance of today's spec (`Q` ignoring the new argument, the observation
-ignoring the new halves), so the restatement only strengthens the axiom. -/
+ignoring the new halves), so the restatement only strengthens the axiom. (2026-11-06,
+`notes/begin-tok-plan.md`: with the restated axiom's `threadTok` and instance.) -/
 theorem backend.backend.Snapshot.spec_of_specF2
     (h : backend.backend.Snapshot.spec (GF := GF) (hG := hG)) :
-    ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
+    ∀ [ThreadBoundLe GF (2 ^ 29)] (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp)
       (R : IProp GF)
       (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData →
         Prop),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-        backend.isBackend γ P W Pk b ∗ backend.bOpen γ qo ∗ backend.wbTok γ ∗ R ∗
+        backend.isBackend γ P W Pk b ∗ backend.bOpen γ qo ∗ backend.wbTok γ ∗ threadTok ∗ R ∗
         □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString)
             (r : GMap GoString backend.BktData),
           R -∗ W -∗ Pk -∗ backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ backend.rbOwn γ r -∗
@@ -75,9 +76,9 @@ theorem backend.backend.Snapshot.spec_of_specF2
           go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
         backend.snapOpen sp D ∗ backend.bOpen γ qo ∗ R ∗ backend.fkRd γ P (D, ⟨∅, W64 0⟩) ∗
         ⌜Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D)⌝ }} := by
-  intro γ P W Pk b qo R Q
-  iintro %Φ ⟨#Hpkg, #Hb, Ho, Hwb, HR, #HQ⟩ HΦ
-  wp_apply h γ P W Pk b qo R (fun vd d r _ => Q vd d r) $$ [Ho Hwb HR]
+  intro _ γ P W Pk b qo R Q
+  iintro %Φ ⟨#Hpkg, #Hb, Ho, Hwb, Htok, HR, #HQ⟩ HΦ
+  wp_apply h γ P W Pk b qo R (fun vd d r _ => Q vd d r) $$ [Ho Hwb Htok HR]
     as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
   · iframe #; iframe
     iintro !> %vd %d %r %v HR' HW HPk Hv - Hh Hr -
@@ -91,7 +92,8 @@ theorem backend.backend.Snapshot.spec_of_specF2
 observation `Q` of every commit (with the batch lock's client resource `W` and hooks' `Pk`, and
 (F2, stage 4) its halves of the physical view and of the compaction keys' values) is what the
 snapshot's data `D` satisfies (as `Q (sData P D) (hkData P D) (rbData P D) (fkVals D)`). -/
-theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+theorem srvBeSnapOk_of_backend [ThreadBoundLe GF (2 ^ 29)]
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (bl : Loc) (qo : Qp)
     (R : IProp GF)
     (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData →
@@ -114,8 +116,8 @@ theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF)
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #bl⟩
   isplitr
   · ipureintro; rfl
-  iintro %Φ !> ⟨Ho, Hwb, HR⟩ HΦ
-  wp_apply hSnap γ P W Pk bl qo R Q $$ [Ho Hwb HR] as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
+  iintro %Φ !> ⟨⟨Ho, Hwb, HR⟩, Htok⟩ HΦ
+  wp_apply hSnap γ P W Pk bl qo R Q $$ [Ho Hwb Htok HR] as %sp %D ⟨Hsn, Ho, HR, #Hfk, %HQD⟩
   · iframe #; iframe
   ihave ⟨%HQRD, HR⟩ := HQR $$ %D HR Hfk
   iapply HΦ
@@ -306,7 +308,8 @@ theorem snapObs_window (γA : ApplyNames) (γ : backend.BNames) (P : backend.BPa
 buckets `rb` (`imageAt_of_snap`'s `hci`, `htm`, `hrb`), and the frame's observation `QF` of its
 view (F2, stage 4: and of the compaction keys' values, `QF (sData P D) (fkVals D)`, from the
 batch lock's halves `pvHalf`/`ckHalf` the snapshot hands the observation). -/
-theorem srvBeSnapOk_window (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
+theorem srvBeSnapOk_window [ThreadBoundLe GF (2 ^ 29)]
+    (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (γA : ApplyNames) (γ : backend.BNames) (P : backend.BParams) (hP : ciKeys P) (W : IProp GF)
     (bl : Loc) (qo : Qp) (s : ApplyState) (S : GoString → Prop) (rb : GMap GoString backend.BktData)
     (SA : GoString → Prop) (ra : GMap GoString backend.BktData) (F : IProp GF)
@@ -792,7 +795,9 @@ theorem mergedCreate_window
     HL⟩
   -- the server's backend, its hooks and the protocol (`srvBeHooked`, `srvEnvOk`, `isServerCI`)
   iunfold isServerM at Hsrv
-  icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -⟩
+  icases Hsrv with ⟨-, #HCI, ⟨%v, #Hf⟩, -, -, -, %Htb⟩
+  -- (2026-11-06, `notes/begin-tok-plan.md`) `backend.Snapshot`'s instance, from the server's bound
+  haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb; omega⟩
   iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hbh⟩
   iunfold srvBeHooked at Hbh

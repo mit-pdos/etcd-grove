@@ -22,10 +22,14 @@ separate wand
 (2026-11-02, the user's approval, branch `snap-window`) And the backend's hooks are `hooks`
 (`backend.hooksAt`): `newBackend` sets `bcfg.Hooks = hooks` (`server/storage/backend.go:58`), which
 `New` stores in `b.hooks` (`backend/backend.go:275`); `New`'s proof gives it.
+(2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q2) Under
+`[ThreadBoundLe GF (2 ^ 29)]`, which `backend.New` (through `bbolt.Open_kv`) now takes; the triple
+is unchanged: `OpenBackend`'s goroutine pays `New`'s `threadTok` with its own.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Perennial.ProgramLogic.Bounds
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
@@ -46,7 +50,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `OpenBackend(cfg, hooks)` of the file holding `D`: the backend `backend.New` makes. -/
 abbrev storage.OpenBackend.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
       fileHolds (config.backendPathOf cfg.DataDir') D ∗ openPre cfg h P D W Pk K }}

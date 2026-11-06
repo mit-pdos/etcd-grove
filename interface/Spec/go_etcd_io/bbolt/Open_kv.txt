@@ -3,7 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.Open_kv.spec : Prop :=
-  ∀ (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM)
+    (D : backend.Data),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.bbolt ∗

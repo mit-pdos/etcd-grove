@@ -63,7 +63,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
     (hNM : snap.NewMessage.spec (GF := GF) (hG := hG)) :
     EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) := by
   intro s ml st snapt snapi cs lg kv be dq RC RC' RS RS' Qd
-  wp_start as ⟨#Hlgf, %Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Hcs⟩
+  wp_start as ⟨#Hlgf, %Hlgnn, Hlr, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Hcs, Htok⟩
   (try wp_auto)
   wp_apply hLg s lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
@@ -88,7 +88,8 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   subst Hbi
   (try wp_auto)
   wp_bind (App (Val #(methods bi.ty go!"Snapshot" bi.v)) (Val #()))
-  iapply Hsnap $$ HRS
+  iapply Hsnap $$ [HRS Htok]
+  · iframe HRS Htok
   inext
   iintro %sp %D ⟨Hsn, HRS', %HQ⟩
   iunfold backend.snapOpen at Hsn
@@ -96,7 +97,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   (try wp_auto)
   -- `newSnapshotReaderCloser(lg, dbsnap)`, with half of the snapshot (its `Size` read after)
   icases (backend.snapOpenQ_half sp D γd 1).1 $$ Hsn with ⟨Hsn1, Hsn2⟩
-  wp_apply hNSR lg sp D γd $$ [Hsn1] as %rc Hrc
+  wp_apply hNSR lg sp D γd $$ [Hsn1] as %rc ⟨Htok, Hrc⟩
   · iframe #; iframe Hsn1; ipureintro; exact Hlgnn
   (try wp_auto)
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -148,7 +149,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   (try wp_auto)
   iapply HΦ
   simp only [mergedSt]
-  iframe Hlr HRS' Hbef
+  iframe Hlr HRS' Hbef Htok
   iexists rc, D, c
   iframe Hm Hc Hrs
   isplitr

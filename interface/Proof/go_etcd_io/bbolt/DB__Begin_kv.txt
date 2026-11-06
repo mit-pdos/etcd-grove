@@ -7,12 +7,12 @@ axiom bbolt.DB.Begin_kv.wp_proof : bbolt.DB.Begin_kv.spec
   ∀ (db : Loc) (γ : backend.DBNames) (D : backend.Data) (w : Bool),
     ⊢
       ∀ Φ,
-        (isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownDB db γ D ∗ if w = true then backend.wrTok γ else True) -∗
+        (isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownDB db γ D ∗ if w = true then backend.wrTok γ else threadTok) -∗
           (▷
               ∀ tx err,
                 backend.ownDB db γ D ∗
                     backend.isDB db ∗
-                      ((⌜err ≠ GoInterface.nil⌝ ∗ if w = true then backend.wrTok γ else True) ∨
+                      ((⌜err ≠ GoInterface.nil⌝ ∗ if w = true then backend.wrTok γ else threadTok) ∨
                         ⌜err = GoInterface.nil⌝ ∗
                           backend.txDB tx db ∗
                             if w = true then backend.ownWTx tx γ D D
