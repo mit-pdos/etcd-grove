@@ -571,7 +571,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     intro m hm ht
     exact ccPolOk_static _ _ (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
-    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
+    (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' _ (fun _ => rfl) $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
   have hsplit := kvModel_split γr.kv A' hlog0
   obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrestL, hwf⟩ := himA
