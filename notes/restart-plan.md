@@ -2730,3 +2730,40 @@ neither, nor `winNoConf`):
 inside the window logs a spurious "downgrade detected", forces a disk snapshot and briefly lowers
 the in-memory cluster version (`nonissues/etcd-cluster-version-restart-replay-downgrade.md`); the
 rest model has no in-memory version, so the proof is unaffected.
+
+#### Probe (2026-11-06, branch `r2dp`; DRAFT, nothing frozen)
+
+The probe of (c) above (`/shared/tmp/r2d-prime-scope.md`, (c)), steps 1-2 of 5 done sorry-free, no new
+axiom; steps 3-5 not reached in the session (no gap found; what is left is listed below).
+
+- **Step 1, `restReplay_close`** (`RestReplay.lean`, proved): replaying any suffix of the committed log
+  v2-only on its rest model gives it back. Over the server's facts (`ApplyRDefs.lean`'s
+  `restReplay_closeI`: `srvRaftLogInv`, `srvRLogLb A₀`, `srv_committed_ccBoot`) it needs two premises
+  the plan did not list: `c0 ≤ ai0` (so `c0 = 0`; `run`'s `hc0`) and **every entry of `A₀` normal or a
+  v1 conf change** (`srvLogCore` gives `ccPolOk` for type-1 entries only; an entry of another type
+  whose bytes decode as a v1 change is not excluded). Both are restart-point facts (`kvBatchR`).
+- **Step 2, `apply` and `applyEntries` over `(rp, G)`** (`ApplyR.lean`'s `apply.wp_proofROff`,
+  `ApplyEntriesR.lean`'s `applyEntries.wp_proofBatchROff`, proved, auth off), over two hypothesized
+  replay specs (`ApplyRDefs.lean`): `applyEntryNormal.specRepOff` (the image `r` to `restEntryV2 m r`, the
+  KV kept, the voters in `r.mem`) and `applyConfChange.specRep` (a replayed `AddNode`: no backend, no
+  raft, no view, `ep.confState` kept, the peers kept). The loop invariant gains one variable, the ghost
+  log `Γ = ghostOf rp (G ++ ms.take j)`; only `apply`'s `v3 = false` branch splits (replay or past the
+  window); past the window `subst Γ` turns every row into lean's text and `wp_proofOff`'s code runs
+  unchanged. The window closes inside the replay branch (`restReplay_closeI`, one `imod`). 1168 lines
+  (about 180 new), 31 s to build.
+- **What it shows for the design.**
+  - The replay specs are smaller than A3/A4 assumed: `applyConfChange`'s replay needs none of the `v3`
+    rows (`E.RO`, validation, `dvCCPre`), so A4 is a `v3 = false` case with no `dv` resources at all.
+  - Under `kvBatchR` (`c0 ≤ ai0`, the batch's `v3` the model's past the window) **every entry past the
+    window is `v3`**, so `applyEntryNormal.spec`'s ghost-advancing `v3 = false` case (an entry at or
+    below `c0`) is dead in the window form: A3 can replace it by the replay case if `apply.spec` takes
+    `c0 ≤ ai0` (which `run` has), keeping one spec split on `v3`.
+  - `dvOk` at the ghost index (`g + 1`, Q19) refutes a past-window `v3 = false` conf entry as lean's
+    does at `f0`; `dvRes` stays over Go's log, `dvView` over the ghost. A replayed conf entry needs a
+    view (`dvOk`'s first clause), which the one-mode repair gives.
+  - F2 needs no premise beyond `ai0 + |A₀| ≤ ciEff` (in `kvBatchR`); no `winNoConf`.
+- **Not reached.** Step 3 (`applyResR`, `applyAll.specBatchR` hypothesized, `run_job_bodyR` for the
+  straddling batch and the next, the law `applyResR` = `applyResC` past the window), step 4
+  (`applyResR_start` over a drafted `Hsnap` restart form), step 5 (the view's round trip over a
+  ghost-indexed `rnCfgAt`, finding 1); and the auth-on copy of `apply`'s proof (the same edit).
+  **Est.: 4-6 d (est.)** for steps 3-5.
