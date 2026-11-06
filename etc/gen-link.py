@@ -636,6 +636,11 @@ EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoStri
               # (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
               "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
               "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
+# The section variables a mode's specs take at `HasLC.hasLC` only (the sections after the first,
+# whose heap is at `HasLC.hasLC`): k8s etcd3's, the context errors' descriptions, which the
+# compactor's channel context needs (`chanCtx_ok`; k8s etcd3 7c-2 part 2, S7)
+LC_EXTRA_VARS = {"--k8s-etcd3": "variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]\n",
+                 "--k8setcd3": "variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]\n"}
 em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")
@@ -1142,7 +1147,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}""")
+{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
     later = [fn for fn in order if fn in blocked and fn not in pending]
@@ -1167,7 +1172,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{hyps}
+{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
 include {names}
 """)
         out.extend(emit_cache(fn) for fn in later)

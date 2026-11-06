@@ -104,7 +104,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   iintro ⟨#Pv, #Ps, #Has, #Hsrv, #Hrdv, #HNR, #Hast, #Hauthn⟩
   unfold grpcHandlerOwnOkMd
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hpw, Hspec⟩ HΨ
-  icases Hspec with ⟨Hspec, -⟩
+  icases Hspec with ⟨Hspec, #HΨe⟩
   simp only [pbAuthenticateRequest]
   icases Hr with ⟨%Hrn, #HN⟩
   iunfold authnSlot at Hslot
@@ -157,7 +157,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
-  ihave Hed := handlerErr_none (GF := GF) Ψe err
+  ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed HSe
   iunfold v3rpc.authWrapOut at Hout

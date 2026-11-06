@@ -37,7 +37,7 @@ abbrev read.Read.requestCurrentIndex.spec : Prop :=
       isReadLoopPre r γr RQ LR NR F ∗ LR ∗ □ (|==> NR) ∗ bcastChan lcn iprop(True) ∗
       committedAtLeast γr n ∗ srvReadAu γr.raft Qr }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"requestCurrentIndex")) (Val #lcn))
-  {{ (ci : w64) (err : GoInterface), RET (PairV #ci #err); LR ∗ applyErrIs err ∗
+  {{ (ci : w64) (err : GoInterface), RET (PairV #ci #err); LR ∗ applyErrIs err ∗ readLoopErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ ⌜uint.Z n ≤ uint.Z ci⌝ ∗ srvReadWit γr.raft Qr ci) }}
 
 end spec

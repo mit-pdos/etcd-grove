@@ -59,7 +59,7 @@ local macro "error_return" e:term : tactic => `(tactic| (
   icases Hk with ⟨-, Hk⟩;
   iapply Hk $$ [] %(GoInterface.ok $e);
   · itrivial
-  · ipureintro; exact ⟨fun h => (by cases h), (by simp [handlerDescs])⟩
+  · ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
   iassumption))
 
 theorem v3rpc.newUnaryInterceptor.wp_proof
@@ -92,6 +92,16 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   ihave #SeIV := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ SeIV0
   icases HeNoL with ⟨%eNoL, #HeNoL, #SeNoL0⟩
   ihave #SeNoL := go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk _ $$ SeNoL0
+  -- (k8s etcd3 7c-2 part 2, S7) none of them is a read error
+  ihave #Prt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
+  · iPkgInit
+  ihave ⟨⟨%aNC, #HaNC, %DNC⟩, ⟨%aNL, #HaNL, %DNL⟩, ⟨%aIV, #HaIV, %DIV⟩, ⟨%aNoL, #HaNoL, %DNoL⟩⟩ :=
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorErrsNotRead $$ Prt
+  icombine HeNC HaNC gives %QNC
+  icombine HeNL HaNL gives %QNL
+  icombine HeIV HaIV gives %QIV
+  icombine HeNoL HaNoL gives %QNoL
+  cases QNC; cases QNL; cases QIV; cases QNoL
   wp_pures
   wp_alloc_auto
   wp_pures
@@ -109,7 +119,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   · wp_auto
     icases Hk with ⟨-, Hk⟩
     iapply Hk $$ HR %(GoInterface.ok eNC) [] SeNC
-    ipureintro; exact ⟨fun h => (by cases h), (by simp [handlerDescs])⟩
+    ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
   wp_auto
   irename : (req_ptr ↦ req : IProp GF) => Hreqp
   ipersist Hreqp
@@ -148,7 +158,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
       · ipureintro; rfl
       icases Hk with ⟨-, Hk⟩
       iapply Hk $$ HR %(GoInterface.ok eNL) [] SeNL
-      ipureintro; exact ⟨fun h => (by cases h), (by simp [handlerDescs])⟩
+      ipureintro; exact ⟨fun h => (by cases h), (by simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]; assumption)⟩
     · wp_auto
       ileft; iframe; ipureintro; rfl
   rename_i v

@@ -164,17 +164,15 @@ theorem authErrIs_authApplyErrIs (err : GoInterface) :
   rcases Hg with rfl | rfl | rfl | rfl | rfl <;>
     simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]
 
-/-- **One of the auth package's error variables, as the checks' contracts state its error**
-(`authApplyErrIs`; the auth plan's E3j): from its package fact (`authErrVar`). -/
-theorem authErrVar_authApplyErrIs (g : GoString)
+/-- **One of the auth package's error variables, from its `errVarLeaf` fact, as the checks'
+contracts state its error** (`authApplyErrIs`; k8s etcd3 7c-2 part 2, S3a: `doSerialize`'s
+`ErrAuthOldRevision`). -/
+theorem errVarLeaf_authApplyErrIs (g : GoString)
     (hg : g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst) (err : GoInterface) :
-    go_etcd_io.etcd.server.v3.auth.authErrVar (GF := GF) g ⊢
+    errVarLeaf (GF := GF) g ⊢
       (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
       authApplyErrIs err := by
-  iintro #HX #Herr
-  ihave #Hv : errVarLeaf (GF := GF) g $$ []
-  · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HX
-    iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HX
+  iintro #Hv #Herr
   ihave #Happ := errVar_applyErrIs g err $$ Hv Herr
   iunfold authApplyErrIs
   iframe Happ
@@ -190,6 +188,19 @@ theorem authErrVar_authApplyErrIs (g : GoString)
   iframe Hge
   ipureintro
   exact ⟨⟨hg, hl⟩, He⟩
+
+/-- **One of the auth package's error variables, as the checks' contracts state its error**
+(`authApplyErrIs`; the auth plan's E3j): from its package fact (`authErrVar`). -/
+theorem authErrVar_authApplyErrIs (g : GoString)
+    (hg : g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.auth.authErrVar (GF := GF) g ⊢
+      (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
+      authApplyErrIs err := by
+  iintro #HX #Herr
+  ihave #Hv : errVarLeaf (GF := GF) g $$ []
+  · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HX
+    iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HX
+  iapply errVarLeaf_authApplyErrIs g hg err $$ Hv Herr
 
 /-- **An admin operation's error** (`auth.authErrOf`, the model's `AuthErr`) **as the checks'
 contracts state it** (`authApplyErrIs`; the auth plan's E3j): each `AuthErr`'s variable is one of

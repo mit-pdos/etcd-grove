@@ -31,6 +31,7 @@ public import Perennial.Proof.io
 public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
+public import Proof.google_golang_org.grpc.status.ErrDesc
 
 @[expose] public section
 
@@ -47,12 +48,7 @@ namespace go_etcd_io.etcd.cache.v3
 
 section desc
 
-/-- **An error's description** (opaque; D29, 2026-10-21): what `rpctypes.ErrorDesc(err)` returns,
-the status message (`status.FromError(err).Message()`), which for an error that is not a status
-error is its `Error()` (`Spec/google_golang_org/grpc/status/FromError.lean`). grpc's `FromError`
-reads the status embedded in the error value, so the description is a function of the error, as
-its code is (`statusCode`); nothing more is said of it. -/
-opaque errDesc [GooseExts] : GoInterface → GoString
+-- `errDesc` (an error's description, D29): `Proof/google_golang_org/grpc/status/ErrDesc.lean` (N1b).
 
 /-- **The refusals** (D29): the descriptions after which the client's retry interceptor sends a
 `nonRepeatable` call (a write) again: the auth errors (`shouldRefreshToken`, then
@@ -803,7 +799,7 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
     cases Hii
     icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
-      icases Hm with ⟨-, ⟨%s, #Hs⟩⟩
+      icases Hm with ⟨-, %s, #Hs⟩
       unfold EtcdGrove.fmt.stringMethodSpec
       iintro !> %Φ HΦ
       iapply Hs

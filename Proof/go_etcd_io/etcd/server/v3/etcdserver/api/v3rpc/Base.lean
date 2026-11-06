@@ -60,13 +60,73 @@ def errVarSet (g : GoString) : IProp GF :=
 instance errVarSet_persistent (g : GoString) : Persistent (errVarSet (GF := GF) g) := by
   unfold errVarSet; infer_instance
 
+/-- **The gRPC error map's keys** (k8s etcd3 7c-2 part 2, S2): the 53 error variables the literal
+`toGRPCErrorMap` (`util.go:35-93`) maps, in its order: membership's, `etcdserver/errors`', mvcc's,
+`version`'s, lease's, auth's and `context`'s. -/
+def grpcErrKeyGlobals [GooseExts] [GoGlobalContext] : List GoString :=
+  [go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDRemoved,
+   go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound,
+   go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDExists,
+   go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrPeerURLexists,
+   go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrMemberNotLearner,
+   go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrTooManyLearners,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotEnoughStartedMembers,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLearnerNotReady,
+   go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted,
+   go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoLeader,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNotLeader,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutWaitAppliedIndex,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrUnhealthy,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrBadLeaderTransferee,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrClusterVersionUnavailable,
+   go_etcd_io.etcd.server.v3.etcdserver.errors.ErrWrongDowngradeVersionFormat,
+   go_etcd_io.etcd.server.v3.etcdserver.version.ErrInvalidDowngradeTargetVersion,
+   go_etcd_io.etcd.server.v3.etcdserver.version.ErrDowngradeInProcess,
+   go_etcd_io.etcd.server.v3.etcdserver.version.ErrNoInflightDowngrade,
+   go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound,
+   go_etcd_io.etcd.server.v3.lease.ErrLeaseExists,
+   go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge,
+   go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist,
+   go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist,
+   go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist,
+   go_etcd_io.etcd.server.v3.auth.ErrUserEmpty,
+   go_etcd_io.etcd.server.v3.auth.ErrUserNotFound,
+   go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist,
+   go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound,
+   go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty,
+   go_etcd_io.etcd.server.v3.auth.ErrAuthFailed,
+   go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven,
+   go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied,
+   go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted,
+   go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted,
+   go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled,
+   go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken,
+   go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt,
+   go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision,
+   _root_.Perennial.context.Canceled,
+   _root_.Perennial.context.DeadlineExceeded]
+
 /-- **What the gRPC error map maps** (k8s etcd3 7c): every value is a non-nil error; mvcc's
 `ErrFutureRev` (the key `kf`) and `ErrCompacted` (`kc`) map to errors with the two read errors'
 descriptions (`rpctypes.ErrGRPCFutureRev`, `ErrGRPCCompacted`), and no other key maps to an error
 with one of them (`util.go`: each other value is another `rpctypes` error, with its own
 description); no key has one of the two descriptions itself (the keys are the server's own
 errors, `mvcc: …`, `etcdserver: …`, `lease: …`, `auth: …`: `togRPCError` may return a key unchanged
-when its context-error checks say yes, `grpcErrOut`). -/
+when its context-error checks say yes, `grpcErrOut`); and `kf`, `kc` have their own descriptions
+(`kvstore.go:38-39`, `errors.New`; k8s etcd3 7c-2 part 2, G2-a: what tells them from the store's
+other errors). -/
 def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop :=
   (∀ k v, M !! k = some v → v ≠ GoInterface.nil ∧
     (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc → k = kf) ∧
@@ -74,7 +134,9 @@ def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop
     go_etcd_io.etcd.cache.v3.errDesc k ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
     go_etcd_io.etcd.cache.v3.errDesc k ≠ go_etcd_io.etcd.cache.v3.compactedDesc) ∧
   (∃ v, M !! kf = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc) ∧
-  (∃ v, M !! kc = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc)
+  (∃ v, M !! kc = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc) ∧
+  go_etcd_io.etcd.cache.v3.errDesc kf = go!"mvcc: required revision is a future revision" ∧
+  go_etcd_io.etcd.cache.v3.errDesc kc = go!"mvcc: required revision has been compacted"
 
 /-- **The gRPC error map** (`toGRPCErrorMap`, `util.go`): a fixed map from the server's errors to
 gRPC errors (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/`ErrMemberNotEnoughStarted`, all
@@ -83,13 +145,15 @@ gRPC errors (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/`ErrMemberNotEnoug
 descriptions (k8s etcd3 7c), and every value one grpc's `status.FromError` accepts (`statusErrOk`;
 k8s etcd3 7c, HS-6: `ErrTooManyRequests` and `ErrMemberNotEnoughStarted` are `EtcdError`s, leaves
 with only `Code` and `Error`; `notes/axiom-review/hs6.md`). Which other keys it has is left open:
-`togRPCError` returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`. -/
+`togRPCError` returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`; the
+value of each variable of `grpcErrKeyGlobals` is a key (S2, k8s etcd3 7c-2 part 2). -/
 def grpcErrMap : IProp GF :=
   iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
     globalAddr toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
     globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
-    □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜grpcErrMapOk M kf kc⌝)
+    □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗
+    □ (∀ (g : GoString) (k : GoInterface), ⌜g ∈ grpcErrKeyGlobals⌝ → globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝) ∗ ⌜grpcErrMapOk M kf kc⌝)
 
 /-- The values of the gRPC error map are non-nil (`grpcErrMapOk`'s first part). -/
 theorem grpcErrMapOk_ne {M : GMap GoInterface GoInterface} {kf kc : GoInterface}
@@ -158,6 +222,20 @@ instance sortNameMaps_persistent : Persistent (sortNameMaps (GF := GF)) := by
 instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := by
   unfold ctxCanceledPtr; infer_instance
 
+/-- **The context errors' descriptions** (k8s etcd3 7c-2 part 2, S1, HS-2): `context.Canceled`'s
+`errDesc` is `"context canceled"`, `DeadlineExceeded`'s `"context deadline exceeded"` (neither is a
+status error, so its description is its `Error()`: `context.go`). From the read package's premise
+`EtcdGrove.ContextReadErrs` (`descs`). What `togRPCError`'s pass-through branch needs, its error
+going out as it is. -/
+def ctxErrDescs : IProp GF :=
+  iprop((∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
+      ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗
+    (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗
+      ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝))
+
+instance ctxErrDescs_persistent : Persistent (ctxErrDescs (GF := GF)) := by
+  unfold ctxErrDescs; infer_instance
+
 /-- **The package facts `watch.go` reads, but `io.EOF`** (persistent; D19j, 2026-10-18: until
 then the premise `watchVars` of the watch path's results, now `v3rpc`'s): the `auth` and `mvcc`
 errors it compares with or reports (pointer leaves, `errVarLeaf`, from their packages' facts),
@@ -201,7 +279,8 @@ guards (`metricsVars`) and `etcdserverpb`'s six `ServiceDesc`s (`svcDescsOk`), a
 2026-10-18) what `watch.go` reads but `io.EOF` (`watchPkgVars`). -/
 abbrev v3rpcInit : IProp GF :=
   iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr ∗ interceptorVars ∗
-    EtcdGrove.v3rpc.metricsVars ∗ EtcdGrove.v3rpc.svcDescsOk ∗ EtcdGrove.v3rpc.watchPkgVars)
+    EtcdGrove.v3rpc.metricsVars ∗ EtcdGrove.v3rpc.svcDescsOk ∗ EtcdGrove.v3rpc.watchPkgVars ∗
+    ctxErrDescs)
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
@@ -209,6 +288,41 @@ instance isPkgInit_inst :
 instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
   build_get_is_pkg_init_wf
+
+/-- **A description that is neither read error's** (k8s etcd3 7c-2 part 2, S7): neither
+`togRPCError`'s future-revision nor its compacted one, the handlers' descriptions
+(`handlerDescs`). -/
+def notReadDesc (err : GoInterface) : Prop :=
+  go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
+    go_etcd_io.etcd.cache.v3.errDesc err ≠ go_etcd_io.etcd.cache.v3.compactedDesc
+
+/-- **The interceptor's errors are neither read error** (k8s etcd3 7c-2 part 2, S7):
+`ErrGRPCNotCapable`, `ErrGRPCNotSupportedForLearner`, `ErrGRPCInvalidClientAPIVersion` and
+`ErrGRPCNoLeader`, by their descriptions (`rpctypes`' package facts). -/
+theorem interceptorErrsNotRead :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ⊢
+      (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ↦□
+          GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) ∗
+        (∃ e : GoInterfaceOk,
+          globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ↦□
+            GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) ∗
+        (∃ e : GoInterfaceOk,
+          globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ↦□
+            GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) ∗
+        (∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ↦□
+          GoInterface.ok e ∗ ⌜notReadDesc (GoInterface.ok e)⌝) := by
+  iintro #Hp
+  ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hp
+  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%e8, #H8, -, %D8, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    ⟨%e40, #H40, %D40⟩, -, -, ⟨%e43, #H43, %D43⟩, ⟨%e44, #H44, %D44⟩⟩
+  isplitl []
+  · iexists e44; iframe H44; ipureintro; simp only [notReadDesc, D44]; decide
+  isplitl []
+  · iexists e8; iframe H8; ipureintro; simp only [notReadDesc, D8]; decide
+  isplitl []
+  · iexists e40; iframe H40; ipureintro; simp only [notReadDesc, D40]; decide
+  · iexists e43; iframe H43; ipureintro; simp only [notReadDesc, D43]; decide
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 

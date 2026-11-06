@@ -126,6 +126,10 @@ theorem EtcdServer.doSerialize.wp_proof
       icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
       icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
       ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
+      ihave #HaOldA : authApplyErrIs (GoInterface.ok eOld) $$ []
+      · iapply apply.errVarLeaf_authApplyErrIs _
+          (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) _ $$ HOld
+        iexists eOld; iframe HeOld; ipureintro; rfl
       rw [Heq, Hst]
       wp_auto
       wp_if_destruct
@@ -150,7 +154,7 @@ theorem EtcdServer.doSerialize.wp_proof
           iright
           isplitr
           · ipureintro; intro h; cases h
-          iframe HaOld; iright; iexact HQ
+          iframe HaOldA; iright; iexact HQ
 
 end proof
 

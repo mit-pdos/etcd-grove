@@ -1045,6 +1045,22 @@ theorem readQ_of_ansM (on : Bool) (γr : ReadNames) (d : v3rpc.KVDep GF) (Q : KV
       iexact HQ
   · simp only [↓reduceIte]; iintro -; itrivial
 
+/-- **A failed range's read facts as the client's** (k8s etcd3 7c-2 part 2, S7): the server's
+(`rangeErrAt`, the deposit's result at a committed raft log whose mode's model is the log read) as
+`rangeErrReply`'s, `□ Q` of the state of the log read (`readQ_of_ansM`). -/
+theorem rangeErrReply_of_errAt (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
+    (F : mvcc.Log) (o : OpFull) (d : v3rpc.KVDep GF) (Q : KVState → IProp GF)
+    (P : mvcc.Log → Int → Prop)
+    (h : (d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q) :
+    rangeErrAt (GF := GF) on E γr c F o (v3rpc.rangeDepQM on γr.kv d) P ⊢
+      rangeErrReply E γr c F o Q P := by
+  unfold rangeErrAt rangeErrReply
+  iintro ⟨%log, %crev, #Hc, #Hok, #Hcr, %Hp, Hrl, HQ⟩
+  ihave HQ' := readQ_of_ansM on γr d Q o.base.serializable log h $$ HQ
+  iexists log, crev
+  iframe Hc Hok Hcr Hrl HQ'
+  ipureintro; exact Hp
+
 /-- With auth off, the read view's KV invariants (`srvKVCoreM_of_readM` at the mode `E.authOn`). -/
 theorem srvKVInvs_of_readM_off (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (hon : E.authOn = false) :
@@ -1100,7 +1116,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   rw [show (pbPutRequest (GF := GF)).recv r o = txn.putRequestIs r o from rfl]
   iunfold etcdPutSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨-, %F, #HF, Hspec⟩
+  icases Hspec with ⟨#HΨe, %F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF,
       v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
       ⌜v3rpc.kvDepPreM E.authOn d (.put o)⌝ ∗
@@ -1157,7 +1173,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
-    ihave Hed := handlerErr_none (GF := GF) Ψe err
+    ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
     iapply HΨ
     iframe Hed HSe
     isplitl [Hlt Hc0]
@@ -1213,7 +1229,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       ipersist Hl
       imod Hrv with #Hrv
       imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
+      ihave Hed := handlerErr_nil (GF := GF) Ψe
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hc0]
@@ -1242,7 +1258,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     · iunfold v3rpc.putErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe err
+      ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hc0]
@@ -1271,7 +1287,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   rw [show (pbRangeRequest (GF := GF)).recv r o = txn.rangeRequestIs r o from rfl]
   iunfold etcdRangeSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%c, %F, %Q, %na, #Hc0, #HF, #Hna, Hdq, Hk⟩
+  icases Hspec with ⟨%c, %F, %Q, %na, #Hc0, #HF, #Hna, Hdq, HΨc, HΨr, Hk⟩
   ihave ⟨%d, Hdep, %Hdp, %Hdd⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
       ⌜v3rpc.kvDepPre d (.range o)⌝ ∗
       ⌜(d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q⌝) $$ [Hdq]
@@ -1321,7 +1337,8 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
-    ihave Hed := handlerErr_none (GF := GF) Ψe err
+    ihave HΨa := HΨc $$ %(by simp)
+    ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨa
     iapply HΨ
     iframe Hed HSe
     isplitl [Hlt Hcr]
@@ -1331,7 +1348,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
     rw [He'] at Hnil; cases Hnil
   | none =>
     icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hcr, -, Hlt, Hans, Hau⟩ |
-      ⟨%Herr, %e, Hcr, -, Hlt⟩)
+      ⟨%Herr, Hcr, -, Hlt, HrD⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.rangeAnsOkM at Hans
       icases Hans with ⟨%log, #Hcert, #Hcok, %Hlog, #Hrl, HQl, Hres⟩
@@ -1355,7 +1372,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       ipersist Ht
       ipersist Hl
       imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
+      ihave Hed := handlerErr_nil (GF := GF) Ψe
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hcr]
@@ -1380,7 +1397,26 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         ipureintro
         exact ⟨Hkeys, Hlog.1, Hlog.2.1, rfl, rfl, rfl, Hx.1, rfl, Hsel, Hlog.2.2.2⟩
     · imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe err
+      ihave Hed : iprop(⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+          Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) $$ [HΨr HrD]
+      · iintro %Hm
+        iunfold rangeErrDesc at HrD
+        icases HrD with ⟨Hfu, Hcp⟩
+        have hm := Hm.2
+        simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false] at hm
+        rcases hm with hm | hm
+        · icases Hfu with (%Hfu | Hfu)
+          · exact absurd hm Hfu
+          icases HΨr with ⟨HΨf, -⟩
+          rw [hm]
+          iapply HΨf
+          iapply (rangeErrReply_of_errAt E.authOn E γr c F o d Q _ Hdd) $$ Hfu
+        · icases Hcp with (%Hcp | Hcp)
+          · exact absurd hm Hcp
+          icases HΨr with ⟨-, HΨp⟩
+          rw [hm]
+          iapply HΨp
+          iapply (rangeErrReply_of_errAt E.authOn E γr c F o d Q _ Hdd) $$ Hcp
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hcr]
@@ -1411,7 +1447,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   rw [show (pbDeleteRangeRequest (GF := GF)).recv r o = txn.deleteRangeRequestIs r o from rfl]
   iunfold etcdDeleteSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨-, %Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
+  icases Hspec with ⟨#HΨe, %Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F (.op1 (.deleteRange o) Q) 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
@@ -1451,7 +1487,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
-    ihave Hed := handlerErr_none (GF := GF) Ψe err
+    ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
     iapply HΨ
     iframe Hed HSe
     isplitl [Hlt Hc0]
@@ -1482,7 +1518,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       ipersist Ht
       ipersist Hl
       imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
+      ihave Hed := handlerErr_nil (GF := GF) Ψe
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hc0]
@@ -1513,7 +1549,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     · iunfold v3rpc.deleteErrOk at Hep
       icases Hep with ⟨Hlt, -⟩
       imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe err
+      ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hc0]
@@ -1727,7 +1763,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     from rfl]
   iunfold etcdTxnSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨-, %Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
+  icases Hspec with ⟨#HΨe, %Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
   obtain ⟨hin, hsh⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
@@ -1809,7 +1845,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iunfold txn.errVarIs at Hev
     icases Hev with ⟨%e', -, %He'⟩
     imodintro
-    ihave Hed := handlerErr_none (GF := GF) Ψe err
+    ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
     iapply HΨ
     iframe Hed HSe
     isplitl [Hlt Hcr]
@@ -1844,7 +1880,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         imod (txnRespMsg_of_server false resp h _ t _ _ cid mid) $$ [$Hh $Hf $Hres]
           with ⟨%m, #Hm, %Hmm⟩
         imodintro
-        ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
+        ihave Hed := handlerErr_nil (GF := GF) Ψe
         iapply HΨ
         iframe Hed HSe
         isplitl [Hlt Hcr]
@@ -1936,7 +1972,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         imod (txnRespMsg_of_server skip resp h _ t'' _ _ cid mid) $$ [$Hh $Hf $Hres]
           with ⟨%m, #Hm, %Hmm⟩
         imodintro
-        ihave Hed := handlerErr_none (GF := GF) Ψe GoInterface.nil
+        ihave Hed := handlerErr_nil (GF := GF) Ψe
         iapply HΨ
         iframe Hed HSe
         isplitl [Hlt Hcr]
@@ -1965,7 +2001,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr
       imodintro
-      ihave Hed := handlerErr_none (GF := GF) Ψe err
+      ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
       iapply HΨ
       iframe Hed HSe
       isplitl [Hlt Hcr]

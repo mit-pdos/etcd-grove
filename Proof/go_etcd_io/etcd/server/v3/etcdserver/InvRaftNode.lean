@@ -742,7 +742,7 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
           srvReadAu E.γr.raft Qr ∗ srvRdFresh E.γr.raft (beBytes id) }}
         (App (App (Val #(methods ni.ty go!"ReadIndex" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
-      {{ (err : GoInterface), RET #err; applyErrIs err ∗
+      {{ (err : GoInterface), RET #err; applyErrIs err ∗ nodeReadErrIs err ∗
           (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}) ∗
     -- (2026-10-27) the node itself (the `Ready` channel's receive takes it)
     (letI := srvStor (GF := GF) γ.node; isNode γ.nl γ.node.cl srvClusterN γ.id))
