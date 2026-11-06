@@ -32418,7 +32418,8 @@ cluster3.go`). `holdToken` sleeps forever and touches no lock. The proof keeps t
 trusted model. Each member has one more idle goroutine, also in the clusters that grant no lease
 (the partition example and the k8s compactor). Their Go tests, and putget3's (which uses `alloc3`,
 not `cluster3`), pass as on `lean` (R1's condition, 82's), except partition's `TestFailover`, which
-hangs to the test's timeout on `lean` `6691b46860` too (rerun after R2c: `notes/lease-mono3-plan.md`).
+runs past its deadline on `lean` `6691b46860` too: the linearizability check of txnlin's model, not a hang
+(etcd-grove-82's diagnosis, `notes/lease-mono3-plan.md`, Draft pass 2(a)).
 
 **The callers at `none` rest on the lease branch's axioms.** `StartMember.spec` is one triple for
 every mode, and its one linked proof (`Link.lean`) takes the callees' specs of every branch, so the

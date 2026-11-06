@@ -445,11 +445,16 @@ baseline needs the package's lines at landing (`etc/bounds-baseline.txt`, not ch
     `TestMainPartition`, `TestMemberIDs`); putget3 (`TestPutGet3`, `TestMemberIDs`); partition's
     `TestMemberIDs`, `TestMainRun`, `TestClientCuts`, `TestWriteOnce`, `TestWatchFailover` and
     `TestMainWatch`.
-  - **Fails, and not because of R1**: partition's `TestFailover`. It hangs in its control loop,
-    which waits for all three clients to be served after the last stall, until the test times out
-    (554 s, then 571 s alone). It fails the same way at `lean` `6691b46860`, which has no
-    `holdToken` (575 s), so R1 did not cause it. Its cause is not investigated: it may be machine
-    load or a regression on `lean`. It needs a look before landing, under the gates.
+  - **Fails, and not because of R1**: partition's `TestFailover` runs past its deadline (554 s,
+    then 571 s alone; also at `lean` `6691b46860`, which has no `holdToken`, 575 s), so R1 did not
+    cause it. (Corrected 2026-11-06, etcd-grove-82's diagnosis: not a hang, and not etcd. The
+    workload, clients and control loop all finish in about 82 s; the time goes to the
+    linearizability check, `lintest.Run` with check timeout 0 (`linkv3p_test.go:321`). The model in
+    `examples/etcd/txnlin/linkvtxn.go` keeps failed writes pending until the history ends, and its
+    `closure`/`addConfig` cost about 4^k per step for k such writes; k depends on how many writes
+    time out while member 1 is blackholed, so the runs split, about 1 in 2 past the deadline on a
+    quiet machine. Evidence `/shared/tmp/t1-diag/`. A performance bug of the example's verified
+    model, parked as its own stage: canonical pending-write sets with hash dedup.)
 
 ## Review round 1 fixes (2026-11-06)
 
@@ -699,9 +704,10 @@ leases on `Recover` makes `Main`'s panic condition true, and `holdToken` adds on
 member.
 
 **Inherited, unchanged:** the reading of `lease.leasesNoExpiry` over executions after `Main`
-returns (leasegrant's; reviews r1, r2). **Open, not blocking:** partition's `TestFailover` hangs to
-its timeout on `lean` `6691b46860` as on `lease-mm` (T1): rerun on a quiet machine, a STATUS
-finding if `lean` still hangs.
+returns (leasegrant's; reviews r1, r2). **Open, not blocking:** partition's `TestFailover` runs past
+its deadline on `lean` `6691b46860` as on `lease-mm` (T1). Diagnosed afterwards (etcd-grove-82,
+2026-11-06): the linearizability check of txnlin's model, about 4^k per step for k pending failed
+writes, not a hang (the correction above, under Draft pass 2(a)).
 
 **Not done here, for later:** a `clusterUp` elimination law (r2 N3), a `memberUp` serving-side law
 (r3 N3), the duplicate `LeaseLeases` registration and the unused TTL read in `memberServed` (kept
