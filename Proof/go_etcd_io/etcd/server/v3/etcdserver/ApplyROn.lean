@@ -167,9 +167,7 @@ theorem EtcdServer.apply.wp_proofROn
     (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
     (hACC : EtcdServer.applyConfChange.spec (GF := GF) (hG := hG))
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
-    (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
-    -- (R2d'a) the replayed conf change's spec (`ApplyRDefs.lean`; proved, `ApplyConfChangeR.lean`)
-    (hACCR : EtcdServer.applyConfChange.specRep (GF := GF) (hG := hG)) :
+    (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.specROn (GF := GF) (hG := hG) := by
   -- (R2d') `setAppliedIndex`'s replay case, for the window's replays
   have hSet1R := fun s E γr v v' L => hSet1 s E γr v v' L true
@@ -186,6 +184,20 @@ theorem EtcdServer.apply.wp_proofROn
   have hAEN := fun s γ ci TM E ρ b e m st x γr ot v A γa sa A₀ r h =>
     hAEN s γ ci TM E ρ b e m st true x γr ot v A γa sa A₀ r h
   simp only [↓reduceIte] at hAEN
+  -- (R2d'a, swap batch 1) `applyConfChange.spec`'s replay case (`v3 = false`), for the window's
+  -- replayed conf changes (the binders only the `v3` case reads at placeholders)
+  have hACCR := fun s cc ep m cs E γs γB cl rs d al st lp lg bh ix lgh tl lid prs lgc cid
+      (e : LogEntry) (hok : ccApplyOkM γs m) hro (hp : m.nodeId ≠ lid → m.nodeId ∈ prs)
+      (hsz : GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62) =>
+    hACC s cc ep m cs false null GoInterface.nil E γs iprop(True) iprop(True) iprop(True)
+      iprop(True) (W64 0) (W64 0) γB cl rs d al st lp none [] ⟨0, Membership.empty⟩ 0 Membership.empty e lg bh ix
+      lgh tl lid prs lgc cid hok hro (fun _ => hp)
+      (fun h => absurd (hok.1.symm.trans h) (by decide : ¬ (W32 0 : w32) = W32 1)) (fun _ => hsz)
+      (fun h => absurd h Bool.false_ne_true)
+  simp only [Bool.false_eq_true, ↓reduceIte] at hACCR
+  -- (swap batch 1) `applyConfChange.spec`'s `v3` case
+  have hACC := fun s cc ep m cs => hACC s cc ep m cs true
+  simp only [↓reduceIte] at hACC
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
@@ -664,7 +676,7 @@ theorem EtcdServer.apply.wp_proofROn
         · iframe Hdv Hdvr' Hrun
         ihave ⟨%f, %Hfbt, HRS, HLt, #HGI, #HRq, HEv⟩ := srvRest_open E γr (A ++ ms.take (sint.nat j)) $$ HRS
         have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
-        wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
+        wp_apply (hACC s cc_ptr ep cm csl ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
             applyBackend γ ci b ∗
             ⌜(stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -683,20 +695,20 @@ theorem EtcdServer.apply.wp_proofROn
           (srvLE ρ.raft ((A ++ ms.take (sint.nat j)) ++ m :: ms.drop (sint.nat j + 1))) v
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
-          (Hcb cm Hdec) HROeq hkbB hgbB
-          (fun h => hdv.1 h m hmem h1)
-          (fun γn h => ⟨rfl, by
-            obtain ⟨-, hrule, -, -⟩ := hdv.2 γn h
-            have := Hdvf γn h
-            rw [ccRaftEff_restLeasesWith, hrule]
-            simp only [hρr] at this ⊢
-            exact this⟩) Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
-          (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.1)
-          (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.2))
+          (Hcb cm Hdec) HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (fun _ => ⟨hkbB, hgbB, fun h => hdv.1 h m hmem h1,
+            fun γn h => (by
+              obtain ⟨-, hrule, -, -⟩ := hdv.2 γn h
+              have := Hdvf γn h
+              rw [ccRaftEff_restLeasesWith, hrule]
+              simp only [hρr] at this ⊢
+              exact this),
+            (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.1),
+            (by rw [restLeasesWith_lookup_other _ _ _ _ (by decide)]; exact hmm.2)⟩))
           $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt HplP HthT Hwt]
           as %removed %err ⟨%Hrem, Hlr, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs, Hcsv⟩, HRS, Hpost, Hdvq, Hmr,
             Hrt, HplP, HthT⟩
-        · rw [ite_eq_left rfl, HEP, HEf]
+        · rw [HEP, HEf]
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS Hdvp Hlg Hlr Hbh Hbhi Htr Hmid Hmr Hrt Hclg Hcid
             HplP HthT HbeRO
           isplitr
@@ -708,36 +720,36 @@ theorem EtcdServer.apply.wp_proofROn
             refine membersDecode_restLeasesWith _ _ _ ?_
             exact membersDecode_restModel γr.kv.c0 γr.raft.raft.boot
               (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
-          isplitl [Hwt]
-          · iframe Hwt
-            isplitr
-            · first | iexact Hh | (imodintro; iexact Hh) | (imodintro; imodintro; iexact Hh)
-            isplitr
-            · iintro ⟨Hhd, Hst, Happ, Hbe⟩
-              imod (writes_done γ { stLoaded γ st' with k := m.index, pending := true } rfl) $$ Hinv Hst
-                with ⟨Hst, Htok⟩
-              iunfold hookDone at Hhd
-              icases Hhd with ⟨%mm, Hmt, HTM, #Hreg⟩
-              imodintro
-              iframe Hst Happ Hbe
-              iunfold batchLockInv
-              iexists mm
-              iframe
-              iexact Hreg
-            isplitr
-            · iintro ⟨Hst, Happ, Hbe, %Hp⟩
-              iframe Happ
-              iintro Happ
-              iframe Hst Hbe Happ
-              ipureintro; exact Hp
-            · iintro ⟨Hst, Happ, Hbe, -⟩
-              imod (skip_done γ (stLoaded γ st') m.index hpre.1 hpre.2.1 hpre.2.2.1) $$ Hinv Hst with Hst
-              wp_apply_core (wp_ci_advance hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
-                hpre.1 (Int.le_refl _) hpre.2.2.2) $$ [Hst] [Happ Hbe]
-              · iframe Hcipkg Hci Hinv Hst
-              iintro Hst
-              iframe
-              ipureintro; rfl
+          iframe Hwt
+          isplitr
+          · first | iexact Hh | (imodintro; iexact Hh) | (imodintro; imodintro; iexact Hh)
+          isplitr
+          · iintro ⟨Hhd, Hst, Happ, Hbe⟩
+            imod (writes_done γ { stLoaded γ st' with k := m.index, pending := true } rfl) $$ Hinv Hst
+              with ⟨Hst, Htok⟩
+            iunfold hookDone at Hhd
+            icases Hhd with ⟨%mm, Hmt, HTM, #Hreg⟩
+            imodintro
+            iframe Hst Happ Hbe
+            iunfold batchLockInv
+            iexists mm
+            iframe
+            iexact Hreg
+          isplitr
+          · iintro ⟨Hst, Happ, Hbe, %Hp⟩
+            iframe Happ
+            iintro Happ
+            iframe Hst Hbe Happ
+            ipureintro; exact Hp
+          isplitr
+          · iintro ⟨Hst, Happ, Hbe, -⟩
+            imod (skip_done γ (stLoaded γ st') m.index hpre.1 hpre.2.1 hpre.2.2.1) $$ Hinv Hst with Hst
+            wp_apply_core (wp_ci_advance hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
+              hpre.1 (Int.le_refl _) hpre.2.2.2) $$ [Hst] [Happ Hbe]
+            · iframe Hcipkg Hci Hinv Hst
+            iintro Hst
+            iframe
+            ipureintro; rfl
           iframe Hst Happ Hbe
           ipureintro; exact hpre
         have hpa : ∀ (g : w64 → w64) (T : List w64) (r : apply.RestM),
@@ -992,8 +1004,8 @@ theorem EtcdServer.apply.wp_proofROn
           -- (A4's DRAFT fix) the rest resource, at the replayed image's members
           icases srvRestRp_ro E γr rp.A₀ (restReplay γr rp (A ++ ms.take (sint.nat j))) $$ HRS with
             ⟨%rsR, HRO, %HrsR, HRSk⟩
-          wp_apply (hACCR s cc_ptr ep cm csl E γr.raft γB sv.cluster rsR dB.be alB stB lpB
-              sv.lg bh ix lgh tl lid prs lgc cid hokc HROeq Hpeer
+          wp_apply (hACCR s cc_ptr ep cm csl E γr.raft γB sv.cluster rsR dB alB stB lpB
+              sv.lg bh ix lgh tl lid prs lgc cid m.toLE hokc HROeq Hpeer
               (Hszk rsR.mem (fun k => by rw [HrsR]; exact restReplay_memKeys γr rp _ k)))
               $$ [Hcc Hcs Hlr Hmr HRO]
             as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr, HRO⟩

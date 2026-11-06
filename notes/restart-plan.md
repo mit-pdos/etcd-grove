@@ -4014,3 +4014,21 @@ Also from the review, done at R2d'a (this pass): F2 (`srvRestartAtR`'s auth stat
 in `applyEntryNormal.spec`'s docstring), F9 (the axiom's pins); the probe is in
 `notes/restart-probe/`. Not done: F1 (the swap of the restart specs, its own task) and F7 (`Hwpend`
 in the first-start hubs, with A9's swap).
+
+#### Swap batch 1: applyConfChange (2026-11-06; review F1, the swap the user approved)
+
+`EtcdServer.applyConfChange.spec` (`Spec/.../EtcdServer__applyConfChange.lean`) is one triple with a
+`v3` case, as `applyEntryNormal.spec` (Q23 (a)): its pre and post are `if v3 then (the old `v3 = true`
+case) else (the replay, `specRep`'s)`. The old `v3 = false` case was vacuous (`dv ≠ none` and `dv =
+some n → v3 = true`). The pure premises: `ccApplyOkM`, `E.RO`'s shape, the peer, `RemoveNode` and size
+premises are common (the replay's peer and size premises were the old ones under `ccApplyOkM`'s
+`m.type = 0`); the `v3`-only ones (`E.γ.kb = some d`, `d.γB = γB`, `dv ≠ none`, the view's
+`srvCCPre`, the two buckets present) are one premise `v3 = true → …`. The replay's `E.RO` is at `d.be`
+(was a free `be`). At `v3 = true` the old statement's meaning is unchanged (its `v3 = true ∧` dropped,
+`ccRest v3`/`ccPeersAfter v3` at `true`, the nested `if v3` of `Pre`/`Post ∨ Adv` gone).
+- Proof: `wp_proof`'s `v3 = false` branch is `wp_proofRep`'s proof, moved in. `specRep`
+  (`ApplyRDefs.lean`), `wp_proofRep` and `ApplyConfChangeR.lean` are deleted.
+- Callers: `apply.wp_proofOff`/`On` and `ApplyR`/`ApplyROn` specialize `hACC` to `true` at the top
+  (the premise arguments regrouped; the frame frames `storeWT` and the hook rows flat); `ApplyR`/
+  `ApplyROn` derive the replay case `hACCR` from `hACC` at `false` (no `hACCR` hypothesis).
+- `Link.lean` unchanged (callee list the same). No exported result restates `applyConfChange.spec`.

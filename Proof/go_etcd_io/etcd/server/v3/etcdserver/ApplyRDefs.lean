@@ -17,8 +17,8 @@ the ghost log `ghostOf rp G` (`RestReplay.lean`) while Go's rows walk `G`.
   `srvRest` (a first start's: `srvRestR_first`).
 * `kvBatchR`: `kvBatch` over Go's log, with the backend's log `A₀` committed and the batch's `v3`
   the model's past the window.
-* the replayed conf change's spec, `applyConfChange.specRep` (proved, `ApplyConfChangeR.lean`); a
-  replayed normal entry is `applyEntryNormal.spec`'s `v3 = false` case (Q23 (a), 2026-11-06).
+* a replayed conf change is `applyConfChange.spec`'s `v3 = false` case (swap batch 1, 2026-11-06),
+  a replayed normal entry `applyEntryNormal.spec`'s (Q23 (a), 2026-11-06).
 -/
 module
 
@@ -137,7 +137,7 @@ theorem srvRestRp_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
 
 open Iris.ProofMode in
 /-- **The replay arm's `E.RO`** (R2d'a A4, DRAFT): the rest resource at an image whose members are
-the arm's image's, given back unchanged (what a replayed `AddNode` takes, `applyConfChange.specRep`). -/
+the arm's image's, given back unchanged (what a replayed `AddNode` takes, `applyConfChange.spec`'s `v3 = false` case). -/
 theorem srvRestRp_ro (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
     srvRestRp (GF := GF) E γr A r ⊢ ∃ rs : apply.RestM, E.RO rs ∗ ⌜rs.mem = r.mem⌝ ∗
       (E.RO rs -∗ srvRestRp E γr A r) := by
@@ -298,50 +298,6 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
   ipureintro; exact ⟨H7, Hp⟩
 
 end laws
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **`s.applyConfChange(cc, ep, false)`, a replayed `AddNode`** (R2d' A4, DRAFT; proved,
-`ApplyConfChangeR.lean`). At the pin `673da07c8` (`server.go:2037-2083`): the validation passes
-without reading (`membership/cluster.go:306-309`), raft is not called and `ep.confState` is kept
-(`server.go:2053-2059`), `beHooks.SetConfState(ep.confState)`, the context unmarshalled and checked
-against the node (`ccApplyOkM`: it unmarshals to the node's member), `AddMember(…, false)` only logs
-(`membership/cluster.go:402-424`: under the cluster's lock, so it takes the in-memory members
-`clusterMem`, as the frozen spec's `E.RO rs` holds them, with their size bound), and `AddPeer` of the
-node unless it is the local member (a known peer: `AddPeer_known`). It returns `removed = false`;
-it writes no backend bucket and no member in memory (`ccRest false` is the identity: `E.RO rs` back).
-(DRAFT fix, 2026-11-06: the rest resource `E.RO rs` at the frozen spec's shape `HRO`, and the size
-bound, added: `ValidateConfigurationChange` and `AddMember` read the cluster's `be` field and take
-its members, which only `E.RO` holds.) -/
-abbrev EtcdServer.applyConfChange.specRep : Prop :=
-  ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (E : apply.AEnv GF) (γs : ServerRaftNames)
-    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (be al st lp : Loc)
-    (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
-    (cid : w64),
-  ccApplyOkM γs m → E.RO = srvRestOwnH E.authMode γB cl (srvObjsOn al st lp cl be) →
-  (m.nodeId ≠ lid → m.nodeId ∈ prs) →
-  GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
-      srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
-      membership.rcCidAddr cl ↦□ cid ∗
-      ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
-      srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
-      srvTransportAddr s ↦□ srvTrIface tl ∗ srvMemberIDAddr s ↦□ lid ∗
-      ccMembRes γs cl tl lid prs ∗ E.RO rs }}
-    (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyConfChange"))
-      (Val #cc)) (Val #ep)) (Val #false))
-  {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
-      ⌜removed = false⌝ ∗ srvLgReader s ∗
-      (∃ m' : ConfChangeM, ownConfChange cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝) ∗
-      epConfState ep cs ∗ ccMembRes γs cl tl lid prs ∗ E.RO rs }}
-
-end spec
 
 end EtcdGrove
 end Perennial
