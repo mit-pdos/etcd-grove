@@ -53,7 +53,8 @@ attribute [irreducible] sum128a.ty
 
 axiom offset32 [GooseExts] [GoGlobalContext] : val
 
-axiom offset64 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def offset64 [GooseExts] [GoGlobalContext] : val :=
+  #(14695981039346656037 : Int)
 
 axiom offset128Lower [GooseExts] [GoGlobalContext] : val
 
@@ -61,7 +62,8 @@ axiom offset128Higher [GooseExts] [GoGlobalContext] : val
 
 axiom prime32 [GooseExts] [GoGlobalContext] : val
 
-axiom prime64 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def prime64 [GooseExts] [GoGlobalContext] : val :=
+  #(1099511628211 : Int)
 
 axiom prime128Lower [GooseExts] [GoGlobalContext] : val
 
@@ -102,6 +104,90 @@ noncomputable def New128 [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def New128a [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New128a"
+
+/-- New64a returns a new 64-bit FNV-1a [hash.Hash].
+    Its Sum method will lay the value out in big-endian byte order.
+
+    go: fnv.go:65:6 -/
+noncomputable def New64a.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.hash.Hash64.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.hash.Hash64.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt sum64a.ty))) (Val offset64))
+  (Let "s" (App (Val (GoInstruction (GoAlloc sum64a.ty))) (App (Val (GoInstruction (GoZeroVal sum64a.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType sum64a.ty) _root_.Perennial.hash.Hash64.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.hash.Hash64.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore sum64a.ty))) (Pair (Var "s") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.hash.Hash64.ty))) (Var "$res0")))))
+
+/-- go: fnv.go:98:18 -/
+noncomputable def sum64a.Sum64.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sum64a.ty)))) (Var "s"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad sum64a.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sum64a.ty)))) (Var "s")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
+
+/-- go: fnv.go:130:18 -/
+noncomputable def sum64a.Write.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "data"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType sum64a.ty)))) (Var "s"))
+  (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad sum64a.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sum64a.ty)))) (Var "s")))
+  (Let "hash" (App (Val (GoInstruction (GoAlloc sum64a.ty))) (App (Val (GoInstruction (GoZeroVal sum64a.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad sum64a.ty))) (Var "hash"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore sum64a.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType sum64a.ty)))) (Var "s")) (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val (slice.forRange go.byte)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore sum64a.ty))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoMul sum64a.ty))) (Pair (App (Val (GoInstruction (GoLoad sum64a.ty))) (Var "hash")) (App (Val (GoInstruction (Convert go.untypedInt sum64a.ty))) (Val prime64)))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore sum64a.ty))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoXor sum64a.ty))) (Pair (App (Val (GoInstruction (GoLoad sum64a.ty))) (Var "hash")) (App (Val (GoInstruction (Convert go.byte sum64a.ty))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "c") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore sum64a.ty))) (Pair (Var "hash") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.hash.fnv where
   pkgImportedPkgs := [pkg_id.hash]
@@ -166,10 +252,14 @@ class sum64a.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq sum64a.ty sum64a.underlying
   method_set : go.MethodSetIs sum64a.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sum64a.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"BlockSize", (some (go.signature.Signature [] false [go.int]))), (go!"Clone", (some (go.signature.Signature [] false [_root_.Perennial.hash.Cloner.ty, go.error]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"Sum", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_Sum64_unfold : MethodUnfold (go.GoType.PointerType sum64a.ty) go!"Sum64" sum64a.Sum64.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType sum64a.ty) go!"Write" sum64a.Write.impl
 
 attribute [instance] sum64a.TypeAssumptions.underlying
   sum64a.TypeAssumptions.method_set
   sum64a.TypeAssumptions.ptr_method_set
+  sum64a.TypeAssumptions.ptr_Sum64_unfold
+  sum64a.TypeAssumptions.ptr_Write_unfold
 
 abbrev sum128 [GooseExts] : Type := (GoArray w64 2)
 
@@ -206,6 +296,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   sum64a_instance : sum64a.TypeAssumptions
   sum128_instance : sum128.TypeAssumptions
   sum128a_instance : sum128a.TypeAssumptions
+  New64a_unfold : FuncUnfold New64a [] New64a.impl
   import_hash_Assumption : _root_.Perennial.hash.Assumptions
 
 attribute [instance] Assumptions.sum32_instance
@@ -214,6 +305,7 @@ attribute [instance] Assumptions.sum32_instance
   Assumptions.sum64a_instance
   Assumptions.sum128_instance
   Assumptions.sum128a_instance
+  Assumptions.New64a_unfold
   Assumptions.import_hash_Assumption
 
 end hash.fnv

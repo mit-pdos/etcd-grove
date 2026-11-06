@@ -10,7 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 public import Spec.fmt.Errorf
-public import Perennial.Code.os
+public import Code.os
 
 @[expose] public section
 

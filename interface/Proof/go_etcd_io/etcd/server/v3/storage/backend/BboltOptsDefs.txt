@@ -5,6 +5,10 @@
 axiom backend.optsAt_discard_persistent (l : Loc) (o : backend.OptsM) : Persistent (backend.optsAt l
     DFrac.discard o)
 
+theorem backend.OptsM.ok_withLogger [GoGlobalContext] (o : backend.OptsM) (l : GoInterface) (h :
+    o.ok) (hl : backend.loggerPtrOk l) : { readOnly := o.readOnly, pageSize := o.pageSize, openFile
+    := o.openFile, logger := l }.ok
+
 def backend.optsZero : backend.OptsM :=
   { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil }
 
@@ -13,12 +17,12 @@ def backend.boltOpenOptionsOk : IProp GF :=
       typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions) p DFrac.discard ∗
         (⌜p = null⌝ ∨ ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝))
 
-def backend.OptsM.ok (o : backend.OptsM) : Prop :=
-  o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil
+def backend.OptsM.ok [GoGlobalContext] (o : backend.OptsM) : Prop :=
+  o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ backend.loggerPtrOk o.logger
 
 axiom backend.optsAt (l : Loc) (dq : DFrac) (o : backend.OptsM) : IProp GF
 
-theorem backend.optsZero_ok : backend.optsZero.ok
+theorem backend.optsZero_ok [GoGlobalContext] : backend.optsZero.ok
 
 structure backend.OptsM : Type where
   readOnly : Bool
@@ -27,3 +31,8 @@ structure backend.OptsM : Type where
   logger : GoInterface
 
 theorem backend.boltOpenOptionsOk_persistent : Persistent backend.boltOpenOptionsOk
+
+def backend.loggerPtrOk [GoGlobalContext] : GoInterface → Prop :=
+  match x✝ with
+  | GoInterface.nil => True
+  | GoInterface.ok li => ∃ t l, li.ty = t.PointerType ∧ li.v = intoVal l

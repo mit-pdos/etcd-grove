@@ -10,6 +10,7 @@ anything. Proved in `Proof/os/File__ReadAt.lean`. Lean-first (no Rocq counterpar
 module
 
 public import Proof.os.Base
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -44,7 +45,8 @@ abbrev os.File.ReadAt.spec : Prop :=
       ∃ vs' : List w8, sl ↦* vs' ∗
         ⌜vs'.length = vs.length ∧
           ((n = W64 vs.length ∧ err = interface.nil ∧ vs' = xs.map Prod.fst) ∨
-           (n = W64 0 ∧ err ≠ interface.nil))⌝ }}
+           (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+      fmtErrorOkOrNil err }}
 
 /-- A racing `f.ReadAt(b, off)` (minibolt's `Snapshot`, which reads while the writer may write
 past what it knows, or a meta page it does not hold): no `OsMeta`, and bytes of the file held at
@@ -77,6 +79,34 @@ abbrev os.File.ReadAt.specRacy : Prop :=
            (err = eof ∧ ∀ i b, os.heldByte rs i b → off.toNat ≤ i →
               i < off.toNat + vs.length → i < off.toNat + n.toNat) ∨
            (∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))⌝ }}
+
+/-- **`specRacy`, sharpened** (batch 36, U11's `Open/ReadHeld` finding): `io.EOF` only with fewer
+bytes than asked (`n < len(b)`: the model returns it only when a `pread` reads nothing with
+`len(b) > 0`), and a failure's `*PathError` (wrapping the errno) is one `fmt` formats
+(`fmtErrorOk`). `specRacy` is a corollary (`Proof/os/File__ReadAt.lean`). -/
+abbrev os.File.ReadAt.specRacyLt : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
+    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List (w8 × Bool)))
+    (eof : GoInterface),
+  d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
+      osFd (GF := GF) fd dq d ∗
+      ([∗list] r ∈ rs, osBytes (GF := GF) d.path r.1 r.2.1 r.2.2) ∗
+      globalAddr io.EOF ↦□ eof }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ([∗list] r ∈ rs, osBytes d.path r.1 r.2.1 r.2.2) ∗
+      ∃ vs' : List w8, sl ↦* vs' ∗
+        ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
+          (∀ i b, os.heldByte rs i b → off.toNat ≤ i → i < off.toNat + n.toNat →
+            vs'[i - off.toNat]? = some b)⌝ ∗
+        (⌜(err = interface.nil ∧ n.toNat = vs.length) ∨
+           (err = eof ∧ n.toNat < vs.length ∧ ∀ i b, os.heldByte rs i b → off.toNat ≤ i →
+              i < off.toNat + vs.length → i < off.toNat + n.toNat)⌝ ∨
+         (∃ pe : Loc, ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
+           fmtErrorOk err)) }}
 
 end spec
 

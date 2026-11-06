@@ -47,7 +47,7 @@ fix is Perennial's (`notes/perennial-changes.md`).
 
 ### Pins
 
-- **Perennial** `c4a24e323c0527b8532e51e84d3d8d16d3c96b04`, branch `lean` (`errors.Is` over relations for the methods, deterministic for exact ones, 2026-11-01; before it, `2130bdb99`; before it, `d62b13ac1`: `fmt.Sprintf`'s `%x` of an
+- **Perennial** `b3e996d84b3904b9044a31b164722d71697e9479`, branch `lean` (2026-11-03, branch `worktree-bbolt-v2`: goose's 16-bit `x++`, which bbolt needs, the monotone package-initialization map, `context`'s `isCtxErr`, `os`'s initializers; before it, `c4a24e323`: `errors.Is` over relations for the methods, deterministic for exact ones, 2026-11-01; before it, `2130bdb99`; before it, `d62b13ac1`: `fmt.Sprintf`'s `%x` of an
   integer and named integer types without formatting methods, section "Perennial pin `d62b13ac1`";
   before it, `6da88b280`: `wp_slice_literal_nonnull`;
   integers and floats as little-endian bytes, integer atomics as byte atomics, plain types with
@@ -59,6 +59,9 @@ fix is Perennial's (`notes/perennial-changes.md`).
   follows Perennial's `lean` (section "Perennial: the pin follows `lean`" below; CLAUDE.md,
   "Changes to Perennial").
 - **Go projects** (`etc/goose.py`, `PROJECTS`):
+  - `bbolt` (2026-11-03): `upamanyus/bbolt` `3207bacf270d8eb83155f226ebfc864c2cbef6b2`, branch
+    `goose-lean` (v1.5.0 with the forms of Perennial's byte memory, the #1311 fix, a crash-safe `init`),
+    with bodies; `notes/bbolt-v2-infra.md`. Every project translates against this repository's `os`.
   - `raft`: `upamanyus/etcd` `c8217eb91ae5948182c1035ff0464b1e54b8f1d0`, branch
     `raft37-goose-lean-a1` (raft v3.7.0 `b867cf13` plus the single-voter read-index fix and the
     probe-to-replicate fix at `pr.Next == pr.Match+1`).
@@ -5692,6 +5695,63 @@ contract (encoding not canonical), then a closed driver theorem (`TestCorrectnes
 porcupine check over in-process etcd, a simple non-canonical codec; a failed write ends a run
 unchecked at first). Needs from the client proof: `Range`'s error identity (`ErrFutureRev`,
 `ErrCompacted`). Translation survey: branch `k8s-etcd3-goose`. Nothing proved yet.
+
+## bbolt: every public triple proved and linked (2026-11-05, branch `worktree-bbolt-v2`)
+
+Every frozen public triple of bbolt (the one-function specs `Spec/go_etcd_io/bbolt/<T>__<M>.lean`,
+over `Api.lean`'s sealed predicates and laws: `Open`, `Close`, `Begin`,
+`Commit`, `Rollback`, `Tx.Bucket`, `CreateBucket(IfNotExists)`, `DeleteBucket`, `Bucket.Get`, `Put`,
+`Delete`, `Cursor`, the cursor's `First`/`Last`/`Next`/`Seek`/`Prev`, `Info`, `Stats`) is proved, with no `sorry` in `Proof/go_etcd_io/bbolt` or
+`Spec/go_etcd_io/bbolt`, and linked: `Proof/go_etcd_io/bbolt/Link.lean` (`etc/gen-link.py --bbolt`,
+callees read off the proofs' binders, `etc/link_bbolt.py`), `Results.lean` (`#print axioms` of the
+24 public results; the backend's 20 `_kv` specs are not among them, being still the backend's
+axioms until the backend switch), trust collection `etc/tcb-collections/bbolt.txt`. The public results still
+take two hypotheses (`Link.lean`'s section `links_pending`):
+
+- `fs.FileMode.String.spec` (`Open` logs the mode with `%s`): provable once `FileMode.String` is
+  translated (`Code/io/fs.toml`, project `bboltfs`; the proof sketched in
+  `notes/bbolt-proof-plan.md`, "Item 7"); deferred to the merge into `lean`, whose regeneration
+  rebuilds the tree anyway (the user's choice).
+- `PidSetDeleteUnfold` (`delete` on the named map type `pidSet`): Perennial's fix landed on its
+  `lean` (`542338360`, `delete_map` at any `t ↓u go.MapType ..`, the user's sign-off); this branch's
+  pin `c6d352196` predates it, so it goes with the Perennial catch-up at the merge
+  (`wp_mapDelete_underlying` replaces it).
+
+New trust since the API spec, all user-approved: `strings.ToLower` (returns some string),
+`sort.SliceIsSorted` and `reflect.DeepEqual` at `map[Pgid]struct{}` (reflection; trust-boundary
+axioms `Proof/{strings/ToLower,sort/SliceIsSorted,reflect/DeepEqual}.lean`,
+`notes/perennial-changes.md`), and `fmt.Errorf`'s post with `IsPointerError`. Spec decisions made
+while proving (D-H to D-M) are in `notes/bbolt-spec-decisions.md`; where the proof stands and what
+is left, `notes/bbolt-coordinator-handoff.md`. Next: the concurrent bbolt test over those spec files, the
+backend switch (etcd's backend off the `_kv` axioms), the merge into `lean` with the Perennial
+catch-up.
+
+## bbolt v2: translated with bodies (2026-11-03, branch `worktree-bbolt-v2`)
+
+bbolt's four packages are translated with bodies by project `bbolt` (`etc/goose.py`, the fork's
+`goose-lean`), over Perennial's byte memory and this repository's `os`/`syscall`/`unix` (osFsExt's
+models), to which every project moved (bbolt's `os.FileMode` fields cannot be named under Perennial's
+names-only `os`). Package initialization is generated for them and for `os`. No bbolt proof yet: the
+backend still rests on the 20 bbolt axioms. What is translated, the models of every call bbolt makes,
+and what of `old/bbolt/` carries over: `notes/bbolt-v2-infra.md`.
+
+**The proof's foundation (U0a, 2026-11-03).** The invariant design's models and resource predicates
+exist as definitions (`Proof/go_etcd_io/bbolt/Model/`, `Inv/`), every shared lemma a `sorry`'d
+statement (102, by module and unit in `notes/bbolt-proof-plan.md`), and `Api.lean`'s predicates are
+sealed over them (`@[no_expose]` defs; the laws proved from their `…Def` versions; the statements
+unchanged, their ambient instance arguments grown by the heap's). The plan of record, with U0a's
+deviations from the design: `notes/bbolt-proof-plan.md`.
+
+**The internal specs (U0b, 2026-11-03).** Every internal function spec one work unit uses and
+another proves is stated, one file per function (`Spec/go_etcd_io/bbolt/<T>__<M>.lean`,
+`…/internal/{common,freelist}/…`), each with a `sorry` stub: `internal/common`'s 81, the freelist
+interface's 14 and `newFreelist`, and 57 of the main package (page access, the node layer, the
+writer's search and materialization, frees, rebalance, spill, dereference, allocation, the
+readers' read path, the lifecycle, the internal `Begin`/`Commit`). They are over the contexts of
+`Inv/Ctx.lean` (`wtxW`: the writer's working state; `wdbW`: its database side; `rdTxK`: a reader
+with its view) and the relations of `Model/WOps.lean`. Per unit, what it proves and may assume:
+`notes/bbolt-proof-plan.md`, "U0b". The open-time specs wait for the fork commit `fork-open.diff`.
+Next: wave 1 (U1, U2, U3, U6).
 
 ## The old bbolt proofs, kept for the redo (2026-10-30)
 

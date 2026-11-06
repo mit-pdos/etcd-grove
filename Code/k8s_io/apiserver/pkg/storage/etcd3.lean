@@ -45,7 +45,7 @@ public import Code.k8s_io.apimachinery.pkg.watch
 public import Code.k8s_io.apiserver.pkg.audit
 public import Code.k8s_io.apiserver.pkg.storage.feature
 public import Code.k8s_io.component_base.tracing
-public import Perennial.Code.os
+public import Code.os
 public import Code.k8s_io.apiserver.pkg.util.flowcontrol
 public import Perennial.Golang.Defn
 

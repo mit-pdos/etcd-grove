@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section

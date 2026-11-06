@@ -31,7 +31,6 @@ public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Init
-public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.go_opentelemetry_io.otel.attribute.Init
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.grpclog.Init
@@ -60,9 +59,11 @@ public import Proof.k8s_io.component_base.tracing.Init
 public import Proof.k8s_io.klog.v2.Init
 public import Proof.k8s_io.utils.clock.Init
 public import Proof.net.http.Init
+public import Proof.os.Init
 public import Proof.path.Init
 public import Proof.reflect.Init
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.sync.atomic.Link
 public import Proof.google_golang_org.grpc.grpclog.SetLoggerV2
 public import Proof.os.Getenv
@@ -134,8 +135,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) endpointsMap _ as HendpointsMap
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Mutex) endpointsMapMu _ as HendpointsMapMu
   wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd46⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.os _root_.Perennial.os.initialize'
-      EtcdGrove.ExternalInit.os _root_.Perennial.os.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd45⟩
+  wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd45⟩
   wp_apply (_root_.Perennial.k8s_io.component_base.tracing.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd44⟩
   wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.storage.feature.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd43⟩
   wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.audit.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd42⟩
@@ -194,7 +194,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of typeToMessage))
   -- translated initializer of defaultWatcherMaxLimit))
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %_ -
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -
   try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap
   try wp_auto

@@ -36,6 +36,7 @@ public import Perennial.Proof.bytes
 public import Perennial.Proof.math
 public import Perennial.Proof.strings
 public import Perennial.Proof.io
+public import Proof.hash.PkgInit
 
 @[expose] public section
 
@@ -54,14 +55,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-namespace hash
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.hash :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.hash :=
-  build_get_is_pkg_init_wf
-
-end hash
+-- (`hash`'s instance: `Proof/hash/PkgInit.lean`, shared with bbolt)
 
 namespace go_etcd_io.etcd.pkg.v3.traceutil
 

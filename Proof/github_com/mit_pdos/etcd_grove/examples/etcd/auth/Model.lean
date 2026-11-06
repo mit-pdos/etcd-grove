@@ -78,7 +78,7 @@ theorem userPerms_v (rev : Nat) : userPerms (setupSt rev) [] = [] := by
 
 /-- `permR` covers a key, for any operation, exactly when the key is in `[lo, hi)`. -/
 theorem permR_covers (op : PermType) (k : GoString) : permR.covers op k ↔ inRangeK k := by
-  simp only [Perm.covers, inRange, permR, isOpenEnded, inRangeK]
+  simp only [Perm.covers, auth.inRange, permR, isOpenEnded, inRangeK]
   cases op <;> simp [PermType.grants, PermType.grantsRead, PermType.grantsWrite]
 
 theorem not_isRoot_u : ¬ isRoot [go!"r"] := by simp [isRoot, rootRole]
@@ -141,7 +141,7 @@ theorem granted_setupSt_range (rev r : Nat) (op : PermType) (hr : r ≠ 0) :
   simp only [covers, if_neg hne, coversRange, userPerms_u, List.mem_singleton, exists_eq_left]
   intro k hk
   refine (permR_covers op k).2 ?_
-  simp only [inRange, if_neg hne, isOpenEnded] at hk
+  simp only [auth.inRange, if_neg hne, isOpenEnded] at hk
   exact ⟨hk.1, hk.2.resolve_left (by decide)⟩
 
 /-- The key `b` itself is in `[a, d)` but not in `[a, b)`: `u`'s range of `[a, d)` is not
@@ -149,8 +149,8 @@ covered. -/
 theorem not_coversRange_past (rev : Nat) (op : PermType) :
     ¬ coversRange (setupSt rev) [go!"r"] op lo go!"d" := by
   intro h
-  have hin : inRange lo go!"d" hi := by
-    simp only [inRange, isOpenEnded]
+  have hin : auth.inRange lo go!"d" hi := by
+    simp only [auth.inRange, isOpenEnded]
     refine ⟨?_, Or.inr ?_⟩ <;> decide
   obtain ⟨p, hp, hc⟩ := h hi hin
   rw [userPerms_u, List.mem_singleton] at hp
@@ -163,8 +163,8 @@ the prefix `c/` is not covered. -/
 theorem not_coversRange_c (rev : Nat) (op : PermType) :
     ¬ coversRange (setupSt rev) [go!"r"] op go!"c/" go!"c0" := by
   intro h
-  have hin : inRange go!"c/" go!"c0" go!"c/" := by
-    simp only [inRange, isOpenEnded]
+  have hin : auth.inRange go!"c/" go!"c0" go!"c/" := by
+    simp only [auth.inRange, isOpenEnded]
     refine ⟨?_, Or.inr ?_⟩ <;> decide
   obtain ⟨p, hp, hc⟩ := h _ hin
   rw [userPerms_u, List.mem_singleton] at hp

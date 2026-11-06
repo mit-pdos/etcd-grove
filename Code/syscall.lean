@@ -6005,10 +6005,15 @@ class Errno.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq Errno.ty Errno.underlying
   method_set : go.MethodSetIs Errno.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Errno.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  Error_unfold : MethodUnfold Errno.ty go!"Error" Errno.Error.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType Errno.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Errno.ty go!"Error"))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "$r"))))
 
 attribute [instance] Errno.TypeAssumptions.underlying
   Errno.TypeAssumptions.method_set
   Errno.TypeAssumptions.ptr_method_set
+  Errno.TypeAssumptions.Error_unfold
+  Errno.TypeAssumptions.ptr_Error_unfold
 
 axiom Signal : Type
 axiom Signal.zero_val : ZeroVal Signal

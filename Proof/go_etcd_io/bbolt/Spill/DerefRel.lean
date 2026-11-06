@@ -1,0 +1,384 @@
+/-
+`derefStep` keeps what `derefRel` asks to be kept (U9b, `notes/bbolt-proof-plan.md`; pure): the
+nodes by data, the logical tree by data, the writer's data; and the coverage contract
+(`derefOK`) from the buckets' coverage.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.Spill.DerefModel
+public import Proof.go_etcd_io.bbolt.Rebalance.Objs
+public import Proof.go_etcd_io.bbolt.Inv.WtxHeap
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+
+section rel
+variable [GooseExts]
+
+theorem derefStep_node {X X' : WX} (h : derefStep X X') (bl l : Loc) :
+    (X'.node bl l).map (fun r => (r.ws.map wDat, r.key, r.nv.pgid', r.nv.isLeaf')) =
+      (X.node bl l).map (fun r => (r.ws.map wDat, r.key, r.nv.pgid', r.nv.isLeaf')) := by
+  unfold WX.node
+  have hb := derefStep_bs h bl
+  cases hB : X.t.bs !! bl with
+  | none => rw [hB] at hb; rw [optRel_none_l hb]
+  | some B =>
+    rw [hB] at hb
+    obtain ⟨B', hB', hs⟩ := optRel_some_l hb
+    rw [hB']
+    simp only [Option.bind_some]
+    have hn := hs.2 l
+    cases hr : B.ns !! l with
+    | none => rw [hr] at hn; rw [optRel_none_l hn]
+    | some r =>
+      rw [hr] at hn
+      obtain ⟨r', hr', hrs⟩ := optRel_some_l hn
+      rw [hr']
+      obtain ⟨hnv, -, hkey, -, -, hws⟩ := nodeStep_nv hrs
+      simp only [Option.map_some, hws, hkey]
+      rw [hnv]
+
+/-- The bucket's view of a position (`resolve`, `wpageAt`) is kept by a step. -/
+theorem bktStep_resolve {B B' : BRec} (h : bktStep B B') (pid : w64) :
+    resolve B' pid = resolve B pid := by
+  have hf := bktStep_fields h
+  unfold resolve; rw [hf.1, hf.2.1, hf.2.2.1]
+
+theorem bktStep_wpageAt {B B' : BRec} (h : bktStep B B') (v : View) (pid : w64) :
+    wpageAt v B' pid = wpageAt v B pid := by
+  have hf := bktStep_fields h
+  unfold wpageAt; rw [hf.1, hf.2.1, hf.2.2.2.2.1]
+
+/-- The logical tree, by data. -/
+def ldat (o : Option (Bool × List WEntry)) : Option (Bool × List (w32 × w64 × List w8 × List w8)) :=
+  o.map fun x => (x.1, x.2.map wDat)
+
+theorem derefStep_ltree {X X' : WX} (h : derefStep X X') (bl : Loc) (pid : w64) :
+    ldat (ltree X' bl pid) = ldat (ltree X bl pid) := by
+  unfold ltree
+  have hb := derefStep_bs h bl
+  cases hB : X.t.bs !! bl with
+  | none => rw [hB] at hb; rw [optRel_none_l hb]
+  | some B =>
+    rw [hB] at hb
+    obtain ⟨B', hB', hs⟩ := optRel_some_l hb
+    rw [hB']
+    simp only
+    rw [bktStep_resolve hs, bktStep_wpageAt hs, h.1]
+    cases hres : resolve B pid with
+    | none => rfl
+    | some l =>
+      simp only
+      have hn := hs.2 l
+      cases hr : B.ns !! l with
+      | none => rw [hr] at hn; rw [optRel_none_l hn]
+      | some r =>
+        rw [hr] at hn
+        obtain ⟨r', hr', hrs⟩ := optRel_some_l hn
+        rw [hr']
+        obtain ⟨hnv, -, -, -, -, hws⟩ := nodeStep_nv hrs
+        simp only [ldat, Option.map_some, hws]
+        rw [hnv]
+
+theorem flatMap_pgid_map {β γ : Type} (F : β → γ) (G1 G2 : w64 → List β) (ws1 ws2 : List WEntry)
+    (hpg : ws2.map WEntry.pgid = ws1.map WEntry.pgid) (hG : ∀ p, (G2 p).map F = (G1 p).map F) :
+    (ws2.flatMap (fun w => G2 w.pgid)).map F = (ws1.flatMap (fun w => G1 w.pgid)).map F := by
+  induction ws1 generalizing ws2 with
+  | nil => cases ws2 <;> simp_all
+  | cons w ws ih =>
+    cases ws2 with
+    | nil => simp at hpg
+    | cons w2 ws2 =>
+      simp only [List.map_cons, List.cons.injEq] at hpg
+      simp only [List.flatMap_cons, List.map_append]
+      rw [hpg.1, hG, ih _ hpg.2]
+
+/-- The leaves, by data, of two logical trees equal by data. -/
+theorem lleaves_ldat (L1 L2 : LTree) (hL : ∀ bl pid, ldat (L2 bl pid) = ldat (L1 bl pid))
+    (bl : Loc) (n : Nat) (pid : w64) :
+    (lleaves L2 bl n pid).map (List.map wDat) = (lleaves L1 bl n pid).map (List.map wDat) := by
+  induction n generalizing pid with
+  | zero => rfl
+  | succ n ih =>
+    have e := hL bl pid
+    unfold lleaves
+    cases h1 : L1 bl pid with
+    | none =>
+      rw [h1] at e
+      cases h2 : L2 bl pid with
+      | none => rfl
+      | some x => rw [h2] at e; simp [ldat] at e
+    | some x1 =>
+      rw [h1] at e
+      cases h2 : L2 bl pid with
+      | none => rw [h2] at e; simp [ldat] at e
+      | some x2 =>
+        rw [h2] at e
+        simp only [ldat, Option.map_some, Option.some.injEq, Prod.mk.injEq] at e
+        obtain ⟨hk, hw⟩ := e
+        obtain ⟨b1, ws1⟩ := x1
+        obtain ⟨b2, ws2⟩ := x2
+        simp only at hk hw
+        subst hk
+        cases b2 with
+        | true => simp [hw]
+        | false =>
+          have hpg : ws2.map WEntry.pgid = ws1.map WEntry.pgid := by
+            have := congrArg (List.map fun d : w32 × w64 × List w8 × List w8 => d.2.1) hw
+            simpa [List.map_map, wDat, Function.comp_def] using this
+          have := flatMap_pgid_map (List.map wDat) (lleaves L1 bl n) (lleaves L2 bl n) ws1 ws2 hpg
+            (fun p => ih p)
+          simpa only [List.map_flatMap] using this
+
+theorem size_same_dom {K V W : Type} [DecidableEq K] (m : GMap K V) (m' : GMap K W)
+    (h : ∀ k, (m' !! k).isSome ↔ (m !! k).isSome) : GMap.size m' = GMap.size m := by
+  rw [GMap.size_eq_length m' m.domList (GMap.nodup_dom_list m)
+    (fun k => by rw [GMap.mem_dom_list, h]), GMap.size_eq_dom_list_length]
+
+theorem derefStep_fuel {X X' : WX} (h : derefStep X X') : X'.fuel = X.fuel := by
+  unfold WX.fuel
+  rw [h.1, size_same_dom X.t.bs X'.t.bs (fun k => by
+    have := derefStep_bs h k
+    revert this
+    cases X.t.bs !! k <;> cases X'.t.bs !! k <;> simp [optRel])]
+
+theorem derefStep_rootPid {X X' : WX} (h : derefStep X X') (bl : Loc) :
+    X'.rootPid bl = X.rootPid bl := by
+  unfold WX.rootPid
+  have hb := derefStep_bs h bl
+  cases hB : X.t.bs !! bl with
+  | none => rw [hB] at hb; rw [optRel_none_l hb]
+  | some B =>
+    rw [hB] at hb
+    obtain ⟨B', hB', hs⟩ := optRel_some_l hb
+    rw [hB']; simp [(bktStep_fields hs).2.1]
+
+theorem derefStep_leaves {X X' : WX} (h : derefStep X X') (bl : Loc) :
+    (X'.leaves bl).map (List.map wDat) = (X.leaves bl).map (List.map wDat) := by
+  unfold WX.leaves
+  rw [derefStep_fuel h, derefStep_rootPid h]
+  exact lleaves_ldat _ _ (fun bl pid => derefStep_ltree h bl pid) bl _ _
+
+/-- A list's `filterMap` through the data of its entries. -/
+theorem flatMap_filterMap_wDat {β : Type} (g : w32 × w64 × List w8 × List w8 → Option β)
+    (L1 L2 : List (List WEntry)) (h : L2.map (List.map wDat) = L1.map (List.map wDat)) :
+    L2.flatMap (fun ws => ws.filterMap (g ∘ wDat)) = L1.flatMap (fun ws => ws.filterMap (g ∘ wDat)) := by
+  have : ∀ L : List (List WEntry), L.flatMap (fun ws => ws.filterMap (g ∘ wDat)) =
+      (L.map (List.map wDat)).flatMap (fun ds => ds.filterMap g) := by
+    intro L
+    induction L with
+    | nil => rfl
+    | cons ws L ih => simp [ih, List.filterMap_map]
+  rw [this, this, h]
+
+theorem derefStep_lbktEnts {X X' : WX} (h : derefStep X X') (bl : Loc) :
+    lbktEnts X' bl = lbktEnts X bl := by
+  unfold lbktEnts
+  exact flatMap_filterMap_wDat (fun d => if decide (isBktFlag d.1) then none else some (d.2.2.1, d.2.2.2))
+    _ _ (derefStep_leaves h bl)
+
+theorem derefStep_rootEnts {X X' : WX} (h : derefStep X X') : rootEnts X' = rootEnts X := by
+  unfold rootEnts
+  rw [h.2.2.2.2.1]
+  exact flatMap_filterMap_wDat (fun d => if decide (isBktFlag d.1) then some (d.2.2.1, d.2.2.2) else none)
+    _ _ (derefStep_leaves h X.rl)
+
+theorem derefStep_bktLoc {X X' : WX} (h : derefStep X X') (n : GoString) :
+    bktLoc X' n = bktLoc X n := by
+  unfold bktLoc
+  rw [h.2.2.2.2.1]
+  have hb := derefStep_bs h X.rl
+  cases hB : X.t.bs !! X.rl with
+  | none => rw [hB] at hb; rw [optRel_none_l hb]
+  | some B =>
+    rw [hB] at hb
+    obtain ⟨B', hB', hs⟩ := optRel_some_l hb
+    rw [hB']; simp [(bktStep_fields hs).2.2.2.1]
+
+theorem derefStep_wtxData {X X' : WX} (h : derefStep X X') : wtxData X' = wtxData X := by
+  apply wtxData_rebalance X X' (derefStep_rootEnts h) (derefStep_bktLoc h)
+    (fun n bl _ => derefStep_lbktEnts h bl) (by rw [h.1])
+
+theorem optRel_isSome {α β : Type} {R : α → β → Prop} {o1 : Option α} {o2 : Option β}
+    (h : optRel R o1 o2) : o2.isSome = o1.isSome := by
+  cases o1 <;> cases o2 <;> simp_all [optRel]
+
+theorem objsDisj_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) : objsDisj X'.t := by
+  have hbs := derefStep_bs h
+  intro bl B' hB' n hn bl2 B2' hB2' hne
+  obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+  have hn' : (B.ns !! n).isSome := by rw [← optRel_isSome (hs.2 n)]; exact hn
+  have hno := hd bl B hB n hn'
+  obtain ⟨B2, hB2, hs2⟩ := optRel_some_r (hB2' ▸ hbs bl2)
+  have := hs2.2 n; rw [hno bl2 B2 hB2 hne] at this; exact optRel_none_l this
+
+/-- The objects' locations are kept by a step. -/
+theorem objs_isSome_step {X X' : WX} (h : derefStep X X') (hd : objsDisj X.t) (n : Loc) :
+    (X'.t.objs !! n).isSome = (X.t.objs !! n).isSome := by
+  have hd' := objsDisj_step h hd
+  have hbs := derefStep_bs h
+  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (B.ns !! n).isSome
+  · obtain ⟨bl, B, hB, hn⟩ := hex
+    · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hn
+      obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ hbs bl)
+      obtain ⟨r', hr', -⟩ := optRel_some_l (hr ▸ hs.2 n)
+      rw [objs_node X.t bl B n r hd hB hr, objs_node X'.t bl B' n r' hd' hB' hr']; rfl
+  · have hoth : ∀ bl B, X.t.bs !! bl = some B → B.ns !! n = none := by
+      intro bl B hB
+      cases e : B.ns !! n with
+      | none => rfl
+      | some r => exact absurd ⟨bl, B, hB, by simp [e]⟩ hex
+    have hoth' : ∀ bl B', X'.t.bs !! bl = some B' → B'.ns !! n = none := by
+      intro bl B' hB'
+      obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ hbs bl)
+      have := hs.2 n; rw [hoth bl B hB] at this; exact optRel_none_l this
+    rw [objs_other X.t n hoth, objs_other X'.t n hoth']
+    simp only [WTx.deadObjs, h.2.2.2.2.2.2.2.2.2.1]
+
+/-! ## Buckets reached from a bucket -/
+
+/-- The buckets reached from `b` through the `buckets` caches (`b` itself, then its cached
+children's). -/
+inductive reachFrom (X : WX) : Loc → Loc → Prop
+  | self (b : Loc) : reachFrom X b b
+  | step (b c d : Loc) (B : BRec) (k : GoString) :
+      X.t.bs !! b = some B → B.bm !! k = some c → reachFrom X c d → reachFrom X b d
+
+theorem reachFrom_tail {X : WX} {a b c : Loc} {B : BRec} {k : GoString} (h : reachFrom X a b)
+    (hB : X.t.bs !! b = some B) (hk : B.bm !! k = some c) : reachFrom X a c := by
+  induction h with
+  | self b => exact .step b c c B k hB hk (.self c)
+  | step b c' d B' k' hB' hk' _ ih => exact .step b c' c B' k' hB' hk' (ih hB)
+
+theorem reachFrom_of_bktReach {X : WX} {d : Loc} (h : bktReach X d) : reachFrom X X.rl d := by
+  induction h with
+  | root => exact .self _
+  | child bl c B n hB hn _ ih => exact reachFrom_tail ih hB hn
+
+theorem reachFrom_step {X X' : WX} (h : derefStep X X') {b d : Loc} (hr : reachFrom X b d) :
+    reachFrom X' b d := by
+  induction hr with
+  | self b => exact .self b
+  | step b c d B k hB hk _ ih =>
+    obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ derefStep_bs h b)
+    exact .step b c d B' k hB' (by rw [(bktStep_fields hs).2.2.2.1]; exact hk) ih
+
+theorem reachFrom_step' {X X' : WX} (h : derefStep X X') {b d : Loc} (hr : reachFrom X' b d) :
+    reachFrom X b d := by
+  induction hr with
+  | self b => exact .self b
+  | step b c d B' k hB' hk _ ih =>
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h b)
+    exact .step b c d B k hB (by rw [← (bktStep_fields hs).2.2.2.1]; exact hk) ih
+
+theorem nodeRootIn_step' {B B' : BRec} (h : bktStep B B') {n rt : Loc} (hd : nodeRootIn B' n rt) :
+    nodeRootIn B n rt := by
+  induction hd with
+  | top n r' hr' hp =>
+    obtain ⟨r, hr, hs⟩ := optRel_some_r (hr' ▸ h.2 n)
+    refine .top n r hr ?_
+    have := (nodeStep_nv hs).1; rw [this] at hp; exact hp
+  | up n rt r' hr' hp _ ih =>
+    obtain ⟨r, hr, hs⟩ := optRel_some_r (hr' ▸ h.2 n)
+    have e : r'.nv.parent' = r.nv.parent' := by rw [(nodeStep_nv hs).1]
+    refine .up n rt r hr (by rw [← e]; exact hp) ?_
+    rw [← e]; exact ih
+
+/-- **The buckets reached from `b` hold no view slice below their root nodes' roots** (what
+`b.dereference()` leaves). -/
+def bktCov (X : WX) (b : Loc) : Prop :=
+  ∀ bl B rt, reachFrom X b bl → X.t.bs !! bl = some B → nodeRootIn B B.bv.rootNode' rt →
+    covered X bl rt
+
+theorem bktCov_step {X X' : WX} (h : derefStep X X') {b : Loc} (hc : bktCov X b) : bktCov X' b := by
+  intro bl B' rt hr hB' hrt
+  obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+  have hrt' := nodeRootIn_step' hs hrt
+  rw [(bktStep_fields hs).1] at hrt'
+  exact covered_step h (hc bl B rt (reachFrom_step' h hr) hB hrt')
+
+theorem bktReach_step {X X' : WX} (h : derefStep X X') {d : Loc} (hr : bktReach X d) :
+    bktReach X' d := by
+  induction hr with
+  | root => rw [← h.2.2.2.2.1]; exact .root
+  | child bl c B n hB hn _ ih =>
+    obtain ⟨B', hB', hs⟩ := optRel_some_l (hB ▸ derefStep_bs h bl)
+    exact .child bl c B' n hB' (by rw [(bktStep_fields hs).2.2.2.1]; exact hn) ih
+
+theorem liveReach_step {X X' : WX} (h : derefStep X X') (hl : liveReach X) : liveReach X' := by
+  have hlive := h.2.1
+  have hliveB := h.2.2.2.2.2.2.2.2.2.2.2.1
+  refine ⟨?_, ?_⟩
+  · intro bl B' hB' hbl
+    obtain ⟨B, hB, -⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+    rw [hliveB] at hbl
+    exact bktReach_step h (hl.1 bl B hB hbl)
+  · intro bl B' l r' hB' hr' hll
+    obtain ⟨B, hB, hs⟩ := optRel_some_r (hB' ▸ derefStep_bs h bl)
+    obtain ⟨r, hr, -⟩ := optRel_some_r (hr' ▸ hs.2 l)
+    rw [hlive] at hll
+    obtain ⟨rt, hrt, hd⟩ := hl.2 bl B l r hB hr hll
+    refine ⟨rt, ?_, descIn_step hs hd⟩
+    rw [(bktStep_fields hs).1]; exact nodeRootIn_step hs hrt
+
+theorem nodeRootIn_unique {B : BRec} {n rt1 rt2 : Loc} (h1 : nodeRootIn B n rt1)
+    (h2 : nodeRootIn B n rt2) : rt1 = rt2 := by
+  induction h1 with
+  | top n r hr hp =>
+    cases h2 with
+    | top => rfl
+    | up _ _ r' hr' hp' _ => rw [hr] at hr'; cases hr'; exact absurd hp hp'
+  | up n rt r hr hp _ ih =>
+    cases h2 with
+    | top _ r' hr' hp' => rw [hr] at hr'; cases hr'; exact absurd hp' hp
+    | up _ _ r' hr' hp' h2' => rw [hr] at hr'; cases hr'; exact ih h2'
+
+theorem nodeRootIn_root {B : BRec} {n rt : Loc} (h : nodeRootIn B n rt) :
+    ∃ r, B.ns !! rt = some r := by
+  induction h with
+  | top n r hr _ => exact ⟨r, hr⟩
+  | up _ _ _ _ _ _ ih => exact ih
+
+theorem nodeRootIn_ns {B : BRec} {n rt : Loc} (h : nodeRootIn B n rt) : (B.ns !! n).isSome := by
+  cases h with
+  | top _ r hr _ => simp [hr]
+  | up _ _ r hr _ _ => simp [hr]
+
+/-- **The coverage contract from the buckets' coverage**: if every reachable bucket's nodes
+below its root node's root hold no view slice, no live node does. -/
+theorem derefOK_of_cov (X : WX) (hd : objsDisj X.t) (hpre : derefPre X) (hreach : liveReach X)
+    (hcov : ∀ bl B, X.t.bs !! bl = some B → bktReach X bl →
+      ∀ rt, nodeRootIn B B.bv.rootNode' rt → covered X bl rt) :
+    derefOK X := by
+  intro l o ho hl
+  by_cases hex : ∃ bl B, X.t.bs !! bl = some B ∧ (B.ns !! l).isSome
+  · obtain ⟨bl, B, hB, hn⟩ := hex
+    · obtain ⟨r, hr⟩ := Option.isSome_iff_exists.1 hn
+      rw [objs_node X.t bl B l r hd hB hr] at ho
+      cases ho
+      obtain ⟨rt, hrt, hdesc⟩ := hreach.2 bl B l r hB hr hl
+      have hbl := hreach.1 bl B hB (hpre.2.2.1 bl B hB).1
+      exact hcov bl B hB hbl rt hrt B l r hB hdesc hr
+  · have hoth : ∀ bl B, X.t.bs !! bl = some B → B.ns !! l = none := by
+      intro bl B hB
+      cases h : B.ns !! l with
+      | none => rfl
+      | some r => exact absurd ⟨bl, B, hB, by simp [h]⟩ hex
+    rw [objs_other X.t l hoth] at ho
+    simp only [WTx.deadObjs, GMap.lookup_fmap] at ho
+    exact absurd hl (hpre.2.2.2.2 l (by revert ho; cases X.t.dead !! l <;> simp))
+
+end rel
+
+end bbolt
+end EtcdGrove
+end Perennial

@@ -135,12 +135,12 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
       min ((W64 0).toNat + F.length) m.size - min (W64 0).toNat m.size := by
     rw [List.length_take, hw00, hF]; omega
   wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨p, true, true⟩ 1 m
-      (xs.take 16384) rfl hw0' (by omega) (by omega) he2 (fun _ => rfl)
+      (xs.take 16384) rfl hw0' (by omega) (by rw [hw00]; omega) he2 (fun _ => rfl)
       $$ [Hinv Hf Hfirst Hfd Hm Hw Hc]
-    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %h, %Hres, Hm, Hw, Hc⟩
+    as %n %err ⟨Hf, Hfirst, Hfd, %j, %ys, %h, %Hres, Hm, Hw, Hc, #_⟩
   · rw [hw00, Nat.zero_min]; iframe Hf Hm Hw Hc Hfirst Hfd; iframe #
   rw [hw00, Nat.zero_min] at *
-  obtain ⟨hj, hys, hh, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, hh, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · cases err with
     | nil => exact absurd rfl hne
@@ -241,10 +241,10 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   · iempintro
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 4096) (W64 8192)) D1
       (DFrac.own 1) (W64 4096) dq ⟨p, true, true⟩ 1 m1 ((A.drop 4096).take 4096) rfl hw4'
-      (by omega) (by omega) he2 (fun _ => rfl) $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
-    as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Hw, Hc⟩
+      (by omega) (by rw [hw4]; omega) he2 (fun _ => rfl) $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
+    as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %h2, %Hres2, Hm, Hw, Hc, #_⟩
   · rw [hm4]; iframe Hf Hm HbW Hc Hbuf1 Hfd; iframe #
-  obtain ⟨hj2, hys2, hh2, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
+  obtain ⟨hj2, hys2, hh2, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne2⟩⟩ := Hres2
   rotate_left
   · cases err2 with
     | nil => exact absurd rfl hne2
@@ -340,12 +340,12 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   ihave Hc := (hmc2 (min (W64 0).toNat m2.size) ((W64 0).toNat + D0.length)).2 $$ []
   · iempintro
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 0) (W64 4096)) D0
-      (DFrac.own 1) (W64 0) dq ⟨p, true, true⟩ 1 m2 (B.take 4096) rfl hw0z' he0 (by omega)
+      (DFrac.own 1) (W64 0) dq ⟨p, true, true⟩ 1 m2 (B.take 4096) rfl hw0z' he0 (by rw [hw0z]; omega)
       he3 (fun _ => rfl) $$ [Hinv Hf Hbuf0 Hfd Hm Hb0 Hc]
-    as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %h3, %Hres3, Hm, Hw, Hc⟩
+    as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %h3, %Hres3, Hm, Hw, Hc, #_⟩
   · rw [hw0z, Nat.zero_min]; iframe Hf Hm Hb0 Hc Hbuf0 Hfd; iframe #
   rw [hw0z, Nat.zero_min] at *
-  obtain ⟨hj3, hys3, hh3, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne3⟩⟩ := Hres3
+  obtain ⟨hj3, hys3, hh3, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne3⟩⟩ := Hres3
   rotate_left
   · cases err3 with
     | nil => exact absurd rfl hne3

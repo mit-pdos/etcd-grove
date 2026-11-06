@@ -9,9 +9,9 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, durablekv, kvdurable, putget, putgetc, putget3,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
-               k8s-daemonset, k8s-compactor, bbolt or bbolttest; repeatable; default: all).
+               k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -132,7 +132,9 @@ PROJECTS = [
         rev="565c2bda9e6dd2c41fa0dcc598bdbc52f2d64885",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
-        lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],
+        # (`os`, `io/fs`: this repository's translations, project bboltfs's, not Perennial's; every
+        # project is on them since 2026-11-03, so that bbolt's `os.FileMode` fields translate)
+        lean_roots=["go.etcd.io/raft/v3=", "google.golang.org=", "os=", "io/fs="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -142,6 +144,40 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="bbolt",
+        # bbolt as etcd links it (go.etcd.io/bbolt v1.5.0 in etcd's go.mod: etcd-io/bbolt
+        # e7a8b2d), from the fork upamanyus/bbolt, branch `goose-lean` (3207bacf): its branch
+        # `goose` (e353cbe, the forms Perennial's byte memory follows: `unsafe.Add`/`unsafe.Slice`
+        # helpers, whole-struct copies through a local; Perennial's
+        # docs/design/unsafe-memory.md, section 6), the fix of etcd-io/bbolt#1311
+        # (issues/bbolt-commit-meta-error-frees-reader-pages.md), a crash-safe `init`
+        # (nonissues/bbolt-init-not-crash-safe.md), a named type for `DB.ops` and no `retry:`
+        # label; then branch `goose-lean-v2` (b30879b2): `getPageSize` returns a meta read error
+        # instead of probing further (D18), `splitTwo`'s float threshold factored out as
+        # `splitThreshold`, trusted (D17) (b30879b2); then `Tx.WriteTo` writes the current meta at
+        # page txid%2 (e1fae5c, a bug: two torn meta writes after restoring an odd-txid copy
+        # leave no valid meta), `%v` for errors in logger calls (27b1412, upstream main's change)
+        # and a no-op default logger (b3e06648); then `Open` maps the file through `mmapUnlocked`, closes
+        # under the locks after its transaction began, and `loadFreelist` publishes the freelist
+        # under `metalock` (743299d8, verification only). With bodies (bbolt.toml, bbolt/**.toml; notes/bbolt-v2-infra.md). Its `os`,
+        # `io/fs`, `syscall` and `golang.org/x/sys/unix` (project bboltfs: the models of the Linux
+        # file extension osFsExt), `hash` and `encoding/hex` (project etcd) are this repository's
+        # translations. Modules
+        # Code.go_etcd_io.bbolt*, GeneratedProof.go_etcd_io.bbolt*.
+        repo="https://github.com/upamanyus/bbolt",
+        rev="743299d8cec897535160dbd82723f3cb1873f312",
+        lean_roots=["go.etcd.io/bbolt=", "golang.org/x/sys=", "syscall=", "hash=",
+                    "encoding/hex=", "os=", "io/fs="],
+        packages=[
+            "go.etcd.io/bbolt",
+            "go.etcd.io/bbolt/errors",
+            "go.etcd.io/bbolt/internal/common",
+            "go.etcd.io/bbolt/internal/freelist",
+        ],
+        owned=[os.path.join("go_etcd_io", "bbolt")],
+        counted_modules=["go.etcd.io/bbolt"],
     ),
     Project(
         name="etcd",
@@ -223,7 +259,7 @@ PROJECTS = [
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
-                    "go.etcd.io/bbolt=", "go.opentelemetry.io=",
+                    "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=",
@@ -331,11 +367,8 @@ PROJECTS = [
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
-            "go.etcd.io/bbolt",
-            # names only: bbolt's errors (the backend's UnsafeDeleteBucket compares with one)
-            "go.etcd.io/bbolt/errors",
-            # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
-            "go.etcd.io/bbolt/internal/common",
+            # (go.etcd.io/bbolt, etcd's go.mod: v1.5.0, is the bbolt project's translation, from
+            # the fork: not translated here)
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
             # names only: what mvcc's watchStream.Watch calls (SpanFromContext, Span.End)
             "go.opentelemetry.io/otel/trace",
@@ -438,7 +471,7 @@ PROJECTS = [
             # structs are translated (NewServer splits the configuration; unit N4, 2026-10-17)
             "net/url",
         ],
-        owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
+        owned=[os.path.join("go_etcd_io", "etcd"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
@@ -920,7 +953,7 @@ PROJECTS = [
         rev="99cb9e2d98d40d423aa7e7ec1f12f0877a45570e",
         root="RaftWitness",
         # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
-        lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org="],
+        lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org=", "os=", "io/fs="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
@@ -945,7 +978,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8s", "etcd3"),
-        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
                     "path=", "github.com/mit-pdos/etcd-grove=",
                     "github.com/anishathalye/porcupine=",
@@ -1158,7 +1191,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8s", "daemonset"),
-        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=",
+        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=", "os=", "io/fs=",
                     "github.com/go-logr="],
         packages=[
             "./apimodel",
@@ -1201,7 +1234,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "k8s", "compactor"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "github.com/mit-pdos/etcd-grove=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "compactor")],
     ),
@@ -1226,7 +1259,9 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvwitness")],
     ),
     Project(
-        name="bbolt",
+        name="bbolt-bank",
+        # (Named `bbolt` until 2026-11-05, when the main tree's bbolt (project `bbolt`, the fork's
+        # goose-lean-v2) got bodies; the bank test moves onto it in the clean-up after the merge.)
         # bbolt with its bodies, for the top-level test bbolttest: the fork upamanyus/bbolt, branch
         # goose-lean (v1.5.0 with the `unsafe` forms of Perennial's byte memory, crash-safe init,
         # the fix of etcd-io/bbolt#1311). Translated into the parallel tree Bbolt (modules
@@ -1243,16 +1278,15 @@ PROJECTS = [
         packages=[".", "./errors", "./internal/common", "./internal/freelist"],
         owned=[os.path.join("go_etcd_io", "bbolt")],
         counted_modules=["go.etcd.io/bbolt"],
-    ),
-    Project(
+    ),    Project(
         name="bbolttest",
         # The top-level test of bbolt (`examples/bbolt/bank`): a bank whose boot program checks, after
         # any crash, that the balances add up and that every acknowledged transfer survived (against
         # a witness file), then runs concurrent transactions through the lintest driver, whose
         # trace porcupine checks for strict serializability. A Go module of its own, whose go.mod
-        # replaces go.etcd.io/bbolt by the fork at project bbolt's pin (GO_MOD_PINS checks the two
+        # replaces go.etcd.io/bbolt by the fork at project bbolt-bank's pin (GO_MOD_PINS checks the two
         # agree), and lintest and porcupine by this repository's copies. Translated into Bbolt, its
-        # bbolt project bbolt's, its file calls project bboltfs's, lintest and porcupine the main
+        # bbolt project bbolt-bank's, its file calls project bboltfs's, lintest and porcupine the main
         # tree's.
         repo=None,
         rev=None,
@@ -1273,9 +1307,10 @@ PROJECTS = [
 # examples' module, kvwitness's, whose raft is the witness experiment's, and k8setcd3's. `--check` fails on a
 # mismatch, so that a fork-pin bump cannot leave the examples on the old code.
 GO_MOD_PINS = {
-    os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
+    os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
+                                         "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
-    os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt"},
+    os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
     # Kubernetes' compactor's example, a module of its own (it requires k8s.io/apiserver)
