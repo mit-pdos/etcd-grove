@@ -161,3 +161,22 @@ Proof-wise, the trust base is what leasegrant already reaches since S2–S4 (the
 7. **Name.** Recommended: `examples/etcd/leasecatchup`.
 
 No hard stop is in the recommended path. Hard stops arise only from 1(C), or from step 2's new trusted TTL row.
+## Go first (2026-11-06)
+
+**Outcome: the check holds in Go and the run exercises the leased restore.** `examples/etcd/leasecatchup/` (commit `25f0f94fac`): `leasecatchup.go` (`Main`, 182 lines) and `leasecatchup_test.go` (`TestMemberIDs`, `TestMainRun`, 216 lines).
+
+- **Shape.** `Main()` is `run(zap.NewNop())`; `run(lg) int` is §2's six steps (Checked / StartFailed / NotCaughtUp), so that the test runs Main's body with a counting logger (linkv3p's precedent). The Draft specifies `run` (or folds it into `Main`). Ports 24011-13 (peer), 24021-23 (client), 24031-33 (bridge). TTL 3600, k = `fillers` = 20, 60 polls 250 ms apart. Bridges are returned by `StartCluster` and unused.
+- **Runs** (go1.27.3, `go test ./etcd/leasecatchup -count=1 -v`, three times; all PASS; `go vet` clean):
+
+| run | `run` took | sent merged snapshot (to member 3 / others) | applied snapshot | restored lease store | raft restores on member 3 |
+|---|---|---|---|---|---|
+| 1 | 6.86 s | 1 / 0 | 1 | 1 | 1, index 29 |
+| 2 | 1.58 s | 1 / 0 | 1 | 1 | 1, index 29 |
+| 3 | 1.85 s | 1 / 0 | 1 | 1 | 1, index 29 |
+
+  Earlier development runs: 1.6, 7.6, 1.3, 6.6 s, the same counts. The ~5 s extra in some runs is presumably one filler timing out (`RequestTimeout`) while a new leader is elected (member 3 led at the cut).
+- **Why k = 20 suffices.** At `SnapCount 1` the leader snapshots every second applied entry and compacts its log to `SnapCatchUp` (1) entry below it, so two applied fillers already compact member 3's index out; 20 leaves margin for fillers lost to a re-election. The restore at index 29 (about 9 entries before the cut, then the 20 fillers) holds every filler. The 30 s `releaseDelayAfterSnapshot` pause would defeat this only after an earlier snapshot (a member lagging at start-up); none happened in any run. If one did, member 3 would catch up by entries: `Main` would still pass, the test would fail (no restore above the fillers' count).
+- **What the test checks** (beyond `run` returning Checked): a snapshot sent to member 3 (the `to` field of "sending merged snapshot", against the ids `membership.NewClusterFromURLsMap` computes); raft on member 3 restoring a snapshot above index k ("`<id> [commit: c] restored snapshot [index: i`"; raft logs a restore twice, the "lastindex" line is skipped); more "restored lease store" than snapshots sent to members 1 and 2. The last is how member 3 is identified: etcd's "applied snapshot" and "restored lease store" name no member.
+- **A race in the counts.** `run` returns once member 3's lessor lists the filler. `applySnapshot` logs "applied snapshot" in a `defer`, after the KV store's restore, sometimes after `run` returns (one development run counted 0). The test waits for it (at most 5 s).
+- **Goose.** The pinned translator (Perennial `84d5380639`, built from `/shared/perennial-84d538063`), with leasegrant's lean roots and the repository's `Code/` configuration, translated the package (Code 598 lines, GeneratedProof 27) with no error or unsupported construct. Not added to `etc/goose.py` (the Draft does that).
+- **What the Scope got wrong or left out.** No error. Two small points: §2's time budget, (1 + k) × 5 s, is an upper bound; the measured runs take 1.3-7.6 s. `Main` needs the `run(lg)` split for the test, which adds one function to specify.
