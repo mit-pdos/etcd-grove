@@ -37,14 +37,23 @@ restart point's backend log `γn.a0`, the `MsgSnap` this member sent and the bag
 not at `rt` (`server.go:1018-1020`'s guard fails, so no merge inside the window).
 
 What it excludes, plainly: **the restarted incarnation is elected at a term `T' > T₀` while raft
-is still handing out the replay, and then sends a `MsgSnap` at `T'`** (the Go probe,
-`/shared/tmp/winpend-probe`: 0 runs with etcd's drained handout, 2-3% with a slow one;
-`notes/restart-plan.md`, "Hwpend: the Go probe and the narrowing"). A batch at `rt ≤ T₀` needs no
-premise: this incarnation's `MsgSnap`s are above `T₀` (`rnSnapMsg`). **R2s discharges it; R2e's
-closed theorem must not carry it**; it gets an `axiom`-skill attack before R2d'b's Freeze (target: a
-former leader that sent a `MsgSnap` at `rt` and restarted with its first window batch at `rt`;
-`sentMsg` is persistent and keyed by member id, not incarnation). At a first start (`γn.a0 = []`)
-the wand is vacuous (`srvWinPend_first`). -/
+is still handing out the replay, and then sends a `MsgSnap` at `T'`**. **It is false of some Go runs
+with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following
+the merged snapshot in the ghost**: no producer can supply it, so neither R2d'b nor R2s discharges
+it (review of R2d'a, finding 3). The trace: a replay over 1 MB is split into several `Ready`s by
+`MaxCommittedSizePerReady` (unset in etcd, so `MaxSizePerMsg`, 1 MB); a snapshot inside the window
+compacts the raft log (e.g. the forced one a replayed `ClusterVersionSet` triggers, at Go's applied
+index above `SnapshotCatchUpEntries`); the member is elected above `t0` mid-replay; a lagging
+follower gets a `MsgSnap` at the new term, which `server.go:1018` merges inside the window. Go is
+correct there; the premise is a scope restriction of the proof model. The Go probe
+(`notes/restart-probe/`: 0 runs with etcd's drained handout, 2-3% with a slow one) understates it:
+its handout is by entry count, not bytes, so it never splits a replay the way 1 MB does
+(`notes/restart-plan.md`, "Hwpend: the Go probe and the narrowing"). A batch at `rt ≤ T₀` needs no
+premise: this incarnation's `MsgSnap`s are above `T₀` (`rnSnapMsg`). **R2e's closed theorem must
+not carry it**; it gets an `axiom`-skill attack before R2d'b's Freeze (target: a former leader that
+sent a `MsgSnap` at `rt` and restarted with its first window batch at `rt`; `sentMsg` is persistent
+and keyed by member id, not incarnation). **At a first start (`γn.a0 = []`) it is free**: the guard
+`n < |a0|` never holds, so a token gives it (`srvWinPend_first`). -/
 def srvWinPend (s : Loc) (γr : ReadNames) (γn : RNNames) : IProp GF :=
   letI := srvStor (GF := GF) γr.raft.raft
   iprop(∃ γwp : GName, token γwp ∗

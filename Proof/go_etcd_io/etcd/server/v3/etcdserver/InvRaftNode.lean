@@ -410,17 +410,19 @@ receive's `readyRest`, until then on the busy `nodeDriver`, which the raft loop 
 has sent the payload on `applyc`) **No snapshot at or below the restart point**: every snapshot
 `Ready` this incarnation's node hands its driver (`readyRest` at the driver's idle state `rnDrvSt γ …`,
 this incarnation's storage and key, as `rnSnapTermAbove`) is strictly above the backend's log `a0`
-(`|a0| < snapIdx`). Why `<` is true of Go (raft v3.7.0 at `565c2bd`, etcd at `673da07c8`):
-- `a0` is a committed prefix of the restarted node's *own* WAL log (`rnRestartOk`'s `srvRLogLb` is
-  `isCommittedLogLb`), so a real install inside the replay window has `snapIdx > |a0|`;
-- for `snapIdx ≤ |a0|` the local entry at `snapIdx` is the committed one, so its term matches the
-  snapshot's: raft fast-forwards its commit and installs nothing (`raft.go:1912-1918`); above the
-  local commit, `raft.go:1861` is not the binding check (`restore` refuses an index at or below its
-  committed one, `raft.go:1876-1880`). The snapshot a `Ready` carries is the one the driver installs.
+(`|a0| < snapIdx`). Why `<` is true of Go: **raft's commit at restart is `≥ |a0|`, and `restore`
+rejects a snapshot at or below committed** (raft v3.7.0 `raft.go:1861`; the fork `565c2bd`'s
+`raft.go:1877`). The restored `HardState`'s commit is `σ.commit ≥ |a0|` (`wal.stopImage`'s
+`i ≤ σ.commit`, the fact `rnWalCommitAbove` states), and raft's commit only grows, so every snapshot
+raft installs has `snapIdx > |a0|`. A snapshot that matches a local entry's term is not installed
+either: raft fast-forwards its commit and returns (v3.7.0 `raft.go:1912-1918`, the fork's
+`raft.go:1928-1934`). The snapshot a
+`Ready` carries is the one the driver installs (etcd at `673da07c8`).
 
-Raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (a)). R2s (or raft's API)
-discharges it; R2d'b's obligation for it: `RestartNode` supplies that `a0` is a committed prefix of
-the restored WAL log. R2e's closed theorem must not carry it. -/
+Raft's API does not say so (`notes/restart-plan.md`, R2d' finding 2, H5 (b): "a snapshot's index
+is above the receiver's commit"). R2d'b's obligation for it: `RestartNode` supplies raft's commit at
+the start `≥ |a0|` (the same restart fact as `rnWalCommitAbove`), from which this follows with H5
+(b). R2e's closed theorem must not carry it. -/
 def rnWinInstallAbove (γ : RNNames) : IProp GF :=
   letI := srvStor (GF := GF) γ.node
   iprop(□ ∀ (rd : Ready) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType)

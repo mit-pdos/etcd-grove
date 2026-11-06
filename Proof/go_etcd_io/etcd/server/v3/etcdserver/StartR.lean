@@ -84,16 +84,19 @@ theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (�
 index `ai` (`ep.appliedi`'s first value, the WAL snapshot's index), with the backend's ghost log
 `A₀`: the ghost rows at `A₀` (the applied index `g₀ = ai₀ + |A₀|`, `kvRunM`, `srvRest`, `srvApRes`,
 the consistent index `ciEff` at `g₀`, `bootstrap.go:255-273`), Go's at `ai` (`loopOk`, the snapshot
-resources). -/
+resources). The auth state `sa₀` is the one after `A₀` (`kvRunM`'s, with auth on the state
+`A₀`'s admin entries leave, which Go's auth store recovers from the backend at the consistent
+index), existential so that an auth-on restart whose log changed auth meets it; a first start's is
+`srvAuthSt0` (`srvRestartAtR_first`). -/
 def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
     (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName)
     (A₀ : List EntryModel) (ai : w64) : IProp GF :=
-  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool) (g₀ : w64),
+  iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool) (g₀ : w64) (sa₀ : auth.AuthState),
     applyThread γ st₀ ∗
     ⌜loopOk γ st₀ ai ∧ g₀ = ciEff γ st₀.k ∧ uint.Z g₀ = uint.Z ai₀ + A₀.length⌝ ∗
     applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
-    srvWgReader s ∗ srvApplyKVC C s E γw x₀ srvAuthSt0 ∗
-    srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ srvAuthSt0 ∗
+    srvWgReader s ∗ srvApplyKVC C s E γw x₀ sa₀ ∗
+    srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
     srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
     srvSnapOwn s ci E γr γ ai)
 
@@ -107,7 +110,7 @@ theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (
   icases H with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hkv, Hao, Hal, Hkr, Hrest,
     Hap, Hfs, Htok, Hso⟩
   iunfold srvRestartAtR
-  iexists st₀, a, t, f, ai₀
+  iexists st₀, a, t, f, ai₀, srvAuthSt0
   iframe Hth Hbe Hca Hlg Hbm Hwg Hkv Hao Hal Hkr Hrest Hap Hfs Htok Hso
   ipureintro
   exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
@@ -220,13 +223,13 @@ theorem applyResR_start (K : AuthC) (C : ApplyCtx GF) (TM : MetaCI → IProp GF)
     applyResR K C ⟨P.length, A₀⟩ P := by
   iintro ⟨#Hsrv, Hai, Hat, Hcsa, #Hcsok, #Hcsat, Hdsi, Hmsi, #Hms, #Hslb, Hkvf, Hwt, Hwtt, Hrs⟩
   iunfold srvRestartAtR at Hrs
-  icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hkv, Hao, Hal, Hkr,
+  icases Hrs with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hwg, Hkv, Hao, Hal, Hkr,
     Hrest, Hap, Hfs, Htok, Hso⟩
   obtain ⟨Hloop, Hce, Hg⟩ := Hok
   icases kvRunM_lbR _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA, Hkr⟩
   have hgh : ghostOf ⟨P.length, A₀⟩ P = A₀ := ghostOf_in ⟨P.length, A₀⟩ P hP
   iunfold applyResR
-  iexists ⟨C.γ, TM, C.E, C.b⟩, st₀, ai, at', a, t, cs, C.x₀, srvAuthSt0, g₀
+  iexists ⟨C.γ, TM, C.E, C.b⟩, st₀, ai, at', a, t, cs, C.x₀, sa₀, g₀
   simp only [hgh]
   rw [← srvRestR_start _ _ P A₀ hP]
   isplitr

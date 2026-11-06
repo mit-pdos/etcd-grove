@@ -64,8 +64,11 @@ the state `st` is unchanged, and the rest buckets at the backend's log `A₀` (`
 on an unknown, unremoved member, `membership/cluster.go:467-496`). The backend's log committed with
 the entry in it (the KV invariant's shape of a committed entry, `kv_log_plain`, is what makes a
 skipped or rejected request leave the members, as `restEntryV2` says); the store's write token spent
-(`apply.Apply`'s). With auth on, the receipt and its bound, and the chain the start's (`x.chain =
-γr.kv.ch0`: an admin request runs `adminEntryOn` at `v3 = false`, which takes it). -/
+(`apply.Apply`'s). With auth on, it **spends one time receipt (`⧗ 1`) per replayed entry**, not
+given back (Go runs the auth applier's `IsAdminPermitted` on an admin entry at `v3 = false` too), so
+each restart's replay of `A₀` consumes `|A₀|` receipts again against the fixed `receiptBound`; the
+bound itself, and the chain the start's (`x.chain = γr.kv.ch0`: an admin request runs `adminEntryOn`
+at `v3 = false`, which takes it). -/
 abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)

@@ -39,9 +39,12 @@ extending `L`, at least as long as the boot log, whose conf changes are all ones
 model's buckets and members at `L'` satisfy `memBucketsOk c` (`clusterMem` given back). The
 members premise is at any map `mem` with the model's ids at `L` (2026-11-06), not only the model's.
 
-Why it is true of the Go code (etcd at the pin `bc9c3868c`: `schema/membership.go`,
-`api/membership/cluster.go`, `version/downgrade.go`) and the deployment (a fresh static cluster,
-every member running the same binary, `bootOk`):
+Why it is true of the Go code (etcd: `schema/membership.go`, `api/membership/cluster.go`,
+`version/downgrade.go`) and the deployment (a fresh static cluster, every member running the same
+binary, `bootOk`). Pins: the first, second and fourth bullets were checked at `bc9c3868c`
+(2026-10-26), the third (the ids) at `673da07c8`, the pin today, whose line numbers it cites. Between
+the two, `schema/membership.go` and `version/downgrade.go` (whose `:42-55` the fourth cites) are
+unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bullet cites:
 
 * *The buckets decode, to the model's members.* The rest model is what every member's apply
   thread writes (`InvRest.lean`): `members` holds, under `schema.BackendMemberKey(id)`, the JSON
@@ -67,7 +70,7 @@ every member running the same binary, `bootOk`):
   `c.members`, whose records are `clusterMem`'s, the model's at `L`, the boot members) is one.
 * *Only the ids of `c`'s in-memory members matter* (2026-11-06; the members premise taken at any
   `m` with the model's keys, for the restart's WAL replay, whose in-memory attributes can be a
-  mix that no prefix's model has). `Recover` never reads the members it replaces: `UnsafeLoad`
+  mix that no prefix's model has; etcd at `673da07c8`). `Recover` never reads the members it replaces: `UnsafeLoad`
   (`cluster.go:256-260`) assigns `c.members` and `c.removed` from `MustReadMembersFromBackend`
   (`schema/membership.go:83-120`), which reads only the buckets. Everything after it in `Recover`
   (`cluster.go:265-302`: the metric, `MustDetectDowngrade` on the loaded version, the learner

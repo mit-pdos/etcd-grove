@@ -2716,7 +2716,9 @@ Pass: all sorry-free, with the two leaf specs and `applyAll.specBatch` as hypoth
    window is pending (a split first batch, a snapshot between). A8 (H5 (a)).
 
 **The carried restart-only assumptions**, with their honest costs (R2s discharges both; R2e carries
-neither, nor `winNoConf`):
+neither, nor `winNoConf`. For A7, superseded 2026-11-06 by the R2d'a review, finding 3: its supply
+`Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election);
+R2s must REMOVE it by following the merged snapshot in the ghost, not discharge it):
 - **A7, `winNoMergedSend`'s supply** (H6: a persistent wand guarded by an exclusive "window pending"
   token the apply thread holds until the window closes: while it is held, member `id` has no
   `MsgSnap` at a term `≥ T₀`). Cost, as N1's honest reading: it excludes runs where member `id` has a
@@ -3349,7 +3351,7 @@ It goes in `isServerRunC` and `isServerBuiltC`, and is passed through `InvBuild`
    `γwp`. No closed theorem's premise may grow.
 2. Stop if it needs any file beyond A6's list.
 3. Record these three points about the premise:
-   - **R2s discharges it.**
+   - **R2s discharges it.** (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises")
    - **R2e's closed theorem must not carry it.**
    - **It gets an `axiom`-skill attack before R2d'b's Freeze.** One target: a former leader that
      sent a `MsgSnap` at term `rt` and then restarted with its first window batch at `rt`
@@ -3451,9 +3453,10 @@ snapshot receive. Item 4's snapshot arm and item 5 wait for item 2.
 82 approved narrowing `Hwpend` to `rt = 0 ∨ rt >` the restart's restored HardState term (via the main
 session). Nothing goes into a hub until 82 approves the narrowed text below.
 
-- **The probe.** `/shared/tmp/winpend-probe` (`sim.go`, `probe_test.go`). Rerun: `cd /shared/tmp/winpend-probe
-  && PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=go1.27.3 TMPDIR=/shared/tmp GOFLAGS=-mod=mod go test -count=1
-  -v -run 'Scenario|Randomized' .`
+- **The probe.** `notes/restart-probe/` (`sim.go`, `probe_test.go`, its `README.md`; until 2026-11-06
+  in `/shared/tmp/winpend-probe`). Rerun: `cd notes/restart-probe && PATH=/usr/local/go/bin:$PATH
+  GOTOOLCHAIN=go1.27.3 TMPDIR=/shared/tmp GOFLAGS=-mod=mod go test -count=1 -v -run
+  'Scenario|Randomized|ZZZ' .`
 - **The harness.** It has 3 members on `RawNode` + `MemoryStorage`, driven like etcd's raft loop, with:
   - per-incarnation `raftTerm` and persist-before-`Advance`;
   - snapshots at scaled-down counts (`SnapshotCount` 20, catch-up 5);
@@ -3467,6 +3470,10 @@ session). Nothing goes into a hub until 82 approves the narrowed text below.
   - Slow handout (one entry per `Ready`): 2-3%, and about 3% without PreVote.
   - The old text's proxy fails about 99% (drained), and 49-77% (slow).
   - No etcd/raft bug was found.
+  - (2026-11-06, the R2d'a review, finding 3) **The drained 0 understates it**: the probe hands out
+    by entry count, not bytes, so it never splits a replay as etcd's 1 MB `MaxSizePerMsg` does. With
+    default flags a replay over 1 MB, split by `MaxCommittedSizePerReady`, with a snapshot inside the
+    window and a mid-replay election above `t0`, then a `MsgSnap` merged by `server.go:1018`, fails it.
 - **Why `rt = T` can't happen** (the main session's reading). `rt` is `toApply.raftTerm`: etcd
   `raft.go:79-81`, `:183` (`raftTerm := 0` per loop), `:222-224`, `:234`. The merge check is at
   `server.go:1009-1021`. raft v3.7.0's `rawnode.go:59` means the first `Ready` after `RestartNode` carries
@@ -3499,7 +3506,7 @@ session). Nothing goes into a hub until 82 approves the narrowed text below.
   - So every `MsgSnap` at `t` follows a durable HardState term `≥ t`.
 - **R2s's target.** The remaining case: the restarted member is elected at `T' > T₀` while raft is still
   handing out the replay, then sends a `MsgSnap` at `T'`. That is 2-3% of runs with a slow handout and 0
-  with a drained one, and it is what R2s must discharge. R2e's closed theorem must not carry `Hwpend`.
+  with a drained one, and it is what R2s must discharge (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises"). R2e's closed theorem must not carry `Hwpend`.
 - **(A) Where the loop gets the fact about `rt`: nowhere today.**
   - `rnRtOk` (`InvRaftNode.lean:1576`) is `rt = 0 ∨ ∃ c, committedAtTerm rt c ∗ n ≤ c`.
   - `RNNames` has no restored HardState term, and `RestartNode` is R2d'b's B1.
@@ -3641,7 +3648,7 @@ Not started in this session (context). Items 2 and 3 are held for decisions. The
   `srvBuilt` (`InvBuild`), `srvBuiltG` (`ServerOn`). One spelling fix: the approved text's
   `sentMsg γr.raft.cl` is `sentMsg γr.raft.raft.cl` under `letI := srvStor γr.raft.raft` (the
   `SrvRaft` `winNoMergedSendR` is applied at; `ServerRaftNames` has no `cl`). Docstring: the
-  excluded runs (elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'`), R2s discharges it,
+  excluded runs (elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'`), R2s discharges it (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises"),
   R2e must not carry it, the `axiom` attack target. `srvWinPend_first` (proved): at `a0 = []` a
   token gives it. `NewServer` allocates `γwp`; `start` passes it to `run`; `run.wp_proofG` drops it.
 
@@ -3672,10 +3679,10 @@ narrowed `winNoMergedSendR`).
 - (ii) Of ~400 in-window installs per run, measured against the restored log's last index: 23-35
   below, 0-4 equal, 360-402 above. Measured against the commit at restart: 0 at or below.
 - The equal and below cases come only from the uncommitted WAL tail (trace: seed 356). Rerun in
-  `/shared/tmp/winpend-probe` with `go test -count=1 -v -run 'Scenario|Randomized|ZZZ' .`
+  `notes/restart-probe/` with `go test -count=1 -v -run 'Scenario|Randomized|ZZZ' .` (its `README.md`)
 
 **R2d'b discharge targets (restart-only premises)** (the main session, 2026-11-06):
-- `Hwpend` (`srvWinPend`, A7): R2s, the elected-at-`T' > T₀` case;
+- `Hwpend` (`srvWinPend`, A7): R2s, the elected-at-`T' > T₀` case (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises");
 - `rnWinInstallAbove` (`<`, A8);
 - the `MsgSnap` term bound `t0 < Term'` (`rnSnapMsg`; not in yet, item 2 of item 5 above);
 - the WAL's stored commit `≥ |a0|` (Q27 (i), for `raftNode.stop.spec`'s new post; not in yet);
@@ -3787,11 +3794,11 @@ closed theorem carries none. At a first start each is proved or vacuous.
 
 | Premise | Text | Go evidence | At a first start | Discharge (est.) |
 |---|---|---|---|---|
-| `Hwpend` (A7) | `srvWinPend s γr γn` (`InvRun.lean:48`): a `token γwp` and `□ ∀ rt n, token -∗ ⌜n < \|a0\| ∧ uint.Z γn.t0 < uint.Z rt⌝ -∗ rnRtOk γn rt n -∗ ∀ id m st, … -∗ ⌜MsgSnap → Term ≠ rt⌝ ∗ …`, in `isServerRunC`/`isServerBuiltC` and the hubs | `/shared/tmp/winpend-probe`: 0 of ~4250 former-leader restarts fail it with etcd's drained handout; 2-3% with a slow handout (one entry per `Ready`), ~3% without PreVote; the failing runs are elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'` | `srvWinPend_first` (`InvRun.lean:60`): at `a0 = []` the guard `n < 0` is false, a token gives it | **R2s** (the elected-at-`T' > T₀` case; R2s's Scope, no estimate yet); `axiom`-skill attack before R2d'b's Freeze |
-| `rnWinInstallAbove` (A8, strict; task 4: at the receive's `readyRest`, 82's hub decision) | `InvRaftNode.lean:424`: `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ l, Lo = some l → \|γ.a0\| < snapIdx⌝` (was: `□ ∀ st es l, ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl … st -∗ nodeDriver … st ∗ ⌜\|γ.a0\| < snapIdx⌝`) | probe follow-up (ii): of ~400 in-window installs per run, 0 at or below the commit at restart (23-35 below / 0-4 equal to the restored log's last index, all from its uncommitted tail, seed 356); `raft.go:1876-1880` (`restore` refuses `index ≤ committed`), `raft.go:1912-1918` | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) is taken; `NodeBridge` reads `a0 = []` there | **R2s or raft's API** (H5 (b), the raft fact "a snapshot's index is above the receiver's commit"), with R2d'b's `RestartNode` supplying the own-WAL condition (row 5); no estimate yet (R2s's Scope) |
-| `rnWalCommitAbove` (Q27 (i)) | `InvRaftNode.lean:418`: `□ ∀ S σ, raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜\|γ.a0\| ≤ σ.commit⌝` | not probed; Go: the restored WAL's commit is at least the backend's consistent index (`bootstrapRestartContract`), `σ.commit ≥ S.wcommit`, and the commit raft writes only grows | trivial: `rnRestartOk_commit`'s first case (`a0 = []`) | **R2d'b** (`RestartNode` supplies it from the restored records; within B1, 1 wk (est.)) |
-| snap-term bound (Q29 (d)) | `rnSnapTermAbove γ` (`InvRaftNode.lean:446`): `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ q ∈ ms, MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝` (anchored at the driver state, not `nodeDriver`: see part 2 above) | probe follow-up (i): 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term | not used: the first disjunct has `t0 = 0`, and `rnMsgOk_of_api` bounds the `MsgSnap` by its nonzero term (`sentMsg_shape`) | **R2d'b**: every `MsgSnap` an instance puts in a `Ready` has `Term >` its start term; needs a raft-struct invariant (`reset(term)` does not clear `r.msgs`) and a `StartNode`/`RestartNode` post change, 5-8 d (est.) |
-| own-WAL committed prefix | no Lean conjunct of its own: cited by `rnWinInstallAbove`'s docstring (`InvRaftNode.lean:385-397`) as why its `<` is true; `rnRestartOk`'s `srvRLogLb γ.srv γ.a0` (cluster-committed) is the nearest text | probe follow-up (ii) above: measured against the commit at restart, 0 installs at or below; the equal/below cases against the restored log's last index come only from its uncommitted tail | vacuous (`a0 = []`) | **R2d'b**'s `RestartNode` (`a0` a committed prefix of the restored WAL log), within B1, 1 wk (est.) |
+| `Hwpend` (A7) | `srvWinPend s γr γn` (`InvRun.lean:57`): a `token γwp` and `□ ∀ rt n, token -∗ ⌜n < \|a0\| ∧ uint.Z γn.t0 < uint.Z rt⌝ -∗ rnRtOk γn rt n -∗ ∀ id m st, … -∗ ⌜MsgSnap → Term ≠ rt⌝ ∗ …`, in `isServerRunC`/`isServerBuiltC` and the hubs | **False of some Go runs with default flags (replays over 1 MB with a mid-replay election)** (the R2d'a review, finding 3). Trace: a replay over 1 MB is split by `MaxCommittedSizePerReady` (unset in etcd, so `MaxSizePerMsg`, 1 MB); a snapshot inside the window compacts the raft log (e.g. the forced one of a replayed `ClusterVersionSet`, at Go's applied index above `SnapshotCatchUpEntries` 5000); the member is elected above `t0` mid-replay; a lagging follower gets a `MsgSnap` at the new term, merged by `server.go:1018` inside the window. Go is correct there (nothing for `issues/`). The probe (`notes/restart-probe/`): 0 of ~4250 former-leader restarts fail it with a drained handout; 2-3% with a slow handout (one entry per `Ready`), ~3% without PreVote; the failing runs are elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'`. **The drained 0 understates it**: the probe hands out by entry count, not bytes, so it never splits a replay as 1 MB does | `srvWinPend_first` (`InvRun.lean:69`): at `a0 = []` the guard `n < 0` is false, a token gives it | **None: no producer can supply it. R2s must REMOVE it by following the merged snapshot in the ghost** (modelling the merge inside a window; R2s's Scope, no estimate yet); not discharged at R2d'b; R2e's closed theorem must not carry it; `axiom`-skill attack before R2d'b's Freeze |
+| `rnWinInstallAbove` (A8, strict; task 4: at the receive's `readyRest`, 82's hub decision) | `InvRaftNode.lean:426`: `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ l, Lo = some l → \|γ.a0\| < snapIdx⌝` (was: `□ ∀ st es l, ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl … st -∗ nodeDriver … st ∗ ⌜\|γ.a0\| < snapIdx⌝`) | probe follow-up (ii): of ~400 in-window installs per run, 0 at or below the commit at restart (23-35 below / 0-4 equal to the restored log's last index, all from its uncommitted tail, seed 356); raft's commit at restart is `≥ \|a0\|` and `restore` rejects a snapshot at or below committed (raft v3.7.0 `raft.go:1861`, the fork `565c2bd`'s `:1877`); a term-matching snapshot only fast-forwards the commit (v3.7.0 `raft.go:1912-1918`) | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) is taken; `NodeBridge` reads `a0 = []` there | **R2s or raft's API** (H5 (b), the raft fact "a snapshot's index is above the receiver's commit"), with R2d'b's `RestartNode` supplying raft's commit at the start `≥ \|a0\|` (row 5); no estimate yet (R2s's Scope) |
+| `rnWalCommitAbove` (Q27 (i)) | `InvRaftNode.lean:393`: `□ ∀ S σ, raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜\|γ.a0\| ≤ σ.commit⌝` | not probed; Go: the restored WAL's commit is at least the backend's consistent index (`bootstrapRestartContract`), `σ.commit ≥ S.wcommit`, and the commit raft writes only grows | trivial: `rnRestartOk_commit`'s first case (`a0 = []`) | **R2d'b** (`RestartNode` supplies it from the restored records; within B1, 1 wk (est.)) |
+| snap-term bound (Q29 (d)) | `rnSnapTermAbove γ` (`InvRaftNode.lean:453`): `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ q ∈ ms, MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝` (anchored at the driver state, not `nodeDriver`: see part 2 above) | probe follow-up (i): 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term | not used: the first disjunct has `t0 = 0`, and `rnMsgOk_of_api` bounds the `MsgSnap` by its nonzero term (`sentMsg_shape`) | **R2d'b**: every `MsgSnap` an instance puts in a `Ready` has `Term >` its start term; needs a raft-struct invariant (`reset(term)` does not clear `r.msgs`) and a `StartNode`/`RestartNode` post change, 5-8 d (est.) |
+| raft's commit at the start `≥ \|a0\|` (was: own-WAL committed prefix; the R2d'a review, finding 6) | no Lean conjunct of its own: the one restart fact from which both `rnWalCommitAbove` and `rnWinInstallAbove` (with raft's H5 (b)) follow, cited by `rnWinInstallAbove`'s docstring (`InvRaftNode.lean:407-425`); `rnRestartOk`'s `srvRLogLb γ.srv γ.a0` (cluster-committed) is the nearest text | probe follow-up (ii) above: measured against the commit at restart, 0 installs at or below; the equal/below cases against the restored log's last index come only from its uncommitted tail | vacuous (`a0 = []`) | **R2d'b**'s `RestartNode` (the restored `HardState`'s commit `σ.commit ≥ \|a0\|`), within B1, 1 wk (est.) |
 
 *Note (the snap-term row).* A `MsgSnap` queued at `T` by a leader that then steps down still has
 `T > t0`: it led at `T`, and leading needs `becomeCandidate` at a term above `t0` (`raft.go:902-911`,
@@ -3897,7 +3904,7 @@ the snapshot arm, `have hab : A₀.length < A'.length := sorry`). **A gap, not c
 A8's bound (`rnWinInstallAbove`) needs `nodeDriver γ.nl … st` at a snapshot `Ready`; the raft loop
 holds that (`NodeBridge`'s `Advance`, and `raftNode__start.lean`'s `Ready`-snapshot branch, where
 `rnBusySP`'s `Hpend`/`Hbcv` give the driver and `#Hrok`), but the payload it sends on `applyc`,
-`rnApSnap` (`InvRaftNode.lean:1903`), carries no fact about `γ.a0`, so the apply thread
+`rnApSnap` (`InvRaftNode.lean:1936`), carries no fact about `γ.a0`, so the apply thread
 (`rnApplyTok_recv`'s snapshot disjunct) cannot learn it; the checkpoint's "through `#Hrok`" does not
 work (the apply thread has no `nodeDriver`). Not a new premise: A8 is true at the producer. Fix
 (recommended): `rnApSnap`'s pure gains `⌜γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length⌝`, proved in
@@ -3979,3 +3986,31 @@ Nothing edited; `run.wp_proofR` keeps its one `sorry` (`hab`).
 - `RunRestart.lean`: `hab` closed (`a0 = []` contradicts the window; else `Ha0`, `hp0`).
 - Checks: full build clean (13400 jobs); `etc/tcb-report.py --check` matches the baseline (817 axioms,
   4 sorries); `#print axioms EtcdServer.run.wp_proofR`: no `sorryAx`. `run.wp_proofR` is sorry-free.
+
+#### R2d'b items from the R2d'a review (2026-11-06; the review `/shared/tmp/r2dpa-review.md`)
+
+Deferred to R2d'b (approved by etcd-grove-82; not done at R2d'a):
+- **Review 4: `newRaftNode.spec`'s post pins `γ.a0 = [] ∧ γ.t0 = W64 0`**
+  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/newRaftNode.lean:60`), though Go's `newRaftNode(cfg)` is
+  the same call for `StartNode` and `RestartNode` (`bootstrap.go:578-599`) and its proof does not
+  depend on them. Take `a0` and `t0` as caller parameters (as `pre`, `key`, `wal`), post `γ.a0 = a0 ∧
+  γ.t0 = t0`; `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` (first-start only) instantiate
+  them at `[]` and `0` (and `NodeStartSpec` then exposes `t0 = 0` too). Otherwise B1's `RestartNode`
+  path changes this frozen post again.
+- **Review 5: the restart data sits in the configuration view.** `rnCfgAt γ L := rnView γ L ∗
+  rnRestartOk γ` (`InvRaftNode.lean`), though `rnRestartOk` is persistent, fixed per incarnation and not
+  about the configuration. That placement is why `raftNode.stop.spec` could not prove `|a0| ≤
+  σ.commit` (Q27 (i): its precondition, `isRaftNode` …, cannot reach the loop's view) and why `run`
+  reads it out of the loop token (`rnLoopTok_restartOk`). Move it into `isRaftNode Er γn` (or
+  `rnBuilt`); `rnCfgAt` becomes `rnView`, and `rnLoopTok_restartOk` and `rnCfgAt_back_true`'s extra
+  premise go.
+- **`isServerBuiltC` keeps the first-start `%HEr` and `Hsnap`** (`AuthCompRows.lean:139-142`: `γn.a0 =
+  []`; `:167`: `rnSnapOnce`), while `isServerRunCR` has their restart forms (`srvRunRestartR`). R2d'b's
+  restart `start` needs their restart forms in `isServerBuiltC` too (and in the hubs above it).
+
+Also from the review, done at R2d'a (this pass): F2 (`srvRestartAtR`'s auth state existential,
+`∃ sa₀`), F3 (`Hwpend` stated as false of some Go runs, to be removed by R2s, not discharged), F6
+(`rnWinInstallAbove`'s Go argument from raft's commit at restart), F8 (the replay's receipt per entry
+in `applyEntryNormal.spec`'s docstring), F9 (the axiom's pins); the probe is in
+`notes/restart-probe/`. Not done: F1 (the swap of the restart specs, its own task) and F7 (`Hwpend`
+in the first-start hubs, with A9's swap).

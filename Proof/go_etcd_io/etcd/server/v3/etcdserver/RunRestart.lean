@@ -478,18 +478,18 @@ theorem EtcdServer.run.wp_proofR
   ihave ⟨Hstart, %Hkc0, #HlbA0⟩ : iprop(srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ ρ.wait A₀ ai₀ ∗
       ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝ ∗ srvRLogLb γr.raft A₀) $$ [Hstart]
   · iunfold srvRestartAtR at Hstart
-    icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, %g₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
+    icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, %g₀, %sa₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
       Hal, Hkr, HRS, HAR, Hfs, HtokR, Hso⟩
-    ihave Hkr : iprop(kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A₀ x₀ srvAuthSt0 ∗
+    ihave Hkr : iprop(kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 A₀ x₀ sa₀ ∗
         ⌜γr.kv.c0 = c₀ ∧ γr.raft.ai0 = ai₀⌝) $$ [Hkr]
     · rw [← kvRunM_split]; iexact Hkr
     icases Hkr with ⟨Hka0, %Hkc0⟩
-    ihave Hkr : kvRunM C.isOn γr ai₀ c₀ A₀ x₀ srvAuthSt0 $$ [Hka0]
+    ihave Hkr : kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ $$ [Hka0]
     · rw [kvRunM_split]; iframe Hka0; ipureintro; exact Hkc0
     icases kvRunM_lbR _ _ _ _ _ _ _ $$ Hkr with ⟨#HlbA0, Hkr⟩
     isplitl [Hst Hbe Happ Hlr' Hbr Hwr HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso]
     · iunfold srvRestartAtR
-      iexists st₀, a₀, t₀, f₀, g₀
+      iexists st₀, a₀, t₀, f₀, g₀, sa₀
       iframe Hst Hbe Happ Hlr' Hbr Hwr HKV Hao Hal Hkr HRS HAR Hfs HtokR Hso
       ipureintro; exact Hst0
     isplitr
