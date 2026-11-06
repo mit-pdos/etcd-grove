@@ -1100,7 +1100,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   rw [show (pbPutRequest (GF := GF)).recv r o = txn.putRequestIs r o from rfl]
   iunfold etcdPutSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%F, #HF, Hspec⟩
+  icases Hspec with ⟨-, %F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF,
       v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
       ⌜v3rpc.kvDepPreM E.authOn d (.put o)⌝ ∗
@@ -1411,7 +1411,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   rw [show (pbDeleteRangeRequest (GF := GF)).recv r o = txn.deleteRangeRequestIs r o from rfl]
   iunfold etcdDeleteSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
+  icases Hspec with ⟨-, %Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
     (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F (.op1 (.deleteRange o) Q) 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
@@ -1725,7 +1725,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     from rfl]
   iunfold etcdTxnSpecM at Hspec
   rw [← auth.ctxTokenOf_md]
-  icases Hspec with ⟨%Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
+  icases Hspec with ⟨-, %Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
   obtain ⟨hin, hsh⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]

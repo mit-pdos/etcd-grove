@@ -260,11 +260,11 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           iframe
           isplitl
           · iintro %Hc
-            exact absurd Hc Herr'
+            exact absurd Hc Herr'.1
           · iintro %Hd
-            simp [handlerDescs] at Hd
+            exact absurd Hd.2 Herr'.2
   · cases err with
-    | nil => exact absurd rfl Herr
+    | nil => exact absurd rfl Herr.1
     | ok ei =>
       wp_auto
       iapply HΦ
@@ -273,7 +273,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       · iintro %Hc
         cases Hc
       · iintro %Hd
-        simp [handlerDescs] at Hd
+        exact absurd Hd.2 Herr.2
 
 /-- **A generated unary handler `h` (body `unaryHandlerImpl srvTy reqTy repTy meth fullMethod`)
 meets the metadata-indexed handler spec** (from `wp_unaryHandlerOwnMd`) (the statement of `_KV_Put_Handler.spec`, at any method): for a service

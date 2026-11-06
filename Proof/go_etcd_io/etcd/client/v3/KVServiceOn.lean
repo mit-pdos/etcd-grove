@@ -46,11 +46,11 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **etcd's `Put` with auth on**: `etcdPutSpec`'s, the caller's update told the put's grant at
 the token of the attempt's metadata when it fires (`v3rpc.kvOpAuOn`, 5a), the reply also with the
-grant. -/
+grant. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdPutSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
-  fun md (o : OpFull) (Φ : PutRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+  fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
         v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.put o) Q ∗
         ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
@@ -58,11 +58,11 @@ def etcdPutSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) 
 
 /-- **etcd's `DeleteRange` with auth on**: `etcdDeleteSpec`'s, for a key and range end of the
 shape the permission cache decides, the caller's update told the delete's grant (`v3rpc.kvOpAuOn`),
-the reply also with the grant. -/
+the reply also with the grant. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdDeleteSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
-  fun md (o : OpFull) (Φ : DelRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(⌜auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+  fun md (o : OpFull) (Φ : DelRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗
         v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.deleteRange o) Q ∗
         ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
@@ -302,11 +302,11 @@ theorem reqPerms_irrTxn_nestedPut (tw : txn.TxnModelW) (cs : List CmpModel) (ts 
 depth; `txnNestOk`), a writing transaction's every permission of the
 shape the permission cache decides, with a lower bound `n` of the published auth index, the reply
 also with the transaction's auth facts (`txnAuthOn`), a writing one's update told its grant
-(`v3rpc.kvOpAuOn`). -/
+(`v3rpc.kvOpAuOn`). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdTxnSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse :=
-  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (txn.txnReadonly t = false →
+  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (txn.txnReadonly t = false →
         ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw))⌝ ∗
       ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
@@ -326,11 +326,11 @@ of the `…SpecOn` texts, with auth off those of `etcd…Spec` (`KVService.lean`
 `etcdPutSpecM_false`, ...). -/
 
 /-- **etcd's `Put` in the auth mode `on`**: the update by `v3rpc.kvOpAuM`; the reply with the
-revision's lower bound with auth off, with the put's grant with auth on. -/
+revision's lower bound with auth off, with the put's grant with auth on. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdPutSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
-  fun md (o : OpFull) (Φ : PutRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+  fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
         v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.put o) Q ∗
         ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
@@ -339,11 +339,11 @@ def etcdPutSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid 
 
 /-- **etcd's `DeleteRange` in the auth mode `on`**: with auth on, for a key and range end of the
 shape the permission cache decides; the update by `v3rpc.kvOpAuM`; the reply with the delete's
-grant with auth on. -/
+grant with auth on. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
-  fun md (o : OpFull) (Φ : DelRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(⌜on = true → auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+  fun md (o : OpFull) (Φ : DelRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜on = true → auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗
         v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.deleteRange o) Q ∗
         ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
@@ -362,11 +362,11 @@ def etcdRangeSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (
 
 /-- **etcd's `Txn` in the auth mode `on`**: with auth on, a writing transaction's every permission
 of the shape the permission cache decides; a writing one's update by `v3rpc.kvOpAuM`; the reply with
-the revision's lower bound with auth off, with the transaction's auth facts with auth on. -/
+the revision's lower bound with auth off, with the transaction's auth facts with auth on. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdTxnSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid : w64) : GrpcSpecMd (GF := GF) pbTxnRequest pbTxnResponse :=
-  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) (_ : GoString → IProp GF) =>
-    iprop(⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (on = true → txn.txnReadonly t = false →
+  fun md (t : TxnModel) (Φ : TxnRespM → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ⌜(txn.txnReadonly t = true → txnModelIn t) ∧ (on = true → txn.txnReadonly t = false →
         ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw))⌝ ∗
       ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
@@ -410,7 +410,8 @@ theorem etcdPutSpecM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     ∀ md o Φ Ψe, etcdPutSpecOn (GF := GF) s E ρ cid mid md o Φ Ψe ⊢ etcdPutSpecM true s E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold etcdPutSpecOn etcdPutSpecM
-  iintro ⟨%F, #HF, %Q, %Hl, Hau, Hk⟩
+  iintro ⟨#HΨe, %F, #HF, %Q, %Hl, Hau, Hk⟩
+  iframe HΨe
   iexists F
   iframe HF
   iexists Q
@@ -429,7 +430,8 @@ theorem etcdDeleteSpecM_true (s : Loc) (E : apply.AEnv GF)
       etcdDeleteSpecM true s E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold etcdDeleteSpecOn etcdDeleteSpecM
-  iintro ⟨%Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
+  iintro ⟨#HΨe, %Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
+  iframe HΨe
   isplitr
   · ipureintro; exact fun _ => Hsh
   iexists F
@@ -464,7 +466,8 @@ theorem etcdTxnSpecM_true (s : Loc) (E : apply.AEnv GF)
       etcdTxnSpecM true s E ρ γr cid mid md t Φ Ψe := by
   intro md t Φ Ψe
   unfold etcdTxnSpecOn etcdTxnSpecM
-  iintro ⟨%Hpl, %Q, Hd, %c, %F, %n, #Hc, #HF, #Hn, Hk⟩
+  iintro ⟨#HΨe, %Hpl, %Q, Hd, %c, %F, %n, #Hc, #HF, #Hn, Hk⟩
+  iframe HΨe
   isplitr
   · ipureintro; exact ⟨Hpl.1, fun _ => Hpl.2⟩
   iexists Q
@@ -490,9 +493,10 @@ theorem etcdPutSpecM_false (s : Loc) (E : apply.AEnv GF)
       |==> etcdPutSpecM false s E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold GrpcSpec.md etcdPutSpec etcdPutSpecM
-  iintro ⟨⟨%F, #HF, %Q, %Hl, Hau, Hk⟩, -⟩
+  iintro ⟨⟨%F, #HF, %Q, %Hl, Hau, Hk⟩, #HΨe⟩
   imod (kvOpAuM_of_au1 _ s E ρ (auth.mdTokenOf md) (.put o) Q) $$ Hau with Hau
   imodintro
+  iframe HΨe
   iexists F
   iframe HF
   iexists Q
@@ -511,9 +515,10 @@ theorem etcdDeleteSpecM_false (s : Loc) (E : apply.AEnv GF)
       |==> etcdDeleteSpecM false s E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
   unfold GrpcSpec.md etcdDeleteSpec etcdDeleteSpecM
-  iintro ⟨⟨%F, #HF, %Q, %Hz, Hau, Hk⟩, -⟩
+  iintro ⟨⟨%F, #HF, %Q, %Hz, Hau, Hk⟩, #HΨe⟩
   imod (kvOpAuM_of_au1 _ s E ρ (auth.mdTokenOf md) (.deleteRange o) Q) $$ Hau with Hau
   imodintro
+  iframe HΨe
   isplitr
   · ipureintro; intro h; cases h
   iexists F
@@ -546,7 +551,7 @@ theorem etcdTxnSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s
       |==> etcdTxnSpecM false s E ρ γr cid mid md t Φ Ψe := by
   intro md t Φ Ψe
   unfold GrpcSpec.md etcdTxnSpec etcdTxnSpecM
-  iintro ⟨⟨%Hpl, %Q, Hd, %c, %F, #Hc, #HF, Hk⟩, -⟩
+  iintro ⟨⟨%Hpl, %Q, Hd, %c, %F, #Hc, #HF, Hk⟩, #HΨe⟩
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   ihave Hd : iprop(|==> ((⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗ kvReadAu γr.kv Q) ∨
@@ -563,6 +568,7 @@ theorem etcdTxnSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s
       iexact Ha
   imod Hd with Hd
   imodintro
+  iframe HΨe
   isplitr
   · ipureintro; exact ⟨fun _ => Hpl.2, fun h => by cases h⟩
   iexists Q

@@ -44,7 +44,7 @@ theorem WatchResponse.Err.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, #HeCPs⟩, #HFR, -⟩
+  icases Hri with ⟨⟨%eFR, #HeFR, -⟩, ⟨%eCP, #HeCP, #HeCPs, -⟩, #HFR, -⟩
   ihave #HeFRs := HFR $$ HeFR
   wp_auto
   cases hce : resp.closeErr' with

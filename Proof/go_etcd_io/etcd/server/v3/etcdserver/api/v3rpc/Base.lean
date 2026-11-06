@@ -58,15 +58,35 @@ def errVarSet (g : GoString) : IProp GF :=
 instance errVarSet_persistent (g : GoString) : Persistent (errVarSet (GF := GF) g) := by
   unfold errVarSet; infer_instance
 
+/-- **What the gRPC error map maps** (k8s etcd3 7c): every value is a non-nil error; mvcc's
+`ErrFutureRev` (the key `kf`) and `ErrCompacted` (`kc`) map to errors with the two read errors'
+descriptions (`rpctypes.ErrGRPCFutureRev`, `ErrGRPCCompacted`), and no other key maps to an error
+with one of them (`util.go`: each other value is another `rpctypes` error, with its own
+description). -/
+def grpcErrMapOk (M : GMap GoInterface GoInterface) (kf kc : GoInterface) : Prop :=
+  (∀ k v, M !! k = some v → v ≠ GoInterface.nil ∧
+    (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc → k = kf) ∧
+    (go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc → k = kc)) ∧
+  (∃ v, M !! kf = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.futureRevDesc) ∧
+  (∃ v, M !! kc = some v ∧ go_etcd_io.etcd.cache.v3.errDesc v = go_etcd_io.etcd.cache.v3.compactedDesc)
+
 /-- **The gRPC error map** (`toGRPCErrorMap`, `util.go`): a fixed map from the server's errors to
-gRPC errors, every value a non-nil error (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/
-`ErrMemberNotEnoughStarted`, all `status` errors). Which keys it has is left open: `togRPCError`
-returns the mapped error for a key, or `status.Error(codes.Unknown, err.Error())`, both non-nil,
-and the handlers' specs say no more of an error. -/
+gRPC errors (each an `rpctypes.ErrGRPC*`/`ErrTooManyRequests`/`ErrMemberNotEnoughStarted`, all
+`status` errors), as `grpcErrMapOk` says: non-nil values, and mvcc's two read errors (the cells of
+`mvcc.ErrFutureRev` and `mvcc.ErrCompacted`) the only keys mapped to the read errors'
+descriptions (k8s etcd3 7c). Which other keys it has is left open: `togRPCError` returns the mapped
+error for a key, or `status.Error(codes.Unknown, err.Error())`. -/
 def grpcErrMap : IProp GF :=
-  iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface),
+  iprop(∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface),
     globalAddr toGRPCErrorMap ↦□ mp ∗ mp ↦$□ M ∗
-    ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝)
+    globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗
+    ⌜grpcErrMapOk M kf kc⌝)
+
+/-- The values of the gRPC error map are non-nil (`grpcErrMapOk`'s first part). -/
+theorem grpcErrMapOk_ne {M : GMap GoInterface GoInterface} {kf kc : GoInterface}
+    (h : grpcErrMapOk M kf kc) : ∀ k v, M !! k = some v → v ≠ GoInterface.nil :=
+  fun k v hk => (h.1 k v hk).1
 
 /-- **The `rpctypes` errors the checks return** (`checkRangeRequest`, ..., `checkIntervals`,
 `checkRequestOp`), each a fixed non-nil error. -/

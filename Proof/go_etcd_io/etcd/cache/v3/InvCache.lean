@@ -1611,7 +1611,7 @@ theorem cacheGetErr_ne_nil (cf : CacheFields) (r0 : w64) (s : context.ContextDes
   icases Hci with ⟨-, -, ⟨%eKR, #HeKR⟩, ⟨%eCT, #HeCT⟩, -⟩
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, -, -⟩
+  icases Hri with ⟨⟨%eFR, #HeFR, -⟩, -, -⟩
   unfold cacheGetErr
   icases Herr with (⟨%h, -⟩ | %h | ⟨-, #H⟩ | %h | ⟨-, #H, -⟩ | ⟨-, #H⟩ | ⟨%st, -, #Hse, %Hno⟩)
   · ipureintro; exact h

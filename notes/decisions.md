@@ -32310,6 +32310,21 @@ description satisfies the conjunct that mentions it, so each statement means wha
 before. The user's Q7c-2 condition, every restated statement attacked before 7c's Freeze, applies
 to 7c-1b, where the descriptions first make the statements say something new. See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
 
+**7c-1b: the trusted statements first, `handlerDescs` with Range** (2026-11-06; decided by the
+agent, reported to etcd-grove-82). 7c-1b restates every trusted statement the error outcome rests
+on, at the text 7c-2 uses:
+- the rpctypes descriptions (HS-1);
+- `toGRPCErrorMap`'s `grpcErrMapOk`;
+- `grpcDecOk`'s and `srvInterceptorOk`'s errors outside `handlerDescs`.
+It also gives the non-Range Md specs `□ ∀ d, Ψe d` (HS-4, DRAFT), and attacks every statement at
+`handlerDescs`'s 7c-2 value. Filling `handlerDescs` itself moves to 7c-2. With the two
+descriptions in it, Range's handler must prove `Ψe` at them. It can only do so from
+`EtcdServer.Range`'s error post (HS-3 (a)), and that post is 7c-2's. Filled in 7c-1b, the Range
+handler's proof would have nothing to prove it from.
+Two attacks failed in Go (HS-5 and HS-6, `questions.md`). The trust base grows by two axioms,
+both approved under HS-1 and both attacked: `rpctypes.ErrGRPCFutureRev_init` and
+`rpctypes.ErrGRPCCompacted_init`, the two read errors' descriptions.
+
 
 ## The stop chain for a first start: the scope in the request, the slot in the built part, one `run.spec` (2026-11-06 · R2c, the restart plan's Scope (A) and Q2 (b) approved by the user, Q3-Q7 (a) decided, Q5 (a) accepted as a hub request · branch `r2c`; DRAFT until R2c's Freeze)
 

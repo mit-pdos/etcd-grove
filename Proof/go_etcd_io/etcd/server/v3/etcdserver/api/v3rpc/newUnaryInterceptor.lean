@@ -58,7 +58,7 @@ local macro "error_return" e:term : tactic => `(tactic| (
   icases Hk with ⟨-, Hk⟩;
   iapply Hk $$ [] %(GoInterface.ok $e);
   · itrivial
-  ipureintro; intro h; cases h))
+  ipureintro; exact ⟨fun h => (by cases h), (by simp [handlerDescs])⟩))
 
 theorem v3rpc.newUnaryInterceptor.wp_proof
     (wp_IsCap : api.IsCapabilityEnabled.spec (GF := GF) (hG := hG))
@@ -103,7 +103,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   · wp_auto
     icases Hk with ⟨-, Hk⟩
     iapply Hk $$ HR %(GoInterface.ok eNC)
-    ipureintro; intro h; cases h
+    ipureintro; exact ⟨fun h => (by cases h), (by simp [handlerDescs])⟩
   wp_auto
   irename : (req_ptr ↦ req : IProp GF) => Hreqp
   ipersist Hreqp
@@ -111,7 +111,8 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
       «$res1_ptr» ↦ GoInterface.nil ∗
       (WP (srvHandlerCall h #(GoInterface.ok ci) #req)
           {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗ (True -∗ Ψ v) }} ∧
-        (True -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
+        (True -∗ ∀ err : GoInterface,
+          ⌜err ≠ GoInterface.nil ∧ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗
           Ψ (PairV #GoInterface.nil #err)))) ∨
       ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
         «$res1_ptr» ↦ e ∗ Ψ (PairV #GoInterface.nil #e))) at next with [HR Hk «$res0» «$res1»]
@@ -140,7 +141,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
       · ipureintro; rfl
       icases Hk with ⟨-, Hk⟩
       iapply Hk $$ HR %(GoInterface.ok eNL)
-      ipureintro; intro h; cases h
+      ipureintro; exact ⟨fun h => (by cases h), (by simp [handlerDescs])⟩
     · wp_auto
       ileft; iframe; ipureintro; rfl
   rename_i v

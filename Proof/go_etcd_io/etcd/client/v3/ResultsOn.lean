@@ -95,6 +95,8 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
       unfold attemptPre
       iintro %md %Hmd
       unfold etcdPutSpecOn
+      isplitr
+      · imodintro; iintro %_; itrivial
       iexists F
       iframe HF
       iexists Q
@@ -261,6 +263,8 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       unfold attemptPre
       iintro %md %Hmd
       unfold etcdDeleteSpecOn
+      isplitr
+      · imodintro; iintro %_; itrivial
       isplitl []
       · ipureintro; exact ⟨hk, Or.inl rfl⟩
       iexists F
@@ -348,6 +352,8 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     unfold attemptPre
     iintro %md %Hmd
     unfold etcdTxnSpecOn
+    isplitr
+    · imodintro; iintro %_; itrivial
     isplitl []
     · ipureintro; exact ⟨hin, hsh⟩
     iexists Q
