@@ -102,6 +102,22 @@ as a `transport.ConnectionError`, no leaf"). If `ServeHTTP` is ever modeled, its
 `net/http` body error meeting `statusErrOk`, and the method handler's post could then no longer give
 `statusErrOk err` (it would carry the same disjunction to `processRPC`, which accepts it).
 
+**Correction (2026-11-06, the ServeHTTP Scope review, `notes/k8s-etcd3-plan.md`, "The ServeHTTP stage:
+deferred"):**
+- The inner error is not always a leaf. `net/http/internal/http2`'s `closeStream` closes the body
+  with its own `StreamError`, a non-leaf with a reflect-based `As` (go1.27.3
+  `net/http/internal/http2/errors.go:94-110`). It does this on a peer RST_STREAM or a
+  server-generated reset. `mapRecvMsgError` tests against x/net's `StreamError`, so it does not
+  match, and wraps it in a `ConnectionError`. It reaches `dec` only through a race (source only, not
+  observed).
+- With `ReadTimeout > 0` the inner error is `fmt.Errorf("%w", os.ErrDeadlineExceeded)`, also not a
+  leaf.
+- The widening belongs to the method level: `grpcDecOk`'s branch and `grpcMethodOk`'s post become
+  `srvErrOk err ∨ grpcConnErr err`, and `srvErrOk` is unchanged. `dec`'s error never reaches an
+  interceptor.
+- Only the second recv of a unary call returns the raw error. Every other recv goes through
+  `toRPCErr`.
+
 **grpc finding (trust base, no file):** `RecvMsg`'s second recv returns `io.ErrUnexpectedEOF`
 unconverted while the first converts it (`stream.go:1935-1936` vs `:1965-1968`), so a client's
 truncated second message makes the call end with `codes.Unknown` (`processRPC`'s

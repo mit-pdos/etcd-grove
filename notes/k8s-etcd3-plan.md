@@ -1049,7 +1049,8 @@ returns a raw `transport.ConnectionError`, not a leaf (`notes/axiom-review/hs6.m
 path of the insecure listener the examples use (through cmux); etcd's TLS path (`embed/serve.go`,
 `grpcHandlerFunc`) goes through `ServeHTTP`, and that is how Kubernetes normally connects (82's
 precision, 2026-11-06). Nothing is widened for it; also a gap of `/shared/tmp/k8s-server-trace.md` (row 15).
-**Next stage after 7c (queued by the user, 2026-11-06): gRPC over etcd's HTTP mux.** Model
+**Next stage after 7c (queued by the user, 2026-11-06; deferred by the user 2026-11-06, see "The
+ServeHTTP stage: deferred" below): gRPC over etcd's HTTP mux.** Model
 `grpc.Server.ServeHTTP` (the TLS path Kubernetes uses: `embed/serve.go`'s `grpcHandlerFunc`), starting
 from the finding above: `mapRecvMsgError` (`handler_server.go:449,493-506`) returns a raw
 `transport.ConnectionError`, not a leaf, so `grpcDecOk`'s error branch does not hold of that
@@ -1283,6 +1284,8 @@ stages are independent:
 
 Recommended order: cluster3 step 1, then ServeHTTP, then cluster3 step 2. Once both have landed, a
 TLS cluster driver is a listener change.
+(Superseded 2026-11-06: ServeHTTP is deferred, and cluster3 step 2 is next; see "The ServeHTTP
+stage: deferred".)
 
 #### Questions for the user
 
@@ -1295,6 +1298,87 @@ TLS cluster driver is a listener change.
   member list rather than a separate cluster seed. Recommended: yes.
 - **Qc-4.** Compaction off in both steps; the compacted list case is left to 7e. Recommended: yes.
 - **Qc-5.** Order: cluster3 step 1, then ServeHTTP, then cluster3 step 2. Recommended: yes.
+
+### The ServeHTTP stage: deferred (2026-11-06, the user via etcd-grove-82)
+
+The Scope (etcd-grove-56, `/shared/tmp/k8s-servehttp-scope.md`, not committed) was reviewed by
+82's read-only workflow (`/shared/tmp/k8s-servehttp-review.md`, wf_cd9419da-56c). **The user's
+decision: defer the stage (option (c), nothing modeled now); cluster3 step 2 next. When it comes
+back, it is (b), etcd's TLS listener, with the fixes below.**
+
+**Why defer.**
+- Option (a), unencrypted `ServeHTTP` (h2c), is a configuration etcd never runs, while the queued
+  goal is the TLS listener (the queue entry above).
+- grpc is names-only, and `embed` is untranslated. Under (a), `serverHandlerTransport`, `net/http`'s
+  HTTP/2 server and the routing would all sit inside the new axioms. The result would add little
+  beyond `Serve`'s, at the cost of 2-3 axioms.
+- (a) does work in Go (`/shared/tmp/h2c-check`: grpc-go's client reaches `gs.ServeHTTP` over h2c,
+  and HS-6's `ConnectionError` reproduces, 200/200). That changes neither point.
+
+**What the review found (surviving).**
+- **TLS is not only a layer below HTTP/2.** grpc's `serverHandlerTransport` builds the peer's
+  `AuthInfo` from `r.TLS` (`handler_server.go:83-86`). Under `--client-cert-auth`, etcd's
+  `AuthInfoFromCtx` takes the user from the certificate's CommonName (`v3_server.go:1206-1215`), and
+  `accessController` branches on `req.TLS` (`serve.go:454-475`). So (b) adds client-certificate
+  identity and those branches, not just crypto.
+- **The error comes only from a unary call's second recv.** Only that recv returns the raw
+  `ConnectionError` (`stream.go:1960-1970`). The first recv, every stream `RecvMsg` (Watch) and
+  `SendMsg` go through `toRPCErr`, which gives a status leaf. So `streamErr` needs no change (the
+  Scope's F3 is resolved).
+- **The serve axiom must pin its receiver.** A `(*http.Server).Serve` axiom must hold `srv`'s
+  points-to read-only: `Handler` the grpc server, every other field zero (`BaseContext`,
+  `ConnContext` and the timeouts; `ReadTimeout = 0`), `Protocols` as the program sets it. A nil
+  `BaseContext`/`ConnContext` result panics (`net/http/server.go:3563-3566, 3595-3598`). A hook's
+  context would reach `grpcRunCtx` through `r.Context()` (grpc `server.go:1141-1152`).
+- **The new axioms mint nothing.** No `threadTok`, run slots or `HttpNet` resources (as lease-ex's
+  D1).
+- **No inherited justification.** The start cannot rest on "`RegisterService` after `Serve` is
+  fatal": `ServeHTTP` never sets `s.serve`. Only the consumed `grpcSrvNew` guarantees it.
+- **Liveness facts change.** grpc's `MaxConcurrentStreams` and keepalive policy are inert under
+  `ServeHTTP`; that affects liveness only. `InvGrpcServer.lean`'s "calls wait" header line would be
+  false there.
+- **One address, one `net/http` model.** The grpc-over-HTTP listener must exclude the address from
+  `HttpNet` (`Proof/net/http/Boundary.lean:551-575`), so one address is never both.
+- **Facts to correct.**
+  - etcd's default client URL is `http://localhost:2379` (`embed/config.go:86`), so the secure path
+    is not "the default".
+  - `splitHTTP` is global: any HTTP-only URL makes every URL `onlyGRPC`.
+  - `grpcHandlerFunc` is at `serve.go:314-327`.
+  - In go1.27.3, `net/http`'s HTTP/2 server is `net/http/internal/http2`.
+- **The name.** A result over h2c with `gs` as the bare handler should not be named as if it were
+  etcd's secure grpc+http port.
+
+**The design for when it comes back: the error shape at the method level** (decided by the user,
+2026-11-06).
+- Widen only `grpcDecOk`'s error branch and `grpcMethodOk`/`grpcMethodOkMd`'s post
+  (`InvGrpc.lean:447`, `:485`, `:507`) to `srvErrOk err ∨ grpcConnErr err`. Place `grpcConnErr`
+  where it has the fewest importers.
+- `srvErrOk` stays unchanged. `dec`'s error never reaches an interceptor: the generated handler
+  returns it before calling the interceptor (`rpc_grpc.pb.go:219-232`), and a unary RPC calls
+  `sd.Handler` directly (grpc `server.go:1446-1450`).
+- Widening `srvErrOk` instead would weaken the prometheus interceptor axiom, about 29 v3rpc specs
+  and exported results (`etcd_kv_servedM_with`, v3rpc `Results.lean`'s `srvErrOk` posts), and
+  rebuild about 6000 modules.
+- The one consumer of `dec`'s error is `UnaryHandlerLemmas.lean:191-193`. So the only trust change
+  is `grpc.serve`'s premise.
+- **`grpcConnErr`'s inner error** is a leaf meeting `statusErrOk`, or `net/http`'s internal
+  `StreamError`, a struct whose `Error()` returns and whose reflect-based `As` returns false for
+  interface or non-struct targets (`net/http/internal/http2/errors.go:94-110`).
+  - The `StreamError` case: `closeStream` closes the body with it on a peer RST_STREAM or a
+    server-generated reset (`server.go:1566-1567, 1600-1601`). `mapRecvMsgError` tests against
+    x/net's `StreamError`, so it wraps the internal one in a `ConnectionError`.
+  - It reaches `dec` only through a race in `recvBufferReader`'s select. The race was seen in
+    source only; 6000 runs never hit it.
+  - The other inner error, `ReadTimeout > 0`'s `fmt.Errorf("%w", os.ErrDeadlineExceeded)`, is
+    excluded by the serve axiom's `ReadTimeout = 0` premise.
+  - Go probes for the attack: message 1, then RST_STREAM, looped; and a flow-control violation
+    mid-body.
+  - `notes/axiom-review/hs6.md`'s "true shape" is corrected accordingly.
+
+**Qc-5 (the order) re-read.** Its rationale, that the ServeHTTP stage is a trusted statement about a
+TLS listener and that a TLS cluster driver is then a listener change, no longer drives the order.
+cluster3 step 2 goes next on its own merits (the user, 2026-11-06). A TLS cluster driver, if
+wanted, comes with (b).
 
 ### k8s etcd3 over cluster3, step 1: as built (2026-11-06, etcd-grove-56, branch `k8s-cluster-s1`; Freeze package to the user via etcd-grove-82)
 
