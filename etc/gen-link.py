@@ -573,6 +573,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                  "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
                                 "Perennial.Proof.time.Link"],
                  "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base", "Perennial.Proof.errors.Link"],
+                 # mvcc's API results the txn proofs take as terms (`=mvcc.api.*` callees: the
+                 # API's laws, `NewReadOnlyTxnWrite`'s API spec; the `origin/lean` merge, 2026-11-06)
+                 "--txn": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults"],
                  # Perennial's `time` and `sync/atomic` results minibolt's proofs take as terms (`=` callees)
                  "--bboltfs": ["Perennial.Proof.time.Link", "Perennial.Proof.sync.atomic.Link"],
                  # (2026-10-28, stage U4a) raft's `unifiedSpec` variants (`=RaftLink.*` callees)
@@ -1051,6 +1054,19 @@ variable [sem : go.Semantics]
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
+    # an `=` callee declared in one of the mode's extra imports under the cache's assumptions (a
+    # section variable there: mvcc's `ApiResults.lean`, whose API results the txn proofs take)
+    extra_srcs = [open(link_file(m)).read() for m in EXTRA_IMPORTS.get(sys.argv[1], [])
+                  if os.path.exists(link_file(m))]
+
+    def eq_needs_cache(c):
+        if not c.startswith("="):
+            return False
+        last = c[1:].split(".")[-1]
+        return any("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in src
+                   and re.search(r"^theorem " + re.escape(last) + r"\b", src, re.M)
+                   for src in extra_srcs)
+
     cache_assumptions = set()
     for fn in order:
         if fn in reused:
@@ -1077,7 +1093,7 @@ variable [sem : go.Semantics]
                 cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
-                or any(c in cache_assumptions for c in callees[fn])):
+                or any(c in cache_assumptions or eq_needs_cache(c) for c in callees[fn])):
             cache_assumptions.add(fn)
 
     # the semantic premises each result takes (`SEM_PREMISES`): its proof's, or a callee's
