@@ -28,7 +28,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Ass
 /-- See the file header. -/
 abbrev DB.close.specCrash : Prop :=
   ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 f : Loc) (dqd : DFrac) (fd : w64)
-    (name : GoString) (d : OsFd) (p : GoString) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool))
+    (name : GoString) (d : OsFd) (p : Ino) (γc : GName) (m : OsMeta) (bs : List (w8 × Bool))
     (fa fb : Nat),
   (sl ≠ slice.nil → dq = DFrac.own 1) →
   {{ osInv (GF := GF) ∗ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗

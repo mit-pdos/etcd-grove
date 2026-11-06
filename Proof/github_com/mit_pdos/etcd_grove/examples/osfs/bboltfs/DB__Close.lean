@@ -45,7 +45,7 @@ theorem errnoErr_ne_nil' (e : w64) (h : e ≠ 0) : errnoErr e ≠ interface.nil 
 
 /-- After `close`'s successful `Munmap` of the whole mapping: the file's `OsMeta`, of the same
 size, with no mapping. -/
-theorem close_unmapped (p : GoString) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
+theorem close_unmapped (p : Ino) (m : OsMeta) (base : Loc) (len : Nat) (err : GoInterface)
     (hm : m.maps = {[base := len]}) (hb : 0 < base.addr) (herr : err = interface.nil) :
     unmappedRes (GF := GF) p m ⟨base, W64 len, W64 len⟩ err ⊢
       ∃ m', osMeta (GF := GF) p (DFrac.own 1) m' ∗

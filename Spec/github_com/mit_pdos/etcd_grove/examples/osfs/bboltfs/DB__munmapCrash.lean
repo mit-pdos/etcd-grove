@@ -58,7 +58,7 @@ def unmappedResC (p : GoString) (γc : GName) (m : OsMeta) (bs : List (w8 × Boo
 
 /-- See the file header. -/
 abbrev DB.munmap.specCrash : Prop :=
-  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : GoString) (γc : GName)
+  ∀ (db : Loc) (dq : DFrac) (sl : GoSlice) (dsz : w64) (m0 m1 : Loc) (p : Ino) (γc : GName)
     (m : OsMeta) (bs : List (w8 × Bool)) (fa fb : Nat),
   (sl ≠ slice.nil → dq = DFrac.own 1) →
   {{ db.[DB, go!"dataref"] ↦{dq} sl ∗ db.[DB, go!"datasz"] ↦{dq} dsz ∗ db.[DB, go!"meta0"] ↦{dq} m0 ∗

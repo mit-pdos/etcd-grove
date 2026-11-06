@@ -227,7 +227,7 @@ theorem cellsB_meta (base : Loc) (lo : Nat) (B : List w8) (hB : B.length = 64)
 
 /-- The meta cells, out of the mapping's invariant (the writer holds both mutexes, and its half
 of the invariant's token, so the invariant is open), holding the metas. -/
-theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
+theorem metas_out (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (hwm : Nat) :
     mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
@@ -290,7 +290,7 @@ theorem metas_out (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : 
   · iapply (cellsB_bytes base _ 4112).2; iexact Hc1
 
 /-- The meta cells back into the mapping's invariant, holding the metas of `mp` unless failed. -/
-theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
+theorem metas_in (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (fl : Bool) (hwm : Nat) (mc : List w8) (hmc : mc.length = 128)
     (hmp : fl = false → mc = (mp.drop 16).take 64 ++ (mp.drop 4112).take 64) :
     mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
@@ -343,7 +343,7 @@ theorem metas_in (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : G
   iframe
 
 /-- The meta pages' state, failed: `cur`'s three parts, the invariant's in the invariant. -/
-theorem fail_cur_inv (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
+theorem fail_cur_inv (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName)
     (mp : List w8) (hwm : Nat) :
     mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗
       ghostVar γ.cur (1 : Qp).half.half (mp, false, hwm) ∗
@@ -411,7 +411,7 @@ theorem mcells_single (b : Loc) (l lo hi : Nat) (vf : Nat → val) (hlo : lo ≤
   rw [Nat.min_eq_left hhi, Nat.min_eq_left (by omega : lo ≤ l)]
   exact .rfl
 
-theorem osBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
+theorem osBytes_app (p : Ino) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
     osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
       osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
@@ -440,7 +440,7 @@ theorem gElem_persist {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Counta
   exact wand_entails (ghostMapElem_persist k γ dq v)
 
 /-- Bytes of a file, persistent (discarded). -/
-theorem osBytes_persist (p : GoString) (dq : DFrac) :
+theorem osBytes_persist (p : Ino) (dq : DFrac) :
     ∀ (xs : List (w8 × Bool)) (off : Nat),
     osBytes (GF := GF) p off dq xs ⊢ |==> osBytes (GF := GF) p off DFrac.discard xs
   | [], off => by
@@ -457,7 +457,7 @@ theorem osBytes_persist (p : GoString) (dq : DFrac) :
     iframe
 
 /-- A page's bytes, clean, as a committed page. -/
-theorem pageIs_of (p : GoString) (r : Nat) (dq : DFrac) (B : List w8) (hB : B.length = 4096) :
+theorem pageIs_of (p : Ino) (r : Nat) (dq : DFrac) (B : List w8) (hB : B.length = 4096) :
     osBytes (GF := GF) p (4096 * r) dq (B.map (·, true)) ⊢ |==> pageIs (GF := GF) p r B := by
   iintro H
   imod osBytes_persist p dq _ _ $$ H with H

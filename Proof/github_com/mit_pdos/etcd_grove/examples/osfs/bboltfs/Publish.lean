@@ -40,7 +40,7 @@ theorem pages_snoc (P : Nat → IProp GF) (hwm : Nat) (h2 : 2 ≤ hwm) :
 the invariant is open): the meta pages `mp'` and the high water mark `hwm + 1`, the meta cells back
 in the invariant holding the metas of `mp'`, unlent, and page `hwm` committed (`B`), its cells
 into the invariant, unlent under its fresh loan key `hwm`. -/
-theorem metas_publish (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm : GName)
+theorem metas_publish (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm : GName)
     (mp mp' : List w8) (hwm : Nat) (B : List w8) (hl : 4096 * (hwm + 1) ≤ len) (h2 : 2 ≤ hwm)
     (hmp' : mp'.length = 8192) :
     mapInv (GF := GF) γ γ.ino base len γm ∗ ghostVar γm (1 : Qp).half () ∗

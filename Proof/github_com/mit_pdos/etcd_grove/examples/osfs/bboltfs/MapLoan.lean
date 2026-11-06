@@ -39,8 +39,8 @@ variable [sem : go.Semantics]
 variable [package_sem : Assumptions]
 
 /-- The mapping's invariant, at its loan tokens `γl`. -/
-abbrev mapInvL (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
-  inv mapN iprop(mapLend (GF := GF) γ γ.ino base len γm γl ∨ ghostVar γm 1 ())
+abbrev mapInvL (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName) : IProp GF :=
+  inv mapN iprop(mapLend (GF := GF) γ p base len γm γl ∨ ghostVar γm 1 ())
 
 /-- What a resource proves, keeping it. -/
 theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ := by
@@ -95,7 +95,7 @@ theorem pages_acc (P : Nat → IProp GF) (r hwm : Nat) (h1 : 2 ≤ r) (h2 : r < 
   rw [range_set _ _ _ hg]
   iexact H
 
-theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem meta_borrow (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (mp : List w8) (hwm : Nat) (T : GMap Nat (Option w64)) (q : Qp) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ghostVar γ.out (1 : Qp).half.half false ∗
@@ -143,7 +143,7 @@ theorem meta_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
-theorem meta_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem meta_return (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (T : GMap Nat (Option w64)) (q : Qp) (mc : List w8) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostMapAuth γ.txs (1 : Qp).half T ∗
@@ -192,7 +192,7 @@ theorem meta_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
-theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem page_borrow (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (mp : List w8) (hwm r : Nat) (q s : Qp) (h1 : 2 ≤ r) (h2 : r < hwm) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ∗ ghostVar γm s () ⊢
@@ -226,7 +226,7 @@ theorem page_borrow (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iframe
 
 /-- A committed page's contents, from the invariant. -/
-theorem page_pageIs (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem page_pageIs (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (mp : List w8) (hwm r : Nat) (q : Qp) (h1 : 2 ≤ r) (h2 : r < hwm) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗
       ghostVar γ.cur (1 : Qp).half (mp, false, hwm) ⊢
@@ -255,7 +255,7 @@ theorem page_pageIs (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm 
     iapply gv_false_one γm q $$ [Hq Htok]
     iframe
 
-theorem page_return (γ : DBNames) (p : GoString) (base : Loc) (len : Nat) (γm γl : GName)
+theorem page_return (γ : DBNames) (p : Ino) (base : Loc) (len : Nat) (γm γl : GName)
     (r : Nat) (q s : Qp) (B : List w8) (h1 : 2 ≤ r) :
     mapInvL (GF := GF) γ p base len γm γl ∗ ghostVar γm q () ∗ r ↪[γl]{#s.half.half} B ∗
       bytesPointsto (GF := GF) (base +ₗ ((4096 * r : Nat) : Int)) (DFrac.own s.half.half) B ⊢
@@ -305,7 +305,7 @@ theorem metaLent_unlent (γ : DBNames) (γm γl : GName) (base : Loc) (mc : List
     simp only [Qp.le_iff, Qp.val_add, Qp.val_one, Qp.val_half] at Hbad
     grind
 
-theorem osBytes_disc_agree (p : GoString) :
+theorem osBytes_disc_agree (p : Ino) :
     ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
     osBytes (GF := GF) p off DFrac.discard xs ∗ osBytes (GF := GF) p off DFrac.discard ys ⊢ ⌜xs = ys⌝
   | [], [], _, _ => by iintro -; ipureintro; rfl
@@ -323,7 +323,7 @@ theorem osBytes_disc_agree (p : GoString) :
     rw [Hxy.2, Hr]
 
 /-- Two views of a committed page agree. -/
-theorem pageIs_agree (p : GoString) (r : Nat) (B B' : List w8) :
+theorem pageIs_agree (p : Ino) (r : Nat) (B B' : List w8) :
     pageIs (GF := GF) p r B ∗ pageIs (GF := GF) p r B' ⊢ ⌜B = B'⌝ := by
   unfold pageIs
   iintro ⟨⟨%Hl, H1⟩, ⟨%Hl', H2⟩⟩

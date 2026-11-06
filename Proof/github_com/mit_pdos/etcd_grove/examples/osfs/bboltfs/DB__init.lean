@@ -24,13 +24,13 @@ section osbytes
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
-theorem osBytes_append (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
+theorem osBytes_append (p : Ino) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
     osBytes (L := L) p off dq (xs ++ ys) ⊣⊢
       osBytes (L := L) p off dq xs ∗ osBytes (L := L) p (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 /-- After the first write: its four pages, then the bytes after them, as one. -/
-theorem init_join1 (p : GoString) (xs ys : List (w8 × Bool)) (n : Nat) (hys : ys.length = n) :
+theorem init_join1 (p : Ino) (xs ys : List (w8 × Bool)) (n : Nat) (hys : ys.length = n) :
     osBytes (L := L) p 0 (DFrac.own 1) ys ∗
       osBytes (L := L) p (0 + (xs.take n).length) (DFrac.own 1) (xs.drop n) ⊢
     osBytes (L := L) p 0 (DFrac.own 1) (ys ++ xs.drop n) := by

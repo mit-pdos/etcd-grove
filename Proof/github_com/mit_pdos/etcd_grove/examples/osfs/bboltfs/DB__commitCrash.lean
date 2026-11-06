@@ -1007,7 +1007,7 @@ theorem dataErrC (γ : DBNames) (γc : GName) (db f : Loc) (fd : w64) (p : GoStr
   iframe; iframe #
 
 /-- The data page out of the frozen pages up to the new high water mark. -/
-theorem frozen_page (p : GoString) (B : List (w8 × Bool)) (hwm : Nat) (h2 : 2 ≤ hwm)
+theorem frozen_page (p : Ino) (B : List (w8 × Bool)) (hwm : Nat) (h2 : 2 ≤ hwm)
     (hl : 4096 * (hwm + 1) ≤ B.length) :
     osBytes (GF := GF) p 8192 DFrac.discard ((B.drop 8192).take (4096 * (hwm + 1) - 8192)) ⊢
       osBytes (GF := GF) p (4096 * hwm) DFrac.discard

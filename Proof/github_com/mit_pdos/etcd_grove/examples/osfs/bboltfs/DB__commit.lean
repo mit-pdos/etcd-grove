@@ -87,7 +87,7 @@ theorem writerCells_top (base : Loc) (hwm len : Nat) :
 
 /-- A grown file (`Truncate` to the mapping's length `len`), as the writer's: its bytes from the
 high water mark on and their cells. -/
-theorem grown_writer (p : GoString) (base : Loc) (m' : OsMeta) (len hwm : Nat)
+theorem grown_writer (p : Ino) (base : Loc) (m' : OsMeta) (len hwm : Nat)
     (tail : List (w8 × Bool)) (vf : Nat → val) (hmaps : m'.maps = {[base := len]})
     (hsz : m'.size ≤ len) (h4 : 4096 * hwm ≤ m'.size) (htl : tail.length = m'.size - 4096 * hwm) :
     osGrown (GF := GF) p m' len len ∗ osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) tail ∗
@@ -187,7 +187,7 @@ theorem pwSize_inside (sz off k : Nat) (h : off + k ≤ sz) : pwSize sz off k = 
   unfold pwSize; split <;> omega
 
 /-- A page's bytes and cells back with the rest of the writer's, from the high water mark on. -/
-theorem page_rejoin (p : GoString) (base : Loc) (hwm len : Nat) (ys rest : List (w8 × Bool))
+theorem page_rejoin (p : Ino) (base : Loc) (hwm len : Nat) (ys rest : List (w8 × Bool))
     (hys : ys.length = 4096) (hl : 4096 * hwm + 4096 ≤ len) :
     osBytes (GF := GF) p (4096 * hwm) (DFrac.own 1) ys ∗
       osBytes (GF := GF) p (4096 * hwm + 4096) (DFrac.own 1) rest ∗
@@ -372,7 +372,7 @@ theorem pick_page (P : Nat → IProp GF) (i : Nat) (hi : i < 2) :
   · exact ⟨by iintro ⟨H0, H1⟩; iframe H0 H1, by iintro ⟨H1, H0⟩; iframe H0 H1⟩
 
 /-- A window of the meta pages' bytes, rewritten, back with the others. -/
-theorem window_join (p : GoString) (dq : DFrac) (xs ys : List (w8 × Bool)) (a n : Nat)
+theorem window_join (p : Ino) (dq : DFrac) (xs ys : List (w8 × Bool)) (a n : Nat)
     (h : a + n ≤ xs.length) (hy : ys.length = n) :
     osBytes (GF := GF) p 0 dq (xs.take a) ∗ osBytes (GF := GF) p a dq ys ∗
       osBytes (GF := GF) p (a + n) dq ((xs.drop a).drop n) ⊢
@@ -390,7 +390,7 @@ theorem window_join_length (xs ys : List (w8 × Bool)) (a n : Nat) (h : a + n �
   simp only [List.length_append, List.length_take, List.length_drop, hy]; omega
 
 /-- Bytes of a file, as two halves. -/
-theorem osBytes_halves (p : GoString) :
+theorem osBytes_halves (p : Ino) :
     ∀ (xs : List (w8 × Bool)) (off : Nat),
     osBytes (GF := GF) p off (DFrac.own 1) xs ⊢
       osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗

@@ -274,7 +274,7 @@ theorem csOwn_idle00 (p : GoString) (γ : GName) (m : OsMeta) (bs : List (w8 × 
     · ipureintro; exact ⟨Hl, Nat.le_refl _, Nat.zero_le _, trivial⟩
 
 /-- The committed pages of a clean file, frozen (`cs_freeze`), as pages. -/
-theorem ready_pages (p : GoString) (bs : List (w8 × Bool)) (n : Nat)
+theorem ready_pages (p : Ino) (bs : List (w8 × Bool)) (n : Nat)
     (hcl : ∀ x ∈ bs, x.2 = true) (h : 4096 * n ≤ bs.length) (h2 : 2 ≤ n) :
     osBytes (GF := GF) p 8192 DFrac.discard ((bs.drop 8192).take (4096 * n - 8192)) ⊢
       |==> [∗list] r ∈ List.range' 2 (n - 2), pageIs (GF := GF) p r (pageOf (bs.map Prod.fst) r) := by

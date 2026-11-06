@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions]
 
 /-- The writer's half of its idle state's bytes (`writerFileC`): the meta pages and the tail. -/
-theorem writer_thrBytes (p : GoString) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : Nat)
+theorem writer_thrBytes (p : Ino) (m : OsMeta) (bs : List (w8 × Bool)) (hwm : Nat)
     (h2 : 2 ≤ hwm) (hl : 4096 * hwm ≤ bs.length) :
     thrBytes (GF := GF) p ⟨m, bs, 8192, 4096 * hwm, .idle⟩ ⊣⊢
       osBytes (GF := GF) p 0 (DFrac.own (1 : Qp).half) (bs.take 8192) ∗
