@@ -1,0 +1,920 @@
+/-
+The ghost state of the Linux file extension, version 2 (`GooseLang/Ext/Fs/Impl.lean`): its values,
+the pure relations between it and the extension's state, and the extension's ghost state for the
+adequacy theorem (`ExtInterp`). The design is `notes/fs-v2-port-plan.md`, "The ghost state". The
+specs are in `Specs.lean`; the step lemmas and the resources in `World.lean`. Untrusted.
+
+* Ghost maps, all in the one `AllG GF`: the bytes of the page cache, `(i, b) ↦ (x, clean)` for every
+  byte `b < size` of the file of inode `i`; the files, `i ↦ m` (an `OsMeta`); the fds; the in-flight
+  changes (`TokInfo`); the tree's history (one entry, `Hist`); the directory fds (`DirPh`); the calls
+  on paths in flight (`calls`, token ↦ start).
+* The relations: `OsWf` (the state alone) and `OsCoh` (the files' maps mirror the state, a byte
+  marked clean is the same in every version of its sector); `FsTreeWf` and `TreeCoh` (the history is
+  the state's durable tree and log, the log is `Sequential`, a directory fd's read holds a view of the
+  history).
+* The heap: as in the first version (`cellView`, the invariant `osInv` of `World.lean`).
+-/
+module
+
+public import Perennial.GooseLang.Lifting
+public import Perennial.GooseLang.Countable
+public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.GhostVar
+public import GooseLang.Ext.Fs.TreeGhost
+public import GooseLang.Ext.Fs.Bridge
+public import GooseLang.Ext.Fs.Crash
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace Fs
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
+
+/-! ## Ghost values -/
+
+/-- What the ghost state knows of a file. -/
+structure OsMeta where
+  /-- The size of the page cache. -/
+  size : Nat
+  /-- Bounds of the size a crash may leave the file with. -/
+  lo : Nat
+  hi : Nat
+  /-- No sector of the file is lost by a failed sync (every sector not dirty has one version). -/
+  ok : Bool
+  /-- The mappings of the file: base address to length. -/
+  maps : GMap Loc Nat
+  /-- Bytes known as of the last successful sync: `some d` at `b` if the oldest version of `b`'s
+  sector (the disk's as of the last successful sync) holds `d` there. A write adds versions after
+  it, a failed sync keeps them, a successful one collapses them. -/
+  dur : List (Option w8)
+
+/-- An in-flight change, as the ghost state records it. -/
+structure TokInfo where
+  c : OsChange
+  /-- The fraction of the file's `OsMeta` the first step took. -/
+  q : Qp
+  /-- The file's bytes the change took (`affRange`), as they were. -/
+  saved : List w8
+  /-- The file's `OsMeta`, as the first step left it. -/
+  om : OsMeta
+  /-- The clean flags the taken bytes had (`OsCoh.tok_clean`). -/
+  cl : List Bool
+
+instance OsMeta.countable : Pos.Countable OsMeta :=
+  Pos.Countable.ofInjective
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; subst h1 h2 h3 h4 h5 h6; rfl)
+
+instance Qp.countable : Pos.Countable Qp :=
+  Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h
+      exact Subtype.ext (Rat.ext h.1 h.2))
+
+/-- Where a directory fd's read is, as the ghost state knows it: not begun; begun, with the names
+returned `rs`; done. In every phase the fd holds a fraction `q` of the tree's history (in the state
+interpretation, `rdRes`), from its open to its close, of which `g` is the directory's view: so the
+directory cannot change while it is open. -/
+inductive DirPh where
+  | idle (g : DirG) (q : Qp)
+  | reading (rs : List GoString) (g : DirG) (q : Qp)
+  | done (g : DirG) (q : Qp)
+
+/-- The view a directory fd's phase holds. -/
+def DirPh.g : DirPh → DirG
+  | .idle g _ => g
+  | .reading _ g _ => g
+  | .done g _ => g
+
+/-- The fraction of the history a directory fd's phase holds. -/
+def DirPh.q : DirPh → Qp
+  | .idle _ q => q
+  | .reading _ _ q => q
+  | .done _ q => q
+
+def DirPh.enc : DirPh → Nat × List GoString × DirG × Qp
+  | .idle g q => (0, [], g, q)
+  | .reading rs g q => (1, rs, g, q)
+  | .done g q => (2, [], g, q)
+
+instance DirPh.countable : Pos.Countable DirPh :=
+  Pos.Countable.ofInjective (fun x => Pos.Countable.encode x.enc)
+    (fun a b h => by
+      have h : a.enc = b.enc := Pos.encode_inj h
+      cases a <;> cases b <;> simp_all [DirPh.enc])
+
+instance OsFd.countable : Pos.Countable OsFd :=
+  Pos.Countable.ofInjective (fun d => Pos.Countable.encode (d.ino, d.readable, d.writable))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3⟩ := h; subst h1 h2 h3; rfl)
+
+def OsChangeKind.enc : OsChangeKind → (Nat × List w8) ⊕ Nat
+  | .write off data => .inl (off, data)
+  | .truncate sz => .inr sz
+
+instance OsChange.countable : Pos.Countable OsChange :=
+  Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.ino, c.kind.enc))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      obtain ⟨pa, ka⟩ := a; obtain ⟨pb, kb⟩ := b
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2⟩ := h; subst h1
+      cases ka <;> cases kb <;> simp_all [OsChangeKind.enc])
+
+instance TokInfo.countable : Pos.Countable TokInfo :=
+  Pos.Countable.ofInjective (fun t => Pos.Countable.encode (t.c, t.q, t.saved, t.om, t.cl))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h; subst h1 h2 h3 h4 h5; rfl)
+
+/-! ## Derived facts about a state -/
+
+section derived
+variable (st : OsState)
+
+/-- Byte `b` of `f` is clean: it has been part of the file since the last successful sync (so a crash
+keeps the file at least that long), and every version of its sector holds the page cache's byte (so a
+crash keeps it, `Bridge.lean`). -/
+def CleanPhys (f : OsFile) (b : Nat) : Prop :=
+  b < f.sizeLo ∧ ∀ v ∈ (f.secs (b / 512)).vers, v.toList.getD (b % 512) 0 = f.rawAt b
+
+/-- The first byte the change `c` takes: a write, where its affected range starts; a truncate,
+where the old and new sizes part. -/
+def affLo (c : OsChange) : Nat :=
+  match c.kind with
+  | .write off _ => min off (st.size c.ino)
+  | .truncate sz => min (st.size c.ino) sz
+
+/-- The end of the bytes the change `c` takes: its affected range, cut at the size. -/
+def affHi (c : OsChange) : Nat :=
+  match c.kind with
+  | .write off data => min (off + data.length) (st.size c.ino)
+  | .truncate _ => st.size c.ino
+
+/-- The file's bytes the change `c` takes: its affected bytes below the size. -/
+def affRange (c : OsChange) : List Nat := List.range' (affLo st c) (affHi st c - affLo st c)
+
+/-- The change `c` may change the size, or bytes past it: a write that ends past the size, or a
+truncate. Its first step takes the file's `OsMeta` whole. -/
+def Reaches (c : OsChange) : Prop :=
+  match c.kind with
+  | .write off data => st.size c.ino < off + data.length
+  | .truncate _ => True
+
+/-- The state's files are well formed: what the operations maintain of them, independently of the
+ghost state. -/
+structure OsWf : Prop where
+  fds : ∀ fd d, st.proc.fds !! fd = some d → ∃ f, st.file d.ino = some f
+  maps : ∀ b m, st.proc.maps !! b = some m →
+    (∃ f, st.file m.ino = some f) ∧ 0 < b.addr ∧ b.addr + m.len ≤ maxAddr ∧ 0 < m.len
+  maps_disj : ∀ b1 m1 b2 m2, st.proc.maps !! b1 = some m1 → st.proc.maps !! b2 = some m2 →
+    b1 ≠ b2 → b1.addr + m1.len ≤ b2.addr ∨ b2.addr + m2.len ≤ b1.addr
+  infl : ∀ t c, st.proc.inflight !! t = some c → ∃ f, st.file c.ino = some f
+  infl_disj : ∀ t1 c1 t2 c2 b, st.proc.inflight !! t1 = some c1 →
+    st.proc.inflight !! t2 = some c2 → t1 ≠ t2 → c1.ino = c2.ino → Affects st c1 b →
+    ¬ Affects st c2 b
+  sizes : ∀ i f, st.file i = some f → f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi
+  /-- Every sector has a version (its page cache's, the last). -/
+  vers : ∀ i f n, st.file i = some f → (f.secs n).vers ≠ []
+
+/-- What the ghost `OsMeta` `m` of the file `f` of inode `i` says of it. -/
+structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
+  size : m.size = f.size
+  lo : m.lo ≤ f.sizeLo
+  hi : f.sizeHi ≤ m.hi
+  ok : m.ok = true → ∀ n, (f.secs n).dirty = false → (f.secs n).vers.length ≤ 1
+  maps : ∀ b len, m.maps !! b = some len ↔ st.proc.maps !! b = some ⟨i, len⟩
+  targets : ∀ t c, st.proc.inflight !! t = some c → c.ino = i →
+    m.lo ≤ c.target st ∧ c.target st ≤ m.hi
+  dur : ∀ (b : Nat) (d : w8), m.dur[b]? = some (some d) →
+    ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
+
+/-- The files' ghost maps mirror the state. -/
+structure OsCoh (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
+    (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo) : Prop where
+  meta_dom : ∀ i, Γm !! i = none ↔ st.fs.files !! i = none
+  meta_some : ∀ i m, Γm !! i = some m → ∃ f, st.fs.files !! i = some f ∧ MetaOk st i m f
+  bytes : ∀ i b x, Γb !! (i, b) = some x → ∃ f, st.file i = some f ∧ f.contents[b]? = some x.1 ∧
+    (x.2 = true → CleanPhys f b ∧ ¬ InflightAt st i b)
+  bytes_full : ∀ i f b, st.file i = some f → b < f.size → (Γb !! (i, b)).isSome
+  fds : Γf = st.proc.fds
+  toks : ∀ t, (Γt !! t).map TokInfo.c = st.proc.inflight !! t
+  tok_q : ∀ t ti, Γt !! t = some ti → Reaches st ti.c → ti.q = 1
+  tok_alone : ∀ t ti, Γt !! t = some ti → ti.q = 1 →
+    ∀ t' c', t' ≠ t → st.proc.inflight !! t' = some c' → c'.ino ≠ ti.c.ino
+  tok_saved : ∀ t ti, Γt !! t = some ti → ∃ f, st.file ti.c.ino = some f ∧
+    ti.saved = (affRange st ti.c).map (fun b => f.contents.getD b 0)
+  /-- A taken byte the token records as clean is clean, even while in flight. -/
+  tok_clean : ∀ t ti, Γt !! t = some ti → ∀ j, ti.cl[j]? = some true →
+    j < affHi st ti.c - affLo st ti.c ∧
+    ∃ f, st.file ti.c.ino = some f ∧ CleanPhys f (affLo st ti.c + j)
+
+/-- The tree is well formed: the roots are; every prefix of the log replayed on the durable tree is
+a tree over the roots, whose files are files of `files` and whose inodes are below `nextIno`; a
+directory fd is on a directory of the tree now; no fd number is both a file's and a directory's;
+every inode of `files` is below `nextIno`. -/
+structure FsTreeWf : Prop where
+  roots : RootsOk st.fs.roots
+  hist : ∀ n, n ≤ st.fs.metaLog.length →
+    TreeWf st.fs.roots (replay ((st.fs.metaLog.take n).map (·.op)) st.fs.treeDur) ∧
+    (∀ i, Named (replay ((st.fs.metaLog.take n).map (·.op)) st.fs.treeDur) i →
+      ∃ f, st.fs.files !! i = some f) ∧
+    (∀ j, j ∈ replay ((st.fs.metaLog.take n).map (·.op)) st.fs.treeDur → j < st.fs.nextIno)
+  dfds : ∀ fd df, st.proc.dfds !! fd = some df → df.ino ∈ st.tree
+  disj : ∀ fd, st.proc.fds !! fd ≠ none → st.proc.dfds !! fd = none
+  files_lt : ∀ i, i ∈ st.fs.files → i < st.fs.nextIno
+
+end derived
+
+/-- `st'` is `st` after a step that leaves the tree alone: the tree's state, the directory fds, the
+calls in flight and the inode counter are the same, every inode of `files` stays one, and a new fd
+of a file is no directory fd. Every step of the extension but the tree's does this. -/
+structure TreeFrame (st st' : OsState) : Prop where
+  roots : st'.fs.roots = st.fs.roots
+  treeDur : st'.fs.treeDur = st.fs.treeDur
+  metaLog : st'.fs.metaLog = st.fs.metaLog
+  committed : st'.fs.committed = st.fs.committed
+  nextIno : st'.fs.nextIno = st.fs.nextIno
+  dfds : st'.proc.dfds = st.proc.dfds
+  calls : st'.proc.calls = st.proc.calls
+  dom : ∀ i, i ∈ st'.fs.files ↔ i ∈ st.fs.files
+  fds : ∀ fd, st'.proc.fds !! fd ≠ none → st.proc.fds !! fd ≠ none ∨ st.proc.dfds !! fd = none
+
+theorem TreeFrame.tree {st st' : OsState} (h : TreeFrame st st') : st'.tree = st.tree := by
+  simp [OsState.tree, h.treeDur, h.metaLog]
+
+theorem TreeFrame.wf {st st' : OsState} (h : TreeFrame st st') (hw : FsTreeWf st) :
+    FsTreeWf st' := by
+  refine ⟨h.roots ▸ hw.roots, fun n hn => ?_, ?_, ?_, ?_⟩
+  · rw [h.metaLog] at hn ⊢; rw [h.treeDur, h.roots, h.nextIno]
+    obtain ⟨h1, h2, h3⟩ := hw.hist n hn
+    refine ⟨h1, fun i hi => ?_, h3⟩
+    obtain ⟨f, hf⟩ := h2 i hi
+    have hm : i ∈ st'.fs.files := (h.dom i).2 (by rw [GMap.mem_iff, hf]; rfl)
+    rw [GMap.mem_iff] at hm
+    cases hf' : st'.fs.files !! i with
+    | none => rw [hf'] at hm; cases hm
+    | some f' => exact ⟨f', rfl⟩
+  · intro fd df hdf; rw [h.dfds] at hdf; rw [h.tree]; exact hw.dfds fd df hdf
+  · intro fd hfd; rw [h.dfds]
+    rcases h.fds fd hfd with h' | h'
+    · exact hw.disj fd h'
+    · exact h'
+  · intro i hi; rw [h.nextIno]; exact hw.files_lt i ((h.dom i).1 hi)
+
+theorem TreeFrame.refl (st : OsState) : TreeFrame st st :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => Iff.rfl, fun _ h => Or.inl h⟩
+
+theorem TreeFrame.trans {st st' st'' : OsState} (h1 : TreeFrame st st') (h2 : TreeFrame st' st'') :
+    TreeFrame st st'' := by
+  refine ⟨h2.roots.trans h1.roots, h2.treeDur.trans h1.treeDur, h2.metaLog.trans h1.metaLog,
+    h2.committed.trans h1.committed, h2.nextIno.trans h1.nextIno, h2.dfds.trans h1.dfds,
+    h2.calls.trans h1.calls, fun i => (h2.dom i).trans (h1.dom i), fun fd h => ?_⟩
+  rcases h2.fds fd h with h' | h'
+  · exact h1.fds fd h'
+  · rw [h1.dfds] at h'; exact Or.inr h'
+
+/-! ## The tree's ghost state -/
+
+/-- A directory fd's read, the ghost state's and the state's, agree: begun on the entries `g.now`,
+with the names returned `rs`. -/
+def PhOk : DirPh → OsDirRead → Prop
+  | .idle _ _, .idle => True
+  | .done _ _, .done => True
+  | .reading rs g _, .reading u s r =>
+    ∀ b, u b = (decide (NameOk b) && (g.now !! b).isSome) ∧
+      s b = (decide (NameOk b) && (g.now !! b).isSome) ∧ r b = decide (b ∈ rs)
+  | _, _ => False
+
+/-- The tree's ghost state mirrors its state: the history is the state's durable tree and log, the
+log is sequential (the metadata calls of a verified program do not overlap: the specs take the whole
+history), a ghost entry for every directory fd, on its directory, its read as the state's, and a
+directory being read the view of the history (unchanged since the read began: a read holds a
+fraction of the history). -/
+structure TreeCoh (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) : Prop where
+  hist : V = (st.fs.treeDur, st.fs.metaLog)
+  seq : Sequential st.fs.metaLog
+  fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.proc.dfds !! fd).map (·.ino)
+  ph : ∀ fd x df, Γdf !! fd = some x → st.proc.dfds !! fd = some df → PhOk x.2 df.rd
+  rd : ∀ fd x, Γdf !! fd = some x → x.2.g = dview V x.1
+
+/-- `TreeCoh` depends on the durable tree, the log and the directory fds only. -/
+theorem TreeCoh.congr {st st' : OsState} {V Γdf} (h : TreeCoh st V Γdf)
+    (hd : st'.fs.treeDur = st.fs.treeDur) (hl : st'.fs.metaLog = st.fs.metaLog)
+    (hf : st'.proc.dfds = st.proc.dfds) : TreeCoh st' V Γdf := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  refine ⟨by rw [hd, hl]; exact h1, by rw [hl]; exact h2, ?_, ?_, h5⟩
+  · intro fd; rw [hf]; exact h3 fd
+  · intro fd x df hx hdf; rw [hf] at hdf; exact h4 fd x df hx hdf
+
+theorem TreeFrame.coh {st st' : OsState} {V Γdf} (h : TreeFrame st st') (hc : TreeCoh st V Γdf) :
+    TreeCoh st' V Γdf := hc.congr h.treeDur h.metaLog h.dfds
+
+section cells
+attribute [local instance] Classical.propDecidable
+
+/-- What byte `b` of a mapping of the file of `i` shows: the file's byte, or nothing (a hole). -/
+def cellByte (st : OsState) (i : Ino) (b : Nat) : Option w8 :=
+  match st.file i with
+  | some f => if h : b < f.contents.length then
+      (if InflightAt st i b then none else some f.contents[b]) else none
+  | none => none
+
+/-- The value of a cell showing `ob`. -/
+def toCellVal [GooseExts] : Option w8 → val
+  | some b => LitV (LitByte b)
+  | none => osHole
+
+theorem cellVal_eq [GooseExts] [GoGlobalContext] (st : OsState) (i : Ino) (b : Nat) :
+    cellVal st i b = toCellVal (cellByte st i b) := by
+  unfold cellVal cellByte
+  rcases st.file i with _ | f
+  · rfl
+  · dsimp only
+    by_cases hb : b < f.contents.length
+    · simp only [hb, ↓reduceDIte]
+      by_cases hn : InflightAt st i b
+      · simp only [hn, ↓reduceIte]; rfl
+      · simp only [hn, ↓reduceIte]; rfl
+    · simp only [hb, ↓reduceDIte]; rfl
+
+/-- The cells of the mappings of `maps`. -/
+def mapCells (maps : GMap Loc OsMap) : List Loc :=
+  maps.toList.flatMap (fun bm => (List.range bm.2.len).map (fun (k : Nat) => bm.1 +ₗ (k : Int)))
+
+theorem mem_mapCells {maps : GMap Loc OsMap} {l : Loc} :
+    l ∈ mapCells maps ↔ ∃ b m k, maps !! b = some m ∧ k < m.len ∧ l = b +ₗ (k : Int) := by
+  simp only [mapCells, List.mem_flatMap, List.mem_map, List.mem_range]
+  constructor
+  · rintro ⟨⟨b, m⟩, hbm, k, hk, rfl⟩
+    exact ⟨b, m, k, (GMap.mem_toList _ _ _).1 hbm, hk, rfl⟩
+  · rintro ⟨b, m, k, hbm, hk, rfl⟩
+    exact ⟨⟨b, m⟩, (GMap.mem_toList _ _ _).2 hbm, k, hk, rfl⟩
+
+/-- What each mapped cell shows, and whether the extension holds all of it (while an in-flight
+change may change it). -/
+def cellView (st : OsState) : GMap Loc (Option w8 × Bool) :=
+  ⟨fun l => if h : Mapped st l then
+      some (cellByte st h.choose h.choose_spec.choose,
+        decide (InflightAt st h.choose h.choose_spec.choose))
+    else none,
+   ⟨mapCells st.proc.maps, fun l hl => by
+      by_cases h : Mapped st l
+      · obtain ⟨i, k, b, m, hm, -, hk, rfl⟩ := h
+        exact mem_mapCells.2 ⟨b, m, k, hm, hk, rfl⟩
+      · simp [h] at hl⟩⟩
+
+theorem mapsTo_unique {st : OsState} (hwf : OsWf st) {l : Loc} {i i' : Ino} {k k' : Nat}
+    (h : MapsTo st l i k) (h' : MapsTo st l i' k') : i = i' ∧ k = k' := by
+  obtain ⟨b, m, hm, rfl, hk, rfl⟩ := h
+  obtain ⟨b', m', hm', rfl, hk', he⟩ := h'
+  by_cases hb : b = b'
+  · subst hb; rw [hm] at hm'; cases hm'
+    have := loc_add_inj _ he; exact ⟨rfl, by omega⟩
+  · exfalso
+    have hd := hwf.maps_disj b m b' m' hm hm' hb
+    have : b.addr + k = b'.addr + k' := by simpa [Loc.add] using congrArg Loc.addr he
+    omega
+
+theorem cellView_mapsTo {st : OsState} (hwf : OsWf st) {l : Loc} {i : Ino} {k : Nat}
+    (h : MapsTo st l i k) :
+    cellView st !! l = some (cellByte st i k, decide (InflightAt st i k)) := by
+  have hm : Mapped st l := ⟨i, k, h⟩
+  show (if h : Mapped st l then _ else _) = _
+  rw [dite_eq_left_of_eq_true (eq_true hm)]
+  obtain ⟨rfl, rfl⟩ := mapsTo_unique hwf hm.choose_spec.choose_spec h
+  rfl
+
+theorem cellView_none {st : OsState} {l : Loc} (h : ¬ Mapped st l) : cellView st !! l = none := by
+  show (if h : Mapped st l then _ else _) = _
+  rw [dite_eq_right_of_eq_false (eq_false h)]
+
+theorem cellView_some {st : OsState} (hwf : OsWf st) {l : Loc} {x : Option w8 × Bool}
+    (h : cellView st !! l = some x) :
+    ∃ i k, MapsTo st l i k ∧ x = (cellByte st i k, decide (InflightAt st i k)) := by
+  by_cases hm : Mapped st l
+  · obtain ⟨i, k, hik⟩ := hm
+    rw [cellView_mapsTo hwf hik] at h; cases h; exact ⟨i, k, hik, rfl⟩
+  · rw [cellView_none hm] at h; cases h
+
+theorem cellView_of_maps_empty {st : OsState} (h : st.proc.maps = ∅) : cellView st = ∅ := by
+  apply GMap.ext; intro l
+  rw [cellView_none]
+  · rfl
+  · rintro ⟨i, k, b, m, hm, -⟩; simp [h] at hm
+
+end cells
+
+/-! ## The ghost state -/
+
+/-- What the adequacy theorem provides. -/
+class OsGpreS (GF : BundledGFunctors) where
+  osPreAllG : AllG GF
+
+/-- The ghost names of the extension: the files' four maps (bytes, files, fds, in-flight changes),
+the variable that ties the mapped cells' view to the invariant, and the tree's: its history (a map
+of one entry), the directory fds, the calls in flight. -/
+structure OsGS (GF : BundledGFunctors) where
+  osAllG : AllG GF
+  γb : GName
+  γm : GName
+  γf : GName
+  γt : GName
+  γv : GName
+  γd : GName
+  γdf : GName
+  γc : GName
+
+/-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
+
+section wrappers
+variable {GF : BundledGFunctors} (hL : OsGS GF)
+variable {K V : Type} [DecidableEq K] [Pos.Countable K] [Pos.Countable V]
+
+/-- The authoritative map `m` of the ghost map `γ` of `hL`. -/
+def gAuth (γ : GName) (m : GMap K V) : IProp GF :=
+  letI := hL.osAllG; ghostMapAuth γ 1 m
+
+/-- The entry `k ↦ v` of the ghost map `γ` of `hL`. -/
+def gElem (γ : GName) (k : K) (dq : DFrac) (v : V) : IProp GF :=
+  letI := hL.osAllG; ghostMapElem γ k dq v
+
+/-- The ghost variable of the cells' view. -/
+def gVar (q : Qp) (a : GMap Loc (Option w8 × Bool) × Nat) : IProp GF :=
+  letI := hL.osAllG; ghostVar hL.γv q a
+
+instance gElem_timeless (γ : GName) (k : K) (dq : DFrac) (v : V) :
+    Timeless (gElem (K := K) (V := V) hL γ k dq v) := by
+  unfold gElem; letI := hL.osAllG; infer_instance
+
+instance gAuth_timeless (γ : GName) (m : GMap K V) : Timeless (gAuth hL γ m) := by
+  unfold gAuth; letI := hL.osAllG; infer_instance
+
+instance gVar_timeless (q : Qp) (a : GMap Loc (Option w8 × Bool) × Nat) :
+    Timeless (gVar hL q a) := by
+  unfold gVar; letI := hL.osAllG; infer_instance
+
+theorem gAuth_lookup (γ : GName) (m : GMap K V) (k : K) (dq : DFrac) (v : V) :
+    ⊢ gAuth hL γ m -∗ gElem hL γ k dq v -∗ ⌜m !! k = some v⌝ := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_lookup
+
+theorem gAuth_update (γ : GName) (m : GMap K V) (k : K) (v w : V) :
+    ⊢ gAuth hL γ m -∗ gElem hL γ k (DFrac.own 1) v ==∗
+      gAuth hL γ (<[k := w]> m) ∗ gElem hL γ k (DFrac.own 1) w := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_update w
+
+theorem gAuth_insert (γ : GName) (m : GMap K V) (k : K) (v : V) (h : m !! k = none) :
+    ⊢ gAuth hL γ m ==∗ gAuth hL γ (<[k := v]> m) ∗ gElem hL γ k (DFrac.own 1) v := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_insert k v h
+
+theorem gAuth_delete (γ : GName) (m : GMap K V) (k : K) (v : V) :
+    ⊢ gAuth hL γ m -∗ gElem hL γ k (DFrac.own 1) v ==∗ gAuth hL γ (GMap.delete k m) := by
+  unfold gAuth gElem; letI := hL.osAllG
+  exact ghost_map_delete
+
+theorem gElem_valid_2 (γ : GName) (k : K) (dq1 dq2 : DFrac) (v1 v2 : V) :
+    ⊢ gElem hL γ k dq1 v1 -∗ gElem hL γ k dq2 v2 -∗ ⌜✓ (dq1 • dq2) ∧ v1 = v2⌝ := by
+  unfold gElem; letI := hL.osAllG
+  exact ghostMapElem_valid_2 k γ dq1 dq2 v1 v2
+
+theorem gElem_valid (γ : GName) (k : K) (dq : DFrac) (v : V) :
+    ⊢ gElem hL γ k dq v -∗ ⌜✓ dq⌝ := by
+  unfold gElem; letI := hL.osAllG
+  exact ghostMapElem_valid k γ dq v
+
+theorem gElem_split (γ : GName) (k : K) (q1 q2 : Qp) (v : V) :
+    gElem hL γ k (DFrac.own (q1 + q2)) v ⊣⊢ gElem hL γ k (DFrac.own q1) v ∗ gElem hL γ k (DFrac.own q2) v := by
+  unfold gElem; letI := hL.osAllG
+  exact (ghostMapElem_fractional k γ v).fractional q1 q2
+
+theorem gVar_agree (q1 q2 : Qp) (a1 a2 : GMap Loc (Option w8 × Bool) × Nat) :
+    ⊢ gVar hL q1 a1 -∗ gVar hL q2 a2 -∗ ⌜a1 = a2⌝ := by
+  unfold gVar; letI := hL.osAllG
+  exact ghostVar_agree _ _ _ _ _
+
+theorem gVar_update (a1 a2 b : GMap Loc (Option w8 × Bool) × Nat) :
+    ⊢ gVar hL (1 : Qp).half a1 -∗ gVar hL (1 : Qp).half a2 ==∗
+      gVar hL (1 : Qp).half b ∗ gVar hL (1 : Qp).half b := by
+  unfold gVar; letI := hL.osAllG
+  exact ghostVar_update_halves _ _ _ _
+
+end wrappers
+
+/-! ### Runs of bytes -/
+
+section bytes
+variable {GF : BundledGFunctors} (hL : OsGS GF)
+
+/-- The bytes `xs` of the file `i` from `off` on. -/
+def bytesG (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) : IProp GF :=
+  [∗list] k ↦ x ∈ xs, gElem hL hL.γb (i, off + k) dq x
+
+instance bytesG_timeless (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool)) :
+    Timeless (bytesG hL i off dq xs) := by
+  unfold bytesG; infer_instance
+
+theorem bytesG_nil (i : Ino) (off : Nat) (dq : DFrac) :
+    bytesG hL i off dq [] ⊣⊢ emp := .rfl
+
+theorem bytesG_cons (i : Ino) (off : Nat) (dq : DFrac) (x : w8 × Bool)
+    (xs : List (w8 × Bool)) :
+    bytesG hL i off dq (x :: xs) ⊣⊢ gElem hL hL.γb (i, off) dq x ∗ bytesG hL i (off + 1) dq xs := by
+  unfold bytesG
+  refine BigSepL.bigSepL_cons.trans ?_
+  rw [Nat.add_zero]
+  refine sep_congr .rfl (.of_eq ?_)
+  apply BigSepL.bigSepL_eq_of_forall_eq
+  intro k _
+  rw [show off + (k + 1) = off + 1 + k by omega]
+
+theorem bytesG_append (i : Ino) (dq : DFrac) :
+    ∀ (off : Nat) (xs ys : List (w8 × Bool)),
+    bytesG hL i off dq (xs ++ ys) ⊣⊢ bytesG hL i off dq xs ∗ bytesG hL i (off + xs.length) dq ys
+  | off, [], ys => by
+    simp only [List.nil_append, List.length_nil, Nat.add_zero]
+    exact ⟨by iintro H; iframe; iempintro, by iintro ⟨-, H⟩; iexact H⟩
+  | off, x :: xs, ys => by
+    refine (bytesG_cons hL i off dq x (xs ++ ys)).trans ?_
+    refine (sep_congr .rfl (bytesG_append i dq (off + 1) xs ys)).trans ?_
+    rw [show off + 1 + xs.length = off + (x :: xs).length by simp; omega]
+    refine BIBase.BiEntails.trans ?_ (sep_congr (bytesG_cons hL i off dq x xs).symm .rfl)
+    exact ⟨by iintro ⟨H1, H2, H3⟩; iframe, by iintro ⟨⟨H1, H2⟩, H3⟩; iframe⟩
+
+/-- `m` with the bytes `ys` from `off` on. -/
+def insertBytes (i : Ino) : Nat → List (w8 × Bool) → GMap (Ino × Nat) (w8 × Bool) →
+    GMap (Ino × Nat) (w8 × Bool)
+  | _, [], m => m
+  | off, y :: ys, m => insertBytes i (off + 1) ys (<[(i, off) := y]> m)
+
+theorem lookup_insertBytes (i : Ino) : ∀ (off : Nat) (ys : List (w8 × Bool))
+    (m : GMap (Ino × Nat) (w8 × Bool)) (q : Ino) (j : Nat),
+    insertBytes i off ys m !! (q, j) =
+      if q = i ∧ off ≤ j ∧ j < off + ys.length then ys[j - off]? else m !! (q, j)
+  | off, [], m, q, j => by simp [insertBytes]; intros; omega
+  | off, y :: ys, m, q, j => by
+    simp only [insertBytes, lookup_insertBytes i (off + 1) ys, GMap.lookup_insert_eq_iff,
+      Prod.mk.injEq, List.length_cons]
+    by_cases hq : q = i
+    · subst hq
+      by_cases hj : j = off
+      · subst hj; simp; intro h; omega
+      · by_cases h1 : off + 1 ≤ j ∧ j < off + 1 + ys.length
+        · rw [if_pos ⟨rfl, h1⟩, if_pos ⟨rfl, by omega, by omega⟩]
+          rw [show j - off = (j - (off + 1)) + 1 by omega]; simp
+        · rw [if_neg (fun h => h1 h.2), if_neg (fun h => hj (Eq.symm h.2))]
+          rw [if_neg (fun h => by omega)]
+    · simp [hq, Ne.symm hq]
+
+theorem bytesG_update (i : Ino) : ∀ (off : Nat) (xs ys : List (w8 × Bool))
+    (Γb : GMap (Ino × Nat) (w8 × Bool)), ys.length = xs.length →
+    gAuth hL hL.γb Γb ∗ bytesG hL i off (DFrac.own 1) xs ⊢
+      |==> (gAuth hL hL.γb (insertBytes i off ys Γb) ∗ bytesG hL i off (DFrac.own 1) ys)
+  | off, [], [], Γb, _ => by
+    simp only [insertBytes]
+    iintro ⟨H, -⟩; imodintro; iframe; iapply (bytesG_nil hL i off _).2; iempintro
+  | off, x :: xs, y :: ys, Γb, hl => by
+    simp only [insertBytes]
+    iintro ⟨H, Hb⟩
+    icases (bytesG_cons hL i off _ x xs).1 $$ Hb with ⟨Hx, Hxs⟩
+    imod gAuth_update hL _ _ _ _ y $$ H Hx with ⟨H, Hy⟩
+    imod bytesG_update i (off + 1) xs ys _ (by simpa using hl) $$ [H Hxs] with ⟨H, Hys⟩
+    · iframe
+    imodintro
+    iframe H
+    iapply (bytesG_cons hL i off _ y ys).2
+    iframe
+  | _, [], _ :: _, _, hl => by simp at hl
+  | _, _ :: _, [], _, hl => by simp at hl
+
+theorem bytesG_alloc (i : Ino) : ∀ (off : Nat) (ys : List (w8 × Bool))
+    (Γb : GMap (Ino × Nat) (w8 × Bool)), (∀ k, k < ys.length → Γb !! (i, off + k) = none) →
+    gAuth hL hL.γb Γb ⊢
+      |==> (gAuth hL hL.γb (insertBytes i off ys Γb) ∗ bytesG hL i off (DFrac.own 1) ys)
+  | off, [], Γb, _ => by
+    simp only [insertBytes]
+    iintro H; imodintro; iframe; iapply (bytesG_nil hL i off _).2; iempintro
+  | off, y :: ys, Γb, hfree => by
+    simp only [insertBytes]
+    iintro H
+    imod gAuth_insert hL _ _ (i, off) y (by simpa using hfree 0 (by simp)) $$ H with ⟨H, Hy⟩
+    imod bytesG_alloc i (off + 1) ys _ (fun k hk => by
+        rw [GMap.lookup_insert_ne _ _ (by simp; omega)]
+        · rw [show off + 1 + k = off + (k + 1) by omega]; exact hfree (k + 1) (by simp; omega))
+      $$ H with ⟨H, Hys⟩
+    imodintro
+    iframe H
+    iapply (bytesG_cons hL i off _ y ys).2
+    iframe
+
+/-- `m` without the bytes `[off, off + n)` of `i`. -/
+def deleteBytes (i : Ino) : Nat → Nat → GMap (Ino × Nat) (w8 × Bool) →
+    GMap (Ino × Nat) (w8 × Bool)
+  | _, 0, m => m
+  | off, n + 1, m => deleteBytes i (off + 1) n (GMap.delete (i, off) m)
+
+theorem lookup_deleteBytes (i : Ino) : ∀ (off n : Nat)
+    (m : GMap (Ino × Nat) (w8 × Bool)) (q : Ino) (j : Nat),
+    deleteBytes i off n m !! (q, j) = if q = i ∧ off ≤ j ∧ j < off + n then none else m !! (q, j)
+  | off, 0, m, q, j => by simp [deleteBytes]; intros; omega
+  | off, n + 1, m, q, j => by
+    simp only [deleteBytes, lookup_deleteBytes i (off + 1) n, GMap.lookup_delete_iff,
+      Prod.mk.injEq]
+    by_cases hq : q = i
+    · subst hq
+      by_cases hj : j = off
+      · subst hj; simp
+      · by_cases h1 : off + 1 ≤ j ∧ j < off + 1 + n
+        · rw [if_pos ⟨rfl, h1⟩, if_pos ⟨rfl, by omega, by omega⟩]
+        · rw [if_neg (fun h => h1 h.2), if_neg (fun h => hj (Eq.symm h.2)),
+            if_neg (fun h => by omega)]
+    · simp [hq, Ne.symm hq]
+
+theorem bytesG_delete (i : Ino) : ∀ (off : Nat) (xs : List (w8 × Bool))
+    (Γb : GMap (Ino × Nat) (w8 × Bool)),
+    gAuth hL hL.γb Γb ∗ bytesG hL i off (DFrac.own 1) xs ⊢
+      |==> gAuth hL hL.γb (deleteBytes i off xs.length Γb)
+  | off, [], Γb => by simp only [List.length_nil, deleteBytes]; iintro ⟨H, -⟩; imodintro; iexact H
+  | off, x :: xs, Γb => by
+    simp only [List.length_cons, deleteBytes]
+    iintro ⟨H, Hb⟩
+    icases (bytesG_cons hL i off _ x xs).1 $$ Hb with ⟨Hx, Hxs⟩
+    imod gAuth_delete hL _ _ _ _ $$ H Hx with H
+    iapply bytesG_delete i (off + 1) xs _
+    iframe
+
+theorem bytesG_lookup (i : Ino) (off : Nat) (dq : DFrac) (xs : List (w8 × Bool))
+    (Γb : GMap (Ino × Nat) (w8 × Bool)) :
+    ⊢ gAuth hL hL.γb Γb -∗ bytesG hL i off dq xs -∗
+      ⌜∀ k (hk : k < xs.length), Γb !! (i, off + k) = some xs[k]⌝ := by
+  iintro HA Hbs
+  iapply pure_forall.2; iintro %k
+  iapply pure_forall.2; iintro %hk
+  unfold bytesG
+  icases BigSepL.bigSepL_lookup (Φ := fun k (x : w8 × Bool) => gElem hL hL.γb (i, off + k) dq x)
+    (List.getElem?_eq_getElem hk) $$ Hbs with Hb
+  iapply gAuth_lookup $$ HA Hb
+
+end bytes
+
+/-! ## The start -/
+
+/-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
+def initMeta (f : OsFile) : OsMeta :=
+  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some⟩
+
+/-- The bytes of the files of `st`, all clean. -/
+def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
+  ⟨fun k => (st.file k.1).bind (fun f => f.contents[k.2]?.map (·, true)),
+   ⟨st.fs.files.toList.flatMap (fun pf => (List.range pf.2.contents.length).map (fun b => (pf.1, b))),
+    fun ⟨i, b⟩ h => by
+      simp only [List.mem_flatMap]
+      cases hf : st.file i with
+      | none => simp [hf] at h
+      | some f =>
+        simp only [hf, Option.bind_some, Option.isSome_map] at h
+        refine ⟨⟨i, f⟩, (GMap.mem_toList _ _ _).2 hf, ?_⟩
+        simp only [List.mem_map, List.mem_range, Prod.mk.injEq]
+        exact ⟨b, by simpa using h, by simp⟩⟩⟩
+
+/-- The files of `st`, as on disk. -/
+def metaMap (st : OsState) : GMap Ino OsMeta := GMap.fmap initMeta st.fs.files
+
+section ghost
+variable {GF : BundledGFunctors}
+
+/-- What the ext holds for each in-flight change: the fraction of the file's `OsMeta` and the bytes
+its first step took. -/
+def tokRes (hL : OsGS GF) (st : OsState) (Γt : GMap Nat TokInfo) : IProp GF :=
+  iprop([∗map] _t ↦ ti ∈ Γt,
+    gElem hL hL.γm ti.c.ino (DFrac.own ti.q) ti.om ∗
+    bytesG hL ti.c.ino (affLo st ti.c) (DFrac.own 1) (ti.saved.map (·, false)))
+
+/-- What the state interpretation holds of each directory fd: the fraction of the history its open
+took, so that no one changes the directory while it is open. -/
+def rdPart (hL : OsGS GF) (x : Ino × DirPh) : IProp GF :=
+  iprop(∃ V : Hist, gElem hL hL.γd () (DFrac.own x.2.q) V ∗ ⌜x.2.g = dview V x.1⌝)
+
+def rdRes (hL : OsGS GF) (Γdf : GMap w64 (Ino × DirPh)) : IProp GF :=
+  iprop([∗map] _fd ↦ x ∈ Γdf, rdPart hL x)
+
+/-- The tree's history, as a ghost map of one entry. -/
+def histMap (V : Hist) : GMap Unit Hist := {[() := V]}
+
+/-- The interpretation of the tree of `st`. -/
+def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(∃ (V : Hist) (Γdf : GMap w64 (Ino × DirPh)),
+    ⌜FsTreeWf st ∧ TreeCoh st V Γdf⌝ ∗ gAuth hL hL.γd (histMap V) ∗ gAuth hL hL.γdf Γdf ∗
+    gAuth hL hL.γc st.proc.calls ∗ rdRes hL Γdf)
+
+/-- A step that leaves the tree alone keeps its interpretation. -/
+theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
+    treeCtx hL st ⊢ treeCtx hL st' := by
+  unfold treeCtx
+  iintro ⟨%V, %Γdf, %hw, Had, Haf, Hac, Hrd⟩
+  iexists V, Γdf
+  rw [h.calls]
+  iframe
+  ipureintro
+  exact ⟨h.wf hw.1, h.coh hw.2⟩
+
+/-- The start resources of the tree: its history, whole (nothing logged on the tree it starts
+with). -/
+def treeStart (hL : OsGS GF) (st : OsState) : IProp GF :=
+  gElem hL hL.γd () (DFrac.own 1) ((st.fs.treeDur, ([] : List LogEntry)) : Hist)
+
+/-- The interpretation of the files of `st`. -/
+def osCtxF (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(∃ (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
+      (Γf : GMap w64 OsFd) (Γt : GMap Nat TokInfo),
+    ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt⌝ ∗
+    gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ gAuth hL hL.γf Γf ∗ gAuth hL hL.γt Γt ∗
+    tokRes hL st Γt ∗
+    gVar hL (1 : Qp).half (cellView st, GMap.size st.proc.inflight))
+
+/-- The interpretation of the state `st`: its files and its tree. -/
+def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(osCtxF hL st ∗ treeCtx hL st)
+
+/-- The start resources for a state with no fd, change or mapping: every file and byte, whole, and
+the half of the cells' view that the invariant takes (`osInv_alloc`). -/
+def osStartF (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(([∗map] k ↦ x ∈ bytesMap st, gElem hL hL.γb k (DFrac.own 1) x) ∗
+    ([∗map] i ↦ m ∈ metaMap st, gElem hL hL.γm i (DFrac.own 1) m) ∗
+    gVar hL (1 : Qp).half ((∅ : GMap Loc (Option w8 × Bool)), 0))
+
+/-- The start resources: the files' and the tree's. -/
+def osStart (hL : OsGS GF) (st : OsState) : IProp GF := iprop(osStartF hL st ∗ treeStart hL st)
+
+end ghost
+
+theorem contents_length (f : OsFile) : f.contents.length = f.size := by simp [OsFile.contents]
+
+theorem contents_getElem? (f : OsFile) (b : Nat) :
+    f.contents[b]? = if b < f.size then some (f.rawAt b) else none := by
+  simp only [OsFile.contents, List.getElem?_map, List.getElem?_range']
+  split
+  · rename_i h; simp [List.getElem?_range h]
+  · rename_i h; simp [List.getElem?_range', h]
+
+theorem ofDisk_rawAt (vs : Nat → SecBytes) (sz b : Nat) :
+    (OsFile.ofDisk vs sz).rawAt b = (vs (b / 512)).toList.getD (b % 512) 0 := by
+  simp [OsFile.rawAt, OsFile.ofDisk, Sector.last]
+
+theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
+    OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by
+  obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
+  have hdisk' : ∀ i f, st.file i = some f → ∃ vs sz, f = OsFile.ofDisk vs sz :=
+    fun i f hf => (hdisk i f hf).2
+  have hnoinfl : ∀ i b, ¬ InflightAt st i b := by
+    rintro i b ⟨t, c, ht, -⟩; simp [hproc, ProcState.empty] at ht
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  · intro fd d h; simp [hproc, ProcState.empty] at h
+  · intro b m h; simp [hproc, ProcState.empty] at h
+  · intro b1 m1 _ _ h; simp [hproc, ProcState.empty] at h
+  · intro t c h; simp [hproc, ProcState.empty] at h
+  · intro t1 c1 _ _ _ h; simp [hproc, ProcState.empty] at h
+  · intro i f hf
+    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+  · intro i f n hf
+    obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+  · intro i; simp [metaMap]
+  · intro i m hm
+    simp only [metaMap, GMap.lookup_fmap] at hm
+    cases hfo : st.fs.files !! i with
+    | none => simp [hfo] at hm
+    | some f =>
+      simp only [hfo, Option.map_some, Option.some.injEq] at hm
+      subst hm
+      obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
+      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+      · simp [initMeta, OsFile.ofDisk]
+      · simp [initMeta, OsFile.ofDisk]
+      · intro _ n _; simp [OsFile.ofDisk]
+      · intro b len; simp [initMeta, hproc, ProcState.empty]
+      · intro t c ht; simp [hproc, ProcState.empty] at ht
+      · intro b d hb v hv
+        simp only [initMeta, List.getElem?_map, Option.map_eq_some_iff, Option.some.injEq] at hb
+        obtain ⟨x, hx, rfl⟩ := hb
+        simp only [OsFile.ofDisk, List.head?_cons, Option.some.injEq] at hv
+        subst hv
+        rw [contents_getElem?] at hx
+        split at hx
+        · cases hx; rw [ofDisk_rawAt]
+        · cases hx
+  · intro i b x hx
+    simp only [bytesMap, GMap.lookup_mk] at hx
+    cases hf : st.file i with
+    | none => simp [hf] at hx
+    | some f =>
+      simp only [hf, Option.bind_some, Option.map_eq_some_iff] at hx
+      obtain ⟨y, hy, rfl⟩ := hx
+      refine ⟨f, rfl, hy, fun _ => ⟨⟨?_, ?_⟩, hnoinfl i b⟩⟩
+      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
+        rw [contents_getElem?] at hy; split at hy
+        · simpa [OsFile.ofDisk]
+        · cases hy
+      · obtain ⟨vs, sz, rfl⟩ := hdisk' i f hf
+        intro v hv
+        simp only [OsFile.ofDisk, List.mem_singleton] at hv
+        subst hv; rw [ofDisk_rawAt]
+  · intro i f b hf hb
+    simp [bytesMap, hf, contents_getElem?, hb]
+  · simp [hproc, ProcState.empty]
+  · intro t; simp [hproc, ProcState.empty]
+  · intro t ti h; simp at h
+  · intro t ti h; simp at h
+  · intro t ti h; simp at h
+  · intro t ti h; simp at h
+
+/-- An initial tree is well formed, and coherent with the history of nothing logged on it, and no
+fd. -/
+theorem fsInit_tree {st : OsState} (h : FsInit st) :
+    FsTreeWf st ∧ TreeCoh st (st.fs.treeDur, []) ∅ := by
+  obtain ⟨hproc, hlog, -, hroots, hwf, hnamed, -, hfiles, hdirs⟩ := h
+  refine ⟨⟨hroots, fun n _ => ?_, ?_, ?_, hfiles⟩, ⟨by rw [hlog], by rw [hlog]; intro x e he; simp at he, ?_, ?_, ?_⟩⟩
+  · rw [hlog]; simp only [List.take_nil, List.map_nil, replay, List.foldl_nil]
+    refine ⟨hwf, fun i hi => ?_, hdirs⟩
+    have := hnamed i hi
+    cases hf : st.fs.files !! i with
+    | none => exact absurd hf this
+    | some f => exact ⟨f, rfl⟩
+  · intro fd df h; simp [hproc, ProcState.empty] at h
+  · intro fd _; simp [hproc, ProcState.empty]
+  · intro fd; simp [hproc, ProcState.empty]
+  · intro fd x df hx; simp at hx
+  · intro fd x hx; simp at hx
+
+theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState) (h : FsInit st) :
+    ⊢@{IProp GF} |==> ∃ hL : OsGS GF, osCtx hL st ∗ osStart hL st := by
+  letI := hPre.osPreAllG
+  obtain ⟨hwf, hcoh⟩ := osInit_wf_coh h
+  obtain ⟨htw, htc⟩ := fsInit_tree h
+  have hproc := h.1
+  imod ghost_map_alloc (GF := GF) (bytesMap st) with ⟨%γb, Hab, Hb⟩
+  imod ghost_map_alloc (GF := GF) (metaMap st) with ⟨%γm, Ham, Hm⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 OsFd) with ⟨%γf, Haf, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat TokInfo) with ⟨%γt, Hat, -⟩
+  imod ghostVar_alloc (GF := GF) ((∅ : GMap Loc (Option w8 × Bool)), 0) with ⟨%γv, Hv⟩
+  icases (ghostVar_split_half γv 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
+  imod ghost_map_alloc (GF := GF) (histMap ((st.fs.treeDur, ([] : List LogEntry)) : Hist))
+    with ⟨%γd, Had, Hd⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPh)) with ⟨%γdf, Hadf, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat Nat) with ⟨%γc, Hac, -⟩
+  imodintro
+  iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc⟩ : OsGS GF)
+  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac]
+  · unfold osCtx osCtxF treeCtx tokRes rdRes gAuth gVar
+    isplitl [Hab Ham Haf Hat Hv1]
+    · iexists (bytesMap st), (metaMap st), ∅, ∅
+      rw [cellView_of_maps_empty (by rw [hproc]; rfl),
+        show st.proc.inflight = ∅ by rw [hproc]; rfl, GMap.map_size_empty]
+      iframe Hab Ham Haf Hat Hv1
+      isplitr
+      · ipureintro; exact ⟨hwf, hcoh⟩
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+    · iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅
+      rw [show st.proc.calls = ∅ by rw [hproc]; rfl]
+      iframe Had Hadf Hac
+      isplitr
+      · ipureintro; exact ⟨htw, htc⟩
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+  · unfold osStart osStartF treeStart gElem gVar histMap
+    ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := ((st.fs.treeDur, ([] : List LogEntry)) : Hist)]} :
+        GMap Unit Hist), ghostMapElem (GF := GF) γd k (DFrac.own 1) v) ⊢
+        ghostMapElem γd () (DFrac.own 1) ((st.fs.treeDur, ([] : List LogEntry)) : Hist) from
+      (BigSepM.bigSepM_singleton (M := GMap Unit)
+        (Φ := fun (k : Unit) (v : Hist) => ghostMapElem (GF := GF) γd k (DFrac.own 1) v)).1) $$ Hd
+    iframe
+
+/-- The ghost state of the Linux file extension. The program gets every file and byte of the initial
+state, the tree's history, and the means to allocate the invariant of the mapped cells
+(`osInv_alloc`). -/
+instance fs_interp : ExtInterp fsExt where
+  LocalGS := OsGS
+  GlobalGS _ := Unit
+  localCtx := osCtx
+  globalCtx _ _ := iprop(True)
+  PreG := OsGpreS
+  initgP _ := True
+  initP st _ := FsInit st
+  globalStart _ _ := iprop(True)
+  localStart := osStart
+  global_init _ _ _ _ := by
+    iapply bupd_intro; iexists (); isplitl [] <;> itrivial
+  local_init _ hPre st _ h := os_local_init hPre st h
+
+end Fs
+end Perennial
