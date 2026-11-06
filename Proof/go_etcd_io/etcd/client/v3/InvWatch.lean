@@ -361,18 +361,26 @@ start log's seal at the store, mvcc's `idxSealed`, gone): what firing a watch's 
 needs (`srvKVCoreM_fire`). The mode is existential: the firing holds in both, the watch reads
 nothing else of it, and a premise with the mode free is weaker than one fixing it to
 `V.R.E.authMode.isOn` (the server's read view also takes its mode apart from `E.authMode`,
-`isServerReadM on`). Until then `srvKVInvs`, the auth-off KV invariants: no auth-on member had it. -/
+`isServerReadM on`). Until then `srvKVInvs`, the auth-off KV invariants: no auth-on member had it.
+(Strict M1, 2026-11-06) the member's watch facts are its server's at the same names: its certified
+lower bounds of the notified log the server's (`srvApi.histLb γr on`, so a watched log extends to
+one the read update fires at, `srvKVFacts_fire`) and its compaction permit the server's
+(`srvApi.crevOk γr`, so a compaction response's revision is the cluster's permit,
+`srvKVFacts_cmp`): in place of mvcc's sealed `evLog` and `crevPermAt`. -/
 def srvKVFacts (V : WEnv GF) : IProp GF :=
   iprop(∃ (on : Bool) (γr : ReadNames), srvKVCoreM on V.R.E γr ∗
     ⌜γr.kv.st = V.kst ∧ γr.kv.log0 = [[], []] ∧ receiptBound GF ≤ 2 ^ 62⌝ ∗
-    ⌜kvSame γr.kv V.kv⌝)
+    ⌜kvSame γr.kv V.kv⌝ ∗
+    ⌜V.W.histLb = srvApi.histLb γr on V.R.E.γs ∧ V.W.crevOk = srvApi.crevOk γr⌝)
 
 instance srvKVFacts_persistent (V : WEnv GF) : Persistent (srvKVFacts V) := by
   unfold srvKVFacts; infer_instance
 
-/-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`). -/
+/-- **A member's KV facts, from its server's KV core in a mode** (`srvKVCoreM_of_readM`), at the
+member's watch facts the server's (strict M1: `hH`, `hC`). -/
 theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
-    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hH : V.W.histLb = srvApi.histLb γr on V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr) :
     srvKVCoreM on V.R.E γr ⊢ srvKVFacts V := by
   iintro #Hc
   iunfold srvKVFacts
@@ -380,15 +388,31 @@ theorem srvKVFacts_intro (V : WEnv GF) (on : Bool) (γr : ReadNames)
   iframe Hc
   isplitl
   · ipureintro; exact ⟨hs.1, hlog, hrb⟩
-  ipureintro; exact hs
+  isplitl
+  · ipureintro; exact hs
+  ipureintro; exact ⟨hH, hC⟩
 
 /-- **… with auth off** (`srvKVFacts_intro … false`): from the auth-off read view's KV invariants
 (`srvKVInvs_of_read`). -/
 theorem srvKVFacts_of_off (V : WEnv GF) (γr : ReadNames)
-    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62) :
+    (hs : kvSame γr.kv V.kv) (hlog : γr.kv.log0 = [[], []]) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hH : V.W.histLb = srvApi.histLb γr false V.R.E.γs) (hC : V.W.crevOk = srvApi.crevOk γr) :
     srvKVInvs V.R.E γr ⊢ srvKVFacts V := by
   rw [← srvKVCoreM_false]
-  exact srvKVFacts_intro V false γr hs hlog hrb
+  exact srvKVFacts_intro V false γr hs hlog hrb hH hC
+
+/-- **A compaction permit of a member's watch facts is the cluster's** (strict M1, in place of
+`srvKVFacts_cperm`): none (`-1`) or `kvCmpPermit` of the cluster's KV names. -/
+theorem srvKVFacts_cmp (V : WEnv GF) (c : Int) :
+    srvKVFacts V ∗ V.W.crevOk c ⊢ ⌜c = -1⌝ ∨ kvCmpPermit V.kv c := by
+  iintro ⟨#Hk, Hc⟩
+  iunfold srvKVFacts at Hk
+  icases Hk with ⟨%on, %γr, -, -, %Hs, %Ht⟩
+  rw [Ht.2]
+  iunfold srvApi.crevOk at Hc
+  icases Hc with ⟨Hc, -⟩
+  rw [kvCmpPermit_same γr.kv V.kv Hs]
+  iexact Hc
 
 /-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`;
 strict M1: over the server's `histLb`, the draft's §8 `watchLaws_srv`): a watched log is a log of
@@ -821,14 +845,14 @@ instance wrRO_persistent (l : Loc) (P : WsPrm GF) : Persistent (wrRO l P) := by
 
 /-- **The completeness contract for the `k`th response `run` sends a substream** (persistent;
 K2e-7, D47): unless the watch promises no completeness (`cpl` false), the server-level contract
-(`rawRespOk`, at the dispatching member's store: some store, so that the facts read no member) from
+(`rawRespOk`, at the dispatching member's watch facts: some, so that the facts read no member) from
 the second dispatch cursor's position `k` to `k + 1` (`γh2`), and the caller's
 read update fired at it (`□ P.Q σ`, `watchStateRespOk` at the same positions: `cmpl_step`). -/
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
     monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗
-    (∃ γst : mvcc.StoreNames, rawRespOk γst P.o h2B h2A v r) ∗
+    (∃ γst : v3rpc.SrvW GF, rawRespOk γst P.o h2B h2A v r) ∗
     ∃ σ : KVState, □ P.Q σ ∗ watchStateRespOk P.o σ h2B h2A v r)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
