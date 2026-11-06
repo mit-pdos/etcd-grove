@@ -8,9 +8,18 @@ snapshot settings, member names and URLs (`cluster3.bootPremise`, `cluster3.init
 cluster's compaction mode (`cmp`), plus a listener at the member's client address (before
 `Start`) and, after `Start`, etcd's gRPC server (`v3rpc.Server(s, nil, nil, opt)`) served on it. Its
 success is `memberServed` (`Defs.lean`): the member's views, its thread token (`srvGoRes`), its
-place in the network and etcd's KV and watch services at its client address. The premises are
+place in the network and, at its client address, etcd's watch service and, by the lease mode (below),
+etcd's KV calls or the lease services. The premises are
 `NewMember`'s plus the configuration's (`cfgOk`), the right to listen at the client address and
-v3rpc's method sets (`v3rpc.Server`'s). Lean-first (no Rocq counterpart).
+v3rpc's method sets (`v3rpc.Server`'s). `Start`'s stop right (`memberUp`'s `∃ dd, srvStopRight …`,
+the restart plan's R2c) is dropped: a served member is never stopped (its gRPC server keeps the
+readers `HardStop` needs). Lean-first (no Rocq counterpart).
+
+**The lease mode** (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §4 and Q2; hub step
+7's E1): the member boots in the lease mode `lm` (`memberBoot`'s), and its success is
+`memberServed … lm`: in a mode that grants leases, etcd's lease reads and the mode's grant and
+listing registered at the client address in place of the KV calls (`kv_lease_served`'s), under the
+deployment premise the lease reads' server specs take (`leasePeersOk`), only in such a mode.
 -/
 module
 
@@ -46,7 +55,7 @@ abbrev StartMember.spec : Prop :=
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF) (cmp : Bool)
     (lm : lease.Mode),
   cfgOk cfg →
-  -- (W4 of `notes/watch-cut-plan.md`) the members' workload, granting no lease
+  -- (W4 of `notes/watch-cut-plan.md`) the members' workload
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
@@ -57,6 +66,8 @@ abbrev StartMember.spec : Prop :=
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
+  -- (lease-mono3) the lease reads' deployment premise, in a mode that grants leases
+  (lm ≠ .none → leasePeersOk) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗
@@ -80,7 +91,7 @@ abbrev StartMember.spec : Prop :=
       (Val #cfg.Token')) (Val #cfg.SnapCount')) (Val #cfg.SnapCatchUp')) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ memberServed γn s id ρ E₀ client) }}
+      (⌜err = GoInterface.nil⌝ ∗ memberServed γn s id ρ E₀ client lm) }}
 
 end spec
 

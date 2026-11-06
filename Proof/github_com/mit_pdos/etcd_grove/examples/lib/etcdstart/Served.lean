@@ -55,6 +55,19 @@ instance etcdKVAt_persistent (addr : GoString) (E : apply.AEnv GF) (ρ : ReqName
     (γr : ReadNames) (cid mid : w64) : Persistent (etcdKVAt (GF := GF) addr E ρ γr cid mid) := by
   unfold etcdKVAt; infer_instance
 
+omit [HasExt idIssueExt] cache_sem in
+/-- **`etcdKVAt` is its five registrations** (`rfl`; lease-mono3's review r2, N1: the law a client
+rewrites with, in place of unfolding the definition). -/
+theorem etcdKVAt_eq (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cid mid : w64) :
+    etcdKVAt (GF := GF) addr E ρ γr cid mid =
+      iprop(isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E ρ.rd cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E ρ.rd γr cid mid) ∗
+        isGrpcRpc addr go!"/etcdserverpb.KV/Compact" (client.etcdCompactSpec E ρ.rd cid mid)) :=
+  rfl
+
 /-- **etcd's KV registrations at the address are the member's** (`client.kvRegsAt`, what the
 client's calls take, D44) when the request path's and the read loop's read names are one (a
 started server's, `ρ.rd = γr`). -/

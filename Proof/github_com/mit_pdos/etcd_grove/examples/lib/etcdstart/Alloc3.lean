@@ -19,6 +19,13 @@ protocol from the program start's right); and the client's `etcdKV` at the boots
 model, at the first member's names, the others' KV names agreeing with them in state variable,
 and their KV models one (the cluster's `etcdKV`, D21 M4: an invariant over it allocated
 at one member's names is every member's).
+
+The lease mode (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §1; `alloc1`'s shape):
+the cluster's KV names in the mode `lm`, each member booted in it (`memberBoot … cmp lm`, under
+`lease.runCfg lm lm`), and the client's `etcdKV` only in the mode `none` (a cluster that grants
+leases has none, `srvClusterBoot_alloc`). `lm ≠ .revocable` is a scope premise: the revocable mode
+collects grant ids at one prefix (`kvPfx`), which `srvMemberBoot_alloc` ties to one member's
+(`hpfx`); the Scope's step 2 lifts it.
 -/
 module
 
@@ -102,7 +109,11 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (Hklg : γk.lm = .none)
+    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp)
+    -- (lease-mono3, 2026-11-06, Scope §1) the cluster's lease mode `lm`, not the revocable one
+    -- (whose single grant-id prefix `kvPfx` is one member's: the Scope's step 2)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
+    (Hklg : γk.lm = lm)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev cmp)) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
@@ -119,12 +130,12 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
-        memberBoot { γ with reg := reg } ctxs ρ (env₀ idx cok rev cmp) Φs id cmp := by
+        memberBoot { γ with reg := reg } ctxs ρ (env₀ idx cok rev cmp) Φs id cmp lm := by
   subst Hx
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
   imod (srvMemberBoot_alloc (GF := GF) { γ with reg := reg } cnt γk id cok
-    (fun h => by rw [Hklg] at h; cases h)) $$ Hkv' Hp
+    (fun h => absurd (Hklg.symm.trans h) hrev)) $$ Hkv' Hp
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc'⟩ := Hρ
@@ -151,7 +162,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   · ipureintro
     refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
       hpfx, ?_, trivial, by rw [hkc', Hkc],
-      (by rw [hklg', Hklg]; exact lease.runCfg_none (GF := GF))⟩
+      (by rw [hklg', Hklg]; exact hrun)⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
   rw [hiss', Hiss]
@@ -172,6 +183,9 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
+    -- (lease-mono3, 2026-11-06, Scope §1, `alloc1`'s) the cluster's lease mode, not the revocable one
+    -- (a scope premise: the revocable mode's grant ids are one member's prefix's, step 2's)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
     -- (2026-11-05, the compactor's three-member stage) the compaction mode and the cluster's
     -- retention (any at retention `0`: compactions only a client's)
     (cmp : Bool := false) (cret : Nat := 0) :
@@ -188,13 +202,14 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
         ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧
         kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧
         ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝ ∗
-      memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp ∗
+      memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp lm ∗
       (netHttpOk γn id₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
-      memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp ∗
+      memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp lm ∗
       (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
-      memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp ∗
+      memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp lm ∗
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
-      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
+      (if decide (lm ≠ .none) then iprop(True) else
+        etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
@@ -231,26 +246,26 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
       (fun h => Hnz _ (hperm.subset h) rfl) Hcc Hurl ((hperm.map _).nodup_iff.2 Hlow)
-      (fun id h => Hlow0 id (hperm.subset h)) cmp cret) $$ Hmarsh
+      (fun id h => Hlow0 id (hperm.subset h)) cmp cret lm) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, -⟩ := Hγ
-  isimp only [KVNames.lg, hklg, ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
+  isimp only [KVNames.lg, hklg] at Hetcd
   ihave Hms' := (BigSepL.bigSepL_perm hperm).1 $$ Hms
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns' with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ idx₁ cok₁ rev₁
       (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc hklg HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
+      hvs cmp hkc lm hrun hrev hklg HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
   imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ idx₂ cok₂ rev₂
       (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc hklg HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
+      hvs cmp hkc lm hrun hrev hklg HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
   imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ idx₃ cok₃ rev₃
       (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog
-      hvs cmp hkc hklg HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
+      hvs cmp hkc lm hrun hrev hklg HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network (rafthttp stage 6d; until then a slot per member): each peer address
   -- reserved for the raft protocol, so every member's transport may post to the others'
@@ -300,6 +315,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (n₁ n₂ n₃ : GoString) (c₁ c₂ c₃ : Option GoString)
+    (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
     (cmp : Bool := false) (cret : Nat := 0) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       memberStartRes (GF := GF) n₁ ⟨some a₁, c₁⟩ -∗ memberStartRes (GF := GF) n₂ ⟨some a₂, c₂⟩ -∗
@@ -314,17 +330,18 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
         ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧
         kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧
         ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝ ∗
-      memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp ∗
+      memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ cmp lm ∗
       (netHttpOk γn id₁ ∗ memberFreshRes n₁ ⟨some a₁, c₁⟩ γn) ∗
-      memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp ∗
+      memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ cmp lm ∗
       (netHttpOk γn id₂ ∗ memberFreshRes n₂ ⟨some a₂, c₂⟩ γn) ∗
-      memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp ∗
+      memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ cmp lm ∗
       (netHttpOk γn id₃ ∗ memberFreshRes n₃ ⟨some a₃, c₃⟩ γn) ∗
-      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
+      (if decide (lm ≠ .none) then iprop(True) else
+        etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
   iintro #Hmarsh ⟨Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
   imod (alloc3Http id₁ id₂ id₃ ps hperm ctxs boot Hlow Hlow0 HB Hcc Hurl dir a₁ a₂ a₃ Hd0 Hhost Hrb
-      Hrb2 cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
+      Hrb2 lm hrun hrev cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
       Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩
   imodintro

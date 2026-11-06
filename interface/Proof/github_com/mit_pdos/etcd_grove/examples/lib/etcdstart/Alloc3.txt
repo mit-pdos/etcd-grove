@@ -8,20 +8,21 @@ theorem etcdstart.memberBoot_of [v3rpc_sem :
     GName → IProp GF) (id : w64) (idx : mvcc.IdxNames) (cok rev : GName) (x : mvcc.IdxNames) (Hx : x
     = idx) (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs) (Hc0 :
     γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (Hklg : γk.lm = lease.Mode.none) (HΦ : Φs
-    (idPfxOf (W16 (uint.Z id))) = srvFloorFact (etcdstart.env₀ idx cok rev cmp)) : ⊢ srvRaftLogInv {
-    raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv issued cnt wn fs srvFloorFacts -∗ W64 0
-    ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv {
-    raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInv { raft := γ, pre := [], ai0 := W64 0 } γk
-    -∗ ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z
-    id)), 0) x ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
-    nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn
-    (idPfxOf (W16 (uint.Z id)), 0) -∗ ghostMapAuth reg 1 ∅ -∗ mvcc.idxFresh idx -∗ ghostMapAuth cok
-    1 ∅ -∗ ghostMapAuth rev 1 ∅ ==∗ ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 =
-    γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗ etcdstart.memberBoot { cl := γ.cl, vs :=
-    γ.vs, rule := γ.rule, boot := γ.boot, reg := reg, snapLoc := γ.snapLoc, log := γ.log, fresh :=
-    γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn :=
-    γ.authOn } ctxs ρ (etcdstart.env₀ idx cok rev cmp) Φs id cmp
+    (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (lm : lease.Mode) (hrun : lease.runCfg lm
+    lm) (hrev : lm ≠ lease.Mode.revocable) (Hklg : γk.lm = lm) (HΦ : Φs (idPfxOf (W16 (uint.Z id)))
+    = srvFloorFact (etcdstart.env₀ idx cok rev cmp)) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0
+    := W64 0 } -∗ idClusterInv issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗
+    srvPropMint { raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [],
+    ai0 := W64 0 } issued -∗ kvInv { raft := γ, pre := [], ai0 := W64 0 } γk -∗ ((idPfxOf (W16
+    (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot
+    γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd,
+    ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)
+    -∗ ghostMapAuth reg 1 ∅ -∗ mvcc.idxFresh idx -∗ ghostMapAuth cok 1 ∅ -∗ ghostMapAuth rev 1 ∅ ==∗
+    ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
+    kvSame ρ.rd.kv γk⌝ ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot :=
+    γ.boot, reg := reg, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
+    fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ
+    (etcdstart.env₀ idx cok rev cmp) Φs id cmp lm
 
 theorem etcdstart.id_ne (id₁ id₂ id₃ : w64) (Hlow : (List.map (fun id => uint.Z id % 2 ^ 16) [id₁,
     id₂, id₃]).Nodup) (Hlow0 : ∀ (id : w64), id ∈ [id₁, id₂, id₃] → uint.Z id % 2 ^ 16 ≠ 0) : id₁ ≠
@@ -61,28 +62,29 @@ theorem etcdstart.alloc3 [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v
     (LogEntry.toEntries boot 0)) (dir : w64 → List GoString) (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 =
     []) (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61) (n₁ n₂ n₃ :
-    GoString) (c₁ c₂ c₃ : Option GoString) (cmp : Bool := false) (cret : Nat := 0) : ⊢ bootMarshal
-    ps ctxs (LogEntry.toEntries boot 0) -∗ etcdstart.memberStartRes n₁ { peer := some a₁, client :=
-    c₁ } -∗ etcdstart.memberStartRes n₂ { peer := some a₂, client := c₂ } -∗
-    etcdstart.memberStartRes n₃ { peer := some a₃, client := c₃ } ={⊤}=∗ ∃ γ reg₁ reg₂ reg₃ ρ₁ ρ₂ ρ₃
-    E₁ E₂ E₃ Φs γn, ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot =
-    LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
-    ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧
-    kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧ ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧
-    kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝
-    ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₁,
-    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
-    rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₁ E₁ Φs id₁ cmp ∗ (netHttpOk γn
-    id₁ ∗ etcdstart.memberFreshRes n₁ { peer := some a₁, client := c₁ } γn) ∗ etcdstart.memberBoot {
-    cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₂, snapLoc := γ.snapLoc, log
-    := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend :=
-    γ.pend, authOn := γ.authOn } ctxs ρ₂ E₂ Φs id₂ cmp ∗ (netHttpOk γn id₂ ∗
-    etcdstart.memberFreshRes n₂ { peer := some a₂, client := c₂ } γn) ∗ etcdstart.memberBoot { cl :=
-    γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₃, snapLoc := γ.snapLoc, log :=
-    γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend :=
-    γ.pend, authOn := γ.authOn } ctxs ρ₃ E₃ Φs id₃ cmp ∗ (netHttpOk γn id₃ ∗
-    etcdstart.memberFreshRes n₃ { peer := some a₃, client := c₃ } γn) ∗ etcdKV ρ₁.rd.kv (kvModelSt
-    ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
+    GoString) (c₁ c₂ c₃ : Option GoString) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (hrev : lm
+    ≠ lease.Mode.revocable) (cmp : Bool := false) (cret : Nat := 0) : ⊢ bootMarshal ps ctxs
+    (LogEntry.toEntries boot 0) -∗ etcdstart.memberStartRes n₁ { peer := some a₁, client := c₁ } -∗
+    etcdstart.memberStartRes n₂ { peer := some a₂, client := c₂ } -∗ etcdstart.memberStartRes n₃ {
+    peer := some a₃, client := c₃ } ={⊤}=∗ ∃ γ reg₁ reg₂ reg₃ ρ₁ ρ₂ ρ₃ E₁ E₂ E₃ Φs γn, ⌜γ.vs = ps ∧
+    γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γn.N
+    = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧ ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st =
+    ρ₁.rd.kv.st ∧ kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
+    ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []] ∧ kvSame ρ₂.rd.kv ρ₁.rd.kv ∧ kvSame ρ₃.rd.kv
+    ρ₁.rd.kv ∧ ρ₁.rd.kv.cmp = cmp ∧ ρ₁.rd.kv.cret = cret⌝ ∗ etcdstart.memberBoot { cl := γ.cl, vs :=
+    γ.vs, rule := γ.rule, boot := γ.boot, reg := reg₁, snapLoc := γ.snapLoc, log := γ.log, fresh :=
+    γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn :=
+    γ.authOn } ctxs ρ₁ E₁ Φs id₁ cmp lm ∗ (netHttpOk γn id₁ ∗ etcdstart.memberFreshRes n₁ { peer :=
+    some a₁, client := c₁ } γn) ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule,
+    boot := γ.boot, reg := reg₂, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props :=
+    γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₂ E₂
+    Φs id₂ cmp lm ∗ (netHttpOk γn id₂ ∗ etcdstart.memberFreshRes n₂ { peer := some a₂, client := c₂
+    } γn) ∗ etcdstart.memberBoot { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg :=
+    reg₃, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired,
+    rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn } ctxs ρ₃ E₃ Φs id₃ cmp lm ∗ (netHttpOk
+    γn id₃ ∗ etcdstart.memberFreshRes n₃ { peer := some a₃, client := c₃ } γn) ∗ if decide (lm ≠
+    lease.Mode.none) = true then True else etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries
+    (LogEntry.toEntries boot 0)))
 
 theorem etcdstart.pfx_ne (id₁ id₂ id₃ : w64) (Hlow : (List.map (fun id => uint.Z id % 2 ^ 16) [id₁,
     id₂, id₃]).Nodup) (Hlow0 : ∀ (id : w64), id ∈ [id₁, id₂, id₃] → uint.Z id % 2 ^ 16 ≠ 0) :
