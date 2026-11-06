@@ -248,6 +248,19 @@ theorem seedInv_same (γs : GName) (γk γk' : KVNames) (hs : kvSame γk' γk) :
     seedInv (GF := GF) γs γk' = seedInv γs γk := by
   unfold seedInv etcdKV; rw [hs.1]
 
+/-- One `seedInv` at the cluster's KV names is one at every member's (`seedInv_same`). -/
+theorem seedInvs_of_same (γs : GName) (γk : KVNames) (ms : List (EtcdGrove.client.SrvAt GF))
+    (h : ∀ x ∈ ms, kvSame x.γr.kv γk) :
+    seedInv (GF := GF) γs γk ⊢ [∗list] y ∈ ms, seedInv γs y.γr.kv := by
+  induction ms with
+  | nil => iintro _; iapply BigSepL.bigSepL_nil.2; itrivial
+  | cons y ys ih =>
+    iintro #H
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · rw [seedInv_same γs _ _ (h y (by simp))]; iexact H
+    · iapply (ih (fun x hx => h x (List.mem_cons_of_mem _ hx))); iexact H
+
 /-- **The seeding's end**: `Main` hands its half in for etcd's state. -/
 theorem seedInv_cancel (γs : GName) (γk : KVNames) (σ : KVState) :
     seedInv γs γk ∗ ghostVar γs (1 : Qp).half σ ⊢ |={⊤}=> etcdKV (GF := GF) γk σ := by
