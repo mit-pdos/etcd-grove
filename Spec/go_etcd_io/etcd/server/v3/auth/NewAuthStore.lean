@@ -27,9 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`NewAuthStore(lg, ab, tp, cost)`** over schema's auth backend `ab` wrapping the real
-backend `d` (`NewAuthBackend`'s result), its auth buckets as a first start finds them (empty) or
-as a restart finds them (the users' and roles' empty, the auth bucket at the boot state a first
-start leaves, `authBoot`: R2d, HS1, below) in a part of any bucket set `S`
+backend `d` (`NewAuthBackend`'s result), its auth buckets empty in a part of any bucket set `S`
 containing them (`backend.rbPart d.γB S r`) and in the backend's table (`d.P.has` of each): an auth
 store, disabled, with its reader resource `RD`: the request path's contract (`isReqAuth`) and the
 apply contract with auth off (`isAuthStore … false`) at the backend's batch lock `Pk` and any frozen
@@ -54,24 +52,6 @@ at the etcd pin):
   begun later sees the writer's contents on every bucket, the file header's Go basis, so the part
   is **idle**, `TestBksNewAuthStoreIdle`), `ForceCommit` (likewise none): two tokens.
   `setupMetricsReporter` registers gauge functions that read the revision under its lock.
-* (R2d, HS1, 2026-11-06; `notes/decisions.md`, "R2d: the server's restart chain") **Two
-  cases, one end state.** (1) A first start: the auth bucket empty (`∅`), as above: `enabled`
-  false (no `authEnabled` key), the revision `0`, so `commitRevision` runs (in memory `0 → 1`, the
-  bucket's `authRevision` put to `1`): the bucket ends at `authBoot`. (2) A restart: the auth
-  bucket at `authBoot` (what case (1) left; the image's, `bkRestAt_boot`): `CreateAuthBuckets` is a
-  no-op on the existing buckets (schema's `UnsafeCreateBucket` is bbolt's
-  `CreateBucketIfNotExists`, `backend/batch_tx.go:136-145`, which returns an existing bucket and
-  writes nothing, `bbolt@v1.5.0/bucket.go:230-250`; its `pending++` only schedules a commit), the
-  write-backs are the same two; `UnsafeReadAuthEnabled` reads no `authEnabled` key in `authBoot`:
-  false; `UnsafeReadAuthRevision` reads `authRevision`, one value, big-endian `1`
-  (`schema/auth.go:137-144`): the in-memory revision `1`, as case (1)'s after its commit;
-  `Revision() ≠ 0`, so `commitRevision` is skipped and the bucket stays `authBoot`;
-  `refreshRangePermCache` reads `authUsers` (empty in both cases, the premise kept as it was: no
-  user, so `authRoles`, read only per user, is not read; `range_perm_cache.go:131-150`). So both
-  cases end with the store disabled at revision `1` and the auth buckets at
-  `authBoot`/`∅`/`∅`: the post is the same. Not covered (excluded by the premise): an
-  `authEnabled` key (the premise is equality to `authBoot`, which has none: an enabled store would
-  call the token provider's `enable`), a revision other than `0` or `1`, any user or role.
 * Auth disabled: the permission checks return `nil` (`IsPutPermitted` etc. return early when
   `!isAuthEnabled()`), `IsAdminPermitted` too; only `AuthEnable` enables it, which the contract
   takes only at `on = true`: with `on = false` it stays disabled.
@@ -143,10 +123,8 @@ abbrev auth.NewAuthStore.spec : Prop :=
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
       backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbPart d.γB S r ∗
-      -- (R2d, HS1, 2026-11-06) the auth bucket a first start finds (empty) or a restart finds
-      -- (the boot state a first start leaves, `authBoot`); the users' and roles' as before
-      ⌜((r.lookup go!"auth").getD ∅ = ∅ ∨ (r.lookup go!"auth").getD ∅ = authBoot) ∧
-        (r.lookup go!"authUsers").getD ∅ = ∅ ∧ (r.lookup go!"authRoles").getD ∅ = ∅⌝ }}
+      ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
+        (r.lookup go!"authRoles").getD ∅ = ∅⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
       (Val #ab)) (Val #tp)) (Val #cost))
   {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗

@@ -314,7 +314,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   iapply (h30 lg ab tp cost abl d W Pk qo authBkts r (fun _ h => h) Hhas.1 Hhas.2.1
     Hhas.2.2) $$ [Ho Hh Hwb Hrb]
   · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
-    ipureintro; exact ⟨Hlg, Htp, Hfit, Hab, Or.inl Hr.1, Hr.2⟩
+    ipureintro; exact ⟨Hlg, Htp, Hfit, Hab, Hr⟩
   iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
