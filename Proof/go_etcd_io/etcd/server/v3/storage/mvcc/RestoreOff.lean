@@ -90,7 +90,8 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
   obtain ⟨hoffd, hj0d, -, -, -⟩ := mvcc.cmOff_true (GF := GF) d hdcm
   have hoffγ : ¬ mvcc.kbCmpM γ.st.kb := by rw [hγd]; exact hoffd
   have hc : (-1 : Int) ≤ mvcc.CmpRecs.empty.crev := by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _
-  iapply (h s st γ b' d' γb' P' R (-1) mvcc.CmpRecs.empty Ls Rr hR hc) $$
+  iapply (h s st γ b' d' γb' P' R (-1) mvcc.CmpRecs.empty Ls Rr none DFrac.discard iprop(True)
+      iprop(True) iprop(True) iprop(True) iprop(True) hR hc) $$
     [Hcl Hwf Hwo Hbk Hkc Hv Hnc Hrr Hrts HLo Hfr Hcb]
   · rw [mvcc.CmpRecs.crev_empty]
     iframe Hpkg Hws Hwf Hwo Hok Hrr Hrts HLo Hfr Hcb
@@ -123,12 +124,12 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
     isplitl [Hv Hnc]
     · iapply (mvcc.restoreImageM_off d' γb' _ mvcc.CmpRecs.empty Hd').2
       iframe Hv Hnc; ipureintro; rfl
-    rw [hsr, hws, mvcc.resumeHookM_no _ _ mvcc.CmpRecs.resumes_empty, mvcc.restoreRegM_off d' Hd']
+    rw [hsr, hws, mvcc.resumeCtxM_no _ _ _ _ _ _ _ _ _ _ mvcc.CmpRecs.resumes_empty, mvcc.restoreRegM_off d' Hd']
     isplitr <;> try isplitr
     all_goals first | itrivial | (ipureintro; exact Hlok) | (ipureintro; exact ⟨trivial, trivial, Hlok⟩)
   have hr : mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb = mvcc.nReaders - 1 := by rw [hγd, hj0d]; rfl
   rw [hr]
-  iintro !> ⟨%p', %hp', Hcl', Hwf, Hwo, #Hhook, -, -, Hrd, Hrt, HLo, Hfr, HRr⟩
+  iintro !> ⟨%p', %hp', Hcl', Hwf, Hwo, #Hhook, -, -, -, Hrd, Hrt, HLo, Hfr, HRr⟩
   iapply HΦ
   iexists p'
   have hoffp : ¬ mvcc.kbCmpM (γ.st.withPhys p').kb := by

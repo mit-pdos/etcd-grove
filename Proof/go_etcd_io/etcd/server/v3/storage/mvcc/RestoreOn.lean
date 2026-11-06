@@ -80,18 +80,19 @@ def mvcc.restoreOnReady (s : Loc) (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (
     mvcc.retiredAt γ 3 ∗ ghostVar γ.wsd (1 : Qp).half () ∗
     mvcc.restoreOnRest γ R ∗
     (if r.finRev = r.crev then ghostVar γ.wsd (1 : Qp).half.half () else iprop(True)) ∗
-    mvcc.idxCert γ.idx ([[], []] ++ R) ∗ mvcc.slotFr γ)
+    mvcc.idxCert γ.idx ([[], []] ++ R) ∗ mvcc.slotFr γ ∗ □ mvcc.writerReg s (γ.withPhys p'))
 
 /-- `restore()`'s end (after its resumed compaction, if any). -/
 def mvcc.restoreOnFin (s : Loc) (γ : mvcc.StoreNames) (p' : mvcc.PhysNames) (o' : mvcc.StoreObjs)
-    (d' : mvcc.KBReal) (R : mvcc.Log) (r : mvcc.CmpRecs) : IProp GF :=
+    (d' : mvcc.KBReal) (R : mvcc.Log) (r : mvcc.CmpRecs) (hkH : Option val) (dqh : DFrac)
+    (PostH YH : IProp GF) : IProp GF :=
   iprop(|={⊤}=> (mvcc.muInvAt s (γ.withPhys p') 1 r.crev ∗ ghostVar γ.wr 1 () ∗
     mvcc.fieldShareAt s (γ.withPhys p') (1 : Qp).half o' ∗ mvcc.compactRightR s (γ.withPhys p') r.crev ∗
     mvcc.fieldShareAt s (γ.withPhys p') (1 : Qp).half.half o' ∗
-    mvcc.storeRT (γ.withPhys p') ∗ mvcc.writerFrag (γ.withPhys p') ∗ mvcc.resumeHookM d' r ∗
+    mvcc.storeRT (γ.withPhys p') ∗ mvcc.writerFrag (γ.withPhys p') ∗ mvcc.resumeBackM d' r hkH dqh PostH YH ∗
     ghostVar γ.wsd (1 : Qp).half.half () ∗ mvcc.retiredAt γ 3 ∗ ghostVar γ.wsd (1 : Qp).half () ∗
     mvcc.restoreOnRest γ R ∗
-    mvcc.idxCert γ.idx ([[], []] ++ R) ∗ mvcc.slotFr γ))
+    mvcc.idxCert γ.idx ([[], []] ++ R) ∗ mvcc.slotFr γ ∗ □ mvcc.writerReg s (γ.withPhys p')))
 
 end defs
 

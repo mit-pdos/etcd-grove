@@ -16,6 +16,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreRecs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCut
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndexRestore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 
 @[expose] public section
 
@@ -254,6 +255,88 @@ def mvcc.restoreCb (γ : mvcc.StoreNames) (L' : mvcc.Log) (c' : Int) (R : IProp 
       mvcc.api.pndPart γ.api (mvcc.pndW γ) none -∗ |={⊤ \ ↑(nroot .@ "mvcc")}=>
     ⌜L <+: L'⌝ ∗ mvcc.slotX γ 1 L' c' ∗ mvcc.api.absPart γ.api (1 : Qp).half.half L' c' ∗
       mvcc.api.pndPart γ.api (mvcc.pndW γ) none ∗ mvcc.api.nlLb γ.api L' ∗ R))
+
+/-- **The resumed compaction's context** (`KV.Restore.contract`'s, 2026-11-06; in place of
+`resumeHookM`, which allowed only an unset hook and no commit): when the image's records resume a
+compaction (`r.resumes`), the caller's run of the new backend's post-lock hook under its batch lock
+(a set hook `f`, frozen: `bkHookIs`, with its contract from `Pre` to `Post`; or the hook at `nil` at
+the share `dq`, with the caller's view shift) and its commit request from `X` to `Y` on the new
+backend `d'`. Given at the new backend only (the store's new names are allocated inside
+`Restore`); `resumeCtxM_lock` makes the lock context at any names over `d'`. -/
+def mvcc.resumeCtxM (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (P : IProp GF) (hk : Option val)
+    (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF) : IProp GF :=
+  if r.resumes then
+    iprop(X ∗ mvcc.kbReq (some d') X Y ∗
+      match hk with
+      | some f => iprop(mvcc.bkHookIs d'.γB f ∗ mvcc.csContract P f Pre Q Post)
+      | none => iprop(mvcc.kbHookNilAt (some d') dq ∗ Pre ∗ (P ∗ Pre ={⊤}=∗ P ∗ Post)))
+  else iprop(True)
+
+/-- **What the resumed compaction gives back**: `Post`, the commit's `Y` and, for the hook at `nil`,
+its share. -/
+def mvcc.resumeBackM (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (hk : Option val) (dq : DFrac)
+    (Post Y : IProp GF) : IProp GF :=
+  if r.resumes then
+    iprop(Post ∗ Y ∗
+      match hk with
+      | some _ => iprop(True)
+      | none => mvcc.kbHookNilAt (some d') dq)
+  else iprop(True)
+
+theorem mvcc.resumeCtxM_no (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (P : IProp GF) (hk : Option val)
+    (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF) (h : r.resumes = false) :
+    mvcc.resumeCtxM (GF := GF) d' r P hk Pre Q Post dq X Y = iprop(True) := by
+  unfold mvcc.resumeCtxM; simp [h]
+
+theorem mvcc.resumeBackM_no (d' : mvcc.KBReal) (r : mvcc.CmpRecs) (hk : Option val) (dq : DFrac)
+    (Post Y : IProp GF) (h : r.resumes = false) :
+    mvcc.resumeBackM (GF := GF) d' r hk dq Post Y = iprop(True) := by
+  unfold mvcc.resumeBackM; simp [h]
+
+/-- The resumed compaction's lock context at names `γ'` over the new backend, with the batch lock's
+invariant recorded there (`hookP`). -/
+theorem mvcc.resumeCtxM_lock (γ' : mvcc.StoreNames) (d' : mvcc.KBReal) (r : mvcc.CmpRecs)
+    (P : IProp GF) (hk : Option val) (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF)
+    (hk' : γ'.kb = some d') (hr : r.resumes = true) :
+    mvcc.resumeCtxM (GF := GF) d' r P hk Pre Q Post dq X Y ∗ mvcc.hookP γ' P ⊢
+      mvcc.lockCtxM γ' P hk Pre Q Post dq ∗ X ∗ mvcc.storeReq γ' X Y := by
+  unfold mvcc.resumeCtxM
+  simp only [hr, ↓reduceIte]
+  iintro ⟨⟨HX, #Hreq, Hh⟩, #Hhp⟩
+  iframe HX
+  isplitl [Hh]
+  · cases hk with
+    | some f =>
+      rw [mvcc.lockCtxM_some]
+      icases Hh with ⟨#Hf, Hcs⟩
+      iframe Hcs
+      iunfold mvcc.hookOk
+      iframe Hhp
+      simp only [mvcc.hookFn, hk', mvcc.kbHookIs]
+      iexact Hf
+    | none =>
+      rw [mvcc.lockCtxM_none]
+      icases Hh with ⟨Hnil, HPre, Hvs⟩
+      rw [hk']
+      iframe Hhp Hnil HPre Hvs
+  · simp only [mvcc.storeReq, hk']
+    iexact Hreq
+
+theorem mvcc.resumeBackM_of (γ' : mvcc.StoreNames) (d' : mvcc.KBReal) (r : mvcc.CmpRecs)
+    (P : IProp GF) (hk : Option val) (dq : DFrac) (Post Y : IProp GF)
+    (hk' : γ'.kb = some d') (hr : r.resumes = true) :
+    mvcc.lockBackM (GF := GF) γ' P hk dq ∗ Post ∗ Y ⊢ mvcc.resumeBackM d' r hk dq Post Y := by
+  unfold mvcc.resumeBackM
+  simp only [hr, ↓reduceIte]
+  iintro ⟨Hb, HP, HY⟩
+  iframe HP HY
+  cases hk with
+  | some f => itrivial
+  | none =>
+    rw [mvcc.lockBackM_none] at *
+    icases Hb with ⟨-, Hn⟩
+    rw [hk'] at *
+    iexact Hn
 
 end vocab
 

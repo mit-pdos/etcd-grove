@@ -33,18 +33,18 @@ ghost (`ghostVar γ.wr 1 ()`, lent: the restoring state's; the frozen state's, b
 caller's certificate of a log with revision `rev`, and two error arms the resume never takes. -/
 abbrev mvcc.store.compactLockfree.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (cp : Int) (P : IProp GF) (hk : Option val)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF) (dq : DFrac) (X Y : IProp GF),
   mvcc.storeCmp γ → cp < sint.Z rev → 1 ≤ sint.Z rev →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.muInvLag s γ (sint.Z rev) cp ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
       mvcc.crevPermAt γ (sint.Z rev) ∗
-      mvcc.lockCtxM γ P hk Pre Q Post ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () ∗
-      mvcc.slotFr γ }}
+      mvcc.lockCtxM γ P hk Pre Q Post dq ∗ mvcc.storeRT γ ∗ mvcc.kbWTSupplyM γ.kb ∗ ghostVar γ.wr 1 () ∗
+      mvcc.slotFr γ ∗ X ∗ mvcc.storeReq γ X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); mvcc.storeRT γ ∗ mvcc.lockBackM γ P hk dq ∗
       ghostVar γ.wr 1 () ∗ mvcc.slotFr γ ∗ ⌜err = GoInterface.nil⌝ ∗ mvcc.muInvAt s γ 1 (sint.Z rev) ∗
       mvcc.compactRightR s γ (sint.Z rev) ∗ mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗
-      mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗ mvcc.lagTok γ (sint.Z rev) cp }}
+      mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗ mvcc.lagTok γ (sint.Z rev) cp ∗ Y }}
 
 end spec
 

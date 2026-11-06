@@ -72,7 +72,9 @@ and, on, the new backend's unfixed registration `restoreRegM`: `dlInit`), off no
 (`kbNoDelOff`), the right to register a store in it (`kbRegRight`: its batch lock holds `lateW`
 unregistered), its readers' tokens (`nReaders`, `backend.newPost`'s), and, on, the new job's
 safe-range slot (`kbSRM`), the write-back supply (`kbWTSupplyM`) and, when the records resume a
-compaction, the new backend's unset hook (`resumeHookM`, lent and given back).
+compaction, the caller's run of the new backend's post-lock hook and its commit request
+(`resumeCtxM`: a set hook with its contract, or the hook at `nil` with a view shift; 2026-11-06,
+until then only the unset hook, `resumeHookM`), given back as `resumeBackM`.
 
 **Why it is true of the Go code** (`kvstore.go:292-314` at the etcd pin, `188113160`; the proofs'
 steps, `store__Restore.lean` off, `RestoreOn.lean` on):
@@ -120,8 +122,8 @@ what the caller's right becomes at the restored revision (`storeCloserM s γ' r.
 right to close; on, the new compaction right), the watchable store's quarter and deposit back, the
 writer's fragment at `γ'`, its retired tokens of the new backend (`writerOwn γ'`), the new batch
 lock's invariant recorded (`hookP γ' P'`: the server's hook is installed on the new backend later,
-`hookOk_of_init`), the certificate of `L'`, for a watchable store's the outer quarter at `L'`, the new
-backend's unset hook back (`resumeHookM`), the old job's budgets (`compactJobResM γ.kb`: on, a
+`hookOk_of_init`), the certificate of `L'`, for a watchable store's the outer quarter at `L'`, the resumed
+compaction's results (`resumeBackM`: `Post`, the commit's `Y`, a nil hook's share), the old job's budgets (`compactJobResM γ.kb`: on, a
 reader's token and the safe-range slot) and the old pool's readers (`nReaders - 1 - nJobRd γ.kb`:
 the pool's and the writer's; with the job's and the storage-version monitor's retired one, all of
 them, for the old backend's `Close`, which needs every `bOpen` share), and the new backend's one
@@ -130,7 +132,8 @@ they are current, and no fact names a field `Restore` writes (`b`, `kvindex`, `f
 `currentRev`, `compactMainRev`: their points-to are in the shares and the locks). -/
 abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF),
+    (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF)
+    (hkH : Option val) (dqh : DFrac) (PreH QH PostH XH YH : IProp GF),
   mvcc.restoreLogOk R → c ≤ r.crev → γ.watchQ = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
@@ -148,7 +151,7 @@ abbrev mvcc.store.Restore.spec : Prop :=
           (mvcc.kbRecs (γ.withPhys p).kb (γ.withPhys p).bucket r) r) ∗
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
       mvcc.kbRegRight (some d') ∗
-      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
+      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeCtxM d' r P' hkH PreH QH PostH dqh XH YH ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) ∗
       lease.leaseOwn γ.leases Ls ∅ ∗
       ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
@@ -160,10 +163,10 @@ abbrev mvcc.store.Restore.spec : Prop :=
       mvcc.storeCloserM s (γ.withPhys p') r.crev ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗
       mvcc.writerFrag (γ.withPhys p') ∗ mvcc.writerOwn (γ.withPhys p') ∗
-      mvcc.hookP (γ.withPhys p') P' ∗
+      mvcc.hookP (γ.withPhys p') P' ∗ mvcc.writerReg s (γ.withPhys p') ∗
       mvcc.idxCert γ.idx ([[], []] ++ R) ∗
       (if γ.watchQ then mvcc.logQ γ ([[], []] ++ R) else iprop(True)) ∗
-      mvcc.resumeHookM d' r ∗
+      mvcc.resumeBackM d' r hkH dqh PostH YH ∗
       mvcc.compactJobResM γ.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.kb) (), mvcc.storeRT γ) ∗
       mvcc.storeRT (γ.withPhys p') ∗

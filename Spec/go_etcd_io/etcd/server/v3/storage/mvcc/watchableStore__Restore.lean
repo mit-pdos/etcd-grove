@@ -44,13 +44,14 @@ compaction permit at the image's records `r` (`restoreRcptM`, `crevPermAt`), wha
 of the inner store's right at its compaction revision `c ≤ r.crev` (`restoreRightM`), the writer's
 fragment and retired tokens, the new backend's image, contract, clean read and tokens at the
 records, and back the inner store's right at `r.crev` at the new names (`storeCloserM`), fragment,
-tokens, the unset hook lent (`resumeHookM`), the old job's budgets (`compactJobResM`), the old
+tokens, the resumed compaction's hook run and commit (`resumeCtxM`, back as `resumeBackM`), the old job's budgets (`compactJobResM`), the old
 backend's readers and the new one's left over, the leases attached (the owner's map from `∅` to
 `pendItems L' []`, each restored item's lease live); off, as before compaction mode
 (`watchableStore.Restore.specOff_of_spec`). -/
 abbrev mvcc.watchableStore.Restore.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
-    (P' : IProp GF) (R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF),
+    (P' : IProp GF) (R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF)
+    (hkH : Option val) (dqh : DFrac) (PreH QH PostH XH YH : IProp GF),
   mvcc.restoreLogOk R → c ≤ r.crev →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ.st r.finRev ∗
@@ -66,7 +67,7 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
           (mvcc.kbRecs (γ.st.withPhys p).kb (γ.st.withPhys p).bucket r) r) ∗
       mvcc.restoreImageM d' γb' ([[], []] ++ R) r ∗ mvcc.kbNoDelOff (some d') ∗
       mvcc.kbRegRight (some d') ∗
-      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeHookM d' r ∗
+      mvcc.restoreRegM d' ∗ mvcc.kbSRM (some d') ∗ mvcc.kbWTSupplyM (some d') ∗ mvcc.resumeCtxM d' r P' hkH PreH QH PostH dqh XH YH ∗
       ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT (some d')) ∗
       lease.leaseOwn γ.st.leases Ls ∅ ∗
       ⌜∀ it lid, (mvcc.pendItems ([[], []] ++ R) []).lookup it = some lid →
@@ -77,8 +78,8 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
       ⌜p'.bucket = γb' ∧ p'.kb = some d'⌝ ∗
       mvcc.storeCloserM st (γ.st.withPhys p') r.crev ∗
       mvcc.writerFrag (γ.st.withPhys p') ∗ mvcc.writerOwn (γ.st.withPhys p') ∗
-      mvcc.hookP (γ.st.withPhys p') P' ∗
-      mvcc.resumeHookM d' r ∗
+      mvcc.hookP (γ.st.withPhys p') P' ∗ mvcc.writerReg st (γ.st.withPhys p') ∗
+      mvcc.resumeBackM d' r hkH dqh PostH YH ∗
       mvcc.compactJobResM γ.st.kb ∗
       ([∗list] _x ∈ List.replicate (mvcc.nReaders - 1 - mvcc.nJobRd γ.st.kb) (), mvcc.storeRT γ.st) ∗
       mvcc.storeRT (γ.st.withPhys p') ∗
