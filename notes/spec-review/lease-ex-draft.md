@@ -1,7 +1,7 @@
 # Review: the closed lease example's draft specs (branch `lease-ex`)
 
 Reviewed: `540183c3d0` (Draft), plus `2d9639135a` (Test: only the docstring of
-`EtcdServer.leaseTimeToLive.spec` changed, and `examples/leasekv/leasekv_cluster_test.go` added).
+`EtcdServer.leaseTimeToLive.spec` changed, and `examples/etcd/lease/leasekv_cluster_test.go` added).
 Read-only review: no `lake`, no `etc/lean-check.py`, so nothing marked "provable" here was checked
 by Lean. Go sources: the pinned etcd fork `ab3c28d9a` (`.lake/goose/etcd`), grpc-go v1.84.0
 (`~/go/pkg/mod`). Judged by `.claude/skills/spec/PRINCIPLES.md` and the examples `lease-grpc.md`,
@@ -102,7 +102,7 @@ Findings:
 
 `leaseTTLOut` puts the conjunct at the top level, so it covers both arms. That is right.
 
-**The restated cluster assumption (`2d9639135a`).** **Accurate.** `examples/common/common.go:146`
+**The restated cluster assumption (`2d9639135a`).** **Accurate.** `examples/lib/etcdstart/common.go:146`
 serves `s.RaftHandler()`, which is rafthttp's `ServeMux` with only `/raft*` and the probing prefix
 (`rafthttp/transport.go:158-167`), so `/leases/internal` gets a 404. `TimeToLiveHTTP` maps 404 to
 `lease.ErrLeaseNotFound` (`http.go:262-264`), which is among the triple's `applyErrIs` errors. The
@@ -209,7 +209,7 @@ Findings, most severe first:
    corollaries. That is the "one proof, variants as corollaries" rule, and it restores the count.
 5. **Copies (size, low).** `leasekv/{Defs,Adequacy,Base}.lean` are putget's with renames, and
    `heapAtLkv` is putget's `heapAt` under a different name. That follows the examples' precedent,
-   but the rename only avoids a clash. Prefer one shared `heapAt` in `examples/common` if both
+   but the rename only avoids a clash. Prefer one shared `heapAt` in `examples/lib/etcdstart` if both
    modules can import it.
 6. **Margin of the closed theorem (state it).** With one member and no grants, every real run of
    `Main` takes the leader's not-found path. The theorem still covers the found and follower arms,
@@ -220,7 +220,7 @@ Findings, most severe first:
 ## Bugs in the Go code
 
 None new in etcd. The examples' peer listeners serve only the raft handler
-(`examples/common/common.go:146`), unlike embed's `etcdhttp.NewPeerHandler`. A follower's
+(`examples/lib/etcdstart/common.go:146`), unlike embed's `etcdhttp.NewPeerHandler`. A follower's
 `TimeToLive` in an examples cluster therefore answers "not found" for a lease that exists. That is
 a deviation in this repository's examples, not an etcd bug. It is recorded in the plan and in the
 axiom's docstring, so it needs no `issues/` file. If the examples are meant to behave like

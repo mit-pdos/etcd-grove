@@ -55,7 +55,8 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
     (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
-    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : GName) (ua : GoInterface) (q : Qp),
+    (ms : Loc) (γs : MemStorNames) (nk : GName) (sl : w64) (γp : WTNames) (ua : GoInterface) (q : Qp)
+    (γn : RNNames),
   loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
   -- (2026-10-31, the snapshot track: what `snapshotCert_make` takes) an entry applied, the voters
   -- fewer than `2^61` (`SnapListsOk`)
@@ -63,6 +64,9 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes: the WAL's write
   -- not failing (I/O)
   storage.walSaveOk →
+  -- (2026-11-03, R2b-1 stage 5) the raft wrapper's names the server's raft's, at a fresh start (no
+  -- log before the wrapper's: the snapshot's index is the applied log's length)
+  γn.node = γr.raft.raft → γr.raft.pre = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
       srvSnapState s ep ms γs ai sl ∗ srvSnapFrozen γs (uint.nat ai) ∗ (letI := srvStor (GF := GF) γr.raft.raft; nodeAppliedLb γr.raft.raft.cl nk (uint.nat ai)) ∗
@@ -73,8 +77,9 @@ abbrev EtcdServer.snapshot.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
       srvApplyKVCore s E γw x ua ∗
-      -- (2026-10-31) the WAL open (the apply thread's share of it)
-      rnWalTok (srvRAddr s) q ∗
+      -- (2026-10-31) the WAL open (the apply thread's share of it); (2026-11-03, R2b-1 stage 5) with
+      -- its token, and the log handed at the WAL's `Save`s at least `ai` long (`raftAdvancedC`'s)
+      rnWalTokA γn (srvRAddr s) q ∗ rnWalHanded γn (uint.nat ai) ∗
       -- (strict M1, 2026-11-06) the thread's token, `KV.Commit.contract`'s
       threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
@@ -82,7 +87,7 @@ abbrev EtcdServer.snapshot.spec : Prop :=
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗ srvSnapFrozen γs (uint.nat ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKVCore s E γw x ua ∗
-      rnWalTok (srvRAddr s) q ∗ threadTok ∗
+      rnWalTokA γn (srvRAddr s) q ∗ threadTok ∗
       ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
 
 end spec

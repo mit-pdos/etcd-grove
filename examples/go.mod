@@ -6,13 +6,13 @@ go 1.27
 // `etc/goose.py --check` fails if they differ). tests/v3 is linkvtxn's differential test's
 // (robustness's model), test-only.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261102234523-ce3dbc097fff
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261102234523-ce3dbc097fff
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261102234523-ce3dbc097fff
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261102234523-ce3dbc097fff
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261102234523-ce3dbc097fff
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261102234523-ce3dbc097fff
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261102234523-ce3dbc097fff
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261103162249-673da07c8fab
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261103162249-673da07c8fab
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261028061729-565c2bda9e6d
 )
 
@@ -21,7 +21,7 @@ replace (
 // as translated.
 replace (
 	github.com/anishathalye/porcupine => ../third_party/porcupine
-	github.com/mit-pdos/etcd-grove/examples/lintest => ./lintest
+	github.com/mit-pdos/etcd-grove/examples/lib/lintest => ./lib/lintest
 	github.com/mit-pdos/etcd-grove/third_party/bridge => ../third_party/bridge
 )
 
@@ -29,7 +29,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/anishathalye/porcupine v1.3.1
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
-	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/etcd-grove/examples/lib/lintest v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/gokv v0.1.1
 	go.etcd.io/bbolt v1.5.0
@@ -82,3 +82,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570 // indirect
 )
+
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261104031046-743299d8cec8

@@ -46,7 +46,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -149,12 +149,12 @@ theorem apply.applierV3backend.Txn.wp_proof
     iframe Hres He
     isplitl []
     · ipureintro; exact Herr.1
-    isplitl [Hw Hbk Hhk Htie Hu Hard]
+    isplitl [Hw Hbk Hhk Htie Hu Hard HltL]
     · iapply (apply.kvOwn_of_split E log B c)
       iframe Hw Htie
       iunfold apply.kvRest
       iframe Hbk Hhk Hard
-      iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+      iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
     iright; iexact HPre
   · -- the run committed
     isplitr [Htrc]
@@ -183,19 +183,19 @@ theorem apply.applierV3backend.Txn.wp_proof
     cases hro : txn.txnReadonly t
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases HPP with ⟨HPost, %σw, -, ⟨%Hσ, Hw⟩⟩
-      isplitl [Hw Hbk Hhk Htie Hu Hard]
+      isplitl [Hw Hbk Hhk Htie Hu Hard HltL]
       · iapply (apply.kvOwn_of_split E _ B c)
         iframe Hw Htie
         iunfold apply.kvRest
         iframe Hbk Hhk Hard
-        iunfold apply.leasesLive; iexists L; iframe Hknown' Hu
+        iunfold apply.leasesLive; iexists L; iframe Hknown' Hu HltL
       ileft; iexact HPost
     · simp only [↓reduceIte]
       icases HPP with ⟨HPre, ⟨%Hσ, Hw⟩⟩
       have hchs : txn.txnChs log t = [] := Hok.2.2.1 hro
       have hcl : mvcc.commitLog log (txn.txnChs log t) = log := by
         rw [hchs]; unfold mvcc.commitLog; simp
-      isplitl [Hw Hbk Hhk Htie Hu Hard]
+      isplitl [Hw Hbk Hhk Htie Hu Hard HltL]
       · simp only [txn.txnChs] at hcl
         rw [hcl]
         iapply (apply.kvOwn_of_split E _ B c)
@@ -204,7 +204,7 @@ theorem apply.applierV3backend.Txn.wp_proof
         iframe Hbk Hhk Hard
         iunfold apply.leasesLive; iexists L
         rw [hcl] at *
-        iframe Hknown' Hu
+        iframe Hknown' Hu HltL
       iright; iexact HPre
 
 end proof

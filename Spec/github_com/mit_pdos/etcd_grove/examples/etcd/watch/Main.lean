@@ -1,0 +1,70 @@
+/- Lean-first (no Rocq counterpart).
+
+`Main(nw, nops)` (`examples/etcd/watch/etcd_watch.go`; D23): the writers' `nw * nops` Puts picked
+(`genAll`), one etcd member started in process (as `examples/etcd/putget`'s `Main`, on `watchkv`'s
+ports), a client with etcd's default configuration (its default retries; D29), a prefix watch on
+`wk/` from revision `1`, `nw` writer goroutines, then, after they are done, the successful Puts'
+log, the watch read up to their highest revision (`collect`) and the check (`check`, which panics
+if the watch did not report exactly the writes).
+
+**The triple:** from the package's `isPkgInit`, the right to listen on the client address
+`127.0.0.1:23872`, the main thread's token and `Main`'s named premises (`etcd_watch.premises`,
+putget's at `watchkv`'s configuration and the watch stream's transport premise), `Main(nw, nops)`
+does not panic and returns `Ok` (`0`: the check ran and passed), `Failed` (`1`: a step of the start
+failed) or `WatchEnded` (`2`: the watch ended before it reported every successful Put). The pure
+premises are putget's (`etcd_putget.Main.spec`), the thread bound `2 ^ 28` (the server's, since
+J8a-6, 2026-11-01; until then the watchable store's lock's reader limit `2 ^ 29`), and the bounds on `nw` and `nops`; the class premises are
+the client watcher's (`isNewClient_watcher`'s).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Defs
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace etcd_watch
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions]
+
+/-- See the file header. -/
+abbrev Main.spec : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
+    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (nw nops : w64),
+  etcd_putget.BootFacts id ctxs boot →
+  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
+  N + 7 + bootWB ≤ backend.wbInit →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  storage.diskOk → v3rpc.ServerMethodSets →
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
+  sint.Z nw * sint.Z nops < 2 ^ 62 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.watch ∗
+      -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
+      -- to listen on its client address (`netAddrFree`, which program start gives once: D19d)
+      etcdstart.memberStartRes (GF := GF) go!"watchkv" ⟨none, some go!"127.0.0.1:23872"⟩ ∗
+      threadTok ∗ premises N id ctxs boot }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main)) (Val #nw))
+      (Val #nops))
+  {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}
+
+end spec
+
+end etcd_watch
+end EtcdGrove
+end Perennial

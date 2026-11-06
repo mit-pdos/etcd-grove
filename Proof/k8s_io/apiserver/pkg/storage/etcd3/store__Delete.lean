@@ -35,6 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.Delete.wp_proof
@@ -42,8 +43,9 @@ theorem store.Delete.wp_proof
     (wp_EnforcePtr : conversion.EnforcePtr.spec (GF := GF) (hG := hG))
     (wp_condDelete : store.conditionalDelete.spec (GF := GF) (hG := hG)) :
     store.Delete.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 opts validate vf W _ Φu k hk hkl hopt
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, HW, #Hau, #Hval⟩
+  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 pp pr cx ca opts validate vf W _ Φu k
+  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, Hout, #Hpp, Hca, HW, #Hau, #Hval⟩
+  obtain ⟨hk, hkl, hopt⟩ := Hpre
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -72,7 +74,7 @@ theorem store.Delete.wp_proof
   (try wp_auto)
   have hnp : k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false :=
     features.AllowUnsafeMalformedObjectDeletion_notPanic
-  wp_pure
+  try wp_pure
   (try wp_auto)
   have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
   wp_apply Hen as %b
@@ -81,8 +83,8 @@ theorem store.Delete.wp_proof
     (try rw [hopt])
     (try wp_auto)
     wp_apply (wp_condDelete Obj E sp c ci cd (c.pathPrefix ++ k)
-        (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 v p validate vf W Φu hpfx hkl)
-        $$ [$Hout $HW] as %err Hres
+        (interface.mkOk (go.GoType.PointerType c.S.objTy) #p) o0 rv0 v p pp pr cx ca validate vf W
+        Φu hpfx hkl) $$ [$Hout $Hca $HW] as %err Hres
     · iframe #
       ipureintro; exact Hv
     (try wp_auto)

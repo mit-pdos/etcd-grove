@@ -33,7 +33,8 @@ readers, a thread token; an execution of at most `2^62` steps, for `Leases()`' s
 no older than `m` (`leaseIdsAt`: all of them, each once), the response listing them with a fresh
 header (`leasesRespIs`), and auth disabled at a state no older than `n`, or the request's principal
 an admin at one or allowed to read every key of each lease at an index no older than `i`, the
-listing's (`leaseKeysVerdictFrom`); on an error, no response and an error the gRPC layer can take.
+listing's (`leaseKeysVerdictFrom`); on an error, no response and an error the gRPC layer can take,
+only with auth on (`checkLeaseLeases`' error; the lease-grant plan's amendment (F3)).
 The ids are listed in the order of `Leases()`' sort (by remaining time: none stated). The revision
 re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
 abbrev EtcdServer.LeaseLeases.spec : Prop :=
@@ -52,7 +53,7 @@ abbrev EtcdServer.LeaseLeases.spec : Prop :=
           lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
           leaseCheckFrom s E (GoInterface.ok ctx) n (fun info => iprop([∗list] id ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+       (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err)) }}
 
 end spec
 

@@ -204,6 +204,21 @@ noncomputable def ReplicaSetsBySizeNewer.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] ReplicaSetsBySizeNewer.ty
 
+@[reducible] noncomputable def «struct#90a2bc34».fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"add" go.int64),
+(go.field_decl.FieldDecl go!"del" go.int64),
+(go.field_decl.FieldDecl go!"key" go.string)]
+
+@[irreducible] noncomputable def «struct#90a2bc34».fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  «struct#90a2bc34».fieldsUnsealed
+
+noncomputable instance «equals_unfold_struct#90a2bc34» [GooseExts] [GoGlobalContext] :
+    EqualsUnfold «struct#90a2bc34».fields «struct#90a2bc34».fieldsUnsealed :=
+  ⟨by unfold «struct#90a2bc34».fields; rfl⟩
+
+@[reducible] noncomputable def «struct#90a2bc34».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType «struct#90a2bc34».fields)
+
 @[reducible] noncomputable def ExpectationsTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 300000000000)
 
@@ -2589,16 +2604,12 @@ noncomputable def ControlleeExpectations.MarshalLog.impl [GooseExts] [GoGlobalCo
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.StructType [(go.field_decl.FieldDecl go!"add" go.int64),
-  (go.field_decl.FieldDecl go!"del" go.int64),
-  (go.field_decl.FieldDecl go!"key" go.string)]) (go.GoType.InterfaceType [])))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))
+  (Let "$r0" (App (Val (GoInstruction (Convert «struct#90a2bc34».underlying (go.GoType.InterfaceType [])))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0")))
   (Let "$v1" (Let "$a0" (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"del"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadInt64 []))) (Val #())) (Var "$a0")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ControlleeExpectations.ty go!"key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ControlleeExpectations.ty)))) (Var "e"))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [(go.field_decl.FieldDecl go!"add" go.int64),
-  (go.field_decl.FieldDecl go!"del" go.int64),
-  (go.field_decl.FieldDecl go!"key" go.string)])))) (LiteralValue [(KeyedElement (some (KeyField go!"add")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"del")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v2")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral «struct#90a2bc34».underlying))) (LiteralValue [(KeyedElement (some (KeyField go!"add")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"del")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"key")) (ElementExpression go.string (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -4103,7 +4114,7 @@ noncomputable def ActivePodsWithRanks.Less.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (If (Let "$a0" (Val _root_.Perennial.k8s_io.kubernetes.pkg.features.PodDeletionCost)
+  (If (Let "$a0" (Val #(go!"PodDeletionCost"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate))) (Val #())))) (Var "$a0")))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty))))) (App (Val (GoInstruction (StructFieldRef ActivePodsWithRanks.ty go!"Pods"))) (Var "s"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.kubernetes.pkg.apis.core.helper.GetDeletionCostFromPodAnnotations []))) (Val #())) (Var "$a0")))
@@ -4287,7 +4298,7 @@ noncomputable def podReadyTime.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (Let "c" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty))) (Var "$value"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodConditionType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodConditionType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Type"))) (Var "c"))) (Val _root_.Perennial.k8s_io.api.core.v1.PodReady))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Status"))) (Var "c"))) (Val _root_.Perennial.k8s_io.api.core.v1.ConditionTrue))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodConditionType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodConditionType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Type"))) (Var "c"))) (Val #(go!"Ready")))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ConditionStatus.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"Status"))) (Var "c"))) (Val #(go!"True")))) (Val #false)))
   (Let "$r0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty go!"LastTransitionTime"))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -4347,7 +4358,7 @@ noncomputable def maxContainerRestarts.impl [GooseExts] [GoGlobalContext] : val 
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "c"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "c")))) (Val _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicyAlways))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "c"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.ContainerRestartPolicy.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"RestartPolicy"))) (Var "c")))) (Val #(go!"Always")))) (Val #false)))
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Container.ty go!"Name"))) (Var "c")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
@@ -4640,7 +4651,7 @@ noncomputable def nextPodAvailabilityCheck.impl [GooseExts] [GoGlobalContext] : 
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.PodCondition.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int32 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "minReadySeconds"))) (Val _root_.Perennial.time.Second)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int32 _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "minReadySeconds"))) (Val #(W64 1000000000))))
   (Let "minReadySecondsDuration" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))
@@ -4828,7 +4839,7 @@ noncomputable def IsPodActive.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p"))
-  (Let "$r0" (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (Val _root_.Perennial.k8s_io.api.core.v1.PodSucceeded) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p")))))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (Val _root_.Perennial.k8s_io.api.core.v1.PodFailed) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p")))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"DeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)))) (Val UntypedNil)))) (Val #false))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (Val #(go!"Succeeded")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p")))))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (Pair (Val #(go!"Failed")) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.PodStatus.ty go!"Phase"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p")))))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty go!"DeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod.ty go!"ObjectMeta"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.k8s_io.api.core.v1.Pod.ty)))) (Var "p"))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time.ty)))) (Val UntypedNil)))) (Val #false))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -5685,22 +5696,22 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W64 5))
-  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val #(W64 1000000))))
   (Let "$v2" (Val #(W64 4607182418800017408))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Steps")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Duration")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Jitter")) (ElementExpression go.float64 (Var "$v2")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W64 5))
-  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val _root_.Perennial.time.Millisecond)))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 100)) (Val #(W64 1000000))))
   (Let "$v2" (Val #(W64 4607182418800017408))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Steps")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Duration")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Jitter")) (ElementExpression go.float64 (Var "$v2")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (FuncResolve _root_.Perennial.k8s_io.client_go.tools.cache.DeletionHandlingMetaNamespaceKeyFunc []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$k0" (Val _root_.Perennial.k8s_io.api.core.v1.PodPending)
+  (Let "$r0" (Let "$k0" (Val #(go!"Pending"))
   (Let "$v1" (Val #(W64 0))
-  (Let "$k2" (Val _root_.Perennial.k8s_io.api.core.v1.PodUnknown)
+  (Let "$k2" (Val #(go!"Unknown"))
   (Let "$v3" (Val #(W64 1))
-  (Let "$k4" (Val _root_.Perennial.k8s_io.api.core.v1.PodRunning)
+  (Let "$k4" (Val #(go!"Running"))
   (Let "$v5" (Val #(W64 2))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty go.int)))) (LiteralValue [(KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty (Var "$k0"))) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty (Var "$k2"))) (ElementExpression go.int (Var "$v3"))), (KeyedElement (some (KeyExpression _root_.Perennial.k8s_io.api.core.v1.PodPhase.ty (Var "$k4"))) (ElementExpression go.int (Var "$v5")))]))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7290,6 +7301,32 @@ attribute [instance] ReplicaSetsBySizeNewer.TypeAssumptions.underlying
   ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Less_unfold
   ReplicaSetsBySizeNewer.TypeAssumptions.ptr_Swap_unfold
 
+structure «struct#90a2bc34» [GooseExts] where
+  mk ::
+  add' : w64
+  del' : w64
+  key' : GoString
+
+noncomputable instance «struct#90a2bc34».zero_val [GooseExts] : ZeroVal «struct#90a2bc34» :=
+  ⟨«struct#90a2bc34».mk zeroValDef zeroValDef zeroValDef⟩
+
+class «struct#90a2bc34».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying «struct#90a2bc34».underlying «struct#90a2bc34»
+  get_add : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"add") #x (Val #(x.add'))
+  set_add : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"add") (PairV #x #y) (Val #(({ x with add' := y } : «struct#90a2bc34»)))
+  get_del : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"del") #x (Val #(x.del'))
+  set_del : ∀ (x : «struct#90a2bc34») (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : «struct#90a2bc34»)))
+  get_key : ∀ (x : «struct#90a2bc34»), go.IsGoStepPureDetTagged under (StructFieldGet «struct#90a2bc34».underlying go!"key") #x (Val #(x.key'))
+  set_key : ∀ (x : «struct#90a2bc34») (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet «struct#90a2bc34».underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : «struct#90a2bc34»)))
+
+attribute [instance] «struct#90a2bc34».TypeAssumptions.type_repr
+  «struct#90a2bc34».TypeAssumptions.get_add
+  «struct#90a2bc34».TypeAssumptions.set_add
+  «struct#90a2bc34».TypeAssumptions.get_del
+  «struct#90a2bc34».TypeAssumptions.set_del
+  «struct#90a2bc34».TypeAssumptions.get_key
+  «struct#90a2bc34».TypeAssumptions.set_key
+
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BaseControllerRefManager_instance : BaseControllerRefManager.TypeAssumptions
   PodControllerRefManager_instance : PodControllerRefManager.TypeAssumptions
@@ -7320,6 +7357,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ReplicaSetsByCreationTimestamp_instance : ReplicaSetsByCreationTimestamp.TypeAssumptions
   ReplicaSetsBySizeOlder_instance : ReplicaSetsBySizeOlder.TypeAssumptions
   ReplicaSetsBySizeNewer_instance : ReplicaSetsBySizeNewer.TypeAssumptions
+  «struct#90a2bc34_instance» : «struct#90a2bc34».TypeAssumptions
   NewPodControllerRefManager_unfold : FuncUnfold NewPodControllerRefManager [] NewPodControllerRefManager.impl
   NewReplicaSetControllerRefManager_unfold : FuncUnfold NewReplicaSetControllerRefManager [] NewReplicaSetControllerRefManager.impl
   RecheckDeletionTimestamp_unfold : FuncUnfold RecheckDeletionTimestamp [] RecheckDeletionTimestamp.impl
@@ -7427,6 +7465,7 @@ attribute [instance] Assumptions.BaseControllerRefManager_instance
   Assumptions.ReplicaSetsByCreationTimestamp_instance
   Assumptions.ReplicaSetsBySizeOlder_instance
   Assumptions.ReplicaSetsBySizeNewer_instance
+  Assumptions.«struct#90a2bc34_instance»
   Assumptions.NewPodControllerRefManager_unfold
   Assumptions.NewReplicaSetControllerRefManager_unfold
   Assumptions.RecheckDeletionTimestamp_unfold

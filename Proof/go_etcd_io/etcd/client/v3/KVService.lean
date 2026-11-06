@@ -7,7 +7,7 @@ it** (D44, 2026-10-25; until then in `client/v3/Results.lean`). Lean-first (no R
 environment, read names and ids): a caller asking the request `o` gets a reply message `m` with
 `putReplied` (`putReplyOk`, persistent, and the token of the revision the put made, `revMinted`),
 `rangeReplyOk` at the committed index `c` the caller knows of, `deleteReplied`, `txnReplied`. The
-server's handlers meet them as grpc runs them (`Results.lean`'s `etcd_putMethodOk`, ...,
+server's handlers meet them as grpc runs them (`Results.lean`'s `etcd_putMethodMd`, ...,
 `etcd_kv_served`, `etcd_kv_started`), which registers them at the member's address
 (`isGrpcRpc`).
 
@@ -238,6 +238,23 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         skip = false⌝ ∗
       srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗ Q (kvStateOf x.log))
 
+/-- **The revision a writing transaction's reply reached** (U1 of `notes/k8s-compactor-plan.md`,
+2026-11-04, the user's approval; as `etcdPutSpec`'s `kvRevLb`): for a writing `t`, the KV has
+reached the reply's revision (persistent: what a later `Compact` takes); for a read-only one,
+nothing. -/
+def txnRevLb (γk : KVNames) (t : TxnModel) (m : TxnRespM) : IProp GF :=
+  if txn.txnReadonly t then iprop(True) else kvRevLb γk m.hdr.revision
+
+instance txnRevLb_persistent (γk : KVNames) (t : TxnModel) (m : TxnRespM) :
+    Persistent (txnRevLb (GF := GF) γk t m) := by
+  unfold txnRevLb; split <;> infer_instance
+
+theorem txnRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (t : TxnModel) (m : TxnRespM) :
+    txnRevLb (GF := GF) γk t m ⊢ txnRevLb γk' t m := by
+  unfold txnRevLb; split
+  · exact .rfl
+  · exact kvRevLb_same γk γk' h m.hdr.revision
+
 /-- **etcd's spec of the KV service's `Txn`** (the vertical slice's unit V2; a predicate
 transformer, as `etcdPutSpec`): a caller asking a transaction `t` of plain operations (no nested
 transaction: what the client's builder sends) within the txn package's model (`txnModelIn`: if
@@ -261,7 +278,7 @@ def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
           kvOpAu1 γw.kv (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗
-      ∀ m : TxnRespM, txnReplied E γw γr c F t Q cid mid m -∗ Φ m)
+      ∀ m : TxnRespM, txnReplied E γw γr c F t Q cid mid m -∗ txnRevLb γw.kv t m -∗ Φ m)
 
 end reply
 
@@ -810,7 +827,8 @@ def delAns (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVState → I
 /-- **A transaction's answer**: some member's `txnReplied`. -/
 def txnAns (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF :=
-  iprop(∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗ txnReplied x.E x.γr x.γr c F t Q x.cid x.mid m)
+  iprop(∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗ txnReplied x.E x.γr x.γr c F t Q x.cid x.mid m ∗
+    txnRevLb x.γr.kv t m)
 
 /-- **A put's request meets the members' spec**, with the answer `putAns`: a put with no lease,
 from the floor and the update at the members. -/
@@ -895,10 +913,10 @@ theorem txnSpec_of (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel
       iframe Hu
       iexists c, F
       iframe Hcx HFx
-      iintro %m Hm
+      iintro %m Hm #Hrv
       unfold txnAns
       iexists x
-      iframe Hm
+      iframe Hm Hrv
       ipureintro; exact hx)
 
 /-! ### One server over its endpoints (`srvsAt`)
@@ -986,7 +1004,7 @@ theorem txnAns_srvsAt (addr : List GoString) (E : apply.AEnv GF) (γr : ReadName
     (c cid mid : w64) (F : mvcc.Log) (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) :
     txnAns (srvsAt addr E γr cid mid) c F t Q m ⊢ txnReplied E γr γr c F t Q cid mid m := by
   unfold txnAns
-  iintro ⟨%x, %hx, H⟩
+  iintro ⟨%x, %hx, H, -⟩
   obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
   iexact H
 
@@ -1324,7 +1342,7 @@ def delStOk (o : OpFull) (Q : KVState → IProp GF) (m : DelRespM) : IProp GF :=
 at `σ` (`srvRunTxn`, `opRespsRel`), its revision `σ`'s (read-only) or the state's after the
 transaction's changes (writing); (D48) `σ` a well-formed small log's (`kvLogOk`), and so the
 state after a writing transaction's changes. -/
-def txnStOk (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF :=
+def txnStOk (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF :=
   iprop(∃ σ : KVState,
     (if txn.txnReadonly t then
       (if txn.txnSerializable t then iprop(True) else iprop(□ Q σ)) else Q σ) ∗
@@ -1334,7 +1352,9 @@ def txnStOk (t : TxnModel) (Q : KVState → IProp GF) (m : TxnRespM) : IProp GF 
       m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
         (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
       kvRevFits σ.rev ∧ kvLogOk σ ∧
-      (txn.txnReadonly t = false → kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1))⌝)
+      (txn.txnReadonly t = false → kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1))⌝ ∗
+    -- (U1, 2026-11-04) a writing transaction's reply's revision reached, at the client's names
+    txnRevLb γ t m)
 
 /-! ### The specs' atomic updates, in the proofs' terms -/
 
@@ -1360,7 +1380,8 @@ theorem writeUpd_of_if (dup : Bool) (P P' : IProp GF) (h : P ⊢ P') :
 /-- A write's atomic update, as the specs state it, is `kvOpAu1`'s. -/
 theorem writeAu_upd (dup : Bool) (γ : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     iprop(□?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)) ⊢ writeUpd (!dup) (kvOpAu1 γ op Q) :=
+        <{ etcdKV γ (kvOpStep op σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ⊢
+      writeUpd (!dup) (kvOpAu1 γ op Q) :=
   writeUpd_of_if dup _ _ (by
     unfold kvOpAu1 kvAu1
     iintro H
@@ -1370,7 +1391,7 @@ theorem writeAu_upd (dup : Bool) (γ : KVNames) (op : KVOp) (Q : KVState → IPr
 theorem readAu_upd (γ : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
     iprop(□ (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗
       AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>))) ⊢ □ rangeUpdK γ o Q := by
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>))) ⊢ □ rangeUpdK γ o Q := by
   unfold rangeUpdK kvReadAu kvAu
   iintro #H
   imodintro
@@ -1387,10 +1408,10 @@ theorem txnAu_upd (dup : Bool) (γ : KVNames) (t : TxnModel) (Q : KVState → IP
     iprop(□?dup (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
       (⌜txn.txnReadonly t = true ∧ txn.txnSerializable t = false⌝ ∗
         □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ σ, COMM □ Q σ }>) ∨
+          <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
       (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t⌝ ∗
         AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-          <{ etcdKV γ (kvOpStep (.txn t) σ), COMM Q σ }>))) ⊢
+          <{ etcdKV γ (kvOpStep (.txn t) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>))) ⊢
       writeUpd (!dup) (txnUpdK γ t Q) :=
   writeUpd_of_if dup _ _ (by
     unfold txnUpdK kvReadAu kvAu kvOpAu1 kvAu1
@@ -1646,13 +1667,15 @@ theorem delAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (F :
 
 /-- Some member's transaction reply says what `txnStOk` says (a writing one's range ends not
 `[0]`). -/
-theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c : w64)
+theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (γ : KVNames)
+    (hn : ∀ x ∈ ms, kvSame x.γr.kv γ) (c : w64)
     (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (m : TxnRespM)
     (hz : txn.txnReadonly t = false → txnNoZeroEnd t) :
-    txnAns ms c F t Q m ⊢ txnStOk t Q m := by
+    txnAns ms c F t Q m ⊢ txnStOk γ t Q m := by
   unfold txnAns txnStOk
-  iintro ⟨%x, -, H⟩
+  iintro ⟨%x, %hx, H, #Hrv⟩
+  ihave #Hrv' := txnRevLb_same x.γr.kv γ (hn x hx) t m $$ Hrv
   unfold txnReplied
   cases hro : txn.txnReadonly t
   · -- writing
@@ -1668,7 +1691,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen
     have hs := kvStateOf_kvs y.log (lt := [])
     iexists kvStateOf y.log
-    iframe HQ
+    iframe HQ Hrv'
     ipureintro
     rw [hr, hs]
     refine ⟨hok, hrel, ?_, ?_, kvLogOk_of_step hst hlen Hl, fun _ => ?_⟩
@@ -1685,7 +1708,7 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
     have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := kvStateOf_rev_succ _ hlen
     have hs := kvStateOf_kvs log (lt := [])
     iexists kvStateOf log
-    iframe HQ
+    iframe HQ Hrv'
     ipureintro
     rw [hr, hs]
     refine ⟨hok, hrel, ?_, ?_, kvLogOk_of log Hl.1 Hl.2.2 Hl.2.1
@@ -1815,8 +1838,9 @@ theorem deleteCallOut_st (o : OpFull) (Q : KVState → IProp GF) (resp : Loc) (e
     iframe #
     ipureintro; exact He.2.1
 
-theorem txnCallOut_st (t : TxnModel) (Q : KVState → IProp GF) (resp : Loc) (err : GoInterface) :
-    txnCallOut (txnStOk t Q) resp err ⊢
+theorem txnCallOut_st (γ : KVNames) (t : TxnModel) (Q : KVState → IProp GF) (resp : Loc)
+    (err : GoInterface) :
+    txnCallOut (txnStOk γ t Q) resp err ⊢
       (⌜err = GoInterface.nil⌝ ∗ ∃ (m : TxnRespM) (σ : KVState), txnRespMsg resp m ∗
         (if txn.txnReadonly t then
           (if txn.txnSerializable t then iprop(True) else iprop(□ Q σ)) else Q σ) ∗
@@ -1825,15 +1849,16 @@ theorem txnCallOut_st (t : TxnModel) (Q : KVState → IProp GF) (resp : Loc) (er
           m.hdr.revision = W64 ((if txn.txnReadonly t then σ.rev else
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev : Nat) : Int) ∧
           kvRevFits σ.rev ∧ kvLogOk σ ∧
-          (txn.txnReadonly t = false → kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1))⌝) ∨
+          (txn.txnReadonly t = false → kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1))⌝ ∗
+        txnRevLb γ t m) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) := by
   unfold txnCallOut txnStOk kvErr
-  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs⟩ | ⟨%He, #Hs, #Hc⟩)
+  iintro (⟨%He, %m, Hm, %σ, HQ, %Hs, #Hrv⟩ | ⟨%He, #Hs, #Hc⟩)
   · ileft
     isplitl []
     · ipureintro; exact He
     iexists m, σ
-    iframe Hm HQ
+    iframe Hm HQ Hrv
     ipureintro; exact Hs
   · iright
     isplitl []

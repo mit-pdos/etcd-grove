@@ -10,9 +10,9 @@ or proofs. Perennial and the pinned translator are unchanged; the gaps continue 
 
 `k8s.io/kubernetes` at master `878cfa6c4cc76669146b7be8b139ea10c0f06411` (2026-10-21T17:38Z, the merge
 of kubernetes/kubernetes#143270), pseudo-version `v1.38.0-alpha.2.0.20261021173803-878cfa6c4cc7`, in
-`examples/k8sdaemonset/go.mod` (the model API server's module; no new module). It is the
+`examples/k8s/daemonset/go.mod` (the model API server's module; no new module). It is the
 Kubernetes commit the repository's `k8s.io/apiserver` pin was published from (its mirror commit
-`9c4ec15b8038`, 2026-10-21T22:13:56Z), so the four existing staging pins (`examples/k8setcd3/go.mod`)
+`9c4ec15b8038`, 2026-10-21T22:13:56Z), so the four existing staging pins (`examples/k8s/etcd3/go.mod`)
 are consistent with it, as `/home/ubuntu/.claude/jobs/b271d9c0/tmp/phaseB-prep.md` found. It has
 the consistency store in client-go (`k8s.io/client-go/util/consistency`, which the controller
 imports) and `StaleControllerConsistencyDaemonSet` (beta, on by default).
@@ -43,7 +43,7 @@ client-go's and apimachinery's mirrors have one later commit by then (Kubernetes
 the controller does not reach), which the pins leave out, as before.
 
 `etc/goose.py`'s `CLIENT_GO_PINS` now checks api, apimachinery, client-go, apiserver,
-component-base, klog, k8s.io/utils and kube-openapi against `examples/k8setcd3/go.mod` (projects
+component-base, klog, k8s.io/utils and kube-openapi against `examples/k8s/etcd3/go.mod` (projects
 k8s-apiserver and k8s-daemonset translate one copy of each), reading a same-path `replace` as the
 selected version. The module builds with plain `go build`/`go vet` (no local paths). Note: the Go
 module proxy times out on `k8s.io/kubernetes@878cfa6c4cc7` (the repository is large); `go` falls
@@ -56,7 +56,7 @@ test's until now) only by the PR's clock injection (`controller_utils.go`, 38 li
 
 ## `Main`, the theorem's program
 
-`examples/k8sdaemonset/dsmain` (`dsmain.go`): `Main(checks int)` runs the robustness test's scenario
+`examples/k8s/daemonset/dsmain` (`dsmain.go`): `Main(checks int)` runs the robustness test's scenario
 over the model API server:
 
 1. `setFeatureGates`: `utilfeature.DefaultMutableFeatureGate.SetFromMap({WatchListClient: false,
@@ -106,7 +106,7 @@ execution prefix, so that does not matter.
 `DSMAIN_RUNS` times; `TestScheduled` counts the runs that end with the pod on the node (the
 scenario is not vacuous); `TestAmbiguousWritesDetected` runs the scenario with `AmbiguousWrites` and
 counts the checker's panics (the known bug, outside the premise). Results (2026-10-27, 24 cores)
-below. The smoke test (`examples/k8sdaemonset/smoke`, build tag `k8ssmoke`)
+below. The smoke test (`examples/k8s/daemonset/smoke`, build tag `k8ssmoke`)
 now builds in the module at the pin (its generated `go.mod` and `gen-gomod.py` are gone): 10 runs
 of each test, never two pods (`TestNoEffectFailures`, `TestNoFaults`; `TestAmbiguousWrites` 0 of
 10), `TestNoEffectFailures`' liveness check (scheduled within 3 s) failed in 2 of 10 runs while
@@ -119,7 +119,7 @@ safety property).
 
 ## Setup
 
-- **Project `k8s-daemonset`** (`etc/goose.py`): the local module `examples/k8sdaemonset`; packages
+- **Project `k8s-daemonset`** (`etc/goose.py`): the local module `examples/k8s/daemonset`; packages
   `./apimodel`, `./dsmain` and, with bodies, `k8s.io/kubernetes/pkg/controller/daemon`,
   `.../daemon/util`, `.../daemon/metrics`, `pkg/controller` (all of it: `controller_utils.go`,
   `controller_ref_manager.go`), `pkg/api/v1/pod`, `pkg/apis/core/v1/helper`, `pkg/util/labels`,
@@ -454,7 +454,7 @@ What it says, per phase (2026-10-27):
 
 #### Main's package (phase 6)
 
-- `github.com/mit-pdos/etcd-grove/examples/k8sdaemonset/dsmain`: bodies (8): Main, check, controlledBy, newDaemonSet, newNode, run, serverConfig, setFeatureGates.
+- `github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/dsmain`: bodies (8): Main, check, controlledBy, newDaemonSet, newNode, run, serverConfig, setFeatureGates.
 
 #### The controller (phase 5)
 
@@ -492,7 +492,7 @@ What it says, per phase (2026-10-27):
 
 #### The model API server (phase 3; trusted Go)
 
-- `github.com/mit-pdos/etcd-grove/examples/k8sdaemonset/apimodel`: bodies (60): Clientset.AppsV1*, Clientset.CoreV1*, NewServer*, Server.AdminClientset*, Server.Clientset*, Server.chance*, Server.create*, Server.get*, Server.list*, Server.nextRV*, Server.record*, Server.remove*, Server.update*, Server.watch*, appsV1.ControllerRevisions*, appsV1.DaemonSets*, copyObject*, coreV1.Events*, coreV1.Nodes*, coreV1.Pods*, daemonSetClient.Create*, daemonSetClient.Get*, daemonSetClient.List*, daemonSetClient.UpdateStatus*, daemonSetClient.Watch*, daemonSetStatusEqual*, emptyDaemonSet*, emptyNode*, emptyPod*, emptyRevision*, eventClient.CreateWithEventNamespace*^, eventClient.PatchWithEventNamespace*^, int32PtrEqual*, newTable*, noGrace*, nodeClient.Create*, nodeClient.List*, nodeClient.Watch*, podClient.Create*, podClient.Delete*, podClient.List*, podClient.Watch*, podGrace*, prepareDaemonSet*, prepareNode*, preparePod*, prepareRevision*, replaceRevision*, revisionClient.Create*, revisionClient.Delete*, revisionClient.Get*, revisionClient.List*, revisionClient.Update*, revisionClient.Watch*, rvString*, updateDaemonSetStatus*, watcher.ResultChan*, watcher.Stop*, watcher.run*, watcher.send.
+- `github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel`: bodies (60): Clientset.AppsV1*, Clientset.CoreV1*, NewServer*, Server.AdminClientset*, Server.Clientset*, Server.chance*, Server.create*, Server.get*, Server.list*, Server.nextRV*, Server.record*, Server.remove*, Server.update*, Server.watch*, appsV1.ControllerRevisions*, appsV1.DaemonSets*, copyObject*, coreV1.Events*, coreV1.Nodes*, coreV1.Pods*, daemonSetClient.Create*, daemonSetClient.Get*, daemonSetClient.List*, daemonSetClient.UpdateStatus*, daemonSetClient.Watch*, daemonSetStatusEqual*, emptyDaemonSet*, emptyNode*, emptyPod*, emptyRevision*, eventClient.CreateWithEventNamespace*^, eventClient.PatchWithEventNamespace*^, int32PtrEqual*, newTable*, noGrace*, nodeClient.Create*, nodeClient.List*, nodeClient.Watch*, podClient.Create*, podClient.Delete*, podClient.List*, podClient.Watch*, podGrace*, prepareDaemonSet*, prepareNode*, preparePod*, prepareRevision*, replaceRevision*, revisionClient.Create*, revisionClient.Delete*, revisionClient.Get*, revisionClient.List*, revisionClient.Update*, revisionClient.Watch*, rvString*, updateDaemonSetStatus*, watcher.ResultChan*, watcher.Stop*, watcher.run*, watcher.send.
 
 #### The boundary (what the verified layers call outside them)
 

@@ -1,7 +1,7 @@
-# Stage F review: the server's and examples/kv's frozen statements (origin/repair ce2048af51)
+# Stage F review: the server's and examples/raft/kv's frozen statements (origin/repair ce2048af51)
 
 Read-only review. Paths: `P/` = `Proof/go_etcd_io/etcd/server/v3/etcdserver/`, `S/` = `Spec/go_etcd_io/etcd/server/v3/etcdserver/`,
-`K/` = `Proof/github_com/mit_pdos/etcd_grove/examples/kv/`. Go: `.lake/go-src/etcd` (local checkout) and the pinned translation
+`K/` = `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/`. Go: `.lake/go-src/etcd` (local checkout) and the pinned translation
 `Code/go_etcd_io/etcd/server/v3/etcdserver.lean` (the fork's raft-loop and `applyAll` changes are confirmed there: the leader also
 waits on `notifyc` in a conf batch, l.1016-1027; `close(raftAdvancedC)` after `Advance`, l.984-987; `applyAll` waits on
 `raftAdvancedC`/`stopping` before compacting, l.2700-2709).
@@ -179,7 +179,7 @@ False or unprovable as frozen: T1a (axiom), T1c (`srvLogInv_alloc`). Unprovable 
 
 ### (3) Trusted statement changes vs origin/lean
 - **kv.** `kv_porcupine_safe` is byte-identical (`K/Results.lean:201-213`; no diff hunk). The Go change is only `RemoveMember`'s
-  removal (`examples/kv/kv.go`, and the test). The other kv changes are all within D4/D5: `kv_RemoveMember` deleted,
+  removal (`examples/raft/kv/kv.go`, and the test). The other kv changes are all within D4/D5: `kv_RemoveMember` deleted,
   `kv_storage_isStorage` (the new premise `memStorInvP … (kvJ γ id)`), `kv_bootStorage` replacing `kv_storage_initialState`, and
   `kv_Read`/`kv_New`/`kv_run`/`kv_NewStorage`/`kvStorInv_alloc` through their specs.
 - **Server.**

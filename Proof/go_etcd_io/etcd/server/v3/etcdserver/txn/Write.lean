@@ -192,11 +192,13 @@ theorem kvPtrIs_kvIs (p : Loc) (kv : EtcdKv) : kvPtrIs (GF := GF) true p kv ⊢ 
   unfold kvPtrIs kvIs
   simp only [↓reduceIte]
   iintro ⟨%ks, %st, %uf, %sc, #Hk, %vs, #Hv, Hp⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %Hnn⟩
   ipersist Hp
   iStructNamed Hp
   imodintro
   iexists ks, vs
   iframe #
+  ipureintro; exact Hnn
 
 /-- A fresh key-value's pointer is not `nil`. -/
 theorem kvPtrIs_not_null (full : Bool) (p : Loc) (kv : EtcdKv) :
@@ -348,7 +350,7 @@ theorem rangeOutcome_sel (r : Loc) (err : GoInterface) (kind : mvcc.api.MTxn) (e
   unfold rangeOutcome
   iintro (⟨%Hlt, -, -⟩ | ⟨-, -, %Hn, #He⟩ | ⟨-, %Herr, H⟩)
   · rw [hrev, h00] at Hlt; omega
-  · ihave %He' := mvcc.errorfIs_ne_nil err $$ He
+  · ihave %He' := mvcc.ctxErrorf_ne_nil err $$ He
     imodintro; ileft; ipureintro; exact ⟨Hn, He'⟩
   rw [hco, hfk, hRR, hlim, rangeTaken_nonpos _ _ _ _ _ _ (by rw [h00]; omega)]
   simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]

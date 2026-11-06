@@ -8,13 +8,13 @@ general fixes are for independent Perennial branches.
 
 ## Setup
 
-- `examples/k8setcd3`: a Go module requiring `k8s.io/apiserver` at master
+- `examples/k8s/etcd3`: a Go module requiring `k8s.io/apiserver` at master
   (`v0.0.0-20261021221356-9c4ec15b8038`, published from kubernetes master of 2026-10-21) and
   replacing etcd's modules by the etcd fork at the etcd project's pin (`2aed163b1`, pseudo-versions
   `v3.0.0-20261020174036-2aed163b15c6`). k8s pins etcd client v3.7.2; **it builds against the
   fork unchanged** (`GetStream`, `RangeStreamResponse`, `WithWatchBufLog`, `client/v3/kubernetes`
   all exist there).
-- `etc/goose.py` project `k8s-apiserver` (local, examples/k8setcd3): with bodies
+- `etc/goose.py` project `k8s-apiserver` (local, examples/k8s/etcd3): with bodies
   `storage/etcd3` and `storage` (preconditions, continue tokens, errors, `SelectionPredicate`,
   `APIObjectVersioner`); types and names only (their `.toml`) the 30 packages they name: 17 of
   apimachinery, 8 of apiserver, component-base's `tracing`/`featuregate`, klog, `k8s.io/utils/clock`,

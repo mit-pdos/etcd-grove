@@ -191,7 +191,7 @@ theorem watchCache.waitUntilFreshLocked.wp_proof
           iexists st'
           unfold wcLockPSt
           iframe
-          ipureintro; intro h; exact absurd h Herr
+          ipureintro; intro h; obtain ⟨_, rfl⟩ := Herr; cases h
       · -- wait
         (try wp_auto)
         ihave #Hlw := sync.rlocker_isLockerWith (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) $$ Psync

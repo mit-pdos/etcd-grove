@@ -39,11 +39,12 @@ def StartNode.spec : Prop :=
                                               ∀ nd,
                                                 (∃ n K,
                                                     ⌜nd = interface.mkOk node.ty.PointerType (intoVal n)⌝ ∗
-                                                      isNode n γ N cv.ID' ∗
-                                                        nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si) K) ∗
-                                                          nodeConfig n γ N
-                                                              { applied := 0,
-                                                                membership := Membership.simple (listToSet vs) } ∗
-                                                            nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
+                                                      nodeStartedFresh n γ N vs ctxs cv.ID' ∗
+                                                        isNode n γ N cv.ID' ∗
+                                                          nodeDriver n γ N (NodeDriverState.init (GoInterface.ok si) K) ∗
+                                                            nodeConfig n γ N
+                                                                { applied := 0,
+                                                                  membership := Membership.simple (listToSet vs) } ∗
+                                                              nodeRunning n γ N 1 ∗ Q ∗ F K ∗ ownSlice peers pv dq) -∗
                                                   Φ (intoVal nd)) -∗
                                             WP (((intoVal (functions StartNode [])) (intoVal c)) (intoVal peers)) {{ Φ }}

@@ -30,7 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.LeaseRevoke.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.authApplierV3.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq id log rs Pre Q Post info
+  intro E c inner p r rq id log T rs Pre Q Post info
+  -- MERGE-TODO(proof): ours' over `mPreRest` with `lean`'s revocation post by the outcome; not yet
+  -- checked (`mPreRest_lend` keeps the half of the live set `ltHalf` inside its way back)
   wp_start as ⟨#Hauth, #Hinner, Htt, Hpre⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
@@ -56,17 +58,19 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     iapply HΦ
     iframe Htt
     icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
-    isplitr [Hrr]
-    · iapply apply.auth_reject_kvPost E E.authOn c p inner info rq log _ _ Pre Q Post hk
-        (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [] Hkv Hinfo Hres Hcs
-      simp only [apply.revokeOutcomeIs, apply.rejErrIs]
-      isplitr
-      · ipureintro; trivial
-      · iframe HeI; ipureintro; simp
-    · iunfold apply.revokeRes at Hrr
-      iunfold apply.revokeResAfter
-      simp only [reduceCtorEq, ↓reduceIte]
-      iexact Hrr
+    iapply apply.auth_reject_kvPost E E.authOn c p inner info rq log _ _ Pre Q Post hk
+      (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) $$ Happ [Hrr] Hkv Hinfo Hres Hcs
+    simp only [apply.revokeOutcomeIs, apply.rejErrIs]
+    iunfold apply.revokeRes at Hrr
+    icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
+    iunfold apply.revokeResAfter
+    rw [apply.revokeIds_rejected, apply.revokeRest_rejected]
+    ihave #Hra := apply.revokeAnswer_err (GF := GF) E rq null (GoInterface.ok e')
+      (by intro h; cases h)
+    iframe Hrdat Hrev HltT HRO Hra
+    isplitr
+    · ipureintro; trivial
+    · iframe HeI; ipureintro; simp
   | nil =>
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -77,8 +81,8 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_auto
-  wp_apply HRevI $$ %r %rq %id %log %rs %Pre %Q %Post %info' [Htt Hkv Hres Hrr]
-    as %resp %err ⟨Hpost, Hra, Htt⟩
+  wp_apply HRevI $$ %r %rq %id %log %T %rs %Pre %Q %Post %info' [Htt Hkv Hres Hrr]
+    as %resp %err ⟨Hpost, Htt⟩
   · iframe Htt
     iunfold apply.revokePre
     iframe # Hrr
@@ -87,7 +91,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     iapply apply.mPre_of_rest
     iframe
   iapply HΦ
-  iframe Htt Hra
+  iframe Htt
   ihave #Hrc : apply.reqClass (GF := GF) E.authMode info rq $$ []
   · simp only [apply.reqClass, Hk.2.1]; itrivial
   ihave #Hrl : apply.reqLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq $$ []

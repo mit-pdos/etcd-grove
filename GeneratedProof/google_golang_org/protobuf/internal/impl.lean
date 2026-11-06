@@ -1515,6 +1515,388 @@ noncomputable instance validationType_into_val_typed :
 end def_
 end validationType
 
+namespace «struct#5c765bdc»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#5c765bdc_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#5c765bdc» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#5c765bdc_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#5c765bdc» google_golang_org.protobuf.internal.impl.«struct#5c765bdc».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#5c765bdc»
+
+namespace «struct#09ab9bd9»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#09ab9bd9_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» where
+  typedPointstoDef l v dq := iprop(
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "Size" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"Size" l) v.Size' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#09ab9bd9_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» google_golang_org.protobuf.internal.impl.«struct#09ab9bd9».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#09ab9bd9_access_load_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#09ab9bd9_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := NoUnkeyedLiterals' } : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#09ab9bd9_access_load_Size» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"Size" l) v.Size' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"Size" l) v.Size' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#09ab9bd9_access_store_Size» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (Size' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"Size" l) v.Size' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"Size" l) Size' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#09ab9bd9»
+
+namespace «struct#8d354e5a»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#8d354e5a_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#8d354e5a» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#8d354e5a_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#8d354e5a» google_golang_org.protobuf.internal.impl.«struct#8d354e5a».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#8d354e5a»
+
+namespace «struct#69fc66c6»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#69fc66c6_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#69fc66c6» where
+  typedPointstoDef l v dq := iprop(
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "Buf" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"Buf" l) v.Buf' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#69fc66c6_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#69fc66c6» google_golang_org.protobuf.internal.impl.«struct#69fc66c6».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#69fc66c6_access_load_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#69fc66c6_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := NoUnkeyedLiterals' } : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#69fc66c6_access_load_Buf» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#69fc66c6_access_store_Buf» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (Buf' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"Buf" l) v.Buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"Buf" l) Buf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Buf' := Buf' } : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#69fc66c6»
+
+namespace «struct#b984c7d3»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#b984c7d3_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#b984c7d3» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#b984c7d3_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#b984c7d3» google_golang_org.protobuf.internal.impl.«struct#b984c7d3».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#b984c7d3»
+
+namespace «struct#f9d6c4b8»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#f9d6c4b8_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#f9d6c4b8» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#f9d6c4b8_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#f9d6c4b8» google_golang_org.protobuf.internal.impl.«struct#f9d6c4b8».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#f9d6c4b8»
+
+namespace «struct#07f26e0d»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#07f26e0d_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#07f26e0d» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#07f26e0d_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#07f26e0d» google_golang_org.protobuf.internal.impl.«struct#07f26e0d».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#07f26e0d»
+
+namespace «struct#9992dc58»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#9992dc58_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#9992dc58» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#9992dc58_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#9992dc58» google_golang_org.protobuf.internal.impl.«struct#9992dc58».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#9992dc58»
+
+namespace «struct#dc47f379»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#dc47f379_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#dc47f379» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#dc47f379_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#dc47f379» google_golang_org.protobuf.internal.impl.«struct#dc47f379».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#dc47f379»
+
+namespace «struct#26ca81e8»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#26ca81e8_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#26ca81e8» where
+  typedPointstoDef l v dq := iprop(
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#26ca81e8_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#26ca81e8» google_golang_org.protobuf.internal.impl.«struct#26ca81e8».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#26ca81e8_access_load_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#26ca81e8») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#26ca81e8_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#26ca81e8») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := NoUnkeyedLiterals' } : google_golang_org.protobuf.internal.impl.«struct#26ca81e8») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#26ca81e8»
+
+namespace «struct#9d8af3ce»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#9d8af3ce_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#9d8af3ce» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#9d8af3ce_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#9d8af3ce» google_golang_org.protobuf.internal.impl.«struct#9d8af3ce».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#9d8af3ce»
+
+namespace «struct#f228ed0d»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#f228ed0d_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#f228ed0d» where
+  typedPointstoDef l v dq := iprop(
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "Equal" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"Equal" l) v.Equal' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance «struct#f228ed0d_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#f228ed0d» google_golang_org.protobuf.internal.impl.«struct#f228ed0d».underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance «struct#f228ed0d_access_load_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#f228ed0d_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := NoUnkeyedLiterals' } : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#f228ed0d_access_load_Equal» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"Equal" l) v.Equal' dq)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"Equal" l) v.Equal' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance «struct#f228ed0d_access_store_Equal» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (Equal' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"Equal" l) v.Equal' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"Equal" l) Equal' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Equal' := Equal' } : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end «struct#f228ed0d»
+
+namespace «struct#15a64e1b»
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.protobuf.internal.impl.Assumptions]
+
+noncomputable instance «struct#15a64e1b_typed_pointsto» :
+    TypedPointsto (GF := GF) google_golang_org.protobuf.internal.impl.«struct#15a64e1b» :=
+  sorry -- axiomatized type
+
+noncomputable instance «struct#15a64e1b_into_val_typed» :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.internal.impl.«struct#15a64e1b» google_golang_org.protobuf.internal.impl.«struct#15a64e1b».underlying :=
+  sorry -- axiomatized type
+
+end def_
+end «struct#15a64e1b»
+
 end google_golang_org.protobuf.internal.impl
 end
 end Perennial

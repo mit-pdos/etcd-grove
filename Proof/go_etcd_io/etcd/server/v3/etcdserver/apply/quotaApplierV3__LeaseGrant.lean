@@ -30,47 +30,56 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
     apply.quotaApplierV3.LeaseGrant.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r log Pre Q Post info
-  wp_start as ⟨#Hq, #Hin, HR, Htt, Hpre, #Hsp⟩
+  intro E c inner p r rq g log T rs U Pre Q Post info
+  -- MERGE-TODO(proof): `lean`'s proof (the grant triple) with ours' `mPreW`/`mPostW` and
+  -- `threadTok`; not yet checked
+  wp_start as ⟨#Hq, #Hin, Htt, Hgp⟩
+  iunfold apply.grantPre at Hgp
+  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hpre, #Hsp, HU, HUf⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
   icases Hqc with ⟨%qi, %Hqi, #HAvail, -⟩
   subst Hqi
-  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, -, #Hev⟩
-  icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
   iunfold apply.applierSpec at Hin
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, #HResp, -⟩
+  icases Ht with ⟨-, -, -, -, -, #HGrant, -⟩
   icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hpre with ⟨Hm, Hres⟩
   wp_auto
-  wp_apply HAvail $$ %_ %r [] as %ok -
+  wp_apply HAvail $$ %_ %r [] as %ok %Hok
   · ipureintro; exact Or.inr (Or.inr rfl)
+  subst Hok
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) info $$ Hf Hres
-  wp_apply HResp $$ %go!"LeaseGrant" %r %log %Pre %Q %Post [] [HR Htt Hm Hres]
-    as %resp %err ⟨Htt, Hpost, #HeI'⟩
-  · ipureintro; simp [apply.respMethods]
-  · simp only [apply.reqFacts, ↓reduceIte]
-    iframe HR Htt Hsp
+  wp_apply HGrant $$ %r %rq %g %log %T %rs %U %Pre %Q %Post %info [Htt HltT HRO Hm Hres HU HUf]
+    as %resp %err ⟨Htt, %o, Hpost⟩
+  · iframe Htt
+    iunfold apply.grantPre
+    iframe HltT HRO Hr Hgr Hsp HU HUf
+    isplitr
+    · ipureintro; exact Hrq
     iapply apply.mPreW_of_rest
     iframe
-  iunfold apply.mPostW at Hpost
-  icases Hpost with ⟨Hpost, Hrt⟩
-  iunfold apply.mPost at Hpost
-  icases Hpost with ⟨Hkv, Hres, HPP⟩
+  iunfold apply.grantPost at Hpost
+  icases Hpost with ⟨Hpm, #HeI, HlE, %Hst, Hlt, HRO, HU, Hans⟩
+  iunfold apply.mPostW at Hpm
+  icases Hpm with ⟨Hpm, Hrt⟩
+  iunfold apply.mPost at Hpm
+  icases Hpm with ⟨Hkv, Hres, HPP⟩
   ihave Hres := apply.chainResAny_quota_in c p (.ok bi) $$ Hf Hres
-  rcases err with e | _ <;> cases ok <;> (try wp_auto) <;>
+  rcases err with e | _ <;> wp_auto <;>
   · iapply HΦ
     iframe Htt
-    iunfold apply.mPostW
-    iframe Hrt
-    iunfold apply.mPost
-    iframe
-    (try first | iexact HeI | iexact HeI')
+    iexists o
+    iunfold apply.grantPost
+    iframe HeI HlE Hlt HRO HU Hans
+    isplitl [Hkv Hres HPP Hrt]
+    · iunfold apply.mPostW
+      iframe Hrt
+      iunfold apply.mPost
+      iframe
+    ipureintro; exact Hst
 
 end proof
 

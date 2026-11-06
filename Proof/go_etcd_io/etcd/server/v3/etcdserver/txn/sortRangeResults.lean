@@ -228,9 +228,7 @@ theorem txn.sortRangeResults.wp_proof
     as ⟨%so, sortOrder, %Hso⟩
   · iexists order; iframe; ipureintro; simp
   · wp_if_destruct
-    · simp only [etcdserverpb.RangeRequest_ASCEND]
-      wp_auto
-      isplitl []
+    · isplitl []
       · ipureintro; trivial
       iexists (W32 1); iframe; ipureintro; exact (ite_eq_left ⟨Hif, trivial⟩).symm
     · isplitl []

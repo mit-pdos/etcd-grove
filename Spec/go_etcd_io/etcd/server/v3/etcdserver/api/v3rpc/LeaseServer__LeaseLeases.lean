@@ -27,6 +27,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`ls.LeaseLeases(ctx, r)`** on the `*LeaseServer` `ls` over the server `s`
 (`leaseServerAt`), whose lease reads meet the contract `raftLeaseRead s E γl S A.revR`, with the
@@ -45,7 +46,7 @@ abbrev v3rpc.LeaseServer.LeaseLeases.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗
-      v3rpc.leaseLeasesOut s E γl ci n m cid mid resp err }}
+      v3rpc.leaseLeasesOut s E γl ci n m cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

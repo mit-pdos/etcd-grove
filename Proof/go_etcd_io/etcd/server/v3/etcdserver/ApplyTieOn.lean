@@ -93,7 +93,7 @@ theorem adminStateR_refused (rq : apply.IRRModel) (st : auth.AuthState)
   rw [if_neg ha]
 
 /-- **The admin check passed at the latest state and the step ran**: the outcome's state is a
-successor of the model's admin step, for `examples/authkv`'s `SetUp`'s requests but `AuthEnable`
+successor of the model's admin step, for `examples/etcd/auth`'s `SetUp`'s requests but `AuthEnable`
 (`UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`: the request model's own step,
 `AdminReq.result`'s relation; `AuthEnable`'s relation is at the flag the store read, which
 `AdminReq.result` gives at some recorded state only, `auth.enabledVerdict`). -/
@@ -167,7 +167,8 @@ theorem applyStep_admin_keep (rq : apply.IRRModel) (x x' : apply.ApplyKV) (out :
   | dispatched o b =>
     obtain ⟨-, hd, hl, hc⟩ := h
     unfold apply.dispatchStep at hd
-    rw [if_neg (by simp [hpv]), if_neg (by simp [hsk])] at hd
+    rw [if_neg (by simp [hpv]),
+      if_neg (by rcases hkd with h | h | h | h | h | h <;> simp [h, apply.storeKind])] at hd
     refine ⟨hl.trans hd, ?_⟩
     rcases hc with hc | ⟨-, hal, -⟩
     · exact hc

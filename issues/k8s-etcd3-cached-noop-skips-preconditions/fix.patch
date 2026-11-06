@@ -1,0 +1,20 @@
+--- a/staging/src/k8s.io/apiserver/pkg/storage/etcd3/store.go
++++ b/staging/src/k8s.io/apiserver/pkg/storage/etcd3/store.go
+@@ -554,12 +554,15 @@
+ 			// etcd in order to be sure the data in the store is equivalent to
+ 			// our desired serialization
+ 			if !origState.current {
++				cachedRev := origState.rev
+ 				origState, err = getCurrentState()
+ 				if err != nil {
+ 					return err
+ 				}
+-				if !bytes.Equal(data, origState.data) {
+-					// original data changed, restart loop
++				if cachedRev != origState.rev || !bytes.Equal(data, origState.data) {
++					// the object changed since the cached one (even if back to the same
++					// contents): restart the loop, checking the preconditions and calling
++					// tryUpdate on the current object
+ 					continue
+ 				}
+ 			}

@@ -69,7 +69,8 @@ def dispatchOk (on : Bool) (rq : IRRModel) : Prop :=
 /-- **What `dispatch(rq, v3)` does to the KV** through the chain `c` at the log `log`. -/
 def dispatchStep (c : Chain) (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (o : Outcome) : Prop :=
   if preV3Kind (dispatchKind rq) = true ∨ v3 = false then o = .applied log false
-  else if storeKind (dispatchKind rq) = true then chainStep backendStep c rq log o
+  else if storeKind (dispatchKind rq) = true ∨ dispatchKind rq = .leaseGrant then
+    chainStep backendStep c rq log o
   else o.logAfter log = log
 
 /-- The request kinds whose triples take a floor (the vertical slice's unit V2): the KV writes. -/
@@ -360,6 +361,44 @@ def dispatchResult (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (a
       applyErrIs v.Err')
   else iprop(⌜ar = null⌝)
 
+/-- **A dispatched grant's answer through `dispatch`'s result `ar`** (the lease-grant plan's 2.6,
+2.10): `grantAnswer` of the result's `Resp` and `Err`, for a request dispatched as a grant; `True`
+otherwise, and when `ar` is `nil` (`dispatch` without `v3` returns `nil`, `dispatchResult`). The
+outcome `o` is the spec's argument (2.10's text); (amendment (E)) at `.rejected .backend` the
+error is the lessor's (`lease.lessorErrIs`), and an applied outcome has no error (the user's
+decision superseding (E'), true at every chain: `grantPost`'s tie). -/
+def grantRes (E : AEnv GF) (rq : IRRModel) (o : Outcome) (ar : Loc) : IProp GF :=
+  if dispatchKind rq = .leaseGrant ∧ ar ≠ null then
+    iprop(∃ v : Result, ar ↦□ v ∗ grantAnswer E rq v.Resp' v.Err' ∗
+      -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
+      (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs v.Err') ∗
+      -- (the user's decision superseding (E'), 2026-11-03) an applied grant succeeded
+      ⌜(∃ l ns, o = .applied l ns) → v.Err' = GoInterface.nil⌝)
+  else iprop(True)
+
+theorem grantRes_not_grant (E : AEnv GF) (rq : IRRModel) (o : Outcome) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantRes (GF := GF) E rq o ar := by
+  unfold grantRes; rw [if_neg (fun h' => h h'.1)]; iintro; itrivial
+
+theorem grantRes_null (E : AEnv GF) (rq : IRRModel) (o : Outcome) :
+    ⊢ grantRes (GF := GF) E rq o null := by
+  unfold grantRes; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
+
+/-- **A dispatched revocation's answer through `dispatch`'s result `ar`** (the lease-expiry plan's
+X6, 2026-11-04, the user's (a): `grantRes` mirrored): `revokeAnswer` of the result's `Resp` and
+`Err`, for a request dispatched as a revocation; `True` otherwise, and when `ar` is `nil`. -/
+def revokeAnsR (E : AEnv GF) (rq : IRRModel) (ar : Loc) : IProp GF :=
+  if dispatchKind rq = .leaseRevoke ∧ ar ≠ null then
+    iprop(∃ v : Result, ar ↦□ v ∗ revokeAnswer E rq v.Resp' v.Err')
+  else iprop(True)
+
+theorem revokeAnsR_not_revoke (E : AEnv GF) (rq : IRRModel) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseRevoke) : ⊢ revokeAnsR (GF := GF) E rq ar := by
+  unfold revokeAnsR; rw [if_neg (fun h' => h h'.1)]; iintro; itrivial
+
+theorem revokeAnsR_null (E : AEnv GF) (rq : IRRModel) : ⊢ revokeAnsR (GF := GF) E rq null := by
+  unfold revokeAnsR; rw [if_neg (fun h' => h'.2 rfl)]; iintro; itrivial
+
 /-- **The trace of `dispatch`'s result** `ar` (unit P1b, 2026-10-14): owned (`traceRes`), unless
 the result is `nil` or an error (`raftRequest` reads the trace only of a result without error).
 The apply thread hands it, with the result, to the goroutine serving the request. -/
@@ -400,6 +439,30 @@ def applyResultIs (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (ar : Loc) : Appl
   | .skipped => iprop(⌜ar = null⌝)
   | .rejected => rejectedResultIs ar
   | .dispatched o skip => dispatchResult rq v3 log skip ar o
+
+/-- `grantRes` over `apply.Apply`'s outcome: a dispatched request's. -/
+def grantResA (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc) : IProp GF :=
+  match out with
+  | .dispatched o _ => grantRes E rq o ar
+  | _ => iprop(True)
+
+theorem grantResA_not_grant (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseGrant) : ⊢ grantResA (GF := GF) E rq out ar := by
+  unfold grantResA; split
+  · exact grantRes_not_grant E rq _ ar h
+  · iintro; itrivial
+
+/-- `revokeAnsR` over `apply.Apply`'s outcome: a dispatched request's (X6). -/
+def revokeAnsRA (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc) : IProp GF :=
+  match out with
+  | .dispatched _ _ => revokeAnsR E rq ar
+  | _ => iprop(True)
+
+theorem revokeAnsRA_not_revoke (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (ar : Loc)
+    (h : dispatchKind rq ≠ .leaseRevoke) : ⊢ revokeAnsRA (GF := GF) E rq out ar := by
+  unfold revokeAnsRA; split
+  · exact revokeAnsR_not_revoke E rq ar h
+  · iintro; itrivial
 
 end defs
 

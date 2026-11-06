@@ -117,7 +117,7 @@ theorem keeper_run : RunSpec (GF := GF) (hG := hG) := by
   wp_apply (lc := 2) time.wp_NewTicker $$ [] as %tk %tch %γtk #Htk
   · ipureintro; exact Hdpos
   iunfold time.isTicker at Htk
-  icases Htk with ⟨#HtC, #HtI, #Htbag⟩
+  icases Htk with ⟨#HtC, #HtI, #HtR, #Htbag⟩
   ipersist tm
   ipersist tokenTicker
   wp_for

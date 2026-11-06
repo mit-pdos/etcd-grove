@@ -28,6 +28,11 @@ both sides' lines whole: merges that did grew the header to 1.1 MB).
 
 ## Branches
 
+Land a branch on `lean` with `etc/land.sh` from its worktree (notes-only branches too): it takes the
+landing lock, checks `lean` is merged, runs `etc/gates.sh` and fast-forwards `lean`, so no other
+landing moves `lean` in between (`notes/spec-first-plan.md`, "Landing takes a lock"). Record your
+session in `/shared/etcd-grove-sessions.md` (same file, "The session registry").
+
 Delete a branch once its work is merged into `lean` (or wherever it was merged): the
 local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
 copy if it was pushed (`git push origin --delete <branch>`), and its worktree if it had
@@ -52,7 +57,7 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
   and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
   operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
-  `durableExt` (`examples/durable`, whole-file durable state) is the first;
+  `durableExt` (`examples/lib/durable`, whole-file durable state) is the first;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);
@@ -105,8 +110,8 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   witness support, a candidate implementation of etcd-io/raft#133, not merged upstream), a
   parallel tree with the main layout (`RaftWitness/{Code,TrustedCode,GeneratedProof,ManualProof,
   Spec,Proof}/`, modules `RaftWitness.*`): the raft of the fork's `raft-witness-goose-lean`
-  (`99cb9e2d9`, project `raft-witness` of `etc/goose.py`) with its proof, and `examples/kvwitness`
-  (project `kvwitness`, the key-value store with a witness, `kv_witness_porcupine_safe`). It
+  (`99cb9e2d9`, project `raft-witness` of `etc/goose.py`) with its proof, and `examples/raft/kvwitness`
+  (project `kvwitness`, the key-value store with a witness, `raft_kvwitness_porcupine_safe`). It
   imports the main tree but never the main raft or kv (its modules declare the same names), so
   it has its own copies of the main modules that reach them (raft's standard-library and `proto`
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
@@ -236,7 +241,7 @@ plain text (`--markdown` for Markdown; `-o FILE` writes Markdown if FILE ends in
 Like the TCB report, don't commit its output.
 
 Both scripts are generic for a Goose project with this layout: they name no project.
-Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`Results.lean` under
+Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`MainLinked.lean`/`Results.lean` under
 `Proof/` and a part's `<root>/Proof/`; Lean runs grouped by the part roots a module
 reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
 not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
@@ -265,6 +270,12 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
 - A new function that builds a record gets `proj_simps f` after it
   (`Proof/go_etcd_io/raft/v3/ProjSimps.lean`); the command refuses a function whose
   body branches.
+
+**Large contexts.** Never use a bare `iframe` (or any search over the whole context) when a
+goal or hypothesis holds a `[∗list]` over `List.replicate n` with a large `n`: the unifier
+materializes the list (revoke-open, 2026-11-06: 80 GB). Don't `unfold` a definition across a
+goal or context that size either; convert locally through a lemma. Frame explicitly
+(`isplitl [H]` / `iexact`).
 
 ## The Goose translations
 
@@ -306,8 +317,17 @@ generated: never edit the `.lean` files by hand.
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,
-  `RaftWitness/Code/**.toml`) and `examples/kvwitness` (project `kvwitness`, a Go module whose
+  `RaftWitness/Code/**.toml`) and `examples/raft/kvwitness` (project `kvwitness`, a Go module whose
   `go.mod` replaces raft by that commit), modules `RaftWitness.Code.go_etcd_io.raft.v3`, ....
+
+A proof that needs a prophecy the Go code does not have gets it from a **prophecy patch**,
+`etc/proph-patches/<project>/*.patch`, which `etc/goose.py` applies to a copy of the source before
+translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
+`ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
+read-only conditions holding only such statements; `etc/prophcheck` checks it on syntax trees (the
+patched file with those statements erased must be the original). A read-only expression may fail,
+which only adds failing behaviors the proof rules out. Never put anything else in such a patch; a
+code change goes to the fork (`notes/decisions.md`, "Prophecies as patches of the Go code").
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the
@@ -317,7 +337,7 @@ standard-library packages are Perennial's.
 editing the Goose configuration `Code/**/*.toml`; `--project NAME` for one);
 `etc/goose.py --check` exits 1 if they differ from what the pinned translator
 produces, or if the examples' Go modules (`examples/go.mod`, one for every example but
-`examples/kvwitness`, which has its own, and the driver `examples/lintest`) replace etcd or raft by another revision than the
+`examples/raft/kvwitness`, which has its own, and the driver `examples/lib/lintest`) replace etcd or raft by another revision than the
 pins (bump both together), and CI runs that check before the build. `--src NAME=DIR` (or
 `$ETCD_SRC`, `$ETCD_RAFT_SRC`) translates from a local checkout of the project instead
 of cloning the pin, e.g. for a pinned revision not yet pushed; the output says so,
@@ -418,4 +438,5 @@ full. An edit to a proof in an imported module (its `Inv*` or lemma files) does 
 modules importing it stale: Lake rebuilds an importer only when the imported module's public
 `.olean` changes, and a proof's body is not part of it (measured: a proof edited, and lines
 inserted above it, in `InvReadylog`, left its 60 importers up to date). Changing a statement or
-a definition does rebuild the importers.
+a definition does rebuild the importers, and so does replacing a `sorry` by a proof: the public
+`.olean` changes (the theorem no longer mentions `sorryAx`), unlike an edit to a finished proof.

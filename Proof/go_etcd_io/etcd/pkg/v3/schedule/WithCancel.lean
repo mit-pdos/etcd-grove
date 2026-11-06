@@ -47,6 +47,8 @@ theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
   wp_start as ⟨#Hcci, Hpre, #Hpar⟩
   ihave #Hi := isInit_access $$ Hpkg
   icases Hi with ⟨_, _, ⟨%canceled, #Hcanceled, %hcanceled⟩, _⟩
+  -- (Perennial b3e996d84) `cancel` takes `Canceled`'s value as a context's error
+  ihave #Hce := isCtxErr_of_Canceled canceled $$ Hpkg Hcanceled
   wp_auto
   iapply wp_fupd
   wp_apply wp_withCancel parent P Pre Hprop $$ [$Hcci $Hpre] as %c %γ ⟨#Hc, #Hf⟩
@@ -59,6 +61,7 @@ theorem wp_WithCancel_gen_nn (parent : GoInterfaceOk) (P Pre : IProp GF)
   unfold cancelSpec
   imodintro
   iintro %Φ' #Hp HΦ'
+  ihave #HcE := isCtxErr_of_Canceled canceled $$ Hpkg Hcanceled
   wp_auto
   wp_apply cancelCtx.wp_cancel c γ P true canceled GoInterface.nil hcanceled $$ [$Hc]
     as #Hclosed

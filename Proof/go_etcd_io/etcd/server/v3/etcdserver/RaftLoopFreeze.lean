@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # Freezing a `Ready`'s committed entries in the raft loop (2026-10-30, the repair; stage P, S-C)
 
-The server's version of kvreconf's `batch_freeze` (`examples/kvreconf/RunBatch.lean`). A `Ready`'s
+The server's version of kvreconf's `batch_freeze` (`examples/raft/kvreconf/RunBatch.lean`). A `Ready`'s
 committed entries `ce` follow the delivered log of length `n`. The node API freezes the first `m0`
 of them (`ceFrozen`). The rest are the batch's first entries (`srv_batch_tail`), which the loop
 freezes after `Append`, before `Advance` (`srv_batch_freeze`). This gives the batch's frozen range
@@ -328,7 +328,7 @@ theorem rnRun_join [StorageModel GF] (n : Loc) (γ : Cluster) (N : Namespace) :
 /-! ### A snapshot `Ready` (2026-10-31, #3)
 
 The server's copies of kv's `snapAppend_pre`/`snapAppend_post`/`kv_snapReceipt`
-(`examples/kv/KvRunSnap.lean`; kvreconf has copies of the first two), at the `MemoryStorage`'s
+(`examples/raft/kv/KvRunSnap.lean`; kvreconf has copies of the first two), at the `MemoryStorage`'s
 interface. -/
 
 /-- Before `Append` after a snapshot: the range lent to it (empty, after the dummy), and what is

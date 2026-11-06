@@ -121,7 +121,7 @@ local macro "cc_refuse_tail" : tactic => `(tactic| (
     ihave Htrkf := Htrkfback $$ Hcf
     ihave Hphys := Hback $$ %tv2 Htrkf Htrk
     wp_raft_logC
-    rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
+    try rw [show raftpb.EntryNormal = #(W32 0 : raftpb.EntryType) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_EntryType_Enum (W32 0) as %pty Hpty
     imod entRO_normal_of_struct _ pty (normalEntryV pty) ⊤ rfl rfl rfl rfl rfl $$ [«$r0» Hpty] with #Hnew

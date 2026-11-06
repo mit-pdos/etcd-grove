@@ -357,6 +357,18 @@ def kvValsAt (m : KvMap) (s : List EtcdKv) : IProp GF :=
   iprop(□ ∀ (i : Nat) (e : KvEntry) (v : EtcdKv), ⌜m[i]? = some e⌝ -∗ ⌜s[i]? = some v⌝ -∗
     kvValAt e.2 v)
 
+omit EM package_sem in
+/-- `kvValAt`'s fields, read-only. -/
+theorem kvValAt_elim {l : Loc} {v : EtcdKv} :
+    kvValAt (GF := GF) l v ⊢ ∃ keySl valSl : GoSlice,
+      structFieldRef mvccpb.KeyValue go!"Key" l ↦□ keySl ∗ keySl ↦*□ v.key ∗
+      structFieldRef mvccpb.KeyValue go!"CreateRevision" l ↦□ v.createRev ∗
+      structFieldRef mvccpb.KeyValue go!"ModRevision" l ↦□ v.modRev ∗
+      structFieldRef mvccpb.KeyValue go!"Version" l ↦□ v.version ∗
+      structFieldRef mvccpb.KeyValue go!"Value" l ↦□ valSl ∗ valSl ↦*□ v.value ∗
+      structFieldRef mvccpb.KeyValue go!"Lease" l ↦□ v.lease := by
+  unfold kvValAt; iintro H; iexact H
+
 omit EM in
 instance kvValsAt_persistent (m : KvMap) (s : List EtcdKv) :
     Persistent (kvValsAt (GF := GF) m s) := by
@@ -371,6 +383,32 @@ instance isEtcdKvs_persistent (rev : w64) (pfx : GoString) (m : KvMap) :
     Persistent (isEtcdKvs (GF := GF) rev pfx m) := by
   unfold isEtcdKvs; infer_instance
 
+omit EM package_sem in
+/-- The `i`th `*KeyValue` of `m` holds the `i`th key-value of `s`. -/
+theorem kvValsAt_at (m : KvMap) (s : List EtcdKv) (i : Nat) (e : KvEntry) (v : EtcdKv)
+    (hm : m[i]? = some e) (hs : s[i]? = some v) :
+    kvValsAt (GF := GF) m s ⊢ kvValAt e.2 v := by
+  unfold kvValsAt
+  iintro #H
+  iapply H $$ %i %e %v %hm %hs
+
+omit package_sem in
+/-- **What `isEtcdKvs` gives a client**: etcd's state `s` at `rev` under `pfx`, of `m`'s length,
+every key of `m` under `pfx`, and `m`'s `*KeyValue`s holding `s`'s key-values in order. -/
+theorem isEtcdKvs_elim (rev : w64) (pfx : GoString) (m : KvMap) :
+    isEtcdKvs (GF := GF) rev pfx m ⊢
+      ∃ s : List EtcdKv, □ etcdState rev pfx s ∗
+        ⌜m.length = s.length ∧ ∀ e ∈ m, pfx <+: e.1⌝ ∗ kvValsAt m s := by
+  unfold isEtcdKvs
+  iintro ⟨%s, #Hst, %Hk, %Hwf, #Hv⟩
+  iexists s
+  iframe Hst Hv
+  ipureintro
+  refine ⟨by have := congrArg List.length Hk; simpa using this, fun e he => ?_⟩
+  have hk : e.1 ∈ s.map EtcdKv.key := by rw [← Hk]; exact List.mem_map_of_mem he
+  obtain ⟨v, hv, hve⟩ := List.mem_map.1 hk
+  rw [← hve]; exact Hwf.2 v hv
+
 omit EM in
 /-- The events `evs` (as the store reads them) are etcd's events `cs`, pointwise: the same type,
 key and revision, and each event's `*KeyValue` holds etcd's key-value (`kvValAt`). -/
@@ -384,6 +422,17 @@ omit EM in
 instance evsMatch_persistent (evs : List EvModel) (cs : List EtcdEv) :
     Persistent (evsMatch (GF := GF) evs cs) := by
   unfold evsMatch; infer_instance
+
+omit EM package_sem in
+/-- `evsMatch`'s facts: the same length, type, key and revision pointwise, and each event's
+`*KeyValue` holding etcd's. -/
+theorem evsMatch_elim {evs : List EvModel} {cs : List EtcdEv} :
+    evsMatch (GF := GF) evs cs ⊢
+      ⌜evs.length = cs.length ∧ ∀ (i : Nat) (e : EvModel) (c : EtcdEv), evs[i]? = some e →
+        cs[i]? = some c → e.typ = c.typ ∧ e.key = c.kv.key ∧ e.rev = c.kv.modRev⌝ ∗
+      □ ∀ (i : Nat) (e : EvModel) (c : EtcdEv), ⌜evs[i]? = some e⌝ -∗ ⌜cs[i]? = some c⌝ -∗
+        kvValAt e.kv c.kv := by
+  unfold evsMatch; iintro H; iexact H
 
 /-- etcd's state is the same after a step without events. -/
 theorem isEtcdKvs_quiet (Y r : w64) (pfx : GoString) (m : KvMap) (hY : sint.Z Y < sint.Z r) :
@@ -574,6 +623,16 @@ instance etcdStepCertBody_timeless (pfx : GoString) (p : w64) (b : Batch) :
     Timeless (etcdStepCertBody (GF := GF) pfx p b) := by
   unfold etcdStepCertBody; infer_instance
 
+omit package_sem in
+/-- **What a batch's certificate says** (`etcdStepCertBody`): etcd's events `cs` the batch matches,
+its step from `p` to the batch's revision, the events' keys under the prefix, and that etcd
+reached the batch's revision. -/
+theorem etcdStepCertBody_elim {pfx : GoString} {p : w64} {b : Batch} :
+    etcdStepCertBody (GF := GF) pfx p b ⊢ ∃ cs : List EtcdEv, evsMatch b cs ∗
+      EtcdStep p (batchRev b) pfx cs ∗ ⌜∀ c ∈ cs, c.typ = W32 0 → pfx <+: c.kv.key⌝ ∗
+      etcdReached (batchRev b) := by
+  unfold etcdStepCertBody; iintro H; iexact H
+
 instance etcdStepCertBody_persistent (pfx : GoString) (p : w64) (b : Batch) :
     Persistent (etcdStepCertBody (GF := GF) pfx p b) := by
   unfold etcdStepCertBody; infer_instance
@@ -603,6 +662,38 @@ theorem etcdQuiet_mono (pfx : GoString) (a a' b b' : Int) (ha : a ≤ a') (hb : 
 theorem etcdQuiet_nil (pfx : GoString) (a b : Int) (h : b ≤ a) : ⊢ etcdQuiet (GF := GF) pfx a b := by
   unfold etcdQuiet
   imodintro; iintro %x %hx; exfalso; omega
+
+/-- **Elimination**: a revision of a quiet interval ends a step without events from at or below its
+start. -/
+theorem etcdQuiet_at (pfx : GoString) (a b : Int) (x : w64) (hx : a < sint.Z x ∧ sint.Z x ≤ b) :
+    etcdQuiet (GF := GF) pfx a b ⊢ ∃ q : w64, ⌜sint.Z q ≤ a⌝ ∗ EtcdStep q x pfx [] := by
+  unfold etcdQuiet
+  iintro #H
+  iapply H $$ %x %hx
+
+/-- **Elimination at the end**: a quiet interval up to `p` is empty, or `p` ends a step without
+events from at or below its start (the shape of etcd's watch contract, `watchRespOk`). -/
+theorem etcdQuiet_step (pfx : GoString) (c : Int) (p : w64) :
+    etcdQuiet (GF := GF) pfx c (sint.Z p) ⊢
+      ⌜sint.Z p ≤ c⌝ ∨ ∃ q : w64, ⌜sint.Z q ≤ c⌝ ∗ EtcdStep q p pfx [] := by
+  iintro #H
+  by_cases h : sint.Z p ≤ c
+  · ileft; ipureintro; exact h
+  · iright; iapply etcdQuiet_at pfx c (sint.Z p) p ⟨by omega, Int.le_refl _⟩ $$ H
+
+/-- **Introduction from a step**: a step from at or below `a` to `B` is quiet before `B`
+(`etcdStep_restrict`). -/
+theorem etcdQuiet_of_step (pfx : GoString) (p B : w64) (cs : List EtcdEv) (a : Int)
+    (hp : sint.Z p ≤ a) :
+    EtcdStep (GF := GF) p B pfx cs ⊢ etcdQuiet pfx a (sint.Z B - 1) := by
+  unfold etcdQuiet
+  iintro #Hs
+  imodintro; iintro %x %hx
+  iexists p
+  isplitr
+  · ipureintro; exact hp
+  iapply (etcdStep_restrict p p x B pfx cs (Int.le_refl _) (by omega) (Or.inl (by omega)))
+  iexact Hs
 
 /-- A batch's step is quiet before the batch (`etcdStep_restrict`). -/
 theorem etcdQuiet_of_cert (pfx : GoString) (p : w64) (b : Batch) (a : Int) (hp : sint.Z p ≤ a) :
@@ -637,6 +728,12 @@ def etcdStepCert (pfx : GoString) : DemuxCert GF where
 
 theorem etcdStepCert_prog (pfx : GoString) :
     (etcdStepCert (GF := GF) pfx).prog = etcdReached := rfl
+
+theorem etcdStepCert_quiet (pfx : GoString) :
+    (etcdStepCert (GF := GF) pfx).quiet = etcdQuiet pfx := rfl
+
+theorem etcdStepCert_cert (pfx : GoString) :
+    (etcdStepCert (GF := GF) pfx).cert = etcdStepCertBody pfx := rfl
 
 /-- The cache's store certificate: a snapshot `(r, m)` is etcd's state at `r`, restricted to the
 cache's prefix. -/
@@ -937,6 +1034,19 @@ instance watchChain_persistent (pfx : GoString) (prev : w64) (bs : List Batch) :
   | nil => unfold watchChain; infer_instance
   | cons b bs ih => unfold watchChain; infer_instance
 
+omit package_sem in
+/-- `watchChain`'s step: a batch's certificate from `prev`, above it, then the rest from the
+batch's revision. -/
+theorem watchChain_cons (pfx : GoString) (prev : w64) (b : Batch) (bs : List Batch) :
+    watchChain (GF := GF) pfx prev (b :: bs) = iprop(etcdStepCertBody pfx prev b ∗
+      ⌜sint.Z prev < sint.Z (batchRev b)⌝ ∗ watchChain pfx (batchRev b) bs) := rfl
+
+omit package_sem in
+theorem watchChain_cons_elim {pfx : GoString} {prev : w64} {b : Batch} {bs : List Batch} :
+    watchChain (GF := GF) pfx prev (b :: bs) ⊢ etcdStepCertBody pfx prev b ∗
+      ⌜sint.Z prev < sint.Z (batchRev b)⌝ ∗ watchChain pfx (batchRev b) bs := by
+  rw [watchChain_cons]
+
 /-- **etcd's watch contract**, for one response `v` (modelled by `r`) received when the watch is
 at revision `c`, after which it is at `c'`. It is one of:
 * an error (`resp.Err() != nil`: a close error, a compaction, a cancel); the position is kept;
@@ -967,6 +1077,24 @@ instance watchRespOk_persistent (pfx : GoString) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
     Persistent (watchRespOk (GF := GF) pfx c c' v r) := by
   unfold watchRespOk; infer_instance
+
+omit package_sem in
+/-- `watchRespOk`'s cases: an error; an event-less response that is not a progress notification;
+a progress notification (a step without events, or none, to its revision); events (their
+batches chained from `c`). -/
+theorem watchRespOk_cases {pfx : GoString} {c c' : w64}
+    {v : go_etcd_io.etcd.client.v3.WatchResponse} {r : RespModel} :
+    watchRespOk (GF := GF) pfx c c' v r ⊢
+      (⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
+      ⌜¬ watchErr v ∧ r.events = [] ∧ r.isProgressNotify = false ∧ c' = c⌝ ∨
+      (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev ∧
+          sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
+        (⌜c = r.hdrRev⌝ ∨ EtcdStep c r.hdrRev pfx []) ∗ etcdReached r.hdrRev) ∨
+      (⌜¬ watchErr v ∧ r.events ≠ [] ∧ EvRevSorted r.events ∧
+          (∀ e ∈ r.events, sint.Z c < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
+          r.events.getLast?.map EvModel.rev = some c'⌝ ∗
+        watchChain pfx c (splitBatches r.events)) := by
+  unfold watchRespOk; iintro H; iexact H
 
 /-- The `i`-th response `v` of the channel: modelled by `r`, and etcd's watch contract from the
 position before it to the one after it. -/

@@ -1,0 +1,835 @@
+// Spec-guided tests of `bootstrap`'s trusted contracts (the whole-`bootOk` review, 2026-11-03;
+// README.md says how to run them). This file is copied into the package `etcdserver` of etcd at the
+// pinned revision (run.sh), so that it can call the unexported `bootstrap` and read the record it
+// returns.
+//
+// Two kinds of run, each in both compaction modes (a compaction run or none) and both auth modes
+// (auth enabled or not), at the examples' configuration (`examples/lib/etcdstart/common.go`'s `newServer`,
+// `cfgOk`):
+//
+//   - a fresh boot: `bootstrap` on an empty data directory; every conjunct of `bootOk`
+//     (Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean) that Go can show is checked of its
+//     result (the modes change nothing of a fresh directory; they are run to show it);
+//   - a restart: a server is built and started (`NewServer`, `Start`), writes keys, compacts (the
+//     compaction mode), enables auth (the auth mode), stops (`Stop`); then `bootstrap` runs on its
+//     directory. The image's premises of `bootstrapRestartContract`
+//     (Proof/.../etcdserver/InvRestart.lean, `srvDiskImage`) are checked of the stopped directory,
+//     and `bootOkR`'s conjuncts of the result.
+//
+// The data `D` the contracts name is the bbolt file's contents at `bootstrap`'s return (read back
+// after the record's `Close`, which commits): `bootOk`'s `newPost … D`, `HD`, `HDr`, `HmEmpty`,
+// and, at a restart, also the file before `bootstrap` (`srvFiles … D`): the test checks the two
+// are equal.
+//
+// Each check is named by the Lean conjunct it transcribes (keep the two in step). Some are known
+// to be false of Go (`knownFalse`): the test fails if one of them holds (so the list stays honest)
+// or if any other check fails. It prints the table of every check in every run.
+package etcdserver
+
+import (
+	"context"
+	"encoding/binary"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"sort"
+	"strings"
+	"testing"
+	"time"
+	"unsafe"
+
+	bolt "go.etcd.io/bbolt"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
+	"go.etcd.io/etcd/api/v3/authpb"
+	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/client/pkg/v3/fileutil"
+	"go.etcd.io/etcd/client/pkg/v3/transport"
+	"go.etcd.io/etcd/client/pkg/v3/types"
+	"go.etcd.io/etcd/pkg/v3/pbutil"
+	"go.etcd.io/etcd/server/v3/config"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+	"go.etcd.io/etcd/server/v3/features"
+	"go.etcd.io/etcd/server/v3/storage/wal"
+	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
+	"go.etcd.io/raft/v3"
+)
+
+// dbData is a bbolt file's contents: bucket name to its keys' values; a bucket absent is absent.
+type dbData map[string]map[string]string
+
+func readDB(t *testing.T, path string) dbData {
+	db, err := bolt.Open(path, 0o600, &bolt.Options{ReadOnly: true, Timeout: 5 * time.Second})
+	if err != nil {
+		t.Fatalf("open %s: %v", path, err)
+	}
+	defer db.Close()
+	d := dbData{}
+	err = db.View(func(tx *bolt.Tx) error {
+		return tx.ForEach(func(name []byte, b *bolt.Bucket) error {
+			m := map[string]string{}
+			d[string(name)] = m
+			return b.ForEach(func(k, v []byte) error { m[string(k)] = string(v); return nil })
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return d
+}
+
+// emptyOrAbsent is `(D.lookup n).getD ∅ = ∅`.
+func (d dbData) emptyOrAbsent(n string) bool { return len(d[n]) == 0 }
+
+// presentEmpty is `D.lookup n = some ∅`.
+func (d dbData) presentEmpty(n string) bool { b, ok := d[n]; return ok && len(b) == 0 }
+
+func (d dbData) metaU64(k string) (uint64, bool) {
+	v, ok := d["meta"][k]
+	if !ok || len(v) != 8 {
+		return 0, false
+	}
+	return binary.BigEndian.Uint64([]byte(v)), true
+}
+
+// restBuckets is `mvcc.restBuckets` (the buckets restore reads besides `key` and `meta`).
+var restBuckets = []string{"lease", "auth", "authUsers", "authRoles", "members", "members_removed", "cluster", "alarm"}
+
+// field reads an unexported field (the record's and other packages' private state).
+func field(v any, name string) reflect.Value {
+	rv := reflect.ValueOf(v)
+	for rv.Kind() == reflect.Pointer || rv.Kind() == reflect.Interface {
+		rv = rv.Elem()
+	}
+	f := rv.FieldByName(name)
+	return reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem()
+}
+
+type check struct {
+	name  string
+	holds bool
+	why   string
+}
+
+type run struct {
+	name   string
+	checks []check
+}
+
+func (r *run) add(name string, holds bool, format string, args ...any) {
+	r.checks = append(r.checks, check{name, holds, fmt.Sprintf(format, args...)})
+}
+
+// knownFalse: conjuncts found false of Go, by run kind (`restart`) and mode; the test fails if one
+// of them holds. (The whole-`bootOk` review's A, T1-B, C and G were repaired on 2026-11-03: their
+// checks below are the frozen statements'. What remains is H, out of the review's repairs: a restart's
+// image certificate assumes auth disabled, `notes/STATUS.md`'s auth-on gap.)
+func knownFalse(restart, cmp, auth bool, name string) bool {
+	return restart && auth && name == "srvDiskImage.imageAt.bkRestAt(auth)"
+}
+
+func specConfig(t *testing.T, dir, name string) config.ServerConfig {
+	lg := zap.NewNop()
+	peer := types.URLs{{Scheme: "http", Host: "127.0.0.1:1"}}
+	return config.ServerConfig{
+		Name:                name,
+		DataDir:             filepath.Join(dir, name+".etcd"),
+		InitialPeerURLsMap:  types.URLsMap{name: peer},
+		PeerURLs:            peer,
+		ClientURLs:          types.URLs{{Scheme: "http", Host: "127.0.0.1:2"}},
+		InitialClusterToken: name,
+		NewCluster:          true,
+		TickMs:              100,
+		ElectionTicks:       10,
+		// a WAL snapshot record within the run (σ.b > 0 at the restart)
+		SnapshotCount:          8,
+		SnapshotCatchUpEntries: 4,
+		MaxTxnOps:              128,
+		MaxRequestBytes:        1536 * 1024,
+		Logger:                 lg,
+		ServerFeatureGate:      features.NewDefaultServerFeatureGate(name, lg),
+	}
+}
+
+// openLimit is `storage.openLimit`.
+func openLimit(cfg config.ServerConfig) int {
+	if cfg.BackendBatchLimit == 0 {
+		return 10000
+	}
+	return cfg.BackendBatchLimit
+}
+
+// checkRecord checks the conjuncts shared by `bootOk` and `bootOkR` of the record `b` (before its
+// `Close`), and returns the raft node's id.
+func checkRecord(r *run, cfg config.ServerConfig, b *bootstrappedServer) uint64 {
+	_, ok := b.prt.(*http.Transport)
+	r.add("Hprt", ok, "prt is %T", b.prt)
+	r.add("HwalR/Hwalo", b.storage.wal.w != nil, "wal opened")
+	r.add("Hss", b.ss != nil, "snapshotter")
+	cv := b.raft.config
+	// (S2) the heartbeat Go computes: `cfg.TickMs' * W64 1000000`, wrapping
+	r.add("Hraft(lg, heartbeat)", b.raft.lg != nil && uint64(b.raft.heartbeat) == uint64(cfg.TickMs)*1000000,
+		"heartbeat %v", b.raft.heartbeat)
+	r.add("Hraft(config fields)",
+		cv.MaxInflightMsgs < 1<<62 && !cv.DisableProposalForwarding && cv.ReadOnlyOption == raft.ReadOnlySafe &&
+			!cv.DisableConfChangeValidation && (cv.MaxCommittedSizePerReady != 0 || cv.MaxSizePerMsg != 0) &&
+			!cv.AsyncStorageWrites && cv.Logger != nil && cv.CheckQuorum && cv.PreVote == cfg.PreVote,
+		"%+v", *cv)
+	r.add("Hraft(Applied = 0)", cv.Applied == 0, "Applied %d", cv.Applied)
+	r.add("Hraft(Storage = b.raft.storage)", cv.Storage == raft.Storage(b.raft.storage), "")
+	r.add("Hid", uint64(b.cluster.nodeID) == cv.ID, "nodeID %v, config ID %x", b.cluster.nodeID, cv.ID)
+	r.add("Hclg", !field(b.cluster.cl, "lg").IsNil(), "cluster logger")
+	r.add("Hrms0", len(b.cluster.remotes) == 0, "remotes %d", len(b.cluster.remotes))
+	// `Members()` sorted by id, each member's peer URLs the directory's (`memberDirIs`)
+	ms := b.cluster.cl.Members()
+	ids := make([]uint64, len(ms))
+	dirOk := true
+	for i, m := range ms {
+		ids[i] = uint64(m.ID)
+		if want, ok := cfg.InitialPeerURLsMap[m.Name]; !ok || strings.Join(m.PeerURLs, ",") != want.String() {
+			dirOk = false
+		}
+	}
+	r.add("Hmembers(sorted, directory URLs)", sort.SliceIsSorted(ids, func(i, j int) bool { return ids[i] < ids[j] }) && dirOk,
+		"members %v", ids)
+	in := false
+	for _, id := range ids {
+		in = in || id == cv.ID
+	}
+	r.add("Hraft(ID ∈ ps, ps ≠ [], 0 ∉ ps)", in && len(ids) > 0 && ids[0] != 0, "ids %v", ids)
+	// the consistent index: `bootstrapBackend`'s `cindex.NewConsistentIndex`, the applying index
+	// at 0 (`Happ`)
+	r.add("Hci", fmt.Sprintf("%T", b.storage.backend.ci) == "*cindex.consistentIndex", "%T", b.storage.backend.ci)
+	ai, at := b.storage.backend.ci.ConsistentApplyingIndex()
+	r.add("Happ", ai == 0 && at == 0, "applying (%d, %d)", ai, at)
+	// the backend: `*backend.backend` with the server's hooks, at `openLimit cfg`
+	be := b.storage.backend.be
+	r.add("Hbe(type)", fmt.Sprintf("%T", be) == "*backend.backend", "%T", be)
+	r.add("Hbe(limit = openLimit cfg)", int(field(be, "batchLimit").Int()) == openLimit(cfg),
+		"batchLimit %d", field(be, "batchLimit").Int())
+	h := field(be, "hooks").Interface()
+	r.add("HhkAt/Hbh", h == any(b.storage.backend.beHooks) && b.storage.backend.beHooks != nil, "hooks %T", h)
+	// `Hnew`'s `newPostK … (bootLeft N)`: `N + 7` write-back tokens left past the `bootWB`
+	// `bootstrap`'s own sessions spent (each session's `Unlock` writes back once, raising the read
+	// buffer's version, `txReadBuffer.bufVersion`, `InvBuffer.lean`'s `R.ver`; the batch lock's
+	// invariant `bgOk`, `ver + n + k < 2 ^ 40`, with the contract's `N + 7 + bootWB ≤ wbInit`); the
+	// `run` goroutine's commits are unpaid. (Until 2026-11-03 `newPost`'s every token, false: it
+	// forced `bufVersion = 0`.) A clean read buffer (`bViewC … true`) has no buffered bucket.
+	rbuf := field(field(be, "readTx").Interface(), "buf")
+	ver := field(rbuf.Addr().Interface(), "bufVersion").Uint()
+	cm := be.(interface{ Commits() int64 }).Commits()
+	r.add("Hnew.bootLeft(bootstrap's write-backs ≤ bootWB = 4)", ver <= 4,
+		"bufVersion %d, commits %d", ver, cm)
+	nb := field(field(rbuf.Addr().Interface(), "txBuffer").Addr().Interface(), "buckets").Len()
+	r.add("Hnew.newPostK(read buffer clean)", nb == 0, "read buffer buckets %d", nb)
+	// the contracts' configuration premises (`bootCfgOk`), which the examples' configuration meets
+	r.add("bootCfgOk", cfg.Logger != nil && cfg.QuotaBackendBytes == 0 && cfg.BackendBatchLimit == 0 &&
+		cfg.BootstrapDefragThresholdMegabytes == 0 && cfg.ElectionTicks > 1, "")
+	// `NewServer`'s `raftNode.bootCfg`: the heartbeat positive
+	r.add("raftNode.bootCfg", int64(uint64(cfg.TickMs)*1000000) > 0, "")
+	return cv.ID
+}
+
+func checkFresh(t *testing.T, r *run, cmp, auth bool) {
+	dir := t.TempDir()
+	cfg := specConfig(t, dir, "m1")
+	b, err := bootstrap(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := checkRecord(r, cfg, b)
+	// the fresh storage (`Hlog0`, `Hend`, `Hsnone`, `Hmeta`, `Hfresh`)
+	st := b.raft.storage
+	fi, _ := st.FirstIndex()
+	li, _ := st.LastIndex()
+	hs, cs, _ := st.InitialState()
+	sn, _ := st.Snapshot()
+	r.add("Hlog0/Hend/Hmeta/Hfresh/Hsnone", fi == 1 && li == 0 && raft.IsEmptyHardState(hs) &&
+		len(cs.GetVoters()) == 0 && sn.GetMetadata().GetIndex() == 0,
+		"first %d last %d hs %v", fi, li, hs)
+	// the peers (`Hraft`'s `ps = pv.map ID`, `Hctx`) and the members (`Hmem`: the contexts'
+	// members, each with its peer's id)
+	ps := make([]uint64, len(b.raft.peers))
+	memOk := len(b.raft.peers) == len(b.cluster.cl.Members())
+	for i, p := range b.raft.peers {
+		ps[i] = p.ID
+		var m membership.Member
+		if json.Unmarshal(p.Context, &m) != nil || uint64(m.ID) != p.ID {
+			memOk = false
+			continue
+		}
+		cm := b.cluster.cl.Member(m.ID)
+		j1, _ := json.Marshal(cm)
+		j2, _ := json.Marshal(&m)
+		memOk = memOk && cm != nil && string(j1) == string(j2)
+	}
+	r.add("Hraft(peers, nodup)", len(ps) > 0 && len(ps) == len(b.cluster.cl.Members()), "peers %v", ps)
+	r.add("Hmem(memBoot of the contexts)", memOk, "")
+	ci := b.storage.backend.ci.ConsistentIndex()
+	r.add("Hm0(ci = m0.1 = 0)", ci == 0, "ci %d", ci)
+	walDir := cfg.WALDir()
+	r.add("Hclose", func() bool { b.Close(); return true }(), "")
+	b.storage.wal.w.Close()
+	_ = id
+	_ = walDir
+	d := readDB(t, cfg.BackendPath())
+	r.add("HD(key empty)", d.emptyOrAbsent("key"), "key %d keys", len(d["key"]))
+	r.add("HmEmpty(meta empty)", d.emptyOrAbsent("meta"), "meta %v", d["meta"])
+	restOk := true
+	for _, n := range restBuckets {
+		restOk = restOk && d.emptyOrAbsent(n)
+	}
+	r.add("HDr(rest empty, membership present)", restOk && d.presentEmpty("members") &&
+		d.presentEmpty("members_removed") && d.presentEmpty("cluster"), "buckets %v", bucketNames(d))
+	_, sch := d["meta"]["scheduledCompactRev"]
+	_, fin := d["meta"]["finishedCompactRev"]
+	r.add("Hnew.lateWB(unregistered: key empty)", d.emptyOrAbsent("key"), "")
+	r.add("Hnew.lateWB(unregistered: no compaction keys)", !sch && !fin, "")
+	r.add("bootBackend_of_bootLeft.noCmpData", !sch && !fin, "")
+	// the first-start contract's configuration premise (`bootCfgFresh`)
+	r.add("bootCfgFresh", cfg.NewCluster && len(cfg.DiscoveryCfg.Endpoints) == 0, "")
+}
+
+func bucketNames(d dbData) []string {
+	var ns []string
+	for n := range d {
+		ns = append(ns, fmt.Sprintf("%s:%d", n, len(d[n])))
+	}
+	sort.Strings(ns)
+	return ns
+}
+
+// writeAndStop runs a server on cfg's directory: puts, a compaction (cmp), auth enabled (auth),
+// a graceful stop.
+func writeAndStop(t *testing.T, cfg config.ServerConfig, cmp, auth bool) {
+	s, err := NewServer(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Start()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	for s.Leader() == 0 {
+		select {
+		case <-ctx.Done():
+			t.Fatal("no leader")
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	var rev int64
+	for i := 0; i < 20; i++ {
+		resp, err := s.Put(ctx, &pb.PutRequest{Key: []byte(fmt.Sprintf("k%d", i%5)), Value: []byte(fmt.Sprintf("v%d", i))})
+		if err != nil {
+			t.Fatal(err)
+		}
+		rev = resp.GetHeader().GetRevision()
+	}
+	if cmp {
+		if _, err := s.Compact(ctx, &pb.CompactionRequest{Revision: rev - 3, Physical: true}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if auth {
+		if _, err := s.UserAdd(ctx, &pb.AuthUserAddRequest{Name: "root", Options: &authpb.UserAddOptions{NoPassword: true}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.RoleAdd(ctx, &pb.AuthRoleAddRequest{Name: "root"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.UserGrantRole(ctx, &pb.AuthUserGrantRoleRequest{User: "root", Role: "root"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.AuthEnable(ctx, &pb.AuthEnableRequest{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s.Stop()
+}
+
+func checkRestart(t *testing.T, r *run, cmp, auth bool) {
+	dir := t.TempDir()
+	cfg := specConfig(t, dir, "m1")
+	writeAndStop(t, cfg, cmp, auth)
+	// the stopped directory (`srvDiskImage`, `srvFiles dd id σ D`)
+	d0 := readDB(t, cfg.BackendPath())
+	snaps, err := wal.ValidSnapshotEntries(zap.NewNop(), cfg.WALDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sb uint64
+	for _, s := range snaps {
+		sb = max(sb, s.GetIndex())
+	}
+	w, err := wal.OpenForRead(zap.NewNop(), cfg.WALDir(), &walpb.Snapshot{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	md, hs, _, err := w.ReadAll()
+	w.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var meta pb.Metadata
+	pbutil.MustUnmarshalMessage(&meta, md)
+	i, iok := d0.metaU64("consistent_index")
+	_, tok := d0.metaU64("term")
+	r.add("srvDiskImage(σ.b ≤ i ≤ σ.commit)", iok && sb <= i && i <= hs.GetCommit(),
+		"σ.b %d, i %d, commit %d", sb, i, hs.GetCommit())
+	r.add("srvDiskImage.imageAt(ci and term stored)", iok && tok, "")
+	r.add("srvDiskImage(bootLen ≤ i)", i >= 1, "i %d", i)
+	// the image's other buckets at the model's (`bkRestAt`): the auth bucket the boot state
+	// `authBoot` (revision 1, auth disabled), lease and alarm empty
+	ar := d0["auth"]["authRevision"]
+	_, en := d0["auth"]["authEnabled"]
+	r.add("srvDiskImage.imageAt.bkRestAt(auth)", !en && len(d0["auth"]) == 1 && ar == string([]byte{0, 0, 0, 0, 0, 0, 0, 1}) &&
+		len(d0["authUsers"]) == 0 && len(d0["authRoles"]) == 0, "auth %d keys, users %d", len(d0["auth"]), len(d0["authUsers"]))
+	r.add("srvDiskImage.imageAt.bkRestAt(lease, alarm empty)", len(d0["lease"]) == 0 && len(d0["alarm"]) == 0, "")
+
+	b, err := bootstrap(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := checkRecord(r, cfg, b)
+	r.add("bootOkR.Hraft(pv = [])", len(b.raft.peers) == 0, "peers %d", len(b.raft.peers))
+	r.add("bootOkR.Hraft(cv.ID = the WAL's member id)", id == meta.GetNodeID(), "id %x, wal %x", id, meta.GetNodeID())
+	ci := b.storage.backend.ci.ConsistentIndex()
+	r.add("bootOkR.Hm0(ci = m0.1 = i)", ci == i, "ci %d, i %d", ci, i)
+	// the members recovered from the image's buckets (`Hmem`, `restModel … .mem`)
+	memOk := len(b.cluster.cl.Members()) == len(d0["members"])
+	for k, v := range d0["members"] {
+		id, _ := types.IDFromString(k)
+		m := b.cluster.cl.Member(id)
+		var raw membership.RaftAttributes
+		memOk = memOk && m != nil && json.Unmarshal([]byte(v), &raw) == nil &&
+			strings.Join(raw.PeerURLs, ",") == strings.Join(m.PeerURLs, ",")
+	}
+	r.add("bootOkR.Hmem(members of the image's bucket)", memOk, "members %d", len(d0["members"]))
+	// the restart contract's static-cluster premise (G): the image's members are the boot log's at
+	// the same peer URLs (names and client URLs may differ: `publishV3`)
+	gOk := len(d0["members"]) == len(cfg.InitialPeerURLsMap)
+	for _, v := range d0["members"] {
+		var raw membership.RaftAttributes
+		found := false
+		if json.Unmarshal([]byte(v), &raw) == nil {
+			for _, u := range cfg.InitialPeerURLsMap {
+				found = found || strings.Join(raw.PeerURLs, ",") == u.String()
+			}
+		}
+		gOk = gOk && found
+	}
+	r.add("bootstrapRestartContract(G: the members' peer URLs the boot log's)", gOk, "")
+	b.Close()
+	b.storage.wal.w.Close()
+	d1 := readDB(t, cfg.BackendPath())
+	r.add("bootOkR(D at return = srvFiles' D)", reflect.DeepEqual(d0, d1), "before %v after %v", bucketNames(d0), bucketNames(d1))
+	_, sch := d1["meta"]["scheduledCompactRev"]
+	_, fin := d1["meta"]["finishedCompactRev"]
+	// `bootOkR`'s `Hnew` holds `lateWBR` (its unregistered arm at the data's values, whatever they
+	// are: until 2026-11-03 `lateWB`, an empty `Key` bucket and no compaction keys, false here); the
+	// facts below are informational, the reason for `lateWBR`
+	r.add("bootOkR.Hnew.lateWBR(informational: key non-empty)", !d1.emptyOrAbsent("key"), "key %d keys", len(d1["key"]))
+	r.add("bootOkR.Hnew.lateWBR(informational: compaction keys iff cmp)", (sch || fin) == cmp,
+		"scheduled %v finished %v", sch, fin)
+	// the restart contract's configuration premises
+	r.add("bootstrapRestartContract(bootCfgOk, ForceNewCluster = false, DedicatedWALDir = \"\")",
+		cfg.Logger != nil && cfg.BootstrapDefragThresholdMegabytes == 0 && !cfg.ForceNewCluster &&
+			cfg.DedicatedWALDir == "", "")
+	r.add("restPresent(rest buckets present)", func() bool {
+		for _, n := range restBuckets {
+			if _, ok := d1[n]; !ok {
+				return false
+			}
+		}
+		return true
+	}(), "buckets %v", bucketNames(d1))
+}
+
+func TestSpecBootstrap(t *testing.T) {
+	var runs []run
+	fails := 0
+	for _, restart := range []bool{false, true} {
+		for _, cmp := range []bool{false, true} {
+			for _, auth := range []bool{false, true} {
+				r := run{name: fmt.Sprintf("restart=%v cmp=%v auth=%v", restart, cmp, auth)}
+				if restart {
+					checkRestart(t, &r, cmp, auth)
+				} else {
+					checkFresh(t, &r, cmp, auth)
+				}
+				for _, c := range r.checks {
+					kf := knownFalse(restart, cmp, auth, c.name)
+					if c.holds == kf {
+						fails++
+						t.Errorf("%s: %s: holds=%v (known false: %v) %s", r.name, c.name, c.holds, kf, c.why)
+					}
+				}
+				runs = append(runs, r)
+			}
+		}
+	}
+	var sb strings.Builder
+	for _, r := range runs {
+		fmt.Fprintf(&sb, "== %s\n", r.name)
+		for _, c := range r.checks {
+			mark := "ok   "
+			if !c.holds {
+				mark = "FALSE"
+			}
+			fmt.Fprintf(&sb, "  %s %-55s %s\n", mark, c.name, c.why)
+		}
+	}
+	t.Log("\n" + sb.String())
+	if os.Getenv("SPEC_TABLE") != "" {
+		_ = os.WriteFile(os.Getenv("SPEC_TABLE"), []byte(sb.String()), 0o644)
+	}
+}
+
+// panics reports whether f panics.
+func panics(f func()) (p bool) {
+	defer func() { p = recover() != nil }()
+	f()
+	return false
+}
+
+// TestSpecBootstrapFalseCases shows Go's behavior behind the review's findings C and D: `bootstrap`
+// with a nil logger panics (C: since 2026-11-03 excluded by the contracts' `bootCfgOk`), and the
+// record's `Close` panics the second time (D: `#Hclose` still promises it persistently, false; its
+// repair, one-shot with the backend's whole open token, waits for the store's closers to give their
+// reader tokens back, `notes/STATUS.md`).
+func TestSpecBootstrapFalseCases(t *testing.T) {
+	cfg := specConfig(t, t.TempDir(), "m1")
+	cfg.Logger = nil
+	if !panics(func() { _, _ = bootstrap(cfg) }) {
+		t.Error("C: bootstrap with a nil logger did not panic")
+	}
+	cfg = specConfig(t, t.TempDir(), "m1")
+	b, err := bootstrap(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Close()
+	if !panics(func() { b.Close() }) {
+		t.Error("D: a second Close did not panic")
+	}
+	b.storage.wal.w.Close()
+}
+
+// ---- The final review's findings S1, S2, M1 (2026-11-03, branch `boot-premises`) ----
+
+// exampleCluster is an example's three-member cluster as its `Main` builds it: the members' names
+// (bound in its Lean `premises` to `id₁ id₂ id₃`, in this order), the cluster token, the peer
+// addresses.
+type exampleCluster struct {
+	token string
+	names [3]string
+	peers [3]string
+}
+
+var exampleClusters = []exampleCluster{
+	{"putget3", [3]string{"putget3-1", "putget3-2", "putget3-3"},
+		[3]string{"127.0.0.1:23801", "127.0.0.1:23802", "127.0.0.1:23803"}},
+	{"restart3", [3]string{"restart3-1", "restart3-2", "restart3-3"},
+		[3]string{"127.0.0.1:23861", "127.0.0.1:23862", "127.0.0.1:23863"}},
+	{"linkv3p", [3]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"},
+		[3]string{"127.0.0.1:23841", "127.0.0.1:23842", "127.0.0.1:23843"}},
+}
+
+func memberConfig(t *testing.T, dir string, c exampleCluster, i int) config.ServerConfig {
+	cfg := specConfig(t, dir, c.names[i])
+	m := types.URLsMap{}
+	for k := range c.names {
+		m[c.names[k]] = types.URLs{{Scheme: "http", Host: c.peers[k]}}
+	}
+	cfg.InitialPeerURLsMap = m
+	cfg.PeerURLs = m[c.names[i]]
+	cfg.InitialClusterToken = c.token
+	return cfg
+}
+
+func sortedIDs(ids []uint64) []uint64 {
+	s := append([]uint64(nil), ids...)
+	sort.Slice(s, func(i, j int) bool { return s[i] < s[j] })
+	return s
+}
+
+// TestSpecBootstrapMemberOrder (S1): `bootOk`'s `Hraft` has `γ.vs = ps` with `ps` the peers
+// `bootstrap` returns (`bootstrapRaftFromCluster`, over `MemberIDs()`, sorted); an example's
+// `premises` instantiate the contract at `γ.vs = [id₁, id₂, id₃]` with `idᵢ` member `-i`'s id
+// (`bootPremise … nameᵢ … idᵢ`). For each example and each member, `bootstrap` is run: the test
+// checks that every member's peers are the same list, the ids sorted ascending, with the contexts in
+// that order (`BootLog ps ctxs`); prints whether the names' order is that order (the old
+// statement's, true of linkv3p only); and checks the restated premises' facts: the peers a
+// permutation of the names' ids (`BootFacts.perm`) and sorted (`sortIds`, the alternative).
+func TestSpecBootstrapMemberOrder(t *testing.T) {
+	for _, c := range exampleClusters {
+		dir := t.TempDir()
+		var byName [3]uint64
+		var peers [3][]uint64
+		for i := range c.names {
+			cfg := memberConfig(t, dir, c, i)
+			b, err := bootstrap(cfg)
+			if err != nil {
+				t.Fatalf("%s: %v", c.names[i], err)
+			}
+			byName[i] = b.raft.config.ID
+			for _, p := range b.raft.peers {
+				var m membership.Member
+				if err := json.Unmarshal(p.Context, &m); err != nil || uint64(m.ID) != p.ID {
+					t.Errorf("%s: a peer's context is not its member: %x", c.names[i], p.ID)
+				}
+				peers[i] = append(peers[i], p.ID)
+			}
+			b.Close()
+			b.storage.wal.w.Close()
+		}
+		ps := peers[0]
+		for i := range peers {
+			if fmt.Sprint(peers[i]) != fmt.Sprint(ps) {
+				t.Errorf("%s: member %d's peers %x differ from member 1's %x", c.token, i+1, peers[i], ps)
+			}
+		}
+		names := byName[:]
+		inOrder := fmt.Sprint(names) == fmt.Sprint(ps)
+		t.Logf("%s: ids by name (id₁ id₂ id₃) %x; bootstrap's peers (γ.vs) %x; names in id order: %v",
+			c.token, names, ps, inOrder)
+		if want := c.token == "linkv3p"; inOrder != want {
+			t.Errorf("%s: the old premise (γ.vs = [id₁, id₂, id₃]) holds: %v, expected %v", c.token, inOrder, want)
+		}
+		if fmt.Sprint(sortedIDs(names)) != fmt.Sprint(ps) {
+			t.Errorf("%s: the peers %x are not the names' ids sorted %x", c.token, ps, sortedIDs(names))
+		}
+		low := map[uint64]bool{}
+		for _, id := range names {
+			if id&0xffff == 0 || low[id&0xffff] {
+				t.Errorf("%s: BootFacts.idLow: %x", c.token, id)
+			}
+			low[id&0xffff] = true
+		}
+	}
+}
+
+// TestSpecBootstrapHeartbeat (S2): `time.NewTicker` panics for every `d ≤ 0` (the old `rnTickerOk`'s
+// `d ≠ 0` admitted a negative `d`; now `0 < d`); `bootstrap`'s heartbeat is `time.Duration(cfg.TickMs)
+// * time.Millisecond`, wrapping (`Hraft`'s equality, checked at each `TickMs`): the old `bootCfgOk`'s
+// `TickMs ≠ 0` admitted a `TickMs` whose heartbeat is 0 (`2 ^ 58`: the old `Hraft`'s `heartbeat ≠ 0`
+// false) or negative (`newRaftNode`'s `NewTicker` then panics). `NewServer`'s `raftNode.bootCfg`,
+// `0 < sint.Z (TickMs * 10^6)` (`int64`, wrapping), is checked to decide each.
+func TestSpecBootstrapHeartbeat(t *testing.T) {
+	for _, d := range []time.Duration{-1, 0, -time.Hour} {
+		if !panics(func() { time.NewTicker(d) }) {
+			t.Errorf("NewTicker(%v) did not panic", d)
+		}
+	}
+	tk := time.NewTicker(time.Nanosecond)
+	tk.Stop()
+	for _, ms := range []uint{100, 1 << 58, 1<<63/1000000 + 1, 1 << 63, 1<<64 - 1, 3*(1<<58) + 7} {
+		cfg := specConfig(t, t.TempDir(), "m1")
+		cfg.TickMs = ms
+		b, err := bootstrap(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		hb := b.raft.heartbeat
+		restated := int64(uint64(ms)*1000000) > 0
+		t.Logf("TickMs %d: heartbeat %d; TickMs ≠ 0: %v, raftNode.bootCfg: %v", ms, int64(hb), ms != 0, restated)
+		if uint64(hb) != uint64(ms)*1000000 {
+			t.Errorf("TickMs %d: heartbeat %d, not Hraft's TickMs * 10^6", ms, int64(hb))
+		}
+		if (hb > 0) != restated {
+			t.Errorf("TickMs %d: heartbeat %d, restated condition %v", ms, int64(hb), restated)
+		}
+		if ms == 1<<58 && hb != 0 {
+			t.Errorf("TickMs 2^58: heartbeat %d, expected 0", int64(hb))
+		}
+		if ms == 1<<63/1000000+1 && hb >= 0 {
+			t.Errorf("TickMs %d: heartbeat %d, expected negative", ms, int64(hb))
+		}
+		b.Close()
+		b.storage.wal.w.Close()
+	}
+}
+
+// TestSpecBootstrapDisk (M1): `bootstrap`'s own panics on a file system that does not cooperate,
+// each on a fresh data directory at the examples' configuration (`bootCfgOk`, `bootCfgFresh`): bbolt
+// cannot open the backend file (here a directory at `member/snap/db`: `newBackend`'s `lg.Panic`, on
+// `OpenBackend`'s goroutine, so in a child process); the WAL cannot be created (a dedicated WAL
+// directory under a regular file: `bootstrapNewWAL`'s `lg.Panic`); the snapshot directory cannot be
+// created (a regular file at `member/snap`: `bootstrapSnapshot`'s `lg.Fatal`, which exits; here
+// with a fatal hook that panics). Neither contract excludes them.
+func TestSpecBootstrapDisk(t *testing.T) {
+	if os.Getenv("SPEC_DISK_CHILD") == "db" {
+		cfg := specConfig(t, os.Getenv("SPEC_DISK_DIR"), "m1")
+		if err := os.MkdirAll(filepath.Join(cfg.SnapDir(), "db"), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		_, err := bootstrap(cfg)
+		t.Fatalf("bootstrap returned (%v) instead of panicking", err)
+	}
+	// bolt.Open fails
+	cmd := exec.Command(os.Args[0], "-test.run=^TestSpecBootstrapDisk$", "-test.count=1")
+	cmd.Env = append(os.Environ(), "SPEC_DISK_CHILD=db", "SPEC_DISK_DIR="+t.TempDir())
+	out, err := cmd.CombinedOutput()
+	if err == nil || !strings.Contains(string(out), "failed to open database") {
+		t.Errorf("db: child exited %v, output:\n%s", err, out)
+	} else {
+		t.Logf("db: bootstrap panicked: %s", firstLine(string(out), "panic:"))
+	}
+	// wal.Create fails
+	dir := t.TempDir()
+	f := filepath.Join(dir, "file")
+	if err := os.WriteFile(f, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := specConfig(t, dir, "m1")
+	cfg.DedicatedWALDir = filepath.Join(f, "wal")
+	var p any
+	func() {
+		defer func() { p = recover() }()
+		_, _ = bootstrap(cfg)
+	}()
+	if p == nil || !strings.Contains(fmt.Sprint(p), "failed to create WAL") {
+		t.Errorf("wal: bootstrap did not panic on wal.Create (%v)", p)
+	} else {
+		t.Logf("wal: bootstrap panicked: %v", p)
+	}
+	// the snapshot directory cannot be created: `Fatal`
+	cfg = specConfig(t, t.TempDir(), "m1")
+	cfg.Logger = zap.NewNop().WithOptions(zap.WithFatalHook(zapcore.WriteThenPanic))
+	if err := os.MkdirAll(cfg.MemberDir(), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cfg.SnapDir(), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	p = nil
+	func() {
+		defer func() { p = recover() }()
+		_, _ = bootstrap(cfg)
+	}()
+	if p == nil {
+		t.Error("snap: bootstrap did not call Fatal")
+	} else {
+		t.Logf("snap: bootstrap called Fatal: %v", p)
+	}
+}
+
+func firstLine(s, prefix string) string {
+	for _, l := range strings.Split(s, "\n") {
+		if strings.HasPrefix(l, prefix) {
+			return l
+		}
+	}
+	return ""
+}
+
+// ---- R-D, the one-shot Close: `NewServer`'s error paths after `bootstrap` (2026-11-04) ----
+
+// TestSpecBootstrapNewServerErrorPaths shows that both of `NewServer`'s error returns after `bootstrap`
+// (`server.go:300-433`) are reachable and call the record's `Close` once (finding D: `bootOk`'s
+// `#Hclose` must serve them; it is one-shot, `TestSpecBootstrapFalseCases`):
+//   - path 1, `auth.NewTokenProvider` fails (an unknown token type): before `mvcc.New`;
+//   - path 2, `tr.Start()` fails: after `mvcc.New` (the deferred `kv.Close()` runs, then `b.Close()`).
+//     `bootstrap`'s round tripper and `Start`'s read the peer TLS configuration separately
+//     (`rafthttp.NewRoundTripper`, `bootstrap.go:72`; `newStreamRoundTripper`, `transport.go:136`):
+//     a CA file that changes between the two (as a certificate rotation would; here rewritten when
+//     `NewServer` logs "bootstrap successfully", `server.go:304`) makes `Start` fail after
+//     `bootstrap` succeeded. No premise of `NewServer.spec` excludes it.
+func TestSpecBootstrapNewServerErrorPaths(t *testing.T) {
+	// path 1
+	cfg := specConfig(t, t.TempDir(), "m1")
+	cfg.AuthToken = "no-such-token-type"
+	if _, err := NewServer(cfg); err == nil {
+		t.Error("path 1: NewServer did not fail")
+	} else {
+		t.Logf("path 1: NewServer failed: %v", err)
+	}
+	// path 2: the CA file empty (no CA, no error) until `bootstrap` returns, then a PEM block that is
+	// no certificate (`x509.ParseCertificate` fails)
+	ca := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(ca, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	swapped := false
+	lg := zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(io.Discard), zap.InfoLevel), zap.Hooks(func(e zapcore.Entry) error {
+		if e.Message == "bootstrap successfully" {
+			swapped = true
+			return os.WriteFile(ca, []byte("-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n"), 0o600)
+		}
+		return nil
+	}))
+	cfg = specConfig(t, t.TempDir(), "m1")
+	cfg.Logger = lg
+	cfg.PeerTLSInfo = transport.TLSInfo{TrustedCAFile: ca}
+	_, err := NewServer(cfg)
+	if !swapped {
+		t.Fatalf("path 2: bootstrap failed: %v", err)
+	}
+	if err == nil || !strings.Contains(err.Error(), "x509") {
+		t.Fatalf("path 2: NewServer did not fail at Start: %v", err)
+	}
+	t.Logf("path 2: bootstrap succeeded; NewServer failed at Start: %v", err)
+}
+
+// TestSpecBootstrapNewServerErrorLeak measures what path 1's `b.Close()` leaves behind
+// (`nonissues/etcd-newserver-error-path-leaks.md`): the goroutines `NewServer` started (raft's
+// `node.run`, the lessor's `runLoop`, the WAL's file pipeline) keep running, and the WAL's lock is
+// held until the GC finalizes the leaked WAL's file (with `GOGC=off`, never: a second `NewServer`
+// on the directory then exits at `bootstrap.go:677`, "failed to open WAL"); after it, a second
+// `NewServer` gets past `bootstrap`. Not driven here: the leaked pipeline also holds the lock on the
+// next segment's `0.tmp` (`file_pipeline.go`), so a retried server that succeeds would block at its
+// first segment cut (`wal.go:840`), inferred from the code.
+func TestSpecBootstrapNewServerErrorLeak(t *testing.T) {
+	dir := t.TempDir()
+	cfg := specConfig(t, dir, "m1")
+	cfg.AuthToken = "no-such-token-type"
+	runtime.GC()
+	before := runtime.NumGoroutine()
+	if _, err := NewServer(cfg); err == nil {
+		t.Fatal("NewServer did not fail")
+	}
+	walLocked := func() bool {
+		ws, _ := filepath.Glob(filepath.Join(cfg.DataDir, "member", "wal", "*.wal"))
+		locked := false
+		for _, w := range ws {
+			l, err := fileutil.TryLockFile(w, os.O_RDWR, fileutil.PrivateFileMode)
+			if err != nil {
+				locked = true
+			} else {
+				l.Close()
+			}
+		}
+		return locked
+	}
+	if !walLocked() {
+		t.Errorf("the WAL is not locked after NewServer's error")
+	}
+	time.Sleep(200 * time.Millisecond)
+	after := runtime.NumGoroutine()
+	t.Logf("goroutines: %d before NewServer, %d after its error (+%d)", before, after, after-before)
+	if after-before < 3 {
+		t.Errorf("expected at least 3 leaked goroutines, got %d", after-before)
+	}
+	unlocked := false
+	for i := 0; i < 20 && !unlocked; i++ {
+		runtime.GC()
+		time.Sleep(50 * time.Millisecond)
+		unlocked = !walLocked()
+	}
+	t.Logf("WAL lock released by the GC: %v", unlocked)
+	if !unlocked {
+		t.Fatal("the WAL stays locked after GC")
+	}
+	_, err := NewServer(cfg)
+	t.Logf("second NewServer after GC: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "auth") {
+		t.Errorf("second NewServer: expected the token provider's error again, got %v", err)
+	}
+}

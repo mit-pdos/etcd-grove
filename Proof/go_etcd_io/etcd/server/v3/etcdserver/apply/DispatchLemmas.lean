@@ -132,6 +132,32 @@ def cmpOutcome (c : Chain) (log : mvcc.Log) : Outcome :=
 theorem cmpOutcome_logAfter (c : Chain) (log : mvcc.Log) : (cmpOutcome c log).logAfter log = log := by
   unfold cmpOutcome; split <;> rfl
 
+/-- **A grant leaves the KV log** (the lease-grant stage): whatever the chain's outcome. -/
+theorem chainStep_grant_logAfter (rq : IRRModel) (hk : dispatchKind rq = .leaseGrant)
+    (log : mvcc.Log) : ∀ (c : Chain) (o : Outcome), chainStep backendStep c rq log o →
+      o.logAfter log = log
+  | .backend, o, h => by
+    simp only [chainStep, backendStep, hk] at h
+    rcases h with rfl | rfl <;> rfl
+  | .auth _ c, o, h => by
+    simp only [chainStep] at h
+    split at h
+    · rcases h with ⟨-, rfl⟩ | h
+      · rfl
+      · exact chainStep_grant_logAfter rq hk log c o h
+    · exact chainStep_grant_logAfter rq hk log c o h
+  | .quota c, o, h => by
+    simp only [chainStep] at h
+    exact chainStep_grant_logAfter rq hk log c o h
+  | .capped c, o, h => by
+    simp only [chainStep, cappedRejects, hk, ↓reduceIte] at h
+    subst h; rfl
+  | .corrupt c, o, h => by
+    simp only [chainStep] at h
+    split at h
+    · subst h; rfl
+    · exact chainStep_grant_logAfter rq hk log c o h
+
 /-- **A compaction's step through the chain is `cmpOutcome`** (the auth and capped layers pass it
 on: no check, not capped). -/
 theorem chainStep_cmpOutcome (rq : IRRModel) (hk : dispatchKind rq = .compaction) (log : mvcc.Log) :
@@ -280,7 +306,7 @@ theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : G
     · icases Hv with ⟨-, -, -, -, #HF, -⟩
       iapply errVar_applyErrIs _ _ $$ HF
       iexists ef; iframe Hef; ipureintro; exact Herr
-    · ihave %Hen := mvcc.errorfIs_ne_nil err $$ Hef
+    · ihave %Hen := mvcc.ctxErrorf_ne_nil err $$ Hef
       exfalso
       rcases Hne with h | h | h
       · exact Hen h
@@ -378,6 +404,18 @@ theorem cmpAnswerIs_split [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumption
     ipureintro
     unfold cmpOutcome
     simp [hc]
+
+/-- A revocation's answer's error (the lease-expiry plan's X7: back with the revocation arm). -/
+theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      revokeOutcomeIs resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [revokeOutcomeIs]
+  · icases H with ⟨-, H⟩
+    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
+    iintro - %h; exact h.elim
+  · icases H with ⟨-, H, -⟩
+    iexact H
 
 end errIs
 

@@ -438,6 +438,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
+  icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
   iapply (h_refresh st R M ti (fun x => Lk x Post)
       ({ putRole st0 role ps' with revision := rev } : AuthState) (hs ++ [bump (putRole st0 role ps')]))
     $$ [HL Hca Hown]
@@ -453,6 +454,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
   inext
   iintro ⟨HL, Hca, Hown⟩
+  icombine Hown HshR as Hown
+  ihave Hown := (authOwnF_split _ _).2 $$ Hown
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)

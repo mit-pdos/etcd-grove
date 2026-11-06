@@ -34,8 +34,6 @@ axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
-axiom Perennial.go_etcd_io.bbolt.errors.errorsNewVarsInit
-axiom Perennial.go_etcd_io.bbolt.internal.common.opaqueInitsOk
 axiom Perennial.go_etcd_io.bbolt.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.opaqueInitsOk
@@ -52,8 +50,10 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption_init
@@ -214,6 +214,7 @@ axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
+axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -229,6 +230,8 @@ axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
+axiom Perennial.internal.runtime.sys.opaqueInitsOk
+axiom Perennial.io.fs.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.errors.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.meta.opaqueInitsOk
 axiom Perennial.k8s_io.apimachinery.pkg.api.validate.content.opaqueInitsOk
@@ -274,6 +277,12 @@ axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
+axiom Perennial.runtime.GOARCH_amd64
+axiom Perennial.runtime.GOOS_linux
+axiom Perennial.runtime.initFuncsOk
+axiom Perennial.runtime.opaqueInitsOk
+axiom Perennial.syscall.initFuncsOk
+axiom Perennial.syscall.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
@@ -281,6 +290,8 @@ axiom addrsUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
+axiom apply.memberEnc_id_learner
+axiom apply.memberKey_inj
 axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
@@ -302,6 +313,8 @@ axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
 axiom backend.boltLogger
 axiom backend.boltLogger_persistent
+axiom backend.dbFile
+axiom backend.dbFile_persistent
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -360,6 +373,7 @@ axiom bbolt.DB.Close_kv.wp_proof
 axiom bbolt.DB.Info_kv.wp_proof
 axiom bbolt.DB.Stats_kv.wp_proof
 axiom bbolt.Open_kv.wp_proof
+axiom bbolt.Options.String.wp_proof
 axiom bbolt.Tx.Bucket_kvr.wp_proof
 axiom bbolt.Tx.Bucket_kvw.wp_proof
 axiom bbolt.Tx.Commit_kv.wp_proof
@@ -369,6 +383,17 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom bbolt.optsAt_bool_rd
+axiom bbolt.optsAt_freelist_rd
+axiom bbolt.optsAt_int_rd
+axiom bbolt.optsAt_logger_rd
+axiom bbolt.optsAt_mlock_rd
+axiom bbolt.optsAt_mmapFlags_rd
+axiom bbolt.optsAt_nonnull
+axiom bbolt.optsAt_openFile_rd
+axiom bbolt.optsAt_pageSize_rd
+axiom bbolt.optsAt_readOnly_rd
+axiom bbolt.optsAt_timeout_rd
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
@@ -433,6 +458,7 @@ axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fields.Everything.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.Printf.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
@@ -547,6 +573,7 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof
+axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
@@ -556,9 +583,10 @@ axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.Renew.wp_proof
+axiom lease.lessor.Stop.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lease.lessorStopTok
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
@@ -569,6 +597,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
+axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
@@ -588,6 +617,7 @@ axiom netAddrFree
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
 axiom os.Getenv.wp_proof
+axiom os.Getpagesize.wp_proof
 axiom os.Rename.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbEnc_ok
@@ -646,6 +676,7 @@ axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom rate.Reservation.Delay.wp_proof
+axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.New.wp_proof
 axiom reflect.TypeOf.wp_proof
 axiom reflect.Value.Addr.wp_proof
@@ -664,6 +695,7 @@ axiom resourceversion.isWellFormed.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.GroupResource.String_ptr.wp_proof
 axiom schema.GroupVersionResource.Empty_ptr.wp_proof
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -684,6 +716,7 @@ axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
 axiom sort.StringSlice.Sort.wp_proof
@@ -696,7 +729,9 @@ axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom strconv.FormatInt.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
 axiom strconv.ParseBool.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom streamKeyFromCtx.wp_proof
@@ -705,6 +740,7 @@ axiom streamKeyOf_single
 axiom strings.Contains.wp_proof
 axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
+axiom strings.ToLower.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Nanoseconds_ptr.wp_proof
@@ -712,9 +748,6 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.Duration.String_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -756,6 +789,9 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
+axiom walDirFresh
+axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.ByteString.wp_proof
@@ -780,12 +816,7 @@ axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
-sorry EtcdServer.applyAll.wp_proofOn
-sorry EtcdServer.run.wp_proofOn
+sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
+sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry k8setcd3.client_ctx_field
-sorry k8setcd3.revRoom
-sorry kubernetes.kvIs_ne_null
-sorry run_job_snap_cmp
-sorry srvBeSnapOk_cmpRecs

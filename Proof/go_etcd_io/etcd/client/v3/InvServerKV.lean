@@ -125,6 +125,7 @@ theorem ctxErrClient_todo (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rp
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
 
 /-- **A descriptor for `context.TODO()`** (see the file header): quiet, with `ctxErrClient`. -/
 theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
@@ -138,6 +139,7 @@ theorem todo_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Et
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iapply ctxQuiet_todo
   iapply ctxErrClient_todo hAs ⟨γc, γc⟩
   iexact Hc
@@ -180,6 +182,7 @@ theorem ctxErrClient_background
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
 
 /-- **A descriptor for `context.Background()`** (as `todo_ctx`): quiet, with `ctxErrClient`. -/
 theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
@@ -193,6 +196,7 @@ theorem background_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpcty
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iapply ctxQuiet_background
   iapply ctxErrClient_background hAs ⟨γc, γc⟩
   iexact Hc
@@ -353,7 +357,7 @@ theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
     · inext; iexists σ; iframe Hσ Hmn
     imodintro
     itrivial
-  · iintro Hσ
+  · iintro ⟨Hσ, -⟩
     imod Hmask with -
     imod (mono_nat_own_update (GF := GF) (γ := γm) (kvOpStep (.range o) σ).rev
       (kvOpStep_rev (.range o) σ)) $$ Hmn with ⟨Hmn, -⟩

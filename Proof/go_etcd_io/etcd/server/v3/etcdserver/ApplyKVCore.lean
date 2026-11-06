@@ -45,7 +45,7 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
       ∃ ua, srvApplyKVCore s E γw x ua ∗ (srvApplyKVCore s E γw x ua -∗ srvApplyKV s E γw x) := by
   iintro H
   iunfold srvApplyKV at H
-  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hbo, Hra, Har, Hw, Hrd⟩
   iexists ua
   isplitl [Hua Hkv Hbo Hra Hw]
   · iunfold srvApplyKVCore
@@ -77,7 +77,9 @@ theorem srvApplyKV_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.A
   · iexact Hra
   isplitl [Har]
   · iexact Har
-  iexact Hw
+  isplitl [Hw]
+  · iexact Hw
+  iexact Hrd
 
 
 /-- (2026-10-31, the snapshot track: #11's S6) **`s.KV().Commit()`'s resources, lent by the
@@ -87,7 +89,7 @@ the environment's tie (lent with it), and a write-back token of it from the budg
 (Strict M1, 2026-11-06: over mvcc's API, `KV.Commit.contract`'s `mvccBackend`; until then the store
 writer's fragment and reader token, `txn.kvWriter`'s, and mvcc's `storeWT`.) -/
 theorem srvApplyKVCore_commit [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
-    (ua : GoInterface) (γp : GName) :
+    (ua : GoInterface) (γp : WTNames) :
     ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvApplyKVCore s E γw x ua ={⊤}=∗
       ∃ B : mvcc.KBReal, mvcc.api.mvccBackend E.γ 1 B (E.Pk B) ∗ E.BkTie B ∗ srvWT E ∗
       (mvcc.api.mvccBackend E.γ 1 B (E.Pk B) -∗ E.BkTie B -∗ srvApplyKVCore s E γw x ua) := by

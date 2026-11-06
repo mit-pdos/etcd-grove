@@ -68,7 +68,7 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
     iapply HΦ
     iframe HRD Htok
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     iintro %_
     iframe Hrev
     iunfold leaseCheckFrom
@@ -76,13 +76,16 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
   | true =>
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
-  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb⟩
+  ihave %Hon := enabledVerdictFrom_true_isOn E.authMode n $$ Hen
+  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr, #Hb, #Hae⟩
   · iframe #
   (try wp_auto)
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Htok Herr
+    iframe HRD Htok
+    isplitr
+    · iunfold authApplyErrIs; iframe Herr; iapply Hae; ipureintro; exact Hon
     iintro %h; cases h
   (try wp_auto)
   iunfold authInfoOpt at Ha
@@ -91,7 +94,14 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
     subst Han
     (try wp_auto)
     iapply HΦ
-    iframe HRD Htok HUEe
+    iframe HRD Htok
+    isplitr
+    · ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hap
+      icases Hai with ⟨#HUEv, -⟩
+      iapply apply.authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrUserEmpty
+        (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) _ $$ HUEv
+      iexists eUE; iframe HUE; ipureintro; rfl
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
   ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
@@ -112,7 +122,7 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
     iapply HΦ
     iframe HRD Htok
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     iintro %_
     iframe Hrev
     iunfold leaseCheckFrom
@@ -151,7 +161,7 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
     iapply HΦ
     iframe HRD Htok
     isplitl []
-    · iapply applyErrIs_nil
+    · iapply authApplyErrIs_nil
     iintro %_
     iframe Hrev
     iunfold leaseCheckFrom
@@ -240,8 +250,6 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
       wp_for_post
       iapply HΦ
       iframe HRD Htok
-      iunfold authApplyErrIs at Herr3
-      icases Herr3 with ⟨#Herr3, -⟩
       iframe Herr3
       iintro %h; cases h
   have hall : ks.take (sint.nat j) = ks := by
@@ -250,7 +258,7 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
   iapply HΦ
   iframe HRD Htok
   isplitl []
-  · iapply applyErrIs_nil
+  · iapply authApplyErrIs_nil
   iintro %_
   iframe Hrev
   iunfold leaseCheckFrom

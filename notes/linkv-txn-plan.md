@@ -148,7 +148,7 @@ keys; the old model stays until F.
 
 ### D. The Go program (`examples/linkv/linkv.go`)
 
-**Done** (2026-10-20) as a new module `examples/linkvtxn` (status-history.md "linkv-txn stage D"), linkv
+**Done** (2026-10-20) as a new module `examples/etcd/txnlin` (status-history.md "linkv-txn stage D"), linkv
 unchanged.
 
 - `Input`/`Output` widened (an op kind, a key, a value, cmps and ops for a txn; the response
@@ -184,7 +184,7 @@ Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, t
 
 ### F. `Apply` (`Spec/.../linkv/Apply.lean`, `linkv/Inv.lean`, `linkv/Apply.lean`)
 
-**Done** (2026-10-20, status-history.md "linkv-txn stage F") for `examples/linkvtxn`: `call` split per kind,
+**Done** (2026-10-20, status-history.md "linkv-txn stage F") for `examples/etcd/txnlin`: `call` split per kind,
 each kind's call proved at the state its update fired at, `Apply` linked (`wp_Apply`). A finding on
 the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-serializable.md`);
 `Apply`'s input excludes empty transactions, which `Gen` never makes.
@@ -204,7 +204,7 @@ the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-seria
 **Done** (2026-10-20, STATUS "linkv-txn stage G"): `linkvtxn_safe`, its axioms `linkv_safe`'s
 (`proto.Clone` was already in its trust base, through the server). linkv stays (linkv3, linkv3p).
 
-For `examples/linkvtxn` (stage D made it a module of its own): `Gen` (`genFrom`, `pick`, `mkTxn`,
+For `examples/etcd/txnlin` (stage D made it a module of its own): `Gen` (`genFrom`, `pick`, `mkTxn`,
 `workloadKeys`: `GenIn`, which `Apply`'s input premise is), `Check`, `Main` (linkv's, at
 `linkvtxnS` and `linkvInv`'s allocation from the boot state: `linkvInv_alloc` needs a good state
 that is the model's initial one), the closed theorem `linkvtxn_safe` (as `linkv_safe`), its

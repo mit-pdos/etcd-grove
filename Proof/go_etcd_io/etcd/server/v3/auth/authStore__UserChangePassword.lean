@@ -226,6 +226,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
+      icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
       iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState) (hs ++ [bump st0]))
         $$ [HL Hca Hown]
       · iframe Hpkg Hinv
@@ -240,6 +241,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
         iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
       inext
       iintro ⟨HL, Hca, Hown⟩
+      icombine Hown HshR as Hown
+      ihave Hown := (authOwnF_split _ _).2 $$ Hown
       (try wp_auto)
       wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
       iapply HInval $$ %name [HA] [-]
@@ -340,6 +343,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (try wp_auto)
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
+    icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
     iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState) (hs ++ [bump st0]))
       $$ [HL Hca Hown]
     · iframe Hpkg Hinv
@@ -354,6 +358,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
       iframe Hown; ipureintro; exact ⟨permsFit_rev _ rev Hfit', fun _ h => by subst h; exact Hl1⟩
     inext
     iintro ⟨HL, Hca, Hown⟩
+    icombine Hown HshR as Hown
+    ihave Hown := (authOwnF_split _ _).2 $$ Hown
     (try wp_auto)
     wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
     iapply HInval $$ %name [HA] [-]

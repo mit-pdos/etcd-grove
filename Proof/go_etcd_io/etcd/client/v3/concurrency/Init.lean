@@ -22,6 +22,7 @@ public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_uber_org.zap.Init
 public import Perennial.Proof.context.NewErrorString
+public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -90,15 +91,15 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrSessionExpired))
   -- translated initializer of ErrLockReleased))
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xN #MN
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xN ⟨-, #MN⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xO #MO
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xO ⟨-, #MO⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xL #ML
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xL ⟨-, #ML⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xS #MS
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xS ⟨-, #MS⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xR #MR
+  wp_apply _root_.Perennial.context.wp_New_errorString as %xR ⟨-, #MR⟩
   try wp_auto
   ipersist HErrElectionNotLeader
   ipersist HErrElectionNoLeader

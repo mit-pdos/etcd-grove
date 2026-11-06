@@ -94,14 +94,18 @@ revisions. (Defined at stage 2, M2, 2026-11-05: the receipt and the image's fact
 
 /-- **What the client keeps of an opened backend** after the store's part: its stop channels, its
 hook's exclusive half at `nil` (to set, or to freeze at `nil`), its other buckets' rights (lease,
-alarm, auth, membership), the reader pool (`rdPool`), and `K`. (The store's reader slots' open
+alarm, auth, membership), the reader pool (`rdPool`), the auth store's share of the reader slots
+(`rdAuth`, `lean`'s N4, at the `lean` merge 2026-11-06), and `K`. (The `lean` merge, 2026-11-06:
+the stop channels at some client resources, `isStopChansE`, since `lean`'s `isStopChans` names the
+batch lock's `W Pk`; MERGE-TODO(shutdown): a client that needs `Close`'s `bStopView` at the store's
+own `W := mvccW gx` needs them at it: settled with the API's `Close`, the plan's risk 1.) (The store's reader slots' open
 shares come back at the `Restore` that replaces the backend; not at `Close`, shutdown being out of
 scope.) Sealed; its parts by `backendRest_open.law` (the tester's migration, 2026-11-06, G1: until
 then opaque at `True`, which left the client no hook to set, no lessor and no `K`). -/
 @[no_expose] def backendRest (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF)
     (b : Loc) (D : backend.Data) : IProp GF :=
-  iprop(backend.isStopChans γB b ∗ K γB ∗ backend.plHook γB func.nil ∗
-    backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b)
+  iprop(backend.isStopChansE γB P b ∗ K γB ∗ backend.plHook γB func.nil ∗
+    backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b ∗ backend.rdAuth γB P b)
 
 instance mvccImage_persistent (D : backend.Data) (L : Log) (c : Int) (u : Bool) :
     Persistent (mvccImage (GF := GF) D L c u) := by
@@ -132,13 +136,13 @@ abbrev mvccBackend_isBackend.law : Prop :=
 /-- **What the client keeps of an opened backend, opened** (the tester's migration, 2026-11-06, G1:
 decided by the coordinator): `backendRest`'s parts, `newPostKP`'s beyond the store's: the stop
 channels, `K`, the hook's exclusive half at `nil` (`SetTxPostLockInsideApplyHook`, or freezing it),
-the tracked buckets' rights (`NewLessor`'s `rbPart`) and the reader pool. -/
+the tracked buckets' rights (`NewLessor`'s `rbPart`), the reader pool and the auth store's share. -/
 abbrev backendRest_open.law : Prop :=
   ∀ (γB : backend.BNames) (P : backend.BParams) (K : backend.BNames → IProp GF) (b : Loc)
     (D : backend.Data),
     backendRest (GF := GF) γB P K b D ⊢
-      backend.isStopChans γB b ∗ K γB ∗ backend.plHook γB func.nil ∗
-        backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b
+      backend.isStopChansE γB P b ∗ K γB ∗ backend.plHook γB func.nil ∗
+        backend.rbOwn γB (backend.rbData P D) ∗ backend.rdPool γB P b ∗ backend.rdAuth γB P b
 
 /-- **The store's part of an opened backend** (decision 2, the user, 2026-11-03: over the store's
 needs, at any opener; the review of round 13's decisions: at the pooled post): what a backend's

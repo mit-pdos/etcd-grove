@@ -31,6 +31,14 @@ opaque leaseEnc (id ttl rem : w64) : GoString
 (`if l.ttl < le.minLeaseTTL { l.ttl = le.minLeaseTTL }`, signed). -/
 def grantTTL (mt ttl : w64) : w64 := if sint.Z ttl < sint.Z mt then mt else ttl
 
+/-- **`Grant` only raises the TTL it is asked for** (the lease-expiry plan's R5): a lease asked for
+`ttl` gets at least `ttl`, so a positive one. -/
+theorem grantTTL_ge (mt ttl : w64) : sint.Z ttl ≤ sint.Z (grantTTL mt ttl) := by
+  unfold grantTTL; split <;> omega
+
+theorem grantTTL_pos (mt ttl : w64) (h : 1 ≤ sint.Z ttl) : 1 ≤ sint.Z (grantTTL mt ttl) :=
+  by have := grantTTL_ge mt ttl; omega
+
 end lease
 
 namespace mvcc

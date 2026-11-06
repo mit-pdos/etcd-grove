@@ -80,9 +80,7 @@ theorem txn.txn.wp_proof
   · -- the context done during a range: logged, the response returned with the error
     obtain ⟨hro1, hlg⟩ := hndro Hndf
     subst hro1
-    ihave #He2 := He
-    iunfold mvcc.errorfIs at He2
-    icases He2 with ⟨%x, %Hx, -⟩
+    ihave ⟨%x, %Hx⟩ := mvcc.ctxErrorf_ok _ $$ He
     subst Hx
     ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
     · iPkgInit

@@ -67,7 +67,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.component_base.metrics.CounterOpts.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val DaemonControllerSubsystem))
   (Let "$v1" (Val #(go!"stale_sync_skips_total"))
   (Let "$v2" (Val #(go!"Total number of DaemonSet syncs skipped due to a stale watch cache."))
-  (Let "$v3" (Val _root_.Perennial.k8s_io.component_base.metrics.ALPHA)
+  (Let "$v3" (Val #(go!"ALPHA"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.component_base.metrics.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"StabilityLevel")) (ElementExpression _root_.Perennial.k8s_io.component_base.metrics.StabilityLevel.ty (Var "$v3")))])))))))
   (Let "$a1" (Let "$v0" (Val #(go!"group"))
   (Let "$v1" (Val #(go!"resource"))

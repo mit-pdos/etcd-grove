@@ -174,8 +174,7 @@ theorem raft.campaign.wp_proof
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
   · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg
       (by first | exact (Hpv rfl).1 | exact (Hpv (by assumption)).1 | simp_all) $$ [$Hphys] as Hphys
-    rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
-    wp_auto
+    try wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     isplitr
     · ipureintro; rfl
@@ -183,8 +182,7 @@ theorem raft.campaign.wp_proof
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
   · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap Hid_cfg $$ [$Hphys] as %pvs Hphys
-    rw [show raftpb.MsgVote = #MsgVote from rfl]
-    wp_auto
+    try wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     isplitr
     · ipureintro; rfl

@@ -51,6 +51,7 @@ theorem watcher.RequestProgress.wp_proof
   iunfold ctxErrClientAllW at HcA
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
+  ihave #Hwctx := EtcdGrove.context.watchCtx_of_isContext ctx cs $$ Hctx
   wp_auto
   wp_apply wp_key ctx cs $$ []
   · iframe #
@@ -165,7 +166,7 @@ theorem watcher.RequestProgress.wp_proof
     iapply context.isContextDone_receive _ _ _ _ $$ Hdone
     iintro -
     wp_auto
-    wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 #Hse -
+    wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 #Hse - -
     iapply HΦ
     iexact Hse
   iapply BigAndL.bigAndL_cons.2

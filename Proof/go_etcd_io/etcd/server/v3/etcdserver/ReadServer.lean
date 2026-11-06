@@ -87,7 +87,10 @@ theorem isReadServer_of_serverM (on : Bool)
     · iframe #
     iapply HΦ
     iunfold srvDoneChan at Hdone
+    icases Hdone with ⟨%γdn, %Qdn, #Hdone⟩
+    iexists Qdn
     iunfold bcastChan
+    iexists γdn
     iexact Hdone
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr
@@ -203,7 +206,7 @@ theorem isReadServer_of_server
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
       isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
         (idCred ρ.ids 1) :=
-  isReadServer_of_serverM false hAW hDone hStop hLC hFC hNR hRT hAI hLg s E ρ γr hρ
+  isReadServer_of_serverM false hAW hDone hStop hLC hFC hNR hRT (hAI false) hLg s E ρ γr hρ
 
 end proof
 

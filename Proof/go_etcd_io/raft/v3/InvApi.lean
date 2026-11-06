@@ -1651,7 +1651,7 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1660,7 +1660,10 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
   (γn.dlm, γn.cap, γn.ccq, γn.cam, γn.live, γn.sn.ga, γn.sn.gg, γn.sn.gsv, γn.sn.gd, γn.sn.gk,
     -- (2026-11-01, durability stage II(g), approved fix A) the generation of the id's slot, so that
     -- a `nodeRunning` share is at the driver's generation (`api_enter`)
-    γn.gen)
+    γn.gen,
+    -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag's name, so that
+    -- `nodeStartTag` is of the node object
+    γn.start)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -1956,6 +1959,19 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
         | none => iprop(True)
         | some l => storGiven γn.sn (uint.nat l.snap.Metadata'.Index')))))
 
+/-- (2026-11-05, the lease-expiry plan's E2 revision 5; the tag after the review of 2026-11-05, N1)
+**How the node `n` was started** (persistent): `n`'s entry of the cluster's table names its start
+tag (`NodeNames.start`), which holds `boot`, discarded: `true` if `StartNode` made it (a new cluster's
+bootstrap), `false` if `RestartNode` did. Each start allocates a fresh tag and writes it once; the
+table pins the name per node object (`cfgNamesOf`), so a node has one tag. A write-once record of the
+start, not a fact about the loop's later states. -/
+def nodeStartTag (n : Loc) (γ : Cluster) (boot : Bool) : IProp GF :=
+  iprop(∃ γn : NodeNames, nodeTabOk γ n γn ∗ dghostVar γn.start DFrac.discard boot)
+
+instance nodeStartTag_persistent (n : Loc) (γ : Cluster) (boot : Bool) :
+    Persistent (nodeStartTag (GF := GF) n γ boot) := by
+  unfold nodeStartTag; infer_instance
+
 /-- A sent message's snapshot, if it is a `MsgSnap`, is certified (`snapshotCert`). -/
 def sentSnapCert (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
   iprop(⌜st.msg.Type' ≠ MsgSnap⌝ ∨
@@ -2141,6 +2157,26 @@ def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : Nod
       raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
 
+-- (2026-11-03, R2b-1 stage 1: moved here from `InvApiView`, for `readyPost`)
+/-- **The committed log delivered to node `n` extends `l`** (the draft's `deliveredLogLb`):
+raft's lower bound (`dlvLb`) of the node's names (its table's, if dynamic), and committed. -/
+def deliveredLogLb (n : Loc) (γ : Cluster) (_N : Namespace) (l : List LogEntry) : IProp GF :=
+  iprop((∃ (γn : NodeNames) (id : w64) (ds : List EntryM), ⌜NodeOk γ γn ∧ strip ds = l⌝ ∗
+    EtcdGrove.isNodeChan γn id n ∗ (⌜γn.mode.isDyn = false⌝ ∨ nodeTabOk γ n γn) ∗ dlvLb γn ds) ∗
+    isCommittedLogLb γ l)
+
+instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    Persistent (deliveredLogLb (GF := GF) n γ N l) := by
+  unfold deliveredLogLb; infer_instance
+
+theorem busy_isNode_lb (γn : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p : HardStateM) (L : Option SnapLoan) :
+    nodeDriverBusy (GF := GF) γn id n ds es p L ⊢
+      nodeDriverBusy γn id n ds es p L ∗ (EtcdGrove.isNodeChan γn id n ∗ dlvLb γn ds) := by
+  unfold nodeDriverBusy
+  iintro ⟨#Hn, #Hlb, Hr⟩
+  iframe Hn Hlb Hr
+
 /-- What receiving a `Ready` gives (the draft's `readyGot`, `node.readyRecv.spec`'s
 postcondition). -/
 abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
@@ -2153,7 +2189,11 @@ abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeD
       [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
     readyRest γ N id rd st ce es h L ms ss ∗
     (⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms) ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    -- (2026-11-03, R2b-1 stage 1) the delivered log after the `Ready` and its hard state's
+    -- committed fact, without *enter*: a client that enters at its disk write needs them before
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length)
 
 /-- **Receiving a `Ready`** (the draft's `node.readyRecv`). -/
 abbrev node.readyRecv.spec : Prop :=
@@ -2395,7 +2435,7 @@ theorem api_enter (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
   ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
   have Hgen : γ1.gen = γn.gen := by
     simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
-    exact Hcn.2.2.2.2.2.2.2.2.2.2
+    exact Hcn.2.2.2.2.2.2.2.2.2.2.1
   iunfold EtcdGrove.nodeLiveRaw at Hl
   icases Hl with ⟨Hlv, Hsl⟩
   ihave Hsl : slotLive γ.raft γn.id q.half γn.gen $$ [Hsl]
@@ -2572,6 +2612,16 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       rw [this, Hlen]; push_cast; omega
     ihave #Hlb' : isCommittedLogLb γ (st.delivered ++ strip ce) $$ []
     · rw [← Hds, ← strip_append]; iexact Hlb
+    -- (2026-11-03, R2b-1 stage 1) the delivered log's lower bound, before *enter* takes the token
+    ihave ⟨Hbusy, #Hdlbn⟩ : nodeDriverBusy γn γn.id n (dlvAfter ds ce none) es p' none ∗
+        dlvLb γn (dlvAfter ds ce none) $$ [Hbusy]
+    · iunfold nodeDriverBusy at Hbusy
+      icases Hbusy with ⟨#Hbn, #Hdlb, Hbr⟩
+      iframe Hdlb
+      unfold nodeDriverBusy
+      iframe Hbn Hdlb Hbr
+    ihave #Hdlbn' : dlvLb γn (ds ++ ce) $$ []
+    · iExactEq Hdlbn; rfl
     ihave Henter := api_enter n γ N γn st (st.afterReady (strip ce) es h none ss) (ds ++ ce) es none
       ms S' W Hnok HU HNs Hγs (by rw [strip_append, Hds]; rfl) Hdyn rfl
       (by rw [HS', Hp']; rfl) (by rw [HS']; exact RaftState.next_wcommit _ _ _ _ _ _) $$ Hci Hpool [] [] Htab [] Hnode [Hbusy] [] Hdur Hdx [Hbw] Hpend HtS' Hmw Htl
@@ -2632,7 +2682,21 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         rfl
     isplitr
     · iexact Hlm
-    iexact Henter
+    isplitl [Henter]
+    · iexact Henter
+    -- (2026-11-03, R2b-1 stage 1) the delivered log and the hard state's committed fact
+    isplitr
+    · iunfold deliveredLogLb
+      isplitr
+      · iexists γn, γn.id, ds ++ ce
+        iframe Hnode Hdlbn'
+        isplitr
+        · ipureintro; exact ⟨Hnok, by rw [strip_append, Hds]; rfl⟩
+        iright; iexact Htab
+      · iExactEq Hlb'; rfl
+    · iExactEq Hhc
+      rw [Hp']
+      simp only [NodeDriverState.afterReady, List.length_append, strip_length, Hlen]
   | some l =>
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
@@ -2735,7 +2799,21 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       ipureintro; rw [← Hγr]; exact Hbl
     isplitr
     · iexact Hlm
-    iexact Henter
+    isplitl [Henter]
+    · iexact Henter
+    -- (2026-11-03, R2b-1 stage 1) the delivered log and the hard state's committed fact
+    isplitr
+    · iunfold deliveredLogLb
+      isplitr
+      · iexists γn, γn.id, l.dlv
+        iframe Hnode Hdlb
+        isplitr
+        · ipureintro; exact ⟨Hnok, rfl⟩
+        iright; iexact Htab
+      · iExactEq Hlbd; rfl
+    · iExactEq Hhc
+      rw [Hp']
+      simp only [NodeDriverState.afterReady, strip_length]
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   intro n ch γ N id0 st Hh

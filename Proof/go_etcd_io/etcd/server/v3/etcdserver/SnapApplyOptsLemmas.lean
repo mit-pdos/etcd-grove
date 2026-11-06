@@ -83,9 +83,9 @@ theorem srvRestRWH_lens_cluster (γB : backend.BNames) (al ast lp cl be : Loc) :
   iunfold srvObjsOn
   iframe Hrw Hal Hau Hle Hcb
 
-theorem srvRestOwnH_lens_cluster (γB : backend.BNames) (al ast lp cl be : Loc) :
-    ⊢ roLens (GF := GF) (srvRestOwnH γB cl (srvObjsOn al ast lp cl be))
-      (fun r => iprop(srvRestOwn γB cl r ∗ clusterBeOn cl be)) := by
+theorem srvRestOwnH_lens_cluster (M : auth.AuthMode) (γB : backend.BNames) (al ast lp cl be : Loc) :
+    ⊢ roLens (GF := GF) (srvRestOwnH M γB cl (srvObjsOn al ast lp cl be))
+      (fun r => iprop(srvRestOwn M γB cl r ∗ clusterBeOn cl be)) := by
   iunfold roLens
   iintro !> %r Hro
   iunfold srvRestOwnH at Hro
@@ -102,13 +102,13 @@ theorem srvRestOwnH_lens_cluster (γB : backend.BNames) (al ast lp cl be : Loc) 
 /-! ## The logger -/
 
 /-- The new options' logger is the server's, not `nil` (`srvFieldsAt`'s). -/
-theorem snap_lg_nn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem snap_lg_nn (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (lg : Loc) :
-    isServer s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ⊢ ⌜lg ≠ null⌝ := by
+    isServerM on s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ⊢ ⌜lg ≠ null⌝ := by
   iintro ⟨#HS, #Hlg⟩
-  iunfold isServer at HS
+  iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
-  iunfold srvFieldsAt at Hf
+  iunfold srvFieldsAtM at Hf
   icases Hf with ⟨#Hlg', %Hnn, -⟩
   icombine Hlg Hlg' gives %Heq
   ipureintro; rw [Heq]; exact Hnn
@@ -117,7 +117,8 @@ theorem snap_lg_nn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp
 
 /-- (Strict M1, 2026-11-06) the restated contracts at the new backend `d'`, its write invariant
 `W` (the store's `mvccW d'.gx`) and batch lock's `Pk`, its frozen hook `g`: the epoch's
-`fun _ => Pk`, `g`, `srvBkTie d'` (`snapE`'s). -/
+`fun _ => Pk`, `g`, `srvBkTie d'` (`snapE`'s). (The mvcc merge, 2026-11-06: the auth store's and the
+cluster's at any auth mode `M`, as `lean`'s P5/P6.2.) -/
 theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (W Pk : IProp GF) (g : GoFunc)
     (hgnn : g ≠ func.nil) :
     alarmApplyOk al ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
@@ -129,27 +130,27 @@ theorem snap_isAlarmStore (al ast lp cl : Loc) (d' : mvcc.KBReal) (W Pk : IProp 
   · ipureintro; exact hgnn
   · iapply srvRestRWH_lens_alarm
 
-theorem snap_isAuthStore (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal) (W Pk : IProp GF)
-    (g : GoFunc) (hgnn : g ≠ func.nil) :
-    authApplyOk ast RD ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
-    apply.isAuthStore (auth.authIface ast) (fun _ => Pk) g (srvBkTie d') RD .off
+theorem snap_isAuthStore (M : auth.AuthMode) (al ast lp cl : Loc) (RD : IProp GF) (d' : mvcc.KBReal)
+    (W Pk : IProp GF) (g : GoFunc) (hgnn : g ≠ func.nil) :
+    authApplyOkM M ast RD ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗ backend.plHookRO d'.γB g ⊢
+    apply.isAuthStore (auth.authIface ast) (fun _ => Pk) g (srvBkTie d') RD M
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#HisAuth, #HB, #Hhook⟩
-  iunfold authApplyOk at HisAuth
+  iunfold authApplyOkM at HisAuth
   iapply HisAuth $$ %d' %W %Pk %g %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) HB Hhook [] []
   · ipureintro; exact hgnn
   · iapply srvRestRWH_lens_auth
 
-theorem snap_isCluster (al ast lp cl : Loc) (d' : mvcc.KBReal) (W Pk : IProp GF) (g : GoFunc)
-    (hgnn : g ≠ func.nil) :
+theorem snap_isCluster (M : auth.AuthMode) (al ast lp cl : Loc) (d' : mvcc.KBReal) (W Pk : IProp GF)
+    (g : GoFunc) (hgnn : g ≠ func.nil) :
     clusterApplyOk cl ∗ backend.isBackend d'.γB d'.P W Pk d'.be ∗
       backend.plHookRO d'.γB g ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ⊢
     apply.isCluster cl (fun _ => Pk) g (srvBkTie d')
-      (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
+      (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#Hisc, #HB, #Hhook, #Hvcn⟩
   iunfold clusterApplyOk at Hisc
-  iapply Hisc $$ %d' %W %Pk %g %(srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
+  iapply Hisc $$ %M %d' %W %Pk %g %(srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
     %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) HB Hhook [] [] [] []
   · ipureintro; exact hgnn
   · iexact Hvcn
@@ -166,15 +167,15 @@ theorem snap_isApplyLessor
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
     (hRv : lease.lessor.Revoke.spec (GF := GF) (hG := hG))
-    (al ast lp cl sst : Loc) (d' : mvcc.KBReal)
+    (M : auth.AuthMode) (al ast lp cl sst : Loc) (d' : mvcc.KBReal)
     (γs : mvcc.StoreNames) (hk : γs.kb = some d') (Pk : IProp GF) (g : GoFunc)
     (hgnn : g ≠ func.nil) (hwq : γs.watchQ = true) (hlp : mvcc.leaseParams d'.P) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       lessorApplyOk lp ∗ lease.lessorCfg lp ∗ lessorLookupOk lp ∗ lease.lessorInv lp γs.leases ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateW d'.gx) Pk d'.be ∗ backend.plHookRO d'.γB g ∗
+      backend.isBackend d'.γB d'.P (mvcc.lateWD d') Pk d'.be ∗ backend.plHookRO d'.γB g ∗
       mvcc.hookOk γs Pk #g ⊢
     apply.isApplyLessor (lease.lessorIface lp) sst γs Pk #g
-      (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be))
+      (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be))
       (srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) := by
   iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook, #Hhok⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
@@ -182,24 +183,33 @@ theorem snap_isApplyLessor
   ihave #Hmvpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv lp sst γs _ _
-    (srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be)) _
-    (lease.lessorBeOn lp d'.be) (backend.rbPart d'.γB (· = go!"lease"))
+    (srvRestOwnH M d'.γB cl (srvObjsOn al ast lp cl d'.be)) _
   iunfold lessorLookupOk at Hllk
   iframe Hllk Hlcfg Hlinv Hlspkg Hmvpkg Hhok
   isplitr
   · ipureintro; exact hwq
   isplitr
-  · iapply (srvRestOwnH_lens_revoke γs d' hk hlp al ast lp cl)
+  · iapply (srvRestOwnH_lens_revoke γs d' hk hlp M al ast lp cl)
   isplitl []
-  · unfold mvcc.storeWT mvcc.storeRT
+  · iintro !> %d0 %hd0
+    rw [hk] at hd0
+    cases hd0
+    rw [show mvcc.leaseName = go!"lease" from rfl]
+    unfold mvcc.storeWT mvcc.storeRT
     rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
       show mvcc.kbRT (GF := GF) (some d') = mvcc.bkRTx d'.γB d'.P d'.be from rfl]
     iunfold lessorApplyOk at Hlbe
-    iapply Hlbe $$ %d' %(mvcc.lateW d'.gx) %Pk %g
+    iapply Hlbe $$ %d' %(mvcc.lateWD d') %Pk %g
       %(lease.lessorBeOn lp d'.be) HB Hhook [] []
     · ipureintro; exact hgnn
     · iapply lessorBeOn_lens
-  · iapply srvRestRWH_lessor
+  · iintro !> Hrw
+    ihave #Hl := srvRestRWH_lessor (GF := GF) d'.γB al ast lp cl d'.be
+    ihave ⟨Hbe, Hr⟩ := Hl $$ Hrw
+    iexists d'
+    rw [show mvcc.leaseName = go!"lease" from rfl]
+    iframe Hbe Hr
+    ipureintro; exact hk
 
 /-! ## The KV and the hook -/
 
@@ -254,17 +264,17 @@ theorem snap_isRaftStatus
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServer s γ ci TM E ρ γr ⊢
+      isServerM on s γ ci TM E ρ γr ⊢
     apply.isRaftStatus (interface.mkOk EtcdServer.ty.PointerType #s) := by
   iintro ⟨#Hpkg, #HS⟩
-  iunfold isServer at HS
+  iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, #Hat, -⟩
-  iunfold srvFieldsAt at Hf
+  iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, -⟩
-  iunfold srvAtomics at Hat
+  iunfold srvAtomicsM at Hat
   icases Hat with ⟨-, #Hti, -⟩
   iunfold apply.isRaftStatus
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
@@ -289,15 +299,15 @@ theorem snap_isRaftStatus
 `E.FS = srvFS s`). -/
 theorem snap_isSnapshotServer
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServer s γ ci TM E ρ γr ⊢
+      isServerM on s γ ci TM E ρ γr ⊢
     apply.isSnapshotServer (interface.mkOk EtcdServer.ty.PointerType #s) E.FS := by
   iintro ⟨#Hpkg, #HS⟩
-  iunfold isServer at HS
+  iunfold isServerM at HS
   icases HS with ⟨-, -, ⟨%v, #Hf⟩, -⟩
-  iunfold srvFieldsAt at Hf
+  iunfold srvFieldsAtM at Hf
   icases Hf with ⟨-, -, -, -, -, %Henv, -⟩
   rw [Henv.2.1]
   iunfold apply.isSnapshotServer

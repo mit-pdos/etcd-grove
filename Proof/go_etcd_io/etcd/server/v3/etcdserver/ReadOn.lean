@@ -208,6 +208,57 @@ instance txnClassFrom_persistent (M : auth.AuthMode) (m : Nat)
     Persistent (txnClassFrom (GF := GF) M m info t) := by
   unfold txnClassFrom; infer_instance
 
+/-- Every comparison list has its checked reads (each range end as the model's). -/
+theorem cmpsChecked_exists (cs : List CmpModel) : ∃ L, apply.cmpsChecked cs L := by
+  induction cs with
+  | nil => exact ⟨[], rfl⟩
+  | cons cm cs ih =>
+    obtain ⟨L, hL⟩ := ih
+    exact ⟨(cm.key, cm.rangeEnd, .read) :: L, cm.rangeEnd, L, Or.inl rfl, hL, rfl⟩
+
+/-- A list of gets has its checked reads. -/
+theorem opsChecked_gets (ops : List txn.TxnOpW) (h : ∀ op ∈ ops, apply.opW_isGet op = true) :
+    ∃ L, apply.opsChecked ops L := by
+  induction ops with
+  | nil => exact ⟨[], by simp [apply.opsChecked]⟩
+  | cons op ops ih =>
+    obtain ⟨L, hL⟩ := ih (fun o ho => h o (List.mem_cons_of_mem _ ho))
+    cases op with
+    | get o =>
+      refine ⟨[(o.key, o.base.rangeEnd, .read)] ++ L, ?_⟩
+      simp only [apply.opsChecked]
+      exact ⟨_, L, by simp only [apply.opChecked]; exact ⟨_, Or.inl rfl, rfl⟩, hL, rfl⟩
+    | _ => simp [apply.opW_isGet] at h
+
+/-- Off, every check passes (`permVerdictFrom .off` of no error). -/
+theorem verdictsFrom_off (m : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (L : List apply.Perm3) : ⊢ apply.verdictsFrom (GF := GF) .off m info L := by
+  induction L with
+  | nil => exact apply.verdictsFrom_nil _ _ _
+  | cons x L ih =>
+    have h := apply.verdictsFrom_append (GF := GF) .off m info [x] L
+    simp only [List.singleton_append] at h
+    iapply h
+    isplitr
+    · unfold apply.verdictsFrom
+      iapply BigSepL.bigSepL_singleton.2
+      unfold auth.permVerdictFrom; ipureintro; rfl
+    · iapply ih
+
+/-- **Off, a read-only transaction's class holds** (`txnClassFrom` at `.off`: every check
+passes). -/
+theorem txnClassFrom_off (m : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (tw : txn.TxnModelW) (h : apply.readonlyW tw) :
+    ⊢ txnClassFrom (GF := GF) .off m info tw.toModel := by
+  obtain ⟨L1, h1⟩ := cmpsChecked_exists tw.cmps
+  obtain ⟨L2, h2⟩ := opsChecked_gets tw.thenOps (fun op ho => h op (List.mem_append_left _ ho))
+  obtain ⟨L3, h3⟩ := opsChecked_gets tw.elseOps (fun op ho => h op (List.mem_append_right _ ho))
+  unfold txnClassFrom
+  iexists tw, L1 ++ (L2 ++ L3)
+  isplitr
+  · ipureintro; exact ⟨rfl, L1, L2, L3, h1, h2, h3, rfl⟩
+  iapply verdictsFrom_off
+
 /-- **The auth state at an applied log through an index at least `c` is published** (persistent;
 the auth plan's E3u): what a linearizable read waiting for the read index `c` finds in the applied
 index's invariant (`appliedPubM`). -/
@@ -279,7 +330,7 @@ theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
     iintro #H
     ihave #Hon := srvKVInvsM_onPart s E γr $$ H
     iunfold srvKVInvsOn at Hon
-    icases Hon with ⟨#Hk, #Hc, #Hr, -, #Hs, %Hw, %HNx⟩
+    icases Hon with ⟨#Hk, #Hc, #Hr, -, #Hs, %Hw, %HNx, -⟩
     isplitl []
     · iexact Hk
     isplitl []
@@ -314,7 +365,7 @@ theorem srvKVCoreM_fire (on : Bool)
     (L : mvcc.Log) (Q : KVState → IProp GF) :
     ⊢ srvKVCoreM on E γr -∗ E.Nx L -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) ={⊤}=∗
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ={⊤}=∗
       ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
   have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
     intro p hp
@@ -331,7 +382,7 @@ theorem srvKVCoreM_fire (on : Bool)
     icases Hc with ⟨%A, #HA, %hA⟩
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     -- `L` is a prefix of the committed log's model
     imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
       Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
@@ -353,16 +404,19 @@ theorem srvKVCoreM_fire (on : Bool)
     ihave Hc2 : ghostVar (GF := GF) γr.kv.st (1 : Qp).half σ $$ [Hc']
     · rw [← hst]; iexact Hc'
     ihave %Hag := ghostVar_agree γr.kv.st _ _ _ _ $$ Hσ' Hc2
+    ihave %Hlg := kvSt_client_lg γr.kv _ _ $$ Hσ' Hc2
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
-    · iunfold etcdKV; rw [hst]; iexact Hc2
+    · iunfold etcdKV; rw [hst]; isplitl [Hc2]
+      · iexact Hc2
+      · ipureintro; rw [← Hag]; exact kvRoom_model γr.kv Lf Hok'.2.2.2.2.2.2.2.2
     imod Hback with -
-    imod Hclose $$ [HLf Hσ'] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
     iexists kvModel γr.kv Lf
-    rw [← kvModelSt_plain γr.kv Lf Hok'.1, Hag]
+    rw [← kvModelSt_plain γr.kv Lf (KVNames.lm_of_lg_false Hlg ▸ Hok'.1), Hag]
     iframe HQ0
     ipureintro; exact HpL
   · rw [srvKVCoreM_true]
@@ -399,7 +453,9 @@ theorem srvKVCoreM_fire (on : Bool)
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc2] with #HQ0
-    · iunfold etcdKV; rw [hst]; iexact Hc2
+    · iunfold etcdKV; rw [hst]; isplitl [Hc2]
+      · iexact Hc2
+      · ipureintro; rw [← Hag]; exact kvRoom_modelOn γr.kv srvAuthSt0 Lf Hok'.2.2.2.2.2.2.2
     imod Hback with -
     imod Hclose $$ [HLf Hσ' Hh] with -
     · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
@@ -449,15 +505,15 @@ theorem srvKVCoreM_keys (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (l : m
     icases Hc with ⟨%A, #HA, %hA⟩
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     ihave #Hw2 := Hw
     iunfold kvWork at Hw2
     icases Hw2 with ⟨%Hws, -⟩
     imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
       Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
     ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ'] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+    imod Hclose $$ [HLf Hσ' HG] with -
+    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
     imodintro
     ipureintro
     obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
@@ -515,7 +571,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- Firing every registered read update at the state of `L`'s mode-`on` model, the KV authority's
 half agreeing (`kv_fire_reads`'s). -/
-theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) :
+theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (hroom : kvRoom (kvStOn γk st₀ L)) :
     ∀ gs : List GName,
       ⊢ ghostVar (GF := GF) γk.st (1 : Qp).half (kvStOn γk st₀ L) -∗
         ([∗list] g ∈ gs, regOk γk g (kvStOn γk st₀)) -∗
@@ -537,7 +594,7 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
     iunfold kvDep at Hd
     icases Hd with (⟨%Q0, %HQeq, #Hau⟩ | %HQeq)
     rotate_left
-    · imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
+    · imod kv_fire_reads_on γk st₀ L hroom gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
       imodintro
       iframe Hσ
       unfold readQs
@@ -561,8 +618,10 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
     icases Hucl with ⟨-, Hcommit⟩
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
     imod Hcommit $$ [Hc] with #HQ0
-    · iunfold etcdKV; iexact Hc
-    imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
+    · iunfold etcdKV; isplitl [Hc]
+      · iexact Hc
+      · ipureintro; rw [← Hag]; exact hroom
+    imod kv_fire_reads_on γk st₀ L hroom gs $$ Hσ Hgs' with ⟨Hσ, #Hrest⟩
     imodintro
     iframe Hσ
     unfold readQs
@@ -618,7 +677,7 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   iunfold kvInvOn at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, Hh, %Hok, #Hw⟩
-  imod kv_fire_reads_on γk st₀ L gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
+  imod kv_fire_reads_on γk st₀ L (kvRoom_modelOn γk st₀ L Hok.2.2.2.2.2.2.2) gs $$ Hσ Hgs with ⟨Hσ, #HQs⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
@@ -740,8 +799,8 @@ theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
     iframe HL
     ipureintro; exact ⟨Hci, h⟩
 
-/-- **The trivial lower bound** (E3u): any reader may take `0`; with `authFloorAt`, `Range.specOn`
-at `n = 0` still checks a linearizable read no older than its read index. -/
+/-- **The trivial lower bound** (E3u): any reader may take `0`; with `authFloorAt`, `Range.spec` with
+auth on at `n = 0` still checks a linearizable read no older than its read index. -/
 theorem authPubLbM_zero (M : auth.AuthMode) : ⊢ |==> auth.authPubLbM (GF := GF) M 0 := by
   cases M with
   | on γa => unfold auth.authPubLbM auth.authPubLb; exact monoNatLbOwn_0 γa.pub

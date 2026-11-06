@@ -873,7 +873,7 @@ abbrev watchStream.Watch.spec : Prop := ∀ w : Loc, WatchStream.Watch.contract 
 history), with the real lessor; the state at `mvccStart`, the open token, the backend's token, the
 range deleter. Each reader of the store (a read transaction, the compaction's job, the sync
 loops, a progress request's read) holds a thread token and one of the backend's counted reader
-slots, of which the store has `rdStockN` (about `3 · 2 ^ 28`; the rest of the `2 ^ 30 - 1` Go's
+slots, of which the store has `rdStockN` (about `2 ^ 29`; the rest of the `2 ^ 30 - 1` Go's
 `RWMutex` admits are the client's pool): so at most `rdStockN` threads (the review of round 13's
 decisions, D1; the server has `threadBound ≤ 2 ^ 28`). -/
 abbrev New.spec : Prop :=

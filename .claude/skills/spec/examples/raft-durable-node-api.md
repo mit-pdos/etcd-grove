@@ -2,7 +2,7 @@
 
 **Kind:** an API extension one spec must serve two kinds of client with. One client keeps nothing
 durable (kvreconf, kv, etcd's server as proved). The other writes raft's state to disk and crashes
-and restarts (`examples/kvdurable`; later etcd with its WAL).
+and restarts (`examples/raft/kvdurable`; later etcd with its WAL).
 
 **Principles it shows:**
 - A commit point the client chooses is an update the library hands out.

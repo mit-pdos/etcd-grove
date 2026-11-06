@@ -11,6 +11,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseTimeToLive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.TogRPCErrorPlain
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Perennial.Spec.errors.Is
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
@@ -35,6 +36,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     (hIs : _root_.Perennial.errors.Is.spec (GF := GF) (hG := hG))
@@ -57,7 +59,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
   wp_apply HT $$ [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.ttlAns at Hans
-  icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, %hv, Hhv⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae⟩)
+  icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, ⟨%hv, Hhv⟩, #Hf⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae, #Hnf⟩)
   · subst He
     wp_auto
     -- `errors.Is(nil, ErrLeaseNotFound)`: `false` (an empty tree; `err` nil)
@@ -84,7 +86,9 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR w.Header' hv.Revision' r' $$ [Hkeep Hout]
     · iframe
     (try wp_auto)
+    ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
     iapply HΦ
+    iframe HSn
     iframe HS HR Hr
     iunfold v3rpc.leaseTTLOut
     ileft
@@ -115,10 +119,11 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
       cases b1 with
       | false =>
         wp_auto
-        wp_apply hTog $$ [] as %e %He
+        wp_apply (v3rpc.togRPCError_plain hTog) $$ [] as %e ⟨%He, #HSn⟩
         · iapply srvErrIs_of_applyErrIs _ Hen $$ Hae
         (try wp_auto)
         iapply HΦ
+        iframe HSn
         iframe HS HR Hr
         iunfold v3rpc.leaseTTLOut
         iright
@@ -159,7 +164,9 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
           ihave ⟨HR, %dq', Hrev, -⟩ := v3rpc.hdrRev_out A.revR «$v0_ptr» _ r' $$ [Hkeep Hout]
           · iframe
           (try wp_auto)
+          ihave #HSn := go_etcd_io.etcd.cache.v3.srvErrOk_nil (GF := GF)
           iapply HΦ
+          iframe HSn
           iframe HS HR Hr
           iunfold v3rpc.leaseTTLOut
           ileft
@@ -175,7 +182,15 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
             iexists dq', r'
             iframe Hrev
           iright
-          ipureintro; rfl
+          isplitr
+          · ipureintro; rfl
+          iintro !> #Hrow
+          ihave Hit : errIsTrue (GF := GF) (GoInterface.ok ei) (GoInterface.ok eNF) $$ []
+          · iunfold errIsTrue
+            iexists S', I', U'
+            iframe Htree
+            ipureintro; exact ⟨HS.1, HS.2.2, Hw1 (by simp) (by simp)⟩
+          iapply Hnf $$ %eNF HNF Hit Hrow
 
 end proof
 

@@ -22,14 +22,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
-/-- `le.ExpiredLeasesC()`: the lessor's `expiredC`, a channel of slices of leases, some lease of
-each meeting the lessor's grant guard `GA` (D19n, 2026-10-18; until then no logical content). -/
+/-- `le.ExpiredLeasesC()`: the lessor's `expiredC`, a channel of slices of leases, each meeting the
+lessor's grant guard `GA` (D19n, 2026-10-18; until then no logical content; the lease-expiry plan's
+X3, 2026-11-04: the slice's leases with their `ID`s, `expiredLeases`; until then only some lease of
+each), each refuting `leasesNoExpiry` (the lease-grant plan's D1, 2026-11-02). -/
 abbrev lease.lessor.ExpiredLeasesC.spec : Prop :=
   ∀ (lp : Loc) (GA : w64 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lessorExpiredC lp GA }}
     (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"ExpiredLeasesC")) (Val #()))
   {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
-      isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, GA id)) }}
+      isChanBag γc c (V := GoSlice) (fun ls => iprop(⌜¬ leasesNoExpiry⌝ ∗ expiredLeases GA ls)) }}
 
 end spec
 

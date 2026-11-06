@@ -55,7 +55,7 @@ theorem leasingKV.monitorSession.wp_proof
   · iexact Hmon
   wp_for HI
   ihave #HErrU := HErr $$ %Broadcast.Unknown
-  wp_apply HErrU as %err0 Herr0
+  wp_apply HErrU as %err0 Herr0 -
   cases err0 with
   | ok e =>
     (try wp_auto)

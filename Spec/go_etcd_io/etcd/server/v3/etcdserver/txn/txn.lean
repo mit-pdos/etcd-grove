@@ -67,7 +67,7 @@ abbrev txn.txn.spec : Prop :=
           txn.leasesKnown L (mvcc.applyChanges (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)) ∗
         (⌜ro = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.applyChanges
           (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log) chs)))) ∨
-      (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗ mvcc.api.mvccTxn tw γ trace k ∗
+      (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗ mvcc.api.mvccTxn tw γ trace k ∗
         txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))) }}
 

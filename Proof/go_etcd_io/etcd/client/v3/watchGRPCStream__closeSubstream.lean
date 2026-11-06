@@ -152,10 +152,11 @@ theorem watchGRPCStream.closeSubstream.wp_proof
         wp_join_done
       | ok e0 =>
         (try wp_auto)
-        wp_apply HErrDone as %err %herr
+        ihave #HErrD := HErr $$ %Broadcast.Done
+        wp_apply HErrD as %err %herr -
         · iexact Hcc
         cases err with
-        | nil => exact absurd rfl (context.isTypedErr_ne_nil herr)
+        | nil => exact absurd rfl herr
         | ok i =>
           (try wp_auto)
           wp_join_done
@@ -174,7 +175,7 @@ theorem watchGRPCStream.closeSubstream.wp_proof
     | ok e0 =>
       (try wp_auto)
       ihave #HErrU := HErr $$ %Broadcast.Unknown
-      wp_apply HErrU $$ [] as %err herr
+      wp_apply HErrU $$ [] as %err herr -
       cases err with
       | nil =>
         (try wp_auto)

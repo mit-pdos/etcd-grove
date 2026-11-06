@@ -50,7 +50,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   ihave #Hcok := ctxOk_of_isContext ci cd $$ Hctx
   wp_auto
   simp only [_root_.Perennial.time.Millisecond]
-  wp_auto
+  try wp_auto
   ihave HI : iprop(∃ (b : w64) (e wsv : GoInterface), "backoff" ∷ backoff_ptr ↦ b ∗
       "err" ∷ err_ptr ↦ e ∗ "ws" ∷ ws_ptr ↦ wsv ∗
       "He" ∷ (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ statusErrOk e)) $$ [backoff err ws]
@@ -96,7 +96,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         iapply Hce $$ %Broadcast.Done [] 
         · iexact Hcl
         inext
-        iintro %err' %Hne %- #Hse' -
+        iintro %err' %Hne %- #Hse' - -
         wp_auto
         wp_for_post
         iapply HΦ

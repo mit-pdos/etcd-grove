@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelRestore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyCmpArm
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.clusterImageOk_restModel
 
@@ -207,6 +208,96 @@ theorem clusterImageOk_of_bkRestAt [GooseExts] (d : mvcc.KBReal) (c : Loc) (mem 
     h go!"members_removed" (by decide), h go!"cluster" (by decide)]
   exact hc
 
+/-! ### A leased image's other buckets (the lease-expiry plan's S2–S4 Probe, 2026-11-05) -/
+
+/-- **A leased image's buckets other than `lease` are the plain image's** (`bkRestAtL`'s records
+are all in `lease`, `restLeasesWith_lookup_other`). -/
+theorem bkRestAtL_other [GooseExts] {γk : KVNames} {bootLog : List EntryM} {L : List EntryModel}
+    {D : backend.Data} (h : bkRestAtL γk bootLog L D) :
+    ∀ n ∈ mvcc.restBuckets, n ≠ go!"lease" → D.lookup n = bkRestOf γk.c0 bootLog L n := by
+  obtain ⟨f, -, hf⟩ := h
+  intro n hn hne
+  rw [hf n hn, restLeasesWith_lookup_other _ _ _ _ (fun e => hne (by rw [← e]; rfl))]
+  rfl
+
+/-- `restModel_bk_of_bkRestAt` for an image that is the model's but for its `lease` bucket. -/
+theorem restModel_bk_of_NL [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
+    {L : List EntryModel} {D : backend.Data}
+    (h : ∀ n ∈ mvcc.restBuckets, n ≠ go!"lease" → D.lookup n = bkRestOf c0 bootLog L n) :
+    (restModel c0 bootLog L).bk =
+      <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) := by
+  apply GMap.ext
+  intro n
+  by_cases hn : n ∈ mvcc.restBuckets
+  · rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]
+    split
+    · next he =>
+      subst he
+      rw [restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
+      simp [restBoot, restBootBk]
+    · split
+      · next he =>
+        subst he
+        rw [restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
+        simp [restBoot, restBootBk]
+      · next _ hne =>
+        rw [rbData_real_lookup d D n hn, h n hn (fun e => hne e.symm), bkRestOf]
+  · rw [restModel_bk_none _ _ _ _ hn, GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff,
+      backend.rbData_lookup]
+    have hrb : d.P.RB n = false := by
+      show decide (n ∈ mvcc.restBuckets) = false; simpa using hn
+    have ha' : go!"alarm" ≠ n := fun e => hn (e ▸ by decide)
+    have hl' : go!"lease" ≠ n := fun e => hn (e ▸ by decide)
+    simp [ha', hl', hrb]
+
+/-- `image_bootBuckets`'s alarm and auth buckets, for an image that is the model's but for its
+`lease` bucket. -/
+theorem image_bootBucketsNL [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
+    {L : List EntryModel} {D : backend.Data}
+    (h : ∀ n ∈ mvcc.restBuckets, n ≠ go!"lease" → D.lookup n = bkRestOf c0 bootLog L n) :
+    ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅ ∧
+    (((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
+      ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
+      ((backend.rbData d.P D).lookup go!"authRoles").getD ∅ = ∅) := by
+  have hb : ∀ n, n ∈ mvcc.restBuckets → n ≠ go!"lease" → go!"members" ≠ n → go!"cluster" ≠ n →
+      go!"members_removed" ≠ n →
+      (backend.rbData d.P D).lookup n = (restBoot bootLog).bk.lookup n := by
+    intro n hn hne h1 h2 h3
+    rw [rbData_real_lookup d D n hn, h n hn hne, bkRestOf, restModel_keep _ _ _ _ h1 h2 h3]
+  rw [hb go!"alarm" (by decide) (by decide) (by decide) (by decide) (by decide),
+    hb go!"auth" (by decide) (by decide) (by decide) (by decide) (by decide),
+    hb go!"authUsers" (by decide) (by decide) (by decide) (by decide) (by decide),
+    hb go!"authRoles" (by decide) (by decide) (by decide) (by decide) (by decide)]
+  simp [restBoot, restBootBk]
+
+/-- `image_membBuckets` for an image that is the model's but for its `lease` bucket. -/
+theorem image_membBucketsNL [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
+    {L : List EntryModel} {D : backend.Data}
+    (h : ∀ n ∈ mvcc.restBuckets, n ≠ go!"lease" → D.lookup n = bkRestOf c0 bootLog L n) :
+    ((backend.rbData d.P D).lookup go!"members").isSome ∧
+    ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
+    ((backend.rbData d.P D).lookup go!"cluster").isSome := by
+  rw [rbData_real_lookup d D go!"members" (by decide),
+    rbData_real_lookup d D go!"members_removed" (by decide),
+    rbData_real_lookup d D go!"cluster" (by decide), h go!"members" (by decide) (by decide),
+    h go!"members_removed" (by decide) (by decide), h go!"cluster" (by decide) (by decide)]
+  simp only [bkRestOf]
+  refine ⟨restModel_isSome _ _ _ _ ?_, restModel_isSome _ _ _ _ ?_, restModel_isSome _ _ _ _ ?_⟩ <;>
+    simp [restBoot, restBootBk]
+
+/-- `clusterImageOk_of_bkRestAt` for an image that is the model's but for its `lease` bucket. -/
+theorem clusterImageOk_of_NL [GooseExts] (d : mvcc.KBReal) (c : Loc) (mem : GMap w64 apply.MemberM)
+    {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {D : backend.Data}
+    (h : ∀ n ∈ mvcc.restBuckets, n ≠ go!"lease" → D.lookup n = bkRestOf c0 bootLog L n)
+    (hc : membership.clusterImageOk c (restModel c0 bootLog L).bk mem) :
+    membership.clusterImageOk c (backend.rbData d.P D) mem := by
+  unfold membership.clusterImageOk at hc ⊢
+  rw [rbData_real_lookup d D go!"members" (by decide),
+    rbData_real_lookup d D go!"members_removed" (by decide),
+    rbData_real_lookup d D go!"cluster" (by decide), h go!"members" (by decide) (by decide),
+    h go!"members_removed" (by decide) (by decide), h go!"cluster" (by decide) (by decide)]
+  exact hc
+
 /-! ## The restored log (pure) -/
 
 /-- **The facts `specSnap` takes of the image** `D` at the index `i` for the receiver's names `γr`
@@ -223,13 +314,14 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   len : uint.Z i = A'.length
   /-- the image's state reachable, its history short (the sender's writer's facts) -/
   hst : imageStOk (kvModel γr.kv A') (crevOf γr.kv A')
-  /-- (strict M1, 2026-11-06) the image's history puts no lease (`KV.Restore.contract`'s leased
-  items: none), the KV model of a plain log from a lease-free start -/
-  nolease : mvcc.LogNoLease (kvModel γr.kv A')
+  -- (the mvcc merge, 2026-11-06) strict M1's `nolease : mvcc.LogNoLease (kvModel γr.kv A')` dropped:
+  -- `lean`'s lease-expiry restores the image's leases (`hlease`); MERGE-TODO(snap-leases)
   /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` at
   `tI := t`, D22 J7b) -/
   hmetaI : ∃ t : w64, metaIs D (i, t)
-  hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅
+  /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) the image's lease
+  bucket the records of its log's live leases -/
+  hlease : imageLeasesAt γr d.P D A'
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
     ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
@@ -267,14 +359,14 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
     exact ⟨hd, ht⟩
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, %Hp⟩
   ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
   · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2.1
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   ipureintro
   -- (2026-10-27) `B`'s entries are the server's log's or fillers
@@ -306,7 +398,7 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.boot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H) :
+    (hRO : E.RO = srvRestOwnH E.authMode d.γB cl H) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
@@ -342,24 +434,20 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
-  -- (strict M1) the image's history puts no lease: the model of a plain log from the boot's two
-  -- empty revisions
-  imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl
-  have hnl : mvcc.LogNoLease (kvModel γr.kv A') := by
-    have hl0 : mvcc.LogNoLease γr.kv.log0 := by
-      rw [hlog0]; intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
-      rcases hcs with rfl | rfl <;> simp at hc
-    exact (kvRaftOf_restorable γr.kv.c0 γr.kv.ch0 γr.kv.log0 A' Hpl.1 hl0).1
+  imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
+  have Hpl : plainLogM γr.kv.cmp γr.kv.lm A' := Hpl0.1
   -- the compaction revision's permit
   imod crevOf_permit γr.raft γr.kv A' $$ HkI HrI HA' with Hp
   imod crevOf_offM γr.raft γr.kv A' $$ HkI HrI HA' with %Hoff
-  -- the cluster's in-memory members, from the rest resource
-  iunfold srvRest at Hrest
+  -- the cluster's in-memory members, from the rest resource (S2–S4 Probe: in either lease mode,
+  -- `srvRest_open`; the records leave the members, `restLeasesWith_mem`)
+  ihave ⟨%f, %Hf, Hrest, HL, HG, #HRq, HU⟩ := srvRest_open E γr A $$ Hrest
   rw [hRO]
   iunfold srvRestOwnH at Hrest
   icases Hrest with ⟨Hro, HH⟩
   iunfold srvRestOwn at Hro
   icases Hro with ⟨Hrb, Hrn, Hmem, %Hmi⟩
+  rw [apply.restLeasesWith_mem]
   ihave #HA'' : srvRLogLb γr.raft (γr.raft.pre ++ A') $$ []
   · rw [hpre0, List.nil_append]; iexact HA'
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
@@ -372,20 +460,29 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩
+  -- MERGE-TODO(snap-leases): `lean`'s image here was `bkRestAtL` (the lease bucket the records of
+  -- the log's live leases, `hrestL`), its other buckets the plain image's (`bkRestAtL_other`); the
+  -- merged `InvImage.imageRestAt` is strict M1's `bkRestAt` (lease bucket empty)
   imodintro
   isplitl [Hhi]
   · iunfold kvApplied
     iunfold kvAppliedL
     iframe HA Hhi Hc
     ipureintro; exact ⟨Hl, Hch'⟩
-  isplitl [Hrb Hrn Hmem HH]
-  · iunfold srvRest
+  isplitl [Hrb Hrn Hmem HH HL HG HU]
+  · iapply srvRest_close
+    iexists f
+    iframe HL HG HRq HU
+    isplitr
+    · ipureintro; exact Hf
     rw [hRO]
     iunfold srvRestOwnH
     iframe HH
     iunfold srvRestOwn
-    iframe Hrb Hrn Hmem
-    ipureintro; exact Hmi
+    iframe Hrb Hrn
+    rw [apply.restLeasesWith_mem]
+    iframe Hmem
+    ipureintro; rw [← apply.restLeasesWith_mem f (srvIds E (appliedTable γr A).ids)]; exact Hmi
   iexists A', u
   iframe HA' Him
   isplitr
@@ -395,9 +492,9 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
       pre := hAA'
       len := by omega
       hst := hst
-      nolease := hnl
       hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
-      hlease := hb.1
+      -- MERGE-TODO(snap-leases): `lean`'s `imageLeasesAt_of_bkRestAtL d hrestL`
+      hlease := imageLeasesAt_of_bkRestAtL d hrestL
       halarm := hb.2.1
       hauthb := hb.2.2
       hmemb := image_membBuckets d hrest

@@ -10,8 +10,9 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   interface, `rnLoggerZapOk`); raft's `SetLogger` (translated with its body, but its globals
   `raftLogger`/`raftLoggerMu` are allocated by raft's package initializer and their ownership
   dropped, `Init.lean`, so the write is not provable: `rnSetLoggerOk`); `contention.NewTimeoutDetector`
-  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (Perennial models no
-  ticker: `isRNTicker`, the tick credits with the ticks, D10; `rnTickerOk`); the server's package
+  (names-only: `isRNTimeoutDetector`, `rnTimeoutDetectorOk`); `time.NewTicker` (`isRNTicker`;
+  since 2026-11-03 no contract: Perennial's proved specs of `NewTicker` and `Ticker.Stop` are
+  callees of `newRaftNode`'s proof, `isRNTicker_of_time`; until then `rnTickerOk`); the server's package
   globals `raftStatus` (a function value) and `raftStatusMu` (the mutex protecting it; not in the
   package facts `srvRaftInit`, which hold the metrics only: `rnRaftStatusOk`, the mutex's
   invariant owning the function); `serverstorage.NewStorage` (names-only: the WAL, `isRNWal`,
@@ -26,8 +27,11 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   the struct finally lives: `isRaftNode_of_rnParts`, `NodeStart.lean`, which adds what the node
   and the server provide, `rnEnvOk`, the node's contract, the storage's, the transport's),
   `cfg`'s fields as the caller gave them, both halves of `applyc` with `cum` at `[[]]`, and the
-  right to close `done`. The names `γ` are the wrapper's (`RNNames`): `newRaftNode` allocates
-  `ap`, `cum` and `done`, the rest are the caller's.
+  right to close `done`, and the claim on the stop's escrow (`rnStopClaim`). The names `γ` are the
+  wrapper's (`RNNames`): `newRaftNode` allocates `ap`, `cum`, `done` and `sc`, the rest are the
+  caller's.
+* **`rnStartCfg`**: the raft configuration and the peers a new cluster's node boots with (pure),
+  shared by `bootstrappedRaft.newRaftNode.spec`, `NodeStartSpec` and `bootOk`.
 * `srvIdxOk_boot`: the bootstrap log (`srvBootLogOk`) passes the server's `srvIdxOk` at the applied
   index `0` (its entries are v1 conf changes whose bytes decode: `isConfChangeEncoding`).
 -/
@@ -39,6 +43,7 @@ public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Perennial.Spec.time.Ticker__Stop
 
 @[expose] public section
 
@@ -51,10 +56,34 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-/-! ## The bootstrap log passes `srvIdxOk` -/
+/-! ## The boot configuration -/
 
 section pure
-variable [GooseExts]
+variable [GooseExts] [go_gctx : GoGlobalContext]
+
+/-- **The raft configuration and the peers a new cluster's node boots with** (pure; 2026-11-05,
+the `newRaftNode` review's M: until then the same conjuncts spelled out in
+`bootstrappedRaft.newRaftNode.spec`'s, `NodeStartSpec`'s and `bootOk`'s `Hraft`): the wrapper's
+logger `b.lg` non-nil (`newRaftNode`'s), `NewRawNode`'s premises on `b.config` (`StartNode.spec`'s;
+its storage the `MemoryStorage` `b.storage`; `CheckQuorum` and `PreVote` either way since
+2026-10-17), and the peers `pv` non-empty (`len(b.peers) != 0`: `StartNode`'s branch) with their
+ids `ps`. What each user needs beyond it (the heartbeat, the peers' distinctness, the cluster's
+voters, ...) it states beside it. -/
+structure rnStartCfg (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (pv : List Peer)
+    (ps : List w64) : Prop where
+  lg : bv.lg' ≠ null
+  valid : ConfigValid cv
+  logger : cv.Logger' = interface.ok lok
+  storage : cv.Storage' = memStorIface bv.storage'
+  inflight : sint.Z cv.MaxInflightMsgs' < 2 ^ 62
+  noForwarding : cv.DisableProposalForwarding' = false
+  readOnly : cv.ReadOnlyOption' = W64 0
+  ccValidation : cv.DisableConfChangeValidation' = false
+  sizes : cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0
+  noAsync : cv.AsyncStorageWrites' = false
+  applied : cv.Applied' = W64 0
+  peers : ps = pv.map Peer.ID'
+  peersNe : ps ≠ []
 
 end pure
 
@@ -94,15 +123,30 @@ def rnTimeoutDetectorOk : IProp GF :=
 instance rnTimeoutDetectorOk_persistent : Persistent (rnTimeoutDetectorOk (GF := GF)) := by
   unfold rnTimeoutDetectorOk; infer_instance
 
-/-- **`time.NewTicker(d)`** (Perennial models no ticker): for a non-zero `d`, a ticker meeting
-`isRNTicker E` (its ticks carry `E.T`: until D19b, 2026-10-18, raft's tick credit, minted by the
-ticker; now `True` for the server, `raftNode.tick` taking the credit, a time receipt, itself). -/
-def rnTickerOk (E : RNEnv GF) : IProp GF :=
-  iprop(□ ∀ d : time.Duration, {{ ⌜d ≠ W64 0⌝ }} (App (Val (@! time.NewTicker)) (Val #d))
-    {{ (tk : Loc), RET #tk; isRNTicker E tk }})
-
-instance rnTickerOk_persistent (E : RNEnv GF) : Persistent (rnTickerOk E) := by
-  unfold rnTickerOk; infer_instance
+/-- **A ticker of `time.NewTicker` is the wrapper's ticker** (2026-11-03; until then `rnTickerOk`,
+a contract `newRaftNode`'s spec took, and from the final whole-`bootOk` review's S2 to here a theorem
+of this repository's `time` axioms, `rnTickerOk_of_time`): Perennial's `isTicker`'s channel bag is
+`isRNTicker`'s (ticks carrying nothing; until 2026-11-05, the user's S1, at `E.T = True`, a
+premise), and its `Stop` returns. Over `Stop`'s spec as a hypothesis (a callee spec:
+`newRaftNode`'s proof takes it). -/
+theorem isRNTicker_of_time (wpS : time.Ticker.Stop.spec (GF := GF) (hG := hG))
+    (tk ch : Loc) (γ : ChanNames) :
+    time.isTicker (GF := GF) tk ch γ ⊢ isRNTicker tk := by
+  iintro #Ht
+  ihave #Ht' := Ht
+  iunfold time.isTicker at Ht'
+  icases Ht' with ⟨#HC, #HI, #HR, #Hbag⟩
+  iunfold isRNTicker
+  iexists ch
+  isplitr
+  · iexact HC
+  isplitr
+  · iright; iexists γ; iexact Hbag
+  iintro !> %Ψ !> - HΨ
+  wp_apply wpS tk
+  · iexists ch, γ; iexact Ht
+  iapply HΨ
+  ipureintro; trivial
 
 /-- **The package globals `raftStatus` and `raftStatusMu`** (`raft.go`): the mutex owns the
 function value (`raftStatus` is read by the `expvar` closure registered at init, under the
@@ -129,7 +173,7 @@ def rnNewStorageOk : IProp GF :=
   iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
       (Val #ss))
-    {{ (st : GoInterface), RET #st; isRNWal st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
+    {{ (st : GoInterface), RET #st; isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
 
 instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
   unfold rnNewStorageOk; infer_instance
@@ -167,10 +211,11 @@ def rnParts (E : RNEnv GF) (γ : RNNames) (rv : raftNode) : IProp GF :=
     "#Hmsci" ∷ isRNMsgSnapC γ rv.msgSnapC' ∗
     "#Hapci" ∷ isRNApplyc E γ rv.applyc' ∗
     "#Hrsci" ∷ isRNReadStateC E rv.readStateC' ∗
-    "#Htki" ∷ isRNTicker E rv.ticker' ∗
+    "#Htki" ∷ isRNTicker rv.ticker' ∗
     "#Htdi" ∷ isRNTimeoutDetector rv.td' ∗
     "#Hstci" ∷ rnStopBag E γ (storage.walOf rv.raftNodeConfig'.storage') rv.stopped' ∗
-    "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Unknown)
+    "#Hdnci" ∷ ownBroadcastChan rv.done' γ.done
+      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Unknown)
 
 instance rnParts_persistent (E : RNEnv GF) (γ : RNNames) (rv : raftNode) :
     Persistent (rnParts E γ rv) := by
@@ -181,18 +226,22 @@ value `rv`, owned whole at `r` (to be copied), with `cfg`'s fields as the caller
 (`raftNodeConfig' = cv`, so `transport` is `cv`'s, nil), its `tickMu` a fresh `RWMutex` (the
 guard over `latestTickTs` is made where the struct finally lives, `isRaftNode_of_rnParts`), the
 components' predicates (`rnParts`), `applyc`'s two halves with `cum` at `[[]]` (the loop's and
-the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), and the right to close `done`. -/
+the apply side's ghost state, `rnLoopTok`/`rnApplyTok`), the right to close `done`, and the
+claim on the stop's escrow (`rnStopClaim`). -/
 def rnBuilt (E : RNEnv GF) (γ : RNNames) (r : Loc) (cv : raftNodeConfig) : IProp GF :=
   iprop(∃ rv : raftNode,
     "Hr" ∷ r ↦ rv ∗
     "%Hrv" ∷ ⌜rv.lg' = cv.lg' ∧ rv.raftNodeConfig' = cv⌝ ∗
     "Hmu" ∷ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
     "#Hparts" ∷ rnParts E γ rv ∗
-    "Hprod" ∷ spscProducer γ.ap ([] : List toApply) ∗
-    "Hcons" ∷ spscConsumer γ.ap ([] : List toApply) ∗
+    "Hprod" ∷ sspscProducer γ.ap ([] : List toApply) ∗
+    "Hcons" ∷ sspscConsumer γ.ap ([] : List toApply) ∗
     "Hcum" ∷ monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
     "Hcum0" ∷ monoListIdxOwn γ.cum 0 ([] : List EntryModel) ∗
-    "Hdtok" ∷ ownBroadcastChan rv.done' γ.done iprop(True) .Pending)
+    "Hdtok" ∷ ownBroadcastChan rv.done' γ.done
+      (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage')) .Pending ∗
+    -- (2026-11-03, R2b-3b) the claim on the stop's escrow
+    "Hsc" ∷ rnStopClaim γ)
 
 end defs
 

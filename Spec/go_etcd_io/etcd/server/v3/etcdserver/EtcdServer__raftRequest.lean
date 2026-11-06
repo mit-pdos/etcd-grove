@@ -32,9 +32,9 @@ proposal, if made, deposited). Unit W-M3: the update's committed log `L` is the 
 model is the log `lb` the entry met (`appliedOk`'s `x.log`), and the log after is certified.
 
 **In the environment's auth mode** (the auth-mode merge's step 5, 2026-10-29: one spec,
-the mode `E.authOn`; the instances at a mode, `specM`, and the mode-off form, `specOff`, are
-corollaries in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): over
-`processInternalRaftRequestOnce.specM`; the success post at the committed prefix `L` before the
+the mode `E.authOn`; the mode-off form, `specOff`, is a
+corollary in `ModeSpecs.lean`). The mode views (the auth plan's E3b, 2026-10-26; `ReqOn.lean`): over
+`processInternalRaftRequestOnce.spec`; the success post at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`appliedOkM`, `modelOutM`: in the mode `on`
 the auth state the entry met and the auth layer's verdict the model's grant there). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=

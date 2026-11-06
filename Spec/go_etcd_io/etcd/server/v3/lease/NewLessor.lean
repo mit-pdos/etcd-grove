@@ -65,11 +65,14 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   (`GA` of its id, under the guard), which the lock keeps for every lease of the map
   (`lessorAuth`). The loop's `revokeExpiredLeases` sends on `expiredC` only a non-empty slice
   (`if len(ls) != 0`, `lessor.go:652`) of leases `findExpiredLeases` took from `leaseMap` under the
-  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so some lease
+  read lock (`expireExists`: `le.leaseMap[item.id]`, `nil` skipped, `lessor.go:706`), so every lease
   of it has `GA` of its id (the guard agrees with the saved one, after a step): `expiredC`'s
-  predicate `∃ id, GA id` (`lessorExpiredC lp GA`). The map starts empty (the fresh `Lease`
+  predicate (`lessorExpiredC lp GA`). (The lease-expiry plan's X3, 2026-11-04; until then `∃ id,
+  GA id`) The slice is the loop's own, never written after the send (`ls ↦*□ ps`, `ps ≠ []`), its
+  elements the map's non-null `*Lease`s, each `ID` set by `NewLease` and never written again
+  (`lsF "ID" p ↦□ id`), each with `GA id` (`expiredLeases GA`). The map starts empty (the fresh `Lease`
   bucket; `Recover`, not called, would reload it).
-* The backend's contract (`lessorBackend lp Pk f T R Rb`, used by `Grant` and `Checkpoint` through
+* The backend's contract (`lessorBackend lp Pk f T Ln R Rb`, used by `Grant` and `Checkpoint` through
   `Lease.persistTo`): `BatchTx()` returns the batch transaction; `LockInsideApply` needs the
   backend open (a share of `bOpen`, in the reader's token `mvcc.bkRTx`, lent) and runs the frozen
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
@@ -85,10 +88,8 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   (`lessorExtra`), the caller gets the other (`lease.lessorBeOn lp d.be`); `persistTo(le.b)`
   reads it under the lock, so the writes go to the backend the caller's half names: the contract
   (`lessorApplyOk`) is for whichever backend that is (its contract at some `W`, `Pk`, its frozen
-  hook), given a write right lending that half of `le.b` (`rwLens`), lent with the reader's token
-  and given back by every write (the coordinator's decision, 2026-11-06, from the tester track:
-  until then the write right was in the write token, which `LockInsideApply` consumes, so a write
-  lost the caller's half; the write token is now `wbTok` alone); `Recover`
+  hook), given a write right lending that half of `le.b` (`rwLens`), which a write gives back (the
+  lease-grant stage, 2026-11-02: the lent part `Ln`, apart from the spent token); `Recover`
   (names-only) replaces both halves under the lock. Until S7c `le.b` was `↦□` and the contract for
   `d` only, which `Recover` refutes.
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of
@@ -109,11 +110,30 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   above), split a quarter to the invariant `lessorRdN`, a quarter to the lock (`lessorMu`, at the
   whole lock's fraction) and a half to the owner (`leaseClosers`), and the item-sets map empty, its
   authority halved between the invariant and the owner; the invariant's `setsOk [(∅, ∅)] ∅` and
-  `histOk [(∅, ∅)]` hold trivially (no lease, no key). No Go state is read or written for it. -/
+  `histOk [(∅, ∅)]` hold trivially (no lease, no key). No Go state is read or written for it.
+* (The lease-grant plan's D2, 2026-11-02) **The mode** (`lessorModeIs γl mono`), chosen by the
+  caller and pinned with the readers' names: monotone (`mono = true`), the invariant also keeps
+  `histMono` (trivial of the single snapshot), and `Revoke` and `Recover`, which take the other
+  mode (`lessorRevocable`), are not called. Ghost state only.
+* (The lease-expiry plan's E3 (c), route A, the user's approval 2026-11-05) **The ids the lessor
+  ever had** (`leaseEver γl []`), ghost state only: a ghost variable at `[]`, allocated with the
+  readers' names (their fourth, `γr.2.2.2.1`), halved between the readers' invariant (which also
+  keeps `histOnce` and `histIn` of the single empty snapshot, and (the S2–S4 Probe, 2026-11-05)
+  `histCover` of `[]`, trivially) and the caller.
+* (The lease-expiry plan's S2–S4, Q-S6 (A-ii), the user's approval 2026-11-05) **The leases'
+  requested TTLs** (`leaseReqIs`), ghost state only: a ghost map, allocated empty with the readers'
+  names (their fifth, `γr.2.2.2.2`), its whole authority in the readers' invariant, which keeps
+  `reqOk` of the single empty snapshot and the empty map trivially (no lease, no TTL, no request).
+  Allocatable because a fresh ghost map at `∅` is (`ghost_map_alloc`), before `γl`'s element pins
+  the names. It makes no claim about Go: no Go state is read or written for it, and nothing about
+  `NewLessor`'s code depends on it; `Grant` and `Recover` (proved) are what insert requests and keep
+  every TTL above them.
+* (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
+  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)
-    (S : GoString → Prop) (r : GMap GoString backend.BktData),
+    (S : GoString → Prop) (r : GMap GoString backend.BktData) (mono : Bool),
   S go!"lease" → mvcc.leaseParams d.P →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
       ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
@@ -126,11 +146,15 @@ abbrev lease.NewLessor.spec : Prop :=
   {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗
       backend.rbOwnIn d.γB S (r.insert go!"lease" ∅) ∗
       ∃ (lp : Loc) (γl : GName),
-      ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
+      ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorModeIs γl mono ∗
+      lease.lessorCfg lp ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
-      lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
+      lease.leaseOwn γl [] ∅ ∗ lease.leaseEver γl [] ∗ lease.leaseRevokers γl [] ∗
+      lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗
       lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
+      -- (2026-11-04, R2b-3c part 2, the user's approval) the right to stop it
+      lease.lessorStopTok lp ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

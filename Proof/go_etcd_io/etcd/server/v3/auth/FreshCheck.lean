@@ -267,8 +267,9 @@ theorem cacheFresh (st : Loc) (R : IProp GF) (M : AuthMode) (n : Nat) (q : Qp) (
     · iframe Hsj Hs
     subst Hss
     iunfold authPubLbM at Hlb
-    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro (P := iprop(authPubAuth (GF := GF) γa p ∗ authPubLb γa n))
-      .rfl (authPubAuth_lb_le γa p n)).trans persistent_and_sep_mp) $$ [Hp]
+    ihave ⟨⟨Hp, -⟩, %Hle⟩ := ((and_intro
+      (P := iprop(authPubQ (GF := GF) γa (1 : Qp).half p ∗ authPubLb γa n))
+      .rfl (authPubQ_lb_le γa (1 : Qp).half p n)).trans persistent_and_sep_mp) $$ [Hp]
     · iframe Hp Hlb
     imod Hclose $$ [Hr Hv Hc Hp Hrv Hen Hq0] with -
     · inext

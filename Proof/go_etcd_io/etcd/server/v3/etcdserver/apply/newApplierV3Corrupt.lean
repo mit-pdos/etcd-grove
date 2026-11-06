@@ -61,7 +61,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HResp, #HResp0, #HStatus, #HCluster,
+  icases Ht with ⟨#HPut, #HDel, #HRange, #HTxn, #HRev, #HGrant, #HResp, #HResp0, #HStatus, #HCluster,
     #HApply, -⟩
   iunfold apply.applierSpec
   iexists ⟨go.GoType.PointerType applierV3Corrupt.ty, #p⟩
@@ -111,32 +111,34 @@ theorem apply.newApplierV3Corrupt.wp_proof
   isplitr
   · -- LeaseRevoke: the corrupt applier's
     imodintro
-    iintro %r %rq %id %log %rs %Pre %Q %Post %info
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log rs Pre Q Post info) $$ [Hpre Htt]
+    iapply (hRev E c (.ok bi) p r rq id log T rs Pre Q Post info) $$ [Hpre Htt]
     · iframe Hpre Htt
       iunfold apply.corruptIs
       iframe #
     inext
-    iintro %resp %err ⟨Htt, H1, H2⟩
+    iintro %resp %err ⟨Htt, H1⟩
     iapply HΦ'
     iframe
   isplitr
-  · -- the methods that leave the log as it is: `LeaseGrant` the corrupt applier's, the others
-    -- the inner applier's (promoted)
+  · -- `LeaseGrant` (the lease-grant stage, 2.11): the layer's own
+    imodintro
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
+    iunfold apply.corruptIs
+    iframe #
+  isplitr
+  · -- the methods that leave the log as it is: the inner applier's (promoted)
     imodintro
     iintro %m %r %log %Pre %Q %Post %info %hm
     imodintro
     iintro %Φ' Hpre HΦ'
     simp only [apply.respMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
-    rcases hm with rfl | hm
-    · simp only [apply.reqFacts, ↓reduceIte]
-      icases Hpre with ⟨Htt, HR, Hm, -⟩
-      iapply (hLG E c (.ok bi) p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
-      iframe HR Hm Htt
-      iunfold apply.corruptIs
-      iframe #
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl
     all_goals

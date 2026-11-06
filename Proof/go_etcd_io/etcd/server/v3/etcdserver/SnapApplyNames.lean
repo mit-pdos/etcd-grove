@@ -71,7 +71,7 @@ def snapE (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci
     (d' : mvcc.KBReal) (g : GoFunc) (γB : backend.BNames) (al ast lp cl be : Loc) :
     apply.AEnv GF :=
   E.onBe (srvBkTie d') (fun _ => batchLockInv γ' TM') g (srvCiC γ' ci)
-    (srvRestOwnH γB cl (srvObjsOn al ast lp cl be)) (srvRestRWH γB (srvObjsOn al ast lp cl be))
+    (srvRestOwnH E.authMode γB cl (srvObjsOn al ast lp cl be)) (srvRestRWH γB (srvObjsOn al ast lp cl be))
 
 section snapE
 variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci : Loc)
@@ -96,9 +96,11 @@ variable (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci 
 @[simp] theorem snapE_FS : (snapE E γ' TM' ci d' g γB al ast lp cl be).FS = E.FS := rfl
 @[simp] theorem snapE_ciC : (snapE E γ' TM' ci d' g γB al ast lp cl be).ciC = srvCiC γ' ci := rfl
 @[simp] theorem snapE_RO : (snapE E γ' TM' ci d' g γB al ast lp cl be).RO =
-    srvRestOwnH γB cl (srvObjsOn al ast lp cl be) := rfl
+    srvRestOwnH E.authMode γB cl (srvObjsOn al ast lp cl be) := rfl
 @[simp] theorem snapE_RW : (snapE E γ' TM' ci d' g γB al ast lp cl be).RW =
     srvRestRWH γB (srvObjsOn al ast lp cl be) := rfl
+@[simp] theorem snapE_lg : (snapE E γ' TM' ci d' g γB al ast lp cl be).lg = E.lg := rfl
+@[simp] theorem snapE_lm : (snapE E γ' TM' ci d' g γB al ast lp cl be).lm = E.lm := rfl
 @[simp] theorem snapE_γbe : (snapE E γ' TM' ci d' g γB al ast lp cl be).γbe = E.γbe := rfl
 @[simp] theorem snapE_cmp : (snapE E γ' TM' ci d' g γB al ast lp cl be).cmp = E.cmp := rfl
 @[simp] theorem snapE_cret : (snapE E γ' TM' ci d' g γB al ast lp cl be).cret = E.cret := rfl
@@ -119,6 +121,16 @@ place). -/
 theorem srvAtomics_snapE (s : Loc) (γr : ReadNames) :
     srvAtomics (GF := GF) s (snapE E γ' TM' ci d' g γB al ast lp cl be) γr = srvAtomics s E γr := rfl
 
+/-- **The server's atomics in the mode, at the snapshot's environment** (P6.2, 2026-11-03): off,
+`srvAtomics_snapE`; on, the KV invariants' tie to the store's history reads only the mode. (The mvcc
+merge, 2026-11-06: the store restored in place, so the environment's KV parts are the old ones; until
+then an entailment over the restored physical names `p'` and the compaction permit's names,
+`mvcc.crevPermIs_cperm`.) MERGE-TODO(walk): `rfl` not yet checked at the mode `on`. -/
+theorem srvAtomicsM_snapE (on : Bool) (s : Loc) (γr : ReadNames) :
+    srvAtomicsM (GF := GF) on s (snapE E γ' TM' ci d' g γB al ast lp cl be) γr =
+      srvAtomicsM on s E γr := by
+  cases on <;> rfl
+
 theorem srvGenAt_snapE (s : Loc) (ρ : ReqNames) :
     srvGenAt s (snapE E γ' TM' ci d' g γB al ast lp cl be) ρ = srvGenAt s E ρ := rfl
 
@@ -127,7 +139,7 @@ theorem revAuth_snapE (log : mvcc.Log) :
     revAuth (snapE E γ' TM' ci d' g γB al ast lp cl be) log = revAuth E log := rfl
 
 /-- The write budget is of `γbe` (step 7). -/
-theorem srvWTPool_snapE (γp : GName) :
+theorem srvWTPool_snapE (γp : WTNames) :
     srvWTPool (snapE E γ' TM' ci d' g γB al ast lp cl be) γp = srvWTPool E γp := rfl
 
 /-- The apply thread's KV half and leases are the logical names' (step 4). -/

@@ -32,7 +32,7 @@ namespace EtcdGrove
 namespace kubernetes
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open go_etcd_io.etcd.server.v3.etcdserver linkvtxn
+open go_etcd_io.etcd.server.v3.etcdserver etcd_txnlin
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]

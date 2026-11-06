@@ -9,7 +9,7 @@ latest state's size. With one more receipt (the request's own, from a Go step of
 thread before the call, as an applied entry's write token is paid, `srvWTPool_take_extra`) the
 premise holds under the receipts' bound `receiptBound GF ≤ 2 ^ 48` (`auth.stepOk_of_fuel`), and the
 fuel follows the authority to the step's result (`auth.adminOutFu`). One triple per step triple
-(the eleven admin requests), each derived from it; first the five `examples/authkv`'s `SetUp`
+(the eleven admin requests), each derived from it; first the five `examples/etcd/auth`'s `SetUp`
 sends (`UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`, `AuthEnable`).
 -/
 module

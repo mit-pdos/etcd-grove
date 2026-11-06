@@ -52,7 +52,7 @@ theorem isSafeRetry.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, %HdL⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, %HdL, -⟩, -⟩
   iunfold retryOptsAt at Ho
   icases Ho with ⟨%ov, #Hov, #Hovk⟩
   iunfold retryOptsPol at Hpol

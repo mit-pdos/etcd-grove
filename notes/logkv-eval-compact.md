@@ -1,6 +1,6 @@
 # logkvcompact: the base proof adapted to log compaction (2026-10-28, branch `logkv-eval`)
 
-One variant of the scalable-proof experiment (`notes/logkv-eval.md`): `examples/lintest/logkvcompact`
+One variant of the scalable-proof experiment (`notes/logkv-eval.md`): `examples/lib/lintest/logkvcompact`
 is `logkv` with log compaction. The log keeps only the writes not yet applied, numbered from an
 offset `start`; the apply goroutine, once caught up, drops what it applied (`s.log =
 s.log[s.applied-s.start:]; s.start = s.applied`), and `Put`'s index is `s.start + len(s.log)`.

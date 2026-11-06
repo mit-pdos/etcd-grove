@@ -70,8 +70,8 @@ not re-raise "the off texts do not read as today by definition".
     - the interim `NewServer.spec`/`specCompact` texts under Q4 are not in the list. Round 1's S-4
       listed them; the consolidated list dropped them.
 - **Callers affected:**
-  - every example over `NewServer` (`examples/common/newServer.lean:42, :138`;
-    `examples/common/Defs.lean:198`, the member's boot bundle `kvInv ρ.rd.raft ρ.rd.kv`;
+  - every example over `NewServer` (`examples/lib/etcdstart/newServer.lean:42, :138`;
+    `examples/lib/etcdstart/Defs.lean:198`, the member's boot bundle `kvInv ρ.rd.raft ρ.rd.kv`;
     `Alloc3.lean:80-105`);
   - `start` (its `isServerReq`/`isServerRead` come from `srvBuilt`);
   - so `Compact.specD` (item 15), which needs `ρ.kv.cmp = true` from the tie.

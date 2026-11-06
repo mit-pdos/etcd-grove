@@ -23,13 +23,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (2026-11-03, R2b-3b) `raftNode.stop.spec`: the loop stopped, then the image out of `done`'s
+escrow (`rn_esc_take`). (R2c review F2, 2026-11-06: until then `wp_proofStop`, beside a
+`wp_proof` of a weaker `spec` without the image, used only by the `run.spec` R2c-4 removed.) -/
 theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
-  intro E γ r
-  wp_start as ⟨#Hr, HST, Hrun, Hwt⟩
+  intro E γ r A
+  wp_start as ⟨#Hr, HST, Hrun, Hwt, Hsc, Happ⟩
   iunfold isRaftNode at Hr
   iNamed Hr
-  iunfold rnWalTok at Hwt
-  icases Hwt with ⟨%st', #Hst', Hwo⟩
+  iunfold rnWalTokA at Hwt
+  icases Hwt with ⟨%st', #Hst', Hwo, Hwap, -⟩
   icombine Hst Hst' gives %Hsteq
   have Hsteq' : st' = st := by first | exact Hsteq.symm | exact Hsteq.2.symm
   subst Hsteq'
@@ -48,17 +51,24 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply is_bag_is_chan $$ Hbag
-    iapply bag_send_au γs stc _ () _ $$ [$Hlc1 $Hlc2] Hbag [HST Hrun Hwo]
-    · iframe HST Hrun Hwo
+    iapply bag_send_au γs stc _ () _ $$ [$Hlc1 $Hlc2] Hbag [HST Hrun Hwo Hwap]
+    · iframe HST Hrun Hwo Hwap
     inext
     wp_auto
     wp_apply_core chan.wp_receive dnc γ.done $$ Hdch
     iintro ⟨Hlc5, Hlc6, Hlc7, _⟩
-    iapply broadcast_chan_receive dnc γ.done iprop(True) _ .Unknown $$ Hdnci
-    iintro ⟨_, _⟩
+    iapply broadcast_chan_receive dnc γ.done _ _ .Unknown $$ Hdnci
+    iintro ⟨#Hesc, _⟩
+    imod rn_esc_take E γ apc (storage.walOf st') A $$ Hapci Hesc Hsc Happ Hlc5 Hlc6
+      with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc⟩
     wp_auto
     iapply HΦ
-    itrivial
+    iframe Hvac
+    iexists S, σ
+    iframe HrS Hσc
+    isplitl [Hcl]
+    · iunfold rnWalClosed; iexists st'; iframe Hst Hcl
+    ipureintro; exact Hord
   -- `<-r.done`: closed
   iapply BigAndL.bigAndL_cons.2
   isplit
@@ -69,11 +79,18 @@ theorem raftNode.stop.wp_proof : raftNode.stop.spec (GF := GF) (hG := hG) := by
     · ipureintro; rfl
     isplitr
     · iexact Hdch
-    iapply broadcast_chan_receive dnc γ.done iprop(True) _ .Unknown $$ Hdnci
-    iintro ⟨_, _⟩
+    iapply broadcast_chan_receive dnc γ.done _ _ .Unknown $$ Hdnci
+    iintro ⟨#Hesc, _⟩
+    imod rn_esc_take E γ apc (storage.walOf st') A $$ Hapci Hesc Hsc Happ Hlc3 Hlc4
+      with ⟨Hvac, %S, %σ, HrS, Hcl, %Hord, #Hσc⟩
     wp_auto
     iapply HΦ
-    itrivial
+    iframe Hvac
+    iexists S, σ
+    iframe HrS Hσc
+    isplitl [Hcl]
+    · iunfold rnWalClosed; iexists st'; iframe Hst Hcl
+    ipureintro; exact Hord
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

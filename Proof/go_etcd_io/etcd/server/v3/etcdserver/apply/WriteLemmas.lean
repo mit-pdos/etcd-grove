@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-- **The thread's KV resources but the writer's half and the tie**, at the backend `B`: the
 backend's whole share and its hook, the live leases, the auth store's reader resource. -/
 def kvRest (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) : IProp GF :=
-  iprop(mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD)
+  iprop(mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD)
 
 /-- `mPreW`, split (see the file header). -/
 theorem mPreW_split (E : AEnv GF) (c : Chain) (a : GoInterface)
@@ -110,7 +110,7 @@ theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 /-- **`mPre` without the chain's resources** (strict M1, 2026-11-05): what a wrapper passes on
 unchanged, or gives back with `Pre` when it rejects (`mPreRest_reject`). -/
 def mPreRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -168,7 +168,7 @@ theorem mPreW_reject (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- **`mPreW` without the chain's resources** (as `mPreRest`). -/
 def mPreWRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -216,7 +216,7 @@ theorem mPreRest_lend (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
   iunfold mPreRest at H
   icases H with ⟨Hw, Hll, Hrd, Hb⟩
   iunfold leasesLive at Hll
-  icases Hll with ⟨%L, #Hk, Hu⟩
+  icases Hll with ⟨%L, #Hk, Hu, Hlt⟩
   iframe Hrd
   iexists L
   iframe Hu
@@ -225,7 +225,7 @@ theorem mPreRest_lend (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
   iframe Hw Hrd Hb
   iunfold leasesLive
   iexists L
-  iframe Hk Hu
+  iframe Hk Hu Hlt
 
 /-- The auth store's reader resource of `mPreRest`, lent out (as `kvOwn_rd`). -/
 theorem mPreRest_rd (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
@@ -269,7 +269,7 @@ theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) 
 
 /-- **`mPreV` without the chain's resources** (as `mPreRest`). -/
 def mPreVRest (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 
@@ -341,6 +341,21 @@ theorem kvOwnPre_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     simp only [cPre, ↓reduceIte]
     iexact Hc
   iexact Hrt
+
+/-- **For a method whose component writes the backend** (the merge of `lean`, 2026-11-06: the
+lessor's grant, `grantPre`): `mPreW` from `kvOwnPre true` and the chain's resources. -/
+theorem kvOwnPre_mPreW (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    kvOwnPre true E log Pre Q Post ∗ chainRes c a info ⊢ mPreW E c a info log Pre Q Post := by
+  iintro ⟨H, Hres⟩
+  iunfold kvOwnPre at H
+  icases H with ⟨Hw, Hll, Hrd, %B, Hbk, Hhk, Htie, Hwt, Hrt, Hc⟩
+  iunfold mPreW
+  iframe Hw Hll Hrd Hres
+  iexists B
+  iframe Hbk Hhk Htie Hwt Hrt
+  simp only [cPre, ↓reduceIte]
+  iexact Hc
 
 /-- **`kvOwnPre` lends the auth store's reader resource** (`uberApplier.Apply`'s `rdLend`, as
 `rdLend_kvOwn`). -/

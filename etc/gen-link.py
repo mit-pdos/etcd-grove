@@ -24,11 +24,11 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --v3lock > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3lock/Link.lean
        etc/gen-link.py --v3election > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3election/Link.lean
-       etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean
-       etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/Link.lean
-       etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Link.lean
+       etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/Link.lean
+       etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Link.lean
+       etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
-       etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean
+       etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
@@ -41,29 +41,33 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --client > Proof/go_etcd_io/etcd/client/v3/Link.lean
        etc/gen-link.py --porcupine > Proof/github_com/anishathalye/porcupine/Link.lean
        etc/gen-link.py --porcupine-dag > PorcupineDag/Proof/github_com/anishathalye/porcupine/Link.lean
-       etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
-       etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
-       etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/Link.lean
-       etc/gen-link.py --lintest-logkvcompact > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/Link.lean
-       etc/gen-link.py --lintest-logkvsnap > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/Link.lean
-       etc/gen-link.py --lintest-logkvrw > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/Link.lean
-       etc/gen-link.py --lintest-logkvappend > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/Link.lean
-       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Link.lean
-       etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean
-       etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
-       etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean
-       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Link.lean
+       etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/Link.lean
+       etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/Link.lean
+       etc/gen-link.py --lintest-logkv > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/Link.lean
+       etc/gen-link.py --lintest-logkvcompact > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/Link.lean
+       etc/gen-link.py --lintest-logkvsnap > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/Link.lean
+       etc/gen-link.py --lintest-logkvrw > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/Link.lean
+       etc/gen-link.py --lintest-logkvappend > Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/Link.lean
+       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean
+       etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/Link.lean
+       etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/Link.lean
+       etc/gen-link.py --prophkv > Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/Link.lean
+       etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/Link.lean
+       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
        etc/gen-link.py --k8s-etcd3 > Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean
        etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
-       etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean
-       etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean
+       etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Link.lean
+       etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Link.lean
+       etc/gen-link.py --cluster3 > Proof/github_com/mit_pdos/etcd_grove/examples/lib/cluster3/Link.lean
        etc/gen-link.py --workqueue > Proof/k8s_io/client_go/util/workqueue/Link.lean
        etc/gen-link.py --consistency > Proof/k8s_io/client_go/util/consistency/Link.lean
        etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
-       etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean
-       etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/bboltfs/Link.lean
+       etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
+       etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
+       etc/gen-link.py --bbolt --results > Proof/go_etcd_io/bbolt/Results.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -146,18 +150,22 @@ the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class
 `notes/raft-retarget-plan.md`) and the trust-boundary axioms of protobuf-go's `proto` it rests
 on, from etc/link-lean-first-raft.txt (the mode was `--raft37`, into the parallel tree `Raft37/`,
 until stage R6 swapped the trees).
-`--kv` links the key-value store example's proofs (`examples/kv`; until 2026-10-19 the register
+`--kv` links the key-value store example's proofs (`examples/raft/kv`; until 2026-10-19 the register
 example, `--register`), from etc/link-lean-first-kv.txt; raft's, the porcupine driver's and
 porcupine's functions it calls are `@` callees, linked in their `Link.lean`s, and its specs'
 `[KVStor GF]` (the storage registry) is passed on.
-`--kvreconf` links the reconfiguring store's (`examples/kvreconf`), from
+`--kvreconf` links the reconfiguring store's (`examples/raft/kvreconf`), from
 etc/link-lean-first-kvreconf.txt, as `--kv`: its specs' `[KvrStor GF]` (the storage registry) is
 passed on, and its storage model `kvrStorageModel` (a `def`) is a local instance of the Link, at
 which raft's results over `[StorageModel GF]` are instantiated.
-`--kvdurable` links the durable store's (`examples/kvdurable`), from
+`--kvdurable` links the durable store's (`examples/raft/kvdurable`), from
 etc/link-lean-first-kvdurable.txt, as `--kvreconf` (its registry `[KdStor GF]`, its storage model
 `kdStorageModel` a local instance), with the durable extension's section variables (`[HasExt
 durableExt] [go.IntoValInj GoString]`, which its specs take).
+`--bbolt` links bbolt's proofs (`Proof/go_etcd_io/bbolt/`), with no list file: the callees are
+read off each proof's binders, the specs with no proof are hypotheses of `links_pending`, and the
+non-spec premises are given by a table (`etc/link_bbolt.py`, whose docstring has the rules);
+`--bbolt --results` writes the `Results.lean` of its public results.
 
 A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
 second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
@@ -295,26 +303,26 @@ LEAN_FIRST = {
               "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
     "--context": ("link-lean-first-context.txt", "", "_root_.Perennial.context.Assumptions",
                   "etcd-grove's trust boundary of `context` (axioms)", [""]),
-    # the key-value store example (examples/kv): its proofs, over raft's and the porcupine
+    # the key-value store example (examples/raft/kv): its proofs, over raft's and the porcupine
     # driver's (linked in their `Link.lean`s, the `@` callees) and the storage model `KVStor`
     # gives
     "--kv": ("link-lean-first-kv.txt",
-             "github_com.mit_pdos.etcd_grove.examples.kv go_etcd_io.raft.v3 "
-             "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
-             "github_com.mit_pdos.etcd_grove.examples.kv.Assumptions",
-             "The key-value store example's proofs (`examples/kv`)", [""]),
-    # the reconfiguring store (examples/kvreconf), as `--kv`, its storage registry `KvrStor`
+             "github_com.mit_pdos.etcd_grove.examples.raft.kv go_etcd_io.raft.v3 "
+             "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
+             "github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions",
+             "The key-value store example's proofs (`examples/raft/kv`)", [""]),
+    # the reconfiguring store (examples/raft/kvreconf), as `--kv`, its storage registry `KvrStor`
     "--kvreconf": ("link-lean-first-kvreconf.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.kvreconf go_etcd_io.raft.v3 "
-                   "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
-                   "github_com.mit_pdos.etcd_grove.examples.kvreconf.Assumptions",
-                   "The reconfiguring key-value store example's proofs (`examples/kvreconf`)", [""]),
-    # the durable store (examples/kvdurable), as `--kvreconf`, its storage registry `KdStor`
+                   "github_com.mit_pdos.etcd_grove.examples.raft.kvreconf go_etcd_io.raft.v3 "
+                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
+                   "github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Assumptions",
+                   "The reconfiguring key-value store example's proofs (`examples/raft/kvreconf`)", [""]),
+    # the durable store (examples/raft/kvdurable), as `--kvreconf`, its storage registry `KdStor`
     "--kvdurable": ("link-lean-first-kvdurable.txt",
-                    "github_com.mit_pdos.etcd_grove.examples.kvdurable go_etcd_io.raft.v3 "
-                    "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
-                    "github_com.mit_pdos.etcd_grove.examples.kvdurable.Assumptions",
-                    "The durable key-value store example's proofs (`examples/kvdurable`)", [""]),
+                    "github_com.mit_pdos.etcd_grove.examples.raft.kvdurable go_etcd_io.raft.v3 "
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions",
+                    "The durable key-value store example's proofs (`examples/raft/kvdurable`)", [""]),
     # the Raft proof (raft v3.7 plus the read-index fix, project raft of etc/goose.py) and the
     # trust boundary of protobuf-go it rests on (Spec/google_golang_org/protobuf/proto/, stage R1)
     "--raft": ("link-lean-first-raft.txt", "go_etcd_io.raft.v3",
@@ -330,10 +338,10 @@ LEAN_FIRST = {
                        "The Raft proof of the witness experiment (raft v3.7 plus the read-index "
                        "fix and witness support, `RaftWitness/`)", ["", "RaftWitness"]),
     "--kvwitness": ("link-lean-first-kvwitness.txt",
-                    "github_com.mit_pdos.etcd_grove.examples.kvwitness go_etcd_io.raft.v3 "
-                    "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
-                    "github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions",
-                    "The key-value store example's proofs on the witness raft (`examples/kvwitness`, "
+                    "github_com.mit_pdos.etcd_grove.examples.raft.kvwitness go_etcd_io.raft.v3 "
+                    "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Assumptions",
+                    "The key-value store example's proofs on the witness raft (`examples/raft/kvwitness`, "
                     "`RaftWitness/`)", ["", "RaftWitness"]),
     # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
     "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
@@ -347,112 +355,117 @@ LEAN_FIRST = {
                         "Porcupine pull request #46's proofs (`third_party/porcupine-dag`, the DAG "
                         "search: the checker, its entry points; `PorcupineDag/`)",
                         ["", "PorcupineDag"]),
-    # the generic driver over porcupine (examples/lintest), over porcupine's (`@`)
+    # the generic driver over porcupine (examples/lib/lintest), over porcupine's (`@`)
     "--lintest": ("link-lean-first-lintest.txt",
-                  "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
-                  "github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions",
-                  "The porcupine driver's proofs (`examples/lintest`)", [""]),
-    # its instance, a counter under a mutex (examples/lintest/counter), over the driver's (`@`)
+                  "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
+                  "github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions",
+                  "The porcupine driver's proofs (`examples/lib/lintest`)", [""]),
+    # its instance, a counter under a mutex (examples/lib/lintest/counter), over the driver's (`@`)
     "--lintest-counter": ("link-lean-first-lintest-counter.txt",
-                          "github_com.mit_pdos.etcd_grove.examples.lintest.counter "
-                          "github_com.mit_pdos.etcd_grove.examples.lintest "
+                          "github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter "
+                          "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                           "github_com.anishathalye.porcupine",
-                          "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
-                          "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
+                          "github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Assumptions",
+                          "The porcupine driver's instance's proofs (`examples/lib/lintest/counter`)",
                           [""]),
-    # the log-applied register (examples/lintest/logkv): writes take effect in the apply
+    # the log-applied register (examples/lib/lintest/logkv): writes take effect in the apply
     # goroutine; over the driver's (`@`)
     "--lintest-logkv": ("link-lean-first-lintest-logkv.txt",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkv "
-                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                         "github_com.anishathalye.porcupine",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkv.Assumptions",
-                        "The log-applied register's proofs (`examples/lintest/logkv`)",
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Assumptions",
+                        "The log-applied register's proofs (`examples/lib/lintest/logkv`)",
                         [""]),
     "--lintest-logkvcompact": ("link-lean-first-lintest-logkvcompact.txt",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact "
-                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                         "github_com.anishathalye.porcupine",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact.Assumptions",
-                        "The log-applied register's variant's proofs (`examples/lintest/logkvcompact`)",
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lib/lintest/logkvcompact`)",
                         [""]),
     "--lintest-logkvsnap": ("link-lean-first-lintest-logkvsnap.txt",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap "
-                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                         "github_com.anishathalye.porcupine",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap.Assumptions",
-                        "The log-applied register's variant's proofs (`examples/lintest/logkvsnap`)",
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lib/lintest/logkvsnap`)",
                         [""]),
     "--lintest-logkvrw": ("link-lean-first-lintest-logkvrw.txt",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw "
-                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                         "github_com.anishathalye.porcupine",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw.Assumptions",
-                        "The log-applied register's variant's proofs (`examples/lintest/logkvrw`)",
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lib/lintest/logkvrw`)",
                         [""]),
     "--lintest-logkvappend": ("link-lean-first-lintest-logkvappend.txt",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend "
-                        "github_com.mit_pdos.etcd_grove.examples.lintest "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend "
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                         "github_com.anishathalye.porcupine",
-                        "github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend.Assumptions",
-                        "The log-applied register's variant's proofs (`examples/lintest/logkvappend`)",
+                        "github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.Assumptions",
+                        "The log-applied register's variant's proofs (`examples/lib/lintest/logkvappend`)",
                         [""]),
-    # the linearizability instance over the robustness tester's KV workload (examples/linkvtxn,
+    # the linearizability instance over the robustness tester's KV workload (examples/etcd/txnlin,
     # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
     # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
     # stage G)
     "--linkvtxn": ("link-lean-first-linkvtxn.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.linkvtxn "
-                   "github_com.mit_pdos.etcd_grove.examples.lintest "
+                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                    "github_com.anishathalye.porcupine",
-                   "github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions",
-                   "The KV-workload linearizability instance's proofs (`examples/linkvtxn`)", [""]),
-    # the three-member instance under network partitions (examples/linkv3p, notes/partition-plan.md):
-    # its `startMember` (putget3's plus the member's gRPC server, over the server's, v3rpc's and
-    # grpc's, `@`), `newClient` (over the client's `New`, `@`), `partitioner` (over the server's
-    # `MemberID`/`CutPeer`/`MendPeer`, `@`), `Apply` (over linkvtxn's `Apply`, `@`), `Check` (over
-    # the driver's and linkvtxn's, `@`; notes/linkv3p-txn-plan.md) and `Main`
+                   "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions",
+                   "The KV-workload linearizability instance's proofs (`examples/etcd/txnlin`)", [""]),
+    # the three-member instance under network partitions (examples/etcd/partition, notes/partition-plan.md):
+    # its `startCluster` (over `--cluster3`'s `StartCluster` and `NewClient`, `@`; until 2026-11-05
+    # its own `startMember`, `startBridge`, `partitioner`), `Apply` (over linkvtxn's `Apply`, `@`),
+    # `Check` (over the driver's and linkvtxn's, `@`; notes/linkv3p-txn-plan.md), `Main` and
+    # `MainWatch` (over `--cluster3`'s `Partitioner`, `@`)
     "--linkv3p": ("link-lean-first-linkv3p.txt",
-                  "github_com.mit_pdos.etcd_grove.examples.linkv3p "
-                  "github_com.mit_pdos.etcd_grove.examples.linkvtxn "
-                  "github_com.mit_pdos.etcd_grove.examples.lintest "
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.partition "
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.txnlin "
+                  "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                   "github_com.anishathalye.porcupine",
-                  "github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions",
-                  "The partitioned three-member instance's proofs (`examples/linkv3p`)", [""]),
-    # the watch example (examples/watchkv, D23): its functions, the watch's options, and `Main`
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions",
+                  "The partitioned three-member instance's proofs (`examples/etcd/partition`)", [""]),
+    # GetAny's logically atomic spec over a prophecy patch (examples/goose/prophkv, 2026-11-03)
+    "--prophkv": ("link-lean-first-prophkv.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.goose.prophkv",
+                  "github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions",
+                  "The prophecy-patch example's proofs (`examples/goose/prophkv`)", [""]),
+    # the watch example (examples/etcd/watch, D23): its functions, the watch's options, and `Main`
     # (over the server's, v3rpc's, the client's and `context`'s, `@`)
     "--watchkv": ("link-lean-first-watchkv.txt",
-                  "github_com.mit_pdos.etcd_grove.examples.watchkv",
-                  "github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions",
-                  "The watch example's proofs (`examples/watchkv`)", [""]),
-    # the authentication example (examples/authkv, the auth plan's E2b): its pure checks and
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.watch",
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions",
+                  "The watch example's proofs (`examples/etcd/watch`)", [""]),
+    # the authentication example (examples/etcd/auth, the auth plan's E2b): its pure checks and
     # `Main` (not proved yet)
     "--authkv": ("link-lean-first-authkv.txt",
-                 "github_com.mit_pdos.etcd_grove.examples.authkv",
-                 "github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions",
-                 "The authentication example's proofs (`examples/authkv`)", [""]),
-    # the cache watch example (examples/cachekv): watchkv's functions, the cache watch's options,
+                 "github_com.mit_pdos.etcd_grove.examples.etcd.auth",
+                 "github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions",
+                 "The authentication example's proofs (`examples/etcd/auth`)", [""]),
+    # the cache watch example (examples/etcd/cache): watchkv's functions, the cache watch's options,
     # and `Main` (over the server's, v3rpc's, the client's, `context`'s and the cache's, `@`)
     "--cachekv": ("link-lean-first-cachekv.txt",
-                  "github_com.mit_pdos.etcd_grove.examples.cachekv",
-                  "github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions",
-                  "The cache watch example's proofs (`examples/cachekv`)", [""]),
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.cache",
+                  "github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions",
+                  "The cache watch example's proofs (`examples/etcd/cache`)", [""]),
     # the client Kubernetes' etcd3 store calls (client/v3/kubernetes, notes/k8s-etcd3-plan.md
     # phase 3), with the clientv3 functions it calls (as linkvtxn's, under its assumptions)
     "--k8s": ("link-lean-first-k8s.txt",
               "go_etcd_io.etcd.client.v3.kubernetes",
               "go_etcd_io.etcd.client.v3.kubernetes.Assumptions",
               "The Kubernetes client's proofs (`client/v3/kubernetes`)", [""]),
-    # the Kubernetes etcd3 store's linearizability driver (examples/k8setcd3,
+    # the Kubernetes etcd3 store's linearizability driver (examples/k8s/etcd3,
     # notes/k8s-etcd3-plan.md phase 6): its Go model of the store and porcupine model, its codec,
     # `Apply` (over the store's, `@`), its generator, `Check` (over the porcupine driver's, `@`),
     # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
     "--k8setcd3": ("link-lean-first-k8setcd3.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.k8setcd3 "
-                   "github_com.mit_pdos.etcd_grove.examples.lintest "
+                   "github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 "
+                   "github_com.mit_pdos.etcd_grove.examples.lib.lintest "
                    "github_com.anishathalye.porcupine",
-                   "github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumptions",
-                   "The Kubernetes etcd3 store's linearizability driver's proofs (`examples/k8setcd3`)", [""]),
+                   "github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions",
+                   "The Kubernetes etcd3 store's linearizability driver's proofs (`examples/k8s/etcd3`)", [""]),
     # the Kubernetes etcd3 store (k8s.io/apiserver/pkg/storage/etcd3 and storage,
     # notes/k8s-etcd3-plan.md phases 1 and 4), over the kubernetes client (`@`)
     "--k8s-etcd3": ("link-lean-first-k8s-etcd3.txt",
@@ -466,7 +479,7 @@ LEAN_FIRST = {
                  "k8s_io.apiserver.pkg.storage.cacher.progress",
                  "k8s_io.apiserver.pkg.storage.cacher.Assumptions",
                  "The Kubernetes watch cache's proofs (`k8s.io/apiserver/pkg/storage/cacher`)", [""]),
-    # the examples' shared start (examples/common, D33): a member's configuration and server
+    # the examples' shared start (examples/lib/etcdstart, D33): a member's configuration and server
     # (over the server's, `@`), its gRPC service (over v3rpc's, `@`) and a client (over the
     # client's `New`, `@`), which the examples' Links take as `@` callees
     # client-go's work queue (k8s.io/client-go/util/workqueue, notes/k8s-daemonset-plan.md phase 2):
@@ -502,46 +515,55 @@ LEAN_FIRST = {
                        "k8s_io.client_go.informers.Assumptions",
                        "client-go's informers' proofs above the store (`k8s.io/client-go/listers`, "
                        "`k8s.io/client-go/informers`)", [""]),
-    # the model API server (examples/k8sdaemonset/apimodel, notes/k8s-daemonset-plan.md phase 3):
+    # the model API server (examples/k8s/daemonset/apimodel, notes/k8s-daemonset-plan.md phase 3):
     # trusted Go (D50) whose specs are an internal layer of the DaemonSet controller's proof, over
     # the trust boundary of the API types' `DeepCopyObject` and apimachinery's error constructors
     "--apimodel": ("link-lean-first-apimodel.txt",
-                   "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel",
-                   "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions",
-                   "The model API server's proofs (`examples/k8sdaemonset/apimodel`)", [""]),
-    # minibolt (examples/bboltfs): its page and meta helpers (page.go)
+                   "github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel",
+                   "github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions",
+                   "The model API server's proofs (`examples/k8s/daemonset/apimodel`)", [""]),
+    # minibolt (examples/osfs/bboltfs): its page and meta helpers (page.go)
     "--bboltfs": ("link-lean-first-bboltfs.txt",
-                  "github_com.mit_pdos.etcd_grove.examples.bboltfs",
-                  "github_com.mit_pdos.etcd_grove.examples.bboltfs.Assumptions",
-                  "minibolt's proofs (`examples/bboltfs`: the page and meta helpers of `page.go`)",
+                  "github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs",
+                  "github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Assumptions",
+                  "minibolt's proofs (`examples/osfs/bboltfs`: the page and meta helpers of `page.go`)",
                   [""]),
     "--common": ("link-lean-first-common.txt",
-                 "github_com.mit_pdos.etcd_grove.examples.common",
-                 "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
-                 "The examples' shared start's proofs (`examples/common`)", [""]),
+                 "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart",
+                 "github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Assumptions",
+                 "The examples' shared start's proofs (`examples/lib/etcdstart`)", [""]),
+    # the three-member cluster's start under partitions (examples/lib/cluster3, 2026-11-05; until
+    # then `--linkv3p`'s): `StartMember` (the shared `NewMember` plus the member's gRPC server, over
+    # the server's, v3rpc's and grpc's, `@`), `StartBridge`, `Partitioner` (over the server's
+    # `MemberID`/`CutPeer`/`MendPeer`, `@`), `StartCluster` and `NewClient` (over the shared
+    # `NewClients`, `@`)
+    "--cluster3": ("link-lean-first-cluster3.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.lib.cluster3",
+                   "github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions",
+                   "The three-member cluster's start's proofs (`examples/lib/cluster3`)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (`[HasExt X]`, after the semantics variables).
 EXTS = {"--bboltfs": "osFsExt"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
 # model of `idutil`'s `Generator.Next` steps through it, so every mode whose links reach `Next`'s
 # proof (the server's, and those linking over it) takes its `HasExt`.
-for _m in ["--server", "--v3rpc", "--common", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
+for _m in ["--server", "--v3rpc", "--common", "--cluster3", "--linkv3p", "--linkvtxn", "--watchkv", "--authkv",
            "--cachekv", "--k8setcd3", "--k8s", "--k8s-etcd3"]:
     EXTS[_m] = "idIssueExt"
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--porcupine-dag": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--kvdurable": "kvdurable", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--lintest-counter": "lintest", "--lintest-logkv": "lintest", "--lintest-logkvcompact": "lintest", "--lintest-logkvsnap": "lintest", "--lintest-logkvrw": "lintest", "--lintest-logkvappend": "lintest", "--linkv3p": "etcd_partition", "--linkvtxn": "etcd_txnlin", "--watchkv": "etcd_watch", "--prophkv": "goose_prophkv", "--authkv": "etcd_auth", "--cachekv": "etcd_cache", "--kvdurable": "raft_kvdurable", "--common": "etcdstart", "--cluster3": "cluster3", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8s_etcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
               "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache", "--k8sinformers": "k8sinformers",
-              "--apimodel": "apimodel", "--bboltfs": "bboltfs"}
+              "--apimodel": "apimodel", "--bboltfs": "osfs_bboltfs"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
-                 # `Serve`'s auth-on spec, linked by hand (`=common.wp_ServeOn` callee)
-                 "--authkv": ["Proof.github_com.mit_pdos.etcd_grove.examples.common.LinkOn"],
+                 # Perennial's `time.After` (the compactor's watch loop, `=` callee)
+                 "--k8s-etcd3": ["Perennial.Proof.time.Link"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
                  "--k8scache": ["Perennial.Proof.slices.Link", "Perennial.Proof.cmp.Link"],
                  # the informer factory's package (its assumptions, the section's variable)
@@ -582,6 +604,15 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
+if sys.argv[1:2] == ["--bbolt"]:
+    # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_bbolt  # noqa: E402
+    import proof_roots  # noqa: E402  (Perennial's checkout as Lake resolves it)
+    link_bbolt.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], results_file="--results" in sys.argv[2:])
+    sys.exit(0)
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
     sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
@@ -593,15 +624,18 @@ NA_MODES = {"--porcupine", "--porcupine-dag", "--lintest", "--lintest-counter", 
 # The modes whose store's storage model is a `def` made a local instance of the Link (kvreconf's
 # `kvrStorageModel`, `KvrStorage.lean`): its specs are stated at it, and raft's results over any
 # `[StorageModel GF]` are instantiated there.
-LOCAL_INSTANCES = {"--kvreconf": ["kvreconf.kvrStorageModel"],
-                   "--kvdurable": ["kvdurable.kdStorageModel"]}
+LOCAL_INSTANCES = {"--kvreconf": ["raft_kvreconf.kvrStorageModel"],
+                   "--kvdurable": ["raft_kvdurable.kdStorageModel"]}
 # The trusted assumptions a mode's linked proofs need beyond its package's, first (minibolt's: the
 # layouts of `os.file` and `os.fileStat`, which `TrustedCode/os.lean` states and goose cannot
 # emit; `OpenFile`'s and `Stat`'s proofs take them).
 PRE_VARS = {"--bboltfs": "variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]\n"}
 # The section variables a mode's specs take besides the usual ones, last (kvdurable's: the durable
 # extension, `GooseLang/Ext/Durable`, and the injectivity of strings its file names need)
-EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n"}
+EXTRA_VARS = {"--kvdurable": "variable [HasExt durableExt] [go.IntoValInj GoString]\n",
+              # (Q1 (c), 2026-11-05) `etcd3`'s package fact is the compactor registry, at its name
+              "--k8s-etcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n",
+              "--k8setcd3": "variable [reg : EtcdGrove.k8s.CompactorRegistry]\n"}
 em = ((PRE_VARS.get(sys.argv[1], ""))
       + ("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else "")
@@ -613,7 +647,7 @@ em = ((PRE_VARS.get(sys.argv[1], ""))
 STOR_REGS = ["[KVStor GF]", "[KvrStor GF]", "[KdStor GF]"]
 # a registry as a pending hypothesis's binder, named in full (the Link opens the package's Go
 # namespace, not the store's proof namespace)
-STOR_QUAL = {"[KdStor GF]": "[kvdurable.KdStor GF]"}
+STOR_QUAL = {"[KdStor GF]": "[raft_kvdurable.KdStor GF]"}
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))

@@ -32,7 +32,7 @@ function's proof file: nothing here is `sorry`.
 Marked **(open)**: premises carried over unchanged from today's specs, for the items not yet
 redesigned (the storage contract, the term budget, the static/dynamic modes, the rest of a `Ready`).
 
-**What the key-value store needs (2026-10-27, `examples/kv` ported onto this draft):** the static
+**What the key-value store needs (2026-10-27, `examples/raft/kv` ported onto this draft):** the static
 cluster (`isStaticCluster`, `cluster_alloc_static`, `RestartNode`), the rest of a `Ready`
 (`readyRest`, `readySnap`), `Advance`, `Step` (`sentMsg`, `msgCredits`, `stepIn`), `Tick`
 (`tickCredit`), `TransferLeadership` (`leaderTransferOn`) and the snapshots' certificates
@@ -1059,6 +1059,17 @@ theorem isCommittedLogLb_length (γ : Cluster) (N : Namespace) (l : List LogEntr
   · ipureintro; subst Hnil; simp
   · ipureintro; omega
 
+/-- (2026-11-05, H-rr1) **A committed log is shorter than `2 ^ 61`** in a cluster that `readyFits`:
+the same receipts as `isCommittedLogLb_length`, the bound `readyFits` states itself. What the
+server's proposals hand back to the key-value layer, which turns it into the revision room of the
+states its updates fire at (`InvRequest.lean`, `kvRoom`). -/
+theorem isCommittedLogLb_small (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    readyFits (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ ⌜l.length < 2 ^ 61⌝ := by
+  unfold readyFits Cluster.bootLen isCommittedLogLb ApiImpl.isCommittedLogLb
+  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb, -⟩)⟩
+  · ipureintro; subst Hnil; simp
+  · ipureintro; omega
+
 /-- (2026-10-27, the server port's addition) **The read context `c` was committed after the log
 `l0` was** (persistent): what `readCtx_commit_after` gives with the context. Raft's read index is
 the leader's commit index once it has committed in its term, after the request: at least every
@@ -1117,7 +1128,16 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
       [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
     readyRest γ N id rd st ce es h L ms ss ∗
     readyLeaderMsgs γ N id st ms ss ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms)
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    -- (2026-11-03, the restart plan's R2b-1 stage 1) the delivered log after the `Ready` and its
+    -- hard state's committed fact, without *enter* (as `nodeDriver_deliveredLogLb` and
+    -- `nodeDriver_hardStateCommitted` give them after it): a client that enters the batch at its
+    -- disk write (etcd's server, at the WAL's `Save`) hands the committed entries on before
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    (⌜phsNext st.hardState h = hsZero⌝ ∨
+      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝))
 
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
 `select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's

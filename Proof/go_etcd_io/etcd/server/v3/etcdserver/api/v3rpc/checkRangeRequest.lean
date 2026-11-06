@@ -37,8 +37,8 @@ theorem v3rpc.checkRangeRequest.wp_proof :
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.sortNameMaps at Hmaps
   icases Hmaps with ⟨⟨%mo, %Mo, #Hmo, #Hmos, %HMo⟩, ⟨%mt, %Mt, #Hmt, #Hmts, %HMt⟩⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeK HeS
-  icases HeK with ⟨%eK, #HeK⟩
-  icases HeS with ⟨%eS, #HeS⟩
+  icases HeK with ⟨%eK, #HeK, #SeK⟩
+  icases HeS with ⟨%eS, #HeS, #SeS⟩
   iunfold txn.rangeRequestIs at Hr
   icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co,
     %minM, %maxM, %minC, %maxC, #Hk, #Hks, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop, -⟩

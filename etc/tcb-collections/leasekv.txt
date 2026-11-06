@@ -1,16 +1,16 @@
-# The closed lease example (examples/leasekv; notes/lease-ex-plan.md, 2026-11-02): the results of
-# Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/Results.lean: `leasekv_Main` and the
-# closed theorem `leasekv_safe`/`leasekv_adequate` (as putget's), over the server's, v3rpc's and
+# The closed lease example (examples/etcd/lease; notes/lease-ex-plan.md, 2026-11-02): the results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/Results.lean: `leasekv_Main` and the
+# closed theorem `etcd_lease_safe`/`etcd_lease_adequate` (as putget's), over the server's, v3rpc's and
 # the client's linked results, the lease reads' trust-boundary `EtcdServer.leaseTimeToLive`, and
 # the package initializers' axioms.
 #
-#   etc/tcb-report.py --collection etc/tcb-collections/leasekv.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/leasekv.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/leasekv.txt --check --update
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_lease.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_lease.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd_lease.txt --check --update
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
@@ -42,8 +42,6 @@ axiom Perennial.github_com.jonboulle.clockwork.opaqueInitsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
-axiom Perennial.go_etcd_io.bbolt.errors.errorsNewVarsInit
-axiom Perennial.go_etcd_io.bbolt.internal.common.opaqueInitsOk
 axiom Perennial.go_etcd_io.bbolt.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.opaqueInitsOk
@@ -60,8 +58,10 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption_init
@@ -222,6 +222,7 @@ axiom Perennial.go_uber_org.zap.opaqueInitsOk
 axiom Perennial.go_uber_org.zap.zapcore.initFuncsOk
 axiom Perennial.go_uber_org.zap.zapcore.opaqueInitsOk
 axiom Perennial.golang_org.x.crypto.bcrypt.opaqueInitsOk
+axiom Perennial.golang_org.x.sys.unix.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.codes.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -235,6 +236,8 @@ axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
+axiom Perennial.internal.runtime.sys.opaqueInitsOk
+axiom Perennial.io.fs.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
@@ -245,11 +248,19 @@ axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
+axiom Perennial.runtime.GOARCH_amd64
+axiom Perennial.runtime.GOOS_linux
+axiom Perennial.runtime.initFuncsOk
+axiom Perennial.runtime.opaqueInitsOk
+axiom Perennial.syscall.initFuncsOk
+axiom Perennial.syscall.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrsUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
+axiom apply.memberEnc_id_learner
+axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
@@ -260,6 +271,7 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -350,6 +362,7 @@ axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -405,6 +418,7 @@ axiom grpc_prometheus.ServerMetrics.UnaryServerInterceptor.wp_proof
 axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
+axiom heap.Init_.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Flush_ok
 axiom http.HeaderGetOwnPtr_ok
@@ -435,8 +449,9 @@ axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
-axiom lease.lessor.Recover.wp_proof
+axiom lease.lessor.Stop.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -445,6 +460,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
+axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
@@ -457,6 +473,7 @@ axiom net.Listen.wp_proof
 axiom netAddrFree
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
+axiom os.Getpagesize.wp_proof
 axiom os.Rename.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbEnc_ok
@@ -513,6 +530,7 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -549,9 +567,6 @@ axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Reset.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.After.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom time.Time.Unix.wp_proof
@@ -584,6 +599,9 @@ axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
 axiom waitRetryBackoff.wp_proof
+axiom walDirFresh
+axiom walDirsAbsent
+axiom walFiles
 axiom withVersion.wp_proof
 axiom zap.Bool.wp_proof
 axiom zap.Duration.wp_proof
@@ -604,5 +622,3 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry run_job_snap_cmp
-sorry srvBeSnapOk_cmpRecs

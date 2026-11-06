@@ -1,6 +1,6 @@
-# The key-value store example (examples/kv; until 2026-10-19 the register example,
+# The key-value store example (examples/raft/kv; until 2026-10-19 the register example,
 # etc/tcb-collections/register.txt): every linked result of
-# Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean and the results of its
+# Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/Link.lean and the results of its
 # Results.lean (over raft's, lintest's and porcupine's linked results).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/kv.txt            what it rests on
@@ -9,7 +9,7 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kv/(Link|Results)\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/(Link|Results)\.lean$
 #
 # Until 2026-10-10 no axiom or `sorry` of this repository (the results rested only on
 # Perennial's axiomatized standard-library types). Since 2026-10-11 the cluster driver
@@ -38,16 +38,19 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kv/(Link|Results)\.lean$
 # 539: Lean's 3, the 24 below, and 512 generated declarations of untranslated types and values
 # (429 here, 83 in Perennial).
 # Since 2026-10-19 the register is the key-value store, and its closed theorem is about the
-# randomized porcupine test (`kv_adequate`): the store's results also rest on lintest's and
+# randomized porcupine test (`raft_kv_adequate`): the store's results also rest on lintest's and
 # porcupine's, which add no axiom or `sorry` of this repository.
 # Since 2026-10-20 not on the six init axioms of raftpb's and protobuf-go's `proto`,
 # `protoreflect` and `internal/impl` initializers (`opaqueInitsOk`, `initFuncsOk`): their
 # untranslated initializers are goose `trusted` no-op models (`TrustedCode/`), raftpb's two
 # descriptor literals translated. `os`'s and `strconv`'s (Perennial's names-only packages) remain.
 axiom DescribeConfChange.wp_proof
+axiom Perennial.io.fs.opaqueInitsOk
 axiom Perennial.os.Stderr_init
 axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
+axiom Perennial.syscall.initFuncsOk
+axiom Perennial.syscall.opaqueInitsOk
 axiom ccDecodeV2_nil
 axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof

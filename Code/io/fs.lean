@@ -257,6 +257,21 @@ noncomputable def walkDir [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def WalkDir [GooseExts] [GoGlobalContext] : GoString :=
   go!"io/fs.WalkDir"
 
+/-- go: fs.go:270:21 -/
+noncomputable def PathError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PathError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef PathError.ty go!"Op"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PathError.ty)))) (Var "e")))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef PathError.ty go!"Path"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PathError.ty)))) (Var "e")))))) (Val #(go!": ")))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef PathError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PathError.ty)))) (Var "e"))))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.io.fs where
   pkgImportedPkgs := []
 
@@ -433,6 +448,7 @@ class PathError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Err : ∀ (x : PathError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet PathError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : PathError)))
   method_set : go.MethodSetIs PathError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PathError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType PathError.ty) go!"Error" PathError.Error.impl
 
 attribute [instance] PathError.TypeAssumptions.type_repr
   PathError.TypeAssumptions.underlying
@@ -444,6 +460,7 @@ attribute [instance] PathError.TypeAssumptions.type_repr
   PathError.TypeAssumptions.set_Err
   PathError.TypeAssumptions.method_set
   PathError.TypeAssumptions.ptr_method_set
+  PathError.TypeAssumptions.ptr_Error_unfold
 
 axiom GlobFS : Type
 axiom GlobFS.zero_val : ZeroVal GlobFS

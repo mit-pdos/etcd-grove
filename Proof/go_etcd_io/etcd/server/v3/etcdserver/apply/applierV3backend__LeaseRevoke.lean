@@ -55,16 +55,23 @@ lessor's `Revoke` (the contract's clause), then a response with `newHeader()`'s 
 theorem apply.applierV3backend.LeaseRevoke.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseRevoke.spec (GF := GF) (hG := hG) := by
-  intro E p r rq id log rs Pre Q Post info
+  intro E p r rq id log T rs Pre Q Post info
+  -- MERGE-TODO(proof): ours' proof over the API (`revokeClause`, `envAus`) with `lean`'s revoke-open
+  -- (`revokeRes`'s revocable lessor and half of the live set `T`, the post by the outcome, X6's
+  -- answer); not yet checked
   wp_start as ⟨#Hb, Htt, Hpre⟩
   iunfold apply.revokePre at Hpre
   icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre, Hrr⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, #Hhk, Htie, Hcs⟩
   iunfold apply.revokeRes at Hrr
-  icases Hrr with ⟨Hrdat, HRO⟩
+  icases Hrr with ⟨Hrdat, #Hrev, HltT, HRO, %Hlm⟩
+  have Hlgt : E.lg = true := apply.AEnv.lg_true_of_lm (by rw [Hlm]; decide)
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
+  ihave %HLT := apply.ltHalf_agree E L T Hlgt $$ [HltL HltT]
+  · iframe HltL HltT
+  subst HLT
   iunfold lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hlrd, Hrvk⟩
   ihave #Hb' := Hb
@@ -114,14 +121,15 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   rw [Hli]
   wp_auto
   iunfold apply.revokeClause at HRv
-  wp_apply HRv $$ [$Htt $Hrdat $Hbk $Hhk $Htie $Hcs $Hau $Hown $Hrvk $Hknown0 $HRO]
+  iunfold apply.rdHeld at Hrdat
+  wp_apply HRv $$ [$Htt $Hrdat $Hrev $Hbk $Hhk $Htie $Hcs $Hau $Hown $Hrvk $Hknown0 $HRO]
     as %err ⟨Htt, Hrdat, Hbk, Htie, #Herr, Hcase⟩
   · ipureintro
     exact ⟨rfl, Hrq.2.2.2, Hreach⟩
   icases Hcase with
     (⟨⟨%Hnf, %Hnd⟩, ⟨%e, #He, %Hee⟩, HPre, Hown, Hrvk, -, HRO⟩ |
      ⟨%Hok, Hw, HPost, Hown, Hrvk, #Hknown', HRO⟩)
-  · -- not live: the error, nothing changed
+  · -- not live: the error, nothing changed (the live set's filter the identity)
     -- the writer's half, kept: no update was taken for a lease not live
     ihave Hw : srvApi.wSt E.γs log c $$ [Hwr]
     · simp only [Hnf, decide_false, Bool.false_eq_true, ↓reduceIte]
@@ -129,85 +137,120 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     have hlog : apply.revokeLog log id = log := by
       try simp only [srvApi.stAt] at Hnd
       unfold apply.revokeLog; rw [Hnd]; rfl
+    have hflt : L.filter (· != id) = L :=
+      List.filter_eq_self.2 (fun a ha => by
+        have : a ≠ id := fun h => Hnf (h ▸ ha)
+        simpa using this)
     (try wp_auto)
-    wp_apply (hHdr E p log c) $$ [$Hb $Htt $Hw] as %h ⟨Htt, Hw, %Hh⟩
+    wp_apply (hHdr E p log c) $$ [$Hb $Htt $Hw] as %h ⟨Htt, Hw, %Hh, -⟩
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
     iapply HΦ
     iframe Htt
-    isplitr [Hrdat HRO]
-    · iapply apply.kvPost_backend
-      iexists (.applied (apply.revokeLog log id) false)
-      isplitr
-      · ipureintro; exact hstep
-      simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
-      rw [hlog]
-      isplitl [Header]
+    iapply apply.kvPost_backend
+    iexists (.applied (apply.revokeLog log id) false)
+    isplitr
+    · ipureintro; exact hstep
+    simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
+    rw [hlog]
+    isplitl [Hrdat HltT HRO]
+    · isplitr
       · isplitr
         · ipureintro; exact Hnn
-        isplitl [Header]
-        · iexists h; iframe Header; ipureintro; exact Hh
         iframe Herr
         iunfold apply.revokeErrIs
         iright; iexists e; iframe He; ipureintro; exact Hee
-      isplitr [HPre]
-      · iapply (apply.kvOwn_of_split E log B c)
-        iframe Hw Htie
-        iunfold apply.kvRest
-        iframe Hbk Hhk Hard
-        iunfold apply.leasesLive
-        iexists L
-        iframe Hknown
-        iunfold lease.lessorUser
-        simp only [srvApi.stAt]
-        iframe
-      isplitr
-      · simp only [apply.chainRes]; itrivial
-      iright; iexact HPre
-    · iunfold apply.revokeResAfter
-      iframe Hrdat
-      subst Hee
-      simp only [reduceCtorEq, ↓reduceIte]
-      iexact HRO
-  · -- live: the lease's keys deleted, the lease gone
+      iunfold apply.revokeResAfter
+      rw [apply.revokeIds_applied rq id _ _ L Hrq.2.1 Hrq.1, hflt,
+        apply.revokeRest_applied L rq id _ _ rs Hrq.2.1 Hrq.1, if_neg Hnf]
+      iframe Hrev HltT HRO
+      isplitl [Hrdat]
+      · iunfold apply.rdHeld; iexact Hrdat
+      iapply apply.revokeAnswer_err E rq _ err (by rw [Hee]; intro h; cases h)
+    isplitr [HPre]
+    · iapply (apply.kvOwn_of_split E log B c)
+      iframe Hw Htie
+      iunfold apply.kvRest
+      iframe Hbk Hhk Hard
+      iunfold apply.leasesLive
+      iexists L
+      iframe Hknown HltL
+      iunfold lease.lessorUser
+      simp only [srvApi.stAt]
+      iframe
+    isplitr
+    · simp only [apply.chainRes]; itrivial
+    iright; iexact HPre
+  · -- live: the lease's keys deleted, the lease gone from both halves of the live set
     simp only [srvApi.stAt] at *
+    imod apply.ltHalf_update E L L (L.filter (· != id)) $$ HltL HltT with ⟨HltL, HltT⟩
     (try wp_auto)
-    wp_apply (hHdr E p (apply.revokeLog log id) c) $$ [$Hb $Htt $Hw] as %h ⟨Htt, Hw, %Hh⟩
+    wp_apply (hHdr E p (apply.revokeLog log id) c) $$ [$Hb $Htt $Hw]
+      as %h ⟨Htt, Hw, %Hh, Hhf, Hrv, Hnxh, %Hlen⟩
     icases (typedPointsto_not_null_dup _ _ _) $$ «$r0» with ⟨Hr0, %Hnn⟩
     iStructNamed Hr0
+    ipersist Header
+    ipersist Hrv
     iapply HΦ
     iframe Htt
-    isplitr [Hrdat HRO]
-    · iapply apply.kvPost_backend
-      iexists (.applied (apply.revokeLog log id) false)
-      isplitr
-      · ipureintro; exact hstep
-      simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
-      isplitl [Header]
+    iapply apply.kvPost_backend
+    iexists (.applied (apply.revokeLog log id) false)
+    isplitr
+    · ipureintro; exact hstep
+    simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
+    isplitl [Hhf Hnxh Hrdat HltT HRO]
+    · isplitr
       · isplitr
         · ipureintro; exact Hnn
-        isplitl [Header]
-        · iexists h; iframe Header; ipureintro; exact Hh
         iframe Herr
         iunfold apply.revokeErrIs
         ileft; ipureintro; exact Hok.2
-      isplitr [HPost]
-      · iapply (apply.kvOwn_of_split E _ B c)
-        iframe Hw Htie
-        iunfold apply.kvRest
-        iframe Hbk Hhk Hard
-        iunfold apply.leasesLive
-        iexists (L.filter (· != id))
-        iframe Hknown'
-        iunfold lease.lessorUser
-        iframe
+      iunfold apply.revokeResAfter
+      rw [apply.revokeIds_applied rq id _ _ L Hrq.2.1 Hrq.1,
+        apply.revokeRest_applied L rq id _ _ rs Hrq.2.1 Hrq.1, if_pos Hok.1]
+      iframe Hrev HltT HRO
+      isplitl [Hrdat]
+      · iunfold apply.rdHeld; iexact Hrdat
+      -- (X6) the answer: the response's header, `newHeader`'s at the log after
+      iunfold apply.revokeAnswer
+      rw [Hrq.1]
+      iexists _
       isplitr
-      · simp only [apply.chainRes]; itrivial
-      ileft; iexact HPost
-    · iunfold apply.revokeResAfter
-      iframe Hrdat
-      rw [ite_eq_left Hok.2]
-      iexact HRO
+      · ipureintro; rfl
+      ileft
+      isplitr
+      · ipureintro; exact Hok.2
+      iunfold apply.revokeRespIs
+      isplitr
+      · ipureintro; exact Hnn
+      iexists (apply.revokeLog log id)
+      iunfold apply.grantHdr
+      isplitl [Hhf]
+      · iunfold txn.respHdrOwn
+        iexists h
+        iframe Header
+        isplitr
+        · ipureintro; exact Hh
+        iunfold apply.hdrFields at Hhf
+        iexact Hhf
+      iexists h, _
+      iframe Header Hrv Hnxh
+      ipureintro
+      refine ⟨?_, Hlen.1, Hlen.2⟩
+      word
+    isplitr [HPost]
+    · iapply (apply.kvOwn_of_split E _ B c)
+      iframe Hw Htie
+      iunfold apply.kvRest
+      iframe Hbk Hhk Hard
+      iunfold apply.leasesLive
+      iexists (L.filter (· != id))
+      iframe Hknown' HltL
+      iunfold lease.lessorUser
+      iframe
+    isplitr
+    · simp only [apply.chainRes]; itrivial
+    ileft; iexact HPost
 
 end proof
 

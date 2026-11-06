@@ -1251,6 +1251,38 @@ instance respAt_persistent (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r :
     Persistent (respAt (GF := GF) resp r) := by
   unfold respAt; infer_instance
 
+/-! The response predicates' elimination laws: what a reader of a response learns (its fields,
+read-only), so that clients load them without unfolding. -/
+
+omit package_sem in
+theorem eventAt_elim {ev : Loc} {e : EvModel} :
+    eventAt (GF := GF) ev e ⊢ ∃ keySl : GoSlice,
+      structFieldRef mvccpb.Event go!"Type" ev ↦□ e.typ ∗
+      structFieldRef mvccpb.Event go!"Kv" ev ↦□ e.kv ∗
+      structFieldRef mvccpb.KeyValue go!"Key" e.kv ↦□ keySl ∗ keySl ↦*□ e.key ∗
+      structFieldRef mvccpb.KeyValue go!"ModRevision" e.kv ↦□ e.rev := by
+  unfold eventAt; iintro H; iexact H
+
+omit package_sem in
+theorem eventsAt_elim {sl : GoSlice} {evs : List EvModel} :
+    eventsAt (GF := GF) sl evs ⊢ ∃ ls : List Loc, sl ↦*□ ls ∗ ⌜ls.length = evs.length⌝ ∗
+      □ (∀ (i : Nat) (ev : Loc) (e : EvModel), ⌜ls[i]? = some ev⌝ -∗ ⌜evs[i]? = some e⌝ -∗
+        eventAt ev e) := by
+  unfold eventsAt; iintro H; iexact H
+
+omit package_sem in
+theorem hdrAt_cases {h : Loc} {rev : w64} :
+    hdrAt (GF := GF) h rev ⊢ ⌜h = null ∧ rev = W64 0⌝ ∨
+      (⌜h ≠ null⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rev) := by
+  unfold hdrAt; iintro H; iexact H
+
+omit package_sem in
+theorem respAt_elim {resp : go_etcd_io.etcd.client.v3.WatchResponse} {r : RespModel} :
+    respAt (GF := GF) resp r ⊢ eventsAt resp.Events' r.events ∗ hdrAt resp.Header' r.hdrRev ∗
+      ⌜resp.CompactRevision' = r.compactRev ∧ resp.Canceled' = r.canceled ∧
+        resp.Created' = r.created⌝ := by
+  unfold respAt; iintro H; iexact H
+
 /-- The error `getSnapshot` (and `Get`) returns for result `res`: `nil` for a snapshot,
 the value of the package variable `ErrNotReady`, `rpctypes.ErrFutureRev` or
 `rpctypes.ErrCompacted` (`Base.lean`), or some non-nil error (`fmt.Errorf`) for an invalid
@@ -1266,6 +1298,38 @@ def snapErr (res : SnapResult) (err : GoInterface) : IProp GF :=
 instance snapErr_persistent (res : SnapResult) (err : GoInterface) :
     Persistent (snapErr (GF := GF) res err) := by
   cases res <;> unfold snapErr <;> infer_instance
+
+/-- **A failed snapshot's error is non-nil**: each is a fixed non-nil error of the cache's or
+`rpctypes`' package (their facts), or a non-nil one for an invalid revision. -/
+theorem snapErr_ne_nil (res : SnapResult) (err : GoInterface) (h : ∀ r m, res ≠ .ok r m) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 -∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes -∗
+      snapErr res err -∗ ⌜err ≠ GoInterface.nil⌝ := by
+  iintro #Hpkg #Hrpc Hse
+  ihave Hci : (cacheInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hci with ⟨⟨%eNR, #HeNR⟩, -⟩
+  ihave Hri : (rpctypesInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hrpc
+  icases Hri with ⟨⟨%eFR, #HeFR, -⟩, ⟨%eCP, #HeCP, -⟩, -⟩
+  cases res with
+  | ok r m => exact absurd rfl (h r m)
+  | notReady =>
+    iunfold snapErr at Hse
+    icombine Hse HeNR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  | invalid =>
+    iunfold snapErr at Hse
+    icases Hse with %h
+    ipureintro; obtain ⟨e, rfl⟩ := h; simp
+  | future =>
+    iunfold snapErr at Hse
+    icombine Hse HeFR gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
+  | compacted =>
+    iunfold snapErr at Hse
+    icombine Hse HeCP gives %Heq
+    ipureintro; intro hn; subst hn; cases Heq
 
 /-- What a reader learns about the store: some state `st` it was in, satisfying
 `StoreInv`, whose latest revision is at least the reader's lower bound `r0`, with a lower

@@ -77,34 +77,37 @@ theorem auth.authStore.lockedReadTx.wp_lb :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold beRd at Hrd
+  icases Hrd with ⟨Hrd, Htk⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩
   iunfold beP at HP
-  icases HP with ⟨%be, Hbe, #Hbeok⟩
+  icases HP with ⟨%be, %γc, Hbe, #Hbeok, Hcu⟩
   ihave #Hbeok' := Hbeok
   iunfold authBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HRT⟩
   subst Hbi
   wp_auto
   wp_apply HRT as %tx Htx
-  iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, Htx⟩
+  ihave Htx := authReadTxOk_rd _ R M γc $$ Htx
+  icases Htx with ⟨%ti, %Hti, %Hs, -, #HRF, #Hreads⟩
   subst Hti
-  icases Htx with ⟨%Hs, -, -, #HRF, #Hreads⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-  iapply HRF $$ %i [HR]
-  · iframe HR Hlb
+  -- (R-D2, 2026-11-04) the currency, lent through the store's invariant with the reader's ticket
+  imod (beCurM_lend M γc) $$ Hcu Htk with ⟨%q, Hc, Hback⟩
+  iapply HRF $$ %i %q [HR Hc]
+  · iframe HR Hlb Hc
   inext
-  iintro ⟨%sta, Htok, #Hsnap⟩
+  iintro ⟨%sta, Htok, #Hsnap, Hc⟩
+  imod Hback $$ Hc with ⟨Hcu, Htk⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe] as Hrd
-  · inext; iunfold beP; iexists _; iframe Hbe; iexact Hbeok
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe Hcu] as Hrd
+  · inext; iunfold beP; iexists _, γc; iframe Hbe Hbeok Hcu
   iapply HΦ
   iunfold beRd
-  iframe Hrd
+  iframe Hrd Htk
   iunfold authReadTxLockedFrom
   iexists ti
   isplitr

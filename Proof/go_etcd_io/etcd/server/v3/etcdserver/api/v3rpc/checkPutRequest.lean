@@ -50,9 +50,9 @@ theorem v3rpc.checkPutRequest.wp_proof :
   ihave %Hvl := ownSlice_len _ _ _ $$ Hvs
   subst Ho
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeK HeV HeL
-  icases HeK with ⟨%eK, #HeK⟩
-  icases HeV with ⟨%eV, #HeV⟩
-  icases HeL with ⟨%eL, #HeL⟩
+  icases HeK with ⟨%eK, #HeK, #SeK⟩
+  icases HeV with ⟨%eV, #HeV, #SeV⟩
+  icases HeL with ⟨%eL, #HeL, #SeL⟩
   wp_auto
   wp_if_destruct
   · iapply HΦ

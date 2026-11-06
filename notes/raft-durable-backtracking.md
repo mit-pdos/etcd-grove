@@ -7,7 +7,7 @@ out false, too weak, too strong, unprovable or incomplete, and had to change, in
 proved code that then had to be re-proved. The aim is to find which mistakes are avoidable in
 future proofs, not to assign blame.
 
-The effort: the `examples/kvdurable` key-value store (kvreconf plus crash and restart from a file),
+The effort: the `examples/raft/kvdurable` key-value store (kvreconf plus crash and restart from a file),
 raft's durability API (candidate 12: `raftState`, `nodeVacant`, the *enter* update of a `Ready`,
 `RestartNode` over an atomic update), its proof (`notes/raft-durability-proof-plan.md`), and
 kvdurable's adequacy, 2026-10-31 to 2026-11-02. Sources cited below as `cN`, `rN`, `II(x)`, `kvd-*`

@@ -447,7 +447,7 @@ theorem txn.Txn_read
           (srvRunTxn (W64 (σr.log.length : Int)) (mvcc.stateAfter σr.log) t).1
           (srvRunTxn (W64 (σr.log.length : Int)) (mvcc.stateAfter σr.log) t).2.2 ∗
         respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
-       (mvcc.errorfIs err ∗ roTxnRespRd resp ∗
+       (mvcc.ctxErrorf err ∗ roTxnRespRd resp ∗
         respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)))) $$ [Hres]
   · icases Hres with (⟨⟨%Herr, -⟩, Hro, #Hresp, Hhdr, -⟩ | ⟨-, #He, Hro, #Hshell, #Hrd, Hhdr⟩)
     · iframe Hro

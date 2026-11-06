@@ -380,7 +380,6 @@ theorem raft.appendEntry.wp_proof
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     imod cellRO_alloc $$ «$v0» with #cTo
     try wp_auto
-    rw [show raftpb.MsgAppResp = #((W32 4 : raftpb.MessageType)) from rfl]
     haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
     wp_apply wp_MessageType_Enum (W32 4)
     iintro %pty Hpty

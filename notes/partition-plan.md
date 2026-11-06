@@ -1,4 +1,4 @@
-# Plan: the three-member cluster under network partitions (`examples/linkv3p`)
+# Plan: the three-member cluster under network partitions (`examples/etcd/partition`)
 
 Status: S0–S3b done (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grove-pt`; STATUS
 "Partitions, S0", "S1/S2", "S3a", "S3b"): the Go program, its test and the translations; the two
@@ -95,7 +95,7 @@ move into `startMember`), one `clientv3.New` per member with `MaxUnaryRetries: 1
 Put (D21 M6) and the read-index Get are then requested at followers and at members on the
 minority side of a cut: that is the test of the raft and server proofs this example adds.
 
-**D-P4. A new package `examples/linkv3p`, linkv and linkv3 untouched.** It imports linkv for
+**D-P4. A new package `examples/etcd/partition`, linkv and linkv3 untouched.** It imports linkv for
 `Model`, `Gen`, `Apply`, so their proofs carry over, as linkv3's do; its own `Apply` (the pick),
 `Check`, `startMember`, `partitioner`, `Main`. Generalizing linkv's `Check` to a slice of clients
 would change `linkv_safe`'s and `linkv3_safe`'s program.
@@ -109,7 +109,7 @@ ElectionTicks · TickMs = 7s`), so the test takes a minute or so; `go test -race
 
 ## Stages
 
-### S0. The Go program and its test (`examples/linkv3p`)
+### S0. The Go program and its test (`examples/etcd/partition`)
 
 - `go.mod` as linkv3's (putget's replaces, raft at the fork's `c8217eb9`); names `linkv3p-1..3`,
   token `linkv3p`, six fresh ports (peer `127.0.0.1:2384{1,2,3}`, client `2383{1,2,3}`; no other
@@ -170,7 +170,7 @@ the per-client premises are bundled as `clientOk`; `cluster3_alloc` gives the `e
 state variable and workload equal to the first's, for `linkvInv_congr`; `partitioner`'s spec takes
 any list of servers, each with `∃ id, srvNetMember`, and any list of steps.
 
-`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/`: `Defs` (names, six addresses, `cfgOk`
+`Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/`: `Defs` (names, six addresses, `cfgOk`
 at the token, `BootFacts` in `bootstrap`'s order from `TestMemberIDs`, `premises`), `Alloc`
 (linkv3's `cluster3_alloc` at the new names), `startMember` (linkv3's proof plus linkv3's `Main`
 steps for `v3rpc.Server`/`Listen`/`Serve`/`etcd_kv_started`, now per member: the post carries
@@ -209,7 +209,7 @@ beyond S2: if one did need delivery, it would show here as a stuck proof.
 
 `lake build`; `GOTOOLCHAIN=go1.27.1 etc/goose.py --check`; `etc/gen-link.py` for `--server` and
 `--linkv3p` (unchanged after linking); `etc/gen-init.py --check`; `etc/tcb-report.py --check`
-(+2) and every collection; `go test -race` in `examples/linkv3p`. STATUS entry; a decisions.md
+(+2) and every collection; `go test -race` in `examples/etcd/partition`. STATUS entry; a decisions.md
 entry recording D-P1–D-P5 and the argument that `Pause`/`Resume` are within the network model.
 
 ## Risks and open points

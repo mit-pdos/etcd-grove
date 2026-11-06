@@ -39,7 +39,7 @@ public import GeneratedProof.k8s_io.utils.ptr
 public import GeneratedProof.k8s_io.utils.trace
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.math.rand
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.reflect
 public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strconv

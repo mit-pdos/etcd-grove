@@ -7,6 +7,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 
 @[expose] public section
 
+-- MERGE-TODO(shutdown): the `lean` merge (2026-11-06) kept mvcc-api's `store.Close` (post `True`), not
+-- `lean`'s R-D1 post (the loops' readers, `compactJobResM`): the readers' names change at `Restore`;
+-- settled with the API's `Close` (the plan's risk 1). `ReaderRetire.lean` is not built meanwhile.
+
 noncomputable section
 
 namespace Perennial

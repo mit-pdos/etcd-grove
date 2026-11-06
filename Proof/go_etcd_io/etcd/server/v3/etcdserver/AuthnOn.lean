@@ -8,7 +8,7 @@ history update):
 - `appliedOkM_authn`: the law that reads an `Authenticate`'s answer out of `raftRequest`'s success
   (`appliedOkM true`'s `authnAnsM` at `.on γa`): an `*AuthenticateResponse` whose token was issued
   to the request's user.
-- `authnRaft_on`: one round, `raftRequest.specM true` on the request: on `nil` that response.
+- `authnRaft_on`: one round, `raftRequest.spec` with auth on on the request: on `nil` that response.
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -98,10 +98,10 @@ theorem appliedOkM_authn (E : apply.AEnv GF) (ρ : ReqNames) (γa : auth.AuthNam
   iframe Hrp Ht
   ipureintro; exact Hp
 
-/-- **One round of `Authenticate`'s proposal** (`raftRequest.specM true` on `irrAuthenticate`):
+/-- **One round of `Authenticate`'s proposal** (`raftRequest.spec` with auth on, on `irrAuthenticate`):
 the run's slots back, the error one the gRPC layer can take, and on `nil` an
 `*AuthenticateResponse` whose token was issued to `name`. -/
-theorem authnRaft_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true)
+theorem authnRaft_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γa : auth.AuthNames) (hγa : E.authMode = .on γa)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (p : Loc) (name pre : GoString)
     (hpre : auth.tokPrefixOk pre) (F : mvcc.Log) :
@@ -119,9 +119,11 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) t
             rp ↦ v ∗ auth.tokIssued γa v.Token' name) ∨
          ⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, Hlt, Hrd, Hid, #Hctx, #Hspc, #Hirr, Hhdr, #HF⟩ HΦ
+  have hRR := hRR s E ρ
+  rw [show E.authOn = true by rw [apply.AEnv.authOn_eq, hγa]; rfl] at hRR
   ihave #Hperm := reqPropOkM_true_authn (GF := GF) ρ.raft ρ.kv
     (hdrBoundM true s E (GoInterface.ok ctx)) name pre hpre
-  wp_apply hRR s E ρ ctx cd p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt Hrd Hid Hhdr]
+  wp_apply hRR ctx cd p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt Hrd Hid Hhdr]
     as %resp %err ⟨Hlt, Hrd, Hres⟩
   · iframe; iframe #
   icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, -, Hok, -, -, -⟩ | ⟨%Hre, #HaE, -⟩)

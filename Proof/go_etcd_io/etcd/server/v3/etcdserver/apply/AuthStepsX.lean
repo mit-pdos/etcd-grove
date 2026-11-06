@@ -6,7 +6,7 @@
 constant `W`, and the step's result is the authority after the step (`auth.adminOut`,
 `auth.adminOutFu`). E2s's tie of the admin side's halves of the flag and the cache to the latest
 state (`auth.X.specT`) depends on the history the step produces, so here the five admin requests
-`examples/authkv`'s `SetUp` sends carry, besides `W`, a resource `X` of the history alongside the
+`examples/etcd/auth`'s `SetUp` sends carry, besides `W`, a resource `X` of the history alongside the
 authority, given back at the history after (`auth.adminOutX`): `isAuthStepsX`, the backend's
 `stepSpecX`, the fueled `fuelSpecX`. The real store meets `isAuthStepsX` with `X = auth.tieRes st M`
 and `W = auth.authWB st M P f T ∗ auth.tpAdmin st M` (`isAuthStepsX_of_authInvT`, from E2s's
@@ -158,6 +158,60 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+
+open Iris.ProofMode in
+/-- **The admin steps at a larger write resource** (the auth-on snapshot plan's Prove step,
+2026-11-03): `W` is only framed by the steps, so they hold at `W ∗ Y` (the server's: the write
+token's resource with its half of the backend's name, `authBkCur`). -/
+theorem isAuthStepsX_frameW (st : GoInterface) (P : IProp GF) (f : GoFunc) (M : auth.AuthMode)
+    (X : List auth.AuthState → IProp GF) (W Y RD : IProp GF) :
+    isAuthStepsX (GF := GF) st P f M X W RD ⊢ isAuthStepsX st P f M X iprop(W ∗ Y) RD := by
+  iunfold isAuthStepsX
+  iintro ⟨%ai, %Hai, #H1, #H2, #H3, #H4, #H5, #H6⟩
+  iexists ai
+  isplitr
+  · ipureintro; exact Hai
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨Hon, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
+    iapply H1 $$ %hs %Pre %Q %Post [Hon Ho HX HW Hcs Hok Hcap]
+    · iframe
+    iintro !> %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hsure, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
+    iapply H2 $$ %hs %Pre %Q %Post %r %name [Hr Hsure Hn Ho HX HW Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
+    iapply H3 $$ %hs %Pre %Q %Post %r %name [Hr Hn Ho HX HW Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hu, Hok, Hcap⟩ HΦ
+    iapply H4 $$ %hs %Pre %Q %Post %r %user %role [Hr Hn Ho HX HW Hcs Hu Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨Hr, Hn, Ho, HX, ⟨HW, HY⟩, Hcs, Hok, Hcap⟩ HΦ
+    iapply H5 $$ %hs %Pre %Q %Post %r %name %w [Hr Hn Ho HX HW Hcs Hok Hcap]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HW, Hrest⟩
+    iapply HΦ
+    iframe
+  · iintro !> %hs %Pre %Q %Post %ctx %name %pw %Φ !> ⟨Hon, HRD, Ho, HX, ⟨HW, HY⟩, Hcs, Hctx⟩ HΦ
+    iapply H6 $$ %hs %Pre %Q %Post %ctx %name %pw [Hon HRD Ho HX HW Hcs Hctx]
+    · iframe
+    iintro !> %resp %err ⟨HPP, HRD, Ho, HX, HW, Hrest⟩
+    iapply HΦ
+    iframe
 
 /-- **An admin operation's result's error** is one the apply layer can take (`adminOut_applyErrIs`
 for an authority family). -/

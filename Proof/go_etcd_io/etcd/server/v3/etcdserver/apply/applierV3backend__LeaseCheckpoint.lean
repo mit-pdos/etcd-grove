@@ -106,7 +106,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       ipureintro; decide
     | ok ei =>
       wp_auto
-      wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh⟩
+      wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, -⟩
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
       wp_for_post
@@ -122,7 +122,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     · icases Hst with (⟨-, Hcs, -, -⟩ | ⟨-, HPP⟩)
       · iright; iapply apply.csContract_pre $$ Hcs
       · iexact HPP
-    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh⟩
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, -⟩
     irename «$r0» => Hresp
     generalize «$r0_ptr» = resp at *
     iapply HΦ

@@ -56,13 +56,17 @@ write resource (`authWR`) holds the store's user's half of `be`, the write token
 
 **The readers** (`authRd as R M`): `IsAuthEnabled` read-locks `enabledMu` and the permission checks
 also `rangePermCacheMu` and `beMu`, each needing a reader slot (`sync.ownRWMutex`: Perennial bounds
-an `RWMutex`'s readers), and the backend's read transaction needs `R`.
+an `RWMutex`'s readers), and the backend's read transaction needs `R`. In `on γa` (R-D2,
+2026-11-04) `beMu`'s slot comes with a ticket for the store's currency (`rdTicketM`), which an
+invariant of the store holds (`curInv`): a reader lends a part of it to the read transaction
+(`beCurM_lend`), and a holder of every ticket can abandon the store (`authRd_abandon`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.go_etcd_io.etcd.server.v3.auth.Steps
+public import Proof.go_etcd_io.etcd.server.v3.auth.BkNames
 public import Proof.go_etcd_io.etcd.server.v3.auth.Requests
 public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
@@ -588,9 +592,30 @@ history's published index (`authPubLbM`), a state no older than `i` (`authSnapFr
 plan's E3g, 2026-10-27, the reads' freshness the user chose: a state is published only once its
 batch is committed, so a real backend's read transaction begun afterwards sees it or a later one).
 (The auth plan's S1, 2026-10-23; until then: a token holding no state, `UnsafeGetUser` returning
-any pointer.) -/
-def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
-  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
+any pointer.) In `on γa`, for the backend `γc` (the auth-on snapshot plan's Freeze, 2026-11-03;
+`notes/decisions.md`, "The auth-on snapshot install"): the readers' clause and the freshness clause
+take a part of the backend's currency (`authCur γc q`, given back at `RLock`): a retired, released
+backend's reads cannot begin (after its `Close` its read transaction dereferences a nil bolt
+transaction), and a read begun before is safe, as Go's `Close` waits for the read transaction's
+holders; the latest clause takes the write token with the history's half (`authWTok γc ∗
+authHistHalf γa hs`): no batch of the apply thread's is open, so the read buffer holds what its last
+batch committed. -/
+def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
+      □ (∀ q : Qp, {{ R ∗ authCur γc q }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap (.on γa) st ∗ authCur γc q }}) ∗
+      □ (∀ (i : Nat) (q : Qp),
+        {{ R ∗ authPubLbM (.on γa) i ∗ authCur γc q }}
+          (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom (.on γa) i st ∗ authCur γc q }}) ∗
+      □ (∀ hs : List AuthState,
+        {{ R ∗ authWTok γc ∗ authHistHalf γa hs }}
+          (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap (.on γa) st ∗ authWTok γc ∗
+            authHistHalf γa hs ∗ ⌜hs.getLast? = some st⌝ }}) ∗
+      authTxReads ti R Hs)
+  | _ => iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
     □ ({{ R }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
       {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st }}) ∗
     □ (∀ hs : List AuthState,
@@ -601,19 +626,19 @@ def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
       {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom M i st }}) ∗
     authTxReads ti R Hs)
 
-instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) (M : AuthMode) :
-    Persistent (authReadTxOk (GF := GF) tx R M) := by
-  unfold authReadTxOk; infer_instance
+instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) (M : AuthMode)
+    (γc : AuthBkNames) : Persistent (authReadTxOk (GF := GF) tx R M γc) := by
+  unfold authReadTxOk; cases M <;> infer_instance
 
 /-- **The auth backend** `be` (an `AuthBackend`, not nil; a contract): `ReadTx()` returns a read
-transaction (`authReadTxOk`) for `R` in the mode `M`. -/
-def authBackendOk (be : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
+transaction (`authReadTxOk`) for `R` in the mode `M`, of the backend's names `γc`. -/
+def authBackendOk (be : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-      {{ (tx : GoInterface), RET #tx; authReadTxOk tx R M }}))
+      {{ (tx : GoInterface), RET #tx; authReadTxOk tx R M γc }}))
 
-instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) (M : AuthMode) :
-    Persistent (authBackendOk (GF := GF) be R M) := by
+instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) (M : AuthMode)
+    (γc : AuthBkNames) : Persistent (authBackendOk (GF := GF) be R M γc) := by
   unfold authBackendOk; infer_instance
 
 /-- **An auth info bound to the token `token`** in the mode `M` (persistent; the auth plan's S5):
@@ -770,13 +795,372 @@ instance tokenProviderOk_persistent (tp : GoInterface) (M : AuthMode) :
     Persistent (tokenProviderOk (GF := GF) tp M) := by
   unfold tokenProviderOk; infer_instance
 
+/-! ### The currency's invariant (R-D2, 2026-11-04)
+
+The current backend's currency (`authCur γc`) is not in `beMu`'s resource (`beP`) but in an
+invariant of the store, `curInv` (`notes/decisions.md`, "R-D2: the auth store's currency in an
+invariant"): a reader in `lockedReadTx`, between `beMu.RLock()` and `RUnlock()`, deposits one of its
+ticket's two tokens (`rdTicketM`, inside `beRd`) and half of `beP`'s piece of the backend's name, and
+takes `curEps K` of the currency, which it lends to the read transaction's `RLock()`; it takes the
+deposit back with the currency's return. `Recover`, under the write lock, holds all of `beP`'s piece,
+so no deposit is in (`n = 0`) and the currency is whole; a holder of every ticket (the server's
+abandoned store, `authRd_abandon`) finds no deposit either, takes the whole currency and leaves the
+invariant abandoned (every token in, so no reader can enter; half the name in, so no `Recover`). -/
+
+/-- The share of the currency a reader in its section holds, of `K` tokens in all. -/
+def curEps (K : Nat) : Qp := (1 : Qp) / sync.posToQpZ ((K : Int) + 1)
+
+/-- What the invariant holds of the currency while `n` readers are in their section. -/
+def curFrac (K n : Nat) : Qp := QpMul (sync.posToQpZ ((K : Int) + 1 - (n : Int))) (curEps K)
+
+theorem curFrac_val (K n : Nat) (h : n ≤ K) :
+    (curFrac K n).val = (((K : Int) + 1 - (n : Int) : Int) : Rat) / (((K : Int) + 1 : Int) : Rat) := by
+  simp only [curFrac, curEps, QpMul, Qp.val_div, Qp.val_one]
+  rw [sync.posToQpZ_val _ (by omega), sync.posToQpZ_val _ (by omega)]
+  rw [Rat.div_def, Rat.one_mul, Rat.div_def]
+
+theorem curFrac_S (K n : Nat) (h : n + 1 ≤ K) : curFrac K n = curEps K + curFrac K (n + 1) := by
+  rw [Qp.ext_iff, Qp.val_add, curFrac_val K n (by omega), curFrac_val K (n + 1) h]
+  simp only [curEps, Qp.val_div, Qp.val_one]
+  rw [sync.posToQpZ_val _ (by omega)]
+  rw [Rat.div_def, Rat.div_def, Rat.div_def, ← Rat.add_mul]
+  congr 1
+  push_cast
+  grind
+
+theorem curFrac_0 (K : Nat) : curFrac K 0 = 1 := by
+  rw [Qp.ext_iff, curFrac_val K 0 (Nat.zero_le _)]
+  rw [show (K : Int) + 1 - ((0 : Nat) : Int) = (K : Int) + 1 by omega, Qp.val_one, Rat.div_def,
+    Rat.mul_inv_cancel]
+  exact_mod_cast (show (K : Int) + 1 ≠ 0 by omega)
+
+/-- The invariant's namespace. -/
+abbrev curN : Namespace := nroot.@"authCur"
+
+/-- The piece of the backend's name a reader in its section deposits: half of `beP`'s at
+`sync.rfrac` (`beCurM`). -/
+abbrev rdDep : Qp := sync.rfrac.half.half.half
+
+/-- **The store's currency** (mode `on γa`; R-D2, 2026-11-04): `K` tokens in all (the tickets'
+authority, discarded: `authRdTotal`), `n` of them deposited by the readers in their section, each
+with a piece of the backend's name (`rdDep`); the invariant's quarter of the current backend's name
+`γc` (the apply thread holds a half, `authWHeld`, and `beP` a quarter); and either the currency
+less the readers' `curEps K` each (live), or (abandoned) the apply thread's half of the name with
+every token and no reader in. -/
+def curInv (γa : AuthNames) : IProp GF :=
+  iprop(∃ (K n : Nat) (γc : AuthBkNames), ownTokAuthDfrac γa.rdt DFrac.discard K ∗
+    ownToks γa.rdt n ∗ ([∗list] _x ∈ List.replicate n (), authBkCur γa rdDep γc) ∗
+    authBkCur γa (1 : Qp).half.half γc ∗
+    (authCur γc (curFrac K n) ∨ (authBkCur γa (1 : Qp).half γc ∗ ownToks γa.rdt K ∗ ⌜n = 0⌝)))
+
+instance curInv_timeless (γa : AuthNames) : Timeless (curInv (GF := GF) γa) := by
+  unfold curInv authBkCur authCur; infer_instance
+
+/-- The currency's invariant (persistent). -/
+def authCurInv (γa : AuthNames) : IProp GF := inv curN (curInv γa)
+
+instance authCurInv_persistent (γa : AuthNames) : Persistent (authCurInv (GF := GF) γa) := by
+  unfold authCurInv; infer_instance
+
+/-- `a + b` tokens out are at most the discarded authority's count. -/
+theorem toks_bound (γ : GName) (K a b : Nat) :
+    ⊢ ownTokAuthDfrac (GF := GF) γ DFrac.discard K -∗ ownToks γ a -∗ ownToks γ b -∗
+      ⌜a + b ≤ K⌝ ∗ ownToks γ a ∗ ownToks γ b := by
+  iintro #Ha H1 H2
+  ihave H := ownToks_add_2 b a γ $$ [H1 H2]
+  · iframe H1 H2
+  icombine Ha H gives %h
+  icases ownToks_add_1 b a γ $$ H with ⟨H1, H2⟩
+  iframe H1 H2
+  ipureintro; exact h
+
+instance authBkCur_combine_gives (γa : AuthNames) (q1 q2 : Qp) (γ1 γ2 : AuthBkNames) :
+    CombineSepGives (authBkCur (GF := GF) γa q1 γ1) (authBkCur γa q2 γ2)
+      iprop(⌜q1 + q2 ≤ 1 ∧ γ1 = γ2⌝) := by
+  unfold authBkCur; exact ghostVar_combine_gives γa.bk γ1 q1 γ2 q2
+
+/-- The whole of the backend's name, set to other names. -/
+theorem authBkCur_update (γa : AuthNames) (γ γ' : AuthBkNames) :
+    ⊢ authBkCur (GF := GF) γa 1 γ ==∗ authBkCur γa 1 γ' := by
+  unfold authBkCur; exact ghostVar_update γ' γa.bk γ
+
+/-- A piece of the backend's name as two halves. -/
+theorem authBkCur_split_half (γa : AuthNames) (q : Qp) (γc : AuthBkNames) :
+    authBkCur (GF := GF) γa q γc ⊣⊢ authBkCur γa q.half γc ∗ authBkCur γa q.half γc := by
+  unfold authBkCur; exact ghostVar_split_half γa.bk q γc
+
+/-- The whole of the backend's name, of a half and two quarters. -/
+theorem authBkCur_whole (γa : AuthNames) (γc : AuthBkNames) :
+    authBkCur (GF := GF) γa (1 : Qp).half γc ∗ authBkCur γa (1 : Qp).half.half γc ∗
+      authBkCur γa (1 : Qp).half.half γc ⊣⊢ authBkCur γa 1 γc := by
+  unfold authBkCur
+  constructor
+  · iintro ⟨H1, H2, H3⟩
+    ihave H23 := (ghostVar_split_half γa.bk (1 : Qp).half γc).2 $$ [H2 H3]
+    · iframe H2 H3
+    iapply (ghostVar_split_half γa.bk 1 γc).2 $$ [H1 H23]
+    iframe H1 H23
+  · iintro H
+    icases (ghostVar_split_half γa.bk 1 γc).1 $$ H with ⟨H1, H2⟩
+    icases (ghostVar_split_half γa.bk (1 : Qp).half γc).1 $$ H2 with ⟨H2, H3⟩
+    iframe H1 H2 H3
+
+/-- Nothing beside the whole of the backend's name. -/
+theorem authBkCur_excess (γa : AuthNames) (q : Qp) (γ1 γ2 : AuthBkNames) :
+    ⊢ authBkCur (GF := GF) γa 1 γ1 -∗ authBkCur γa q γ2 -∗ False := by
+  unfold authBkCur
+  iintro H1 H2
+  ihave %h := ghostVar_valid_2 γa.bk γ1 1 γ2 q $$ H1 H2
+  exfalso
+  have h1 := h.1
+  have h2 := q.2
+  simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+  grind
+
+/-- **The current backend's share under `beMu` at `q`, in the mode `M`** (the auth-on snapshot
+plan's Freeze, 2026-11-03): in `on γa`, the share of the current backend's names (`authBkCur`, at
+a quarter of the fraction: the apply thread holds a half, `authWHeld`, the currency's invariant a
+quarter) and the currency's invariant (`authCurInv`); nothing in the other modes. (R-D2,
+2026-11-04: until then at half the fraction, with the backend's currency at `q`, which only
+`Recover`'s write lock could collect whole; `notes/decisions.md`, "R-D2: the auth store's currency in
+an invariant".) -/
+def beCurM (M : AuthMode) (q : Qp) (γc : AuthBkNames) : IProp GF :=
+  match M with
+  | .on γa => iprop(authBkCur γa q.half.half γc ∗ authCurInv γa)
+  | _ => iprop(True)
+
+/-- **The currency a read transaction's `RLock()` takes, in the mode `M`** (R-D2): `authCur γc q` in
+`on γa`, nothing otherwise. -/
+def authCurM (M : AuthMode) (q : Qp) (γc : AuthBkNames) : IProp GF :=
+  match M with
+  | .on _ => authCur γc q
+  | _ => iprop(True)
+
+theorem beCurM_split (M : AuthMode) (q1 q2 : Qp) (γc : AuthBkNames) :
+    beCurM (GF := GF) M (q1 + q2) γc ⊣⊢ beCurM M q1 γc ∗ beCurM M q2 γc := by
+  cases M with
+  | on γa =>
+    simp only [beCurM, authBkCur]
+    have hh : (q1 + q2).half.half = q1.half.half + q2.half.half := Subtype.ext (by grind)
+    rw [hh]
+    constructor
+    · iintro ⟨Hb, #Hi⟩
+      icases ((ghostVar_fractional γa.bk γc).fractional q1.half.half q2.half.half).1 $$ Hb
+        with ⟨Hb1, Hb2⟩
+      isplitl [Hb1]
+      · iframe Hb1 Hi
+      · iframe Hb2 Hi
+    · iintro ⟨⟨Hb1, #Hi⟩, ⟨Hb2, -⟩⟩
+      iframe Hi
+      iapply ((ghostVar_fractional γa.bk γc).fractional q1.half.half q2.half.half).2 $$ [$Hb1 $Hb2]
+  | off =>
+    simp only [beCurM]
+    constructor
+    · iintro -; isplitl [] <;> itrivial
+    · iintro -; itrivial
+  | any =>
+    simp only [beCurM]
+    constructor
+    · iintro -; isplitl [] <;> itrivial
+    · iintro -; itrivial
+
+/-- **The read contract's latest clause, in any mode**: for the apply thread (the authority
+`authOwn` with its write token `authWHeldM`) and a share of `beMu`'s backend (`beCurM`, whose
+names the token's agree with), the state read is the history's last. -/
+theorem authReadTxOk_latest (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) :
+    authReadTxOk (GF := GF) tx R M γc ⊢ ∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
+      ∃ Hs : AuthState → IProp GF,
+      □ (∀ (hs : List AuthState) (q : Qp) (γw : AuthBkNames),
+        {{ R ∗ authOwn M hs ∗ authWHeldM M γw ∗ beCurM M q γc }}
+          (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authOwn M hs ∗ authWHeldM M γw ∗
+            beCurM M q γc ∗ ⌜histLast M hs st⌝ }}) ∗
+      authTxReads ti R Hs := by
+  cases M with
+  | on γa =>
+    simp only [authReadTxOk]
+    iintro ⟨%ti, %h, %Hs, -, -, #H3, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %hs %q %γw %Φ !> ⟨HR, Hown, Hw, Hc⟩ HΦ
+      simp only [authOwn, authWHeldM, authWHeld, beCurM]
+      icases Hown with ⟨Hhh, Hcur⟩
+      icases Hw with ⟨HT, Hb'⟩
+      icases Hc with ⟨Hb, #Hcu⟩
+      ihave %h : ⌜γw = γc⌝ $$ [Hb Hb']
+      · unfold authBkCur
+        icombine Hb' Hb gives %h
+        ipureintro; exact h.2
+      subst h
+      iapply H3 $$ %hs [HR HT Hhh]
+      · iframe HR HT Hhh
+      inext
+      iintro ⟨%st, Hst, #Hsn, HT, Hhh, %Hl⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hhh Hcur Hb Hcu
+      isplitl [HT Hb']
+      · iframe HT Hb'
+      ipureintro; exact Hl
+    iexact Hr
+  | off =>
+    simp only [authReadTxOk]
+    iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %hs %q %γw %Φ !> ⟨HR, Hown, Hw, Hc⟩ HΦ
+      iapply H2 $$ %hs [HR Hown]
+      · iframe HR Hown
+      inext
+      iintro ⟨%st, Hst, #Hsn, Hown, %Hl⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hown Hw Hc
+      ipureintro; exact Hl
+    iexact Hr
+  | any =>
+    simp only [authReadTxOk]
+    iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %hs %q %γw %Φ !> ⟨HR, Hown, Hw, Hc⟩ HΦ
+      iapply H2 $$ %hs [HR Hown]
+      · iframe HR Hown
+      inext
+      iintro ⟨%st, Hst, #Hsn, Hown, %Hl⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hown Hw Hc
+      ipureintro; exact Hl
+    iexact Hr
+
+/-- Two shares merge, at the first's names (in `on γa` the names agree). -/
+theorem beCurM_merge (M : AuthMode) (q1 q2 : Qp) (γ1 γ2 : AuthBkNames) :
+    beCurM (GF := GF) M q1 γ1 ∗ beCurM M q2 γ2 ⊢ beCurM M (q1 + q2) γ1 := by
+  cases M with
+  | on γa =>
+    iintro ⟨H1, H2⟩
+    ihave %h : ⌜γ1 = γ2⌝ $$ [H1 H2]
+    · simp only [beCurM, authBkCur]
+      icases H1 with ⟨Hb1, -⟩
+      icases H2 with ⟨Hb2, -⟩
+      icombine Hb1 Hb2 gives %h
+      ipureintro; exact h.2
+    subst h
+    iapply (beCurM_split (.on γa) q1 q2 γ1).2 $$ [$H1 $H2]
+  | off => simp only [beCurM]; iintro -; itrivial
+  | any => simp only [beCurM]; iintro -; itrivial
+
 /-- What `beMu` guards at `q`: the backend `be` at half the fraction, with its contract
 (`Recover` replaces it under the write lock). (D22 receiver epochs, S7c, 2026-10-23: the other half
 of `be` is the store's user's, the server's apply thread, `authBeOn`, which `Recover` takes with
 the write lock; so the user's half names the backend the store's writes go to. Until then `beMu`
-held all of it.) -/
+held all of it.) With the backend's names `γc` and, in `on γa`, its share of them (`beCurM`; the
+auth-on snapshot plan's Freeze, 2026-11-03; R-D2, 2026-11-04: with the currency's invariant, not the
+currency, which the invariant holds). -/
 def beP (st : Loc) (R : IProp GF) (M : AuthMode) (q : Qp) : IProp GF :=
-  iprop(∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M)
+  iprop(∃ (be : AuthBackend) (γc : AuthBkNames), aF go!"be" st ↦{DFrac.own q.half} be ∗
+    authBackendOk be R M γc ∗ beCurM M q γc)
+
+/-- **The read contract's clauses for a reader, in any mode**: the readers' clause and the
+freshness clause, each over `authCurM M q γc` (in `on γa`, the currency `authCur γc q` they take;
+R-D2, 2026-11-04: until then over `beP`'s share `beCurM`, which held it). -/
+theorem authReadTxOk_rd (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) :
+    authReadTxOk (GF := GF) tx R M γc ⊢ ∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
+      ∃ Hs : AuthState → IProp GF,
+      □ (∀ q : Qp, {{ R ∗ authCurM M q γc }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authCurM M q γc }}) ∗
+      □ (∀ (i : Nat) (q : Qp),
+        {{ R ∗ authPubLbM M i ∗ authCurM M q γc }}
+          (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnapFrom M i st ∗ authCurM M q γc }}) ∗
+      authTxReads ti R Hs := by
+  cases M with
+  | on γa =>
+    simp only [authReadTxOk, authCurM]
+    iintro ⟨%ti, %h, %Hs, #H1, #H2, -, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %q %Φ !> ⟨HR, Hc⟩ HΦ
+      iapply H1 $$ %q [HR Hc]
+      · iframe HR Hc
+      inext
+      iintro ⟨%st, Hst, #Hsn, Hc⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hc
+    isplitr
+    · iintro !> %i %q %Φ !> ⟨HR, #Hlb, Hc⟩ HΦ
+      iapply H2 $$ %i %q [HR Hc]
+      · iframe HR Hlb Hc
+      inext
+      iintro ⟨%st, Hst, #Hsn, Hc⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hc
+    iexact Hr
+  | off =>
+    simp only [authReadTxOk, authCurM]
+    iintro ⟨%ti, %h, %Hs, #H1, -, #H2, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %q %Φ !> ⟨HR, -⟩ HΦ
+      iapply H1 $$ HR
+      inext
+      iintro ⟨%st, Hst, #Hsn⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn
+    isplitr
+    · iintro !> %i %q %Φ !> ⟨HR, #Hlb, -⟩ HΦ
+      iapply H2 $$ %i [HR]
+      · iframe HR Hlb
+      inext
+      iintro ⟨%st, Hst, #Hsn⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn
+    iexact Hr
+  | any =>
+    simp only [authReadTxOk, authCurM]
+    iintro ⟨%ti, %h, %Hs, #H1, -, #H2, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %q %Φ !> ⟨HR, -⟩ HΦ
+      iapply H1 $$ HR
+      inext
+      iintro ⟨%st, Hst, #Hsn⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn
+    isplitr
+    · iintro !> %i %q %Φ !> ⟨HR, #Hlb, -⟩ HΦ
+      iapply H2 $$ %i [HR]
+      · iframe HR Hlb
+      inext
+      iintro ⟨%st, Hst, #Hsn⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn
+    iexact Hr
 
 /-- **A locked read transaction** `tx` for the read resource `R` in the mode `M` (what
 `lockedReadTx` returns): the held token `Hs sta` of a state `sta` of the mode, under which its
@@ -808,15 +1192,16 @@ instance revCur_timeless (M : AuthMode) (r : w64) : Timeless (revCur (GF := GF) 
 
 /-- **The store's freshness** in the mode `M` at the atomic's value `r` (the auth plan's E3h,
 2026-10-27; `notes/decisions.md`, "E3h of the auth plan"): in `on γa`, the published index `p`'s
-authority (`authPubAuth`; a reader's lower bound `authPubLb γa i` is at most `p`), `p` an index of
+authority (`authPubQ`; a reader's lower bound `authPubLb γa i` is at most `p`), `p` an index of
 the history, `r` the revision of a state recorded at an index at least `p`, a quarter of the field
 `enabled`'s ghost variable (`enG`) at the flag of such a state, and a quarter of the cache's ghost
 variable (`caG`) at a map of a state with the permissions of such a state (`permView`) (so a reader with the lower
 bound `i` reads a revision and, under the locks, a flag and a cache no older than `i`'s); in the
-other modes nothing. -/
+other modes nothing. The authority at half (`authPubQ γa ½`; the auth-on snapshot plan's Freeze,
+2026-11-03: the realization holds a quarter, the apply thread a quarter, `authPubTok`). -/
 def revFresh (M : AuthMode) (r : w64) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ p : Nat, authPubAuth γa p ∗ (∃ sp : AuthState, authStateAt γa p sp) ∗
+  | .on γa => iprop(∃ p : Nat, authPubQ γa (1 : Qp).half p ∗ (∃ sp : AuthState, authStateAt γa p sp) ∗
       (∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ uint.nat r = s.revision⌝) ∗
       (∃ b : Bool, ghostVar γa.fen (1 : Qp).half.half b ∗
         ∃ (j : Nat) (s : AuthState), authStateAt γa j s ∗ ⌜p ≤ j ∧ b = s.enabled⌝) ∗
@@ -826,7 +1211,7 @@ def revFresh (M : AuthMode) (r : w64) : IProp GF :=
   | _ => iprop(True)
 
 instance revFresh_timeless (M : AuthMode) (r : w64) : Timeless (revFresh (GF := GF) M r) := by
-  unfold revFresh authPubAuth authStateAt; cases M <;> infer_instance
+  unfold revFresh authPubQ authStateAt; cases M <;> infer_instance
 
 /-- The invariant of `revision` (an atomic) in the mode `M`: a recorded state's revision
 (`revisionVerdict`; the auth plan's S3), the latest's (`revCur`; S4), and the store's freshness
@@ -1408,6 +1793,269 @@ theorem authOwnF_revCur_keep (M : AuthMode) (hs : List AuthState) (stl : AuthSta
     imodintro
     isplitr; itrivial; isplitr; itrivial; itrivial
 
+/-- The admin side's half keeps a recorded state of it. -/
+theorem authHistHalf_stateAt_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState)
+    (h : hs[i]? = some st) :
+    authHistHalf (GF := GF) γa hs ⊢ authHistHalf γa hs ∗ authStateAt γa i st := by
+  unfold authHistHalf authStateAt
+  iintro ⟨H, %Hk⟩
+  ihave #Hlb := monoListLbOwn_get γa.hist _ hs $$ H
+  iframe H
+  isplitr
+  · ipureintro; exact Hk
+  isplitl []
+  · iapply (monoListIdxOwn_get i st h) $$ Hlb
+  · ipureintro; exact Hk st (List.mem_of_getElem? h)
+
+/-- The admin side's half, kept, with a recorded state's index in it. -/
+theorem authHistHalf_lookup_keep (γa : AuthNames) (hs : List AuthState) (i : Nat) (st : AuthState) :
+    authHistHalf (GF := GF) γa hs ∗ authStateAt γa i st ⊢ authHistHalf γa hs ∗ ⌜hs[i]? = some st⌝ :=
+  (and_intro (by iintro ⟨H, -⟩; iexact H) (authHistHalf_lookup γa hs i st)).trans
+    persistent_and_sep_mp
+
+/-- **The admin side's pending authority** (the auth-on snapshot plan's candidate (ii), the Freeze
+of 2026-11-03): the history's half at `hs ++ N` (the caught-up states recorded), the latest state's
+half still at `hs`'s last (the atomic not yet stored). `N = []`: `authOwn (.on γa) hs`. -/
+def authOwnP (γa : AuthNames) (hs N : List AuthState) : IProp GF :=
+  iprop(authHistHalf γa (hs ++ N) ∗ ∃ st : AuthState, ⌜hs.getLast? = some st⌝ ∗ authCurHalf γa st)
+
+/-- **The pending authority in every mode** (`Recover` and `setRevision`'s one spec each): in
+`on γa`, `authOwnP`; in the other modes, the authority at `hs ++ N` (no ghost variable to lag). -/
+def authOwnPM (M : AuthMode) (hs N : List AuthState) : IProp GF :=
+  match M with
+  | .on γa => authOwnP γa hs N
+  | _ => authOwn M (hs ++ N)
+
+/-- Nothing pending: the authority. -/
+theorem authOwnPM_nil (M : AuthMode) (hs : List AuthState) :
+    authOwnPM (GF := GF) M hs [] ⊣⊢ authOwn M hs := by
+  cases M <;> simp only [authOwnPM, authOwnP, authOwn, List.append_nil] <;>
+    (constructor <;> iintro H <;> iexact H)
+
+/-- **The atomic set to the caught-up history's last revision** (`Recover`'s `setRevision`):
+the latest state's halves move to the last of `hs ++ N`, the authority is no longer pending, and
+the new value's verdict. -/
+theorem authOwnPM_revCur_set (M : AuthMode) (hs N : List AuthState) (stl : AuthState) (r r' : w64)
+    (hl : histLast M (hs ++ N) stl) (hr' : M.isOn = true → M ≠ .any → uint.nat r' = stl.revision) :
+    ⊢ authOwnPM (GF := GF) M hs N -∗ revCur M r -∗
+      |==> (authOwn M (hs ++ N) ∗ revCur M r' ∗ revisionVerdict M r') := by
+  cases M with
+  | on γa =>
+    simp only [authOwnPM, authOwnP, authOwn, revCur, revisionVerdict, histLast] at hl ⊢
+    iintro ⟨Hh, ⟨%st0, %Hl0, Hc1⟩⟩ ⟨%stc, Hc2, -, Hq⟩
+    imod (authCurHalf_update γa st0 stc stl) $$ Hc1 Hc2 with ⟨Hc1, Hc2⟩
+    have hi : (hs ++ N)[(hs ++ N).length - 1]? = some stl := by
+      rw [List.getLast?_eq_getElem?] at hl; exact hl
+    ihave ⟨Hh, #Hst⟩ := authHistHalf_stateAt_keep γa (hs ++ N) _ stl hi $$ Hh
+    imodintro
+    iframe Hh
+    isplitl [Hc1]
+    · iexists stl; iframe Hc1; ipureintro; exact hl
+    isplitl [Hc2 Hq]
+    · iexists stl; iframe Hc2 Hq; ipureintro; exact hr' rfl (by intro h; cases h)
+    · iexists (hs ++ N).length - 1, stl; iframe Hst; ipureintro; exact hr' rfl (by intro h; cases h)
+  | off =>
+    simp only [authOwnPM, authOwn, revCur, revisionVerdict]
+    iintro %H -
+    imodintro
+    isplitr
+    · ipureintro; exact H
+    · isplitr <;> itrivial
+  | any =>
+    simp only [authOwnPM, authOwn, revCur, revisionVerdict]
+    iintro - -
+    imodintro
+    isplitr; itrivial; isplitr; itrivial; itrivial
+
+/-- `authOwnF_revFresh` from the admin side's authority alone. -/
+theorem authOwn_revFresh (M : AuthMode) (hs : List AuthState) (s : AuthState) (r r' : w64)
+    (hl : ∀ γa, M = .on γa → hs.getLast? = some s)
+    (hr' : M.isOn = true → M ≠ .any → uint.nat r' = s.revision) :
+    ⊢ authOwn (GF := GF) M hs -∗ revFresh M r -∗ |==> (authOwn M hs ∗ revFresh M r') := by
+  cases M with
+  | on γa =>
+    have hl := hl γa rfl
+    simp only [authOwn, revFresh]
+    iintro ⟨Hh, Hc⟩ ⟨%p, Hp, ⟨%sp, #Hsp⟩, -, Hen, Hca⟩
+    ihave ⟨Hh, %Hlk⟩ := authHistHalf_lookup_keep γa hs p sp $$ [Hh]
+    · iframe Hh Hsp
+    have hi : hs[hs.length - 1]? = some s := by
+      rw [List.getLast?_eq_getElem?] at hl; exact hl
+    obtain ⟨hp, -⟩ := List.getElem?_eq_some_iff.1 Hlk
+    ihave ⟨Hh, #Hst⟩ := authHistHalf_stateAt_keep γa hs (hs.length - 1) s hi $$ Hh
+    imodintro
+    isplitl [Hh Hc]
+    · iframe Hh Hc
+    iexists p
+    iframe Hp
+    isplitl []
+    · iexists sp; iexact Hsp
+    iframe Hen Hca
+    iexists hs.length - 1, s
+    iframe Hst
+    ipureintro
+    exact ⟨by omega, hr' rfl (by intro h; cases h)⟩
+  | off =>
+    simp only [revFresh]
+    iintro H -
+    imodintro
+    isplitl [H]
+    · iexact H
+    · itrivial
+  | any =>
+    simp only [revFresh]
+    iintro H -
+    imodintro
+    isplitl [H]
+    · iexact H
+    · itrivial
+
+/-- What `Recover` takes besides the store's resources: in `on γa`, the new backend's write token
+and whole currency and the apply thread's share of the old backend's name `γc₀`. -/
+def recoverIn (M : AuthMode) (γc₀ γc : AuthBkNames) : IProp GF :=
+  match M with
+  | .on γa => iprop(authWTok γc ∗ authCur γc 1 ∗ authBkCur γa (1 : Qp).half γc₀)
+  | _ => iprop(True)
+
+/-- What `Recover` gives back: in `on γa`, the new backend's write token, the share of its name, and
+the old backend's whole currency (for its release). -/
+def recoverOut (M : AuthMode) (γc₀ γc : AuthBkNames) : IProp GF :=
+  match M with
+  | .on γa => iprop(authWTok γc ∗ authBkCur γa (1 : Qp).half γc ∗ authCur γc₀ 1)
+  | _ => iprop(True)
+
+/-- The read state's facts: in `on γa`, it is the caught-up history's last, `stI`, and fits the
+cache; in the other modes nothing is appended (`N = []`) and every state of the mode fits. -/
+def recoverFit (M : AuthMode) (hs N : List AuthState) (stI : AuthState) : IProp GF :=
+  match M with
+  | .on _ => iprop(⌜(hs ++ N).getLast? = some stI ∧ permsFit stI⌝)
+  | M => iprop(⌜N = []⌝ ∗ □ (∀ s : AuthState, authSnap M s -∗ ⌜permsFit s⌝))
+
+/-- **`Recover`'s swap of the current backend's names**: with `beMu`'s share of the old backend's
+names (at the write lock, all of `beP`'s), the new backend's names become current (`beP`'s share
+and the currency's invariant at the new names, with their whole currency) and the old backend's
+whole currency is handed back. (R-D2, 2026-11-04: through the currency's invariant, in which no
+reader is in, as `beP`'s whole share is here, and which is not abandoned, as the apply thread's half
+of the name is here; until then a ghost update of `beP`'s share, which held the currency.) -/
+theorem recover_swap (M : AuthMode) (γc₀ γc γ1 : AuthBkNames) :
+    ⊢ recoverIn (GF := GF) M γc₀ γc -∗ beCurM M 1 γ1 ={⊤}=∗ (beCurM M 1 γc ∗ recoverOut M γc₀ γc) := by
+  cases M with
+  | on γa =>
+    simp only [recoverIn, recoverOut, beCurM]
+    iintro ⟨HT, Hcu, Hb0⟩ ⟨Hb1, #Hci⟩
+    ihave #Hci' := Hci
+    iunfold authCurInv at Hci'
+    iinv Hci' with >Hi Hclose
+    iunfold curInv at Hi
+    icases Hi with ⟨%K, %n, %γ', #Hauth, Htoks, Hdeps, Hq, Hrest⟩
+    icombine Hb0 Hb1 gives %h1_
+    obtain ⟨-, h1⟩ := h1_
+    subst h1
+    icombine Hb0 Hq gives %h2_
+    obtain ⟨-, h2⟩ := h2_
+    subst h2
+    ihave Hb := (authBkCur_whole γa γc₀).1 $$ [Hb0 Hb1 Hq]
+    · iframe Hb0 Hb1 Hq
+    icases Hrest with (Hcu0 | ⟨Hh, -, -⟩)
+    · cases n with
+      | succ m =>
+        -- a reader's deposit beside the whole name: too much
+        simp only [List.replicate]
+        icases BigSepL.bigSepL_cons.1 $$ Hdeps with ⟨Hd, -⟩
+        iexfalso
+        iapply authBkCur_excess γa _ γc₀ γc₀ $$ Hb Hd
+      | zero =>
+        rw [curFrac_0]
+        imod (authBkCur_update γa γc₀ γc) $$ Hb with Hb
+        icases (authBkCur_whole γa γc).2 $$ Hb with ⟨Hb0, Hb1, Hq⟩
+        imod Hclose $$ [Htoks Hq Hcu] with -
+        · inext
+          iunfold curInv
+          iexists K, 0, γc
+          iframe Hauth Htoks Hq
+          isplitr
+          · simp only [List.replicate]; iapply BigSepL.bigSepL_nil.2; itrivial
+          ileft; rw [curFrac_0]; iexact Hcu
+        imodintro
+        iframe HT Hb0 Hcu0 Hb1 Hci
+    · -- abandoned: its half of the name beside the whole: too much
+      iexfalso
+      iapply authBkCur_excess γa _ γc₀ γc₀ $$ Hb Hh
+  | off =>
+    simp only [recoverIn, recoverOut, beCurM]
+    iintro - -; imodintro; isplitl [] <;> itrivial
+  | any =>
+    simp only [recoverIn, recoverOut, beCurM]
+    iintro - -; imodintro; isplitl [] <;> itrivial
+
+/-- **The read contract for `Recover`** (any mode): with the pending authority at `hs ++ N` and,
+in `on γa`, the new backend's write token (in `recoverOut`), the state read is the last of
+`hs ++ N`. -/
+theorem authReadTxOk_recover (tx : GoInterface) (R : IProp GF) (M : AuthMode) (γc : AuthBkNames) :
+    authReadTxOk (GF := GF) tx R M γc ⊢ ∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
+      ∃ Hs : AuthState → IProp GF,
+      □ (∀ (hs N : List AuthState) (γc₀ : AuthBkNames),
+        {{ R ∗ authOwnPM M hs N ∗ recoverOut M γc₀ γc }}
+          (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+        {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authOwnPM M hs N ∗
+            recoverOut M γc₀ γc ∗ ⌜histLast M (hs ++ N) st⌝ }}) ∗
+      authTxReads ti R Hs := by
+  cases M with
+  | on γa =>
+    simp only [authReadTxOk, authOwnPM, authOwnP, recoverOut, histLast]
+    iintro ⟨%ti, %h, %Hs, -, -, #H3, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %hs %N %γc₀ %Φ !> ⟨HR, ⟨Hhh, Hcur⟩, ⟨HT, Hb, Hcu⟩⟩ HΦ
+      iapply H3 $$ %(hs ++ N) [HR HT Hhh]
+      · iframe HR HT Hhh
+      inext
+      iintro ⟨%st, Hst, #Hsn, HT, Hhh, %Hl⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hhh Hcur HT Hb Hcu
+      ipureintro; exact Hl
+    iexact Hr
+  | off =>
+    simp only [authReadTxOk, authOwnPM, recoverOut]
+    iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %hs %N %γc₀ %Φ !> ⟨HR, Hown, Hout⟩ HΦ
+      iapply H2 $$ %(hs ++ N) [HR Hown]
+      · iframe HR Hown
+      inext
+      iintro ⟨%st, Hst, #Hsn, Hown, %Hl⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hown Hout
+      ipureintro; exact Hl
+    iexact Hr
+  | any =>
+    simp only [authReadTxOk, authOwnPM, recoverOut]
+    iintro ⟨%ti, %h, %Hs, -, #H2, -, #Hr⟩
+    iexists ti
+    isplitr
+    · ipureintro; exact h
+    iexists Hs
+    isplitr
+    · iintro !> %hs %N %γc₀ %Φ !> ⟨HR, Hown, Hout⟩ HΦ
+      iapply H2 $$ %(hs ++ N) [HR Hown]
+      · iframe HR Hown
+      inext
+      iintro ⟨%st, Hst, #Hsn, Hown, %Hl⟩
+      iapply HΦ
+      iexists st
+      iframe Hst Hsn Hown Hout
+      ipureintro; exact Hl
+    iexact Hr
+
 /-- **The freshness at the latest state's revision** (the auth plan's E3h): with the whole
 authority at `hs` whose latest state `s` has the revision `r'`, the published index (an index of
 `hs`) is at most `s`'s, so the atomic at `r'` is fresh. -/
@@ -1572,14 +2220,13 @@ with the whole authority at `hs` whose latest state is `sta`, sets the ghost var
 theorem caG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState)
     (mp mp' : GoMap) (Mp Mp' : GMap GoString Loc) (sc sta : AuthState)
     (hl : ∀ γa, M = .on γa → hs.getLast? = some sta) :
-    authInv (GF := GF) st R M ⊢ authOwnF M hs -∗ caGM M (1 : Qp).half mp Mp -∗ caA M mp sc -∗
+    authInv (GF := GF) st R M ⊢ authOwn M hs -∗ caGM M (1 : Qp).half mp Mp -∗ caA M mp sc -∗
       cacheOf sta Mp' ={⊤}=∗
-      authOwnF M hs ∗ caGM M (1 : Qp).half mp' Mp' ∗ caA M mp' sta := by
+      authOwn M hs ∗ caGM M (1 : Qp).half mp' Mp' ∗ caA M mp' sta := by
   cases M with
   | on γa =>
     have hl := hl γa rfl
     iintro #Hinv Hown Hg Hq #Hof
-    icases (authOwnF_split (.on γa) hs).1 $$ Hown with ⟨Hown, Hsh⟩
     iunfold authInv at Hinv
     icases Hinv with ⟨-, #Hrev, -⟩
     iinv Hrev with Hi Hclose
@@ -1628,8 +2275,7 @@ theorem caG_update (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState
       ipureintro
       exact ⟨Hl.2, rfl⟩
     imodintro
-    isplitl [Hown Hsh]
-    · iapply (authOwnF_split (.on γa) hs).2 $$ [$Hown $Hsh]
+    iframe Hown
     isplitl [Hg]
     · iunfold caGM; iexists hs.length - 1, stl; iframe Hg Hst Hof
     · iunfold caA; iexists hs.length - 1, stl; iframe Hq Hst; ipureintro; rfl
@@ -1883,13 +2529,231 @@ def enabledRd (st : Loc) (M : AuthMode) : IProp GF :=
 def cacheRd (st : Loc) (M : AuthMode) : IProp GF :=
   sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st M)
 
-/-- A reader slot of `beMu` (`lockedReadTx`). -/
+/-- **A reader's ticket for the store's currency, in the mode `M`** (R-D2, 2026-11-04): in `on γa`
+two of the tickets' tokens (`γa.rdt`): one deposited in the currency's invariant while the reader is
+in `lockedReadTx`'s section, one kept, so that the reader finds the invariant live when it comes
+back (`beCurM_lend`); nothing in the other modes. -/
+def rdTicketM (M : AuthMode) : IProp GF :=
+  match M with
+  | .on γa => ownToks γa.rdt 2
+  | _ => iprop(True)
+
+/-- A reader slot of `beMu` (`lockedReadTx`), with (R-D2, 2026-11-04) the reader's ticket for the
+store's currency (`rdTicketM`). -/
 def beRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
-  sync.ownRWMutex (aF go!"beMu" st) (beP st R M)
+  iprop(sync.ownRWMutex (aF go!"beMu" st) (beP st R M) ∗ rdTicketM M)
 
 /-- **A permission check's reader resource**: a slot of each lock and the backend's `R`. -/
 def authRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(enabledRd st M ∗ cacheRd st M ∗ beRd st R M ∗ R)
+
+/-- **The tickets out of the store's construction** (persistent; R-D2, 2026-11-04): `N` readers'
+tickets of two tokens each, all there is (the authority discarded at `2 * N`), and the currency's
+invariant. -/
+def authRdTotal (γa : AuthNames) (N : Nat) : IProp GF :=
+  iprop(ownTokAuthDfrac γa.rdt DFrac.discard (2 * N) ∗ authCurInv γa)
+
+instance authRdTotal_persistent (γa : AuthNames) (N : Nat) :
+    Persistent (authRdTotal (GF := GF) γa N) := by
+  unfold authRdTotal; infer_instance
+
+/-- **A reader lends the currency to the read transaction** (R-D2, 2026-11-04): with `beP`'s share at
+the read lock (`sync.rfrac`) and its ticket, a part of the current backend's currency
+(`authCurM`), which given back returns both. In `on γa` through the currency's invariant: the reader
+deposits a token and half of its piece of the name (its ticket bounds the readers in, so the part is
+positive); it finds the invariant live then and on its return (the abandoned invariant holds every
+token, and the reader keeps one), and on its return its deposit there (the currency is not whole). -/
+theorem beCurM_lend (M : AuthMode) (γc : AuthBkNames) :
+    ⊢ beCurM (GF := GF) M sync.rfrac γc -∗ rdTicketM M ={⊤}=∗ ∃ q : Qp, authCurM M q γc ∗
+      (authCurM M q γc ={⊤}=∗ beCurM M sync.rfrac γc ∗ rdTicketM M) := by
+  cases M with
+  | on γa =>
+    simp only [beCurM, rdTicketM, authCurM]
+    iintro ⟨Hb, #Hci⟩ Ht
+    ihave #Hci' := Hci
+    iunfold authCurInv at Hci'
+    iinv Hci' with >Hi Hclose
+    iunfold curInv at Hi
+    icases Hi with ⟨%K, %n, %γ', #Hauth, Htoks, Hdeps, Hq, Hrest⟩
+    icases toks_bound γa.rdt K 2 n $$ Hauth Ht Htoks with ⟨%hle, Ht, Htoks⟩
+    icases Hrest with (Hcu | ⟨-, Hab, -⟩)
+    · icombine Hb Hq gives %hγ_
+      obtain ⟨-, hγ⟩ := hγ_
+      subst hγ
+      -- the reader's part, `curEps K`, out; a token and half the name's piece in
+      ihave Hcu : authCur γc (curEps K + curFrac K (n + 1)) $$ [Hcu]
+      · rw [← curFrac_S K n (by omega)]; iexact Hcu
+      unfold authCur
+      icases (ghostVar_split γc.2.1 () (curEps K) (curFrac K (n + 1))) $$ Hcu with ⟨He, Hcu⟩
+      ihave Ht : ownToks γa.rdt (1 + 1) $$ [Ht]
+      · iexact Ht
+      icases (ownToks_add_1 1 1 γa.rdt) $$ Ht with ⟨Ht1, Ht2⟩
+      icases (authBkCur_split_half γa sync.rfrac.half.half γc).1 $$ Hb with ⟨Hbd, Hbk⟩
+      ihave Htoks := ownToks_add_2 1 n γa.rdt $$ [Htoks Ht1]
+      · iframe Htoks Ht1
+      imod Hclose $$ [Htoks Hdeps Hbd Hq Hcu] with -
+      · inext
+        iunfold curInv
+        iexists K, n + 1, γc
+        iframe Hauth Htoks Hq
+        isplitl [Hbd Hdeps]
+        · simp only [List.replicate]
+          iapply BigSepL.bigSepL_cons.2
+          iframe Hbd Hdeps
+        ileft; unfold authCur; iexact Hcu
+      imodintro
+      iexists (curEps K)
+      iframe He
+      -- the return
+      iintro He
+      iinv Hci' with >Hi Hclose
+      all_goals try exact fun _ _ => CoPset.mem_full
+      iunfold curInv at Hi
+      icases Hi with ⟨%K', %n', %γ'', #Hauth', Htoks, Hdeps, Hq, Hrest⟩
+      unfold authCur
+      icombine Hauth Hauth' gives %hK_
+      obtain ⟨-, hK⟩ := hK_
+      subst hK
+      icases toks_bound γa.rdt K 1 n' $$ Hauth Ht2 Htoks with ⟨%hle', Ht2, Htoks⟩
+      icombine Hbk Hq gives %hγ_
+      obtain ⟨-, hγ⟩ := hγ_
+      subst hγ
+      icases Hrest with (Hcu | ⟨-, Hab, -⟩)
+      · cases n' with
+        | zero =>
+          -- no deposit: the whole currency there, beside the reader's part
+          ihave %hv := ghostVar_valid_2 γc.2.1 () (curEps K) () (curFrac K 0) $$ He Hcu
+          exfalso
+          have h1 := hv.1
+          rw [curFrac_0] at h1
+          have h2 := (curEps K).2
+          simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+          grind
+        | succ m =>
+          simp only [List.replicate]
+          icases BigSepL.bigSepL_cons.1 $$ Hdeps with ⟨Hbd, Hdeps⟩
+          icases (ownToks_add_1 1 m γa.rdt) $$ Htoks with ⟨Htoks, Ht1⟩
+          ihave Hcu : ghostVar γc.2.1 (curFrac K m) () $$ [He Hcu]
+          · rw [curFrac_S K m (by omega)]
+            iapply ((ghostVar_fractional γc.2.1 ()).fractional (curEps K) (curFrac K (m + 1))).2
+            iframe He Hcu
+          imod Hclose $$ [Htoks Hdeps Hq Hcu] with -
+          · inext
+            iunfold curInv
+            iexists K, m, γc
+            iframe Hauth Htoks Hdeps Hq
+            ileft; unfold authCur; iexact Hcu
+          imodintro
+          iframe Hci
+          isplitl [Hbd Hbk]
+          · iapply (authBkCur_split_half γa sync.rfrac.half.half γc).2 $$ [Hbd Hbk]
+            iframe Hbd Hbk
+          iapply (ownToks_add_2 1 1 γa.rdt) $$ [Ht1 Ht2]
+          iframe Ht1 Ht2
+      · icases toks_bound γa.rdt K 1 K $$ Hauth Ht2 Hab with ⟨%hbad, -, -⟩
+        exfalso; omega
+    · icases toks_bound γa.rdt K 2 K $$ Hauth Ht Hab with ⟨%hbad, -, -⟩
+      exfalso; omega
+  | off =>
+    simp only [beCurM, rdTicketM, authCurM]
+    iintro - -
+    imodintro
+    iexists 1
+    isplitr
+    · itrivial
+    iintro -
+    imodintro
+    isplitl [] <;> itrivial
+  | any =>
+    simp only [beCurM, rdTicketM, authCurM]
+    iintro - -
+    imodintro
+    iexists 1
+    isplitr
+    · itrivial
+    iintro -
+    imodintro
+    isplitl [] <;> itrivial
+
+/-- **Every reader's ticket** (R-D2): `N` readers' resources hold `2 * N` tokens. -/
+theorem authRds_toks (stp : Loc) (R : IProp GF) (γa : AuthNames) (N : Nat) :
+    ([∗list] _x ∈ List.replicate N (), authRd (GF := GF) stp R (.on γa)) ⊢
+      |==> ownToks γa.rdt (2 * N) := by
+  induction N with
+  | zero =>
+    iintro -
+    iapply ownToks_0
+  | succ N ih =>
+    simp only [List.replicate]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hr, H⟩
+    iunfold authRd at Hr
+    icases Hr with ⟨-, -, Hb, -⟩
+    iunfold beRd at Hb
+    icases Hb with ⟨-, Ht⟩
+    simp only [rdTicketM]
+    imod ih $$ H with H
+    imodintro
+    ihave H := ownToks_add_2 2 (2 * N) γa.rdt $$ [H Ht]
+    · iframe H Ht
+    rw [show 2 * (N + 1) = 2 * N + 2 by omega]
+    iexact H
+
+/-- **The store abandoned** (mode `on γa`; R-D2, 2026-11-04; `notes/decisions.md`, "R-D2: the auth
+store's currency in an invariant"): with every reader's resource (all `N` tickets, so no reader is in
+`lockedReadTx`'s section) and the apply thread's write side on the backend `T` (`authWHeld`, its
+publication quarter), the backend's lifecycle gives the realization's share `K` back: the
+currency's invariant gives the whole currency and is left abandoned (no reader enters it again, and
+the store's `Recover` is impossible, the apply thread's half of the name kept there); `T` is
+retired and released. -/
+theorem authRd_abandon (stp : Loc) (R : IProp GF) (γa : AuthNames) (N : Nat) (T : AuthBkNames)
+    (K : IProp GF) :
+    ⊢ authRdTotal γa N -∗ ([∗list] _x ∈ List.replicate N (), authRd (GF := GF) stp R (.on γa)) -∗
+      authWHeld γa T -∗ authPubTok γa -∗ authBkLife γa T K ={⊤}=∗ K := by
+  iintro #Htot Hrds HW Hpt #Hlife
+  imod (authRds_toks stp R γa N) $$ Hrds with Ht
+  iunfold authRdTotal at Htot
+  icases Htot with ⟨#Hauth0, #Hci⟩
+  iunfold authWHeld at HW
+  icases HW with ⟨HT, Hb⟩
+  iunfold authCurInv at Hci
+  iinv Hci with >Hi Hclose
+  iunfold curInv at Hi
+  icases Hi with ⟨%K', %n, %γ', #Hauth, Htoks, Hdeps, Hq, Hrest⟩
+  icombine Hauth0 Hauth gives %hK_
+  obtain ⟨-, hK⟩ := hK_
+  subst hK
+  icases toks_bound γa.rdt (2 * N) (2 * N) n $$ Hauth0 Ht Htoks with ⟨%hle, Ht, Htoks⟩
+  have hn : n = 0 := by omega
+  subst hn
+  icombine Hb Hq gives %hγ_
+  obtain ⟨-, hγ⟩ := hγ_
+  subst hγ
+  icases Hrest with (Hcu | ⟨Hh, -, -⟩)
+  · rw [curFrac_0]
+    imod Hclose $$ [Htoks Hdeps Hq Hb Ht] with -
+    · inext
+      iunfold curInv
+      iexists (2 * N), 0, T
+      iframe Hauth0 Htoks Hdeps Hq
+      iright
+      iframe Hb Ht
+      ipureintro; rfl
+    iunfold authBkLife at Hlife
+    icases Hlife with ⟨#Hret, #Hrel, -⟩
+    imod Hret $$ [HT Hpt] with ⟨-, Hretd, -⟩
+    · iframe HT Hpt
+    imod Hrel $$ [Hretd Hcu] with ⟨HK, -⟩
+    · iframe Hretd Hcu
+    imodintro
+    iexact HK
+  · -- abandoned already: the apply thread's half and the invariant's make the whole, beside its quarter
+    iexfalso
+    ihave Hw : authBkCur γa 1 T $$ [Hb Hh]
+    · unfold authBkCur
+      iapply (ghostVar_split_half γa.bk 1 T).2
+      iframe Hb Hh
+    iapply authBkCur_excess γa _ T T $$ Hw Hq
 
 /-- **What `Authenticate` returns** for `username` with the admin side's authority `hs`, in the
 mode `M` (the auth plan's S5): an error and no response; or no error and a response holding a token

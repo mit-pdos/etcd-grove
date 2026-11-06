@@ -38,7 +38,6 @@ theorem node.ReadIndex.wp_proof
   -- the deposit (2026-10-14, stage R), before the request leaves for `run`
   imod node_read_deposit γ id n c Qr L0 $$ Hnode Hfr Hau HL0 with ⟨%Lc, %HL0c, #Hrq, #Hrd⟩
   wp_auto
-  rw [show raftpb.MsgReadIndex = #((W32 15 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 15) as %pty Hpty
   wp_apply wp_slice_literal_ex (V := Loc)

@@ -44,7 +44,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, #HResp, -⟩
+  icases Ht with ⟨-, -, -, -, -, -, #HResp, -⟩
   ihave #Hr' := Hr
   iunfold apply.alarmRequestIs at Hr'
   icases Hr' with ⟨%Hrnn, #Hact, -, -⟩

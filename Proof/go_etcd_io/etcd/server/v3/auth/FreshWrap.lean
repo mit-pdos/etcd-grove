@@ -40,12 +40,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 latest state's flag and permissions) from `latestTie`. -/
 theorem authPublishT (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState) (b : Bool)
     (sc stl : AuthState) (hl : ∀ γa, M = .on γa → hs.getLast? = some stl)
-    (ht : latestTie M hs b sc) :
-    authInv (GF := GF) st R M ⊢ authOwn M hs -∗ flagAt st M b -∗ cacheAt st M sc ={⊤}=∗
-      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ authPubLbM M (hs.length - 1) :=
+    (ht : latestTie M hs b sc) (γc : AuthBkNames) (K : IProp GF) :
+    authInv (GF := GF) st R M ⊢ authPubRes M γc K -∗ authOwn M hs -∗ flagAt st M b -∗
+      cacheAt st M sc ={⊤}=∗
+      authPubRes M γc K ∗ authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗
+        authPubLbM M (hs.length - 1) :=
   authPublish st R M hs b sc stl hl
     (fun γa h => by subst h; exact (ht stl (hl γa rfl)).1)
-    (fun γa h => by subst h; exact (ht stl (hl γa rfl)).2.2)
+    (fun γa h => by subst h; exact (ht stl (hl γa rfl)).2.2) γc K
 
 end ghost
 

@@ -210,11 +210,12 @@ instance readInv_persistent (γr : ReadNames) (F : List EntryModel → KVState) 
 
 /-! ## The server, as the read loop sees it (`server`) -/
 
-/-- The method `m` of the server value `si` returns a channel that is closed, never sent on, with
-no content (the stop, done, leader-change and first-commit channels). -/
+/-- The method `m` of the server value `si` returns a channel that is closed, never sent on, its
+close announcing some `Q` the caller does not use (the done channel: R2c-4, until then with no
+content; its close announces the stopped server's image, `srvDoneInv`). -/
 def srvChanOk (si : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ {{ True }} (App (Val #(methods si.ty m si.v)) (Val #()))
-    {{ (ch : Loc), RET #ch; bcastChan ch iprop(True) }})
+    {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastChan ch Q }})
 
 /-- The method `m` of the server value `si`, with the caller's resource `LR` (given back), returns
 a channel that is closed, never sent on, with no content (the leader-change and first-commit

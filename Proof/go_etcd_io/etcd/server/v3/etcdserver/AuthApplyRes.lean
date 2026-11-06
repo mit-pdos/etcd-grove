@@ -37,13 +37,19 @@ the half of `be` stays in the server's rest, `authBeOn`, which the admin request
 borrows: "E2m of the auth plan"), the admin side's halves of `enabled` and of the permission cache
 tied to the latest state of the history (`auth.tieRes`, E2v: what the checks at the latest state
 need, `auth.latestRes`, and what the admin steps keep, `auth.X.specT`), and the provider's admin
-share (`auth.tpAdmin`); `True` in the other modes. `NewServer.specM`'s construction hands it to the apply
+share (`auth.tpAdmin`); `True` in the other modes. (Since the auth-on snapshot plan's Prove step,
+2026-11-03, the write token is the current backend's, `auth.authWTok T` at its names `T`, held with
+the apply thread's half of the name, `auth.authWHeld`: what the checks at the latest state take;
+and the backend's lifecycle with the apply thread's quarter of the published index, `auth.authPubTok`:
+what publication takes, `authPublishM`.) `NewServer.specM`'s construction hands it to the apply
 thread (`applyBuiltNA`, then `srvApplyKV`). -/
 def authApplyRes (M : auth.AuthMode) (stl : Loc) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : auth.AuthBkNames)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f T ∗ T ∗ auth.tpAdmin stl (.on γa))
+      auth.authWBackendOk be (.on γa) P f (auth.authWTok T) ∗ auth.authWHeld γa T ∗
+      (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗
+      auth.tpAdmin stl (.on γa))
   | _ => iprop(True)
 
 /-- **The server's auth resource for its apply thread** (E2k): the store its `authStore` field
@@ -59,9 +65,11 @@ server's start, the store's history `[bootState, bump bootState]` (`authStoreKit
 `bump bootState`, `srvAuthSt0`). -/
 def authApplyResAt (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : GoFunc) (T : auth.AuthBkNames)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
+      auth.authWBackendOk be (.on γa) P f (auth.authWTok T) ∗ auth.authWHeld γa T ∗
+      (∃ K : IProp GF, auth.authBkLife γa T K) ∗ auth.authPubTok γa ∗
+      auth.tpAdmin stl (.on γa) ∗
       ⌜hs.getLast? = some st⌝)
   | _ => iprop(True)
 
@@ -104,9 +112,9 @@ theorem authApplyRes_of_At (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
   cases M with
   | on γa =>
     unfold authApplyResAt authApplyRes
-    iintro ⟨%hs, %P, %f, %T, %be, Ho, HX, Hw, HT, Htp, -⟩
+    iintro ⟨%hs, %P, %f, %T, %be, Ho, HX, Hw, HT, Hlife, Hpt, Htp, -⟩
     iexists hs, P, f, T, be
-    iframe Ho HX Hw HT Htp
+    iframe Ho HX Hw HT Hlife Hpt Htp
   | off => unfold authApplyResAt authApplyRes; iintro -; itrivial
   | any => unfold authApplyResAt authApplyRes; iintro -; itrivial
 

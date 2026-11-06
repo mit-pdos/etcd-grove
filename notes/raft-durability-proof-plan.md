@@ -326,7 +326,7 @@ All four are small. None changes the shape the user approved, and all are within
   unfolds at `:464`, `:563`), and the exported `kv_bootStorage` (`Results.lean:129-141`), a
   trusted statement that changes (to the user).
 - **etcd's server** (about 20 files):
-  - `NewServerAlloc(On)`, `examples/common/{Alloc3,Defs}`, `NodeStart.lean:222-440`,
+  - `NewServerAlloc(On)`, `examples/lib/etcdstart/{Alloc3,Defs}`, `NodeStart.lean:222-440`,
     `bootstrappedRaft__newRaftNode`;
   - `InvRaftNode` (the driver record, `Stop`'s post, the keys), `SDSnapLemmas.lean:38`;
   - the exported `server_cluster_alloc_on` (a trusted statement, to the user).

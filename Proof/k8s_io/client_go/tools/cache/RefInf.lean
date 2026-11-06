@@ -32,8 +32,8 @@ public import Proof.k8s_io.client_go.tools.cache.RefDefs
 public import Proof.k8s_io.client_go.tools.cache.RefWatchDefs
 public import Spec.fmt.Errorf
 public import Proof.k8s_io.client_go.tools.pager.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.WatchLemmas
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.WriteLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.WatchLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.WriteLemmas
 
 @[expose] public section
 
@@ -243,7 +243,7 @@ variable [sem : go.Semantics]
 
 /-- **The list-watch lists and watches resource `res`** of the model API server (persistent): see
 the file header. -/
-def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res) : IProp GF :=
+def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res) : IProp GF :=
   iprop(□ (∀ (ctx : GoInterface) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions)
       (dq : DFrac) (lo : kd.meta.ListOptions) (σ0 : apimodel.St) (Φ : val → IProp GF),
       kd.meta.ListOptions.own opts dq lo -∗ pastSt γa σ0 -∗
@@ -261,7 +261,7 @@ def lwOk (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_g
       WP (App (App (Val #(methods lw.ty go!"WatchWithContext" lw.v)) (Val #ctx)) (Val #opts))
         {{ Φ }}))
 
-instance lwOk_persistent (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res) :
+instance lwOk_persistent (lw : GoInterfaceOk) (γa : ApiNames) (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res) :
     Persistent (lwOk (GF := GF) lw γa cfg res) := by
   unfold lwOk; infer_instance
 
@@ -278,7 +278,7 @@ theorem errIs_ne_nil (err : GoInterface) (e : ApiErr) :
 open Iris.ProofMode in
 /-- **What a watch without selectors returns**: an error (and no watch), or the watch. -/
 theorem watchRet_cases (γa : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (lo : kd.meta.ListOptions) (σ : apimodel.St) (w err : GoInterface)
     (hls : lo.LabelSelector' = go!"") (hfs : lo.FieldSelector' = go!"")
     (hsie : lo.SendInitialEvents' = none) :
@@ -644,7 +644,7 @@ def listS (γa : ApiNames) (σ0 : apimodel.St) (res : Res) (_q : Loc) (os : List
 open Iris.ProofMode in
 /-- **What the list-watch's `List` returns is a page result.** -/
 theorem typedListRet_pageRes (γa : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (lo : kd.meta.ListOptions) (σ0 σ : apimodel.St) (q : Loc) (err : GoInterface)
     (hle : apimodel.St.le σ0 σ) :
     typedListRet (GF := GF) γa cfg.FailReads' false res go!"" lo σ q err ∗ fmt.argOk err ⊢

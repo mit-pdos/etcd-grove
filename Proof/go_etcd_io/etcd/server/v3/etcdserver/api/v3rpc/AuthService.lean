@@ -10,7 +10,7 @@ some header, its wire form `rq'`) was applied at the committed prefix `L` before
 admin step succeeding there (`adminDoneM`), the auth state after it published (`pubAfterM`), its
 step determinate there and, if its entry is recorded in the auth history, the result `Q` of the
 client's update (`adminQh`), the header bound to the call's token `tok` (`hdrBoundT`): what
-`raftRequest.specM true` answers on success (`adminOutOn`), less the response's memory and the
+`raftRequest.spec` with auth on answers on success (`adminOutOn`), less the response's memory and the
 store's certificates. For `UserAdd`, some model of the request with the name asked for, the
 password choice `false` (the client sends no options) and a password that cannot fail
 (`userAddReplied`).
@@ -86,45 +86,45 @@ instance authHistAuT_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     Persistent (authHistAuT s E ρ tok rq Q) := by
   unfold authHistAuT; infer_instance
 
-/-- **etcd's spec of `Auth.UserAdd`** (see the file header). -/
+/-- **etcd's spec of `Auth.UserAdd`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdUserAddSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse :=
-  fun md (m : UserAddW) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜m.name.length ≤ backend.maxKeySize⌝ ∗
+  fun md (m : UserAddW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜m.name.length ≤ backend.maxKeySize⌝ ∗
       □ (∀ um : apply.UserAddModel, ⌜um.name = m.name ∧ um.noPassword = false ∧ um.pwSure⌝ →
         authHistAuT s E ρ (auth.mdTokenOf md) (irrUserAdd um) Q) ∗
       (userAddReplied s E ρ (auth.mdTokenOf md) m.name Q -∗ Φ ()))
 
-/-- **etcd's spec of `Auth.UserGrantRole`** (see the file header). -/
+/-- **etcd's spec of `Auth.UserGrantRole`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdUserGrantRoleSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse :=
-  fun md (ur : GoString × GoString) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜ur.1.length ≤ backend.maxKeySize⌝ ∗
+  fun md (ur : GoString × GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜ur.1.length ≤ backend.maxKeySize⌝ ∗
       authHistAuT s E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q -∗ Φ ()))
 
-/-- **etcd's spec of `Auth.RoleAdd`** (see the file header). -/
+/-- **etcd's spec of `Auth.RoleAdd`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdRoleAddSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse :=
-  fun md (name : GoString) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜name.length ≤ backend.maxKeySize⌝ ∗
+  fun md (name : GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜name.length ≤ backend.maxKeySize⌝ ∗
       authHistAuT s E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q -∗ Φ ()))
 
-/-- **etcd's spec of `Auth.RoleGrantPermission`** (see the file header). -/
+/-- **etcd's spec of `Auth.RoleGrantPermission`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdRoleGrantPermissionSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse :=
-  fun md (nw : GoString × auth.PermW) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF, ⌜nw.1.length ≤ backend.maxKeySize⌝ ∗
+  fun md (nw : GoString × auth.PermW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜nw.1.length ≤ backend.maxKeySize⌝ ∗
       authHistAuT s E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q -∗
         Φ ()))
 
-/-- **etcd's spec of `Auth.AuthEnable`** (see the file header). -/
+/-- **etcd's spec of `Auth.AuthEnable`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
 def etcdAuthEnableSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse :=
-  fun md (_ : Unit) (Φ : Unit → IProp GF) =>
-    iprop(∃ Q : List auth.AuthState → IProp GF,
+  fun md (_ : Unit) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
+    iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF,
       authHistAuT s E ρ (auth.mdTokenOf md) irrAuthEnable Q ∗
       (adminReplied s E ρ (auth.mdTokenOf md) irrAuthEnable Q -∗ Φ ()))
 
@@ -183,7 +183,7 @@ theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : G
         (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) rq Q) := by
   iintro H
   iunfold authWrapOut at H
-  icases H with (⟨%He, H⟩ | ⟨%Hr, %e0, %He0, H⟩)
+  icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
   · subst He
     iapply (adminOutOn_reply s E ρ ctx rq Q F T resp GoInterface.nil) $$ H
   · ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ ctx rq Q F T null e0 $$ H

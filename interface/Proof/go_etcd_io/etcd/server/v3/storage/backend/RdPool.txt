@@ -5,7 +5,7 @@
 def backend.newPostP (γ : backend.BNames) (P : backend.BParams) (W Pk : backend.BNames → IProp GF)
     (b : Loc) (D : backend.Data) : IProp GF :=
   iprop(backend.isBackend γ P (W γ) (Pk γ) b ∗
-      backend.isStopChans γ b ∗
+      backend.isStopChans γ P (W γ) (Pk γ) b ∗
         backend.bOpen γ (Qp.half 1) ∗
           ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γ backend.rdOpen) ∗
             backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
@@ -13,10 +13,12 @@ def backend.newPostP (γ : backend.BNames) (P : backend.BParams) (W Pk : backend
                 ownToks γ.wb backend.wbInit ∗
                   backend.rbOwn γ (backend.rbData P D) ∗
                     backend.bkRPool γ P b ∗
-                      backend.rdStock γ P b ∗ backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b)
+                      backend.rdAuth γ P b ∗
+                        backend.rdStock γ P b ∗ backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b)
 
 def backend.bkRPool (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
-  iprop(backend.rdPool γ P b ∗ [∗list] _x ∈ List.replicate backend.rdPoolN (), backend.bOpen γ backend.rdOpen)
+  iprop(backend.rdPool γ P b ∗
+      [∗list] _x ∈ List.replicate (backend.rdPoolN + backend.authRdN) (), backend.bOpen γ backend.rdOpen)
 
 theorem backend.rdTok_giveBack (γ : backend.BNames) (P : backend.BParams) (b : Loc) (E : CoPset) (hE
     : ↑backend.rdPoolNs ⊆ E) : backend.rdLoan γ P b ∗ backend.rdTok γ P b ⊢ |={E}=> threadTok
@@ -45,7 +47,7 @@ theorem backend.newPostK_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoP
     backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp GF) (b : Loc) (D :
     backend.Data) : backend.newPostK γ P W Pk K b D ⊢ |={E}=> backend.newPostKP γ P W Pk K b D
 
-theorem backend.rdStockN_val : backend.rdStockN = 805306367
+theorem backend.rdStockN_val : backend.rdStockN = 536870783
 
 def backend.rdStock (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   [∗list] _x ∈ List.replicate backend.rdStockN (), backend.rdTok γ P b
@@ -61,16 +63,17 @@ theorem backend.rdPool_init (γ : backend.BNames) (P : backend.BParams) (b : Loc
     |={E}=> backend.rdPool γ P b
 
 theorem backend.bkRPool_intro (γ : backend.BNames) (P : backend.BParams) (b : Loc) : (backend.rdPool
-    γ P b ∗ [∗list] _x ∈ List.replicate backend.rdPoolN (), backend.bOpen γ backend.rdOpen) ⊢
-    backend.bkRPool γ P b
+    γ P b ∗ [∗list] _x ∈ List.replicate (backend.rdPoolN + backend.authRdN) (), backend.bOpen γ
+    backend.rdOpen) ⊢ backend.bkRPool γ P b
 
 theorem backend.rdTok_borrow (γ : backend.BNames) (P : backend.BParams) (b : Loc) (E : CoPset) (hE :
     ↑backend.rdPoolNs ⊆ E) : backend.rdPool γ P b ∗ threadTok ⊢ |={E}=> ▷ backend.rdTok γ P b ∗
     backend.rdLoan γ P b
 
 theorem backend.bOpen_one_pool (γ : backend.BNames) : backend.bOpen γ 1 ⊣⊢ backend.bOpen γ (Qp.half
-    1) ∗ ([∗list] _x ∈ List.replicate backend.rdPoolN (), backend.bOpen γ backend.rdOpen) ∗ [∗list]
-    _x ∈ List.replicate backend.rdStockN (), backend.bOpen γ backend.rdOpen
+    1) ∗ ([∗list] _x ∈ List.replicate (backend.rdPoolN + backend.authRdN) (), backend.bOpen γ
+    backend.rdOpen) ∗ [∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen γ
+    backend.rdOpen
 
 def backend.rdPool (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   iprop(∃ γp, threadPool.isThreadPool backend.rdPoolNs γp (backend.rdTok γ P b))
@@ -78,7 +81,7 @@ def backend.rdPool (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp
 theorem backend.rdPool_persistent (γ : backend.BNames) (P : backend.BParams) (b : Loc) : Persistent
     (backend.rdPool γ P b)
 
-theorem backend.rdPoolN_add_rdStockN : backend.rdPoolN + backend.rdStockN =
+theorem backend.rdPoolN_add_rdStockN : backend.rdPoolN + backend.authRdN + backend.rdStockN =
     sync.rwmutex.actualMaxReaders.toNat
 
 theorem backend.newPost_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPset) (γ :
@@ -87,22 +90,29 @@ theorem backend.newPost_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPs
 
 theorem backend.newPostKP_named (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames
     → IProp GF) (b : Loc) (D : backend.Data) : backend.newPostKP γ P W Pk K b D ⊢ "#HnB" ∷
-    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ b ∗ "HnK" ∷ K γ ∗ "HnV" ∷
-    backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗ "HnH" ∷
-    backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ "#HnPool" ∷
-    backend.rdPool γ P b ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate backend.rdStockN (), backend.rdTok
-    γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ P D ∗ "HnSr" ∷ backend.srSlot b
+    backend.isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ backend.isStopChans γ P (W γ) (Pk γ) b ∗ "HnK"
+    ∷ K γ ∗ "HnV" ∷ backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
+    "HnH" ∷ backend.plHook γ func.nil ∗ "HnRB" ∷ backend.rbOwn γ (backend.rbData P D) ∗ "#HnPool" ∷
+    backend.rdPool γ P b ∗ "HnRA" ∷ backend.rdAuth γ P b ∗ ("HnRT" ∷ [∗list] _x ∈ List.replicate
+    backend.rdStockN (), backend.rdTok γ P b) ∗ "HnDl" ∷ backend.dlInit γ ∗ "HnFk" ∷ backend.fkCl γ
+    P D ∗ "HnSr" ∷ backend.srSlot b
+
+def backend.authRdN : Nat :=
+  backend.rdPoolN + 2 ^ 7
+
+def backend.rdAuth (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
+  [∗list] _x ∈ List.replicate backend.authRdN (), backend.rdTok γ P b
 
 def backend.rdPoolNs : Namespace :=
   nroot.@"backend_readers"
 
 def backend.rdStockN : Nat :=
-  sync.rwmutex.actualMaxReaders.toNat - backend.rdPoolN
+  sync.rwmutex.actualMaxReaders.toNat - backend.rdPoolN - backend.authRdN
 
 theorem backend.rdToks_pool (hT : threadBound GF ≤ backend.rdPoolN) (E : CoPset) (γ :
     backend.BNames) (P : backend.BParams) (b : Loc) : ([∗list] _x ∈ List.replicate
     sync.rwmutex.actualMaxReaders.toNat (), backend.rdTok γ P b) ⊢ |={E}=> backend.rdPool γ P b ∗
-    backend.rdStock γ P b
+    backend.rdAuth γ P b ∗ backend.rdStock γ P b
 
 def backend.rdPoolN : Nat :=
   2 ^ 28
@@ -110,9 +120,10 @@ def backend.rdPoolN : Nat :=
 def backend.newPostKP (γ : backend.BNames) (P : backend.BParams) (W Pk K : backend.BNames → IProp
     GF) (b : Loc) (D : backend.Data) : IProp GF :=
   iprop(backend.isBackend γ P (W γ) (Pk γ) b ∗
-      backend.isStopChans γ b ∗
+      backend.isStopChans γ P (W γ) (Pk γ) b ∗
         K γ ∗
           backend.bViewC γ 1 (backend.vData P (D, { bks := ∅, ver := W64 0 })) true ∗
             backend.plHook γ func.nil ∗
               backend.rbOwn γ (backend.rbData P D) ∗
-                backend.rdPool γ P b ∗ backend.rdStock γ P b ∗ backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b)
+                backend.rdPool γ P b ∗
+                  backend.rdAuth γ P b ∗ backend.rdStock γ P b ∗ backend.dlInit γ ∗ backend.fkCl γ P D ∗ backend.srSlot b)

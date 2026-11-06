@@ -174,8 +174,9 @@ theorem unkErr_enc (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInt
 
 /-- **A model answer, as the method leaves it** (`err` and the object `out`): an object at a
 resource version, the zero object, a key not found or existing (`StorageError`s with codes `1`,
-`2`), a callback's error (`KUserErr`); the other errors (not answered by the unary methods' specs
-yet) as any error. -/
+`2`), a failed precondition (`invalidErrIs`, code `4`), a callback's error (`KUserErr`), a minimum
+resource version above the read's (a `*apierrors.StatusError`, which no other answer is); the other
+errors (`rvSetOnCreate`, not answered by the unary methods' specs yet) as any error. -/
 def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err out : GoInterface) : IProp GF :=
   match r with
   | .obj o rv => iprop(⌜err = GoInterface.nil⌝ ∗ c.S.objAt out o (c.S.fmtRV (W64 (rv : Int))))
@@ -186,6 +187,11 @@ def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err 
     iprop(storageErrIs err (W64 2) k (W64 0) ∗ ∃ o rv', c.S.objAt out o rv')
   | .err (.user e) =>
     iprop(⌜err ≠ GoInterface.nil ∧ KUserErr.is e err⌝ ∗ ∃ o rv', c.S.objAt out o rv')
+  | .err (.invalidObj k) => iprop(invalidErrIs err k ∗ ∃ o rv', c.S.objAt out o rv')
+  | .err (.tooLarge _ _) =>
+    iprop(⌜∃ l : Loc, err = interface.mkOk
+        (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
+      ∃ o rv', c.S.objAt out o rv')
   | .err _ => iprop(⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv', c.S.objAt out o rv')
 
 /-- **etcd's state is the store's** (D30i): sorted by key, and the store's invariant under its
@@ -193,14 +199,34 @@ prefix (`KWf`). -/
 def kvWf (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
   σ.kvs.Pairwise etcdKvLess ∧ KWf c.S.dec c.pfx (linkv.absSt σ)
 
-/-- **The state's key-values, seen in the caller's history** (persistent; D30j): each key at its
-mod revision has its value in the ghost map `γh`, which the caller extends at each commit (a key's
-mod revision is the commit's, a new one). Two states seen there agree on a key at a mod revision. -/
+/-- **A revision's changes** (stage 7b, D2 of `questions.md`): each key the revision wrote
+(`some` of its value) or deleted (`none`), each key once. -/
+abbrev Changes := List (GoString × Option GoString)
+
+/-- **The state's key-values, seen in the caller's history** (persistent; D30j): the history
+`γh` maps each revision to its changes (read-only), which the caller records at each commit; each
+key-value of the state is among its mod revision's changes. Two states seen there agree on a key at
+a mod revision. -/
 def kvSeen (γh : GName) (σ : KVState) : IProp GF :=
-  iprop(□ ∀ v : EtcdKv, ⌜v ∈ σ.kvs⌝ → ghostMapElem γh (v.key, v.modRev) DFrac.discard v.value)
+  iprop(□ ∀ v : EtcdKv, ⌜v ∈ σ.kvs⌝ → ∃ ch : Changes,
+    ghostMapElem γh v.modRev DFrac.discard ch ∗
+      ⌜(v.key, some v.value) ∈ ch ∧ (ch.map Prod.fst).Nodup⌝)
 
 instance kvSeen_persistent (γh : GName) (σ : KVState) : Persistent (kvSeen (GF := GF) γh σ) := by
   unfold kvSeen; infer_instance
+
+/-- Two entries of a list with distinct keys and the same key are the same. -/
+theorem Changes.eq_of_key {ch : Changes} (hnd : (ch.map Prod.fst).Nodup) {k : GoString}
+    {x y : Option GoString} (hx : (k, x) ∈ ch) (hy : (k, y) ∈ ch) : x = y := by
+  induction ch with
+  | nil => cases hx
+  | cons p ch ih =>
+    have hnd' := List.nodup_cons.1 hnd
+    rcases List.mem_cons.1 hx with hx1 | hx1 <;> rcases List.mem_cons.1 hy with hy1 | hy1
+    · rw [← hx1] at hy1; exact (Prod.mk.inj hy1).2.symm
+    · subst hx1; exact absurd (List.mem_map_of_mem (f := Prod.fst) hy1) hnd'.1
+    · subst hy1; exact absurd (List.mem_map_of_mem (f := Prod.fst) hx1) hnd'.1
+    · exact ih hnd'.2 hx1 hy1
 
 /-- **Two states seen in the history agree** on a key-value's value at a mod revision. -/
 theorem kvSeen_agree (γh : GName) (σ1 σ2 : KVState) (v1 v2 : EtcdKv) (h1 : v1 ∈ σ1.kvs)
@@ -208,11 +234,15 @@ theorem kvSeen_agree (γh : GName) (σ1 σ2 : KVState) (v1 v2 : EtcdKv) (h1 : v1
     kvSeen (GF := GF) γh σ1 ∗ kvSeen γh σ2 ⊢ ⌜v1.value = v2.value⌝ := by
   unfold kvSeen
   iintro ⟨#H1, #H2⟩
-  ihave #E1 : ghostMapElem γh (v2.key, v2.modRev) DFrac.discard v1.value $$ []
-  · rw [← hk, ← hm]
-    iapply H1 $$ %v1 %h1
-  ihave #E2 := H2 $$ %v2 %h2
-  iapply ghostMapElem_agree $$ E1 E2
+  icases H1 $$ %v1 %h1 with ⟨%ch1, #E1, %hc1⟩
+  icases H2 $$ %v2 %h2 with ⟨%ch2, #E2, %hc2⟩
+  ihave #E1' : ghostMapElem γh v2.modRev DFrac.discard ch1 $$ []
+  · rw [← hm]; iexact E1
+  ihave %he := ghostMapElem_agree $$ E1' E2
+  ipureintro
+  subst he
+  rw [hk] at hc1
+  exact Option.some.inj (Changes.eq_of_key hc1.2 hc1.1 hc2.1)
 
 /-- **A key-value seen in the history has its value in every state seen there**, at its key and
 mod revision. -/

@@ -432,6 +432,16 @@ def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
     membership.rcCidAddr cl ↦□ cid ∗ ccMembRes γr.raft cl tl lid prs ∗
     ⌜srvPeersCover γr.raft lid A prs ∧ srvMemOk γr.raft γr.kv.c0 A⌝ ∗ srvDynLog γr.raft lid)
 
+/-- (2026-11-05, R2b-3d stage 5c) **The right to stop the server `s`'s transport** (the server's
+raft environment's `ST`, `srvErM`): the transport in `s`'s raft wrapper, live (`trLive`, what
+`Transport.Stop_live` takes), at any names. The apply thread holds it (`srvApRes`'s `ccMembRes`)
+and hands it to `raftNode.stop` at the shutdown (`srvApRes_trStop`); `NewServer` proves the
+transport's `Stop` from it (`netTransport_srvTrStop`). Until then the environment's `ST` was
+`False` (D43 M5e: "asked of no one", the shutdown not yet reached). -/
+def srvTrStop (s : Loc) : IProp GF :=
+  iprop(∃ (t : Loc) (γn : NetNames GF) (c : TrN GF) (rs : trIds),
+    srvTransportAddr s ↦□ srvTrIface t ∗ trLive γn t c rs)
+
 end defs
 
 section lemmas
@@ -440,6 +450,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- (R2b-3d stage 5c) **The transport's stop right, from the apply thread's resources** (at the
+shutdown: the rest is dropped). -/
+theorem srvApRes_trStop (s : Loc) (γr : ReadNames) (A : List EntryModel) :
+    srvApRes (GF := GF) s γr A ⊢ srvTrStop s := by
+  unfold srvApRes
+  iintro ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, -, -, #H3, -, -, -, -, -,
+    Hmr, -, -⟩
+  unfold ccMembRes
+  icases Hmr with ⟨-, %γn, %c, %ps, -, Hl, -⟩
+  unfold srvTrStop
+  iexists tl, γn, c, prs
+  iframe H3 Hl
 
 /-- (2026-10-31, #11) **Fewer than `2^61` voters** (`srvMemOk`'s bound), the resource kept. -/
 theorem srvApRes_cfg_size (s : Loc) (γr : ReadNames) (A : List EntryModel) :

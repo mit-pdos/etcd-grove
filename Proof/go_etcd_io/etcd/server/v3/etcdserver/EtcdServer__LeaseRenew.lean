@@ -70,7 +70,7 @@ private theorem renewErrs [_root_.Perennial.errors.Assumptions] :
   iintro #Hpkg
   ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨#Hnf, -, -, -, -, -, -, -, #Hnp⟩
+  icases Hli with ⟨#Hnf, -, -, -, -, -, -, -, -, -, #Hnp⟩
   iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at Hnf Hnp
   icases Hnp with ⟨%e1, #He1, %Hl1, #Hm1⟩
   icases Hnf with ⟨%e2, #He2, %Hl2, #Hm2⟩
@@ -113,7 +113,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   iunfold _root_.Perennial.context.isContextDef at Hcc
   iNamed Hcc
   wp_for
-  wp_apply HErr $$ %Broadcast.Pending as %ce Hce
+  wp_apply HErr $$ %Broadcast.Pending as %ce Hce -
   rcases ce with cei | _
   · -- the loop ends: the context is done
     (try wp_auto)
@@ -398,8 +398,12 @@ theorem EtcdServer.LeaseRenew.wp_proof
   | true =>
     (try wp_auto)
     -- `if !s.ensureLeadership() { return -1, lease.ErrNotPrimary }`
-    wp_apply (hEns s E ρ γr) $$ [$Hlgr $Hrrd $Htok] as %b ⟨Hlgr, Hrrd, Htok⟩
+    -- (revoke-open Q5, 2026-11-06) `ensureLeadership` takes a level of the thread token: level 0
+    icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩
+    wp_apply (hEns s E ρ γr 0) $$ [$Hlgr $Hrrd $Htok] as %b ⟨Hlgr, Hrrd, Htok⟩
     · iframe #; ipureintro; exact Hbound
+    ihave Htok := (threadTok_level0 (GF := GF)).2 $$ [Htok Htok1]
+    · iframe Htok Htok1
     (try wp_auto)
     cases b with
     | false =>

@@ -258,6 +258,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
+  icases (authOwnF_split _ _).1 $$ Hown with ⟨Hown, HshR⟩
   iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with enabled := true } : AuthState) (hs ++ [{ st0 with enabled := true }]))
     $$ [HL Hca Hown]
   · iframe Hpkg Hinv
@@ -272,21 +273,32 @@ theorem auth.authStore.AuthEnable.wp_tieB
     iframe Hown; ipureintro; exact ⟨Hfit, fun _ h => by subst h; exact Hl1⟩
   inext
   iintro ⟨HL, Hca, Hown⟩
+  icombine Hown HshR as Hown
+  ihave Hown := (authOwnF_split _ _).2 $$ Hown
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
   iapply HRR $$ %({ st0 with enabled := true } : AuthState) HL
   inext
   iintro %rv ⟨HL, %Hrv⟩
   (try wp_auto)
-  wp_apply (h_setRevision st R M rv (hs ++ [{ st0 with enabled := true }]) [] { st0 with enabled := true })
-    $$ [$Hinv Hown] as Hown
+  icases (authOwnF_split M _).1 $$ Hown with ⟨Hown, Hsh⟩
+  wp_apply (h_setRevision st R M rv (hs ++ [{ st0 with enabled := true }]) [] []
+      { st0 with enabled := true }) $$ [$Hinv Hown] as ⟨Hown, -⟩
   · isplitl [Hown]
-    · iExactEq Hown
+    · iapply (authOwnPM_nil M _).2
+      iExactEq Hown
       all_goals simp
+    simp only [List.isEmpty_nil, ↓reduceIte]
+    isplitr
+    · itrivial
     isplitr
     · iintro !> %x %hx; simp at hx
     ipureintro
-    refine ⟨by simpa using Hl1, Hrv, by simp, by simp⟩
+    refine ⟨by simpa using Hl1, Hrv, by simp, by simp, by simp⟩
+  ihave Hown := (authOwnF_split M _).2 $$ [Hown Hsh]
+  · iframe Hsh
+    iExactEq Hown
+    all_goals simp
   (try wp_auto)
   wp_apply h_Info
   · ipureintro; exact Hlgnn

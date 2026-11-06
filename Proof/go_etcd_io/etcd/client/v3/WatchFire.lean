@@ -172,7 +172,7 @@ theorem raw_to_state (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) (
     (Q : KVState → IProp GF) :
     ⊢ client.srvKVFacts V -∗ client.srvWLaws V.W -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γ σ, COMM □ Q σ }>) -∗
+        <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) -∗
       posQ o Q c -∗ client.rawRespOk V.W o c c' v r ={⊤}=∗
       ∃ σ : KVState, □ Q σ ∗ watchStateRespOk o σ c c' v r := by
   have hn : ∀ x : w64, sint.nat x = (sint.Z x).toNat := fun _ => rfl

@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCom
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
+public import Proof.fmt.ErrorfWrap
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
@@ -119,9 +120,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
-public import Proof.time.NewTicker
-public import Proof.time.Ticker__Reset
-public import Proof.time.Ticker__Stop
 public import Proof.time.Time__Unix
 public import Proof.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -386,6 +384,10 @@ theorem mvcc.wp_SetScheduledCompact :
 theorem mvcc.eventBatch.wp_add :
     mvcc.eventBatch.add.spec (GF := GF) (hG := hG) :=
   mvcc.eventBatch.add.wp_proof
+
+theorem fmt.wp_ErrorfWrap :
+    fmt.ErrorfWrap.spec (GF := GF) (hG := hG) :=
+  fmt.ErrorfWrap.wp_proof
 
 theorem mvcc.generation.wp_isRecreatedAt :
     mvcc.generation.isRecreatedAt.spec (GF := GF) (hG := hG) :=
@@ -696,7 +698,7 @@ theorem mvcc.treeIndex.wp_Revisions [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem mvcc.storeTxnCommon.wp_rangeKeys [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal
+  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal fmt.wp_ErrorfWrap
 
 theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=
@@ -734,14 +736,6 @@ theorem mvcc.wp_newWatchableStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) :=
   mvcc.newWatchableStore.wp_proof zap.wp_NewNop mvcc.wp_NewStore mvcc.wp_newWatcherGroup adt.wp_ownIvt_split mvcc.watchableStore.wp_Write traceutil.wp_TODO
 
-theorem time.wp_NewTicker :
-    time.NewTicker.spec (GF := GF) (hG := hG) :=
-  time.NewTicker.wp_proof
-
-theorem time.Ticker.wp_Stop :
-    time.Ticker.Stop.spec (GF := GF) (hG := hG) :=
-  time.Ticker.Stop.wp_proof
-
 theorem mvcc.watcherGroup.wp_chooseAll :
     mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.chooseAll.wp_proof mvcc.watcherGroup.wp_delete
@@ -770,13 +764,9 @@ theorem mvcc.wp_resyncDelay :
     mvcc.resyncDelay.spec (GF := GF) (hG := hG) :=
   mvcc.resyncDelay.wp_proof
 
-theorem time.Ticker.wp_Reset :
-    time.Ticker.Reset.spec (GF := GF) (hG := hG) :=
-  time.Ticker.Reset.wp_proof
-
 theorem mvcc.watchableStore.wp_syncWatchersLoop :
     mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers mvcc.wp_resyncDelay time.Ticker.wp_Reset
+  mvcc.watchableStore.syncWatchersLoop.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers mvcc.wp_resyncDelay _root_.Perennial.time.Ticker.wp_Reset
 
 theorem mvcc.watchableStore.wp_moveVictims :
     mvcc.watchableStore.moveVictims.spec (GF := GF) (hG := hG) :=

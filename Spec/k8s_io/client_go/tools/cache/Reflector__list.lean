@@ -47,7 +47,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 abbrev Reflector.list.spec : Prop :=
   ∀ (r f : Loc) (lw : GoInterfaceOk) (et : reflect.Type') (dh : GoFunc) (ctx : GoInterfaceOk)
     (dch : GoChan) (γd : ChanNames) (γa : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config) (res : Res)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (γf : FifoNames) (γt : TsNames) (γi : InfNames) (n : Option Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ reflFixed r f lw et dh ∗
       reflEnv γa cfg res γf γt γi f lw et ∗ stableCtx ctx dch γd ∗ reflSt r γa γi n }}

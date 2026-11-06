@@ -14,9 +14,9 @@ Reviewer: a fresh spec reviewer, 2026-10-28. Read-only: nothing in the repositor
 - **Go**:
   - raft a2 (`.lake/raft-fork`, `565c2bd`): `storage.go`, `log.go`, `rawnode.go`, `raft.go`, `node.go`,
     `raftpb/confchange.go`, `confchange/{confchange,restore}.go`, `tracker/tracker.go`;
-  - kvreconf (`examples/kvreconf/{kv,cluster,reconf}.go`);
+  - kvreconf (`examples/raft/kvreconf/{kv,cluster,reconf}.go`);
   - etcd's server (`~/go/pkg/mod/github.com/upamanyus/etcd/server/v3@v3.0.0-20261027220749-a20f6760ff43/etcdserver/{raft,server}.go`).
-- **Clients' proofs**: kv (`Proof/github_com/mit_pdos/etcd_grove/examples/kv/{KV__run,Defs,KVStorageInstance,Cluster,deliverable}.lean`)
+- **Clients' proofs**: kv (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/{KV__run,Defs,KVStorageInstance,Cluster,deliverable}.lean`)
   and the server (`etcdserver/{SnapTake,InvRaftNode}.lean`), at `eb59bb8d1b`.
 - **Rubric**: `/home/ubuntu/etcd-grove/.claude/skills/spec/PRINCIPLES.md` (the worktree has no `spec/` skill).
 - **Not run**: lake build, lean-check, Go tests.

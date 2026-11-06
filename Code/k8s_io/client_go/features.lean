@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.fmt
-public import Perennial.Code.os
+public import Code.os
 public import Perennial.Code.strconv
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic

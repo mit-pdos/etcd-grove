@@ -4,7 +4,7 @@
 # `Node`, `PodSpec`, ...) are concrete structs (gap G4 of notes/k8s-etcd3-goose.md); `resource`
 # and `intstr` are names only, so `resource.Quantity` and `intstr.IntOrString` stay axiomatized.
 # The promoted `metav1.Object` accessors of the resources the model API server serves (their
-# unfolds into `ObjectMeta`'s, translated with bodies; examples/k8sdaemonset/apimodel,
+# unfolds into `ObjectMeta`'s, translated with bodies; examples/k8s/daemonset/apimodel,
 # notes/k8s-apimodel-goose.md); the types' own methods stay names only.
 translate = ["!*", "Pod.Get*", "Pod.Set*", "Node.Get*", "Node.Set*",
   # the constants the model reads (a names-only constant is a value of unknown shape)

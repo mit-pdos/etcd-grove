@@ -149,6 +149,20 @@ theorem kvEntry_alarmChain_on (c₀ : w64) (lt : LeaseTable) (log : mvcc.Log) (e
       · rfl
   · rfl
 
+/-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
+(`kvRaftOf_length_le`'s counterpart). -/
+theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) : (kvRaftOfOn c₀ ch s₀ A).2.length ≤ s₀.2.length + A.length := by
+  induction A generalizing s₀ with
+  | nil => simp [kvRaftOfOn_nil]
+  | cons m A ih =>
+    show (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2.length ≤ _
+    have h := ih (kvEntryOn c₀ ch s₀ m)
+    rcases kvEntryOn_grow c₀ ch s₀ m with he | ⟨cs, he⟩
+    · rw [he] at h; simp only [List.length_cons]; omega
+    · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
+      simp only [List.length_cons]; omega
+
 end pure
 
 section commit
@@ -157,6 +171,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- (2026-11-05, H-rr1) **The mode-`on` KV model of a small log has room** (`kvRoom_model`'s). -/
+theorem kvRoom_modelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
+    (h : kvLogSmall γk L) : kvRoom (kvStateOf (kvModelOn γk st₀ L)) := by
+  apply kvRoom_stateOf
+  have := kvRaftOfOn_length_le γk.c0 γk.ch0 (st₀, γk.log0) L
+  unfold kvModelOn; unfold kvLogSmall at h; simp only at this; omega
 
 /-- The mode-`on` model after `L ++ [e]` is the step of `e` from the model after `L`. -/
 theorem kvModelOn_snoc (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel)
@@ -277,15 +298,18 @@ instance kvNxOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   unfold kvNxOn; infer_instance
 
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
-store's history's tie to the log (`authHistTie`). (Strict M1, 2026-11-06, as `srvKVInvs`: the tie
-`E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store invariant
-`kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
-witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`.) -/
+store's history's tie to the log (`authHistTie`); (the lease-grant merge, 2026-11-03) a cluster that
+grants no lease (`NewServer.spec`'s `on = true → ρ.rd.kv.lg = false`): what the snapshot install's
+revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). (Strict M1, 2026-11-06, as
+`srvKVInvs`: the tie `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store
+invariant `kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
+witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`. Merge of `lean`,
+2026-11-06: #7-on's `E.cmp = false` dropped, the API's image covering a compacting store.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
     authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
-    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝)
+    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗ ⌜γr.kv.lg = false⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by

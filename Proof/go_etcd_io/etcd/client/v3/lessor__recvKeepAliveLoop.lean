@@ -153,7 +153,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -265,7 +265,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -464,7 +464,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -576,7 +576,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
               iintro -
               (try wp_auto)
               ihave #HU := Hsce' $$ %Broadcast.Unknown
-              wp_apply HU $$ [] as %e0 - %- - -
+              wp_apply HU $$ [] as %e0 - %- - - -
               (try wp_auto)
               wp_for_post
               (try wp_auto)
@@ -775,7 +775,7 @@ theorem lessor.recvKeepAliveLoop.wp_proof
           iintro -
           (try wp_auto)
           ihave #HU := Hsce' $$ %Broadcast.Unknown
-          wp_apply HU $$ [] as %e0 - %- - -
+          wp_apply HU $$ [] as %e0 - %- - - -
           (try wp_auto)
           wp_for_post
           (try wp_auto)

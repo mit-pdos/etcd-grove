@@ -1,9 +1,9 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/Link.lean`
 # (all Lean-first), read by `etc/gen-link.py --linkvtxn`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `linkvtxn`.
 #
-# the porcupine model (examples/linkvtxn/linkvtxn.go: Model and its helpers; linkv-txn stage E)
+# the porcupine model (examples/etcd/txnlin/etcd_txnlin.go: Model and its helpers; linkv-txn stage E)
 lookup:
 setKey:
 delKey:
@@ -26,12 +26,20 @@ outEqual: vrEqual resEqual kvsOf resOf
 storeEqual: vrEqual
 configEqual: storeEqual inputEqual
 removeAt:
-addConfig: configEqual
+cmpInt:
+cmpStr:
+cmpTOp: cmpInt cmpStr
+cmpCmp: cmpInt cmpStr
+cmpInput: cmpInt cmpStr cmpCmp cmpTOp
+cmpVR: cmpStr cmpInt
+cmpStore: cmpInt cmpStr cmpVR
+cmpConfig: cmpStore cmpInt cmpInput
+addConfig: cmpConfig
 closure: addConfig mstep removeAt
 step: isWrite mstep outEqual
-linkvtxn_Model: step addConfig closure configEqual
+txnlin_Model: step addConfig closure configEqual
 #
-# `Apply` and its callees (examples/linkvtxn/linkvtxn.go: `call`, one function per kind, and the
+# `Apply` and its callees (examples/etcd/txnlin/etcd_txnlin.go: `call`, one function per kind, and the
 # client's builders; linkv-txn stage F); the clientv3 functions linked here as the leasing
 # package's are, under this package's assumptions
 vrOf:
@@ -72,19 +80,19 @@ callPut: context_WithTimeoutBackground context_ErrAny
 callDel: context_WithTimeoutBackground context_ErrAny
 callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes
 call: callGet callList callPut callDel callTxn
-linkvtxn_Apply: call isWrite
+txnlin_Apply: call isWrite
 #
 # the generator, `Check` (over the driver's, `@`) and `Main` (over the examples' shared start's,
 # `common`'s, `@`), as linkv's (linkv-txn stage G)
 workloadKeys:
 pick:
 genFrom: workloadKeys pick
-linkvtxn_Gen: genFrom
+txnlin_Gen: genFrom
 Run: @
 CounterClock: @
-linkvtxn_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkvtxn_Apply
-common_StartServer: @
-common_Serve: @
-common_NewClient: @
+txnlin_Check: Run CounterClock txnlin_Model txnlin_Gen txnlin_Apply
+etcdstart_StartServer: @
+etcdstart_Serve: @
+etcdstart_NewClient: @
 zap_NewNop:
-linkvtxn_Main: zap_NewNop common_StartServer common_Serve common_NewClient linkvtxn_Check
+txnlin_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve etcdstart_NewClient txnlin_Check

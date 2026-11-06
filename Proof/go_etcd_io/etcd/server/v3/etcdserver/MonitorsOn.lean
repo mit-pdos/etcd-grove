@@ -28,7 +28,7 @@ variable [GooseExts]
 
 /-- A monitor's request is a plain non-write request of a good shape (`srvMonitorPermitM_of`'s). -/
 theorem monitorReq_prop (lid : w64) (rq : apply.IRRModel) (h : monitorReq lid rq) :
-    plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+    plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape .none rq ∧
       kvShapeAll rq := by
   have hs := rqShape_of_monitorReq lid rq h
   obtain ⟨⟨hz, hna, hns, hk⟩, -⟩ := h
@@ -91,7 +91,7 @@ theorem srvMonitorPermitM_of (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
     ileft
     ipureintro
     obtain ⟨h1, h2, h3, h4, -⟩ := monitorReq_prop lid rq hrq
-    exact ⟨h1, h2, h3, h4, rfl⟩
+    exact ⟨h1, h2, h3, rqShape_mono _ _ h4, rfl⟩
   · iunfold reqPropOkM
     isplitl
     rotate_left

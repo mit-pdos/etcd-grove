@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.Authenticate.wp_proof
-    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true)
+    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG))
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))

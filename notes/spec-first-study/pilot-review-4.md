@@ -15,7 +15,7 @@ Focus: the repair `4a7d599e6a..678f5df2d5` and the fork fix `964dccdb4`.
   - `start()`'s handling of `Run`.
 - **The fork fix `964dccdb4` is correct and complete in Go** (checked below).
 - **One blocker outside the rubric (CI, introduced by the repair):** `etc/goose.py` now pins etcd at `964dccdb4`,
-  but `examples/go.mod` and `examples/k8setcd3/go.mod` still replace etcd's modules with
+  but `examples/go.mod` and `examples/k8s/etcd3/go.mod` still replace etcd's modules with
   `...-c00a2dc06224`. `go_mod_pin_errors()` (`etc/goose.py:755-775`) reports this, so `etc/goose.py --check`, which
   CI runs, fails.
   - Also, `964dccdb4` exists only on a local branch (`goose-lean-compactorstart`) of the scratch clone, whose

@@ -112,14 +112,14 @@ theorem kv_cert_jump (γ : ServerRaftNames) (γk : KVNames) (E : CoPset) (hE : �
 /-- **`s.be`'s swap** (D22 receiver epochs, S8d; see the file header): under `bemu`'s write side
 (`bemuP s E.γbe 1`) with the apply thread's part of `s.be` (`srvBeOwn`), the write budget's
 invariant (`srvWTPool`) moved from the current backend `d` (the apply thread's, `E.γ.kb`) to the
-new one `d'` (its facts `srvBeRO d'`, its write-back stock `srvWTStockInv γp d'`, the
+new one `d'` (its facts `srvBeRO d'`, its write-back stock `srvWTStockInv γp.cnt d'`, the
 storage-version monitor's read token): `s.be` whole (at `d`) and the monitor's old read token out
 (the old backend's write-back tokens stay in its stock, M2's item 15; 2026-11-02, the
 backend-auth-split stage: with the old backend's pool of readers, for its `Close`), and, once `s.be`
 holds `d'`, `bemu`'s lock invariant and the apply
 thread's half of `s.be` and quarter of the ghost variable at `d'`. -/
-theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBReal) :
-    srvWTPool E γp ⊢ bemuP s E.γbe 1 -∗ srvBeOwn s E -∗ srvBeRO d' -∗ srvWTStockInv γp d' -∗
+theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (d' : mvcc.KBReal) :
+    srvWTPool E γp ⊢ bemuP s E.γbe 1 -∗ srvBeOwn s E -∗ srvBeRO d' -∗ srvWTStockInv γp.cnt d' -∗
       apply.bkRT d' -∗ £ 1 -∗
       |={⊤}=> ∃ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ∗ srvBeAddr s ↦ srvBeIface d.be ∗
         (∃ d2 : mvcc.KBReal, ⌜bkKey d2 = bkKey d⌝ ∗ apply.bkRT d2) ∗ apply.bkRT d ∗ srvBeRO d ∗
@@ -146,7 +146,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
   rw [← Hk2]
   icombine Hg1 Hg23 as Hg
   imod lc_fupd_elim_later (E := ⊤ \ ↑srvWTN) $$ Hlc Hrt with Hrt
-  icases Hrt with (Hrt | ⟨%q, Hq⟩)
+  icases Hrt with (Hrt | ⟨%q, Hq, -⟩)
   rotate_left
   · iexfalso
     icombine Hg Hq gives %Hv

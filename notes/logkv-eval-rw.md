@@ -1,9 +1,9 @@
 # logkv experiment: the `logkvrw` variant (read-write mutex), 2026-10-28
 
 The experiment (`notes/logkv-eval.md`): how much proof work a small feature costs when the base
-program (`examples/lintest/logkv`, proved end to end: `logkv_adequate`) is already proved.
+program (`examples/lib/lintest/logkv`, proved end to end: `logkv_adequate`) is already proved.
 
-**The feature.** `examples/lintest/logkvrw/logkvrw.go` is `logkv` with `Server.mu` a
+**The feature.** `examples/lib/lintest/logkvrw/logkvrw.go` is `logkv` with `Server.mu` a
 `sync.RWMutex` instead of a `sync.Mutex`: `Get` takes only the read lock (`RLock`/`RUnlock`), so
 readers run concurrently; `Put`, `applyLoop` and the condition variable (`sync.NewCond(&s.mu)`, a
 `*RWMutex` as `Locker`) use the write lock. Three lines of Go change.
@@ -110,7 +110,7 @@ most of `WLock.lean`: a general change worth proposing to Perennial (below).
 - `muLocker` is `&s.mu` as a `*RWMutex`.
 - `Check`/`Main`: the premise passed along, `wp_RunTok` for `wp_Run`. `Adequacy`: the bound.
 - `Init.lean` and `PkgTable.lean`: unchanged copies; `etc/gen-init.py
-  github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw --check` and the plain `etc/gen-init.py
+  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw --check` and the plain `etc/gen-init.py
   --check` both report them up to date.
 
 ## What carried over unchanged

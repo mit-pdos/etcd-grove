@@ -60,7 +60,7 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log) ∗
-      ⌜apply.rqOk x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
+      ⌜apply.rqOk .none x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ threadTok ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       (∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
@@ -130,7 +130,7 @@ theorem apply.uberApplier.Apply.wp_kvL
   icases Hs' with ⟨%ai, %Hai, #Ht⟩
   subst Hai
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, -, -, -, -, #HApply, -⟩
+  icases Ht with ⟨-, -, -, -, -, -, -, -, -, -, #HApply, -⟩
   wp_auto
   iapply wp_fupd
   wp_apply HApply $$ %r %rq %skip %v3

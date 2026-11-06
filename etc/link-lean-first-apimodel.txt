@@ -1,7 +1,7 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean`
 # (all Lean-first), read by `etc/gen-link.py --apimodel`: `<fn>: <callees in the order of
 # <fn>.wp_proof's hypotheses>` (`?`: specified, not proved yet). The model API server
-# (`examples/k8sdaemonset/apimodel`, notes/k8s-daemonset-plan.md phase 3; trusted Go, D50: its
+# (`examples/k8s/daemonset/apimodel`, notes/k8s-daemonset-plan.md phase 3; trusted Go, D50: its
 # specs are an internal layer of the controller's proof) and the functions it calls; the results
 # are in the namespace `apimodel`. Generated from the proofs' hypotheses by a script of the
 # phase-3 work.

@@ -36,6 +36,9 @@ class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Pro
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, v⟩
   noIs : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Is" ≠
     some (go.Signature [go.error] false [go.bool])
+  /-- (k8s etcd3 7c, HS-6) nor a `GRPCStatus` method (what grpc's `status.FromError` would call). -/
+  noGRPC : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
+    go!"GRPCStatus" = none
 
 /-- An `errors.New` error (a `*errorString`) is a leaf pointer error without an `Is` method. -/
 theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
@@ -48,6 +51,20 @@ theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [E
         some (go.Signature [go.error] false [go.bool]) :=
   ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs⟩
 
+/-- An `errors.New` error is a leaf pointer error without an `Is` or a `GRPCStatus` method (the
+server's `errLeaf`; k8s etcd3 7c, HS-6). -/
+theorem errorString_errLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
+    (x : Loc) :
+    _root_.Perennial.errors.IsPointerError
+        ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
+      _root_.Perennial.errors.isLeafError
+        ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
+      methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Is" ≠
+        some (go.Signature [go.error] false [go.bool]) ∧
+      methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
+        go!"GRPCStatus" = none :=
+  ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs, ErrorStringLeaf.noGRPC⟩
+
 /-- `ErrorStringLeaf` holds: `*errorString`'s method set (goose's `ptr_method_set`) is `Error`
 only. -/
 instance errorStringLeaf_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
@@ -55,8 +72,9 @@ instance errorStringLeaf_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   have h := fun m =>
     go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) m
   have hAs := h go!"As"; have hU := h go!"Unwrap"; have hIs := h go!"Is"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hIs
-  exact ⟨fun _ => by simp [_root_.Perennial.errors.isLeafError, hAs, hU], by simp [hIs]⟩
+  have hG := h go!"GRPCStatus"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hIs hG
+  exact ⟨fun _ => by simp [_root_.Perennial.errors.isLeafError, hAs, hU], by simp [hIs], hG⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

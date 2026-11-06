@@ -65,7 +65,7 @@ def apply.uberAdmC (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF)
   iprop(∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗
     □ ∀ (x : apply.ApplyKV) (r : Loc) (rq : apply.IRRModel) (skip v3 : Bool)
       (Pre Q Post : IProp GF) (γa : auth.AuthNames) (hs : List auth.AuthState),
-    {{ ⌜∀ h, Own γa h ⊢ L h ∗ (L h -∗ Own γa h)⌝ ∗
+    {{ ⌜∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)⌝ ∗
         apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗
         apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗
         ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
@@ -100,7 +100,7 @@ abbrev apply.Apply.adminSpecL : Prop :=
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (W : IProp GF)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (L : List auth.AuthState → IProp GF),
-  (∀ h, Own γa h ⊢ L h ∗ (L h -∗ Own γa h)) →
+  (∀ h, Own γa h ∗ W ⊢ L h ∗ (L h -∗ Own γa h ∗ W)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.uberAdmC ua E W Own L ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
       (∃ p : Loc, ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗

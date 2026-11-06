@@ -34,6 +34,7 @@ axiom api.IsCapabilityEnabled.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom backend.dbFile
 axiom backend.isDB
 axiom backend.optsAt
 axiom backend.ownDB
@@ -72,8 +73,6 @@ axiom status.FromError.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.IsZero.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof

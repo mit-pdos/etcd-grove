@@ -217,7 +217,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key value k v leaseID L te crev Z
   wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, Hown, %Hlease, Htrc⟩
-  simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
+  try simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   ihave #Hs0 : mvcc.isStore s γ $$ []

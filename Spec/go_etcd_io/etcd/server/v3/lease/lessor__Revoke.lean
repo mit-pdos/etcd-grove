@@ -47,7 +47,9 @@ draft's premise without it): `MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2
 draft's update taken always and given back in the not-live arm): `if decide (id ∈ L) then auBegin …
 else True`, as txn's `Put` for a lease. The code returns `ErrLeaseNotFound` before `rd()`, and the
 server's caller builds the update from its writer's half, which no law recovers from an unused
-update (`notes/mvcc-migration/server.md`, "Found", third session, (2)). -/
+update (`notes/mvcc-migration/server.md`, "Found", third session, (2)).
+**The lessor revocable** (`lease.lessorRevocable γl`: its history is not kept monotone; the
+lease-grant plan's D2, 2026-11-02, from `lean`, merged 2026-11-06). -/
 abbrev lease.lessor.Revoke.spec : Prop :=
   ∀ (lp : Loc) (γ : MvccName) (id : w64) (rd : GoFunc) (q : Qp) (B : mvcc.KBReal) (P : IProp GF)
     (f : GoFunc) (σ₀ : MvccState) (L : List w64) (r : GMap GoString backend.BktData)
@@ -56,7 +58,8 @@ abbrev lease.lessor.Revoke.spec : Prop :=
   let dels := mvcc.leaseDels (mvcc.stateAfter σ₀.log) id
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      lease.lessorInv lp γl ∗ threadTok ∗ lease.rdOwn γl rd ∗ mvccDeleter rd γ ∗
+      lease.lessorInv lp γl ∗ lease.lessorRevocable γl ∗ threadTok ∗ lease.rdOwn γl rd ∗
+      mvccDeleter rd γ ∗
       mvccBackend γ q B P ∗ hookIs B f ∗ csContractA P f Pre Q Post ∗
       ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧
         MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗

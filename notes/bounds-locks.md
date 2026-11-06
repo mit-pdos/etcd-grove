@@ -30,14 +30,14 @@ nesting (Go) — B2 note.
 
 - **`srvLgReader`** (`Proof/.../etcdserver/InvApplier.lean:312`). `EtcdServer.lgMu`. Made in
   `Proof/.../etcdserver/NewServer.lean:490`; handed out through `srvServeBuilt … 64`
-  (`InvServe.lean:113`, `Spec/.../NewServer.lean:268,439,617`). Stocks: `examples/common/Defs.lean:274,361`,
+  (`InvServe.lean:113`, `Spec/.../NewServer.lean:268,439,617`). Stocks: `examples/lib/etcdstart/Defs.lean:274,361`,
   `Served.lean:102` (`64 - 2`); `client/v3/ServeFromStart.lean:242` (K); `NewServer.lean:1022`
   (`2^23 - 8·|L|`); `SnapRO.lean:344`. 26 Spec files. Also inside `quotaRd`, `etcdIcRs`, `srvSVRes`.
   RLock: `server.go:449` (`Logger`), brief. Nested *inside* `wgMu` (GoAttach, below). B2: pool in
   the server's invariant (`NewServer`); callers are gRPC handlers (B2a), the apply thread and
   GoAttach'ed goroutines (which get no thread token: their spec gives none; corrected 2026-11-01, `notes/bounds-waitgroups.md`, 5).
 - **`srvLeadTimeReader`** (`InvProposer.lean:480`). `EtcdServer.leadTimeMu`. Made `NewServer.lean:1227`;
-  K = 64 in `srvServeBuilt`. Stocks: `examples/common/Defs.lean:273,360`, `Served.lean:101`,
+  K = 64 in `srvServeBuilt`. Stocks: `examples/lib/etcdstart/Defs.lean:273,360`, `Served.lean:101`,
   `InvServe.lean:112`, `ServeFromStart.lean:241`. 8 Spec files; in `etcdRunSlot`, `authSlot`,
   `authnSlot`. RLock `server.go:2387` (`parseProposeCtxErr`), brief, no nesting. B2: server pool;
   gRPC callers only (B2a).
@@ -225,7 +225,7 @@ nesting (Go) — B2 note.
 
 ### Already pooled (no action)
 
-`logkvrw`'s `mu` (`examples/lintest/logkvrw/New.lean:74`, `init_RWMutex_threadPool`), `Lease.mu`,
+`logkvrw`'s `mu` (`examples/lib/lintest/logkvrw/New.lean:74`, `init_RWMutex_threadPool`), `Lease.mu`,
 `Lease.expiryMu`, `progressReportIntervalMu` (own pool).
 
 ## 2. Bundles (go away with their parts)
@@ -342,6 +342,6 @@ existing stock), and every request goroutine borrows.
    readers' pool and the restore count stay internal; the apply thread keeps a counted reader
    (site 1). After `m2-b2-mvcc`.
 6. **Examples' slot plumbing**: `etcdGrpcSlot`/`watchRunSlot`/`etcdLeaseSlot` stocks,
-   `etcdGrpcSlots_of_started`, `watchRunSlots_of`, the 64/`64 - 2` splits in `examples/common`.
+   `etcdGrpcSlots_of_started`, `watchRunSlots_of`, the 64/`64 - 2` splits in `examples/lib/etcdstart`.
 7. Independent, any time: the cache's three locks, client-go's two, `progressReportIntervalMu`
    moved to `threadPool`.

@@ -44,6 +44,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.Get.wp_proof
@@ -59,8 +60,10 @@ theorem store.Get.wp_proof
     (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k Q hk hkl hrv hQ
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, Hau⟩
+  intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k n Q hQ
+  wp_start as ⟨#Hst, %Hpre, #Hctx, #Hce, Hout, Hau⟩
+  obtain ⟨hk, hkl, hrv⟩ := Hpre
+  ihave #Hst0 := Hst
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon⟩
@@ -134,11 +137,47 @@ theorem store.Get.wp_proof
     · iframe #
       ipureintro; exact Hspn
     (try wp_auto)
-    rw [hrv]
-    wp_apply wp_validateMin sp _
+    wp_apply wp_validateMin Obj sp c opts.ResourceVersion' n resp.Revision' $$ []
+      as %verr %Hverr
+    · iframe Hst0 #
+      ipureintro; exact hrv
+    have hσn : uint.nat (W64 (σ.rev : Int)) = σ.rev := by
+      have := kvRevFits.lt hb.1
+      word
+    by_cases hlt : uint.nat resp.Revision' < uint.nat n
+    · -- the minimum resource version is above the state's revision
+      rw [ite_eq_left hlt] at Hverr
+      obtain ⟨l, rfl⟩ := Hverr
+      (try wp_auto)
+      wp_apply wp_End spn _ $$ []
+      · iframe #
+        ipureintro; exact Hspn
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iexists σ
+      iframe HQ
+      have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n)
+          opts.IgnoreNotFound' = .err (.tooLarge (uint.nat n) σ.rev) := by
+        unfold KSt.get
+        have hr : (c.abs σ).rv = σ.rev := rfl
+        rw [hrevσ, hσn] at hlt
+        rw [ite_eq_left (by rw [hr]; exact hlt), hr]
+      rw [hg]
+      simp only [respIs]
+      isplitl []
+      · ipureintro; exact ⟨l, rfl⟩
+      iexists o0, rv0
+      iexact Hout
+    rw [ite_eq_right hlt] at Hverr
+    subst Hverr
+    have hle : ¬ (uint.nat n > (c.abs σ).rv) := by
+      show ¬ (uint.nat n > σ.rev)
+      rw [hrevσ, hσn] at hlt
+      omega
     (try wp_auto)
     iunfold contractOk at Hcon
-    icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+    icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
     cases hf : mvcc.findKey (c.pathPrefix ++ k) σ.kvs with
     | none =>
       iunfold kubernetes.kvOut at Hkv
@@ -159,11 +198,10 @@ theorem store.Get.wp_proof
           iright
           iexists σ
           iframe HQ
-          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) 0 false =
+          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n) false =
               .err (.notFound (c.pathPrefix ++ k) σ.rev) := by
             unfold KSt.get
-            rw [hn]
-            simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte, Bool.false_eq_true]
+            rw [ite_eq_right hle, hn]
             rfl
           rw [hg]
           simp only [respIs, storageErrIs]
@@ -187,10 +225,10 @@ theorem store.Get.wp_proof
           iright
           iexists σ
           iframe HQ
-          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) 0 true = .zero := by
+          have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n) true = .zero := by
             unfold KSt.get
-            rw [hn]
-            simp
+            rw [ite_eq_right hle, hn]
+            rfl
           rw [hg]
           simp only [respIs]
           iframe Hout
@@ -242,11 +280,10 @@ theorem store.Get.wp_proof
       iright
       iexists σ
       iframe HQ
-      have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) 0 opts.IgnoreNotFound' =
+      have hg : (c.abs σ).get (E := Empty) (c.pathPrefix ++ k) (uint.nat n) opts.IgnoreNotFound' =
           .obj o (uint.nat v.modRev) := by
         unfold KSt.get
-        rw [hit]
-        simp
+        rw [ite_eq_right hle, hit]
       rw [hg]
       simp only [respIs]
       rw [W64_uint_nat]

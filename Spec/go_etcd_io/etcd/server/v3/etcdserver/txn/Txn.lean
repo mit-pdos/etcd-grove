@@ -121,7 +121,7 @@ abbrev txn.Txn.specRead : Prop :=
            txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
          (⌜trace ≠ null⌝ ∗ (∃ te' : Bool, traceutil.ownTrace trace te') ∗
            ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
-           mvcc.errorfIs err ∗ txn.roTxnRespRd resp ∗
+           mvcc.ctxErrorf err ∗ txn.roTxnRespRd resp ∗
            txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))) }}
 
 /-- **`Txn`'s spec**: at the sole writer (`specSole`, the apply thread) and at a reader

@@ -142,16 +142,25 @@ theorem apply.newApplierV3Backend.wp_proof
     iframe #
   isplitr
   · imodintro
-    iintro %r %rq %id %log %rs %Pre %Q %Post %info
+    iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
     iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
-    iapply (hLeaseRevoke E p r rq id log rs Pre Q Post info) $$ [Hpre Htt]
+    iapply (hLeaseRevoke E p r rq id log T rs Pre Q Post info) $$ [Hpre Htt]
     · iframe Hpre Htt
       iframe #
     inext
-    iintro %resp %err ⟨Htt, H1, H2⟩
+    iintro %resp %err ⟨Htt, H1⟩
     iapply HΦ'
     iframe
+  isplitr
+  · -- `LeaseGrant` (the lease-grant stage, 2.11)
+    imodintro
+    iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
+    imodintro
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hLeaseGrant E p r rq g log T rs U Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
+    iframe #
   isplitr
   · imodintro
     iintro %m %r %log %Pre %Q %Post %info %hm
@@ -159,12 +168,8 @@ theorem apply.newApplierV3Backend.wp_proof
     iintro %Φ' Hpre HΦ'
     simp only [apply.respMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl
+      rfl | rfl | rfl
     all_goals simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
-      iapply (hLeaseGrant E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
-      iframe
-      iframe #
     · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
       iapply (hLeaseCheckpoint E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe

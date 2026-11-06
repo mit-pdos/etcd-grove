@@ -45,7 +45,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   ihave #Hb' := Hb
@@ -135,18 +135,18 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     iframe Hres Hresp Hhdr
     isplitl []
     · ipureintro; exact ⟨Herr, h2, by omega⟩
-    isplitl [Hw Hbk Hhk Htie Hown Hrdo Hrvk Hard]
+    isplitl [Hw Hbk Hhk Htie Hown Hrdo Hrvk Hard HltL]
     · iapply (apply.kvOwn_of_split E _ B c)
       iframe Hw Htie
       iunfold apply.kvRest
       iframe Hbk Hhk Hard
       iunfold apply.leasesLive
       iexists L
-      isplitr [Hown Hrdo Hrvk]
+      isplitr [Hown Hrdo Hrvk HltL]
       · iapply apply.leasesKnown_commit_delete $$ Hknown
       iunfold EtcdGrove.lease.lessorUser
       rw [txn.stateAfter_commitLog]
-      iframe Hown Hrdo Hrvk
+      iframe Hown Hrdo Hrvk HltL
     ileft; iexact HPost
   · -- the range read's context error: not at `context.TODO()` (`nd`)
     simp at Hnd

@@ -1,0 +1,101 @@
+package v3rpc
+
+import (
+	"errors"
+	"testing"
+
+	"google.golang.org/grpc/status"
+
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	"go.etcd.io/etcd/server/v3/storage/mvcc"
+)
+
+const futureRevDesc = "etcdserver: mvcc: required revision is a future revision"
+const compactedDesc = "etcdserver: mvcc: required revision has been compacted"
+
+func TestAxiomReview7c1bInit(t *testing.T) {
+	// claim 1: descriptions
+	descs := []struct {
+		name string
+		err  error
+		desc string
+	}{
+		{"ErrFutureRev", rpctypes.ErrFutureRev, futureRevDesc},
+		{"ErrCompacted", rpctypes.ErrCompacted, compactedDesc},
+		{"ErrGRPCFutureRev", rpctypes.ErrGRPCFutureRev, futureRevDesc},
+		{"ErrGRPCCompacted", rpctypes.ErrGRPCCompacted, compactedDesc},
+		{"ErrGRPCEmptyKey", rpctypes.ErrGRPCEmptyKey, "etcdserver: key is not provided"},
+		{"ErrGRPCKeyNotFound", rpctypes.ErrGRPCKeyNotFound, "etcdserver: key not found"},
+		{"ErrGRPCValueProvided", rpctypes.ErrGRPCValueProvided, "etcdserver: value is provided"},
+		{"ErrGRPCLeaseProvided", rpctypes.ErrGRPCLeaseProvided, "etcdserver: lease is provided"},
+		{"ErrGRPCTooManyOps", rpctypes.ErrGRPCTooManyOps, "etcdserver: too many operations in txn request"},
+		{"ErrGRPCDuplicateKey", rpctypes.ErrGRPCDuplicateKey, "etcdserver: duplicate key given in txn request"},
+		{"ErrGRPCInvalidClientAPIVersion", rpctypes.ErrGRPCInvalidClientAPIVersion, "etcdserver: invalid client api version"},
+		{"ErrGRPCInvalidSortOption", rpctypes.ErrGRPCInvalidSortOption, "etcdserver: invalid sort option"},
+		{"ErrGRPCNoSpace", rpctypes.ErrGRPCNoSpace, "etcdserver: mvcc: database space exceeded"},
+		{"ErrGRPCNoLeader", rpctypes.ErrGRPCNoLeader, "etcdserver: no leader"},
+		{"ErrGRPCNotCapable", rpctypes.ErrGRPCNotCapable, "etcdserver: not capable"},
+	}
+	for _, d := range descs {
+		if d.err == nil {
+			t.Errorf("%s nil", d.name)
+			continue
+		}
+		s, _ := status.FromError(d.err)
+		if got := rpctypes.ErrorDesc(d.err); got != d.desc || s.Message() != d.desc {
+			t.Errorf("%s: ErrorDesc %q, Message %q, want %q", d.name, got, s.Message(), d.desc)
+		}
+	}
+	if _, ok := rpctypes.ErrFutureRev.(rpctypes.EtcdError); !ok {
+		t.Errorf("ErrFutureRev not an EtcdError: %T", rpctypes.ErrFutureRev)
+	}
+	if rpctypes.ErrFutureRev.Error() != futureRevDesc || rpctypes.ErrCompacted.Error() != compactedDesc {
+		t.Errorf("client errors' Error()")
+	}
+
+	// claim 2: toGRPCErrorMap
+	kf, kc := mvcc.ErrFutureRev, mvcc.ErrCompacted
+	if kf == kc || kf == nil || kc == nil {
+		t.Errorf("mvcc keys: kf=%v kc=%v", kf, kc)
+	}
+	t.Logf("toGRPCErrorMap has %d entries", len(toGRPCErrorMap))
+	nf, nc := 0, 0
+	for k, v := range toGRPCErrorMap {
+		if v == nil {
+			t.Errorf("nil value at %v", k)
+			continue
+		}
+		d := rpctypes.ErrorDesc(v)
+		if d == futureRevDesc {
+			nf++
+			if k != kf {
+				t.Errorf("key %v (%T) maps to futureRevDesc", k, k)
+			}
+		}
+		if d == compactedDesc {
+			nc++
+			if k != kc {
+				t.Errorf("key %v (%T) maps to compactedDesc", k, k)
+			}
+		}
+	}
+	if nf != 1 || nc != 1 {
+		t.Errorf("nf=%d nc=%d", nf, nc)
+	}
+	if rpctypes.ErrorDesc(toGRPCErrorMap[kf]) != futureRevDesc || rpctypes.ErrorDesc(toGRPCErrorMap[kc]) != compactedDesc {
+		t.Errorf("M[kf]/M[kc] descriptions")
+	}
+	if toGRPCErrorMap[kf] != rpctypes.ErrGRPCFutureRev || toGRPCErrorMap[kc] != rpctypes.ErrGRPCCompacted {
+		t.Errorf("M[kf]/M[kc] not the ErrGRPC values")
+	}
+	// mvcc's own description differs (the fallback of mvcc's errors is not one of the two)
+	t.Logf("mvcc descs: %q %q", rpctypes.ErrorDesc(kf), rpctypes.ErrorDesc(kc))
+
+	// 7c-2 probes: errors outside the map that togRPCError's fallback gives the descriptions
+	for _, e := range []error{rpctypes.ErrFutureRev, rpctypes.ErrCompacted, errors.New(futureRevDesc),
+		rpctypes.ErrGRPCFutureRev, rpctypes.ErrGRPCCompacted} {
+		g := togRPCError(e)
+		s, _ := status.FromError(g)
+		t.Logf("togRPCError(%T %q) = code %v desc %q", e, e.Error(), s.Code(), rpctypes.ErrorDesc(g))
+	}
+}

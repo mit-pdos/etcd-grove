@@ -1,21 +1,21 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Link.lean`
 # (all Lean-first; the auth plan's E2b), read by `etc/gen-link.py --authkv`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `authkv`.
 #
 # the program's verdict, the model's at the set-up's state (Model.lean)
-authkv_InRange:
-authkv_Permitted: authkv_InRange
+auth_InRange:
+auth_Permitted: auth_InRange
 # the checks' helpers (the auth plan's E2f)
-authkv_keyOf:
-authkv_refused:
-authkv_Principals:
-authkv_Writer: authkv_Principals
-authkv_LastIn: authkv_InRange
-authkv_SetupWrite: authkv_Principals authkv_keyOf
-authkv_CheckHistory: authkv_SetupWrite authkv_Writer authkv_Permitted
-authkv_checkKVs: authkv_Permitted
-authkv_checkTxnReads: authkv_checkKVs
+auth_keyOf:
+auth_refused:
+auth_Principals:
+auth_Writer: auth_Principals
+auth_LastIn: auth_InRange
+auth_SetupWrite: auth_Principals auth_keyOf
+auth_CheckHistory: auth_SetupWrite auth_Writer auth_Permitted
+auth_checkKVs: auth_Permitted
+auth_checkTxnReads: auth_checkKVs
 # the request contexts: the timeout context, and the bad principal's token appended (C3, grpc's
 # `metadata` a trust boundary)
 context_WithTimeoutBackground:
@@ -23,7 +23,7 @@ context_WithTimeoutBackground:
 context_WithTimeoutBackgroundMd:
 context_ErrAny: @
 metadata_AppendToOutgoingContext:
-authkv_reqCtx: context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext
+auth_reqCtx: context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext
 # (the auth plan's E2h) `SetUp`: the puts with a persistent update (`client_Put_any`), the
 # admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) at etcd's
 # Auth specs (`setupAuthServed`), in a context with no outgoing metadata (5b)
@@ -32,10 +32,10 @@ v3_authClient__UserGrantRole: @
 v3_authClient__RoleAdd: @
 v3_authClient__RoleGrantPermission: @
 v3_authClient__AuthEnable: @
-authkv_SetUp: context_WithTimeoutBackgroundMd context_ErrAny authkv_Principals authkv_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
+auth_SetUp: context_WithTimeoutBackgroundMd context_ErrAny auth_Principals auth_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
 # the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
 client_v3_New: @
-authkv_newUserClient: client_v3_New
+auth_newUserClient: client_v3_New
 # Work's builders (client/v3's, re-linked as linkvtxn's and leasing's) and the watch (the auth-on
 # `Watch`, client/v3's `Link.lean`)
 NewOp:
@@ -58,14 +58,15 @@ getPrefix:
 WithPrefix: getPrefix
 WithRev:
 watcher__Watch: @
-common_Collect: @
-authkv_Work: authkv_keyOf authkv_reqCtx authkv_refused authkv_checkKVs authkv_checkTxnReads authkv_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev watcher__Watch
+etcdstart_Collect: @
+auth_Work: auth_keyOf auth_reqCtx auth_refused auth_checkKVs auth_checkTxnReads auth_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev watcher__Watch
 # `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
 # its proof takes the named premises `auth.ValidSpec` and `authSchemaSrv`, `Results.lean`'s
-# `authkv_startServer`), `Serve`'s auth-on spec (`=common.wp_ServeOn`, `common/LinkOn.lean`), the
+# `auth_startServer`), `Serve` (its one spec, at the server's mode since the auth component's stage 5), the
 # client, and the auth store's `BcryptCost` (the server's `Link.lean`)
 zap_NewNop:
-authkv_startServer: ?
-common_NewClient: @
+auth_startServer: ?
+etcdstart_Serve: @
+etcdstart_NewClient: @
 # `Main`: its proof over the stubs (notes/authkv-main-plan.md)
-authkv_Main: zap_NewNop authkv_startServer =common.wp_ServeOn common_NewClient =auth.authStore.wp_BcryptCost context_ErrAny authkv_SetUp authkv_newUserClient authkv_Work authkv_Principals authkv_CheckHistory authkv_LastIn context_WithTimeoutBackground common_Collect watcher__Watch WithPrefix WithRev WithRange authkv_Permitted
+auth_Main: zap_NewNop auth_startServer etcdstart_Serve etcdstart_NewClient =auth.authStore.wp_BcryptCost context_ErrAny auth_SetUp auth_newUserClient auth_Work auth_Principals auth_CheckHistory auth_LastIn context_WithTimeoutBackground etcdstart_Collect watcher__Watch WithPrefix WithRev WithRange auth_Permitted

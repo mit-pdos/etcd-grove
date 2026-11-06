@@ -105,15 +105,13 @@ theorem witness.handleVote.wp_proof
       msgType_ptr ↦ ((if μ.ty = MsgPreVote then MsgPreVoteResp else MsgVoteResp :
         raftpb.MessageType))))) $$ [msgType]
   · by_cases hpv : μ.ty = W32 17
-    · rw [decide_eq_true hpv,
-        show raftpb.MsgPreVoteResp = #((W32 18 : raftpb.MessageType)) from rfl]
+    · rw [decide_eq_true hpv]
       wp_auto
       rw [if_pos (show μ.ty = MsgPreVote from hpv)]
       rw [show MsgPreVoteResp = W32 18 from rfl]
       iframe msgType
       ipureintro; rfl
-    · rw [decide_eq_false hpv,
-        show raftpb.MsgVoteResp = #((W32 6 : raftpb.MessageType)) from rfl]
+    · rw [decide_eq_false hpv]
       wp_auto
       rw [if_neg (show ¬ μ.ty = MsgPreVote from hpv), show MsgVoteResp = W32 6 from rfl]
       iframe msgType

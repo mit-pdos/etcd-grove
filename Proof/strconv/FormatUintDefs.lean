@@ -4,7 +4,7 @@ significant first, without leading zeros (`"0"` for `0`), the digits `0-9` then 
 `strconv.FormatUint`, `internal/strconv/itoa.go`). Lean-first (no Rocq counterpart).
 
 `decStr n = fmtUint n 10`, the decimal form, is injective (`decStr_inj`): the model API server's
-resource versions (`examples/k8sdaemonset/apimodel`, `rvString`) are looked up by it.
+resource versions (`examples/k8s/daemonset/apimodel`, `rvString`) are looked up by it.
 -/
 module
 

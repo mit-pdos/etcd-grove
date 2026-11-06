@@ -59,7 +59,7 @@ The machinery to keep these bounds local already exists:
 Each bound is reasoned about in exactly one of three places:
 
 1. **The adequacy theorem** fixes the global constants (the thread bound `T`, the step bound `N`, the
-   workload) once, in `examples/common/Adequacy.lean`.
+   workload) once, in `examples/lib/etcdstart/Adequacy.lean`.
 2. **The owner of the bounded object** turns a global constant into a protocol of unbounded use. The
    owner is the package invariant that allocates the `RWMutex`, the `WaitGroup` or the counter. The
    protocol lives inside the owner's invariant: a pool of reader slots, a wait group backed by thread
@@ -234,7 +234,7 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
   `.of_lt` and `.mono`. The posts of `kv.Put`/`Get`/`Delete`, `txn.Commit`, the kubernetes client's
   three methods, linkvtxn's six calls and k8setcd3's `seedOne` say `kvRevFits σ.rev` (a read's
   reply) or `kvRevFits (σ.rev + 1)` (a write's) in place of the literal, at exactly the same
-  strength. `examples/common/Writer.lean` keeps the literal until the snapshot branches land (with
+  strength. `examples/lib/etcdstart/Writer.lean` keeps the literal until the snapshot branches land (with
   the four example proofs that feed it).
 - **Not a model law.** The bound is a guarantee the posts give their callers, not a premise anyone
   threads. A law of the client model would need the server's invariant inside the client's atomic
@@ -268,7 +268,7 @@ This deletes the counted stocks (70 places), `etcdGrpcSlots_of_started`, `watchR
   | `recipesPfxMax` (`2 ^ 27`), `recipesStrMax` (`2 ^ 28`) | `recipes/InvRecipesClient` | the recipes' prefixes; their helpers' keys and values | every recipes spec |
 
   Kept literal: the cache's prefix (`2 ^ 28`, one API pair). Out of scope until the snapshot
-  branches land: the `etcdserver` and `examples/common` specs.
+  branches land: the `etcdserver` and `examples/lib/etcdstart` specs.
 - **After the snapshot branches, with B1's server batch** (same files, one rebuild): D3's
   `cfgScopeOk` (`NewServer`'s configuration premises, restated by `spec`/`specCompact`/`specM`, and
   the `simp` blocks the examples copy to discharge them) and D4's `Workload` record (the closed
@@ -281,14 +281,14 @@ The first version of this section, for the record:
 - **Configuration (D3).** `cfgScopeOk cfg` bundles `etcdMaxRequestBytesOk`, `maxTxnOpsOk`, the
   compaction-mode clause and `boot.length ≤ 2^60`. It is defined once next to `NewServer`.
   - `NewServer.spec`/`specCompact`/`specM` take it once each.
-  - `examples/common` proves it once for the examples' configuration (`cfgScopeOk_default`), replacing
+  - `examples/lib/etcdstart` proves it once for the examples' configuration (`cfgScopeOk_default`), replacing
     the three copied `simp` blocks.
 - **Message sizes.** One generic lemma from component bounds to `wireLen < grpcMsgMax`, over
   `OpShape`. It replaces the per-arity `opSizeOk.*_lt`/`strsSizeOk.lt_*` lemmas. The leasing proofs use
   it instead of unfolding `wireSlack`.
 - **Key, value and prefix lengths.** Named predicates (`keyOk`, `valOk`, `pfxOk`) over the key-length
   and value-length laws' constants, in place of the literal powers of two.
-- **Workload (D4).** One record `Workload`, defined in `examples/common`, holds `grpcRepliesFit`,
+- **Workload (D4).** One record `Workload`, defined in `examples/lib/etcdstart`, holds `grpcRepliesFit`,
   `backendUnderQuota`, `authRecordsFit`, `n + 2 ≤ 2^31` and the example's `clients * ops < 2^60`
   (the last as a field per example). Every closed result takes `Hw : Workload …` instead of four or
   five hypotheses.
@@ -345,3 +345,17 @@ counted, and the specs that consume them (mvcc's `New`, `NewStore`, `newWatchabl
 `SnapApplyOpts`) are restated over `List.replicate rdStockN`: a slot count in specs between the
 owner and the adequacy theorem, against the rule here. Cleanup: the owner (the backend, or mvcc's
 store pool) turns the stock into a handle those specs take instead of the count.
+
+## Known gap: the backend's open snapshots and read transactions (2026-11-06, etcd-grove-82)
+
+Found by the `authSchemaSrv` count review (`notes/axiom-review/authrdn-count.md`, revoke-open), not
+pursued there. `backend.backend.Snapshot.wp_proof`
+(`Proof/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean:66`) and
+`bbolt.DB.Begin_kv.wp_proof` (`Proof/go_etcd_io/bbolt/DB__Begin_kv.lean:24`) bound neither the open
+snapshots nor the read transactions, and no backend spec takes a thread bound: a standalone triple
+(not through `NewServer`, whose closed theorems run at most `2 ^ 28` threads) at `threadBound >
+2 ^ 30` could open `2 ^ 30` of them and reach bbolt's `mmaplock` `RUnlock` fatal (`sync: RUnlock of
+unlocked RWMutex`) after a remap. Reaching it in Go takes about `2 ^ 30` goroutines, the
+idealization every bound here rests on, but this plan wants the bound owned by the backend's
+invariant (a `threadTok` per open snapshot or transaction), not left to it. An `axiom` run is to be
+assigned by etcd-grove-82 after revoke-open lands.

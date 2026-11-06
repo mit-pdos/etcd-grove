@@ -5,6 +5,7 @@ the `file` it allocates needs `file.FieldAssumptions` (`TrustedCode/os.lean`).
 module
 
 public import Spec.os.OpenFile
+public import Proof.os.ErrorOk
 
 @[expose] public section
 
@@ -65,15 +66,17 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     rw [hcr, hom] at hmo2
     subst hmo2
     iapply HΦ
-    ileft
-    iexists fd
-    iframe
-    isplitr
-    · ipureintro; exact ⟨rfl, hfd0⟩
-    unfold os.ownFile
-    iexists inner_ptr
-    iframe
-    isplitl [] <;> iassumption
+    isplitl
+    · ileft
+      iexists fd
+      iframe
+      isplitr
+      · ipureintro; exact ⟨rfl, hfd0⟩
+      unfold os.ownFile
+      iexists inner_ptr
+      iframe
+      isplitl [] <;> iassumption
+    · iapply EtcdGrove.fmtErrorOkOrNil_nil
   · rw [decide_eq_false he0]
     iclear Hfd
     have hmo2 : mo2 = mo ∨ mo2 = openMeta mo true := by
@@ -93,14 +96,24 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
     · rw [decide_eq_false he4]
       wp_auto
       unfold os.model.pathError
+      iapply wp_fupd
       wp_apply wp_errno
+      iStructNamed pe
+      ipersist Op
+      ipersist Path
+      ipersist Err
+      imodintro
       iapply HΦ
-      iright
-      isplitr
-      · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
-      iexists mo2
-      iframe
-      ipureintro; exact hmo2
+      isplitl [Hm]
+      · iright
+        isplitr
+        · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+        iexists mo2
+        iframe
+        ipureintro; exact hmo2
+      · simp only [EtcdGrove.fmtErrorOkOrNil]
+        iapply (os.pathError_fmtErrorOk pe_ptr _ path (errnoErr e)) $$ Op Path Err
+        iapply (errnoErr_fmtErrorOk e he0)
 
 end proof
 

@@ -38,7 +38,7 @@ The serious findings are about a premise of the server's closed theorems that re
    - **The premise:** `rnStopOkStarted` (`etcdserver/NodeBridge.lean:111`) is
      `□ ∀ γ, rnIsNode γ -∗ {{ True }} n.Stop() {{ True }}`. It is one of the named Iris premises
      (`premises`) of `putget_safe`, which takes it through `Hprem : ∀ hG, ⊢ putget.premises …`
-     (`examples/putget/Results.lean:72`). The examples watchkv, authkv, common (and through it
+     (`examples/etcd/putget/Results.lean:72`). The examples watchkv, authkv, common (and through it
      putget3), cachekv, k8setcd3 and linkvtxn take it too.
    - **Why it cannot hold:** `rnIsNode γ` is `isNode` (`InvNode.lean:951-953`), whose `stop`
      channel is `isHandshake γ.stop nv.stop' (fun _ => False) True`. The handshake invariant

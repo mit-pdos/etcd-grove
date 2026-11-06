@@ -29,7 +29,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`s.ensureLeadership()`** (names-only, a contract; the lease-renew plan's C2), any goroutine,
 with the request side's and the read side's server facts (as `leaseTimeToLive.spec`), a reader slot
 of the logger's lock (`srvLgReader`: `Logger()`), one of the read loop's (`srvReadReader`:
-`LinearizableReadNotify`'s) and a thread token, which it returns: a boolean.
+`LinearizableReadNotify`'s) and one level of a thread token (`levelTok l`, any level: revoke-open
+Q5 (a), 2026-11-06, until then a whole `threadTok`; the revocation's outer goroutine calls it with
+its level 3, `LeaseRenew` with its token's level 0), which it returns: a boolean.
 
 **Why it is faithful.** It logs (`s.Logger()`, under `s.lgMu`'s read lock), reads `s.r`'s latest
 tick time twice (`isActive` → `getLatestTickTs`, under `r.tickMu`'s read lock), takes
@@ -39,15 +41,16 @@ tick time twice (`isActive` → `getLatestTickTs`, under `r.tickMu`'s read lock)
 model sees. **Its assumption**: `tickMu`'s read locks need no slot of the caller's. The model drops
 `tickMu`'s reader slots when the node starts (`NodeStart.lean`), so no request goroutine has one;
 a goroutine holds that read lock only inside `getLatestTickTs`, so its readers are at most the
-goroutines, fewer than the lock's reader limit by the thread bound (`threadTok`,
-`threadBound GF ≤ 2 ^ 30 - 1`), which is what a slot would rule out. -/
+goroutines, fewer than the lock's reader limit by the thread bound (a level token, `levelTok l`, of
+any level: the caller is a live goroutine; `threadBound GF ≤ 2 ^ 30 - 1`), which is what a slot
+would rule out. -/
 abbrev EtcdServer.ensureLeadership.spec : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames),
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (l : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLgReader s ∗
-      srvReadReader s γr ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
+      srvReadReader s γr ∗ levelTok l ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ensureLeadership")) (Val #()))
-  {{ (b : Bool), RET #b; srvLgReader s ∗ srvReadReader s γr ∗ threadTok }}
+  {{ (b : Bool), RET #b; srvLgReader s ∗ srvReadReader s γr ∗ levelTok l }}
 
 end spec
 

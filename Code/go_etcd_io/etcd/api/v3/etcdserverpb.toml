@@ -71,6 +71,10 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "TxnRequest.GetFailure", "RequestOp.GetRequest",
   # the spec-first pilot (2026-10-27): the trace attributes of EtcdServer.Compact
   "CompactionRequest.GetPhysical", "CompactionRequest.GetRevision",
+  # the lease-grant stage (2026-11-03): the trace attribute of EtcdServer.LeaseGrant
+  "LeaseGrantRequest.GetTTL",
+  # the lease-expiry plan's X6 (2026-11-04): the trace attribute of EtcdServer.LeaseRevoke
+  "LeaseRevokeRequest.GetID",
   # unit P4: the read-only transaction's warning (txn's `util.go`) reads a range's `GetKvs()`
   "RangeResponse.GetKvs",
   # the gRPC KV service's interface (`v3rpc.NewKVServer` converts its `*kvServer` to it) and the
@@ -119,7 +123,7 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "LeaseKeepAliveResponse", "LeaseGrantResponse.GetHeader", "LeaseKeepAliveResponse.GetHeader",
   "_Lease_LeaseGrant_Handler", "_Lease_LeaseRevoke_Handler", "_Lease_LeaseKeepAlive_Handler",
   # the auth plan's E2h (2026-10-26): the generated Auth stub (client side) of the admin calls
-  # `examples/authkv`'s `SetUp` makes, their method names and the one request not yet translated
+  # `examples/etcd/auth`'s `SetUp` makes, their method names and the one request not yet translated
   "NewAuthClient", "AuthClient", "authClient", "authClient.UserAdd", "authClient.UserGrantRole",
   "authClient.RoleAdd", "authClient.RoleGrantPermission", "authClient.AuthEnable",
   "Auth_UserAdd_FullMethodName", "Auth_UserGrantRole_FullMethodName",

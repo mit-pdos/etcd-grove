@@ -110,12 +110,13 @@ end container.heap
 namespace go_etcd_io.etcd.server.v3.lease
 
 /-- The error variable `g` holds an `errors.New` error: a leaf pointer error without an `Is`
-method whose `Error()` returns (the shape of the apply package's `errVarLeaf`, which the lease
+method (nor a `GRPCStatus` one: k8s etcd3 7c, HS-6) whose `Error()` returns (the shape of the apply package's `errVarLeaf`, which the lease
 package cannot import). -/
 def leaseErrVar (g : GoString) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
-      methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝ ∗
+      methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+      methodSet e.ty !! go!"GRPCStatus" = none⌝ ∗
     {{ True }} (App (Val #(methods e.ty go!"Error" e.v)) (Val #()))
       {{ (msg : GoString), RET #msg; True }})
 
@@ -142,7 +143,9 @@ abbrev leaseInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
       go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
-    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗ leaseErrVar ErrNotPrimary)
+    EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗
+    EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" ∗
+    EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" ∗ leaseErrVar ErrNotPrimary)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit

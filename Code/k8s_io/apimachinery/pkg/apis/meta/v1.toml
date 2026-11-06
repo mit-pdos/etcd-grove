@@ -5,7 +5,7 @@
 # (translate_types skips a type naming a package that is not imported).
 # The status constants `apierrors.NewTimeoutError` and `storage.NewTooLargeResourceVersionError`
 # build their errors with (KEP-6404): a names-only constant is a value of unknown shape.
-# With bodies (the model API server, examples/k8sdaemonset/apimodel; notes/k8s-apimodel-goose.md):
+# With bodies (the model API server, examples/k8s/daemonset/apimodel; notes/k8s-apimodel-goose.md):
 # `ObjectMeta`'s accessors (the `metav1.Object` methods the model and client-go's informers call
 # through the API types' promoted methods), `Now` and `Time.Equal`.
 translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVersionTooLarge",

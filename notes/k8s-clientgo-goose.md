@@ -9,9 +9,9 @@ continues the etcd3 survey's G1-G4 (`notes/k8s-etcd3-goose.md`) as C1, C2, ....
 
 ## Setup
 
-- Project `k8s-apiserver` of `etc/goose.py` (examples/k8setcd3's Go module), which already owned
+- Project `k8s-apiserver` of `etc/goose.py` (examples/k8s/etcd3's Go module), which already owned
   `Code/k8s_io/client_go` and pins client-go at `v0.0.0-20261021054439-569675c57fa3` through
-  `examples/k8setcd3/go.mod` (its `util/consistency` is byte-identical to kubernetes/kubernetes#139657's
+  `examples/k8s/etcd3/go.mod` (its `util/consistency` is byte-identical to kubernetes/kubernetes#139657's
   head `13ecb9cc`). All the packages below resolve in that module as they are (`k8s.io/api`,
   `golang.org/x/time` are already in its `go.mod`): no `go.mod` change, and no reason to split the
   project (a second project would have to translate `tools/cache` and apimachinery again, under

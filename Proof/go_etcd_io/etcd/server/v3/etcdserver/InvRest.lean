@@ -29,6 +29,8 @@ lends), and the workload admits none of their requests (`apply.rqOk`, `plainCove
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.unicode.utf8.Valid
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedTable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestModel
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
@@ -50,10 +52,6 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-! ## The membership's model -/
 
-/-- **The member a conf change's context unmarshals to** (`json.Unmarshal` into a
-`membership.ConfigChangeContext`'s embedded `Member`; opaque, as `ccContextOf`, a function of the
-bytes): what `applyConfChange`'s `AddMember` saves. -/
-opaque membership.ccMemberOf [GooseExts] : List w8 → apply.MemberM
 
 /-- A peer URL some member of `mems` (each member's peer URLs) has. -/
 def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop :=
@@ -70,12 +68,21 @@ def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMa
     else (mems !! m.nodeId).isSome = true)
 
 /-- **The members and the removed members the `members` and `members_removed` buckets decode to**
-(opaque, a function of the tracked buckets; D43 M5b′, 2026-10-26, the user's decision):
-`MustReadMembersFromBackend`'s answer -- each member's id (its key, `mustParseMemberIDFromBytes`)
-with the peer URLs its JSON value unmarshals to, and the ids under `members_removed` -- as its
-read contract states it (`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
-opaque membership.membersOfBk [GooseExts] :
-    GMap GoString backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
+(opaque, a function of those two buckets' contents, `none` for an absent bucket; D43 M5b′,
+2026-10-26, the user's decision; a function of the two buckets only since 2026-11-03, the user's
+(A), `notes/lease-grant-plan.md`, "Plumbing": `readMembersFromBackend`,
+`server/storage/schema/membership.go:91-123`, reads no other bucket): `MustReadMembersFromBackend`'s
+answer -- each member's id (its key, `mustParseMemberIDFromBytes`) with the peer URLs its JSON value
+unmarshals to, and the ids under `members_removed` -- as its read contract states it
+(`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
+opaque membership.membersOf [GooseExts] :
+    Option backend.BktData → Option backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
+
+/-- **What the tracked buckets `bk` decode to** (`membersOf` of their `members` and
+`members_removed` buckets; until 2026-11-03 itself opaque over the whole map). -/
+def membership.membersOfBk [GooseExts] (bk : GMap GoString backend.BktData) :
+    GMap w64 (List GoString) × GMap w64 Bool :=
+  membership.membersOf (bk.lookup go!"members") (bk.lookup go!"members_removed")
 
 open Classical in
 /-- **`ValidateConfigurationChange`'s verdict with `shouldApplyV3`** (D43 M5b′, 2026-10-26, the
@@ -85,14 +92,36 @@ def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : C
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
 /-- **Buckets with no records decode to no members** (2026-10-31, the user's decision; a trust-boundary
-axiom on the opaque `membersOfBk`, `notes/axiom-review/members-empty.md`: survives). `readMembersFromBackend`
+axiom on the opaque `membersOf`, `notes/axiom-review/members-empty.md`: survives; restated
+2026-11-03 over `membersOf`, the user's (A), axiom review pending). `readMembersFromBackend`
 (`server/storage/schema/membership.go:91-123`) makes both maps and writes them only in the
 `UnsafeForEach` callbacks over the `members` and `members_removed` buckets, so over buckets with no
 keys (or absent ones, which read empty) it returns two empty maps and no error. What makes a fresh
 backend's first boot `AddNode` validate (`ccValidOn_boot`). -/
-axiom membership.membersOfBk_empty [GooseExts] (bk : GMap GoString backend.BktData)
-    (hm : (bk.lookup go!"members").getD ∅ = ∅) (hr : (bk.lookup go!"members_removed").getD ∅ = ∅) :
-    membership.membersOfBk bk = (∅, ∅)
+axiom membership.membersOfBk_empty [GooseExts] (bm br : Option backend.BktData)
+    (hm : bm.getD ∅ = ∅) (hr : br.getD ∅ = ∅) :
+    membership.membersOf bm br = (∅, ∅)
+
+/-- **Buckets the apply thread wrote decode to the members it wrote** (2026-11-04, the restart
+plan's R2b-3d gap 3, the user's approval; a trust-boundary axiom on the opaque `membersOf`).
+Suppose the `members` bucket's entries are exactly some members' records under their own ids
+(`memberKey mm.id ↦ memberEnc mm`, ids distinct), and the `members_removed` bucket's keys are exactly
+the ids `rs`'s keys. Then the members read are those members' peer URLs by id, and the removed are
+`rs`. `readMembersFromBackend` (`server/storage/schema/membership.go:91-123`) keys each member by
+`mustParseMemberIDFromBytes` of its key, which is `types.IDFromString` of `BackendMemberKey`'s hex,
+so the id back. Each value is `json.Unmarshal`led into a `Member`, which inverts `json.Marshal` of a
+non-nil `*Member`, so the member back, provided its strings are valid UTF-8 (`hu`): `json.Marshal`
+coerces invalid UTF-8 to U+FFFD, so a peer URL that is not valid reads back changed
+(`notes/axiom-review/members-decode.md`, the review's refutation of the draft without `hu`). Each
+removed key gives `removed[id] = true`. -/
+axiom membership.membersOf_decode [GooseExts] (bm br : Option backend.BktData)
+    (ms : List apply.MemberM) (rs : List w64)
+    (hm : ∀ k v, (bm.getD ∅).lookup k = some v ↔
+      ∃ mm ∈ ms, k = apply.memberKey mm.id ∧ v = apply.memberEnc mm)
+    (hnd : (ms.map (·.id)).Nodup) (hu : ∀ mm ∈ ms, ∀ u ∈ mm.peerURLs, utf8Valid u)
+    (hr : ∀ k, ((br.getD ∅).lookup k).isSome = true ↔ ∃ id ∈ rs, k = apply.memberKey id) :
+    (∀ id, (membership.membersOf bm br).1 !! id = (ms.find? (·.id = id)).map (·.peerURLs)) ∧
+    (∀ id, (membership.membersOf bm br).2 !! id = if id ∈ rs then some true else none)
 
 /-- The membership buckets `MustReadMembersFromBackend` reads: `members`, `members_removed`. -/
 def membership.memberBkts [GooseExts] (n : GoString) : Prop :=
@@ -105,6 +134,38 @@ which `NewAuthStore` creates and the auth store's `Recover` reads (2026-11-02, t
 backend-auth-split stage). -/
 def auth.authBkts [GooseExts] (n : GoString) : Prop :=
   n = go!"auth" ∨ n = go!"authUsers" ∨ n = go!"authRoles"
+
+/-- **The buckets of the rest resource's part in the mode `M`** (the auth-on snapshot plan's Prove
+step, P5, 2026-11-03; the Freeze's "`srvRestOwn` mode-indexed"): the tracked buckets not the
+cluster's; in `on` also not the auth store's, whose write authority and contents are the auth
+realization's (the history's last state, `authHistTie`), not the rest model's (which keeps them at
+`authBoot`). -/
+def restSet [GooseExts] (M : auth.AuthMode) (n : GoString) : Prop :=
+  match M with
+  | .on _ => ¬ membership.clusterBkts n ∧ ¬ auth.authBkts n
+  | _ => ¬ membership.clusterBkts n
+
+/-- **The apply thread's share of a server backend's open token, by the mode** (the auth-on
+snapshot plan's decision 5; review R1's F1, R2's N1; P5, 2026-11-03): a quarter in `on`, the auth
+realization keeping the other quarter of the constructors' half (`authOpenQ`); the half otherwise. -/
+def srvOpenQ (M : auth.AuthMode) : Qp :=
+  match M with
+  | .on _ => (1 : Qp).half.half
+  | _ => (1 : Qp).half
+
+theorem srvOpenQ_off : srvOpenQ .off = (1 : Qp).half := rfl
+
+theorem restSet_off [GooseExts] : restSet .off = fun n => ¬ membership.clusterBkts n := rfl
+
+theorem restSet_ncl [GooseExts] (M : auth.AuthMode) (n : GoString) (h : restSet M n) :
+    ¬ membership.clusterBkts n := by
+  cases M <;> simp only [restSet] at h <;> first | exact h | exact h.1
+
+/-- The rest part's buckets include every tracked bucket neither the cluster's nor the auth
+store's (the lessor's, the alarm store's, ...). -/
+theorem restSet_of [GooseExts] (M : auth.AuthMode) (n : GoString) (hc : ¬ membership.clusterBkts n)
+    (ha : ¬ auth.authBkts n) : restSet M n := by
+  cases M <;> simp only [restSet] <;> first | exact hc | exact ⟨hc, ha⟩
 
 /-- **The membership buckets of `bk` are as the apply thread writes them** (defined, 2026-11-01:
 the backend-auth-split stage's review, in place of an opaque decoding premise): every entry of
@@ -320,8 +381,8 @@ theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
 (`membersOfBk_empty`), so no member, no removed one, no peer URL taken. -/
 theorem ccValidOn_boot [GooseExts] (m : ConfChangeM) (ht : m.type = W32 0) :
     membership.ccValidOn restBootBk m = true := by
-  unfold membership.ccValidOn
-  rw [membership.membersOfBk_empty restBootBk (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
+  unfold membership.ccValidOn membership.membersOfBk
+  rw [membership.membersOfBk_empty _ _ (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])
     (by simp [restBootBk, GMap.lookup_insert_ne, GMap.lookup_insert])]
   simp only [decide_eq_true_eq]
   refine ⟨by simp, ?_⟩
@@ -462,10 +523,12 @@ under `BackendMemberKey(m.ID)`, the model's `restUpdateAttrs` under `memberKey a
 agree because the member under `a.memberID` has that id; true of Go: `c.members` is keyed by each
 member's `ID`), and **the rest buckets present** (`restPresent r.bk`, 2026-11-02, the cluster-rows
 stage: the rows' `MustSave…`s are fatal on a missing bucket; every rest state of the model has
-them, `restModel_present`). Until 2026-11-01 the whole writer's half `rbOwn γB r.bk`. -/
-def srvRestOwn (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
+them, `restModel_present`). Until 2026-11-01 the whole writer's half `rbOwn γB r.bk`. Indexed by
+the auth mode `M` since the auth-on snapshot plan's P5 (2026-11-03): the part is over `restSet M`,
+which in `on` leaves out the auth store's buckets. -/
+def srvRestOwn (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (r : apply.RestM) : IProp GF :=
   iprop(backend.rbOwnIn γB membership.clusterBkts r.bk ∗
-    backend.rbPart γB (fun n => ¬ membership.clusterBkts n) r.bk ∗ membership.clusterMem c r.mem ∗
+    backend.rbPart γB (restSet M) r.bk ∗ membership.clusterMem c r.mem ∗
     ⌜memIdOk r.mem ∧ restPresent r.bk⌝)
 
 
@@ -485,8 +548,9 @@ backend (the alarm store's `alarmBeOn`, the auth store's `authBeOn`): the apply 
 with the rest buckets; the objects' writers' contracts take them in their write right
 (`srvRestRWH`), so that each names the backend the object is on, and their `Recover`s replace
 them. -/
-def srvRestOwnH (γB : backend.BNames) (c : Loc) (H : IProp GF) (r : apply.RestM) : IProp GF :=
-  iprop(srvRestOwn γB c r ∗ H)
+def srvRestOwnH (M : auth.AuthMode) (γB : backend.BNames) (c : Loc) (H : IProp GF)
+    (r : apply.RestM) : IProp GF :=
+  iprop(srvRestOwn M γB c r ∗ H)
 
 /-- **The server's `AEnv.RW` with its objects' backend parts `H`** (S7c). -/
 def srvRestRWH (γB : backend.BNames) (H : IProp GF) : IProp GF := iprop(srvRestRW γB ∗ H)
@@ -568,32 +632,560 @@ def roLens (RO X : apply.RestM → IProp GF) : IProp GF :=
 instance roLens_persistent (RO X : apply.RestM → IProp GF) : Persistent (roLens RO X) := by
   unfold roLens; infer_instance
 
+/-- **The server may grant every lease** (the lease-grant stage, 2.9, S2; persistent): every id is
+one its lessor may grant (`leaseGranted`). What `srvRest`'s leased arm carries to `applyEntryNormal`
+(`grantPermRq`). True of a server whose cluster grants leases (its guard holds of every id). (The
+lease-expiry plan's X2, 2026-11-04: until then also the lessor monotone, `lessorModeIs … true`,
+false in the revocable mode.) (X7, 2026-11-04) And the lessor's mode at the environment's lease mode
+(`lessorModeIs … (decide (E.lm = .mono))`, `srvSnapRO`'s): revocable at `E.lm = .revocable`, what
+`applyEntryNormal` hands a revocation (`revokeOwn`). -/
+def srvGrantable (E : apply.AEnv GF) : IProp GF :=
+  iprop(□ (∀ id : w64, lease.leaseGranted E.γ.leases id) ∗
+    lease.lessorModeIs E.γ.leases (decide (E.lm = .mono)))
+
+instance srvGrantable_persistent (E : apply.AEnv GF) : Persistent (srvGrantable (GF := GF) E) := by
+  unfold srvGrantable; infer_instance
+
+/-- **The revocable-mode grant ids of the applied log's entries with data** (E3 (c)): the apply
+thread applies no entry without data, so these are the ids it can have granted. -/
+def srvGrantLog (A : List EntryModel) : List w64 :=
+  logRevGrantIds .revocable (A.filter fun m => decide (m.data ≠ []))
+
+theorem srvGrantLog_snoc_sub (A : List EntryModel) (m : EntryModel) (u : w64)
+    (h : u ∈ srvGrantLog A) : u ∈ srvGrantLog (A ++ [m]) := by
+  unfold srvGrantLog at h ⊢
+  rw [List.filter_append]
+  unfold logRevGrantIds at h ⊢
+  rw [List.filterMap_append]
+  exact List.mem_append_left _ h
+
+theorem srvGrantLog_snoc_data (A : List EntryModel) (m : EntryModel) (hd : m.data ≠ []) :
+    srvGrantLog (A ++ [m]) = srvGrantLog A ++ (entryRevGrantId .revocable m).toList := by
+  unfold srvGrantLog
+  rw [List.filter_append]
+  have h1 : [m].filter (fun m => decide (m.data ≠ [])) = [m] := by simp [hd]
+  rw [h1]
+  exact logRevGrantIds_snoc _ _ _
+
+/-- **The ids the lessor ever had, `U`, at the applied log `A`** (the lease-expiry plan's E3 (c),
+2026-11-05): none in a cluster that grants none; in the revocable mode, each the revocable-mode grant
+id of an entry of `A` with data (`srvGrantLog`), so that a grant's id, distinct from the log's earlier ones,
+is new to `U`. -/
+def srvEverOk (E : apply.AEnv GF) (A : List EntryModel) (U : List w64) : Prop :=
+  (E.lg = false → U = []) ∧ (E.lm = .revocable → ∀ u ∈ U, u ∈ srvGrantLog A)
+
+/-- **The apply thread's half of the ids the lessor ever had** (E3 (c)): `apply.everOwn` at some
+`U` good for `A` (`srvEverOk`). -/
+def srvEver (E : apply.AEnv GF) (A : List EntryModel) : IProp GF :=
+  iprop(∃ U : List w64, apply.everOwn E U ∗ ⌜srvEverOk E A U⌝)
+
+/-- **The requests of the table `T`'s leases** (the lease-expiry plan's S2–S4, F7, DRAFT
+2026-11-05; persistent): every lease of the table was requested at the table's TTL
+(`lease.leaseReqIs`), as `Grant` issued it (`grantAnswer`'s). What a snapshot's `Recover` needs of
+a record whose id the lessor had before (its request premise). -/
+def srvReqs (E : apply.AEnv GF) (T : LeaseTable) : IProp GF :=
+  iprop(□ ∀ p : w64 × w64, ⌜p ∈ T⌝ -∗ lease.leaseReqIs E.γ.leases p.1 p.2)
+
+instance srvReqs_persistent (E : apply.AEnv GF) (T : LeaseTable) :
+    Persistent (srvReqs (GF := GF) E T) := by
+  unfold srvReqs; infer_instance
+
+open Iris.ProofMode in
+/-- A smaller table's requests. -/
+theorem srvReqs_sub (E : apply.AEnv GF) (T T' : LeaseTable) (h : ∀ p ∈ T', p ∈ T) :
+    srvReqs (GF := GF) E T ⊢ srvReqs E T' := by
+  unfold srvReqs
+  iintro #H !> %p %hp
+  iapply H; ipureintro; exact h p hp
+
+open Iris.ProofMode in
+/-- The empty table's. -/
+theorem srvReqs_nil (E : apply.AEnv GF) : ⊢ srvReqs (GF := GF) E [] := by
+  unfold srvReqs
+  iintro !> %p %hp
+  exact absurd hp List.not_mem_nil
+
+/-- `srvReqs` in a cluster that grants leases, `True` otherwise (persistent). -/
+def srvReqsIf (E : apply.AEnv GF) (T : LeaseTable) : IProp GF :=
+  if E.lg then srvReqs E T else iprop(True)
+
+instance srvReqsIf_persistent (E : apply.AEnv GF) (T : LeaseTable) :
+    Persistent (srvReqsIf (GF := GF) E T) := by
+  unfold srvReqsIf; split <;> infer_instance
+
+/-- **The rest buckets at a table `T` and an image `r`** (internal: the laws' common form). (The
+lease-expiry plan's S2–S4, Q-S6 (A-ii), 2026-11-05) The records' TTLs `f` at least the table's
+requests (`leaseTTLsGeReq`); (F7, DRAFT 2026-11-05) the requests themselves (`srvReqs`). -/
+def srvRestAt (E : apply.AEnv GF) (T : LeaseTable) (r : apply.RestM) : IProp GF :=
+  if E.lg then
+    iprop((∃ f : w64 → w64, ⌜leaseTTLsGeReq T f⌝ ∗ E.RO (apply.restLeasesWith f T.ids r)) ∗
+      apply.ltHalf E T.ids ∗ srvGrantable E ∗ srvReqs E T)
+  else E.RO r
+
 /-- **The apply thread's rest buckets at the applied log `A`** (`AEnv.RO` at `restModel` of the
-log through `A`, from the start's consistent index and the boot log). -/
+log through `A`, from the start's consistent index and the boot log). (The lease-grant stage, 2.9,
+2026-11-03) In a cluster that grants leases (`E.lg`), with the record of every lease of the applied
+table (`appliedTable`), at some TTLs (`∃ f`, B1; since S2–S4, Q-S6 (A-ii), at least the
+table's requests), the apply thread's half of the lessor's live set
+at those ids (`ltHalf`) and `srvGrantable`; at `E.lg = false` what it was (`srvRest_false`). (The
+lease-expiry plan's E3 (c), 2026-11-05) In a cluster that grants leases, also the apply thread's
+half of the ids the lessor ever had (`srvEver`). -/
 def srvRest (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
-  E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
+  if E.lg then
+    iprop(srvRestAt E (appliedTable γr A) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) ∗
+      srvEver E A)
+  else E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
 
-/-- The rest buckets one entry later. -/
-theorem srvRest_snoc (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel) :
-    srvRest E γr (A ++ [m]) =
-      E.RO (restEntry γr.kv.c0 m (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) := by
-  unfold srvRest; rw [← List.append_assoc, restModel_append]
+/-- In a cluster that grants none, what it was. -/
+theorem srvRest_false (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (h : E.lg = false) :
+    srvRest E γr A = E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
+  unfold srvRest; rw [h]; rfl
 
+open Iris.ProofMode in
+/-- **The receive side's refutation of the leased arm** (2.9, S-A; the lease-expiry plan's X2,
+2026-11-04, mode-generic): a revocable lessor (`applySnapshot`'s pre) whose mode is `decide (m =
+mono)` (`lease.srvInv`'s, `srvSnapRO`'s) at a mode `m` other than `revocable` whose grant flag is
+the environment's: so `m = none`, the cluster grants none, and the image is what it was. (Until then
+`srvGrantable` carried the monotone mode, which refuted a revocable lessor in any granting cluster;
+the revocable mode's granting cluster is restored from a snapshot only from S4 on.) -/
+theorem srvRest_revocable [go_etcd_io.etcd.server.v3.lease.Assumptions] (E : apply.AEnv GF)
+    (γr : ReadNames) (A : List EntryModel) (m : lease.Mode) (hm : m ≠ .revocable)
+    (hlg : E.lg = decide (m ≠ .none)) :
+    lease.lessorModeIs E.γ.leases (decide (m = .mono)) ∗ lease.lessorRevocable E.γ.leases ∗
+      srvRest E γr A ⊢
+      ⌜E.lg = false⌝ ∗ E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
+  cases m with
+  | none =>
+    have h : E.lg = false := by simpa using hlg
+    rw [srvRest_false E γr A h]
+    iintro ⟨-, -, H⟩; iframe H; ipureintro; exact h
+  | mono =>
+    iintro ⟨#Hm, #Hrv, -⟩
+    ihave %Hab := lease.lessorModeIs_agree E.γ.leases false (decide (lease.Mode.mono = .mono))
+      $$ [$Hrv $Hm]
+    simp at Hab
+  | revocable => exact absurd rfl hm
+
+open Iris.ProofMode in
+/-- In a cluster that grants none, the ids are none. -/
+theorem srvEver_false (E : apply.AEnv GF) (A : List EntryModel) (h : E.lg = false) :
+    ⊢ srvEver (GF := GF) E A := by
+  iunfold srvEver
+  iexists []
+  rw [apply.everOwn_false E [] h]
+  isplitl
+  · itrivial
+  ipureintro; exact ⟨fun _ => rfl, fun _ u hu => absurd hu List.not_mem_nil⟩
+
+open Iris.ProofMode in
+/-- **`srvRest` at the table and the image, with the ids** (at any `E.lg`). -/
+theorem srvRest_eq_at (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    srvRest E γr A ⊣⊢ srvRestAt E (appliedTable γr A)
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) ∗ srvEver E A := by
+  unfold srvRest
+  cases h : E.lg
+  · have hat : srvRestAt E (appliedTable γr A)
+        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) =
+        E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
+      unfold srvRestAt; rw [h]; rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    rw [hat]
+    constructor
+    · iintro H; iframe H; iapply srvEver_false E A h
+    · iintro ⟨H, -⟩; iexact H
+  · simp only [↓reduceIte]
+    exact .rfl
+
+/-- **The ids one entry later** (the log only grows: `srvGrantLog_snoc_sub`). -/
+theorem srvEverOk_snoc (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) (U : List w64)
+    (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) U :=
+  ⟨h.1, fun hm u hu => srvGrantLog_snoc_sub A m u (h.2 hm u hu)⟩
+
+open Iris.ProofMode in
+theorem srvEver_snoc (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) :
+    srvEver (GF := GF) E A ⊢ srvEver E (A ++ [m]) := by
+  iunfold srvEver
+  iintro ⟨%U, HU, %Hok⟩
+  iexists U
+  iframe HU
+  ipureintro; exact srvEverOk_snoc E A m U Hok
+
+/-- The ids after `grantIdsA`: those before, and a grant's own. -/
+theorem grantIdsA_sub (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (L : List w64)
+    (u : w64) (hu : u ∈ apply.grantIdsA rq v3 out L) :
+    u ∈ L ∨ (apply.dispatchKind rq = .leaseGrant ∧ ∃ g, rq.leaseGrant = some g ∧ u = g.id) := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · cases hgl : rq.leaseGrant with
+    | none => rw [apply.grantIdsA_none _ _ _ _ hgl] at hu; exact .inl hu
+    | some g =>
+      cases out with
+      | skipped => exact .inl hu
+      | rejected => exact .inl hu
+      | dispatched o sk =>
+        simp only [apply.grantIdsA, apply.grantIds, hgl] at hu
+        split at hu
+        · cases o with
+          | rejected e => exact .inl hu
+          | applied l ns =>
+            rcases List.mem_append.1 hu with hu | hu
+            · exact .inl hu
+            · exact .inr ⟨hk, g, rfl, List.mem_singleton.1 hu⟩
+        · exact .inl hu
+  · rw [apply.grantIdsA_nonGrant _ _ _ _ hk] at hu; exact .inl hu
+
+/-- **The ids after a request's grant** (`grantIdsA`): an applied grant's id is the entry's
+revocable-mode grant id; a grant only where the cluster grants. -/
+theorem srvEverOk_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (U : List w64)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true)
+    (h : srvEverOk E A U) : srvEverOk E (A ++ [m]) (apply.grantIdsA rq v3 out U) := by
+  refine ⟨fun hf => ?_, fun hm u hu => ?_⟩
+  · have hU := h.1 hf
+    subst hU
+    apply List.eq_nil_iff_forall_not_mem.2
+    intro u hu
+    rcases grantIdsA_sub rq v3 out [] u hu with hu | ⟨hk, -⟩
+    · exact absurd hu List.not_mem_nil
+    · rw [hlg hk] at hf; cases hf
+  · rw [srvGrantLog_snoc_data A m hd]
+    rcases grantIdsA_sub rq v3 out U u hu with hu | ⟨hk, g, hg, rfl⟩
+    · exact List.mem_append_left _ (h.2 hm u hu)
+    · apply List.mem_append_right
+      have he : entryRevGrantId .revocable m = some g.id := by
+        unfold entryRevGrantId rqRevGrantId
+        rw [if_pos ht, hdec]
+        simp [hk, hg]
+      rw [he]; simp
+
+
+/-- The ids the image holds records of: the table's in a cluster that grants leases, none
+otherwise. -/
+def srvIds (E : apply.AEnv GF) (T : List w64) : List w64 := if E.lg then T else []
+
+/-- `srvGrantable` in a cluster that grants leases, `True` otherwise (persistent). -/
+def srvGrantIf (E : apply.AEnv GF) : IProp GF := if E.lg then srvGrantable E else iprop(True)
+
+instance srvGrantIf_persistent (E : apply.AEnv GF) : Persistent (srvGrantIf (GF := GF) E) := by
+  unfold srvGrantIf; split <;> infer_instance
+
+open Iris.ProofMode in
+/-- **`srvRestAt` opened, at any `E.lg`**: the image of `srvIds` at some `f` (at least the table's
+requests where the cluster grants), its half, the permits. -/
+theorem srvRestAt_open (E : apply.AEnv GF) (T : LeaseTable) (r : apply.RestM) :
+    srvRestAt E T r ⊣⊢ ∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq T f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E T.ids) r) ∗
+      apply.ltHalf E (srvIds E T.ids) ∗ srvGrantIf E ∗ srvReqsIf E T := by
+  unfold srvRestAt srvIds srvGrantIf srvReqsIf
+  cases h : E.lg
+  · simp only [Bool.false_eq_true, ↓reduceIte, apply.restLeasesWith_nil, apply.ltHalf, h]
+    constructor
+    · iintro H; iexists (fun _ => W64 0); iframe H
+      isplitr
+      · ipureintro; intro h'; cases h'
+      isplitl <;> (try isplitl) <;> itrivial
+    · iintro ⟨%_, -, H, -, -⟩; iexact H
+  · simp only [↓reduceIte]
+    constructor
+    · iintro ⟨⟨%f, %Hf, H⟩, HL, #HG, #HQ⟩; iexists f; iframe H HL HG HQ; ipureintro; exact fun _ => Hf
+    · iintro ⟨%f, %Hf, H, HL, #HG, #HQ⟩; iframe HL HG HQ; iexists f; iframe H; ipureintro; exact Hf trivial
+
+open Iris.ProofMode in
+/-- **The image through a writer that commutes with the lease records** (`g`: a conf change's
+`ccRest`, a request's `restAfter`): open the image at some `r'`, close it at `g r'`. -/
+theorem srvRestAt_map (E : apply.AEnv GF) (T : LeaseTable) (r : apply.RestM)
+    (g : apply.RestM → apply.RestM)
+    (hg : ∀ id t r, g (apply.restGrantT id t r) = apply.restGrantT id t (g r)) :
+    srvRestAt E T r ⊢ ∃ r' : apply.RestM, E.RO r' ∗ (E.RO (g r') -∗ srvRestAt E T (g r)) := by
+  iintro H
+  ihave ⟨%f, %Hf, HR, HL, #HG, #HQ⟩ := (srvRestAt_open E T r).1 $$ H
+  iexists _
+  iframe HR
+  iintro HR
+  iapply (srvRestAt_open E T (g r)).2
+  iexists f
+  iframe HL HG HQ
+  isplitr
+  · ipureintro; exact Hf
+  rw [← apply.restLeasesWith_comm g hg]
+  iexact HR
+
+open Iris.ProofMode in
+/-- **Its permits give a request's** (`grantPermRq`): a grant only where the cluster grants. -/
+theorem srvGrantIf_perm [go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions] (E : apply.AEnv GF) (rq : apply.IRRModel)
+    (h : apply.dispatchKind rq = .leaseGrant → E.lg = true) :
+    srvGrantIf E ⊢ apply.grantPermRq E rq := by
+  by_cases hk : apply.dispatchKind rq = .leaseGrant
+  · unfold srvGrantIf; rw [h hk]; simp only [↓reduceIte]
+    iintro #HG
+    iunfold srvGrantable at HG
+    icases HG with ⟨#HG, -⟩
+    iunfold apply.grantPermRq
+    iintro !> %_ %g %_
+    iapply HG
+  · iintro -; iapply (apply.grantPermRq_of_not_grant E rq hk)
+
+/-- **`srvRest` opened, at any `E.lg`** (`srvRestAt_open`): what `applyEntryNormal` hands
+`apply.Apply` (the image `rs`, the half at `T := srvIds …`, the permits). -/
+theorem srvRest_open (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    srvRest E γr A ⊢ ∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq (appliedTable γr A) f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) ∗
+      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTable γr A) ∗ srvEver E A := by
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  ihave ⟨%f, %Hf, H1, H2, H3, H4⟩ := (srvRestAt_open E _ _).1 $$ H
+  iexists f
+  iframe H1 H2 H3 H4 HU
+  ipureintro; exact Hf
+
+open Iris.ProofMode in
+/-- **`srvRest` closed again** (`srvRest_open`'s converse). -/
+theorem srvRest_close (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    (∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq (appliedTable γr A) f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+        (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) ∗
+      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTable γr A) ∗ srvEver E A) ⊢
+      srvRest E γr A := by
+  iintro ⟨%f, %Hf, H1, H2, H3, H4, HU⟩
+  iapply (srvRest_eq_at E γr A).2
+  iframe HU
+  iapply (srvRestAt_open E _ _).2
+  iexists f
+  iframe H1 H2 H3 H4
+  ipureintro; exact Hf
+
+open Iris.ProofMode in
+/-- **The ids opened** (`srvEver`): the apply thread's half at some `U` good for `A`. -/
+theorem srvEver_open (E : apply.AEnv GF) (A : List EntryModel) :
+    srvEver (GF := GF) E A ⊢ ∃ U : List w64, apply.everOwn E U ∗ ⌜srvEverOk E A U⌝ := by
+  iunfold srvEver; iintro H; iexact H
+
+open Iris.ProofMode in
+/-- **The ids closed again, one entry later, after a request** (`grantIdsA`). -/
+theorem srvEver_grant (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) (U : List w64)
+    (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true) (h : srvEverOk E A U) :
+    apply.everOwn (GF := GF) E (apply.grantIdsA rq v3 out U) ⊢ srvEver E (A ++ [m]) := by
+  iintro HU
+  iunfold srvEver
+  iexists _
+  iframe HU
+  ipureintro; exact srvEverOk_grant E A m rq v3 out U ht hd hdec hlg h
+
+open Iris.ProofMode in
+/-- **A grant's id is new to the lessor** (`apply.grantFresh`, E3 (c)): in the monotone mode the
+lessor's mode (`srvGrantIf`'s `lessorModeIs true`); in the revocable mode the id is new to `U`, whose
+ids are the applied log's grant ids (`srvEverOk`), which the id is not (`hfr`); no grant otherwise. -/
+theorem srvGrantFresh (E : apply.AEnv GF) (A : List EntryModel) (U : List w64) (rq : apply.IRRModel)
+    (h : srvEverOk E A U) (hlg : apply.dispatchKind rq = .leaseGrant → E.lg = true)
+    (hfr : E.lm = .revocable → apply.dispatchKind rq = .leaseGrant →
+      ∀ g : apply.LeaseGrantModel, rq.leaseGrant = some g → g.id ∉ srvGrantLog A) :
+    srvGrantIf E ⊢ apply.grantFresh E rq U := by
+  unfold srvGrantIf srvGrantable
+  iintro #HG
+  iunfold apply.grantFresh
+  iintro !> %hk %g %hg
+  have hl := hlg hk
+  irevert HG
+  simp only [hl, ↓reduceIte]
+  iintro ⟨-, #Hm⟩
+  cases hm : E.lm with
+  | none => exact absurd hm (apply.AEnv.lm_of_lg_true hl)
+  | mono =>
+    ileft
+    irevert Hm
+    simp only [hm, decide_true]
+    iintro #Hm
+    iexact Hm
+  | revocable =>
+    iright
+    ipureintro
+    intro hu
+    exact hfr hm hk g hg (h.2 hm g.id hu)
+
+open Iris.ProofMode in
+/-- **The ids closed again, one entry later, unchanged.** -/
+theorem srvEver_same (E : apply.AEnv GF) (A : List EntryModel) (m : EntryModel) (U : List w64)
+    (h : srvEverOk E A U) :
+    apply.everOwn (GF := GF) E U ⊢ srvEver E (A ++ [m]) := by
+  iintro HU
+  iunfold srvEver
+  iexists _
+  iframe HU
+  ipureintro; exact srvEverOk_snoc E A m U h
+
+open Iris.ProofMode in
+/-- **The rest buckets at the start** (`NewServer`, 2.13): with an empty prefix the table is empty,
+so the image is the boot's, at any TTLs; (E3 (c)) the lessor has had no lease. -/
+theorem srvRest_init (E : apply.AEnv GF) (γr : ReadNames) (h : γr.raft.pre = []) :
+    E.RO (restModel γr.kv.c0 γr.raft.raft.boot []) ∗ apply.ltHalf E [] ∗ srvGrantIf E ∗
+      apply.everOwn E [] ⊢ srvRest E γr [] := by
+  have hT : srvIds E (appliedTable γr []).ids = [] := by
+    unfold srvIds appliedTable; rw [h]; split <;> rfl
+  have hT0 : (appliedTable γr []).ids = [] := by unfold appliedTable; rw [h]; rfl
+  have hTn : appliedTable γr [] = [] := by unfold appliedTable; rw [h]; rfl
+  iintro ⟨HR, HL, HG, HU⟩
+  iapply srvRest_close
+  rw [hT, h, List.append_nil]
+  iexists (fun _ => W64 0)
+  rw [apply.restLeasesWith_nil]
+  iframe HR HL HG
+  isplitr
+  · ipureintro; exact fun _ => leaseTTLsGeReq_of_ids_nil hT0 _
+  isplitr
+  · rw [hTn]; unfold srvReqsIf; split
+    · iapply srvReqs_nil
+    · itrivial
+  iunfold srvEver
+  iexists []
+  iframe HU
+  ipureintro; exact ⟨fun _ => rfl, fun _ u hu => absurd hu List.not_mem_nil⟩
+
+open Iris.ProofMode in
+/-- **The rest buckets one entry later**, of an entry that leaves the lease table (`restEntry`). -/
+theorem srvRest_snoc (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (hT : appliedTable γr (A ++ [m]) = appliedTable γr A) :
+    srvRestAt E (appliedTable γr A)
+        (restEntry γr.kv.c0 m (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) ∗
+      srvEver E A ⊢ srvRest E γr (A ++ [m]) := by
+  iintro ⟨H, HU⟩
+  iapply (srvRest_eq_at E γr (A ++ [m])).2
+  rw [hT, ← List.append_assoc, restModel_append]
+  iframe H
+  iapply srvEver_snoc $$ HU
+
+open Iris.ProofMode in
 /-- An entry with no data leaves them. -/
 theorem srvRest_nodata (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
-    (ht : m.typ = W32 0) (hd : m.data = []) : srvRest E γr (A ++ [m]) = srvRest E γr A := by
-  rw [srvRest_snoc, restEntry_nodata _ _ _ ht hd]; rfl
+    (ht : m.typ = W32 0) (hd : m.data = []) : srvRest E γr A ⊢ srvRest E γr (A ++ [m]) := by
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRest_eq_at E γr A).1 $$ H
+  iapply srvRest_snoc E γr A m (appliedTable_nodata γr A m ht hd)
+  rw [restEntry_nodata _ _ _ ht hd]
+  iframe H HU
 
-/-- **A covered request applied by `apply.Apply`** (`v3` the entry's): its rest buckets one entry
-later. -/
-theorem srvRest_apply (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
-    (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut)
+/-- **An applied grant's request** (the lease-expiry plan's S2–S4, F7, DRAFT 2026-11-05;
+persistent): if `Apply` applied `rq` as the grant `g` (dispatched with `v3`), the lease's request
+at the grant's TTL (`lease.leaseReqIs`, `grantAnswer`'s; `grantReqA_of_res`). -/
+def grantReqA (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut) :
+    IProp GF :=
+  iprop(□ ∀ g : apply.LeaseGrantModel, ⌜apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧
+    rq.leaseGrant = some g ∧ ∃ o sk l ns, out = .dispatched o sk ∧ o = .applied l ns⌝ -∗
+    lease.leaseReqIs E.γ.leases g.id g.ttl)
+
+instance grantReqA_persistent (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool)
+    (out : apply.ApplyOut) : Persistent (grantReqA (GF := GF) E rq v3 out) := by
+  unfold grantReqA; infer_instance
+
+open Iris.ProofMode in
+/-- No applied grant, no request needed. -/
+theorem grantReqA_vac (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool) (out : apply.ApplyOut)
+    (h : ∀ g : apply.LeaseGrantModel, ¬ (apply.dispatchKind rq = .leaseGrant ∧ v3 = true ∧
+      rq.leaseGrant = some g ∧ ∃ o sk l ns, out = .dispatched o sk ∧ o = .applied l ns)) :
+    ⊢ grantReqA (GF := GF) E rq v3 out := by
+  unfold grantReqA
+  iintro !> %g %hg
+  exact absurd hg (h g)
+
+theorem grantReqA_nonGrant (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool)
+    (out : apply.ApplyOut) (hk : apply.dispatchKind rq ≠ .leaseGrant) :
+    ⊢ grantReqA (GF := GF) E rq v3 out :=
+  grantReqA_vac E rq v3 out (fun _ h => hk h.1)
+
+theorem grantReqA_noV3 (E : apply.AEnv GF) (rq : apply.IRRModel) (out : apply.ApplyOut) :
+    ⊢ grantReqA (GF := GF) E rq false out :=
+  grantReqA_vac E rq false out (fun _ h => Bool.false_ne_true h.2.1)
+
+open Iris.ProofMode in
+/-- **The requests one request later** (F7): the table `dispatch` leaves, of a request that
+revokes nothing, holds the old table's leases and an applied grant's (`dispatchTableA_mem`). -/
+theorem srvReqs_dispatchA (E : apply.AEnv GF) (rq : apply.IRRModel) (v3 : Bool)
+    (x x' : apply.ApplyKV) (out : apply.ApplyOut) (lt : LeaseTable)
+    (hr : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hg : apply.dispatchKind rq = .leaseGrant → apply.grantKindOk rq)
+    (hs : apply.applyStep rq v3 x x' out) (hgo : apply.grantOutOkA x.chain rq v3 lt.ids out) :
+    srvReqs (GF := GF) E lt ∗ grantReqA E rq v3 out ⊢
+      srvReqs E (dispatchTable x.chain rq v3 lt) := by
+  unfold srvReqs grantReqA
+  iintro ⟨#H, #G⟩ !> %p %hp
+  rcases dispatchTableA_mem rq v3 x x' out lt hr hg hs hgo p hp with h | ⟨hk, hv, g, hgl, rfl, ho⟩
+  · iapply H; ipureintro; exact h
+  · iapply G; ipureintro; exact ⟨hk, hv, hgl, ho⟩
+
+open Iris.ProofMode in
+/-- **The rest buckets one entry later, after `apply.Apply`** (the lease-grant stage, 2.9;
+generic in `E.lg`, so the auth-on arm uses it too, m5): from `Apply`'s post at the image `rs` of
+`srvRestAt_open` (the half, the record at its TTL `t`, the outcome's verdict `grantOutOkA`), a
+request that revokes nothing and, if a grant, one the cluster admits (`grantPropOk`), whose rest
+effect is `restAfter`'s. -/
+theorem srvRest_applyG (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel)
+    (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) (f : w64 → w64)
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
-    (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hp : plainCover rq)
-    (hs : apply.applyStep rq v3 x x' out) :
-    E.RO (apply.restOut rq v3 out (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) =
+    (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hch : x.chain = γr.kv.ch0)
+    (hrev : apply.dispatchKind rq ≠ .leaseRevoke)
+    (hg : apply.dispatchKind rq = .leaseGrant → grantPropOk E.lm rq)
+    (hr : ∀ r, apply.restOut rq v3 out r = apply.restAfter rq v3 r)
+    (hs : apply.applyStep rq v3 x x' out)
+    (hfb : E.lg = true → leaseTTLsGeReq (appliedTable γr A) f) :
+    srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗ grantReqA E rq v3 out ∗
+      ⌜apply.grantOutOkA x.chain rq v3 (srvIds E (appliedTable γr A).ids) out⌝ ∗
+      apply.ltHalf E (apply.grantIdsA rq v3 out (srvIds E (appliedTable γr A).ids)) ∗
+      (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.grantRestA t rq v3 out (apply.restOut rq v3 out
+        (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids)
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)))))) ∗
+      srvEver E (A ++ [m]) ⊢
       srvRest E γr (A ++ [m]) := by
-  rw [srvRest_snoc, restEntry_normal _ _ rq _ ht hd hdec, restOut_plain rq v3 x x' out _ hp hs, hv3]
+  have hre : restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ [m])) =
+      apply.restAfter rq v3 (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) := by
+    rw [← List.append_assoc, restModel_append, restEntry_normal _ _ rq _ ht hd hdec, ← hv3]
+  have hcomm := apply.restLeasesWith_comm (apply.restAfter rq v3)
+    (fun id t r => apply.restAfter_restGrantT rq v3 id t r)
+  simp only [hr, hcomm]
+  iintro ⟨#Hgi, #Hrq, #Hgr, %Hgo, HL, ⟨%t, %Htt, HR⟩, HU⟩
+  cases hlg : E.lg
+  · have hk : apply.dispatchKind rq ≠ .leaseGrant := fun hk => by
+      exact (hg hk).1 (apply.AEnv.lm_of_lg_false hlg)
+    rw [srvRest_false E γr _ hlg, hre]
+    simp only [srvIds, hlg, Bool.false_eq_true, ↓reduceIte, apply.restLeasesWith_nil,
+      apply.grantRestA_nonGrant _ _ _ _ _ hk]
+    iexact HR
+  · have hgk : apply.dispatchKind rq = .leaseGrant → apply.grantKindOk rq := fun hk => (hg hk).2
+    simp only [srvIds, hlg, ↓reduceIte] at Hgo
+    simp only [srvIds, hlg, ↓reduceIte]
+    obtain ⟨f', hf', hfT, hfN⟩ := apply.grantRestA_leasesF x.chain t rq v3 out f
+      (appliedTable γr A).ids
+      (apply.restAfter rq v3 (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) Hgo
+    have hTt : appliedTable γr (A ++ [m]) = dispatchTable x.chain rq v3 (appliedTable γr A) := by
+      rw [appliedTable_snoc]
+      unfold kvTable
+      rw [if_pos ht, if_neg hd]
+      simp only [hdec]
+      rw [← hv3, ← hch]
+    have hT : apply.grantIdsA rq v3 out (appliedTable γr A).ids = (appliedTable γr (A ++ [m])).ids := by
+      rw [hTt]
+      exact (dispatchTableA_ids rq v3 x x' out _ hrev hgk hs Hgo).symm
+    have hb : leaseTTLsGeReq (appliedTable γr (A ++ [m])) f' := by
+      rw [hTt]
+      exact dispatchTableA_ttls rq v3 x x' out _ hrev hgk hs Hgo f' t
+        (leaseTTLsGeReq_congr (hfb hlg) hfT) Htt hfN
+    unfold srvRest srvRestAt srvGrantIf
+    irevert Hrq
+    unfold srvReqsIf
+    simp only [hlg, ↓reduceIte]
+    iintro #Hrq
+    rw [hf', hT, ← hre]
+    iframe HL Hgi HU
+    isplitl [HR]
+    · iexists f'
+      iframe HR
+      ipureintro; exact hb
+    rw [hTt]
+    iapply srvReqs_dispatchA E rq v3 x x' out _ hrev hgk hs Hgo
+    iframe Hrq Hgr
 
 end defs
 

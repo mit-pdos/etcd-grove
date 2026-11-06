@@ -51,13 +51,27 @@ theorem isBackend_bt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
   iintro ⟨#Hb, #Ht⟩
   unfold isBackend
   icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
-    #Hhs, #Hm, #-, #-, #-, #-, #-, #-, #Hdb, %HP⟩
+    #Hhs, #Hm, #-, #-, #-, #-, #-, #-, #Hdb, %HP, -⟩
   icombine Ht Ht' gives %Heq
   subst Heq
   iexists db, lg, h
   iframe #
   ipureintro
   exact ⟨Hlgn, HP⟩
+
+/-- (2026-11-04, R2b-3c) **The backend's bbolt database and its file**: the `db` field's guard
+(`Close` reads it under `b.mu`), the database, the ghost record of it and the file it is. -/
+theorem isBackend_dbFile (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢
+      ∃ (db : Loc) (path : GoString),
+        sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+        isDB db ∗ bDBAt γ db path ∗ dbFile db path := by
+  iintro #Hb
+  unfold isBackend
+  icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmu,
+    #Hdb, -, ⟨%path, #Hd, #Hf⟩⟩
+  iexists db, path
+  iframe #
 
 /-- What the backend's own methods read of it: the logger (not nil), the metrics, the batch
 transaction and the read transaction. -/
@@ -72,7 +86,7 @@ theorem isBackend_b (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, #Hrt, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
-    #Hhs, #Hm, #Hrm, #-, #-, #Hci, #Hmi, #Hmu, #Hdb, %HP⟩
+    #Hhs, #Hm, #Hrm, #-, #-, #Hci, #Hmi, #Hmu, #Hdb, %HP, -⟩
   iexists t, rt, db, lg
   iframe #
   ipureintro

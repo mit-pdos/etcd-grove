@@ -18,6 +18,7 @@ axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom backend.dbFile
 axiom backend.isDB
 axiom backend.optsAt
 axiom backend.ownDB
@@ -34,6 +35,7 @@ axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.GenericClientStream.CloseSend.wp_proof

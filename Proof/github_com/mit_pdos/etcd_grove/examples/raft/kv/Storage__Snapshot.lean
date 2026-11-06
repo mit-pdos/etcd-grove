@@ -1,0 +1,92 @@
+/-
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kv/Storage__Snapshot.lean`. Lean-first (no
+Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the snapshot's emptiness is read through
+`GetMetadata`/`GetIndex` on the fresh clone `MemoryStorage.Snapshot` returns; the error
+`ErrSnapshotTemporarilyUnavailable` is not `nil` (`isInitialized`, raft's package fact), so a `nil`
+error comes with the clone.
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kv.Storage__Snapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace raft_kv
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kv.Assumptions]
+variable [KVStor GF]
+
+theorem Storage.Snapshot.wp_proof
+    (wp_MemoryStorage_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
+    Storage.Snapshot.spec (GF := GF) (hG := hG) := by
+  intro s ms γs J c esu
+  wp_start as ⟨#Hrec, #Hinv, #Hc, #Hesu⟩
+  ihave #Hrec' := Hrec
+  iunfold kvStorRec at Hrec'
+  icases Hrec' with ⟨#Hms, -⟩
+  ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
+  · iPkgInit
+  ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
+  · iPkgInit
+  -- `ErrSnapshotTemporarilyUnavailable` is not `nil`
+  ihave #Hinit := isInitialized_access $$ Hraftinit
+  iunfold isInitialized at Hinit
+  iNamed Hinit
+  icombine ErrSnapUnavail Hesu gives %Hesu_eq
+  wp_auto
+  wp_apply wp_MemoryStorage_Snapshot ms γs J none c false esu $$ [$Hraftinit $Hc $Hesu]
+    as %snap %err ⟨-, Hr⟩
+  · isplitr
+    · iapply memStorAt_none_intro $$ Hinv
+      iempintro
+    iempintro
+  cases err with
+  | nil =>
+    -- no error: the clone; `ErrSnapshotTemporarilyUnavailable` is not `nil`
+    icases Hr with ⟨-, %sv, Hsv, %Hsv, Hv⟩
+    ihave Hsv := ownSnapW_E $$ Hsv
+    ihave Hsv := ownSnapE_weaken $$ Hsv
+    wp_auto
+    wp_apply wp_Snapshot_GetMetadata.1 snap (DFrac.own 1) sv $$ [$Hpbinit $Hsv] as %pm ⟨Hsm, Hback⟩
+    wp_apply wp_SnapshotMetadata_GetIndex pm (DFrac.own 1) sv.Metadata' $$ [$Hpbinit $Hsm] as Hsm
+    ihave Hsv := Hback $$ Hsm
+    wp_if_destruct
+    · -- an empty snapshot: `ErrSnapshotTemporarilyUnavailable`
+      iapply HΦ
+      ileft; ipureintro; exact Hesu_eq
+    · iapply HΦ
+      iright
+      isplitr
+      · ipureintro; rfl
+      iexists sv
+      iframe Hsv Hv
+      ipureintro; exact Hsv.1
+  | ok i =>
+    wp_auto
+    iapply HΦ
+    icases Hr with ⟨%Herr, -⟩
+    exact absurd Herr (by simp)
+
+end proof
+
+end raft_kv
+end EtcdGrove
+end Perennial

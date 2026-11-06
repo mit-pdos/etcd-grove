@@ -20,11 +20,11 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof [go_etcd_io.bbolt.Assumpti
                         backend.batchLocked γ P b st ∗
                           backend.isBucket bk bi ∗
                             (if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) ∗
-                              backend.rbPut γ P bi.name st.S -∗
+                              backend.rbPut γ P bi.name st.S ∗ backend.pvPut γ P bi.name st.S -∗
                   ▷
                       (backend.batchLocked γ P b (st.del bi kb) ∗
                           (if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) ∗
-                            backend.rbPut γ P bi.name (st.del bi kb).S -∗
+                            backend.rbPut γ P bi.name (st.del bi kb).S ∗ backend.pvPut γ P bi.name (st.del bi kb).S -∗
                         Φ (intoVal ())) -∗
                     WP
                       (((intoVal

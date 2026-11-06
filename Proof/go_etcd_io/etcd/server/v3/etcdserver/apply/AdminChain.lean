@@ -6,7 +6,7 @@ E2l's fuel triples (`AuthFuel.lean`) are the backend applier's (`applierV3backen
 the mode `on γa`, from the admin side's authority with its fuel (`auth.authOwnFu γa hs`), one time
 receipt and the store's write resource `W`, the request performs the model's step or its refusal
 (`auth.adminOutFu`). Here they are lifted to an applier value of any chain (`applierAdmin E c a W`):
-none of the wrappers overrides the five requests `examples/authkv`'s `SetUp` sends (`UserAdd`,
+none of the wrappers overrides the five requests `examples/etcd/auth`'s `SetUp` sends (`UserAdd`,
 `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`, `AuthEnable`: `quota.go`, `capped.go`,
 `corrupt.go`, `auth.go`), so each wrapper's method is the inner applier's (promoted), and the triple
 of the wrapper follows from the inner's with the wrapper's field `applierV3` read-only

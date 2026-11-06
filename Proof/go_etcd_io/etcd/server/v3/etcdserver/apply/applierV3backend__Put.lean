@@ -64,7 +64,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -169,12 +169,12 @@ theorem apply.applierV3backend.Put.wp_proof
     · isplitl []
       · ipureintro; exact Hrn
       ileft; iexact He
-    isplitl [Hw0 Hbk Hhk Htie Hu Hard]
+    isplitl [Hw0 Hbk Hhk Htie Hu Hard HltL]
     · iapply (apply.kvOwn_of_split E log B c)
       iframe Hw0 Htie
       iunfold apply.kvRest
       iframe Hbk Hhk Hard
-      iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+      iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
     iright; iexact HPre
   · subst Hσ
     rcases apply.putPend_cases o log c with ⟨hn, hf, hp⟩ | ⟨hn, hp⟩
@@ -195,12 +195,12 @@ theorem apply.applierV3backend.Put.wp_proof
         · isplitl []
           · ipureintro; exact Hrn
           iright; iexact He
-        isplitl [Hw' Hbk Hhk Htie Hu Hard]
+        isplitl [Hw' Hbk Hhk Htie Hu Hard HltL]
         · iapply (apply.kvOwn_of_split E log B c)
           iframe Hw' Htie
           iunfold apply.kvRest
           iframe Hbk Hhk Hard
-          iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+          iunfold apply.leasesLive; iexists L; iframe Hknown Hu HltL
         ileft; iexact HPost
       · exfalso
         have := Hnps hn
@@ -227,20 +227,20 @@ theorem apply.applierV3backend.Put.wp_proof
       iframe Hres Hresp Hhdr
       isplitl []
       · ipureintro; exact ⟨Herr, h2, by omega⟩
-      isplitl [Hw' Hbk Hhk Htie Hu Hard]
+      isplitl [Hw' Hbk Hhk Htie Hu Hard HltL]
       · iapply (apply.kvOwn_of_split E _ B c)
         iframe Hw' Htie
         iunfold apply.kvRest
         iframe Hbk Hhk Hard
         iunfold apply.leasesLive
         iexists L
-        isplitr [Hu]
+        isplitr [Hu HltL]
         · iapply apply.leasesKnown_putChange
           iframe #
         rw [txn.stateAfter_snoc]
         simp only [srvApi.stAt] at hp
         rw [hp]
-        iexact Hu
+        iframe Hu HltL
       ileft; iexact HPost
 
 end proof

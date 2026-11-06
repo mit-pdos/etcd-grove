@@ -40,7 +40,7 @@ theorem etcdStorage_open.law_holds : etcdStorage_open.law (GF := GF) := by
   iunfold mvccImage at Himg
   icases Himg with ⟨#Hrc, %Himg⟩
   icases (backend.newPostKP_named bk.γB bk.P (fun _ => mvccW bk.gx) Pk K bk.be D) $$ Hpost with
-    ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, #HnPool, HnRT, HnDl, HnFk, HnSr⟩
+    ⟨#HnB, #HnSC, HnK, HnV, HnH, HnRB, #HnPool, HnRA, HnRT, HnDl, HnFk, HnSr⟩
   -- (the server's request, 2026-11-06) two of the counted slots' tokens for the client
   icases rep_sub _ 2 backend.rdStockN (by rw [backend.rdStockN_val]; omega) $$ HnRT
     with ⟨HnRT, Hrt2⟩
@@ -49,7 +49,7 @@ theorem etcdStorage_open.law_holds : etcdStorage_open.law (GF := GF) := by
   icases BigSepL.bigSepL_cons.1 $$ Hrt2 with ⟨Hrt2, -⟩
   imodintro
   iframe Hrt1 Hrt2
-  isplitr [HnSC HnK HnH HnRB HnPool]
+  isplitr [HnK HnH HnRB HnPool HnRA]
   · iunfold mvccStorageFor
     iexists bk, D
     isplitr
@@ -58,7 +58,9 @@ theorem etcdStorage_open.law_holds : etcdStorage_open.law (GF := GF) := by
     iunfold mvccWReg at Hreg
     iframe Hrc HnB Hsz HnV HnDl HnFk HnSr HnRT Hreg Hw1 Hw2 Hsup Hops
   · iunfold backendRest
-    iframe HnSC HnK HnH HnRB HnPool
+    iframe HnK HnH HnRB HnPool HnRA
+    iapply backend.isStopChansE_intro
+    iframe HnB HnSC
 
 end laws
 

@@ -1,4 +1,4 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lib/etcdstart/Link.lean`
 # (all Lean-first; D33), read by `etc/gen-link.py --common`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `common`; the examples' Links take them as `@` callees.
@@ -9,49 +9,49 @@ etcdserver_NewServer: @
 EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
 # (periodic mode, 2026-11-02) `newServer` is `newServerMode` in revision mode
-common_newServerMode: features_NewDefaultServerFeatureGate etcdserver_NewServer
-common_newServer: common_newServerMode
-common_StartServer: common_newServer EtcdServer__Start
+etcdstart_newServerMode: features_NewDefaultServerFeatureGate etcdserver_NewServer
+etcdstart_newServer: etcdstart_newServerMode
+etcdstart_StartServer: etcdstart_newServer EtcdServer__Start
 # (the restart plan's R2a, 2026-11-02) `BuildServer`: `newServer` with the compactor off, serving
-# nothing (`examples/restart3` keeps its listeners)
-common_BuildServer: common_newServer
+# nothing (`examples/etcd/restart` keeps its listeners)
+etcdstart_BuildServer: etcdstart_newServer
 # (M2, notes/m2-plan.md) `StartCompactingServer` and (periodic mode, 2026-11-02)
 # `StartPeriodicServer`: `StartServer` over `newServerMode` in revision and periodic mode
-common_StartCompactingServer: common_newServerMode EtcdServer__Start
-common_StartPeriodicServer: common_newServerMode EtcdServer__Start
+etcdstart_StartCompactingServer: etcdstart_newServerMode EtcdServer__Start
+etcdstart_StartPeriodicServer: etcdstart_newServerMode EtcdServer__Start
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
 net_Listen:
 # (2026-10-24, rafthttp stage 6d/6f) `RaftHandler` linked in the server's `Link.lean`; the HTTP
 # boundary's `Serve` (`http.Serve_ok`) used by `NewMember`'s proof directly
 EtcdServer__RaftHandler: @
-common_NewMember: common_newServer net_Listen EtcdServer__RaftHandler
-common_StartMember: common_NewMember EtcdServer__Start
+etcdstart_NewMember: etcdstart_newServer net_Listen EtcdServer__RaftHandler
+etcdstart_StartMember: etcdstart_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @
 grpc_Server__Serve:
 grpc_KeepaliveEnforcementPolicy:
-common_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve
+etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve
 # `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked
 # in its `Link.lean`); `NewClient`: of one address (notes/client-timeouts-plan.md, D-T1)
 client_v3_New: @
-common_NewClients: client_v3_New
-common_NewClient: common_NewClients
+etcdstart_NewClients: client_v3_New
+etcdstart_NewClient: etcdstart_NewClients
 # the watch workload's shared part (`watch.go`): `Gen`, `GenAll`, `MaxRev`, `Attempted`, `Check`,
 # `Writer` (over the client's `Put`, which its proof uses directly, in a context with the request
 # timeout: `context.WithTimeout` of `Background()`'s trust-boundary axiom and a context's `Err`,
 # in `context`'s `Link.lean`; notes/client-timeouts-plan.md, D-T2) and `Collect` (a watch
 # response's `Err`, linked in the client's `Link.lean`)
-common_Gen:
-common_GenAll: common_Gen
-common_MaxRev:
-common_Attempted:
-common_Check: common_Attempted
+etcdstart_Gen:
+etcdstart_GenAll: etcdstart_Gen
+etcdstart_MaxRev:
+etcdstart_Attempted:
+etcdstart_Check: etcdstart_Attempted
 context_WithTimeoutBackground:
 context_ErrAny: @
-common_Writer: context_WithTimeoutBackground context_ErrAny
+etcdstart_Writer: context_WithTimeoutBackground context_ErrAny
 WatchResponse__Err: @
-common_Collect: WatchResponse__Err
+etcdstart_Collect: WatchResponse__Err
 # (C3's watch side, 2026-11-02) `CompactRev`: a watch channel's first response's compaction revision
-common_CompactRev:
+etcdstart_CompactRev:

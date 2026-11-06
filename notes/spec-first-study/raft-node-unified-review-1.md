@@ -18,8 +18,8 @@ Go: raft v3.7 as translated (`c8217eb9`, branch `raft37-goose-lean-a1`). I read 
 the appliedSnap fix (`/home/ubuntu/.claude-E/jobs/c8379647/tmp/raft-a2`) and assumed the fix.
 
 Callers:
-- `examples/kvreconf/*.go`: no proof yet; read in full, the intended client.
-- `examples/kv`: the Go code and `Proof/github_com/mit_pdos/etcd_grove/examples/kv/`.
+- `examples/raft/kvreconf/*.go`: no proof yet; read in full, the intended client.
+- `examples/raft/kv`: the Go code and `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/`.
 - etcd's server: `Proof/go_etcd_io/etcd/server/v3/etcdserver/` (`NodeBridge`, `InvBoot`, `SnapTake`, ...).
 
 Unfolds were found mechanically: a script lists every `unfold`/`iunfold`/`delta`/`simp only [..]` of a name
@@ -93,7 +93,7 @@ of `raft-a2`).
 - **The server**: dynamic, with storage cap 1 (`InvBoot.lean:276`). Compaction is held at 1 through the
   receipt bound (`EtcdServer__snapshotIfNeededAndCompactRaftLog.lean:47`), so etcd's snapshot and compaction
   path is out of scope.
-- **kv**: static. Its Go stops snapshotting after a conf change (`reconf`, `examples/kv/kv.go:250-254`), a
+- **kv**: static. Its Go stops snapshotting after a conf change (`reconf`, `examples/raft/kv/kv.go:250-254`), a
   workaround the spec forces.
 
 **Restatement**
@@ -213,7 +213,7 @@ none⌝ ⊢ |==> nodeConfig n γ N {v with applied := k+1}`.
 - `stepIn_intro` needs `NetMsgOk` and `≠ MsgTransferLeader` for non-`MsgProp` messages.
 - `NetMsgOk` comes from `sentMsg` only through `sentMsg_transferOff` (`InvNode.lean:639`), which needs
   `leaderTransferOff`.
-- kv works around this in **Go**: the `deliverable` filter (`examples/kv/cluster.go:30-69`, "What raft
+- kv works around this in **Go**: the `deliverable` filter (`examples/raft/kv/cluster.go:30-69`, "What raft
   promises of a Ready's messages does not say that it sends nothing else"), and the `timeouts` bound on
   `MsgTimeoutNow` (`cluster.go:71-74`), each of which needs a `tickCredit`.
 - kvreconf has neither:
@@ -292,7 +292,7 @@ none⌝ ⊢ |==> nodeConfig n γ N {v with applied := k+1}`.
 
 **Evidence**
 
-- kv's `RemoveMember` is documented to remove a voter (`examples/kv/kv.go:445-453`).
+- kv's `RemoveMember` is documented to remove a voter (`examples/raft/kv/kv.go:445-453`).
 - Its proof needs `RmShrink id` (`Proof/.../kv/Defs.lean:264-270`), "unsatisfiable for a voter".
 
 **Restatement:** none needed separately. F1 and F2 dissolve it.

@@ -323,12 +323,14 @@ begin whose payload is the end of exactly the lease's deletions (`auBegin γ σ�
 (leaseDels …) Y)`):
 * `id` not live: an error (`ErrLeaseNotFound`), nothing changed, `Pre` back;
 * `id` live: no error, `Y`, `Post`, the live set without `id`, its record deleted from the `lease`
-  bucket (`restRevoke`). -/
+  bucket (`restRevoke`).
+(Revoke-open, from `lean`) The lessor in the revocable mode (`lease.lessorRevocable`, persistent). -/
 def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
     (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) : IProp GF :=
   iprop(□ (∀ (id : w64) (σ₀ : MvccState) (L : List w64) (rs : RestM) (q : Qp) (B : mvcc.KBReal)
       (Pre Q Post Y : IProp GF),
     {{ threadTok ∗ (∃ rd : GoFunc, lease.rdOwn (mvccLeases γ) rd ∗ mvccDeleter rd γ) ∗
+        lease.lessorRevocable (mvccLeases γ) ∗
         mvccBackend γ q B (Pk B) ∗ hookIs B f ∗ BT B ∗ csContractA (Pk B) f Pre Q Post ∗
         ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧ MvccReachable σ₀ ∧
           σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
@@ -358,25 +360,46 @@ def revokeClause (le : GoInterfaceOk) (γ : MvccName) (Pk : mvcc.KBReal → IPro
 names-only; strict M1, 2026-11-05: over mvcc's API, the store `γ`, the batch lock `Pk B` of the
 current backend `B` (tied by `BT`), its hook `f`, the backend's write-back and reader tokens
 `bkWT B`/`bkRT B` in place of mvcc's `storeWT`/`storeRT`, decided by the coordinator): the txn
-package's `isTxnLessor`; `Grant` (a lease the lessor knows, `leaseTTLIs`), `Revoke`
-(`revokeClause`), `Checkpoint` under the batch lock, `Lookup` (nil or a lease, `leaseIs`). `Grant`
-and `Checkpoint` take the write right `RW` of the lease bucket and give it back (the coordinator's
-decision, 2026-11-06: the lessor's backend lends `le.b` from the resource its writes give back). -/
+package's `isTxnLessor`; `Grant` (below), `Revoke` (`revokeClause`), `Checkpoint` under the batch
+lock, `Lookup` (nil or a lease, `leaseIs`). `Checkpoint` takes the write right `RW` of the lease
+bucket and gives it back (the coordinator's decision, 2026-11-06: the lessor's backend lends `le.b`
+from the resource its writes give back). (From `lean`: the lease-grant plan's D3, 2026-11-02)
+`Grant`'s clause exact, as `lease.lessor.Grant.spec`: an error exactly when the id is `0`, the TTL
+above `MaxLeaseTTL` or the id live (`Pre` and the live set back), else `Post`, the live set
+`L ++ [id]`, the new lease `leaseTTLIs l id` and in the lessor's history (`leaseLiveFrom`). (The
+lease-grant stage, 2.12, 2026-11-03) `Grant`'s clause over the rest resource `RO rs` instead of the
+write right (the server's `RW` is `False`, and the grant writes the `lease` bucket the rest resource
+holds exactly): given back at `rs` on an error, at `rs` with the lease's record put at some TTL
+(`restGrantT`) on success; its condition `grantIdsOk`. (The lease-expiry plan's E3 (c),
+2026-11-05) The ids the lessor ever had, `U` (`lease.leaseEver`), as `lease.lessor.Grant.spec`:
+`id` new to them unless the lessor is monotone, added on success. (E3/R5) On success the new
+lease's read-only `ttl` field `t`, the TTL of its record, at least the requested `ttl`
+(`lease.grantTTL_ge`). (S2–S4, Q-S8) And the lease's request `ttl` (`lease.leaseReqIs`), as
+`lease.lessor.Grant.spec`. -/
 def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
     (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le (mvccLeases γ) ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
-        (B : mvcc.KBReal) (Pre Q Post : IProp GF),
+        (B : mvcc.KBReal) (rs : RestM) (Pre Q Post : IProp GF) (U : List w64),
+      -- MERGE-TODO(lessorBackend): the grant writes `le.b` through `RO rs` (lean's) beside the
+      -- backend's tokens (ours); which resource `lessorBackend` lends `le.b` from is track LA's
       {{ csContractA (Pk B) f Pre Q Post ∗ lease.leaseOwn (mvccLeases γ) L I ∗
           lease.leaseRevokers (mvccLeases γ) L ∗ bkWT B ∗ bkRT B ∗ BT B ∗
-          lease.leaseGranted (mvccLeases γ) id ∗ RW }}
+          lease.leaseGranted (mvccLeases γ) id ∗ RO rs ∗ lease.leaseEver (mvccLeases γ) U ∗
+          (lease.lessorModeIs (mvccLeases γ) true ∨ ⌜id ∉ U⌝) }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
-      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW ∗
-          (∃ L' : List w64, lease.leaseOwn (mvccLeases γ) L' I ∗ lease.leaseRevokers (mvccLeases γ) L' ∗
-            ⌜∀ x ∈ L, x ∈ L'⌝ ∗
-            (⌜err ≠ GoInterface.nil⌝ ∨
-              (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
-          applyErrIs err }}) ∗
+      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); bkRT B ∗ BT B ∗ applyErrIs err ∗
+          ((⌜err ≠ GoInterface.nil ∧ ¬ grantIdsOk L id ttl⌝ ∗ lease.lessorErrIs err ∗ Pre ∗
+              lease.leaseOwn (mvccLeases γ) L I ∗ lease.leaseRevokers (mvccLeases γ) L ∗ RO rs ∗
+              lease.leaseEver (mvccLeases γ) U) ∨
+            (⌜err = GoInterface.nil ∧ grantIdsOk L id ttl⌝ ∗ Post ∗
+              lease.leaseOwn (mvccLeases γ) (L ++ [id]) I ∗
+              lease.leaseRevokers (mvccLeases γ) (L ++ [id]) ∗
+              leaseTTLIs l id ∗ lease.leaseLiveFrom (mvccLeases γ) 0 id l ∗
+              lease.leaseEver (mvccLeases γ) (U ++ [id]) ∗ lease.leaseReqIs (mvccLeases γ) id ttl ∗
+              ∃ t : w64, lease.lsF go!"ttl" l ↦□ t ∗
+              ⌜sint.Z ttl ≤ sint.Z t⌝ ∗ RO (restGrantT id t rs))) }}) ∗
+    -- `Revoke` (the lease-revoke plan, 2026-10-31; until then vacuous, D14h)
     revokeClause li γ Pk f BT RO ∗
     □ (∀ (id rem : w64) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}

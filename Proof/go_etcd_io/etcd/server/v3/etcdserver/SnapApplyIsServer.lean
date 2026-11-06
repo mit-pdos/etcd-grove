@@ -31,21 +31,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 2026-11-06: the store restored in place, so its KV invariants are the old ones, `srvAtomics_snapE`
 by `rfl`; the new backend at the store's write invariant `mvccW d'.gx`, the batch lock's invariant
 the epoch's `E'.Pk`; until then the store's names at the restored physical names and the mode
-law.) -/
-theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+law.) (The mvcc merge, 2026-11-06: in the server's auth mode `on`, `isServerM`, as `lean`'s P6.2.) -/
+theorem snap_isServer (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (P : backend.BParams)
     (d' : mvcc.KBReal) (g : GoFunc) (al ast lp cl : Loc) (hP : d'.P = P) (hgnn : g ≠ func.nil)
     (hcK : ciKeys d'.P) (hhP : storage.hooksParams d'.P) (hk : Loc) :
-    isServer s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
+    isServerM on s γ ci TM E ρ γr ∗ srvClusterAddr s ↦□ cl ∗
       isServerCI s (snapγ γ π0 d'.γB) ci ∗ hookSpec (snapγ γ π0 d'.γB) ci (metaTM d'.γB P) #g ∗
       -- (2026-11-02, branch `snap-window`) the new backend's hooks, the server's `s.beHooks`
       backend.hooksAt d'.be (storage.hooksIface hk) ∗ structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
       backend.isBackend d'.γB d'.P (mvcc.api.mvccW d'.gx)
         (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) d'.be ⊢
-    isServer s (snapγ γ π0 d'.γB) ci (metaTM d'.γB P)
+    isServerM on s (snapγ γ π0 d'.γB) ci (metaTM d'.γB P)
       (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ γr := by
   subst hP
-  unfold isServer srvFieldsAt
+  unfold isServerM srvFieldsAtM
   iintro ⟨⟨%Hrd, #Hci, Hv, #Hat, #Hgen, #Hrn, %Hrdb⟩, #Hcl, #Hci', #Hhook, #HhkAt, #HbhF, #HB⟩
   icases Hv with ⟨%v, Hf⟩
   icases Hf with ⟨#Hlg, %Hlgn, #Hw, #Hwi, %HP, %Henv, #Hhk, #Hles, #Hlok, #Hfc, #Hal,
@@ -67,7 +67,7 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   have hok : srvEnvOk s (snapγ γ π0 d'.γB) ci
       (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci d' g d'.γB al ast lp v.cluster d'.be) v.cluster :=
     ⟨Henv.1, rfl, d'.γB, _, rfl, rfl, d', al, ast, lp, rfl, rfl, rfl⟩
-  rw [srvAtomics_snapE, srvGenAt_snapE]
+  rw [srvAtomicsM_snapE, srvGenAt_snapE]
   isplitr
   · ipureintro; exact Hrd
   isplitr
@@ -75,7 +75,10 @@ theorem snap_isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IP
   isplitr
   · iexists { v with hook := #g }
     simp only
-    rw [waitInv_snapE]
+    rw [show waitInvM on v.w ρ (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB d'.P) ci d' g d'.γB al ast lp
+      v.cluster d'.be) = waitInvM on v.w ρ E from rfl]
+    -- (the lease-expiry plan's X4) `lessorOk` at the environment's flag and auth mode, unchanged
+    rw [snapE_lg, snapE_authMode]
     iframe #
     ipureintro
     exact ⟨Hlgn, ⟨rfl, rfl, hgnn⟩, hok⟩

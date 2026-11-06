@@ -50,7 +50,8 @@ theorem lease.lessor.Revoke.wp_proof
     lease.lessor.Revoke.spec (GF := GF) (hG := hG) := by
   intro lp γ id rd q B P f σ₀ L r Pre Q Post Y
   dsimp only
-  wp_start as ⟨#Hinv, Htt, Hro, Hrd, Hbk, #Hhook, Hcs, %Hlen, Hau, Hown, Hrvk, Hrb, %Hlpar, Hbeon⟩
+  wp_start as ⟨#Hinv, #Hrev, Htt, Hro, Hrd, Hbk, #Hhook, Hcs, %Hlen, Hau, Hown, Hrvk, Hrb, %Hlpar,
+    Hbeon⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
@@ -330,10 +331,13 @@ theorem lease.lessor.Revoke.wp_proof
       subst Hr
       ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hsl $$ Ho Hhl
       obtain ⟨-, rfl⟩ := Hh
+      obtain ⟨T, Hlast⟩ := Hlast
+      obtain ⟨Tl, Hlastl⟩ := Hlastl
       rw [Hlast] at Hlastl
       injection Hlastl with Hlastl
       injection Hlastl with hCM hIM
-      subst hCM hIM
+      injection hIM with hIM hTM
+      subst hCM hIM hTM
       icases lessorAuth_pin _ 1 lp lp L C4 γga γcl $$ [$Ha $Hp] with ⟨-, Hcl, Hback⟩
       obtain ⟨l4, hC4l⟩ : ∃ l4, C4.lookup id = some l4 :=
         Option.isSome_iff_exists.1 ((HC4 id).1 hidL)
@@ -420,11 +424,27 @@ theorem lease.lessor.Revoke.wp_proof
         intro x; simp [List.mem_filter]
       -- the history: the snapshot without the lease appended
       iapply fupd_wp
-      imod hist_append _ γr hs Sm (C4.delete id, _) ⊤ (fun _ _ => CoPset.mem_full)
-        (fun hok hh => setsOk_delete Hlast hok hh) $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
+      -- (the lease-grant plan's D2) the lessor revocable: its history need not be monotone
+      ihave %Hmode := lessorModeIs_pin _ false γr $$ [$Hrev $Hpr]
+      imod hist_append _ γr hs Sm _ (C4.delete id, _, T.delete id) ⊤ (fun _ _ => CoPset.mem_full)
+        Hlast (fun hT => tieSub_delete C4 _ _ T id hT)
+        (fun hok hh => setsOk_delete Hlast hok hh) (fun h => by rw [Hmode] at h; cases h)
+        (histOnce_delete Hlast)
+        (fun x hx => by
+          rcases hx with hx | ⟨it, hx⟩
+          · left; dsimp only at hx ⊢
+            rw [GMap.lookup_delete_iff] at hx
+            split at hx
+            · cases hx
+            · exact hx
+          · left; dsimp only at hx ⊢
+            exact (HC4 x).1 (HIL4 it x hx))
+        $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
       imodintro
-      have hlast' : (hs ++ [(C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del))]).getLast? =
-          some (C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del)) := by simp
+      have hlast' : (hs ++ [(C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del),
+          T.delete id)]).getLast? =
+          some (C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del), T.delete id) := by
+        simp
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
           Hmeta Hbl Hhl]
       · inext
@@ -452,7 +472,7 @@ theorem lease.lessor.Revoke.wp_proof
           iexists dc, np, h, hx, cp, _
           iframe
         iexists γr, _; iframe Hpr Hhl
-        ipureintro; exact hlast'
+        ipureintro; exact ⟨_, hlast'⟩
       (try wp_auto)
       -- the deferred `close(l.revokec)`
       wp_apply (wp_revokec_close c) $$ [$Hrcl]
@@ -496,7 +516,7 @@ theorem lease.lessor.Revoke.wp_proof
             cases it; exact hit
         isplitr
         · ipureintro; exact HIS4
-        iexists γr, _, Sm; iframe Hpr Ho HSo; ipureintro; exact hlast'
+        iexists γr, _, Sm; iframe Hpr Ho HSo; ipureintro; exact ⟨_, hlast'⟩
       iunfold leaseRevokers
       iexists lp, γga, γcl, (C3.delete id)
       iframe Hp Hrs

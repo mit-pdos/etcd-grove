@@ -1,11 +1,14 @@
-# The durable key-value store example (examples/kvdurable): every linked result of
-# Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/Link.lean and the results of its
+# The durable key-value store example (examples/raft/kvdurable): every linked result of
+# Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean and the results of its
 # Results.lean (added 2026-11-02, durability stage II (t); baseline as found).
-roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/(Link|Results)\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
+axiom Perennial.io.fs.opaqueInitsOk
 axiom Perennial.os.Stderr_init
 axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
+axiom Perennial.syscall.initFuncsOk
+axiom Perennial.syscall.opaqueInitsOk
 axiom ccDecodeV2_nil
 axiom context.ErrAny.wp_proof
 axiom fmt.Errorf.wp_proof

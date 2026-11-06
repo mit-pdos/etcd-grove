@@ -354,59 +354,5 @@ theorem txn.mvccTxn_append_read (t : GoInterface) (γ : MvccName) (trace : Loc) 
 
 end lemmas
 
-/-! ## `fmt.Errorf` (a copy of mvcc's `Errorf.lean`, an internal module, until mvcc's API re-exports
-it: `notes/mvcc-migration/txn.md`, the re-export list) -/
-
-section errorf
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [errors_sem : _root_.Perennial.errors.Assumptions] [fmt_sem : _root_.Perennial.fmt.Assumptions]
-
-/-- `errors.New(msg)` with the exact type of what it returns (as Perennial's
-`context.wp_New_errorString`, without its section's method-set classes). -/
-theorem txn.wp_New_errorString (msg : GoString) :
-    {{ (True : IProp GF) }}
-      (App (Val (@! _root_.Perennial.errors.New)) (Val #msg))
-    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x);
-        □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-          WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
-            go!"Error" #x)) (Val #())) {{ Φ }} }} := by
-  wp_start
-  wp_auto
-  wp_alloc x as Hx
-  iStructNamed Hx
-  ipersist s
-  wp_auto
-  iapply HΦ
-  imodintro
-  iintro %Φ HΦ
-  rw [method_unfold]
-  wp_auto
-  iexact HΦ
-
-/-- **`fmt.Errorf(format, args...)`** returns an error `errorfIs` describes (Perennial's model:
-`errors.New(format)`). -/
-theorem txn.wp_Errorf_errorfIs (format : GoString) (args_sl : GoSlice) (args : List GoAny) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args }}
-      (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
-    {{ (err : GoInterface), RET #err; mvcc.errorfIs err }} := by
-  wp_start as _
-  wp_apply txn.wp_New_errorString as %x #Herr
-  iapply HΦ
-  iunfold mvcc.errorfIs
-  iexists x
-  isplitr
-  · ipureintro; rfl
-  imodintro
-  iintro %Φ HΦ
-  iapply Herr
-  inext
-  iapply HΦ
-
-end errorf
-
-
 end EtcdGrove
 end Perennial

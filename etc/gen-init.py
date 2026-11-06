@@ -46,37 +46,47 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3lock',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
-         'github_com.mit_pdos.etcd_grove.examples.putget',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
-         'github_com.mit_pdos.etcd_grove.examples.putgetc',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
-         'github_com.mit_pdos.etcd_grove.examples.compactkv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch',
          # the closed lease example (2026-11-02, notes/lease-ex-plan.md)
-         'github_com.mit_pdos.etcd_grove.examples.leasekv',
-         'github_com.mit_pdos.etcd_grove.examples.putget3',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.lease',
+         # the closed lease-grant example (2026-11-02, notes/lease-grant-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant',
+         # the closed lease-expiry example (2026-11-04, notes/lease-expiry-plan.md, Part E)
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry',
+         # the multi-member lease example (2026-11-06, notes/lease-mono3-plan.md)
+         'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.putget3',
          # the restart plan (2026-11-02, notes/restart-plan.md): putget3 with a member restarted
-         'github_com.mit_pdos.etcd_grove.examples.restart3',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.restart',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter',
          # the scalable-proof experiment's log-applied register and its variants
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkv',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw',
-         'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend',
-         'github_com.mit_pdos.etcd_grove.examples.kv',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw',
+         'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kv',
          # (2026-10-29, track C) the store that reconfigures and snapshots
-         'github_com.mit_pdos.etcd_grove.examples.kvreconf',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf',
          # (2026-11-01) the durable store (its files through the durable-state extension's Go
          # package `durable`)
-         'github_com.mit_pdos.etcd_grove.examples.kvdurable',
-         'github_com.mit_pdos.etcd_grove.examples.linkv3p',
-         'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
-         'github_com.mit_pdos.etcd_grove.examples.watchkv',
-         'github_com.mit_pdos.etcd_grove.examples.cachekv',
+         'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.partition',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.watch',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.cache',
          # the auth plan's E2b (2026-10-25): the authentication example
-         'github_com.mit_pdos.etcd_grove.examples.authkv',
+         'github_com.mit_pdos.etcd_grove.examples.etcd.auth',
+         # (2026-11-03) GetAny's logically atomic spec over a prophecy patch
+         'github_com.mit_pdos.etcd_grove.examples.goose.prophkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
-         'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
+         'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3',
+         # K4 of notes/k8s-compactor-plan.md (2026-11-04): Kubernetes' compactor example
+         'github_com.mit_pdos.etcd_grove.examples.k8s.compactor',
          # KEP-6404 (2026-10-26): the watch cache and its store
          'k8s_io.apiserver.pkg.storage.cacher',
          # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
@@ -98,7 +108,12 @@ ASSUMED = {}
 # package, however many imports lead there.
 PRE_RES = {'go_etcd_io.etcd.server.v3.etcdserver.read': 'EtcdGrove.read.readRegPerm'}
 # Perennial packages without Perennial's `wp_initialize'` (names-only there): generated here.
-PERENNIAL_HERE = {'math.rand', 'reflect'}
+PERENNIAL_HERE = {'math.rand', 'reflect', 'runtime', 'internal.runtime.atomic', 'internal.runtime.sys'}
+# The `IsPkgInit` instances of `PERENNIAL_HERE` packages that are Perennial's (2026-11-03: `runtime`
+# and its imports, which bbolt imports and whose `wp_initialize'` Perennial does not prove).
+PERENNIAL_INST = {'runtime': 'Perennial.Proof.runtime.Base',
+                  'internal.runtime.atomic': 'Perennial.Proof.internal.runtime.atomic.Base',
+                  'internal.runtime.sys': 'Perennial.Proof.internal.runtime.sys.Base'}
 
 
 def inventory(code='Code'):
@@ -111,6 +126,10 @@ def inventory(code='Code'):
         t = open(f).read()
         m = re.search(r"instance info' : PkgInfo pkg_id\.(\S+) where", t)
         if not m:
+            continue
+        # a package this repository translates itself (`os`, project bboltfs's, 2026-11-03) is not
+        # Perennial's, which no module here imports
+        if m.group(1) in out and f.startswith(PERENNIAL_CODE):
             continue
         i = t.find("noncomputable def initialize'")
         body = t[i:t.find("\n\n", i)]
@@ -169,38 +188,6 @@ which the trust-boundary axiom `errorsNewVarsInit` states.''',
             'iframe HErrNoSpace', 'ipureintro', 'exact ⟨_, _, rfl, rfl⟩'],
 )
 
-SPECIAL['go_etcd_io.bbolt.errors'] = dict(
-    doc='''Its fact (`bboltErrorsInit`, `storage/backend/Base.lean`): `ErrBucketNotFound` holds an
-`errors.New` error, a leaf pointer error without an `Is` method (`EtcdGrove.ErrorStringLeaf`, of
-the method set goose emits). Its initializer runs its variables' initializers, all untranslated
-`errors.New` calls (`errors/errors.go`), which the trust-boundary axiom `errorsNewVarsInit`
-states.''',
-    newvars=dict(ErrDatabaseNotOpen="database not open",
-        ErrInvalid="invalid database",
-        ErrInvalidMapping="database isn't correctly mapped",
-        ErrVersionMismatch="version mismatch",
-        ErrChecksum="checksum error",
-        ErrTimeout="timeout",
-        ErrTxNotWritable="tx not writable",
-        ErrTxClosed="tx closed",
-        ErrDatabaseReadOnly="database is in read-only mode",
-        ErrFreePagesNotLoaded="free pages are not pre-loaded",
-        ErrBucketNotFound="bucket not found",
-        ErrBucketExists="bucket already exists",
-        ErrBucketNameRequired="bucket name required",
-        ErrKeyRequired="key required",
-        ErrKeyTooLarge="key too large",
-        ErrValueTooLarge="value too large",
-        ErrMaxSizeReached="database reached maximum size",
-        ErrIncompatibleValue="incompatible value",
-        ErrSameBuckets="the source and target are the same bucket",
-        ErrDifferentDB="the source and target buckets are in different database files"),
-    vars=['[_root_.Perennial.errors.Assumptions]'],
-    finish=['ipersist HErrBucketNotFound', 'iframe Hown', 'imodintro', 'isplitr',
-            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'iexists _',
-            'iframe HErrBucketNotFound', 'ipureintro',
-            'exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩'],
-)
 
 def raft_subpath(seg, tag):
     """(2026-10-24, rafthttp stage 6d) `X = path.Join(RaftPrefix, seg)` (`http.go`): the slice
@@ -280,6 +267,139 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
+# bbolt (project bbolt, translated with bodies, 2026-11-03; facts in
+# `Proof/go_etcd_io/bbolt/PkgInit.lean`)
+_BBOLT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'ErrVersionMismatch', 'ErrChecksum', 'ErrTimeout', 'ErrTxNotWritable', 'ErrTxClosed', 'ErrDatabaseReadOnly', 'ErrFreePagesNotLoaded', 'ErrBucketNotFound', 'ErrBucketExists', 'ErrBucketNameRequired', 'ErrKeyRequired', 'ErrKeyTooLarge', 'ErrValueTooLarge', 'ErrMaxSizeReached', 'ErrIncompatibleValue', 'ErrSameBuckets', 'ErrDifferentDB']
+_BBOLT_VARS = [x for x in _BBOLT_ERRS if x != 'ErrBucketNotFound']
+# (maintainer 16) `bboltErrorsVars` ends with `ErrBucketNotFound`'s `bboltErrVar` (its `fmtErrorOk`,
+# for `DeleteBucket`'s deferred log line)
+_BBOLT_VARSX = _BBOLT_VARS + ['ErrBucketNotFound']
+SPECIAL['go_etcd_io.bbolt.errors'] = dict(
+    doc='''Its fact (`bboltErrorsInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `ErrBucketNotFound`
+holds an `errors.New` error, a leaf pointer error without an `Is` method
+(`EtcdGrove.ErrorStringLeaf`, of the method set goose emits). Its initializer allocates its
+variables and runs their translated initializers, `errors.New` calls (`errors/errors.go`;
+Perennial's `errors.wp_New_errorString`); the other variables' errors are `*errorString` pointer errors and
+`fmtErrorOk` (`EtcdGrove.errorString_fmtErrorOk`, `Proof/errors/ErrorStringOk.lean`).''',
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.NewVar', 'Proof.errors.ErrorStringOk'],
+    alloc_types={x: 'GoInterface' for x in _BBOLT_ERRS},
+    vars=['[_root_.Perennial.errors.Assumptions]'],
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+                 for x in _BBOLT_ERRS}, **{'$end': ['try wp_auto']}),
+    finish=[f'ipersist H{x}' for x in _BBOLT_ERRS] + FIN_PRE + ['iexists _', 'iframe HErrBucketNotFound',
+            'isplitr', '· ipureintro',
+            '  exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩',
+            'unfold go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar'] +
+           # (batch 30) each other variable: an `errors.New` pointer error, `fmtErrorOk` by
+           # `EtcdGrove.errorString_fmtErrorOk` of its method spec `M{x}`
+           [l for x in _BBOLT_VARSX[:-1] for l in ['isplitr', f'· iexists _; iframe H{x}; isplitr',
+                                                   '  · ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
+                                                   f'  iapply EtcdGrove.errorString_fmtErrorOk; iexact M{x}']] +
+           [f'iexists _; iframe H{_BBOLT_VARSX[-1]}; isplitr', '· ipureintro; exact ⟨⟨_, _, rfl, rfl⟩, rfl⟩',
+            f'iapply EtcdGrove.errorString_fmtErrorOk; iexact M{_BBOLT_VARSX[-1]}'],
+)
+
+SPECIAL['go_etcd_io.bbolt.internal.common'] = dict(
+    doc='''Its fact (`bboltCommonInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `DefaultPageSize` holds
+4096, for good. Its initializer allocates `DefaultPageSize`, initializes its imports and
+runs its translated initializer, `DefaultPageSize = os.Getpagesize()` (`types.go`), whose callee is
+names-only in Perennial: the trust-boundary axiom `os.Getpagesize.wp_proof` (4096 on linux/amd64).''',
+    imports=['Proof.os.Getpagesize'],
+    alloc_types={'DefaultPageSize': 'w64'},
+    before={'DefaultPageSize': ['try wp_auto', 'wp_apply EtcdGrove.os.Getpagesize.wp_proof'],
+            '$end': ['try wp_auto']},
+    finish=['ipersist HDefaultPageSize'] + FIN_PRE[:6]
+)
+
+# the deprecated aliases of bbolt's root package (`errors.go`)
+_BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'ErrVersionMismatch',
+                    'ErrChecksum', 'ErrTimeout', 'ErrTxNotWritable', 'ErrTxClosed',
+                    'ErrDatabaseReadOnly', 'ErrFreePagesNotLoaded', 'ErrBucketNotFound',
+                    'ErrBucketExists', 'ErrBucketNameRequired', 'ErrKeyRequired', 'ErrKeyTooLarge',
+                    'ErrValueTooLarge', 'ErrIncompatibleValue']
+# (2026-11-04) the trust-boundary assumption that the program runs on linux/amd64: `runtime.GOOS`
+# and `runtime.GOARCH` (constants, axiom `val`s of Perennial's names-only `runtime`) are `"linux"`
+# and `"amd64"`. Stated here, in
+# `runtime`'s initialization, since it is a fact of the platform the program starts on; `runtime`'s
+# `IsPkgInit` instance is Perennial's (fact `True`), so the fact is surfaced through bbolt's, the one
+# package that branches on `GOOS` (`Proof/go_etcd_io/bbolt/PkgInit.lean`, `bboltRootInit`).
+SPECIAL['runtime'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+initializers of its variables (`X.init`, axioms of the translation), which the
+trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+
+And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
+linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
+`"linux"` and `"amd64"`), as the repository's other platform facts
+assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
+extension `osFsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
+`bboltRootInit`).''',
+    pre=['namespace runtime', '',
+         '/-- **The trust boundary: the program runs on Linux.** `runtime.GOOS` is the constant',
+         '`"linux"` (Go\'s `GOOS` of the build; goose translates `runtime` names-only, so it is an',
+         'axiom `val` with no value). Satisfiable: `GOOS` is an uninterpreted constant. -/',
+         'axiom GOOS_linux [GooseExts] [GoGlobalContext] :',
+         '    _root_.Perennial.runtime.GOOS = #(go!"linux")', '',
+         '/-- **The trust boundary: the program runs on amd64.** `runtime.GOARCH` is the constant',
+         '`"amd64"` (Go\'s `GOARCH` of the build; an axiom `val` with no value, as `GOOS`). Satisfiable:',
+         '`GOARCH` is an uninterpreted constant. -/',
+         'axiom GOARCH_amd64 [GooseExts] [GoGlobalContext] :',
+         '    _root_.Perennial.runtime.GOARCH = #(go!"amd64")', '',
+         'end runtime', ''],
+)
+
+SPECIAL['go_etcd_io.bbolt'] = dict(
+    doc='''Its fact (`bboltRootInit`, `Proof/go_etcd_io/bbolt/PkgInit.lean`): `runtime.GOOS` is
+`"linux"` and `runtime.GOARCH` `"amd64"` (the trust-boundary axioms `runtime.GOOS_linux` and
+`runtime.GOARCH_amd64` of `runtime`'s `Init.lean`; bbolt compares `GOOS` with `"windows"` in
+`DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
+runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
+`errors.wp_New_errorString`), the deprecated aliases of
+`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`).
+And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
+`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
+                     discardLogger='GoInterface'),
+    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
+            # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
+            'ErrDatabaseNotOpen': ['try wp_auto',
+                'ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []',
+                '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
+                'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar',
+                'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + ', -⟩'],
+            # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
+            'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
+            '$end': ['try wp_auto']},
+    # (batch 34) the fact's `discardLogger` clause: the store of `&nopLogger{}`, persisted
+    finish=['ipersist HdiscardLogger', 'iframe Hown', 'is_pkg_init_finish',
+            'isplitr', '· ipureintro; exact isPanic_intoVal _', 'imodintro', 'imodintro', 'isplitr',
+            '· ipureintro; exact ⟨runtime.GOOS_linux, runtime.GOARCH_amd64⟩',
+            'iexists _', 'iexact HdiscardLogger'],
+)
+
+# (2026-11-03) `os` is this repository's (project bboltfs's), for every project: names only (its
+# variables' initializers untranslated); until then Perennial's, raft's `Init.lean` by hand.
+SPECIAL['os'] = dict(
+    doc='''Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
+initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's,
+names only but for the types and the functions the Linux file extension models): its initializer
+initializes its imports, runs its variables' untranslated initializers, which the trust-boundary
+axiom `opaqueInitsOk` says run without panicking (`Stderr_init` the one the fact reads: `Stderr =
+NewFile(uintptr(syscall.Stderr), "/dev/stderr")` gives the variable some `*File`), and its
+untranslated `init` function, which `initFuncsOk` says returns. (Until 2026-11-03, over Perennial's
+`os`, in raft's `Init.lean`.)''',
+    custom={'Stderr': dict(
+        doc='''/-- `Stderr = NewFile(uintptr(syscall.Stderr), "/dev/stderr")` (`os/file.go`): the variable
+holds some `*File` (what `os`'s fact reads; raft's `defaultLogger` loads it). The variable's
+cell is given here: its initializer is untranslated, so no `GlobalAlloc` of it is translated. -/''',
+        post='∃ f : Loc, globalAddr Stderr ↦ f', pat='⟨%stderr, H@⟩')},
+    finish=['ipersist HStderr'] + FIN_PRE[:6],
+)
+
 # (2026-10-26) `ValidString` with its body: the tables it reads are translated
 SPECIAL['unicode.utf8'] = dict(
     doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
@@ -307,10 +427,10 @@ SPECIAL['go_etcd_io.etcd.client.v3.concurrency'] = dict(
 hold a fixed non-nil error. Its initializer allocates them, initializes its imports and runs their
 translated initializers (`errors.New` calls, `mutex.go`, `election.go`; Perennial's
 `context.wp_New_errorString`).''',
-    imports=['Perennial.Proof.context.NewErrorString'],
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x, _ in _CC},
     before={'$end': ['try wp_auto'] + [l for _, t in _CC for l in [
-        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩', 'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _CC] + FIN_PRE[:6] + ['imodintro', 'unfold concurrencyInit'] +
            [l for x in _CCF[:-1] for l in ['isplitr', f'· iexists _; iexact H{x}']] +
            [f'iexists _; iexact H{_CCF[-1]}'],
@@ -321,10 +441,10 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.v3election'] = dict(
 2026-10-24): `ErrMissingLeaderKey` holds a fixed non-nil error. Its initializer allocates it,
 initializes its imports and runs its translated initializer (an `errors.New` call, `election.go`;
 Perennial's `context.wp_New_errorString`).''',
-    imports=['Perennial.Proof.context.NewErrorString'],
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     alloc_types={'ErrMissingLeaderKey': 'GoInterface'},
     before={'$end': ['try wp_auto',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM #MM', 'try wp_auto']},
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xM ⟨-, #MM⟩', 'try wp_auto']},
     finish=['ipersist HErrMissingLeaderKey'] + FIN_PRE[:6] +
            ['imodintro', 'unfold v3electionInit', 'iexists _; iexact HErrMissingLeaderKey'],
 )
@@ -480,7 +600,7 @@ six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everyth
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
 trust-boundary axioms `labels.Everything.wp_proof` and `fields.Everything.wp_proof`), initializes
 its imports and runs the translated initializers.''',
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
              'Proof.k8s_io.apimachinery.pkg.fields.Everything'],
     alloc_types={'Everything': 'SelectionPredicate', 'RangeStream': 'GoString',
                  'RequestWatchProgress': 'GoString', 'tooLargeResourceVersionCauseMsg': 'GoString',
@@ -489,7 +609,7 @@ its imports and runs the translated initializers.''',
                  'ErrUnrecognizedEncodedVersion': 'GoInterface', 'ErrGenericInvalidKey': 'GoInterface',
                  'ErrEmptyStartKey': 'GoInterface', 'ErrInvalidStartRV': 'GoInterface'},
     before={'$end': [
-        'try wp_auto'] + ['wp_apply _root_.Perennial.context.wp_New_errorString as %_ -', 'try wp_auto'] * 6 + [
+        'try wp_auto'] + ['wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -', 'try wp_auto'] * 6 + [
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
@@ -558,7 +678,7 @@ def _errVarOk(x, t):
             'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
             'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
 
-SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8setcd3'] = dict(
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8s.etcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
 `errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
@@ -575,10 +695,12 @@ and runs their translated initializers.''',
 )
 
 SPECIAL[_K3] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports, runs
+    doc='''Its fact (`EtcdGrove.k8s.registryFact`, `RegistryDefs.lean`): `endpointsMapMu` is a mutex over
+the compactor registry, at the registry's name (`CompactorRegistry`, a variable of every package
+importing this one). Its initializer allocates its variables, initializes its imports, runs
 the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
 `defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
-`endpointsMap`, `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
+`endpointsMap` (then the registry's mutex is made, with the map empty), `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
 trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
 `strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
@@ -602,24 +724,36 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
          '',
          'end toLoggerV2',
          ''],
-    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.sync.atomic.Link',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Perennial.Proof.sync.atomic.Link',
              'Proof.google_golang_org.grpc.grpclog.SetLoggerV2', 'Proof.os.Getenv',
              'Proof.strconv.ParseBool'],
+    vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
+    table_vars=['[reg : EtcdGrove.k8s.CompactorRegistry]'],
+    finish=FIN_PRE[:6] + ['imodintro', 'unfold EtcdGrove.k8s.registryFact', 'iexact Hreg'],
     alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
                  'typeToMessage': 'Loc', 'errTooMany': 'GoInterface', 'endpointsMap': 'Loc',
                  'endpointsMapMu': '_root_.Perennial.sync.Mutex'},
     before={'$inits': [
         'try wp_auto',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %_ -',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %_ -',
         'try wp_auto',
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
         'wp_alloc dd as Hdd', 'try wp_auto', 'wp_alloc tw as Htw', 'try wp_auto']},
     after={
+        # (Q1 (c), 2026-11-05) the compactor registry: the mutex over the map (`registryFact`)
         'init.«0»': ['wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string',
                      '    (go.GoType.PointerType compactor.ty)) as %em Hem',
-                     'try wp_auto'],
+                     'try wp_auto',
+                     'imod _root_.Perennial.sync.init_Mutex (EtcdGrove.k8s.registryInv (GF := GF)) ⊤ _',
+                     '    $$ HendpointsMapMu [HendpointsMap Hem] with #Hreg',
+                     '· inext',
+                     '  iunfold EtcdGrove.k8s.registryInv',
+                     '  iexists em, ∅',
+                     '  iframe HendpointsMap Hem',
+                     '  iapply BigSepM.bigSepM_empty.2',
+                     '  itrivial'],
         'init.«1»': ['wp_apply klogWrapper_toLoggerV2 as %_ -', 'try wp_auto',
                      'wp_apply EtcdGrove.grpclog.SetLoggerV2.wp_proof', 'try wp_auto'],
         'init.«2»': ['wp_apply EtcdGrove.os.Getenv.wp_proof as %_ -', 'try wp_auto',
@@ -805,7 +939,7 @@ without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
 (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
 other untranslated initializers run.''',
-    imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString'],
+    imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     custom={'leaseGranted': counter_inc('leaseGranted'), 'leaseRevoked': counter_inc('leaseRevoked'),
             'leaseTotalTTLs': dict(
                 doc='/-- `leaseTotalTTLs = prometheus.NewHistogram(...)` (`metrics.go`): a `Histogram`, whose `Observe` returns. -/',
@@ -815,10 +949,10 @@ other untranslated initializers run.''',
                  'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
                  'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
     before={'leaseGranted': [
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP #MNP',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP ⟨-, #MNP⟩',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xEx #MEx',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xTL #MTL']},
+        'wp_apply EtcdGrove.wp_New_errorString_cell as %xEx ⟨#MEx, #CEx⟩',
+        'wp_apply EtcdGrove.wp_New_errorString_cell as %xTL ⟨#MTL, #CTL⟩']},
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
@@ -827,9 +961,14 @@ other untranslated initializers run.''',
             'ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx',
             'ihave #TTL := EtcdGrove.errorMsg_triple _ _ _ $$ MTL',
             'ihave #VNF : (EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" : IProp GF) $$ []',
-            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseNotFound CNF'] + FIN_PRE[:6] + [
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseNotFound CNF',
+            # (lease-grant amendment (E), 2026-11-03) the grant's errors' cells, for `ErrNoSpace`'s apartness
+            'ihave #VEx : (EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" : IProp GF) $$ []',
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseExists CEx',
+            'ihave #VTL : (EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" : IProp GF) $$ []',
+            '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrLeaseTTLTooLarge CTL'] + FIN_PRE[:6] + [
             'imodintro', 'unfold leaseInit leaseErrVar', 'iframe #', 'dsimp only', 'iframe #',
-            'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))'],
+            'repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))'],
 )
 
 SPECIAL['go_etcd_io.etcd.pkg.v3.wait'] = dict(
@@ -886,12 +1025,19 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
          ''],
     imports=['Perennial.Golang.Theory.TypeSet'],
     custom={
-        'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
-                             pat='⟨%e@, H@, #S@⟩'),
-        'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description. -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
-                             pat='⟨%e@, H@, #S@⟩'),
+        'ErrFutureRev': dict(doc='/-- `ErrFutureRev = Error(ErrGRPCFutureRev)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCFutureRev`\'s (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
+                             pat='⟨%e@, H@, #S@, %D@⟩'),
+        'ErrCompacted': dict(doc='/-- `ErrCompacted = Error(ErrGRPCCompacted)` (`error.go`): an `EtcdError`, whose `Error()` returns its description, `ErrGRPCCompacted`\'s (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝',
+                             pat='⟨%e@, H@, #S@, %D@⟩'),
+        # (k8s etcd3 7c) the server-side read errors `togRPCError` maps mvcc's to
+        'ErrGRPCFutureRev': dict(doc='/-- `ErrGRPCFutureRev = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision is a future revision")` (`error.go`): with that description (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCFutureRev ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.futureRevDesc⌝',
+                             pat='⟨%e@, H@, %D@⟩'),
+        'ErrGRPCCompacted': dict(doc='/-- `ErrGRPCCompacted = status.Error(codes.OutOfRange, "etcdserver: mvcc: required revision has been compacted")` (`error.go`): with that description (k8s etcd3 7c). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCCompacted ↦ GoInterface.ok e ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = {CV3}.compactedDesc⌝',
+                             pat='⟨%e@, H@, %D@⟩'),
         'errStringToError': dict(doc='/-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/',
                                  post=f'∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.statusErrOk v) ∗ ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → {CV3}.errDesc v = k⌝',
                                  pat='⟨%mref@, %m@, H@, #M@, #S@, %D@⟩'),
@@ -904,9 +1050,9 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
         'ErrAuthOldRevision': dict(doc='/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`, with `ErrGRPCAuthOldRevision`\'s description (D29). -/',
                              post='∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: revision of auth store is old"⌝',
                              pat='⟨%x@, H@, %D@⟩'),
-        'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29). -/',
-                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝',
-                             pat='⟨%e@, H@, %P@, %D@⟩'),
+        'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29), which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ ∗ {CV3}.statusErrOk (GoInterface.ok e)',
+                             pat='⟨%e@, H@, %P@, %D@, #S@⟩'),
         # (item 1, the client lease, 2026-10-18: the lessor's keep-alive loop compares a stream's
         # error with it, `errors.Is`)
         'ErrNoLeader': dict(doc='/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/',
@@ -918,7 +1064,8 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
                              post='∃ x : EtcdError, globalAddr ErrAuthNotEnabled ↦ interface.mkOk EtcdError.ty #x',
                              pat='⟨%x@, H@⟩'),
     },
-    finish=['ipersist HErrFutureRev', 'ipersist HErrCompacted', 'ipersist HerrStringToError',
+    finish=['ipersist HErrFutureRev', 'ipersist HErrCompacted', 'ipersist HErrGRPCFutureRev',
+            'ipersist HErrGRPCCompacted', 'ipersist HerrStringToError',
             'ipersist HErrUserEmpty', 'ipersist HErrInvalidAuthToken', 'ipersist HErrAuthOldRevision',
             'ipersist HErrGRPCNotSupportedForLearner', 'ipersist HErrNoLeader', 'ipersist HErrAuthNotEnabled',
             'ihave #HFRS : iprop(□ ∀ e : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok e -∗',
@@ -929,8 +1076,10 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
             '  iexact SErrFutureRev'] + FIN_PRE[:6] + [
             'imodintro', 'unfold go_etcd_io.etcd.cache.v3.rpctypesInit', 'iframe #',
             'ipureintro',
-            'refine ⟨by assumption, ?_, by assumption, by assumption, by assumption, by assumption, by assumption⟩',
-            'exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩'],
+            'repeat\' (first',
+            '  | assumption',
+            '  | exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩',
+            '  | constructor)'],
 )
 
 SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
@@ -985,14 +1134,14 @@ SPECIAL['go_etcd_io.etcd.cache.v3'] = dict(
 their message) and `ErrNotReady` (a translated `fmt.Errorf` call), each a fixed non-nil error,
 the first two with `errorStringSpec`. Its initializer allocates them, initializes its imports and
 runs their translated initializers.''',
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.fmt.Link'],
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.fmt.Link'],
     vars=['[_root_.Perennial.fmt.Assumptions]'],
     alloc_types={'ErrUnsupportedRequest': 'GoInterface', 'ErrKeyRangeInvalid': 'GoInterface',
                  'ErrCacheTimeout': 'GoInterface', 'ErrNotReady': 'GoInterface'},
     before={'$end': [
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR #MKR',
-        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT #MCT',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR ⟨-, #MUR⟩',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR ⟨-, #MKR⟩',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT ⟨-, #MCT⟩',
         'wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))',
         '    $$ [] as %eNR -',
         '· isplitl',
@@ -1030,7 +1179,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
-    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString',
+    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar',
              'Perennial.Proof.sync.RWMutexGuard'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
                  # the simple provider's TTL default (the auth plan's S5b, 2026-10-24), a `time.Duration`
@@ -1064,9 +1213,9 @@ initializers are untranslated (`opaqueInitsOk`).''',
             '  iexists _; iframe HreportCurrentAuthRev',
             'ihave ⟨-, #GRP⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
-            'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))',
+            'repeat (first | (isplitl []; · (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _)) | (ipureintro; first | exact EtcdGrove.errorString_errLeaf _ | exact EtcdGrove.errorString_leaf _))',
             # the keeper's tick (S5e): `1 * time.Second`, read-only; then E2g's error variable
-            'all_goals first | (ipureintro; decide) | (ipureintro; exact EtcdGrove.errorString_leaf _) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_leaf _⟩)'],
+            'all_goals first | (ipureintro; decide) | (ipureintro; exact EtcdGrove.errorString_errLeaf _) | (ipureintro; exact EtcdGrove.errorString_leaf _) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_errLeaf _⟩) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_leaf _⟩)'],
 )
 
 # Item 8, step 3 (2026-10-17): facts moved into their owners' packages.
@@ -1107,9 +1256,24 @@ _RERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided',
           'ErrGRPCNotCapable', 'ErrGRPCInvalidClientAPIVersion', 'ErrGRPCNoLeader']
 _RKEYS = {'MetadataClientAPIVersionKey': 'client-api-version', 'MetadataRequireLeaderKey': 'hasleader',
           'MetadataHasLeader': 'true'}
+# (k8s etcd3 7c, HS-1) with their descriptions: no one of them is a read error's (`handlerDescs`)
+_RERRDESCS = {
+           'ErrGRPCEmptyKey': ('InvalidArgument', 'etcdserver: key is not provided'),
+           'ErrGRPCKeyNotFound': ('InvalidArgument', 'etcdserver: key not found'),
+           'ErrGRPCValueProvided': ('InvalidArgument', 'etcdserver: value is provided'),
+           'ErrGRPCLeaseProvided': ('InvalidArgument', 'etcdserver: lease is provided'),
+           'ErrGRPCTooManyOps': ('InvalidArgument', 'etcdserver: too many operations in txn request'),
+           'ErrGRPCDuplicateKey': ('InvalidArgument', 'etcdserver: duplicate key given in txn request'),
+           'ErrGRPCInvalidClientAPIVersion': ('InvalidArgument', 'etcdserver: invalid client api version'),
+           'ErrGRPCInvalidSortOption': ('InvalidArgument', 'etcdserver: invalid sort option'),
+           'ErrGRPCNoSpace': ('ResourceExhausted', 'etcdserver: mvcc: database space exceeded'),
+           'ErrGRPCNoLeader': ('Unavailable', 'etcdserver: no leader'),
+           'ErrGRPCNotCapable': ('FailedPrecondition', 'etcdserver: not capable')}
 for x in _RERRS:
-    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(...)` (`error.go`): a non-nil error. -/',
-                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e', pat='⟨%e@, H@⟩')
+    c, m = _RERRDESCS[x]
+    _R['custom'][x] = dict(doc=f'/-- `{x} = status.Error(codes.{c}, "{m}")` (`error.go`): a `*status.Error`, which grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6), with that description (k8s etcd3 7c). -/',
+                           post=f'∃ e : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok e ∗ {CV3}.statusErrOk (GoInterface.ok e) ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"{m}"⌝',
+                           pat='⟨%e@, H@, #S@, %D@⟩')
 for x, v in _RKEYS.items():
     _R['custom'][x] = dict(doc=f'/-- `{x} = "{v}"` (`metadatafields.go`): a string. -/',
                            post=f'∃ k : GoString, globalAddr {x} ↦ k', pat='⟨%k@, H@⟩')
@@ -1239,7 +1403,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
 metrics (`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`; a counter's `Add` only
 of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). `opaqueInitsOk` states its other untranslated initializers run.""",
-    imports=['Perennial.Proof.context.NewErrorString', 'Proof.errors.NewVarCell',
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.errors.NewVarCell',
              'Perennial.Proof.sync.RWMutexGuard'],
     custom=_mv_custom,
     alloc_types={**{f'{x}Mu': '_root_.Perennial.sync.RWMutex' for x in _MV_REPORT},
@@ -1249,10 +1413,10 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                  'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
                  'ErrRevisionNotFound': 'GoInterface', 'restoreChunkKeys': 'w64'},
-    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF'] +
+    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF ⟨-, #MRNF⟩'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
-            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}'
+            '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} ⟨-, #M{t}⟩'
                        for t in ['WNE', 'EWR', 'WDI']]},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
@@ -1312,7 +1476,7 @@ _ERRLEAF_PRE = [
     '  iexists _',
     '  iframe Hx',
     '  isplitr',
-    '  · ipureintro; exact EtcdGrove.errorString_leaf x',
+    '  · ipureintro; first | exact EtcdGrove.errorString_errLeaf x | exact EtcdGrove.errorString_leaf x',
     '  unfold EtcdGrove.errMsgOk',
     '  iapply EtcdGrove.errorMsg_triple',
     '  iexact Hm',
@@ -1343,6 +1507,9 @@ def _noSpaceApart():
             cell('ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
             apart(f'{E}.ErrKeyNotFound', 'etcdserver: key not found', 'KNF'),
             apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound', 'lease not found', 'LNF'),
+            # (lease-grant amendment (E)) the grant's backend errors
+            apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseExists', 'lease already exists', 'LEx'),
+            apart('go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge', 'too large lease TTL', 'LTL'),
             apart('go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev',
                   'mvcc: required revision is a future revision', 'MF'),
             apart('go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted',
@@ -1361,7 +1528,7 @@ errors by `EtcdGrove.ErrorStringLeaf`.""",
             errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', 'ErrKeyNotFound', 'etcdserver: key not found', 'Hd19', 'KNF') +
             ['ihave Hli : (go_etcd_io.etcd.server.v3.lease.leaseInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd10',
-             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, -⟩',
+             'icases Hli with ⟨#HLNF0, -, -, -, -, -, -, #CLNF, #CLEx, #CLTL, -⟩',
              'ihave #LLNF : (EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarLeaf EtcdGrove.errLeaf EtcdGrove.errMsgOk',
              '  iunfold go_etcd_io.etcd.server.v3.lease.leaseErrVar at HLNF0',
@@ -1408,10 +1575,20 @@ errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
 package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
-reads `raftStatus` under the mutex).""",
+reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
+(`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
+axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), which
+`revokeExpiredLeases` increments.""",
+    imports=['Proof.github_com.prometheus.client_golang.prometheus.NewCounter'],
     custom=_srv_custom,
-    alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc'},
-    finish=([f'ipersist H{x}' for x in _srv_custom] +
+    alloc_types={'raftStatusMu': '_root_.Perennial.sync.Mutex', 'raftStatus': 'GoFunc',
+                 'leaseExpired': 'GoInterface'},
+    # (revoke-open, 2026-11-06) `leaseExpired`'s translated initializer: the literal, `NewCounter`
+    before={'leaseExpired': [
+        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %oLE %HoLE', 'try wp_auto',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ HoLE (by decide) as %cLE ⟨#CLE, -⟩',
+        'try wp_auto']},
+    finish=([f'ipersist H{x}' for x in _srv_custom] + ['ipersist HleaseExpired'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
              '· inext', '  iexists _', '  iframe HraftStatus'] +
             sum([errLeafFrom('go_etcd_io.etcd.server.v3.etcdserver.errors', x, m,
@@ -1440,7 +1617,7 @@ reads `raftStatus` under the mutex).""",
              'icases Hsi with ⟨-, -, -, -, #HAB, -, -⟩'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold srvInit srvRaftInit srvReqInit srvApplyLoopInit srvErrVars', 'iframe #',
-             'ipureintro', 'exact fun x => EtcdGrove.errorString_leaf x']),
+             'ipureintro', 'first | exact fun x => EtcdGrove.errorString_errLeaf x | exact fun x => EtcdGrove.errorString_leaf x']),
 )
 
 _V_ERRS = ['ErrGRPCEmptyKey', 'ErrGRPCInvalidSortOption', 'ErrGRPCValueProvided', 'ErrGRPCLeaseProvided',
@@ -1471,9 +1648,9 @@ names) and the four
                  'metricsServerLock': '_root_.Perennial.sync.Mutex'},
     custom={
         'toGRPCErrorMap': dict(
-            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil. -/',
-            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ ⌜∀ k v, M !! k = some v → v ≠ GoInterface.nil⌝',
-            pat='⟨%mp@, %M@, H@, #S@, %P@⟩'),
+            doc='/-- `toGRPCErrorMap = map[error]error{...}` (`util.go`): a map whose values are `rpctypes.ErrGRPC*` errors (and `ErrTooManyRequests`, `ErrMemberNotEnoughStarted`), non-nil; mvcc\'s `ErrFutureRev` and `ErrCompacted` (the values of their cells) map to `ErrGRPCFutureRev` and `ErrGRPCCompacted`, and no other key maps to an error with one of those two descriptions, nor has one itself (k8s etcd3 7c: `grpcErrMapOk`); every value is one grpc\'s `status.FromError` accepts (`statusErrOk`; k8s etcd3 7c, HS-6: the `status.Error`s and the two `EtcdError`s, leaves with only `Code` and `Error`). -/',
+            post='∃ (mp : Loc) (M : GMap GoInterface GoInterface) (kf kc : GoInterface), globalAddr toGRPCErrorMap ↦ mp ∗ mp ↦$□ M ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ↦□ kf ∗ globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□ kc ∗ □ (∀ (k v : GoInterface), ⌜M !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜grpcErrMapOk M kf kc⌝',
+            pat='⟨%mp@, %M@, %kf@, %kc@, H@, #S@, #F@, #C@, #V@, %P@⟩'),
         'clientRequests': promvec('clientRequests', 'Counter', ['type', 'client_api_version']),
         # (D19j, 2026-10-18) the watch server's metrics (`metrics.go`)
         'streamFailures': promvec('streamFailures', 'Counter', ['Type', 'API']),
@@ -1485,7 +1662,7 @@ names) and the four
     finish=(['ipersist HtoGRPCErrorMap', 'ipersist HclientRequests',
              'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd22',
-             'icases Hri with ⟨-, #RCP, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -⟩, -, -, ' +
+             'icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -, -, #SNSL⟩, -, -, ' +
              ', '.join(f'#V{i}' for i in range(len(_V_ERRS) + 3)) + ', ' +
              ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + ', -⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
@@ -1528,6 +1705,9 @@ names) and the four
              'ihave #WEWR := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NEWR',
              'ihave #WWDI := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NWDI',
              '-- `rpctypes`\'',
+             'ihave #RCP : iprop(∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗',
+             '    go_etcd_io.etcd.cache.v3.errorStringSpec e) $$ []',
+             '· iexists eRCP; iframe #',
              'ihave #MCP := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RCP'] +
             [f'ihave #MRW{i} := EtcdGrove.v3rpc.msgErrVar_of_spec _ $$ RW{i}' for i in range(len(_V_WERRS))] +
             ['-- the metrics',
@@ -1641,7 +1821,9 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
 
 RAFT_INIT = {'go_etcd_io.raft.v3', 'go_etcd_io.raft.v3.quorum', 'go_etcd_io.raft.v3.tracker',
              'go_etcd_io.raft.v3.confchange', 'go_etcd_io.raft.v3.raftpb',
-             'google_golang_org.protobuf.proto', 'os'}
+             'google_golang_org.protobuf.proto'}
+# (`os` was here until 2026-11-03: Perennial b3e996d84 translates some of its initializers, and bbolt
+# imports it too; its `wp_initialize'` is generated, `Proof/os/Init.lean`, `SPECIAL['os']`.)
 # (`strconv` was here until Perennial translated it, 24bef275e: its `wp_initialize'` is Perennial's.)
 
 def plain(ns):
@@ -1664,10 +1846,8 @@ def init_module(q):
         return 'Proof.go_etcd_io.raft.v3.Init'
     if q == 'k8s_io.utils.third_party.forked.golang.btree':
         return 'Proof.k8s_io.utils.third_party.forked.golang.btree.initialize'
-    if d['perennial'] and q not in ('math.rand', 'reflect'):
+    if d['perennial'] and q not in PERENNIAL_HERE:
         return 'Perennial.Proof.' + plain(q) + '.Link'
-    if q == 'go_etcd_io.bbolt.internal.common':
-        return 'Proof.go_etcd_io.bbolt.internal.common.Initialize'
     return 'Proof.' + plain(q) + '.Init'
 
 def init_thm(q):
@@ -1705,7 +1885,9 @@ def external(q):
 
 
 def ext_ctor(q):
-    return plain(q).replace('.', '_')
+    # (`unsafe` is a Lean keyword: its constructor is `unsafe_`)
+    n = plain(q).replace('.', '_')
+    return n + '_' if n == 'unsafe' else n
 
 
 def lb_term(q, hin):
@@ -1759,7 +1941,7 @@ def gen(p, cfg=None):
     d = inv[p]
     k = plain(p)
     imods = inst.get(k) or inst.get(p)
-    inst_mod = 'Proof.' + imods[0][0].replace('/', '.')
+    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else 'Proof.' + imods[0][0].replace('/', '.')
     cl = closure(p)
     needs_ctx = 'context' in cl
     needs_raft = 'go_etcd_io.raft.v3' in cl
@@ -1882,7 +2064,7 @@ def gen(p, cfg=None):
             if v not in vs: vs.append(v)
     for v in vs:
         A(f'variable {v}')
-    if needs_raft:
+    if needs_raft and '[_root_.Perennial.log.NewModel]' not in vs:
         A('variable [_root_.Perennial.log.NewModel]')
     A('')
     A(f'namespace {p}')
@@ -2006,8 +2188,6 @@ def gen(p, cfg=None):
     A('')
     A('end Perennial')
     path = f'Proof/{dirof(p)}/Init.lean'
-    if p == 'go_etcd_io.bbolt.internal.common':
-        path = f'Proof/{dirof(p)}/Initialize.lean'
     return path, '\n'.join(lines) + '\n'
 
 
@@ -2032,7 +2212,8 @@ def code_module(q):
     root = os.path.dirname(os.path.dirname(PERENNIAL_CODE)) + '/'
     if f.startswith(root):
         f = f[len(root):]
-    return f[:-len('.lean')].replace('/', '.')
+    # (a Lean keyword as a component is escaped: `Perennial.Code.«unsafe»`)
+    return '.'.join(f'«{c}»' if c == 'unsafe' else c for c in f[:-len('.lean')].split('/'))
 
 
 EXT_DOC = """/-
@@ -2098,46 +2279,54 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.putgetc':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.compactkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/compactkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.leasekv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/leasekv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.putget3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.linkv3p':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.linkvtxn':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.watchkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.cachekv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.authkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/authkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvcompact':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvcompact/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvsnap':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvrw':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvrw/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lintest.logkvappend':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvappend/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kvreconf':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kvreconf/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.putget':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.compactor':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.compacted':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compacted/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.lease':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/lease/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leasegrant':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.putget3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.partition':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/partition/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.txnlin':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/txnlin/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.watch':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/watch/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.cache':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/cache/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.auth':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvcompact/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvappend/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8s.etcd3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
@@ -2147,6 +2336,17 @@ the program's `GetIsPkgInitProp`, proved package by package in import order (eac
 uses its imports', so the import DAG is not unfolded as a tree). Generated by `etc/gen-init.py`;
 do not edit.
 -/"""
+
+
+def table_vars(cl):
+    """The section variables of a package table whose closure is `cl` (`SPECIAL`'s `table_vars`: a
+    package fact's own parameters, as the compactor registry's name)."""
+    vs = []
+    for q in sorted(cl):
+        for v in SPECIAL.get(q, {}).get('table_vars', []):
+            if v not in vs:
+                vs.append(v)
+    return vs
 
 
 def gen_table(p, path):
@@ -2173,7 +2373,8 @@ def gen_table(p, path):
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',
-         f'variable [package_sem : _root_.Perennial.{p}.Assumptions]', '',
+         f'variable [package_sem : _root_.Perennial.{p}.Assumptions]'] + \
+        [f'variable {v}' for v in table_vars(cl)] + ['',
          '/-- Every package of the program\'s import closure, with its `isPkgInit`. -/',
          'def pkgInitTable : List (GoString × IProp GF) :=']
     rows = [f'(pkg_id.{q}, isPkgInit (PROP := IProp GF) pkg_id.{q})' for q in sorted(order)]
@@ -2202,10 +2403,12 @@ def gen_table(p, path):
 # has its own copies: the same files, at `RaftWitness/<path>`, whose imports of these modules and
 # of raft's translation are the part's.
 PART_ROOT = 'RaftWitness'
-PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lintest',
+PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lib.lintest',
               'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.internal.pragma',
               'google_golang_org.protobuf.reflect.protoreflect',
-              'google_golang_org.protobuf.runtime.protoimpl']
+              'google_golang_org.protobuf.runtime.protoimpl',
+              # (2026-11-03) `os`'s, now generated (raft's `Init.lean` imports it), and its imports'
+              'os', 'syscall', 'io.fs']
 PART_PATHS = {f'Proof/{dirof(p)}/Init.lean' for p in PART_INITS} | {'Proof/runtime/PkgInitExt.lean'}
 PART_MODULES = {p[:-len('.lean')].replace('/', '.') for p in PART_PATHS}
 

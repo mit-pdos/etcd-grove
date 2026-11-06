@@ -36,6 +36,10 @@ variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **The lessor's range deleter, held** (not persistent): the owner's half of `le.rd` at a
 deleter that is the `Write` of every watchable store over the inner store `s`. -/
+-- MERGE-TODO(rdAt): over mvcc's internals (`isWatchableStore`, `rdIs`); dropped in favour of the
+-- API's `∃ rd, lease.rdOwn (mvccLeases γ) rd ∗ mvcc.api.mvccDeleter rd γ` (keyed on `γ`, which
+-- `KV.Restore` keeps). Delete this module once its users (`etcdserver/apply/{Contracts,Chain,
+-- LessorDerive}`, `SnapApplyWalk`, `SnapApplyKV`, `SnapApplyDefs`, `InvApplier`, ...) are restated.
 def rdAt (γl : GName) (s : Loc) : IProp GF :=
   iprop(∃ rd : GoFunc, rdOwn γl rd ∗
     □ ∀ (ws : Loc) (γw : mvcc.WsNames), mvcc.isWatchableStore ws s γw -∗ mvcc.rdIs rd ws s γw)

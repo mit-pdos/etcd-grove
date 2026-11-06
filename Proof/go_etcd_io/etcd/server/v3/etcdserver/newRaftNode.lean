@@ -1,13 +1,17 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/newRaftNode.lean`. Lean-first (no Rocq
-counterpart). Its one translated callee with a spec is `time.Now` (Perennial's linked result,
-used directly, as `raftNode.tick`'s proof does); the rest are the contracts the spec takes
-(`InvNodeStart.lean`).
+counterpart). Its translated callees with specs are `time.Now` (Perennial's linked result,
+used directly, as `raftNode.tick`'s proof does) and (2026-11-03, until then the contract
+`rnTickerOk` in the spec's precondition) `time.NewTicker` and the ticker's `Stop`, Perennial's
+proved specs, taken as callee specs (`isRNTicker_of_time`; linked to Perennial's results,
+`etc/link-lean-first-server.txt`): `time.Now` predates the layout's callee-spec convention and is
+left as it was; the rest are the contracts the spec takes (`InvNodeStart.lean`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Perennial.Proof.time
+public import Perennial.Spec.time.NewTicker
 
 @[expose] public section
 
@@ -31,20 +35,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (D22 S-b) the node's names (`rnRtOk`) only. -/
 theorem rnApP_cum (E : RNEnv GF) (γ1 γ2 : RNNames) (h : γ1.cum = γ2.cum)
     (_hms : γ1.ms = γ2.ms) (hγs : γ1.γs = γ2.γs) (hpre : γ1.pre = γ2.pre)
-    (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key) :
+    (hn : γ1.node = γ2.node) (hnl : γ1.nl = γ2.nl) (hid : γ1.id = γ2.id) (hkey : γ1.key = γ2.key)
+    (hwal : γ1.wal = γ2.wal) :
     rnApP E γ1 = rnApP E γ2 := by
-  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv
-  rw [h, hγs, hpre, hn, hnl, hid, hkey]
+  unfold rnApP rnApN rnApSnap rnApR rnApGive rnHands rnCfgAt rnRtOk rnLogOf RNNames.srv rnWalHanded
+  rw [h, hγs, hpre, hn, hnl, hid, hkey, hwal]
 
 set_option maxHeartbeats 0 in
-theorem newRaftNode.wp_proof :
+theorem newRaftNode.wp_proof
+    (wp_NewTicker : time.NewTicker.spec (GF := GF) (hG := hG))
+    (wp_TStop : time.Ticker.Stop.spec (GF := GF) (hG := hG)) :
     newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E node id nl pre ms γs key cv Hlg Hhb
-  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, #Htkok⟩
+  intro E node id nl pre ms γs key wal cv
+  wp_start as ⟨#Hzap, #Hsetlg, #Htdok, %Hlg, %Hhb⟩
   iunfold rnLoggerZapOk at Hzap
   iunfold rnSetLoggerOk at Hsetlg
   iunfold rnTimeoutDetectorOk at Htdok
-  iunfold rnTickerOk at Htkok
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -82,37 +88,47 @@ theorem newRaftNode.wp_proof :
   -- bag of messages, `stopped`'s empty bag, `done`'s broadcast, `applyc`'s SPSC channel over
   -- `cum` at `[[]]`
   imod mono_list_own_alloc [([] : List EntryModel)] with ⟨%cum, Hcum, #Hlb⟩
+  -- (2026-11-03, R2b-3b) the claim on the stop's escrow
+  imod token_alloc with ⟨%sc, Hsc⟩
   ihave #Hcum0 := monoListIdxOwn_get (γ := cum) 0 ([] : List EntryModel) (by simp) $$ Hlb
   imod start_bag (V := ReadState) (srvReadStateOk E.γr.raft E.RQ) _ rsc γrs (by simp)
     $$ Hrsc Hrso with #Hrsb
-  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩) _
+  imod start_bag (V := Loc) (rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩) _
     msc γms (by simp) $$ Hmsc Hmso with #Hmsb
   imod start_bag (V := Unit) (fun _ => iprop(E.ST ∗ (letI := srvStor (GF := GF) node;
       nodeRunning nl node.cl srvClusterN (1 : Qp).half) ∗
-      storage.walOpen (storage.walOf cv.storage') (1 : Qp).half)) _ stc γst (by trivial)
+      storage.walOpen (storage.walOf cv.storage') (1 : Qp).half ∗ token wal.app)) _ stc γst (by trivial)
     $$ Hstc Hsto with #Hstb
-  imod alloc_broadcast_chan (E := ⊤) iprop(True) γd dnc $$ Hdnc Hdno with Hdc
+  imod start_sspsc (V := toApply) apc
+    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩)
+    (fun _ => iprop(False)) γap $$ Hapc Hapo with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
+  -- (2026-11-03, R2b-3b) the claim on the stop's escrow, which `done`'s close announces
+  imod alloc_broadcast_chan (E := ⊤)
+    (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+      (storage.walOf cv.storage')) γd dnc $$ Hdnc Hdno with Hdc
   icases ownBroadcastChan_open _ _ _ _ $$ Hdc with ⟨%γdi, #Hdint, Hdtok⟩
-  ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd iprop(True) .Unknown $$ []
+  ihave #HdcU : ownBroadcastChan (GF := GF) dnc γd
+      (rnDoneEsc ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+        (storage.walOf cv.storage')) .Unknown $$ []
   · iapply ownBroadcastChan_close _ _ _ _ γdi; iframe #
   ihave Hdc := ownBroadcastChan_close _ _ _ .Pending γdi $$ [$Hdint $Hdtok]
-  imod start_spsc (V := toApply) apc
-    (rnApP E ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩)
-    (fun _ => iprop(False)) γap $$ Hapc [Hapo] with ⟨%γsp, #Hspsc, Hprod, Hcons⟩
-  · ileft; iexact Hapo
   -- the struct `r`
   (try wp_auto)
   icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hr0nn⟩
   iStructNamedSuffix «$r0» "R"
   (try wp_auto)
   -- `r.heartbeat != 0`: the ticker
-  rw [show (decide (cv.heartbeat' = W64 0) = false) from decide_eq_false Hhb]
+  rw [show (decide (cv.heartbeat' = W64 0) = false) from
+    decide_eq_false (fun h0 => by rw [h0] at Hhb; exact absurd Hhb (by decide))]
   (try wp_auto)
-  wp_apply Htkok $$ %cv.heartbeat' [] as %tk #Htki
+  wp_apply (wp_NewTicker cv.heartbeat') as %tk %tch %γt #Htk
   · ipureintro; exact Hhb
+  ihave #Htki := isRNTicker_of_time wp_TStop tk tch γt $$ Htk
   (try wp_auto)
+  ihave Hsc : rnStopClaim (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ $$ [Hsc]
+  · iunfold rnStopClaim; iexact Hsc
   iapply HΦ
-  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩
+  iexists ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
   isplitr
   · ipureintro; simp
   iunfold rnBuilt
@@ -123,7 +139,7 @@ theorem newRaftNode.wp_proof :
   · iapply typedPointsto_combine _ _ _ Hr0nn
     simp only [TypedPointsto.typedPointstoDef, named]
     iframe
-  iframe «$v1» Hprod Hcons Hcum Hcum0 Hdc
+  iframe «$v1» Hprod Hcons Hcum Hcum0 Hdc Hsc
   isplitr
   · ipureintro; simp
   iunfold rnParts
@@ -133,14 +149,14 @@ theorem newRaftNode.wp_proof :
   · ipureintro; exact Hlg
   isplitr
   · iunfold isRNMsgSnapC; iexists γms
-    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩ =
-        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩ := by
+    have hsm : rnSnapMsg (GF := GF) ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩ =
+        rnSnapMsg ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩ := by
       unfold rnSnapMsg; rfl
     rw [hsm]; iexact Hmsb
   isplitr
   · iunfold isRNApplyc
-    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key⟩
-      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key⟩ rfl rfl rfl rfl rfl rfl rfl rfl]
+    rw [rnApP_cum E ⟨node, id, nl, pre, ms, γs, γsp, cum, γd, key, wal, sc⟩
+      ⟨node, id, nl, pre, ms, γs, ⟨γap, cum, cum⟩, cum, γd, key, wal, sc⟩ rfl rfl rfl rfl rfl rfl rfl rfl rfl]
     iexact Hspsc
   isplitr
   · iunfold isRNReadStateC; iunfold isReadStateC; iexists γrs; iexact Hrsb

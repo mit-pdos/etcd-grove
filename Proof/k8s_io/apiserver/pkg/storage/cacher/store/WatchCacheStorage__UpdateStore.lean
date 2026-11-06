@@ -83,7 +83,6 @@ theorem WatchCacheStorage.UpdateStore.wp_proof
       simp [updSt]
     rw [hU]
     rw [show decide ((go!"ADDED" : GoString) = go!"MODIFIED") = false by decide]
-    simp only [k8s_io.apimachinery.pkg.watch.Added]
     (try wp_auto)
     wp_apply (wp_addOrUpdateElem _ st.1 st.2 e k rv) $$ [$Hstore] as Hstore
     · simp only [elemOrder]; iframe #
@@ -206,7 +205,7 @@ theorem WatchCacheStorage.UpdateStore.wp_proof
       simp [updSt]
     rw [hU]
     rw [show decide ((go!"DELETED" : GoString) = go!"MODIFIED") = false by decide]
-    simp only [k8s_io.apimachinery.pkg.watch.Added, k8s_io.apimachinery.pkg.watch.Deleted]
+    try simp only [k8s_io.apimachinery.pkg.watch.Added, k8s_io.apimachinery.pkg.watch.Deleted]
     (try wp_auto)
     wp_apply (wp_deleteElem _ st.1 st.2 e k rv) $$ [$Hstore] as Hstore
     · simp only [elemOrder]; iframe #

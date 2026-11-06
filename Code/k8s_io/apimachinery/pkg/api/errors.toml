@@ -1,7 +1,7 @@
 # Types and names only, but for `NewTimeoutError` (the watch cache's timeout,
 # `storage.NewTooLargeResourceVersionError`'s; KEP-6404, notes/kep-6404-plan.md): function and
 # method bodies are axiomatized (project k8s-apiserver; notes/k8s-etcd3-goose.md).
-# With bodies too (the model API server's errors, examples/k8sdaemonset/apimodel;
+# With bodies too (the model API server's errors, examples/k8s/daemonset/apimodel;
 # notes/k8s-apimodel-goose.md): `NewBadRequest`, `NewResourceExpired`, `NewNotFound`,
 # `NewAlreadyExists` (their messages `Sprintf`s of strings); `NewConflict` and `NewInternalError`
 # format an error (`%v`), which Perennial's `Sprintf` model does not cover: names only, specified

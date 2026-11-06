@@ -32,7 +32,8 @@ if the client's writes may be delivered more than once (`□?dup`): `nil` and th
 reply's verdict, responses and revision as the run's at `σ`, `σ` a well-formed small log's state
 (`kvLogOk`, D48), and so the state after a writing transaction's changes; or a client error (`kvErr`, through
 `ContextError`) and no reply. The builder is spent (its slices are now the
-request's). The request fits a gRPC message (`txnSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
+request's). The request fits a gRPC message (`txnSizeOk`; 2026-10-30, `grpcInvokerOk`).
+The update's commit is told the revision's room (`kvRoom σ`; 2026-11-05, H-rr1). -/
 abbrev txn.Commit.spec : Prop :=
   ∀ (txn_ptr : Loc) (addr : List GoString) (kv : Loc) (γ : KVNames) (dup : Bool)
     (ctx : GoInterfaceOk) (ctx_desc : context.ContextDesc (IProp GF)) (b : TxnBuild)
@@ -43,10 +44,10 @@ abbrev txn.Commit.spec : Prop :=
       □?dup (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ txn.txnSerializable (txnWireOf b.model) = false⌝ ∗
           □ AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ σ, COMM □ Q σ }>) ∨
+            <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧ txnNoZeroEnd (txnWireOf b.model)⌝ ∗
           AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-            <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ), COMM Q σ }>)) ∗
+            <{ etcdKV γ (kvOpStep (.txn (txnWireOf b.model)) σ) ∗ ⌜kvRoom σ⌝, COMM Q σ }>)) ∗
       ⌜txnSizeOk (txnWireOf b.model)⌝ }}
     (App (Val (txn_ptr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
@@ -60,7 +61,10 @@ abbrev txn.Commit.spec : Prop :=
             (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1).rev : Nat) : Int) ∧
           kvRevFits σ.rev ∧ kvLogOk σ ∧
           (txn.txnReadonly (txnWireOf b.model) = false →
-            kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝) ∨
+            kvLogOk (σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (txnWireOf b.model)).2.1))⌝ ∗
+        -- (U1 of `notes/k8s-compactor-plan.md`, 2026-11-04, the user's approval) a writing
+        -- transaction's reply's revision reached (`kvRevLb`, as `kv.Put.spec`'s)
+        client.txnRevLb γ (txnWireOf b.model) m) ∨
       (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }}
 
 end spec

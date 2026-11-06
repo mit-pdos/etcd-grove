@@ -1,10 +1,10 @@
-# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/logkvsnap/Link.lean`
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvsnap/Link.lean`
 # (all Lean-first), read by `etc/gen-link.py --lintest-logkvsnap`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
 #
 # the driver, linked in lintest's `Link.lean`.
 Run: @
-# the instance (examples/lintest/logkvsnap/logkv.go)
+# the instance (examples/lib/lintest/logkvsnap/logkv.go)
 logkvsnap_Model:
 logkvsnap_Server__applyLoop:
 logkvsnap_New: logkvsnap_Server__applyLoop

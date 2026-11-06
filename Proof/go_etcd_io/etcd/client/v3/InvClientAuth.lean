@@ -473,6 +473,7 @@ theorem ctxErrClient_quiet (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.r
       exact ⟨hAs, fun ii h => by cases h⟩
     · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
+    · ipureintro; left; rfl
 
 /-- **A descriptor for a quiet context**, with `ctxErrClient` (the auth plan's C1: the client's
 token fetch calls `Authenticate` with a quiet caller's context at it). -/
@@ -488,6 +489,7 @@ theorem quiet_ctx (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.E
   isplitl []
   · unfold ctxOk
     iright
+    ileft
     iexact Hq
   iapply ctxErrClient_quiet hAs ci ⟨γc, γc⟩
   iframe #

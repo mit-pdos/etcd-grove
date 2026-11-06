@@ -5,7 +5,7 @@
 usage: etc/k8s-worklist.py [--tsv FILE] [-o FILE.md]
 
 Runs etc/k8s-callgraph (VTA over RTA, `go run`, needs a Go toolchain that loads the example's
-module: GOTOOLCHAIN=go1.27.1) on examples/k8sdaemonset's `./dsmain`, root `Main`, and walks the
+module: GOTOOLCHAIN=go1.27.1) on examples/k8s/daemonset's `./dsmain`, root `Main`, and walks the
 graph from Main: every function of a verified layer that is reached is listed (its callees are
 followed), and so is every function outside them that a verified one calls (the boundary: the
 specs the proofs take from Perennial, as trust-boundary axioms, or from a later translation).
@@ -36,8 +36,8 @@ PER = os.path.join(ROOT, ".lake", "packages", "perennial", "Perennial")
 
 # the layers the plan verifies (followed), by Go path prefix, with their phase
 VERIFIED = [
-    ("dsmain", "github.com/mit-pdos/etcd-grove/examples/k8sdaemonset/dsmain", "6"),
-    ("apimodel", "github.com/mit-pdos/etcd-grove/examples/k8sdaemonset/apimodel", "3"),
+    ("dsmain", "github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/dsmain", "6"),
+    ("apimodel", "github.com/mit-pdos/etcd-grove/examples/k8s/daemonset/apimodel", "3"),
     ("controller", "k8s.io/kubernetes", "5"),
     ("controller", "k8s.io/component-helpers/scheduling", "5"),
     ("leaf", "k8s.io/client-go/util/workqueue", "2"),
@@ -158,7 +158,7 @@ def has_spec(pkg, recv, name):
 def callgraph():
     env = dict(os.environ)
     env.setdefault("GOTOOLCHAIN", "go1.27.1")
-    out = subprocess.run(["go", "run", ".", os.path.join(ROOT, "examples", "k8sdaemonset"), "./dsmain", "Main"],
+    out = subprocess.run(["go", "run", ".", os.path.join(ROOT, "examples", "k8s", "daemonset"), "./dsmain", "Main"],
                          cwd=os.path.join(ROOT, "etc", "k8s-callgraph"), env=env, check=True,
                          capture_output=True, text=True).stdout
     nodes, edges = {}, collections.defaultdict(list)

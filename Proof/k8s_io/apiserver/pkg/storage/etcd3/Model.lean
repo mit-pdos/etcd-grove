@@ -27,7 +27,7 @@ lifts this to etcd's `kvOpStep`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.TxnModel
 public import Perennial.Std.ByteString
 
 @[expose] public section
@@ -67,13 +67,15 @@ def KSt.delItem (s : KSt Obj) (k : GoString) : GoString → Option (KItem Obj) :
 
 /-- An error the model answers with: `storage.NewKeyNotFoundError(key, rv)`,
 `storage.NewKeyExistsError(key, 0)`, `storage.ErrResourceVersionSetOnCreate`,
-`storage.NewTooLargeResourceVersionError(req, cur, 0)`, or a caller's error (a failed
-precondition, `validateDeletion`'s or `tryUpdate`'s), of the caller's type `E`. -/
+`storage.NewTooLargeResourceVersionError(req, cur, 0)`, `storage.NewInvalidObjError(key, _)` (a
+failed precondition), or a caller's error (`validateDeletion`'s or `tryUpdate`'s), of the caller's
+type `E`. -/
 inductive KErr (E : Type) where
   | notFound (key : GoString) (rv : Nat)
   | keyExists (key : GoString)
   | rvSetOnCreate
   | tooLarge (req cur : Nat)
+  | invalidObj (key : GoString)
   | user (e : E)
 
 /-- An answer: an object at a resource version (`Response{Object: obj}`, the object's resource
@@ -94,17 +96,17 @@ def KSt.create (s : KSt Obj) (k : GoString) (o : Obj) (inRv : Nat) : KSt Obj × 
     | some _ => (s, .err (.keyExists k))
     | none => (⟨s.setItem k ⟨o, s.rv + 1, true⟩, s.rv + 1⟩, .obj o (s.rv + 1))
 
-/-- **`delete`** of `k`, with the preconditions `pre` and the callback `validate` (`none`: they
-pass; `some e`: they fail with `e`) on the stored object and its resource version: not found,
-their error, or the item gone at the next resource version, answered with the deleted object at
-that resource version. -/
-def KSt.delete (s : KSt Obj) (k : GoString) (pre validate : Obj → Nat → Option E) :
-    KSt Obj × KResp Obj E :=
+/-- **`delete`** of `k`, with the preconditions `pre` (whether they hold) and the callback
+`validate` (`none`: it passes; `some e`: it fails with `e`) on the stored object and its resource
+version: not found, "invalid object" (a failed precondition), `validate`'s error, or the item gone
+at the next resource version, answered with the deleted object at that resource version. -/
+def KSt.delete (s : KSt Obj) (k : GoString) (pre : Obj → Nat → Bool)
+    (validate : Obj → Nat → Option E) : KSt Obj × KResp Obj E :=
   match s.items k with
   | none => (s, .err (.notFound k s.rv))
   | some it => match pre it.obj it.rv with
-    | some e => (s, .err (.user e))
-    | none => match validate it.obj it.rv with
+    | false => (s, .err (.invalidObj k))
+    | true => match validate it.obj it.rv with
       | some e => (s, .err (.user e))
       | none => (⟨s.delItem k, s.rv + 1⟩, .obj it.obj (s.rv + 1))
 
@@ -117,16 +119,17 @@ def KSt.current (s : KSt Obj) (k : GoString) (ignoreNotFound : Bool) (z : Obj) :
   | none => if ignoreNotFound then some (z, 0) else none
 
 /-- **`update`** (`GuaranteedUpdate`) of `k` by `f` (`tryUpdate`, a function of the current
-object and resource version: its result or its error), after the preconditions `pre`. A stored
+object and resource version: its result or its error), after the preconditions `pre` ("invalid
+object" if they fail). A stored
 item whose object `f` leaves unchanged is answered as it is, when it is canonical (D30g);
 otherwise the result is written at the next resource version. -/
 def KSt.update (s : KSt Obj) (k : GoString) (ignoreNotFound : Bool) (z : Obj)
-    (pre : Obj → Nat → Option E) (f : Obj → Nat → Except E Obj) : KSt Obj × KResp Obj E :=
+    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) : KSt Obj × KResp Obj E :=
   match s.current k ignoreNotFound z with
   | none => (s, .err (.notFound k s.rv))
   | some (o, r) => match pre o r with
-    | some e => (s, .err (.user e))
-    | none => match f o r with
+    | false => (s, .err (.invalidObj k))
+    | true => match f o r with
       | .error e => (s, .err (.user e))
       | .ok o' =>
         match s.items k with
@@ -138,12 +141,12 @@ def KSt.update (s : KSt Obj) (k : GoString) (ignoreNotFound : Bool) (z : Obj)
 /-- `correctness.Model.update` as Kubernetes wrote it: a stored item whose object `f` leaves
 unchanged is never rewritten (it ignores `canon`). -/
 def KSt.updateM (s : KSt Obj) (k : GoString) (ignoreNotFound : Bool) (z : Obj)
-    (pre : Obj → Nat → Option E) (f : Obj → Nat → Except E Obj) : KSt Obj × KResp Obj E :=
+    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) : KSt Obj × KResp Obj E :=
   match s.current k ignoreNotFound z with
   | none => (s, .err (.notFound k s.rv))
   | some (o, r) => match pre o r with
-    | some e => (s, .err (.user e))
-    | none => match f o r with
+    | false => (s, .err (.invalidObj k))
+    | true => match f o r with
       | .error e => (s, .err (.user e))
       | .ok o' =>
         match s.items k with
@@ -165,7 +168,7 @@ def KSt.AllCanon (s : KSt Obj) : Prop := ∀ k it, s.items k = some it → it.ca
 
 /-- **On canonical states the model is `correctness.Model`'s** (D30g). -/
 theorem KSt.update_eq_updateM (s : KSt Obj) (hc : s.AllCanon) (k : GoString)
-    (ignoreNotFound : Bool) (z : Obj) (pre : Obj → Nat → Option E)
+    (ignoreNotFound : Bool) (z : Obj) (pre : Obj → Nat → Bool)
     (f : Obj → Nat → Except E Obj) :
     s.update k ignoreNotFound z pre f = s.updateM k ignoreNotFound z pre f := by
   unfold KSt.update KSt.updateM
@@ -196,7 +199,7 @@ theorem KSt.AllCanon_create (s : KSt Obj) (hc : s.AllCanon) (k : GoString) (o : 
       · exact hc k' it h
 
 theorem KSt.AllCanon_delete (s : KSt Obj) (hc : s.AllCanon) (k : GoString)
-    (pre validate : Obj → Nat → Option E) : (s.delete k pre validate).1.AllCanon := by
+    (pre : Obj → Nat → Bool) (validate : Obj → Nat → Option E) : (s.delete k pre validate).1.AllCanon := by
   unfold KSt.delete
   split
   · exact hc
@@ -211,7 +214,7 @@ theorem KSt.AllCanon_delete (s : KSt Obj) (hc : s.AllCanon) (k : GoString)
         · exact hc k' it h
 
 theorem KSt.AllCanon_update (s : KSt Obj) (hc : s.AllCanon) (k : GoString)
-    (ignoreNotFound : Bool) (z : Obj) (pre : Obj → Nat → Option E)
+    (ignoreNotFound : Bool) (z : Obj) (pre : Obj → Nat → Bool)
     (f : Obj → Nat → Except E Obj) : (s.update k ignoreNotFound z pre f).1.AllCanon := by
   have hset : ∀ (o' : Obj), (KSt.mk (s.setItem k ⟨o', s.rv + 1, true⟩) (s.rv + 1)).AllCanon := by
     intro o' k' it h
@@ -413,7 +416,7 @@ on the stored object): the item goes at the next revision, answered with the obj
 theorem absK_delete (ks : List GoString) (m : MSt GoString GoString) (k : GoString)
     (hk : pfx <+: k) (x : VR GoString) (hx : m.kv k = some x) (o : Obj) (c : Bool)
     (hd : dec x.val = some (o, c)) (r : Nat) (hr : r < 2 ^ 63) (hm : x.mod = W64 (r : Int))
-    (pre validate : Obj → Nat → Option E) (hpre : pre o r = none) (hval : validate o r = none) :
+    (pre : Obj → Nat → Bool) (validate : Obj → Nat → Option E) (hpre : pre o r = true) (hval : validate o r = none) :
     let p := mStep ks (delTxn k (W64 (r : Int)) true) m
     p = (⟨m.kv.del k, m.rev + 1⟩, .txn (m.rev + 1) true [.del 1]) ∧
       absK dec pfx p.1 = ((absK dec pfx m).delete k pre validate).1 ∧
@@ -446,7 +449,7 @@ write (`hw`: not both unchanged and canonical, `store.go:547`). -/
 theorem absK_update (ks : List GoString) (m : MSt GoString GoString) (hwf : KWf dec pfx m)
     (k : GoString) (hk : pfx <+: k) (x : VR GoString) (hx : m.kv k = some x) (o : Obj) (c : Bool)
     (hd : dec x.val = some (o, c)) (r : Nat) (hr : r < 2 ^ 63) (hm : x.mod = W64 (r : Int)) (ign : Bool) (z : Obj)
-    (pre : Obj → Nat → Option E) (f : Obj → Nat → Except E Obj) (hpre : pre o r = none)
+    (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj) (hpre : pre o r = true)
     (o' : Obj) (hf : f o r = .ok o') (v : GoString) (hv : dec v = some (o', true))
     (hw : ¬ (o' = o ∧ c = true)) :
     let p := mStep ks (putTxn k v (W64 (r : Int)) true) m
@@ -471,8 +474,8 @@ theorem absK_update (ks : List GoString) (m : MSt GoString GoString) (hwf : KWf 
 /-- **The no-op update answers the item as it is** (no transaction: a read linearizes it, D30h):
 `tryUpdate` left the object unchanged and the item is canonical. -/
 theorem update_noop (s : KSt Obj) (k : GoString) (it : KItem Obj) (hit : s.items k = some it)
-    (ign : Bool) (z : Obj) (pre : Obj → Nat → Option E) (f : Obj → Nat → Except E Obj)
-    (hpre : pre it.obj it.rv = none) (hf : f it.obj it.rv = .ok it.obj) (hc : it.canon = true) :
+    (ign : Bool) (z : Obj) (pre : Obj → Nat → Bool) (f : Obj → Nat → Except E Obj)
+    (hpre : pre it.obj it.rv = true) (hf : f it.obj it.rv = .ok it.obj) (hc : it.canon = true) :
     s.update k ign z pre f = (s, .obj it.obj it.rv) := by
   simp [KSt.update, KSt.current, hit, hpre, hf, hc]
 

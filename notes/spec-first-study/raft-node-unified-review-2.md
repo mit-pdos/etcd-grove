@@ -9,7 +9,7 @@ Reviewer: fresh `spec-reviewer`, 2026-10-28. Read-only; nothing in the repositor
 - **Go source**:
   - `.lake/raft-fork`, branch `raft37-goose-lean-a2`, `565c2bd`;
   - etcd's server as translated, `/home/ubuntu/etcd-grove/.lake/goose/etcd/server/etcdserver/server.go`;
-  - `examples/kvreconf`, read in full, with `cmd/kvreconfcheck`.
+  - `examples/raft/kvreconf`, read in full, with `cmd/kvreconfcheck`.
 - **Rubric**: `.claude/agents/spec-reviewer.md` and `.claude/skills/spec-repair/{SKILL,LESSONS}.md`. The
   brief's `.claude/skills/spec/PRINCIPLES.md` and `.claude/skills/spec/examples/README.md` **do not exist** in
   this worktree, and there is no `.claude/skills/spec/` directory, so I could not apply them.
@@ -124,7 +124,7 @@ empty.
   - Require a newcomer's initial `ConfState` to be `γ.c0`'s lists, as the candidate already says for
     `c0`-clusters.
   - kvreconf then changes in Go: a `Storage` whose `InitialState` returns the bootstrap voters, as kv's does
-    (`examples/kv/kv.go:54-75`), and `r.cs` initialised to that `ConfState`.
+    (`examples/raft/kv/kv.go:54-75`), and `r.cs` initialised to that `ConfState`.
   - etcd's joiners stay out of scope; the server proof has no `RestartNode`.
 - **(ii)** A newcomer's `nodeConfig` gets a "pre-bootstrap" phase:
   - `nodeConfig_fold` only for `v.applied ≥ γ.bootLen`;
@@ -383,7 +383,7 @@ of `cluster_alloc`.
   founders are different allocations (`boot ≠ []` versus `boot = []`), so two tokens are natural.
 - **MemoryStorage cannot provide the `c0` path.** `RestartNode` "from `c0`" on an empty log needs a storage whose
   `InitialState` is `c0`. `MemoryStorage` cannot provide one: `ApplySnapshot` at index 0 is `ErrSnapOutOfDate`.
-  kv uses a wrapper (`examples/kv/kv.go:54-75`). Under A1(i), kvreconf needs the same wrapper; the candidate's
+  kv uses a wrapper (`examples/raft/kv/kv.go:54-75`). Under A1(i), kvreconf needs the same wrapper; the candidate's
   F11 storage-wrapper law should cover an overridden `InitialState` too.
 
 ---

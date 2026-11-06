@@ -399,7 +399,7 @@ theorem wp_osPWriteFinish_cs (t : Nat) (p : GoString) (off : Nat) (data : List w
   ihave Hc := (show mcells (L := L) m.maps (min off m.size) (off + data.length)
       (pwCell m.size off data k (cfRange m bs off data.length)) ⊢ mcells (L := L) m.maps (cfLo m off)
       (off + data.length) (pwCell m.size off data k (cfRange m bs off data.length)) from .rfl) $$ Hc
-  iapply HΦ $$ %k %e %hke [Hv Hm1 Hb1] Hc
+  iapply HΦ $$ %k %e %(And.intro hke.1 hke.2.1) [Hv Hm1 Hb1] Hc
   iapply (csOwn_idle _ _ _ rfl).2
   iframe
   ipureintro

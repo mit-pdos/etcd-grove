@@ -27,16 +27,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 built from the transaction's users (`UnsafeGetAllUsers`, `getMergedPerms` for each): the new map is
 `cacheOk` of `sta` (its keys `sta`'s users, each entry the user's permissions); the token kept. The
 caller (the apply thread, or `NewAuthStore`) gives the admin side's half of the field
-(`cacheHalf`) and gets it back at `sta` (`cacheAt`; the auth plan's E2r). -/
+(`cacheHalf`) and gets it back at `sta` (`cacheAt`; the auth plan's E2r), with the admin side's
+authority (until the auth-on snapshot plan's Prove step, 2026-11-03, the authority with the lock's
+share, `authOwnF`, which `Recover` no longer holds). -/
 abbrev auth.authStore.refreshRangePermCache.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ti : GoInterfaceOk)
     (Hs : auth.AuthState → IProp GF) (sta : auth.AuthState) (hs : List auth.AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
       cacheHalf st M ∗ authReaderOk ti Hs ∗ Hs sta ∗ authSnap M sta ∗ ⌜permsFit sta⌝ ∗
-      authOwnF M hs ∗ ⌜∀ γa, M = .on γa → hs.getLast? = some sta⌝ }}
+      authOwn M hs ∗ ⌜∀ γa, M = .on γa → hs.getLast? = some sta⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
-  {{ RET #(); Hs sta ∗ cacheAt st M sta ∗ authOwnF M hs }}
+  {{ RET #(); Hs sta ∗ cacheAt st M sta ∗ authOwn M hs }}
 
 end spec
 

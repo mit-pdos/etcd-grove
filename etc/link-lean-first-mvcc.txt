@@ -61,7 +61,9 @@ storeTxnRead__End:
 sliceCapWithLimit:
 traceutil_Trace__Step:
 proto_Unmarshal:
-storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
+# `fmt.Errorf`'s `%w` of the context's error (errorf-wrap, 2026-11-06): the trust boundary.
+fmt_ErrorfWrap:
+storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal fmt_ErrorfWrap
 storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
 # The write transactions (kvstore_txn.go): `Write` takes the batch lock (the writer's
 # resources: the index writer's handle, the committed log's half, the revision budget),
@@ -192,12 +194,10 @@ watchableStore__progress: watchableStore__progressIfSync
 watchableStore__progressAll: watchableStore__progressIfSync
 # The sync machinery and the constructors (watchable_store.go), unit 3b: the bucket read by
 # revision range (the backend contract's range read), the watchers synced in batches, the
-# victims resent, the two loops (tickers and `store.Close` are the trust boundary: axioms, see
+# victims resent, the two loops (`store.Close` is the trust boundary: an axiom, see
 # InvWatchSync.lean, SyncModel.lean, BucketRange.lean; `time.Since` is Perennial's, used
-# directly: `resyncDelay`, etcd-io/etcd#22297 in the fork, D19l, keeps the reset positive).
-time_NewTicker:
-time_Ticker__Stop:
-time_Ticker__Reset:
+# directly: `resyncDelay`, etcd-io/etcd#22297 in the fork, D19l, keeps the reset positive; the tickers are Perennial's proved
+# `NewTicker`/`Ticker.Stop`/`Ticker.Reset`, `=` terms, since 2026-11-03).
 # (unit 5c: `Time.Unix`, untranslated in Perennial's `time`: the compaction job's deferred
 # `dbCompactionLast.Set(float64(time.Now().Unix()))`; an axiom)
 time_Time__Unix:
@@ -206,7 +206,7 @@ rangeEvents: NewRevBytes RevToBytes kvsToEvents
 watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
 watchableStore__moveVictims: watcher__send watcherGroup__add
 resyncDelay:
-watchableStore__syncWatchersLoop: time_NewTicker time_Ticker__Stop watcherGroup__size watchableStore__syncWatchers resyncDelay time_Ticker__Reset
+watchableStore__syncWatchersLoop: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop watcherGroup__size watchableStore__syncWatchers resyncDelay =_root_.Perennial.time.Ticker.wp_Reset
 watchableStore__syncVictimsLoop: watchableStore__moveVictims
 ChanBufLen:
 # The trust boundary (D19j, 2026-10-18): `ReportEventReceived` (`metrics.go`, names-only: a gauge's

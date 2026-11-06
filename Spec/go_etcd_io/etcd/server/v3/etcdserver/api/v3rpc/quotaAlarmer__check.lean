@@ -33,8 +33,8 @@ the backend current at the check (`s.Backend()` under `s.bemu`: the fork's 8f793
 until then a quota built at construction, over a backend a snapshot's install closes), which
 answers true (`apply.isQuota`, under the workload premise `apply.backendUnderQuota`, D19h, which
 `quotaAlarmerAt` holds), so the NOSPACE alarm's branch (`s.MemberID()`, `s.Alarm`, then
-`ErrGRPCNoSpace`) is not reached. The reader slots of `s.lgMu` and `s.bemu` (`quotaRd`) come
-back. -/
+`ErrGRPCNoSpace`) is not reached: it returns `nil` (k8s etcd3 7c, HS-6; until then the post
+said nothing of the error). The reader slots of `s.lgMu` and `s.bemu` (`quotaRd`) come back. -/
 abbrev v3rpc.quotaAlarmer.check.spec : Prop :=
   ∀ (qa s : Loc) (ci : GoInterfaceOk) (r : Loc) (rt : go.GoType),
   apply.quotaReqTy rt →
@@ -44,7 +44,7 @@ abbrev v3rpc.quotaAlarmer.check.spec : Prop :=
     (App (App (Val (qa @!! go.GoType.PointerType v3rpc.quotaAlarmer.ty @!! go!"check"))
       (Val #(GoInterface.ok ci)))
       (Val #(interface.mkOk rt #r : GoInterface)))
-  {{ (err : GoInterface), RET #err; v3rpc.quotaRd s }}
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ v3rpc.quotaRd s }}
 
 end spec
 

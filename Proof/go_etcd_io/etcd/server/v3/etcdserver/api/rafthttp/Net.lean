@@ -51,6 +51,12 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
+/-- **The most peers a member's transport serves** (2026-11-03, named by the final whole-`bootOk`
+review's M2; the bound since rafthttp stage 6d, 2026-10-24): each peer's goroutines borrow eight of
+`lgMu`'s reader slots, so `peersMax` peers borrow `2 ^ 23`. `NewServer`'s premise
+(`rafthttp.bootCfg`). -/
+@[word_unfold] def peersMax : Nat := 2 ^ 20
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section defs
@@ -252,15 +258,25 @@ def raftPoolN : Namespace := nroot .@ "rafthttp_raft_pool"
 /-- **The receiver's pool of `R`s** (persistent): a thread pool (Perennial's `threadPool`) of the
 resources its `Raft`'s `Process` borrows, from which a goroutine that calls `Process` borrows one
 with its thread token for its life (`raftPool_borrow`) and gives it back when it exits
-(`raftLoan_giveBack`), so no copy is ever lost; the transport's (`trFixed`), given to `Start`. -/
-def raftPool (R : IProp GF) : IProp GF := iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R)
+(`raftLoan_giveBack`), so no copy is ever lost; the transport's (`trFixed`), given to `Start`.
+(revoke-open Q3 (i), 2026-11-06) At level 1 (`threadPool.isThreadPoolL`): a holder of a whole token
+lends its level 1 (`raftPool_borrow`), a holder of level 1 alone borrows with it
+(`raftPool_borrowL`: `GoAttach`'s stopped branch, the revocation's outer goroutine). -/
+def raftPool (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R)
 
 instance raftPool_persistent (R : IProp GF) : Persistent (raftPool R) := by
   unfold raftPool; infer_instance
 
-/-- **An `R` lent out by the pool** (exclusive): what a borrower gives back with the `R`. -/
+/-- **An `R` lent out by the pool for a whole thread token** (exclusive): what a borrower gives back
+with the `R`: the loan and (revoke-open, 2026-11-06) the token's levels not lent. -/
 def raftLoan (R : IProp GF) : IProp GF :=
-  iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R ∗ threadPool.ownThreadLoan γ)
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R ∗ threadPool.ownThreadLoan γ ∗
+    levelTok 0 ∗ threadTokFrom 2)
+
+/-- **An `R` lent out by the pool for a level-1 token** (exclusive; revoke-open, 2026-11-06). -/
+def raftLoanL (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R ∗ threadPool.ownThreadLoan γ)
 
 end defs
 
@@ -269,11 +285,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- A pool from `n` copies of `R`, `threadBound GF ≤ n + 1` (`threadPool.init`). -/
+/-- A pool from `n` copies of `R`, `threadBound GF ≤ n + 1` (`threadPool.initL`). -/
 theorem raftPool_init (R : IProp GF) (E : CoPset) (n : Nat) (Hn : threadBound GF ≤ n + 1) :
     ([∗list] _x ∈ List.replicate n (), R) ⊢ |={E}=> raftPool R := by
   iintro HR
-  imod threadPool.init raftPoolN R E n Hn $$ HR with ⟨%γ, #Hp⟩
+  imod threadPool.initL raftPoolN 1 R E n Hn $$ HR with ⟨%γ, #Hp⟩
   imodintro
   iunfold raftPool
   iexists γ
@@ -285,7 +301,9 @@ theorem raftPool_borrow (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
   iintro ⟨Hlc, #Hp, Htt⟩
   iunfold raftPool at Hp
   icases Hp with ⟨%γ, #Hp⟩
-  imod threadPool.borrow_lc raftPoolN γ R E HN $$ [Hlc Hp Htt] with ⟨HR, Hl⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨H0, Ht1⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Ht1 with ⟨H1, H2⟩
+  imod threadPool.borrowL_lc raftPoolN 1 γ R E HN $$ [Hlc Hp H1] with ⟨HR, Hl⟩
   · iframe; iframe #
   imodintro
   iframe HR
@@ -298,8 +316,36 @@ theorem raftLoan_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) 
     raftLoan R ∗ R ⊢ |={E}=> threadTok := by
   iintro ⟨Hl, HR⟩
   iunfold raftLoan at Hl
+  icases Hl with ⟨%γ, #Hp, Hl, H0, H2⟩
+  imod threadPool.giveBackL raftPoolN 1 γ R E HN $$ [Hp Hl HR] with H1
+  · iframe; iframe #
+  imodintro
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe H0
+  iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+  iframe
+
+/-- **Borrow an `R`** with a level-1 token (and a later credit; revoke-open, 2026-11-06). -/
+theorem raftPool_borrowL (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    £ 1 ∗ raftPool R ∗ levelTok 1 ⊢ |={E}=> R ∗ raftLoanL R := by
+  iintro ⟨Hlc, #Hp, H1⟩
+  iunfold raftPool at Hp
+  icases Hp with ⟨%γ, #Hp⟩
+  imod threadPool.borrowL_lc raftPoolN 1 γ R E HN $$ [Hlc Hp H1] with ⟨HR, Hl⟩
+  · iframe; iframe #
+  imodintro
+  iframe HR
+  iunfold raftLoanL
+  iexists γ
+  iframe; iframe #
+
+/-- **Give an `R` borrowed with a level-1 token back**, for the token (revoke-open, 2026-11-06). -/
+theorem raftLoanL_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    raftLoanL R ∗ R ⊢ |={E}=> levelTok 1 := by
+  iintro ⟨Hl, HR⟩
+  iunfold raftLoanL at Hl
   icases Hl with ⟨%γ, #Hp, Hl⟩
-  iapply threadPool.giveBack raftPoolN γ R E HN $$ [Hp Hl HR]
+  iapply threadPool.giveBackL raftPoolN 1 γ R E HN $$ [Hp Hl HR]
   iframe; iframe #
 
 end pool
@@ -366,6 +412,50 @@ theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm :
   iexact Hi
 
 end lemmas
+
+/-! ### The transport's slot in the boot hub
+
+(2026-11-03, the final whole-`bootOk` review's M2; the slot convention the user approved,
+`notes/spec-first-plan.md`, "The slot convention".) `NewServer.spec` names what it asks of a
+member's URL directory only through `rafthttp.bootCfg`, sealed (`etc/import-all.txt`). It is a
+coupling with raft's peers, which the transport owns (the convention's first form): the transport
+adds every other peer of raft's configuration to itself, so its handler finds the sender of any
+request only if the directory names exactly raft's peers, and it serves at most `peersMax` of them;
+raft's peers are the slot's parameter. Not a condition on the configuration (the directory is the
+network's name, `NetNames.dir`), so it takes none. -/
+
+/-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
+peer URL `url`, no other member. -/
+def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
+
+/-- **The transport's condition on its URL directory `dir`, of raft's peers `ps`** (sealed): the
+members `dir` names are exactly `ps`, at most `peersMax` of them. -/
+@[no_expose] def rafthttp.bootCfg (dir : w64 → List GoString) (ps : List w64) : Prop :=
+  (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧ ps.length ≤ peersMax
+
+/-- `rafthttp.bootCfg` of a one-member directory (`dirOne`) and its member. -/
+theorem rafthttp.bootCfg_dirOne (id : w64) (url : GoString) :
+    rafthttp.bootCfg (dirOne id url) [id] := by
+  unfold rafthttp.bootCfg
+  refine ⟨fun f => ?_, by unfold peersMax; simp⟩
+  unfold dirOne
+  by_cases h : f = id <;> simp [h]
+
+/-- `rafthttp.bootCfg` from the directory's members (`hdir`), at most three (the examples'
+clusters). -/
+theorem rafthttp.bootCfg_of (dir : w64 → List GoString) (ps : List w64)
+    (hdir : ∀ f, dir f ≠ [] ↔ f ∈ ps) (hlen : ps.length ≤ 3) : rafthttp.bootCfg dir ps :=
+  ⟨hdir, by unfold peersMax; omega⟩
+
+/-- **What the server's proof takes from `rafthttp.bootCfg`**: the directory's members are raft's
+peers (the transport's `AddPeer`s and its handler's sender lookup). -/
+theorem rafthttp.bootCfg_mem {dir : w64 → List GoString} {ps : List w64}
+    (h : rafthttp.bootCfg dir ps) (f : w64) : dir f ≠ [] ↔ f ∈ ps := h.1 f
+
+/-- **What the server's proof takes from `rafthttp.bootCfg`**: at most `peersMax` peers (the
+transport's reader slots; raft's peer count within `int`). -/
+theorem rafthttp.bootCfg_len {dir : w64 → List GoString} {ps : List w64}
+    (h : rafthttp.bootCfg dir ps) : ps.length ≤ peersMax := h.2
 
 end EtcdGrove
 end Perennial

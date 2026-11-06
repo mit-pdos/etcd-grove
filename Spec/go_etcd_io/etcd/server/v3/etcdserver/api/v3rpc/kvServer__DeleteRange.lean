@@ -35,10 +35,11 @@ abbrev v3rpc.kvServer.DeleteRange.spec : Prop :=
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
       (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      match v3rpc.deleteCheck o with
+      (match v3rpc.deleteCheck o with
       | some e => v3rpc.checkOut e resp err ∗ A.call ctx
       | none => v3rpc.kvOut A cid mid (.deleteRange o)
-          (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) resp err }}
+          (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) resp err) ∗
+      go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

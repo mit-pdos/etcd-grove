@@ -125,6 +125,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
     iunfold mvcc.doneNil at Hnil
     wp_apply Hnil
     wp_apply HD as %chS #HchS
+    icases HchS with ⟨%QS, #HchS⟩
     iunfold bcastChan at HchS
     icases HchS with ⟨%γS, #HchS⟩
     wp_apply_core chan.wp_select_blocking_nil
@@ -143,6 +144,7 @@ theorem read.Read.LinearizableReadNotify.wp_proof
     iNamed Hcctx'
     wp_apply HDone as %chD %γD #HcD
     wp_apply HD as %chS #HchS
+    icases HchS with ⟨%QS, #HchS⟩
     iunfold bcastChan at HchS
     icases HchS with ⟨%γS, #HchS⟩
     wp_apply_core chan.wp_select_blocking
@@ -174,8 +176,8 @@ theorem read.Read.LinearizableReadNotify.wp_proof
         · icases HDE with ⟨%eD, #HeD, %HDl, #HDm⟩
           icombine Hcv HeD gives %Hce
           cases Hce
-          obtain ⟨hl, hIs, hty, hkey⟩ := HDl
-          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey $$ HDm
+          obtain ⟨hl, hIs, hty, hkey, hG⟩ := HDl
+          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG $$ HDm
           iapply HΦ; iunfold readReader; iframe Hrr Ha; iintro %h; cases h
     iapply BigAndL.bigAndL_cons.2
     isplit

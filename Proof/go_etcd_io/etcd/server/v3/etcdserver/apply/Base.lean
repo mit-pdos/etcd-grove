@@ -66,10 +66,12 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 /-- **An `errors.New` error, as `errors.Is` sees it**: a pointer error (an `*errorString`,
 `errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an
 `Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
-is stated, not derived; as the recipes' `errNewLeaf`). -/
+is stated, not derived; as the recipes' `errNewLeaf`), nor a `GRPCStatus` method (k8s etcd3 7c,
+HS-6: grpc's `status.FromError` accepts it, `statusErrOk`). -/
 def errLeaf (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
-    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
+    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+    methodSet e.ty !! go!"GRPCStatus" = none
 
 end errIs
 
@@ -112,6 +114,16 @@ theorem exactRels_leaf :
     exactRels (fun _ b => b = false) (fun _ (cs : List GoInterface) => cs = []) :=
   ⟨fun _ _ _ h h' => h.trans h'.symm, fun _ _ _ h h' => h.trans h'.symm⟩
 
+/-- **`errors.Is(err, target)` answers `true`** (Go's walk of `err`'s exact tree, the relation
+`errors.Is.spec` posts; with `exactRels`, `isWalk_det` makes the answer Go's). (The lease-expiry
+plan's E2, revision 5, 2026-11-05: the vocabulary of `EtcdServer.leaseTimeToLive.spec`'s not-found
+arm.) -/
+def errIsTrue (err target : GoInterface) : IProp GF :=
+  iprop(∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree S I U target ∗
+    ⌜S err ∧ exactRels I U ∧ _root_.Perennial.errors.IsWalk true I U target err true⌝)
+
 /-- A target `errors.Is` can compare with by `==` in the model (Perennial's `errors.wp_Is`): `nil`
 or a pointer error. -/
 def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=
@@ -138,13 +150,20 @@ The tree is exact (2026-11-01, the lease rows at the gRPC level): its `Is` and `
 have one answer each (`errors.errorWalkTree` at functional relations, `exactRels`), so that two
 `errors.Is` calls of one error and target answer the same (`errors.isWalk_det`), as Go's do:
 `v3rpc/lease.go` tests `errors.Is(err, ErrLeaseNotFound)` twice. `applyErrIs_tree` is the
-over-approximating tree the other callers take. -/
+over-approximating tree the other callers take.
+
+(k8s etcd3 7c, HS-6, 2026-11-06; errorf-wrap, 2026-11-06) And grpc's server and the prometheus
+interceptor take it (`srvErrOk`: grpc's `status.FromError` accepts it, `statusErrOk`: `nil`, or
+a leaf whose `Error()` returns and whose `GRPCStatus`/`Is`, if any, return), so that `togRPCError`,
+which returns a context error as it is, returns a handler error grpc's server and the prometheus
+interceptor can take. Every error the server's request path returns is a leaf, or (a cancelled
+read's) a context error wrapped by `fmt.Errorf`'s `%w` (`ctxWrapErr`, `applyErrIs_ctxWrap`). -/
 def applyErrIs (err : GoInterface) : IProp GF :=
   iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
       (U : GoInterfaceOk → List GoInterface → Prop),
     _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
     ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U⌝) ∗
-    errKeyMsg err)
+    errKeyMsg err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err)
 
 instance applyErrIs_persistent (err : GoInterface) :
     Persistent (applyErrIs (GF := GF) err) := by
@@ -160,8 +179,43 @@ theorem applyErrIs_walk (err : GoInterface) :
         ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧
           exactRels I U⌝ := by
   iunfold applyErrIs
-  iintro ⟨#H, -⟩
+  iintro ⟨#H, -, -⟩
   iexact H
+
+/-- An `applyErrIs` error is one grpc's server and the prometheus interceptor take (`srvErrOk`). -/
+theorem applyErrIs_srvErrOk (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ go_etcd_io.etcd.cache.v3.srvErrOk err := by
+  iunfold applyErrIs
+  iintro ⟨-, -, #H⟩
+  iexact H
+
+/-- **A leaf error without `Is` or `GRPCStatus`, whose `Error()` returns, is one grpc's `status`
+accepts** (k8s etcd3 7c, HS-6). -/
+theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors.isLeafError e)
+    (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none) :
+    errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
+  iintro #Hm
+  unfold go_etcd_io.etcd.cache.v3.statusErrOk
+  iintro !> %e' %he
+  cases he
+  isplitr
+  · unfold go_etcd_io.etcd.cache.v3.errorStringSpec
+    iintro !> %Ψ HΨ
+    iunfold errMsgOk at Hm
+    iapply Hm $$ [] [HΨ]
+    · itrivial
+    inext
+    iintro %msg -
+    iapply HΨ
+  isplitr
+  · ipureintro; exact hl
+  unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
+  isplitl
+  · iintro %h
+    rw [hG] at h; cases h
+  · iintro %h
+    exact absurd h hIs
 
 /-- The error tree of an `applyErrIs` error, over-approximated (what this repository's
 `errors.Is.spec` takes). -/
@@ -194,7 +248,9 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   iunfold applyErrIs
   isplitl
   rotate_left
-  · iunfold errKeyMsg; ileft; ipureintro; rfl
+  · isplitl
+    · iunfold errKeyMsg; ileft; ipureintro; rfl
+    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_nil
   iintro !> %target
   iexists (· = GoInterface.nil), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -212,34 +268,42 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   iunfold applyErrIs
   isplitl
   rotate_left
-  · iunfold errKeyMsg; iright
-    isplitr
-    · ipureintro; exact safeMapKey_ptrErr e h.1
-    iexists e; iframe Hm; ipureintro; rfl
+  · isplitl
+    · iunfold errKeyMsg; iright
+      isplitr
+      · ipureintro; exact safeMapKey_ptrErr e h.1
+      iexists e; iframe Hm; ipureintro; rfl
+    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
+      iapply statusErrOk_of_leafMsg e h.2.1 h.2.2.1 h.2.2.2 $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
-  · iapply _root_.Perennial.errors.errorWalkTree_leaf e target h.2.1 h.2.2
+  · iapply _root_.Perennial.errors.errorWalkTree_leaf e target h.2.1 h.2.2.1
   ipureintro
   exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf⟩
 
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
 type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a safe
-key of a map (its `==` with itself does not panic), whose `Error()` returns. -/
+key of a map (its `==` with itself does not panic), without a `GRPCStatus` method (k8s etcd3 7c,
+HS-6), whose `Error()` returns. -/
 theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (hleaf : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
-    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e)) :
+    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs
   isplitl
   rotate_left
-  · iunfold errKeyMsg; iright
-    isplitr
-    · ipureintro; exact hkey
-    iexists e; iframe Hm; ipureintro; rfl
+  · isplitl
+    · iunfold errKeyMsg; iright
+      isplitr
+      · ipureintro; exact hkey
+      iexists e; iframe Hm; ipureintro; rfl
+    · iapply go_etcd_io.etcd.cache.v3.srvErrOk_of_statusErrOk
+      iapply statusErrOk_of_leafMsg e hleaf hIs hG $$ Hm
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ b => b = false), (fun _ cs => cs = [])
   isplitl
@@ -249,6 +313,208 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
   cases hii
   obtain ⟨T, l, hT, -⟩ := hpt tii ht
   exact absurd (hty'.trans hT) (hty T)
+
+/-- **The exact error tree of `err`**, as `applyErrIs` states it (its first conjunct,
+`applyErrIs_walk`). -/
+abbrev errTreeOk (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
+      (U : GoInterfaceOk → List GoInterface → Prop),
+    _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
+    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U⌝)
+
+open Iris.ProofMode in
+/-- An error's node in a larger tree with larger relations is a node there. -/
+theorem errorWalkNode_mono (S S' : GoInterface → Prop) (I I' : GoInterfaceOk → Bool → Prop)
+    (U U' : GoInterfaceOk → List GoInterface → Prop) (target : GoInterface) (j : GoInterfaceOk)
+    (hS : ∀ e, S e → S' e) (hI : ∀ b, I j b → I' j b) (hU : ∀ cs, U j cs → U' j cs) :
+    _root_.Perennial.errors.errorWalkNode (GF := GF) S I U target j ⊢
+      _root_.Perennial.errors.errorWalkNode (GF := GF) S' I' U' target j := by
+  iintro Hn
+  unfold _root_.Perennial.errors.errorWalkNode
+  icases Hn with ⟨HIs, HUnwrap⟩
+  isplitl [HIs]
+  · by_cases h : methodSet j.ty !! go!"Is" = some (go.Signature [go.error] false [go.bool])
+    · simp only [h, ↓reduceIte]
+      icases HIs with #HIs
+      iintro !> %Φ - HΦ
+      wp_apply HIs as %b %Hb
+      iapply HΦ
+      ipureintro; exact hI b Hb
+    · simp only [h, ↓reduceIte]
+      icases HIs with %Hb
+      ipureintro; exact hI false Hb
+  · by_cases h1 : methodSet j.ty !! go!"Unwrap" = some (go.Signature [] false [go.error])
+    · simp only [h1, ↓reduceIte]
+      icases HUnwrap with #HUnwrap
+      iintro !> %Φ - HΦ
+      wp_apply HUnwrap as %e ⟨%He, %Hu⟩
+      iapply HΦ
+      ipureintro; exact ⟨hS e He, hU _ Hu⟩
+    · by_cases h2 : methodSet j.ty !! go!"Unwrap" =
+          some (go.Signature [] false [go.GoType.SliceType go.error])
+      · simp only [h1, ↓reduceIte]
+        simp only [h2, ↓reduceIte]
+        icases HUnwrap with #HUnwrap
+        iintro !> %Φ - HΦ
+        wp_apply HUnwrap as %sl %dq %es ⟨Hs, %Hes, %Hu⟩
+        iapply HΦ
+        iframe
+        ipureintro; exact ⟨fun e he => hS e (Hes e he), hU _ Hu⟩
+      · simp only [h1, h2, ↓reduceIte]
+        icases HUnwrap with %Hu
+        ipureintro; exact hU _ Hu
+
+open Iris.ProofMode in
+/-- **The tree of a `%w` wrap** (`fmt.wrapErrIs`, Go's `*fmt.wrapError`) over an error whose tree
+is known: the wrap's node (no `Is`; `Unwrap` gives the wrapped error) added to it. -/
+theorem errTreeOk_wrap (ii : GoInterfaceOk) (mid : GoInterface) (pre : GoString) :
+    EtcdGrove.fmt.wrapErrIs (GF := GF) ii mid pre ⊢ errTreeOk mid -∗ errTreeOk (GoInterface.ok ii) := by
+  iintro #Hw #Ht !> %target
+  ihave ⟨%S, %I, %U, #Htr, %HS⟩ := Ht $$ %target
+  iunfold EtcdGrove.fmt.wrapErrIs at Hw
+  icases Hw with ⟨%Hm, -, #HU⟩
+  obtain ⟨hptr, hUn, -, hIs, -⟩ := Hm
+  iexists (fun e => e = GoInterface.ok ii ∨ S e),
+    (fun j b => (j = ii ∧ b = false) ∨ (j ≠ ii ∧ I j b)),
+    (fun j cs => (j = ii ∧ cs = [mid]) ∨ (j ≠ ii ∧ U j cs))
+  isplitl
+  · iintro !> %j %hj
+    by_cases hji : j = ii
+    · subst hji
+      unfold _root_.Perennial.errors.errorWalkNode
+      simp only [hIs, hUn, ↓reduceIte]
+      isplitl
+      · ipureintro; simp
+      · iintro !> %Φ - HΦ
+        iapply HU
+        inext
+        iapply HΦ
+        ipureintro
+        simp [HS.1]
+    · have hjS : S (GoInterface.ok j) := by
+        rcases hj with h | h
+        · cases h; exact absurd rfl hji
+        · exact h
+      ihave Hn := Htr $$ %j %hjS
+      iapply errorWalkNode_mono S _ I _ U _ target j (fun e h => Or.inr h)
+        (fun b h => Or.inr ⟨hji, h⟩) (fun cs h => Or.inr ⟨hji, h⟩) $$ Hn
+  · ipureintro
+    refine ⟨Or.inl rfl, fun hpt ii' tii hii' ht hty => ?_, ?_, ?_⟩
+    · rcases hii' with h | h
+      · cases h
+        obtain ⟨T, l, -, hl⟩ := hptr
+        exact ⟨l, hl⟩
+      · exact HS.2.1 hpt ii' tii h ht hty
+    · intro j b b' h h'
+      rcases h with ⟨h0, rfl⟩ | ⟨hne, h⟩ <;> rcases h' with ⟨h1, rfl⟩ | ⟨hne', h'⟩
+      · rfl
+      · exact absurd h0 hne'
+      · exact absurd h1 hne
+      · exact HS.2.2.1 j b b' h h'
+    · intro j cs cs' h h'
+      rcases h with ⟨h0, rfl⟩ | ⟨hne, h⟩ <;> rcases h' with ⟨h1, rfl⟩ | ⟨hne', h'⟩
+      · rfl
+      · exact absurd h0 hne'
+      · exact absurd h1 hne
+      · exact HS.2.2.2 j cs cs' h h'
+
+open Iris.ProofMode in
+/-- **The tree of a chain of `%w` wraps** (`fmt.wrapChain`) down to an error whose tree is known:
+each level Go's wrap (`errTreeOk_wrap`) or the model's `*errors.errorString` (a leaf, by `hleaf`,
+which ends the chain). -/
+theorem errTreeOk_chain [_root_.Perennial.errors.Assumptions]
+    (hleaf : ∀ x : Loc, errLeaf ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩)
+    (pres : List GoString) (err c : GoInterface) :
+    EtcdGrove.fmt.wrapChain (GF := GF) pres err c ⊢ errTreeOk c -∗ errTreeOk err := by
+  induction pres generalizing err with
+  | nil =>
+    rw [EtcdGrove.fmt.wrapChain_nil]
+    iintro %h #Ht
+    subst h
+    iexact Ht
+  | cons pre ps ih =>
+    rw [EtcdGrove.fmt.wrapChain_cons]
+    iintro ⟨%ii, %Hii, #Hb⟩ #Ht
+    subst Hii
+    icases Hb with (#Hm | ⟨%mid, #Hw, #Hch⟩)
+    · iunfold EtcdGrove.fmt.modelErrIs at Hm
+      icases Hm with ⟨%Hx, #Hs⟩
+      obtain ⟨x, rfl⟩ := Hx
+      ihave #HA : applyErrIs (GoInterface.ok
+          ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) $$ []
+      · iapply applyErrIs_leaf _ (hleaf x)
+        iunfold errMsgOk
+        iintro !> %Φ - HΦ
+        iapply Hs
+        inext
+        iintro %str
+        iapply HΦ
+        itrivial
+      iapply applyErrIs_walk $$ HA
+    · iapply errTreeOk_wrap ii mid pre $$ Hw
+      iapply ih mid $$ Hch Ht
+
+open Iris.ProofMode in
+/-- **A context error wrapped by `%w` is one the gRPC layer can take** (`applyErrIs`;
+errorf-wrap, 2026-11-06, in place of `applyErrIs_errorf`): its tree is the chain's over the
+context error's (`errTreeOk_chain`, given that the context errors are `applyErrIs`), it is a
+pointer error (a safe map key) whose `Error()` returns, and grpc's server takes it (`srvErrOk`'s
+right side). -/
+theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterface)
+    (hleaf : ∀ x : Loc, errLeaf ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) :
+    go_etcd_io.etcd.cache.v3.ctxWrapErr (GF := GF) err ⊢
+      (□ ∀ c : GoInterface, context.isCtxErr c -∗ applyErrIs c) -∗ applyErrIs err := by
+  iintro #Hw #Hctx
+  ihave #Hw' := Hw
+  iunfold go_etcd_io.etcd.cache.v3.ctxWrapErr at Hw'
+  icases Hw' with ⟨%pres, %c, %Hp, #Hch, #Hce⟩
+  ihave #HAc := Hctx $$ Hce
+  ihave #Htc := applyErrIs_walk c $$ HAc
+  ihave #Hte := errTreeOk_chain hleaf pres err c $$ Hch Htc
+  iunfold applyErrIs
+  isplitl
+  · iexact Hte
+  isplitl
+  · cases pres with
+    | nil => exact absurd rfl Hp
+    | cons pre ps =>
+      rw [EtcdGrove.fmt.wrapChain_cons]
+      icases Hch with ⟨%ii, %Hii, #Hb⟩
+      subst Hii
+      iunfold errKeyMsg
+      iright
+      icases Hb with (#Hm | ⟨%mid, #Hw2, -⟩)
+      · iunfold EtcdGrove.fmt.modelErrIs at Hm
+        icases Hm with ⟨%Hx, #Hs⟩
+        obtain ⟨x, rfl⟩ := Hx
+        isplitr
+        · ipureintro; exact safeMapKey_ptrErr _ ⟨_, x, rfl, rfl⟩
+        iexists _
+        isplitr
+        · ipureintro; rfl
+        iunfold errMsgOk
+        iintro !> %Φ - HΦ
+        iapply Hs
+        inext
+        iintro %str
+        iapply HΦ
+        itrivial
+      · iunfold EtcdGrove.fmt.wrapErrIs at Hw2
+        icases Hw2 with ⟨%Hm, ⟨%s, #Hs⟩, -⟩
+        isplitr
+        · ipureintro; exact safeMapKey_ptrErr ii Hm.1
+        iexists ii
+        isplitr
+        · ipureintro; rfl
+        iunfold errMsgOk
+        iintro !> %Φ - HΦ
+        iapply Hs
+        inext
+        iapply HΦ
+        itrivial
+  · unfold go_etcd_io.etcd.cache.v3.srvErrOk
+    iright
+    iexact Hw
 
 /-- **The error variable `g` holds an `errors.New` error** (persistent; a package fact): a leaf
 pointer error whose `Error()` returns (`errors.wp_New`; the message part since 2026-10-12, the
@@ -587,7 +853,12 @@ abbrev applyErrVars : IProp GF :=
     EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
       go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ∗
     -- (the auth plan's E3i, 2026-10-27) and from the auth package's error variables
-    authErrsApart)
+    authErrsApart ∗
+    -- (lease-grant amendment (E), 2026-11-03) and from the lessor's errors a grant answers
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.lease.ErrLeaseExists ∗
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
+      go_etcd_io.etcd.server.v3.lease.ErrLeaseTTLTooLarge)
 
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/

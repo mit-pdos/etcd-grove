@@ -35,7 +35,7 @@ be a chain; the reflector watches from a list's version, never `""`/`"0"`, on th
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.State
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.State
 
 @[expose] public section
 

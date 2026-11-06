@@ -4,6 +4,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 -/
 module
 
+public import Proof.os.ErrorOk
 public import Spec.os.File__Stat
 
 @[expose] public section
@@ -49,10 +50,15 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       wp_auto
       ipersist size
       imodintro
+      ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
       iapply HΦ
+      iframe Hokn
       iframe
       isplitl []
       · isplitl [] <;> iassumption
+      isplitr
+      rotate_left
+      · ipureintro; intro ii h; cases h
       ileft
       iexists fs_ptr
       unfold os.ownFileStat
@@ -62,11 +68,16 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
     · have he0' : ¬ e = W64 0 := he0
       rw [decide_eq_false he0']
       wp_auto
-      wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+      wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+      ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
       iapply HΦ
+      iframe Hokn
       iframe
       isplitl []
       · isplitl [] <;> iassumption
+      isplitr
+      rotate_left
+      · ipureintro; intro ii h; cases h; exact ⟨_, pe, rfl, rfl⟩
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 

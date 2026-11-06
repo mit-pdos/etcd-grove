@@ -64,7 +64,7 @@ abbrev txn.executeTxn.spec : Prop :=
          else txn.leasesKnown L (txn.mstate (txn.MTxn.append k run.1))) ∗
         (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L
           (mvcc.pendItems k.state.log (k.pend ++ run.1)))) ∨
-      (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗ mvcc.api.mvccTxn tw γ trace k ∗ txn.roRespsRd tresp)) }}
+      (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗ mvcc.api.mvccTxn tw γ trace k ∗ txn.roRespsRd tresp)) }}
 
 end spec
 

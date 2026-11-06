@@ -155,7 +155,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   · rw [hR, setHw_R]
     iexact HRB
   unfold batchPhys
-  icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
+  icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu, #Hbdb⟩
   icases Hrb with (Hrb | ⟨%Hnull, #Hbs⟩)
   rotate_left
   · unfold bStopped
@@ -274,9 +274,9 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       iexact Hpre
     icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
       (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
-      $$ Hfkh with ⟨-, #Hfkr⟩
+      $$ Hfkh with ⟨Hfkh, #Hfkr⟩
     imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L') $$
-      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, -, -⟩
+      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, Hvq, -⟩
     · simp only [↓reduceIte]
       iframe Hbs Hfkr
     imodintro
@@ -285,6 +285,21 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     unfold payOut
     simp only [Bool.true_eq_false, _root_.false_and, ↓reduceIte]
     iframe Hown Hbs Hpend
+    -- (R2b-3c part 2) the database, and the lock's ghost shares at the committed data
+    iunfold bDBOutG
+    iexists db, st'.S
+    iframe Hbdb Hdb
+    unfold bStopG fkHalf
+    icases Hfkh with ⟨-, Hfkd, Hdls⟩
+    iframe Hhkd Hfkd
+    isplitl [Hvq]
+    · iexists _
+      rw [← vData_reset P st'.S st'.R]
+      iexact Hvq
+    isplitl [Hdls]
+    · iexists _; iexact Hdls
+    iexists _
+    iexact Hfkr
 
 end proof
 

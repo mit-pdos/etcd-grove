@@ -70,14 +70,16 @@ gone; the request path's unit 4d), applies it through the `UberApplier` `ua` (`a
 abbrev apply.Apply.specRec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF)
-    (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM),
+    (K G : Option GName → w64 → IProp GF) (ot : Option GName) (F : mvcc.Log) (rs : apply.RestM)
+    (T U : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.applierFor ua E ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
       apply.bkToks v3 E Pre Q Post ∗ Pre ∗
       apply.applyKV E ua x ∗ apply.certPreV v3 E x.chain rq x.log ∗
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
         apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit x.log rq ∧ apply.restReqOk rq rs⌝ ∗
-      apply.cmpPermRq E rq ∗ threadTok ∗
+      apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
+      apply.grantFresh E rq U ∗ apply.revokeOwn E rq ∗ threadTok ∗
       srvApi.kvLogLb E.γs F ∗ E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
@@ -85,7 +87,12 @@ abbrev apply.Apply.specRec : Prop :=
       (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
       ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
-        E.RO (apply.restOut rq v3 out rs) ∗
+        apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
+        apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
+        (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
+          (apply.grantRestA t rq v3 out (apply.restOut rq v3 out rs)))) ∗
+        ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.grantResA E rq out ar ∗
+        apply.revokeAnsRA E rq out ar ∗
         ⌜apply.applyStep rq v3 x x' out ∧ apply.applyFloorOk rq v3 F x.log out⌝ ∗
         apply.applyResultIs rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
         (⌜out.waived = false⌝ ∨ G ot id) }}
@@ -125,9 +132,9 @@ theorem apply.kvOwnPre_of_toks (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q
 theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.specRec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, #Hcpr, Htt,
-    #HF, HFS, HSp, HRO⟩
+  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs T U
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, #Hcpr,
+    #Hgp, HLt, HEv, #HGf, Hrv, Htt, #HF, HFS, HSp, HRO⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk, Hca, Hrr⟩ := Hprem
   ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
@@ -142,16 +149,22 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
   · iframe Hkv Htoks HPre
   wp_apply (hA lg e m (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) w v3 rq id RD K G ot
       iprop(apply.uberOwn E p x.chain ∗ apply.kvOwnPre v3 E x.log Pre Q Post ∗ threadTok ∗ E.FS ∗
-        (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev)
+        (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗ apply.cmpOwn E x.crev ∗
+        apply.ltHalf E T ∗ apply.everOwn E U ∗ apply.revokeOwn E rq)
       (fun sk ar => iprop(threadTok ∗ apply.bkRTOf E ∗ E.FS ∗ ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
         apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
-        E.RO (apply.restOut rq v3 out rs) ∗ apply.cmpOwn E x'.crev ∗
+        apply.ltHalf E (apply.revokeIdsA rq v3 out (apply.grantIdsA rq v3 out T)) ∗
+        apply.everOwn E (apply.grantIdsA rq v3 out U) ∗ apply.revokeOwn E rq ∗
+        (∃ t : w64, ⌜apply.grantTTLOk rq t⌝ ∗ E.RO (apply.revokeRestA T rq v3 out
+          (apply.grantRestA t rq v3 out (apply.restOut rq v3 out rs)))) ∗
+        ⌜apply.grantOutOkA x.chain rq v3 T out⌝ ∗ apply.cmpOwn E x'.crev ∗
         ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o sk) ∧
           apply.applyFloorOk rq v3 F x.log out⌝ ∗
-        apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
+        apply.resTrace ar ∗ apply.grantResA E rq out ar ∗ apply.revokeAnsRA E rq out ar ∗
+        apply.applyResultIs rq v3 x.log ar out ∗
         apply.applyAuthRes E.authMode x.chain rq v3 out)))
-      $$ [HRD HK Hown Hkp Htt HFS HSp HRO Hco] as %ar %id' ⟨HRD, %Hid', Hout⟩
-  · iframe # HRD HK Hown Hkp Htt HFS HSp HRO Hco
+      $$ [HRD HK Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv] as %ar %id' ⟨HRD, %Hid', Hout⟩
+  · iframe # HRD HK Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv
     isplitr
     · ipureintro; exact Hlg
     isplitr
@@ -160,10 +173,10 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; rfl
     iintro !> %r %sk
-    wp_start_folded as ⟨#Hwr, %Hskt, Hown, Hkp, Htt, HFS, HSp, HRO, Hco⟩
-    wp_apply (hUA E p opts x r rq sk v3 F Pre Q Post rs)
-        $$ [Hown Hkp Htt HFS HSp HRO Hco] as %ar HQ
-    · iframe # Hown Hkp Htt HFS HSp HRO Hco
+    wp_start_folded as ⟨#Hwr, %Hskt, Hown, Hkp, Htt, HFS, HSp, HRO, Hco, HLt, HEv, Hrv⟩
+    wp_apply (hUA E p opts x r rq sk v3 F Pre Q Post rs T U)
+        $$ [Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv] as %ar HQ
+    · iframe # Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv
       isplitr
       · ipureintro; exact ⟨Hrq, Hdk, Hca⟩
       isplitr
@@ -171,8 +184,8 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
       ipureintro; exact Hrr
     iapply HΦ; iexact HQ
   subst Hid'
-  icases Hout with (⟨%sk, ⟨Htt, Hrt, HFS, %x', %out, Hown, Hkv, HPP, HRO, Hco, %Hst, Htr, Hres, #Hauth⟩, Hwv⟩ |
-    ⟨%Hnil, HG, Hown, Hkp, Htt, HFS, HSp, HRO, Hco⟩)
+  icases Hout with (⟨%sk, ⟨Htt, Hrt, HFS, %x', %out, Hown, Hkv, HPP, HLt, HEv, Hrv, HRO, %Hgo, Hco, %Hst, Htr, Hgr, Hvr, Hres, #Hauth⟩, Hwv⟩ |
+    ⟨%Hnil, HG, Hown, Hkp, Htt, HFS, HSp, HRO, Hco, HLt, HEv, Hrv⟩)
   · ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
     iapply HΦ
     iframe HRD HFS Htt Hrt
@@ -182,7 +195,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; rfl
     iexists x', out
-    iframe Hres HRO Hauth
+    iframe Hres HRO Hauth HLt HEv Hrv Hgr Hvr %Hgo
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
     isplitr
@@ -205,10 +218,22 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; rfl
     iexists x, .skipped
-    simp only [apply.applyResultIs, apply.restOut]
-    iframe HRO
+    simp only [apply.applyResultIs, apply.restOut, apply.grantIdsA, apply.grantRestA,
+      apply.grantOutOkA, apply.grantResA, apply.revokeIdsA, apply.revokeRestA, apply.revokeAnsRA]
+    iframe HLt HEv Hrv
     isplitl [Hown Hkv Hco]
     · iunfold apply.applyKV; iexists p; iframe Hown Hkv Hco; ipureintro; rfl
+    isplitl [HRO]
+    · iexists (apply.grantTTLW rq)
+      isplitr
+      · ipureintro; exact apply.grantTTLOk_w rq
+      iexact HRO
+    isplitr
+    · ipureintro; trivial
+    isplitr
+    · itrivial
+    isplitr
+    · itrivial
     isplitr
     · ipureintro; simp [apply.applyStep, apply.applyFloorOk, hns]
     isplitr

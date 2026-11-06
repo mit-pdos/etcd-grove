@@ -42,7 +42,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key k L crev Z
   wp_start as ⟨Htw, #Hkey, Hown, %Hpresent⟩
-  simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
+  try simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   ihave #Hs0 : mvcc.isStore s γ $$ []

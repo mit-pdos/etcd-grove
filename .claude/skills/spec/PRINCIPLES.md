@@ -29,6 +29,23 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 - **Sound: true of the code**, including no panic under its precondition (a WP excludes panics); a
   trust-boundary axiom true of the library's code or documented behavior.
+  A premise an example holds (a callee's triple, a pure fact of the program) is sound only if it is
+  true at every input it admits: a triple whose pre admits one input where the model panics is
+  false, and every adequacy theorem holding it is vacuous (`rnTickerOk` at `d ≠ 0`, where
+  `time.NewTicker` panics at `d < 0`; putget3's peers in the names' order, not `bootstrap`'s
+  sorted one). Check such a pre against the model's panics, and a computed fact against a Go run.
+  A trusted contract states what the code computes (the wrapping `TickMs * Millisecond`), not a
+  property of it the code does not ensure (`heartbeat ≠ 0`); the caller that needs the property
+  takes it as its own premise. (The boot premises, 2026-11-03, `notes/decisions.md`.)
+- **An assumption states the physical fact the code relies on, never a universal that is false
+  somewhere.** A Lean axiom "FNV-64a has no collisions" is false (it has them), so the logic becomes
+  inconsistent and proves everything. Find what the code really relies on and state that, in the
+  model of the environment, with its environment hypothesis: bbolt's meta write is one aligned OS
+  page, which Linux's `pwrite` writes all or nothing in-process (if `RLIMIT_FSIZE` is unlimited or
+  page-aligned), so OsFs's rule says that and no collision premise is needed. Before proposing a
+  restriction instead, check it is what it is claimed to be: bbolt's P2 ("no torn meta that
+  validates") was described as a collision premise, yet removed no real execution and excluded
+  constructible ones. (`bbolt-api.md`, D22)
 - **Complete: sufficient for every caller**: each caller can establish the precondition and gets from
   the postcondition what its proof needs. All callers, not the one in mind; when the vocabulary
   changes, the callers as restated. A contract an implementation must meet (an environment's
@@ -36,7 +53,12 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   unproved: every value the body reads from an argument (a context's `Value(key)`, a field) needs a
   premise. (The compactor's `compactableOk` passed five reviews checked against
   `EtcdServer.Compact.spec`, a `sorry`, and failed at the first glue: `Compact` reads
-  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.)
+  `ctx.Value(TraceKey{})`; M2, `notes/m2-plan.md`, 2026-10-28.) A premise inherited from a callee
+  (a context, a client) is checked against the value the caller's Go code actually passes, not the
+  kind the callee's chain was written for: Kubernetes' `Compact.spec` took the client's `ctxOk`
+  (an `isContext` or a quiet context), approved, while its one caller passes
+  `wait.ContextForChannel(stopCh)`, which is neither (K4, `notes/decisions.md`, "A context outside
+  Perennial's model", 2026-11-04).
 - **An unsound candidate is replaced by a sound one, not dropped**: every function in the scope
   keeps a spec. When a candidate turns out false (it lets a client reach a path that breaks
   another spec's guarantee), find what is true of the function: often a precondition that names
@@ -82,6 +104,16 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   admits beyond the code's own uses: a stronger claim can be false on an input the old one covered
   harmlessly. A post that says a call returns claims it returns on every input the premise admits:
   check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
+- **A law over a free mode (or any index) holds at every value of it**: check it at each literal against the variance of every resource it mentions. An atomic update's grant is the committer's to supply (contravariant: `kvAu1G G ⊢ kvAu1G G'` needs `G' ⊢ G`), so a gated grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, and identified with `X` only at `true`. A law that holds at one mode only is stated at that literal, where the mode gate counts it, not over a free `on` with an `(h : on = b)` premise. (The auth component's stage 4, round 3: three "any `on`" laws false at one mode; `examples/auth-component.md`, stage 4.) The premise is not a way to lower the gate's count: the count is the gate's measure of what still depends on one mode, and the literal is that dependence (stage 5: the 5-2 laws took `(hon : on = false)`, the count fell below the plan's, and 5-4 had to restate them; `examples/auth-component.md`, stage 5).
+- **A bridge between two statements is stated from its consumer's goal**, not from the direction the author has in mind: write down the goal of the proof that applies it, and check the law it rests on for variance (`raftKV_mono s A A' : raftKV s A' ⊢ raftKV s A` is contravariant in the answers). (The auth component's stage 5, round 4: `raftKV_srvKVAnsM_false` stated old → merged where its consumer needed merged → old; `examples/auth-component.md`, stage 5.)
+
+## Asking the user
+
+- **Explain a finding in plain terms before asking for a decision**: what the code does, when it
+  goes wrong and what a user would see, then the options with what each costs; not the predicate
+  names and round numbers. A decision taken on a wrong picture comes back (bbolt's D22: chosen as
+  "a probabilistic premise", then re-asked when it turned out not to be one; D21's write-up, "two
+  copies of the table of contents", is the shape). (`bbolt-api.md`)
 
 ## Preferences: strength
 
@@ -173,12 +205,22 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   methods and making clients unwrap fields (dispatch laws) costs glue in every client. One way to
   keep the text single: write each interface method's contract once at a receiver `(ty, v)` and make
   each concrete spec its instance. (The mvcc API, round 11, the user, 2026-11-03.)
-- **A client does not unfold the spec's definitions, or any other package's**: each unfold is a
-  missing law of the owning package. Find them mechanically (every `unfold`, `iunfold`, `simp only
-  [...]` and positional destructuring in the callers), not from memory. A proof-only definition goes
-  in a module only that proof imports. (`pilot-review-5.md`)
+- **A client does not unfold the spec's definitions, or any other module's**: each unfold is a
+  missing law of the owning module, even when both modules are in one package (a module of the
+  cache unfolding another's predicate, `InvCache` unfolding `InvEtcd`'s `etcdQuiet` or `InvDemux`'s
+  `progressQuiet`, is the same defect: export the intro and elimination laws the consumers need
+  next to the definition). Find them mechanically (every `unfold`, `iunfold`, `simp only [...]` and
+  positional destructuring in the callers), not from memory. A proof-only definition goes in a
+  module only that proof imports. (`pilot-review-5.md`; sharpened from packages to modules by the
+  user, 2026-11-03, on `cache_Watch_delivery`'s `progressQuiet`)
 - **Every premise has a source the client sees**: a spec or a law of the API, never the
   implementation's internal lemmas.
+- **Name the abstraction a definition exposes, not where its argument comes from**: a premise on
+  a cached object is not `cachedOk` but a fact about versions, `versionAt k r o` ("version `r` of
+  key `k` is `o`"), the persistent mapping the API's users already think in. Look for the
+  stable, persistent fact behind a state-relative condition; it is usually the better
+  vocabulary, with laws the user can carry. (The etcd3 store's specs, 2026-11-01:
+  `notes/k8s-etcd3-plan.md`, phase 7.)
 - **A client's certificate is the cluster's**: a persistent fact a client takes from one call's
   reply into a later call (a revision reached) must hold at every member the later call may reach,
   so build it from what the members share (the cluster's raft log, the KV model), never from one
@@ -229,7 +271,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   library does not name the client's mechanism: no "disk" predicate in raft, because a client may
   keep nothing durable. The state the update acts on is in the library's own terms (raft's state),
   and is exclusive only where soundness needs it. (raft's durable node API, 2026-10-31, the user's
-  critique of candidate 4: `notes/STATUS.md`, "examples/kvdurable and the durable node API")
+  critique of candidate 4: `notes/STATUS.md`, "examples/raft/kvdurable and the durable node API")
   The client-owned state is only the part the client's choice is about: for durability, raft's
   persistent fields (term, vote, log, snapshot), not the volatile ones, which stay in the library.
   Then a restart is no transition of that state, only a fresh library-side half built over it.
@@ -247,7 +289,20 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   `%H` in `wp_start`'s pattern; a caller discharges them in the `wp_apply` premise goal
   (`ipureintro`). Older specs still use implications; convert one when you change it. (porcupine's
   `Check*` specs, 2026-11-03, the user's request.)
+- **A hub names each subsystem through its sealed slots, not its facts.** A statement many
+  subsystems feed (`NewServer.spec`, `bootOk`, `bootstrapContract`) takes a subsystem's conditions,
+  resources and results as one sealed predicate each from the subsystem's API module
+  (`<sub>.bootCfg`, `<sub>.bootRes`, `<sub>.bootOk`, `<sub>.srvInv`, with laws), so that a change
+  inside the subsystem changes the slot's body, not the hub's text and its callers. A subsystem moves
+  into its slot when it next changes the hub. Its elimination laws give what their consumer takes,
+  never the slot's body restated, or the hub's proof changes with the body. (`notes/spec-first-plan.md`, "The slot convention",
+  approved 2026-11-03; the WAL the first.)
 - **One general spec; special cases are instances**: a hard rule ("One spec per function", above).
+- **An instance binder a statement must carry goes inside the statement** (`∀ [HasExt osFsExt] …`
+  at the head of the triple, and in each vocabulary predicate's signature): Lean drops a section
+  variable from a definition that does not use it, so a section `variable [HasExt …]` silently
+  states the triple for every semantics. Check with `#check`/`#print` that it is there.
+  (`bbolt-api.md`, round 10)
 - **After a change, drop what existed only for what it changed.** (`range.md`, critique 2)
 
 ## Preferences: resources
@@ -283,8 +338,27 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   for a bound local to one function (a library's own overflow precondition, `< 2 ^ 63` for an
   `int64`). Not a predicate (`keyOk k`) for a single `≤`: `omega` and `word` do not see through one. Where a goroutine holds
   two read locks at once, the inner lock's slot is a counted stock at that call path only.
+- **A closer gives back what the goroutines it waits for held**: a `Close` that stops goroutines and
+  waits for them (`wg.Wait()`, a stop channel's last payload) returns their resources, which they
+  deposit where they finish (the wait group's invariant, at `Done`), so that the caller can
+  reassemble what the closer above it takes (a backend's whole open token). (R-D1, 2026-11-04,
+  `examples/oneshot-close.md`: `watchableStore.Close`'s post `True` hid the loops' readers that
+  `NewServer`'s error path needed.)
+- **A clause is stated over what its user holds**: before adding a clause a client applies, check at
+  the client's use site that every resource it takes is there in the stated count (the producer may
+  have dropped a copy), that the client sees every name it mentions (an opaque `RD`, a trusted
+  lifecycle without the parameter), and that the producer can give the conclusion (a share kept for
+  good is not given back). (R-D, rounds 1 and 2: the abandon clause took `authRdN - 1` copies of a
+  resource minted `authRdN` times, then concluded resources the realization keeps.)
 - **A once-only resource is not spent per call**: check retry and loop paths; make the exception
   depend on the value (a persistent one-shot fact), not on the call. (`pilot-review-2.md`)
+- **A pure fact over the state before new ghost state**: what a proof needs across states is
+  usually a lemma about the transition relation (a key whose mod revision is unchanged was not
+  rewritten), held as a pure invariant clause over the current state by whoever sees every
+  transition. Ghost state enters only for the one thing a pure fact cannot say (that a later
+  state extends an earlier one), and then reuse the monotone state the library already keeps (a
+  raft log's lower bound) before adding any. (The etcd3 store's specs, 2026-11-01: the caller's
+  history map `kvSeen` was bookkeeping for the store's proof.)
 - **Read the definitions of the resources a spec takes**, not only their names: a predicate chosen
   for the access it gives may also assert what the function breaks. (`pilot-review-2.md`)
 - **When only some clients need a resource the library hands back to be duplicable, let the client

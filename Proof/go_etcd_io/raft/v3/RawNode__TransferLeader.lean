@@ -46,7 +46,6 @@ theorem RawNode.TransferLeader.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto_lc 1
-  rw [show raftpb.MsgTransferLeader = #((W32 13 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 13) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

@@ -124,14 +124,14 @@ theorem kvRevLb_of_srvRevLb (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.S
   imod (kvCert_reqLb γ γk E hE2 hE3 r) $$ Hci Hrl Hc with ⟨%L₀, #HL0, %HL0r⟩
   iunfold kvInv at Hkv
   iinv Hkv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
-  imod Hclose $$ [HL Hσ] with -
-  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod Hclose $$ [HL Hσ HG] with -
+  · inext; iexists L; iframe HL Hσ Hw HG; ipureintro; exact Hok
   imodintro
   unfold kvRevLb kvRevLbZ
   iexists L₀
   isplitr
-  · rw [Hok.2.2.2.2.2.2]; iunfold srvReqLogLb at HL0; iexact HL0
+  · rw [Hok.2.2.2.2.2.2.1]; iunfold srvReqLogLb at HL0; iexact HL0
   ipureintro
   exact HL0r Hok.2.2.1
 

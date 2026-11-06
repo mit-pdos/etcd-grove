@@ -14,7 +14,8 @@ initialization only once an `Init.lean` proves a package's `wp_initialize'` from
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Base
+public import Proof.hash.PkgInit
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.equality
 public import GeneratedProof.k8s_io.client_go.informers.internalinterfaces
 public import GeneratedProof.k8s_io.client_go.informers.apps.v1
@@ -173,12 +174,7 @@ instance k8s_io_kubernetes_pkg_api_v1_pod_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.kubernetes.pkg.api.v1.pod :=
   build_get_is_pkg_init_wf
 
-instance hash_fnv_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.hash.fnv :=
-  define_is_pkg_init iprop(True)
-instance hash_fnv_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.hash.fnv :=
-  build_get_is_pkg_init_wf
+-- (`hash/fnv`'s instance: `Proof/hash/PkgInit.lean`, shared with bbolt)
 
 instance k8s_io_apimachinery_pkg_util_rand_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.rand :=

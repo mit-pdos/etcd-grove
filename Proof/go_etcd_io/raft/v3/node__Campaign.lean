@@ -73,7 +73,6 @@ private theorem node.Campaign.wp_raw
   wp_start as ⟨#Hnode, #Hctx⟩
   -- the campaign's tick credit, a time receipt of a Go step of its own (`MsgHup.Enum()`'s
   -- resolution)
-  rw [show raftpb.MsgHup = #((W32 0 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_take_receipt as Htc
   wp_apply wp_MessageType_Enum (W32 0)

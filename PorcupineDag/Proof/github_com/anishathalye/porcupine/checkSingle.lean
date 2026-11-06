@@ -357,7 +357,7 @@ theorem checkSingle.wp_proof
     simp only [eq_false hcomp, _root_.decide_false, Bool.not_false, _root_.decide_true, ↓reduceIte]
     -- `if ctx.Err() != nil { fmt.Printf(...); return false, longest }`
     try wp_auto
-    wp_apply HErrU as %err Herr
+    wp_apply HErrU as %err Herr -
     cases err
     · simp only [reduceCtorEq, ↓reduceIte]
       icases Herr with ⟨#HPD, -⟩

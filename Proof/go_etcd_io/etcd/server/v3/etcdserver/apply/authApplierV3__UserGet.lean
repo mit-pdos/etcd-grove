@@ -47,7 +47,7 @@ theorem apply.authApplierV3.UserGet.wp_proof :
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
   iunfold apply.applierTriples at Ht
-  icases Ht with ⟨-, -, -, -, -, #HResp, -⟩
+  icases Ht with ⟨-, -, -, -, -, -, #HResp, -⟩
   wp_auto
   wp_apply HAdmin $$ [$Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI, -, #Hadm⟩
   ihave Hkv := Hkv $$ Hard

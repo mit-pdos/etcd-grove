@@ -33,13 +33,13 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.kubernetes.pkg.controller.Assumptions]
-variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions]
+variable [api_sem : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Assumptions]
 
 /-- **`r.DeletePod(ctx, ns, name, ds)`**: the delete's outcome `oc` per the model, `Ψ oc`, and
 `nil` only for an outcome the model returns `nil` for (`deleteRet`: `ok _`). -/
 abbrev RealPodControl.DeletePod.spec : Prop :=
   ∀ [ApiDeps] (r : RealPodControl) (γ : ApiNames)
-    (cfg : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config)
+    (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config)
     (ctx : GoInterface) (ns name : GoString) (l : Loc) (dd : kd.apps.DaemonSet)
     (Ψ : Except ApiErr Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.kubernetes.pkg.controller ∗ ⌜ctx ≠ interface.nil⌝ ∗

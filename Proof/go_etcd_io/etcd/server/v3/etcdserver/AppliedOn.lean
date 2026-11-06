@@ -142,6 +142,71 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   · iunfold appliedLogAt; iexact HLv'
   ipureintro; exact hv
 
+/-- **The ghost applied index jumps, in the mode** (`applied_jump`'s counterpart, a snapshot's
+install): with the auth state at `i` published (`appliedPubM`: with auth on, the state after the
+image's log, `srvApplyKVOn_appliedPub`), the apply thread raises the ghost index to `i` and
+publishes `L`, the mode's KV model of the committed log through `i`. -/
+theorem applied_jumpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a i : w64)
+    (L₀ L : mvcc.Log) (hi : uint.Z a < uint.Z i) (hp : L₀ <+: L) :
+    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ srvAppliedOwn γr a -∗ appliedLogAt γr a L₀ -∗
+      kvLogAtM on γr i L -∗ srvApi.kvLogLb E.γs L -∗ appliedPubM on E γr i ={⊤}=∗
+      srvAppliedOwn γr i ∗ appliedAtLeast γr i ∗ appliedLogAt γr i L := by
+  iintro #Hinv Hown #HL₀ #HkA #HcL #Hpub
+  iunfold srvAppliedInvM at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold srvAppliedBodyM at Hi
+  icases Hi with ⟨%vat, %v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
+  iunfold srvAppliedOwn at Hown
+  icases Hown with ⟨Hown, Hpo⟩
+  ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
+  have hv0 : v0 = a := by
+    have h2 := Hag.2
+    unfold uint.nat at h2
+    exact (BitVec.eq_of_toNat_eq h2).symm
+  subst hv0
+  ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
+  subst Hpg
+  ihave %HLeq := appliedLogAt_agree γr v0 Lc L₀ $$ HLc HL₀
+  subst HLeq
+  ihave %HMv : iprop(⌜M.lookup v0 = some Lc⌝) $$ [HM]
+  · iunfold appliedLogAt at HLc
+    iapply ghost_map_lookup $$ HM HLc
+  have hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v0 := by
+    intro k L' h
+    rcases HMk.2.1 k L' h with h | ⟨h, -⟩
+    · exact h
+    · cases h
+  have hfresh : M.lookup i = none := by
+    cases h : M.lookup i with
+    | none => rfl
+    | some L' => have := hk i L' h; omega
+  imod ghost_map_insert_persist i L hfresh $$ HM with ⟨HM, #HLi⟩
+  ihave #Hkl' := kvLogsPubM_insert on E γr M v0 i L $$ [Hkl HkA]
+  · iframe Hkl HkA
+  ihave #Hkl'' := kvLogsPubM_move on E γr (M.insert i L) v0 i $$ [Hkl' Hpub]
+  · iframe Hkl' Hpub
+  imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat i) (by word) $$ Hown Hauth
+    with ⟨Hown, Hauth, #Hlb⟩
+  imod Hclose $$ [Hat Hauth HM Hp] with -
+  · inext
+    iunfold srvAppliedBodyM
+    iexists vat, i, L, M.insert i L, false
+    iframe Hat Hauth HM Hp HcL Hkl''
+    isplitr
+    · ipureintro
+      refine ⟨by omega, ?_, appliedMonoMap_insert M v0 i Lc L hk HMk.2.2 HMv hp hi⟩
+      intro k L' h
+      rw [GMap.lookup_insert_Some] at h
+      rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
+      · exact Or.inl (Int.le_refl _)
+      · exact Or.inl (by have := hk k L' h; omega)
+    iunfold appliedLogAt; iexact HLi
+  imodintro
+  iunfold srvAppliedOwn
+  iframe Hown Hpo
+  iunfold appliedAtLeast
+  iframe Hlb
+  iunfold appliedLogAt; iexact HLi
 end applied
 
 section server
@@ -175,7 +240,7 @@ def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       srvWAddr s ↦□ v.w ∗ waitInvM on v.w ρ E ∗
       ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
@@ -229,13 +294,15 @@ lessor (`srvUberBase`, what the latest-state triples come from: `srv_uberKVL_on`
 admin steps `apply.uberAuthStepsL_of_base`), and the auth resource at `st` (`srvAuthApplyResB`: the
 store's history's latest state is the model's). E3o: the latest-state triples are derived where
 they are used rather than carried (until E3o this row named them, for families the construction
-did not yet fix); `applyBuiltOn` holds the same parts. -/
+did not yet fix); `applyBuiltOn` holds the same parts; (2026-11-04) the range deleter, as
+`srvApplyKV`'s. -/
 def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
     apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
-    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
-      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
+    (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
+      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ))
 
 /-- **The apply thread's applier state in the mode `on`** (the auth-mode merge's step 1,
 2026-10-29): `srvApplyKV` off (the auth state `st` unused), `srvApplyKVOn` on. -/

@@ -236,7 +236,7 @@ half), `HnRT` (the reader tokens), `HnDl` (the deletable keys' registration, unf
 compaction keys' flag and bit), `HnSr` (the safe-range slot). -/
 theorem newPost_named (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :
     newPost γ P W Pk b D ⊢
-      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ b ∗
+      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ P (W γ) (Pk γ) b ∗
         "HnOpen" ∷ bOpen γ 1 ∗ "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗
         "HnH" ∷ plHook γ func.nil ∗ "HnWb" ∷ ownToks γ.wb wbInit ∗
         "HnRB" ∷ rbOwn γ (rbData P D) ∗
@@ -250,7 +250,7 @@ theorem newPost_named (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (
 theorem newPostK_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc)
     (D : Data) :
     newPostK γ P W Pk K b D ⊢
-      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ b ∗ "HnK" ∷ K γ ∗
+      iprop("#HnB" ∷ isBackend γ P (W γ) (Pk γ) b ∗ "#HnSC" ∷ isStopChans γ P (W γ) (Pk γ) b ∗ "HnK" ∷ K γ ∗
         "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ "HnH" ∷ plHook γ func.nil ∗
         "HnRB" ∷ rbOwn γ (rbData P D) ∗
         "HnRT" ∷ ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),

@@ -114,6 +114,13 @@ LINK_PENDING = {m: proof_roots.link_pending(m) for m in LINKS}
 # The qualifiers of the packages Goose translates (`v3`, `zap`, `proto`, …).
 QUALIFIERS = {pkg.rsplit("/", 1)[-1].replace("-", "_").replace(".", "_")
               for p in goose.PROJECTS for _, _, pkgs, _ in goose.pieces(p) for pkg in pkgs}
+# the dotted paths of the projects' packages (`go.etcd.io/bbolt/internal/common`:
+# `internal.common`, `bbolt.internal.common`, ...: every tail of two segments or more), for a
+# Link that names a subpackage's functions by the path below its own (`bbolt.internal.common.
+# Page.wp_SetId`): such a path is shortened to its qualifier (`common.Page.SetId`)
+SUBPATHS = {".".join(seg[i:]).replace("-", "_")
+            for p in goose.PROJECTS for _, _, pkgs, _ in goose.pieces(p) for pkg in pkgs
+            for seg in [pkg.split("/")] for i in range(len(seg) - 1)}
 # a package whose path has a segment like this is a test helper
 TEST_PKG = re.compile(r"(^|/)[^/]*(test|mock)[^/]*(/|$)")
 
@@ -167,6 +174,11 @@ def go_sources(base):
             if not ok:
                 sys.exit(f"verified-code: could not check out {p.repo} at {p.rev}")
         dirs[name] = d
+    # the code translated is the code with the prophecy patches applied (etc/proph_patch.py)
+    import proph_patch
+    for name in dirs:
+        dirs[name] = proph_patch.patched_copy(name, dirs[name],
+                                              os.path.join(base, name + ".proph"), quiet=True)
     return dirs
 
 
@@ -302,6 +314,10 @@ def local_proofs(objs):
             rest = name.removeprefix(lns).split(".")
             if len(rest) > 1 and rest[0] in QUALIFIERS and rest[0] + "." != lns:
                 name = ".".join(rest)
+            for k in range(len(rest) - 1, 1, -1):
+                if ".".join(rest[:k]) in SUBPATHS:
+                    name = ".".join(rest[k - 1:])
+                    break
         *pre, last = name.split(".")
         fn = ".".join(pre + [last.removeprefix("wp_")])
         inherited = {s for u in r["uses"] if used(r, u) for s in used(r, u)["sorries"]}
@@ -324,6 +340,32 @@ def qualifier(pkg):
     """How this repository's names qualify a Go package: its last segment, as Goose
     spells it (`go-humanize`: `go_humanize`)."""
     return pkg.rsplit("/", 1)[-1].replace("-", "_").replace(".", "_")
+
+
+_SPEC_NS = {}
+
+
+def spec_namespaces(pkg):
+    """The namespaces below `EtcdGrove` a Go package's spec files are declared in (`raft_kv` for
+    `examples/raft/kv`), in the main tree and the parts."""
+    if pkg not in _SPEC_NS:
+        root, _, path = pkg.rpartition(":")  # a part's package: `RaftWitness:<path>`
+        rel = os.path.join(*[re.sub(r"[.-]", "_", s) for s in path.split("/")])
+        nss = set()
+        for top in ([root] if root else [""] + list(proof_roots.PART_ROOTS)):
+            d = os.path.join(ROOT, top, "Spec", rel)
+            if not os.path.isdir(d):
+                continue
+            for f in os.listdir(d):
+                if f.endswith(".lean"):
+                    src = open(os.path.join(d, f), encoding="utf-8").read()
+                    found = re.findall(r"^namespace (\S+)", src, re.M)
+                    if "EtcdGrove" in found:
+                        inner = found[found.index("EtcdGrove") + 1:]
+                        if inner:
+                            nss.add(inner[0].split(".")[0])
+        _SPEC_NS[pkg] = nss
+    return _SPEC_NS[pkg]
 
 
 def resolve_local(fn, pkgs, part_pkgs, by_key, known):
@@ -353,8 +395,10 @@ def resolve_local(fn, pkgs, part_pkgs, by_key, known):
         key = (pkg, parts[0], parts[1]) if len(parts) == 2 else (pkg, "", parts[0])
         if key in by_key or key in known:
             return key, False
-    # qualified by the main package's own qualifier (the register's `register.Register.Put`)
-    if len(parts) in (2, 3) and parts[0] == qualifier(pkgs[0]):
+    # qualified by the main package's own qualifier (the register's `register.Register.Put`), or
+    # by the namespace its specs are declared in (`raft_kv`, the kv example's)
+    if len(parts) in (2, 3) and (parts[0] == qualifier(pkgs[0])
+                                 or parts[0] in spec_namespaces(pkgs[0])):
         rest = parts[1:]
         key = (pkgs[0], rest[0], rest[1]) if len(rest) == 2 else (pkgs[0], "", rest[0])
         if key in by_key or key in known:

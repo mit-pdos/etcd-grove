@@ -239,6 +239,9 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hm with ⟨Hwt, Hm⟩
   iunfold mPre at Hm
   icases Hm with ⟨Hkv, Hm⟩
+  -- MERGE-TODO(results): `kvOwn_cert` (mvcc's `idxCert`) is gone: the chain's KV triples take
+  -- `threadTok` and a floor `kvLogLb E.γs F` (strict M1); this statement needs `threadTok` in
+  -- and out (a statement change of the plan's M2), the floor at `[]` or the caller's
   ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
   iapply HPut $$ %r %rq %o %log %log %Pre %Q %Post %info [Hwt Hkv Hm]
   · iframe Hc
@@ -294,6 +297,9 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hm with ⟨Hwt, Hm⟩
   iunfold mPre at Hm
   icases Hm with ⟨Hkv, Hm⟩
+  -- MERGE-TODO(results): `kvOwn_cert` (mvcc's `idxCert`) is gone: the chain's KV triples take
+  -- `threadTok` and a floor `kvLogLb E.γs F` (strict M1); this statement needs `threadTok` in
+  -- and out (a statement change of the plan's M2), the floor at `[]` or the caller's
   ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
   iapply HDel $$ %r %rq %o %log %log %Pre %Q %Post %info [Hwt Hkv Hm]
   · iframe Hc
@@ -318,6 +324,8 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iapply (chainClass_alarm _ _ _ _ _ _ _ hp) $$ Hcls
 /-- **A range through the uber-applier's chain**: the outcome `alarmRange` (`rangeResult` at
 `log` unless rejected), its answer; the log as it is. -/
+-- MERGE-TODO(results): the chain's triple takes and gives `threadTok` (strict M1): this
+-- statement needs it in and out
 theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
@@ -394,6 +402,9 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases Hm with ⟨Hwt, Hm⟩
   iunfold mPre at Hm
   icases Hm with ⟨Hkv, Hm⟩
+  -- MERGE-TODO(results): `kvOwn_cert` (mvcc's `idxCert`) is gone: the chain's KV triples take
+  -- `threadTok` and a floor `kvLogLb E.γs F` (strict M1); this statement needs `threadTok` in
+  -- and out (a statement change of the plan's M2), the floor at `[]` or the caller's
   ihave ⟨Hkv, #Hc⟩ := kvOwn_cert E log $$ Hkv
   iapply HTxn $$ %r %skip %rq %t %log %log %Pre %Q %Post %info [Hwt Hkv Hm]
   · iframe Hc
@@ -426,18 +437,20 @@ deletions committed, `revokeLog`), its answer, the log it commits, the rest afte
 (`reqLeaseClass`'s `.leaseRevoke` case, `leaseKeysClass`: in the mode `on`, the principal an admin
 or allowed to write every key the item map put on the lease before the revocation, the keys it
 deletes). -/
+-- MERGE-TODO(results): the chain's triple takes and gives `threadTok` (strict M1): this
+-- statement needs it in and out
 theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
-      □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (rs : RestM) (Pre Q Post : IProp GF)
-          (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-        {{ revokePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq id log rs Pre Q Post }}
+      □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
+          (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
+        {{ revokePre E (alarmChain E.authOn ns cr) (.ok ai) info r rq id log T rs Pre Q Post }}
           (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
         {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
             ∃ oc : Outcome, ⌜chainStep backendStep (alarmChain E.authOn ns cr) rq log oc⌝ ∗
               revokeOutcomeIs resp err oc ∗ kvOwn E (oc.logAfter log) ∗
               chainRes (alarmChain E.authOn ns cr) (.ok ai) info ∗ (Post ∨ Pre) ∗
-              revokeResAfter E id rs err ∗
+              revokeResAfter E rq T rs resp err oc ∗
               (∀ _ : authPassed oc, reqClass E.authMode info rq ∗
                 reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq) }}) := by
   iintro #Hs
@@ -449,16 +462,16 @@ theorem chain_revoke (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   iunfold applierTriples at Ht
   icases Ht with ⟨-, -, -, -, #HRev, -⟩
   imodintro
-  iintro %r %rq %id %log %rs %Pre %Q %Post %info
+  iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
   imodintro
   iintro %Φ Hpre HΦ
-  iapply HRev $$ %r %rq %id %log %rs %Pre %Q %Post %info [Hpre]
+  iapply HRev $$ %r %rq %id %log %T %rs %Pre %Q %Post %info [Hpre]
   · iexact Hpre
   inext
-  iintro %resp %err ⟨Hpost, Hra⟩
+  iintro %resp %err Hpost
   iapply HΦ
   iunfold kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, H1, H2, H3, H4, #Hcls, #Hlc⟩
+  icases Hpost with ⟨%oc, %Hst, ⟨H1, Hra⟩, H2, H3, H4, #Hcls, #Hlc⟩
   iexists oc
   iframe H1 H2 H3 H4 Hra
   isplitr
@@ -659,6 +672,7 @@ theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
 
 #print axioms Perennial.EtcdGrove.apply.pbutil.wp_MustUnmarshalMessage
 #print axioms Perennial.EtcdGrove.apply.semver.wp_MustParse
+-- MERGE-TODO(results): `newHeader` no longer calls `store.Rev` (ours: `KV.Rev.contract`)
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_Rev
 #print axioms Perennial.EtcdGrove.txn.wp_Txn
 

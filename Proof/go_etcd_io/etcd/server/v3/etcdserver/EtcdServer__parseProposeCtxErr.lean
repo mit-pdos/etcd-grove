@@ -69,7 +69,7 @@ local macro "ppce_tail" : tactic => `(tactic| (
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 /-- **In either auth mode** (E3b): the proof reads none of the mode's rows. -/
-theorem EtcdServer.parseProposeCtxErr.wp_proofM (on : Bool)
+theorem EtcdServer.parseProposeCtxErr.wp_proof
     (hIs : errors.IsCtxErr.spec (GF := GF) (hG := hG))
     (hAfter : time.Time.After.spec (GF := GF) (hG := hG))
     (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
@@ -77,7 +77,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proofM (on : Bool)
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
     (hQ : isConnectedToQuorumSince.spec (GF := GF) (hG := hG))
     (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
-    EtcdServer.parseProposeCtxErr.specM (GF := GF) (hG := hG) on := by
+    EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) := by
   intro s E ρ err start Herr
   wp_start as ⟨#Hsrv, Hrd, #Herrv⟩
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
@@ -150,18 +150,6 @@ theorem EtcdServer.parseProposeCtxErr.wp_proofM (on : Bool)
     (try wp_auto)
     iapply HΦ; iframe Hrd; isplitr; · ipureintro; simp
     iexact HaCan
-
-theorem EtcdServer.parseProposeCtxErr.wp_proof
-    (hIs : errors.IsCtxErr.spec (GF := GF) (hG := hG))
-    (hAfter : time.Time.After.spec (GF := GF) (hG := hG))
-    (hGL : EtcdServer.getLead.spec (GF := GF) (hG := hG))
-    (hMid : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
-    (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG))
-    (hQ : isConnectedToQuorumSince.spec (GF := GF) (hG := hG))
-    (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
-    EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) := by
-  intro s E ρ
-  exact EtcdServer.parseProposeCtxErr.wp_proofM E.authOn hIs hAfter hGL hMid hMem hQ hC s E ρ
 
 end proof
 

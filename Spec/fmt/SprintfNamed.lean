@@ -1,7 +1,8 @@
 /-
 `fmt.Sprintf` with arguments of methodless named types (`fmt.methodlessNamedTypes`): the trust
-boundary, for the one call shape `Mutex.tryAcquire` and `Election.Campaign` make,
-`Sprintf("%s%x", pfx, s.Lease())` with a `LeaseID`. Perennial's `fmt.wp_Sprintf` admits
+boundary, for the call shapes `Mutex.tryAcquire` and `Election.Campaign` make,
+`Sprintf("%s%x", pfx, s.Lease())` with a `LeaseID`, and `storage.Preconditions.Check`'s
+`Sprintf("...%v...%v", *p.UID, objMeta.GetUID())` with two `types.UID`s. Perennial's `fmt.wp_Sprintf` admits
 arguments of predeclared basic types only (`fmt.ArgsWf`: Go calls the `Error()`/`String()`/
 `Format` methods of other arguments, which its model of `Sprintf` does not); a named type is not
 one, even with a basic underlying type. A spec of its own (as `errors.IsDeadlineExceeded` is
@@ -30,8 +31,12 @@ one by its kind, as it formats the underlying type, calling nothing. The model d
 type's methods (`methodSet` is unconstrained), so this is a list, checked against the Go source:
 
 * `go.etcd.io/etcd/client/v3.LeaseID`: `type LeaseID int64` (`client/v3/lease.go`), with no
-  methods (`concurrency.Mutex.tryAcquire` and `Election.Campaign` format it with `%x`). -/
-def fmt.methodlessNamedTypes : List GoString := [go!"go.etcd.io/etcd/client/v3.LeaseID"]
+  methods (`concurrency.Mutex.tryAcquire` and `Election.Campaign` format it with `%x`).
+* `k8s.io/apimachinery/pkg/types.UID`: `type UID string` (`pkg/types/uid.go`, the whole file), with
+  no methods (`storage.Preconditions.Check` formats two with `%v` in a failed UID precondition's
+  message; stage 7b of `notes/k8s-etcd3-plan.md`, proposed 2026-11-05). -/
+def fmt.methodlessNamedTypes : List GoString :=
+  [go!"go.etcd.io/etcd/client/v3.LeaseID", go!"k8s.io/apimachinery/pkg/types.UID"]
 
 /-- An argument of `Sprintf` that Go formats without calling any method: `nil`, a value of a
 predeclared basic type (`fmt.ArgWf`), or a value of one of `fmt.methodlessNamedTypes`, whose

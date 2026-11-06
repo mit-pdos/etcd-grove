@@ -48,7 +48,6 @@ theorem RawNode.Campaign.wp_proof
   have Hnw : uint.Z s.term + 1 < 2 ^ 64 := by have : uint.Z s.gh.tc < 2 ^ 64 := by word
                                               omega
   wp_auto_lc 1
-  rw [show raftpb.MsgHup = #((W32 0 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 0) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy

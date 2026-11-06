@@ -1,0 +1,11 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/goose/prophkv/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --prophkv`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `goose_prophkv`. Not listed: goose's `primitive` functions with Perennial specs (`NewProph`,
+# `ProphId.ResolveBool`, `RandomUint64`, `Mutex`), which the proofs use directly.
+prophkv_NewKV:
+KV__Put:
+KV__Get:
+# `GetAny`: its two reads (and the prophecy of its choice, from the prophecy patch)
+prophkv_GetAny: KV__Get
+prophkv_Test: prophkv_NewKV KV__Put prophkv_GetAny

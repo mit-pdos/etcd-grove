@@ -32,6 +32,9 @@ theorem apply.applierV3backend.newHeader.wp_proof
     (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG)) :
     apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG) := by
   intro E p log c
+  -- MERGE-TODO(proof): ours' proof (`KV.Rev.contract` at `envAus`'s read update) with `lean`'s
+  -- stronger post (2.11a: `hdrFields`, the `Revision` the log's last, `E.Nx log` in place of
+  -- `certOk`, from `envAus`'s writer facts); not yet checked
   wp_start as ⟨#Hb, Htt, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -50,7 +53,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   · rw [← Hkveq]; imodintro; iexact Hkv
   icases Hkv' with #Hkv'
   iunfold apply.envAus at Haus
-  icases Haus with ⟨-, #HauR, -⟩
+  icases Haus with ⟨-, #HauR, -, -, #Hfacts, -⟩
   ihave Hau := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hsw []
   · iintro Hsw; iexact Hsw
   iunfold srvApi.auRead at Hau
@@ -63,14 +66,29 @@ theorem apply.applierV3backend.newHeader.wp_proof
   wp_apply HMem as %mid -
   rw [Hkveq]
   simp only [interface.mkOk]
-  wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hau] as %v ⟨Htt, %σ, ⟨-, Hsw⟩, -⟩
+  wp_apply (hRevC E.γ _) $$ [$Hkv' $Htt $Hau] as %v ⟨Htt, %σ, ⟨%Hσ, Hsw⟩, %Hv⟩
+  -- the writer's facts: its log's witness, reachable (so at least `NewStore`'s two revisions)
+  imod Hfacts $$ %log %c Hsw with ⟨Hsw, Hnx, -, %Hreach⟩
+  have Hlen2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   wp_apply HTerm as %tm -
   wp_apply HLead as %ld -
   irename «$r0» => Hh
   generalize «$r0_ptr» = h at *
+  ihave %Hhn := typedPointsto_not_null $$ Hh
+  iStructNamed Hh
   iapply HΦ
-  iframe Htt Hsw
-  iapply typedPointsto_not_null $$ Hh
+  iframe Htt Hsw Hnx
+  isplitr
+  · ipureintro; exact Hhn
+  isplitl [ClusterId MemberId RaftTerm LeaderId]
+  · iunfold apply.hdrFields
+    iexists _, _, _, _
+    iframe
+  -- MERGE-TODO(proof): `v` is the read state's revision `σ.rev`, `log.length - 1` at `σ = stAt log c`
+  subst Hσ
+  rw [← Hv]
+  iframe Revision
+  ipureintro; exact ⟨Hlen2, Hreach.2⟩
 
 end proof
 

@@ -21,6 +21,7 @@ mvcc's `ErrFutureRev`/`ErrCompacted` (`checkRange`) are mvcc's facts (`mvccInit`
 module
 
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
+public import Proof.reflect.PkgInit
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
@@ -50,13 +51,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `reflect`, names-only (`util.go`'s `isNil` calls `reflect.ValueOf(..).IsNil()`, the axiom
-`Spec/reflect/ValueOf.lean`; unit P4, 2026-10-14). The same instance as raft's
-(`Proof/go_etcd_io/raft/v3/Base.lean`), which no module of the server imports. -/
-instance reflect_txn_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.reflect :=
-  define_is_pkg_init iprop(True)
-instance reflect_txn_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.reflect :=
-  build_get_is_pkg_init_wf
+-- (`reflect`'s instance: `Proof/reflect/PkgInit.lean`, shared)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.txn
 

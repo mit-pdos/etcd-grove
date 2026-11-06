@@ -914,7 +914,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     iapply broadcast_chan_receive _ _ _ _ _ $$ Hstcc
     iintro ⟨-, #Hdone⟩
     wp_auto
-    wp_apply mvcc.wp_Errorf_errorfIs $$ [] as %err #Herr
+    wp_apply (mvcc.wp_Errorf_errorfIs go!"interrupted due to stop signal" _ (by decide)) $$ []
+      as %err #Herr
     · iframe #; iapply ownSlice_nil
     (try wp_auto)
     wp_for_post

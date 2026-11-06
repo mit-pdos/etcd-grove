@@ -24,6 +24,7 @@ axiom DescribeConfChange.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
@@ -87,8 +88,10 @@ axiom context.WithValue.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
+axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom heap.Init_.wp_proof
 axiom http.Flush_ok
 axiom http.HeaderGetOwnPtr_ok
 axiom http.HeaderGetPtr_ok
@@ -110,7 +113,6 @@ axiom http.respWrite_ok
 axiom httputil.GracefulClose.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
-axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
@@ -146,6 +148,7 @@ axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
+axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.UnsafeDeleteLease.wp_proof
@@ -169,8 +172,6 @@ axiom storage.storage.Release.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom time.NewTicker.wp_proof
-axiom time.Ticker.Stop.wp_proof
 axiom time.Time.Unix.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.RangeSecObserve.wp_proof

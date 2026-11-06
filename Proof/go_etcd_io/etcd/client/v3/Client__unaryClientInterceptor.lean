@@ -174,10 +174,10 @@ theorem Client.unaryClientInterceptor.wp_proof
     · cases once
       · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
       · simp only [↓reduceIte, laterHid]; iexact Hpre
-    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ')
+    ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ' (fun _ => iprop(True)))
       $$ [Hsp]
     · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
-    wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
+    wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
     · iframe Hg' Hctx' Hrpc
@@ -268,10 +268,10 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitl [Hp]
           · iapply Hp; ipureintro; exact Ha0
           · iintro %h; exfalso; rw [Ha0] at h; revert h; decide
-      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ')
+      ihave Hsp : ▷ (∀ md, ⌜grpcAttemptMd conn (GoInterface.ok ci) md⌝ -∗ Spec md m Φ' (fun _ => iprop(True)))
         $$ [Hsp]
       · inext; iapply (attemptPre_attempt conn _ _ vver Hver) $$ Hsp
-      wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
+      wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %(fun _ => iprop(True)) %ci
           %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
         as %err ⟨Hsend, Hpbs, Hres⟩
       · iframe Hg' Hctx' Hrpc
@@ -283,7 +283,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, %Hnr⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, %Hnr, -⟩)
       · subst He
         (try wp_auto)
         wp_for_post
@@ -317,7 +317,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       · -- a context error: the caller's context's, or retried
         ihave #HC := Hctx'
         iunfold ctxOk at HC
-        icases HC with (#HC | #HQ)
+        icases HC with (#HC | #HQ | #HE)
         rotate_left
         · -- a quiet context (`context.TODO()`, the vertical slice's unit V2): `Err()` is `nil`
           (try wp_auto)
@@ -348,11 +348,49 @@ theorem Client.unaryClientInterceptor.wp_proof
           iright
           iframe Hcl Hse
           ipureintro; exact ⟨Hne, Hce⟩
+        · -- (2026-11-04) a context whose `Err()` follows Go's contract (`ctxErrs`: k8s's
+          -- `wait.ContextForChannel`), as an `isContext`'s
+          (try wp_auto)
+          iunfold ctxErrs at HE
+          wp_apply HE $$ %Broadcast.Pending as %ce Hce' - - - -
+          cases ce with
+          | ok cei =>
+            (try wp_auto)
+            wp_for_post
+            iapply HΨ
+            iframe
+            iright
+            iframe Hcl Hse
+            ipureintro; exact ⟨Hne, Hce⟩
+          | nil =>
+            (try wp_auto)
+            wp_if_destruct
+            · -- a non-repeatable call: its attempt's error (8a24be2a3)
+              wp_for_post
+              iapply HΨ
+              iframe
+              iright
+              iframe Hcl Hse
+              ipureintro; exact ⟨Hne, Hce⟩
+            (try wp_auto)
+            wp_for_post
+            iframe
+            iexists a + W64 1, GoInterface.ok ei
+            simp only [named]
+            isplitr
+            · -- (D29) a write's policy is `nonRepeatable`, which returned above
+              ipureintro; intro hw; exfalso
+              have := Hcovpol hw
+              simp_all
+            iframe
+            iright
+            iframe Hcl Hse
+            ipureintro; exact ⟨Hne, Hce⟩
         iunfold _root_.Perennial.context.isContext at HC
         iunfold _root_.Perennial.context.isContextDef at HC
         iNamed HC
         (try wp_auto)
-        wp_apply HErr $$ %Broadcast.Pending as %ce Hce'
+        wp_apply HErr $$ %Broadcast.Pending as %ce Hce' -
         cases ce with
         | ok cei =>
           (try wp_auto)

@@ -61,7 +61,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -79,7 +79,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -97,7 +97,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -115,7 +115,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
@@ -133,7 +133,7 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS, %_⟩
     · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]

@@ -123,7 +123,7 @@ theorem txn.executeRange.wp_proof
     · ipureintro; intro _; exact Or.inr (Or.inl (by rw [hrevo]; exact Hfut))
   · simp only at Hle Hflags
     subst Hrrnull
-    ihave %Herr := mvcc.errorfIs_ne_nil err $$ Herrf
+    ihave %Herr := mvcc.ctxErrorf_ne_nil err $$ Herrf
     cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>

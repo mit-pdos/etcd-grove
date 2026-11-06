@@ -26,15 +26,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`a.LeaseGrant(lc)`**: `ErrCorrupt`; nothing written. -/
+/-- **`a.LeaseGrant(lc)`**: `ErrCorrupt`; nothing written.  (The lease-grant stage, 2.11, 2026-11-03: the chain's grant triple, `grantPre`/`grantPost`;
+until then the generic triple of the methods that leave the log, over the write right `E.RW`.) -/
 abbrev apply.applierV3Corrupt.LeaseGrant.spec : Prop :=
-  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
+  ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (g : LeaseGrantModel)
+    (log : mvcc.Log) (T : List w64) (rs : apply.RestM) (U : List w64) (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.corruptIs p inner ∗
-      ((∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted (mvcc.api.mvccLeases E.γ) g.id) ∗ E.RW) ∗
-      threadTok ∗ apply.mPreW E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info log Pre Q Post }}
+      threadTok ∗ apply.grantPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) info r rq g log T rs U
+        Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"LeaseGrant")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ apply.mPostW E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) log Pre Post ∗ applyErrIs err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); threadTok ∗ ∃ o : apply.Outcome,
+      apply.grantPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq g log T rs U
+        Pre Post resp err o }}
 
 end spec
 

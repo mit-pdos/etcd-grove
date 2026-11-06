@@ -1,5 +1,5 @@
 // Package keysonlyreply tests issues/etcd-txn-keysonly-reply-alloc-panic.md (it fails when the
-// member crashes; the copy in etcd-grove's examples/etcdbugs/keysonlyreply passes then): a client Txn
+// member crashes; the copy in etcd-grove's examples/etcd/bugs/keysonlyreply passes then): a client Txn
 // built from nested transactions of keys-only whole-range reads makes a member produce a reply
 // whose protobuf encoding exceeds 2^48 bytes, and the gRPC codec's proto.Marshal allocates that
 // many bytes with make() before any size check, so Go panics with "makeslice: cap out of range"
@@ -89,7 +89,7 @@ func envUint(name string, def uint) uint {
 func maxRequestBytes() uint { return envUint("KEYSONLY_MAXREQ", 32<<20) }
 
 // TestKeysOnlyReplyServer is the member's process: one member of a new cluster, configured as
-// examples/common's newServer but for MaxRequestBytes and the raft timing, its gRPC API served by
+// examples/lib/etcdstart's newServer but for MaxRequestBytes and the raft timing, its gRPC API served by
 // v3rpc.Server as etcd's embed does (no TLS, no extra interceptor). It prints READY and serves
 // until it dies.
 func TestKeysOnlyReplyServer(t *testing.T) {
