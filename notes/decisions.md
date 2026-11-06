@@ -33083,3 +33083,58 @@ until the fix lands, and then it rebases onto the fix.
 - (c) Restating the server's specs to take the description the server re-reads. Connecting what a
   handler knows to what the server reads needs stability anyway.
 
+**As built (2026-11-06, branch `fromerror-stable`, etcd-grove-56).**
+- `errorStringSpec` itself stays "some string": it is `fmt.stringMethodSpec e "Error"` by `rfl`, and
+  the printing paths (the cache's `validate*`, the `fmt.Errorf` specs) need nothing more. The
+  stable form is a new persistent predicate, `errorMsgIs e m := □ ∀ Φ, ▷ Φ #m -∗ WP e.Error()`, with
+  the law `errorMsgIs_errorStringSpec`. `statusErrOk` now holds `∃ m, errorMsgIs e m`.
+- `grpcErrMethodsOk`: `GRPCStatus()` returns one fixed `*Status`, which grpc never mutates, and `Is(target)`
+  answers `true` only when `errDesc (ok e) = errDesc target`. That last clause fixes a second,
+  independent flaw: an `Is` that always answers `true` refuted `errors.IsStatusErr`'s post even with
+  a constant `Error()` (`examples/axiomcx/flipdesc`'s `MainIs`, branch `axiom/is-desc`
+  `1ae8b405e4`, `notes/axiom-review/is-desc.md` there).
+- `status.FromError.spec`'s new conjunct is
+  `□ ∀ e m, ⌜ok = false ∧ err = ok e⌝ → errorMsgIs e m -∗ ⌜errDesc err = m⌝`: any `m` that `Error()`
+  stably returns is the description.
+- The same stable form is used by:
+  - the server's `errMsgOk`, and through it `errVarLeaf`, `ctxDeadlineLeaf` and the premise class
+    `ContextReadErrs`;
+  - auth's `authErrVar` and lease's `leaseErrVar`;
+  - `bcrypt.GenerateFromPassword`'s error;
+  - `fmt.modelErrIs`. Go's `wrapErrIs` already had it.
+- `v3rpc.msgErrVar` takes `errorStringSpec`, since the watch server only prints its errors. The
+  lemma `errMsgOk_of_errorStringSpec`, which is false under the new `errMsgOk`, is deleted.
+- Re-attacks: both counterexamples replayed onto the branch fail.
+  - flipdesc's `Main` is stuck at `∃ m, errorMsgIs flipErr m`.
+  - `MainIs` is stuck at `errDesc (alwaysIs) = errDesc target`.
+- Gate: `etc/errdesc-check.py` (in `etc/gates.sh`) lists every trusted statement that names the
+  description, the code or the stability predicates, with why it is true of Go. A new one fails
+  until it is reviewed.
+- A caveat, recorded and not fixed. `errDesc` and `statusCode` are fixed Lean functions of the
+  error value, which for a pointer error includes its location. Within one execution this agrees
+  with Go: locations are not reused, and the premise makes the methods stable. Across executions
+  one location can hold another error. So the axiom is justified per execution, not as one triple
+  over all executions. `notes/audit.md`'s `withtimeout-md` row records the same kind of caveat for
+  `outgoingOf`. The fully semantic version would be a ghost agreement map in place of `errDesc`,
+  a redesign of D29.
+- Closed theorems: their text is unchanged (no `Results`/`Adequacy` file in the diff). Their
+  premise class `ContextReadErrs` is stronger: context's two errors have a stable `Error()`, which
+  is true of Go (an `errors.New` cell, and a constant). The trust base is unchanged: 817 axioms,
+  4 `sorry`s, and every collection the same.
+
+---
+
+## bbolt's read transactions and the backend's snapshots pay for their reader slot (2026-11-06 · the user's decision via etcd-grove-82 · stage `begin-tok`)
+
+`bbolt.DB.Begin_kv.wp_proof` (with `Open_kv`, `DB.Close_kv`, `Tx.Rollback_kv`) is refuted
+(`notes/axiom-review/backend-snapshot-begin.md`): a read transaction holds one of `db.mmaplock`'s
+reader slots, and the axioms let a program hold `2 ^ 30` of them from one goroutine, after which
+`Close` and a `Rollback` reach Go's `RUnlock` fatal; `backend.backend.Snapshot.wp_proof` has the same
+gap. Rule: a trust-boundary spec of an operation that holds a lock's reader slot past its return
+charges for it, as the proved specs do (a `threadTok`, or a slot of the owner's pool, held by the
+object and given back by its close); "the verified code never gets near `2 ^ 30`" is an argument
+outside the logic, not a reason to leave a slot unpaid. The fix (D1 of
+`notes/bbolt-spec-decisions.md`): read transactions through bbolt's proved `DB.Begin.spec`, or, where
+that is impractical, `Begin_kv`'s read half takes a `threadTok` held by the transaction and returned
+by `Rollback_kv`; `backend.Snapshot` takes a `threadTok` until `snapshot.Close`. Accepted when the
+counterexample `axiomcx/bboltrd` no longer verifies.

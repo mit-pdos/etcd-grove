@@ -83,13 +83,55 @@ variable [sem : go.Semantics]
 
 /-- **An error's message**: the error `ei`'s `Error()` returns (a string). What `togRPCError`
 needs of a non-nil error it does not map (`status.Error(codes.Unknown, err.Error())`). An
-`errors.New` error's (`errors.wp_New`: it returns the message). -/
+`errors.New` error's (`errors.wp_New`: it returns the message). (fromerror-stable, 2026-11-06) The
+same string on every call (`errorMsgIs`): what makes such an error one grpc's `status` accepts
+(`statusErrOk_of_leafMsg`); every error it is said of has a fixed message (an `errors.New` cell, a
+context error). -/
 def errMsgOk (ei : GoInterfaceOk) : IProp GF :=
-  iprop({{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
-    {{ (msg : GoString), RET #msg; True }})
+  iprop(∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+    WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }})
 
 instance errMsgOk_persistent (ei : GoInterfaceOk) : Persistent (errMsgOk (GF := GF) ei) := by
   unfold errMsgOk; infer_instance
+
+/-- An `errMsgOk` error's `Error()` returns some string, as a triple. -/
+theorem errMsgOk_triple (ei : GoInterfaceOk) :
+    errMsgOk (GF := GF) ei ⊢ {{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
+      {{ (msg : GoString), RET #msg; True }} := by
+  iunfold errMsgOk
+  iintro ⟨%m, #H⟩ %Φ !> - HΦ
+  iapply H
+  inext
+  iapply HΦ
+  itrivial
+
+theorem errMsgOk_of (ei : GoInterfaceOk) (m : GoString) :
+    go_etcd_io.etcd.cache.v3.errorMsgIs (GF := GF) ei m ⊢ errMsgOk ei := by
+  iintro #H
+  iunfold errMsgOk
+  iexists m
+  iunfold go_etcd_io.etcd.cache.v3.errorMsgIs at H
+  iexact H
+
+/-- An `errMsgOk` error's `Error()` returns (`errorStringSpec`). -/
+theorem errMsgOk_errorStringSpec (ei : GoInterfaceOk) :
+    errMsgOk (GF := GF) ei ⊢ go_etcd_io.etcd.cache.v3.errorStringSpec ei := by
+  iunfold errMsgOk
+  iintro ⟨%m, #H⟩
+  unfold go_etcd_io.etcd.cache.v3.errorStringSpec
+  iintro !> %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
+/-- An `errMsgOk` error's `Error()` returns one string (`errorMsgIs`). -/
+theorem errMsgOk_msgIs (ei : GoInterfaceOk) :
+    errMsgOk (GF := GF) ei ⊢ ∃ m : GoString, go_etcd_io.etcd.cache.v3.errorMsgIs ei m := by
+  iunfold errMsgOk
+  iintro ⟨%m, #H⟩
+  iexists m
+  iunfold go_etcd_io.etcd.cache.v3.errorMsgIs
+  iexact H
 
 /-- **What the gRPC layer needs of an error besides its tree** (persistent): `nil`, or a safe key
 of `togRPCError`'s error map (`SafeMapKey`: comparing it with itself does not panic; a pointer
@@ -200,14 +242,7 @@ theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors
   iintro !> %e' %he
   cases he
   isplitr
-  · unfold go_etcd_io.etcd.cache.v3.errorStringSpec
-    iintro !> %Ψ HΨ
-    iunfold errMsgOk at Hm
-    iapply Hm $$ [] [HΨ]
-    · itrivial
-    inext
-    iintro %msg -
-    iapply HΨ
+  · iapply errMsgOk_msgIs $$ Hm
   isplitr
   · ipureintro; exact hl
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
@@ -438,18 +473,14 @@ theorem errTreeOk_chain [_root_.Perennial.errors.Assumptions]
     subst Hii
     icases Hb with (#Hm | ⟨%mid, #Hw, #Hch⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
-      icases Hm with ⟨%Hx, #Hs⟩
+      icases Hm with ⟨%Hx, ⟨%s, #Hs⟩⟩
       obtain ⟨x, rfl⟩ := Hx
       ihave #HA : applyErrIs (GoInterface.ok
           ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩) $$ []
       · iapply applyErrIs_leaf _ (hleaf x)
         iunfold errMsgOk
-        iintro !> %Φ - HΦ
-        iapply Hs
-        inext
-        iintro %str
-        iapply HΦ
-        itrivial
+        iexists s
+        iexact Hs
       iapply applyErrIs_walk $$ HA
     · iapply errTreeOk_wrap ii mid pre $$ Hw
       iapply ih mid $$ Hch Ht
@@ -485,7 +516,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
       iright
       icases Hb with (#Hm | ⟨%mid, #Hw2, -⟩)
       · iunfold EtcdGrove.fmt.modelErrIs at Hm
-        icases Hm with ⟨%Hx, #Hs⟩
+        icases Hm with ⟨%Hx, ⟨%s, #Hs⟩⟩
         obtain ⟨x, rfl⟩ := Hx
         isplitr
         · ipureintro; exact safeMapKey_ptrErr _ ⟨_, x, rfl, rfl⟩
@@ -493,12 +524,8 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
         isplitr
         · ipureintro; rfl
         iunfold errMsgOk
-        iintro !> %Φ - HΦ
-        iapply Hs
-        inext
-        iintro %str
-        iapply HΦ
-        itrivial
+        iexists s
+        iexact Hs
       · iunfold EtcdGrove.fmt.wrapErrIs at Hw2
         icases Hw2 with ⟨%Hm, ⟨%s, #Hs⟩, -⟩
         isplitr
@@ -507,11 +534,8 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
         isplitr
         · ipureintro; rfl
         iunfold errMsgOk
-        iintro !> %Φ - HΦ
-        iapply Hs
-        inext
-        iapply HΦ
-        itrivial
+        iexists _
+        iexact Hs
   · unfold go_etcd_io.etcd.cache.v3.srvErrOk
     iright
     iexact Hw

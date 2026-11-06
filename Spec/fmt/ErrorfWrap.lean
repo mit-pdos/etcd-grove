@@ -27,10 +27,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **Perennial's model of `fmt.Errorf`'s error** (`errors.New(format)`): an `*errors.errorString`
-whose `Error()` returns. -/
+whose `Error()` returns one string on every call (fromerror-stable, 2026-11-06: it returned some
+string; the model's `errors.New` writes the cell once, and nothing outside `errors` writes it, so
+its `Error()` is stable, as Go's `*fmt.wrapError`'s is, below). -/
 def fmt.modelErrIs (ii : GoInterfaceOk) : IProp GF :=
   iprop(⌜∃ x : Loc, ii = ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩⌝ ∗
-    □ ∀ Φ : val → IProp GF, ▷ (∀ s : GoString, Φ #s) -∗
+    ∃ s : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
       WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }})
 
 instance fmt.modelErrIs_persistent (ii : GoInterfaceOk) :

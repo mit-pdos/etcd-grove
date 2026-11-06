@@ -43,13 +43,12 @@ macro "to_params" : tactic => `(tactic| (
   · unfold v3rpc.wParams mvcc.storeWatchParams; iexact HR))
 
 set_option hygiene false in
-/-- `e.Error()` of an error whose `Error()` returns (`errMsgOk e` as `Hm`), into `%msg`. -/
+/-- `e.Error()` of an error whose `Error()` returns (`errorStringSpec e` as `Hm`), into `%msg`. -/
 macro "err_msg" e:term:max Hm:ident : tactic => `(tactic| (
   wp_bind (App (Val #(methods ($e).ty go!"Error" ($e).v)) (Val #()))
-  iunfold errMsgOk at $Hm:ident
+  iunfold go_etcd_io.etcd.cache.v3.errorStringSpec at $Hm:ident
   iapply $Hm:ident
-  · itrivial
-  iintro !> %msg -))
+  iintro !> %msg))
 
 set_option hygiene false in
 /-- The receive loop's next iteration: the invariant back (the request recorded, the control
@@ -618,6 +617,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
             icombine Hg HeEWRg gives %Heq
             iexists eEWR; iframe #; ipureintro; exact Heq
           subst Hwei
+          ihave #Heim := errMsgOk_errorStringSpec _ $$ Heim
           wp_auto
           to_params
           wp_apply hRev r.wsp (v3rpc.wsIface r.srv.wsl) (v3rpc.wParams r.srv) r.γo $$ [$HR] as %rv HR
