@@ -7,10 +7,8 @@ theorem etcdstart.memberBuilt.congr_simp (s s✝ : Loc) (e_s : s = s✝) (ρ ρ�
     NetNames GF) (e_γn : γn = γn✝) (id id✝ : w64) (e_id : id = id✝) (N N✝ : Nat) (e_N : N = N✝)
     (served served✝ : Bool) (e_served : served = served✝) (ai₀ ai₀✝ : w64) (e_ai₀ : ai₀ = ai₀✝) (at₀
     at₀✝ : w64) (e_at₀ : at₀ = at₀✝) (c₀ c₀✝ : w64) (e_c₀ : c₀ = c₀✝) (x₀ x₀✝ : apply.ApplyKV) (e_x₀
-    : x₀ = x₀✝) (m m✝ : lease.Mode) (e_m : m = m✝) (K K✝ : RNNames →
-    go_etcd_io.etcd.server.v3.config.ServerConfig → apply.AEnv GF → GName → IProp GF) (e_K : K = K✝)
-    : etcdstart.memberBuilt s ρ E₀ lg γn id N served ai₀ at₀ c₀ x₀ m K = etcdstart.memberBuilt s✝ ρ✝
-    E₀✝ lg✝ γn✝ id✝ N✝ served✝ ai₀✝ at₀✝ c₀✝ x₀✝ m✝ K✝
+    : x₀ = x₀✝) (m m✝ : lease.Mode) (e_m : m = m✝) : etcdstart.memberBuilt s ρ E₀ lg γn id N served
+    ai₀ at₀ c₀ x₀ m = etcdstart.memberBuilt s✝ ρ✝ E₀✝ lg✝ γn✝ id✝ N✝ served✝ ai₀✝ at₀✝ c₀✝ x₀✝ m✝
 
 theorem etcdstart.BuildServer.wp_proof (wp_newServer : etcdstart.newServer.spec) :
     etcdstart.BuildServer.spec
@@ -59,7 +57,8 @@ theorem etcdstart.BuildServer.wp_proof (wp_newServer : etcdstart.newServer.spec)
                                                         threadTok ∗
                                                           etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0) (W64 0)
                                                               (W64 0) bootKV lm ∗
-                                                            leaseTTLRowR s ps -∗
+                                                            leaseTTLRowR s ps ∗
+                                                              srvDataDir s (name ++ go!".etcd") -∗
                                                     Φ (intoVal s, intoVal err)) -∗
                                               WP
                                                 (((((((((intoVal

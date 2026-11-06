@@ -376,7 +376,7 @@ errors on which nothing is sent: a bag with predicate `False`, D19m, 2026-10-18:
 there: `rafthttp.Transport.Start`'s axiom, D21 M2),
 `stop` (the unit channel `HardStop` sends on, a bag with predicate `SP`: `False` by default, the
 runs covered calling neither `Stop` nor `HardStop`, D19m; R2b-2, 2026-11-02: `True` for a server
-that may be stopped, `run.specStop`), `done`, `cancel` (the server
+that may be stopped, R2c-4: `srvStopReq`, `run.spec`), `done`, `cancel` (the server
 context's cancel function, `WithCancel`'s), the compactor, the stats, the leader-change notifier,
 `leadTimeMu`'s write side, the committed index's invariant, `GoAttach`'s protocol. -/
 def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.ContextNames)

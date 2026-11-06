@@ -40,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopReaders
 
 @[expose] public section
 
@@ -300,14 +301,13 @@ what `http.Serve`'s request goroutines borrow, `srvServeRes`, until the peer add
 `served`). (2026-11-02, the restart plan) The apply thread's starting state `ai₀ at₀ c₀ x₀`, a
 first start's (`0` and the boot store) unless given: a restarted member's (`Restart.lean`). (The
 lease-expiry plan's X2, 2026-11-04) The lease subsystem at the member's lease mode `m` (default
-`none`; `memberBoot`'s). (2026-11-04, the restart plan's R2b-3d) And `K` of the raft wrapper's
-names, the configuration, the apply environment and (2026-11-05) the transport key's name, `True`
-unless given: what `NewServer` kept for the stop (its slot, `srvStop.keep`), `memberBuiltS`'s. -/
+`none`; `memberBoot`'s). (2026-11-04, the restart plan's R2b-3d) And what `NewServer` kept for the
+stop (its slot, `srvStop.keep`) at the raft wrapper's names, the configuration, the apply
+environment and the transport key's name, which `Start` hands `run` (2026-11-05, R2c-3: until then a
+parameter `K`, `True` unless given, and `memberBuiltS` the member with the slot). -/
 def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (N : Nat) (served : Bool) (ai₀ at₀ c₀ : w64 := W64 0)
-    (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none)
-    (K : RNNames → go_etcd_io.etcd.server.v3.config.ServerConfig → apply.AEnv GF → GName →
-      IProp GF := fun _ _ _ _ => iprop(True)) :
+    (x₀ : apply.ApplyKV := bootKV) (m : lease.Mode := .none) :
     IProp GF :=
   iprop(∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
       (γrn : RNNames) (b : GoInterface) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
@@ -320,7 +320,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     (if served then True else [∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-    srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗ K γrn cfg E γk)
+    srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
 /-- **What the partitioner takes of a member** (2026-10-24, rafthttp stage 6d): its place in the
 network (`srvNetMember`, with its transport `τ`) and one of its transport's reader tokens
@@ -335,7 +335,10 @@ progress-notify interval; what `Start` returns (the request and read views, the 
 resources with the thread token, a `lgMu` reader slot, the read loop's readers) and what
 `NewServer` left for serving (`srvServeBuilt`'s resources, two of its `lgMu` slots spent on
 `Start`; the watchable store's readers), and its place in the network `γn`; (the lease-expiry
-plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`). -/
+plan's X2, 2026-11-04) the lease subsystem at the member's lease mode `m` (default `none`);
+(2026-11-05, the restart plan's R2c-4) and `Start`'s right to stop the server (`srvStopRight`, at
+`E`, the member id `id` and the configuration's data directory), at the environment of the
+serving stocks a stop request hands back. -/
 def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
     (id : w64) (m : lease.Mode := .none) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γw : GName),
@@ -351,7 +354,33 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : 
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
     ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
     ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s) ∗
-    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m)
+    srvPeerCtl γn s id ∗ srvWatchReaders s E 64 ∗ srvLeaseRd s E m ∗
+    (∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ id dd))
+
+/-- **A started member that will not serve, split for its stop** (R2c review F4, 2026-11-06): the
+request view and the `GoAttach` resources (what `AppliedIndex()` and the goroutines need), and what a
+stop request takes of it: the right to stop it (`srvStopRight`) at its apply environment `E`, which
+has auth off and `E₀`'s compaction mode, with its unused serving stocks (`srvStopReaders`). The rest
+of `memberUp` (its serving stocks' other parts) is dropped. -/
+theorem memberUp_stop (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
+    (id : w64) (m : lease.Mode) :
+    memberUp (GF := GF) s ρ E₀ lg γn id m ⊢
+      (∃ (E : apply.AEnv GF) (γw : GName), isServerReq s E { ρ with wait := γw } ∗ srvGoRes s) ∗
+      ∃ (E : apply.AEnv GF) (dd : GoString), srvStopRight s E ρ.rd.raft.raft ρ id dd ∗
+        ⌜E.authOn = false ∧ E.cmp = E₀.cmp⌝ ∗ srvStopReaders E := by
+  iintro Hup
+  iunfold memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, -, Hgo, -, -, -, -, -, -, -, -, Hsts, -, -, HWR, -,
+    %dd, Hr⟩
+  isplitl [Hgo]
+  · iexists E, γw
+    iframe Hreq Hgo
+  iexists E, dd
+  iframe Hr
+  isplitr
+  · ipureintro; exact ⟨HEc.2.1, HEc.1.2.2.2.1⟩
+  iapply srvStopReaders_intro s E
+  iframe Hsts HWR
 
 /-- **The Lease service `v3rpc.Server` registered** (persistent; the closed lease example,
 2026-11-02): its unary methods among the registrations `regs` (`leaseRegs`), on the

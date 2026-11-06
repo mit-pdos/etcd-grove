@@ -1,6 +1,6 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/restart/startMember.lean`'s `spec` (the
-restart plan's R2a, 2026-11-02): `etcdstart.BuildServer` (its drafted `specStop`), `net.Listen` at the
+restart plan's R2a, 2026-11-02): `etcdstart.BuildServer` (its one spec, R2c-5: until then its drafted `specStop`), `net.Listen` at the
 peer address, the listener registered closable (the draft boundary `http.registerClosable_spec`),
 `go http.Serve(pl, s.RaftHandler())`, `s.Start()` (`etcdstart.wp_Start_built`), and the `member`
 record allocated. As `etcdstart.NewMember`'s and
@@ -39,14 +39,14 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Assumptions]
 
 theorem startMember.wp_proof
-    (wp_BuildServer : etcdstart.BuildServer.specStop (GF := GF) (hG := hG))
+    (wp_BuildServer : etcdstart.BuildServer.spec (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (hReg : http.registerClosable_spec (GF := GF))
-    (wp_StartS : etcdstart.Start_builtS_spec (GF := GF) (hG := hG)) :
+    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs γn
-    ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo
+    ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   icases etcdstart.memberFreshRes_peer _ _ _ _ rfl $$ Hfresh with ⟨⟨Haddr, Hpown⟩, Hfresh⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -63,9 +63,9 @@ theorem startMember.wp_proof
   -- `etcdstart.BuildServer(name, peer, client, cluster, "restart3", SnapCount, SnapCatchUp, lg)`
   wp_apply (wp_BuildServer N name peerAddr client token (W64 1) (W64 1) peer cluster lg M iu Uok
       ps bootLog ctxs dir id γ ρ E₀ Φs γn .none HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
-      Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
+      Hdir Hdirps HU HU8 Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, Hsr⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -, #Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -86,7 +86,6 @@ theorem startMember.wp_proof
     iapply HΦ; ileft; iframe Htok; ipureintro; simp
   subst Hlerr
   wp_auto
-  iunfold etcdstart.memberBuiltS at Hmb
   iunfold etcdstart.memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
@@ -111,11 +110,11 @@ theorem startMember.wp_proof
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_StartS s ρ E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
-  · iframe Htok Hsr
+  wp_apply (etcdstart.wp_Start_built wp_Start s ρ E₀ lg γn id N true
+      (ReceiptBoundLe.le (GF := GF) (N + 1)))
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Hlrd Htok Hkeep] as Hup
+  · iframe Htok
     iframe #
-    iunfold etcdstart.memberBuiltS
     iunfold etcdstart.memberBuilt
     iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
     simp only [↓reduceIte]
@@ -159,7 +158,7 @@ theorem startMember.wp_proofRestart
       ps bootLog ctxs dir id γ ρ γn HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok
       Hdir Hdirps HU Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hrr] as %s %err Hres
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, Hsr, Hkeep⟩)
+  icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, %ρ', %E₀, %Hρ', Hmb, #Hsr⟩)
   · -- `BuildServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -206,9 +205,9 @@ theorem startMember.wp_proofRestart
     ipureintro; exact isPanic_intoVal serr
   (try wp_auto)
   -- `s.Start()`
-  wp_apply (wp_StartR s ρ' E₀ lg γn id N true (name ++ go!".etcd"))
-    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok Hsr Hkeep] as ⟨Hup, Hsr⟩
-  · iframe Htok Hsr Hkeep
+  wp_apply (wp_StartR s ρ' E₀ lg γn id N true)
+    $$ [Hsb Hserve Hsv Hlgm Hrc Htokp HWR Htok] as Hup
+  · iframe Htok
     iframe #
     iunfold etcdstart.memberBuiltR
     iexists ai₀, at₀, c₀, x₀

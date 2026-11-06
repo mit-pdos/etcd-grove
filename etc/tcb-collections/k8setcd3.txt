@@ -62,8 +62,10 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCCompacted_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCEmptyKey_init
+axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCFutureRev_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidAuthToken_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidSortOption_init
@@ -286,6 +288,8 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrsUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
+axiom apply.memberEnc_id_learner
+axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
@@ -484,6 +488,7 @@ axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
+axiom lease.lessor.Stop.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
@@ -494,6 +499,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
+axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof

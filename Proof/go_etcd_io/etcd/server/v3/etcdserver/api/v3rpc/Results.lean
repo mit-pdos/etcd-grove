@@ -854,7 +854,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   iunfold etcdUserAddSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨%Qa, %Hn, #Hu, Hk⟩
+  icases Hspec with ⟨-, %Qa, %Hn, #Hu, Hk⟩
   ihave #Hu' : iprop(□ userAddHistAu s E ρ ci m.name false Qa) $$ []
   · unfold userAddHistAu
     iintro !> %um %Hum
@@ -900,7 +900,7 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iunfold etcdRoleAddSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨%Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -941,7 +941,7 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iunfold etcdUserGrantRoleSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨%Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -982,7 +982,7 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iunfold etcdRoleGrantPermissionSpec at Hspec
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hspec with ⟨%Qa, %Hn, #Hha, Hk⟩
+  icases Hspec with ⟨-, %Qa, %Hn, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
@@ -1024,7 +1024,7 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   iunfold etcdAuthEnableSpec at Hk
   rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
     auth.ctxTokenOf (GoInterface.ok ci) from rfl]
-  icases Hk with ⟨%Qa, #Hha, Hk⟩
+  icases Hk with ⟨-, %Qa, #Hha, Hk⟩
   ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid

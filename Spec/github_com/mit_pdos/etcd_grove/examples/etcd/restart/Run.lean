@@ -1,5 +1,5 @@
 /-
-`Run(lg)` (`examples/etcd/restart/etcd_restart.go`; the restart plan's R2a, 2026-11-02; DRAFT): three
+`Run(lg)` (`examples/etcd/restart/restart3.go`; the restart plan's R2a, 2026-11-02; DRAFT): three
 members started, member 1's gRPC API served and a client of it, a `Put` of `k`, a follower stopped
 (member 3, or member 2 if member 3 leads), `NPuts` more `Put`s, the follower started again on its
 data directory and its gRPC API served, a client of it, a `Get` of `k`, and a panic unless the

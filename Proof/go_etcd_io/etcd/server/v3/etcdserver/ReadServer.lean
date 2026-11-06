@@ -87,7 +87,10 @@ theorem isReadServer_of_serverM (on : Bool)
     · iframe #
     iapply HΦ
     iunfold srvDoneChan at Hdone
+    icases Hdone with ⟨%γdn, %Qdn, #Hdone⟩
+    iexists Qdn
     iunfold bcastChan
+    iexists γdn
     iexact Hdone
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
   isplitr

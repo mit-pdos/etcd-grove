@@ -32310,6 +32310,95 @@ description satisfies the conjunct that mentions it, so each statement means wha
 before. The user's Q7c-2 condition, every restated statement attacked before 7c's Freeze, applies
 to 7c-1b, where the descriptions first make the statements say something new. See `notes/k8s-etcd3-plan.md`, "7c-1: Draft".
 
+**7c-1b: the trusted statements first, `handlerDescs` with Range** (2026-11-06; decided by the
+agent, reported to etcd-grove-82). 7c-1b restates every trusted statement the error outcome rests
+on, at the text 7c-2 uses:
+- the rpctypes descriptions (HS-1);
+- `toGRPCErrorMap`'s `grpcErrMapOk`;
+- `grpcDecOk`'s and `srvInterceptorOk`'s errors outside `handlerDescs`.
+It also gives the non-Range Md specs `□ ∀ d, Ψe d` (HS-4, DRAFT), and attacks every statement at
+`handlerDescs`'s 7c-2 value. Filling `handlerDescs` itself moves to 7c-2. With the two
+descriptions in it, Range's handler must prove `Ψe` at them. It can only do so from
+`EtcdServer.Range`'s error post (HS-3 (a)), and that post is 7c-2's. Filled in 7c-1b, the Range
+handler's proof would have nothing to prove it from.
+Two attacks failed in Go (HS-5 and HS-6, `questions.md`). The trust base grows by two axioms,
+both approved under HS-1 and both attacked: `rpctypes.ErrGRPCFutureRev_init` and
+`rpctypes.ErrGRPCCompacted_init`, the two read errors' descriptions.
+
+
+## The stop chain for a first start: the scope in the request, the slot in the built part, one `run.spec` (2026-11-06 · R2c, the restart plan's Scope (A) and Q2 (b) approved by the user, Q3-Q7 (a) decided, Q5 (a) accepted as a hub request · branch `r2c`; DRAFT until R2c's Freeze)
+
+**What changed.**
+- *R2c-1.* The boot log's facts are the cluster's: `srvRaftLogInv`'s last conjunct is
+  `γ.raft.vs ≠ [] ∧ γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot` (was `∃ ps, ps ≠ [] ∧
+  srvBootLogOk ps γ.raft.boot`); `stop_imageConf`, `stopCleanupImage.spec` and `run`'s stop take them
+  from `isServer`, not as premises.
+- *R2c-2.* The stop's scope is the request's: `srvStop.scope E := E.authOn = false ∧ E.cmp = false`
+  and `srvStopReq s E ρ dd := srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗ 128 store
+  readers` (the readers R2c-4). "No compactor" is not carried: `NewServer` makes one only in
+  compaction mode, so the slot's census records `cp ≠ nil → E.cmp = true` and
+  `srvStop.census_readers` takes `E.cmp = false` (D-a). `srvStopRight s E γ ρ id dd` names `E` (the
+  request's) and records the `DataDir` field (`srvStopRight_dd`).
+- *R2c-3.* The slot (`srvStop.slot s E γrn Er := ∃ cfg γk, srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST =
+  srvTrStopK γk⌝`, D1's fact inside) is a conjunct of `isServerBuiltC` and `isServerRunC`, not of
+  `isServerBuilt`/`isServerRun`/`srvBuiltG`: the import graph (`StopApi → InvRestart → InvStart →
+  InvRun`) forbids those, so `NewServer.specG`'s post is unchanged and Q5's hub request is not
+  needed (D-d). `memberBuilt`'s `K` is gone (its last conjunct the slot's `srvStop.keep`);
+  `memberBuiltS` is deleted.
+- *R2c-4 (F4).* `start` makes `stop` with the requests (`srvStopReq`) and `done` announcing the
+  escrowed image (`srvDoneInv`, at the slot's `DataDir` and a fresh claim); `start.spec`/`Start.spec`
+  post `∃ dd, srvStopRight s E ρ.rd.raft.raft ρ γn.id dd`; one `run.spec` (the stop's shape, no
+  scope premise and no `srvShutdownPre`; `wp_proofG`'s flag gone, its shutdown callees linked);
+  `etcdstart.memberUp` holds the right (its last conjunct), so that the right's `E` is the serving
+  stocks' (D-c); `Start_builtS_spec` deleted (D3). The done channel's content is no longer `True`:
+  `srvDoneChan` and `srvChanOk`'s post quantify it (D-f).
+- *R2c-5.* `srvStop.dataDir`: with no dedicated WAL directory the slot's fields are `srvDataDir`
+  (D2); `newServer.spec`/`newServerMode.spec` post `srvDataDir s (name ++ ".etcd")`;
+  `BuildServer.spec` is the one spec (its post with `srvDataDir`; `specStop` deleted); restart's
+  `startMember` is over it.
+
+**Why.** One spec per function (the R2b-2 review's F4): `run` with a stop request is the only `run`;
+a client that never stops drops the right (affine). The scope is the request's so that `run`'s
+precondition has no scope premise (Q2 (b)); the serving readers are the request's because a
+serving member cannot give them at its start (F-e).
+
+**The restart example** (`examples/etcd/restart`, no closed theorem): `memberStop` keeps the data
+directory; what the stop takes of the started member is `memberStopRes s ρ id` (the right, the
+scope, the 128 readers), split off `memberUp` by `memberUp_stopRes` out of compaction mode;
+`stop.spec`/`restartCheck.spec` take it.
+
+**Trust base (decided: the user approved it on 2026-11-06, relayed by etcd-grove-82).** With one
+`run.spec`, every result through `run` reaches the three axioms of the image's configuration
+(`apply.memberKey_inj`, `apply.memberEnc_id_learner`, `membership.membersOf_decode`, reviewed on
+2026-11-04). The trust base goes from 785 to 788 axioms. The path is `stop_cleanup_image` →
+`stop_imageConf` → `RestConf.restModel_confState`. Until R2c, only the draft `run.specStop` used
+them, and no linked result reached it. The global baseline and 14 collections are updated (the
+collections also gain `lease.lessor.Stop.wp_proof`, which the shutdown uses).
+
+**A scope restriction (the review's F3).** The stop request takes back the store readers of the
+serving stocks (`srvStopReaders`). Only a member that never served gRPC can give them: once a
+member serves, its stocks go to `Serve`, and no spec gives them back (there is no `grpc.Server.Stop`
+spec). So until such a spec exists, only a member that never served can be stopped. That is
+`restart3`'s case: its stopped member never serves. It also matches etcd's own order:
+`embed.Etcd.Close` stops its gRPC servers before `e.Server.Stop()` (`server/embed/etcd.go:441-446`
+and `:469-471`). Its `stopServers` waits on `GracefulStop` for the pending RPCs and falls back to
+`Stop` after the request timeout (`:503-521`). So the spec that would lift the restriction is a
+`GracefulStop` spec that returns the stocks. `HardStop.spec`'s header states this (review round 2,
+N4).
+
+**Review round 1 (2026-11-06, a fresh `spec-reviewer`).**
+- F1: `BuildServer.specRestart`'s post and `Start_builtR_spec`'s pre lose their second copy of the
+  slot. Since R2c-3 the slot is inside `memberBuiltR`, and two copies would allow a double
+  `lessor.Stop`, a panic in Go.
+- F2: `raftNode.stop` has one spec, the former `specStop`.
+- F3/F4: the client unfolds of the stop's definitions are replaced by laws: `srvStopReaders_intro`,
+  `srvStop.slot_intro`, `srvStopReq_intro`, `srvBootApplied_of_applied` and
+  `etcdstart.memberUp_stop`.
+- F5: `srvStopRight` is sealed.
+- F6-F8: docstrings.
+
+**Left.** R2d (a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`).
+
 ## A thread token for a cluster member's lease reads: `go holdToken()` in `cluster3.StartMember` (2026-11-06 · lease-mono3's pass 2(a), R1, accepted by etcd-grove-82 · branch `lease-mm`)
 
 **The need.** In a mode that grants leases, `cluster3.StartMember` serves the lease reads

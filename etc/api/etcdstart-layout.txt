@@ -35,7 +35,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve Perennial.Etcd
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.StartCompactingServer.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.etcdstart.StartCompactingServer.wp_proof  # exposed by a proof file (theorem)
-Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.etcdstart.memberBoot.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.etcdstart.memberUp.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer Perennial.EtcdGrove.etcdstart.newServerMode.spec.congr_simp  # exposed by a proof file (theorem)
@@ -46,7 +45,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember Perennia
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.StartPeriodicServer.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.StartPeriodicServer.wp_proof  # exposed by a proof file (theorem)
-Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.memberBoot.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.memberUp.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer Perennial.EtcdGrove.etcdstart.newServerMode.spec.congr_simp  # exposed by a proof file (theorem)
@@ -54,7 +52,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer 
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.EtcdServer.Start.spec.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.StartServer.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.etcdstart.StartServer.wp_proof  # exposed by a proof file (theorem)
-Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.etcdstart.memberBoot.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.etcdstart.memberUp.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer Perennial.EtcdGrove.etcdstart.newServer.spec.congr_simp  # exposed by a proof file (theorem)
@@ -69,7 +66,6 @@ Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer Perennial.
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.etcdstart.memberBuilt.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.etcdstart.newServerMode.wp_proof  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.isServerBuilt.congr_simp  # exposed by a proof file (theorem)
-Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.lease.bootCfg.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.leaseTTLRowR.congr_simp  # exposed by a proof file (theorem)
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.newServerMode.wp_proof  # missing: a proof file proves its spec
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode Perennial.EtcdGrove.srvBuilt.congr_simp  # exposed by a proof file (theorem)
@@ -80,7 +76,6 @@ Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Attempted Perennial.E
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.BuildServer.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.etcdstart.BuildServer.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.etcdstart.BuildServer.specRestart  # exposed by a spec file (def)
-Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer Perennial.EtcdGrove.etcdstart.BuildServer.specStop  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check Perennial.EtcdGrove.Check.spec  # missing: a spec file declares its spec
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check Perennial.EtcdGrove.etcdstart.Check.spec  # exposed by a spec file (def)
 Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collect Perennial.EtcdGrove.Collect.spec  # missing: a spec file declares its spec

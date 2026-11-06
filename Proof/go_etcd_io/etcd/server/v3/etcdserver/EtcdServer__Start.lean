@@ -70,7 +70,7 @@ theorem EtcdServer.Start.wp_proof
   icases isServerBuiltC_mid C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨Hb, #HmidS, %HmidcS⟩
   wp_auto
   wp_apply hStart s γ ci TM C E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hnil]
-    as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, %γg, #Hwp, #Hreg, Hgo⟩
+    as ⟨%γw, #Hreq, #Hrd, #Hlb, Hst, %γp, %γg, #Hwp, #Hreg, Hgo, Hright⟩
   · iframe #; iframe Hb Hnil; ipureintro; exact ⟨hm, hRB, Hrb, Hai0⟩
   iunfold srvStarted at Hst
   iNamed Hst
@@ -205,7 +205,7 @@ theorem EtcdServer.Start.wp_proof
   iapply HΦ
   iexists γw
   iunfold srvStartReaders
-  iframe Hreq Hrd Hlb Hgr Hlg Hrds Hwgs Hlcs
+  iframe Hreq Hrd Hlb Hgr Hlg Hrds Hwgs Hlcs Hright
 
 end proof
 
