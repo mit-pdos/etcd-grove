@@ -57,7 +57,7 @@ private theorem isMvcc_store (kv : GoInterface) (γ : MvccName) :
     isMvcc (GF := GF) kv γ ⊢ ∃ s : Loc, isStore s (γ : StoreNames) := by
   iintro Hmv
   iunfold isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
     icases Hmv with ⟨%s, -, #Hs, -, -⟩
     iexists s; iexact Hs
@@ -79,16 +79,16 @@ instance mvccBackend_fractional (γ : MvccName) (B : MvccStorage) (Pk : IProp GF
     have hq : (q1 + q2).half.half.half = q1.half.half.half + q2.half.half.half := by
       rw [Qp_half_add, Qp_half_add, Qp_half_add]
     constructor
-    · iintro ⟨HF, %p, %o, %d, Hc, %Hd, #Hb, #Hrg, #Hhp⟩
+    · iintro ⟨HF, %p, %o, %d, Hc, %Hd, #Hb, #Hrg, #Hhp, #Hwt⟩
       iunfold shareTok at HF
       icases ht.1 $$ HF with ⟨HF1, HF2⟩
       rw [hq]
       icases ((curAt_fractional (GF := GF) ((γ : StoreNames).withPhys p) o).fractional
         q1.half.half.half q2.half.half.half).1 $$ Hc with ⟨Hc1, Hc2⟩
       isplitl [HF1 Hc1]
-      · iunfold shareTok; iframe HF1; iexists p, o, d; iframe Hc1 Hb Hrg Hhp; ipureintro; exact Hd
-      · iunfold shareTok; iframe HF2; iexists p, o, d; iframe Hc2 Hb Hrg Hhp; ipureintro; exact Hd
-    · iintro ⟨⟨HF1, %p, %o, %d, Hc1, %Hd, #Hb, #Hrg, #Hhp⟩, ⟨HF2, %p', %o', %d', Hc2, %Hd', -, -, -⟩⟩
+      · iunfold shareTok; iframe HF1; iexists p, o, d; iframe Hc1 Hb Hrg Hhp Hwt; ipureintro; exact Hd
+      · iunfold shareTok; iframe HF2; iexists p, o, d; iframe Hc2 Hb Hrg Hhp Hwt; ipureintro; exact Hd
+    · iintro ⟨⟨HF1, %p, %o, %d, Hc1, %Hd, #Hb, #Hrg, #Hhp, #Hwt⟩, ⟨HF2, %p', %o', %d', Hc2, %Hd', -, -, -⟩⟩
       ihave %Hv := curAt_agree ((γ : StoreNames).withPhys p) ((γ : StoreNames).withPhys p') rfl
         _ _ o o' $$ [Hc1 Hc2]
       · iframe Hc1 Hc2
@@ -107,7 +107,7 @@ instance mvccBackend_fractional (γ : MvccName) (B : MvccStorage) (Pk : IProp GF
       · iapply ((curAt_fractional (GF := GF) ((γ : StoreNames).withPhys p) o).fractional
           q1.half.half.half q2.half.half.half).2
         iframe Hc1 Hc2
-      iframe Hb Hrg Hhp
+      iframe Hb Hrg Hhp Hwt
       ipureintro; exact Hd
 
 /-- **`mvccBackend_agree.law`**: two shares hold parts of the store's current physical names,
@@ -193,7 +193,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   iintro %Ψ ⟨#Hpkg, Hmv, HB, Ho, Hwb, HR, #HQ, HAU⟩ HΨ
   ihave ⟨%s, #Hs⟩ := isMvcc_store kv γ $$ Hmv
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩, #Hhp⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #⟨%s', #Hrg⟩, #Hhp, #Hwt⟩
   obtain ⟨hpk, hcm, hd⟩ := Hd
   have hd' : d = bk := hd
   subst hd'
@@ -259,7 +259,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
       isplitl
       · iunfold snapFrozen
         simp only [StoreNames.withPhys_api, ↓reduceIte]
-        iframe Hwv Hcert HLR HwR Hpw Hrc Hfz HRg
+        iframe Hwv Hcert HLR HwR Hpw Hrc Hwc Hfz HRg
         iunfold absPart; iexact Hac
       · ipureintro; exact Hreach
   imod Hst with ⟨%σ, %bb, HΦσ, HFR, %Hreach⟩
@@ -280,7 +280,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
   subst hbb
   iunfold snapFrozen at HFR
   simp only [↓reduceIte]
-  icases HFR with ⟨Hwv, Hac, Hpw, Hrc, #Hcert, HLR, HwR, Hfz, HRg⟩
+  icases HFR with ⟨Hwv, Hac, Hpw, Hrc, Hwc, #Hcert, HLR, HwR, Hfz, HRg⟩
   -- the registration given back
   ihave Hfz2 : iprop(|={⊤}=> ghostVar ((γ : StoreNames).withPhys p).api.frz (1 : Qp).half.half true)
     $$ [HRg]
@@ -293,7 +293,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
     (1 : Qp).half true).2 $$ [Hfz Hfz2]
   · iframe Hfz Hfz2
   -- thaw
-  ihave HT : iprop(▷ writerTaken s ((γ : StoreNames).withPhys p)) $$ [Hwv Hac Hpw Hrc HLR HwR]
+  ihave HT : iprop(▷ writerTaken s ((γ : StoreNames).withPhys p)) $$ [Hwv Hac Hpw Hrc Hwc HLR HwR]
   · inext
     iunfold writerTaken
     ileft
@@ -320,7 +320,7 @@ theorem mvccImage_snapshot.law_holds : mvccImage_snapshot.law (GF := GF) := by
     iframe Hcur Hbk
     isplitr
     · ipureintro; exact ⟨hpk, hcm, rfl⟩
-    iframe Hhp
+    iframe Hhp Hwt
     iexists s'; iexact Hrg
   isplitr
   · ipureintro; exact hQ

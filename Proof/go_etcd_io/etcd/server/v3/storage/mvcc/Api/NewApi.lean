@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 
 @[expose] public section
 
@@ -99,7 +100,7 @@ theorem New.wp_proof
   wp_apply +noauto (hNew lg _ le cfg (some bk) γl γl Pk #func.nil rd0 γi γok γl
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -⟩, #Hhk, -, Htw, -, Hrds, Hcl, Hcr, Hfrag, Hret,
+    as %ws ⟨%st, %γw, %Hγ, #Hws, ⟨%rd, Hro, -⟩, #Hhk, -, Htw, Hcok, Hrds, Hcl, Hcr, Hfrag, Hret,
       #Hcp, #Hwreg, Hnc, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
@@ -145,6 +146,12 @@ theorem New.wp_proof
   imod threadPool.init watchRdPoolN (watchReader ws st γw) ⊤ _ hpool $$ Hrds with ⟨%γp, #Hpool⟩
   have hrb' : receiptBound GF ≤ 2 ^ 63 - 2 := by omega
   imod watchTokPool_alloc γw ⊤ hrb' $$ Htw with #Htp
+  -- the certificate map's free entry (track A, request 3)
+  imod ghost_map_insert_persist (W64 0) ([] : Log) (GMap.lookup_empty _) $$ Hcok with ⟨-, #Hfree⟩
+  ihave #Hfree' : certFree (GF := GF) γw.st $$ []
+  · iunfold certFree; iexact Hfree
+  ihave #Hwts : □ (⧗ 1 ={⊤}=∗ storeWT (GF := GF) γw.st) $$ []
+  · unfold storeWT kbWT; rw [show γw.st.kb = some bk from hγk]; iexact Hsup
   -- the compaction right from the inner closer; the watchable store's own closer kept
   iunfold wsCloser at Hcl
   icases Hcl with ⟨%stc, #Hstc, Hsc, Hwait, Hscl⟩
@@ -162,7 +169,7 @@ theorem New.wp_proof
     iright
     iunfold isMvccWatchable
     iexists ws, st, γw, γp
-    iframe Hws Htp Hpool Hloc Hcp
+    iframe Hws Htp Hpool Hloc Hcp Hfree'
     ipureintro; exact ⟨rfl, rfl⟩
   isplitl [Hab Hpn Hcr2 Hnl]
   · iunfold mvccState
@@ -201,7 +208,9 @@ theorem New.wp_proof
     · iintro !>; iexists st; iexact Hwreg
     iunfold hookInit at Hhk
     icases Hhk with ⟨#HhP, -⟩
-    iintro !>; iexact HhP
+    isplitr
+    · iintro !>; iexact HhP
+    iexact Hwts
   iexists rd
   iframe Hro
   iapply (mvccDeleter_M1 (GF := GF) rd γw.st)

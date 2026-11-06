@@ -108,7 +108,7 @@ theorem watchableStore.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := 
   intro s (γ : mvcc.StoreNames) mode trace te Q
   wp_start as ⟨Hmv, Htok, %Htrnn, Htrc, Hau⟩
   iunfold isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
     icases Hmv with ⟨%s', %Hk, -⟩
     exfalso
@@ -182,7 +182,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   intro s (γ : mvcc.StoreNames) trace te q B P Pre Q f R
   wp_start as ⟨Hmv, Htok, %Htrnn, Htrc, HB, #Hhk, Hpre, Hrun, Hau⟩
   iunfold isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
     icases Hmv with ⟨%s', %Hk, -⟩
     exfalso
@@ -200,7 +200,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   iNamed Hws
   -- the backend share at the store's current names
   iunfold mvccBackend at HB
-  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp⟩
+  icases HB with ⟨HF, %p, %o, %d, Hcur, %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
   obtain ⟨hpk, hcm, hdB⟩ := Hd
   subst hdB
   rw [show (hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl] at *
@@ -286,7 +286,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   · iunfold mvccBackend
     iframe HF
     iexists p, o, d
-    iframe Hcur Hbk Hrg Hhp
+    iframe Hcur Hbk Hrg Hhp Hwts
     ipureintro; exact ⟨hpk, hcm, rfl⟩
   iexists σ
   iframe HR
@@ -330,7 +330,7 @@ theorem watchableStoreTxnWrite.End.wp_api
     icases Hk with ⟨HB, HP, Hau⟩
     -- the backend share, at the transaction's names
     iunfold mvccBackend at HB
-    icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp⟩
+    icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
     icases isTxnWriteT_names mw s γ p p' trace σ₀.log pend puts deletes putSize σ₀.crev iprop(True)
         false iprop(True) _ o' $$ [$Htx $Hcur'] with ⟨Htx, Hcur', %hpp⟩
     subst hpp
@@ -373,7 +373,7 @@ theorem watchableStoreTxnWrite.End.wp_api
     iunfold mvccBackend
     iframe HF
     iexists p, o', d
-    iframe Hcur' Hbk Hrg Hhp
+    iframe Hcur' Hbk Hrg Hhp Hwts
     ipureintro; exact Hd
 
 end proof

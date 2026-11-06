@@ -94,7 +94,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
   wp_start as Hmv
   -- the store's handle (`isMvcc`): a watchable store's, with its pools
   iunfold mvcc.api.isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold mvcc.api.isMvccPlain at Hmv
     icases Hmv with ⟨%s', %Hk, -⟩
     exfalso

@@ -20,6 +20,7 @@ import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LockArm
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.M1Placeholders
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Instance
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 
 @[expose] public section
 
@@ -300,24 +301,42 @@ theorem mvcc.slotFr_share_excl (γ : mvcc.StoreNames) (q : Qp) :
   iapply mvcc.api.shareTok_excl γ.api q $$ [HFr HS]
   iframe HFr HS
 
-/-- **`KV.Compact.contract` at `*store`**, from the core: the handle a plain store's (its location
-and permit `True`). -/
-theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (hG := hG)) :
-    mvcc.api.store.Compact.spec (GF := GF) := by
+/-- `KV.Compact.contract` at `*store #s` over a plain store's handle (`isMvccPlain`, without
+`isMvcc`'s no-watchers fact: the watchable store's promoted `Compact` calls it at its inner store;
+track A, request 3, 2026-11-06). -/
+private abbrev mvcc.store.Compact.plain (s : Loc) : Prop :=
+  ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (rev : w64) (q : Qp) (B : mvcc.api.MvccStorage)
+    (P : IProp GF) (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : mvcc.api.MvccState → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      □ mvcc.api.isMvccPlain (interface.mkOk (go.GoType.PointerType store.ty) #s) γ ∗
+      mvcc.api.mvccOpen γ ∗ threadTok ∗ ⌜trace ≠ null⌝ ∗
+      ⌜1 ≤ sint.Z rev⌝ ∗
+      traceutil.ownTrace trace te ∗ mvcc.api.mvccBackend γ q B P ∗ mvcc.api.hookIs B f ∗
+      X ∗ mvcc.api.storageReq B P X Y ∗
+      Pre ∗ mvcc.api.hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
+      AU <{ ∃∃ (σ : mvcc.api.MvccState), mvcc.api.mvccState γ σ }> @ ⊤ \ ↑mvcc.api.mvccN, ∅
+        <{ mvcc.api.mvccState γ (if σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)
+              then σ.compactTo (sint.Z rev) else σ), COMM Q σ }> }}
+    (App (App (Val #(methods (go.GoType.PointerType store.ty) go!"Compact" #s)) (Val #trace))
+      (Val #rev))
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
+      mvcc.api.mvccOpen γ ∗ threadTok ∗ traceutil.ownTrace trace te ∗ mvcc.api.mvccBackend γ q B P ∗
+      ∃ σ : mvcc.api.MvccState, Q σ ∗
+      ((⌜err = GoInterface.nil ∧ σ.crev < sint.Z rev ∧ sint.Z rev ≤ (σ.rev : Int)⌝ ∗ Post ∗ Y ∗
+          mvcc.api.compactChanOk ch) ∨
+       (⌜sint.Z rev ≤ σ.crev⌝ ∗ globalAddr ErrCompacted ↦□ err ∗ Pre ∗ X ∗
+          mvcc.api.compactChanOk ch) ∨
+       (⌜(σ.rev : Int) < sint.Z rev ∧ ch = chan.nil⌝ ∗ globalAddr ErrFutureRev ↦□ err ∗ Pre ∗ X)) }}
+
+/-- `KV.Compact.contract`'s body at a plain store's handle, from the core (its location and
+permit `True`). -/
+private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF := GF) (hG := hG)) :
+    ∀ s : Loc, mvcc.store.Compact.plain (GF := GF) s := by
   intro s (γ : mvcc.StoreNames) trace te rev q B P f Pre Q' Post X Y Q
-  iintro %Φ ⟨#Hpkg, Hmv, Hopen, Htt, %htr, %hpos1, Htrc, HB, #Hhk, HX, #Hreq, HPre, Hrun, Hupd, HAU⟩
+  iintro %Φ ⟨#Hpkg, #Hmv, Hopen, Htt, %htr, %hpos1, Htrc, HB, #Hhk, HX, #Hreq, HPre, Hrun, Hupd, HAU⟩
     HΦ
-  iunfold mvcc.api.isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
-  rotate_left 1
-  · iunfold mvcc.api.isMvccWatchable at Hmv
-    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
-    exfalso
-    obtain ⟨Hk, -⟩ := Hk
-    rw [interface_mkOk_inj] at Hk
-    exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold mvcc.api.isMvccPlain at Hmv
-  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, #Hperm⟩
+  icases Hmv with ⟨%s', %Hk, #Hs, #Hloc, #Hperm, -⟩
   have hs : s = s' := mvcc.mkOk_loc_inj _ Hk
   cases hs
   iunfold mvcc.api.mvccState at HAU
@@ -331,7 +350,7 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
   cases Hss
   -- the backend share: its names are the right's
   iunfold mvcc.api.mvccBackend at HB
-  icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp⟩
+  icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
   obtain ⟨hpk, hcm, rfl⟩ := Hd
   rw [show (mvcc.api.storageReq d P X Y : IProp GF) = backend.commitReq d.γB d.P P d.be X Y from rfl,
     show (mvcc.api.hookIs d f : IProp GF) = backend.plHookRO d.γB f from rfl]
@@ -432,7 +451,7 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
   · iunfold mvcc.api.mvccBackend
     iframe HF
     iexists p, o', d
-    iframe Hcur' Hbk Hrg Hhp
+    iframe Hcur' Hbk Hrg Hhp Hwts
     ipureintro; exact ⟨hpk, hcm, rfl⟩
   icases Hres with (⟨⟨%Herr, %Hlt⟩, Hright, #Hlb, HPost, #Hch, ⟨Hcra, %σ, HQ, %Hσ⟩, HYB⟩ |
     ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hright, HPre, #Hch, ⟨Hcra, %σ, HQ, %Hσ⟩, HXB⟩ |
@@ -482,21 +501,42 @@ theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (h
     iframe HPre HXB Hef
     ipureintro; exact ⟨Hσ, Hch⟩
 
+/-- **`KV.Compact.contract` at `*store`**, from the core: the handle a plain store's. -/
+theorem mvcc.store.Compact.wp_api (hcore : mvcc.store.Compact.core (GF := GF) (hG := hG)) :
+    mvcc.api.store.Compact.spec (GF := GF) := by
+  intro s (γ : mvcc.StoreNames) trace te rev q B P f Pre Q' Post X Y Q
+  iintro %Φ ⟨#Hpkg, Hmv, Hrest⟩ HΦ
+  iunfold mvcc.api.isMvcc at Hmv
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
+  rotate_left 1
+  · iunfold mvcc.api.isMvccWatchable at Hmv
+    icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
+    exfalso
+    obtain ⟨Hk, -⟩ := Hk
+    rw [interface_mkOk_inj] at Hk
+    exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
+  iapply (mvcc.store.Compact.wp_plain hcore s γ trace te rev q B P f Pre Q' Post X Y Q) $$ [Hrest] HΦ
+  isplitl []
+  · iexact Hpkg
+  isplitl []
+  · iexact Hmv
+  iexact Hrest
+
 /-- **`KV.Compact.contract` at `*watchableStore`**: the promoted method, the inner store's
 (`store.Compact.spec` at it: the handle's inner store, its location and permit). -/
-theorem mvcc.watchableStore.Compact.wp_proof (h : mvcc.api.store.Compact.spec (GF := GF)) :
+theorem mvcc.watchableStore.Compact.wp_proof (hcore : mvcc.store.Compact.core (GF := GF) (hG := hG)) :
     mvcc.api.watchableStore.Compact.spec (GF := GF) := by
   intro s (γ : mvcc.StoreNames) trace te rev q B P f Pre Q' Post X Y Q
   wp_start as ⟨Hmv, Hrest⟩
   iunfold mvcc.api.isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold mvcc.api.isMvccPlain at Hmv
     icases Hmv with ⟨%s', %Hk, -⟩
     exfalso
     rw [interface_mkOk_inj] at Hk
     exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
   iunfold mvcc.api.isMvccWatchable at Hmv
-  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, -, #Hloc, #Hperm⟩
+  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, #Hperm, #Hfree⟩
   obtain ⟨Hk, hγ⟩ := Hk
   rw [interface_mkOk_inj] at Hk
   have hs : s = s' := go.intoVal_inj Hk.2
@@ -505,18 +545,18 @@ theorem mvcc.watchableStore.Compact.wp_proof (h : mvcc.api.store.Compact.spec (G
   iunfold mvcc.isWatchableStore at Hws'
   icases Hws' with ⟨%vc, %stc, %rv, %γv, Hws'⟩
   iNamed Hws'
-  ihave Hmvs : mvcc.api.isMvcc (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #st) γ $$ []
-  · iunfold mvcc.api.isMvcc
-    iintro !>
-    ileft
+  ihave #Hsup := mvcc.rdSupply_watch γp s st γw $$ Hrp
+  ihave #Hmvs : □ mvcc.api.isMvccPlain (GF := GF) (interface.mkOk (go.GoType.PointerType store.ty) #st) γ $$ []
+  · iintro !>
     iunfold mvcc.api.isMvccPlain
     iexists st
     rw [← hγ]
-    iframe Hs Hloc Hperm
+    iframe Hs Hloc Hperm Hsup Hfree
     ipureintro; rfl
   (try wp_auto)
-  wp_apply (h st γ trace te rev q B P f Pre Q' Post X Y Q) $$ [Hrest Hmvs] as %ch %err HQ
-  · iframe #; iframe Hmvs; iexact Hrest
+  wp_apply (mvcc.store.Compact.wp_plain hcore st γ trace te rev q B P f Pre Q' Post X Y Q) $$ [Hrest Hmvs] as %ch %err HQ
+  · iframe #
+    iexact Hrest
   iapply HΦ; iexact HQ
 
 end core

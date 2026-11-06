@@ -106,10 +106,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvCompact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.RdPool
-public import Proof.go_opentelemetry_io.otel.trace.Defs
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.StreamGhost
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnHandle
+import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
@@ -157,28 +157,33 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- A plain store's handle (stage 2, 2026-11-05; partial: `notes/mvcc-api-invariants.md` §2 adds
 its readers' pool and the write-back supply). (`KV.Compact.contract`, 2026-11-06) The store's
 location recorded (`locIs`, which the open token's agrees with) and its compaction permit `True`
-(the API's compactions are permitted at any revision). -/
+(the API's compactions are permitted at any revision). (Track A, request 3, 2026-11-06) The
+readers' supply (`rdSupply`) and the certificate map's free entry (`certFree`); that the store has
+no watchers is `isMvcc`'s (this handle is also built of a watchable store's inner store). -/
 private def isMvccPlain (kv : GoInterface) (γ : MvccName) : IProp GF :=
   iprop(∃ s : Loc, ⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗
     isStore s (γ : StoreNames) ∗ api.locIs (γ : StoreNames).api s ∗
-    crevPermIs (γ : StoreNames) (fun _ => iprop(True)))
+    crevPermIs (γ : StoreNames) (fun _ => iprop(True)) ∗
+    rdSupply s (γ : StoreNames) ∗ certFree (γ : StoreNames))
 
 /-- A watchable store's handle (stage 2, 2026-11-05: what `NewWatchStream` needs, §2): the
 watchable store `s` over its inner store `st`, at names `γw` whose store is `γ`, the watch tokens'
 pool (a registration's cost) and a thread pool of its readers' slots (`watchReader`), which every
 stream of it draws on. Still to add (§2): the write-back supply, the store's own goroutines'
 readers from the same pool. (`KV.Compact.contract`, 2026-11-06) The inner store's location and its
-compaction permit `True`, as a plain store's. -/
+compaction permit `True`, as a plain store's. (Track A, request 3, 2026-11-06) The certificate
+map's free entry (`certFree`). -/
 private def isMvccWatchable (kv : GoInterface) (γ : MvccName) : IProp GF :=
   iprop(∃ (s st : Loc) (γw : WsNames) (γp : GName),
     ⌜kv = interface.mkOk (go.GoType.PointerType watchableStore.ty) #s ∧ γw.st = (γ : StoreNames)⌝ ∗
     isWatchableStore s st γw ∗ watchTokPool γw ∗
     threadPool.isThreadPool watchRdPoolN γp (watchReader s st γw) ∗
-    api.locIs (γ : StoreNames).api st ∗ crevPermIs (γ : StoreNames) (fun _ => iprop(True)))
+    api.locIs (γ : StoreNames).api st ∗ crevPermIs (γ : StoreNames) (fun _ => iprop(True)) ∗
+    certFree (γ : StoreNames))
 
 /-- **`kv` (the `KV` `New` or `NewStore` returned) serves the store `γ`** (persistent). -/
 @[no_expose] def isMvcc (kv : GoInterface) (γ : MvccName) : IProp GF :=
-  iprop(□ (isMvccPlain kv γ ∨ isMvccWatchable kv γ))
+  iprop(□ ((isMvccPlain kv γ ∗ ⌜(γ : StoreNames).watchQ = false⌝) ∨ isMvccWatchable kv γ))
 
 /-- The open token's closer pieces (track A, `New.spec`, 2026-11-06): the store's current backend
 (at physical names `p`) compacting, and, of a watchable store, its own closer: the watchable store
@@ -296,7 +301,8 @@ current objects and physical names (`curAt`, an eighth at `q = 1`), whose backen
 2026-11-05) the store's registration's invariant in it at the current names (`writerReg`: a
 snapshot's freezer lends a pending registration through it); (`KV.Compact.contract`, 2026-11-06)
 the store's name of its batch lock's invariant at `Pk` (`hookP`: a compactor's hook contract over
-`Pk` is the store's). -/
+`Pk` is the store's); (track A, request 3, 2026-11-06) the write-back supply of the current backend
+(`storeWT` at the share's names: a `Restore` gives the new backend's). -/
 @[no_expose] def mvccBackend (γ : MvccName) (q : Qp) (B : MvccStorage) (Pk : IProp GF) : IProp GF :=
   iprop(api.shareTok (γ : StoreNames).api q ∗
     ∃ (p : PhysNames) (o : StoreObjs) (d : KBReal),
@@ -304,7 +310,8 @@ the store's name of its batch lock's invariant at `Pk` (`hookP`: a compactor's h
       ⌜p.kb = some d ∧ d.cm = true ∧ (d : MvccStorage) = B⌝ ∗
       □ backend.isBackend d.γB d.P (lateW d.gx) Pk d.be ∗
       □ (∃ s : Loc, writerReg s ((γ : StoreNames).withPhys p)) ∗
-      □ hookP ((γ : StoreNames).withPhys p) Pk)
+      □ hookP ((γ : StoreNames).withPhys p) Pk ∗
+      □ (⧗ 1 ={⊤}=∗ storeWT ((γ : StoreNames).withPhys p)))
 
 /-- **The storage `B`, with batch-lock invariant `Pk`, holds the history `L` compacted at `c`, ready
 for a store over it**, recording an unfinished compaction iff `u` (which `Restore` resumes)
@@ -692,8 +699,7 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
              ⟨watchRangeOf kk e endk startRev id, fs, watchLo σ startRev, k, true⟩)),
       COMM Q σ S id }>)
   {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ threadTok ∗
-      (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨
-        (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) ∗
+      (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨ context.isContext ctx cd) ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ au }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))
       (Val #(W64 0))) (Val #key)) (Val #endk)) (Val #startRev)) (Val #fcs))

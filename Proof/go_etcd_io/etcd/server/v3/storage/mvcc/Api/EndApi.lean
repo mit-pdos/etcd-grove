@@ -127,7 +127,7 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
     icases Hk with ⟨HB, HP, Hau⟩
     -- the backend share, at the transaction's names
     iunfold mvccBackend at HB
-    icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp⟩
+    icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts⟩
     icases isTxnWriteT_endY t0 s γ p p' trace σ₀.log pend puts deletes putSize σ₀.crev iprop(True)
         iprop(True) σ₀ _ o' rfl rfl $$ [$Htx $Hcur'] with ⟨Hte, Hcur', %hpp⟩
     subst hpp
@@ -165,7 +165,7 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
     iunfold mvccBackend
     iframe HF
     iexists p, o', d
-    iframe Hcur' Hbk Hrg Hhp
+    iframe Hcur' Hbk Hrg Hhp Hwts
     ipureintro; exact Hd
 
 

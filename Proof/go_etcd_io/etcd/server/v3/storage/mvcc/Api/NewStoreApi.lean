@@ -22,6 +22,7 @@ import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 
 @[expose] public section
 
@@ -133,7 +134,7 @@ theorem NewStore.wp_proof
     (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
     NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg le cfg B Pk γl rd0 hcfg hrb _
+  intro lg le cfg B Pk γl rd0 hcfg hrb hth
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, Hfor, Hlrd, #Hle, Hro⟩ HΦ
   iunfold mvccStorageFor at Hfor
   icases Hfor with ⟨%bk, %D, %Hf, #Hrc, #Hb, #Hsz, Hv, Hdl, Hfk, Hsr, Hrs, Hrg, Hw1, Hw2, #Hsup,
@@ -161,7 +162,7 @@ theorem NewStore.wp_proof
   wp_apply +noauto (hNewStore lg _ le cfg (some bk) γl γl Pk #func.nil rd0 false γi γok
       (fun _ => iprop(True)) hcfg)
     $$ [Hv Hncmp Hrg Hw1 Hw2 Hsr Hrts Hlrd Hro Hifresh Hok0]
-    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, -, #Hhk, -, Hrds, -, -, -, Hcl, -, -, Hfrag, -, Hcu, Hret,
+    as %s ⟨%γ, %Hγ, #Hs, ⟨%rd, Hro⟩, Hcok, #Hhk, -, Hrds, -, -, -, Hcl, -, -, Hfrag, -, Hcu, Hret,
       #Hcp, #Hwreg, ⟨%pr, %hpr, Hnc⟩, Hlc1⟩
   · iframe Hle Hro Hifresh Hok0
     isplitr
@@ -197,10 +198,24 @@ theorem NewStore.wp_proof
     have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
     omega
   rw [hn, List.replicate_succ]
-  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, Hrds⟩
   ihave Hrd1 : storeReader (GF := GF) s γ $$ [Hrd1]
   · iunfold storeReader; iexact Hrd1
   imod storeReader_retire s γ _ o (nJobRd (some bk)) $$ Hlc1 Hs Hcur Hrd1 Hret with ⟨HRT, -, Hcur⟩
+  -- the readers' supply from the rest (track A, request 3): every thread but one
+  have hpool : threadBound GF ≤ (nReaders - nJobRd (some bk) - 1) + 1 := by
+    have h1 : mvccReaderN = backend.rdStockN - 5 := rfl
+    have h2 : nReaders = backend.rdStockN - 2 := rfl
+    have : 6 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+    have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
+    omega
+  imod rdSupply_init ((nroot .@ "mvcc") .@ "storeRdPool") s γ _ hpool $$ Hrds with #Hsupp
+  -- the certificate map's free entry
+  imod ghost_map_insert_persist (W64 0) ([] : Log) (GMap.lookup_empty _) $$ Hcok with ⟨-, #Hfree⟩
+  ihave #Hfree' : certFree (GF := GF) γ $$ []
+  · iunfold certFree; iexact Hfree
+  ihave #Hwts : □ (⧗ 1 ={⊤}=∗ storeWT (GF := GF) γ) $$ []
+  · unfold storeWT kbWT; rw [show γ.kb = some bk from hγk]; iexact Hsup
   -- the compaction right from the closer
   imod compactRightR_of_closer s γ ⊤ $$ Hcl Hcu with Hright
   imodintro
@@ -212,10 +227,12 @@ theorem NewStore.wp_proof
   · iunfold isMvcc
     iintro !>
     ileft
-    iunfold isMvccPlain
-    iexists s
-    iframe Hs Hloc Hcp
-    ipureintro; rfl
+    isplitl
+    · iunfold isMvccPlain
+      iexists s
+      iframe Hs Hloc Hcp Hsupp Hfree'
+      ipureintro; rfl
+    ipureintro; exact hγw
   isplitl [Hab Hpn Hcr2 Hnl]
   · iunfold mvccState
     iunfold api.mvccStateI
@@ -252,7 +269,9 @@ theorem NewStore.wp_proof
     · iintro !>; iexists s; iexact Hwreg
     iunfold hookInit at Hhk
     icases Hhk with ⟨#HhP, -⟩
-    iintro !>; iexact HhP
+    isplitr
+    · iintro !>; iexact HhP
+    iexact Hwts
   iexists rd
   iframe Hro
   iapply (mvccDeleter_M1 (GF := GF) rd γ)

@@ -153,7 +153,8 @@ batch lock's writer's resource, `regLent` the rest); or (a write transaction ope
 and the open writer's key, its part of the deposit ghost and the registration. -/
 def snapFrozen (s s' : Loc) (γ : StoreNames) (σ : api.MvccState) (b : Bool) : IProp GF :=
   if b then iprop(ghostVar γ.wv (1 : Qp).half σ.log ∗ api.absPart γ.api (1 : Qp).half.half σ.log σ.crev ∗
-      api.pndPart γ.api (pndW γ) none ∗ rcvW γ (1 : Qp).half σ.crev ∗ idxCert γ.idx σ.log ∗
+      api.pndPart γ.api (pndW γ) none ∗ rcvW γ (1 : Qp).half σ.crev ∗
+      api.wcrPart γ.api (1 : Qp).half σ.crev ∗ idxCert γ.idx σ.log ∗
       ▷ writerLR s γ σ.log ∗ ▷ writerReg s γ ∗ ghostVar γ.api.frz (1 : Qp).half.half true ∗
       (storeRegd s' γ ∗ ghostVar γ.api.frz (1 : Qp).half.half true ∨ regTaken γ ∗ writerRes s' γ))
   else iprop(ghostVar γ.api.frz (1 : Qp).half true ∗ writerKey γ ∗ wDep γ ∗ storeRegd s γ)
@@ -212,9 +213,9 @@ theorem writerInv_thawNL (s : Loc) (γ : StoreNames) (a : api.AbsNames) (h : γ.
   iunfold writerInvBody at HP
   icases HP with (⟨%p, %o', >Hc, HP⟩ | ⟨-, -, -, >Hfz'⟩)
   rotate_left 1
-  · icases (slotFl_some h 1 false).1 $$ Hfz' with Hfz'
-    ihave %Hv := ghostVar_valid_2 a.frz false 1 true (1 : Qp).half $$ Hfz' Hfz
-    exact absurd Hv.1 (Qp_one_add_not_le _)
+  · icases (slotFl_some h (1 : Qp).half false).1 $$ Hfz' with Hfz'
+    ihave %Hv := ghostVar_valid_2 a.frz false (1 : Qp).half true (1 : Qp).half $$ Hfz' Hfz
+    cases Hv.2
   ihave %Hv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hv
@@ -509,7 +510,7 @@ theorem snapObs (s s' : Loc) (γ : StoreNames) (d : KBReal) (hk : γ.kb = some d
       exact absurd Hv.1 (Qp_one_add_not_le 1)
   | true =>
     simp only [↓reduceIte]
-    icases HFR with ⟨Hwv, -, -, Hrc, -, -, -, -, HRg⟩
+    icases HFR with ⟨Hwv, -, -, Hrc, -, -, -, -, -, HRg⟩
     ihave %H : ⌜snapObsOk σ.log σ.crev vd v⌝ $$ [HRg HW Hwv Hrc Hva Hdl Hfk]
     · icases HRg with (⟨#Hreg, -⟩ | ⟨Ht, HWr⟩)
       · ihave #Hreg := (storeRegd_some γ d hk s').1 $$ Hreg

@@ -68,7 +68,7 @@ theorem store.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (hG := hG)
   intro s (γ : mvcc.StoreNames)
   iintro %Φ ⟨#Hpkg, Hmv, Hopen⟩ HΦ
   iunfold isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
     icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
@@ -95,7 +95,7 @@ theorem watchableStore.Close.wp_api (hClose : mvcc.store.Close.spec (GF := GF) (
   intro s (γ : mvcc.StoreNames)
   wp_start as ⟨Hmv, Hopen⟩
   iunfold isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   · iunfold isMvccPlain at Hmv
     icases Hmv with ⟨%s', %Hk, -⟩
     exfalso

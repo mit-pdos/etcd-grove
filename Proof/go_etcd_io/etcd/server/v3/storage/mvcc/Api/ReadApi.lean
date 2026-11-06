@@ -88,7 +88,7 @@ theorem store.Read.wp_api (hR : mvcc.store.Read.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, Hmv, Htok, %Htrnn, Htrc, Hau⟩ HΦ
   -- the handle: a plain store
   iunfold isMvcc at Hmv
-  icases Hmv with #(Hmv | Hmv)
+  icases Hmv with #(⟨Hmv, %Hwq⟩ | Hmv)
   rotate_left 1
   · iunfold isMvccWatchable at Hmv
     icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, -⟩
