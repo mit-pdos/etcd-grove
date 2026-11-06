@@ -207,11 +207,37 @@ theorem wa_step {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off nn w o k : Nat
       rw [show off + nn + (i - nn) = off + i by omega, List.getElem?_drop,
         show nn + (i - nn) = i by omega] at this
       exact this
-    · rw [finBytes_mid hNar.len (by omega) hk (off + i) (by omega)]
+    · rw [finBytes_keep hNar.len (by omega) hk (off + i) (by omega)]
       exact hpre i (by omega)
   · intro i hi
-    rw [finBytes_mid hNar.len (by omega) hk i (by omega)]
+    rw [finBytes_keep hNar.len (by omega) hk i (by omega)]
     exact hmid i (by omega)
+
+/-- An attempt of a write's loop, `nn` of its bytes written (the next from `o = off + nn`), the
+first `k` of the rest written by it: the narrowing, the size and the bytes written so far (the
+loop of `Proof/os/CrashStSpec.lean`, which needs neither the size bound nor the bytes past them). -/
+theorem wa_stepS {m m' : OsMeta} {bs bs' : List (w8 × Bool)} {off nn o k : Nat} {data : List w8}
+    (hgap : off ≤ m.size) (hNar : Narrow m bs off data m' bs') (hS : off + nn ≤ m'.size)
+    (hpre : ∀ i < nn, (bs'[off + i]?).map Prod.fst = data[i]?) (ho : o = off + nn)
+    (hnn : nn ≤ data.length) (hk : k ≤ (data.drop nn).length) :
+    Narrow m bs off data (finMeta m' o (data.drop nn) k) (finBytes m' bs' o (data.drop nn) k) ∧
+      off + nn + k ≤ (finMeta m' o (data.drop nn) k).size ∧
+      ∀ i < nn + k, ((finBytes m' bs' o (data.drop nn) k)[off + i]?).map Prod.fst = data[i]? := by
+  subst ho
+  have hdl : (data.drop nn).length = data.length - nn := List.length_drop
+  refine ⟨narrow_fin hNar hgap nn hnn hk, ?_, ?_⟩
+  · show off + nn + k ≤ pwSize m'.size (off + nn) k
+    unfold pwSize; split <;> omega
+  · intro i hi
+    by_cases hin : i < nn
+    · rw [finBytes_pre hNar.len (off + i) (by unfold cfLo; omega)]
+      exact hpre i hin
+    · have := finBytes_written (m := m') (bs := bs') (off := off + nn) (data := data.drop nn)
+        (k := k) hNar.len hS hk (i - nn) (by omega)
+      rw [show off + nn + (i - nn) = off + i by omega, List.getElem?_drop,
+        show nn + (i - nn) = i by omega] at this
+      exact this
+
 
 section ops
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt fsExt] [GoGlobalContext]

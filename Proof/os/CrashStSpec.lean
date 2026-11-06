@@ -3,7 +3,7 @@ The proofs of `Spec/os/CrashSt.lean`: the models' loops as in `Proof/os/OpenFile
 `Proof/os/File__WriteAt.lean`, `Proof/os/File__Truncate.lean`, `Proof/os/File__Sync.lean` and
 `Proof/golang_org/x/sys/unix/*.lean`, over the steps of `Proof/os/CrashStOps.lean`. The open's loop
 keeps what its attempts may have made of the state (`CsOpenInv`); a write's loop keeps a state it
-reached (`WReach`), with the bytes written so far (`wa_step`); a truncate's one of the three
+reached (`WReach`), with the bytes written so far (`wa_stepS`); a truncate's one of the three
 `TReach` states. Lean-first (no Rocq counterpart).
 -/
 module
@@ -384,7 +384,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
   wp_apply wp_osPWriteFinish_cs t d.ino (off + nnv).toNat (data.drop nnv.toNat) N P R γ Good Ok m'
     bs' fa fb hN hW2 $$ Hos Hinv Hown as %k %e %hke Hown Hc2
   obtain ⟨hk, hke⟩ := hke
-  obtain ⟨hNar', hS', hpre'⟩ := wa_step hgap hNar hS hpre hoffv (by omega) hk
+  obtain ⟨hNar', hS', hpre'⟩ := wa_stepS hgap hNar hS hpre hoffv (by omega) hk
   rw [hdl] at hk
   have hRs : ∀ nn', (nn' = nnv.toNat ∨ nn' = nnv.toNat + k) →
       WReach m bs off.toNat data nn' (finMeta m' (off + nnv).toNat (data.drop nnv.toNat) k)

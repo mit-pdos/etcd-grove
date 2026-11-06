@@ -132,7 +132,7 @@ theorem finBytes_written (hlen : bs.length = m.size) (hoff : off ≤ m.size) (hk
   simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hil]
 
 /-- The bytes past the first `k`, with their flags, are what they were. -/
-theorem finBytes_mid (hlen : bs.length = m.size) (hoff : off ≤ m.size) (hk : k ≤ data.length)
+theorem finBytes_keep (hlen : bs.length = m.size) (hoff : off ≤ m.size) (hk : k ≤ data.length)
     (b : Nat) (hb : off + k ≤ b) : (finBytes m bs off data k)[b]? = bs[b]? := by
   by_cases hbm : b < m.size
   · by_cases hbe : off + data.length ≤ b
