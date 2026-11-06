@@ -3297,3 +3297,35 @@ start is the case `γ.a0 = []`.
 - No sorry and no axiom were added.
 
 **Next:** A9 turns `isServerRunC`'s conjunct into `∃ A₀, γn.a0 = A₀ ∧ …`.
+
+### R2d'a A9 + A10 (Q24 (c)), checkpoint 1 (2026-11-06; DRAFT, sorry-free)
+
+After A6 (`65f183f051`), 82 approved two more statement changes: `NodeStartSpec`'s and
+`newRaftNode.spec`'s `a0 = []`. This checkpoint has no `sorry` and changes no hub or frozen
+statement. Under Q20, the hub edit lands only with A10's proof of `run`'s restart branch. So A9's
+texts are drafted as a definition beside the hub.
+
+- **A9's texts** (`StartR.lean`): `srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ γw`. It
+  replaces three of `isServerRunC`'s conjuncts:
+  - `%HEr`: `∃ A₀`, with today's conjuncts, `γn.a0 = A₀` (was `γn.a0 = []`), `A₀`'s entries of
+    type 0 or 1, and `uint.Z ai₀ + |A₀| + 1 < 2^64`;
+  - `Hsnap`: `rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.raft A₀`;
+  - `Hstart`: `srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ ai₀`.
+
+  The restriction `σ.b = 0` is in the text (`γn.pre = [] ∧ ai₀ = W64 0` stay) and in the
+  docstring. `Hsnap`'s term stays `at₀`, as today; the brief's `0 0` is `ai₀ = 0` and `at₀`. The
+  first-start law, proved: `srvRunRestartR_first`. From today's `%HEr` (with A6's `γn.a0 = []`),
+  `Hsnap` and `Hstart` it gives `srvRunRestartR` at `A₀ = []`, through `rnSnapOnceR_first`,
+  `srvRestartAtR_first` and `c₀ = 0`.
+- **A10, batch arm's bridges** (`ViewR.lean`, proved).
+  - `rnView_R`, `rnApR_R` and `rnApGive_R` state that A6's `rnView`/`rnApR`/`rnApGive` are
+    `rnCfgAtR`/`rnApRR`/`rnApGiveR` at `⟨b, γ.a0⟩`, by `rfl`.
+  - From them: `rnApR_dvG`, `rnApGive_dvG` and `rnCfg_replayG`. These are `run`'s bridges over
+    the ghost log, with no `γ.a0 = []`.
+- **Left for A10** (est. as before, 1.5-2.5 wk (est.)):
+  - `run.wp_proof`'s restart branch over `applyResR` from `applyResR_start` at `P = []`;
+  - the window form of `applyAll.specSnapM` (Go's rows at `ai`, the ghost rows at `g`, A8's
+    `winInstallAbove`), with its `ApplyAllSnap`/`ApplyAllSnapOn` proof;
+  - the stop arm (`stop_split`/`applyResStop` over `applyResR`);
+  - A7's "window pending" token-wand supply, which is a hub conjunct;
+  - then the hub edit: `isServerRunC`'s three conjuncts become `srvRunRestartR`'s.

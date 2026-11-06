@@ -112,6 +112,58 @@ theorem srvRestartAtR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (
   ipureintro
   exact ⟨Hok.1, by rw [← hc]; exact Hok.2, by simp⟩
 
+
+/-- **A9's texts for `isServerRunC`** (R2d'a A9, Q24 (c); DRAFT, not yet in the hub: under Q20 the
+hub edit lands with A10's proof of `run`'s restart branch). Three of `isServerRunC`'s conjuncts at a
+restart, **`σ.b = 0` only**: a restart before the member's first WAL snapshot, so that nothing was
+handed before the start (`γn.pre = []`, `ai₀ = 0`: `rnEnvOk` unchanged), Go's log restarts at index 0
+and the backend's ghost log `A₀` (`γn.a0`, A6's field) is replayed through the window `(0, |A₀|]`.
+`σ.b > 0` is R2d'b's, with the raft side's restart data (Q24 (a)).
+- `%HEr`: today's conjuncts with `γn.a0 = A₀` for some `A₀` (was `γn.a0 = []`), `A₀`'s entries
+  normal or conf changes, and room past it (`ai₀ + |A₀| + 1 < 2^64`);
+- `Hsnap`: `rnSnapOnceR` at index `ai₀` (`= 0`), the conf state at `A₀`;
+- `Hstart`: `srvRestartAtR` at `A₀`, Go's index `ai₀`.
+At `A₀ = []` they are today's (`srvRunRestartR_first`). -/
+def srvRunRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
+  iprop(∃ A₀ : List EntryModel,
+    ⌜Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      γn.a0 = A₀ ∧ (∀ m ∈ A₀, m.typ = W32 0 ∨ m.typ = W32 1) ∧
+      uint.Z ai₀ + A₀.length + 1 < 2 ^ 64⌝ ∗
+    (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+      rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.raft A₀) ∗
+    srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ ai₀)
+
+/-- **A first start's conjuncts give A9's** (`A₀ = []`): today's `%HEr` (with A6's `γn.a0 = []`),
+`Hsnap` and `Hstart`. -/
+theorem srvRunRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName)
+    (hEr : Er.C = srvCM C.isOn ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧ γn.a0 = []) :
+    (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
+        rnSnapOnce (GF := GF) γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀) ∗
+      applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw ⊢
+    srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ γw := by
+  obtain ⟨h1, h2, ⟨hc, hp, ha⟩, h4⟩ := hEr
+  have hc0 : c₀ = ai₀ := by subst ha; word
+  iintro ⟨⟨%ms, #Hms, Hsnap⟩, Hst⟩
+  iunfold srvRunRestartR
+  iexists []
+  isplitr
+  · ipureintro
+    refine ⟨h1, h2, ⟨hc, hp, ha⟩, h4, by simp, ?_⟩
+    subst ha; simp <;> word
+  isplitl [Hsnap]
+  · iexists ms
+    iframe Hms
+    iapply rnSnapOnceR_first $$ Hsnap
+  iapply srvRestartAtR_first $$ [Hst]
+  iframe Hst
+  ipureintro; exact hc0
+
 end defs
 
 section start

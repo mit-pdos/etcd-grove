@@ -223,6 +223,44 @@ theorem rnCfgAtR_back_false (γ : RNNames) (rp : RestartPt) (ai₀ : w64) (L ce 
   rw [ite_eq_right (by rw [hh]; decide)]
   exact rnCfgAtR_normal γ rp L ce (ccIn_false_normal ai₀ L ce hidx hcc) hc
 
+/-! ### A6's names are this file's at the restart point `⟨b, γ.a0⟩` (R2d'a A10, DRAFT)
+
+Since A6 the raft loop's names carry the restart point's backend log (`γ.a0`) and its view is over
+the ghost log (`rnView`); for any `b`, `rnView`/`rnApR`/`rnApGive` are this file's restart forms at
+`⟨b, γ.a0⟩` (`σ.b = 0` only: R2d'a, Q24 (c); `b` enters no definition here). So `run`'s batch arm
+reads the loop's handouts through `rnApRR_dv`/`rnApGiveR_dv`. -/
+
+theorem rnView_R (γ : RNNames) (b : Nat) (L : List EntryModel) :
+    rnView (GF := GF) γ L = rnCfgAtR γ ⟨b, γ.a0⟩ L := rfl
+
+theorem rnApR_R (γ : RNNames) (b : Nat) (F ce : List EntryModel) :
+    rnApR (GF := GF) γ F ce = rnApRR γ ⟨b, γ.a0⟩ F ce := rfl
+
+theorem rnApGive_R (γ : RNNames) (b : Nat) (F ce : List EntryModel) :
+    rnApGive (GF := GF) γ F ce = rnApGiveR γ ⟨b, γ.a0⟩ F ce := rfl
+
+/-- **What comes back, over A6's names** (`rnApR_dv`'s restart form; no `γ.a0 = []`). -/
+theorem rnApR_dvG (γ : RNNames) (γs : ServerRaftNames) (b : Nat) (hpre : γs.pre = [])
+    (hraft : γs.raft = γ.node) (F ce : List EntryModel) :
+    rnApR (GF := GF) γ F ce = dvView γs (rnDv γ ce) (ghostOf ⟨b, γ.a0⟩ (γ.pre ++ F ++ ce)) := by
+  rw [rnApR_R γ b]; exact rnApRR_dv γ γs _ hpre hraft F ce
+
+/-- **What goes along, over A6's names** (`rnApGive_dv`'s restart form; no `γ.a0 = []`). -/
+theorem rnApGive_dvG (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (b : Nat)
+    (hpre : γs.pre = []) (hraft : γs.raft = γ.node) (F ce : List EntryModel) :
+    srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ F ce ⊢
+      dvView γs (rnDv γ ce) (ghostOf ⟨b, γ.a0⟩ (γ.pre ++ F)) ∗
+        dvRes s γs (rnDv γ ce) (γ.pre ++ F ++ ce) := by
+  rw [rnApGive_R γ b]; exact rnApGiveR_dv s γ γs _ hpre hraft F ce
+
+/-- **A replayed batch's round trip, over A6's names** (`rnCfgR_replay` at `⟨b, γ.a0⟩`). -/
+theorem rnCfg_replayG (s : Loc) (γ : RNNames) (γs : ServerRaftNames) (b : Nat)
+    (hpre : γs.pre = []) (hraft : γs.raft = γ.node) (F ce : List EntryModel)
+    (hin : γ.pre ++ F ++ ce <+: γ.a0) :
+    srvRaftNodeCC (GF := GF) s γ.srv γ.nl ∗ rnApGive γ F ce ⊢
+      dvRes s γs (rnDv γ ce) (γ.pre ++ F ++ ce) ∗ rnApR γ F ce := by
+  rw [rnApGive_R γ b, rnApR_R γ b]; exact rnCfgR_replay s γ γs ⟨b, γ.a0⟩ hpre hraft F ce hin
+
 end view
 
 end EtcdGrove
