@@ -11,21 +11,49 @@ free is false of Go (the read transactions of `bboltrd`).
 1. The slot holders, from the Go sources of the projects (`.lake/goose/<project>`, which
    `etc/goose.py` fetches, this repository's own modules, and the standard library for its own
    packages; the sources, not the translations, so that a names-only function is scanned too):
+   - a lock is (package, owner type, field): the struct type that declares the field, resolved
+     from the expression's prefix by type (`db.mmaplock` with `db *DB`: `go.etcd.io/bbolt.DB.mmaplock`;
+     a field promoted from an embedded struct is its declaring struct's; `s.RLock()` on a variable of
+     a struct type embedding the mutex is that type's `RWMutex`), so that two types' same-named
+     fields are two locks. An owner not resolved (an index, an interface, a mutex parameter) is
+     `?`, which matches no resolved lock: a holder whose release is unresolved stays a holder (`-v`
+     lists them);
    - a function holds a slot when an `E.RLock()` in it is followed by no `E.RUnlock()` at the same
      or an outer block depth and by no deferred `E.RUnlock()` (an `RUnlock` in an inner block is an
      error path's: `beginTx`'s `if !db.opened { ...RUnlock(); return }`);
    - a function releases one when it has an `E.RUnlock()` with no `E.RLock()` before it
-     (`removeTx`), or calls a releaser of the same package (`close`, `Rollback`);
-   - a function holds one too when it calls a holder (by name, in its own package or one its file
-     imports, resolved by type, below) and keeps what the call returns: the result is returned, discarded, or bound to `v`
-     and not passed to a releaser (`v.Rollback()`), a fixed point across packages (`DB.Begin`, and
-     through it `backend.Snapshot`).
+     (`removeTx`), or calls a releaser of it (`close`, `Rollback`);
+   - a function holds one too when it calls a holder (in its own package or one its file imports,
+     resolved by type, below) and keeps what the call returns, a fixed point across packages
+     (`DB.Begin`, and through it `backend.Snapshot`). **The release rule**: the result counts as
+     released only when it is bound to a destination -- a variable or a field (`t, err :=`,
+     `if t, err :=`, `x.tx =`) -- and a later resolved call of a releaser of that lock (one that
+     does not itself hold it) is made on the destination (`t.Rollback()`, `x.tx.Rollback()`) or
+     takes it as an argument. Every other result is held: returned, discarded (`_`), unbound (an
+     expression statement, an argument of another call, a channel send `ch <- newBackend(...)`),
+     or the call run by `go` or `defer`. A releaser called on something else does not release it.
 2. The axioms: every `axiom <F>.wp_proof` under `Proof/` (and a part's `<root>/Proof/`) maps to its
-   Go function by the layout (`Spec/<pkg>/<T>__<M>[_variant].lean`). If it is a holder, its spec's
-   text (comments stripped) must mention a token (`TOKENS`).
-3. The closers: `etc/reader-slot-pairs.txt` lists each holder axiom with its closer axiom; the
-   closer's post (its text after `RET`) must mention a token. A holder axiom with no pair fails.
-4. Exceptions: `etc/reader-slot-allow.txt`, `NAME  # why`.
+   Go function by the layout (`Spec/<pkg>/<T>__<M>[_variant].lean`). If it is a holder, the axiom
+   must state `<F>.spec`, and the spec file's declaration `abbrev <F>.spec` (only it: comments,
+   docstrings and the file's other declarations are not read) must be one triple
+   `∀ ..., {{ pre }} e {{ binders, RET v; post }}` whose **pre consumes a token**: a separating
+   conjunct of the pre whose head is a token (`TOKENS`, applied to arguments or not), under
+   parentheses, `iprop(...)` or `∃ x,`; in every disjunct of a `∨`; or in a branch of an
+   `if c then A else B` (either branch: `Begin_kv`'s `if w then wrTok γ else threadTok`, whose read
+   branch is the holder's, `w` not being mapped to the Go call's literal). A token under a wand,
+   `□`, `⌜⌝`, a nested triple or any other connective does not count.
+3. The closers: `etc/reader-slot-pairs.txt` lists each holder axiom with its closer axiom, an axiom
+   of the same tree that states its spec, whose Go function releases every lock the holder holds,
+   and whose **post returns a token**: a token conjunct, as in 2., of the post after `RET v;` (in
+   every branch of an `if`). A holder axiom with no pair fails.
+4. Exceptions: `etc/reader-slot-allow.txt`, one line per axiom:
+   `NAME  lock=PKG.TYPE.FIELD...  (closer=AXIOM | held-for-life-by=PKG.[TYPE.]FUNC)  # why`.
+   The `lock=`s must be exactly the locks the gate finds the axiom's function holding (an entry
+   for one lock covers no other). The pairing is checked: a `closer=` as in 3. without the token
+   (it releases the locks); a `held-for-life-by=` goroutine is a Go function here, started by a
+   `go` statement in a function the holder reaches by resolved calls, which itself holds or
+   releases those locks (`storage.OpenBackend`'s slot, rotated by `backend.run`'s commits). A
+   malformed entry, or one without a reason, fails.
 
 Calls are resolved by type, not only by name: a method call's receiver type comes from the
 function's receiver, parameters, composite literals (`v := &T{...}`), struct fields (embedded ones
@@ -63,10 +91,17 @@ Limits (the gate's reach):
   or `Defrag` that runs a caller's callback inside `db.View` would let the callback nest unpaid
   readers (call `Begin(false)` again, or wait on a reader), which this scan would not catch.
   Such a spec must take a token for the callback's duration.
-- A name-level check of the sources, not a proof, as `errorf-wrap-check.py` is.
+- Release and hold are path-insensitive beyond a literal `bool` argument: `Tx.Commit` counts as a
+  releaser of `mmaplock` (it reaches `tx.close()` → `removeTx`), though on a read transaction it
+  returns `ErrTxNotWritable` first; so a `closer=bbolt.Tx.Commit_kv` would pass the release check.
+  A paired closer must also give the token back (3.), which `Commit_kv`'s post does not.
+- A name-level check of the sources and a syntactic one of the spec, not a proof, as
+  `errorf-wrap-check.py` is.
 
-usage: etc/reader-slot-check.py [-v]   (exit 1 on an unpaid holder axiom, a missing pair, a closer
-                                        without the token, a missing source tree, or fewer than
+usage: etc/reader-slot-check.py [-v]   (exit 1 on a holder axiom whose pre consumes no token, a
+                                        missing pair, a closer that does not release the lock or
+                                        whose post returns no token, an allow entry whose locks or
+                                        pairing do not match, a missing source tree, or fewer than
                                         MIN_SCANNED axioms scanned)
 """
 import os
@@ -439,9 +474,9 @@ def depths(body):
     return dep, dfr
 
 
-def lock_facts(f):
-    """`f`'s locks held at its return ({field: [positions of the RLocks]}) and its unmatched
-    releases, by lock field name."""
+def lock_facts(f, ident):
+    """`f`'s locks held at its return ({lock: [positions of the RLocks]}) and its unmatched
+    releases, each lock identified by `ident(f, expr)`: (package, owner type, field)."""
     ops = [(m.start(), m.group(1), m.group(2)) for m in LOCKOP.finditer(f.body)]
     if not ops:
         return {}, set()
@@ -450,7 +485,6 @@ def lock_facts(f):
     for k, (i, e, op) in enumerate(ops):
         line = f.body[f.body.rfind('\n', 0, i) + 1:i]
         deferred = 'defer' in line or dfr[i]
-        field = e.rsplit('.', 1)[-1]
         if op == 'RLock':
             if any(op2 == 'RUnlock' and e2 == e and
                    (dep[j] <= dep[i] or 'defer' in f.body[f.body.rfind('\n', 0, j) + 1:j] or dfr[j])
@@ -460,10 +494,16 @@ def lock_facts(f):
                    ('defer' in f.body[f.body.rfind('\n', 0, j) + 1:j] or dfr[j])
                    for j, e2, op2 in ops[:k]):
                 continue
-            held.setdefault(field, []).append(i)
+            held.setdefault(ident(f, e), []).append(i)
         elif not any(op2 == 'RLock' and e2 == e for j, e2, op2 in ops[:k]) and not deferred:
-            rel.add(field)
+            rel.add(ident(f, e))
     return held, rel
+
+
+def lock_name(lk):
+    """`go.etcd.io/bbolt.DB.mmaplock` (an unresolved owner type is `?`)."""
+    pkg, t, x = lk
+    return f'{pkg}.{t}.{x}'
 
 
 class Graph:
@@ -478,6 +518,8 @@ class Graph:
         for f in funcs:
             self.by_name.setdefault((f.pkg, f.name), []).append(f)
         self.locals = {}
+        self.locs = {}          # id(f) -> its local variables' types (the final map)
+        self.unresolved_locks = set()
 
     def norm(self, texpr, pkg, imports):
         """The named type `(pkg, T)` a type expression denotes, if any."""
@@ -518,6 +560,48 @@ class Graph:
                 if r:
                     return r
         return None
+
+    def field_owner(self, t, name, depth=0):
+        """The struct type that declares field `name` of `t` (`t` itself, or a type embedded in it)."""
+        fs = STRUCTS.get(t)
+        if not fs:
+            return None
+        if name in fs:
+            return t
+        if depth > 2:
+            return None
+        for texpr, imps in fs.get('', []):
+            et = self.norm(texpr, t[0], imps)
+            if et:
+                r = self.field_owner(et, name, depth + 1)
+                if r:
+                    return r
+        return None
+
+    def lock_ident(self, f, e):
+        """The lock `e.RLock()` takes in `f`: (package, owner type, field), the field's declaring
+        struct type resolved from `e`'s prefix (`db.mmaplock`: `bbolt.DB`'s `mmaplock`); a variable
+        of a struct type embedding the mutex (`s.RLock()`) is that type's `RWMutex`. When the owner
+        is not resolved, (f's package, `?`, field): it never matches a resolved lock, so a holder
+        whose release is not resolved stays a holder (`-v` lists them)."""
+        self.calls(f)
+        loc = self.locs[id(f)]
+        elems = [x for x in e.split('.') if x]
+        if '[' in e or not elems:
+            self.unresolved_locks.add((repr(f), e))
+            return (f.pkg, '?', elems[-1] if elems else e)
+        if len(elems) == 1:
+            t = loc.get(elems[0])
+            if t and t != ('sync', 'RWMutex'):
+                return (t[0], t[1], 'RWMutex')
+            self.unresolved_locks.add((repr(f), e))
+            return (f.pkg, '?', elems[0])
+        t = self.chain_type(f, elems[:-1], loc)
+        o = self.field_owner(t, elems[-1]) if t else None
+        if o is None:
+            self.unresolved_locks.add((repr(f), e))
+            return (f.pkg, '?', elems[-1])
+        return (o[0], o[1], elems[-1])
 
     def chain_type(self, f, elems, loc):
         """The type of `e0.e1...` (an element `g()` is a call without arguments)."""
@@ -600,12 +684,13 @@ class Graph:
             line = b[b.rfind('\n', 0, m.start()) + 1:m.start()]
             for g in gs:
                 out.append((m.start(), g, args, line, chain.rstrip('.')))
-            am = re.match(r'\s*(\w+)\s*(?:,\s*\w+\s*)*:?=\s*$', line)
+            am = re.match(r'\s*(?:if\s+)?(\w+)\s*(?:,\s*\w+\s*)*:?=\s*$', line)
             if am and len(gs) == 1:
                 t = self.norm(gs[0].rtype, gs[0].pkg, gs[0].imports)
                 if t:
                     loc[am.group(1)] = t
         self.locals[id(f)] = out
+        self.locs[id(f)] = loc
         return out
 
 
@@ -632,8 +717,14 @@ def excluded(g, args):
     return out
 
 
+# the destination of a call's result, from the statement before it: `v :=`, `v, err =`,
+# `a.b.c =`, also after `if ` (`if tx, err := ...; ...`)
+DEST = re.compile(r'\s*(?:if\s+)?([\w.]+)\s*(?:,\s*\w+\s*)*:?=\s*$')
+
+
 def analyze(src, roots):
-    """The holders: {func key: {lock (pkg, field): [positions]}}; the releasers: {key: locks}."""
+    """The holders: {func key: {lock: [positions]}}; the releasers: {key: locks}; a lock is
+    (package, owner type, field)."""
     todo = list(roots)
     while todo:
         p, prefer = todo.pop()
@@ -646,15 +737,15 @@ def analyze(src, roots):
                     todo.append((q, prefer))
     funcs = [f for fs in src.pkgs.values() if fs for f in fs]
     G = Graph(funcs)
+    calls = {f.key: G.calls(f) for f in funcs}
     holds, releases = {}, {}
     for f in funcs:
-        h, r = lock_facts(f)
+        h, r = lock_facts(f, G.lock_ident)
         if h:
-            holds[f.key] = {(f.pkg, x): ps for x, ps in h.items()}
+            holds[f.key] = h
         if r:
-            releases[f.key] = {(f.pkg, x) for x in r}
+            releases[f.key] = set(r)
     fkey = {f.key: f for f in funcs}
-    calls = {f.key: G.calls(f) for f in funcs}
 
     def held_by(g, args):
         hs = holds.get(g.key, {})
@@ -679,29 +770,44 @@ def analyze(src, roots):
         for f in funcs:
             for i, g, args, line, _ in calls[f.key]:
                 gh = held_by(g, args)
-                if not gh or re.match(r'\s*defer\b', line):
+                if not gh:
                     continue
-                m = re.match(r'\s*(\w+)\s*(?:,\s*\w+\s*)*:?=\s*$', line)
+                # the result's destination: only a result bound to a variable or a field (`v`,
+                # `a.b.c`) can be released, by a later call of a releaser on it; a result that is
+                # returned, discarded (`_`), unbound (an expression statement, an argument, a channel
+                # send, `go`, `defer`) is held (see the docstring, 1.)
+                m = DEST.match(line)
+                v = m.group(1) if m and m.group(1) not in ('_', 'return') else None
                 for lk in gh:
                     if i in holds.get(f.key, {}).get(lk, []):
                         continue
                     # released by a later resolved call of a releaser of the lock that does not
                     # also hold it (`unsafeCommit` rolls the old read transaction back and begins a
-                    # new one: a holder), on the variable the result is bound to if it is bound
+                    # new one: a holder), on the destination or with it as an argument
                     def releaser(h):
                         return lk in releases.get(h.key, set()) and lk not in holds.get(h.key, {})
-                    if m and m.group(1) != '_':
-                        v = m.group(1)
-                        if any(releaser(h) and (c == v or c.startswith(v + '.'))
-                               for j, h, _, _, c in calls[f.key] if j > i):
-                            continue
-                    elif not re.match(r'\s*return\b', line) and m is None:
-                        if any(releaser(h) for j, h, _, _, c in calls[f.key] if j > i):
-                            continue
+                    if v and any(releaser(h) and (c == v or c.startswith(v + '.') or v in a)
+                                 for j, h, a, _, c in calls[f.key] if j > i):
+                        continue
                     holds.setdefault(f.key, {}).setdefault(lk, []).append(i)
                     changed = True
     return holds, releases, fkey, calls, G
 
+
+def callees(fkey, calls, k):
+    """The keys of the functions `k` reaches by resolved calls, `k` included."""
+    seen, todo = {k}, [k]
+    while todo:
+        x = todo.pop()
+        for _, g, _, _, _ in calls.get(x, []):
+            if g.key not in seen:
+                seen.add(g.key)
+                todo.append(g.key)
+    return seen
+
+
+def go_key(k):
+    return f'{k[0]}.{k[1]}'
 
 
 # ---------------------------------------------------------------------------------------------
@@ -729,6 +835,112 @@ def strip_lean_comments(s):
             out.append(s[i])
             i += 1
     return ''.join(out)
+
+
+OPEN, CLOSE = '([{⟨⌜', ')]}⟩⌝'
+
+
+def top_split(t, sep):
+    """`t` split at the occurrences of `sep` outside brackets."""
+    out, depth, start, i = [], 0, 0, 0
+    while i < len(t):
+        c = t[i]
+        if c in OPEN:
+            depth += 1
+        elif c in CLOSE:
+            depth -= 1
+        elif depth == 0 and t.startswith(sep, i):
+            out.append(t[start:i])
+            i += len(sep)
+            start = i
+            continue
+        i += 1
+    out.append(t[start:])
+    return [x.strip() for x in out]
+
+
+def unwrap(t):
+    """`t` without enclosing parentheses, `iprop(...)` and a leading `∃ x y,`."""
+    while True:
+        t = t.strip()
+        m = re.match(r'iprop\s*\(', t)
+        if m and match_paren(t, m.end() - 1) == len(t) - 1:
+            t = t[m.end():-1]
+        elif t.startswith('(') and match_paren(t, 0) == len(t) - 1:
+            t = t[1:-1]
+        elif t.startswith('∃') and len(top_split(t, ',')) > 1:
+            t = t[t.index(top_split(t, ',')[0]) + len(top_split(t, ',')[0]) + 1:]
+        else:
+            return t
+
+
+def gives_token(t, branches='any'):
+    """Whether the assertion `t` holds a token (`TOKENS`) as a separating conjunct: a conjunct whose
+    head is a token, in every disjunct of a `∨`, in a branch of an `if c then A else B` (any branch
+    for a pre, `branches='any'`: `Begin_kv`'s `if w then wrTok γ else threadTok`, whose read
+    branch is the slot holder's; every branch for a post, `'all'`). A token under a wand, a `□`, a
+    pure `⌜⌝`, a nested triple or any other connective does not count."""
+    t = unwrap(t)
+    conj = top_split(t, '∗')
+    if len(conj) > 1:
+        return any(gives_token(c, branches) for c in conj)
+    disj = top_split(t, '∨')
+    if len(disj) > 1:
+        return all(gives_token(d, branches) for d in disj)
+    m = re.match(r'if\s', t)
+    if m:
+        th = top_split(t, ' then ')
+        if len(th) == 2:
+            el = top_split(th[1], ' else ')
+            if len(el) == 2:
+                bs = [gives_token(x, branches) for x in el]
+                return any(bs) if branches == 'any' else all(bs)
+        return False
+    hm = re.match(r'(\w+)', t)
+    return bool(hm and TOKENS.fullmatch(hm.group(1)) and
+                re.fullmatch(r'\w+(\s+[\w.\']+)*', t) is not None)
+
+
+def spec_triple(path, name):
+    """The pre and the post (after `RET v;`) of the one triple `abbrev <name>.spec : Prop := ∀ ...,
+    {{ pre }} e {{ binders, RET v; post }}` in the spec file `path`, from that declaration only
+    (comments and docstrings stripped), or a string saying why it cannot be read."""
+    if not path.exists():
+        return f'no spec file {path.relative_to(ROOT)}'
+    text = strip_lean_comments(path.read_text())
+    m = re.search(r'^(?:@\[[^\]]*\]\s*)?(?:abbrev|def)\s+' + re.escape(name + '.spec') + r'\s*:', text, re.M)
+    if not m:
+        return f'{path.relative_to(ROOT)} declares no `{name}.spec`'
+    end = re.compile(r'^\S', re.M).search(text, m.end())
+    decl = text[m.end():end.start() if end else len(text)]
+    parts, depth, i = [], 0, 0
+    while i < len(decl):
+        c = decl[i]
+        if c in OPEN:
+            if depth == 0 and decl.startswith('{{', i):
+                parts.append([i + 2, None])
+            depth += 1
+        elif c in CLOSE:
+            depth -= 1
+            if depth == 0 and parts and parts[-1][1] is None and c == '}' and decl[i - 1] == '}':
+                parts[-1][1] = i - 1
+        i += 1
+    if len(parts) != 2 or any(e is None for _, e in parts):
+        return f'`{name}.spec` is not one triple `{{{{ pre }}}} e {{{{ post }}}}` ({len(parts)} top-level `{{{{`)'
+    pre = decl[parts[0][0]:parts[0][1]]
+    post = decl[parts[1][0]:parts[1][1]]
+    r = top_split(post, 'RET')
+    if len(r) != 2 or len(top_split(r[1], ';')) < 2:
+        return f'`{name}.spec`\'s post has no `RET v;`'
+    body = r[1][r[1].index(top_split(r[1], ';')[0]) + len(top_split(r[1], ';')[0]) + 1:]
+    return pre, body
+
+
+def axiom_states(base, rel, name):
+    """Whether `axiom <name>.wp_proof` in its proof file states `<name>.spec`."""
+    t = strip_lean_comments((base / 'Proof' / rel).read_text())
+    m = re.search(r'^axiom\s+' + re.escape(name) + r'\.wp_proof\s*:\s*(\S+)', t, re.M)
+    return bool(m and m.group(1) == name + '.spec')
 
 
 def axioms():
@@ -780,12 +992,23 @@ def main():
     for name, base, rel in ax:
         by_name.setdefault(name, []).append((base, rel))
     pairs = read_list(PAIRS)
-    allow = {}
+    allow, bad = {}, []
     if ALLOW.exists():
         for line in ALLOW.read_text().splitlines():
-            name, _, why = line.partition('#')
-            if name.strip():
-                allow[name.split()[0]] = why.strip()
+            entry, _, why = line.partition('#')
+            if not entry.strip():
+                continue
+            words = entry.split()
+            locks = [w[5:] for w in words[1:] if w.startswith('lock=')]
+            closer = [w[7:] for w in words[1:] if w.startswith('closer=')]
+            life = [w[17:] for w in words[1:] if w.startswith('held-for-life-by=')]
+            other = [w for w in words[1:] if not w.startswith(('lock=', 'closer=', 'held-for-life-by='))]
+            if not locks or len(closer) + len(life) != 1 or other or not why.strip():
+                bad.append(f'{ALLOW.name}: `{entry.strip()}` must be `NAME lock=PKG.TYPE.FIELD... '
+                           f'(closer=AXIOM | held-for-life-by=PKG.[TYPE.]FUNC)  # why`')
+                continue
+            allow[words[0]] = (set(locks), closer[0] if closer else None, life[0] if life else None,
+                               why.strip())
     # each axiom's Go package, and the source tree it must come from
     missing = []                # the reasons the check cannot run: a tree or package gone
     need = {t: 'always' for t in ALWAYS}
@@ -832,11 +1055,11 @@ def main():
         print(f'reader-slot: FAILED: {len(missing)} axioms or trees without their Go sources',
               file=sys.stderr)
         return 1
-    bad, holders = [], []
+    holders = []
     # each tree separately: a part's packages have the main tree's Go paths (RaftWitness's
     # `go.etcd.io/raft/v3`), which the package cache and the call graph key on
     # (the struct table too: each tree's axioms are matched before the next tree is loaded)
-    cur = None
+    cur, G_unres = None, set()
     for name, base, rel, p, prefer in sorted(where, key=lambda x: (str(x[1]), x[0], str(x[2]))):
         if base != cur:
             cur = base
@@ -844,6 +1067,7 @@ def main():
             STRUCTS.clear()
             holds, releases, fkey, calls, G = analyze(
                 src, {(p2, pr2) for _, b2, _, p2, pr2 in where if b2 == base})
+            G_unres |= G.unresolved_locks
         lb = label(name, base)
         fn = None
         for t, m in go_candidates(rel.stem):
@@ -861,36 +1085,106 @@ def main():
             continue
         if fn not in holds:
             continue
-        locks = ', '.join(sorted(f'{q}.{x}' for q, x in holds[fn]))
+        hl = set(holds[fn])
+        locks = ', '.join(sorted(lock_name(x) for x in hl))
         holders.append(lb)
+
+        def closer_ok(closer, need_token):
+            """The closer of the same tree (a part's copy pairs with the part's copy): an axiom
+            stating its spec, whose Go function releases every lock the holder holds, and (when
+            `need_token`) whose post gives a token back."""
+            cs = [(cb, crel) for cb, crel in by_name.get(closer, []) if cb == base]
+            if not cs:
+                return [f'{lb}: its closer {closer} is not an axiom of the same tree']
+            out = []
+            for cb, crel in cs:
+                cl = label(closer, cb)
+                if not axiom_states(cb, crel, closer):
+                    out.append(f'{lb}: its closer {cl}\'s axiom does not state `{closer}.spec`')
+                    continue
+                ck = next((k for t, m in go_candidates(crel.stem)
+                           for k in [(src.from_mangled(str(crel.parent), prefer), f'{t}.{m}' if t else m)]
+                           if k in fkey), None)
+                if ck is None:
+                    gs = [g for t, m in go_candidates(crel.stem) if t
+                          for g in G.methods((src.from_mangled(str(crel.parent), prefer), t), m)]
+                    ck = gs[0].key if len(gs) == 1 else None
+                if ck is None:
+                    out.append(f'{lb}: its closer {cl} maps to no Go function')
+                    continue
+                miss = hl - releases.get(ck, set())
+                if miss:
+                    out.append(f'{lb}: its closer {cl} (Go {go_key(ck)}) does not release '
+                               f'{", ".join(sorted(lock_name(x) for x in miss))}')
+                if need_token:
+                    tr = spec_triple(cb / 'Spec' / crel, closer)
+                    if isinstance(tr, str):
+                        out.append(f'{lb}: its closer {cl}: {tr}')
+                    elif not gives_token(tr[1], 'all'):
+                        out.append(f'{lb}: its closer {cl} gives no token back (no token conjunct '
+                                   f'in its post, after `RET v;`)')
+            return out
+
         if name in allow:
-            print(f'reader-slot: {lb} holds {locks}: allowed ({allow[name][:80]}...)')
+            alocks, acloser, alife, why = allow[name]
+            have = {lock_name(x) for x in hl}
+            if alocks != have:
+                bad.append(f'{lb} holds {locks}, but its allow entry names {", ".join(sorted(alocks))}')
+                continue
+            if acloser:
+                errs = closer_ok(acloser, False)
+                if errs:
+                    bad += errs
+                    continue
+                pairing = f'closed by {acloser}'
+            else:
+                gk = next((k for k in fkey if go_key(k) == alife), None)
+                if gk is None:
+                    bad.append(f'{lb}: its allow entry\'s goroutine {alife} is no Go function here')
+                    continue
+                reach = callees(fkey, calls, fn)
+                forks = [go_key(k) for k in sorted(reach)
+                         for _, g, _, line, _ in calls.get(k, [])
+                         if g.key == gk and re.fullmatch(r'\s*go\s*', line)]
+                if not forks:
+                    bad.append(f'{lb}: its allow entry\'s goroutine {alife} is not started (`go`) by '
+                               f'any function {go_key(fn)} reaches')
+                    continue
+                touch = hl - (set(holds.get(gk, {})) | releases.get(gk, set()))
+                if touch:
+                    bad.append(f'{lb}: its allow entry\'s goroutine {alife} neither holds nor releases '
+                               f'{", ".join(sorted(lock_name(x) for x in touch))}')
+                    continue
+                pairing = f'held for life by {alife}, started in {forks[0]}'
+            print(f'reader-slot: {lb} holds {locks}: allowed, {pairing} ({why[:60]}...)')
+            continue
+        if not axiom_states(base, rel, name):
+            bad.append(f'{lb}: its axiom does not state `{name}.spec`')
             continue
         spec = base / 'Spec' / rel
-        stext = strip_lean_comments(spec.read_text()) if spec.exists() else ''
-        if not TOKENS.search(stext):
-            bad.append(f'{lb} (Go {fn[0]}.{fn[1]}) returns holding a reader slot of {locks}, '
-                       f'and its spec ({spec.relative_to(ROOT)}) takes no token')
+        tr = spec_triple(spec, name)
+        if isinstance(tr, str):
+            bad.append(f'{lb} (Go {go_key(fn)}) returns holding a reader slot of {locks}: {tr}')
+            continue
+        if not gives_token(tr[0], 'any'):
+            bad.append(f'{lb} (Go {go_key(fn)}) returns holding a reader slot of {locks}, '
+                       f'and its spec\'s pre ({spec.relative_to(ROOT)}) consumes no token')
             continue
         if name not in pairs or not pairs[name]:
             bad.append(f'{lb} holds a reader slot of {locks}: no closer in {PAIRS.relative_to(ROOT)}')
             continue
-        closer = pairs[name][0]
-        # the closer of the same tree (a part's copy pairs with the part's copy)
-        cs = [(cb, crel) for cb, crel in by_name.get(closer, []) if cb == base]
-        if not cs:
-            bad.append(f'{lb}: its closer {closer} is not an axiom of the same tree')
-            continue
-        for cb, crel in cs:
-            ctext = strip_lean_comments((cb / 'Spec' / crel).read_text())
-            post = ctext.split('RET', 1)[1] if 'RET' in ctext else ''
-            if not TOKENS.search(post):
-                bad.append(f'{lb}: its closer {label(closer, cb)} gives no token back (its post, after RET)')
+        errs = closer_ok(pairs[name][0], True)
+        bad += errs
+        if not errs:
+            print(f'reader-slot: {lb} holds {locks}: paid (a token in its pre), closed by '
+                  f'{pairs[name][0]} (releases it, a token in its post)')
     hnames = {h.rsplit(':', 1)[-1] for h in holders}
     for k in pairs:
         if k not in hnames:
             print(f'reader-slot: note: {k} is in {PAIRS.name} but is not found to hold a slot')
     if verbose:
+        for fname, e in sorted(G_unres):
+            print(f'reader-slot: lock with an unresolved owner type: {e} in {fname}')
         for why, names in sorted(unscanned.items()):
             print(f'reader-slot: unscanned ({why}): {" ".join(sorted(names))}')
     for b in bad:

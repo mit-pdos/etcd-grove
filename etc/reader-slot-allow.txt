@@ -1,2 +1,6 @@
-# Slot-holding axioms whose spec takes no token, each with why it is sound (etc/reader-slot-check.py).
-storage.OpenBackend  # paid: the slot is the read tx of the backend's batch tx, held by the run goroutine OpenBackend's newBackend forks; its fork token pays it, through every commit's re-begin (notes/axiom-review/begin-tok-restated.md, A9). Valid while backend.newBackend, run and unsafeCommit's proofs carry that flow (wp_fork_tok_self at `go b.run()`, the token into each Begin(false), Rollback_kv's token back).
+# Slot-holding axioms whose spec takes no token, each with why it is sound (etc/reader-slot-check.py):
+#   NAME  lock=PKG.TYPE.FIELD...  (closer=AXIOM | held-for-life-by=PKG.[TYPE.]FUNC)  # why
+# every lock the gate finds the axiom's Go function holding, and no other, named by `lock=`; the
+# pairing checked: the closer an axiom of the same tree whose Go function releases those locks, or the
+# goroutine started (`go`) by a function the holder reaches and itself holding or releasing them.
+storage.OpenBackend  lock=go.etcd.io/bbolt.DB.mmaplock  held-for-life-by=go.etcd.io/etcd/server/v3/storage/backend.backend.run  # paid: the slot is the read tx of the backend's batch tx, held by the run goroutine OpenBackend's newBackend forks; its fork token pays it, through every commit's re-begin (notes/axiom-review/begin-tok-restated.md, A9). Valid while backend.newBackend, run and unsafeCommit's proofs carry that flow (wp_fork_tok_self at `go b.run()`, the token into each Begin(false), Rollback_kv's token back).
