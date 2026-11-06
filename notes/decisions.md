@@ -32352,10 +32352,13 @@ directory; what the stop takes of the started member is `memberStopRes s ρ id` 
 scope, the 128 readers), split off `memberUp` by `memberUp_stopRes` out of compaction mode;
 `stop.spec`/`restartCheck.spec` take it.
 
-**Trust base (open, the user's).** With one `run.spec`, the image's configuration axioms
-(`apply.memberKey_inj`, `apply.memberEnc_id_learner`, `membership.membersOf_decode`, reviewed
-2026-11-04) reach every result through `run`: 785 → 788 axioms. This is a hard stop; the baselines
-are not updated.
+**Trust base (decided: the user approved it on 2026-11-06, relayed by etcd-grove-82).** With one
+`run.spec`, every result through `run` reaches the three axioms of the image's configuration
+(`apply.memberKey_inj`, `apply.memberEnc_id_learner`, `membership.membersOf_decode`, reviewed on
+2026-11-04). The trust base goes from 785 to 788 axioms. The path is `stop_cleanup_image` →
+`stop_imageConf` → `RestConf.restModel_confState`. Until R2c, only the draft `run.specStop` used
+them, and no linked result reached it. The global baseline and 14 collections are updated (the
+collections also gain `lease.lessor.Stop.wp_proof`, which the shutdown uses).
 
 **Left.** R2d (a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`);
 `raftNode.stop` still has two specs (`spec`, now unused by `run`, and `specStop`).

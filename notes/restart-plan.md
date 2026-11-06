@@ -1917,13 +1917,14 @@ worktree's `questions.md` (the Freeze batch). Departures from the Scope:
 - `Start_builtR_spec`'s post is `memberUp` (the right inside it); `restart.startMember.spec` gains
   `BuildServer.spec`'s UTF-8 premise on the initial cluster's names (the draft `specStop` lacked it).
 
-**Hard stop at the gates (2026-11-06):** the one `run.spec` contains the stop branch, so every
-result through `run` reaches the three axioms of the image's configuration (`apply.memberKey_inj`,
-`apply.memberEnc_id_learner`, `membership.membersOf_decode`). The user reviewed and approved them on
-2026-11-04 (R2b-3d gap 3), but until now only the draft `run.specStop` used them. The trust base goes
-from 785 to 788 axioms, and 14 collections also gain `lease.lessor.Stop.wp_proof`, which is already
-in the global base. The baselines were not updated. The options are in `questions.md`, "HARD STOP":
-accept them, or weaken the image's configuration until R2d, or keep two `run` specs. The bounds gate
+**The trust base (a hard stop at the gates, decided by the user on 2026-11-06, option (a), relayed
+by etcd-grove-82):** the one `run.spec` contains the stop branch, so every result through `run`
+reaches the three axioms of the image's configuration (`apply.memberKey_inj`,
+`apply.memberEnc_id_learner`, `membership.membersOf_decode`). The user reviewed them on 2026-11-04
+(R2b-3d gap 3), but until now only the draft `run.specStop` used them. The path is
+`stop_cleanup_image` → `stop_imageConf` → `RestConf.restModel_confState`. The trust base goes from
+785 to 788 axioms. The baselines are updated: the global one and 14 collections, which also gain
+`lease.lessor.Stop.wp_proof`. The bounds gate
 holds (`srvStopReaders`, the stop's owner's name for the readers' count).
 
 **Left (R2d):** a restarted member's `run`, `Start_builtR_spec`, `BuildServer.specRestart`,
