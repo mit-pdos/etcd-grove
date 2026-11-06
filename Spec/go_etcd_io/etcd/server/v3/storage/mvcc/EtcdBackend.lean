@@ -64,7 +64,7 @@ theorem etcdStorage_rest (bk : KBReal) :
       iprop([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen bk.γB backend.rdOpen) :=
   by rfl
 
-theorem mvccReaderN_eq : mvccReaderN = backend.rdStockN - 5 := by rfl
+theorem mvccReaderN_eq : mvccReaderN = backend.rdStockN - 6 := by rfl
 
 /-! ### etcd's backend's own vocabulary -/
 

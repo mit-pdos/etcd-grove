@@ -219,12 +219,14 @@ right's quarter of the API's compaction authority, the compactor's reader token
 (`checkPrevCompactionCompleted`'s) and its write-back supply. (Track A, `New.spec`, 2026-11-06) The
 closer's pieces (`openRest`): the current backend compacting, and a watchable store's own closer (its
 stop channel's close and the loops' waiter), found from the inner store's location through its read
-view. Still to add (§2): the restore's pieces (`Restore`). -/
+view. (2026-11-06) The writer's retired reader and the retired count (`writerOwn`, at the current
+names: `Restore` takes it, the old backend's token among those its post gives back). -/
 @[no_expose] def mvccOpen (γ : MvccName) : IProp GF :=
   iprop(∃ (s : Loc) (p : PhysNames) (c : Int), api.locIs (γ : StoreNames).api s ∗
     compactRightR s ((γ : StoreNames).withPhys p) c ∗
     api.crevAuth (γ : StoreNames).api (1 : Qp).half.half c ∗
-    storeRT ((γ : StoreNames).withPhys p) ∗ kbWTSupplyM p.kb ∗ ⌜-1 ≤ c⌝ ∗ openRest γ p s)
+    storeRT ((γ : StoreNames).withPhys p) ∗ kbWTSupplyM p.kb ∗ ⌜-1 ≤ c⌝ ∗ openRest γ p s ∗
+    writerOwn ((γ : StoreNames).withPhys p))
 
 /-- **`t` is a transaction of `γ`, begun with `trace`, at `k`** (exclusive; it holds the caller's
 thread token until its `End`, not the trace). Defined (M4, track B, 2026-11-06; `Api/TxnHandle.lean`): the
@@ -297,8 +299,9 @@ A, `New.spec`, 2026-11-06: the backend's counted stock less three, the watchable
 and the compactor's reader slots, held for good, so that the readers' pool a watchable store's
 handle holds, `isMvccWatchable`, has a slot for every thread but one. The server's request,
 2026-11-06, decided by the coordinator: two fewer again, `rdStockN - 5`, the backend's opener keeping
-two counted slots for good, `etcdStorage_open.law`.) -/
-@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 5
+two counted slots for good, `etcdStorage_open.law`.) (2026-11-06) One fewer again, `rdStockN - 6`:
+the open token keeps the writer's retired reader too (`writerOwn`, which `Restore` takes). -/
+@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 6
 
 /-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
 (fractional; `New`'s or `NewStore`'s, then `Restore`'s). Defined at stage 2 (M2, 2026-11-05;

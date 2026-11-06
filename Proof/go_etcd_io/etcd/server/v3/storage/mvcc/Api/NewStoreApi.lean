@@ -19,6 +19,7 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Retire2
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
@@ -193,18 +194,23 @@ theorem NewStore.wp_proof
   -- a reader retired from the pool for the open token's reader (the compactor's)
   iunfold writerFrag at Hfrag
   icases Hfrag with ⟨%o, Hcur⟩
-  have hn : nReaders - nJobRd (some bk) = (nReaders - nJobRd (some bk) - 1) + 1 := by
-    have : 2 ≤ nReaders := by rw [nReaders_val]; omega
+  have hn : nReaders - nJobRd (some bk) = (nReaders - nJobRd (some bk) - 2) + 1 + 1 := by
+    have : 3 ≤ nReaders := by rw [nReaders_val]; omega
     have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
     omega
-  rw [hn, List.replicate_succ]
+  rw [hn, List.replicate_succ, List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, Hrds⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd2, Hrds⟩
   ihave Hrd1 : storeReader (GF := GF) s γ $$ [Hrd1]
   · iunfold storeReader; iexact Hrd1
-  imod storeReader_retire s γ _ o (nJobRd (some bk)) $$ Hlc1 Hs Hcur Hrd1 Hret with ⟨HRT, -, Hcur⟩
+  ihave Hrd2 : storeReader (GF := GF) s γ $$ [Hrd2]
+  · iunfold storeReader; iexact Hrd2
+  -- (2026-11-06) and one for the writer's own (`writerOwn`, which `Restore` takes)
+  imod storeReader_retire2 s γ _ o (nJobRd (some bk)) $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret
+    with ⟨HRT, HRTw, Hret, Hcur⟩
   -- the readers' supply from the rest (track A, request 3): every thread but one
-  have hpool : threadBound GF ≤ (nReaders - nJobRd (some bk) - 1) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 5 := rfl
+  have hpool : threadBound GF ≤ (nReaders - nJobRd (some bk) - 2) + 1 := by
+    have h1 : mvccReaderN = backend.rdStockN - 6 := rfl
     have h2 : nReaders = backend.rdStockN - 2 := rfl
     have : 6 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
     have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
@@ -251,7 +257,7 @@ theorem NewStore.wp_proof
     simp only [MvccState.notifiedLog]
     iframe Hab Hpn Hcr2 Hnl
     iframe Hr0'; ipureintro; exact MvccReachable.start
-  isplitl [Hright Hcr4 HRT]
+  isplitl [Hright Hcr4 HRT HRTw Hret]
   · iunfold mvccOpen
     iexists s, γ.phys, (-1)
     rw [StoreNames.withPhys_self]
@@ -262,6 +268,13 @@ theorem NewStore.wp_proof
       iexact Hsup
     isplitr
     · ipureintro; exact Int.le_refl _
+    ihave Hwo : writerOwn (GF := GF) γ $$ [HRTw Hret]
+    · iunfold writerOwn
+      iframe HRTw
+      have hwo : 2 + nJobRd γ.kb = nJobRd (some bk) + 2 := by
+        rw [show γ.kb = some bk from hγk]; omega
+      rw [hwo]; iexact Hret
+    iframe Hwo
     iunfold openRest
     rw [hγw]
     simp only [Bool.false_eq_true, ↓reduceIte]

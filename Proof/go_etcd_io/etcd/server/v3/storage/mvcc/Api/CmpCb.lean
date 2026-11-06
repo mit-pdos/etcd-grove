@@ -350,7 +350,7 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
   iunfold mvcc.api.mvccState at HAU
   -- the open token, at the store's location and current names
   iunfold mvcc.api.mvccOpen at Hopen
-  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, Hcra, HRT, #Hsup, %hc, Hor⟩
+  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, Hcra, HRT, #Hsup, %hc, Hor, Hwo⟩
   ihave %Hss := mvcc.api.locIs_agree _ _ _ $$ [Hloc Hloc2]
   · isplitl
     · iexact Hloc
@@ -466,10 +466,10 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
     ⟨%Hch, ⟨%ef, #Hef, %Herr⟩, Hright, HPre, ⟨Hcra, %σ, HQ, %Hσ⟩, HXB⟩)
   · iapply HΦ
     iframe Htt Htrc HB
-    isplitl [Hright Hcra HRT Hor]
+    isplitl [Hright Hcra HRT Hor Hwo]
     · iunfold mvcc.api.mvccOpen
       iexists s, p, (sint.Z rev)
-      iframe Hloc Hright Hcra HRT Hsup Hor
+      iframe Hloc Hright Hcra HRT Hsup Hor Hwo
       ipureintro; omega
     iexists σ
     iframe HQ
@@ -481,10 +481,10 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
   · subst Herr
     iapply HΦ
     iframe Htt Htrc HB
-    isplitl [Hright Hcra HRT Hor]
+    isplitl [Hright Hcra HRT Hor Hwo]
     · iunfold mvcc.api.mvccOpen
       iexists s, p, c
-      iframe Hloc Hright Hcra HRT Hsup Hor
+      iframe Hloc Hright Hcra HRT Hsup Hor Hwo
       ipureintro; exact hc
     iexists σ
     iframe HQ
@@ -497,10 +497,10 @@ private theorem mvcc.store.Compact.wp_plain (hcore : mvcc.store.Compact.core (GF
   · subst Herr
     iapply HΦ
     iframe Htt Htrc HB
-    isplitl [Hright Hcra HRT Hor]
+    isplitl [Hright Hcra HRT Hor Hwo]
     · iunfold mvcc.api.mvccOpen
       iexists s, p, c
-      iframe Hloc Hright Hcra HRT Hsup Hor
+      iframe Hloc Hright Hcra HRT Hsup Hor Hwo
       ipureintro; exact hc
     iexists σ
     iframe HQ

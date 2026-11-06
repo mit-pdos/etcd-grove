@@ -52,7 +52,7 @@ private theorem mvccOpen_at (γ : mvcc.StoreNames) (s : Loc) :
         else iprop(True)) := by
   iintro ⟨#Hloc, Hopen⟩
   iunfold mvccOpen at Hopen
-  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, -, -, -, -, Hor⟩
+  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, -, -, -, -, Hor, -⟩
   ihave %Hss := api.locIs_agree γ.api s s2 $$ [Hloc Hloc2]
   · iframe Hloc Hloc2
   cases Hss

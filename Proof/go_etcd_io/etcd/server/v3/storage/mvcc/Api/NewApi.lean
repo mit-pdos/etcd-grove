@@ -15,6 +15,7 @@ counterpart). Over the sealed definitions of `Api.lean` (imported with `import a
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Retire2
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApi
@@ -133,16 +134,19 @@ theorem New.wp_proof
   iunfold writerFrag at Hfrag
   icases Hfrag with ⟨%o, Hcur⟩
   rw [hjr]
-  have hn : nReaders - 1 - 2 = (nReaders - 4) + 1 := by
-    have : 4 ≤ nReaders := by rw [nReaders_val]; omega
+  have hn : nReaders - 1 - 2 = (nReaders - 5) + 1 + 1 := by
+    have : 5 ≤ nReaders := by rw [nReaders_val]; omega
     omega
-  rw [hn, List.replicate_succ]
+  rw [hn, List.replicate_succ, List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, Hrds⟩
-  iunfold watchReader at Hrd1
+  icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd2, Hrds⟩
+  iunfold watchReader at Hrd1 Hrd2
   icases Hrd1 with ⟨Hrd1, -⟩
-  imod storeReader_retire st γw.st _ o 1 $$ Hlc1 Hs Hcur Hrd1 Hret with ⟨HRT, -, Hcur⟩
-  have hpool : threadBound GF ≤ (nReaders - 4) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 5 := rfl
+  icases Hrd2 with ⟨Hrd2, -⟩
+  -- (2026-11-06) and one for the writer's own (`writerOwn`, which `Restore` takes)
+  imod storeReader_retire2 st γw.st _ o 1 $$ Hlc1 Hs Hcur Hrd1 Hrd2 Hret with ⟨HRT, HRTw, Hret, Hcur⟩
+  have hpool : threadBound GF ≤ (nReaders - 5) + 1 := by
+    have h1 : mvccReaderN = backend.rdStockN - 6 := rfl
     have h2 : nReaders = backend.rdStockN - 2 := rfl
     have : 6 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
     omega
@@ -190,7 +194,7 @@ theorem New.wp_proof
     simp only [MvccState.notifiedLog]
     iframe Hab Hpn Hcr2 Hnl
     iframe Hr0'; ipureintro; exact MvccReachable.start
-  isplitl [Hright Hcr4 HRT Hsc Hwait]
+  isplitl [Hright Hcr4 HRT Hsc Hwait HRTw Hret]
   · iunfold mvccOpen
     iexists st, γw.st.phys, (-1)
     rw [StoreNames.withPhys_self]
@@ -201,6 +205,13 @@ theorem New.wp_proof
       iexact Hsup
     isplitr
     · ipureintro; exact Int.le_refl _
+    ihave Hwo : writerOwn (GF := GF) γw.st $$ [HRTw Hret]
+    · iunfold writerOwn
+      iframe HRTw
+      have hwo : 2 + nJobRd γw.st.kb = 1 + 2 := by
+        rw [show γw.st.kb = some bk from hγk, hjr]
+      rw [hwo]; iexact Hret
+    iframe Hwo
     iunfold openRest
     rw [Hwq]
     simp only [↓reduceIte]
