@@ -237,7 +237,25 @@ theorem EtcdServer.applyAll.specBatch_noWin
   · have htake : A.take (uint.nat ai) = A := List.take_of_length_le (by
       have := uint_nat_eq ai; omega)
     rw [htake] at h'
-    exact h'
+    simp only [winGhost, winNew, winRest, winDone, srvRestW_nil, kvBatchW_nil] at h'
+    -- the no-window instance of `winNoMergedSend` (nothing assumed)
+    iintro %Φ Hpre HΦ
+    icases Hpre with ⟨Hi, Hp, Hs, Hl, Hsa, Hrest⟩
+    iapply h' $$ [Hi Hp Hs Hl Hsa Hrest] [HΦ]
+    · isplitl [Hi]
+      · iexact Hi
+      isplitl [Hp]
+      · iexact Hp
+      isplitl [Hs]
+      · iexact Hs
+      isplitl [Hl]
+      · iexact Hl
+      isplitl [Hsa]
+      · iexact Hsa
+      isplitl []
+      · iapply winNoMergedSend_nil
+      iexact Hrest
+    · iexact HΦ
   · iintro %Φ ⟨-, %hP, -⟩ -
     exact absurd hP.2.2.2.2.2.2.2.1 hlen
 

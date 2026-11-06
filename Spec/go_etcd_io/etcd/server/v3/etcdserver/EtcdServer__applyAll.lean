@@ -70,8 +70,13 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         -- (R2d, Q17 F2) the pending replays at or below the consistent index
         storage.diskOk ∧ uint.Z (winGhost ai W) ≤ uint.Z (ciEff γ st.k) ∧
         uint.Z (ciEff γ st.k) ≤ uint.Z (winGhost ai W) ∧ γn.node = γr.raft.raft ∧ γr.raft.pre = [] ∧
-        (A ++ winNew W (unapplied ai ms)).length ≤ n⌝ ∗
-      isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗ batchWaitOk ρ E ms ∗
+        -- (R2d, the Q16-3 review's finding 6) the bound over Go's applied log (the ghost log's
+        -- at no window), which raft's log `n` is about
+        (A.take (uint.nat ai) ++ unapplied ai ms).length ≤ n⌝ ∗
+      isServerC C s γ ci TM E ρ γr ∗ acLessor C s ∗ isServerApplyAll s γr ∗
+      -- (R2d, the Q16-3 review's finding 1; DRAFT, an assumption for R2s) no merged-snapshot send
+      -- while the window is pending (`winNoMergedSend`; at no window nothing)
+      winNoMergedSend γr.raft.raft W ∗ batchWaitOk ρ E ms ∗
       taEntriesAddr ap ↦□ es ∗ taRaftAdvancedCAddr ap ↦□ rac ∗
       -- (D19i part 1) closed once raft advanced past the batch: (2026-10-30, the repair) the
       -- the node's (on the storage of key `nk`) applied index past it (`nodeAppliedLb`, `Compact`'s `J.B`; until then the

@@ -601,7 +601,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   intro s γ ci TM C E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x sa A mst γs γp dv γnc w nk
     q γn rt n W D hwin
   simp only [srvRunH_applyAll_spec]
-  wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
+  wp_start as ⟨%hP, #HsrvC, #Hlnil, #Hsa, #Hnms, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
   obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
@@ -936,11 +936,16 @@ theorem EtcdServer.applyAll.wp_proofBatch
           wp_if_destruct
           · -- the merge: the snapshot at most the applied index (the guard)
             have HifI := Hif
-            -- (R2d) in a window still pending after the batch, the merged image is at the ghost
-            -- index above Go's (Q16 (3)): R2d-3m's
+            -- (R2d) in a window still pending after the batch the merged image would be at Go's
+            -- index below the ghost one (the Q16-3 review's finding 1): no merged send then
+            -- (`winNoMergedSend`, an assumption R2s discharges)
             by_cases hR : winRest W (unapplied ai ms) = []
             rotate_left
-            · sorry -- DRAFT (R2d-3m: merged send in a window)
+            · iunfold winNoMergedSend at Hnms
+              icases Hnms with (%hW0 | #Hnms)
+              · exfalso; apply hR; rw [hW0]; rfl
+              · ihave %hns := Hnms $$ Hsm
+                exact absurd Hty hns
             -- the window over: the ghost log is Go's applied log
             have hnl := winRest_nil_len W (unapplied ai ms) hR
             have hGlen : (A ++ winNew W (unapplied ai ms)).length = uint.nat ai' := by
@@ -1012,7 +1017,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             subst Hcc
             ihave %h61 := srvFrozenTerm_bound γs ai' at' $$ Hft
             imod srv_merged_sent γr (A ++ winNew W (unapplied ai ms)) ai' at' c γm.id ct sm sn hpos h61 hsz hlenZ
-                hltG Hcs0 Hty hsn (by word) (by have := hnA; have := uint_nat_eq ai'; omega)
+                hltG Hcs0 Hty hsn (by word)
+                (by have hn' := hnA; rw [hGgo] at hn'; have := hGlen; have := uint_nat_eq ai'; omega)
               $$ [Hrli' HlbB Hsm Hct] with #Hsm'
             · iframe Hrli' HlbB Hsm Hct
             -- (`merged_imageC`) the image's certificate: the component's buckets the lent part's

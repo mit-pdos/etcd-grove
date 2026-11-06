@@ -38,6 +38,7 @@ ai`, `winNew [] ms = ms`, `winRest [] ms = []`, `winDone D [] ms = []`, `kvBatch
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 
 @[expose] public section
 
@@ -146,6 +147,31 @@ def srvRestW (E : apply.AEnv GF) (γr : ReadNames) (A D : List EntryModel) : IPr
 /-- No window: `srvRest`. -/
 theorem srvRestW_nil (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
     srvRestW (GF := GF) E γr A [] = srvRest E γr A := rfl
+
+/-- **No merged-snapshot send while a window is pending** (the Q16-3 review's finding 1, decided by
+etcd-grove-82 under the user's delegation, 2026-11-06, pending the user's review; DRAFT): with the
+replays `W` pending, no member of the cluster `γ` sends a `MsgSnap` (`sentMsg` of that type), so
+none reaches `msgSnapC` and `applyAll`'s merge (`createMergedSnapshotMessage`, `server.go:1045`)
+does not run in a window. A named conjunct of the restart's starting point beside `winNoConf`
+(R2d-2), and `applyAll.specBatch`'s premise; an assumption R2d carries for R2s
+(`notes/restart-plan.md`, "Assumptions R2d carries for R2d'/R2s"). Its cost: it does not hold of
+every Go execution: a leader in its window does send (raft sends a snapshot to a follower behind its
+log's first index, `raft.go:1877`, whatever the application's applied index), and its merge then
+writes an image at Go's index below the ghost one (the review's scenario, `InvRequest.lean:2312`,
+`SnapRO.lean:345,358`). R2s discharges it (the snapshots across windows). At no window it holds
+trivially (`winNoMergedSend_nil`). -/
+def winNoMergedSend (γ : SrvRaft) (W : List EntryModel) : IProp GF :=
+  letI := srvStor (GF := GF) γ
+  iprop(⌜W = []⌝ ∨ □ (∀ (id : w64) (st : MsgSt), sentMsg γ.cl srvClusterN id st -∗ ⌜st.msg.Type' ≠ MsgSnap⌝))
+
+instance winNoMergedSend_persistent (γ : SrvRaft) (W : List EntryModel) :
+    Persistent (winNoMergedSend (GF := GF) γ W) := by
+  unfold winNoMergedSend; infer_instance
+
+/-- A first start's window is empty: no pending window, nothing assumed. -/
+theorem winNoMergedSend_nil (γ : SrvRaft) : ⊢ winNoMergedSend (GF := GF) γ [] := by
+  unfold winNoMergedSend
+  ileft; ipureintro; rfl
 
 end defs
 
