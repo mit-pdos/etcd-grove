@@ -339,6 +339,33 @@ abbrev EtcdServer.applyEntryNormal.specRepOff : Prop :=
         ⌜entryStep m false x x' out⌝) ∗
       srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st }}
 
+/-- **`s.applyEntryNormal(e, false)`, a replay, with auth on** (R2d'a A3, 2026-11-06, DRAFT;
+proved, `ApplyEntryNormalR.lean`): `specRepOff` in the mode `on` (`applyEntryNormal.specOn`'s rows:
+`isServerM true`, `srvApplyKVOn` at the auth state `sa`, kept, the later credit `⧗ 1` the admin
+steps take, the receipts' bound). An admin request runs the auth row's admin steps at `v3 = false`
+(`adminEntryOn.spec`: nothing applied, the auth state kept), which take the chain the start's
+(`x.chain = γr.kv.ch0`, the caller's `kvAppliedM`). -/
+abbrev EtcdServer.applyEntryNormal.specRepOn : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
+    (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (x : apply.ApplyKV)
+    (γr : ReadNames) (A₀ : List EntryModel) (r : apply.RestM) (γa : auth.AuthNames)
+    (sa : auth.AuthState),
+  E.authMode = .on γa →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerM true s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗
+      applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvApplyKVOn s E ρ.wait x sa ∗
+      mvcc.storeWT E.γ ∗ srvFS s ∗ ⧗ 1 ∗ committedAtLeast γr m.index ∗ srvRestRp E γr A₀ r ∗
+      srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝ ∗
+      ⌜st.pending = false ∧ entryOkOn x m ∧ m.typ = W32 0 ∧
+        uint.Z m.index ≤ uint.Z (ciEff γ st.k) ∧ receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0 ∧
+        ∀ k, k ∈ γr.raft.raft.cfg → (r.mem !! k).isSome = true⌝ }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
+      (Val #e)) (Val #false))
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗ srvFS s ∗
+      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKVOn s E ρ.wait x' sa ∗
+        ⌜entryStep m false x x' out⌝) ∗
+      srvRestRp E γr A₀ (restEntryV2 m r) ∗ applyThread γ st }}
+
 /-- **`s.applyConfChange(cc, ep, false)`, a replayed `AddNode`** (R2d' A4, DRAFT; proved,
 `ApplyConfChangeR.lean`). At the pin `673da07c8` (`server.go:2037-2083`): the validation passes
 without reading (`membership/cluster.go:306-309`), raft is not called and `ep.confState` is kept

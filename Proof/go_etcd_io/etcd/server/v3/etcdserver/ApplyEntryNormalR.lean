@@ -233,6 +233,242 @@ theorem EtcdServer.applyEntryNormal.wp_proofRepOff
       iexact Hrdat
     ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
 
+set_option hygiene false in
+/-- The uber-applier's row put back (`srvApplyKVOn`), as `EtcdServer__applyEntryNormal.lean`'s. -/
+local macro "repackR" : tactic => `(tactic| (
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Happl
+  isplitl [HKV]
+  · iexact HKV
+  isplitl [Hbo]
+  · iexact Hbo
+  isplitl [HRA]
+  · iexact HRA
+  isplitl [HAR]
+  · iexact HAR
+  isplitr [Hrdat]
+  · iexists fv.w, RD; iframe Hw Hwok' HRD
+  iexact Hrdat))
+
+set_option hygiene false in
+/-- After `apply.Apply`: the KV row's certificate, its revision authority, the return. -/
+local macro "tailR" : tactic => `(tactic| (
+  ihave HFS : srvFS s $$ [HFS]
+  · rw [← HEo.2.1]; iexact HFS
+  ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
+  ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
+  imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
+  (try wp_auto)
+  imodintro
+  first | iapply HΦ | (wp_pures; iapply HΦ)
+  iframe Hbe Hst Hlr Hgr HFS HRS
+  iexists x', out
+  isplitl
+  · repackR
+  ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩))
+
+set_option maxHeartbeats 1600000 in
+/-- **`applyEntryNormal.specRepOn`** (R2d'a A3, DRAFT): a replayed normal entry with auth on, from
+the body. -/
+theorem EtcdServer.applyEntryNormal.wp_proofRepOn
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
+    (hL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
+    (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
+    (hA0 : apply.Apply.spec (GF := GF) (hG := hG))
+    (hUb : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
+    EtcdServer.applyEntryNormal.specRepOn (GF := GF) (hG := hG) := by
+  have hA := apply.Apply.spec_rec hA0 hUb
+  have hAd := apply_admin_entry_on (apply.Apply.wp_adminL hA0)
+  have hGI := wp_entryAt_GetIndex hGI
+  intro s γ ci TM E ρ b e m st x γr A₀ r γa sa hM
+  wp_start as ⟨#Hsrv, #Hewo, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, HFS, Hlc, #Hcm, HRS, #HA0, %HmA,
+    %Hpo⟩
+  obtain ⟨Hp, Hok, Htyp, Hci, Hrb, Hxch, Hmem⟩ := Hpo
+  have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
+  wp_apply wp_with_defer as %defer defer
+  iunfold isServerM at Hsrv
+  icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat, #Hgen, -⟩
+  ihave #Hat' := Hat
+  iunfold srvAtomicsM at Hat'
+  icases Hat' with ⟨-, -, #Hkvi⟩
+  ihave #Huon := srvKVInvsM_uberOn _ _ _ $$ Hkvi
+  ihave #Hkvi : srvKVInvsOn E γr srvAuthSt0 $$ []
+  · iapply srvKVInvsM_true; iexact Hkvi
+  ihave #Hkvi' := Hkvi
+  iunfold srvKVInvsOn at Hkvi'
+  icases Hkvi' with ⟨#HkI, -, #HrI, -⟩
+  -- the committed entry's shape (the KV invariant's, `kv_log_plain_on`)
+  imod kv_log_plain_on γr.raft γr.kv srvAuthSt0 A₀ $$ HkI HrI HA0 with %Hpc0
+  have Hpe : plainEntryOn m := Hpc0.1 m HmA
+  have Hch : x.chain = apply.alarmChain true false false := Hxch.trans Hpc0.2.2
+  icases srvApplyKVOn_idxCert s E ρ.wait x sa $$ HKV with ⟨HKV, #Hcx, %HaOn⟩
+  iunfold srvFieldsAtM at Hfv
+  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl,
+    #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
+  ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
+  ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
+  ihave #Papp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
+  · iPkgInit
+  iunfold lessorOk at Hlok
+  icases Hlok with ⟨%li, %Hli, #HPromote, -, -⟩
+  wp_auto
+  wp_if_destruct
+  · -- no data: the first commit's notice, the lessor's promotion at a leader
+    have hnil : m.data = [] := by
+      apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
+    ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKVOn s E ρ.wait x' sa ∗
+        ⌜entryStep m false x x' out⌝) $$ [HKV]
+    · iexists x, apply.ApplyOut.skipped
+      iframe HKV
+      ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
+    ihave HRS : srvRestRp E γr A₀ (restEntryV2 m r) $$ [HRS]
+    · rw [restEntryV2_nodata m r Htyp hnil]; iexact HRS
+    wp_apply hN fv.firstCommit
+    · iexact Hnot
+    wp_apply hL s fv.memberID as %ldr -
+    · iframe Hmid Hlead
+    cases ldr
+    · (try wp_auto)
+      iapply HΦ
+      iframe Hbe Hst Hlr Hgr HFS HKV HRS
+    · (try wp_auto)
+      wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
+      · iframe Het Htm
+      rw [Hli]
+      (try wp_auto)
+      (try dsimp only)
+      ihave #HP := HPromote $$ %dur
+      wp_apply HP
+      (try wp_auto)
+      iapply HΦ
+      iframe Hbe Hst Hlr Hgr HFS HKV HRS
+  · -- data: the applier, v2-only
+    have hdata : m.data ≠ [] := by
+      intro h; apply Hif
+      have h1 := Hdlen.1; rw [h] at h1; simp only [List.length_nil] at h1
+      have h2 := Hdlen.2
+      have h1' : (sint.Z d.len).toNat = 0 := h1.symm
+      have h3 : sint.Z d.len = 0 := by omega
+      word
+    obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
+    iunfold srvApplyKVOn at HKV
+    icases HKV with ⟨%ua, Hua, #Hb, #Happl, HKV, Hbo, HRA, HAR, ⟨%w', %RD, #Hw', #Hwok', HRD⟩,
+      Hrdat⟩
+    icombine Hw Hw' gives %Hweq
+    subst Hweq
+    -- the rest buckets at the backend's table: `apply.Apply`'s image, half and ids
+    ihave ⟨HRS, HEv⟩ := (srvRestRp_eq_at E γr A₀ r).1 $$ HRS
+    ihave ⟨%f, %Hfb, HRS, HLt, #HGI, #HRq⟩ := (srvRestAt_open E _ _).1 $$ HRS
+    ihave ⟨%U, HEv, %HUok⟩ := srvEver_open E A₀ $$ HEv
+    rcases Hpe Htyp hdata rq hdec with ⟨⟨hp, hpk⟩, -, -⟩ | ⟨hadm, hns⟩
+    · -- a plain request: `apply.Apply`, nothing written
+      have hrq' : apply.rqOk .none x.log rq :=
+        hrq.resolve_right (fun h => adminKindOk_notPutget rq h hpk)
+      ihave #Hcp : apply.certPreV false E x.chain rq x.log $$ []
+      · simp only [apply.certPreV, Bool.false_eq_true, ↓reduceIte]; itrivial
+      ihave HFSE : E.FS $$ [HFS]
+      · rw [HEo.2.1]; iexact HFS
+      ihave HSpF : iprop(if false = true then apply.ciSplit E iprop(True) else iprop(True)) $$ []
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      ihave #HGf : iprop(□ (⌜false = true⌝ → apply.grantFresh E rq U)) $$ []
+      · iintro !> %h; cases h
+      ihave #Hgpq : iprop(□ (⌜false = true⌝ → apply.grantPermRq E rq)) $$ []
+      · iintro !> %h; cases h
+      ihave #Hcpq : iprop(□ (⌜false = true⌝ → apply.cmpPermRq E rq)) $$ []
+      · iintro !> %h; cases h
+      iapply wp_fupd
+      (try wp_auto)
+      ihave %Hat := entryWaitOk_attr ρ E m Htyp $$ Hewo
+      have Hrr : apply.restReqOk rq r := by
+        intro hk a ha'
+        have hin := ((Hat Htyp hdata rq hdec) hk).2 a ha'
+        have hin' : a.memberID ∈ γr.raft.raft.cfg := by rw [← Hrd]; exact hin
+        exact Hmem _ hin'
+      have hpl : plainOrCmpG E.lm rq := Or.inl (Or.inl hp)
+      ihave Hrv : apply.revokeOwn E rq $$ []
+      · rw [apply.revokeOwn_nonRevoke E rq (plainOrCmpG_rev .none rq (Or.inl (Or.inl hp)))]; itrivial
+      wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
+        (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none x.log
+        _ _ U $$ [HKV Hwt HRD HFSE HSpF HRS HLt HEv Hrv]
+        as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HLt, HEv, -, HRS, %Hgo, -, -,
+          %Hstep0, -, -, -⟩
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF HRS HLt HEv HGf Hrv Hgpq
+        isplitr
+        · simp only [waitRegdOpt]; itrivial
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        isplitr
+        · ipureintro; exact Hlgnn
+        isplitr
+        · itrivial
+        iframe Hcx
+        iframe Hcpq
+        ipureintro
+        exact ⟨hdec, hid, apply.rqOk_of_false _ _ _ hrq', HaOn ▸ hdk, fun h => absurd h (by decide),
+          by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩
+      have Hstep := Hstep0.1
+      rw [(idsA_false rq out _).1, (idsA_false rq out U).2]
+      icases HRS with ⟨%t, -, HRS⟩
+      rw [restOutA_false E.lm rq x x' out _ t _ hpl Hstep,
+        apply.restLeasesWith_comm (apply.restAfter rq false) (apply.restAfter_restGrantT rq false),
+        ← restEntryV2_req m rq r Htyp hdata hdec]
+      ihave HRS : srvRestRp E γr A₀ (restEntryV2 m r) $$ [HRS HLt HEv]
+      · iapply (srvRestRp_eq_at E γr A₀ _).2
+        isplitl [HRS HLt]
+        · iapply (srvRestAt_open E _ _).2
+          iexists f
+          iframe HRS HLt HGI HRq
+          ipureintro; exact Hfb
+        iunfold srvEver; iexists U; iframe HEv; ipureintro; exact HUok
+      tailR
+    · -- an admin request: the auth row's admin steps (`adminEntryOn`), nothing applied
+      icases srvAuthApplyResB_open s E γa sa hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hasf, #Hlend,
+        #Hwba, #Hsteps, Hfu, Htie, %Hhl, HT, Htp, Hcl⟩
+      ihave #HUA := srvUberOn_adm s E γa ua stl bel T hM $$ []
+      · iframe Huon Hb Hasf Hsteps
+      iapply wp_fupd
+      (try wp_auto)
+      wp_apply hAd fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
+        (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) none γa stl
+        bel T sa _ hs hM hns $$ [HKV HRD Hfu Htie HT Htp HRS Hlc]
+        as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, -, -, -, HRS, HT,
+          Htp, %hs', %sa', Hfu, Htie, %Hsa', -, -⟩
+      · simp only [↓reduceIte, Bool.false_eq_true]
+        iframe HUA Hwok' HRD He HKV HT Htp Hwba Hlend HRS Hlc
+        isplitr
+        · simp only [waitRegdOpt]; itrivial
+        isplitr
+        · ipureintro; exact Hlgnn
+        isplitr
+        · ipureintro; exact ⟨hdec, hid, hadm, HaOn ▸ hdk, Hrb⟩
+        isplitr
+        · ipureintro; rw [Hch, hAuthOn]; rfl
+        iframe Hfu Htie; ipureintro; exact Hhl
+      obtain ⟨Hstep, -, -⟩ := Hstep0
+      have hsa' : sa' = sa := by simpa using Hsa'.2
+      ihave HAR := Hcl $$ %hs' %sa Hfu Htie %(by rw [← hsa']; exact Hsa'.1) HT Htp
+      obtain ⟨h1, h2⟩ := adminKindOk_noCluster rq hadm
+      have hR : restEntryV2 m r = r := by
+        rw [restEntryV2_req m rq r Htyp hdata hdec, apply.restAfter_other rq _ _ h1 h2]
+      ihave HRS : srvRestRp E γr A₀ (restEntryV2 m r) $$ [HRS HLt HEv]
+      · rw [hR]
+        iapply (srvRestRp_eq_at E γr A₀ _).2
+        isplitl [HRS HLt]
+        · iapply (srvRestAt_open E _ _).2
+          iexists f
+          iframe HRS HLt HGI HRq
+          ipureintro; exact Hfb
+        iunfold srvEver; iexists U; iframe HEv; ipureintro; exact HUok
+      ihave HFS : E.FS $$ [HFS]
+      · rw [HEo.2.1]; iexact HFS
+      tailR
+
 end proof
 
 end EtcdGrove
