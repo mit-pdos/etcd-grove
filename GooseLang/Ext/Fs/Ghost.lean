@@ -50,6 +50,9 @@ structure OsMeta where
   sector (the disk's as of the last successful sync) holds `d` there. A write adds versions after
   it, a failed sync keeps them, a successful one collapses them. -/
   dur : List (Option w8)
+  /-- The page cache holds zeros past the size (true for a file created in this generation: every
+  version a change makes is zero past the size it gives; a crash may leave other bytes there, F3). -/
+  zero : Bool
 
 /-- An in-flight change, as the ghost state records it. -/
 structure TokInfo where
@@ -65,11 +68,11 @@ structure TokInfo where
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.ok, m.maps, m.dur, m.zero))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; subst h1 h2 h3 h4 h5 h6; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -201,6 +204,7 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
     m.lo ≤ c.target st ∧ c.target st ≤ m.hi
   dur : ∀ (b : Nat) (d : w8), m.dur[b]? = some (some d) →
     ∀ v, (f.secs (b / 512)).vers.head? = some v → v.toList.getD (b % 512) 0 = d
+  zero : m.zero = true → ∀ b, f.size ≤ b → f.rawAt b = 0
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) (w8 × Bool)) (Γm : GMap Ino OsMeta)
@@ -685,7 +689,7 @@ end bytes
 
 /-- The ghost `OsMeta` of a file as on disk: all of it durable. -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some⟩
+  ⟨f.size, f.size, f.size, true, ∅, f.contents.map some, false⟩
 
 /-- The bytes of the files of `st`, all clean. -/
 def bytesMap (st : OsState) : GMap (Ino × Nat) (w8 × Bool) :=
@@ -819,7 +823,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
       simp only [hfo, Option.map_some, Option.some.injEq] at hm
       subst hm
       obtain ⟨vs, sz, rfl⟩ := hdisk' i f hfo
-      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+      refine ⟨_, rfl, ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, fun h => by simp [initMeta] at h⟩⟩
       · simp [initMeta, OsFile.ofDisk]
       · simp [initMeta, OsFile.ofDisk]
       · intro _ n _; simp [OsFile.ofDisk]

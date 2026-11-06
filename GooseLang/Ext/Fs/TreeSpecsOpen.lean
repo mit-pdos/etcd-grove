@@ -73,7 +73,7 @@ theorem file_of_lookup {st : OsState} (hw : FsTreeWf st) {p : GoString} {i : Ino
 /-! ## A file created -/
 
 /-- The ghost `OsMeta` of a file just created. -/
-abbrev newMeta : OsMeta := initMeta newFile
+abbrev newMeta : OsMeta := { initMeta newFile with zero := true }
 
 theorem newFile_size : newFile.size = 0 := rfl
 theorem newFile_contents : newFile.contents = [] := rfl
@@ -138,7 +138,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
       refine ⟨newFile, by rw [files_setFile, if_pos rfl], ⟨rfl, Nat.le_refl _, Nat.le_refl _,
         fun _ k _ => by simp [newFile, OsFile.ofBytes, OsFile.ofDisk], fun b len => ?_,
         fun t c ht hc => absurd hc (hnt t c ht), fun i d h => by
-          simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents] at h⟩⟩
+          simp [newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, OsFile.contents] at h,
+        fun _ => zero_newFile⟩⟩
       simp only [newMeta, initMeta, GMap.lookup_empty, reduceCtorEq, false_iff]
       intro hb
       obtain ⟨⟨f0, hf0⟩, -⟩ := hwf.maps b _ hb

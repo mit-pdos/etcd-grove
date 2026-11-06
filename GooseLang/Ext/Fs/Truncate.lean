@@ -108,17 +108,18 @@ structure GrownFile (f f' : OsFile) (sz : Nat) : Prop where
   ok : ∀ k, (f'.secs k).dirty = false → f'.secs k = f.secs k
   sizeLo : f'.sizeLo = f.sizeLo
   sizeHi : f'.sizeHi = max f.sizeHi f'.size
+  zero : ZeroPast f → ZeroPast f'
 
 theorem grownFile_truncate {f : OsFile} {n sz : Nat} (hsz : f.sizeLo ≤ f.size) (h1 : f.size ≤ n)
     (h2 : n ≤ sz) : GrownFile f (f.truncate n) sz :=
   ⟨by rw [truncate_size]; exact h1, by rw [truncate_size]; exact h2, truncate_old f n h1,
     truncate_clean f n h1 hsz, truncate_vers f n, truncate_head f n, truncate_ok f n,
-    truncate_sizeLo f n hsz h1, by rw [truncate_sizeHi, truncate_size]⟩
+    truncate_sizeLo f n hsz h1, by rw [truncate_sizeHi, truncate_size], zero_truncate n⟩
 
 theorem grownFile_self {f : OsFile} {sz : Nat} (hsz : f.size ≤ f.sizeHi) (h : f.size ≤ sz) :
     GrownFile f f sz :=
   ⟨Nat.le_refl _, h, fun _ _ => rfl, fun _ h => h, fun _ h => h, fun _ _ h => h, fun _ _ => rfl,
-    rfl, by omega⟩
+    rfl, by omega, id⟩
 
 /-- The ghost bytes of a grown file `f'` from the old size `lo` on: its bytes there, not clean. -/
 def grownBytes (f' : OsFile) (lo : Nat) : List (w8 × Bool) := (f'.contents.drop lo).map (·, false)
@@ -239,7 +240,8 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
         fun hok k hd => by
           rw [hg.ok k hd]
           exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
-        hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_⟩⟩
+        hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_,
+        fun hz => hg.zero (hmo.zero hz)⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -251,7 +253,7 @@ theorem ftFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur⟩⟩
+        hm1.dur, hm1.zero⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -345,9 +347,11 @@ def ftTok (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) : IProp GF :=
 /-- The file `p`, of `OsMeta` `m`, grown to `sz ≥ m.size`: the whole `OsMeta` (`m.grown sz`), the
 new bytes `zs`, not clean, whole, and the client's halves of the cells of every mapping over
 `[m.size, sz)`, showing them, and over `[sz, hi)`. The new bytes are what the sectors hold past
-the old size: zeros, unless a crash left other bytes there (F3, `OsFile.resized`). -/
+the old size: zeros if the file's `OsMeta` says so (`zero`: a file made in this generation), else
+whatever a crash left there (F3, `OsFile.resized`). -/
 def osGrown (p : Ino) (m : OsMeta) (sz hi : Nat) : IProp GF :=
-  iprop(∃ zs : List w8, ⌜zs.length = sz - m.size⌝ ∗ osMeta (L := L) p (DFrac.own 1) (m.grown sz) ∗
+  iprop(∃ zs : List w8, ⌜zs.length = sz - m.size ∧
+      (m.zero = true → zs = List.replicate (sz - m.size) 0)⌝ ∗ osMeta (L := L) p (DFrac.own 1) (m.grown sz) ∗
     osBytes (L := L) p m.size (DFrac.own 1) (zs.map (·, false)) ∗
     mcells m.maps m.size sz (fun i => byteCell (zs.getD (i - m.size) 0)) ∗ mcellsAny m.maps sz hi)
 
@@ -430,7 +434,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant
@@ -774,7 +778,10 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     obtain rfl : n = sz := by rw [← hn, truncate_size]
     rw [show m.grown n = { ftMeta m n with size := n } from rfl]
     iframe
-    ipureintro; exact hzl
+    ipureintro
+    refine ⟨hzl, fun hz => ?_⟩
+    rw [truncate_contents, hmsz]
+    exact resized_drop_zero (hmo.zero (by rw [hti_om]; simpa [ftMeta] using hz)) n
   · iapply HΦ
     iright
     isplitr
@@ -787,7 +794,10 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : N
     obtain rfl : n = sz := by rw [← hn, truncate_size]
     rw [show m.grown n = { ftMeta m n with size := n } from rfl]
     iframe
-    ipureintro; exact hzl
+    ipureintro
+    refine ⟨hzl, fun hz => ?_⟩
+    rw [truncate_contents, hmsz]
+    exact resized_drop_zero (hmo.zero (by rw [hti_om]; simpa [ftMeta] using hz)) n
   · iapply HΦ
     iright
     isplitr

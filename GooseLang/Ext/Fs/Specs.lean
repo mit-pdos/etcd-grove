@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur⟩
+  ⟨h.size, h.lo, h.hi, h.ok, h.maps, h.targets, h.dur, h.zero⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -693,7 +693,11 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
               split at hd
               · exact absurd ‹_› hn
               · exact hmo.ok hok n hd),
-          hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_⟩
+          hmo.maps, fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
+          fun hz b hb => by
+            rw [synced_rawAt]
+            exact hmo.zero (by simpa [OsMeta.syncedKeep, OsMeta.synced] using hz) b
+              (by simpa [synced_size] using hb)⟩
         intro i b hib0 v hv
         simp only [OsMeta.syncedKeep] at hib0
         rcases durOverlay_some hib0 with hib2 | hib
@@ -753,7 +757,10 @@ theorem wp_osFsync_keep (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Na
         (syncFailed_contents f _) rfl ?_ lo xs xs rfl Hbl (fun _ _ => rfl)
         hkeep ?_ hnoI⟩
       · refine ⟨hmo.size, hmo.lo, hmo.hi, (fun h => by cases h), hmo.maps,
-          fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_⟩
+          fun t c ht hcp => absurd hcp (noTok_of_whole hcoh Hnt t c ht), ?_,
+          fun hz b hb => by
+            rw [syncFailed_rawAt]
+            exact hmo.zero (by simpa using hz) b (by simpa [syncFailed_size] using hb)⟩
         intro b d0 hb v hv
         have hv' : (f.secs (b / 512)).vers.head? = some v := by
           simpa [OsFile.syncFailed] using (by
@@ -960,13 +967,13 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
         simp only [OsState.setProc, GMap.lookup_insert_eq_iff] at hq
         split at hq
         · subst_vars; cases hq
-          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           simp only [OsState.setProc, GMap.lookup_insert_eq_iff]
           split
           · simp
           · exact hmo.maps b len0
         · rename_i hpq
-          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
           rw [hmo1.maps b len0]
           simp only [OsState.setProc, GMap.lookup_insert_eq_iff]
@@ -1086,13 +1093,13 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : Ino) (m : OsMeta) (n : Nat
         simp only [OsState.setProc, GMap.lookup_insert_eq_iff] at hq
         split at hq
         · subst_vars; cases hq
-          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m, Hml, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           simp only [OsState.setProc, GMap.lookup_delete_iff]
           split
           · simp
           · exact hmo.maps b len0
         · rename_i hpq
-          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
+          refine ⟨m', hq, rfl, rfl, rfl, rfl, rfl, rfl, fun b len0 => ?_⟩
           obtain ⟨f1, -, hmo1⟩ := hcoh.meta_some q m' hq
           rw [hmo1.maps b len0]
           simp only [OsState.setProc, GMap.lookup_delete_iff]

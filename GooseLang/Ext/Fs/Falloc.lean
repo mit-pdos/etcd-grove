@@ -168,7 +168,7 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     ⟨rfl, rfl, rfl, Nat.le_refl _, Nat.le_max_left _ _,
       by rw [← hc]; simp only [OsChange.target, ftMeta]; have := hmo.lo; have := hmo.size
          have := (hwf.sizes d.ino f hf).1; omega,
-      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl⟩
+      by rw [← hc]; simp only [OsChange.target, ftMeta]; omega, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi']; simp) (fun k hk => by simp at hk)
   -- the cells: the client's halves of the cells past the size go to the invariant
@@ -479,7 +479,10 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (sz : Nat) (m : OsMeta) (hi : Nat)
     obtain rfl : n = sz := by rw [← hn, truncate_size]
     rw [show m.grown n = { ftMeta m n with size := n } from rfl]
     iframe
-    ipureintro; exact hzl
+    ipureintro
+    refine ⟨hzl, fun hz => ?_⟩
+    rw [truncate_contents, hmsz]
+    exact resized_drop_zero (hmo.zero (by rw [hti_om]; simpa [ftMeta] using hz)) n
   · iapply HΦ
     iright
     ipureintro; exact he

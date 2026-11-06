@@ -236,7 +236,10 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
         fun hok k hd => by
           rw [hg.ok k hd]
           exact hmo.ok hok k (by rw [← hg.ok k hd]; exact hd),
-        hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_⟩⟩
+        hmo.maps, fun t' c' h1 h2 => ?_, fun b d0 h v hv => ?_, fun hz => by
+          rcases hg.either with rfl | rfl
+          · exact zero_truncate _ (hmo.zero hz)
+          · exact hmo.zero hz⟩⟩
       · obtain ⟨h1, n1⟩ := hdel t' c' h1
         exact absurd h2 (hother t' c' n1 h1)
       · obtain ⟨w, hw⟩ : ∃ w, (f.secs (b / 512)).vers.head? = some w := by
@@ -248,7 +251,7 @@ theorem shFinish_coh (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat}
     · rename_i hpq
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, ?_, ⟨hm1.size, hm1.lo, hm1.hi, hm1.ok, hm1.maps, fun t' c' h1 h2 => ?_,
-        hm1.dur⟩⟩
+        hm1.dur, hm1.zero⟩⟩
       · show ((st.setProc { st.proc with inflight := GMap.delete t st.proc.inflight } : OsState).setFile p _).fs.files !! q = _
         rw [files_setFile, if_neg hpq]; exact h1
       · rw [htg' c' ⟨t', h1⟩]; exact hm1.targets t' c' (hdel t' c' h1).1 h2
@@ -409,7 +412,7 @@ theorem wp_osFtruncateShrinkStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsM
     ⟨rfl, rfl, rfl, Nat.min_le_left _ _, Nat.le_refl _,
       by rw [← hc]; simp only [OsChange.target, shMeta]; omega,
       by rw [← hc]; simp only [OsChange.target, shMeta]; have := hmo.hi; have := hmo.size
-         have := hszf.2; omega, rfl⟩
+         have := hszf.2; omega, rfl, rfl⟩
     ht (hcp ▸ hfree) (fun _ => rfl)
     Hfrac (fun _ => hnot) (by rw [hlo, hhi', hxs]) (fun k hk => by rw [hlo]; exact Hbl k hk)
   -- the cells: the file is unmapped, so none changes

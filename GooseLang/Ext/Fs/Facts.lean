@@ -187,7 +187,7 @@ theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hs : ∀ i, st'.size i = st.size i) (hm : st'.proc.maps = st.proc.maps)
     (hin : st'.proc.inflight = st.proc.inflight) (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, h.ok, by rw [hm]; exact h.maps,
-    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur⟩
+    by rw [hin]; intro t c ht hc; rw [target_congr hs]; exact h.targets t c ht hc, h.dur, h.zero⟩
 
 theorem file_setFile_ne (st : OsState) {i q : Ino} (f : OsFile) (h : i ≠ q) :
     (st.setFile i f).file q = st.file q := by
@@ -438,18 +438,89 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
     (hdom : ∀ q, Γm' !! q = none ↔ Γm !! q = none)
     (hsome : ∀ q m', Γm' !! q = some m' → ∃ m, Γm !! q = some m ∧
       m'.size = m.size ∧ m'.lo = m.lo ∧ m'.hi = m.hi ∧ m'.ok = m.ok ∧ m'.dur = m.dur ∧
-      ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
+      m'.zero = m.zero ∧ ∀ b len, m'.maps !! b = some len ↔ X !! b = some ⟨q, len⟩) :
     OsCoh { st with proc := { st.proc with maps := X } } Γb Γm' Γf Γt :=
   { hcoh with
     meta_dom := fun q => (hdom q).trans (hcoh.meta_dom q)
     meta_some := fun q m' h => by
-      obtain ⟨m, hm, h1, h2, h3, h5, h7, h6⟩ := hsome q m' h
+      obtain ⟨m, hm, h1, h2, h3, h5, h7, h8, h6⟩ := hsome q m' h
       obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
       exact ⟨f, hf, ⟨h1 ▸ hmo.size, h2 ▸ hmo.lo, h3 ▸ hmo.hi,
         fun hok => hmo.ok (h5 ▸ hok), h6,
-        fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc, h7 ▸ hmo.dur⟩⟩ }
+        fun t c ht hc => by rw [h2, h3]; exact hmo.targets t c ht hc, h7 ▸ hmo.dur,
+        fun hz => hmo.zero (h8 ▸ hz)⟩⟩ }
 
 end maps
+
+
+/-! ## Zeros past the size (`OsMeta.zero`) -/
+
+/-- The page cache holds zeros past the size. -/
+def ZeroPast (f : OsFile) : Prop := ∀ b, f.size ≤ b → f.rawAt b = 0
+
+theorem secHits_of_mem {lo hi b : Nat} (h1 : lo ≤ b) (h2 : b < hi) : secHits lo hi (b / 512) = true := by
+  have := Nat.div_add_mod b 512
+  have := Nat.mod_lt b (show 0 < 512 by decide)
+  simp only [secHits, Bool.and_eq_true, decide_eq_true_eq]
+  constructor <;> omega
+
+/-- A change keeps zeros past the size, if every byte below the old size it cuts off is in its range. -/
+theorem zero_change {f : OsFile} {c : List w8} {lo hi : Nat} (hz : ZeroPast f)
+    (hcov : ∀ b, c.length ≤ b → b < f.size → lo ≤ b ∧ b < hi) : ZeroPast (f.change c lo hi) := by
+  intro b hb
+  have hbc : c.length ≤ b := hb
+  rw [rawAt_def]
+  simp only [OsFile.change]
+  split
+  · have hl : ({ vers := (f.secs (b / 512)).vers ++ [secOf c (b / 512)], dirty := true } :
+        Sector).last = secOf c (b / 512) := by simp [Sector.last]
+    rw [hl, secOf_getD, List.getD_eq_getElem?_getD, List.getElem?_eq_none hbc]; rfl
+  · rename_i hn
+    rw [← rawAt_def]
+    by_cases hs : f.size ≤ b
+    · exact hz b hs
+    · obtain ⟨h1, h2⟩ := hcov b hbc (by omega)
+      exact absurd (secHits_of_mem h1 h2) hn
+
+theorem written_length_ge (f : OsFile) (off : Nat) (d : List w8) :
+    f.size ≤ (f.written off d).length := by
+  unfold OsFile.written
+  split
+  · simp [OsFile.contents]
+  · simp [OsFile.resized]; omega
+
+theorem zero_landWrite {f : OsFile} (off : Nat) (data : List w8) (k : Nat) (hz : ZeroPast f) :
+    ZeroPast (f.landWrite off data k) := by
+  unfold OsFile.landWrite
+  split
+  · exact hz
+  · exact zero_change hz (fun b h1 h2 => by have := written_length_ge f off (data.take k); omega)
+
+theorem zero_truncate {f : OsFile} (sz : Nat) (hz : ZeroPast f) : ZeroPast (f.truncate sz) := by
+  unfold OsFile.truncate
+  exact zero_change hz (fun b h1 h2 => by rw [resized_length] at h1; omega)
+
+theorem zero_synced {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] (hz : ZeroPast f) :
+    ZeroPast (f.synced busy) := fun b hb => by rw [synced_rawAt]; exact hz b hb
+
+theorem zero_syncFailed {f : OsFile} {busy : Nat → Prop} [DecidablePred busy] (hz : ZeroPast f) :
+    ZeroPast (f.syncFailed busy) := fun b hb => by rw [syncFailed_rawAt]; exact hz b hb
+
+/-- **A file that holds zeros past its size grows with zeros.** -/
+theorem resized_drop_zero {f : OsFile} (hz : ZeroPast f) (sz : Nat) :
+    (f.resized sz).drop f.size = List.replicate (sz - f.size) 0 := by
+  apply List.ext_getElem
+  · simp [OsFile.resized]
+  · intro n h1 h2
+    simp only [List.getElem_drop, List.getElem_replicate]
+    simp only [OsFile.resized, List.getElem_map, List.getElem_range]
+    exact hz _ (by omega)
+
+theorem zero_newFile : ZeroPast newFile := by
+  intro b _
+  have h := secOf_getD [] b
+  simp only [List.getD_nil] at h
+  simpa [newFile, OsFile.ofBytes, OsFile.ofDisk, rawAt_def, Sector.last] using h
 
 end Fs
 end Perennial
