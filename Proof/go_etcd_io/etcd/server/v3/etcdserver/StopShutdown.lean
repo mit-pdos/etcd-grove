@@ -714,10 +714,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   have h2 := hσ.2.1
   have h3 := hσ.2.2
   rw [hpre] at h2 h3
-  -- the configuration point at `i` itself (`i ≤ σ.commit` holds at this stop)
-  ihave Hσc := wal.stopImage_intro _ S σ ai _ (uint.nat ai) hσ.1 (by simp at h2; omega)
-      ⟨by simp at h2; omega, by simp at h3; omega⟩ $$ [Hσc]
-  · iframe Hσc Hconf
+  ihave Hσc := wal.stopImage_intro _ S σ ai hσ.1 (by simp at h2; omega) (by simp at h3; omega)
+    $$ Hσc
   iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw Hσc
   ipureintro
   refine ⟨⟨rfl, hc0'⟩, ⟨by rw [hk0.2]; exact h1, by rw [hpre'] at himg ⊢; exact himg⟩,
