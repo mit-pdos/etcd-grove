@@ -49,7 +49,14 @@ theorem StartCluster.wp_proof
     (wp_StartMember : StartMember.spec (GF := GF) (hG := hG))
     (wp_StartBridge : StartBridge.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
-  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp Hcfg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms
+  intro CS cfg N id₁ id₂ id₃ ps ctxs boot lg cmp lm Hcfg Hbf Hlg Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf
+    Hdbo Hms Hrun Hrev HlP
+  -- (lease-mono3) a mode that grants leases: `alloc3` at it, `StartMember` at it, no `etcdKV`
+  cases lm with
+  | mono => sorry -- DRAFT lease-mono3
+  | revocable => exact absurd rfl Hrev
+  | none => ?_
+  simp only [clusterUp_none]
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- the members' start bundles (to `alloc3`) and the bridges' listen rights (to `StartBridge`)
   icases startRes_members cfg $$ Hstart with ⟨⟨Hs₁, Hs₂, Hs₃⟩, Hba₁, Hba₂, Hba₃⟩
@@ -115,10 +122,12 @@ theorem StartCluster.wp_proof
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls (dir3 cfg id₁ id₂ id₃)
       cfg.Peer1' cfg.Peer2' cfg.Peer3' Hdok.1 (dir3_host cfg id₁ id₂ id₃) (by omega) (by omega)
-      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') cmp)
+      cfg.Name1' cfg.Name2' cfg.Name3' (some cfg.Client1') (some cfg.Client2') (some cfg.Client3') cmp 0
+      .none lease.runCfg_none (by decide))
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Hfr₁⟩, Hmb₂,
     ⟨#Hsl₂, Hfr₂⟩, Hmb₃, ⟨#Hsl₃, Hfr₃⟩, Hetcd⟩
+  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, -, -, -, -, -, -, hst₂, hst₃, hcmp₁, hcret₁⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -134,7 +143,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn cmp .none
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms (fun h => absurd rfl h)) $$ [Hfr₁ Htok Hmb₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -144,7 +153,7 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Herr
   wp_auto
-  iunfold memberServed at Hup₁
+  isimp only [memberServed_none] at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁,
     Hctl₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, ⟨%pw₁, %R₁, #Hws₁, %HR₁, #Hstr₁⟩, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
@@ -159,7 +168,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn cmp .none
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms (fun h => absurd rfl h))
     $$ [Hfr₂ Htok Hmb₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -170,7 +179,7 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Herr
   wp_auto
-  iunfold memberServed at Hup₂
+  isimp only [memberServed_none] at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂,
     Hctl₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, ⟨%pw₂, %R₂, #Hws₂, %HR₂, #Hstr₂⟩, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
@@ -185,7 +194,7 @@ theorem StartCluster.wp_proof
       (LogEntry.toEntries boot 0) ctxs (dir3 cfg id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn cmp .none
       Hcfg Htb Hrb48 HrbN HwbN hvs hrule hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23])
-      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms)
+      (dir3_dirsOk cfg id₁ id₂ id₃ ps Hbf.perm) Hlg Hck Haf Hbuq Hrf Hdbo Hms (fun h => absurd rfl h))
     $$ [Hfr₃ Htok Hmb₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -196,7 +205,7 @@ theorem StartCluster.wp_proof
     iapply HΦ; ileft; ipureintro; rfl
   subst Herr
   wp_auto
-  iunfold memberServed at Hup₃
+  isimp only [memberServed_none] at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃,
     Hctl₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, ⟨%pw₃, %R₃, #Hws₃, %HR₃, #Hstr₃⟩, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
@@ -255,10 +264,9 @@ theorem StartCluster.wp_proof
   isplitr
   · ipureintro; rfl
   iframe Htok
-  iunfold clusterUp
   iexists γ, γn, ρ₁, ρ₂, ρ₃, E₁', E₂', E₃', cid₁, cid₂, cid₃, mid₁, mid₂, mid₃, R₁, R₂, R₃,
     s₁, s₂, s₃, br₁, br₂, br₃
-  iunfold clusterAt
+  isimp only [clusterAt_none]
   iframe Hetcd Hob₁ Hob₂ Hob₃ Hctl₁ Hctl₂ Hctl₃
   -- (M2, the storage side, N1) each member's server in the cluster's mode: its stand-in's,
   -- through `envAgree`
@@ -270,19 +278,19 @@ theorem StartCluster.wp_proof
   obtain ⟨hr₃, hc₃, hch₃, hl₃, -⟩ := Hp₃
   iframe #
   isplitr
-  · iunfold memberAt; iframe #; isplitr
+  · isimp only [memberAt_none]; iframe #; isplitr
     · ipureintro; exact Hnr₁
     isplitr
     · ipureintro; exact HR₁
     ipureintro; exact ⟨⟨reg₁, hr₁⟩, hc₁, hch₁, hl₁, off₁⟩
   isplitr
-  · iunfold memberAt; iframe #; isplitr
+  · isimp only [memberAt_none]; iframe #; isplitr
     · ipureintro; exact Hnr₂
     isplitr
     · ipureintro; exact HR₂
     ipureintro; exact ⟨⟨reg₂, hr₂⟩, hc₂, hch₂, hl₂, off₂⟩
   isplitr
-  · iunfold memberAt; iframe #; isplitr
+  · isimp only [memberAt_none]; iframe #; isplitr
     · ipureintro; exact Hnr₃
     isplitr
     · ipureintro; exact HR₃

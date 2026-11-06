@@ -65,6 +65,13 @@ theorem StartMember.wp_proof
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
     Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
+    HlP
+  -- (lease-mono3) a mode that grants leases: the lease specs registered by `kv_lease_served`
+  cases lm with
+  | mono => sorry -- DRAFT lease-mono3
+  | revocable => sorry -- DRAFT lease-mono3
+  | none => ?_
+  simp only [memberServed_none]
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   -- the client address's listen right, out of the fresh bundle (to the client listener); the rest
   -- to `NewMember`
@@ -100,7 +107,7 @@ theorem StartMember.wp_proof
   wp_apply (wp_NewMember N name peerAddr client cfg.Token' cfg.SnapCount' cfg.SnapCatchUp' peer
       cluster lg
       (GMap.insert cfg.Name3' sl₃ (GMap.insert cfg.Name2' sl₂ (GMap.insert cfg.Name1' sl₁ ∅)))
-      (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp lm
+      (initURLs3 cfg) (urlsOk cfg peerAddr client) ps bootLog ctxs dir id γ ρ E₀ Φs γn cmp .none
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
@@ -128,7 +135,7 @@ theorem StartMember.wp_proof
   subst Hcerr
   wp_auto
   -- `s.Start()`
-  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm) $$ [Hmb Htok] as Hup
+  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN .none) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   iunfold memberUp at Hup
@@ -218,7 +225,6 @@ theorem StartMember.wp_proof
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
-  iunfold memberServed
   iexists E, γw, cid, mid
   iframe Hgo2 HPut HRange HDel HTxn HCmp Hctl
   iframe #

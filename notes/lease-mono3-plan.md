@@ -180,3 +180,78 @@ No hard stop is in the recommended path. Hard stops arise only from 1(C), or fro
 - **A race in the counts.** `run` returns once member 3's lessor lists the filler. `applySnapshot` logs "applied snapshot" in a `defer`, after the KV store's restore, sometimes after `run` returns (one development run counted 0). The test waits for it (at most 5 s).
 - **Goose.** The pinned translator (Perennial `84d5380639`, built from `/shared/perennial-84d538063`), with leasegrant's lean roots and the repository's `Code/` configuration, translated the package (Code 598 lines, GeneratedProof 27) with no error or unsupported construct. Not added to `etc/goose.py` (the Draft does that).
 - **What the Scope got wrong or left out.** No error. Two small points: §2's time budget, (1 + k) × 5 s, is an upper bound; the measured runs take 1.3-7.6 s. `Main` needs the `run(lg)` split for the test, which adds one function to specify.
+
+## Draft pass 1 (2026-11-06)
+
+Pass 1 of the Draft (`notes/spec-first-plan.md`, "A large Draft: pass 1 small, pass 2 wide"): only
+what more than one package names, as statements; proofs that break are `sorry -- DRAFT lease-mono3`.
+Branch `lease-mm`.
+
+### Frozen and exported changes, old → new
+
+| statement | old | new | cause |
+|---|---|---|---|
+| `etcdstart.memberBoot_of` (`Alloc3.lean`, etcdstart API) | `Hklg : γk.lm = .none`; post `memberBoot … id cmp` | `(lm) (hrun : lease.runCfg lm lm) (hrev : lm ≠ .revocable) (Hklg : γk.lm = lm)`; post `memberBoot … id cmp lm` | Scope §1; `srvMemberBoot_alloc`'s `hpfx` from `hrev` |
+| `etcdstart.alloc3Http` (private), `etcdstart.alloc3` (etcdstart API; hub request accepted by 82) | `(cmp := false) (cret := 0)`; posts `memberBoot … cmp`, `etcdKV ρ₁.rd.kv …` | `… (cmp := false) (cret := 0) (lm) (hrun : lease.runCfg lm lm) (hrev : lm ≠ .revocable)`; posts `memberBoot … cmp lm`, `(if decide (lm ≠ .none) then True else etcdKV ρ₁.rd.kv …)` | Scope §1 (alloc1's shape); proved, no sorry |
+| `cluster3.StartMember.spec` (FROZEN, hub step 7 E1) | post `memberServed γn s id ρ E₀ client` | premise `(lm ≠ .none → leasePeersOk)` after `v3rpc.ServerMethodSets`; post `memberServed γn s id ρ E₀ client lm` | Scope §4, Q2 |
+| `cluster3.StartCluster.spec` (FROZEN, hub step 7 E2) | binders `… (lg) (cmp)`; post `clusterUp cfg cmp … srvs brs` | binder `(lm : lease.Mode)` after `cmp`; premises `lease.runCfg lm lm → lm ≠ .revocable → (lm ≠ .none → leasePeersOk)` after `v3rpc.ServerMethodSets`; post `clusterUp cfg cmp … srvs brs lm`; the docstring cites the Scope for `lm ≠ .revocable` | Scope §4, Q4 |
+| `cluster3.memberServed`, `memberAt`, `clusterAt`, `clusterUp` (`cluster3/Defs.lean`) | — | last parameter `(m : lease.Mode := .none)`; the KV registrations become `servedRegs m …` (new, below); `clusterAt`'s `etcdKV` by a `match` on `m` | Scope §1, §4, Q2 |
+| `cluster3.servedRegs` (new, `Defs.lean`) | — | `servedRegs m c s E ρ cid mid rest`: at `.none` the five KV registrations then `rest`; otherwise `client.etcdLeaseReadAt c ∗ etcdstart.etcdLeaseServedAt m c s E ρ ρ.rd cid mid ∗ rest` (`kv_lease_served`'s post) | so that `.none` is today's text by `rfl` (the `∗`s associate as before) |
+
+No other frozen or exported statement changed (the batching rule had nothing more to apply).
+`cluster3/Defs.lean` now imports `etcdstart.ServedLease` (importable, `etc/api/etcdstart.txt`).
+Callers: `putget3/Main`, `restart/Run` pass `false 0 .none lease.runCfg_none (by decide)` to `alloc3`
+and simplify its `if` away; `partition/startCluster`, `k8s/compactor/MainPartition` pass `.none`,
+`lease.runCfg_none`, `(by decide)`, `(fun h => absurd rfl h)`; their statements are unchanged.
+(`partition/Alloc.lean` names `alloc3` only in comments.)
+
+**The `rfl` checks.** At `.none` each definition is its old text: `memberServed_none`,
+`memberAt_none`, `clusterAt_none`, `clusterUp_none` (`Defs.lean`, theorems proved by `rfl`, named so
+that proofs can `simp only [..._none]`; the brief asked for `example`s).
+
+**DRAFT sorries** (all `-- DRAFT lease-mono3`): `StartMember.wp_proof`'s `.mono` and `.revocable`
+cases, `StartCluster.wp_proof`'s `.mono` case (its `.revocable` case is `hrev`'s; its and
+StartMember's `.none` cases are the old proofs, checked). Reach: below.
+
+### Findings for pass 2 (not decided here)
+
+1. **A thread token for the lease reads' gRPC slot.** `kv_lease_served` takes `threadTok` for the one
+   gRPC slot (`raftLeaseRead_server`'s `E.RD ∗ threadTok`). leasegrant's `Main` gets it by forking
+   `go holdToken()` (`wp_fork_tok_self`). `cluster3.StartMember`'s Go forks only `go gs.Serve(cl)`,
+   whose spec (`grpc.Server.Serve.spec`) returns `True`, and its one `threadTok` goes back to
+   `StartCluster` through `srvGoRes` (for the next member). So `StartMember.spec` at `.mono` has no
+   token for the slot. Options: (i) Go: `go holdToken()` in `cluster3.StartMember` (a shared
+   library: a re-translation; harmless at `.none`); (ii) a mode-gated `threadTok` premise in the
+   frozen `StartMember.spec`/`StartCluster.spec` and `holdToken`s forked by the example's `Main`
+   (a Go change to `leasecatchup.go`); (iii) a serving lemma whose slot needs no token when the
+   TTL read is not registered (and `memberServed` without `client.etcdLeaseReadAt`, which
+   leasecatchup does not use). (i) changes no statement. (ii) is a frozen change, (iii) an exported
+   one: both go to the user.
+2. **The watch stream in the monotone mode.** `memberServed`/`memberAt` keep the `Watch` stream and
+   `noRefusalAt` in every mode (Q2 replaces only the KV calls). Today's proof gets the stream from
+   `etcd_kv_started`'s `grpcStreamServerAt`; `kv_lease_served` returns none. Pass 2 needs a serving
+   lemma that returns it too (`etcd_kv_started_with` has the shape). If that is not available, the
+   choice is (iii)'s kind: an exported change to the user.
+
+### Pass-2 work list
+
+- **(a) cluster3** (owns `Proof/.../examples/lib/cluster3/StartMember.lean`, `StartCluster.lean`,
+  and, if needed, `Defs.lean` below the statements): prove `StartMember.wp_proof` at `.mono` (and
+  `.revocable`: `kv_lease_served` covers every mode; the scope premise is only `StartCluster`'s), with
+  `memberUp`'s `srvLeaseRd` (today `-`), `kv_lease_served` for the lease registrations, the watch
+  stream and `etcd_noRefusal` (findings 1 and 2); prove `StartCluster.wp_proof` at `.mono`: `alloc3 …
+  .mono hrun hrev`, `StartMember` at `.mono` with `HlP`, no `etcdKV` (the `if`), `clusterAt … .mono`.
+  Keep a trailing `-` in `memberUp`'s `icases` (R2c's `srvStopRight`, §6).
+- **(b) the example `examples/etcd/leasecatchup`** (owns `etc/goose.py`'s new project and the
+  translation `Code/`/`GeneratedProof/` of the package, `Proof/.../examples/etcd/leasecatchup/`
+  `Init.lean` (`etc/gen-init.py`, its `SPECIAL` if needed), `PkgTable`, `Defs`, `Main` and `run`,
+  `MainLinked`, `Adequacy`, `Results`, the link generation for it, and
+  `etc/tcb-collections/leasecatchup.txt`): §3's theorem `etcd_leasecatchup_safe`, over
+  `StartCluster.spec` at `.mono` (`lease.runCfg_mono Hlne`, `(by decide)`, `fun _ => Hlp`), two
+  `etcdstart.NewClients` of one bridge each (the bridge forwards `servedRegs`'s registrations,
+  `isGrpcRpc_forwards`), `Grant`/`Leases` at `etcdLeaseGrantSpec`/`etcdLeaseLeasesSpec` of member
+  3's `E.γ.leases`, `PeerStep`. Depends on (a)'s statements only (built now).
+- **(c) everything else**: `etcdstart` (owns `ServedLease.lean`): the serving lemma findings 1–2
+  need, if (a) needs one; the decision on finding 1 (with the user if (ii) or (iii)), and, for (i),
+  the Go change to `examples/lib/cluster3/cluster3.go` with its re-translation (`etc/goose.py
+  --project` of the examples) before (a) proves `StartMember`.

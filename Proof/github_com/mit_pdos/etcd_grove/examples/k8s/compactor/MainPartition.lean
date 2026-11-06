@@ -132,8 +132,8 @@ theorem MainPartition.wp_proof
   wp_apply wp_clusterConfig
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in compaction mode
-  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true clusterCfg_ok Hbf Hlg Htb
-      Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Hlg Htb
+      Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -149,7 +149,7 @@ theorem MainPartition.wp_proof
   icases Hcl with ⟨#Hsrvs, #Hbrs, #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, Hetcd,
     %Hal⟩
   obtain ⟨hst₂, hst₃, hkc, hkr⟩ := Hal
-  iunfold cluster3.memberAt at Hm₁ Hm₂ Hm₃
+  isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
   icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, #Hws₁,
     %HR₁, #Hstr₁, %Hp₁⟩
   icases Hm₂ with ⟨#Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, #Hws₂,

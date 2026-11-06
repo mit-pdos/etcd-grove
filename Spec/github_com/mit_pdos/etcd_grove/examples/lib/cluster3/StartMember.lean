@@ -11,6 +11,12 @@ success is `memberServed` (`Defs.lean`): the member's views, its thread token (`
 place in the network and etcd's KV and watch services at its client address. The premises are
 `NewMember`'s plus the configuration's (`cfgOk`), the right to listen at the client address and
 v3rpc's method sets (`v3rpc.Server`'s). Lean-first (no Rocq counterpart).
+
+**The lease mode** (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §4 and Q2; hub step
+7's E1): the member boots in the lease mode `lm` (`memberBoot`'s), and its success is
+`memberServed … lm`: in a mode that grants leases, etcd's lease reads and the mode's grant and
+listing registered at the client address in place of the KV calls (`kv_lease_served`'s), under the
+deployment premise the lease reads' server specs take (`leasePeersOk`), only in such a mode.
 -/
 module
 
@@ -57,6 +63,8 @@ abbrev StartMember.spec : Prop :=
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
+  -- (lease-mono3) the lease reads' deployment premise, in a mode that grants leases
+  (lm ≠ .none → leasePeersOk) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗
@@ -80,7 +88,7 @@ abbrev StartMember.spec : Prop :=
       (Val #cfg.Token')) (Val #cfg.SnapCount')) (Val #cfg.SnapCatchUp')) (Val #lg))
   {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ memberServed γn s id ρ E₀ client) }}
+      (⌜err = GoInterface.nil⌝ ∗ memberServed γn s id ρ E₀ client lm) }}
 
 end spec
 
