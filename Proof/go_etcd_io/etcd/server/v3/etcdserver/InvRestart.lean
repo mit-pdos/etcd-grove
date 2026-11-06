@@ -101,24 +101,43 @@ def v3ConfStateIs (D : backend.Data) (cs : ConfStateM) : Prop :=
 convention, `notes/spec-first-plan.md`, "The slot convention": the WAL's facts move into their slot
 as the WAL next changes the hub, which the certificate does). Sealed; `wal.stopImage_intro` builds
 it. The WAL's records `σ` hold the node's durable state `S` (`StorageHolds`, what `RestartNode`'s
-update checks); their snapshot is at or below the backend's consistent index `i` and `i` at or below
-their commit (etcd's order: a snapshot is of the applied state, an entry is applied after the `Save`
-of its commit), so that `bootstrap` keeps the backend file; and their snapshot certificate
-(`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid.
+update checks); their snapshot is at or below the backend's consistent index `i` (a snapshot is of
+the applied state), so that `bootstrap` keeps the backend file (`storage/backend.go:111-113`); the
+configuration point raft restarts with: the membership `m` (the image's, at `i`) at some point `p`
+between their snapshot and their commit (`RestartNode` takes any point from the storage's base to
+its commit); and their snapshot certificate (`walSnapCert`, Q14 (a)): at index `0`, or their
+snapshot, of no data at their base, valid.
+
+(The Q16-3 review's finding 2, decided by the agent, pending the user's review (under
+etcd-grove-82's delegation), 2026-11-06; DRAFT) Until then the slot said `i ≤ σ.commit` and the
+configuration point was `i`'s alone: an install from a window sender gives the backend entries
+above the receiver's raft commit (the review's F1, step 2; etcd itself expects `consistent_index >
+Commit`, `bootstrap.go:613-621`), so a graceful stop there leaves `i > σ.commit`. What used it:
+`bootstrap` keeping the file (needs only `σ.b ≤ i`) and the configuration point (now over
+`[σ.b, σ.commit]`). `bootstrapRestartContract` still takes `i ≤ σ.commit` (HS2, R2e's Scope).
 
 **Margin.** The certificate is of the records' snapshot. `bootstrap` replaces that snapshot's
 `ConfState` by the backend's at `i` (`bootstrap.go:107-115`, `buildConfStateFromV3store`) before
 the restarted storage applies it, so it certifies the restarted storage's snapshot only when the
 two conf states agree: in a static cluster (HS2's caveat (ii), `notes/restart-plan.md`). -/
-@[no_expose] def wal.stopImage (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
-    IProp GF :=
-  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ)
+@[no_expose] def wal.stopImage (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64)
+    (m : Membership) : IProp GF :=
+  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i⌝ ∗
+    (∃ p : Nat, ⌜σ.b ≤ p ∧ p ≤ σ.commit⌝ ∗ confAt cl p m) ∗ walSnapCert cl σ)
 
-/-- `wal.stopImage`'s intro, from the stop's facts. -/
+/-- `wal.stopImage`'s intro, from the stop's facts: the configuration point `p`. -/
 theorem wal.stopImage_intro (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64)
-    (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i) (hc : uint.nat i ≤ σ.commit) :
-    walSnapCert (GF := GF) cl σ ⊢ wal.stopImage cl S σ i := by
-  unfold wal.stopImage; iintro H; iframe H; ipureintro; exact ⟨hS, hb, hc⟩
+    (m : Membership) (p : Nat) (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i)
+    (hp : σ.b ≤ p ∧ p ≤ σ.commit) :
+    walSnapCert (GF := GF) cl σ ∗ confAt cl p m ⊢ wal.stopImage cl S σ i m := by
+  unfold wal.stopImage
+  iintro ⟨H, #Hc⟩
+  iframe H
+  isplitr
+  · ipureintro; exact ⟨hS, hb⟩
+  iexists p
+  iframe Hc
+  ipureintro; exact hp
 
 /-- **Member `id`'s data directory as its last stop left it, at that incarnation's request names
 `ρ`** (DRAFT, R2c; see the file header and `notes/restart-plan.md`, "R2c: the image's content"):
@@ -128,12 +147,14 @@ theorem wal.stopImage_intro (cl : Cluster) (S : RaftState) (σ : StorContents) (
 - the backend's part (the bbolt file): `D` is the image of a committed prefix `A` of the server's
   log through the consistent index `i` (`imageAt`, the snapshot path's certificate, `dbImage`'s
   content at the stopped incarnation's names), its stored term `t` (`metaIs`);
-- between them (in the WAL's slot): the WAL's snapshot at or below the backend's index, the
-  backend's index at or below the WAL's commit, so that `bootstrap` keeps the file
-  (`recoverSnapshot` opens a `.snap.db` only when the file's index is below the snapshot's);
+- between them (in the WAL's slot): the WAL's snapshot at or below the backend's index, so that
+  `bootstrap` keeps the file (`recoverSnapshot` opens a `.snap.db` only when the file's index is
+  below the snapshot's); (the Q16-3 review's finding 2) not the backend's index at or below the
+  WAL's commit, which an install from a window sender breaks;
 - the configuration point raft restarts with: `bootstrap` replaces the WAL snapshot's `ConfState`
   by the backend's (`buildConfStateFromV3store`, `v3ConfStateIs`): every conf state it can build is the
-  membership at `i`; `RestartNode` takes any point from the storage's base to its commit;
+  membership `m` at `i`; `RestartNode` takes any point from the storage's base to its commit, and
+  the WAL's slot has `m` at one (finding 2: until then at `i`, under `i ≤ σ.commit`);
 - the bootstrap log applied (`γ.cl.bootLen ≤ i`; R2c review F4, a scope restriction: a member
   stopped before its first `Ready` was applied would restart with an empty members bucket, which
   etcd copes with and these statements do not; `restart3`'s stop must provide it);
@@ -158,9 +179,10 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
       imageAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) A D⌝ ∗
     ⌜γ.cl.bootLen ≤ uint.nat i⌝ ∗
     confAt γ.cl (uint.nat i) m ∗ ⌜∀ cs, v3ConfStateIs D cs → confStateIs cs m⌝ ∗
-    -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i ≤ σ.commit`
-    -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
-    wal.stopImage γ.cl S σ i ∗
+    -- (R2d review F7, 2026-11-06; DRAFT) the WAL's slot: `StorageHolds S σ`, `σ.b ≤ i`, the
+    -- configuration point `m` in `[σ.b, σ.commit]` (the Q16-3 review's finding 2) and the records'
+    -- snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
+    wal.stopImage γ.cl S σ i m ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
 
