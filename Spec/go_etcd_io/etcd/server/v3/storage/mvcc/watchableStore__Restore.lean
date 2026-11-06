@@ -41,7 +41,7 @@ nothing of its range between its `minRev` and its delivery bound), so the client
 watchers (`chanWatcher`, `isClientWatcher`) is unchanged. The rest is `store.Restore`'s, by the
 mode (the mode survives the install, `d'.cm = d.cm`): the restored log's receipt and the
 compaction permit at the image's records `r` (`restoreRcptM`, `crevPermAt`), what `Restore` takes
-of the inner store's right at its compaction revision `c ≤ r.crev` (`restoreRightM`), the writer's
+of the inner store's right at its compaction revision `c` (`restoreRightM`), the writer's
 fragment and retired tokens, the new backend's image, contract, clean read and tokens at the
 records, and back the inner store's right at `r.crev` at the new names (`storeCloserM`), fragment,
 tokens, the resumed compaction's hook run and commit (`resumeCtxM`, back as `resumeBackM`), the old job's budgets (`compactJobResM`), the old
@@ -52,7 +52,7 @@ abbrev mvcc.watchableStore.Restore.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF)
     (hkH : Option val) (dqh : DFrac) (PreH QH PostH XH YH : IProp GF),
-  mvcc.restoreLogOk R → c ≤ r.crev →
+  mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ.st r.finRev ∗
       mvcc.crevPermAt γ.st r.crev ∗

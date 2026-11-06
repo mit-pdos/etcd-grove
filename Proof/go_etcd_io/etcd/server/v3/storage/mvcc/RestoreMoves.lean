@@ -150,7 +150,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
       crevUB γ.idx (1 : Qp).half.half c ∗ restoreHeld γ L' c ∗
       monoListLbOwn γ.idx.hist (histShape L' []) ∗
       slotFl γ (1 : Qp).half false ∗ (∃ cw : Int, api.wcrPart γ.api (1 : Qp).half cw) ∗
-      ⌜L <+: L'⌝ ∗ slotX γ 1 L' c' ∗ api.absPart γ.api (1 : Qp).half.half L' c' ∗
+      ⌜L <+: L' ∧ c ≤ c'⌝ ∗ slotX γ 1 L' c' ∗ api.absPart γ.api (1 : Qp).half.half L' c' ∗
       api.pndPart γ.api (pndW γ) none ∗ api.nlLb γ.api L' ∗ Rr := by
   iintro Hlc #Hwi HR Hrst Hcur Hwr #HcL HlogQ Hcrev Hcmp Hfr Hcb
   -- `s.revMu`'s body, at the current names
@@ -228,7 +228,8 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   ihave Hcb := Hcb $$ %L %cb %cw [HXB HYa HYp]
   · iframe HXB HYa HYp
   imod fupd_mask_subseteq (mask_diff_ndot (nroot .@ "mvcc") "writer") with Hmask
-  imod Hcb with ⟨%hLL, HXn, HYa, HYp, #HnlLb, HRr⟩
+  imod Hcb with ⟨%Hlc, HXn, HYa, HYp, #HnlLb, HRr⟩
+  obtain ⟨hLL, hcc⟩ := Hlc
   imod Hmask with -
   ihave Hla := logAuth_gather γ L $$ [Hlw HlogB HlogQ]
   · iframe Hlw HlogB HlogQ
@@ -288,7 +289,7 @@ theorem restore_takeover (s : Loc) (γ : StoreNames) (o : StoreObjs) (L L' : Log
   isplitl [Hwc]
   · iexists cw; iexact Hwc
   iframe HXn HYa HYp HnlLb HRr
-  ipureintro; exact hLL
+  ipureintro; exact ⟨hLL, hcc⟩
 
 /-- `a + b` copies of `P`, in two parts. -/
 theorem rep_split (P : IProp GF) (a b : Nat) :

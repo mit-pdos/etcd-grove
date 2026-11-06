@@ -17,6 +17,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecsSnap
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreMoves
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.BasicLaws
 
 @[expose] public section
 
@@ -190,6 +191,312 @@ private theorem restore_of_storage
   · have hkrt : kbRT (GF := GF) (some bk) = bkRTx bk.γB bk.P bk.be := by unfold kbRT bkRTx; rfl
     rw [hkrt]; iexact Hrts
   iframe Hb Hsup
+
+/-- Reader tokens of a real backend give back its open shares. -/
+theorem rep_kbRT_bOpen (d : KBReal) (n : Nat) :
+    ([∗list] _x ∈ List.replicate n (), kbRT (GF := GF) (some d)) ⊢
+      [∗list] _x ∈ List.replicate n (), backend.bOpen d.γB backend.rdOpen := by
+  apply BigSepL.bigSepL_mono
+  intro _ _ _
+  unfold kbRT
+  iintro ⟨-, H⟩
+  iexact H
+
+/-- **`KV.Restore.contract` at `*watchableStore`** (2026-11-06): the internal
+`watchableStore.Restore` at the store's current names (the open token's `p`), over the new
+storage (`restore_of_storage`), with the client's update as the takeover's ghost step
+(`restoreCb_of_au`) and the resumed compaction's context from the hook's and the commit's. -/
+theorem watchableStore.Restore.wp_api
+    (hRst : mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG))
+    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
+    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hLSR : backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUSR : backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG)) :
+    watchableStore.Restore.spec (GF := GF) := by
+  intro s (γ : StoreNames) B B' Pk Pk' σ' u L dq f Pre Q' Post X Y Q
+  iintro %Φ ⟨#Hpkg, Hmv, Htt, Hopen, HB, Hfor, %Hσ', Hhook, %Hfdq, HPre, Hrun, Hupd, HX, #Hreq,
+    HLo, %Hlok, HAU⟩ HΦ
+  iunfold isMvcc at Hmv
+  icases Hmv with #Hmv
+  ihave %hrb := isMvcc_rb (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s) γ $$ []
+  · iunfold isMvcc; imodintro; iexact Hmv
+  icases Hmv with (⟨Hmv, %Hwq⟩ | Hmv)
+  · iunfold isMvccPlain at Hmv
+    icases Hmv with ⟨%s', %Hk, -⟩
+    exfalso
+    rw [interface_mkOk_inj] at Hk
+    exact absurd Hk.1 (by simp [watchableStore.ty, store.ty])
+  iunfold isMvccWatchable at Hmv
+  icases Hmv with ⟨%s', %st, %γw, %γp, %Hk, #Hws, -, #Hrp, #Hloc, #Hperm, #Hfree⟩
+  obtain ⟨Hk, hγ⟩ := Hk
+  rw [interface_mkOk_inj] at Hk
+  have hs : s = s' := go.intoVal_inj Hk.2
+  subst hs
+  ihave #Hbpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
+  · iPkgInit
+  ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
+  · iPkgInit
+  -- the open token, at the inner store's location and current names
+  iunfold mvccOpen at Hopen
+  icases Hopen with ⟨%s2, %p, %c, #Hloc2, Hright, Hcra, HRT, #Hsup, %hc, Hor, Hwo⟩
+  ihave %Hss := locIs_agree _ _ _ $$ [Hloc Hloc2]
+  · isplitl
+    · iexact Hloc
+    · iexact Hloc2
+  cases Hss
+  -- the backend share: its names are the right's
+  iunfold mvccBackend at HB
+  icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
+  obtain ⟨hpk, hcm, rfl⟩ := Hd
+  icases (compactRightR_iff st ((γ : StoreNames).withPhys p) c).1 $$ Hright with
+    ⟨Hcr, Hq, %o, ⟨Hfs, #Hsc, Hstc, Htok⟩, #Hstop⟩
+  icases fieldShareAt_cur st ((γ : StoreNames).withPhys p) _ o $$ Hfs with ⟨Hcur, Hfsb⟩
+  ihave %Hv := curAt_agree ((γ : StoreNames).withPhys p) ((γ : StoreNames).withPhys p')
+      rfl _ _ o o' $$ [Hcur Hcur']
+  · isplitl [Hcur]
+    · iexact Hcur
+    · iexact Hcur'
+  obtain ⟨-, hp⟩ := Hv
+  have hp' : p = p' := hp
+  subst hp'
+  ihave Hfs := Hfsb $$ Hcur
+  ihave Hright : compactRightR (GF := GF) st ((γ : StoreNames).withPhys p) c $$ [Hcr Hq Hfs Hstc Htok]
+  · iapply (compactRightR_iff st ((γ : StoreNames).withPhys p) c).2
+    iframe Hcr Hq
+    iexists o
+    iframe Hfs Hsc Hstc Htok Hstop
+  -- the new storage
+  icases restore_of_storage hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL
+      hbUR hCB hDel hID hName hSafe hLSR hUSR hUP hrb B' Pk' σ'.log σ'.crev u st (γ : StoreNames)
+      $$ [$Hbpkg $Hspkg $Hfor]
+    with ⟨%d', %r, %R, %Hb, #Hrc, #Hrc2, HbkT, HcrT, Himg, #HndO, Hrr, Hreg, Hsr, #Hwts',
+      Hrts, #Hbk', #Hsup'⟩
+  obtain ⟨hB', hcm', hL, hlok, hrc, hru, hlp', hrec⟩ := Hb
+  subst hB'
+  -- the resumed compaction's context, by the case: none; the hook unset; the hook frozen
+  ihave ⟨%hkH, %dqh, %PreH, %QH, %PostH, %XH, %YH, Hctx, Hback⟩ :
+      ∃ (hkH : Option val) (dqh : DFrac) (PreH QH PostH XH YH : IProp GF),
+        resumeCtxM d' r Pk' hkH PreH QH PostH dqh XH YH ∗
+        (resumeBackM d' r hkH dqh PostH YH -∗
+          storageHook (d' : MvccStorage) dq f ∗ (if u = true then iprop(Post ∗ Y) else iprop(Pre ∗ X)))
+      $$ [Hhook HPre Hrun Hupd HX]
+  · cases hu : u
+    · -- no resumed compaction: the context unused, kept
+      iexists none, dq, iprop(True), iprop(True), iprop(True), iprop(True), iprop(True)
+      rw [resumeCtxM_no _ _ _ _ _ _ _ _ _ _ (by rw [hru, hu]),
+        resumeBackM_no _ _ _ _ _ _ (by rw [hru, hu])]
+      isplitr
+      · itrivial
+      iintro -
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe Hhook HPre HX
+    have hres : r.resumes = true := by rw [hru, hu]
+    ihave #HreqK : kbReq (GF := GF) (some d') X Y $$ []
+    · simp only [kbReq]
+      iunfold bkReq
+      iright
+      iexists (lateW d'.gx), Pk'
+      iframe Hbk'
+      iunfold storageReq at Hreq
+      iexact Hreq
+    by_cases hf : f = func.nil
+    · -- the hook unset (at any share): the caller's view shift
+      subst hf
+      iexists none, dq, Pre, Q', Post, X, Y
+      unfold resumeCtxM resumeBackM
+      simp only [hres, ↓reduceIte]
+      iunfold hookRun at Hrun
+      simp only [↓reduceIte] at *
+      isplitl [HX Hhook HPre Hrun Hupd]
+      · iframe HX HreqK HPre
+        isplitl [Hhook]
+        · simp only [kbHookNilAt]; iunfold storageHook at Hhook; iexact Hhook
+        iintro HPP
+        imod Hrun $$ HPP with HQ'
+        iapply Hupd $$ HQ'
+      · iintro ⟨HPost, HY, Hnil⟩
+        iframe HPost HY
+        simp only [kbHookNilAt]
+        iunfold storageHook
+        iexact Hnil
+    · -- the hook set, frozen: the caller's triple
+      have hdq : dq = DFrac.discard := by
+        rcases Hfdq with h | h
+        · exact absurd h hf
+        · exact h
+      subst hdq
+      iunfold storageHook at Hhook
+      ihave #Hhk : backend.plHookRO (GF := GF) d'.γB f $$ [Hhook]
+      · iexact Hhook
+      iexists (some #f), DFrac.discard, Pre, Q', Post, X, Y
+      unfold resumeCtxM resumeBackM
+      simp only [hres, ↓reduceIte]
+      iunfold hookRun at Hrun
+      simp only [hf, ↓reduceIte]
+      isplitl [HX HPre Hrun Hupd]
+      · iframe HX HreqK
+        isplitr
+        · iunfold bkHookIs
+          iexists f
+          isplitr
+          · ipureintro; exact ⟨rfl, hf⟩
+          iexact Hhk
+        iunfold csContract
+        iframe HPre Hrun Hupd
+      · iintro ⟨HPost, HY, -⟩
+        iframe HPost HY
+        iunfold storageHook
+        iexact Hhk
+  -- the client's update, as the takeover's ghost step
+  iunfold mvccState at HAU
+  ihave Hcb := restoreCb_of_au γ p σ' Hσ'.2 Hσ'.1 c hc Q $$ [Hcra HAU]
+  · iframe Hcra Hrc2 HAU
+  rw [← hrc, hL]
+  rw [hL] at Hlok
+  -- the internal `Restore`, at the store's current names
+  have hγw : isWatchableStore (GF := GF) s st { γw with st := (γ : StoreNames).withPhys p } =
+      isWatchableStore s st γw := by rw [← hγ]; rfl
+  ihave #Hws' : isWatchableStore (GF := GF) s st { γw with st := (γ : StoreNames).withPhys p } $$ []
+  · rw [hγw]; iexact Hws
+  iapply (hRst s st { γw with st := (γ : StoreNames).withPhys p } (storageVal (d' : MvccStorage)) d'
+      γ.bucket Pk' R c r L iprop(crevAuth γ.api (1 : Qp).half.half r.crev ∗ ∃ σ, Q σ)
+      hkH dqh PreH QH PostH XH YH hlok)
+    $$ [HbkT HcrT Himg Hrr Hreg Hsr Hrts Hctx HLo HF Hcb Hright Hwo Hcur'] [-]
+  · simp only []
+    have hpk' : ((γ : StoreNames).withPhys p).kb = some d := hpk
+    ihave #HpF : crevPermAt (GF := GF) ((γ : StoreNames).withPhys p) r.finRev $$ []
+    · iapply crevPermAt_of _ (fun _ => iprop(True))
+      isplitl
+      · iapply (crevPermIs_cperm (γ : StoreNames) ((γ : StoreNames).withPhys p) rfl
+          (fun _ => iprop(True)))
+        iexact Hperm
+      · iintro !>; itrivial
+    ihave #HpC : crevPermAt (GF := GF) ((γ : StoreNames).withPhys p) r.crev $$ []
+    · iapply crevPermAt_of _ (fun _ => iprop(True))
+      isplitl
+      · iapply (crevPermIs_cperm (γ : StoreNames) ((γ : StoreNames).withPhys p) rfl
+          (fun _ => iprop(True)))
+        iexact Hperm
+      · iintro !>; itrivial
+    iframe Hpkg Hrc HpF HpC Hws' Himg HndO Hrr Hreg Hsr Hwts' Hrts Hctx Hcb Hwo
+    simp only [StoreNames.withPhys_api, StoreNames.withPhys_leases]
+    isplitr
+    · ipureintro; exact ⟨d, hpk', by rw [hcm', hcm]⟩
+    isplitl [Hright]
+    · unfold restoreRightM
+      simp only [hpk', kbCmpM, hcm, ↓reduceIte]
+      iexact Hright
+    isplitl [Hcur']
+    · iunfold writerFrag; iexists o'; iexact Hcur'
+    isplitr
+    · iunfold certOk; iright; iright; iunfold certFree at Hfree
+      simp only [StoreNames.withPhys_cok]; iexact Hfree
+    isplitl [HbkT]
+    · iintro %q %hq; simp only [StoreNames.withPhys_withPhys]; iapply HbkT $$ %q %hq
+    isplitl [HcrT]
+    · iintro %q %hq; simp only [StoreNames.withPhys_withPhys]; iapply HcrT $$ %q %hq
+    isplitl [HLo]
+    · iunfold mvccLeases at HLo; iexact HLo
+    isplitr
+    · ipureintro; exact Hlok
+    iexact HF
+  -- the post: the open token and the backend share at the new names, the old storage's shares
+  inext
+  simp only [StoreNames.withPhys_withPhys, StoreNames.withPhys_api, StoreNames.withPhys_leases]
+  iintro ⟨%p'', %hp'', Hcl, Hfrag, Hwo', #Hhp', #Hreg', HrB, Hjob, Hold, Hnew, HLo, HF, Hcra',
+    %σ0, HQ⟩
+  icases Hback $$ HrB with ⟨Hhook, Hres⟩
+  have hkp'' : ((γ : StoreNames).withPhys p'').kb = some d' := hp''.2
+  have hcmp'' : kbCmpM ((γ : StoreNames).withPhys p'').kb := by rw [hkp'']; exact hcm'
+  have hj : nJobRd ((γ : StoreNames).withPhys p).kb = 1 := by
+    show nJobRd ((γ : StoreNames).withPhys p).kb = 1
+    rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk]; simp [nJobRd, hcm]
+  iapply HΦ
+  iframe Htt Hres Hhook
+  isplitl [Hcl Hcra' Hnew Hor Hwo']
+  · iunfold mvccOpen
+    iexists st, p'', r.crev
+    iframe Hloc
+    isplitl [Hcl]
+    · iapply (storeCloserM_on _ _ _ hcmp'').1; iexact Hcl
+    iframe Hcra' Hnew
+    isplitr
+    · rw [show p''.kb = some d' from hp''.2]; iexact Hwts'
+    isplitr
+    · ipureintro; exact CmpRecs.crev_ge _ r hrec
+    isplitl [Hor]
+    · iunfold openRest at Hor
+      iunfold openRest
+      icases Hor with ⟨-, Hw⟩
+      iframe Hw
+      ipureintro; show kbCmpM p''.kb; rw [show p''.kb = some d' from hp''.2]; exact hcm'
+    iexact Hwo'
+  isplitl [HF Hfrag]
+  · iunfold mvccBackend
+    iframe HF
+    iunfold writerFrag at Hfrag
+    icases Hfrag with ⟨%o2, Hcur2⟩
+    iexists p'', o2, d'
+    iframe Hcur2 Hbk'
+    isplitr
+    · ipureintro; exact ⟨hp''.2, hcm', rfl⟩
+    isplitr
+    · iintro !>; iexists st; iexact Hreg'
+    isplitr
+    · iexact Hhp'
+    isplitr
+    · iintro !> Hlc
+      unfold storeWT kbWT
+      rw [hkp'']
+      iapply Hsup' $$ Hlc
+    ipureintro; exact hlp'
+  isplitl [Hold Hjob HRT]
+  · iunfold storageRest
+    rw [hj]
+    unfold compactJobResM
+    simp only [show kbCmpM ((γ : StoreNames).withPhys p).kb from by
+      rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk]; exact hcm, ↓reduceIte]
+    icases Hjob with ⟨Hjrt, -⟩
+    have h3 : 3 ≤ nReaders := by rw [nReaders_val]; omega
+    have hn : nReaders = (nReaders - 1 - 1) + 1 + 1 := by omega
+    have hrt : storeRT (GF := GF) ((γ : StoreNames).withPhys p) = kbRT (some d) := by
+      unfold storeRT; rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk]
+    rw [hrt]
+    rw [show ((γ : StoreNames).withPhys p).kb = some d from hpk] at *
+    rw [hn, List.replicate_succ, List.replicate_succ]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [HRT]
+    · unfold kbRT; icases HRT with ⟨-, H⟩; iexact H
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hjrt]
+    · unfold kbRT; icases Hjrt with ⟨-, H⟩; iexact H
+    rw [show nReaders - 1 - 1 + 1 + 1 - 1 - 1 = nReaders - 1 - 1 by omega]
+    iapply rep_kbRT_bOpen
+    iexact Hold
+  iunfold mvccLeases
+  iframe HLo
+  iexists σ0; iexact HQ
 
 end proof
 

@@ -552,16 +552,18 @@ the image
 records an unfinished compaction (`u`), `Restore` resumes it: under the new backend's batch lock,
 running its post-lock hook `f` once (from `Pre` to `Q'`, giving the lock's invariant `Pk'` back), and
 committing once (the new backend's commit request, `X` to `Y`); otherwise neither, and `Pre`, `X`
-come back. The hook at any share `dq` (`storageHook`), given back: unset and owned (at `nil`,
-etcd's order: it sets the new backend's hook after `Restore`, `server.go:1078`), or frozen at any
-hook (`hookIs`). The old storage's rest back (`storageRest B`). -/
+come back. The hook at a share `dq` (`storageHook`), given back: unset (at `nil`, at any share:
+etcd's order, it sets the new backend's hook after `Restore`, `server.go:1078`), or frozen at any
+hook (`hookIs`: the share discarded; 2026-11-06, a premise, which the text said and the statement
+did not: a set hook at an owned share is neither). The old storage's rest back (`storageRest B`). -/
 abbrev KV.Restore.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (B B' : MvccStorage) (Pk Pk' : IProp GF) (σ' : MvccState) (u : Bool) (L : List w64)
     (dq : DFrac) (f : GoFunc) (Pre Q' Post X Y : IProp GF) (Q : MvccState → IProp GF),
   {{ pkgInit ∗ isMvcc (interface.mkOk ty v) γ ∗ threadTok ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
       mvccStorageFor B' Pk' σ'.log σ'.crev u ∗
       ⌜MvccReachable σ' ∧ σ'.pending = none⌝ ∗
-      storageHook B' dq f ∗ Pre ∗ hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
+      storageHook B' dq f ∗ ⌜f = func.nil ∨ dq = DFrac.discard⌝ ∗
+      Pre ∗ hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗
       X ∗ storageReq B' Pk' X Y ∗
       lease.leaseOwn (mvccLeases γ) L ∅ ∗
       ⌜∀ it lid, (pendItems σ'.log []).lookup it = some lid →

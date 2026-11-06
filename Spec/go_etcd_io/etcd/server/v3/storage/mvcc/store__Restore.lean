@@ -63,7 +63,7 @@ at `r.crev` keeps (`entsCutAt`), the records with the compaction-key write right
 compaction keys well formed (until #7-cmp's Freeze also `NoDelPutAt`, false of a legitimate image
 and needed by no proof: dropped).
 The restored compaction revision is what `restore()` computes from the records, `r.crev`, at least
-the store's (`c ≤ r.crev`), and the store's compaction permit holds of both records (`crevPermAt γ
+the store's (2026-11-06: no longer a premise, which no step used), and the store's compaction permit holds of both records (`crevPermAt γ
 r.finRev ∗ crevPermAt γ r.crev`: the restore raises the compaction revision to them, and every
 reader of the permit relies on it). The new backend: its contract at every physical names of its
 bucket and instance at the records (`storeBackendTR … r`, given its deletable keys fixed,
@@ -134,7 +134,7 @@ abbrev mvcc.store.Restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b' : GoInterface) (d' : mvcc.KBReal) (γb' : GName)
     (P' : IProp GF) (L R : mvcc.Log) (c : Int) (r : mvcc.CmpRecs) (Ls : List w64) (Rr : IProp GF)
     (hkH : Option val) (dqh : DFrac) (PreH QH PostH XH YH : IProp GF),
-  mvcc.restoreLogOk R → c ≤ r.crev → γ.watchQ = true →
+  mvcc.restoreLogOk R → γ.watchQ = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.restoreRcptM d' ([[], []] ++ R) ∗ mvcc.crevPermAt γ r.finRev ∗ mvcc.crevPermAt γ r.crev ∗
       mvcc.isStore s γ ∗ ⌜∃ d, γ.kb = some d ∧ d'.cm = d.cm⌝ ∗

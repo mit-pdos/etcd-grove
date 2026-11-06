@@ -30639,3 +30639,23 @@ sealed `mvccStorageFor` and `mvccBackend` record `leaseParams` of the storage's 
 beside `bridgeParams bk.P`; its users hold it (the server's snapshot apply `hlpw`, the tester's
 `rcP_lease`, the server's `bootBackend.law` statement given the premise). Proved:
 `Api/LeaseDelApi.lean` (`txnW_end`: `Txn.End`'s write arm at any lock token `ld`).
+
+## `KV.Restore.contract`: the hook at a resumed compaction, the prefix from the client (2026-11-06)
+
+**Decided (the agent finishing the mvcc proof, after the user's "Finish the mvcc proof"):**
+- The contract's premise `⌜f = func.nil ∨ dq = DFrac.discard⌝` beside `storageHook B' dq f`. Its
+  text already said the hook is "unset and owned, or frozen at any hook (`hookIs`)"; the statement
+  allowed a set hook at an owned share, which the store's batch-lock clause cannot run (it reads a
+  set hook through its read-only share, `bkHookIs`). A strengthening of a premise to what the text
+  stated; etcd's use (the hook unset at `Restore`, `server.go:1078`) meets it.
+- The internal `store.Restore` no longer takes `L <+: L'` nor `c ≤ r.crev` as premises, and
+  `watchableStore.Restore` no longer takes `□ (∀ C, idxCert γ.idx C -∗ ⌜C <+: L'⌝)`: the client
+  gives both inside its update (`restoreCb`, fired by the takeover at the update's mask). A
+  persistent premise about every certified log cannot be produced by a client while writes may
+  resume after `Restore`.
+- The resumed compaction runs the caller's hook context and commit request (`resumeCtxM`) in place
+  of only an unset hook (`resumeHookM`): `compactLockfree` takes a general lock context and commit
+  request, as `updateCompactRev` does.
+- The open token keeps the writer's retired reader (`writerOwn`), which `Restore` takes; the
+  constructors retire two readers (`storeReader_retire2`) and the readers' pool is one smaller
+  (`mvccReaderN = rdStockN - 6`).

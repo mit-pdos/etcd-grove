@@ -143,7 +143,7 @@ theorem mvcc.restoreCb_of_au (γ0 : mvcc.StoreNames) (p : mvcc.PhysNames) (σ' :
   imodintro
   iframe HYa HYp Hcr
   isplitr
-  · ipureintro; exact Hpre.1
+  · ipureintro; exact Hpre
   isplitl [HXa HXc]
   · iunfold mvcc.slotX; iunfold mvcc.api.revMuAbs; iframe HXa HXc
   isplitr

@@ -87,7 +87,7 @@ theorem mvcc.store.Restore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG))
     (hCLF : mvcc.store.compactLockfree.spec (GF := GF) (hG := hG)) :
     mvcc.store.Restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b' d' γb' P' L R c r Ls Rr hkH dqh PreH QH PostH XH YH hR hcr hwq
+  intro s γ b' d' γb' P' L R c r Ls Rr hkH dqh PreH QH PostH XH YH hR hwq
   by_cases hon : mvcc.kbCmpM γ.kb
   · -- (M2's item 15) on: both backends compact
     wp_start as ⟨#Hrc0, #HpF, #HpC, #Hs, %Hkb, Hright, Hfs, Hwsd, Hfrag, Hown, #HcL,
@@ -135,7 +135,6 @@ theorem mvcc.store.Restore.wp_proof
     · iframe HcrevM Hcu
     ihave Hcu : mvcc.crevUB (GF := GF) γ.idx (1 : Qp).half c0 $$ [Hcu]
     · rw [Hc0]; iexact Hcu
-    have hc0r : c0 ≤ r.crev := by omega
     -- the closer's eighth reads `s.stopc` and `s.fifoSched`
     icases mvcc.fieldShareAt_acc s γ mvcc.q8 o $$ Hf8 with ⟨Hflds8, #Hph8, Hf8b⟩
     iunfold mvcc.storeFields at Hflds8
@@ -206,8 +205,9 @@ theorem mvcc.store.Restore.wp_proof
     imod (mvcc.restore_takeover s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ L ([[], []] ++ R) c0 r.crev Rr
         HcM hwq) $$
         Hlc2 Hwi HR Hfrst Hcur Hwr HcL HlogQ HcrevM HcmpM Hfr Hcb
-      with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb, HfzK, ⟨%cw, Hwc⟩, %hLR,
-        HXn, HYa, HYp, #HnlLb, HRr⟩
+      with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb, HfzK, ⟨%cw, Hwc⟩,
+        %HLc, HXn, HYa, HYp, #HnlLb, HRr⟩
+    obtain ⟨hLR, hc0r⟩ := HLc
     -- (track A, request 2) the writer's compaction revision's ghost, `s.mu`'s half and the old
     -- writer's, moved to the restored compaction revision; `s.mu`'s half goes into its resource
     imod mvcc.api.wcrPart_update γ.api _ _ (Qp.half_add_half 1) c0 cw r.crev $$ [HwcM Hwc]
@@ -897,8 +897,9 @@ theorem mvcc.store.Restore.wp_proof
   imod (mvcc.restore_takeover s γ ⟨b, ti0, GoInterface.ok fi, sstop⟩ L ([[], []] ++ R) (-1) (-1) Rr
       (by decide) hwq) $$
       Hlc2 Hwi HR Hfrst Hcur Hwr HcL HlogQ HcrevM HcmpM Hfr Hcb
-    with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb, HfzK, ⟨%cw, Hwc⟩, %hLR,
-      HXn, HYa, HYp, #HnlLb, HRr⟩
+    with ⟨⟨%v0, Hcr⟩, Hcm, Hrst, Hcur, HcurR, HcurW, HcrevM, Hheld, #Hhlb, HfzK, ⟨%cw, Hwc⟩,
+      %HLc, HXn, HYa, HYp, #HnlLb, HRr⟩
+  obtain ⟨hLR, -⟩ := HLc
   -- (track A, request 2) the writer's compaction revision's ghost, `s.mu`'s half and the old
   -- writer's, at the fresh store's `-1`
   imod mvcc.api.wcrPart_update γ.api _ _ (Qp.half_add_half 1) (-1) cw (-1) $$ [HwcM Hwc]

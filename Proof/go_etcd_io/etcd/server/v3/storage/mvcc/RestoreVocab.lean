@@ -245,7 +245,8 @@ placeholders of the takeover's, the switch's and the finish's slots): fired by `
 takeover, from `s.revMu`'s slot and the writer's part of the API's view at the committed log `L`
 (at whatever compaction revisions they hold) to both at the restored log `L'` and compaction
 revision `c'`, the notified log's lower bound at `L'` minted, with the caller's `R`; and the
-committed log is a prefix of `L'` (the client's: its state's history extends to the restored one).
+committed log is a prefix of `L'`, the compaction revision at most `c'` (the client's: its state's
+history extends to the restored one, its compaction revision is not lowered).
 The API's `Restore` makes it from the client's atomic update (the view's and the compaction
 authority's other parts, the notified log's authority), at the update's mask (`⊤ \ ↑mvccN`: the
 takeover holds the writer's invariant, `writerN`, inside it, open). -/
@@ -253,7 +254,7 @@ def mvcc.restoreCb (γ : mvcc.StoreNames) (L' : mvcc.Log) (c' : Int) (R : IProp 
   iprop(∀ (L : mvcc.Log) (c cy : Int), (mvcc.slotX γ 1 L c ∗
       mvcc.api.absPart γ.api (1 : Qp).half.half L cy ∗
       mvcc.api.pndPart γ.api (mvcc.pndW γ) none -∗ |={⊤ \ ↑(nroot .@ "mvcc")}=>
-    ⌜L <+: L'⌝ ∗ mvcc.slotX γ 1 L' c' ∗ mvcc.api.absPart γ.api (1 : Qp).half.half L' c' ∗
+    ⌜L <+: L' ∧ c ≤ c'⌝ ∗ mvcc.slotX γ 1 L' c' ∗ mvcc.api.absPart γ.api (1 : Qp).half.half L' c' ∗
       mvcc.api.pndPart γ.api (mvcc.pndW γ) none ∗ mvcc.api.nlLb γ.api L' ∗ R))
 
 /-- **The resumed compaction's context** (`KV.Restore.contract`'s, 2026-11-06; in place of

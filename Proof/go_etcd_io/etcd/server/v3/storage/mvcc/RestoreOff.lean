@@ -91,7 +91,7 @@ theorem mvcc.watchableStore.Restore.specOff_of_spec
   have hoffγ : ¬ mvcc.kbCmpM γ.st.kb := by rw [hγd]; exact hoffd
   have hc : (-1 : Int) ≤ mvcc.CmpRecs.empty.crev := by rw [mvcc.CmpRecs.crev_empty]; exact Int.le_refl _
   iapply (h s st γ b' d' γb' P' R (-1) mvcc.CmpRecs.empty Ls Rr none DFrac.discard iprop(True)
-      iprop(True) iprop(True) iprop(True) iprop(True) hR hc) $$
+      iprop(True) iprop(True) iprop(True) iprop(True) hR) $$
     [Hcl Hwf Hwo Hbk Hkc Hv Hnc Hrr Hrts HLo Hfr Hcb]
   · rw [mvcc.CmpRecs.crev_empty]
     iframe Hpkg Hws Hwf Hwo Hok Hrr Hrts HLo Hfr Hcb
