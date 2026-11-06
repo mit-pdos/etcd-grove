@@ -21,7 +21,6 @@ public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBranch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.MergedImageOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
 
 @[expose] public section
 
@@ -476,8 +475,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
 
 set_option maxRecDepth 100000 in
 /-- **`applyAll.spec`** (the auth component's stage 2, 2026-11-04: in both auth modes): the batch
-(`wp_proofBatch`) and the snapshot payload in the server's mode (`wp_proofSnapM`, from the off
-case `wp_proofSnap`). -/
+(`wp_proofBatch`) and the snapshot payload in the server's mode (`wp_proofSnapM`; until R2d'a's swap
+batch 2, 2026-11-06, from the off case `wp_proofSnap`). -/
 theorem EtcdServer.applyAll.wp_proof
     (hASnap : EtcdServer.applySnapshot.spec (GF := GF) (hG := hG))
     (hAE : EtcdServer.applyEntries.spec (GF := GF) (hG := hG))
@@ -503,10 +502,7 @@ theorem EtcdServer.applyAll.wp_proof
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   ⟨EtcdServer.applyAll.wp_proofBatch hASnap hAE hBk hLg hV hSINC hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave
       hPut hUR hID hName hSafe,
-    EtcdServer.applyAll.wp_proofSnapM
-      (EtcdServer.applyAll.wp_proofSnap hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC
-        hSnap hOn hSave hPut hUR hID hName hSafe)
-      hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName
+    EtcdServer.applyAll.wp_proofSnapM hASnap.2 hAE.2 hBk hLg hV hSINC.2 hGT hGS hGM hGI hCM hSMS hC hSnap hOn hSave hPut hUR hID hName
       hSafe⟩
 
 end proof

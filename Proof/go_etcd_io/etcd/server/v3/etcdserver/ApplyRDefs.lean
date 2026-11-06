@@ -297,6 +297,39 @@ theorem srvApRes_ccRep (s : Loc) (γr : ReadNames) (A : List EntryModel) (cm : C
   iframe H1 H2 H3 H4 H5 H6 H8 Hmr Hd
   ipureintro; exact ⟨H7, Hp⟩
 
+/-- **The replay arm opened** (`srvRest_open`'s form at an image `r`). -/
+theorem srvRestRp_open (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    srvRestRp E γr A r ⊢ ∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq (appliedTable γr A) f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) r) ∗
+      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTable γr A) ∗ srvEver E A := by
+  iintro H
+  ihave ⟨H, HU⟩ := (srvRestRp_eq_at E γr A r).1 $$ H
+  ihave ⟨%f, %Hf, H1, H2, H3, H4⟩ := (srvRestAt_open E _ _).1 $$ H
+  iexists f
+  iframe H1 H2 H3 H4 HU
+  ipureintro; exact Hf
+
+/-- In a cluster that grants none, the image's `E.RO`. -/
+theorem srvRestRp_false (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM)
+    (h : E.lg = false) : srvRestRp E γr A r = E.RO r := by
+  unfold srvRestRp; rw [h]; rfl
+
+/-- `srvRest_close` at an image `r` (`srvRestRp`). -/
+theorem srvRestRp_close (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (r : apply.RestM) :
+    (∃ f : w64 → w64, ⌜E.lg = true → leaseTTLsGeReq (appliedTable γr A) f⌝ ∗
+      E.RO (apply.restLeasesWith f (srvIds E (appliedTable γr A).ids) r) ∗
+      apply.ltHalf E (srvIds E (appliedTable γr A).ids) ∗ srvGrantIf E ∗
+      srvReqsIf E (appliedTable γr A) ∗ srvEver E A) ⊢
+      srvRestRp E γr A r := by
+  iintro ⟨%f, %Hf, H1, H2, H3, H4, HU⟩
+  iapply (srvRestRp_eq_at E γr A r).2
+  iframe HU
+  iapply (srvRestAt_open E _ _).2
+  iexists f
+  iframe H1 H2 H3 H4
+  ipureintro; exact Hf
+
 end laws
 
 end EtcdGrove

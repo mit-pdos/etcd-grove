@@ -7,9 +7,9 @@ counterpart).
 loop resources in restart form (`applyResR` at the restart point `⟨0, A₀⟩`, from `applyResR_start`),
 the batch jobs over `applyAll.specBatchR` (`run_job_bodyR`, with `Hwpend`'s window token borrowed by
 `winNoMergedSendR`), the stop inside the window over `StopR.lean`'s pieces and past it the frozen path.
-The snapshot jobs over `applyAll.specSnapMR` (`run_job_snapCR`, `RunSnapR.lean`), inside the window
+The snapshot jobs over `applyAll.specSnapM` (`run_job_snapCR`, `RunSnapR.lean`), inside the window
 or past it; inside it the snapshot above the backend's log (`|A₀| < |A'|`, A8's `rnWinInstallAbove`,
-recorded at the `Ready`'s receive and carried by `rnApSnap`, `rnApplyTok_recvR`). Sorry-free.
+recorded at the `Ready`'s receive and carried by `rnApSnap`, `rnApplyTok_recv`). Sorry-free.
 * `isServerRunCR`: `isServerRunC` with `%HEr`, `Hsnap` and `Hstart` replaced by `srvRunRestartR`
   (A9's texts; the hub edit waits for the go, Q20);
 * `run.specR`: `run.spec` over `isServerRunCR`;
@@ -177,7 +177,7 @@ theorem EtcdServer.run.wp_proofR
     (hCl : stopCleanupImage.spec (GF := GF) (hG := hG))
     (hClR : stopCleanupImageR.spec (GF := GF) (hG := hG))
     (hAB : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG))
-    (hAS : EtcdServer.applyAll.specSnapMR (GF := GF) (hG := hG))
+    (hAS : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
     (hGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (hGT : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
@@ -570,10 +570,10 @@ theorem EtcdServer.run.wp_proofR
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    icases rnApplyTok_recvR Er γn rcv A apv $$ Hcons Hidx HP with
+    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
       (⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl, #Hrtok⟩ | Hsnp)
     rotate_left
-    · -- (R2d'a task 4, DRAFT) the snapshot arm: `run_job_snapCR` over `applyAll.specSnapMR`, inside
+    · -- (R2d'a task 4, DRAFT) the snapshot arm: `run_job_snapCR` over `applyAll.specSnapM`, inside
       -- the window or past it, `Hwpend`'s token framed; scheduled as the frozen arm's
       icases Hsnp with ⟨%A', %sv, Happly, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hnc, #Hrac, #Hcl,
         #Hrtok⟩

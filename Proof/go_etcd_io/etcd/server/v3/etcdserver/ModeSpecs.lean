@@ -825,10 +825,12 @@ theorem EtcdServer.applyAll.specSnap_of_M
     rt n hai hi61 hboot hAL hcia hraft hc0 hch hlog0 hγn _hpre hnI
   cases hon : E.authOn with
   | false =>
+    -- (R2d'a swap batch 2) at the first point: the ghost index Go's, the rest at the model
     have H := h s γ ci TM E ρ γr b ep ap es sn sv rac nc st ai at0 a t cs x A mst γs γp γnc w nid nk
-      q γn rt n srvAuthSt0 (by rw [authMode_off_of E hon]; simp) hai hi61 hboot hAL hcia hraft hc0
-      (by rw [hon]; exact hch) hlog0 hγn hnI
-    rw [hon] at H
+      q γn rt n srvAuthSt0 ai (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
+      (by rw [authMode_off_of E hon]; simp) (Int.le_refl _) hai hi61 hboot hAL hcia (fun _ => rfl) hraft
+      hc0 (by rw [hon]; exact hch) hlog0 hγn hnI
+    rw [hon, srvRestRp_model] at H
     exact H
   | true =>
     -- lean's rows are the mode `off`'s: its precondition refutes `authOn`

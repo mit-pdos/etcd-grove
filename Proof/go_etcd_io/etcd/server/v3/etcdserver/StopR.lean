@@ -19,7 +19,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopShutdown
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunR
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplySnapshotR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 
 @[expose] public section
 

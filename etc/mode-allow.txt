@@ -93,7 +93,6 @@ lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenti
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AdminOn\.lean::  # 3
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AppliedOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnap\.lean::  # 1
-lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyAllSnapOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ApplyNormalOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthnOn\.lean::  # 2
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Authenticate\.lean::  # 1

@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreImageOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 
 @[expose] public section
 
@@ -71,7 +72,13 @@ the state after the image's log `A'`), `Recover`'s facts (`snapAuthResM`: off,
 
 With auth on, `srvApplyKVOn`'s auth part `authApplyResB (.on γa)` holds the fuel at a base, the
 token's lifecycle and the hook clause (`authInstallPre`), which `Recover`'s glue needs and gives
-back (P6.2; the plan note's findings 1 and 2). -/
+back (P6.2; the plan note's findings 1 and 2).
+
+(R2d'a swap batch 2, 2026-11-06, the restart form; review F1, the swap the user approved) The rest
+buckets are at any image `r0` of `A`'s table (`srvRestRp E γr A r0`): inside a restart window the
+apply thread's rest buckets are at the replay's image (`srvRestR`'s arm, `restReplay`), not the
+model of the ghost log. `applySnapshot` reads the old image only through `E.RO` and drops it. At
+`r0` the model of `A` this is the statement before the swap (`srvRestRp_model`, a first start's). -/
 abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
   ∀
     (s ep ap sn : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
@@ -86,6 +93,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
+    -- (R2d'a swap batch 2, 2026-11-06) the rest buckets' image `r0`: any, at `A`'s table
+    -- (`srvRestRp`; until then the model of `A`, `srvRest E γr A`, its instance `srvRestRp_model`)
+    (r0 : apply.RestM)
     (hRO : E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be))
     (hwq : E.γ.watchQ = true)
     (R : mvcc.Log) (hpre : x.log <+: [[], []] ++ R) (hRok : mvcc.restoreLogOk R)
@@ -152,7 +162,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        storage.isBackendHooks hk
          ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
        applyThread γ st ∗ applyBackend γ ci b ∗
-       srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRest E γr A ∗
+       srvApplyKVM E.authOn s E ρ.wait x (srvAuthAtLog γr.kv srvAuthSt0 A) ∗ srvRestRp E γr A r0 ∗
        -- (S2–S4, review r1 F1) in either auth mode, the image's log committed (until then the `on`
        -- arm's alone, `snapAuthResM`)
        srvRLogLb γr.raft A' ∗

@@ -4,7 +4,7 @@ frozen, and no closed theorem imports this file; `notes/restart-plan.md`, "R2d'a
 Lean-first (no Rocq counterpart).
 
 `run_job_snapCR` is the frozen `run_job_snapC` (`EtcdServer__run.lean`: `run_job_snap` off,
-`run_snap_jobOn` on) over `applyResR` and `applyAll.specSnapMR`, in one proof over the component `K`
+`run_snap_jobOn` on) over `applyResR` and `applyAll.specSnapM`, in one proof over the component `K`
 (the rows through `isServerM_C`/`srvApplyKVM_C`/`kvRunM_split`, the token rights `acTok_mono`). It
 covers a snapshot inside the window (the ghost log `A₀`, the ghost index `g`, the rest at the
 replay's image) and past it (the ghost log Go's, the rest at the model): the rest buckets at an image
@@ -16,7 +16,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunR
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllR
 
 @[expose] public section
 
@@ -92,10 +92,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxHeartbeats 1000000 in
 /-- **`run`'s snapshot-payload job in restart form** (R2d'a task 4, DRAFT): `run_job_snapC` over
-`applyResR` and `applyAll.specSnapMR`, inside the window or past it; Go's handed log committed
+`applyResR` and `applyAll.specSnapM`, inside the window or past it; Go's handed log committed
 (`srvRLogLb … A`, the loop's) places it against the backend's log, and the snapshot is above the
 ghost log (`hwin`). After, Go is past the window (`applyResR … A'`). -/
-theorem run_job_snapCR (hAA : EtcdServer.applyAll.specSnapMR (GF := GF) (hG := hG))
+theorem run_job_snapCR (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (rp : RestartPt) (A A' : List EntryModel) (apL : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (γs : schedule.SchedNames) (γnc : NotifyNames)
     (γn : RNNames) (rt : w64) (K : AuthC) (hM : C.E.authMode = K.mode)

@@ -98,7 +98,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
 
 @[expose] public section
 
@@ -1868,9 +1868,11 @@ outcome the model's admin step, the row back at the history after it. -/
 theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
   apply_admin_entry_on apply_apply_admin_latest
 
-/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3,
-`ApplyAllSnapOn.lean`): off, the linked `applyAll`'s snapshot case; on, over the install in the
-mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage 2, 2026-11-04) The linked `applyAll`'s snapshot half. -/
+/-- **`applyAll` on a snapshot payload in the server's auth mode** (P6.3, `ApplyAllSnap.lean`):
+over the install in the mode (the linked `applySnapshot`'s `specSnapM`). (The auth component's stage
+2, 2026-11-04) The linked `applyAll`'s snapshot half. (R2d'a swap batch 2, 2026-11-06) In restart
+form: Go's applied index at most the ghost one, the rest buckets at an image with the model's ids;
+at a first start (the ghost index Go's, the image the model) the statement before the swap. -/
 theorem server_apply_all_snap_m [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll.2

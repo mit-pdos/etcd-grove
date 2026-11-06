@@ -597,9 +597,11 @@ theorem run_snap_jobOn (hAA : EtcdServer.applyAll.specSnapM (GF := GF) (hG := hG
   · rw [← hγw]; iexact HKV
   have hS := hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es sn sv rac nc st ai at' a t cs x A
     C.ms C.γs C.wt γnc w γn.id γn.key (1 : Qp).half γn rt (rnLogOf γn A').length sa
-    (by rw [hMB]; simp) hai h61 (by rw [← hγn]; exact hboot) hAL hcia hraft
+    -- (R2d'a swap batch 2) at the first point: the ghost index Go's, the rest at the model
+    ai (restModel C.γr.kv.c0 C.γr.raft.raft.boot (C.γr.raft.pre ++ A))
+    (by rw [hMB]; simp) (Int.le_refl _) hai h61 (by rw [← hγn]; exact hboot) hAL hcia (fun _ => rfl) hraft
     (by rw [Hkc.1, hc00]) (by rw [hBon]; exact hch) Hlog0 hγn hn
-  rw [hBon] at hS
+  rw [hBon, srvRestRp_model] at hS
   simp only [srvApplyKVM_true, kvAppliedM_true] at hS
   iapply hS
     $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS HAR Hwal Hso Hsnv Hnr0]
@@ -1108,7 +1110,7 @@ theorem EtcdServer.run.wp_proofG
       -- `specSnapM` (`run_snap_jobOn`), scheduled as a batch's
       icases Hsnp with ⟨%A', %sv, Happly, %Hlen, #Hes, #Hsn, #Hcert, #Hloc, #HC, Hnc, #Hrac, #Hcl,
         #Hrtok⟩
-      obtain ⟨hlt, hlenA, h61, hboot⟩ := Hlen
+      obtain ⟨hlt, hlenA, h61, hboot, -⟩ := Hlen
       icases Hnc with ⟨%γnc, #Hncb, Hnrc⟩
       have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]
       have hρC : ρ.raft = γr.raft := by rw [hρ, HEγr]

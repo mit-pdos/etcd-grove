@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NotifyC2
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthCompRows
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 
 @[expose] public section
 
@@ -233,21 +234,39 @@ state. Read under `srvSnapRO`'s image certificate in the mode (review round 1's 
 `srvSnapOwn`'s `srvSnapRO` holds `snapDirInv … (srvImage γr.raft.raft)`, the mode-off certificate,
 false of an auth-on cluster's images; in the merge `srvImageM` at the cluster's mode, `srvImageOn` in the
 mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), and under
-`authApplyResB`'s redefinition as `specSnapM` is. -/
+`authApplyResB`'s redefinition as `specSnapM` is.
+
+(R2d'a swap batch 2, 2026-11-06, the restart form; review F1, the swap the user approved) The
+applied index split, as inside a restart window: Go's `ai` (`ep.appliedi`, `srvSnapState`,
+`srvSnapOwn`) at most the ghost index `g` (`srvAppliedOwn`, `appliedLogAt`, the ghost log `A` with
+`uint.Z g = |A|`), the snapshot strictly above `g` (A8's `rnWinInstallAbove`), the consistent index
+at most `g`, and the rest buckets at an image `r0` whose members have the model's ids (`srvRestRp`;
+inside the window the replay's, `restReplay_memKeys`). The post is unchanged: past the snapshot
+every index is its. At `g = ai`, `r0` the model of `A` (`hids` by `rfl`, `srvRestRp_model`) it is
+the statement before the swap (a first start's; `applyAll.specSnap_of_M`, `run_snap_jobOn`). -/
 abbrev EtcdServer.applyAll.specSnapM : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice) (sn : Loc)
     (sv : SnapshotM) (rac nc : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
     (x : apply.ApplyKV) (A : List EntryModel) (mst : Loc) (γs : MemStorNames) (γp : WTNames)
     (γnc : NotifyNames) (w : Nat) (nid : w64) (nk : GName) (q : Qp) (γn : RNNames) (rt : w64) (n : Nat)
-    (sa : auth.AuthState),
+    (sa : auth.AuthState)
+    -- (R2d'a task 4; the swap, 2026-11-06) the ghost applied index `g` (Go's `ai` at most it) and the rest
+    -- buckets' image `r0`
+    (g : w64) (r0 : apply.RestM),
   -- (F9) a mode the server runs in (the convention: `EtcdServer__apply.lean:44`)
   E.authMode ≠ .any →
   -- the snapshot past the applied index, below `2^61`, at least the boot log
-  uint.Z ai < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 →
+  -- (R2d'a task 4) Go's applied index at most the ghost one, the snapshot strictly above the ghost
+  -- one (A8's `rnWinInstallAbove`)
+  uint.Z ai ≤ uint.Z g → uint.Z g < uint.Z sv.Metadata'.Index' →
+  uint.Z sv.Metadata'.Index' < 2 ^ 61 →
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
   -- the applied log `A` through `ai`, the consistent index at most the applied one
-  uint.Z ai = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z ai →
+  uint.Z g = A.length → uint.Z (ciEff γ st.k) ≤ uint.Z g →
+  -- (R2d'a task 4) the image's members have the model's ids (`restReplay_memKeys`)
+  (∀ k, (r0.mem !! k).isSome =
+    ((restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem !! k).isSome) →
   -- a fresh cluster's start (`snapRecv_image`'s), in either compaction mode (review R1's F7: a
   -- mode-on committed log has no compaction, `plainLogOn`, so its records are at `-1` in both)
   γr.raft = ⟨γr.raft.raft, [], W64 0⟩ → γr.kv.c0 = W64 0 →
@@ -276,8 +295,8 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
-      srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRest E γr A ∗
+      srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗ appliedLogAt γr g x.log ∗
+      srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestRp E γr A r0 ∗
       srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
       rnWalTokA γn (srvRAddr s) q ∗
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
