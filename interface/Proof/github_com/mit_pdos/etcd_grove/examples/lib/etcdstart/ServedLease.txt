@@ -26,6 +26,11 @@ theorem etcdstart.kv_lease_served_false [HasExt idIssueExt] [v3rpc_sem :
     etcdstart.grpcUp s E ρ γr gs lis addr cid mid R ⊢ |={⊤}=> grpcServeTok gs lis ∗
     etcdstart.etcdKVAt addr E ρ γr cid mid ∗ client.etcdLeaseReadAt addr
 
+theorem etcdstart.etcdLeaseServedAt_mono [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (s : Loc) (E :
+    apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : etcdstart.etcdLeaseServedAt
+    lease.Mode.mono addr s E ρ γr cid mid = etcdstart.etcdLeaseGrantAt addr E
+
 theorem etcdstart.etcdLeaseGrantAt.congr_simp [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr addr✝ : GoString) (e_addr :
     addr = addr✝) (E E✝ : apply.AEnv GF) (e_E : E = E✝) : etcdstart.etcdLeaseGrantAt addr E =
@@ -34,6 +39,23 @@ theorem etcdstart.etcdLeaseGrantAt.congr_simp [v3rpc_sem :
 theorem etcdstart.etcdLeaseGrantLiveAt_persistent [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (s : Loc) (E :
     apply.AEnv GF) : Persistent (etcdstart.etcdLeaseGrantLiveAt addr s E)
+
+theorem etcdstart.kv_lease_served_watch [HasExt idIssueExt] [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [cache_sem :
+    go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
+    ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
+    (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1) (Hrf : grpcRepliesFit) (hP :
+    leasePeersOk) (hρ : ρ.rd = γr) (m : lease.Mode) (hm : ρ.rd.kv.lm = m) (hset : go.typeSetContains
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty.PointerType
+    go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true) : isPkgInit
+    pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ isPkgInit
+    pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerReq s E ρ ∗ isServerRead s E γr ∗
+    etcdstart.srvLeaseRd s E m ∗ threadTok ∗ etcdstart.kvServeStocks s E γr ∗ etcdstart.grpcUp s E ρ
+    γr gs lis addr cid mid R ⊢ |={⊤}=> grpcServeTok gs lis ∗ srvGoRes s ∗ client.etcdLeaseReadAt
+    addr ∗ etcdstart.etcdLeaseServedAt m addr s E ρ γr cid mid ∗ (∃ pw, v3rpc.isWatchServer pw R) ∗
+    ⌜R.s = s ∧ R.E = E⌝ ∗ (isGrpcStreamMd addr go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R) fun
+    md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗ ⌜noRefusalAt
+    addr⌝
 
 def etcdstart.etcdLeaseGrantAt [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (E : apply.AEnv
@@ -44,6 +66,16 @@ def etcdstart.etcdLeaseGrantAt [v3rpc_sem :
       isGrpcRpc addr
         go!"/etcdserverpb.Lease/LeaseLeases"
         (etcdLeaseLeasesSpec E.γ.leases))
+
+theorem etcdstart.etcdLeaseServedAt_persistent [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (m : lease.Mode) (addr : GoString)
+    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : Persistent
+    (etcdstart.etcdLeaseServedAt m addr s E ρ γr cid mid)
+
+theorem etcdstart.etcdLeaseServedAt_none [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (s : Loc) (E :
+    apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : etcdstart.etcdLeaseServedAt
+    lease.Mode.none addr s E ρ γr cid mid = etcdstart.etcdKVAt addr E ρ γr cid mid
 
 theorem etcdstart.etcdLeaseGrantLiveAt.congr_simp [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr addr✝ : GoString) (e_addr :
@@ -75,6 +107,12 @@ theorem etcdstart.etcdKVAt.congr_simp [v3rpc_sem :
     addr = addr✝) (E E✝ : apply.AEnv GF) (e_E : E = E✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ = ρ✝) (γr γr✝ :
     ReadNames) (e_γr : γr = γr✝) (cid cid✝ : w64) (e_cid : cid = cid✝) (mid mid✝ : w64) (e_mid : mid
     = mid✝) : etcdstart.etcdKVAt addr E ρ γr cid mid = etcdstart.etcdKVAt addr✝ E✝ ρ✝ γr✝ cid✝ mid✝
+
+theorem etcdstart.etcdLeaseGrantAt_elim [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (E : apply.AEnv
+    GF) : etcdstart.etcdLeaseGrantAt addr E ⊢ isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
+    (etcdLeaseGrantSpec E.γ.leases) ∗ isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases"
+    (etcdLeaseLeasesSpec E.γ.leases)
 
 def etcdstart.etcdLeaseGrantLiveAt [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (s : Loc) (E :

@@ -11,8 +11,15 @@ keepalive policy: `v3rpc.Server(s, nil, nil, opt)` (its configuration from the s
 `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client address)
 with the members' axiom `etcd_noRefusal` before it (D29: the address refusal-free), (W2 of
 `notes/watch-cut-plan.md`) the `Watch` stream served there with one run slot
-(`etcd_watch_served_chain`, watchkv's), `go gs.Serve(l)`. Every step's error returns it, with the
-thread token.
+(`etcd_watch_served_chain`, watchkv's), `go holdToken()` (`wp_fork_tok_self`: the goroutine never
+returns, its token stays with `StartMember`), `go gs.Serve(l)`. Every step's error returns it, with
+the thread token.
+
+(lease-mono3's pass 2(a), 2026-11-06, `notes/lease-mono3-plan.md`) In a mode that grants leases
+the ghost step is `etcdstart.kv_lease_served_watch` instead (the lease reads, the mode's grant and
+listing, the `Watch` stream and the address refusal-free, over `v3rpc.Server`'s and `Listen`'s
+results packed as `etcdstart.grpcUp`, as `etcdstart.Serve` packs them), with `holdToken`'s token in
+the gRPC server's one slot; in the mode `none` that token is dropped.
 -/
 module
 
@@ -27,6 +34,7 @@ public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.holdToken
 
 @[expose] public section
 
@@ -53,6 +61,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
+/-- `servedRegs` in a mode that grants leases, from `kv_lease_served_watch`'s registrations (at the
+request names with the wait registry's `w`, which the mode's registrations do not read). -/
+private theorem servedRegs_of_lease (m : lease.Mode) (hm : m ≠ .none) (c : GoString) (s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (cid mid : w64) :
+    EtcdGrove.client.etcdLeaseReadAt c ∗
+        etcdstart.etcdLeaseServedAt m c s E { ρ with wait := w } ρ.rd cid mid ⊢
+      servedRegs m c s E ρ cid mid := by
+  cases m with
+  | none => exact absurd rfl hm
+  | mono => exact .rfl
+  | revocable => exact .rfl
+
 set_option maxHeartbeats 1000000 in
 theorem StartMember.wp_proof
     (wp_NewMember : etcdstart.NewMember.spec (GF := GF) (hG := hG))
@@ -60,12 +80,20 @@ theorem StartMember.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
-    (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
+    (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG))
+    (wp_holdToken : holdToken.spec (GF := GF) (hG := hG)) :
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
     Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
+    HlP
   wp_start as ⟨Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  -- (lease-mono3) the KV names' lease mode, out of the boot bundle (`kv_lease_served_watch`'s)
+  iunfold memberBoot at Hmb
+  icases Hmb with ⟨%Hp, Hmb⟩
+  have hm : ρ.rd.kv.lm = lm := lease.runCfg_lm Hp.2.2.2.2.2.2.2.2.2
+  ihave Hmb : memberBoot γ ctxs ρ E₀ Φs id cmp lm $$ [Hmb]
+  · iunfold memberBoot; iframe; ipureintro; exact Hp
   -- the client address's listen right, out of the fresh bundle (to the client listener); the rest
   -- to `NewMember`
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfresh with ⟨Hcaddr, Hfresh⟩
@@ -133,7 +161,7 @@ theorem StartMember.wp_proof
   (try wp_auto)
   iunfold memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, -⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, Hctl, HWR, #HLR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
@@ -157,15 +185,76 @@ theorem StartMember.wp_proof
   wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo]
     as %gs ⟨%q, %p, %pw, %pa, %ql, %pl, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid,
       %lcid, %lmid, %R,
-      Hgsn, %Hregs, -, -, -, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2⟩
+      Hgsn, %Hregs, -, #Hql, #Hlat, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4,
+      Hbemu2, Hgo2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
     ipureintro; intro v hv
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
     subst hv; exact Hkv
-  -- the ghost step between `Listen` and `go gs.Serve(l)`: etcd's KV specs at the address
   haveI := Hms
+  -- `go holdToken()`: the forked goroutine never returns; its token stays with `StartMember`
+  ihave #Plk : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply wp_fork_tok_self as Htok2
+  · wp_apply wp_holdToken as Hf
+    iexfalso; iexact Hf
+  rcases (show lm = .none ∨ lm ≠ .none by cases lm <;> simp) with hlm | hlm
+  rotate_left
+  · -- (lease-mono3) a mode that grants leases: `Server`'s and `Listen`'s results as `grpcUp` (as
+    -- `etcdstart.Serve` packs them), then the lease reads, the mode's registrations, the `Watch`
+    -- stream and the address refusal-free (`kv_lease_served_watch`), `holdToken`'s token in the
+    -- gRPC server's one slot
+    obtain ⟨hRs, hRE, hRw, hRγ⟩ := HR
+    ihave #Hlu : etcdstart.grpcLeaseUp srv C.A regs $$ []
+    · iunfold etcdstart.grpcLeaseUp
+      iexists ql, pl, lcid, lmid
+      iframe #
+      ipureintro; exact Hregs.2.2.2.1
+    ihave Hup : etcdstart.grpcUp srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
+        $$ [Hgsn Hlg4 Hbemu2 Hgo2 HWRs Hclis]
+    · iunfold etcdstart.grpcUp
+      iexists C, q, p, pw, il, im, iu, ims, is, svcs, regs, sregs
+      iframe; iframe #
+      ipureintro
+      exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
+    imod (etcdstart.kv_lease_served_watch srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
+        Hrb48 (by omega) Hrf (HlP hlm) rfl lm hm Hms.watch_impl)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms Htok2 Hup]
+      with ⟨Hserv, Hgo, #Hlr, Hls, ⟨%pw', #Hws'⟩, %HR', #Hstr, %Hnr⟩
+    · unfold etcdstart.kvServeStocks
+      iframe; iframe #
+    -- `go gs.Serve(l)`
+    wp_apply wp_fork $$ [Hserv]
+    · wp_apply (wp_GServe gs clis) $$ [$Hserv] as %serr -
+      ipureintro; exact isPanic_intoVal serr
+    (try wp_auto)
+    iapply HΦ
+    iright
+    isplitr; · ipureintro; rfl
+    iunfold memberServed
+    iexists E, γw, cid, mid
+    isplitl []; · ipureintro; exact ⟨HEa, HEo⟩
+    isplitl []; · iexact Hreq
+    isplitl []; · iexact Hrd
+    isplitl [Hgo]; · iexact Hgo
+    isplitl [Hctl]; · iexact Hctl
+    isplitl [Hls]
+    · iapply (servedRegs_of_lease lm hlm client srv E ρ γw cid mid)
+      isplitl []; · iexact Hlr
+      iexact Hls
+    isplitl []
+    · iexists pw', R
+      iframe #
+      ipureintro; exact HR'
+    ipureintro; exact Hnr
+  subst hlm
+  simp only [memberServed_none]
+  iclear Htok2
+  -- the ghost step between `Listen` and `go gs.Serve(l)`: etcd's KV specs at the address
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
   ihave Hslots := EtcdGrove.client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
@@ -218,7 +307,6 @@ theorem StartMember.wp_proof
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
-  iunfold memberServed
   iexists E, γw, cid, mid
   iframe Hgo2 HPut HRange HDel HTxn HCmp Hctl
   iframe #

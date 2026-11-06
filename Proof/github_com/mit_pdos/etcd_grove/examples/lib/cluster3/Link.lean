@@ -19,6 +19,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.PeerSte
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.holdToken
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.Listen
@@ -102,9 +103,13 @@ theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof
 
+theorem wp_holdToken :
+    EtcdGrove.cluster3.holdToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cluster3.holdToken.wp_proof
+
 theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.cluster3.StartMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
+  EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken
 
 theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.cluster3.StartCluster.spec (GF := GF) (hG := hG) :=

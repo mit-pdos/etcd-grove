@@ -239,10 +239,13 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3 id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc Hbf.urls
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
-      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁) none none)
+      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁) none none
+      .none lease.runCfg_none (by decide))
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
     Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd⟩
+  -- (lease-mono3) the cluster at the mode `none`: the client's `etcdKV`
+  isimp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at Hetcd
   -- (hub step 7) member 1's client address's listen right, out of its fresh bundle (to `Serve`)
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₁ with ⟨Hac, Hfr₁⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog₁, -⟩ := Hal

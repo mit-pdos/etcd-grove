@@ -10,11 +10,21 @@ addresses (and to serve the peer addresses with HTTP), the thread token, the clu
 premises (`premises`) and the members' WAL directories fresh, `StartCluster(cfg, lg)`, at a logger
 `lg` (not null), returns the members, the bridges and `ok`: `false` (a step failed, nothing else
 promised), or `true` with the thread token and the cluster up (`clusterUp`: every member at its
-bridge with its KV and watch registrations and its place in the network, every bridge owned and not
-blackholed, and etcd's KV at the start store). The clients are the caller's (`NewClient`).
+bridge with its watch registration, its KV or lease registrations by the lease mode (below), and its
+place in the network, every bridge owned and not blackholed, and, in the mode `none`, etcd's KV at
+the start store). The clients are the caller's (`NewClient`).
 
 **The pure premises:** the configuration's (`cfgOk`), `bootstrap`'s results (`BootFacts`), and
 `StartMember`'s.
+
+**The lease mode** (lease-mono3, 2026-11-06, `notes/lease-mono3-plan.md`, Scope §1, §4 and Q4; hub
+step 7's E2): the members' lessors in the mode `lm`, under the lease subsystem's premise at it
+(`lease.runCfg lm lm`, `alloc1`'s and `alloc3`'s); `lm ≠ .revocable` is a scope premise of the
+Scope's step 1 (§7: in the revocable mode the grant ids are collected at one prefix, `kvPfx`, which
+is one member's; step 2 makes it the members' and removes the premise); the lease reads' deployment
+premise `leasePeersOk` only in a mode that grants leases, so that no closed theorem at the mode
+`none` gains a premise. The success is `clusterUp … lm`: in a mode that grants leases every member
+registers the lease specs in place of the KV ones, and there is no client `etcdKV`.
 -/
 module
 
@@ -43,13 +53,16 @@ abbrev StartCluster.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config)
     (N : Nat) (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (lg : Loc) (cmp : Bool),
+    (lg : Loc) (cmp : Bool) (lm : lease.Mode),
   cfgOk cfg → BootFacts id₁ id₂ id₃ ps ctxs boot → lg ≠ null →
   threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
+  -- (lease-mono3) the lease mode: the subsystem's premise at it, not revocable (a scope premise,
+  -- see the file header), and the lease reads' deployment premise in a mode that grants leases
+  lease.runCfg (GF := GF) lm lm → lm ≠ .revocable → (lm ≠ .none → leasePeersOk) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
       -- (2026-11-05, hub step 7's E2, D1) the cluster's start bundle: each member's (its WAL
       -- directory fresh, its peer and client addresses free, the peer's HTTP protocol unregistered)
@@ -60,7 +73,7 @@ abbrev StartCluster.spec : Prop :=
       (Val #cfg)) (Val #lg))
   {{ (srvs brs : GoSlice) (ok : Bool), RET (PairV (PairV #srvs #brs) #ok);
       ⌜ok = false⌝ ∨
-      (⌜ok = true⌝ ∗ threadTok ∗ clusterUp cfg cmp id₁ id₂ id₃ (LogEntry.toEntries boot 0) srvs brs) }}
+      (⌜ok = true⌝ ∗ threadTok ∗ clusterUp cfg cmp id₁ id₂ id₃ (LogEntry.toEntries boot 0) srvs brs lm) }}
 
 end spec
 
