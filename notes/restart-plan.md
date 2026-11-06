@@ -2962,3 +2962,65 @@ together with A10's restart branch of `run.wp_proof`, and both land as one chang
 first-start supply goes through `rnSnapOnceR_first`/`srvRestartAtR_first` (`StartR.lean`) at
 `⟨0, []⟩`. The bound `ai₀ + |A₀| + 1 < 2^64` becomes a conjunct of the raft side's restart data in
 the same edit. Then A3 was unblocked (Q22 (1) (a), user-approved) and took priority.
+
+##### A3 (Q22 (1) (a), user-approved; 2026-11-06)
+
+- **Step 1: the frozen specs weakened** (DRAFT, for the Freeze package). In `dispatch.spec`
+  (`Spec/…/apply/uberApplier__dispatch.lean`) and `uberApplier.Apply.spec`
+  (`Spec/…/apply/uberApplier__Apply.lean`), with `L` = `log` and `x.log` respectively:
+  - old: `⌜apply.rqOk E.lm L rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb L rq⌝ ∗
+    apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
+    apply.grantFresh E rq U ∗`
+  - new: `⌜apply.rqOk E.lm L rq ∧ apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit
+    E.γ.kb L rq)⌝ ∗ □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ →
+    apply.grantPermRq E rq) ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ →
+    apply.grantFresh E rq U) ∗`
+
+  In `Apply.specRec` (`Proof/…/apply/ApplyRec.lean`):
+  - old: `… apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq ∧ apply.restReqOk rq rs⌝ ∗
+    apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
+    apply.grantFresh E rq U ∗`
+  - new: `… apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit E.γ.kb x.log rq) ∧
+    apply.restReqOk rq rs⌝ ∗ □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ →
+    apply.grantPermRq E rq) ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ →
+    apply.grantFresh E rq U) ∗`
+
+  The edit only weakens preconditions. Why the `□ (⌜v3 = true⌝ → …)` form: the three are
+  persistent, and the form keeps the callers' `#` patterns. `dispatch`'s proof takes them at
+  `v3 = true` (four lines in its `v3` branch); `Apply`'s and `spec_rec`'s pass them on unchanged.
+  `applyEntryNormal`'s four call sites gate what they had (`apply.v3Gate`, `ApplyRec.lean`). None of
+  the three is in a package with a committed interface (`etc/api/` has `raft`, `backend` and
+  `etcdstart` only), so `gen-interface --check` does not apply.
+- **Step 2: the replay proved.** In `ApplyEntryNormalR.lean`, `applyEntryNormal.wp_proofRepOff :
+  specRepOff` and `wp_proofRepOn : specRepOn`.
+  - **DRAFT fix to `specRepOff`**: `srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝`, which the caller has
+    (`kvBatchR`'s `HlbA0`, and `hpA` gives `m ∈ A₀`). The KV invariant's shape of a committed entry
+    (`kv_log_plain`) is what makes a skipped or rejected request leave the members, as
+    `restEntryV2` says.
+  - **`specRepOn` is new.** It has `specRepOff`'s rows in mode `on`: `isServerM true`,
+    `srvApplyKVOn` at a kept auth state, `⧗ 1`, the receipts' bound, and `x.chain = γr.kv.ch0`. An
+    admin request runs `adminEntryOn` at `v3 = false`, which needs the chain. The caller's
+    `kvAppliedM` gives it.
+  - **Two mode-specific specs, not one mode-generic `specRep`**: the replay's resources differ by
+    mode (the auth row and its state, the credit, the chain), and so do its callers, the off and
+    on loops (`apply.specROff`, the future `apply.specROn`), as lean's `applyEntryNormal.specOff`
+    and `specOn` do. A generic statement would only be unfolded again at each caller. Merging the
+    replay into the frozen `applyEntryNormal.spec` as its `v3 = false` case would not fit either:
+    that spec's `v3 = false` case is the first start's (ghost rows stepped, `srvRest` at `A ++ [m]`).
+- **Step 3, the on copies (`apply.specROn`, `applyEntries.specBatchROn`): not done.**
+  - The plan for `apply.specROn`: `git merge-file` of lean's `apply.wp_proofOff` → `wp_proofOn` diff
+    onto `ApplyR`'s `wp_proofROff` leaves 14 conflict hunks, all in the invariant's rows and the
+    `iexists` lists, each a mechanical union of the two sides.
+  - What a merge does not give:
+    - the replay branch in mode `on`: `hAENR` → `specRepOn`, which needs a `⧗ 1` (a second
+      `wp_go_step_receipt'` before the call, as the normal branch's) and the chain fact from `Hka`;
+    - `ApplyR`'s copies of the conf-change macros in their `On` forms (`cc_kv_appliedOn`,
+      `cc_respondOn`, local to `EtcdServer__apply.lean`).
+  - `applyEntries.specBatchROn` is then `ApplyEntriesR`'s 220 lines merged the same way. Est. 2-3 d
+    (unchanged). Until then `applyEntries.wp_proofBatchR` takes `specBatchROn` as its one hypothesis.
+- `#print axioms` (`applyAll.wp_proofBatchR`, `applyEntries.wp_proofBatchR(Off)`,
+  `apply.wp_proofROff`, `applyEntryNormal.wp_proofRep{Off,On}`, `applyConfChange.wp_proofRep`,
+  `rnCfgAtR_normal`, `rnCfgAtR_back_false`): no `sorryAx`, and nothing outside lean's
+  `applyAll.wp_proofBatch`'s, except `apply.wp_proofROff`'s three (`apply.memberKey_inj`,
+  `membership.membersOfBk_empty`, `membership.membersOf_decode`), which are in
+  `etc/tcb-baseline.txt`.
