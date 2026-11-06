@@ -196,6 +196,17 @@ theorem authHistTie_alloc (E : apply.AEnv GF) (γr : ReadNames) (stl : Loc) (Eu 
     iexact Ht
   | _ => iintro - -; imodintro; itrivial
 
+/-- (R2c-2) The compactor's disjunct, its pure part read without consuming it. -/
+private theorem newServer_cmp_peek {a b : Prop} {Q : IProp GF} :
+    iprop(⌜a⌝ ∨ ⌜b⌝ ∗ Q) ⊢ iprop(⌜a ∨ b⌝ ∗ (⌜a⌝ ∨ ⌜b⌝ ∗ Q)) := by
+  iintro (%h | ⟨%h, HQ⟩)
+  · isplitr
+    · ipureintro; exact Or.inl h
+    ileft; ipureintro; exact h
+  · isplitr
+    · ipureintro; exact Or.inr h
+    iright; iframe HQ; ipureintro; exact h
+
 /-- `a` and `b` copies of `P` are `a + b` (R-D1's readers, gathered for one retirement). -/
 private theorem rep_join (P : IProp GF) (a b : Nat) :
     ⊢ ([∗list] _x ∈ List.replicate a (), P) -∗ ([∗list] _x ∈ List.replicate b (), P) -∗
@@ -1913,14 +1924,17 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave Hkeep := replicate_mono _ (mvcc.storeReader kst γw.st) _
     (mvcc.watchReader_storeReader _ _ _) $$ Hwrds
   -- the compactor's reader: kept for the stop when there is no compactor, else the compactor's
+  -- (R2c-2) a compactor only in compaction mode
+  icases newServer_cmp_peek $$ Hcpt with ⟨%Hcpc, Hcpt⟩
   ihave ⟨HcpK, HwrC⟩ : iprop(((⌜cpv = GoInterface.nil⌝ ∗ mvcc.storeReader kst γw.st) ∨
-      ⌜cpv ≠ GoInterface.nil⌝) ∗ (⌜cpv = GoInterface.nil⌝ ∨ mvcc.storeReader kst γw.st)) $$ [HwrC]
+      ⌜cpv ≠ GoInterface.nil ∧ E₀.cmp = true⌝) ∗ (⌜cpv = GoInterface.nil⌝ ∨ mvcc.storeReader kst γw.st)) $$ [HwrC]
   · by_cases hc : cpv = GoInterface.nil
     · isplitl [HwrC]
       · ileft; iframe HwrC; ipureintro; exact hc
       · ileft; ipureintro; exact hc
     · isplitr
-      · iright; ipureintro; exact hc
+      · iright; ipureintro
+        exact ⟨hc, by rw [Hcmp0]; exact Hcpc.resolve_left hc⟩
       · iright; iexact HwrC
   ihave HStopK : srvStop.keep (GF := GF) s cfg
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe, E₀.cmp, ρ.rd.kv.cret, ρ.rd.kv.lm, γlt⟩ : apply.AEnv GF)

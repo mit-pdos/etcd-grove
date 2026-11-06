@@ -33,7 +33,7 @@ thread's view, `applyAll`'s, the raft wrapper (its node contract over the server
 fields, the ticks; the snapshot's contract once; the raft wrapper's loop, apply and done tokens
 at the empty log; the committed index's writer half; the right to close `done` (whose close
 announces `DQ`: `True` by default; R2b-2, 2026-11-02: the stopped server's image, escrowed,
-`srvDoneInv`, for `run.specStop`) and `stopping`; the stop requests' predicate `SP`
+`srvDoneInv`, for `run.spec`) and `stopping`; the stop requests' predicate `SP`
 (`srvRunFieldsAt`'s);
 the apply thread's resources at the start; `run`'s own logger slot; the write budget (D19b: the
 receipt-backed `srvWTPool`, until then `N` write tokens). -/

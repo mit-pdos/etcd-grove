@@ -2235,22 +2235,26 @@ theorem server_Start [go_etcd_io.etcd.cache.v3.Assumptions] : EtcdServer.Start.s
 premise, `start` returns the views `range_linearizable`, `txn_applied` and the v3rpc results take
 (`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
 the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
-on `isServerBuilt` alone (and each call's own resources). -/
+on `isServerBuilt` and the stop's slot (`srvStop.slot`, R2c-3) alone (and each call's own
+resources). The slot is what `NewServer` keeps for the stop (`NewServer.specG`'s post, the sealed
+`srvStop.keep`), at the raft environment `Er` whose transport stop right is that slot's
+(`srvEr`'s `ST`, `srvTrStopK γk`; `srvStop.slot_intro`). -/
 theorem start_gives_views [go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (Hrb : receiptBound GF ≤ N + 1) (Hai0 : ai₀ = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
+        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvStop.slot s E γn Er }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
     {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
         isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
           (idCred ρ.ids 1) ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvReadReader s γr }} := by
-  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hb, Hsk⟩ HΦ
   -- `start.spec` at the slot's `off`
-  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨%hm, Hb, Hl⟩
+  imod isServerBuilt_offC s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ [Hb Hsk] with ⟨%hm, Hb, Hl⟩
+  · iframe Hb Hsk
   have h' := server_start s γ ci TM .off E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
   simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false, kvStM_false] at h'
   iapply h' $$ [Hb Hl]

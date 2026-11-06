@@ -15,12 +15,12 @@ sealed body and these laws, not the hub's text. Until 2026-11-05 the pieces were
 
 **Laws.** `srvStop.keep_intro` (`NewServer`'s proof); `srvStop.keep_split` into the four
 consumers' parts (sealed too), each with one narrow elimination into what its consumer takes, all
-used by `run`'s deferred shutdown (`run.specStop`):
+used by `run`'s deferred shutdown (`run.spec`):
 * `srvStop.raft_stop`: with the live transport, the raft loop's stop claim and the raft
-  environment's `ST` (`srvTrStopK γk`), what `raftNode.stop.specStop` takes;
+  environment's `ST` (`srvTrStopK γk`), what `raftNode.stop.spec` takes;
 * `srvStop.cleanup_pieces`: the lessor's stop right and, with auth off, the auth store's closer,
   what `Cleanup.spec` takes besides the apply thread's;
-* `srvStop.census_readers`: with no compactor, the kept store readers;
+* `srvStop.census_readers`: out of compaction mode, no compactor and the kept store readers;
 * `srvStop.image_inputs`: at the data directory `dd`, the registry's authority and the WAL's
   directory, `<dd>/member/wal`.
 -/
@@ -56,11 +56,12 @@ store's `Close`. -/
     □ (⌜E.authOn = false⌝ → srvCleanupOwn s))
 
 /-- The census's part (sealed): the store readers `NewServer` hands to nobody (`srvKeepRdN`), and
-the compactor's when there is no compactor. -/
+the compactor's when there is no compactor; a compactor only in compaction mode (R2c-2: what makes
+the stop's "no compactor" follow from its scope, `srvStop.scope`). -/
 @[no_expose] def srvStop.censusPart (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(([∗list] _x ∈ List.replicate (srvKeepRdN E.γ) (), mvcc.storeReader E.s E.γ) ∗
     (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
-      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader E.s E.γ) ∨ ⌜cp ≠ GoInterface.nil⌝)))
+      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader E.s E.γ) ∨ ⌜cp ≠ GoInterface.nil ∧ E.cmp = true⌝)))
 
 /-- The image's part (sealed): the storage registry's authority, the configuration's data and WAL
 directories, read-only, and the raft wrapper's storage writing the WAL in the latter. -/
@@ -86,7 +87,8 @@ theorem srvStop.keep_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
       □ (⌜E.authOn = false⌝ → srvCleanupOwn s) ∗
       ([∗list] _x ∈ List.replicate (srvKeepRdN E.γ) (), mvcc.storeReader E.s E.γ) ∗
       (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
-        ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader E.s E.γ) ∨ ⌜cp ≠ GoInterface.nil⌝)) ∗
+        ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader E.s E.γ) ∨
+          ⌜cp ≠ GoInterface.nil ∧ E.cmp = true⌝)) ∗
       (letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
       srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
       srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' ∗
@@ -135,20 +137,25 @@ theorem srvStop.cleanup_pieces (s : Loc) (E : apply.AEnv GF) :
   iunfold authCloseOk at Hok
   iexact Hok
 
-/-- **The census's readers**: with no compactor, the store readers kept for the stop and the
-compactor's. -/
-theorem srvStop.census_readers (s : Loc) (E : apply.AEnv GF) :
-    srvStop.censusPart (GF := GF) s E ∗ srvCompactorAddr s ↦□ GoInterface.nil ⊢
-      [∗list] _x ∈ List.replicate (srvKeepRdN E.γ + 1) (), mvcc.storeReader E.s E.γ := by
+/-- **The census's readers**: out of compaction mode (the stop's scope), no compactor (the server's
+`compactor` field `cp` is nil), and the store readers kept for the stop and the compactor's.
+(R2c-2: until then the field's nil a premise.) -/
+theorem srvStop.census_readers (s : Loc) (E : apply.AEnv GF) (cp : GoInterface)
+    (hcmp : E.cmp = false) :
+    srvStop.censusPart (GF := GF) s E ∗ srvCompactorAddr s ↦□ cp ⊢
+      ⌜cp = GoInterface.nil⌝ ∗
+        [∗list] _x ∈ List.replicate (srvKeepRdN E.γ + 1) (), mvcc.storeReader E.s E.γ := by
   unfold srvStop.censusPart
-  iintro ⟨⟨Hrs, %cp, #Hcp, Hc⟩, #Hnil⟩
-  icombine Hcp Hnil gives %Heq
+  iintro ⟨⟨Hrs, %cp', #Hcp, Hc⟩, #Hcp2⟩
+  icombine Hcp Hcp2 gives %Heq
   subst Heq
-  icases Hc with (⟨-, Hr⟩ | %Hne)
-  · rw [List.replicate_succ]
+  icases Hc with (⟨%Hnil, Hr⟩ | %Hne)
+  · isplitr
+    · ipureintro; exact Hnil
+    rw [List.replicate_succ]
     iapply BigSepL.bigSepL_cons.2
     iframe Hrs Hr
-  · exact absurd rfl Hne
+  · exact absurd Hne.2 (by rw [hcmp]; decide)
 
 /-- **The image's inputs** at the data directory `dd` with no dedicated WAL directory
 (`srvDataDir`): the storage registry's authority, and the raft wrapper's storage writing the WAL in
@@ -172,20 +179,59 @@ theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   rw [Hw, Heq1, Heq2, he]
 
-/-- **What `run`'s shutdown needs besides `isServerRun`** (R2b-2's draft; restated 2026-11-04,
-R2b-3d, and 2026-11-05 over the stop's slot): what `NewServer` kept for the stop (`srvStop.keep`, at
-the configuration `cfg`, the apply environment `E`, the raft wrapper's names `γn` and the transport
-key's name `γk`), the data directory `dd` with no dedicated WAL directory (`srvDataDir`, which the
-image names: the scope), and (R2b-3d stage 5b) the store's readers of the serving stocks the server
-never used (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
-`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
-for the backend's `Close` (gap 4's census). The caller gives them back: the request path stopped
-first (in `restart3` the member never served). `NewServer` gives the slot; `start` hands it to
-`run`. -/
-def srvShutdownPre (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (E : apply.AEnv GF) (γn : RNNames) (γk : GName) (dd : GoString) : IProp GF :=
-  iprop(srvStop.keep s cfg E γn γk ∗ srvDataDir s dd ∗
-    ([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ))
+/-- **The stop's slot where `start` and `run` take it** (2026-11-05, the restart plan's R2c-3; the
+user's Q5 (a), adapted: `questions.md` D-d): what `NewServer` kept for the stop (`srvStop.keep`) at
+the raft wrapper's names `γrn`, at some configuration `cfg` and transport key `γk`, the key the one
+the raft environment's transport stop right `Er.ST` names (a fact of the construction, `srvErM`'s:
+D1, until then `run.specStop`'s premise). A conjunct of `start`'s construction premise
+(`isServerBuiltC`) and, R2c-4, of `run`'s (`isServerRunC`), so that no caller of `Start` hands it
+separately. -/
+def srvStop.slot (s : Loc) (E : apply.AEnv GF) (γrn : RNNames) (Er : RNEnv GF) : IProp GF :=
+  iprop(∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γk : GName),
+    srvStop.keep s cfg E γrn γk ∗ ⌜Er.ST = srvTrStopK γk⌝)
+
+/-- **The slot from what `NewServer` kept** (R2c review F4): its `srvStop.keep`, at the transport
+key the raft environment's stop right names. -/
+theorem srvStop.slot_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) (Er : RNEnv GF) (h : Er.ST = srvTrStopK γk) :
+    srvStop.keep s cfg E γrn γk ⊢ srvStop.slot (GF := GF) s E γrn Er := by
+  iintro H
+  iunfold srvStop.slot
+  iexists cfg, γk
+  iframe H
+  ipureintro; exact h
+
+/-- **The configuration's data directory field** (persistent; R2c-4): the slot's `DataDir`, which
+`start` records in the stop right (`srvStopRight`) so that the stop's image names it. -/
+theorem srvStop.dataDirField (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) :
+    srvStop.keep (GF := GF) s cfg E γrn γk ⊢
+      srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗ srvStop.keep s cfg E γrn γk := by
+  unfold srvStop.keep srvStop.imagePart
+  iintro ⟨Hr, Hc, Hcs, Hreg, #Hdd, #Hwd, Hst⟩
+  iframe Hdd
+  iframe
+  iexact Hwd
+
+/-- **The server's data directory** (persistent; R2c-5, `questions.md` D2): with no dedicated WAL
+directory, the slot's configuration fields are the data directory's record (`srvDataDir`), which
+the stop request carries and the image names. -/
+theorem srvStop.dataDir (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
+    (E : apply.AEnv GF) (γrn : RNNames) (γk : GName) (dd : GoString) (hdd : cfg.DataDir' = dd)
+    (hw : cfg.DedicatedWALDir' = (go!"" : GoString)) :
+    srvStop.keep (GF := GF) s cfg E γrn γk ⊢ srvDataDir s dd ∗ srvStop.keep s cfg E γrn γk := by
+  subst hdd
+  have heq : (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' : IProp GF) =
+      (srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ (go!"" : GoString) : IProp GF) := by rw [hw]
+  unfold srvStop.keep srvStop.imagePart
+  iintro ⟨Hr, Hc, Hcs, Hreg, #Hdd, #Hwd, Hst⟩
+  isplitr
+  · iunfold srvDataDir
+    iframe Hdd
+    rw [← heq]
+    iexact Hwd
+  iframe
+  iframe #
 
 end slot
 

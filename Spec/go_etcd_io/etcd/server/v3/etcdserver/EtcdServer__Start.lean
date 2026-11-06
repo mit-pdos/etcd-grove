@@ -37,7 +37,8 @@ back; one for `monitorFileDescriptor`'s goroutine, which calls `Logger()`): `sta
 loop (`LinearizableReadLoop`, verified) and nine names-only monitors (trust-boundary contracts)
 attached; it returns the server's views in the mode (`isServerReqM`, `isServerReadM`), the store's
 range check at a reader's lower bound (`srvAuthLb`, trivial with auth off), and the slots left for
-request goroutines (`srvStartReaders`, the leader-change notifier's readers). -/
+request goroutines (`srvStartReaders`, the leader-change notifier's readers), and (R2c-4)
+`start`'s right to stop the server (`srvStopRight`; a caller that never stops drops it). -/
 abbrev EtcdServer.Start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
@@ -58,7 +59,8 @@ abbrev EtcdServer.Start.spec : Prop :=
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗
       srvGoRes s ∗ srvLgReader s ∗ srvStartReaders s γr ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 1) (),
-        ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) }}
+        ∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) ∗
+      ∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ γn.id dd }}
 
 end spec
 

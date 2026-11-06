@@ -142,10 +142,12 @@ theorem newServerMode.wp_proof
   -- (the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part, at the peers
   ihave #Httl' : leaseTTLRowR srv ps $$ []
   · rw [← hvs]; iexact Httl
+  -- (R2c-5) the data directory, the slot's (the literal's fields)
+  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl rfl $$ Hkeep with ⟨#Hddir, Hkeep⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
-  iframe Htok Httl'
+  iframe Htok Httl' Hddir
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, _, γk, τ
   simp only [Bool.false_eq_true, ↓reduceIte]

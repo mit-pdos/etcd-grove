@@ -136,7 +136,7 @@ theorem startServer.wp_proof
     isplitr; · ipureintro; exact Hdbo
     ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
   icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %HE, #Hwb,
-    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, -⟩)
+    Hbuilt, Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, -, HWR, #Hlsrv, -, #Hcca, #HBF, Hkeep⟩)
   · -- `NewServer` failed: the error returned, with the thread token
     cases err with
     | nil => exact absurd rfl Herr
@@ -176,7 +176,9 @@ theorem startServer.wp_proof
   have hL := acLessor_on (GF := GF) (.on γa) γa rfl srv
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_true] at hB
-  ihave Hsb := hB.1 $$ Hsb
+  ihave Hsb := hB.1 $$ [Hsb Hkeep]
+  · iframe Hsb
+    iapply (srvStop.slot_intro (γk := γk) (Er := Er) (h := by rw [hEr]; rfl)) $$ Hkeep
   ihave #HLnil := hL.2 $$ HLnil
   have h' := wp_Start srv γA ci TM (.on γa) E ρ ρ.rd Er γrn b (W64 0) (W64 0) (W64 0) x₀ N
   simp only [AuthC.isOn] at h'

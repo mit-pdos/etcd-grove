@@ -288,7 +288,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         iNamed Hcctx'
         wp_apply HDone as %chD %γD #HcD
         iunfold srvDoneChan at Hdonec
-        icases Hdonec with ⟨%γdn, #Hdn⟩
+        icases Hdonec with ⟨%γdn, %Qdn, #Hdn⟩
         (try wp_auto)
         ihave #Hho' := Hho
         iunfold isHandoff at Hho'

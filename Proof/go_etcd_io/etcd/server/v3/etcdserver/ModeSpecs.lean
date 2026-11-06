@@ -817,20 +817,21 @@ theorem isServerBuilt_off (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
 /-- **The off construction premise at the slot** (the auth component's stage 3, 2026-11-04: what
 an off client of the merged `start.spec`/`Start.spec` gives at `C := .off`, where stage 2's
 corollaries `start.spec_off`/`Start.spec_off` did): the environment's mode off
-(`isServerBuilt_off`), the premise as the slot's row (`isServerBuiltM_C`) and the slot's lessor
-(nothing, off). -/
+(`isServerBuilt_off`), the premise as the slot's row (`isServerBuiltM_C`, with the stop's slot,
+`srvStop.slot`: R2c-3) and the slot's lessor (nothing, off). -/
 theorem isServerBuilt_offC (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
-    isServerBuilt (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ={⊤}=∗
+    isServerBuilt (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvStop.slot s E γn Er ={⊤}=∗
       ⌜E.authMode = AuthC.off.mode⌝ ∗ isServerBuiltC .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗
         acLessor .off s := by
-  iintro Hb
+  iintro ⟨Hb, Hsk⟩
   imod isServerBuilt_off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N $$ Hb with ⟨%hm, Hb⟩
   have hB := isServerBuiltM_C (GF := GF) .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hm
   dsimp only [AuthC.isOn] at hB
   rw [isServerBuiltM_false] at hB
-  ihave Hb' := hB.1 $$ Hb
+  ihave Hb' := hB.1 $$ [Hb Hsk]
+  · iframe Hb Hsk
   have hL : acLessor (GF := GF) .off s = iprop(True) := by rw [← srvLessorNilM_eq]; rfl
   rw [hL]
   imodintro

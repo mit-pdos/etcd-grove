@@ -378,7 +378,7 @@ instance srvMintInv_persistent (ρ : ReqNames) : Persistent (srvMintInv (GF := G
 
 /-- The server's `done` channel (closed when it stops; receiving gives nothing). -/
 def srvDoneChan (ch : GoChan) : IProp GF :=
-  iprop(∃ γ : ChanNames, ownBroadcastChan ch γ iprop(True) .Unknown)
+  iprop(∃ (γ : ChanNames) (Q : IProp GF), ownBroadcastChan ch γ Q .Unknown)
 
 instance srvDoneChan_persistent (ch : GoChan) : Persistent (srvDoneChan (GF := GF) ch) := by
   unfold srvDoneChan; infer_instance

@@ -143,7 +143,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold etcdstart.memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf,
-    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, #HLR⟩
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR, #HLR, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- the lessor's facts the argument uses: its reader invariant and its empty first snapshot, and
   -- the lease-TTL row of the first start

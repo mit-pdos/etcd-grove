@@ -3,14 +3,15 @@
 2026-11-02, `notes/restart-plan.md`). Lean-first (no Rocq counterpart).
 
 R2a states what the example (`examples/etcd/restart`) needs of the server at a stop and a restart, over
-the predicates named here. Their content is the later sub-steps': each is an `opaque` placeholder
-until then, so that no statement over them can be proved by unfolding them.
+the predicates named here. Their content is the later sub-steps' (R2a: `opaque` placeholders; since
+defined: the stop's in R2b-2 and R2c, the image in R2c).
 
-* `srvStopRight s γ ρ id dd` (exclusive): the right to stop the server `s` of member `id` of the
-  cluster `γ`, started at the request names `ρ` (`HardStop`). R2b-2 (2026-11-02): defined, the
-  stop channel, `done` with the image escrowed (`srvDoneInv`) and the escrow's claim; `Start`
-  gives it (`start` makes the channels), from `srvDataDir s dd`, which `NewServer` gives.
-  (Until then opaque and `NewServer`'s, without `ρ`.)
+* `srvStopRight s E γ ρ id dd` (exclusive): the right to stop the server `s` (apply environment
+  `E`) of member `id` of the cluster `γ`, started at the request names `ρ` (`HardStop`). R2b-2 (2026-11-02): defined, the
+  stop channel (at the stop request, `srvStopReq`, R2c-2), `done` with the image escrowed
+  (`srvDoneInv`) and the escrow's claim; `Start` gives it (`start` makes the channels, at the
+  slot's `DataDir` field, `srvStop.dataDirField`). Sealed (R2c review F5): its law for clients is
+  `srvStopRight_dd`. (Until R2b-2 opaque and `NewServer`'s, without `ρ`.)
 * `srvDiskImage γ ρ id dd` (exclusive): member `id`'s data directory, as its last incarnation's stop
   left it, that incarnation's request names `ρ` recorded: raft's hard state, log and last snapshot
   record (the WAL), the backend's buckets at its consistent index, the member and cluster ids. R2c
@@ -172,6 +173,17 @@ def srvBootApplied (ρ : ReqNames) : IProp GF :=
 instance srvBootApplied_persistent (ρ : ReqNames) : Persistent (srvBootApplied (GF := GF) ρ) := by
   unfold srvBootApplied; infer_instance
 
+/-- **The boot evidence from an applied index** (R2c review F4): an index the server applied at
+least, past the bootstrap log. -/
+theorem srvBootApplied_of_applied (ρ : ReqNames) (v : w64)
+    (h : ρ.rd.raft.raft.boot.length ≤ uint.nat v) :
+    appliedAtLeast ρ.rd v ⊢ srvBootApplied (GF := GF) ρ := by
+  unfold srvBootApplied
+  iintro H
+  iexists v
+  iframe H
+  ipureintro; exact h
+
 /-- A reader's view of the server holds the applied index's invariant (`AppliedIndex()`'s
 premise). -/
 theorem isServerRead_applied (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -197,17 +209,86 @@ instance srvDoneInv_persistent (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : G
     (c : GName) : Persistent (srvDoneInv (GF := GF) γ ρ id dd c) := by
   unfold srvDoneInv; infer_instance
 
-/-- **The right to stop the started server `s`** (DRAFT, R2b-2; see the file header): `s.stop` (a
-channel a stop request is sent on, carrying evidence that the server applied the bootstrap log,
-`srvBootApplied`: R2b-2 review F2; `run` receives it), and
+/-- **The stop's scope** (2026-11-05, the restart plan's R2c-2; the user's Q2 (b)): the
+configurations whose server `run`'s deferred shutdown can stop with an image: auth off (with auth
+on, `Cleanup`'s auth closer is the apply thread's, not threaded; and a restart's image after
+`AuthEnable` is the open gap H) and no compaction mode (`apply.cmpOwn` is both what `kv.Close`
+takes and what the image's observation reads; and the image lacks the compaction-mode receipt,
+RESTART-RCPT). No compactor follows from the latter (`NewServer` makes one only in compaction mode,
+`srvStop.censusPart`). Carried in the stop request (`srvStopReq`), not in `run`'s precondition, so
+that every started server's `run` has one spec. -/
+def srvStop.scope (E : apply.AEnv GF) : Prop := E.authOn = false ∧ E.cmp = false
+
+/-- **The stop's serving readers** (R2c-4): the store readers a member's serving stocks hold (the
+API's and the watch server's, `64 + 64`), which the stop request returns for the backend's `Close`
+(`storeReaders_retire`); named here, by the stop's owner, so that a client of the stop request names
+no count (`etc/bounds-check.py`). -/
+abbrev srvStopReaders (E : apply.AEnv GF) : IProp GF :=
+  iprop([∗list] _x ∈ List.replicate (64 + 64) (), mvcc.storeReader E.s E.γ)
+
+/-- **A stop request** (2026-11-05, R2c-2; what `HardStop` sends on `s.stop` and `run` receives):
+evidence that the server at the request names `ρ` applied the bootstrap log (`srvBootApplied`,
+R2b-2 review F2), the stop's scope at the server's apply environment `E` (`srvStop.scope`), and the
+server's data directory `dd` with no dedicated WAL directory (`srvDataDir`, which the image names:
+the scope's other half), and (R2c-4, F-e) the store's readers of the serving stocks the server no
+longer uses (`srvServeBuilt`'s 64 request readers and `srvWatchReaders`' 64 watch readers,
+`mvcc.watchReader_storeReader`): with the slot's and the apply thread's, every reader of the store,
+for the backend's `Close` (gap 4's census); the sender stopped serving first. Until R2c-2 the
+request carried only `srvBootApplied ρ`, and `run.specStop` took the scope as premises; until R2c-4
+the readers were `run.specStop`'s (`srvShutdownPre`), which a serving member cannot give at its
+start. -/
+def srvStopReq (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString) : IProp GF :=
+  iprop(srvBootApplied ρ ∗ ⌜srvStop.scope E⌝ ∗ srvDataDir s dd ∗ srvStopReaders E)
+
+/-- The stop request names only the request names' read side (`ρ.rd`): the same at the wait
+registry `start` makes (R2c-4). -/
+theorem srvStopReq_wait (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (w : GName) (dd : GoString) :
+    srvStopReq (GF := GF) s E { ρ with wait := w } dd = srvStopReq s E ρ dd := rfl
+
+/-- **A stop request made** (R2c review F4): the boot evidence, the scope, the data directory and
+the serving readers. -/
+theorem srvStopReq_intro (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (dd : GoString)
+    (hsc : srvStop.scope E) :
+    srvBootApplied ρ ∗ srvDataDir s dd ∗ srvStopReaders E ⊢ srvStopReq (GF := GF) s E ρ dd := by
+  unfold srvStopReq
+  iintro ⟨#Hb, #Hdd, Hr⟩
+  iframe Hb Hdd Hr
+  ipureintro; exact hsc
+
+/-- The escrow names only the request names' read side (`ρ.rd`) (R2c-4). -/
+theorem srvDoneInv_wait (γ : SrvRaft) (ρ : ReqNames) (w : GName) (id : w64) (dd : GoString)
+    (c : GName) : srvDoneInv (GF := GF) γ { ρ with wait := w } id dd c = srvDoneInv γ ρ id dd c :=
+  rfl
+
+/-- **The right to stop the started server `s`** (R2b-2; defined in R2c-2; see the file header): `s.stop` (a
+channel a stop request is sent on, `srvStopReq` at the server's apply environment `E`: R2c-2; until
+then the request carried `srvBootApplied ρ` only; `run` receives it), and
 `s.done`, whose close announces the image escrowed for the claim `c` (`srvDoneInv`), with the claim.
 `start` makes both channels, so `Start` gives the right (R2b-2: until then `NewServer`, in the
-draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2). -/
-def srvStopRight (s : Loc) (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
+draft). The data directory `dd` is the configuration's `DataDir` (R2c review F2; R2c-2: the right
+records the field, so that a holder who knows the directory, `srvDataDir`, learns `dd`). Sealed (R2c
+review F5, 2026-11-06; round 2's N2): a client sees the name and its law `srvStopRight_dd`; the
+package's two proofs that make and open it, `start`'s and `HardStop`'s, `import all` this module
+(`etc/import-all.txt`). -/
+@[no_expose] def srvStopRight (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+    (dd : GoString) : IProp GF :=
   iprop(∃ (stc dnc : Loc) (γst γd : ChanNames) (c : GName),
-    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvBootApplied ρ) ∗
+    srvStopAddr s ↦□ stc ∗ isChanBag γst stc (V := Unit) (fun _ => srvStopReq s E ρ dd) ∗
     srvDoneAddr s ↦□ dnc ∗ ownBroadcastChan dnc γd (srvDoneInv γ ρ id dd c) .Unknown ∗
-    token c)
+    token c ∗ srvCfgFieldAddr s go!"DataDir" ↦□ dd)
+
+/-- The stop right's data directory is the server's (`srvDataDir`'s). -/
+theorem srvStopRight_dd (s : Loc) (E : apply.AEnv GF) (γ : SrvRaft) (ρ : ReqNames) (id : w64)
+    (dd dd' : GoString) :
+    srvStopRight (GF := GF) s E γ ρ id dd ∗ srvDataDir s dd' ⊢
+      ⌜dd = dd'⌝ ∗ srvStopRight s E γ ρ id dd := by
+  unfold srvStopRight srvDataDir
+  iintro ⟨⟨%stc, %dnc, %γst, %γd, %c, #Hs, #Hb, #Hd, Hdn, Hc, #Hdd⟩, #Hdd', -⟩
+  icombine Hdd Hdd' gives %Heq
+  isplitr
+  · ipureintro; exact Heq
+  iexists stc, dnc, γst, γd, c
+  iframe Hs Hb Hd Hdn Hc Hdd
 
 /-- (R2b-2's draft; defined 2026-11-05, R2b-3d stage 5b) **What `Cleanup` closes besides the apply
 thread's resources**: the server's auth store with its `Close` (`authCloseOk`, `NewAuthStore`'s

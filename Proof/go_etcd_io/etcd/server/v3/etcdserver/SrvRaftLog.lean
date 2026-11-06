@@ -735,12 +735,14 @@ instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvCluster
 server's log invariant, the cluster, the start log committed and the start index its length; and
 (2026-10-30, the repair: one mode, the old dynamic mode's fresh start) the start log empty, so the
 start index `0`. (2026-10-27: until then raft's commit invariant and the conf-change policy.)
-(2026-10-31, the snapshot track's S5) And the bootstrap log committed first, of some peers' (`srvBootLogOk`):
-the applied log's first entry is the first peer's `AddNode` (`srv_first_boot`). -/
+(2026-10-31, the snapshot track's S5) And the bootstrap log committed first, of the cluster's voters
+(`srvBootLogOk`): the applied log's first entry is the first voter's `AddNode` (`srv_first_boot`).
+(2026-11-05, R2c-1) The bootstrap log is the voters' own (`γ.raft.vs`, distinct; until then of
+some peers `ps`), which the stop's image needs (`stop_imageConf`); `srvClusterBoot_alloc` has both. -/
 def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
   iprop(srvLogInv γ ∗ srvClusterOk γ ∗ srvRLogLb γ [] ∗ ⌜uint.Z γ.ai0 = γ.pre.length⌝ ∗
     ⌜γ.pre = []⌝ ∗ srvRLogLb γ (γ.raft.boot.map EntryModel.ofM) ∗
-    ⌜∃ ps : List w64, ps ≠ [] ∧ srvBootLogOk ps γ.raft.boot⌝)
+    ⌜γ.raft.vs ≠ [] ∧ γ.raft.vs.Nodup ∧ srvBootLogOk γ.raft.vs γ.raft.boot⌝)
 
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
@@ -775,10 +777,10 @@ theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryMo
   ihave %Hp := srvRLogLb_prefix γ (γ.raft.boot.map EntryModel.ofM) L $$ [Hb HL]
   · iframe Hb HL
   ipureintro
-  obtain ⟨ps, hps, hlen, -, hk⟩ := Hok
+  obtain ⟨hps, -, hlen, -, hk⟩ := Hok
   have hpos : 0 < γ.raft.boot.length := by
-    rw [hlen]; cases ps with
-    | nil => exact absurd rfl hps
+    rw [hlen]; cases h : γ.raft.vs with
+    | nil => exact absurd h hps
     | cons _ _ => simp
   obtain ⟨e, he⟩ : ∃ e, γ.raft.boot[0]? = some e := ⟨_, List.getElem?_eq_getElem hpos⟩
   obtain ⟨-, -, hty, cm, hcm, hct, -⟩ := hk 0 e he

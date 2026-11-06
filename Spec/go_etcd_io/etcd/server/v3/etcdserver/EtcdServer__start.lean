@@ -41,8 +41,11 @@ reader's lower bound (`srvAuthLb`, trivial with auth off), and what `Start`'s go
 request path's get (`srvStarted`, at the mode's model state), and (H2, 2026-11-05) the write
 budget with its register set to `GoAttach`'s receipts' name `γg.run`, with `Start`'s reader slot of
 `wgMu` at `γg` (so that the storage-version monitor `Start` attaches runs with a receipt at the
-registered name). A new server: the apply thread from
-index `0` (each applied entry takes a write token, which bounds the applied index,
+registered name), and (R2c-4) the right to stop the server (`srvStopRight`, at its raft names
+`ρ.rd.raft.raft`, its member id and the configuration's data directory): `start` makes `stop`,
+on which `run` receives the stop requests, and `done`, whose close announces the stopped server's
+image escrowed for the right's claim (until then `run` never stopped). A new server: the apply
+thread from index `0` (each applied entry takes a write token, which bounds the applied index,
 `srvWTPool_bound`). -/
 abbrev EtcdServer.start.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (C : AuthC) (E : apply.AEnv GF)
@@ -56,7 +59,8 @@ abbrev EtcdServer.start.spec : Prop :=
       isServerReadM C.isOn s E γr ∗ srvAuthLb s E ∗
       srvStarted s γr ρ Er.RQ (kvStM C.isOn γr.kv) ∗
       ∃ (γp : WTNames) (γg : GoNames), srvWTPool E γp ∗
-        dghostVar γp.reg DFrac.discard (some γg.run) ∗ srvWgReaderAt s γg }}
+        dghostVar γp.reg DFrac.discard (some γg.run) ∗ srvWgReaderAt s γg ∗
+        ∃ dd : GoString, srvStopRight s E ρ.rd.raft.raft ρ γn.id dd }}
 
 end spec
 

@@ -984,18 +984,6 @@ theorem proto.wp_Size :
     proto.Size.spec (GF := GF) (hG := hG) :=
   proto.Size.wp_proof
 
-theorem snap.Snapshotter.wp_DBFilePath :
-    snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=
-  snap.Snapshotter.DBFilePath.wp_proof
-
-theorem os.wp_Rename :
-    os.Rename.spec (GF := GF) (hG := hG) :=
-  os.Rename.wp_proof
-
-theorem config.ServerConfig.wp_BackendPath :
-    config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
-  config.ServerConfig.BackendPath.wp_proof
-
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafeSaveConfStateToBackend.wp_proof
@@ -1019,6 +1007,18 @@ theorem schema.wp_UnsafeUpdateConsistentIndex :
 theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+
+theorem snap.Snapshotter.wp_DBFilePath :
+    snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=
+  snap.Snapshotter.DBFilePath.wp_proof
+
+theorem os.wp_Rename :
+    os.Rename.spec (GF := GF) (hG := hG) :=
+  os.Rename.wp_proof
+
+theorem config.ServerConfig.wp_BackendPath :
+    config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.BackendPath.wp_proof
 
 theorem consistentIndex.wp_SetConsistentIndex :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -2271,6 +2271,10 @@ theorem prometheus.GaugeVec.wp_With :
     prometheus.GaugeVec.With.spec (GF := GF) (hG := hG) :=
   prometheus.GaugeVec.With.wp_proof
 
+theorem raftNode.wp_stop :
+    raftNode.stop.spec (GF := GF) (hG := hG) :=
+  raftNode.stop.wp_proof
+
 theorem storage.wp_OpenBackend :
     storage.OpenBackend.spec (GF := GF) (hG := hG) :=
   storage.OpenBackend.wp_proof
@@ -2597,7 +2601,7 @@ theorem raftNode.wp_apply :
 
 theorem EtcdServer.wp_run [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.run.spec (GF := GF) (hG := hG) :=
-  EtcdServer.run.wp_proof EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule
+  EtcdServer.run.wp_proof schedule.Scheduler.wp_Stop raftNode.wp_stop EtcdServer.wp_Cleanup storage.BackendHooks.wp_OnPreCommitUnsafe consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket EtcdServer.wp_applyAll EtcdServer.wp_Logger raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob schedule.Scheduler.wp_Schedule
 
 theorem EtcdServer.wp_Stopping :
     EtcdServer.Stopping.spec (GF := GF) (hG := hG) :=
@@ -2934,10 +2938,6 @@ theorem raftNode.wp_advanceTicks :
 theorem raftNode.wp_getLatestTickTs :
     raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
   raftNode.getLatestTickTs.wp_proof
-
-theorem raftNode.wp_stop :
-    raftNode.stop.spec (GF := GF) (hG := hG) :=
-  raftNode.stop.wp_proof
 
 theorem rafthttp.wp_reportCriticalError :
     rafthttp.reportCriticalError.spec (GF := GF) (hG := hG) :=

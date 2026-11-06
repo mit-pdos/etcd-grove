@@ -67,7 +67,7 @@ theorem restartCheck.wp_proof
   intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
     Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
     Hpe Hlg Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Hmst, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
+  wp_start as ⟨Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -83,7 +83,7 @@ theorem restartCheck.wp_proof
   · iPkgInit
   (try wp_auto)
   -- `stop(m)`
-  wp_apply (wp_stop m s pl γ id peerAddr γn ρ name) $$ [Hmst] as Hrr
+  wp_apply (wp_stop m s pl γ id peerAddr γn ρ name) $$ [Hmst Hmsr] as Hrr
   · iframe; ipureintro; rw [hboot]; exact hb3
   (try wp_auto)
   -- the puts of `k ↦ v2`: once one returned `nil`, the put's flag
