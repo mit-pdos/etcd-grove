@@ -108,6 +108,8 @@ theorem ownConfDecisions_excl [package_sem : Assumptions] (γ : Cluster) (D1 D2 
 theorem skippedIn_noConf [package_sem : Assumptions] (γ : Cluster) (l : List LogEntry) (a b : Nat) :
     NoConfChangeIn l a b → ⊢ skippedIn γ l a b
 
+theorem snapMade_timeless (γ : Cluster) (s : SnapRec) : Timeless (snapMade γ s)
+
 theorem snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) : Persistent (snapshotValid γ sv)
 
 theorem confAt_agree [package_sem : Assumptions] (γ : Cluster) (k : Nat) (m1 m2 : Membership) :
