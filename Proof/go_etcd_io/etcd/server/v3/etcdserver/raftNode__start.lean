@@ -599,10 +599,8 @@ theorem raftNode.start.wp_proof
           icases Hwv with ⟨Hwv, Hwok⟩
           -- (R2d, Q14 (a)) the received snapshot's WAL record valid: its data `nil`
           -- (`srv_snapshotValid_record`, the server's registry)
-          ihave #HenvR := Henv
-          iunfold rnEnvOk at HenvR
-          icases HenvR with ⟨-, %HEnR, -, #HRL, -⟩
-          imod srv_snapshotValid_record E.γr.raft γ.node.cl (by rw [HEnR.1]) l.snap $$ [$HRL $HsvV]
+          icases rnEnvOk_logInv E γ $$ Henv with ⟨%HEnR, #HRL⟩
+          imod srv_snapshotValid_record E.γr.raft γ.node.cl (by rw [HEnR]) l.snap $$ [$HRL $HsvV]
             with #HsvW
           ihave HAU := rnDur_saveSnap_au γ.node.cl γ.wal _ _ _ HwSteps.1 $$ Hdur Hwv Hwok HsvW
           -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)

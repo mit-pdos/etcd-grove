@@ -122,6 +122,8 @@ theorem joinAuth_join [package_sem : Assumptions] (γ : Cluster) (N : Namespace)
     w64) : ¬id ∈ U → id ≠ W64 0 → ⊢ isCluster γ N ∗ joinAuth γ U ==∗ joinAuth γ ({id} ∪ U) ∗
     raftState γ id RaftState.init ∗ nodeVacant γ id
 
+theorem snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) : Timeless (snapshotValid γ sv)
+
 theorem snapshotCert_valid [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (sv :
     SnapshotM) : 0 < uint.Z sv.Metadata'.Index' → uint.Z sv.Metadata'.Index' < 2 ^ 61 → isCluster γ
     N ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢ snapshotValid γ sv
@@ -189,6 +191,9 @@ theorem confDecide [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (D
 
 theorem ownConfDecisions_timeless (γ : Cluster) (D : GMap Nat ConfDecision) : Timeless
     (ownConfDecisions γ D)
+
+theorem ownSnapsMade_snapshotValid_data [package_sem : Assumptions] (γ : Cluster) (S : List SnapRec)
+    (sv : SnapshotM) : ownSnapsMade γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r, r ∈ S ∧ r.data = sv.Data'⌝
 
 theorem ownSnapsMade_timeless (γ : Cluster) (S : List SnapRec) : Timeless (ownSnapsMade γ S)
 

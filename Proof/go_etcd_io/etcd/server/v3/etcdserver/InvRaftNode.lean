@@ -486,6 +486,15 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
 instance rnEnvOk_persistent (E : RNEnv GF) (γ : RNNames) : Persistent (rnEnvOk E γ) := by
   unfold rnEnvOk; infer_instance
 
+/-- (R2d, Q17 F6) **The environment's raft log invariant, at the node's cluster.** -/
+theorem rnEnvOk_logInv (E : RNEnv GF) (γ : RNNames) :
+    rnEnvOk (GF := GF) E γ ⊢ ⌜E.γr.raft.raft = γ.node⌝ ∗ srvRaftLogInv E.γr.raft := by
+  iintro #H
+  iunfold rnEnvOk at H
+  icases H with ⟨-, %Hn, -, #HRL, -⟩
+  iframe HRL
+  ipureintro; exact Hn.1
+
 /-- **The run's premise on raft's `Ready`s** (pure, D19b stage 5): the time-receipt bound past
 the bootstrap log. (2026-10-27: the node API bounds a `Ready`'s indices itself, `readyRest`; kept
 for the wrapper's statements.) -/

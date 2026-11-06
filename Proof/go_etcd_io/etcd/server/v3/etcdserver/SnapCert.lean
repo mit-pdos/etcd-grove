@@ -226,49 +226,6 @@ theorem wp_srv_createSnapshot
   · iright
     ipureintro; exact Herr
 
-/-- (R2d, Q14 caveat (i), 2026-11-06) **A valid snapshot of the server's cluster has `nil` data**:
-the registry holds only the server's own snapshots, of no data (`srvSnapsReg`). So a received
-snapshot (a `Ready`'s, valid by raft's storage contract, `rnReadySnap`) is the snapshot its WAL
-record makes (`walSaveSnap`'s `SnapshotM.mk [] m`, `srv_snapshotValid_record`). -/
-theorem srv_snapshotValid_dataNil (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl)
-    (sv : SnapshotM) :
-    letI := srvStor (GF := GF) γ.raft
-    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢ |={⊤}=> ⌜sv.Data' = []⌝ := by
-  letI := srvStor (GF := GF) γ.raft
-  subst hcl
-  iintro ⟨#Hinv, #Hsv⟩
-  iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨-, #Hcl, -⟩
-  iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, -, -, -, #Hreg, -⟩
-  iunfold snapshotValid at Hsv
-  icases Hsv with ⟨%l, %m, -, -, #Hmade, -⟩
-  iinv Hreg with >Hb Hclose
-  iunfold srvSnapsReg at Hb
-  icases Hb with ⟨%S, Hown, %HSd⟩
-  ihave %Hin := snapMade_elem γ.raft.cl S _ $$ [$Hown $Hmade]
-  imod Hclose $$ [Hown] with -
-  · inext; iunfold srvSnapsReg; iexists S; iframe Hown; ipureintro; exact HSd
-  imodintro
-  ipureintro
-  exact HSd _ Hin
-
-/-- (R2d, Q14 caveat (i)) **A valid snapshot's WAL record is valid**: the snapshot of no data at its
-metadata (`walSaveSnap`'s) is the snapshot itself (`srv_snapshotValid_dataNil`). -/
-theorem srv_snapshotValid_record (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl)
-    (sv : SnapshotM) :
-    letI := srvStor (GF := GF) γ.raft
-    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢
-      |={⊤}=> snapshotValid cl (SnapshotM.mk [] sv.Metadata') := by
-  letI := srvStor (GF := GF) γ.raft
-  iintro ⟨#Hinv, #Hsv⟩
-  imod srv_snapshotValid_dataNil γ cl hcl sv $$ [$Hinv $Hsv] with %Hd
-  imodintro
-  cases sv
-  simp only at Hd
-  subst Hd
-  iexact Hsv
-
 end cert
 
 end EtcdGrove

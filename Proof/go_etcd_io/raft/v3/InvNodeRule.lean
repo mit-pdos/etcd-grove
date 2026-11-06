@@ -579,6 +579,22 @@ instance snapshotValid_persistent (γ : Cluster) (sv : SnapshotM) :
     Persistent (snapshotValid (GF := GF) γ sv) := by
   unfold snapshotValid; infer_instance
 
+/-- (R2d, Q17 F6, 2026-11-06) No later credit to open an invariant holding it (the server's WAL
+durability invariant holds a record's certificate, `walSnapCert`). -/
+instance snapshotValid_timeless (γ : Cluster) (sv : SnapshotM) :
+    Timeless (snapshotValid (GF := GF) γ sv) := by
+  unfold snapshotValid; infer_instance
+
+/-- (R2d, Q17 F6) **A valid snapshot's data is one the client made** (its registry `S`). -/
+theorem ownSnapsMade_snapshotValid_data (γ : Cluster) (S : List SnapRec) (sv : SnapshotM) :
+    ownSnapsMade (GF := GF) γ S ∗ snapshotValid γ sv ⊢ ⌜∃ r ∈ S, r.data = sv.Data'⌝ := by
+  iintro ⟨Hown, #Hsv⟩
+  unfold snapshotValid
+  icases Hsv with ⟨%l, %m, -, -, #Hmade, -⟩
+  ihave %Hin := snapMade_elem γ S _ $$ [$Hown $Hmade]
+  ipureintro
+  exact ⟨_, Hin, rfl⟩
+
 /-! ## The storage contract at the node API (U8 v2, 2026-10-29; candidate 17 rev 3 §2) -/
 
 /-- The compaction's justification (`isStorageP`'s `Bnd`): compacting at or past `c` is safe

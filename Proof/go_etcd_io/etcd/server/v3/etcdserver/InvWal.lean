@@ -403,7 +403,7 @@ instance walSnapCert_persistent (cl : Cluster) (σ : StorContents) :
 
 instance walSnapCert_timeless (cl : Cluster) (σ : StorContents) :
     Timeless (walSnapCert (GF := GF) cl σ) := by
-  unfold walSnapCert snapshotValid; infer_instance
+  unfold walSnapCert; infer_instance
 
 /-- The fresh records' certificate: at index `0`. -/
 theorem walSnapCert_fresh (cl : Cluster) : ⊢ walSnapCert (GF := GF) cl walFresh := by
