@@ -34,12 +34,23 @@ promoted) and the results of resolved calls, so `h.Write(...)` on a `hash.Hash32
 `if p { ... return }` / `if !p { ... }` the argument rules out are skipped (`Begin(true)` takes the
 writer's `rwlock`, not a reader slot of `mmaplock`). Unresolved calls are not followed.
 
+Fails closed: the check exits 1, naming what is missing, when a Go source tree it needs is not here
+-- `.lake/goose/<project>` of bbolt, etcd, or any project an axiom's package maps to (`PROJECTS`, per
+part: RaftWitness's raft is `raft-witness`), a package of such a project, or the toolchain's GOROOT
+(`go env GOROOT`) -- and when an axiom's package has no source and is not a known third-party
+package (`THIRD_PARTY`, an explicit list). It also refuses fewer than `MIN_SCANNED` scanned axioms:
+raise the floor to the count `reader-slot: ok (...)` prints when axioms are added (in the same
+commit); lower it only with a reason. Every file's axiom is checked, also when its name occurs in
+another file (RaftWitness's copies of main-tree modules, `k8s.io/api`'s two `Resource`s), each tree
+against its own sources.
+
 Limits (the gate's reach):
-- Unscanned axioms (`-v` lists them): 190 of the axioms on 2026-11-06. 164 have no Go source here
-  (names-only dependencies), by package: grpc 30 (and credentials/insecure 1, grpclog 1, health 2,
-  grpc_health_v1 2, metadata 4, peer 1, status 4), protobuf `proto` 22, zap 21 (zapcore 1),
-  prometheus client_golang 7 and grpc_ecosystem's 5, k8s.io/utils clock 7 and trace 2, k8s
-  apimachinery/apiserver/api/component-base 29 (apps/v1 2, core/v1 3, errors 2, meta/v1 1,
+- Unscanned axioms (`-v` lists them, by reason): 201 of the 401 axioms on 2026-11-06. 175 are of
+  third-party packages not cloned here (names-only dependencies, `THIRD_PARTY`), by package: grpc 30
+  (and credentials/insecure 1, grpclog 1, health 2, grpc_health_v1 2, metadata 4, peer 1, status 4),
+  protobuf `proto` 22 (and RaftWitness's copies 9), zap 22 (zapcore 1), prometheus client_golang 7
+  and grpc_ecosystem's 5, k8s.io/utils clock 7 and trace 2, k8s
+  apimachinery/apiserver/api/component-base and klog 31 (apps/v1 3, core/v1 3, errors 2, meta/v1 1,
   conversion 1, fields 1, labels 1, runtime/schema 2, intstr 1, resourceversion 1, util/runtime 1,
   audit 1, etcd3/metrics 4, component-base metrics 1 and tracing 4, klog 4), Masterminds/semver 6,
   x/time/rate 5, otel attribute 4 and trace 2 (otelgrpc 1), x/crypto/bcrypt 2, xiang90/probing 2,
@@ -54,8 +65,9 @@ Limits (the gate's reach):
   Such a spec must take a token for the callback's duration.
 - A name-level check of the sources, not a proof, as `errorf-wrap-check.py` is.
 
-usage: etc/reader-slot-check.py [-v]   (exit 1 on an unpaid holder axiom, a missing pair, or a
-                                        closer without the token)
+usage: etc/reader-slot-check.py [-v]   (exit 1 on an unpaid holder axiom, a missing pair, a closer
+                                        without the token, a missing source tree, or fewer than
+                                        MIN_SCANNED axioms scanned)
 """
 import os
 import pathlib
@@ -69,6 +81,37 @@ PAIRS = ROOT / 'etc' / 'reader-slot-pairs.txt'
 ALLOW = ROOT / 'etc' / 'reader-slot-allow.txt'
 # a part (CLAUDE.md, "Layout") and the source tree it is translated from, searched first
 PARTS = {'RaftWitness': ['raft-witness'], 'PorcupineDag': []}
+# the Go source trees `etc/goose.py` clones (`.lake/goose/<project>`; `READER_SLOT_GOOSE` points the
+# check at another directory, for testing that a missing tree fails it)
+GOOSE = pathlib.Path(os.environ.get('READER_SLOT_GOOSE', ROOT / '.lake' / 'goose'))
+# the projects whose sources must be here: an axiom of a package below the Lean directory (the Go
+# path mangled) is scanned in that project's tree (per part; '' is this repository's own modules),
+# and the check fails if the tree, or the package in it, is missing
+PROJECTS = {
+    '': {'go_etcd_io/bbolt': 'bbolt', 'go_etcd_io/etcd': 'etcd', 'go_etcd_io/raft': 'raft',
+         'github_com/mit_pdos/etcd_grove': ''},
+    'RaftWitness': {'go_etcd_io/raft': 'raft-witness'},
+    'PorcupineDag': {},
+}
+ALWAYS = ('bbolt', 'etcd')     # required even if no axiom of theirs is left
+# the packages known to be third-party and not cloned (names-only translations): their axioms are
+# unscanned, "no Go source here"; an axiom of any other package without sources fails the check
+THIRD_PARTY = (
+    'github_com/Masterminds/semver', 'github_com/dustin/go_humanize', 'github_com/grpc_ecosystem',
+    'github_com/jonboulle/clockwork', 'github_com/prometheus/client_golang', 'github_com/xiang90/probing',
+    'go_opentelemetry_io/contrib', 'go_opentelemetry_io/otel', 'go_uber_org/zap',
+    'golang_org/x/crypto', 'golang_org/x/time', 'google_golang_org/grpc', 'google_golang_org/protobuf',
+    'k8s_io/api', 'k8s_io/apimachinery', 'k8s_io/apiserver', 'k8s_io/component_base', 'k8s_io/klog',
+    'k8s_io/utils/clock', 'k8s_io/utils/trace',
+)
+# the scanned axioms' count may not fall below this (a tree or package gone, or the layout's
+# mapping broken, would move axioms out of the scan): when axioms are added and the count rises,
+# raise it to the count `reader-slot: ok (...)` prints; lower it only with a reason in the commit
+MIN_SCANNED = 200
+
+
+def under(a, prefix):
+    return a == prefix or a.startswith(prefix + '/')
 LOCK_OPS = {'RLock', 'RUnlock', 'Lock', 'Unlock', 'TryLock', 'TryRLock'}
 
 
@@ -305,13 +348,13 @@ def mangle(p):
 class Sources:
     def __init__(self):
         self.mods = []          # (module path, dir, tree)
-        goose = ROOT / '.lake' / 'goose'
         trees = []
-        if goose.is_dir():
-            for t in sorted(goose.iterdir()):
+        if GOOSE.is_dir():
+            for t in sorted(GOOSE.iterdir()):
                 if t.is_dir() and t.name not in ('bin', 'perennial') and not t.name.endswith('.proph'):
                     trees.append((t.name, t))
         trees.append(('', ROOT))
+        self.trees = dict(trees)
         for name, t in trees:
             for dp, dns, fns in os.walk(t):
                 rel = os.path.relpath(dp, ROOT)
@@ -664,7 +707,8 @@ def analyze(src, roots):
 # ---------------------------------------------------------------------------------------------
 # the axioms
 
-AXIOM = re.compile(r'^axiom\s+([\w\.«»]+)\.wp_proof\b', re.M)
+# any Lean name (`zap.Int'` too): a name the pattern missed would be silently unchecked
+AXIOM = re.compile(r'^axiom\s+(\S+?)\.wp_proof\b', re.M)
 
 
 def strip_lean_comments(s):
@@ -688,7 +732,9 @@ def strip_lean_comments(s):
 
 
 def axioms():
-    res = {}
+    """Every `axiom <F>.wp_proof` in every file, as [(name, base, rel)]: a name may occur in several
+    files (a part's copies of main-tree modules, `k8s.io/api`'s two `Resource`s), each checked."""
+    res = []
     for base in [ROOT] + [ROOT / p for p in PARTS]:
         pd = base / 'Proof'
         if not pd.is_dir():
@@ -696,8 +742,7 @@ def axioms():
         for f in sorted(pd.rglob('*.lean')):
             s = f.read_text()
             for m in AXIOM.finditer(s):
-                rel = f.relative_to(pd)
-                res[m.group(1)] = (base, rel)
+                res.append((m.group(1), base, f.relative_to(pd)))
     return res
 
 
@@ -723,10 +768,17 @@ def go_candidates(stem):
     return out
 
 
+def label(name, base):
+    return name if base == ROOT else f'{base.name}:{name}'
+
+
 def main():
     verbose = '-v' in sys.argv
     src = Sources()
     ax = axioms()
+    by_name = {}
+    for name, base, rel in ax:
+        by_name.setdefault(name, []).append((base, rel))
     pairs = read_list(PAIRS)
     allow = {}
     if ALLOW.exists():
@@ -734,22 +786,65 @@ def main():
             name, _, why = line.partition('#')
             if name.strip():
                 allow[name.split()[0]] = why.strip()
-    # each axiom's Go package
-    where = {}
-    roots = set()
-    for name, (base, rel) in ax.items():
-        prefer = tuple(PARTS.get(base.name, ())) if base != ROOT else ()
+    # each axiom's Go package, and the source tree it must come from
+    missing = []                # the reasons the check cannot run: a tree or package gone
+    need = {t: 'always' for t in ALWAYS}
+    where = []
+    unscanned = {}
+    for name, base, rel in ax:
+        part = '' if base == ROOT else base.name
+        prefer = tuple(PARTS.get(part, ()))
         a = str(rel.parent)
+        proj = next((t for pre, t in PROJECTS.get(part, {}).items() if under(a, pre)), None)
+        if proj:
+            need.setdefault(proj, f'{label(name, base)} ({a})')
+            prefer = (proj,) + prefer
         p = src.from_mangled(a, prefer)
-        where[name] = (base, rel, p, prefer)
-        if p:
-            roots.add((p, prefer))
-    holds, releases, fkey, calls, G = analyze(src, roots)
-    bad, holders, unscanned = [], [], {}
-    for name, (base, rel, p, prefer) in sorted(ax.items(), key=lambda x: x[0]) if False else sorted(where.items()):
-        if not p:
-            unscanned.setdefault('no source: ' + str(rel.parent), []).append(name)
+        if p is None:
+            if proj is not None:
+                missing.append(f'no Go source for {label(name, base)}: package {a} not found in '
+                               f'project {proj or "(this repository)"}')
+            elif any(under(a, t) for t in THIRD_PARTY):
+                unscanned.setdefault('no Go source here, third-party: ' + a, []).append(label(name, base))
+            elif '_' not in a.split('/', 1)[0] and '.' not in a.split('/', 1)[0]:
+                missing.append(f'no Go source for {label(name, base)}: standard-library package {a} '
+                               f'not in GOROOT ({src.goroot})')
+            else:
+                missing.append(f'no Go source for {label(name, base)}: package {a} is neither in a '
+                               f'project of PROJECTS nor in THIRD_PARTY')
             continue
+        if proj is not None and not src.std(p):
+            d = pathlib.Path(src.find_dir(p, prefer)).resolve()
+            t = src.trees.get(proj)
+            if t is None or not d.is_relative_to(pathlib.Path(t).resolve()):
+                missing.append(f'{label(name, base)}: package {p} found in {d}, not in project '
+                               f'{proj or "(this repository)"}')
+                continue
+        where.append((name, base, rel, p, prefer))
+    gone = [f'Go source tree {GOOSE / t} is missing or has no go.mod '
+            f'({"always needed" if why == "always" else "needed by " + why}; '
+            f'`etc/goose.py --project {t}` fetches it)'
+            for t, why in sorted(need.items()) if t and not any(tree == t for _, _, tree in src.mods)]
+    missing = gone + missing
+    if missing:
+        for m in missing:
+            print(f'reader-slot: {m}', file=sys.stderr)
+        print(f'reader-slot: FAILED: {len(missing)} axioms or trees without their Go sources',
+              file=sys.stderr)
+        return 1
+    bad, holders = [], []
+    # each tree separately: a part's packages have the main tree's Go paths (RaftWitness's
+    # `go.etcd.io/raft/v3`), which the package cache and the call graph key on
+    # (the struct table too: each tree's axioms are matched before the next tree is loaded)
+    cur = None
+    for name, base, rel, p, prefer in sorted(where, key=lambda x: (str(x[1]), x[0], str(x[2]))):
+        if base != cur:
+            cur = base
+            src.pkgs = {}
+            STRUCTS.clear()
+            holds, releases, fkey, calls, G = analyze(
+                src, {(p2, pr2) for _, b2, _, p2, pr2 in where if b2 == base})
+        lb = label(name, base)
         fn = None
         for t, m in go_candidates(rel.stem):
             k = (p, f'{t}.{m}' if t else m)
@@ -762,35 +857,38 @@ def main():
                 fn = gs[0].key
                 break
         if fn is None:
-            unscanned.setdefault('not found in ' + p, []).append(name)
+            unscanned.setdefault('no Go function of the name in ' + p, []).append(lb)
             continue
         if fn not in holds:
             continue
         locks = ', '.join(sorted(f'{q}.{x}' for q, x in holds[fn]))
-        holders.append(name)
+        holders.append(lb)
         if name in allow:
-            print(f'reader-slot: {name} holds {locks}: allowed ({allow[name][:80]}...)')
+            print(f'reader-slot: {lb} holds {locks}: allowed ({allow[name][:80]}...)')
             continue
         spec = base / 'Spec' / rel
         stext = strip_lean_comments(spec.read_text()) if spec.exists() else ''
         if not TOKENS.search(stext):
-            bad.append(f'{name} (Go {fn[0]}.{fn[1]}) returns holding a reader slot of {locks}, '
+            bad.append(f'{lb} (Go {fn[0]}.{fn[1]}) returns holding a reader slot of {locks}, '
                        f'and its spec ({spec.relative_to(ROOT)}) takes no token')
             continue
         if name not in pairs or not pairs[name]:
-            bad.append(f'{name} holds a reader slot of {locks}: no closer in {PAIRS.relative_to(ROOT)}')
+            bad.append(f'{lb} holds a reader slot of {locks}: no closer in {PAIRS.relative_to(ROOT)}')
             continue
         closer = pairs[name][0]
-        if closer not in ax:
-            bad.append(f'{name}: its closer {closer} is not an axiom')
+        # the closer of the same tree (a part's copy pairs with the part's copy)
+        cs = [(cb, crel) for cb, crel in by_name.get(closer, []) if cb == base]
+        if not cs:
+            bad.append(f'{lb}: its closer {closer} is not an axiom of the same tree')
             continue
-        cb, crel = ax[closer]
-        ctext = strip_lean_comments((cb / 'Spec' / crel).read_text())
-        post = ctext.split('RET', 1)[1] if 'RET' in ctext else ''
-        if not TOKENS.search(post):
-            bad.append(f'{name}: its closer {closer} gives no token back (its post, after RET)')
-    for k, v in pairs.items():
-        if k not in holders:
+        for cb, crel in cs:
+            ctext = strip_lean_comments((cb / 'Spec' / crel).read_text())
+            post = ctext.split('RET', 1)[1] if 'RET' in ctext else ''
+            if not TOKENS.search(post):
+                bad.append(f'{lb}: its closer {label(closer, cb)} gives no token back (its post, after RET)')
+    hnames = {h.rsplit(':', 1)[-1] for h in holders}
+    for k in pairs:
+        if k not in hnames:
             print(f'reader-slot: note: {k} is in {PAIRS.name} but is not found to hold a slot')
     if verbose:
         for why, names in sorted(unscanned.items()):
@@ -798,11 +896,19 @@ def main():
     for b in bad:
         print(f'reader-slot: {b}', file=sys.stderr)
     nun = sum(len(v) for v in unscanned.values())
+    nthird = sum(len(v) for k, v in unscanned.items() if k.startswith('no Go source'))
+    nscan = len(ax) - nun
     if bad:
         print(f'reader-slot: FAILED ({len(bad)} of {len(holders)} slot-holding axioms)', file=sys.stderr)
         return 1
+    if nscan < MIN_SCANNED:
+        print(f'reader-slot: FAILED: {nscan} axioms scanned, below the floor MIN_SCANNED = {MIN_SCANNED} '
+              f'(-v lists the unscanned)', file=sys.stderr)
+        return 1
     print(f'reader-slot: ok ({len(holders)} slot-holding axioms, each paid and paired, or allowed: '
-          f'{" ".join(sorted(holders))}; {len(ax) - nun} axioms scanned, {nun} unscanned)')
+          f'{" ".join(sorted(holders))}; {len(ax)} axioms in {len({(b, r) for _, b, r in ax})} files: '
+          f'{nscan} scanned (floor {MIN_SCANNED}), {nun} unscanned ({nthird} third-party, '
+          f'{nun - nthird} with no Go function of the name))')
     return 0
 
 
