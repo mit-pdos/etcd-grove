@@ -8,6 +8,10 @@ halves of the resources put together, and closes it with the new state.
   caller's make it whole), to the new file and the history with its `create`; on failure maybe.
 * `wp_osPWriteStart_cf`: idle to a write in flight, whose crash the caller shows `Good`.
 * `wp_osPWriteFinish_cf`: a write in flight to idle, `Good` by the caller's `FileOk`.
+
+The specs' loops (`Proof/os/Crash.lean`) use `openSt`/`OpenInv` (what an `open(O_CREAT)` loop may
+have made of the state: a failed attempt may have created the file) and `wa_step` (a write's
+attempt from `nn` keeps the narrowing and the bytes written so far).
 -/
 module
 
