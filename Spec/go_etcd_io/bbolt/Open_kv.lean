@@ -17,9 +17,11 @@ records which file the database is (`dbFile db path`), which `DB.Close_kv` gives
 
 (2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q2) Under
 `[ThreadBoundLe GF (2 ^ 29)]`, as the proved `Open.spec` (`notes/bbolt-spec-decisions.md`, D3): the
-read transactions each hold a thread's token (`DB.Begin_kv`), so fewer than `2 ^ 29` live threads
-keep `mmaplock`'s readers below `sync.RWMutex`'s `2 ^ 30` (`rwmutexMaxReaders`). Without it a
-thread could collect `2 ^ 30` tokens from forks that never exit.
+read transactions each hold a thread's token (`DB.Begin_kv`): paid readers ≤ tokens < `2 ^ 29`,
+and bbolt's transient readers (`View`, `freepages`: one per live thread, released within the call)
+< `2 ^ 29`, so `mmaplock`'s readers stay below `sync.RWMutex`'s `2 ^ 30` (`rwmutexMaxReaders`); hence
+`2 ^ 29` and not `2 ^ 30` (`notes/axiom-review/begin-tok-restated.md`). Without it a thread could
+collect `2 ^ 30` tokens from forks that never exit.
 -/
 module
 

@@ -36,8 +36,9 @@ at `Meta`'s compaction keys. Today's statement (without them) is the corollary
 
 (2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q1/Q2/Q4) The pre
 also takes the caller's `threadTok`: the snapshot's bbolt read transaction holds a reader slot of
-bbolt's `mmaplock` until `snapshot.Close`, which gives the token back; one token per open snapshot
-also pays for its warning goroutine, which lives exactly as long. Under
+bbolt's `mmaplock` until `snapshot.Close`, which gives the token back. The warning goroutine is a
+live thread, paid by its own fork's fuel; net, the caller is out one token per open snapshot until
+`Close` (`notes/axiom-review/begin-tok-restated.md`, A8). Under
 `[ThreadBoundLe GF (2 ^ 29)]`, `bbolt.Open_kv`'s bound. Until then the pre took no token and a
 proof could hold `2 ^ 30` open snapshots (`notes/axiom-review/backend-snapshot-begin.md`).
 -/

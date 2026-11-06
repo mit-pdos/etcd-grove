@@ -69,8 +69,10 @@ calls `b.db.Begin(false)` (`:386`), whose `beginTx` takes bbolt's `db.mmaplock.R
 backend's own lock, not `mmaplock`), until `snapshot.Close`'s `s.Tx.Rollback()` (`backend.go:1132`)
 reaches `removeTx`'s `db.mmaplock.RUnlock()` (`db.go:951`). Each open snapshot is so charged a
 thread's token, as `bbolt.DB.Begin_kv` charges a read transaction; the bound keeps the slots below
-`sync.RWMutex`'s `2 ^ 30` readers. The goroutine it starts (`backend.go:393`) lives until `Close`'s
-`<-s.donec` (`:1131`), as long as the read transaction: the same token pays for it (Q4). -/
+`sync.RWMutex`'s `2 ^ 30` readers (`bbolt.Open_kv`'s count). The goroutine it starts
+(`backend.go:393`, living until `Close`'s `<-s.donec`, `:1131`) is a live thread paid by its own
+fork's fuel; the caller's token pays the reader slot: net one token per open snapshot until `Close`
+(reviewed with the `axiom` skill, survives: `notes/axiom-review/begin-tok-restated.md`). -/
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
 
 end proof
