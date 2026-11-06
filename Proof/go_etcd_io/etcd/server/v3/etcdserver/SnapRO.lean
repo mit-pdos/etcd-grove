@@ -123,7 +123,9 @@ instance authApplyOkM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF)
 /-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
 receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
 pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
-lends; one write-back token per write, the reader's open share lent; the put into `Lease` (a
+lends; one write-back token per write, the reader's open share and the write right lent and given
+back (the coordinator's decision, 2026-11-06: until then the write right was in the write token,
+which a write consumes); the put into `Lease` (a
 tracked bucket, D22) with the lease bucket's part (`backend.rbPart d.γB (· = "lease")`, per bucket:
 the lessor's put writes `Lease` only; 2026-11-01, the backend-auth-split stage: until then the
 whole client half `backend.rbOwn`), given back with the record put (leases T3, L3c, 2026-10-27:
@@ -133,7 +135,7 @@ def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
     rwLens RW (lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (apply.bkRT d)
+    lease.lessorBackend lp Pk #f (backend.wbTok d.γB) iprop(apply.bkRT d ∗ RW)
       (backend.rbPart d.γB (· = go!"lease")))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by

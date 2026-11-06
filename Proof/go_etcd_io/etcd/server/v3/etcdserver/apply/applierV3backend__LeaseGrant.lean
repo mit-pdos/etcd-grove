@@ -54,7 +54,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   rw [Hli]
   wp_auto
   wp_apply HGrant $$ [$Hcs $HRW $Hown $Hrvk $Hwt $Hrt $Htie $Hgr] as %l %err
-    ⟨HPP, Hrt, Htie, ⟨%L', Hown, Hrvk, %HLL, Hl⟩, #HeI⟩
+    ⟨HPP, Hrt, Htie, -, ⟨%L', Hown, Hrvk, %HLL, Hl⟩, #HeI⟩
   ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk]
   · iunfold apply.leasesLive
     iexists L'

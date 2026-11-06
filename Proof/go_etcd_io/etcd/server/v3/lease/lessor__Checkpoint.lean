@@ -94,10 +94,11 @@ theorem lease.lessor.Checkpoint.wp_proof
       icases Hcs with ⟨HPre, -, -⟩
       iframe
       iright; iframe
-    · -- (S7c) `le.b`, read with the write token's fraction
-      ihave ⟨%dqb, Hb, Hwtk⟩ := Hlens $$ Hwtk
+    · -- (S7c) `le.b`, read with the lent resource `R`'s fraction (2026-11-06:
+    -- until then the write token's, which `LockInsideApply` consumes)
+      ihave ⟨%dqb, Hb, Hrtk⟩ := Hlens $$ Hrtk
       (try wp_auto)
-      ihave Hwtk := Hwtk $$ Hb
+      ihave Hrtk := Hrtk $$ Hb
       wp_apply (hPersist l b P f T R Rb rb Pre Q Post id t rem DFrac.discard DFrac.discard
         (DFrac.own 1))
         $$ [$Hpkg $Hbk $Hcs $Hwtk $Hrtk $HRb $HID $Httl $Hrem] as ⟨HPost, Hrtk, HRb, -, -, Hrem⟩

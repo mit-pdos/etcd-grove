@@ -360,7 +360,8 @@ current backend `B` (tied by `BT`), its hook `f`, the backend's write-back and r
 `bkWT B`/`bkRT B` in place of mvcc's `storeWT`/`storeRT`, decided by the coordinator): the txn
 package's `isTxnLessor`; `Grant` (a lease the lessor knows, `leaseTTLIs`), `Revoke`
 (`revokeClause`), `Checkpoint` under the batch lock, `Lookup` (nil or a lease, `leaseIs`). `Grant`
-and `Checkpoint` take the write right `RW` of the lease bucket. -/
+and `Checkpoint` take the write right `RW` of the lease bucket and give it back (the coordinator's
+decision, 2026-11-06: the lessor's backend lends `le.b` from the resource its writes give back). -/
 def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
     (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF) (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le (mvccLeases γ) ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
@@ -370,7 +371,7 @@ def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp
           lease.leaseRevokers (mvccLeases γ) L ∗ bkWT B ∗ bkRT B ∗ BT B ∗
           lease.leaseGranted (mvccLeases γ) id ∗ RW }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
-      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗
+      {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW ∗
           (∃ L' : List w64, lease.leaseOwn (mvccLeases γ) L' I ∗ lease.leaseRevokers (mvccLeases γ) L' ∗
             ⌜∀ x ∈ L, x ∈ L'⌝ ∗
             (⌜err ≠ GoInterface.nil⌝ ∨
@@ -380,7 +381,7 @@ def isApplyLessor (le : GoInterface) (γ : MvccName) (Pk : mvcc.KBReal → IProp
     □ (∀ (id rem : w64) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
       {{ csContractA (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ RW }}
         (App (App (Val #(methods li.ty go!"Checkpoint" li.v)) (Val #id)) (Val #rem))
-      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ applyErrIs err }}) ∗
+      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ bkRT B ∗ BT B ∗ RW ∗ applyErrIs err }}) ∗
     □ (∀ id : w64,
       {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
       {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}))

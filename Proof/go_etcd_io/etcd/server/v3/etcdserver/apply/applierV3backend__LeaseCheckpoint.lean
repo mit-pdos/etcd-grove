@@ -90,7 +90,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     wp_auto
     rw [Hli]
     wp_auto
-    wp_apply HCk $$ [$Hcs $HRW $Hwt $Hrt $Htie] as %err ⟨HPP, Hrt, Htie, #HeI⟩
+    wp_apply HCk $$ [$Hcs $HRW $Hwt $Hrt $Htie] as %err ⟨HPP, Hrt, Htie, -, #HeI⟩
     cases err with
     | nil =>
       wp_auto

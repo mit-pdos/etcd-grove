@@ -352,6 +352,21 @@ argument), `NewServer`/`SnapApplyIsServer` (`srvBeHooked`'s new conjunct), the `
 **Placeholders:** none added; `run_job_snap_cmp`'s `sorry` deleted, `SnapSendBranch`'s `M1-REPLACE`
 discharged. No axiom; no trust-boundary axiom's conclusion restated.
 
+**The lessor's backend write gives `le.b`'s half back** (the coordinator's decision, 2026-11-06, from
+the tester track): `lease.lessorBackend lp P f T R Rb`'s lens of the lessor's `b` field is over the
+lent resource `R` (every write gives it back), no longer the write token `T` (`LockInsideApply`
+consumes it): a client lending `lessorBeOn` in `T` could `Grant` once and never `Revoke` after.
+`lessor.Grant.spec`, `lessor.Checkpoint.spec`, `Lease.persistTo.spec`, `lessor.Revoke.spec`:
+statements unchanged (generic in `T`, `R`; `Revoke` takes `lessorBeOn` itself and gives it back);
+`Grant`'s and `Checkpoint`'s proofs read `le.b` through `R`. The server's `lessorApplyOk` (`SnapRO`):
+`T := wbTok d.γB`, `R := bkRT d ∗ RW` (was `T := wbTok ∗ RW`, `R := bkRT d`); `apply.isApplyLessor`'s
+`Grant` and `Checkpoint` clauses give `RW` back (their consumers, `applierV3backend.LeaseGrant` and
+`LeaseCheckpoint`, drop it). **A trust-boundary conclusion restated, for review:** `lease.NewLessor.spec`
+gives `lessorApplyOk lp`, whose instantiation this changes (docstring updated). Its builders, red, to
+adapt: `apply.LessorDerive.isApplyLessor_of_lessorInv`, `SnapApplyOptsLemmas.snap_isApplyLessor`,
+`NewServer`, `Results.lean`. Outside this track: the tester's `examples/mvccrand/WriterLease.lean`
+(`lessorBackend lp True #f T R …`: put `lessorBeOn` in `R`).
+
 **Left, in order:**
 1. **`applySnapshot`'s proof** (`SnapApplyWalk`, `SnapApplyPost`, `SnapApplyOpen`, `SnapApplyKV*`,
    `SnapApplyOpts*`, `SnapApplyIsServer`, `SnapApplyCloser`, `SnapApplyNames`, `SnapApplyRest`,

@@ -19,7 +19,8 @@ was for the store before `BackendBridge.lean`): not yet proved of the real backe
 
 `lessorBackend lp P f`: the lessor's `b` is such a backend (`newLessor` sets it; `Recover`,
 names-only, replaces it under the lessor's lock: D22 receiver epochs, S7c, the field half the
-lock's, half its user's, `lessorBeOn`, which the write token lends).
+lock's, half its user's, `lessorBeOn`, which the lent resource `R` lends, 2026-11-06; until then
+the write token).
 
 `lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
 returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
@@ -91,14 +92,18 @@ instance leaseBackend_persistent (b : GoInterface) (P : IProp GF) (f : val) (T R
     (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (leaseBackend b P f T R Rb) := by
   unfold leaseBackend; infer_instance
 
-/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the write token `T` lends a
+/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the lent resource `R` lends a
 fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23: the field is no
 longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
-the writes read `le.b` under the lessor's lock, holding the token. -/
+the writes read `le.b` under the lessor's lock, holding it. (The coordinator's decision,
+2026-11-06, from the tester track: `R`, which every write gives back, in place of the write token
+`T`, which `LockInsideApply` consumes; a client whose `T` held the lessor's user half of `le.b`,
+`lessorBeOn`, lost it at its first write, so could `Grant` once and never `Revoke` after. A client
+now lends `lessorBeOn` in `R`, and `T` is just the write-back's token.) -/
 def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ b : GoInterface, leaseBackend b P f T R Rb ∗
-    □ (T -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ T)))
+    □ (R -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ R)))
 
 instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (lessorBackend lp P f T R Rb) := by

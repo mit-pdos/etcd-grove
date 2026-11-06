@@ -85,7 +85,10 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   (`lessorExtra`), the caller gets the other (`lease.lessorBeOn lp d.be`); `persistTo(le.b)`
   reads it under the lock, so the writes go to the backend the caller's half names: the contract
   (`lessorApplyOk`) is for whichever backend that is (its contract at some `W`, `Pk`, its frozen
-  hook), given a write right lending that half of `le.b` (`rwLens`); `Recover`
+  hook), given a write right lending that half of `le.b` (`rwLens`), lent with the reader's token
+  and given back by every write (the coordinator's decision, 2026-11-06, from the tester track:
+  until then the write right was in the write token, which `LockInsideApply` consumes, so a write
+  lost the caller's half; the write token is now `wbTok` alone); `Recover`
   (names-only) replaces both halves under the lock. Until S7c `le.b` was `↦□` and the contract for
   `d` only, which `Recover` refutes.
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of
