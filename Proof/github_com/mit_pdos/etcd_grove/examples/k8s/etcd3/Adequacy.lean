@@ -24,10 +24,21 @@ assumptions of the Kubernetes packages and `Run`'s bounds on `clients` and `ops`
 facts the store asks of the driver's objects (`objTyOk`) and the driver's `errOut` of
 `*storage.StorageError` (`storageErrTyOk`: it has `Unwrap`) are theorems of those assumptions
 (`objTyOk_holds`, `storageErrTyOk_holds`).
+
+**Over three members** (`k8s_etcd3_cluster_adequate`, step 1 of "k8s etcd3 over cluster3" in
+`notes/k8s-etcd3-plan.md`, 2026-11-06): the same with `MainCluster(clients, ops)`, which starts a
+three-member cluster (`cluster3`, at `clusterCfg`) and connects the client to its bridges, as the
+partition example's `etcd_partition_adequate` (`etcd_adequate_members`, from the members' start
+bundles and the bridges' addresses) without the schedule. Its hypotheses are `k8s_etcd3_adequate`'s
+with the cluster's boot facts, premises (`cluster3.premises` at `clusterCfg`), nine addresses and
+three WAL directories (distinct) for the one member's.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
@@ -193,6 +204,101 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iframe
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
     (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
+  wp_apply hM $$ [Hstart Htok]
+  · iframe; iframe #
+  iintro %r %Hr
+  ipureintro
+  rcases Hr with rfl | rfl
+  · exact Or.inl rfl
+  · exact Or.inr rfl
+
+
+/-- The program with three members: `k8setcd3`'s initialization, then `MainCluster(clients, ops)`. -/
+def k8setcd3CProgram [GoSemanticsFunctions] (clients ops : w64) : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize' #() ;;
+  App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster)) (Val #clients))
+    (Val #ops)
+
+/-- The program's addresses: the three members' peer addresses, their client addresses, and the
+bridges' addresses (`clusterCfg`'s). -/
+def k8setcd3CAddrs : List GoString :=
+  [k8s_etcd3.clusterCfg.Peer1', k8s_etcd3.clusterCfg.Peer2', k8s_etcd3.clusterCfg.Peer3',
+    k8s_etcd3.clusterCfg.Client1', k8s_etcd3.clusterCfg.Client2', k8s_etcd3.clusterCfg.Client3',
+    k8s_etcd3.clusterCfg.Bridge1', k8s_etcd3.clusterCfg.Bridge2', k8s_etcd3.clusterCfg.Bridge3']
+
+/-- The members' WAL directories (`WALDir()` of their data directories `<name>.etcd`). -/
+def k8setcd3CWalDirs : List GoString :=
+  [config.walDirOf (k8s_etcd3.clusterCfg.Name1' ++ go!".etcd") go!"",
+    config.walDirOf (k8s_etcd3.clusterCfg.Name2' ++ go!".etcd") go!"",
+    config.walDirOf (k8s_etcd3.clusterCfg.Name3' ++ go!".etcd") go!""]
+
+/-- **The Kubernetes etcd3 store's linearizability instance over three members is safe** (see the
+file header): every real execution of `k8setcd3CProgram clients ops` from a fresh state with one
+thread, of `n` steps: if the main thread has finished, its result is `Ok` (porcupine found the
+history linearizable) or `Unknown` (a step before the check failed); no thread is stuck; no thread
+has ended in a panic. -/
+theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
+    [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
+    [k8s_io.apiserver.pkg.storage.value.Assumptions]
+    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [log.NewModel]
+    (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
+    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
+    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
+    (clients ops : w64)
+    (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
+    (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
+    (HNs : prometheus.namesUnclaimed (k8setcd3CProgram clients ops) k8setcd3Names)
+    (HAs : addrsUnclaimed (k8setcd3CProgram clients ops) k8setcd3CAddrs)
+    -- the members' WAL directories, distinct (`filepath.Join` is opaque here), hold no WAL at start
+    (HDsNd : k8setcd3CWalDirs.Nodup)
+    (HDs : walDirsAbsent (k8setcd3CProgram clients ops) k8setcd3CWalDirs)
+    (n : Nat)
+    (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
+      ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
+        id₁ id₂ id₃ ps ctxs boot)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([k8setcd3CProgram clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hn : n + 2 ≤ 2 ^ 28) :
+    (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  refine etcd_adequate_members (GF := k8setcd3GF)
+    github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster)) (Val #clients))
+      (Val #ops))
+    (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+      (fun h => intoVal_ne_PanicV _ p h.symm)) k8setcd3CAddrs (by decide) k8setcd3CWalDirs HDsNd
+    -- the cluster's members and its bridges; the program's address list is theirs up to order
+    -- (peers, then clients, then bridges)
+    (cluster3.members k8s_etcd3.clusterCfg) (cluster3.bridges k8s_etcd3.clusterCfg) (by decide)
+    (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+  letI : HeapGS .hasLC k8setcd3GF := k8setcd3HeapAt hG lctx
+  -- the compactor registry's name (`etcd3`'s package fact): the program registers no compactor,
+  -- so any name will do (as `k8s_etcd3_adequate`)
+  letI : EtcdGrove.k8s.CompactorRegistry := ⟨0⟩
+  haveI := Hctx hG
+  unfold progOk
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getIsPkgInit_wf, ?_⟩
+  ihave #Hprem' := Hprem hG
+  iintro #Hinit Htok Hres
+  ihave Hstart := cluster3.startRes_intro k8s_etcd3.clusterCfg $$ Hres
+  haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
+  haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
+  haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
+  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
+    (by unfold bootWB backend.wbInit; omega)
+    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

@@ -1296,6 +1296,49 @@ TLS cluster driver is a listener change.
 - **Qc-4.** Compaction off in both steps; the compacted list case is left to 7e. Recommended: yes.
 - **Qc-5.** Order: cluster3 step 1, then ServeHTTP, then cluster3 step 2. Recommended: yes.
 
+### k8s etcd3 over cluster3, step 1: as built (2026-11-06, etcd-grove-56, branch `k8s-cluster-s1`; Freeze package to the user via etcd-grove-82)
+
+**Go.** `MainCluster`/`clusterConfig` in `k8setcd3.go`:
+- token `k8setcd3c`, ports 24041-24063;
+- `kubernetes.New` of the three bridges, with `etcdstart`'s dial and keepalive timeouts and the
+  default retries.
+
+`TestMainCluster` is Ok, and `TestMemberIDs` passes.
+
+**Statements.**
+- `MainCluster.spec` and `clusterConfig.spec` are new.
+- The closed theorem `k8s_etcd3_cluster_safe` (`Results.lean`, from `k8s_etcd3_cluster_adequate`,
+  over `etcd_adequate_members`) is new.
+- `seed.spec`/`seedOne.spec` now take a member list `ms` (`ms ≠ []`, `[∗list]` of `kvRegsAt` and of
+  `seedInv`). `Main` instantiates them at `[x]`.
+- `k8s_etcd3_safe` and every store, client and server spec are unchanged.
+
+**Proof.**
+- The cluster side follows K6's `MainPartition`.
+- `seedInv`/`kInv` read `γk` only through `etcdKV` (`γk.st`), so one invariant at the first member's
+  names serves all three: `seedInvs_of_same`, `kInvs_of_same`.
+- `MainLinked.lean` is written by hand. The `k8setcd3` collection's roots cover it, and 32 existing
+  cluster axioms join the collection.
+- No new axiom or `sorry`.
+
+**Bounds.** `MainCluster.spec` takes the adequacy constants as instance binders
+(`[ThreadBoundLe GF (2^28)] [ReceiptBoundLe GF (2^48)] [ReceiptBoundLe GF (N+1)]`), the B1 form of
+`notes/bounds-plan.md`, as `examples/etcd/restart`'s `Main.spec`; `k8s_etcd3_cluster_adequate` builds
+them with `haveI`. The bounds baseline does not move. (The Freeze package first raised it by 3, as
+K6 did in `076cc37625`; the user, via etcd-grove-82, approved the Freeze on the condition that it
+did not.) `Main.spec` keeps its premises.
+
+**Noted, not fixed (2026-11-06, etcd-grove-82's review of the Freeze).**
+- `MainCluster`'s Go doc comment says a write is retried only after a refusal. That misses
+  clientv3's `isSafeRetryMutableRPC`, which also retries a mutable RPC on "no address/connection
+  available". There the request never left the client, so a write still reaches the servers at
+  most once and the proof's `clientWriteOnce` is unaffected; only the comment is incomplete.
+- The seed's `Put` runs on `context.Background()`, with no deadline. While the cluster has no
+  leader, it relies on the server's own request timeout to return.
+
+The size came in under the estimate: `MainCluster.lean` is ~330 lines, and Adequacy, Results and
+links ~200.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

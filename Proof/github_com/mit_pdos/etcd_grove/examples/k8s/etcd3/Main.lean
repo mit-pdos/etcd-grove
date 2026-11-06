@@ -239,8 +239,13 @@ theorem Main.wp_proof
   ihave #Hkc' := Hkc
   iStructNamed Hkc'
   (try wp_auto)
-  wp_apply (wp_seed cl x _ γs hAs) $$ [Hs] as %st0 %ok Hsd
-  · iframe #
+  ihave #Hregs1 : ([∗list] y ∈ [x], client.kvRegsAt y) $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iexact Hreg1
+  ihave #Hsi1 : ([∗list] y ∈ [x], seedInv γs y.γr.kv) $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iexact Hsi
+  wp_apply (wp_seed cl [x] _ γs hAs (by simp)) $$ [Hs] as %st0 %ok Hsd
+  · simp only [List.map_cons, List.map_nil]
+    iframe #
     iframe Hs
   icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
   · subst Hok
@@ -248,6 +253,7 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hok
   wp_auto
+  iclear Hregs1 Hsi1
   imod (seedInv_cancel γs ρ.rd.kv σs2) $$ [Hs] with Hetcd
   · iframe #
     iframe Hs

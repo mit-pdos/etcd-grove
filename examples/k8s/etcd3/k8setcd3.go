@@ -54,6 +54,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/value"
 
+	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 )
@@ -1108,6 +1109,58 @@ func Main(clients int, ops int) porcupine.CheckResult {
 	r := Check(s, st0, clients, ops, 0)
 	if r == porcupine.Illegal {
 		panic("k8setcd3: porcupine found the history not linearizable")
+	}
+	return r
+}
+
+// clusterConfig is MainCluster's three-member cluster (examples/lib/cluster3): its own token, names
+// and addresses, not the other examples', so that their tests can run at once.
+func clusterConfig() cluster3.Config {
+	return cluster3.Config{
+		Token: "k8setcd3c", Name1: "k8setcd3c-1", Name2: "k8setcd3c-2", Name3: "k8setcd3c-3",
+		Peer1: "127.0.0.1:24041", Peer2: "127.0.0.1:24042", Peer3: "127.0.0.1:24043",
+		Client1: "127.0.0.1:24051", Client2: "127.0.0.1:24052", Client3: "127.0.0.1:24053",
+		Bridge1: "127.0.0.1:24061", Bridge2: "127.0.0.1:24062", Bridge3: "127.0.0.1:24063",
+		SnapCount: 1, SnapCatchUp: 1,
+	}
+}
+
+// MainCluster is Main over a three-member cluster: it starts the cluster (cluster3.StartCluster),
+// connects a kubernetes client to the three members' bridges, configured as etcd's clients are in
+// practice (etcdstart.NewClients' timeouts and keepalive, the default retries: a write is retried
+// only after a refusal, which the members never send, so it is sent at most once), seeds the keys,
+// makes the store and runs Check; it panics if porcupine finds the history illegal. An error from a
+// step before Check ends MainCluster without a check.
+func MainCluster(clients int, ops int) porcupine.CheckResult {
+	lg := zap.NewNop()
+	cfg := clusterConfig()
+	_, _, ok := cluster3.StartCluster(cfg, lg)
+	if !ok {
+		return porcupine.Unknown
+	}
+	kc, err := kubernetes.New(clientv3.Config{
+		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
+		DialTimeout:          etcdstart.DialTimeout,
+		DialKeepAliveTime:    etcdstart.KeepAliveTime,
+		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
+		Logger:               lg,
+	})
+	if err != nil {
+		return porcupine.Unknown
+	}
+	st0, ok := seed(kc.Client)
+	if !ok {
+		return porcupine.Unknown
+	}
+	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
+		decoder{}, versioner{})
+	if err != nil {
+		return porcupine.Unknown
+	}
+	r := Check(s, st0, clients, ops, 0)
+	if r == porcupine.Illegal {
+		panic("k8setcd3: porcupine found the cluster's history not linearizable")
 	}
 	return r
 }
