@@ -4680,11 +4680,15 @@ theorem fieldShareAt_idx (s : Loc) (γ : StoreNames) (q : Qp) (o : StoreObjs) :
 /-- The number of the store's readers (`NewStore` hands out one reader per slot of its pool), the
 backend's reader tokens it holds: (2026-11-02, the backend-auth-split stage) the backend's counted
 stock (`backend.rdStockN`, past the backend's pool of `rdPoolN`); until then all the backend's
-`actualMaxReaders` slots. -/
-abbrev nReaders : Nat := backend.rdStockN
+`actualMaxReaders` slots. (Track A, 2026-11-06, the server's request, decided by the coordinator)
+Two fewer: the backend's opener keeps two counted reader slots for good (the server's apply thread's
+writes and its storage-version monitor, `etcdStorage_open.law`). -/
+abbrev nReaders : Nat := backend.rdStockN - 2
 
 /-- The store's readers' number (2026-11-02, the backend-auth-split stage). -/
-theorem nReaders_val : nReaders = 805306367 := backend.rdStockN_val
+theorem nReaders_val : nReaders = 805306365 := by
+  show backend.rdStockN - 2 = 805306365
+  rw [backend.rdStockN_val]
 
 /-- A lock's reader slots, as many as the store's readers (`nReaders`, the backend's stock: at most
 the slots; 2026-11-02, the backend-auth-split stage). -/
@@ -4692,7 +4696,7 @@ theorem rep_nReaders (P : IProp GF) :
     ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), P) ⊢
       [∗list] _x ∈ List.replicate nReaders (), P := by
   apply rep_le
-  exact backend.rdStockN_le
+  exact Nat.le_trans (Nat.sub_le _ _) backend.rdStockN_le
 
 /-- **A slot of the readers' pool** (D22 receiver epochs, S4, 2026-10-22; S5a: with the backend's
 reader token): a reader slot of the store's index's lock (of the objects `o`'s index; S5b: the

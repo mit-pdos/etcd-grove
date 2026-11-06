@@ -275,13 +275,15 @@ what a forced commit (`Commit`, a compaction's, a resumed one's) turns `X` into.
 /-- **What the store gives back of a storage it no longer uses** (sealed; `Restore`'s give-back of
 the old storage). -/
 @[no_expose] def storageRest (B : MvccStorage) : IProp GF :=
-  iprop([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen (B : KBReal).γB backend.rdOpen)
+  iprop([∗list] _x ∈ List.replicate nReaders (), backend.bOpen (B : KBReal).γB backend.rdOpen)
 
 /-- **The number of the store's readers** (sealed): a store admits at most this many threads. (Track
 A, `New.spec`, 2026-11-06: the backend's counted stock less three, the watchable store's two loops'
 and the compactor's reader slots, held for good, so that the readers' pool a watchable store's
-handle holds, `isMvccWatchable`, has a slot for every thread but one.) -/
-@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 3
+handle holds, `isMvccWatchable`, has a slot for every thread but one. The server's request,
+2026-11-06, decided by the coordinator: two fewer again, `rdStockN - 5`, the backend's opener keeping
+two counted slots for good, `etcdStorage_open.law`.) -/
+@[no_expose] def mvccReaderN : Nat := backend.rdStockN - 5
 
 /-- **A share `q` of the store's backend: it is `B`, its batch lock's invariant `Pk`**
 (fractional; `New`'s or `NewStore`'s, then `Restore`'s). Defined at stage 2 (M2, 2026-11-05;
@@ -322,9 +324,9 @@ compaction mode, `keySized`), and the payment rights. -/
     □ backend.isBackend bk.γB bk.P (lateW bk.gx) Pk bk.be ∗ □ (∀ γ b', keySized γ bk.P b') ∗
     backend.bViewC bk.γB 1 (backend.vData bk.P (D, ⟨∅, W64 0⟩)) true ∗
     backend.dlInit bk.γB ∗ backend.fkCl bk.γB bk.P D ∗ backend.srSlot bk.be ∗
-    backend.rdStock bk.γB bk.P bk.be ∗ lateReg bk.gx ∗
+    ([∗list] _x ∈ List.replicate nReaders (), backend.rdTok bk.γB bk.P bk.be) ∗ lateReg bk.gx ∗
     backend.wbTok bk.γB ∗ backend.wbTok bk.γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok bk.γB) ∗
-    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen))
+    ([∗list] _x ∈ List.replicate nReaders (), backend.bOpen bk.γB backend.rdOpen))
 
 /-- **What the post-lock hook `f` does** under the batch lock of invariant `P`, from the caller's
 `Pre`: `f`'s triple to `Q`, or with no hook (`nil`), the caller's view shift. -/

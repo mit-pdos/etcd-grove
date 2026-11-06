@@ -61,10 +61,10 @@ theorem etcdStorage_req (bk : KBReal) (Pk X Y : IProp GF) :
 
 theorem etcdStorage_rest (bk : KBReal) :
     storageRest (GF := GF) (etcdStorage bk) =
-      iprop([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen) :=
+      iprop([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen bk.γB backend.rdOpen) :=
   by rfl
 
-theorem mvccReaderN_eq : mvccReaderN = backend.rdStockN - 3 := by rfl
+theorem mvccReaderN_eq : mvccReaderN = backend.rdStockN - 5 := by rfl
 
 /-! ### etcd's backend's own vocabulary -/
 
@@ -150,8 +150,11 @@ registration, and the
 store's part of the backend's payment rights, in the backend's own terms: two write-back tokens (for
 `NewStore`'s own writes) and the receipt-paid supply every later write-back and the compaction's job
 draw on (`□ (⧗ 1 ={⊤}=∗ wbTok)`: on `lean` one stock, shared with the server's own writes, backs
-it), and the open shares of the counted stock's reader slots (`rdStockN` of `bOpen rdOpen`; the
-pool, `rdPool`, stays the client's), gives the store's resources and the client's rest. At boot they
+it), and the open shares of the store's counted reader slots (`rdStockN - 2` of `bOpen rdOpen`; the
+pool, `rdPool`, stays the client's), gives the store's resources and the client's rest, and two of
+the counted slots' tokens (`rdTok`) for the client's own long-lived readers (the server's request,
+2026-11-06, decided by the coordinator: its apply thread's writes and its storage-version monitor,
+each `rdTok ∗ bOpen rdOpen` with an open share the client keeps). At boot they
 come from `bFresh`; the snapshot path supplies them from where its proof holds them. `keySized` (fewer than `2 ^ 62` keys) stays an assumption,
 as today. (The design "mvcc's API over its storage abstraction", approved by the user,
 2026-11-06: in place of the API's `mvccBackendFor_open.law`, here, at a real instance `bk` in
@@ -163,8 +166,9 @@ abbrev etcdStorage_open.law : Prop :=
   □ (∀ γ b', keySized (GF := GF) γ bk.P b') ∗ mvccImage D L c u ∗
     backend.newPostKP bk.γB bk.P (fun _ => mvccW bk.gx) Pk K bk.be D ∗ mvccWReg bk.gx ∗
     backend.wbTok bk.γB ∗ backend.wbTok bk.γB ∗ □ (⧗ 1 ={⊤}=∗ backend.wbTok bk.γB) ∗
-    ([∗list] _x ∈ List.replicate backend.rdStockN (), backend.bOpen bk.γB backend.rdOpen) ={⊤}=∗
-    mvccStorageFor (etcdStorage bk) (Pk bk.γB) L c u ∗ backendRest bk.γB bk.P K bk.be D
+    ([∗list] _x ∈ List.replicate (backend.rdStockN - 2) (), backend.bOpen bk.γB backend.rdOpen) ={⊤}=∗
+    mvccStorageFor (etcdStorage bk) (Pk bk.γB) L c u ∗ backendRest bk.γB bk.P K bk.be D ∗
+    backend.rdTok bk.γB bk.P bk.be ∗ backend.rdTok bk.γB bk.P bk.be
 
 /-- **A fresh backend's data is the image of the empty history** (round 16: `New`'s and
 `NewStore`'s backend, `etcdStorage_open` at `mvccStart`): no change, so the receipt `⧖ 0`,

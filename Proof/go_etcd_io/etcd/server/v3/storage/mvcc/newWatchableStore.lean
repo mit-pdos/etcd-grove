@@ -223,8 +223,8 @@ theorem mvcc.newWatchableStore.wp_proof
   isplitl [Hok]
   · iexact Hok
   isplitr [Hstop Hab Hpn Hcr2 Hcr4 Htok Hnl Hlc]
-  · have hjr : mvcc.nJobRd kb ≤ backend.rdStockN := by
-      have := backend.rdStockN_val; have := mvcc.nJobRd_le kb; omega
+  · have hjr : mvcc.nJobRd kb ≤ mvcc.nReaders := by
+      have := mvcc.nReaders_val; have := mvcc.nJobRd_le kb; omega
     ihave Hmus := mvcc.rep_nReaders _ $$ Hmus
     icases mvcc.rep_sub _ (mvcc.nJobRd kb) _ hjr $$ Hmus with ⟨Hmus, -⟩
     iapply mvcc.watchReaders_of «$r0_ptr» st γ

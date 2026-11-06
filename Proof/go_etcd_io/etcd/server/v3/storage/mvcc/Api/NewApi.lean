@@ -88,8 +88,8 @@ theorem New.wp_proof
     hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP bk hP Pk γl γi
     $$ [$Hbpkg $Hsch $Hb $Hsz1 $Hreg $Hfv]
   imod ghost_map_alloc_empty (K := w64) (V := Log) (GF := GF) with ⟨%γok, Hok0⟩
-  ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be backend.rdStockN $$ [Hrs Hopen]
-  · iunfold backend.rdStock at Hrs; iframe Hrs Hopen
+  ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be nReaders $$ [Hrs Hopen]
+  · iframe Hrs Hopen
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   have hsv : storageVal (bk : MvccStorage) =
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -129,17 +129,18 @@ theorem New.wp_proof
   iunfold writerFrag at Hfrag
   icases Hfrag with ⟨%o, Hcur⟩
   rw [hjr]
-  have hn : backend.rdStockN - 1 - 2 = (backend.rdStockN - 4) + 1 := by
-    have : 4 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+  have hn : nReaders - 1 - 2 = (nReaders - 4) + 1 := by
+    have : 4 ≤ nReaders := by rw [nReaders_val]; omega
     omega
   rw [hn, List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hrds with ⟨Hrd1, Hrds⟩
   iunfold watchReader at Hrd1
   icases Hrd1 with ⟨Hrd1, -⟩
   imod storeReader_retire st γw.st _ o 1 $$ Hlc1 Hs Hcur Hrd1 Hret with ⟨HRT, -, Hcur⟩
-  have hpool : threadBound GF ≤ (backend.rdStockN - 4) + 1 := by
-    have h1 : mvccReaderN = backend.rdStockN - 3 := rfl
-    have : 4 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+  have hpool : threadBound GF ≤ (nReaders - 4) + 1 := by
+    have h1 : mvccReaderN = backend.rdStockN - 5 := rfl
+    have h2 : nReaders = backend.rdStockN - 2 := rfl
+    have : 6 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
     omega
   imod threadPool.init watchRdPoolN (watchReader ws st γw) ⊤ _ hpool $$ Hrds with ⟨%γp, #Hpool⟩
   have hrb' : receiptBound GF ≤ 2 ^ 63 - 2 := by omega

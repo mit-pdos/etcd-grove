@@ -104,7 +104,7 @@ its backend's batch lock (`writerReg`) and the client's parts of the API's ghost
 (`api.newClient`: the API's constructors' `mvccState`, `mvccOpen`'s quarter, the share token, the
 location), and a later credit (the API's constructor retires a reader with it).
 (the backend-auth-split stage, 2026-11-02) The backend's reader tokens it takes are the backend's
-counted stock (`backend.rdStockN`, past the backend's pool), the readers it gives counted from it;
+counted stock less the opener's two (`nReaders`, past the backend's pool), the readers it gives counted from it;
 until then all `actualMaxReaders` of them. -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ [ReceiptBoundLe GF (2 ^ 48)] (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
@@ -116,7 +116,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.storeBackend b s γ P) ∗
       mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbNoDelOff kb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       mvcc.kbSRM kb ∗
-      ([∗list] _x ∈ List.replicate backend.rdStockN (), mvcc.kbRT kb) ∗
+      ([∗list] _x ∈ List.replicate mvcc.nReaders (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗ lease.rdOwn γl rd0 ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
@@ -132,7 +132,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
-      ([∗list] _x ∈ List.replicate (backend.rdStockN - mvcc.nJobRd kb) (),
+      ([∗list] _x ∈ List.replicate (mvcc.nReaders - mvcc.nJobRd kb) (),
         mvcc.storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗

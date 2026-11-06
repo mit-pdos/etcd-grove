@@ -150,8 +150,8 @@ theorem NewStore.wp_proof
     hLI hLO hSP hUL hbUR hCB hDel hID hName hSafe hLSR hUSR hUP bk hP Pk γl γi
     $$ [$Hbpkg $Hsch $Hb $Hsz1 $Hreg $Hfv]
   imod ghost_map_alloc_empty (K := w64) (V := Log) (GF := GF) with ⟨%γok, Hok0⟩
-  ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be backend.rdStockN $$ [Hrs Hopen]
-  · iunfold backend.rdStock at Hrs; iframe Hrs Hopen
+  ihave Hrts := bkRTx_of_rdToks bk.γB bk.P bk.be nReaders $$ [Hrs Hopen]
+  · iframe Hrs Hopen
   haveI : ReceiptBoundLe GF (2 ^ 48) := ⟨hrb⟩
   have hsv : storageVal (bk : MvccStorage) =
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -192,8 +192,8 @@ theorem NewStore.wp_proof
   -- a reader retired from the pool for the open token's reader (the compactor's)
   iunfold writerFrag at Hfrag
   icases Hfrag with ⟨%o, Hcur⟩
-  have hn : backend.rdStockN - nJobRd (some bk) = (backend.rdStockN - nJobRd (some bk) - 1) + 1 := by
-    have : 2 ≤ backend.rdStockN := by rw [backend.rdStockN_val]; omega
+  have hn : nReaders - nJobRd (some bk) = (nReaders - nJobRd (some bk) - 1) + 1 := by
+    have : 2 ≤ nReaders := by rw [nReaders_val]; omega
     have : nJobRd (some bk) ≤ 1 := nJobRd_le (some bk)
     omega
   rw [hn, List.replicate_succ]

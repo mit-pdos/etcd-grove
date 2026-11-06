@@ -885,3 +885,10 @@ frozen statement changed (`notes/mvcc-migration/v3rpc.md`).
 `⌜ctx = todo⌝ ∨ context.isContext ctx cd` (a weaker premise), with `trace.SpanFromContext`'s axiom
 weakened the same way (`notes/decisions.md`); the tester's `register` passes `context.TODO()`.
 
+**`mvccReaderN`, refined again, 2026-11-06: the server's request, decided by the coordinator.**
+`backend.rdStockN - 5`: the backend's opener keeps two counted reader slots for good (the server's
+apply thread's writes under the batch lock and its storage-version monitor, each `apply.bkRT d =
+rdTok ∗ bOpen rdOpen`), so `etcdStorage_open.law` takes `rdStockN - 2` open shares and gives the two
+`rdTok`s back beside `backendRest`; `mvccStorageFor` and `storageRest` hold `rdStockN - 2` (mvcc's
+`nReaders`). The statements of `New.spec`/`NewStore.spec` are unchanged in text; the premise is
+three slots stronger again, and the server's `threadBound ≤ 2 ^ 28` still meets it.

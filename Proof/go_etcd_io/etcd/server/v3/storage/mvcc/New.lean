@@ -65,8 +65,8 @@ theorem mvcc.New.wp_proof
     iexists W32 2, 0 + 2
     iframe Hctr Hauth
     ipureintro; decide
-  have hN : 2 ≤ backend.rdStockN - mvcc.nJobRd kb := by
-    have := backend.rdStockN_val
+  have hN : 2 ≤ mvcc.nReaders - mvcc.nJobRd kb := by
+    have := mvcc.nReaders_val
     have := mvcc.nJobRd_le kb
     omega
   icases mvcc.slots_take2 _ _ hN $$ Hreaders with ⟨Hr1, Hr2, Hreaders⟩
