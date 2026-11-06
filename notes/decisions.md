@@ -33384,3 +33384,34 @@ until the fix lands, and then it rebases onto the fix.
 - (c) Restating the server's specs to take the description the server re-reads. Connecting what a
   handler knows to what the server reads needs stability anyway.
 
+
+## mvcc's API: the store's readers as client-held tokens, so a client can close the backend (2026-11-06 · the user · branch `mvcc-api` · supersedes in part "shutdown out of scope" of 2026-11-03)
+
+**Why.** Merging `lean` brought R-D1's one-shot close and the restart work: `NewServer`'s error path
+and `EtcdServer.Cleanup` run `kv.Close()` then `be.Close()`, and `backend.Close` needs the whole open
+token `bOpen γ 1`; since R2c-4 every server result goes through `run` → `Cleanup`. Over the API the
+storage's reader slots (each with its `bOpen rdOpen` share) were in a persistent thread pool inside
+`isMvcc`, borrowed by any `threadTok`, and `KV.Close` posted `True`, so no client could rebuild
+`bOpen 1`. Reading concurrently with mvcc's `Close` (or after it) is not a bug: `store.Close` and
+`watchableStore.Close` stop mvcc's goroutines and touch no backend; the bug is closing the backend
+under a read (`issues/etcd-read-after-backend-close-panic.md`), which only the client can rule out,
+by knowing its reads are done. The pool's anonymous borrows could not express that.
+
+**Decision (the user: "Do reader tokens for now. I'm not convinced we really should be tracking so
+carefully the numbers of threads here and there, but if it'll make the proof work and maintain the
+important aspects of the spec (the logatom updates for mvcc), then it's ok").** A counted, exclusive
+token `mvccReaders γ n` (sealed; `mvccReaders γ (n + m) ⊣⊢ mvccReaders γ n ∗ mvccReaders γ m`):
+- `New`/`NewStore` post `mvccReaders γ mvccReaderN`;
+- each contract whose proof borrows a backend reader slot (the readers' supply of a plain store, the
+  watchable handle's `watchReader` pool) also takes `mvccReaders γ 1` and gives it back (`KV.Read`'s
+  transaction holds it until `End`); `threadTok` stays where it is (it pays for the store's own
+  locks' and the watch tokens' pools);
+- the slots live in the store's invariant at the current storage; a token is the right to borrow
+  one, so the borrows are counted; `Restore` (which waits out every transaction under `s.mu`) swaps
+  the old storage's slots for the new one's, the tokens unchanged (keyed on `γ`);
+- `Close`: a law turning `Close`'s post, `mvccReaders γ mvccReaderN` and the storage's whole share
+  (`mvccBackend γ 1 B Pk`) into the storage's rest (`storageRest B Pk`, whose `bOpen` shares the
+  bridge gives back for etcd's backend), so the server's census works as on `lean`.
+- No atomic update (`AU`) of any contract changes. `threadBound ≤ mvccReaderN` stays only where a
+  proof still needs it. Kept no heavier than the shutdown proof needs; to revisit if Perennial gets a
+  lighter way to count readers (the user doubts the counting is worth it).

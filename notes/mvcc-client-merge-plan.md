@@ -31,7 +31,7 @@ this branch's 3-day-old copies of the clients and then merging would do the work
 
 Four read-only investigations (2026-11-06), each against `lean`'s clients and the API's text.
 
-1. **Shutdown (certain; needs the user's decision).** `lean`'s server rebuilds the backend's whole open
+1. **Shutdown (certain; decided 2026-11-06, the user: option (A), reader tokens; `notes/decisions.md`, "mvcc's API: the store's readers as client-held tokens").** `lean`'s server rebuilds the backend's whole open
    token `bOpen γB 1` for `backend.Close` by a census of every store reader (`NewServer`'s error path
    after `Transport.Start` fails, `NewServer.lean:1137-1185`; `EtcdServer.Cleanup.spec`'s `wsCloseRes
    st γ ={⊤}=∗ bOpen d.γB 1`, built by `StopShutdown.lean`'s `stop_census`; restart's `bFile`/`fileHolds`).
@@ -88,6 +88,8 @@ Packages by risk of an API change: the server's stop and boot (1) ≫ txn/v3rpc'
 backend bridge (3) > lease (4) > compactor examples (6) > the rest (7).
 
 ## The plan
+
+**Status (2026-11-06).** M0 and M1 done (merge `5bb0d2ba97`; per-track reports `notes/mvcc-merge/`); mvcc builds without `sorry`; txn, lease, auth repaired (R1, `notes/mvcc-merge/r1.md`); next: the reader tokens in mvcc's API, then the apply chain, the server, v3rpc, client/v3, the examples.
 
 **M0. Set aside what is not this work** (done first): the tracing cluster and `mvccrand`'s
 `runChecks` drafts left uncommitted in the worktree by stopped agents, committed to
