@@ -117,6 +117,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__revokeExpiredLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
@@ -199,6 +200,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserGet
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserGrantRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserList
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserRevokeRole
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__WithRoot
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
@@ -1307,6 +1309,10 @@ theorem TxnRequest.wp_GetFailure :
 theorem bcrypt.wp_GenerateFromPassword :
     bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG) :=
   bcrypt.GenerateFromPassword.wp_proof
+
+theorem auth.authStore.wp_WithRoot :
+    auth.authStore.WithRoot.spec (GF := GF) (hG := hG) :=
+  auth.authStore.WithRoot.wp_proof
 
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
@@ -2718,6 +2724,10 @@ theorem v3alarm.wp_NewAlarmStore :
 theorem EtcdServer.wp_restoreAlarms :
     EtcdServer.restoreAlarms.spec (GF := GF) (hG := hG) :=
   EtcdServer.restoreAlarms.wp_proof schema.wp_NewAlarmBackend v3alarm.wp_NewAlarmStore
+
+theorem EtcdServer.wp_revokeExpiredLeases :
+    EtcdServer.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
+  EtcdServer.revokeExpiredLeases.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_Logger EtcdServer.wp_ensureLeadership EtcdServer.wp_MemberID EtcdServer.wp_LeaseRevoke auth.authStore.wp_WithRoot zap.wp_Uint64 zap.wp_String zap.wp_Error zap.Logger.wp_Warn fmt.wp_SprintfID
 
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=

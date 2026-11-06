@@ -258,15 +258,25 @@ def raftPoolN : Namespace := nroot .@ "rafthttp_raft_pool"
 /-- **The receiver's pool of `R`s** (persistent): a thread pool (Perennial's `threadPool`) of the
 resources its `Raft`'s `Process` borrows, from which a goroutine that calls `Process` borrows one
 with its thread token for its life (`raftPool_borrow`) and gives it back when it exits
-(`raftLoan_giveBack`), so no copy is ever lost; the transport's (`trFixed`), given to `Start`. -/
-def raftPool (R : IProp GF) : IProp GF := iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R)
+(`raftLoan_giveBack`), so no copy is ever lost; the transport's (`trFixed`), given to `Start`.
+(revoke-open Q3 (i), 2026-11-06) At level 1 (`threadPool.isThreadPoolL`): a holder of a whole token
+lends its level 1 (`raftPool_borrow`), a holder of level 1 alone borrows with it
+(`raftPool_borrowL`: `GoAttach`'s stopped branch, the revocation's outer goroutine). -/
+def raftPool (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R)
 
 instance raftPool_persistent (R : IProp GF) : Persistent (raftPool R) := by
   unfold raftPool; infer_instance
 
-/-- **An `R` lent out by the pool** (exclusive): what a borrower gives back with the `R`. -/
+/-- **An `R` lent out by the pool for a whole thread token** (exclusive): what a borrower gives back
+with the `R`: the loan and (revoke-open, 2026-11-06) the token's levels not lent. -/
 def raftLoan (R : IProp GF) : IProp GF :=
-  iprop(∃ γ : GName, threadPool.isThreadPool raftPoolN γ R ∗ threadPool.ownThreadLoan γ)
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R ∗ threadPool.ownThreadLoan γ ∗
+    levelTok 0 ∗ threadTokFrom 2)
+
+/-- **An `R` lent out by the pool for a level-1 token** (exclusive; revoke-open, 2026-11-06). -/
+def raftLoanL (R : IProp GF) : IProp GF :=
+  iprop(∃ γ : GName, threadPool.isThreadPoolL raftPoolN 1 γ R ∗ threadPool.ownThreadLoan γ)
 
 end defs
 
@@ -275,11 +285,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- A pool from `n` copies of `R`, `threadBound GF ≤ n + 1` (`threadPool.init`). -/
+/-- A pool from `n` copies of `R`, `threadBound GF ≤ n + 1` (`threadPool.initL`). -/
 theorem raftPool_init (R : IProp GF) (E : CoPset) (n : Nat) (Hn : threadBound GF ≤ n + 1) :
     ([∗list] _x ∈ List.replicate n (), R) ⊢ |={E}=> raftPool R := by
   iintro HR
-  imod threadPool.init raftPoolN R E n Hn $$ HR with ⟨%γ, #Hp⟩
+  imod threadPool.initL raftPoolN 1 R E n Hn $$ HR with ⟨%γ, #Hp⟩
   imodintro
   iunfold raftPool
   iexists γ
@@ -291,7 +301,9 @@ theorem raftPool_borrow (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
   iintro ⟨Hlc, #Hp, Htt⟩
   iunfold raftPool at Hp
   icases Hp with ⟨%γ, #Hp⟩
-  imod threadPool.borrow_lc raftPoolN γ R E HN $$ [Hlc Hp Htt] with ⟨HR, Hl⟩
+  icases (threadTok_level0 (GF := GF)).1 $$ Htt with ⟨H0, Ht1⟩
+  icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Ht1 with ⟨H1, H2⟩
+  imod threadPool.borrowL_lc raftPoolN 1 γ R E HN $$ [Hlc Hp H1] with ⟨HR, Hl⟩
   · iframe; iframe #
   imodintro
   iframe HR
@@ -304,8 +316,36 @@ theorem raftLoan_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) 
     raftLoan R ∗ R ⊢ |={E}=> threadTok := by
   iintro ⟨Hl, HR⟩
   iunfold raftLoan at Hl
+  icases Hl with ⟨%γ, #Hp, Hl, H0, H2⟩
+  imod threadPool.giveBackL raftPoolN 1 γ R E HN $$ [Hp Hl HR] with H1
+  · iframe; iframe #
+  imodintro
+  iapply (threadTok_level0 (GF := GF)).2
+  iframe H0
+  iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2
+  iframe
+
+/-- **Borrow an `R`** with a level-1 token (and a later credit; revoke-open, 2026-11-06). -/
+theorem raftPool_borrowL (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    £ 1 ∗ raftPool R ∗ levelTok 1 ⊢ |={E}=> R ∗ raftLoanL R := by
+  iintro ⟨Hlc, #Hp, H1⟩
+  iunfold raftPool at Hp
+  icases Hp with ⟨%γ, #Hp⟩
+  imod threadPool.borrowL_lc raftPoolN 1 γ R E HN $$ [Hlc Hp H1] with ⟨HR, Hl⟩
+  · iframe; iframe #
+  imodintro
+  iframe HR
+  iunfold raftLoanL
+  iexists γ
+  iframe; iframe #
+
+/-- **Give an `R` borrowed with a level-1 token back**, for the token (revoke-open, 2026-11-06). -/
+theorem raftLoanL_giveBack (R : IProp GF) (E : CoPset) (HN : ↑raftPoolN ⊆ E) :
+    raftLoanL R ∗ R ⊢ |={E}=> levelTok 1 := by
+  iintro ⟨Hl, HR⟩
+  iunfold raftLoanL at Hl
   icases Hl with ⟨%γ, #Hp, Hl⟩
-  iapply threadPool.giveBack raftPoolN γ R E HN $$ [Hp Hl HR]
+  iapply threadPool.giveBackL raftPoolN 1 γ R E HN $$ [Hp Hl HR]
   iframe; iframe #
 
 end pool

@@ -707,6 +707,12 @@ def AEnv.authOn (E : AEnv GF) : Bool := E.authMode.isOn
 
 theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
 
+/-- With auth off, the mode is `off` (revoke-open review round 1, NIT 3.3, 2026-11-06: until then a
+conjunct of the revocation's bundle). -/
+theorem AEnv.authMode_off_of_authOn (E : AEnv GF) (h : E.authOn = false) :
+    E.authMode = auth.AuthMode.off :=
+  (auth.AuthMode.isOn_false_iff _).1 h
+
 /-- **The apply thread's half of the lessor's live set `L`** (the lease-grant stage, 2.0,
 2026-11-03): in a cluster that grants leases (`E.lg`), half of `E.γlt` at `L`; `True` otherwise
 (`ltHalf_false`). Its two holders tie the image's lease records to the lessor's live set. -/

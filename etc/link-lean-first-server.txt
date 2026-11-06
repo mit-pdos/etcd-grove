@@ -953,3 +953,7 @@ bytealg_LastIndexByteString:
 path_lazybuf__index:
 path_lazybuf__append:
 path_lazybuf__string:
+# (revoke-open pass 2, 2026-11-06) the revocation of expired leases (`run`'s expiry arm), and the
+# auth store's `WithRoot` its inner goroutines call
+auth_authStore__WithRoot:
+EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn fmt_SprintfID

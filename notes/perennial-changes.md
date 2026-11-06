@@ -1866,3 +1866,34 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   spec that states the wrapped errors. Without `%w` the present model (`errors.New`) is faithful
   up to the message's formatting.
 - **Status.** Recorded only.
+
+## `iframe` over a large `List.replicate` materializes the list (2026-11-06, revoke-open)
+
+- **What happened.** A bare `iframe` in revoke-open's `NewServer.lean` (the goal two `[∗list] _ ∈
+  List.replicate srvRevokePoolN ()` conjuncts, `2 ^ 28 - 1` copies each) tried every hypothesis of
+  the context against them; on a big-list hypothesis whose element did not match, the unifier
+  unfolded `[∗list]` and built `List.replicate (2 ^ 28 - 1) ()` element by element: 80 GB of RSS
+  after 36 minutes before it was killed (a normal compile of the file peaks at 5.4–5.8 GB).
+- **Local workaround.** Frame explicitly (`isplitl [H]; · iexact H; · iexact H'`); never a bare
+  `iframe`, or any search over the whole context, where a `[∗list]` over a large replicate is in
+  scope.
+- **Proposed (general; record only, nothing changed in Perennial).** `iframe`'s candidate matching
+  should not unfold big separating lists: match a `[∗list]` hypothesis against a `[∗list]` goal only
+  syntactically (same list term, same element up to reducible unfolding), or with the unifier at
+  reducible transparency, so that a mismatch fails fast instead of reducing `List.replicate n` for a
+  literal `n`.
+- **Status.** Recorded only.
+
+## `wp_apply` of a hypothesis spec can give up silently, leaving a `sorry` (2026-11-06, revoke-open)
+
+- **What happened.** In revoke-open's `EtcdServer__revokeExpiredLeases.lean`, `wp_apply hWR stl
+  E.RD (GoInterface.ok ctx)` (a callee spec taken as a hypothesis, `authStore.WithRoot`'s) failed
+  without an error: the declaration only got the warning "declaration uses sorry". A proof author
+  who reads errors only would take it for done; `etc/tcb-report.py` and the build's sorry warnings
+  catch it.
+- **Local workaround.** `wp_bind (App (Val _) (Val #(GoInterface.ok ctx)))`, then `iapply hWR …
+  $$ [IRD] …`.
+- **Proposed (general; record only, nothing changed in Perennial).** When `wp_apply` cannot use the
+  term it is given, it should fail with an error naming the mismatch, never close the goal with an
+  admitted proof.
+- **Status.** Recorded only; not reduced to a minimal example.

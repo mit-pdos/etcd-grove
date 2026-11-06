@@ -153,7 +153,7 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨Hms, -⟩
   icases Hms with ⟨Hs₁, Hs₂, Hs₃, -⟩
-  have hM := etcd_putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ps ctxs boot Hbf (by rw [HT]; omega)
+  have hM := etcd_putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ps ctxs boot Hbf (by rw [HT]; word)
     (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hs₁ Hs₂ Hs₃ Htok]
   · iframe; iframe #

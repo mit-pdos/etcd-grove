@@ -271,18 +271,6 @@ theorem run_job_body_match (γs : ServerRaftNames) (dv : Option Loc) :
       srvRunH (GF := GF) γs dv := by
   cases dv <;> rfl
 
-/-- (open, the lease-expiry plan's Part E, decided 2026-11-04; its P1) **The open case of a
-revocable-lease cluster** (`srvRevokeOpen`, `LeaseRun.lean`: `EtcdServer.revokeExpiredLeases.spec`,
-`run`'s expiry arm): not proved. Its proof waits on thread tokens by level (the plan's P1:
-`revokeExpiredLeases` attaches a goroutine with `GoAttach` whose `LeaseRevoke` proposals the apply
-thread serves), and the spec itself is to be restated (the plan's "Plumbing: Part E", the
-`srvRevokeOpen` analysis). `run` does not use it: it takes the case as `lease.runCfg`'s revocable
-conjunct; only a revocable-lease result (`etcd_leaseexpiry.wp_Main`) uses this theorem, so it is in
-their trust base only. A theorem here rather than a `sorry` proof of `revokeExpiredLeases` itself,
-so that no proof of it enters the server's `Link.lean` before the spec is restated. -/
-theorem srvRevokeOpen_open : srvRevokeOpen (GF := GF) (hG := hG) := by
-  sorry
-
 /-- **A snapshot payload's job** (J8b, 2026-11-01; `s.applyAll(&ep, &ap)` on raft's snapshot
 payload, `rnApplyTok_recv`'s second case): from the apply thread's resources at the log `A`
 (`applyRes`) and the payload that jumps raft's log to `A'` (`|A| < |A'|`, of length the snapshot's
@@ -758,7 +746,7 @@ theorem EtcdServer.run.wp_proofG
     (hSch : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG)) :
     EtcdServer.run.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM C E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ dd c
-  wp_start as ⟨%hP, Hpre⟩
+  wp_start as ⟨%hP, Hpre, Htok⟩
   obtain ⟨hM, hRB⟩ := hP
   iunfold isServerRunC at Hpre
   iNamed Hpre
@@ -1328,14 +1316,18 @@ theorem EtcdServer.run.wp_proofG
       iexfalso; ipureintro
       exact Hnx (lease.runCfg_noExpiry Hmo)
     | revocable =>
-      have hrev := srvRevokeOpen_spec (lease.runCfg_revoke Hmo)
+      -- (revoke-open, 2026-11-06) the revocation with `#Hrvk` and the loop's thread token
+      obtain ⟨hlev, hrevo⟩ := lease.runCfg_revoke Hmo
+      have hrev := srvRevokeOpen_spec hrevo
+      have hlm : ρ.rd.kv.lm = .revocable := by rw [Hlgt.1]; exact lease.runCfg_lm Hmo
       ihave #Hfa : srvFieldsAt s γ ci TM E ρ fv $$ []
       · rw [← srvFieldsAtM_false, ← hCoff]; iexact Hfv
       ihave #Hpe : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
       · iPkgInit
       (try wp_auto)
-      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ []
-      · iframe #
+      wp_apply hrev s γ ci TM E ρ fv γr γg γcx v _ ls $$ [Htok] as Htok
+      · iframe #; iframe Htok
+        ipureintro; exact ⟨hlm, hlev⟩
       (try wp_auto)
       wp_for_post
       iframe
@@ -1453,7 +1445,7 @@ theorem EtcdServer.run.wp_proofG
     · imodintro; iunfold srvDoneInv; iexact Hdi
     (try wp_auto)
     iapply HΦ
-    itrivial
+    iexact Htok
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

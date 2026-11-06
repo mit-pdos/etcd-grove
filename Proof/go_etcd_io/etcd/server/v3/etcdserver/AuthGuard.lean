@@ -188,6 +188,19 @@ def srvAuthAt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
 instance srvAuthAt_persistent (s : Loc) (E : apply.AEnv GF) : Persistent (srvAuthAt s E) := by
   unfold srvAuthAt; infer_instance
 
+/-- **The server's auth store and its contract** (revoke-open review round 2, N5, 2026-11-06): the
+`authStore` field's value and `apply.isAuthStore` of it, the part of `srvAuthAt` a client that calls
+the store directly takes (the revocation's `WithRoot`), so that it does not open `srvAuthAt`. -/
+theorem srvAuthAt_isAuthStore (s : Loc) (E : apply.AEnv GF) :
+    srvAuthAt s E ⊢ ∃ (st : GoInterface) (P : IProp GF) (f : val),
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗
+        apply.isAuthStore st E.γ P f E.RD E.authMode E.RW := by
+  iintro #H
+  iunfold srvAuthAt at H
+  icases H with ⟨%st, %cca, %P, %f, #Hst, -, -, -, #HAS⟩
+  iexists st, P, f
+  iframe Hst; iexact HAS
+
 /-- **`IsAdminPermitted(nil)` on the server `s`'s store** (persistent; the premise). -/
 def srvAdminNilOk (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ st : GoInterface, structFieldRef EtcdServer go!"authStore" s ↦□ st ∗

@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__start
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__adjustTicks
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
@@ -89,8 +90,8 @@ theorem EtcdServer.Start.wp_proof
   icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, -, -, -, -, -, -, -,
     #Hstpf, -⟩
   -- `func() { s.adjustTicks() }`
-  wp_apply hGA s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
@@ -100,8 +101,8 @@ theorem EtcdServer.Start.wp_proof
     iapply HΦ'
     try itrivial
   -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych`
-  wp_apply hGA s γg _ (srvReadyCloser s) $$ [Hgr Hlg Hrc] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hrc
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvReadyCloser s) $$ [Hgr Hrc] as Hgr
+  · iframe Hgr Hrc
     iintro !> %Φ' ⟨Hrc, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
@@ -112,8 +113,8 @@ theorem EtcdServer.Start.wp_proof
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`
-  wp_apply hGA s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
@@ -122,8 +123,8 @@ theorem EtcdServer.Start.wp_proof
     iapply HΦ'
     try itrivial
   -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }`
-  wp_apply hGA s γg _ (srvLgReader s) $$ [Hgr Hlg Hlgm] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hlgm
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgm] as Hgr
+  · iframe Hgr Hlgm
     iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
@@ -134,8 +135,8 @@ theorem EtcdServer.Start.wp_proof
     iapply HΦ'
     try itrivial
   -- `s.monitorClusterVersions`, `s.monitorStorageVersion`
-  wp_apply hGA s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
@@ -145,8 +146,8 @@ theorem EtcdServer.Start.wp_proof
     iapply HΦ'
     try itrivial
   -- (H2, 2026-11-05) with its receipt at `γg`, the budget's registered name
-  wp_apply hGA s γg _ (srvSVRes s E) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hsv
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvSVRes s E) $$ [Hgr Hsv] as Hgr
+  · iframe Hgr Hsv
     iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
     iunfold goRunning at Hrun
     wp_apply hMSV C.isOn s E { wait := γw, rd := ρ.rd } γp γg.run $$ [HL Hrun] as Hrun
@@ -157,10 +158,10 @@ theorem EtcdServer.Start.wp_proof
   -- `s.read.LinearizableReadLoop`, verified
   icases Hrl with ⟨%rd, #Hrdf, #Hrlp⟩
   wp_auto
-  wp_apply hGA s γg _ iprop(isReadLoopPre rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) (kvStM C.isOn γr.kv) ∗
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(isReadLoopPre rd γr Er.RQ (srvReadLR s) (idCred ρ.ids 1) (kvStM C.isOn γr.kv) ∗
       srvReadLR s ∗
-      □ (|==> idCred ρ.ids 1)) $$ [Hgr Hlg HLR] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg HLR Hrlp HNR
+      □ (|==> idCred ρ.ids 1)) $$ [Hgr HLR] as Hgr
+  · iframe Hgr HLR Hrlp HNR
     iintro !> %Φ' ⟨⟨#Hpre, HL, #HN⟩, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     ihave #Hpread : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read $$ []
@@ -173,8 +174,8 @@ theorem EtcdServer.Start.wp_proof
   -- (audit B4a) off: `srvMonitorsOff`
   iunfold srvMonitorsOff at Hoff
   icases Hoff with ⟨#Hcct, #Hdct, %fg, #Hfgf, #Hfgo⟩
-  wp_apply hGA s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
@@ -183,8 +184,8 @@ theorem EtcdServer.Start.wp_proof
     · iframe #
     iapply HΦ'
     try itrivial
-  wp_apply hGA s γg _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg
+  wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
+  · iframe Hgr
     isplitr
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
@@ -193,8 +194,8 @@ theorem EtcdServer.Start.wp_proof
     · iframe #
     iapply HΦ'
     try itrivial
-  wp_apply hGA s γg _ (srvLgReader s) $$ [Hgr Hlg Hlgd] as ⟨Hgr, Hlg⟩
-  · iframe Hgr Hlg Hlgd
+  wp_apply wp_GoAttach_tok hGA s γg _ (srvLgReader s) $$ [Hgr Hlgd] as Hgr
+  · iframe Hgr Hlgd
     iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_apply hDG s vd.lg $$ [HL]

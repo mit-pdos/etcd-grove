@@ -2422,6 +2422,12 @@ after a leadership change `TimeToLive`'s remaining `TTL` exceeds `GrantedTTL` (1
 
 ## Scope candidate: discharging `srvRevokeOpen_open` (2026-11-05; parked until S2–S4 lands)
 
+**Superseded** (2026-11-06) by `notes/revoke-open-plan.md` (its Scope, approved 2026-11-06, re-checks
+this design against lean after S2–S4, lease-mono3 and R2c, §9) and `notes/decisions.md`, "The revocation's
+thread levels". What changed: levels 0–3 and two bundled pools (`K = 4`) instead of 0–7 and five; the
+bound confined to the revocable run configuration (`T = max (n + 2) 4` in the etcd adequacy lemmas);
+`raftPool` at level 1, `GoAttach.spec` without `srvLgReader`. Kept below as the record.
+
 Status: a candidate, not yet brought to the user (etcd-grove-82 brings it when it is next in the queue). It is a
 stage of its own (spec-first: Scope → Freeze), after S2–S4, because both change `run` and `NewServer`.
 It takes the trust base from 4 sorries to 3. Below: the design (a read-only design agent), then the

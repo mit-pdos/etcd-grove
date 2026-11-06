@@ -35,6 +35,7 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.github_com.dustin.go_humanize.Bytes
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply

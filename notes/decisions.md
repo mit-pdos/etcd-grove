@@ -32548,7 +32548,8 @@ cluster3.go`). `holdToken` sleeps forever and touches no lock. The proof keeps t
 trusted model. Each member has one more idle goroutine, also in the clusters that grant no lease
 (the partition example and the k8s compactor). Their Go tests, and putget3's (which uses `alloc3`,
 not `cluster3`), pass as on `lean` (R1's condition, 82's), except partition's `TestFailover`, which
-hangs to the test's timeout on `lean` `6691b46860` too (rerun after R2c: `notes/lease-mono3-plan.md`).
+runs past its deadline on `lean` `6691b46860` too: the linearizability check of txnlin's model, not a hang
+(etcd-grove-82's diagnosis, `notes/lease-mono3-plan.md`, Draft pass 2(a)).
 
 **The callers at `none` rest on the lease branch's axioms.** `StartMember.spec` is one triple for
 every mode, and its one linked proof (`Link.lean`) takes the callees' specs of every branch, so the
@@ -32977,3 +32978,61 @@ batch straddling `i`, with a replayed conf entry, through `run`'s job and the vi
 before any statement is frozen; on a gap it stops with a proposal and nothing is frozen. R2d'b starts
 after the user's review, or after R2d'a's Freeze if the user is still away (82 decides then): the
 estimate went from 5-7 weeks to 10-14 (est.).
+
+## The revocation's thread levels: a confined level bound, two bundled pools, `GoAttach` by levels (2026-11-06 · revoke-open, the Scope approved as recommended (Q1 (a2), Q2 K = 4, Q3–Q8, Q10, Q11) by etcd-grove-82 under the user's delegation · branch `revoke-open`; DRAFT until revoke-open's Freeze)
+
+Supersedes the parked design in `notes/lease-expiry-plan.md`, "Scope candidate: discharging
+`srvRevokeOpen_open`" (2026-11-05). The plan: `notes/revoke-open-plan.md` (Scope; "Draft pass 1",
+the statements old → new).
+
+**Context.** `revokeExpiredLeases` (run's expiry arm) `GoAttach`es an outer goroutine that logs,
+checks leadership and, per lease, `GoAttach`es an inner goroutine that revokes it. Rounds overlap
+without bound, so every reader slot those goroutines take comes from a pool backed by thread tokens;
+the goroutines of `s.wg` hold their token's levels from 1 only (level 0 is in the wait group), and the
+outer one holds up to three locks' slots at once. Perennial guarantees only `1 < threadBound GF`.
+
+**Decisions.**
+- *Where the lower bound comes from (Q1 (a2)).* The four etcd adequacy lemmas fix `T = max (n + 2) 4`
+  (their `Hprog` at `threadBound GF = max (n + 2) 4`, a new `realThreadsBelow_mono`); no closed
+  theorem's statement changes (`n + 2 ≤ 2 ^ 28` gives `max (n + 2) 4 ≤ 2 ^ 28`). The bound reaches only
+  the revocation: the named `srvRevokeLevels : Prop := 4 ≤ threadBound GF` is a conjunct of the
+  revocable run configuration (`lease.runCfg`, `lease.bootCfg`), a premise of
+  `revokeExpiredLeases.spec` and of leaseexpiry's `Main.spec`. Rejected: `T = n + K` (16 top-level
+  statements weakened), `T` a parameter (each closed proof picks it), raising Perennial's
+  `threadBound_gt` (a Perennial change shaped by one proof), the bound in `isServer`/`NewServer`
+  (every hub start spec and example `Main`).
+- *The level layout (Q2 (ii)).* 0: a started goroutine's slot in `s.wg`; 1: `wg.Add`'s pending token,
+  the transport's `lgMu` pool (`raftPool`), the inner pool `I` (`leadTimeMu` ∗ `E.RD`); 2: the outer
+  pool `B` (`wgMu` ∗ `read.mux`); 3: `ensureLeadership`'s token. Levels 0–1 exist at every bound, so the
+  shared protocols (`s.wg`, `raftPool`, `GoAttach`) need no premise; 2–3 are split off only in the
+  revocation's proof. A pool item bundles what a goroutine holds together (two pools, not five).
+- *`raftPool` at level 1, `GoAttach` without `srvLgReader` (Q3 (i)).* The `lgMu` stock left after the
+  transport's pools is short of a third pool, so the revocation shares `raftPool`; at level 2 its
+  rafthttp borrowers would need `2 < threadBound`, the global bound. `GoAttach`'s stopped branch
+  borrows `lgMu` from `raftPool` with the caller's level-1 token, idle there; `srvGoAttachOk` carries
+  `raftPool (srvLgReader s)`.
+- *One `GoAttach.spec` by levels, a derived lemma (Q4 (i)).* The caller gives `levelTok 1` (the pending
+  `Add`'s deposit, back at the `go` statement), `f` runs on `threadTokFrom 1`; `goAttachInv` counts
+  `d` started goroutines (level-0 tokens, receipts) and `q` pending adds (level-1 tokens), `ctr = d + q
+  < 2 * threadBound ≤ 2 ^ 31`. `wp_GoAttach_tok` restates today's triple for the six callers with a
+  whole token. Not a second spec.
+- *`ensureLeadership`'s axiom takes `levelTok l` (Q5 (a)).* Its faithfulness argument (tickMu's readers
+  are at most the live goroutines) never used the token's identity. Restated axiom: the `axiom` skill
+  before the Freeze.
+- *`E.RD`'s supply (Q6 (a)).* `backend.authRdN = 2 ^ 28 + 2 ^ 7` (written `rdPoolN + 2 ^ 7` since
+  revoke-open review round 1, NIT 3.6: the same value; true of Go; `rdStockN_val = 536870783`);
+  `authSchemaSrv`'s text unchanged, its count larger: the `axiom` skill before the Freeze.
+- *Where the pools are built (Q7).* `I` and the auth store's concrete pointer in `NewServer`
+  (`srvRevokeBuilt`, a conjunct of `srvBuiltG`/`isServerBuilt*`), `B` in `start` from `srvStarted`'s
+  stocks; both reach `run` in the sealed `srvRevokeCtx` (a conjunct of `isServerRun*`). Both live in a
+  new module `RevokeCtx.lean` below `revokeExpiredLeases`'s spec (`LeaseRun`, the Scope's choice,
+  imports that spec).
+- *`run` forked with a token (Q8 (a)).* `run.spec` takes `threadTok` and returns it.
+- *`WithRoot` without an auth-store change (Q10, simplified in Draft).* `srvAuthAt` (from the off-mode
+  views) already holds `isAuthStore`'s `IsAuthEnabled` contract at `E.RD`; `WithRoot.spec` takes it as
+  a premise, so the auth store's construction post is unchanged (the Scope had `isAuthRoot`).
+
+**Found in Draft pass 1 (open).** `B` takes `2 ^ 28 - 1` of `read.mux`'s slots, all of which flow
+today into `start_gives_views`'s post (server `Results.lean`) and etcdstart's `memberUp`,
+`memberUpOn`, `kvServeStocks`: their count becomes `actualMaxReaders - srvRevokePoolN`. A
+`Results.lean` statement: brought to the user (the plan's §F.1).

@@ -79,7 +79,7 @@ theorem Main.wp_proof
     -- snapshot job)
     (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb Hlev Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
@@ -116,7 +116,7 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leaseexpiryDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .revocable .revocable
-      (lease.runCfg_revocable hrev)) $$ Hmarsh
+      (lease.runCfg_revocable Hlev hrev)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
