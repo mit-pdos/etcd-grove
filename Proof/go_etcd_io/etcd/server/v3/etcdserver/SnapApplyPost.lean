@@ -31,25 +31,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 section snapLeases
 variable [GooseExts]
 
-/-- **The request of the table `T`'s lease `id`** (the first entry with that id; `0` if none): the
-`reqOf` a snapshot's `Recover` restores the image's records at (the lease-expiry plan's S2–S4,
-Probe 4, 2026-11-05). -/
-def tableReq : LeaseTable → w64 → w64
-  | [], _ => W64 0
-  | p :: T, id => if p.1 = id then p.2 else tableReq T id
-
-theorem tableReq_of_mem {T : LeaseTable} (hn : T.ids.Nodup) {p : w64 × w64} (hp : p ∈ T) :
-    tableReq T p.1 = p.2 := by
-  induction T with
-  | nil => cases hp
-  | cons a T ih =>
-    simp only [LeaseTable.ids, List.map_cons, List.nodup_cons] at hn
-    unfold tableReq
-    rcases List.mem_cons.1 hp with rfl | hp'
-    · simp
-    · have hne : a.1 ≠ p.1 := fun h => hn.1 (h ▸ List.mem_map.2 ⟨p, hp', rfl⟩)
-      rw [if_neg hne]; exact ih hn.2 hp'
-
 /-- The grant ids of a prefix of the log are the log's. -/
 theorem srvGrantLog_prefix {A A' : List EntryModel} (h : A <+: A') (u : w64)
     (hu : u ∈ srvGrantLog A) : u ∈ srvGrantLog A' := by
@@ -115,37 +96,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-open Iris.ProofMode in
-/-- **The applied log's grant ids have no repeat** (the revocable mode; `kv_entry_grantFresh`'s
-argument for the whole log): from the KV invariant's (`kvGrantIds`). What a snapshot's
-`appliedTable_rev_mem`/`appliedTable_granted_live` take (the lease-expiry plan's S2–S4, Probe 4). -/
-theorem kv_grantLog_nodup (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) :
-    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗
-      ⌜γk.lm = .revocable → (srvGrantLog A).Nodup⌝ := by
-  iintro #Hinv #Hr #HB
-  iunfold kvInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
-  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L A $$ Hr HL HB with ⟨HL, %Hp⟩
-  iunfold kvGrantIds at HG
-  icases HG with ⟨%U, %HU, HUs⟩
-  imod Hclose $$ [HL Hσ HUs] with -
-  · inext; iexists L; iframe HL Hσ Hw
-    isplitr
-    · ipureintro; exact Hok
-    iunfold kvGrantIds; iexists U; iframe HUs; ipureintro; exact HU
-  imodintro
-  ipureintro
-  intro hlm
-  have hnd : (logRevGrantIds γk.lm L).Nodup := by
-    rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
-  have h1 := Hp.2.2.filterMap (leRevGrantId γk.lm)
-  rw [filterMap_leRevGrantId_opsOf, ← logRevGrantIds_noFill γk.lm L Hp.2.1] at h1
-  have hn := hnd.sublist h1.sublist
-  rw [← logRevGrantIds_filter_data, hlm] at hn
-  exact hn
 
 open Iris.ProofMode in
 /-- With auth on, a cluster grants no lease (`srvKVInvsOn`'s). -/

@@ -351,9 +351,6 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) the image's lease
   bucket the records of its log's live leases -/
   hlease : imageLeasesAt γr d.P D A'
-  /-- (S2–S4, review r1 F2) in a cluster that grants none, the image's log grants none
-  (`kvTableOf_plainM`; S2–S4 Probe: conditional, the receive side being mode-generic) -/
-  hlnil : γr.kv.lg = false → (appliedTable γr A').ids = []
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
     ((backend.rbData d.P D).lookup go!"authUsers").getD ∅ = ∅ ∧
@@ -578,13 +575,6 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
   icases Hax with ⟨Hmem, %Himg⟩
   have hsplit := kvModel_split γr.kv A' hlog0
   obtain ⟨⟨r, hkI, hr⟩, hci, htm, hrestL, hwf⟩ := himA
-  -- (the lease-grant plan's (D)) a committed log that grants nothing: the plain image
-  have hTnil : γr.kv.lg = false → (appliedTable γr A').ids = [] := fun hl => by
-    have hm : γr.kv.lm = .none := by
-      have h := hl; rw [KVNames.lg_eq] at h; simpa using h
-    have Hpl' : plainLogM γr.kv.cmp .none A' := hm ▸ Hpl
-    unfold appliedTable; rw [hpre0, List.nil_append]; unfold kvLeases
-    rw [kvTableOf_plainM _ _ _ A' Hpl']; rfl
   -- (S2–S4 Probe) the buckets other than `lease` are the plain image's
   have hrest := bkRestAtL_other hrestL
   rw [← hdcm] at hkI
@@ -630,7 +620,6 @@ theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i a
     hRok := hrok
     hlen := kvModel_len_of_rok γr.kv A' _ hsplit hrok
     hlease := imageLeasesAt_of_bkRestAtL d hrestL
-    hlnil := hTnil
     halarm := hb.1
     hauthb := hb.2
     hmemb := image_membBucketsNL d hrest

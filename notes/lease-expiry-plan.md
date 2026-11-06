@@ -2371,7 +2371,9 @@ here; it is the coordinator's and the user's call.
 16. `apply.grantAnswer`, `leaseGrantedResp`, `v3rpc.grantLiveG`, `etcdLeaseGrantSpecLive` (the
    client's exported contract): `∃ i l t, leaseLiveFrom … ∗ lsF "ttl" l ↦□ t ∗ ⌜req ≤ t⌝ ∗
    leaseReqIs …` → `∃ i l, leaseLiveFrom … ∗ leaseReqIs …`. Cause: F12. This weakens items 2–5:
-   the dropped conjunct was unused.
+   the dropped conjunct was unused. (Review r2 N4) etcdstart's `etcdLeaseGrantLiveAt` (its importable
+   `ServedLease`) changes meaning with it, which etcdstart's generated interface cannot show: it names
+   the contract only, whose body is client/v3's, a package with no API list yet.
 17. `apply.grantPost`: `⌜sint.Z g.ttl ≤ sint.Z t⌝` → `⌜apply.grantTTLOk rq t⌝` (item 9's
    conjunct). Cause: F14.
 18. `leaseTTLsAbove` → `leaseTTLsGeReq`, a rename in items 11–13. Cause: F14.
@@ -2687,14 +2689,40 @@ A thread token holds only levels `l < threadBound GF` (`Threads.lean:124`, `:362
 Whether the closed theorems' choice of `threadBound` makes such a premise harmless is something I have not checked.
 
 ### Batch items 27–28 (2026-11-06)
-- **27.** `lease.lessor.Recover.spec`'s post when there are no records: it may fail to hand back the caller's
-  `leaseEver γl U` (the post is `⌜recs = []⌝ ∨ leaseEver γl (U ++ ids)`). It is to be strengthened,
-  with the exact text from review round 2.
+- **27.** `lease.lessor.Recover.spec` (DRAFT, applied 2026-11-06, review r2 Q): pre
+  `(⌜recs = []⌝ ∨ lease.leaseEver γl U)` → `(if recs = [] then iprop(True) else lease.leaseEver γl U)`;
+  post `(⌜recs = []⌝ ∨ lease.leaseEver γl (U ++ recs.map (·.1)))` → `(if recs = [] then iprop(True)
+  else lease.leaseEver γl (U ++ recs.map (·.1)))`. Cause: the disjunction let a `leaseEver` handed in at
+  `recs = []` be lost (Probe 4's finding). Docstring: with no record the ids' half is neither taken
+  nor given back; the live set is `Lr` (r2 N5); the monotone discharge names `histCover`/
+  `ever_live_mono`. The proof converts at the two ends (`recover_hist` keeps its interface); the walk's
+  workaround (`SnapApplyWalk.lean`) shrinks to a split on `recs` with no contradiction branch.
 - **28.** etcdstart's generated interface (after the merge of lean `5a00eca26c`, which gave etcdstart an
   importable list): `etcdstart.memberBoot` and `memberBootOn` lose their instance binder
   `[v3rpc_sem : v3rpc.Assumptions]`, and their `congr_simp` lemmas go. Cause: item 4, the deletion of
   `srvGrantOpen`, the only part of `lease.bootCfg` that reached v3rpc's assumptions. The bodies are unchanged
   otherwise. The interface was regenerated.
+
+### Batch items 29–32 (2026-11-06, review round 2's fixes, DRAFT)
+- **29.** `EtcdServer.applySnapshot.specSnapM`: − `(hlnil : E.lg = false → (appliedTable γr A').ids
+  = [])`; `SnapImageFacts`, `SnapImageFactsOn`: − field `hlnil` (reverses items 14's third part, 15
+  and 22). Cause: r2 S1, derivable from the pre with `hpre0`/`hlmk`: the proof's `lg = false` branch
+  derives it (auth off: `kv_log_plain` and `kvTableOf_plainM` at the lease mode `.none`; on:
+  `kv_log_plainOn` and `kvTableOf_plainOn`). No import cycle: `SnapRecvOn` was already below the proof,
+  so `kvTableOf_plainOn` did not move. `snapRecv_image`'s now unused `hTnil` is gone.
+- **30.** `snapAuthImgM .on`: − `A <+: A'`; `snapAuthResM .on`: − `srvRLogLb γr.raft A'` (now
+  `srvAuthSnapOk s γa RD`); `snapAuthImgR .on`: − `A <+: A'`; `snapAuthResM_on`: − its `srvRLogLb`
+  premise. In their place `wp_authRecoverM` and `applySnapshot_walk` take `(hAA' : A <+: A')` and a
+  pre `srvRLogLb γr.raft A'` (the spec's, in every mode). `acSnapOk_intro`'s statement is unchanged
+  (its `srvRLogLb` now unused). Cause: r2 S2 (stated twice since items 14's `hAA'` and lower bound).
+- **31.** New lease-package law `lease.lessorInv_rdInv : lessorInv lp γl ⊢ lessorRdInv γl`
+  (`LessorHist.lean`); `ever_live_modeM` uses it instead of unfolding `lease.lessorInv`. Cause: r2 S4.
+- **32.** NITs: `tableReq` is `(T.lookup id).getD 0`, moved with `tableReq_of_mem` to `ImageLeases.lean`
+  (r2 N1); `ImageLeases`'s `section probe` is `section table`, the session notes gone from its
+  docstrings (N2); `kv_grantLog_nodup` moved beside `kv_entry_grantFresh` in `ApplyCmpArm.lean` (N3);
+  docstrings: `specSnapM`'s list of named premises (+ `hpre0`, `hlmk`, − `hlnil`) and its auth-fact
+  description, `snapRestImgM` (the lease bucket the records', not emptied), `snapAuthImgM`,
+  `snapAuthResM`, `Recover`'s live set (S3, N5).
 
 ## S2–S4 Probe set (2026-11-05, named before the probes)
 

@@ -592,6 +592,14 @@ theorem leaseTTLAt_ge_req (γl : GName) (j : Nat) (id r t : w64) (E : CoPset)
   ipureintro
   exact HQo.1 j τ id t r Hhj ((Hdom id).1 (by rw [Hτ]; rfl)) Hτ Hqr
 
+/-- **The lessor's reader invariant, from its invariant** (a law for the lessor's clients, which
+hold `lessorInv` and must not unfold it: review r2 S4, 2026-11-06). -/
+theorem lessorInv_rdInv (lp : Loc) (γl : GName) :
+    lessorInv (GF := GF) lp γl ⊢ lessorRdInv γl := by
+  unfold lessorInv
+  iintro ⟨-, -, -, #H⟩
+  iexact H
+
 /-- **In the monotone mode every id the lessor ever had is live** (the lease-expiry plan's S2–S4
 Probe, 2026-11-05; `Recover`'s ever-set premise, `∀ id ∈ recs, id ∈ U → id ∈ L`, for a monotone
 lessor): each id of `U` is an id of the history (`histCover`), and no lease leaves a monotone

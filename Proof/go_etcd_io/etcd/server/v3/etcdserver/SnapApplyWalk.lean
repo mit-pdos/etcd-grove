@@ -122,7 +122,7 @@ theorem applySnapshot_walk
       d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) (hlpw : mvcc.leaseParams d.P)
     (hNAuB : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     -- (P6.2, F9) the image's auth facts by the mode (off, `hauthb`), its log `A'`
-    (A' : List EntryModel) (hauthI : snapAuthImgM E.authMode γr d.P D A A')
+    (A' : List EntryModel) (hauthI : snapAuthImgM E.authMode γr d.P D A A') (hAA' : A <+: A')
     (hNMB : schema.NewMembershipBackend.spec (GF := GF) (hG := hG))
     (hCSB : membership.RaftCluster.SetBackend.spec (GF := GF) (hG := hG))
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
@@ -200,7 +200,7 @@ theorem applySnapshot_walk
        -- readers of the new backend (the alarm store's, the auth store's and the cluster's
        -- `Recover`), given back
        threadTok ∗
-       snapAuthResM E.authMode s ast E.RD γr A' ∗
+       snapAuthResM E.authMode s ast E.RD γr A' ∗ srvRLogLb γr.raft A' ∗
        -- (J8a-4, 2026-11-01, the user's decision: `notes/decisions.md`, "J8a-4") the meta reads of
        -- a backend the apply thread opens at the protocol's names `π` over an image whose meta keys
        -- are `π.m0`, from its fresh keys and payment rights (until then of any backend at any names
@@ -218,7 +218,7 @@ theorem applySnapshot_walk
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x R r ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, Hkvc, ⟨%wsl, %γw0, #Hkvf, #Hwsl⟩, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HAlbW, #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -463,17 +463,15 @@ theorem applySnapshot_walk
     · exact HUm hm id hu
   -- the ids the lessor ever had: handed over with a record (in a cluster that grants leases), kept
   -- otherwise
-  ihave ⟨HEvR, HEvK⟩ : iprop((⌜recs = []⌝ ∨ lease.leaseEver E.γ.leases U) ∗
+  ihave ⟨HEvR, HEvK⟩ : iprop((if recs = [] then iprop(True) else lease.leaseEver E.γ.leases U) ∗
       (if recs = [] then apply.everOwn E U else iprop(True))) $$ [HEv0]
   · by_cases hrn : recs = []
-    · rw [if_pos hrn]
-      iframe HEv0
-      ileft; ipureintro; exact hrn
-    · rw [if_neg hrn]
+    · rw [if_pos hrn, if_pos hrn]; iframe HEv0
+    · rw [if_neg hrn, if_neg hrn]
       cases hl : E.lg
       · exact absurd (hlgf hl).1 hrn
       · isplitl
-        · iright; iapply apply.everOwn_of_lg E U hl $$ HEv0
+        · iapply apply.everOwn_of_lg E U hl $$ HEv0
         · itrivial
   wp_apply hLR lp E.γ.leases d.be d' (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) (1 : Qp).half
@@ -502,11 +500,10 @@ theorem applySnapshot_walk
     · irevert HEvK
       rw [if_pos hrn, hrn, List.map_nil, List.append_nil]
       iintro H; iexact H
-    · cases hl : E.lg
+    · irevert HEvP; rw [if_neg hrn]; iintro H
+      cases hl : E.lg
       · exact absurd (hlgf hl).1 hrn
-      · icases HEvP with (%h | H)
-        · exact absurd h hrn
-        · iapply apply.everOwn_to_lg _ _ hl $$ H
+      · iapply apply.everOwn_to_lg _ _ hl $$ H
   -- the new range deleter, `s.kv.Write(traceutil.TODO())`: every watchable store over `E.s` is
   -- `s.kv`'s (`mvcc.isWatchableStore_agree`), and `Write`'s spec takes any names
   ihave Hrdat : lease.rdAt E.γ.leases E.s $$ [Hro]
@@ -711,7 +708,7 @@ theorem applySnapshot_walk
   wp_apply (wp_authRecoverM s ast aubl sfv.lg E γr ua A A' d d' (mvcc.lateWD d')
       (batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) g
       (((backend.rbData d.P D).insert go!"lease" lb).insert go!"alarm" ∅) hkb hany
-      (snapAuthImgR_of _ γr d.P D A A' hauthI) (by rw [hP']; exact halbi.2) Hlgnn Hgnn hRecOn)
+      (snapAuthImgR_of _ γr d.P D A A' hauthI) hAA' (by rw [hP']; exact halbi.2) Hlgnn Hgnn hRecOn)
     $$ [HauR HoAu Hauar HnOh HnPl HthT HnRB HnRA HoOh]
     as ⟨HnAu, HnOh, HnPl, HthT, HnRB, HoOh, Hauar⟩
   · rw [hγ', hP']; iframe #; iframe HauR HoAu Hauar HnOh HnPl HthT HnRB HoOh

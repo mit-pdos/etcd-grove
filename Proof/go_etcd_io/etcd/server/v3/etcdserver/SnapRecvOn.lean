@@ -295,8 +295,6 @@ structure SnapImageFactsOn [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : 
   hlen : (kvModelOn γr.kv srvAuthSt0 A').length < 2 ^ 63
   /-- (the lease-expiry plan's S2–S4, 2026-11-05: until then the bucket empty) -/
   hlease : imageLeasesAt γr d.P D A'
-  /-- (S2–S4, review r1 F2) the image's log grants none: a mode-on log (`kvTableOf_plainOn`) -/
-  hlnil : (appliedTable γr A').ids = []
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   /-- the auth buckets hold the state after the image's log -/
   hauthI : authBucketsAt (srvAuthAtLog γr.kv srvAuthSt0 A') (backend.rbData d.P D)
@@ -565,7 +563,6 @@ theorem snapRecv_imageOn (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i
       rw [← hsplit]
       have := hrok.2.1.2.1
       omega
-    hlnil := hTnil
     hlease := imageLeasesAt_of_nil hTnil (image_leaseAlarmNA d hrest').1
     halarm := (image_leaseAlarmNA d hrest').2
     hauthI := authBucketsAt_rbData d D _ hauth

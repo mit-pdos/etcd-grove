@@ -37,15 +37,16 @@ holds the records `recs`, in key order, each what `Grant` writes (`leaseRecEnc`;
 table, tracked, none of its keys a hook's, `mvcc.leaseParams d.P`), every recovered id meeting the
 lessor's grant guard (`leaseGranted`; the live set's leases all do, `lessorAuth`), and in the
 monotone mode every live id among the records' (a monotone history keeps every lease):
-the lessor on `d`, the live set the records' ids with no item (`leaseOwn γl ids ∅`,
-`leaseRevokers γl ids`), the range deleter `rd` (`rdOwn γl rd`), the lease bucket of `d` present
+the lessor on `d`, the live set the records' ids in the caller's order `Lr` with no item
+(`leaseOwn γl Lr ∅`, `leaseRevokers γl Lr`), the range deleter `rd` (`rdOwn γl rd`), the lease bucket of `d` present
 (created if absent) and **the part idle** (`rbOwnIn d.γB S (r.insert "lease" _)`), at two
 write-back tokens; and the lessor's history has at some index the recovered snapshot: one lease per
 record (fresh `*Lease`s `ls`, `recMap`), no item, each record's TTL raised to the minimum `mt`
 (`recTTLs`, the lease-expiry plan's R5). (E3 (c), 2026-11-05; review r1 F5) The records' ids are
 added to the ids the lessor ever had (`leaseEver γl U`); one it already had must be live (`id ∈ L`);
-with no record, nothing is asked of them (`⌜recs = []⌝ ∨ …`: a cluster that grants none restores a
-snapshot without the ids' half).
+with no record, the ids' half is neither taken nor given back (the caller keeps it; a cluster that
+grants none holds none). (Review r2 Q, DRAFT 2026-11-06: until then `⌜recs = []⌝ ∨ …` in pre and
+post, which could swallow a `leaseEver` handed in at `recs = []`.)
 
 What Go does (`lessor.go:600-609`, `initAndRecover` `:808-835`): under `le.mu`, `le.b = b`,
 `le.rd = rd`, fresh `leaseMap` and `itemMap`, then `initAndRecover`
@@ -61,7 +62,8 @@ id stays live over an interval of the history); the caller names each record's r
 (`leaseReqIs`), which every recovered lease then has; and the live set is the records' ids in the
 caller's order `Lr` (a permutation of them). (Review r1 F6) A scope restriction: Go recovers any
 records; this spec excludes a revoked id granted again (an explicit `ID`), which the revocable
-mode's generated ids (`kvGrantIds`) and the monotone mode's `histMono` rule out. -/
+mode's generated ids (`kvGrantIds`) and the monotone mode's `histMono` rule out (with `histCover`:
+`ever_live_mono`, every id the lessor ever had live). -/
 abbrev lease.lessor.Recover.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
     (S : GoString → Prop) (r : GMap GoString backend.BktData) (rd rd0 : GoFunc) (L : List w64)
@@ -73,7 +75,7 @@ abbrev lease.lessor.Recover.spec : Prop :=
   (∀ x ∈ recs, sint.Z (reqOf x.1) ≤ sint.Z x.2.1) → Lr.Perm (recs.map (·.1)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorModeIs γl mono ∗
-      (⌜recs = []⌝ ∨ lease.leaseEver γl U) ∗
+      (if recs = [] then iprop(True) else lease.leaseEver γl U) ∗
       □ ([∗list] x ∈ recs, ⌜x.1 ∉ U⌝ ∨ lease.leaseReqIs γl x.1 (reqOf x.1)) ∗
       lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L I ∗ lease.leaseRevokers γl L ∗
       lease.rdOwn γl rd0 ∗ □ ([∗list] id ∈ recs.map (·.1), lease.leaseGranted γl id) ∗
@@ -84,7 +86,7 @@ abbrev lease.lessor.Recover.spec : Prop :=
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
       (Val #rd))
   {{ RET #(); lease.lessorBeOn lp d.be ∗ lease.leaseOwn γl Lr ∅ ∗
-      (⌜recs = []⌝ ∨ lease.leaseEver γl (U ++ recs.map (·.1))) ∗
+      (if recs = [] then iprop(True) else lease.leaseEver γl (U ++ recs.map (·.1))) ∗
       □ ([∗list] x ∈ recs, lease.leaseReqIs γl x.1 (reqOf x.1)) ∗
       lease.leaseRevokers γl Lr ∗ lease.rdOwn γl rd ∗
       backend.bOpen d.γB qo ∗

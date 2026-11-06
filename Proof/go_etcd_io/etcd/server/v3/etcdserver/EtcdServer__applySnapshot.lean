@@ -126,7 +126,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     (hWrite : mvcc.watchableStore.Write.spec (GF := GF) (hG := hG))
     (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hAA' hA' hleaseI hlnil hpre0 hlmk hany hauthI γnc
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta st b hle al ast lp cl x A hRO hwq R hpre hRok r hcc hkI hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq A' hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc
     iintro %Φ Hpre HΦ
     icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #HAlb, #Hlinv, #Hlpf, #Hlrev, Hkvc, #Hkvex, #Hcok, #Hrcpt, #Hpf, #Hpc, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
     -- (the lease-expiry plan's S2–S4, 2026-11-05) a cluster that grants leases restores the image's
@@ -258,7 +258,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         (srvIds E (appliedTable γr A).ids) hbe hrmono hrUL (fun _ => hlgE) hreq hperm
         (fun h => by rw [hlgE] at h; cases h)
         (apply.restLeasesWith f0 (srvIds E (appliedTable γr A).ids)
-          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
       · iframe #
         iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRO HL0 HEvU Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
       iintro !> ⟨Hw, Hrcv, Htk⟩
@@ -287,8 +287,40 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     -- a cluster that grants none (`specSnapM`'s premise until S2–S4): the image's lease bucket
     -- empty, the lessor revocable
     have Hlg0 := hlgE
+    -- (review r2 S1) the image's log grants none: its committed log is plain in the mode (auth
+    -- off: `kv_log_plain` at the lease mode `.none`; on: `kv_log_plainOn`)
+    have hlm0 : γr.kv.lm = .none := by rw [← hlmk]; exact apply.AEnv.lm_of_lg_false hlgE
+    ihave #Hsrv4 := Hsrv
+    iunfold isServerM at Hsrv4
+    icases Hsrv4 with ⟨-, -, -, #Hat4, -, -, -⟩
+    iunfold srvAtomicsM at Hat4
+    icases Hat4 with ⟨-, -, #HkM⟩
+    ihave Hnil : |={⊤}=> ⌜(appliedTable γr A').ids = []⌝ $$ []
+    · by_cases hon : E.authOn = true
+      · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr =
+            iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s) := by rw [hon]; rfl
+        ihave #HkO : iprop(srvKVInvsOn E γr srvAuthSt0 ∗ srvUberOn s) $$ []
+        · rw [← ekv]; iexact HkM
+        icases HkO with ⟨#HkO, -⟩
+        iunfold srvKVInvsOn at HkO
+        icases HkO with ⟨#HkI, -, #HrI, -⟩
+        imod kv_log_plainOn γr.raft γr.kv srvAuthSt0 A' $$ HkI HrI HAlb with %Hpl
+        imodintro; ipureintro
+        unfold appliedTable kvLeases; rw [hpre0, List.nil_append, kvTableOf_plainOn _ _ A' Hpl]; rfl
+      · have ekv : srvKVInvsM (GF := GF) E.authOn s E γr = srvKVInvs E γr := by
+          rw [show E.authOn = false by simpa using hon]; rfl
+        ihave #HkO : srvKVInvs E γr $$ []
+        · rw [← ekv]; iexact HkM
+        iunfold srvKVInvs at HkO
+        icases HkO with ⟨#HkI, -, #HrI, -⟩
+        imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HAlb with %Hpl0
+        imodintro; ipureintro
+        have Hpl' : plainLogM γr.kv.cmp .none A' := hlm0 ▸ Hpl0.1
+        unfold appliedTable kvLeases
+        rw [hpre0, List.nil_append, kvTableOf_plainM _ _ _ A' Hpl']; rfl
+    imod Hnil with %hTnil
     have hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ :=
-      imageLeasesAt_nil (hlnil hlgE) hleaseI
+      imageLeasesAt_nil hTnil hleaseI
     ihave #Hlrev2 : lease.lessorRevocable E.γ.leases $$ []
     · have heq : lease.lessorModeIs (GF := GF) E.γ.leases (decide (E.lm = .mono)) =
           lease.lessorRevocable E.γ.leases := by
@@ -315,7 +347,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     iapply wp_fupd
     iapply (applySnapshot_walk hIES hLg hInfo hU64 hGI hGT hOSB hOn hSave hPut hBUR hID hName hSafe s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmmap tI hmeta hSB st b hle hLR al ast lp cl x A hRO hany (fun _ => authRecoverOn_glue hRec) false [] [] (fun _ => 0) [] []
       hbe0 (fun h => by cases h) (by simp) (fun h => by cases h) (by simp) List.Perm.nil
-      (fun _ => ⟨rfl, rfl⟩) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
+      (fun _ => ⟨rfl, rfl⟩) (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)) hwq hRst hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL hCB hDel R hpre hRok r hcc hkI hbr hGTP hSTP hCIg γp hrbw hRel stp γd γt img nt hstp hnt hNAB hAR halarm halbi hlp hNAuB A' hauthI hAA' hNMB hCSB hmemb hClose hCRec memI himg hRAP hAP hMID γn t c rs dir ps idm hdir hdok hps hlid hNUA msi cs0 fg quota wad hbuq γnc hAG hLSR hUSR hWrite hTODO) $$ [Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR]
     · iframe #
       iframe Hrcv Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive Hmsi Hcs0 HoOh Htk HauR
       rw [apply.ltHalf_false E [] hlgE, apply.everOwn_false E [] hlgE]

@@ -110,8 +110,7 @@ theorem ever_live_modeM (E : apply.AEnv GF) (lp : Loc) (mono : Bool) (U L : List
   · have hl := hmlg rfl
     rw [apply.everOwn_true E U hl]
     iintro ⟨#Hinv, #Hm, H1, H2⟩
-    iunfold lease.lessorInv at Hinv
-    icases Hinv with ⟨-, -, -, #Hrd⟩
+    ihave #Hrd := lease.lessorInv_rdInv lp E.γ.leases $$ Hinv
     imod lease.ever_live_mono E.γ.leases U L I ⊤ (by simp) $$ [Hrd Hm H1 H2] with ⟨H1, H2, %H⟩
     · iframe Hrd Hm H1 H2
     imodintro

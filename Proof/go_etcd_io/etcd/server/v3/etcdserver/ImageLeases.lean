@@ -18,7 +18,7 @@ lessor mode: monotone, every live lease of the applied log is live at the snapsh
 is live at the applied log (`appliedTable_granted_live`). They give `lessor.Recover`'s mode and
 ever-set premises.
 
-(The S2–S4 Probe, 2026-11-05) Proved, over the table's step lemmas (`kvTable_eq_or`,
+Proved over the table's step lemmas (`kvTable_eq_or`,
 `backendTable_cases`): a lease of the table after a log was in the table before or granted in the
 log (`kvTableOf_mem`), the table's ids distinct (`kvTableOf_nodup`), and in the monotone mode no
 lease leaves it (`kvTableOf_mono`). The two mode facts are stated over the log after the prefix,
@@ -85,9 +85,9 @@ theorem imageLeasesAt_of_nil [GooseExts] {γr : ReadNames} {P : BParams} {D : Da
   have := restModel_lease γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')
   exact ((congrArg (fun o => Option.getD o ∅) this).trans rfl).symm
 
-/-! ## The lease table along the log (pure; the S2–S4 Probe, 2026-11-05) -/
+/-! ## The lease table along the log (pure) -/
 
-section probe
+section table
 variable [GooseExts]
 
 theorem chainTable_cases (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable) :
@@ -266,6 +266,26 @@ theorem table_eq_of_id {T : LeaseTable} (hn : T.ids.Nodup) {p q : w64 × w64} (h
     · exact (hn.1 (h.symm ▸ List.mem_map.2 ⟨p, hp', rfl⟩)).elim
     · exact ih hn.2 hp' hq'
 
+/-- **The request of the table `T`'s lease `id`** (its first entry's, `0` if none): the `reqOf` a
+snapshot's `Recover` restores the image's records at. -/
+def tableReq (T : LeaseTable) (id : w64) : w64 := (T.lookup id).getD (W64 0)
+
+theorem tableReq_of_mem {T : LeaseTable} (hn : T.ids.Nodup) {p : w64 × w64} (hp : p ∈ T) :
+    tableReq T p.1 = p.2 := by
+  induction T with
+  | nil => cases hp
+  | cons a T ih =>
+    obtain ⟨k, v⟩ := a
+    simp only [LeaseTable.ids, List.map_cons, List.nodup_cons] at hn
+    rcases List.mem_cons.1 hp with h | hp'
+    · subst h; simp [tableReq, List.lookup]
+    · have hne : k ≠ p.1 := fun h => hn.1 (h ▸ List.mem_map.2 ⟨p, hp', rfl⟩)
+      have := ih hn.2 hp'
+      simp only [tableReq] at this ⊢
+      have hb : (p.1 == k) = false := beq_eq_false_iff_ne.2 (Ne.symm hne)
+      simp only [List.lookup, hb]
+      exact this
+
 /-- **A lease of the snapshot's table is granted in its log** (with an empty prefix). -/
 theorem appliedTable_ids_granted (γr : ReadNames) (hpre : γr.raft.pre = []) (A' : List EntryModel)
     (u : w64) (hu : u ∈ (appliedTable γr A').ids) : u ∈ srvGrantLog A' := by
@@ -394,8 +414,8 @@ theorem imageLeasesAt_recs {γr : ReadNames} {P : BParams} {D : Data}
 a prefix of a committed log that is plain in the monotone mode (no revocation: the lease-expiry
 plan's X7, a revocation exists only in the revocable mode), the lease table only grows. What
 `Recover`'s monotone premise (`mono = true → ∀ id ∈ L, id ∈ recs.map (·.1)`) takes, with the
-lessor's live set the applied table (`ltHalf`). (S2–S4 Probe: the log after the prefix `A'`, the
-KV invariant's `kv_log_plain`, in place of `γr.raft.pre ++ A'`; and each lease, not only its id.) -/
+lessor's live set the applied table (`ltHalf`). Stated over the log after the prefix `A'`, which
+the KV invariant makes plain (`kv_log_plain`), and of each lease, not only its id. -/
 theorem appliedTable_mono_mem (γr : ReadNames) {A A' : List EntryModel}
     (hpre : A <+: A') (hpl : plainLogM γr.kv.cmp .mono A') :
     ∀ p ∈ appliedTable γr A, p ∈ appliedTable γr A' := by
@@ -414,8 +434,8 @@ theorem appliedTable_mono_sub (γr : ReadNames) {A A' : List EntryModel}
 lease of the applied table**: with the grant ids of the log distinct (`kvGrantIds`'s fact, E3
 (b)), a revoked id is never granted again, so an id of `srvGrantLog A` (the apply thread's ever-set
 bound, `srvEverOk`) live at the longer log `A'` was not revoked within `A`, and its lease is the
-one `A` granted (its request the same). (S2–S4 Probe: the log after the prefix, `srvGrantLog A'`,
-in place of `γr.raft.pre ++ A'`.) -/
+one `A` granted (its request the same). Stated over the log after the prefix (`srvGrantLog A'`,
+the KV invariant's `kv_grantLog_nodup`). -/
 theorem appliedTable_rev_mem (γr : ReadNames) {A A' : List EntryModel}
     (hpre : A <+: A') (hnd : (srvGrantLog A').Nodup) (q : w64 × w64)
     (hu : q.1 ∈ srvGrantLog A) (hq : q ∈ appliedTable γr A') : q ∈ appliedTable γr A := by
@@ -437,7 +457,7 @@ theorem appliedTable_granted_live (γr : ReadNames) {A A' : List EntryModel}
   exact List.mem_map.2 ⟨q, appliedTable_rev_mem γr hpre hnd q hu hq, rfl⟩
 
 
-end probe
+end table
 
 end EtcdGrove
 end Perennial

@@ -99,9 +99,10 @@ theorem lease.lessor.Recover.wp_proof
   icases ownMap_halves_split im' (∅ : GMap LeaseItem w64) $$ HI' with ⟨HI', HI''⟩
   iapply fupd_wp
   ihave HUo : iprop(⌜recs.zip ls = []⌝ ∨ leaseEver (GF := GF) γl U) $$ [HUo]
-  · icases HUo with (%Hx | HUo)
-    · ileft; ipureintro; rw [Hx]; rfl
-    · iright; iexact HUo
+  · by_cases hr : recs = []
+    · ileft; ipureintro; rw [hr]; rfl
+    · irevert HUo; rw [if_neg hr]; iintro HUo
+      iright; iexact HUo
   ihave #Hrq' : iprop([∗list] id ∈ (recs.zip ls).map (·.1.1),
       ⌜id ∉ U⌝ ∨ leaseReqIs (GF := GF) γl id (reqOf id)) $$ []
   · rw [hids, BigSepL.bigSepL_map (fun x : w64 × w64 × w64 => x.1)
@@ -115,13 +116,16 @@ theorem lease.lessor.Recover.wp_proof
   -- (S2–S4, Q-S7) the live set in the caller's order
   have hLr' : Lr.Perm ((recs.zip ls).map (·.1.1)) := by rw [hids]; exact hLr
   imod lessor_live_perm γl lp _ Lr _ ∅ hLr' $$ [$Ha $Hg $Hown $Hrvk] with ⟨Ha, Hg, Hown, Hrvk⟩
-  ihave HUo : iprop(⌜recs = []⌝ ∨ leaseEver (GF := GF) γl (U ++ (recs.zip ls).map (·.1.1))) $$ [HUo]
-  · icases HUo with (%Hx | HUo)
-    · ileft; ipureintro
-      have := congrArg List.length Hx
-      rw [List.length_zip, Hlen, Nat.min_self] at this
-      exact List.length_eq_zero_iff.1 this
-    · iright; iexact HUo
+  ihave HUo : iprop(if recs = [] then iprop(True)
+      else leaseEver (GF := GF) γl (U ++ (recs.zip ls).map (·.1.1))) $$ [HUo]
+  · by_cases hr : recs = []
+    · rw [if_pos hr]; itrivial
+    · rw [if_neg hr]
+      icases HUo with (%Hx | HUo)
+      · have := congrArg List.length Hx
+        rw [List.length_zip, Hlen, Nat.min_self] at this
+        exact absurd (List.length_eq_zero_iff.1 this) hr
+      · iexact HUo
   imodintro
   ihave #Hsz' : ⧖ (GMap.size (recMap (recs.zip ls))) $$ []
   · iapply (preceipt_mono (GF := GF) (m := GMap.size (recMap (recs.zip ls)))

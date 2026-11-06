@@ -1111,6 +1111,37 @@ theorem kv_entry_grantFresh (γ : ServerRaftNames) (γk : KVNames)
     rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
   exact grantId_fresh_transfer γk.lm A L m Hp.2.1 Hp.2.2 hnd hd gid hg
 
+open Iris.ProofMode in
+/-- **The applied log's grant ids have no repeat** (the revocable mode; `kv_entry_grantFresh`'s
+argument for the whole log): from the KV invariant's (`kvGrantIds`). What a snapshot's
+`appliedTable_rev_mem`/`appliedTable_granted_live` take (the lease-expiry plan's S2–S4, Probe 4). -/
+theorem kv_grantLog_nodup (γ : ServerRaftNames) (γk : KVNames) (A : List EntryModel) :
+    ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ A ={⊤}=∗
+      ⌜γk.lm = .revocable → (srvGrantLog A).Nodup⌝ := by
+  iintro #Hinv #Hr #HB
+  iunfold kvInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw, HG⟩
+  imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    L A $$ Hr HL HB with ⟨HL, %Hp⟩
+  iunfold kvGrantIds at HG
+  icases HG with ⟨%U, %HU, HUs⟩
+  imod Hclose $$ [HL Hσ HUs] with -
+  · inext; iexists L; iframe HL Hσ Hw
+    isplitr
+    · ipureintro; exact Hok
+    iunfold kvGrantIds; iexists U; iframe HUs; ipureintro; exact HU
+  imodintro
+  ipureintro
+  intro hlm
+  have hnd : (logRevGrantIds γk.lm L).Nodup := by
+    rw [HU.1]; exact leaseIdMask_nodup_of_pfx U (kvPfx γk) HU.2.1 HU.2.2
+  have h1 := Hp.2.2.filterMap (leRevGrantId γk.lm)
+  rw [filterMap_leRevGrantId_opsOf, ← logRevGrantIds_noFill γk.lm L Hp.2.1] at h1
+  have hn := hnd.sublist h1.sublist
+  rw [← logRevGrantIds_filter_data, hlm] at hn
+  exact hn
+
 /-- A grant the entry carries is in a cluster that grants leases. -/
 theorem plainOrCmpG_lg (E : apply.AEnv GF) (rq : apply.IRRModel) (hp : plainOrCmpG E.lm rq) :
     apply.dispatchKind rq = .leaseGrant → E.lg = true :=

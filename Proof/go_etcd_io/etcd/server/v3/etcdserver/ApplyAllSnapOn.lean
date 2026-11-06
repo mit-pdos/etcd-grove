@@ -179,7 +179,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   obtain ⟨tI, hmeta⟩ := Hif.hmetaI
   -- the auth store's `Recover` facts at the image's log
   ihave #HauS : snapAuthResM E.authMode s ast E.RD γr A' $$ []
-  · iapply snapAuthResM_on s ast E γr A' γa hM; iframe Hauf HauSK HA'
+  · iapply snapAuthResM_on s ast E γr A' γa hM; iframe Hauf HauSK
   -- the backend's own resources
   iunfold srvSnapRes at Hsres
   icases Hsres with ⟨%d0, %al0, %dd, %Hkb0, Hstopc, Hbo, #Hal0, HKC, #Hdd, Hpath, -⟩
@@ -220,8 +220,8 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index') hstp (Nat.le_refl _) Hif.halarm
       halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq A'
-      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (fun _ => Hif.hlnil) (by rw [hraft]) Hmo hany
-      (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI, Hif.pre,
+      Hif.pre (by rw [hon]; exact Hif.hA') Hif.hlease (by rw [hraft]) Hmo hany
+      (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI,
         by have := Hif.len; omega⟩)
       γnc
   rw [hon] at hS
