@@ -3,8 +3,8 @@
 nothing here is frozen, `notes/restart-plan.md`, "R2d' Scope (approved 2026-11-06)", its probe).
 Lean-first (no Rocq counterpart).
 
-At the etcd pin `673da07c8`, `run` (`server.go:808-830`) reads the raft storage's snapshot
-(`sn, err := s.r.raftStorage.Snapshot()`, `server.go:808`) and starts `ep` at its metadata: `confState`
+At the etcd pin `673da07c8`, `run` (`server.go:757`) reads the raft storage's snapshot
+(`sn, err := s.r.raftStorage.Snapshot()`, `server.go:760`) and starts `ep` at its metadata (`server.go:808-814`): `confState`
 its conf state, `appliedi`, `snapi` (disk and memory) its index, `appliedt` its term. At a first start
 that snapshot is empty (`memSnapNone`, `rnSnapOnce` at `ai₀ = 0`); at a restart it is the WAL
 snapshot `recoverSnapshot` restored into the `MemoryStorage` (`bootstrap.go:449-478`), at Go's start
@@ -44,7 +44,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`Hsnap`'s restart form** (DRAFT; `rnSnapOnce`'s, `InvRunRes.lean:334`): `run`'s one call of
-the raft storage's `Snapshot()` (`server.go:808` at `673da07c8`) answers a snapshot at index `i` and
+the raft storage's `Snapshot()` (`server.go:760` at `673da07c8`) answers a snapshot at index `i` and
 term `t` whose conf state is read-only and reports the voters after the ghost log `A₀` (`epCsAt γ A₀`:
 at a restart the WAL snapshot's `ConfState`, `bootstrap.go:449-478`; nothing at `A₀ = []`), with a
 lower bound of the storage's snapshot (`memSnapLb γs 0`, the writers' handle; a first start's from
@@ -148,7 +148,7 @@ theorem srvRestR_start (E : apply.AEnv GF) (γr : ReadNames) (P A₀ : List Entr
 
 /-- **`run`'s loop resources at a restart's start** (R2d' probe, step 4; DRAFT): from the restart
 form of `applyStartC` (`srvRestartAtR`, at Go's start index `ai = ai₀ + |P|`), `ep`'s fields as `run`
-sets them from the storage's snapshot (`server.go:808-830` at `673da07c8`: `appliedi`, `snapi` and
+sets them from the storage's snapshot (`server.go:808-814` at `673da07c8`: `appliedi`, `snapi` and
 `diskSnapshotIndex` at `ai`, `appliedt` the handed log's last term, `confState` with what
 `rnSnapOnceR` gives: `epCsOk`, `epCsAt` at `A₀`, `memSnapLb γs 0`), and the restart point's facts
 (`P <+: A₀`; `A₀`'s entries normal or conf changes; room past `A₀`; `c₀ ≤ ai₀`): `applyResR` at `P`. -/

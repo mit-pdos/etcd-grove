@@ -4,7 +4,7 @@
 2026-11-06)", its probe). Lean-first (no Rocq counterpart).
 
 At the etcd pin `673da07c8`, a restarted member's scheduler runs the same jobs as a first start's
-(`s.applyAll(&ep, &ap)`, `server.go:1171-1173`), the first ones over entries at or below the
+(`s.applyAll(&ep, &ap)`, `server.go:846`), the first ones over entries at or below the
 backend's consistent index (`server.go:1940`, replayed v2-only). `applyResR` is `applyResC` with the
 ghost rows (the applied index `g`, the KV model, the view, the rest buckets, the conf state's
 history) at the ghost log `ghostOf rp A` while Go's rows (`ep.appliedi`, `loopOk`, the snapshot
@@ -13,8 +13,8 @@ state) stay at `A`; past the window it is `applyResC` (`applyResR_past`), and a 
 
 * `winNoMergedSendR`: a DRAFT copy of R2d's `winNoMergedSend` (branch `r2d-prime`,
   `ApplyWindow.lean`; not on `lean`), the batch's premise that no merged snapshot is sent at its
-  raft term while the window is left (`server.go:1012`, `createMergedSnapshotMessage`,
-  `server.go:1045`);
+  raft term while the window is left (`server.go:1018-1020`'s guard and
+  `createMergedSnapshotMessage`);
 * `applyAll.specBatchR`: the hypothesized window form of `applyAll.specBatch` (a theorem argument);
 * `run_job_bodyR`: `run_job_body` over `applyResR`, for a batch inside, straddling or past the
   window.
@@ -48,7 +48,7 @@ open go_etcd_io.raft.v3 in
 `winNoMergedSend`, `ApplyWindow.lean:277`): with entries `R` of the window left after the batch,
 the message the batch takes from this member's bag (`msgOwn m 1`, sent from the server's
 `memberID`) is not a `MsgSnap` at the batch's raft term `rt` (Go merges only one at `rt`,
-`server.go:1012`). -/
+`server.go:1018`). -/
 def winNoMergedSendR (γ : SrvRaft) (s : Loc) (R : List EntryModel) (rt : w64) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(⌜R = []⌝ ∨
@@ -147,7 +147,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.applyAll(ep, ap)` on a batch, in restart form** (R2d' probe, DRAFT; a hypothesis of the
-probe, not proved): `applyAll.specBatch` (`server.go:1171-1209` at `673da07c8`: `applySnapshot`,
+probe, not proved): `applyAll.specBatch` (`server.go:984-1030` at `673da07c8`: `applySnapshot`,
 `applyEntries`, the read-index notification, the snapshot trigger and the merged snapshot's receive)
 with the ghost rows at `ghostOf rp`: the applied index `g`/`g'` the ghost's, the consistent index
 equal to it at the start (the window's `ciJ`), the KV model, `epCsAt`, the view and `srvApRes` at the
@@ -258,7 +258,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A job's body in restart form** (R2d' probe, DRAFT): `run_job_body` over `applyResR`, for a
-batch `ce` inside, straddling or past the window (`s.applyAll(&ep, &ap)`, `server.go:1171-1173` at
+batch `ce` inside, straddling or past the window (`s.applyAll(&ep, &ap)`, `server.go:846` at
 `673da07c8`), from `applyAll.specBatchR` (a hypothesis). Its new premises: the notifier's payload at
 the ghost log, and the window's `winNoMergedSendR` for the window left after the batch. -/
 theorem run_job_bodyR (hAA : EtcdServer.applyAll.specBatchR (GF := GF) (hG := hG))
