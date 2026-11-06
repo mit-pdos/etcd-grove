@@ -33,7 +33,9 @@ slot), of an owned raft message `ml` (`m.Snapshot` is written) and a valid `ep.c
 message read-only for good with its snapshot replaced by `(c, snapi, snapt)`, `c` the content of
 `cs` (`csOpt`; `proto.Clone`'s copy, so the sender's later changes to `ep.confState` do not reach
 it), and the reader streaming a bbolt image of the backend snapshot's data `D`, of which the
-caller's observation `Qd` holds. The reader goroutine (`newSnapshotReaderCloser`) does not panic. -/
+caller's observation `Qd` holds. The reader goroutine (`newSnapshotReaderCloser`) does not panic.
+(2026-11-06, `notes/begin-tok-plan.md`) The caller's `threadTok` pays for `Snapshot()`'s reader
+slot (`srvBeSnapOk`), and the reader goroutine's fork token comes back to it. -/
 abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
   ∀ (s ml : Loc) (st : MsgSt) (snapt snapi : w64) (cs lg : Loc) (kv be : GoInterface) (dq : DFrac)
     (RC RC' RS RS' : IProp GF) (Qd : backend.Data → Prop),
@@ -41,10 +43,10 @@ abbrev EtcdServer.createMergedSnapshotMessage.spec : Prop :=
       srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
       srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
       srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
-      msgOwn ml (DFrac.own 1) st ∗ epCsOk cs }}
+      msgOwn ml (DFrac.own 1) st ∗ epCsOk cs ∗ threadTok }}
     (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"createMergedSnapshotMessage")) (Val #ml)) (Val #snapt)) (Val #snapi)) (Val #cs))
-  {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗
+  {{ (mg : Loc), RET #mg; srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be ∗ threadTok ∗
       ∃ (rc : GoInterface) (D : backend.Data) (c : ConfStateM),
         mergedMsg mg ml rc ∗ msgOwn ml DFrac.discard (mergedSt st c snapi snapt) ∗
         csOpt cs DFrac.discard c ∗

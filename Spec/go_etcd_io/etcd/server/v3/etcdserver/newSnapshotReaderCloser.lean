@@ -33,7 +33,8 @@ hand-over, `Proof/io/Defs.lean`). The goroutine writes the snapshot into the pip
 closes the pipe's writer with `WriteTo`'s error (so the reader's stream ends in `io.EOF` only after
 a complete image), which hands it the other half, and closes the whole snapshot; it does not
 panic: an open snapshot's `Close` returns nil (`backend.snapshot.Close.spec`), and only a failed
-close reaches `lg.Panic`. -/
+close reaches `lg.Panic`. (2026-11-06, `notes/begin-tok-plan.md`) The goroutine exits with the
+`threadTok` `snapshot.Close` gives back, and the fork's fresh token is the caller's (`threadTok`). -/
 abbrev newSnapshotReaderCloser.spec : Prop :=
   ∀ (lg sp : Loc) (D : backend.Data) (γ : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ⌜lg ≠ null⌝ ∗
@@ -41,9 +42,9 @@ abbrev newSnapshotReaderCloser.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.newSnapshotReaderCloser)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp)))
-  {{ (rc : GoInterface), RET #rc;
-      backend.snapOpenQ sp D γ (1 : Qp).half -∗
-        backend.readerStreams rc (fun bs => backend.boltImage bs D) }}
+  {{ (rc : GoInterface), RET #rc; threadTok ∗
+      (backend.snapOpenQ sp D γ (1 : Qp).half -∗
+        backend.readerStreams rc (fun bs => backend.boltImage bs D)) }}
 
 end spec
 

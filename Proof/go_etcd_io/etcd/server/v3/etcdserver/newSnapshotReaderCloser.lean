@@ -66,7 +66,9 @@ theorem newSnapshotReaderCloser.wp_proof
   wp_apply hPipe (fun bs => backend.boltImage bs D) (backend.snapOpenQ sp D γ (1 : Qp).half)
     as %pr %pw ⟨#Hwok, Hpw, Hrs⟩
   (try wp_auto)
-  wp_apply wp_fork $$ [Hsn Hpw snapshot lg pw]
+  -- (2026-11-06, `notes/begin-tok-plan.md`) the fork's fresh token comes back to the caller; the
+  -- goroutine exits with the one `snapshot.Close` gives back
+  wp_apply wp_fork_tok_self $$ [Hsn Hpw snapshot lg pw] as Htok
   · -- the goroutine: `snapshot.WriteTo(pw)`, the log line, `pw.CloseWithError(err)` (which hands
     -- it the sender's half), `snapshot.Close()` (nil: no panic)
     wp_auto
@@ -89,9 +91,10 @@ theorem newSnapshotReaderCloser.wp_proof
       (try wp_auto)
       ihave Hfull := (backend.snapOpenQ_half sp D γ 1).2 $$ [Hsn Hhalf]
       · iframe Hsn Hhalf
-      wp_apply hCl sp D γ $$ [Hfull]
+      wp_apply hCl sp D γ $$ [Hfull] as Htok
       · iframe #; iframe Hfull
       (try wp_auto)
+      iframe Htok
       ipureintro; exact isPanic_intoVal ()
     · -- `WriteTo` succeeded: the bytes an image of `D`, the pipe closed with nil
       (try wp_auto)
@@ -108,12 +111,14 @@ theorem newSnapshotReaderCloser.wp_proof
       (try wp_auto)
       ihave Hfull := (backend.snapOpenQ_half sp D γ 1).2 $$ [Hsn Hhalf]
       · iframe Hsn Hhalf
-      wp_apply hCl sp D γ $$ [Hfull]
+      wp_apply hCl sp D γ $$ [Hfull] as Htok
       · iframe #; iframe Hfull
       (try wp_auto)
+      iframe Htok
       ipureintro; exact isPanic_intoVal ()
   · (try wp_auto)
     iapply HΦ
+    iframe Htok
     iexact Hrs
 
 end proof
