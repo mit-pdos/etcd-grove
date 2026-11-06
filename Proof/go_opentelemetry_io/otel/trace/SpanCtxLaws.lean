@@ -31,10 +31,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
-/-- **A context whose `Value(currentSpanKey)` returns `nil` has a span-key fact.** -/
+/-- **A context with no span has a span-key fact.** -/
 theorem trace.spanCtxOk_of_nil (ctx : GoInterfaceOk) :
-    □ ({{ True }} (App (Val #(methods ctx.ty go!"Value" ctx.v)) (Val #trace.spanKeyVal))
-      {{ RET #GoInterface.nil; True }}) ⊢ trace.spanCtxOk (GF := GF) ctx := by
+    trace.spanCtxNone (GF := GF) ctx ⊢ trace.spanCtxOk (GF := GF) ctx := by
+  unfold trace.spanCtxNone
   iintro #H
   iunfold trace.spanCtxOk
   iexists (fun v => v = GoInterface.nil)
@@ -54,9 +54,9 @@ theorem trace.spanCtxOk_of_nil (ctx : GoInterfaceOk) :
   ipureintro; rfl
 
 /-- **`context.Background()` has no span**: its `Value` (promoted from `emptyCtx`) returns `nil`. -/
-theorem trace.spanCtxOk_background :
-    ⊢ trace.spanCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal := by
-  iapply trace.spanCtxOk_of_nil
+theorem trace.spanCtxNone_background :
+    ⊢ trace.spanCtxNone (GF := GF) _root_.Perennial.context.backgroundCtxVal := by
+  unfold trace.spanCtxNone
   imodintro
   wp_start
   wp_method_call
@@ -64,18 +64,23 @@ theorem trace.spanCtxOk_background :
   iapply HΦ
   itrivial
 
+theorem trace.spanCtxOk_background :
+    ⊢ trace.spanCtxOk (GF := GF) _root_.Perennial.context.backgroundCtxVal := by
+  iapply trace.spanCtxOk_of_nil
+  iapply trace.spanCtxNone_background
+
 /-- **A `*cancelCtx` child of `context.Background()` has no span** (`WithCancel(Background())`):
 its `Value(currentSpanKey)` is not `&cancelCtxKey`, so `cancelCtx.Value` asks its parent
 (`value(c.Context, key)`), `Background()`, whose `Value` returns `nil`. From the parent field, as
 `traceutil.ctxTraceIs_cancelCtx_background`. -/
-theorem trace.spanCtxOk_cancelCtx_background (c : Loc) :
+theorem trace.spanCtxNone_cancelCtx_background (c : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗
       _root_.Perennial.context.ctxField c ↦□
         (interface.ok _root_.Perennial.context.backgroundCtxVal : GoInterface) ⊢
-      trace.spanCtxOk (GF := GF)
+      trace.spanCtxNone (GF := GF)
         (interface.mk (go.GoType.PointerType context.cancelCtx.ty) #c) := by
   iintro ⟨#Hpkg, #Hf⟩
-  iapply trace.spanCtxOk_of_nil
+  unfold trace.spanCtxNone
   imodintro
   wp_start
   wp_auto
@@ -90,6 +95,17 @@ theorem trace.spanCtxOk_cancelCtx_background (c : Loc) :
   wp_for_post
   iapply HΦ
   itrivial
+
+theorem trace.spanCtxOk_cancelCtx_background (c : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      _root_.Perennial.context.ctxField c ↦□
+        (interface.ok _root_.Perennial.context.backgroundCtxVal : GoInterface) ⊢
+      trace.spanCtxOk (GF := GF)
+        (interface.mk (go.GoType.PointerType context.cancelCtx.ty) #c) := by
+  iintro H
+  iapply trace.spanCtxOk_of_nil
+  iapply trace.spanCtxNone_cancelCtx_background
+  iexact H
 
 /-- **A `valueCtx` child at a key other than otel's has its parent's span** (`context.WithValue`):
 `valueCtx.Value(currentSpanKey)` compares the key with its own, of another type (unequal), and asks

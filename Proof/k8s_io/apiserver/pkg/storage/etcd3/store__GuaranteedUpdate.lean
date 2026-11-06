@@ -71,7 +71,7 @@ theorem store.GuaranteedUpdate.wp_proof
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GuaranteedUpdate.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 f uf W _ Φu k hk hkl hfsz
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, HW, #Hau, #Hup⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, #Hsc, Hout, HW, #Hau, #Hup⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -135,7 +135,7 @@ theorem store.GuaranteedUpdate.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨#Hspn, #Hctx', #Hce'⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_EnforcePtr c.S.objTy p $$ [] as %v %eerr %Hen'
@@ -159,7 +159,6 @@ theorem store.GuaranteedUpdate.wp_proof
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
       iunfold updOut
@@ -185,7 +184,6 @@ theorem store.GuaranteedUpdate.wp_proof
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       have hid := update_none c σ (c.pathPrefix ++ k) hf c.S.zero (fun _ _ => none) f
       have hh := hand_true c (updStep (c.pathPrefix ++ k) c.S.zero f) σ (by simp [updStep, hid])
@@ -211,7 +209,6 @@ theorem store.GuaranteedUpdate.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       ihave HI : (∃ (st : Loc) (s : OState Obj) (σ : KVState) (kv : EtcdKv),
           "origState" ∷ origState_ptr ↦ st ∗ "Hos" ∷ ownState c st s ∗
@@ -270,7 +267,6 @@ theorem store.GuaranteedUpdate.wp_proof
           wp_for_post
           wp_apply wp_End spn _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           have hinv := update_err c σ _ hpfx kv hkv s hs c.S.zero f e hfr
           have hh := hand_true c (updStep (c.pathPrefix ++ k) c.S.zero f) σ (by simp [updStep, hinv])
@@ -294,7 +290,6 @@ theorem store.GuaranteedUpdate.wp_proof
         (try wp_auto)
         wp_apply wp_AddEvent spn _ _ $$ []
         · iframe #
-          ipureintro; exact Hspn
         (try wp_auto)
         iunfold encodeOk at Henc
         wp_apply Henc $$ [$Hret] as %esl %eerr Hret Henc'
@@ -310,7 +305,6 @@ theorem store.GuaranteedUpdate.wp_proof
           (try wp_auto)
           wp_apply wp_AddEvent spn _ _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           iunfold ownStateX at Hx
           icases Hx with ⟨%m', %dsl', %Hstn', Hstp, #Hdsl', Hm⟩
@@ -341,7 +335,7 @@ theorem store.GuaranteedUpdate.wp_proof
                   (hfsz _ _ _ _ _ _ hvl hs.2.1 hs.2.2.1 hfr (Or.inr (of_decide_eq_false hq))) hw)
                   $$ [$Hx $Hout $HT] as %st' %ok %uerr Hd
               · iframe #
-                ipureintro; exact ⟨Hspn, Hv⟩
+                ipureintro; exact Hv
               icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, Hout, %σ', #Hfs', %Hvals', Hat, HT'⟩)
               · -- an error
                 ihave %Hne := unkErr_ne c uerr $$ Hde
@@ -352,7 +346,6 @@ theorem store.GuaranteedUpdate.wp_proof
                   wp_for_post
                   wp_apply wp_End spn _ $$ []
                   · iframe #
-                    ipureintro; exact Hspn
                   (try wp_auto)
                   iapply HΦ
                   iunfold updOut
@@ -365,7 +358,6 @@ theorem store.GuaranteedUpdate.wp_proof
                 wp_for_post
                 wp_apply wp_End spn _ $$ []
                 · iframe #
-                  ipureintro; exact Hspn
                 (try wp_auto)
                 iapply HΦ
                 iunfold updOut
@@ -385,7 +377,6 @@ theorem store.GuaranteedUpdate.wp_proof
                   wp_for_post
                   wp_apply wp_End spn _ $$ []
                   · iframe #
-                    ipureintro; exact Hspn
                   (try wp_auto)
                   have hid := update_none c σ' (c.pathPrefix ++ k) hf' c.S.zero (fun _ _ => none) f
                   have hh := hand_true c (updStep (c.pathPrefix ++ k) c.S.zero f) σ' (by simp [updStep, hid])
@@ -437,7 +428,6 @@ theorem store.GuaranteedUpdate.wp_proof
               wp_for_post
               wp_apply wp_End spn _ $$ []
               · iframe #
-                ipureintro; exact Hspn
               (try wp_auto)
               have hsk := update_skip c σ _ hpfx kv hkv s hs c.S.zero f o' hfr hn
               have hh := hand_true c (updStep (c.pathPrefix ++ k) c.S.zero f) σ (by simp [updStep, hsk])
@@ -470,7 +460,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 hpfx hkl hkv hs hfr (hfsz _ _ _ _ _ _ hvl hs.2.1 hs.2.2.1 hfr (Or.inl hst)) hw)
                 $$ [$Hx $Hout $HT] as %st' %ok %uerr Hd
             · iframe #
-              ipureintro; exact ⟨Hspn, Hv⟩
+              ipureintro; exact Hv
             icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, Hout, %σ', #Hfs', %Hvals', Hat, HT'⟩)
             · -- an error
               ihave %Hne := unkErr_ne c uerr $$ Hde
@@ -481,7 +471,6 @@ theorem store.GuaranteedUpdate.wp_proof
                 wp_for_post
                 wp_apply wp_End spn _ $$ []
                 · iframe #
-                  ipureintro; exact Hspn
                 (try wp_auto)
                 iapply HΦ
                 iunfold updOut
@@ -494,7 +483,6 @@ theorem store.GuaranteedUpdate.wp_proof
               wp_for_post
               wp_apply wp_End spn _ $$ []
               · iframe #
-                ipureintro; exact Hspn
               (try wp_auto)
               iapply HΦ
               iunfold updOut
@@ -514,7 +502,6 @@ theorem store.GuaranteedUpdate.wp_proof
                 wp_for_post
                 wp_apply wp_End spn _ $$ []
                 · iframe #
-                  ipureintro; exact Hspn
                 (try wp_auto)
                 have hid := update_none c σ' (c.pathPrefix ++ k) hf' c.S.zero (fun _ _ => none) f
                 have hh := hand_true c (updStep (c.pathPrefix ++ k) c.S.zero f) σ' (by simp [updStep, hid])
@@ -570,12 +557,10 @@ theorem store.GuaranteedUpdate.wp_proof
             (try wp_auto)
             wp_apply wp_AddEvent spn _ _ $$ []
             · iframe #
-              ipureintro; exact Hspn
             (try wp_auto)
             wp_for_post
             wp_apply wp_End spn _ $$ []
             · iframe #
-              ipureintro; exact Hspn
             (try wp_auto)
             iapply HΦ
             iunfold updOut

@@ -163,3 +163,33 @@ place of "not a `Span` or `isSpan`"; `grpcRunCtx` and `traceutil.Tracer.Start`'s
 `isContext` arm"). The counterexample's `spanCtx` has no `spanCtxOk`. Same root, open:
 `traceutil.Tracer.Start`'s axiom (the no-op tracer returns `ctx`'s span, after calling its
 `SpanContext()` and `IsRecording()`).
+
+## Tracer.Start and k8s's tracing (2026-11-06, fixed; the user approved fixing axioms as needed)
+
+Checked against otel v1.47.0 (`examples/go.mod`), k8s component-base `cd2c1afd246a` and k8s.io/utils
+`be93311217bd` (`examples/k8setcd3/go.mod`).
+
+- **`traceutil.Tracer.Start.wp_proof`: refuted on the Go side, same root.** etcd's `traceutil.Tracer`
+  is `noop.NewTracerProvider().Tracer(...)`; `noop.Tracer.Start` (`trace/noop/noop.go:54-73`) calls
+  `trace.SpanFromContext(ctx)`, then `span.SpanContext()` and, on a non-zero one,
+  `span.IsRecording()`, returning `ctx, span` when it is not recording. A context answering
+  `currentSpanKey` with a span whose `SpanContext` panics refutes the run's return; one whose
+  `SpanContext` is non-zero, `IsRecording` false and `End` panicking refutes `isSpan sp`. (The SDK
+  tracer, `sdk/trace/tracer.go`, also calls `SpanContext()`, through `SpanContextFromContext`.)
+  **Fix:** premise `trace.spanCtxOk ctx`, whose span predicate is now `trace.isParentSpan` (`isSpan`
+  plus `SpanContext()` and `IsRecording()` returning); post `trace.spanCtxOk ctx'`.
+- **k8s `tracing.SpanFromContext.wp_proof`: refuted (no premise on `ctx`).** `SpanFromContext(nil)`
+  panics in `utiltrace.FromContext` (`ctx.Value(ContextTraceKey{})` on a nil interface); a context
+  of the program's own can panic in `Value`. Its post `⌜sp ≠ null⌝` with **`tracing.Span.End`/
+  `AddEvent`** (`{{ ⌜sp ≠ null⌝ }} … {{ True }}`): `(&tracing.Span{}).End(0)` panics (nil
+  `otelSpan`), so those two were false outright, and with a context holding a bad otel span so is
+  the span `SpanFromContext` returns. **Fix:** `tracing.isSpan sp` (`End` and `AddEvent` return)
+  in place of `⌜sp ≠ null⌝`, premise `tracing.ctxSpansOk ctx` (non-nil, `spanCtxOk`,
+  `Value(ContextTraceKey{})` returning); `End`/`AddEvent` proved from `isSpan`.
+- **k8s `tracing.Start.wp_proof`: refuted the same way** (`trace.SpanFromContext(ctx).TracerProvider()
+  .Tracer(...).Start(ctx, ...)`, then `utiltrace.FromContext`). **Fix:** premise `tracing.startCtxOk ci`
+  (no span, `trace.spanCtxNone`, so the provider is otel's no-op one; the utiltrace key answering),
+  post `tracing.isSpan sp`.
+
+Not built as counterexamples (Go-side reading only); the fixes' statements in
+`notes/decisions.md`, "`traceutil.Tracer.Start` and k8s's `tracing` axioms".

@@ -141,7 +141,8 @@ unexported key of otel's `trace` package, set only by `trace.ContextWithSpan`), 
 interceptors; otelgrpc's stats handler (`otelgrpc.NewServerHandler`, `TagRPC`) stores the span
 its tracer's `Start` returns (an SDK span, or the no-op tracer's `Span`, over the remote parent
 `ContextWithRemoteSpanContext` stores, a `nonRecordingSpan`), each a span whose `End`,
-`AddEvent` and `RecordError` return. -/
+`AddEvent` and `RecordError` return, and (`trace.isParentSpan`, 2026-11-06) its `SpanContext()` and
+`IsRecording()`. -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
   iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗

@@ -72,7 +72,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
           v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
           cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
           cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-          v3rpc.watchSpec (V.mem i).2 (auth.mdTokenOf md) γs Dn) ∨
+          v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
         (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err)) -∗ Φ (PairV #ws #err)) ∗
         w_ptr ↦ wgs ∗ backoff_ptr ↦ b ∗ err_ptr ↦ e ∗ ws_ptr ↦ wsv ∗
         (⌜e = GoInterface.nil⌝ ∨ ⌜e ≠ GoInterface.nil⌝ ∗ statusErrOk e))
@@ -117,7 +117,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
   · iintro ⟨HΦ, w, backoff, err, ws, He⟩ -
     wp_auto
     wp_apply wp_Watch V.wc V.conn V.addrs V.ics (fun a => v3rpc.watchUp (V.memOf a))
-      (fun a md => v3rpc.watchSpec (V.memOf a) (auth.mdTokenOf md)) ci cd callSl vs $$ []
+      (fun a md => v3rpc.watchSpec (V.memOf a) (V.memWOf a) (auth.mdTokenOf md)) ci cd callSl vs $$ []
       as %cs %err' Hr
     · iframe #
     icases Hr with (⟨%He', %a, %γs, %Dn, %cd', %md, %Ha, Hcs, Hst, Hrt, Hspec⟩ | ⟨%Hcs, #Hse⟩)

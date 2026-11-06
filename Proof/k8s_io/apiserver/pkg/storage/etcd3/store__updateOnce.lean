@@ -60,7 +60,7 @@ theorem store.updateOnce.wp_proof
     store.updateOnce.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl σ0 kv0 v p z f o' W Φu
     hk hkl hkv0 hs hok hosz hw
-  wp_start as ⟨#Hst, #Hctx, #Hce, %Hspn, Hos, #Hdsl, Hout, %Hv, #Hrd0, HW, #Hau⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, #Hspn, Hos, #Hdsl, Hout, %Hv, #Hrd0, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -117,11 +117,9 @@ theorem store.updateOnce.wp_proof
     (try wp_auto)
     wp_apply wp_AddEvent span _ _ $$ []
     · iframe #
-      ipureintro; exact Hspn
     (try wp_auto)
     wp_apply wp_AddEvent span _ _ $$ []
     · iframe #
-      ipureintro; exact Hspn
     (try wp_auto)
     wp_apply _root_.Perennial.time.wp_Now as %t0 -
     (try wp_auto)
@@ -161,11 +159,9 @@ theorem store.updateOnce.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent span _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       wp_apply wp_AddEvent span _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       cases hsc : resp.Succeeded'
       · -- a conflict: nothing changed
@@ -227,7 +223,6 @@ theorem store.updateOnce.wp_proof
           (try wp_auto)
           wp_apply wp_AddEvent span _ _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
           iright
@@ -270,7 +265,6 @@ theorem store.updateOnce.wp_proof
         (try wp_auto)
         wp_apply wp_AddEvent span _ _ $$ []
         · iframe #
-          ipureintro; exact Hspn
         (try wp_auto)
         iapply HΦ
         iright
@@ -301,7 +295,6 @@ theorem store.updateOnce.wp_proof
         (try wp_auto)
         wp_apply wp_AddEvent span _ _ $$ []
         · iframe #
-          ipureintro; exact Hspn
         (try wp_auto)
         iapply HΦ
         ileft
@@ -327,7 +320,6 @@ theorem store.updateOnce.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent span _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       wp_apply wp_NewInternalError ti' $$ [] as %ie -
       · iframe #

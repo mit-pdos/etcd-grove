@@ -12,6 +12,7 @@ an error if the version does not parse, `getCurrentRV` fails, or the wait times 
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.DefsWC
+public import Proof.k8s_io.component_base.tracing.Defs
 
 @[expose] public section
 
@@ -36,7 +37,7 @@ abbrev watchCache.WaitUntilFreshAndGet.spec : Prop :=
   ∀ (wc : Loc) (γ : WCSNames) (Ψ : SnapSt → IProp GF) (parseRV : GoString → Option w64)
     (ctxPre : GoInterface → IProp GF) (curRV : w64 → IProp GF) (ctx : GoInterface)
     (rvs key : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ wcGetOk wc parseRV ctxPre curRV ∗ ctxPre ctx ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher ∗ isWC wc γ Ψ ∗ wcGetOk wc parseRV ctxPre curRV ∗ ctxPre ctx ∗ tracing.ctxSpansOk ctx ∗
       sync.ownRWMutex (structFieldRef watchCache go!"RWMutex" wc) (wcLockP wc γ) }}
     (App (App (App (Val (wc @!! go.GoType.PointerType watchCache.ty @!! go!"WaitUntilFreshAndGet")) (Val #ctx)) (Val #rvs)) (Val #key))
   {{ (value : GoInterface) (ex : Bool) (rv : w64) (err : GoInterface),

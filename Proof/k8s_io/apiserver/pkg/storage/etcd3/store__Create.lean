@@ -67,7 +67,7 @@ theorem store.Create.wp_proof
     (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
     store.Create.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key obj o rv out o0 rv0 k Ψ hk hkl hosz hrv
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, #Hsc, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon⟩
@@ -119,7 +119,7 @@ theorem store.Create.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨#Hspn, #Hctx', #Hce'⟩
   · iframe #
   (try wp_auto)
   iunfold versionerOk at Hver
@@ -133,7 +133,6 @@ theorem store.Create.wp_proof
   (try wp_auto)
   wp_apply wp_AddEvent spn _ _ $$ []
   · iframe #
-    ipureintro; exact Hspn
   (try wp_auto)
   iunfold encodeOk at Henc
   wp_apply Henc $$ [$Hobj] as %dsl %eerr Hobj Henc'
@@ -149,7 +148,6 @@ theorem store.Create.wp_proof
     (try wp_auto)
     wp_apply wp_AddEvent spn _ _ $$ []
     · iframe #
-      ipureintro; exact Hspn
     (try wp_auto)
     iunfold transformerOk at Htr
     icases Htr with ⟨-, #HtrTo⟩
@@ -159,7 +157,6 @@ theorem store.Create.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       wp_apply _root_.Perennial.time.wp_Now as %t0 -
       (try wp_auto)
@@ -197,7 +194,6 @@ theorem store.Create.wp_proof
         (try wp_auto)
         wp_apply wp_AddEvent spn _ _ $$ []
         · iframe #
-          ipureintro; exact Hspn
         (try wp_auto)
         have hout := create_out c σ Hwfσ.1 _ v o hpfx hdv
         have hsucc' : resp.Succeeded' = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
@@ -212,7 +208,6 @@ theorem store.Create.wp_proof
           (try wp_auto)
           wp_apply wp_End spn _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
           isplitl [Hobj]
@@ -250,11 +245,9 @@ theorem store.Create.wp_proof
             (try wp_auto)
             wp_apply wp_AddEvent spn _ _ $$ []
             · iframe #
-              ipureintro; exact Hspn
             (try wp_auto)
             wp_apply wp_End spn _ $$ []
             · iframe #
-              ipureintro; exact Hspn
             (try wp_auto)
             iapply HΦ
             isplitl [Hobj]
@@ -283,11 +276,9 @@ theorem store.Create.wp_proof
           (try wp_auto)
           wp_apply wp_AddEvent spn _ _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           wp_apply wp_End spn _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
           isplitl [Hobj]
@@ -315,7 +306,6 @@ theorem store.Create.wp_proof
         (try wp_auto)
         wp_apply wp_AddEvent spn _ _ $$ []
         · iframe #
-          ipureintro; exact Hspn
         (try wp_auto)
         wp_apply wp_NewInternalError ti' $$ [] as %ie -
         · iframe #
@@ -324,7 +314,6 @@ theorem store.Create.wp_proof
         (try wp_auto)
         wp_apply wp_End spn _ $$ []
         · iframe #
-          ipureintro; exact Hspn
         (try wp_auto)
         iapply HΦ
         isplitl [Hobj]
@@ -352,11 +341,9 @@ theorem store.Create.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
       isplitl [Hobj]

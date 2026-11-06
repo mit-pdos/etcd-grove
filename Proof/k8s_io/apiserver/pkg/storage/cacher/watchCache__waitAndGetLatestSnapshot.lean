@@ -42,7 +42,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
     (wp_AddEvent : tracing.Span.AddEvent.spec (GF := GF) (hG := hG)) :
     watchCache.waitAndGetLatestSnapshot.spec (GF := GF) (hG := hG) := by
   intro wc γ Ψ ctx minRV mv
-  wp_start as ⟨#Hwc, Htok⟩
+  wp_start as ⟨#Hwc, Htok, #Hcs⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -50,7 +50,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp %Hsp
+  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp #Hsp
   (try wp_auto)
   rw [watchCache.TypeAssumptions.ptr_RLock_unfold.method_unfold]
   wp_pures
@@ -59,7 +59,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   · iframe #; iframe
   (try wp_auto)
   wp_apply (wp_AddEvent sp _ _) $$ []
-  · iframe #; ipureintro; exact Hsp
+  · iframe #
   (try wp_auto)
   wp_apply (wp_wait wc γ Ψ ctx minRV) $$ [Hrl HP] as %err ⟨Hrl, %st, Hl, %Hfresh⟩
   · iframe #; iframe
@@ -81,7 +81,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   | nil =>
   (try wp_auto)
   wp_apply (wp_AddEvent sp _ _) $$ []
-  · iframe #; ipureintro; exact Hsp
+  · iframe #
   (try wp_auto)
   wp_apply (wp_latest wc γ Ψ ctx mv sync.rfrac st) $$ [Hl] as %p ⟨Hl, #Hsn, #HΨ⟩
   · iframe #; iframe

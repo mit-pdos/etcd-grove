@@ -46,7 +46,7 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
     (wp_AddEvent : tracing.Span.AddEvent.spec (GF := GF) (hG := hG)) :
     watchCache.WaitUntilFreshAndGet.spec (GF := GF) (hG := hG) := by
   intro wc γ Ψ parseRV ctxPre curRV ctx rvs key
-  wp_start as ⟨#Hwc, #Hget, Hcp, Htok⟩
+  wp_start as ⟨#Hwc, #Hget, Hcp, #Hcs, Htok⟩
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.store $$ []
   · iPkgInit
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -54,7 +54,7 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
   iunfold wcGetOk at Hget
   icases Hget with ⟨%cfg, %vi, %f, #Hcfg, #Hvi, #Hf, #Hparse, #Hcur⟩
   (try wp_auto)
-  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp %Hsp
+  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp #Hsp
   (try wp_auto)
   wp_if_destruct
   -- `""`: the current revision
@@ -121,7 +121,7 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
           iexact Hsn
         (try wp_auto)
         wp_apply (wp_AddEvent sp _ _) $$ []
-        · iframe #; ipureintro; exact Hsp
+        · iframe #
         (try wp_auto)
         iapply HΦ
         iframe Htok
@@ -154,7 +154,7 @@ theorem watchCache.WaitUntilFreshAndGet.wp_proof
             iexact Hsn
           (try wp_auto)
           wp_apply (wp_AddEvent sp _ _) $$ []
-          · iframe #; ipureintro; exact Hsp
+          · iframe #
           (try wp_auto)
           iapply HΦ
           iframe Htok

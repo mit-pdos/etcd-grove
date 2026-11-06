@@ -88,6 +88,8 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
+  -- no span, no trace: what `tracing.Start` takes (the store's methods' `tracing.startCtxOk`)
+  ihave #Hsc := tracing.startCtxOk_background (GF := GF) $$ []
   have hob : ∀ (p : Loc) (o : DObj) (n : w64),
       (p ↦ github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.mk o.1.1 o.1.2 n : IProp GF) ⊢
         c.S.objAt (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr n) := by

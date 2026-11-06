@@ -105,7 +105,7 @@ axiom grpcProtoCodec [GooseExts] (c : GoInterface) : Prop
 (an axiomatized property, introduced by `otelgrpc.NewServerHandler`'s spec): what `grpcRunCtx`
 presumes of the stats handlers in front of a method's handler. Since 2026-11-06 (`grpcRunCtx`'s
 `trace.spanCtxOk`), also: the span it stores under otel's span key, if any, is a span (otelgrpc's:
-its tracer's, `End`, `AddEvent`, `RecordError` returning). -/
+its tracer's, `End`, `AddEvent`, `RecordError`, `SpanContext`, `IsRecording` returning). -/
 axiom grpcStatsHandlerOk [GooseExts] (h : GoInterface) : Prop
 
 /-- **The server being built** (exclusive; see the file header). -/

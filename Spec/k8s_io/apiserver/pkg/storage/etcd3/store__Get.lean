@@ -22,6 +22,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.component_base.tracing.Defs
 
 @[expose] public section
 
@@ -52,7 +53,7 @@ abbrev store.Get.spec : Prop :=
   opts.ResourceVersion' = [] →
   (∀ R m σ, Q R m σ ⊢ ⌜kvWf c σ⌝) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ tracing.startCtxOk ci ∗ c.S.objAt out o0 rv0 ∗
       (∀ R m, |==> □ [∧list] x ∈ c.ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨
         kvReadAu x.γr.kv (Q R m)) }}
     (App (App (App (App (Val (sp @!! go.GoType.PointerType

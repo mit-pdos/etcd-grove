@@ -42,7 +42,7 @@ theorem watchCache.getLatestSnapshotLocked.wp_proof
     (wp_AddEvent : tracing.Span.AddEvent.spec (GF := GF) (hG := hG)) :
     watchCache.getLatestSnapshotLocked.spec (GF := GF) (hG := hG) := by
   intro wc γ Ψ ctx mv q st
-  wp_start as ⟨#Hwc, Hl⟩
+  wp_start as ⟨#Hwc, Hl, #Hcs⟩
   ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.store $$ []
   · iPkgInit
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
@@ -52,7 +52,7 @@ theorem watchCache.getLatestSnapshotLocked.wp_proof
   unfold wcLockPSt
   icases Hl with ⟨Hrv, Hown⟩
   (try wp_auto)
-  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp %Hsp
+  wp_apply (wp_SpanFromContext ctx) $$ [] as %sp #Hsp
   (try wp_auto)
   wp_apply (wp_LatestSnapshot s γ Ψ (wcsOwn γ q st)
     (fun st' => iprop(⌜st' = st⌝ ∗ wcsOwn γ q st))) $$ [Hown] as %p %st' ⟨#Hsn, #HΨ, %Heq, Hown⟩
@@ -72,7 +72,7 @@ theorem watchCache.getLatestSnapshotLocked.wp_proof
   subst Heq
   (try wp_auto)
   wp_apply (wp_AddEvent sp _ _) $$ []
-  · iframe #; ipureintro; exact Hsp
+  · iframe #
   (try wp_auto)
   wp_apply (wp_check wc p st'.1 st'.2) $$ []
   · iframe #

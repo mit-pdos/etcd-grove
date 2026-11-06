@@ -21,6 +21,7 @@ No TTL (D30d), and `ignoreNotFound` false.
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Steps
+public import Proof.k8s_io.component_base.tracing.Defs
 
 @[expose] public section
 
@@ -53,7 +54,7 @@ abbrev store.updateOnce.spec : Prop :=
   f s.o (uint.nat s.rev) = .ok o' → c.S.storedSizeOk o' →
   (!s.stale && decide (c.S.encode o' = s.data)) = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜span ≠ null⌝ ∗ ownStateX c st s x ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ tracing.isSpan span ∗ ownStateX c st s x ∗
       dsl ↦*□ c.S.encode o' ∗ c.S.objAt dest o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗
       rdFacts c σ0 ∗ W ∗
       ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key z f) W Φ) }}

@@ -60,7 +60,7 @@ theorem store.Get.wp_proof
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k Q hk hkl hrv hQ
-  wp_start as ⟨#Hst, #Hctx, #Hce, Hout, Hau⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, #Hsc, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
     #Hcl, #Hone, #Hregs, #Hcon⟩
@@ -104,7 +104,7 @@ theorem store.Get.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
+  wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨#Hspn, #Hctx', #Hce'⟩
   · iframe #
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
@@ -132,7 +132,6 @@ theorem store.Get.wp_proof
     (try wp_auto)
     wp_apply wp_AddEvent spn _ _ $$ []
     · iframe #
-      ipureintro; exact Hspn
     (try wp_auto)
     rw [hrv]
     wp_apply wp_validateMin sp _
@@ -153,7 +152,6 @@ theorem store.Get.wp_proof
           (try wp_auto)
           wp_apply wp_End spn _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
           iright
@@ -181,7 +179,6 @@ theorem store.Get.wp_proof
           (try wp_auto)
           wp_apply wp_End spn _ $$ []
           · iframe #
-            ipureintro; exact Hspn
           (try wp_auto)
           iapply HΦ
           iright
@@ -216,7 +213,6 @@ theorem store.Get.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       iunfold decoderOk at Hdec
       wp_apply Hdec $$ [$Hdsl] [$Hout] as %derr Hdres
@@ -232,11 +228,9 @@ theorem store.Get.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
       iright
@@ -268,11 +262,9 @@ theorem store.Get.wp_proof
       (try wp_auto)
       wp_apply wp_AddEvent spn _ _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
       · iframe #
-        ipureintro; exact Hspn
       (try wp_auto)
       iapply HΦ
       ileft

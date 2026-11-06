@@ -27,6 +27,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Steps
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.component_base.tracing.Defs
 
 @[expose] public section
 
@@ -58,7 +59,7 @@ abbrev store.GuaranteedUpdate.spec : Prop :=
     c.S.fromS v = some (d, stl) → c.S.decode d = some o → f o n = .ok o' →
     (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
-      ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt dest o0 rv0 ∗ W ∗
+      ctxOk ci cd ∗ ctxErrClient ci cd ∗ tracing.startCtxOk ci ∗ c.S.objAt dest o0 rv0 ∗ W ∗
       ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep (c.pathPrefix ++ k) c.S.zero f) W Φ) ∗
       tryUpdateOk c f uf }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
